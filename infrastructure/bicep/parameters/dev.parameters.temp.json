@@ -1,0 +1,30 @@
+{
+    "$schema":  "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion":  "1.0.0.0",
+    "parameters":  {
+                       "environment":  {
+                                           "value":  "dev"
+                                       },
+                       "postgresAdminUsername":  {
+                                                     "value":  "sunnyseataadmin"
+                                                 },
+                       "postgresAdminPassword":  {
+                                                     "value":  "CcSutYfHlkzjFwD1sir9eJa2VTRphWdK"
+                                                 },
+                       "jwtSecretKey":  {
+                                            "value":  "I3Yi+WRIBN+LrPpFgy45FYm162r/P/laAKSbKJhKMm0FrUkQ+bcn0NK9i3v/dgXYuBRXds72QSXCdR0mEN91Tg=="
+                                        },
+                       "openWeatherMapApiKey":  {
+                                                    "value":  "2d1b6d709917a015d422387dde381246"
+                                                },
+                       "mapTilerApiKey":  {
+                                              "value":  ""
+                                          },
+                       "corsAllowedOrigins":  {
+                                                  "value":  [
+                                                                "http://localhost:3000",
+                                                                "http://localhost:5173"
+                                                            ]
+                                              }
+                   }
+}

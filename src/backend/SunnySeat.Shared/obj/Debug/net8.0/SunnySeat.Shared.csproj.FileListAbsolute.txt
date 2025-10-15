@@ -1,0 +1,11 @@
+D:\SunnySeat\src\backend\SunnySeat.Shared\bin\Debug\net8.0\SunnySeat.Shared.deps.json
+D:\SunnySeat\src\backend\SunnySeat.Shared\bin\Debug\net8.0\SunnySeat.Shared.dll
+D:\SunnySeat\src\backend\SunnySeat.Shared\bin\Debug\net8.0\SunnySeat.Shared.pdb
+D:\SunnySeat\src\backend\SunnySeat.Shared\obj\Debug\net8.0\SunnySeat.Shared.GeneratedMSBuildEditorConfig.editorconfig
+D:\SunnySeat\src\backend\SunnySeat.Shared\obj\Debug\net8.0\SunnySeat.Shared.AssemblyInfoInputs.cache
+D:\SunnySeat\src\backend\SunnySeat.Shared\obj\Debug\net8.0\SunnySeat.Shared.AssemblyInfo.cs
+D:\SunnySeat\src\backend\SunnySeat.Shared\obj\Debug\net8.0\SunnySeat.Shared.csproj.CoreCompileInputs.cache
+D:\SunnySeat\src\backend\SunnySeat.Shared\obj\Debug\net8.0\SunnySeat.Shared.dll
+D:\SunnySeat\src\backend\SunnySeat.Shared\obj\Debug\net8.0\refint\SunnySeat.Shared.dll
+D:\SunnySeat\src\backend\SunnySeat.Shared\obj\Debug\net8.0\SunnySeat.Shared.pdb
+D:\SunnySeat\src\backend\SunnySeat.Shared\obj\Debug\net8.0\ref\SunnySeat.Shared.dll

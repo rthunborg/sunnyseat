@@ -1,0 +1,5 @@
+D:\SunnySeat\tests\SunnySeat.Performance.Benchmarks\obj\Release\net8.0\SunnySeat.Performance.Benchmarks.csproj.AssemblyReference.cache
+D:\SunnySeat\tests\SunnySeat.Performance.Benchmarks\obj\Release\net8.0\SunnySeat.Performance.Benchmarks.GeneratedMSBuildEditorConfig.editorconfig
+D:\SunnySeat\tests\SunnySeat.Performance.Benchmarks\obj\Release\net8.0\SunnySeat.Performance.Benchmarks.AssemblyInfoInputs.cache
+D:\SunnySeat\tests\SunnySeat.Performance.Benchmarks\obj\Release\net8.0\SunnySeat.Performance.Benchmarks.AssemblyInfo.cs
+D:\SunnySeat\tests\SunnySeat.Performance.Benchmarks\obj\Release\net8.0\SunnySeat.Performance.Benchmarks.csproj.CoreCompileInputs.cache

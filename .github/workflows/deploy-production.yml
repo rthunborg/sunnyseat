@@ -1,0 +1,176 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to deploy"
+        required: true
+        default: "latest"
+
+env:
+  AZURE_WEBAPP_NAME: sunnyseat-prod
+  DOTNET_VERSION: "8.0.x"
+
+jobs:
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore SunnySeat.sln
+
+      - name: Build application
+        run: dotnet build SunnySeat.sln --configuration Release --no-restore
+
+      - name: Run full test suite
+        run: dotnet test --no-build --configuration Release --logger "trx;LogFileName=test-results.trx"
+
+      - name: Publish application
+        run: dotnet publish src/backend/SunnySeat.Api/SunnySeat.Api.csproj --configuration Release --output ./publish --no-build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-artifacts
+          path: ./publish/
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-test-results
+          path: "**/test-results.trx"
+
+  security-validation:
+    name: Security Validation
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Run security scan
+        run: |
+          dotnet restore SunnySeat.sln
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee security-report.txt
+
+          if grep -q "has the following vulnerable packages" security-report.txt; then
+            echo "? Security vulnerabilities found! Production deployment blocked."
+            cat security-report.txt
+            exit 1
+          fi
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, security-validation]
+    environment:
+      name: production
+      url: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: production-artifacts
+          path: ./publish/
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS_PROD }}
+
+      - name: Deploy to Production (Blue-Green)
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          slot-name: staging
+          package: ./publish/
+
+      - name: Warm up staging slot
+        run: |
+          echo "Warming up staging slot..."
+          sleep 30
+
+          # Health check on staging slot
+          for i in {1..5}; do
+            if curl -f https://${{ env.AZURE_WEBAPP_NAME }}-staging.azurewebsites.net/health; then
+              echo "? Staging slot is healthy"
+              break
+            else
+              echo "? Warming up attempt $i..."
+              sleep 10
+            fi
+          done
+
+      - name: Swap to production
+        run: |
+          az webapp deployment slot swap \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --slot staging \
+            --target-slot production
+
+      - name: Verify production deployment
+        run: |
+          echo "Verifying production deployment..."
+          sleep 15
+
+          # Production health check
+          for i in {1..10}; do
+            if curl -f https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health; then
+              echo "? Production deployment is healthy"
+              break
+            else
+              echo "? Production verification attempt $i..."
+              sleep 15
+            fi
+            
+            if [ $i -eq 10 ]; then
+              echo "? Production health check failed!"
+              # Automatic rollback
+              az webapp deployment slot swap \
+                --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+                --name ${{ env.AZURE_WEBAPP_NAME }} \
+                --slot production \
+                --target-slot staging
+              exit 1
+            fi
+          done
+
+  post-deploy:
+    name: Post-deployment Tasks
+    runs-on: ubuntu-latest
+    needs: deploy
+
+    steps:
+      - name: Create deployment tag
+        uses: actions/checkout@v4
+
+      - name: Tag release
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "prod-${{ github.run_number }}" -m "Production deployment ${{ inputs.version }}"
+          git push origin "prod-${{ github.run_number }}"
+
+      - name: Notify success
+        run: |
+          echo "?? Successfully deployed version ${{ inputs.version }} to production!"
+          echo "?? Production URL: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"

@@ -1,0 +1,110 @@
+Summary
+  Generated on: 2025-10-13 - 11:47:47
+  Coverage date: 2025-10-13 - 11:41:45 - 2025-10-13 - 11:42:16
+  Parser: MultiReport (4x Cobertura)
+  Assemblies: 4
+  Classes: 82
+  Files: 70
+  Line coverage: 85.1%
+  Covered lines: 2753
+  Uncovered lines: 482
+  Coverable lines: 3235
+  Total lines: 16571
+  Branch coverage: 64.2% (576 of 896)
+  Covered branches: 576
+  Total branches: 896
+  Method coverage: 82.2% (223 of 271)
+  Full method coverage: 68.2% (185 of 271)
+  Covered methods: 223
+  Fully covered methods: 185
+  Total methods: 271
+
+SunnySeat.Api                                                        90.5%
+  Program                                                            99.2%
+  SunnySeat.Api.Commands.ConsoleCommands                                0%
+  SunnySeat.Api.Endpoints.AuthEndpoints                               100%
+  SunnySeat.Api.Endpoints.BuildingEndpoints                           100%
+  SunnySeat.Api.Endpoints.FeedbackEndpoints                           100%
+  SunnySeat.Api.Endpoints.ShadowController                            100%
+  SunnySeat.Api.Endpoints.SolarController                             100%
+  SunnySeat.Api.Endpoints.SunExposureController                      87.8%
+  SunnySeat.Api.Endpoints.TimelineController                          100%
+  SunnySeat.Api.Endpoints.VenueEndpoints                             78.9%
+  SunnySeat.Api.Endpoints.WeatherController                             0%
+  SunnySeat.Api.HealthChecks.WeatherServiceHealthCheck                100%
+  SunnySeat.Api.Middleware.DateTimeExtensions                         100%
+  SunnySeat.Api.Middleware.RateLimitingMiddleware                    91.1%
+  SunnySeat.Api.Services.SignalRAccuracyMetricsBroadcaster              0%
+
+SunnySeat.Core                                                       82.5%
+  SunnySeat.Core.Commands.ImportBuildingsCommand                      100%
+  SunnySeat.Core.Constants.GothenburgCoordinates                        0%
+  SunnySeat.Core.Entities.Building                                     80%
+  SunnySeat.Core.Entities.PrecomputationMetrics                         0%
+  SunnySeat.Core.Entities.PrecomputationProgress                        0%
+  SunnySeat.Core.Entities.PrecomputationSchedule                        0%
+  SunnySeat.Core.Entities.PrecomputedSunExposure                        0%
+  SunnySeat.Core.Entities.SolarPosition                               100%
+  SunnySeat.Core.Entities.SunExposureTimeline                         100%
+  SunnySeat.Core.Entities.SunTimes                                    100%
+  SunnySeat.Core.Entities.SunWindow                                   100%
+  SunnySeat.Core.Interfaces.DataFreshnessInfo                           0%
+  SunnySeat.Core.Interfaces.DataIntegrityValidation                   100%
+  SunnySeat.Core.Interfaces.TimelineQualityAssessment                 100%
+  SunnySeat.Core.Models.ConfidenceLevelExtensions                    92.1%
+  SunnySeat.Core.Models.Responses.CalculationMetadata                 100%
+  SunnySeat.Core.Models.Responses.ConfidenceBreakdownInfo             100%
+  SunnySeat.Core.Models.Responses.FeedbackResponse                    100%
+  SunnySeat.Core.Models.Responses.PatioSunExposureResponse            100%
+  SunnySeat.Core.Models.Responses.SolarPositionInfo                   100%
+  SunnySeat.Core.Models.Responses.SunExposureAreaInfo                 100%
+  SunnySeat.Core.Models.Responses.SunExposureTimelinePointResponse    100%
+  SunnySeat.Core.Models.Responses.SunExposureTimelineResponse         100%
+  SunnySeat.Core.Models.Responses.TimelineSummaryInfo                89.4%
+  SunnySeat.Core.Models.Responses.VenueInfo                           100%
+  SunnySeat.Core.Models.Responses.WeatherContextInfo                  100%
+  SunnySeat.Core.Services.AccuracyMetricsBackgroundService            100%
+  SunnySeat.Core.Services.AccuracyTrackingService                     100%
+  SunnySeat.Core.Services.AlertingService                               0%
+  SunnySeat.Core.Services.AuthenticationService                       100%
+  SunnySeat.Core.Services.BuildingDataProcessor                      75.1%
+  SunnySeat.Core.Services.BuildingHeightManager                      17.5%
+  SunnySeat.Core.Services.BuildingImportService                      13.7%
+  SunnySeat.Core.Services.ConfidenceCalculator                       97.1%
+  SunnySeat.Core.Services.DataQualityService                          100%
+  SunnySeat.Core.Services.MetNoWeatherService                         100%
+  SunnySeat.Core.Services.MultiLayerCacheService                       90%
+  SunnySeat.Core.Services.OpenWeatherMapService                        90%
+  SunnySeat.Core.Services.PrecomputationService                      86.2%
+  SunnySeat.Core.Services.ShadowCalculationService                   31.5%
+  SunnySeat.Core.Services.SolarCalculationService                    88.3%
+  SunnySeat.Core.Services.SunExposureService                           81%
+  SunnySeat.Core.Services.SunTimelineService                         83.4%
+  SunnySeat.Core.Services.VenueBuildingIntegrationService            97.3%
+  SunnySeat.Core.Services.VenueSeedingService                         100%
+  SunnySeat.Core.Services.VenueService                                100%
+  SunnySeat.Core.Services.WeatherIngestionService                     100%
+  SunnySeat.Core.Services.WeatherProcessingService                    100%
+  SunnySeat.Core.Utils.ShadowGeometry                                78.7%
+  SunnySeat.Core.Utils.SolarMath                                      100%
+  SunnySeat.Core.Utils.TimezoneUtils                                 76.1%
+  SunnySeat.Core.Utils.WeatherInterpolation                          97.2%
+  SunnySeat.Core.Validation.PatioValidator                             62%
+  SunnySeat.Core.Validation.VenueValidator                           92.9%
+
+SunnySeat.Data                                                       93.9%
+  SunnySeat.Data.Configurations.AdminUserConfiguration                100%
+  SunnySeat.Data.Configurations.BuildingConfiguration                 100%
+  SunnySeat.Data.Repositories.AdminUserRepository                       0%
+  SunnySeat.Data.Repositories.BuildingRepository                      100%
+  SunnySeat.Data.Repositories.FeedbackRepository                        0%
+  SunnySeat.Data.Repositories.PatioRepository                         100%
+  SunnySeat.Data.Repositories.PrecomputationRepository                100%
+  SunnySeat.Data.Repositories.VenueRepository                         100%
+  SunnySeat.Data.Repositories.WeatherRepository                       100%
+  SunnySeat.Data.SunnySeatDbContext                                    98%
+  SunnySeat.Data.SunnySeatDbContextFactory                              0%
+
+SunnySeat.Shared                                                     83.3%
+  SunnySeat.Shared.Configuration.JwtOptions                           100%
+  SunnySeat.Shared.Constants.Roles                                      0%

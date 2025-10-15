@@ -1,0 +1,6 @@
+{
+  "SunnySeat.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "D:\\SunnySeat\\src\\backend\\SunnySeat.Api",
+  "SunnySeat.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "D:\\SunnySeat\\src\\backend\\SunnySeat.Core",
+  "SunnySeat.Data, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "D:\\SunnySeat\\src\\backend\\SunnySeat.Data",
+  "SunnySeat.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "D:\\SunnySeat\\src\\backend\\SunnySeat.Shared"
+}

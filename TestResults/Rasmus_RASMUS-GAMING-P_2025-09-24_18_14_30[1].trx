@@ -1,0 +1,188 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="4a13ea7b-834a-480a-9ca3-9d275b7f5f9b" name="Rasmus@RASMUS-GAMING-P 2025-09-24 18:14:30" runUser="RASMUS-GAMING-P\Rasmus" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2025-09-24T18:14:30.5857777+02:00" queuing="2025-09-24T18:14:30.5857779+02:00" start="2025-09-24T18:14:27.8154972+02:00" finish="2025-09-24T18:14:53.3035703+02:00" />
+  <TestSettings name="default" id="9e2ba8b4-c9f1-4962-8be4-873478c7aa84">
+    <Deployment runDeploymentRoot="Rasmus_RASMUS-GAMING-P_2025-09-24_18_14_30" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="ff205445-ab03-49d8-8655-93cfd0b5e183" testId="4bfd73f0-cc50-4f9f-b7b4-d13b99b11c48" testName="SunnySeat.Integration.Tests.ArchitectureComplianceTests.ProjectNames_ShouldFollow_ExpectedNamingConvention(expectedProjectName: &quot;SunnySeat.Api&quot;)" computerName="RASMUS-GAMING-P" duration="00:00:00.0001565" startTime="2025-09-24T18:14:30.5307032+02:00" endTime="2025-09-24T18:14:30.5307803+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ff205445-ab03-49d8-8655-93cfd0b5e183" />
+    <UnitTestResult executionId="c77d9585-bc64-4ee6-898a-56c63d14b423" testId="17c2011f-f581-4af3-8a45-6b2c2339a4d7" testName="SunnySeat.Integration.Tests.ArchitectureComplianceTests.AllProjects_ShouldHave_NullableEnabled" computerName="RASMUS-GAMING-P" duration="00:00:00.0025694" startTime="2025-09-24T18:14:30.5604351+02:00" endTime="2025-09-24T18:14:30.5606160+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c77d9585-bc64-4ee6-898a-56c63d14b423" />
+    <UnitTestResult executionId="8b426a32-923f-4620-b4eb-c9f51ff15fdc" testId="06312d77-5786-287e-4a34-a4a7b769f270" testName="SunnySeat.Integration.Tests.ArchitectureComplianceTests.CoreProject_ShouldNot_DependOnInfrastructure" computerName="RASMUS-GAMING-P" duration="00:00:00.0013692" startTime="2025-09-24T18:14:30.5616140+02:00" endTime="2025-09-24T18:14:30.5617576+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8b426a32-923f-4620-b4eb-c9f51ff15fdc" />
+    <UnitTestResult executionId="e8823e8b-324c-484c-a317-e84a31102ea8" testId="c176ba30-8f16-7de5-8dd2-c8d936097e76" testName="SunnySeat.Integration.Tests.ArchitectureComplianceTests.TestProjects_ShouldReference_RequiredTestingPackages" computerName="RASMUS-GAMING-P" duration="00:00:00.3664843" startTime="2025-09-24T18:14:29.7557817+02:00" endTime="2025-09-24T18:14:30.1292572+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e8823e8b-324c-484c-a317-e84a31102ea8" />
+    <UnitTestResult executionId="63bf4efc-02d9-45f5-9add-091216da22c1" testId="f04cf21f-f2b5-2965-7146-4786910cda76" testName="SunnySeat.Integration.Tests.FullSystemIntegrationTests.Database_EPSG4326_ShouldBeAvailable" computerName="RASMUS-GAMING-P" duration="00:00:00.8230084" startTime="2025-09-24T18:14:29.7567531+02:00" endTime="2025-09-24T18:14:40.2644804+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="63bf4efc-02d9-45f5-9add-091216da22c1" />
+    <UnitTestResult executionId="2e1d70b4-f08a-4037-889f-a16b79ed8352" testId="52931c79-c8c5-2e16-5478-9f4c32224f7b" testName="SunnySeat.Integration.Tests.FullSystemIntegrationTests.Database_SpatialFunctions_ShouldCalculateDistanceCorrectly" computerName="RASMUS-GAMING-P" duration="00:00:00.0119013" startTime="2025-09-24T18:14:40.2658237+02:00" endTime="2025-09-24T18:14:43.5028896+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="2e1d70b4-f08a-4037-889f-a16b79ed8352" />
+    <UnitTestResult executionId="052dc68c-de26-4074-8b47-26c59f5bc0cb" testId="746cd213-e554-3ce2-fb4f-3e5064e18d73" testName="SunnySeat.Integration.Tests.FullSystemIntegrationTests.CompleteSystem_WhenStarted_ShouldBeHealthy" computerName="RASMUS-GAMING-P" duration="00:00:00.0596603" startTime="2025-09-24T18:14:46.6962738+02:00" endTime="2025-09-24T18:14:49.9587999+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="052dc68c-de26-4074-8b47-26c59f5bc0cb" />
+    <UnitTestResult executionId="91e4ff2b-3f2a-4970-87e4-dc3b22964150" testId="1ef9790e-c421-17b0-8658-3b3e161fe054" testName="SunnySeat.Integration.Tests.ArchitectureComplianceTests.ProjectNames_ShouldFollow_ExpectedNamingConvention(expectedProjectName: &quot;SunnySeat.Core&quot;)" computerName="RASMUS-GAMING-P" duration="00:00:00.0000247" startTime="2025-09-24T18:14:30.5309102+02:00" endTime="2025-09-24T18:14:30.5309806+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="91e4ff2b-3f2a-4970-87e4-dc3b22964150" />
+    <UnitTestResult executionId="dcd80d6a-96ac-4aa0-8bf7-7193db14bd52" testId="8e28aeb7-fa45-09b1-9310-01ae3a945056" testName="SunnySeat.Integration.Tests.ArchitectureComplianceTests.PublicMethods_ShouldFollow_PascalCaseNaming" computerName="RASMUS-GAMING-P" duration="00:00:00.0013119" startTime="2025-09-24T18:14:30.4137522+02:00" endTime="2025-09-24T18:14:30.4140004+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dcd80d6a-96ac-4aa0-8bf7-7193db14bd52" />
+    <UnitTestResult executionId="3c2379cc-b41a-46da-9023-b20c780f8949" testId="1700513a-b12e-608a-e8c1-a94621841e39" testName="SunnySeat.Integration.Tests.ArchitectureComplianceTests.Solution_ShouldHave_ExpectedProjectStructure" computerName="RASMUS-GAMING-P" duration="00:00:00.0003896" startTime="2025-09-24T18:14:30.5611480+02:00" endTime="2025-09-24T18:14:30.5612800+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3c2379cc-b41a-46da-9023-b20c780f8949" />
+    <UnitTestResult executionId="6601943b-e358-4f4e-ab6f-e818db5320d6" testId="af58a8c5-7abf-ff33-66df-e3ef55e4c8c1" testName="SunnySeat.Integration.Tests.FullSystemIntegrationTests.Database_WithPostGIS_ShouldSupportSpatialQueries" computerName="RASMUS-GAMING-P" duration="00:00:00.0120503" startTime="2025-09-24T18:14:43.5034475+02:00" endTime="2025-09-24T18:14:46.6957035+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6601943b-e358-4f4e-ab6f-e818db5320d6" />
+    <UnitTestResult executionId="a4cfeab3-423e-432b-a188-f6cabf522e69" testId="0e7d78ca-fd83-e293-e6c5-be8b0ecac1e8" testName="SunnySeat.Integration.Tests.ArchitectureComplianceTests.ProjectNames_ShouldFollow_ExpectedNamingConvention(expectedProjectName: &quot;SunnySeat.Shared&quot;)" computerName="RASMUS-GAMING-P" duration="00:00:00.0000208" startTime="2025-09-24T18:14:30.5311027+02:00" endTime="2025-09-24T18:14:30.5311841+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a4cfeab3-423e-432b-a188-f6cabf522e69" />
+    <UnitTestResult executionId="391d74c2-80e0-48a6-a578-39415fdf40d0" testId="c20b873f-2408-a4bf-3d44-bd8b1ac479da" testName="SunnySeat.Integration.Tests.ArchitectureComplianceTests.ProjectNames_ShouldFollow_ExpectedNamingConvention(expectedProjectName: &quot;SunnySeat.Data&quot;)" computerName="RASMUS-GAMING-P" duration="00:00:00.0001743" startTime="2025-09-24T18:14:30.5304817+02:00" endTime="2025-09-24T18:14:30.5305617+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="391d74c2-80e0-48a6-a578-39415fdf40d0" />
+    <UnitTestResult executionId="db559ccd-a4b5-46f1-bfcf-fc2118ac8d5b" testId="6f9d38d2-3568-e4ba-be2c-1fc3ad4803b9" testName="SunnySeat.Integration.Tests.FullSystemIntegrationTests.API_HealthEndpoint_ShouldRespondQuickly" computerName="RASMUS-GAMING-P" duration="00:00:00.0095517" startTime="2025-09-24T18:14:49.9594011+02:00" endTime="2025-09-24T18:14:53.2408337+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="db559ccd-a4b5-46f1-bfcf-fc2118ac8d5b" />
+    <UnitTestResult executionId="d2da22e1-4432-4c0f-a7c9-29f4d874da54" testId="c5e9af9c-ccd1-1501-2ae8-fc9e5782442f" testName="SunnySeat.Integration.Tests.ArchitectureComplianceTests.PublicClasses_ShouldFollow_PascalCaseNaming" computerName="RASMUS-GAMING-P" duration="00:00:00.2830318" startTime="2025-09-24T18:14:30.1350685+02:00" endTime="2025-09-24T18:14:30.4127026+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d2da22e1-4432-4c0f-a7c9-29f4d874da54" />
+    <UnitTestResult executionId="e46dd180-6d29-4860-81fc-58715594aa2a" testId="c7566dcb-926f-4ff6-f1b8-833a4e86284e" testName="SunnySeat.Integration.Tests.ArchitectureComplianceTests.AllProjects_ShouldTarget_DotNet9" computerName="RASMUS-GAMING-P" duration="00:00:00.1161072" startTime="2025-09-24T18:14:30.4143294+02:00" endTime="2025-09-24T18:14:30.5302333+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e46dd180-6d29-4860-81fc-58715594aa2a" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="SunnySeat.Integration.Tests.ArchitectureComplianceTests.ProjectNames_ShouldFollow_ExpectedNamingConvention(expectedProjectName: &quot;SunnySeat.Core&quot;)" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="1ef9790e-c421-17b0-8658-3b3e161fe054">
+      <Execution id="91e4ff2b-3f2a-4970-87e4-dc3b22964150" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.ArchitectureComplianceTests" name="ProjectNames_ShouldFollow_ExpectedNamingConvention" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Integration.Tests.FullSystemIntegrationTests.Database_EPSG4326_ShouldBeAvailable" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="f04cf21f-f2b5-2965-7146-4786910cda76">
+      <Execution id="63bf4efc-02d9-45f5-9add-091216da22c1" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.FullSystemIntegrationTests" name="Database_EPSG4326_ShouldBeAvailable" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Integration.Tests.FullSystemIntegrationTests.CompleteSystem_WhenStarted_ShouldBeHealthy" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="746cd213-e554-3ce2-fb4f-3e5064e18d73">
+      <Execution id="052dc68c-de26-4074-8b47-26c59f5bc0cb" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.FullSystemIntegrationTests" name="CompleteSystem_WhenStarted_ShouldBeHealthy" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Integration.Tests.ArchitectureComplianceTests.ProjectNames_ShouldFollow_ExpectedNamingConvention(expectedProjectName: &quot;SunnySeat.Shared&quot;)" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="0e7d78ca-fd83-e293-e6c5-be8b0ecac1e8">
+      <Execution id="a4cfeab3-423e-432b-a188-f6cabf522e69" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.ArchitectureComplianceTests" name="ProjectNames_ShouldFollow_ExpectedNamingConvention" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Integration.Tests.ArchitectureComplianceTests.Solution_ShouldHave_ExpectedProjectStructure" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="1700513a-b12e-608a-e8c1-a94621841e39">
+      <Execution id="3c2379cc-b41a-46da-9023-b20c780f8949" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.ArchitectureComplianceTests" name="Solution_ShouldHave_ExpectedProjectStructure" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Integration.Tests.ArchitectureComplianceTests.CoreProject_ShouldNot_DependOnInfrastructure" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="06312d77-5786-287e-4a34-a4a7b769f270">
+      <Execution id="8b426a32-923f-4620-b4eb-c9f51ff15fdc" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.ArchitectureComplianceTests" name="CoreProject_ShouldNot_DependOnInfrastructure" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Integration.Tests.ArchitectureComplianceTests.TestProjects_ShouldReference_RequiredTestingPackages" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="c176ba30-8f16-7de5-8dd2-c8d936097e76">
+      <Execution id="e8823e8b-324c-484c-a317-e84a31102ea8" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.ArchitectureComplianceTests" name="TestProjects_ShouldReference_RequiredTestingPackages" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Integration.Tests.ArchitectureComplianceTests.PublicClasses_ShouldFollow_PascalCaseNaming" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="c5e9af9c-ccd1-1501-2ae8-fc9e5782442f">
+      <Execution id="d2da22e1-4432-4c0f-a7c9-29f4d874da54" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.ArchitectureComplianceTests" name="PublicClasses_ShouldFollow_PascalCaseNaming" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Integration.Tests.ArchitectureComplianceTests.ProjectNames_ShouldFollow_ExpectedNamingConvention(expectedProjectName: &quot;SunnySeat.Data&quot;)" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="c20b873f-2408-a4bf-3d44-bd8b1ac479da">
+      <Execution id="391d74c2-80e0-48a6-a578-39415fdf40d0" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.ArchitectureComplianceTests" name="ProjectNames_ShouldFollow_ExpectedNamingConvention" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Integration.Tests.ArchitectureComplianceTests.AllProjects_ShouldHave_NullableEnabled" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="17c2011f-f581-4af3-8a45-6b2c2339a4d7">
+      <Execution id="c77d9585-bc64-4ee6-898a-56c63d14b423" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.ArchitectureComplianceTests" name="AllProjects_ShouldHave_NullableEnabled" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Integration.Tests.FullSystemIntegrationTests.Database_WithPostGIS_ShouldSupportSpatialQueries" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="af58a8c5-7abf-ff33-66df-e3ef55e4c8c1">
+      <Execution id="6601943b-e358-4f4e-ab6f-e818db5320d6" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.FullSystemIntegrationTests" name="Database_WithPostGIS_ShouldSupportSpatialQueries" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Integration.Tests.ArchitectureComplianceTests.AllProjects_ShouldTarget_DotNet9" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="c7566dcb-926f-4ff6-f1b8-833a4e86284e">
+      <Execution id="e46dd180-6d29-4860-81fc-58715594aa2a" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.ArchitectureComplianceTests" name="AllProjects_ShouldTarget_DotNet9" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Integration.Tests.FullSystemIntegrationTests.Database_SpatialFunctions_ShouldCalculateDistanceCorrectly" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="52931c79-c8c5-2e16-5478-9f4c32224f7b">
+      <Execution id="2e1d70b4-f08a-4037-889f-a16b79ed8352" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.FullSystemIntegrationTests" name="Database_SpatialFunctions_ShouldCalculateDistanceCorrectly" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Integration.Tests.ArchitectureComplianceTests.ProjectNames_ShouldFollow_ExpectedNamingConvention(expectedProjectName: &quot;SunnySeat.Api&quot;)" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="4bfd73f0-cc50-4f9f-b7b4-d13b99b11c48">
+      <Execution id="ff205445-ab03-49d8-8655-93cfd0b5e183" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.ArchitectureComplianceTests" name="ProjectNames_ShouldFollow_ExpectedNamingConvention" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Integration.Tests.ArchitectureComplianceTests.PublicMethods_ShouldFollow_PascalCaseNaming" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="8e28aeb7-fa45-09b1-9310-01ae3a945056">
+      <Execution id="dcd80d6a-96ac-4aa0-8bf7-7193db14bd52" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.ArchitectureComplianceTests" name="PublicMethods_ShouldFollow_PascalCaseNaming" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Integration.Tests.FullSystemIntegrationTests.API_HealthEndpoint_ShouldRespondQuickly" storage="d:\sunnyseat\tests\sunnyseat.integration.tests\bin\debug\net8.0\sunnyseat.integration.tests.dll" id="6f9d38d2-3568-e4ba-be2c-1fc3ad4803b9">
+      <Execution id="db559ccd-a4b5-46f1-bfcf-fc2118ac8d5b" />
+      <TestMethod codeBase="D:\SunnySeat\tests\SunnySeat.Integration.Tests\bin\Debug\net8.0\SunnySeat.Integration.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="SunnySeat.Integration.Tests.FullSystemIntegrationTests" name="API_HealthEndpoint_ShouldRespondQuickly" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="4bfd73f0-cc50-4f9f-b7b4-d13b99b11c48" executionId="ff205445-ab03-49d8-8655-93cfd0b5e183" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="17c2011f-f581-4af3-8a45-6b2c2339a4d7" executionId="c77d9585-bc64-4ee6-898a-56c63d14b423" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="06312d77-5786-287e-4a34-a4a7b769f270" executionId="8b426a32-923f-4620-b4eb-c9f51ff15fdc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c176ba30-8f16-7de5-8dd2-c8d936097e76" executionId="e8823e8b-324c-484c-a317-e84a31102ea8" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f04cf21f-f2b5-2965-7146-4786910cda76" executionId="63bf4efc-02d9-45f5-9add-091216da22c1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="52931c79-c8c5-2e16-5478-9f4c32224f7b" executionId="2e1d70b4-f08a-4037-889f-a16b79ed8352" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="746cd213-e554-3ce2-fb4f-3e5064e18d73" executionId="052dc68c-de26-4074-8b47-26c59f5bc0cb" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1ef9790e-c421-17b0-8658-3b3e161fe054" executionId="91e4ff2b-3f2a-4970-87e4-dc3b22964150" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8e28aeb7-fa45-09b1-9310-01ae3a945056" executionId="dcd80d6a-96ac-4aa0-8bf7-7193db14bd52" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1700513a-b12e-608a-e8c1-a94621841e39" executionId="3c2379cc-b41a-46da-9023-b20c780f8949" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="af58a8c5-7abf-ff33-66df-e3ef55e4c8c1" executionId="6601943b-e358-4f4e-ab6f-e818db5320d6" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0e7d78ca-fd83-e293-e6c5-be8b0ecac1e8" executionId="a4cfeab3-423e-432b-a188-f6cabf522e69" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c20b873f-2408-a4bf-3d44-bd8b1ac479da" executionId="391d74c2-80e0-48a6-a578-39415fdf40d0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6f9d38d2-3568-e4ba-be2c-1fc3ad4803b9" executionId="db559ccd-a4b5-46f1-bfcf-fc2118ac8d5b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c5e9af9c-ccd1-1501-2ae8-fc9e5782442f" executionId="d2da22e1-4432-4c0f-a7c9-29f4d874da54" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c7566dcb-926f-4ff6-f1b8-833a4e86284e" executionId="e46dd180-6d29-4860-81fc-58715594aa2a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="16" executed="16" passed="16" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.0.0+e341b939fe (64-bit .NET 8.0.9)&#xD;
+[xUnit.net 00:00:00.37]   Discovering: SunnySeat.Integration.Tests&#xD;
+[xUnit.net 00:00:00.42]   Discovered:  SunnySeat.Integration.Tests&#xD;
+[xUnit.net 00:00:00.44]   Starting:    SunnySeat.Integration.Tests&#xD;
+[testcontainers.org 00:00:00.27] Connected to Docker:&#xD;
+  Host: npipe://./pipe/docker_engine&#xD;
+  Server Version: 28.4.0&#xD;
+  Kernel Version: 6.6.87.2-microsoft-standard-WSL2&#xD;
+  API Version: 1.51&#xD;
+  Operating System: Docker Desktop&#xD;
+  Total Memory: 31.30 GB&#xD;
+  Labels: &#xD;
+    com.docker.desktop.address=npipe://\\.\pipe\docker_cli&#xD;
+[testcontainers.org 00:00:00.33] Searching Docker registry credential in CredsStore&#xD;
+[testcontainers.org 00:00:00.33] Searching Docker registry credential in Auths&#xD;
+[testcontainers.org 00:00:00.33] Searching Docker registry credential in CredHelpers&#xD;
+[testcontainers.org 00:00:00.33] Searching Docker registry credential in Auths&#xD;
+[testcontainers.org 00:00:00.51] Docker registry credential https://index.docker.io/v1/ not found&#xD;
+[testcontainers.org 00:00:04.20] Docker image testcontainers/ryuk:0.6.0 created&#xD;
+[testcontainers.org 00:00:04.36] Docker container 6f091596f6e4 created&#xD;
+[testcontainers.org 00:00:04.40] Start Docker container 6f091596f6e4&#xD;
+[testcontainers.org 00:00:04.65] Wait for Docker container 6f091596f6e4 to complete readiness checks&#xD;
+[testcontainers.org 00:00:04.65] Docker container 6f091596f6e4 ready&#xD;
+[testcontainers.org 00:00:04.78] Docker container 0681baa429ca created&#xD;
+[testcontainers.org 00:00:04.79] Start Docker container 0681baa429ca&#xD;
+[testcontainers.org 00:00:05.00] Wait for Docker container 0681baa429ca to complete readiness checks&#xD;
+[testcontainers.org 00:00:05.01] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 0681baa429ca&#xD;
+[testcontainers.org 00:00:06.17] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 0681baa429ca&#xD;
+[testcontainers.org 00:00:07.27] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 0681baa429ca&#xD;
+[testcontainers.org 00:00:08.39] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 0681baa429ca&#xD;
+[testcontainers.org 00:00:08.50] Docker container 0681baa429ca ready&#xD;
+[testcontainers.org 00:00:09.21] Delete Docker container 0681baa429ca&#xD;
+[testcontainers.org 00:00:09.83] Docker container 4da76d2939c8 created&#xD;
+[testcontainers.org 00:00:09.83] Start Docker container 4da76d2939c8&#xD;
+[testcontainers.org 00:00:10.07] Wait for Docker container 4da76d2939c8 to complete readiness checks&#xD;
+[testcontainers.org 00:00:10.08] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 4da76d2939c8&#xD;
+[testcontainers.org 00:00:11.20] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 4da76d2939c8&#xD;
+[testcontainers.org 00:00:12.33] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 4da76d2939c8&#xD;
+[testcontainers.org 00:00:12.42] Docker container 4da76d2939c8 ready&#xD;
+[testcontainers.org 00:00:12.48] Delete Docker container 4da76d2939c8&#xD;
+[testcontainers.org 00:00:13.06] Docker container 648e986566e9 created&#xD;
+[testcontainers.org 00:00:13.07] Start Docker container 648e986566e9&#xD;
+[testcontainers.org 00:00:13.29] Wait for Docker container 648e986566e9 to complete readiness checks&#xD;
+[testcontainers.org 00:00:13.30] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 648e986566e9&#xD;
+[testcontainers.org 00:00:14.40] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 648e986566e9&#xD;
+[testcontainers.org 00:00:15.51] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 648e986566e9&#xD;
+[testcontainers.org 00:00:15.60] Docker container 648e986566e9 ready&#xD;
+[testcontainers.org 00:00:15.63] Delete Docker container 648e986566e9&#xD;
+[testcontainers.org 00:00:16.26] Docker container 8a0d512c7093 created&#xD;
+[testcontainers.org 00:00:16.27] Start Docker container 8a0d512c7093&#xD;
+[testcontainers.org 00:00:16.50] Wait for Docker container 8a0d512c7093 to complete readiness checks&#xD;
+[testcontainers.org 00:00:16.51] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 8a0d512c7093&#xD;
+[testcontainers.org 00:00:17.63] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 8a0d512c7093&#xD;
+[testcontainers.org 00:00:18.73] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 8a0d512c7093&#xD;
+[testcontainers.org 00:00:18.83] Docker container 8a0d512c7093 ready&#xD;
+warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3]&#xD;
+      Failed to determine the https port for redirect.&#xD;
+[testcontainers.org 00:00:18.92] Delete Docker container 8a0d512c7093&#xD;
+[testcontainers.org 00:00:19.52] Docker container 84e202f9ae19 created&#xD;
+[testcontainers.org 00:00:19.53] Start Docker container 84e202f9ae19&#xD;
+[testcontainers.org 00:00:19.76] Wait for Docker container 84e202f9ae19 to complete readiness checks&#xD;
+[testcontainers.org 00:00:19.76] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 84e202f9ae19&#xD;
+[testcontainers.org 00:00:20.89] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 84e202f9ae19&#xD;
+[testcontainers.org 00:00:22.01] Execute "pg_isready --host localhost --dbname sunnyseat_integration_test --username postgres" at Docker container 84e202f9ae19&#xD;
+[testcontainers.org 00:00:22.12] Docker container 84e202f9ae19 ready&#xD;
+warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3]&#xD;
+      Failed to determine the https port for redirect.&#xD;
+[testcontainers.org 00:00:22.16] Delete Docker container 84e202f9ae19&#xD;
+[xUnit.net 00:00:23.94]   Finished:    SunnySeat.Integration.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

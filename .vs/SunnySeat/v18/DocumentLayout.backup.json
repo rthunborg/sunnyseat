@@ -1,0 +1,134 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\SunnySeat\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{DA2125BE-8BB2-4C64-B18D-44488A1197AB}|tests\\SunnySeat.Performance.Benchmarks\\SunnySeat.Performance.Benchmarks.csproj|d:\\sunnyseat\\tests\\sunnyseat.performance.benchmarks\\sunexposureperformancebenchmarks.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DA2125BE-8BB2-4C64-B18D-44488A1197AB}|tests\\SunnySeat.Performance.Benchmarks\\SunnySeat.Performance.Benchmarks.csproj|solutionrelative:tests\\sunnyseat.performance.benchmarks\\sunexposureperformancebenchmarks.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D942985C-90E6-4DC8-A2F3-B80B5AD36838}|src\\backend\\SunnySeat.Core.Tests\\SunnySeat.Core.Tests.csproj|d:\\sunnyseat\\src\\backend\\sunnyseat.core.tests\\services\\solarcalculationservicetests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{D942985C-90E6-4DC8-A2F3-B80B5AD36838}|src\\backend\\SunnySeat.Core.Tests\\SunnySeat.Core.Tests.csproj|solutionrelative:src\\backend\\sunnyseat.core.tests\\services\\solarcalculationservicetests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2848C142-19CD-4508-91BE-65FF473D07C1}|src\\backend\\SunnySeat.Data.Tests\\SunnySeat.Data.Tests.csproj|d:\\sunnyseat\\src\\backend\\sunnyseat.data.tests\\sunnyseat.data.tests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{2848C142-19CD-4508-91BE-65FF473D07C1}|src\\backend\\SunnySeat.Data.Tests\\SunnySeat.Data.Tests.csproj|solutionrelative:src\\backend\\sunnyseat.data.tests\\sunnyseat.data.tests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D942985C-90E6-4DC8-A2F3-B80B5AD36838}|src\\backend\\SunnySeat.Core.Tests\\SunnySeat.Core.Tests.csproj|d:\\sunnyseat\\src\\backend\\sunnyseat.core.tests\\sunnyseat.core.tests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{D942985C-90E6-4DC8-A2F3-B80B5AD36838}|src\\backend\\SunnySeat.Core.Tests\\SunnySeat.Core.Tests.csproj|solutionrelative:src\\backend\\sunnyseat.core.tests\\sunnyseat.core.tests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8DF9F5A2-9D3D-4E92-AA7B-D85DA2D757F3}|src\\backend\\SunnySeat.Api.Tests\\SunnySeat.Api.Tests.csproj|d:\\sunnyseat\\src\\backend\\sunnyseat.api.tests\\endpoints\\buildingendpointstests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8DF9F5A2-9D3D-4E92-AA7B-D85DA2D757F3}|src\\backend\\SunnySeat.Api.Tests\\SunnySeat.Api.Tests.csproj|solutionrelative:src\\backend\\sunnyseat.api.tests\\endpoints\\buildingendpointstests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8DF9F5A2-9D3D-4E92-AA7B-D85DA2D757F3}|src\\backend\\SunnySeat.Api.Tests\\SunnySeat.Api.Tests.csproj|d:\\sunnyseat\\src\\backend\\sunnyseat.api.tests\\healthcheckendpointtests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8DF9F5A2-9D3D-4E92-AA7B-D85DA2D757F3}|src\\backend\\SunnySeat.Api.Tests\\SunnySeat.Api.Tests.csproj|solutionrelative:src\\backend\\sunnyseat.api.tests\\healthcheckendpointtests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8DF9F5A2-9D3D-4E92-AA7B-D85DA2D757F3}|src\\backend\\SunnySeat.Api.Tests\\SunnySeat.Api.Tests.csproj|d:\\sunnyseat\\src\\backend\\sunnyseat.api.tests\\sunnyseat.api.tests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{8DF9F5A2-9D3D-4E92-AA7B-D85DA2D757F3}|src\\backend\\SunnySeat.Api.Tests\\SunnySeat.Api.Tests.csproj|solutionrelative:src\\backend\\sunnyseat.api.tests\\sunnyseat.api.tests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "SunExposurePerformanceBenchmarks.cs",
+              "DocumentMoniker": "D:\\SunnySeat\\tests\\SunnySeat.Performance.Benchmarks\\SunExposurePerformanceBenchmarks.cs",
+              "RelativeDocumentMoniker": "tests\\SunnySeat.Performance.Benchmarks\\SunExposurePerformanceBenchmarks.cs",
+              "ToolTip": "D:\\SunnySeat\\tests\\SunnySeat.Performance.Benchmarks\\SunExposurePerformanceBenchmarks.cs",
+              "RelativeToolTip": "tests\\SunnySeat.Performance.Benchmarks\\SunExposurePerformanceBenchmarks.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAAtAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-13T11:39:16.993Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "SolarCalculationServiceTests.cs",
+              "DocumentMoniker": "D:\\SunnySeat\\src\\backend\\SunnySeat.Core.Tests\\Services\\SolarCalculationServiceTests.cs",
+              "RelativeDocumentMoniker": "src\\backend\\SunnySeat.Core.Tests\\Services\\SolarCalculationServiceTests.cs",
+              "ToolTip": "D:\\SunnySeat\\src\\backend\\SunnySeat.Core.Tests\\Services\\SolarCalculationServiceTests.cs",
+              "RelativeToolTip": "src\\backend\\SunnySeat.Core.Tests\\Services\\SolarCalculationServiceTests.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABoAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-12T17:56:44.368Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "SunnySeat.Data.Tests.csproj",
+              "DocumentMoniker": "D:\\SunnySeat\\src\\backend\\SunnySeat.Data.Tests\\SunnySeat.Data.Tests.csproj",
+              "RelativeDocumentMoniker": "src\\backend\\SunnySeat.Data.Tests\\SunnySeat.Data.Tests.csproj",
+              "ToolTip": "D:\\SunnySeat\\src\\backend\\SunnySeat.Data.Tests\\SunnySeat.Data.Tests.csproj",
+              "RelativeToolTip": "src\\backend\\SunnySeat.Data.Tests\\SunnySeat.Data.Tests.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABkAAABKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-10-10T10:42:11.932Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "SunnySeat.Core.Tests.csproj",
+              "DocumentMoniker": "D:\\SunnySeat\\src\\backend\\SunnySeat.Core.Tests\\SunnySeat.Core.Tests.csproj",
+              "RelativeDocumentMoniker": "src\\backend\\SunnySeat.Core.Tests\\SunnySeat.Core.Tests.csproj",
+              "ToolTip": "D:\\SunnySeat\\src\\backend\\SunnySeat.Core.Tests\\SunnySeat.Core.Tests.csproj",
+              "RelativeToolTip": "src\\backend\\SunnySeat.Core.Tests\\SunnySeat.Core.Tests.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-10-10T10:42:09.671Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "HealthCheckEndpointTests.cs",
+              "DocumentMoniker": "D:\\SunnySeat\\src\\backend\\SunnySeat.Api.Tests\\HealthCheckEndpointTests.cs",
+              "RelativeDocumentMoniker": "src\\backend\\SunnySeat.Api.Tests\\HealthCheckEndpointTests.cs",
+              "ToolTip": "D:\\SunnySeat\\src\\backend\\SunnySeat.Api.Tests\\HealthCheckEndpointTests.cs",
+              "RelativeToolTip": "src\\backend\\SunnySeat.Api.Tests\\HealthCheckEndpointTests.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-10T10:38:37.594Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "BuildingEndpointsTests.cs",
+              "DocumentMoniker": "D:\\SunnySeat\\src\\backend\\SunnySeat.Api.Tests\\Endpoints\\BuildingEndpointsTests.cs",
+              "RelativeDocumentMoniker": "src\\backend\\SunnySeat.Api.Tests\\Endpoints\\BuildingEndpointsTests.cs",
+              "ToolTip": "D:\\SunnySeat\\src\\backend\\SunnySeat.Api.Tests\\Endpoints\\BuildingEndpointsTests.cs",
+              "RelativeToolTip": "src\\backend\\SunnySeat.Api.Tests\\Endpoints\\BuildingEndpointsTests.cs",
+              "ViewState": "AgIAABEAAAAAAAAAAAAQwCkAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-10T10:38:33.512Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "SunnySeat.Api.Tests.csproj",
+              "DocumentMoniker": "D:\\SunnySeat\\src\\backend\\SunnySeat.Api.Tests\\SunnySeat.Api.Tests.csproj",
+              "RelativeDocumentMoniker": "src\\backend\\SunnySeat.Api.Tests\\SunnySeat.Api.Tests.csproj",
+              "ToolTip": "D:\\SunnySeat\\src\\backend\\SunnySeat.Api.Tests\\SunnySeat.Api.Tests.csproj",
+              "RelativeToolTip": "src\\backend\\SunnySeat.Api.Tests\\SunnySeat.Api.Tests.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB4AAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-10-10T10:30:30.679Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

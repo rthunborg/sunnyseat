@@ -1,0 +1,11 @@
+# 10. Milestones & Release Plan
+- **A — Foundation & Data Setup (Weeks 1–4):** 
+  - **Week 1:** Project setup (.NET Framework), PostgreSQL + PostGIS database setup, schema creation and migration framework
+  - **Week 2:** Lantmäteriet .gpkg import pipeline, building data validation and processing
+  - **Week 3:** Admin authentication setup, admin SPA with polygon editor
+  - **Week 4:** Seed 50–100 venues with patio polygons, data quality validation
+- **B — Sun/Shadow Engine (Weeks 5–8):** solar position calculations, 2.5D shadow modeling, precompute pipeline + caching infrastructure
+- **C — Weather Integration & Confidence (Weeks 9–10):** 
+  - **Week 9:** Yr/Met.no API setup, authentication testing, fallback strategy implementation
+  - **Week 10:** Weather data ingestion, confidence blending algorithm, accuracy logging + dashboard setup
+- **Launch (Weeks 11–12):** public map/search interface, venue detail pages, feedback collection, SEO basics

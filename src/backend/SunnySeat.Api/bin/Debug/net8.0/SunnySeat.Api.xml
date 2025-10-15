@@ -1,0 +1,497 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>SunnySeat.Api</name>
+    </assembly>
+    <members>
+        <member name="T:SunnySeat.Api.Commands.ConsoleCommands">
+            <summary>
+            Console command runner for development and admin tasks
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Commands.ConsoleCommands.RunImportBuildingsAsync(System.String[],System.IServiceProvider)">
+            <summary>
+            Execute import-buildings command
+            Usage: dotnet run import-buildings "path/to/file.gpkg" [--dry-run]
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Commands.ConsoleCommands.RunSeedVenuesAsync(System.String[],System.IServiceProvider)">
+            <summary>
+            Execute seed-venues command
+            Usage: dotnet run seed-venues
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Commands.ConsoleCommands.RunCreateSamplePatiosAsync(System.String[],System.IServiceProvider)">
+            <summary>
+            Execute create-sample-patios command
+            Usage: dotnet run create-sample-patios
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Commands.ConsoleCommands.RunValidateVenueLocationsAsync(System.String[],System.IServiceProvider)">
+            <summary>
+            Execute validate-venue-locations command
+            Usage: dotnet run validate-venue-locations
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Commands.ConsoleCommands.ShowHelp">
+            <summary>
+            Show help for available commands
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Commands.ConsoleCommands.ExecuteCommandAsync(System.String[],System.IServiceProvider)">
+            <summary>
+            Main command dispatcher
+            </summary>
+        </member>
+        <member name="T:SunnySeat.Api.Endpoints.AuthEndpoints">
+            <summary>
+            Authentication endpoints for admin login, logout, and token management
+            </summary>
+        </member>
+        <member name="T:SunnySeat.Api.Endpoints.BuildingEndpoints">
+            <summary>
+            Admin endpoints for building data management
+            </summary>
+        </member>
+        <member name="T:SunnySeat.Api.Endpoints.FeedbackEndpoints">
+            <summary>
+            Extension methods for mapping feedback and accuracy tracking API endpoints
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.FeedbackEndpoints.MapFeedbackApi(Microsoft.AspNetCore.Routing.RouteGroupBuilder)">
+            <summary>
+            Maps feedback and accuracy tracking endpoints to the route group
+            </summary>
+        </member>
+        <member name="T:SunnySeat.Api.Endpoints.PatioEndpoints">
+            <summary>
+            Patio search endpoints for finding sunny patios by location
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.PatioEndpoints.MapPatioApi(Microsoft.AspNetCore.Routing.RouteGroupBuilder)">
+            <summary>
+            Map patio-related endpoints
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.PatioEndpoints.GetPatiosAsync(Microsoft.AspNetCore.Http.HttpRequest,SunnySeat.Core.Interfaces.IPatioRepository,SunnySeat.Core.Interfaces.ISunExposureService,System.Threading.CancellationToken)">
+            <summary>
+            Search for patios near a location with current sun exposure data
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.PatioEndpoints.MapSunStatus(SunnySeat.Core.Entities.SunExposureState)">
+            <summary>
+            Map SunExposureState enum to string format expected by frontend
+            </summary>
+        </member>
+        <member name="T:SunnySeat.Api.Endpoints.ShadowController">
+            <summary>
+            Shadow calculation API endpoints
+            Provides shadow analysis data for patios including single, batch, and timeline calculations
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.ShadowController.GetPatioShadow(System.Int32,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Get shadow information for a specific patio at given timestamp
+            </summary>
+            <param name="id">Patio ID</param>
+            <param name="timestamp">Timestamp for calculation (UTC, optional - defaults to current time)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Patio shadow information</returns>
+            <response code="200">Shadow information calculated successfully</response>
+            <response code="404">Patio not found</response>
+            <response code="400">Invalid input parameters</response>
+            <response code="500">Internal server error during calculation</response>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.ShadowController.GetBatchPatioShadow(SunnySeat.Core.Models.Requests.BatchShadowRequest,System.Threading.CancellationToken)">
+            <summary>
+            Get shadow information for multiple patios at once (batch operation)
+            </summary>
+            <param name="request">Batch shadow request containing patio IDs and timestamp</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Batch shadow response with results for all patios</returns>
+            <response code="200">Shadow information calculated successfully for all patios</response>
+            <response code="400">Invalid request parameters (e.g., too many patios, invalid IDs)</response>
+            <response code="500">Internal server error during calculation</response>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.ShadowController.GetPatioShadowTimeline(System.Int32,System.DateTime,System.DateTime,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Get shadow timeline for a patio over a time period
+            </summary>
+            <param name="id">Patio ID</param>
+            <param name="start">Start time for timeline (UTC)</param>
+            <param name="end">End time for timeline (UTC)</param>
+            <param name="intervalMinutes">Interval between data points in minutes (default: 10, range: 1-60)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Shadow timeline data with multiple time points</returns>
+            <response code="200">Shadow timeline calculated successfully</response>
+            <response code="404">Patio not found</response>
+            <response code="400">Invalid parameters (e.g., time range too large, invalid interval)</response>
+            <response code="500">Internal server error during calculation</response>
+        </member>
+        <member name="T:SunnySeat.Api.Endpoints.SolarController">
+            <summary>
+            Solar position calculation API endpoints
+            Provides high-performance solar position data for sun exposure calculations
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.SolarController.GetSolarPosition(System.DateTime,System.Double,System.Double,System.Threading.CancellationToken)">
+            <summary>
+            Get solar position for a specific timestamp and location
+            </summary>
+            <param name="timestamp">UTC timestamp for calculation</param>
+            <param name="lat">Latitude in decimal degrees (default: Gothenburg)</param>
+            <param name="lng">Longitude in decimal degrees (default: Gothenburg)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Solar position data</returns>
+            <response code="200">Solar position calculated successfully</response>
+            <response code="400">Invalid input parameters</response>
+            <response code="500">Internal server error during calculation</response>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.SolarController.GetCurrentSolarPosition(System.Double,System.Double,System.Threading.CancellationToken)">
+            <summary>
+            Get current solar position based on system time
+            </summary>
+            <param name="lat">Latitude in decimal degrees (default: Gothenburg)</param>
+            <param name="lng">Longitude in decimal degrees (default: Gothenburg)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Current solar position data</returns>
+            <response code="200">Current solar position calculated successfully</response>
+            <response code="400">Invalid input parameters</response>
+            <response code="500">Internal server error during calculation</response>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.SolarController.GetSolarTimeline(System.DateTime,System.DateTime,System.Int32,System.Double,System.Double,System.Threading.CancellationToken)">
+            <summary>
+            Get solar position timeline for a time range with specified interval
+            </summary>
+            <param name="start">Start timestamp in UTC</param>
+            <param name="end">End timestamp in UTC</param>
+            <param name="intervalMinutes">Time interval between calculations in minutes (default: 10)</param>
+            <param name="lat">Latitude in decimal degrees (default: Gothenburg)</param>
+            <param name="lng">Longitude in decimal degrees (default: Gothenburg)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Collection of solar position data points</returns>
+            <response code="200">Solar timeline calculated successfully</response>
+            <response code="400">Invalid input parameters</response>
+            <response code="500">Internal server error during calculation</response>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.SolarController.GetSunTimes(System.DateOnly,System.Double,System.Double,System.Threading.CancellationToken)">
+            <summary>
+            Get sunrise, sunset, and solar noon times for a specific date
+            </summary>
+            <param name="date">Date for sun times calculation (YYYY-MM-DD format)</param>
+            <param name="lat">Latitude in decimal degrees (default: Gothenburg)</param>
+            <param name="lng">Longitude in decimal degrees (default: Gothenburg)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Sun times data including sunrise, sunset, and solar noon</returns>
+            <response code="200">Sun times calculated successfully</response>
+            <response code="400">Invalid input parameters</response>
+            <response code="500">Internal server error during calculation</response>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.SolarController.GetSolarPositionForVenue(System.Int32,System.DateTime,System.Threading.CancellationToken)">
+            <summary>
+            Get solar position for a specific venue
+            </summary>
+            <param name="venueId">Venue ID</param>
+            <param name="timestamp">UTC timestamp for calculation</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Solar position for the venue location</returns>
+            <response code="200">Solar position calculated successfully</response>
+            <response code="400">Invalid venue ID or timestamp</response>
+            <response code="404">Venue not found or has no location data</response>
+            <response code="500">Internal server error during calculation</response>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.SolarController.GetSolarPositionForPatio(System.Int32,System.DateTime,System.Threading.CancellationToken)">
+            <summary>
+            Get solar position for a specific patio
+            </summary>
+            <param name="patioId">Patio ID</param>
+            <param name="timestamp">UTC timestamp for calculation</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Solar position for the patio centroid location</returns>
+            <response code="200">Solar position calculated successfully</response>
+            <response code="400">Invalid patio ID or timestamp</response>
+            <response code="404">Patio not found or has no geometry data</response>
+            <response code="500">Internal server error during calculation</response>
+        </member>
+        <member name="T:SunnySeat.Api.Endpoints.SunExposureController">
+            <summary>
+            API endpoints for patio sun exposure calculations
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.SunExposureController.GetPatioSunExposure(System.Int32,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Get sun exposure for a specific patio at given timestamp
+            </summary>
+            <param name="id">Patio ID</param>
+            <param name="timestamp">Timestamp for calculation (UTC, optional - defaults to current time)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Patio sun exposure information</returns>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.SunExposureController.GetCurrentSunExposure(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Get current sun exposure for a patio (uses current UTC time)
+            </summary>
+            <param name="id">Patio ID</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Current patio sun exposure information</returns>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.SunExposureController.GetSunExposureReliability(System.Nullable{System.DateTime},System.Threading.CancellationToken)">
+            <summary>
+            Check sun exposure reliability for current conditions
+            </summary>
+            <param name="timestamp">Timestamp to check (optional, defaults to current time)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Reliability information for sun exposure calculations</returns>
+        </member>
+        <member name="T:SunnySeat.Api.Endpoints.SunExposureReliabilityInfo">
+            <summary>
+            Response for sun exposure reliability check
+            </summary>
+        </member>
+        <member name="T:SunnySeat.Api.Endpoints.TimelineController">
+            <summary>
+            API controller for sun exposure timelines and forecasts
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.TimelineController.GetPatioTimeline(System.Int32,System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Get sun exposure timeline for a specific patio
+            </summary>
+            <param name="id">Patio ID</param>
+            <param name="start">Start time (UTC). If not provided, defaults to current time</param>
+            <param name="end">End time (UTC). If not provided, defaults to 12 hours from start</param>
+            <param name="resolutionMinutes">Data point resolution in minutes (default: 10)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Complete sun exposure timeline with confidence data</returns>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.TimelineController.GetTodayTimeline(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Get today's sun exposure timeline for a patio
+            </summary>
+            <param name="id">Patio ID</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Today's complete timeline from sunrise to sunset with weather-enhanced confidence</returns>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.TimelineController.GetTomorrowTimeline(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Get tomorrow's sun exposure timeline for a patio
+            </summary>
+            <param name="id">Patio ID</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Tomorrow's complete timeline with forecast weather data and confidence</returns>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.TimelineController.GetNext12HoursTimeline(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Get next 12 hours timeline for a patio
+            </summary>
+            <param name="id">Patio ID</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Timeline for the next 12 hours with weather-enhanced predictions</returns>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.TimelineController.GetBestSunWindows(System.Int32,System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Get the best sun windows for a patio within a time range
+            </summary>
+            <param name="id">Patio ID</param>
+            <param name="start">Search start time (UTC). If not provided, defaults to current time</param>
+            <param name="end">Search end time (UTC). If not provided, defaults to 24 hours from start</param>
+            <param name="maxWindows">Maximum number of windows to return (default: 3)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Best sun windows sorted by quality</returns>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.TimelineController.GetTodayRecommendations(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Get today's recommended sun windows for a patio
+            </summary>
+            <param name="id">Patio ID</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Today's recommended sun windows</returns>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.TimelineController.GetBatchTimelines(SunnySeat.Api.Endpoints.BatchTimelineRequest,System.Threading.CancellationToken)">
+            <summary>
+            Generate timelines for multiple patios (batch operation)
+            </summary>
+            <param name="request">Batch timeline request</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Collection of sun exposure timelines</returns>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.TimelineController.CompareTimelines(System.String,System.DateTime,System.DateTime,System.Threading.CancellationToken)">
+            <summary>
+            Compare sun exposure timelines between multiple patios
+            </summary>
+            <param name="patioIds">Comma-separated patio IDs (e.g., "1,2,3")</param>
+            <param name="start">Comparison start time (UTC)</param>
+            <param name="end">Comparison end time (UTC)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Timeline comparison with recommendations</returns>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.TimelineController.FindBestPatio(System.String,System.DateTime,System.DateTime,System.Threading.CancellationToken)">
+            <summary>
+            Find the best patio among a collection for a specific time range
+            </summary>
+            <param name="patioIds">Comma-separated patio IDs to evaluate</param>
+            <param name="start">Evaluation start time (UTC)</param>
+            <param name="end">Evaluation end time (UTC)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Recommended patio with reasoning</returns>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.TimelineController.GetTimelineSummary(System.Int32,System.DateTime,System.DateTime,System.Threading.CancellationToken)">
+            <summary>
+            Get timeline summary statistics
+            </summary>
+            <param name="id">Patio ID</param>
+            <param name="start">Timeline start time (UTC)</param>
+            <param name="end">Timeline end time (UTC)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Timeline summary statistics</returns>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.TimelineController.ValidateTimelineQuality(System.Int32,System.DateTime,System.DateTime,System.Threading.CancellationToken)">
+            <summary>
+            Validate timeline data quality and completeness
+            </summary>
+            <param name="id">Patio ID</param>
+            <param name="start">Timeline start time (UTC)</param>
+            <param name="end">Timeline end time (UTC)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Timeline quality assessment</returns>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.TimelineController.GetPerformanceMetrics(System.Threading.CancellationToken)">
+            <summary>
+            Get timeline service performance metrics
+            </summary>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Performance metrics for monitoring</returns>
+        </member>
+        <member name="T:SunnySeat.Api.Endpoints.BatchTimelineRequest">
+            <summary>
+            Request model for batch timeline generation
+            </summary>
+        </member>
+        <member name="P:SunnySeat.Api.Endpoints.BatchTimelineRequest.PatioIds">
+            <summary>
+            Collection of patio IDs to generate timelines for
+            </summary>
+        </member>
+        <member name="P:SunnySeat.Api.Endpoints.BatchTimelineRequest.StartTime">
+            <summary>
+            Timeline start time (UTC)
+            </summary>
+        </member>
+        <member name="P:SunnySeat.Api.Endpoints.BatchTimelineRequest.EndTime">
+            <summary>
+            Timeline end time (UTC)
+            </summary>
+        </member>
+        <member name="P:SunnySeat.Api.Endpoints.BatchTimelineRequest.ResolutionMinutes">
+            <summary>
+            Data point resolution in minutes (default: 10)
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.VenueEndpoints.MapVenuesApi(Microsoft.AspNetCore.Routing.RouteGroupBuilder)">
+            <summary>
+            Maps venue management endpoints to the route group
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.VenueEndpoints.CreatePatio(System.Int32,Microsoft.AspNetCore.Http.HttpRequest,SunnySeat.Core.Interfaces.IVenueService,System.Threading.CancellationToken)">
+            <summary>
+            Extension methods for mapping venue API endpoints
+            </summary>
+        </member>
+        <member name="T:SunnySeat.Api.Endpoints.WeatherController">
+            <summary>
+            Weather API endpoints for processed weather data
+            Provides access to processed weather forecasts with sun-relevant conditions
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.WeatherController.GetForecast(System.Double,System.Double,System.DateTime,System.DateTime,System.Threading.CancellationToken)">
+            <summary>
+            Get processed weather forecast for a specific location
+            </summary>
+            <param name="latitude">Latitude in decimal degrees</param>
+            <param name="longitude">Longitude in decimal degrees</param>
+            <param name="startTime">Start of forecast period (UTC)</param>
+            <param name="endTime">End of forecast period (UTC)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Processed weather forecast data</returns>
+            <response code="200">Weather forecast retrieved successfully</response>
+            <response code="400">Invalid input parameters</response>
+            <response code="404">No weather data available for requested time range</response>
+            <response code="500">Internal server error</response>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.WeatherController.GetCurrentWeather(System.Double,System.Double,System.Threading.CancellationToken)">
+            <summary>
+            Get current processed weather conditions for a specific location
+            </summary>
+            <param name="latitude">Latitude in decimal degrees</param>
+            <param name="longitude">Longitude in decimal degrees</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Current processed weather data</returns>
+            <response code="200">Current weather retrieved successfully</response>
+            <response code="400">Invalid input parameters</response>
+            <response code="404">No current weather data available</response>
+            <response code="500">Internal server error</response>
+        </member>
+        <member name="M:SunnySeat.Api.Endpoints.WeatherController.GetWeatherByTimeRange(System.DateTime,System.DateTime,System.Threading.CancellationToken)">
+            <summary>
+            Get processed weather data by time range (no specific location)
+            </summary>
+            <param name="startTime">Start of time range (UTC)</param>
+            <param name="endTime">End of time range (UTC)</param>
+            <param name="cancellationToken">Cancellation token</param>
+            <returns>Processed weather data for time range</returns>
+            <response code="200">Weather data retrieved successfully</response>
+            <response code="400">Invalid input parameters</response>
+            <response code="500">Internal server error</response>
+        </member>
+        <member name="T:SunnySeat.Api.HealthChecks.WeatherServiceHealthCheck">
+            <summary>
+            Health check for weather data services
+            </summary>
+        </member>
+        <member name="T:SunnySeat.Api.Hubs.AccuracyMetricsHub">
+            <summary>
+            SignalR hub for real-time accuracy metrics updates
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Hubs.AccuracyMetricsHub.OnConnectedAsync">
+            <summary>
+            Called when a client connects to the hub
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Hubs.AccuracyMetricsHub.OnDisconnectedAsync(System.Exception)">
+            <summary>
+            Called when a client disconnects from the hub
+            </summary>
+        </member>
+        <member name="T:SunnySeat.Api.Middleware.RateLimitingMiddleware">
+            <summary>
+            Simple rate limiting middleware to prevent abuse of authentication endpoints
+            </summary>
+        </member>
+        <member name="T:SunnySeat.Api.Middleware.DateTimeExtensions">
+            <summary>
+            Extension method to truncate DateTime to specified precision
+            </summary>
+        </member>
+        <member name="T:SunnySeat.Api.Middleware.SecurityHeadersMiddleware">
+            <summary>
+            Middleware to add security headers to all HTTP responses
+            Story 4.6: API Hardening - Security headers implementation
+            </summary>
+        </member>
+        <member name="T:SunnySeat.Api.Services.SignalRAccuracyMetricsBroadcaster">
+            <summary>
+            SignalR implementation of accuracy metrics broadcaster
+            </summary>
+        </member>
+        <member name="M:SunnySeat.Api.Services.SignalRAccuracyMetricsBroadcaster.BroadcastAccuracyMetricsAsync(SunnySeat.Core.Models.Responses.AccuracyMetricsResponse,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:SunnySeat.Api.Services.SignalRAccuracyMetricsBroadcaster.BroadcastProblematicVenuesAsync(System.Collections.Generic.IEnumerable{SunnySeat.Core.Models.Responses.ProblematicVenueResponse},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:SunnySeat.Api.Services.SignalRAccuracyMetricsBroadcaster.BroadcastAlertStatusAsync(System.Boolean,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+    </members>
+</doc>

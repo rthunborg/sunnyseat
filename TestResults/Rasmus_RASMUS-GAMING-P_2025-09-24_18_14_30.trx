@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="52ca337a-7ca2-4e24-8cee-b89af5a7327f" name="Rasmus@RASMUS-GAMING-P 2025-09-24 18:14:30" runUser="RASMUS-GAMING-P\Rasmus" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2025-09-24T18:14:30.4267126+02:00" queuing="2025-09-24T18:14:30.4267129+02:00" start="2025-09-24T18:14:27.1397605+02:00" finish="2025-09-24T18:14:32.5155664+02:00" />
+  <TestSettings name="default" id="916145b3-fde9-4f28-8674-01c1e0c8549a">
+    <Deployment runDeploymentRoot="Rasmus_RASMUS-GAMING-P_2025-09-24_18_14_30" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="fdb16e45-a80a-41d6-8cce-158e7566d6fe" testId="96bcb679-42a6-603f-df73-0449ac39957b" testName="SunnySeat.Data.Tests.PostGISFunctionalityTests.EPSG4326_CoordinateSystem_ShouldBeSupported" computerName="RASMUS-GAMING-P" duration="00:00:00.0005295" startTime="2025-09-24T18:14:29.9740359+02:00" endTime="2025-09-24T18:14:29.9740360+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fdb16e45-a80a-41d6-8cce-158e7566d6fe" />
+    <UnitTestResult executionId="d0642c66-e455-4291-93b8-6b5717316a54" testId="cf2e81d5-6ce5-fd92-fff0-41049a972657" testName="SunnySeat.Data.Tests.DatabaseIntegrationTests.DbContext_Configuration_ShouldBeValid" computerName="RASMUS-GAMING-P" duration="00:00:00.0127554" startTime="2025-09-24T18:14:32.4658805+02:00" endTime="2025-09-24T18:14:32.4658807+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d0642c66-e455-4291-93b8-6b5717316a54" />
+    <UnitTestResult executionId="c4a0382f-684a-469e-b659-7435f876d3cc" testId="0926e248-1633-bb74-23b6-6295d7cdac9d" testName="SunnySeat.Data.Tests.PostGISFunctionalityTests.SwedishCoordinates_WhenCreatingPoints_ShouldBeValid(latitude: 57,7089, longitude: 11,974600000000001)" computerName="RASMUS-GAMING-P" duration="00:00:00.4755835" startTime="2025-09-24T18:14:29.9712875+02:00" endTime="2025-09-24T18:14:29.9713054+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c4a0382f-684a-469e-b659-7435f876d3cc" />
+    <UnitTestResult executionId="7f9a29f6-7c07-47cc-9f3e-677747cd6023" testId="836897a6-d02b-8906-ac21-8490d7deb5fe" testName="SunnySeat.Data.Tests.PostGISFunctionalityTests.PostGIS_BasicSpatialFunction_ShouldWork" computerName="RASMUS-GAMING-P" duration="00:00:00.0019272" startTime="2025-09-24T18:14:29.9739615+02:00" endTime="2025-09-24T18:14:29.9739615+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7f9a29f6-7c07-47cc-9f3e-677747cd6023" />
+    <UnitTestResult executionId="f97e8ee0-87e8-4b59-84db-97cc00d19eee" testId="cb0719f0-21e5-9562-af47-253260bf6d68" testName="SunnySeat.Data.Tests.DatabaseIntegrationTests.DbContext_WhenCreated_ShouldNotBeNull" computerName="RASMUS-GAMING-P" duration="00:00:00.0002602" startTime="2025-09-24T18:14:32.4662513+02:00" endTime="2025-09-24T18:14:32.4662515+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f97e8ee0-87e8-4b59-84db-97cc00d19eee" />
+    <UnitTestResult executionId="b987bf41-ec4f-4963-ae7c-4f1bb0f58f5d" testId="9886cca0-6d24-98b6-af5a-90c9bc7c4aca" testName="SunnySeat.Data.Tests.PostGISFunctionalityTests.SwedishCoordinates_WhenCreatingPoints_ShouldBeValid(latitude: 55,604999999999997, longitude: 13,0038)" computerName="RASMUS-GAMING-P" duration="00:00:00.0002111" startTime="2025-09-24T18:14:29.9735970+02:00" endTime="2025-09-24T18:14:29.9735970+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b987bf41-ec4f-4963-ae7c-4f1bb0f58f5d" />
+    <UnitTestResult executionId="97f990bf-1a7c-4d59-bca4-7dcc7a877a2c" testId="7df4d2b5-8f8c-6484-e3b5-7c44e63aadc2" testName="SunnySeat.Data.Tests.PostGISFunctionalityTests.SwedishCoordinates_WhenCreatingPoints_ShouldBeValid(latitude: 59,329300000000003, longitude: 18,0686)" computerName="RASMUS-GAMING-P" duration="00:00:00.0000121" startTime="2025-09-24T18:14:29.9738735+02:00" endTime="2025-09-24T18:14:29.9738735+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="97f990bf-1a7c-4d59-bca4-7dcc7a877a2c" />
+    <UnitTestResult executionId="f531ceed-ee66-4b1e-b0b5-3d12170cff82" testId="d06df941-e8ad-122b-b981-9cfbbfaf0bee" testName="SunnySeat.Data.Tests.DatabaseIntegrationTests.Database_WhenCreated_ShouldBeAccessible" computerName="RASMUS-GAMING-P" duration="00:00:02.9617869" startTime="2025-09-24T18:14:32.4530771+02:00" endTime="2025-09-24T18:14:32.4530774+02:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f531ceed-ee66-4b1e-b0b5-3d12170cff82" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="SunnySeat.Data.Tests.DatabaseIntegrationTests.Database_WhenCreated_ShouldBeAccessible" storage="d:\sunnyseat\src\backend\sunnyseat.data.tests\bin\debug\net8.0\sunnyseat.data.tests.dll" id="d06df941-e8ad-122b-b981-9cfbbfaf0bee">
+      <Execution id="f531ceed-ee66-4b1e-b0b5-3d12170cff82" />
+      <TestMethod codeBase="D:\SunnySeat\src\backend\SunnySeat.Data.Tests\bin\Debug\net8.0\SunnySeat.Data.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="SunnySeat.Data.Tests.DatabaseIntegrationTests" name="Database_WhenCreated_ShouldBeAccessible" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Data.Tests.DatabaseIntegrationTests.DbContext_WhenCreated_ShouldNotBeNull" storage="d:\sunnyseat\src\backend\sunnyseat.data.tests\bin\debug\net8.0\sunnyseat.data.tests.dll" id="cb0719f0-21e5-9562-af47-253260bf6d68">
+      <Execution id="f97e8ee0-87e8-4b59-84db-97cc00d19eee" />
+      <TestMethod codeBase="D:\SunnySeat\src\backend\SunnySeat.Data.Tests\bin\Debug\net8.0\SunnySeat.Data.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="SunnySeat.Data.Tests.DatabaseIntegrationTests" name="DbContext_WhenCreated_ShouldNotBeNull" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Data.Tests.PostGISFunctionalityTests.SwedishCoordinates_WhenCreatingPoints_ShouldBeValid(latitude: 57,7089, longitude: 11,974600000000001)" storage="d:\sunnyseat\src\backend\sunnyseat.data.tests\bin\debug\net8.0\sunnyseat.data.tests.dll" id="0926e248-1633-bb74-23b6-6295d7cdac9d">
+      <Execution id="c4a0382f-684a-469e-b659-7435f876d3cc" />
+      <TestMethod codeBase="D:\SunnySeat\src\backend\SunnySeat.Data.Tests\bin\Debug\net8.0\SunnySeat.Data.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="SunnySeat.Data.Tests.PostGISFunctionalityTests" name="SwedishCoordinates_WhenCreatingPoints_ShouldBeValid" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Data.Tests.DatabaseIntegrationTests.DbContext_Configuration_ShouldBeValid" storage="d:\sunnyseat\src\backend\sunnyseat.data.tests\bin\debug\net8.0\sunnyseat.data.tests.dll" id="cf2e81d5-6ce5-fd92-fff0-41049a972657">
+      <Execution id="d0642c66-e455-4291-93b8-6b5717316a54" />
+      <TestMethod codeBase="D:\SunnySeat\src\backend\SunnySeat.Data.Tests\bin\Debug\net8.0\SunnySeat.Data.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="SunnySeat.Data.Tests.DatabaseIntegrationTests" name="DbContext_Configuration_ShouldBeValid" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Data.Tests.PostGISFunctionalityTests.EPSG4326_CoordinateSystem_ShouldBeSupported" storage="d:\sunnyseat\src\backend\sunnyseat.data.tests\bin\debug\net8.0\sunnyseat.data.tests.dll" id="96bcb679-42a6-603f-df73-0449ac39957b">
+      <Execution id="fdb16e45-a80a-41d6-8cce-158e7566d6fe" />
+      <TestMethod codeBase="D:\SunnySeat\src\backend\SunnySeat.Data.Tests\bin\Debug\net8.0\SunnySeat.Data.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="SunnySeat.Data.Tests.PostGISFunctionalityTests" name="EPSG4326_CoordinateSystem_ShouldBeSupported" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Data.Tests.PostGISFunctionalityTests.SwedishCoordinates_WhenCreatingPoints_ShouldBeValid(latitude: 59,329300000000003, longitude: 18,0686)" storage="d:\sunnyseat\src\backend\sunnyseat.data.tests\bin\debug\net8.0\sunnyseat.data.tests.dll" id="7df4d2b5-8f8c-6484-e3b5-7c44e63aadc2">
+      <Execution id="97f990bf-1a7c-4d59-bca4-7dcc7a877a2c" />
+      <TestMethod codeBase="D:\SunnySeat\src\backend\SunnySeat.Data.Tests\bin\Debug\net8.0\SunnySeat.Data.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="SunnySeat.Data.Tests.PostGISFunctionalityTests" name="SwedishCoordinates_WhenCreatingPoints_ShouldBeValid" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Data.Tests.PostGISFunctionalityTests.PostGIS_BasicSpatialFunction_ShouldWork" storage="d:\sunnyseat\src\backend\sunnyseat.data.tests\bin\debug\net8.0\sunnyseat.data.tests.dll" id="836897a6-d02b-8906-ac21-8490d7deb5fe">
+      <Execution id="7f9a29f6-7c07-47cc-9f3e-677747cd6023" />
+      <TestMethod codeBase="D:\SunnySeat\src\backend\SunnySeat.Data.Tests\bin\Debug\net8.0\SunnySeat.Data.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="SunnySeat.Data.Tests.PostGISFunctionalityTests" name="PostGIS_BasicSpatialFunction_ShouldWork" />
+    </UnitTest>
+    <UnitTest name="SunnySeat.Data.Tests.PostGISFunctionalityTests.SwedishCoordinates_WhenCreatingPoints_ShouldBeValid(latitude: 55,604999999999997, longitude: 13,0038)" storage="d:\sunnyseat\src\backend\sunnyseat.data.tests\bin\debug\net8.0\sunnyseat.data.tests.dll" id="9886cca0-6d24-98b6-af5a-90c9bc7c4aca">
+      <Execution id="b987bf41-ec4f-4963-ae7c-4f1bb0f58f5d" />
+      <TestMethod codeBase="D:\SunnySeat\src\backend\SunnySeat.Data.Tests\bin\Debug\net8.0\SunnySeat.Data.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="SunnySeat.Data.Tests.PostGISFunctionalityTests" name="SwedishCoordinates_WhenCreatingPoints_ShouldBeValid" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="96bcb679-42a6-603f-df73-0449ac39957b" executionId="fdb16e45-a80a-41d6-8cce-158e7566d6fe" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cf2e81d5-6ce5-fd92-fff0-41049a972657" executionId="d0642c66-e455-4291-93b8-6b5717316a54" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0926e248-1633-bb74-23b6-6295d7cdac9d" executionId="c4a0382f-684a-469e-b659-7435f876d3cc" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="836897a6-d02b-8906-ac21-8490d7deb5fe" executionId="7f9a29f6-7c07-47cc-9f3e-677747cd6023" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="cb0719f0-21e5-9562-af47-253260bf6d68" executionId="f97e8ee0-87e8-4b59-84db-97cc00d19eee" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9886cca0-6d24-98b6-af5a-90c9bc7c4aca" executionId="b987bf41-ec4f-4963-ae7c-4f1bb0f58f5d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="7df4d2b5-8f8c-6484-e3b5-7c44e63aadc2" executionId="97f990bf-1a7c-4d59-bca4-7dcc7a877a2c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d06df941-e8ad-122b-b981-9cfbbfaf0bee" executionId="f531ceed-ee66-4b1e-b0b5-3d12170cff82" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="8" executed="8" passed="8" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.5.7+8f2703126a (64-bit .NET 8.0.9)&#xD;
+[xUnit.net 00:00:00.48]   Discovering: SunnySeat.Data.Tests&#xD;
+[xUnit.net 00:00:00.53]   Discovered:  SunnySeat.Data.Tests&#xD;
+[xUnit.net 00:00:00.54]   Starting:    SunnySeat.Data.Tests&#xD;
+[xUnit.net 00:00:03.55]   Finished:    SunnySeat.Data.Tests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

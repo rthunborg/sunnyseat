@@ -1,0 +1,9 @@
+D:\SunnySeat\SunnySeat.Docs\bin\Debug\net8.0\SunnySeat.Docs.deps.json
+D:\SunnySeat\SunnySeat.Docs\bin\Debug\net8.0\SunnySeat.Docs.dll
+D:\SunnySeat\SunnySeat.Docs\bin\Debug\net8.0\SunnySeat.Docs.pdb
+D:\SunnySeat\SunnySeat.Docs\obj\Debug\net8.0\SunnySeat.Docs.GeneratedMSBuildEditorConfig.editorconfig
+D:\SunnySeat\SunnySeat.Docs\obj\Debug\net8.0\SunnySeat.Docs.csproj.CoreCompileInputs.cache
+D:\SunnySeat\SunnySeat.Docs\obj\Debug\net8.0\SunnySeat.Docs.dll
+D:\SunnySeat\SunnySeat.Docs\obj\Debug\net8.0\refint\SunnySeat.Docs.dll
+D:\SunnySeat\SunnySeat.Docs\obj\Debug\net8.0\SunnySeat.Docs.pdb
+D:\SunnySeat\SunnySeat.Docs\obj\Debug\net8.0\ref\SunnySeat.Docs.dll

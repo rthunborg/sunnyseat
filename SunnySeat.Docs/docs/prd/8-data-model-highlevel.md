@@ -1,0 +1,7 @@
+# 8. Data Model (high‑level)
+- **Venue**(id, name, location(point), district, price_level, …)
+- **Patio**(id, venue_id, polygon(geom), orientation, height_override_m, quality_flag, …)
+- **Building**(id, polygon(geom), height_m, source, floors, …)
+- **Prediction**(patio_id, date, sun_windows[timespans], generated_at)
+- **WeatherSlice**(timestamp, cloud_cover_pct, source, location)
+- **Feedback**(venue_id, timestamp, observed_state, confidence_at_prediction)

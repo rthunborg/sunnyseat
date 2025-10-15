@@ -1,0 +1,140 @@
+/* FeedbackConfirmation Styles */
+
+.feedback-confirmation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .feedback-confirmation-overlay {
+    top: auto;
+    bottom: auto;
+    justify-content: flex-end;
+    align-items: flex-start;
+    padding: 24px;
+  }
+}
+
+.feedback-confirmation-toast {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  max-width: 400px;
+  width: 100%;
+  pointer-events: auto;
+  animation: slideIn 300ms ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (min-width: 768px) {
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+}
+
+.feedback-confirmation-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.feedback-confirmation-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #22c55e;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.feedback-confirmation-text {
+  flex: 1;
+}
+
+.feedback-confirmation-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.feedback-confirmation-message {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.feedback-confirmation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  align-items: center;
+}
+
+.feedback-confirmation-undo {
+  padding: 6px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: white;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.feedback-confirmation-undo:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.feedback-confirmation-undo:active {
+  transform: scale(0.98);
+}
+
+.feedback-confirmation-close {
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: color 150ms ease;
+  line-height: 1;
+}
+
+.feedback-confirmation-close:hover {
+  color: #6b7280;
+}

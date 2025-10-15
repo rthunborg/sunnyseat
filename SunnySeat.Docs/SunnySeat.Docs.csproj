@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<EnableDefaultItems>false</EnableDefaultItems>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+		<IsPackable>false</IsPackable>
+		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<NoWarn>$(NoWarn);NU5100</NoWarn>
+	</PropertyGroup>
+
+	<!-- Show these folders/files in Solution Explorer and auto-sync on changes -->
+	<ItemGroup>
+		<None Include="docs\**\*.*" />
+		<None Include=".github\**\*.*" />
+		<None Include=".vscode\**\*.*" />
+		<None Include="web-bundles\**\*.*" />
+		<None Include="QA-HANDOVER.md" />
+		<None Include="README-Development.md" />
+	</ItemGroup>
+</Project>

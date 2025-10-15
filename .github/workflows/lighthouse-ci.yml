@@ -1,0 +1,41 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+    paths:
+      - "src/frontend/admin/**"
+  workflow_dispatch:
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    name: Run Lighthouse Audits
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: src/frontend/admin/package-lock.json
+
+      - name: Install dependencies
+        working-directory: src/frontend/admin
+        run: npm ci
+
+      - name: Build application
+        working-directory: src/frontend/admin
+        run: npm run build
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          urls: |
+            http://localhost:4173
+            http://localhost:4173/v/test-venue
+          configPath: "./src/frontend/admin/lighthouse.config.js"
+          uploadArtifacts: true
+          temporaryPublicStorage: true

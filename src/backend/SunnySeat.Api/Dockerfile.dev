@@ -1,0 +1,42 @@
+# Development Dockerfile for SunnySeat API with hot reload
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+WORKDIR /app
+EXPOSE 5000
+
+# Install development tools
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Copy solution file
+COPY SunnySeat.sln .
+
+# Copy project files
+COPY src/backend/SunnySeat.Api/SunnySeat.Api.csproj src/backend/SunnySeat.Api/
+COPY src/backend/SunnySeat.Core/SunnySeat.Core.csproj src/backend/SunnySeat.Core/
+COPY src/backend/SunnySeat.Data/SunnySeat.Data.csproj src/backend/SunnySeat.Data/
+COPY src/backend/SunnySeat.Shared/SunnySeat.Shared.csproj src/backend/SunnySeat.Shared/
+
+# Restore packages
+RUN dotnet restore
+
+# Copy source code
+COPY src/backend/ src/backend/
+
+# Build the application
+RUN dotnet build src/backend/SunnySeat.Api/SunnySeat.Api.csproj -c Release -o /app/build
+
+# Development stage with hot reload
+FROM build AS development
+WORKDIR /src
+ENV ASPNETCORE_ENVIRONMENT=Development
+ENV DOTNET_USE_POLLING_FILE_WATCHER=true
+ENV ASPNETCORE_URLS=http://+:5000
+
+# Install dotnet-ef tool for migrations
+RUN dotnet tool install --global dotnet-ef
+ENV PATH="$PATH:/root/.dotnet/tools"
+
+EXPOSE 5000
+
+# Use dotnet watch for hot reload in development
+CMD ["dotnet", "watch", "run", "--project", "src/backend/SunnySeat.Api/SunnySeat.Api.csproj", "--urls", "http://0.0.0.0:5000"]

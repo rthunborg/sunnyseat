@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "63BNfpVWU91Qoiju2zMqCTEniMwxKUIMSsZZ0vEEsY4=",
+  "Source": "SunnySeat.Api",
+  "BasePath": "_content/SunnySeat.Api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}

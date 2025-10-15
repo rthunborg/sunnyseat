@@ -1,0 +1,10 @@
+# Robots.txt for SunnySeat
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /timeline
+Disallow: /accuracy
+
+# Sitemap location
+Sitemap: https://sunnyseat.com/sitemap.xml

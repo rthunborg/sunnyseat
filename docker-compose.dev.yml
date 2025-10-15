@@ -1,0 +1,46 @@
+services:
+  # PostgreSQL database with PostGIS extension
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: sunnyseat-postgres
+    environment:
+      POSTGRES_DB: sunnyseat_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/pgdata
+    networks:
+      - sunnyseat-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sunnyseat_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Redis cache
+  redis:
+    image: redis:7-alpine
+    container_name: sunnyseat-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - sunnyseat-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  sunnyseat-network:
+    driver: bridge

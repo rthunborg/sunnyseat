@@ -1,0 +1,15 @@
+D:\SunnySeat\src\backend\SunnySeat.Core\bin\Debug\net8.0\SunnySeat.Core.deps.json
+D:\SunnySeat\src\backend\SunnySeat.Core\bin\Debug\net8.0\SunnySeat.Core.dll
+D:\SunnySeat\src\backend\SunnySeat.Core\bin\Debug\net8.0\SunnySeat.Core.pdb
+D:\SunnySeat\src\backend\SunnySeat.Core\bin\Debug\net8.0\SunnySeat.Shared.dll
+D:\SunnySeat\src\backend\SunnySeat.Core\bin\Debug\net8.0\SunnySeat.Shared.pdb
+D:\SunnySeat\src\backend\SunnySeat.Core\obj\Debug\net8.0\SunnySeat.Core.csproj.AssemblyReference.cache
+D:\SunnySeat\src\backend\SunnySeat.Core\obj\Debug\net8.0\SunnySeat.Core.GeneratedMSBuildEditorConfig.editorconfig
+D:\SunnySeat\src\backend\SunnySeat.Core\obj\Debug\net8.0\SunnySeat.Core.AssemblyInfoInputs.cache
+D:\SunnySeat\src\backend\SunnySeat.Core\obj\Debug\net8.0\SunnySeat.Core.AssemblyInfo.cs
+D:\SunnySeat\src\backend\SunnySeat.Core\obj\Debug\net8.0\SunnySeat.Core.csproj.CoreCompileInputs.cache
+D:\SunnySeat\src\backend\SunnySeat.Core\obj\Debug\net8.0\SunnySea.42BE96FF.Up2Date
+D:\SunnySeat\src\backend\SunnySeat.Core\obj\Debug\net8.0\SunnySeat.Core.dll
+D:\SunnySeat\src\backend\SunnySeat.Core\obj\Debug\net8.0\refint\SunnySeat.Core.dll
+D:\SunnySeat\src\backend\SunnySeat.Core\obj\Debug\net8.0\SunnySeat.Core.pdb
+D:\SunnySeat\src\backend\SunnySeat.Core\obj\Debug\net8.0\ref\SunnySeat.Core.dll
