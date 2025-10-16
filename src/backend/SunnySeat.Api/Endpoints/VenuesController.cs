@@ -34,12 +34,21 @@ public static class VenueEndpoints
         // Create a new venue
         group.MapPost("/", CreateVenue)
             .WithName("CreateVenue")
-            .WithSummary("Create a new venue");
+            .WithSummary("Create a new venue")
+            .Accepts<Venue>("application/json")
+            .Produces<Venue>(201)
+            .ProducesValidationProblem()
+            .ProducesProblem(400);
 
         // Update an existing venue
         group.MapPut("/{id:int}", UpdateVenue)
             .WithName("UpdateVenue")
-            .WithSummary("Update an existing venue");
+            .WithSummary("Update an existing venue")
+            .Accepts<Venue>("application/json")
+            .Produces<Venue>(200)
+            .ProducesValidationProblem()
+            .ProducesProblem(400)
+            .ProducesProblem(404);
 
         // Delete a venue
         group.MapDelete("/{id:int}", DeleteVenue)
@@ -64,7 +73,12 @@ public static class VenueEndpoints
         // Create a new patio for a venue
         group.MapPost("/{id:int}/patios", CreatePatio)
             .WithName("CreatePatio")
-            .WithSummary("Create a new patio for a venue");
+            .WithSummary("Create a new patio for a venue")
+            .Accepts<Patio>("application/json")
+            .Produces<Patio>(201)
+            .ProducesValidationProblem()
+            .ProducesProblem(400)
+            .ProducesProblem(404);
 
         // Get quality metrics for a venue
         group.MapGet("/{id:int}/quality", GetVenueQuality)
