@@ -26,13 +26,19 @@ export function AdminDashboard() {
     try {
       setIsLoading(true);
       const venuesResponse = await adminApi.getVenues({ limit: 100 });
-      setVenues(venuesResponse.data);
+      
+      // Handle both array response and paginated response
+      const venuesData = Array.isArray(venuesResponse) ? venuesResponse : (venuesResponse.data || []);
+      setVenues(venuesData);
       
       // Load all patios for map display
-      const allPatios = venuesResponse.data.flatMap(venue => venue.patios);
+      const allPatios = venuesData.flatMap(venue => venue.patios || []);
       setPatios(allPatios);
     } catch (error) {
       console.error('Failed to load initial data:', error);
+      // Set empty arrays on error so UI doesn't break
+      setVenues([]);
+      setPatios([]);
     } finally {
       setIsLoading(false);
     }

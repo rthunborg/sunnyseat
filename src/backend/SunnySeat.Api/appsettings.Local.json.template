@@ -1,0 +1,11 @@
+﻿{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=sunnyseat-dev-psql.postgres.database.azure.com;Database=sunnyseat_dev;Username=sunnyseataadmin;Password=YOUR_PASSWORD_HERE;SSL Mode=Require;Include Error Detail=true"
+  },
+  "Jwt": {
+    "SecretKey": "YOUR_JWT_SECRET_KEY_HERE_MIN_32_CHARS"
+  },
+  "Weather": {
+    "OpenWeatherMapApiKey": "YOUR_OPENWEATHERMAP_API_KEY_HERE"
+  }
+}

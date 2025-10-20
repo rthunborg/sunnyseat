@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import type { LoginRequest } from '../../types';
 
@@ -12,6 +13,7 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const {
     register,
@@ -25,7 +27,8 @@ export function LoginPage() {
 
     try {
       await login(data as LoginRequest);
-      // Navigation will be handled by the router
+      // Navigate to admin dashboard after successful login
+      navigate('/admin');
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
