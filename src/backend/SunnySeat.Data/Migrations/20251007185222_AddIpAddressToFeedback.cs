@@ -146,14 +146,15 @@ namespace SunnySeat.Data.Migrations
                 nullable: false,
                 defaultValue: "");
 
-            migrationBuilder.AlterColumn<int>(
+            // Drop the old string column and recreate as integer
+            migrationBuilder.Sql("ALTER TABLE patios DROP COLUMN \"HeightSource\"");
+
+            migrationBuilder.AddColumn<int>(
                 name: "HeightSource",
                 table: "patios",
                 type: "integer",
                 nullable: false,
-                oldClrType: typeof(string),
-                oldType: "character varying(20)",
-                oldMaxLength: 20);
+                defaultValue: 0);
 
             migrationBuilder.AddColumn<double>(
                 name: "HeightM",
