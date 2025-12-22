@@ -1,6 +1,6 @@
 # Source Tree
 
-*Version 1.0 - Created by Winston (Architect Agent)*
+_Version 1.0 - Created by Winston (Architect Agent)_
 
 ## Overview
 
@@ -13,8 +13,8 @@ SunnySeat/
 ??? SunnySeat.Docs/.github/                          # GitHub workflows and templates
 ?   ??? workflows/                    # CI/CD automation
 ?   ?   ??? build-and-test.yml       # Build, test, security scan
-?   ?   ??? deploy-staging.yml       # Staging deployment
-?   ?   ??? deploy-production.yml    # Production deployment
+?   ?   ??? deploy-staging.yml       # Staging deployment (Vercel)
+?   ?   ??? deploy-production.yml    # Production deployment (Vercel)
 ?   ??? ISSUE_TEMPLATE/               # Issue templates
 ?   ??? pull_request_template.md     # PR template
 ??? SunnySeat.Docs/.bmad-core/                       # BMad methodology artifacts
@@ -29,12 +29,15 @@ SunnySeat/
 ?   ??? stories/                     # User stories
 ?   ??? decisions/                   # Architecture decision records
 ??? src/                             # Application source code
-?   ??? frontend/                    # React SPA application
-?   ??? backend/                     # .NET 8 API and workers
-?   ??? shared/                      # Shared types and utilities
+?   ??? app/                         # Next.js App Router (pages and API routes)
+?   ??? lib/                         # Shared libraries and utilities
+?   ??? components/                  # React components (Server/Client)
+?   ??? public/                      # Static assets
 ??? infrastructure/                   # Infrastructure as Code
-?   ??? azure/                       # Azure ARM templates
-?   ??? docker/                      # Docker configurations
+?   ??? vercel/                      # Vercel configuration
+?   ?   ??? vercel.json             # Vercel deployment config
+?   ??? supabase/                    # Supabase migrations
+?   ?   ??? migrations/              # Database migration files
 ?   ??? scripts/                     # Deployment scripts
 ??? tests/                           # Test suites
 ?   ??? integration/                 # Integration tests
@@ -265,75 +268,75 @@ tests/
 ## Configuration Management
 
 ### Environment Variables
+
 ```
-# Database
-CONNECTION_STRING=postgresql://...
-POSTGIS_VERSION=3.4
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://[project].supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=[anon-key]
+SUPABASE_SERVICE_ROLE_KEY=[service-role-key]
 
 # External APIs
 WEATHER_API_KEY=openweathermap_key
 WEATHER_API_URL=https://api.openweathermap.org/data/2.5
 
-# Cache
-REDIS_CONNECTION_STRING=redis://...
-
 # Application
-ENVIRONMENT=Development|Staging|Production
-LOG_LEVEL=Information
-CORS_ORIGINS=https://sunnyseat.se
+NODE_ENV=development|production
+NEXT_PUBLIC_APP_URL=https://sunnyseat.se
 ```
 
 ### Configuration Files
-- **Development**: `appsettings.Development.json`
-- **Staging**: `appsettings.Staging.json`
-- **Production**: Environment variables only (secure)
+
+- **Development**: `.env.local` (gitignored)
+- **Staging**: Vercel environment variables
+- **Production**: Vercel environment variables (secure)
 
 ## Build Artifacts
 
-### Frontend Build Output
+### Next.js Build Output
+
 ```
-dist/
-??? index.html                      # Main application page
-??? assets/                         # Compiled assets
-?   ??? index-[hash].js            # Main application bundle
-?   ??? index-[hash].css           # Compiled styles
-?   ??? vendor-[hash].js           # Third-party dependencies
-??? static/                         # Static assets
-    ??? images/                     # Optimized images
-    ??? icons/                      # Icon assets
+.next/
+??? server/                        # Server-side code
+?   ??? app/                       # App Router server components
+?   ??? chunks/                    # Code splitting chunks
+??? static/                        # Static assets
+?   ??? chunks/                    # Client-side chunks
+?   ??? [hash]/                    # Hashed assets
+??? cache/                         # Build cache
 ```
 
-### Backend Build Output
-```
-publish/
-??? SunnySeat.Api.dll              # Main API assembly
-??? SunnySeat.Core.dll             # Business logic assembly
-??? SunnySeat.Data.dll             # Data access assembly
-??? runtimes/                      # Runtime dependencies
-??? appsettings.json               # Configuration file
-```
+### Vercel Deployment
+
+- Automatic build on git push
+- Serverless functions for API routes
+- Edge network for static assets
+- Automatic preview deployments for PRs
 
 ## Development Workflows
 
 ### Local Development Setup
+
 1. Clone repository
-2. Run `docker-compose -f infrastructure/docker/docker-compose.dev.yml up -d`
-3. Install frontend dependencies: `cd src/frontend && npm install`
-4. Install backend dependencies: `cd src/backend && dotnet restore`
-5. Run migrations: `dotnet ef database update`
-6. Start development servers
+2. Install dependencies: `npm install`
+3. Set up environment variables: Copy `.env.example` to `.env.local`
+4. Run Supabase migrations: `supabase db push` (or via Supabase dashboard)
+5. Start development server: `npm run dev`
+6. Access application: `http://localhost:3000`
 
 ### Testing Workflow
-1. Unit tests: `dotnet test` (backend), `npm test` (frontend)
-2. Integration tests: `dotnet test tests/integration/`
+
+1. Unit tests: `npm test` (Jest/Vitest)
+2. Integration tests: `npm run test:integration`
 3. E2E tests: `npx playwright test`
-4. Performance tests: `dotnet run --project tests/performance/`
+4. Performance tests: `npm run test:performance`
 
 ### Deployment Process
+
 1. Feature development in branches
 2. Pull request with automated testing
-3. Merge to main triggers staging deployment
-4. Manual promotion to production after validation
+3. Automatic preview deployment on PR creation (Vercel)
+4. Merge to main triggers production deployment (Vercel)
+5. Automatic database migrations via Supabase
 
 ---
 

@@ -1,3 +1,4 @@
 # High‑Level Architecture
-[Azure Front Door/CDN] → Public SPA (React+MapLibre) & Admin SPA → API (.NET 8 Minimal API) → Postgres/PostGIS
-Workers: **Sun/Shadow Precompute** (daily + ad‑hoc), **Weather Ingest** (5–10 min).
+
+[Vercel Edge/CDN] → Next.js Full-Stack App (React+MapLibre) → Supabase (PostgreSQL+PostGIS)
+Background Jobs: **Sun/Shadow Precompute** (Vercel Cron daily + ad‑hoc), **Weather Ingest** (Vercel Cron 5–10 min).

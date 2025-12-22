@@ -1,6 +1,7 @@
 # 7. Technical Considerations
-- **Frontend:** React + MapLibre GL.  
-- **Backend:** .NET (C#).  
-- **DB:** PostgreSQL + **PostGIS**.  
-- **Infra:** Azure (App Service/Container Apps), Azure Postgres; optional Azure Maps; CI/CD via GitHub Actions.  
+
+- **Frontend:** Next.js 14+ (React + MapLibre GL) with App Router.
+- **Backend:** Next.js API Routes (TypeScript/Node.js).
+- **DB:** Supabase (PostgreSQL + **PostGIS**).
+- **Infra:** Vercel for hosting and deployment; Supabase for database; CI/CD via GitHub Actions.
 - **Data sources:** Lantmäteriet/OSM buildings (.gpkg exists), Nordic weather APIs.

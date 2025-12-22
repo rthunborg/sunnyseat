@@ -1,12 +1,12 @@
 # SunnySeat Local Development Environment
 
-This guide covers setting up the complete SunnySeat development environment using Docker.
+This guide covers setting up the complete SunnySeat development environment for the Next.js/Supabase stack.
 
 ## Prerequisites
 
-- Docker Desktop with Docker Compose V2
-- .NET 8.0 SDK (optional - if running outside containers)
-- Git
+- **Node.js** 18+ and npm
+- **Supabase CLI** (optional - for local Supabase)
+- **Git**
 
 ## Quick Start
 
@@ -17,77 +17,105 @@ This guide covers setting up the complete SunnySeat development environment usin
    cd SunnySeat
    ```
 
-2. **Start the development environment:**
+2. **Install dependencies:**
 
    ```bash
-   docker-compose -f docker-compose.dev.yml up -d
+   npm install
    ```
 
-3. **Verify services are running:**
+3. **Set up environment variables:**
 
    ```bash
-   docker-compose -f docker-compose.dev.yml ps
+   cp .env.example .env.local
+   # Edit .env.local with your Supabase credentials
    ```
 
-4. **Access the application:**
-   - API: http://localhost:5000
-   - API Documentation (Swagger): http://localhost:5000/swagger
-   - Database: localhost:5432 (postgres/postgres)
-   - Redis: localhost:6379
+4. **Start the development server:**
+
+   ```bash
+   npm run dev
+   ```
+
+5. **Access the application:**
+   - Application: http://localhost:3000
+   - API Routes: http://localhost:3000/api/\*
+   - Database: Managed via Supabase (cloud or local)
 
 ## Services
 
-### PostgreSQL + PostGIS Database
+### Supabase Database
 
-- **Container**: `sunnyseat-postgres`
-- **Image**: `postgis/postgis:15-3.4`
-- **Port**: 5432
-- **Database**: `sunnyseat_dev`
-- **Username**: `postgres`
-- **Password**: `postgres`
+- **Hosting**: Supabase Cloud (or local with Supabase CLI)
+- **Database**: PostgreSQL with PostGIS
+- **PostGIS Extensions**: Enabled automatically
+- **Connection**: Via Supabase client library
 
-**PostGIS Extensions Enabled:**
+**Local Supabase (Optional):**
 
-- `postgis` - Core spatial functionality
-- `postgis_topology` - Topology support
-- `postgis_raster` - Raster data support
+```bash
+# Install Supabase CLI
+npm install -g supabase
 
-### Redis Cache
+# Start local Supabase
+supabase start
 
-- **Container**: `sunnyseat-redis`
-- **Image**: `redis:7-alpine`
-- **Port**: 6379
-- **Usage**: Application caching (future feature)
+# Access local Supabase dashboard
+# URL will be shown in terminal output
+```
 
-### SunnySeat API
+### Next.js Development Server
 
-- **Container**: `sunnyseat-api`
-- **Port**: 5000
-- **Hot Reload**: Enabled with `dotnet watch`
+- **Port**: 3000
+- **Hot Reload**: Automatic with Next.js
 - **Environment**: Development
+- **Features**: Server Components, API Routes, automatic code splitting
 
 ## Development Workflow
 
-### Running Migrations
+### Running Database Migrations
 
 ```bash
-# Run from host machine (requires .NET 9 SDK)
-dotnet ef database update --project src/backend/SunnySeat.Data --startup-project src/backend/SunnySeat.Api
+# Using Supabase CLI (if using local Supabase)
+supabase db push
 
-# Or run inside the API container
-docker exec -it sunnyseat-api dotnet ef database update --project src/backend/SunnySeat.Data
+# Or apply migrations via Supabase Dashboard (cloud)
+# Navigate to SQL Editor and run migration files
 ```
 
 ### Viewing Logs
 
 ```bash
-# All services
-docker-compose -f docker-compose.dev.yml logs -f
+# Next.js development server logs
+# Logs appear in terminal where `npm run dev` is running
 
-# Specific service
-docker-compose -f docker-compose.dev.yml logs -f api
-docker-compose -f docker-compose.dev.yml logs -f postgres
+# Supabase logs (if using local Supabase)
+supabase logs
 ```
+
+### Environment Variables
+
+Required environment variables in `.env.local`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://[project].supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=[anon-key]
+SUPABASE_SERVICE_ROLE_KEY=[service-role-key]
+WEATHER_API_KEY=[weather-api-key]
+```
+
+### Building for Production
+
+```bash
+# Build the application
+npm run build
+
+# Start production server locally
+npm start
+```
+
+docker-compose -f docker-compose.dev.yml logs -f postgres
+
+````
 
 ### Hot Reload Development
 
@@ -102,7 +130,7 @@ docker exec -it sunnyseat-postgres psql -U postgres -d sunnyseat_dev
 # Test PostGIS
 SELECT PostGIS_Version();
 SELECT ST_Distance(ST_Point(0,0), ST_Point(1,1));
-```
+````
 
 ### Redis Access
 
