@@ -1,330 +1,273 @@
-﻿# Local Development Setup
+# Local Development Setup
 
-This guide walks you through setting up the SunnySeat application for local development.
+This guide walks you through setting up the SunnySeat Next.js application for local development.
 
 ## Prerequisites
 
--  Windows 10/11 with PowerShell 7+
--  .NET 8 SDK
--  Node.js 18+ and npm
--  PostgreSQL 14+ (or Docker Desktop to run PostgreSQL in container)
--  Git
--  Visual Studio Code (recommended) or Visual Studio 2022
+- **Node.js 20+** and npm (or yarn/pnpm)
+- **Git** installed
+- **Supabase account** and project (or local Supabase instance)
+- **Code editor** (VS Code recommended)
+- **Vercel CLI** (optional, for local Vercel development)
 
-## Quick Start (Recommended)
+## Quick Start
 
-### Option 1: Using Docker Compose (Easiest)
+### Step 1: Clone the Repository
 
-```powershell
-# Navigate to project root
-cd D:\SunnySeat
-
-# Start all services (API, PostgreSQL, Redis)
-docker-compose -f docker-compose.dev.yml up -d
-
-# View logs
-docker-compose -f docker-compose.dev.yml logs -f
-
-# Access the application
-# API: http://localhost:5000
-# Swagger: http://localhost:5000/swagger
-# PostgreSQL: localhost:5432
+```bash
+git clone <repository-url>
+cd sunnyseat
 ```
 
-**Stop services:**
-```powershell
-docker-compose -f docker-compose.dev.yml down
-```
+### Step 2: Install Dependencies
 
-### Option 2: Running Services Individually
-
-#### Step 1: Set Up PostgreSQL
-
-**With Docker:**
-```powershell
-docker run --name sunnyseat-postgres `
-  -e POSTGRES_PASSWORD=YourPassword123! `
-  -e POSTGRES_DB=sunnyseat_dev `
-  -p 5432:5432 `
-  -d postgis/postgis:14-3.3
-```
-
-**With Local PostgreSQL:**
-1. Install PostgreSQL 14+ with PostGIS extension
-2. Create database: `CREATE DATABASE sunnyseat_dev;`
-3. Enable PostGIS: `CREATE EXTENSION postgis;`
-
-#### Step 2: Configure Connection String
-
-Create/update `src/backend/SunnySeat.Api/appsettings.Development.json`:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=sunnyseat_dev;Username=postgres;Password=YourPassword123!"
-  },
-  "Jwt": {
-    "SecretKey": "your-development-secret-key-min-32-characters",
-    "Issuer": "SunnySeat.Dev",
-    "Audience": "SunnySeat.Admin",
-    "ExpirationMinutes": 480,
-    "RefreshTokenExpirationDays": 7
-  }
-}
-```
-
-#### Step 3: Run Database Migrations
-
-```powershell
-cd D:\SunnySeat\src\backend\SunnySeat.Api
-
-# Apply migrations
-dotnet ef database update
-
-# Verify
-dotnet ef migrations list
-```
-
-#### Step 4: Start the Backend API
-
-```powershell
-cd D:\SunnySeat\src\backend\SunnySeat.Api
-
-# Run with hot reload
-dotnet watch run
-
-# Or run normally
-dotnet run
-```
-
-**API will be available at:**
-- HTTP: http://localhost:5000
-- HTTPS: https://localhost:5001
-- Swagger: http://localhost:5000/swagger
-
-#### Step 5: Start Admin Frontend
-
-```powershell
-cd D:\SunnySeat\src\frontend\admin
-
-# Install dependencies (first time only)
+```bash
+cd nextjs-app
 npm install
+```
 
-# Start development server
+### Step 3: Set Up Environment Variables
+
+Create a `.env.local` file in the `nextjs-app` directory:
+
+```bash
+cp .env.example .env.local  # If .env.example exists
+```
+
+Or create `.env.local` manually with:
+
+```env
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://[your-project-ref].supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=[your-anon-key]
+SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
+
+# JWT Authentication
+JWT_SECRET=your-secret-key-min-32-characters-change-in-production
+JWT_EXPIRATION_MINUTES=60
+REFRESH_TOKEN_EXPIRATION_DAYS=7
+
+# Optional: Weather API
+OPENWEATHERMAP_API_KEY=[your-api-key]
+
+# Optional: Cron Secret (for testing cron jobs locally)
+CRON_SECRET=your-cron-secret-key-min-32-characters
+
+# Application URL
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NODE_ENV=development
+```
+
+**Where to find Supabase credentials:**
+1. Go to your Supabase project dashboard
+2. Navigate to **Settings** → **API**
+3. Copy the **Project URL** and **anon/public key**
+4. Copy the **service_role key** (keep this secret!)
+
+### Step 4: Set Up Database
+
+#### Option A: Use Supabase Cloud (Recommended for Development)
+
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Run migrations from `nextjs-app/infrastructure/supabase/migrations/`
+3. See [Database Migrations Guide](../nextjs-app/infrastructure/supabase/migrations/README.md) for details
+
+#### Option B: Local Supabase (Advanced)
+
+```bash
+# Install Supabase CLI
+npm install -g supabase
+
+# Initialize Supabase locally
+supabase init
+
+# Start local Supabase
+supabase start
+
+# Run migrations
+supabase db reset
+```
+
+### Step 5: Run Database Migrations
+
+Apply the database migrations:
+
+```bash
+# Using Supabase CLI (if using local Supabase)
+supabase db reset
+
+# Or manually via Supabase dashboard:
+# 1. Go to SQL Editor in Supabase dashboard
+# 2. Run each migration file in order from:
+#    nextjs-app/infrastructure/supabase/migrations/
+```
+
+See [Database Migrations Guide](../nextjs-app/infrastructure/supabase/migrations/README.md) for detailed instructions.
+
+### Step 6: Start Development Server
+
+```bash
 npm run dev
 ```
 
-**Admin UI will be available at:** http://localhost:5173
-
-#### Step 6: Start Public Frontend
-
-```powershell
-cd D:\SunnySeat\src\frontend\public
-
-# Install dependencies (first time only)
-npm install
-
-# Start development server
-npm run dev
-```
-
-**Public UI will be available at:** http://localhost:5174
+The application will be available at [http://localhost:3000](http://localhost:3000)
 
 ## Development Workflow
 
-### Hot Reload
+### Running the Application
 
-- **Backend**: `dotnet watch run` automatically restarts on code changes
-- **Admin Frontend**: Vite automatically reloads on file changes
-- **Public Frontend**: Vite automatically reloads on file changes
+```bash
+# Start development server
+npm run dev
 
-### Debugging
+# Build for production (local test)
+npm run build
+npm start
 
-**Backend (VS Code):**
-1. Open project in VS Code
-2. Press F5 or use "Run and Debug" panel
-3. Select ".NET Core Launch (web)"
+# Run type checking
+npm run type-check
 
-**Frontend (Browser DevTools):**
-- Chrome/Edge: F12
-- Source maps enabled by default in development
-
-### Database Management
-
-**View data:**
-```powershell
-# Using psql
-psql -h localhost -U postgres -d sunnyseat_dev
-
-# Common queries
-\dt                  # List tables
-SELECT * FROM venues;
-SELECT * FROM patios;
+# Run linting
+npm run lint
 ```
 
-**Reset database:**
-```powershell
-cd D:\SunnySeat\src\backend\SunnySeat.Api
+### Testing
 
-# Drop database
-dotnet ef database drop --force
+```bash
+# Run unit tests
+npm test
 
-# Recreate and migrate
-dotnet ef database update
+# Run tests in watch mode
+npm test -- --watch
+
+# Run type checking
+npm run type-check
 ```
 
-### Seed Development Data
+### Code Quality
 
-```powershell
-cd D:\SunnySeat\src\backend\SunnySeat.Api
+```bash
+# Run ESLint
+npm run lint
 
-# Seed venues (50+ Gothenburg venues)
-dotnet run -- seed-venues
+# Fix linting issues
+npm run lint:fix
 
-# Create sample patios with building data
-dotnet run -- create-sample-patios
+# Format code with Prettier
+npm format
+
+# Check formatting
+npm run format:check
+```
+
+## Project Structure
+
+```
+nextjs-app/
+├── app/                    # Next.js App Router
+│   ├── api/               # API routes
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Home page
+├── components/            # React components
+│   └── client/           # Client components
+├── lib/                   # Shared libraries
+│   ├── supabase/         # Supabase client
+│   ├── services/         # Business logic
+│   └── utils/            # Utilities
+├── infrastructure/       # Infrastructure as code
+│   └── supabase/         # Database migrations
+├── docs/                 # Documentation
+└── test/                 # Test files
 ```
 
 ## Environment Variables
 
-### Backend (.NET)
+### Required Variables
 
-Edit `appsettings.Development.json`:
-- Database connection strings
-- JWT settings
-- CORS origins
-- External API keys (Weather, etc.)
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
+- `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key (server-side only)
+- `JWT_SECRET` - JWT signing secret (min 32 characters)
 
-### Admin Frontend (React)
+### Optional Variables
 
-Create `src/frontend/admin/.env.local`:
-```env
-VITE_API_URL=http://localhost:5000
-VITE_ENABLE_MOCK_API=false
-```
+- `OPENWEATHERMAP_API_KEY` - Weather API key
+- `CRON_SECRET` - Secret for cron job authentication
+- `NEXT_PUBLIC_APP_URL` - Application URL
 
-### Public Frontend (Vue)
+See [Environment Variables Documentation](../nextjs-app/docs/environment-variables.md) for complete list.
 
-Create `src/frontend/public/.env.local`:
-```env
-VITE_API_URL=http://localhost:5000
-VITE_ENABLE_ANALYTICS=false
-```
-
-## Testing Locally
-
-See [02-Testing-Locally.md](02-Testing-Locally.md) for comprehensive testing instructions.
-
-## Common Issues
+## Troubleshooting
 
 ### Port Already in Use
 
-**Backend (5000/5001):**
-```powershell
-# Find process using port
-netstat -ano | findstr :5000
+If port 3000 is already in use:
 
-# Kill process (replace PID)
-taskkill /PID <PID> /F
+```bash
+# Use a different port
+npm run dev -- -p 3001
 ```
 
-**Frontend (5173/5174):**
-```powershell
-# Kill Node processes
-taskkill /F /IM node.exe
-```
+### Database Connection Issues
 
-### Database Connection Failed
+1. Verify Supabase credentials in `.env.local`
+2. Check Supabase project is active
+3. Verify network connectivity
+4. Check Supabase dashboard for connection status
 
-1. Check PostgreSQL is running: `docker ps` or `pg_isready`
-2. Verify connection string in `appsettings.Development.json`
-3. Test connection: `psql -h localhost -U postgres -d sunnyseat_dev`
+### Build Errors
 
-### PostGIS Extension Missing
+```bash
+# Clear Next.js cache
+rm -rf .next
 
-```sql
--- Connect to database
-psql -h localhost -U postgres -d sunnyseat_dev
-
--- Enable PostGIS
-CREATE EXTENSION IF NOT EXISTS postgis;
-
--- Verify
-SELECT PostGIS_version();
-```
-
-### NuGet Restore Failed
-
-```powershell
-# Clear NuGet cache
-dotnet nuget locals all --clear
-
-# Restore packages
-cd D:\SunnySeat
-dotnet restore
-```
-
-### npm Install Failed
-
-```powershell
-# Clear npm cache
-npm cache clean --force
-
-# Delete node_modules and reinstall
-Remove-Item -Recurse -Force node_modules
+# Reinstall dependencies
+rm -rf node_modules package-lock.json
 npm install
+
+# Rebuild
+npm run build
+```
+
+### Type Errors
+
+```bash
+# Regenerate Supabase types (if using Supabase CLI)
+supabase gen types typescript --local > lib/supabase/types.ts
+
+# Or manually update types from Supabase dashboard
 ```
 
 ## Next Steps
 
-Once you have everything running locally:
-1. Review [02-Testing-Locally.md](02-Testing-Locally.md) for testing
-2. Try creating an admin user: [07-Authentication-Setup.md](07-Authentication-Setup.md)
-3. Explore the API via Swagger: http://localhost:5000/swagger
-4. Start developing features!
+1. **Read the Documentation**:
+   - [API Routes](../nextjs-app/app/api/README.md)
+   - [Vercel Deployment](../nextjs-app/docs/vercel-deployment.md)
+   - [Environment Variables](../nextjs-app/docs/environment-variables.md)
 
-## Useful Commands Cheat Sheet
+2. **Explore the Codebase**:
+   - Start with `app/page.tsx` (home page)
+   - Check `app/api/` for API routes
+   - Review `components/` for UI components
 
-```powershell
-# Backend
-dotnet watch run                    # Run with hot reload
-dotnet test                         # Run all tests
-dotnet ef database update           # Apply migrations
-dotnet ef migrations add MyMigration # Create new migration
+3. **Deploy to Vercel**:
+   - See [Vercel Deployment Guide](../nextjs-app/docs/vercel-deployment.md)
 
-# Frontend (Admin)
-cd src/frontend/admin
-npm run dev                         # Start dev server
-npm run build                       # Build for production
-npm run test                        # Run tests
-npm run lint                        # Lint code
+## Legacy Setup (Archived)
 
-# Frontend (Public)
-cd src/frontend/public
-npm run dev                         # Start dev server
-npm run build                       # Build for production
-npm run preview                     # Preview production build
+For reference, the old .NET 8 + PostgreSQL setup documentation is archived. The current platform uses:
+- **Next.js** instead of .NET 8 API
+- **Supabase** instead of local PostgreSQL
+- **Vercel** instead of Azure
 
-# Docker Compose
-docker-compose -f docker-compose.dev.yml up -d    # Start all
-docker-compose -f docker-compose.dev.yml logs -f   # View logs
-docker-compose -f docker-compose.dev.yml down      # Stop all
-docker-compose -f docker-compose.dev.yml down -v   # Stop and delete volumes
-```
+## Support
 
-## Tips for Productive Development
+If you encounter issues:
+1. Check [Common Issues](09-Common-Issues.md)
+2. Review [Environment Variables Documentation](../nextjs-app/docs/environment-variables.md)
+3. Check Supabase dashboard for database issues
+4. Review Vercel deployment logs (if deployed)
 
-1. **Use VS Code Extensions:**
-   - C# Dev Kit
-   - Volar (Vue)
-   - ES7+ React/Redux/React-Native snippets
-   - Prettier
-   - ESLint
+---
 
-2. **Enable auto-save** in VS Code for instant feedback
-
-3. **Use multiple terminals** to run backend + both frontends simultaneously
-
-4. **Keep Swagger open** for API exploration while developing
-
-5. **Use Git branches** for features: `git checkout -b feature/my-feature`
+**Happy coding! 🚀**

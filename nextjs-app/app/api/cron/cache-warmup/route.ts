@@ -5,7 +5,8 @@ import { internalServerError } from '@/lib/utils/api-errors';
 /**
  * POST /api/cron/cache-warmup
  * Vercel Cron job: Cache warmup for popular patios
- * Schedule: Daily at 3 AM and 3 PM UTC (0 3,15 * * *)
+ * Schedule: Daily at 3 AM UTC (see vercel.json for cron schedule)
+ * Note: Limited to daily execution on Vercel Hobby accounts (was twice daily)
  *
  * Warms cache with popular patios during low-traffic hours
  */

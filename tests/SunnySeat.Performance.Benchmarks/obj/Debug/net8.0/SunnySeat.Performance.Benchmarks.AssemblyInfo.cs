@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SunnySeat.Performance.Benchmarks")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9ed881d4ea78b3b7b83604ce2e281a8dca12dc8d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+81168819e976710fddb73a6ac0d5f5752a53a682")]
 [assembly: System.Reflection.AssemblyProductAttribute("SunnySeat.Performance.Benchmarks")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SunnySeat.Performance.Benchmarks")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

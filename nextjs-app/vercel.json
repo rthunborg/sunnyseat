@@ -1,12 +1,16 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm install",
   "crons": [
     {
       "path": "/api/cron/weather-ingestion",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 2 * * *"
     },
     {
       "path": "/api/cron/accuracy-metrics",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 4 * * *"
     },
     {
       "path": "/api/cron/precomputation-schedule",
@@ -14,7 +18,7 @@
     },
     {
       "path": "/api/cron/cache-warmup",
-      "schedule": "0 3,15 * * *"
+      "schedule": "0 3 * * *"
     },
     {
       "path": "/api/cron/cleanup-old-data",

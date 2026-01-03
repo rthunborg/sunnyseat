@@ -4,7 +4,11 @@
 
 - [Fullstack Architecture — Sunny Seat (Gothenburg)](#table-of-contents)
   - [High‑Level Architecture](./highlevel-architecture.md)
+  - [Next.js Architecture](./nextjs-architecture.md)
+  - [Supabase Architecture](./supabase-architecture.md)
+  - [Vercel Deployment Architecture](./vercel-architecture.md)
   - [Runtime Components](./runtime-components.md)
+  - [Tech Stack](./tech-stack.md)
   - [Algorithms](./algorithms.md)
   - [Data Model (PostgreSQL + PostGIS)](./data-model-postgresql-postgis.md)
   - [API Design](./api-design.md)

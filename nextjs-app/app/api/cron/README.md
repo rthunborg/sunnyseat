@@ -6,6 +6,8 @@ This directory contains Vercel Cron job endpoints for scheduled background tasks
 
 All background jobs have been migrated from .NET Background Services and Hangfire to Vercel Cron jobs. Jobs are configured in `vercel.json` and execute on a schedule.
 
+**Note:** Vercel Hobby accounts are limited to cron jobs that run at most once per day. All schedules have been adjusted to comply with this limitation.
+
 ## Security
 
 All cron endpoints require authentication via `CRON_SECRET` environment variable. Vercel automatically sends this secret in the `Authorization` header when invoking cron jobs.
@@ -21,14 +23,14 @@ CRON_SECRET=your-secure-random-secret-key-min-32-chars
 ### 1. Weather Ingestion
 
 - **Path:** `/api/cron/weather-ingestion`
-- **Schedule:** Every 10 minutes
+- **Schedule:** Daily at 2 AM UTC (was every 10 minutes, limited by Vercel Hobby account)
 - **Purpose:** Fetch weather data from external APIs
 - **Status:** Structure in place, weather service implementation pending
 
 ### 2. Accuracy Metrics
 
 - **Path:** `/api/cron/accuracy-metrics`
-- **Schedule:** Every 15 minutes
+- **Schedule:** Daily at 4 AM UTC (was every 15 minutes, limited by Vercel Hobby account)
 - **Purpose:** Calculate and cache accuracy metrics
 - **Status:** Implemented and functional
 
@@ -42,7 +44,7 @@ CRON_SECRET=your-secure-random-secret-key-min-32-chars
 ### 4. Cache Warmup
 
 - **Path:** `/api/cron/cache-warmup`
-- **Schedule:** Daily at 3 AM and 3 PM UTC
+- **Schedule:** Daily at 3 AM UTC (was twice daily, limited by Vercel Hobby account)
 - **Purpose:** Warm cache with popular patios
 - **Status:** Structure in place, cache service implementation pending
 

@@ -5,7 +5,8 @@ import { internalServerError } from '@/lib/utils/api-errors';
 /**
  * POST /api/cron/accuracy-metrics
  * Vercel Cron job: Accuracy metrics calculation
- * Schedule: Every 15 minutes (see vercel.json for cron schedule)
+ * Schedule: Daily at 4 AM UTC (see vercel.json for cron schedule)
+ * Note: Limited to daily execution on Vercel Hobby accounts
  *
  * Calculates and caches accuracy metrics for monitoring
  */
