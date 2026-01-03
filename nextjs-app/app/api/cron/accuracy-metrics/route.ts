@@ -4,9 +4,9 @@ import { internalServerError } from '@/lib/utils/api-errors';
 
 /**
  * POST /api/cron/accuracy-metrics
- * Vercel Cron job: Accuracy metrics calculation
- * Schedule: Daily at 4 AM UTC (see vercel.json for cron schedule)
- * Note: Limited to daily execution on Vercel Hobby accounts
+ * Scheduled background job: Accuracy metrics calculation
+ * Schedule: Daily at 4 AM UTC (triggered by GitHub Actions)
+ * Workflow: .github/workflows/scheduled-jobs-accuracy.yml
  *
  * Calculates and caches accuracy metrics for monitoring
  */

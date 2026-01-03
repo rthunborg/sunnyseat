@@ -1,22 +1,26 @@
-# Cron Jobs API
+# Scheduled Background Jobs API
 
-This directory contains Vercel Cron job endpoints for scheduled background tasks.
+This directory contains API endpoints for scheduled background tasks that are triggered by GitHub Actions workflows.
 
 ## Overview
 
-All background jobs have been migrated from .NET Background Services and Hangfire to Vercel Cron jobs. Jobs are configured in `vercel.json` and execute on a schedule.
+All background jobs have been migrated from .NET Background Services and Hangfire to API endpoints that are called by GitHub Actions scheduled workflows. This approach avoids Vercel Hobby account limitations (2 cron jobs total across all projects).
 
-**Note:** Vercel Hobby accounts are limited to cron jobs that run at most once per day. All schedules have been adjusted to comply with this limitation.
+**Scheduling:** Jobs are triggered by GitHub Actions workflows in `.github/workflows/scheduled-jobs-*.yml`
 
 ## Security
 
-All cron endpoints require authentication via `CRON_SECRET` environment variable. Vercel automatically sends this secret in the `Authorization` header when invoking cron jobs.
+All endpoints require authentication via `CRON_SECRET` environment variable. GitHub Actions workflows send this secret in the `Authorization` header when invoking the endpoints.
 
-**Required Environment Variable:**
+**Required Environment Variables:**
 
 ```env
 CRON_SECRET=your-secure-random-secret-key-min-32-chars
 ```
+
+**GitHub Secrets Required:**
+- `CRON_SECRET` - Same value as above
+- `VERCEL_APP_URL` - Your Vercel deployment URL (e.g., `https://sunnyseat.se` or `https://your-app.vercel.app`)
 
 ## Available Jobs
 
@@ -88,18 +92,19 @@ curl -X POST http://localhost:3000/api/cron/accuracy-metrics \
   -H "Authorization: Bearer $CRON_SECRET"
 ```
 
-### Vercel Testing
+### GitHub Actions Testing
 
 1. Deploy to Vercel
-2. Configure `CRON_SECRET` in Vercel project settings
-3. Monitor execution in Vercel Dashboard → Settings → Cron Jobs
-4. Check logs for execution results
+2. Configure `CRON_SECRET` and `VERCEL_APP_URL` in GitHub repository secrets
+3. Manually trigger workflows from GitHub Actions tab → "Run workflow"
+4. Monitor execution in GitHub Actions → Workflow runs
+5. Check Vercel logs for endpoint execution results
 
 ## Monitoring
 
-- **Vercel Dashboard:** Settings → Cron Jobs → View execution history
-- **Logs:** Available in Vercel Dashboard → Logs or via `vercel logs`
-- **Metrics:** Execution duration, success/failure rates tracked automatically
+- **GitHub Actions:** View workflow runs in `.github/workflows/` → Workflow runs tab
+- **Vercel Logs:** Available in Vercel Dashboard → Logs or via `vercel logs`
+- **Metrics:** Execution duration, success/failure rates tracked in both GitHub Actions and Vercel
 
 ## Error Handling
 
@@ -113,12 +118,25 @@ All cron jobs include:
 
 ## Implementation Status
 
-- ✅ Cron job structure created
+- ✅ API endpoint structure created
 - ✅ Security (CRON_SECRET) implemented
 - ✅ Error handling and logging in place
+- ✅ GitHub Actions workflows configured
 - ✅ Accuracy metrics job fully implemented
 - ✅ Precomputation scheduling job fully implemented
 - ✅ Cleanup old data job fully implemented
 - ⏳ Weather service implementation (pending)
 - ⏳ Cache service implementation (pending)
 - ⏳ Precomputation execution alternative solution (pending)
+
+## GitHub Actions Workflows
+
+Scheduled jobs are triggered by the following workflows:
+
+- `.github/workflows/scheduled-jobs-precomputation.yml` - Daily at midnight UTC
+- `.github/workflows/scheduled-jobs-weather.yml` - Daily at 2 AM UTC
+- `.github/workflows/scheduled-jobs-cache.yml` - Daily at 3 AM UTC
+- `.github/workflows/scheduled-jobs-accuracy.yml` - Daily at 4 AM UTC
+- `.github/workflows/scheduled-jobs-cleanup.yml` - Weekly on Sundays at 1 AM UTC
+
+All workflows can also be manually triggered via GitHub Actions UI.

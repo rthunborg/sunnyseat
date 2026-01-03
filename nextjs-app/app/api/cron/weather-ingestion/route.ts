@@ -4,9 +4,9 @@ import { internalServerError } from '@/lib/utils/api-errors';
 
 /**
  * POST /api/cron/weather-ingestion
- * Vercel Cron job: Weather data ingestion
- * Schedule: Daily at 2 AM UTC (see vercel.json for cron schedule)
- * Note: Limited to daily execution on Vercel Hobby accounts
+ * Scheduled background job: Weather data ingestion
+ * Schedule: Daily at 2 AM UTC (triggered by GitHub Actions)
+ * Workflow: .github/workflows/scheduled-jobs-weather.yml
  *
  * Fetches weather data from external APIs and stores in Supabase
  */

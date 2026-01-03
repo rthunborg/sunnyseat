@@ -1,0 +1,21 @@
+name: Cleanup Old Data Job
+
+on:
+  schedule:
+    # Weekly on Sundays at 1 AM UTC
+    - cron: '0 1 * * 0'
+  workflow_dispatch:
+
+jobs:
+  run-job:
+    name: Run Cleanup Old Data
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Run Cleanup Old Data
+        run: |
+          echo "Running cleanup old data job..."
+          curl -X POST "${{ secrets.VERCEL_APP_URL }}/api/cron/cleanup-old-data" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -f -s -S -w "\nHTTP Status: %{http_code}\n" || exit 1

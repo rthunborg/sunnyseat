@@ -4,8 +4,9 @@ import { internalServerError } from '@/lib/utils/api-errors';
 
 /**
  * POST /api/cron/precomputation-schedule
- * Vercel Cron job: Schedule upcoming precomputations
- * Schedule: Daily at midnight UTC (0 0 * * *)
+ * Scheduled background job: Schedule upcoming precomputations
+ * Schedule: Daily at midnight UTC (triggered by GitHub Actions)
+ * Workflow: .github/workflows/scheduled-jobs-precomputation.yml
  *
  * Schedules precomputation jobs for today, tomorrow, and day after
  */

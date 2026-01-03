@@ -1,0 +1,21 @@
+name: Precomputation Schedule Job
+
+on:
+  schedule:
+    # Daily at midnight UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-job:
+    name: Run Precomputation Schedule
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Run Precomputation Schedule
+        run: |
+          echo "Running precomputation schedule job..."
+          curl -X POST "${{ secrets.VERCEL_APP_URL }}/api/cron/precomputation-schedule" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -f -s -S -w "\nHTTP Status: %{http_code}\n" || exit 1

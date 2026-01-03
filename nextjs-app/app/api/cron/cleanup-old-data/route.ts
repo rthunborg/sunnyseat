@@ -4,8 +4,9 @@ import { internalServerError } from '@/lib/utils/api-errors';
 
 /**
  * POST /api/cron/cleanup-old-data
- * Vercel Cron job: Cleanup expired precomputed data
- * Schedule: Weekly on Sundays at 1 AM UTC (0 1 * * 0)
+ * Scheduled background job: Cleanup expired precomputed data
+ * Schedule: Weekly on Sundays at 1 AM UTC (triggered by GitHub Actions)
+ * Workflow: .github/workflows/scheduled-jobs-cleanup.yml
  *
  * Removes expired precomputed sun exposure data older than retention period
  */

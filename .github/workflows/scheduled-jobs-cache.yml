@@ -1,0 +1,21 @@
+name: Cache Warmup Job
+
+on:
+  schedule:
+    # Daily at 3 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-job:
+    name: Run Cache Warmup
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Run Cache Warmup
+        run: |
+          echo "Running cache warmup job..."
+          curl -X POST "${{ secrets.VERCEL_APP_URL }}/api/cron/cache-warmup" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -f -s -S -w "\nHTTP Status: %{http_code}\n" || exit 1
