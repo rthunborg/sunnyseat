@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { internalServerError } from '@/lib/utils/api-errors';
+import { getForecast } from '@/lib/weather/met-no-service';
+import { GOTHENBURG } from '@/lib/solar/constants';
 
 /**
  * POST /api/cron/weather-ingestion
- * Scheduled background job: Weather data ingestion
- * Schedule: Daily at 2 AM UTC (triggered by GitHub Actions)
- * Workflow: .github/workflows/scheduled-jobs-weather.yml
- *
- * Fetches weather data from external APIs and stores in Supabase
+ * Scheduled background job: Fetch weather from Met.no and store in Supabase
  */
 export async function POST(request: NextRequest) {
-  // Verify cron secret (Vercel Cron sends this header)
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -22,63 +19,53 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[Weather Ingestion] Starting weather data ingestion');
 
-    // Get Gothenburg coordinates
-    const gothenburgLat = 57.7089;
-    const gothenburgLon = 11.9746;
+    const slices = await getForecast(GOTHENBURG.LATITUDE, GOTHENBURG.LONGITUDE);
 
-    // Fetch weather data from primary source (Met.no)
-    // Note: Weather service implementation will be added in a future story
-    // For now, this is a placeholder structure
-    let weatherDataFetched = false;
-
-    try {
-      // TODO: Implement Met.no weather service
-      // const metNoService = new MetNoWeatherService();
-      // const weatherData = await metNoService.getForecastAsync(gothenburgLat, gothenburgLon);
-      // await storeWeatherData(weatherData);
-      // weatherDataFetched = true;
-
-      console.log('[Weather Ingestion] Weather service not yet implemented - placeholder');
-    } catch (error) {
-      console.error('[Weather Ingestion] Primary source failed, trying fallback:', error);
-
-      // Fallback to OpenWeatherMap
-      try {
-        // TODO: Implement OpenWeatherMap weather service
-        // const openWeatherService = new OpenWeatherMapService();
-        // const weatherData = await openWeatherService.getForecastAsync(gothenburgLat, gothenburgLon);
-        // await storeWeatherData(weatherData);
-        // weatherDataFetched = true;
-      } catch (fallbackError) {
-        console.error('[Weather Ingestion] Fallback source also failed:', fallbackError);
-      }
-    }
-
-    // Cleanup old weather data
-    const retentionDays = 7;
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-
-    // TODO: Implement weather data cleanup
-    // await cleanupOldWeatherData(cutoffDate);
-
-    const duration = Date.now() - startTime;
-
-    if (weatherDataFetched) {
-      console.log(`[Weather Ingestion] Completed successfully in ${duration}ms`);
-      return NextResponse.json({
-        success: true,
-        duration: duration,
-        message: 'Weather data ingested successfully',
-      });
-    } else {
-      console.warn(`[Weather Ingestion] Completed but no data fetched in ${duration}ms`);
+    if (slices.length === 0) {
+      const duration = Date.now() - startTime;
+      console.warn('[Weather Ingestion] No data returned from Met.no');
       return NextResponse.json({
         success: false,
-        duration: duration,
-        message: 'Weather ingestion completed but no data was fetched (service not implemented)',
+        duration,
+        message: 'No weather data fetched from Met.no',
       });
     }
+
+    const rows = slices.map((s, i) => ({
+      Timestamp: new Date(Date.now() + i * 3600000).toISOString(),
+      CloudCover: s.cloudCover,
+      Temperature: s.temperature,
+      Visibility: s.visibility ?? null,
+      IsForecast: s.isForecast,
+      Source: s.source,
+      CreatedAt: new Date().toISOString(),
+    }));
+
+    const { error: insertError } = await supabaseAdmin
+      .from('weather_slices')
+      .upsert(rows, { onConflict: 'Timestamp,Source' });
+
+    if (insertError) {
+      console.error('[Weather Ingestion] Insert error:', insertError.message);
+    }
+
+    // Cleanup data older than 7 days
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 7);
+    await supabaseAdmin
+      .from('weather_slices')
+      .delete()
+      .lt('CreatedAt', cutoff.toISOString());
+
+    const duration = Date.now() - startTime;
+    console.log(`[Weather Ingestion] Stored ${rows.length} slices in ${duration}ms`);
+
+    return NextResponse.json({
+      success: true,
+      duration,
+      slicesIngested: rows.length,
+      message: `Weather data ingested: ${rows.length} time slices from Met.no`,
+    });
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error('[Weather Ingestion] Error:', error);

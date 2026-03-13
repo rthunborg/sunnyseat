@@ -12,6 +12,7 @@ export default defineConfig({
     // Use node environment for deployment tests
     environmentMatchGlobs: [
       ['test/deployment/**', 'node'],
+      ['test/solar/**', 'node'],
     ] as any,
   },
   resolve: {

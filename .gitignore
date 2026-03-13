@@ -46,6 +46,10 @@ node_modules/
 *.swp
 *.swo
 *~
+_bmad/
+_bmad-output
+.cursor/
+.claude/
 
 # OS
 .DS_Store

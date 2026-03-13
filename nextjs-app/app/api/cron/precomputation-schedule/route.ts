@@ -59,8 +59,12 @@ export async function POST(request: NextRequest) {
       // Create new schedule
       const { error: insertError } = await supabaseAdmin.from('precomputation_schedules').insert({
         TargetDate: dateStr,
-        Status: 0, // Scheduled
+        Status: 0,
         ScheduledAt: new Date().toISOString(),
+        PatiosTotal: 0,
+        PatiosProcessed: 0,
+        Metrics: {},
+        UpdatedAt: new Date().toISOString(),
       });
 
       if (insertError) {

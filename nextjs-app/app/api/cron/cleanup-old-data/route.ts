@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     // Delete expired precomputed data
     const { data: deleted, error: deleteError } = await supabaseAdmin
-      .from('precomputed_sun_exposures')
+      .from('precomputed_sun_exposure')
       .delete()
       .lt('ExpiresAt', cutoffDate.toISOString())
       .select('Id');

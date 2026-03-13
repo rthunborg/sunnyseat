@@ -15,7 +15,10 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",
     "@tanstack/react-query": "^5.90.12",
+    "@turf/turf": "^7.3.4",
     "bcryptjs": "^3.0.3",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
     "jsonwebtoken": "^9.0.3",
     "maplibre-gl": "^5.15.0",
     "next": "16.1.0",
@@ -36,6 +39,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.0",
+    "jsdom": "^28.1.0",
     "prettier": "^3.7.4",
     "tailwindcss": "^4",
     "typescript": "^5",

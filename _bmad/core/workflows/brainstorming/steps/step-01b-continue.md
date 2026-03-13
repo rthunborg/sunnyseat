@@ -7,6 +7,7 @@
 - 📋 UNDERSTAND PREVIOUS SESSION context and outcomes
 - 🔍 SEAMLESSLY RESUME from where user left off
 - 💬 MAINTAIN CONTINUITY in session flow and rapport
+- ✅ YOU MUST ALWAYS SPEAK OUTPUT In your Agent communication style with the `communication_language`
 
 ## EXECUTION PROTOCOLS:
 
@@ -34,7 +35,7 @@ Load existing document and analyze current state:
 
 **Document Analysis:**
 
-- Read existing `{output_folder}/analysis/brainstorming-session-{{date}}.md`
+- Read existing `{brainstorming_session_output_file}`
 - Examine frontmatter for `stepsCompleted`, `session_topic`, `session_goals`
 - Review content to understand session progress and outcomes
 - Identify current stage and next logical steps

@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase/server';
-import { notFound, badRequest, internalServerError } from '@/lib/utils/api-errors';
-import type { PatioSunExposureResponse } from '@/lib/types/api';
+import { badRequest, notFound, internalServerError } from '@/lib/utils/api-errors';
 import { parseOptionalDateQuery } from '@/lib/utils/validation';
+import { calculateSunExposure } from '@/lib/solar/sun-exposure-service';
+import { supabaseAdmin } from '@/lib/supabase/server';
+import type { PatioSunExposureResponse } from '@/lib/types/api';
 
-/**
- * GET /api/sun-exposure/patio/[id]
- * Get sun exposure for a specific patio at given timestamp
- * Query param: timestamp (optional, defaults to current time)
- */
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params;
     const patioId = parseInt(id, 10);
@@ -17,17 +16,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return badRequest('Invalid patio ID');
     }
 
-    // Parse optional timestamp
     const searchParams = request.nextUrl.searchParams;
     const timestampParam = searchParams.get('timestamp');
     const timestamp = timestampParam
       ? parseOptionalDateQuery(timestampParam) || new Date()
       : new Date();
 
-    // Get patio
     const { data: patio, error: patioError } = await supabaseAdmin
       .from('patios')
-      .select('*')
+      .select('Id')
       .eq('Id', patioId)
       .single();
 
@@ -35,18 +32,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return notFound('Patio');
     }
 
-    // TODO: Calculate sun exposure
-    // This is a placeholder - full sun exposure calculation will be migrated in Story 6.5
-    // For now, return a basic response structure
+    const result = await calculateSunExposure(patioId, timestamp);
 
     const response: PatioSunExposureResponse = {
-      patioId,
-      timestamp: timestamp.toISOString(),
-      state: 'Shaded', // Placeholder
-      sunExposurePercent: 0, // Placeholder
-      confidence: 0, // Placeholder
-      solarElevation: 0, // Placeholder
-      solarAzimuth: 0, // Placeholder
+      patioId: result.patioId,
+      timestamp: result.timestamp.toISOString(),
+      state: result.state,
+      sunExposurePercent: result.sunExposurePercent,
+      confidence: result.confidence,
+      solarElevation: result.solarElevation,
+      solarAzimuth: result.solarAzimuth,
+      weatherData: result.weatherData
+        ? {
+            cloudCover: result.weatherData.cloudCover,
+            temperature: result.weatherData.temperature,
+            precipitationProbability: 0,
+            visibility: result.weatherData.visibility,
+            source: result.weatherData.source,
+            isForecast: result.weatherData.isForecast,
+          }
+        : undefined,
     };
 
     return NextResponse.json(response);

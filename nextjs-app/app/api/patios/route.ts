@@ -8,6 +8,7 @@ import {
 } from '@/lib/utils/validation';
 import { badRequest, internalServerError } from '@/lib/utils/api-errors';
 import { getPatiosNearPoint } from '@/lib/services/patio-service';
+import { calculateSunExposure } from '@/lib/solar/sun-exposure-service';
 import type { GetPatiosResponse, PatioDataDto } from '@/lib/types/api';
 
 const MAX_RADIUS_KM = 3.0;
@@ -65,45 +66,54 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(response);
     }
 
-    // Build response DTOs
-    // Note: Sun exposure calculation will be added in a future story
-    // For now, return basic patio information with spatial data
-    const timestamp = new Date().toISOString();
-    const patioDtos: PatioDataDto[] = patios.slice(0, MAX_RESULTS).map((patio: any) => {
-      // Use distance from RPC function if available, otherwise calculate
-      const distanceMeters = patio.DistanceMeters || 0;
+    const timestamp = new Date();
+    const limitedPatios = patios.slice(0, MAX_RESULTS);
 
-      // Extract coordinates from venue location or patio centroid
-      let location = { lat: latitude, lng: longitude };
-      if (patio.VenueLocation) {
-        location = parsePostGISPoint(patio.VenueLocation);
-      } else if (patio.Geometry) {
-        // Try to extract centroid from patio geometry
-        // This is a simplified extraction - full implementation would use PostGIS
-        location = parsePostGISPoint(patio.Geometry);
-      }
+    const patioDtos: PatioDataDto[] = await Promise.all(
+      limitedPatios.map(async (patio: any) => {
+        const distanceMeters = patio.DistanceMeters || 0;
 
-      return {
-        id: `${patio.VenueId}-${patio.Id}`,
-        venueId: patio.VenueId.toString(),
-        venueName: patio.VenueName || 'Unknown Venue',
-        location: {
-          latitude: location.lat,
-          longitude: location.lng,
-        },
-        currentSunStatus: 'Shaded', // Placeholder - sun exposure calculation in future story
-        confidence: 0, // Placeholder
-        distanceMeters,
-        sunExposurePercent: 0, // Placeholder - sun exposure calculation in future story
-      };
-    });
+        let location = { lat: latitude, lng: longitude };
+        if (patio.VenueLocation) {
+          location = parsePostGISPoint(patio.VenueLocation);
+        } else if (patio.Geometry) {
+          location = parsePostGISPoint(patio.Geometry);
+        }
 
-    // Sort by distance and limit results
+        let sunStatus: 'Sunny' | 'Partial' | 'Shaded' = 'Shaded';
+        let confidence = 0;
+        let sunExposurePercent = 0;
+
+        try {
+          const exposure = await calculateSunExposure(patio.Id, timestamp);
+          sunStatus = exposure.state === 'NoSun' ? 'Shaded' : exposure.state;
+          confidence = exposure.confidence;
+          sunExposurePercent = exposure.sunExposurePercent;
+        } catch {
+          // Gracefully degrade — show patio with unknown sun status
+        }
+
+        return {
+          id: `${patio.VenueId}-${patio.Id}`,
+          venueId: patio.VenueId.toString(),
+          venueName: patio.VenueName || 'Unknown Venue',
+          location: {
+            latitude: location.lat,
+            longitude: location.lng,
+          },
+          currentSunStatus: sunStatus,
+          confidence,
+          distanceMeters,
+          sunExposurePercent,
+        };
+      })
+    );
+
     const sortedPatios = patioDtos.sort((a, b) => a.distanceMeters - b.distanceMeters);
 
     const response: GetPatiosResponse = {
       patios: sortedPatios,
-      timestamp,
+      timestamp: timestamp.toISOString(),
       totalCount: sortedPatios.length,
     };
 
