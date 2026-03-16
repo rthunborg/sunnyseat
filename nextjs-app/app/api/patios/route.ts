@@ -11,6 +11,15 @@ import { getPatiosNearPoint } from '@/lib/services/patio-service';
 import { calculateSunExposure } from '@/lib/solar/sun-exposure-service';
 import type { GetPatiosResponse, PatioDataDto } from '@/lib/types/api';
 
+interface PatioRow {
+  Id: number;
+  VenueId: number;
+  VenueName?: string;
+  VenueLocation?: string;
+  Geometry?: string;
+  DistanceMeters?: number;
+}
+
 const MAX_RADIUS_KM = 3.0;
 const DEFAULT_RADIUS_KM = 1.5;
 const MAX_RESULTS = 50;
@@ -54,6 +63,10 @@ export async function GET(request: NextRequest) {
       return badRequest(`Radius must be between 0 and ${MAX_RADIUS_KM} km`);
     }
 
+    // Parse optional time offset (0-3 hours into the future)
+    const offsetHoursParam = parseOptionalNumberQuery(searchParams.get('offset_hours'));
+    const offsetHours = offsetHoursParam != null ? Math.min(Math.max(Math.round(offsetHoursParam), 0), 3) : 0;
+
     // Get patios near location using PostGIS spatial query
     const patios = await getPatiosNearPoint(latitude, longitude, radiusKm);
 
@@ -67,10 +80,13 @@ export async function GET(request: NextRequest) {
     }
 
     const timestamp = new Date();
+    if (offsetHours > 0) {
+      timestamp.setHours(timestamp.getHours() + offsetHours);
+    }
     const limitedPatios = patios.slice(0, MAX_RESULTS);
 
     const patioDtos: PatioDataDto[] = await Promise.all(
-      limitedPatios.map(async (patio: any) => {
+      limitedPatios.map(async (patio: PatioRow) => {
         const distanceMeters = patio.DistanceMeters || 0;
 
         let location = { lat: latitude, lng: longitude };
@@ -117,7 +133,9 @@ export async function GET(request: NextRequest) {
       totalCount: sortedPatios.length,
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+    });
   } catch (error) {
     console.error('Error searching patios:', error);
     return internalServerError('An error occurred while searching for patios');

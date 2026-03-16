@@ -1,0 +1,56 @@
+import type { SunStatus, SkyCondition } from './design-tokens';
+
+/** 0 = Candidate (from OSM import), 1 = Verified (admin-approved) */
+export type VerificationStatus = 0 | 1;
+
+export interface Venue {
+  id: string;
+  name: string;
+  slug: string;
+  neighborhood: string;
+  lat: number;
+  lng: number;
+  address?: string;
+  website?: string;
+  googleMapsUrl?: string;
+  verification_status?: VerificationStatus;
+  osm_node_id?: number;
+  is_partner?: boolean;
+  booking_url?: string;
+  website_url?: string;
+}
+
+export interface Patio {
+  id: string;
+  venue_id: string;
+  geometry: GeoJSON.Polygon;
+  orientation?: number;
+  has_awning?: boolean;
+}
+
+export interface SunWindow {
+  start: string;
+  end: string;
+  sun_status: SunStatus;
+  sky_condition: SkyCondition;
+}
+
+export interface WeatherContext {
+  cloud_cover_percent: number;
+  sky_condition: SkyCondition;
+  temperature_c?: number;
+  wind_speed_ms?: number;
+  source: string;
+  fetched_at: string;
+}
+
+export interface SunExposureResult {
+  venue: Venue;
+  patio: Patio;
+  current_status: SunStatus;
+  sun_exposure_percent: number;
+  confidence: number;
+  windows: SunWindow[];
+  weather?: WeatherContext;
+  distance_meters?: number;
+}

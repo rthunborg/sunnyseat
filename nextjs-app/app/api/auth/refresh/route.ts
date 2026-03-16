@@ -62,7 +62,17 @@ export async function POST(request: NextRequest) {
 /**
  * Generate JWT access token
  */
-function generateAccessToken(user: any): string {
+interface AdminUserRow {
+  Id: number;
+  Username: string;
+  Email: string;
+  Role: string;
+  Claims: string[] | null;
+  IsActive: boolean;
+  RefreshTokenExpiresAt: string | null;
+}
+
+function generateAccessToken(user: AdminUserRow): string {
   const payload = {
     sub: user.Id.toString(),
     username: user.Username,

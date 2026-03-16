@@ -1,4 +1,3 @@
-/// <reference types="vitest/config" />
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -9,11 +8,18 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./test/setup.ts'],
-    // Use node environment for deployment tests
+    exclude: ['e2e/**', 'node_modules/**'],
     environmentMatchGlobs: [
       ['test/deployment/**', 'node'],
       ['test/solar/**', 'node'],
-    ] as any,
+      ['test/api/**', 'node'],
+      ['test/lib/i18n/**', 'node'],
+    ],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'text-summary'],
+      include: ['lib/solar/**', 'components/custom/**'],
+    },
   },
   resolve: {
     alias: {

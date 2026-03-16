@@ -20,10 +20,10 @@ export async function GET(request: NextRequest) {
     const token = authHeader.substring(7);
 
     // Verify and decode JWT token
-    let decoded: any;
+    let decoded: { sub: string; username: string; email: string; role: string; claims?: string[] };
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
+      decoded = jwt.verify(token, JWT_SECRET) as typeof decoded;
+    } catch {
       return unauthorized('Invalid or expired token');
     }
 

@@ -1,0 +1,146 @@
+import { describe, it, expect } from 'vitest';
+import {
+  validateCreateVenue,
+  validateCreatePatio,
+  slugify,
+} from '@/lib/validation/venue';
+
+describe('validateCreateVenue', () => {
+  it('returns valid for a correct venue', () => {
+    const result = validateCreateVenue({
+      name: 'Café Magasinet',
+      latitude: 57.7065,
+      longitude: 11.9689,
+    });
+    expect(result.valid).toBe(true);
+    expect(Object.keys(result.errors)).toHaveLength(0);
+  });
+
+  it('requires name', () => {
+    const result = validateCreateVenue({});
+    expect(result.valid).toBe(false);
+    expect(result.errors.name).toBeDefined();
+  });
+
+  it('rejects empty string name', () => {
+    const result = validateCreateVenue({ name: '  ' });
+    expect(result.valid).toBe(false);
+    expect(result.errors.name).toBeDefined();
+  });
+
+  it('rejects non-string name', () => {
+    const result = validateCreateVenue({ name: 123 });
+    expect(result.valid).toBe(false);
+    expect(result.errors.name).toBeDefined();
+  });
+
+  it('rejects invalid latitude', () => {
+    const result = validateCreateVenue({ name: 'Test', latitude: 200 });
+    expect(result.valid).toBe(false);
+    expect(result.errors.latitude).toBeDefined();
+  });
+
+  it('rejects invalid longitude', () => {
+    const result = validateCreateVenue({ name: 'Test', longitude: -200 });
+    expect(result.valid).toBe(false);
+    expect(result.errors.longitude).toBeDefined();
+  });
+
+  it('accepts venue with only name', () => {
+    const result = validateCreateVenue({ name: 'Test Venue' });
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects non-string type', () => {
+    const result = validateCreateVenue({ name: 'Test', type: 123 });
+    expect(result.valid).toBe(false);
+    expect(result.errors.type).toBeDefined();
+  });
+
+  it('rejects non-string neighborhood', () => {
+    const result = validateCreateVenue({ name: 'Test', neighborhood: 42 });
+    expect(result.valid).toBe(false);
+    expect(result.errors.neighborhood).toBeDefined();
+  });
+});
+
+describe('validateCreatePatio', () => {
+  const validGeometry = {
+    type: 'Polygon',
+    coordinates: [
+      [
+        [11.9687, 57.7064],
+        [11.9691, 57.7064],
+        [11.9691, 57.7066],
+        [11.9687, 57.7066],
+        [11.9687, 57.7064],
+      ],
+    ],
+  };
+
+  it('returns valid for correct patio', () => {
+    const result = validateCreatePatio({
+      name: 'Framsida',
+      geometry: validGeometry,
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('requires name', () => {
+    const result = validateCreatePatio({ geometry: validGeometry });
+    expect(result.valid).toBe(false);
+    expect(result.errors.name).toBeDefined();
+  });
+
+  it('requires geometry', () => {
+    const result = validateCreatePatio({ name: 'Test' });
+    expect(result.valid).toBe(false);
+    expect(result.errors.geometry).toBeDefined();
+  });
+
+  it('rejects non-Polygon geometry type', () => {
+    const result = validateCreatePatio({
+      name: 'Test',
+      geometry: { type: 'Point', coordinates: [11.9, 57.7] },
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.geometry).toContain('Geometry must be a GeoJSON Polygon');
+  });
+
+  it('rejects geometry with empty coordinates', () => {
+    const result = validateCreatePatio({
+      name: 'Test',
+      geometry: { type: 'Polygon', coordinates: [] },
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.geometry).toBeDefined();
+  });
+
+  it('rejects non-object geometry', () => {
+    const result = validateCreatePatio({ name: 'Test', geometry: 'invalid' });
+    expect(result.valid).toBe(false);
+    expect(result.errors.geometry).toBeDefined();
+  });
+});
+
+describe('slugify', () => {
+  it('converts Swedish characters', () => {
+    expect(slugify('Café Ångström')).toBe('cafe-angstrom');
+  });
+
+  it('handles special characters', () => {
+    expect(slugify('Linné Terrassen!')).toBe('linne-terrassen');
+  });
+
+  it('lowercases and replaces spaces', () => {
+    expect(slugify('Bar Centro')).toBe('bar-centro');
+  });
+
+  it('trims leading and trailing hyphens', () => {
+    expect(slugify('  Test  ')).toBe('test');
+  });
+
+  it('handles ö correctly', () => {
+    expect(slugify('Sjöbaren')).toBe('sjobaren');
+  });
+});

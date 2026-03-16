@@ -1,6 +1,5 @@
 'use client';
 
-// MapLibre GL JS map component for displaying patios
 import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -15,6 +14,14 @@ interface PatioMapProps {
   onPatioClick?: (patio: PatioData) => void;
 }
 
+const SUN_STATUS_COLORS = {
+  Sunny: '#16A34A',   // sun-sunny
+  Partial: '#D97706', // sun-partial
+  Shaded: '#6B7280',  // sun-shaded
+} as const;
+
+const BRAND_PRIMARY = '#0EA5E9';
+
 const PatioMap: React.FC<PatioMapProps> = ({
   userLocation,
   patios = [],
@@ -26,7 +33,6 @@ const PatioMap: React.FC<PatioMapProps> = ({
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const userMarker = useRef<maplibregl.Marker | null>(null);
 
-  // Initialize map
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
@@ -39,15 +45,10 @@ const PatioMap: React.FC<PatioMapProps> = ({
       maxZoom: MAP_DEFAULTS.maxZoom,
     });
 
-    // Add navigation controls
     newMap.addControl(new maplibregl.NavigationControl(), 'top-right');
-
-    // Add geolocation control
     newMap.addControl(
       new maplibregl.GeolocateControl({
-        positionOptions: {
-          enableHighAccuracy: true,
-        },
+        positionOptions: { enableHighAccuracy: true },
         trackUserLocation: true,
       }),
       'top-right'
@@ -68,13 +69,11 @@ const PatioMap: React.FC<PatioMapProps> = ({
     };
   }, [onMapLoad]);
 
-  // Add patio markers with clustering
   useEffect(() => {
     if (!map.current || !isMapLoaded || patios.length === 0) return;
 
     const currentMap = map.current;
 
-    // Convert patios to GeoJSON format for clustering
     const geojson: GeoJSON.FeatureCollection<GeoJSON.Point> = {
       type: 'FeatureCollection',
       features: patios.map((patio) => ({
@@ -92,13 +91,11 @@ const PatioMap: React.FC<PatioMapProps> = ({
       })),
     };
 
-    // Remove existing source and layers if they exist
     if (currentMap.getLayer('clusters')) currentMap.removeLayer('clusters');
     if (currentMap.getLayer('cluster-count')) currentMap.removeLayer('cluster-count');
     if (currentMap.getLayer('unclustered-point')) currentMap.removeLayer('unclustered-point');
     if (currentMap.getSource('patios')) currentMap.removeSource('patios');
 
-    // Add source with clustering enabled
     currentMap.addSource('patios', {
       type: 'geojson',
       data: geojson,
@@ -107,7 +104,6 @@ const PatioMap: React.FC<PatioMapProps> = ({
       clusterRadius: 50,
     });
 
-    // Add cluster circles
     currentMap.addLayer({
       id: 'clusters',
       type: 'circle',
@@ -117,25 +113,16 @@ const PatioMap: React.FC<PatioMapProps> = ({
         'circle-color': [
           'step',
           ['get', 'point_count'],
-          '#0EA5E9', // Sky blue for small clusters
+          BRAND_PRIMARY,
           10,
-          '#F59E0B', // Amber for medium clusters
+          SUN_STATUS_COLORS.Partial,
           30,
-          '#EF4444', // Red for large clusters
+          '#EF4444',
         ],
-        'circle-radius': [
-          'step',
-          ['get', 'point_count'],
-          20, // Small clusters
-          10,
-          30, // Medium clusters
-          30,
-          40, // Large clusters
-        ],
+        'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 30, 40],
       },
     });
 
-    // Add cluster count labels
     currentMap.addLayer({
       id: 'cluster-count',
       type: 'symbol',
@@ -146,12 +133,9 @@ const PatioMap: React.FC<PatioMapProps> = ({
         'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
         'text-size': 12,
       },
-      paint: {
-        'text-color': '#ffffff',
-      },
+      paint: { 'text-color': '#ffffff' },
     });
 
-    // Add individual patio markers (unclustered)
     currentMap.addLayer({
       id: 'unclustered-point',
       type: 'circle',
@@ -162,12 +146,12 @@ const PatioMap: React.FC<PatioMapProps> = ({
           'match',
           ['get', 'sunStatus'],
           'Sunny',
-          '#22C55E', // Green
+          SUN_STATUS_COLORS.Sunny,
           'Partial',
-          '#F59E0B', // Amber
+          SUN_STATUS_COLORS.Partial,
           'Shaded',
-          '#9CA3AF', // Gray
-          '#9CA3AF', // Default gray
+          SUN_STATUS_COLORS.Shaded,
+          SUN_STATUS_COLORS.Shaded,
         ],
         'circle-radius': 8,
         'circle-stroke-width': 2,
@@ -175,11 +159,8 @@ const PatioMap: React.FC<PatioMapProps> = ({
       },
     });
 
-    // Handle cluster clicks (zoom in)
     currentMap.on('click', 'clusters', async (e) => {
-      const features = currentMap.queryRenderedFeatures(e.point, {
-        layers: ['clusters'],
-      });
+      const features = currentMap.queryRenderedFeatures(e.point, { layers: ['clusters'] });
       const feature = features[0];
       if (!feature) return;
 
@@ -193,8 +174,7 @@ const PatioMap: React.FC<PatioMapProps> = ({
             center: point.coordinates as [number, number],
             zoom: zoom ?? currentMap.getZoom() + 2,
           });
-        } catch (err) {
-          // If getClusterExpansionZoom fails, just zoom in
+        } catch {
           currentMap.easeTo({
             center: point.coordinates as [number, number],
             zoom: currentMap.getZoom() + 2,
@@ -203,20 +183,16 @@ const PatioMap: React.FC<PatioMapProps> = ({
       }
     });
 
-    // Handle individual patio marker clicks
     currentMap.on('click', 'unclustered-point', (e) => {
       if (!e.features || e.features.length === 0) return;
-
       const feature = e.features[0];
       const patioId = feature.properties?.id;
       const patio = patios.find((p) => p.id === patioId);
-
       if (patio && onPatioClick) {
         onPatioClick(patio);
       }
     });
 
-    // Change cursor on hover
     currentMap.on('mouseenter', 'clusters', () => {
       currentMap.getCanvas().style.cursor = 'pointer';
     });
@@ -230,7 +206,6 @@ const PatioMap: React.FC<PatioMapProps> = ({
       currentMap.getCanvas().style.cursor = '';
     });
 
-    // Cleanup on unmount or when patios change
     return () => {
       if (currentMap.getLayer('clusters')) currentMap.removeLayer('clusters');
       if (currentMap.getLayer('cluster-count')) currentMap.removeLayer('cluster-count');
@@ -239,22 +214,19 @@ const PatioMap: React.FC<PatioMapProps> = ({
     };
   }, [patios, isMapLoaded, onPatioClick]);
 
-  // Update user location marker
   useEffect(() => {
     if (!map.current || !isMapLoaded || !userLocation) return;
 
-    // Remove existing marker
     if (userMarker.current) {
       userMarker.current.remove();
     }
 
-    // Create new marker
     const markerElement = document.createElement('div');
     markerElement.className = 'user-location-marker';
     markerElement.style.width = '20px';
     markerElement.style.height = '20px';
     markerElement.style.borderRadius = '50%';
-    markerElement.style.backgroundColor = '#0EA5E9';
+    markerElement.style.backgroundColor = BRAND_PRIMARY;
     markerElement.style.border = '3px solid white';
     markerElement.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
     markerElement.setAttribute('aria-label', 'Your location');
@@ -263,7 +235,6 @@ const PatioMap: React.FC<PatioMapProps> = ({
       .setLngLat([userLocation.longitude, userLocation.latitude])
       .addTo(map.current);
 
-    // Center map on user location
     map.current.flyTo({
       center: [userLocation.longitude, userLocation.latitude],
       zoom: 14,
@@ -277,13 +248,13 @@ const PatioMap: React.FC<PatioMapProps> = ({
       className="w-full h-full"
       style={{ minHeight: '400px' }}
       data-testid="patio-map-container"
+      role="application"
+      aria-label="Karta med uteplatser"
     />
   );
 };
 
-// Memoize component to prevent unnecessary re-renders
 export default React.memo(PatioMap, (prevProps, nextProps) => {
-  // Only re-render if user location or patios change
   return (
     prevProps.userLocation?.latitude === nextProps.userLocation?.latitude &&
     prevProps.userLocation?.longitude === nextProps.userLocation?.longitude &&

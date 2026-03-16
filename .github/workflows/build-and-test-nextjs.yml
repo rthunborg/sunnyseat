@@ -1,0 +1,48 @@
+name: Build and Test (Next.js)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nextjs-app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: nextjs-app/package-lock.json
+
+      - run: npm ci
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+      - name: Bundle size check
+        run: |
+          total_size=$(find .next/static -name '*.js' -exec gzip -c {} \; | wc -c)
+          total_kb=$((total_size / 1024))
+          echo "Total gzipped JS: ${total_kb} KB"
+          if [ "$total_kb" -gt 400 ]; then
+            echo "::error::JS bundle size (${total_kb} KB) exceeds 400 KB budget"
+            exit 1
+          fi
+          echo "Bundle size within 400 KB budget"

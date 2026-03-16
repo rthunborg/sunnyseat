@@ -50,6 +50,11 @@ _bmad/
 _bmad-output
 .cursor/
 .claude/
+CLAUDE.md
+scripts/*
+SunnySeat.Docs/*
+_bmad/
+_bmad-output/
 
 # OS
 .DS_Store

@@ -216,7 +216,7 @@ export function applyAtmosphericRefraction(
 }
 
 export function normalizeDegrees(degrees: number): number {
-  let normalized = degrees % 360.0;
+  const normalized = degrees % 360.0;
   return normalized < 0 ? normalized + 360.0 : normalized;
 }
 

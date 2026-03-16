@@ -28,7 +28,7 @@ export function verifyAuthToken(request: NextRequest): AuthUser | null {
   const token = authHeader.substring(7);
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, JWT_SECRET) as { sub: string; username: string; email: string; role: string; claims?: string[] };
     return {
       userId: parseInt(decoded.sub, 10),
       username: decoded.username,

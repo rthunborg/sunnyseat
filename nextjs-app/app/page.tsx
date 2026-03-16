@@ -1,6 +1,9 @@
-// Home page - Server Component that renders Client Component
-import HomePage from '@/components/client/pages/HomePage';
+'use client';
 
-export default function Home() {
-  return <HomePage />;
+import dynamic from 'next/dynamic';
+
+const HomeScreen = dynamic(() => import('@/components/custom/HomeScreen'), { ssr: false });
+
+export default function Page() {
+  return <HomeScreen />;
 }
