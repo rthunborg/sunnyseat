@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS patios (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS buildings (
     "Id" SERIAL PRIMARY KEY,
-    "Geometry" GEOGRAPHY(POLYGON, 4326) NOT NULL,
+    "Geometry" GEOGRAPHY NOT NULL,
     "Height" NUMERIC(6, 2) NOT NULL,
     "HeightM" DOUBLE PRECISION,
     "HeightSource" INTEGER NOT NULL,
