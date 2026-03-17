@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS purchases (
   completed_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_purchases_session_id ON purchases(session_id);
-CREATE INDEX idx_purchases_swish_payment_id ON purchases(swish_payment_id);
+CREATE INDEX IF NOT EXISTS idx_purchases_session_id ON purchases(session_id);
+CREATE INDEX IF NOT EXISTS idx_purchases_swish_payment_id ON purchases(swish_payment_id);
 
 CREATE TABLE IF NOT EXISTS user_premium_status (
   session_id VARCHAR(100) PRIMARY KEY,

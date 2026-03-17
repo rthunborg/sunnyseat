@@ -3,7 +3,7 @@
 
 CREATE TABLE IF NOT EXISTS venue_confirmations (
   "Id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "VenueId" UUID NOT NULL REFERENCES venues("Id") ON DELETE CASCADE,
+  "VenueId" INTEGER NOT NULL REFERENCES venues("Id") ON DELETE CASCADE,
   "IpHash" VARCHAR(64) NOT NULL,
   "UserAgent" TEXT,
   "CreatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),

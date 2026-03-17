@@ -6,14 +6,7 @@
 -- FUNCTION: get_patios_near_point
 -- ============================================================================
 -- Search for patios within a specified radius of a point
--- Replaces: IPatioRepository.GetPatiosNearPointAsync
--- 
--- Parameters:
---   search_lat: Latitude of search point (degrees)
---   search_lng: Longitude of search point (degrees)
---   radius_meters: Search radius in meters
---
--- Returns: Table with patio data including venue information
+-- Uses ST_DWithin on geography for accurate distance calculations
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION get_patios_near_point(
@@ -37,18 +30,16 @@ RETURNS TABLE (
     "VenueName" VARCHAR(200),
     "VenueLocation" GEOGRAPHY(POINT, 4326),
     "DistanceMeters" DOUBLE PRECISION
-) 
+)
 LANGUAGE plpgsql
 AS $$
 DECLARE
     search_point GEOGRAPHY;
 BEGIN
-    -- Create search point from lat/lng
-    search_point := ST_GeogFromText('POINT(' || search_lng || ' ' || search_lat || ')', 4326);
-    
-    -- Return patios within radius, ordered by distance
+    search_point := ST_SetSRID(ST_MakePoint(search_lng, search_lat), 4326)::geography;
+
     RETURN QUERY
-    SELECT 
+    SELECT
         p."Id",
         p."VenueId",
         p."Name",
@@ -69,19 +60,18 @@ BEGIN
     WHERE ST_DWithin(p."Geometry", search_point, radius_meters)
       AND v."IsActive" = true
     ORDER BY ST_Distance(p."Geometry", search_point)
-    LIMIT 50; -- Match MAX_RESULTS from API
+    LIMIT 50;
 END;
 $$;
 
--- Add comment
-COMMENT ON FUNCTION get_patios_near_point IS 
+COMMENT ON FUNCTION get_patios_near_point IS
 'Searches for patios within a specified radius of a geographic point. Uses PostGIS ST_DWithin for efficient spatial queries with GIST index support.';
 
 -- ============================================================================
 -- FUNCTION: get_patio_centroid
 -- ============================================================================
 -- Get the centroid (center point) of a patio polygon
--- Used for distance calculations and display
+-- Casts geography to geometry for ST_Centroid, then extracts coordinates
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION get_patio_centroid(patio_id INTEGER)
@@ -93,22 +83,22 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
-        ST_Y(ST_AsText(ST_Centroid(p."Geometry")))::DOUBLE PRECISION AS "Latitude",
-        ST_X(ST_AsText(ST_Centroid(p."Geometry")))::DOUBLE PRECISION AS "Longitude"
+    SELECT
+        ST_Y(ST_Centroid(p."Geometry"::geometry))::DOUBLE PRECISION AS "Latitude",
+        ST_X(ST_Centroid(p."Geometry"::geometry))::DOUBLE PRECISION AS "Longitude"
     FROM patios p
     WHERE p."Id" = patio_id;
 END;
 $$;
 
-COMMENT ON FUNCTION get_patio_centroid IS 
+COMMENT ON FUNCTION get_patio_centroid IS
 'Returns the centroid (center point) coordinates of a patio polygon for distance calculations.';
 
 -- ============================================================================
 -- FUNCTION: find_patio_containing_point
 -- ============================================================================
 -- Find a patio that contains a given point
--- Replaces: IPatioRepository.FindPatioContainingPointAsync
+-- Casts geography to geometry for ST_Contains
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION find_patio_containing_point(
@@ -125,14 +115,12 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    search_point GEOGRAPHY;
+    search_point GEOMETRY;
 BEGIN
-    -- Create search point from lat/lng
-    search_point := ST_GeogFromText('POINT(' || search_lng || ' ' || search_lat || ')', 4326);
-    
-    -- Return first patio that contains the point
+    search_point := ST_SetSRID(ST_MakePoint(search_lng, search_lat), 4326);
+
     RETURN QUERY
-    SELECT 
+    SELECT
         p."Id",
         p."VenueId",
         p."Name",
@@ -140,22 +128,20 @@ BEGIN
         v."Name" AS "VenueName"
     FROM patios p
     INNER JOIN venues v ON p."VenueId" = v."Id"
-    WHERE ST_Contains(p."Geometry", search_point)
+    WHERE ST_Contains(p."Geometry"::geometry, search_point)
       AND v."IsActive" = true
     LIMIT 1;
 END;
 $$;
 
-COMMENT ON FUNCTION find_patio_containing_point IS 
+COMMENT ON FUNCTION find_patio_containing_point IS
 'Finds a patio polygon that contains a given geographic point. Returns the first matching patio.';
 
 -- ============================================================================
 -- FUNCTION: get_patios_within_bounds
 -- ============================================================================
 -- Get patios within a bounding box (polygon)
--- Replaces: IPatioRepository.GetPatiosWithinBoundsAsync
--- 
--- Note: This function expects a polygon in WKT format
+-- Casts geography to geometry for ST_Intersects with WKT input
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION get_patios_within_bounds(
@@ -171,14 +157,12 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    bounds_polygon GEOGRAPHY;
+    bounds_geom GEOMETRY;
 BEGIN
-    -- Parse WKT polygon
-    bounds_polygon := ST_GeogFromText(bounds_wkt, 4326);
-    
-    -- Return patios that intersect with bounds
+    bounds_geom := ST_GeomFromText(bounds_wkt, 4326);
+
     RETURN QUERY
-    SELECT 
+    SELECT
         p."Id",
         p."VenueId",
         p."Name",
@@ -186,20 +170,19 @@ BEGIN
         v."Name" AS "VenueName"
     FROM patios p
     INNER JOIN venues v ON p."VenueId" = v."Id"
-    WHERE ST_Intersects(p."Geometry", bounds_polygon)
+    WHERE ST_Intersects(p."Geometry"::geometry, bounds_geom)
       AND v."IsActive" = true
     ORDER BY p."VenueId", p."Name";
 END;
 $$;
 
-COMMENT ON FUNCTION get_patios_within_bounds IS 
+COMMENT ON FUNCTION get_patios_within_bounds IS
 'Returns all patios that intersect with a given bounding polygon. Useful for map viewport queries.';
 
 -- ============================================================================
 -- FUNCTION: calculate_spatial_distance
 -- ============================================================================
 -- Calculate distance between two geographic points in meters
--- Helper function for distance calculations
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION calculate_spatial_distance(
@@ -212,25 +195,20 @@ RETURNS DOUBLE PRECISION
 LANGUAGE plpgsql
 IMMUTABLE
 AS $$
-DECLARE
-    point1 GEOGRAPHY;
-    point2 GEOGRAPHY;
 BEGIN
-    point1 := ST_GeogFromText('POINT(' || lng1 || ' ' || lat1 || ')', 4326);
-    point2 := ST_GeogFromText('POINT(' || lng2 || ' ' || lat2 || ')', 4326);
-    RETURN ST_Distance(point1, point2);
+    RETURN ST_Distance(
+        ST_SetSRID(ST_MakePoint(lng1, lat1), 4326)::geography,
+        ST_SetSRID(ST_MakePoint(lng2, lat2), 4326)::geography
+    );
 END;
 $$;
 
-COMMENT ON FUNCTION calculate_spatial_distance IS 
+COMMENT ON FUNCTION calculate_spatial_distance IS
 'Calculates the distance in meters between two geographic points using PostGIS.';
 
 -- ============================================================================
 -- GRANT PERMISSIONS
 -- ============================================================================
--- Grant execute permissions to authenticated users (Supabase anon role)
--- ============================================================================
-
 GRANT EXECUTE ON FUNCTION get_patios_near_point TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_patio_centroid TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION find_patio_containing_point TO anon, authenticated;
@@ -240,32 +218,25 @@ GRANT EXECUTE ON FUNCTION calculate_spatial_distance TO anon, authenticated;
 -- ============================================================================
 -- VALIDATION
 -- ============================================================================
--- Verify functions were created successfully
--- ============================================================================
-
 DO $$
 BEGIN
-    -- Check that all functions exist
     IF NOT EXISTS (
-        SELECT 1 FROM pg_proc 
-        WHERE proname = 'get_patios_near_point'
+        SELECT 1 FROM pg_proc WHERE proname = 'get_patios_near_point'
     ) THEN
         RAISE EXCEPTION 'Function get_patios_near_point was not created';
     END IF;
-    
+
     IF NOT EXISTS (
-        SELECT 1 FROM pg_proc 
-        WHERE proname = 'get_patio_centroid'
+        SELECT 1 FROM pg_proc WHERE proname = 'get_patio_centroid'
     ) THEN
         RAISE EXCEPTION 'Function get_patio_centroid was not created';
     END IF;
-    
+
     IF NOT EXISTS (
-        SELECT 1 FROM pg_proc 
-        WHERE proname = 'find_patio_containing_point'
+        SELECT 1 FROM pg_proc WHERE proname = 'find_patio_containing_point'
     ) THEN
         RAISE EXCEPTION 'Function find_patio_containing_point was not created';
     END IF;
-    
+
     RAISE NOTICE 'All spatial functions created successfully';
 END $$;
