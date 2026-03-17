@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 
 // Mock admin auth - pass through
 vi.mock('@/lib/middleware/admin-auth', () => ({
-  withAdminAuth: (handler: Function) => {
+  withAdminAuth: (handler: (...args: unknown[]) => unknown) => {
     return (request: NextRequest, ...args: unknown[]) => {
       const fakeUser = { username: 'admin', role: 'Admin' };
       return handler(request, fakeUser, ...args);

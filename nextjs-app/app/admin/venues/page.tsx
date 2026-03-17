@@ -18,10 +18,6 @@ interface Venue {
   longitude: number | null;
 }
 
-interface Patio {
-  venue_id: string;
-}
-
 type FilterType = 'all' | 'restaurant' | 'cafe' | 'bar';
 type FilterMapped = 'all' | 'mapped' | 'unmapped';
 

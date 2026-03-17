@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextRequest } from 'next/server';
 
 const mockFrom = vi.fn();
 vi.mock('@/lib/supabase/server', () => ({
@@ -7,6 +8,10 @@ vi.mock('@/lib/supabase/server', () => ({
   },
 }));
 
+function createGetRequest(url: string) {
+  return new NextRequest(new URL(url, 'http://localhost'), { method: 'GET' });
+}
+
 describe('GET /api/payments/status', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -14,12 +19,8 @@ describe('GET /api/payments/status', () => {
 
   it('returns 400 if sessionId is missing', async () => {
     const { GET } = await import('@/app/api/payments/status/route');
-
-    const request = new Request('http://localhost/api/payments/status', {
-      method: 'GET',
-    });
-
-    const response = await GET(request as any);
+    const request = createGetRequest('/api/payments/status');
+    const response = await GET(request);
     expect(response.status).toBe(400);
   });
 
@@ -32,13 +33,8 @@ describe('GET /api/payments/status', () => {
     mockFrom.mockReturnValue({ select: mockSelect });
 
     const { GET } = await import('@/app/api/payments/status/route');
-
-    const request = new Request(
-      'http://localhost/api/payments/status?sessionId=unknown-session',
-      { method: 'GET' }
-    );
-
-    const response = await GET(request as any);
+    const request = createGetRequest('/api/payments/status?sessionId=unknown-session');
+    const response = await GET(request);
     expect(response.status).toBe(200);
 
     const data = await response.json();
@@ -65,13 +61,8 @@ describe('GET /api/payments/status', () => {
     mockFrom.mockReturnValue({ select: mockSelect });
 
     const { GET } = await import('@/app/api/payments/status/route');
-
-    const request = new Request(
-      'http://localhost/api/payments/status?sessionId=premium-session',
-      { method: 'GET' }
-    );
-
-    const response = await GET(request as any);
+    const request = createGetRequest('/api/payments/status?sessionId=premium-session');
+    const response = await GET(request);
     const data = await response.json();
     expect(data.isPremium).toBe(true);
     expect(data.purchaseId).toBe('p-1');
@@ -96,13 +87,8 @@ describe('GET /api/payments/status', () => {
     mockFrom.mockReturnValue({ select: mockSelect });
 
     const { GET } = await import('@/app/api/payments/status/route');
-
-    const request = new Request(
-      'http://localhost/api/payments/status?sessionId=expired-session',
-      { method: 'GET' }
-    );
-
-    const response = await GET(request as any);
+    const request = createGetRequest('/api/payments/status?sessionId=expired-session');
+    const response = await GET(request);
     const data = await response.json();
     expect(data.isPremium).toBe(false);
   });

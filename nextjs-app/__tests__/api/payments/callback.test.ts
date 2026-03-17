@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextRequest } from 'next/server';
 
 const mockFrom = vi.fn();
 vi.mock('@/lib/supabase/server', () => ({
@@ -7,6 +8,14 @@ vi.mock('@/lib/supabase/server', () => ({
   },
 }));
 
+function createRequest(url: string, body: unknown) {
+  return new NextRequest(new URL(url, 'http://localhost'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
 describe('POST /api/payments/callback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -14,14 +23,8 @@ describe('POST /api/payments/callback', () => {
 
   it('returns 400 for invalid payload', async () => {
     const { POST } = await import('@/app/api/payments/callback/route');
-
-    const request = new Request('http://localhost/api/payments/callback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-
-    const response = await POST(request as any);
+    const request = createRequest('/api/payments/callback', {});
+    const response = await POST(request);
     expect(response.status).toBe(400);
   });
 
@@ -34,14 +37,8 @@ describe('POST /api/payments/callback', () => {
     mockFrom.mockReturnValue({ select: mockSelect });
 
     const { POST } = await import('@/app/api/payments/callback/route');
-
-    const request = new Request('http://localhost/api/payments/callback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: 'swish-unknown', status: 'PAID' }),
-    });
-
-    const response = await POST(request as any);
+    const request = createRequest('/api/payments/callback', { id: 'swish-unknown', status: 'PAID' });
+    const response = await POST(request);
     expect(response.status).toBe(404);
   });
 
@@ -75,20 +72,15 @@ describe('POST /api/payments/callback', () => {
     });
 
     const { POST } = await import('@/app/api/payments/callback/route');
-
-    const request = new Request('http://localhost/api/payments/callback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: 'swish-payment-1',
-        status: 'PAID',
-        payeePaymentReference: 'purchase-1',
-        amount: 39,
-        currency: 'SEK',
-      }),
+    const request = createRequest('/api/payments/callback', {
+      id: 'swish-payment-1',
+      status: 'PAID',
+      payeePaymentReference: 'purchase-1',
+      amount: 39,
+      currency: 'SEK',
     });
 
-    const response = await POST(request as any);
+    const response = await POST(request);
     expect(response.status).toBe(200);
 
     const data = await response.json();
@@ -117,14 +109,8 @@ describe('POST /api/payments/callback', () => {
     });
 
     const { POST } = await import('@/app/api/payments/callback/route');
-
-    const request = new Request('http://localhost/api/payments/callback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: 'swish-payment-2', status: 'DECLINED' }),
-    });
-
-    const response = await POST(request as any);
+    const request = createRequest('/api/payments/callback', { id: 'swish-payment-2', status: 'DECLINED' });
+    const response = await POST(request);
     expect(response.status).toBe(200);
   });
 
@@ -141,14 +127,8 @@ describe('POST /api/payments/callback', () => {
     mockFrom.mockReturnValue({ select: mockPurchaseSelect });
 
     const { POST } = await import('@/app/api/payments/callback/route');
-
-    const request = new Request('http://localhost/api/payments/callback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: 'swish-payment-3', status: 'PAID' }),
-    });
-
-    const response = await POST(request as any);
+    const request = createRequest('/api/payments/callback', { id: 'swish-payment-3', status: 'PAID' });
+    const response = await POST(request);
     const data = await response.json();
     expect(response.status).toBe(200);
     expect(data.ok).toBe(true);

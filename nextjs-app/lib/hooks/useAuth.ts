@@ -53,6 +53,7 @@ export function useAuth() {
     isLoading: true,
   });
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleRefreshRef = useRef<(token: string, rt: string) => void>(() => {});
 
   const clearAuth = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
@@ -95,7 +96,7 @@ export function useAuth() {
           const data: RefreshResponse = await res.json();
           localStorage.setItem(TOKEN_KEY, data.accessToken);
           setState((prev) => ({ ...prev, token: data.accessToken }));
-          scheduleRefresh(data.accessToken, currentRefreshToken);
+          scheduleRefreshRef.current(data.accessToken, currentRefreshToken);
         } catch {
           clearAuth();
         }
@@ -103,6 +104,10 @@ export function useAuth() {
     },
     [clearAuth]
   );
+
+  useEffect(() => {
+    scheduleRefreshRef.current = scheduleRefresh;
+  }, [scheduleRefresh]);
 
   const login = useCallback(
     async (username: string, password: string): Promise<{ ok: boolean; error?: string }> => {

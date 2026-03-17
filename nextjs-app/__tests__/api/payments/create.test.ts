@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextRequest } from 'next/server';
 
 // Mock supabase
 const mockFrom = vi.fn();
@@ -18,6 +19,14 @@ vi.mock('@/lib/services/swish', () => ({
   getSwishQrCode: vi.fn().mockReturnValue('data:image/svg+xml;base64,abc'),
 }));
 
+function createRequest(url: string, body: unknown) {
+  return new NextRequest(new URL(url, 'http://localhost'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', origin: 'http://localhost:3000' },
+    body: JSON.stringify(body),
+  });
+}
+
 describe('POST /api/payments/create', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -25,14 +34,8 @@ describe('POST /api/payments/create', () => {
 
   it('returns 400 if sessionId is missing', async () => {
     const { POST } = await import('@/app/api/payments/create/route');
-
-    const request = new Request('http://localhost/api/payments/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-
-    const response = await POST(request as any);
+    const request = createRequest('/api/payments/create', {});
+    const response = await POST(request);
     expect(response.status).toBe(400);
   });
 
@@ -48,14 +51,8 @@ describe('POST /api/payments/create', () => {
     mockFrom.mockReturnValue({ select: mockSelect });
 
     const { POST } = await import('@/app/api/payments/create/route');
-
-    const request = new Request('http://localhost/api/payments/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: 'test-session' }),
-    });
-
-    const response = await POST(request as any);
+    const request = createRequest('/api/payments/create', { sessionId: 'test-session' });
+    const response = await POST(request);
     const data = await response.json();
     expect(response.status).toBe(200);
     expect(data.alreadyPremium).toBe(true);
@@ -100,14 +97,8 @@ describe('POST /api/payments/create', () => {
     });
 
     const { POST } = await import('@/app/api/payments/create/route');
-
-    const request = new Request('http://localhost/api/payments/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', origin: 'http://localhost:3000' },
-      body: JSON.stringify({ sessionId: 'test-session' }),
-    });
-
-    const response = await POST(request as any);
+    const request = createRequest('/api/payments/create', { sessionId: 'test-session' });
+    const response = await POST(request);
     expect(response.status).toBe(201);
 
     const data = await response.json();

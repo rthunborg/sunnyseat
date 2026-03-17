@@ -54,7 +54,6 @@ export default function VenueAccuracyPage({
 
   useEffect(() => {
     if (!token) return;
-    setLoading(true);
     fetch(`/api/admin/accuracy/venues/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })

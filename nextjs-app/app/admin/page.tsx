@@ -22,7 +22,6 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (!token) return;
-    setLoading(true);
     fetch('/api/admin/venues/quality/overview', {
       headers: { Authorization: `Bearer ${token}` },
     })

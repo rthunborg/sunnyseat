@@ -10,8 +10,9 @@ import { CandidateCard } from '@/components/custom/CandidateCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
+import { useState } from 'react';
+
 function useIsDesktop() {
-  if (typeof window === 'undefined') return false;
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
@@ -24,8 +25,6 @@ function useIsDesktop() {
 
   return isDesktop;
 }
-
-import { useState } from 'react';
 
 export function BottomCardTray() {
   const { trayState, setTrayState, venues, isLoading, selectedVenueId } = useCardTray();

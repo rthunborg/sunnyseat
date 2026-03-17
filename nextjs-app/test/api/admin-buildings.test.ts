@@ -11,7 +11,7 @@ vi.mock('@/lib/supabase/server', () => ({
 
 // Mock admin auth to pass through
 vi.mock('@/lib/middleware/admin-auth', () => ({
-  withAdminAuth: (handler: Function) => {
+  withAdminAuth: (handler: (...args: unknown[]) => unknown) => {
     return async (request: Request, ...args: unknown[]) => {
       const user = { userId: 1, username: 'admin', email: 'admin@test.com', role: 'Admin', claims: [] };
       return handler(request, user, ...args);
