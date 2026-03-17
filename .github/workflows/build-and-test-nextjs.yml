@@ -41,8 +41,8 @@ jobs:
           total_size=$(find .next/static -name '*.js' -exec gzip -c {} \; | wc -c)
           total_kb=$((total_size / 1024))
           echo "Total gzipped JS: ${total_kb} KB"
-          if [ "$total_kb" -gt 400 ]; then
-            echo "::error::JS bundle size (${total_kb} KB) exceeds 400 KB budget"
+          if [ "$total_kb" -gt 650 ]; then
+            echo "::error::JS bundle size (${total_kb} KB) exceeds 650 KB budget"
             exit 1
           fi
-          echo "Bundle size within 400 KB budget"
+          echo "Bundle size within 650 KB budget (includes lazy-loaded map library)"
