@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextRequest } from 'next/server';
 
 // Mock supabase before importing route
 const mockFrom = vi.fn();
@@ -46,7 +47,7 @@ describe('PATCH /api/admin/venues/[id]/patios/[patioId]', () => {
       '@/app/api/admin/venues/[id]/patios/[patioId]/route'
     );
 
-    const request = new Request('http://localhost/api/admin/venues/v1/patios/p1', {
+    const request = new NextRequest(new URL('http://localhost/api/admin/venues/v1/patios/p1'), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Updated' }),
@@ -65,7 +66,7 @@ describe('PATCH /api/admin/venues/[id]/patios/[patioId]', () => {
       '@/app/api/admin/venues/[id]/patios/[patioId]/route'
     );
 
-    const request = new Request('http://localhost/api/admin/venues/v1/patios/p1', {
+    const request = new NextRequest(new URL('http://localhost/api/admin/venues/v1/patios/p1'), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
@@ -88,7 +89,7 @@ describe('PATCH /api/admin/venues/[id]/patios/[patioId]', () => {
       '@/app/api/admin/venues/[id]/patios/[patioId]/route'
     );
 
-    const request = new Request('http://localhost/api/admin/venues/v1/patios/p1', {
+    const request = new NextRequest(new URL('http://localhost/api/admin/venues/v1/patios/p1'), {
       method: 'DELETE',
     });
 

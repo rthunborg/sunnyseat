@@ -20,14 +20,11 @@ vi.mock('@/lib/supabase/server', () => ({
 }));
 
 function createRequest(method: string, url: string, body?: unknown) {
-  const init: RequestInit = {
+  return new NextRequest(new URL(url, 'http://localhost'), {
     method,
     headers: { 'Content-Type': 'application/json' },
-  };
-  if (body) {
-    init.body = JSON.stringify(body);
-  }
-  return new NextRequest(new URL(url, 'http://localhost'), init);
+    body: body ? JSON.stringify(body) : undefined,
+  });
 }
 
 describe('PUT /api/admin/venues/[id] — VerificationStatus', () => {
