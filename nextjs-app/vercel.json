@@ -2,5 +2,5 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "installCommand": "npm install"
+  "installCommand": "npm install && npm install lightningcss-linux-x64-gnu @tailwindcss/oxide-linux-x64-gnu"
 }
