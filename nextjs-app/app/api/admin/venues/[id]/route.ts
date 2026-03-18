@@ -3,6 +3,7 @@ import { withAdminAuth } from '@/lib/middleware/admin-auth';
 import type { AuthUser } from '@/lib/middleware/auth';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { badRequest, notFound, handleDatabaseError } from '@/lib/utils/api-errors';
+import { dbVenueToApi, venueTypeToInt } from '@/lib/utils/venue-mapping';
 
 async function handleGet(
   _request: NextRequest,
@@ -24,7 +25,7 @@ async function handleGet(
     return handleDatabaseError(error);
   }
 
-  return NextResponse.json(data);
+  return NextResponse.json(dbVenueToApi(data));
 }
 
 async function handlePut(
@@ -41,31 +42,26 @@ async function handlePut(
     return badRequest('Invalid JSON body');
   }
 
-  // Build update object with only provided fields
+  // Map camelCase frontend fields to PascalCase DB columns
   const update: Record<string, unknown> = {};
-  const allowedFields = [
-    'name',
-    'slug',
-    'latitude',
-    'longitude',
-    'lat',
-    'lng',
-    'neighborhood',
-    'type',
-    'address',
-    'website',
-    'google_maps_url',
-    'is_partner',
-    'booking_url',
-    'website_url',
-    'VerificationStatus',
-  ];
 
-  for (const field of allowedFields) {
-    if (body[field] !== undefined) {
-      update[field] = body[field];
-    }
+  if (body.name !== undefined) update.Name = (body.name as string).trim();
+  if (body.slug !== undefined) update.Slug = (body.slug as string).trim();
+  if (body.neighborhood !== undefined) update.Neighborhood = body.neighborhood;
+  if (body.type !== undefined) update.Type = venueTypeToInt(body.type as string);
+
+  // Update Location if lat/lng provided
+  const lat = body.latitude !== undefined ? Number(body.latitude) : undefined;
+  const lng = body.longitude !== undefined ? Number(body.longitude) : undefined;
+  if (lat !== undefined && lng !== undefined && !isNaN(lat) && !isNaN(lng)) {
+    update.Location = `POINT(${lng} ${lat})`;
   }
+
+  // These columns are already lowercase in the DB (migration 008)
+  if (body.is_partner !== undefined) update.is_partner = body.is_partner;
+  if (body.booking_url !== undefined) update.booking_url = body.booking_url;
+  if (body.website_url !== undefined) update.website_url = body.website_url;
+  if (body.VerificationStatus !== undefined) update.VerificationStatus = body.VerificationStatus;
 
   if (Object.keys(update).length === 0) {
     return badRequest('No fields to update');
@@ -85,7 +81,7 @@ async function handlePut(
     return handleDatabaseError(error);
   }
 
-  return NextResponse.json(data);
+  return NextResponse.json(dbVenueToApi(data));
 }
 
 async function handleDelete(

@@ -8,6 +8,7 @@ import {
   createValidationErrorResponse,
   handleDatabaseError,
 } from '@/lib/utils/api-errors';
+import { dbVenueToApi, venueTypeToInt } from '@/lib/utils/venue-mapping';
 
 async function handleGet(request: NextRequest, _user: AuthUser) {
   const { searchParams } = new URL(request.url);
@@ -22,7 +23,8 @@ async function handleGet(request: NextRequest, _user: AuthUser) {
   }
 
   if (type) {
-    query = query.eq('Type', type);
+    const typeInt = venueTypeToInt(type);
+    query = query.eq('Type', typeInt);
   }
 
   const { data: venues, error } = await query;
@@ -52,7 +54,7 @@ async function handleGet(request: NextRequest, _user: AuthUser) {
     }
   }
 
-  return NextResponse.json(result);
+  return NextResponse.json(result.map(dbVenueToApi));
 }
 
 async function handlePost(request: NextRequest, _user: AuthUser) {
@@ -73,21 +75,30 @@ async function handlePost(request: NextRequest, _user: AuthUser) {
   }
 
   const slug = (body.slug as string) || slugify(body.name as string);
+  const lat = body.latitude !== undefined ? Number(body.latitude) : null;
+  const lng = body.longitude !== undefined ? Number(body.longitude) : null;
+
+  const insert: Record<string, unknown> = {
+    Name: (body.name as string).trim(),
+    Slug: slug,
+    Address: (body.address as string)?.trim() || '',
+    Type: venueTypeToInt((body.type as string) || 'restaurant'),
+    Neighborhood: body.neighborhood ?? null,
+    IsActive: true,
+    IsMapped: false,
+    VerificationStatus: 1,
+  };
+
+  // Location is NOT NULL in the DB — require lat/lng or use Gothenburg center
+  if (lat !== null && lng !== null) {
+    insert.Location = `POINT(${lng} ${lat})`;
+  } else {
+    insert.Location = 'POINT(11.9746 57.7089)';
+  }
 
   const { data, error } = await supabaseAdmin
     .from('venues')
-    .insert({
-      name: (body.name as string).trim(),
-      slug,
-      latitude: body.latitude !== undefined ? Number(body.latitude) : null,
-      longitude: body.longitude !== undefined ? Number(body.longitude) : null,
-      lat: body.latitude !== undefined ? Number(body.latitude) : null,
-      lng: body.longitude !== undefined ? Number(body.longitude) : null,
-      neighborhood: body.neighborhood ?? null,
-      type: body.type ?? null,
-      address: body.address ?? null,
-      website: body.website ?? null,
-    })
+    .insert(insert)
     .select()
     .single();
 
@@ -95,7 +106,7 @@ async function handlePost(request: NextRequest, _user: AuthUser) {
     return handleDatabaseError(error);
   }
 
-  return NextResponse.json(data, { status: 201 });
+  return NextResponse.json(dbVenueToApi(data), { status: 201 });
 }
 
 export const GET = withAdminAuth(handleGet);
