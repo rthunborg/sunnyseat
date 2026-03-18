@@ -2,5 +2,5 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "installCommand": "npm install"
+  "installCommand": "npm install && (cd .. && npm install --no-package-lock lightningcss@1.31.1 @tailwindcss/postcss @tailwindcss/node 2>&1 || true)"
 }
