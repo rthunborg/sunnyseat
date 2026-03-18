@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAdminAuth } from '@/lib/middleware/admin-auth';
 import type { AuthUser } from '@/lib/middleware/auth';
 import { supabaseAdmin } from '@/lib/supabase/server';
-import { handleDatabaseError } from '@/lib/utils/api-errors';
+
 
 const SEED_VENUES = [
   {

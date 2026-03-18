@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
-import { badRequest, internalServerError, unauthorized } from '@/lib/utils/api-errors';
+import { badRequest, internalServerError } from '@/lib/utils/api-errors';
 import type { SubmitFeedbackRequest, FeedbackResponse } from '@/lib/types/api';
 import { validateRequiredString } from '@/lib/utils/validation';
 

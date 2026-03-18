@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { SunWindow } from '@/lib/types/venue';
 import { SkyConditionBadge } from '@/components/composed/SkyConditionBadge';
 import { Badge } from '@/components/ui/badge';

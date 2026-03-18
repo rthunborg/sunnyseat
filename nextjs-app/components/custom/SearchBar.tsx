@@ -99,7 +99,7 @@ export function SearchBar({ className }: { className?: string }) {
   }, []);
 
   return (
-    <div className={`relative ${className ?? ''}`} role="combobox" aria-expanded={isOpen} aria-haspopup="listbox">
+    <div className={`relative ${className ?? ''}`} role="combobox" aria-expanded={isOpen} aria-controls="search-suggestions" aria-haspopup="listbox">
       <input
         ref={inputRef}
         type="search"

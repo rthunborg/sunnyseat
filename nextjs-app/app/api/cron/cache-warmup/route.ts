@@ -33,8 +33,8 @@ export async function POST(request: NextRequest) {
       throw new Error(`Failed to fetch patios: ${patiosError.message}`);
     }
 
-    const currentTime = new Date();
-    const timeRange = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+    const _currentTime = new Date();
+    const _timeRange = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
 
     // TODO: Implement cache warmup
     // For each patio, precompute sun exposure for next 4 hours

@@ -113,7 +113,7 @@ async function handleGet(
 
     // Weekly trends (last 4 weeks)
     const now = new Date();
-    const fourWeeksAgo = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
+
 
     const weeklyTrend: WeeklyTrend[] = [];
     for (let i = 3; i >= 0; i--) {

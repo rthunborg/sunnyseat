@@ -38,7 +38,7 @@ describe('PUT /api/admin/venues/[id] — VerificationStatus', () => {
       eq: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           single: vi.fn().mockResolvedValue({
-            data: { id: 'v-1', VerificationStatus: 1 },
+            data: { Id: 'v-1', VerificationStatus: 1 },
             error: null,
           }),
         }),
@@ -56,7 +56,7 @@ describe('PUT /api/admin/venues/[id] — VerificationStatus', () => {
 
     expect(response.status).toBe(200);
     const data = await response.json();
-    expect(data.VerificationStatus).toBe(1);
+    expect(data.verification_status).toBe(1);
   });
 
   it('allows updating VerificationStatus to 0 (candidate)', async () => {
@@ -64,7 +64,7 @@ describe('PUT /api/admin/venues/[id] — VerificationStatus', () => {
       eq: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           single: vi.fn().mockResolvedValue({
-            data: { id: 'v-2', VerificationStatus: 0 },
+            data: { Id: 'v-2', VerificationStatus: 0 },
             error: null,
           }),
         }),
@@ -82,7 +82,7 @@ describe('PUT /api/admin/venues/[id] — VerificationStatus', () => {
 
     expect(response.status).toBe(200);
     const data = await response.json();
-    expect(data.VerificationStatus).toBe(0);
+    expect(data.verification_status).toBe(0);
   });
 
   it('rejects empty update body', async () => {

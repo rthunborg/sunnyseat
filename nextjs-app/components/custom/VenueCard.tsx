@@ -59,8 +59,8 @@ export function VenueCard({
   highlighted = false,
   sunWindows,
   isPartner = false,
-  sunWindowStart,
-  sunWindowEnd,
+  sunWindowStart: _sunWindowStart,
+  sunWindowEnd: _sunWindowEnd,
 }: VenueCardProps) {
   const router = useRouter();
   const { t, language } = useLanguage();
