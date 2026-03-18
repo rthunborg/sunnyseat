@@ -19,7 +19,7 @@ async function handleGet(
   const { data, error } = await supabaseAdmin
     .from('patios')
     .select('*')
-    .eq('venue_id', id);
+    .eq('VenueId', id);
 
   if (error) {
     return handleDatabaseError(error);

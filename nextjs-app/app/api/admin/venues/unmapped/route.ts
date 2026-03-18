@@ -8,7 +8,7 @@ async function handleGet(_request: NextRequest, _user: AuthUser) {
   const { data: venues, error: venueError } = await supabaseAdmin
     .from('venues')
     .select('*')
-    .order('name');
+    .order('Name');
 
   if (venueError) {
     return handleDatabaseError(venueError);
@@ -16,14 +16,14 @@ async function handleGet(_request: NextRequest, _user: AuthUser) {
 
   const { data: patios, error: patioError } = await supabaseAdmin
     .from('patios')
-    .select('venue_id');
+    .select('VenueId');
 
   if (patioError) {
     return handleDatabaseError(patioError);
   }
 
-  const venueIdsWithPatios = new Set((patios ?? []).map((p) => p.venue_id));
-  const unmapped = (venues ?? []).filter((v) => !venueIdsWithPatios.has(v.id));
+  const venueIdsWithPatios = new Set((patios ?? []).map((p) => p.VenueId));
+  const unmapped = (venues ?? []).filter((v) => !venueIdsWithPatios.has(v.Id));
 
   return NextResponse.json(unmapped);
 }

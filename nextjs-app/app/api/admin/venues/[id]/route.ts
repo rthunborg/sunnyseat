@@ -14,7 +14,7 @@ async function handleGet(
   const { data, error } = await supabaseAdmin
     .from('venues')
     .select('*')
-    .eq('id', id)
+    .eq('Id', id)
     .single();
 
   if (error) {
@@ -74,7 +74,7 @@ async function handlePut(
   const { data, error } = await supabaseAdmin
     .from('venues')
     .update(update)
-    .eq('id', id)
+    .eq('Id', id)
     .select()
     .single();
 
@@ -96,12 +96,12 @@ async function handleDelete(
   const { id } = await (context as { params: Promise<{ id: string }> }).params;
 
   // Delete associated patios first
-  await supabaseAdmin.from('patios').delete().eq('venue_id', id);
+  await supabaseAdmin.from('patios').delete().eq('VenueId', id);
 
   const { error } = await supabaseAdmin
     .from('venues')
     .delete()
-    .eq('id', id);
+    .eq('Id', id);
 
   if (error) {
     return handleDatabaseError(error);

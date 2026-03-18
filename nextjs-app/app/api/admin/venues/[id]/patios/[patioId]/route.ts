@@ -37,8 +37,8 @@ async function handlePut(
   const { data, error } = await supabaseAdmin
     .from('patios')
     .update(updates)
-    .eq('id', patioId)
-    .eq('venue_id', id)
+    .eq('Id', patioId)
+    .eq('VenueId', id)
     .select()
     .single();
 
@@ -59,8 +59,8 @@ async function handleDelete(
   const { error } = await supabaseAdmin
     .from('patios')
     .delete()
-    .eq('id', patioId)
-    .eq('venue_id', id);
+    .eq('Id', patioId)
+    .eq('VenueId', id);
 
   if (error) {
     return handleDatabaseError(error);

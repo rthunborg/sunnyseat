@@ -15,14 +15,14 @@ async function handleGet(request: NextRequest, _user: AuthUser) {
   const type = searchParams.get('type');
   const mapped = searchParams.get('mapped');
 
-  let query = supabaseAdmin.from('venues').select('*').order('name');
+  let query = supabaseAdmin.from('venues').select('*').order('Name');
 
   if (search) {
-    query = query.ilike('name', `%${search}%`);
+    query = query.ilike('Name', `%${search}%`);
   }
 
   if (type) {
-    query = query.eq('type', type);
+    query = query.eq('Type', type);
   }
 
   const { data: venues, error } = await query;
@@ -37,18 +37,18 @@ async function handleGet(request: NextRequest, _user: AuthUser) {
   if (mapped !== null) {
     const { data: patios, error: patioError } = await supabaseAdmin
       .from('patios')
-      .select('venue_id');
+      .select('VenueId');
 
     if (patioError) {
       return handleDatabaseError(patioError);
     }
 
-    const venueIdsWithPatios = new Set((patios ?? []).map((p) => p.venue_id));
+    const venueIdsWithPatios = new Set((patios ?? []).map((p) => p.VenueId));
 
     if (mapped === 'true') {
-      result = result.filter((v) => venueIdsWithPatios.has(v.id));
+      result = result.filter((v) => venueIdsWithPatios.has(v.Id));
     } else if (mapped === 'false') {
-      result = result.filter((v) => !venueIdsWithPatios.has(v.id));
+      result = result.filter((v) => !venueIdsWithPatios.has(v.Id));
     }
   }
 

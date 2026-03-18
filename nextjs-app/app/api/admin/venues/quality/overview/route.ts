@@ -7,7 +7,7 @@ import { handleDatabaseError } from '@/lib/utils/api-errors';
 async function handleGet(_request: NextRequest, _user: AuthUser) {
   const { data: venues, error: venueError } = await supabaseAdmin
     .from('venues')
-    .select('id');
+    .select('Id');
 
   if (venueError) {
     return handleDatabaseError(venueError);
@@ -15,14 +15,14 @@ async function handleGet(_request: NextRequest, _user: AuthUser) {
 
   const { data: patios, error: patioError } = await supabaseAdmin
     .from('patios')
-    .select('venue_id');
+    .select('VenueId');
 
   if (patioError) {
     return handleDatabaseError(patioError);
   }
 
   const totalVenues = venues?.length ?? 0;
-  const venueIdsWithPatios = new Set((patios ?? []).map((p) => p.venue_id));
+  const venueIdsWithPatios = new Set((patios ?? []).map((p) => p.VenueId));
   const mappedVenues = venueIdsWithPatios.size;
   const totalPatios = patios?.length ?? 0;
 
