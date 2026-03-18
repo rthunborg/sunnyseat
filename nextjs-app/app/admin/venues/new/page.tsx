@@ -193,7 +193,19 @@ export default function AdminVenueNewPage() {
           </div>
         </div>
 
-        <div className="mt-6">
+        <p className="mt-4 text-sm text-muted-foreground">
+          Efter att restaurangen skapats kan du rita uteplatser som polygoner på kartan, eller klistra in GeoJSON från{' '}
+          <a
+            href="https://geojson.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-foreground underline underline-offset-2"
+          >
+            geojson.io
+          </a>.
+        </p>
+
+        <div className="mt-4">
           <Button type="submit" disabled={saving || !name.trim()}>
             {saving ? 'Skapar...' : 'Skapa restaurang'}
           </Button>
