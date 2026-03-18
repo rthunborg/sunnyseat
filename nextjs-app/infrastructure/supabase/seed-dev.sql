@@ -106,3 +106,17 @@ VALUES
     ST_MakePoint(11.97160, 57.69862),
     ST_MakePoint(11.97160, 57.69840)
   ])), 4326)::geography, 22.0, 22.0, 1, 'lantmateriet', 0.880, 'bldg-vasa-001', 'commercial');
+
+-- ============================================================================
+-- ADMIN USERS (dev only — password: Test123!)
+-- ============================================================================
+INSERT INTO admin_users ("Username", "Email", "PasswordHash", "Role", "IsActive", "Claims", "LastLoginAt")
+VALUES (
+  'admin',
+  'admin@sunnyseat.se',
+  '$2b$10$P6bX4mtKTGjPOQVWURjjGulaaFRL5UZN9rl4AUbY8MJJn/H16Pw.a',
+  'Admin',
+  true,
+  '[]'::jsonb,
+  NOW()
+);

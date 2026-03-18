@@ -31,10 +31,11 @@ export async function POST(request: NextRequest) {
     const { data: user, error: userError } = await supabaseAdmin
       .from('admin_users')
       .select('*')
-      .eq('username', body.username)
+      .eq('Username', body.username)
       .single();
 
     if (userError || !user) {
+      console.error('Login lookup failed:', { username: body.username, error: userError });
       return unauthorized('Invalid username or password');
     }
 
