@@ -125,8 +125,14 @@ export default function MapContainer({
     if (!containerRef.current || mapRef.current) return;
 
     const mgl = await import('maplibre-gl');
-    // @ts-expect-error CSS import has no type declarations
-    await import('maplibre-gl/dist/maplibre-gl.css');
+
+    // Load maplibre CSS via <link> tag to avoid PostCSS/lightningcss processing
+    if (!document.querySelector('link[href*="maplibre-gl"]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/maplibre-gl@5.20.2/dist/maplibre-gl.css';
+      document.head.appendChild(link);
+    }
 
     const tileKey = process.env.NEXT_PUBLIC_MAPTILER_KEY;
     const styleUrl = tileKey
