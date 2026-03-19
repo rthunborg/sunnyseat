@@ -135,7 +135,7 @@ describe('PUT /api/admin/venues/[id]/patios/[patioId]', () => {
     const response = await PUT(request, context);
     expect(response.status).toBe(200);
 
-    // Verify PascalCase column names used
-    expect(mockUpdate).toHaveBeenCalledWith({ Geometry: testGeometry });
+    // Verify PascalCase column names used + geometry is stringified for PostgREST
+    expect(mockUpdate).toHaveBeenCalledWith({ Geometry: JSON.stringify(testGeometry) });
   });
 });

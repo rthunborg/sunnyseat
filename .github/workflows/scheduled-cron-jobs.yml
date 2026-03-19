@@ -41,7 +41,7 @@ jobs:
     steps:
       - name: Trigger weather ingestion
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+          response=$(curl -s -L -o /dev/null -w "%{http_code}" -X POST \
             "$PRODUCTION_URL/api/cron/weather-ingestion" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json")
@@ -59,7 +59,7 @@ jobs:
     steps:
       - name: Trigger precomputation scheduling
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+          response=$(curl -s -L -o /dev/null -w "%{http_code}" -X POST \
             "$PRODUCTION_URL/api/cron/precomputation-schedule" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json")
@@ -77,7 +77,7 @@ jobs:
     steps:
       - name: Trigger cache warmup
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+          response=$(curl -s -L -o /dev/null -w "%{http_code}" -X POST \
             "$PRODUCTION_URL/api/cron/cache-warmup" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json")
@@ -95,7 +95,7 @@ jobs:
     steps:
       - name: Trigger accuracy metrics
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+          response=$(curl -s -L -o /dev/null -w "%{http_code}" -X POST \
             "$PRODUCTION_URL/api/cron/accuracy-metrics" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json")
@@ -113,7 +113,7 @@ jobs:
     steps:
       - name: Trigger OSM ingestion
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+          response=$(curl -s -L -o /dev/null -w "%{http_code}" -X POST \
             "$PRODUCTION_URL/api/cron/osm-ingestion" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json")
@@ -131,7 +131,7 @@ jobs:
     steps:
       - name: Trigger cleanup
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+          response=$(curl -s -L -o /dev/null -w "%{http_code}" -X POST \
             "$PRODUCTION_URL/api/cron/cleanup-old-data" \
             -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json")

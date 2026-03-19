@@ -52,12 +52,17 @@ async function handlePost(
     );
   }
 
+  // PostgREST requires geography values as GeoJSON strings, not objects
+  const geoString = typeof body.geometry === 'string'
+    ? body.geometry
+    : JSON.stringify(body.geometry);
+
   const { data, error } = await supabaseAdmin
     .from('patios')
     .insert({
       VenueId: Number(id),
       Name: (body.name as string).trim(),
-      Geometry: body.geometry,
+      Geometry: geoString,
       Orientation: body.orientation ?? null,
       HeightSource: body.height_source ?? 0,
       PolygonQuality: 0,

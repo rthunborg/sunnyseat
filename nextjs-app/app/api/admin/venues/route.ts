@@ -75,8 +75,17 @@ async function handlePost(request: NextRequest, _user: AuthUser) {
   }
 
   const slug = (body.slug as string) || slugify(body.name as string);
-  const lat = body.latitude != null ? Number(body.latitude) : null;
-  const lng = body.longitude != null ? Number(body.longitude) : null;
+  let lat = body.latitude != null ? Number(body.latitude) : null;
+  let lng = body.longitude != null ? Number(body.longitude) : null;
+
+  // If no lat/lng provided but geometry exists, extract centroid from polygon
+  if ((lat === null || lng === null) && body.geometry) {
+    const centroid = extractPolygonCentroid(body.geometry as GeoJSON.Polygon);
+    if (centroid) {
+      lng = centroid[0];
+      lat = centroid[1];
+    }
+  }
 
   const insert: Record<string, unknown> = {
     Name: (body.name as string).trim(),
@@ -112,12 +121,17 @@ async function handlePost(request: NextRequest, _user: AuthUser) {
   }
 
   // If geometry provided, create the venue's patio record
+  // PostgREST requires geography values as GeoJSON strings, not objects
   if (body.geometry) {
     const venueId = data.Id;
+    const geoString = typeof body.geometry === 'string'
+      ? body.geometry
+      : JSON.stringify(body.geometry);
+
     const patioInsert = {
       VenueId: venueId,
       Name: (body.name as string).trim(),
-      Geometry: body.geometry,
+      Geometry: geoString,
       HeightSource: 0,
       PolygonQuality: 0,
     };
@@ -150,3 +164,20 @@ async function handlePost(request: NextRequest, _user: AuthUser) {
 
 export const GET = withAdminAuth(handleGet);
 export const POST = withAdminAuth(handlePost);
+
+/** Extract centroid [lng, lat] from a GeoJSON Polygon */
+function extractPolygonCentroid(geometry: GeoJSON.Polygon): [number, number] | null {
+  try {
+    const ring = geometry?.coordinates?.[0];
+    if (!ring || ring.length < 3) return null;
+    // Average all vertices (excluding closing vertex if first==last)
+    const verts = ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
+      ? ring.slice(0, -1)
+      : ring;
+    const sumLng = verts.reduce((s, v) => s + v[0], 0);
+    const sumLat = verts.reduce((s, v) => s + v[1], 0);
+    return [sumLng / verts.length, sumLat / verts.length];
+  } catch {
+    return null;
+  }
+}

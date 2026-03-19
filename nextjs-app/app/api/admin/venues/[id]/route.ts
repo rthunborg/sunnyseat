@@ -144,8 +144,12 @@ async function handlePut(
       }
     } else if (existingPatios && existingPatios.length > 0) {
       // Update existing patio
+      // PostgREST requires geography values as GeoJSON strings, not objects
+      const geoString = typeof body.geometry === 'string'
+        ? body.geometry
+        : JSON.stringify(body.geometry);
       const patioUpdate: Record<string, unknown> = {
-        Geometry: body.geometry,
+        Geometry: geoString,
       };
       if (body.height_source !== undefined) patioUpdate.HeightSource = body.height_source;
 
@@ -167,12 +171,15 @@ async function handlePut(
     } else {
       // Create new patio
       const venueName = venueData.Name || 'Uteplats';
+      const geoStr = typeof body.geometry === 'string'
+        ? body.geometry
+        : JSON.stringify(body.geometry);
       const { data: newPatio, error: patioError } = await supabaseAdmin
         .from('patios')
         .insert({
           VenueId: Number(id),
           Name: venueName,
-          Geometry: body.geometry,
+          Geometry: geoStr,
           HeightSource: body.height_source ?? 0,
           PolygonQuality: 0,
         })

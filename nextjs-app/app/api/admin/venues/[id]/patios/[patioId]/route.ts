@@ -26,7 +26,11 @@ async function handlePut(
 
   const updates: Record<string, unknown> = {};
   if (body.name !== undefined) updates.Name = (body.name as string).trim();
-  if (body.geometry !== undefined) updates.Geometry = body.geometry;
+  if (body.geometry !== undefined) {
+    updates.Geometry = typeof body.geometry === 'string'
+      ? body.geometry
+      : JSON.stringify(body.geometry);
+  }
   if (body.height_source !== undefined) updates.HeightSource = body.height_source;
   if (body.orientation !== undefined) updates.Orientation = body.orientation;
 
