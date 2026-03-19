@@ -207,13 +207,18 @@ function mapBuildingRow(row: Record<string, unknown>): Building {
 
 function parseGeometry(geom: unknown): GeoJSON.Polygon {
   if (typeof geom === 'string') {
+    // Try JSON/GeoJSON first
     try {
       const parsed = JSON.parse(geom);
       if (parsed.type === 'Polygon') return parsed;
       if (parsed.coordinates) return { type: 'Polygon', coordinates: parsed.coordinates };
     } catch {
-      // PostGIS WKT/hex — return a dummy for graceful degradation
+      // Not JSON — try WKB hex
     }
+
+    // Try WKB hex (PostgREST returns geography as hex-encoded WKB)
+    const wkbResult = parseWkbHexPolygon(geom);
+    if (wkbResult) return wkbResult;
   }
   if (typeof geom === 'object' && geom !== null) {
     const g = geom as Record<string, unknown>;
@@ -221,6 +226,49 @@ function parseGeometry(geom: unknown): GeoJSON.Polygon {
   }
 
   return { type: 'Polygon', coordinates: [[[0, 0], [0, 0], [0, 0], [0, 0]]] };
+}
+
+/** Parse a PostGIS WKB hex string for a Polygon into GeoJSON */
+function parseWkbHexPolygon(hex: string): GeoJSON.Polygon | null {
+  try {
+    const buf = Buffer.from(hex, 'hex');
+    if (buf.length < 13) return null;
+
+    let offset = 0;
+    const le = buf.readUInt8(offset) === 1;
+    offset += 1;
+
+    const rawType = le ? buf.readUInt32LE(offset) : buf.readUInt32BE(offset);
+    offset += 4;
+    const hasSRID = (rawType & 0x20000000) !== 0;
+    const geomType = rawType & 0xff;
+    if (hasSRID) offset += 4;
+
+    if (geomType !== 3) return null; // Not a Polygon
+
+    const readDouble = (o: number) => le ? buf.readDoubleLE(o) : buf.readDoubleBE(o);
+    const readUInt32 = (o: number) => le ? buf.readUInt32LE(o) : buf.readUInt32BE(o);
+
+    const numRings = readUInt32(offset);
+    offset += 4;
+
+    const coordinates: number[][][] = [];
+    for (let r = 0; r < numRings; r++) {
+      const numPoints = readUInt32(offset);
+      offset += 4;
+      const ring: number[][] = [];
+      for (let p = 0; p < numPoints; p++) {
+        const x = readDouble(offset); offset += 8;
+        const y = readDouble(offset); offset += 8;
+        ring.push([x, y]);
+      }
+      coordinates.push(ring);
+    }
+
+    return { type: 'Polygon', coordinates };
+  } catch {
+    return null;
+  }
 }
 
 function getCentroid(polygon: GeoJSON.Polygon): [number, number] {

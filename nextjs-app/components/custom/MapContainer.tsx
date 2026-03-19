@@ -185,7 +185,11 @@ export default function MapContainer({
     map.on('mouseenter', 'candidate-markers', setCursorPointer);
     map.on('mouseleave', 'candidate-markers', resetCursor);
 
-    // Task 14: Auto-update on pan/zoom (debounced 500ms)
+    // Fire initial center so venues load immediately at default location
+    const initialCenter = map.getCenter();
+    onBoundsChange?.({ lat: initialCenter.lat, lng: initialCenter.lng });
+
+    // Auto-update on pan/zoom (debounced 500ms)
     map.on('moveend', () => {
       if (moveendTimerRef.current) clearTimeout(moveendTimerRef.current);
       moveendTimerRef.current = setTimeout(() => {

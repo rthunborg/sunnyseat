@@ -30,7 +30,7 @@ describe('CandidateCard', () => {
 
     const button = screen.getByRole('button', { name: /bekräfta/i });
     expect(button).toBeInTheDocument();
-    expect(button).toHaveTextContent('Bekräfta uteplats');
+    expect(button).toHaveTextContent('Bekräfta restaurang');
   });
 
   it('submits confirmation on button click', async () => {
