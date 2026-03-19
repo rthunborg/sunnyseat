@@ -1,19 +1,19 @@
 'use client';
 
-// Hook for fetching patio data using TanStack Query
+// Hook for fetching venue data using TanStack Query
 import { useQuery } from '@tanstack/react-query';
-import { patioService } from '@/lib/services/api/patioService';
+import { venueService } from '@/lib/services/api/venueService';
 import type { Coordinates } from '@/lib/types/location';
 import type { GetPatiosResponse } from '@/lib/types/api';
 
-export const usePatioData = (location: Coordinates | null, radiusKm: number) => {
+export const useVenueData = (location: Coordinates | null, radiusKm: number) => {
   return useQuery<GetPatiosResponse>({
-    queryKey: ['patios', location?.latitude, location?.longitude, radiusKm],
+    queryKey: ['venues', location?.latitude, location?.longitude, radiusKm],
     queryFn: () => {
       if (!location) {
         throw new Error('Location is required');
       }
-      return patioService.getPatios({
+      return venueService.getVenues({
         latitude: location.latitude,
         longitude: location.longitude,
         radiusKm,

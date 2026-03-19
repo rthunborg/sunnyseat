@@ -151,8 +151,8 @@ export default function AdminVenueDetailPage({
       .finally(() => setLoading(false));
   }, [token, id]);
 
-  // Build patios array for PolygonEditor (single patio)
-  const patiosForEditor = currentGeometry
+  // Build venues array for PolygonEditor (single venue polygon)
+  const venuesForEditor = currentGeometry
     ? [{ id: 'main', name: name || 'Uteplats', geometry: currentGeometry }]
     : [];
 
@@ -271,12 +271,12 @@ export default function AdminVenueDetailPage({
     }
   }, [editor]);
 
-  const handlePatioClick = useCallback(
-    (patioId: string) => {
-      if (patioId === 'main' && currentGeometry) {
+  const handleVenueClick = useCallback(
+    (venueId: string) => {
+      if (venueId === 'main' && currentGeometry) {
         const ring = currentGeometry.coordinates[0];
         const verts = ring.slice(0, -1) as [number, number][];
-        editor.selectVenue(patioId, verts);
+        editor.selectVenue(venueId, verts);
       }
     },
     [currentGeometry, editor]
@@ -593,13 +593,13 @@ export default function AdminVenueDetailPage({
           <PolygonEditor
             venueLatitude={venue?.latitude ?? null}
             venueLongitude={venue?.longitude ?? null}
-            patios={patiosForEditor}
+            venues={venuesForEditor}
             mode={editor.mode}
             vertices={editor.vertices}
-            selectedPatioId={editor.selectedVenueId}
+            selectedVenueId={editor.selectedVenueId}
             onMapClick={handleMapClick}
             onMapDblClick={handleMapDblClick}
-            onPatioClick={handlePatioClick}
+            onVenueClick={handleVenueClick}
             onVertexDrag={editor.moveVertex}
           />
         </div>

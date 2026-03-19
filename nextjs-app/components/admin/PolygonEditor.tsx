@@ -6,7 +6,7 @@ import type { EditorMode } from '@/lib/hooks/usePolygonEditor';
 
 const GOTHENBURG_CENTER: [number, number] = [11.9746, 57.7089];
 
-interface Patio {
+interface VenuePolygonData {
   id: string;
   name: string;
   geometry: GeoJSON.Polygon | null;
@@ -15,26 +15,26 @@ interface Patio {
 interface PolygonEditorProps {
   venueLatitude: number | null;
   venueLongitude: number | null;
-  patios: Patio[];
+  venues: VenuePolygonData[];
   mode: EditorMode;
   vertices: [number, number][];
-  selectedPatioId: string | null;
+  selectedVenueId: string | null;
   onMapClick: (lngLat: [number, number]) => void;
   onMapDblClick: () => void;
-  onPatioClick: (patioId: string) => void;
+  onVenueClick: (venueId: string) => void;
   onVertexDrag: (index: number, lngLat: [number, number]) => void;
 }
 
 export default function PolygonEditor({
   venueLatitude,
   venueLongitude,
-  patios,
+  venues,
   mode,
   vertices,
-  selectedPatioId,
+  selectedVenueId,
   onMapClick,
   onMapDblClick,
-  onPatioClick,
+  onVenueClick,
   onVertexDrag,
 }: PolygonEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -179,7 +179,7 @@ export default function PolygonEditor({
             const id = e.features[0].properties?.id;
             if (id) {
               e.preventDefault();
-              onPatioClick(id);
+              onVenueClick(id);
             }
           }
         });
@@ -246,14 +246,14 @@ export default function PolygonEditor({
       const source = map.getSource('patios') as maplibregl.GeoJSONSource | undefined;
       if (!source) return;
 
-      const features: GeoJSON.Feature[] = patios
+      const features: GeoJSON.Feature[] = venues
         .filter((p) => p.geometry)
         .map((p) => ({
           type: 'Feature' as const,
           properties: {
             id: p.id,
             name: p.name,
-            selected: p.id === selectedPatioId,
+            selected: p.id === selectedVenueId,
           },
           geometry: p.geometry!,
         }));
@@ -266,7 +266,7 @@ export default function PolygonEditor({
     } else {
       map.on('load', updateSource);
     }
-  }, [patios, selectedPatioId]);
+  }, [venues, selectedVenueId]);
 
   // Update drawing preview
   useEffect(() => {

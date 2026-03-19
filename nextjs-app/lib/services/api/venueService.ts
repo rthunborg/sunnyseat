@@ -1,17 +1,16 @@
-// Patio API service
+// Venue API service
 // Uses Next.js API routes
 
 import type { GetPatiosResponse } from '@/lib/types/api';
-import type { Coordinates } from '@/lib/types/location';
 
-export interface GetPatiosRequest {
+export interface GetVenuesRequest {
   latitude: number;
   longitude: number;
   radiusKm: number;
 }
 
-export const patioService = {
-  async getPatios(request: GetPatiosRequest): Promise<GetPatiosResponse> {
+export const venueService = {
+  async getVenues(request: GetVenuesRequest): Promise<GetPatiosResponse> {
     const params = new URLSearchParams({
       latitude: request.latitude.toString(),
       longitude: request.longitude.toString(),
@@ -21,7 +20,7 @@ export const patioService = {
     const response = await fetch(`/api/patios?${params.toString()}`);
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch patios: ${response.statusText}`);
+      throw new Error(`Failed to fetch venues: ${response.statusText}`);
     }
 
     return response.json();
