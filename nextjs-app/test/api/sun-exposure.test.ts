@@ -40,13 +40,13 @@ describe('GET /api/sun-exposure/patio/[id]', () => {
     vi.clearAllMocks();
   });
 
-  it('returns 400 for non-numeric patio ID', async () => {
+  it('returns 400 for non-numeric venue ID', async () => {
     const { request, context } = createRequest('abc');
     const res = await GET(request, context);
     expect(res.status).toBe(400);
   });
 
-  it('returns 404 when patio not found in database', async () => {
+  it('returns 404 when venue not found in database', async () => {
     mockSingle.mockResolvedValue({ data: null, error: { message: 'not found' } });
     const { request, context } = createRequest('999');
     const res = await GET(request, context);
@@ -55,10 +55,10 @@ describe('GET /api/sun-exposure/patio/[id]', () => {
     expect(body.error).toContain('not found');
   });
 
-  it('returns sun exposure data for valid patio', async () => {
+  it('returns sun exposure data for valid venue', async () => {
     mockSingle.mockResolvedValue({ data: { Id: 1 }, error: null });
     mockCalculateSunExposure.mockResolvedValue({
-      patioId: 1,
+      venueId: 1,
       timestamp: new Date('2026-03-15T12:00:00Z'),
       state: 'Sunny',
       sunExposurePercent: 85,
@@ -78,7 +78,7 @@ describe('GET /api/sun-exposure/patio/[id]', () => {
     const res = await GET(request, context);
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.patioId).toBe(1);
+    expect(body.venueId).toBe(1);
     expect(body.state).toBe('Sunny');
     expect(body.sunExposurePercent).toBe(85);
     expect(body.confidence).toBe(0.9);
@@ -88,7 +88,7 @@ describe('GET /api/sun-exposure/patio/[id]', () => {
   it('returns 200 without weather data when unavailable', async () => {
     mockSingle.mockResolvedValue({ data: { Id: 2 }, error: null });
     mockCalculateSunExposure.mockResolvedValue({
-      patioId: 2,
+      venueId: 2,
       timestamp: new Date('2026-03-15T12:00:00Z'),
       state: 'Shaded',
       sunExposurePercent: 0,
@@ -114,11 +114,11 @@ describe('GET /api/sun-exposure/patio/[id]', () => {
     expect(res.status).toBe(500);
   });
 
-  it('verifies correct supabase query for patio lookup', async () => {
+  it('verifies correct supabase query for venue lookup', async () => {
     mockSingle.mockResolvedValue({ data: null, error: { message: 'not found' } });
     const { request, context } = createRequest('42');
     await GET(request, context);
-    expect(mockFrom).toHaveBeenCalledWith('patios');
+    expect(mockFrom).toHaveBeenCalledWith('venues');
     expect(mockSelect).toHaveBeenCalledWith('Id');
     expect(mockEq).toHaveBeenCalledWith('Id', 42);
   });

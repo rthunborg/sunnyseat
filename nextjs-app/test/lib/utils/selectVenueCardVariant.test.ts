@@ -5,7 +5,6 @@ import type { SunExposureResult } from '@/lib/types/venue';
 function makeResult(overrides: Partial<SunExposureResult> = {}): SunExposureResult {
   return {
     venue: { id: '1', name: 'Test', slug: 'test', neighborhood: 'Haga', lat: 57.7, lng: 11.9 },
-    patio: { id: 'p1', venue_id: '1', name: 'Test', geometry: { type: 'Polygon', coordinates: [] } },
     current_status: 'shaded',
     sun_exposure_percent: 0,
     confidence: 0.8,

@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   validateCreateVenue,
-  validateCreatePatio,
   slugify,
 } from '@/lib/validation/venue';
 
@@ -139,65 +138,6 @@ describe('validateCreateVenue', () => {
   it('accepts null geometry on venue', () => {
     const result = validateCreateVenue({ name: 'Test', geometry: null });
     expect(result.valid).toBe(true);
-  });
-});
-
-describe('validateCreatePatio', () => {
-  const validGeometry = {
-    type: 'Polygon',
-    coordinates: [
-      [
-        [11.9687, 57.7064],
-        [11.9691, 57.7064],
-        [11.9691, 57.7066],
-        [11.9687, 57.7066],
-        [11.9687, 57.7064],
-      ],
-    ],
-  };
-
-  it('returns valid for correct patio', () => {
-    const result = validateCreatePatio({
-      name: 'Framsida',
-      geometry: validGeometry,
-    });
-    expect(result.valid).toBe(true);
-  });
-
-  it('requires name', () => {
-    const result = validateCreatePatio({ geometry: validGeometry });
-    expect(result.valid).toBe(false);
-    expect(result.errors.name).toBeDefined();
-  });
-
-  it('requires geometry', () => {
-    const result = validateCreatePatio({ name: 'Test' });
-    expect(result.valid).toBe(false);
-    expect(result.errors.geometry).toBeDefined();
-  });
-
-  it('rejects non-Polygon geometry type', () => {
-    const result = validateCreatePatio({
-      name: 'Test',
-      geometry: { type: 'Point', coordinates: [11.9, 57.7] },
-    });
-    expect(result.valid).toBe(false);
-    expect(result.errors.geometry).toContain('Geometry must be a GeoJSON Polygon');
-  });
-
-  it('rejects geometry with empty coordinates', () => {
-    const result = validateCreatePatio({
-      name: 'Test',
-      geometry: { type: 'Polygon', coordinates: [] },
-    });
-    expect(result.valid).toBe(false);
-    expect(result.errors.geometry).toBeDefined();
-  });
-
-  it('rejects non-object geometry', () => {
-    const result = validateCreatePatio({ name: 'Test', geometry: 'invalid' });
-    expect(result.valid).toBe(false);
-    expect(result.errors.geometry).toBeDefined();
   });
 });
 

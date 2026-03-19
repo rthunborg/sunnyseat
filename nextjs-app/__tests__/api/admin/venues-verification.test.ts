@@ -43,20 +43,6 @@ function createVenueUpdateMock(responseData: Record<string, unknown>) {
   };
 }
 
-/** Creates mock for patios table (select chain) */
-function createPatioSelectMock(patios: Record<string, unknown>[] = []) {
-  return {
-    select: vi.fn().mockReturnValue({
-      eq: vi.fn().mockReturnValue({
-        limit: vi.fn().mockResolvedValue({
-          data: patios,
-          error: null,
-        }),
-      }),
-    }),
-  };
-}
-
 describe('PUT /api/admin/venues/[id] — VerificationStatus', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -65,11 +51,9 @@ describe('PUT /api/admin/venues/[id] — VerificationStatus', () => {
 
   it('allows updating VerificationStatus to 1 (verified)', async () => {
     const venuesMock = createVenueUpdateMock({ Id: 'v-1', VerificationStatus: 1 });
-    const patiosMock = createPatioSelectMock();
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'venues') return venuesMock;
-      if (table === 'patios') return patiosMock;
       return {};
     });
 
@@ -88,11 +72,9 @@ describe('PUT /api/admin/venues/[id] — VerificationStatus', () => {
 
   it('allows updating VerificationStatus to 0 (candidate)', async () => {
     const venuesMock = createVenueUpdateMock({ Id: 'v-2', VerificationStatus: 0 });
-    const patiosMock = createPatioSelectMock();
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'venues') return venuesMock;
-      if (table === 'patios') return patiosMock;
       return {};
     });
 

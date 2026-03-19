@@ -8,11 +8,12 @@ export interface VenueRow {
   Name: string;
   Geometry: string; // PostGIS geography as text
   HeightM?: number;
-  HeightSource: number;
-  PolygonQuality: number;
+  HeightSource?: number;
+  PolygonQuality?: number;
   Orientation?: string;
   Notes?: string;
-  ReviewNeeded: boolean;
+  ReviewNeeded?: boolean;
+  Location?: string; // PostGIS point
   VenueLocation?: string; // From RPC function
   DistanceMeters?: number; // From RPC function
 }

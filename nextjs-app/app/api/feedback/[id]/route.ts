@@ -30,7 +30,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const response: FeedbackResponse = {
       id: data.Id,
-      patioId: data.PatioId,
       venueId: data.VenueId,
       userTimestamp: data.UserTimestamp,
       predictedState: data.PredictedState,

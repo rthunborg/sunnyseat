@@ -7,7 +7,7 @@ describe('usePolygonEditor', () => {
     const { result } = renderHook(() => usePolygonEditor());
     expect(result.current.mode).toBe('idle');
     expect(result.current.vertices).toEqual([]);
-    expect(result.current.selectedPatioId).toBeNull();
+    expect(result.current.selectedVenueId).toBeNull();
     expect(result.current.canUndo).toBe(false);
     expect(result.current.canRedo).toBe(false);
   });
@@ -67,25 +67,25 @@ describe('usePolygonEditor', () => {
     expect(result.current.mode).toBe('drawing');
   });
 
-  it('selects a patio', () => {
+  it('selects a venue', () => {
     const { result } = renderHook(() => usePolygonEditor());
     const verts: [number, number][] = [
       [11.97, 57.70],
       [11.98, 57.70],
       [11.98, 57.71],
     ];
-    act(() => result.current.selectPatio('patio-1', verts));
+    act(() => result.current.selectVenue('venue-1', verts));
     expect(result.current.mode).toBe('selected');
-    expect(result.current.selectedPatioId).toBe('patio-1');
+    expect(result.current.selectedVenueId).toBe('venue-1');
     expect(result.current.vertices).toEqual(verts);
   });
 
   it('deselects', () => {
     const { result } = renderHook(() => usePolygonEditor());
-    act(() => result.current.selectPatio('patio-1', [[11.97, 57.70]]));
+    act(() => result.current.selectVenue('venue-1', [[11.97, 57.70]]));
     act(() => result.current.deselect());
     expect(result.current.mode).toBe('idle');
-    expect(result.current.selectedPatioId).toBeNull();
+    expect(result.current.selectedVenueId).toBeNull();
     expect(result.current.vertices).toEqual([]);
   });
 
@@ -96,7 +96,7 @@ describe('usePolygonEditor', () => {
       [11.98, 57.70],
       [11.98, 57.71],
     ];
-    act(() => result.current.selectPatio('patio-1', verts));
+    act(() => result.current.selectVenue('venue-1', verts));
     act(() => result.current.startEditing());
     expect(result.current.mode).toBe('editing');
   });
@@ -108,7 +108,7 @@ describe('usePolygonEditor', () => {
       [11.98, 57.70],
       [11.98, 57.71],
     ];
-    act(() => result.current.selectPatio('patio-1', verts));
+    act(() => result.current.selectVenue('venue-1', verts));
     act(() => result.current.startEditing());
     act(() => result.current.moveVertex(1, [11.985, 57.705]));
     expect(result.current.vertices[1]).toEqual([11.985, 57.705]);
@@ -117,7 +117,7 @@ describe('usePolygonEditor', () => {
   it('does not move vertex outside editing mode', () => {
     const { result } = renderHook(() => usePolygonEditor());
     act(() =>
-      result.current.selectPatio('patio-1', [
+      result.current.selectVenue('venue-1', [
         [11.97, 57.70],
         [11.98, 57.70],
       ])
@@ -126,17 +126,17 @@ describe('usePolygonEditor', () => {
     expect(result.current.vertices[0]).toEqual([11.97, 57.70]);
   });
 
-  it('deletes selected patio', () => {
+  it('deletes selected venue', () => {
     const { result } = renderHook(() => usePolygonEditor());
     act(() =>
-      result.current.selectPatio('patio-1', [
+      result.current.selectVenue('venue-1', [
         [11.97, 57.70],
         [11.98, 57.70],
       ])
     );
     act(() => result.current.deleteSelected());
     expect(result.current.mode).toBe('idle');
-    expect(result.current.selectedPatioId).toBeNull();
+    expect(result.current.selectedVenueId).toBeNull();
   });
 
   it('undo/redo works', () => {

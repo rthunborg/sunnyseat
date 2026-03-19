@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
-// Mock patio-service
-const mockGetPatiosNearPoint = vi.fn();
-vi.mock('@/lib/services/patio-service', () => ({
-  getPatiosNearPoint: (...args: unknown[]) => mockGetPatiosNearPoint(...args),
+// Mock venue-service
+const mockGetVenuesNearPoint = vi.fn();
+vi.mock('@/lib/services/venue-service', () => ({
+  getVenuesNearPoint: (...args: unknown[]) => mockGetVenuesNearPoint(...args),
 }));
 
 // Mock sun-exposure-service
@@ -27,7 +27,7 @@ describe('GET /api/patios', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCalculateSunExposure.mockResolvedValue({
-      patioId: 1,
+      venueId: 1,
       state: 'Sunny',
       confidence: 0.85,
       sunExposurePercent: 80,
@@ -68,8 +68,8 @@ describe('GET /api/patios', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns empty array when no patios found', async () => {
-    mockGetPatiosNearPoint.mockResolvedValue([]);
+  it('returns empty array when no venues found', async () => {
+    mockGetVenuesNearPoint.mockResolvedValue([]);
     const req = createRequest({ latitude: '57.7', longitude: '11.97' });
     const res = await GET(req);
     expect(res.status).toBe(200);
@@ -78,12 +78,11 @@ describe('GET /api/patios', () => {
     expect(body.totalCount).toBe(0);
   });
 
-  it('returns patio data with sun exposure', async () => {
-    mockGetPatiosNearPoint.mockResolvedValue([
+  it('returns venue data with sun exposure', async () => {
+    mockGetVenuesNearPoint.mockResolvedValue([
       {
         Id: 1,
-        VenueId: 10,
-        VenueName: 'Café Husaren',
+        Name: 'Café Husaren',
         VenueLocation: 'POINT(11.97 57.7)',
         DistanceMeters: 250,
       },
@@ -100,25 +99,24 @@ describe('GET /api/patios', () => {
   });
 
   it('uses default radius when radiusKm not provided', async () => {
-    mockGetPatiosNearPoint.mockResolvedValue([]);
+    mockGetVenuesNearPoint.mockResolvedValue([]);
     const req = createRequest({ latitude: '57.7', longitude: '11.97' });
     await GET(req);
-    expect(mockGetPatiosNearPoint).toHaveBeenCalledWith(57.7, 11.97, 1.5);
+    expect(mockGetVenuesNearPoint).toHaveBeenCalledWith(57.7, 11.97, 1.5);
   });
 
   it('uses custom radiusKm when provided', async () => {
-    mockGetPatiosNearPoint.mockResolvedValue([]);
+    mockGetVenuesNearPoint.mockResolvedValue([]);
     const req = createRequest({ latitude: '57.7', longitude: '11.97', radiusKm: '2.0' });
     await GET(req);
-    expect(mockGetPatiosNearPoint).toHaveBeenCalledWith(57.7, 11.97, 2.0);
+    expect(mockGetVenuesNearPoint).toHaveBeenCalledWith(57.7, 11.97, 2.0);
   });
 
   it('gracefully degrades when sun exposure calculation fails', async () => {
-    mockGetPatiosNearPoint.mockResolvedValue([
+    mockGetVenuesNearPoint.mockResolvedValue([
       {
         Id: 1,
-        VenueId: 10,
-        VenueName: 'Test Venue',
+        Name: 'Test Venue',
         VenueLocation: 'POINT(11.97 57.7)',
         DistanceMeters: 100,
       },
@@ -132,10 +130,10 @@ describe('GET /api/patios', () => {
     expect(body.patios[0].currentSunStatus).toBe('Shaded');
   });
 
-  it('sorts patios by distance', async () => {
-    mockGetPatiosNearPoint.mockResolvedValue([
-      { Id: 1, VenueId: 10, VenueName: 'Far', VenueLocation: 'POINT(11.97 57.7)', DistanceMeters: 500 },
-      { Id: 2, VenueId: 20, VenueName: 'Near', VenueLocation: 'POINT(11.97 57.7)', DistanceMeters: 100 },
+  it('sorts venues by distance', async () => {
+    mockGetVenuesNearPoint.mockResolvedValue([
+      { Id: 1, Name: 'Far', VenueLocation: 'POINT(11.97 57.7)', DistanceMeters: 500 },
+      { Id: 2, Name: 'Near', VenueLocation: 'POINT(11.97 57.7)', DistanceMeters: 100 },
     ]);
 
     const req = createRequest({ latitude: '57.7', longitude: '11.97' });
