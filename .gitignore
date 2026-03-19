@@ -35,3 +35,6 @@ building_geodata/
 
 # Local-only docs
 *.local.md
+
+# Git worktrees
+.worktrees/
