@@ -59,25 +59,6 @@ export function validateCreateVenue(body: Record<string, unknown>): ValidationRe
   return { valid: Object.keys(errors).length === 0, errors };
 }
 
-export function validateCreatePatio(body: Record<string, unknown>): ValidationResult {
-  const errors: Record<string, string[]> = {};
-
-  if (!body.name || typeof body.name !== 'string' || body.name.trim().length === 0) {
-    errors.name = ['Name is required'];
-  }
-
-  if (!body.geometry) {
-    errors.geometry = ['Geometry is required'];
-  } else {
-    const geoErrors = validatePolygonGeometry(body.geometry);
-    if (geoErrors.length > 0) {
-      errors.geometry = geoErrors;
-    }
-  }
-
-  return { valid: Object.keys(errors).length === 0, errors };
-}
-
 function validatePolygonGeometry(geometry: unknown): string[] {
   if (typeof geometry !== 'object' || geometry === null) {
     return ['Geometry must be a valid GeoJSON object'];

@@ -56,7 +56,7 @@ export interface GetPatiosResponse {
 }
 
 export interface PatioDataDto {
-  id: string; // Format: "{venueId}-{patioId}"
+  id: string; // venueId
   venueId: string;
   venueName: string;
   location: CoordinatesDto;
@@ -79,7 +79,6 @@ export interface CoordinatesDto {
 // ============================================================================
 
 export interface SubmitFeedbackRequest {
-  patioId: number;
   venueId: number;
   userTimestamp: string; // ISO 8601
   predictedState: 'Sunny' | 'Partial' | 'Shaded';
@@ -89,7 +88,6 @@ export interface SubmitFeedbackRequest {
 
 export interface FeedbackResponse {
   id: number;
-  patioId: number;
   venueId: number;
   userTimestamp: string;
   predictedState: string;
@@ -100,7 +98,6 @@ export interface FeedbackResponse {
 
 export interface QueryFeedbackRequest {
   venueId?: number;
-  patioId?: number;
   startDate?: string;
   endDate?: string;
   limit?: number;
@@ -136,7 +133,7 @@ export interface ProblematicVenueResponse {
 // ============================================================================
 
 export interface PatioSunExposureResponse {
-  patioId: number;
+  venueId: number;
   timestamp: string;
   state: 'Sunny' | 'Partial' | 'Shaded' | 'NoSun';
   sunExposurePercent: number;

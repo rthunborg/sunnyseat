@@ -4,11 +4,11 @@ import { internalServerError } from '@/lib/utils/api-errors';
 
 /**
  * POST /api/cron/cache-warmup
- * Scheduled background job: Cache warmup for popular patios
+ * Scheduled background job: Cache warmup for popular venues
  * Schedule: Daily at 3 AM UTC (triggered by GitHub Actions)
  * Workflow: .github/workflows/scheduled-jobs-cache.yml
  *
- * Warms cache with popular patios during low-traffic hours
+ * Warms cache with popular venues during low-traffic hours
  */
 export async function POST(request: NextRequest) {
   // Verify cron secret (Vercel Cron sends this header)
@@ -22,36 +22,36 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[Cache Warmup] Starting cache warmup');
 
-    // Get popular patios (patios with most feedback or most recent activity)
-    // For now, get all patios - can be optimized later
-    const { data: patios, error: patiosError } = await supabaseAdmin
-      .from('patios')
-      .select('Id, VenueId')
-      .limit(50); // Limit to top 50 popular patios
+    // Get venues with geometry (mapped venues)
+    const { data: venues, error: venuesError } = await supabaseAdmin
+      .from('venues')
+      .select('Id')
+      .not('Geometry', 'is', null)
+      .limit(50); // Limit to top 50 popular venues
 
-    if (patiosError) {
-      throw new Error(`Failed to fetch patios: ${patiosError.message}`);
+    if (venuesError) {
+      throw new Error(`Failed to fetch venues: ${venuesError.message}`);
     }
 
     const _currentTime = new Date();
     const _timeRange = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
 
     // TODO: Implement cache warmup
-    // For each patio, precompute sun exposure for next 4 hours
+    // For each venue, precompute sun exposure for next 4 hours
     // Store in cache for quick access
     // This would require:
     // 1. Sun exposure calculation service
     // 2. Cache service (Redis or similar)
     // 3. Batch processing logic
 
-    console.log(`[Cache Warmup] Would warm cache for ${patios?.length || 0} patios`);
+    console.log(`[Cache Warmup] Would warm cache for ${venues?.length || 0} venues`);
 
     const duration = Date.now() - startTime;
 
     return NextResponse.json({
       success: true,
       duration: duration,
-      patiosProcessed: patios?.length || 0,
+      venuesProcessed: venues?.length || 0,
       message: 'Cache warmup completed (placeholder - implementation pending)',
     });
   } catch (error) {

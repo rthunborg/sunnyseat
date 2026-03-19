@@ -48,8 +48,8 @@ export interface ShadowProjection {
   confidence: number;
 }
 
-export interface PatioShadowInfo {
-  patioId: number;
+export interface VenueShadowInfo {
+  venueId: number;
   shadowedAreaPercent: number;
   sunlitAreaPercent: number;
   castingShadows: ShadowProjection[];
@@ -71,7 +71,7 @@ export interface ShadowTimelinePoint {
 }
 
 export interface ShadowTimeline {
-  patioId: number;
+  venueId: number;
   startTime: Date;
   endTime: Date;
   intervalMs: number;

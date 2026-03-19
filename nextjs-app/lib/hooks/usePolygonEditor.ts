@@ -4,7 +4,7 @@ import { useCallback, useReducer } from 'react';
 
 export type EditorMode = 'idle' | 'drawing' | 'editing' | 'selected';
 
-export interface PatioPolygon {
+export interface VenuePolygon {
   id: string;
   name: string;
   height_source: string | null;
@@ -14,7 +14,7 @@ export interface PatioPolygon {
 interface EditorState {
   mode: EditorMode;
   vertices: [number, number][];
-  selectedPatioId: string | null;
+  selectedVenueId: string | null;
   editingVertexIndex: number | null;
   past: EditorSnapshot[];
   future: EditorSnapshot[];
@@ -22,7 +22,7 @@ interface EditorState {
 
 interface EditorSnapshot {
   vertices: [number, number][];
-  selectedPatioId: string | null;
+  selectedVenueId: string | null;
   mode: EditorMode;
 }
 
@@ -30,7 +30,7 @@ type EditorAction =
   | { type: 'START_DRAWING' }
   | { type: 'ADD_VERTEX'; lngLat: [number, number] }
   | { type: 'CLOSE_POLYGON' }
-  | { type: 'SELECT_PATIO'; patioId: string; vertices: [number, number][] }
+  | { type: 'SELECT_VENUE'; venueId: string; vertices: [number, number][] }
   | { type: 'DESELECT' }
   | { type: 'START_EDITING' }
   | { type: 'MOVE_VERTEX'; index: number; lngLat: [number, number] }
@@ -42,7 +42,7 @@ type EditorAction =
 function snapshot(state: EditorState): EditorSnapshot {
   return {
     vertices: [...state.vertices.map((v) => [...v] as [number, number])],
-    selectedPatioId: state.selectedPatioId,
+    selectedVenueId: state.selectedVenueId,
     mode: state.mode,
   };
 }
@@ -58,7 +58,7 @@ function pushHistory(state: EditorState): EditorState {
 const initialState: EditorState = {
   mode: 'idle',
   vertices: [],
-  selectedPatioId: null,
+  selectedVenueId: null,
   editingVertexIndex: null,
   past: [],
   future: [],
@@ -68,7 +68,7 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
   switch (action.type) {
     case 'START_DRAWING': {
       const next = pushHistory(state);
-      return { ...next, mode: 'drawing', vertices: [], selectedPatioId: null };
+      return { ...next, mode: 'drawing', vertices: [], selectedVenueId: null };
     }
     case 'ADD_VERTEX': {
       if (state.mode !== 'drawing') return state;
@@ -84,12 +84,12 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
         mode: 'idle',
       };
     }
-    case 'SELECT_PATIO': {
+    case 'SELECT_VENUE': {
       const next = pushHistory(state);
       return {
         ...next,
         mode: 'selected',
-        selectedPatioId: action.patioId,
+        selectedVenueId: action.venueId,
         vertices: action.vertices,
       };
     }
@@ -97,13 +97,13 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
       return {
         ...state,
         mode: 'idle',
-        selectedPatioId: null,
+        selectedVenueId: null,
         vertices: [],
         editingVertexIndex: null,
       };
     }
     case 'START_EDITING': {
-      if (state.mode !== 'selected' || !state.selectedPatioId) return state;
+      if (state.mode !== 'selected' || !state.selectedVenueId) return state;
       const next = pushHistory(state);
       return { ...next, mode: 'editing' };
     }
@@ -118,7 +118,7 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
       return {
         ...next,
         mode: 'idle',
-        selectedPatioId: null,
+        selectedVenueId: null,
         vertices: [],
       };
     }
@@ -129,7 +129,7 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
         ...state,
         mode: prev.mode,
         vertices: prev.vertices,
-        selectedPatioId: prev.selectedPatioId,
+        selectedVenueId: prev.selectedVenueId,
         past: state.past.slice(0, -1),
         future: [snapshot(state), ...state.future],
         editingVertexIndex: null,
@@ -142,7 +142,7 @@ function reducer(state: EditorState, action: EditorAction): EditorState {
         ...state,
         mode: next.mode,
         vertices: next.vertices,
-        selectedPatioId: next.selectedPatioId,
+        selectedVenueId: next.selectedVenueId,
         past: [...state.past, snapshot(state)],
         future: state.future.slice(1),
         editingVertexIndex: null,
@@ -173,9 +173,9 @@ export function usePolygonEditor() {
     };
   }, [state.vertices]);
 
-  const selectPatio = useCallback(
-    (patioId: string, vertices: [number, number][]) =>
-      dispatch({ type: 'SELECT_PATIO', patioId, vertices }),
+  const selectVenue = useCallback(
+    (venueId: string, vertices: [number, number][]) =>
+      dispatch({ type: 'SELECT_VENUE', venueId, vertices }),
     []
   );
   const deselect = useCallback(() => dispatch({ type: 'DESELECT' }), []);
@@ -197,7 +197,7 @@ export function usePolygonEditor() {
     startDrawing,
     addVertex,
     closePolygon,
-    selectPatio,
+    selectVenue,
     deselect,
     startEditing,
     moveVertex,

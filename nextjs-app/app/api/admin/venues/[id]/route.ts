@@ -3,7 +3,7 @@ import { withAdminAuth } from '@/lib/middleware/admin-auth';
 import type { AuthUser } from '@/lib/middleware/auth';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { badRequest, notFound, handleDatabaseError } from '@/lib/utils/api-errors';
-import { dbVenueToApi, dbPatioToApi, venueTypeToInt } from '@/lib/utils/venue-mapping';
+import { dbVenueToApi, venueTypeToInt } from '@/lib/utils/venue-mapping';
 
 async function handleGet(
   _request: NextRequest,
@@ -25,22 +25,8 @@ async function handleGet(
     return handleDatabaseError(error);
   }
 
-  // Fetch the venue's patio (single polygon)
-  const { data: patios } = await supabaseAdmin
-    .from('patios')
-    .select('*')
-    .eq('VenueId', id)
-    .limit(1);
-
   const venue = dbVenueToApi(data);
-  const patio = patios && patios.length > 0 ? dbPatioToApi(patios[0]) : null;
-
-  return NextResponse.json({
-    ...venue,
-    geometry: patio?.geometry ?? null,
-    patio_id: patio?.id ?? null,
-    height_source: patio?.height_source ?? null,
-  });
+  return NextResponse.json(venue);
 }
 
 async function handlePut(
@@ -84,144 +70,41 @@ async function handlePut(
   if (body.website_url !== undefined) update.website_url = body.website_url;
   if (body.VerificationStatus !== undefined) update.VerificationStatus = body.VerificationStatus;
 
-  if (Object.keys(update).length === 0 && body.geometry === undefined) {
-    return badRequest('No fields to update');
-  }
-
-  // Update venue fields
-  let venueData;
-  if (Object.keys(update).length > 0) {
-    const { data, error } = await supabaseAdmin
-      .from('venues')
-      .update(update)
-      .eq('Id', id)
-      .select()
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return notFound('Venue');
-      }
-      return handleDatabaseError(error);
-    }
-    venueData = data;
-  } else {
-    // No venue fields to update, just fetch current
-    const { data, error } = await supabaseAdmin
-      .from('venues')
-      .select('*')
-      .eq('Id', id)
-      .single();
-
-    if (error) return handleDatabaseError(error);
-    venueData = data;
-  }
-
-  // Handle geometry (patio polygon) update
-  let geometry = null;
-  let patioId = null;
-  let heightSource = null;
-
+  // Handle geometry update directly on venue
   if (body.geometry !== undefined) {
-    // Check if venue already has a patio
-    const { data: existingPatios } = await supabaseAdmin
-      .from('patios')
-      .select('*')
-      .eq('VenueId', id)
-      .limit(1);
-
     if (body.geometry === null) {
-      // Remove polygon: delete existing patio
-      if (existingPatios && existingPatios.length > 0) {
-        await supabaseAdmin
-          .from('patios')
-          .delete()
-          .eq('Id', existingPatios[0].Id);
-        await supabaseAdmin
-          .from('venues')
-          .update({ IsMapped: false })
-          .eq('Id', id);
-      }
-    } else if (existingPatios && existingPatios.length > 0) {
-      // Update existing patio
-      // PostgREST requires geography values as GeoJSON strings, not objects
+      update.Geometry = null;
+      update.IsMapped = false;
+    } else {
       const geoString = typeof body.geometry === 'string'
         ? body.geometry
         : JSON.stringify(body.geometry);
-      const patioUpdate: Record<string, unknown> = {
-        Geometry: geoString,
-      };
-      if (body.height_source !== undefined) patioUpdate.HeightSource = body.height_source;
-
-      const { data: updatedPatio, error: patioError } = await supabaseAdmin
-        .from('patios')
-        .update(patioUpdate)
-        .eq('Id', existingPatios[0].Id)
-        .select()
-        .single();
-
-      if (patioError) {
-        console.error('Failed to update patio:', patioError);
-      } else {
-        const mapped = dbPatioToApi(updatedPatio);
-        geometry = mapped.geometry;
-        patioId = mapped.id;
-        heightSource = mapped.height_source;
-      }
-    } else {
-      // Create new patio
-      const venueName = venueData.Name || 'Uteplats';
-      const geoStr = typeof body.geometry === 'string'
-        ? body.geometry
-        : JSON.stringify(body.geometry);
-      const { data: newPatio, error: patioError } = await supabaseAdmin
-        .from('patios')
-        .insert({
-          VenueId: Number(id),
-          Name: venueName,
-          Geometry: geoStr,
-          HeightSource: body.height_source ?? 0,
-          PolygonQuality: 0,
-        })
-        .select()
-        .single();
-
-      if (patioError) {
-        console.error('Failed to create patio:', patioError);
-      } else {
-        await supabaseAdmin
-          .from('venues')
-          .update({ IsMapped: true })
-          .eq('Id', id);
-        const mapped = dbPatioToApi(newPatio);
-        geometry = mapped.geometry;
-        patioId = mapped.id;
-        heightSource = mapped.height_source;
-      }
+      update.Geometry = geoString;
+      update.IsMapped = true;
     }
-  } else {
-    // Geometry not in request — fetch existing patio
-    const { data: existingPatios } = await supabaseAdmin
-      .from('patios')
-      .select('*')
-      .eq('VenueId', id)
-      .limit(1);
-
-    if (existingPatios && existingPatios.length > 0) {
-      const mapped = dbPatioToApi(existingPatios[0]);
-      geometry = mapped.geometry;
-      patioId = mapped.id;
-      heightSource = mapped.height_source;
-    }
+    if (body.height_source !== undefined) update.HeightSource = body.height_source;
   }
 
-  const venue = dbVenueToApi(venueData);
-  return NextResponse.json({
-    ...venue,
-    geometry,
-    patio_id: patioId,
-    height_source: heightSource,
-  });
+  if (Object.keys(update).length === 0) {
+    return badRequest('No fields to update');
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('venues')
+    .update(update)
+    .eq('Id', id)
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return notFound('Venue');
+    }
+    return handleDatabaseError(error);
+  }
+
+  const venue = dbVenueToApi(data);
+  return NextResponse.json(venue);
 }
 
 async function handleDelete(
@@ -230,9 +113,6 @@ async function handleDelete(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await (context as { params: Promise<{ id: string }> }).params;
-
-  // Delete associated patios first
-  await supabaseAdmin.from('patios').delete().eq('VenueId', id);
 
   const { error } = await supabaseAdmin
     .from('venues')

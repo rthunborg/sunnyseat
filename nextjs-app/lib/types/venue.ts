@@ -22,15 +22,8 @@ export interface Venue {
   is_partner?: boolean;
   booking_url?: string;
   website_url?: string;
-  /** The venue's outdoor seating polygon (from its single patio record) */
+  /** The venue's outdoor seating polygon */
   geometry?: GeoJSON.Polygon | null;
-}
-
-export interface Patio {
-  id: string;
-  venue_id: string;
-  name: string;
-  geometry: GeoJSON.Polygon | null;
   height_m?: number;
   height_source?: string | number;
   polygon_quality?: number;
@@ -57,7 +50,6 @@ export interface WeatherContext {
 
 export interface SunExposureResult {
   venue: Venue;
-  patio: Patio;
   current_status: SunStatus;
   sun_exposure_percent: number;
   confidence: number;

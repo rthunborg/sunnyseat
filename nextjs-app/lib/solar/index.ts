@@ -18,8 +18,8 @@ export {
   MIN_RELIABLE_ELEVATION,
 } from './shadow-geometry';
 export {
-  calculatePatioShadow,
-  calculatePatioShadowTimeline,
+  calculateVenueShadow,
+  calculateVenueShadowTimeline,
 } from './shadow-calculation-service';
 export {
   calculateConfidenceFactors,

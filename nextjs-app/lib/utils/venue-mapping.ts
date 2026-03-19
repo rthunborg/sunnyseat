@@ -44,20 +44,6 @@ export function dbVenueToApi(row: any) {
     website_url: row.website_url ?? null,
     verification_status: row.VerificationStatus ?? 1,
     osm_node_id: row.OsmNodeId ?? null,
-    created_at: row.CreatedAt ?? null,
-    updated_at: row.UpdatedAt ?? null,
-  };
-}
-
-/**
- * Maps PascalCase DB patio rows to camelCase API responses.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function dbPatioToApi(row: any) {
-  return {
-    id: row.Id,
-    venue_id: row.VenueId,
-    name: row.Name,
     geometry: row.Geometry ?? null,
     height_m: row.HeightM ?? null,
     height_source: row.HeightSource ?? null,

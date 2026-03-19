@@ -1,6 +1,6 @@
 import type {
   SolarPosition,
-  PatioShadowInfo,
+  VenueShadowInfo,
   WeatherSlice,
   ConfidenceFactors,
   ShadowProjection,
@@ -14,7 +14,7 @@ import type {
 
 export function calculateConfidenceFactors(
   polygonQuality: number,
-  shadowInfo: PatioShadowInfo,
+  shadowInfo: VenueShadowInfo,
   solarPosition: SolarPosition,
   weatherData?: WeatherSlice | null
 ): ConfidenceFactors {
@@ -110,7 +110,7 @@ function calcSolarAccuracy(pos: SolarPosition): number {
 }
 
 function calcShadowAccuracy(
-  info: PatioShadowInfo,
+  info: VenueShadowInfo,
   pos: SolarPosition
 ): number {
   const base = info.confidence;
@@ -181,13 +181,13 @@ function identifyQualityIssues(
   buildingQuality: number,
   geometryPrecision: number,
   pos: SolarPosition,
-  info: PatioShadowInfo,
+  info: VenueShadowInfo,
   overall: number,
   weather?: WeatherSlice | null
 ): string[] {
   const issues: string[] = [];
   if (buildingQuality < 0.7) issues.push('Building height data has low reliability');
-  if (geometryPrecision < 0.7) issues.push('Patio polygon has low quality score');
+  if (geometryPrecision < 0.7) issues.push('Venue polygon has low quality score');
   if (pos.elevation > 0 && pos.elevation < 10) issues.push('Sun at low angle - shadow calculations less reliable');
   if (pos.elevation <= 0) issues.push('Sun below horizon - no direct sunlight');
   if (info.castingShadows.length > 5) issues.push('Complex shadow environment with many buildings');
@@ -205,7 +205,7 @@ function identifyQualityIssues(
 function suggestImprovements(
   buildingQuality: number,
   geometryPrecision: number,
-  info: PatioShadowInfo,
+  info: VenueShadowInfo,
   overall: number,
   weather?: WeatherSlice | null
 ): string[] {
@@ -214,7 +214,7 @@ function suggestImprovements(
     improvements.push('Survey building heights for more accurate shadow calculations');
   }
   if (geometryPrecision < 0.7) {
-    improvements.push('Refine patio boundary with higher precision GPS data');
+    improvements.push('Refine venue boundary with higher precision GPS data');
   }
   if (info.castingShadows.some((s) => s.confidence < 0.7)) {
     improvements.push('Update building height data for nearby structures');

@@ -5,28 +5,28 @@ import type {
   SolarPosition,
   Building,
   ShadowProjection,
-  PatioShadowInfo,
+  VenueShadowInfo,
   ShadowTimeline,
   ShadowTimelinePoint,
 } from './types';
 
-export async function calculatePatioShadow(
-  patioId: number,
+export async function calculateVenueShadow(
+  venueId: number,
   timestamp: Date
-): Promise<PatioShadowInfo> {
-  const patio = await fetchPatio(patioId);
+): Promise<VenueShadowInfo> {
+  const venue = await fetchVenue(venueId);
   const solarPosition = calculateSolarPosition(timestamp);
 
   if (!solarPosition.isSunVisible) {
-    return createNoSunResult(patioId, timestamp, solarPosition, patio.geometry);
+    return createNoSunResult(venueId, timestamp, solarPosition, venue.geometry);
   }
 
   if (solarPosition.elevation < SG.MIN_RELIABLE_ELEVATION) {
-    return createLowConfidenceResult(patioId, timestamp, solarPosition);
+    return createLowConfidenceResult(venueId, timestamp, solarPosition);
   }
 
   const searchRadiusDeg = SG.MAX_SHADOW_DISTANCE / 111300.0;
-  const buildings = await fetchNearbyBuildings(patio.geometry, searchRadiusDeg);
+  const buildings = await fetchNearbyBuildings(venue.geometry, searchRadiusDeg);
 
   const shadows: ShadowProjection[] = [];
   for (const building of buildings) {
@@ -56,7 +56,7 @@ export async function calculatePatioShadow(
 
   const affectingShadows = shadows.filter((s) => {
     try {
-      return SG.calculateShadowCoveragePercent(patio.geometry, s.geometry) > 0;
+      return SG.calculateShadowCoveragePercent(venue.geometry, s.geometry) > 0;
     } catch {
       return false;
     }
@@ -64,12 +64,12 @@ export async function calculatePatioShadow(
 
   const shadowGeometries = affectingShadows.map((s) => s.geometry);
   const { shadowed, sunlit } = SG.calculateShadowedAndSunlitAreas(
-    patio.geometry,
+    venue.geometry,
     shadowGeometries
   );
 
   const shadowedPercent = shadowed
-    ? SG.calculateShadowCoveragePercent(patio.geometry, shadowed)
+    ? SG.calculateShadowCoveragePercent(venue.geometry, shadowed)
     : 0.0;
   const sunlitPercent = Math.max(0.0, 100.0 - shadowedPercent);
   const combinedConfidence =
@@ -78,7 +78,7 @@ export async function calculatePatioShadow(
       : 1.0;
 
   return {
-    patioId,
+    venueId,
     shadowedAreaPercent: shadowedPercent,
     sunlitAreaPercent: sunlitPercent,
     castingShadows: affectingShadows,
@@ -90,8 +90,8 @@ export async function calculatePatioShadow(
   };
 }
 
-export async function calculatePatioShadowTimeline(
-  patioId: number,
+export async function calculateVenueShadowTimeline(
+  venueId: number,
   startTime: Date,
   endTime: Date,
   intervalMs: number
@@ -108,7 +108,7 @@ export async function calculatePatioShadowTimeline(
     current = new Date(current.getTime() + intervalMs)
   ) {
     try {
-      const info = await calculatePatioShadow(patioId, current);
+      const info = await calculateVenueShadow(venueId, current);
       points.push({
         timestamp: new Date(current),
         shadowedAreaPercent: info.shadowedAreaPercent,
@@ -130,7 +130,7 @@ export async function calculatePatioShadowTimeline(
   }
 
   return {
-    patioId,
+    venueId,
     startTime,
     endTime,
     intervalMs,
@@ -143,35 +143,33 @@ export async function calculatePatioShadowTimeline(
 // Database helpers
 // ---------------------------------------------------------------------------
 
-interface PatioRow {
+interface VenueRow {
   Id: number;
   Geometry: string;
-  VenueId: number;
 }
 
-async function fetchPatio(
-  patioId: number
-): Promise<{ id: number; geometry: GeoJSON.Polygon; venueId: number }> {
+async function fetchVenue(
+  venueId: number
+): Promise<{ id: number; geometry: GeoJSON.Polygon }> {
   const { data, error } = await supabaseAdmin
-    .from('patios')
-    .select('Id, Geometry, VenueId')
-    .eq('Id', patioId)
-    .single<PatioRow>();
+    .from('venues')
+    .select('Id, Geometry')
+    .eq('Id', venueId)
+    .single<VenueRow>();
 
-  if (error || !data) throw new Error(`Patio ${patioId} not found`);
+  if (error || !data) throw new Error(`Venue ${venueId} not found`);
 
   return {
     id: data.Id,
     geometry: parseGeometry(data.Geometry),
-    venueId: data.VenueId,
   };
 }
 
 async function fetchNearbyBuildings(
-  patioGeometry: GeoJSON.Polygon,
+  venueGeometry: GeoJSON.Polygon,
   radiusDeg: number
 ): Promise<Building[]> {
-  const centroid = getCentroid(patioGeometry);
+  const centroid = getCentroid(venueGeometry);
 
   const { data, error } = await supabaseAdmin.rpc('get_buildings_near_point', {
     p_latitude: centroid[1],
@@ -239,17 +237,17 @@ function getCentroid(polygon: GeoJSON.Polygon): [number, number] {
 }
 
 function createNoSunResult(
-  patioId: number,
+  venueId: number,
   timestamp: Date,
   solarPosition: SolarPosition,
-  patioGeometry: GeoJSON.Polygon
-): PatioShadowInfo {
+  venueGeometry: GeoJSON.Polygon
+): VenueShadowInfo {
   return {
-    patioId,
+    venueId,
     shadowedAreaPercent: 100.0,
     sunlitAreaPercent: 0.0,
     castingShadows: [],
-    shadowedGeometry: patioGeometry,
+    shadowedGeometry: venueGeometry,
     sunlitGeometry: null,
     timestamp,
     confidence: 1.0,
@@ -258,12 +256,12 @@ function createNoSunResult(
 }
 
 function createLowConfidenceResult(
-  patioId: number,
+  venueId: number,
   timestamp: Date,
   solarPosition: SolarPosition
-): PatioShadowInfo {
+): VenueShadowInfo {
   return {
-    patioId,
+    venueId,
     shadowedAreaPercent: 75.0,
     sunlitAreaPercent: 25.0,
     castingShadows: [],

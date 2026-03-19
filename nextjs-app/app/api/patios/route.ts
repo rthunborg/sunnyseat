@@ -7,14 +7,13 @@ import {
   validateRadius,
 } from '@/lib/utils/validation';
 import { badRequest, internalServerError } from '@/lib/utils/api-errors';
-import { getPatiosNearPoint } from '@/lib/services/patio-service';
+import { getVenuesNearPoint } from '@/lib/services/venue-service';
 import { calculateSunExposure } from '@/lib/solar/sun-exposure-service';
 import type { GetPatiosResponse, PatioDataDto } from '@/lib/types/api';
 
-interface PatioRow {
+interface VenueRow {
   Id: number;
-  VenueId: number;
-  VenueName?: string;
+  Name?: string;
   VenueLocation?: string;
   Geometry?: string;
   DistanceMeters?: number;
@@ -26,7 +25,7 @@ const MAX_RESULTS = 50;
 
 /**
  * GET /api/patios
- * Search for patios by location with current sun exposure
+ * Search for venues by location with current sun exposure
  * Query params: latitude, longitude, radiusKm (optional)
  */
 export async function GET(request: NextRequest) {
@@ -67,10 +66,10 @@ export async function GET(request: NextRequest) {
     const offsetHoursParam = parseOptionalNumberQuery(searchParams.get('offset_hours'));
     const offsetHours = offsetHoursParam != null ? Math.min(Math.max(Math.round(offsetHoursParam), 0), 3) : 0;
 
-    // Get patios near location using PostGIS spatial query
-    const patios = await getPatiosNearPoint(latitude, longitude, radiusKm);
+    // Get venues near location using PostGIS spatial query
+    const venues = await getVenuesNearPoint(latitude, longitude, radiusKm);
 
-    if (patios.length === 0) {
+    if (venues.length === 0) {
       const response: GetPatiosResponse = {
         patios: [],
         timestamp: new Date().toISOString(),
@@ -83,17 +82,17 @@ export async function GET(request: NextRequest) {
     if (offsetHours > 0) {
       timestamp.setHours(timestamp.getHours() + offsetHours);
     }
-    const limitedPatios = patios.slice(0, MAX_RESULTS);
+    const limitedVenues = venues.slice(0, MAX_RESULTS);
 
     const patioDtos: PatioDataDto[] = await Promise.all(
-      limitedPatios.map(async (patio: PatioRow) => {
-        const distanceMeters = patio.DistanceMeters || 0;
+      limitedVenues.map(async (venue: VenueRow) => {
+        const distanceMeters = venue.DistanceMeters || 0;
 
         let location = { lat: latitude, lng: longitude };
-        if (patio.VenueLocation) {
-          location = parsePostGISPoint(patio.VenueLocation);
-        } else if (patio.Geometry) {
-          location = parsePostGISPoint(patio.Geometry);
+        if (venue.VenueLocation) {
+          location = parsePostGISPoint(venue.VenueLocation);
+        } else if (venue.Geometry) {
+          location = parsePostGISPoint(venue.Geometry);
         }
 
         let sunStatus: 'Sunny' | 'Partial' | 'Shaded' = 'Shaded';
@@ -101,18 +100,18 @@ export async function GET(request: NextRequest) {
         let sunExposurePercent = 0;
 
         try {
-          const exposure = await calculateSunExposure(patio.Id, timestamp);
+          const exposure = await calculateSunExposure(venue.Id, timestamp);
           sunStatus = exposure.state === 'NoSun' ? 'Shaded' : exposure.state;
           confidence = exposure.confidence;
           sunExposurePercent = exposure.sunExposurePercent;
         } catch {
-          // Gracefully degrade — show patio with unknown sun status
+          // Gracefully degrade — show venue with unknown sun status
         }
 
         return {
-          id: `${patio.VenueId}-${patio.Id}`,
-          venueId: patio.VenueId.toString(),
-          venueName: patio.VenueName || 'Unknown Venue',
+          id: venue.Id.toString(),
+          venueId: venue.Id.toString(),
+          venueName: venue.Name || 'Unknown Venue',
           location: {
             latitude: location.lat,
             longitude: location.lng,
@@ -137,8 +136,8 @@ export async function GET(request: NextRequest) {
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
     });
   } catch (error) {
-    console.error('Error searching patios:', error);
-    return internalServerError('An error occurred while searching for patios');
+    console.error('Error searching venues:', error);
+    return internalServerError('An error occurred while searching for venues');
   }
 }
 

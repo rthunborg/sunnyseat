@@ -11,9 +11,9 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const patioId = parseInt(id, 10);
-    if (isNaN(patioId)) {
-      return badRequest('Invalid patio ID');
+    const venueId = parseInt(id, 10);
+    if (isNaN(venueId)) {
+      return badRequest('Invalid venue ID');
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -22,20 +22,20 @@ export async function GET(
       ? parseOptionalDateQuery(timestampParam) || new Date()
       : new Date();
 
-    const { data: patio, error: patioError } = await supabaseAdmin
-      .from('patios')
+    const { data: venue, error: venueError } = await supabaseAdmin
+      .from('venues')
       .select('Id')
-      .eq('Id', patioId)
+      .eq('Id', venueId)
       .single();
 
-    if (patioError || !patio) {
-      return notFound('Patio');
+    if (venueError || !venue) {
+      return notFound('Venue');
     }
 
-    const result = await calculateSunExposure(patioId, timestamp);
+    const result = await calculateSunExposure(venueId, timestamp);
 
     const response: PatioSunExposureResponse = {
-      patioId: result.patioId,
+      venueId: result.venueId,
       timestamp: result.timestamp.toISOString(),
       state: result.state,
       sunExposurePercent: result.sunExposurePercent,

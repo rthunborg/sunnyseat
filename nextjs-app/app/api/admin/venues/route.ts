@@ -35,22 +35,12 @@ async function handleGet(request: NextRequest, _user: AuthUser) {
 
   let result = venues ?? [];
 
-  // Filter by mapped status (has patios) if requested
+  // Filter by mapped status (has geometry) if requested
   if (mapped !== null) {
-    const { data: patios, error: patioError } = await supabaseAdmin
-      .from('patios')
-      .select('VenueId');
-
-    if (patioError) {
-      return handleDatabaseError(patioError);
-    }
-
-    const venueIdsWithPatios = new Set((patios ?? []).map((p) => p.VenueId));
-
     if (mapped === 'true') {
-      result = result.filter((v) => venueIdsWithPatios.has(v.Id));
+      result = result.filter((v) => v.Geometry != null);
     } else if (mapped === 'false') {
-      result = result.filter((v) => !venueIdsWithPatios.has(v.Id));
+      result = result.filter((v) => v.Geometry == null);
     }
   }
 
@@ -110,6 +100,15 @@ async function handlePost(request: NextRequest, _user: AuthUser) {
     insert.Location = 'POINT(11.9746 57.7089)';
   }
 
+  // If geometry provided, store directly on venue
+  if (body.geometry) {
+    const geoString = typeof body.geometry === 'string'
+      ? body.geometry
+      : JSON.stringify(body.geometry);
+    insert.Geometry = geoString;
+    insert.IsMapped = true;
+  }
+
   const { data, error } = await supabaseAdmin
     .from('venues')
     .insert(insert)
@@ -120,45 +119,7 @@ async function handlePost(request: NextRequest, _user: AuthUser) {
     return handleDatabaseError(error);
   }
 
-  // If geometry provided, create the venue's patio record
-  // PostgREST requires geography values as GeoJSON strings, not objects
-  if (body.geometry) {
-    const venueId = data.Id;
-    const geoString = typeof body.geometry === 'string'
-      ? body.geometry
-      : JSON.stringify(body.geometry);
-
-    const patioInsert = {
-      VenueId: venueId,
-      Name: (body.name as string).trim(),
-      Geometry: geoString,
-      HeightSource: 0,
-      PolygonQuality: 0,
-    };
-
-    const { error: patioError } = await supabaseAdmin
-      .from('patios')
-      .insert(patioInsert);
-
-    if (patioError) {
-      // Venue created but patio failed — still return venue
-      console.error('Failed to create patio for venue:', patioError);
-    } else {
-      // Mark venue as mapped
-      await supabaseAdmin
-        .from('venues')
-        .update({ IsMapped: true })
-        .eq('Id', venueId);
-    }
-  }
-
   const venueApi = dbVenueToApi(data);
-
-  // Include geometry in response if it was provided
-  if (body.geometry) {
-    return NextResponse.json({ ...venueApi, geometry: body.geometry }, { status: 201 });
-  }
-
   return NextResponse.json(venueApi, { status: 201 });
 }
 

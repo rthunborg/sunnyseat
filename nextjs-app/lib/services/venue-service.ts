@@ -1,11 +1,10 @@
-// Patio Service
-// Handles patio data access and spatial queries using Supabase
+// Venue Service
+// Handles venue data access and spatial queries using Supabase
 
 import { supabaseAdmin } from '@/lib/supabase/server';
 
-export interface Patio {
+export interface VenueRow {
   Id: number;
-  VenueId: number;
   Name: string;
   Geometry: string; // PostGIS geography as text
   HeightM?: number;
@@ -14,34 +13,26 @@ export interface Patio {
   Orientation?: string;
   Notes?: string;
   ReviewNeeded: boolean;
-  CreatedAt: string;
-  UpdatedAt: string;
-  VenueName?: string; // From RPC function
   VenueLocation?: string; // From RPC function
   DistanceMeters?: number; // From RPC function
-  Venue?: {
-    Id: number;
-    Name: string;
-    Location: string; // PostGIS geography as text
-  };
 }
 
 /**
- * Get patios near a point using PostGIS spatial query
- * Uses RPC function get_patios_near_point for optimized spatial queries
+ * Get venues near a point using PostGIS spatial query
+ * Uses RPC function get_venues_near_point for optimized spatial queries
  * The RPC function uses PostGIS ST_DWithin with GIST index support
  */
-export async function getPatiosNearPoint(
+export async function getVenuesNearPoint(
   latitude: number,
   longitude: number,
   radiusKm: number
-): Promise<Patio[]> {
+): Promise<VenueRow[]> {
   // Convert radius from km to meters for PostGIS ST_DWithin
   const radiusMeters = radiusKm * 1000;
 
   // Call PostGIS RPC function for optimized spatial query
   // The function uses ST_DWithin which leverages GIST spatial indexes
-  const { data, error } = await supabaseAdmin.rpc('get_patios_near_point', {
+  const { data, error } = await supabaseAdmin.rpc('get_venues_near_point', {
     search_lat: latitude,
     search_lng: longitude,
     radius_meters: radiusMeters,
@@ -54,25 +45,16 @@ export async function getPatiosNearPoint(
     return [];
   }
 
-  return (data || []) as Patio[];
+  return (data || []) as VenueRow[];
 }
 
 /**
- * Get patio by ID with venue information
+ * Get venue by ID with geometry information
  */
-export async function getPatioById(id: number): Promise<Patio | null> {
+export async function getVenueById(id: number): Promise<VenueRow | null> {
   const { data, error } = await supabaseAdmin
-    .from('patios')
-    .select(
-      `
-      *,
-      venues:VenueId (
-        Id,
-        Name,
-        Location
-      )
-    `
-    )
+    .from('venues')
+    .select('Id, Geometry, Name, Location')
     .eq('Id', id)
     .single();
 
@@ -80,5 +62,5 @@ export async function getPatioById(id: number): Promise<Patio | null> {
     return null;
   }
 
-  return data as Patio;
+  return data as VenueRow;
 }

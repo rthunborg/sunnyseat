@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
     const body: SubmitFeedbackRequest = await request.json();
 
     // Validate required fields
-    if (!body.patioId || !body.venueId) {
-      return badRequest('Patio ID and Venue ID are required');
+    if (!body.venueId) {
+      return badRequest('Venue ID is required');
     }
 
     const stateValidation = validateRequiredString(body.predictedState, 'predictedState');
@@ -44,7 +44,6 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabaseAdmin
       .from('feedback')
       .insert({
-        PatioId: body.patioId,
         VenueId: body.venueId,
         UserTimestamp: userTimestamp.toISOString(),
         BinnedTimestamp: binnedTimestamp.toISOString(),
@@ -63,7 +62,6 @@ export async function POST(request: NextRequest) {
 
     const response: FeedbackResponse = {
       id: data.Id,
-      patioId: data.PatioId,
       venueId: data.VenueId,
       userTimestamp: data.UserTimestamp,
       predictedState: data.PredictedState,
@@ -92,9 +90,6 @@ export async function GET(request: NextRequest) {
     const venueId = searchParams.get('venueId')
       ? parseInt(searchParams.get('venueId')!, 10)
       : undefined;
-    const patioId = searchParams.get('patioId')
-      ? parseInt(searchParams.get('patioId')!, 10)
-      : undefined;
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
     const limit = parseInt(searchParams.get('limit') || '100', 10);
@@ -104,9 +99,6 @@ export async function GET(request: NextRequest) {
 
     if (venueId) {
       query = query.eq('VenueId', venueId);
-    }
-    if (patioId) {
-      query = query.eq('PatioId', patioId);
     }
     if (startDate) {
       query = query.gte('BinnedTimestamp', startDate);
@@ -126,7 +118,6 @@ export async function GET(request: NextRequest) {
 
     const feedback: FeedbackResponse[] = (data || []).map((item) => ({
       id: item.Id,
-      patioId: item.PatioId,
       venueId: item.VenueId,
       userTimestamp: item.UserTimestamp,
       predictedState: item.PredictedState,

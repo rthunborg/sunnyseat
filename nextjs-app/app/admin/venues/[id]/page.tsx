@@ -40,7 +40,6 @@ interface VenueData {
   booking_url: string | null;
   website_url: string | null;
   geometry: GeoJSON.Polygon | null;
-  patio_id: string | null;
   height_source: string | number | null;
 }
 
@@ -277,7 +276,7 @@ export default function AdminVenueDetailPage({
       if (patioId === 'main' && currentGeometry) {
         const ring = currentGeometry.coordinates[0];
         const verts = ring.slice(0, -1) as [number, number][];
-        editor.selectPatio(patioId, verts);
+        editor.selectVenue(patioId, verts);
       }
     },
     [currentGeometry, editor]
@@ -291,7 +290,7 @@ export default function AdminVenueDetailPage({
     if (currentGeometry) {
       const ring = currentGeometry.coordinates[0];
       const verts = ring.slice(0, -1) as [number, number][];
-      editor.selectPatio('main', verts);
+      editor.selectVenue('main', verts);
       editor.startEditing();
     }
   }, [currentGeometry, editor]);
@@ -597,7 +596,7 @@ export default function AdminVenueDetailPage({
             patios={patiosForEditor}
             mode={editor.mode}
             vertices={editor.vertices}
-            selectedPatioId={editor.selectedPatioId}
+            selectedPatioId={editor.selectedVenueId}
             onMapClick={handleMapClick}
             onMapDblClick={handleMapDblClick}
             onPatioClick={handlePatioClick}
