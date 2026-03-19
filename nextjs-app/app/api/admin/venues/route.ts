@@ -100,12 +100,9 @@ async function handlePost(request: NextRequest, _user: AuthUser) {
     insert.Location = 'POINT(11.9746 57.7089)';
   }
 
-  // If geometry provided, store directly on venue
+  // If geometry provided, store directly on venue as EWKT for PostgREST
   if (body.geometry) {
-    const geoString = typeof body.geometry === 'string'
-      ? body.geometry
-      : JSON.stringify(body.geometry);
-    insert.Geometry = geoString;
+    insert.Geometry = geojsonPolygonToWkt(body.geometry as GeoJSON.Polygon);
     insert.IsMapped = true;
   }
 
@@ -125,6 +122,15 @@ async function handlePost(request: NextRequest, _user: AuthUser) {
 
 export const GET = withAdminAuth(handleGet);
 export const POST = withAdminAuth(handlePost);
+
+/** Convert a GeoJSON Polygon (object or string) to EWKT for PostgREST geography columns */
+function geojsonPolygonToWkt(geometry: GeoJSON.Polygon | string): string {
+  const geo: GeoJSON.Polygon = typeof geometry === 'string' ? JSON.parse(geometry) : geometry;
+  const ring = geo.coordinates[0]
+    .map((coord) => `${coord[0]} ${coord[1]}`)
+    .join(', ');
+  return `SRID=4326;POLYGON((${ring}))`;
+}
 
 /** Extract centroid [lng, lat] from a GeoJSON Polygon */
 function extractPolygonCentroid(geometry: GeoJSON.Polygon): [number, number] | null {

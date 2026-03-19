@@ -139,7 +139,10 @@ async function handlePost(_request: NextRequest, _user: AuthUser) {
   for (const venue of SEED_VENUES) {
     const { geometry, ...venueData } = venue;
 
-    const geoString = JSON.stringify(geometry);
+    const ring = geometry.coordinates[0]
+      .map((coord: number[]) => `${coord[0]} ${coord[1]}`)
+      .join(', ');
+    const geoWkt = `SRID=4326;POLYGON((${ring}))`;
 
     // Upsert venue by slug, with geometry directly on venue
     const { error: venueError } = await supabaseAdmin
@@ -149,7 +152,7 @@ async function handlePost(_request: NextRequest, _user: AuthUser) {
           ...venueData,
           latitude: venueData.lat,
           longitude: venueData.lng,
-          Geometry: geoString,
+          Geometry: geoWkt,
           IsMapped: true,
         },
         { onConflict: 'slug' }

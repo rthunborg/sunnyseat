@@ -25,8 +25,14 @@ async function handleGet(
     return handleDatabaseError(error);
   }
 
+  // PostgREST returns geography as WKB hex; convert to GeoJSON for frontend
+  let geometry: GeoJSON.Polygon | null = null;
+  if (data.Geometry) {
+    geometry = await fetchVenueGeometryAsGeoJSON(Number(id));
+  }
+
   const venue = dbVenueToApi(data);
-  return NextResponse.json(venue);
+  return NextResponse.json({ ...venue, geometry });
 }
 
 async function handlePut(
@@ -76,10 +82,7 @@ async function handlePut(
       update.Geometry = null;
       update.IsMapped = false;
     } else {
-      const geoString = typeof body.geometry === 'string'
-        ? body.geometry
-        : JSON.stringify(body.geometry);
-      update.Geometry = geoString;
+      update.Geometry = geojsonPolygonToWkt(body.geometry as GeoJSON.Polygon);
       update.IsMapped = true;
     }
     if (body.height_source !== undefined) update.HeightSource = body.height_source;
@@ -129,3 +132,83 @@ async function handleDelete(
 export const GET = withAdminAuth(handleGet as Parameters<typeof withAdminAuth>[0]);
 export const PUT = withAdminAuth(handlePut as Parameters<typeof withAdminAuth>[0]);
 export const DELETE = withAdminAuth(handleDelete as Parameters<typeof withAdminAuth>[0]);
+
+/** Fetch venue geometry as GeoJSON using PostGIS ST_AsGeoJSON via RPC */
+async function fetchVenueGeometryAsGeoJSON(venueId: number): Promise<GeoJSON.Polygon | null> {
+  // Try the dedicated RPC function first
+  try {
+    const { data, error } = await supabaseAdmin.rpc('get_venue_geometry_geojson', {
+      venue_id: venueId,
+    });
+    if (!error && data && data.length > 0) {
+      return JSON.parse(data[0].geojson);
+    }
+  } catch {
+    // RPC not available — fall through to WKB parsing
+  }
+
+  // Fallback: parse WKB hex directly
+  const { data: row } = await supabaseAdmin
+    .from('venues')
+    .select('Geometry')
+    .eq('Id', venueId)
+    .single();
+
+  if (!row?.Geometry) return null;
+  return parseWkbHexPolygon(row.Geometry);
+}
+
+/** Parse a PostGIS WKB hex string for a simple Polygon into GeoJSON */
+function parseWkbHexPolygon(hex: string): GeoJSON.Polygon | null {
+  try {
+    const buf = Buffer.from(hex, 'hex');
+    let offset = 0;
+
+    // Byte order: 01 = little-endian, 00 = big-endian
+    const le = buf.readUInt8(offset) === 1;
+    offset += 1;
+
+    // Geometry type (with SRID flag)
+    const rawType = le ? buf.readUInt32LE(offset) : buf.readUInt32BE(offset);
+    offset += 4;
+    const hasSRID = (rawType & 0x20000000) !== 0;
+    const geomType = rawType & 0xff;
+
+    if (hasSRID) offset += 4; // skip SRID
+
+    // geomType 3 = Polygon
+    if (geomType !== 3) return null;
+
+    const readDouble = (o: number) => le ? buf.readDoubleLE(o) : buf.readDoubleBE(o);
+    const readUInt32 = (o: number) => le ? buf.readUInt32LE(o) : buf.readUInt32BE(o);
+
+    const numRings = readUInt32(offset);
+    offset += 4;
+
+    const coordinates: number[][][] = [];
+    for (let r = 0; r < numRings; r++) {
+      const numPoints = readUInt32(offset);
+      offset += 4;
+      const ring: number[][] = [];
+      for (let p = 0; p < numPoints; p++) {
+        const x = readDouble(offset); offset += 8;
+        const y = readDouble(offset); offset += 8;
+        ring.push([x, y]);
+      }
+      coordinates.push(ring);
+    }
+
+    return { type: 'Polygon', coordinates };
+  } catch {
+    return null;
+  }
+}
+
+/** Convert a GeoJSON Polygon (object or string) to EWKT for PostgREST geography columns */
+function geojsonPolygonToWkt(geometry: GeoJSON.Polygon | string): string {
+  const geo: GeoJSON.Polygon = typeof geometry === 'string' ? JSON.parse(geometry) : geometry;
+  const ring = geo.coordinates[0]
+    .map((coord) => `${coord[0]} ${coord[1]}`)
+    .join(', ');
+  return `SRID=4326;POLYGON((${ring}))`;
+}
