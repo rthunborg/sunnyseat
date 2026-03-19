@@ -31,9 +31,9 @@ export const sv = {
     sunniest: 'Soligast',
   },
   venue: {
-    patio: 'Uteplats',
-    patios_one: '1 uteplats',
-    patios_other: '{{count}} uteplatser',
+    patio: 'Restaurang',
+    patios_one: '1 restaurang',
+    patios_other: '{{count}} restauranger',
     sunWindow: 'Solfönster',
     openNow: 'Öppet nu',
     distance: '{{distance}} m',

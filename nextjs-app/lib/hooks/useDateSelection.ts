@@ -47,7 +47,7 @@ export function useDateSelection(
       try {
         const dateParam = formatDateParam(date);
         const res = await fetch(
-          `/api/patios?lat=${fetchLat}&lng=${fetchLng}&radiusKm=${radiusKm}&date=${dateParam}`,
+          `/api/patios?latitude=${fetchLat}&longitude=${fetchLng}&radiusKm=${radiusKm}&date=${dateParam}`,
           { signal: controller.signal }
         );
 
