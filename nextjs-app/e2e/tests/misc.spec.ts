@@ -147,12 +147,11 @@ test.describe('AC6: Seasonal Banner', () => {
     await page.addInitScript(() => {
       const RealDate = Date;
       class MockDate extends RealDate {
-        constructor(...args: ConstructorParameters<typeof RealDate>) {
+        constructor(...args: unknown[]) {
           if (args.length === 0) {
             super(2026, 0, 15, 12, 0, 0); // Jan 15, 2026
           } else {
-            // @ts-expect-error spread args
-            super(...args);
+            super(...(args as [number, number]));
           }
         }
         static override now() {
@@ -174,12 +173,11 @@ test.describe('AC6: Seasonal Banner', () => {
     await page.addInitScript(() => {
       const RealDate = Date;
       class MockDate extends RealDate {
-        constructor(...args: ConstructorParameters<typeof RealDate>) {
+        constructor(...args: unknown[]) {
           if (args.length === 0) {
             super(2026, 0, 15, 12, 0, 0);
           } else {
-            // @ts-expect-error spread args
-            super(...args);
+            super(...(args as [number, number]));
           }
         }
         static override now() {
