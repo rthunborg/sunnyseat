@@ -131,6 +131,9 @@ BEGIN
       WHERE sw."PatioId" = p."Id";
     END IF;
 
+    -- Delete orphaned rows that could not be populated (patios already gone)
+    DELETE FROM sun_windows WHERE "VenueId" IS NULL;
+
     -- Make NOT NULL after population
     ALTER TABLE sun_windows ALTER COLUMN "VenueId" SET NOT NULL;
 
@@ -158,6 +161,9 @@ BEGIN
       FROM patios p
       WHERE pse."PatioId" = p."Id";
     END IF;
+
+    -- Delete orphaned rows that could not be populated (patios already gone)
+    DELETE FROM precomputed_sun_exposure WHERE "VenueId" IS NULL;
 
     -- Make NOT NULL after population
     ALTER TABLE precomputed_sun_exposure ALTER COLUMN "VenueId" SET NOT NULL;
