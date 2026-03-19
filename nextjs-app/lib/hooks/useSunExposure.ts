@@ -14,7 +14,7 @@ interface UseSunExposureResult {
 const MOCK_VENUES: SunExposureResult[] = [
   {
     venue: { id: 'v1', name: 'Café Husaren', slug: 'cafe-husaren', neighborhood: 'Haga', lat: 57.6987, lng: 11.9535, is_partner: true },
-    patio: { id: 'p1', venue_id: 'v1', geometry: { type: 'Polygon', coordinates: [] } },
+    patio: { id: 'p1', venue_id: 'v1', name: 'Café Husaren', geometry: { type: 'Polygon', coordinates: [] } },
     current_status: 'sunny', sun_exposure_percent: 92, confidence: 0.88,
     windows: [{ start: '2026-03-15T09:00:00Z', end: '2026-03-15T16:00:00Z', sun_status: 'sunny', sky_condition: 'clear' }],
     weather: { cloud_cover_percent: 10, sky_condition: 'clear', temperature_c: 14, wind_speed_ms: 3, source: 'met.no', fetched_at: new Date().toISOString() },
@@ -22,7 +22,7 @@ const MOCK_VENUES: SunExposureResult[] = [
   },
   {
     venue: { id: 'v2', name: 'Hagabullen', slug: 'hagabullen', neighborhood: 'Haga', lat: 57.6978, lng: 11.9548 },
-    patio: { id: 'p2', venue_id: 'v2', geometry: { type: 'Polygon', coordinates: [] } },
+    patio: { id: 'p2', venue_id: 'v2', name: 'Hagabullen', geometry: { type: 'Polygon', coordinates: [] } },
     current_status: 'sunny', sun_exposure_percent: 85, confidence: 0.82,
     windows: [{ start: '2026-03-15T10:00:00Z', end: '2026-03-15T15:30:00Z', sun_status: 'sunny', sky_condition: 'partly-cloudy' }],
     weather: { cloud_cover_percent: 25, sky_condition: 'partly-cloudy', temperature_c: 13, wind_speed_ms: 4, source: 'met.no', fetched_at: new Date().toISOString() },
@@ -30,7 +30,7 @@ const MOCK_VENUES: SunExposureResult[] = [
   },
   {
     venue: { id: 'v3', name: 'Pustervik', slug: 'pustervik', neighborhood: 'Järntorget', lat: 57.6996, lng: 11.9490 },
-    patio: { id: 'p3', venue_id: 'v3', geometry: { type: 'Polygon', coordinates: [] } },
+    patio: { id: 'p3', venue_id: 'v3', name: 'Pustervik', geometry: { type: 'Polygon', coordinates: [] } },
     current_status: 'partial', sun_exposure_percent: 55, confidence: 0.75,
     windows: [{ start: '2026-03-15T11:00:00Z', end: '2026-03-15T13:00:00Z', sun_status: 'partial', sky_condition: 'partly-cloudy' }],
     weather: { cloud_cover_percent: 40, sky_condition: 'partly-cloudy', temperature_c: 12, wind_speed_ms: 5, source: 'met.no', fetched_at: new Date().toISOString() },
@@ -38,7 +38,7 @@ const MOCK_VENUES: SunExposureResult[] = [
   },
   {
     venue: { id: 'v4', name: 'Bar Centro', slug: 'bar-centro', neighborhood: 'Vasastan', lat: 57.7010, lng: 11.9795 },
-    patio: { id: 'p4', venue_id: 'v4', geometry: { type: 'Polygon', coordinates: [] } },
+    patio: { id: 'p4', venue_id: 'v4', name: 'Bar Centro', geometry: { type: 'Polygon', coordinates: [] } },
     current_status: 'upcoming', sun_exposure_percent: 0, confidence: 0.80,
     windows: [{ start: '2026-03-15T14:00:00Z', end: '2026-03-15T17:00:00Z', sun_status: 'sunny', sky_condition: 'clear' }],
     weather: { cloud_cover_percent: 15, sky_condition: 'clear', temperature_c: 14, wind_speed_ms: 2, source: 'met.no', fetched_at: new Date().toISOString() },
@@ -46,7 +46,7 @@ const MOCK_VENUES: SunExposureResult[] = [
   },
   {
     venue: { id: 'v5', name: 'Da Matteo', slug: 'da-matteo', neighborhood: 'Vallgatan', lat: 57.7055, lng: 11.9680, is_partner: true },
-    patio: { id: 'p5', venue_id: 'v5', geometry: { type: 'Polygon', coordinates: [] } },
+    patio: { id: 'p5', venue_id: 'v5', name: 'Da Matteo', geometry: { type: 'Polygon', coordinates: [] } },
     current_status: 'sunny', sun_exposure_percent: 78, confidence: 0.85,
     windows: [{ start: '2026-03-15T08:00:00Z', end: '2026-03-15T14:00:00Z', sun_status: 'sunny', sky_condition: 'clear' }],
     weather: { cloud_cover_percent: 5, sky_condition: 'clear', temperature_c: 15, wind_speed_ms: 2, source: 'met.no', fetched_at: new Date().toISOString() },
@@ -54,7 +54,7 @@ const MOCK_VENUES: SunExposureResult[] = [
   },
   {
     venue: { id: 'v6', name: 'Sjöbaren', slug: 'sjobaren', neighborhood: 'Haga', lat: 57.6965, lng: 11.9510 },
-    patio: { id: 'p6', venue_id: 'v6', geometry: { type: 'Polygon', coordinates: [] } },
+    patio: { id: 'p6', venue_id: 'v6', name: 'Sjöbaren', geometry: { type: 'Polygon', coordinates: [] } },
     current_status: 'shaded', sun_exposure_percent: 10, confidence: 0.70,
     windows: [],
     weather: { cloud_cover_percent: 60, sky_condition: 'overcast', temperature_c: 11, wind_speed_ms: 6, source: 'met.no', fetched_at: new Date().toISOString() },
@@ -62,7 +62,7 @@ const MOCK_VENUES: SunExposureResult[] = [
   },
   {
     venue: { id: 'v7', name: 'Kafé Magasinet', slug: 'kafe-magasinet', neighborhood: 'Tredje Långgatan', lat: 57.6993, lng: 11.9457 },
-    patio: { id: 'p7', venue_id: 'v7', geometry: { type: 'Polygon', coordinates: [] } },
+    patio: { id: 'p7', venue_id: 'v7', name: 'Kafé Magasinet', geometry: { type: 'Polygon', coordinates: [] } },
     current_status: 'partial', sun_exposure_percent: 45, confidence: 0.72,
     windows: [{ start: '2026-03-15T12:00:00Z', end: '2026-03-15T14:30:00Z', sun_status: 'partial', sky_condition: 'partly-cloudy' }],
     weather: { cloud_cover_percent: 35, sky_condition: 'partly-cloudy', temperature_c: 13, wind_speed_ms: 3, source: 'met.no', fetched_at: new Date().toISOString() },

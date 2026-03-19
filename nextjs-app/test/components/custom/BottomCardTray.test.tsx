@@ -42,7 +42,7 @@ import type { SunExposureResult } from '@/lib/types/venue';
 function makeVenue(id: string, name: string): SunExposureResult {
   return {
     venue: { id, name, slug: id, neighborhood: 'Haga', lat: 57.7, lng: 11.97 },
-    patio: { id: `p-${id}`, venue_id: id, geometry: { type: 'Polygon', coordinates: [] } },
+    patio: { id: `p-${id}`, venue_id: id, name, geometry: { type: 'Polygon', coordinates: [] } },
     current_status: 'sunny',
     sun_exposure_percent: 85,
     confidence: 0.9,

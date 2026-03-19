@@ -13,7 +13,7 @@ function makeVenue(
   const id = overrides.id ?? 'v1';
   return {
     venue: { id, name: `Venue ${id}`, slug: id, neighborhood: 'Test', lat: 57.7, lng: 11.97 },
-    patio: { id: `p-${id}`, venue_id: id, geometry: { type: 'Polygon', coordinates: [] } },
+    patio: { id: `p-${id}`, venue_id: id, name: `Venue ${id}`, geometry: { type: 'Polygon', coordinates: [] } },
     current_status: overrides.status ?? 'sunny',
     sun_exposure_percent: 80,
     confidence: 0.85,
