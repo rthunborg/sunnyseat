@@ -6,6 +6,7 @@ import {
   badRequest,
   handleDatabaseError,
 } from '@/lib/utils/api-errors';
+import { dbPatioToApi } from '@/lib/utils/venue-mapping';
 
 type RouteContext = { params: Promise<{ id: string; patioId: string }> };
 
@@ -24,11 +25,10 @@ async function handlePut(
   }
 
   const updates: Record<string, unknown> = {};
-  if (body.name !== undefined) updates.name = (body.name as string).trim();
-  if (body.geometry !== undefined) updates.geometry = body.geometry;
-  if (body.height_source !== undefined) updates.height_source = body.height_source;
-  if (body.orientation !== undefined) updates.orientation = body.orientation;
-  if (body.has_awning !== undefined) updates.has_awning = body.has_awning;
+  if (body.name !== undefined) updates.Name = (body.name as string).trim();
+  if (body.geometry !== undefined) updates.Geometry = body.geometry;
+  if (body.height_source !== undefined) updates.HeightSource = body.height_source;
+  if (body.orientation !== undefined) updates.Orientation = body.orientation;
 
   if (Object.keys(updates).length === 0) {
     return badRequest('No fields to update');
@@ -46,7 +46,7 @@ async function handlePut(
     return handleDatabaseError(error);
   }
 
-  return NextResponse.json(data);
+  return NextResponse.json(dbPatioToApi(data));
 }
 
 async function handleDelete(

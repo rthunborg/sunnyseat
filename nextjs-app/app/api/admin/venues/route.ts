@@ -75,18 +75,23 @@ async function handlePost(request: NextRequest, _user: AuthUser) {
   }
 
   const slug = (body.slug as string) || slugify(body.name as string);
-  const lat = body.latitude !== undefined ? Number(body.latitude) : null;
-  const lng = body.longitude !== undefined ? Number(body.longitude) : null;
+  const lat = body.latitude != null ? Number(body.latitude) : null;
+  const lng = body.longitude != null ? Number(body.longitude) : null;
 
   const insert: Record<string, unknown> = {
     Name: (body.name as string).trim(),
     Slug: slug,
     Address: (body.address as string)?.trim() || '',
+    Phone: (body.phone as string)?.trim() || null,
+    Website: (body.website as string)?.trim() || null,
+    Description: (body.description as string)?.trim() || null,
     Type: venueTypeToInt((body.type as string) || 'restaurant'),
     Neighborhood: body.neighborhood ?? null,
     IsActive: true,
     IsMapped: false,
     VerificationStatus: 1,
+    Latitude: lat,
+    Longitude: lng,
   };
 
   // Location is NOT NULL in the DB — require lat/lng or use Gothenburg center
@@ -106,7 +111,41 @@ async function handlePost(request: NextRequest, _user: AuthUser) {
     return handleDatabaseError(error);
   }
 
-  return NextResponse.json(dbVenueToApi(data), { status: 201 });
+  // If geometry provided, create the venue's patio record
+  if (body.geometry) {
+    const venueId = data.Id;
+    const patioInsert = {
+      VenueId: venueId,
+      Name: (body.name as string).trim(),
+      Geometry: body.geometry,
+      HeightSource: 0,
+      PolygonQuality: 0,
+    };
+
+    const { error: patioError } = await supabaseAdmin
+      .from('patios')
+      .insert(patioInsert);
+
+    if (patioError) {
+      // Venue created but patio failed — still return venue
+      console.error('Failed to create patio for venue:', patioError);
+    } else {
+      // Mark venue as mapped
+      await supabaseAdmin
+        .from('venues')
+        .update({ IsMapped: true })
+        .eq('Id', venueId);
+    }
+  }
+
+  const venueApi = dbVenueToApi(data);
+
+  // Include geometry in response if it was provided
+  if (body.geometry) {
+    return NextResponse.json({ ...venueApi, geometry: body.geometry }, { status: 201 });
+  }
+
+  return NextResponse.json(venueApi, { status: 201 });
 }
 
 export const GET = withAdminAuth(handleGet);

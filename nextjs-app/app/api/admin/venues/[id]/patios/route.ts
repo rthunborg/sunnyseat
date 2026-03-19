@@ -8,6 +8,7 @@ import {
   createValidationErrorResponse,
   handleDatabaseError,
 } from '@/lib/utils/api-errors';
+import { dbPatioToApi } from '@/lib/utils/venue-mapping';
 
 async function handleGet(
   _request: NextRequest,
@@ -25,7 +26,7 @@ async function handleGet(
     return handleDatabaseError(error);
   }
 
-  return NextResponse.json(data ?? []);
+  return NextResponse.json((data ?? []).map(dbPatioToApi));
 }
 
 async function handlePost(
@@ -54,12 +55,12 @@ async function handlePost(
   const { data, error } = await supabaseAdmin
     .from('patios')
     .insert({
-      venue_id: id,
-      name: (body.name as string).trim(),
-      geometry: body.geometry,
-      orientation: body.orientation ?? null,
-      has_awning: body.has_awning ?? false,
-      height_source: body.height_source ?? null,
+      VenueId: Number(id),
+      Name: (body.name as string).trim(),
+      Geometry: body.geometry,
+      Orientation: body.orientation ?? null,
+      HeightSource: body.height_source ?? 0,
+      PolygonQuality: 0,
     })
     .select()
     .single();
@@ -68,7 +69,7 @@ async function handlePost(
     return handleDatabaseError(error);
   }
 
-  return NextResponse.json(data, { status: 201 });
+  return NextResponse.json(dbPatioToApi(data), { status: 201 });
 }
 
 export const GET = withAdminAuth(handleGet as Parameters<typeof withAdminAuth>[0]);

@@ -62,6 +62,84 @@ describe('validateCreateVenue', () => {
     expect(result.valid).toBe(false);
     expect(result.errors.neighborhood).toBeDefined();
   });
+
+  it('accepts null latitude and longitude', () => {
+    const result = validateCreateVenue({ name: 'Test', latitude: null, longitude: null });
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects non-string address', () => {
+    const result = validateCreateVenue({ name: 'Test', address: 123 });
+    expect(result.valid).toBe(false);
+    expect(result.errors.address).toBeDefined();
+  });
+
+  it('accepts valid address', () => {
+    const result = validateCreateVenue({ name: 'Test', address: 'Haga Nygata 24' });
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects non-string phone', () => {
+    const result = validateCreateVenue({ name: 'Test', phone: 123 });
+    expect(result.valid).toBe(false);
+    expect(result.errors.phone).toBeDefined();
+  });
+
+  it('rejects non-string website', () => {
+    const result = validateCreateVenue({ name: 'Test', website: 123 });
+    expect(result.valid).toBe(false);
+    expect(result.errors.website).toBeDefined();
+  });
+
+  it('rejects non-string description', () => {
+    const result = validateCreateVenue({ name: 'Test', description: 42 });
+    expect(result.valid).toBe(false);
+    expect(result.errors.description).toBeDefined();
+  });
+
+  it('accepts all optional string fields', () => {
+    const result = validateCreateVenue({
+      name: 'Full Venue',
+      address: 'Kungsgatan 1',
+      phone: '031-111 22 33',
+      website: 'https://example.com',
+      description: 'A nice place',
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('accepts valid geometry on venue', () => {
+    const result = validateCreateVenue({
+      name: 'Test',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [11.9687, 57.7064],
+            [11.9691, 57.7064],
+            [11.9691, 57.7066],
+            [11.9687, 57.7066],
+            [11.9687, 57.7064],
+          ],
+        ],
+      },
+    });
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects invalid geometry type on venue', () => {
+    const result = validateCreateVenue({
+      name: 'Test',
+      geometry: { type: 'Point', coordinates: [11.9, 57.7] },
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.geometry).toBeDefined();
+  });
+
+  it('accepts null geometry on venue', () => {
+    const result = validateCreateVenue({ name: 'Test', geometry: null });
+    expect(result.valid).toBe(true);
+  });
 });
 
 describe('validateCreatePatio', () => {

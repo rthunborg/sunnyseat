@@ -27,6 +27,36 @@ function createRequest(method: string, url: string, body?: unknown) {
   });
 }
 
+/** Creates mock for venues table (update chain) */
+function createVenueUpdateMock(responseData: Record<string, unknown>) {
+  return {
+    update: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: responseData,
+            error: null,
+          }),
+        }),
+      }),
+    }),
+  };
+}
+
+/** Creates mock for patios table (select chain) */
+function createPatioSelectMock(patios: Record<string, unknown>[] = []) {
+  return {
+    select: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue({
+          data: patios,
+          error: null,
+        }),
+      }),
+    }),
+  };
+}
+
 describe('PUT /api/admin/venues/[id] — VerificationStatus', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -34,17 +64,14 @@ describe('PUT /api/admin/venues/[id] — VerificationStatus', () => {
   });
 
   it('allows updating VerificationStatus to 1 (verified)', async () => {
-    const mockUpdate = vi.fn().mockReturnValue({
-      eq: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({
-            data: { Id: 'v-1', VerificationStatus: 1 },
-            error: null,
-          }),
-        }),
-      }),
+    const venuesMock = createVenueUpdateMock({ Id: 'v-1', VerificationStatus: 1 });
+    const patiosMock = createPatioSelectMock();
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'venues') return venuesMock;
+      if (table === 'patios') return patiosMock;
+      return {};
     });
-    mockFrom.mockReturnValue({ update: mockUpdate });
 
     const { PUT } = await import('@/app/api/admin/venues/[id]/route');
     const request = createRequest('PUT', 'http://localhost/api/admin/venues/v-1', {
@@ -60,17 +87,14 @@ describe('PUT /api/admin/venues/[id] — VerificationStatus', () => {
   });
 
   it('allows updating VerificationStatus to 0 (candidate)', async () => {
-    const mockUpdate = vi.fn().mockReturnValue({
-      eq: vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({
-            data: { Id: 'v-2', VerificationStatus: 0 },
-            error: null,
-          }),
-        }),
-      }),
+    const venuesMock = createVenueUpdateMock({ Id: 'v-2', VerificationStatus: 0 });
+    const patiosMock = createPatioSelectMock();
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'venues') return venuesMock;
+      if (table === 'patios') return patiosMock;
+      return {};
     });
-    mockFrom.mockReturnValue({ update: mockUpdate });
 
     const { PUT } = await import('@/app/api/admin/venues/[id]/route');
     const request = createRequest('PUT', 'http://localhost/api/admin/venues/v-2', {

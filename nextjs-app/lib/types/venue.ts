@@ -11,21 +11,32 @@ export interface Venue {
   lat: number;
   lng: number;
   address?: string;
+  phone?: string;
   website?: string;
-  googleMapsUrl?: string;
+  description?: string;
+  type?: string;
+  is_active?: boolean;
+  is_mapped?: boolean;
   verification_status?: VerificationStatus;
   osm_node_id?: number;
   is_partner?: boolean;
   booking_url?: string;
   website_url?: string;
+  /** The venue's outdoor seating polygon (from its single patio record) */
+  geometry?: GeoJSON.Polygon | null;
 }
 
 export interface Patio {
   id: string;
   venue_id: string;
-  geometry: GeoJSON.Polygon;
-  orientation?: number;
-  has_awning?: boolean;
+  name: string;
+  geometry: GeoJSON.Polygon | null;
+  height_m?: number;
+  height_source?: string | number;
+  polygon_quality?: number;
+  orientation?: string | number;
+  notes?: string;
+  review_needed?: boolean;
 }
 
 export interface SunWindow {
