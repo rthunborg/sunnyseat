@@ -88,6 +88,8 @@ export function VenueCard({
     <div
       role="article"
       aria-label={ariaLabel}
+      data-testid={`venue-card-${slug}`}
+      data-sun-status={variant}
       tabIndex={0}
       onClick={handleCardClick}
       onKeyDown={(e) => {
@@ -125,7 +127,10 @@ export function VenueCard({
           {neighborhood}
         </span>
         {isPartner && (
-          <span className="shrink-0 rounded-full border border-[var(--color-partner-gold)] bg-[var(--color-partner-gold-bg)] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[var(--color-partner-gold-dark)]">
+          <span
+            className="shrink-0 rounded-full border border-[var(--color-partner-gold)] bg-[var(--color-partner-gold-bg)] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[var(--color-partner-gold-dark)]"
+            data-testid="partner-badge"
+          >
             {t('partner.badge')}
           </span>
         )}
@@ -153,6 +158,7 @@ export function VenueCard({
         <Button
           onClick={handleDirections}
           aria-label={t('venue.directionsTo', { name: venueName })}
+          data-testid="venue-directions-btn"
           className="ml-auto shrink-0 h-[var(--spacing-touch-comfortable)] rounded-button bg-brand-primary text-white hover:bg-brand-primary-dark px-4"
         >
           {t('venue.directions')}

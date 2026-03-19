@@ -8,23 +8,8 @@ import { useReducedMotion } from '@/lib/hooks/useReducedMotion';
 import { VenueCard } from '@/components/custom/VenueCard';
 import { CandidateCard } from '@/components/custom/CandidateCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIsDesktop } from '@/lib/hooks/useIsDesktop';
 import { cn } from '@/lib/utils';
-
-import { useState } from 'react';
-
-function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
-    setIsDesktop(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-
-  return isDesktop;
-}
 
 export function BottomCardTray() {
   const { trayState, setTrayState, venues, isLoading, selectedVenueId } = useCardTray();
@@ -125,8 +110,8 @@ export function BottomCardTray() {
         className="w-[380px] h-full bg-surface-primary border-r border-border-default overflow-y-auto shrink-0"
         aria-label="Venue list"
       >
-        <div className="p-4">
-          <p className="text-[length:var(--font-size-subhead)] leading-[var(--line-height-subhead)] font-semibold text-text-primary mb-3">
+        <div className="p-4" aria-live="polite">
+          <p data-testid="venue-count" className="text-[length:var(--font-size-subhead)] leading-[var(--line-height-subhead)] font-semibold text-text-primary mb-3">
             {t('venue.patios', { count: venueCount })}
           </p>
           {renderContent()}
@@ -148,7 +133,7 @@ export function BottomCardTray() {
 
     if (venues.length === 0) {
       return (
-        <p className="text-center text-text-secondary py-8">{t('home.noPatiosFound')}</p>
+        <p data-testid="empty-state" className="text-center text-text-secondary py-8">{t('home.noPatiosFound')}</p>
       );
     }
 
@@ -207,20 +192,19 @@ export function BottomCardTray() {
     >
       {/* Grab handle */}
       <div
-        className="flex flex-col items-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
-        style={{ minHeight: '48px' }}
+        className="flex flex-col items-center pt-3 pb-2 cursor-grab active:cursor-grabbing min-h-[var(--spacing-touch-min)]"
       >
         <div
           className="w-10 h-1 bg-border-default rounded-full"
           aria-hidden="true"
         />
-        <p className="mt-2 text-[length:var(--font-size-caption)] leading-[var(--line-height-caption)] text-text-secondary">
+        <p data-testid="venue-count" className="mt-2 text-[length:var(--font-size-caption)] leading-[var(--line-height-caption)] text-text-secondary">
           {t('venue.patios', { count: venueCount })}
         </p>
       </div>
 
       {/* Card content */}
-      <div className="overflow-y-auto px-4 pb-4" style={{ maxHeight: 'calc(100% - 56px)' }}>
+      <div className="overflow-y-auto px-4 md:px-6 pb-4" aria-live="polite" style={{ maxHeight: 'calc(100% - 56px)' }}>
         {renderContent()}
       </div>
     </motion.div>

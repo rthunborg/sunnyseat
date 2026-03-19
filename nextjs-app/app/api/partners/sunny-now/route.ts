@@ -30,7 +30,7 @@ export async function GET() {
     const { data: partners, error } = await supabaseAdmin
       .from('venues')
       .select('Id, Name, Slug, patios(Id)')
-      .eq('IsPartner', true)
+      .eq('is_partner', true)
       .eq('VerificationStatus', 1);
 
     if (error) {

@@ -47,6 +47,13 @@
   --color-ambient-winter: #FFF7ED;
 
   /* ═══════════════════════════════════════════════
+     Status / Feedback Colors
+     ═══════════════════════════════════════════════ */
+  --color-status-success: #15803D;
+  --color-status-error: #DC2626;
+  --color-status-info: #2563EB;
+
+  /* ═══════════════════════════════════════════════
      Neutral / Surface
      ═══════════════════════════════════════════════ */
   --color-surface-primary: #FFFFFF;
@@ -62,12 +69,14 @@
      ═══════════════════════════════════════════════ */
   --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
 
+  --font-size-title: 24px;
   --font-size-headline: 20px;
   --font-size-subhead: 16px;
   --font-size-body: 14px;
   --font-size-caption: 12px;
   --font-size-micro: 10px;
 
+  --line-height-title: 32px;
   --line-height-headline: 28px;
   --line-height-subhead: 24px;
   --line-height-body: 20px;

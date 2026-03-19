@@ -105,6 +105,32 @@ export const sv = {
   seasonalBanner: {
     winterMessage: 'Vintersolen är låg men fin! Kolla vilka restauranger som fångar solstrålarna.',
   },
+  timeSlider: {
+    label: 'Tidsprognos',
+    ariaGroupLabel: 'Tidsförskjutning för solprognos',
+    ariaInputLabel: 'Välj tidsförskjutning',
+    loadingSunData: 'Laddar soldata',
+    setMark: 'Ställ in {{label}}',
+    now: 'Nu',
+    plusHours1: '+1 tim',
+    plusHours2: '+2 tim',
+    plusHours3: '+3 tim',
+  },
+  datePicker: {
+    label: 'Datum',
+    showToday: 'Visa idag',
+    selectedDate: 'Valt datum: {{date}}',
+    chooseDate: 'Välj datum',
+    loadingDateData: 'Laddar datumdata',
+    prevMonth: 'Föregående månad',
+    nextMonth: 'Nästa månad',
+    months: 'Januari,Februari,Mars,April,Maj,Juni,Juli,Augusti,September,Oktober,November,December',
+    dayHeaders: 'Mån,Tis,Ons,Tor,Fre,Lör,Sön',
+  },
+  forecast: {
+    label: 'Prognos:',
+    today: 'idag',
+  },
   admin: {
     login: 'Logga in',
     logout: 'Logga ut',

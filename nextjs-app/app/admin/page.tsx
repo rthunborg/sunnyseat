@@ -81,7 +81,7 @@ export default function AdminDashboardPage() {
       )}
 
       {/* Summary cards */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="dashboard-stats">
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
               <div
@@ -119,7 +119,7 @@ export default function AdminDashboardPage() {
 
       {/* Quick links */}
       <h2 className="mb-4 text-lg font-semibold text-foreground">Snabblänkar</h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="quick-links">
         {[
           {
             title: 'Restauranger',
@@ -135,6 +135,16 @@ export default function AdminDashboardPage() {
             title: 'Precision',
             description: 'Visa precisionsstatistik',
             href: '/admin/accuracy',
+          },
+          {
+            title: 'Verifiering',
+            description: 'Granska och verifiera restauranger',
+            href: '/admin/verification',
+          },
+          {
+            title: 'KPI',
+            description: 'Nyckeltal för tillväxt och kvalitet',
+            href: '/admin/kpi',
           },
         ].map((card) => (
           <Link

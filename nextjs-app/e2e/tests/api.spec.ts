@@ -13,7 +13,6 @@ test.describe('API Health', () => {
 
   test('health/ready endpoint returns a valid status', async ({ request }) => {
     const response = await request.get('/api/health/ready');
-    // May be 200 (ready) or 503 (not_ready) depending on Supabase availability
     expect([200, 503]).toContain(response.status());
 
     const body = await response.json();
@@ -22,7 +21,6 @@ test.describe('API Health', () => {
 
   test('health/live endpoint returns 200', async ({ request }) => {
     const response = await request.get('/api/health/live');
-    // Liveness probe should always return 200
     expect([200, 503]).toContain(response.status());
   });
 });

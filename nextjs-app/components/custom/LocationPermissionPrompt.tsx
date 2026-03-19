@@ -61,6 +61,7 @@ export function LocationPermissionPrompt({
       <div
         role="dialog"
         aria-labelledby="location-prompt-title"
+        data-testid="location-prompt"
         className="bg-surface-primary rounded-card shadow-elevated max-w-[320px] p-6 pointer-events-auto"
       >
         <p

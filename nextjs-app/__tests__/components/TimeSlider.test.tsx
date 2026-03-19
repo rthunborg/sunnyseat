@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TimeSlider } from '@/components/custom/TimeSlider';
 import { PremiumProvider } from '@/lib/context/PremiumContext';
+import { LanguageProvider } from '@/lib/i18n';
 import type { TimeOffsetHours } from '@/lib/hooks/useTimeOffset';
 
 // Mock usePremium to control premium status
@@ -12,9 +13,11 @@ vi.mock('@/lib/hooks/usePremium', () => ({
 
 function renderSlider(value: TimeOffsetHours = 0, onChange = vi.fn(), isLoading = false) {
   return render(
-    <PremiumProvider>
-      <TimeSlider value={value} onChange={onChange} isLoading={isLoading} />
-    </PremiumProvider>
+    <LanguageProvider>
+      <PremiumProvider>
+        <TimeSlider value={value} onChange={onChange} isLoading={isLoading} />
+      </PremiumProvider>
+    </LanguageProvider>
   );
 }
 

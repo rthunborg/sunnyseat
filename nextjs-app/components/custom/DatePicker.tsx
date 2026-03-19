@@ -3,14 +3,8 @@
 import { useState, useCallback, useMemo } from 'react';
 import { usePremiumContext } from '@/lib/context/PremiumContext';
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion';
+import { useLanguage } from '@/lib/i18n';
 import { PaywallPrompt } from '@/components/composed/PaywallPrompt';
-
-const SWEDISH_MONTHS = [
-  'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
-  'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December',
-];
-
-const SWEDISH_DAY_HEADERS = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
 
 interface DatePickerProps {
   selectedDate: Date | null;
@@ -60,8 +54,12 @@ function getMonthGrid(year: number, month: number): (Date | null)[][] {
 export function DatePicker({ selectedDate, onDateSelect, isLoading }: DatePickerProps) {
   const { isPremium } = usePremiumContext();
   const reducedMotion = useReducedMotion();
+  const { t } = useLanguage();
   const [showPaywall, setShowPaywall] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+
+  const monthNames = useMemo(() => t('datePicker.months').split(','), [t]);
+  const dayHeaders = useMemo(() => t('datePicker.dayHeaders').split(','), [t]);
 
   const today = useMemo(() => new Date(), []);
   const maxDate = useMemo(() => {
@@ -128,22 +126,23 @@ export function DatePicker({ selectedDate, onDateSelect, isLoading }: DatePicker
   const isSelected = selectedDate && !isSameDay(selectedDate, today);
 
   const buttonLabel = isSelected
-    ? `${selectedDate.getDate()} ${SWEDISH_MONTHS[selectedDate.getMonth()].slice(0, 3)}`
-    : 'Datum';
+    ? `${selectedDate.getDate()} ${monthNames[selectedDate.getMonth()].slice(0, 3)}`
+    : t('datePicker.label');
 
   return (
     <>
       <button
         type="button"
         onClick={handleToggle}
-        className={`min-h-[48px] min-w-[48px] flex items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-[length:var(--font-size-caption)] font-[number:var(--font-weight-caption)] shadow-lg border border-border-subtle ${transitionClass} ${
+        className={`min-h-[var(--spacing-touch-min)] min-w-[var(--spacing-touch-min)] flex items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-[length:var(--font-size-caption)] font-[number:var(--font-weight-caption)] shadow-lg border border-border-subtle ${transitionClass} ${
           isSelected
             ? 'bg-brand-primary text-white'
             : 'bg-surface-primary/95 backdrop-blur-sm text-text-secondary'
         } ${!isPremium ? 'opacity-70' : ''}`}
-        aria-label={isSelected ? `Valt datum: ${selectedDate.getDate()} ${SWEDISH_MONTHS[selectedDate.getMonth()]}` : 'Välj datum'}
+        aria-label={isSelected ? t('datePicker.selectedDate', { date: `${selectedDate.getDate()} ${monthNames[selectedDate.getMonth()]}` }) : t('datePicker.chooseDate')}
         aria-expanded={isOpen}
         aria-haspopup="dialog"
+        data-testid="date-picker-toggle"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
           <rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
@@ -158,7 +157,7 @@ export function DatePicker({ selectedDate, onDateSelect, isLoading }: DatePicker
           <span
             className={`inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent ${reducedMotion ? '' : 'animate-spin'}`}
             role="status"
-            aria-label="Laddar datumdata"
+            aria-label={t('datePicker.loadingDateData')}
           />
         )}
       </button>
@@ -168,7 +167,8 @@ export function DatePicker({ selectedDate, onDateSelect, isLoading }: DatePicker
           className="absolute bottom-full mb-2 left-0 z-30 w-[280px] rounded-2xl bg-surface-primary shadow-xl border border-border-subtle p-3"
           role="dialog"
           aria-modal="false"
-          aria-label="Välj datum"
+          aria-label={t('datePicker.chooseDate')}
+          data-testid="date-picker-dialog"
         >
           {/* Month navigation */}
           <div className="flex items-center justify-between mb-2">
@@ -176,8 +176,8 @@ export function DatePicker({ selectedDate, onDateSelect, isLoading }: DatePicker
               type="button"
               onClick={handlePrevMonth}
               disabled={!canGoPrev}
-              className="min-h-[48px] min-w-[48px] flex items-center justify-center rounded-xl text-text-secondary hover:bg-surface-secondary disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="Föregående månad"
+              className="min-h-[var(--spacing-touch-min)] min-w-[var(--spacing-touch-min)] flex items-center justify-center rounded-xl text-text-secondary hover:bg-surface-secondary disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label={t('datePicker.prevMonth')}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -185,15 +185,15 @@ export function DatePicker({ selectedDate, onDateSelect, isLoading }: DatePicker
             </button>
 
             <span className="text-sm font-semibold text-text-primary">
-              {SWEDISH_MONTHS[viewMonth]} {viewYear}
+              {monthNames[viewMonth]} {viewYear}
             </span>
 
             <button
               type="button"
               onClick={handleNextMonth}
               disabled={!canGoNext}
-              className="min-h-[48px] min-w-[48px] flex items-center justify-center rounded-xl text-text-secondary hover:bg-surface-secondary disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="Nästa månad"
+              className="min-h-[var(--spacing-touch-min)] min-w-[var(--spacing-touch-min)] flex items-center justify-center rounded-xl text-text-secondary hover:bg-surface-secondary disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label={t('datePicker.nextMonth')}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -203,7 +203,7 @@ export function DatePicker({ selectedDate, onDateSelect, isLoading }: DatePicker
 
           {/* Day headers */}
           <div className="grid grid-cols-7 gap-0 mb-1" role="row">
-            {SWEDISH_DAY_HEADERS.map((day) => (
+            {dayHeaders.map((day) => (
               <div
                 key={day}
                 className="text-center text-[10px] font-medium text-text-muted py-1"
@@ -216,7 +216,7 @@ export function DatePicker({ selectedDate, onDateSelect, isLoading }: DatePicker
           </div>
 
           {/* Day grid */}
-          <div role="grid" aria-label={`${SWEDISH_MONTHS[viewMonth]} ${viewYear}`}>
+          <div role="grid" aria-label={`${monthNames[viewMonth]} ${viewYear}`}>
             {weeks.map((week, wi) => (
               <div key={wi} className="grid grid-cols-7 gap-0" role="row">
                 {week.map((date, di) => {
@@ -239,7 +239,7 @@ export function DatePicker({ selectedDate, onDateSelect, isLoading }: DatePicker
                       onClick={() => handleDateClick(date)}
                       aria-selected={isDateSelected || (isToday && !selectedDate)}
                       aria-current={isToday ? 'date' : undefined}
-                      aria-label={`${date.getDate()} ${SWEDISH_MONTHS[date.getMonth()]}`}
+                      aria-label={`${date.getDate()} ${monthNames[date.getMonth()]}`}
                       className={`h-[36px] w-full flex items-center justify-center rounded-lg text-xs font-medium ${transitionClass} ${
                         disabled
                           ? 'text-text-muted/40 cursor-not-allowed'
@@ -265,7 +265,7 @@ export function DatePicker({ selectedDate, onDateSelect, isLoading }: DatePicker
               onClick={handleReset}
               className="mt-2 w-full min-h-[40px] rounded-xl bg-surface-secondary text-text-secondary text-xs font-medium hover:bg-surface-tertiary"
             >
-              Visa idag
+              {t('datePicker.showToday')}
             </button>
           )}
         </div>

@@ -41,7 +41,7 @@ export default function AdminLoginPage() {
           SunnySeat Admin
         </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" data-testid="login-form">
           <div>
             <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-foreground">
               Användarnamn
@@ -73,7 +73,7 @@ export default function AdminLoginPage() {
           </div>
 
           {error && (
-            <p role="alert" className="text-sm text-destructive">
+            <p role="alert" className="text-sm text-destructive" data-testid="login-error">
               {error}
             </p>
           )}

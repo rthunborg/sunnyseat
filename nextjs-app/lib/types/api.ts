@@ -49,8 +49,15 @@ export interface AdminUserInfo {
 // Patio Types
 // ============================================================================
 
+export interface PatiosMeta {
+  count: number;
+  radiusKm: number;
+  weatherUpdatedAt?: string;
+}
+
 export interface GetPatiosResponse {
   patios: PatioDataDto[];
+  meta: PatiosMeta;
   timestamp: string;
   totalCount: number;
 }
@@ -59,8 +66,12 @@ export interface PatioDataDto {
   id: string; // venueId
   venueId: string;
   venueName: string;
+  venueSlug: string;
+  slug: string; // backward compat alias
+  neighborhood: string;
   location: CoordinatesDto;
   currentSunStatus: 'Sunny' | 'Partial' | 'Shaded';
+  isPartner: boolean;
   confidence: number; // 0-100
   distanceMeters: number;
   sunExposurePercent: number;
@@ -72,6 +83,8 @@ export type PatioData = PatioDataDto;
 export interface CoordinatesDto {
   latitude: number;
   longitude: number;
+  lat: number;
+  lng: number;
 }
 
 // ============================================================================

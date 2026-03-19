@@ -48,6 +48,7 @@ export function SunnyNowBadge({ size = 'sm' }: SunnyNowBadgeProps) {
       `}
       role="status"
       aria-label="Sol nu"
+      data-testid="sunny-now-badge"
     >
       <SunBadgeIcon size={iconSize} />
       <span>Sol nu</span>

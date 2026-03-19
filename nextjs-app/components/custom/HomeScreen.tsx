@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useCallback, useState, useEffect } from 'react';
-import { LanguageProvider } from '@/lib/i18n';
+import { LanguageProvider, useLanguage } from '@/lib/i18n';
 import { CardTrayProvider, useCardTray } from '@/lib/context/CardTrayContext';
 import { PremiumProvider } from '@/lib/context/PremiumContext';
 import { useCurrentLocation } from '@/lib/hooks/useCurrentLocation';
@@ -13,11 +13,30 @@ import { useDateSelection } from '@/lib/hooks/useDateSelection';
 import { sortVenues } from '@/lib/utils/sortVenues';
 import { LocationPermissionPrompt } from '@/components/custom/LocationPermissionPrompt';
 import { BottomCardTray } from '@/components/custom/BottomCardTray';
+import { SearchBar } from '@/components/custom/SearchBar';
 import { TimeSlider } from '@/components/custom/TimeSlider';
 import { DatePicker } from '@/components/custom/DatePicker';
 import type maplibregl from 'maplibre-gl';
 
 const MapContainer = dynamic(() => import('@/components/custom/MapContainer'), { ssr: false });
+
+function ForecastStatus({ selectedDate, timeOffset }: { selectedDate: Date | null; timeOffset: number }) {
+  const { t } = useLanguage();
+  const dateStr = selectedDate
+    ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
+    : t('forecast.today');
+  return (
+    <div
+      className="mt-1 text-center text-[length:var(--font-size-caption)] font-[number:var(--font-weight-caption)] text-brand-primary bg-brand-primary-light/90 rounded-lg py-1 px-2"
+      role="status"
+      aria-live="polite"
+    >
+      {t('forecast.label')}{' '}
+      {dateStr}
+      {timeOffset > 0 ? ` +${timeOffset}h` : ''}
+    </div>
+  );
+}
 
 function HomeScreenInner() {
   const { coordinates, permissionStatus, requestLocation } = useCurrentLocation();
@@ -68,7 +87,7 @@ function HomeScreenInner() {
   }, []);
 
   return (
-    <div className="w-screen h-[100dvh] relative overflow-hidden lg:flex lg:flex-row">
+    <div id="main-content" className="w-screen h-[100dvh] relative overflow-hidden lg:flex lg:flex-row">
       {/* Desktop: side panel on the left */}
       <div className="hidden lg:block">
         <BottomCardTray />
@@ -76,6 +95,11 @@ function HomeScreenInner() {
 
       {/* Map fills remaining space */}
       <div className="relative flex-1 h-full">
+        {/* Search bar overlay */}
+        <div className="absolute top-3 left-4 right-4 z-30 md:left-6 md:right-6 lg:left-auto lg:right-4 lg:w-72">
+          <SearchBar />
+        </div>
+
         <MapContainer
           userLocation={coordinates}
           onMapReady={handleMapReady}
@@ -87,7 +111,7 @@ function HomeScreenInner() {
         />
 
         {/* Time slider + date picker overlay — above card tray, below search */}
-        <div className="absolute bottom-[calc(var(--spacing-touch-comfortable)+8px)] left-3 right-3 z-20 lg:bottom-4 lg:left-auto lg:right-4 lg:w-72">
+        <div className="absolute bottom-[calc(var(--spacing-touch-comfortable)+8px)] left-4 right-4 z-20 md:left-6 md:right-6 lg:bottom-4 lg:left-auto lg:right-4 lg:w-72">
           <div className="flex items-end gap-2">
             <div className="flex-1">
               <TimeSlider
@@ -105,17 +129,7 @@ function HomeScreenInner() {
             </div>
           </div>
           {(timeOffset > 0 || selectedDate) && (
-            <div
-              className="mt-1 text-center text-[length:var(--font-size-caption)] font-[number:var(--font-weight-caption)] text-brand-primary bg-brand-primary-light/90 rounded-lg py-1 px-2"
-              role="status"
-              aria-live="polite"
-            >
-              Prognos:{' '}
-              {selectedDate
-                ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
-                : 'idag'}
-              {timeOffset > 0 ? ` +${timeOffset}h` : ''}
-            </div>
+            <ForecastStatus selectedDate={selectedDate} timeOffset={timeOffset} />
           )}
         </div>
 

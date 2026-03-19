@@ -106,8 +106,14 @@ async function handlePut(
     return handleDatabaseError(error);
   }
 
+  // Convert WKB hex geometry to GeoJSON for frontend (same as GET handler)
+  let geometry: GeoJSON.Polygon | null = null;
+  if (data.Geometry) {
+    geometry = await fetchVenueGeometryAsGeoJSON(Number(id));
+  }
+
   const venue = dbVenueToApi(data);
-  return NextResponse.json(venue);
+  return NextResponse.json({ ...venue, geometry });
 }
 
 async function handleDelete(

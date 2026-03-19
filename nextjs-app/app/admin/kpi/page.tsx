@@ -150,7 +150,7 @@ export default function KpiDashboardPage() {
 
   return (
     <>
-      <h1 className="mb-1 text-2xl font-bold text-foreground">KPI Dashboard</h1>
+      <h1 className="mb-1 text-2xl font-bold text-foreground" data-testid="kpi-heading">KPI Dashboard</h1>
       <p className="mb-6 text-sm text-muted-foreground">
         Nyckeltal för tillväxt och kvalitet
       </p>

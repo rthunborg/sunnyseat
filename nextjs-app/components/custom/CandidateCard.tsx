@@ -81,14 +81,14 @@ export function CandidateCard({ venueId, venueName, neighborhood }: CandidateCar
 
       {/* Success message */}
       {confirmed && (
-        <p className="text-[length:var(--font-size-body)] leading-[var(--line-height-body)] text-green-700 font-medium">
+        <p className="text-[length:var(--font-size-body)] leading-[var(--line-height-body)] text-status-success font-medium" role="status">
           {t('candidate.thankYou')}
         </p>
       )}
 
       {/* Error message */}
       {error && (
-        <p className="text-[length:var(--font-size-body)] leading-[var(--line-height-body)] text-red-600">
+        <p className="text-[length:var(--font-size-body)] leading-[var(--line-height-body)] text-status-error" role="alert">
           {error}
         </p>
       )}

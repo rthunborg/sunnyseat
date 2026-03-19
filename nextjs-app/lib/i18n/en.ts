@@ -103,6 +103,32 @@ export const en: TranslationSchema = {
   seasonalBanner: {
     winterMessage: 'Winter sun is low but lovely! Check which venues catch the rays.',
   },
+  timeSlider: {
+    label: 'Time forecast',
+    ariaGroupLabel: 'Time offset for sun forecast',
+    ariaInputLabel: 'Select time offset',
+    loadingSunData: 'Loading sun data',
+    setMark: 'Set {{label}}',
+    now: 'Now',
+    plusHours1: '+1 h',
+    plusHours2: '+2 h',
+    plusHours3: '+3 h',
+  },
+  datePicker: {
+    label: 'Date',
+    showToday: 'Show today',
+    selectedDate: 'Selected date: {{date}}',
+    chooseDate: 'Choose date',
+    loadingDateData: 'Loading date data',
+    prevMonth: 'Previous month',
+    nextMonth: 'Next month',
+    months: 'January,February,March,April,May,June,July,August,September,October,November,December',
+    dayHeaders: 'Mon,Tue,Wed,Thu,Fri,Sat,Sun',
+  },
+  forecast: {
+    label: 'Forecast:',
+    today: 'today',
+  },
   admin: {
     login: 'Log in',
     logout: 'Log out',

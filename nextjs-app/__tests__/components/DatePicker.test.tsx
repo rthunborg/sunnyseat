@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DatePicker } from '@/components/custom/DatePicker';
 import { PremiumProvider } from '@/lib/context/PremiumContext';
+import { LanguageProvider } from '@/lib/i18n';
 
 const mockUsePremium = vi.fn();
 vi.mock('@/lib/hooks/usePremium', () => ({
@@ -16,13 +17,15 @@ function renderDatePicker(
   return {
     onDateSelect,
     ...render(
-      <PremiumProvider>
-        <DatePicker
-          selectedDate={selectedDate}
-          onDateSelect={onDateSelect}
-          isLoading={isLoading}
-        />
-      </PremiumProvider>
+      <LanguageProvider>
+        <PremiumProvider>
+          <DatePicker
+            selectedDate={selectedDate}
+            onDateSelect={onDateSelect}
+            isLoading={isLoading}
+          />
+        </PremiumProvider>
+      </LanguageProvider>
     ),
   };
 }
@@ -212,21 +215,21 @@ describe('DatePicker', () => {
     expect(onDateSelect).toHaveBeenCalledWith(null);
   });
 
-  it('has 48px minimum touch targets on navigation buttons', () => {
+  it('has minimum touch targets on navigation buttons via design tokens', () => {
     renderDatePicker();
     fireEvent.click(screen.getByRole('button', { name: /välj datum/i }));
     const prevButton = screen.getByRole('button', { name: /föregående månad/i });
     const nextButton = screen.getByRole('button', { name: /nästa månad/i });
-    expect(prevButton.className).toContain('min-h-[48px]');
-    expect(prevButton.className).toContain('min-w-[48px]');
-    expect(nextButton.className).toContain('min-h-[48px]');
-    expect(nextButton.className).toContain('min-w-[48px]');
+    expect(prevButton.className).toContain('min-h-[var(--spacing-touch-min)]');
+    expect(prevButton.className).toContain('min-w-[var(--spacing-touch-min)]');
+    expect(nextButton.className).toContain('min-h-[var(--spacing-touch-min)]');
+    expect(nextButton.className).toContain('min-w-[var(--spacing-touch-min)]');
   });
 
-  it('trigger button meets 48px touch target', () => {
+  it('trigger button meets touch target via design token', () => {
     renderDatePicker();
     const trigger = screen.getByRole('button', { name: /välj datum/i });
-    expect(trigger.className).toContain('min-h-[48px]');
-    expect(trigger.className).toContain('min-w-[48px]');
+    expect(trigger.className).toContain('min-h-[var(--spacing-touch-min)]');
+    expect(trigger.className).toContain('min-w-[var(--spacing-touch-min)]');
   });
 });

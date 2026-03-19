@@ -59,30 +59,37 @@ export default function VenueDetailPage({ venue }: VenueDetailProps) {
       className="min-h-screen bg-surface-primary pb-[var(--spacing-touch-comfortable)]"
     >
       {/* Back navigation */}
-      <nav className="px-4 pt-4 pb-2">
+      <nav className="px-4 md:px-6 pt-4 pb-2">
         <button
           onClick={() => router.back()}
           className="inline-flex items-center gap-1 text-[length:var(--font-size-body)] leading-[var(--line-height-body)] text-text-secondary min-h-[var(--spacing-touch-min)] px-2 -ml-2 rounded-button hover:bg-surface-secondary transition-colors"
           aria-label={t('common.back')}
+          data-testid="back-button"
         >
           <span aria-hidden="true">←</span> {t('common.back')}
         </button>
       </nav>
 
       {/* Header */}
-      <header className="px-4 pb-4">
+      <header className="px-4 md:px-6 pb-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-[length:var(--font-size-title)] leading-[var(--line-height-title)] font-bold text-text-primary">
               {venue.name}
             </h1>
-            <p className="text-[length:var(--font-size-body)] leading-[var(--line-height-body)] text-text-secondary mt-1">
+            <p
+              className="text-[length:var(--font-size-body)] leading-[var(--line-height-body)] text-text-secondary mt-1"
+              data-testid="venue-neighborhood"
+            >
               {venue.neighborhood}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {venue.is_partner && (
-              <span className="inline-flex items-center rounded-full border border-[var(--color-partner-gold)] bg-[var(--color-partner-gold-bg)] px-2 py-0.5 text-xs font-semibold text-[var(--color-partner-gold-dark)]">
+              <span
+                className="inline-flex items-center rounded-full border border-[var(--color-partner-gold)] bg-[var(--color-partner-gold-bg)] px-2 py-0.5 text-xs font-semibold text-[var(--color-partner-gold-dark)]"
+                data-testid="partner-badge"
+              >
                 {t('partner.badge')}
               </span>
             )}
@@ -92,7 +99,7 @@ export default function VenueDetailPage({ venue }: VenueDetailProps) {
       </header>
 
       {/* Timeline */}
-      <section className="px-4 pb-6" aria-label={t('venueDetail.sunTimeline')}>
+      <section className="px-4 md:px-6 pb-6" aria-label={t('venueDetail.sunTimeline')}>
         <MiniTimeline
           sunWindows={venue.todayWindows}
           variant="detail"
@@ -101,7 +108,7 @@ export default function VenueDetailPage({ venue }: VenueDetailProps) {
       </section>
 
       {/* Sun windows table */}
-      <section className="px-4 pb-6">
+      <section className="px-4 md:px-6 pb-6">
         <SunWindowsTable
           todayWindows={venue.todayWindows}
           tomorrowWindows={venue.tomorrowWindows}
@@ -109,21 +116,24 @@ export default function VenueDetailPage({ venue }: VenueDetailProps) {
       </section>
 
       {/* Action buttons */}
-      <section className="px-4 pb-6 flex gap-3">
+      <section className="px-4 md:px-6 pb-6 flex gap-3">
         <a
           href={mapsUrl}
           target="_blank"
           rel="noopener noreferrer"
           aria-label={t('venue.directionsTo', { name: venue.name })}
-          className="flex-1 inline-flex shrink-0 items-center justify-center rounded-button bg-primary text-primary-foreground h-[var(--spacing-touch-comfortable)] px-6 text-sm font-medium transition-all hover:bg-primary/80"
+          className="flex-1 inline-flex shrink-0 items-center justify-center rounded-button bg-brand-primary text-white h-[var(--spacing-touch-comfortable)] px-6 text-sm font-medium transition-all hover:bg-brand-primary-dark"
+          data-testid="directions-link"
         >
           {t('venue.directions')}
         </a>
         <Button
           variant="outline"
           size="lg"
-          className="flex-1"
+          className="flex-1 min-h-[var(--spacing-touch-min)]"
           onClick={handleShare}
+          aria-label={t('venueDetail.share')}
+          data-testid="share-button"
         >
           {t('venueDetail.share')}
         </Button>
@@ -131,7 +141,7 @@ export default function VenueDetailPage({ venue }: VenueDetailProps) {
 
       {/* Partner actions */}
       {venue.is_partner && (venue.booking_url || venue.website_url) && (
-        <section className="px-4 pb-6">
+        <section className="px-4 md:px-6 pb-6" data-testid="partner-actions-section">
           <PartnerActions
             isPartner={venue.is_partner}
             bookingUrl={venue.booking_url}

@@ -156,7 +156,7 @@ export default function AdminVenueNewPage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive" data-testid="venue-error">
           {error}
         </div>
       )}
@@ -356,7 +356,7 @@ export default function AdminVenueNewPage() {
         </div>
 
         <div>
-          <Button type="submit" disabled={saving || !name.trim()}>
+          <Button type="submit" disabled={saving || !name.trim()} data-testid="create-venue-button">
             {saving ? 'Skapar...' : 'Skapa restaurang'}
           </Button>
         </div>

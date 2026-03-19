@@ -14,26 +14,40 @@ import type { GetPatiosResponse, PatioDataDto } from '@/lib/types/api';
 interface VenueRow {
   Id: number;
   Name?: string;
+  Slug?: string;
+  Neighborhood?: string;
   Location?: string; // PostGIS POINT as WKB hex or WKT
   Geometry?: string; // PostGIS POLYGON as WKB hex or WKT
   DistanceMeters?: number;
+  is_partner?: boolean;
 }
 
 const MAX_RADIUS_KM = 3.0;
 const DEFAULT_RADIUS_KM = 1.5;
 const MAX_RESULTS = 50;
 
+/** Sun status sort priority: sunny first, shaded last */
+const SUN_STATUS_ORDER: Record<string, number> = {
+  Sunny: 0,
+  Partial: 1,
+  Shaded: 2,
+};
+
 /**
  * GET /api/patios
- * Search for venues by location with current sun exposure
- * Query params: latitude, longitude, radiusKm (optional)
+ * Search for venues by location with current sun exposure.
+ * Accepts both `lat`/`lng` and `latitude`/`longitude` query params.
  */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
 
+    // Accept both lat/lng and latitude/longitude
+    const rawLat = searchParams.get('lat') ?? searchParams.get('latitude');
+    const rawLng = searchParams.get('lng') ?? searchParams.get('longitude');
+
     // Parse and validate latitude
-    const latResult = parseNumberQuery(searchParams.get('latitude'), 'latitude');
+    const latResult = parseNumberQuery(rawLat, 'lat');
     if (!latResult.success) {
       return badRequest(latResult.error);
     }
@@ -44,7 +58,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Parse and validate longitude
-    const lngResult = parseNumberQuery(searchParams.get('longitude'), 'longitude');
+    const lngResult = parseNumberQuery(rawLng, 'lng');
     if (!lngResult.success) {
       return badRequest(lngResult.error);
     }
@@ -72,10 +86,13 @@ export async function GET(request: NextRequest) {
     if (venues.length === 0) {
       const response: GetPatiosResponse = {
         patios: [],
+        meta: { count: 0, radiusKm },
         timestamp: new Date().toISOString(),
         totalCount: 0,
       };
-      return NextResponse.json(response);
+      return NextResponse.json(response, {
+        headers: { 'Cache-Control': 'public, s-maxage=30' },
+      });
     }
 
     const timestamp = new Date();
@@ -115,11 +132,17 @@ export async function GET(request: NextRequest) {
           id: venue.Id.toString(),
           venueId: venue.Id.toString(),
           venueName: venue.Name || 'Unknown Venue',
+          venueSlug: venue.Slug || venue.Id.toString(),
+          slug: venue.Slug || venue.Id.toString(),
+          neighborhood: venue.Neighborhood || '',
           location: {
+            lat: location.lat,
+            lng: location.lng,
             latitude: location.lat,
             longitude: location.lng,
           },
           currentSunStatus: sunStatus,
+          isPartner: venue.is_partner ?? false,
           confidence,
           distanceMeters,
           sunExposurePercent,
@@ -127,16 +150,27 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    const sortedPatios = patioDtos.sort((a, b) => a.distanceMeters - b.distanceMeters);
+    // Sort: sun status primary (sunny → partial → shaded), distance secondary
+    const sortedPatios = patioDtos.sort((a, b) => {
+      const statusDiff =
+        (SUN_STATUS_ORDER[a.currentSunStatus] ?? 2) -
+        (SUN_STATUS_ORDER[b.currentSunStatus] ?? 2);
+      if (statusDiff !== 0) return statusDiff;
+      return a.distanceMeters - b.distanceMeters;
+    });
 
     const response: GetPatiosResponse = {
       patios: sortedPatios,
+      meta: {
+        count: sortedPatios.length,
+        radiusKm,
+      },
       timestamp: timestamp.toISOString(),
       totalCount: sortedPatios.length,
     };
 
     return NextResponse.json(response, {
-      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+      headers: { 'Cache-Control': 'public, s-maxage=30' },
     });
   } catch (error) {
     console.error('Error searching venues:', error);

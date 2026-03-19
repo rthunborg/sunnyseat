@@ -150,6 +150,7 @@ function MiniTimelineInner({ sunWindows, variant, now, className }: MiniTimeline
     <div
       role="img"
       aria-label={ariaLabel}
+      data-testid="mini-timeline"
       className={cn(containerHeight, 'w-full flex flex-col', className)}
     >
       {/* Cloud overlay (detail only) */}

@@ -6,6 +6,8 @@ import { supabaseAdmin } from '@/lib/supabase/server';
 export interface VenueRow {
   Id: number;
   Name: string;
+  Slug?: string;
+  Neighborhood?: string;
   Geometry: string; // PostGIS geography as text
   HeightM?: number;
   HeightSource?: number;

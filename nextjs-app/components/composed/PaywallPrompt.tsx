@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { usePremiumContext } from '@/lib/context/PremiumContext';
 
 interface PaywallPromptProps {
@@ -10,10 +10,46 @@ interface PaywallPromptProps {
 type PaywallState = 'prompt' | 'loading' | 'qr' | 'error';
 
 export function PaywallPrompt({ onDismiss }: PaywallPromptProps) {
-  const { initiatePurchase, refreshStatus } = usePremiumContext();
+  const { isPremium, initiatePurchase, refreshStatus } = usePremiumContext();
   const [state, setState] = useState<PaywallState>('prompt');
   const [qrCode, setQrCode] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  // Auto-dismiss when premium activates during polling
+  useEffect(() => {
+    if (isPremium) {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      onDismiss();
+    }
+  }, [isPremium, onDismiss]);
+
+  const startPolling = useCallback(() => {
+    // Clear any existing poll
+    if (pollRef.current) clearInterval(pollRef.current);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+    pollRef.current = setInterval(async () => {
+      await refreshStatus();
+    }, 3000);
+
+    timeoutRef.current = setTimeout(() => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = null;
+      setState('error');
+      setErrorMessage('Betalningen tog för lång tid. Försök igen.');
+    }, 120000);
+  }, [refreshStatus]);
 
   const handlePurchase = useCallback(async () => {
     setState('loading');
@@ -32,28 +68,15 @@ export function PaywallPrompt({ onDismiss }: PaywallPromptProps) {
     // Try Swish app redirect on mobile
     if (result.swishUrl && /iPhone|iPad|Android/i.test(navigator.userAgent)) {
       window.location.href = result.swishUrl;
-      // Poll for completion after redirect
-      const pollInterval = setInterval(async () => {
-        await refreshStatus();
-      }, 3000);
-      setTimeout(() => clearInterval(pollInterval), 120000);
+      startPolling();
       return;
     }
 
     // Show QR code on desktop
     setQrCode(result.qrCode);
     setState('qr');
-
-    // Poll for payment completion
-    const pollInterval = setInterval(async () => {
-      await refreshStatus();
-    }, 3000);
-    setTimeout(() => {
-      clearInterval(pollInterval);
-      setState('error');
-      setErrorMessage('Betalningen tog för lång tid. Försök igen.');
-    }, 120000);
-  }, [initiatePurchase, refreshStatus]);
+    startPolling();
+  }, [initiatePurchase, refreshStatus, startPolling]);
 
   return (
     <div
@@ -61,6 +84,7 @@ export function PaywallPrompt({ onDismiss }: PaywallPromptProps) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="paywall-title"
+      data-testid="paywall-prompt"
     >
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
         <h2 id="paywall-title" className="text-xl font-bold text-gray-900">
@@ -89,12 +113,14 @@ export function PaywallPrompt({ onDismiss }: PaywallPromptProps) {
               <button
                 onClick={handlePurchase}
                 className="min-h-[48px] w-full rounded-xl bg-[#00A3E0] px-4 py-3 text-base font-semibold text-white transition-colors hover:bg-[#0090C5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00A3E0]"
+                data-testid="paywall-pay-button"
               >
                 Betala med Swish
               </button>
               <button
                 onClick={onDismiss}
                 className="min-h-[48px] w-full rounded-xl border border-gray-300 px-4 py-3 text-base text-gray-600 transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400"
+                data-testid="paywall-dismiss-button"
               >
                 Inte nu
               </button>

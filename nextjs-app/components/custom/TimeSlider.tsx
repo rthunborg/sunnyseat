@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { usePremiumContext } from '@/lib/context/PremiumContext';
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion';
+import { useLanguage } from '@/lib/i18n';
 import { PaywallPrompt } from '@/components/composed/PaywallPrompt';
 import type { TimeOffsetHours } from '@/lib/hooks/useTimeOffset';
 
@@ -12,17 +13,23 @@ interface TimeSliderProps {
   isLoading?: boolean;
 }
 
-const MARKS: { value: TimeOffsetHours; label: string }[] = [
-  { value: 0, label: 'Nu' },
-  { value: 1, label: '+1 tim' },
-  { value: 2, label: '+2 tim' },
-  { value: 3, label: '+3 tim' },
+const MARK_KEYS: { value: TimeOffsetHours; i18nKey: string }[] = [
+  { value: 0, i18nKey: 'timeSlider.now' },
+  { value: 1, i18nKey: 'timeSlider.plusHours1' },
+  { value: 2, i18nKey: 'timeSlider.plusHours2' },
+  { value: 3, i18nKey: 'timeSlider.plusHours3' },
 ];
 
 export function TimeSlider({ value, onChange, isLoading }: TimeSliderProps) {
   const { isPremium } = usePremiumContext();
   const reducedMotion = useReducedMotion();
+  const { t } = useLanguage();
   const [showPaywall, setShowPaywall] = useState(false);
+
+  const marks = useMemo(
+    () => MARK_KEYS.map((mk) => ({ value: mk.value, label: t(mk.i18nKey) })),
+    [t]
+  );
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,17 +61,18 @@ export function TimeSlider({ value, onChange, isLoading }: TimeSliderProps) {
       <div
         className={`flex flex-col gap-1 rounded-2xl bg-surface-primary/95 backdrop-blur-sm px-4 py-2 shadow-lg border border-border-subtle ${transitionClass}`}
         role="group"
-        aria-label="Tidsförskjutning för solprognos"
+        aria-label={t('timeSlider.ariaGroupLabel')}
+        data-testid="time-slider"
       >
         <div className="flex items-center justify-between">
           <span className="text-[length:var(--font-size-caption)] font-[number:var(--font-weight-caption)] text-text-secondary">
-            Tidsprognos
+            {t('timeSlider.label')}
           </span>
           {isLoading && (
             <span
               className={`inline-block h-3 w-3 rounded-full border-2 border-brand-primary border-t-transparent ${reducedMotion ? '' : 'animate-spin'}`}
               role="status"
-              aria-label="Laddar soldata"
+              aria-label={t('timeSlider.loadingSunData')}
             />
           )}
         </div>
@@ -76,16 +84,17 @@ export function TimeSlider({ value, onChange, isLoading }: TimeSliderProps) {
           step={1}
           value={value}
           onChange={handleChange}
-          className="time-slider-input w-full h-[48px] cursor-pointer accent-brand-primary"
-          aria-label="Välj tidsförskjutning"
+          className="time-slider-input w-full h-[var(--spacing-touch-min)] cursor-pointer accent-brand-primary"
+          aria-label={t('timeSlider.ariaInputLabel')}
+          data-testid="time-slider-input"
           aria-valuemin={0}
           aria-valuemax={3}
           aria-valuenow={value}
-          aria-valuetext={MARKS[value].label}
+          aria-valuetext={marks[value].label}
         />
 
         <div className="flex justify-between px-0.5 -mt-1">
-          {MARKS.map((mark) => (
+          {marks.map((mark) => (
             <button
               key={mark.value}
               type="button"
@@ -95,7 +104,7 @@ export function TimeSlider({ value, onChange, isLoading }: TimeSliderProps) {
                   ? 'font-bold text-brand-primary'
                   : 'font-medium text-text-muted hover:text-text-secondary'
               } ${!isPremium && mark.value > 0 ? 'opacity-50' : ''}`}
-              aria-label={`Ställ in ${mark.label}`}
+              aria-label={t('timeSlider.setMark', { label: mark.label })}
               aria-pressed={value === mark.value}
             >
               {mark.label}

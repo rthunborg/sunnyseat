@@ -88,7 +88,7 @@ function AdminSidebar() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 space-y-1 px-3 py-4" aria-label="Admin navigation">
+        <nav className="flex-1 space-y-1 px-3 py-4" aria-label="Admin navigation" data-testid="admin-nav">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href, item.exact);
@@ -121,6 +121,7 @@ function AdminSidebar() {
             size="sm"
             className="w-full justify-start"
             onClick={handleLogout}
+            data-testid="logout-button"
           >
             Logga ut
           </Button>

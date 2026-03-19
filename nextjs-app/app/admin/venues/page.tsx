@@ -75,19 +75,6 @@ export default function AdminVenuesPage() {
       if (!res.ok) throw new Error('Failed to load');
       const data: Venue[] = await res.json();
       setVenues(data);
-
-      // Fetch patio counts
-      const patioRes = await fetch('/api/admin/venues?mapped=true', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      // We need patio counts separately — use the quality endpoint for counts
-      // Actually let's fetch all patios to count
-      // We'll use a simpler approach: fetch patios for each venue in a single call
-      // For now, let's just fetch the raw patio data
-      if (patioRes.ok) {
-        // Count patios per venue from our fetched data (need a different endpoint)
-        // Let's just use the overview or fetch individually
-      }
     } catch {
       setError('Kunde inte ladda restauranger');
     } finally {
@@ -128,7 +115,7 @@ export default function AdminVenuesPage() {
     <>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-foreground">Restauranger</h1>
-        <Button onClick={() => router.push('/admin/venues/new')}>
+        <Button onClick={() => router.push('/admin/venues/new')} data-testid="add-venue-button">
           <PlusIcon data-icon="inline-start" />
           Lägg till restaurang
         </Button>
@@ -191,7 +178,7 @@ export default function AdminVenuesPage() {
           <p className="text-muted-foreground">Inga restauranger hittades</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border">
+        <div className="overflow-x-auto rounded-xl border border-border" data-testid="venue-table">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">

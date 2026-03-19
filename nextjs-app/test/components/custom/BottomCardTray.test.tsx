@@ -22,6 +22,12 @@ vi.mock('@/lib/hooks/useReducedMotion', () => ({
   useReducedMotion: () => false,
 }));
 
+// Mock useIsDesktop — default to mobile (false)
+let mockIsDesktop = false;
+vi.mock('@/lib/hooks/useIsDesktop', () => ({
+  useIsDesktop: () => mockIsDesktop,
+}));
+
 // Mock VenueCard
 vi.mock('@/components/custom/VenueCard', () => ({
   VenueCard: (props: Record<string, unknown>) => (
@@ -82,6 +88,7 @@ function TestWrapper({ children, venues, loading }: { children: React.ReactNode;
 describe('BottomCardTray', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsDesktop = false;
   });
 
   it('renders grab handle', () => {
@@ -124,5 +131,80 @@ describe('BottomCardTray', () => {
     );
     const skeletons = document.querySelectorAll('.h-\\[120px\\]');
     expect(skeletons.length).toBe(3);
+  });
+
+  describe('desktop side panel', () => {
+    beforeEach(() => {
+      mockIsDesktop = true;
+    });
+
+    it('renders as aside with "Venue list" label on desktop', () => {
+      render(
+        <TestWrapper>
+          <BottomCardTray />
+        </TestWrapper>
+      );
+      const aside = screen.getByRole('complementary', { name: 'Venue list' });
+      expect(aside).toBeInTheDocument();
+      expect(aside.tagName).toBe('ASIDE');
+    });
+
+    it('has 380px width class on desktop', () => {
+      render(
+        <TestWrapper>
+          <BottomCardTray />
+        </TestWrapper>
+      );
+      const aside = screen.getByRole('complementary', { name: 'Venue list' });
+      expect(aside.className).toContain('w-[380px]');
+    });
+
+    it('renders venue cards in side panel on desktop', async () => {
+      const venues = [makeVenue('v1', 'Café Husaren')];
+      render(
+        <TestWrapper venues={venues}>
+          <BottomCardTray />
+        </TestWrapper>
+      );
+      await vi.waitFor(() => {
+        expect(screen.getByTestId('venue-card-v1')).toBeInTheDocument();
+      });
+      // Verify it's inside the aside
+      const aside = screen.getByRole('complementary', { name: 'Venue list' });
+      expect(aside).toContainElement(screen.getByTestId('venue-card-v1'));
+    });
+
+    it('does not render drag handle on desktop', () => {
+      render(
+        <TestWrapper>
+          <BottomCardTray />
+        </TestWrapper>
+      );
+      // Grab handle div with w-10 h-1 is only in mobile layout
+      const motionDiv = screen.queryByTestId('motion-div');
+      expect(motionDiv).not.toBeInTheDocument();
+    });
+  });
+
+  describe('mobile bottom sheet', () => {
+    it('renders motion div with "Venue card tray" label', () => {
+      render(
+        <TestWrapper>
+          <BottomCardTray />
+        </TestWrapper>
+      );
+      const tray = screen.getByLabelText('Venue card tray');
+      expect(tray).toBeInTheDocument();
+    });
+
+    it('does not render aside element on mobile', () => {
+      render(
+        <TestWrapper>
+          <BottomCardTray />
+        </TestWrapper>
+      );
+      const aside = screen.queryByRole('complementary');
+      expect(aside).not.toBeInTheDocument();
+    });
   });
 });

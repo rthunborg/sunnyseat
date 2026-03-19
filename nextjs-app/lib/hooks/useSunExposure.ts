@@ -27,8 +27,8 @@ function mapApiToSunExposureResult(dto: PatioDataDto): SunExposureResult {
     venue: {
       id: dto.id,
       name: dto.venueName,
-      slug: dto.id,
-      neighborhood: '',
+      slug: dto.slug || dto.id,
+      neighborhood: dto.neighborhood || '',
       lat: dto.location.latitude,
       lng: dto.location.longitude,
     },

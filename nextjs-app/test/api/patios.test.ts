@@ -39,7 +39,7 @@ describe('GET /api/patios', () => {
     const res = await GET(req);
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.detail).toContain('latitude');
+    expect(body.detail).toContain('lat');
   });
 
   it('returns 400 when longitude is missing', async () => {
@@ -47,7 +47,7 @@ describe('GET /api/patios', () => {
     const res = await GET(req);
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.detail).toContain('longitude');
+    expect(body.detail).toContain('lng');
   });
 
   it('returns 400 for invalid latitude', async () => {
@@ -83,6 +83,8 @@ describe('GET /api/patios', () => {
       {
         Id: 1,
         Name: 'Café Husaren',
+        Slug: 'cafe-husaren',
+        Neighborhood: 'Haga',
         VenueLocation: 'POINT(11.97 57.7)',
         DistanceMeters: 250,
       },
@@ -94,6 +96,8 @@ describe('GET /api/patios', () => {
     const body = await res.json();
     expect(body.patios).toHaveLength(1);
     expect(body.patios[0].venueName).toBe('Café Husaren');
+    expect(body.patios[0].slug).toBe('cafe-husaren');
+    expect(body.patios[0].neighborhood).toBe('Haga');
     expect(body.patios[0].currentSunStatus).toBe('Sunny');
     expect(body.totalCount).toBe(1);
   });
@@ -130,7 +134,7 @@ describe('GET /api/patios', () => {
     expect(body.patios[0].currentSunStatus).toBe('Shaded');
   });
 
-  it('sorts venues by distance', async () => {
+  it('sorts by sun status primary, distance secondary', async () => {
     mockGetVenuesNearPoint.mockResolvedValue([
       { Id: 1, Name: 'Far', VenueLocation: 'POINT(11.97 57.7)', DistanceMeters: 500 },
       { Id: 2, Name: 'Near', VenueLocation: 'POINT(11.97 57.7)', DistanceMeters: 100 },
@@ -139,7 +143,29 @@ describe('GET /api/patios', () => {
     const req = createRequest({ latitude: '57.7', longitude: '11.97' });
     const res = await GET(req);
     const body = await res.json();
+    // Same sun status (Sunny), so distance is tiebreaker
     expect(body.patios[0].distanceMeters).toBe(100);
     expect(body.patios[1].distanceMeters).toBe(500);
+  });
+
+  it('returns meta object with count and radiusKm', async () => {
+    mockGetVenuesNearPoint.mockResolvedValue([
+      { Id: 1, Name: 'Test', VenueLocation: 'POINT(11.97 57.7)', DistanceMeters: 100 },
+    ]);
+
+    const req = createRequest({ latitude: '57.7', longitude: '11.97', radiusKm: '2.0' });
+    const res = await GET(req);
+    const body = await res.json();
+    expect(body.meta).toBeDefined();
+    expect(body.meta.count).toBe(1);
+    expect(body.meta.radiusKm).toBe(2.0);
+  });
+
+  it('accepts lat/lng as param aliases', async () => {
+    mockGetVenuesNearPoint.mockResolvedValue([]);
+    const req = createRequest({ lat: '57.7', lng: '11.97' });
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    expect(mockGetVenuesNearPoint).toHaveBeenCalledWith(57.7, 11.97, 1.5);
   });
 });

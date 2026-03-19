@@ -348,13 +348,13 @@ export default function AdminVenueDetailPage({
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive" data-testid="venue-error">
           {error}
         </div>
       )}
 
       {successMsg && (
-        <div className="mb-4 rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400">
+        <div className="mb-4 rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400" data-testid="venue-success">
           {successMsg}
         </div>
       )}
@@ -512,6 +512,7 @@ export default function AdminVenueDetailPage({
               checked={isPartner}
               onChange={(e) => setIsPartner(e.target.checked)}
               className="size-5 rounded border-input accent-amber-500"
+              data-testid="partner-checkbox"
             />
             <span className="text-sm font-medium text-foreground">
               Partner (Gyllene markör)
@@ -649,13 +650,14 @@ export default function AdminVenueDetailPage({
 
       {/* Save / delete actions */}
       <div className="mb-8 flex flex-wrap items-center gap-3">
-        <Button onClick={handleSave} disabled={saving || !name.trim()}>
+        <Button onClick={handleSave} disabled={saving || !name.trim()} data-testid="save-venue-button">
           {saving ? 'Sparar...' : 'Spara'}
         </Button>
         <Button
           variant="destructive"
           onClick={() => setDeleteOpen(true)}
           disabled={deleting}
+          data-testid="delete-venue-button"
         >
           <TrashIcon data-icon="inline-start" />
           Ta bort
@@ -715,7 +717,7 @@ export default function AdminVenueDetailPage({
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>
               Avbryt
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting} data-testid="confirm-delete-button">
               {deleting ? 'Tar bort...' : 'Ta bort'}
             </Button>
           </DialogFooter>

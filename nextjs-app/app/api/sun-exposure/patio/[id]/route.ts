@@ -55,7 +55,7 @@ export async function GET(
     };
 
     return NextResponse.json(response, {
-      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
+      headers: { 'Cache-Control': 'public, s-maxage=300' },
     });
   } catch (error) {
     console.error('Get sun exposure error:', error);
