@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { SunExposureResult } from '@/lib/types/venue';
-import type { SunStatus } from '@/lib/types/design-tokens';
+import type { SunStatus, SkyCondition } from '@/lib/types/design-tokens';
 import type { GetPatiosResponse, PatioDataDto } from '@/lib/types/api';
 
 interface UseSunExposureResult {
@@ -23,6 +23,8 @@ function mapApiToSunExposureResult(dto: PatioDataDto): SunExposureResult {
     Shaded: 'shaded',
   };
 
+  const skyCondition = (dto.skyCondition as SkyCondition) ?? 'unavailable';
+
   return {
     venue: {
       id: dto.id,
@@ -36,6 +38,12 @@ function mapApiToSunExposureResult(dto: PatioDataDto): SunExposureResult {
     sun_exposure_percent: dto.sunExposurePercent,
     confidence: dto.confidence,
     windows: [],
+    weather: {
+      cloud_cover_percent: 0,
+      sky_condition: skyCondition,
+      source: 'api',
+      fetched_at: new Date().toISOString(),
+    },
     distance_meters: dto.distanceMeters,
   };
 }

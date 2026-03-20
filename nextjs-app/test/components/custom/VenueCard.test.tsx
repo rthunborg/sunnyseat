@@ -110,7 +110,7 @@ describe('VenueCard', () => {
       const label = card.getAttribute('aria-label') ?? '';
       expect(label).toContain('Café Husaren');
       expect(label).toContain('Soligt');
-      expect(label).toContain('350 meter');
+      expect(label).toContain('400 m');
     });
 
     it('"Gå dit" button has directionsTo aria-label', () => {

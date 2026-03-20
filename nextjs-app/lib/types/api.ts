@@ -71,6 +71,7 @@ export interface PatioDataDto {
   neighborhood: string;
   location: CoordinatesDto;
   currentSunStatus: 'Sunny' | 'Partial' | 'Shaded';
+  skyCondition?: string; // 'clear' | 'partly-cloudy' | 'overcast' | 'unavailable'
   isPartner: boolean;
   confidence: number; // 0-100
   distanceMeters: number;

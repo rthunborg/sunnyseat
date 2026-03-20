@@ -118,12 +118,24 @@ export async function GET(request: NextRequest) {
         let sunStatus: 'Sunny' | 'Partial' | 'Shaded' = 'Shaded';
         let confidence = 0;
         let sunExposurePercent = 0;
+        let skyCondition: string = 'unavailable';
 
         try {
           const exposure = await calculateSunExposure(venue.Id, timestamp);
           sunStatus = exposure.state === 'NoSun' ? 'Shaded' : exposure.state;
           confidence = exposure.confidence;
           sunExposurePercent = exposure.sunExposurePercent;
+
+          // Derive sky condition from weather data if available
+          if (exposure.weatherData) {
+            const cc = exposure.weatherData.cloudCover;
+            if (cc <= 25) skyCondition = 'clear';
+            else if (cc <= 75) skyCondition = 'partly-cloudy';
+            else skyCondition = 'overcast';
+          } else {
+            // No weather data — derive from sun status
+            skyCondition = sunStatus === 'Sunny' ? 'clear' : sunStatus === 'Partial' ? 'partly-cloudy' : 'unavailable';
+          }
         } catch {
           // Gracefully degrade — show venue with unknown sun status
         }
@@ -142,6 +154,7 @@ export async function GET(request: NextRequest) {
             longitude: location.lng,
           },
           currentSunStatus: sunStatus,
+          skyCondition,
           isPartner: venue.is_partner ?? false,
           confidence,
           distanceMeters,

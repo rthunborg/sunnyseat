@@ -182,7 +182,8 @@ describe('AC 4: Swedish-First Language', () => {
 
   it('distance shown in meters not miles', () => {
     withLanguage(<VenueCard {...defaultVenueProps} distanceMeters={350} />);
-    expect(screen.getByText('350 m')).toBeDefined();
+    // 350m rounds to 400m with formatDistance
+    expect(screen.getByText('400 m')).toBeDefined();
   });
 });
 
@@ -256,7 +257,7 @@ describe('AC 8: Screen Reader Support', () => {
     const label = card.getAttribute('aria-label')!;
     expect(label).toContain('Test Café');
     expect(label).toContain('Soligt');
-    expect(label).toContain('200 meter');
+    expect(label).toContain('200 m');
   });
 
   it('VenueCard is keyboard accessible with tabIndex=0', () => {

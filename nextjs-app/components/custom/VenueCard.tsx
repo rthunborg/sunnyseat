@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion';
 import { getDetailLineText, getDirectionsUrl } from '@/lib/utils/selectVenueCardVariant';
+import { formatDistance } from '@/lib/utils/formatDistance';
 import { cn } from '@/lib/utils';
 
 const BG_MAP = {
@@ -81,8 +82,9 @@ export function VenueCard({
   const statusLabel = t(STATUS_KEY_MAP[variant]);
   const skyLabel = t(SKY_KEY_MAP[skyCondition] ?? 'sky.unavailable');
   const detailText = getDetailLineText(variant, sunWindows, new Date(), language as 'sv' | 'en');
+  const distanceLabel = formatDistance(distanceMeters, language as 'sv' | 'en');
 
-  const ariaLabel = `${venueName}, ${statusLabel}, ${distanceMeters} meter, ${detailText}, ${skyLabel}`;
+  const ariaLabel = `${venueName}, ${statusLabel}, ${distanceLabel}, ${detailText}, ${skyLabel}`;
 
   return (
     <div
@@ -121,7 +123,7 @@ export function VenueCard({
           {statusLabel}
         </span>
         <span className="text-[length:var(--font-size-body)] leading-[var(--line-height-body)] text-text-primary shrink-0">
-          {t('venue.distance', { distance: distanceMeters })}
+          {distanceLabel}
         </span>
         <span className="text-[length:var(--font-size-body)] leading-[var(--line-height-body)] text-text-secondary truncate min-w-0">
           {neighborhood}

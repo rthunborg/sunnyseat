@@ -96,7 +96,7 @@ function HomeScreenInner() {
       {/* Map fills remaining space */}
       <div className="relative flex-1 h-full">
         {/* Search bar overlay */}
-        <div className="absolute top-3 left-4 right-4 z-30 md:left-6 md:right-6 lg:left-auto lg:right-4 lg:w-72">
+        <div className="absolute top-3 left-4 right-14 z-30 md:left-6 md:right-14 lg:left-auto lg:right-4 lg:w-72">
           <SearchBar />
         </div>
 
@@ -111,7 +111,7 @@ function HomeScreenInner() {
         />
 
         {/* Time slider + date picker overlay — above card tray, below search */}
-        <div className="absolute bottom-[calc(var(--spacing-touch-comfortable)+8px)] left-4 right-4 z-20 md:left-6 md:right-6 lg:bottom-4 lg:left-auto lg:right-4 lg:w-72">
+        <div className="absolute bottom-[28%] left-4 right-4 z-20 md:left-6 md:right-6 lg:bottom-4 lg:left-auto lg:right-4 lg:w-72">
           <div className="flex items-end gap-2">
             <div className="flex-1">
               <TimeSlider

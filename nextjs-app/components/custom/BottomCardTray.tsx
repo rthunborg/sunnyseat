@@ -190,9 +190,25 @@ export function BottomCardTray() {
       onDragEnd={handleDragEnd}
       aria-label="Venue card tray"
     >
-      {/* Grab handle */}
+      {/* Grab handle — tap to cycle state */}
       <div
         className="flex flex-col items-center pt-3 pb-2 cursor-grab active:cursor-grabbing min-h-[var(--spacing-touch-min)]"
+        onClick={() => {
+          if (trayState === 'collapsed') setTrayState('peeking');
+          else if (trayState === 'peeking') setTrayState('half-expanded');
+          else setTrayState('peeking');
+        }}
+        role="button"
+        aria-label={trayState === 'collapsed' ? 'Visa uteplatser' : trayState === 'peeking' ? 'Visa fler' : 'Minimera'}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (trayState === 'collapsed') setTrayState('peeking');
+            else if (trayState === 'peeking') setTrayState('half-expanded');
+            else setTrayState('peeking');
+          }
+        }}
       >
         <div
           className="w-10 h-1 bg-border-default rounded-full"
