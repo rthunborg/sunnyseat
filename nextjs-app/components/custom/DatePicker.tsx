@@ -164,7 +164,7 @@ export function DatePicker({ selectedDate, onDateSelect, isLoading }: DatePicker
 
       {isOpen && (
         <div
-          className="absolute bottom-full mb-2 left-0 z-30 w-[280px] rounded-2xl bg-surface-primary shadow-xl border border-border-subtle p-3"
+          className="absolute bottom-full mb-2 right-0 z-50 w-[280px] max-w-[calc(100vw-2rem)] rounded-2xl bg-surface-primary shadow-xl border border-border-subtle p-3"
           role="dialog"
           aria-modal="false"
           aria-label={t('datePicker.chooseDate')}

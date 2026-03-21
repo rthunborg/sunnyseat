@@ -209,6 +209,24 @@ html {
   }
 }
 
+/* Skeleton warm pulse animation */
+@keyframes warm-pulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+.animate-warm-pulse {
+  animation: warm-pulse 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-warm-pulse {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
 /* VenueCard highlight fade animation */
 @keyframes highlight-fade {
   0% { border-left-width: 3px; opacity: 1; }
@@ -229,4 +247,32 @@ html {
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══════════════════════════════════════════════
+   Ambient Tone Utility Classes
+   Light-mode only for V1. Dark mode extension point:
+   add .dark .ambient-sunny { ... } variants when dark mode ships.
+   ═══════════════════════════════════════════════ */
+.ambient-sunny {
+  background-color: var(--color-ambient-sunny);
+  transition: background-color var(--transition-timing-ambient);
+}
+
+.ambient-cloudy {
+  background-color: var(--color-ambient-cloudy);
+  transition: background-color var(--transition-timing-ambient);
+}
+
+.ambient-winter {
+  background-color: var(--color-ambient-winter);
+  transition: background-color var(--transition-timing-ambient);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-sunny,
+  .ambient-cloudy,
+  .ambient-winter {
+    transition: none;
+  }
 }

@@ -10,6 +10,8 @@ import { useSunExposure } from '@/lib/hooks/useSunExposure';
 import { useSunnyNow } from '@/lib/hooks/useSunnyNow';
 import { useTimeOffset } from '@/lib/hooks/useTimeOffset';
 import { useDateSelection } from '@/lib/hooks/useDateSelection';
+import { useOverlayPosition } from '@/lib/hooks/useOverlayPosition';
+import { useAmbientTone } from '@/lib/hooks/useAmbientTone';
 import { sortVenues } from '@/lib/utils/sortVenues';
 import { LocationPermissionPrompt } from '@/components/custom/LocationPermissionPrompt';
 import { BottomCardTray } from '@/components/custom/BottomCardTray';
@@ -40,8 +42,9 @@ function ForecastStatus({ selectedDate, timeOffset }: { selectedDate: Date | nul
 
 function HomeScreenInner() {
   const { coordinates, permissionStatus, requestLocation } = useCurrentLocation();
-  const [, setMap] = useState<maplibregl.Map | null>(null);
-  const { setVenues, setLoading, selectedVenueId, selectVenue, trayState, setTrayState, venues } = useCardTray();
+  const [map, setMap] = useState<maplibregl.Map | null>(null);
+  const { setVenues, setLoading, selectedVenueId, selectVenue, trayState, setTrayState, venues, setEmptyReason } = useCardTray();
+  const [hoveredVenueId, setHoveredVenueId] = useState<string | null>(null);
 
   // Track map center for refetch on pan/zoom
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
@@ -54,6 +57,8 @@ function HomeScreenInner() {
   const { sunnyPartners } = useSunnyNow();
   const { timeOffset, setTimeOffset, isLoading: isTimeOffsetLoading } = useTimeOffset(fetchLat, fetchLng);
   const { selectedDate, setSelectedDate, isLoading: isDateLoading } = useDateSelection(fetchLat, fetchLng);
+  const { bottomOffset, visible: timeControlsVisible } = useOverlayPosition(trayState);
+  const { className: ambientClass } = useAmbientTone();
 
   // Sync loading/venues to context
   useEffect(() => {
@@ -65,6 +70,42 @@ function HomeScreenInner() {
       setVenues(sortVenues(data));
     }
   }, [data, setVenues]);
+
+  // Set empty reason based on state
+  useEffect(() => {
+    if (permissionStatus === 'denied') {
+      setEmptyReason('location');
+    } else if (!navigator.onLine) {
+      setEmptyReason('offline');
+    } else {
+      setEmptyReason(null);
+    }
+  }, [permissionStatus, setEmptyReason]);
+
+  // CTA handler for empty states
+  const handleEmptyCta = useCallback(() => {
+    // "Go to centrum" for area variant — fly to Gothenburg default
+    if (venues.length === 0 && permissionStatus !== 'denied' && navigator.onLine) {
+      if (map) {
+        map.flyTo({ center: [11.9746, 57.7089], zoom: 14 });
+      }
+      return;
+    }
+    // "Use time control" for weather variant — scroll to time slider
+    if (venues.length > 0 && venues.every((v) => v.current_status === 'shaded')) {
+      const el = document.querySelector('[data-testid="time-controls-overlay"]');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('animate-pulse');
+        setTimeout(() => el.classList.remove('animate-pulse'), 2000);
+      }
+      return;
+    }
+    // "Try again" for offline — reload
+    if (!navigator.onLine) {
+      window.location.reload();
+    }
+  }, [map, venues, permissionStatus]);
 
   const handleMapReady = useCallback((map: maplibregl.Map) => {
     setMap(map);
@@ -86,18 +127,30 @@ function HomeScreenInner() {
     setMapCenter(center);
   }, []);
 
+  const handleSearchVenueSelect = useCallback(
+    (_venueId: string, coords: { lat: number; lng: number }) => {
+      if (map) {
+        map.flyTo({ center: [coords.lng, coords.lat], zoom: 16, duration: 800 });
+      }
+      if (trayState === 'collapsed') {
+        setTrayState('peeking');
+      }
+    },
+    [map, trayState, setTrayState]
+  );
+
   return (
     <div id="main-content" className="w-screen h-[100dvh] relative overflow-hidden lg:flex lg:flex-row">
       {/* Desktop: side panel on the left */}
       <div className="hidden lg:block">
-        <BottomCardTray />
+        <BottomCardTray ambientClass={ambientClass} onEmptyCta={handleEmptyCta} onVenueHover={setHoveredVenueId} />
       </div>
 
       {/* Map fills remaining space */}
       <div className="relative flex-1 h-full">
         {/* Search bar overlay */}
         <div className="absolute top-3 left-4 right-14 z-30 md:left-6 md:right-14 lg:left-auto lg:right-4 lg:w-72">
-          <SearchBar />
+          <SearchBar onVenueSelect={handleSearchVenueSelect} />
         </div>
 
         <MapContainer
@@ -105,33 +158,40 @@ function HomeScreenInner() {
           onMapReady={handleMapReady}
           venues={venues}
           selectedVenueId={selectedVenueId}
+          hoveredVenueId={hoveredVenueId}
           onVenueSelect={handleVenueSelect}
           onBoundsChange={handleBoundsChange}
           sunnyPartnerIds={sunnyPartners}
         />
 
         {/* Time slider + date picker overlay — above card tray, below search */}
-        <div className="absolute bottom-[28%] left-4 right-4 z-20 md:left-6 md:right-6 lg:bottom-4 lg:left-auto lg:right-4 lg:w-72">
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <TimeSlider
-                value={timeOffset}
-                onChange={setTimeOffset}
-                isLoading={isTimeOffsetLoading}
-              />
+        {timeControlsVisible && (
+          <div
+            className="absolute left-4 right-4 z-20 md:left-6 md:right-6 lg:bottom-4 lg:left-auto lg:right-4 lg:w-72 transition-[bottom] duration-200"
+            style={{ bottom: timeControlsVisible ? bottomOffset : undefined }}
+            data-testid="time-controls-overlay"
+          >
+            <div className="flex items-end gap-2">
+              <div className="flex-1 min-w-0">
+                <TimeSlider
+                  value={timeOffset}
+                  onChange={setTimeOffset}
+                  isLoading={isTimeOffsetLoading}
+                />
+              </div>
+              <div className="relative shrink-0">
+                <DatePicker
+                  selectedDate={selectedDate}
+                  onDateSelect={setSelectedDate}
+                  isLoading={isDateLoading}
+                />
+              </div>
             </div>
-            <div className="relative">
-              <DatePicker
-                selectedDate={selectedDate}
-                onDateSelect={setSelectedDate}
-                isLoading={isDateLoading}
-              />
-            </div>
+            {(timeOffset > 0 || selectedDate) && (
+              <ForecastStatus selectedDate={selectedDate} timeOffset={timeOffset} />
+            )}
           </div>
-          {(timeOffset > 0 || selectedDate) && (
-            <ForecastStatus selectedDate={selectedDate} timeOffset={timeOffset} />
-          )}
-        </div>
+        )}
 
         <LocationPermissionPrompt
           permissionStatus={permissionStatus}
@@ -142,7 +202,7 @@ function HomeScreenInner() {
 
       {/* Mobile: bottom card tray overlaid */}
       <div className="lg:hidden">
-        <BottomCardTray />
+        <BottomCardTray ambientClass={ambientClass} onEmptyCta={handleEmptyCta} />
       </div>
     </div>
   );

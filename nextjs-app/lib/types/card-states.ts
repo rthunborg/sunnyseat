@@ -23,4 +23,7 @@ export interface VenueCardProps {
   sunWindows: SunWindow[];
   isPartner?: boolean;
   onClick?: () => void;
+  layout?: 'compact' | 'expanded';
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }

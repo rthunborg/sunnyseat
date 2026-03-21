@@ -46,7 +46,7 @@ interface VenueProps {
   website_url?: string | null;
 }
 
-function renderPage(overrides: VenueProps = {}) {
+function renderPage(overrides: VenueProps = {}, { isModal, onClose }: { isModal?: boolean; onClose?: () => void } = {}) {
   const venue = {
     id: 'v1',
     name: 'Test Café',
@@ -63,7 +63,7 @@ function renderPage(overrides: VenueProps = {}) {
 
   return render(
     <LanguageProvider>
-      <VenueDetailPage venue={venue} />
+      <VenueDetailPage venue={venue} isModal={isModal} onClose={onClose} />
     </LanguageProvider>
   );
 }
@@ -146,5 +146,54 @@ describe('VenueDetailPage', () => {
     const link = screen.getByTestId('directions-link');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
+  });
+
+  it('directions link is full-width prominent CTA', () => {
+    renderPage();
+    const link = screen.getByTestId('directions-link');
+    expect(link.className).toContain('w-full');
+    expect(link.className).toContain('font-semibold');
+    expect(link.className).toContain('bg-brand-primary');
+  });
+
+  describe('modal mode', () => {
+    it('renders as div instead of main when isModal', () => {
+      const { container } = renderPage({}, { isModal: true });
+      expect(container.querySelector('main')).toBeNull();
+      expect(container.querySelector('div.bg-surface-primary')).not.toBeNull();
+    });
+
+    it('does not include min-h-screen in modal mode', () => {
+      const { container } = renderPage({}, { isModal: true });
+      const wrapper = container.querySelector('.bg-surface-primary');
+      expect(wrapper?.className).not.toContain('min-h-screen');
+    });
+
+    it('renders as main element when not in modal mode', () => {
+      const { container } = renderPage();
+      expect(container.querySelector('main#main-content')).not.toBeNull();
+    });
+
+    it('calls onClose instead of router.back when onClose provided', () => {
+      const onClose = vi.fn();
+      renderPage({}, { isModal: true, onClose });
+      fireEvent.click(screen.getByTestId('back-button'));
+      expect(onClose).toHaveBeenCalledOnce();
+      expect(backMock).not.toHaveBeenCalled();
+    });
+
+    it('Escape key calls onClose in modal mode', () => {
+      const onClose = vi.fn();
+      renderPage({}, { isModal: true, onClose });
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(onClose).toHaveBeenCalledOnce();
+    });
+
+    it('Escape key does not call onClose when not in modal mode', () => {
+      const onClose = vi.fn();
+      renderPage({}, { isModal: false, onClose });
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(onClose).not.toHaveBeenCalled();
+    });
   });
 });

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { SunWindow } from '@/lib/types/venue';
 import type { SkyCondition, SunStatus } from '@/lib/types/design-tokens';
 import { MiniTimeline } from '@/components/custom/MiniTimeline';
@@ -10,6 +10,7 @@ import { SkyConditionBadge } from '@/components/composed/SkyConditionBadge';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/lib/i18n';
 import { PartnerActions } from '@/components/composed/PartnerActions';
+import { getAmbientToneClass } from '@/lib/hooks/useAmbientTone';
 
 interface VenueDetailProps {
   venue: {
@@ -27,12 +28,23 @@ interface VenueDetailProps {
     booking_url?: string | null;
     website_url?: string | null;
   };
+  isModal?: boolean;
+  onClose?: () => void;
 }
 
-export default function VenueDetailPage({ venue }: VenueDetailProps) {
+export default function VenueDetailPage({ venue, isModal = false, onClose }: VenueDetailProps) {
   const router = useRouter();
   const { t } = useLanguage();
   const [shareMessage, setShareMessage] = useState<string | null>(null);
+  const ambientClass = getAmbientToneClass(venue.currentSunStatus);
+
+  const handleBack = useCallback(() => {
+    if (onClose) {
+      onClose();
+    } else {
+      router.back();
+    }
+  }, [onClose, router]);
 
   const handleShare = useCallback(async () => {
     const url = window.location.href;
@@ -53,15 +65,29 @@ export default function VenueDetailPage({ venue }: VenueDetailProps) {
 
   const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${venue.lat},${venue.lng}`;
 
+  // Handle Escape key for closing modal
+  useEffect(() => {
+    if (!isModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onClose) {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isModal, onClose]);
+
+  const Container = isModal ? 'div' : 'main';
+
   return (
-    <main
-      id="main-content"
-      className="min-h-screen bg-surface-primary pb-[var(--spacing-touch-comfortable)]"
+    <Container
+      {...(!isModal ? { id: 'main-content' } : {})}
+      className={`${isModal ? '' : 'min-h-screen'} bg-surface-primary pb-[var(--spacing-touch-comfortable)] ${ambientClass}`}
     >
       {/* Back navigation */}
       <nav className="px-4 md:px-6 pt-4 pb-2">
         <button
-          onClick={() => router.back()}
+          onClick={handleBack}
           className="inline-flex items-center gap-1 text-[length:var(--font-size-body)] leading-[var(--line-height-body)] text-text-secondary min-h-[var(--spacing-touch-min)] px-2 -ml-2 rounded-button hover:bg-surface-secondary transition-colors"
           aria-label={t('common.back')}
           data-testid="back-button"
@@ -115,22 +141,26 @@ export default function VenueDetailPage({ venue }: VenueDetailProps) {
         />
       </section>
 
-      {/* Action buttons */}
-      <section className="px-4 md:px-6 pb-6 flex gap-3">
+      {/* Primary CTA: Directions */}
+      <section className="px-4 md:px-6 pb-4">
         <a
           href={mapsUrl}
           target="_blank"
           rel="noopener noreferrer"
           aria-label={t('venue.directionsTo', { name: venue.name })}
-          className="flex-1 inline-flex shrink-0 items-center justify-center rounded-button bg-brand-primary text-white h-[var(--spacing-touch-comfortable)] px-6 text-sm font-medium transition-all hover:bg-brand-primary-dark"
+          className="w-full inline-flex items-center justify-center rounded-button bg-brand-primary text-white h-[var(--spacing-touch-comfortable)] px-6 text-base font-semibold transition-all hover:bg-brand-primary-dark active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
           data-testid="directions-link"
         >
           {t('venue.directions')}
         </a>
+      </section>
+
+      {/* Secondary action: Share */}
+      <section className="px-4 md:px-6 pb-6">
         <Button
           variant="outline"
           size="lg"
-          className="flex-1 min-h-[var(--spacing-touch-min)]"
+          className="w-full min-h-[var(--spacing-touch-min)]"
           onClick={handleShare}
           aria-label={t('venueDetail.share')}
           data-testid="share-button"
@@ -160,6 +190,6 @@ export default function VenueDetailPage({ venue }: VenueDetailProps) {
           {shareMessage}
         </div>
       )}
-    </main>
+    </Container>
   );
 }

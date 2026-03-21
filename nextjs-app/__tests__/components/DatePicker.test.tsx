@@ -232,4 +232,27 @@ describe('DatePicker', () => {
     expect(trigger.className).toContain('min-h-[var(--spacing-touch-min)]');
     expect(trigger.className).toContain('min-w-[var(--spacing-touch-min)]');
   });
+
+  describe('popup containment', () => {
+    it('calendar popup uses right-0 alignment to prevent viewport clipping', () => {
+      renderDatePicker();
+      fireEvent.click(screen.getByRole('button', { name: /välj datum/i }));
+      const dialog = screen.getByRole('dialog', { name: /välj datum/i });
+      expect(dialog.className).toContain('right-0');
+    });
+
+    it('calendar popup uses max-width to stay within viewport', () => {
+      renderDatePicker();
+      fireEvent.click(screen.getByRole('button', { name: /välj datum/i }));
+      const dialog = screen.getByRole('dialog', { name: /välj datum/i });
+      expect(dialog.className).toContain('max-w-[calc(100vw-2rem)]');
+    });
+
+    it('calendar popup has z-50 to appear above card tray', () => {
+      renderDatePicker();
+      fireEvent.click(screen.getByRole('button', { name: /välj datum/i }));
+      const dialog = screen.getByRole('dialog', { name: /välj datum/i });
+      expect(dialog.className).toContain('z-50');
+    });
+  });
 });

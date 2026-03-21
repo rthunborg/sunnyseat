@@ -39,11 +39,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
+export default function RootLayout(props: {
   children: React.ReactNode;
-}>) {
+  modal?: React.ReactNode;
+}) {
+  const { children, modal } = props;
   return (
     <html lang="sv" style={{ colorScheme: 'light' }}>
       <body className="flex flex-col min-h-screen">
@@ -55,6 +55,7 @@ export default function RootLayout({
         </a>
         <QueryProvider>
           <div className="flex-1">{children}</div>
+          {modal}
           <Footer />
           <PwaInstallPrompt />
           <ServiceWorkerRegistration />

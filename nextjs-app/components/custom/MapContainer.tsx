@@ -10,18 +10,53 @@ import type maplibregl from 'maplibre-gl';
 const GOTHENBURG_CENTER: [number, number] = [11.9746, 57.7089];
 const DEFAULT_ZOOM = 14;
 
-const STATUS_COLORS: Record<string, string> = {
+/** Marker sizes (radius in px) */
+const MARKER_RADIUS = { regular: 7, partner: 10, candidate: 6 };
+const SELECTED_RADIUS = { regular: 11, partner: 13, candidate: 9 };
+const SELECTION_RING_WHITE = 3;
+const SELECTION_RING_COLOR = 2;
+
+export const STATUS_COLORS: Record<string, string> = {
   sunny: '#16A34A',
   partial: '#D97706',
   shaded: '#6B7280',
   upcoming: '#8B5CF6',
 };
 
+/** Status color expression reusable across layers */
+const STATUS_COLOR_EXPR: maplibregl.ExpressionSpecification = [
+  'match',
+  ['get', 'sunStatus'],
+  'sunny', STATUS_COLORS.sunny,
+  'partial', STATUS_COLORS.partial,
+  'shaded', STATUS_COLORS.shaded,
+  'upcoming', STATUS_COLORS.upcoming,
+  '#6B7280',
+];
+
+/** Build a paint expression: selectedValue when id matches, defaultValue otherwise */
+export function selectedExpr(
+  selectedId: string,
+  selectedValue: number,
+  defaultValue: number,
+): maplibregl.ExpressionSpecification {
+  return ['case', ['==', ['get', 'id'], selectedId], selectedValue, defaultValue];
+}
+
+/** Opacity expression: 1 when selected, dimmed otherwise */
+export function selectedOpacityExpr(
+  selectedId: string,
+  dimmedOpacity: number = 0.6,
+): maplibregl.ExpressionSpecification {
+  return ['case', ['==', ['get', 'id'], selectedId], 1, dimmedOpacity];
+}
+
 interface MapContainerProps {
   userLocation: Coordinates | null;
   onMapReady?: (map: maplibregl.Map) => void;
   venues?: SunExposureResult[];
   selectedVenueId?: string | null;
+  hoveredVenueId?: string | null;
   onVenueSelect?: (id: string | null) => void;
   onBoundsChange?: (center: { lat: number; lng: number }) => void;
   sunnyPartnerIds?: string[];
@@ -107,6 +142,7 @@ export default function MapContainer({
   onMapReady,
   venues,
   selectedVenueId,
+  hoveredVenueId,
   onVenueSelect,
   onBoundsChange,
   sunnyPartnerIds,
@@ -120,6 +156,8 @@ export default function MapContainer({
   const moveendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const markersInitialized = useRef(false);
   const sunnyBadgeMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const pulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevSelectedRef = useRef<string | null>(null);
 
   const initMap = useCallback(async () => {
     if (!containerRef.current || mapRef.current) return;
@@ -274,6 +312,22 @@ export default function MapContainer({
         },
       });
 
+      // Selection outer ring layer (regular venues — behind main markers)
+      map.addLayer({
+        id: 'venue-selection-ring',
+        type: 'circle',
+        source: 'venues',
+        filter: ['all', ['!=', ['get', 'isPartner'], true], ['!=', ['get', 'isCandidate'], true]],
+        paint: {
+          'circle-radius': SELECTED_RADIUS.regular + SELECTION_RING_WHITE,
+          'circle-color': 'transparent',
+          'circle-opacity': 0,
+          'circle-stroke-width': SELECTION_RING_COLOR,
+          'circle-stroke-color': STATUS_COLOR_EXPR,
+          'circle-stroke-opacity': 0,
+        },
+      });
+
       // Main marker layer (non-partner, non-candidate venues)
       map.addLayer({
         id: 'venue-markers',
@@ -281,20 +335,14 @@ export default function MapContainer({
         source: 'venues',
         filter: ['all', ['!=', ['get', 'isPartner'], true], ['!=', ['get', 'isCandidate'], true]],
         paint: {
-          'circle-radius': 7,
-          'circle-color': [
-            'match',
-            ['get', 'sunStatus'],
-            'sunny', STATUS_COLORS.sunny,
-            'partial', STATUS_COLORS.partial,
-            'shaded', STATUS_COLORS.shaded,
-            'upcoming', STATUS_COLORS.upcoming,
-            '#6B7280',
-          ],
+          'circle-radius': MARKER_RADIUS.regular,
+          'circle-color': STATUS_COLOR_EXPR,
           'circle-stroke-width': 2,
           'circle-stroke-color': '#FFFFFF',
           'circle-blur': 0.5,
           'circle-opacity': reducedMotion ? 1 : 0,
+          'circle-radius-transition': { duration: reducedMotion ? 0 : 200 },
+          'circle-stroke-width-transition': { duration: reducedMotion ? 0 : 200 },
         },
       });
 
@@ -312,6 +360,22 @@ export default function MapContainer({
         },
       });
 
+      // Selection outer ring layer (partner venues — behind partner markers)
+      map.addLayer({
+        id: 'partner-selection-ring',
+        type: 'circle',
+        source: 'venues',
+        filter: ['==', ['get', 'isPartner'], true],
+        paint: {
+          'circle-radius': SELECTED_RADIUS.partner + SELECTION_RING_WHITE,
+          'circle-color': 'transparent',
+          'circle-opacity': 0,
+          'circle-stroke-width': SELECTION_RING_COLOR,
+          'circle-stroke-color': '#FFD700',
+          'circle-stroke-opacity': 0,
+        },
+      });
+
       // Golden pin marker layer (partner venues, larger and gold)
       map.addLayer({
         id: 'partner-markers',
@@ -319,11 +383,29 @@ export default function MapContainer({
         source: 'venues',
         filter: ['==', ['get', 'isPartner'], true],
         paint: {
-          'circle-radius': 10,
+          'circle-radius': MARKER_RADIUS.partner,
           'circle-color': '#FFD700',
           'circle-stroke-width': 2,
           'circle-stroke-color': '#FFFFFF',
           'circle-opacity': 1,
+          'circle-radius-transition': { duration: reducedMotion ? 0 : 200 },
+          'circle-stroke-width-transition': { duration: reducedMotion ? 0 : 200 },
+        },
+      });
+
+      // Selection outer ring layer (candidate venues — behind candidate markers)
+      map.addLayer({
+        id: 'candidate-selection-ring',
+        type: 'circle',
+        source: 'venues',
+        filter: ['==', ['get', 'isCandidate'], true],
+        paint: {
+          'circle-radius': SELECTED_RADIUS.candidate + SELECTION_RING_WHITE,
+          'circle-color': 'transparent',
+          'circle-opacity': 0,
+          'circle-stroke-width': SELECTION_RING_COLOR,
+          'circle-stroke-color': '#3B82F6',
+          'circle-stroke-opacity': 0,
         },
       });
 
@@ -334,11 +416,30 @@ export default function MapContainer({
         source: 'venues',
         filter: ['==', ['get', 'isCandidate'], true],
         paint: {
-          'circle-radius': 6,
+          'circle-radius': MARKER_RADIUS.candidate,
           'circle-color': '#3B82F6',
           'circle-stroke-width': 2,
           'circle-stroke-color': '#FFFFFF',
           'circle-opacity': 1,
+          'circle-radius-transition': { duration: reducedMotion ? 0 : 200 },
+          'circle-stroke-width-transition': { duration: reducedMotion ? 0 : 200 },
+        },
+      });
+
+      // Pulse layer (used for selection pulse animation)
+      map.addLayer({
+        id: 'venue-pulse',
+        type: 'circle',
+        source: 'venues',
+        paint: {
+          'circle-radius': SELECTED_RADIUS.regular,
+          'circle-color': 'transparent',
+          'circle-opacity': 0,
+          'circle-stroke-width': 3,
+          'circle-stroke-color': STATUS_COLOR_EXPR,
+          'circle-stroke-opacity': 0,
+          'circle-radius-transition': { duration: 400 },
+          'circle-stroke-opacity-transition': { duration: 400 },
         },
       });
 
@@ -393,7 +494,7 @@ export default function MapContainer({
     }
   }, [venues, reducedMotion]);
 
-  // Task 11: Update marker styles when selectedVenueId changes
+  // Update marker styles when selectedVenueId changes (AC1–AC8)
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !markersInitialized.current) return;
@@ -401,60 +502,130 @@ export default function MapContainer({
     try {
       if (!map.getLayer('venue-markers')) return;
 
+      // Clear any pending pulse timer
+      if (pulseTimerRef.current) {
+        clearTimeout(pulseTimerRef.current);
+        pulseTimerRef.current = null;
+      }
+
       if (selectedVenueId) {
-        // Regular markers
-        map.setPaintProperty('venue-markers', 'circle-radius', [
-          'case',
-          ['==', ['get', 'id'], selectedVenueId], 10,
-          7,
-        ]);
-        map.setPaintProperty('venue-markers', 'circle-opacity', [
-          'case',
-          ['==', ['get', 'id'], selectedVenueId], 1,
-          0.7,
-        ]);
+        const isNewSelection = prevSelectedRef.current !== selectedVenueId;
+
+        // AC1: Scale-up selected marker (7→11, 10→13, 6→9)
+        // AC3: Dim non-selected markers to 0.6
+        map.setPaintProperty('venue-markers', 'circle-radius',
+          selectedExpr(selectedVenueId, SELECTED_RADIUS.regular, MARKER_RADIUS.regular));
+        map.setPaintProperty('venue-markers', 'circle-opacity',
+          selectedOpacityExpr(selectedVenueId));
+        // AC2: Selected marker gets 3px white ring
+        map.setPaintProperty('venue-markers', 'circle-stroke-width',
+          selectedExpr(selectedVenueId, SELECTION_RING_WHITE, 2));
+
+        // AC2: Outer colored ring for selected regular venue
+        if (map.getLayer('venue-selection-ring')) {
+          map.setPaintProperty('venue-selection-ring', 'circle-stroke-opacity',
+            selectedExpr(selectedVenueId, 1, 0));
+          map.setPaintProperty('venue-selection-ring', 'circle-radius',
+            selectedExpr(selectedVenueId, SELECTED_RADIUS.regular + SELECTION_RING_WHITE, 0));
+        }
+
         // Partner markers
         if (map.getLayer('partner-markers')) {
-          map.setPaintProperty('partner-markers', 'circle-radius', [
-            'case',
-            ['==', ['get', 'id'], selectedVenueId], 13,
-            10,
-          ]);
-          map.setPaintProperty('partner-markers', 'circle-opacity', [
-            'case',
-            ['==', ['get', 'id'], selectedVenueId], 1,
-            0.7,
-          ]);
+          map.setPaintProperty('partner-markers', 'circle-radius',
+            selectedExpr(selectedVenueId, SELECTED_RADIUS.partner, MARKER_RADIUS.partner));
+          map.setPaintProperty('partner-markers', 'circle-opacity',
+            selectedOpacityExpr(selectedVenueId));
+          map.setPaintProperty('partner-markers', 'circle-stroke-width',
+            selectedExpr(selectedVenueId, SELECTION_RING_WHITE, 2));
         }
+        if (map.getLayer('partner-selection-ring')) {
+          map.setPaintProperty('partner-selection-ring', 'circle-stroke-opacity',
+            selectedExpr(selectedVenueId, 1, 0));
+          map.setPaintProperty('partner-selection-ring', 'circle-radius',
+            selectedExpr(selectedVenueId, SELECTED_RADIUS.partner + SELECTION_RING_WHITE, 0));
+        }
+
         // Candidate markers
         if (map.getLayer('candidate-markers')) {
-          map.setPaintProperty('candidate-markers', 'circle-radius', [
-            'case',
-            ['==', ['get', 'id'], selectedVenueId], 9,
-            6,
-          ]);
-          map.setPaintProperty('candidate-markers', 'circle-opacity', [
-            'case',
-            ['==', ['get', 'id'], selectedVenueId], 1,
-            0.7,
-          ]);
+          map.setPaintProperty('candidate-markers', 'circle-radius',
+            selectedExpr(selectedVenueId, SELECTED_RADIUS.candidate, MARKER_RADIUS.candidate));
+          map.setPaintProperty('candidate-markers', 'circle-opacity',
+            selectedOpacityExpr(selectedVenueId));
+          map.setPaintProperty('candidate-markers', 'circle-stroke-width',
+            selectedExpr(selectedVenueId, SELECTION_RING_WHITE, 2));
         }
+        if (map.getLayer('candidate-selection-ring')) {
+          map.setPaintProperty('candidate-selection-ring', 'circle-stroke-opacity',
+            selectedExpr(selectedVenueId, 1, 0));
+          map.setPaintProperty('candidate-selection-ring', 'circle-radius',
+            selectedExpr(selectedVenueId, SELECTED_RADIUS.candidate + SELECTION_RING_WHITE, 0));
+        }
+
+        // AC4: Pulse animation on initial selection (not reduced motion)
+        if (isNewSelection && !reducedMotion && map.getLayer('venue-pulse')) {
+          // Start pulse: show ring at selected marker, expanding outward
+          const pulseRadius = Math.round(SELECTED_RADIUS.regular * 1.15);
+          map.setPaintProperty('venue-pulse', 'circle-radius',
+            selectedExpr(selectedVenueId, SELECTED_RADIUS.regular, 0));
+          map.setPaintProperty('venue-pulse', 'circle-stroke-opacity',
+            selectedExpr(selectedVenueId, 0.6, 0));
+
+          // Trigger expansion + fade via transitions (400ms)
+          requestAnimationFrame(() => {
+            if (!mapRef.current) return;
+            map.setPaintProperty('venue-pulse', 'circle-radius',
+              selectedExpr(selectedVenueId, pulseRadius, 0));
+            map.setPaintProperty('venue-pulse', 'circle-stroke-opacity',
+              selectedExpr(selectedVenueId, 0, 0));
+          });
+
+          // Clean up pulse layer after animation completes
+          pulseTimerRef.current = setTimeout(() => {
+            if (!mapRef.current || !map.getLayer('venue-pulse')) return;
+            map.setPaintProperty('venue-pulse', 'circle-stroke-opacity', 0);
+          }, 450);
+        }
+
+        prevSelectedRef.current = selectedVenueId;
       } else {
-        map.setPaintProperty('venue-markers', 'circle-radius', 7);
+        // AC5: Deselection — reset all markers to normal state
+        prevSelectedRef.current = null;
+
+        map.setPaintProperty('venue-markers', 'circle-radius', MARKER_RADIUS.regular);
         map.setPaintProperty('venue-markers', 'circle-opacity', 1);
-        if (map.getLayer('partner-markers')) {
-          map.setPaintProperty('partner-markers', 'circle-radius', 10);
-          map.setPaintProperty('partner-markers', 'circle-opacity', 1);
+        map.setPaintProperty('venue-markers', 'circle-stroke-width', 2);
+
+        if (map.getLayer('venue-selection-ring')) {
+          map.setPaintProperty('venue-selection-ring', 'circle-stroke-opacity', 0);
         }
+
+        if (map.getLayer('partner-markers')) {
+          map.setPaintProperty('partner-markers', 'circle-radius', MARKER_RADIUS.partner);
+          map.setPaintProperty('partner-markers', 'circle-opacity', 1);
+          map.setPaintProperty('partner-markers', 'circle-stroke-width', 2);
+        }
+        if (map.getLayer('partner-selection-ring')) {
+          map.setPaintProperty('partner-selection-ring', 'circle-stroke-opacity', 0);
+        }
+
         if (map.getLayer('candidate-markers')) {
-          map.setPaintProperty('candidate-markers', 'circle-radius', 6);
+          map.setPaintProperty('candidate-markers', 'circle-radius', MARKER_RADIUS.candidate);
           map.setPaintProperty('candidate-markers', 'circle-opacity', 1);
+          map.setPaintProperty('candidate-markers', 'circle-stroke-width', 2);
+        }
+        if (map.getLayer('candidate-selection-ring')) {
+          map.setPaintProperty('candidate-selection-ring', 'circle-stroke-opacity', 0);
+        }
+
+        // Reset pulse layer
+        if (map.getLayer('venue-pulse')) {
+          map.setPaintProperty('venue-pulse', 'circle-stroke-opacity', 0);
         }
       }
     } catch {
       // Layer may not exist yet
     }
-  }, [selectedVenueId]);
+  }, [selectedVenueId, reducedMotion]);
 
   // Sunny-now badge overlay on partner markers
   useEffect(() => {
@@ -487,6 +658,46 @@ export default function MapContainer({
 
     addBadges();
   }, [venues, sunnyPartnerIds, reducedMotion]);
+
+  // Highlight marker on card hover (desktop)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !markersInitialized.current) return;
+
+    try {
+      if (!map.getLayer('venue-markers')) return;
+
+      const HOVER_RADIUS = SELECTED_RADIUS.regular;
+      const HOVER_PARTNER_RADIUS = SELECTED_RADIUS.partner;
+
+      if (hoveredVenueId && !selectedVenueId) {
+        // Enlarge hovered marker
+        map.setPaintProperty('venue-markers', 'circle-radius',
+          selectedExpr(hoveredVenueId, HOVER_RADIUS, MARKER_RADIUS.regular));
+        map.setPaintProperty('venue-markers', 'circle-stroke-width',
+          selectedExpr(hoveredVenueId, SELECTION_RING_WHITE, 2));
+
+        if (map.getLayer('partner-markers')) {
+          map.setPaintProperty('partner-markers', 'circle-radius',
+            selectedExpr(hoveredVenueId, HOVER_PARTNER_RADIUS, MARKER_RADIUS.partner));
+          map.setPaintProperty('partner-markers', 'circle-stroke-width',
+            selectedExpr(hoveredVenueId, SELECTION_RING_WHITE, 2));
+        }
+      } else if (!hoveredVenueId && !selectedVenueId) {
+        // Reset to normal
+        map.setPaintProperty('venue-markers', 'circle-radius', MARKER_RADIUS.regular);
+        map.setPaintProperty('venue-markers', 'circle-stroke-width', 2);
+
+        if (map.getLayer('partner-markers')) {
+          map.setPaintProperty('partner-markers', 'circle-radius', MARKER_RADIUS.partner);
+          map.setPaintProperty('partner-markers', 'circle-stroke-width', 2);
+        }
+      }
+      // If selectedVenueId is set, the selection effect takes precedence — don't override
+    } catch {
+      // Layer may not exist yet
+    }
+  }, [hoveredVenueId, selectedVenueId]);
 
   return (
     <div

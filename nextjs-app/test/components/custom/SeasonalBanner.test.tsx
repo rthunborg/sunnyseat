@@ -8,7 +8,7 @@ vi.mock('@/lib/i18n', () => ({
     t: (key: string) => {
       const translations: Record<string, string> = {
         'seasonalBanner.winterMessage':
-          'Vintersolen är låg men fin! Kolla vilka restauranger som fångar solstrålarna.',
+          'Vintern har kommit, men solen kommer tillbaka! 🌞',
         'common.close': 'Stäng',
       };
       return translations[key] ?? key;
@@ -57,25 +57,25 @@ describe('SeasonalBanner', () => {
   it('renders during winter months (January)', () => {
     setFakeMonth(0);
     render(<SeasonalBanner />);
-    expect(screen.getByText(/Vintersolen/)).toBeDefined();
+    expect(screen.getByText(/Vintern har kommit/)).toBeDefined();
   });
 
   it('renders during winter months (November)', () => {
     setFakeMonth(10);
     render(<SeasonalBanner />);
-    expect(screen.getByText(/Vintersolen/)).toBeDefined();
+    expect(screen.getByText(/Vintern har kommit/)).toBeDefined();
   });
 
   it('renders during winter months (December)', () => {
     setFakeMonth(11);
     render(<SeasonalBanner />);
-    expect(screen.getByText(/Vintersolen/)).toBeDefined();
+    expect(screen.getByText(/Vintern har kommit/)).toBeDefined();
   });
 
   it('renders during winter months (February)', () => {
     setFakeMonth(1);
     render(<SeasonalBanner />);
-    expect(screen.getByText(/Vintersolen/)).toBeDefined();
+    expect(screen.getByText(/Vintern har kommit/)).toBeDefined();
   });
 
   it('does not render during summer months (June)', () => {
@@ -88,7 +88,7 @@ describe('SeasonalBanner', () => {
     setFakeMonth(0);
     render(<SeasonalBanner />);
 
-    expect(screen.getByText(/Vintersolen/)).toBeDefined();
+    expect(screen.getByText(/Vintern har kommit/)).toBeDefined();
 
     const dismissBtn = screen.getByLabelText('Stäng');
     fireEvent.click(dismissBtn);
@@ -111,7 +111,7 @@ describe('SeasonalBanner', () => {
     render(<SeasonalBanner />);
     expect(
       screen.getByText(
-        'Vintersolen är låg men fin! Kolla vilka restauranger som fångar solstrålarna.'
+        'Vintern har kommit, men solen kommer tillbaka! 🌞'
       )
     ).toBeDefined();
   });

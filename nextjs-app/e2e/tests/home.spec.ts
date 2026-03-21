@@ -132,7 +132,7 @@ test.describe('AC3: Card Tray', () => {
     expect(ariaLabel!.length).toBeGreaterThan(0);
   });
 
-  test('"Gå dit" (Directions) button visible on cards with 48px touch target', async ({
+  test('cards have no directions button (directions moved to detail page)', async ({
     page,
     context,
   }) => {
@@ -143,14 +143,9 @@ test.describe('AC3: Card Tray', () => {
     await home.goto();
     await home.waitForReady();
 
-    const firstBtn = home.directionsButtons().first();
-    await expect(firstBtn).toBeAttached({ timeout: 15000 });
-    await expect(firstBtn).toContainText('Gå dit');
-
-    // Verify touch target meets 48px minimum
-    const box = await firstBtn.boundingBox();
-    expect(box).not.toBeNull();
-    expect(box!.height).toBeGreaterThanOrEqual(48);
+    // Cards should not contain directions buttons — directions are on the detail page
+    const directionsBtn = page.locator('[data-testid="venue-directions-btn"]');
+    await expect(directionsBtn).toHaveCount(0);
   });
 
   test('card tray shows result count text', async ({ page, context }) => {

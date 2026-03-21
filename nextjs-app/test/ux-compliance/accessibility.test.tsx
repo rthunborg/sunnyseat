@@ -23,6 +23,22 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
 }));
 
+vi.mock('@/lib/context/CardTrayContext', () => ({
+  useCardTray: () => ({
+    venues: [],
+    selectVenue: vi.fn(),
+    selectedVenueId: null,
+    trayState: 'peeking',
+    setTrayState: vi.fn(),
+    isLoading: false,
+    setLoading: vi.fn(),
+    setVenues: vi.fn(),
+    emptyReason: null,
+    setEmptyReason: vi.fn(),
+  }),
+  CardTrayProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 vi.mock('@/lib/context/PremiumContext', () => ({
   PremiumProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   usePremiumContext: () => ({ isPremium: true }),
@@ -76,10 +92,18 @@ const defaultDetailProps = {
 
 // ─── AC 2: Touch Target Size Tests ───────────────────────────────────
 describe('AC 2: Touch Target Sizes', () => {
-  it('VenueCard "Gå dit" button uses touch-comfortable height token', () => {
+  it('VenueCard has no competing tap targets (directions moved to detail page)', () => {
     withLanguage(<VenueCard {...defaultVenueProps} />);
-    const btn = screen.getByTestId('venue-directions-btn');
-    expect(btn.className).toContain('h-[var(--spacing-touch-comfortable)]');
+    expect(screen.queryByTestId('venue-directions-btn')).toBeNull();
+    // Entire card is a single tap zone
+    const card = screen.getByRole('article');
+    expect(card).toBeTruthy();
+  });
+
+  it('VenueDetailPage directions link uses touch-comfortable height token', () => {
+    withLanguage(<VenueDetailPage {...defaultDetailProps} />);
+    const link = screen.getByTestId('directions-link');
+    expect(link.className).toContain('h-[var(--spacing-touch-comfortable)]');
   });
 
   it('LocationPermissionPrompt "Tillåt plats" button is 56px (primary action)', () => {
@@ -134,9 +158,9 @@ describe('AC 4: Swedish-First Language', () => {
     expect(screen.getByText('Soligt')).toBeDefined();
   });
 
-  it('VenueCard directions button says "Gå dit" in Swedish', () => {
+  it('VenueCard has no "Gå dit" button (directions on detail page)', () => {
     withLanguage(<VenueCard {...defaultVenueProps} />);
-    expect(screen.getByText('Gå dit')).toBeDefined();
+    expect(screen.queryByText('Gå dit')).toBeNull();
   });
 
   it('VenueDetailPage back button says "Tillbaka"', () => {

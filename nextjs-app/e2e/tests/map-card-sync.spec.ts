@@ -92,7 +92,7 @@ test.describe('Map-Card Sync — Marker Interaction', () => {
     await page.waitForURL(`**/v/${slug}`, { timeout: 10000 });
   });
 
-  test('directions button opens external maps (does not navigate away)', async ({ page }) => {
+  test('card has no directions button (directions on detail page only)', async ({ page }) => {
     const home = new HomePage(page);
     await home.goto();
     await home.waitForReady();
@@ -101,20 +101,9 @@ test.describe('Map-Card Sync — Marker Interaction', () => {
     const firstCard = mobileVenueCards(page).first();
     await expect(firstCard).toBeVisible({ timeout: 15000 });
 
+    // Card should have no directions button — it's on the detail page now
     const directionsBtn = firstCard.locator('[data-testid="venue-directions-btn"]');
-    await expect(directionsBtn).toBeVisible();
-
-    // Intercept new window/tab
-    const popupPromise = page.waitForEvent('popup', { timeout: 5000 }).catch(() => null);
-    await directionsBtn.click();
-    const popup = await popupPromise;
-
-    // Should still be on home page
-    expect(page.url()).not.toContain('/v/');
-
-    if (popup) {
-      await popup.close();
-    }
+    await expect(directionsBtn).toHaveCount(0);
   });
 });
 

@@ -39,10 +39,6 @@ export class HomePage {
     return this.page.locator('[data-testid^="venue-card-"]');
   }
 
-  directionsButtons(): Locator {
-    return this.page.locator('[data-testid="venue-directions-btn"]');
-  }
-
   miniTimelines(): Locator {
     return this.page.locator('[data-testid="mini-timeline"]');
   }

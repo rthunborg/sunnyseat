@@ -4,6 +4,8 @@ import { createContext, useContext, useState, useCallback, type ReactNode } from
 import type { CardTrayState } from '@/lib/types/card-states';
 import type { SunExposureResult } from '@/lib/types/venue';
 
+export type EmptyReason = 'area' | 'location' | 'offline' | null;
+
 interface CardTrayContextValue {
   trayState: CardTrayState;
   setTrayState: (state: CardTrayState) => void;
@@ -13,6 +15,8 @@ interface CardTrayContextValue {
   setVenues: (venues: SunExposureResult[]) => void;
   isLoading: boolean;
   setLoading: (loading: boolean) => void;
+  emptyReason: EmptyReason;
+  setEmptyReason: (reason: EmptyReason) => void;
 }
 
 const CardTrayContext = createContext<CardTrayContextValue | null>(null);
@@ -28,6 +32,7 @@ export function CardTrayProvider({ children }: { children: ReactNode }) {
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
   const [venues, setVenues] = useState<SunExposureResult[]>([]);
   const [isLoading, setLoading] = useState(false);
+  const [emptyReason, setEmptyReason] = useState<EmptyReason>(null);
 
   const selectVenue = useCallback((id: string | null) => {
     setSelectedVenueId(id);
@@ -44,6 +49,8 @@ export function CardTrayProvider({ children }: { children: ReactNode }) {
         setVenues,
         isLoading,
         setLoading,
+        emptyReason,
+        setEmptyReason,
       }}
     >
       {children}
