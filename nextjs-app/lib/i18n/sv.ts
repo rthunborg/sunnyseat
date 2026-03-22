@@ -254,6 +254,16 @@ export const sv = {
     sunSchedule: 'Solschema: {{description}}',
     sunWindowRow: '{{status}} {{start}} till {{end}}, {{sky}}, {{duration}}',
   },
+  carousel: {
+    label: 'Restauranger i närheten',
+    loading: 'Laddar restauranger…',
+  },
+  selectedCard: {
+    moreInfo: 'Mer info',
+    openingHours: 'Öppettider',
+    closed: 'Stängt',
+    openToday: 'Öppet idag {{hours}}',
+  },
 } as const;
 
 type DeepStringRecord<T> = {

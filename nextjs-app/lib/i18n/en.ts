@@ -252,4 +252,14 @@ export const en: TranslationSchema = {
     sunSchedule: 'Sun schedule: {{description}}',
     sunWindowRow: '{{status}} {{start}} to {{end}}, {{sky}}, {{duration}}',
   },
+  carousel: {
+    label: 'Nearby venues',
+    loading: 'Loading venues…',
+  },
+  selectedCard: {
+    moreInfo: 'More info',
+    openingHours: 'Opening hours',
+    closed: 'Closed',
+    openToday: 'Open today {{hours}}',
+  },
 } as const;
