@@ -153,19 +153,19 @@ describe('VenueDetailPage', () => {
     const link = screen.getByTestId('directions-link');
     expect(link.className).toContain('w-full');
     expect(link.className).toContain('font-semibold');
-    expect(link.className).toContain('bg-brand-primary');
+    expect(link.className).toContain('bg-black/90');
   });
 
   describe('modal mode', () => {
     it('renders as div instead of main when isModal', () => {
       const { container } = renderPage({}, { isModal: true });
       expect(container.querySelector('main')).toBeNull();
-      expect(container.querySelector('div.bg-surface-primary')).not.toBeNull();
+      expect(container.querySelector('div.bg-transparent')).not.toBeNull();
     });
 
     it('does not include min-h-screen in modal mode', () => {
       const { container } = renderPage({}, { isModal: true });
-      const wrapper = container.querySelector('.bg-surface-primary');
+      const wrapper = container.querySelector('.bg-transparent');
       expect(wrapper?.className).not.toContain('min-h-screen');
     });
 

@@ -122,7 +122,7 @@ interface LanguageContextValue {
 const LanguageContext = createContext<LanguageContextValue>({
   language: DEFAULT_LANG,
   setLanguage: () => {},
-  t: (key) => t(key),
+  t: (key, vars) => t(key, vars),
 });
 
 export function LanguageProvider({ children }: { children: ReactNode }) {

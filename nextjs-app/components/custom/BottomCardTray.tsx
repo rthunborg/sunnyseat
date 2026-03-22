@@ -236,7 +236,7 @@ export function BottomCardTray({ ambientClass, onEmptyCta, onVenueHover }: Botto
               className={cn(
                 'sticky top-0 z-5 py-2 px-2 mb-2',
                 'text-[length:var(--font-size-subhead)] leading-[var(--line-height-subhead)] font-semibold text-text-primary',
-                'border-l-[3px] bg-surface-primary/95 backdrop-blur-sm',
+                'border-l-[3px] bg-white/90 backdrop-blur-md',
                 GROUP_BORDER_COLOR[group.status]
               )}
             >
@@ -353,7 +353,7 @@ export function BottomCardTray({ ambientClass, onEmptyCta, onVenueHover }: Botto
     <motion.div
       className={cn(
         'fixed left-0 right-0 z-40',
-        'bg-surface-primary rounded-t-card shadow-elevated',
+        'bg-white/90 backdrop-blur-md rounded-t-card shadow-elevated',
         ambientClass
       )}
       style={{ top: y, bottom: 0 }}

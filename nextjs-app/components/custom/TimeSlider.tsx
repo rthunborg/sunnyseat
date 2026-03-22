@@ -59,7 +59,7 @@ export function TimeSlider({ value, onChange, isLoading }: TimeSliderProps) {
   return (
     <>
       <div
-        className={`flex flex-col gap-1 rounded-2xl bg-surface-primary/95 backdrop-blur-sm px-4 py-2 shadow-lg border border-border-subtle ${transitionClass}`}
+        className={`flex flex-col gap-1 rounded-[24px] bg-surface-primary/90 backdrop-blur-md px-4 py-2 shadow-lg border border-border-subtle ${transitionClass}`}
         role="group"
         aria-label={t('timeSlider.ariaGroupLabel')}
         data-testid="time-slider"

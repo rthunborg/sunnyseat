@@ -94,15 +94,15 @@
      ═══════════════════════════════════════════════ */
   --spacing-unit: 8px;
 
-  --radius-card: 16px;
+  --radius-card: 24px;
   --radius-badge: 8px;
   --radius-button: 12px;
 
   /* ═══════════════════════════════════════════════
      Shadows
      ═══════════════════════════════════════════════ */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.12);
   --shadow-active: 0 2px 8px rgba(0, 0, 0, 0.12);
 
   /* ═══════════════════════════════════════════════

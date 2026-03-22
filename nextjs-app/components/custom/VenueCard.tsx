@@ -12,10 +12,10 @@ import { formatDistance } from '@/lib/utils/formatDistance';
 import { cn } from '@/lib/utils';
 
 const BG_MAP = {
-  sunny: 'bg-sun-sunny-bg',
-  partial: 'bg-sun-partial-bg',
-  shaded: 'bg-sun-shaded-bg',
-  upcoming: 'bg-sun-upcoming-bg',
+  sunny: 'bg-sun-sunny-bg/90',
+  partial: 'bg-sun-partial-bg/90',
+  shaded: 'bg-sun-shaded-bg/90',
+  upcoming: 'bg-sun-upcoming-bg/90',
 } as const;
 
 const DOT_MAP = {

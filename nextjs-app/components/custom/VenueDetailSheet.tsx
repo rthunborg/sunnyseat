@@ -109,7 +109,7 @@ export function VenueDetailSheet({ venue }: VenueDetailSheetProps) {
       {/* Sheet — mobile: bottom sheet; desktop: side panel */}
       <motion.div
         ref={sheetRef}
-        className="absolute bottom-0 left-0 right-0 max-h-[85vh] bg-surface-primary rounded-t-card shadow-elevated overflow-y-auto lg:static lg:relative lg:w-[480px] lg:max-h-none lg:rounded-none lg:rounded-l-card"
+        className="absolute bottom-0 left-0 right-0 max-h-[85vh] bg-white/90 backdrop-blur-md rounded-t-card shadow-elevated overflow-y-auto lg:static lg:relative lg:w-[480px] lg:max-h-none lg:rounded-none lg:rounded-l-card"
         variants={sheetVariants}
         initial="hidden"
         animate="visible"

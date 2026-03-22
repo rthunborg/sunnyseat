@@ -82,7 +82,7 @@ export default function VenueDetailPage({ venue, isModal = false, onClose }: Ven
   return (
     <Container
       {...(!isModal ? { id: 'main-content' } : {})}
-      className={`${isModal ? '' : 'min-h-screen'} bg-surface-primary pb-[var(--spacing-touch-comfortable)] ${ambientClass}`}
+      className={`${isModal ? 'bg-transparent' : 'min-h-screen bg-surface-primary'} pb-[var(--spacing-touch-comfortable)] ${ambientClass}`}
     >
       {/* Back navigation */}
       <nav className="px-4 md:px-6 pt-4 pb-2">
@@ -148,7 +148,7 @@ export default function VenueDetailPage({ venue, isModal = false, onClose }: Ven
           target="_blank"
           rel="noopener noreferrer"
           aria-label={t('venue.directionsTo', { name: venue.name })}
-          className="w-full inline-flex items-center justify-center rounded-button bg-brand-primary text-white h-[var(--spacing-touch-comfortable)] px-6 text-base font-semibold transition-all hover:bg-brand-primary-dark active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
+          className="w-full inline-flex items-center justify-center rounded-button bg-black/90 text-white h-[var(--spacing-touch-comfortable)] px-6 text-base font-semibold transition-all hover:bg-black active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 shadow-sm"
           data-testid="directions-link"
         >
           {t('venue.directions')}

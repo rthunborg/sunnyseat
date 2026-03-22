@@ -140,7 +140,7 @@ export function SearchBar({ className, onVenueSelect }: SearchBarProps) {
         aria-controls="search-suggestions"
         aria-activedescendant={activeIndex >= 0 ? `suggestion-${activeIndex}` : undefined}
         autoComplete="off"
-        className="w-full h-[var(--spacing-touch-min)] px-4 bg-surface-primary border border-border-default rounded-button text-[length:var(--font-size-body)] leading-[var(--line-height-body)] text-text-primary placeholder:text-text-muted shadow-card focus:outline-none focus:ring-2 focus:ring-ring"
+        className="w-full h-[var(--spacing-touch-min)] px-4 bg-surface-primary/90 backdrop-blur-md border border-border-default rounded-full text-[length:var(--font-size-body)] leading-[var(--line-height-body)] text-text-primary placeholder:text-text-muted shadow-card focus:outline-none focus:ring-2 focus:ring-ring"
       />
 
       {dropdownOpen && (
@@ -148,7 +148,7 @@ export function SearchBar({ className, onVenueSelect }: SearchBarProps) {
           ref={listRef}
           id="search-suggestions"
           role="listbox"
-          className="absolute top-full left-0 right-0 mt-1 bg-surface-primary border border-border-default rounded-button shadow-card z-50 overflow-hidden"
+          className="absolute top-full left-0 right-0 mt-1 bg-surface-primary/90 backdrop-blur-md border border-border-default rounded-[24px] shadow-card z-50 overflow-hidden"
         >
           {showEmpty ? (
             <li className="px-4 py-3 text-[length:var(--font-size-body)] leading-[var(--line-height-body)] text-text-muted" role="option" aria-selected={false}>
