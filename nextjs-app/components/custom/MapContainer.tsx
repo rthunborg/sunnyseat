@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion';
-import { useLanguage } from '@/lib/i18n';
+import { useLanguage, LanguageProvider } from '@/lib/i18n';
 import type { Coordinates } from '@/lib/types/location';
 import type { SunExposureResult } from '@/lib/types/venue';
+import { MapPopup } from '@/components/custom/MapPopup';
+import { loadPinIcons, PIN_ICON_SIZE } from '@/lib/map/venue-pin-icons';
 import type maplibregl from 'maplibre-gl';
 
 const GOTHENBURG_CENTER: [number, number] = [11.9746, 57.7089];
@@ -60,6 +63,10 @@ interface MapContainerProps {
   onVenueSelect?: (id: string | null) => void;
   onBoundsChange?: (center: { lat: number; lng: number }) => void;
   sunnyPartnerIds?: string[];
+  /** Desktop: venue to show in a MapLibre Popup */
+  popupVenue?: SunExposureResult | null;
+  /** Desktop: callback when "Mer info" is clicked in the popup */
+  onPopupMoreInfo?: () => void;
 }
 
 function createUserMarkerElement(reducedMotion: boolean): HTMLDivElement {
@@ -146,6 +153,8 @@ export default function MapContainer({
   onVenueSelect,
   onBoundsChange,
   sunnyPartnerIds,
+  popupVenue,
+  onPopupMoreInfo,
 }: MapContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -158,6 +167,8 @@ export default function MapContainer({
   const sunnyBadgeMarkersRef = useRef<maplibregl.Marker[]>([]);
   const pulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevSelectedRef = useRef<string | null>(null);
+  const popupRef = useRef<maplibregl.Popup | null>(null);
+  const popupRootRef = useRef<Root | null>(null);
 
   const initMap = useCallback(async () => {
     if (!containerRef.current || mapRef.current) return;
@@ -190,7 +201,13 @@ export default function MapContainer({
 
     mapRef.current = map;
 
-    map.on('load', () => {
+    map.on('load', async () => {
+      // Pre-load pin icon images into the map
+      try {
+        await loadPinIcons(map as unknown as Parameters<typeof loadPinIcons>[0]);
+      } catch {
+        // Pin icons are a visual enhancement — fallback to circle markers
+      }
       onMapReady?.(map);
     });
 
@@ -454,10 +471,66 @@ export default function MapContainer({
         },
       });
 
+      // Pin icon symbol layers (visible on top of circles when pin images loaded)
+      const hasPins = map.hasImage('pin-sunny');
+      if (hasPins) {
+        // Regular venue pins
+        map.addLayer({
+          id: 'venue-pins',
+          type: 'symbol',
+          source: 'venues',
+          filter: ['all', ['!=', ['get', 'isPartner'], true], ['!=', ['get', 'isCandidate'], true]],
+          layout: {
+            'icon-image': [
+              'match',
+              ['get', 'sunStatus'],
+              'sunny', 'pin-sunny',
+              'partial', 'pin-partial',
+              'shaded', 'pin-shaded',
+              'upcoming', 'pin-upcoming',
+              'pin-shaded',
+            ] as maplibregl.ExpressionSpecification,
+            'icon-size': PIN_ICON_SIZE,
+            'icon-anchor': 'bottom',
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+          },
+          paint: {
+            'icon-opacity': 1,
+          },
+        });
+
+        // Partner venue pins
+        map.addLayer({
+          id: 'partner-pins',
+          type: 'symbol',
+          source: 'venues',
+          filter: ['==', ['get', 'isPartner'], true],
+          layout: {
+            'icon-image': 'pin-partner',
+            'icon-size': PIN_ICON_SIZE * 1.2,
+            'icon-anchor': 'bottom',
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+          },
+          paint: {
+            'icon-opacity': 1,
+          },
+        });
+
+        // Hide circle markers when pins are active (circles remain for selection ring/pulse)
+        map.setPaintProperty('venue-markers', 'circle-opacity', 0);
+        map.setPaintProperty('venue-markers', 'circle-stroke-width', 0);
+        map.setPaintProperty('partner-markers', 'circle-opacity', 0);
+        map.setPaintProperty('partner-markers', 'circle-stroke-width', 0);
+        map.setPaintProperty('venue-markers-glow', 'circle-opacity', 0);
+        map.setPaintProperty('partner-markers-glow', 'circle-opacity', 0);
+      }
+
       markersInitialized.current = true;
 
-      // Task 10: Progressive marker appearance
-      if (!reducedMotion) {
+      // Task 10: Progressive marker appearance (only for circle markers, not pins)
+      if (!reducedMotion && !hasPins) {
         // Sunny first (0ms)
         requestAnimationFrame(() => {
           map.setPaintProperty('venue-markers-glow', 'circle-opacity', 0.2);
@@ -586,6 +659,16 @@ export default function MapContainer({
           }, 450);
         }
 
+        // Dim/highlight pin icon layers when selected
+        if (map.getLayer('venue-pins')) {
+          map.setPaintProperty('venue-pins', 'icon-opacity',
+            selectedOpacityExpr(selectedVenueId));
+        }
+        if (map.getLayer('partner-pins')) {
+          map.setPaintProperty('partner-pins', 'icon-opacity',
+            selectedOpacityExpr(selectedVenueId));
+        }
+
         prevSelectedRef.current = selectedVenueId;
       } else {
         // AC5: Deselection — reset all markers to normal state
@@ -620,6 +703,14 @@ export default function MapContainer({
         // Reset pulse layer
         if (map.getLayer('venue-pulse')) {
           map.setPaintProperty('venue-pulse', 'circle-stroke-opacity', 0);
+        }
+
+        // Reset pin icon opacity
+        if (map.getLayer('venue-pins')) {
+          map.setPaintProperty('venue-pins', 'icon-opacity', 1);
+        }
+        if (map.getLayer('partner-pins')) {
+          map.setPaintProperty('partner-pins', 'icon-opacity', 1);
         }
       }
     } catch {
@@ -698,6 +789,66 @@ export default function MapContainer({
       // Layer may not exist yet
     }
   }, [hoveredVenueId, selectedVenueId]);
+
+  // Desktop MapLibre Popup — renders MapPopup React component
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Remove existing popup when venue changes or is deselected
+    if (popupRef.current) {
+      popupRef.current.remove();
+      popupRef.current = null;
+    }
+    if (popupRootRef.current) {
+      popupRootRef.current.unmount();
+      popupRootRef.current = null;
+    }
+
+    if (!popupVenue) return;
+
+    const showPopup = async () => {
+      const mgl = await import('maplibre-gl');
+
+      const container = document.createElement('div');
+      const root = createRoot(container);
+      popupRootRef.current = root;
+
+      root.render(
+        <LanguageProvider>
+          <MapPopup
+            venue={popupVenue}
+            onMoreInfo={() => onPopupMoreInfo?.()}
+          />
+        </LanguageProvider>,
+      );
+
+      const popup = new mgl.default.Popup({
+        closeOnClick: false,
+        closeButton: false,
+        maxWidth: '280px',
+        offset: 12,
+      })
+        .setLngLat([popupVenue.venue.lng, popupVenue.venue.lat])
+        .setDOMContent(container)
+        .addTo(map);
+
+      popupRef.current = popup;
+    };
+
+    showPopup();
+
+    return () => {
+      if (popupRef.current) {
+        popupRef.current.remove();
+        popupRef.current = null;
+      }
+      if (popupRootRef.current) {
+        popupRootRef.current.unmount();
+        popupRootRef.current = null;
+      }
+    };
+  }, [popupVenue, onPopupMoreInfo]);
 
   return (
     <div

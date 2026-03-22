@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useMemo } from 'react';
 import { LanguageProvider, useLanguage } from '@/lib/i18n';
 import { CardTrayProvider, useCardTray } from '@/lib/context/CardTrayContext';
 import { PremiumProvider } from '@/lib/context/PremiumContext';
@@ -10,11 +10,17 @@ import { useSunExposure } from '@/lib/hooks/useSunExposure';
 import { useSunnyNow } from '@/lib/hooks/useSunnyNow';
 import { useTimeOffset } from '@/lib/hooks/useTimeOffset';
 import { useDateSelection } from '@/lib/hooks/useDateSelection';
-import { useOverlayPosition } from '@/lib/hooks/useOverlayPosition';
 import { useAmbientTone } from '@/lib/hooks/useAmbientTone';
+import { useMapShadowLayers } from '@/lib/hooks/useMapShadowLayers';
+import { useReducedMotion } from '@/lib/hooks/useReducedMotion';
+import { useIsDesktop } from '@/lib/hooks/useIsDesktop';
+import { useVenueSelectionFlow } from '@/lib/hooks/useVenueSelectionFlow';
 import { sortVenues } from '@/lib/utils/sortVenues';
 import { LocationPermissionPrompt } from '@/components/custom/LocationPermissionPrompt';
-import { BottomCardTray } from '@/components/custom/BottomCardTray';
+import { VenueCarousel } from '@/components/custom/VenueCarousel';
+import { SelectedVenueCard } from '@/components/custom/SelectedVenueCard';
+import { VenueDetailProfile } from '@/components/custom/VenueDetailProfile';
+import { VenueDetailPanel } from '@/components/custom/VenueDetailPanel';
 import { SearchBar } from '@/components/custom/SearchBar';
 import { TimeSlider } from '@/components/custom/TimeSlider';
 import { DatePicker } from '@/components/custom/DatePicker';
@@ -43,8 +49,23 @@ function ForecastStatus({ selectedDate, timeOffset }: { selectedDate: Date | nul
 function HomeScreenInner() {
   const { coordinates, permissionStatus, requestLocation } = useCurrentLocation();
   const [map, setMap] = useState<maplibregl.Map | null>(null);
-  const { setVenues, setLoading, selectedVenueId, selectVenue, trayState, setTrayState, venues, setEmptyReason } = useCardTray();
+  const { setVenues, setLoading, venues, setEmptyReason } = useCardTray();
   const [hoveredVenueId, setHoveredVenueId] = useState<string | null>(null);
+  const isDesktop = useIsDesktop();
+
+  // Selection flow state machine (replaces old simple selectedVenueId)
+  const {
+    viewState,
+    selectedVenueId,
+    previousMapView,
+    selectVenue,
+    deselectVenue,
+    openDetail,
+    closeDetail,
+  } = useVenueSelectionFlow();
+
+  // Desktop has its own detail state (popup → detail panel)
+  const [desktopDetailVenueId, setDesktopDetailVenueId] = useState<string | null>(null);
 
   // Track map center for refetch on pan/zoom
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
@@ -57,8 +78,16 @@ function HomeScreenInner() {
   const { sunnyPartners } = useSunnyNow();
   const { timeOffset, setTimeOffset, isLoading: isTimeOffsetLoading } = useTimeOffset(fetchLat, fetchLng);
   const { selectedDate, setSelectedDate, isLoading: isDateLoading } = useDateSelection(fetchLat, fetchLng);
-  const { bottomOffset, visible: timeControlsVisible } = useOverlayPosition(trayState);
   const { className: ambientClass } = useAmbientTone();
+  const reducedMotion = useReducedMotion();
+
+  // Shadow layers on map (visible at zoom >= 15)
+  const shadowTimestamp = selectedDate
+    ? new Date(selectedDate.getTime() + timeOffset * 3600_000).toISOString()
+    : timeOffset > 0
+      ? new Date(Date.now() + timeOffset * 3600_000).toISOString()
+      : null;
+  useMapShadowLayers({ map, enabled: true, timestamp: shadowTimestamp, reducedMotion });
 
   // Sync loading/venues to context
   useEffect(() => {
@@ -82,46 +111,109 @@ function HomeScreenInner() {
     }
   }, [permissionStatus, setEmptyReason]);
 
-  // CTA handler for empty states
-  const handleEmptyCta = useCallback(() => {
-    // "Go to centrum" for area variant — fly to Gothenburg default
-    if (venues.length === 0 && permissionStatus !== 'denied' && navigator.onLine) {
-      if (map) {
-        map.flyTo({ center: [11.9746, 57.7089], zoom: 14 });
-      }
-      return;
-    }
-    // "Use time control" for weather variant — scroll to time slider
-    if (venues.length > 0 && venues.every((v) => v.current_status === 'shaded')) {
-      const el = document.querySelector('[data-testid="time-controls-overlay"]');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.classList.add('animate-pulse');
-        setTimeout(() => el.classList.remove('animate-pulse'), 2000);
-      }
-      return;
-    }
-    // "Try again" for offline — reload
-    if (!navigator.onLine) {
-      window.location.reload();
-    }
-  }, [map, venues, permissionStatus]);
+  // Find the selected venue object
+  const selectedVenue = useMemo(
+    () => venues.find((v) => v.venue.id === selectedVenueId) ?? null,
+    [venues, selectedVenueId],
+  );
 
-  const handleMapReady = useCallback((map: maplibregl.Map) => {
-    setMap(map);
+  // Find the desktop detail venue
+  const desktopDetailVenue = useMemo(
+    () => venues.find((v) => v.venue.id === desktopDetailVenueId) ?? null,
+    [venues, desktopDetailVenueId],
+  );
+
+  const handleMapReady = useCallback((mapInstance: maplibregl.Map) => {
+    setMap(mapInstance);
   }, []);
 
   const handleDismissPrompt = useCallback(() => {
     // User chose to interact with map manually
   }, []);
 
-  const handleVenueSelect = useCallback((id: string | null) => {
-    selectVenue(id);
-    // If marker tapped and tray is collapsed, expand to peeking
-    if (id && trayState === 'collapsed') {
-      setTrayState('peeking');
+  // ---------------------------------------------------------------------------
+  // Venue selection handlers
+  // ---------------------------------------------------------------------------
+
+  const handleVenueSelect = useCallback(
+    (id: string | null) => {
+      if (!id) {
+        // Clicking map background
+        if (isDesktop) {
+          setDesktopDetailVenueId(null);
+        }
+        deselectVenue();
+        // Restore previous map view on mobile
+        if (!isDesktop && previousMapView && map) {
+          if (reducedMotion) {
+            map.jumpTo({ center: previousMapView.center, zoom: previousMapView.zoom });
+          } else {
+            map.flyTo({ center: previousMapView.center, zoom: previousMapView.zoom, duration: 600 });
+          }
+        }
+        return;
+      }
+
+      // Get current map state before selection
+      const center: [number, number] = map
+        ? [map.getCenter().lng, map.getCenter().lat]
+        : [11.9746, 57.7089];
+      const zoom = map?.getZoom() ?? 14;
+
+      selectVenue(id, center, zoom);
+
+      // Fly to venue on map
+      const venue = venues.find((v) => v.venue.id === id);
+      if (venue && map) {
+        const targetZoom = Math.max(zoom, 16);
+        if (reducedMotion) {
+          map.jumpTo({ center: [venue.venue.lng, venue.venue.lat], zoom: targetZoom });
+        } else {
+          map.flyTo({
+            center: [venue.venue.lng, venue.venue.lat],
+            zoom: targetZoom,
+            duration: 600,
+          });
+        }
+      }
+    },
+    [isDesktop, deselectVenue, selectVenue, previousMapView, map, reducedMotion, venues],
+  );
+
+  // Mobile: carousel card tap
+  const handleCarouselSelect = useCallback(
+    (venueId: string) => {
+      handleVenueSelect(venueId);
+    },
+    [handleVenueSelect],
+  );
+
+  // Mobile: "Mer info" on SelectedVenueCard
+  const handleMobileMoreInfo = useCallback(() => {
+    openDetail();
+  }, [openDetail]);
+
+  // Mobile: dismiss SelectedVenueCard
+  const handleMobileDismiss = useCallback(() => {
+    handleVenueSelect(null);
+  }, [handleVenueSelect]);
+
+  // Mobile: close VenueDetailProfile
+  const handleMobileCloseDetail = useCallback(() => {
+    closeDetail();
+  }, [closeDetail]);
+
+  // Desktop: "Mer info" from MapPopup → open detail panel
+  const handleDesktopMoreInfo = useCallback(() => {
+    if (selectedVenueId) {
+      setDesktopDetailVenueId(selectedVenueId);
     }
-  }, [selectVenue, trayState, setTrayState]);
+  }, [selectedVenueId]);
+
+  // Desktop: close detail panel
+  const handleDesktopCloseDetail = useCallback(() => {
+    setDesktopDetailVenueId(null);
+  }, []);
 
   const handleBoundsChange = useCallback((center: { lat: number; lng: number }) => {
     setMapCenter(center);
@@ -132,24 +224,19 @@ function HomeScreenInner() {
       if (map) {
         map.flyTo({ center: [coords.lng, coords.lat], zoom: 16, duration: 800 });
       }
-      if (trayState === 'collapsed') {
-        setTrayState('peeking');
-      }
     },
-    [map, trayState, setTrayState]
+    [map],
   );
+
+  // Determine time controls position (above carousel/card on mobile)
+  const mobileBottomOffset = viewState === 'browsing' ? '180px' : viewState === 'selected' ? '240px' : '80px';
 
   return (
     <div id="main-content" className="w-screen h-[100dvh] relative overflow-hidden lg:flex lg:flex-row">
-      {/* Desktop: side panel on the left */}
-      <div className="hidden lg:block">
-        <BottomCardTray ambientClass={ambientClass} onEmptyCta={handleEmptyCta} onVenueHover={setHoveredVenueId} />
-      </div>
-
-      {/* Map fills remaining space */}
+      {/* Map fills full space */}
       <div className="relative flex-1 h-full">
         {/* Search bar overlay */}
-        <div className="absolute top-3 left-4 right-14 z-30 md:left-6 md:right-14 lg:left-auto lg:right-4 lg:w-72">
+        <div className="absolute top-3 left-4 right-14 z-30 md:left-6 md:right-14 lg:right-4 lg:w-72 lg:left-auto">
           <SearchBar onVenueSelect={handleSearchVenueSelect} />
         </div>
 
@@ -162,36 +249,37 @@ function HomeScreenInner() {
           onVenueSelect={handleVenueSelect}
           onBoundsChange={handleBoundsChange}
           sunnyPartnerIds={sunnyPartners}
+          // Desktop popup props
+          popupVenue={isDesktop ? selectedVenue : null}
+          onPopupMoreInfo={handleDesktopMoreInfo}
         />
 
-        {/* Time slider + date picker overlay — above card tray, below search */}
-        {timeControlsVisible && (
-          <div
-            className="absolute left-4 right-4 z-20 md:left-6 md:right-6 lg:bottom-4 lg:left-auto lg:right-4 lg:w-72 transition-[bottom] duration-200"
-            style={{ bottom: timeControlsVisible ? bottomOffset : undefined }}
-            data-testid="time-controls-overlay"
-          >
-            <div className="flex items-end gap-2">
-              <div className="flex-1 min-w-0">
-                <TimeSlider
-                  value={timeOffset}
-                  onChange={setTimeOffset}
-                  isLoading={isTimeOffsetLoading}
-                />
-              </div>
-              <div className="relative shrink-0">
-                <DatePicker
-                  selectedDate={selectedDate}
-                  onDateSelect={setSelectedDate}
-                  isLoading={isDateLoading}
-                />
-              </div>
+        {/* Time slider + date picker overlay */}
+        <div
+          className="absolute left-4 right-4 z-20 md:left-6 md:right-6 lg:bottom-4 lg:left-auto lg:right-4 lg:w-72 transition-[bottom] duration-200"
+          style={{ bottom: isDesktop ? '16px' : mobileBottomOffset }}
+          data-testid="time-controls-overlay"
+        >
+          <div className="flex items-end gap-2">
+            <div className="flex-1 min-w-0">
+              <TimeSlider
+                value={timeOffset}
+                onChange={setTimeOffset}
+                isLoading={isTimeOffsetLoading}
+              />
             </div>
-            {(timeOffset > 0 || selectedDate) && (
-              <ForecastStatus selectedDate={selectedDate} timeOffset={timeOffset} />
-            )}
+            <div className="relative shrink-0">
+              <DatePicker
+                selectedDate={selectedDate}
+                onDateSelect={setSelectedDate}
+                isLoading={isDateLoading}
+              />
+            </div>
           </div>
-        )}
+          {(timeOffset > 0 || selectedDate) && (
+            <ForecastStatus selectedDate={selectedDate} timeOffset={timeOffset} />
+          )}
+        </div>
 
         <LocationPermissionPrompt
           permissionStatus={permissionStatus}
@@ -200,10 +288,47 @@ function HomeScreenInner() {
         />
       </div>
 
-      {/* Mobile: bottom card tray overlaid */}
-      <div className="lg:hidden">
-        <BottomCardTray ambientClass={ambientClass} onEmptyCta={handleEmptyCta} />
-      </div>
+      {/* Desktop: right-side detail panel */}
+      {isDesktop && (
+        <VenueDetailPanel
+          venue={desktopDetailVenue}
+          onClose={handleDesktopCloseDetail}
+        />
+      )}
+
+      {/* ─── Mobile overlays ─── */}
+      {!isDesktop && (
+        <>
+          {/* Carousel — visible in browsing state */}
+          {viewState === 'browsing' && (
+            <div className="fixed bottom-0 left-0 right-0 z-20 pb-[env(safe-area-inset-bottom)]">
+              <VenueCarousel
+                venues={venues}
+                selectedVenueId={selectedVenueId}
+                isLoading={isLoading}
+                onVenueSelect={handleCarouselSelect}
+              />
+            </div>
+          )}
+
+          {/* Selected venue card — visible in selected state */}
+          {viewState === 'selected' && (
+            <SelectedVenueCard
+              venue={selectedVenue}
+              onMoreInfo={handleMobileMoreInfo}
+              onDismiss={handleMobileDismiss}
+            />
+          )}
+
+          {/* Full venue detail profile — visible in detail state */}
+          {viewState === 'detail' && (
+            <VenueDetailProfile
+              venue={selectedVenue}
+              onClose={handleMobileCloseDetail}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }

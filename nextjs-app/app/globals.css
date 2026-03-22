@@ -276,3 +276,60 @@ body {
     transition: none;
   }
 }
+
+/* ═══════════════════════════════════════════════
+   MapLibre Popup Overrides
+   Custom styling for MapPopup component when
+   rendered inside a MapLibre Popup container.
+   ═══════════════════════════════════════════════ */
+.maplibregl-popup-content {
+  padding: 0;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-elevated);
+  overflow: hidden;
+}
+
+.maplibregl-popup-close-button {
+  display: none;
+}
+
+.maplibregl-popup-tip {
+  border-top-color: var(--color-surface-primary);
+}
+
+/* ═══════════════════════════════════════════════
+   Venue Carousel Scroll Snap
+   ═══════════════════════════════════════════════ */
+.carousel-scroll-snap {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.carousel-scroll-snap::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel-snap-item {
+  scroll-snap-align: center;
+}
+
+/* ═══════════════════════════════════════════════
+   Now Indicator Pulse (SunTimeline)
+   ═══════════════════════════════════════════════ */
+@keyframes now-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.animate-now-pulse {
+  animation: now-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-now-pulse {
+    animation: none;
+    opacity: 1;
+  }
+}
