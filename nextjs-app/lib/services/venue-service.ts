@@ -18,6 +18,9 @@ export interface VenueRow {
   Location?: string; // PostGIS point
   VenueLocation?: string; // From RPC function
   DistanceMeters?: number; // From RPC function
+  ImageUrl?: string | null; // Primary venue photo URL
+  OpeningHours?: Record<string, string | null> | null; // Structured hours per day
+  is_partner?: boolean; // From RPC function
 }
 
 /**

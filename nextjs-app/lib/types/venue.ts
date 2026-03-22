@@ -3,6 +3,14 @@ import type { SunStatus, SkyCondition } from './design-tokens';
 /** 0 = Candidate (from OSM import), 1 = Verified (admin-approved) */
 export type VerificationStatus = 0 | 1;
 
+/**
+ * Structured opening hours keyed by abbreviated day of week.
+ * Value is a time range string like "11:00-22:00", or null if closed that day.
+ */
+export type OpeningHours = {
+  [day in 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun']?: string | null;
+};
+
 export interface Venue {
   id: string;
   name: string;
@@ -30,6 +38,10 @@ export interface Venue {
   orientation?: string | number;
   notes?: string;
   review_needed?: boolean;
+  /** Primary venue photo URL */
+  image_url?: string | null;
+  /** Structured opening hours per day of week */
+  opening_hours?: OpeningHours | null;
 }
 
 export interface SunWindow {

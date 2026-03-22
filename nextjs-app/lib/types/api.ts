@@ -76,6 +76,10 @@ export interface PatioDataDto {
   confidence: number; // 0-100
   distanceMeters: number;
   sunExposurePercent: number;
+  /** Primary venue photo URL (null if no photo exists) */
+  imageUrl?: string | null;
+  /** Structured opening hours per day of week */
+  openingHours?: Record<string, string | null> | null;
 }
 
 // Alias for compatibility with frontend components

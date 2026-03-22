@@ -20,6 +20,8 @@ interface VenueRow {
   Geometry?: string; // PostGIS POLYGON as WKB hex or WKT
   DistanceMeters?: number;
   is_partner?: boolean;
+  ImageUrl?: string | null;
+  OpeningHours?: Record<string, string | null> | null;
 }
 
 const MAX_RADIUS_KM = 3.0;
@@ -159,6 +161,8 @@ export async function GET(request: NextRequest) {
           confidence,
           distanceMeters,
           sunExposurePercent,
+          imageUrl: venue.ImageUrl ?? null,
+          openingHours: venue.OpeningHours ?? null,
         };
       })
     );

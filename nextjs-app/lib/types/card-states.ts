@@ -26,4 +26,8 @@ export interface VenueCardProps {
   layout?: 'compact' | 'expanded';
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  /** Primary venue photo URL */
+  imageUrl?: string | null;
+  /** Structured opening hours per day of week */
+  openingHours?: Record<string, string | null> | null;
 }
