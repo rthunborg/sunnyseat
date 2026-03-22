@@ -2,20 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React, { useEffect } from 'react';
 
-// Mock framer-motion
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: React.forwardRef(function MotionDiv(props: Record<string, unknown>, ref: React.Ref<HTMLDivElement>) {
-      const { children, _drag, _dragConstraints, _dragElastic, _onDragEnd, ...rest } = props;
-      return React.createElement('div', { ...rest, ref, 'data-testid': 'motion-div' }, children as React.ReactNode);
-    }),
-  },
-  useMotionValue: (initial: number) => ({
-    get: () => initial,
-    set: () => {},
-  }),
-  animate: vi.fn(),
-}));
 
 // Mock useReducedMotion
 vi.mock('@/lib/hooks/useReducedMotion', () => ({

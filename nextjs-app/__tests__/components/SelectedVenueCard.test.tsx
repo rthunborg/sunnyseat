@@ -14,25 +14,6 @@ vi.mock('next/image', () => ({
   },
 }));
 
-// Mock framer-motion to avoid animation complexity in tests
-vi.mock('framer-motion', async () => {
-  const actual = await vi.importActual('framer-motion');
-  return {
-    ...actual,
-    AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-    motion: {
-      div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>) => {
-        // Filter out motion-specific props
-        const {
-          _initial, _animate, _exit, _transition,
-          _drag, _dragConstraints, _dragElastic, _onDragEnd,
-          ...htmlProps
-        } = props as Record<string, unknown>;
-        return <div {...(htmlProps as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>;
-      },
-    },
-  };
-});
 
 function renderWithProviders(ui: React.ReactElement) {
   return render(<LanguageProvider>{ui}</LanguageProvider>);

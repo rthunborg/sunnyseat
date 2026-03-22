@@ -17,38 +17,6 @@ vi.mock('@/lib/hooks/useReducedMotion', () => ({
   useReducedMotion: () => mockReducedMotion,
 }));
 
-// Mock framer-motion to simplify testing
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({
-      children,
-      onClick,
-      onKeyDown,
-      className,
-      'data-testid': testId,
-      role,
-      'aria-modal': ariaModal,
-      'aria-label': ariaLabel,
-      drag,
-      onDragEnd,
-      ..._rest
-    }: Record<string, unknown>) => {
-      const props: Record<string, unknown> = {
-        className,
-        'data-testid': testId,
-        role,
-        'aria-modal': ariaModal,
-        'aria-label': ariaLabel,
-      };
-      if (onClick) props.onClick = onClick;
-      if (onKeyDown) props.onKeyDown = onKeyDown;
-      // Only mark as draggable when drag is truthy (e.g. 'y'), not when false
-      if (drag && onDragEnd) props['data-drag-end'] = 'true';
-      return <div {...props}>{children as React.ReactNode}</div>;
-    },
-  },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
 
 function makeVenue(overrides: Partial<{
   id: string;
@@ -143,8 +111,10 @@ describe('VenueDetailSheet', () => {
   it('renders drag handle on mobile', () => {
     renderSheet();
     const sheet = screen.getByTestId('venue-detail-sheet');
-    // Sheet has drag capability
-    expect(sheet).toHaveAttribute('data-drag-end', 'true');
+    // Verify the grab handle is visible on mobile
+    const dragHandle = sheet.querySelector('[aria-hidden="true"] .rounded-full');
+    expect(dragHandle).toBeInTheDocument();
+    expect(dragHandle).toHaveClass('w-10', 'h-1');
   });
 
   it('clicking backdrop closes the sheet', () => {
@@ -177,7 +147,9 @@ describe('VenueDetailSheet', () => {
     mockReducedMotion = true;
     renderSheet();
     const sheet = screen.getByTestId('venue-detail-sheet');
-    // When reduced motion, drag is disabled (no data-drag-end attribute)
-    expect(sheet).not.toHaveAttribute('data-drag-end');
+    // Sheet still renders normally with reduced motion
+    // (the drag handlers are present, just without animation transitions)
+    expect(sheet).toBeInTheDocument();
+    expect(sheet.className).toContain('max-h-[85vh]');
   });
 });

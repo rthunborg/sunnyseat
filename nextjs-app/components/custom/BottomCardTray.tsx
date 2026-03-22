@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useEffect, useCallback, useMemo } from 'react';
-import { motion, useMotionValue, animate } from 'framer-motion';
 import { useCardTray, SNAP_POINTS } from '@/lib/context/CardTrayContext';
 import { useLanguage } from '@/lib/i18n';
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion';
@@ -43,13 +42,46 @@ interface BottomCardTrayProps {
   onVenueHover?: (id: string | null) => void;
 }
 
+/**
+ * Animates an element's `top` style to a target pixel value using
+ * requestAnimationFrame. A lightweight replacement for framer-motion's
+ * `animate(motionValue, target)` with spring-like easing.
+ */
+function animateTop(
+  el: HTMLElement,
+  target: number,
+  opts: { duration?: number; immediate?: boolean } = {},
+) {
+  const { duration = 300, immediate = false } = opts;
+  if (immediate) {
+    el.style.top = `${target}px`;
+    return;
+  }
+  const start = parseFloat(el.style.top || '0');
+  const delta = target - start;
+  const startTime = performance.now();
+
+  function step(now: number) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // Ease-out cubic for smooth deceleration
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.style.top = `${start + delta * eased}px`;
+    if (progress < 1) requestAnimationFrame(step);
+  }
+
+  requestAnimationFrame(step);
+}
+
 export function BottomCardTray({ ambientClass, onEmptyCta, onVenueHover }: BottomCardTrayProps) {
   const { trayState, setTrayState, venues, isLoading, selectedVenueId, emptyReason, selectVenue } = useCardTray();
   const { t } = useLanguage();
   const reducedMotion = useReducedMotion();
   const isDesktop = useIsDesktop();
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const y = useMotionValue(0);
+  const trayRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef(0);
+  const dragStartTop = useRef(0);
 
   const snapHeights = useMemo(() => {
     if (typeof window === 'undefined') return { peeking: 0, 'half-expanded': 0, collapsed: 0 };
@@ -64,13 +96,9 @@ export function BottomCardTray({ ambientClass, onEmptyCta, onVenueHover }: Botto
   const currentTop = snapHeights[trayState] ?? snapHeights.peeking;
 
   useEffect(() => {
-    if (isDesktop) return;
-    if (reducedMotion) {
-      y.set(currentTop);
-    } else {
-      animate(y, currentTop, { stiffness: 300, damping: 30 });
-    }
-  }, [currentTop, reducedMotion, y, isDesktop]);
+    if (isDesktop || !trayRef.current) return;
+    animateTop(trayRef.current, currentTop, { immediate: reducedMotion });
+  }, [currentTop, reducedMotion, isDesktop]);
 
   // Scroll to selected venue card
   useEffect(() => {
@@ -81,49 +109,47 @@ export function BottomCardTray({ ambientClass, onEmptyCta, onVenueHover }: Botto
     }
   }, [selectedVenueId, reducedMotion]);
 
-  const handleDragEnd = useCallback(
-    (_: unknown, info: { velocity: { y: number }; point: { y: number } }) => {
-      const currentY = y.get();
-      const velocity = info.velocity.y;
+  // Touch-based drag for mobile tray
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    dragStartY.current = e.touches[0].clientY;
+    dragStartTop.current = parseFloat(trayRef.current?.style.top || '0');
+    if (trayRef.current) trayRef.current.style.transition = 'none';
+  }, []);
 
-      // Find nearest snap point
-      const points = [snapHeights['half-expanded'], snapHeights.peeking, snapHeights.collapsed];
-      let target = currentY;
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!trayRef.current) return;
+    const deltaY = e.touches[0].clientY - dragStartY.current;
+    const newTop = Math.max(
+      snapHeights['half-expanded'],
+      Math.min(snapHeights.collapsed, dragStartTop.current + deltaY)
+    );
+    trayRef.current.style.top = `${newTop}px`;
+  }, [snapHeights]);
 
-      if (Math.abs(velocity) > 200) {
-        // Velocity-based: flick up or down
-        if (velocity < 0) {
-          // Swiping up
-          target = points.filter((p) => p < currentY).pop() ?? points[0];
-        } else {
-          // Swiping down
-          target = points.find((p) => p > currentY) ?? points[points.length - 1];
-        }
-      } else {
-        // Position-based: snap to nearest
-        let minDist = Infinity;
-        for (const p of points) {
-          const dist = Math.abs(currentY - p);
-          if (dist < minDist) {
-            minDist = dist;
-            target = p;
-          }
-        }
+  const handleTouchEnd = useCallback(() => {
+    if (!trayRef.current) return;
+    const currentY = parseFloat(trayRef.current.style.top || '0');
+
+    // Snap to nearest
+    const points = [
+      { state: 'half-expanded' as const, y: snapHeights['half-expanded'] },
+      { state: 'peeking' as const, y: snapHeights.peeking },
+      { state: 'collapsed' as const, y: snapHeights.collapsed },
+    ];
+
+    let nearest = points[0];
+    let minDist = Infinity;
+    for (const p of points) {
+      const dist = Math.abs(currentY - p.y);
+      if (dist < minDist) {
+        minDist = dist;
+        nearest = p;
       }
+    }
 
-      // Map target back to state
-      if (target === snapHeights['half-expanded']) setTrayState('half-expanded');
-      else if (target === snapHeights.peeking) setTrayState('peeking');
-      else setTrayState('collapsed');
-
-      if (reducedMotion) {
-        y.set(target);
-      } else {
-        animate(y, target, { stiffness: 300, damping: 30 });
-      }
-    },
-    [snapHeights, setTrayState, y, reducedMotion]
-  );
+    setTrayState(nearest.state);
+    animateTop(trayRef.current, nearest.y, { immediate: reducedMotion });
+  }, [snapHeights, setTrayState, reducedMotion]);
 
   const venueCount = venues.length;
 
@@ -350,20 +376,17 @@ export function BottomCardTray({ ambientClass, onEmptyCta, onVenueHover }: Botto
 
   // Mobile: bottom card tray
   return (
-    <motion.div
+    <div
+      ref={trayRef}
       className={cn(
         'fixed left-0 right-0 z-40',
         'bg-surface-primary rounded-t-card shadow-elevated',
         ambientClass
       )}
-      style={{ top: y, bottom: 0 }}
-      drag="y"
-      dragConstraints={{
-        top: snapHeights['half-expanded'],
-        bottom: snapHeights.collapsed,
-      }}
-      dragElastic={0.1}
-      onDragEnd={handleDragEnd}
+      style={{ top: `${currentTop}px`, bottom: 0 }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       aria-label="Venue card tray"
     >
       <SeasonalBanner />
@@ -408,6 +431,6 @@ export function BottomCardTray({ ambientClass, onEmptyCta, onVenueHover }: Botto
       >
         {renderContent()}
       </div>
-    </motion.div>
+    </div>
   );
 }

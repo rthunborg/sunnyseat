@@ -1,14 +1,15 @@
 'use client';
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion';
+import { useSlideAnimation } from '@/lib/hooks/useSlideAnimation';
+import { useDragDismiss } from '@/lib/hooks/useDragDismiss';
 import VenueDetailPage from '@/components/custom/VenueDetailPage';
 import type { SunWindow } from '@/lib/types/venue';
 import type { SkyCondition, SunStatus } from '@/lib/types/design-tokens';
 
-const SHEET_DURATION = 0.3;
+const SHEET_DURATION = 300;
 const SWIPE_CLOSE_THRESHOLD = 100;
 const SWIPE_VELOCITY_THRESHOLD = 300;
 
@@ -33,11 +34,34 @@ interface VenueDetailSheetProps {
 export function VenueDetailSheet({ venue }: VenueDetailSheetProps) {
   const router = useRouter();
   const reducedMotion = useReducedMotion();
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   const handleClose = useCallback(() => {
     router.back();
   }, [router]);
+
+  const { mounted, style, onTransitionEnd } = useSlideAnimation({
+    isOpen: true, // Always open when rendered (parent controls mount)
+    direction: 'up',
+    duration: SHEET_DURATION,
+    reducedMotion,
+  });
+
+  const { handlers, dragRef } = useDragDismiss({
+    axis: 'y',
+    threshold: SWIPE_CLOSE_THRESHOLD,
+    velocityThreshold: SWIPE_VELOCITY_THRESHOLD,
+    onDismiss: handleClose,
+    elasticity: 0.2,
+  });
+
+  // Escape key
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [handleClose]);
 
   const handleBackdropClick = useCallback(
     (e: React.MouseEvent) => {
@@ -48,53 +72,13 @@ export function VenueDetailSheet({ venue }: VenueDetailSheetProps) {
     [handleClose]
   );
 
-  const handleBackdropKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleClose();
-      }
-    },
-    [handleClose]
-  );
-
-  const handleDragEnd = useCallback(
-    (_: unknown, info: { velocity: { y: number }; offset: { y: number } }) => {
-      if (
-        info.offset.y > SWIPE_CLOSE_THRESHOLD ||
-        info.velocity.y > SWIPE_VELOCITY_THRESHOLD
-      ) {
-        handleClose();
-      }
-    },
-    [handleClose]
-  );
-
-  const sheetVariants = {
-    hidden: { y: '100%' },
-    visible: { y: 0 },
-    exit: { y: '100%' },
-  };
-
-  const backdropVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1 },
-    exit: { opacity: 0 },
-  };
-
-  const animationTransition = reducedMotion
-    ? { duration: 0 }
-    : { duration: SHEET_DURATION, ease: [0.32, 0.72, 0, 1] as const };
+  if (!mounted) return null;
 
   return (
-    <motion.div
+    <div
       className="fixed inset-0 z-50 lg:flex lg:items-stretch lg:justify-end"
-      variants={backdropVariants}
-      initial="hidden"
-      animate="visible"
-      exit="exit"
-      transition={animationTransition}
+      style={{ opacity: mounted ? 1 : 0, transition: `opacity ${SHEET_DURATION}ms ease` }}
       onClick={handleBackdropClick}
-      onKeyDown={handleBackdropKeyDown}
       role="dialog"
       aria-modal="true"
       aria-label={venue.name}
@@ -107,19 +91,13 @@ export function VenueDetailSheet({ venue }: VenueDetailSheetProps) {
       />
 
       {/* Sheet — mobile: bottom sheet; desktop: side panel */}
-      <motion.div
-        ref={sheetRef}
+      <div
+        ref={dragRef}
         className="absolute bottom-0 left-0 right-0 max-h-[85vh] bg-surface-primary rounded-t-card shadow-elevated overflow-y-auto lg:static lg:relative lg:w-[480px] lg:max-h-none lg:rounded-none lg:rounded-l-card"
-        variants={sheetVariants}
-        initial="hidden"
-        animate="visible"
-        exit="exit"
-        transition={animationTransition}
-        drag={reducedMotion ? false : 'y'}
-        dragConstraints={{ top: 0 }}
-        dragElastic={0.2}
-        onDragEnd={handleDragEnd}
+        style={style}
+        onTransitionEnd={onTransitionEnd}
         data-testid="venue-detail-sheet"
+        {...handlers}
       >
         {/* Drag handle (mobile) */}
         <div
@@ -130,7 +108,7 @@ export function VenueDetailSheet({ venue }: VenueDetailSheetProps) {
         </div>
 
         <VenueDetailPage venue={venue} isModal onClose={handleClose} />
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }

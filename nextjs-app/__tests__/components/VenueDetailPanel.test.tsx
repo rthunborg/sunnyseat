@@ -14,20 +14,6 @@ vi.mock('next/image', () => ({
   },
 }));
 
-// Mock framer-motion
-vi.mock('framer-motion', async () => {
-  const actual = await vi.importActual('framer-motion');
-  return {
-    ...actual,
-    AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-    motion: {
-      aside: ({ children, ...props }: React.HTMLAttributes<HTMLElement> & Record<string, unknown>) => {
-        const { _initial, _animate, _exit, _transition, ...htmlProps } = props as Record<string, unknown>;
-        return <aside {...(htmlProps as React.HTMLAttributes<HTMLElement>)}>{children}</aside>;
-      },
-    },
-  };
-});
 
 // Mock timezone-utils
 vi.mock('@/lib/solar/timezone-utils', () => ({
