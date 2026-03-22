@@ -4,8 +4,6 @@ import {
   calculateJulianCenturies,
   normalizeDegrees,
   normalizeDegreesSymmetric,
-  calculateSolarElevation,
-  calculateSolarAzimuth,
   applyAtmosphericRefraction,
   calculateGeometricalMeanLongitudeSun,
   calculateGeometricalMeanAnomalySun,

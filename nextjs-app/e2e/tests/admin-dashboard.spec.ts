@@ -172,7 +172,7 @@ test.describe('Admin Dashboard', () => {
       await page.waitForTimeout(5000);
 
       // Should not show the error banner
-      const errorBanner = page.locator('.text-destructive');
+      const _errorBanner = page.locator('.text-destructive');
       // If error appears, it should be a transient API issue, not a crash
       const heading = page.getByRole('heading', { name: 'KPI Dashboard' });
       await expect(heading).toBeVisible();

@@ -85,7 +85,7 @@ describe('MiniTimeline', () => {
       variant: 'card',
       now: new Date(Date.UTC(2026, 0, 15, 5, 0)), // 06:00 Stockholm — outside card range
     });
-    const nowIndicator = container.querySelector('.bg-text-primary.w-\\[2px\\]');
+    const _nowIndicator = container.querySelector('.bg-text-primary.w-\\[2px\\]');
     // card range will be 06:00-08:00 (around now since no sun nearby),
     // but the now indicator should appear at 06:00 which is in range
     // Let's just verify the component renders without errors

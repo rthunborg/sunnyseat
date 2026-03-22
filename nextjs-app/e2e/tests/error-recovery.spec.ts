@@ -116,8 +116,8 @@ test.describe('Graceful Degradation', () => {
 
     // Either location prompt or the main UI should be visible
     // The prompt may use different text depending on locale
-    const hasPrompt = await page.getByText('Tillåt plats').isVisible().catch(() => false);
-    const hasFallback = await page.getByText('Eller välj på kartan').isVisible().catch(() => false);
+    const _hasPrompt = await page.getByText('Tillåt plats').isVisible().catch(() => false);
+    const _hasFallback = await page.getByText('Eller välj på kartan').isVisible().catch(() => false);
     const hasMap = await mapContainer.isVisible();
 
     // At minimum, the map should render — the app works without geolocation

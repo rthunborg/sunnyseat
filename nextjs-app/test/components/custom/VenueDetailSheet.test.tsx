@@ -31,7 +31,7 @@ vi.mock('framer-motion', () => ({
       'aria-label': ariaLabel,
       drag,
       onDragEnd,
-      ...rest
+      ..._rest
     }: Record<string, unknown>) => {
       const props: Record<string, unknown> = {
         className,

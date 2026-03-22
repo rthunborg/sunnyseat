@@ -1,6 +1,6 @@
 'use client';
 
-import { useReducer, useCallback, useRef } from 'react';
+import { useReducer, useCallback } from 'react';
 
 // ---------------------------------------------------------------------------
 // State machine: browsing → selected → detail

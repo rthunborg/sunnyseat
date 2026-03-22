@@ -152,7 +152,7 @@ test.describe('Admin Venue CRUD', () => {
 
     test('newly created venue appears in admin venue list', async ({ page }) => {
       // Create venue via DB for reliability
-      const { id, name, slug } = await createTestVenue({
+      const { id, name, slug: _slug } = await createTestVenue({
         name: `E2E List Check ${Date.now()}`,
         slug: `e2e-test-list-${Date.now()}`,
       });
@@ -393,7 +393,7 @@ test.describe('Admin Venue CRUD', () => {
     });
 
     test('confirm delete → venue removed from list and DB', async ({ page }) => {
-      const { id, slug } = await createTestVenue({
+      const { id, slug: _slug } = await createTestVenue({
         name: `E2E Delete Full ${Date.now()}`,
         slug: `e2e-test-del-full-${Date.now()}`,
       });

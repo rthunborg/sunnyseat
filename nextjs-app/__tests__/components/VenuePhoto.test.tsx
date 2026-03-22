@@ -6,8 +6,9 @@ import { VenuePhoto } from '@/components/ui/VenuePhoto';
 vi.mock('next/image', () => ({
   default: (props: Record<string, unknown>) => {
     // next/image uses fill + onError; map to standard img attrs
-    const { fill, onError, ...rest } = props;
-    return <img {...rest} onError={onError as React.ReactEventHandler<HTMLImageElement>} />;
+    const { _fill, onError, ...rest } = props;
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img alt="" {...rest} onError={onError as React.ReactEventHandler<HTMLImageElement>} />;
   },
 }));
 

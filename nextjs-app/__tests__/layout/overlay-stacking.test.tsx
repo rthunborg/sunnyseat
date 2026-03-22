@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import React, { useEffect } from 'react';
+import React from 'react';
 
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
     div: React.forwardRef(function MotionDiv(props: Record<string, unknown>, ref: React.Ref<HTMLDivElement>) {
-      const { children, drag, dragConstraints, dragElastic, onDragEnd, style, ...rest } = props;
+      const { children, _drag, _dragConstraints, _dragElastic, _onDragEnd, style, ...rest } = props;
       return React.createElement(
         'div',
         { ...rest, ref, style: style as React.CSSProperties },

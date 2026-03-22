@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { checkAccessibility } from '../helpers/accessibility';
 
 // --- AC3: Error Boundary Tests ---
 
@@ -158,7 +157,6 @@ test.describe('AC6: Seasonal Banner', () => {
           return new RealDate(2026, 0, 15, 12, 0, 0).getTime();
         }
       }
-      // eslint-disable-next-line no-global-assign
       (globalThis as unknown as { Date: typeof MockDate }).Date = MockDate;
     });
 

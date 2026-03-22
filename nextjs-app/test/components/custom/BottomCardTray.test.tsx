@@ -6,7 +6,7 @@ import React, { useEffect } from 'react';
 vi.mock('framer-motion', () => ({
   motion: {
     div: React.forwardRef(function MotionDiv(props: Record<string, unknown>, ref: React.Ref<HTMLDivElement>) {
-      const { children, drag, dragConstraints, dragElastic, onDragEnd, ...rest } = props;
+      const { children, _drag, _dragConstraints, _dragElastic, _onDragEnd, ...rest } = props;
       return React.createElement('div', { ...rest, ref, 'data-testid': 'motion-div' }, children as React.ReactNode);
     }),
   },

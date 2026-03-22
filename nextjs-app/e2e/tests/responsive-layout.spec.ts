@@ -207,7 +207,7 @@ test.describe('AC3: Desktop Layout (1280×720)', () => {
 
     // The mobile bottom sheet should be hidden on desktop (wrapped in lg:hidden)
     const mobileWrapper = page.locator('.lg\\:hidden');
-    const bottomSheet = mobileWrapper.locator('[aria-label="Venue card tray"]');
+    const _bottomSheet = mobileWrapper.locator('[aria-label="Venue card tray"]');
 
     // The mobile wrapper is display:none at lg, so contents should not be visible
     await expect(mobileWrapper).toBeHidden();

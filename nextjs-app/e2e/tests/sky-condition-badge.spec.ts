@@ -16,7 +16,7 @@ const GOTHENBURG_LNG = 11.9746;
  */
 
 test.describe('SkyConditionBadge on VenueCards', () => {
-  test.beforeEach(async ({ page, context }) => {
+  test.beforeEach(async ({ page: _page, context }) => {
     await context.grantPermissions(['geolocation']);
     await context.setGeolocation({ latitude: GOTHENBURG_LAT, longitude: GOTHENBURG_LNG });
   });

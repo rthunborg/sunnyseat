@@ -69,7 +69,7 @@ export function VenueProfileContent({
   layout,
   onDirections,
   onShare,
-  onClose,
+  onClose: _onClose,
 }: VenueProfileContentProps) {
   const { t, language } = useLanguage();
   const v = venue.venue;

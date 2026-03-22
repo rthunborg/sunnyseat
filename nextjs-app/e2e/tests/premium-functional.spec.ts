@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { HomePage } from '../pages/HomePage';
 
 const GOTHENBURG_LAT = 57.7089;
 const GOTHENBURG_LNG = 11.9746;

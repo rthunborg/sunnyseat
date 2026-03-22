@@ -4,7 +4,7 @@
  * Verifies WCAG 2.1 AA compliance, touch targets, i18n, ARIA attributes,
  * and design token usage across all key components.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { LanguageProvider } from '@/lib/i18n';
 import { VenueCard } from '@/components/custom/VenueCard';

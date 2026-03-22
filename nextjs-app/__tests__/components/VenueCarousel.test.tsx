@@ -8,8 +8,9 @@ import type { SunExposureResult } from '@/lib/types/venue';
 // Mock next/image
 vi.mock('next/image', () => ({
   default: (props: Record<string, unknown>) => {
-    const { fill, onError, ...rest } = props;
-    return <img {...rest} onError={onError as React.ReactEventHandler<HTMLImageElement>} />;
+    const { _fill, onError, ...rest } = props;
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img alt="" {...rest} onError={onError as React.ReactEventHandler<HTMLImageElement>} />;
   },
 }));
 

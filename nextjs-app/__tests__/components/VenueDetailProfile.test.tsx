@@ -8,8 +8,9 @@ import type { SunExposureResult } from '@/lib/types/venue';
 // Mock next/image
 vi.mock('next/image', () => ({
   default: (props: Record<string, unknown>) => {
-    const { fill, onError, ...rest } = props;
-    return <img {...rest} onError={onError as React.ReactEventHandler<HTMLImageElement>} />;
+    const { _fill, onError, ...rest } = props;
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img alt="" {...rest} onError={onError as React.ReactEventHandler<HTMLImageElement>} />;
   },
 }));
 
@@ -22,8 +23,8 @@ vi.mock('framer-motion', async () => {
     motion: {
       div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>) => {
         const {
-          initial, animate, exit, transition,
-          drag, dragConstraints, dragElastic, onDragEnd,
+          _initial, _animate, _exit, _transition,
+          _drag, _dragConstraints, _dragElastic, _onDragEnd,
           ...htmlProps
         } = props as Record<string, unknown>;
         return <div {...(htmlProps as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>;

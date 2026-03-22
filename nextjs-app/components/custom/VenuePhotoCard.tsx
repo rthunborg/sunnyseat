@@ -65,7 +65,7 @@ export function VenuePhotoCard({
   neighborhood,
   imageUrl,
   sunStatus,
-  skyCondition,
+  skyCondition: _skyCondition,
   distanceMeters,
   isPartner = false,
   variant = 'carousel',

@@ -36,7 +36,7 @@ export function verifyAuthToken(request: NextRequest): AuthUser | null {
       role: decoded.role,
       claims: decoded.claims || [],
     };
-  } catch (error) {
+  } catch {
     return null;
   }
 }

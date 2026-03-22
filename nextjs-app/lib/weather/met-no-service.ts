@@ -65,7 +65,7 @@ export async function getForecast(
       const entryTime = new Date(entry.time).getTime();
       const isForecast = entryTime > now + 30 * 60000;
 
-      const precip = entry.data?.next_1_hours?.details?.precipitation_amount;
+      const _precip = entry.data?.next_1_hours?.details?.precipitation_amount;
       const fogFraction = instant.fog_area_fraction;
       const visibility =
         fogFraction != null ? (100 - fogFraction) / 10.0 : undefined;

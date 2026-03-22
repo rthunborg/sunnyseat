@@ -7,7 +7,7 @@ const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
 function createMockMap(zoom = 16) {
-  const listeners: Record<string, Function[]> = {};
+  const listeners: Record<string, ((...args: unknown[]) => void)[]> = {};
   return {
     getCenter: vi.fn().mockReturnValue({ lat: 57.7, lng: 11.97 }),
     getZoom: vi.fn().mockReturnValue(zoom),
@@ -17,16 +17,16 @@ function createMockMap(zoom = 16) {
     addLayer: vi.fn(),
     setLayoutProperty: vi.fn(),
     isStyleLoaded: vi.fn().mockReturnValue(true),
-    on: vi.fn((event: string, fn: Function) => {
+    on: vi.fn((event: string, fn: (...args: unknown[]) => void) => {
       if (!listeners[event]) listeners[event] = [];
       listeners[event].push(fn);
     }),
-    off: vi.fn((event: string, fn: Function) => {
+    off: vi.fn((event: string, fn: (...args: unknown[]) => void) => {
       if (listeners[event]) {
         listeners[event] = listeners[event].filter((f) => f !== fn);
       }
     }),
-    once: vi.fn((event: string, fn: Function) => {
+    once: vi.fn((event: string, fn: (...args: unknown[]) => void) => {
       if (!listeners[event]) listeners[event] = [];
       listeners[event].push(fn);
     }),

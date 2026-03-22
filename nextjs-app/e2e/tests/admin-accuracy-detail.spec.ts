@@ -64,7 +64,7 @@ test.describe('Admin Accuracy Detail Page', () => {
     await page.goto('/admin/accuracy/venues/999999');
 
     // Should not crash
-    const response = await page.waitForResponse(
+    const _response = await page.waitForResponse(
       (r) => r.url().includes('/api/admin/accuracy/venues/999999'),
       { timeout: 10000 }
     ).catch(() => null);

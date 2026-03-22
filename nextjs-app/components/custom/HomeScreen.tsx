@@ -50,7 +50,7 @@ function HomeScreenInner() {
   const { coordinates, permissionStatus, requestLocation } = useCurrentLocation();
   const [map, setMap] = useState<maplibregl.Map | null>(null);
   const { setVenues, setLoading, venues, setEmptyReason } = useCardTray();
-  const [hoveredVenueId, setHoveredVenueId] = useState<string | null>(null);
+  const [_hoveredVenueId, _setHoveredVenueId] = useState<string | null>(null);
   const isDesktop = useIsDesktop();
 
   // Selection flow state machine (replaces old simple selectedVenueId)
@@ -78,14 +78,17 @@ function HomeScreenInner() {
   const { sunnyPartners } = useSunnyNow();
   const { timeOffset, setTimeOffset, isLoading: isTimeOffsetLoading } = useTimeOffset(fetchLat, fetchLng);
   const { selectedDate, setSelectedDate, isLoading: isDateLoading } = useDateSelection(fetchLat, fetchLng);
-  const { className: ambientClass } = useAmbientTone();
+  const { className: _ambientClass } = useAmbientTone();
   const reducedMotion = useReducedMotion();
+
+  // Get current timestamp once on mount (not re-computed during render)
+  const [now] = useState(() => Date.now());
 
   // Shadow layers on map (visible at zoom >= 15)
   const shadowTimestamp = selectedDate
     ? new Date(selectedDate.getTime() + timeOffset * 3600_000).toISOString()
     : timeOffset > 0
-      ? new Date(Date.now() + timeOffset * 3600_000).toISOString()
+      ? new Date(now + timeOffset * 3600_000).toISOString()
       : null;
   useMapShadowLayers({ map, enabled: true, timestamp: shadowTimestamp, reducedMotion });
 
@@ -245,7 +248,7 @@ function HomeScreenInner() {
           onMapReady={handleMapReady}
           venues={venues}
           selectedVenueId={selectedVenueId}
-          hoveredVenueId={hoveredVenueId}
+          hoveredVenueId={_hoveredVenueId}
           onVenueSelect={handleVenueSelect}
           onBoundsChange={handleBoundsChange}
           sunnyPartnerIds={sunnyPartners}
