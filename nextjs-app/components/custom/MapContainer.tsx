@@ -7,7 +7,8 @@ import { useLanguage, LanguageProvider } from '@/lib/i18n';
 import type { Coordinates } from '@/lib/types/location';
 import type { SunExposureResult } from '@/lib/types/venue';
 import { MapPopup } from '@/components/custom/MapPopup';
-import { loadPinIcons, PIN_ICON_SIZE } from '@/lib/map/venue-pin-icons';
+// Pin icons disabled for now (SDF conflict with MapTiler style)
+// import { loadPinIcons, PIN_ICON_SIZE } from '@/lib/map/venue-pin-icons';
 import type maplibregl from 'maplibre-gl';
 
 const GOTHENBURG_CENTER: [number, number] = [11.9746, 57.7089];
@@ -201,13 +202,20 @@ export default function MapContainer({
 
     mapRef.current = map;
 
-    map.on('load', async () => {
-      // Pre-load pin icon images into the map
-      try {
-        await loadPinIcons(map as unknown as Parameters<typeof loadPinIcons>[0]);
-      } catch {
-        // Pin icons are a visual enhancement — fallback to circle markers
+    // Suppress warnings for missing sprite images from the tile style
+    // (e.g. "books", "marketplace" POI icons from MapTiler).
+    // Must be registered before 'load' so it catches early tile requests.
+    map.on('styleimagemissing', (e: { id: string }) => {
+      // Create a tiny transparent 1×1 placeholder so the warning fires only once per id
+      if (!map.hasImage(e.id)) {
+        map.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) });
       }
+    });
+
+    map.on('load', () => {
+      // Pin icons disabled for now (SDF conflict with MapTiler style).
+      // loadPinIcons(map) can be re-enabled once SDF-compatible icons are available.
+
       onMapReady?.(map);
     });
 
@@ -224,7 +232,12 @@ export default function MapContainer({
 
     // Click on map background → deselect
     map.on('click', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { layers: ['venue-markers', 'partner-markers', 'candidate-markers'] });
+      // Only query layers that actually exist on the map (they're added later when venue data arrives)
+      const queryLayers = ['venue-markers', 'partner-markers', 'candidate-markers'].filter(
+        (id) => !!map.getLayer(id),
+      );
+      if (queryLayers.length === 0) return;
+      const features = map.queryRenderedFeatures(e.point, { layers: queryLayers });
       if (!features || features.length === 0) {
         onVenueSelect?.(null);
       }
@@ -471,66 +484,16 @@ export default function MapContainer({
         },
       });
 
-      // Pin icon symbol layers (visible on top of circles when pin images loaded)
-      const hasPins = map.hasImage('pin-sunny');
-      if (hasPins) {
-        // Regular venue pins
-        map.addLayer({
-          id: 'venue-pins',
-          type: 'symbol',
-          source: 'venues',
-          filter: ['all', ['!=', ['get', 'isPartner'], true], ['!=', ['get', 'isCandidate'], true]],
-          layout: {
-            'icon-image': [
-              'match',
-              ['get', 'sunStatus'],
-              'sunny', 'pin-sunny',
-              'partial', 'pin-partial',
-              'shaded', 'pin-shaded',
-              'upcoming', 'pin-upcoming',
-              'pin-shaded',
-            ] as maplibregl.ExpressionSpecification,
-            'icon-size': PIN_ICON_SIZE,
-            'icon-anchor': 'bottom',
-            'icon-allow-overlap': true,
-            'icon-ignore-placement': true,
-          },
-          paint: {
-            'icon-opacity': 1,
-          },
-        });
-
-        // Partner venue pins
-        map.addLayer({
-          id: 'partner-pins',
-          type: 'symbol',
-          source: 'venues',
-          filter: ['==', ['get', 'isPartner'], true],
-          layout: {
-            'icon-image': 'pin-partner',
-            'icon-size': PIN_ICON_SIZE * 1.2,
-            'icon-anchor': 'bottom',
-            'icon-allow-overlap': true,
-            'icon-ignore-placement': true,
-          },
-          paint: {
-            'icon-opacity': 1,
-          },
-        });
-
-        // Hide circle markers when pins are active (circles remain for selection ring/pulse)
-        map.setPaintProperty('venue-markers', 'circle-opacity', 0);
-        map.setPaintProperty('venue-markers', 'circle-stroke-width', 0);
-        map.setPaintProperty('partner-markers', 'circle-opacity', 0);
-        map.setPaintProperty('partner-markers', 'circle-stroke-width', 0);
-        map.setPaintProperty('venue-markers-glow', 'circle-opacity', 0);
-        map.setPaintProperty('partner-markers-glow', 'circle-opacity', 0);
-      }
+      // TODO: Pin icon symbol layers disabled — MapTiler SDF icons conflict
+      // with our non-SDF canvas pin images ("Cannot mix SDF and non-SDF icons
+      // in one buffer"), causing pins to not render. Circle markers are used
+      // instead until we either generate SDF-compatible icons or use a separate
+      // symbol source that avoids the atlas conflict.
 
       markersInitialized.current = true;
 
-      // Task 10: Progressive marker appearance (only for circle markers, not pins)
-      if (!reducedMotion && !hasPins) {
+      // Task 10: Progressive marker appearance (circle markers)
+      if (!reducedMotion) {
         // Sunny first (0ms)
         requestAnimationFrame(() => {
           map.setPaintProperty('venue-markers-glow', 'circle-opacity', 0.2);

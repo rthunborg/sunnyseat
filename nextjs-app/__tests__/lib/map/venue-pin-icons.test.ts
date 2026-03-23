@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   pinIconDataUrl,
   allPinIconDataUrls,
@@ -60,48 +60,101 @@ describe('venue-pin-icons', () => {
   });
 
   describe('loadPinIcons', () => {
-    it('loads all pin images into the map', async () => {
+    let originalCreateElement: typeof document.createElement;
+
+    beforeEach(() => {
+      originalCreateElement = document.createElement.bind(document);
+    });
+
+    afterEach(() => {
+      document.createElement = originalCreateElement;
+      vi.restoreAllMocks();
+    });
+
+    function setupCanvasMock() {
+      const mockImageData = { width: 56, height: 72, data: new Uint8ClampedArray(56 * 72 * 4) };
+      const mockCtx = {
+        beginPath: vi.fn(),
+        arc: vi.fn(),
+        quadraticCurveTo: vi.fn(),
+        closePath: vi.fn(),
+        fill: vi.fn(),
+        stroke: vi.fn(),
+        getImageData: vi.fn().mockReturnValue(mockImageData),
+        fillStyle: '',
+        strokeStyle: '',
+        lineWidth: 0,
+        shadowColor: '',
+        shadowBlur: 0,
+        shadowOffsetX: 0,
+        shadowOffsetY: 0,
+      };
+      const mockCanvas = {
+        width: 0,
+        height: 0,
+        getContext: vi.fn().mockReturnValue(mockCtx),
+      };
+
+      document.createElement = vi.fn((tag: string) => {
+        if (tag === 'canvas') return mockCanvas as unknown as HTMLCanvasElement;
+        return originalCreateElement(tag);
+      }) as typeof document.createElement;
+
+      return { mockImageData, mockCtx, mockCanvas };
+    }
+
+    it('loads all pin images into the map', () => {
+      const { mockImageData } = setupCanvasMock();
+
       const mockMap = {
         hasImage: vi.fn().mockReturnValue(false),
-        loadImage: vi.fn().mockResolvedValue({ data: 'mock-image-data' }),
         addImage: vi.fn(),
       };
 
-      await loadPinIcons(mockMap);
+      loadPinIcons(mockMap);
 
-      expect(mockMap.loadImage).toHaveBeenCalledTimes(5);
       expect(mockMap.addImage).toHaveBeenCalledTimes(5);
-      expect(mockMap.addImage).toHaveBeenCalledWith('pin-sunny', 'mock-image-data', { pixelRatio: 2 });
-      expect(mockMap.addImage).toHaveBeenCalledWith('pin-partner', 'mock-image-data', { pixelRatio: 2 });
+      expect(mockMap.addImage).toHaveBeenCalledWith('pin-sunny', mockImageData, { pixelRatio: 2 });
+      expect(mockMap.addImage).toHaveBeenCalledWith('pin-partner', mockImageData, { pixelRatio: 2 });
     });
 
-    it('skips images already loaded', async () => {
+    it('skips images already loaded', () => {
       const mockMap = {
         hasImage: vi.fn().mockReturnValue(true),
-        loadImage: vi.fn(),
         addImage: vi.fn(),
       };
 
-      await loadPinIcons(mockMap);
+      loadPinIcons(mockMap);
 
-      expect(mockMap.loadImage).not.toHaveBeenCalled();
       expect(mockMap.addImage).not.toHaveBeenCalled();
     });
 
-    it('handles loadImage failure gracefully', async () => {
+    it('handles canvas failure gracefully', () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      // Mock canvas to return null context
+      document.createElement = vi.fn((tag: string) => {
+        if (tag === 'canvas') {
+          return {
+            width: 0,
+            height: 0,
+            getContext: vi.fn().mockReturnValue(null),
+          } as unknown as HTMLCanvasElement;
+        }
+        return originalCreateElement(tag);
+      }) as typeof document.createElement;
+
       const mockMap = {
         hasImage: vi.fn().mockReturnValue(false),
-        loadImage: vi.fn().mockRejectedValue(new Error('Network error')),
         addImage: vi.fn(),
       };
 
-      // Should not throw
-      await loadPinIcons(mockMap);
+      // Should not throw — errors are caught per-icon
+      loadPinIcons(mockMap);
 
-      expect(warnSpy).toHaveBeenCalled();
+      // Icons are skipped when canvas context is unavailable
       expect(mockMap.addImage).not.toHaveBeenCalled();
-      warnSpy.mockRestore();
+      expect(warnSpy).toHaveBeenCalledTimes(5);
     });
   });
 
