@@ -50,8 +50,8 @@ describe('GET /api/partners/sunny-now', () => {
 
   it('returns sunny partner venues with >50% exposure', async () => {
     const partners = [
-      { Id: 1, Name: 'Café Husaren', Slug: 'cafe-husaren', patios: [{ Id: 10 }] },
-      { Id: 2, Name: 'Bar Centro', Slug: 'bar-centro', patios: [{ Id: 20 }] },
+      { Id: 1, Name: 'Café Husaren', Slug: 'cafe-husaren' },
+      { Id: 2, Name: 'Bar Centro', Slug: 'bar-centro' },
     ];
     setupFromMock(partners);
 
@@ -76,7 +76,7 @@ describe('GET /api/partners/sunny-now', () => {
 
   it('includes partial venues with >50% exposure', async () => {
     const partners = [
-      { Id: 3, Name: 'Pustervik', Slug: 'pustervik', patios: [{ Id: 30 }] },
+      { Id: 3, Name: 'Pustervik', Slug: 'pustervik' },
     ];
     setupFromMock(partners);
 
@@ -97,7 +97,7 @@ describe('GET /api/partners/sunny-now', () => {
 
   it('excludes venues with <50% exposure', async () => {
     const partners = [
-      { Id: 4, Name: 'Shady Bar', Slug: 'shady-bar', patios: [{ Id: 40 }] },
+      { Id: 4, Name: 'Shady Bar', Slug: 'shady-bar' },
     ];
     setupFromMock(partners);
 
@@ -114,9 +114,10 @@ describe('GET /api/partners/sunny-now', () => {
     expect(json.venues).toHaveLength(0);
   });
 
-  it('skips patios where calculation fails', async () => {
+  it('skips venues where calculation fails', async () => {
     const partners = [
-      { Id: 5, Name: 'Error Café', Slug: 'error-cafe', patios: [{ Id: 50 }, { Id: 51 }] },
+      { Id: 5, Name: 'Error Café', Slug: 'error-cafe' },
+      { Id: 6, Name: 'Sunny Spot', Slug: 'sunny-spot' },
     ];
     setupFromMock(partners);
 

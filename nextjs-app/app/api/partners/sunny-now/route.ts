@@ -7,7 +7,6 @@ interface PartnerVenueRow {
   Id: number;
   Name: string;
   Slug: string;
-  patios: { Id: number }[];
 }
 
 interface SunnyNowVenue {
@@ -23,15 +22,18 @@ const SUNNY_THRESHOLD = 50;
 /**
  * GET /api/partners/sunny-now
  * Returns partner venues currently receiving sunlight (>50% exposure).
+ * Venues table was consolidated — partner venues are queried directly
+ * (no separate patios table). Sun exposure is calculated per venue.
  * Cached for 5 minutes.
  */
 export async function GET() {
   try {
+    // Query partner venues directly (patios table was merged into venues)
     const { data: partners, error } = await supabaseAdmin
       .from('venues')
-      .select('Id, Name, Slug, patios(Id)')
+      .select('Id, Name, Slug')
       .eq('is_partner', true)
-      .eq('VerificationStatus', 1);
+      .eq('IsActive', true);
 
     if (error) {
       console.error('Error fetching partner venues:', error);
@@ -49,31 +51,24 @@ export async function GET() {
     const sunnyVenues: SunnyNowVenue[] = [];
 
     for (const partner of partners as PartnerVenueRow[]) {
-      if (!partner.patios || partner.patios.length === 0) continue;
+      try {
+        const exposure = await calculateSunExposure(partner.Id, now);
+        const sunStatus = exposure.state === 'NoSun' ? 'Shaded' : exposure.state;
 
-      let bestExposure = 0;
-      let bestStatus: 'Sunny' | 'Partial' | 'Shaded' = 'Shaded';
-
-      for (const patio of partner.patios) {
-        try {
-          const exposure = await calculateSunExposure(patio.Id, now);
-          if (exposure.sunExposurePercent > bestExposure) {
-            bestExposure = exposure.sunExposurePercent;
-            bestStatus = exposure.state === 'NoSun' ? 'Shaded' : exposure.state;
-          }
-        } catch {
-          // Skip patio if calculation fails
+        if (
+          exposure.sunExposurePercent >= SUNNY_THRESHOLD &&
+          (sunStatus === 'Sunny' || sunStatus === 'Partial')
+        ) {
+          sunnyVenues.push({
+            id: partner.Id,
+            name: partner.Name,
+            slug: partner.Slug,
+            sunStatus,
+            sunPercentage: Math.round(exposure.sunExposurePercent),
+          });
         }
-      }
-
-      if (bestExposure >= SUNNY_THRESHOLD && (bestStatus === 'Sunny' || bestStatus === 'Partial')) {
-        sunnyVenues.push({
-          id: partner.Id,
-          name: partner.Name,
-          slug: partner.Slug,
-          sunStatus: bestStatus,
-          sunPercentage: Math.round(bestExposure),
-        });
+      } catch {
+        // Skip venue if sun calculation fails
       }
     }
 

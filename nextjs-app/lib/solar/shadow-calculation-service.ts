@@ -165,6 +165,8 @@ async function fetchVenue(
   };
 }
 
+let _buildingsRpcWarned = false;
+
 async function fetchNearbyBuildings(
   venueGeometry: GeoJSON.Polygon,
   radiusDeg: number
@@ -178,15 +180,14 @@ async function fetchNearbyBuildings(
   });
 
   if (error) {
-    console.error('Failed to fetch buildings:', error.message);
-    const { data: fallbackData } = await supabaseAdmin
-      .from('buildings')
-      .select('*')
-      .gte('Height', SG.MIN_MEANINGFUL_HEIGHT)
-      .limit(200);
-
-    if (!fallbackData) return [];
-    return fallbackData.map(mapBuildingRow);
+    // The get_buildings_near_point RPC may not exist yet (migration pending).
+    // Degrade gracefully — shadow calculations will assume no nearby buildings,
+    // resulting in optimistic sun exposure estimates.
+    if (!_buildingsRpcWarned) {
+      console.warn('[shadows] get_buildings_near_point not available — shadow calculations will skip building occlusion. Apply pending migrations to enable.');
+      _buildingsRpcWarned = true;
+    }
+    return [];
   }
 
   return (data ?? []).map(mapBuildingRow);

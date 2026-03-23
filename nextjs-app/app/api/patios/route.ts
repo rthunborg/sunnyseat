@@ -167,6 +167,12 @@ export async function GET(request: NextRequest) {
       })
     );
 
+    // DEBUG: Log returned venue data for troubleshooting
+    console.log(`[/api/patios] Returning ${patioDtos.length} venues:`);
+    for (const p of patioDtos) {
+      console.log(`  - ${p.venueName} (id=${p.id}): lat=${p.location.lat}, lng=${p.location.lng}, sun=${p.currentSunStatus}, dist=${p.distanceMeters}m`);
+    }
+
     // Sort: sun status primary (sunny → partial → shaded), distance secondary
     const sortedPatios = patioDtos.sort((a, b) => {
       const statusDiff =
