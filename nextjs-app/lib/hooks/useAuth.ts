@@ -25,16 +25,6 @@ function getStoredRefreshToken(): string | null {
   return localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
-function getStoredUser(): AdminUserInfo | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem(USER_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
 function parseJwtExp(token: string): number | null {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
@@ -161,7 +151,6 @@ export function useAuth() {
   useEffect(() => {
     const token = getStoredToken();
     const refreshTokenStored = getStoredRefreshToken();
-    const user = getStoredUser();
 
     if (!token) {
       setState((prev) => ({ ...prev, isLoading: false }));
@@ -220,18 +209,10 @@ export function useAuth() {
         }
       })
       .catch(() => {
-        // Network error — use cached user if available
-        if (user) {
-          setState({
-            token,
-            refreshToken: refreshTokenStored,
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        } else {
-          clearAuth();
-        }
+        // Network error — don't trust cached credentials.
+        // Setting isAuthenticated from cache causes redirect loops
+        // when the token is actually expired/invalid.
+        clearAuth();
       });
 
     return () => {

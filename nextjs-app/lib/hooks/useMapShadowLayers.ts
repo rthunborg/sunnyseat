@@ -78,6 +78,12 @@ export function useMapShadowLayers({
         data: { type: 'FeatureCollection', features: [] },
       });
 
+      // Insert below venue marker layers so shadows don't cover markers.
+      // The glow layer may not exist yet if venues haven't loaded, so fall back gracefully.
+      const beforeLayer = mapInstance.getLayer('venue-markers-glow')
+        ? 'venue-markers-glow'
+        : undefined;
+
       // Shadow fill layer — semi-transparent dark overlay
       mapInstance.addLayer(
         {
@@ -91,8 +97,7 @@ export function useMapShadowLayers({
             'fill-opacity-transition': { duration: reducedMotion ? 0 : 600 },
           },
         },
-        // Insert below venue marker layers so shadows don't cover markers
-        'venue-markers-glow',
+        beforeLayer,
       );
 
       // Shadow edge outline for definition
@@ -108,7 +113,7 @@ export function useMapShadowLayers({
             'line-opacity': 0.12,
           },
         },
-        'venue-markers-glow',
+        beforeLayer,
       );
 
       layersAddedRef.current = true;
