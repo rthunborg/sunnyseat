@@ -107,16 +107,16 @@ export default function PolygonEditor({
             .addTo(map);
         }
 
-        // Patio polygon source
-        map.addSource('patios', {
+        // Venue polygon source
+        map.addSource('venue-polygons', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: [] },
         });
 
         map.addLayer({
-          id: 'patio-fills',
+          id: 'venue-fills',
           type: 'fill',
-          source: 'patios',
+          source: 'venue-polygons',
           paint: {
             'fill-color': [
               'case',
@@ -129,9 +129,9 @@ export default function PolygonEditor({
         });
 
         map.addLayer({
-          id: 'patio-outlines',
+          id: 'venue-outlines',
           type: 'line',
-          source: 'patios',
+          source: 'venue-polygons',
           paint: {
             'line-color': [
               'case',
@@ -173,8 +173,8 @@ export default function PolygonEditor({
           },
         });
 
-        // Click on patio polygon
-        map.on('click', 'patio-fills', (e) => {
+        // Click on venue polygon
+        map.on('click', 'venue-fills', (e) => {
           if (e.features && e.features.length > 0) {
             const id = e.features[0].properties?.id;
             if (id) {
@@ -184,10 +184,10 @@ export default function PolygonEditor({
           }
         });
 
-        map.on('mouseenter', 'patio-fills', () => {
+        map.on('mouseenter', 'venue-fills', () => {
           map.getCanvas().style.cursor = 'pointer';
         });
-        map.on('mouseleave', 'patio-fills', () => {
+        map.on('mouseleave', 'venue-fills', () => {
           map.getCanvas().style.cursor = '';
         });
       });
@@ -237,13 +237,13 @@ export default function PolygonEditor({
     map.getCanvas().style.cursor = mode === 'drawing' ? 'crosshair' : '';
   }, [mode]);
 
-  // Update patio polygon layer
+  // Update venue polygon layer
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
     const updateSource = () => {
-      const source = map.getSource('patios') as maplibregl.GeoJSONSource | undefined;
+      const source = map.getSource('venue-polygons') as maplibregl.GeoJSONSource | undefined;
       if (!source) return;
 
       const features: GeoJSON.Feature[] = venues

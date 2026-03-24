@@ -116,7 +116,7 @@ export default function AdminVenueDetailPage({
   const [bookingUrl, setBookingUrl] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
 
-  // Polygon state — we present the venue's single patio as a single polygon
+  // Polygon state — the venue's outdoor seating area geometry
   const [currentGeometry, setCurrentGeometry] = useState<GeoJSON.Polygon | null>(null);
 
   const editor = usePolygonEditor();
@@ -178,7 +178,7 @@ export default function AdminVenueDetailPage({
         coordinates: [[...editor.vertices, editor.vertices[0]]],
       };
     } else if (editor.mode === 'selected' && editor.vertices.length >= 3) {
-      // Selected patio with possibly moved vertices
+      // Selected polygon with possibly moved vertices
       geometryToSave = {
         type: 'Polygon',
         coordinates: [[...editor.vertices, editor.vertices[0]]],

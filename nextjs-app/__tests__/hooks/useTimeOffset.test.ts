@@ -31,7 +31,7 @@ describe('useTimeOffset', () => {
   it('fetches future data when offset > 0 after 300ms debounce', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ patios: [{ id: '1' }], timestamp: new Date().toISOString(), totalCount: 1 }),
+      json: () => Promise.resolve({ venues: [{ id: '1' }], timestamp: new Date().toISOString(), totalCount: 1 }),
     });
 
     const { result } = renderHook(() => useTimeOffset(57.7, 11.95));
@@ -58,7 +58,7 @@ describe('useTimeOffset', () => {
   it('clears future data when offset returns to 0', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ patios: [{ id: '1' }], timestamp: new Date().toISOString(), totalCount: 1 }),
+      json: () => Promise.resolve({ venues: [{ id: '1' }], timestamp: new Date().toISOString(), totalCount: 1 }),
     });
 
     const { result } = renderHook(() => useTimeOffset(57.7, 11.95));
@@ -143,7 +143,7 @@ describe('useTimeOffset', () => {
   it('debounces rapid offset changes — final value wins', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ patios: [], timestamp: new Date().toISOString(), totalCount: 0 }),
+      json: () => Promise.resolve({ venues: [], timestamp: new Date().toISOString(), totalCount: 0 }),
     });
 
     const { result } = renderHook(() => useTimeOffset(57.7, 11.95));

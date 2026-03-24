@@ -5,56 +5,56 @@ const GOTHENBURG_LAT = 57.7089;
 const GOTHENBURG_LNG = 11.9746;
 
 // ============================================================================
-// 1. GET /api/patios
+// 1. GET /api/venues
 // ============================================================================
-test.describe('GET /api/patios', () => {
+test.describe('GET /api/venues', () => {
   test('returns 200 with valid lat and lng params', async ({ request }) => {
     const response = await request.get(
-      `/api/patios?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}`
+      `/api/venues?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}`
     );
     expect(response.status()).toBe(200);
     const body = await response.json();
-    expect(body.patios).toBeDefined();
-    expect(Array.isArray(body.patios)).toBe(true);
+    expect(body.venues).toBeDefined();
+    expect(Array.isArray(body.venues)).toBe(true);
   });
 
   test('returns 200 with valid latitude and longitude params', async ({ request }) => {
     const response = await request.get(
-      `/api/patios?latitude=${GOTHENBURG_LAT}&longitude=${GOTHENBURG_LNG}`
+      `/api/venues?latitude=${GOTHENBURG_LAT}&longitude=${GOTHENBURG_LNG}`
     );
     expect(response.status()).toBe(200);
     const body = await response.json();
-    expect(body.patios).toBeDefined();
+    expect(body.venues).toBeDefined();
   });
 
-  test('response shape matches spec: patios[] with required fields', async ({ request }) => {
+  test('response shape matches spec: venues[] with required fields', async ({ request }) => {
     const response = await request.get(
-      `/api/patios?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}`
+      `/api/venues?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}`
     );
     const body = await response.json();
 
-    if (body.patios.length > 0) {
-      const patio = body.patios[0];
-      expect(patio).toHaveProperty('id');
-      expect(patio).toHaveProperty('venueId');
-      expect(patio).toHaveProperty('venueName');
-      expect(patio).toHaveProperty('venueSlug');
-      expect(patio).toHaveProperty('neighborhood');
-      expect(patio).toHaveProperty('distanceMeters');
-      expect(patio).toHaveProperty('currentSunStatus');
-      expect(patio).toHaveProperty('sunExposurePercent');
-      expect(patio).toHaveProperty('isPartner');
-      expect(patio).toHaveProperty('location');
-      expect(patio.location).toHaveProperty('lat');
-      expect(patio.location).toHaveProperty('lng');
-      expect(typeof patio.isPartner).toBe('boolean');
-      expect(['Sunny', 'Partial', 'Shaded']).toContain(patio.currentSunStatus);
+    if (body.venues.length > 0) {
+      const venue = body.venues[0];
+      expect(venue).toHaveProperty('id');
+      expect(venue).toHaveProperty('venueId');
+      expect(venue).toHaveProperty('venueName');
+      expect(venue).toHaveProperty('venueSlug');
+      expect(venue).toHaveProperty('neighborhood');
+      expect(venue).toHaveProperty('distanceMeters');
+      expect(venue).toHaveProperty('currentSunStatus');
+      expect(venue).toHaveProperty('sunExposurePercent');
+      expect(venue).toHaveProperty('isPartner');
+      expect(venue).toHaveProperty('location');
+      expect(venue.location).toHaveProperty('lat');
+      expect(venue.location).toHaveProperty('lng');
+      expect(typeof venue.isPartner).toBe('boolean');
+      expect(['Sunny', 'Partial', 'Shaded']).toContain(venue.currentSunStatus);
     }
   });
 
   test('meta object includes count and radiusKm', async ({ request }) => {
     const response = await request.get(
-      `/api/patios?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}`
+      `/api/venues?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}`
     );
     const body = await response.json();
     expect(body.meta).toBeDefined();
@@ -66,15 +66,15 @@ test.describe('GET /api/patios', () => {
     request,
   }) => {
     const response = await request.get(
-      `/api/patios?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}&radiusKm=3`
+      `/api/venues?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}&radiusKm=3`
     );
     const body = await response.json();
 
-    if (body.patios.length >= 2) {
+    if (body.venues.length >= 2) {
       const statusOrder: Record<string, number> = { Sunny: 0, Partial: 1, Shaded: 2 };
-      for (let i = 1; i < body.patios.length; i++) {
-        const prev = body.patios[i - 1];
-        const curr = body.patios[i];
+      for (let i = 1; i < body.venues.length; i++) {
+        const prev = body.venues[i - 1];
+        const curr = body.venues[i];
         const prevRank = statusOrder[prev.currentSunStatus] ?? 2;
         const currRank = statusOrder[curr.currentSunStatus] ?? 2;
         if (prevRank === currRank) {
@@ -88,7 +88,7 @@ test.describe('GET /api/patios', () => {
 
   test('default radiusKm is 1.5 when not specified', async ({ request }) => {
     const response = await request.get(
-      `/api/patios?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}`
+      `/api/venues?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}`
     );
     const body = await response.json();
     expect(body.meta.radiusKm).toBe(1.5);
@@ -96,7 +96,7 @@ test.describe('GET /api/patios', () => {
 
   test('custom radiusKm parameter works', async ({ request }) => {
     const response = await request.get(
-      `/api/patios?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}&radiusKm=0.5`
+      `/api/venues?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}&radiusKm=0.5`
     );
     expect(response.status()).toBe(200);
     const body = await response.json();
@@ -105,38 +105,38 @@ test.describe('GET /api/patios', () => {
 
   test('returns empty array (not error) when no venues in radius', async ({ request }) => {
     // Use a remote location where no venues exist
-    const response = await request.get('/api/patios?lat=0.0&lng=0.0&radiusKm=0.1');
+    const response = await request.get('/api/venues?lat=0.0&lng=0.0&radiusKm=0.1');
     expect(response.status()).toBe(200);
     const body = await response.json();
-    expect(body.patios).toEqual([]);
+    expect(body.venues).toEqual([]);
     expect(body.meta.count).toBe(0);
   });
 
   test('missing lat/lng returns 400 error with descriptive message', async ({ request }) => {
-    const response = await request.get('/api/patios');
+    const response = await request.get('/api/venues');
     expect(response.status()).toBe(400);
     const body = await response.json();
     expect(body.detail).toBeDefined();
   });
 
   test('missing lat returns 400', async ({ request }) => {
-    const response = await request.get(`/api/patios?lng=${GOTHENBURG_LNG}`);
+    const response = await request.get(`/api/venues?lng=${GOTHENBURG_LNG}`);
     expect(response.status()).toBe(400);
   });
 
   test('missing lng returns 400', async ({ request }) => {
-    const response = await request.get(`/api/patios?lat=${GOTHENBURG_LAT}`);
+    const response = await request.get(`/api/venues?lat=${GOTHENBURG_LAT}`);
     expect(response.status()).toBe(400);
   });
 
   test('invalid coordinates return 400 error', async ({ request }) => {
-    const response = await request.get('/api/patios?lat=999&lng=999');
+    const response = await request.get('/api/venues?lat=999&lng=999');
     expect(response.status()).toBe(400);
   });
 
   test('cache headers present: s-maxage=30', async ({ request }) => {
     const response = await request.get(
-      `/api/patios?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}`
+      `/api/venues?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}`
     );
     const cacheControl = response.headers()['cache-control'];
     expect(cacheControl).toBeDefined();
@@ -145,24 +145,24 @@ test.describe('GET /api/patios', () => {
 });
 
 // ============================================================================
-// 2. GET /api/sun-exposure/patio/[id]
+// 2. GET /api/sun-exposure/venue/[id]
 // ============================================================================
-test.describe('GET /api/sun-exposure/patio/[id]', () => {
-  // Helper: get a known venue ID from the patios endpoint
+test.describe('GET /api/sun-exposure/venue/[id]', () => {
+  // Helper: get a known venue ID from the venues endpoint
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async function getKnownVenueId(request: any): Promise<string | null> {
     const response = await request.get(
-      `/api/patios?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}&radiusKm=3`
+      `/api/venues?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}&radiusKm=3`
     );
     const body = await response.json();
-    return body.patios?.[0]?.id ?? null;
+    return body.venues?.[0]?.id ?? null;
   }
 
   test('returns 200 for a known venue ID', async ({ request }) => {
     const venueId = await getKnownVenueId(request);
     test.skip(!venueId, 'No venues in database to test');
 
-    const response = await request.get(`/api/sun-exposure/patio/${venueId}`);
+    const response = await request.get(`/api/sun-exposure/venue/${venueId}`);
     expect(response.status()).toBe(200);
   });
 
@@ -170,7 +170,7 @@ test.describe('GET /api/sun-exposure/patio/[id]', () => {
     const venueId = await getKnownVenueId(request);
     test.skip(!venueId, 'No venues in database to test');
 
-    const response = await request.get(`/api/sun-exposure/patio/${venueId}`);
+    const response = await request.get(`/api/sun-exposure/venue/${venueId}`);
     const body = await response.json();
 
     expect(body).toHaveProperty('venueId');
@@ -184,13 +184,13 @@ test.describe('GET /api/sun-exposure/patio/[id]', () => {
     expect(typeof body.sunExposurePercent).toBe('number');
   });
 
-  test('invalid patio ID returns 404 or 400', async ({ request }) => {
-    const response = await request.get('/api/sun-exposure/patio/999999');
+  test('invalid venue ID returns 404 or 400', async ({ request }) => {
+    const response = await request.get('/api/sun-exposure/venue/999999');
     expect([400, 404]).toContain(response.status());
   });
 
-  test('non-numeric patio ID returns 400', async ({ request }) => {
-    const response = await request.get('/api/sun-exposure/patio/not-a-number');
+  test('non-numeric venue ID returns 400', async ({ request }) => {
+    const response = await request.get('/api/sun-exposure/venue/not-a-number');
     expect(response.status()).toBe(400);
   });
 
@@ -198,7 +198,7 @@ test.describe('GET /api/sun-exposure/patio/[id]', () => {
     const venueId = await getKnownVenueId(request);
     test.skip(!venueId, 'No venues in database to test');
 
-    const response = await request.get(`/api/sun-exposure/patio/${venueId}`);
+    const response = await request.get(`/api/sun-exposure/venue/${venueId}`);
     const cacheControl = response.headers()['cache-control'];
     expect(cacheControl).toBeDefined();
     expect(cacheControl).toContain('s-maxage=300');

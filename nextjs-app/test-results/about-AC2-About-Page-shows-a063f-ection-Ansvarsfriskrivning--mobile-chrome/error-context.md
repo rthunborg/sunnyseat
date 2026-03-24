@@ -1,0 +1,77 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Hoppa till innehåll" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - main [ref=e4]:
+    - generic [ref=e5]:
+      - navigation "Tillbaka" [ref=e6]:
+        - link "Tillbaka till kartan" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e8]: ←
+          - text: Tillbaka till kartan
+      - region "Om SunnySeat" [ref=e9]:
+        - img [ref=e11]
+        - heading "Om SunnySeat" [level=1] [ref=e18]
+        - paragraph [ref=e19]: Hitta soliga uteplatser i Göteborg — just nu
+      - region "Så fungerar det" [ref=e20]:
+        - heading "Så fungerar det" [level=2] [ref=e21]
+        - generic [ref=e22]:
+          - article [ref=e23]:
+            - img [ref=e25]
+            - paragraph [ref=e32]: "1."
+            - heading "Beräknar solens position" [level=3] [ref=e33]
+            - paragraph [ref=e34]: Astronomiska formler ger solens exakta vinkel baserat på tid och plats.
+          - article [ref=e35]:
+            - img [ref=e37]
+            - paragraph [ref=e44]: "2."
+            - heading "Modellerar byggnaders skuggor" [level=3] [ref=e45]
+            - paragraph [ref=e46]: 2.5D-modell av omgivande byggnader visar var skuggorna faller.
+          - article [ref=e47]:
+            - img [ref=e49]
+            - paragraph [ref=e52]: "3."
+            - heading "Lägger till väderdata" [level=3] [ref=e53]
+            - paragraph [ref=e54]: Aktuell molnighet från Met.no ger en realistisk bild av solläget.
+      - region "Datakällor" [ref=e55]:
+        - heading "Datakällor" [level=2] [ref=e56]
+        - generic [ref=e57]:
+          - article [ref=e58]:
+            - heading "Met.no" [level=3] [ref=e59]
+            - paragraph [ref=e60]: Väderdata från Meteorologisk institutt, Norge.
+          - article [ref=e61]:
+            - heading "SMHI" [level=3] [ref=e62]
+            - paragraph [ref=e63]: Kompletterande väder- och klimatdata för Sverige.
+          - article [ref=e64]:
+            - heading "OpenStreetMap" [level=3] [ref=e65]
+            - paragraph [ref=e66]: Kartdata och byggnadsgeometri från öppna bidragsgivare.
+          - article [ref=e67]:
+            - heading "Lantmäteriet" [level=3] [ref=e68]
+            - paragraph [ref=e69]: Byggnadshöjder och officiell geodata för Sverige.
+      - region "Observera" [ref=e70]:
+        - generic [ref=e71]:
+          - img [ref=e72]
+          - generic [ref=e75]:
+            - heading "Observera" [level=2] [ref=e76]
+            - paragraph [ref=e77]: Soldata är uppskattningar baserade på beräkningsmodeller och väderdata. Verkliga förhållanden kan avvika på grund av tillfälliga faktorer som markiser, vegetation eller lokala molnförhållanden. SunnySeat garanterar inte att informationen är fullständigt korrekt.
+      - region "Feedback" [ref=e78]:
+        - heading "Feedback" [level=2] [ref=e79]
+        - paragraph [ref=e80]: Ser något som inte stämmer? Vi uppskattar din feedback — använd "Stämmer solläget?"-knappen på valfri restaurangsida.
+  - contentinfo [ref=e81]:
+    - generic [ref=e82]:
+      - generic [ref=e83]:
+        - paragraph [ref=e84]: © 2026 SunnySeat
+        - paragraph [ref=e85]: "Data: Met.no, Lantmäteriet, OSM"
+      - generic [ref=e86]:
+        - link "Om SunnySeat" [ref=e87] [cursor=pointer]:
+          - /url: /about
+        - button "Byt språk" [ref=e88]: EN
+  - button "Open Next.js Dev Tools" [ref=e94] [cursor=pointer]:
+    - generic [ref=e97]:
+      - text: Compiling
+      - generic [ref=e98]:
+        - generic [ref=e99]: .
+        - generic [ref=e100]: .
+        - generic [ref=e101]: .
+  - alert [ref=e102]
+```

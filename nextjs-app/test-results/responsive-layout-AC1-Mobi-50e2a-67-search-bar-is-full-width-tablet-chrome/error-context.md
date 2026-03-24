@@ -1,0 +1,56 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Hoppa till innehåll" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e5]:
+    - combobox [ref=e7]:
+      - searchbox "Search venues..." [ref=e8]
+    - application "Map with venues" [ref=e9]:
+      - region "Map" [ref=e11]
+      - generic [ref=e12]:
+        - generic [ref=e14]:
+          - button "Zoom in"
+          - button "Zoom out"
+          - button "Drag to rotate map, click to reset north"
+        - group [ref=e16]:
+          - generic "Toggle attribution" [ref=e17]
+          - link "MapLibre" [ref=e19] [cursor=pointer]:
+            - /url: https://maplibre.org/
+    - generic [ref=e21]:
+      - group "Time offset for sun forecast" [ref=e23]:
+        - generic [ref=e25]: Time forecast
+        - slider "Select time offset" [ref=e26] [cursor=pointer]: "0"
+        - generic [ref=e27]:
+          - button "Set Now" [pressed] [ref=e28]: Now
+          - button "Set +1 h" [ref=e29]:
+            - text: +1 h
+            - generic [ref=e30]: Premium
+          - button "Set +2 h" [ref=e31]:
+            - text: +2 h
+            - generic [ref=e32]: Premium
+          - button "Set +3 h" [ref=e33]:
+            - text: +3 h
+            - generic [ref=e34]: Premium
+      - button "Choose date" [ref=e36]:
+        - img [ref=e37]
+        - generic [ref=e40]: Date
+        - generic [ref=e41]: Premium
+    - dialog "SunnySeat uses your location to find sunny venues near you" [ref=e42]:
+      - paragraph [ref=e43]: SunnySeat uses your location to find sunny venues near you
+      - button "Allow location" [ref=e44]
+      - button "Or choose on the map" [ref=e45] [cursor=pointer]
+  - contentinfo [ref=e46]:
+    - generic [ref=e47]:
+      - generic [ref=e48]:
+        - paragraph [ref=e49]: © 2026 SunnySeat
+        - paragraph [ref=e50]: "Data: Met.no, Lantmäteriet, OSM"
+      - generic [ref=e51]:
+        - link "Om SunnySeat" [ref=e52] [cursor=pointer]:
+          - /url: /about
+        - button "Byt språk" [ref=e53]: EN
+  - button "Open Next.js Dev Tools" [ref=e59] [cursor=pointer]:
+    - img [ref=e60]
+  - alert [ref=e63]
+```

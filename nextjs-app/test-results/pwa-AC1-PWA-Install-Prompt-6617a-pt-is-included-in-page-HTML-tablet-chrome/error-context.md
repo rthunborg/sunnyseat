@@ -1,0 +1,45 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Hoppa till innehåll" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e5]:
+    - combobox [ref=e7]:
+      - searchbox "Search venues..." [ref=e8]
+    - generic [ref=e10]:
+      - group "Time offset for sun forecast" [ref=e12]:
+        - generic [ref=e14]: Time forecast
+        - slider "Select time offset" [ref=e15] [cursor=pointer]: "0"
+        - generic [ref=e16]:
+          - button "Set Now" [pressed] [ref=e17]: Now
+          - button "Set +1 h" [ref=e18]:
+            - text: +1 h
+            - generic [ref=e19]: Premium
+          - button "Set +2 h" [ref=e20]:
+            - text: +2 h
+            - generic [ref=e21]: Premium
+          - button "Set +3 h" [ref=e22]:
+            - text: +3 h
+            - generic [ref=e23]: Premium
+      - button "Choose date" [ref=e25]:
+        - img [ref=e26]
+        - generic [ref=e29]: Date
+        - generic [ref=e30]: Premium
+    - dialog "SunnySeat uses your location to find sunny venues near you" [ref=e31]:
+      - paragraph [ref=e32]: SunnySeat uses your location to find sunny venues near you
+      - button "Allow location" [ref=e33]
+      - button "Or choose on the map" [ref=e34] [cursor=pointer]
+  - contentinfo [ref=e35]:
+    - generic [ref=e36]:
+      - generic [ref=e37]:
+        - paragraph [ref=e38]: © 2026 SunnySeat
+        - paragraph [ref=e39]: "Data: Met.no, Lantmäteriet, OSM"
+      - generic [ref=e40]:
+        - link "Om SunnySeat" [ref=e41] [cursor=pointer]:
+          - /url: /about
+        - button "Byt språk" [ref=e42]: EN
+  - button "Open Next.js Dev Tools" [ref=e48] [cursor=pointer]:
+    - img [ref=e49]
+  - alert [ref=e52]
+```

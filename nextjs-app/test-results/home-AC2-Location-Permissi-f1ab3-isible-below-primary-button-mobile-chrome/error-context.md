@@ -1,0 +1,74 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Hoppa till innehåll" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - combobox [ref=e7]:
+        - searchbox "Search venues..." [ref=e8]
+      - application "Map with venues" [ref=e9]:
+        - region "Map" [ref=e10]
+        - generic:
+          - generic [ref=e11]:
+            - button "Zoom in" [ref=e12] [cursor=pointer]
+            - button "Zoom out" [ref=e14] [cursor=pointer]
+            - button "Drag to rotate map, click to reset north" [ref=e16]
+          - group [ref=e18]:
+            - generic "Toggle attribution" [ref=e19] [cursor=pointer]
+            - generic [ref=e20]:
+              - link "MapLibre" [ref=e21] [cursor=pointer]:
+                - /url: https://maplibre.org/
+              - text: "|"
+              - link "© MapTiler" [ref=e22] [cursor=pointer]:
+                - /url: https://www.maptiler.com/copyright/
+              - link "© OpenStreetMap contributors" [ref=e23] [cursor=pointer]:
+                - /url: https://www.openstreetmap.org/copyright
+      - generic [ref=e25]:
+        - group "Time offset for sun forecast" [ref=e27]:
+          - generic [ref=e29]: Time forecast
+          - slider "Select time offset" [ref=e30] [cursor=pointer]: "0"
+          - generic [ref=e31]:
+            - button "Set Now" [pressed] [ref=e32]: Now
+            - button "Set +1 h" [ref=e33]:
+              - text: +1 h
+              - generic [ref=e34]: Premium
+            - button "Set +2 h" [ref=e35]:
+              - text: +2 h
+              - generic [ref=e36]: Premium
+            - button "Set +3 h" [ref=e37]:
+              - text: +3 h
+              - generic [ref=e38]: Premium
+        - button "Choose date" [ref=e40]:
+          - img [ref=e41]
+          - generic [ref=e44]: Date
+          - generic [ref=e45]: Premium
+      - dialog "SunnySeat uses your location to find sunny venues near you" [ref=e46]:
+        - paragraph [ref=e47]: SunnySeat uses your location to find sunny venues near you
+        - button "Allow location" [ref=e48]
+        - button "Or choose on the map" [ref=e49] [cursor=pointer]
+    - listbox "Nearby venues" [ref=e51]:
+      - group "Shaded" [ref=e52]:
+        - option "Trädgår'n, Shaded" [ref=e53]:
+          - button "Trädgår'n, Shaded" [ref=e54] [cursor=pointer]:
+            - generic [ref=e57]: T
+            - generic [ref=e59]:
+              - heading "Trädgår'n" [level=3] [ref=e60]
+              - paragraph [ref=e61]:
+                - generic [ref=e62]: Heden
+                - generic [ref=e63]: ·
+                - generic [ref=e64]: 500 m
+  - contentinfo [ref=e65]:
+    - generic [ref=e66]:
+      - generic [ref=e67]:
+        - paragraph [ref=e68]: © 2026 SunnySeat
+        - paragraph [ref=e69]: "Data: Met.no, Lantmäteriet, OSM"
+      - generic [ref=e70]:
+        - link "Om SunnySeat" [ref=e71] [cursor=pointer]:
+          - /url: /about
+        - button "Byt språk" [ref=e72]: EN
+  - button "Open Next.js Dev Tools" [ref=e78] [cursor=pointer]:
+    - img [ref=e79]
+  - alert [ref=e82]
+```

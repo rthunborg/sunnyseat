@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { SunExposureResult } from '@/lib/types/venue';
 import type { SunStatus, SkyCondition } from '@/lib/types/design-tokens';
-import type { GetPatiosResponse, PatioDataDto } from '@/lib/types/api';
+import type { GetVenuesResponse, VenueDataDto } from '@/lib/types/api';
 
 interface UseSunExposureResult {
   data: SunExposureResult[] | null;
@@ -13,10 +13,10 @@ interface UseSunExposureResult {
 }
 
 /**
- * Map the API's flat PatioDataDto into the SunExposureResult shape
+ * Map the API's flat VenueDataDto into the SunExposureResult shape
  * that the entire frontend (map, cards, sort, context) expects.
  */
-function mapApiToSunExposureResult(dto: PatioDataDto): SunExposureResult {
+function mapApiToSunExposureResult(dto: VenueDataDto): SunExposureResult {
   const statusMap: Record<string, SunStatus> = {
     Sunny: 'sunny',
     Partial: 'partial',
@@ -72,7 +72,7 @@ export function useSunExposure(
 
     try {
       const res = await fetch(
-        `/api/patios?latitude=${fetchLat}&longitude=${fetchLng}&radiusKm=${fetchRadius}`,
+        `/api/venues?latitude=${fetchLat}&longitude=${fetchLng}&radiusKm=${fetchRadius}`,
         { signal: controller.signal }
       );
 
@@ -85,8 +85,8 @@ export function useSunExposure(
         return;
       }
 
-      const json: GetPatiosResponse = await res.json();
-      const venues = (json.patios ?? []).map(mapApiToSunExposureResult);
+      const json: GetVenuesResponse = await res.json();
+      const venues = (json.venues ?? []).map(mapApiToSunExposureResult);
       setData(venues);
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return;

@@ -19,13 +19,13 @@ vi.mock('@/lib/solar/sun-exposure-service', () => ({
   calculateSunExposure: (...args: unknown[]) => mockCalculateSunExposure(...args),
 }));
 
-import { GET } from '@/app/api/sun-exposure/patio/[id]/route';
+import { GET } from '@/app/api/sun-exposure/venue/[id]/route';
 
 function createRequest(id: string, params: Record<string, string> = {}): {
   request: NextRequest;
   context: { params: Promise<{ id: string }> };
 } {
-  const url = new URL(`http://localhost:3000/api/sun-exposure/patio/${id}`);
+  const url = new URL(`http://localhost:3000/api/sun-exposure/venue/${id}`);
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.set(key, value);
   }
@@ -35,7 +35,7 @@ function createRequest(id: string, params: Record<string, string> = {}): {
   };
 }
 
-describe('GET /api/sun-exposure/patio/[id]', () => {
+describe('GET /api/sun-exposure/venue/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

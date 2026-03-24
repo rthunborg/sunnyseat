@@ -1,0 +1,88 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - link "Hoppa till innehåll" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - combobox [ref=e7]:
+        - searchbox "Search venues..." [ref=e8]
+      - application "Map with venues" [ref=e9]:
+        - region "Map" [ref=e10]
+        - generic:
+          - generic [ref=e11]:
+            - button "Zoom in" [ref=e12] [cursor=pointer]
+            - button "Zoom out" [ref=e14] [cursor=pointer]
+            - button "Drag to rotate map, click to reset north" [ref=e16]
+          - group [ref=e18]:
+            - generic "Toggle attribution" [ref=e19] [cursor=pointer]
+            - generic [ref=e20]:
+              - link "MapLibre" [ref=e21] [cursor=pointer]:
+                - /url: https://maplibre.org/
+              - text: "|"
+              - link "© MapTiler" [ref=e22] [cursor=pointer]:
+                - /url: https://www.maptiler.com/copyright/
+              - link "© OpenStreetMap contributors" [ref=e23] [cursor=pointer]:
+                - /url: https://www.openstreetmap.org/copyright
+      - generic [ref=e25]:
+        - group "Time offset for sun forecast" [ref=e27]:
+          - generic [ref=e29]: Time forecast
+          - slider "Select time offset" [ref=e30] [cursor=pointer]: "0"
+          - generic [ref=e31]:
+            - button "Set Now" [pressed] [ref=e32]: Now
+            - button "Set +1 h" [ref=e33]:
+              - text: +1 h
+              - generic [ref=e34]: Premium
+            - button "Set +2 h" [ref=e35]:
+              - text: +2 h
+              - generic [ref=e36]: Premium
+            - button "Set +3 h" [ref=e37]:
+              - text: +3 h
+              - generic [ref=e38]: Premium
+        - generic [ref=e39]:
+          - button "Choose date" [active] [ref=e40]:
+            - img [ref=e41]
+            - generic [ref=e44]: Date
+            - generic [ref=e45]: Premium
+          - dialog "SunnySeat Premium" [ref=e46]:
+            - generic [ref=e47]:
+              - heading "SunnySeat Premium" [level=2] [ref=e48]
+              - paragraph [ref=e49]: 39 kr/säsong
+              - list [ref=e50]:
+                - listitem [ref=e51]:
+                  - generic [ref=e52]: ☀
+                  - text: Tidslinje — se sol timme för timme
+                - listitem [ref=e53]:
+                  - generic [ref=e54]: ☀
+                  - text: Datumväljare — planera framåt
+                - listitem [ref=e55]:
+                  - generic [ref=e56]: ☀
+                  - text: Stöd utvecklingen av SunnySeat
+              - generic [ref=e57]:
+                - button "Betala med Swish" [ref=e58]
+                - button "Inte nu" [ref=e59]
+    - listbox "Nearby venues" [ref=e61]:
+      - group "Shaded" [ref=e62]:
+        - option "Trädgår'n, Shaded" [ref=e63]:
+          - button "Trädgår'n, Shaded" [ref=e64] [cursor=pointer]:
+            - generic [ref=e67]: T
+            - generic [ref=e69]:
+              - heading "Trädgår'n" [level=3] [ref=e70]
+              - paragraph [ref=e71]:
+                - generic [ref=e72]: Heden
+                - generic [ref=e73]: ·
+                - generic [ref=e74]: 500 m
+  - contentinfo [ref=e75]:
+    - generic [ref=e76]:
+      - generic [ref=e77]:
+        - paragraph [ref=e78]: © 2026 SunnySeat
+        - paragraph [ref=e79]: "Data: Met.no, Lantmäteriet, OSM"
+      - generic [ref=e80]:
+        - link "Om SunnySeat" [ref=e81] [cursor=pointer]:
+          - /url: /about
+        - button "Byt språk" [ref=e82]: EN
+  - button "Open Next.js Dev Tools" [ref=e88] [cursor=pointer]:
+    - img [ref=e89]
+  - alert [ref=e92]
+```

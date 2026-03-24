@@ -47,7 +47,7 @@ export function useDateSelection(
       try {
         const dateParam = formatDateParam(date);
         const res = await fetch(
-          `/api/patios?latitude=${fetchLat}&longitude=${fetchLng}&radiusKm=${radiusKm}&date=${dateParam}`,
+          `/api/venues?latitude=${fetchLat}&longitude=${fetchLng}&radiusKm=${radiusKm}&date=${dateParam}`,
           { signal: controller.signal }
         );
 
@@ -57,7 +57,7 @@ export function useDateSelection(
         }
 
         const json = await res.json();
-        setFutureExposure(json.patios ?? json);
+        setFutureExposure(json.venues ?? json);
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === 'AbortError') return;
         setFutureExposure(null);

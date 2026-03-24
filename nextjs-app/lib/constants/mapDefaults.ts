@@ -12,7 +12,7 @@ export const MAP_DEFAULTS = {
   defaultRadiusKm: 1.5,
   maxRadiusKm: 3.0,
   minRadiusKm: 0.5,
-  maxVisiblePatios: 50,
+  maxVisibleVenues: 50,
 } as const;
 
 export const MAPTILER_STYLE_URL = 'https://api.maptiler.com/maps/streets-v2/style.json';

@@ -55,7 +55,7 @@ describe('useDateSelection', () => {
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
     const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
-    expect(url).toContain('/api/patios');
+    expect(url).toContain('/api/venues');
     expect(url).toContain('date=');
   });
 

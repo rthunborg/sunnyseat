@@ -10,8 +10,8 @@ interface QualityOverview {
   totalVenues: number;
   mappedVenues: number;
   mappedPercentage: number;
-  avgPatiosPerVenue: number;
-  totalPatios: number;
+  avgPolygonsPerVenue: number;
+  totalMapped: number;
 }
 
 export default function AdminDashboardPage() {
@@ -51,15 +51,15 @@ export default function AdminDashboardPage() {
           bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
         },
         {
-          label: 'Totalt uteplatser',
-          value: overview.totalPatios,
+          label: 'Totalt kartlagda',
+          value: overview.totalMapped,
           icon: SunIcon,
           color: 'text-amber-600',
           bgColor: 'bg-amber-50 dark:bg-amber-950/30',
         },
         {
-          label: 'Snitt uteplatser/restaurang',
-          value: overview.avgPatiosPerVenue,
+          label: 'Snitt polygoner/restaurang',
+          value: overview.avgPolygonsPerVenue,
           icon: BarChart3Icon,
           color: 'text-purple-600',
           bgColor: 'bg-purple-50 dark:bg-purple-950/30',

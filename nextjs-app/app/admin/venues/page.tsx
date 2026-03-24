@@ -38,7 +38,7 @@ export default function AdminVenuesPage() {
   const { token } = useAuthContext();
   const router = useRouter();
   const [venues, setVenues] = useState<Venue[]>([]);
-  const [patioCounts, setPatioCounts] = useState<Record<string, number>>({});
+  const [mappedCounts, setMappedCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -82,12 +82,11 @@ export default function AdminVenuesPage() {
     }
   }, [token, debouncedSearch, typeFilter, mappedFilter]);
 
-  // Fetch patio counts once
+  // Fetch mapped venue counts once
   useEffect(() => {
     if (!token) return;
-    // There's no bulk patio count endpoint, so we'll use a simple approach
-    // We'll mark venues as mapped/unmapped based on the mapped filter behavior
-    const fetchPatios = async () => {
+    // Mark venues as mapped/unmapped based on the mapped filter behavior
+    const fetchMappedVenues = async () => {
       try {
         const res = await fetch('/api/admin/venues?mapped=true', {
           headers: { Authorization: `Bearer ${token}` },
@@ -96,15 +95,15 @@ export default function AdminVenuesPage() {
           const mapped: Venue[] = await res.json();
           const counts: Record<string, number> = {};
           for (const v of mapped) {
-            counts[v.id] = 1; // At least 1 patio
+            counts[v.id] = 1; // Venue is mapped
           }
-          setPatioCounts(counts);
+          setMappedCounts(counts);
         }
       } catch {
         // ignore
       }
     };
-    fetchPatios();
+    fetchMappedVenues();
   }, [token]);
 
   useEffect(() => {
@@ -198,7 +197,7 @@ export default function AdminVenuesPage() {
             </thead>
             <tbody>
               {venues.map((venue) => {
-                const isMapped = Boolean(patioCounts[venue.id]);
+                const isMapped = Boolean(mappedCounts[venue.id]);
                 return (
                   <tr
                     key={venue.id}

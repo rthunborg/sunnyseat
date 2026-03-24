@@ -10,14 +10,14 @@ import { test, expect } from '@playwright/test';
 const GOTHENBURG_LAT = 57.7089;
 const GOTHENBURG_LNG = 11.9746;
 
-/** Helper: find a valid venue ID from the patios API */
+/** Helper: find a valid venue ID from the venues API */
 async function getKnownVenueId(request: import('@playwright/test').APIRequestContext): Promise<string | null> {
   const res = await request.get(
-    `/api/patios?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}&radiusKm=3`
+    `/api/venues?lat=${GOTHENBURG_LAT}&lng=${GOTHENBURG_LNG}&radiusKm=3`
   );
   if (!res.ok()) return null;
   const body = await res.json();
-  return body.patios?.[0]?.venueId ?? body.patios?.[0]?.id ?? null;
+  return body.venues?.[0]?.venueId ?? body.venues?.[0]?.id ?? null;
 }
 
 test.describe('CandidateCard — Venue Confirm API', () => {

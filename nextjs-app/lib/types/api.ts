@@ -46,23 +46,23 @@ export interface AdminUserInfo {
 }
 
 // ============================================================================
-// Patio Types
+// Venue Types
 // ============================================================================
 
-export interface PatiosMeta {
+export interface VenuesMeta {
   count: number;
   radiusKm: number;
   weatherUpdatedAt?: string;
 }
 
-export interface GetPatiosResponse {
-  patios: PatioDataDto[];
-  meta: PatiosMeta;
+export interface GetVenuesResponse {
+  venues: VenueDataDto[];
+  meta: VenuesMeta;
   timestamp: string;
   totalCount: number;
 }
 
-export interface PatioDataDto {
+export interface VenueDataDto {
   id: string; // venueId
   venueId: string;
   venueName: string;
@@ -82,8 +82,12 @@ export interface PatioDataDto {
   openingHours?: Record<string, string | null> | null;
 }
 
-// Alias for compatibility with frontend components
-export type PatioData = PatioDataDto;
+/** @deprecated Use VenueDataDto instead */
+export type PatioDataDto = VenueDataDto;
+/** @deprecated Use GetVenuesResponse instead */
+export type GetPatiosResponse = GetVenuesResponse;
+/** @deprecated Use VenuesMeta instead */
+export type PatiosMeta = VenuesMeta;
 
 export interface CoordinatesDto {
   latitude: number;
@@ -150,7 +154,7 @@ export interface ProblematicVenueResponse {
 // Sun Exposure Types
 // ============================================================================
 
-export interface PatioSunExposureResponse {
+export interface VenueSunExposureResponse {
   venueId: number;
   timestamp: string;
   state: 'Sunny' | 'Partial' | 'Shaded' | 'NoSun';
@@ -160,6 +164,9 @@ export interface PatioSunExposureResponse {
   solarAzimuth: number;
   weatherData?: WeatherDataDto;
 }
+
+/** @deprecated Use VenueSunExposureResponse instead */
+export type PatioSunExposureResponse = VenueSunExposureResponse;
 
 export interface WeatherDataDto {
   cloudCover: number;

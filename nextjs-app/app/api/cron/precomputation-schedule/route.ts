@@ -61,8 +61,8 @@ export async function POST(request: NextRequest) {
         TargetDate: dateStr,
         Status: 0,
         ScheduledAt: new Date().toISOString(),
-        PatiosTotal: 0,
-        PatiosProcessed: 0,
+        VenuesTotal: 0,
+        VenuesProcessed: 0,
         Metrics: {},
         UpdatedAt: new Date().toISOString(),
       });

@@ -1,0 +1,56 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Hoppa till innehåll" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e5]:
+    - combobox [ref=e7]:
+      - searchbox "Search venues..." [ref=e8]
+    - application "Map with venues" [ref=e9]:
+      - region "Map" [ref=e10]
+      - generic:
+        - generic [ref=e11]:
+          - button "Zoom in" [ref=e12] [cursor=pointer]
+          - button "Zoom out" [ref=e14] [cursor=pointer]
+          - button "Drag to rotate map, click to reset north" [ref=e16]
+        - group [ref=e18]:
+          - generic "Toggle attribution" [ref=e19] [cursor=pointer]
+          - link "MapLibre" [ref=e21] [cursor=pointer]:
+            - /url: https://maplibre.org/
+    - generic [ref=e23]:
+      - group "Time offset for sun forecast" [ref=e25]:
+        - generic [ref=e27]: Time forecast
+        - slider "Select time offset" [ref=e28] [cursor=pointer]: "0"
+        - generic [ref=e29]:
+          - button "Set Now" [pressed] [ref=e30]: Now
+          - button "Set +1 h" [ref=e31]:
+            - text: +1 h
+            - generic [ref=e32]: Premium
+          - button "Set +2 h" [ref=e33]:
+            - text: +2 h
+            - generic [ref=e34]: Premium
+          - button "Set +3 h" [ref=e35]:
+            - text: +3 h
+            - generic [ref=e36]: Premium
+      - button "Choose date" [ref=e38]:
+        - img [ref=e39]
+        - generic [ref=e42]: Date
+        - generic [ref=e43]: Premium
+    - dialog "SunnySeat uses your location to find sunny venues near you" [ref=e44]:
+      - paragraph [ref=e45]: SunnySeat uses your location to find sunny venues near you
+      - button "Allow location" [ref=e46]
+      - button "Or choose on the map" [ref=e47] [cursor=pointer]
+  - contentinfo [ref=e48]:
+    - generic [ref=e49]:
+      - generic [ref=e50]:
+        - paragraph [ref=e51]: © 2026 SunnySeat
+        - paragraph [ref=e52]: "Data: Met.no, Lantmäteriet, OSM"
+      - generic [ref=e53]:
+        - link "Om SunnySeat" [ref=e54] [cursor=pointer]:
+          - /url: /about
+        - button "Byt språk" [ref=e55]: EN
+  - button "Open Next.js Dev Tools" [ref=e61] [cursor=pointer]:
+    - img [ref=e62]
+  - alert [ref=e65]
+```

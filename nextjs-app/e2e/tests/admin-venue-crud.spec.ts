@@ -13,7 +13,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'test-password';
 const TEST_LAT = '57.7089';
 const TEST_LNG = '11.9746';
 
-// Sample GeoJSON polygon (small patio near Gothenburg center)
+// Sample GeoJSON polygon (small venue polygon near Gothenburg center)
 const TEST_POLYGON_GEOJSON = JSON.stringify({
   type: 'Polygon',
   coordinates: [
@@ -454,14 +454,14 @@ test.describe('Admin Venue CRUD', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // AC 5: Patio/Geometry Management Tests
+  // AC 5: Venue Polygon/Geometry Management Tests
   // ---------------------------------------------------------------------------
 
-  test.describe('AC 5 — Patio/Geometry Management', () => {
+  test.describe('AC 5 — Venue Polygon/Geometry Management', () => {
     test('polygon editor renders with draw/paste buttons when no geometry', async ({ page }) => {
       const { id } = await createTestVenue({
-        name: `E2E Patio NoGeom ${Date.now()}`,
-        slug: `e2e-test-patio-nogeom-${Date.now()}`,
+        name: `E2E Polygon NoGeom ${Date.now()}`,
+        slug: `e2e-test-polygon-nogeom-${Date.now()}`,
       });
 
       await loginAsAdmin(page);
@@ -478,10 +478,10 @@ test.describe('Admin Venue CRUD', () => {
       await deleteTestVenue(id);
     });
 
-    test('patio polygon visible on map if geometry exists', async ({ page }) => {
+    test('venue polygon visible on map if geometry exists', async ({ page }) => {
       const { id } = await createTestVenue({
-        name: `E2E Patio WithGeom ${Date.now()}`,
-        slug: `e2e-test-patio-geom-${Date.now()}`,
+        name: `E2E Polygon WithGeom ${Date.now()}`,
+        slug: `e2e-test-polygon-geom-${Date.now()}`,
         latitude: 57.7089,
         longitude: 11.9746,
       });
@@ -516,7 +516,7 @@ test.describe('Admin Venue CRUD', () => {
   // ---------------------------------------------------------------------------
 
   test.describe('AC 6 — Public API Integration', () => {
-    test('active mapped venue appears in public patios API', async ({ request }) => {
+    test('active mapped venue appears in public venues API', async ({ request }) => {
       const { id } = await createTestVenue({
         name: `E2E Public API ${Date.now()}`,
         slug: `e2e-test-public-${Date.now()}`,
@@ -534,9 +534,9 @@ test.describe('Admin Venue CRUD', () => {
         })
         .eq('Id', id);
 
-      // Query the public patios API near the venue
+      // Query the public venues API near the venue
       const res = await request.get(
-        `/api/patios?lat=${57.7089}&lng=${11.9746}&radius=1000`
+        `/api/venues?lat=${57.7089}&lng=${11.9746}&radius=1000`
       );
       // The API should respond (may or may not contain our venue depending on full pipeline)
       expect(res.status()).toBe(200);
@@ -566,7 +566,7 @@ test.describe('Admin Venue CRUD', () => {
 
       // Query public API — should not contain the deleted venue
       const res = await request.get(
-        `/api/patios?lat=${57.7089}&lng=${11.9746}&radius=1000`
+        `/api/venues?lat=${57.7089}&lng=${11.9746}&radius=1000`
       );
       expect(res.status()).toBe(200);
       const venues = await res.json();

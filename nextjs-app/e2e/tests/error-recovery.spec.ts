@@ -64,24 +64,24 @@ test.describe('404 Page', () => {
 });
 
 test.describe('API Error Handling', () => {
-  test('invalid lat/lng to patios API returns descriptive error', async ({ request }) => {
-    const response = await request.get('/api/patios?lat=abc&lng=def');
+  test('invalid lat/lng to venues API returns descriptive error', async ({ request }) => {
+    const response = await request.get('/api/venues?lat=abc&lng=def');
     expect(response.status()).toBe(400);
     const body = await response.json();
     // Should have error message, not crash
     expect(body).toBeTruthy();
   });
 
-  test('patios API with extreme coordinates returns empty, not error', async ({ request }) => {
+  test('venues API with extreme coordinates returns empty, not error', async ({ request }) => {
     // Valid coordinates but in the middle of nowhere
-    const response = await request.get('/api/patios?lat=-89&lng=179&radiusKm=0.1');
+    const response = await request.get('/api/venues?lat=-89&lng=179&radiusKm=0.1');
     expect(response.status()).toBe(200);
     const body = await response.json();
-    expect(body.patios).toEqual([]);
+    expect(body.venues).toEqual([]);
   });
 
   test('sun-exposure API with invalid ID returns error, not crash', async ({ request }) => {
-    const response = await request.get('/api/sun-exposure/patio/not-valid');
+    const response = await request.get('/api/sun-exposure/venue/not-valid');
     expect(response.status()).toBe(400);
   });
 

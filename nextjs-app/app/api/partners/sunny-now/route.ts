@@ -22,13 +22,13 @@ const SUNNY_THRESHOLD = 50;
 /**
  * GET /api/partners/sunny-now
  * Returns partner venues currently receiving sunlight (>50% exposure).
- * Venues table was consolidated — partner venues are queried directly
- * (no separate patios table). Sun exposure is calculated per venue.
+ * Partner venues are queried directly from the venues table.
+ * Sun exposure is calculated per venue.
  * Cached for 5 minutes.
  */
 export async function GET() {
   try {
-    // Query partner venues directly (patios table was merged into venues)
+    // Query partner venues directly
     const { data: partners, error } = await supabaseAdmin
       .from('venues')
       .select('Id, Name, Slug')

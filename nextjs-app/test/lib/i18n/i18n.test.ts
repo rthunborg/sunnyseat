@@ -62,22 +62,22 @@ describe('i18n t() function', () => {
 
   describe('pluralization', () => {
     it('uses singular form when count is 1', () => {
-      const result = t('home.foundPatios', { count: 1 });
+      const result = t('home.foundVenues', { count: 1 });
       expect(result).toBe('Hittade 1 restaurang');
     });
 
     it('uses plural form when count is not 1', () => {
-      const result = t('home.foundPatios', { count: 5 });
+      const result = t('home.foundVenues', { count: 5 });
       expect(result).toBe('Hittade 5 restauranger');
     });
 
     it('uses English plural form', () => {
-      const result = t('home.foundPatios', { count: 3 }, 'en');
+      const result = t('home.foundVenues', { count: 3 }, 'en');
       expect(result).toBe('Found 3 venues');
     });
 
     it('uses English singular form', () => {
-      const result = t('home.foundPatios', { count: 1 }, 'en');
+      const result = t('home.foundVenues', { count: 1 }, 'en');
       expect(result).toBe('Found 1 venue');
     });
   });

@@ -197,7 +197,7 @@ export function BottomCardTray({ ambientClass, onEmptyCta, onVenueHover }: Botto
 
     // Total count
     parts.push(
-      <span key="total">{t('venue.patios', { count: venueCount })}</span>
+      <span key="total">{t('venue.venues', { count: venueCount })}</span>
     );
 
     // Sunny count

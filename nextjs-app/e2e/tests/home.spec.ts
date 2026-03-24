@@ -13,7 +13,7 @@ test.describe('AC1: Map Rendering', () => {
     await expect(home.mapContainer).toBeVisible();
   });
 
-  test('map has correct aria-label describing it as a patio map', async ({ page }) => {
+  test('map has correct aria-label describing it as a venue map', async ({ page }) => {
     const home = new HomePage(page);
     await home.goto();
     await home.waitForReady();

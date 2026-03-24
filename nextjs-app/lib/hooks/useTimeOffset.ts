@@ -38,7 +38,7 @@ export function useTimeOffset(
 
       try {
         const res = await fetch(
-          `/api/patios?latitude=${fetchLat}&longitude=${fetchLng}&radiusKm=${radiusKm}&offset_hours=${offset}`,
+          `/api/venues?latitude=${fetchLat}&longitude=${fetchLng}&radiusKm=${radiusKm}&offset_hours=${offset}`,
           { signal: controller.signal }
         );
 
@@ -48,7 +48,7 @@ export function useTimeOffset(
         }
 
         const json = await res.json();
-        setFutureExposure(json.patios ?? json);
+        setFutureExposure(json.venues ?? json);
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === 'AbortError') return;
         setFutureExposure(null);

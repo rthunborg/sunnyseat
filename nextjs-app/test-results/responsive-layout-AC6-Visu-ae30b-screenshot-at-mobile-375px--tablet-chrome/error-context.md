@@ -1,0 +1,90 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Hoppa till innehåll" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - main [ref=e4]:
+    - navigation [ref=e5]:
+      - button "Tillbaka" [ref=e6]:
+        - generic [ref=e7]: ←
+        - text: Tillbaka
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - heading "Cafe Husaren" [level=1] [ref=e11]
+        - paragraph [ref=e12]: Linné
+      - 'img "Väderförhållanden: {{condition}}" [ref=e14]':
+        - img [ref=e15]
+        - generic [ref=e22]: Klart
+    - region "Soltidslinje" [ref=e23]:
+      - 'img "Solschema: soligt 09:00 till 13:30, delvis sol 14:00 till 16:00" [ref=e24]':
+        - img [ref=e27]
+        - generic [ref=e37]:
+          - generic [ref=e38]: 06:00
+          - generic [ref=e39]: 07:00
+          - generic [ref=e40]: 08:00
+          - generic [ref=e41]: 09:00
+          - generic [ref=e42]: 10:00
+          - generic [ref=e43]: 11:00
+          - generic [ref=e44]: 12:00
+          - generic [ref=e45]: 13:00
+          - generic [ref=e46]: 14:00
+          - generic [ref=e47]: 15:00
+          - generic [ref=e48]: 16:00
+          - generic [ref=e49]: 17:00
+          - generic [ref=e50]: 18:00
+          - generic [ref=e51]: 19:00
+          - generic [ref=e52]: 20:00
+          - generic [ref=e53]: 21:00
+          - generic [ref=e54]: 22:00
+    - table [ref=e56]:
+      - rowgroup [ref=e57]:
+        - row "Idag" [ref=e58]:
+          - columnheader "Idag" [ref=e59]
+        - 'row "{{status}} {{start}} till {{end}}, {{sky}}, {{duration}}" [ref=e60]':
+          - 'cell "Väderförhållanden: {{condition}}" [ref=e61]':
+            - 'img "Väderförhållanden: {{condition}}" [ref=e62]':
+              - img [ref=e63]
+          - cell "09:00 – 13:30" [ref=e70]
+          - 'cell "Väderförhållanden: {{condition}}" [ref=e71]':
+            - 'img "Väderförhållanden: {{condition}}" [ref=e72]':
+              - img [ref=e73]
+              - generic [ref=e80]: Klart
+          - cell "4h 30m" [ref=e81]
+        - 'row "{{status}} {{start}} till {{end}}, {{sky}}, {{duration}}" [ref=e82]':
+          - 'cell "Väderförhållanden: {{condition}}" [ref=e83]':
+            - 'img "Väderförhållanden: {{condition}}" [ref=e84]':
+              - img [ref=e85]
+          - cell "14:00 – 16:00" [ref=e90]
+          - 'cell "Väderförhållanden: {{condition}}" [ref=e91]':
+            - 'img "Väderförhållanden: {{condition}}" [ref=e92]':
+              - img [ref=e93]
+              - generic [ref=e98]: Halvklart
+          - cell "2h 0m" [ref=e99]
+      - rowgroup [ref=e102]:
+        - row "Imorgon" [ref=e103]:
+          - columnheader "Imorgon" [ref=e104]
+        - 'row "{{status}} {{start}} till {{end}}, {{sky}}, {{duration}}" [ref=e105]':
+          - 'cell "Väderförhållanden: {{condition}}" [ref=e106]':
+            - 'img "Väderförhållanden: {{condition}}" [ref=e107]':
+              - img [ref=e108]
+          - cell "10:00 – 15:00" [ref=e115]
+          - 'cell "Prognos: {{condition}}" [ref=e116]'
+          - cell "5h 0m" [ref=e117]
+    - 'link "Vägbeskrivning till {{name}}" [ref=e119] [cursor=pointer]':
+      - /url: https://www.google.com/maps/dir/?api=1&destination=57.6969,11.9573
+      - text: Gå dit
+    - button "Dela" [ref=e121]
+  - contentinfo [ref=e122]:
+    - generic [ref=e123]:
+      - generic [ref=e124]:
+        - paragraph [ref=e125]: © 2026 SunnySeat
+        - paragraph [ref=e126]: "Data: Met.no, Lantmäteriet, OSM"
+      - generic [ref=e127]:
+        - link "Om SunnySeat" [ref=e128] [cursor=pointer]:
+          - /url: /about
+        - button "Byt språk" [ref=e129]: EN
+  - button "Open Next.js Dev Tools" [ref=e135] [cursor=pointer]:
+    - img [ref=e136]
+  - alert [ref=e139]
+```

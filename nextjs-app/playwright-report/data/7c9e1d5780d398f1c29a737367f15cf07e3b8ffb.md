@@ -1,0 +1,135 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - link "Hoppa till innehåll" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - combobox [ref=e7]:
+        - searchbox "Search venues..." [ref=e8]
+      - application "Map with venues" [ref=e9]:
+        - region "Map" [ref=e10]
+        - generic:
+          - generic [ref=e11]:
+            - button "Zoom in" [ref=e12] [cursor=pointer]
+            - button "Zoom out" [ref=e14] [cursor=pointer]
+            - button "Drag to rotate map, click to reset north" [ref=e16]
+          - group [ref=e18]:
+            - generic "Toggle attribution" [ref=e19] [cursor=pointer]
+            - generic [ref=e20]:
+              - link "MapLibre" [ref=e21] [cursor=pointer]:
+                - /url: https://maplibre.org/
+              - text: "|"
+              - link "© MapTiler" [ref=e22] [cursor=pointer]:
+                - /url: https://www.maptiler.com/copyright/
+              - link "© OpenStreetMap contributors" [ref=e23] [cursor=pointer]:
+                - /url: https://www.openstreetmap.org/copyright
+      - generic [ref=e25]:
+        - group "Time offset for sun forecast" [ref=e27]:
+          - generic [ref=e29]: Time forecast
+          - slider "Select time offset" [ref=e30] [cursor=pointer]: "0"
+          - generic [ref=e31]:
+            - button "Set Now" [pressed] [ref=e32]: Now
+            - button "Set +1 h" [ref=e33]:
+              - text: +1 h
+              - generic [ref=e34]: Premium
+            - button "Set +2 h" [ref=e35]:
+              - text: +2 h
+              - generic [ref=e36]: Premium
+            - button "Set +3 h" [ref=e37]:
+              - text: +3 h
+              - generic [ref=e38]: Premium
+        - generic [ref=e39]:
+          - button "Choose date" [expanded] [active] [ref=e40]:
+            - img [ref=e41]
+            - generic [ref=e44]: Date
+            - generic [ref=e45]: Premium
+          - dialog "Choose date" [ref=e46]:
+            - generic [ref=e47]:
+              - button "Previous month" [disabled] [ref=e48]:
+                - img [ref=e49]
+              - generic [ref=e51]: March 2026
+              - button "Next month" [ref=e52]:
+                - img [ref=e53]
+            - row "Mon Tue Wed Thu Fri Sat Sun" [ref=e55]:
+              - columnheader "Mon" [ref=e56]
+              - columnheader "Tue" [ref=e57]
+              - columnheader "Wed" [ref=e58]
+              - columnheader "Thu" [ref=e59]
+              - columnheader "Fri" [ref=e60]
+              - columnheader "Sat" [ref=e61]
+              - columnheader "Sun" [ref=e62]
+            - grid "March 2026" [ref=e63]:
+              - row "1 March" [ref=e64]:
+                - gridcell [ref=e65]
+                - gridcell [ref=e66]
+                - gridcell [ref=e67]
+                - gridcell [ref=e68]
+                - gridcell [ref=e69]
+                - gridcell [ref=e70]
+                - gridcell "1 March" [disabled] [ref=e71]: "1"
+              - row "2 March 3 March 4 March 5 March 6 March 7 March 8 March" [ref=e72]:
+                - gridcell "2 March" [disabled] [ref=e73]: "2"
+                - gridcell "3 March" [disabled] [ref=e74]: "3"
+                - gridcell "4 March" [disabled] [ref=e75]: "4"
+                - gridcell "5 March" [disabled] [ref=e76]: "5"
+                - gridcell "6 March" [disabled] [ref=e77]: "6"
+                - gridcell "7 March" [disabled] [ref=e78]: "7"
+                - gridcell "8 March" [disabled] [ref=e79]: "8"
+              - row "9 March 10 March 11 March 12 March 13 March 14 March 15 March" [ref=e80]:
+                - gridcell "9 March" [disabled] [ref=e81]: "9"
+                - gridcell "10 March" [disabled] [ref=e82]: "10"
+                - gridcell "11 March" [disabled] [ref=e83]: "11"
+                - gridcell "12 March" [disabled] [ref=e84]: "12"
+                - gridcell "13 March" [disabled] [ref=e85]: "13"
+                - gridcell "14 March" [disabled] [ref=e86]: "14"
+                - gridcell "15 March" [disabled] [ref=e87]: "15"
+              - row "16 March 17 March 18 March 19 March 20 March 21 March 22 March" [ref=e88]:
+                - gridcell "16 March" [disabled] [ref=e89]: "16"
+                - gridcell "17 March" [disabled] [ref=e90]: "17"
+                - gridcell "18 March" [disabled] [ref=e91]: "18"
+                - gridcell "19 March" [disabled] [ref=e92]: "19"
+                - gridcell "20 March" [disabled] [ref=e93]: "20"
+                - gridcell "21 March" [disabled] [ref=e94]: "21"
+                - gridcell "22 March" [disabled] [ref=e95]: "22"
+              - row "23 March 24 March 25 March 26 March 27 March 28 March 29 March" [ref=e96]:
+                - gridcell "23 March" [disabled] [ref=e97]: "23"
+                - gridcell "24 March" [selected] [ref=e98]: "24"
+                - gridcell "25 March" [ref=e99]: "25"
+                - gridcell "26 March" [ref=e100]: "26"
+                - gridcell "27 March" [ref=e101]: "27"
+                - gridcell "28 March" [ref=e102]: "28"
+                - gridcell "29 March" [ref=e103]: "29"
+              - row "30 March 31 March" [ref=e104]:
+                - gridcell "30 March" [ref=e105]: "30"
+                - gridcell "31 March" [ref=e106]: "31"
+                - gridcell [ref=e107]
+                - gridcell [ref=e108]
+                - gridcell [ref=e109]
+                - gridcell [ref=e110]
+                - gridcell [ref=e111]
+    - listbox "Nearby venues" [ref=e113]:
+      - group "Shaded" [ref=e114]:
+        - option "Trädgår'n, Shaded" [ref=e115]:
+          - button "Trädgår'n, Shaded" [ref=e116] [cursor=pointer]:
+            - generic [ref=e119]: T
+            - generic [ref=e121]:
+              - heading "Trädgår'n" [level=3] [ref=e122]
+              - paragraph [ref=e123]:
+                - generic [ref=e124]: Heden
+                - generic [ref=e125]: ·
+                - generic [ref=e126]: 500 m
+  - contentinfo [ref=e127]:
+    - generic [ref=e128]:
+      - generic [ref=e129]:
+        - paragraph [ref=e130]: © 2026 SunnySeat
+        - paragraph [ref=e131]: "Data: Met.no, Lantmäteriet, OSM"
+      - generic [ref=e132]:
+        - link "Om SunnySeat" [ref=e133] [cursor=pointer]:
+          - /url: /about
+        - button "Byt språk" [ref=e134]: EN
+  - button "Open Next.js Dev Tools" [ref=e140] [cursor=pointer]:
+    - img [ref=e141]
+  - alert [ref=e144]
+```

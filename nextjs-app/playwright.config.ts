@@ -1,4 +1,11 @@
 import { defineConfig } from '@playwright/test';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load .env.test first, then .env.local, then .env (first match wins per key)
+dotenv.config({ path: path.resolve(__dirname, '.env.test') });
+dotenv.config({ path: path.resolve(__dirname, '.env.local') });
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 export default defineConfig({
   testDir: './e2e/tests',

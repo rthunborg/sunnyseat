@@ -171,115 +171,121 @@ export default function MapContainer({
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const popupRootRef = useRef<Root | null>(null);
 
-  const initMap = useCallback(async () => {
-    if (!containerRef.current || mapRef.current) return;
+  // Initialize the map with a synchronous cancellation flag to avoid
+  // React StrictMode race conditions. Without this, the async initMap
+  // from mount 1 sets mapRef, mount 2 skips init (sees existing ref),
+  // then mount 1's deferred cleanup destroys the map — leaving no map.
+  useEffect(() => {
+    let cancelled = false;
 
-    const mgl = await import('maplibre-gl');
+    const init = async () => {
+      if (!containerRef.current) return;
 
-    // Load maplibre CSS via <link> tag to avoid PostCSS/lightningcss processing
-    if (!document.querySelector('link[href*="maplibre-gl"]')) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/maplibre-gl@5.20.2/dist/maplibre-gl.css';
-      document.head.appendChild(link);
-    }
+      const mgl = await import('maplibre-gl');
 
-    const tileKey = process.env.NEXT_PUBLIC_MAPTILER_KEY;
-    const styleUrl = tileKey
-      ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${tileKey}`
-      : 'https://demotiles.maplibre.org/style.json';
+      // Bail out if this effect was cleaned up during the async import
+      if (cancelled || !containerRef.current) return;
 
-    const map = new mgl.default.Map({
-      container: containerRef.current,
-      style: styleUrl,
-      center: GOTHENBURG_CENTER,
-      zoom: DEFAULT_ZOOM,
-      minZoom: 10,
-      maxZoom: 18,
-    });
-
-    map.addControl(new mgl.default.NavigationControl(), 'top-right');
-
-    mapRef.current = map;
-
-    // Suppress warnings for missing sprite images from the tile style
-    // (e.g. "books", "marketplace" POI icons from MapTiler).
-    // Must be registered before 'load' so it catches early tile requests.
-    map.on('styleimagemissing', (e: { id: string }) => {
-      // Create a tiny transparent 1×1 placeholder so the warning fires only once per id
-      if (!map.hasImage(e.id)) {
-        map.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) });
+      // Load maplibre CSS via <link> tag to avoid PostCSS/lightningcss processing
+      if (!document.querySelector('link[href*="maplibre-gl"]')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/maplibre-gl@5.20.2/dist/maplibre-gl.css';
+        document.head.appendChild(link);
       }
-    });
 
-    map.on('load', () => {
-      // Pin icons disabled for now (SDF conflict with MapTiler style).
-      // loadPinIcons(map) can be re-enabled once SDF-compatible icons are available.
+      const tileKey = process.env.NEXT_PUBLIC_MAPTILER_KEY;
+      const styleUrl = tileKey
+        ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${tileKey}`
+        : 'https://demotiles.maplibre.org/style.json';
 
-      onMapReady?.(map);
-    });
+      const map = new mgl.default.Map({
+        container: containerRef.current,
+        style: styleUrl,
+        center: GOTHENBURG_CENTER,
+        zoom: DEFAULT_ZOOM,
+        minZoom: 10,
+        maxZoom: 18,
+      });
 
-    // Click on marker → select venue (regular + partner + candidate layers)
-    const handleMarkerClick = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
-      if (e.features && e.features.length > 0) {
-        const id = e.features[0].properties?.id;
-        if (id) onVenueSelect?.(id);
-      }
+      map.addControl(new mgl.default.NavigationControl(), 'top-right');
+
+      mapRef.current = map;
+
+      // Suppress warnings for missing sprite images from the tile style
+      // (e.g. "books", "marketplace" POI icons from MapTiler).
+      // Must be registered before 'load' so it catches early tile requests.
+      map.on('styleimagemissing', (e: { id: string }) => {
+        // Create a tiny transparent 1×1 placeholder so the warning fires only once per id
+        if (!map.hasImage(e.id)) {
+          map.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) });
+        }
+      });
+
+      map.on('load', () => {
+        onMapReady?.(map);
+      });
+
+      // Click on marker → select venue (regular + partner + candidate layers)
+      const handleMarkerClick = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
+        if (e.features && e.features.length > 0) {
+          const id = e.features[0].properties?.id;
+          if (id) onVenueSelect?.(id);
+        }
+      };
+      map.on('click', 'venue-markers', handleMarkerClick);
+      map.on('click', 'partner-markers', handleMarkerClick);
+      map.on('click', 'candidate-markers', handleMarkerClick);
+
+      // Click on map background → deselect
+      map.on('click', (e) => {
+        // Only query layers that actually exist on the map (they're added later when venue data arrives)
+        const queryLayers = ['venue-markers', 'partner-markers', 'candidate-markers'].filter(
+          (id) => !!map.getLayer(id),
+        );
+        if (queryLayers.length === 0) return;
+        const features = map.queryRenderedFeatures(e.point, { layers: queryLayers });
+        if (!features || features.length === 0) {
+          onVenueSelect?.(null);
+        }
+      });
+
+      // Pointer cursor on markers
+      const setCursorPointer = () => { map.getCanvas().style.cursor = 'pointer'; };
+      const resetCursor = () => { map.getCanvas().style.cursor = ''; };
+      map.on('mouseenter', 'venue-markers', setCursorPointer);
+      map.on('mouseleave', 'venue-markers', resetCursor);
+      map.on('mouseenter', 'partner-markers', setCursorPointer);
+      map.on('mouseleave', 'partner-markers', resetCursor);
+      map.on('mouseenter', 'candidate-markers', setCursorPointer);
+      map.on('mouseleave', 'candidate-markers', resetCursor);
+
+      // Fire initial center so venues load immediately at default location
+      const initialCenter = map.getCenter();
+      onBoundsChange?.({ lat: initialCenter.lat, lng: initialCenter.lng });
+
+      // Auto-update on pan/zoom (debounced 500ms)
+      map.on('moveend', () => {
+        if (moveendTimerRef.current) clearTimeout(moveendTimerRef.current);
+        moveendTimerRef.current = setTimeout(() => {
+          const center = map.getCenter();
+          onBoundsChange?.({ lat: center.lat, lng: center.lng });
+        }, 500);
+      });
     };
-    map.on('click', 'venue-markers', handleMarkerClick);
-    map.on('click', 'partner-markers', handleMarkerClick);
-    map.on('click', 'candidate-markers', handleMarkerClick);
 
-    // Click on map background → deselect
-    map.on('click', (e) => {
-      // Only query layers that actually exist on the map (they're added later when venue data arrives)
-      const queryLayers = ['venue-markers', 'partner-markers', 'candidate-markers'].filter(
-        (id) => !!map.getLayer(id),
-      );
-      if (queryLayers.length === 0) return;
-      const features = map.queryRenderedFeatures(e.point, { layers: queryLayers });
-      if (!features || features.length === 0) {
-        onVenueSelect?.(null);
-      }
-    });
-
-    // Pointer cursor on markers
-    const setCursorPointer = () => { map.getCanvas().style.cursor = 'pointer'; };
-    const resetCursor = () => { map.getCanvas().style.cursor = ''; };
-    map.on('mouseenter', 'venue-markers', setCursorPointer);
-    map.on('mouseleave', 'venue-markers', resetCursor);
-    map.on('mouseenter', 'partner-markers', setCursorPointer);
-    map.on('mouseleave', 'partner-markers', resetCursor);
-    map.on('mouseenter', 'candidate-markers', setCursorPointer);
-    map.on('mouseleave', 'candidate-markers', resetCursor);
-
-    // Fire initial center so venues load immediately at default location
-    const initialCenter = map.getCenter();
-    onBoundsChange?.({ lat: initialCenter.lat, lng: initialCenter.lng });
-
-    // Auto-update on pan/zoom (debounced 500ms)
-    map.on('moveend', () => {
-      if (moveendTimerRef.current) clearTimeout(moveendTimerRef.current);
-      moveendTimerRef.current = setTimeout(() => {
-        const center = map.getCenter();
-        onBoundsChange?.({ lat: center.lat, lng: center.lng });
-      }, 500);
-    });
+    init();
 
     return () => {
+      cancelled = true;
       if (moveendTimerRef.current) clearTimeout(moveendTimerRef.current);
-      map.remove();
-      mapRef.current = null;
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    const cleanup = initMap();
-    return () => {
-      cleanup?.then((fn) => fn?.());
-    };
-  }, [initMap]);
 
   // Fly to user location
   useEffect(() => {

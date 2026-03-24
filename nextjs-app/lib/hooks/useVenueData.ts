@@ -4,10 +4,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { venueService } from '@/lib/services/api/venueService';
 import type { Coordinates } from '@/lib/types/location';
-import type { GetPatiosResponse } from '@/lib/types/api';
+import type { GetVenuesResponse } from '@/lib/types/api';
 
 export const useVenueData = (location: Coordinates | null, radiusKm: number) => {
-  return useQuery<GetPatiosResponse>({
+  return useQuery<GetVenuesResponse>({
     queryKey: ['venues', location?.latitude, location?.longitude, radiusKm],
     queryFn: () => {
       if (!location) {
