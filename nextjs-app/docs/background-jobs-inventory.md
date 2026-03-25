@@ -81,19 +81,19 @@ This document inventories all background jobs in the SunnySeat application that 
 **Type:** Scheduled Job (Hangfire)  
 **Current Implementation:** `PrecomputationBackgroundJobs.ExecuteDailyPrecomputationJob()`  
 **Schedule:** Daily at 2 AM local time (scheduled dynamically)  
-**Execution Time:** **LONG-RUNNING** - Can take minutes to hours depending on patio count  
-**Purpose:** Precompute sun exposure data for all patios for a specific date  
+**Execution Time:** **LONG-RUNNING** - Can take minutes to hours depending on venue count  
+**Purpose:** Precompute sun exposure data for all venues for a specific date  
 **Dependencies:**
 
 - IPrecomputationService
 - ISunExposureService
-- IPatioRepository
+- IVenueRepository
 - IPrecomputationRepository
 
 **Tasks:**
 
-- Get all mapped patios
-- For each patio, calculate sun exposure for all time slots (8 AM - 8 PM, 10-minute intervals)
+- Get all mapped venues
+- For each venue, calculate sun exposure for all time slots (8 AM - 8 PM, 10-minute intervals)
 - Store precomputed data in database
 - Update precomputation schedule status
 
@@ -107,14 +107,14 @@ This document inventories all background jobs in the SunnySeat application that 
 **Current Implementation:** `PrecomputationBackgroundJobs.CacheWarmupJob()`  
 **Schedule:** Daily at 3 AM and 3 PM (0 3,15 \* \* \*) - W. Europe Standard Time  
 **Execution Time:** ~5-15 seconds  
-**Purpose:** Warm cache with popular patios during low-traffic hours  
+**Purpose:** Warm cache with popular venues during low-traffic hours  
 **Dependencies:**
 
 - ICacheService
 
 **Tasks:**
 
-- Get popular patios
+- Get popular venues
 - Precompute sun exposure for next 4 hours
 - Store in cache for quick access
 

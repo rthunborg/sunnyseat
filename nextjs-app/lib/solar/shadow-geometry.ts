@@ -70,34 +70,34 @@ export function projectPolygonInDirection(
 }
 
 export function calculateShadowCoveragePercent(
-  patioGeometry: GeoJSON.Polygon,
+  venueGeometry: GeoJSON.Polygon,
   shadowGeometry: GeoJSON.Polygon
 ): number {
   try {
-    const patioPoly = turf.polygon(patioGeometry.coordinates);
+    const venuePoly = turf.polygon(venueGeometry.coordinates);
     const shadowPoly = turf.polygon(shadowGeometry.coordinates);
     const intersection = turf.intersect(
-      turf.featureCollection([patioPoly, shadowPoly])
+      turf.featureCollection([venuePoly, shadowPoly])
     );
 
     if (!intersection) return 0.0;
 
     const intersectionArea = turf.area(intersection);
-    const patioArea = turf.area(patioPoly);
+    const venueArea = turf.area(venuePoly);
 
-    return patioArea > 0 ? (intersectionArea / patioArea) * 100.0 : 0.0;
+    return venueArea > 0 ? (intersectionArea / venueArea) * 100.0 : 0.0;
   } catch {
     return 0.0;
   }
 }
 
 export function calculateShadowedAndSunlitAreas(
-  patioGeometry: GeoJSON.Polygon,
+  venueGeometry: GeoJSON.Polygon,
   shadowGeometries: GeoJSON.Polygon[]
 ): { shadowed: GeoJSON.Polygon | null; sunlit: GeoJSON.Polygon | null } {
   try {
     if (shadowGeometries.length === 0) {
-      return { shadowed: null, sunlit: patioGeometry };
+      return { shadowed: null, sunlit: venueGeometry };
     }
 
     let combinedShadows: GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon> | null = null;
@@ -113,15 +113,15 @@ export function calculateShadowedAndSunlitAreas(
       }
     }
 
-    if (!combinedShadows) return { shadowed: null, sunlit: patioGeometry };
+    if (!combinedShadows) return { shadowed: null, sunlit: venueGeometry };
 
-    const patioPoly = turf.polygon(patioGeometry.coordinates);
+    const venuePoly = turf.polygon(venueGeometry.coordinates);
 
     const shadowedIntersection = turf.intersect(
-      turf.featureCollection([patioPoly, combinedShadows])
+      turf.featureCollection([venuePoly, combinedShadows])
     );
     const sunlitDifference = turf.difference(
-      turf.featureCollection([patioPoly, combinedShadows])
+      turf.featureCollection([venuePoly, combinedShadows])
     );
 
     const shadowed = shadowedIntersection
@@ -133,7 +133,7 @@ export function calculateShadowedAndSunlitAreas(
 
     return { shadowed, sunlit };
   } catch {
-    return { shadowed: null, sunlit: patioGeometry };
+    return { shadowed: null, sunlit: venueGeometry };
   }
 }
 

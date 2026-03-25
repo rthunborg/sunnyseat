@@ -1,7 +1,7 @@
 /**
  * Maps PascalCase DB venue rows to camelCase API responses.
  * The venues table uses PascalCase quoted columns ("Name", "Address", etc.)
- * but the frontend expects camelCase keys.
+ * but the API expects camelCase keys.
  */
 
 const VENUE_TYPE_MAP: Record<number, string> = {

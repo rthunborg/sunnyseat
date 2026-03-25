@@ -1,5 +1,4 @@
 // API Request and Response Types
-// These types match the .NET API contracts
 
 // ============================================================================
 // Authentication Types
@@ -46,28 +45,28 @@ export interface AdminUserInfo {
 }
 
 // ============================================================================
-// Patio Types
+// Venue Types
 // ============================================================================
 
-export interface PatiosMeta {
+export interface VenuesMeta {
   count: number;
   radiusKm: number;
   weatherUpdatedAt?: string;
 }
 
-export interface GetPatiosResponse {
-  patios: PatioDataDto[];
-  meta: PatiosMeta;
+export interface GetVenuesResponse {
+  venues: VenueDataDto[];
+  meta: VenuesMeta;
   timestamp: string;
   totalCount: number;
 }
 
-export interface PatioDataDto {
+export interface VenueDataDto {
   id: string; // venueId
   venueId: string;
   venueName: string;
   venueSlug: string;
-  slug: string; // backward compat alias
+  slug: string;
   neighborhood: string;
   location: CoordinatesDto;
   currentSunStatus: 'Sunny' | 'Partial' | 'Shaded';
@@ -77,9 +76,6 @@ export interface PatioDataDto {
   distanceMeters: number;
   sunExposurePercent: number;
 }
-
-// Alias for compatibility with frontend components
-export type PatioData = PatioDataDto;
 
 export interface CoordinatesDto {
   latitude: number;
@@ -146,7 +142,7 @@ export interface ProblematicVenueResponse {
 // Sun Exposure Types
 // ============================================================================
 
-export interface PatioSunExposureResponse {
+export interface VenueSunExposureResponse {
   venueId: number;
   timestamp: string;
   state: 'Sunny' | 'Partial' | 'Shaded' | 'NoSun';
