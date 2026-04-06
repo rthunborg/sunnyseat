@@ -1,7 +1,8 @@
 # SunnySeat Design System
 
 Extracted from Figma file: `SunnySeat` (key: `Oh75qPnFfSWKHSsyVSBQbT`)
-Source frames: `map-primary-mobile`, `venue-detail-component-mobile`, `premium-planner-uppsell`, `header-navbar-component-desktop`
+Source frames: all frames on Page 1 (20+ screens including mobile and desktop variants)
+Last audited: 2026-04-06
 
 ---
 
@@ -12,8 +13,8 @@ Source frames: `map-primary-mobile`, `venue-detail-component-mobile`, `premium-p
 | Token | Hex | Usage |
 |---|---|---|
 | `color-surface-cream` | `#fdfaf4` | Primary surface — bottom sheets, cards, nav bars, page backgrounds |
-| `color-surface-root` | `#fbf8fc` | Page root background (pale lavender-white) |
-| `color-surface-sand` | `#f5f0e6` | Map background (warm sand) |
+| `color-surface-root` | `#fbf8fc` | Root app frame background. Covered by the map sand layer in map views, but shows through glass/frosted elements as the source of `color-glass-lavender`. Verified: this is the actual fill on `map-primary-mobile` and `premium-planner-uppsell` frames, not a canvas artefact. |
+| `color-surface-sand` | `#f5f0e6` | Map background (warm sand), sits above `color-surface-root` |
 | `color-surface-muted` | `#f5f3f6` | Section backgrounds, search bar fill (light purple-grey) |
 | `color-surface-icon-bg` | `#eae7eb` | Icon circle backgrounds in detail rows |
 | `color-surface-slider-track` | `#f0edf1` | Time slider track background |
@@ -23,15 +24,16 @@ Source frames: `map-primary-mobile`, `venue-detail-component-mobile`, `premium-p
 | Token | Hex | Usage |
 |---|---|---|
 | `color-amber-pin` | `#f1b100` | Sunny venue map pin background |
-| `color-amber-primary` | `#ffbf00` | Sun badges, CTA button fills, amber sun badge |
-| `color-amber-bright` | `#fbbc00` | Sun percentage text on card list |
-| `color-amber-pale` | `#ffe088` | Premium label tag background |
+| `color-amber-primary` | `#ffbf00` | **Fill use only** — sun badge backgrounds, CTA button fills, sun badge overlay, timeline bar gradient |
+| `color-amber-text` | `#fbbc00` | **Text use only** — sun exposure percentage label on venue cards ("95%", "82%", "65%"). Appears across all venue list and detail card frames. Note: only 4 RGB units from `color-amber-primary` (#ffbf00 = rgb 255,191,0 vs #fbbc00 = rgb 251,188,0) but consistently distinct in Figma — do not consolidate. |
+| `color-amber-pale` | `#ffe088` | Premium "Säsongskortet" label tag background |
 | `color-amber-gold` | `#d4af37` | Gradient start on timeline bar, route button gradient |
-| `color-amber-dark` | `#735c00` | Text on amber backgrounds, slider thumb, interactive link colour |
-| `color-amber-deeper` | `#574500` | Very small text on light amber labels |
-| `color-amber-cta-text` | `#554300` | Button text on amber CTA buttons |
-| `color-amber-badge-text` | `#6d5000` | Badge label text (e.g. "SOL NU") |
-| `color-amber-overlay` | `rgba(255, 191, 0, 0.3)` | Amber tint overlay (upsell icon background) |
+| `color-amber-dark` | `#735c00` | Interactive/functional amber text: sun time ranges ("Sol 13:00–18:30"), time indicators, active slider tick, "ÖPPNA I KARTOR" links, back navigation, pricing display. The primary amber for readable functional text. |
+| `color-amber-cta-text` | `#554300` | All amber CTA button labels: "Lämna ett omdöme", "Ge oss feedback", "Visa Säsongskortet", "Skicka", "Använd min plats", "Hitta soliga platser nu". Also the sun badge percentage text ("85%", "95% SOL") and the 6.65px "Säsongskortet" micro-label. Note: Figma uses `#574500` (rgb 87,69,0) on the micro-label vs `#554300` (rgb 85,67,0) on buttons — a 2-unit difference that is a rounding artefact; use `#554300` for all. |
+| `color-amber-badge-text` | `#6d5000` | Badge label text — "SOL NU" badge on venue detail header |
+| `color-amber-overlay` | `rgba(255, 191, 0, 0.3)` | Amber tint overlay (upsell icon background circle) |
+
+> **Removed:** `color-amber-deeper` (#574500) — consolidated into `color-amber-cta-text` (#554300). The 2-unit RGB difference was a Figma rounding artefact, not an intentional design distinction.
 
 ### Text
 
@@ -51,10 +53,10 @@ Source frames: `map-primary-mobile`, `venue-detail-component-mobile`, `premium-p
 | `color-tab-inactive` | `#a8a29e` | Inactive bottom-nav tab label |
 | `color-pin-shaded` | `#e4e1e5` | Shaded/low-sun venue pin background |
 | `color-drag-handle` | `#d6d3d1` | Venue detail drag handle pill |
-| `color-drag-handle-map` | `#d0c5af` | Map bottom sheet drag handle (40% opacity) |
+| `color-drag-handle-map` | `#d0c5af` | Map bottom sheet drag handle (rendered at 40% opacity) |
 | `color-divider` | `#e7e5e4` | Vertical/horizontal dividers |
 | `color-border-nav` | `#f5f5f4` | Bottom nav bar top border |
-| `color-map-line` | `#e8e2d5` | Decorative map road lines |
+| `color-map-line` | `#e8e2d5` | Decorative map road lines (rendered at 40% opacity) |
 | `color-error` | `#ba1a1a` | Warning/error text (e.g. "Blir skuggigt om 45 min") |
 
 ### White & Glass Overlays
@@ -62,9 +64,9 @@ Source frames: `map-primary-mobile`, `venue-detail-component-mobile`, `premium-p
 | Token | Value | Usage |
 |---|---|---|
 | `color-white` | `#ffffff` | Pin borders, slider thumb border |
-| `color-glass-standard` | `rgba(255, 255, 255, 0.8)` | Standard frosted-glass buttons (map controls) |
+| `color-glass-standard` | `rgba(255, 255, 255, 0.8)` | Standard frosted-glass buttons (map controls, search bar) |
 | `color-glass-slider` | `rgba(255, 255, 255, 0.9)` | Time slider panel glass background |
-| `color-glass-lavender` | `rgba(251, 248, 252, 0.8)` | Favourite/bookmark button glass (lavender tint) |
+| `color-glass-lavender` | `rgba(251, 248, 252, 0.8)` | Favourite/bookmark button glass — tint derived from `color-surface-root` (#fbf8fc) at 80% opacity |
 
 ### Gradients
 
@@ -108,7 +110,7 @@ Both fonts must be loaded via `next/font` or equivalent. No fallback system font
 | `text-label-sm` | 11px | SemiBold (600) | Manrope | 16.5px | Bottom nav tab labels (uppercase) |
 | `text-label-xs` | 10px | Bold (700) | Manrope | 15px | Map pin percentage text |
 | `text-label-xs-medium` | 10px | Medium (500) | Manrope | 15px | Slider tick marks |
-| `text-date` | 12px (scaled ~11.97px) | Regular (400) | Plus Jakarta Sans | 18.6px | Date display in time slider |
+| `text-date` | ~12px (11.97px in Figma) | Regular (400) | Plus Jakarta Sans | 18.6px | Date display in time slider |
 | `text-time` | 14px | ExtraBold (800) | Plus Jakarta Sans | 21px | Current time indicator on slider |
 
 ### Letter Spacing
@@ -211,17 +213,81 @@ The design uses an 8px base grid with 4px half-steps for tight compositions.
 
 ---
 
+## Transitions & Motion
+
+These are the **default** transition values for micro-interactions and state changes. Screen-specific animation timings (entrance/exit of sheets, map pan, slider drag) are defined in the UX behaviour spec and override these defaults.
+
+| Token | Value | Usage |
+|---|---|---|
+| `duration-fast` | `150ms` | Icon state changes, tab switches, badge updates |
+| `duration-default` | `200ms` | Button hover/press, opacity fades, colour transitions |
+| `duration-slow` | `300ms` | Panel reveals, card expansions, sheet peek-to-rest |
+| `easing-default` | `ease-in-out` | Standard interactive transitions |
+| `easing-enter` | `ease-out` | Elements entering the screen (decelerate into place) |
+| `easing-exit` | `ease-in` | Elements leaving the screen (accelerate out) |
+| `easing-spring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Elastic snap for drag-release and sheet settle |
+
+> Screen-specific timings in the UX spec (e.g. bottom sheet drag, map pin transitions, slider thumb) always take precedence. Use `prefers-reduced-motion` to disable or reduce non-essential animations.
+
+---
+
+## Breakpoints
+
+The Figma file contains both mobile (390px) and desktop (1280px) frame variants. The type scale and spacing are **uniform across breakpoints** — no separate scale per viewport. Responsive adaptation is primarily structural (layout reflow) not typographic.
+
+| Breakpoint | Width | Notes |
+|---|---|---|
+| `bp-mobile` | `375px` | Minimum supported width. All mobile frames designed at 390px. |
+| `bp-tablet` | `768px` | No dedicated Figma frames — use mobile layout up to desktop breakpoint. |
+| `bp-desktop` | `1024px` | Desktop frames start at 1280px; this is the minimum desktop trigger. |
+| `bp-wide` | `1440px` | Wide desktop. Nav and panel widths cap out at ~1280px content area. |
+
+### Per-breakpoint differences observed in Figma
+
+| Token / Component | Mobile | Desktop |
+|---|---|---|
+| Screen padding (horizontal) | `space-8` (16px) | `space-12` (24px) |
+| Bottom navigation | Fixed 40px bar | Not present — replaced by top navbar |
+| Top navbar | Floating glass bar (time slider + search) | Fixed top bar with logo + search (84px) |
+| Time slider panel | Floating within page padding | Panel in desktop header |
+| Venue list | Bottom sheet (peek/full) | Side panel (190px wide) |
+| Venue detail | Full-screen bottom sheet | Desktop sidebar/overlay (1024px frame) |
+| Search bar width | Full width minus `space-8` margins | Fixed 384px |
+
+The **type scale does not change** at desktop. `text-display-xl` (28px) stays 28px regardless of viewport.
+
+---
+
+## Z-Index Scale
+
+Layering is significant in SunnySeat — map pins, bottom sheets, glass overlays, and floating buttons must stack correctly.
+
+| Token | Value | Layer |
+|---|---|---|
+| `z-base` | `0` | Map canvas, flat content areas |
+| `z-pin` | `10` | Venue map pins (sunny and shaded) |
+| `z-bottom-sheet-peek` | `20` | Bottom sheet in peek state, side panel |
+| `z-floating-buttons` | `30` | Map control buttons (zoom, location), floating action buttons |
+| `z-glass-panel` | `40` | Time slider glass panel, search overlay, bottom navigation bar |
+| `z-bottom-sheet-full` | `50` | Venue detail sheet fully expanded |
+| `z-modal` | `50` | Modals, overlays (same level as full sheet — only one active at a time) |
+| `z-toast` | `60` | Toast/snackbar notifications — always above all content |
+
+> The bottom navigation bar (`z-glass-panel`, 40) sits above the floating map buttons (30) because it is fixed chrome. The time slider panel is part of the header bar and shares this level.
+
+---
+
 ## Component Patterns
 
 ### Map Venue Pin — Sunny
 
 ```
 Background: color-amber-pin (#f1b100)
-Border: 2px solid #ffffff
+Border: 2px solid color-white (#ffffff)
 Border-radius: radius-pill (9999px)
 Shadow: shadow-card
-Padding: 10px vertical, 8px horizontal
-Text: 10px / Bold / Manrope / white
+Padding: space-5 (10px) vertical, space-4 (8px) horizontal
+Text: text-label-xs / color-white (#ffffff)
 Icon: 16.5px sun SVG
 ```
 
@@ -233,7 +299,8 @@ Border: 1px solid rgba(255,255,255,0.2)
 Border-radius: radius-pill
 Shadow: shadow-subtle
 Opacity: 0.8 on the wrapper
-Text: 12px / Bold / Manrope / color-text-body (#4d4635)
+Padding: space-2 (4px) vertical, space-6 (12px) horizontal + space-1 (2px) icon gap
+Text: text-label-md / color-text-body (#4d4635)
 ```
 
 ### Floating Glass Button (48px)
@@ -243,7 +310,7 @@ Background: color-glass-standard (rgba(255,255,255,0.8))
 Backdrop-blur: blur-standard (6px)
 Border-radius: radius-pill
 Shadow (separate layer): shadow-button-float
-Size: 48px × 48px
+Size: size-button-md (48px × 48px)
 ```
 
 ### Bottom Sheet — Peek State
@@ -252,7 +319,10 @@ Size: 48px × 48px
 Background: color-surface-cream (#fdfaf4)
 Border-radius: radius-panel (32px) on top corners only
 Shadow: shadow-sheet-peek-up
-Drag handle: 40px wide × 6px tall, color-drag-handle-map (#d0c5af) at 40% opacity, radius-pill
+Height: 100px above the nav bar
+Drag handle: size-drag-pill-w (40px) wide × size-drag-pill-h (6px) tall
+             color-drag-handle-map (#d0c5af) at 40% opacity, radius-pill
+             Padding above pill: space-6 (12px), below: space-4 (8px)
 ```
 
 ### Bottom Sheet — Venue Detail Full
@@ -261,7 +331,9 @@ Drag handle: 40px wide × 6px tall, color-drag-handle-map (#d0c5af) at 40% opaci
 Background: color-surface-cream (#fdfaf4)
 Border-radius: radius-sheet-full (40px) on top corners only
 Shadow: shadow-sheet-full-up
-Drag handle: 48px wide × 6px tall, color-drag-handle (#d6d3d1), radius-pill
+Drag handle: size-drag-pill-w-lg (48px) wide × size-drag-pill-h (6px) tall
+             color-drag-handle (#d6d3d1), radius-pill
+             Padding above pill: space-8 (16px), below: space-4 (8px)
 ```
 
 ### Time Slider Panel
@@ -271,9 +343,9 @@ Background: color-glass-slider (rgba(255,255,255,0.9))
 Backdrop-blur: blur-heavy (12px)
 Border-radius: radius-panel (32px)
 Shadow: shadow-card-up
-Padding: 20px vertical, 24px horizontal
-Track height: 6px, background: color-surface-slider-track (#f0edf1), radius-pill
-Thumb: 14.1px, background: color-amber-dark (#735c00), border: 2.35px white, radius-pill
+Padding: space-10 (20px) vertical, space-12 (24px) horizontal
+Track height: size-slider-track-h (6px), background: color-surface-slider-track (#f0edf1), radius-pill
+Thumb: size-slider-thumb (14.1px), background: color-amber-dark (#735c00), border: 2.35px color-white, radius-pill
 ```
 
 ### Sun Badge (venue image overlay)
@@ -281,10 +353,11 @@ Thumb: 14.1px, background: color-amber-dark (#735c00), border: 2.35px white, rad
 ```
 Background: rgba(212, 175, 55, 0.9) [color-amber-gold at 90% opacity]
 Backdrop-blur: blur-standard (6px)
-Border-radius: 24px (radius-badge)
-Padding: 6px vertical, 12px horizontal
-Text: 16px / ExtraBold / Plus Jakarta Sans / #554300
-Icon: 16.5px sun
+Border-radius: radius-badge (24px)
+Padding: space-3 (6px) vertical, space-6 (12px) horizontal
+Gap between icon and text: space-3 (6px)
+Text: text-display-sm (16px / ExtraBold / Plus Jakarta Sans) / color-amber-cta-text (#554300)
+Icon: 16.5px sun SVG
 ```
 
 ### Amber CTA Button (primary gradient)
@@ -293,8 +366,9 @@ Icon: 16.5px sun
 Background: gradient-cta-amber
 Border-radius: radius-pill
 Shadow: shadow-cta
-Text: 14px / Bold / Manrope / color-amber-cta-text (#554300)
-Height: 36–48px (context-dependent)
+Padding: space-2 (4px) vertical, space-6 (12px) horizontal (small), or space-3/space-8 (large)
+Text: text-label-lg (14px / Bold / Manrope) / color-amber-cta-text (#554300)
+Height: 36–48px (context-dependent — see component size tokens)
 ```
 
 ### Route Button (gold-to-dark gradient)
@@ -303,7 +377,9 @@ Height: 36–48px (context-dependent)
 Background: gradient-route-button
 Border-radius: radius-pill
 Shadow: shadow-route-button
-Text: ~12px / Bold / Manrope / #27272a
+Padding: space-4 (8px) vertical, space-5 (10px) horizontal approx.
+Gap: space-2 (4px) between icon and label
+Text: ~12px / Bold / Manrope / #27272a (near-black)
 Width: 278px (mobile)
 ```
 
@@ -314,8 +390,10 @@ Background: color-surface-cream (#fdfaf4)
 Border-top: 1px solid color-border-nav (#f5f5f4)
 Shadow: shadow-nav-up
 Height: 40px (mandatory)
-Active tab label: 11px / SemiBold / Manrope / color-tab-active (#d97706) / uppercase / tracking-[0.55px]
-Inactive tab label: 11px / SemiBold / Manrope / color-tab-inactive (#a8a29e) / uppercase / tracking-[0.55px]
+Padding: space-1 (2px) top, space-12 (24px) horizontal (per side, ~92px)
+Gap between tabs: ~88px
+Active tab label: text-label-sm / color-tab-active (#d97706) / uppercase
+Inactive tab label: text-label-sm / color-tab-inactive (#a8a29e) / uppercase
 ```
 
 ### Search Bar (desktop)
@@ -323,8 +401,8 @@ Inactive tab label: 11px / SemiBold / Manrope / color-tab-inactive (#a8a29e) / u
 ```
 Background: color-surface-muted (#f5f3f6)
 Border-radius: radius-pill
-Padding: 8px vertical, 16px horizontal
-Text: 14px / Regular / Manrope / color-text-body (#4d4635)
+Padding: space-4 (8px) vertical, space-8 (16px) horizontal
+Text: text-body-sm / color-text-body (#4d4635)
 Width: 384px (desktop)
 ```
 
@@ -333,8 +411,9 @@ Width: 384px (desktop)
 ```
 Background: color-surface-muted (#f5f3f6)
 Border-radius: radius-card (16px)
-Padding: 20px
-Section label: 14px / ExtraBold / Plus Jakarta Sans / color-text-body / uppercase / tracking-[1.4px]
+Padding: space-10 (20px)
+Gap between rows: space-8 (16px)
+Section label: text-heading-sm (14px / ExtraBold / Plus Jakarta Sans) / color-text-body / uppercase / tracking-[1.4px]
 ```
 
 ### Venue Card Image Thumbnail
@@ -342,8 +421,11 @@ Section label: 14px / ExtraBold / Plus Jakarta Sans / color-text-body / uppercas
 ```
 Width: 87px, Height: 72px
 Border-radius: radius-venue-image (12px)
-Sun badge overlay: 28px × 28px circle, color-amber-primary (#ffbf00), border: 2px solid color-surface-cream, shadow-subtle
-Badge position: top-[-4px] right-[-4px]
+Sun badge overlay: size-badge-sm (28px × 28px) circle
+                   Background: color-amber-primary (#ffbf00)
+                   Border: 2px solid color-surface-cream (#fdfaf4)
+                   Shadow: shadow-subtle
+                   Position: top -space-2 (-4px), right -space-2 (-4px)
 ```
 
 ### Map Background
@@ -358,7 +440,7 @@ Warm gradient overlay: gradient-map-overlay
 
 ## Elevation Model
 
-Elevation in SunnySeat uses a **warm amber shadow system** for interactive elements and a **neutral shadow system** for structural chrome (nav, sheets). Higher elevation = larger spread + stronger warm tint.
+Elevation uses a **warm amber shadow system** for interactive elements and a **neutral shadow system** for structural chrome (nav, sheets). Higher elevation = larger spread + stronger warm tint.
 
 | Level | Token | Typical Use |
 |---|---|---|
