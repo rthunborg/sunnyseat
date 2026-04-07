@@ -97,6 +97,7 @@ Both fonts must be loaded via `next/font` or equivalent. No fallback system font
 |---|---|---|---|---|---|
 | `text-display-xl` | 28px | ExtraBold (800) | Plus Jakarta Sans | 36px | Venue name on detail screen (mobile h1) |
 | `text-display-lg` | 24px | ExtraBold (800) | Plus Jakarta Sans | 32px | Logo wordmark, desktop section headings |
+| `text-display-sm` | 16px | ExtraBold (800) | Plus Jakarta Sans | 24px | Sun badge percentage overlay ("85%", "95%") — verified from Figma node 56:48 |
 | `text-heading-xl` | 24px | Bold (700) | Plus Jakarta Sans | 30px | Card section headline |
 | `text-heading-lg` | 20px | Bold (700) | Plus Jakarta Sans | 25px | Feedback card heading |
 | `text-heading-md` | 18px | Bold (700) | Plus Jakarta Sans | 22.5px | Card title in list |
@@ -225,7 +226,7 @@ These are the **default** transition values for micro-interactions and state cha
 | `easing-default` | `ease-in-out` | Standard interactive transitions |
 | `easing-enter` | `ease-out` | Elements entering the screen (decelerate into place) |
 | `easing-exit` | `ease-in` | Elements leaving the screen (accelerate out) |
-| `easing-spring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Elastic snap for drag-release and sheet settle |
+| `easing-spring` | `cubic-bezier(0.22, 1, 0.36, 1)` | Smooth deceleration for drag-release and sheet settle. No overshoot — appropriate for a precise map UI. The previously noted `cubic-bezier(0.34, 1.56, 0.64, 1)` had a noticeable bounce (value 1.56 > 1) which is too playful for this context; replaced with a clean fast-in/slow-out curve consistent with iOS Maps / Material sheet behaviour. |
 
 > Screen-specific timings in the UX spec (e.g. bottom sheet drag, map pin transitions, slider thumb) always take precedence. Use `prefers-reduced-motion` to disable or reduce non-essential animations.
 
@@ -250,8 +251,8 @@ The Figma file contains both mobile (390px) and desktop (1280px) frame variants.
 | Bottom navigation | Fixed 40px bar | Not present — replaced by top navbar |
 | Top navbar | Floating glass bar (time slider + search) | Fixed top bar with logo + search (84px) |
 | Time slider panel | Floating within page padding | Panel in desktop header |
-| Venue list | Bottom sheet (peek/full) | Side panel (190px wide) |
-| Venue detail | Full-screen bottom sheet | Desktop sidebar/overlay (1024px frame) |
+| Venue list | Bottom sheet (peek/full) | Overlay side panel — **190px wide** (verified: `map-panel-venues-component-desktop` frame is 190px; inner "Venue List" child is 182px; the panel overlays the map canvas, it is not a sidebar that reduces canvas width) |
+| Venue detail | Full-screen bottom sheet | Desktop overlay component — 390px wide (`venue-detail-component-desktop` frame) |
 | Search bar width | Full width minus `space-8` margins | Fixed 384px |
 
 The **type scale does not change** at desktop. `text-display-xl` (28px) stays 28px regardless of viewport.
@@ -356,7 +357,7 @@ Backdrop-blur: blur-standard (6px)
 Border-radius: radius-badge (24px)
 Padding: space-3 (6px) vertical, space-6 (12px) horizontal
 Gap between icon and text: space-3 (6px)
-Text: text-display-sm (16px / ExtraBold / Plus Jakarta Sans) / color-amber-cta-text (#554300)
+Text: text-display-sm (16px / ExtraBold / Plus Jakarta Sans / lh 24px) / color-amber-cta-text (#554300)
 Icon: 16.5px sun SVG
 ```
 
