@@ -12,7 +12,8 @@ out/
 .vscode/
 .idea/
 .cursor/
-.claude/
+.claude/*
+!.claude/scripts/
 *.swp
 *.swo
 *~
@@ -28,7 +29,6 @@ coverage/
 _bmad/
 _bmad-output/
 scripts/*
-CLAUDE.md
 
 # Geodata (large binary, imported once)
 building_geodata/
