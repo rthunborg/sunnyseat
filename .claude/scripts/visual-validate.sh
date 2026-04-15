@@ -3,9 +3,9 @@
 # Compares a running dev server screenshot against the Figma design reference.
 # Called by sprint-status-gate.sh during story review transitions.
 #
-# Usage: ./scripts/visual-validate.sh <screen-id> <dev-server-route> [viewport]
-# Example: ./scripts/visual-validate.sh map-primary /map mobile
-#          ./scripts/visual-validate.sh map-primary /map desktop
+# Usage: .claude/scripts/visual-validate.sh <screen-id> <dev-server-route> [viewport]
+# Example: .claude/scripts/visual-validate.sh map-primary / mobile
+#          .claude/scripts/visual-validate.sh map-primary / desktop
 #
 # 🎯 Project-specific parameters (update per project):
 #   DEV_SERVER_URL      — your local dev server (e.g. http://localhost:3000)
@@ -19,7 +19,7 @@
 SCREEN_ID=$1
 ROUTE=$2
 VIEWPORT_TYPE="${3:-mobile}"                       # "mobile" or "desktop", defaults to mobile
-DEV_SERVER_URL="{{DEV_SERVER_URL}}"               # 🎯 e.g. http://localhost:3000
+DEV_SERVER_URL="${DEV_SERVER_URL:-http://localhost:3000}"
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}"
 
 # Set viewport dimensions based on type
@@ -52,12 +52,14 @@ base64_encode() {
 }
 
 # ─── Step 1: Screenshot the running dev server via Playwright ─────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 IMPL_SCREENSHOT=$(mktemp /tmp/impl-XXXXXX.png)
-npx playwright screenshot \
+(cd "$PROJECT_ROOT/nextjs-app" && npx playwright screenshot \
   --browser chromium \
   --viewport-size "$VIEWPORT" \
   "$DEV_SERVER_URL$ROUTE" \
-  "$IMPL_SCREENSHOT" 2>/dev/null
+  "$IMPL_SCREENSHOT" 2>/dev/null)
 
 if [ ! -f "$IMPL_SCREENSHOT" ] || [ ! -s "$IMPL_SCREENSHOT" ]; then
   echo "VISUAL GATE FAILED: Could not screenshot dev server at $DEV_SERVER_URL$ROUTE"
@@ -67,7 +69,7 @@ if [ ! -f "$IMPL_SCREENSHOT" ] || [ ! -s "$IMPL_SCREENSHOT" ]; then
 fi
 
 # ─── Step 2: Load Figma reference screenshot from repo ────────────────────────
-REFERENCE_DIR="./nextjs-app/docs/design/references/screens/${VIEWPORT_TYPE}"
+REFERENCE_DIR="${PROJECT_ROOT}/nextjs-app/docs/design/references/screens/${VIEWPORT_TYPE}"
 REFERENCE_SCREENSHOT="${REFERENCE_DIR}/${SCREEN_ID}.png"
 
 if [ ! -f "$REFERENCE_SCREENSHOT" ] || [ ! -s "$REFERENCE_SCREENSHOT" ]; then

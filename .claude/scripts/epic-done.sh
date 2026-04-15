@@ -1,5 +1,5 @@
 #!/bin/bash
-# Usage: ./scripts/epic-done.sh "<epic name>"
+# Usage: .claude/scripts/epic-done.sh "<epic name>"
 # The dev agent runs this after all stories in an epic pass the completion gate
 
 EPIC_NAME=$1

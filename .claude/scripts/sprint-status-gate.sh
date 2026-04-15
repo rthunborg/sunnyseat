@@ -5,6 +5,9 @@
 # to "review", runs the visual validation gate for frontend stories.
 # Exit 0 = allow the write. Exit 1 = block the write.
 
+# ─── Resolve script directory for sibling script calls ────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # ─── Extract the file path and new content from Claude's tool input ───────────
 FILE_PATH=$(echo "$CLAUDE_TOOL_INPUT" | jq -r '.path // ""')
 NEW_CONTENT=$(echo "$CLAUDE_TOOL_INPUT" | jq -r '.content // ""')
@@ -58,11 +61,11 @@ echo "Found story file: $STORY_FILE"
 
 # ─── Check if story references a Figma frame name ────────────────────────────
 # Look for patterns like: Figma frame `map-primary` or screen: map-primary
-SCREEN_ID=$(grep -oP 'Figma frame `\K[^`]+' "$STORY_FILE" | head -1)
+SCREEN_ID=$(grep -o 'Figma frame `[^`]*`' "$STORY_FILE" | head -1 | sed 's/Figma frame `//;s/`//')
 
 # Fallback: look for screen_id or screen: patterns
 if [ -z "$SCREEN_ID" ]; then
-  SCREEN_ID=$(grep -oP 'screen_id:\s*\K[\w-]+' "$STORY_FILE" | head -1)
+  SCREEN_ID=$(grep 'screen_id:' "$STORY_FILE" | head -1 | sed 's/.*screen_id:[[:space:]]*//' | tr -d ' "')
 fi
 
 if [ -z "$SCREEN_ID" ]; then
@@ -80,7 +83,7 @@ if [ -z "$CONTEXT_FILE" ]; then
 fi
 
 # Match screen ID in the markdown table (handles both `screen-id` and screen-id formats)
-MATCH_LINE=$(grep -P "\|\s*\`?${SCREEN_ID}\`?\s*\|" "$CONTEXT_FILE" | head -1)
+MATCH_LINE=$(grep "|.*${SCREEN_ID}.*|" "$CONTEXT_FILE" | head -1)
 ROUTE=$(echo "$MATCH_LINE" | awk -F'|' '{print $3}' | sed 's/^ *//;s/ *$//')
 VIEWPORT_TYPE=$(echo "$MATCH_LINE" | awk -F'|' '{print $4}' | tr -d ' ')
 VIEWPORT_TYPE="${VIEWPORT_TYPE:-mobile}"  # Default to mobile if column is missing
@@ -95,13 +98,14 @@ fi
 # ─── Run visual validation ────────────────────────────────────────────────────
 echo "Running visual validation: screen='$SCREEN_ID' route='$ROUTE' viewport='$VIEWPORT_TYPE'"
 
-if [ ! -x "./scripts/visual-validate.sh" ]; then
-  echo "WARNING: scripts/visual-validate.sh not found or not executable"
-  echo "Run: chmod +x scripts/visual-validate.sh"
+VALIDATE_SCRIPT="$SCRIPT_DIR/visual-validate.sh"
+if [ ! -x "$VALIDATE_SCRIPT" ]; then
+  echo "WARNING: $VALIDATE_SCRIPT not found or not executable"
+  echo "Run: chmod +x $VALIDATE_SCRIPT"
   exit 0
 fi
 
-./scripts/visual-validate.sh "$SCREEN_ID" "$ROUTE" "$VIEWPORT_TYPE"
+"$VALIDATE_SCRIPT" "$SCREEN_ID" "$ROUTE" "$VIEWPORT_TYPE"
 VISUAL_EXIT=$?
 
 if [ $VISUAL_EXIT -ne 0 ]; then

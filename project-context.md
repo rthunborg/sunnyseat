@@ -2,7 +2,7 @@
 
 > **Purpose:** This file is the BMAD dev agent's injection point for design awareness. BMAD's dev agent (Amelia) loads this as foundational reference in Step 2 of its workflow. It lives at the project root — not inside `_bmad/` — so it survives BMAD reinstalls without being overwritten.
 >
-> Last updated: 2026-04-10
+> Last updated: 2026-04-15
 
 ---
 
@@ -37,7 +37,7 @@ A backend API application that helps people in Gothenburg find outdoor venue sea
 
 - **Epics 1–3, 6, 6R, 7: Complete.** Backend foundation, sun/shadow engine, weather integration, platform migration from .NET/Azure to Next.js/Vercel/Supabase, admin operations platform.
 - **Front-end: Fully removed (2026-03-25).** Clean slate for the fresh rebuild.
-- **Epic 1 (front-end rebuild) — Ready for implementation.** PRD v3.0, frontend architecture, UX design specification, and design system all complete. 7 front-end epics / 31 stories defined in `epics.md` v3.0. Start point: Story 1.1 — Project Scaffold & Design System Foundation.
+- **Epic 1 (front-end rebuild) — Ready for implementation.** PRD v3.0, frontend architecture, UX design specification, and design system all complete. 7 front-end epics / 32 stories defined in `epics.md` v3.0. Start point: Story 1.1 — Project Scaffold & Design System Foundation.
 
 ---
 
@@ -45,15 +45,15 @@ A backend API application that helps people in Gothenburg find outdoor venue sea
 
 | Document | Path |
 |----------|------|
+| Project Context (this file) | `project-context.md` |
 | PRD (v3.0) | `_bmad-output/planning-artifacts/prd.md` |
 | Project Brief | `_bmad-output/planning-artifacts/brief/project-brief.md` |
-| Architecture (frontend) | `_bmad-output/planning-artifacts/architecture.md` |
-| Architecture (system, sharded) | `_bmad-output/planning-artifacts/architecture/index.md` |
+| Architecture | `_bmad-output/planning-artifacts/architecture.md` |
 | UX Design Specification | `_bmad-output/planning-artifacts/ux-design-specification.md` |
-| Epics Index | `_bmad-output/planning-artifacts/epics.md` |
+| Epics & Stories (v3.0) | `_bmad-output/planning-artifacts/epics.md` |
+| Design Decisions | `_bmad-output/planning-artifacts/decisions/` |
+| Implementation Readiness Report | `_bmad-output/planning-artifacts/implementation-readiness-report-2026-04-15.md` |
 | Sprint Status | `_bmad-output/implementation-artifacts/sprint-status.yaml` |
-| Stories (implementation) | `_bmad-output/implementation-artifacts/stories/` |
-| BMAD project-context snapshot | `_bmad-output/project-context.md` |
 
 ---
 
