@@ -109,6 +109,8 @@ The backend engine (`nextjs-app/lib/solar`, `lib/weather`, `lib/supabase`, `lib/
 - **visual-validation** — How the screenshot comparison gate works. Reads the Screen ID → Route map in `project-context.md` to navigate to each state. Consult when the gate fails or when debugging screenshot comparison issues.
 - **test-gate** — What must pass (typecheck, lint, unit, component, visual validation) before a story may transition to `review`, and how the sprint-status gate enforces story completion.
 - **bmad-story-brief** — BMAD story format, acceptance criteria structure, and definition of done. Every front-end story needs four design gate criteria (Visual, Behaviour, Animation, Visual validation).
+- **story-file-audit** — MANDATORY after every story file creation. Run this self-audit against the generated file before transitioning the story to ready-for-dev.
+- **review-round-guard** — MANDATORY before invoking bmad-code-review. Caps automatic review rounds at three per story and forces human decision beyond the cap. Prevents review loop waste.
 
 ## Git workflow
 - **One commit per completed story.** Commit message format: `feat(<epic-number>): <story title>` — e.g. `feat(1): Project Scaffold & Design System Foundation`, `feat(4): Swish Payment Flow`.
