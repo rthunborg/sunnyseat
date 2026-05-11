@@ -2,7 +2,7 @@
 
 > **Purpose:** This file is the BMAD dev agent's injection point for design awareness. BMAD's dev agent (Amelia) loads this as foundational reference in Step 2 of its workflow. It lives at the project root — not inside `_bmad/` — so it survives BMAD reinstalls without being overwritten.
 >
-> Last updated: 2026-04-15
+> Last updated: 2026-04-29
 
 ---
 
@@ -61,23 +61,51 @@ A backend API application that helps people in Gothenburg find outdoor venue sea
 
 **All frontend work must ground itself in these artifacts — no invention, no guesswork.**
 
-| Artifact | Location |
-|----------|----------|
-| Design System (canonical tokens, components, motion) | `nextjs-app/docs/design/DESIGN.md` |
-| Figma File | [SunnySeat on Figma](https://www.figma.com/design/Oh75qPnFfSWKHSsyVSBQbT/SunnySeat) (key: `Oh75qPnFfSWKHSsyVSBQbT`) |
-| Screen References — Mobile | `nextjs-app/docs/design/references/screens/mobile/` (13 PNGs) |
-| Screen References — Desktop | `nextjs-app/docs/design/references/screens/desktop/` (8 PNGs) |
-| Component References | `nextjs-app/docs/design/references/components/` (41 PNGs) |
-| UX Spec (Screen Inventory + behaviour) | `_bmad-output/planning-artifacts/ux-design-specification.md` §`Screen Inventory` |
+| Artifact | Location | Role |
+|----------|----------|------|
+| Design System (canonical tokens, components, motion) | `nextjs-app/docs/design/DESIGN.md` | **Binding token system** — the single source of truth for colour, type, spacing, radius, shadow, motion. |
+| Claude Design bundle (HTML prototypes + intent transcripts) | `nextjs-app/docs/design/references/claude-design/` | **Primary visual + behaviour reference.** See "Claude Design as Visual Source of Truth" below. |
+| Screen Reference PNGs — Mobile | `nextjs-app/docs/design/references/screens/mobile/` | Captured from the Claude Design prototypes by `nextjs-app/scripts/capture-claude-design-refs.mjs`. Inputs to the visual validation gate. |
+| Screen Reference PNGs — Desktop | `nextjs-app/docs/design/references/screens/desktop/` | Same — captured from the Claude Design desktop prototypes. |
+| Legacy Figma Exports | `nextjs-app/docs/design/references/screens/legacy/{mobile,desktop,components}/` | Historical reference. Still useful for screens the prototype does not cover (`not-found`, `about`, `premium-recovery`, `map-primary-offline`) and for font sampling / odd details. **Not the primary spec — but is the source of any re-baselined PNG; see REBASELINE-LOG.md below.** |
+| Re-baseline Log | `nextjs-app/docs/design/references/REBASELINE-LOG.md` | **Durable audit trail for every reference-PNG re-baseline or capture-recipe change.** Mandatory read when a visual gate fails — explains why the active reference may diverge from the prototype. Mandatory append whenever a reference is re-baselined or `capture-claude-design-refs.mjs` changes. Discoverable from CLAUDE.md, this file, and the capture script's header. |
+| UX Spec (Screen Inventory + behaviour) | `_bmad-output/planning-artifacts/ux-design-specification.md` §`Screen Inventory` | Animation timings, state transitions, loading/empty/error patterns, edge cases. |
+
+### Claude Design as Visual Source of Truth
+
+The Claude Design bundle is a self-contained handoff produced from the Figma file via the "Share to Claude Code" button on [claude.ai/design](https://claude.ai/design). It contains:
+
+- **`README.md`** — written for coding agents. Read it first when implementing a screen.
+- **`chats/`** — conversation transcripts capturing *intent* during design iteration. Useful when a screen's behaviour is ambiguous.
+- **`project/`** — four standalone HTML prototypes (free × premium × mobile × desktop), their JSX source, shared `lib/`, and pre-rendered screenshots. The prototypes are React + Babel-standalone; they require no build step and run as `file://` URLs.
+- **`STATE-MAPPING.md`** — project-curated mapping from Screen IDs to prototype state-forcing recipes. Read when adding a new state to the visual validation gate.
+
+#### Refresh and capture
+
+- **Refreshing the bundle** when the Claude Design project is updated: `scripts/fetch-claude-design.sh` (run from project root). The hash in the API URL is stable across iterations, so re-running picks up the latest version. The script preserves `STATE-MAPPING.md` and overwrites everything else.
+- **Regenerating the visual gate references** after a refresh (or when adding a new state): `cd nextjs-app && node scripts/capture-claude-design-refs.mjs [screen-id ...]`. This drives each prototype to the right state via Playwright and saves PNGs into `references/screens/{mobile,desktop}/`.
+
+#### Reading discipline (matches the bundle's own README)
+
+> *"Read the HTML and CSS directly; a screenshot won't tell you anything they don't."*
+
+When implementing a screen the agent should:
+
+1. Read `references/claude-design/README.md` once per session to refresh handoff context.
+2. Locate the relevant prototype (`SunnySeat Free.html` / `SunnySeat Prototype.html` / `SunnySeat Desktop Free.html` / `SunnySeat Desktop Premium.html`).
+3. Open the JSX components rendered for the screen — these are the **canonical visual spec**. Dimensions, colours, layout rules are spelled out there. Do **not** rely on the prototype rendering or screenshots for measurements.
+4. Skim the relevant chat transcript section if intent is unclear (e.g. why a panel was sized differently between desktop and mobile).
+5. Translate the visual outcome into the project's stack — Tailwind v4 `@theme` utilities + shadcn/ui v4 + Motion 12.x. **Do not copy CSS values, React component decomposition, or DOM structure from the prototype.** The prototype is hand-coded plain HTML/CSS for design fidelity, not architecture.
+6. Tokens still come from [DESIGN.md](nextjs-app/docs/design/DESIGN.md). The prototype's `:root` CSS variables are *informational* — verify any colour or spacing you find there resolves to a DESIGN.md token before using it.
 
 ### Frontend Implementation Rules
 
 These rules are binding for any story touching the UI. They are enforced by the `frontend-component` skill and the sprint-status gate.
 
 1. **Read DESIGN.md before writing any UI code.** Tokens are the single source of truth for colour, type, spacing, radius, shadow, motion. Never introduce a raw hex value, ad-hoc px spacing, or custom shadow.
-2. **Match the visual outcome, not the Figma implementation.** Figma frames define what the screen should *look like*, not the component architecture. Use sensible React decomposition and the nearest design token — do not clone layer trees or arbitrary pixel values.
-3. **Reference the correct screen PNG at the correct viewport.** Mobile work reads from `references/screens/mobile/`, desktop from `references/screens/desktop/`. If both viewports exist, both must be implemented and both must pass visual validation.
-4. **Read the UX spec behaviour section for the screen.** Animation timings, state transitions, loading/empty/error patterns, and interaction mechanics come from `ux-design-specification.md` — not from the agent's intuition.
+2. **Match the visual outcome, not the prototype's implementation.** The Claude Design prototypes define what the screen should *look like* and *behave like*. They do not define the component architecture. Use sensible React decomposition with shadcn/ui primitives — do not clone the prototype's plain-HTML structure or copy its inline-CSS values.
+3. **Reference the right prototype at the right viewport.** Mobile work consults `SunnySeat Free.html` / `SunnySeat Prototype.html`; desktop work consults `SunnySeat Desktop Free.html` / `SunnySeat Desktop Premium.html`. If both viewports exist, both must be implemented and both must pass visual validation against the corresponding captured PNG.
+4. **Read the UX spec behaviour section for the screen.** Animation timings, state transitions, loading/empty/error patterns, and interaction mechanics come from `ux-design-specification.md` — not from the agent's intuition. Use the chat transcripts in `claude-design/chats/` to disambiguate intent when the spec is silent.
 5. **Swedish copy is the default.** Button labels, empty states, errors, tab labels — all Swedish as specified. English fallbacks only for dev/debug surfaces.
 6. **Accessibility is not optional.** WCAG 2.1 AA minimum. Every interactive element has a 44×44 px minimum touch target, visible focus indicator, and a semantic role. `prefers-reduced-motion` must disable non-essential animation.
 
@@ -149,8 +177,8 @@ This table is read by `scripts/sprint-status-gate.sh` (via `visual-validate.sh`)
 | premium-recovery           | `/?_state=premium-recovery`                                 | desktop  | Same form on desktop viewport.                                                              |
 | favourites-tab             | `/favoriter`                                                | mobile   | Real bottom-nav destination — list of favourited venues with empty state.                   |
 | favourites-tab             | `/favoriter`                                                | desktop  | Same content via desktop navigation.                                                        |
-| map-primary-offline        | `/?_state=offline`                                          | mobile   | Cached shell, no venue data, persistent offline banner.                                     |
-| map-primary-offline        | `/?_state=offline`                                          | desktop  | Same offline state on desktop.                                                              |
+| map-primary-offline        | `/?_state=map-primary-offline`                              | mobile   | Cached shell, no venue data, persistent offline banner.                                     |
+| map-primary-offline        | `/?_state=map-primary-offline`                              | desktop  | Same offline state on desktop.                                                              |
 
 ---
 

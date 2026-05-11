@@ -1,0 +1,44 @@
+# Dev-Only State Forcing (`?_state=<screen-id>`)
+
+## What it is
+
+Many SunnySeat screens are **state variants of the same URL** — onboarding overlay, premium paywall, inline feedback, offline shell, etc. The `_state` query parameter is a dev-only URL override that forces a component into a specific UI state so the visual-validation gate (and any Playwright test) can screenshot that state deterministically, without clicking through the app to reach it.
+
+It is strictly a development/preview convenience. It never affects production builds.
+
+## Production guarantee
+
+`useForcedState()` returns `null` unconditionally when `process.env.NODE_ENV === 'production'`. The literal `=== 'production'` check at the top of the hook allows the Next.js bundler to dead-code-eliminate the `useSearchParams` call below it, so `_state`, the hook body, and any caller's `_state` branches are all stripped from the production bundle. **Zero bundle footprint.**
+
+## Usage
+
+Mark your component `'use client'`, call `useForcedState()` once, and branch on the return value. The canonical reference implementation is the onboarding gate at `nextjs-app/components/custom/onboarding/OnboardingGate.tsx` — it shows the full pattern (state-forcing override, Suspense boundary, side-effect gating). The minimal shape:
+
+```tsx
+'use client';
+
+import { useForcedState } from '@/lib/dev/use-forced-state';
+
+export function SomeComponent() {
+  const forced = useForcedState();
+
+  if (forced === 'premium-paywall') {
+    return <PaywallOverlay />;
+  }
+  return <DefaultView />;
+}
+```
+
+When the forced state must override real production logic (e.g. `OnboardingGate` skipping the localStorage flag check), branch on the forced value FIRST and gate any side-effects (localStorage writes, analytics) on the non-forced path so the dev experience stays repeatable.
+
+## Suspense reminder
+
+Any page rendering a component that uses `useForcedState` must wrap that subtree in a `<Suspense>` boundary, otherwise Next.js will bail out of prerendering (`useSearchParams` is a client hook that requires a Suspense parent in the App Router).
+
+## Valid screen IDs
+
+The canonical list of screen IDs and their routes lives in `project-context.md` under **"Screen ID → Route Map"** at the project root. Do not duplicate that table here — point at it. `_state` values must equal a Screen ID from that map exactly; no aliases, no abbreviations.
+
+## Seeded venue slug
+
+Screens that require a venue (`map-with-selected-venue`, `venue-detail`, `feedback`, `review`) use the fixed dev-seeded slug `test-venue-sunny`. The slug exists in the development Supabase database and is never used in production data. See `project-context.md` §"Seeded development slug" for the full contract.

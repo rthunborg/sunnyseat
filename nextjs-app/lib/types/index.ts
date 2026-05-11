@@ -6,3 +6,5 @@ export type {
   SunExposureResult,
 } from './venue';
 export type { Coordinates, LocationState } from './location';
+export type { MapViewport, VenuePinData, VenuePinSelection } from './map';
+export { GOTHENBURG_CENTRE } from './map';

@@ -42,15 +42,6 @@ export function parseNumberQuery(
 }
 
 /**
- * Parse and validate optional number query parameter
- */
-export function parseOptionalNumberQuery(value: string | null | undefined): number | null {
-  if (!value) return null;
-  const parsed = parseFloat(value);
-  return isNaN(parsed) ? null : parsed;
-}
-
-/**
  * Parse and validate date query parameter
  */
 export function parseDateQuery(

@@ -49,8 +49,8 @@ Last audited: 2026-04-06
 
 | Token | Hex | Usage |
 |---|---|---|
-| `color-tab-active` | `#d97706` | Active bottom-nav tab label |
-| `color-tab-inactive` | `#a8a29e` | Inactive bottom-nav tab label |
+| `color-tab-active` | `#b45309` | Active bottom-nav tab label (AA-passing on `surface-cream`; bumped from `#d97706` in Story 1.6 Task 5) |
+| `color-tab-inactive` | `#57534e` | Inactive bottom-nav tab label (AA-passing on `surface-cream`; bumped from `#a8a29e` in Story 1.6 Task 5) |
 | `color-pin-shaded` | `#e4e1e5` | Shaded/low-sun venue pin background |
 | `color-drag-handle` | `#d6d3d1` | Venue detail drag handle pill |
 | `color-drag-handle-map` | `#d0c5af` | Map bottom sheet drag handle (rendered at 40% opacity) |
@@ -76,7 +76,11 @@ Last audited: 2026-04-06
 | `gradient-cta-amber` | `linear-gradient(171deg, #d4af37 0%, #ffbf00 100%)` | Feedback/validation CTA buttons |
 | `gradient-premium-button` | `linear-gradient(174deg, #d4af37 0%, #ffbf00 100%)` | Premium upsell "Visa Säsongskortet" button |
 | `gradient-map-overlay` | `linear-gradient(66deg, rgba(245,158,11,0.05) 0%, rgba(245,158,11,0) 50%, rgba(249,115,22,0.1) 100%)` | Subtle warm map tint overlay |
+| `gradient-onboarding` | `linear-gradient(180deg, #ffb347 0%, #d4af37 42%, #735c00 100%)` | First-visit onboarding screen full-bleed background |
 | `gradient-timeline-bar` | `linear-gradient(90deg, rgba(115,92,0,0.2), #d4af37 50%, rgba(115,92,0,0.2))` | Sun exposure timeline gradient bar |
+| `gradient-sun-burst-warm` | `radial-gradient(circle, rgba(255,240,180,0.55) 0%, rgba(255,240,180,0) 60%)` | Onboarding decorative top sun burst |
+| `gradient-sun-burst-amber` | `radial-gradient(circle, rgba(255,191,0,0.5) 0%, rgba(255,191,0,0) 65%)` | Onboarding decorative bottom amber burst |
+| `gradient-wordmark-sun` | `radial-gradient(circle, #fff6d6 0%, #ffbf00 100%)` | Sun glyph filling beside the onboarding wordmark |
 
 ---
 
@@ -190,6 +194,7 @@ The design uses an 8px base grid with 4px half-steps for tight compositions.
 | `shadow-card-up` | `0px -12px 32px 0px rgba(115, 92, 0, 0.08)` | Time slider panel (casts upward) |
 | `shadow-sheet-full-up` | `0px -12px 48px 0px rgba(0, 0, 0, 0.1)` | Venue detail full-screen sheet (upward) |
 | `shadow-route-button` | `0px 15.3px 19.2px -3.8px rgba(115, 92, 0, 0.2), 0px 6.1px 7.7px -4.6px rgba(115, 92, 0, 0.2)` | Route/CTA primary button warm glow |
+| `shadow-wordmark-sun` | `0 0 16px rgba(255, 240, 180, 0.7)` | Decorative glow on the onboarding wordmark sun glyph |
 
 ### Neutral Shadows
 
@@ -223,10 +228,11 @@ These are the **default** transition values for micro-interactions and state cha
 | `duration-fast` | `150ms` | Icon state changes, tab switches, badge updates |
 | `duration-default` | `200ms` | Button hover/press, opacity fades, colour transitions |
 | `duration-slow` | `300ms` | Panel reveals, card expansions, sheet peek-to-rest |
-| `easing-default` | `ease-in-out` | Standard interactive transitions |
-| `easing-enter` | `ease-out` | Elements entering the screen (decelerate into place) |
-| `easing-exit` | `ease-in` | Elements leaving the screen (accelerate out) |
-| `easing-spring` | `cubic-bezier(0.22, 1, 0.36, 1)` | Smooth deceleration for drag-release and sheet settle. No overshoot — appropriate for a precise map UI. The previously noted `cubic-bezier(0.34, 1.56, 0.64, 1)` had a noticeable bounce (value 1.56 > 1) which is too playful for this context; replaced with a clean fast-in/slow-out curve consistent with iOS Maps / Material sheet behaviour. |
+| `ease-default` | `ease-in-out` | Standard interactive transitions |
+| `ease-enter` | `ease-out` | Elements entering the screen (decelerate into place) |
+| `ease-exit` | `ease-in` | Elements leaving the screen (accelerate out) |
+| `ease-spring` | `cubic-bezier(0.22, 1, 0.36, 1)` | Smooth deceleration for drag-release and sheet settle. No overshoot — appropriate for a precise map UI. The previously noted `cubic-bezier(0.34, 1.56, 0.64, 1)` had a noticeable bounce (value 1.56 > 1) which is too playful for this context; replaced with a clean fast-in/slow-out curve consistent with iOS Maps / Material sheet behaviour. |
+| `duration-fly` | `500ms` | MapLibre `flyTo()` (locate-me, recentre). JS reads `DURATION_FLY_MS` from `lib/constants/animation.ts`; CSS reads `--duration-fly`. |
 
 > Screen-specific timings in the UX spec (e.g. bottom sheet drag, map pin transitions, slider thumb) always take precedence. Use `prefers-reduced-motion` to disable or reduce non-essential animations.
 

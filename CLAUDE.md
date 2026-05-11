@@ -16,18 +16,6 @@ A sun-prediction PWA for Gothenburg that answers "which venue's outdoor seating 
 - Lint command: `cd nextjs-app && npx eslint . --quiet`
 - Type check command: `cd nextjs-app && npx tsc --noEmit`
 
-> **⚠️ Pre-scaffold state — Epic 1 Story 1.1 in progress.** `package.json` currently ships only `@playwright/test`. Vitest, ESLint deps, shadcn/ui, MapLibre, TanStack Query, Motion, next-intl, Serwist, and the rest are **installed BY Story 1.1 itself** — that story's entire job is to scaffold this tooling.
->
-> **While implementing Story 1.1**, the only test-gate commands that work are:
-> - `cd nextjs-app && npx tsc --noEmit` (TypeScript is already configured in `tsconfig.json`)
-> - `cd nextjs-app && npx playwright test` (Playwright is the only installed dep)
->
-> The `vitest run` and `eslint . --quiet` commands **will fail** until Story 1.1 has installed their dependencies. Story 1.1's test gate therefore relies on typecheck + a minimal Playwright smoke test only. Once Story 1.1 is merged, all four commands above become the standard test-gate inputs for every subsequent story.
->
-> **Scaffolding commands are expected and not constrained by this note.** `npm install`, `npx create-next-app` (or its equivalent config merges), `npx shadcn@latest init`, and other installer/config generators are exactly what Story 1.1 runs to install the missing dependencies — they are the story, not a violation of this rule.
->
-> **TODO (remove after Story 1.1 merges):** delete this warning block once Vitest + ESLint are installed and the scaffold is complete.
-
 ## Repository layout
 
 ```
@@ -74,13 +62,21 @@ A sun-prediction PWA for Gothenburg that answers "which venue's outdoor seating 
     docs/
       design/
         DESIGN.md                           — canonical design token system (READ BEFORE ANY FRONTEND WORK)
-        references/screens/mobile/          — 13 Figma screen PNGs (designed at 390px)
-        references/screens/desktop/         — 8 Figma screen PNGs (designed at 1280px)
-        references/components/              — 41 component PNGs
+        references/claude-design/           — primary visual + behaviour reference: HTML prototypes, JSX source, intent transcripts. README.md is written for coding agents — read first.
+        references/claude-design/STATE-MAPPING.md — Screen ID → prototype state-forcing recipe (project-curated; survives bundle refresh)
+        references/REBASELINE-LOG.md        — durable audit trail for every reference-PNG re-baseline or capture-recipe change. MANDATORY read when a visual gate fails or when changing references; MANDATORY entry whenever you re-baseline.
+        references/screens/mobile/          — Mobile screen PNGs captured from the Claude Design prototypes — inputs to the visual validation gate
+        references/screens/desktop/         — Desktop screen PNGs captured from the Claude Design prototypes
+        references/screens/legacy/          — Original Figma exports kept for screens the prototype doesn't cover (not-found, about, premium-recovery, offline) and for font sampling
       dev/
         state-forcing.md                    — dev-only `_state` query param convention
       background-jobs-inventory.md · environment-variables.md · vercel-deployment.md · github-actions-scheduled-jobs.md
+    scripts/
+      capture-claude-design-refs.mjs        — Playwright runner: drives each prototype to a Screen-ID state, saves PNGs into references/screens/{mobile,desktop}/ for the visual gate
     eslint.config.mjs · next.config.ts · tsconfig.json · vercel.json · package.json
+
+  scripts/
+    fetch-claude-design.sh                  — re-fetches the Claude Design bundle from the stable share URL; preserves STATE-MAPPING.md
 ```
 
 The backend engine (`nextjs-app/lib/solar`, `lib/weather`, `lib/supabase`, `lib/middleware`, `lib/buildings`) is complete and must NOT be modified by front-end work. All data access from components flows through `app/api/*` routes.
@@ -89,14 +85,20 @@ The backend engine (`nextjs-app/lib/solar`, `lib/weather`, `lib/supabase`, `lib/
 
 ## Critical rules
 - **Design tokens are binding.** All frontend work must reference `nextjs-app/docs/design/DESIGN.md` and use Tailwind v4 `@theme` utilities. Never introduce raw hex values, ad-hoc px spacing, or custom shadows. If a value isn't in `@theme`, it doesn't belong in the code.
-- **Match the visual outcome, not the Figma layer tree.** Figma frames define what the screen should *look like*, not the component architecture. Use sensible React decomposition and the nearest design token; do not clone layer trees or arbitrary pixel values.
+- **Claude Design is the visual + behaviour source of truth.** The HTML prototypes + JSX source + chat transcripts in `nextjs-app/docs/design/references/claude-design/` are what every screen should *look like* and *behave like*. Read the JSX source for measurements (do not measure rendered screenshots). Skim the chat transcripts when intent is ambiguous. The prototype is hand-coded plain HTML/CSS/JS for fidelity — **never copy its CSS values, DOM structure, or React decomposition** into our shadcn/Tailwind v4 implementation. Translate the visual outcome.
+- **Match the visual outcome, not the prototype's implementation.** Use sensible React decomposition with shadcn primitives and the nearest design token; do not clone layer trees or arbitrary pixel values from the prototype source.
 - **UX spec defines behaviour.** Animation timings, state transitions, loading/empty/error patterns, and interaction mechanics come from `_bmad-output/planning-artifacts/ux-design-specification.md` — not from agent intuition.
 - **API boundary is hard.** Front-end components (anything marked `'use client'`) must never import from `lib/solar`, `lib/weather`, `lib/supabase`, `lib/middleware`, or `lib/buildings`. All data access goes through `app/api/*` routes and is wrapped by hooks in `hooks/queries/` or `hooks/mutations/` using TanStack Query. Query keys come from `lib/query-keys.ts` — never constructed inline.
 - **Three-layer component architecture.** `components/custom/` → `components/composed/` → `components/ui/`. Direction of dependency is one-way. Never skip layers.
 - **Swedish copy is default.** Button labels, empty states, errors, tab labels — all Swedish. English only via next-intl for dev/debug surfaces. Use `useTranslations('venue')`-style scoped keys, never `t('venue.sunTimeline')`.
 - **Accessibility is non-negotiable.** WCAG 2.1 AA minimum. Every interactive element has a 44×44 px minimum touch target, visible focus indicator, semantic role, and respects `prefers-reduced-motion`. Map pins differentiated by icon shape, not colour alone.
-- **Performance budget.** ≤400 KB gzipped JS total. MapLibre is loaded async. Map tile failures fall back to `color-surface-sand`. Use shadcn `Skeleton` for loading — never full-page spinners.
+- **Performance budget.** ≤600 KB gzipped JS total (Plan B re-baselined 2026-05-06 in Story 1.6 from 400 KB; see PRD NFR8 for the per-chunk breakdown — initial route ≤280 KB, MapLibre dynamic chunk ≤320 KB, total ≤600 KB). MapLibre is loaded async. Map tile failures fall back to `color-surface-sand`. Use shadcn `Skeleton` for loading — never full-page spinners.
 - **Tests must pass before a story is marked complete.** Typecheck, lint, unit, component, and the visual validation gate all gate story completion.
+- **Pre-existing failing checks are blockers, not workarounds.** Run `npx tsc --noEmit` and `npx eslint . --quiet` *at the start of every story* before touching code. If either reports errors in files outside the story's scope, surface them to Rasmus immediately and pause. Do NOT silently add `eslint-disable` lines, `@ts-ignore`, ignore-globs, or shim fixes to make the gate pass during the story — that hides infrastructure debt and quietly broadens the story's scope. The vendored Claude Design prototypes under `nextjs-app/docs/design/references/claude-design/**` are the only exception: they are global-script JSX refreshed by `scripts/fetch-claude-design.sh`, so they will never lint clean and are intentionally listed in `globalIgnores` of `nextjs-app/eslint.config.mjs`. Do not try to fix them; do not remove the ignore.
+- **Visual-gate FAIL is two shapes — defect or scope drift.** If the gate fails because the implementation is wrong, fix the code. If the gate fails because the reference PNG depicts UI that the current story does not own (e.g. downstream-story chrome the foundation story does not yet build), STOP and ask Rasmus for an explicit accept-with-rationale before proceeding. Do NOT bypass the hook, replace the reference PNG, or transition `sprint-status.yaml` to `review` without that confirmation.
+- **Re-baseline rule — every reference-PNG or capture-recipe change MUST land an entry in `nextjs-app/docs/design/references/REBASELINE-LOG.md` in the same operation.** Whenever a reference PNG under `references/screens/{mobile,desktop}/` is replaced, the legacy export is promoted, or `scripts/capture-claude-design-refs.mjs` has a recipe added/removed/edited, append an entry to that log with: date, screen ID, viewport, story ID, trigger, resolution, source of new PNG (if any), recipe change (if any), verification result, the spec/UX-doc citation that justifies the divergence, and a re-evaluation trigger. The log is the durable audit trail consulted on every future visual-gate failure — undocumented re-baselines look like phantom defects to the next dev agent. The log is discoverable via this file (above), `project-context.md` §"Design Artifacts", and the header comment of `capture-claude-design-refs.mjs`.
+- **Script-tooling fixes are scope-allowed when the script is verifiably broken.** `.claude/scripts/sprint-status-gate.sh` and `.claude/scripts/visual-validate.sh` are project-specific tooling. If the agent finds either script silently no-opping, mis-extracting story IDs, or misreading the project-context route map, an in-line fix is permitted as part of the active story — but the change MUST be documented in the story Change Log with the verification evidence (e.g. "gate now correctly extracts the story ID for both YAML shapes — verified end-to-end"). Cosmetic tweaks, refactoring, or behaviour changes that aren't fixing a verifiable defect still require a separate story.
+- **Every deferred-work item MUST be tagged with a target story or epic, and that target MUST be updated in the same act of deferring.** When a code review or audit punts an item to `_bmad-output/implementation-artifacts/deferred-work.md`, the entry MUST carry a `*(Target: <story-id> — <story-title>)*` tag (or `*(Target: None — conditional, only triggers if <X>)*` for items whose trigger is a future state change rather than a planned feature). The agent MUST also update the target's source artifact in the same operation: if the target story is still `backlog`, append the item as a Given/When/Then AC (or "Deferred items to incorporate" footnote) in `_bmad-output/planning-artifacts/epics.md` under that story's section; if the target story already has a story file, append the item to that file's `## Tasks / Subtasks` or `### Notes`. **Untagged or untracked items will be missed by `bmad-create-story` and silently rot.** When the target story is later drafted, the SM removes the entry from `deferred-work.md` once the AC has been carried into the story file — `deferred-work.md` is a queue, not an archive.
 - **No secrets or API keys in committed files.** `.env.local` is git-ignored; Vercel env vars hold production secrets.
 
 ## Dev-only conventions

@@ -1,0 +1,32 @@
+[
+  {
+    "url": "http://localhost:3000/",
+    "isRepresentativeRun": false,
+    "htmlPath": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\.lighthouseci\\localhost--2026_05_08_12_32_44.report.html",
+    "jsonPath": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\.lighthouseci\\localhost--2026_05_08_12_32_44.report.json",
+    "summary": {
+      "performance": 0.61,
+      "accessibility": 1
+    }
+  },
+  {
+    "url": "http://localhost:3000/",
+    "isRepresentativeRun": false,
+    "htmlPath": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\.lighthouseci\\localhost--2026_05_08_12_32_59.report.html",
+    "jsonPath": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\.lighthouseci\\localhost--2026_05_08_12_32_59.report.json",
+    "summary": {
+      "performance": 0.62,
+      "accessibility": 1
+    }
+  },
+  {
+    "url": "http://localhost:3000/",
+    "isRepresentativeRun": true,
+    "htmlPath": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\.lighthouseci\\localhost--2026_05_08_12_33_12.report.html",
+    "jsonPath": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\.lighthouseci\\localhost--2026_05_08_12_33_12.report.json",
+    "summary": {
+      "performance": 0.62,
+      "accessibility": 1
+    }
+  }
+]
