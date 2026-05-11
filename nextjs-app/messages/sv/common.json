@@ -1,0 +1,15 @@
+{
+  "appName": "SunnySeat",
+  "loading": "Laddar...",
+  "error": "Kunde inte ladda",
+  "retry": "Försök igen",
+  "nav": {
+    "barLabel": "Huvudnavigation",
+    "headerLabel": "Sidhuvud",
+    "karta": "Karta",
+    "favoriter": "Favoriter",
+    "om": "Om",
+    "logoAria": "SunnySeat — gå till kartan",
+    "searchPlaceholder": "Sök plats eller adress"
+  }
+}

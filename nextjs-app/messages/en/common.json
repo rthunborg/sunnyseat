@@ -1,0 +1,15 @@
+{
+  "appName": "SunnySeat",
+  "loading": "Loading...",
+  "error": "Could not load",
+  "retry": "Try again",
+  "nav": {
+    "barLabel": "Main navigation",
+    "headerLabel": "Header",
+    "karta": "Map",
+    "favoriter": "Favourites",
+    "om": "About",
+    "logoAria": "SunnySeat — go to map",
+    "searchPlaceholder": "Search a place or address"
+  }
+}

@@ -1,0 +1,530 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   SunnySeat Design Token System
+   Source of truth: docs/design/DESIGN.md
+   ============================================================ */
+
+@theme {
+  /* Fonts — reference CSS vars from next/font, fall back to system fonts on
+     slow networks so FOUT does not shift layout (CLS). */
+  --font-display: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  --font-ui: var(--font-manrope), system-ui, sans-serif;
+
+  /* ---- Surfaces ---- */
+  --color-surface-cream: #fdfaf4;
+  --color-surface-root: #fbf8fc;
+  --color-surface-sand: #f5f0e6;
+  --color-surface-muted: #f5f3f6;
+  --color-surface-icon-bg: #eae7eb;
+  --color-surface-slider-track: #f0edf1;
+
+  /* ---- Amber / Sun Palette ---- */
+  --color-amber-pin: #f1b100;
+  --color-amber-primary: #ffbf00;
+  --color-amber-text: #fbbc00;
+  --color-amber-pale: #ffe088;
+  --color-amber-gold: #d4af37;
+  --color-amber-dark: #735c00;
+  --color-amber-cta-text: #554300;
+  --color-amber-badge-text: #6d5000;
+  --color-amber-overlay: rgba(255, 191, 0, 0.3);
+
+  /* ---- Text ---- */
+  --color-text-primary: #1b1b1e;
+  --color-text-logo: #1c1917;
+  --color-text-body: #4d4635;
+  --color-text-muted: rgba(77, 70, 53, 0.6);
+  --color-text-faint: rgba(77, 70, 53, 0.4);
+
+  /* ---- UI / Interactive ----
+     Tab colours bumped to AA-passing (4.5:1) values on `--color-surface-cream`
+     in Story 1.6 Task 5. Pre-bump values (`#d97706` 3.05:1, `#a8a29e` 2.42:1)
+     failed axe-core's serious-impact contrast check. */
+  --color-tab-active: #b45309;
+  --color-tab-inactive: #57534e;
+  --color-pin-shaded: #e4e1e5;
+  --color-drag-handle: #d6d3d1;
+  --color-drag-handle-map: #d0c5af;
+  --color-divider: #e7e5e4;
+  --color-border-nav: #f5f5f4;
+  --color-map-line: #e8e2d5;
+  --color-error: #ba1a1a;
+
+  /* ---- White & Glass ---- */
+  --color-white: #ffffff;
+  --color-glass-standard: rgba(255, 255, 255, 0.8);
+  --color-glass-slider: rgba(255, 255, 255, 0.9);
+  --color-glass-lavender: rgba(251, 248, 252, 0.8);
+
+  /* ---- Spacing ----
+     Tailwind v4 default: --spacing: 0.25rem (4 px) per step.
+     `h-10` → 40 px, `size-4` → 16 px, `px-12` → 48 px. We deliberately
+     do NOT define discrete `--spacing-N` overrides; the calc-based scale
+     keeps DESIGN.md §"Spacing Scale" semantics (where `space-N` denotes
+     the step index, not the pixel value) and matches what every consumer
+     in the codebase already assumes (see Story 1.6 Task 2 Completion
+     Notes for the audit trail). */
+
+  /* ---- Shadows ---- */
+  --shadow-card: 0px 12px 32px 0px rgba(115, 92, 0, 0.08);
+  --shadow-card-up: 0px -12px 32px 0px rgba(115, 92, 0, 0.08);
+  --shadow-sheet-full-up: 0px -12px 48px 0px rgba(0, 0, 0, 0.1);
+  --shadow-route-button: 0px 15.3px 19.2px -3.8px rgba(115, 92, 0, 0.2), 0px 6.1px 7.7px -4.6px rgba(115, 92, 0, 0.2);
+  --shadow-sheet-peek-up: 0px -8px 24px 0px rgba(0, 0, 0, 0.06);
+  --shadow-nav-up: 0px -4px 12px 0px rgba(0, 0, 0, 0.03);
+  --shadow-button-float: 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-button-sm: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-cta: 0px 4px 8px 0px rgba(51, 65, 85, 0.13);
+  --shadow-subtle: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+
+  /* ---- Radii ---- */
+  --radius-pill: 9999px;
+  --radius-sheet-full: 40px;
+  --radius-panel: 32px;
+  --radius-badge: 24px;
+  --radius-card: 16px;
+  --radius-venue-image: 12px;
+  --radius-premium-tag: 4px;
+
+  /* ---- Backdrop Blur ---- */
+  --blur-standard: 6px;
+  --blur-heavy: 12px;
+  --blur-subtle: 1.5px;
+
+  /* ---- Transitions ---- */
+  --duration-fast: 150ms;
+  --duration-default: 200ms;
+  --duration-slow: 300ms;
+  --ease-default: ease-in-out;
+  --ease-enter: ease-out;
+  --ease-exit: ease-in;
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ---- Z-Index ----
+     Strict ladder: each rung MUST resolve to a unique value. Story 1.6
+     review (P11) found `--z-modal` colliding with `--z-bottom-sheet-full`
+     at 50 — any view that opens a modal over the bottom sheet (or vice
+     versa) would z-fight depending on DOM order. Renumbered:
+     bottom-sheet-full (50) < modal (60) < toast (70). */
+  --z-base: 0;
+  --z-pin: 10;
+  --z-bottom-sheet-peek: 20;
+  --z-floating-buttons: 30;
+  --z-glass-panel: 40;
+  --z-bottom-sheet-full: 50;
+  --z-modal: 60;
+  --z-toast: 70;
+
+  /* ---- Component Sizes ---- */
+  --size-badge-sm: 28px;
+  --size-button-xs: 32px;
+  --size-button-sm: 40px;
+  --size-button-md: 48px;
+  --size-drag-pill-w: 40px;
+  --size-drag-pill-w-lg: 48px;
+  --size-drag-pill-h: 6px;
+  --size-slider-thumb: 14.1px;
+  --size-slider-track-h: 6px;
+  --size-timeline-h: 12px;
+
+  /* ---- Breakpoints ---- */
+  --breakpoint-mobile: 375px;
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1024px;
+  --breakpoint-wide: 1440px;
+
+  /* ---- Gradients (token form — companion @utility rules below) ----
+     Story 1.6 review (P12): every gradient @utility now resolves through a
+     `--gradient-*` token; raw hex/rgba kept inline only for color stops
+     that don't have a named token alias (`#fff6d6` wordmark-sun-inner,
+     `#ffb347` warm-orange onboarding-top, `#f59e0b` Tailwind amber-500
+     map-overlay, `#f97316` Tailwind orange-500 map-overlay). */
+  --gradient-onboarding: linear-gradient(180deg, #ffb347 0%, var(--color-amber-gold) 42%, var(--color-amber-dark) 100%);
+  --gradient-sun-burst-warm: radial-gradient(circle, rgba(255, 240, 180, 0.55) 0%, rgba(255, 240, 180, 0) 60%);
+  --gradient-sun-burst-amber: radial-gradient(circle, rgba(255, 191, 0, 0.5) 0%, rgba(255, 191, 0, 0) 65%);
+  --gradient-wordmark-sun: radial-gradient(circle, #fff6d6 0%, var(--color-amber-primary) 100%);
+  --gradient-route-button: linear-gradient(169deg, var(--color-amber-dark) 0%, var(--color-amber-gold) 100%);
+  --gradient-cta-amber: linear-gradient(171deg, var(--color-amber-gold) 0%, var(--color-amber-primary) 100%);
+  --gradient-premium-button: linear-gradient(174deg, var(--color-amber-gold) 0%, var(--color-amber-primary) 100%);
+  --gradient-map-overlay: linear-gradient(66deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0) 50%, rgba(249, 115, 22, 0.1) 100%);
+  --gradient-timeline-bar: linear-gradient(90deg, rgba(115, 92, 0, 0.2), var(--color-amber-gold) 50%, rgba(115, 92, 0, 0.2));
+
+  /* ---- Brand-decorative shadows ---- */
+  --shadow-wordmark-sun: 0 0 16px rgba(255, 240, 180, 0.7);
+
+  /* ---- Animation durations consumed by JS APIs (mirror in lib/constants/animation.ts) ---- */
+  --duration-fly: 500ms;
+
+  /* ---- Component sizes (Tailwind v4 namespace) ---- */
+  --size-mobile-nav-h: 40px;
+  --size-desktop-nav-h: 84px;
+}
+
+/* ============================================================
+   Gradient Utilities (cannot go in @theme)
+   ============================================================ */
+
+@utility gradient-route-button {
+  background: var(--gradient-route-button);
+}
+
+@utility gradient-cta-amber {
+  background: var(--gradient-cta-amber);
+}
+
+@utility gradient-premium-button {
+  background: var(--gradient-premium-button);
+}
+
+@utility gradient-map-overlay {
+  background: var(--gradient-map-overlay);
+}
+
+@utility gradient-onboarding {
+  background: var(--gradient-onboarding);
+}
+
+@utility gradient-sun-burst-warm {
+  background: var(--gradient-sun-burst-warm);
+}
+
+@utility gradient-sun-burst-amber {
+  background: var(--gradient-sun-burst-amber);
+}
+
+@utility gradient-wordmark-sun {
+  background: var(--gradient-wordmark-sun);
+}
+
+@utility shadow-wordmark-sun {
+  box-shadow: var(--shadow-wordmark-sun);
+}
+
+@keyframes pulse-cta {
+  0% { opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { opacity: 0.8; }
+}
+
+@utility animate-pulse-cta {
+  animation: pulse-cta 1s ease-in-out infinite;
+}
+
+@utility gradient-timeline-bar {
+  background: var(--gradient-timeline-bar);
+}
+
+/* ============================================================
+   Z-Index utilities — Tailwind v4's z-index namespace expects
+   `--z-index-*`, but DESIGN.md §"Z-Index Scale" keeps `--z-*`
+   semantic names (z-pin, z-modal, ...). We bridge the gap with
+   explicit @utility rules so `z-pin`/`z-modal`/etc. compile.
+   ============================================================ */
+@utility z-base { z-index: var(--z-base); }
+@utility z-pin { z-index: var(--z-pin); }
+@utility z-bottom-sheet-peek { z-index: var(--z-bottom-sheet-peek); }
+@utility z-floating-buttons { z-index: var(--z-floating-buttons); }
+@utility z-glass-panel { z-index: var(--z-glass-panel); }
+@utility z-bottom-sheet-full { z-index: var(--z-bottom-sheet-full); }
+@utility z-modal { z-index: var(--z-modal); }
+@utility z-toast { z-index: var(--z-toast); }
+
+/* ============================================================
+   Typography Composite Utilities
+   Each bundles: font-size / line-height / font-weight / font-family / letter-spacing
+   ============================================================ */
+
+/* Display */
+@utility text-display-xl {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 800;
+  letter-spacing: -0.75px;
+}
+
+@utility text-display-lg {
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+}
+
+@utility text-display-sm {
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 800;
+}
+
+/* Headings */
+@utility text-heading-xl {
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 700;
+}
+
+@utility text-heading-lg {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 25px;
+  font-weight: 700;
+}
+
+@utility text-heading-md {
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 22.5px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+@utility text-heading-sm {
+  font-family: var(--font-display);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}
+
+/* Body */
+@utility text-body-lg {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 26px;
+  font-weight: 500;
+}
+
+@utility text-body-md {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 24.4px;
+  font-weight: 400;
+}
+
+@utility text-body-sm {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+}
+
+@utility text-body-sm-medium {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+/* Labels */
+@utility text-label-lg {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
+@utility text-label-md {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+@utility text-label-sm {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: 16.5px;
+  font-weight: 600;
+  letter-spacing: 0.55px;
+  text-transform: uppercase;
+}
+
+@utility text-label-xs {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  line-height: 15px;
+  font-weight: 700;
+}
+
+@utility text-label-xs-medium {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  line-height: 15px;
+  font-weight: 500;
+}
+
+/* Special */
+@utility text-date {
+  font-family: var(--font-display);
+  font-size: 12px;
+  line-height: 18.6px;
+  font-weight: 400;
+}
+
+@utility text-time {
+  font-family: var(--font-display);
+  font-size: 14px;
+  line-height: 21px;
+  font-weight: 800;
+}
+
+@theme inline {
+  --font-heading: var(--font-display);
+  --font-sans: var(--font-ui);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ============================================================
+   shadcn/ui semantic colour tokens
+   Mapped from the SunnySeat amber/warm-surface palette (DESIGN.md)
+   so that shadcn primitives (Button, Card, Sheet, etc.) render in
+   the project's brand identity instead of the default greyscale.
+   ============================================================ */
+:root {
+  /* Surfaces */
+  --background: #fdfaf4;             /* surface-cream */
+  --foreground: #1b1b1e;             /* text-primary */
+  --card: #ffffff;                   /* white */
+  --card-foreground: #1b1b1e;        /* text-primary */
+  --popover: #ffffff;                /* white */
+  --popover-foreground: #1b1b1e;     /* text-primary */
+
+  /* Brand action */
+  --primary: #ffbf00;                /* amber-primary */
+  --primary-foreground: #554300;     /* amber-cta-text — AA contrast on amber */
+
+  /* Neutral warm surfaces */
+  --secondary: #f5f0e6;              /* surface-sand */
+  --secondary-foreground: #1b1b1e;   /* text-primary */
+  --muted: #f5f3f6;                  /* surface-muted */
+  --muted-foreground: rgba(77, 70, 53, 0.6); /* text-muted */
+
+  /* Soft brand accent */
+  --accent: #ffe088;                 /* amber-pale */
+  --accent-foreground: #735c00;      /* amber-dark */
+
+  /* Status — bound to @theme `--color-error` so there's a single source of
+     truth (Story 1.6 review P13). */
+  --destructive: var(--color-error);
+
+  /* Structure */
+  --border: #e7e5e4;                 /* divider */
+  --input: #e7e5e4;                  /* divider */
+  --ring: #ffbf00;                   /* amber-primary — focus rings match brand */
+
+  /* Charts — placeholder amber gradient family; tune per-chart when data viz lands. */
+  --chart-1: #ffbf00;
+  --chart-2: #d4af37;
+  --chart-3: #735c00;
+  --chart-4: #ffe088;
+  --chart-5: #554300;
+
+  --radius: 0.625rem;
+
+  /* Sidebar — mirrors the primary surface tokens. */
+  --sidebar: #fdfaf4;
+  --sidebar-foreground: #1b1b1e;
+  --sidebar-primary: #ffbf00;
+  --sidebar-primary-foreground: #554300;
+  --sidebar-accent: #ffe088;
+  --sidebar-accent-foreground: #735c00;
+  --sidebar-border: #e7e5e4;
+  --sidebar-ring: #ffbf00;
+}
+
+.dark {
+  /* Dark mode is not a current design target (DESIGN.md is a warm cream palette).
+     These values keep shadcn components readable if `.dark` is ever applied;
+     revisit when a formal dark-mode spec lands. */
+  --background: #1b1b1e;
+  --foreground: #fdfaf4;
+  --card: #2a2a2e;
+  --card-foreground: #fdfaf4;
+  --popover: #2a2a2e;
+  --popover-foreground: #fdfaf4;
+  --primary: #ffbf00;
+  --primary-foreground: #554300;
+  --secondary: #3a3631;
+  --secondary-foreground: #fdfaf4;
+  --muted: #3a3631;
+  --muted-foreground: rgba(253, 250, 244, 0.6);
+  --accent: #735c00;
+  --accent-foreground: #ffe088;
+  --destructive: #ba1a1a;
+  --border: rgba(253, 250, 244, 0.1);
+  --input: rgba(253, 250, 244, 0.15);
+  --ring: #ffbf00;
+  --chart-1: #ffbf00;
+  --chart-2: #d4af37;
+  --chart-3: #ffe088;
+  --chart-4: #735c00;
+  --chart-5: #554300;
+  --sidebar: #1b1b1e;
+  --sidebar-foreground: #fdfaf4;
+  --sidebar-primary: #ffbf00;
+  --sidebar-primary-foreground: #554300;
+  --sidebar-accent: #735c00;
+  --sidebar-accent-foreground: #ffe088;
+  --sidebar-border: rgba(253, 250, 244, 0.1);
+  --sidebar-ring: #ffbf00;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
