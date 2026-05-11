@@ -34,6 +34,8 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+# App-local agent shims and generated script helpers stay local. Canonical
+# workflow files live at the repository root and are unignored by ../.gitignore.
 CLAUDE.md
 scripts/
 

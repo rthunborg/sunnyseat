@@ -2,7 +2,7 @@
 
 > **Purpose:** This file is the BMAD dev agent's injection point for design awareness. BMAD's dev agent (Amelia) loads this as foundational reference in Step 2 of its workflow. It lives at the project root — not inside `_bmad/` — so it survives BMAD reinstalls without being overwritten.
 >
-> Last updated: 2026-04-29
+> Last updated: 2026-05-11
 
 ---
 
@@ -68,7 +68,7 @@ A backend API application that helps people in Gothenburg find outdoor venue sea
 | Screen Reference PNGs — Mobile | `nextjs-app/docs/design/references/screens/mobile/` | Captured from the Claude Design prototypes by `nextjs-app/scripts/capture-claude-design-refs.mjs`. Inputs to the visual validation gate. |
 | Screen Reference PNGs — Desktop | `nextjs-app/docs/design/references/screens/desktop/` | Same — captured from the Claude Design desktop prototypes. |
 | Legacy Figma Exports | `nextjs-app/docs/design/references/screens/legacy/{mobile,desktop,components}/` | Historical reference. Still useful for screens the prototype does not cover (`not-found`, `about`, `premium-recovery`, `map-primary-offline`) and for font sampling / odd details. **Not the primary spec — but is the source of any re-baselined PNG; see REBASELINE-LOG.md below.** |
-| Re-baseline Log | `nextjs-app/docs/design/references/REBASELINE-LOG.md` | **Durable audit trail for every reference-PNG re-baseline or capture-recipe change.** Mandatory read when a visual gate fails — explains why the active reference may diverge from the prototype. Mandatory append whenever a reference is re-baselined or `capture-claude-design-refs.mjs` changes. Discoverable from CLAUDE.md, this file, and the capture script's header. |
+| Re-baseline Log | `nextjs-app/docs/design/references/REBASELINE-LOG.md` | **Durable audit trail for every reference-PNG re-baseline or capture-recipe change.** Mandatory read when a visual gate fails — explains why the active reference may diverge from the prototype. Mandatory append whenever a reference is re-baselined or `capture-claude-design-refs.mjs` changes. Discoverable from AGENTS.md, this file, and the capture script's header. |
 | UX Spec (Screen Inventory + behaviour) | `_bmad-output/planning-artifacts/ux-design-specification.md` §`Screen Inventory` | Animation timings, state transitions, loading/empty/error patterns, edge cases. |
 
 ### Claude Design as Visual Source of Truth
@@ -100,7 +100,7 @@ When implementing a screen the agent should:
 
 ### Frontend Implementation Rules
 
-These rules are binding for any story touching the UI. They are enforced by the `frontend-component` skill and the sprint-status gate.
+These rules are binding for any story touching the UI. They are enforced by the `frontend-component` skill and the `scripts/story-review.sh` review gate.
 
 1. **Read DESIGN.md before writing any UI code.** Tokens are the single source of truth for colour, type, spacing, radius, shadow, motion. Never introduce a raw hex value, ad-hoc px spacing, or custom shadow.
 2. **Match the visual outcome, not the prototype's implementation.** The Claude Design prototypes define what the screen should *look like* and *behave like*. They do not define the component architecture. Use sensible React decomposition with shadcn/ui primitives — do not clone the prototype's plain-HTML structure or copy its inline-CSS values.
@@ -113,13 +113,13 @@ These rules are binding for any story touching the UI. They are enforced by the 
 
 ## Custom Skills
 
-The following skills are installed in `.claude/skills/` and provide domain-specific knowledge during implementation. They auto-trigger contextually, but are listed here so the dev agent knows to consult them:
+The following SunnySeat skills are maintained in `.agents/skills/` and provide domain-specific knowledge during implementation. They auto-trigger contextually when available, but are listed here so the dev agent knows to consult them:
 
 - **frontend-component** — READ BEFORE any frontend work. Design token rules, Figma reference discipline, visual-outcome-not-implementation-spec principle, UX behaviour spec requirements, accessibility.
 - **visual-validation** — How the screenshot comparison gate works. Consult when visual validation fails or when debugging PASS/FAIL results. The gate reads the Screen ID → Route Map below to know where to navigate.
-- **test-gate** — Test requirements policy. What must pass (type-check, lint, unit, integration, visual validation) before a story may transition to `review`, and how the sprint-status gate enforces story completion.
+- **test-gate** — Test requirements policy. What must pass (type-check, lint, unit, integration, visual validation) before a story may transition to `review`, and how `scripts/story-review.sh` enforces story completion.
 - **bmad-story-brief** — BMAD story format, acceptance criteria structure, definition of done, and task brief format for sub-agent delegation.
-- **story-file-audit** — MANDATORY after every story file creation. Runs a seven-point self-audit verifying ACs, task sequencing, file impact, and test gate match epics.md and CLAUDE.md. Must pass before the story is marked ready-for-dev.
+- **story-file-audit** — MANDATORY after every story file creation. Runs a seven-point self-audit verifying ACs, task sequencing, file impact, and test gate match epics.md and AGENTS.md. Must pass before the story is marked ready-for-dev.
 - **review-round-guard** — MANDATORY before invoking bmad-code-review. Caps automatic review rounds at three per story and forces human decision beyond the cap. Prevents review loop waste.
 
 ---
@@ -148,7 +148,7 @@ This convention is established as a first-class story (Epic 1 Story 1.2 — "Dev
 
 ## Screen ID → Route Map
 
-This table is read by `scripts/sprint-status-gate.sh` (via `visual-validate.sh`) to resolve a story's screen ID to a dev-server route. Every screen ID referenced in a story's acceptance criteria must have a row here. Rows with both mobile and desktop variants need one row per viewport — the gate reads the viewport column to pick the reference-PNG subfolder and the Playwright viewport size.
+This table is read by `scripts/story-review.sh` and `scripts/visual-validate.sh` to resolve a story's screen ID to a dev-server route. Every screen ID referenced in a story's acceptance criteria must have a row here. Rows with both mobile and desktop variants need one row per viewport — the gate reads the viewport column to pick the reference-PNG subfolder and the Playwright viewport size.
 
 | Screen ID                  | Route                                                       | Viewport | Notes                                                                                      |
 |----------------------------|-------------------------------------------------------------|----------|--------------------------------------------------------------------------------------------|
