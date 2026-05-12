@@ -1,5 +1,12 @@
+# SunnySeat repo-local Codex defaults.
+# Keep personal model/provider preferences in the user-level Codex config.
+
+model_reasoning_effort = "medium"
+
+[features]
+# Hook support is intentionally conservative; see .codex/hooks.json and
+# CODEX_MIGRATION_NOTES.md for the manual verification still required.
+codex_hooks = true
+
 [shell_environment_policy]
 inherit = "core"
-
-[shell_environment_policy.set]
-CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"

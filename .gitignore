@@ -14,6 +14,8 @@ out/
 .cursor/
 .claude/*
 !.claude/scripts/
+.claude/settings*.json
+.claude/worktrees/
 *.swp
 *.swo
 *~
@@ -29,6 +31,25 @@ coverage/
 _bmad/
 _bmad-output/
 scripts/*
+!scripts/story-review.sh
+!scripts/visual-validate.sh
+
+# Codex workflow files are project-owned; personal Codex state remains ignored by
+# default unless explicitly unignored here.
+.codex/*
+!.codex/config.toml
+!.codex/hooks.json
+!.codex/scripts/
+!.codex/scripts/**
+
+# Generic BMAD/WDS skill mirrors are disposable local framework content for this
+# migration. SunnySeat keeps only custom/project-binding skills here; tracked
+# files remain tracked regardless of ignore rules.
+.agents/skills/bmad-*/
+!.agents/skills/bmad-story-brief/
+!.agents/skills/bmad-story-brief/SKILL.md
+.agents/skills/wds-*/
+.agents/skills/wds-agent-*/
 
 # Geodata (large binary, imported once)
 building_geodata/

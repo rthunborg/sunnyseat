@@ -82,7 +82,7 @@ jobs:
         run: node scripts/verify-maplibre-async.mjs
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
 
       # Story 1.6 P7 + Round 2 R2-P6: route E2E and A11y to dedicated
       # Playwright projects so axe.spec.ts cannot accidentally double-
@@ -113,6 +113,7 @@ jobs:
         with:
           name: nextjs-build
           path: nextjs-app/.next/
+          include-hidden-files: true
           retention-days: 1
 
   lighthouse:
@@ -145,3 +146,4 @@ jobs:
         with:
           name: lhci-report
           path: nextjs-app/.lighthouseci/
+          include-hidden-files: true
