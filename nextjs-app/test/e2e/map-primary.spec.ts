@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 
-// Story 1.6 review (P25): named constant for the pin-morph settle wait.
-// Matches the 200 ms morph animation window in `VenuePin.tsx` plus a
-// 100 ms safety margin so layout has settled before assertions read
-// bounding rects.
-const PIN_MORPH_SETTLE_MS = 300;
+// Story 1.6 review (P25): named timeout for the pin-morph settle wait.
+// The morph animation is 200 ms, but CI WebKit can keep the exiting pill
+// in the DOM longer under load. Poll for the visual condition instead of
+// sleeping a fixed duration.
+const PIN_MORPH_SETTLE_TIMEOUT_MS = 2000;
 
 async function bypassOnboarding(page: import('@playwright/test').Page): Promise<void> {
   await page.addInitScript((key: string) => {
@@ -130,17 +130,21 @@ test.describe('map-primary', () => {
       page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]'),
     ).toHaveCount(1);
 
-    // Wait past the 200 ms morph window to let the layout settle.
-    await page.waitForTimeout(PIN_MORPH_SETTLE_MS);
     const innerCircle = page
       .locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"] .rounded-pill')
       .first();
-    const afterBox = await innerCircle.boundingBox();
-    expect(afterBox).not.toBeNull();
-    if (!afterBox) return;
     // Selected sunny circle: inner element is 44×44 (size-11). Equal width
     // and height within rounding tolerance.
-    expect(Math.abs(afterBox.width - afterBox.height)).toBeLessThanOrEqual(2);
+    await expect
+      .poll(
+        async () => {
+          const afterBox = await innerCircle.boundingBox();
+          if (!afterBox) return Number.POSITIVE_INFINITY;
+          return Math.abs(afterBox.width - afterBox.height);
+        },
+        { timeout: PIN_MORPH_SETTLE_TIMEOUT_MS },
+      )
+      .toBeLessThanOrEqual(2);
   });
 
   test('mobile: clicking the map canvas deselects the active pin (Story 1.4 AC4)', async ({
