@@ -83,9 +83,7 @@ find_story_file() {
   shopt -s nullglob
   local candidates=(
     "$IMPLEMENTATION_DIR/$STORY_ID.md"
-    "$IMPLEMENTATION_DIR/$STORY_ID"*.md
     "$IMPLEMENTATION_DIR/stories/$STORY_ID.md"
-    "$IMPLEMENTATION_DIR/stories/$STORY_ID"*.md
   )
   shopt -u nullglob
 
@@ -97,9 +95,16 @@ find_story_file() {
     fi
   done
 
+  local escaped_story_id
+  escaped_story_id="$(escape_ere "$STORY_ID")"
   find "$IMPLEMENTATION_DIR" -maxdepth 2 -type f -name "*.md" -print 2>/dev/null \
-    | grep -E "/${STORY_ID}[^/]*\.md$" \
+    | grep -E "/${escaped_story_id}[^[:alnum:]][^/]*\.md$" \
+    | sort \
     | head -1 || true
+}
+
+escape_ere() {
+  sed -E 's/[][(){}.^$*+?|\\]/\\&/g' <<<"$1"
 }
 
 get_status() {
@@ -129,21 +134,62 @@ run_package_script_if_present() {
 screen_ids_from_context() {
   [[ -f "$PROJECT_CONTEXT" ]] || return 0
   awk -F'|' '
-    /^\|[[:space:]]*[a-z0-9][a-z0-9-]+[[:space:]]*\|/ {
+    /^##[[:space:]]+Screen ID/ {
+      in_route_map=1
+      next
+    }
+    in_route_map && /^---[[:space:]]*$/ {
+      exit
+    }
+    in_route_map && /^##[[:space:]]+/ {
+      exit
+    }
+    in_route_map && /^\|/ {
       id=$2
+      route=$3
       gsub(/^[ \t]+|[ \t]+$/, "", id)
-      if (id != "Screen ID") print id
+      gsub(/^[ \t]+|[ \t]+$/, "", route)
+      if (id != "Screen ID" && id !~ /^-+$/ && route != "" && route !~ /^-+$/) print id
     }
   ' "$PROJECT_CONTEXT" | sort -u
+}
+
+story_has_standalone_visual_gate() {
+  local story_file="$1"
+  awk '
+    /^##[[:space:]]+Design Gate Criteria/ {
+      in_design_gate=1
+      next
+    }
+    in_design_gate && /^##[[:space:]]+/ {
+      exit
+    }
+    in_design_gate {
+      print
+    }
+  ' "$story_file" | grep -Eiq 'No standalone (screenshot gate|visual deliverable)' && return 1
+
+  return 0
+}
+
+story_mentions_screen_id() {
+  local story_file="$1"
+  local screen_id="$2"
+  local escaped_screen_id
+  escaped_screen_id="$(escape_ere "$screen_id")"
+
+  grep -Eq "Figma frame \`${escaped_screen_id}\`|references/screens/(mobile|desktop)/${escaped_screen_id}\\.png|_state=${escaped_screen_id}([^[:alnum:]-]|$)" "$story_file"
 }
 
 extract_story_screen_ids() {
   local story_file="$1"
   [[ -f "$story_file" ]] || return 0
 
+  story_has_standalone_visual_gate "$story_file" || return 0
+
   local id
   while IFS= read -r id; do
-    if grep -Fq "$id" "$story_file"; then
+    if story_mentions_screen_id "$story_file" "$id"; then
       printf '%s\n' "$id"
     fi
   done < <(screen_ids_from_context)
@@ -152,6 +198,19 @@ extract_story_screen_ids() {
 lookup_screen_routes() {
   local screen_id="$1"
   awk -F'|' -v id="$screen_id" '
+    /^##[[:space:]]+Screen ID/ {
+      in_route_map=1
+      next
+    }
+    in_route_map && /^---[[:space:]]*$/ {
+      exit
+    }
+    in_route_map && /^##[[:space:]]+/ {
+      exit
+    }
+    !in_route_map {
+      next
+    }
     {
       key=$2
       gsub(/^[ \t]+|[ \t]+$/, "", key)
