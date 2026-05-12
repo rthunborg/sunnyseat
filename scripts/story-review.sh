@@ -178,7 +178,18 @@ story_mentions_screen_id() {
   local escaped_screen_id
   escaped_screen_id="$(escape_ere "$screen_id")"
 
-  grep -Eq "Figma frame \`${escaped_screen_id}\`|references/screens/(mobile|desktop)/${escaped_screen_id}\\.png|_state=${escaped_screen_id}([^[:alnum:]-]|$)" "$story_file"
+  grep -Eq "Figma frame \`${escaped_screen_id}\`|references/screens/(mobile|desktop)/${escaped_screen_id}\\.png|_state=${escaped_screen_id}([^[:alnum:]-]|$)|(^|[^[:alnum:]_-])screen_id:[[:space:]]*\`?${escaped_screen_id}\`?([^[:alnum:]-]|$)" "$story_file"
+}
+
+explicit_story_screen_ids() {
+  local story_file="$1"
+
+  {
+    grep -Eo 'Figma frame `[^`]+`' "$story_file" | sed -E 's/^Figma frame `([^`]+)`$/\1/' || true
+    grep -Eo 'references/screens/(mobile|desktop)/[A-Za-z0-9._-]+\.png' "$story_file" | sed -E 's#^.*/([^/]+)\.png$#\1#' || true
+    grep -Eo '_state=[A-Za-z0-9._-]+' "$story_file" | sed -E 's/^_state=//' || true
+    grep -Eio 'screen_id:[[:space:]]*`?[A-Za-z0-9._-]+`?' "$story_file" | sed -E 's/^screen_id:[[:space:]]*`?([^`[:space:]]+)`?$/\1/I' || true
+  } | sort -u
 }
 
 extract_story_screen_ids() {
@@ -187,12 +198,25 @@ extract_story_screen_ids() {
 
   story_has_standalone_visual_gate "$story_file" || return 0
 
-  local id
+  local explicit_ids mapped_ids id
+  explicit_ids="$(explicit_story_screen_ids "$story_file")"
+  [[ -n "$explicit_ids" ]] || return 0
+
+  mapped_ids="$(screen_ids_from_context)"
   while IFS= read -r id; do
-    if story_mentions_screen_id "$story_file" "$id"; then
+    [[ -z "$id" ]] && continue
+    if ! grep -Fxq "$id" <<<"$mapped_ids"; then
+      echo "ERROR: story references screen ID '$id', but project-context.md has no Screen ID -> Route Map row for it" >&2
+      return 1
+    fi
+  done <<<"$explicit_ids"
+
+  while IFS= read -r id; do
+    [[ -z "$id" ]] && continue
+    if grep -Fxq "$id" <<<"$explicit_ids" && story_mentions_screen_id "$story_file" "$id"; then
       printf '%s\n' "$id"
     fi
-  done < <(screen_ids_from_context)
+  done <<<"$mapped_ids"
 }
 
 lookup_screen_routes() {
@@ -264,7 +288,9 @@ run_visual_validation() {
   fi
 
   local screen_ids
-  screen_ids="$(extract_story_screen_ids "$story_file" || true)"
+  if ! screen_ids="$(extract_story_screen_ids "$story_file")"; then
+    return 1
+  fi
   if [[ -z "$screen_ids" ]]; then
     echo "Skipping visual validation: no mapped screen ID found in story file"
     return 0

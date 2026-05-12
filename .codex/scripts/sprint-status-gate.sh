@@ -117,7 +117,18 @@ if ! grep -Eq '(^|[/\\])sprint-status\.yaml([[:space:]"'\''}]|$)' <<<"$EVENT_TEX
   exit 0
 fi
 
-if grep -Eq '(^|[[:space:]"'\'';&|])(\./)?scripts/story-review\.sh([[:space:]"'\'';&|]|$)' <<<"$COMMAND"; then
+is_standalone_story_review_command() {
+  local text="$1"
+  local trimmed
+  trimmed="$(sed -E 's/^[[:space:]]+|[[:space:]]+$//g' <<<"$text")"
+
+  [[ -n "$trimmed" ]] || return 1
+  grep -Eq '[;&|<>`$()]' <<<"$trimmed" && return 1
+
+  grep -Eq '^(\./)?scripts/story-review\.sh([[:space:]]+(--dry-run|-n))?([[:space:]]+[A-Za-z0-9._/-]+)?[[:space:]]*$' <<<"$trimmed"
+}
+
+if is_standalone_story_review_command "$COMMAND"; then
   exit 0
 fi
 
@@ -164,18 +175,23 @@ looks_like_patch_review_transition() {
   has_status_transition_to_review "$removed" "$added"
 }
 
+has_review_status_assignment() {
+  grep -Eq '^[[:space:]]*[A-Za-z0-9._-]+:[[:space:]]*review([[:space:]#"'\''"]|$)' <<<"$1"
+}
+
 looks_like_direct_command_write() {
   local text="$1"
 
   grep -Eiq '(^|[^[:alnum:]_-])review([^[:alnum:]_-]|$)' <<<"$text" || return 1
 
-  grep -Eiq '(^|[[:space:];|&])(sed|perl|python|python3|node|ruby|pwsh|powershell|bash|sh)[[:space:]]|Set-Content|Add-Content|Out-File|>>|>[[:space:]]*.*sprint-status\.yaml|sprint-status\.yaml.*>[[:space:]]' <<<"$text" || return 1
+  grep -Eiq '(^|[[:space:];|&])(sed|perl|python|python3|node|ruby|pwsh|powershell|bash|sh)[[:space:]]|(^|[[:space:];|&])yq[[:space:]][^;&|]*-i([[:space:]]|=|$)|Set-Content|Add-Content|Out-File|>>|>[[:space:]]*.*sprint-status\.yaml|sprint-status\.yaml.*>[[:space:]]' <<<"$text" || return 1
 
-  grep -Eiq '[A-Za-z0-9._-]+:[[:space:]]*review([[:space:]#"'\'']|$)|s[/#|][^/#|]*(in-progress|ready-for-dev|backlog|done)[^/#|]*[/#|][^/#|]*review' <<<"$text"
+  grep -Eiq '[A-Za-z0-9._-]+:[[:space:]]*review([[:space:]#"'\'']|$)|s[/#|][^/#|]*(in-progress|ready-for-dev|backlog|done)[^/#|]*[/#|][^/#|]*review|=[[:space:]]*["'\'']?review["'\'']?' <<<"$text"
 }
 
 if looks_like_patch_review_transition "$PATCH_PAYLOAD" \
   || has_status_transition_to_review "$OLD_PAYLOAD" "$NEW_PAYLOAD" \
+  || { [[ -z "${OLD_PAYLOAD//[[:space:]]/}" && -z "${PATCH_PAYLOAD//[[:space:]]/}" ]] && has_review_status_assignment "$NEW_PAYLOAD"; } \
   || looks_like_direct_command_write "$COMMAND"; then
   cat <<'EOF'
 {
