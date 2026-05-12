@@ -113,6 +113,7 @@ jobs:
         with:
           name: nextjs-build
           path: nextjs-app/.next/
+          include-hidden-files: true
           retention-days: 1
 
   lighthouse:
@@ -145,3 +146,4 @@ jobs:
         with:
           name: lhci-report
           path: nextjs-app/.lighthouseci/
+          include-hidden-files: true
