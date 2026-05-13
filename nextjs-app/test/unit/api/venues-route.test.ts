@@ -77,7 +77,7 @@ describe('GET /api/venues', () => {
   it('rejects malformed X-Forwarded-For instead of trusting it as a key', async () => {
     const res = await GET(
       makeRequest('?lat=57.7089&lng=11.9746', {
-        'X-Forwarded-For': 'not-an-ip',
+        'X-Forwarded-For': '999.999.999.999',
       }),
     );
     expect(res.status).toBe(400);
@@ -95,6 +95,37 @@ describe('GET /api/venues', () => {
       );
     }
     expect(last?.status).toBe(429);
+  });
+
+  it('rate-limits requests without forwarded headers through a fallback bucket', async () => {
+    let last: Response | null = null;
+    for (let i = 0; i < 121; i++) {
+      last = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
+    }
+    expect(last?.status).toBe(429);
+  });
+
+  it('falls back to X-Real-IP when X-Forwarded-For is blank', async () => {
+    let last: Response | null = null;
+    for (let i = 0; i < 121; i++) {
+      last = await GET(
+        makeRequest('?lat=57.7089&lng=11.9746', {
+          'X-Forwarded-For': '   ',
+          'X-Real-IP': '203.0.113.44',
+        }),
+      );
+    }
+    expect(last?.status).toBe(429);
+  });
+
+  it('normalizes optional display fields before returning venues', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
+    const body = (await res.json()) as GetVenuesResponse;
+    const venue = body.venues[0];
+    expect(venue.sunWindow).toEqual({ start: '13:00', end: '18:30' });
+    expect(venue.thumbnail?.alt.length).toBeLessThanOrEqual(120);
+    expect(venue.thumbnail?.initials.length).toBeLessThanOrEqual(3);
+    expect(venue.thumbnail?.url).toMatch(/^https:\/\//);
   });
 
   it('sets ETag and returns 304 for unchanged revalidation', async () => {

@@ -418,4 +418,44 @@ describe('useGeolocation', () => {
       expect.any(Function),
     );
   });
+
+  it('ignores stale browser callbacks after the user switches to centrum', async () => {
+    const geo = installGeolocationStub();
+    let successCallback: SuccessCallback | null = null;
+    geo.getCurrentPosition.mockImplementation((success: SuccessCallback) => {
+      successCallback = success;
+    });
+
+    const { result } = renderHook(() => useGeolocation(), { wrapper });
+
+    act(() => {
+      result.current.requestLocation();
+    });
+    expect(result.current.status).toBe('pending');
+
+    act(() => {
+      result.current.useCentrum();
+    });
+    expect(result.current.status).toBe('fallback');
+    expect(result.current.coords).toEqual(FALLBACK);
+
+    act(() => {
+      successCallback?.({
+        coords: {
+          latitude: 57.99,
+          longitude: 12.99,
+          accuracy: 10,
+          altitude: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null,
+        },
+        timestamp: Date.now(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+    });
+
+    expect(result.current.status).toBe('fallback');
+    expect(result.current.coords).toEqual(FALLBACK);
+  });
 });

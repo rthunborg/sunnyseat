@@ -10,6 +10,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'node:crypto';
+import { isIP } from 'node:net';
 import {
   validateLatitude,
   validateLongitude,
@@ -25,6 +26,12 @@ const MAX_RESULTS = 50;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 120;
 const COORDINATE_COLLISION_PRECISION = 6;
+const MISSING_CLIENT_RATE_LIMIT_KEY = 'missing-client-ip';
+const RATE_LIMIT_SWEEP_INTERVAL_MS = RATE_LIMIT_WINDOW_MS;
+const TIME_WINDOW_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+const MAX_THUMBNAIL_ALT_LENGTH = 120;
+const MAX_THUMBNAIL_INITIALS_LENGTH = 3;
+let lastRateLimitSweepAt = 0;
 
 const SUN_STATUS_ORDER: Record<VenueDataDto['currentSunStatus'], number> = {
   Sunny: 0,
@@ -60,15 +67,21 @@ type RateLimitBucket = {
 const rateLimitBuckets = new Map<string, RateLimitBucket>();
 
 function clientKeyFromForwardedFor(value: string | null): string {
-  if (!value) return 'unknown';
+  if (value === null) return MISSING_CLIENT_RATE_LIMIT_KEY;
   const [first] = value.split(',');
   const candidate = first.trim();
   if (!candidate || /[\r\n]/.test(candidate) || candidate.length > 64) return 'invalid';
-  if (/^[\d.]+$/.test(candidate) || /^[0-9a-fA-F:.]+$/.test(candidate)) return candidate;
+  if (isIP(candidate) !== 0) return candidate.toLowerCase();
   return 'invalid';
 }
 
 function checkRateLimit(key: string, now = Date.now()): boolean {
+  if (now - lastRateLimitSweepAt >= RATE_LIMIT_SWEEP_INTERVAL_MS) {
+    for (const [bucketKey, bucket] of rateLimitBuckets) {
+      if (bucket.resetAt <= now) rateLimitBuckets.delete(bucketKey);
+    }
+    lastRateLimitSweepAt = now;
+  }
   const bucket = rateLimitBuckets.get(key);
   if (!bucket || bucket.resetAt <= now) {
     rateLimitBuckets.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
@@ -81,6 +94,7 @@ function checkRateLimit(key: string, now = Date.now()): boolean {
 
 export function clearVenueRateLimitForTests() {
   rateLimitBuckets.clear();
+  lastRateLimitSweepAt = 0;
 }
 
 export function validateVenueUniqueness(
@@ -113,10 +127,66 @@ function weakEtag(input: unknown): string {
   return `W/"${digest}"`;
 }
 
+function clientKeyFromRequest(request: NextRequest): string {
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor?.trim()) return clientKeyFromForwardedFor(forwardedFor);
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp?.trim()) return clientKeyFromForwardedFor(realIp);
+  return MISSING_CLIENT_RATE_LIMIT_KEY;
+}
+
+function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
+  const sunWindow =
+    venue.sunWindow &&
+    TIME_WINDOW_PATTERN.test(venue.sunWindow.start) &&
+    TIME_WINDOW_PATTERN.test(venue.sunWindow.end)
+      ? venue.sunWindow
+      : undefined;
+  const alt = normalizeShortText(venue.thumbnail?.alt, MAX_THUMBNAIL_ALT_LENGTH);
+  const initials = normalizeInitials(venue.thumbnail?.initials);
+  const url = normalizeThumbnailUrl(venue.thumbnail?.url);
+  return {
+    ...venue,
+    sunWindow,
+    thumbnail:
+      alt || initials || url
+        ? {
+            alt: alt ?? venue.venueName,
+            initials: initials ?? venue.venueName.slice(0, 2).toUpperCase(),
+            ...(url ? { url } : {}),
+          }
+        : undefined,
+  };
+}
+
+function normalizeShortText(value: string | undefined, maxLength: number): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  return Array.from(trimmed).slice(0, maxLength).join('');
+}
+
+function normalizeInitials(value: string | undefined): string | undefined {
+  const trimmed = normalizeShortText(value, MAX_THUMBNAIL_INITIALS_LENGTH);
+  return trimmed?.toUpperCase();
+}
+
+function normalizeThumbnailUrl(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.startsWith('/')) return trimmed;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol === 'https:' || url.protocol === 'http:') return url.toString();
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
 
-  const clientKey = clientKeyFromForwardedFor(request.headers.get('x-forwarded-for'));
+  const clientKey = clientKeyFromRequest(request);
   if (clientKey === 'invalid') {
     return badRequest('Invalid X-Forwarded-For header');
   }
@@ -169,7 +239,7 @@ export async function GET(request: NextRequest) {
 
   const matchedVenues = VENUE_FIXTURE
     .map((v) => ({
-      ...v,
+      ...normalizeVenueForResponse(v),
       distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),
     }))
     .filter((v) => v.distanceMeters <= radiusKm * 1000);

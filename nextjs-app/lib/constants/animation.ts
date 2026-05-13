@@ -9,3 +9,18 @@
 
 /** MapLibre `flyTo()` duration when navigating to user location or map controls. */
 export const DURATION_FLY_MS = 500;
+
+/** Motion/Tailwind `duration-default` token, expressed in seconds for Motion. */
+export const DURATION_DEFAULT_S = 0.2;
+
+/** Motion/Tailwind `duration-fast` token, expressed in seconds for Motion. */
+export const DURATION_FAST_S = 0.15;
+
+/** Design token `ease-enter`; keep in sync with `--ease-enter`. */
+export const EASE_ENTER = 'easeOut' as const;
+
+/** Design token `ease-exit`; keep in sync with `--ease-exit`. */
+export const EASE_EXIT = 'easeIn' as const;
+
+/** Design token `ease-default`; keep in sync with `--ease-default`. */
+export const EASE_DEFAULT = 'easeInOut' as const;

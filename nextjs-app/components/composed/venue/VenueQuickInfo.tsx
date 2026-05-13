@@ -3,9 +3,17 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Navigation, Sun, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DURATION_DEFAULT_S,
+  DURATION_FAST_S,
+  EASE_DEFAULT,
+  EASE_ENTER,
+  EASE_EXIT,
+} from '@/lib/constants/animation';
 import { cn } from '@/lib/utils';
 
 export type VenueQuickInfoMode = 'mobile' | 'desktop';
+export type VenueQuickInfoDesktopPlacement = 'above' | 'pinned';
 
 export type VenueQuickInfoProps = {
   mode: VenueQuickInfoMode;
@@ -13,8 +21,14 @@ export type VenueQuickInfoProps = {
   sunTimeRange?: string;
   confidencePercent?: number;
   distanceMeters?: number;
+  thumbnail?: {
+    alt: string;
+    initials: string;
+    url?: string;
+  };
   isLoadingSunData: boolean;
   position?: { x: number; y: number };
+  desktopPlacement?: VenueQuickInfoDesktopPlacement;
   onDismiss: () => void;
   onOpenDetails: () => void;
   onRoute: () => void;
@@ -26,12 +40,12 @@ export type VenueQuickInfoProps = {
     confidence: string;
     distance: string;
     loadingSun: string;
+    sunUnavailable: string;
   };
 };
 
-const ENTER_MS = 0.2;
-const EXIT_MS = 0.15;
-const SWAP_MS = 0.15;
+const THUMBNAIL_MAX_INITIALS = 3;
+const THUMBNAIL_MAX_ALT = 120;
 
 export function VenueQuickInfo({
   mode,
@@ -39,8 +53,10 @@ export function VenueQuickInfo({
   sunTimeRange,
   confidencePercent,
   distanceMeters,
+  thumbnail,
   isLoadingSunData,
   position,
+  desktopPlacement = 'above',
   onDismiss,
   onOpenDetails,
   onRoute,
@@ -57,7 +73,6 @@ export function VenueQuickInfo({
     : undefined;
 
   return (
-    <AnimatePresence>
       <motion.aside
         role="dialog"
         aria-label={name}
@@ -67,36 +82,38 @@ export function VenueQuickInfo({
         onClick={(event) => event.stopPropagation()}
         className={cn(
           'absolute z-glass-panel bg-surface-cream shadow-card text-text-primary',
-          'overflow-hidden rounded-card outline-none',
+          'overflow-hidden rounded-card outline-none max-h-[calc(100dvh-2rem)]',
           isDesktop
-            ? 'hidden lg:block w-[280px]'
+            ? 'hidden lg:block w-70'
             : 'left-4 right-4 bottom-[calc(var(--size-mobile-nav-h)+118px)] lg:hidden',
         )}
         style={desktopStyle}
-        initial={quickInfoInitial(isDesktop, shouldReduceMotion)}
-        animate={quickInfoAnimate(isDesktop)}
-        exit={quickInfoExit(isDesktop, shouldReduceMotion)}
-        transition={{ duration: ENTER_MS, ease: 'easeOut' }}
+        initial={quickInfoInitial(isDesktop, shouldReduceMotion, desktopPlacement)}
+        animate={quickInfoAnimate(isDesktop, shouldReduceMotion, desktopPlacement)}
+        exit={quickInfoExit(isDesktop, shouldReduceMotion, desktopPlacement)}
+        transition={{ duration: DURATION_DEFAULT_S, ease: EASE_ENTER }}
       >
-        {isDesktop && (
-          <button
-            type="button"
-            aria-label={labels.close}
-            onClick={onDismiss}
-            className="absolute right-2 top-2 z-base size-11 rounded-pill bg-glass-standard backdrop-blur-[6px] shadow-button-sm flex items-center justify-center text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
-          >
-            <X aria-hidden="true" className="size-4" />
-          </button>
-        )}
-        <PlaceholderPhoto label={labels.photoPlaceholder} confidencePercent={confidencePercent} />
+        <button
+          type="button"
+          aria-label={labels.close}
+          onClick={onDismiss}
+          className="absolute right-2 top-2 z-base size-11 rounded-pill bg-glass-standard backdrop-blur-standard shadow-button-sm flex items-center justify-center text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+        >
+          <X aria-hidden="true" className="size-4" />
+        </button>
+        <VenueThumbnail
+          label={labels.photoPlaceholder}
+          thumbnail={thumbnail}
+          confidencePercent={confidencePercent}
+        />
         <div className="p-4">
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             <motion.div
               key={name}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: SWAP_MS, ease: 'easeInOut' }}
+              transition={{ duration: DURATION_FAST_S, ease: EASE_DEFAULT }}
             >
               <button
                 type="button"
@@ -114,7 +131,7 @@ export function VenueQuickInfo({
                 ) : (
                   <div className="space-y-1">
                     <p className="text-label-lg text-amber-dark">
-                      {sunTimeRange}
+                      {sunTimeRange ?? labels.sunUnavailable}
                     </p>
                     <p className="text-body-sm text-text-body">
                       <span className="font-bold">{labels.confidence}:</span>{' '}
@@ -139,7 +156,7 @@ export function VenueQuickInfo({
             <button
               type="button"
               onClick={onOpenDetails}
-              className="min-h-11 rounded-pill bg-white px-4 text-label-lg text-text-primary shadow-subtle outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+              className="min-h-11 rounded-pill bg-glass-standard px-4 text-label-lg text-text-primary shadow-subtle outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
             >
               {labels.moreInfo}
             </button>
@@ -152,34 +169,60 @@ export function VenueQuickInfo({
           />
         )}
       </motion.aside>
-    </AnimatePresence>
   );
 }
 
-function PlaceholderPhoto({
+function VenueThumbnail({
   label,
+  thumbnail,
   confidencePercent,
 }: {
   label: string;
+  thumbnail?: { alt: string; initials: string; url?: string };
   confidencePercent?: number;
 }) {
+  const accessibleLabel = normalizeAlt(thumbnail?.alt, label);
+  const initials = normalizeInitials(thumbnail?.initials);
   return (
-    <div className="relative h-24 overflow-hidden border-b border-divider bg-amber-primary venue-photo-gradient flex items-center justify-center">
-      <div
-        aria-hidden="true"
-        className="absolute left-8 top-8 h-16 w-32 -rotate-6 rounded-venue-image border border-white/40 bg-surface-cream/20 shadow-subtle"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute right-8 top-5 h-20 w-20 rotate-12 rounded-badge border border-white/30 bg-amber-pale/35"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-x-0 bottom-0 h-14 bg-surface-cream/20"
-      />
-      <span className="sr-only">{label}</span>
+    <div
+      className="relative h-24 overflow-hidden border-b border-divider bg-amber-primary venue-photo-gradient flex items-center justify-center"
+    >
+      {thumbnail?.url ? (
+        <img
+          src={thumbnail.url}
+          alt={accessibleLabel}
+          className="absolute inset-0 size-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+      ) : (
+        <div
+          role="img"
+          aria-label={accessibleLabel}
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <div
+            aria-hidden="true"
+            className="absolute left-8 top-8 h-16 w-32 -rotate-6 rounded-venue-image border border-surface-cream/40 bg-surface-cream/20 shadow-subtle"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute right-8 top-5 h-20 w-20 rotate-12 rounded-badge border border-surface-cream/40 bg-amber-pale/35"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-0 h-14 bg-surface-cream/20"
+          />
+          <span
+            aria-hidden="true"
+            className="relative rounded-badge border border-surface-cream/40 bg-surface-cream/80 px-3 py-2 text-label-lg text-amber-cta-text shadow-subtle"
+          >
+            {initials}
+          </span>
+        </div>
+      )}
       {confidencePercent != null && (
-        <div className="absolute left-3 top-3 rounded-badge bg-amber-gold/90 backdrop-blur-[6px] px-3 py-1.5 text-display-sm text-amber-cta-text shadow-subtle flex items-center gap-1.5">
+        <div className="absolute left-3 top-3 rounded-badge bg-amber-gold/90 backdrop-blur-standard px-3 py-1.5 text-display-sm text-amber-cta-text shadow-subtle flex items-center gap-1.5">
           <Sun aria-hidden="true" className="size-4" />
           {Math.round(confidencePercent)}% SOL
         </div>
@@ -188,25 +231,56 @@ function PlaceholderPhoto({
   );
 }
 
-function quickInfoInitial(isDesktop: boolean, shouldReduceMotion: boolean) {
+function quickInfoInitial(
+  isDesktop: boolean,
+  shouldReduceMotion: boolean,
+  desktopPlacement: VenueQuickInfoDesktopPlacement,
+) {
   if (shouldReduceMotion) return { opacity: 0 };
-  if (isDesktop) return { opacity: 0, scale: 0.95, x: '-50%', y: 'calc(-100% - 56px)' };
+  if (isDesktop) return { opacity: 0, scale: 0.95, ...desktopTransform(desktopPlacement) };
   return {
     opacity: 0,
     y: '100%',
-    transition: { duration: EXIT_MS, ease: [0.42, 0, 1, 1] as [number, number, number, number] },
   };
 }
 
-function quickInfoAnimate(isDesktop: boolean) {
-  if (isDesktop) return { opacity: 1, scale: 1, x: '-50%', y: 'calc(-100% - 56px)' };
+function quickInfoAnimate(
+  isDesktop: boolean,
+  shouldReduceMotion: boolean,
+  desktopPlacement: VenueQuickInfoDesktopPlacement,
+) {
+  if (shouldReduceMotion) return { opacity: 1 };
+  if (isDesktop) return { opacity: 1, scale: 1, ...desktopTransform(desktopPlacement) };
   return { opacity: 1, y: 0 };
 }
 
-function quickInfoExit(isDesktop: boolean, shouldReduceMotion: boolean) {
-  if (shouldReduceMotion) return { opacity: 0 };
-  if (isDesktop) return { opacity: 0, scale: 0.95, x: '-50%', y: 'calc(-100% - 56px)' };
-  return { opacity: 0, y: '100%' };
+function quickInfoExit(
+  isDesktop: boolean,
+  shouldReduceMotion: boolean,
+  desktopPlacement: VenueQuickInfoDesktopPlacement,
+) {
+  const transition = { duration: DURATION_FAST_S, ease: EASE_EXIT };
+  if (shouldReduceMotion) return { opacity: 0, transition };
+  if (isDesktop) {
+    return { opacity: 0, scale: 0.95, ...desktopTransform(desktopPlacement), transition };
+  }
+  return { opacity: 0, y: '100%', transition };
+}
+
+function desktopTransform(placement: VenueQuickInfoDesktopPlacement) {
+  if (placement === 'pinned') return { x: '-50%', y: 0 };
+  return { x: '-50%', y: 'calc(-100% - 56px)' };
+}
+
+function normalizeAlt(value: string | undefined, fallback: string): string {
+  const trimmed = value?.trim();
+  if (!trimmed) return fallback;
+  return Array.from(trimmed).slice(0, THUMBNAIL_MAX_ALT).join('');
+}
+
+function normalizeInitials(value: string | undefined): string {
+  const trimmed = value?.trim() || 'SS';
+  return Array.from(trimmed).slice(0, THUMBNAIL_MAX_INITIALS).join('').toUpperCase();
 }
 
 function formatDistance(meters?: number): string {

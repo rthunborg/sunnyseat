@@ -40,6 +40,7 @@ const labels = {
   confidence: 'Säkerhet',
   distance: 'Avstånd',
   loadingSun: 'Laddar soldata',
+  sunUnavailable: 'Soltid saknas',
 };
 
 describe('<VenueQuickInfo />', () => {
@@ -48,9 +49,14 @@ describe('<VenueQuickInfo />', () => {
       <VenueQuickInfo
         mode="mobile"
         name="Testbaren"
-        sunTimeRange="Sol 13:00-18:30"
+        sunTimeRange="Sol 13:00–18:30"
         confidencePercent={92}
         distanceMeters={420}
+        thumbnail={{
+          alt: 'Uteservering hos Testbaren',
+          initials: 'TB',
+          url: 'https://example.com/testbaren.jpg',
+        }}
         isLoadingSunData={false}
         onDismiss={() => {}}
         onOpenDetails={() => {}}
@@ -61,10 +67,30 @@ describe('<VenueQuickInfo />', () => {
 
     expect(screen.getByRole('dialog', { name: 'Testbaren' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Testbaren' })).toBeInTheDocument();
-    expect(screen.getByText('Sol 13:00-18:30')).toBeInTheDocument();
+    expect(screen.getByText('Sol 13:00–18:30')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Uteservering hos Testbaren' })).toBeInTheDocument();
     expect(screen.getAllByText(/92/).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mer Info' })).toBeInTheDocument();
+  });
+
+  it('falls back to safe thumbnail text and sun copy when optional data is missing', () => {
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        thumbnail={{ alt: '   ', initials: 'Testbaren' }}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    expect(screen.getByText('Soltid saknas')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Platshållarbild' })).toBeInTheDocument();
+    expect(screen.getByText('TES')).toBeInTheDocument();
   });
 
   it('shows skeleton placeholders while sun data is loading', () => {
@@ -103,7 +129,7 @@ describe('<VenueQuickInfo />', () => {
     expect(outerClick).not.toHaveBeenCalled();
   });
 
-  it('renders the desktop close action and wires more info to details', () => {
+  it('renders the close action and wires more info to details', () => {
     const open = vi.fn();
     const dismiss = vi.fn();
     render(
@@ -121,6 +147,24 @@ describe('<VenueQuickInfo />', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Mer Info' }));
     expect(open).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Stäng platskort' }));
+    expect(dismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('exposes a mobile dismiss control', () => {
+    const dismiss = vi.fn();
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        isLoadingSunData={false}
+        onDismiss={dismiss}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
     fireEvent.click(screen.getByRole('button', { name: 'Stäng platskort' }));
     expect(dismiss).toHaveBeenCalledTimes(1);
   });

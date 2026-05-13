@@ -63,6 +63,7 @@ export function GeolocationProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<GeolocationStatus>('idle');
   const [coords, setCoords] = useState<GeolocationCoords>(fallbackCoords);
   const isMountedRef = useRef(true);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -82,6 +83,7 @@ export function GeolocationProvider({ children }: { children: ReactNode }) {
   // doesn't flag invocations as illegal hook calls. Exposed publicly as
   // `useCentrum` to match the documented hook API.
   const selectCentrum = useCallback(() => {
+    requestIdRef.current += 1;
     safeSetCoords(fallbackCoords);
     safeSetStatus('fallback');
   }, [safeSetCoords, safeSetStatus]);
@@ -91,9 +93,12 @@ export function GeolocationProvider({ children }: { children: ReactNode }) {
       selectCentrum();
       return;
     }
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
     safeSetStatus('pending');
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        if (requestIdRef.current !== requestId) return;
         safeSetCoords({
           lat: position.coords.latitude,
           lng: position.coords.longitude,
@@ -101,6 +106,7 @@ export function GeolocationProvider({ children }: { children: ReactNode }) {
         safeSetStatus('success');
       },
       (error) => {
+        if (requestIdRef.current !== requestId) return;
         if (isDev) {
           // eslint-disable-next-line no-console
           console.warn(

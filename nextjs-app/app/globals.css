@@ -189,6 +189,10 @@
   background: var(--gradient-onboarding);
 }
 
+@utility backdrop-blur-standard {
+  backdrop-filter: blur(var(--blur-standard));
+}
+
 @utility venue-photo-gradient {
   background:
     radial-gradient(circle at 72% 18%, color-mix(in srgb, var(--color-surface-cream) 78%, transparent) 0 13%, transparent 34%),

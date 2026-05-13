@@ -6,6 +6,7 @@
     "photoPlaceholder": "Venue placeholder image",
     "confidence": "Confidence",
     "distance": "Distance",
-    "loadingSun": "Loading sun data"
+    "loadingSun": "Loading sun data",
+    "sunUnavailable": "Sun time unavailable"
   }
 }

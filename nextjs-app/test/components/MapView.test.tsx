@@ -364,6 +364,12 @@ describe('<MapView />', () => {
               confidence: 92,
               distanceMeters: 420,
               sunExposurePercent: 95,
+              sunWindow: { start: '13:00', end: '18:30' },
+              thumbnail: {
+                alt: 'Uteservering hos Testbaren',
+                initials: 'TB',
+                url: 'https://example.com/testbaren.jpg',
+              },
             },
           ],
           meta: { count: 1, radiusKm: 1.5 },
@@ -378,7 +384,8 @@ describe('<MapView />', () => {
       const { rerender } = render(<MapView />, { wrapper: Wrapper });
       expect(screen.getAllByTestId('venue-quick-info')).toHaveLength(2);
       expect(screen.getAllByRole('button', { name: 'Testbaren' })).toHaveLength(2);
-      expect(screen.getAllByText('Sol 13:00-18:30')).toHaveLength(2);
+      expect(screen.getAllByText('Sol 13:00–18:30')).toHaveLength(2);
+      expect(screen.getAllByRole('img', { name: 'Uteservering hos Testbaren' })).toHaveLength(2);
       expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
 
       rerender(<MapView />);

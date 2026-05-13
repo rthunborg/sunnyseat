@@ -23,6 +23,12 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 92,
     distanceMeters: 0,
     sunExposurePercent: 95,
+    sunWindow: { start: '13:00', end: '18:30' },
+    thumbnail: {
+      alt: 'Uteservering hos Kafé Magasinet',
+      initials: 'KM',
+      url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=560&q=80',
+    },
   },
   {
     id: '2',
@@ -38,6 +44,12 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 88,
     distanceMeters: 0,
     sunExposurePercent: 89,
+    sunWindow: { start: '12:45', end: '18:15' },
+    thumbnail: {
+      alt: 'Uteservering hos Bryggerietsoltak',
+      initials: 'BS',
+      url: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=560&q=80',
+    },
   },
   {
     id: '3',
@@ -53,6 +65,12 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 78,
     distanceMeters: 0,
     sunExposurePercent: 82,
+    sunWindow: { start: '14:00', end: '17:45' },
+    thumbnail: {
+      alt: 'Uteservering på Solplats Magasinsgatan',
+      initials: 'SM',
+      url: 'https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=560&q=80',
+    },
   },
   {
     id: '4',
@@ -68,6 +86,12 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 70,
     distanceMeters: 0,
     sunExposurePercent: 65,
+    sunWindow: { start: '15:10', end: '17:20' },
+    thumbnail: {
+      alt: 'Uteservering hos Café Halvvägs',
+      initials: 'CH',
+      url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=560&q=80',
+    },
   },
   {
     id: '5',
@@ -83,6 +107,12 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 66,
     distanceMeters: 0,
     sunExposurePercent: 58,
+    sunWindow: { start: '13:35', end: '16:50' },
+    thumbnail: {
+      alt: 'Uteservering hos Brygghuset Lerum',
+      initials: 'BL',
+      url: 'https://images.unsplash.com/photo-1508424757105-b6d5ad9329d0?auto=format&fit=crop&w=560&q=80',
+    },
   },
   {
     id: '6',
@@ -98,6 +128,12 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 80,
     distanceMeters: 0,
     sunExposurePercent: 22,
+    sunWindow: { start: '16:10', end: '16:45' },
+    thumbnail: {
+      alt: 'Uteservering hos Skuggans Hus',
+      initials: 'SH',
+      url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=560&q=80',
+    },
   },
   {
     id: '7',
@@ -113,5 +149,11 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 75,
     distanceMeters: 0,
     sunExposurePercent: 14,
+    sunWindow: { start: '11:30', end: '12:20' },
+    thumbnail: {
+      alt: 'Uteservering hos Bistro Bakgården',
+      initials: 'BB',
+      url: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=560&q=80',
+    },
   },
 ];

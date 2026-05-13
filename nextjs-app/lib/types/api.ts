@@ -75,6 +75,15 @@ export interface VenueDataDto {
   confidence: number; // 0-100
   distanceMeters: number;
   sunExposurePercent: number;
+  sunWindow?: {
+    start: string;
+    end: string;
+  };
+  thumbnail?: {
+    alt: string;
+    initials: string;
+    url?: string;
+  };
 }
 
 export interface CoordinatesDto {

@@ -6,6 +6,7 @@
     "photoPlaceholder": "Platshållarbild för platsen",
     "confidence": "Säkerhet",
     "distance": "Avstånd",
-    "loadingSun": "Laddar soldata"
+    "loadingSun": "Laddar soldata",
+    "sunUnavailable": "Soltid saknas"
   }
 }

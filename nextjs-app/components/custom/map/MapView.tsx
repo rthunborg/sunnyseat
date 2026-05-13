@@ -2,8 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { AnimatePresence } from 'motion/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { VenueQuickInfo } from '@/components/composed/venue/VenueQuickInfo';
+import {
+  VenueQuickInfo,
+  type VenueQuickInfoDesktopPlacement,
+} from '@/components/composed/venue/VenueQuickInfo';
 import { useVenueSearch } from '@/hooks/queries/useVenueSearch';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
@@ -20,6 +24,10 @@ import { MapControls } from './MapControls';
 
 const SLOW_LOAD_PILL_MS = 3000;
 const SEARCH_RADIUS_KM = 1.5;
+const QUICK_INFO_DESKTOP_WIDTH = 280;
+const QUICK_INFO_DESKTOP_HEIGHT_ESTIMATE = 260;
+const QUICK_INFO_DESKTOP_PIN_GAP = 56;
+const QUICK_INFO_DESKTOP_VIEWPORT_GUTTER = 16;
 // Round 2 R2-P4: Round 1 P31 released the loading cover on the very first
 // tile error, but MapContainer only latches the sand fallback after
 // TILE_FAILURE_THRESHOLD = 4 errors. A single transient blip (CORS retry,
@@ -59,6 +67,8 @@ export function MapView() {
   const searchParams = useSearchParams();
   const forcedState = useForcedState();
   const [quickInfoPosition, setQuickInfoPosition] = useState<{ x: number; y: number } | undefined>();
+  const [quickInfoDesktopPlacement, setQuickInfoDesktopPlacement] =
+    useState<VenueQuickInfoDesktopPlacement>('above');
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
@@ -166,6 +176,7 @@ export function MapView() {
   useEffect(() => {
     if (!mapInstance || !selectedVenueDto) {
       setQuickInfoPosition(undefined);
+      setQuickInfoDesktopPlacement('above');
       return;
     }
 
@@ -177,9 +188,19 @@ export function MapView() {
       const canvas = mapInstance.getCanvas();
       const width = canvas.clientWidth || window.innerWidth;
       const height = canvas.clientHeight || window.innerHeight;
+      const halfWidth = QUICK_INFO_DESKTOP_WIDTH / 2 + QUICK_INFO_DESKTOP_VIEWPORT_GUTTER;
+      const minY =
+        QUICK_INFO_DESKTOP_HEIGHT_ESTIMATE +
+        QUICK_INFO_DESKTOP_PIN_GAP +
+        QUICK_INFO_DESKTOP_VIEWPORT_GUTTER;
+      const maxY = height - QUICK_INFO_DESKTOP_VIEWPORT_GUTTER;
+      const canFitAbove = maxY >= minY;
+      setQuickInfoDesktopPlacement(canFitAbove ? 'above' : 'pinned');
       setQuickInfoPosition({
-        x: Math.min(Math.max(projected.x, 164), width - 164),
-        y: Math.min(Math.max(projected.y, 150), height - 96),
+        x: Math.min(Math.max(projected.x, halfWidth), width - halfWidth),
+        y: canFitAbove
+          ? Math.min(Math.max(projected.y, minY), maxY)
+          : QUICK_INFO_DESKTOP_VIEWPORT_GUTTER,
       });
     };
 
@@ -202,35 +223,42 @@ export function MapView() {
     <div className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full">
       <MapContainer />
       <VenuePinLayer venues={venues} />
-      {selectedPinData && (
-        <>
+      <AnimatePresence>
+        {selectedPinData && (
           <VenueQuickInfo
+            key="quick-info-mobile"
             mode="mobile"
             name={selectedPinData.name}
             sunTimeRange={resolveSunTimeRange(selectedVenueDto)}
             confidencePercent={selectedVenueDto?.confidence}
             distanceMeters={selectedVenueDto?.distanceMeters}
+            thumbnail={selectedVenueDto?.thumbnail}
             isLoadingSunData={venueQuery.isFetching || !selectedVenueDto}
             onDismiss={() => selectVenue(null)}
             onOpenDetails={handleOpenDetails}
             onRoute={() => {}}
             labels={quickInfoLabels(tVenue)}
           />
+        )}
+        {selectedPinData && (
           <VenueQuickInfo
+            key="quick-info-desktop"
             mode="desktop"
             name={selectedPinData.name}
             sunTimeRange={resolveSunTimeRange(selectedVenueDto)}
             confidencePercent={selectedVenueDto?.confidence}
             distanceMeters={selectedVenueDto?.distanceMeters}
+            thumbnail={selectedVenueDto?.thumbnail}
             isLoadingSunData={venueQuery.isFetching || !selectedVenueDto}
             position={quickInfoPosition}
+            desktopPlacement={quickInfoDesktopPlacement}
             onDismiss={() => selectVenue(null)}
             onOpenDetails={handleOpenDetails}
             onRoute={() => {}}
             labels={quickInfoLabels(tVenue)}
           />
-        </>
-      )}
+        )}
+      </AnimatePresence>
       <MapControls />
       {!tilesPainted && (
         <div className="absolute inset-0 z-floating-buttons" data-testid="map-tile-paint-cover">
@@ -249,8 +277,9 @@ export function MapView() {
   );
 }
 
-function resolveSunTimeRange(_venue: VenueDataDto | null): string {
-  return 'Sol 13:00-18:30';
+function resolveSunTimeRange(venue: VenueDataDto | null): string | undefined {
+  if (!venue?.sunWindow) return undefined;
+  return `Sol ${venue.sunWindow.start}–${venue.sunWindow.end}`;
 }
 
 function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
@@ -262,6 +291,7 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     confidence: t('quickInfo.confidence'),
     distance: t('quickInfo.distance'),
     loadingSun: t('quickInfo.loadingSun'),
+    sunUnavailable: t('quickInfo.sunUnavailable'),
   };
 }
 
