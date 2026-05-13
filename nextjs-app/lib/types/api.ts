@@ -78,8 +78,6 @@ export interface VenueDataDto {
 }
 
 export interface CoordinatesDto {
-  latitude: number;
-  longitude: number;
   lat: number;
   lng: number;
 }

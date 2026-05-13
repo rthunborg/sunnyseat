@@ -21,6 +21,19 @@ test.describe('axe-core a11y gate', () => {
 
     await page.goto('/');
     await page.waitForLoadState('networkidle');
+    await page.locator('[data-testid="venue-pin"]').first().waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test('a11y: map selected venue QuickInfo', async ({ page }) => {
+    await page.addInitScript((key: string) => {
+      window.localStorage.setItem(key, '1');
+    }, ONBOARDED_FLAG_KEY);
+
+    await page.goto('/?venue=test-venue-sunny&_state=map-with-selected-venue');
+    await page.locator('[data-testid="venue-pin"]').first().waitFor({ state: 'visible' });
+    await page.locator('[data-testid="venue-quick-info"]:visible').waitFor({ state: 'visible' });
     const violations = await runAxe(page);
     expect(violations, formatViolations(violations)).toEqual([]);
   });

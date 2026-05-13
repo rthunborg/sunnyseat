@@ -6,6 +6,7 @@ import type maplibregl from 'maplibre-gl';
 import { MapInstanceContext } from '@/lib/contexts/MapInstanceContext';
 import { MapControls } from '@/components/custom/map/MapControls';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
+import { GeolocationProvider } from '@/hooks/useGeolocation';
 
 type MapInstanceContextValue = React.ComponentProps<
   typeof MapInstanceContext.Provider
@@ -87,9 +88,11 @@ function makeWrapper(stubMap: StubMap) {
     };
     return (
       <NextIntlClientProvider locale="sv" messages={messages}>
-        <MapInstanceContext.Provider value={value}>
-          {children}
-        </MapInstanceContext.Provider>
+        <GeolocationProvider>
+          <MapInstanceContext.Provider value={value}>
+            {children}
+          </MapInstanceContext.Provider>
+        </GeolocationProvider>
       </NextIntlClientProvider>
     );
   };
@@ -105,9 +108,11 @@ function makeNullMapWrapper() {
     };
     return (
       <NextIntlClientProvider locale="sv" messages={messages}>
-        <MapInstanceContext.Provider value={value}>
-          {children}
-        </MapInstanceContext.Provider>
+        <GeolocationProvider>
+          <MapInstanceContext.Provider value={value}>
+            {children}
+          </MapInstanceContext.Provider>
+        </GeolocationProvider>
       </NextIntlClientProvider>
     );
   };

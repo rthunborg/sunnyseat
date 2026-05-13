@@ -14,10 +14,10 @@ const DRAG_FADE_OPACITY = '0.6';
 /**
  * Floating glass map control stack (zoom +/-, my location).
  *
- * Mounted to the right edge: vertically centred on mobile, just below the
- * desktop navbar (top offset derived from `--size-desktop-nav-h` plus
- * 28 px breathing room). Each button is a 48×48 GlassButton matching the
- * `Floating Glass Button` token in DESIGN.md.
+ * Mounted to the right edge: high enough on mobile to stay clear of
+ * QuickInfo cards and just below the desktop navbar (top offset derived
+ * from `--size-desktop-nav-h` plus 28 px breathing room). Each button is
+ * a 48×48 GlassButton matching the `Floating Glass Button` token in DESIGN.md.
  *
  * The drag-fade behaviour is wired with direct DOM mutation rather than
  * React state because dragstart/dragend can fire many times during a
@@ -108,7 +108,7 @@ export function MapControls() {
     <div
       ref={controlsRef}
       data-testid="map-controls"
-      className="absolute right-4 top-1/2 -translate-y-1/2 lg:top-[calc(var(--size-desktop-nav-h)+28px)] lg:right-6 lg:translate-y-0 z-floating-buttons flex flex-col gap-3 opacity-100 transition-opacity duration-200 ease-default motion-reduce:transition-none"
+      className="absolute right-4 top-24 lg:top-[calc(var(--size-desktop-nav-h)+28px)] lg:right-6 z-floating-buttons flex flex-col gap-3 opacity-100 transition-opacity duration-200 ease-default motion-reduce:transition-none"
     >
       <GlassButton
         ariaLabel={t('zoomIn')}

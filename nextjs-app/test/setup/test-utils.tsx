@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NextIntlClientProvider } from 'next-intl';
 import { render, type RenderOptions } from '@testing-library/react';
 import { routing } from '@/i18n/routing';
+import { GeolocationProvider } from '@/hooks/useGeolocation';
 import mapMessages from '@/messages/sv/map.json';
 import onboardingMessages from '@/messages/sv/onboarding.json';
 
@@ -65,7 +66,7 @@ export function TestProviders({
   return (
     <QueryClientProvider client={client}>
       <NextIntlClientProvider locale={locale} messages={messages}>
-        {children}
+        <GeolocationProvider>{children}</GeolocationProvider>
       </NextIntlClientProvider>
     </QueryClientProvider>
   );

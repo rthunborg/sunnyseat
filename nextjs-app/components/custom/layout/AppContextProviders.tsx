@@ -5,6 +5,7 @@ import { PremiumProvider } from '@/lib/contexts/PremiumContext';
 import { MapInstanceProvider } from '@/lib/contexts/MapInstanceContext';
 import { MapSelectionProvider } from '@/lib/contexts/MapSelectionContext';
 import { TimeProvider } from '@/lib/contexts/TimeContext';
+import { GeolocationProvider } from '@/hooks/useGeolocation';
 
 /**
  * Mounts the cross-cutting client contexts in the order prescribed by
@@ -21,16 +22,18 @@ import { TimeProvider } from '@/lib/contexts/TimeContext';
  * `QueryClientProvider` at the root outside the `[locale]` segment.
  *
  * Resolved provider tree:
- *   Query → Language → Premium → MapInstance → MapSelection → Time → children
+ *   Query → Language → Premium → Geolocation → MapInstance → MapSelection → Time → children
  */
 export function AppContextProviders({ children }: { children: ReactNode }) {
   return (
     <PremiumProvider>
-      <MapInstanceProvider>
-        <MapSelectionProvider>
-          <TimeProvider>{children}</TimeProvider>
-        </MapSelectionProvider>
-      </MapInstanceProvider>
+      <GeolocationProvider>
+        <MapInstanceProvider>
+          <MapSelectionProvider>
+            <TimeProvider>{children}</TimeProvider>
+          </MapSelectionProvider>
+        </MapInstanceProvider>
+      </GeolocationProvider>
     </PremiumProvider>
   );
 }

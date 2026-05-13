@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import type maplibregl from 'maplibre-gl';
 import { NextIntlClientProvider } from 'next-intl';
 import mapMessages from '@/messages/sv/map.json';
+import venueMessages from '@/messages/sv/venue.json';
 import type { GetVenuesResponse } from '@/lib/types/api';
 
 type VenueQueryShape = {
@@ -35,6 +36,8 @@ type StubMap = {
   on: ReturnType<typeof vi.fn>;
   off: ReturnType<typeof vi.fn>;
   areTilesLoaded?: () => boolean;
+  project: ReturnType<typeof vi.fn>;
+  getCanvas: () => HTMLCanvasElement;
   __sourcedata: SourceDataHandler[];
   __error: ErrorHandler[];
 };
@@ -49,12 +52,23 @@ function makeStubMap(opts: { tilesAlreadyLoaded?: boolean } = {}): StubMap {
     }),
     off: vi.fn(),
     areTilesLoaded: () => Boolean(opts.tilesAlreadyLoaded),
+    project: vi.fn(() => ({ x: 240, y: 260 })),
+    getCanvas: () => {
+      const canvas = document.createElement('canvas');
+      Object.defineProperty(canvas, 'clientWidth', { configurable: true, value: 390 });
+      Object.defineProperty(canvas, 'clientHeight', { configurable: true, value: 700 });
+      return canvas;
+    },
     __sourcedata: sourcedataHandlers,
     __error: errorHandlers,
   };
 }
 
 let stubMap: StubMap;
+let selectedVenueIdMock: string | null = null;
+const selectVenueMock = vi.fn((id: string | null) => {
+  selectedVenueIdMock = id;
+});
 const useMapInstanceMock = vi.fn(() => ({
   mapRef: { current: stubMap as unknown as maplibregl.Map },
   mapInstance: stubMap as unknown as maplibregl.Map,
@@ -71,6 +85,21 @@ vi.mock('@/hooks/queries/useVenueSearch', () => ({
 
 vi.mock('@/lib/contexts/MapInstanceContext', () => ({
   useMapInstance: () => useMapInstanceMock(),
+}));
+
+vi.mock('@/lib/contexts/MapSelectionContext', () => ({
+  useMapSelection: () => ({
+    selectedVenueId: selectedVenueIdMock,
+    selectVenue: selectVenueMock,
+    toggleVenue: (id: string) => {
+      selectedVenueIdMock = selectedVenueIdMock === id ? null : id;
+    },
+  }),
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 // Stub out heavyweight children so the orchestration logic can be
@@ -92,7 +121,7 @@ import { MapView } from '@/components/custom/map/MapView';
 
 function Wrapper({ children }: { children: ReactNode }) {
   return (
-    <NextIntlClientProvider locale="sv" messages={{ map: mapMessages }}>
+    <NextIntlClientProvider locale="sv" messages={{ map: mapMessages, venue: venueMessages }}>
       {children}
     </NextIntlClientProvider>
   );
@@ -101,6 +130,8 @@ function Wrapper({ children }: { children: ReactNode }) {
 describe('<MapView />', () => {
   beforeEach(() => {
     stubMap = makeStubMap();
+    selectedVenueIdMock = null;
+    selectVenueMock.mockClear();
     useGeolocationMock.mockReset().mockReturnValue({
       status: 'idle',
       coords: { lat: 57.7089, lng: 11.9746 },
@@ -311,6 +342,47 @@ describe('<MapView />', () => {
       });
       rerender(<MapView />);
       expect(screen.queryByTestId('map-loading-pill')).toBeNull();
+    });
+  });
+
+  describe('selected venue QuickInfo orchestration', () => {
+    it('renders QuickInfo for the selected venue without remounting MapContainer', () => {
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: {
+          venues: [
+            {
+              id: 'venue-1',
+              venueId: 'venue-1',
+              venueName: 'Testbaren',
+              venueSlug: 'test-venue-sunny',
+              slug: 'test-venue-sunny',
+              neighborhood: 'Centrum',
+              location: { lat: 57.7, lng: 11.97 },
+              currentSunStatus: 'Sunny',
+              isPartner: false,
+              confidence: 92,
+              distanceMeters: 420,
+              sunExposurePercent: 95,
+            },
+          ],
+          meta: { count: 1, radiusKm: 1.5 },
+          timestamp: 'now',
+          totalCount: 1,
+        },
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      const { rerender } = render(<MapView />, { wrapper: Wrapper });
+      expect(screen.getAllByTestId('venue-quick-info')).toHaveLength(2);
+      expect(screen.getAllByRole('button', { name: 'Testbaren' })).toHaveLength(2);
+      expect(screen.getAllByText('Sol 13:00-18:30')).toHaveLength(2);
+      expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
+
+      rerender(<MapView />);
+      expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
     });
   });
 });

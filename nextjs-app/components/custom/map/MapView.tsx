@@ -2,12 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { VenueQuickInfo } from '@/components/composed/venue/VenueQuickInfo';
 import { useVenueSearch } from '@/hooks/queries/useVenueSearch';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
+import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
 import { type VenuePinData } from '@/lib/types/map';
 import type { VenueDataDto } from '@/lib/types/api';
+import { useForcedState } from '@/lib/dev/use-forced-state';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
+import { mapVenueDtoToPinData } from '@/lib/utils/venue-pin-mapping';
 import { MapContainer } from './MapContainer';
 import { MapLoadingFallback } from './MapLoadingFallback';
 import { VenuePinLayer } from './VenuePinLayer';
@@ -39,15 +44,21 @@ const TILE_FAILURE_RELEASE_THRESHOLD = 4;
  * dynamic-import chunk arriving and MapLibre painting its first tile,
  * so returning users don't see a blank flash during cold load.
  *
- * The wrapper sizes itself to the dynamic viewport minus the chrome each
- * viewport family carries (40 px mobile bottom nav, 84 px desktop top
- * nav). `dvh` rather than `vh` keeps the height stable while iOS Safari
- * collapses its URL bar — `vh` would make the floating controls lurch
- * during the transition.
+ * On mobile the map fills the full dynamic viewport and sits underneath
+ * the fixed bottom nav, matching the layout-shell contract from Story 1.3.
+ * Desktop still subtracts the fixed top nav height. `dvh` rather than `vh`
+ * keeps the height stable while iOS Safari collapses its URL bar — `vh`
+ * would make the floating controls lurch during the transition.
  */
 export function MapView() {
+  const tVenue = useTranslations('venue');
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
+  const { selectedVenueId, selectVenue } = useMapSelection();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const forcedState = useForcedState();
+  const [quickInfoPosition, setQuickInfoPosition] = useState<{ x: number; y: number } | undefined>();
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
@@ -135,11 +146,91 @@ export function MapView() {
       return pin ? [pin] : [];
     });
   }, [rawVenues]);
+  const selectedVenueDto = useMemo(() => {
+    if (!selectedVenueId || !Array.isArray(rawVenues)) return null;
+    return rawVenues.find((venue) => venue.id === selectedVenueId) ?? null;
+  }, [rawVenues, selectedVenueId]);
+  const selectedPinData = useMemo(() => {
+    if (!selectedVenueId) return null;
+    return venues.find((venue) => venue.id === selectedVenueId) ?? null;
+  }, [selectedVenueId, venues]);
+
+  useEffect(() => {
+    if (forcedState !== 'map-with-selected-venue') return;
+    if (!Array.isArray(rawVenues) || rawVenues.length === 0) return;
+    const slug = searchParams.get('venue');
+    const match = rawVenues.find((venue) => venue.slug === slug) ?? rawVenues[0];
+    selectVenue(match.id);
+  }, [forcedState, rawVenues, searchParams, selectVenue]);
+
+  useEffect(() => {
+    if (!mapInstance || !selectedVenueDto) {
+      setQuickInfoPosition(undefined);
+      return;
+    }
+
+    const updatePosition = () => {
+      const projected = mapInstance.project([
+        selectedVenueDto.location.lng,
+        selectedVenueDto.location.lat,
+      ]);
+      const canvas = mapInstance.getCanvas();
+      const width = canvas.clientWidth || window.innerWidth;
+      const height = canvas.clientHeight || window.innerHeight;
+      setQuickInfoPosition({
+        x: Math.min(Math.max(projected.x, 164), width - 164),
+        y: Math.min(Math.max(projected.y, 150), height - 96),
+      });
+    };
+
+    updatePosition();
+    mapInstance.on('move', updatePosition);
+    mapInstance.on('zoom', updatePosition);
+    return () => {
+      mapInstance.off('move', updatePosition);
+      mapInstance.off('zoom', updatePosition);
+    };
+  }, [mapInstance, selectedVenueDto]);
+
+  const handleOpenDetails = () => {
+    const slug = selectedVenueDto?.slug ?? selectedPinData?.slug;
+    if (!slug) return;
+    router.push(`?venue=${encodeURIComponent(slug)}&_state=venue-detail`);
+  };
 
   return (
-    <div className="relative h-[calc(100dvh-var(--size-mobile-nav-h))] lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full">
+    <div className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full">
       <MapContainer />
       <VenuePinLayer venues={venues} />
+      {selectedPinData && (
+        <>
+          <VenueQuickInfo
+            mode="mobile"
+            name={selectedPinData.name}
+            sunTimeRange={resolveSunTimeRange(selectedVenueDto)}
+            confidencePercent={selectedVenueDto?.confidence}
+            distanceMeters={selectedVenueDto?.distanceMeters}
+            isLoadingSunData={venueQuery.isFetching || !selectedVenueDto}
+            onDismiss={() => selectVenue(null)}
+            onOpenDetails={handleOpenDetails}
+            onRoute={() => {}}
+            labels={quickInfoLabels(tVenue)}
+          />
+          <VenueQuickInfo
+            mode="desktop"
+            name={selectedPinData.name}
+            sunTimeRange={resolveSunTimeRange(selectedVenueDto)}
+            confidencePercent={selectedVenueDto?.confidence}
+            distanceMeters={selectedVenueDto?.distanceMeters}
+            isLoadingSunData={venueQuery.isFetching || !selectedVenueDto}
+            position={quickInfoPosition}
+            onDismiss={() => selectVenue(null)}
+            onOpenDetails={handleOpenDetails}
+            onRoute={() => {}}
+            labels={quickInfoLabels(tVenue)}
+          />
+        </>
+      )}
       <MapControls />
       {!tilesPainted && (
         <div className="absolute inset-0 z-floating-buttons" data-testid="map-tile-paint-cover">
@@ -156,6 +247,22 @@ export function MapView() {
       {venueQuery.isError && <ErrorPill />}
     </div>
   );
+}
+
+function resolveSunTimeRange(_venue: VenueDataDto | null): string {
+  return 'Sol 13:00-18:30';
+}
+
+function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
+  return {
+    route: t('quickInfo.route'),
+    moreInfo: t('quickInfo.moreInfo'),
+    close: t('quickInfo.close'),
+    photoPlaceholder: t('quickInfo.photoPlaceholder'),
+    confidence: t('quickInfo.confidence'),
+    distance: t('quickInfo.distance'),
+    loadingSun: t('quickInfo.loadingSun'),
+  };
 }
 
 type LoadingPillProps = {
@@ -242,20 +349,3 @@ function ErrorPill() {
   );
 }
 
-function mapVenueDtoToPinData(v: VenueDataDto): VenuePinData | null {
-  // Defensive: real-data rows in Story 2.x may have NULL geometry until
-  // backfilled. Skip those rather than render a NaN-positioned marker.
-  if (!v.location || !Number.isFinite(v.location.lat) || !Number.isFinite(v.location.lng)) {
-    return null;
-  }
-  return {
-    id: v.id,
-    slug: v.slug,
-    name: v.venueName,
-    lat: v.location.lat,
-    lng: v.location.lng,
-    sunStatus: v.currentSunStatus,
-    sunExposurePercent: v.sunExposurePercent,
-    isPartner: v.isPartner,
-  };
-}

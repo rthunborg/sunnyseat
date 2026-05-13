@@ -1,6 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 
@@ -36,6 +45,8 @@ function hasGeolocation(): boolean {
   );
 }
 
+const GeolocationContext = createContext<UseGeolocationResult | null>(null);
+
 /**
  * Browser-geolocation hook with privacy-aware fallback to Gothenburg centrum.
  *
@@ -48,7 +59,7 @@ function hasGeolocation(): boolean {
  * `granted`) get a silent re-acquire on mount — no permission dialog,
  * matching the "Platsen sparas aldrig" privacy promise (no cached coords).
  */
-export function useGeolocation(): UseGeolocationResult {
+export function GeolocationProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<GeolocationStatus>('idle');
   const [coords, setCoords] = useState<GeolocationCoords>(fallbackCoords);
   const isMountedRef = useRef(true);
@@ -122,6 +133,16 @@ export function useGeolocation(): UseGeolocationResult {
 
     let cancelled = false;
 
+    let permissionStatus: PermissionStatus | null = null;
+    const handlePermissionChange = () => {
+      if (!permissionStatus) return;
+      if (permissionStatus.state === 'granted') {
+        requestLocation();
+      } else if (permissionStatus.state === 'denied') {
+        selectCentrum();
+      }
+    };
+
     (async () => {
       try {
         if (typeof navigator === 'undefined' || !navigator.permissions) {
@@ -130,6 +151,8 @@ export function useGeolocation(): UseGeolocationResult {
         }
         const result = await navigator.permissions.query({ name: 'geolocation' });
         if (cancelled) return;
+        permissionStatus = result;
+        permissionStatus.addEventListener?.('change', handlePermissionChange);
         if (result.state === 'granted') {
           requestLocation();
         } else {
@@ -142,8 +165,22 @@ export function useGeolocation(): UseGeolocationResult {
 
     return () => {
       cancelled = true;
+      permissionStatus?.removeEventListener?.('change', handlePermissionChange);
     };
   }, [requestLocation, selectCentrum]);
 
-  return { status, coords, requestLocation, useCentrum: selectCentrum };
+  const value = useMemo<UseGeolocationResult>(
+    () => ({ status, coords, requestLocation, useCentrum: selectCentrum }),
+    [status, coords, requestLocation, selectCentrum],
+  );
+
+  return <GeolocationContext.Provider value={value}>{children}</GeolocationContext.Provider>;
+}
+
+export function useGeolocation(): UseGeolocationResult {
+  const ctx = useContext(GeolocationContext);
+  if (!ctx) {
+    throw new Error('useGeolocation must be used within <GeolocationProvider>');
+  }
+  return ctx;
 }

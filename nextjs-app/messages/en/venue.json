@@ -1,1 +1,11 @@
-{}
+{
+  "quickInfo": {
+    "route": "Show Route",
+    "moreInfo": "More Info",
+    "close": "Close venue card",
+    "photoPlaceholder": "Venue placeholder image",
+    "confidence": "Confidence",
+    "distance": "Distance",
+    "loadingSun": "Loading sun data"
+  }
+}

@@ -1,1 +1,11 @@
-{}
+{
+  "quickInfo": {
+    "route": "Visa Rutt",
+    "moreInfo": "Mer Info",
+    "close": "Stäng platskort",
+    "photoPlaceholder": "Platshållarbild för platsen",
+    "confidence": "Säkerhet",
+    "distance": "Avstånd",
+    "loadingSun": "Laddar soldata"
+  }
+}

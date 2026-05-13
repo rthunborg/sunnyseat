@@ -189,6 +189,13 @@
   background: var(--gradient-onboarding);
 }
 
+@utility venue-photo-gradient {
+  background:
+    radial-gradient(circle at 72% 18%, color-mix(in srgb, var(--color-surface-cream) 78%, transparent) 0 13%, transparent 34%),
+    radial-gradient(circle at 18% 82%, color-mix(in srgb, var(--color-amber-dark) 26%, transparent) 0 18%, transparent 48%),
+    linear-gradient(135deg, var(--color-amber-primary) 0%, var(--color-amber-gold) 46%, var(--color-amber-pale) 100%);
+}
+
 @utility gradient-sun-burst-warm {
   background: var(--gradient-sun-burst-warm);
 }

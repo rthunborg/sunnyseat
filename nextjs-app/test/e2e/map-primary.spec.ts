@@ -100,6 +100,48 @@ test.describe('map-primary', () => {
     await expect(
       page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]'),
     ).toHaveCount(1);
+    await expect(page.getByTestId('venue-quick-info').first()).toBeVisible();
+  });
+
+  test('mobile: forced selected venue opens QuickInfo and detail handoff URL', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'mobile',
+      'Selected-venue QuickInfo flow runs only in the mobile Playwright project',
+    );
+
+    await bypassOnboarding(page);
+    await page.goto('/?venue=test-venue-sunny&_state=map-with-selected-venue');
+    await page.waitForSelector('[data-testid="venue-pin"]', { timeout: 15000 });
+
+    const quickInfo = page.getByTestId('venue-quick-info').first();
+    await expect(quickInfo).toBeVisible();
+    await expect(quickInfo.getByRole('button', { name: /Kafé Magasinet/i })).toBeVisible();
+    await expect(quickInfo.getByRole('button', { name: 'Visa Rutt' })).toBeVisible();
+
+    await quickInfo.getByRole('button', { name: /Kafé Magasinet/i }).click();
+    await expect(page).toHaveURL(/venue=test-venue-sunny/);
+    await expect(page).toHaveURL(/_state=venue-detail/);
+  });
+
+  test('desktop: selected venue renders a popover with Mer Info handoff', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'desktop',
+      'Desktop QuickInfo popover flow runs only in the desktop Playwright project',
+    );
+
+    await bypassOnboarding(page);
+    await page.goto('/?venue=test-venue-sunny&_state=map-with-selected-venue');
+    await page.waitForSelector('[data-testid="venue-pin"]', { timeout: 15000 });
+
+    const quickInfo = page.getByTestId('venue-quick-info').last();
+    await expect(quickInfo).toBeVisible();
+    await expect(quickInfo.getByRole('button', { name: 'Mer Info' })).toBeVisible();
+    await quickInfo.getByRole('button', { name: 'Mer Info' }).click();
+    await expect(page).toHaveURL(/_state=venue-detail/);
   });
 
   test('mobile: pin morphs from pill to circle when selected (Story 1.4 AC3)', async ({
@@ -179,5 +221,6 @@ test.describe('map-primary', () => {
     await expect(
       page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]'),
     ).toHaveCount(0);
+    await expect(page.getByTestId('venue-quick-info')).toHaveCount(0);
   });
 });

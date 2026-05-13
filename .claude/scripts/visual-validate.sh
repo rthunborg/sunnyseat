@@ -55,11 +55,46 @@ base64_encode() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 IMPL_SCREENSHOT=$(mktemp /tmp/impl-XXXXXX.png)
+STORAGE_STATE=""
+WAIT_ARGS=()
+
+if [ "$SCREEN_ID" != "onboarding" ]; then
+  STORAGE_STATE=$(mktemp /tmp/sunnyseat-storage-XXXXXX.json)
+  cat > "$STORAGE_STATE" <<EOF
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "$DEV_SERVER_URL",
+      "localStorage": [
+        { "name": "sunnyseat_onboarded", "value": "1" }
+      ]
+    }
+  ]
+}
+EOF
+  WAIT_ARGS+=(--load-storage "$STORAGE_STATE")
+fi
+
+case "$SCREEN_ID" in
+  map-with-selected-venue)
+    WAIT_ARGS+=(--wait-for-selector '[data-testid="venue-quick-info"]' --wait-for-timeout 500)
+    ;;
+  map-*)
+    WAIT_ARGS+=(--wait-for-selector '[data-testid="venue-pin"]' --wait-for-timeout 500)
+    ;;
+esac
+
 (cd "$PROJECT_ROOT/nextjs-app" && npx playwright screenshot \
   --browser chromium \
   --viewport-size "$VIEWPORT" \
+  --lang sv-SE \
+  "${WAIT_ARGS[@]}" \
   "$DEV_SERVER_URL$ROUTE" \
   "$IMPL_SCREENSHOT" 2>/dev/null)
+if [ -n "$STORAGE_STATE" ]; then
+  rm -f "$STORAGE_STATE"
+fi
 
 if [ ! -f "$IMPL_SCREENSHOT" ] || [ ! -s "$IMPL_SCREENSHOT" ]; then
   echo "VISUAL GATE FAILED: Could not screenshot dev server at $DEV_SERVER_URL$ROUTE"
