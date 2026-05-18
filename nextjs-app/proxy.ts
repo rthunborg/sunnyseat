@@ -6,5 +6,6 @@ export default createMiddleware(routing);
 // `dev` is excluded from the negative lookahead so /dev/* bypasses locale
 // routing (Story 1.2 — the dev-only state-forcing demo must not be locale-prefixed).
 export const config = {
-  matcher: '/((?!api|trpc|_next|_vercel|dev|.*\\..*).*)',
+  matcher:
+    '/((?!api|trpc|_next|_vercel|dev|.*\\.(?:avif|br|css|csv|gif|gz|ico|jpg|jpeg|js|json|map|mp3|mp4|ogg|opus|pdf|png|svg|txt|wasm|webmanifest|webm|webp|woff|woff2|xml|zip)$).*)',
 };

@@ -164,6 +164,9 @@ The design uses an 8px base grid with 4px half-steps for tight compositions.
 | `size-drag-pill-w` | 40px | Drag handle pill width (map bottom sheet) |
 | `size-drag-pill-w-lg` | 48px | Drag handle pill width (venue detail sheet) |
 | `size-drag-pill-h` | 6px | Drag handle pill height |
+| `size-bottom-sheet-full-top` | 22dvh | Venue-list full sheet top offset, preserving the Story 2.2 accepted visible map band |
+| `size-venue-list-desktop-w` | 190px | Desktop venue-list overlay width |
+| `size-venue-detail-panel-w` | 390px | Desktop venue-detail overlay width |
 | `size-slider-thumb` | 14.1px × 14.1px | Time slider thumb |
 | `size-slider-track-h` | 6px | Time slider / timeline bar height |
 | `size-timeline-h` | 12px | Venue detail timeline bar height |
@@ -228,6 +231,7 @@ These are the **default** transition values for micro-interactions and state cha
 | `duration-fast` | `150ms` | Icon state changes, tab switches, badge updates |
 | `duration-default` | `200ms` | Button hover/press, opacity fades, colour transitions |
 | `duration-slow` | `300ms` | Panel reveals, card expansions, sheet peek-to-rest |
+| `duration-detail-exit` | `250ms` | Venue detail sheet/panel dismissal. JS reads `DURATION_DETAIL_EXIT_S` from `lib/constants/animation.ts`; CSS reads `--duration-detail-exit`. |
 | `ease-default` | `ease-in-out` | Standard interactive transitions |
 | `ease-enter` | `ease-out` | Elements entering the screen (decelerate into place) |
 | `ease-exit` | `ease-in` | Elements leaving the screen (accelerate out) |

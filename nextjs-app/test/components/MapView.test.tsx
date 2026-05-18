@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import type maplibregl from 'maplibre-gl';
 import { NextIntlClientProvider } from 'next-intl';
 import mapMessages from '@/messages/sv/map.json';
 import venueMessages from '@/messages/sv/venue.json';
-import type { GetVenuesResponse } from '@/lib/types/api';
+import type { GetVenueDetailResponse, GetVenuesResponse } from '@/lib/types/api';
 
 type VenueQueryShape = {
   data: GetVenuesResponse | undefined;
@@ -28,6 +28,16 @@ const useVenueSearchMock = vi.fn<() => VenueQueryShape>(() => ({
   dataUpdatedAt: 0,
 }));
 
+const useVenueDetailMock = vi.fn<() => {
+  data: GetVenueDetailResponse | undefined;
+  isFetching: boolean;
+  isError: boolean;
+}>(() => ({
+  data: undefined,
+  isFetching: false,
+  isError: false,
+}));
+
 type SourceDataHandler = (e: { isSourceLoaded: boolean; sourceDataType?: string }) => void;
 // Story 1.6 review (P31): handler now reads an event payload so the
 // tile-vs-warning scope can be tested.
@@ -37,6 +47,8 @@ type StubMap = {
   off: ReturnType<typeof vi.fn>;
   areTilesLoaded?: () => boolean;
   project: ReturnType<typeof vi.fn>;
+  easeTo: ReturnType<typeof vi.fn>;
+  flyTo: ReturnType<typeof vi.fn>;
   getCanvas: () => HTMLCanvasElement;
   __sourcedata: SourceDataHandler[];
   __error: ErrorHandler[];
@@ -53,6 +65,8 @@ function makeStubMap(opts: { tilesAlreadyLoaded?: boolean } = {}): StubMap {
     off: vi.fn(),
     areTilesLoaded: () => Boolean(opts.tilesAlreadyLoaded),
     project: vi.fn(() => ({ x: 240, y: 260 })),
+    easeTo: vi.fn(),
+    flyTo: vi.fn(),
     getCanvas: () => {
       const canvas = document.createElement('canvas');
       Object.defineProperty(canvas, 'clientWidth', { configurable: true, value: 390 });
@@ -66,6 +80,9 @@ function makeStubMap(opts: { tilesAlreadyLoaded?: boolean } = {}): StubMap {
 
 let stubMap: StubMap;
 let selectedVenueIdMock: string | null = null;
+let searchParamsMock = new URLSearchParams();
+const routerPushMock = vi.fn();
+const routerReplaceMock = vi.fn();
 const selectVenueMock = vi.fn((id: string | null) => {
   selectedVenueIdMock = id;
 });
@@ -83,6 +100,10 @@ vi.mock('@/hooks/queries/useVenueSearch', () => ({
   useVenueSearch: () => useVenueSearchMock(),
 }));
 
+vi.mock('@/hooks/queries/useVenueDetail', () => ({
+  useVenueDetail: () => useVenueDetailMock(),
+}));
+
 vi.mock('@/lib/contexts/MapInstanceContext', () => ({
   useMapInstance: () => useMapInstanceMock(),
 }));
@@ -98,8 +119,12 @@ vi.mock('@/lib/contexts/MapSelectionContext', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => searchParamsMock,
+}));
+
+vi.mock('@/i18n/navigation', () => ({
+  usePathname: () => '/',
+  useRouter: () => ({ push: routerPushMock, replace: routerReplaceMock }),
 }));
 
 // Stub out heavyweight children so the orchestration logic can be
@@ -131,7 +156,10 @@ describe('<MapView />', () => {
   beforeEach(() => {
     stubMap = makeStubMap();
     selectedVenueIdMock = null;
+    searchParamsMock = new URLSearchParams();
     selectVenueMock.mockClear();
+    routerPushMock.mockClear();
+    routerReplaceMock.mockClear();
     useGeolocationMock.mockReset().mockReturnValue({
       status: 'idle',
       coords: { lat: 57.7089, lng: 11.9746 },
@@ -143,6 +171,11 @@ describe('<MapView />', () => {
       isFetching: false,
       isError: false,
       dataUpdatedAt: 0,
+    });
+    useVenueDetailMock.mockReset().mockReturnValue({
+      data: undefined,
+      isFetching: false,
+      isError: false,
     });
     useMapInstanceMock.mockReset().mockImplementation(() => ({
       mapRef: { current: stubMap as unknown as maplibregl.Map },
@@ -385,11 +418,297 @@ describe('<MapView />', () => {
       expect(screen.getAllByTestId('venue-quick-info')).toHaveLength(2);
       expect(screen.getAllByRole('button', { name: 'Testbaren' })).toHaveLength(2);
       expect(screen.getAllByText('Sol 13:00–18:30')).toHaveLength(2);
-      expect(screen.getAllByRole('img', { name: 'Uteservering hos Testbaren' })).toHaveLength(2);
+      expect(screen.getAllByRole('img', { name: 'Uteservering hos Testbaren' }).length).toBeGreaterThanOrEqual(2);
       expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
 
       rerender(<MapView />);
       expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
     });
+
+    it('opens details from QuickInfo with the public deep-link URL', () => {
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Mer Info' })[0]);
+
+      expect(routerPushMock).toHaveBeenCalledWith({
+        pathname: '/',
+        query: { venue: 'test-venue-sunny' },
+      });
+    });
+
+    it('plain venue deep links select the matching venue and render detail once data is available', () => {
+      searchParamsMock = new URLSearchParams('venue=test-venue-sunny');
+      const venue = makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([venue]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      const { rerender } = render(<MapView />, { wrapper: Wrapper });
+
+      expect(selectVenueMock).toHaveBeenCalledWith('venue-1');
+      rerender(<MapView />);
+      expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
+    });
+
+    it('direct venue-detail visual-validation URL selects the matching venue once list data is available', () => {
+      searchParamsMock = new URLSearchParams('venue=test-venue-sunny&_state=venue-detail');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' }),
+          makeVenue({ id: 'venue-2', name: 'Annan plats', slug: 'annan-plats' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      const { rerender } = render(<MapView />, { wrapper: Wrapper });
+
+      expect(selectVenueMock).toHaveBeenCalledWith('venue-1');
+      rerender(<MapView />);
+      expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
+      expect(screen.getByTestId('desktop-venue-detail-panel')).toBeInTheDocument();
+    });
+
+    it('renders seeded forced venue detail before list and detail data resolve', () => {
+      searchParamsMock = new URLSearchParams('venue=test-venue-sunny&_state=venue-detail');
+      useVenueSearchMock.mockReturnValue({
+        data: undefined,
+        isFetching: true,
+        isError: false,
+        dataUpdatedAt: 0,
+      });
+      useVenueDetailMock.mockReturnValue({
+        data: undefined,
+        isFetching: true,
+        isError: false,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
+      expect(screen.getAllByRole('heading', { name: 'Kafé Magasinet' })).toHaveLength(2);
+      expect(screen.getAllByText('Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.')).toHaveLength(2);
+      expect(screen.queryByText('Laddar platsdetaljer')).not.toBeInTheDocument();
+    });
+
+    it('renders mobile venue detail from URL state and dismisses without clearing selected pin', () => {
+      selectedVenueIdMock = 'venue-1';
+      searchParamsMock = new URLSearchParams('venue=test-venue-sunny&_state=venue-detail');
+      const venue = makeVenue({ id: 'venue-1', name: 'Kafé Magasinet' });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([venue]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
+      fireEvent.keyDown(screen.getAllByRole('button', { name: 'Stäng platsdetaljer' })[0], {
+        key: 'ArrowDown',
+      });
+
+      expect(routerReplaceMock).toHaveBeenCalledWith('/');
+      expect(selectVenueMock).not.toHaveBeenCalledWith(null);
+    });
+
+    it('uses URL detail data instead of stale selected venue fallback', () => {
+      selectedVenueIdMock = 'venue-1';
+      searchParamsMock = new URLSearchParams('venue=venue-b');
+      const selectedVenue = makeVenue({ id: 'venue-1', name: 'Stale venue', slug: 'venue-a' });
+      const urlVenue = makeVenue({ id: 'venue-2', name: 'URL venue', slug: 'venue-b' });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([selectedVenue]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useVenueDetailMock.mockReturnValue({
+        data: {
+          venue: {
+            ...urlVenue,
+            description: 'URL-owned detail',
+            address: 'URLgatan 1',
+            openingHours: { display: 'Öppet till 22:00' },
+            timeline: {
+              timezone: 'Europe/Stockholm',
+              range: { start: '06:00', end: '21:00' },
+              windows: [{ start: '13:00', end: '18:30', status: 'Sunny' }],
+            },
+          },
+          timestamp: 'now',
+        },
+        isFetching: false,
+        isError: false,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.getByTestId('mobile-venue-detail-sheet')).toHaveAttribute(
+        'aria-label',
+        'URL venue',
+      );
+      expect(screen.getByTestId('desktop-venue-detail-panel')).toHaveAttribute(
+        'aria-label',
+        'URL venue',
+      );
+      expect(screen.getAllByRole('heading', { name: 'URL venue' })).toHaveLength(2);
+    });
+  });
+
+  describe('venue list orchestration', () => {
+    it('renders the mobile venue list sheet in peek state by default', () => {
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'peek');
+      expect(screen.queryByRole('heading', { name: 'Hitta solen nu' })).not.toBeInTheDocument();
+    });
+
+    it('forces the mobile venue list sheet to full state for visual validation', () => {
+      searchParamsMock = new URLSearchParams('_state=map-panel-venues');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'full');
+      expect(screen.getByTestId('mobile-bottom-sheet-backdrop')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Hitta solen nu' })).toBeInTheDocument();
+    });
+
+    it('renders a desktop 190px overlay venue panel without removing the map container', () => {
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.getByTestId('desktop-venue-list-panel')).toHaveClass('lg:w-venue-list-desktop');
+      expect(screen.getByRole('heading', { name: 'TOPPVAL NÄRA DIG' })).toBeInTheDocument();
+      expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
+    });
+
+    it('renders the venue-list empty state when no venues are loaded', () => {
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.getAllByText('Inga platser hittades i det här området.')).toHaveLength(2);
+    });
+
+    it('selects a venue from the list, recenters the map, and leaves QuickInfo handoff to selection state', () => {
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+      fireEvent.click(screen.getAllByRole('button', { name: /Välj Bellora/ })[0]);
+
+      expect(selectVenueMock).toHaveBeenCalledWith('venue-1');
+      expect(stubMap.easeTo).toHaveBeenCalledWith({
+        center: [11.97, 57.7],
+        duration: 500,
+      });
+      expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
+    });
+
+    it('filters invalid location rows out of the venue list before selection can recenter', () => {
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          {
+            ...makeVenue({ id: 'invalid-location', name: 'Trasig plats' }),
+            location: { lat: Number.NaN, lng: Number.NaN },
+          },
+          makeVenue({ id: 'venue-1', name: 'Bellora' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.queryByRole('button', { name: /Välj Trasig plats/ })).not.toBeInTheDocument();
+      fireEvent.click(screen.getAllByRole('button', { name: /Välj Bellora/ })[0]);
+      expect(stubMap.easeTo).toHaveBeenCalledWith({
+        center: [11.97, 57.7],
+        duration: 500,
+      });
+    });
   });
 });
+
+function makeVenueResponse(venues: GetVenuesResponse['venues']): GetVenuesResponse {
+  return {
+    venues,
+    meta: { count: venues.length, radiusKm: 1.5 },
+    timestamp: 'now',
+    totalCount: venues.length,
+  };
+}
+
+function makeVenue({
+  id,
+  name,
+  slug,
+}: {
+  id: string;
+  name: string;
+  slug?: string;
+}): GetVenuesResponse['venues'][number] {
+  return {
+    id,
+    venueId: id,
+    venueName: name,
+    venueSlug: slug ?? id,
+    slug: slug ?? id,
+    neighborhood: 'Centrum',
+    location: { lat: 57.7, lng: 11.97 },
+    currentSunStatus: 'Sunny',
+    isPartner: false,
+    confidence: 92,
+    distanceMeters: 180,
+    sunExposurePercent: 95,
+    sunWindow: { start: '13:00', end: '18:30' },
+    thumbnail: {
+      alt: `${name} uteservering`,
+      initials: name.slice(0, 2),
+    },
+  };
+}

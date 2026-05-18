@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 
 /**
  * Desktop top navigation (viewport ≥ 1024 px). 84 px tall, holds the

@@ -1,9 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
+import type { AnchorHTMLAttributes } from 'react';
 import { renderWithProviders } from '@/test/setup/test-utils';
 
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(),
+}));
+
+vi.mock('next-intl/navigation', () => ({
+  createNavigation: () => ({
+    Link: ({ href, children, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
+      <a href={String(href)} {...props}>
+        {children}
+      </a>
+    ),
+  }),
 }));
 
 const NAV_MESSAGES = {

@@ -3,17 +3,30 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AnimatePresence } from 'motion/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import {
   VenueQuickInfo,
   type VenueQuickInfoDesktopPlacement,
 } from '@/components/composed/venue/VenueQuickInfo';
+import {
+  MobileBottomSheet,
+  type MobileBottomSheetState,
+} from '@/components/custom/sheets/MobileBottomSheet';
+import { VenueDetailOverlay } from '@/components/custom/venue/VenueDetailOverlay';
+import {
+  currentTimeLabel,
+  resolveForcedVisualVenueDetail,
+} from '@/components/custom/venue/forced-venue-detail';
+import { isVenueSunnyForList, VenueList } from '@/components/custom/venue/VenueList';
+import { useVenueDetail } from '@/hooks/queries/useVenueDetail';
 import { useVenueSearch } from '@/hooks/queries/useVenueSearch';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { usePathname, useRouter } from '@/i18n/navigation';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
 import { type VenuePinData } from '@/lib/types/map';
 import type { VenueDataDto } from '@/lib/types/api';
+import { DURATION_FLY_MS } from '@/lib/constants/animation';
 import { useForcedState } from '@/lib/dev/use-forced-state';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
 import { mapVenueDtoToPinData } from '@/lib/utils/venue-pin-mapping';
@@ -60,15 +73,20 @@ const TILE_FAILURE_RELEASE_THRESHOLD = 4;
  */
 export function MapView() {
   const tVenue = useTranslations('venue');
+  const tVenueDetail = useTranslations('venue.detail');
+  const tVenueList = useTranslations('venue.list');
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
   const { selectedVenueId, selectVenue } = useMapSelection();
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const forcedState = useForcedState();
   const [quickInfoPosition, setQuickInfoPosition] = useState<{ x: number; y: number } | undefined>();
   const [quickInfoDesktopPlacement, setQuickInfoDesktopPlacement] =
     useState<VenueQuickInfoDesktopPlacement>('above');
+  const [mobileSheetState, setMobileSheetState] =
+    useState<MobileBottomSheetState>('peek');
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
@@ -164,14 +182,52 @@ export function MapView() {
     if (!selectedVenueId) return null;
     return venues.find((venue) => venue.id === selectedVenueId) ?? null;
   }, [selectedVenueId, venues]);
+  const venueSlugParam = searchParams.get('venue');
+  const canRequestVenueDetail = Boolean(venueSlugParam) &&
+    forcedState !== 'map-with-selected-venue';
+  const venueDetailQuery = useVenueDetail(canRequestVenueDetail ? venueSlugParam : null);
+  const forcedVisualVenueDetail = useMemo(
+    () => resolveForcedVisualVenueDetail(venueSlugParam, forcedState),
+    [forcedState, venueSlugParam],
+  );
+  const detailVenue = venueDetailQuery.data?.venue ?? forcedVisualVenueDetail;
+  const detailFallbackVenue = useMemo(() => {
+    if (!venueSlugParam) return null;
+    if (detailVenue) return detailVenue;
+    if (Array.isArray(rawVenues)) {
+      const listVenue = rawVenues.find((venue) => venue.slug === venueSlugParam);
+      if (listVenue) return listVenue;
+    }
+    if (selectedVenueDto?.slug === venueSlugParam) return selectedVenueDto;
+    if (venueDetailQuery.isFetching || venueDetailQuery.isError) {
+      return fallbackVenueFromSlug(venueSlugParam);
+    }
+    return null;
+  }, [
+    detailVenue,
+    rawVenues,
+    selectedVenueDto,
+    venueDetailQuery.isError,
+    venueDetailQuery.isFetching,
+    venueSlugParam,
+  ]);
+  const isVenueDetailRequested = canRequestVenueDetail;
 
   useEffect(() => {
-    if (forcedState !== 'map-with-selected-venue') return;
+    if (forcedState === 'map-panel-venues') {
+      setMobileSheetState('full');
+    }
+  }, [forcedState]);
+
+  useEffect(() => {
+    if (forcedState !== 'map-with-selected-venue' && !venueSlugParam) return;
     if (!Array.isArray(rawVenues) || rawVenues.length === 0) return;
-    const slug = searchParams.get('venue');
-    const match = rawVenues.find((venue) => venue.slug === slug) ?? rawVenues[0];
+    const match = venueSlugParam
+      ? rawVenues.find((venue) => venue.slug === venueSlugParam)
+      : rawVenues[0];
+    if (!match) return;
     selectVenue(match.id);
-  }, [forcedState, rawVenues, searchParams, selectVenue]);
+  }, [forcedState, rawVenues, selectVenue, venueSlugParam]);
 
   useEffect(() => {
     if (!mapInstance || !selectedVenueDto) {
@@ -216,14 +272,112 @@ export function MapView() {
   const handleOpenDetails = () => {
     const slug = selectedVenueDto?.slug ?? selectedPinData?.slug;
     if (!slug) return;
-    router.push(`?venue=${encodeURIComponent(slug)}&_state=venue-detail`);
+    router.push({
+      pathname,
+      query: {
+        ...queryWithout(searchParams, ['_state']),
+        venue: slug,
+      },
+    });
   };
+
+  const handleDismissDetails = () => {
+    const query = queryWithout(searchParams, ['venue', '_state']);
+    router.replace(Object.keys(query).length > 0 ? { pathname, query } : pathname);
+  };
+
+  const handleSelectVenueFromList = (venue: VenueDataDto) => {
+    selectVenue(venue.id);
+    setMobileSheetState('peek');
+    if (mapInstance && hasValidVenueLocation(venue)) {
+      mapInstance.easeTo({
+        center: [venue.location.lng, venue.location.lat],
+        duration: DURATION_FLY_MS,
+      });
+    }
+  };
+
+  const listVenues = useMemo(
+    () => (Array.isArray(rawVenues) ? rawVenues.filter(hasValidVenueLocation) : []),
+    [rawVenues],
+  );
+  const sunnyVenueCount = listVenues.filter(isVenueSunnyForList).length;
 
   return (
     <div className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full">
       <MapContainer />
       <VenuePinLayer venues={venues} />
+      <MobileBottomSheet
+        state={mobileSheetState}
+        onStateChange={setMobileSheetState}
+        handleLabel={tVenueList('handle')}
+      >
+        <div className="pb-2">
+          <h2 className="text-heading-xl text-text-primary">
+            {tVenueList('headerMobile')}
+          </h2>
+          <p className="mt-1 text-body-sm text-text-body">
+            {tVenueList('subtitle', { count: sunnyVenueCount })}
+          </p>
+        </div>
+        <VenueList
+          venues={listVenues}
+          mode="mobile"
+          isLoading={venueQuery.isFetching && listVenues.length === 0}
+          animateCards={mobileSheetState === 'full'}
+          onSelectVenue={handleSelectVenueFromList}
+        />
+      </MobileBottomSheet>
+      <aside
+        data-testid="desktop-venue-list-panel"
+        className="absolute left-0 top-0 bottom-0 z-bottom-sheet-peek hidden lg:flex lg:w-venue-list-desktop flex-col border-r border-divider bg-surface-cream shadow-card"
+      >
+        <div className="border-b border-divider px-3 py-4">
+          <h2 className="text-heading-sm uppercase tracking-section-label text-text-body">
+            {tVenueList('headerDesktop')}
+          </h2>
+          <p className="mt-2 text-label-lg text-text-primary">
+            {tVenueList('subtitle', { count: sunnyVenueCount })}
+          </p>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-2">
+          <VenueList
+            venues={listVenues}
+            mode="desktop"
+            isLoading={venueQuery.isFetching && listVenues.length === 0}
+            onSelectVenue={handleSelectVenueFromList}
+          />
+        </div>
+      </aside>
       <AnimatePresence>
+        {detailFallbackVenue && isVenueDetailRequested && (
+          <VenueDetailOverlay
+            key="venue-detail-mobile"
+            mode="mobile"
+            fallbackVenue={detailFallbackVenue}
+            detail={detailVenue ?? undefined}
+            isLoading={venueDetailQuery.isFetching && !detailVenue}
+            currentTime={currentTimeLabel()}
+            labels={venueDetailLabels(tVenueDetail)}
+            onDismiss={handleDismissDetails}
+            onRoute={() => {}}
+            routeDisabled
+          />
+        )}
+        {detailFallbackVenue && isVenueDetailRequested && (
+          <VenueDetailOverlay
+            key="venue-detail-desktop"
+            mode="desktop"
+            fallbackVenue={detailFallbackVenue}
+            detail={detailVenue ?? undefined}
+            isLoading={venueDetailQuery.isFetching && !detailVenue}
+            currentTime={currentTimeLabel()}
+            labels={venueDetailLabels(tVenueDetail)}
+            onDismiss={handleDismissDetails}
+            onRoute={() => {}}
+            routeDisabled
+          />
+        )}
         {selectedPinData && (
           <VenueQuickInfo
             key="quick-info-mobile"
@@ -282,6 +436,54 @@ function resolveSunTimeRange(venue: VenueDataDto | null): string | undefined {
   return `Sol ${venue.sunWindow.start}–${venue.sunWindow.end}`;
 }
 
+function hasValidVenueLocation(venue: VenueDataDto): boolean {
+  return Number.isFinite(venue.location?.lat) && Number.isFinite(venue.location?.lng);
+}
+
+function fallbackVenueFromSlug(slug: string): VenueDataDto {
+  const name = slug
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ') || slug;
+
+  return {
+    id: slug,
+    venueId: slug,
+    venueName: name,
+    venueSlug: slug,
+    slug,
+    neighborhood: '',
+    location: { lat: Number.NaN, lng: Number.NaN },
+    currentSunStatus: 'Shaded',
+    isPartner: false,
+    confidence: 0,
+    distanceMeters: Number.NaN,
+    sunExposurePercent: 0,
+    thumbnail: { alt: name, initials: name.slice(0, 2) },
+  };
+}
+
+function queryWithout(
+  params: Pick<URLSearchParams, 'forEach'>,
+  excludedKeys: string[],
+): Record<string, string | string[]> {
+  const excluded = new Set(excludedKeys);
+  const query: Record<string, string | string[]> = {};
+
+  params.forEach((value, key) => {
+    if (excluded.has(key)) return;
+    const current = query[key];
+    if (current === undefined) {
+      query[key] = value;
+      return;
+    }
+    query[key] = Array.isArray(current) ? [...current, value] : [current, value];
+  });
+
+  return query;
+}
+
 function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
   return {
     route: t('quickInfo.route'),
@@ -292,6 +494,32 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     distance: t('quickInfo.distance'),
     loadingSun: t('quickInfo.loadingSun'),
     sunUnavailable: t('quickInfo.sunUnavailable'),
+  };
+}
+
+function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue.detail'>>) {
+  return {
+    close: t('close'),
+    favourite: t('favourite'),
+    share: t('share'),
+    sectionTitle: t('sectionTitle'),
+    peakTime: t('peakTime', { time: '{time}' }),
+    openMaps: t('openMaps'),
+    route: t('route'),
+    photoPlaceholder: t('photoPlaceholder'),
+    loading: t('loading'),
+    detailsUnavailable: t('detailsUnavailable'),
+    openingHours: t('openingHours'),
+    address: t('address'),
+    shadowWarning: t('shadowWarning', { minutes: '{minutes}' }),
+    sunBadge: t('sunBadge', { percent: '{percent}' }),
+    timeline: {
+      ariaLabel: t('timeline.ariaLabel'),
+      currentTime: t('timeline.currentTime', { time: '{time}' }),
+      sunnyWindow: t('timeline.sunnyWindow', { start: '{start}', end: '{end}' }),
+      partialWindow: t('timeline.partialWindow', { start: '{start}', end: '{end}' }),
+      shadedWindow: t('timeline.shadedWindow', { start: '{start}', end: '{end}' }),
+    },
   };
 }
 

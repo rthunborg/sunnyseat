@@ -122,7 +122,125 @@ test.describe('map-primary', () => {
 
     await quickInfo.getByRole('button', { name: /Kafé Magasinet/i }).click();
     await expect(page).toHaveURL(/venue=test-venue-sunny/);
-    await expect(page).toHaveURL(/_state=venue-detail/);
+    await expect(page).not.toHaveURL(/_state=venue-detail/);
+    const sheet = page.getByTestId('mobile-venue-detail-sheet');
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole('heading', { name: /Kafé Magasinet/i })).toBeVisible();
+    await expect(sheet.getByRole('link', { name: /ÖPPNA I KARTOR/i })).toHaveAttribute(
+      'href',
+      /57\.705/,
+    );
+    await sheet.getByRole('button', { name: 'Stäng platsdetaljer' }).press('ArrowDown');
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]')).toHaveCount(1);
+  });
+
+  test('mobile: forced venue panel expands and collapses without covering bottom nav', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'mobile',
+      'Venue-list bottom sheet checks run only in the mobile Playwright project',
+    );
+
+    await bypassOnboarding(page);
+    await page.goto('/?_state=map-panel-venues');
+
+    const sheet = page.getByTestId('mobile-bottom-sheet');
+    const nav = page.getByTestId('mobile-nav-bar');
+    await expect(sheet).toHaveAttribute('data-state', 'full');
+    await expect(page.getByRole('heading', { name: 'Hitta solen nu' })).toBeVisible();
+    await expect(page.getByTestId('venue-card').first()).toBeVisible();
+
+    const handle = page.getByTestId('mobile-bottom-sheet-handle');
+    const handleBox = await handle.boundingBox();
+    expect(handleBox).not.toBeNull();
+    await handle.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const pointer = {
+        pointerId: 1,
+        pointerType: 'touch',
+        isPrimary: true,
+        bubbles: true,
+        cancelable: true,
+      } as const;
+      element.dispatchEvent(new PointerEvent('pointerdown', {
+        ...pointer,
+        clientX: x,
+        clientY: y,
+        buttons: 1,
+      }));
+      element.dispatchEvent(new PointerEvent('pointermove', {
+        ...pointer,
+        clientX: x,
+        clientY: y + 260,
+        buttons: 1,
+      }));
+      element.dispatchEvent(new PointerEvent('pointerup', {
+        ...pointer,
+        clientX: x,
+        clientY: y + 260,
+        buttons: 0,
+      }));
+    });
+    await expect(sheet).toHaveAttribute('data-state', 'peek');
+    await expect(nav).toBeVisible();
+
+    const sheetBox = await sheet.boundingBox();
+    const navBox = await nav.boundingBox();
+    expect(sheetBox).not.toBeNull();
+    expect(navBox).not.toBeNull();
+    if (sheetBox && navBox) {
+      expect(sheetBox.y + sheetBox.height).toBeLessThanOrEqual(navBox.y + 1);
+    }
+  });
+
+  test('mobile: selecting a venue from the full panel returns to peek and opens QuickInfo', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'mobile',
+      'Venue-list selection flow runs only in the mobile Playwright project',
+    );
+
+    await bypassOnboarding(page);
+    await page.goto('/?_state=map-panel-venues');
+
+    const firstCard = page.getByTestId('venue-card').first();
+    await expect(firstCard).toBeVisible();
+    await firstCard.click();
+
+    await expect(page.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'peek');
+    await expect(page.getByTestId('venue-quick-info').first()).toBeVisible();
+  });
+
+  test('mobile: reduced motion disables venue-card stagger and sheet transform animation', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'mobile',
+      'Reduced-motion venue-list check runs only in the mobile Playwright project',
+    );
+
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await bypassOnboarding(page);
+    await page.goto('/?_state=map-panel-venues');
+
+    const firstCard = page.getByTestId('venue-card').first();
+    await expect(firstCard).toBeVisible();
+    const animationName = await firstCard.evaluate(
+      (el) => window.getComputedStyle(el).animationName,
+    );
+    expect(animationName).toBe('none');
+
+    await page.getByTestId('mobile-bottom-sheet-handle').press('ArrowDown');
+    await expect(page.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'peek');
+    const sheetTransform = await page.getByTestId('mobile-bottom-sheet').evaluate(
+      (el) => window.getComputedStyle(el).transform,
+    );
+    expect(sheetTransform === 'none' || sheetTransform === 'matrix(1, 0, 0, 1, 0, 0)').toBe(true);
   });
 
   test('desktop: selected venue renders a popover with Mer Info handoff', async ({
@@ -141,7 +259,45 @@ test.describe('map-primary', () => {
     await expect(quickInfo).toBeVisible();
     await expect(quickInfo.getByRole('button', { name: 'Mer Info' })).toBeVisible();
     await quickInfo.getByRole('button', { name: 'Mer Info' }).click();
-    await expect(page).toHaveURL(/_state=venue-detail/);
+    await expect(page).toHaveURL(/venue=test-venue-sunny/);
+    await expect(page).not.toHaveURL(/_state=venue-detail/);
+    const panel = page.getByTestId('desktop-venue-detail-panel');
+    await expect(panel).toBeVisible();
+    await expect(page.getByTestId('desktop-venue-list-panel')).toBeVisible();
+    const panelBox = await panel.boundingBox();
+    expect(panelBox).not.toBeNull();
+    if (panelBox) {
+      expect(panelBox.width).toBeCloseTo(390, 0);
+    }
+    await panel.getByRole('button', { name: 'Stäng platsdetaljer' }).click();
+    await expect(page).toHaveURL(/\/$/);
+  });
+
+  test('desktop: venue list renders as a 190px overlay panel above the full map', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'desktop',
+      'Desktop venue-list panel check runs only in the desktop Playwright project',
+    );
+
+    await bypassOnboarding(page);
+    await page.goto('/');
+
+    const panel = page.getByTestId('desktop-venue-list-panel');
+    await expect(panel).toBeVisible();
+    await expect(panel.getByRole('heading', { name: 'TOPPVAL NÄRA DIG' })).toBeVisible();
+    const firstCard = panel.getByTestId('venue-card').first();
+    await expect(firstCard).toBeVisible();
+    const panelBox = await panel.boundingBox();
+    expect(panelBox).not.toBeNull();
+    if (panelBox) {
+      expect(panelBox.width).toBeCloseTo(190, 0);
+    }
+    await expect(page.getByTestId('map-container')).toBeVisible();
+
+    await firstCard.click();
+    await expect(page.getByTestId('venue-quick-info').last()).toBeVisible();
   });
 
   test('mobile: pin morphs from pill to circle when selected (Story 1.4 AC3)', async ({

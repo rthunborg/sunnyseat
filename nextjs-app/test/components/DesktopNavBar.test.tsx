@@ -1,7 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { screen } from '@testing-library/react';
+import type { AnchorHTMLAttributes } from 'react';
 import { renderWithProviders } from '@/test/setup/test-utils';
 import { DesktopNavBar } from '@/components/custom/layout/DesktopNavBar';
+
+vi.mock('next-intl/navigation', () => ({
+  createNavigation: () => ({
+    Link: ({ href, children, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
+      <a href={String(href)} {...props}>
+        {children}
+      </a>
+    ),
+  }),
+}));
 
 const NAV_MESSAGES = {
   common: {

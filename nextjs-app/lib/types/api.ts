@@ -61,6 +61,11 @@ export interface GetVenuesResponse {
   totalCount: number;
 }
 
+export interface GetVenueDetailResponse {
+  venue: VenueDetailDto;
+  timestamp: string;
+}
+
 export interface VenueDataDto {
   id: string; // venueId
   venueId: string;
@@ -84,6 +89,33 @@ export interface VenueDataDto {
     initials: string;
     url?: string;
   };
+}
+
+export interface VenueDetailDto extends VenueDataDto {
+  description: string;
+  address: string;
+  openingHours: {
+    display: string;
+    closesAt?: string;
+  };
+  timeline: VenueSunTimelineDto;
+  shadowWarningMinutes?: number;
+}
+
+export interface VenueSunTimelineDto {
+  timezone: 'Europe/Stockholm';
+  range: {
+    start: string;
+    end: string;
+  };
+  windows: VenueSunTimelineWindowDto[];
+  peakTime?: string;
+}
+
+export interface VenueSunTimelineWindowDto {
+  start: string;
+  end: string;
+  status: VenueDataDto['currentSunStatus'];
 }
 
 export interface CoordinatesDto {

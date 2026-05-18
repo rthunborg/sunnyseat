@@ -100,6 +100,7 @@
   --duration-fast: 150ms;
   --duration-default: 200ms;
   --duration-slow: 300ms;
+  --duration-detail-exit: 250ms;
   --ease-default: ease-in-out;
   --ease-enter: ease-out;
   --ease-exit: ease-in;
@@ -163,6 +164,12 @@
   /* ---- Component sizes (Tailwind v4 namespace) ---- */
   --size-mobile-nav-h: 40px;
   --size-desktop-nav-h: 84px;
+  --size-bottom-sheet-full-top: 22dvh;
+  --size-venue-list-desktop-w: 190px;
+  --size-venue-detail-panel-w: 390px;
+
+  /* ---- Letter spacing ---- */
+  --tracking-section-label: 1.4px;
 }
 
 /* ============================================================
@@ -200,6 +207,13 @@
     linear-gradient(135deg, var(--color-amber-primary) 0%, var(--color-amber-gold) 46%, var(--color-amber-pale) 100%);
 }
 
+@utility venue-detail-hero-gradient {
+  background:
+    radial-gradient(circle at 74% 18%, color-mix(in srgb, var(--color-surface-cream) 72%, transparent) 0 13%, transparent 34%),
+    repeating-linear-gradient(135deg, color-mix(in srgb, var(--color-surface-cream) 42%, transparent) 0 1px, transparent 1px 18px),
+    linear-gradient(135deg, var(--color-surface-sand) 0%, var(--color-amber-pale) 56%, var(--color-surface-cream) 100%);
+}
+
 @utility gradient-sun-burst-warm {
   background: var(--gradient-sun-burst-warm);
 }
@@ -228,6 +242,18 @@
 
 @utility gradient-timeline-bar {
   background: var(--gradient-timeline-bar);
+}
+
+@utility w-venue-list-desktop {
+  width: var(--size-venue-list-desktop-w);
+}
+
+@utility w-venue-detail-panel {
+  width: var(--size-venue-detail-panel-w);
+}
+
+@utility tracking-section-label {
+  letter-spacing: var(--tracking-section-label);
 }
 
 /* ============================================================

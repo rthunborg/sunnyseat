@@ -8,5 +8,42 @@
     "distance": "Distance",
     "loadingSun": "Loading sun data",
     "sunUnavailable": "Sun time unavailable"
+  },
+  "list": {
+    "headerMobile": "Find the sun now",
+    "headerDesktop": "TOP PICKS NEAR YOU",
+    "subtitle": "{count, plural, one {# sunny place near you} other {# sunny places near you}}",
+    "empty": "No places found in this area.",
+    "loading": "Loading places",
+    "handle": "Show venue list",
+    "sun": "Sun",
+    "photoPlaceholder": "Venue placeholder image",
+    "confidence": "Confidence",
+    "distance": "Distance",
+    "sunUnavailable": "Sun time unavailable",
+    "cardAria": "Select {name}, {sun}, Confidence {confidence}%, Distance {distance}"
+  },
+  "detail": {
+    "sectionTitle": "SUN TIMES TODAY",
+    "peakTime": "Peaks at {time}",
+    "openMaps": "OPEN IN MAPS",
+    "route": "Show Route",
+    "close": "Close venue details",
+    "favourite": "Save venue",
+    "share": "Share venue",
+    "photoPlaceholder": "Venue placeholder image",
+    "loading": "Loading venue details",
+    "detailsUnavailable": "Details unavailable",
+    "openingHours": "Opening hours",
+    "address": "Address",
+    "shadowWarning": "Shady in {minutes} min",
+    "sunBadge": "{percent}% sun",
+    "timeline": {
+      "ariaLabel": "Sun times today",
+      "currentTime": "Now {time}",
+      "sunnyWindow": "Sun {start}-{end}",
+      "partialWindow": "Partial sun {start}-{end}",
+      "shadedWindow": "Shade {start}-{end}"
+    }
   }
 }

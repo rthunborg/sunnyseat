@@ -8,5 +8,42 @@
     "distance": "Avstånd",
     "loadingSun": "Laddar soldata",
     "sunUnavailable": "Soltid saknas"
+  },
+  "list": {
+    "headerMobile": "Hitta solen nu",
+    "headerDesktop": "TOPPVAL NÄRA DIG",
+    "subtitle": "{count, plural, one {# solig plats nära dig} other {# soliga platser nära dig}}",
+    "empty": "Inga platser hittades i det här området.",
+    "loading": "Laddar platser",
+    "handle": "Visa platslistan",
+    "sun": "Sol",
+    "photoPlaceholder": "Platshållarbild för platsen",
+    "confidence": "Säkerhet",
+    "distance": "Avstånd",
+    "sunUnavailable": "Soltid saknas",
+    "cardAria": "Välj {name}, {sun}, Säkerhet {confidence}%, Avstånd {distance}"
+  },
+  "detail": {
+    "sectionTitle": "SOLTIDER IDAG",
+    "peakTime": "Toppar kl {time}",
+    "openMaps": "ÖPPNA I KARTOR",
+    "route": "Visa Rutt",
+    "close": "Stäng platsdetaljer",
+    "favourite": "Spara plats",
+    "share": "Dela plats",
+    "photoPlaceholder": "Platshållarbild för platsen",
+    "loading": "Laddar platsdetaljer",
+    "detailsUnavailable": "Detaljer saknas",
+    "openingHours": "Öppettider",
+    "address": "Adress",
+    "shadowWarning": "Blir skuggigt om {minutes} min",
+    "sunBadge": "{percent}% sol",
+    "timeline": {
+      "ariaLabel": "Soltider idag",
+      "currentTime": "Nu {time}",
+      "sunnyWindow": "Sol {start}-{end}",
+      "partialWindow": "Delvis sol {start}-{end}",
+      "shadedWindow": "Skugga {start}-{end}"
+    }
   }
 }

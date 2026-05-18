@@ -1,6 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
+import { useForcedState } from '@/lib/dev/use-forced-state';
 import { MapLoadingFallback } from './MapLoadingFallback';
 
 /**
@@ -17,10 +19,37 @@ const MapView = dynamic(
   () => import('./MapView').then((m) => m.MapView),
   {
     ssr: false,
-    loading: () => <MapLoadingFallback />,
+    loading: () => <MapViewLoadingFallback />,
+  },
+);
+
+const ForcedVenueDetailInitialFrame = dynamic(
+  () => import('@/components/custom/venue/ForcedVenueDetailInitialFrame')
+    .then((m) => m.ForcedVenueDetailInitialFrame),
+  {
+    ssr: false,
+    loading: () => null,
   },
 );
 
 export function MapViewDynamic() {
   return <MapView />;
+}
+
+function MapViewLoadingFallback() {
+  const searchParams = useSearchParams();
+  const forcedState = useForcedState();
+  if (process.env.NODE_ENV === 'production' || forcedState !== 'venue-detail') {
+    return <MapLoadingFallback />;
+  }
+
+  return (
+    <>
+      <MapLoadingFallback />
+      <ForcedVenueDetailInitialFrame
+        slug={searchParams.get('venue')}
+        forcedState={forcedState}
+      />
+    </>
+  );
 }

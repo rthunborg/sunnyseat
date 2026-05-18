@@ -1,0 +1,104 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
+import { describe, expect, it, vi } from 'vitest';
+import { VenueList } from '@/components/custom/venue/VenueList';
+import venueMessages from '@/messages/sv/venue.json';
+import type { VenueDataDto } from '@/lib/types/api';
+
+function Wrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <NextIntlClientProvider locale="sv" messages={{ venue: venueMessages }}>
+      {children}
+    </NextIntlClientProvider>
+  );
+}
+
+describe('<VenueList />', () => {
+  it('announces the loading state semantically', () => {
+    render(
+      <VenueList
+        venues={[]}
+        mode="mobile"
+        isLoading
+        onSelectVenue={vi.fn()}
+      />,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.getByRole('status', { name: 'Laddar platser' })).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getAllByTestId('venue-card-skeleton')).toHaveLength(3);
+  });
+
+  it('sorts sunny venues first and closest first within sunny venues', () => {
+    render(
+      <VenueList
+        venues={[
+          makeVenue({ id: 'shaded', name: 'Skuggan', status: 'Shaded', distanceMeters: 50 }),
+          makeVenue({ id: 'partial-near', name: 'Delvis Nära', status: 'Partial', distanceMeters: 20, sunExposurePercent: 65 }),
+          makeVenue({ id: 'sun-far', name: 'Sol Långt', status: 'Sunny', distanceMeters: 300 }),
+          makeVenue({ id: 'sun-near', name: 'Sol Nära', status: 'Sunny', distanceMeters: 120 }),
+        ]}
+        mode="mobile"
+        onSelectVenue={vi.fn()}
+      />,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.getAllByTestId('venue-card').map((card) => card.textContent)).toEqual([
+      expect.stringContaining('Sol Nära'),
+      expect.stringContaining('Sol Långt'),
+      expect.stringContaining('Delvis Nära'),
+      expect.stringContaining('Skuggan'),
+    ]);
+  });
+
+  it('renders an empty state and calls selection with the selected DTO', () => {
+    const onSelectVenue = vi.fn();
+    const venue = makeVenue({ id: 'venue-1', name: 'Bellora', status: 'Sunny', distanceMeters: 90 });
+    const { rerender } = render(
+      <VenueList venues={[]} mode="desktop" onSelectVenue={onSelectVenue} />,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.getByText('Inga platser hittades i det här området.')).toBeInTheDocument();
+
+    rerender(
+      <Wrapper>
+        <VenueList venues={[venue]} mode="desktop" onSelectVenue={onSelectVenue} />
+      </Wrapper>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Välj Bellora/ }));
+    expect(onSelectVenue).toHaveBeenCalledWith(venue);
+  });
+});
+
+function makeVenue({
+  id,
+  name,
+  status,
+  distanceMeters,
+  sunExposurePercent,
+}: {
+  id: string;
+  name: string;
+  status: VenueDataDto['currentSunStatus'];
+  distanceMeters: number;
+  sunExposurePercent?: number;
+}): VenueDataDto {
+  return {
+    id,
+    venueId: id,
+    venueName: name,
+    venueSlug: id,
+    slug: id,
+    neighborhood: 'Centrum',
+    location: { lat: 57.7, lng: 11.97 },
+    currentSunStatus: status,
+    isPartner: false,
+    confidence: status === 'Sunny' ? 90 : 40,
+    distanceMeters,
+    sunExposurePercent: sunExposurePercent ?? (status === 'Sunny' ? 85 : 20),
+    sunWindow: status === 'Sunny' ? { start: '13:00', end: '18:30' } : undefined,
+    thumbnail: { alt: `${name} uteservering`, initials: name.slice(0, 2) },
+  };
+}
