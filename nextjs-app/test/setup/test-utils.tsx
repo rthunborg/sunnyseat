@@ -24,7 +24,6 @@ const DEFAULT_MESSAGES: Messages = {
   map: mapMessages as Record<string, MessageValue>,
   onboarding: onboardingMessages as Record<string, MessageValue>,
   venue: {},
-  premium: {},
   feedback: {},
   about: {},
 };

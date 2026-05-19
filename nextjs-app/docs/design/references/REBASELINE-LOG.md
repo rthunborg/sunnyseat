@@ -156,3 +156,19 @@ The actual cause was a post-Story-1.5 prototype-state baseline carry-forward: pr
 **Reason / spec link:** `AGENTS.md` Visual Validation requires any reference PNG or capture-recipe change to update this log in the same operation. Story 2.4 Task 8.11 requires desktop `venue-detail` visual validation as a parent screen for search/list chrome.
 
 **Re-evaluation trigger:** Re-check this wait selector if `VenueDetailOverlay` data-testid values change, if the provider-neutral wrapper stops delegating to `.claude/scripts/visual-validate.sh`, or if the visual gate moves to a provider that uses its own state-wait contract.
+
+### 2026-05-19 — MVP scope correction for premium references — planning update only
+
+**Trigger:** Rasmus approved a course correction after Story 2.4: time planner, future date picker, future sun simulation, and favourites are free MVP functionality. Season Pass, Swish payments, paywalls, premium activation, premium recovery, and payment failure flows are deferred to Future Monetization.
+
+**Resolution:** No PNG was changed in this operation. Premium/paywall/payment references are retained as future-only assets, but MVP visual gates must not require a Season Pass prompt, Swish CTA, payment status, premium recovery, or favourites lock badge. Future implementation stories must re-evaluate these references before reactivating Season Pass.
+
+**Source of new PNG:** None.
+
+**Recipe change:** None.
+
+**Verification:** Planning artifacts now mark premium screens as inactive for MVP and preserve details in `_bmad-output/planning-artifacts/future-monetization-season-pass.md`.
+
+**Reason / spec link:** Sprint Change Proposal `sprint-change-proposal-2026-05-19.md`; Future Monetization archive `future-monetization-season-pass.md`; PRD v3.1 MVP scope correction.
+
+**Re-evaluation trigger:** Mandatory rebaseline or explicit accept-with-rationale when Story 2.5 or Story 2.7 validates screens whose references still contain old locked-planner or favourites-lock chrome.

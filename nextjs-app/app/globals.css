@@ -89,7 +89,6 @@
   --radius-badge: 24px;
   --radius-card: 16px;
   --radius-venue-image: 12px;
-  --radius-premium-tag: 4px;
 
   /* ---- Backdrop Blur ---- */
   --blur-standard: 6px;
@@ -151,7 +150,6 @@
   --gradient-wordmark-sun: radial-gradient(circle, #fff6d6 0%, var(--color-amber-primary) 100%);
   --gradient-route-button: linear-gradient(169deg, var(--color-amber-dark) 0%, var(--color-amber-gold) 100%);
   --gradient-cta-amber: linear-gradient(171deg, var(--color-amber-gold) 0%, var(--color-amber-primary) 100%);
-  --gradient-premium-button: linear-gradient(174deg, var(--color-amber-gold) 0%, var(--color-amber-primary) 100%);
   --gradient-map-overlay: linear-gradient(66deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0) 50%, rgba(249, 115, 22, 0.1) 100%);
   --gradient-timeline-bar: linear-gradient(90deg, rgba(115, 92, 0, 0.2), var(--color-amber-gold) 50%, rgba(115, 92, 0, 0.2));
 
@@ -183,10 +181,6 @@
 
 @utility gradient-cta-amber {
   background: var(--gradient-cta-amber);
-}
-
-@utility gradient-premium-button {
-  background: var(--gradient-premium-button);
 }
 
 @utility gradient-map-overlay {

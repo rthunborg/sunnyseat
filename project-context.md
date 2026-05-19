@@ -2,7 +2,9 @@
 
 > **Purpose:** This file is the BMAD dev agent's injection point for design awareness. BMAD's dev agent (Amelia) loads this as foundational reference in Step 2 of its workflow. It lives at the project root — not inside `_bmad/` — so it survives BMAD reinstalls without being overwritten.
 >
-> Last updated: 2026-05-11
+> Last updated: 2026-05-19
+>
+> **MVP scope correction:** planner, future date simulation, and favourites are free MVP functionality. Season Pass / Swish is Future Monetization only.
 
 ---
 
@@ -28,7 +30,7 @@ A backend API application that helps people in Gothenburg find outdoor venue sea
 | Sun Engine | TypeScript — NREL SPA + Turf.js (`nextjs-app/lib/solar/`) |
 | Weather | Met.no Locationforecast 2.0 (`nextjs-app/lib/weather/`) |
 | Auth (Admin) | JWT (bcryptjs + jsonwebtoken) |
-| Payments | Swish Merchant API (Season Pass) |
+| Payments | Swish Merchant API (Season Pass, Future Monetization only) |
 | Validation | Zod v4 |
 | Hosting | Vercel (Fluid Compute, Cron, CDN) |
 | Testing | Vitest + Playwright |
@@ -37,7 +39,7 @@ A backend API application that helps people in Gothenburg find outdoor venue sea
 
 - **Epics 1–3, 6, 6R, 7: Complete.** Backend foundation, sun/shadow engine, weather integration, platform migration from .NET/Azure to Next.js/Vercel/Supabase, admin operations platform.
 - **Front-end: Fully removed (2026-03-25).** Clean slate for the fresh rebuild.
-- **Epic 1 (front-end rebuild) — Ready for implementation.** PRD v3.0, frontend architecture, UX design specification, and design system all complete. 7 front-end epics / 32 stories defined in `epics.md` v3.0. Start point: Story 1.1 — Project Scaffold & Design System Foundation.
+- **Front-end rebuild — in Epic 2.** Epic 1 is complete, Story 2.4 is done, and the next active planning target is Story 2.5 under the 2026-05-19 MVP scope correction. PRD v3.1 and `epics.md` now make planner/date/favourites free and preserve Season Pass / Swish as Future Monetization. Active MVP QA planning uses `_bmad-output/qa/mvp-test-design-scope-correction-2026-05-19.md`; older TEA QA docs are historical/Future Monetization input where they mention premium/payment scope.
 
 ---
 
@@ -46,11 +48,13 @@ A backend API application that helps people in Gothenburg find outdoor venue sea
 | Document | Path |
 |----------|------|
 | Project Context (this file) | `project-context.md` |
-| PRD (v3.0) | `_bmad-output/planning-artifacts/prd.md` |
+| PRD (v3.1) | `_bmad-output/planning-artifacts/prd.md` |
 | Project Brief | `_bmad-output/planning-artifacts/brief/project-brief.md` |
 | Architecture | `_bmad-output/planning-artifacts/architecture.md` |
 | UX Design Specification | `_bmad-output/planning-artifacts/ux-design-specification.md` |
-| Epics & Stories (v3.0) | `_bmad-output/planning-artifacts/epics.md` |
+| Epics & Stories (v3.1) | `_bmad-output/planning-artifacts/epics.md` |
+| MVP QA Addendum | `_bmad-output/qa/mvp-test-design-scope-correction-2026-05-19.md` |
+| Future Monetization Archive | `_bmad-output/planning-artifacts/future-monetization-season-pass.md` |
 | Design Decisions | `_bmad-output/planning-artifacts/decisions/` |
 | Implementation Readiness Report | `_bmad-output/planning-artifacts/implementation-readiness-report-2026-04-15.md` |
 | Sprint Status | `_bmad-output/implementation-artifacts/sprint-status.yaml` |
@@ -126,7 +130,7 @@ The following SunnySeat skills are maintained in `.agents/skills/` and provide d
 
 ## Dev-Only State Forcing Convention
 
-Many screens in SunnySeat are **state variants of the same URL** — the paywall overlay, onboarding screen, inline feedback flow, etc. To let the visual validation gate (and any Playwright test) reach these states by URL alone, the project uses a dev-only `_state` query parameter.
+Many screens in SunnySeat are **state variants of the same URL** — onboarding screen, inline feedback flow, future paywall reference overlays, etc. To let the visual validation gate (and any Playwright test) reach these states by URL alone, the project uses a dev-only `_state` query parameter.
 
 ### How it works
 
@@ -162,19 +166,19 @@ This table is read by `scripts/story-review.sh` and `scripts/visual-validate.sh`
 | venue-detail               | `/?venue=test-venue-sunny&_state=venue-detail`              | desktop  | 390 px right-side overlay panel with close button.                                          |
 | feedback                   | `/?venue=test-venue-sunny&_state=feedback`                  | mobile   | Inline feedback prompt within venue-detail.                                                 |
 | review                     | `/?venue=test-venue-sunny&_state=review`                    | mobile   | Inline review form opened via "Lämna ett omdöme" CTA.                                       |
-| premium-upsell             | `/?_state=premium-upsell`                                   | mobile   | Upsell card overlay triggered from the planner / future-date slider.                        |
-| premium-paywall            | `/?_state=premium-paywall`                                  | mobile   | Full-screen paywall overlay with feature list, price, Swish CTA.                            |
-| premium-paywall            | `/?_state=premium-paywall`                                  | desktop  | Two-column modal overlay (features + QR code).                                              |
-| premium-paywall-processing | `/?_state=premium-paywall-processing`                       | mobile   | Paywall internal state after Swish deep-link is triggered.                                  |
-| premium-paywall-processing | `/?_state=premium-paywall-processing`                       | desktop  | Same modal, processing state.                                                               |
-| payment-failed             | `/?_state=payment-failed`                                   | mobile   | Fade-in overlay after processing fails. Replaces the paywall-processing state.              |
-| payment-failed             | `/?_state=payment-failed`                                   | desktop  | Same fade-in overlay on desktop viewport.                                                   |
+| premium-upsell             | `/?_state=premium-upsell`                                   | mobile   | Future Monetization only — inactive in MVP; planner/date/favourites are free.               |
+| premium-paywall            | `/?_state=premium-paywall`                                  | mobile   | Future Monetization only — full-screen paywall reference with Swish CTA.                    |
+| premium-paywall            | `/?_state=premium-paywall`                                  | desktop  | Future Monetization only — two-column modal reference (features + QR code).                 |
+| premium-paywall-processing | `/?_state=premium-paywall-processing`                       | mobile   | Future Monetization only — paywall processing reference.                                    |
+| premium-paywall-processing | `/?_state=premium-paywall-processing`                       | desktop  | Future Monetization only — same modal, processing state.                                    |
+| payment-failed             | `/?_state=payment-failed`                                   | mobile   | Future Monetization only — payment failure reference.                                       |
+| payment-failed             | `/?_state=payment-failed`                                   | desktop  | Future Monetization only — payment failure reference.                                       |
 | not-found                  | `/__sunnyseat-invalid`                                      | mobile   | Deliberately-invalid path so Next.js renders the 404 page.                                  |
 | not-found                  | `/__sunnyseat-invalid`                                      | desktop  | Same content with the desktop top navbar.                                                   |
 | about                      | `/about`                                                    | mobile   | Real standalone route — reached via the "Om" bottom nav tab.                                |
 | about                      | `/about`                                                    | desktop  | Real standalone route — reached via the top navbar link.                                    |
-| premium-recovery           | `/?_state=premium-recovery`                                 | mobile   | Swish transaction recovery form — distinct state from paywall/processing.                   |
-| premium-recovery           | `/?_state=premium-recovery`                                 | desktop  | Same form on desktop viewport.                                                              |
+| premium-recovery           | `/?_state=premium-recovery`                                 | mobile   | Future Monetization only — Swish transaction recovery reference.                            |
+| premium-recovery           | `/?_state=premium-recovery`                                 | desktop  | Future Monetization only — same form on desktop viewport.                                   |
 | favourites-tab             | `/favoriter`                                                | mobile   | Real bottom-nav destination — list of favourited venues with empty state.                   |
 | favourites-tab             | `/favoriter`                                                | desktop  | Same content via desktop navigation.                                                        |
 | map-primary-offline        | `/?_state=map-primary-offline`                              | mobile   | Cached shell, no venue data, persistent offline banner.                                     |

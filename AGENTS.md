@@ -9,7 +9,7 @@ This file is the canonical repo-level rulebook for Codex and other AI coding age
 > **Working directory:** The repository root (`C:\Users\Rasmus\sunnyseat\`) is **not** the Next.js app root. The application lives in `nextjs-app/`. Git operations and planning-doc reads happen from the root. All `npm`/`npx` app commands must run from `nextjs-app/`.
 
 - Frontend: Next.js 16.2.2 App Router, TypeScript strict, Tailwind CSS v4 CSS-first `@theme`, shadcn/ui v4, MapLibre GL JS 5.x, TanStack Query 5.x, Motion 12.x (`motion/react`), `@use-gesture/react`, `cmdk`, `next-intl`, Serwist, `date-fns-tz`
-- Backend: Supabase PostgreSQL 15 + PostGIS, Next.js API routes, Zod v4, JWT admin auth, Swish Merchant API, Met.no Locationforecast 2.0
+- Backend: Supabase PostgreSQL 15 + PostGIS, Next.js API routes, Zod v4, JWT admin auth, dormant Future Monetization Swish Merchant API, Met.no Locationforecast 2.0
 - Deployment: Vercel
 
 ### Commands
@@ -109,6 +109,10 @@ For frontend stories, read `_bmad-output/planning-artifacts/ux-design-specificat
 ### API Boundary
 
 Client components must not import from `nextjs-app/lib/solar`, `nextjs-app/lib/weather`, `nextjs-app/lib/supabase`, `nextjs-app/lib/middleware`, or `nextjs-app/lib/buildings`. All data access flows through `nextjs-app/app/api/*` routes and is wrapped by hooks in `hooks/queries/` or `hooks/mutations/`. Query keys come from `nextjs-app/lib/query-keys.ts`; do not construct them inline.
+
+### Future Monetization Code
+
+Planner, future date simulation, and favourites are free MVP functionality. Active MVP code must not depend on premium state, Swish payments, Season Pass copy, paywalls, lock badges, payment routes, or recovery flows. If dormant premium/payment code is worth saving, move it out of live runtime paths and preserve the contract in `_bmad-output/planning-artifacts/future-monetization-season-pass.md` or an explicit inactive `future-premium` archive. Do not leave unused premium providers, hooks, routes, or components wired into the MVP app.
 
 ### Component Architecture
 

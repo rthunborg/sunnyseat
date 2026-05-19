@@ -25,10 +25,6 @@ export const queryKeys = {
     all: ['weather'] as const,
     current: () => [...queryKeys.weather.all, 'current'] as const,
   },
-  premium: {
-    all: ['premium'] as const,
-    status: () => [...queryKeys.premium.all, 'status'] as const,
-  },
 } as const;
 
 function normalizeQueryFilters(value: unknown): unknown {
