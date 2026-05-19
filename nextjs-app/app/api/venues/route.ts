@@ -23,6 +23,7 @@ import type { GetVenuesResponse, VenueDataDto } from '@/lib/types/api';
 const DEFAULT_RADIUS_KM = 1.5;
 const MAX_RADIUS_KM = 3.0;
 const MAX_RESULTS = 50;
+const MAX_QUERY_LENGTH = 80;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 120;
 const COORDINATE_COLLISION_PRECISION = 6;
@@ -31,6 +32,8 @@ const RATE_LIMIT_SWEEP_INTERVAL_MS = RATE_LIMIT_WINDOW_MS;
 const TIME_WINDOW_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MAX_THUMBNAIL_ALT_LENGTH = 120;
 const MAX_THUMBNAIL_INITIALS_LENGTH = 3;
+const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/u;
+const DIACRITIC_PATTERN = /[\u0300-\u036f]/gu;
 let lastRateLimitSweepAt = 0;
 
 const SUN_STATUS_ORDER: Record<VenueDataDto['currentSunStatus'], number> = {
@@ -57,6 +60,25 @@ function parseStrictNumber(
     return { success: false, error: `Invalid ${paramName}: must be a finite number` };
   }
   return { success: true, value: parsed };
+}
+
+function parseSearchQuery(
+  params: URLSearchParams,
+): { success: true; value: string | undefined } | { success: false; error: string } {
+  const values = params.getAll('q');
+  if (values.length > 1) {
+    return { success: false, error: 'Use a single canonical q parameter' };
+  }
+  const raw = values[0];
+  if (raw === undefined) return { success: true, value: undefined };
+  if (Array.from(raw).length > MAX_QUERY_LENGTH) {
+    return { success: false, error: `q must be at most ${MAX_QUERY_LENGTH} characters` };
+  }
+  if (CONTROL_CHARACTER_PATTERN.test(raw)) {
+    return { success: false, error: 'q contains invalid control characters' };
+  }
+  const trimmed = raw.trim();
+  return { success: true, value: trimmed || undefined };
 }
 
 type RateLimitBucket = {
@@ -237,12 +259,16 @@ export async function GET(request: NextRequest) {
     return badRequest(`Radius must be greater than 0 and at most ${MAX_RADIUS_KM} km`);
   }
 
+  const q = parseSearchQuery(params);
+  if (!q.success) return badRequest(q.error);
+
   const matchedVenues = VENUE_FIXTURE
     .map((v) => ({
       ...normalizeVenueForResponse(v),
       distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),
     }))
-    .filter((v) => v.distanceMeters <= radiusKm * 1000);
+    .filter((v) => q.value || v.distanceMeters <= radiusKm * 1000)
+    .filter((v) => matchesVenueQuery(v, q.value));
 
   const totalCount = matchedVenues.length;
 
@@ -285,6 +311,24 @@ export async function GET(request: NextRequest) {
       ETag: etag,
     },
   });
+}
+
+function matchesVenueQuery(venue: VenueDataDto, q: string | undefined): boolean {
+  if (!q) return true;
+  const terms = normalizeSearchText(q).split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return true;
+  const searchable = normalizeSearchText([
+    venue.venueName,
+    venue.neighborhood,
+  ].join(' '));
+  return terms.every((term) => searchable.includes(term));
+}
+
+function normalizeSearchText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(DIACRITIC_PATTERN, '')
+    .toLocaleLowerCase('sv-SE');
 }
 
 function greatCircleMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {

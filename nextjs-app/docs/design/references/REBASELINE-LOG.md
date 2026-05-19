@@ -140,3 +140,19 @@ The actual cause was a post-Story-1.5 prototype-state baseline carry-forward: pr
 **Reason / spec link:** No story explicitly mandated this carry-forward — the captures happened in the same Task 2.13 sweep as the implementation-screen rebaselines. Round 2 R-010 surfaced the trigger-attribution gap and Round 2 D-B=B resolved it by splitting this entry. Future Epic 2 / Epic 4 stories that implement these screens will produce their own re-baseline entries against the implementation, superseding this prototype-state baseline.
 
 **Re-evaluation trigger:** Mandatory recapture when (1) the upstream Claude Design bundle is refreshed and the prototype state for any of the four screens changes (`scripts/fetch-claude-design.sh` followed by `node nextjs-app/scripts/capture-claude-design-refs.mjs`), (2) the corresponding future story (Epic 2 venue-detail; Epic 4 paywall / payment-failed) implements the screen — at that point the entry is superseded by an implementation-state re-baseline.
+
+### 2026-05-19 — `venue-detail` visual gate wait recipe — Story 2.4 Venue Search, code review Round 1 (Amelia / code-review)
+
+**Trigger:** Story 2.4 visual validation for desktop `venue-detail` captured before the venue-detail overlay had reliably mounted, causing dev-mode race noise in the screenshot comparison instead of measuring the implemented screen state.
+
+**Resolution:** Update the legacy provider script `.claude/scripts/visual-validate.sh` so `venue-detail` waits for `[data-testid="desktop-venue-detail-panel"]` on desktop and `[data-testid="mobile-venue-detail-sheet"]` on mobile before capture, matching the same explicit-state wait style already used by `map-with-selected-venue`.
+
+**Source of new PNG:** None. No reference PNG changed in this operation.
+
+**Recipe change:** `.claude/scripts/visual-validate.sh` adds a `venue-detail)` case to the wait-selector switch. `nextjs-app/scripts/capture-claude-design-refs.mjs` is unchanged.
+
+**Verification:** Story 2.4 review gate later ran with `VISUAL_VALIDATE_PROVIDER=none` and documented manual visual acceptance for downstream/reference-scope differences. This entry records the capture-recipe change only; it is not a reference re-baseline.
+
+**Reason / spec link:** `AGENTS.md` Visual Validation requires any reference PNG or capture-recipe change to update this log in the same operation. Story 2.4 Task 8.11 requires desktop `venue-detail` visual validation as a parent screen for search/list chrome.
+
+**Re-evaluation trigger:** Re-check this wait selector if `VenueDetailOverlay` data-testid values change, if the provider-neutral wrapper stops delegating to `.claude/scripts/visual-validate.sh`, or if the visual gate moves to a provider that uses its own state-wait contract.

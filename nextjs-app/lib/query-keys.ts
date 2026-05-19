@@ -5,8 +5,12 @@
 export const queryKeys = {
   venues: {
     all: ['venues'] as const,
-    list: (filters?: Record<string, unknown>) =>
-      [...queryKeys.venues.all, 'list', filters] as const,
+    list: (filters?: Record<string, unknown>) => {
+      const normalized = normalizeQueryFilters(filters);
+      return normalized === undefined
+        ? [...queryKeys.venues.all, 'list'] as const
+        : [...queryKeys.venues.all, 'list', normalized] as const;
+    },
     detail: (slug: string) =>
       [...queryKeys.venues.all, 'detail', slug] as const,
     search: (query: string) =>
@@ -26,3 +30,26 @@ export const queryKeys = {
     status: () => [...queryKeys.premium.all, 'status'] as const,
   },
 } as const;
+
+function normalizeQueryFilters(value: unknown): unknown {
+  if (value === undefined) return undefined;
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => normalizeQueryFilters(item))
+      .filter((item) => item !== undefined);
+  }
+  if (!isPlainObject(value)) return value;
+
+  const normalized: Record<string, unknown> = {};
+  for (const key of Object.keys(value).sort()) {
+    const child = normalizeQueryFilters(value[key]);
+    if (child !== undefined) normalized[key] = child;
+  }
+  return normalized;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== 'object') return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}

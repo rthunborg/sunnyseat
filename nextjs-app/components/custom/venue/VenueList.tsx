@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { VenueCard, VenueCardSkeleton } from '@/components/composed/venue/VenueCard';
+import type { VenueListSortMode } from '@/components/composed/venue/VenueListControls';
 import type { VenueDataDto } from '@/lib/types/api';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +15,7 @@ export type VenueListProps = {
   onSelectVenue: (venue: VenueDataDto) => void;
   isLoading?: boolean;
   animateCards?: boolean;
+  sortMode?: VenueListSortMode;
 };
 
 export function VenueList({
@@ -22,9 +24,10 @@ export function VenueList({
   onSelectVenue,
   isLoading = false,
   animateCards = false,
+  sortMode = 'sun',
 }: VenueListProps) {
   const t = useTranslations('venue.list');
-  const sortedVenues = useMemo(() => sortVenuesForSunList(venues), [venues]);
+  const sortedVenues = useMemo(() => sortVenuesForList(venues, sortMode), [venues, sortMode]);
   const compact = mode === 'desktop';
 
   if (isLoading) {
@@ -88,11 +91,20 @@ export function VenueList({
 }
 
 export function sortVenuesForSunList(venues: VenueDataDto[]): VenueDataDto[] {
+  return sortVenuesForList(venues, 'sun');
+}
+
+export function sortVenuesForList(
+  venues: VenueDataDto[],
+  sortMode: VenueListSortMode,
+): VenueDataDto[] {
   return [...venues].sort((a, b) => {
+    if (sortMode === 'distance') {
+      return sortableDistance(a.distanceMeters) - sortableDistance(b.distanceMeters);
+    }
     const sunDelta = Number(isVenueSunnyForList(b)) - Number(isVenueSunnyForList(a));
     if (sunDelta !== 0) return sunDelta;
-    return (a.distanceMeters ?? Number.POSITIVE_INFINITY) -
-      (b.distanceMeters ?? Number.POSITIVE_INFINITY);
+    return sortableDistance(a.distanceMeters) - sortableDistance(b.distanceMeters);
   });
 }
 
@@ -103,6 +115,12 @@ export function isVenueSunnyForList(venue: VenueDataDto): boolean {
 function resolveSunTimeRange(venue: VenueDataDto, sunLabel: string): string | undefined {
   if (!venue.sunWindow) return undefined;
   return `${sunLabel} ${venue.sunWindow.start}-${venue.sunWindow.end}`;
+}
+
+function sortableDistance(value: number | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : Number.POSITIVE_INFINITY;
 }
 
 function formatDistance(meters?: number): string {

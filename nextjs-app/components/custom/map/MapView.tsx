@@ -13,6 +13,8 @@ import {
   type MobileBottomSheetState,
 } from '@/components/custom/sheets/MobileBottomSheet';
 import { VenueDetailOverlay } from '@/components/custom/venue/VenueDetailOverlay';
+import { VenueListControls, type VenueListSortMode } from '@/components/composed/venue/VenueListControls';
+import { VenueSearchShell } from '@/components/custom/search/VenueSearchShell';
 import {
   currentTimeLabel,
   resolveForcedVisualVenueDetail,
@@ -77,7 +79,7 @@ export function MapView() {
   const tVenueList = useTranslations('venue.list');
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
-  const { selectedVenueId, selectVenue } = useMapSelection();
+  const { selectedVenueId, selectedVenuePreview, selectVenue } = useMapSelection();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -87,6 +89,7 @@ export function MapView() {
     useState<VenueQuickInfoDesktopPlacement>('above');
   const [mobileSheetState, setMobileSheetState] =
     useState<MobileBottomSheetState>('peek');
+  const [venueSortMode, setVenueSortMode] = useState<VenueListSortMode>('sun');
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
@@ -167,17 +170,23 @@ export function MapView() {
   // (real Supabase rows in 2.x will sometimes have NULL geometry until
   // backfilled). Skip those rather than crash the entire map.
   const rawVenues = venueQuery.data?.venues;
+  const venueDtosForMap = useMemo(() => {
+    const base = Array.isArray(rawVenues) ? rawVenues : [];
+    if (!selectedVenuePreview || base.some((venue) => venue.id === selectedVenuePreview.id)) {
+      return base;
+    }
+    return [...base, selectedVenuePreview];
+  }, [rawVenues, selectedVenuePreview]);
   const venues = useMemo<VenuePinData[]>(() => {
-    if (!Array.isArray(rawVenues)) return [];
-    return rawVenues.flatMap((v) => {
+    return venueDtosForMap.flatMap((v) => {
       const pin = mapVenueDtoToPinData(v);
       return pin ? [pin] : [];
     });
-  }, [rawVenues]);
+  }, [venueDtosForMap]);
   const selectedVenueDto = useMemo(() => {
-    if (!selectedVenueId || !Array.isArray(rawVenues)) return null;
-    return rawVenues.find((venue) => venue.id === selectedVenueId) ?? null;
-  }, [rawVenues, selectedVenueId]);
+    if (!selectedVenueId) return null;
+    return venueDtosForMap.find((venue) => venue.id === selectedVenueId) ?? null;
+  }, [selectedVenueId, venueDtosForMap]);
   const selectedPinData = useMemo(() => {
     if (!selectedVenueId) return null;
     return venues.find((venue) => venue.id === selectedVenueId) ?? null;
@@ -214,6 +223,13 @@ export function MapView() {
   const isVenueDetailRequested = canRequestVenueDetail;
 
   useEffect(() => {
+    if (!venueSlugParam || !selectedVenuePreview?.slug) return;
+    if (selectedVenuePreview.slug === venueSlugParam) return;
+    const query = queryWithout(searchParams, ['venue', '_state']);
+    router.replace(Object.keys(query).length > 0 ? { pathname, query } : pathname);
+  }, [pathname, router, searchParams, selectedVenuePreview?.slug, venueSlugParam]);
+
+  useEffect(() => {
     if (forcedState === 'map-panel-venues') {
       setMobileSheetState('full');
     }
@@ -221,13 +237,16 @@ export function MapView() {
 
   useEffect(() => {
     if (forcedState !== 'map-with-selected-venue' && !venueSlugParam) return;
+    if (venueSlugParam && selectedVenuePreview?.slug && selectedVenuePreview.slug !== venueSlugParam) {
+      return;
+    }
     if (!Array.isArray(rawVenues) || rawVenues.length === 0) return;
     const match = venueSlugParam
       ? rawVenues.find((venue) => venue.slug === venueSlugParam)
       : rawVenues[0];
     if (!match) return;
     selectVenue(match.id);
-  }, [forcedState, rawVenues, selectVenue, venueSlugParam]);
+  }, [forcedState, rawVenues, selectVenue, selectedVenuePreview?.slug, venueSlugParam]);
 
   useEffect(() => {
     if (!mapInstance || !selectedVenueDto) {
@@ -307,6 +326,12 @@ export function MapView() {
     <div className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full">
       <MapContainer />
       <VenuePinLayer venues={venues} />
+      <VenueSearchShell
+        variant="mobile"
+        onSearchFocus={() => setMobileSheetState('peek')}
+        onVenueSelected={() => setMobileSheetState('peek')}
+        className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+calc(var(--spacing)*4))] z-glass-panel"
+      />
       <MobileBottomSheet
         state={mobileSheetState}
         onStateChange={setMobileSheetState}
@@ -320,9 +345,16 @@ export function MapView() {
             {tVenueList('subtitle', { count: sunnyVenueCount })}
           </p>
         </div>
+        <VenueListControls
+          mode="mobile"
+          sortMode={venueSortMode}
+          onSortModeChange={setVenueSortMode}
+          labels={venueListControlLabels(tVenueList)}
+        />
         <VenueList
           venues={listVenues}
           mode="mobile"
+          sortMode={venueSortMode}
           isLoading={venueQuery.isFetching && listVenues.length === 0}
           animateCards={mobileSheetState === 'full'}
           onSelectVenue={handleSelectVenueFromList}
@@ -340,10 +372,17 @@ export function MapView() {
             {tVenueList('subtitle', { count: sunnyVenueCount })}
           </p>
         </div>
+        <VenueListControls
+          mode="desktop"
+          sortMode={venueSortMode}
+          onSortModeChange={setVenueSortMode}
+          labels={venueListControlLabels(tVenueList)}
+        />
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           <VenueList
             venues={listVenues}
             mode="desktop"
+            sortMode={venueSortMode}
             isLoading={venueQuery.isFetching && listVenues.length === 0}
             onSelectVenue={handleSelectVenueFromList}
           />
@@ -378,7 +417,7 @@ export function MapView() {
             routeDisabled
           />
         )}
-        {selectedPinData && (
+        {selectedPinData && !isVenueDetailRequested && (
           <VenueQuickInfo
             key="quick-info-mobile"
             mode="mobile"
@@ -394,7 +433,7 @@ export function MapView() {
             labels={quickInfoLabels(tVenue)}
           />
         )}
-        {selectedPinData && (
+        {selectedPinData && !isVenueDetailRequested && (
           <VenueQuickInfo
             key="quick-info-desktop"
             mode="desktop"
@@ -520,6 +559,19 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue.detail'>>
       partialWindow: t('timeline.partialWindow', { start: '{start}', end: '{end}' }),
       shadedWindow: t('timeline.shadedWindow', { start: '{start}', end: '{end}' }),
     },
+  };
+}
+
+function venueListControlLabels(t: ReturnType<typeof useTranslations<'venue.list'>>) {
+  return {
+    nearTab: t('controls.nearTab'),
+    favouritesTab: t('controls.favouritesTab'),
+    topPicks: t('controls.topPicks'),
+    sortBySun: t('controls.sortBySun'),
+    sortByDistance: t('controls.sortByDistance'),
+    categoryCafe: t('controls.categoryCafe'),
+    openNow: t('controls.openNow'),
+    unavailable: t('controls.unavailable'),
   };
 }
 

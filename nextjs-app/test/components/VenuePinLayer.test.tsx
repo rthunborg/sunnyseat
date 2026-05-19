@@ -172,6 +172,7 @@ function makeWrapper(stubMap: StubMap, handleRef: { current: WrapperHandle | nul
           <MapSelectionContext.Provider
             value={{
               selectedVenueId,
+              selectedVenuePreview: null,
               selectVenue: selectVenueSpy,
               toggleVenue: (id) =>
                 setSelectedVenueId((current) => (current === id ? null : id)),

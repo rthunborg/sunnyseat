@@ -117,6 +117,7 @@ test.describe('map-primary', () => {
 
     const quickInfo = page.getByTestId('venue-quick-info').first();
     await expect(quickInfo).toBeVisible();
+    await expect(page.getByRole('search', { name: /Sök plats|Search venue/ })).toBeVisible();
     await expect(quickInfo.getByRole('button', { name: /Kafé Magasinet/i })).toBeVisible();
     await expect(quickInfo.getByRole('button', { name: 'Visa Rutt' })).toBeVisible();
 
@@ -282,6 +283,7 @@ test.describe('map-primary', () => {
     );
 
     await bypassOnboarding(page);
+    await bypassOnboarding(page);
     await page.goto('/');
 
     const panel = page.getByTestId('desktop-venue-list-panel');
@@ -297,6 +299,25 @@ test.describe('map-primary', () => {
     await expect(page.getByTestId('map-container')).toBeVisible();
 
     await firstCard.click();
+    await expect(page.getByTestId('venue-quick-info').last()).toBeVisible();
+  });
+
+  test('desktop: navbar search selects a venue and opens QuickInfo without navigation', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'desktop',
+      'Desktop search handoff runs only in the desktop Playwright project',
+    );
+
+    await bypassOnboarding(page);
+    await page.goto('/');
+    await page.waitForSelector('[data-testid="venue-pin"]', { timeout: 15000 });
+    const combobox = page.getByRole('combobox', { name: /Sök plats|Search venue/ });
+    await combobox.fill('magasinet');
+    await page.getByRole('option', { name: /Kafé Magasinet/i }).click();
+
+    await expect(page).not.toHaveURL(/venue=/);
     await expect(page.getByTestId('venue-quick-info').last()).toBeVisible();
   });
 
@@ -371,7 +392,7 @@ test.describe('map-primary', () => {
     expect(canvasBox).not.toBeNull();
     if (!canvasBox) return;
     await canvas.click({
-      position: { x: 20, y: 20 },
+      position: { x: 20, y: 140 },
     });
 
     await expect(

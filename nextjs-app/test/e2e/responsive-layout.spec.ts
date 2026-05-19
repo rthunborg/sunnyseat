@@ -124,18 +124,22 @@ test.describe('Desktop responsive layout', () => {
     await expect(page.getByTestId('mobile-nav-bar')).toBeHidden();
   });
 
-  test('D3: the search placeholder shows placeholder text without a search landmark', async ({
+  test('D3: desktop navbar exposes the real search combobox', async ({
     page,
   }) => {
     await page.goto('/');
-    const placeholder = page.getByTestId('desktop-nav-search-placeholder');
-    await expect(placeholder).toBeVisible();
-    // Placeholder must not claim to be a search landmark — Story 2.4 adds
-    // the real combobox and re-introduces the landmark then.
-    await expect(placeholder).not.toHaveAttribute('role', /./);
-    await expect(placeholder).not.toHaveAttribute('aria-label', /./);
-    // It should render the placeholder text so users see the search bar stub.
-    await expect(placeholder).not.toBeEmpty();
+    const searchLandmark = page.getByRole('search', {
+      name: /Sök plats|Search venue/,
+    });
+    await expect(searchLandmark).toBeVisible();
+    const combobox = searchLandmark.getByRole('combobox', {
+      name: /Sök plats|Search venue/,
+    });
+    await expect(combobox).toBeVisible();
+    await expect(combobox).toHaveAttribute(
+      'placeholder',
+      /Sök plats eller område i Göteborg|Search place or area in Gothenburg/,
+    );
   });
 
   test('D4: the desktop logo link is keyboard-reachable with a visible focus ring (AC5)', async ({

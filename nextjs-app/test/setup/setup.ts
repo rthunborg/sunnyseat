@@ -29,4 +29,21 @@ beforeEach(() => {
     writable: true,
     value: new MemoryStorage(),
   });
+  if (!('ResizeObserver' in window)) {
+    class TestResizeObserver implements ResizeObserver {
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    }
+    Object.defineProperty(window, 'ResizeObserver', {
+      configurable: true,
+      writable: true,
+      value: TestResizeObserver,
+    });
+    Object.defineProperty(globalThis, 'ResizeObserver', {
+      configurable: true,
+      writable: true,
+      value: TestResizeObserver,
+    });
+  }
 });

@@ -57,19 +57,18 @@ function OnboardingGateInner() {
   const isForced = forcedState === 'onboarding';
   const { mapInstance } = useMapInstance();
 
-  // Lazy initialiser keeps the first client render synchronous so the
-  // overlay paints immediately (no post-mount delay that could leak
-  // through to a slow-Playwright screenshot or a low-end device's
-  // first frame). On the server `typeof window === 'undefined'` →
-  // `readFlag()` returns false → `hasOnboarded=false`, which combined
-  // with no forced URL produces an SSR-safe `null` from this gate
-  // until hydration corrects it.
-  const [hasOnboarded, setHasOnboarded] = useState(() => readFlag());
+  // The server cannot read localStorage, so render nothing until the
+  // first client effect reads the flag. Otherwise returning-user visual
+  // captures render the onboarding screen on the server, remove it on
+  // the client, and trigger a hydration overlay in development.
+  const [hasHydrated, setHasHydrated] = useState(false);
+  const [hasOnboarded, setHasOnboarded] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [pendingFly, setPendingFly] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     setHasOnboarded(readFlag());
+    setHasHydrated(true);
   }, []);
 
   // Defer the map flyTo until both the granted coords and the map
@@ -123,7 +122,7 @@ function OnboardingGateInner() {
     setPendingFly(null);
   }, []);
 
-  const shouldShow = !dismissed && (isForced || !hasOnboarded);
+  const shouldShow = hasHydrated && !dismissed && (isForced || !hasOnboarded);
   if (!shouldShow) return null;
 
   return (

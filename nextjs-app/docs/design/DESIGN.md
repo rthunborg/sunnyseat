@@ -167,6 +167,7 @@ The design uses an 8px base grid with 4px half-steps for tight compositions.
 | `size-bottom-sheet-full-top` | 22dvh | Venue-list full sheet top offset, preserving the Story 2.2 accepted visible map band |
 | `size-venue-list-desktop-w` | 190px | Desktop venue-list overlay width |
 | `size-venue-detail-panel-w` | 390px | Desktop venue-detail overlay width |
+| `size-search-desktop-w` | 384px | Desktop search bar width |
 | `size-slider-thumb` | 14.1px × 14.1px | Time slider thumb |
 | `size-slider-track-h` | 6px | Time slider / timeline bar height |
 | `size-timeline-h` | 12px | Venue detail timeline bar height |

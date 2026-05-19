@@ -76,6 +76,43 @@ describe('useVenueSearch', () => {
     expect(expected).toEqual(['venues', 'list', { lat: 57.7089, lng: 11.9746, radiusKm: 1.5 }]);
   });
 
+  it('adds trimmed text query to the request URL and normalized query key', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const { result } = renderHook(
+      () => useVenueSearch({
+        lat: 57.708912,
+        lng: 11.974601,
+        radiusKm: 1.5,
+        q: ' Kafé Magasinet ',
+      }),
+      { wrapper: makeWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const calledUrl = fetchSpy.mock.calls[0]?.[0] as string;
+    const parsed = new URL(calledUrl, 'http://localhost');
+    expect(parsed.searchParams.get('q')).toBe('Kafé Magasinet');
+
+    expect(
+      queryKeys.venues.list({
+        radiusKm: 1.5,
+        q: 'Kafé Magasinet',
+        lng: 11.9746,
+        lat: 57.7089,
+      }),
+    ).toEqual([
+      'venues',
+      'list',
+      { lat: 57.7089, lng: 11.9746, q: 'Kafé Magasinet', radiusKm: 1.5 },
+    ]);
+  });
+
   it('forwards the AbortSignal from TanStack to fetch (request cancellation)', async () => {
     fetchSpy.mockResolvedValueOnce(
       new Response(JSON.stringify(SAMPLE_RESPONSE), {

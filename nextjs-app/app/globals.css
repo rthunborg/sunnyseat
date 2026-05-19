@@ -167,6 +167,7 @@
   --size-bottom-sheet-full-top: 22dvh;
   --size-venue-list-desktop-w: 190px;
   --size-venue-detail-panel-w: 390px;
+  --size-search-desktop-w: 384px;
 
   /* ---- Letter spacing ---- */
   --tracking-section-label: 1.4px;
@@ -246,6 +247,10 @@
 
 @utility w-venue-list-desktop {
   width: var(--size-venue-list-desktop-w);
+}
+
+@utility w-search-desktop {
+  width: var(--size-search-desktop-w);
 }
 
 @utility w-venue-detail-panel {

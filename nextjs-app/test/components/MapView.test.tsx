@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import type maplibregl from 'maplibre-gl';
 import { NextIntlClientProvider } from 'next-intl';
+import commonMessages from '@/messages/sv/common.json';
 import mapMessages from '@/messages/sv/map.json';
 import venueMessages from '@/messages/sv/venue.json';
 import type { GetVenueDetailResponse, GetVenuesResponse } from '@/lib/types/api';
@@ -13,6 +14,12 @@ type VenueQueryShape = {
   isError: boolean;
   dataUpdatedAt: number;
 };
+type VenueSearchParams = {
+  lat: number;
+  lng: number;
+  radiusKm?: number;
+  q?: string;
+};
 
 const useGeolocationMock = vi.fn(() => ({
   status: 'idle' as const,
@@ -21,7 +28,7 @@ const useGeolocationMock = vi.fn(() => ({
   useCentrum: () => {},
 }));
 
-const useVenueSearchMock = vi.fn<() => VenueQueryShape>(() => ({
+const useVenueSearchMock = vi.fn<(params?: VenueSearchParams) => VenueQueryShape>(() => ({
   data: undefined,
   isFetching: false,
   isError: false,
@@ -80,11 +87,13 @@ function makeStubMap(opts: { tilesAlreadyLoaded?: boolean } = {}): StubMap {
 
 let stubMap: StubMap;
 let selectedVenueIdMock: string | null = null;
+let selectedVenuePreviewMock: GetVenuesResponse['venues'][number] | null = null;
 let searchParamsMock = new URLSearchParams();
 const routerPushMock = vi.fn();
 const routerReplaceMock = vi.fn();
-const selectVenueMock = vi.fn((id: string | null) => {
+const selectVenueMock = vi.fn((id: string | null, venue?: GetVenuesResponse['venues'][number] | null) => {
   selectedVenueIdMock = id;
+  selectedVenuePreviewMock = id ? (venue ?? null) : null;
 });
 const useMapInstanceMock = vi.fn(() => ({
   mapRef: { current: stubMap as unknown as maplibregl.Map },
@@ -97,7 +106,7 @@ vi.mock('@/hooks/useGeolocation', () => ({
 }));
 
 vi.mock('@/hooks/queries/useVenueSearch', () => ({
-  useVenueSearch: () => useVenueSearchMock(),
+  useVenueSearch: (params?: VenueSearchParams) => useVenueSearchMock(params),
 }));
 
 vi.mock('@/hooks/queries/useVenueDetail', () => ({
@@ -111,9 +120,11 @@ vi.mock('@/lib/contexts/MapInstanceContext', () => ({
 vi.mock('@/lib/contexts/MapSelectionContext', () => ({
   useMapSelection: () => ({
     selectedVenueId: selectedVenueIdMock,
+    selectedVenuePreview: selectedVenuePreviewMock,
     selectVenue: selectVenueMock,
     toggleVenue: (id: string) => {
       selectedVenueIdMock = selectedVenueIdMock === id ? null : id;
+      selectedVenuePreviewMock = null;
     },
   }),
 }));
@@ -146,7 +157,10 @@ import { MapView } from '@/components/custom/map/MapView';
 
 function Wrapper({ children }: { children: ReactNode }) {
   return (
-    <NextIntlClientProvider locale="sv" messages={{ map: mapMessages, venue: venueMessages }}>
+    <NextIntlClientProvider
+      locale="sv"
+      messages={{ common: commonMessages, map: mapMessages, venue: venueMessages }}
+    >
       {children}
     </NextIntlClientProvider>
   );
@@ -156,6 +170,7 @@ describe('<MapView />', () => {
   beforeEach(() => {
     stubMap = makeStubMap();
     selectedVenueIdMock = null;
+    selectedVenuePreviewMock = null;
     searchParamsMock = new URLSearchParams();
     selectVenueMock.mockClear();
     routerPushMock.mockClear();
@@ -480,6 +495,7 @@ describe('<MapView />', () => {
       rerender(<MapView />);
       expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
       expect(screen.getByTestId('desktop-venue-detail-panel')).toBeInTheDocument();
+      expect(screen.queryByTestId('venue-quick-info')).not.toBeInTheDocument();
     });
 
     it('renders seeded forced venue detail before list and detail data resolve', () => {
@@ -646,6 +662,103 @@ describe('<MapView />', () => {
         duration: 500,
       });
       expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
+    });
+
+    it('selects a venue from mobile search, recenters the map, closes results, and blurs the input', async () => {
+      vi.useFakeTimers();
+      useVenueSearchMock.mockImplementation((params?: VenueSearchParams) => ({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: Boolean(params?.q) && false,
+        isError: false,
+        dataUpdatedAt: 1,
+      }));
+
+      render(<MapView />, { wrapper: Wrapper });
+      const input = screen.getByRole('combobox', { name: 'Sök plats' });
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: 'magasinet' } });
+      act(() => { vi.advanceTimersByTime(200); });
+      vi.useRealTimers();
+      fireEvent.click(await screen.findByRole('option', { name: /Kafé Magasinet/ }));
+
+      expect(selectVenueMock).toHaveBeenCalledWith(
+        'venue-1',
+        expect.objectContaining({ id: 'venue-1' }),
+      );
+      expect(stubMap.easeTo).toHaveBeenCalledWith({
+        center: [11.97, 57.7],
+        duration: 500,
+      });
+      await waitFor(() => expect(screen.getByTestId('venue-search-results')).not.toBeVisible());
+      expect(input).not.toHaveFocus();
+    });
+
+    it('clears an active detail URL after selecting a different venue from search', async () => {
+      vi.useFakeTimers();
+      searchParamsMock = new URLSearchParams('venue=old-slug&_state=venue-detail');
+      useVenueSearchMock.mockImplementation((params?: VenueSearchParams) => ({
+        data: makeVenueResponse(params?.q ? [
+          makeVenue({ id: 'venue-2', name: 'Ny plats', slug: 'new-slug' }),
+        ] : [
+          makeVenue({ id: 'venue-1', name: 'Gammal plats', slug: 'old-slug' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      }));
+
+      const { rerender } = render(<MapView />, { wrapper: Wrapper });
+      const input = screen.getByRole('combobox', { name: 'Sök plats' });
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: 'ny' } });
+      act(() => { vi.advanceTimersByTime(200); });
+      vi.useRealTimers();
+      fireEvent.click(await screen.findByRole('option', { name: /Ny plats/ }));
+      rerender(<MapView />);
+
+      expect(routerReplaceMock).toHaveBeenCalledWith('/');
+    });
+
+    it('does not mutate map selection when mobile search has no results', () => {
+      vi.useFakeTimers();
+      useVenueSearchMock.mockImplementation((params?: VenueSearchParams) => ({
+        data: makeVenueResponse(params?.q ? [] : [
+          makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      }));
+
+      render(<MapView />, { wrapper: Wrapper });
+      const input = screen.getByRole('combobox', { name: 'Sök plats' });
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: 'nope' } });
+      act(() => { vi.advanceTimersByTime(200); });
+      vi.useRealTimers();
+
+      expect(screen.getByText('Inga resultat för "nope"')).toBeInTheDocument();
+      expect(selectVenueMock).not.toHaveBeenCalled();
+      expect(stubMap.easeTo).not.toHaveBeenCalled();
+    });
+
+    it('collapses the full mobile sheet when search receives focus', () => {
+      searchParamsMock = new URLSearchParams('_state=map-panel-venues');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'full');
+
+      fireEvent.focus(screen.getByRole('combobox', { name: 'Sök plats' }));
+
+      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'peek');
     });
 
     it('filters invalid location rows out of the venue list before selection can recenter', () => {

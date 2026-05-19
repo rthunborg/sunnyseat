@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it, vi } from 'vitest';
 import { VenueList } from '@/components/custom/venue/VenueList';
+import { VenueListControls } from '@/components/composed/venue/VenueListControls';
 import venueMessages from '@/messages/sv/venue.json';
 import type { VenueDataDto } from '@/lib/types/api';
 
@@ -50,6 +51,73 @@ describe('<VenueList />', () => {
       expect.stringContaining('Delvis Nära'),
       expect.stringContaining('Skuggan'),
     ]);
+  });
+
+  it('sorts closest first when distance sort mode is selected explicitly', () => {
+    render(
+      <VenueList
+        venues={[
+          makeVenue({ id: 'sun-far', name: 'Sol Långt', status: 'Sunny', distanceMeters: 300 }),
+          makeVenue({ id: 'shaded-near', name: 'Skugga Nära', status: 'Shaded', distanceMeters: 50 }),
+          makeVenue({ id: 'partial-mid', name: 'Delvis Mitten', status: 'Partial', distanceMeters: 120 }),
+        ]}
+        mode="mobile"
+        sortMode="distance"
+        onSelectVenue={vi.fn()}
+      />,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.getAllByTestId('venue-card').map((card) => card.textContent)).toEqual([
+      expect.stringContaining('Skugga Nära'),
+      expect.stringContaining('Delvis Mitten'),
+      expect.stringContaining('Sol Långt'),
+    ]);
+  });
+
+  it('places NaN distances after venues with finite distances', () => {
+    render(
+      <VenueList
+        venues={[
+          makeVenue({ id: 'bad-distance', name: 'Okänt avstånd', status: 'Sunny', distanceMeters: Number.NaN }),
+          makeVenue({ id: 'near', name: 'Nära', status: 'Sunny', distanceMeters: 40 }),
+        ]}
+        mode="mobile"
+        sortMode="distance"
+        onSelectVenue={vi.fn()}
+      />,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.getAllByTestId('venue-card').map((card) => card.textContent)).toEqual([
+      expect.stringContaining('Nära'),
+      expect.stringContaining('Okänt avstånd'),
+    ]);
+  });
+
+  it('renders mobile discovery chips with unavailable future filters disabled', () => {
+    render(
+      <VenueListControls
+        mode="mobile"
+        sortMode="sun"
+        onSortModeChange={vi.fn()}
+        labels={{
+          nearTab: 'Nära mig',
+          favouritesTab: 'Favoriter',
+          topPicks: 'Toppval nära dig',
+          sortBySun: 'Mest sol',
+          sortByDistance: 'Nära mig',
+          categoryCafe: 'Kafé',
+          openNow: 'Öppet nu',
+          unavailable: 'Kommer senare',
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Mest sol' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Nära mig' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Kafé, Kommer senare' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Öppet nu, Kommer senare' })).toBeDisabled();
   });
 
   it('renders an empty state and calls selection with the selected DTO', () => {

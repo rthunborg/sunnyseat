@@ -80,6 +80,13 @@ case "$SCREEN_ID" in
   map-with-selected-venue)
     WAIT_ARGS+=(--wait-for-selector '[data-testid="venue-quick-info"]' --wait-for-timeout 500)
     ;;
+  venue-detail)
+    if [ "$VIEWPORT_TYPE" = "desktop" ]; then
+      WAIT_ARGS+=(--wait-for-selector '[data-testid="desktop-venue-detail-panel"]' --wait-for-timeout 500)
+    else
+      WAIT_ARGS+=(--wait-for-selector '[data-testid="mobile-venue-detail-sheet"]' --wait-for-timeout 500)
+    fi
+    ;;
   map-*)
     WAIT_ARGS+=(--wait-for-selector '[data-testid="venue-pin"]' --wait-for-timeout 500)
     ;;

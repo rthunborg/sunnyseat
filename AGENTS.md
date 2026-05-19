@@ -86,6 +86,10 @@ If invoking Git Bash manually, use `C:\Program Files\Git\bin\bash.exe` explicitl
 
 ## Critical Rules
 
+### Agent Delegation
+
+Agents may spawn subagents when it is useful and relevant to the task at hand, including parallel review layers, codebase exploration, verification, and other bounded subtasks that materially advance the work. Keep delegated tasks concrete, read-only unless implementation ownership is explicit, and integrate the results before presenting conclusions. This repo-level permission is intended to avoid repeated human approval prompts for normal subagent use; it cannot override higher-priority platform or runtime instructions if those are stricter.
+
 ### Design Tokens
 
 Design tokens are binding. Before frontend work, read `nextjs-app/docs/design/DESIGN.md`. Use Tailwind v4 `@theme` utilities and project tokens only. Do not introduce raw hex values, ad-hoc pixel spacing, custom shadows, or arbitrary Tailwind colors that are not mapped to the design system. If the required value is missing, surface it as a design decision.

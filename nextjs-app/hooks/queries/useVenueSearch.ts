@@ -13,6 +13,7 @@ type Params = {
   lat: number;
   lng: number;
   radiusKm?: number;
+  q?: string;
 };
 
 // Round coordinates to 4 decimals (~11 m at Gothenburg's latitude — well
@@ -52,10 +53,17 @@ export function useVenueSearch(
   const inputsValid = Number.isFinite(params.lat) && Number.isFinite(params.lng);
   const lat = inputsValid ? bucket(params.lat) : 0;
   const lng = inputsValid ? bucket(params.lng) : 0;
+  const q = normalizeTextQuery(params.q);
   return useQuery<GetVenuesResponse, Error>({
-    queryKey: queryKeys.venues.list({ lat, lng, radiusKm }),
+    queryKey: queryKeys.venues.list({ lat, lng, q, radiusKm }),
     queryFn: async ({ signal }) => {
-      const url = `/api/venues?lat=${lat}&lng=${lng}&radiusKm=${radiusKm}`;
+      const searchParams = new URLSearchParams({
+        lat: String(lat),
+        lng: String(lng),
+        radiusKm: String(radiusKm),
+      });
+      if (q) searchParams.set('q', q);
+      const url = `/api/venues?${searchParams.toString()}`;
       const res = await fetch(url, { signal });
       if (!res.ok) {
         throw new Error(`Venue search failed: ${res.status} ${res.statusText}`);
@@ -74,4 +82,9 @@ export function useVenueSearch(
     refetchOnWindowFocus: false,
     enabled: inputsValid,
   });
+}
+
+function normalizeTextQuery(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
 }

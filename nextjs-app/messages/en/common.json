@@ -10,6 +10,9 @@
     "favoriter": "Favourites",
     "om": "About",
     "logoAria": "SunnySeat — go to map",
-    "searchPlaceholder": "Search a place or address"
+    "searchPlaceholder": "Search place or area in Gothenburg...",
+    "filter": "Filter",
+    "myLocation": "My location",
+    "settings": "Settings"
   }
 }

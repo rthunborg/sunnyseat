@@ -1,4 +1,14 @@
 {
+  "search": {
+    "label": "Sök plats",
+    "placeholder": "Sök plats eller område i Göteborg...",
+    "clear": "Rensa sökning",
+    "loading": "Söker platser",
+    "error": "Sökningen kunde inte genomföras",
+    "noResults": "Inga resultat för \"{query}\"",
+    "resultCount": "{count, plural, one {# resultat} other {# resultat}}",
+    "settings": "Inställningar"
+  },
   "quickInfo": {
     "route": "Visa Rutt",
     "moreInfo": "Mer Info",
@@ -21,7 +31,17 @@
     "confidence": "Säkerhet",
     "distance": "Avstånd",
     "sunUnavailable": "Soltid saknas",
-    "cardAria": "Välj {name}, {sun}, Säkerhet {confidence}%, Avstånd {distance}"
+    "cardAria": "Välj {name}, {sun}, Säkerhet {confidence}%, Avstånd {distance}",
+    "controls": {
+      "nearTab": "Nära mig",
+      "favouritesTab": "Favoriter",
+      "topPicks": "Toppval nära dig",
+      "sortBySun": "Mest sol",
+      "sortByDistance": "Närmast",
+      "categoryCafe": "Kafé",
+      "openNow": "Öppet nu",
+      "unavailable": "Kommer senare"
+    }
   },
   "detail": {
     "sectionTitle": "SOLTIDER IDAG",

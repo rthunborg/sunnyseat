@@ -128,6 +128,61 @@ describe('GET /api/venues', () => {
     expect(venue.thumbnail?.url).toMatch(/^https:\/\//);
   });
 
+  it('filters venues by canonical q across venue name and neighborhood', async () => {
+    const byName = await GET(makeRequest('?lat=57.7089&lng=11.9746&q=magasinsgatan'));
+    expect(byName.status).toBe(200);
+    const byNameBody = (await byName.json()) as GetVenuesResponse;
+    expect(byNameBody.venues.map((venue) => venue.venueName)).toEqual([
+      'Solplats Magasinsgatan',
+    ]);
+
+    const byArea = await GET(makeRequest('?lat=57.7089&lng=11.9746&q=haga'));
+    expect(byArea.status).toBe(200);
+    const byAreaBody = (await byArea.json()) as GetVenuesResponse;
+    expect(byAreaBody.venues.map((venue) => venue.venueName)).toEqual([
+      'Brygghuset Lerum',
+    ]);
+  });
+
+  it('searches all Gothenburg fixture venues when q is present instead of applying radius first', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&radiusKm=0.01&q=haga'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+    expect(body.venues.map((venue) => venue.venueName)).toEqual([
+      'Brygghuset Lerum',
+    ]);
+  });
+
+  it('does not match q against hidden slug fields', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&q=test-venue-sunny'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+    expect(body.venues).toEqual([]);
+  });
+
+  it('returns an empty venue list when q has no matches and leaves the request otherwise successful', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&q=zzzzzz'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+    expect(body.venues).toEqual([]);
+    expect(body.meta.count).toBe(0);
+    expect(body.totalCount).toBe(0);
+  });
+
+  it('rejects overlong or malformed q values with 400', async () => {
+    const overlong = await GET(makeRequest(`?lat=57.7089&lng=11.9746&q=${'a'.repeat(81)}`));
+    expect(overlong.status).toBe(400);
+    expect((await overlong.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/q/i) }),
+    );
+
+    const malformed = await GET(makeRequest('?lat=57.7089&lng=11.9746&q=magasin%0A'));
+    expect(malformed.status).toBe(400);
+    expect((await malformed.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/q/i) }),
+    );
+  });
+
   it('sets ETag and returns 304 for unchanged revalidation', async () => {
     const first = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
     expect(first.status).toBe(200);

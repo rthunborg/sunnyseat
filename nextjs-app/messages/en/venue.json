@@ -1,4 +1,14 @@
 {
+  "search": {
+    "label": "Search venue",
+    "placeholder": "Search place or area in Gothenburg...",
+    "clear": "Clear search",
+    "loading": "Searching places",
+    "error": "Search could not be completed",
+    "noResults": "No results for \"{query}\"",
+    "resultCount": "{count, plural, one {# result} other {# results}}",
+    "settings": "Settings"
+  },
   "quickInfo": {
     "route": "Show Route",
     "moreInfo": "More Info",
@@ -21,7 +31,17 @@
     "confidence": "Confidence",
     "distance": "Distance",
     "sunUnavailable": "Sun time unavailable",
-    "cardAria": "Select {name}, {sun}, Confidence {confidence}%, Distance {distance}"
+    "cardAria": "Select {name}, {sun}, Confidence {confidence}%, Distance {distance}",
+    "controls": {
+      "nearTab": "Near me",
+      "favouritesTab": "Favourites",
+      "topPicks": "Top picks near you",
+      "sortBySun": "Most sun",
+      "sortByDistance": "Closest",
+      "categoryCafe": "Cafe",
+      "openNow": "Open now",
+      "unavailable": "Coming later"
+    }
   },
   "detail": {
     "sectionTitle": "SUN TIMES TODAY",
