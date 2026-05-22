@@ -1,0 +1,7 @@
+SunnySeat story review gate
+Story: nonexistent-story-for-hook-migration
+Mode: dry-run
+Sprint status: /mnt/c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /mnt/c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/nonexistent-story-for-hook-migration-review-20260511-184557.log
+
+ERROR: story file not found for 'nonexistent-story-for-hook-migration'; refusing to mark review because visual/test scope cannot be determined

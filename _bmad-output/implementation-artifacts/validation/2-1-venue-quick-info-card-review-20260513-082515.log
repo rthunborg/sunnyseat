@@ -1,0 +1,82 @@
+SunnySeat story review gate
+Story: 2-1-venue-quick-info-card
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/2-1-venue-quick-info-card-review-20260513-082515.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/2-1-venue-quick-info-card.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.4 [39m[90mC:/Users/Rasmus/sunnyseat/nextjs-app[39m
+
+ [32m✓[39m test/unit/use-forced-state.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 91[2mms[22m[39m
+ [32m✓[39m test/unit/useMediaQuery.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 40[2mms[22m[39m
+ [32m✓[39m test/components/OnboardingGate.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[32m 130[2mms[22m[39m
+ [32m✓[39m test/unit/api/venues-route.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 107[2mms[22m[39m
+ [32m✓[39m test/unit/hooks/useGeolocation.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 324[2mms[22m[39m
+ [32m✓[39m test/components/MapControls.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[32m 242[2mms[22m[39m
+ [32m✓[39m test/components/MapContainer.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 370[2mms[22m[39m
+ [32m✓[39m test/unit/queries/useVenueSearch.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 584[2mms[22m[39m
+ [32m✓[39m test/components/DesktopNavBar.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 306[2mms[22m[39m
+ [32m✓[39m test/components/VenuePin.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 385[2mms[22m[39m
+ [32m✓[39m test/components/VenueQuickInfo.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 497[2mms[22m[39m
+     [33m[2m✓[22m[39m renders venue summary content and exposes the route CTA [33m 417[2mms[22m[39m
+[90mstderr[2m | test/components/VenuePinLayer.test.tsx[2m > [22m[2m<VenuePinLayer />[2m > [22m[2mstagger delays grow monotonically WITHIN a batch and reset between batches
+[22m[39mAttempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+
+[90mstderr[2m | test/components/VenuePinLayer.test.tsx[2m > [22m[2m<VenuePinLayer />[2m > [22m[2mwrapper role/aria-label MutationObserver defense (P49 + P50)[2m > [22m[2mdisconnects the observer when the venue is removed from the layer
+[22m[39mAttempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+
+ [32m✓[39m test/components/VenuePinLayer.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 355[2mms[22m[39m
+ [32m✓[39m test/components/MobileNavBar.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 724[2mms[22m[39m
+     [33m[2m✓[22m[39m renders the three tabs with Swedish labels [33m 406[2mms[22m[39m
+ [32m✓[39m test/components/OnboardingScreen.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 531[2mms[22m[39m
+     [33m[2m✓[22m[39m renders Swedish copy by default with all three CTAs and the trust microcopy [33m 352[2mms[22m[39m
+ [32m✓[39m test/components/MapView.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 347[2mms[22m[39m
+ [32m✓[39m test/unit/utils.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m test/unit/utils/venue-pin-mapping.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m17 passed[39m[22m[90m (17)[39m
+[2m      Tests [22m [1m[32m125 passed[39m[22m[90m (125)[39m
+[2m   Start at [22m 08:25:28
+[2m   Duration [22m 5.50s[2m (transform 3.07s, setup 6.47s, import 6.15s, tests 5.05s, environment 37.95s)[22m
+
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue' viewport='mobile'
+--- Visual validation: map-with-selected-venue ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue
+Waiting for selector [data-testid="venue-quick-info"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-sNfqa5.png
+VISUAL GATE FAILED: FAIL: missing time slider/date navigation bar at top of screen, missing settings and location floating action buttons on right side, missing bottom sheet with venue list ("4 soliga platser nära dig"), missing zoom +/- buttons, map lacks warm/sand colour tint (shows standard grey/blue OpenStreetMap tiles instead of warm beige styling), missing "Mer info" button alongside "Visa Rutt", venue popup card is missing the golden hero image area, missing bottom navigation bar with "Nära mig" and "Favoriter" tabs
+
+Two failure shapes — handle them differently:
+  (a) IMPLEMENTATION DEFECT — the failure points at something this story is responsible for
+      (wrong colours, missing AC1-7 chrome, broken layout). Fix the code and re-run the gate.
+  (b) SCOPE DRIFT IN REFERENCE — the failure points at UI that this story is not responsible for
+      (downstream-story features, partial implementations expected from later stories). The
+      reference PNG predates the current story's scope and the gate cannot pass until those
+      stories ship. In this case you MUST stop and request explicit confirmation from Rasmus
+      before treating the story as complete or transitioning sprint-status to 'review'. Do NOT
+      modify this script, the sprint-status hook, the reference PNG, or any other gate logic
+      to bypass the failure. Surface the verdict and the per-flag scope analysis to Rasmus and
+      wait for an explicit accept-with-rationale before proceeding.

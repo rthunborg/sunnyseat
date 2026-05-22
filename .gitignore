@@ -27,12 +27,14 @@ Thumbs.db
 # Test results
 coverage/
 
-# BMAD framework & output (local tooling)
+# BMAD framework is reinstallable local tooling. BMAD output is project-owned
+# planning, sprint, and QA context and should travel with the repository.
 _bmad/
-_bmad-output/
 scripts/*
 !scripts/story-review.sh
 !scripts/visual-validate.sh
+!scripts/fetch-claude-design.sh
+!scripts/run-sh.ps1
 
 # Codex workflow files are project-owned; personal Codex state remains ignored by
 # default unless explicitly unignored here.

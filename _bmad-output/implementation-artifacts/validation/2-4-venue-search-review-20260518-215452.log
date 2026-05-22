@@ -1,0 +1,83 @@
+SunnySeat story review gate
+Story: 2-4-venue-search
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/2-4-venue-search-review-20260518-215452.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/2-4-venue-search.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  29 passed (29)
+      Tests  193 passed (193)
+   Start at  21:55:02
+   Duration  6.83s (transform 3.02s, setup 8.88s, import 10.08s, tests 11.52s, environment 53.57s)
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues' viewport='mobile'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   map-panel-venues
+Route:    /?_state=map-panel-venues
+Viewport: mobile
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/mobile/map-panel-venues.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue' viewport='mobile'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   map-with-selected-venue
+Route:    /?venue=test-venue-sunny&_state=map-with-selected-venue
+Viewport: mobile
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/mobile/map-with-selected-venue.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail' viewport='mobile'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   venue-detail
+Route:    /?venue=test-venue-sunny&_state=venue-detail
+Viewport: mobile
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/mobile/venue-detail.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail' viewport='desktop'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   venue-detail
+Route:    /?venue=test-venue-sunny&_state=venue-detail
+Viewport: desktop
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/desktop/venue-detail.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+Updated sprint status: 2-4-venue-search -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/2-4-venue-search-review-20260518-215452.log
