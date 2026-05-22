@@ -26,6 +26,27 @@ describe('GET /api/venues/[slug]', () => {
       status: 'Sunny',
     });
     expect(body.venue.shadowWarningMinutes).toBe(45);
+    expect(res.headers.get('x-sun-data-source')).toBe('weather');
+    expect(res.headers.get('x-weather-updated-at')).toMatch(/T/);
+    expect(body.meta).toMatchObject({
+      sunDataSource: 'weather',
+      weatherUpdatedAt: res.headers.get('x-weather-updated-at'),
+    });
+  });
+
+  it('returns geometry-only metadata and hides weather freshness when weather is unavailable', async () => {
+    const res = await GET(makeRequest('test-venue-sunny', '?_weather=unavailable'), {
+      params: Promise.resolve({ slug: 'test-venue-sunny' }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenueDetailResponse;
+    expect(body.venue.slug).toBe('test-venue-sunny');
+    expect(body.venue.skyCondition).toBe('unavailable');
+    expect(res.headers.get('x-sun-data-source')).toBe('geometry-only');
+    expect(res.headers.get('x-weather-updated-at')).toBeNull();
+    expect(body.meta).toMatchObject({ sunDataSource: 'geometry-only' });
+    expect(body.meta?.weatherUpdatedAt).toBeUndefined();
   });
 
   it('returns 404 for an unknown venue slug', async () => {

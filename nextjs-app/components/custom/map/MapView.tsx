@@ -214,6 +214,7 @@ export function MapView() {
     [forcedState, venueSlugParam],
   );
   const detailVenue = venueDetailQuery.data?.venue ?? forcedVisualVenueDetail;
+  const detailConfidenceMeta = venueDetailQuery.data?.meta ?? venueQuery.data?.meta;
   const detailFallbackVenue = useMemo(() => {
     if (!venueSlugParam) return null;
     if (detailVenue) return detailVenue;
@@ -391,6 +392,7 @@ export function MapView() {
           venues={listVenues}
           mode="mobile"
           sortMode={venueSortMode}
+          confidenceMeta={venueQuery.data?.meta}
           isLoading={venueQuery.isFetching && listVenues.length === 0}
           animateCards={mobileSheetState === 'full'}
           compactCards={mobileSheetState === 'peek'}
@@ -412,6 +414,7 @@ export function MapView() {
             venues={listVenues}
             mode="desktop"
             sortMode={venueSortMode}
+            confidenceMeta={venueQuery.data?.meta}
             isLoading={venueQuery.isFetching && listVenues.length === 0}
             onSelectVenue={handleSelectVenueFromList}
           />
@@ -424,6 +427,7 @@ export function MapView() {
             mode="mobile"
             fallbackVenue={detailFallbackVenue}
             detail={detailVenue ?? undefined}
+            confidenceMeta={detailConfidenceMeta}
             isLoading={venueDetailQuery.isFetching && !detailVenue}
             currentTime={plannerTime.selectedTime}
             labels={venueDetailLabels(tVenueDetail)}
@@ -438,6 +442,7 @@ export function MapView() {
             mode="desktop"
             fallbackVenue={detailFallbackVenue}
             detail={detailVenue ?? undefined}
+            confidenceMeta={detailConfidenceMeta}
             isLoading={venueDetailQuery.isFetching && !detailVenue}
             currentTime={plannerTime.selectedTime}
             labels={venueDetailLabels(tVenueDetail)}
@@ -453,6 +458,8 @@ export function MapView() {
             name={selectedPinData.name}
             sunTimeRange={resolveSunTimeRange(selectedVenueDto)}
             confidencePercent={selectedVenueDto?.confidence}
+            confidenceMeta={venueQuery.data?.meta}
+            sunExposurePercent={selectedVenueDto?.sunExposurePercent}
             distanceMeters={selectedVenueDto?.distanceMeters}
             thumbnail={selectedVenueDto?.thumbnail}
             isLoadingSunData={venueQuery.isFetching || !selectedVenueDto}
@@ -470,6 +477,8 @@ export function MapView() {
             name={selectedPinData.name}
             sunTimeRange={resolveSunTimeRange(selectedVenueDto)}
             confidencePercent={selectedVenueDto?.confidence}
+            confidenceMeta={venueQuery.data?.meta}
+            sunExposurePercent={selectedVenueDto?.sunExposurePercent}
             distanceMeters={selectedVenueDto?.distanceMeters}
             thumbnail={selectedVenueDto?.thumbnail}
             isLoadingSunData={venueQuery.isFetching || !selectedVenueDto}
@@ -489,13 +498,12 @@ export function MapView() {
         </div>
       )}
       <LoadingPill
-        isFetching={venueQuery.isFetching}
+        isFetching={venueQuery.isFetching && venueQuery.data === undefined}
         dataUpdatedAt={venueQuery.dataUpdatedAt}
       />
-      {/* ErrorPill stays visible during background refetch so the user
-          knows the previous attempt failed — only hide once a refetch
-          actually succeeds (`isError` flips false). */}
-      {venueQuery.isError && <ErrorPill />}
+      {/* Venue API failure stays visible during background refetch; hide
+          only once a refetch succeeds (`isError` flips false). */}
+      {venueQuery.isError && <MapVenueError onRetry={() => venueQuery.refetch()} />}
     </div>
   );
 }
@@ -572,6 +580,8 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     close: t('quickInfo.close'),
     photoPlaceholder: t('quickInfo.photoPlaceholder'),
     confidence: t('quickInfo.confidence'),
+    confidenceApproximate: t('quickInfo.confidenceApproximate'),
+    confidenceUnavailable: t('quickInfo.confidenceUnavailable'),
     distance: t('quickInfo.distance'),
     loadingSun: t('quickInfo.loadingSun'),
     sunUnavailable: t('quickInfo.sunUnavailable'),
@@ -595,6 +605,9 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue.detail'>>
     address: t('address'),
     shadowWarning: t('shadowWarning', { minutes: '{minutes}' }),
     sunBadge: t('sunBadge', { percent: '{percent}' }),
+    confidence: t('confidence'),
+    confidenceApproximate: t('confidenceApproximate'),
+    confidenceUnavailable: t('confidenceUnavailable'),
     city: t('city'),
     openUntil: t('openUntil', { time: '{time}' }),
     placeholderImageShort: t('placeholderImageShort'),
@@ -698,15 +711,24 @@ function LoadingPill({ isFetching, dataUpdatedAt }: LoadingPillProps) {
   );
 }
 
-function ErrorPill() {
+function MapVenueError({ onRetry }: { onRetry: () => unknown }) {
   const t = useTranslations('map');
   return (
     <div
       role="alert"
-      data-testid="map-error-pill"
-      className="absolute top-3 left-1/2 -translate-x-1/2 z-floating-buttons px-4 py-2 rounded-pill bg-glass-standard backdrop-blur-[6px] shadow-button-float text-body-sm text-text-muted"
+      data-testid="map-error-inline"
+      className="absolute top-3 left-4 right-4 z-floating-buttons mx-auto flex max-w-[min(22rem,calc(100%-2rem))] items-center justify-between gap-3 rounded-card bg-surface-cream px-4 py-3 text-body-sm text-text-body shadow-card lg:left-1/2 lg:right-auto lg:-translate-x-1/2"
     >
-      {t('loadFailed')}
+      <span>{t('loadFailed')} </span>
+      <button
+        type="button"
+        onClick={() => {
+          void onRetry();
+        }}
+        className="min-h-11 shrink-0 rounded-pill px-4 text-label-lg text-amber-dark outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+      >
+        {t('retry')}
+      </button>
     </div>
   );
 }

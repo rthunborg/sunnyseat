@@ -4,14 +4,35 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { createElement } from 'react';
 import { useVenueSearch } from '@/hooks/queries/useVenueSearch';
+import {
+  shouldRetryVenueQuery,
+  venueQueryRetryDelay,
+} from '@/hooks/queries/venue-query-options';
 import { queryKeys } from '@/lib/query-keys';
-import type { GetVenuesResponse } from '@/lib/types/api';
+import type { GetVenuesResponse, VenueDataDto } from '@/lib/types/api';
+
+const SAMPLE_VENUE: VenueDataDto = {
+  id: 'venue-1',
+  venueId: 'venue-1',
+  venueName: 'Kafé Magasinet',
+  venueSlug: 'test-venue-sunny',
+  slug: 'test-venue-sunny',
+  neighborhood: 'Centrum',
+  location: { lat: 57.705, lng: 11.97 },
+  currentSunStatus: 'Sunny',
+  skyCondition: 'clear',
+  isPartner: false,
+  confidence: 92,
+  distanceMeters: 100,
+  sunExposurePercent: 95,
+  sunWindow: { start: '13:00', end: '18:30' },
+};
 
 const SAMPLE_RESPONSE: GetVenuesResponse = {
-  venues: [],
-  meta: { count: 0, radiusKm: 1.5 },
+  venues: [SAMPLE_VENUE],
+  meta: { count: 1, radiusKm: 1.5 },
   timestamp: new Date('2026-05-01T12:00:00Z').toISOString(),
-  totalCount: 0,
+  totalCount: 1,
 };
 
 function makeWrapper() {
@@ -49,6 +70,10 @@ describe('useVenueSearch', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual(SAMPLE_RESPONSE);
+    expect(result.current.data?.venues[0]).toMatchObject({
+      confidence: 92,
+      sunExposurePercent: 95,
+    });
 
     const calledUrl = fetchSpy.mock.calls[0]?.[0] as string;
     expect(calledUrl).toContain('/api/venues');
@@ -74,6 +99,52 @@ describe('useVenueSearch', () => {
   it('uses queryKeys.venues.list with the resolved radius', () => {
     const expected = queryKeys.venues.list({ lat: 57.7089, lng: 11.9746, radiusKm: 1.5 });
     expect(expected).toEqual(['venues', 'list', { lat: 57.7089, lng: 11.9746, radiusKm: 1.5 }]);
+  });
+
+  it('enriches response metadata from freshness headers', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Weather-Updated-At': '2026-05-22T11:00:00.000Z',
+          'X-Sun-Data-Source': 'weather',
+        },
+      }),
+    );
+
+    const { result } = renderHook(
+      () => useVenueSearch({ lat: 57.7089, lng: 11.9746, radiusKm: 1.5 }),
+      { wrapper: makeWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.meta).toMatchObject({
+      weatherUpdatedAt: '2026-05-22T11:00:00.000Z',
+      sunDataSource: 'weather',
+    });
+  });
+
+  it('uses geometry-only header metadata to preserve venues while marking confidence unavailable', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Sun-Data-Source': 'geometry-only',
+        },
+      }),
+    );
+
+    const { result } = renderHook(
+      () => useVenueSearch({ lat: 57.7089, lng: 11.9746, radiusKm: 1.5 }),
+      { wrapper: makeWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.venues).toHaveLength(1);
+    expect(result.current.data?.meta.sunDataSource).toBe('geometry-only');
+    expect(result.current.data?.meta.weatherUpdatedAt).toBeUndefined();
   });
 
   it('adds trimmed text query to the request URL and normalized query key', async () => {
@@ -363,6 +434,39 @@ describe('useVenueSearch', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.isStale).toBe(false);
+  });
+
+  it('uses the explicit venue retry policy instead of relying on provider defaults', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+    function StableWrapper({ children }: { children: ReactNode }) {
+      return createElement(QueryClientProvider, { client }, children);
+    }
+
+    const { result } = renderHook(
+      () => useVenueSearch({ lat: 57.7089, lng: 11.9746, radiusKm: 1.5 }),
+      { wrapper: StableWrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const query = client.getQueryCache().find({
+      queryKey: queryKeys.venues.list({ lat: 57.7089, lng: 11.9746, radiusKm: 1.5 }),
+    });
+
+    expect(query?.options.retry).toBe(shouldRetryVenueQuery);
+    expect(query?.options.retryDelay).toBe(venueQueryRetryDelay);
+    expect(venueQueryRetryDelay(0)).toBe(1000);
+    expect(venueQueryRetryDelay(1)).toBe(2000);
+    expect(venueQueryRetryDelay(2)).toBe(4000);
+    expect(shouldRetryVenueQuery(2, new Error('network down'))).toBe(true);
+    expect(shouldRetryVenueQuery(3, new Error('network down'))).toBe(false);
+    expect(shouldRetryVenueQuery(0, new Error('Venue search failed: 400 Bad Request'))).toBe(false);
   });
 
   it('polls the live venue search path every five minutes', async () => {

@@ -15,6 +15,7 @@ type VenueQueryShape = {
   isFetching: boolean;
   isError: boolean;
   dataUpdatedAt: number;
+  refetch?: ReturnType<typeof vi.fn>;
 };
 type VenueSearchParams = {
   lat: number;
@@ -405,6 +406,42 @@ describe('<MapView />', () => {
       });
       rerender(<MapView />);
       expect(screen.queryByTestId('map-loading-pill')).toBeNull();
+    });
+
+    it('does not show the loading pill during a background refetch when previous venue data is displayed', () => {
+      vi.useFakeTimers();
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        isFetching: true,
+        isError: false,
+        dataUpdatedAt: 1000,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      act(() => {
+        vi.advanceTimersByTime(3500);
+      });
+      expect(screen.queryByTestId('map-loading-pill')).toBeNull();
+      vi.useRealTimers();
+    });
+
+    it('renders the inline venue API failure message with a retry button', () => {
+      const refetch = vi.fn();
+      useVenueSearchMock.mockReturnValue({
+        data: undefined,
+        isFetching: false,
+        isError: true,
+        dataUpdatedAt: 0,
+        refetch,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent('Kunde inte ladda platser. Försök igen');
+      fireEvent.click(screen.getByRole('button', { name: 'Försök igen' }));
+      expect(refetch).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -4,6 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { createElement } from 'react';
 import { useVenueDetail } from '@/hooks/queries/useVenueDetail';
+import {
+  shouldRetryVenueQuery,
+  venueQueryRetryDelay,
+} from '@/hooks/queries/venue-query-options';
 import { queryKeys } from '@/lib/query-keys';
 import type { GetVenueDetailResponse } from '@/lib/types/api';
 
@@ -70,6 +74,50 @@ describe('useVenueDetail', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual(SAMPLE_RESPONSE);
     expect(fetchSpy.mock.calls[0]?.[0]).toBe('/api/venues/test-venue-sunny');
+  });
+
+  it('enriches detail response metadata from freshness headers', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Weather-Updated-At': '2026-05-22T11:00:00.000Z',
+          'X-Sun-Data-Source': 'weather',
+        },
+      }),
+    );
+
+    const { result } = renderHook(() => useVenueDetail('test-venue-sunny'), {
+      wrapper: makeWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.meta).toMatchObject({
+      weatherUpdatedAt: '2026-05-22T11:00:00.000Z',
+      sunDataSource: 'weather',
+    });
+  });
+
+  it('preserves detail data and marks confidence unavailable for geometry-only responses', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Sun-Data-Source': 'geometry-only',
+        },
+      }),
+    );
+
+    const { result } = renderHook(() => useVenueDetail('test-venue-sunny'), {
+      wrapper: makeWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.venue.slug).toBe('test-venue-sunny');
+    expect(result.current.data?.meta).toMatchObject({ sunDataSource: 'geometry-only' });
+    expect(result.current.data?.meta?.weatherUpdatedAt).toBeUndefined();
   });
 
   it('uses queryKeys.venues.detail for the cache key', () => {
@@ -203,5 +251,33 @@ describe('useVenueDetail', () => {
     });
     const plannerOptions = plannerQuery?.options as { refetchInterval?: unknown } | undefined;
     expect(plannerOptions?.refetchInterval).toBe(false);
+  });
+
+  it('uses the explicit venue retry policy instead of relying on provider defaults', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    });
+    function StableWrapper({ children }: { children: ReactNode }) {
+      return createElement(QueryClientProvider, { client }, children);
+    }
+
+    const { result } = renderHook(() => useVenueDetail('test-venue-sunny'), {
+      wrapper: StableWrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const query = client.getQueryCache().find({
+      queryKey: queryKeys.venues.detail('test-venue-sunny'),
+    });
+
+    expect(query?.options.retry).toBe(shouldRetryVenueQuery);
+    expect(query?.options.retryDelay).toBe(venueQueryRetryDelay);
   });
 });

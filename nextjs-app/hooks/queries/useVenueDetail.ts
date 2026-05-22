@@ -3,6 +3,11 @@
 import { keepPreviousData, useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import type { GetVenueDetailResponse } from '@/lib/types/api';
+import { readSunFreshnessHeaders } from '@/lib/utils/sun-freshness';
+import {
+  shouldRetryVenueQuery,
+  venueQueryRetryDelay,
+} from './venue-query-options';
 
 const FIVE_MINUTES = 5 * 60 * 1000;
 
@@ -37,11 +42,22 @@ export function useVenueDetail(
       if (!contentType.toLowerCase().includes('application/json')) {
         throw new Error(`Venue detail returned unexpected content-type: ${contentType || '(missing)'}`);
       }
-      return (await res.json()) as GetVenueDetailResponse;
+      const body = (await res.json()) as GetVenueDetailResponse;
+      const freshness = readSunFreshnessHeaders(res.headers);
+      if (!body.meta && Object.keys(freshness).length === 0) return body;
+      return {
+        ...body,
+        meta: {
+          ...body.meta,
+          ...freshness,
+        },
+      };
     },
     staleTime: FIVE_MINUTES,
     refetchInterval: normalizedPlanner ? false : FIVE_MINUTES,
     refetchOnWindowFocus: false,
+    retry: shouldRetryVenueQuery,
+    retryDelay: venueQueryRetryDelay,
     placeholderData: keepPreviousData,
     enabled: normalizedSlug.length > 0,
   });

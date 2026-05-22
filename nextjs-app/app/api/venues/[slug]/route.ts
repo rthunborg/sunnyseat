@@ -4,11 +4,16 @@ import {
   applyPlannerSelectionToVenue,
   parseVenuePlannerParams,
 } from '@/lib/services/venue-planner';
+import {
+  applyFixtureWeatherAvailability,
+  resolveFixtureSunFreshness,
+} from '@/lib/services/weather-freshness-fixture';
 import type {
   GetVenueDetailResponse,
   VenueDataDto,
   VenueDetailDto,
 } from '@/lib/types/api';
+import { sunFreshnessHeaders } from '@/lib/utils/sun-freshness';
 
 type RouteContext = {
   params: Promise<{ slug: string }>;
@@ -84,6 +89,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       { status: 400 },
     );
   }
+  const freshness = resolveFixtureSunFreshness(_request.nextUrl.searchParams);
   const { slug } = await context.params;
   let decodedSlug: string;
   try {
@@ -106,18 +112,23 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   }
 
   const detail = buildDetailDto(
-    applyPlannerSelectionToVenue(venue, planner.selection),
+    applyFixtureWeatherAvailability(
+      applyPlannerSelectionToVenue(venue, planner.selection),
+      freshness,
+    ),
     DETAIL_FIXTURE[venue.slug],
     venue.currentSunStatus,
   );
   const response: GetVenueDetailResponse = {
     venue: detail,
+    meta: freshness,
     timestamp: new Date().toISOString(),
   };
 
   return NextResponse.json(response, {
     headers: {
       'Cache-Control': 'public, max-age=30, s-maxage=30, must-revalidate',
+      ...sunFreshnessHeaders(freshness),
     },
   });
 }

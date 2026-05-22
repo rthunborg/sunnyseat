@@ -75,6 +75,24 @@ describe('<VenueList />', () => {
     ]);
   });
 
+  it('renders API-backed confidence metadata in venue cards', () => {
+    render(
+      <VenueList
+        venues={[makeVenue({ id: 'sun-near', name: 'Sol Nära', status: 'Sunny', distanceMeters: 120 })]}
+        mode="mobile"
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        onSelectVenue={vi.fn()}
+      />,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('Säkerhet: 90%');
+    expect(screen.getByRole('button', { name: /Säkerhet 90%/ })).toBeInTheDocument();
+  });
+
   it('places NaN distances after venues with finite distances', () => {
     render(
       <VenueList

@@ -142,11 +142,11 @@ function SunnyPill({ percent }: { percent: number }) {
 function SunnyCircle({ percent }: { percent: number }) {
   return (
     <div className="bg-amber-pin border-[2px] border-white shadow-card rounded-pill flex flex-col items-center justify-center size-11">
-      <span className="text-label-xs text-white leading-none">{percent}%</span>
+      <span className="text-label-xs text-amber-cta-text leading-none">{percent}%</span>
       <Sun
         aria-hidden="true"
         data-pin-icon="sun"
-        className="text-white"
+        className="text-amber-cta-text"
         style={{ width: '16.5px', height: '16.5px' }}
       />
     </div>

@@ -48,7 +48,16 @@ export interface AdminUserInfo {
 // Venue Types
 // ============================================================================
 
-export interface VenuesMeta {
+export type VenueSunStatus = 'Sunny' | 'Partial' | 'Shaded' | 'NoSun';
+
+export type SunDataSource = 'weather' | 'geometry-only';
+
+export interface SunFreshnessMeta {
+  weatherUpdatedAt?: string;
+  sunDataSource?: SunDataSource;
+}
+
+export interface VenuesMeta extends SunFreshnessMeta {
   count: number;
   radiusKm: number;
   weatherUpdatedAt?: string;
@@ -63,6 +72,7 @@ export interface GetVenuesResponse {
 
 export interface GetVenueDetailResponse {
   venue: VenueDetailDto;
+  meta?: SunFreshnessMeta;
   timestamp: string;
 }
 
@@ -74,11 +84,20 @@ export interface VenueDataDto {
   slug: string;
   neighborhood: string;
   location: CoordinatesDto;
-  currentSunStatus: 'Sunny' | 'Partial' | 'Shaded';
+  currentSunStatus: VenueSunStatus;
   skyCondition?: string; // 'clear' | 'partly-cloudy' | 'overcast' | 'unavailable'
   isPartner: boolean;
-  confidence: number; // 0-100
+  /**
+   * Prediction certainty, 0..100. This is not the amount of direct sun.
+   * Weather freshness/source metadata decides whether the value is exact,
+   * approximate, or hidden in the UI.
+   */
+  confidence: number;
   distanceMeters: number;
+  /**
+   * Direct-sun amount, 0..100. This powers pins, hero badges, and "X% sol"
+   * surfaces, while confidence remains a trust/certainty metric.
+   */
   sunExposurePercent: number;
   sunWindow?: {
     start: string;
@@ -184,7 +203,7 @@ export interface ProblematicVenueResponse {
 export interface VenueSunExposureResponse {
   venueId: number;
   timestamp: string;
-  state: 'Sunny' | 'Partial' | 'Shaded' | 'NoSun';
+  state: VenueSunStatus;
   sunExposurePercent: number;
   confidence: number;
   solarElevation: number;

@@ -20,9 +20,28 @@ describe('mapVenueDtoToPinData', () => {
     expect(mapVenueDtoToPinData(makeVenue({ lat: Number.NaN, lng: 11.97 }))).toBeNull();
     expect(mapVenueDtoToPinData(makeVenue({ lat: 57.7, lng: Number.POSITIVE_INFINITY }))).toBeNull();
   });
+
+  it('preserves new API sun status literals such as NoSun for shaded pin rendering', () => {
+    expect(
+      mapVenueDtoToPinData(
+        makeVenue({ lat: 57.7, lng: 11.97, currentSunStatus: 'NoSun' }),
+      ),
+    ).toMatchObject({
+      sunStatus: 'NoSun',
+      sunExposurePercent: 0,
+    });
+  });
 });
 
-function makeVenue({ lat, lng }: { lat: number; lng: number }): VenueDataDto {
+function makeVenue({
+  lat,
+  lng,
+  currentSunStatus = 'Sunny',
+}: {
+  lat: number;
+  lng: number;
+  currentSunStatus?: VenueDataDto['currentSunStatus'];
+}): VenueDataDto {
   return {
     id: 'venue-1',
     venueId: 'venue-1',
@@ -31,10 +50,10 @@ function makeVenue({ lat, lng }: { lat: number; lng: number }): VenueDataDto {
     slug: 'venue-1',
     neighborhood: 'Centrum',
     location: { lat, lng },
-    currentSunStatus: 'Sunny',
+    currentSunStatus,
     isPartner: false,
     confidence: 91,
     distanceMeters: 320,
-    sunExposurePercent: 82,
+    sunExposurePercent: currentSunStatus === 'NoSun' ? 0 : 82,
   };
 }

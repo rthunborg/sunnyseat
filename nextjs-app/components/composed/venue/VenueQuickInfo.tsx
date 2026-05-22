@@ -10,6 +10,11 @@ import {
   EASE_ENTER,
   EASE_EXIT,
 } from '@/lib/constants/animation';
+import {
+  getConfidenceDisplayState,
+  type ConfidenceDisplayLabels,
+} from '@/lib/utils/confidence-display';
+import type { SunFreshnessMeta } from '@/lib/types/api';
 import { cn } from '@/lib/utils';
 
 export type VenueQuickInfoMode = 'mobile' | 'desktop';
@@ -20,6 +25,8 @@ export type VenueQuickInfoProps = {
   name: string;
   sunTimeRange?: string;
   confidencePercent?: number;
+  confidenceMeta?: SunFreshnessMeta;
+  sunExposurePercent?: number;
   distanceMeters?: number;
   thumbnail?: {
     alt: string;
@@ -38,6 +45,8 @@ export type VenueQuickInfoProps = {
     close: string;
     photoPlaceholder: string;
     confidence: string;
+    confidenceApproximate: string;
+    confidenceUnavailable: string;
     distance: string;
     loadingSun: string;
     sunUnavailable: string;
@@ -52,6 +61,8 @@ export function VenueQuickInfo({
   name,
   sunTimeRange,
   confidencePercent,
+  confidenceMeta,
+  sunExposurePercent,
   distanceMeters,
   thumbnail,
   isLoadingSunData,
@@ -65,6 +76,11 @@ export function VenueQuickInfo({
   const shouldReduceMotion = useReducedMotion() ?? false;
   const isDesktop = mode === 'desktop';
   const isAnchoredMobile = !isDesktop && Boolean(position);
+  const confidenceDisplay = getConfidenceDisplayState({
+    confidence: confidencePercent,
+    meta: confidenceMeta,
+    labels: confidenceDisplayLabels(labels),
+  });
   const positionedStyle = position
     ? {
         left: position.x,
@@ -113,7 +129,7 @@ export function VenueQuickInfo({
         <VenueThumbnail
           label={labels.photoPlaceholder}
           thumbnail={thumbnail}
-          confidencePercent={confidencePercent}
+          sunExposurePercent={sunExposurePercent}
           compact={isAnchoredMobile}
           forcePlaceholder={isAnchoredMobile}
         />
@@ -136,7 +152,7 @@ export function VenueQuickInfo({
               >
                 {name}
               </button>
-              <div className={cn('mt-1 min-h-12', isAnchoredMobile && 'hidden')}>
+              <div className="mt-1 min-h-12">
                 {isLoadingSunData ? (
                   <div aria-label={labels.loadingSun} className="space-y-2">
                     <Skeleton className="h-5 w-36 bg-surface-muted" />
@@ -148,10 +164,21 @@ export function VenueQuickInfo({
                       {sunTimeRange ?? labels.sunUnavailable}
                     </p>
                     <p className="text-body-sm text-text-body">
-                      <span className="font-bold">{labels.confidence}:</span>{' '}
-                      {Math.round(confidencePercent ?? 0)}% ·{' '}
-                      <span className="font-bold">{labels.distance}:</span>{' '}
-                      {formatDistance(distanceMeters)}
+                      {confidenceDisplay.visibleText && (
+                        <>
+                          <span className="font-bold">
+                            {labels.confidence}: {confidenceDisplay.visibleText}
+                            <span className="sr-only"> {confidenceDisplay.accessibleText}</span>
+                          </span>
+                          {' · '}
+                        </>
+                      )}
+                      {!confidenceDisplay.visibleText && (
+                        <span className="sr-only">{confidenceDisplay.accessibleText}. </span>
+                      )}
+                      <span className="font-bold">
+                        {labels.distance}: {formatDistance(distanceMeters)}
+                      </span>
                     </p>
                   </div>
                 )}
@@ -195,18 +222,19 @@ export function VenueQuickInfo({
 function VenueThumbnail({
   label,
   thumbnail,
-  confidencePercent,
+  sunExposurePercent,
   compact = false,
   forcePlaceholder = false,
 }: {
   label: string;
   thumbnail?: { alt: string; initials: string; url?: string };
-  confidencePercent?: number;
+  sunExposurePercent?: number;
   compact?: boolean;
   forcePlaceholder?: boolean;
 }) {
   const accessibleLabel = normalizeAlt(thumbnail?.alt, label);
   const initials = normalizeInitials(thumbnail?.initials);
+  const sunExposureText = formatPercent(sunExposurePercent);
   return (
     <div
       className={cn(
@@ -248,10 +276,10 @@ function VenueThumbnail({
           </span>
         </div>
       )}
-      {confidencePercent != null && (
+      {sunExposureText && (
         <div className="absolute left-3 top-3 rounded-badge bg-amber-gold/90 backdrop-blur-standard px-3 py-1.5 text-display-sm text-amber-cta-text shadow-subtle flex items-center gap-1.5">
           <Sun aria-hidden="true" className="size-4" />
-          {Math.round(confidencePercent)}% SOL
+          {sunExposureText} SOL
         </div>
       )}
     </div>
@@ -322,4 +350,19 @@ function formatDistance(meters?: number): string {
   if (!Number.isFinite(meters)) return '–';
   if ((meters ?? 0) >= 1000) return `${((meters ?? 0) / 1000).toFixed(1)} km`;
   return `${Math.round(meters ?? 0)} m`;
+}
+
+function formatPercent(value: number | undefined): string | null {
+  if (!Number.isFinite(value)) return null;
+  return `${Math.max(0, Math.min(100, Math.round(value ?? 0)))}%`;
+}
+
+function confidenceDisplayLabels(
+  labels: VenueQuickInfoProps['labels'],
+): ConfidenceDisplayLabels {
+  return {
+    confidence: labels.confidence,
+    approximate: labels.confidenceApproximate,
+    unavailable: labels.confidenceUnavailable,
+  };
 }

@@ -11,13 +11,21 @@ import {
   formatVenueSunPercent,
   type VenueVisualMetadata,
 } from '@/lib/utils/venue-visual-metadata';
+import {
+  getConfidenceDisplayState,
+  type ConfidenceDisplayLabels,
+} from '@/lib/utils/confidence-display';
+import type { SunFreshnessMeta } from '@/lib/types/api';
 import { cn } from '@/lib/utils';
 
 export type VenueCardLabels = {
   select: string;
+  favourite: string;
   sun: string;
   photoPlaceholder: string;
   confidence: string;
+  confidenceApproximate: string;
+  confidenceUnavailable: string;
   distance: string;
   sunUnavailable: string;
 };
@@ -27,6 +35,7 @@ export type VenueCardProps = {
   neighborhood?: string;
   sunTimeRange?: string;
   confidencePercent?: number;
+  confidenceMeta?: SunFreshnessMeta;
   distanceMeters?: number;
   sunExposurePercent?: number;
   thumbnail?: {
@@ -52,6 +61,7 @@ export function VenueCard({
   neighborhood,
   sunTimeRange,
   confidencePercent,
+  confidenceMeta,
   distanceMeters,
   sunExposurePercent,
   thumbnail,
@@ -65,11 +75,16 @@ export function VenueCard({
   staggerIndex = 0,
   animateIn = false,
 }: VenueCardProps) {
-  const sunPercent = formatVenueSunPercent(sunExposurePercent ?? confidencePercent);
+  const sunPercent = formatVenueSunPercent(sunExposurePercent);
   const distance = formatVenueDistance(distanceMeters);
+  const confidenceDisplay = getConfidenceDisplayState({
+    confidence: confidencePercent,
+    meta: confidenceMeta,
+    labels: confidenceDisplayLabels(labels),
+  });
   const statusLabel = !isSunny
     ? 'MEST SKUGGA'
-    : (sunExposurePercent ?? confidencePercent ?? 0) >= 75
+    : (sunExposurePercent ?? 0) >= 75
       ? 'FULL SOL'
       : 'DELVIS SOL';
 
@@ -101,7 +116,7 @@ export function VenueCard({
       <VenueCardThumbnail
         thumbnail={thumbnail}
         fallbackLabel={labels.photoPlaceholder}
-        confidencePercent={confidencePercent}
+        sunExposurePercent={sunExposurePercent}
         isSunny={isSunny}
         compact={compact}
       />
@@ -138,10 +153,18 @@ export function VenueCard({
               )}
               <span className="text-text-faint">·</span>
               <span className="font-extrabold text-amber-dark">{sunPercent} sol</span>
+              {confidenceDisplay.visibleText && (
+                <>
+                  <span className="text-text-faint">·</span>
+                  <span className="font-extrabold text-amber-text">
+                    {labels.confidence}: {confidenceDisplay.visibleText}
+                  </span>
+                </>
+              )}
             </span>{' '}
             <span className="sr-only">
-              {sunTimeRange ?? labels.sunUnavailable}. {labels.confidence}:{' '}
-              {formatConfidence(confidencePercent)}%. {labels.distance}: {distance}.
+              {sunTimeRange ?? labels.sunUnavailable}. {confidenceDisplay.accessibleText}.{' '}
+              {labels.distance}: {distance}.
             </span>
             {visualMetadata && (
               <span className="mt-2 flex flex-wrap gap-1">
@@ -161,7 +184,7 @@ export function VenueCard({
       </button>
       <button
         type="button"
-        aria-label={labels.select.replace(/^Välj /, 'Spara ')}
+        aria-label={formatLabel(labels.favourite, { name })}
         aria-pressed={isFavourite}
         onClick={(event) => {
           event.stopPropagation();
@@ -205,13 +228,13 @@ export function VenueCardSkeleton({ compact = false }: { compact?: boolean }) {
 function VenueCardThumbnail({
   thumbnail,
   fallbackLabel,
-  confidencePercent,
+  sunExposurePercent,
   isSunny,
   compact,
 }: {
   thumbnail?: VenueCardProps['thumbnail'];
   fallbackLabel: string;
-  confidencePercent?: number;
+  sunExposurePercent?: number;
   isSunny: boolean;
   compact: boolean;
 }) {
@@ -235,7 +258,7 @@ function VenueCardThumbnail({
       <span className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-md bg-surface-cream/90 text-text-muted shadow-subtle">
         <ImageIcon aria-hidden="true" className="size-3" />
       </span>
-      {confidencePercent != null && (
+      {sunExposurePercent != null && (
         <span
           className={cn(
             'absolute bottom-1 left-1 flex size-6 items-center justify-center rounded-badge border-2 border-surface-cream shadow-subtle',
@@ -258,6 +281,17 @@ function normalizeInitials(value: string | undefined): string {
   return Array.from(trimmed).slice(0, THUMBNAIL_MAX_INITIALS).join('').toUpperCase();
 }
 
-function formatConfidence(value?: number): number {
-  return Number.isFinite(value) ? Math.round(value ?? 0) : 0;
+function confidenceDisplayLabels(labels: VenueCardLabels): ConfidenceDisplayLabels {
+  return {
+    confidence: labels.confidence,
+    approximate: labels.confidenceApproximate,
+    unavailable: labels.confidenceUnavailable,
+  };
+}
+
+function formatLabel(template: string, values: Record<string, string>): string {
+  return Object.entries(values).reduce(
+    (label, [key, value]) => label.replaceAll(`{${key}}`, value),
+    template,
+  );
 }

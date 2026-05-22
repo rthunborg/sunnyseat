@@ -4,7 +4,8 @@ import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { VenueCard, VenueCardSkeleton } from '@/components/composed/venue/VenueCard';
 import type { VenueListSortMode } from '@/components/composed/venue/VenueListControls';
-import type { VenueDataDto } from '@/lib/types/api';
+import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
+import { getConfidenceDisplayState } from '@/lib/utils/confidence-display';
 import { getVenueVisualMetadata } from '@/lib/utils/venue-visual-metadata';
 import { cn } from '@/lib/utils';
 
@@ -18,6 +19,7 @@ export type VenueListProps = {
   animateCards?: boolean;
   sortMode?: VenueListSortMode;
   compactCards?: boolean;
+  confidenceMeta?: SunFreshnessMeta;
 };
 
 export function VenueList({
@@ -28,6 +30,7 @@ export function VenueList({
   animateCards = false,
   sortMode = 'sun',
   compactCards,
+  confidenceMeta,
 }: VenueListProps) {
   const t = useTranslations('venue.list');
   const sortedVenues = useMemo(() => sortVenuesForList(venues, sortMode), [venues, sortMode]);
@@ -60,6 +63,15 @@ export function VenueList({
     <div className={cn('space-y-3', compact && 'space-y-2')}>
       {sortedVenues.map((venue, index) => {
         const sunTimeRange = resolveSunTimeRange(venue, t('sun'));
+        const confidenceDisplay = getConfidenceDisplayState({
+          confidence: venue.confidence,
+          meta: confidenceMeta,
+          labels: {
+            confidence: t('confidence'),
+            approximate: t('confidenceApproximate'),
+            unavailable: t('confidenceUnavailable'),
+          },
+        });
         return (
           <VenueCard
             key={venue.id}
@@ -67,6 +79,7 @@ export function VenueList({
             neighborhood={venue.neighborhood}
             sunTimeRange={sunTimeRange}
             confidencePercent={venue.confidence}
+            confidenceMeta={confidenceMeta}
             distanceMeters={venue.distanceMeters}
             sunExposurePercent={venue.sunExposurePercent}
             thumbnail={venue.thumbnail}
@@ -79,12 +92,15 @@ export function VenueList({
               select: t('cardAria', {
                 name: venue.venueName,
                 sun: sunTimeRange ?? t('sunUnavailable'),
-                confidence: formatConfidence(venue.confidence),
+                confidence: confidenceDisplay.accessibleText,
                 distance: formatDistance(venue.distanceMeters),
               }),
+              favourite: t('favourite', { name: venue.venueName }),
               sun: t('sun'),
               photoPlaceholder: t('photoPlaceholder'),
               confidence: t('confidence'),
+              confidenceApproximate: t('confidenceApproximate'),
+              confidenceUnavailable: t('confidenceUnavailable'),
               distance: t('distance'),
               sunUnavailable: t('sunUnavailable'),
             }}
@@ -133,8 +149,4 @@ function formatDistance(meters?: number): string {
   if (!Number.isFinite(meters)) return '-';
   if ((meters ?? 0) >= 1000) return `${((meters ?? 0) / 1000).toFixed(1)} km`;
   return `${Math.round(meters ?? 0)} m`;
-}
-
-function formatConfidence(value?: number): number {
-  return Number.isFinite(value) ? Math.round(value ?? 0) : 0;
 }

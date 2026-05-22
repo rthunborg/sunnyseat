@@ -2,6 +2,7 @@
   "loadingPlaces": "Laddar platser...",
   "tileLoadFailed": "Kunde inte ladda kartan.",
   "loadFailed": "Kunde inte ladda platser.",
+  "retry": "Försök igen",
   "zoomIn": "Zooma in",
   "zoomOut": "Zooma ut",
   "myLocation": "Min plats",

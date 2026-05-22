@@ -30,6 +30,35 @@ describe('GET /api/venues', () => {
     for (let i = 1; i < ranks.length; i++) {
       expect(ranks[i - 1]).toBeLessThanOrEqual(ranks[i]);
     }
+    expect(res.headers.get('x-sun-data-source')).toBe('weather');
+    expect(res.headers.get('x-weather-updated-at')).toMatch(/T/);
+    expect(body.meta.sunDataSource).toBe('weather');
+    expect(body.meta.weatherUpdatedAt).toBe(res.headers.get('x-weather-updated-at'));
+  });
+
+  it('can return stale fixture weather metadata without blocking venue data', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&_weather=stale'));
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as GetVenuesResponse;
+    expect(body.venues.length).toBeGreaterThan(0);
+    expect(res.headers.get('x-sun-data-source')).toBe('weather');
+    expect(res.headers.get('x-weather-updated-at')).toMatch(/T/);
+    expect(body.meta.sunDataSource).toBe('weather');
+    expect(body.meta.weatherUpdatedAt).toBe(res.headers.get('x-weather-updated-at'));
+  });
+
+  it('can return geometry-only fixture metadata when weather is unavailable', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&_weather=unavailable'));
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as GetVenuesResponse;
+    expect(body.venues.length).toBeGreaterThan(0);
+    expect(body.venues.every((venue) => venue.skyCondition === 'unavailable')).toBe(true);
+    expect(res.headers.get('x-sun-data-source')).toBe('geometry-only');
+    expect(res.headers.get('x-weather-updated-at')).toBeNull();
+    expect(body.meta.sunDataSource).toBe('geometry-only');
+    expect(body.meta.weatherUpdatedAt).toBeUndefined();
   });
 
   it('returns 400 when lat is missing', async () => {
@@ -197,6 +226,8 @@ describe('GET /api/venues', () => {
     );
     expect(second.status).toBe(304);
     expect(second.headers.get('etag')).toBe(etag);
+    expect(second.headers.get('x-sun-data-source')).toBe('weather');
+    expect(second.headers.get('x-weather-updated-at')).toMatch(/T/);
   });
 
   it('accepts selected planner date/time and returns forecast-adjusted venue states', async () => {

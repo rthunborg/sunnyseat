@@ -22,7 +22,12 @@ import {
   applyPlannerSelectionToVenue,
   parseVenuePlannerParams,
 } from '@/lib/services/venue-planner';
+import {
+  applyFixtureWeatherAvailability,
+  resolveFixtureSunFreshness,
+} from '@/lib/services/weather-freshness-fixture';
 import type { GetVenuesResponse, VenueDataDto } from '@/lib/types/api';
+import { sunFreshnessHeaders } from '@/lib/utils/sun-freshness';
 
 const DEFAULT_RADIUS_KM = 1.5;
 const MAX_RADIUS_KM = 3.0;
@@ -44,6 +49,7 @@ const SUN_STATUS_ORDER: Record<VenueDataDto['currentSunStatus'], number> = {
   Sunny: 0,
   Partial: 1,
   Shaded: 2,
+  NoSun: 3,
 };
 
 /**
@@ -267,10 +273,12 @@ export async function GET(request: NextRequest) {
   if (!q.success) return badRequest(q.error);
   const planner = parseVenuePlannerParams(params);
   if (!planner.ok) return badRequest(planner.detail);
+  const freshness = resolveFixtureSunFreshness(params);
 
   const matchedVenues = VENUE_FIXTURE
     .map((v) => normalizeVenueForResponse(v))
     .map((v) => applyPlannerSelectionToVenue(v, planner.selection))
+    .map((v) => applyFixtureWeatherAvailability(v, freshness))
     .map((v) => ({
       ...v,
       distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),
@@ -297,7 +305,7 @@ export async function GET(request: NextRequest) {
     meta: {
       count: venues.length,
       radiusKm,
-      ...(planner.selection ? { weatherUpdatedAt: new Date().toISOString() } : {}),
+      ...freshness,
     },
     timestamp: new Date().toISOString(),
     totalCount,
@@ -309,6 +317,7 @@ export async function GET(request: NextRequest) {
       headers: {
         ETag: etag,
         'Cache-Control': 'public, max-age=30, s-maxage=30, must-revalidate',
+        ...sunFreshnessHeaders(freshness),
       },
     });
   }
@@ -321,6 +330,7 @@ export async function GET(request: NextRequest) {
     headers: {
       'Cache-Control': 'public, max-age=30, s-maxage=30, must-revalidate',
       ETag: etag,
+      ...sunFreshnessHeaders(freshness),
     },
   });
 }

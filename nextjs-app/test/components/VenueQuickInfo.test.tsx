@@ -38,6 +38,8 @@ const labels = {
   close: 'Stäng platskort',
   photoPlaceholder: 'Platshållarbild',
   confidence: 'Säkerhet',
+  confidenceApproximate: 'cirka',
+  confidenceUnavailable: 'Säkerhet saknas',
   distance: 'Avstånd',
   loadingSun: 'Laddar soldata',
   sunUnavailable: 'Soltid saknas',
@@ -51,6 +53,11 @@ describe('<VenueQuickInfo />', () => {
         name="Testbaren"
         sunTimeRange="Sol 13:00–18:30"
         confidencePercent={92}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        sunExposurePercent={95}
         distanceMeters={420}
         thumbnail={{
           alt: 'Uteservering hos Testbaren',
@@ -69,9 +76,83 @@ describe('<VenueQuickInfo />', () => {
     expect(screen.getByRole('button', { name: 'Testbaren' })).toBeInTheDocument();
     expect(screen.getByText('Sol 13:00–18:30')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Uteservering hos Testbaren' })).toBeInTheDocument();
-    expect(screen.getAllByText(/92/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet: 92%');
+    expect(screen.getByText(/95% SOL/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mer Info' })).toBeInTheDocument();
+  });
+
+  it('marks stale confidence as approximate and hides geometry-only confidence', () => {
+    const { rerender } = render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunTimeRange="Sol 13:00–18:30"
+        confidencePercent={92}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: '2026-05-22T09:00:00.000Z',
+        }}
+        sunExposurePercent={95}
+        distanceMeters={420}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet: ~92%');
+    expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet cirka 92%');
+
+    rerender(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunTimeRange="Sol 13:00–18:30"
+        confidencePercent={92}
+        confidenceMeta={{ sunDataSource: 'geometry-only' }}
+        sunExposurePercent={95}
+        distanceMeters={420}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    expect(screen.queryByText(/Säkerhet:/)).toBeNull();
+    expect(screen.getByText(/Säkerhet saknas/)).toHaveClass('sr-only');
+    expect(screen.getByText(/95% SOL/)).toBeInTheDocument();
+  });
+
+  it('keeps confidence visible in anchored mobile mode', () => {
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunTimeRange="Sol 13:00–18:30"
+        confidencePercent={92}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        sunExposurePercent={95}
+        distanceMeters={420}
+        isLoadingSunData={false}
+        position={{ x: 180, y: 260 }}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    expect(screen.getByText('Sol 13:00–18:30')).toBeInTheDocument();
+    expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet: 92%');
+    expect(screen.getByText(/Avstånd:/)).toHaveTextContent('Avstånd: 420 m');
   });
 
   it('falls back to safe thumbnail text and sun copy when optional data is missing', () => {

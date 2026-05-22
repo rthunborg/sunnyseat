@@ -49,6 +49,9 @@ const labels = {
   address: 'Adress',
   shadowWarning: 'Blir skuggigt om {minutes} min',
   sunBadge: '{percent}% sol',
+  confidence: 'Säkerhet',
+  confidenceApproximate: 'cirka',
+  confidenceUnavailable: 'Säkerhet saknas',
   city: 'Göteborg',
   openUntil: 'ÖPPET · {time}',
   placeholderImageShort: 'Platshållarbild',
@@ -73,6 +76,10 @@ describe('VenueDetailContent', () => {
       <VenueDetailContent
         fallbackVenue={LIST_VENUE}
         detail={DETAIL}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
         currentTime="15:30"
         labels={labels}
         onRoute={() => undefined}
@@ -86,11 +93,48 @@ describe('VenueDetailContent', () => {
     expect(screen.getByText('PLATSER UTE')).toBeInTheDocument();
     expect(screen.getByText('Blir skuggigt om 45 min')).toHaveClass('text-error');
     expect(screen.getByLabelText('95% sol')).toContainHTML('svg');
+    expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet: 92%');
+    expect(screen.getByText(/Säkerhet:/)).toHaveClass('text-amber-dark');
     expect(screen.getByRole('link', { name: /ÖPPNA I KARTOR/i })).toHaveAttribute(
       'href',
       expect.stringContaining('57.705'),
     );
     expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeEnabled();
+  });
+
+  it('renders approximate and hidden confidence states without changing the sun badge', () => {
+    const { rerender } = render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: '2026-05-22T09:00:00.000Z',
+        }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet: ~92%');
+    expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet cirka 92%');
+    expect(screen.getByLabelText('95% sol')).toBeInTheDocument();
+
+    rerender(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        confidenceMeta={{ sunDataSource: 'geometry-only' }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.queryByText(/Säkerhet:/)).toBeNull();
+    expect(screen.getByText(/Säkerhet saknas/)).toHaveClass('sr-only');
+    expect(screen.getByLabelText('95% sol')).toBeInTheDocument();
   });
 
   it('shows the venue name immediately while detail fields are loading', () => {

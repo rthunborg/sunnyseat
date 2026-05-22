@@ -3,6 +3,11 @@
 import { keepPreviousData, useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import type { GetVenuesResponse } from '@/lib/types/api';
+import { readSunFreshnessHeaders } from '@/lib/utils/sun-freshness';
+import {
+  shouldRetryVenueQuery,
+  venueQueryRetryDelay,
+} from './venue-query-options';
 
 const FIVE_MINUTES = 5 * 60 * 1000;
 const DEFAULT_RADIUS_KM = 1.5;
@@ -86,11 +91,20 @@ export function useVenueSearch(
       if (!contentType.toLowerCase().includes('application/json')) {
         throw new Error(`Venue search returned unexpected content-type: ${contentType || '(missing)'}`);
       }
-      return (await res.json()) as GetVenuesResponse;
+      const body = (await res.json()) as GetVenuesResponse;
+      return {
+        ...body,
+        meta: {
+          ...body.meta,
+          ...readSunFreshnessHeaders(res.headers),
+        },
+      };
     },
     staleTime: FIVE_MINUTES,
     refetchInterval: planner ? false : FIVE_MINUTES,
     refetchOnWindowFocus: false,
+    retry: shouldRetryVenueQuery,
+    retryDelay: venueQueryRetryDelay,
     placeholderData: keepPreviousData,
     enabled: inputsValid,
   });

@@ -15,14 +15,22 @@ describe('<VenueCard />', () => {
         name="Kafé Magasinet"
         sunTimeRange="Sol 13:00-18:30"
         confidencePercent={92}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
         distanceMeters={180}
+        sunExposurePercent={92}
         thumbnail={{ alt: 'Uteservering', initials: 'KM' }}
         isSunny
         labels={{
           select: 'Välj Kafé Magasinet, Sol 13:00-18:30, Säkerhet 92%, Avstånd 180 m',
+          favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
           confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
         }}
@@ -31,6 +39,7 @@ describe('<VenueCard />', () => {
     );
 
     expect(screen.getByRole('button', { name: /Välj Kafé Magasinet/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Spara Kafé Magasinet' })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Uteservering' })).toBeInTheDocument();
     expect(screen.getByText('Kafé Magasinet')).toBeInTheDocument();
     expect(screen.getByTestId('venue-card')).toHaveTextContent('Sol 13:00-18:30');
@@ -40,6 +49,39 @@ describe('<VenueCard />', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Välj Kafé Magasinet/ }));
     expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses approximate confidence copy when weather freshness is stale', () => {
+    render(
+      <VenueCard
+        name="Bellora"
+        sunTimeRange="Sol 13:00-18:30"
+        confidencePercent={80}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: '2026-05-22T09:00:00.000Z',
+        }}
+        distanceMeters={100}
+        sunExposurePercent={76}
+        thumbnail={{ alt: 'Uteservering', initials: 'BE' }}
+        isSunny
+        labels={{
+          select: 'Välj Bellora',
+          favourite: 'Spara {name}',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('Säkerhet: ~80%');
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('Säkerhet cirka 80%');
   });
 
   it('uses shared motion constants for staggered card entry', () => {
@@ -55,9 +97,12 @@ describe('<VenueCard />', () => {
         staggerIndex={2}
         labels={{
           select: 'Välj Bellora',
+          favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
           confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
         }}

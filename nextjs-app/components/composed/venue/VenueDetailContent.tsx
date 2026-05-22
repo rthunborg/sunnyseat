@@ -14,13 +14,17 @@ import {
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SunTimeline, type SunTimelineLabels } from '@/components/composed/venue/SunTimeline';
-import type { VenueDataDto, VenueDetailDto } from '@/lib/types/api';
+import type { SunFreshnessMeta, VenueDataDto, VenueDetailDto } from '@/lib/types/api';
 import {
   formatPeakHour,
   formatVenueDistance,
   formatVenueSunPercent,
   getVenueVisualMetadata,
 } from '@/lib/utils/venue-visual-metadata';
+import {
+  getConfidenceDisplayState,
+  type ConfidenceDisplayLabels,
+} from '@/lib/utils/confidence-display';
 import { cn } from '@/lib/utils';
 
 export type VenueDetailContentLabels = {
@@ -36,6 +40,9 @@ export type VenueDetailContentLabels = {
   address: string;
   shadowWarning: string;
   sunBadge: string;
+  confidence: string;
+  confidenceApproximate: string;
+  confidenceUnavailable: string;
   city: string;
   openUntil: string;
   placeholderImageShort: string;
@@ -51,6 +58,7 @@ export type VenueDetailContentLabels = {
 export type VenueDetailContentProps = {
   fallbackVenue: VenueDataDto;
   detail?: VenueDetailDto;
+  confidenceMeta?: SunFreshnessMeta;
   currentTime: string;
   labels: VenueDetailContentLabels;
   isLoading?: boolean;
@@ -63,6 +71,7 @@ export type VenueDetailContentProps = {
 export function VenueDetailContent({
   fallbackVenue,
   detail,
+  confidenceMeta,
   currentTime,
   labels,
   isLoading = false,
@@ -79,6 +88,11 @@ export function VenueDetailContent({
   const bestAt = metadata.bestAt ?? peakHour;
   const openUntil = detail?.openingHours.closesAt ?? '22:00';
   const isDesktop = mode === 'desktop';
+  const confidenceDisplay = getConfidenceDisplayState({
+    confidence: venue.confidence,
+    meta: confidenceMeta,
+    labels: confidenceDisplayLabels(labels),
+  });
 
   return (
     <article
@@ -112,6 +126,17 @@ export function VenueDetailContent({
             </span>
             <span className="hidden text-text-faint lg:inline">·</span>
             <span className="hidden lg:inline">{metadata.price}</span>
+            {confidenceDisplay.visibleText ? (
+              <>
+                <span className="text-text-faint">·</span>
+                <span className="font-bold text-amber-dark">
+                  {labels.confidence}: {confidenceDisplay.visibleText}
+                  <span className="sr-only"> {confidenceDisplay.accessibleText}</span>
+                </span>
+              </>
+            ) : (
+              <span className="sr-only">{confidenceDisplay.accessibleText}</span>
+            )}
           </div>
           {loading ? (
             <LoadingBlock label={labels.loading} />
@@ -443,4 +468,14 @@ function formatLabel(template: string, values: Record<string, string>): string {
     (label, [key, value]) => label.replaceAll(`{${key}}`, value),
     template,
   );
+}
+
+function confidenceDisplayLabels(
+  labels: VenueDetailContentLabels,
+): ConfidenceDisplayLabels {
+  return {
+    confidence: labels.confidence,
+    approximate: labels.confidenceApproximate,
+    unavailable: labels.confidenceUnavailable,
+  };
 }
