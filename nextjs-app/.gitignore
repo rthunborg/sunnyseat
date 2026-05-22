@@ -38,6 +38,8 @@ yarn-error.log*
 # workflow files live at the repository root and are unignored by ../.gitignore.
 CLAUDE.md
 scripts/*
+!scripts/capture-claude-design-refs.mjs
+!scripts/capture-onboarding-rebaseline.mjs
 !scripts/verify-maplibre-async.mjs
 
 # vercel

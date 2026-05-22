@@ -1,0 +1,55 @@
+SunnySeat story review gate
+Story: 2-5-free-time-date-planner
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260522-102211.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/2-5-free-time-date-planner.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  34 passed (34)
+      Tests  241 passed (241)
+   Start at  10:22:35
+   Duration  19.74s (transform 7.12s, setup 20.41s, import 39.92s, tests 30.27s, environment 115.26s)
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues&_time=14:00' viewport='mobile'
+--- Visual validation: map-panel-venues ---
+Navigating to http://localhost:3000/?_state=map-panel-venues&_time=14:00
+Waiting for selector [data-testid="venue-pin"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-gY7MjN.png
+VISUAL GATE FAILED: FAIL: venue pins on map are showing shaded/grey styling with low percentages (58%, 82%) instead of the sunny golden/yellow styling with high percentages (95%, 97%) as in the reference, missing the warm golden tint on the map area (implementation shows a grey/muted map tone instead of the warm sand/cream colour), bottom navigation bar is showing only two items (Nära mig, Favoriter) instead of the fuller tab bar visible in reference, filter chips in the bottom sheet are missing their icons/styling fidelity (Nära mig chip missing the correct icon style)
+
+Two failure shapes — handle them differently:
+  (a) IMPLEMENTATION DEFECT — the failure points at something this story is responsible for
+      (wrong colours, missing AC1-7 chrome, broken layout). Fix the code and re-run the gate.
+  (b) SCOPE DRIFT IN REFERENCE — the failure points at UI that this story is not responsible for
+      (downstream-story features, partial implementations expected from later stories). The
+      reference PNG predates the current story's scope and the gate cannot pass until those
+      stories ship. In this case you MUST stop and request explicit confirmation from Rasmus
+      before treating the story as complete or transitioning sprint-status to 'review'. Do NOT
+      modify this script, the sprint-status hook, the reference PNG, or any other gate logic
+      to bypass the failure. Surface the verdict and the per-flag scope analysis to Rasmus and
+      wait for an explicit accept-with-rationale before proceeding.

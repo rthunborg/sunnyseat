@@ -1,0 +1,39 @@
+SunnySeat story review gate
+Story: 2-2-venue-list-bottom-sheet
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/2-2-venue-list-bottom-sheet-review-20260513-200826.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/2-2-venue-list-bottom-sheet.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  20 passed (20)
+      Tests  142 passed (142)
+   Start at  20:08:41
+   Duration  10.23s (transform 2.56s, setup 13.00s, import 7.83s, tests 8.94s, environment 77.00s)
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues' viewport='mobile'
+VISUAL GATE FAILED: ANTHROPIC_API_KEY is not set in the environment
+Add 'export ANTHROPIC_API_KEY=sk-ant-...' to ~/.zshrc or ~/.bashrc

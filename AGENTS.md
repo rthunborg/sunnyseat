@@ -20,6 +20,16 @@ This file is the canonical repo-level rulebook for Codex and other AI coding age
 - E2E tests: `cd nextjs-app && npx playwright test`
 - Dev server: `cd nextjs-app && npm run dev`
 
+### Shell Scripts On Windows
+
+Agents normally run commands through PowerShell in this checkout. Do not execute `.sh` files directly from PowerShell, because Windows may prompt for an app association and plain `bash` resolves to WSL on this machine. Use the repo wrapper so scripts run in Git Bash against the Windows `node_modules` tree:
+
+- Story review gate: `.\scripts\run-sh.ps1 scripts/story-review.sh <story-id>`
+- Visual validation: `.\scripts\run-sh.ps1 scripts/visual-validate.sh <screen-id> <route> [mobile|desktop]`
+- Other repo shell scripts: `.\scripts\run-sh.ps1 <script-path> [args...]`
+
+If invoking Git Bash manually, use `C:\Program Files\Git\bin\bash.exe` explicitly. Do not rely on `bash` from `PATH`.
+
 ## Repository Layout
 
 ```text
@@ -124,7 +134,7 @@ The frontend budget is <=600 KB gzipped JS total, with initial route <=280 KB an
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` is local sprint state.
 - Story files currently live directly under `_bmad-output/implementation-artifacts/` in this checkout.
 - Do not directly edit `_bmad-output/implementation-artifacts/sprint-status.yaml` to mark a story `review`.
-- Use `scripts/story-review.sh <story-id>` to move a story to `review`. The script is the canonical gate and should run checks before it edits sprint status.
+- Use `scripts/story-review.sh <story-id>` to move a story to `review`. On Windows/PowerShell, invoke it through `.\scripts\run-sh.ps1 scripts/story-review.sh <story-id>`. The script is the canonical gate and should run checks before it edits sprint status.
 - The optional `.codex/scripts/sprint-status-gate.sh` hook is a convenience guardrail against accidental direct transitions; it is not the canonical enforcement boundary.
 - Human approval moves stories from `review` to `done`.
 
@@ -137,6 +147,8 @@ Frontend stories with a screen reference must pass visual validation before revi
 ```bash
 scripts/visual-validate.sh <screen-id> <route> [mobile|desktop]
 ```
+
+On Windows/PowerShell, invoke this through `.\scripts\run-sh.ps1 scripts/visual-validate.sh <screen-id> <route> [mobile|desktop]`.
 
 The wrapper is provider-neutral. In this migration it preserves the existing legacy implementation by delegating to `.claude/scripts/visual-validate.sh` when `VISUAL_VALIDATE_PROVIDER=claude` or `anthropic`. `VISUAL_VALIDATE_PROVIDER=none` is a manual/dry-run mode and is not an automated pass unless explicitly allowed by environment and documented in the validation artifact.
 

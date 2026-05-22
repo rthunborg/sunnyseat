@@ -1,0 +1,39 @@
+SunnySeat story review gate
+Story: 2-1-venue-quick-info-card
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/2-1-venue-quick-info-card-review-20260512-204833.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/2-1-venue-quick-info-card.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  17 passed (17)
+      Tests  124 passed (124)
+   Start at  20:48:48
+   Duration  7.82s (transform 6.02s, setup 9.36s, import 9.65s, tests 6.67s, environment 56.13s)
+
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue' viewport='mobile'
+VISUAL GATE FAILED: ANTHROPIC_API_KEY is not set in the environment
+Add 'export ANTHROPIC_API_KEY=sk-ant-...' to ~/.zshrc or ~/.bashrc

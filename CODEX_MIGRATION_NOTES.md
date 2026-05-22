@@ -11,6 +11,7 @@ Date: 2026-05-11
 - `.codex/scripts/sprint-status-gate.sh` reads hook JSON from stdin and blocks direct `sprint-status.yaml` transitions to `review` where detectable.
 - PreToolUse hook blocking is a convenience guardrail, not the canonical enforcement boundary.
 - `scripts/story-review.sh` is the canonical BMAD story-to-review command and remains the required path for moving stories to `review`.
+- Windows agents must run repo `.sh` scripts through `scripts/run-sh.ps1`, which dispatches to Git Bash. Direct PowerShell `.sh` execution opens the Windows file-association prompt, and plain `bash` resolves to WSL on this machine.
 - Live hook activation did not trigger in the migration session even though direct script smoke tests passed; re-test after trusting/restarting Codex so the project `.codex` layer is loaded.
 - `scripts/visual-validate.sh` is a provider-neutral wrapper. In this pass it delegates to the legacy Claude/Anthropic implementation when requested.
 - `.gitignore` now allows canonical Codex workflow files, root workflow scripts, and repo-local skills to be tracked while keeping personal state, BMAD local artifacts, `.claude/worktrees`, and secrets ignored.
