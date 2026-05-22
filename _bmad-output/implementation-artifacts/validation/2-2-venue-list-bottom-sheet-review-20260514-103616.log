@@ -1,0 +1,61 @@
+SunnySeat story review gate
+Story: 2-2-venue-list-bottom-sheet
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/2-2-venue-list-bottom-sheet-review-20260514-103616.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/2-2-venue-list-bottom-sheet.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  20 passed (20)
+      Tests  143 passed (143)
+   Start at  10:37:09
+   Duration  25.10s (transform 40.14s, setup 90.17s, import 15.51s, tests 7.42s, environment 213.99s)
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues' viewport='mobile'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   map-panel-venues
+Route:    /?_state=map-panel-venues
+Viewport: mobile
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/mobile/map-panel-venues.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue' viewport='mobile'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   map-with-selected-venue
+Route:    /?venue=test-venue-sunny&_state=map-with-selected-venue
+Viewport: mobile
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/mobile/map-with-selected-venue.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+Updated sprint status: 2-2-venue-list-bottom-sheet -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/2-2-venue-list-bottom-sheet-review-20260514-103616.log

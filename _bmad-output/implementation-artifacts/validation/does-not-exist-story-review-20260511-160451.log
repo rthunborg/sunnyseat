@@ -1,0 +1,7 @@
+SunnySeat story review gate
+Story: does-not-exist-story
+Mode: dry-run
+Sprint status: /mnt/c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /mnt/c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/does-not-exist-story-review-20260511-160451.log
+
+ERROR: story file not found for 'does-not-exist-story'; refusing to mark review because visual/test scope cannot be determined

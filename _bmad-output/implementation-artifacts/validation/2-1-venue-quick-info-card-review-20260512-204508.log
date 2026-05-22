@@ -1,0 +1,66 @@
+SunnySeat story review gate
+Story: 2-1-venue-quick-info-card
+Mode: apply
+Sprint status: /mnt/c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /mnt/c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/2-1-venue-quick-info-card-review-20260512-204508.log
+
+Story file: /mnt/c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/2-1-venue-quick-info-card.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Startup Error [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯⎯[39m
+Error: Cannot find native binding. npm has a bug related to optional dependencies (https://github.com/npm/cli/issues/4828). Please try `npm i` again after removing both package-lock.json and node_modules directory.
+    at file:///mnt/c/Users/Rasmus/sunnyseat/nextjs-app/node_modules/rolldown/dist/shared/binding-s-V_wTpj.mjs:507:36
+    at file:///mnt/c/Users/Rasmus/sunnyseat/nextjs-app/node_modules/rolldown/dist/shared/binding-s-V_wTpj.mjs:9:48
+    at file:///mnt/c/Users/Rasmus/sunnyseat/nextjs-app/node_modules/rolldown/dist/shared/parse-BywQARUG.mjs:3:46
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async start (file:///mnt/c/Users/Rasmus/sunnyseat/nextjs-app/node_modules/vitest/dist/chunks/cac.wyYWMVI-.js:2339:27)
+    at async CAC.run (file:///mnt/c/Users/Rasmus/sunnyseat/nextjs-app/node_modules/vitest/dist/chunks/cac.wyYWMVI-.js:2318:2) {
+  [cause]: Error: Cannot find module '@rolldown/binding-linux-x64-gnu'
+  Require stack:
+  - /mnt/c/Users/Rasmus/sunnyseat/nextjs-app/node_modules/rolldown/dist/shared/binding-s-V_wTpj.mjs
+      at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+      ... 6 lines matching cause stack trace ...
+      at require (node:internal/modules/helpers:147:16)
+      at requireNative (file:///mnt/c/Users/Rasmus/sunnyseat/nextjs-app/node_modules/rolldown/dist/shared/binding-s-V_wTpj.mjs:277:21)
+      at file:///mnt/c/Users/Rasmus/sunnyseat/nextjs-app/node_modules/rolldown/dist/shared/binding-s-V_wTpj.mjs:475:18 {
+    code: 'MODULE_NOT_FOUND',
+    requireStack: [
+      '/mnt/c/Users/Rasmus/sunnyseat/nextjs-app/node_modules/rolldown/dist/shared/binding-s-V_wTpj.mjs'
+    ],
+    cause: Error: Cannot find module '../rolldown-binding.linux-x64-gnu.node'
+    Require stack:
+    - /mnt/c/Users/Rasmus/sunnyseat/nextjs-app/node_modules/rolldown/dist/shared/binding-s-V_wTpj.mjs
+        at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+        at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+        at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+        at Function._load (node:internal/modules/cjs/loader:1192:37)
+        at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+        at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+        at Module.require (node:internal/modules/cjs/loader:1463:12)
+        at require (node:internal/modules/helpers:147:16)
+        at requireNative (file:///mnt/c/Users/Rasmus/sunnyseat/nextjs-app/node_modules/rolldown/dist/shared/binding-s-V_wTpj.mjs:272:12)
+        at file:///mnt/c/Users/Rasmus/sunnyseat/nextjs-app/node_modules/rolldown/dist/shared/binding-s-V_wTpj.mjs:475:18 {
+      code: 'MODULE_NOT_FOUND',
+      requireStack: [Array]
+    }
+  }
+}

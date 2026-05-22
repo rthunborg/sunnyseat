@@ -1,0 +1,86 @@
+SunnySeat story review gate
+Story: 2-2-venue-list-bottom-sheet
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/2-2-venue-list-bottom-sheet-review-20260513-202220.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/2-2-venue-list-bottom-sheet.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.4 [39m[90mC:/Users/Rasmus/sunnyseat/nextjs-app[39m
+
+ [32m✓[39m test/components/OnboardingGate.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[32m 109[2mms[22m[39m
+ [32m✓[39m test/components/VenueList.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 415[2mms[22m[39m
+ [32m✓[39m test/unit/hooks/useGeolocation.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 345[2mms[22m[39m
+ [32m✓[39m test/components/DesktopNavBar.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 327[2mms[22m[39m
+ [32m✓[39m test/unit/queries/useVenueSearch.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 505[2mms[22m[39m
+ [32m✓[39m test/components/VenuePin.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 381[2mms[22m[39m
+ [32m✓[39m test/unit/api/venues-route.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 290[2mms[22m[39m
+ [32m✓[39m test/components/MapContainer.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 378[2mms[22m[39m
+ [32m✓[39m test/components/MapControls.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 303[2mms[22m[39m
+ [32m✓[39m test/components/VenueCard.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 408[2mms[22m[39m
+     [33m[2m✓[22m[39m renders venue sunlight, confidence, distance, and an accessible activation label [33m 406[2mms[22m[39m
+[90mstderr[2m | test/components/VenuePinLayer.test.tsx[2m > [22m[2m<VenuePinLayer />[2m > [22m[2mstagger delays grow monotonically WITHIN a batch and reset between batches
+[22m[39mAttempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+Attempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+
+[90mstderr[2m | test/components/VenuePinLayer.test.tsx[2m > [22m[2m<VenuePinLayer />[2m > [22m[2mwrapper role/aria-label MutationObserver defense (P49 + P50)[2m > [22m[2mdisconnects the observer when the venue is removed from the layer
+[22m[39mAttempted to synchronously unmount a root while React was already rendering. React cannot finish unmounting the root until the current render has completed, which may lead to a race condition.
+
+ [32m✓[39m test/components/VenuePinLayer.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 381[2mms[22m[39m
+ [32m✓[39m test/components/OnboardingScreen.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 641[2mms[22m[39m
+     [33m[2m✓[22m[39m renders Swedish copy by default with all three CTAs and the trust microcopy [33m 428[2mms[22m[39m
+ [32m✓[39m test/components/VenueQuickInfo.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 606[2mms[22m[39m
+     [33m[2m✓[22m[39m renders venue summary content and exposes the route CTA [33m 438[2mms[22m[39m
+ [32m✓[39m test/components/MobileNavBar.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 653[2mms[22m[39m
+     [33m[2m✓[22m[39m renders the three tabs with Swedish labels [33m 372[2mms[22m[39m
+ [32m✓[39m test/components/MapView.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 643[2mms[22m[39m
+ [32m✓[39m test/unit/useMediaQuery.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+ [32m✓[39m test/unit/utils.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m test/unit/use-forced-state.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+ [32m✓[39m test/unit/utils/venue-pin-mapping.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m test/components/MobileBottomSheet.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 180[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m20 passed[39m[22m[90m (20)[39m
+[2m      Tests [22m [1m[32m142 passed[39m[22m[90m (142)[39m
+[2m   Start at [22m 20:22:35
+[2m   Duration [22m 9.14s[2m (transform 2.17s, setup 9.87s, import 6.22s, tests 6.65s, environment 73.12s)[22m
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues' viewport='mobile'
+--- Visual validation: map-panel-venues ---
+Navigating to http://localhost:3000/?_state=map-panel-venues
+Waiting for selector [data-testid="venue-pin"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-2Of2ow.png
+VISUAL GATE FAILED: FAIL: missing map canvas entirely (implementation shows only the bottom sheet list with no map visible behind it), missing time slider / date navigation bar at top, missing floating action buttons (location, settings, zoom +/-) overlaying the map, bottom sheet content format differs significantly (wrong venue card layout, missing filter chips like 'Mest sol'/'Nära mig'/'Kafé'/'Öppet nu', missing star ratings and percentage sun labels in correct format, missing heart/favourite icons styled correctly), missing top navigation chrome with date and calendar icon
+
+Two failure shapes — handle them differently:
+  (a) IMPLEMENTATION DEFECT — the failure points at something this story is responsible for
+      (wrong colours, missing AC1-7 chrome, broken layout). Fix the code and re-run the gate.
+  (b) SCOPE DRIFT IN REFERENCE — the failure points at UI that this story is not responsible for
+      (downstream-story features, partial implementations expected from later stories). The
+      reference PNG predates the current story's scope and the gate cannot pass until those
+      stories ship. In this case you MUST stop and request explicit confirmation from Rasmus
+      before treating the story as complete or transitioning sprint-status to 'review'. Do NOT
+      modify this script, the sprint-status hook, the reference PNG, or any other gate logic
+      to bypass the failure. Surface the verdict and the per-flag scope analysis to Rasmus and
+      wait for an explicit accept-with-rationale before proceeding.
