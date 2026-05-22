@@ -73,6 +73,8 @@ const NAV_MESSAGES = {
       logoAria: 'SunnySeat — gå till kartan',
       searchPlaceholder: 'Sök plats eller område i Göteborg...',
       filter: 'Filter',
+      previous: 'Föregående filter',
+      next: 'Nästa filter',
       myLocation: 'Min plats',
       settings: 'Inställningar',
     },
@@ -104,7 +106,7 @@ describe('DesktopNavBar', () => {
       name: 'SunnySeat — gå till kartan',
     });
     expect(logo).toHaveAttribute('href', '/');
-    expect(logo).toHaveTextContent('sunnyseat');
+    expect(logo).toHaveTextContent('SunnySeat');
   });
 
   it('renders the search combobox in the desktop navbar', () => {
@@ -149,7 +151,9 @@ describe('DesktopNavBar', () => {
   it('keeps out-of-scope desktop chrome disabled until later stories own behavior', () => {
     renderWithProviders(<DesktopNavBar />, { messages: NAV_MESSAGES });
 
-    expect(screen.getByRole('button', { name: 'Filter' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Innergård' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Föregående filter' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Nästa filter' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Min plats' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Inställningar' })).toBeDisabled();
   });

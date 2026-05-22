@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 
 // Story 1.6 review (P25): named timeout for the pin-morph settle wait.
@@ -11,6 +11,101 @@ async function bypassOnboarding(page: import('@playwright/test').Page): Promise<
   await page.addInitScript((key: string) => {
     window.localStorage.setItem(key, '1');
   }, ONBOARDED_FLAG_KEY);
+}
+
+function visiblePlanner(page: Page): Locator {
+  return page.locator('[data-testid="time-slider-panel"]:visible').first();
+}
+
+async function expectFreePlannerChrome(page: Page): Promise<Locator> {
+  const planner = visiblePlanner(page);
+  await expect(planner).toBeVisible();
+  await expect(planner.getByRole('button', { name: 'Öppna kalender' })).toBeVisible();
+  await expect(planner.getByRole('slider', { name: 'Välj tid' })).toBeVisible();
+  await expect(planner).not.toContainText(/Säsongskortet|Swish|Premium|Season Pass/i);
+  return planner;
+}
+
+async function firstUncoveredSunnyPin(page: Page): Promise<Locator> {
+  const pins = page.locator('[data-testid="venue-pin"][data-pin-state="sunny"]');
+  await expect(pins.first()).toBeVisible();
+  const plannerBox = await visiblePlanner(page).boundingBox().catch(() => null);
+  const sheetBox = await page.getByTestId('mobile-bottom-sheet').boundingBox().catch(() => null);
+  const viewport = page.viewportSize();
+  const count = await pins.count();
+  let firstInViewport: Locator | null = null;
+
+  for (let index = 0; index < count; index += 1) {
+    const pin = pins.nth(index);
+    const box = await pin.boundingBox();
+    if (!box || !plannerBox) return pin;
+    const centerX = box.x + box.width / 2;
+    const centerY = box.y + box.height / 2;
+    const outsideViewport = viewport
+      ? centerX < 0 || centerX > viewport.width || centerY < 0 || centerY > viewport.height
+      : false;
+    if (outsideViewport) continue;
+    firstInViewport ??= pin;
+    const coveredByPlanner = plannerBox
+      ? isPointInsideBox(centerX, centerY, plannerBox)
+      : false;
+    const coveredBySheet = sheetBox
+      ? isPointInsideBox(centerX, centerY, sheetBox)
+      : false;
+    if (!coveredByPlanner && !coveredBySheet) return pin;
+  }
+
+  return firstInViewport ?? pins.first();
+}
+
+async function collapseVenueSheetToPeek(page: Page): Promise<void> {
+  const sheet = page.getByTestId('mobile-bottom-sheet');
+  const state = await sheet.getAttribute('data-state');
+  if (state !== 'peek') {
+    await page.getByTestId('mobile-bottom-sheet-handle').press('ArrowDown');
+  }
+  await expect(sheet).toHaveAttribute('data-state', 'peek');
+}
+
+function isPointInsideBox(
+  x: number,
+  y: number,
+  box: { x: number; y: number; width: number; height: number },
+): boolean {
+  return x >= box.x &&
+    x <= box.x + box.width &&
+    y >= box.y &&
+    y <= box.y + box.height;
+}
+
+function stockholmDateKey(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Stockholm',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((entry) => entry.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+function addDaysToDateKey(dateKey: string, days: number): string {
+  const [year = '1970', month = '01', day = '01'] = dateKey.split('-');
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function swedishSelectDateLabel(dateKey: string): string {
+  const [year = '1970', month = '01', day = '01'] = dateKey.split('-');
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  const label = new Intl.DateTimeFormat('sv-SE', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+  return `Välj ${label}`;
 }
 
 test.describe('map-primary', () => {
@@ -50,8 +145,11 @@ test.describe('map-primary', () => {
 
     await expect(page.getByTestId('map-container')).toBeVisible();
     await expect(page.locator('.gradient-map-overlay')).toHaveCount(1);
-    await expect(page.getByTestId('map-controls')).toBeVisible();
-    await expect(page.getByTestId('desktop-nav-bar')).toBeVisible();
+    await expect(page.getByTestId('map-controls')).toBeHidden();
+    const desktopNav = page.getByTestId('desktop-nav-bar');
+    await expect(desktopNav).toBeVisible();
+    await expect(desktopNav.getByRole('button', { name: 'Min plats' })).toBeVisible();
+    await expect(desktopNav.getByRole('button', { name: 'Inställningar' })).toBeVisible();
 
     await page.waitForSelector('[data-testid="venue-pin"]', { timeout: 5000 });
     const pinCount = await page.locator('[data-testid="venue-pin"]').count();
@@ -93,8 +191,9 @@ test.describe('map-primary', () => {
     await page.waitForSelector('[data-testid="venue-pin"][data-pin-state="sunny"]', {
       timeout: 15000,
     });
+    await collapseVenueSheetToPeek(page);
 
-    const sunnyPin = page.locator('[data-testid="venue-pin"][data-pin-state="sunny"]').first();
+    const sunnyPin = await firstUncoveredSunnyPin(page);
     await sunnyPin.click();
 
     await expect(
@@ -117,7 +216,7 @@ test.describe('map-primary', () => {
 
     const quickInfo = page.getByTestId('venue-quick-info').first();
     await expect(quickInfo).toBeVisible();
-    await expect(page.getByRole('search', { name: /Sök plats|Search venue/ })).toBeVisible();
+    await expect(page.getByRole('search', { name: /Sök plats|Search venue/ })).toHaveCount(0);
     await expect(quickInfo.getByRole('button', { name: /Kafé Magasinet/i })).toBeVisible();
     await expect(quickInfo.getByRole('button', { name: 'Visa Rutt' })).toBeVisible();
 
@@ -131,9 +230,76 @@ test.describe('map-primary', () => {
       'href',
       /57\.705/,
     );
-    await sheet.getByRole('button', { name: 'Stäng platsdetaljer' }).press('ArrowDown');
+    await page.getByTestId('mobile-venue-detail-handle').press('ArrowDown');
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]')).toHaveCount(1);
+  });
+
+  test('mobile: selected venue state includes free planner chrome without covering QuickInfo', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'mobile',
+      'Selected-venue planner chrome runs only in the mobile Playwright project',
+    );
+
+    await bypassOnboarding(page);
+    await page.goto('/?venue=test-venue-sunny&_state=map-with-selected-venue');
+    await page.waitForSelector('[data-testid="venue-pin"]', { timeout: 15000 });
+
+    const quickInfo = page.getByTestId('venue-quick-info').first();
+    await expect(quickInfo).toBeVisible();
+    const planner = await expectFreePlannerChrome(page);
+
+    const quickInfoBox = await quickInfo.boundingBox();
+    const plannerBox = await planner.boundingBox();
+    expect(quickInfoBox).not.toBeNull();
+    expect(plannerBox).not.toBeNull();
+    if (quickInfoBox && plannerBox) {
+      const overlapX = Math.max(
+        0,
+        Math.min(quickInfoBox.x + quickInfoBox.width, plannerBox.x + plannerBox.width) -
+          Math.max(quickInfoBox.x, plannerBox.x),
+      );
+      const overlapY = Math.max(
+        0,
+        Math.min(quickInfoBox.y + quickInfoBox.height, plannerBox.y + plannerBox.height) -
+          Math.max(quickInfoBox.y, plannerBox.y),
+      );
+      expect(overlapX * overlapY).toBe(0);
+      expect(plannerBox.y).toBeLessThan(quickInfoBox.y);
+    }
+  });
+
+  test('mobile: selecting a future date sends planner params to the venues API', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'mobile',
+      'Future-date planner request runs only in the mobile Playwright project',
+    );
+
+    await bypassOnboarding(page);
+    await page.goto('/');
+    await page.waitForSelector('[data-testid="venue-pin"]', { timeout: 15000 });
+
+    const planner = await expectFreePlannerChrome(page);
+    await planner.getByRole('slider', { name: 'Välj tid' }).press('Home');
+    await expect(planner.getByText('06:00')).toBeVisible();
+    const expectedDate = addDaysToDateKey(stockholmDateKey(), 1);
+    const plannedResponse = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname.endsWith('/api/venues') &&
+        url.searchParams.get('date') === expectedDate &&
+        url.searchParams.get('time') === '06:00';
+    });
+    await planner.getByRole('button', { name: 'Öppna kalender' }).click();
+    await page.getByRole('button', { name: swedishSelectDateLabel(expectedDate) }).click();
+
+    const response = await plannedResponse;
+    expect(response.ok()).toBe(true);
+    const params = new URL(response.url()).searchParams;
+    expect(params.get('time')).toMatch(/^\d{2}:\d{2}$/);
   });
 
   test('mobile: forced venue panel expands and collapses without covering bottom nav', async ({
@@ -150,7 +316,6 @@ test.describe('map-primary', () => {
     const sheet = page.getByTestId('mobile-bottom-sheet');
     const nav = page.getByTestId('mobile-nav-bar');
     await expect(sheet).toHaveAttribute('data-state', 'full');
-    await expect(page.getByRole('heading', { name: 'Hitta solen nu' })).toBeVisible();
     await expect(page.getByTestId('venue-card').first()).toBeVisible();
 
     const handle = page.getByTestId('mobile-bottom-sheet-handle');
@@ -198,6 +363,21 @@ test.describe('map-primary', () => {
     }
   });
 
+  test('mobile: expanded venue panel keeps planner chrome available without premium copy', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'mobile',
+      'Venue-list planner chrome runs only in the mobile Playwright project',
+    );
+
+    await bypassOnboarding(page);
+    await page.goto('/?_state=map-panel-venues');
+
+    await expect(page.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'full');
+    await expectFreePlannerChrome(page);
+  });
+
   test('mobile: selecting a venue from the full panel returns to peek and opens QuickInfo', async ({
     page,
   }, testInfo) => {
@@ -237,7 +417,7 @@ test.describe('map-primary', () => {
     expect(animationName).toBe('none');
 
     await page.getByTestId('mobile-bottom-sheet-handle').press('ArrowDown');
-    await expect(page.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'peek');
+    await expect(page.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'mid');
     const sheetTransform = await page.getByTestId('mobile-bottom-sheet').evaluate(
       (el) => window.getComputedStyle(el).transform,
     );
@@ -274,7 +454,30 @@ test.describe('map-primary', () => {
     await expect(page).toHaveURL(/\/$/);
   });
 
-  test('desktop: venue list renders as a 190px overlay panel above the full map', async ({
+  test('desktop: venue detail and planner bottom bar coexist without overlap', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'desktop',
+      'Desktop venue-detail planner layout runs only in the desktop Playwright project',
+    );
+
+    await bypassOnboarding(page);
+    await page.goto('/?venue=test-venue-sunny&_state=venue-detail');
+    const panel = page.getByTestId('desktop-venue-detail-panel');
+    await expect(panel).toBeVisible();
+    const planner = await expectFreePlannerChrome(page);
+
+    const panelBox = await panel.boundingBox();
+    const plannerBox = await planner.boundingBox();
+    expect(panelBox).not.toBeNull();
+    expect(plannerBox).not.toBeNull();
+    if (panelBox && plannerBox) {
+      expect(plannerBox.x + plannerBox.width).toBeLessThanOrEqual(panelBox.x + 1);
+    }
+  });
+
+  test('desktop: venue list renders as a 340px overlay panel above the full map', async ({
     page,
   }, testInfo) => {
     test.skip(
@@ -288,13 +491,12 @@ test.describe('map-primary', () => {
 
     const panel = page.getByTestId('desktop-venue-list-panel');
     await expect(panel).toBeVisible();
-    await expect(panel.getByRole('heading', { name: 'TOPPVAL NÄRA DIG' })).toBeVisible();
     const firstCard = panel.getByTestId('venue-card').first();
     await expect(firstCard).toBeVisible();
     const panelBox = await panel.boundingBox();
     expect(panelBox).not.toBeNull();
     if (panelBox) {
-      expect(panelBox.width).toBeCloseTo(190, 0);
+      expect(panelBox.width).toBeCloseTo(340, 0);
     }
     await expect(page.getByTestId('map-container')).toBeVisible();
 
@@ -335,19 +537,24 @@ test.describe('map-primary', () => {
     await page.waitForSelector('[data-testid="venue-pin"][data-pin-state="sunny"]', {
       timeout: 15000,
     });
+    await collapseVenueSheetToPeek(page);
 
-    const sunnyPin = page.locator('[data-testid="venue-pin"][data-pin-state="sunny"]').first();
+    const sunnyPin = await firstUncoveredSunnyPin(page);
     const beforeBox = await sunnyPin.boundingBox();
     expect(beforeBox).not.toBeNull();
     if (!beforeBox) return;
-    // Pre-selection: pill — wider than tall.
+    // Refreshed MVP pins render as teardrops: circular body plus tail.
     const beforeAspect = beforeBox.width / Math.max(beforeBox.height, 1);
-    expect(beforeAspect).toBeGreaterThan(1);
+    expect(beforeAspect).toBeLessThan(1.1);
+    await expect(sunnyPin.locator('[data-pin-tail]')).toHaveCount(1);
 
     await sunnyPin.click();
     await expect(
       page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]'),
     ).toHaveCount(1);
+    await expect(
+      page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"] [data-pin-tail]'),
+    ).toHaveCount(0);
 
     const innerCircle = page
       .locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"] .rounded-pill')
@@ -379,8 +586,9 @@ test.describe('map-primary', () => {
     await page.waitForSelector('[data-testid="venue-pin"][data-pin-state="sunny"]', {
       timeout: 15000,
     });
+    await collapseVenueSheetToPeek(page);
 
-    const sunnyPin = page.locator('[data-testid="venue-pin"][data-pin-state="sunny"]').first();
+    const sunnyPin = await firstUncoveredSunnyPin(page);
     await sunnyPin.click();
     await expect(
       page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]'),
@@ -392,7 +600,7 @@ test.describe('map-primary', () => {
     expect(canvasBox).not.toBeNull();
     if (!canvasBox) return;
     await canvas.click({
-      position: { x: 20, y: 140 },
+      position: { x: canvasBox.width - 8, y: 80 },
     });
 
     await expect(

@@ -23,7 +23,6 @@ export function ForcedVenueDetailInitialFrame({
   dismissOnHydration = false,
 }: ForcedVenueDetailInitialFrameProps) {
   const tVenueDetail = useTranslations('venue.detail');
-  const tVenueList = useTranslations('venue.list');
   const [visible, setVisible] = useState(true);
   const forcedVenueDetail = resolveForcedVisualVenueDetail(slug, forcedState);
 
@@ -43,14 +42,6 @@ export function ForcedVenueDetailInitialFrame({
         data-testid="desktop-venue-list-panel"
         className="absolute bottom-0 left-0 top-0 z-bottom-sheet-peek hidden w-venue-list-desktop flex-col border-r border-divider bg-surface-cream shadow-card lg:flex"
       >
-        <div className="border-b border-divider px-3 py-4">
-          <h2 className="text-heading-sm uppercase tracking-section-label text-text-body">
-            {tVenueList('headerDesktop')}
-          </h2>
-          <p className="mt-2 text-label-lg text-text-primary">
-            {tVenueList('subtitle', { count: 1 })}
-          </p>
-        </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           <VenueList
             venues={[forcedVenueDetail]}
@@ -67,8 +58,17 @@ export function ForcedVenueDetailInitialFrame({
         data-testid="mobile-venue-detail-sheet"
         className="absolute inset-x-0 bottom-0 top-12 z-bottom-sheet-full flex flex-col overflow-hidden rounded-t-sheet-full bg-surface-cream text-text-primary shadow-sheet-full-up lg:hidden"
       >
+        <div className="absolute right-5 top-16 z-floating-buttons flex gap-3">
+          <StaticChromeButton label={tVenueDetail('favourite')}>
+            <Heart aria-hidden="true" className="size-5" />
+          </StaticChromeButton>
+          <StaticChromeButton label={tVenueDetail('close')}>
+            <X aria-hidden="true" className="size-5" />
+          </StaticChromeButton>
+        </div>
         <button
           type="button"
+          data-testid="mobile-venue-detail-handle"
           aria-label={tVenueDetail('close')}
           className="flex min-h-11 shrink-0 items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
         >
@@ -85,6 +85,7 @@ export function ForcedVenueDetailInitialFrame({
             labels={venueDetailLabels(tVenueDetail)}
             onRoute={() => undefined}
             routeDisabled
+            mode="mobile"
           />
         </div>
       </aside>
@@ -96,10 +97,10 @@ export function ForcedVenueDetailInitialFrame({
         className="absolute bottom-0 right-0 top-0 z-bottom-sheet-full hidden w-venue-detail-panel flex-col overflow-hidden bg-surface-cream text-text-primary shadow-card lg:flex"
       >
         <div className="absolute right-4 top-4 z-floating-buttons flex gap-2">
-          <StaticChromeButton label={tVenueDetail('favourite')} disabled>
+          <StaticChromeButton label={tVenueDetail('favourite')}>
             <Heart aria-hidden="true" className="size-4" />
           </StaticChromeButton>
-          <StaticChromeButton label={tVenueDetail('share')} disabled>
+          <StaticChromeButton label={tVenueDetail('share')}>
             <Share2 aria-hidden="true" className="size-4" />
           </StaticChromeButton>
           <StaticChromeButton label={tVenueDetail('close')}>
@@ -114,6 +115,7 @@ export function ForcedVenueDetailInitialFrame({
             labels={venueDetailLabels(tVenueDetail)}
             onRoute={() => undefined}
             routeDisabled
+            mode="desktop"
           />
         </div>
       </aside>
@@ -158,6 +160,15 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue.detail'>>
     address: t('address'),
     shadowWarning: t('shadowWarning', { minutes: '{minutes}' }),
     sunBadge: t('sunBadge', { percent: '{percent}' }),
+    city: t('city'),
+    openUntil: t('openUntil', { time: '{time}' }),
+    placeholderImageShort: t('placeholderImageShort'),
+    facts: {
+      distance: t('facts.distance'),
+      exposure: t('facts.exposure'),
+      bestAt: t('facts.bestAt'),
+      outdoorSeats: t('facts.outdoorSeats'),
+    },
     timeline: {
       ariaLabel: t('timeline.ariaLabel'),
       currentTime: t('timeline.currentTime', { time: '{time}' }),

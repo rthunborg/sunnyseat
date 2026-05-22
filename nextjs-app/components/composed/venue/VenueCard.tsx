@@ -1,11 +1,16 @@
 'use client';
 
-import { Sun } from 'lucide-react';
+import { Cloud, Footprints, Heart, ImageIcon, Star, Sun } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   VENUE_CARD_FADE_MS,
   VENUE_CARD_STAGGER_STEP_MS,
 } from '@/lib/constants/animation';
+import {
+  formatVenueDistance,
+  formatVenueSunPercent,
+  type VenueVisualMetadata,
+} from '@/lib/utils/venue-visual-metadata';
 import { cn } from '@/lib/utils';
 
 export type VenueCardLabels = {
@@ -19,17 +24,22 @@ export type VenueCardLabels = {
 
 export type VenueCardProps = {
   name: string;
+  neighborhood?: string;
   sunTimeRange?: string;
   confidencePercent?: number;
   distanceMeters?: number;
+  sunExposurePercent?: number;
   thumbnail?: {
     alt: string;
     initials: string;
     url?: string;
   };
   isSunny: boolean;
+  visualMetadata?: VenueVisualMetadata;
   labels: VenueCardLabels;
   onSelect: () => void;
+  onFavouriteToggle?: () => void;
+  isFavourite?: boolean;
   compact?: boolean;
   staggerIndex?: number;
   animateIn?: boolean;
@@ -39,29 +49,39 @@ const THUMBNAIL_MAX_INITIALS = 3;
 
 export function VenueCard({
   name,
+  neighborhood,
   sunTimeRange,
   confidencePercent,
   distanceMeters,
+  sunExposurePercent,
   thumbnail,
   isSunny,
+  visualMetadata,
   labels,
   onSelect,
+  onFavouriteToggle,
+  isFavourite = false,
   compact = false,
   staggerIndex = 0,
   animateIn = false,
 }: VenueCardProps) {
+  const sunPercent = formatVenueSunPercent(sunExposurePercent ?? confidencePercent);
+  const distance = formatVenueDistance(distanceMeters);
+  const statusLabel = !isSunny
+    ? 'MEST SKUGGA'
+    : (sunExposurePercent ?? confidencePercent ?? 0) >= 75
+      ? 'FULL SOL'
+      : 'DELVIS SOL';
+
   return (
-    <button
-      type="button"
-      aria-label={labels.select}
+    <article
       data-testid="venue-card"
-      onClick={onSelect}
       className={cn(
-        'group flex min-h-[88px] w-full items-center gap-3 rounded-card border border-divider/70 bg-white p-2 text-left shadow-subtle outline-none',
-        'focus-visible:ring-2 focus-visible:ring-text-primary',
-        'transition-colors duration-fast ease-default hover:bg-surface-muted',
+        'group flex w-full items-center gap-3 text-left',
         animateIn && 'motion-safe:animate-in motion-safe:fade-in',
-        compact && 'min-h-20 gap-2 p-2',
+        compact
+          ? 'min-h-20 rounded-card border border-divider/70 bg-white p-2 shadow-subtle transition-colors duration-fast ease-default hover:bg-surface-muted'
+          : 'min-h-[92px] border-b border-divider/70 bg-transparent px-0 py-3',
       )}
       style={
         animateIn
@@ -72,39 +92,93 @@ export function VenueCard({
           : undefined
       }
     >
+      <button
+        type="button"
+        aria-label={labels.select}
+        onClick={onSelect}
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-card text-left outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+      >
       <VenueCardThumbnail
         thumbnail={thumbnail}
         fallbackLabel={labels.photoPlaceholder}
         confidencePercent={confidencePercent}
+        isSunny={isSunny}
         compact={compact}
       />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-heading-md text-text-primary">
           {name}
         </span>
-        <span className="mt-1 flex items-center gap-1 text-label-lg text-amber-dark">
-          <Sun aria-hidden="true" className="size-4 shrink-0" />
-          <span>{sunTimeRange ?? labels.sunUnavailable}</span>
-        </span>
-        <span className="mt-1 block text-body-sm text-text-body">
-          <span className="text-amber-dark">
-            <span className="font-bold">{labels.confidence}:</span>{' '}
-            {formatConfidence(confidencePercent)}%
-          </span>{' '}
-          · <span className="font-bold">{labels.distance}:</span>{' '}
-          {formatDistance(distanceMeters)}
-        </span>
+        {compact ? (
+          <>
+            <span className="mt-1 block truncate text-body-sm-medium text-text-body">
+              {neighborhood ? `${neighborhood} · ` : ''}
+              {distance}
+            </span>
+            <span className="mt-1 flex items-center gap-1 text-label-xs text-amber-dark">
+              {isSunny ? (
+                <Sun aria-hidden="true" className="size-3 shrink-0 fill-current" />
+              ) : (
+                <Cloud aria-hidden="true" className="size-3 shrink-0 fill-current" />
+              )}
+              <span>{statusLabel}</span>
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-body-sm-medium text-text-body">
+              <Footprints aria-hidden="true" className="size-3.5 shrink-0 text-amber-dark" />
+              <span>{distance}</span>
+              {visualMetadata && (
+                <>
+                  <span className="text-text-faint">·</span>
+                  <Star aria-hidden="true" className="size-3.5 shrink-0 fill-amber-gold text-amber-gold" />
+                  <span className="font-bold text-text-body">{visualMetadata.rating}</span>
+                </>
+              )}
+              <span className="text-text-faint">·</span>
+              <span className="font-extrabold text-amber-dark">{sunPercent} sol</span>
+            </span>{' '}
+            <span className="sr-only">
+              {sunTimeRange ?? labels.sunUnavailable}. {labels.confidence}:{' '}
+              {formatConfidence(confidencePercent)}%. {labels.distance}: {distance}.
+            </span>
+            {visualMetadata && (
+              <span className="mt-2 flex flex-wrap gap-1">
+                {visualMetadata.tags.slice(0, 2).map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-pill bg-surface-sand px-2 py-0.5 text-label-xs-medium text-amber-dark"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </span>
+            )}
+          </>
+        )}
       </span>
-      <span
+      </button>
+      <button
+        type="button"
+        aria-label={labels.select.replace(/^Välj /, 'Spara ')}
+        aria-pressed={isFavourite}
+        onClick={(event) => {
+          event.stopPropagation();
+          onFavouriteToggle?.();
+        }}
         className={cn(
-          'flex size-badge-sm shrink-0 items-center justify-center rounded-badge border-2 border-surface-cream shadow-subtle',
-          isSunny ? 'bg-amber-primary text-amber-cta-text' : 'bg-pin-shaded text-text-body',
+          'flex shrink-0 items-center justify-center rounded-pill border border-divider bg-white text-text-faint shadow-subtle outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
+          compact ? 'size-9' : 'size-11',
+          isFavourite && 'border-transparent bg-amber-primary text-amber-cta-text',
         )}
       >
-        <Sun aria-hidden="true" className="size-4" />
-        <span className="sr-only">{isSunny ? labels.sun : labels.sunUnavailable}</span>
-      </span>
-    </button>
+        <Heart
+          aria-hidden="true"
+          className={cn('size-5', isFavourite && 'fill-current')}
+        />
+      </button>
+    </article>
   );
 }
 
@@ -132,11 +206,13 @@ function VenueCardThumbnail({
   thumbnail,
   fallbackLabel,
   confidencePercent,
+  isSunny,
   compact,
 }: {
   thumbnail?: VenueCardProps['thumbnail'];
   fallbackLabel: string;
   confidencePercent?: number;
+  isSunny: boolean;
   compact: boolean;
 }) {
   const initials = normalizeInitials(thumbnail?.initials);
@@ -144,30 +220,33 @@ function VenueCardThumbnail({
   return (
     <span
       className={cn(
-        'relative block h-[72px] w-[87px] shrink-0 overflow-hidden rounded-venue-image bg-amber-primary venue-photo-gradient',
+        'relative block shrink-0 overflow-hidden rounded-venue-image border border-dashed border-amber-dark/35 bg-surface-sand venue-photo-gradient shadow-subtle',
         compact && 'h-16 w-16',
+        !compact && 'h-[72px] w-[72px]',
       )}
     >
-      {thumbnail?.url ? (
-        <img
-          src={thumbnail.url}
-          alt={label}
-          loading="lazy"
-          decoding="async"
-          className="size-full object-cover"
-        />
-      ) : (
-        <span
-          role="img"
-          aria-label={label}
-          className="flex size-full items-center justify-center text-display-sm text-amber-cta-text"
-        >
-          {initials}
-        </span>
-      )}
+      <span
+        role="img"
+        aria-label={label}
+        className="flex size-full items-center justify-center text-display-lg text-amber-dark/55"
+      >
+        {initials.slice(0, 1)}
+      </span>
+      <span className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-md bg-surface-cream/90 text-text-muted shadow-subtle">
+        <ImageIcon aria-hidden="true" className="size-3" />
+      </span>
       {confidencePercent != null && (
-        <span className="absolute -right-1 -top-1 flex size-badge-sm items-center justify-center rounded-badge border-2 border-surface-cream bg-amber-primary text-amber-cta-text shadow-subtle">
-          <Sun aria-hidden="true" className="size-4" />
+        <span
+          className={cn(
+            'absolute bottom-1 left-1 flex size-6 items-center justify-center rounded-badge border-2 border-surface-cream shadow-subtle',
+            isSunny ? 'bg-amber-primary text-amber-cta-text' : 'bg-pin-shaded text-text-body',
+          )}
+        >
+          {isSunny ? (
+            <Sun aria-hidden="true" className="size-3.5 fill-current" />
+          ) : (
+            <Cloud aria-hidden="true" className="size-3.5 fill-current" />
+          )}
         </span>
       )}
     </span>
@@ -177,12 +256,6 @@ function VenueCardThumbnail({
 function normalizeInitials(value: string | undefined): string {
   const trimmed = value?.trim() || 'SS';
   return Array.from(trimmed).slice(0, THUMBNAIL_MAX_INITIALS).join('').toUpperCase();
-}
-
-function formatDistance(meters?: number): string {
-  if (!Number.isFinite(meters)) return '-';
-  if ((meters ?? 0) >= 1000) return `${((meters ?? 0) / 1000).toFixed(1)} km`;
-  return `${Math.round(meters ?? 0)} m`;
 }
 
 function formatConfidence(value?: number): number {

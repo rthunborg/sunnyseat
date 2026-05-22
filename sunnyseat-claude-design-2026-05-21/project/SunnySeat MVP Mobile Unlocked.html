@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<title>SunnySeat — Prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-page: #f3ede0;
+    --cream: #fdfaf4;
+    --cream-2: #f8f1e3;
+    --border: #e9e1cf;
+    --gold: #d4af37;
+    --gold-deep: #735c00;
+    --amber: #ffbf00;
+    --amber-2: #f1b100;
+    --amber-ink: #554300;
+    --taupe: #4d4635;
+    --muted: #7f7663;
+    --ink: #1b1b1e;
+    --shade: #e4e1e5;
+    --shade-ink: #4d4635;
+  }
+  html, body {
+    margin: 0; padding: 0;
+    background: #1a1715;
+    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    height: 100%;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse at 30% 20%, #2c2621 0%, #161310 60%),
+      #0f0d0b;
+  }
+  .stage {
+    display: flex;
+    gap: 48px;
+    align-items: center;
+    padding: 24px;
+    position: relative;
+  }
+  .phone-label {
+    position: absolute;
+    top: -24px;
+    left: 0;
+    font-family: 'Manrope', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255, 220, 160, 0.5);
+  }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+
+  /* Custom scrollbar (hidden) */
+  .no-scroll::-webkit-scrollbar { display: none; }
+  .no-scroll { scrollbar-width: none; }
+
+  @keyframes sun-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes shimmer {
+    0% { transform: translateX(-100%) skewX(-20deg); }
+    100% { transform: translateX(200%) skewX(-20deg); }
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+<script>
+/* EDITMODE-BEGIN */
+window.SUNNY_DEFAULTS = {
+  "hour": 14,
+  "variant": "amber",
+  "mapStyle": "warm",
+  "showTweaks": true
+};
+/* EDITMODE-END */
+</script>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="lib/ios-frame.jsx"></script>
+<script type="text/babel" src="src/data.jsx"></script>
+<script type="text/babel" src="src/icons.jsx"></script>
+<script type="text/babel" src="src/MapCanvas.jsx"></script>
+<script type="text/babel" src="src/Pins.jsx"></script>
+<script type="text/babel" src="src/TopPanel.jsx"></script>
+<script type="text/babel" src="src/BottomSheet.jsx"></script>
+<script type="text/babel" src="src/VenueDetail.jsx"></script>
+<script type="text/babel" src="src/ShareModal.jsx"></script>
+<script type="text/babel" src="src/Onboarding.jsx"></script>
+<script type="text/babel" src="src/QuickInfo.jsx"></script>
+<script type="text/babel" src="src/DatePicker.jsx"></script>
+<script type="text/babel" src="src/Flows.jsx"></script>
+<script type="text/babel" src="src/AboutModal.jsx"></script>
+<script type="text/babel" src="src/Tweaks.jsx"></script>
+<script type="text/babel" src="src/App.jsx"></script>
+
+</body>
+</html>

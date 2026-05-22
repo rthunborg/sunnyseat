@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { VenueCard, VenueCardSkeleton } from '@/components/composed/venue/VenueCard';
 import type { VenueListSortMode } from '@/components/composed/venue/VenueListControls';
 import type { VenueDataDto } from '@/lib/types/api';
+import { getVenueVisualMetadata } from '@/lib/utils/venue-visual-metadata';
 import { cn } from '@/lib/utils';
 
 export type VenueListMode = 'mobile' | 'desktop';
@@ -16,6 +17,7 @@ export type VenueListProps = {
   isLoading?: boolean;
   animateCards?: boolean;
   sortMode?: VenueListSortMode;
+  compactCards?: boolean;
 };
 
 export function VenueList({
@@ -25,10 +27,11 @@ export function VenueList({
   isLoading = false,
   animateCards = false,
   sortMode = 'sun',
+  compactCards,
 }: VenueListProps) {
   const t = useTranslations('venue.list');
   const sortedVenues = useMemo(() => sortVenuesForList(venues, sortMode), [venues, sortMode]);
-  const compact = mode === 'desktop';
+  const compact = compactCards ?? mode === 'desktop';
 
   if (isLoading) {
     return (
@@ -61,11 +64,14 @@ export function VenueList({
           <VenueCard
             key={venue.id}
             name={venue.venueName}
+            neighborhood={venue.neighborhood}
             sunTimeRange={sunTimeRange}
             confidencePercent={venue.confidence}
             distanceMeters={venue.distanceMeters}
+            sunExposurePercent={venue.sunExposurePercent}
             thumbnail={venue.thumbnail}
             isSunny={isVenueSunnyForList(venue)}
+            visualMetadata={getVenueVisualMetadata(venue)}
             compact={compact}
             staggerIndex={index}
             animateIn={animateCards}

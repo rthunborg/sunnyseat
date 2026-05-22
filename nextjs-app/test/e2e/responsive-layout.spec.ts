@@ -37,8 +37,8 @@ test.describe('Mobile responsive layout', () => {
     const pathname = new URL(page.url()).pathname;
     const isEnglish = pathname.startsWith('/en');
     const labels = isEnglish
-      ? { karta: 'Map', favoriter: 'Favourites', om: 'About' }
-      : { karta: 'Karta', favoriter: 'Favoriter', om: 'Om' };
+      ? { naraMig: 'Near me', favoriter: 'Favourites' }
+      : { naraMig: 'Nära mig', favoriter: 'Favoriter' };
 
     for (const [key, name] of Object.entries(labels)) {
       const tab = page.getByTestId(`mobile-nav-tab-${key}`);
@@ -49,9 +49,9 @@ test.describe('Mobile responsive layout', () => {
     }
   });
 
-  test('M4: the Karta tab is active when pathname is /', async ({ page }) => {
+  test('M4: the Nära mig tab is active when pathname is /', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByTestId('mobile-nav-tab-karta')).toHaveAttribute(
+    await expect(page.getByTestId('mobile-nav-tab-naraMig')).toHaveAttribute(
       'data-active',
       'true',
     );
@@ -59,10 +59,7 @@ test.describe('Mobile responsive layout', () => {
       'data-active',
       'false',
     );
-    await expect(page.getByTestId('mobile-nav-tab-om')).toHaveAttribute(
-      'data-active',
-      'false',
-    );
+    await expect(page.getByTestId('mobile-nav-tab-om')).toHaveCount(0);
   });
 
   test('M5: mobile tabs are keyboard-reachable and render a visible focus ring (AC5)', async ({
@@ -70,7 +67,7 @@ test.describe('Mobile responsive layout', () => {
   }) => {
     await page.goto('/');
 
-    const tabKeys = ['karta', 'favoriter', 'om'] as const;
+    const tabKeys = ['naraMig', 'favoriter'] as const;
 
     // iOS Safari emulation (the mobile Playwright project) does not honour
     // Tab-key traversal natively — mobile Safari deliberately restricts Tab

@@ -105,4 +105,103 @@ describe('useVenueDetail', () => {
     await waitFor(() => expect(result.current.fetchStatus).toBe('idle'));
     expect(fetchSpy).not.toHaveBeenCalled();
   });
+
+  it('keeps previous venue detail visible while planner params change', async () => {
+    const firstResponse: GetVenueDetailResponse = {
+      ...SAMPLE_RESPONSE,
+      venue: {
+        ...SAMPLE_RESPONSE.venue,
+        sunExposurePercent: 95,
+      },
+    };
+    const secondResponse: GetVenueDetailResponse = {
+      ...SAMPLE_RESPONSE,
+      venue: {
+        ...SAMPLE_RESPONSE.venue,
+        sunExposurePercent: 61,
+      },
+    };
+    let resolveSecond: ((value: Response) => void) | undefined;
+    fetchSpy
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(firstResponse), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise<Response>((resolve) => {
+          resolveSecond = resolve;
+        }),
+      );
+
+    const { result, rerender } = renderHook(
+      ({ time }: { time: string }) =>
+        useVenueDetail('test-venue-sunny', { date: '2026-06-14', time }),
+      {
+        wrapper: makeWrapper(),
+        initialProps: { time: '14:00' },
+      },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    rerender({ time: '15:00' });
+
+    await waitFor(() => expect(result.current.isFetching).toBe(true));
+    expect(result.current.data).toEqual(firstResponse);
+    expect(result.current.isPlaceholderData).toBe(true);
+
+    resolveSecond?.(
+      new Response(JSON.stringify(secondResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    await waitFor(() => expect(result.current.isPlaceholderData).toBe(false));
+    expect(result.current.data).toEqual(secondResponse);
+  });
+
+  it('polls live detail and disables polling for explicit planner detail', async () => {
+    fetchSpy.mockResolvedValue(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    });
+    function StableWrapper({ children }: { children: ReactNode }) {
+      return createElement(QueryClientProvider, { client }, children);
+    }
+
+    type PlannerProps = { planner: { date: string; time: string } | undefined };
+    const { result, rerender } = renderHook(
+      ({ planner }: PlannerProps) =>
+        useVenueDetail('test-venue-sunny', planner),
+      {
+        wrapper: StableWrapper,
+        initialProps: { planner: undefined } as PlannerProps,
+      },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const liveQuery = client.getQueryCache().find({
+      queryKey: queryKeys.venues.detail('test-venue-sunny'),
+    });
+    const liveOptions = liveQuery?.options as { refetchInterval?: unknown } | undefined;
+    expect(liveOptions?.refetchInterval).toBe(5 * 60 * 1000);
+
+    rerender({ planner: { date: '2026-06-14', time: '14:00' } });
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
+    const plannerQuery = client.getQueryCache().find({
+      queryKey: queryKeys.venues.detailAt('test-venue-sunny', {
+        date: '2026-06-14',
+        time: '14:00',
+      }),
+    });
+    const plannerOptions = plannerQuery?.options as { refetchInterval?: unknown } | undefined;
+    expect(plannerOptions?.refetchInterval).toBe(false);
+  });
 });

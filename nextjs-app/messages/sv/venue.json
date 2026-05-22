@@ -19,6 +19,24 @@
     "loadingSun": "Laddar soldata",
     "sunUnavailable": "Soltid saknas"
   },
+  "planner": {
+    "panelLabel": "Planera soltid",
+    "today": "Idag",
+    "previousDay": "Föregående dag",
+    "nextDay": "Nästa dag",
+    "openCalendar": "Öppna kalender",
+    "closeCalendar": "Stäng kalender",
+    "calendarTitle": "Välj datum",
+    "previousMonth": "Föregående månad",
+    "nextMonth": "Nästa månad",
+    "selectedDate": "Valt datum",
+    "selectedTime": "Vald tid",
+    "sliderLabel": "Välj tid",
+    "unavailableDate": "Datum utanför säsong",
+    "selectDate": "Välj {date}",
+    "loading": "Uppdaterar solprognos",
+    "error": "Kunde inte uppdatera solprognosen"
+  },
   "list": {
     "headerMobile": "Hitta solen nu",
     "headerDesktop": "TOPPVAL NÄRA DIG",
@@ -44,8 +62,9 @@
     }
   },
   "detail": {
-    "sectionTitle": "SOLTIDER IDAG",
+    "sectionTitle": "Solprognos idag",
     "peakTime": "Toppar kl {time}",
+    "bestWindow": "Bäst mellan 11:00 och 15:00",
     "openMaps": "ÖPPNA I KARTOR",
     "route": "Visa Rutt",
     "close": "Stäng platsdetaljer",
@@ -58,6 +77,15 @@
     "address": "Adress",
     "shadowWarning": "Blir skuggigt om {minutes} min",
     "sunBadge": "{percent}% sol",
+    "city": "Göteborg",
+    "openUntil": "ÖPPET · {time}",
+    "placeholderImageShort": "Platshållarbild",
+    "facts": {
+      "distance": "AVSTÅND",
+      "exposure": "EXPONERING",
+      "bestAt": "BÄST KL.",
+      "outdoorSeats": "PLATSER UTE"
+    },
     "timeline": {
       "ariaLabel": "Soltider idag",
       "currentTime": "Nu {time}",

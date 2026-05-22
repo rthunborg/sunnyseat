@@ -35,7 +35,7 @@ describe('<MobileBottomSheet />', () => {
     reducedMotionMock = false;
   });
 
-  it('renders an accessible 44px handle and toggles peek/full from keyboard', () => {
+  it('renders an accessible 44px handle and toggles peek/mid/full from keyboard', () => {
     const onStateChange = vi.fn();
     render(
       <MobileBottomSheet
@@ -51,6 +51,22 @@ describe('<MobileBottomSheet />', () => {
     expect(handle).toHaveClass('min-h-11');
 
     fireEvent.keyDown(handle, { key: 'Enter' });
+    expect(onStateChange).toHaveBeenCalledWith('mid');
+  });
+
+  it('advances from mid to full from keyboard', () => {
+    const onStateChange = vi.fn();
+    render(
+      <MobileBottomSheet
+        state="mid"
+        onStateChange={onStateChange}
+        handleLabel="Visa platslistan"
+      >
+        <p>Listinnehåll</p>
+      </MobileBottomSheet>,
+    );
+
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Visa platslistan' }), { key: 'Enter' });
     expect(onStateChange).toHaveBeenCalledWith('full');
   });
 
@@ -72,6 +88,7 @@ describe('<MobileBottomSheet />', () => {
 
   it.each([
     ['peek', 'z-bottom-sheet-peek'],
+    ['mid', 'z-bottom-sheet-peek'],
     ['full', 'z-bottom-sheet-full'],
   ] as Array<[MobileBottomSheetState, string]>)(
     'uses the expected z-index token in %s state',
@@ -90,7 +107,7 @@ describe('<MobileBottomSheet />', () => {
     },
   );
 
-  it('leaves the map band visible above the full sheet', () => {
+  it('uses the refreshed 320px full visual-list snap height', () => {
     render(
       <MobileBottomSheet
         state="full"
@@ -101,7 +118,9 @@ describe('<MobileBottomSheet />', () => {
       </MobileBottomSheet>,
     );
 
-    expect(screen.getByTestId('mobile-bottom-sheet')).toHaveClass('top-[var(--size-bottom-sheet-full-top)]');
+    expect(screen.getByTestId('mobile-bottom-sheet')).toHaveClass(
+      'h-[min(var(--size-bottom-sheet-full-h),calc(100dvh-var(--size-mobile-nav-h)-env(safe-area-inset-top)-var(--spacing)*6))]',
+    );
   });
 
   it('renders dismissed only as a non-interactive exit state', () => {

@@ -5,6 +5,7 @@
   "zoomIn": "Zoom in",
   "zoomOut": "Zoom out",
   "myLocation": "My location",
+  "settings": "Settings",
   "pinSunnyAria": "{name} — sunny venue — {percent} percent sun",
   "pinPartialAria": "{name} — partially sunny venue — {percent} percent sun",
   "pinShadedAria": "{name} — shaded venue — {percent} percent sun"

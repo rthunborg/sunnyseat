@@ -2,7 +2,6 @@
 
 import { useRef, useState, type ReactNode } from 'react';
 import { useDrag } from '@use-gesture/react';
-import { ChevronDown } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import {
   DURATION_FAST_S,
@@ -12,7 +11,7 @@ import {
 } from '@/lib/constants/animation';
 import { cn } from '@/lib/utils';
 
-export type MobileBottomSheetState = 'peek' | 'full' | 'dismissed';
+export type MobileBottomSheetState = 'peek' | 'mid' | 'full' | 'dismissed';
 
 export type MobileBottomSheetProps = {
   state: MobileBottomSheetState;
@@ -40,7 +39,10 @@ export function MobileBottomSheet({
   const suppressNextClickRef = useRef(false);
   const [dragY, setDragY] = useState(0);
   const isFull = state === 'full';
+  const isMid = state === 'mid';
+  const isPeek = state === 'peek';
   const isDismissed = state === 'dismissed';
+  const isScrollable = isFull || isMid;
 
   const handleBind = useDrag(
     ({ event, movement: [, my], offset: [, oy], velocity: [, vy], direction: [, dy], last, active }) => {
@@ -57,11 +59,15 @@ export function MobileBottomSheet({
 
       suppressNextClickRef.current = Math.abs(my) > CLICK_SUPPRESS_DRAG_PX;
       if (dy < 0 && (my <= DRAG_TO_FULL_PX || oy <= DRAG_TO_FULL_PX)) {
-        onStateChange('full');
+        onStateChange(isPeek ? 'mid' : 'full');
         return;
       }
       if (dy > 0 && isFull && (my >= DRAG_TO_DISMISS_PX || vy >= FAST_SWIPE_VELOCITY)) {
         onStateChange('peek');
+        return;
+      }
+      if (dy > 0 && isFull && my >= DRAG_TO_PEEK_PX) {
+        onStateChange('mid');
         return;
       }
       if (dy > 0 && (my >= DRAG_TO_PEEK_PX || vy >= FAST_SWIPE_VELOCITY)) {
@@ -125,10 +131,12 @@ export function MobileBottomSheet({
           'absolute inset-x-0 bottom-[var(--size-mobile-nav-h)] flex flex-col overflow-hidden bg-surface-cream text-text-primary lg:hidden',
           'touch-pan-y',
           isDismissed
-            ? 'pointer-events-none z-bottom-sheet-peek h-[100px] rounded-t-panel shadow-sheet-peek-up'
+            ? 'pointer-events-none z-bottom-sheet-peek h-[var(--size-bottom-sheet-peek-h)] rounded-t-panel shadow-sheet-peek-up'
             : isFull
-            ? 'top-[var(--size-bottom-sheet-full-top)] z-bottom-sheet-full rounded-t-sheet-full shadow-sheet-full-up'
-            : 'z-bottom-sheet-peek h-[100px] rounded-t-panel shadow-sheet-peek-up',
+            ? 'z-bottom-sheet-full h-[min(var(--size-bottom-sheet-full-h),calc(100dvh-var(--size-mobile-nav-h)-env(safe-area-inset-top)-var(--spacing)*6))] rounded-t-sheet-full shadow-sheet-full-up'
+            : isMid
+            ? 'z-bottom-sheet-peek h-[var(--size-bottom-sheet-mid-h)] rounded-t-panel shadow-sheet-peek-up'
+            : 'z-bottom-sheet-peek h-[var(--size-bottom-sheet-peek-h)] rounded-t-panel shadow-sheet-peek-up',
           className,
         )}
         initial={false}
@@ -149,15 +157,15 @@ export function MobileBottomSheet({
               event.preventDefault();
               return;
             }
-            onStateChange(isFull ? 'peek' : 'full');
+            onStateChange(isFull ? 'peek' : isMid ? 'full' : 'mid');
           }}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
-              onStateChange(isFull ? 'peek' : 'full');
+              onStateChange(isFull ? 'peek' : isMid ? 'full' : 'mid');
             }
-            if (event.key === 'ArrowUp') onStateChange('full');
-            if (event.key === 'ArrowDown') onStateChange('peek');
+            if (event.key === 'ArrowUp') onStateChange(isFull ? 'full' : isMid ? 'full' : 'mid');
+            if (event.key === 'ArrowDown') onStateChange(isFull ? 'mid' : 'peek');
           }}
           className="flex min-h-11 shrink-0 items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
           style={{ touchAction: 'none' }}
@@ -166,14 +174,7 @@ export function MobileBottomSheet({
             aria-hidden="true"
             className={cn(
               'h-[var(--size-drag-pill-h)] rounded-pill',
-              isFull ? 'w-[var(--size-drag-pill-w-lg)] bg-drag-handle' : 'w-[var(--size-drag-pill-w)] bg-drag-handle-map/40',
-            )}
-          />
-          <ChevronDown
-            aria-hidden="true"
-            className={cn(
-              'size-4 text-text-body motion-safe:transition-transform motion-safe:duration-slow',
-              isFull && !shouldReduceMotion && 'rotate-180',
+              isFull ? 'w-[var(--size-drag-pill-w-lg)] bg-drag-handle' : 'w-[var(--size-drag-pill-w)] bg-drag-handle-map',
             )}
           />
         </button>
@@ -181,12 +182,12 @@ export function MobileBottomSheet({
           ref={scrollBodyRef}
           data-bottom-sheet-scroll-body="true"
           {...bodyBind()}
-          aria-hidden={!isFull}
+          aria-hidden={isDismissed}
           className={cn(
             'min-h-0 flex-1 px-4 pb-4',
-            isFull ? 'overflow-y-auto overscroll-contain' : 'hidden overflow-hidden',
+            isScrollable ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',
           )}
-          style={{ touchAction: isFull ? 'pan-y' : 'none' }}
+          style={{ touchAction: isScrollable ? 'pan-y' : 'none' }}
         >
           {children}
         </div>

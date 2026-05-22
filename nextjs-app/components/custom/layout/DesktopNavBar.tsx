@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { LocateFixed, Settings, SlidersHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LocateFixed, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
 import { VenueSearchShell } from '@/components/custom/search/VenueSearchShell';
@@ -26,17 +26,37 @@ export function DesktopNavBar() {
       <Link
         href="/"
         aria-label={t('nav.logoAria')}
-        className="text-display-lg text-text-logo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-primary focus-visible:rounded-sm"
+        className="flex shrink-0 items-center gap-3 text-display-lg text-text-logo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-primary focus-visible:rounded-sm"
       >
-        sunnyseat
+        <span className="size-8 rounded-pill gradient-wordmark-sun shadow-wordmark-sun" />
+        <span>
+          Sunny<span className="text-amber-dark">Seat</span>
+        </span>
       </Link>
 
       <VenueSearchShell variant="desktop" />
 
-      <div className="ml-auto flex items-center gap-2">
-        <HeaderIconButton label={t('nav.filter')}>
-          <SlidersHorizontal aria-hidden="true" className="size-5" />
-        </HeaderIconButton>
+      <nav
+        aria-label={t('nav.filter')}
+        className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
+      >
+        <HeaderChevron label={t('nav.previous')} direction="left" />
+        {['Innergård', 'Hund ok', 'Wifi', 'Bakverk', 'Morgonsol', 'Take-away', 'Surdeg', 'Takt'].map(
+          (chip) => (
+            <button
+              key={chip}
+              type="button"
+              disabled
+              className="flex h-9 shrink-0 cursor-not-allowed items-center rounded-pill border border-divider bg-white px-4 text-label-lg text-text-body shadow-subtle"
+            >
+              {chip}
+            </button>
+          ),
+        )}
+        <HeaderChevron label={t('nav.next')} direction="right" />
+      </nav>
+
+      <div className="flex shrink-0 items-center gap-2">
         <HeaderIconButton label={t('nav.myLocation')}>
           <LocateFixed aria-hidden="true" className="size-5" />
         </HeaderIconButton>
@@ -45,6 +65,26 @@ export function DesktopNavBar() {
         </HeaderIconButton>
       </div>
     </header>
+  );
+}
+
+function HeaderChevron({
+  label,
+  direction,
+}: {
+  label: string;
+  direction: 'left' | 'right';
+}) {
+  const Icon = direction === 'left' ? ChevronLeft : ChevronRight;
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled
+      className="flex size-9 shrink-0 cursor-not-allowed items-center justify-center rounded-pill text-text-muted outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+    >
+      <Icon aria-hidden="true" className="size-4" />
+    </button>
   );
 }
 

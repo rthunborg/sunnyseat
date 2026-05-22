@@ -58,4 +58,29 @@ describe('queryKeys', () => {
       },
     ]);
   });
+
+  it('normalizes planner venue keys with date and time from the central factory', () => {
+    const first = queryKeys.venues.planner({
+      time: '14:00',
+      date: '2026-06-14',
+      lng: 11.9746,
+      lat: 57.7089,
+      radiusKm: 1.5,
+      q: undefined,
+    });
+    const second = queryKeys.venues.planner({
+      radiusKm: 1.5,
+      lat: 57.7089,
+      date: '2026-06-14',
+      time: '14:00',
+      lng: 11.9746,
+    });
+
+    expect(first).toEqual(second);
+    expect(first).toEqual([
+      'venues',
+      'planner',
+      { date: '2026-06-14', lat: 57.7089, lng: 11.9746, radiusKm: 1.5, time: '14:00' },
+    ]);
+  });
 });

@@ -102,10 +102,10 @@ export function VenueDetailOverlay({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="absolute right-4 top-4 z-floating-buttons flex gap-2">
-          <ChromeButton label={labels.favourite} disabled>
+          <ChromeButton label={labels.favourite}>
             <Heart aria-hidden="true" className="size-4" />
           </ChromeButton>
-          <ChromeButton label={labels.share} disabled>
+          <ChromeButton label={labels.share}>
             <Share2 aria-hidden="true" className="size-4" />
           </ChromeButton>
           <ChromeButton label={labels.close} onClick={onDismiss}>
@@ -121,6 +121,7 @@ export function VenueDetailOverlay({
             isLoading={isLoading}
             onRoute={onRoute}
             routeDisabled={routeDisabled}
+            mode="desktop"
           />
         </div>
       </motion.aside>
@@ -143,8 +144,17 @@ export function VenueDetailOverlay({
       onPointerDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
     >
+      <div className="absolute right-5 top-16 z-floating-buttons flex gap-3">
+        <ChromeButton label={labels.favourite}>
+          <Heart aria-hidden="true" className="size-5" />
+        </ChromeButton>
+        <ChromeButton label={labels.close} onClick={onDismiss}>
+          <X aria-hidden="true" className="size-5" />
+        </ChromeButton>
+      </div>
       <button
         type="button"
+        data-testid="mobile-venue-detail-handle"
         aria-label={labels.close}
         {...bindDrag()}
         onClick={onDismiss}
@@ -177,6 +187,7 @@ export function VenueDetailOverlay({
           isLoading={isLoading}
           onRoute={onRoute}
           routeDisabled={routeDisabled}
+          mode="mobile"
         />
       </div>
     </motion.aside>

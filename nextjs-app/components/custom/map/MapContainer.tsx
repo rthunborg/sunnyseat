@@ -159,7 +159,7 @@ export function MapContainer() {
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 pointer-events-none bg-surface-sand/35"
+        className="absolute inset-0 pointer-events-none bg-surface-sand/80"
         style={{ zIndex: 1 }}
       />
       <div

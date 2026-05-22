@@ -2,10 +2,10 @@
 
 import { usePathname } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { Heart, Info, MapPin, type LucideIcon } from 'lucide-react';
+import { Heart, Navigation, type LucideIcon } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 
-type TabKey = 'karta' | 'favoriter' | 'om';
+type TabKey = 'naraMig' | 'favoriter';
 
 type TabDefinition = {
   key: TabKey;
@@ -14,16 +14,15 @@ type TabDefinition = {
 };
 
 const TABS: readonly TabDefinition[] = [
-  { key: 'karta', href: '/', icon: MapPin },
+  { key: 'naraMig', href: '/', icon: Navigation },
   { key: 'favoriter', href: '/favoriter', icon: Heart },
-  { key: 'om', href: '/about', icon: Info },
 ];
 
 /**
  * Mobile bottom navigation (viewport < 1024 px). Visible height is the
- * `--size-mobile-nav-h` token (40 px), but each tab's hit area expands
- * to the WCAG 2.1 AA 44×44 px minimum via `min-h-11` + `py-2`,
- * overflowing the visible strip.
+ * `--size-mobile-nav-h` token (52 px), matching the current MVP visual
+ * reference while keeping each tab's hit area above the WCAG 2.1 AA
+ * 44×44 px minimum.
  *
  * Visibility is controlled by the `lg:hidden` Tailwind utility so the
  * correct navbar renders from the first SSR paint without a hydration
@@ -49,7 +48,7 @@ export function MobileNavBar() {
     <nav
       aria-label={t('nav.barLabel')}
       data-testid="mobile-nav-bar"
-      className="fixed bottom-0 inset-x-0 h-[var(--size-mobile-nav-h)] bg-surface-cream border-t border-[var(--color-border-nav)] shadow-nav-up z-40 lg:hidden flex items-center justify-around px-12 pt-1"
+      className="fixed bottom-0 inset-x-0 h-[var(--size-mobile-nav-h)] bg-surface-cream border-t border-[var(--color-border-nav)] shadow-nav-up z-40 lg:hidden flex items-center justify-around px-8 pt-1"
     >
       {TABS.map(({ key, href, icon: Icon }) => {
         const isActive = normalizedPath === href;

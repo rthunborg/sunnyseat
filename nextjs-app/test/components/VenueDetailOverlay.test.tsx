@@ -37,7 +37,7 @@ const labels = {
   close: 'Stäng platsdetaljer',
   favourite: 'Spara plats',
   share: 'Dela plats',
-  sectionTitle: 'SOLTIDER IDAG',
+  sectionTitle: 'Solprognos idag',
   peakTime: 'Toppar kl {time}',
   openMaps: 'ÖPPNA I KARTOR',
   route: 'Visa Rutt',
@@ -48,6 +48,15 @@ const labels = {
   address: 'Adress',
   shadowWarning: 'Blir skuggigt om {minutes} min',
   sunBadge: '{percent}% sol',
+  city: 'Göteborg',
+  openUntil: 'ÖPPET · {time}',
+  placeholderImageShort: 'Platshållarbild',
+  facts: {
+    distance: 'AVSTÅND',
+    exposure: 'EXPONERING',
+    bestAt: 'BÄST KL.',
+    outdoorSeats: 'PLATSER UTE',
+  },
   timeline: {
     ariaLabel: 'Soltider idag',
     currentTime: 'Nu {time}',
@@ -106,7 +115,7 @@ describe('VenueDetailOverlay mobile', () => {
       />,
     );
 
-    fireEvent.keyDown(screen.getByRole('button', { name: 'Stäng platsdetaljer' }), {
+    fireEvent.keyDown(screen.getByTestId('mobile-venue-detail-handle'), {
       key: 'ArrowDown',
     });
     expect(onDismiss).toHaveBeenCalledTimes(1);
@@ -125,7 +134,7 @@ describe('VenueDetailOverlay mobile', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Stäng platsdetaljer' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Stäng platsdetaljer' })[1]);
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
@@ -166,8 +175,8 @@ describe('VenueDetailOverlay desktop', () => {
     const panel = screen.getByTestId('desktop-venue-detail-panel');
     expect(panel).toHaveClass('right-0', 'w-venue-detail-panel');
     expect(screen.getByRole('button', { name: 'Stäng platsdetaljer' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Spara plats' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Dela plats' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Spara plats' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Dela plats' })).toBeEnabled();
   });
 
   it('desktop close button dismisses the panel', () => {

@@ -43,6 +43,24 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-05-21 — MVP Claude Design source refresh (mobile + desktop) — Story 2.5 course correction (Codex)
+
+**Trigger:** Rasmus provided the refreshed Claude Design handoff `sunnyseat-claude-design-2026-05-21/` and clarified the page split: MVP validation must use only `SunnySeat MVP Mobile Unlocked.html` and `SunnySeat MVP Desktop Unlocked.html`; Post-MVP Unlocked/Locked pages are future-only for Season Pass, Swish, paywalls, payment, and locked states. Previous Story 2.x visual acceptances may have treated stale story text as reference drift, so active references needed to be regenerated before continuing Story 2.5.
+
+**Resolution:** Replaced the active generated Claude Design bundle from the 2026-05-21 handoff while preserving curated `STATE-MAPPING.md` and `ESLINT-AUDIT.md`; updated capture recipes to regenerate only MVP-covered states from the two MVP Unlocked prototypes; removed premium/paywall/payment recipes from the default MVP capture pass; regenerated active MVP reference PNGs.
+
+**Source of new PNG:** `nextjs-app/docs/design/references/claude-design/project/SunnySeat MVP Mobile Unlocked.html` and `nextjs-app/docs/design/references/claude-design/project/SunnySeat MVP Desktop Unlocked.html`.
+
+**Changed PNGs:** `mobile/onboarding.png`, `mobile/map-primary.png`, `mobile/map-panel-venues.png`, `mobile/map-with-selected-venue.png`, `mobile/venue-detail.png`, `mobile/feedback.png`, `mobile/review.png`, `mobile/about.png`, `mobile/favourites-tab.png`, `desktop/map-primary.png`, `desktop/venue-detail.png`, `desktop/about.png`, `desktop/favourites-tab.png`.
+
+**Recipe change:** `nextjs-app/scripts/capture-claude-design-refs.mjs` now points active recipes at `SunnySeat MVP Mobile Unlocked.html` / `SunnySeat MVP Desktop Unlocked.html`, uses `sunny_screen` for MVP mobile map states, adds MVP `about` captures through settings -> `Om SunnySeat`, retains desktop onboarding as the prior curated baseline, and excludes Post-MVP paywall/payment/locked recipes from the MVP capture pass. `nextjs-app/docs/design/references/claude-design/STATE-MAPPING.md` was rewritten to document the MVP/Post-MVP split.
+
+**Verification:** `cd nextjs-app && node scripts/capture-claude-design-refs.mjs` captured 13, skipped 0, failed 0. Manual inspection covered `map-with-selected-venue` mobile, `map-panel-venues` mobile, `venue-detail` desktop, and `about` mobile. Visual validation against the running app must be rerun after Story 2.5 implementation is reconciled with these refreshed references.
+
+**Reason / spec link:** User-approved visual source refresh on 2026-05-21; `AGENTS.md` Visual Source Of Truth rule; `project-context.md` 2026-05-21 visual source refresh; PRD/epics/architecture/UX notes updated to state that MVP references come only from the two MVP Unlocked pages.
+
+**Re-evaluation trigger:** Re-run this flow whenever the Claude Design MVP Unlocked pages change, when a Post-MVP payment/locked story is reactivated, or when a visual gate exposes a mismatch that the team classifies as obsolete reference instead of implementation defect.
+
 ### 2026-05-04 — `onboarding` (desktop) — Story 1.5 Onboarding & Geolocation (Amelia / dev-story)
 
 **Trigger:** The visual validation gate failed on the desktop `?_state=onboarding` capture. The verdict described a "two-panel onboarding modal with illustration on left and text/navigation on right ... pagination dots ... 'NÄSTA' next button ... 'SOLVÄDERSAPPEN' label ... step-by-step onboarding flow" — a multi-step desktop onboarding flow that the implementation does not, and should not, render.

@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VENUE_FIXTURE } from '@/lib/services/venues-fixture';
+import {
+  applyPlannerSelectionToVenue,
+  parseVenuePlannerParams,
+} from '@/lib/services/venue-planner';
 import type {
   GetVenueDetailResponse,
   VenueDataDto,
@@ -73,6 +77,13 @@ const DETAIL_FIXTURE: Record<string, FixtureDetail> = {
 };
 
 export async function GET(_request: NextRequest, context: RouteContext) {
+  const planner = parseVenuePlannerParams(_request.nextUrl.searchParams);
+  if (!planner.ok) {
+    return NextResponse.json(
+      { detail: planner.detail, status: 400 },
+      { status: 400 },
+    );
+  }
   const { slug } = await context.params;
   let decodedSlug: string;
   try {
@@ -94,7 +105,11 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     );
   }
 
-  const detail = buildDetailDto(venue, DETAIL_FIXTURE[venue.slug]);
+  const detail = buildDetailDto(
+    applyPlannerSelectionToVenue(venue, planner.selection),
+    DETAIL_FIXTURE[venue.slug],
+    venue.currentSunStatus,
+  );
   const response: GetVenueDetailResponse = {
     venue: detail,
     timestamp: new Date().toISOString(),
@@ -107,13 +122,17 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   });
 }
 
-function buildDetailDto(venue: VenueDataDto, fixture?: FixtureDetail): VenueDetailDto {
+function buildDetailDto(
+  venue: VenueDataDto,
+  fixture?: FixtureDetail,
+  timelineWindowStatus: VenueDataDto['currentSunStatus'] = venue.currentSunStatus,
+): VenueDetailDto {
   const sunWindow = venue.sunWindow
     ? [
         {
           start: venue.sunWindow.start,
           end: venue.sunWindow.end,
-          status: venue.currentSunStatus,
+          status: timelineWindowStatus,
         },
       ]
     : [];

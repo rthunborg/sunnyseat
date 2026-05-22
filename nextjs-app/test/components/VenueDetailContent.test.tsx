@@ -38,7 +38,7 @@ const DETAIL: VenueDetailDto = {
 };
 
 const labels = {
-  sectionTitle: 'SOLTIDER IDAG',
+  sectionTitle: 'Solprognos idag',
   peakTime: 'Toppar kl {time}',
   openMaps: 'ÖPPNA I KARTOR',
   route: 'Visa Rutt',
@@ -49,6 +49,15 @@ const labels = {
   address: 'Adress',
   shadowWarning: 'Blir skuggigt om {minutes} min',
   sunBadge: '{percent}% sol',
+  city: 'Göteborg',
+  openUntil: 'ÖPPET · {time}',
+  placeholderImageShort: 'Platshållarbild',
+  facts: {
+    distance: 'AVSTÅND',
+    exposure: 'EXPONERING',
+    bestAt: 'BÄST KL.',
+    outdoorSeats: 'PLATSER UTE',
+  },
   timeline: {
     ariaLabel: 'Soltider idag',
     currentTime: 'Nu {time}',
@@ -72,7 +81,9 @@ describe('VenueDetailContent', () => {
 
     expect(screen.getByRole('heading', { name: 'Kafé Magasinet' })).toHaveClass('text-display-xl');
     expect(screen.getByText('Stor uteservering med eftermiddagssol.')).toHaveClass('text-body-lg');
-    expect(screen.getByText('SOLTIDER IDAG')).toHaveClass('text-heading-sm');
+    expect(screen.getByText('Solprognos idag')).toHaveClass('text-heading-lg');
+    expect(screen.getByText('Innergård')).toBeInTheDocument();
+    expect(screen.getByText('PLATSER UTE')).toBeInTheDocument();
     expect(screen.getByText('Blir skuggigt om 45 min')).toHaveClass('text-error');
     expect(screen.getByLabelText('95% sol')).toContainHTML('svg');
     expect(screen.getByRole('link', { name: /ÖPPNA I KARTOR/i })).toHaveAttribute(

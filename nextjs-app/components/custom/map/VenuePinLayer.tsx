@@ -335,6 +335,7 @@ function renderEntry(
   onClick: () => void,
   resolveAria: AriaResolver,
 ) {
+  entry.element.style.zIndex = isSelected ? 'var(--z-floating-buttons)' : 'var(--z-pin)';
   const safePercent = Math.max(
     0,
     Math.min(

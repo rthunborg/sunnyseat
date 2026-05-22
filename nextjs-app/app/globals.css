@@ -21,7 +21,7 @@
   --color-surface-sand: #f5f0e6;
   --color-surface-muted: #f5f3f6;
   --color-surface-icon-bg: #eae7eb;
-  --color-surface-slider-track: #f0edf1;
+  --color-surface-slider-track: #dfd5bd;
 
   /* ---- Amber / Sun Palette ---- */
   --color-amber-pin: #f1b100;
@@ -131,6 +131,7 @@
   --size-slider-thumb: 14.1px;
   --size-slider-track-h: 6px;
   --size-timeline-h: 12px;
+  --border-slider-thumb: 2.35px;
 
   /* ---- Breakpoints ---- */
   --breakpoint-mobile: 375px;
@@ -151,7 +152,7 @@
   --gradient-route-button: linear-gradient(169deg, var(--color-amber-dark) 0%, var(--color-amber-gold) 100%);
   --gradient-cta-amber: linear-gradient(171deg, var(--color-amber-gold) 0%, var(--color-amber-primary) 100%);
   --gradient-map-overlay: linear-gradient(66deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0) 50%, rgba(249, 115, 22, 0.1) 100%);
-  --gradient-timeline-bar: linear-gradient(90deg, rgba(115, 92, 0, 0.2), var(--color-amber-gold) 50%, rgba(115, 92, 0, 0.2));
+  --gradient-timeline-bar: linear-gradient(90deg, var(--color-amber-primary) 0%, var(--color-amber-gold) 100%);
 
   /* ---- Brand-decorative shadows ---- */
   --shadow-wordmark-sun: 0 0 16px rgba(255, 240, 180, 0.7);
@@ -160,10 +161,14 @@
   --duration-fly: 500ms;
 
   /* ---- Component sizes (Tailwind v4 namespace) ---- */
-  --size-mobile-nav-h: 40px;
+  --size-mobile-nav-h: 52px;
   --size-desktop-nav-h: 84px;
+  --size-bottom-sheet-peek-h: 120px;
+  --size-bottom-sheet-mid-h: 320px;
+  --size-bottom-sheet-full-h: 320px;
   --size-bottom-sheet-full-top: 22dvh;
-  --size-venue-list-desktop-w: 190px;
+  --size-quick-info-mobile-w: 230px;
+  --size-venue-list-desktop-w: 340px;
   --size-venue-detail-panel-w: 390px;
   --size-search-desktop-w: 384px;
 
@@ -197,9 +202,11 @@
 
 @utility venue-photo-gradient {
   background:
-    radial-gradient(circle at 72% 18%, color-mix(in srgb, var(--color-surface-cream) 78%, transparent) 0 13%, transparent 34%),
-    radial-gradient(circle at 18% 82%, color-mix(in srgb, var(--color-amber-dark) 26%, transparent) 0 18%, transparent 48%),
-    linear-gradient(135deg, var(--color-amber-primary) 0%, var(--color-amber-gold) 46%, var(--color-amber-pale) 100%);
+    radial-gradient(circle at 18% 82%, var(--color-amber-primary) 0 13%, transparent 14%),
+    repeating-linear-gradient(45deg,
+      color-mix(in srgb, var(--color-amber-dark) 10%, transparent) 0 6px,
+      color-mix(in srgb, var(--color-surface-cream) 58%, transparent) 6px 12px),
+    linear-gradient(135deg, var(--color-surface-sand) 0%, var(--color-surface-cream) 100%);
 }
 
 @utility venue-detail-hero-gradient {
@@ -237,6 +244,10 @@
 
 @utility gradient-timeline-bar {
   background: var(--gradient-timeline-bar);
+}
+
+@utility border-slider-thumb {
+  border-width: var(--border-slider-thumb);
 }
 
 @utility w-venue-list-desktop {

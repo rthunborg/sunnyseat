@@ -33,10 +33,10 @@ describe('<VenueCard />', () => {
     expect(screen.getByRole('button', { name: /Välj Kafé Magasinet/ })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Uteservering' })).toBeInTheDocument();
     expect(screen.getByText('Kafé Magasinet')).toBeInTheDocument();
-    expect(screen.getByText('Sol 13:00-18:30')).toBeInTheDocument();
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('Sol 13:00-18:30');
     expect(screen.getByTestId('venue-card')).toHaveTextContent('Säkerhet: 92%');
     expect(screen.getByTestId('venue-card')).toHaveTextContent('Avstånd: 180 m');
-    expect(screen.getByText('Sol')).toBeInTheDocument();
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('92% sol');
 
     fireEvent.click(screen.getByRole('button', { name: /Välj Kafé Magasinet/ }));
     expect(onSelect).toHaveBeenCalledTimes(1);

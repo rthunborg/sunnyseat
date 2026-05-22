@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { MapInstanceProvider } from '@/lib/contexts/MapInstanceContext';
 import { MapSelectionProvider } from '@/lib/contexts/MapSelectionContext';
 import { TimeProvider } from '@/lib/contexts/TimeContext';
@@ -24,11 +25,17 @@ import { GeolocationProvider } from '@/hooks/useGeolocation';
  *   Query → Language → Geolocation → MapInstance → MapSelection → Time → children
  */
 export function AppContextProviders({ children }: { children: ReactNode }) {
+  const searchParams = useSearchParams();
+  const forcedDate = searchParams.get('_date') ?? undefined;
+  const forcedTime = searchParams.get('_time') ?? undefined;
+
   return (
     <GeolocationProvider>
       <MapInstanceProvider>
         <MapSelectionProvider>
-          <TimeProvider>{children}</TimeProvider>
+          <TimeProvider forcedDate={forcedDate} forcedTime={forcedTime}>
+            {children}
+          </TimeProvider>
         </MapSelectionProvider>
       </MapInstanceProvider>
     </GeolocationProvider>

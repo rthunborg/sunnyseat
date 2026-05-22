@@ -19,6 +19,24 @@
     "loadingSun": "Loading sun data",
     "sunUnavailable": "Sun time unavailable"
   },
+  "planner": {
+    "panelLabel": "Plan sun time",
+    "today": "Today",
+    "previousDay": "Previous day",
+    "nextDay": "Next day",
+    "openCalendar": "Open calendar",
+    "closeCalendar": "Close calendar",
+    "calendarTitle": "Select date",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "selectedDate": "Selected date",
+    "selectedTime": "Selected time",
+    "sliderLabel": "Select time",
+    "unavailableDate": "Date outside season",
+    "selectDate": "Select {date}",
+    "loading": "Updating sun forecast",
+    "error": "Could not update sun forecast"
+  },
   "list": {
     "headerMobile": "Find the sun now",
     "headerDesktop": "TOP PICKS NEAR YOU",
@@ -44,8 +62,9 @@
     }
   },
   "detail": {
-    "sectionTitle": "SUN TIMES TODAY",
+    "sectionTitle": "Sun forecast today",
     "peakTime": "Peaks at {time}",
+    "bestWindow": "Best between 11:00 and 15:00",
     "openMaps": "OPEN IN MAPS",
     "route": "Show Route",
     "close": "Close venue details",
@@ -58,6 +77,15 @@
     "address": "Address",
     "shadowWarning": "Shady in {minutes} min",
     "sunBadge": "{percent}% sun",
+    "city": "Gothenburg",
+    "openUntil": "OPEN · {time}",
+    "placeholderImageShort": "Placeholder image",
+    "facts": {
+      "distance": "DISTANCE",
+      "exposure": "EXPOSURE",
+      "bestAt": "BEST AT",
+      "outdoorSeats": "OUTDOOR SEATS"
+    },
     "timeline": {
       "ariaLabel": "Sun times today",
       "currentTime": "Now {time}",

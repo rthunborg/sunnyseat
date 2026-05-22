@@ -199,6 +199,41 @@ describe('GET /api/venues', () => {
     expect(second.headers.get('etag')).toBe(etag);
   });
 
+  it('accepts selected planner date/time and returns forecast-adjusted venue states', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&date=2026-06-14&time=20:00'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+    const venue = body.venues.find((candidate) => candidate.slug === 'test-venue-sunny');
+    expect(venue).toMatchObject({
+      currentSunStatus: 'Shaded',
+      sunExposurePercent: expect.any(Number),
+    });
+    expect(venue?.confidence).toBeLessThan(92);
+    expect(body.meta.weatherUpdatedAt).toMatch(/T/);
+  });
+
+  it('rejects malformed planner date/time values', async () => {
+    const badDate = await GET(makeRequest('?lat=57.7089&lng=11.9746&date=2026-6-14&time=14:00'));
+    expect(badDate.status).toBe(400);
+    expect((await badDate.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/date/i) }),
+    );
+
+    const badTime = await GET(makeRequest('?lat=57.7089&lng=11.9746&date=2026-06-14&time=14:00%00'));
+    expect(badTime.status).toBe(400);
+    expect((await badTime.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/time/i) }),
+    );
+  });
+
+  it('rejects planner dates outside the current sun season', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&date=2026-11-01&time=14:00'));
+    expect(res.status).toBe(400);
+    expect((await res.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/sun season/i) }),
+    );
+  });
+
   it('detects duplicate venue ids before map data is rendered', () => {
     const venue = makeVenue({ id: 'dupe', lat: 57.7, lng: 11.9 });
     const result = validateVenueUniqueness([

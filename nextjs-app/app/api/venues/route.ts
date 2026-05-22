@@ -18,6 +18,10 @@ import {
 } from '@/lib/utils/validation';
 import { badRequest } from '@/lib/utils/api-errors';
 import { VENUE_FIXTURE } from '@/lib/services/venues-fixture';
+import {
+  applyPlannerSelectionToVenue,
+  parseVenuePlannerParams,
+} from '@/lib/services/venue-planner';
 import type { GetVenuesResponse, VenueDataDto } from '@/lib/types/api';
 
 const DEFAULT_RADIUS_KM = 1.5;
@@ -261,10 +265,14 @@ export async function GET(request: NextRequest) {
 
   const q = parseSearchQuery(params);
   if (!q.success) return badRequest(q.error);
+  const planner = parseVenuePlannerParams(params);
+  if (!planner.ok) return badRequest(planner.detail);
 
   const matchedVenues = VENUE_FIXTURE
+    .map((v) => normalizeVenueForResponse(v))
+    .map((v) => applyPlannerSelectionToVenue(v, planner.selection))
     .map((v) => ({
-      ...normalizeVenueForResponse(v),
+      ...v,
       distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),
     }))
     .filter((v) => q.value || v.distanceMeters <= radiusKm * 1000)
@@ -286,7 +294,11 @@ export async function GET(request: NextRequest) {
   // when the result set is clipped.
   const response: GetVenuesResponse = {
     venues,
-    meta: { count: venues.length, radiusKm },
+    meta: {
+      count: venues.length,
+      radiusKm,
+      ...(planner.selection ? { weatherUpdatedAt: new Date().toISOString() } : {}),
+    },
     timestamp: new Date().toISOString(),
     totalCount,
   };

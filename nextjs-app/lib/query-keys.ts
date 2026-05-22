@@ -13,6 +13,14 @@ export const queryKeys = {
     },
     detail: (slug: string) =>
       [...queryKeys.venues.all, 'detail', slug] as const,
+    detailAt: (slug: string, planner?: Record<string, unknown>) => {
+      const normalized = normalizeQueryFilters(planner);
+      return normalized === undefined
+        ? queryKeys.venues.detail(slug)
+        : [...queryKeys.venues.all, 'detail', slug, normalized] as const;
+    },
+    planner: (filters: Record<string, unknown>) =>
+      [...queryKeys.venues.all, 'planner', normalizeQueryFilters(filters)] as const,
     search: (query: string) =>
       [...queryKeys.venues.all, 'search', query] as const,
   },

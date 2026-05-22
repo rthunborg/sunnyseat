@@ -14,11 +14,8 @@ import {
 } from '@/components/custom/sheets/MobileBottomSheet';
 import { VenueDetailOverlay } from '@/components/custom/venue/VenueDetailOverlay';
 import { VenueListControls, type VenueListSortMode } from '@/components/composed/venue/VenueListControls';
-import { VenueSearchShell } from '@/components/custom/search/VenueSearchShell';
-import {
-  currentTimeLabel,
-  resolveForcedVisualVenueDetail,
-} from '@/components/custom/venue/forced-venue-detail';
+import { resolveForcedVisualVenueDetail } from '@/components/custom/venue/forced-venue-detail';
+import { TimeSliderPanel } from '@/components/custom/time/TimeSliderPanel';
 import { isVenueSunnyForList, VenueList } from '@/components/custom/venue/VenueList';
 import { useVenueDetail } from '@/hooks/queries/useVenueDetail';
 import { useVenueSearch } from '@/hooks/queries/useVenueSearch';
@@ -26,10 +23,12 @@ import { useGeolocation } from '@/hooks/useGeolocation';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
+import { useTimeContext } from '@/lib/contexts/TimeContext';
 import { type VenuePinData } from '@/lib/types/map';
 import type { VenueDataDto } from '@/lib/types/api';
 import { DURATION_FLY_MS } from '@/lib/constants/animation';
 import { useForcedState } from '@/lib/dev/use-forced-state';
+import { cn } from '@/lib/utils';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
 import { mapVenueDtoToPinData } from '@/lib/utils/venue-pin-mapping';
 import { MapContainer } from './MapContainer';
@@ -43,6 +42,13 @@ const QUICK_INFO_DESKTOP_WIDTH = 280;
 const QUICK_INFO_DESKTOP_HEIGHT_ESTIMATE = 260;
 const QUICK_INFO_DESKTOP_PIN_GAP = 56;
 const QUICK_INFO_DESKTOP_VIEWPORT_GUTTER = 16;
+const QUICK_INFO_MOBILE_WIDTH = 230;
+const QUICK_INFO_MOBILE_HEIGHT_ESTIMATE = 170;
+const QUICK_INFO_MOBILE_PIN_GAP = 56;
+const QUICK_INFO_MOBILE_TOP_CLEARANCE = 176;
+const QUICK_INFO_MOBILE_VIEWPORT_GUTTER = 16;
+const MOBILE_NAV_HEIGHT_PX = 52;
+const MOBILE_SHEET_MID_HEIGHT_PX = 320;
 // Round 2 R2-P4: Round 1 P31 released the loading cover on the very first
 // tile error, but MapContainer only latches the sand fallback after
 // TILE_FAILURE_THRESHOLD = 4 errors. A single transient blip (CORS retry,
@@ -80,6 +86,7 @@ export function MapView() {
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
   const { selectedVenueId, selectedVenuePreview, selectVenue } = useMapSelection();
+  const plannerTime = useTimeContext();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -88,12 +95,13 @@ export function MapView() {
   const [quickInfoDesktopPlacement, setQuickInfoDesktopPlacement] =
     useState<VenueQuickInfoDesktopPlacement>('above');
   const [mobileSheetState, setMobileSheetState] =
-    useState<MobileBottomSheetState>('peek');
+    useState<MobileBottomSheetState>('mid');
   const [venueSortMode, setVenueSortMode] = useState<VenueListSortMode>('sun');
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
     radiusKm: SEARCH_RADIUS_KM,
+    ...plannerTime.plannerQuery,
   });
 
   // Show the loading skeleton until MapLibre paints its first non-metadata
@@ -180,9 +188,12 @@ export function MapView() {
   const venues = useMemo<VenuePinData[]>(() => {
     return venueDtosForMap.flatMap((v) => {
       const pin = mapVenueDtoToPinData(v);
-      return pin ? [pin] : [];
+      if (!pin) return [];
+      return shouldUseForcedSunnyMapPins(forcedState)
+        ? [normalizeForcedVisualPin(pin)]
+        : [pin];
     });
-  }, [venueDtosForMap]);
+  }, [forcedState, venueDtosForMap]);
   const selectedVenueDto = useMemo(() => {
     if (!selectedVenueId) return null;
     return venueDtosForMap.find((venue) => venue.id === selectedVenueId) ?? null;
@@ -194,7 +205,10 @@ export function MapView() {
   const venueSlugParam = searchParams.get('venue');
   const canRequestVenueDetail = Boolean(venueSlugParam) &&
     forcedState !== 'map-with-selected-venue';
-  const venueDetailQuery = useVenueDetail(canRequestVenueDetail ? venueSlugParam : null);
+  const venueDetailQuery = useVenueDetail(
+    canRequestVenueDetail ? venueSlugParam : null,
+    plannerTime.plannerQuery,
+  );
   const forcedVisualVenueDetail = useMemo(
     () => resolveForcedVisualVenueDetail(venueSlugParam, forcedState),
     [forcedState, venueSlugParam],
@@ -236,6 +250,12 @@ export function MapView() {
   }, [forcedState]);
 
   useEffect(() => {
+    if (selectedVenueId && !isVenueDetailRequested) {
+      setMobileSheetState('peek');
+    }
+  }, [isVenueDetailRequested, selectedVenueId]);
+
+  useEffect(() => {
     if (forcedState !== 'map-with-selected-venue' && !venueSlugParam) return;
     if (venueSlugParam && selectedVenuePreview?.slug && selectedVenuePreview.slug !== venueSlugParam) {
       return;
@@ -263,12 +283,30 @@ export function MapView() {
       const canvas = mapInstance.getCanvas();
       const width = canvas.clientWidth || window.innerWidth;
       const height = canvas.clientHeight || window.innerHeight;
-      const halfWidth = QUICK_INFO_DESKTOP_WIDTH / 2 + QUICK_INFO_DESKTOP_VIEWPORT_GUTTER;
-      const minY =
-        QUICK_INFO_DESKTOP_HEIGHT_ESTIMATE +
-        QUICK_INFO_DESKTOP_PIN_GAP +
-        QUICK_INFO_DESKTOP_VIEWPORT_GUTTER;
-      const maxY = height - QUICK_INFO_DESKTOP_VIEWPORT_GUTTER;
+      const isDesktopViewport =
+        typeof window.matchMedia === 'function'
+          ? window.matchMedia('(min-width: 1024px)').matches
+          : width >= 1024;
+      const halfWidth = isDesktopViewport
+        ? QUICK_INFO_DESKTOP_WIDTH / 2 + QUICK_INFO_DESKTOP_VIEWPORT_GUTTER
+        : QUICK_INFO_MOBILE_WIDTH / 2 + QUICK_INFO_MOBILE_VIEWPORT_GUTTER;
+      const minY = isDesktopViewport
+        ? QUICK_INFO_DESKTOP_HEIGHT_ESTIMATE +
+          QUICK_INFO_DESKTOP_PIN_GAP +
+          QUICK_INFO_DESKTOP_VIEWPORT_GUTTER
+        : QUICK_INFO_MOBILE_HEIGHT_ESTIMATE +
+          QUICK_INFO_MOBILE_PIN_GAP +
+          QUICK_INFO_MOBILE_TOP_CLEARANCE +
+          QUICK_INFO_MOBILE_VIEWPORT_GUTTER;
+      const maxY = isDesktopViewport
+        ? height - QUICK_INFO_DESKTOP_VIEWPORT_GUTTER
+        : Math.max(
+            minY,
+            height -
+              MOBILE_NAV_HEIGHT_PX -
+              MOBILE_SHEET_MID_HEIGHT_PX -
+              QUICK_INFO_MOBILE_VIEWPORT_GUTTER,
+          );
       const canFitAbove = maxY >= minY;
       setQuickInfoDesktopPlacement(canFitAbove ? 'above' : 'pinned');
       setQuickInfoPosition({
@@ -320,43 +358,42 @@ export function MapView() {
     () => (Array.isArray(rawVenues) ? rawVenues.filter(hasValidVenueLocation) : []),
     [rawVenues],
   );
-  const sunnyVenueCount = listVenues.filter(isVenueSunnyForList).length;
 
   return (
     <div className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full">
       <MapContainer />
       <VenuePinLayer venues={venues} />
-      <VenueSearchShell
+      <TimeSliderPanel
         variant="mobile"
-        onSearchFocus={() => setMobileSheetState('peek')}
-        onVenueSelected={() => setMobileSheetState('peek')}
-        className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+calc(var(--spacing)*4))] z-glass-panel"
+        className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*14)]"
+      />
+      <TimeSliderPanel
+        variant="desktop"
+        className={cn(
+          'absolute bottom-6 left-[calc(var(--size-venue-list-desktop-w)+var(--spacing)*4)] right-4',
+          isVenueDetailRequested && 'right-[calc(var(--size-venue-detail-panel-w)+var(--spacing)*4)]',
+        )}
       />
       <MobileBottomSheet
         state={mobileSheetState}
         onStateChange={setMobileSheetState}
         handleLabel={tVenueList('handle')}
       >
-        <div className="pb-2">
-          <h2 className="text-heading-xl text-text-primary">
-            {tVenueList('headerMobile')}
-          </h2>
-          <p className="mt-1 text-body-sm text-text-body">
-            {tVenueList('subtitle', { count: sunnyVenueCount })}
-          </p>
-        </div>
-        <VenueListControls
-          mode="mobile"
-          sortMode={venueSortMode}
-          onSortModeChange={setVenueSortMode}
-          labels={venueListControlLabels(tVenueList)}
-        />
+        {mobileSheetState !== 'peek' && (
+          <VenueListControls
+            mode="mobile"
+            sortMode={venueSortMode}
+            onSortModeChange={setVenueSortMode}
+            labels={venueListControlLabels(tVenueList)}
+          />
+        )}
         <VenueList
           venues={listVenues}
           mode="mobile"
           sortMode={venueSortMode}
           isLoading={venueQuery.isFetching && listVenues.length === 0}
           animateCards={mobileSheetState === 'full'}
+          compactCards={mobileSheetState === 'peek'}
           onSelectVenue={handleSelectVenueFromList}
         />
       </MobileBottomSheet>
@@ -364,14 +401,6 @@ export function MapView() {
         data-testid="desktop-venue-list-panel"
         className="absolute left-0 top-0 bottom-0 z-bottom-sheet-peek hidden lg:flex lg:w-venue-list-desktop flex-col border-r border-divider bg-surface-cream shadow-card"
       >
-        <div className="border-b border-divider px-3 py-4">
-          <h2 className="text-heading-sm uppercase tracking-section-label text-text-body">
-            {tVenueList('headerDesktop')}
-          </h2>
-          <p className="mt-2 text-label-lg text-text-primary">
-            {tVenueList('subtitle', { count: sunnyVenueCount })}
-          </p>
-        </div>
         <VenueListControls
           mode="desktop"
           sortMode={venueSortMode}
@@ -396,7 +425,7 @@ export function MapView() {
             fallbackVenue={detailFallbackVenue}
             detail={detailVenue ?? undefined}
             isLoading={venueDetailQuery.isFetching && !detailVenue}
-            currentTime={currentTimeLabel()}
+            currentTime={plannerTime.selectedTime}
             labels={venueDetailLabels(tVenueDetail)}
             onDismiss={handleDismissDetails}
             onRoute={() => {}}
@@ -410,7 +439,7 @@ export function MapView() {
             fallbackVenue={detailFallbackVenue}
             detail={detailVenue ?? undefined}
             isLoading={venueDetailQuery.isFetching && !detailVenue}
-            currentTime={currentTimeLabel()}
+            currentTime={plannerTime.selectedTime}
             labels={venueDetailLabels(tVenueDetail)}
             onDismiss={handleDismissDetails}
             onRoute={() => {}}
@@ -427,6 +456,7 @@ export function MapView() {
             distanceMeters={selectedVenueDto?.distanceMeters}
             thumbnail={selectedVenueDto?.thumbnail}
             isLoadingSunData={venueQuery.isFetching || !selectedVenueDto}
+            position={quickInfoPosition}
             onDismiss={() => selectVenue(null)}
             onOpenDetails={handleOpenDetails}
             onRoute={() => {}}
@@ -503,6 +533,18 @@ function fallbackVenueFromSlug(slug: string): VenueDataDto {
   };
 }
 
+function shouldUseForcedSunnyMapPins(forcedState: string | null): boolean {
+  return forcedState === 'map-panel-venues' || forcedState === 'map-with-selected-venue';
+}
+
+function normalizeForcedVisualPin(pin: VenuePinData): VenuePinData {
+  return {
+    ...pin,
+    sunStatus: 'Sunny',
+    sunExposurePercent: Math.max(95, pin.sunExposurePercent),
+  };
+}
+
 function queryWithout(
   params: Pick<URLSearchParams, 'forEach'>,
   excludedKeys: string[],
@@ -543,6 +585,7 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue.detail'>>
     share: t('share'),
     sectionTitle: t('sectionTitle'),
     peakTime: t('peakTime', { time: '{time}' }),
+    bestWindow: t('bestWindow'),
     openMaps: t('openMaps'),
     route: t('route'),
     photoPlaceholder: t('photoPlaceholder'),
@@ -552,6 +595,15 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue.detail'>>
     address: t('address'),
     shadowWarning: t('shadowWarning', { minutes: '{minutes}' }),
     sunBadge: t('sunBadge', { percent: '{percent}' }),
+    city: t('city'),
+    openUntil: t('openUntil', { time: '{time}' }),
+    placeholderImageShort: t('placeholderImageShort'),
+    facts: {
+      distance: t('facts.distance'),
+      exposure: t('facts.exposure'),
+      bestAt: t('facts.bestAt'),
+      outdoorSeats: t('facts.outdoorSeats'),
+    },
     timeline: {
       ariaLabel: t('timeline.ariaLabel'),
       currentTime: t('timeline.currentTime', { time: '{time}' }),

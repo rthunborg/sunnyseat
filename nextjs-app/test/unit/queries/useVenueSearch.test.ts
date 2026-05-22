@@ -113,6 +113,99 @@ describe('useVenueSearch', () => {
     ]);
   });
 
+  it('adds selected planner date/time to the request URL', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const { result } = renderHook(
+      () => useVenueSearch({
+        lat: 57.708912,
+        lng: 11.974601,
+        radiusKm: 1.5,
+        date: '2026-06-14',
+        time: '14:00',
+      }),
+      { wrapper: makeWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const calledUrl = fetchSpy.mock.calls[0]?.[0] as string;
+    const parsed = new URL(calledUrl, 'http://localhost');
+    expect(parsed.searchParams.get('date')).toBe('2026-06-14');
+    expect(parsed.searchParams.get('time')).toBe('14:00');
+  });
+
+  it('keeps previous venue data visible while a new planner date/time request is in flight', async () => {
+    const firstResponse: GetVenuesResponse = {
+      ...SAMPLE_RESPONSE,
+      venues: [
+        {
+          id: 'venue-1',
+          venueId: 'venue-1',
+          venueName: 'Första platsen',
+          venueSlug: 'forsta-platsen',
+          slug: 'forsta-platsen',
+          neighborhood: 'Centrum',
+          location: { lat: 57.7, lng: 11.97 },
+          currentSunStatus: 'Sunny',
+          isPartner: false,
+          confidence: 92,
+          distanceMeters: 100,
+          sunExposurePercent: 95,
+        },
+      ],
+      meta: { count: 1, radiusKm: 1.5 },
+      totalCount: 1,
+    };
+    let resolveSecond: ((value: Response) => void) | undefined;
+    fetchSpy
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(firstResponse), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise<Response>((resolve) => {
+          resolveSecond = resolve;
+        }),
+      );
+
+    const { result, rerender } = renderHook(
+      ({ time }: { time: string }) =>
+        useVenueSearch({
+          lat: 57.7089,
+          lng: 11.9746,
+          radiusKm: 1.5,
+          date: '2026-06-14',
+          time,
+        }),
+      {
+        wrapper: makeWrapper(),
+        initialProps: { time: '14:00' },
+      },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    rerender({ time: '15:00' });
+
+    await waitFor(() => expect(result.current.isFetching).toBe(true));
+    expect(result.current.data).toEqual(firstResponse);
+    expect(result.current.isPlaceholderData).toBe(true);
+
+    resolveSecond?.(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    await waitFor(() => expect(result.current.isPlaceholderData).toBe(false));
+  });
+
   it('forwards the AbortSignal from TanStack to fetch (request cancellation)', async () => {
     fetchSpy.mockResolvedValueOnce(
       new Response(JSON.stringify(SAMPLE_RESPONSE), {
@@ -270,6 +363,72 @@ describe('useVenueSearch', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.isStale).toBe(false);
+  });
+
+  it('polls the live venue search path every five minutes', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+    function StableWrapper({ children }: { children: ReactNode }) {
+      return createElement(QueryClientProvider, { client }, children);
+    }
+
+    const { result } = renderHook(
+      () => useVenueSearch({ lat: 57.7089, lng: 11.9746, radiusKm: 1.5 }),
+      { wrapper: StableWrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const query = client.getQueryCache().find({
+      queryKey: queryKeys.venues.list({ lat: 57.7089, lng: 11.9746, radiusKm: 1.5 }),
+    });
+    const options = query?.options as { refetchInterval?: unknown } | undefined;
+
+    expect(options?.refetchInterval).toBe(5 * 60 * 1000);
+  });
+
+  it('does not poll explicit planner date/time searches', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+    function StableWrapper({ children }: { children: ReactNode }) {
+      return createElement(QueryClientProvider, { client }, children);
+    }
+
+    const { result } = renderHook(
+      () => useVenueSearch({
+        lat: 57.7089,
+        lng: 11.9746,
+        radiusKm: 1.5,
+        date: '2026-06-14',
+        time: '14:00',
+      }),
+      { wrapper: StableWrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const query = client.getQueryCache().find({
+      queryKey: queryKeys.venues.planner({
+        lat: 57.7089,
+        lng: 11.9746,
+        radiusKm: 1.5,
+        date: '2026-06-14',
+        time: '14:00',
+      }),
+    });
+    const options = query?.options as { refetchInterval?: unknown } | undefined;
+
+    expect(options?.refetchInterval).toBe(false);
   });
 
   it('configures refetchOnWindowFocus: false (window focus does NOT trigger a refetch even when stale)', async () => {
