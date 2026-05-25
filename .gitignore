@@ -44,14 +44,22 @@ scripts/*
 !.codex/scripts/
 !.codex/scripts/**
 
-# Generic BMAD/WDS skill mirrors are disposable local framework content for this
-# migration. SunnySeat keeps only custom/project-binding skills here; tracked
-# files remain tracked regardless of ignore rules.
-.agents/skills/bmad-*/
+# Installed agent skills are disposable local framework content. A fresh clone
+# should reinstall BMAD/Codex skills locally. SunnySeat tracks only the
+# project-binding skills referenced from AGENTS.md and project-context.md.
+.agents/skills/*
+!.agents/skills/frontend-component/
+!.agents/skills/frontend-component/**
+!.agents/skills/visual-validation/
+!.agents/skills/visual-validation/**
+!.agents/skills/test-gate/
+!.agents/skills/test-gate/**
 !.agents/skills/bmad-story-brief/
-!.agents/skills/bmad-story-brief/SKILL.md
-.agents/skills/wds-*/
-.agents/skills/wds-agent-*/
+!.agents/skills/bmad-story-brief/**
+!.agents/skills/review-round-guard/
+!.agents/skills/review-round-guard/**
+!.agents/skills/story-file-audit/
+!.agents/skills/story-file-audit/**
 
 # Geodata (large binary, imported once)
 building_geodata/
