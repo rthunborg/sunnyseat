@@ -155,11 +155,11 @@ This table is read by `scripts/story-review.sh` and `scripts/visual-validate.sh`
 
 | Screen ID                  | Route                                                       | Viewport | Notes                                                                                      |
 |----------------------------|-------------------------------------------------------------|----------|--------------------------------------------------------------------------------------------|
-| map-primary                | `/?_time=14:00`                                             | mobile   | Returning-user default — map canvas + planner/date chrome + bottom nav; `_time` pins the MVP reference time. |
+| map-primary                | `/?_state=map-primary&_time=14:00`                          | mobile   | Returning-user default visual reference — map canvas + planner/date chrome + bottom nav; `_state` scopes reference-only sunny/list normalization and `_time` pins the MVP reference time. |
 | map-primary                | `/?_time=16:30`                                             | desktop  | Top navbar + map canvas + 190 px venue list overlay panel; `_time` pins the MVP reference time. |
 | onboarding                 | `/?_state=onboarding`                                       | mobile   | Warm amber gradient full-screen layer (bypasses localStorage gate in dev).                  |
 | onboarding                 | `/?_state=onboarding`                                       | desktop  | Same forced state on desktop viewport.                                                      |
-| map-panel-venues           | `/?_state=map-panel-venues&_time=14:00`                     | mobile   | Bottom sheet expanded from peek (force the full snap point); `_time` pins the MVP reference time. |
+| map-panel-venues           | `/?_state=map-panel-venues&_time=14:00`                     | mobile   | Bottom sheet expanded from peek to the partial list/mid snap; `_time` pins the MVP reference time. |
 | map-with-selected-venue    | `/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00` | mobile   | Pin selected state for current MVP reference; composition comes from refreshed PNG.          |
 | venue-detail               | `/?venue=test-venue-sunny&_state=venue-detail&_time=14:00`  | mobile   | Venue detail state with sun timeline and planner/date sync where active.                    |
 | venue-detail               | `/?venue=test-venue-sunny&_state=venue-detail&_time=16:30`  | desktop  | 390 px right-side overlay panel with close button.                                          |

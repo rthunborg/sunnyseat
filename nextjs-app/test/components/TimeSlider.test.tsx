@@ -19,6 +19,7 @@ describe('<TimeSlider />', () => {
     expect(screen.getByTestId('time-slider-track')).toHaveClass('h-slider-track-h', 'bg-surface-slider-track', 'rounded-pill');
     expect(screen.getByTestId('time-slider-thumb')).toHaveClass('size-slider-thumb', 'bg-amber-dark', 'border-slider-thumb');
     expect(screen.getByText('06:00')).toHaveClass('text-label-xs-medium');
+    expect(screen.getByText('06:00').parentElement).toHaveClass('text-text-muted');
     expect(screen.getByText('15:00')).toHaveClass('text-amber-dark');
   });
 

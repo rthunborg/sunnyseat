@@ -20,6 +20,7 @@ export type VenueListProps = {
   sortMode?: VenueListSortMode;
   compactCards?: boolean;
   confidenceMeta?: SunFreshnessMeta;
+  showVisibleConfidence?: boolean;
 };
 
 export function VenueList({
@@ -31,6 +32,7 @@ export function VenueList({
   sortMode = 'sun',
   compactCards,
   confidenceMeta,
+  showVisibleConfidence = true,
 }: VenueListProps) {
   const t = useTranslations('venue.list');
   const sortedVenues = useMemo(() => sortVenuesForList(venues, sortMode), [venues, sortMode]);
@@ -86,6 +88,7 @@ export function VenueList({
             isSunny={isVenueSunnyForList(venue)}
             visualMetadata={getVenueVisualMetadata(venue)}
             compact={compact}
+            showVisibleConfidence={showVisibleConfidence}
             staggerIndex={index}
             animateIn={animateCards}
             labels={{

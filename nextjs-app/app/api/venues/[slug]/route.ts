@@ -8,6 +8,7 @@ import {
   applyFixtureWeatherAvailability,
   resolveFixtureSunFreshness,
 } from '@/lib/services/weather-freshness-fixture';
+import { formatPlannerTime, parsePlannerTime } from '@/lib/utils/time-planner';
 import type {
   GetVenueDetailResponse,
   VenueDataDto,
@@ -25,6 +26,11 @@ type FixtureDetail = {
   openingHours: VenueDetailDto['openingHours'];
   peakTime: string;
   shadowWarningMinutes?: number;
+};
+
+type DetailTimelineProjection = {
+  peakTime?: string;
+  windowStatus?: VenueDataDto['currentSunStatus'];
 };
 
 const DETAIL_FIXTURE: Record<string, FixtureDetail> = {
@@ -111,13 +117,14 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     );
   }
 
+  const weatherAdjustedVenue = applyFixtureWeatherAvailability(venue, freshness);
+  const adjustedVenue = applyPlannerSelectionToVenue(weatherAdjustedVenue, planner.selection);
   const detail = buildDetailDto(
-    applyFixtureWeatherAvailability(
-      applyPlannerSelectionToVenue(venue, planner.selection),
-      freshness,
-    ),
+    adjustedVenue,
     DETAIL_FIXTURE[venue.slug],
-    venue.currentSunStatus,
+    planner.selection
+      ? timelineProjectionFromAdjustedVenue(adjustedVenue)
+      : undefined,
   );
   const response: GetVenueDetailResponse = {
     venue: detail,
@@ -136,8 +143,10 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 function buildDetailDto(
   venue: VenueDataDto,
   fixture?: FixtureDetail,
-  timelineWindowStatus: VenueDataDto['currentSunStatus'] = venue.currentSunStatus,
+  timelineProjection?: DetailTimelineProjection,
 ): VenueDetailDto {
+  const timelineWindowStatus = timelineProjection?.windowStatus ?? venue.currentSunStatus;
+  const peakTime = timelineProjection?.peakTime ?? fixture?.peakTime;
   const sunWindow = venue.sunWindow
     ? [
         {
@@ -159,10 +168,29 @@ function buildDetailDto(
       timezone: 'Europe/Stockholm',
       range: { start: '06:00', end: '21:00' },
       windows: sunWindow,
-      peakTime: fixture?.peakTime,
+      ...(peakTime ? { peakTime } : {}),
     },
     ...(fixture?.shadowWarningMinutes != null
       ? { shadowWarningMinutes: fixture.shadowWarningMinutes }
       : {}),
   };
+}
+
+function timelineProjectionFromAdjustedVenue(
+  venue: VenueDataDto,
+): DetailTimelineProjection {
+  return {
+    peakTime: peakTimeFromSunWindow(venue.sunWindow),
+    windowStatus: venue.currentSunStatus,
+  };
+}
+
+function peakTimeFromSunWindow(
+  sunWindow: VenueDataDto['sunWindow'],
+): string | undefined {
+  if (!sunWindow) return undefined;
+  const start = parsePlannerTime(sunWindow.start);
+  const end = parsePlannerTime(sunWindow.end);
+  if (start === null || end === null) return undefined;
+  return formatPlannerTime((start + end) / 2);
 }

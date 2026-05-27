@@ -1,0 +1,29 @@
+SunnySeat story review gate
+Story: 2-6-confidence-display-auto-refresh
+Mode: apply
+Sprint status: /c/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-6-confidence-display-auto-refresh-review-20260526-151408.log
+
+Story file: /c/sunnyseat/_bmad-output/implementation-artifacts/2-6-confidence-display-auto-refresh.md
+Current sprint status: review
+
+Running npm script: lint
+
+Running npm script: typecheck
+
+Running npm script: test
+
+ RUN  v4.1.4 C:/sunnyseat/nextjs-app
+
+
+ Test Files  36 passed (36)
+      Tests  275 passed (275)
+   Start at  15:14:17
+   Duration  20.82s (transform 4.40s, setup 16.13s, import 47.78s, tests 33.68s, environment 90.61s)
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues&_time=14:00' viewport='mobile'
+--- Visual validation: map-panel-venues ---
+Navigating to http://localhost:3000/?_state=map-panel-venues&_time=14:00
+VISUAL GATE FAILED: Could not screenshot dev server at http://localhost:3000/?_state=map-panel-venues&_time=14:00
+Ensure the dev server is running before visual validation.

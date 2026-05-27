@@ -126,7 +126,7 @@ export function MapControls() {
       <GlassButton
         ariaLabel={t('settings')}
         onClick={handleSettings}
-        disabled={!isMapReady}
+        disabled
         testId="map-control-settings"
       >
         <Settings aria-hidden="true" style={{ width: 20, height: 20 }} />

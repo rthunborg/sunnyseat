@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   isDateInCurrentSunSeason,
+  isPlannerDateSelectable,
   isValidDateKey,
   sunSeasonBounds,
 } from '@/lib/utils/time-planner';
@@ -18,6 +19,7 @@ export type DatePickerDialogLabels = {
   nextMonth: string;
   selectedDate: string;
   unavailableDate: string;
+  pastDate: string;
   selectDate: string;
 };
 
@@ -128,21 +130,23 @@ export function DatePickerDialog({
               {monthDates.map((date) => {
                 const key = dateKey(date);
                 const inSeason = isDateInCurrentSunSeason(key, now);
+                const selectable = isPlannerDateSelectable(key, now);
                 const selected = key === selectedDate;
                 const formatted = formatDate(date, localeTag);
+                const disabledLabel = inSeason ? labels.pastDate : labels.unavailableDate;
                 return (
                   <button
                     key={key}
                     type="button"
-                    disabled={!inSeason}
+                    disabled={!selectable}
                     aria-label={
-                      inSeason
+                      selectable
                         ? labels.selectDate.replace('{date}', formatted)
-                        : `${labels.unavailableDate} ${formatted}`
+                        : `${disabledLabel} ${formatted}`
                     }
                     aria-current={selected ? 'date' : undefined}
                     onClick={() => {
-                      if (!inSeason) return;
+                      if (!selectable) return;
                       onSelectDate(key);
                       close();
                     }}
@@ -151,7 +155,7 @@ export function DatePickerDialog({
                       selected
                         ? 'bg-text-primary text-surface-cream'
                         : 'bg-surface-muted text-text-primary',
-                      !inSeason && 'cursor-not-allowed opacity-40',
+                      !selectable && 'cursor-not-allowed opacity-40',
                     )}
                   >
                     {date.getUTCDate()}

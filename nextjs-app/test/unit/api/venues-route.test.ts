@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import {
   clearVenueRateLimitForTests,
   GET,
   validateVenueUniqueness,
 } from '@/app/api/venues/route';
+import { sunSeasonBounds } from '@/lib/utils/time-planner';
 import type { GetVenuesResponse, VenueDataDto } from '@/lib/types/api';
 
 function makeRequest(query: string, headers?: HeadersInit): NextRequest {
@@ -13,7 +14,13 @@ function makeRequest(query: string, headers?: HeadersInit): NextRequest {
 
 describe('GET /api/venues', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-26T10:15:00.000Z'));
     clearVenueRateLimitForTests();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('returns 200 with sun-status-sorted venues for a valid lat/lng', async () => {
@@ -231,7 +238,9 @@ describe('GET /api/venues', () => {
   });
 
   it('accepts selected planner date/time and returns forecast-adjusted venue states', async () => {
-    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&date=2026-06-14&time=20:00'));
+    const res = await GET(
+      makeRequest(`?lat=57.7089&lng=11.9746&date=${futureInSeasonDate(19)}&time=20:00`),
+    );
     expect(res.status).toBe(200);
     const body = (await res.json()) as GetVenuesResponse;
     const venue = body.venues.find((candidate) => candidate.slug === 'test-venue-sunny');
@@ -243,6 +252,29 @@ describe('GET /api/venues', () => {
     expect(body.meta.weatherUpdatedAt).toMatch(/T/);
   });
 
+  it('applies geometry-only weather availability before future planner projection', async () => {
+    const date = futureInSeasonDate(19);
+    const weather = await GET(makeRequest(`?lat=57.7089&lng=11.9746&date=${date}&time=15:00`));
+    const geometryOnly = await GET(
+      makeRequest(`?lat=57.7089&lng=11.9746&date=${date}&time=15:00&_weather=unavailable`),
+    );
+    expect(weather.status).toBe(200);
+    expect(geometryOnly.status).toBe(200);
+
+    const weatherBody = (await weather.json()) as GetVenuesResponse;
+    const geometryOnlyBody = (await geometryOnly.json()) as GetVenuesResponse;
+    const weatherVenue = weatherBody.venues.find((candidate) => candidate.slug === 'test-venue-sunny');
+    const geometryOnlyVenue = geometryOnlyBody.venues.find((candidate) => candidate.slug === 'test-venue-sunny');
+
+    expect(geometryOnlyVenue).toMatchObject({
+      skyCondition: 'unavailable',
+      currentSunStatus: 'Sunny',
+    });
+    expect(geometryOnlyVenue?.sunExposurePercent).toBe(weatherVenue?.sunExposurePercent);
+    expect(geometryOnlyVenue?.confidence).toBe(weatherVenue?.confidence);
+    expect(geometryOnlyBody.meta.sunDataSource).toBe('geometry-only');
+  });
+
   it('rejects malformed planner date/time values', async () => {
     const badDate = await GET(makeRequest('?lat=57.7089&lng=11.9746&date=2026-6-14&time=14:00'));
     expect(badDate.status).toBe(400);
@@ -250,7 +282,9 @@ describe('GET /api/venues', () => {
       expect.objectContaining({ detail: expect.stringMatching(/date/i) }),
     );
 
-    const badTime = await GET(makeRequest('?lat=57.7089&lng=11.9746&date=2026-06-14&time=14:00%00'));
+    const badTime = await GET(
+      makeRequest(`?lat=57.7089&lng=11.9746&date=${futureInSeasonDate(19)}&time=14:00%00`),
+    );
     expect(badTime.status).toBe(400);
     expect((await badTime.json()) as { detail: string }).toEqual(
       expect.objectContaining({ detail: expect.stringMatching(/time/i) }),
@@ -258,7 +292,9 @@ describe('GET /api/venues', () => {
   });
 
   it('rejects planner dates outside the current sun season', async () => {
-    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&date=2026-11-01&time=14:00'));
+    const res = await GET(
+      makeRequest(`?lat=57.7089&lng=11.9746&date=${outsideCurrentSunSeasonDate()}&time=14:00`),
+    );
     expect(res.status).toBe(400);
     expect((await res.json()) as { detail: string }).toEqual(
       expect.objectContaining({ detail: expect.stringMatching(/sun season/i) }),
@@ -307,4 +343,17 @@ function makeVenue({
     distanceMeters: 0,
     sunExposurePercent: 90,
   };
+}
+
+function futureInSeasonDate(daysAhead: number): string {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + daysAhead);
+  return date.toISOString().slice(0, 10);
+}
+
+function outsideCurrentSunSeasonDate(): string {
+  const end = sunSeasonBounds(new Date()).end;
+  const date = new Date(`${end}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
 }

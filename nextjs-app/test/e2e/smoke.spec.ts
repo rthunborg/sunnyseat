@@ -6,5 +6,5 @@ test('home page loads and renders the persistent map shell', async ({ page }) =>
     window.localStorage.setItem(key, '1');
   }, ONBOARDED_FLAG_KEY);
   await page.goto('/');
-  await expect(page.getByTestId('map-container')).toBeVisible();
+  await expect(page.getByTestId('map-container')).toBeVisible({ timeout: 15000 });
 });

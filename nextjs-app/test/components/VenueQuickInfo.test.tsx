@@ -82,6 +82,31 @@ describe('<VenueQuickInfo />', () => {
     expect(screen.getByRole('button', { name: 'Mer Info' })).toBeInTheDocument();
   });
 
+  it('does not render a leading separator before non-anchored confidence metadata', () => {
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunTimeRange="Sol 13:00–18:30"
+        confidencePercent={92}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        sunExposurePercent={95}
+        distanceMeters={420}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    const metadata = screen.getByText(/Säkerhet:/).closest('p');
+    expect(metadata?.textContent?.trim()).toMatch(/^Säkerhet:/);
+  });
+
   it('marks stale confidence as approximate and hides geometry-only confidence', () => {
     const { rerender } = render(
       <VenueQuickInfo
@@ -151,8 +176,10 @@ describe('<VenueQuickInfo />', () => {
     );
 
     expect(screen.getByText('Sol 13:00–18:30')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Testbaren' })).toHaveClass('min-h-12');
     expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet: 92%');
     expect(screen.getByText(/Avstånd:/)).toHaveTextContent('Avstånd: 420 m');
+    expect(screen.getByText('420 m')).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('falls back to safe thumbnail text and sun copy when optional data is missing', () => {

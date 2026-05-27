@@ -13,10 +13,12 @@ import {
   formatPlannerTime,
   formatTimeInStockholm,
   generatePlannerTicks,
-  isDateInCurrentSunSeason,
+  isPlannerDateSelectable,
   isTodayInStockholm,
   isValidDateKey,
   parsePlannerTime,
+  PLANNER_END_MINUTES,
+  PLANNER_START_MINUTES,
   snapPlannerMinutes,
   stockholmDateKey,
   type PlannerTick,
@@ -101,6 +103,9 @@ export function TimeProvider({
     const intervalId = window.setInterval(() => {
       setState((previous) => {
         const currentTime = clock();
+        if (!isPlannerDateSelectable(previous.selectedDate, currentTime)) {
+          return stateFromNow(currentTime);
+        }
         const wasLiveNow = isStateLiveNow(previous);
         return wasLiveNow
           ? stateFromNow(currentTime)
@@ -155,7 +160,7 @@ export function TimeProvider({
 
   const selectDate = useCallback((date: string): boolean => {
     const now = clock();
-    if (!isDateInCurrentSunSeason(date, now)) return false;
+    if (!isPlannerDateSelectable(date, now)) return false;
     if (isTodayInStockholm(date, now)) {
       setState(stateFromNow(now));
       return true;
@@ -171,7 +176,7 @@ export function TimeProvider({
     setState((previous) => {
       const shifted = shiftDateKey(previous.selectedDate, days);
       const now = clock();
-      if (!isDateInCurrentSunSeason(shifted, now)) return previous;
+      if (!isPlannerDateSelectable(shifted, now)) return previous;
       if (isTodayInStockholm(shifted, now)) return stateFromNow(now);
       return { ...previous, selectedDate: shifted };
     });
@@ -180,9 +185,19 @@ export function TimeProvider({
   const value = useMemo<TimeContextValue>(
     () => {
       const liveTime = formatTimeInStockholm(state.currentTime);
+      const livePlannerTime = formatLivePlannerTime(state.currentTime);
+      const liveMinutes = parsePlannerTime(liveTime);
+      const isLiveWithinPlannerHours =
+        liveMinutes !== null &&
+        liveMinutes >= PLANNER_START_MINUTES &&
+        liveMinutes <= PLANNER_END_MINUTES;
       const today = stockholmDateKey(state.currentTime);
       const mode = state.selectedDate === today ? 'today' : 'future';
-      const isLiveNow = mode === 'today' && state.selectedTime === liveTime;
+      const isPlannerDateValid = isPlannerDateSelectable(state.selectedDate, state.currentTime);
+      const isLiveNow =
+        mode === 'today' &&
+        isLiveWithinPlannerHours &&
+        state.selectedTime === livePlannerTime;
       return {
         currentTime: state.currentTime,
         selectedDate: state.selectedDate,
@@ -190,7 +205,7 @@ export function TimeProvider({
         selectedMinutes: state.selectedMinutes,
         mode,
         isLiveNow,
-        plannerQuery: isLiveNow
+        plannerQuery: isLiveNow || !isPlannerDateValid
           ? undefined
           : { date: state.selectedDate, time: state.selectedTime },
         ticks: generatePlannerTicks(),
@@ -227,7 +242,7 @@ export function useTimeContext(): TimeContextValue {
 }
 
 function stateFromNow(currentTime: Date): TimeState {
-  const selectedTime = formatTimeInStockholm(currentTime);
+  const selectedTime = formatLivePlannerTime(currentTime);
   const selectedMinutes = parsePlannerTime(selectedTime) ?? 12 * 60;
   return {
     currentTime,
@@ -266,7 +281,12 @@ function isSameTimeState(a: TimeState, b: TimeState): boolean {
 
 function isStateLiveNow(state: TimeState): boolean {
   return state.selectedDate === stockholmDateKey(state.currentTime) &&
-    state.selectedTime === formatTimeInStockholm(state.currentTime);
+    state.selectedTime === formatLivePlannerTime(state.currentTime);
+}
+
+function formatLivePlannerTime(currentTime: Date): string {
+  const liveMinutes = parsePlannerTime(formatTimeInStockholm(currentTime)) ?? 12 * 60;
+  return formatPlannerTime(liveMinutes);
 }
 
 function parseInitialNow(value: string): Date {

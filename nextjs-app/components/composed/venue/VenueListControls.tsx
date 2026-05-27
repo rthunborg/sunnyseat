@@ -66,7 +66,7 @@ export function VenueListControls({
   }
 
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-3 [scrollbar-width:none]" aria-label={labels.topPicks}>
+    <div className="flex gap-1 overflow-x-auto pb-3 [scrollbar-width:none]" aria-label={labels.topPicks}>
       <SortButton
         active={sortMode === 'sun'}
         onClick={() => onSortModeChange('sun')}
@@ -129,7 +129,7 @@ function SortButton({
       onClick={onClick}
       className={cn(
         'flex min-h-11 shrink-0 items-center rounded-pill outline-none transition-colors duration-fast ease-default focus-visible:ring-2 focus-visible:ring-text-primary',
-        compact ? 'h-11 gap-0.5 px-1.5 text-label-md' : 'h-7 gap-1.5 px-3 text-label-md',
+        compact ? 'h-11 gap-0.5 px-1 text-label-md' : 'h-7 gap-1.5 px-3 text-label-md',
         active
           ? 'border border-text-primary bg-text-primary text-surface-cream'
           : 'border border-divider bg-white text-text-body hover:bg-surface-muted',

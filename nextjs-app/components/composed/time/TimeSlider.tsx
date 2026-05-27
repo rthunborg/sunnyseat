@@ -121,7 +121,14 @@ export function TimeSlider({
         {visibleTicks.map((tick) => (
           <span
             key={tick.label}
-            className={cn('text-label-xs-medium', tick.label === activeTick.label && 'text-amber-dark')}
+            className={[
+              'text-label-xs-medium',
+              tick.label === activeTick.label
+                ? 'text-amber-dark'
+                : !isTopPanel
+                  ? 'text-tab-inactive'
+                  : '',
+            ].filter(Boolean).join(' ')}
           >
             {isTopPanel ? tick.label.slice(0, 2) : tick.label}
           </span>

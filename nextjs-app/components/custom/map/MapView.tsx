@@ -25,7 +25,7 @@ import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
 import { useTimeContext } from '@/lib/contexts/TimeContext';
 import { type VenuePinData } from '@/lib/types/map';
-import type { VenueDataDto } from '@/lib/types/api';
+import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
 import { DURATION_FLY_MS } from '@/lib/constants/animation';
 import { useForcedState } from '@/lib/dev/use-forced-state';
 import { cn } from '@/lib/utils';
@@ -45,10 +45,14 @@ const QUICK_INFO_DESKTOP_VIEWPORT_GUTTER = 16;
 const QUICK_INFO_MOBILE_WIDTH = 230;
 const QUICK_INFO_MOBILE_HEIGHT_ESTIMATE = 170;
 const QUICK_INFO_MOBILE_PIN_GAP = 56;
-const QUICK_INFO_MOBILE_TOP_CLEARANCE = 176;
+const QUICK_INFO_MOBILE_TOP_CLEARANCE = 192;
 const QUICK_INFO_MOBILE_VIEWPORT_GUTTER = 16;
 const MOBILE_NAV_HEIGHT_PX = 52;
 const MOBILE_SHEET_MID_HEIGHT_PX = 320;
+const FORCED_VISUAL_CONFIDENCE_META: SunFreshnessMeta = {
+  sunDataSource: 'weather',
+  weatherUpdatedAt: '2999-01-01T00:00:00.000Z',
+};
 // Round 2 R2-P4: Round 1 P31 released the loading cover on the very first
 // tile error, but MapContainer only latches the sand fallback after
 // TILE_FAILURE_THRESHOLD = 4 errors. A single transient blip (CORS retry,
@@ -91,12 +95,17 @@ export function MapView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const forcedState = useForcedState();
+  const venueSlugParam = searchParams.get('venue');
   const [quickInfoPosition, setQuickInfoPosition] = useState<{ x: number; y: number } | undefined>();
   const [quickInfoDesktopPlacement, setQuickInfoDesktopPlacement] =
     useState<VenueQuickInfoDesktopPlacement>('above');
   const [mobileSheetState, setMobileSheetState] =
     useState<MobileBottomSheetState>('mid');
   const [venueSortMode, setVenueSortMode] = useState<VenueListSortMode>('sun');
+  const isForcedVisualReference =
+    forcedState === 'map-primary' ||
+    forcedState === 'map-panel-venues' ||
+    forcedState === 'map-with-selected-venue';
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
@@ -185,24 +194,30 @@ export function MapView() {
     }
     return [...base, selectedVenuePreview];
   }, [rawVenues, selectedVenuePreview]);
+  const forceSunnyVisualPins = shouldUseForcedSunnyMapPins(forcedState);
   const venues = useMemo<VenuePinData[]>(() => {
     return venueDtosForMap.flatMap((v) => {
       const pin = mapVenueDtoToPinData(v);
       if (!pin) return [];
-      return shouldUseForcedSunnyMapPins(forcedState)
+      return forceSunnyVisualPins
         ? [normalizeForcedVisualPin(pin)]
         : [pin];
     });
-  }, [forcedState, venueDtosForMap]);
+  }, [forceSunnyVisualPins, venueDtosForMap]);
   const selectedVenueDto = useMemo(() => {
     if (!selectedVenueId) return null;
     return venueDtosForMap.find((venue) => venue.id === selectedVenueId) ?? null;
   }, [selectedVenueId, venueDtosForMap]);
+  const selectedQuickInfoVenue = useMemo(() => {
+    if (!selectedVenueDto) return null;
+    return isForcedVisualReference
+      ? normalizeForcedVisualVenue(selectedVenueDto)
+      : selectedVenueDto;
+  }, [isForcedVisualReference, selectedVenueDto]);
   const selectedPinData = useMemo(() => {
     if (!selectedVenueId) return null;
     return venues.find((venue) => venue.id === selectedVenueId) ?? null;
   }, [selectedVenueId, venues]);
-  const venueSlugParam = searchParams.get('venue');
   const canRequestVenueDetail = Boolean(venueSlugParam) &&
     forcedState !== 'map-with-selected-venue';
   const venueDetailQuery = useVenueDetail(
@@ -213,16 +228,22 @@ export function MapView() {
     () => resolveForcedVisualVenueDetail(venueSlugParam, forcedState),
     [forcedState, venueSlugParam],
   );
-  const detailVenue = venueDetailQuery.data?.venue ?? forcedVisualVenueDetail;
-  const detailConfidenceMeta = venueDetailQuery.data?.meta ?? venueQuery.data?.meta;
+  const queriedDetailVenue = venueDetailQuery.data?.venue;
+  const queriedDetailMatchesUrl = venueMatchesSlug(queriedDetailVenue, venueSlugParam);
+  const detailVenue = forcedVisualVenueDetail ?? (queriedDetailMatchesUrl ? queriedDetailVenue : null);
+  const detailConfidenceMeta = forcedVisualVenueDetail
+    ? FORCED_VISUAL_CONFIDENCE_META
+    : queriedDetailMatchesUrl
+    ? (venueDetailQuery.data?.meta ?? venueQuery.data?.meta)
+    : venueQuery.data?.meta;
   const detailFallbackVenue = useMemo(() => {
     if (!venueSlugParam) return null;
     if (detailVenue) return detailVenue;
     if (Array.isArray(rawVenues)) {
-      const listVenue = rawVenues.find((venue) => venue.slug === venueSlugParam);
+      const listVenue = rawVenues.find((venue) => venueMatchesSlug(venue, venueSlugParam));
       if (listVenue) return listVenue;
     }
-    if (selectedVenueDto?.slug === venueSlugParam) return selectedVenueDto;
+    if (venueMatchesSlug(selectedVenueDto, venueSlugParam)) return selectedVenueDto;
     if (venueDetailQuery.isFetching || venueDetailQuery.isError) {
       return fallbackVenueFromSlug(venueSlugParam);
     }
@@ -239,14 +260,14 @@ export function MapView() {
 
   useEffect(() => {
     if (!venueSlugParam || !selectedVenuePreview?.slug) return;
-    if (selectedVenuePreview.slug === venueSlugParam) return;
+    if (venueMatchesSlug(selectedVenuePreview, venueSlugParam)) return;
     const query = queryWithout(searchParams, ['venue', '_state']);
     router.replace(Object.keys(query).length > 0 ? { pathname, query } : pathname);
-  }, [pathname, router, searchParams, selectedVenuePreview?.slug, venueSlugParam]);
+  }, [pathname, router, searchParams, selectedVenuePreview, venueSlugParam]);
 
   useEffect(() => {
     if (forcedState === 'map-panel-venues') {
-      setMobileSheetState('full');
+      setMobileSheetState('mid');
     }
   }, [forcedState]);
 
@@ -258,16 +279,20 @@ export function MapView() {
 
   useEffect(() => {
     if (forcedState !== 'map-with-selected-venue' && !venueSlugParam) return;
-    if (venueSlugParam && selectedVenuePreview?.slug && selectedVenuePreview.slug !== venueSlugParam) {
+    if (
+      venueSlugParam &&
+      selectedVenuePreview?.slug &&
+      !venueMatchesSlug(selectedVenuePreview, venueSlugParam)
+    ) {
       return;
     }
     if (!Array.isArray(rawVenues) || rawVenues.length === 0) return;
     const match = venueSlugParam
-      ? rawVenues.find((venue) => venue.slug === venueSlugParam)
+      ? rawVenues.find((venue) => venueMatchesSlug(venue, venueSlugParam))
       : rawVenues[0];
     if (!match) return;
     selectVenue(match.id);
-  }, [forcedState, rawVenues, selectVenue, selectedVenuePreview?.slug, venueSlugParam]);
+  }, [forcedState, rawVenues, selectVenue, selectedVenuePreview, venueSlugParam]);
 
   useEffect(() => {
     if (!mapInstance || !selectedVenueDto) {
@@ -356,9 +381,24 @@ export function MapView() {
   };
 
   const listVenues = useMemo(
-    () => (Array.isArray(rawVenues) ? rawVenues.filter(hasValidVenueLocation) : []),
-    [rawVenues],
+    () => {
+      const validVenues = Array.isArray(rawVenues) ? rawVenues.filter(hasValidVenueLocation) : [];
+      return isForcedVisualReference
+        ? validVenues.map(normalizeForcedVisualVenue)
+        : validVenues;
+    },
+    [isForcedVisualReference, rawVenues],
   );
+  const listConfidenceMeta = isForcedVisualReference
+    ? FORCED_VISUAL_CONFIDENCE_META
+    : venueQuery.data?.meta;
+  const quickInfoConfidenceMeta = isForcedVisualReference
+    ? FORCED_VISUAL_CONFIDENCE_META
+    : venueQuery.data?.meta;
+  const quickInfoSunWindowTemplate = tVenue('quickInfo.sunWindow', {
+    start: '{start}',
+    end: '{end}',
+  });
 
   return (
     <div className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full">
@@ -370,10 +410,7 @@ export function MapView() {
       />
       <TimeSliderPanel
         variant="desktop"
-        className={cn(
-          'absolute bottom-6 left-[calc(var(--size-venue-list-desktop-w)+var(--spacing)*4)] right-4',
-          isVenueDetailRequested && 'right-[calc(var(--size-venue-detail-panel-w)+var(--spacing)*4)]',
-        )}
+        className="absolute bottom-6 left-4 right-4"
       />
       <MobileBottomSheet
         state={mobileSheetState}
@@ -392,7 +429,8 @@ export function MapView() {
           venues={listVenues}
           mode="mobile"
           sortMode={venueSortMode}
-          confidenceMeta={venueQuery.data?.meta}
+          confidenceMeta={listConfidenceMeta}
+          showVisibleConfidence={!isForcedVisualReference}
           isLoading={venueQuery.isFetching && listVenues.length === 0}
           animateCards={mobileSheetState === 'full'}
           compactCards={mobileSheetState === 'peek'}
@@ -414,7 +452,8 @@ export function MapView() {
             venues={listVenues}
             mode="desktop"
             sortMode={venueSortMode}
-            confidenceMeta={venueQuery.data?.meta}
+            confidenceMeta={listConfidenceMeta}
+            showVisibleConfidence={!isForcedVisualReference}
             isLoading={venueQuery.isFetching && listVenues.length === 0}
             onSelectVenue={handleSelectVenueFromList}
           />
@@ -456,13 +495,13 @@ export function MapView() {
             key="quick-info-mobile"
             mode="mobile"
             name={selectedPinData.name}
-            sunTimeRange={resolveSunTimeRange(selectedVenueDto)}
-            confidencePercent={selectedVenueDto?.confidence}
-            confidenceMeta={venueQuery.data?.meta}
-            sunExposurePercent={selectedVenueDto?.sunExposurePercent}
-            distanceMeters={selectedVenueDto?.distanceMeters}
-            thumbnail={selectedVenueDto?.thumbnail}
-            isLoadingSunData={venueQuery.isFetching || !selectedVenueDto}
+            sunTimeRange={resolveSunTimeRange(selectedQuickInfoVenue, quickInfoSunWindowTemplate)}
+            confidencePercent={selectedQuickInfoVenue?.confidence}
+            confidenceMeta={quickInfoConfidenceMeta}
+            sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
+            distanceMeters={selectedQuickInfoVenue?.distanceMeters}
+            thumbnail={selectedQuickInfoVenue?.thumbnail}
+            isLoadingSunData={!selectedQuickInfoVenue}
             position={quickInfoPosition}
             onDismiss={() => selectVenue(null)}
             onOpenDetails={handleOpenDetails}
@@ -475,13 +514,13 @@ export function MapView() {
             key="quick-info-desktop"
             mode="desktop"
             name={selectedPinData.name}
-            sunTimeRange={resolveSunTimeRange(selectedVenueDto)}
-            confidencePercent={selectedVenueDto?.confidence}
-            confidenceMeta={venueQuery.data?.meta}
-            sunExposurePercent={selectedVenueDto?.sunExposurePercent}
-            distanceMeters={selectedVenueDto?.distanceMeters}
-            thumbnail={selectedVenueDto?.thumbnail}
-            isLoadingSunData={venueQuery.isFetching || !selectedVenueDto}
+            sunTimeRange={resolveSunTimeRange(selectedQuickInfoVenue, quickInfoSunWindowTemplate)}
+            confidencePercent={selectedQuickInfoVenue?.confidence}
+            confidenceMeta={quickInfoConfidenceMeta}
+            sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
+            distanceMeters={selectedQuickInfoVenue?.distanceMeters}
+            thumbnail={selectedQuickInfoVenue?.thumbnail}
+            isLoadingSunData={!selectedQuickInfoVenue}
             position={quickInfoPosition}
             desktopPlacement={quickInfoDesktopPlacement}
             onDismiss={() => selectVenue(null)}
@@ -499,6 +538,7 @@ export function MapView() {
       )}
       <LoadingPill
         isFetching={venueQuery.isFetching && venueQuery.data === undefined}
+        isError={venueQuery.isError}
         dataUpdatedAt={venueQuery.dataUpdatedAt}
       />
       {/* Venue API failure stays visible during background refetch; hide
@@ -508,13 +548,34 @@ export function MapView() {
   );
 }
 
-function resolveSunTimeRange(venue: VenueDataDto | null): string | undefined {
+function resolveSunTimeRange(
+  venue: VenueDataDto | null,
+  template: string,
+): string | undefined {
   if (!venue?.sunWindow) return undefined;
-  return `Sol ${venue.sunWindow.start}–${venue.sunWindow.end}`;
+  return formatLabel(template, {
+    start: venue.sunWindow.start,
+    end: venue.sunWindow.end,
+  });
+}
+
+function formatLabel(template: string, values: Record<string, string>): string {
+  return Object.entries(values).reduce(
+    (label, [key, value]) => label.replaceAll(`{${key}}`, value),
+    template,
+  );
 }
 
 function hasValidVenueLocation(venue: VenueDataDto): boolean {
   return Number.isFinite(venue.location?.lat) && Number.isFinite(venue.location?.lng);
+}
+
+function venueMatchesSlug(
+  venue: Pick<VenueDataDto, 'slug' | 'venueSlug'> | null | undefined,
+  slug: string | null,
+): boolean {
+  if (!venue || !slug) return false;
+  return venue.slug === slug || venue.venueSlug === slug;
 }
 
 function fallbackVenueFromSlug(slug: string): VenueDataDto {
@@ -542,14 +603,33 @@ function fallbackVenueFromSlug(slug: string): VenueDataDto {
 }
 
 function shouldUseForcedSunnyMapPins(forcedState: string | null): boolean {
-  return forcedState === 'map-panel-venues' || forcedState === 'map-with-selected-venue';
+  return forcedState === 'map-primary' ||
+    forcedState === 'map-panel-venues' ||
+    forcedState === 'map-with-selected-venue';
 }
 
 function normalizeForcedVisualPin(pin: VenuePinData): VenuePinData {
   return {
     ...pin,
     sunStatus: 'Sunny',
-    sunExposurePercent: Math.max(95, pin.sunExposurePercent),
+    sunExposurePercent: 95,
+  };
+}
+
+function normalizeForcedVisualVenue(venue: VenueDataDto): VenueDataDto {
+  return {
+    ...venue,
+    currentSunStatus: 'Sunny',
+    skyCondition: 'clear',
+    confidence: 95,
+    sunExposurePercent: 95,
+    sunWindow: { start: '13:00', end: '18:30' },
+    thumbnail: venue.thumbnail
+      ? {
+          alt: venue.thumbnail.alt,
+          initials: venue.thumbnail.initials,
+        }
+      : venue.thumbnail,
   };
 }
 
@@ -595,7 +675,7 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue.detail'>>
     share: t('share'),
     sectionTitle: t('sectionTitle'),
     peakTime: t('peakTime', { time: '{time}' }),
-    bestWindow: t('bestWindow'),
+    bestWindow: t('bestWindow', { start: '{start}', end: '{end}' }),
     openMaps: t('openMaps'),
     route: t('route'),
     photoPlaceholder: t('photoPlaceholder'),
@@ -642,6 +722,7 @@ function venueListControlLabels(t: ReturnType<typeof useTranslations<'venue.list
 
 type LoadingPillProps = {
   isFetching: boolean;
+  isError: boolean;
   dataUpdatedAt: number;
 };
 
@@ -657,7 +738,7 @@ type LoadingPillProps = {
  * subsequent `isFetching=false` gaps; it is cleared only on a
  * successful `dataUpdatedAt` change or on unmount.
  */
-function LoadingPill({ isFetching, dataUpdatedAt }: LoadingPillProps) {
+function LoadingPill({ isFetching, isError, dataUpdatedAt }: LoadingPillProps) {
   const t = useTranslations('map');
   const [show, setShow] = useState(false);
   const timerRef = useRef<number | null>(null);
@@ -669,6 +750,14 @@ function LoadingPill({ isFetching, dataUpdatedAt }: LoadingPillProps) {
   // without Effect 1 re-running (because `isFetching` never transitioned),
   // leaving the next slow fetch silent.
   useEffect(() => {
+    if (isError) {
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      setShow(false);
+      return;
+    }
     // A successful data delivery resets the cumulative window. Skip the
     // initial mount where TanStack reports `dataUpdatedAt: 0` (the "no
     // data delivered yet" sentinel).
@@ -686,7 +775,7 @@ function LoadingPill({ isFetching, dataUpdatedAt }: LoadingPillProps) {
         timerRef.current = null;
       }, SLOW_LOAD_PILL_MS);
     }
-  }, [isFetching, dataUpdatedAt]);
+  }, [isFetching, isError, dataUpdatedAt]);
 
   // Cleanup on unmount.
   useEffect(() => {

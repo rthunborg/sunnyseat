@@ -46,7 +46,7 @@ export function SunTimeline({
       role="group"
     >
       <div className="relative pt-6 pb-7">
-        <div className="relative h-timeline-h overflow-hidden rounded-pill bg-divider">
+        <div className="relative h-[var(--size-timeline-h)] overflow-hidden rounded-pill bg-surface-slider-track">
           <motion.div
             data-testid="timeline-progress"
             data-reduced-motion={String(shouldReduceMotion)}
@@ -125,7 +125,7 @@ function TimelineWindow({
       aria-hidden={decorative ? 'true' : undefined}
       aria-label={decorative ? undefined : windowLabel(window, labels)}
       className={cn(
-        'absolute top-0 h-timeline-h rounded-pill',
+        'absolute top-0 h-[var(--size-timeline-h)] rounded-pill',
         decorative && 'opacity-100',
         !decorative && 'opacity-25',
         window.status === 'Sunny' && 'gradient-timeline-bar',

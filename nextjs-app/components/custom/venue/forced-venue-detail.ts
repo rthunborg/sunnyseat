@@ -18,10 +18,10 @@ export function resolveForcedVisualVenueDetail(
     currentSunStatus: 'Sunny',
     skyCondition: 'clear',
     isPartner: false,
-    confidence: 85,
+    confidence: 95,
     distanceMeters: 420,
-    sunExposurePercent: 85,
-    sunWindow: { start: '13:00', end: '18:30' },
+    sunExposurePercent: 95,
+    sunWindow: { start: '11:00', end: '15:00' },
     thumbnail: {
       alt: 'Uteservering hos Kafé Magasinet',
       initials: 'KM',
@@ -34,10 +34,9 @@ export function resolveForcedVisualVenueDetail(
       timezone: 'Europe/Stockholm',
       range: { start: '06:00', end: '21:00' },
       windows: [
-        { start: '11:30', end: '12:45', status: 'Partial' },
-        { start: '13:00', end: '18:30', status: 'Sunny' },
+        { start: '11:00', end: '15:00', status: 'Sunny' },
       ],
-      peakTime: '15:30',
+      peakTime: '14:00',
     },
     shadowWarningMinutes: 45,
   };

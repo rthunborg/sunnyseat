@@ -104,10 +104,10 @@ export function VenueDetailOverlay({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="absolute right-4 top-4 z-floating-buttons flex gap-2">
-          <ChromeButton label={labels.favourite}>
+          <ChromeButton label={labels.favourite} disabled>
             <Heart aria-hidden="true" className="size-4" />
           </ChromeButton>
-          <ChromeButton label={labels.share}>
+          <ChromeButton label={labels.share} disabled>
             <Share2 aria-hidden="true" className="size-4" />
           </ChromeButton>
           <ChromeButton label={labels.close} onClick={onDismiss}>
@@ -148,7 +148,7 @@ export function VenueDetailOverlay({
       onClick={(event) => event.stopPropagation()}
     >
       <div className="absolute right-5 top-16 z-floating-buttons flex gap-3">
-        <ChromeButton label={labels.favourite}>
+        <ChromeButton label={labels.favourite} disabled>
           <Heart aria-hidden="true" className="size-5" />
         </ChromeButton>
         <ChromeButton label={labels.close} onClick={onDismiss}>

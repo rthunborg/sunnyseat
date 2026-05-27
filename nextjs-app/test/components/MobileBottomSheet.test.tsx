@@ -1,4 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   MobileBottomSheet,
@@ -107,7 +109,7 @@ describe('<MobileBottomSheet />', () => {
     },
   );
 
-  it('uses the refreshed 320px full visual-list snap height', () => {
+  it('uses the full snap token for the full state', () => {
     render(
       <MobileBottomSheet
         state="full"
@@ -121,6 +123,14 @@ describe('<MobileBottomSheet />', () => {
     expect(screen.getByTestId('mobile-bottom-sheet')).toHaveClass(
       'h-[min(var(--size-bottom-sheet-full-h),calc(100dvh-var(--size-mobile-nav-h)-env(safe-area-inset-top)-var(--spacing)*6))]',
     );
+  });
+
+  it('keeps the full snap token taller than the mid snap token', () => {
+    const css = readFileSync(join(process.cwd(), 'app', 'globals.css'), 'utf8');
+    const mid = Number(css.match(/--size-bottom-sheet-mid-h:\s*(\d+)px/)?.[1]);
+    const full = Number(css.match(/--size-bottom-sheet-full-h:\s*(\d+)px/)?.[1]);
+
+    expect(full).toBeGreaterThan(mid);
   });
 
   it('renders dismissed only as a non-interactive exit state', () => {

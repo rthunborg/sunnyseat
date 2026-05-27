@@ -315,10 +315,13 @@ test.describe('map-primary', () => {
 
     const sheet = page.getByTestId('mobile-bottom-sheet');
     const nav = page.getByTestId('mobile-nav-bar');
-    await expect(sheet).toHaveAttribute('data-state', 'full');
+    await expect(sheet).toHaveAttribute('data-state', 'mid');
     await expect(page.getByTestId('venue-card').first()).toBeVisible();
 
     const handle = page.getByTestId('mobile-bottom-sheet-handle');
+    await handle.press('Enter');
+    await expect(sheet).toHaveAttribute('data-state', 'full');
+
     const handleBox = await handle.boundingBox();
     expect(handleBox).not.toBeNull();
     await handle.evaluate((element) => {
@@ -374,7 +377,10 @@ test.describe('map-primary', () => {
     await bypassOnboarding(page);
     await page.goto('/?_state=map-panel-venues');
 
-    await expect(page.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'full');
+    const sheet = page.getByTestId('mobile-bottom-sheet');
+    await expect(sheet).toHaveAttribute('data-state', 'mid');
+    await page.getByTestId('mobile-bottom-sheet-handle').press('Enter');
+    await expect(sheet).toHaveAttribute('data-state', 'full');
     await expectFreePlannerChrome(page);
   });
 
@@ -416,7 +422,12 @@ test.describe('map-primary', () => {
     );
     expect(animationName).toBe('none');
 
-    await page.getByTestId('mobile-bottom-sheet-handle').press('ArrowDown');
+    const sheet = page.getByTestId('mobile-bottom-sheet');
+    const handle = page.getByTestId('mobile-bottom-sheet-handle');
+    await expect(sheet).toHaveAttribute('data-state', 'mid');
+    await handle.press('ArrowUp');
+    await expect(sheet).toHaveAttribute('data-state', 'full');
+    await handle.press('ArrowDown');
     await expect(page.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'mid');
     const sheetTransform = await page.getByTestId('mobile-bottom-sheet').evaluate(
       (el) => window.getComputedStyle(el).transform,
@@ -454,7 +465,7 @@ test.describe('map-primary', () => {
     await expect(page).toHaveURL(/\/$/);
   });
 
-  test('desktop: venue detail and planner bottom bar coexist without overlap', async ({
+  test('desktop: venue detail and planner bottom bar spans the map viewport under overlay panels', async ({
     page,
   }, testInfo) => {
     test.skip(
@@ -473,7 +484,8 @@ test.describe('map-primary', () => {
     expect(panelBox).not.toBeNull();
     expect(plannerBox).not.toBeNull();
     if (panelBox && plannerBox) {
-      expect(plannerBox.x + plannerBox.width).toBeLessThanOrEqual(panelBox.x + 1);
+      expect(plannerBox.x).toBeLessThan(panelBox.x);
+      expect(plannerBox.x + plannerBox.width).toBeGreaterThan(panelBox.x + panelBox.width - 24);
     }
   });
 

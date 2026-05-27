@@ -166,12 +166,19 @@ The design uses an 8px base grid with 4px half-steps for tight compositions.
 | `size-drag-pill-h` | 6px | Drag handle pill height |
 | `size-bottom-sheet-peek-h` | 120px | Venue-list mobile peek sheet height |
 | `size-bottom-sheet-mid-h` | 320px | Venue-list mobile default/mid sheet height |
-| `size-bottom-sheet-full-h` | 320px | Venue-list mobile forced visual-list height from refreshed MVP references |
+| `size-bottom-sheet-full-h` | 560px | Venue-list mobile full snap height; capped by viewport in CSS so it remains distinct from the 320px mid snap |
 | `size-bottom-sheet-full-top` | 22dvh | Legacy full-sheet top offset retained only for migration notes; active mobile venue list uses `size-bottom-sheet-full-h` |
 | `size-quick-info-mobile-w` | 230px | Mobile selected-venue map callout width |
 | `size-venue-list-desktop-w` | 340px | Desktop venue-list overlay width in refreshed MVP references |
 | `size-venue-detail-panel-w` | 390px | Desktop venue-detail overlay width |
 | `size-search-desktop-w` | 384px | Desktop search bar width |
+| `size-venue-card` | 76px | Minimum standard venue-list row height |
+| `size-venue-card-skeleton` | 88px | Venue-list loading skeleton row height |
+| `size-venue-card-thumb` | 60px × 60px | Standard venue-list thumbnail |
+| `size-venue-card-thumb-compact` | 64px × 64px | Compact venue-list thumbnail |
+| `size-venue-card-skeleton-image` | 87px × 72px | Venue-list loading skeleton image placeholder |
+| `size-venue-detail-hero-mobile` | 220px height | Venue detail mobile hero placeholder/image area |
+| `size-venue-detail-hero-desktop` | 200px height | Venue detail desktop panel hero placeholder/image area |
 | `size-slider-thumb` | 14.1px × 14.1px | Time slider thumb |
 | `size-slider-track-h` | 6px | Time slider / timeline bar height |
 | `size-timeline-h` | 12px | Venue detail timeline bar height |

@@ -1,0 +1,9 @@
+SunnySeat story review gate
+Story: 2-6-confidence-display-auto-refresh
+Mode: apply
+Sprint status: /c/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-6-confidence-display-auto-refresh-review-20260527-142137.log
+
+Story file: /c/sunnyseat/_bmad-output/implementation-artifacts/2-6-confidence-display-auto-refresh.md
+Current sprint status: review
+ERROR: npm is required to run configured nextjs-app checks

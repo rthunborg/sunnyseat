@@ -71,4 +71,16 @@ describe('time planner helpers', () => {
       reason: 'invalid-date',
     });
   });
+
+  it('rejects past in-season dates while still allowing today', () => {
+    expect(validatePlannerDateTime({ date: '2026-05-19', time: '14:00', now })).toEqual({
+      ok: false,
+      reason: 'past-date',
+    });
+    expect(validatePlannerDateTime({ date: '2026-05-20', time: '14:00', now })).toEqual({
+      ok: true,
+      date: '2026-05-20',
+      time: '14:00',
+    });
+  });
 });

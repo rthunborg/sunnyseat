@@ -1,6 +1,7 @@
 'use client';
 
 import { Cloud, Footprints, Heart, ImageIcon, Star, Sun } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   VENUE_CARD_FADE_MS,
@@ -50,6 +51,7 @@ export type VenueCardProps = {
   onFavouriteToggle?: () => void;
   isFavourite?: boolean;
   compact?: boolean;
+  showVisibleConfidence?: boolean;
   staggerIndex?: number;
   animateIn?: boolean;
 };
@@ -72,6 +74,7 @@ export function VenueCard({
   onFavouriteToggle,
   isFavourite = false,
   compact = false,
+  showVisibleConfidence = true,
   staggerIndex = 0,
   animateIn = false,
 }: VenueCardProps) {
@@ -87,6 +90,7 @@ export function VenueCard({
     : (sunExposurePercent ?? 0) >= 75
       ? 'FULL SOL'
       : 'DELVIS SOL';
+  const sunUnitLabel = labels.sun.toLocaleLowerCase();
 
   return (
     <article
@@ -96,7 +100,7 @@ export function VenueCard({
         animateIn && 'motion-safe:animate-in motion-safe:fade-in',
         compact
           ? 'min-h-20 rounded-card border border-divider/70 bg-white p-2 shadow-subtle transition-colors duration-fast ease-default hover:bg-surface-muted'
-          : 'min-h-[92px] border-b border-divider/70 bg-transparent px-0 py-3',
+          : 'min-h-venue-card border-b border-divider/70 bg-transparent px-0 py-2',
       )}
       style={
         animateIn
@@ -141,7 +145,7 @@ export function VenueCard({
           </>
         ) : (
           <>
-            <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-body-sm-medium text-text-body">
+            <span className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-1 text-body-sm-medium text-text-body">
               <Footprints aria-hidden="true" className="size-3.5 shrink-0 text-amber-dark" />
               <span>{distance}</span>
               {visualMetadata && (
@@ -152,14 +156,25 @@ export function VenueCard({
                 </>
               )}
               <span className="text-text-faint">·</span>
-              <span className="font-extrabold text-amber-dark">{sunPercent} sol</span>
+              <span className="font-extrabold text-amber-dark">{sunPercent} {sunUnitLabel}</span>
               {confidenceDisplay.visibleText && (
-                <>
-                  <span className="text-text-faint">·</span>
-                  <span className="font-extrabold text-amber-text">
-                    {labels.confidence}: {confidenceDisplay.visibleText}
+                showVisibleConfidence ? (
+                  <>
+                    <span className="text-text-faint">·</span>
+                    <span className="font-extrabold text-label-xs text-amber-text">
+                      <span className="sr-only">
+                        {labels.confidence}: {confidenceDisplay.visibleText}{' '}
+                        {confidenceDisplay.accessibleText}
+                      </span>
+                      <span aria-hidden="true">{confidenceDisplay.visibleText}</span>
+                    </span>
+                  </>
+                ) : (
+                  <span className="sr-only">
+                    {labels.confidence}: {confidenceDisplay.visibleText}{' '}
+                    {confidenceDisplay.accessibleText}
                   </span>
-                </>
+                )
               )}
             </span>{' '}
             <span className="sr-only">
@@ -185,15 +200,18 @@ export function VenueCard({
       <button
         type="button"
         aria-label={formatLabel(labels.favourite, { name })}
-        aria-pressed={isFavourite}
+        aria-disabled={!onFavouriteToggle}
+        aria-pressed={onFavouriteToggle ? isFavourite : undefined}
+        disabled={!onFavouriteToggle}
         onClick={(event) => {
           event.stopPropagation();
           onFavouriteToggle?.();
         }}
         className={cn(
           'flex shrink-0 items-center justify-center rounded-pill border border-divider bg-white text-text-faint shadow-subtle outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
-          compact ? 'size-9' : 'size-11',
+          'size-11',
           isFavourite && 'border-transparent bg-amber-primary text-amber-cta-text',
+          !onFavouriteToggle && 'cursor-not-allowed opacity-60',
         )}
       >
         <Heart
@@ -211,11 +229,11 @@ export function VenueCardSkeleton({ compact = false }: { compact?: boolean }) {
       aria-hidden="true"
       data-testid="venue-card-skeleton"
       className={cn(
-        'flex min-h-[88px] w-full items-center gap-3 rounded-card border border-divider/70 bg-white p-2 shadow-subtle',
+        'flex min-h-venue-card-skeleton w-full items-center gap-3 rounded-card border border-divider/70 bg-white p-2 shadow-subtle',
         compact && 'min-h-20 gap-2',
       )}
     >
-      <Skeleton className="h-[72px] w-[87px] rounded-venue-image bg-surface-muted" />
+      <Skeleton className="h-venue-card-skeleton-image-h w-venue-card-skeleton-image-w rounded-venue-image bg-surface-muted" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-5 w-32 bg-surface-muted" />
         <Skeleton className="h-4 w-40 bg-surface-muted" />
@@ -238,26 +256,61 @@ function VenueCardThumbnail({
   isSunny: boolean;
   compact: boolean;
 }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
   const initials = normalizeInitials(thumbnail?.initials);
   const label = thumbnail?.alt?.trim() || fallbackLabel;
+  const imageUrl = thumbnail?.url;
+  const shouldRenderImage = Boolean(imageUrl) && !imageFailed;
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageUrl]);
+
+  useEffect(() => {
+    const image = imageRef.current;
+    if (!image || !shouldRenderImage) return undefined;
+    const handleError = () => setImageFailed(true);
+    if (image.complete && image.naturalWidth === 0) {
+      handleError();
+      return undefined;
+    }
+    image.addEventListener('error', handleError);
+    return () => image.removeEventListener('error', handleError);
+  }, [shouldRenderImage, imageUrl]);
+
   return (
     <span
+      data-testid="venue-card-thumbnail"
       className={cn(
         'relative block shrink-0 overflow-hidden rounded-venue-image border border-dashed border-amber-dark/35 bg-surface-sand venue-photo-gradient shadow-subtle',
-        compact && 'h-16 w-16',
-        !compact && 'h-[72px] w-[72px]',
+        compact && 'h-venue-card-thumb-compact w-venue-card-thumb-compact',
+        !compact && 'h-venue-card-thumb w-venue-card-thumb',
       )}
     >
-      <span
-        role="img"
-        aria-label={label}
-        className="flex size-full items-center justify-center text-display-lg text-amber-dark/55"
-      >
-        {initials.slice(0, 1)}
-      </span>
-      <span className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-md bg-surface-cream/90 text-text-muted shadow-subtle">
-        <ImageIcon aria-hidden="true" className="size-3" />
-      </span>
+      {shouldRenderImage ? (
+        <img
+          ref={imageRef}
+          src={imageUrl}
+          alt={label}
+          className="absolute inset-0 size-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
+      ) : (
+        <>
+          <span
+            role="img"
+            aria-label={label}
+            className="flex size-full items-center justify-center text-display-lg text-amber-dark/55"
+          >
+            {initials.slice(0, 1)}
+          </span>
+          <span className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-md bg-surface-cream/90 text-text-muted shadow-subtle">
+            <ImageIcon aria-hidden="true" className="size-3" />
+          </span>
+        </>
+      )}
       {sunExposurePercent != null && (
         <span
           className={cn(

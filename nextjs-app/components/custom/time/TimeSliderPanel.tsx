@@ -14,12 +14,14 @@ import { cn } from '@/lib/utils';
 export type TimeSliderPanelProps = {
   variant: 'mobile' | 'desktop';
   reducedMotion?: boolean;
+  showDateLabel?: boolean;
   className?: string;
 };
 
 export function TimeSliderPanel({
   variant,
   reducedMotion,
+  showDateLabel = true,
   className,
 }: TimeSliderPanelProps) {
   const t = useTranslations('venue.planner');
@@ -41,7 +43,7 @@ export function TimeSliderPanel({
           'z-glass-panel bg-glass-slider text-text-primary backdrop-blur-[var(--blur-heavy)]',
           desktop
             ? 'hidden rounded-panel px-6 py-3 shadow-card-up lg:flex lg:items-center lg:gap-5'
-            : 'rounded-panel px-4 pt-5 pb-2 shadow-card lg:hidden',
+            : 'rounded-panel px-4 pt-5 pb-2 shadow-card-up lg:hidden',
           className,
         )}
         initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
@@ -50,10 +52,13 @@ export function TimeSliderPanel({
       >
         {desktop ? (
           <>
-            <div className="min-w-16 rounded-pill bg-text-primary px-3 py-1 text-center text-time text-white">
-              {time.selectedTime}
-            </div>
-            <div className="min-w-0 flex-1">
+            <CalendarButton
+              label={t('openCalendar')}
+              dateLabel={dateLabel}
+              onClick={() => setCalendarOpen(true)}
+              layoutPart="date"
+            />
+            <div className="min-w-0 flex-1" data-planner-layout-part="slider">
               <TimeSlider
                 ariaLabel={t('sliderLabel')}
                 selectedMinutes={time.selectedMinutes}
@@ -63,11 +68,13 @@ export function TimeSliderPanel({
                 reducedMotion={shouldReduceMotion}
               />
             </div>
-            <CalendarButton
-              label={t('openCalendar')}
-              dateLabel={dateLabel}
-              onClick={() => setCalendarOpen(true)}
-            />
+            <div
+              data-testid="planner-time-label"
+              data-planner-layout-part="time"
+              className="min-w-16 rounded-pill bg-text-primary px-3 py-1 text-center text-time text-white"
+            >
+              {time.selectedTime}
+            </div>
           </>
         ) : (
           <div className="flex items-start gap-2">
@@ -81,15 +88,13 @@ export function TimeSliderPanel({
               variant="topPanel"
               className="min-w-0 flex-1"
             />
-            <button
-              type="button"
-              aria-label={t('openCalendar')}
+            <CalendarButton
+              label={t('openCalendar')}
+              dateLabel={dateLabel}
               onClick={() => setCalendarOpen(true)}
-              className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-pill text-amber-dark outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
-            >
-              <span className="sr-only">{dateLabel}</span>
-              <Calendar aria-hidden="true" className="size-5" />
-            </button>
+              compact
+              showText={showDateLabel}
+            />
           </div>
         )}
       </motion.section>
@@ -106,6 +111,7 @@ export function TimeSliderPanel({
           nextMonth: t('nextMonth'),
           selectedDate: t('selectedDate'),
           unavailableDate: t('unavailableDate'),
+          pastDate: t('pastDate'),
           selectDate: t('selectDate', { date: '{date}' }),
         }}
         onOpenChange={setCalendarOpen}
@@ -119,20 +125,40 @@ function CalendarButton({
   label,
   dateLabel,
   onClick,
+  layoutPart,
+  compact = false,
+  showText = true,
 }: {
   label: string;
   dateLabel: string;
   onClick: () => void;
+  layoutPart?: string;
+  compact?: boolean;
+  showText?: boolean;
 }) {
   return (
     <button
       type="button"
-      aria-label={label}
+      aria-label={`${label}: ${dateLabel}`}
       onClick={onClick}
-      className="flex min-h-11 min-w-11 items-center justify-center rounded-pill text-amber-dark outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+      data-planner-layout-part={layoutPart}
+      className={cn(
+        'flex min-h-11 items-center justify-center rounded-pill text-amber-dark outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
+        compact ? 'min-w-11 shrink-0 px-2' : 'min-w-32 gap-2 bg-surface-cream/70 px-3 shadow-subtle',
+      )}
     >
-      <span className="sr-only">{dateLabel}</span>
-      <Calendar aria-hidden="true" className="size-4 text-amber-dark" />
+      <Calendar aria-hidden="true" className={cn('shrink-0 text-amber-dark', compact ? 'size-4' : 'size-4')} />
+      {showText && (
+        <span
+          data-testid="planner-date-label"
+          className={cn(
+            'max-w-28 truncate text-date text-text-body',
+            compact && 'max-w-16',
+          )}
+        >
+          {dateLabel}
+        </span>
+      )}
     </button>
   );
 }

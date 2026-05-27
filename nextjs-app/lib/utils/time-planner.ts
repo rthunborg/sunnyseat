@@ -19,7 +19,7 @@ export type PlannerValidationResult =
   | { ok: true; date: string; time: string }
   | {
       ok: false;
-      reason: 'invalid-date' | 'invalid-time' | 'out-of-season';
+      reason: 'invalid-date' | 'invalid-time' | 'out-of-season' | 'past-date';
     };
 
 export function stockholmDateKey(date: Date): string {
@@ -102,6 +102,10 @@ export function isDateInCurrentSunSeason(date: string, now = new Date()): boolea
   return date >= bounds.start && date <= bounds.end;
 }
 
+export function isPlannerDateSelectable(date: string, now = new Date()): boolean {
+  return isDateInCurrentSunSeason(date, now) && date >= stockholmDateKey(now);
+}
+
 export function validatePlannerDateTime({
   date,
   time,
@@ -120,6 +124,9 @@ export function validatePlannerDateTime({
   }
   if (!isDateInCurrentSunSeason(normalizedDate, now)) {
     return { ok: false, reason: 'out-of-season' };
+  }
+  if (normalizedDate < stockholmDateKey(now)) {
+    return { ok: false, reason: 'past-date' };
   }
   return {
     ok: true,

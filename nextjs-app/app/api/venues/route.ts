@@ -277,8 +277,8 @@ export async function GET(request: NextRequest) {
 
   const matchedVenues = VENUE_FIXTURE
     .map((v) => normalizeVenueForResponse(v))
-    .map((v) => applyPlannerSelectionToVenue(v, planner.selection))
     .map((v) => applyFixtureWeatherAvailability(v, freshness))
+    .map((v) => applyPlannerSelectionToVenue(v, planner.selection))
     .map((v) => ({
       ...v,
       distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),

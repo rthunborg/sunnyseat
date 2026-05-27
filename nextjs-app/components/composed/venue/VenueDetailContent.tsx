@@ -25,6 +25,7 @@ import {
   getConfidenceDisplayState,
   type ConfidenceDisplayLabels,
 } from '@/lib/utils/confidence-display';
+import { formatPlannerTime } from '@/lib/utils/time-planner';
 import { cn } from '@/lib/utils';
 
 export type VenueDetailContentLabels = {
@@ -86,6 +87,7 @@ export function VenueDetailContent({
   const metadata = getVenueVisualMetadata(venue);
   const peakHour = formatPeakHour(venue);
   const bestAt = metadata.bestAt ?? peakHour;
+  const bestWindow = bestWindowLabel(timeline, labels) ?? formatLabel(labels.peakTime, { time: peakHour });
   const openUntil = detail?.openingHours.closesAt ?? '22:00';
   const isDesktop = mode === 'desktop';
   const confidenceDisplay = getConfidenceDisplayState({
@@ -101,7 +103,7 @@ export function VenueDetailContent({
       className={cn('bg-surface-cream text-text-primary', className)}
     >
       <HeroImage venue={venue} labels={labels} isLoading={loading} isDesktop={isDesktop} />
-      <div className="space-y-5 px-6 pb-8 pt-5">
+      <div className={cn('px-6 pb-8', isDesktop ? 'space-y-5 pt-6' : 'space-y-4 pt-5')}>
         <header className="space-y-2">
           <div className="flex items-start justify-between gap-3">
             <h1 className="text-display-xl text-text-primary">{venue.venueName}</h1>
@@ -111,7 +113,7 @@ export function VenueDetailContent({
               ) : (
                 <span aria-hidden="true" className="size-2 rounded-pill bg-amber-badge-text" />
               )}
-              {isDesktop ? 'SOL NU' : formatLabel(labels.openUntil, { time: openUntil })}
+              {formatLabel(labels.openUntil, { time: openUntil })}
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-body-sm-medium text-text-body">
@@ -126,36 +128,50 @@ export function VenueDetailContent({
             </span>
             <span className="hidden text-text-faint lg:inline">·</span>
             <span className="hidden lg:inline">{metadata.price}</span>
-            {confidenceDisplay.visibleText ? (
-              <>
-                <span className="text-text-faint">·</span>
-                <span className="font-bold text-amber-dark">
-                  {labels.confidence}: {confidenceDisplay.visibleText}
-                  <span className="sr-only"> {confidenceDisplay.accessibleText}</span>
-                </span>
-              </>
-            ) : (
-              <span className="sr-only">{confidenceDisplay.accessibleText}</span>
-            )}
+            <span className="sr-only">{confidenceDisplay.accessibleText}</span>
           </div>
           {loading ? (
             <LoadingBlock label={labels.loading} />
           ) : null}
         </header>
 
-        <section className="rounded-card border border-divider bg-white p-4">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div>
-              <h2 className={isDesktop ? 'text-heading-sm text-text-body' : 'text-heading-lg text-text-primary'}>
-                {isDesktop ? labels.timeline.ariaLabel.toUpperCase() : labels.sectionTitle}
+        {isDesktop && !loading ? (
+          <p className="text-body-lg text-text-body">
+            {detail?.description ?? labels.detailsUnavailable}
+          </p>
+        ) : null}
+
+        <section
+          className={cn(
+            'rounded-card p-4',
+            isDesktop ? 'bg-surface-muted p-5' : 'border border-divider bg-white',
+          )}
+        >
+          <div
+            className={cn(
+              'mb-3 flex gap-3',
+              isDesktop ? 'items-center justify-between' : 'items-start justify-between',
+            )}
+          >
+            <div className={cn(isDesktop && 'contents')}>
+              <h2
+                className={
+                  isDesktop
+                    ? 'text-heading-sm tracking-section-label text-text-body uppercase'
+                    : 'text-heading-lg text-text-primary'
+                }
+              >
+                {isDesktop ? labels.timeline.ariaLabel : labels.sectionTitle}
               </h2>
               <p className="text-body-sm-medium text-text-body">
                 {isDesktop
                   ? formatLabel(labels.peakTime, { time: peakHour })
-                  : labels.bestWindow ?? formatLabel(labels.peakTime, { time: peakHour })}
+                  : bestWindow}
               </p>
             </div>
-            <Sun aria-hidden="true" className="size-7 fill-amber-gold text-amber-gold" />
+            {!isDesktop && (
+              <Sun aria-hidden="true" className="size-7 fill-amber-gold text-amber-gold" />
+            )}
           </div>
           {loading ? (
             <Skeleton
@@ -173,51 +189,63 @@ export function VenueDetailContent({
               <SunForecastBars
                 currentTime={currentTime}
                 timeline={timeline}
-                peakTime={bestAt}
+                labels={labels.timeline}
               />
             )
           )}
         </section>
 
-        {!loading && (
+        {!isDesktop && !loading && (
           <p className="text-body-lg text-text-body">
             {detail?.description ?? labels.detailsUnavailable}
           </p>
         )}
 
-        <div className="flex flex-wrap gap-2">
+        <div
+          className={
+            isDesktop
+              ? 'flex flex-wrap gap-2'
+              : 'flex flex-nowrap gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]'
+          }
+        >
           {metadata.tags.map((tag) => (
             <span
               key={tag}
-              className="rounded-pill border border-divider bg-surface-sand px-4 py-2 text-label-lg text-amber-dark"
+              className={
+                isDesktop
+                  ? 'rounded-pill border border-divider bg-surface-sand px-4 py-2 text-label-lg text-amber-dark'
+                  : 'shrink-0 rounded-pill border border-divider bg-surface-sand px-2.5 py-1.5 text-label-xs text-amber-dark'
+              }
             >
               {tag}
             </span>
           ))}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <FactCard
-            icon={<Footprints aria-hidden="true" className="size-5" />}
-            label={labels.facts.distance}
-            value={metadata.distance ?? formatVenueDistance(venue.distanceMeters)}
-          />
-          <FactCard
-            icon={<Compass aria-hidden="true" className="size-5" />}
-            label={labels.facts.exposure}
-            value={metadata.exposure}
-          />
-          <FactCard
-            icon={<Clock aria-hidden="true" className="size-5" />}
-            label={labels.facts.bestAt}
-            value={bestAt}
-          />
-          <FactCard
-            icon={<Armchair aria-hidden="true" className="size-5" />}
-            label={labels.facts.outdoorSeats}
-            value={metadata.seats}
-          />
-        </div>
+        {!isDesktop && (
+          <div className="grid grid-cols-2 gap-3">
+            <FactCard
+              icon={<Footprints aria-hidden="true" className="size-5" />}
+              label={labels.facts.distance}
+              value={metadata.distance ?? formatVenueDistance(venue.distanceMeters)}
+            />
+            <FactCard
+              icon={<Compass aria-hidden="true" className="size-5" />}
+              label={labels.facts.exposure}
+              value={metadata.exposure}
+            />
+            <FactCard
+              icon={<Clock aria-hidden="true" className="size-5" />}
+              label={labels.facts.bestAt}
+              value={bestAt}
+            />
+            <FactCard
+              icon={<Armchair aria-hidden="true" className="size-5" />}
+              label={labels.facts.outdoorSeats}
+              value={metadata.seats}
+            />
+          </div>
+        )}
 
         <div className="space-y-5 border-t border-divider pt-5">
           <DetailRow
@@ -267,6 +295,15 @@ export function VenueDetailContent({
               </>
             )}
           </DetailRow>
+
+          {isDesktop && (
+            <DetailRow
+              icon={<Compass aria-hidden="true" className="size-5" />}
+              title={labels.facts.exposure}
+            >
+              {metadata.exposure}
+            </DetailRow>
+          )}
         </div>
 
         <button
@@ -298,7 +335,12 @@ function HeroImage({
   const thumbnail = venue.thumbnail;
   const alt = thumbnail?.alt?.trim() || labels.photoPlaceholder;
   return (
-    <div className={cn('relative overflow-hidden bg-surface-sand venue-detail-hero-gradient', isDesktop ? 'h-48' : 'h-[220px]')}>
+    <div
+      className={cn(
+        'relative overflow-hidden bg-surface-sand venue-detail-hero-gradient',
+        isDesktop ? 'h-venue-detail-hero-desktop' : 'h-venue-detail-hero-mobile',
+      )}
+    >
       {isLoading ? (
         <Skeleton
           data-testid="venue-detail-skeleton"
@@ -379,14 +421,14 @@ function FactCard({
 function SunForecastBars({
   currentTime,
   timeline,
-  peakTime,
+  labels,
 }: {
   currentTime: string;
   timeline: VenueDetailDto['timeline'];
-  peakTime: string;
+  labels: SunTimelineLabels;
 }) {
   const currentHour = parseHour(currentTime);
-  const peak = parseHour(peakTime || timeline.peakTime || '13:00');
+  const peak = parseHour(peakTimeFromTimeline(timeline) ?? timeline.peakTime ?? '13:00');
   const bars = Array.from({ length: 13 }, (_, index) => {
     const hour = index + 8;
     const distanceFromPeak = Math.abs(hour - peak);
@@ -396,6 +438,14 @@ function SunForecastBars({
 
   return (
     <div>
+      {timeline.windows.map((window) => (
+        <span
+          key={`${window.start}-${window.end}-${window.status}-mobile-label`}
+          role="img"
+          aria-label={timelineWindowLabel(window, labels)}
+          className="sr-only"
+        />
+      ))}
       <div className="flex h-20 items-end gap-2">
         {bars.map(({ hour, value }) => {
           const isCurrent = Math.abs(hour - currentHour) < 0.75;
@@ -405,7 +455,7 @@ function SunForecastBars({
               aria-hidden="true"
               className={cn(
                 'flex-1 rounded-t-md bg-amber-primary/70',
-                isCurrent && 'bg-text-primary',
+                isCurrent && 'bg-amber-primary ring-2 ring-inset ring-text-primary',
               )}
               style={{ height: `${Math.max(18, value * 72)}px` }}
             />
@@ -419,6 +469,40 @@ function SunForecastBars({
       </div>
     </div>
   );
+}
+
+export function peakTimeFromTimeline(timeline: VenueDetailDto['timeline']): string | undefined {
+  const sunWindow = timeline.windows.find((window) => window.status === 'Sunny') ??
+    timeline.windows.find((window) => window.status === 'Partial');
+  if (!sunWindow) return undefined;
+  const start = parseHour(sunWindow.start);
+  const end = parseHour(sunWindow.end);
+  return formatPlannerTime(((start + end) / 2) * 60);
+}
+
+function timelineWindowLabel(
+  window: VenueDetailDto['timeline']['windows'][number],
+  labels: SunTimelineLabels,
+): string {
+  const template =
+    window.status === 'Sunny'
+      ? labels.sunnyWindow
+      : window.status === 'Partial'
+        ? labels.partialWindow
+        : labels.shadedWindow;
+  return formatLabel(template, { start: window.start, end: window.end });
+}
+
+function bestWindowLabel(
+  timeline: VenueDetailDto['timeline'],
+  labels: VenueDetailContentLabels,
+): string | undefined {
+  const window = timeline.windows.find((candidate) => candidate.status === 'Sunny') ??
+    timeline.windows.find((candidate) => candidate.status === 'Partial');
+  if (!window) return undefined;
+  const template = labels.bestWindow ??
+    (window.status === 'Partial' ? labels.timeline.partialWindow : labels.timeline.sunnyWindow);
+  return formatLabel(template, { start: window.start, end: window.end });
 }
 
 function LoadingBlock({ label }: { label: string }) {

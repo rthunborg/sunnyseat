@@ -120,7 +120,7 @@ export function VenueQuickInfo({
           className={cn(
             'absolute z-base size-11 rounded-pill backdrop-blur-standard shadow-button-sm flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
             isAnchoredMobile
-              ? '-right-4 -top-4 bg-text-primary/70 text-white'
+              ? '-right-4 top-14 bg-text-primary/65 text-white'
               : 'right-2 top-2 bg-glass-standard text-text-primary',
           )}
         >
@@ -133,7 +133,7 @@ export function VenueQuickInfo({
           compact={isAnchoredMobile}
           forcePlaceholder={isAnchoredMobile}
         />
-        <div className={cn(isAnchoredMobile ? 'px-3 pt-2 pb-3' : 'p-4')}>
+        <div className={cn(isAnchoredMobile ? 'px-4 pt-3 pb-3' : 'p-4')}>
           <AnimatePresence>
             <motion.div
               key={name}
@@ -145,39 +145,57 @@ export function VenueQuickInfo({
               <button
                 type="button"
                 onClick={onOpenDetails}
-                className={cn(
-                  'min-h-11 w-full text-heading-md text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:rounded-card',
-                  isAnchoredMobile ? 'text-center' : 'text-left',
-                )}
+                className={
+                  isAnchoredMobile
+                    ? 'min-h-12 w-full px-2 py-2 text-heading-md text-text-primary text-center outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:rounded-card'
+                    : 'min-h-11 w-full text-heading-md text-text-primary text-left outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:rounded-card'
+                }
               >
                 {name}
               </button>
-              <div className="mt-1 min-h-12">
+              <div className={cn('mt-1', isAnchoredMobile ? 'min-h-5' : 'min-h-12')}>
                 {isLoadingSunData ? (
                   <div aria-label={labels.loadingSun} className="space-y-2">
                     <Skeleton className="h-5 w-36 bg-surface-muted" />
                     <Skeleton className="h-5 w-44 bg-surface-muted" />
                   </div>
                 ) : (
-                  <div className="space-y-1">
-                    <p className="text-label-lg text-amber-dark">
-                      {sunTimeRange ?? labels.sunUnavailable}
+                  <div
+                    className={
+                      isAnchoredMobile
+                        ? 'flex flex-wrap justify-center gap-x-1 gap-y-0.5 text-center text-label-xs-medium text-text-body'
+                        : 'space-y-1'
+                    }
+                  >
+                    <p className={isAnchoredMobile ? 'contents' : 'text-label-lg text-amber-dark'}>
+                      <span className="text-amber-dark">
+                        {sunTimeRange ?? labels.sunUnavailable}
+                      </span>
                     </p>
-                    <p className="text-body-sm text-text-body">
+                    <p className={isAnchoredMobile ? 'contents' : 'text-body-sm text-text-body'}>
                       {confidenceDisplay.visibleText && (
                         <>
-                          <span className="font-bold">
+                          <span className="font-bold text-amber-text">
                             {labels.confidence}: {confidenceDisplay.visibleText}
                             <span className="sr-only"> {confidenceDisplay.accessibleText}</span>
                           </span>
-                          {' · '}
                         </>
                       )}
                       {!confidenceDisplay.visibleText && (
                         <span className="sr-only">{confidenceDisplay.accessibleText}. </span>
                       )}
+                      {!isAnchoredMobile && confidenceDisplay.visibleText && ' · '}
                       <span className="font-bold">
-                        {labels.distance}: {formatDistance(distanceMeters)}
+                        {isAnchoredMobile && (
+                          <span className="sr-only">
+                            {labels.distance}: {formatDistance(distanceMeters)}
+                          </span>
+                        )}
+                        <span aria-hidden={isAnchoredMobile ? true : undefined}>
+                          {isAnchoredMobile
+                            ? formatDistance(distanceMeters)
+                            : `${labels.distance}: ${formatDistance(distanceMeters)}`}
+                        </span>
                       </span>
                     </p>
                   </div>
@@ -189,15 +207,26 @@ export function VenueQuickInfo({
             <button
               type="button"
               onClick={onRoute}
-              className="min-h-11 flex-1 rounded-pill gradient-route-button shadow-route-button px-4 text-label-lg uppercase text-amber-cta-text outline-none focus-visible:ring-2 focus-visible:ring-text-primary flex items-center justify-center gap-2"
+              className={
+                isAnchoredMobile
+                  ? 'min-h-11 min-w-0 flex-1 rounded-pill gradient-route-button shadow-route-button px-3 text-label-md uppercase text-amber-cta-text outline-none focus-visible:ring-2 focus-visible:ring-text-primary flex items-center justify-center gap-1.5 whitespace-nowrap'
+                  : 'min-h-11 flex-1 rounded-pill gradient-route-button shadow-route-button px-4 text-label-lg uppercase text-amber-cta-text outline-none focus-visible:ring-2 focus-visible:ring-text-primary flex items-center justify-center gap-2'
+              }
             >
-              <Navigation aria-hidden="true" className="size-4" />
+              <Navigation
+                aria-hidden="true"
+                className={cn(isAnchoredMobile ? 'size-3.5' : 'size-4')}
+              />
               {labels.route}
             </button>
             <button
               type="button"
               onClick={onOpenDetails}
-              className="min-h-11 rounded-card border border-drag-handle-map bg-white px-4 text-label-lg text-text-primary shadow-subtle outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+              className={
+                isAnchoredMobile
+                  ? 'min-h-11 shrink-0 rounded-card border border-drag-handle-map bg-white px-3 text-label-md text-text-primary shadow-subtle outline-none focus-visible:ring-2 focus-visible:ring-text-primary whitespace-nowrap'
+                  : 'min-h-11 rounded-card border border-drag-handle-map bg-white px-4 text-label-lg text-text-primary shadow-subtle outline-none focus-visible:ring-2 focus-visible:ring-text-primary'
+              }
             >
               {labels.moreInfo}
             </button>
@@ -238,7 +267,8 @@ function VenueThumbnail({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-t-card border-b border-divider bg-amber-primary venue-photo-gradient flex items-center justify-center',
+        'relative overflow-hidden rounded-t-card border-b border-divider flex items-center justify-center',
+        forcePlaceholder ? 'gradient-cta-amber' : 'bg-amber-primary venue-photo-gradient',
         compact ? 'h-18' : 'h-24',
       )}
     >
@@ -256,24 +286,39 @@ function VenueThumbnail({
           aria-label={accessibleLabel}
           className="absolute inset-0 flex items-center justify-center"
         >
-          <div
-            aria-hidden="true"
-            className="absolute left-8 top-8 h-16 w-32 -rotate-6 rounded-venue-image border border-surface-cream/40 bg-surface-cream/20 shadow-subtle"
-          />
-          <div
-            aria-hidden="true"
-            className="absolute right-8 top-5 h-20 w-20 rotate-12 rounded-badge border border-surface-cream/40 bg-amber-pale/35"
-          />
-          <div
-            aria-hidden="true"
-            className="absolute inset-x-0 bottom-0 h-14 bg-surface-cream/20"
-          />
-          <span
-            aria-hidden="true"
-            className="relative rounded-badge border border-surface-cream/40 bg-surface-cream/80 px-3 py-2 text-label-lg text-amber-cta-text shadow-subtle"
-          >
-            {initials}
-          </span>
+          {forcePlaceholder ? (
+            <>
+              <div
+                aria-hidden="true"
+                className="absolute right-6 top-3 size-16 rounded-badge bg-surface-cream/20"
+              />
+              <div
+                aria-hidden="true"
+                className="absolute left-5 bottom-3 h-10 w-24 rounded-pill bg-amber-pale/30"
+              />
+            </>
+          ) : (
+            <>
+              <div
+                aria-hidden="true"
+                className="absolute left-8 top-8 h-16 w-32 -rotate-6 rounded-venue-image border border-surface-cream/40 bg-surface-cream/20 shadow-subtle"
+              />
+              <div
+                aria-hidden="true"
+                className="absolute right-8 top-5 h-20 w-20 rotate-12 rounded-badge border border-surface-cream/40 bg-amber-pale/35"
+              />
+              <div
+                aria-hidden="true"
+                className="absolute inset-x-0 bottom-0 h-14 bg-surface-cream/20"
+              />
+              <span
+                aria-hidden="true"
+                className="relative rounded-badge border border-surface-cream/40 bg-surface-cream/80 px-3 py-2 text-label-lg text-amber-cta-text shadow-subtle"
+              >
+                {initials}
+              </span>
+            </>
+          )}
         </div>
       )}
       {sunExposureText && (
@@ -294,7 +339,7 @@ function quickInfoInitial(
 ) {
   if (shouldReduceMotion) return { opacity: 0 };
   if (isDesktop) return { opacity: 0, scale: 0.95, ...desktopTransform(desktopPlacement) };
-  if (isAnchoredMobile) return { opacity: 0, scale: 0.95, x: '-50%', y: 'calc(-100% - 56px)' };
+  if (isAnchoredMobile) return { opacity: 0, scale: 0.95, x: '-50%', y: 'calc(-100% - 40px)' };
   return {
     opacity: 0,
     y: '100%',
@@ -309,7 +354,7 @@ function quickInfoAnimate(
 ) {
   if (shouldReduceMotion) return { opacity: 1 };
   if (isDesktop) return { opacity: 1, scale: 1, ...desktopTransform(desktopPlacement) };
-  if (isAnchoredMobile) return { opacity: 1, scale: 1, x: '-50%', y: 'calc(-100% - 56px)' };
+  if (isAnchoredMobile) return { opacity: 1, scale: 1, x: '-50%', y: 'calc(-100% - 40px)' };
   return { opacity: 1, y: 0 };
 }
 
@@ -325,7 +370,7 @@ function quickInfoExit(
     return { opacity: 0, scale: 0.95, ...desktopTransform(desktopPlacement), transition };
   }
   if (isAnchoredMobile) {
-    return { opacity: 0, scale: 0.95, x: '-50%', y: 'calc(-100% - 56px)', transition };
+    return { opacity: 0, scale: 0.95, x: '-50%', y: 'calc(-100% - 40px)', transition };
   }
   return { opacity: 0, y: '100%', transition };
 }

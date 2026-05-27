@@ -51,6 +51,35 @@ describe('<VenueCard />', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
+  it('localizes the visible sun exposure unit from labels', () => {
+    render(
+      <VenueCard
+        name="Bellora"
+        sunTimeRange="Sun 13:00-18:30"
+        confidencePercent={80}
+        distanceMeters={100}
+        sunExposurePercent={76}
+        thumbnail={{ alt: 'Patio', initials: 'BE' }}
+        isSunny
+        labels={{
+          select: 'Select Bellora',
+          favourite: 'Save {name}',
+          sun: 'Sun',
+          photoPlaceholder: 'Placeholder image',
+          confidence: 'Confidence',
+          confidenceApproximate: 'about',
+          confidenceUnavailable: 'Confidence unavailable',
+          distance: 'Distance',
+          sunUnavailable: 'Sun time unavailable',
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('76% sun');
+    expect(screen.getByTestId('venue-card')).not.toHaveTextContent('76% sol');
+  });
+
   it('uses approximate confidence copy when weather freshness is stale', () => {
     render(
       <VenueCard
@@ -82,6 +111,178 @@ describe('<VenueCard />', () => {
 
     expect(screen.getByTestId('venue-card')).toHaveTextContent('Säkerhet: ~80%');
     expect(screen.getByTestId('venue-card')).toHaveTextContent('Säkerhet cirka 80%');
+  });
+
+  it('renders the venue thumbnail URL when one is available', () => {
+    render(
+      <VenueCard
+        name="Bellora"
+        sunTimeRange="Sol 13:00-18:30"
+        confidencePercent={80}
+        distanceMeters={100}
+        sunExposurePercent={76}
+        thumbnail={{
+          alt: 'Bellora uteservering',
+          initials: 'BE',
+          url: 'https://example.com/bellora.jpg',
+        }}
+        isSunny
+        labels={{
+          select: 'Välj Bellora',
+          favourite: 'Spara {name}',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: 'Bellora uteservering' })).toHaveAttribute(
+      'src',
+      'https://example.com/bellora.jpg',
+    );
+  });
+
+  it('falls back to initials when the thumbnail image fails to load', () => {
+    const { container } = render(
+      <VenueCard
+        name="Bellora"
+        sunTimeRange="Sol 13:00-18:30"
+        confidencePercent={80}
+        distanceMeters={100}
+        sunExposurePercent={76}
+        thumbnail={{
+          alt: 'Bellora uteservering',
+          initials: 'BE',
+          url: 'https://example.com/broken.jpg',
+        }}
+        isSunny
+        labels={{
+          select: 'Välj Bellora',
+          favourite: 'Spara {name}',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    fireEvent.error(screen.getByRole('img', { name: 'Bellora uteservering' }));
+
+    expect(container.querySelector('img')).toBeNull();
+    expect(screen.getByRole('img', { name: 'Bellora uteservering' })).toHaveTextContent('B');
+  });
+
+  it('falls back when the thumbnail has already failed before listeners attach', () => {
+    const complete = vi
+      .spyOn(HTMLImageElement.prototype, 'complete', 'get')
+      .mockReturnValue(true);
+    const naturalWidth = vi
+      .spyOn(HTMLImageElement.prototype, 'naturalWidth', 'get')
+      .mockReturnValue(0);
+
+    const { container } = render(
+      <VenueCard
+        name="Bellora"
+        sunTimeRange="Sol 13:00-18:30"
+        confidencePercent={80}
+        distanceMeters={100}
+        sunExposurePercent={76}
+        thumbnail={{
+          alt: 'Bellora uteservering',
+          initials: 'BE',
+          url: 'https://example.com/fast-failed.jpg',
+        }}
+        isSunny
+        labels={{
+          select: 'Välj Bellora',
+          favourite: 'Spara {name}',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector('img')).toBeNull();
+    expect(screen.getByRole('img', { name: 'Bellora uteservering' })).toHaveTextContent('B');
+
+    complete.mockRestore();
+    naturalWidth.mockRestore();
+  });
+
+  it('keeps future favourite controls disabled and at least 44px in compact mode without behaviour', () => {
+    render(
+      <VenueCard
+        name="Bellora"
+        sunTimeRange="Sol 13:00-18:30"
+        confidencePercent={80}
+        distanceMeters={100}
+        thumbnail={{ alt: 'Uteservering', initials: 'BE' }}
+        isSunny
+        compact
+        labels={{
+          select: 'Välj Bellora',
+          favourite: 'Spara {name}',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    const favourite = screen.getByRole('button', { name: 'Spara Bellora' });
+    expect(favourite).toBeDisabled();
+    expect(favourite).toHaveClass('size-11');
+  });
+
+  it('uses design-token thumbnail sizing instead of arbitrary size utilities', () => {
+    render(
+      <VenueCard
+        name="Bellora"
+        sunTimeRange="Sol 13:00-18:30"
+        confidencePercent={80}
+        distanceMeters={100}
+        thumbnail={{ alt: 'Uteservering', initials: 'BE' }}
+        isSunny
+        labels={{
+          select: 'Välj Bellora',
+          favourite: 'Spara {name}',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    const thumbnail = screen.getByTestId('venue-card-thumbnail');
+    expect(thumbnail).toHaveClass('h-venue-card-thumb', 'w-venue-card-thumb');
+    expect(thumbnail.className).not.toContain('[');
   });
 
   it('uses shared motion constants for staggered card entry', () => {

@@ -19,7 +19,8 @@
     "confidenceUnavailable": "Confidence unavailable",
     "distance": "Distance",
     "loadingSun": "Loading sun data",
-    "sunUnavailable": "Sun time unavailable"
+    "sunUnavailable": "Sun time unavailable",
+    "sunWindow": "Sun {start}–{end}"
   },
   "planner": {
     "panelLabel": "Plan sun time",
@@ -35,6 +36,7 @@
     "selectedTime": "Selected time",
     "sliderLabel": "Select time",
     "unavailableDate": "Date outside season",
+    "pastDate": "Date has passed",
     "selectDate": "Select {date}",
     "loading": "Updating sun forecast",
     "error": "Could not update sun forecast"
@@ -69,7 +71,7 @@
   "detail": {
     "sectionTitle": "Sun forecast today",
     "peakTime": "Peaks at {time}",
-    "bestWindow": "Best between 11:00 and 15:00",
+    "bestWindow": "Best {start}-{end}",
     "openMaps": "OPEN IN MAPS",
     "route": "Show Route",
     "close": "Close venue details",

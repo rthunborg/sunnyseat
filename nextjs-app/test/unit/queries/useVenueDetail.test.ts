@@ -209,6 +209,53 @@ describe('useVenueDetail', () => {
     expect(result.current.data).toEqual(secondResponse);
   });
 
+  it('does not reuse placeholder detail data when the slug changes', async () => {
+    const firstResponse: GetVenueDetailResponse = {
+      ...SAMPLE_RESPONSE,
+      venue: { ...SAMPLE_RESPONSE.venue, slug: 'venue-a', venueSlug: 'venue-a' },
+    };
+    const secondResponse: GetVenueDetailResponse = {
+      ...SAMPLE_RESPONSE,
+      venue: { ...SAMPLE_RESPONSE.venue, slug: 'venue-b', venueSlug: 'venue-b' },
+    };
+    let resolveSecond: ((value: Response) => void) | undefined;
+    fetchSpy
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(firstResponse), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise<Response>((resolve) => {
+          resolveSecond = resolve;
+        }),
+      );
+
+    const { result, rerender } = renderHook(
+      ({ slug }: { slug: string }) => useVenueDetail(slug),
+      {
+        wrapper: makeWrapper(),
+        initialProps: { slug: 'venue-a' },
+      },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    rerender({ slug: 'venue-b' });
+
+    await waitFor(() => expect(result.current.isFetching).toBe(true));
+    expect(result.current.data).toBeUndefined();
+    expect(result.current.isPlaceholderData).toBe(false);
+
+    resolveSecond?.(
+      new Response(JSON.stringify(secondResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    await waitFor(() => expect(result.current.data).toEqual(secondResponse));
+  });
+
   it('polls live detail and disables polling for explicit planner detail', async () => {
     fetchSpy.mockResolvedValue(
       new Response(JSON.stringify(SAMPLE_RESPONSE), {

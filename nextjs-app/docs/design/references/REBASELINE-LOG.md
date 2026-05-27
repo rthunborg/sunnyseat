@@ -190,3 +190,18 @@ The actual cause was a post-Story-1.5 prototype-state baseline carry-forward: pr
 **Reason / spec link:** Sprint Change Proposal `sprint-change-proposal-2026-05-19.md`; Future Monetization archive `future-monetization-season-pass.md`; PRD v3.1 MVP scope correction.
 
 **Re-evaluation trigger:** Mandatory rebaseline or explicit accept-with-rationale when Story 2.5 or Story 2.7 validates screens whose references still contain old locked-planner or favourites-lock chrome.
+### 2026-05-27 — `map-primary` mobile visual route state-forcing scope — Story 2.5 rereview (Amelia / dev-story)
+
+**Trigger:** DS 2.5 rereview found that bare `/?_time=14:00` was being treated as both a real planner URL and a visual-reference normalization trigger. That leaked reference-only sunny/list normalization into normal mobile planner runtime.
+
+**Resolution:** No PNG changed. The mobile `map-primary` visual route now uses `/?_state=map-primary&_time=14:00`, keeping sunny/list reference normalization behind the dev-only `_state` convention while bare `?_time=14:00` preserves real API-derived venue states.
+
+**Source of new PNG:** None.
+
+**Recipe change:** `project-context.md` Screen ID -> Route Map changed the mobile `map-primary` route from `/?_time=14:00` to `/?_state=map-primary&_time=14:00`. `capture-claude-design-refs.mjs` and the reference PNG are unchanged.
+
+**Verification:** The DS 2.5 rereview regression covers bare mobile `?_time=14:00` preserving real pin/list data. The canonical story gate re-runs the updated route map before story completion.
+
+**Reason / spec link:** `AGENTS.md` requires reference/capture recipe changes to be logged, and `docs/dev/state-forcing.md` reserves `_state` for dev-only visual-state forcing.
+
+**Re-evaluation trigger:** Revisit this route if the visual gate stops using `project-context.md`, if `_state` is removed from dev URLs, or if the `map-primary` mobile reference PNG is re-baselined to real fixture data instead of normalized visual data.

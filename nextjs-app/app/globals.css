@@ -21,7 +21,7 @@
   --color-surface-sand: #f5f0e6;
   --color-surface-muted: #f5f3f6;
   --color-surface-icon-bg: #eae7eb;
-  --color-surface-slider-track: #dfd5bd;
+  --color-surface-slider-track: #f0edf1;
 
   /* ---- Amber / Sun Palette ---- */
   --color-amber-pin: #f1b100;
@@ -165,12 +165,20 @@
   --size-desktop-nav-h: 84px;
   --size-bottom-sheet-peek-h: 120px;
   --size-bottom-sheet-mid-h: 320px;
-  --size-bottom-sheet-full-h: 320px;
+  --size-bottom-sheet-full-h: 560px;
   --size-bottom-sheet-full-top: 22dvh;
   --size-quick-info-mobile-w: 230px;
   --size-venue-list-desktop-w: 340px;
   --size-venue-detail-panel-w: 390px;
   --size-search-desktop-w: 384px;
+  --size-venue-card: 76px;
+  --size-venue-card-skeleton: 88px;
+  --size-venue-card-thumb: 60px;
+  --size-venue-card-thumb-compact: 64px;
+  --size-venue-card-skeleton-image-w: 87px;
+  --size-venue-card-skeleton-image-h: 72px;
+  --size-venue-detail-hero-mobile: 220px;
+  --size-venue-detail-hero-desktop: 200px;
 
   /* ---- Letter spacing ---- */
   --tracking-section-label: 1.4px;

@@ -6,6 +6,9 @@ import { NextIntlClientProvider } from 'next-intl';
 import commonMessages from '@/messages/sv/common.json';
 import mapMessages from '@/messages/sv/map.json';
 import venueMessages from '@/messages/sv/venue.json';
+import commonMessagesEn from '@/messages/en/common.json';
+import mapMessagesEn from '@/messages/en/map.json';
+import venueMessagesEn from '@/messages/en/venue.json';
 import { TimeProvider } from '@/lib/contexts/TimeContext';
 import type { GetVenueDetailResponse, GetVenuesResponse } from '@/lib/types/api';
 import type { VenuePinData } from '@/lib/types/map';
@@ -168,6 +171,22 @@ function Wrapper({ children }: { children: ReactNode }) {
     <NextIntlClientProvider
       locale="sv"
       messages={{ common: commonMessages, map: mapMessages, venue: venueMessages }}
+    >
+      <TimeProvider
+        initialNowIso="2026-05-20T10:15:00.000Z"
+        clock={() => new Date('2026-05-20T10:15:00.000Z')}
+      >
+        {children}
+      </TimeProvider>
+    </NextIntlClientProvider>
+  );
+}
+
+function EnglishWrapper({ children }: { children: ReactNode }) {
+  return (
+    <NextIntlClientProvider
+      locale="en"
+      messages={{ common: commonMessagesEn, map: mapMessagesEn, venue: venueMessagesEn }}
     >
       <TimeProvider
         initialNowIso="2026-05-20T10:15:00.000Z"
@@ -426,6 +445,36 @@ describe('<MapView />', () => {
       vi.useRealTimers();
     });
 
+    it('clears the pending slow-load timer when the venue query ends in error', () => {
+      vi.useFakeTimers();
+      useVenueSearchMock.mockReturnValue({
+        data: undefined,
+        isFetching: true,
+        isError: false,
+        dataUpdatedAt: 0,
+      });
+      const { rerender } = render(<MapView />, { wrapper: Wrapper });
+
+      act(() => {
+        vi.advanceTimersByTime(1500);
+      });
+      useVenueSearchMock.mockReturnValue({
+        data: undefined,
+        isFetching: false,
+        isError: true,
+        dataUpdatedAt: 0,
+        refetch: vi.fn(),
+      });
+      rerender(<MapView />);
+
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+      expect(screen.getByRole('alert')).toHaveTextContent('Kunde inte ladda platser. Försök igen');
+      expect(screen.queryByTestId('map-loading-pill')).toBeNull();
+      vi.useRealTimers();
+    });
+
     it('renders the inline venue API failure message with a retry button', () => {
       const refetch = vi.fn();
       useVenueSearchMock.mockReturnValue({
@@ -463,7 +512,7 @@ describe('<MapView />', () => {
         radiusKm: 1.5,
       });
 
-      fireEvent.click(screen.getAllByRole('button', { name: 'Öppna kalender' })[0]);
+      fireEvent.click(screen.getAllByRole('button', { name: /Öppna kalender: Idag/ })[0]);
       fireEvent.click(screen.getByRole('button', { name: 'Välj 21 maj 2026' }));
 
       await waitFor(() =>
@@ -489,7 +538,7 @@ describe('<MapView />', () => {
       });
 
       const { rerender } = render(<MapView />, { wrapper: Wrapper });
-      fireEvent.click(screen.getAllByRole('button', { name: 'Öppna kalender' })[0]);
+      fireEvent.click(screen.getAllByRole('button', { name: /Öppna kalender: Idag/ })[0]);
       fireEvent.click(screen.getByRole('button', { name: 'Välj 21 maj 2026' }));
       rerender(<MapView />);
 
@@ -546,6 +595,41 @@ describe('<MapView />', () => {
 
       rerender(<MapView />);
       expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
+    });
+
+    it('keeps selected QuickInfo data visible during background venue refetch', () => {
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Testbaren', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: true,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.queryByLabelText('Laddar soldata')).not.toBeInTheDocument();
+      expect(screen.getAllByText('Sol 13:00–18:30')).toHaveLength(2);
+      expect(screen.getAllByText(/180 m/).length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('formats QuickInfo sun ranges from the active locale', () => {
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Testbaren', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: EnglishWrapper });
+
+      expect(screen.getAllByText('Sun 13:00–18:30')).toHaveLength(2);
+      expect(screen.queryByText('Sol 13:00–18:30')).not.toBeInTheDocument();
     });
 
     it('opens details from QuickInfo with the public deep-link URL', () => {
@@ -625,6 +709,9 @@ describe('<MapView />', () => {
       expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
       expect(screen.getAllByRole('heading', { name: 'Kafé Magasinet' })).toHaveLength(2);
       expect(screen.getAllByText('Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.')).toHaveLength(2);
+      expect(screen.queryByText(/Säkerhet:/)).not.toBeInTheDocument();
+      expect(screen.getAllByText('Säkerhet 95%')).toHaveLength(2);
+      expect(screen.getAllByText('Bäst 11:00-15:00')).toHaveLength(1);
       expect(screen.queryByText('Laddar platsdetaljer')).not.toBeInTheDocument();
     });
 
@@ -692,6 +779,47 @@ describe('<MapView />', () => {
       );
       expect(screen.getAllByRole('heading', { name: 'URL venue' })).toHaveLength(2);
     });
+
+    it('keeps detail responses whose canonical slug differs from the URL alias', () => {
+      searchParamsMock = new URLSearchParams('venue=legacy-alias');
+      const aliasVenue = {
+        ...makeVenue({ id: 'venue-9', name: 'Alias venue', slug: 'canonical-slug' }),
+        venueSlug: 'legacy-alias',
+      };
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([aliasVenue]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useVenueDetailMock.mockReturnValue({
+        data: {
+          venue: {
+            ...aliasVenue,
+            description: 'Alias-owned detail',
+            address: 'Aliasgatan 1',
+            openingHours: { display: 'Öppet till 22:00' },
+            timeline: {
+              timezone: 'Europe/Stockholm',
+              range: { start: '06:00', end: '21:00' },
+              windows: [{ start: '13:00', end: '18:30', status: 'Sunny' }],
+            },
+          },
+          timestamp: 'now',
+        },
+        isFetching: false,
+        isError: false,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.getByTestId('mobile-venue-detail-sheet')).toHaveAttribute(
+        'aria-label',
+        'Alias venue',
+      );
+      expect(screen.getAllByRole('heading', { name: 'Alias venue' })).toHaveLength(2);
+      expect(routerReplaceMock).not.toHaveBeenCalled();
+    });
   });
 
   describe('venue list orchestration', () => {
@@ -709,20 +837,90 @@ describe('<MapView />', () => {
       expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('Bellora');
     });
 
-    it('forces the mobile venue list sheet to full state for visual validation', () => {
+    it('uses reference-safe mobile list chrome for forced visual validation', () => {
       searchParamsMock = new URLSearchParams('_state=map-panel-venues');
       useVenueSearchMock.mockReturnValue({
-        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        data: makeVenueResponse([
+          makeVenue({
+            id: 'venue-1',
+            name: 'Bellora',
+            sunExposurePercent: 61,
+            thumbnailUrl: 'https://example.com/bellora.jpg',
+          }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      const { container } = render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'mid');
+      expect(screen.queryByTestId('mobile-bottom-sheet-backdrop')).not.toBeInTheDocument();
+      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('Bellora');
+      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('95% sol');
+      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('Säkerhet: 95%');
+      expect(container.querySelector('img[src="https://example.com/bellora.jpg"]')).toBeNull();
+    });
+
+    it('keeps real mobile pin and list sun data when only the reference time is forced', () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+      searchParamsMock = new URLSearchParams('_time=14:00');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({
+            id: 'venue-1',
+            name: 'Bellora',
+            status: 'Partial',
+            sunExposurePercent: 61,
+          }),
+        ]),
         isFetching: false,
         isError: false,
         dataUpdatedAt: 1,
       });
 
       render(<MapView />, { wrapper: Wrapper });
+      act(() => {
+        window.dispatchEvent(new Event('resize'));
+      });
 
-      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'full');
-      expect(screen.getByTestId('mobile-bottom-sheet-backdrop')).toBeInTheDocument();
-      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('Bellora');
+      const pins = JSON.parse(screen.getByTestId('venue-pin-layer-stub').dataset.venues ?? '[]') as VenuePinData[];
+      expect(pins[0]).toMatchObject({
+        id: 'venue-1',
+        sunStatus: 'Partial',
+        sunExposurePercent: 61,
+      });
+      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('61% sol');
+    });
+
+    it('applies map-primary visual normalization only behind explicit _state', () => {
+      searchParamsMock = new URLSearchParams('_state=map-primary&_time=14:00');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({
+            id: 'venue-1',
+            name: 'Bellora',
+            status: 'Partial',
+            sunExposurePercent: 61,
+            thumbnailUrl: 'https://example.com/bellora.jpg',
+          }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      const { container } = render(<MapView />, { wrapper: Wrapper });
+
+      const pins = JSON.parse(screen.getByTestId('venue-pin-layer-stub').dataset.venues ?? '[]') as VenuePinData[];
+      expect(pins[0]).toMatchObject({
+        id: 'venue-1',
+        sunStatus: 'Sunny',
+        sunExposurePercent: 95,
+      });
+      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('95% sol');
+      expect(container.querySelector('img[src="https://example.com/bellora.jpg"]')).toBeNull();
     });
 
     it('renders a desktop 340px overlay venue panel without removing the map container', () => {
@@ -741,6 +939,25 @@ describe('<MapView />', () => {
         expect.stringContaining('Bellora'),
       ]);
       expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
+    });
+
+    it('renders the desktop planner as a full-width bottom bar instead of constraining it around side panels', () => {
+      searchParamsMock = new URLSearchParams('venue=test-venue-sunny&_state=venue-detail');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora', slug: 'test-venue-sunny' })]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const desktopPlanner = screen
+        .getAllByTestId('time-slider-panel')
+        .find((panel) => panel.className.includes('lg:flex'));
+      expect(desktopPlanner).toHaveClass('left-4', 'right-4');
+      expect(desktopPlanner?.className).not.toContain('var(--size-venue-list-desktop-w)');
+      expect(desktopPlanner?.className).not.toContain('var(--size-venue-detail-panel-w)');
     });
 
     it('renders the venue-list empty state when no venues are loaded', () => {
@@ -798,7 +1015,9 @@ describe('<MapView />', () => {
             id: 'venue-shaded',
             name: 'Skuggad referenspin',
             status: 'Shaded',
-            sunExposurePercent: 4,
+            confidence: 99,
+            sunExposurePercent: 99,
+            sunWindow: { start: '09:00', end: '10:00' },
           }),
         ]),
         isFetching: false,
@@ -815,6 +1034,33 @@ describe('<MapView />', () => {
           sunExposurePercent: 95,
         }),
       ]);
+    });
+
+    it('normalizes selected QuickInfo data for forced selected-venue visual-reference states', () => {
+      selectedVenueIdMock = 'venue-shaded';
+      searchParamsMock = new URLSearchParams('_state=map-with-selected-venue');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({
+            id: 'venue-shaded',
+            name: 'Skuggad referenspin',
+            status: 'Shaded',
+            sunExposurePercent: 99,
+          }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.getAllByText(/95% SOL/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Säkerhet: 95%/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Sol 13:00–18:30/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.queryByText(/99% SOL/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Säkerhet: 99%/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Sol 09:00–10:00/)).not.toBeInTheDocument();
     });
 
     it('clears an active detail URL after selecting a different venue from search', async () => {
@@ -877,12 +1123,18 @@ function makeVenue({
   slug,
   status = 'Sunny',
   sunExposurePercent = 95,
+  thumbnailUrl,
+  confidence = 92,
+  sunWindow = { start: '13:00', end: '18:30' },
 }: {
   id: string;
   name: string;
   slug?: string;
   status?: GetVenuesResponse['venues'][number]['currentSunStatus'];
   sunExposurePercent?: number;
+  thumbnailUrl?: string;
+  confidence?: number;
+  sunWindow?: GetVenuesResponse['venues'][number]['sunWindow'];
 }): GetVenuesResponse['venues'][number] {
   return {
     id,
@@ -894,13 +1146,14 @@ function makeVenue({
     location: { lat: 57.7, lng: 11.97 },
     currentSunStatus: status,
     isPartner: false,
-    confidence: 92,
+    confidence,
     distanceMeters: 180,
     sunExposurePercent,
-    sunWindow: { start: '13:00', end: '18:30' },
+    sunWindow,
     thumbnail: {
       alt: `${name} uteservering`,
       initials: name.slice(0, 2),
+      url: thumbnailUrl,
     },
   };
 }

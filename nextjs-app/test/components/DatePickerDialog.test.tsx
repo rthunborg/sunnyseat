@@ -9,6 +9,7 @@ const LABELS = {
   nextMonth: 'Nästa månad',
   selectedDate: 'Valt datum',
   unavailableDate: 'Datum utanför säsong',
+  pastDate: 'Datum har passerat',
   selectDate: 'Välj {date}',
 };
 
@@ -52,6 +53,23 @@ describe('<DatePickerDialog />', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  it('announces past in-season dates separately from out-of-season dates', () => {
+    render(
+      <DatePickerDialog
+        open
+        selectedDate="2026-05-20"
+        now={new Date('2026-05-20T10:15:00.000Z')}
+        locale="sv"
+        labels={LABELS}
+        onOpenChange={() => {}}
+        onSelectDate={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Datum har passerat 19 maj 2026' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Datum utanför säsong 19 maj 2026' })).toBeNull();
+  });
+
   it('localizes weekday and date labels for English', () => {
     render(
       <DatePickerDialog
@@ -66,6 +84,7 @@ describe('<DatePickerDialog />', () => {
           nextMonth: 'Next month',
           selectedDate: 'Selected date',
           unavailableDate: 'Date outside season',
+          pastDate: 'Date has passed',
           selectDate: 'Select {date}',
         }}
         onOpenChange={() => {}}

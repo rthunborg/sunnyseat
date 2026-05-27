@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { GET } from '@/app/api/venues/[slug]/route';
+import { formatPlannerTime, parsePlannerTime, sunSeasonBounds } from '@/lib/utils/time-planner';
 import type { GetVenueDetailResponse } from '@/lib/types/api';
 
 function makeRequest(slug: string, query = ''): NextRequest {
@@ -8,6 +9,15 @@ function makeRequest(slug: string, query = ''): NextRequest {
 }
 
 describe('GET /api/venues/[slug]', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-26T10:15:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('returns the detail DTO for a known venue slug', async () => {
     const res = await GET(makeRequest('test-venue-sunny'), {
       params: Promise.resolve({ slug: 'test-venue-sunny' }),
@@ -80,7 +90,7 @@ describe('GET /api/venues/[slug]', () => {
   });
 
   it('applies selected planner date/time to venue detail and timeline', async () => {
-    const res = await GET(makeRequest('test-venue-sunny', '?date=2026-06-14&time=20:00'), {
+    const res = await GET(makeRequest('test-venue-sunny', `?date=${futureInSeasonDate(19)}&time=20:00`), {
       params: Promise.resolve({ slug: 'test-venue-sunny' }),
     });
 
@@ -89,11 +99,13 @@ describe('GET /api/venues/[slug]', () => {
     expect(body.venue.currentSunStatus).toBe('Shaded');
     expect(body.venue.sunExposurePercent).toBeLessThan(95);
     expect(body.venue.confidence).toBeLessThan(92);
+    expect(body.venue.sunWindow).not.toEqual({ start: '13:00', end: '18:30' });
     expect(body.venue.timeline.windows[0]).toMatchObject({
-      start: '13:00',
-      end: '18:30',
-      status: 'Sunny',
+      start: body.venue.sunWindow?.start,
+      end: body.venue.sunWindow?.end,
+      status: 'Shaded',
     });
+    expect(body.venue.timeline.peakTime).toBe(peakTimeFromWindow(body.venue.sunWindow));
   });
 
   it('rejects malformed planner params for venue detail', async () => {
@@ -106,3 +118,22 @@ describe('GET /api/venues/[slug]', () => {
     expect(body.detail).toMatch(/sun season/i);
   });
 });
+
+function futureInSeasonDate(daysAhead: number): string {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + daysAhead);
+  const key = date.toISOString().slice(0, 10);
+  const bounds = sunSeasonBounds(new Date());
+  if (key >= bounds.start && key <= bounds.end) return key;
+  return bounds.start > new Date().toISOString().slice(0, 10) ? bounds.start : bounds.end;
+}
+
+function peakTimeFromWindow(
+  window: GetVenueDetailResponse['venue']['sunWindow'],
+): string | undefined {
+  if (!window) return undefined;
+  const start = parsePlannerTime(window.start);
+  const end = parsePlannerTime(window.end);
+  if (start === null || end === null) return undefined;
+  return formatPlannerTime((start + end) / 2);
+}

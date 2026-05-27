@@ -310,14 +310,15 @@ describe('<MapControls />', () => {
     }
   });
 
-  it('enabled buttons are NOT disabled (no false-positive a11y noise)', () => {
+  it('enabled map-action buttons are NOT disabled while future settings stays disabled', () => {
     const { getByTestId } = render(<MapControls />, { wrapper: makeWrapper(stubMap) });
 
-    for (const id of ['map-control-zoom-in', 'map-control-zoom-out', 'map-control-my-location', 'map-control-settings']) {
+    for (const id of ['map-control-zoom-in', 'map-control-zoom-out', 'map-control-my-location']) {
       const btn = getByTestId(id);
       expect(btn).not.toBeDisabled();
       expect(btn).not.toHaveAttribute('aria-disabled');
     }
+    expect(getByTestId('map-control-settings')).toBeDisabled();
   });
 
   it('removes both drag listeners on unmount (one off() per on())', () => {

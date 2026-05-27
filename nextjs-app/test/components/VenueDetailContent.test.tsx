@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { VenueDetailContent } from '@/components/composed/venue/VenueDetailContent';
+import {
+  VenueDetailContent,
+  peakTimeFromTimeline,
+} from '@/components/composed/venue/VenueDetailContent';
 import type { VenueDataDto, VenueDetailDto } from '@/lib/types/api';
 
 const LIST_VENUE: VenueDataDto = {
@@ -40,6 +43,7 @@ const DETAIL: VenueDetailDto = {
 const labels = {
   sectionTitle: 'Solprognos idag',
   peakTime: 'Toppar kl {time}',
+  bestWindow: 'Bäst {start}-{end}',
   openMaps: 'ÖPPNA I KARTOR',
   route: 'Visa Rutt',
   photoPlaceholder: 'Platshållarbild för platsen',
@@ -93,8 +97,8 @@ describe('VenueDetailContent', () => {
     expect(screen.getByText('PLATSER UTE')).toBeInTheDocument();
     expect(screen.getByText('Blir skuggigt om 45 min')).toHaveClass('text-error');
     expect(screen.getByLabelText('95% sol')).toContainHTML('svg');
-    expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet: 92%');
-    expect(screen.getByText(/Säkerhet:/)).toHaveClass('text-amber-dark');
+    expect(screen.queryByText(/Säkerhet:/)).not.toBeInTheDocument();
+    expect(screen.getByText('Säkerhet 92%')).toHaveClass('sr-only');
     expect(screen.getByRole('link', { name: /ÖPPNA I KARTOR/i })).toHaveAttribute(
       'href',
       expect.stringContaining('57.705'),
@@ -102,7 +106,56 @@ describe('VenueDetailContent', () => {
     expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeEnabled();
   });
 
-  it('renders approximate and hidden confidence states without changing the sun badge', () => {
+  it('uses token-backed venue detail hero heights', () => {
+    const { rerender } = render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    const mobileHero = screen.getByRole('img', { name: 'Uteservering hos Kafé Magasinet' })
+      .parentElement;
+    expect(mobileHero).toHaveClass('h-venue-detail-hero-mobile');
+    expect(mobileHero?.className).not.toMatch(/h-\[/);
+
+    rerender(
+      <VenueDetailContent
+        mode="desktop"
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    const desktopHero = screen.getByRole('img', { name: 'Uteservering hos Kafé Magasinet' })
+      .parentElement;
+    expect(desktopHero).toHaveClass('h-venue-detail-hero-desktop');
+    expect(desktopHero?.className).not.toMatch(/h-\[/);
+  });
+
+  it('carries rounded midpoint minutes into the hour for derived peak labels', () => {
+    expect(peakTimeFromTimeline({
+      timezone: 'Europe/Stockholm',
+      range: { start: '06:00', end: '21:00' },
+      windows: [{ start: '10:29', end: '11:30', status: 'Sunny' }],
+    })).toBe('11:00');
+  });
+
+  it('keeps confidence metadata accessible without adding duplicate visible detail text', () => {
     const { rerender } = render(
       <VenueDetailContent
         fallbackVenue={LIST_VENUE}
@@ -117,8 +170,8 @@ describe('VenueDetailContent', () => {
       />,
     );
 
-    expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet: ~92%');
-    expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet cirka 92%');
+    expect(screen.queryByText(/Säkerhet:/)).not.toBeInTheDocument();
+    expect(screen.getByText('Säkerhet cirka 92%')).toHaveClass('sr-only');
     expect(screen.getByLabelText('95% sol')).toBeInTheDocument();
 
     rerender(
@@ -168,5 +221,77 @@ describe('VenueDetailContent', () => {
     expect(screen.queryByText(/Lämna ett omdöme/i)).toBeNull();
     expect(screen.queryByText(/Stämmer sol/i)).toBeNull();
     expect(screen.queryByRole('textbox')).toBeNull();
+  });
+
+  it('uses projected sun windows for mobile detail timeline output', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={{
+          ...LIST_VENUE,
+          sunWindow: { start: '10:00', end: '11:00' },
+        }}
+        detail={{
+          ...DETAIL,
+          sunWindow: { start: '10:00', end: '11:00' },
+          timeline: {
+            timezone: 'Europe/Stockholm',
+            range: { start: '06:00', end: '21:00' },
+            windows: [{ start: '10:00', end: '11:00', status: 'Sunny' }],
+            peakTime: '10:30',
+          },
+        }}
+        currentTime="10:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('Bäst 10:00-11:00')).toBeInTheDocument();
+    expect(screen.queryByText('Bäst mellan 11:00 och 15:00')).toBeNull();
+    expect(screen.getByRole('img', { name: 'Sol 10:00-11:00' })).toBeInTheDocument();
+  });
+
+  it('uses partial-window copy when the generic best-window label is absent', () => {
+    const labelsWithoutBestWindow: Omit<typeof labels, 'bestWindow'> & { bestWindow?: string } = {
+      ...labels,
+    };
+    delete labelsWithoutBestWindow.bestWindow;
+
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={{
+          ...DETAIL,
+          currentSunStatus: 'Partial',
+          timeline: {
+            timezone: 'Europe/Stockholm',
+            range: { start: '06:00', end: '21:00' },
+            windows: [{ start: '10:00', end: '11:00', status: 'Partial' }],
+          },
+        }}
+        currentTime="10:30"
+        labels={labelsWithoutBestWindow}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('Delvis sol 10:00-11:00')).toBeInTheDocument();
+    expect(screen.queryByText('Sol 10:00-11:00')).not.toBeInTheDocument();
+  });
+
+  it('does not render future partner badges in active venue detail runtime', () => {
+    render(
+      <VenueDetailContent
+        mode="desktop"
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.queryByText('SOL NU')).toBeNull();
+    expect(screen.getByText('ÖPPET · 22:00')).toBeInTheDocument();
   });
 });

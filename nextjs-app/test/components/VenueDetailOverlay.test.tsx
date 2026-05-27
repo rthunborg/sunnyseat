@@ -178,8 +178,8 @@ describe('VenueDetailOverlay desktop', () => {
     const panel = screen.getByTestId('desktop-venue-detail-panel');
     expect(panel).toHaveClass('right-0', 'w-venue-detail-panel');
     expect(screen.getByRole('button', { name: 'Stäng platsdetaljer' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Spara plats' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Dela plats' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Spara plats' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Dela plats' })).toBeDisabled();
   });
 
   it('desktop close button dismisses the panel', () => {

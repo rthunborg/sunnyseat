@@ -19,7 +19,8 @@
     "confidenceUnavailable": "Säkerhet saknas",
     "distance": "Avstånd",
     "loadingSun": "Laddar soldata",
-    "sunUnavailable": "Soltid saknas"
+    "sunUnavailable": "Soltid saknas",
+    "sunWindow": "Sol {start}–{end}"
   },
   "planner": {
     "panelLabel": "Planera soltid",
@@ -35,6 +36,7 @@
     "selectedTime": "Vald tid",
     "sliderLabel": "Välj tid",
     "unavailableDate": "Datum utanför säsong",
+    "pastDate": "Datum har passerat",
     "selectDate": "Välj {date}",
     "loading": "Uppdaterar solprognos",
     "error": "Kunde inte uppdatera solprognosen"
@@ -69,7 +71,7 @@
   "detail": {
     "sectionTitle": "Solprognos idag",
     "peakTime": "Toppar kl {time}",
-    "bestWindow": "Bäst mellan 11:00 och 15:00",
+    "bestWindow": "Bäst {start}-{end}",
     "openMaps": "ÖPPNA I KARTOR",
     "route": "Visa Rutt",
     "close": "Stäng platsdetaljer",

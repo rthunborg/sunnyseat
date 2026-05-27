@@ -58,7 +58,13 @@ export function useVenueDetail(
     refetchOnWindowFocus: false,
     retry: shouldRetryVenueQuery,
     retryDelay: venueQueryRetryDelay,
-    placeholderData: keepPreviousData,
+    placeholderData: (previousData, previousQuery) => {
+      const previousKey = previousQuery?.queryKey;
+      if (Array.isArray(previousKey) && previousKey[2] === normalizedSlug) {
+        return keepPreviousData(previousData);
+      }
+      return undefined;
+    },
     enabled: normalizedSlug.length > 0,
   });
 }
