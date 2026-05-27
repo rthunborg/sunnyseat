@@ -1,0 +1,59 @@
+SunnySeat story review gate
+Story: 2-5-free-time-date-planner
+Mode: apply
+Sprint status: /c/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260526-120829.log
+
+Story file: /c/sunnyseat/_bmad-output/implementation-artifacts/2-5-free-time-date-planner.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+Running npm script: typecheck
+
+Running npm script: test
+
+ RUN  v4.1.4 C:/sunnyseat/nextjs-app
+
+
+ Test Files  36 passed (36)
+      Tests  272 passed (272)
+   Start at  12:08:39
+   Duration  23.68s (transform 5.65s, setup 20.96s, import 53.65s, tests 38.80s, environment 104.83s)
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues&_time=14:00' viewport='mobile'
+--- Visual validation: map-panel-venues ---
+Navigating to http://localhost:3000/?_state=map-panel-venues&_time=14:00
+Waiting for selector [data-testid="venue-pin"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-9MI3Fg.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the time slider at top, map area with venue pins in warm/sand tones, bottom sheet with filter chips (Mest sol, Nära mig, Kafé, Öppet nu), venue list cards with distance/rating/sun percentage data, floating map control buttons (location, settings, zoom), and bottom navigation bar — all colours, component styling, and UI chrome elements align well with the reference.
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00' viewport='mobile'
+--- Visual validation: map-with-selected-venue ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00
+Waiting for selector [data-testid="venue-quick-info"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-CUi1R4.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with all key UI chrome elements present and correctly positioned — time slider at top, venue popup card with "VISA RUTT" and "MER INFO" buttons, close button, location/settings/zoom floating buttons on the right, bottom sheet with venue listing, and bottom navigation bar — all using the correct warm/golden colour scheme.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=14:00' viewport='mobile'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=14:00
+Waiting for selector [data-testid="mobile-venue-detail-sheet"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-4JPbg2.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure, colour scheme, UI components (sun percentage badge, heart/close buttons, venue header with open status badge, sun forecast chart, tags, and info grid cards), and overall visual hierarchy — minor differences include slightly different sun percentage value (85% vs 95%) and placeholder description text, which are non-blocking dynamic content variations.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=16:30' viewport='desktop'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=16:30
+Waiting for selector [data-testid="desktop-venue-detail-panel"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-BhsbZ8.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the left venue list panel, central map area, time slider at the bottom, and right venue detail panel — all UI chrome elements (navigation bar, filter chips, sort buttons, sun percentage badge, venue detail card with solar times, tags, and opening hours) are present and correctly positioned with matching colour scheme.
+Updated sprint status: 2-5-free-time-date-planner -> review
+
+Story review gate passed.
+Validation artifact written to: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260526-120829.log

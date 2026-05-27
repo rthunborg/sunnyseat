@@ -1,0 +1,9 @@
+SunnySeat story review gate
+Story: 2-5-free-time-date-planner
+Mode: apply
+Sprint status: /c/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260526-163212.log
+
+Story file: /c/sunnyseat/_bmad-output/implementation-artifacts/2-5-free-time-date-planner.md
+Current sprint status: in-progress
+ERROR: npm is required to run configured nextjs-app checks
