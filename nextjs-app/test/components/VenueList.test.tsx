@@ -75,6 +75,23 @@ describe('<VenueList />', () => {
     ]);
   });
 
+  it('renders partial-sun venues as partially sunny compact cards', () => {
+    render(
+      <VenueList
+        venues={[
+          makeVenue({ id: 'partial', name: 'Delvis Solig', status: 'Partial', distanceMeters: 80, sunExposurePercent: 55 }),
+        ]}
+        mode="desktop"
+        onSelectVenue={vi.fn()}
+      />,
+      { wrapper: Wrapper },
+    );
+
+    const card = screen.getByTestId('venue-card');
+    expect(card).toHaveTextContent('DELVIS SOL');
+    expect(card).not.toHaveTextContent('MEST SKUGGA');
+  });
+
   it('renders API-backed confidence metadata in venue cards', () => {
     render(
       <VenueList

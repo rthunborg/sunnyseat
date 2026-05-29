@@ -139,14 +139,25 @@ export function sortVenuesForList(
     if (sortMode === 'distance') {
       return sortableDistance(a.distanceMeters) - sortableDistance(b.distanceMeters);
     }
-    const sunDelta = Number(isVenueSunnyForList(b)) - Number(isVenueSunnyForList(a));
+    const sunDelta = getVenueSunRankForList(b) - getVenueSunRankForList(a);
     if (sunDelta !== 0) return sunDelta;
     return sortableDistance(a.distanceMeters) - sortableDistance(b.distanceMeters);
   });
 }
 
 export function isVenueSunnyForList(venue: VenueDataDto): boolean {
-  return venue.currentSunStatus === 'Sunny';
+  return getVenueSunRankForList(venue) > 0;
+}
+
+export function getVenueSunRankForList(venue: VenueDataDto): number {
+  switch (venue.currentSunStatus) {
+    case 'Sunny':
+      return 2;
+    case 'Partial':
+      return 1;
+    default:
+      return 0;
+  }
 }
 
 function resolveSunTimeRange(venue: VenueDataDto, sunLabel: string): string | undefined {

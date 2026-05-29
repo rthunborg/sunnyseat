@@ -219,7 +219,7 @@ test.describe('map-primary', () => {
 
     const quickInfo = page.getByTestId('venue-quick-info').first();
     await expect(quickInfo).toBeVisible();
-    await expect(page.getByRole('search', { name: /Sök plats|Search venue/ })).toHaveCount(0);
+    await expect(page.getByRole('search', { name: /Sök plats|Search venue/ })).toBeVisible();
     await expect(quickInfo.getByRole('button', { name: /Kafé Magasinet/i })).toBeVisible();
     await expect(quickInfo.getByRole('button', { name: 'Visa Rutt' })).toBeVisible();
 

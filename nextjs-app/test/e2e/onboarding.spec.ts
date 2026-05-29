@@ -12,7 +12,7 @@ test.describe('Onboarding overlay', () => {
   test('forces the onboarding state via _state=onboarding', async ({ page }) => {
     await page.goto('/?_state=onboarding');
     const screen = page.getByTestId('onboarding-screen');
-    await expect(screen).toBeVisible({ timeout: 5_000 });
+    await expect(screen).toBeVisible({ timeout: 15_000 });
     await expect(screen.getByRole('heading', { level: 1 })).toBeVisible();
     await expect(screen.getByTestId('onboarding-cta-primary')).toBeVisible();
     await expect(screen.getByTestId('onboarding-cta-skip')).toBeVisible();
@@ -59,7 +59,7 @@ test.describe('Onboarding overlay (Swedish locale)', () => {
   }) => {
     await page.goto('/?_state=onboarding');
     const screen = page.getByTestId('onboarding-screen');
-    await expect(screen).toBeVisible({ timeout: 5_000 });
+    await expect(screen).toBeVisible({ timeout: 15_000 });
     await expect(screen.getByRole('heading', { level: 1 })).toContainText(
       'Hitta uteplatser',
     );

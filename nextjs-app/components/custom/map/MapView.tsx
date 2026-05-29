@@ -19,6 +19,7 @@ import {
   type VenueListSortMode,
 } from '@/components/composed/venue/VenueListControls';
 import { FavouritesList } from '@/components/custom/favourites/FavouritesList';
+import { VenueSearchShell } from '@/components/custom/search/VenueSearchShell';
 import { resolveForcedVisualVenueDetail } from '@/components/custom/venue/forced-venue-detail';
 import { TimeSliderPanel } from '@/components/custom/time/TimeSliderPanel';
 import { isVenueSunnyForList, VenueList } from '@/components/custom/venue/VenueList';
@@ -60,6 +61,7 @@ const FORCED_VISUAL_CONFIDENCE_META: SunFreshnessMeta = {
   sunDataSource: 'weather',
   weatherUpdatedAt: '2999-01-01T00:00:00.000Z',
 };
+const EMPTY_VENUES: VenueDataDto[] = [];
 // Round 2 R2-P4: Round 1 P31 released the loading cover on the very first
 // tile error, but MapContainer only latches the sand fallback after
 // TILE_FAILURE_THRESHOLD = 4 errors. A single transient blip (CORS retry,
@@ -219,13 +221,30 @@ export function MapView() {
   // (real Supabase rows in 2.x will sometimes have NULL geometry until
   // backfilled). Skip those rather than crash the entire map.
   const rawVenues = venueQuery.data?.venues;
+  const favouriteListConfidenceMeta = favouriteVenueQuery.data?.meta;
+  const favouriteVenueRows = Array.isArray(favouriteVenueQuery.data?.venues)
+    ? favouriteVenueQuery.data.venues
+    : EMPTY_VENUES;
   const venueDtosForMap = useMemo(() => {
     const base = Array.isArray(rawVenues) ? rawVenues : [];
-    if (!selectedVenuePreview || base.some((venue) => venue.id === selectedVenuePreview.id)) {
+    const seenIds = new Set(base.map((venue) => venue.id));
+    const extraVenues: VenueDataDto[] = [];
+
+    for (const favouriteVenue of favouriteVenueRows) {
+      if (seenIds.has(favouriteVenue.id)) continue;
+      seenIds.add(favouriteVenue.id);
+      extraVenues.push(favouriteVenue);
+    }
+
+    if (selectedVenuePreview && !seenIds.has(selectedVenuePreview.id)) {
+      extraVenues.push(selectedVenuePreview);
+    }
+
+    if (extraVenues.length === 0) {
       return base;
     }
-    return [...base, selectedVenuePreview];
-  }, [rawVenues, selectedVenuePreview]);
+    return [...base, ...extraVenues];
+  }, [favouriteVenueRows, rawVenues, selectedVenuePreview]);
   const forceSunnyVisualPins = shouldUseForcedSunnyMapPins(forcedState);
   const venues = useMemo<VenuePinData[]>(() => {
     return venueDtosForMap.flatMap((v) => {
@@ -279,6 +298,8 @@ export function MapView() {
       const listVenue = rawVenues.find((venue) => venueMatchesSlug(venue, venueSlugParam));
       if (listVenue) return listVenue;
     }
+    const favouriteVenue = favouriteVenueRows.find((venue) => venueMatchesSlug(venue, venueSlugParam));
+    if (favouriteVenue) return favouriteVenue;
     if (venueMatchesSlug(selectedVenueDto, venueSlugParam)) return selectedVenueDto;
     if (venueDetailQuery.isFetching) {
       return fallbackVenueFromSlug(venueSlugParam);
@@ -286,6 +307,7 @@ export function MapView() {
     return null;
   }, [
     detailVenue,
+    favouriteVenueRows,
     rawVenues,
     selectedVenueDto,
     venueDetailQuery.isError,
@@ -297,10 +319,11 @@ export function MapView() {
     const candidates = [
       detailVenue,
       selectedVenueDto,
+      ...favouriteVenueRows,
       ...(Array.isArray(rawVenues) ? rawVenues : []),
     ];
     return candidates.find((venue) => venueMatchesSlug(venue, venueSlugParam))?.id;
-  }, [detailVenue, rawVenues, selectedVenueDto, venueSlugParam]);
+  }, [detailVenue, favouriteVenueRows, rawVenues, selectedVenueDto, venueSlugParam]);
   const isVenueDetailRequested = canRequestVenueDetail;
 
   useEffect(() => {
@@ -322,12 +345,12 @@ export function MapView() {
   }, [forcedState]);
 
   useEffect(() => {
-    if (listMode === 'favourites') {
-      setMobileSheetState('mid');
-      return;
-    }
     if (selectedVenueId && !isVenueDetailRequested) {
       setMobileSheetState('peek');
+      return;
+    }
+    if (listMode === 'favourites') {
+      setMobileSheetState('mid');
     }
   }, [isVenueDetailRequested, listMode, selectedVenueId]);
 
@@ -449,8 +472,6 @@ export function MapView() {
   const listConfidenceMeta = isForcedVisualReference
     ? FORCED_VISUAL_CONFIDENCE_META
     : venueQuery.data?.meta;
-  const favouriteListConfidenceMeta = favouriteVenueQuery.data?.meta;
-  const favouriteVenueRows = favouriteVenueQuery.data?.venues ?? [];
   const favouriteIdSet = useMemo(
     () => new Set(favourites.favouriteIds),
     [favourites.favouriteIds],
@@ -465,6 +486,8 @@ export function MapView() {
     );
   const quickInfoConfidenceMeta = isForcedVisualReference
     ? FORCED_VISUAL_CONFIDENCE_META
+    : selectedVenueId && favouriteVenueRows.some((venue) => venue.id === selectedVenueId)
+    ? (favouriteListConfidenceMeta ?? venueQuery.data?.meta)
     : venueQuery.data?.meta;
   const quickInfoSunWindowTemplate = tVenue('quickInfo.sunWindow', {
     start: '{start}',
@@ -500,9 +523,14 @@ export function MapView() {
     <div className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full">
       <MapContainer />
       <VenuePinLayer venues={venues} />
+      <VenueSearchShell
+        variant="mobile"
+        className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*3)] z-floating-buttons"
+        onVenueSelected={() => setMobileSheetState('peek')}
+      />
       <TimeSliderPanel
         variant="mobile"
-        className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*14)]"
+        className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*18)]"
       />
       <TimeSliderPanel
         variant="desktop"

@@ -1216,6 +1216,98 @@ describe('<MapView />', () => {
       expect(selectVenueMock).not.toHaveBeenCalledWith(null);
     });
 
+    it('keeps the mobile favourites sheet peeked after selecting a saved venue', async () => {
+      pathnameMock = '/favoriter';
+      const favouriteVenue = makeVenue({ id: 'outside-favourite', name: 'Utflyktsplats' });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useFavouriteVenuesMock.mockReturnValue({
+        data: makeVenueResponse([favouriteVenue]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+        refetch: vi.fn(),
+      });
+      useFavouritesMock.mockReturnValue({
+        favouriteIds: ['outside-favourite'],
+        isHydrated: true,
+        isFavourite: (id: string) => id === 'outside-favourite',
+        toggleFavourite: vi.fn(),
+        addFavourite: vi.fn(),
+        removeFavourite: vi.fn(),
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+      fireEvent.click(screen.getAllByRole('button', { name: /Välj Utflyktsplats/ })[0]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'peek');
+      });
+      expect(screen.getAllByTestId('venue-quick-info').length).toBeGreaterThan(0);
+    });
+
+    it('refreshes a selected out-of-radius favourite from the favourite query rows', () => {
+      pathnameMock = '/favoriter';
+      const staleFavourite = makeVenue({
+        id: 'outside-favourite',
+        name: 'Utflyktsplats',
+        status: 'Shaded',
+        sunExposurePercent: 12,
+      });
+      const refreshedFavourite = makeVenue({
+        id: 'outside-favourite',
+        name: 'Utflyktsplats',
+        status: 'Sunny',
+        sunExposurePercent: 91,
+      });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useFavouriteVenuesMock.mockReturnValue({
+        data: makeVenueResponse([staleFavourite]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+        refetch: vi.fn(),
+      });
+      useFavouritesMock.mockReturnValue({
+        favouriteIds: ['outside-favourite'],
+        isHydrated: true,
+        isFavourite: (id: string) => id === 'outside-favourite',
+        toggleFavourite: vi.fn(),
+        addFavourite: vi.fn(),
+        removeFavourite: vi.fn(),
+      });
+
+      const view = render(<MapView />, { wrapper: Wrapper });
+      fireEvent.click(screen.getAllByRole('button', { name: /Välj Utflyktsplats/ })[0]);
+
+      useFavouriteVenuesMock.mockReturnValue({
+        data: makeVenueResponse([refreshedFavourite]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 2,
+        refetch: vi.fn(),
+      });
+      view.rerender(<MapView />);
+
+      const pins = JSON.parse(screen.getByTestId('venue-pin-layer-stub').dataset.venues ?? '[]') as VenuePinData[];
+      expect(pins).toEqual([
+        expect.objectContaining({
+          id: 'outside-favourite',
+          sunStatus: 'Sunny',
+          sunExposurePercent: 91,
+        }),
+      ]);
+    });
+
     it('keeps the favourites skeleton while a newly saved favourite is fetching', () => {
       pathnameMock = '/favoriter';
       useFavouriteVenuesMock.mockReturnValue({
@@ -1357,7 +1449,7 @@ describe('<MapView />', () => {
       expect(selectVenueMock).toHaveBeenCalledWith(null);
     });
 
-    it('does not render the old mobile search chrome in the refreshed MVP map composition', () => {
+    it('mounts the mobile venue search chrome in the refreshed MVP map composition', () => {
       useVenueSearchMock.mockReturnValue({
         data: makeVenueResponse([
           makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' }),
@@ -1369,7 +1461,8 @@ describe('<MapView />', () => {
 
       render(<MapView />, { wrapper: Wrapper });
 
-      expect(screen.queryByRole('combobox', { name: 'Sök plats' })).not.toBeInTheDocument();
+      expect(screen.getByRole('search', { name: 'Sök plats' })).toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: 'Sök plats' })).toBeInTheDocument();
     });
 
     it('normalizes map pins only for forced visual-reference states', () => {
