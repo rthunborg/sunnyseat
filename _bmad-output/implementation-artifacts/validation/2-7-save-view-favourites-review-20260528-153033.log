@@ -1,0 +1,71 @@
+SunnySeat story review gate
+Story: 2-7-save-view-favourites
+Mode: apply
+Sprint status: /c/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-7-save-view-favourites-review-20260528-153033.log
+
+Story file: /c/sunnyseat/_bmad-output/implementation-artifacts/2-7-save-view-favourites.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/sunnyseat/nextjs-app
+
+
+ Test Files  40 passed (40)
+      Tests  314 passed (314)
+   Start at  15:30:57
+   Duration  47.96s (transform 13.30s, setup 47.77s, import 112.58s, tests 66.07s, environment 238.97s)
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues&_time=14:00' viewport='mobile'
+--- Visual validation: map-panel-venues ---
+Navigating to http://localhost:3000/?_state=map-panel-venues&_time=14:00
+Waiting for selector [data-testid="venue-pin"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-d5XDpt.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the time slider at top, map area with warm sand tones and venue pins, bottom sheet with filter chips and venue list cards, and bottom navigation bar — all UI chrome elements are present and styled correctly.
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00' viewport='mobile'
+--- Visual validation: map-with-selected-venue ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00
+Waiting for selector [data-testid="venue-quick-info"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-gUYaXt.png
+VISUAL GATE PASSED: PASS: The implementation matches the reference almost exactly, with all UI chrome elements — time slider, venue popup card, map overlay buttons, bottom sheet, and navigation bar — correctly positioned, styled, and coloured.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=14:00' viewport='mobile'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=14:00
+Waiting for selector [data-testid="mobile-venue-detail-sheet"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-SIGiaW.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure, colour scheme, all key UI components present (sun percentage badge, hero image placeholder, venue title, open status pill, rating, sun forecast chart, description text, tags, and info cards), and proper visual hierarchy throughout the venue detail screen.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=16:30' viewport='desktop'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=16:30
+Waiting for selector [data-testid="desktop-venue-detail-panel"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-baKFfz.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct three-panel layout (venue list, map, detail panel), proper colour scheme, all major UI chrome elements present including the sun percentage badge, venue detail panel with solar times slider, amenity tags, opening hours, and address section, and the time slider at the bottom of the map area functioning correctly.
+Updated sprint status: 2-7-save-view-favourites -> review
+
+Story review gate passed.
+Validation artifact written to: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-7-save-view-favourites-review-20260528-153033.log

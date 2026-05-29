@@ -56,6 +56,8 @@
     "distance": "Distance",
     "sunUnavailable": "Sun time unavailable",
     "favourite": "Save {name}",
+    "favouriteAdd": "Save as favourite",
+    "favouriteRemove": "Remove favourite",
     "cardAria": "Select {name}, {sun}, {confidence}, Distance {distance}",
     "controls": {
       "nearTab": "Near me",
@@ -76,6 +78,8 @@
     "route": "Show Route",
     "close": "Close venue details",
     "favourite": "Save venue",
+    "favouriteAdd": "Save as favourite",
+    "favouriteRemove": "Remove favourite",
     "share": "Share venue",
     "photoPlaceholder": "Venue placeholder image",
     "loading": "Loading venue details",

@@ -252,6 +252,83 @@ describe('GET /api/venues', () => {
     expect(body.meta.weatherUpdatedAt).toMatch(/T/);
   });
 
+  it('returns requested favourite IDs regardless of nearby radius and computes distance', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&radiusKm=0.01&ids=1,2,1'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+
+    expect(body.venues.map((venue) => venue.id)).toEqual(['1', '2']);
+    expect(body.venues.every((venue) => Number.isFinite(venue.distanceMeters))).toBe(true);
+    expect(body.venues[0]).toEqual(expect.objectContaining({
+      currentSunStatus: expect.any(String),
+      confidence: expect.any(Number),
+    }));
+    expect(body.meta.count).toBe(2);
+    expect(res.headers.get('x-sun-data-source')).toBe('weather');
+  });
+
+  it('keeps favourite ID filtering separate from q search', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&ids=1&q=magasinsgatan'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+
+    expect(body.venues.map((venue) => venue.id)).toEqual(['1']);
+  });
+
+  it('treats an empty ids parameter as absent so normal search still works', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&q=haga&ids='));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+
+    expect(body.venues.length).toBeGreaterThan(0);
+    expect(body.venues.every((venue) => venue.neighborhood === 'Haga')).toBe(true);
+  });
+
+  it('returns an empty favourites list for unknown IDs', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&ids=unknown'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+    expect(body.venues).toEqual([]);
+    expect(body.totalCount).toBe(0);
+  });
+
+  it('rejects malformed favourite IDs', async () => {
+    const malformed = await GET(makeRequest('?lat=57.7089&lng=11.9746&ids=venue%0A1'));
+    expect(malformed.status).toBe(400);
+    expect((await malformed.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/ids/i) }),
+    );
+  });
+
+  it('rejects overlong favourite ID filters before splitting the raw query', async () => {
+    const overlongId = 'x'.repeat(81);
+    const overlongRaw = 'venue-1,'.repeat(700);
+
+    const overlongIdRes = await GET(makeRequest(`?lat=57.7089&lng=11.9746&ids=${overlongId}`));
+    expect(overlongIdRes.status).toBe(400);
+    expect((await overlongIdRes.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/ids/i) }),
+    );
+
+    const overlongRawRes = await GET(makeRequest(`?lat=57.7089&lng=11.9746&ids=${overlongRaw}`));
+    expect(overlongRawRes.status).toBe(400);
+    expect((await overlongRawRes.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/ids/i) }),
+    );
+  });
+
+  it('caps favourite ID filters at the venue result limit without an off-by-one extra ID', async () => {
+    const cappedUnknownIds = Array.from({ length: 50 }, (_, index) => `unknown-${index}`);
+    const res = await GET(
+      makeRequest(`?lat=57.7089&lng=11.9746&ids=${[...cappedUnknownIds, '7'].join(',')}`),
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+
+    expect(body.venues.map((venue) => venue.id)).not.toContain('7');
+    expect(body.totalCount).toBe(0);
+  });
+
   it('applies geometry-only weather availability before future planner projection', async () => {
     const date = futureInSeasonDate(19);
     const weather = await GET(makeRequest(`?lat=57.7089&lng=11.9746&date=${date}&time=15:00`));

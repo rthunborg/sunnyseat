@@ -1,12 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import type maplibregl from 'maplibre-gl';
 import { NextIntlClientProvider } from 'next-intl';
 import commonMessages from '@/messages/sv/common.json';
+import favouritesMessages from '@/messages/sv/favourites.json';
 import mapMessages from '@/messages/sv/map.json';
 import venueMessages from '@/messages/sv/venue.json';
 import commonMessagesEn from '@/messages/en/common.json';
+import favouritesMessagesEn from '@/messages/en/favourites.json';
 import mapMessagesEn from '@/messages/en/map.json';
 import venueMessagesEn from '@/messages/en/venue.json';
 import { TimeProvider } from '@/lib/contexts/TimeContext';
@@ -19,6 +21,22 @@ type VenueQueryShape = {
   isError: boolean;
   dataUpdatedAt: number;
   refetch?: ReturnType<typeof vi.fn>;
+};
+type FavouritesShape = {
+  favouriteIds: string[];
+  isHydrated: boolean;
+  isFavourite: (id: string) => boolean;
+  toggleFavourite: (id: string) => void;
+  addFavourite: (id: string) => void;
+  removeFavourite: (id: string) => void;
+};
+type FavouriteVenuesParams = {
+  ids: readonly string[];
+  lat: number;
+  lng: number;
+  date?: string;
+  time?: string;
+  enabled?: boolean;
 };
 type VenueSearchParams = {
   lat: number;
@@ -51,6 +69,20 @@ const useVenueDetailMock = vi.fn<(slug?: string | null, planner?: { date: string
   data: undefined,
   isFetching: false,
   isError: false,
+}));
+const useFavouriteVenuesMock = vi.fn<(params?: FavouriteVenuesParams) => VenueQueryShape>(() => ({
+  data: undefined,
+  isFetching: false,
+  isError: false,
+  dataUpdatedAt: 0,
+}));
+const useFavouritesMock = vi.fn<() => FavouritesShape>(() => ({
+  favouriteIds: [],
+  isHydrated: true,
+  isFavourite: () => false,
+  toggleFavourite: vi.fn(),
+  addFavourite: vi.fn(),
+  removeFavourite: vi.fn(),
 }));
 
 type SourceDataHandler = (e: { isSourceLoaded: boolean; sourceDataType?: string }) => void;
@@ -97,6 +129,7 @@ let stubMap: StubMap;
 let selectedVenueIdMock: string | null = null;
 let selectedVenuePreviewMock: GetVenuesResponse['venues'][number] | null = null;
 let searchParamsMock = new URLSearchParams();
+let pathnameMock = '/';
 const routerPushMock = vi.fn();
 const routerReplaceMock = vi.fn();
 const selectVenueMock = vi.fn((id: string | null, venue?: GetVenuesResponse['venues'][number] | null) => {
@@ -122,6 +155,14 @@ vi.mock('@/hooks/queries/useVenueDetail', () => ({
     useVenueDetailMock(slug, planner),
 }));
 
+vi.mock('@/hooks/queries/useFavouriteVenues', () => ({
+  useFavouriteVenues: (params?: FavouriteVenuesParams) => useFavouriteVenuesMock(params),
+}));
+
+vi.mock('@/hooks/useFavourites', () => ({
+  useFavourites: () => useFavouritesMock(),
+}));
+
 vi.mock('@/lib/contexts/MapInstanceContext', () => ({
   useMapInstance: () => useMapInstanceMock(),
 }));
@@ -143,7 +184,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/i18n/navigation', () => ({
-  usePathname: () => '/',
+  usePathname: () => pathnameMock,
   useRouter: () => ({ push: routerPushMock, replace: routerReplaceMock }),
 }));
 
@@ -170,7 +211,12 @@ function Wrapper({ children }: { children: ReactNode }) {
   return (
     <NextIntlClientProvider
       locale="sv"
-      messages={{ common: commonMessages, map: mapMessages, venue: venueMessages }}
+      messages={{
+        common: commonMessages,
+        favourites: favouritesMessages,
+        map: mapMessages,
+        venue: venueMessages,
+      }}
     >
       <TimeProvider
         initialNowIso="2026-05-20T10:15:00.000Z"
@@ -186,7 +232,12 @@ function EnglishWrapper({ children }: { children: ReactNode }) {
   return (
     <NextIntlClientProvider
       locale="en"
-      messages={{ common: commonMessagesEn, map: mapMessagesEn, venue: venueMessagesEn }}
+      messages={{
+        common: commonMessagesEn,
+        favourites: favouritesMessagesEn,
+        map: mapMessagesEn,
+        venue: venueMessagesEn,
+      }}
     >
       <TimeProvider
         initialNowIso="2026-05-20T10:15:00.000Z"
@@ -212,6 +263,7 @@ describe('<MapView />', () => {
     selectedVenueIdMock = null;
     selectedVenuePreviewMock = null;
     searchParamsMock = new URLSearchParams();
+    pathnameMock = '/';
     selectVenueMock.mockClear();
     routerPushMock.mockClear();
     routerReplaceMock.mockClear();
@@ -231,6 +283,20 @@ describe('<MapView />', () => {
       data: undefined,
       isFetching: false,
       isError: false,
+    });
+    useFavouriteVenuesMock.mockReset().mockReturnValue({
+      data: undefined,
+      isFetching: false,
+      isError: false,
+      dataUpdatedAt: 0,
+    });
+    useFavouritesMock.mockReset().mockReturnValue({
+      favouriteIds: [],
+      isHydrated: true,
+      isFavourite: () => false,
+      toggleFavourite: vi.fn(),
+      addFavourite: vi.fn(),
+      removeFavourite: vi.fn(),
     });
     useMapInstanceMock.mockReset().mockImplementation(() => ({
       mapRef: { current: stubMap as unknown as maplibregl.Map },
@@ -273,6 +339,28 @@ describe('<MapView />', () => {
       render(<MapView />, { wrapper: Wrapper });
       // Cover should be gone after the effect commits — `areTilesLoaded()`
       // returns true so we don't have to wait for `sourcedata`.
+      expect(screen.queryByTestId('map-tile-paint-cover')).toBeNull();
+    });
+
+    it('keeps listening when MapLibre areTilesLoaded throws during style churn', () => {
+      stubMap = {
+        ...makeStubMap(),
+        areTilesLoaded: () => {
+          throw new TypeError('sources not ready');
+        },
+      };
+      useMapInstanceMock.mockImplementation(() => ({
+        mapRef: { current: stubMap as unknown as maplibregl.Map },
+        mapInstance: stubMap as unknown as maplibregl.Map,
+        setMapInstance: () => {},
+      }));
+
+      expect(() => render(<MapView />, { wrapper: Wrapper })).not.toThrow();
+      expect(screen.getByTestId('map-tile-paint-cover')).toBeInTheDocument();
+
+      act(() => {
+        stubMap.__sourcedata[0]?.({ isSourceLoaded: true });
+      });
       expect(screen.queryByTestId('map-tile-paint-cover')).toBeNull();
     });
 
@@ -664,7 +752,7 @@ describe('<MapView />', () => {
 
       const { rerender } = render(<MapView />, { wrapper: Wrapper });
 
-      expect(selectVenueMock).toHaveBeenCalledWith('venue-1');
+      expect(selectVenueMock).toHaveBeenCalledWith('venue-1', expect.objectContaining({ id: 'venue-1' }));
       rerender(<MapView />);
       expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
     });
@@ -683,7 +771,7 @@ describe('<MapView />', () => {
 
       const { rerender } = render(<MapView />, { wrapper: Wrapper });
 
-      expect(selectVenueMock).toHaveBeenCalledWith('venue-1');
+      expect(selectVenueMock).toHaveBeenCalledWith('venue-1', expect.objectContaining({ id: 'venue-1' }));
       rerender(<MapView />);
       expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
       expect(screen.getByTestId('desktop-venue-detail-panel')).toBeInTheDocument();
@@ -713,6 +801,37 @@ describe('<MapView />', () => {
       expect(screen.getAllByText('Säkerhet 95%')).toHaveLength(2);
       expect(screen.getAllByText('Bäst 11:00-15:00')).toHaveLength(1);
       expect(screen.queryByText('Laddar platsdetaljer')).not.toBeInTheDocument();
+    });
+
+    it('keeps detail favourite disabled while only a URL-slug fallback is available', () => {
+      searchParamsMock = new URLSearchParams('venue=unknown-sunny-place');
+      const toggleFavourite = vi.fn();
+      useVenueSearchMock.mockReturnValue({
+        data: undefined,
+        isFetching: true,
+        isError: false,
+        dataUpdatedAt: 0,
+      });
+      useVenueDetailMock.mockReturnValue({
+        data: undefined,
+        isFetching: true,
+        isError: false,
+      });
+      useFavouritesMock.mockReturnValue({
+        favouriteIds: [],
+        isHydrated: true,
+        isFavourite: () => false,
+        toggleFavourite,
+        addFavourite: vi.fn(),
+        removeFavourite: vi.fn(),
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      for (const button of screen.getAllByRole('button', { name: 'Spara som favorit' })) {
+        expect(button).toBeDisabled();
+      }
+      expect(toggleFavourite).not.toHaveBeenCalled();
     });
 
     it('renders mobile venue detail from URL state and dismisses without clearing selected pin', () => {
@@ -984,12 +1103,187 @@ describe('<MapView />', () => {
       render(<MapView />, { wrapper: Wrapper });
       fireEvent.click(screen.getAllByRole('button', { name: /Välj Bellora/ })[0]);
 
-      expect(selectVenueMock).toHaveBeenCalledWith('venue-1');
+      expect(selectVenueMock).toHaveBeenCalledWith('venue-1', expect.objectContaining({ id: 'venue-1' }));
       expect(stubMap.easeTo).toHaveBeenCalledWith({
         center: [11.97, 57.7],
         duration: 500,
       });
       expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
+    });
+
+    it('passes favourite venue DTOs into selection so out-of-radius favourites can open QuickInfo', () => {
+      pathnameMock = '/favoriter';
+      const favouriteVenue = makeVenue({ id: 'outside-favourite', name: 'Utflyktsplats' });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useFavouriteVenuesMock.mockReturnValue({
+        data: makeVenueResponse([favouriteVenue]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+        refetch: vi.fn(),
+      });
+      useFavouritesMock.mockReturnValue({
+        favouriteIds: ['outside-favourite'],
+        isHydrated: true,
+        isFavourite: (id: string) => id === 'outside-favourite',
+        toggleFavourite: vi.fn(),
+        addFavourite: vi.fn(),
+        removeFavourite: vi.fn(),
+      });
+
+      const view = render(<MapView />, { wrapper: Wrapper });
+      fireEvent.click(screen.getAllByRole('button', { name: /Välj Utflyktsplats/ })[0]);
+
+      expect(selectVenueMock).toHaveBeenCalledWith('outside-favourite', favouriteVenue);
+      selectVenueMock.mockClear();
+      view.rerender(<MapView />);
+      expect(selectVenueMock).not.toHaveBeenCalledWith(null);
+    });
+
+    it('keeps the favourites skeleton while a newly saved favourite is fetching', () => {
+      pathnameMock = '/favoriter';
+      useFavouriteVenuesMock.mockReturnValue({
+        data: makeVenueResponse([]),
+        isFetching: true,
+        isError: false,
+        dataUpdatedAt: 1,
+        refetch: vi.fn(),
+      });
+      useFavouritesMock.mockReturnValue({
+        favouriteIds: ['venue-new'],
+        isHydrated: true,
+        isFavourite: (id: string) => id === 'venue-new',
+        toggleFavourite: vi.fn(),
+        addFavourite: vi.fn(),
+        removeFavourite: vi.fn(),
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.queryByText('Du har inga sparade platser än.')).not.toBeInTheDocument();
+      expect(screen.getAllByTestId('venue-card-skeleton').length).toBeGreaterThan(0);
+    });
+
+    it('keeps favourite venue polling disabled until the favourites section is visible', () => {
+      useFavouritesMock.mockReturnValue({
+        favouriteIds: ['venue-1'],
+        isHydrated: true,
+        isFavourite: (id: string) => id === 'venue-1',
+        toggleFavourite: vi.fn(),
+        addFavourite: vi.fn(),
+        removeFavourite: vi.fn(),
+      });
+
+      const view = render(<MapView />, { wrapper: Wrapper });
+      expect(useFavouriteVenuesMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ ids: ['venue-1'], enabled: false }),
+      );
+
+      pathnameMock = '/favoriter';
+      view.rerender(<MapView />);
+      expect(useFavouriteVenuesMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ ids: ['venue-1'], enabled: true }),
+      );
+    });
+
+    it('routes desktop list segment changes between nearby and favourites sections', () => {
+      pathnameMock = '/favoriter';
+      const firstRender = render(<MapView />, { wrapper: Wrapper });
+
+      fireEvent.click(within(screen.getByTestId('desktop-venue-list-panel')).getByRole('button', { name: 'Nära mig' }));
+      expect(routerPushMock).toHaveBeenCalledWith('/');
+
+      firstRender.unmount();
+      pathnameMock = '/';
+      routerPushMock.mockClear();
+      render(<MapView />, { wrapper: Wrapper });
+
+      fireEvent.click(within(screen.getByTestId('desktop-venue-list-panel')).getByRole('button', { name: 'Favoriter' }));
+      expect(routerPushMock).toHaveBeenCalledWith('/favoriter');
+    });
+
+    it('keeps favourites route list chrome on sunny-first sort even after distance is clicked', () => {
+      pathnameMock = '/favoriter';
+      useFavouriteVenuesMock.mockReturnValue({
+        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+        refetch: vi.fn(),
+      });
+      useFavouritesMock.mockReturnValue({
+        favouriteIds: ['venue-1'],
+        isHydrated: true,
+        isFavourite: (id: string) => id === 'venue-1',
+        toggleFavourite: vi.fn(),
+        addFavourite: vi.fn(),
+        removeFavourite: vi.fn(),
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const panel = within(screen.getByTestId('desktop-venue-list-panel'));
+      fireEvent.click(panel.getByRole('button', { name: /Närmast/ }));
+
+      expect(panel.getByRole('button', { name: 'Mest sol' })).toHaveAttribute('aria-pressed', 'true');
+      expect(panel.getByRole('button', { name: /Närmast/ })).toBeDisabled();
+    });
+
+    it('opens the mobile favourites list instead of stale selected QuickInfo on /favoriter', async () => {
+      pathnameMock = '/';
+      selectedVenueIdMock = 'venue-selected';
+      selectedVenuePreviewMock = makeVenue({ id: 'venue-selected', name: 'Vald plats' });
+      const favouriteVenue = makeVenue({ id: 'venue-1', name: 'Bellora' });
+      useFavouriteVenuesMock.mockReturnValue({
+        data: makeVenueResponse([favouriteVenue]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+        refetch: vi.fn(),
+      });
+      useFavouritesMock.mockReturnValue({
+        favouriteIds: ['venue-1'],
+        isHydrated: true,
+        isFavourite: (id: string) => id === 'venue-1',
+        toggleFavourite: vi.fn(),
+        addFavourite: vi.fn(),
+        removeFavourite: vi.fn(),
+      });
+
+      const view = render(<MapView />, { wrapper: Wrapper });
+      expect(screen.getAllByTestId('venue-quick-info').length).toBeGreaterThan(0);
+
+      pathnameMock = '/favoriter';
+      view.rerender(<MapView />);
+      expect(selectVenueMock).toHaveBeenCalledWith(null);
+      view.rerender(<MapView />);
+
+      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'mid');
+      await waitFor(() => expect(screen.queryAllByTestId('venue-quick-info')).toHaveLength(0));
+      expect(screen.getAllByRole('button', { name: /Välj Bellora/ }).length).toBeGreaterThan(0);
+    });
+
+    it('clears stale selected QuickInfo on a direct /favoriter remount', () => {
+      pathnameMock = '/favoriter';
+      selectedVenueIdMock = 'venue-selected';
+      selectedVenuePreviewMock = makeVenue({ id: 'venue-selected', name: 'Vald plats' });
+      useFavouritesMock.mockReturnValue({
+        favouriteIds: ['venue-1'],
+        isHydrated: true,
+        isFavourite: (id: string) => id === 'venue-1',
+        toggleFavourite: vi.fn(),
+        addFavourite: vi.fn(),
+        removeFavourite: vi.fn(),
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(selectVenueMock).toHaveBeenCalledWith(null);
     });
 
     it('does not render the old mobile search chrome in the refreshed MVP map composition', () => {

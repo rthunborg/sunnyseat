@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { MapInstanceProvider } from '@/lib/contexts/MapInstanceContext';
 import { MapSelectionProvider } from '@/lib/contexts/MapSelectionContext';
 import { TimeProvider } from '@/lib/contexts/TimeContext';
+import { FavouritesProvider } from '@/lib/contexts/FavouritesContext';
 import { GeolocationProvider } from '@/hooks/useGeolocation';
 
 /**
@@ -34,7 +35,7 @@ export function AppContextProviders({ children }: { children: ReactNode }) {
       <MapInstanceProvider>
         <MapSelectionProvider>
           <TimeProvider forcedDate={forcedDate} forcedTime={forcedTime}>
-            {children}
+            <FavouritesProvider>{children}</FavouritesProvider>
           </TimeProvider>
         </MapSelectionProvider>
       </MapInstanceProvider>

@@ -56,6 +56,8 @@
     "distance": "Avstånd",
     "sunUnavailable": "Soltid saknas",
     "favourite": "Spara {name}",
+    "favouriteAdd": "Spara som favorit",
+    "favouriteRemove": "Ta bort favorit",
     "cardAria": "Välj {name}, {sun}, {confidence}, Avstånd {distance}",
     "controls": {
       "nearTab": "Nära mig",
@@ -76,6 +78,8 @@
     "route": "Visa Rutt",
     "close": "Stäng platsdetaljer",
     "favourite": "Spara plats",
+    "favouriteAdd": "Spara som favorit",
+    "favouriteRemove": "Ta bort favorit",
     "share": "Dela plats",
     "photoPlaceholder": "Platshållarbild för platsen",
     "loading": "Laddar platsdetaljer",

@@ -18,6 +18,8 @@ import { cn } from '@/lib/utils';
 export type VenueDetailOverlayLabels = VenueDetailContentLabels & {
   close: string;
   favourite: string;
+  favouriteAdd?: string;
+  favouriteRemove?: string;
   share: string;
 };
 
@@ -31,6 +33,8 @@ export type VenueDetailOverlayProps = {
   reducedMotion?: boolean;
   onDismiss: () => void;
   onRoute: () => void;
+  onFavouriteToggle?: () => void;
+  isFavourite?: boolean;
   routeDisabled?: boolean;
   mode?: 'mobile' | 'desktop';
 };
@@ -48,6 +52,8 @@ export function VenueDetailOverlay({
   reducedMotion,
   onDismiss,
   onRoute,
+  onFavouriteToggle,
+  isFavourite = false,
   routeDisabled = false,
   mode = 'mobile',
 }: VenueDetailOverlayProps) {
@@ -104,8 +110,18 @@ export function VenueDetailOverlay({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="absolute right-4 top-4 z-floating-buttons flex gap-2">
-          <ChromeButton label={labels.favourite} disabled>
-            <Heart aria-hidden="true" className="size-4" />
+          <ChromeButton
+            label={
+              isFavourite
+                ? (labels.favouriteRemove ?? labels.favourite)
+                : (labels.favouriteAdd ?? labels.favourite)
+            }
+            active={isFavourite}
+            pressed={onFavouriteToggle ? isFavourite : undefined}
+            onClick={onFavouriteToggle}
+            disabled={!onFavouriteToggle}
+          >
+            <Heart aria-hidden="true" className={cn('size-4', isFavourite && 'fill-current')} />
           </ChromeButton>
           <ChromeButton label={labels.share} disabled>
             <Share2 aria-hidden="true" className="size-4" />
@@ -148,8 +164,18 @@ export function VenueDetailOverlay({
       onClick={(event) => event.stopPropagation()}
     >
       <div className="absolute right-5 top-16 z-floating-buttons flex gap-3">
-        <ChromeButton label={labels.favourite} disabled>
-          <Heart aria-hidden="true" className="size-5" />
+        <ChromeButton
+          label={
+            isFavourite
+              ? (labels.favouriteRemove ?? labels.favourite)
+              : (labels.favouriteAdd ?? labels.favourite)
+          }
+          active={isFavourite}
+          pressed={onFavouriteToggle ? isFavourite : undefined}
+          onClick={onFavouriteToggle}
+          disabled={!onFavouriteToggle}
+        >
+          <Heart aria-hidden="true" className={cn('size-5', isFavourite && 'fill-current')} />
         </ChromeButton>
         <ChromeButton label={labels.close} onClick={onDismiss}>
           <X aria-hidden="true" className="size-5" />
@@ -202,20 +228,28 @@ function ChromeButton({
   label,
   children,
   disabled = false,
+  active = false,
+  pressed,
   onClick,
 }: {
   label: string;
   children: React.ReactNode;
   disabled?: boolean;
+  active?: boolean;
+  pressed?: boolean;
   onClick?: () => void;
 }) {
   return (
     <button
       type="button"
       aria-label={label}
+      aria-pressed={pressed}
       disabled={disabled}
       onClick={onClick}
-      className="flex size-11 items-center justify-center rounded-pill bg-glass-standard text-text-primary shadow-button-sm backdrop-blur-standard outline-none focus-visible:ring-2 focus-visible:ring-text-primary disabled:opacity-60"
+      className={cn(
+        'flex size-11 items-center justify-center rounded-pill bg-glass-standard text-text-primary shadow-button-sm backdrop-blur-standard outline-none transition-colors duration-fast ease-default focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none disabled:opacity-60',
+        active && 'bg-glass-lavender',
+      )}
     >
       {children}
     </button>

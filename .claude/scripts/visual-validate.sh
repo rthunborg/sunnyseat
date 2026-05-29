@@ -60,6 +60,12 @@ WAIT_ARGS=()
 
 if [ "$SCREEN_ID" != "onboarding" ]; then
   STORAGE_STATE=$(mktemp /tmp/sunnyseat-storage-XXXXXX.json)
+  FAVOURITES_STORAGE_ROW=""
+  if [ "$SCREEN_ID" = "favourites-tab" ]; then
+    FAVOURITES_STORAGE_ROW=','
+    FAVOURITES_STORAGE_ROW="$FAVOURITES_STORAGE_ROW
+        { \"name\": \"sunnyseat_favourite_ids\", \"value\": \"[\\\"1\\\",\\\"2\\\"]\" }"
+  fi
   cat > "$STORAGE_STATE" <<EOF
 {
   "cookies": [],
@@ -67,7 +73,7 @@ if [ "$SCREEN_ID" != "onboarding" ]; then
     {
       "origin": "$DEV_SERVER_URL",
       "localStorage": [
-        { "name": "sunnyseat_onboarded", "value": "1" }
+        { "name": "sunnyseat_onboarded", "value": "1" }$FAVOURITES_STORAGE_ROW
       ]
     }
   ]
@@ -77,6 +83,13 @@ EOF
 fi
 
 case "$SCREEN_ID" in
+  favourites-tab)
+    if [ "$VIEWPORT_TYPE" = "desktop" ]; then
+      WAIT_ARGS+=(--wait-for-selector '[data-testid="desktop-venue-list-panel"] [data-testid="venue-card"]' --wait-for-timeout 500)
+    else
+      WAIT_ARGS+=(--wait-for-selector '[data-testid="venue-card"]' --wait-for-timeout 500)
+    fi
+    ;;
   map-with-selected-venue)
     WAIT_ARGS+=(--wait-for-selector '[data-testid="venue-quick-info"]' --wait-for-timeout 500)
     ;;

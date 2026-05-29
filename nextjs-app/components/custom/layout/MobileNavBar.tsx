@@ -51,7 +51,9 @@ export function MobileNavBar() {
       className="fixed bottom-0 inset-x-0 h-[var(--size-mobile-nav-h)] bg-surface-cream border-t border-[var(--color-border-nav)] shadow-nav-up z-40 lg:hidden flex items-center justify-around px-8 pt-1"
     >
       {TABS.map(({ key, href, icon: Icon }) => {
-        const isActive = normalizedPath === href;
+        const isActive = href === '/'
+          ? normalizedPath === '/'
+          : normalizedPath === href || normalizedPath.startsWith(`${href}/`);
         return (
           <Link
             key={key}

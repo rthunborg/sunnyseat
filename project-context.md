@@ -2,7 +2,7 @@
 
 > **Purpose:** This file is the BMAD dev agent's injection point for design awareness. BMAD's dev agent (Amelia) loads this as foundational reference in Step 2 of its workflow. It lives at the project root — not inside `_bmad/` — so it survives BMAD reinstalls without being overwritten.
 >
-> Last updated: 2026-05-21
+> Last updated: 2026-05-28
 >
 > **MVP scope correction:** planner, future date simulation, and favourites are free MVP functionality. Season Pass / Swish is Future Monetization only.
 
@@ -178,8 +178,8 @@ This table is read by `scripts/story-review.sh` and `scripts/visual-validate.sh`
 | about                      | `/about`                                                    | desktop  | Real standalone route — reached via the top navbar link.                                    |
 | premium-recovery           | `/?_state=premium-recovery`                                 | mobile   | Future Monetization only — Swish transaction recovery reference.                            |
 | premium-recovery           | `/?_state=premium-recovery`                                 | desktop  | Future Monetization only — same form on desktop viewport.                                   |
-| favourites-tab             | `/favoriter`                                                | mobile   | Real bottom-nav destination — list of favourited venues with empty state.                   |
-| favourites-tab             | `/favoriter`                                                | desktop  | Same content via desktop navigation.                                                        |
+| favourites-tab             | `/favoriter?_state=favourites-tab&_time=14:00`             | mobile   | Real bottom-nav destination — `_state` makes the seeded saved-favourites visual gate discoverable and deterministic while storage seeding supplies venue cards; `_time` pins the reference time. |
+| favourites-tab             | `/favoriter?_state=favourites-tab&_time=14:00`             | desktop  | Same seeded saved-favourites content via desktop navigation with reference time pinned.      |
 | map-primary-offline        | `/?_state=map-primary-offline`                              | mobile   | Cached shell, no venue data, persistent offline banner.                                     |
 | map-primary-offline        | `/?_state=map-primary-offline`                              | desktop  | Same offline state on desktop.                                                              |
 

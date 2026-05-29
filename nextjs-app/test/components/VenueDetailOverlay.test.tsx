@@ -36,6 +36,8 @@ const DETAIL: VenueDetailDto = {
 const labels = {
   close: 'Stäng platsdetaljer',
   favourite: 'Spara plats',
+  favouriteAdd: 'Spara som favorit',
+  favouriteRemove: 'Ta bort favorit',
   share: 'Dela plats',
   sectionTitle: 'Solprognos idag',
   peakTime: 'Toppar kl {time}',
@@ -141,6 +143,45 @@ describe('VenueDetailOverlay mobile', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
+  it('toggles favourite state and does not expose close as a pressed toggle', () => {
+    const onFavouriteToggle = vi.fn();
+    const { rerender } = render(
+      <VenueDetailOverlay
+        fallbackVenue={FALLBACK}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        onDismiss={vi.fn()}
+        onRoute={vi.fn()}
+        onFavouriteToggle={onFavouriteToggle}
+      />,
+    );
+
+    const addButton = screen.getByRole('button', { name: 'Spara som favorit' });
+    expect(addButton).toHaveAttribute('aria-pressed', 'false');
+    expect(addButton).toHaveClass('focus-visible:ring-2');
+    fireEvent.click(addButton);
+    expect(onFavouriteToggle).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByRole('button', { name: 'Stäng platsdetaljer' })[1]).not.toHaveAttribute('aria-pressed');
+
+    rerender(
+      <VenueDetailOverlay
+        fallbackVenue={FALLBACK}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        isFavourite
+        onDismiss={vi.fn()}
+        onRoute={vi.fn()}
+        onFavouriteToggle={onFavouriteToggle}
+      />,
+    );
+
+    const removeButton = screen.getByRole('button', { name: 'Ta bort favorit' });
+    expect(removeButton).toHaveAttribute('aria-pressed', 'true');
+    expect(removeButton.querySelector('svg')).toHaveClass('fill-current');
+  });
+
   it('uses opacity-only motion when reduced motion is requested', () => {
     render(
       <VenueDetailOverlay
@@ -178,7 +219,7 @@ describe('VenueDetailOverlay desktop', () => {
     const panel = screen.getByTestId('desktop-venue-detail-panel');
     expect(panel).toHaveClass('right-0', 'w-venue-detail-panel');
     expect(screen.getByRole('button', { name: 'Stäng platsdetaljer' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Spara plats' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Spara som favorit' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Dela plats' })).toBeDisabled();
   });
 

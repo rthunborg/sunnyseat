@@ -1,0 +1,87 @@
+SunnySeat story review gate
+Story: 2-7-save-view-favourites
+Mode: apply
+Sprint status: /c/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-7-save-view-favourites-review-20260529-102224.log
+
+Story file: /c/sunnyseat/_bmad-output/implementation-artifacts/2-7-save-view-favourites.md
+Current sprint status: review
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/sunnyseat/nextjs-app
+
+
+ Test Files  40 passed (40)
+      Tests  338 passed (338)
+   Start at  10:22:34
+   Duration  24.65s (transform 4.95s, setup 19.96s, import 54.94s, tests 44.15s, environment 107.59s)
+
+
+Running visual validation: screen='favourites-tab' route='/favoriter?_state=favourites-tab&_time=14:00' viewport='mobile'
+--- Visual validation: favourites-tab ---
+Navigating to http://localhost:3000/favoriter?_state=favourites-tab&_time=14:00
+Waiting for selector [data-testid="venue-card"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-uu1QwB.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure, navigation bar, filter chips, venue cards with favourites icons, map with pins, time slider, and colour scheme all properly implemented.
+
+Running visual validation: screen='favourites-tab' route='/favoriter?_state=favourites-tab&_time=14:00' viewport='desktop'
+--- Visual validation: favourites-tab ---
+Navigating to http://localhost:3000/favoriter?_state=favourites-tab&_time=14:00
+Waiting for selector [data-testid="desktop-venue-list-panel"] [data-testid="venue-card"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-bLmYz8.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with identical layout structure, UI chrome elements (navigation bar, search bar, filter chips, tabs, sort buttons, venue list cards, time slider), colour scheme, and map overlay components — differences in pin percentages, slider position, and map pin arrangement are dynamic data, not structural issues.
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues&_time=14:00' viewport='mobile'
+--- Visual validation: map-panel-venues ---
+Navigating to http://localhost:3000/?_state=map-panel-venues&_time=14:00
+Waiting for selector [data-testid="venue-pin"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-Cb4zZm.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the time slider at top, map area with warm sand tones and yellow venue pins, bottom sheet with filter chips (Mest sol, Nära mig, Kafé, Öppet nu), venue list cards with correct styling, floating action buttons on the right, and bottom navigation bar — all UI chrome elements are present and correctly positioned with matching colour scheme.
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00' viewport='mobile'
+--- Visual validation: map-with-selected-venue ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00
+Waiting for selector [data-testid="venue-quick-info"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-Mvt5cV.png
+VISUAL GATE PASSED: PASS: The implementation matches the reference almost exactly, with all UI chrome elements — time slider, venue popup card, map controls, bottom sheet, and navigation bar — correctly positioned, styled, and coloured.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=14:00' viewport='mobile'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=14:00
+Waiting for selector [data-testid="mobile-venue-detail-sheet"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-y71CJ5.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure, colour scheme, all major UI components present (sun percentage badge, hero image placeholder, venue title, open status badge, sun forecast chart, description text, feature tags, and info grid cards), and proper visual hierarchy throughout the venue detail screen.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=16:30' viewport='desktop'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=16:30
+Waiting for selector [data-testid="desktop-venue-detail-panel"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-LEQ8nt.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure, colour scheme, venue detail panel, map area, time slider, filter chips, venue list, and all key UI chrome elements present and properly positioned.
+Story '2-7-save-view-favourites' is already marked review. No sprint-status update needed.
+
+Story review gate passed.
+Validation artifact written to: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-7-save-view-favourites-review-20260529-102224.log

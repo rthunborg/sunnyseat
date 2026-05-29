@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Navigation, Sun, X } from 'lucide-react';
+import { Heart, Navigation, Sun, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DURATION_DEFAULT_S,
@@ -39,6 +39,8 @@ export type VenueQuickInfoProps = {
   onDismiss: () => void;
   onOpenDetails: () => void;
   onRoute: () => void;
+  onFavouriteToggle?: () => void;
+  isFavourite?: boolean;
   labels: {
     route: string;
     moreInfo: string;
@@ -50,6 +52,8 @@ export type VenueQuickInfoProps = {
     distance: string;
     loadingSun: string;
     sunUnavailable: string;
+    favouriteAdd?: string;
+    favouriteRemove?: string;
   };
 };
 
@@ -71,6 +75,8 @@ export function VenueQuickInfo({
   onDismiss,
   onOpenDetails,
   onRoute,
+  onFavouriteToggle,
+  isFavourite = false,
   labels,
 }: VenueQuickInfoProps) {
   const shouldReduceMotion = useReducedMotion() ?? false;
@@ -121,7 +127,10 @@ export function VenueQuickInfo({
             'absolute z-base size-11 rounded-pill backdrop-blur-standard shadow-button-sm flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
             isAnchoredMobile
               ? '-right-4 top-14 bg-text-primary/65 text-white'
-              : 'right-2 top-2 bg-glass-standard text-text-primary',
+              : cn(
+                  onFavouriteToggle ? 'left-2 top-2' : 'right-2 top-2',
+                  'bg-glass-standard text-text-primary',
+                ),
           )}
         >
           <X aria-hidden="true" className="size-4" />
@@ -132,6 +141,13 @@ export function VenueQuickInfo({
           sunExposurePercent={sunExposurePercent}
           compact={isAnchoredMobile}
           forcePlaceholder={isAnchoredMobile}
+          isFavourite={isFavourite}
+          favouriteLabel={
+            isFavourite
+              ? (labels.favouriteRemove ?? 'Ta bort favorit')
+              : (labels.favouriteAdd ?? 'Spara som favorit')
+          }
+          onFavouriteToggle={onFavouriteToggle}
         />
         <div className={cn(isAnchoredMobile ? 'px-4 pt-3 pb-3' : 'p-4')}>
           <AnimatePresence>
@@ -254,12 +270,18 @@ function VenueThumbnail({
   sunExposurePercent,
   compact = false,
   forcePlaceholder = false,
+  isFavourite = false,
+  favouriteLabel,
+  onFavouriteToggle,
 }: {
   label: string;
   thumbnail?: { alt: string; initials: string; url?: string };
   sunExposurePercent?: number;
   compact?: boolean;
   forcePlaceholder?: boolean;
+  isFavourite?: boolean;
+  favouriteLabel: string;
+  onFavouriteToggle?: () => void;
 }) {
   const accessibleLabel = normalizeAlt(thumbnail?.alt, label);
   const initials = normalizeInitials(thumbnail?.initials);
@@ -326,6 +348,23 @@ function VenueThumbnail({
           <Sun aria-hidden="true" className="size-4" />
           {sunExposureText} SOL
         </div>
+      )}
+      {onFavouriteToggle && (
+        <button
+          type="button"
+          aria-label={favouriteLabel}
+          aria-pressed={isFavourite}
+          onClick={(event) => {
+            event.stopPropagation();
+            onFavouriteToggle();
+          }}
+          className={cn(
+            'absolute right-3 top-3 flex size-11 items-center justify-center rounded-pill bg-glass-standard text-text-primary shadow-button-sm backdrop-blur-standard outline-none transition-colors duration-fast ease-default focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none',
+            isFavourite && 'bg-glass-lavender',
+          )}
+        >
+          <Heart aria-hidden="true" className={cn('size-5', isFavourite && 'fill-current')} />
+        </button>
       )}
     </div>
   );

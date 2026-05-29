@@ -26,6 +26,7 @@ const DEFAULT_MESSAGES: Messages = {
   venue: {},
   feedback: {},
   about: {},
+  favourites: {},
 };
 
 /**

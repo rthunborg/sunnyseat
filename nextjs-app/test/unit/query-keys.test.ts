@@ -83,4 +83,34 @@ describe('queryKeys', () => {
       { date: '2026-06-14', lat: 57.7089, lng: 11.9746, radiusKm: 1.5, time: '14:00' },
     ]);
   });
+
+  it('normalizes favourite venue keys with sorted IDs and planner fields', () => {
+    const first = queryKeys.venues.favourites({
+      lng: 11.9746,
+      ids: ['venue-2', 'venue-1', 'venue-1'],
+      time: '14:00',
+      lat: 57.7089,
+      date: '2026-06-14',
+    });
+    const second = queryKeys.venues.favourites({
+      date: '2026-06-14',
+      ids: ['venue-1', 'venue-2'],
+      lat: 57.7089,
+      lng: 11.9746,
+      time: '14:00',
+    });
+
+    expect(first).toEqual(second);
+    expect(first).toEqual([
+      'venues',
+      'favourites',
+      {
+        date: '2026-06-14',
+        ids: ['venue-1', 'venue-2'],
+        lat: 57.7089,
+        lng: 11.9746,
+        time: '14:00',
+      },
+    ]);
+  });
 });

@@ -21,6 +21,8 @@ export type VenueListProps = {
   compactCards?: boolean;
   confidenceMeta?: SunFreshnessMeta;
   showVisibleConfidence?: boolean;
+  onFavouriteToggle?: (venue: VenueDataDto) => void;
+  isFavourite?: (id: string) => boolean;
 };
 
 export function VenueList({
@@ -33,6 +35,8 @@ export function VenueList({
   compactCards,
   confidenceMeta,
   showVisibleConfidence = true,
+  onFavouriteToggle,
+  isFavourite,
 }: VenueListProps) {
   const t = useTranslations('venue.list');
   const sortedVenues = useMemo(() => sortVenuesForList(venues, sortMode), [venues, sortMode]);
@@ -99,6 +103,8 @@ export function VenueList({
                 distance: formatDistance(venue.distanceMeters),
               }),
               favourite: t('favourite', { name: venue.venueName }),
+              favouriteAdd: t('favouriteAdd'),
+              favouriteRemove: t('favouriteRemove'),
               sun: t('sun'),
               photoPlaceholder: t('photoPlaceholder'),
               confidence: t('confidence'),
@@ -107,6 +113,8 @@ export function VenueList({
               distance: t('distance'),
               sunUnavailable: t('sunUnavailable'),
             }}
+            isFavourite={isFavourite?.(venue.id) ?? false}
+            onFavouriteToggle={onFavouriteToggle ? () => onFavouriteToggle(venue) : undefined}
             onSelect={() => onSelectVenue(venue)}
           />
         );

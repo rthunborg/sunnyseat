@@ -22,6 +22,8 @@ import { cn } from '@/lib/utils';
 export type VenueCardLabels = {
   select: string;
   favourite: string;
+  favouriteAdd?: string;
+  favouriteRemove?: string;
   sun: string;
   photoPlaceholder: string;
   confidence: string;
@@ -199,7 +201,11 @@ export function VenueCard({
       </button>
       <button
         type="button"
-        aria-label={formatLabel(labels.favourite, { name })}
+        aria-label={
+          isFavourite
+            ? favouriteButtonLabel(labels.favouriteRemove ?? labels.favourite, name)
+            : favouriteButtonLabel(labels.favouriteAdd ?? labels.favourite, name)
+        }
         aria-disabled={!onFavouriteToggle}
         aria-pressed={onFavouriteToggle ? isFavourite : undefined}
         disabled={!onFavouriteToggle}
@@ -209,8 +215,9 @@ export function VenueCard({
         }}
         className={cn(
           'flex shrink-0 items-center justify-center rounded-pill border border-divider bg-white text-text-faint shadow-subtle outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
+          'transition-colors duration-fast ease-default motion-reduce:transition-none',
           'size-11',
-          isFavourite && 'border-transparent bg-amber-primary text-amber-cta-text',
+          isFavourite && 'border-transparent bg-glass-lavender text-text-primary',
           !onFavouriteToggle && 'cursor-not-allowed opacity-60',
         )}
       >
@@ -347,4 +354,9 @@ function formatLabel(template: string, values: Record<string, string>): string {
     (label, [key, value]) => label.replaceAll(`{${key}}`, value),
     template,
   );
+}
+
+function favouriteButtonLabel(template: string, name: string): string {
+  const label = formatLabel(template, { name });
+  return label.includes(name) ? label : `${label}: ${name}`;
 }

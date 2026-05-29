@@ -21,6 +21,8 @@ export const queryKeys = {
     },
     planner: (filters: Record<string, unknown>) =>
       [...queryKeys.venues.all, 'planner', normalizeQueryFilters(filters)] as const,
+    favourites: (filters: Record<string, unknown>) =>
+      [...queryKeys.venues.all, 'favourites', normalizeFavouriteFilters(filters)] as const,
     search: (query: string) =>
       [...queryKeys.venues.all, 'search', query] as const,
   },
@@ -50,6 +52,16 @@ function normalizeQueryFilters(value: unknown): unknown {
     if (child !== undefined) normalized[key] = child;
   }
   return normalized;
+}
+
+function normalizeFavouriteFilters(value: Record<string, unknown>): unknown {
+  return normalizeQueryFilters({
+    ...value,
+    ids: Array.isArray(value.ids)
+      ? Array.from(new Set(value.ids.filter((id): id is string => typeof id === 'string')))
+        .sort()
+      : value.ids,
+  });
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

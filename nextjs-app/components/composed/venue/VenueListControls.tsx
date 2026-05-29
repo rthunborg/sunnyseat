@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export type VenueListSortMode = 'sun' | 'distance';
+export type VenueListModeSelection = 'near' | 'favourites';
 
 export type VenueListControlsLabels = {
   nearTab: string;
@@ -21,6 +22,8 @@ export type VenueListControlsProps = {
   mode: 'mobile' | 'desktop';
   sortMode: VenueListSortMode;
   onSortModeChange: (mode: VenueListSortMode) => void;
+  listMode?: VenueListModeSelection;
+  onListModeChange?: (mode: VenueListModeSelection) => void;
   labels: VenueListControlsLabels;
 };
 
@@ -28,19 +31,25 @@ export function VenueListControls({
   mode,
   sortMode,
   onSortModeChange,
+  listMode = 'near',
+  onListModeChange,
   labels,
 }: VenueListControlsProps) {
   if (mode === 'desktop') {
     return (
       <div className="space-y-3 border-b border-divider px-3 pb-3 pt-3">
         <div className="flex gap-1 border-b border-divider/70" aria-label={labels.topPicks}>
-          <SegmentButton active icon={<Navigation aria-hidden="true" className="size-4" />}>
+          <SegmentButton
+            active={listMode === 'near'}
+            onClick={() => onListModeChange?.('near')}
+            icon={<Navigation aria-hidden="true" className="size-4" />}
+          >
             {labels.nearTab}
           </SegmentButton>
           <SegmentButton
-            disabled
+            active={listMode === 'favourites'}
+            onClick={() => onListModeChange?.('favourites')}
             icon={<Heart aria-hidden="true" className="size-4" />}
-            unavailable={labels.unavailable}
           >
             {labels.favouritesTab}
           </SegmentButton>
@@ -55,6 +64,8 @@ export function VenueListControls({
           </SortButton>
           <SortButton
             active={sortMode === 'distance'}
+            disabled={listMode === 'favourites'}
+            unavailable={listMode === 'favourites' ? labels.unavailable : undefined}
             onClick={() => onSortModeChange('distance')}
             icon={<Navigation aria-hidden="true" className="size-4" />}
           >
@@ -77,6 +88,8 @@ export function VenueListControls({
       </SortButton>
       <SortButton
         active={sortMode === 'distance'}
+        disabled={listMode === 'favourites'}
+        unavailable={listMode === 'favourites' ? labels.unavailable : undefined}
         onClick={() => onSortModeChange('distance')}
         icon={<PersonStanding aria-hidden="true" className="size-4" />}
         compact
@@ -150,12 +163,14 @@ function SegmentButton({
   active = false,
   disabled = false,
   unavailable,
+  onClick,
   icon,
   children,
 }: {
   active?: boolean;
   disabled?: boolean;
   unavailable?: string;
+  onClick?: () => void;
   icon: ReactNode;
   children: string;
 }) {
@@ -165,11 +180,12 @@ function SegmentButton({
       aria-pressed={disabled ? undefined : active}
       aria-label={unavailable ? `${children}, ${unavailable}` : children}
       disabled={disabled}
+      onClick={onClick}
       className={cn(
         'flex min-h-11 flex-1 items-center justify-center gap-2 border-b-2 px-2 text-label-lg outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
         active
           ? 'border-amber-gold text-text-primary'
-          : 'border-transparent text-text-muted',
+          : 'border-transparent text-tab-inactive',
         disabled && 'cursor-not-allowed opacity-50',
       )}
     >

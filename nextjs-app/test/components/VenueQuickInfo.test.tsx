@@ -43,6 +43,8 @@ const labels = {
   distance: 'Avstånd',
   loadingSun: 'Laddar soldata',
   sunUnavailable: 'Soltid saknas',
+  favouriteAdd: 'Spara som favorit',
+  favouriteRemove: 'Ta bort favorit',
 };
 
 describe('<VenueQuickInfo />', () => {
@@ -257,6 +259,50 @@ describe('<VenueQuickInfo />', () => {
     expect(open).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Stäng platskort' }));
     expect(dismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders an active favourite toggle with stateful label and pressed state', () => {
+    const toggle = vi.fn();
+    const { rerender } = render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunExposurePercent={95}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        onFavouriteToggle={toggle}
+        labels={labels}
+      />,
+    );
+
+    const addButton = screen.getByRole('button', { name: 'Spara som favorit' });
+    expect(addButton).toHaveAttribute('aria-pressed', 'false');
+    expect(addButton).toHaveClass('focus-visible:ring-2');
+    expect(screen.getByRole('button', { name: 'Stäng platskort' })).toHaveClass('left-2');
+    expect(screen.getByRole('button', { name: 'Stäng platskort' })).not.toHaveClass('right-2');
+    fireEvent.click(addButton);
+    expect(toggle).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunExposurePercent={95}
+        isLoadingSunData={false}
+        isFavourite
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        onFavouriteToggle={toggle}
+        labels={labels}
+      />,
+    );
+
+    const removeButton = screen.getByRole('button', { name: 'Ta bort favorit' });
+    expect(removeButton).toHaveAttribute('aria-pressed', 'true');
+    expect(removeButton.querySelector('svg')).toHaveClass('fill-current');
   });
 
   it('exposes a mobile dismiss control', () => {

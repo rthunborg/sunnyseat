@@ -256,6 +256,75 @@ describe('<VenueCard />', () => {
     expect(favourite).toHaveClass('size-11');
   });
 
+  it('toggles active favourite state without also selecting the venue', () => {
+    const onSelect = vi.fn();
+    const onFavouriteToggle = vi.fn();
+    const { rerender } = render(
+      <VenueCard
+        name="Bellora"
+        sunTimeRange="Sol 13:00-18:30"
+        confidencePercent={80}
+        distanceMeters={100}
+        thumbnail={{ alt: 'Uteservering', initials: 'BE' }}
+        isSunny
+        labels={{
+          select: 'Välj Bellora',
+          favourite: 'Spara {name}',
+          favouriteAdd: 'Spara som favorit',
+          favouriteRemove: 'Ta bort favorit',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+        }}
+        onSelect={onSelect}
+        onFavouriteToggle={onFavouriteToggle}
+      />,
+    );
+
+    const addButton = screen.getByRole('button', { name: 'Spara som favorit: Bellora' });
+    expect(addButton).toHaveAttribute('aria-pressed', 'false');
+    expect(addButton).toHaveClass('focus-visible:ring-2');
+    expect(addButton).toHaveClass('transition-colors', 'duration-fast', 'ease-default', 'motion-reduce:transition-none');
+    fireEvent.click(addButton);
+    expect(onFavouriteToggle).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+
+    rerender(
+      <VenueCard
+        name="Bellora"
+        sunTimeRange="Sol 13:00-18:30"
+        confidencePercent={80}
+        distanceMeters={100}
+        thumbnail={{ alt: 'Uteservering', initials: 'BE' }}
+        isSunny
+        isFavourite
+        labels={{
+          select: 'Välj Bellora',
+          favourite: 'Spara {name}',
+          favouriteAdd: 'Spara som favorit',
+          favouriteRemove: 'Ta bort favorit',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+        }}
+        onSelect={onSelect}
+        onFavouriteToggle={onFavouriteToggle}
+      />,
+    );
+
+    const removeButton = screen.getByRole('button', { name: 'Ta bort favorit: Bellora' });
+    expect(removeButton).toHaveAttribute('aria-pressed', 'true');
+    expect(removeButton.querySelector('svg')).toHaveClass('fill-current');
+  });
+
   it('uses design-token thumbnail sizing instead of arbitrary size utilities', () => {
     render(
       <VenueCard

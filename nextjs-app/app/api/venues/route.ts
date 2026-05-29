@@ -33,6 +33,9 @@ const DEFAULT_RADIUS_KM = 1.5;
 const MAX_RADIUS_KM = 3.0;
 const MAX_RESULTS = 50;
 const MAX_QUERY_LENGTH = 80;
+const MAX_ID_LENGTH = 80;
+const MAX_IDS = MAX_RESULTS;
+const MAX_IDS_QUERY_LENGTH = MAX_IDS * (MAX_ID_LENGTH + 1) - 1;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 120;
 const COORDINATE_COLLISION_PRECISION = 6;
@@ -89,6 +92,40 @@ function parseSearchQuery(
   }
   const trimmed = raw.trim();
   return { success: true, value: trimmed || undefined };
+}
+
+function parseIdsFilter(
+  params: URLSearchParams,
+): { success: true; value: string[] | undefined } | { success: false; error: string } {
+  const values = params.getAll('ids');
+  if (values.length === 0) return { success: true, value: undefined };
+  if (values.length > 1) return { success: false, error: 'Use a single canonical ids parameter' };
+  const raw = values[0];
+  if (Array.from(raw).length > MAX_IDS_QUERY_LENGTH) {
+    return { success: false, error: `ids must be at most ${MAX_IDS_QUERY_LENGTH} characters` };
+  }
+  if (CONTROL_CHARACTER_PATTERN.test(raw)) {
+    return { success: false, error: 'ids contains invalid control characters' };
+  }
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const part of raw.split(',')) {
+    if (ids.length >= MAX_IDS) break;
+    if (part.includes(',')) {
+      return { success: false, error: 'ids entries cannot contain commas' };
+    }
+    const id = part.trim();
+    if (!id || seen.has(id)) continue;
+    if (Array.from(id).length > MAX_ID_LENGTH) {
+      return { success: false, error: `ids entries must be at most ${MAX_ID_LENGTH} characters` };
+    }
+    if (CONTROL_CHARACTER_PATTERN.test(id)) {
+      return { success: false, error: 'ids contains invalid control characters' };
+    }
+    seen.add(id);
+    ids.push(id);
+  }
+  return { success: true, value: ids.length > 0 ? ids : undefined };
 }
 
 type RateLimitBucket = {
@@ -271,6 +308,8 @@ export async function GET(request: NextRequest) {
 
   const q = parseSearchQuery(params);
   if (!q.success) return badRequest(q.error);
+  const ids = parseIdsFilter(params);
+  if (!ids.success) return badRequest(ids.error);
   const planner = parseVenuePlannerParams(params);
   if (!planner.ok) return badRequest(planner.detail);
   const freshness = resolveFixtureSunFreshness(params);
@@ -283,8 +322,12 @@ export async function GET(request: NextRequest) {
       ...v,
       distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),
     }))
-    .filter((v) => q.value || v.distanceMeters <= radiusKm * 1000)
-    .filter((v) => matchesVenueQuery(v, q.value));
+    .filter((v) => {
+      if (ids.value) return ids.value.includes(v.id);
+      if (q.value) return true;
+      return v.distanceMeters <= radiusKm * 1000;
+    })
+    .filter((v) => (ids.value ? true : matchesVenueQuery(v, q.value)));
 
   const totalCount = matchedVenues.length;
 

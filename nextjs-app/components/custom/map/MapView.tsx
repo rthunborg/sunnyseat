@@ -13,12 +13,19 @@ import {
   type MobileBottomSheetState,
 } from '@/components/custom/sheets/MobileBottomSheet';
 import { VenueDetailOverlay } from '@/components/custom/venue/VenueDetailOverlay';
-import { VenueListControls, type VenueListSortMode } from '@/components/composed/venue/VenueListControls';
+import {
+  VenueListControls,
+  type VenueListModeSelection,
+  type VenueListSortMode,
+} from '@/components/composed/venue/VenueListControls';
+import { FavouritesList } from '@/components/custom/favourites/FavouritesList';
 import { resolveForcedVisualVenueDetail } from '@/components/custom/venue/forced-venue-detail';
 import { TimeSliderPanel } from '@/components/custom/time/TimeSliderPanel';
 import { isVenueSunnyForList, VenueList } from '@/components/custom/venue/VenueList';
 import { useVenueDetail } from '@/hooks/queries/useVenueDetail';
+import { useFavouriteVenues } from '@/hooks/queries/useFavouriteVenues';
 import { useVenueSearch } from '@/hooks/queries/useVenueSearch';
+import { useFavourites } from '@/hooks/useFavourites';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
@@ -91,6 +98,7 @@ export function MapView() {
   const { mapInstance } = useMapInstance();
   const { selectedVenueId, selectedVenuePreview, selectVenue } = useMapSelection();
   const plannerTime = useTimeContext();
+  const favourites = useFavourites();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -102,6 +110,13 @@ export function MapView() {
   const [mobileSheetState, setMobileSheetState] =
     useState<MobileBottomSheetState>('mid');
   const [venueSortMode, setVenueSortMode] = useState<VenueListSortMode>('sun');
+  const hasHandledFavouritesRouteEntryRef = useRef(false);
+  const isFavouritesRoute = isFavouritesPath(pathname);
+  const [desktopListMode, setDesktopListMode] = useState<'near' | 'favourites'>(
+    isFavouritesRoute ? 'favourites' : 'near',
+  );
+  const listMode = isFavouritesRoute ? 'favourites' : desktopListMode;
+  const effectiveSortMode = listMode === 'favourites' ? 'sun' : venueSortMode;
   const isForcedVisualReference =
     forcedState === 'map-primary' ||
     forcedState === 'map-panel-venues' ||
@@ -110,6 +125,13 @@ export function MapView() {
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
     radiusKm: SEARCH_RADIUS_KM,
+    ...plannerTime.plannerQuery,
+  });
+  const favouriteVenueQuery = useFavouriteVenues({
+    ids: favourites.favouriteIds,
+    lat: geolocation.coords.lat,
+    lng: geolocation.coords.lng,
+    enabled: listMode === 'favourites',
     ...plannerTime.plannerQuery,
   });
 
@@ -160,9 +182,15 @@ export function MapView() {
     };
     mapInstance.on('sourcedata', handler);
     mapInstance.on('error', errorHandler);
-    // Catch the "already loaded before listener bound" case.
-    if (typeof mapInstance.areTilesLoaded === 'function' && mapInstance.areTilesLoaded()) {
-      setTilesPainted(true);
+    // Catch the "already loaded before listener bound" case. MapLibre can
+    // throw here while a route transition races style/source initialization;
+    // the event listeners above still resolve the cover once tiles settle.
+    try {
+      if (typeof mapInstance.areTilesLoaded === 'function' && mapInstance.areTilesLoaded()) {
+        setTilesPainted(true);
+      }
+    } catch {
+      // Keep the loading cover until sourcedata/error events provide signal.
     }
     return () => {
       mapInstance.off('sourcedata', handler);
@@ -256,6 +284,15 @@ export function MapView() {
     venueDetailQuery.isFetching,
     venueSlugParam,
   ]);
+  const detailFavouriteId = useMemo(() => {
+    if (!venueSlugParam) return undefined;
+    const candidates = [
+      detailVenue,
+      selectedVenueDto,
+      ...(Array.isArray(rawVenues) ? rawVenues : []),
+    ];
+    return candidates.find((venue) => venueMatchesSlug(venue, venueSlugParam))?.id;
+  }, [detailVenue, rawVenues, selectedVenueDto, venueSlugParam]);
   const isVenueDetailRequested = canRequestVenueDetail;
 
   useEffect(() => {
@@ -272,10 +309,24 @@ export function MapView() {
   }, [forcedState]);
 
   useEffect(() => {
+    if (listMode === 'favourites') {
+      setMobileSheetState('mid');
+      return;
+    }
     if (selectedVenueId && !isVenueDetailRequested) {
       setMobileSheetState('peek');
     }
-  }, [isVenueDetailRequested, selectedVenueId]);
+  }, [isVenueDetailRequested, listMode, selectedVenueId]);
+
+  useEffect(() => {
+    if (!isFavouritesRoute) {
+      hasHandledFavouritesRouteEntryRef.current = false;
+      return;
+    }
+    if (hasHandledFavouritesRouteEntryRef.current) return;
+    hasHandledFavouritesRouteEntryRef.current = true;
+    if (selectedVenueId) selectVenue(null);
+  }, [isFavouritesRoute, selectVenue, selectedVenueId]);
 
   useEffect(() => {
     if (forcedState !== 'map-with-selected-venue' && !venueSlugParam) return;
@@ -291,7 +342,7 @@ export function MapView() {
       ? rawVenues.find((venue) => venueMatchesSlug(venue, venueSlugParam))
       : rawVenues[0];
     if (!match) return;
-    selectVenue(match.id);
+    selectVenue(match.id, match);
   }, [forcedState, rawVenues, selectVenue, selectedVenuePreview, venueSlugParam]);
 
   useEffect(() => {
@@ -370,7 +421,7 @@ export function MapView() {
   };
 
   const handleSelectVenueFromList = (venue: VenueDataDto) => {
-    selectVenue(venue.id);
+    selectVenue(venue.id, venue);
     setMobileSheetState('peek');
     if (mapInstance && hasValidVenueLocation(venue)) {
       mapInstance.easeTo({
@@ -392,6 +443,20 @@ export function MapView() {
   const listConfidenceMeta = isForcedVisualReference
     ? FORCED_VISUAL_CONFIDENCE_META
     : venueQuery.data?.meta;
+  const favouriteListConfidenceMeta = favouriteVenueQuery.data?.meta;
+  const favouriteVenueRows = favouriteVenueQuery.data?.venues ?? [];
+  const favouriteIdSet = useMemo(
+    () => new Set(favourites.favouriteIds),
+    [favourites.favouriteIds],
+  );
+  const visibleFavouriteVenueCount = favouriteVenueRows
+    .filter((venue) => favouriteIdSet.has(venue.id)).length;
+  const isFavouriteListLoading = !favourites.isHydrated ||
+    (
+      favouriteVenueQuery.isFetching &&
+      favourites.favouriteIds.length > 0 &&
+      visibleFavouriteVenueCount === 0
+    );
   const quickInfoConfidenceMeta = isForcedVisualReference
     ? FORCED_VISUAL_CONFIDENCE_META
     : venueQuery.data?.meta;
@@ -399,6 +464,25 @@ export function MapView() {
     start: '{start}',
     end: '{end}',
   });
+
+  useEffect(() => {
+    setDesktopListMode(isFavouritesRoute ? 'favourites' : 'near');
+  }, [isFavouritesRoute]);
+
+  const handleDesktopListModeChange = (mode: VenueListModeSelection) => {
+    setDesktopListMode(mode);
+    const query = queryWithout(searchParams, ['venue', '_state']);
+    if (mode === 'favourites' && !isFavouritesRoute) {
+      router.push(Object.keys(query).length > 0 ? { pathname: '/favoriter', query } : '/favoriter');
+    }
+    if (mode === 'near' && isFavouritesRoute) {
+      router.push(Object.keys(query).length > 0 ? { pathname: '/', query } : '/');
+    }
+  };
+  const handleSortModeChange = (mode: VenueListSortMode) => {
+    if (listMode === 'favourites') return;
+    setVenueSortMode(mode);
+  };
 
   return (
     <div className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full">
@@ -420,22 +504,43 @@ export function MapView() {
         {mobileSheetState !== 'peek' && (
           <VenueListControls
             mode="mobile"
-            sortMode={venueSortMode}
-            onSortModeChange={setVenueSortMode}
+            sortMode={effectiveSortMode}
+            onSortModeChange={handleSortModeChange}
+            listMode={listMode}
             labels={venueListControlLabels(tVenueList)}
           />
         )}
-        <VenueList
-          venues={listVenues}
-          mode="mobile"
-          sortMode={venueSortMode}
-          confidenceMeta={listConfidenceMeta}
-          showVisibleConfidence={!isForcedVisualReference}
-          isLoading={venueQuery.isFetching && listVenues.length === 0}
-          animateCards={mobileSheetState === 'full'}
-          compactCards={mobileSheetState === 'peek'}
-          onSelectVenue={handleSelectVenueFromList}
-        />
+        {listMode === 'favourites' ? (
+          <FavouritesList
+            favouriteIds={favourites.favouriteIds}
+            venues={favouriteVenueRows}
+            mode="mobile"
+            sortMode={effectiveSortMode}
+            confidenceMeta={favouriteListConfidenceMeta}
+            isLoading={isFavouriteListLoading}
+            isError={favouriteVenueQuery.isError}
+            onRetry={() => favouriteVenueQuery.refetch()}
+            animateCards={mobileSheetState === 'full'}
+            compactCards={mobileSheetState === 'peek'}
+            onSelectVenue={handleSelectVenueFromList}
+            onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
+            isFavourite={favourites.isFavourite}
+          />
+        ) : (
+          <VenueList
+            venues={listVenues}
+            mode="mobile"
+            sortMode={effectiveSortMode}
+            confidenceMeta={listConfidenceMeta}
+            showVisibleConfidence={!isForcedVisualReference}
+            isLoading={venueQuery.isFetching && listVenues.length === 0}
+            animateCards={mobileSheetState === 'full'}
+            compactCards={mobileSheetState === 'peek'}
+            onSelectVenue={handleSelectVenueFromList}
+            onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
+            isFavourite={favourites.isFavourite}
+          />
+        )}
       </MobileBottomSheet>
       <aside
         data-testid="desktop-venue-list-panel"
@@ -443,20 +548,40 @@ export function MapView() {
       >
         <VenueListControls
           mode="desktop"
-          sortMode={venueSortMode}
-          onSortModeChange={setVenueSortMode}
+          sortMode={effectiveSortMode}
+          onSortModeChange={handleSortModeChange}
+          listMode={listMode}
+          onListModeChange={handleDesktopListModeChange}
           labels={venueListControlLabels(tVenueList)}
         />
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
-          <VenueList
-            venues={listVenues}
-            mode="desktop"
-            sortMode={venueSortMode}
-            confidenceMeta={listConfidenceMeta}
-            showVisibleConfidence={!isForcedVisualReference}
-            isLoading={venueQuery.isFetching && listVenues.length === 0}
-            onSelectVenue={handleSelectVenueFromList}
-          />
+          {listMode === 'favourites' ? (
+            <FavouritesList
+              favouriteIds={favourites.favouriteIds}
+              venues={favouriteVenueRows}
+              mode="desktop"
+              sortMode={effectiveSortMode}
+              confidenceMeta={favouriteListConfidenceMeta}
+              isLoading={isFavouriteListLoading}
+              isError={favouriteVenueQuery.isError}
+              onRetry={() => favouriteVenueQuery.refetch()}
+              onSelectVenue={handleSelectVenueFromList}
+              onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
+              isFavourite={favourites.isFavourite}
+            />
+          ) : (
+            <VenueList
+              venues={listVenues}
+              mode="desktop"
+              sortMode={effectiveSortMode}
+              confidenceMeta={listConfidenceMeta}
+              showVisibleConfidence={!isForcedVisualReference}
+              isLoading={venueQuery.isFetching && listVenues.length === 0}
+              onSelectVenue={handleSelectVenueFromList}
+              onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
+              isFavourite={favourites.isFavourite}
+            />
+          )}
         </div>
       </aside>
       <AnimatePresence>
@@ -472,6 +597,10 @@ export function MapView() {
             labels={venueDetailLabels(tVenueDetail)}
             onDismiss={handleDismissDetails}
             onRoute={() => {}}
+            isFavourite={detailFavouriteId ? favourites.isFavourite(detailFavouriteId) : false}
+            onFavouriteToggle={
+              detailFavouriteId ? () => favourites.toggleFavourite(detailFavouriteId) : undefined
+            }
             routeDisabled
           />
         )}
@@ -487,6 +616,10 @@ export function MapView() {
             labels={venueDetailLabels(tVenueDetail)}
             onDismiss={handleDismissDetails}
             onRoute={() => {}}
+            isFavourite={detailFavouriteId ? favourites.isFavourite(detailFavouriteId) : false}
+            onFavouriteToggle={
+              detailFavouriteId ? () => favourites.toggleFavourite(detailFavouriteId) : undefined
+            }
             routeDisabled
           />
         )}
@@ -506,6 +639,12 @@ export function MapView() {
             onDismiss={() => selectVenue(null)}
             onOpenDetails={handleOpenDetails}
             onRoute={() => {}}
+            isFavourite={selectedQuickInfoVenue ? favourites.isFavourite(selectedQuickInfoVenue.id) : false}
+            onFavouriteToggle={
+              selectedQuickInfoVenue
+                ? () => favourites.toggleFavourite(selectedQuickInfoVenue.id)
+                : undefined
+            }
             labels={quickInfoLabels(tVenue)}
           />
         )}
@@ -526,6 +665,12 @@ export function MapView() {
             onDismiss={() => selectVenue(null)}
             onOpenDetails={handleOpenDetails}
             onRoute={() => {}}
+            isFavourite={selectedQuickInfoVenue ? favourites.isFavourite(selectedQuickInfoVenue.id) : false}
+            onFavouriteToggle={
+              selectedQuickInfoVenue
+                ? () => favourites.toggleFavourite(selectedQuickInfoVenue.id)
+                : undefined
+            }
             labels={quickInfoLabels(tVenue)}
           />
         )}
@@ -568,6 +713,10 @@ function formatLabel(template: string, values: Record<string, string>): string {
 
 function hasValidVenueLocation(venue: VenueDataDto): boolean {
   return Number.isFinite(venue.location?.lat) && Number.isFinite(venue.location?.lng);
+}
+
+function isFavouritesPath(pathname: string): boolean {
+  return pathname === '/favoriter' || pathname.startsWith('/favoriter/');
 }
 
 function venueMatchesSlug(
@@ -665,6 +814,8 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     distance: t('quickInfo.distance'),
     loadingSun: t('quickInfo.loadingSun'),
     sunUnavailable: t('quickInfo.sunUnavailable'),
+    favouriteAdd: t('list.favouriteAdd'),
+    favouriteRemove: t('list.favouriteRemove'),
   };
 }
 
@@ -672,6 +823,8 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue.detail'>>
   return {
     close: t('close'),
     favourite: t('favourite'),
+    favouriteAdd: t('favouriteAdd'),
+    favouriteRemove: t('favouriteRemove'),
     share: t('share'),
     sectionTitle: t('sectionTitle'),
     peakTime: t('peakTime', { time: '{time}' }),
