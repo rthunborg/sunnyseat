@@ -20,18 +20,17 @@ test.describe('favourites', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
 
-    const firstVenue = page.getByRole('button', { name: /^Välj / }).first();
+    const firstCard = page.getByTestId('venue-card').first();
+    const firstVenue = firstCard.getByRole('button', { name: /^Välj / });
     await expect(firstVenue).toBeVisible();
     const label = (await firstVenue.getAttribute('aria-label')) ?? '';
     const venueName = label.match(/^Välj ([^,]+)/)?.[1] ?? 'Kafé Magasinet';
 
-    await page.getByRole('button', { name: /Spara som favorit/ }).first().click();
-    await expect.poll(async () => {
-      return page.evaluate((key) => {
-        const raw = window.localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : [];
-      }, FAVOURITES_STORAGE_KEY);
-    }).toEqual(expect.arrayContaining([expect.any(String)]));
+    await firstCard.getByRole('button', { name: /Spara som favorit/ }).click();
+    await expect(firstCard.getByRole('button', { name: /Ta bort favorit/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
 
     await page.getByTestId('mobile-nav-tab-favoriter').click();
     await expect(page).toHaveURL(/\/favoriter/);
