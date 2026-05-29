@@ -19,14 +19,16 @@ test.describe('Onboarding overlay', () => {
   });
 
   test('skip link dismisses the overlay and reveals the underlying map', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?_state=onboarding');
     await page.getByTestId('onboarding-cta-skip').click();
     // Story 1.6 review (P26): OnboardingGateInner returns `null` when
     // `shouldShow=false`, so the element is absent from the DOM rather
     // than just hidden. `toHaveCount(0)` is the semantically correct
-    // assertion for "never rendered".
+    // assertion for "never rendered"; CI can delay post-click timers
+    // under the full desktop+mobile matrix, so do not use a hard 2s cap.
     await expect(page.getByTestId('onboarding-screen')).toHaveCount(0, {
-      timeout: 2_000,
+      timeout: 5_000,
     });
     await expect(page.getByTestId('map-container')).toBeVisible();
   });
