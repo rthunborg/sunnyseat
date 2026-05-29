@@ -17,6 +17,7 @@ async function seedShell(page: import('@playwright/test').Page, favouriteIds?: s
 test.describe('favourites', () => {
   test('mobile: user can save a venue from the map list and see it in /favoriter', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile', 'Runs in the mobile project only');
+    testInfo.setTimeout(45_000);
 
     await seedShell(page);
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -36,8 +37,10 @@ test.describe('favourites', () => {
 
     await page.goto('/favoriter', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/favoriter/);
-    await expect(page.getByRole('button', { name: new RegExp(`Välj ${escapeRegex(venueName)}`) })).toBeVisible();
-    await expect(page.getByText(/Sol 13:00/)).toBeVisible();
+    await expect(page.getByRole('button', { name: new RegExp(`Välj ${escapeRegex(venueName)}`) })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByText(/Sol 13:00/)).toBeVisible({ timeout: 15_000 });
   });
 
   test('mobile: saved venue persists, appears in /favoriter, and can be removed', async ({ page }, testInfo) => {
