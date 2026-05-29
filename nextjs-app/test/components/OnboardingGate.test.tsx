@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
+import { NextIntlClientProvider } from 'next-intl';
 import { OnboardingGateWithSuspense } from '@/components/custom/onboarding/OnboardingGate';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import onboardingMessages from '@/messages/sv/onboarding.json';
 
 const useForcedStateMock = vi.fn<() => string | null>(() => null);
 const useMapInstanceMock = vi.fn<() => { mapRef: { current: unknown }; mapInstance: unknown }>(
@@ -43,6 +45,21 @@ vi.mock('@/components/custom/onboarding/OnboardingScreen', () => ({
   ),
 }));
 
+function Wrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <NextIntlClientProvider locale="sv" messages={{ onboarding: onboardingMessages }}>
+      {children}
+    </NextIntlClientProvider>
+  );
+}
+
+function renderGate(options?: Parameters<typeof render>[1]) {
+  return render(<OnboardingGateWithSuspense />, {
+    wrapper: Wrapper,
+    ...options,
+  });
+}
+
 describe('<OnboardingGate />', () => {
   let originalLocalStorage: PropertyDescriptor | undefined;
   let store: Map<string, string>;
@@ -77,26 +94,30 @@ describe('<OnboardingGate />', () => {
   });
 
   it('first visit (no flag, no _state): renders the onboarding screen', async () => {
-    render(<OnboardingGateWithSuspense />);
+    renderGate();
     expect(await screen.findByTestId('onboarding-screen-stub')).toBeInTheDocument();
   });
 
   it('server-renders a blocking placeholder while the onboarded flag is unknown', () => {
-    expect(renderToString(<OnboardingGateWithSuspense />)).toContain(
-      'data-testid="onboarding-gate-placeholder"',
+    const html = renderToString(
+      <Wrapper>
+        <OnboardingGateWithSuspense />
+      </Wrapper>,
     );
+    expect(html).toContain('data-testid="onboarding-gate-placeholder"');
+    expect(html).toContain('Hitta uteplatser');
   });
 
   it('returning user (flag set, no _state): renders nothing', async () => {
     store.set(ONBOARDED_FLAG_KEY, '1');
-    render(<OnboardingGateWithSuspense />);
+    renderGate();
     await waitFor(() => expect(screen.queryByTestId('onboarding-screen-stub')).toBeNull());
   });
 
   it('forced state ("_state=onboarding") overrides the flag and renders the screen', async () => {
     store.set(ONBOARDED_FLAG_KEY, '1');
     useForcedStateMock.mockReturnValue('onboarding');
-    render(<OnboardingGateWithSuspense />);
+    renderGate();
     expect(await screen.findByTestId('onboarding-screen-stub')).toBeInTheDocument();
   });
 
@@ -105,7 +126,7 @@ describe('<OnboardingGate />', () => {
     shell.setAttribute('data-app-shell', '');
     document.body.appendChild(shell);
 
-    render(<OnboardingGateWithSuspense />, { container: shell });
+    renderGate({ container: shell });
     expect(await screen.findByTestId('onboarding-screen-stub')).toBeInTheDocument();
     await waitFor(() => expect(shell).toHaveAttribute('aria-hidden', 'true'));
     expect(shell).toHaveAttribute('inert');
@@ -118,26 +139,26 @@ describe('<OnboardingGate />', () => {
   });
 
   it('grant in the real flow writes the localStorage flag', async () => {
-    render(<OnboardingGateWithSuspense />);
+    renderGate();
     fireEvent.click(await screen.findByTestId('grant'));
     expect(store.get(ONBOARDED_FLAG_KEY)).toBe('1');
   });
 
   it('deny in the real flow writes the localStorage flag', async () => {
-    render(<OnboardingGateWithSuspense />);
+    renderGate();
     fireEvent.click(await screen.findByTestId('deny'));
     expect(store.get(ONBOARDED_FLAG_KEY)).toBe('1');
   });
 
   it('dismiss alone does NOT write the localStorage flag (decoupled from resolution)', async () => {
-    render(<OnboardingGateWithSuspense />);
+    renderGate();
     fireEvent.click(await screen.findByTestId('dismiss'));
     expect(store.get(ONBOARDED_FLAG_KEY)).toBeUndefined();
     expect(screen.queryByTestId('onboarding-screen-stub')).toBeNull();
   });
 
   it('grant + dismiss flow writes flag and unmounts the screen', async () => {
-    render(<OnboardingGateWithSuspense />);
+    renderGate();
     fireEvent.click(await screen.findByTestId('grant'));
     fireEvent.click(screen.getByTestId('dismiss'));
     expect(store.get(ONBOARDED_FLAG_KEY)).toBe('1');
@@ -146,14 +167,14 @@ describe('<OnboardingGate />', () => {
 
   it('grant in the forced-state flow does NOT write the localStorage flag', async () => {
     useForcedStateMock.mockReturnValue('onboarding');
-    render(<OnboardingGateWithSuspense />);
+    renderGate();
     fireEvent.click(await screen.findByTestId('grant'));
     expect(store.get(ONBOARDED_FLAG_KEY)).toBeUndefined();
   });
 
   it('deny in the forced-state flow does NOT write the localStorage flag', async () => {
     useForcedStateMock.mockReturnValue('onboarding');
-    render(<OnboardingGateWithSuspense />);
+    renderGate();
     fireEvent.click(await screen.findByTestId('deny'));
     expect(store.get(ONBOARDED_FLAG_KEY)).toBeUndefined();
   });
@@ -161,7 +182,7 @@ describe('<OnboardingGate />', () => {
   it('a non-matching forced state does NOT show the screen for a returning user', async () => {
     store.set(ONBOARDED_FLAG_KEY, '1');
     useForcedStateMock.mockReturnValue('premium-paywall');
-    render(<OnboardingGateWithSuspense />);
+    renderGate();
     await waitFor(() => expect(screen.queryByTestId('onboarding-screen-stub')).toBeNull());
   });
 });

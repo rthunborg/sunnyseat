@@ -1,7 +1,8 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, type ReactNode, useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslations } from 'next-intl';
 import { useForcedState } from '@/lib/dev/use-forced-state';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
@@ -54,6 +55,7 @@ function writeFlag(): void {
  *     is the only visible content.
  */
 function OnboardingGateInner() {
+  const t = useTranslations('onboarding');
   const forcedState = useForcedState();
   const isForced = forcedState === 'onboarding';
   const { mapInstance } = useMapInstance();
@@ -155,7 +157,16 @@ function OnboardingGateInner() {
   }, [shouldBlockAppShell]);
 
   if (!hasReadFlag && !dismissed) {
-    return <OnboardingGatePlaceholder />;
+    return (
+      <OnboardingGatePlaceholder
+        wordmark={t('wordmark')}
+        headline={t.rich('headline', { br: () => <br /> })}
+        subtitle={t('subtitle')}
+        primaryCta={t('primaryCta')}
+        skipLink={t('skipLink')}
+        trustMicrocopy={t('trustMicrocopy')}
+      />
+    );
   }
 
   if (!shouldShow) return null;
@@ -171,13 +182,64 @@ function OnboardingGateInner() {
   return typeof document === 'undefined' ? screen : createPortal(screen, document.body);
 }
 
-function OnboardingGatePlaceholder() {
+type OnboardingGatePlaceholderProps = {
+  wordmark: string;
+  headline: ReactNode;
+  subtitle: string;
+  primaryCta: string;
+  skipLink: string;
+  trustMicrocopy: string;
+};
+
+function OnboardingGatePlaceholder({
+  wordmark,
+  headline,
+  subtitle,
+  primaryCta,
+  skipLink,
+  trustMicrocopy,
+}: OnboardingGatePlaceholderProps) {
   return (
     <div
       aria-hidden="true"
       data-testid="onboarding-gate-placeholder"
-      className="fixed inset-0 z-toast gradient-onboarding"
-    />
+      className="fixed inset-0 z-toast gradient-onboarding text-white flex flex-col px-8 py-16 overflow-hidden"
+    >
+      <div
+        aria-hidden="true"
+        className="absolute left-1/2 -top-10 w-[340px] h-[340px] -translate-x-1/2 rounded-full opacity-80 pointer-events-none gradient-sun-burst-warm"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute -left-32 -bottom-32 w-[480px] h-[480px] rounded-full pointer-events-none gradient-sun-burst-amber"
+      />
+      <div className="mt-5 flex justify-center items-center gap-2 font-display font-extrabold text-[22px] tracking-[-0.04em] text-white/90 relative z-10">
+        <span
+          aria-hidden="true"
+          className="w-7 h-7 rounded-full gradient-wordmark-sun shadow-wordmark-sun"
+        />
+        {wordmark}
+      </div>
+      <div className="flex-1 flex flex-col justify-center items-center relative z-10 text-balance">
+        <h1 className="text-display-xl text-center leading-[1.15] tracking-[-0.03em] m-0">
+          {headline}
+        </h1>
+        <p className="mt-3.5 text-body-md text-white/70 text-center tracking-[0.02em]">
+          {subtitle}
+        </p>
+      </div>
+      <div className="relative z-10">
+        <div className="w-full h-14 rounded-pill gradient-cta-amber shadow-cta flex items-center justify-center gap-2 text-amber-cta-text font-bold text-[16px] tracking-[-0.01em]">
+          {primaryCta}
+        </div>
+        <div className="w-full mt-[18px] min-h-11 flex items-center justify-center bg-transparent text-white/90 underline underline-offset-4 text-body-sm font-bold">
+          {skipLink}
+        </div>
+        <p className="mt-[18px] text-center text-[11px] font-medium tracking-[0.04em] text-white/65">
+          {trustMicrocopy}
+        </p>
+      </div>
+    </div>
   );
 }
 
