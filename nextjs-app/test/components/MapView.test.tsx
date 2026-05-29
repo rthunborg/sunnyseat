@@ -61,7 +61,12 @@ const useVenueSearchMock = vi.fn<(params?: VenueSearchParams) => VenueQueryShape
   dataUpdatedAt: 0,
 }));
 
-const useVenueDetailMock = vi.fn<(slug?: string | null, planner?: { date: string; time: string }) => {
+const useVenueDetailMock = vi.fn<(slug?: string | null, params?: {
+  date?: string;
+  time?: string;
+  lat?: number;
+  lng?: number;
+}) => {
   data: GetVenueDetailResponse | undefined;
   isFetching: boolean;
   isError: boolean;
@@ -151,8 +156,12 @@ vi.mock('@/hooks/queries/useVenueSearch', () => ({
 }));
 
 vi.mock('@/hooks/queries/useVenueDetail', () => ({
-  useVenueDetail: (slug?: string | null, planner?: { date: string; time: string }) =>
-    useVenueDetailMock(slug, planner),
+  useVenueDetail: (slug?: string | null, params?: {
+    date?: string;
+    time?: string;
+    lat?: number;
+    lng?: number;
+  }) => useVenueDetailMock(slug, params),
 }));
 
 vi.mock('@/hooks/queries/useFavouriteVenues', () => ({
@@ -634,6 +643,8 @@ describe('<MapView />', () => {
         expect(useVenueDetailMock).toHaveBeenLastCalledWith('test-venue-sunny', {
           date: '2026-05-21',
           time: '12:15',
+          lat: 57.7089,
+          lng: 11.9746,
         }),
       );
       expect(screen.getAllByText('12:15').length).toBeGreaterThanOrEqual(1);
@@ -738,6 +749,28 @@ describe('<MapView />', () => {
         pathname: '/',
         query: { venue: 'test-venue-sunny' },
       });
+    });
+
+    it('opens directions from QuickInfo instead of rendering a dead route action', () => {
+      const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Visa Rutt' })[0]);
+
+      expect(openSpy).toHaveBeenCalledWith(
+        'https://www.google.com/maps/dir/?api=1&destination=57.7%2C11.97',
+        '_blank',
+        'noopener,noreferrer',
+      );
     });
 
     it('plain venue deep links select the matching venue and render detail once data is available', () => {
@@ -897,6 +930,44 @@ describe('<MapView />', () => {
         'URL venue',
       );
       expect(screen.getAllByRole('heading', { name: 'URL venue' })).toHaveLength(2);
+    });
+
+    it('lets a changed venue URL override stale selected preview state', () => {
+      selectedVenueIdMock = 'venue-1';
+      selectedVenuePreviewMock = makeVenue({ id: 'venue-1', name: 'Stale venue', slug: 'venue-a' });
+      searchParamsMock = new URLSearchParams('venue=venue-b');
+      const urlVenue = makeVenue({ id: 'venue-2', name: 'URL venue', slug: 'venue-b' });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([selectedVenuePreviewMock, urlVenue]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(selectVenueMock).toHaveBeenCalledWith('venue-2', expect.objectContaining({ id: 'venue-2' }));
+      expect(routerReplaceMock).not.toHaveBeenCalled();
+    });
+
+    it('does not fabricate a detail sheet once an unknown venue slug returns an error', () => {
+      searchParamsMock = new URLSearchParams('venue=unknown-sunny-place');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useVenueDetailMock.mockReturnValue({
+        data: undefined,
+        isFetching: false,
+        isError: true,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.queryByTestId('mobile-venue-detail-sheet')).not.toBeInTheDocument();
+      expect(screen.queryByText('Unknown Sunny Place')).not.toBeInTheDocument();
     });
 
     it('keeps detail responses whose canonical slug differs from the URL alias', () => {
@@ -1359,19 +1430,24 @@ describe('<MapView />', () => {
 
     it('clears an active detail URL after selecting a different venue from search', async () => {
       searchParamsMock = new URLSearchParams('venue=old-slug&_state=venue-detail');
-      selectedVenueIdMock = 'venue-2';
-      selectedVenuePreviewMock = makeVenue({ id: 'venue-2', name: 'Ny plats', slug: 'new-slug' });
+      selectedVenueIdMock = 'venue-1';
+      selectedVenuePreviewMock = makeVenue({ id: 'venue-1', name: 'Gammal plats', slug: 'old-slug' });
+      const nextVenue = makeVenue({ id: 'venue-2', name: 'Ny plats', slug: 'new-slug' });
       useVenueSearchMock.mockReturnValue({
         data: makeVenueResponse([
-          makeVenue({ id: 'venue-1', name: 'Gammal plats', slug: 'old-slug' }),
           selectedVenuePreviewMock,
+          nextVenue,
         ]),
         isFetching: false,
         isError: false,
         dataUpdatedAt: 1,
       });
 
-      render(<MapView />, { wrapper: Wrapper });
+      const { rerender } = render(<MapView />, { wrapper: Wrapper });
+      act(() => {
+        selectVenueMock('venue-2', nextVenue);
+      });
+      rerender(<MapView />);
 
       await waitFor(() => expect(routerReplaceMock).toHaveBeenCalledWith('/'));
     });

@@ -8,7 +8,13 @@ import {
   applyFixtureWeatherAvailability,
   resolveFixtureSunFreshness,
 } from '@/lib/services/weather-freshness-fixture';
+import { badRequest } from '@/lib/utils/api-errors';
+import { greatCircleMeters } from '@/lib/utils/geo';
 import { formatPlannerTime, parsePlannerTime } from '@/lib/utils/time-planner';
+import {
+  validateLatitude,
+  validateLongitude,
+} from '@/lib/utils/validation';
 import type {
   GetVenueDetailResponse,
   VenueDataDto,
@@ -31,6 +37,11 @@ type FixtureDetail = {
 type DetailTimelineProjection = {
   peakTime?: string;
   windowStatus?: VenueDataDto['currentSunStatus'];
+};
+
+type DetailCoordinates = {
+  lat: number;
+  lng: number;
 };
 
 const DETAIL_FIXTURE: Record<string, FixtureDetail> = {
@@ -95,6 +106,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       { status: 400 },
     );
   }
+  const coordinates = parseDetailCoordinates(_request.nextUrl.searchParams);
+  if (!coordinates.ok) return badRequest(coordinates.detail);
   const freshness = resolveFixtureSunFreshness(_request.nextUrl.searchParams);
   const { slug } = await context.params;
   let decodedSlug: string;
@@ -117,7 +130,18 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     );
   }
 
-  const weatherAdjustedVenue = applyFixtureWeatherAvailability(venue, freshness);
+  const venueWithDistance = coordinates.value
+    ? {
+        ...venue,
+        distanceMeters: greatCircleMeters(
+          coordinates.value.lat,
+          coordinates.value.lng,
+          venue.location.lat,
+          venue.location.lng,
+        ),
+      }
+    : venue;
+  const weatherAdjustedVenue = applyFixtureWeatherAvailability(venueWithDistance, freshness);
   const adjustedVenue = applyPlannerSelectionToVenue(weatherAdjustedVenue, planner.selection);
   const detail = buildDetailDto(
     adjustedVenue,
@@ -174,6 +198,37 @@ function buildDetailDto(
       ? { shadowWarningMinutes: fixture.shadowWarningMinutes }
       : {}),
   };
+}
+
+function parseDetailCoordinates(
+  params: URLSearchParams,
+): { ok: true; value: DetailCoordinates | undefined } | { ok: false; detail: string } {
+  if (params.has('latitude') || params.has('longitude')) {
+    return { ok: false, detail: 'Use canonical coordinate parameters: lat and lng' };
+  }
+  const hasLat = params.has('lat');
+  const hasLng = params.has('lng');
+  if (!hasLat && !hasLng) return { ok: true, value: undefined };
+  if (!hasLat || !hasLng) {
+    return { ok: false, detail: 'Use lat and lng together for venue detail distance' };
+  }
+  const lat = parseStrictCoordinate(params.get('lat'));
+  if (lat === null) return { ok: false, detail: 'Invalid lat: must be a finite number' };
+  if (!validateLatitude(lat)) {
+    return { ok: false, detail: 'Latitude must be between -90 and 90 degrees' };
+  }
+  const lng = parseStrictCoordinate(params.get('lng'));
+  if (lng === null) return { ok: false, detail: 'Invalid lng: must be a finite number' };
+  if (!validateLongitude(lng)) {
+    return { ok: false, detail: 'Longitude must be between -180 and 180 degrees' };
+  }
+  return { ok: true, value: { lat, lng } };
+}
+
+function parseStrictCoordinate(value: string | null): number | null {
+  if (value === null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function timelineProjectionFromAdjustedVenue(

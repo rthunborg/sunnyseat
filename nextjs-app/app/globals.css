@@ -208,6 +208,10 @@
   backdrop-filter: blur(var(--blur-standard));
 }
 
+@utility backdrop-blur-heavy {
+  backdrop-filter: blur(var(--blur-heavy));
+}
+
 @utility venue-photo-gradient {
   background:
     radial-gradient(circle at 18% 82%, var(--color-amber-primary) 0 13%, transparent 14%),

@@ -59,6 +59,27 @@ describe('GET /api/venues/[slug]', () => {
     expect(body.meta?.weatherUpdatedAt).toBeUndefined();
   });
 
+  it('computes detail distance from canonical coordinates when supplied', async () => {
+    const res = await GET(makeRequest('test-venue-sunny', '?lat=57.7089&lng=11.9746'), {
+      params: Promise.resolve({ slug: 'test-venue-sunny' }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenueDetailResponse;
+    expect(body.venue.distanceMeters).toBeGreaterThan(0);
+    expect(body.venue.distanceMeters).toBeLessThan(700);
+  });
+
+  it('rejects incomplete venue detail coordinates', async () => {
+    const res = await GET(makeRequest('test-venue-sunny', '?lat=57.7089'), {
+      params: Promise.resolve({ slug: 'test-venue-sunny' }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { detail: string };
+    expect(body.detail).toMatch(/lat and lng together/i);
+  });
+
   it('returns 404 for an unknown venue slug', async () => {
     const res = await GET(makeRequest('missing-venue'), {
       params: Promise.resolve({ slug: 'missing-venue' }),

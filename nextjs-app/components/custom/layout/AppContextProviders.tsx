@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { MapInstanceProvider } from '@/lib/contexts/MapInstanceContext';
 import { MapSelectionProvider } from '@/lib/contexts/MapSelectionContext';
@@ -26,19 +26,35 @@ import { GeolocationProvider } from '@/hooks/useGeolocation';
  *   Query → Language → Geolocation → MapInstance → MapSelection → Time → children
  */
 export function AppContextProviders({ children }: { children: ReactNode }) {
+  return (
+    <GeolocationProvider>
+      <MapInstanceProvider>
+        <MapSelectionProvider>
+          <Suspense fallback={<DefaultTimeProviders>{children}</DefaultTimeProviders>}>
+            <SearchParamTimeProviders>{children}</SearchParamTimeProviders>
+          </Suspense>
+        </MapSelectionProvider>
+      </MapInstanceProvider>
+    </GeolocationProvider>
+  );
+}
+
+function SearchParamTimeProviders({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   const forcedDate = searchParams.get('_date') ?? undefined;
   const forcedTime = searchParams.get('_time') ?? undefined;
 
   return (
-    <GeolocationProvider>
-      <MapInstanceProvider>
-        <MapSelectionProvider>
-          <TimeProvider forcedDate={forcedDate} forcedTime={forcedTime}>
-            <FavouritesProvider>{children}</FavouritesProvider>
-          </TimeProvider>
-        </MapSelectionProvider>
-      </MapInstanceProvider>
-    </GeolocationProvider>
+    <TimeProvider forcedDate={forcedDate} forcedTime={forcedTime}>
+      <FavouritesProvider>{children}</FavouritesProvider>
+    </TimeProvider>
+  );
+}
+
+function DefaultTimeProviders({ children }: { children: ReactNode }) {
+  return (
+    <TimeProvider>
+      <FavouritesProvider>{children}</FavouritesProvider>
+    </TimeProvider>
   );
 }

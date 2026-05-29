@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { VenueCard, VenueCardSkeleton } from '@/components/composed/venue/VenueCard';
 import type { VenueListSortMode } from '@/components/composed/venue/VenueListControls';
 import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
@@ -39,6 +39,7 @@ export function VenueList({
   isFavourite,
 }: VenueListProps) {
   const t = useTranslations('venue.list');
+  const locale = useLocale();
   const sortedVenues = useMemo(() => sortVenuesForList(venues, sortMode), [venues, sortMode]);
   const compact = compactCards ?? mode === 'desktop';
 
@@ -90,7 +91,7 @@ export function VenueList({
             sunExposurePercent={venue.sunExposurePercent}
             thumbnail={venue.thumbnail}
             isSunny={isVenueSunnyForList(venue)}
-            visualMetadata={getVenueVisualMetadata(venue)}
+            visualMetadata={getVenueVisualMetadata(venue, locale)}
             compact={compact}
             showVisibleConfidence={showVisibleConfidence}
             staggerIndex={index}
@@ -112,6 +113,9 @@ export function VenueList({
               confidenceUnavailable: t('confidenceUnavailable'),
               distance: t('distance'),
               sunUnavailable: t('sunUnavailable'),
+              statusMostlyShade: t('statusMostlyShade'),
+              statusFullSun: t('statusFullSun'),
+              statusPartialSun: t('statusPartialSun'),
             }}
             isFavourite={isFavourite?.(venue.id) ?? false}
             onFavouriteToggle={onFavouriteToggle ? () => onFavouriteToggle(venue) : undefined}

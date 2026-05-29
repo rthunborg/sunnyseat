@@ -173,7 +173,7 @@ describe('<VenueSearchCombobox />', () => {
     expect(screen.getByText('Inga resultat för "test-venue-sunny"')).toBeInTheDocument();
   });
 
-  it('marks the reduced-motion dropdown path for instant/opacity-only transitions', () => {
+  it('marks the reduced-motion dropdown path for instant/opacity-only transitions', async () => {
     motionState.reducedMotion = true;
     render(
       <Harness
@@ -186,10 +186,12 @@ describe('<VenueSearchCombobox />', () => {
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: 'kafé' } });
 
-    expect(screen.getByTestId('venue-search-results')).toHaveAttribute(
-      'data-reduced-motion',
-      'true',
-    );
+    await waitFor(() => {
+      expect(screen.getByTestId('venue-search-results')).toHaveAttribute(
+        'data-reduced-motion',
+        'true',
+      );
+    });
     motionState.reducedMotion = false;
   });
 });

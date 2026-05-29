@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { AnimatePresence } from 'motion/react';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -94,6 +94,7 @@ export function MapView() {
   const tVenue = useTranslations('venue');
   const tVenueDetail = useTranslations('venue.detail');
   const tVenueList = useTranslations('venue.list');
+  const locale = useLocale();
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
   const { selectedVenueId, selectedVenuePreview, selectVenue } = useMapSelection();
@@ -114,6 +115,9 @@ export function MapView() {
   const isFavouritesRoute = isFavouritesPath(pathname);
   const [desktopListMode, setDesktopListMode] = useState<'near' | 'favourites'>(
     isFavouritesRoute ? 'favourites' : 'near',
+  );
+  const previousSelectedPreviewKeyRef = useRef<string | null>(
+    venueIdentityKey(selectedVenuePreview),
   );
   const listMode = isFavouritesRoute ? 'favourites' : desktopListMode;
   const effectiveSortMode = listMode === 'favourites' ? 'sun' : venueSortMode;
@@ -250,7 +254,11 @@ export function MapView() {
     forcedState !== 'map-with-selected-venue';
   const venueDetailQuery = useVenueDetail(
     canRequestVenueDetail ? venueSlugParam : null,
-    plannerTime.plannerQuery,
+    {
+      ...plannerTime.plannerQuery,
+      lat: geolocation.coords.lat,
+      lng: geolocation.coords.lng,
+    },
   );
   const forcedVisualVenueDetail = useMemo(
     () => resolveForcedVisualVenueDetail(venueSlugParam, forcedState),
@@ -272,7 +280,7 @@ export function MapView() {
       if (listVenue) return listVenue;
     }
     if (venueMatchesSlug(selectedVenueDto, venueSlugParam)) return selectedVenueDto;
-    if (venueDetailQuery.isFetching || venueDetailQuery.isError) {
+    if (venueDetailQuery.isFetching) {
       return fallbackVenueFromSlug(venueSlugParam);
     }
     return null;
@@ -297,6 +305,11 @@ export function MapView() {
 
   useEffect(() => {
     if (!venueSlugParam || !selectedVenuePreview?.slug) return;
+    const selectedPreviewKey = venueIdentityKey(selectedVenuePreview);
+    const selectedPreviewChanged =
+      selectedPreviewKey !== previousSelectedPreviewKeyRef.current;
+    previousSelectedPreviewKeyRef.current = selectedPreviewKey;
+    if (!selectedPreviewChanged) return;
     if (venueMatchesSlug(selectedVenuePreview, venueSlugParam)) return;
     const query = queryWithout(searchParams, ['venue', '_state']);
     router.replace(Object.keys(query).length > 0 ? { pathname, query } : pathname);
@@ -330,13 +343,6 @@ export function MapView() {
 
   useEffect(() => {
     if (forcedState !== 'map-with-selected-venue' && !venueSlugParam) return;
-    if (
-      venueSlugParam &&
-      selectedVenuePreview?.slug &&
-      !venueMatchesSlug(selectedVenuePreview, venueSlugParam)
-    ) {
-      return;
-    }
     if (!Array.isArray(rawVenues) || rawVenues.length === 0) return;
     const match = venueSlugParam
       ? rawVenues.find((venue) => venueMatchesSlug(venue, venueSlugParam))
@@ -479,6 +485,12 @@ export function MapView() {
       router.push(Object.keys(query).length > 0 ? { pathname: '/', query } : '/');
     }
   };
+
+  const handleRouteSelectedVenue = () => {
+    const venue = selectedQuickInfoVenue ?? selectedVenueDto;
+    if (!venue) return;
+    openDirections(venue);
+  };
   const handleSortModeChange = (mode: VenueListSortMode) => {
     if (listMode === 'favourites') return;
     setVenueSortMode(mode);
@@ -602,6 +614,7 @@ export function MapView() {
               detailFavouriteId ? () => favourites.toggleFavourite(detailFavouriteId) : undefined
             }
             routeDisabled
+            locale={locale}
           />
         )}
         {detailFallbackVenue && isVenueDetailRequested && (
@@ -621,6 +634,7 @@ export function MapView() {
               detailFavouriteId ? () => favourites.toggleFavourite(detailFavouriteId) : undefined
             }
             routeDisabled
+            locale={locale}
           />
         )}
         {selectedPinData && !isVenueDetailRequested && (
@@ -638,7 +652,7 @@ export function MapView() {
             position={quickInfoPosition}
             onDismiss={() => selectVenue(null)}
             onOpenDetails={handleOpenDetails}
-            onRoute={() => {}}
+            onRoute={handleRouteSelectedVenue}
             isFavourite={selectedQuickInfoVenue ? favourites.isFavourite(selectedQuickInfoVenue.id) : false}
             onFavouriteToggle={
               selectedQuickInfoVenue
@@ -664,7 +678,7 @@ export function MapView() {
             desktopPlacement={quickInfoDesktopPlacement}
             onDismiss={() => selectVenue(null)}
             onOpenDetails={handleOpenDetails}
-            onRoute={() => {}}
+            onRoute={handleRouteSelectedVenue}
             isFavourite={selectedQuickInfoVenue ? favourites.isFavourite(selectedQuickInfoVenue.id) : false}
             onFavouriteToggle={
               selectedQuickInfoVenue
@@ -946,10 +960,26 @@ function LoadingPill({ isFetching, isError, dataUpdatedAt }: LoadingPillProps) {
     <div
       role="status"
       data-testid="map-loading-pill"
-      className="absolute top-3 left-1/2 -translate-x-1/2 z-floating-buttons px-4 py-2 rounded-pill bg-glass-standard backdrop-blur-[6px] shadow-button-float text-body-sm text-text-muted"
+      className="absolute top-3 left-1/2 -translate-x-1/2 z-floating-buttons px-4 py-2 rounded-pill bg-glass-standard backdrop-blur-standard shadow-button-float text-body-sm text-text-muted"
     >
       {t('loadingPlaces')}
     </div>
+  );
+}
+
+function venueIdentityKey(venue: Pick<VenueDataDto, 'id' | 'slug' | 'venueSlug'> | null): string | null {
+  if (!venue) return null;
+  return `${venue.id}:${venue.slug}:${venue.venueSlug}`;
+}
+
+function openDirections(venue: VenueDataDto): void {
+  const destination = Number.isFinite(venue.location.lat) && Number.isFinite(venue.location.lng)
+    ? `${venue.location.lat},${venue.location.lng}`
+    : venue.venueName;
+  window.open(
+    `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`,
+    '_blank',
+    'noopener,noreferrer',
   );
 }
 

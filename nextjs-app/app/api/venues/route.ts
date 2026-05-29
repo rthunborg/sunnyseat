@@ -17,6 +17,7 @@ import {
   validateRadius,
 } from '@/lib/utils/validation';
 import { badRequest } from '@/lib/utils/api-errors';
+import { greatCircleMeters } from '@/lib/utils/geo';
 import { VENUE_FIXTURE } from '@/lib/services/venues-fixture';
 import {
   applyPlannerSelectionToVenue,
@@ -394,23 +395,4 @@ function normalizeSearchText(value: string): string {
     .normalize('NFD')
     .replace(DIACRITIC_PATTERN, '')
     .toLocaleLowerCase('sv-SE');
-}
-
-function greatCircleMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const earthRadiusMeters = 6_371_000;
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  // Clamp the haversine intermediate `a` to [0, 1] before sqrt — without
-  // this guard, FP rounding at antipodal points could push `a` slightly
-  // negative, producing NaN that silently fails the radius filter.
-  const a = Math.min(
-    1,
-    Math.max(
-      0,
-      Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2,
-    ),
-  );
-  return 2 * earthRadiusMeters * Math.asin(Math.sqrt(a));
 }

@@ -23,33 +23,47 @@ const MapView = dynamic(
   },
 );
 
-const ForcedVenueDetailInitialFrame = dynamic(
-  () => import('@/components/custom/venue/ForcedVenueDetailInitialFrame')
-    .then((m) => m.ForcedVenueDetailInitialFrame),
-  {
-    ssr: false,
-    loading: () => null,
-  },
-);
+const ForcedVenueDetailInitialFrame =
+  process.env.NODE_ENV === 'production'
+    ? null
+    : dynamic(
+        () => import('@/components/custom/venue/ForcedVenueDetailInitialFrame')
+          .then((m) => m.ForcedVenueDetailInitialFrame),
+        {
+          ssr: false,
+          loading: () => null,
+        },
+      );
 
 export function MapViewDynamic() {
   return <MapView />;
 }
 
 function MapViewLoadingFallback() {
-  const searchParams = useSearchParams();
   const forcedState = useForcedState();
-  if (process.env.NODE_ENV === 'production' || forcedState !== 'venue-detail') {
+  if (
+    process.env.NODE_ENV === 'production' ||
+    forcedState !== 'venue-detail' ||
+    !ForcedVenueDetailInitialFrame
+  ) {
     return <MapLoadingFallback />;
   }
 
   return (
     <>
       <MapLoadingFallback />
-      <ForcedVenueDetailInitialFrame
-        slug={searchParams.get('venue')}
-        forcedState={forcedState}
-      />
+      <ForcedVenueDetailInitialFrameLoader forcedState={forcedState} />
     </>
+  );
+}
+
+function ForcedVenueDetailInitialFrameLoader({ forcedState }: { forcedState: string }) {
+  const searchParams = useSearchParams();
+  if (!ForcedVenueDetailInitialFrame) return null;
+  return (
+    <ForcedVenueDetailInitialFrame
+      slug={searchParams.get('venue')}
+      forcedState={forcedState}
+    />
   );
 }

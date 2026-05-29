@@ -79,7 +79,7 @@ export function TimeSlider({
           aria-label={ariaLabel}
           aria-valuetext={valueText}
           onChange={(event) => adjust(Number(event.currentTarget.value))}
-          onPointerUp={onSnap}
+          onPointerUp={() => onSnap()}
           onKeyDown={(event) => {
             if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
               event.preventDefault();
@@ -98,7 +98,7 @@ export function TimeSlider({
               adjust(PLANNER_END_MINUTES);
             }
           }}
-          onBlur={onSnap}
+          onBlur={() => onSnap()}
           className="absolute inset-0 z-base h-11 w-full cursor-grab opacity-0 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary active:cursor-grabbing"
         />
         <div

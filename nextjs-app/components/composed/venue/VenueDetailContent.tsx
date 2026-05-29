@@ -67,6 +67,7 @@ export type VenueDetailContentProps = {
   onRoute: () => void;
   routeDisabled?: boolean;
   mode?: 'mobile' | 'desktop';
+  locale?: string;
 };
 
 export function VenueDetailContent({
@@ -80,11 +81,12 @@ export function VenueDetailContent({
   onRoute,
   routeDisabled = false,
   mode = 'mobile',
+  locale = 'sv',
 }: VenueDetailContentProps) {
   const venue = detail ?? fallbackVenue;
   const loading = isLoading && !detail;
   const timeline = detail?.timeline ?? timelineFromListVenue(fallbackVenue);
-  const metadata = getVenueVisualMetadata(venue);
+  const metadata = getVenueVisualMetadata(venue, locale);
   const peakHour = formatPeakHour(venue);
   const bestAt = metadata.bestAt ?? peakHour;
   const bestWindow = bestWindowLabel(timeline, labels) ?? formatLabel(labels.peakTime, { time: peakHour });

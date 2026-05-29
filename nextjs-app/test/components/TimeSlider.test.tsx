@@ -43,6 +43,9 @@ describe('<TimeSlider />', () => {
     expect(onMinutesChange).toHaveBeenCalledWith(6 * 60);
     fireEvent.pointerUp(slider);
     expect(onSnap).toHaveBeenCalled();
+    expect(onSnap.mock.calls.at(-1)).toEqual([]);
+    fireEvent.blur(slider);
+    expect(onSnap.mock.calls.at(-1)).toEqual([]);
   });
 
   it('marks reduced-motion snapping as instant', () => {

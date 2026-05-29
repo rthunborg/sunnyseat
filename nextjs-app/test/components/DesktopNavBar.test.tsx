@@ -1,13 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import type { AnchorHTMLAttributes } from 'react';
 import { renderWithProviders } from '@/test/setup/test-utils';
 import { DesktopNavBar } from '@/components/custom/layout/DesktopNavBar';
 import type { GetVenuesResponse } from '@/lib/types/api';
 
+const SEARCH_DEBOUNCE_MS = 200;
+
 const mockState = vi.hoisted(() => ({
   selectVenue: vi.fn(),
   easeTo: vi.fn(),
+  useVenueSearch: vi.fn(),
 }));
 
 vi.mock('@/hooks/useGeolocation', async (importOriginal) => {
@@ -24,12 +27,7 @@ vi.mock('@/hooks/useGeolocation', async (importOriginal) => {
 });
 
 vi.mock('@/hooks/queries/useVenueSearch', () => ({
-  useVenueSearch: () => ({
-    data: makeVenueResponse(),
-    isFetching: false,
-    isError: false,
-    dataUpdatedAt: 1,
-  }),
+  useVenueSearch: (params?: unknown) => mockState.useVenueSearch(params),
 }));
 
 vi.mock('@/lib/contexts/MapSelectionContext', () => ({
@@ -77,6 +75,16 @@ const NAV_MESSAGES = {
       next: 'Nästa filter',
       myLocation: 'Min plats',
       settings: 'Inställningar',
+      filterChips: {
+        courtyard: 'Innergård',
+        dogs: 'Hund ok',
+        wifi: 'Wifi',
+        pastries: 'Bakverk',
+        morningSun: 'Morgonsol',
+        takeAway: 'Take-away',
+        sourdough: 'Surdeg',
+        rooftop: 'Takt',
+      },
     },
   },
   venue: {
@@ -97,6 +105,16 @@ describe('DesktopNavBar', () => {
   beforeEach(() => {
     mockState.selectVenue.mockClear();
     mockState.easeTo.mockClear();
+    mockState.useVenueSearch.mockReset().mockReturnValue({
+      data: makeVenueResponse(),
+      isFetching: false,
+      isError: false,
+      dataUpdatedAt: 1,
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders the SunnySeat wordmark inside a link to /', () => {
@@ -137,6 +155,22 @@ describe('DesktopNavBar', () => {
     });
     await waitFor(() => expect(screen.getByTestId('venue-search-results')).not.toBeVisible());
     expect(search).not.toHaveFocus();
+  });
+
+  it('shows a loading state instead of stale nearby results while a new search is debouncing', async () => {
+    renderWithProviders(<DesktopNavBar />, { messages: NAV_MESSAGES });
+
+    const search = screen.getByRole('combobox', { name: 'Sök plats' });
+    fireEvent.focus(search);
+    fireEvent.change(search, { target: { value: 'magasinet' } });
+
+    expect(screen.getByText('Söker platser')).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Kafé Magasinet/ })).not.toBeInTheDocument();
+
+    await waitFor(
+      () => expect(screen.getByRole('option', { name: /Kafé Magasinet/ })).toBeInTheDocument(),
+      { timeout: SEARCH_DEBOUNCE_MS + 1000 },
+    );
   });
 
   it('labels the outer <header> with the Swedish header aria-label', () => {

@@ -31,6 +31,9 @@ export type VenueCardLabels = {
   confidenceUnavailable: string;
   distance: string;
   sunUnavailable: string;
+  statusMostlyShade?: string;
+  statusFullSun?: string;
+  statusPartialSun?: string;
 };
 
 export type VenueCardProps = {
@@ -88,10 +91,10 @@ export function VenueCard({
     labels: confidenceDisplayLabels(labels),
   });
   const statusLabel = !isSunny
-    ? 'MEST SKUGGA'
+    ? (labels.statusMostlyShade ?? 'MEST SKUGGA')
     : (sunExposurePercent ?? 0) >= 75
-      ? 'FULL SOL'
-      : 'DELVIS SOL';
+      ? (labels.statusFullSun ?? 'FULL SOL')
+      : (labels.statusPartialSun ?? 'DELVIS SOL');
   const sunUnitLabel = labels.sun.toLocaleLowerCase();
 
   return (

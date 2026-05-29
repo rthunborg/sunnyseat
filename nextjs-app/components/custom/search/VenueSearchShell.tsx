@@ -54,7 +54,10 @@ export function VenueSearchShell({
     radiusKm: SEARCH_RADIUS_KM,
     q: debouncedQuery || undefined,
   });
-  const venues = Array.isArray(venueQuery.data?.venues) ? venueQuery.data.venues : [];
+  const isDebouncingSearch = trimmedQuery.length > 0 && trimmedQuery !== debouncedQuery;
+  const venues = !isDebouncingSearch && Array.isArray(venueQuery.data?.venues)
+    ? venueQuery.data.venues
+    : [];
   const labels: VenueSearchComboboxLabels = {
     label: t('label'),
     placeholder: t('placeholder'),
@@ -88,7 +91,7 @@ export function VenueSearchShell({
           onSearchFocus={onSearchFocus}
           labels={labels}
           variant="mobile"
-          isLoading={venueQuery.isFetching && debouncedQuery.length > 0}
+          isLoading={trimmedQuery.length > 0 && (isDebouncingSearch || venueQuery.isFetching)}
           error={venueQuery.isError && trimmedQuery.length > 0 ? labels.error : undefined}
           filterResults={false}
           maxLength={MAX_QUERY_LENGTH}
@@ -123,7 +126,7 @@ export function VenueSearchShell({
       onSearchFocus={onSearchFocus}
       labels={labels}
       variant="desktop"
-      isLoading={venueQuery.isFetching && debouncedQuery.length > 0}
+      isLoading={trimmedQuery.length > 0 && (isDebouncingSearch || venueQuery.isFetching)}
       error={venueQuery.isError && trimmedQuery.length > 0 ? labels.error : undefined}
       filterResults={false}
       maxLength={MAX_QUERY_LENGTH}

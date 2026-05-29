@@ -37,6 +37,7 @@ export type VenueDetailOverlayProps = {
   isFavourite?: boolean;
   routeDisabled?: boolean;
   mode?: 'mobile' | 'desktop';
+  locale?: string;
 };
 
 const DISMISS_DRAG_PX = 140;
@@ -56,6 +57,7 @@ export function VenueDetailOverlay({
   isFavourite = false,
   routeDisabled = false,
   mode = 'mobile',
+  locale,
 }: VenueDetailOverlayProps) {
   const prefersReducedMotion = useReducedMotion() ?? false;
   const shouldReduceMotion = reducedMotion ?? prefersReducedMotion;
@@ -141,6 +143,7 @@ export function VenueDetailOverlay({
             onRoute={onRoute}
             routeDisabled={routeDisabled}
             mode="desktop"
+            locale={locale}
           />
         </div>
       </motion.aside>
@@ -218,6 +221,7 @@ export function VenueDetailOverlay({
           onRoute={onRoute}
           routeDisabled={routeDisabled}
           mode="mobile"
+          locale={locale}
         />
       </div>
     </motion.aside>

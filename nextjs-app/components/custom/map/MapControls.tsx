@@ -174,7 +174,7 @@ function GlassButton({ ariaLabel, onClick, disabled, testId, className, children
       disabled={disabled}
       aria-label={ariaLabel}
       data-testid={testId}
-      className={`size-12 rounded-pill bg-glass-standard backdrop-blur-[6px] shadow-button-float flex items-center justify-center text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:rounded-pill disabled:opacity-50 disabled:cursor-not-allowed ${className ?? ''}`}
+      className={`size-12 rounded-pill bg-glass-standard backdrop-blur-standard shadow-button-float flex items-center justify-center text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:rounded-pill disabled:opacity-50 disabled:cursor-not-allowed ${className ?? ''}`}
     >
       {children}
     </button>

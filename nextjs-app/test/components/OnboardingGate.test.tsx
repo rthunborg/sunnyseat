@@ -93,6 +93,23 @@ describe('<OnboardingGate />', () => {
     expect(await screen.findByTestId('onboarding-screen-stub')).toBeInTheDocument();
   });
 
+  it('isolates the underlying app shell while the dialog is visible', async () => {
+    const shell = document.createElement('div');
+    shell.setAttribute('data-app-shell', '');
+    document.body.appendChild(shell);
+
+    render(<OnboardingGateWithSuspense />, { container: shell });
+    expect(await screen.findByTestId('onboarding-screen-stub')).toBeInTheDocument();
+    await waitFor(() => expect(shell).toHaveAttribute('aria-hidden', 'true'));
+    expect(shell).toHaveAttribute('inert');
+
+    fireEvent.click(screen.getByTestId('dismiss'));
+    await waitFor(() => expect(shell).not.toHaveAttribute('aria-hidden'));
+    expect(shell).not.toHaveAttribute('inert');
+
+    shell.remove();
+  });
+
   it('grant in the real flow writes the localStorage flag', async () => {
     render(<OnboardingGateWithSuspense />);
     fireEvent.click(await screen.findByTestId('grant'));

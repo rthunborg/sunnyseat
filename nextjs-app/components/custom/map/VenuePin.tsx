@@ -130,10 +130,7 @@ function SunnyPill({ percent }: { percent: number }) {
       </div>
       <span
         data-pin-tail
-        className="-mt-0.5 block h-0 w-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-amber-pin"
-        style={{
-          filter: 'drop-shadow(0 2px 2px rgba(115, 92, 0, 0.2))',
-        }}
+        className="-mt-0.5 block h-0 w-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-amber-pin shadow-subtle"
       />
     </div>
   );

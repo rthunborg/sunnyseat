@@ -40,7 +40,7 @@ export function TimeSliderPanel({
         data-reduced-motion={String(shouldReduceMotion)}
         aria-label={t('panelLabel')}
         className={cn(
-          'z-glass-panel bg-glass-slider text-text-primary backdrop-blur-[var(--blur-heavy)]',
+          'z-glass-panel bg-glass-slider text-text-primary backdrop-blur-heavy',
           desktop
             ? 'hidden rounded-panel px-6 py-3 shadow-card-up lg:flex lg:items-center lg:gap-5'
             : 'rounded-panel px-4 pt-5 pb-2 shadow-card-up lg:hidden',

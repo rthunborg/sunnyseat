@@ -76,6 +76,23 @@ describe('useVenueDetail', () => {
     expect(fetchSpy.mock.calls[0]?.[0]).toBe('/api/venues/test-venue-sunny');
   });
 
+  it('includes bucketed coordinates when supplied', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const { result } = renderHook(
+      () => useVenueDetail('test-venue-sunny', { lat: 57.70894, lng: 11.97464 }),
+      { wrapper: makeWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(fetchSpy.mock.calls[0]?.[0]).toBe('/api/venues/test-venue-sunny?lat=57.7089&lng=11.9746');
+  });
+
   it('enriches detail response metadata from freshness headers', async () => {
     fetchSpy.mockResolvedValueOnce(
       new Response(JSON.stringify(SAMPLE_RESPONSE), {

@@ -54,7 +54,9 @@ export function VenueSearchCombobox({
 }: VenueSearchComboboxProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const shouldReduceMotion = useReducedMotion() ?? false;
+  const prefersReducedMotion = useReducedMotion();
+  const [hasHydrated, setHasHydrated] = useState(false);
+  const shouldReduceMotion = hasHydrated && prefersReducedMotion === true;
   const [open, setOpen] = useState(false);
   const trimmedQuery = query.trim();
   const visibleVenues = useMemo(
@@ -62,6 +64,10 @@ export function VenueSearchCombobox({
     [filterResults, trimmedQuery, venues],
   );
   const shouldShowResults = open && trimmedQuery.length > 0;
+
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {

@@ -16,6 +16,16 @@
     "previous": "Föregående filter",
     "next": "Nästa filter",
     "myLocation": "Min plats",
-    "settings": "Inställningar"
+    "settings": "Inställningar",
+    "filterChips": {
+      "courtyard": "Innergård",
+      "dogs": "Hund ok",
+      "wifi": "Wifi",
+      "pastries": "Bakverk",
+      "morningSun": "Morgonsol",
+      "takeAway": "Take-away",
+      "sourdough": "Surdeg",
+      "rooftop": "Takt"
+    }
   }
 }

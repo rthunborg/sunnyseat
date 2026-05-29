@@ -1,5 +1,3 @@
-import { fromZonedTime } from 'date-fns-tz';
-
 export const STOCKHOLM_TIME_ZONE = 'Europe/Stockholm';
 export const PLANNER_START_MINUTES = 6 * 60;
 export const PLANNER_END_MINUTES = 21 * 60;
@@ -133,10 +131,6 @@ export function validatePlannerDateTime({
     date: normalizedDate,
     time: formatPlannerTime(minutes),
   };
-}
-
-export function dateFromStockholmDateTime(date: string, time: string): Date {
-  return fromZonedTime(`${date}T${time}:00`, STOCKHOLM_TIME_ZONE);
 }
 
 export function isValidDateKey(value: string): boolean {

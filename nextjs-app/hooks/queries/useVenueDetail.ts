@@ -10,23 +10,57 @@ import {
 } from './venue-query-options';
 
 const FIVE_MINUTES = 5 * 60 * 1000;
+const BUCKET_DECIMALS = 4;
+const BUCKET_FACTOR = 10 ** BUCKET_DECIMALS;
+
+type VenueDetailParams = {
+  date?: string;
+  time?: string;
+  lat?: number;
+  lng?: number;
+};
+
+function bucket(n: number): number {
+  return Math.round(n * BUCKET_FACTOR) / BUCKET_FACTOR;
+}
 
 export function useVenueDetail(
   slug: string | null | undefined,
-  planner?: { date: string; time: string } | undefined,
+  params?: VenueDetailParams | undefined,
 ): UseQueryResult<GetVenueDetailResponse, Error> {
   const normalizedSlug = slug?.trim() ?? '';
-  const normalizedPlanner = planner?.date && planner.time
-    ? { date: planner.date.trim(), time: planner.time.trim() }
+  const normalizedPlanner = params?.date && params.time
+    ? { date: params.date.trim(), time: params.time.trim() }
     : undefined;
+  const paramLat = params?.lat;
+  const paramLng = params?.lng;
+  const normalizedLocation =
+    typeof paramLat === 'number' &&
+    typeof paramLng === 'number' &&
+    Number.isFinite(paramLat) &&
+    Number.isFinite(paramLng)
+      ? { lat: bucket(paramLat), lng: bucket(paramLng) }
+      : undefined;
+  const detailFilters = {
+    ...normalizedPlanner,
+    ...normalizedLocation,
+  };
+  const hasDetailFilters = Object.keys(detailFilters).length > 0;
 
   return useQuery<GetVenueDetailResponse, Error>({
-    queryKey: queryKeys.venues.detailAt(normalizedSlug, normalizedPlanner),
+    queryKey: queryKeys.venues.detailAt(
+      normalizedSlug,
+      hasDetailFilters ? detailFilters : undefined,
+    ),
     queryFn: async ({ signal }) => {
       const searchParams = new URLSearchParams();
       if (normalizedPlanner) {
         searchParams.set('date', normalizedPlanner.date);
         searchParams.set('time', normalizedPlanner.time);
+      }
+      if (normalizedLocation) {
+        searchParams.set('lat', String(normalizedLocation.lat));
+        searchParams.set('lng', String(normalizedLocation.lng));
       }
       const query = searchParams.toString();
       const res = await fetch(

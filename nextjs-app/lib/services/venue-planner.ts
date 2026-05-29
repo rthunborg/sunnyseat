@@ -1,11 +1,12 @@
 import type { VenueDataDto } from '@/lib/types/api';
+import { fromZonedTime } from 'date-fns-tz';
 import {
-  dateFromStockholmDateTime,
   formatPlannerTime,
   isTodayInStockholm,
   parsePlannerTime,
   PLANNER_END_MINUTES,
   PLANNER_START_MINUTES,
+  STOCKHOLM_TIME_ZONE,
   validatePlannerDateTime,
 } from '@/lib/utils/time-planner';
 
@@ -145,7 +146,10 @@ function sunStatusFromExposure(
 }
 
 function forecastConfidencePenalty(selection: VenuePlannerSelection, now: Date): number {
-  const selected = dateFromStockholmDateTime(selection.date, selection.time);
+  const selected = fromZonedTime(
+    `${selection.date}T${selection.time}:00`,
+    STOCKHOLM_TIME_ZONE,
+  );
   const daysAhead = Math.max(
     1,
     Math.ceil((selected.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)),

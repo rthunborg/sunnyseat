@@ -141,6 +141,7 @@ test.describe('map-primary', () => {
       'Desktop-viewport map-primary checks run only in the desktop Playwright project',
     );
 
+    await bypassOnboarding(page);
     await page.goto('/');
 
     await expect(page.getByTestId('map-container')).toBeVisible();

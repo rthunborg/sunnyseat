@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useForcedState } from '@/lib/dev/use-forced-state';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
@@ -123,15 +124,45 @@ function OnboardingGateInner() {
   }, []);
 
   const shouldShow = hasHydrated && !dismissed && (isForced || !hasOnboarded);
+
+  useEffect(() => {
+    if (!shouldShow || typeof document === 'undefined') return;
+
+    const appShell = document.querySelector<HTMLElement>('[data-app-shell]');
+    if (!appShell) return;
+
+    const previousAriaHidden = appShell.getAttribute('aria-hidden');
+    const hadInertAttribute = appShell.hasAttribute('inert');
+    const previousInert = appShell.inert;
+
+    appShell.setAttribute('aria-hidden', 'true');
+    appShell.inert = true;
+    appShell.setAttribute('inert', '');
+
+    return () => {
+      if (previousAriaHidden === null) {
+        appShell.removeAttribute('aria-hidden');
+      } else {
+        appShell.setAttribute('aria-hidden', previousAriaHidden);
+      }
+      appShell.inert = previousInert;
+      if (!hadInertAttribute) {
+        appShell.removeAttribute('inert');
+      }
+    };
+  }, [shouldShow]);
+
   if (!shouldShow) return null;
 
-  return (
+  const screen = (
     <OnboardingScreen
       onDismiss={handleDismiss}
       onLocationGranted={handleLocationGranted}
       onLocationDenied={handleLocationDenied}
     />
   );
+
+  return typeof document === 'undefined' ? screen : createPortal(screen, document.body);
 }
 
 /**

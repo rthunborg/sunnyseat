@@ -14,7 +14,7 @@ import { DesktopNavBar } from './DesktopNavBar';
  */
 export function ResponsiveLayout({ children }: { children: ReactNode }) {
   return (
-    <div data-testid="responsive-layout">
+    <div data-app-shell data-testid="responsive-layout">
       <DesktopNavBar />
       <main className="pt-0 lg:pt-[var(--size-desktop-nav-h)] pb-[var(--size-mobile-nav-h)] lg:pb-0">
         {children}

@@ -41,8 +41,16 @@ export function DesktopNavBar() {
         className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
       >
         <HeaderChevron label={t('nav.previous')} direction="left" />
-        {['Innergård', 'Hund ok', 'Wifi', 'Bakverk', 'Morgonsol', 'Take-away', 'Surdeg', 'Takt'].map(
-          (chip) => (
+        {[
+          t('nav.filterChips.courtyard'),
+          t('nav.filterChips.dogs'),
+          t('nav.filterChips.wifi'),
+          t('nav.filterChips.pastries'),
+          t('nav.filterChips.morningSun'),
+          t('nav.filterChips.takeAway'),
+          t('nav.filterChips.sourdough'),
+          t('nav.filterChips.rooftop'),
+        ].map((chip) => (
             <button
               key={chip}
               type="button"
@@ -51,8 +59,7 @@ export function DesktopNavBar() {
             >
               {chip}
             </button>
-          ),
-        )}
+        ))}
         <HeaderChevron label={t('nav.next')} direction="right" />
       </nav>
 
