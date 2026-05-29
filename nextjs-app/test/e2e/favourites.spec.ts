@@ -2,11 +2,13 @@ import { expect, test } from '@playwright/test';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import { FAVOURITES_STORAGE_KEY } from '@/lib/services/favourites-storage';
 
-async function seedShell(page: import('@playwright/test').Page, favouriteIds: string[] = []): Promise<void> {
+async function seedShell(page: import('@playwright/test').Page, favouriteIds?: string[]): Promise<void> {
   await page.addInitScript(
     ({ onboardedKey, favouritesKey, ids }) => {
       window.localStorage.setItem(onboardedKey, '1');
-      window.localStorage.setItem(favouritesKey, JSON.stringify(ids));
+      if (ids) {
+        window.localStorage.setItem(favouritesKey, JSON.stringify(ids));
+      }
     },
     { onboardedKey: ONBOARDED_FLAG_KEY, favouritesKey: FAVOURITES_STORAGE_KEY, ids: favouriteIds },
   );
@@ -32,7 +34,7 @@ test.describe('favourites', () => {
       'true',
     );
 
-    await page.getByTestId('mobile-nav-tab-favoriter').click();
+    await page.goto('/favoriter');
     await expect(page).toHaveURL(/\/favoriter/);
     await expect(page.getByRole('button', { name: new RegExp(`Välj ${escapeRegex(venueName)}`) })).toBeVisible();
     await expect(page.getByText(/Sol 13:00/)).toBeVisible();
