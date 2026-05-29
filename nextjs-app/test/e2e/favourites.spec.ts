@@ -34,7 +34,7 @@ test.describe('favourites', () => {
       'true',
     );
 
-    await page.goto('/favoriter');
+    await page.goto('/favoriter', { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/\/favoriter/);
     await expect(page.getByRole('button', { name: new RegExp(`Välj ${escapeRegex(venueName)}`) })).toBeVisible();
     await expect(page.getByText(/Sol 13:00/)).toBeVisible();
