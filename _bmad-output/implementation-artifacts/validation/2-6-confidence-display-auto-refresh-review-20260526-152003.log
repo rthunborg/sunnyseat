@@ -1,0 +1,59 @@
+SunnySeat story review gate
+Story: 2-6-confidence-display-auto-refresh
+Mode: apply
+Sprint status: /c/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-6-confidence-display-auto-refresh-review-20260526-152003.log
+
+Story file: /c/sunnyseat/_bmad-output/implementation-artifacts/2-6-confidence-display-auto-refresh.md
+Current sprint status: review
+
+Running npm script: lint
+
+Running npm script: typecheck
+
+Running npm script: test
+
+ RUN  v4.1.4 C:/sunnyseat/nextjs-app
+
+
+ Test Files  36 passed (36)
+      Tests  275 passed (275)
+   Start at  15:20:12
+   Duration  21.01s (transform 4.07s, setup 16.78s, import 47.20s, tests 35.52s, environment 95.43s)
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues&_time=14:00' viewport='mobile'
+--- Visual validation: map-panel-venues ---
+Navigating to http://localhost:3000/?_state=map-panel-venues&_time=14:00
+Waiting for selector [data-testid="venue-pin"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-SPidSB.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the time slider at top, map area with warm sand tint and sunny venue pins, bottom sheet with filter chips (Mest sol, Nära mig, Kafé, Öppet nu), venue list cards with icons/ratings/sun percentages, floating map control buttons (location, settings, zoom), and bottom navigation bar — all colours, component styles, and overall composition align well with the reference.
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00' viewport='mobile'
+--- Visual validation: map-with-selected-venue ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00
+Waiting for selector [data-testid="venue-quick-info"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-fufh0Q.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the time slider at top, map with warm/sand tint, venue popup card (Kafé Magasinet) with "VISA RUTT" and "Mer info" buttons, floating action buttons (location, settings, zoom), bottom sheet with venue listing, and bottom navigation bar — all UI chrome elements are present and correctly styled.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=14:00' viewport='mobile'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=14:00
+Waiting for selector [data-testid="mobile-venue-detail-sheet"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-t97fRC.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure, colour scheme, header image area with sun percentage badge, venue title with open status pill, solar forecast chart, tags, and info grid cards all present and properly positioned.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=16:30' viewport='desktop'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=16:30
+Waiting for selector [data-testid="desktop-venue-detail-panel"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-lvYk07.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with the correct three-panel layout (venue list, map, detail panel), matching colour scheme, venue detail panel with sun percentage badge, SOL NU pill, rating, description, SOLTIDER IDAG timeline slider, amenity tags, and opening hours section all present and correctly styled.
+Story '2-6-confidence-display-auto-refresh' is already marked review. No sprint-status update needed.
+
+Story review gate passed.
+Validation artifact written to: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-6-confidence-display-auto-refresh-review-20260526-152003.log

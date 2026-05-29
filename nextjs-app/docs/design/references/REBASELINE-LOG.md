@@ -43,6 +43,88 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-05-28 — `favourites-tab` time-pinned visual route — Story 2.7 Save & View Favourites Round 2 review (Amelia / code-review)
+
+**Trigger:** Round 2 code review found the `favourites-tab` route map was storage-seeded but not time-pinned. The passing visual comparison accepted a dynamic time-slider difference, so later runs could drift with the live clock.
+
+**Resolution:** No PNG changed. The `project-context.md` Screen ID -> Route Map now appends `_time=14:00` to both `favourites-tab` rows so the canonical story-review and visual-validation routes pin the same reference time as other mobile Epic 2 map/list screens.
+
+**Source of new PNG:** None.
+
+**Recipe change:** `project-context.md` route rows changed from `/favoriter?_state=favourites-tab` to `/favoriter?_state=favourites-tab&_time=14:00` for mobile and desktop. `.claude/scripts/visual-validate.sh`, `capture-claude-design-refs.mjs`, and the reference PNGs are unchanged.
+
+**Verification:** PASS — Round 2 canonical story-review gate ran `favourites-tab` mobile and desktop with `/favoriter?_state=favourites-tab&_time=14:00`; both visual validations passed. Validation artifact: `_bmad-output/implementation-artifacts/validation/2-7-save-view-favourites-review-20260528-172041.log`.
+
+**Reason / spec link:** Story 2.7 Task 6.2 requires deterministic `favourites-tab` visual state. `project-context.md` already pins `_time` for comparable map/list references; the seeded favourites route now follows the same convention.
+
+**Re-evaluation trigger:** Revisit if `favourites-tab` receives a production state branch, a different reference time is approved, or the visual provider no longer relies on route-map URLs.
+
+### 2026-05-28 — `favourites-tab` visual route state-forcing scope — Story 2.7 Save & View Favourites review fixes (Amelia / dev-story)
+
+**Trigger:** Story 2.7 review found the canonical story-review gate could skip `favourites-tab` because the story text named the screen but did not include a discoverable `_state=` or `screen_id:` marker, and the route map used bare `/favoriter` even though the visual state depends on deterministic seeded favourites.
+
+**Resolution:** No PNG changed. The `project-context.md` Screen ID -> Route Map now uses `/favoriter?_state=favourites-tab` for both mobile and desktop. The implementation does not branch on this state; the route marker exists so the gate can resolve a deterministic visual-validation URL while `.claude/scripts/visual-validate.sh` continues to seed `sunnyseat_favourite_ids=["1","2"]` for the `favourites-tab` screen ID.
+
+**Source of new PNG:** None.
+
+**Recipe change:** `project-context.md` route rows changed from `/favoriter` to `/favoriter?_state=favourites-tab` for `favourites-tab` mobile and desktop. `capture-claude-design-refs.mjs`, `.claude/scripts/visual-validate.sh`, and the reference PNGs are unchanged.
+
+**Verification:** PASS — Story 2.7 review-fix gate ran `favourites-tab` mobile and desktop through `scripts/story-review.sh` using `/favoriter?_state=favourites-tab`; both visual validations passed.
+
+**Reason / spec link:** `AGENTS.md` requires Screen ID routes and capture-recipe changes to be logged. Story 2.7 Task 6.2 requires deterministic `favourites-tab` visual state seeded with saved favourite IDs, and Task 8.12 requires the canonical story-review gate rather than direct sprint-status edits.
+
+**Re-evaluation trigger:** Revisit if the visual gate starts detecting plain screen names in story files, if `favourites-tab` gets a production state branch, or if seeded favourites move away from URL-plus-storage determinism.
+
+### 2026-05-28 — `map-with-selected-venue` QuickInfo favourite affordance — Story 2.7 Save & View Favourites (Amelia / dev-story)
+
+**Trigger:** Story 2.7 activates the favourite heart in `VenueQuickInfo`. The parent visual sanity gate for `map-with-selected-venue` still compared against a pre-Story-2.7 selected-venue reference that did not include the QuickInfo favourite affordance and also reflected older selected-card details.
+
+**Resolution:** Re-baseline the mobile `map-with-selected-venue` PNG from the running implementation, preserving the Story 2.7 QuickInfo favourite heart as canonical UI.
+
+**Source of new PNG:** Playwright capture of `http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00` at `390x844` with `sunnyseat_onboarded=1`, saved to `nextjs-app/docs/design/references/screens/mobile/map-with-selected-venue.png`.
+
+**Recipe change:** None. The route and gate wait selector are unchanged.
+
+**Verification:** PASS — `map-with-selected-venue` mobile after re-baseline via `scripts/visual-validate.sh`.
+
+**Reason / spec link:** Rasmus approved rebaselining this parent screen on 2026-05-28 so Story 2.7 keeps the QuickInfo favourite heart and still passes visual validation. Story 2.7 Task 4.1/4.2 requires the active favourite affordance in QuickInfo; Task 8.10 requires parent-screen visual sanity checks.
+
+**Re-evaluation trigger:** Revisit if QuickInfo favourite placement, selected-venue card content, or `map-with-selected-venue` forced-state behavior changes in a later story.
+
+### 2026-05-28 — `favourites-tab` seeded saved-favourites reference — Story 2.7 Save & View Favourites (Amelia / dev-story)
+
+**Trigger:** Story 2.7 implements production favourites under the MVP key `sunnyseat_favourite_ids`, while the visual-validator storage state previously seeded only `sunnyseat_onboarded`. The active Claude Design capture recipe seeds prototype key `sunny_favs`, so the implementation gate needed an equivalent production storage seed to render the saved-favourites reference state deterministically.
+
+**Resolution:** Re-baseline the mobile and desktop `favourites-tab` PNGs from the running implementation with `sunnyseat_favourite_ids=["1","2"]`. The legacy visual provider now seeds that storage key when `SCREEN_ID=favourites-tab` and waits for visible venue cards before capture.
+
+**Source of new PNG:** Playwright captures of `http://localhost:3000/favoriter` at `390x844` and `1440x900` with `sunnyseat_onboarded=1` and `sunnyseat_favourite_ids=["1","2"]`, saved to `nextjs-app/docs/design/references/screens/mobile/favourites-tab.png` and `nextjs-app/docs/design/references/screens/desktop/favourites-tab.png`.
+
+**Recipe change:** `.claude/scripts/visual-validate.sh` storage-state setup now adds the favourites key only for `favourites-tab`, and its wait-selector switch waits for venue cards in the mobile sheet or desktop list panel as appropriate. `project-context.md` now describes the screen as seeded saved-favourites content instead of an empty state.
+
+**Verification:** PASS — `favourites-tab` mobile and desktop after re-baseline via `scripts/visual-validate.sh`. Desktop comparison noted only a one-minute dynamic time-display difference.
+
+**Reason / spec link:** Rasmus approved the seeded saved-favourites reference decision on 2026-05-28 after the gate exposed a conflict between the stale empty-state PNG and Story 2.7 acceptance criteria. Story 2.7 Task 6.2/6.3 requires deterministic favourite seeding; `AGENTS.md` Visual Validation rule requires storage/capture recipe changes and reference PNG updates to be logged in the same operation.
+
+**Re-evaluation trigger:** Revisit if the production favourites storage key changes, fixture IDs `1`/`2` are removed, or the visual provider stops using `.claude/scripts/visual-validate.sh`.
+
+### 2026-05-21 — MVP Claude Design source refresh (mobile + desktop) — Story 2.5 course correction (Codex)
+
+**Trigger:** Rasmus provided the refreshed Claude Design handoff `sunnyseat-claude-design-2026-05-21/` and clarified the page split: MVP validation must use only `SunnySeat MVP Mobile Unlocked.html` and `SunnySeat MVP Desktop Unlocked.html`; Post-MVP Unlocked/Locked pages are future-only for Season Pass, Swish, paywalls, payment, and locked states. Previous Story 2.x visual acceptances may have treated stale story text as reference drift, so active references needed to be regenerated before continuing Story 2.5.
+
+**Resolution:** Replaced the active generated Claude Design bundle from the 2026-05-21 handoff while preserving curated `STATE-MAPPING.md` and `ESLINT-AUDIT.md`; updated capture recipes to regenerate only MVP-covered states from the two MVP Unlocked prototypes; removed premium/paywall/payment recipes from the default MVP capture pass; regenerated active MVP reference PNGs.
+
+**Source of new PNG:** `nextjs-app/docs/design/references/claude-design/project/SunnySeat MVP Mobile Unlocked.html` and `nextjs-app/docs/design/references/claude-design/project/SunnySeat MVP Desktop Unlocked.html`.
+
+**Changed PNGs:** `mobile/onboarding.png`, `mobile/map-primary.png`, `mobile/map-panel-venues.png`, `mobile/map-with-selected-venue.png`, `mobile/venue-detail.png`, `mobile/feedback.png`, `mobile/review.png`, `mobile/about.png`, `mobile/favourites-tab.png`, `desktop/map-primary.png`, `desktop/venue-detail.png`, `desktop/about.png`, `desktop/favourites-tab.png`.
+
+**Recipe change:** `nextjs-app/scripts/capture-claude-design-refs.mjs` now points active recipes at `SunnySeat MVP Mobile Unlocked.html` / `SunnySeat MVP Desktop Unlocked.html`, uses `sunny_screen` for MVP mobile map states, adds MVP `about` captures through settings -> `Om SunnySeat`, retains desktop onboarding as the prior curated baseline, and excludes Post-MVP paywall/payment/locked recipes from the MVP capture pass. `nextjs-app/docs/design/references/claude-design/STATE-MAPPING.md` was rewritten to document the MVP/Post-MVP split.
+
+**Verification:** `cd nextjs-app && node scripts/capture-claude-design-refs.mjs` captured 13, skipped 0, failed 0. Manual inspection covered `map-with-selected-venue` mobile, `map-panel-venues` mobile, `venue-detail` desktop, and `about` mobile. Visual validation against the running app must be rerun after Story 2.5 implementation is reconciled with these refreshed references.
+
+**Reason / spec link:** User-approved visual source refresh on 2026-05-21; `AGENTS.md` Visual Source Of Truth rule; `project-context.md` 2026-05-21 visual source refresh; PRD/epics/architecture/UX notes updated to state that MVP references come only from the two MVP Unlocked pages.
+
+**Re-evaluation trigger:** Re-run this flow whenever the Claude Design MVP Unlocked pages change, when a Post-MVP payment/locked story is reactivated, or when a visual gate exposes a mismatch that the team classifies as obsolete reference instead of implementation defect.
+
 ### 2026-05-04 — `onboarding` (desktop) — Story 1.5 Onboarding & Geolocation (Amelia / dev-story)
 
 **Trigger:** The visual validation gate failed on the desktop `?_state=onboarding` capture. The verdict described a "two-panel onboarding modal with illustration on left and text/navigation on right ... pagination dots ... 'NÄSTA' next button ... 'SOLVÄDERSAPPEN' label ... step-by-step onboarding flow" — a multi-step desktop onboarding flow that the implementation does not, and should not, render.
@@ -140,3 +222,50 @@ The actual cause was a post-Story-1.5 prototype-state baseline carry-forward: pr
 **Reason / spec link:** No story explicitly mandated this carry-forward — the captures happened in the same Task 2.13 sweep as the implementation-screen rebaselines. Round 2 R-010 surfaced the trigger-attribution gap and Round 2 D-B=B resolved it by splitting this entry. Future Epic 2 / Epic 4 stories that implement these screens will produce their own re-baseline entries against the implementation, superseding this prototype-state baseline.
 
 **Re-evaluation trigger:** Mandatory recapture when (1) the upstream Claude Design bundle is refreshed and the prototype state for any of the four screens changes (`scripts/fetch-claude-design.sh` followed by `node nextjs-app/scripts/capture-claude-design-refs.mjs`), (2) the corresponding future story (Epic 2 venue-detail; Epic 4 paywall / payment-failed) implements the screen — at that point the entry is superseded by an implementation-state re-baseline.
+
+### 2026-05-19 — `venue-detail` visual gate wait recipe — Story 2.4 Venue Search, code review Round 1 (Amelia / code-review)
+
+**Trigger:** Story 2.4 visual validation for desktop `venue-detail` captured before the venue-detail overlay had reliably mounted, causing dev-mode race noise in the screenshot comparison instead of measuring the implemented screen state.
+
+**Resolution:** Update the legacy provider script `.claude/scripts/visual-validate.sh` so `venue-detail` waits for `[data-testid="desktop-venue-detail-panel"]` on desktop and `[data-testid="mobile-venue-detail-sheet"]` on mobile before capture, matching the same explicit-state wait style already used by `map-with-selected-venue`.
+
+**Source of new PNG:** None. No reference PNG changed in this operation.
+
+**Recipe change:** `.claude/scripts/visual-validate.sh` adds a `venue-detail)` case to the wait-selector switch. `nextjs-app/scripts/capture-claude-design-refs.mjs` is unchanged.
+
+**Verification:** Story 2.4 review gate later ran with `VISUAL_VALIDATE_PROVIDER=none` and documented manual visual acceptance for downstream/reference-scope differences. This entry records the capture-recipe change only; it is not a reference re-baseline.
+
+**Reason / spec link:** `AGENTS.md` Visual Validation requires any reference PNG or capture-recipe change to update this log in the same operation. Story 2.4 Task 8.11 requires desktop `venue-detail` visual validation as a parent screen for search/list chrome.
+
+**Re-evaluation trigger:** Re-check this wait selector if `VenueDetailOverlay` data-testid values change, if the provider-neutral wrapper stops delegating to `.claude/scripts/visual-validate.sh`, or if the visual gate moves to a provider that uses its own state-wait contract.
+
+### 2026-05-19 — MVP scope correction for premium references — planning update only
+
+**Trigger:** Rasmus approved a course correction after Story 2.4: time planner, future date picker, future sun simulation, and favourites are free MVP functionality. Season Pass, Swish payments, paywalls, premium activation, premium recovery, and payment failure flows are deferred to Future Monetization.
+
+**Resolution:** No PNG was changed in this operation. Premium/paywall/payment references are retained as future-only assets, but MVP visual gates must not require a Season Pass prompt, Swish CTA, payment status, premium recovery, or favourites lock badge. Future implementation stories must re-evaluate these references before reactivating Season Pass.
+
+**Source of new PNG:** None.
+
+**Recipe change:** None.
+
+**Verification:** Planning artifacts now mark premium screens as inactive for MVP and preserve details in `_bmad-output/planning-artifacts/future-monetization-season-pass.md`.
+
+**Reason / spec link:** Sprint Change Proposal `sprint-change-proposal-2026-05-19.md`; Future Monetization archive `future-monetization-season-pass.md`; PRD v3.1 MVP scope correction.
+
+**Re-evaluation trigger:** Mandatory rebaseline or explicit accept-with-rationale when Story 2.5 or Story 2.7 validates screens whose references still contain old locked-planner or favourites-lock chrome.
+### 2026-05-27 — `map-primary` mobile visual route state-forcing scope — Story 2.5 rereview (Amelia / dev-story)
+
+**Trigger:** DS 2.5 rereview found that bare `/?_time=14:00` was being treated as both a real planner URL and a visual-reference normalization trigger. That leaked reference-only sunny/list normalization into normal mobile planner runtime.
+
+**Resolution:** No PNG changed. The mobile `map-primary` visual route now uses `/?_state=map-primary&_time=14:00`, keeping sunny/list reference normalization behind the dev-only `_state` convention while bare `?_time=14:00` preserves real API-derived venue states.
+
+**Source of new PNG:** None.
+
+**Recipe change:** `project-context.md` Screen ID -> Route Map changed the mobile `map-primary` route from `/?_time=14:00` to `/?_state=map-primary&_time=14:00`. `capture-claude-design-refs.mjs` and the reference PNG are unchanged.
+
+**Verification:** The DS 2.5 rereview regression covers bare mobile `?_time=14:00` preserving real pin/list data. The canonical story gate re-runs the updated route map before story completion.
+
+**Reason / spec link:** `AGENTS.md` requires reference/capture recipe changes to be logged, and `docs/dev/state-forcing.md` reserves `_state` for dev-only visual-state forcing.
+
+**Re-evaluation trigger:** Revisit this route if the visual gate stops using `project-context.md`, if `_state` is removed from dev URLs, or if the `map-primary` mobile reference PNG is re-baselined to real fixture data instead of normalized visual data.

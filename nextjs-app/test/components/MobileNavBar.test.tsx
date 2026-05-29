@@ -1,9 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
+import type { AnchorHTMLAttributes } from 'react';
 import { renderWithProviders } from '@/test/setup/test-utils';
 
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(),
+}));
+
+vi.mock('next-intl/navigation', () => ({
+  createNavigation: () => ({
+    Link: ({ href, children, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
+      <a href={String(href)} {...props}>
+        {children}
+      </a>
+    ),
+  }),
 }));
 
 const NAV_MESSAGES = {
@@ -15,6 +26,7 @@ const NAV_MESSAGES = {
     nav: {
       barLabel: 'Huvudnavigation',
       headerLabel: 'Sidhuvud',
+      naraMig: 'Nära mig',
       karta: 'Karta',
       favoriter: 'Favoriter',
       om: 'Om',
@@ -34,7 +46,7 @@ describe('MobileNavBar', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the three tabs with Swedish labels', async () => {
+  it('renders the MVP mobile tabs with Swedish labels', async () => {
     await loadUsePathnameMock('/');
     const { MobileNavBar } = await import(
       '@/components/custom/layout/MobileNavBar'
@@ -42,9 +54,9 @@ describe('MobileNavBar', () => {
 
     renderWithProviders(<MobileNavBar />, { messages: NAV_MESSAGES });
 
-    expect(screen.getByText('Karta')).toBeInTheDocument();
+    expect(screen.getByText('Nära mig')).toBeInTheDocument();
     expect(screen.getByText('Favoriter')).toBeInTheDocument();
-    expect(screen.getByText('Om')).toBeInTheDocument();
+    expect(screen.queryByText('Om')).not.toBeInTheDocument();
   });
 
   it('points each tab at the expected href', async () => {
@@ -55,7 +67,7 @@ describe('MobileNavBar', () => {
 
     renderWithProviders(<MobileNavBar />, { messages: NAV_MESSAGES });
 
-    expect(screen.getByTestId('mobile-nav-tab-karta')).toHaveAttribute(
+    expect(screen.getByTestId('mobile-nav-tab-naraMig')).toHaveAttribute(
       'href',
       '/',
     );
@@ -63,10 +75,7 @@ describe('MobileNavBar', () => {
       'href',
       '/favoriter',
     );
-    expect(screen.getByTestId('mobile-nav-tab-om')).toHaveAttribute(
-      'href',
-      '/about',
-    );
+    expect(screen.queryByTestId('mobile-nav-tab-om')).not.toBeInTheDocument();
   });
 
   it('marks the active tab and leaves the others inactive', async () => {
@@ -77,7 +86,7 @@ describe('MobileNavBar', () => {
 
     renderWithProviders(<MobileNavBar />, { messages: NAV_MESSAGES });
 
-    expect(screen.getByTestId('mobile-nav-tab-karta')).toHaveAttribute(
+    expect(screen.getByTestId('mobile-nav-tab-naraMig')).toHaveAttribute(
       'data-active',
       'false',
     );
@@ -85,10 +94,7 @@ describe('MobileNavBar', () => {
       'data-active',
       'true',
     );
-    expect(screen.getByTestId('mobile-nav-tab-om')).toHaveAttribute(
-      'data-active',
-      'false',
-    );
+    expect(screen.queryByTestId('mobile-nav-tab-om')).not.toBeInTheDocument();
   });
 
   it('exposes an accessible name that matches the visible tab label (WCAG 2.5.3)', async () => {
@@ -100,20 +106,17 @@ describe('MobileNavBar', () => {
     renderWithProviders(<MobileNavBar />, { messages: NAV_MESSAGES });
 
     // Each tab's accessible name should equal its visible text — no aria-label
-    // overrides the visible label, so voice-control users saying "Karta"
-    // actually activate the Karta tab.
-    expect(screen.getByRole('link', { name: 'Karta' })).toBe(
-      screen.getByTestId('mobile-nav-tab-karta'),
+    // overrides the visible label, so voice-control users saying "Nära mig"
+    // actually activate the tab.
+    expect(screen.getByRole('link', { name: 'Nära mig' })).toBe(
+      screen.getByTestId('mobile-nav-tab-naraMig'),
     );
     expect(screen.getByRole('link', { name: 'Favoriter' })).toBe(
       screen.getByTestId('mobile-nav-tab-favoriter'),
     );
-    expect(screen.getByRole('link', { name: 'Om' })).toBe(
-      screen.getByTestId('mobile-nav-tab-om'),
-    );
 
     // Explicitly confirm aria-label is absent on the tab links.
-    for (const key of ['karta', 'favoriter', 'om']) {
+    for (const key of ['naraMig', 'favoriter']) {
       expect(screen.getByTestId(`mobile-nav-tab-${key}`)).not.toHaveAttribute(
         'aria-label',
       );
@@ -134,7 +137,7 @@ describe('MobileNavBar', () => {
     );
   });
 
-  it('marks Karta active on the locale-prefixed root path (/en)', async () => {
+  it('marks Nära mig active on the locale-prefixed root path (/en)', async () => {
     await loadUsePathnameMock('/en');
     const { MobileNavBar } = await import(
       '@/components/custom/layout/MobileNavBar'
@@ -145,7 +148,7 @@ describe('MobileNavBar', () => {
       messages: NAV_MESSAGES,
     });
 
-    expect(screen.getByTestId('mobile-nav-tab-karta')).toHaveAttribute(
+    expect(screen.getByTestId('mobile-nav-tab-naraMig')).toHaveAttribute(
       'data-active',
       'true',
     );
@@ -164,9 +167,8 @@ describe('MobileNavBar', () => {
     renderWithProviders(<MobileNavBar />, { messages: NAV_MESSAGES });
 
     const tabs = [
-      screen.getByTestId('mobile-nav-tab-karta'),
+      screen.getByTestId('mobile-nav-tab-naraMig'),
       screen.getByTestId('mobile-nav-tab-favoriter'),
-      screen.getByTestId('mobile-nav-tab-om'),
     ];
 
     // Each tab must be an <a> with an href — the implicit contract that makes

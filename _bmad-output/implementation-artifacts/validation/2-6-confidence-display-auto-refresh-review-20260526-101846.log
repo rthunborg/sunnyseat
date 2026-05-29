@@ -1,0 +1,71 @@
+SunnySeat story review gate
+Story: 2-6-confidence-display-auto-refresh
+Mode: apply
+Sprint status: /c/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-6-confidence-display-auto-refresh-review-20260526-101846.log
+
+Story file: /c/sunnyseat/_bmad-output/implementation-artifacts/2-6-confidence-display-auto-refresh.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/sunnyseat/nextjs-app
+
+
+ Test Files  35 passed (35)
+      Tests  264 passed (264)
+   Start at  10:19:05
+   Duration  26.70s (transform 7.20s, setup 25.85s, import 61.44s, tests 45.07s, environment 117.22s)
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues&_time=14:00' viewport='mobile'
+--- Visual validation: map-panel-venues ---
+Navigating to http://localhost:3000/?_state=map-panel-venues&_time=14:00
+Waiting for selector [data-testid="venue-pin"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-3xJnZy.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the time slider at top, map area with warm/sand tint and yellow venue pins, bottom sheet with filter chips (Mest sol, Nära mig, Kafé, Öppet nu), venue list cards with thumbnail icons, distance/rating/sun percentage data, and bottom navigation bar — all UI chrome elements are present and styled correctly.
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00' viewport='mobile'
+--- Visual validation: map-with-selected-venue ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00
+Waiting for selector [data-testid="venue-quick-info"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-6MWoVF.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the time slider at top, map with venue pins, floating venue popup card (with "95% Sol" badge, venue name, "VISA RUTT" and "MER INFO" buttons, and close button), right-side floating action buttons (location, settings, zoom), bottom sheet with venue listing, and bottom navigation bar — all with matching colour scheme and component styling.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=14:00' viewport='mobile'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=14:00
+Waiting for selector [data-testid="mobile-venue-detail-sheet"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-pALBzs.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure, colour scheme, header image area, sun forecast chart, venue details, tags, and info grid all present and properly positioned; minor differences include slightly different description text and an additional "Säkerhet: 92%" label in the subtitle row, which are non-blocking content variations.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=16:30' viewport='desktop'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=16:30
+Waiting for selector [data-testid="desktop-venue-detail-panel"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-R1xTT9.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct three-panel layout (venue list, map, detail panel), matching colour scheme, all key UI chrome elements present including the sun percentage badge, SOL NU button, venue detail panel with solar times slider, amenity tags, and time slider at the bottom of the map — differences are limited to dynamic data content and minor spacing variations.
+Updated sprint status: 2-6-confidence-display-auto-refresh -> review
+
+Story review gate passed.
+Validation artifact written to: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-6-confidence-display-auto-refresh-review-20260526-101846.log

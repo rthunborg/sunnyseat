@@ -1,3 +1,5 @@
+import type { VenueSunStatus } from '@/lib/types/api';
+
 /**
  * Map-related type definitions for Story 1.4 onwards.
  *
@@ -23,7 +25,7 @@ export type VenuePinData = {
   name: string;
   lat: number;
   lng: number;
-  sunStatus: 'Sunny' | 'Partial' | 'Shaded';
+  sunStatus: VenueSunStatus;
   sunExposurePercent: number;
   isPartner: boolean;
 };

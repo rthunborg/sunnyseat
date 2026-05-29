@@ -81,6 +81,7 @@ export function VenuePinLayer({ venues }: VenuePinLayerProps) {
   const selectedRef = useRef<string | null>(selectedVenueId);
   const toggleRef = useRef(toggleVenue);
   const resolveAriaRef = useRef<AriaResolver>(resolveAria);
+  const venueIdsRef = useRef<Set<string>>(new Set(venues.map((venue) => venue.id)));
   // Story 1.6 review (P32): the entrance stagger is now per-batch — every
   // venues-effect run starts the stagger index at 0 and increments only
   // for venues NEW to this batch. The original "absolute insertion order"
@@ -98,6 +99,7 @@ export function VenuePinLayer({ venues }: VenuePinLayerProps) {
     selectedRef.current = selectedVenueId;
     toggleRef.current = toggleVenue;
     resolveAriaRef.current = resolveAria;
+    venueIdsRef.current = new Set(venues.map((venue) => venue.id));
   });
 
   useEffect(() => {
@@ -259,6 +261,13 @@ export function VenuePinLayer({ venues }: VenuePinLayerProps) {
         // set (filter change, refetch dropped it, etc.). Clear the
         // dangling id so context state matches reality — otherwise the
         // user has to canvas-tap to recover.
+        //
+        // Story 2.1: forced selected-venue URLs can set selection during
+        // the same commit where markers are still mounting. If the id is
+        // present in the current venue data, keep it; the venues effect
+        // will render the marker selected once the marker registry is
+        // populated.
+        if (venueIdsRef.current.has(next)) return;
         selectVenue(null);
       }
     }
@@ -326,6 +335,7 @@ function renderEntry(
   onClick: () => void,
   resolveAria: AriaResolver,
 ) {
+  entry.element.style.zIndex = isSelected ? 'var(--z-floating-buttons)' : 'var(--z-pin)';
   const safePercent = Math.max(
     0,
     Math.min(

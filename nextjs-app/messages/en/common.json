@@ -6,10 +6,26 @@
   "nav": {
     "barLabel": "Main navigation",
     "headerLabel": "Header",
+    "naraMig": "Near me",
     "karta": "Map",
     "favoriter": "Favourites",
     "om": "About",
     "logoAria": "SunnySeat — go to map",
-    "searchPlaceholder": "Search a place or address"
+    "searchPlaceholder": "Search place or area in Gothenburg...",
+    "filter": "Filter",
+    "previous": "Previous filter",
+    "next": "Next filter",
+    "myLocation": "My location",
+    "settings": "Settings",
+    "filterChips": {
+      "courtyard": "Courtyard",
+      "dogs": "Dogs ok",
+      "wifi": "Wi-Fi",
+      "pastries": "Pastries",
+      "morningSun": "Morning sun",
+      "takeAway": "Take-away",
+      "sourdough": "Sourdough",
+      "rooftop": "Rooftop"
+    }
   }
 }

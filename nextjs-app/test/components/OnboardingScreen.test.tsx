@@ -115,7 +115,6 @@ describe('<OnboardingScreen />', () => {
           map: {},
           onboarding: enOnboarding as Record<string, string>,
           venue: {},
-          premium: {},
           feedback: {},
           about: {},
         },

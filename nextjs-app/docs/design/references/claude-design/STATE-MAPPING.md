@@ -1,109 +1,97 @@
 # Claude Design — State Mapping
 
-This file maps the SunnySeat **Screen IDs** (the canonical identifiers used in
-stories, in `project-context.md`'s Screen ID → Route Map, and in the visual
-validation gate) to the **state-forcing recipe** that drives the matching
-screen in the Claude Design HTML prototypes.
+This file maps SunnySeat **Screen IDs** to the state-forcing recipe used to
+capture the active visual-validation PNGs.
 
-The recipes live in [`nextjs-app/scripts/capture-claude-design-refs.mjs`](../../../../scripts/capture-claude-design-refs.mjs).
-This document is the human-readable counterpart — what each recipe is doing
-and why.
+The recipes live in
+[`nextjs-app/scripts/capture-claude-design-refs.mjs`](../../../../scripts/capture-claude-design-refs.mjs).
+This document is the human-readable counterpart: which Claude Design prototype
+is authoritative for each MVP reference and which states are deliberately
+future-only.
 
-> This file is project-curated. The `scripts/fetch-claude-design.sh` refresh
-> preserves it; everything else under `claude-design/` is overwritten on each
-> fetch.
+> This file is project-curated. `scripts/fetch-claude-design.sh` preserves it;
+> generated Claude Design files under `claude-design/project/` are refreshed
+> from the handoff bundle.
 
-## Prototypes
+## Active Prototypes
 
-The bundle ships four self-contained HTML prototypes:
+The 2026-05-21 handoff bundle splits MVP and Post-MVP designs. MVP visual
+validation uses only the two MVP Unlocked files:
 
-| Prototype                       | File                                | Persona             |
-|---------------------------------|-------------------------------------|---------------------|
-| Free, mobile                    | `project/SunnySeat Free.html`       | Free user, 390×844  |
-| Premium, mobile                 | `project/SunnySeat Prototype.html`  | Premium, 390×844    |
-| Free, desktop                   | `project/SunnySeat Desktop Free.html`    | Free user, 1440×900 |
-| Premium, desktop                | `project/SunnySeat Desktop Premium.html` | Premium, 1440×900   |
+| Status | Prototype | File |
+|---|---|---|
+| Active MVP mobile | MVP base functionality, no paywalls | `project/SunnySeat MVP Mobile Unlocked.html` |
+| Active MVP desktop | MVP base functionality, no paywalls | `project/SunnySeat MVP Desktop Unlocked.html` |
+| Future only | Post-MVP mobile unlocked | `project/SunnySeat Post-MVP Mobile Unlocked.html` |
+| Future only | Post-MVP mobile locked/paywall | `project/SunnySeat Post-MVP Mobile Locked.html` |
+| Future only | Post-MVP desktop unlocked | `project/SunnySeat Post-MVP Desktop Unlocked.html` |
+| Future only | Post-MVP desktop locked/paywall | `project/SunnySeat Post-MVP Desktop Locked.html` |
 
-Each is a single HTML file that loads React + Babel-standalone from unpkg and
-its sibling `src*/`/`lib/` JSX. There is no build step.
+Post-MVP files are retained for future Season Pass, Swish, locked, payment, and
+recovery work. They must not drive MVP reference regeneration.
 
-## State-forcing primitives
+## State-Forcing Primitives
 
-The prototype source is treated as **read-only** — modifying it would diverge
-from the upstream Claude Design project. Everything below works without
-touching the JSX.
+The prototype source is treated as read-only. Capture recipes drive state from
+Playwright without editing the JSX.
 
-1. **`window.SUNNY_DEFAULTS`** — set before page load via Playwright
-   `page.addInitScript`. Keys: `hour` (number, 6–21), `mapStyle`
-   (`'warm'|'neutral'|'dusk'`), `variant` (`'amber'|'mono'`), `showTweaks`
-   (boolean).
-2. **`localStorage` seeding** — the App reads these on mount:
-   - `sunny_free_screen` (`'onboarding'|'map'`) — free mobile prototype
-   - `sunny_screen` (`'onboarding'|'map'`) — premium mobile prototype
-   - `sunny_premium` (`'1'|'0'`) — premium toggle
-   - `sunny_hour` — overrides default hour
-   - `sunny_favs` — JSON array of venue IDs to mark as favourites
-3. **Tweaks panel via postMessage** — dispatch `MessageEvent` on `window` with
-   `{ type: '__activate_edit_mode' }`. The Tweaks panel renders bottom-right
-   and exposes one-click access to: paywall, premium toggle, force-fail toggle,
-   modal flows (Datum, Feedback, Recension, Tomt, Betalning fel). After
-   clicking the relevant button, dispatch `__deactivate_edit_mode` so the panel
-   does not appear in the screenshot.
-4. **Direct UI clicks** — pins are tagged `[data-pin]`, the QuickInfo popover
-   is `[data-quickinfo]`. Bottom sheet has a chevron button in its header.
-5. **Desktop `flavor` prop** — set in the HTML's mount call (`<App flavor="free|premium"/>`).
-   Use the matching prototype file rather than overriding.
+1. `window.SUNNY_DEFAULTS` is set before page load when a recipe needs default
+   overrides such as hour or map style.
+2. `localStorage` seeding is used for MVP screen state:
+   - `sunny_screen='map'` opens the MVP mobile map instead of onboarding.
+   - `sunny_hour` controls prototype hour when needed.
+   - `sunny_favs` seeds favourite venue IDs.
+3. Tweaks panel activation uses a synthetic `MessageEvent` with
+   `__activate_edit_mode`. Active MVP buttons currently used by recipes are:
+   - Mobile: `Datum`, `Feedback`, `Recension`, `Tomt`.
+   - Desktop: `Onboarding`, `Planner`.
+4. Direct UI clicks are used for pins, `Mer info`, bottom-sheet expansion,
+   settings, and tabs. Pins expose `[data-pin]`.
 
-## Screen ID coverage
+Do not use old `sunny_free_screen` recipes for active MVP capture; that key
+belongs to the legacy/Post-MVP mobile source split and is not the current MVP
+source of truth.
 
-All recipes below are wired and verified — running the capture script with no
-arguments produces 19 PNGs.
+## Screen ID Coverage
 
-| Screen ID                  | Mobile recipe                                                                                          | Desktop recipe                                                                                                                  |
-|----------------------------|--------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
-| onboarding                 | `freeMobile` · no localStorage seed                                                                    | `freeDesktop` · Tweaks → "Onboarding"                                                                                          |
-| map-primary                | `freeMobile` · seed `sunny_free_screen=map`                                                            | `freeDesktop` · default                                                                                                        |
-| map-panel-venues           | `freeMobile` · `clickXY: [195, 485]` to advance BottomSheet to full                                    | n/a (mobile-only)                                                                                                              |
-| map-with-selected-venue    | `freeMobile` · click `[data-pin]`                                                                      | n/a                                                                                                                            |
-| venue-detail               | `freeMobile` · click `[data-pin]` → click "Mer info"                                                   | `freeDesktop` · same flow                                                                                                      |
-| feedback                   | `freeMobile` · Tweaks → "Feedback"                                                                     | n/a (mobile inline pattern)                                                                                                    |
-| review                     | `freeMobile` · Tweaks → "Recension"                                                                    | n/a                                                                                                                            |
-| premium-upsell             | `freeMobile` · default LockedPlanner top panel                                                         | n/a (covered by premium-paywall on desktop)                                                                                    |
-| premium-paywall            | `freeMobile` · Tweaks → "Öppna paywall"                                                                | `freeDesktop` · Tweaks → "Paywall"                                                                                             |
-| premium-paywall-processing | `freeMobile` · Tweaks → "Öppna paywall" → click "Betala med Swish"                                    | `freeDesktop` · Tweaks → "Paywall" → click "Aktivera Säsongskortet"                                                            |
-| payment-failed             | `freeMobile` · Tweaks → "Betalning fel"                                                                | `freeDesktop` · Tweaks → "Paywall" → "Aktivera Säsongskortet" → "Avbryt betalning"                                            |
-| favourites-tab             | `premiumMobile` · seed `sunny_favs`, click "Favoriter" tab                                             | `premiumDesktop` · click "Favoriter" tab                                                                                       |
-| not-found                  | **Not in prototype.** Manual copy from `legacy/mobile/not-found.png` already promoted to active.       | Same.                                                                                                                          |
-| about                      | **Not in prototype.** Manual copy from `legacy/mobile/about.png` already promoted to active.           | Same.                                                                                                                          |
-| premium-recovery           | **Not in prototype, no legacy reference either.** Needs first capture before visual gate can run.      | Same.                                                                                                                          |
-| map-primary-offline        | **Not in prototype, no legacy reference either.** App-level offline banner + cached shell.            | Same.                                                                                                                          |
+Running `node scripts/capture-claude-design-refs.mjs` from `nextjs-app/`
+regenerates the MVP-covered active references below.
 
-The four "Not in prototype" screens stay in
-`docs/design/references/screens/legacy/{mobile|desktop}/` (or are absent
-entirely). `not-found` and `about` have been copied into the active folder so
-the gate can find them; `premium-recovery` and `map-primary-offline` need their
-first reference capture.
+| Screen ID | Mobile recipe | Desktop recipe |
+|---|---|---|
+| `onboarding` | MVP Mobile Unlocked, no localStorage seed | Preserved curated implementation-derived baseline; not recaptured from MVP desktop by default |
+| `map-primary` | MVP Mobile Unlocked, `sunny_screen=map` | MVP Desktop Unlocked default |
+| `map-panel-venues` | MVP Mobile Unlocked, `sunny_screen=map`, click sheet handle to full state | n/a |
+| `map-with-selected-venue` | MVP Mobile Unlocked, `sunny_screen=map`, click first `[data-pin]` | n/a |
+| `venue-detail` | MVP Mobile Unlocked, `sunny_screen=map`, click first pin, click `Mer info` | MVP Desktop Unlocked, click first pin, click `Mer info` |
+| `feedback` | MVP Mobile Unlocked, `sunny_screen=map`, Tweaks -> `Feedback` | n/a |
+| `review` | MVP Mobile Unlocked, `sunny_screen=map`, Tweaks -> `Recension` | n/a |
+| `about` | MVP Mobile Unlocked, `sunny_screen=map`, settings -> `Om SunnySeat` | MVP Desktop Unlocked, settings -> `Om SunnySeat` |
+| `favourites-tab` | MVP Mobile Unlocked, `sunny_screen=map`, seed `sunny_favs`, click `Favoriter` | MVP Desktop Unlocked, click `Favoriter` |
 
-## Known limitation — device-frame chrome in references
+## Screens Not Regenerated By MVP Capture
 
-Mobile prototypes render inside a simulated iOS device frame (rounded outer
-corners, dynamic island, "9:41" status bar, home indicator pill). Desktop
-prototypes render inside a simulated browser window frame (window controls,
-address bar, tab strip). Our actual application has none of this chrome.
+| Screen ID | Reason | Current handling |
+|---|---|---|
+| `onboarding` desktop | The earlier desktop onboarding baseline is curated and implementation-derived until Rasmus accepts a new desktop-specific onboarding reference. | Keep existing active PNG; see `REBASELINE-LOG.md` 2026-05-04 entries. |
+| `not-found` | The MVP prototypes do not contain the routed app 404 page. | Keep legacy/active routed reference until a design exists. |
+| `map-primary-offline` | Offline shell has no Claude Design state yet. | First implementation-driven reference belongs to the offline story. |
+| `premium-upsell`, `premium-paywall`, `premium-paywall-processing`, `payment-failed`, `premium-recovery` | Season Pass, Swish, payment, locked, and recovery flows are Post-MVP only. | Retain existing/future references as archived future assets. Do not use for MVP review gates. |
 
-The visual validation gate prompt in `.claude/scripts/visual-validate.sh` was
-extended to recognise these as simulator artifacts and ignore them in the
-comparison. If you ever swap to a different gate model or rewrite the prompt,
-remember to keep that exception, otherwise every captured reference will
-trigger a false-positive "missing chrome" failure.
+## Known Limitation — Prototype Chrome
 
-## Adding a new recipe
+Mobile prototypes render inside simulated iOS device chrome and desktop
+prototypes render inside browser-window chrome. The app does not render this
+chrome. The visual gate prompt must continue to treat the device/browser frame
+as a prototype artifact, not an implementation requirement.
 
-1. Identify the prototype + how to reach the state (localStorage seed, Tweaks
-   button, direct click, or combination).
-2. Add an entry to `RECIPES` in
+## Adding Or Changing A Recipe
+
+1. Identify whether the state belongs to MVP Unlocked or Post-MVP.
+2. Add or edit the recipe in
    [`scripts/capture-claude-design-refs.mjs`](../../../../scripts/capture-claude-design-refs.mjs).
-   Set `skip: true` while iterating; remove once the screenshot looks right.
-3. Run `node scripts/capture-claude-design-refs.mjs <screen-id>` from
-   `nextjs-app/` and inspect the output PNG.
-4. Update this table with the recipe summary.
+3. Capture only the affected screen first:
+   `cd nextjs-app && node scripts/capture-claude-design-refs.mjs <screen-id>`.
+4. Inspect the PNG.
+5. Update `nextjs-app/docs/design/references/REBASELINE-LOG.md` in the same
+   operation.

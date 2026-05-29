@@ -2,9 +2,11 @@
   "loadingPlaces": "Laddar platser...",
   "tileLoadFailed": "Kunde inte ladda kartan.",
   "loadFailed": "Kunde inte ladda platser.",
+  "retry": "Försök igen",
   "zoomIn": "Zooma in",
   "zoomOut": "Zooma ut",
   "myLocation": "Min plats",
+  "settings": "Inställningar",
   "pinSunnyAria": "{name} — solig plats — {percent} procent sol",
   "pinPartialAria": "{name} — delvis solig plats — {percent} procent sol",
   "pinShadedAria": "{name} — skuggad plats — {percent} procent sol"

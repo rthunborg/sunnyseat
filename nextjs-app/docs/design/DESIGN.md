@@ -164,6 +164,21 @@ The design uses an 8px base grid with 4px half-steps for tight compositions.
 | `size-drag-pill-w` | 40px | Drag handle pill width (map bottom sheet) |
 | `size-drag-pill-w-lg` | 48px | Drag handle pill width (venue detail sheet) |
 | `size-drag-pill-h` | 6px | Drag handle pill height |
+| `size-bottom-sheet-peek-h` | 120px | Venue-list mobile peek sheet height |
+| `size-bottom-sheet-mid-h` | 320px | Venue-list mobile default/mid sheet height |
+| `size-bottom-sheet-full-h` | 560px | Venue-list mobile full snap height; capped by viewport in CSS so it remains distinct from the 320px mid snap |
+| `size-bottom-sheet-full-top` | 22dvh | Legacy full-sheet top offset retained only for migration notes; active mobile venue list uses `size-bottom-sheet-full-h` |
+| `size-quick-info-mobile-w` | 230px | Mobile selected-venue map callout width |
+| `size-venue-list-desktop-w` | 340px | Desktop venue-list overlay width in refreshed MVP references |
+| `size-venue-detail-panel-w` | 390px | Desktop venue-detail overlay width |
+| `size-search-desktop-w` | 384px | Desktop search bar width |
+| `size-venue-card` | 76px | Minimum standard venue-list row height |
+| `size-venue-card-skeleton` | 88px | Venue-list loading skeleton row height |
+| `size-venue-card-thumb` | 60px × 60px | Standard venue-list thumbnail |
+| `size-venue-card-thumb-compact` | 64px × 64px | Compact venue-list thumbnail |
+| `size-venue-card-skeleton-image` | 87px × 72px | Venue-list loading skeleton image placeholder |
+| `size-venue-detail-hero-mobile` | 220px height | Venue detail mobile hero placeholder/image area |
+| `size-venue-detail-hero-desktop` | 200px height | Venue detail desktop panel hero placeholder/image area |
 | `size-slider-thumb` | 14.1px × 14.1px | Time slider thumb |
 | `size-slider-track-h` | 6px | Time slider / timeline bar height |
 | `size-timeline-h` | 12px | Venue detail timeline bar height |
@@ -228,6 +243,7 @@ These are the **default** transition values for micro-interactions and state cha
 | `duration-fast` | `150ms` | Icon state changes, tab switches, badge updates |
 | `duration-default` | `200ms` | Button hover/press, opacity fades, colour transitions |
 | `duration-slow` | `300ms` | Panel reveals, card expansions, sheet peek-to-rest |
+| `duration-detail-exit` | `250ms` | Venue detail sheet/panel dismissal. JS reads `DURATION_DETAIL_EXIT_S` from `lib/constants/animation.ts`; CSS reads `--duration-detail-exit`. |
 | `ease-default` | `ease-in-out` | Standard interactive transitions |
 | `ease-enter` | `ease-out` | Elements entering the screen (decelerate into place) |
 | `ease-exit` | `ease-in` | Elements leaving the screen (accelerate out) |
@@ -254,10 +270,10 @@ The Figma file contains both mobile (390px) and desktop (1280px) frame variants.
 | Token / Component | Mobile | Desktop |
 |---|---|---|
 | Screen padding (horizontal) | `space-8` (16px) | `space-12` (24px) |
-| Bottom navigation | Fixed 40px bar | Not present — replaced by top navbar |
-| Top navbar | Floating glass bar (time slider + search) | Fixed top bar with logo + search (84px) |
-| Time slider panel | Floating within page padding | Panel in desktop header |
-| Venue list | Bottom sheet (peek/full) | Overlay side panel — **190px wide** (verified: `map-panel-venues-component-desktop` frame is 190px; inner "Venue List" child is 182px; the panel overlays the map canvas, it is not a sidebar that reduces canvas width) |
+| Bottom navigation | Fixed 52px bar with `Nära mig` + `Favoriter` | Not present — replaced by top navbar |
+| Top navbar | Top floating glass time/date chrome | Fixed top bar with logo + search (84px) |
+| Time slider panel | Top overlay within page padding | Bottom overlay above map canvas |
+| Venue list | Bottom sheet (peek/mid/full) | Overlay side panel — **340px wide** in the refreshed MVP Desktop Unlocked reference; the panel overlays the map canvas, it is not a sidebar that reduces canvas width |
 | Venue detail | Full-screen bottom sheet | Desktop overlay component — 390px wide (`venue-detail-component-desktop` frame) |
 | Search bar width | Full width minus `space-8` margins | Fixed 384px |
 
@@ -396,11 +412,11 @@ Width: 278px (mobile)
 Background: color-surface-cream (#fdfaf4)
 Border-top: 1px solid color-border-nav (#f5f5f4)
 Shadow: shadow-nav-up
-Height: 40px (mandatory)
-Padding: space-1 (2px) top, space-12 (24px) horizontal (per side, ~92px)
-Gap between tabs: ~88px
-Active tab label: text-label-sm / color-tab-active (#d97706) / uppercase
-Inactive tab label: text-label-sm / color-tab-inactive (#a8a29e) / uppercase
+Height: 52px (mandatory for current MVP mobile references)
+Padding: space-1 (2px) top, space-8 (16px) horizontal
+Tabs: Nära mig, Favoriter
+Active tab label: text-label-sm / color-tab-active / uppercase
+Inactive tab label: text-label-sm / color-tab-inactive / uppercase
 ```
 
 ### Search Bar (desktop)

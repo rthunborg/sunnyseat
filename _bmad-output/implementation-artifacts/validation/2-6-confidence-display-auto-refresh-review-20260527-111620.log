@@ -1,0 +1,75 @@
+SunnySeat story review gate
+Story: 2-6-confidence-display-auto-refresh
+Mode: apply
+Sprint status: /c/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-6-confidence-display-auto-refresh-review-20260527-111620.log
+
+Story file: /c/sunnyseat/_bmad-output/implementation-artifacts/2-6-confidence-display-auto-refresh.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+Running npm script: typecheck
+
+Running npm script: test
+
+ RUN  v4.1.4 C:/sunnyseat/nextjs-app
+
+
+ Test Files  36 passed (36)
+      Tests  295 passed (295)
+   Start at  11:16:29
+   Duration  24.45s (transform 5.96s, setup 22.76s, import 64.34s, tests 39.28s, environment 106.03s)
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues&_time=14:00' viewport='mobile'
+--- Visual validation: map-panel-venues ---
+Navigating to http://localhost:3000/?_state=map-panel-venues&_time=14:00
+Waiting for selector [data-testid="venue-pin"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-m5DVjo.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the time slider at top, map area with warm/sand tint and venue pins, bottom sheet with filter chips (Mest sol, Nära mig, Kafé, Öppet nu), venue list cards with distance/rating/sun percentage and tags, floating map control buttons (location, settings, zoom), and bottom navigation bar — all styling, colours, and component hierarchy align well with the reference.
+
+Running visual validation: screen='map-primary' route='/?_state=map-primary&_time=14:00' viewport='mobile'
+--- Visual validation: map-primary ---
+Navigating to http://localhost:3000/?_state=map-primary&_time=14:00
+Waiting for selector [data-testid="venue-pin"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-gnLqqr.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the time slider at top, map area with warm/sand tint and yellow venue pins, bottom sheet with filter chips (Mest sol, Nära mig, Kafé, Öppet nu), venue list cards with distance/rating/sun percentage data, floating action buttons (location, settings, zoom), and bottom navigation bar — all styled consistently with the reference.
+
+Running visual validation: screen='map-primary' route='/?_time=16:30' viewport='desktop'
+--- Visual validation: map-primary ---
+Navigating to http://localhost:3000/?_time=16:30
+Waiting for selector [data-testid="venue-pin"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-llpNRn.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure (left panel with venue list, right map canvas, top navigation bar with search and filter chips, bottom time slider), matching warm/sand map tint, correctly styled venue pins with percentage labels, and all key UI chrome elements present and properly positioned.
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00' viewport='mobile'
+--- Visual validation: map-with-selected-venue ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00
+Waiting for selector [data-testid="venue-quick-info"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-q5u0Fh.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the time slider at top, map canvas with venue pins, floating action buttons (location/settings/zoom), venue popup card with "VISA RUTT" and "MER INFO" buttons, bottom sheet with venue listing, and bottom navigation bar — all rendered with the correct warm/sand colour scheme and visual styling.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=14:00' viewport='mobile'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=14:00
+Waiting for selector [data-testid="mobile-venue-detail-sheet"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-x7JnwE.png
+VISUAL GATE FAILED: FAIL: subtitle line shows extra "Säkerhet: 85%" text not present in reference design, sun forecast chart bar pattern differs (implementation shows bars increasing then staying high on right side vs reference showing a bell curve peaking around 14:00), hero image placeholder is not centered/sized correctly relative to the header area (implementation has it misaligned top-left area instead of centered in the hero zone)
+
+Two failure shapes — handle them differently:
+  (a) IMPLEMENTATION DEFECT — the failure points at something this story is responsible for
+      (wrong colours, missing AC1-7 chrome, broken layout). Fix the code and re-run the gate.
+  (b) SCOPE DRIFT IN REFERENCE — the failure points at UI that this story is not responsible for
+      (downstream-story features, partial implementations expected from later stories). The
+      reference PNG predates the current story's scope and the gate cannot pass until those
+      stories ship. In this case you MUST stop and request explicit confirmation from Rasmus
+      before treating the story as complete or transitioning sprint-status to 'review'. Do NOT
+      modify this script, the sprint-status hook, the reference PNG, or any other gate logic
+      to bypass the failure. Surface the verdict and the per-flag scope analysis to Rasmus and
+      wait for an explicit accept-with-rationale before proceeding.

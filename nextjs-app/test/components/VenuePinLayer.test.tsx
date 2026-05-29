@@ -172,6 +172,7 @@ function makeWrapper(stubMap: StubMap, handleRef: { current: WrapperHandle | nul
           <MapSelectionContext.Provider
             value={{
               selectedVenueId,
+              selectedVenuePreview: null,
               selectVenue: selectVenueSpy,
               toggleVenue: (id) =>
                 setSelectedVenueId((current) => (current === id ? null : id)),
@@ -268,6 +269,33 @@ describe('<VenuePinLayer />', () => {
       stubMap.__clickHandlers[0]({ originalEvent: { target: stubMap.__canvas } });
     });
     expect(handleRef.current?.selectVenueSpy).toHaveBeenCalledWith(null);
+  });
+
+  it('does not clear selection when the selected venue exists but its marker has not mounted yet', () => {
+    const stubMap = makeStubMap();
+    const handleRef: { current: WrapperHandle | null } = { current: null };
+    const Wrapper = makeWrapper(stubMap, handleRef);
+
+    render(<VenuePinLayer venues={[]} />, { wrapper: Wrapper });
+
+    act(() => handleRef.current?.setSelected('late-venue'));
+    expect(handleRef.current?.selectVenueSpy).toHaveBeenCalledWith(null);
+    handleRef.current?.selectVenueSpy.mockClear();
+
+    const lateVenue: VenuePinData = {
+      ...baseVenues[0],
+      id: 'late-venue',
+      slug: 'late-venue',
+      name: 'Late venue',
+    };
+    const { rerender } = render(<VenuePinLayer venues={[lateVenue]} />, {
+      wrapper: Wrapper,
+    });
+
+    act(() => handleRef.current?.setSelected('late-venue'));
+    rerender(<VenuePinLayer venues={[lateVenue]} />);
+
+    expect(handleRef.current?.selectVenueSpy).not.toHaveBeenCalledWith(null);
   });
 
   it('skips opacity stagger when prefers-reduced-motion is set', () => {

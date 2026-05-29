@@ -89,7 +89,6 @@
   --radius-badge: 24px;
   --radius-card: 16px;
   --radius-venue-image: 12px;
-  --radius-premium-tag: 4px;
 
   /* ---- Backdrop Blur ---- */
   --blur-standard: 6px;
@@ -100,6 +99,7 @@
   --duration-fast: 150ms;
   --duration-default: 200ms;
   --duration-slow: 300ms;
+  --duration-detail-exit: 250ms;
   --ease-default: ease-in-out;
   --ease-enter: ease-out;
   --ease-exit: ease-in;
@@ -131,6 +131,7 @@
   --size-slider-thumb: 14.1px;
   --size-slider-track-h: 6px;
   --size-timeline-h: 12px;
+  --border-slider-thumb: 2.35px;
 
   /* ---- Breakpoints ---- */
   --breakpoint-mobile: 375px;
@@ -150,9 +151,8 @@
   --gradient-wordmark-sun: radial-gradient(circle, #fff6d6 0%, var(--color-amber-primary) 100%);
   --gradient-route-button: linear-gradient(169deg, var(--color-amber-dark) 0%, var(--color-amber-gold) 100%);
   --gradient-cta-amber: linear-gradient(171deg, var(--color-amber-gold) 0%, var(--color-amber-primary) 100%);
-  --gradient-premium-button: linear-gradient(174deg, var(--color-amber-gold) 0%, var(--color-amber-primary) 100%);
   --gradient-map-overlay: linear-gradient(66deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0) 50%, rgba(249, 115, 22, 0.1) 100%);
-  --gradient-timeline-bar: linear-gradient(90deg, rgba(115, 92, 0, 0.2), var(--color-amber-gold) 50%, rgba(115, 92, 0, 0.2));
+  --gradient-timeline-bar: linear-gradient(90deg, var(--color-amber-primary) 0%, var(--color-amber-gold) 100%);
 
   /* ---- Brand-decorative shadows ---- */
   --shadow-wordmark-sun: 0 0 16px rgba(255, 240, 180, 0.7);
@@ -161,8 +161,27 @@
   --duration-fly: 500ms;
 
   /* ---- Component sizes (Tailwind v4 namespace) ---- */
-  --size-mobile-nav-h: 40px;
+  --size-mobile-nav-h: 52px;
   --size-desktop-nav-h: 84px;
+  --size-bottom-sheet-peek-h: 120px;
+  --size-bottom-sheet-mid-h: 320px;
+  --size-bottom-sheet-full-h: 560px;
+  --size-bottom-sheet-full-top: 22dvh;
+  --size-quick-info-mobile-w: 230px;
+  --size-venue-list-desktop-w: 340px;
+  --size-venue-detail-panel-w: 390px;
+  --size-search-desktop-w: 384px;
+  --size-venue-card: 76px;
+  --size-venue-card-skeleton: 88px;
+  --size-venue-card-thumb: 60px;
+  --size-venue-card-thumb-compact: 64px;
+  --size-venue-card-skeleton-image-w: 87px;
+  --size-venue-card-skeleton-image-h: 72px;
+  --size-venue-detail-hero-mobile: 220px;
+  --size-venue-detail-hero-desktop: 200px;
+
+  /* ---- Letter spacing ---- */
+  --tracking-section-label: 1.4px;
 }
 
 /* ============================================================
@@ -177,16 +196,36 @@
   background: var(--gradient-cta-amber);
 }
 
-@utility gradient-premium-button {
-  background: var(--gradient-premium-button);
-}
-
 @utility gradient-map-overlay {
   background: var(--gradient-map-overlay);
 }
 
 @utility gradient-onboarding {
   background: var(--gradient-onboarding);
+}
+
+@utility backdrop-blur-standard {
+  backdrop-filter: blur(var(--blur-standard));
+}
+
+@utility backdrop-blur-heavy {
+  backdrop-filter: blur(var(--blur-heavy));
+}
+
+@utility venue-photo-gradient {
+  background:
+    radial-gradient(circle at 18% 82%, var(--color-amber-primary) 0 13%, transparent 14%),
+    repeating-linear-gradient(45deg,
+      color-mix(in srgb, var(--color-amber-dark) 10%, transparent) 0 6px,
+      color-mix(in srgb, var(--color-surface-cream) 58%, transparent) 6px 12px),
+    linear-gradient(135deg, var(--color-surface-sand) 0%, var(--color-surface-cream) 100%);
+}
+
+@utility venue-detail-hero-gradient {
+  background:
+    radial-gradient(circle at 74% 18%, color-mix(in srgb, var(--color-surface-cream) 72%, transparent) 0 13%, transparent 34%),
+    repeating-linear-gradient(135deg, color-mix(in srgb, var(--color-surface-cream) 42%, transparent) 0 1px, transparent 1px 18px),
+    linear-gradient(135deg, var(--color-surface-sand) 0%, var(--color-amber-pale) 56%, var(--color-surface-cream) 100%);
 }
 
 @utility gradient-sun-burst-warm {
@@ -217,6 +256,26 @@
 
 @utility gradient-timeline-bar {
   background: var(--gradient-timeline-bar);
+}
+
+@utility border-slider-thumb {
+  border-width: var(--border-slider-thumb);
+}
+
+@utility w-venue-list-desktop {
+  width: var(--size-venue-list-desktop-w);
+}
+
+@utility w-search-desktop {
+  width: var(--size-search-desktop-w);
+}
+
+@utility w-venue-detail-panel {
+  width: var(--size-venue-detail-panel-w);
+}
+
+@utility tracking-section-label {
+  letter-spacing: var(--tracking-section-label);
 }
 
 /* ============================================================

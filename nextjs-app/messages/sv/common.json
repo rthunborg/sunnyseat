@@ -6,10 +6,26 @@
   "nav": {
     "barLabel": "Huvudnavigation",
     "headerLabel": "Sidhuvud",
+    "naraMig": "Nära mig",
     "karta": "Karta",
     "favoriter": "Favoriter",
     "om": "Om",
     "logoAria": "SunnySeat — gå till kartan",
-    "searchPlaceholder": "Sök plats eller adress"
+    "searchPlaceholder": "Sök plats eller område i Göteborg...",
+    "filter": "Filter",
+    "previous": "Föregående filter",
+    "next": "Nästa filter",
+    "myLocation": "Min plats",
+    "settings": "Inställningar",
+    "filterChips": {
+      "courtyard": "Innergård",
+      "dogs": "Hund ok",
+      "wifi": "Wifi",
+      "pastries": "Bakverk",
+      "morningSun": "Morgonsol",
+      "takeAway": "Take-away",
+      "sourdough": "Surdeg",
+      "rooftop": "Takt"
+    }
   }
 }

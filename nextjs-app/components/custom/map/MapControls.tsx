@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { LocateFixed, Minus, Plus } from 'lucide-react';
+import { LocateFixed, Minus, Plus, Settings } from 'lucide-react';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
 import { DURATION_FLY_MS } from '@/lib/constants/animation';
@@ -14,10 +14,10 @@ const DRAG_FADE_OPACITY = '0.6';
 /**
  * Floating glass map control stack (zoom +/-, my location).
  *
- * Mounted to the right edge: vertically centred on mobile, just below the
- * desktop navbar (top offset derived from `--size-desktop-nav-h` plus
- * 28 px breathing room). Each button is a 48×48 GlassButton matching the
- * `Floating Glass Button` token in DESIGN.md.
+ * Mounted to the right edge: high enough on mobile to stay clear of
+ * QuickInfo cards and just below the desktop navbar (top offset derived
+ * from `--size-desktop-nav-h` plus 28 px breathing room). Each button is
+ * a 48×48 GlassButton matching the `Floating Glass Button` token in DESIGN.md.
  *
  * The drag-fade behaviour is wired with direct DOM mutation rather than
  * React state because dragstart/dragend can fire many times during a
@@ -86,6 +86,11 @@ export function MapControls() {
     geolocation.requestLocation();
   };
 
+  const handleSettings = () => {
+    // The refreshed MVP reference exposes settings from the map chrome.
+    // The settings sheet itself is handled by a later scoped story.
+  };
+
   // Fly to the user's location once the geolocation request resolves to
   // success. On fallback (denial / unavailable) we silently keep the
   // current map centre. For returning users with granted permission, the
@@ -108,8 +113,24 @@ export function MapControls() {
     <div
       ref={controlsRef}
       data-testid="map-controls"
-      className="absolute right-4 top-1/2 -translate-y-1/2 lg:top-[calc(var(--size-desktop-nav-h)+28px)] lg:right-6 lg:translate-y-0 z-floating-buttons flex flex-col gap-3 opacity-100 transition-opacity duration-200 ease-default motion-reduce:transition-none"
+      className="absolute right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*50)] z-floating-buttons flex flex-col gap-3 opacity-100 transition-opacity duration-200 ease-default motion-reduce:transition-none lg:top-[calc(var(--size-desktop-nav-h)+var(--spacing)*7)]"
     >
+      <GlassButton
+        ariaLabel={t('myLocation')}
+        onClick={handleMyLocation}
+        disabled={!isMapReady}
+        testId="map-control-my-location"
+      >
+        <LocateFixed aria-hidden="true" style={{ width: 20, height: 20 }} />
+      </GlassButton>
+      <GlassButton
+        ariaLabel={t('settings')}
+        onClick={handleSettings}
+        disabled
+        testId="map-control-settings"
+      >
+        <Settings aria-hidden="true" style={{ width: 20, height: 20 }} />
+      </GlassButton>
       <GlassButton
         ariaLabel={t('zoomIn')}
         onClick={handleZoomIn}
@@ -126,14 +147,6 @@ export function MapControls() {
       >
         <Minus aria-hidden="true" style={{ width: 20, height: 20 }} />
       </GlassButton>
-      <GlassButton
-        ariaLabel={t('myLocation')}
-        onClick={handleMyLocation}
-        disabled={!isMapReady}
-        testId="map-control-my-location"
-      >
-        <LocateFixed aria-hidden="true" style={{ width: 20, height: 20 }} />
-      </GlassButton>
     </div>
   );
 }
@@ -143,10 +156,11 @@ type GlassButtonProps = {
   onClick: () => void;
   disabled: boolean;
   testId: string;
+  className?: string;
   children: React.ReactNode;
 };
 
-function GlassButton({ ariaLabel, onClick, disabled, testId, children }: GlassButtonProps) {
+function GlassButton({ ariaLabel, onClick, disabled, testId, className, children }: GlassButtonProps) {
   // Story 1.6 review (P37): native `disabled` already removes the button
   // from the tab order and exposes the disabled state to assistive tech;
   // adding `aria-disabled` on top either is ignored or causes double
@@ -158,7 +172,7 @@ function GlassButton({ ariaLabel, onClick, disabled, testId, children }: GlassBu
       disabled={disabled}
       aria-label={ariaLabel}
       data-testid={testId}
-      className="size-12 rounded-pill bg-glass-standard backdrop-blur-[6px] shadow-button-float flex items-center justify-center text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:rounded-pill disabled:opacity-50 disabled:cursor-not-allowed"
+      className={`size-12 rounded-pill bg-glass-standard backdrop-blur-standard shadow-button-float flex items-center justify-center text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:rounded-pill disabled:opacity-50 disabled:cursor-not-allowed ${className ?? ''}`}
     >
       {children}
     </button>

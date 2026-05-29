@@ -1,4 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+
+async function bypassOnboarding(page: import('@playwright/test').Page): Promise<void> {
+  await page.addInitScript((key: string) => {
+    window.localStorage.setItem(key, '1');
+  }, ONBOARDED_FLAG_KEY);
+}
 
 test.describe('Mobile responsive layout', () => {
   test.beforeEach(async ({}, testInfo) => {
@@ -9,6 +16,7 @@ test.describe('Mobile responsive layout', () => {
   });
 
   test('M1: mobile nav bar is visible at the bottom of /', async ({ page }) => {
+    await bypassOnboarding(page);
     await page.goto('/');
     const nav = page.getByTestId('mobile-nav-bar');
     await expect(nav).toBeVisible();
@@ -23,6 +31,7 @@ test.describe('Mobile responsive layout', () => {
   });
 
   test('M2: desktop nav bar is hidden on mobile viewport', async ({ page }) => {
+    await bypassOnboarding(page);
     await page.goto('/');
     await expect(page.getByTestId('desktop-nav-bar')).toBeHidden();
   });
@@ -30,6 +39,7 @@ test.describe('Mobile responsive layout', () => {
   test('M3: each tab exposes its visible text as the accessible name (WCAG 2.5.3)', async ({
     page,
   }) => {
+    await bypassOnboarding(page);
     await page.goto('/');
 
     // Playwright's mobile iPhone 14 emulation sends Accept-Language: en-US, so
@@ -37,8 +47,8 @@ test.describe('Mobile responsive layout', () => {
     const pathname = new URL(page.url()).pathname;
     const isEnglish = pathname.startsWith('/en');
     const labels = isEnglish
-      ? { karta: 'Map', favoriter: 'Favourites', om: 'About' }
-      : { karta: 'Karta', favoriter: 'Favoriter', om: 'Om' };
+      ? { naraMig: 'Near me', favoriter: 'Favourites' }
+      : { naraMig: 'Nära mig', favoriter: 'Favoriter' };
 
     for (const [key, name] of Object.entries(labels)) {
       const tab = page.getByTestId(`mobile-nav-tab-${key}`);
@@ -49,9 +59,10 @@ test.describe('Mobile responsive layout', () => {
     }
   });
 
-  test('M4: the Karta tab is active when pathname is /', async ({ page }) => {
+  test('M4: the Nära mig tab is active when pathname is /', async ({ page }) => {
+    await bypassOnboarding(page);
     await page.goto('/');
-    await expect(page.getByTestId('mobile-nav-tab-karta')).toHaveAttribute(
+    await expect(page.getByTestId('mobile-nav-tab-naraMig')).toHaveAttribute(
       'data-active',
       'true',
     );
@@ -59,18 +70,16 @@ test.describe('Mobile responsive layout', () => {
       'data-active',
       'false',
     );
-    await expect(page.getByTestId('mobile-nav-tab-om')).toHaveAttribute(
-      'data-active',
-      'false',
-    );
+    await expect(page.getByTestId('mobile-nav-tab-om')).toHaveCount(0);
   });
 
   test('M5: mobile tabs are keyboard-reachable and render a visible focus ring (AC5)', async ({
     page,
   }) => {
+    await bypassOnboarding(page);
     await page.goto('/');
 
-    const tabKeys = ['karta', 'favoriter', 'om'] as const;
+    const tabKeys = ['naraMig', 'favoriter'] as const;
 
     // iOS Safari emulation (the mobile Playwright project) does not honour
     // Tab-key traversal natively — mobile Safari deliberately restricts Tab
@@ -108,6 +117,7 @@ test.describe('Desktop responsive layout', () => {
   });
 
   test('D1: desktop nav bar is visible at the top of /', async ({ page }) => {
+    await bypassOnboarding(page);
     await page.goto('/');
     const nav = page.getByTestId('desktop-nav-bar');
     await expect(nav).toBeVisible();
@@ -120,27 +130,34 @@ test.describe('Desktop responsive layout', () => {
   });
 
   test('D2: mobile nav bar is hidden on desktop viewport', async ({ page }) => {
+    await bypassOnboarding(page);
     await page.goto('/');
     await expect(page.getByTestId('mobile-nav-bar')).toBeHidden();
   });
 
-  test('D3: the search placeholder shows placeholder text without a search landmark', async ({
+  test('D3: desktop navbar exposes the real search combobox', async ({
     page,
   }) => {
+    await bypassOnboarding(page);
     await page.goto('/');
-    const placeholder = page.getByTestId('desktop-nav-search-placeholder');
-    await expect(placeholder).toBeVisible();
-    // Placeholder must not claim to be a search landmark — Story 2.4 adds
-    // the real combobox and re-introduces the landmark then.
-    await expect(placeholder).not.toHaveAttribute('role', /./);
-    await expect(placeholder).not.toHaveAttribute('aria-label', /./);
-    // It should render the placeholder text so users see the search bar stub.
-    await expect(placeholder).not.toBeEmpty();
+    const searchLandmark = page.getByRole('search', {
+      name: /Sök plats|Search venue/,
+    });
+    await expect(searchLandmark).toBeVisible();
+    const combobox = searchLandmark.getByRole('combobox', {
+      name: /Sök plats|Search venue/,
+    });
+    await expect(combobox).toBeVisible();
+    await expect(combobox).toHaveAttribute(
+      'placeholder',
+      /Sök plats eller område i Göteborg|Search place or area in Gothenburg/,
+    );
   });
 
   test('D4: the desktop logo link is keyboard-reachable with a visible focus ring (AC5)', async ({
     page,
   }) => {
+    await bypassOnboarding(page);
     await page.goto('/');
 
     // Focus the logo directly; Tab-key origin depends on surrounding page

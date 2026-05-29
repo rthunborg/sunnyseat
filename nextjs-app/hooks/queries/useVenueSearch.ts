@@ -1,8 +1,13 @@
 'use client';
 
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import type { GetVenuesResponse } from '@/lib/types/api';
+import { readSunFreshnessHeaders } from '@/lib/utils/sun-freshness';
+import {
+  shouldRetryVenueQuery,
+  venueQueryRetryDelay,
+} from './venue-query-options';
 
 const FIVE_MINUTES = 5 * 60 * 1000;
 const DEFAULT_RADIUS_KM = 1.5;
@@ -13,6 +18,9 @@ type Params = {
   lat: number;
   lng: number;
   radiusKm?: number;
+  q?: string;
+  date?: string;
+  time?: string;
 };
 
 // Round coordinates to 4 decimals (~11 m at Gothenburg's latitude — well
@@ -52,10 +60,25 @@ export function useVenueSearch(
   const inputsValid = Number.isFinite(params.lat) && Number.isFinite(params.lng);
   const lat = inputsValid ? bucket(params.lat) : 0;
   const lng = inputsValid ? bucket(params.lng) : 0;
+  const q = normalizeTextQuery(params.q);
+  const planner = normalizePlannerParams(params.date, params.time);
+  const filters = { lat, lng, q, radiusKm, ...planner };
   return useQuery<GetVenuesResponse, Error>({
-    queryKey: queryKeys.venues.list({ lat, lng, radiusKm }),
+    queryKey: planner
+      ? queryKeys.venues.planner(filters)
+      : queryKeys.venues.list(filters),
     queryFn: async ({ signal }) => {
-      const url = `/api/venues?lat=${lat}&lng=${lng}&radiusKm=${radiusKm}`;
+      const searchParams = new URLSearchParams({
+        lat: String(lat),
+        lng: String(lng),
+        radiusKm: String(radiusKm),
+      });
+      if (q) searchParams.set('q', q);
+      if (planner) {
+        searchParams.set('date', planner.date);
+        searchParams.set('time', planner.time);
+      }
+      const url = `/api/venues?${searchParams.toString()}`;
       const res = await fetch(url, { signal });
       if (!res.ok) {
         throw new Error(`Venue search failed: ${res.status} ${res.statusText}`);
@@ -68,10 +91,36 @@ export function useVenueSearch(
       if (!contentType.toLowerCase().includes('application/json')) {
         throw new Error(`Venue search returned unexpected content-type: ${contentType || '(missing)'}`);
       }
-      return (await res.json()) as GetVenuesResponse;
+      const body = (await res.json()) as GetVenuesResponse;
+      return {
+        ...body,
+        meta: {
+          ...body.meta,
+          ...readSunFreshnessHeaders(res.headers),
+        },
+      };
     },
     staleTime: FIVE_MINUTES,
+    refetchInterval: planner ? false : FIVE_MINUTES,
     refetchOnWindowFocus: false,
+    retry: shouldRetryVenueQuery,
+    retryDelay: venueQueryRetryDelay,
+    placeholderData: keepPreviousData,
     enabled: inputsValid,
   });
+}
+
+function normalizeTextQuery(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function normalizePlannerParams(
+  date: string | undefined,
+  time: string | undefined,
+): { date: string; time: string } | undefined {
+  const normalizedDate = date?.trim();
+  const normalizedTime = time?.trim();
+  if (!normalizedDate || !normalizedTime) return undefined;
+  return { date: normalizedDate, time: normalizedTime };
 }

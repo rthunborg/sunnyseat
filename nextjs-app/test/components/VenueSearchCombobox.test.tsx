@@ -1,0 +1,255 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useState } from 'react';
+import { describe, expect, it, vi } from 'vitest';
+import { VenueSearchCombobox } from '@/components/composed/search/VenueSearchCombobox';
+import type { VenueDataDto } from '@/lib/types/api';
+
+const motionState = vi.hoisted(() => ({ reducedMotion: false }));
+
+vi.mock('motion/react', async () => {
+  const actual = await vi.importActual<typeof import('motion/react')>('motion/react');
+  return {
+    ...actual,
+    useReducedMotion: () => motionState.reducedMotion,
+  };
+});
+
+const LABELS = {
+  label: 'Sök plats',
+  placeholder: 'Sök plats eller område i Göteborg...',
+  clear: 'Rensa sökning',
+  loading: 'Söker platser',
+  error: 'Sökningen kunde inte genomföras',
+  noResults: (query: string) => `Inga resultat för "${query}"`,
+  resultCount: (count: number) => `${count} resultat`,
+};
+
+describe('<VenueSearchCombobox />', () => {
+  it('filters by venue name and neighborhood and selects a clicked result', async () => {
+    const onSelectVenue = vi.fn();
+    render(
+      <Harness
+        venues={[
+          makeVenue({ id: '1', name: 'Kafé Magasinet', neighborhood: 'Inom Vallgraven' }),
+          makeVenue({ id: '2', name: 'Brygghuset Lerum', neighborhood: 'Haga' }),
+        ]}
+        onSelectVenue={onSelectVenue}
+      />,
+    );
+
+    const input = screen.getByRole('combobox', { name: 'Sök plats' });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'haga' } });
+
+    expect(screen.getByTestId('venue-search-results')).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: /Brygghuset Lerum/ })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Kafé Magasinet/ })).toBeNull();
+
+    fireEvent.click(screen.getByRole('option', { name: /Brygghuset Lerum/ }));
+    expect(onSelectVenue).toHaveBeenCalledWith(expect.objectContaining({ id: '2' }));
+    await waitFor(() => expect(screen.getByTestId('venue-search-results')).not.toBeVisible());
+    expect(input).not.toHaveFocus();
+  });
+
+  it('supports keyboard navigation with arrow keys and Enter', () => {
+    const onSelectVenue = vi.fn();
+    render(
+      <Harness
+        venues={[
+          makeVenue({ id: '1', name: 'Kafé Magasinet', neighborhood: 'Inom Vallgraven' }),
+          makeVenue({ id: '2', name: 'Café Halvvägs', neighborhood: 'Vasastaden' }),
+        ]}
+        onSelectVenue={onSelectVenue}
+      />,
+    );
+
+    const input = screen.getByRole('combobox', { name: 'Sök plats' });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'kafé' } });
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onSelectVenue).toHaveBeenCalledWith(expect.objectContaining({ id: '1' }));
+  });
+
+  it('dismisses on Escape, clears query from the clear button, and renders no-results copy', async () => {
+    const onSelectVenue = vi.fn();
+    render(
+      <Harness
+        venues={[makeVenue({ id: '1', name: 'Kafé Magasinet', neighborhood: 'Inom Vallgraven' })]}
+        onSelectVenue={onSelectVenue}
+      />,
+    );
+
+    const input = screen.getByRole('combobox', { name: 'Sök plats' });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'zzz' } });
+    expect(screen.getByText('Inga resultat för "zzz"')).toBeInTheDocument();
+
+    fireEvent.keyDown(input, { key: 'Escape' });
+    await waitFor(() => expect(screen.getByTestId('venue-search-results')).not.toBeVisible());
+    expect(onSelectVenue).not.toHaveBeenCalled();
+
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'kafé' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Rensa sökning' }));
+    expect(input).toHaveValue('');
+    await waitFor(() => expect(screen.getByTestId('venue-search-results')).not.toBeVisible());
+  });
+
+  it('dismisses when keyboard focus moves outside the combobox', async () => {
+    render(
+      <>
+        <Harness
+          venues={[makeVenue({ id: '1', name: 'Kafé Magasinet', neighborhood: 'Inom Vallgraven' })]}
+          onSelectVenue={vi.fn()}
+        />
+        <button type="button">Nästa kontroll</button>
+      </>,
+    );
+
+    const input = screen.getByRole('combobox', { name: 'Sök plats' });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'kafé' } });
+    expect(await screen.findByRole('option', { name: /Kafé Magasinet/ })).toBeInTheDocument();
+
+    fireEvent.focus(screen.getByRole('button', { name: 'Nästa kontroll' }));
+
+    await waitFor(() => expect(screen.getByTestId('venue-search-results')).not.toBeVisible());
+  });
+
+  it('caps pasted query text to the configured API limit', () => {
+    render(
+      <Harness
+        venues={[makeVenue({ id: '1', name: 'Kafé Magasinet', neighborhood: 'Inom Vallgraven' })]}
+        onSelectVenue={vi.fn()}
+        maxLength={5}
+      />,
+    );
+
+    const input = screen.getByRole('combobox', { name: 'Sök plats' });
+    fireEvent.change(input, { target: { value: 'magasinet' } });
+
+    expect(input).toHaveValue('magas');
+  });
+
+  it('renders an error instead of false no-results copy when search fails', async () => {
+    render(
+      <Harness
+        venues={[]}
+        error="Sökningen kunde inte genomföras"
+        onSelectVenue={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByRole('combobox', { name: 'Sök plats' });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'magasinet' } });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Sökningen kunde inte genomföras');
+    expect(screen.queryByText('Inga resultat för "magasinet"')).toBeNull();
+  });
+
+  it('does not filter local fallback results by hidden slug fields', () => {
+    render(
+      <Harness
+        venues={[
+          makeVenue({
+            id: '1',
+            name: 'Kafé Magasinet',
+            neighborhood: 'Inom Vallgraven',
+            slug: 'test-venue-sunny',
+          }),
+        ]}
+        onSelectVenue={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByRole('combobox', { name: 'Sök plats' });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'test-venue-sunny' } });
+
+    expect(screen.queryByRole('option', { name: /Kafé Magasinet/ })).toBeNull();
+    expect(screen.getByText('Inga resultat för "test-venue-sunny"')).toBeInTheDocument();
+  });
+
+  it('marks the reduced-motion dropdown path for instant/opacity-only transitions', async () => {
+    motionState.reducedMotion = true;
+    render(
+      <Harness
+        venues={[makeVenue({ id: '1', name: 'Kafé Magasinet', neighborhood: 'Inom Vallgraven' })]}
+        onSelectVenue={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByRole('combobox', { name: 'Sök plats' });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'kafé' } });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('venue-search-results')).toHaveAttribute(
+        'data-reduced-motion',
+        'true',
+      );
+    });
+    motionState.reducedMotion = false;
+  });
+});
+
+function Harness({
+  venues,
+  onSelectVenue,
+  error,
+  maxLength,
+}: {
+  venues: VenueDataDto[];
+  onSelectVenue: (venue: VenueDataDto) => void;
+  error?: string;
+  maxLength?: number;
+}) {
+  const [query, setQuery] = useState('');
+  return (
+    <VenueSearchCombobox
+      venues={venues}
+      query={query}
+      onQueryChange={setQuery}
+      onSelectVenue={onSelectVenue}
+      labels={LABELS}
+      variant="mobile"
+      error={error}
+      maxLength={maxLength}
+    />
+  );
+}
+
+function makeVenue({
+  id,
+  name,
+  neighborhood,
+  slug,
+}: {
+  id: string;
+  name: string;
+  neighborhood: string;
+  slug?: string;
+}): VenueDataDto {
+  return {
+    id,
+    venueId: id,
+    venueName: name,
+    venueSlug: slug ?? id,
+    slug: slug ?? id,
+    neighborhood,
+    location: { lat: 57.7, lng: 11.97 },
+    currentSunStatus: 'Sunny',
+    isPartner: false,
+    confidence: 92,
+    distanceMeters: 180,
+    sunExposurePercent: 95,
+    sunWindow: { start: '13:00', end: '18:30' },
+    thumbnail: {
+      alt: `${name} uteservering`,
+      initials: name.slice(0, 2),
+    },
+  };
+}

@@ -120,21 +120,17 @@ export function VenuePin({ venue, isSelected, onClick, ariaLabel }: VenuePinProp
 function SunnyPill({ percent }: { percent: number }) {
   return (
     <div className="flex flex-col items-center">
-      <div className="bg-amber-pin border-[2px] border-white shadow-card rounded-pill px-4 py-5 flex items-center gap-2">
+      <div className="flex h-[50px] w-11 flex-col items-center justify-center gap-0.5 rounded-pill border-[2.5px] border-white bg-amber-pin py-1 shadow-card">
+        <span className="text-label-xs leading-none text-amber-cta-text">{percent}%</span>
         <Sun
           aria-hidden="true"
           data-pin-icon="sun"
-          className="text-white"
-          style={{ width: '16.5px', height: '16.5px' }}
+          className="size-3.5 text-amber-cta-text"
         />
-        <span className="text-label-xs text-white">{percent}%</span>
       </div>
       <span
         data-pin-tail
-        className="block w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-amber-pin"
-        style={{
-          filter: 'drop-shadow(0 2px 2px rgba(115, 92, 0, 0.2))',
-        }}
+        className="-mt-0.5 block h-0 w-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-amber-pin shadow-subtle"
       />
     </div>
   );
@@ -143,13 +139,13 @@ function SunnyPill({ percent }: { percent: number }) {
 function SunnyCircle({ percent }: { percent: number }) {
   return (
     <div className="bg-amber-pin border-[2px] border-white shadow-card rounded-pill flex flex-col items-center justify-center size-11">
+      <span className="text-label-xs text-amber-cta-text leading-none">{percent}%</span>
       <Sun
         aria-hidden="true"
         data-pin-icon="sun"
-        className="text-white"
+        className="text-amber-cta-text"
         style={{ width: '16.5px', height: '16.5px' }}
       />
-      <span className="text-label-xs text-white leading-none">{percent}%</span>
     </div>
   );
 }

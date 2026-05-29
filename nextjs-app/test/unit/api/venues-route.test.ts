@@ -1,13 +1,28 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import { GET } from '@/app/api/venues/route';
-import type { GetVenuesResponse } from '@/lib/types/api';
+import {
+  clearVenueRateLimitForTests,
+  GET,
+  validateVenueUniqueness,
+} from '@/app/api/venues/route';
+import { sunSeasonBounds } from '@/lib/utils/time-planner';
+import type { GetVenuesResponse, VenueDataDto } from '@/lib/types/api';
 
-function makeRequest(query: string): NextRequest {
-  return new NextRequest(`http://localhost/api/venues${query}`);
+function makeRequest(query: string, headers?: HeadersInit): NextRequest {
+  return new NextRequest(`http://localhost/api/venues${query}`, { headers });
 }
 
 describe('GET /api/venues', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-26T10:15:00.000Z'));
+    clearVenueRateLimitForTests();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('returns 200 with sun-status-sorted venues for a valid lat/lng', async () => {
     const res = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
     expect(res.status).toBe(200);
@@ -22,6 +37,35 @@ describe('GET /api/venues', () => {
     for (let i = 1; i < ranks.length; i++) {
       expect(ranks[i - 1]).toBeLessThanOrEqual(ranks[i]);
     }
+    expect(res.headers.get('x-sun-data-source')).toBe('weather');
+    expect(res.headers.get('x-weather-updated-at')).toMatch(/T/);
+    expect(body.meta.sunDataSource).toBe('weather');
+    expect(body.meta.weatherUpdatedAt).toBe(res.headers.get('x-weather-updated-at'));
+  });
+
+  it('can return stale fixture weather metadata without blocking venue data', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&_weather=stale'));
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as GetVenuesResponse;
+    expect(body.venues.length).toBeGreaterThan(0);
+    expect(res.headers.get('x-sun-data-source')).toBe('weather');
+    expect(res.headers.get('x-weather-updated-at')).toMatch(/T/);
+    expect(body.meta.sunDataSource).toBe('weather');
+    expect(body.meta.weatherUpdatedAt).toBe(res.headers.get('x-weather-updated-at'));
+  });
+
+  it('can return geometry-only fixture metadata when weather is unavailable', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&_weather=unavailable'));
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as GetVenuesResponse;
+    expect(body.venues.length).toBeGreaterThan(0);
+    expect(body.venues.every((venue) => venue.skyCondition === 'unavailable')).toBe(true);
+    expect(res.headers.get('x-sun-data-source')).toBe('geometry-only');
+    expect(res.headers.get('x-weather-updated-at')).toBeNull();
+    expect(body.meta.sunDataSource).toBe('geometry-only');
+    expect(body.meta.weatherUpdatedAt).toBeUndefined();
   });
 
   it('returns 400 when lat is missing', async () => {
@@ -58,4 +102,335 @@ describe('GET /api/venues', () => {
     const body = (await res.json()) as GetVenuesResponse;
     expect(body.meta.radiusKm).toBe(1.5);
   });
+
+  it('rejects legacy latitude/longitude coordinate aliases', async () => {
+    const res = await GET(makeRequest('?latitude=57.7089&longitude=11.9746'));
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { detail: string };
+    expect(body.detail).toMatch(/lat and lng/i);
+  });
+
+  it('rejects malformed X-Forwarded-For instead of trusting it as a key', async () => {
+    const res = await GET(
+      makeRequest('?lat=57.7089&lng=11.9746', {
+        'X-Forwarded-For': '999.999.999.999',
+      }),
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { detail: string };
+    expect(body.detail).toMatch(/x-forwarded-for/i);
+  });
+
+  it('rate-limits repeated requests from the same forwarded IP', async () => {
+    let last: Response | null = null;
+    for (let i = 0; i < 121; i++) {
+      last = await GET(
+        makeRequest('?lat=57.7089&lng=11.9746', {
+          'X-Forwarded-For': '203.0.113.8',
+        }),
+      );
+    }
+    expect(last?.status).toBe(429);
+  });
+
+  it('rate-limits requests without forwarded headers through a fallback bucket', async () => {
+    let last: Response | null = null;
+    for (let i = 0; i < 121; i++) {
+      last = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
+    }
+    expect(last?.status).toBe(429);
+  });
+
+  it('falls back to X-Real-IP when X-Forwarded-For is blank', async () => {
+    let last: Response | null = null;
+    for (let i = 0; i < 121; i++) {
+      last = await GET(
+        makeRequest('?lat=57.7089&lng=11.9746', {
+          'X-Forwarded-For': '   ',
+          'X-Real-IP': '203.0.113.44',
+        }),
+      );
+    }
+    expect(last?.status).toBe(429);
+  });
+
+  it('normalizes optional display fields before returning venues', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
+    const body = (await res.json()) as GetVenuesResponse;
+    const venue = body.venues[0];
+    expect(venue.sunWindow).toEqual({ start: '13:00', end: '18:30' });
+    expect(venue.thumbnail?.alt.length).toBeLessThanOrEqual(120);
+    expect(venue.thumbnail?.initials.length).toBeLessThanOrEqual(3);
+    expect(venue.thumbnail?.url).toMatch(/^https:\/\//);
+  });
+
+  it('filters venues by canonical q across venue name and neighborhood', async () => {
+    const byName = await GET(makeRequest('?lat=57.7089&lng=11.9746&q=magasinsgatan'));
+    expect(byName.status).toBe(200);
+    const byNameBody = (await byName.json()) as GetVenuesResponse;
+    expect(byNameBody.venues.map((venue) => venue.venueName)).toEqual([
+      'Solplats Magasinsgatan',
+    ]);
+
+    const byArea = await GET(makeRequest('?lat=57.7089&lng=11.9746&q=haga'));
+    expect(byArea.status).toBe(200);
+    const byAreaBody = (await byArea.json()) as GetVenuesResponse;
+    expect(byAreaBody.venues.map((venue) => venue.venueName)).toEqual([
+      'Brygghuset Lerum',
+    ]);
+  });
+
+  it('searches all Gothenburg fixture venues when q is present instead of applying radius first', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&radiusKm=0.01&q=haga'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+    expect(body.venues.map((venue) => venue.venueName)).toEqual([
+      'Brygghuset Lerum',
+    ]);
+  });
+
+  it('does not match q against hidden slug fields', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&q=test-venue-sunny'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+    expect(body.venues).toEqual([]);
+  });
+
+  it('returns an empty venue list when q has no matches and leaves the request otherwise successful', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&q=zzzzzz'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+    expect(body.venues).toEqual([]);
+    expect(body.meta.count).toBe(0);
+    expect(body.totalCount).toBe(0);
+  });
+
+  it('rejects overlong or malformed q values with 400', async () => {
+    const overlong = await GET(makeRequest(`?lat=57.7089&lng=11.9746&q=${'a'.repeat(81)}`));
+    expect(overlong.status).toBe(400);
+    expect((await overlong.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/q/i) }),
+    );
+
+    const malformed = await GET(makeRequest('?lat=57.7089&lng=11.9746&q=magasin%0A'));
+    expect(malformed.status).toBe(400);
+    expect((await malformed.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/q/i) }),
+    );
+  });
+
+  it('sets ETag and returns 304 for unchanged revalidation', async () => {
+    const first = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
+    expect(first.status).toBe(200);
+    const etag = first.headers.get('etag');
+    expect(etag).toMatch(/^W\//);
+    expect(first.headers.get('cache-control')).toContain('must-revalidate');
+
+    const second = await GET(
+      makeRequest('?lat=57.7089&lng=11.9746', {
+        'If-None-Match': etag ?? '',
+      }),
+    );
+    expect(second.status).toBe(304);
+    expect(second.headers.get('etag')).toBe(etag);
+    expect(second.headers.get('x-sun-data-source')).toBe('weather');
+    expect(second.headers.get('x-weather-updated-at')).toMatch(/T/);
+  });
+
+  it('accepts selected planner date/time and returns forecast-adjusted venue states', async () => {
+    const res = await GET(
+      makeRequest(`?lat=57.7089&lng=11.9746&date=${futureInSeasonDate(19)}&time=20:00`),
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+    const venue = body.venues.find((candidate) => candidate.slug === 'test-venue-sunny');
+    expect(venue).toMatchObject({
+      currentSunStatus: 'Shaded',
+      sunExposurePercent: expect.any(Number),
+    });
+    expect(venue?.confidence).toBeLessThan(92);
+    expect(body.meta.weatherUpdatedAt).toMatch(/T/);
+  });
+
+  it('returns requested favourite IDs regardless of nearby radius and computes distance', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&radiusKm=0.01&ids=1,2,1'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+
+    expect(body.venues.map((venue) => venue.id)).toEqual(['1', '2']);
+    expect(body.venues.every((venue) => Number.isFinite(venue.distanceMeters))).toBe(true);
+    expect(body.venues[0]).toEqual(expect.objectContaining({
+      currentSunStatus: expect.any(String),
+      confidence: expect.any(Number),
+    }));
+    expect(body.meta.count).toBe(2);
+    expect(res.headers.get('x-sun-data-source')).toBe('weather');
+  });
+
+  it('keeps favourite ID filtering separate from q search', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&ids=1&q=magasinsgatan'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+
+    expect(body.venues.map((venue) => venue.id)).toEqual(['1']);
+  });
+
+  it('treats an empty ids parameter as absent so normal search still works', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&q=haga&ids='));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+
+    expect(body.venues.length).toBeGreaterThan(0);
+    expect(body.venues.every((venue) => venue.neighborhood === 'Haga')).toBe(true);
+  });
+
+  it('returns an empty favourites list for unknown IDs', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746&ids=unknown'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+    expect(body.venues).toEqual([]);
+    expect(body.totalCount).toBe(0);
+  });
+
+  it('rejects malformed favourite IDs', async () => {
+    const malformed = await GET(makeRequest('?lat=57.7089&lng=11.9746&ids=venue%0A1'));
+    expect(malformed.status).toBe(400);
+    expect((await malformed.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/ids/i) }),
+    );
+  });
+
+  it('rejects overlong favourite ID filters before splitting the raw query', async () => {
+    const overlongId = 'x'.repeat(81);
+    const overlongRaw = 'venue-1,'.repeat(700);
+
+    const overlongIdRes = await GET(makeRequest(`?lat=57.7089&lng=11.9746&ids=${overlongId}`));
+    expect(overlongIdRes.status).toBe(400);
+    expect((await overlongIdRes.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/ids/i) }),
+    );
+
+    const overlongRawRes = await GET(makeRequest(`?lat=57.7089&lng=11.9746&ids=${overlongRaw}`));
+    expect(overlongRawRes.status).toBe(400);
+    expect((await overlongRawRes.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/ids/i) }),
+    );
+  });
+
+  it('caps favourite ID filters at the venue result limit without an off-by-one extra ID', async () => {
+    const cappedUnknownIds = Array.from({ length: 50 }, (_, index) => `unknown-${index}`);
+    const res = await GET(
+      makeRequest(`?lat=57.7089&lng=11.9746&ids=${[...cappedUnknownIds, '7'].join(',')}`),
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+
+    expect(body.venues.map((venue) => venue.id)).not.toContain('7');
+    expect(body.totalCount).toBe(0);
+  });
+
+  it('applies geometry-only weather availability before future planner projection', async () => {
+    const date = futureInSeasonDate(19);
+    const weather = await GET(makeRequest(`?lat=57.7089&lng=11.9746&date=${date}&time=15:00`));
+    const geometryOnly = await GET(
+      makeRequest(`?lat=57.7089&lng=11.9746&date=${date}&time=15:00&_weather=unavailable`),
+    );
+    expect(weather.status).toBe(200);
+    expect(geometryOnly.status).toBe(200);
+
+    const weatherBody = (await weather.json()) as GetVenuesResponse;
+    const geometryOnlyBody = (await geometryOnly.json()) as GetVenuesResponse;
+    const weatherVenue = weatherBody.venues.find((candidate) => candidate.slug === 'test-venue-sunny');
+    const geometryOnlyVenue = geometryOnlyBody.venues.find((candidate) => candidate.slug === 'test-venue-sunny');
+
+    expect(geometryOnlyVenue).toMatchObject({
+      skyCondition: 'unavailable',
+      currentSunStatus: 'Sunny',
+    });
+    expect(geometryOnlyVenue?.sunExposurePercent).toBe(weatherVenue?.sunExposurePercent);
+    expect(geometryOnlyVenue?.confidence).toBe(weatherVenue?.confidence);
+    expect(geometryOnlyBody.meta.sunDataSource).toBe('geometry-only');
+  });
+
+  it('rejects malformed planner date/time values', async () => {
+    const badDate = await GET(makeRequest('?lat=57.7089&lng=11.9746&date=2026-6-14&time=14:00'));
+    expect(badDate.status).toBe(400);
+    expect((await badDate.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/date/i) }),
+    );
+
+    const badTime = await GET(
+      makeRequest(`?lat=57.7089&lng=11.9746&date=${futureInSeasonDate(19)}&time=14:00%00`),
+    );
+    expect(badTime.status).toBe(400);
+    expect((await badTime.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/time/i) }),
+    );
+  });
+
+  it('rejects planner dates outside the current sun season', async () => {
+    const res = await GET(
+      makeRequest(`?lat=57.7089&lng=11.9746&date=${outsideCurrentSunSeasonDate()}&time=14:00`),
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/sun season/i) }),
+    );
+  });
+
+  it('detects duplicate venue ids before map data is rendered', () => {
+    const venue = makeVenue({ id: 'dupe', lat: 57.7, lng: 11.9 });
+    const result = validateVenueUniqueness([
+      venue,
+      makeVenue({ id: 'dupe', lat: 57.71, lng: 11.91 }),
+    ]);
+    expect(result).toEqual({ valid: false, reason: 'Duplicate venue id: dupe' });
+  });
+
+  it('detects duplicate venue coordinates before map data is rendered', () => {
+    const result = validateVenueUniqueness([
+      makeVenue({ id: 'a', lat: 57.7, lng: 11.9 }),
+      makeVenue({ id: 'b', lat: 57.7000001, lng: 11.9000001 }),
+    ]);
+    expect(result.valid).toBe(false);
+    if (!result.valid) expect(result.reason).toMatch(/coordinates/i);
+  });
 });
+
+function makeVenue({
+  id,
+  lat,
+  lng,
+}: {
+  id: string;
+  lat: number;
+  lng: number;
+}): VenueDataDto {
+  return {
+    id,
+    venueId: id,
+    venueName: `Venue ${id}`,
+    venueSlug: id,
+    slug: id,
+    neighborhood: 'Centrum',
+    location: { lat, lng },
+    currentSunStatus: 'Sunny',
+    isPartner: false,
+    confidence: 90,
+    distanceMeters: 0,
+    sunExposurePercent: 90,
+  };
+}
+
+function futureInSeasonDate(daysAhead: number): string {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + daysAhead);
+  return date.toISOString().slice(0, 10);
+}
+
+function outsideCurrentSunSeasonDate(): string {
+  const end = sunSeasonBounds(new Date()).end;
+  const date = new Date(`${end}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}

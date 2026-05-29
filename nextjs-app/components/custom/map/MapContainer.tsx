@@ -159,15 +159,20 @@ export function MapContainer() {
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 pointer-events-none gradient-map-overlay"
+        className="absolute inset-0 pointer-events-none bg-surface-sand/80"
         style={{ zIndex: 1 }}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none gradient-map-overlay"
+        style={{ zIndex: 2 }}
       />
       {tilesFailed && (
         <div
           key={failureKey}
           role="status"
           className="absolute inset-0 bg-surface-sand pointer-events-none flex items-center justify-center"
-          style={{ zIndex: 2 }}
+          style={{ zIndex: 3 }}
         >
           <p className="text-body-sm text-text-muted">{t('tileLoadFailed')}</p>
         </div>

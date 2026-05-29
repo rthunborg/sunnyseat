@@ -64,6 +64,8 @@ describe('<VenuePin />', () => {
     const button = screen.getByTestId('venue-pin');
     expect(button.dataset.pinState).toBe('sunny-selected');
     expect(button.querySelector('[data-pin-tail]')).toBeNull();
+    expect(button.querySelector('span')).toHaveClass('text-amber-cta-text');
+    expect(button.querySelector('[data-pin-icon="sun"]')).toHaveClass('text-amber-cta-text');
   });
 
   it('renders the shaded pill regardless of isSelected (single shaded variant)', () => {

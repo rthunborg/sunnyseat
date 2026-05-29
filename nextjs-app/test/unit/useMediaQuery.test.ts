@@ -38,7 +38,7 @@ describe('useMediaQuery', () => {
     vi.clearAllMocks();
   });
 
-  it('returns false on initial render (SSR-safe default)', () => {
+  it('returns false on initial render when the media query does not match', () => {
     mql.matches = false;
     const { result } = renderHook(() =>
       useMediaQuery('(min-width: 1024px)'),
@@ -47,7 +47,7 @@ describe('useMediaQuery', () => {
     expect(result.current).toBe(false);
   });
 
-  it('returns true after useEffect syncs with a matching media query', () => {
+  it('starts false for hydration safety, then syncs when the media query already matches', () => {
     mql.matches = true;
     const { result } = renderHook(() =>
       useMediaQuery('(min-width: 1024px)'),

@@ -1,0 +1,75 @@
+SunnySeat story review gate
+Story: 2-6-confidence-display-auto-refresh
+Mode: apply
+Sprint status: /c/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-6-confidence-display-auto-refresh-review-20260527-142723.log
+
+Story file: /c/sunnyseat/_bmad-output/implementation-artifacts/2-6-confidence-display-auto-refresh.md
+Current sprint status: review
+
+Running npm script: lint
+
+Running npm script: typecheck
+
+Running npm script: test
+
+ RUN  v4.1.4 C:/sunnyseat/nextjs-app
+
+
+ Test Files  36 passed (36)
+      Tests  297 passed (297)
+   Start at  14:28:02
+   Duration  55.36s (transform 16.40s, setup 49.46s, import 156.98s, tests 92.27s, environment 218.97s)
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues&_time=14:00' viewport='mobile'
+--- Visual validation: map-panel-venues ---
+Navigating to http://localhost:3000/?_state=map-panel-venues&_time=14:00
+Waiting for selector [data-testid="venue-pin"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-uYtw3c.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the time slider at top, map area with warm sand tones and venue pins, bottom sheet with filter chips (Mest sol, Nära mig, Kafé, Öppet nu), venue listing cards with distance/rating/sun percentage data, and bottom navigation bar — all UI chrome elements are present and correctly styled.
+
+Running visual validation: screen='map-primary' route='/?_state=map-primary&_time=14:00' viewport='mobile'
+--- Visual validation: map-primary ---
+Navigating to http://localhost:3000/?_state=map-primary&_time=14:00
+Waiting for selector [data-testid="venue-pin"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-zOZwG6.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the time slider at top, map canvas with warm/sand tint, venue pins in correct golden styling, bottom sheet with filter chips (Mest sol, Nära mig, Kafé, Öppet nu), venue list cards with distance/rating/sun percentage data, and bottom navigation bar — all UI chrome elements are present and correctly positioned with matching colour scheme.
+
+Running visual validation: screen='map-primary' route='/?_time=16:30' viewport='desktop'
+--- Visual validation: map-primary ---
+Navigating to http://localhost:3000/?_time=16:30
+Waiting for selector [data-testid="venue-pin"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-U3Kf7S.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with all key UI chrome elements present and correctly positioned — the top navigation bar with logo, search bar, filter chips, location and settings icons; the left panel with "Nära mig"/"Favoriter" tabs, "Mest sol"/"Närmast" sort toggles, and venue list cards; the map area with warm/sand tint and yellow venue pins showing sun percentage; and the bottom time slider with the 16:30 time indicator — all match the reference layout and colour scheme acceptably.
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00' viewport='mobile'
+--- Visual validation: map-with-selected-venue ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00
+Waiting for selector [data-testid="venue-quick-info"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-phQJ6Z.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the time slider at top, map with venue pins, selected venue popup card (Kafé Magasinet) with VISA RUTT and MER INFO buttons, floating action buttons (location, settings, zoom), bottom sheet with venue listing, and bottom navigation bar — all using the correct warm/sand colour scheme and golden yellow accent colours.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=14:00' viewport='mobile'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=14:00
+Waiting for selector [data-testid="mobile-venue-detail-sheet"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-oX4kd1.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure, colour scheme, all UI components present (sun score badge, heart/close buttons, placeholder image area, venue name, open status badge, sun forecast chart, description text, amenity tags, and info cards for distance/exposure/best time/outdoor seats), and proper visual hierarchy throughout the venue detail screen.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=16:30' viewport='desktop'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=16:30
+Waiting for selector [data-testid="desktop-venue-detail-panel"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/user/AppData/Local/Temp/impl-8EijHj.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct three-panel layout (venue list, map, detail panel), matching colour scheme, venue detail panel with sun score badge, solar times slider, amenity tags, opening hours, and address — all UI chrome elements are present and correctly positioned.
+Story '2-6-confidence-display-auto-refresh' is already marked review. No sprint-status update needed.
+
+Story review gate passed.
+Validation artifact written to: /c/sunnyseat/_bmad-output/implementation-artifacts/validation/2-6-confidence-display-auto-refresh-review-20260527-142723.log

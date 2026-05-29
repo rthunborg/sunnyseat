@@ -8,10 +8,12 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import type { VenueDataDto } from '@/lib/types/api';
 
 type MapSelectionContextValue = {
   selectedVenueId: string | null;
-  selectVenue: (id: string | null) => void;
+  selectedVenuePreview: VenueDataDto | null;
+  selectVenue: (id: string | null, venuePreview?: VenueDataDto | null) => void;
   toggleVenue: (id: string) => void;
 };
 
@@ -29,18 +31,24 @@ export const MapSelectionContext = createContext<MapSelectionContextValue | null
  */
 export function MapSelectionProvider({ children }: { children: ReactNode }) {
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
+  const [selectedVenuePreview, setSelectedVenuePreview] = useState<VenueDataDto | null>(null);
 
-  const selectVenue = useCallback((id: string | null) => {
+  const selectVenue = useCallback((id: string | null, venuePreview?: VenueDataDto | null) => {
     setSelectedVenueId(id);
+    setSelectedVenuePreview(id ? (venuePreview ?? null) : null);
   }, []);
 
   const toggleVenue = useCallback((id: string) => {
-    setSelectedVenueId((current) => (current === id ? null : id));
+    setSelectedVenueId((current) => {
+      const next = current === id ? null : id;
+      setSelectedVenuePreview(null);
+      return next;
+    });
   }, []);
 
   const value = useMemo<MapSelectionContextValue>(
-    () => ({ selectedVenueId, selectVenue, toggleVenue }),
-    [selectedVenueId, selectVenue, toggleVenue],
+    () => ({ selectedVenueId, selectedVenuePreview, selectVenue, toggleVenue }),
+    [selectedVenueId, selectedVenuePreview, selectVenue, toggleVenue],
   );
 
   return <MapSelectionContext.Provider value={value}>{children}</MapSelectionContext.Provider>;

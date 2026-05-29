@@ -6,6 +6,7 @@ import type maplibregl from 'maplibre-gl';
 import { MapInstanceContext } from '@/lib/contexts/MapInstanceContext';
 import { MapControls } from '@/components/custom/map/MapControls';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
+import { GeolocationProvider } from '@/hooks/useGeolocation';
 
 type MapInstanceContextValue = React.ComponentProps<
   typeof MapInstanceContext.Provider
@@ -16,6 +17,7 @@ const messages = {
     zoomIn: 'Zooma in',
     zoomOut: 'Zooma ut',
     myLocation: 'Min plats',
+    settings: 'Inställningar',
   },
 };
 
@@ -87,9 +89,11 @@ function makeWrapper(stubMap: StubMap) {
     };
     return (
       <NextIntlClientProvider locale="sv" messages={messages}>
-        <MapInstanceContext.Provider value={value}>
-          {children}
-        </MapInstanceContext.Provider>
+        <GeolocationProvider>
+          <MapInstanceContext.Provider value={value}>
+            {children}
+          </MapInstanceContext.Provider>
+        </GeolocationProvider>
       </NextIntlClientProvider>
     );
   };
@@ -105,9 +109,11 @@ function makeNullMapWrapper() {
     };
     return (
       <NextIntlClientProvider locale="sv" messages={messages}>
-        <MapInstanceContext.Provider value={value}>
-          {children}
-        </MapInstanceContext.Provider>
+        <GeolocationProvider>
+          <MapInstanceContext.Provider value={value}>
+            {children}
+          </MapInstanceContext.Provider>
+        </GeolocationProvider>
       </NextIntlClientProvider>
     );
   };
@@ -124,11 +130,12 @@ describe('<MapControls />', () => {
     vi.clearAllMocks();
   });
 
-  it('renders three buttons with localised aria-labels', () => {
+  it('renders four buttons with localised aria-labels', () => {
     const { getByTestId } = render(<MapControls />, { wrapper: makeWrapper(stubMap) });
     expect(getByTestId('map-control-zoom-in')).toHaveAttribute('aria-label', 'Zooma in');
     expect(getByTestId('map-control-zoom-out')).toHaveAttribute('aria-label', 'Zooma ut');
     expect(getByTestId('map-control-my-location')).toHaveAttribute('aria-label', 'Min plats');
+    expect(getByTestId('map-control-settings')).toHaveAttribute('aria-label', 'Inställningar');
   });
 
   it('zoom+ button calls map.zoomIn with a 200 ms duration', () => {
@@ -294,7 +301,7 @@ describe('<MapControls />', () => {
     // with `disabled` and caused double-announcement on some AT).
     const { getByTestId } = render(<MapControls />, { wrapper: makeNullMapWrapper() });
 
-    for (const id of ['map-control-zoom-in', 'map-control-zoom-out', 'map-control-my-location']) {
+    for (const id of ['map-control-zoom-in', 'map-control-zoom-out', 'map-control-my-location', 'map-control-settings']) {
       const btn = getByTestId(id);
       expect(btn).toBeDisabled();
       // The DOM disabled attribute is what AT reads; assert that, not
@@ -303,7 +310,7 @@ describe('<MapControls />', () => {
     }
   });
 
-  it('enabled buttons are NOT disabled (no false-positive a11y noise)', () => {
+  it('enabled map-action buttons are NOT disabled while future settings stays disabled', () => {
     const { getByTestId } = render(<MapControls />, { wrapper: makeWrapper(stubMap) });
 
     for (const id of ['map-control-zoom-in', 'map-control-zoom-out', 'map-control-my-location']) {
@@ -311,6 +318,7 @@ describe('<MapControls />', () => {
       expect(btn).not.toBeDisabled();
       expect(btn).not.toHaveAttribute('aria-disabled');
     }
+    expect(getByTestId('map-control-settings')).toBeDisabled();
   });
 
   it('removes both drag listeners on unmount (one off() per on())', () => {

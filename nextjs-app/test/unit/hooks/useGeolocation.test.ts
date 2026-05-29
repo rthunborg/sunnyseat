@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useGeolocation } from '@/hooks/useGeolocation';
+import { createElement, type ReactNode } from 'react';
+import { GeolocationProvider, useGeolocation } from '@/hooks/useGeolocation';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
 
@@ -13,6 +14,12 @@ type GeolocationStub = {
 
 type PermissionsStub = {
   query: ReturnType<typeof vi.fn>;
+};
+
+type PermissionStatusStub = {
+  state: PermissionState;
+  addEventListener: ReturnType<typeof vi.fn>;
+  removeEventListener: ReturnType<typeof vi.fn>;
 };
 
 type NavigatorWithStubs = {
@@ -42,16 +49,21 @@ function removeGeolocation(): void {
   });
 }
 
-function installPermissionsStub(state: PermissionState): PermissionsStub {
+function installPermissionsStub(state: PermissionState): PermissionsStub & { status: PermissionStatusStub } {
+  const status: PermissionStatusStub = {
+    state,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  };
   const stub: PermissionsStub = {
-    query: vi.fn().mockResolvedValue({ state }),
+    query: vi.fn().mockResolvedValue(status),
   };
   Object.defineProperty(globalThis.navigator, 'permissions', {
     configurable: true,
     value: stub,
     writable: true,
   });
-  return stub;
+  return { ...stub, status };
 }
 
 function removePermissions(): void {
@@ -63,6 +75,10 @@ function removePermissions(): void {
 }
 
 const FALLBACK = { lat: GOTHENBURG_CENTRE.lat, lng: GOTHENBURG_CENTRE.lng };
+
+function wrapper({ children }: { children: ReactNode }) {
+  return createElement(GeolocationProvider, null, children);
+}
 
 // Node 25 ships a partial native localStorage that masks jsdom's. Install a
 // real in-memory Storage polyfill on `window` for the duration of these tests
@@ -121,7 +137,7 @@ describe('useGeolocation', () => {
 
   it('starts idle with Gothenburg centrum coords', () => {
     installGeolocationStub();
-    const { result } = renderHook(() => useGeolocation());
+    const { result } = renderHook(() => useGeolocation(), { wrapper });
 
     expect(result.current.status).toBe('idle');
     expect(result.current.coords).toEqual(FALLBACK);
@@ -147,7 +163,7 @@ describe('useGeolocation', () => {
       },
     );
 
-    const { result } = renderHook(() => useGeolocation());
+    const { result } = renderHook(() => useGeolocation(), { wrapper });
     act(() => {
       result.current.requestLocation();
     });
@@ -172,7 +188,7 @@ describe('useGeolocation', () => {
       },
     );
 
-    const { result } = renderHook(() => useGeolocation());
+    const { result } = renderHook(() => useGeolocation(), { wrapper });
     act(() => {
       result.current.requestLocation();
     });
@@ -185,7 +201,7 @@ describe('useGeolocation', () => {
 
   it('useCentrum synchronous path: status=fallback, coords stay at centrum', () => {
     installGeolocationStub();
-    const { result } = renderHook(() => useGeolocation());
+    const { result } = renderHook(() => useGeolocation(), { wrapper });
 
     act(() => {
       result.current.useCentrum();
@@ -197,7 +213,7 @@ describe('useGeolocation', () => {
 
   it('falls back to centrum when navigator.geolocation is unavailable', () => {
     removeGeolocation();
-    const { result } = renderHook(() => useGeolocation());
+    const { result } = renderHook(() => useGeolocation(), { wrapper });
 
     act(() => {
       result.current.requestLocation();
@@ -212,7 +228,7 @@ describe('useGeolocation', () => {
     const stub = installGeolocationStub();
     removePermissions();
 
-    const { result } = renderHook(() => useGeolocation());
+    const { result } = renderHook(() => useGeolocation(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.status).toBe('fallback');
@@ -243,7 +259,7 @@ describe('useGeolocation', () => {
     );
     const permissions = installPermissionsStub('granted');
 
-    const { result } = renderHook(() => useGeolocation());
+    const { result } = renderHook(() => useGeolocation(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.status).toBe('success');
@@ -258,7 +274,7 @@ describe('useGeolocation', () => {
     const geo = installGeolocationStub();
     installPermissionsStub('denied');
 
-    const { result } = renderHook(() => useGeolocation());
+    const { result } = renderHook(() => useGeolocation(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.status).toBe('fallback');
@@ -271,7 +287,7 @@ describe('useGeolocation', () => {
     const geo = installGeolocationStub();
     installPermissionsStub('granted');
 
-    renderHook(() => useGeolocation());
+    renderHook(() => useGeolocation(), { wrapper });
 
     expect(geo.getCurrentPosition).not.toHaveBeenCalled();
   });
@@ -283,7 +299,7 @@ describe('useGeolocation', () => {
     removeGeolocation();
     removePermissions();
 
-    const { result } = renderHook(() => useGeolocation());
+    const { result } = renderHook(() => useGeolocation(), { wrapper });
 
     expect(result.current.status).toBe('idle');
     expect(result.current.coords).toEqual(FALLBACK);
@@ -306,10 +322,140 @@ describe('useGeolocation', () => {
     const geo = installGeolocationStub();
     installPermissionsStub('granted');
 
-    const { result } = renderHook(() => useGeolocation());
+    const { result } = renderHook(() => useGeolocation(), { wrapper });
 
     // The auto-acquire effect should bail without crashing the hook.
     expect(result.current.status).toBe('idle');
     expect(geo.getCurrentPosition).not.toHaveBeenCalled();
+  });
+
+  it('shares one provider state across sibling consumers and one browser request', async () => {
+    const geo = installGeolocationStub();
+    geo.getCurrentPosition.mockImplementation((success: SuccessCallback) => {
+      success({
+        coords: {
+          latitude: 57.72,
+          longitude: 12.01,
+          accuracy: 10,
+          altitude: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null,
+        },
+        timestamp: Date.now(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+    });
+
+    const { result } = renderHook(
+      () => {
+        const first = useGeolocation();
+        const second = useGeolocation();
+        return { first, second };
+      },
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.first.requestLocation();
+    });
+
+    await waitFor(() => {
+      expect(result.current.first.status).toBe('success');
+      expect(result.current.second.status).toBe('success');
+    });
+    expect(geo.getCurrentPosition).toHaveBeenCalledTimes(1);
+    expect(result.current.first.coords).toEqual({ lat: 57.72, lng: 12.01 });
+    expect(result.current.second.coords).toEqual({ lat: 57.72, lng: 12.01 });
+  });
+
+  it('subscribes to geolocation permission changes for returning users', async () => {
+    storage.setItem(ONBOARDED_FLAG_KEY, '1');
+    const geo = installGeolocationStub();
+    const permissions = installPermissionsStub('prompt');
+
+    const { unmount, result } = renderHook(() => useGeolocation(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('fallback');
+    });
+    expect(permissions.status.addEventListener).toHaveBeenCalledWith(
+      'change',
+      expect.any(Function),
+    );
+
+    geo.getCurrentPosition.mockImplementation((success: SuccessCallback) => {
+      success({
+        coords: {
+          latitude: 57.73,
+          longitude: 12.02,
+          accuracy: 10,
+          altitude: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null,
+        },
+        timestamp: Date.now(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+    });
+    permissions.status.state = 'granted';
+    const changeHandler = permissions.status.addEventListener.mock.calls[0]?.[1] as
+      | (() => void)
+      | undefined;
+    act(() => {
+      changeHandler?.();
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('success');
+    });
+    expect(result.current.coords).toEqual({ lat: 57.73, lng: 12.02 });
+
+    unmount();
+    expect(permissions.status.removeEventListener).toHaveBeenCalledWith(
+      'change',
+      expect.any(Function),
+    );
+  });
+
+  it('ignores stale browser callbacks after the user switches to centrum', async () => {
+    const geo = installGeolocationStub();
+    let successCallback: SuccessCallback | null = null;
+    geo.getCurrentPosition.mockImplementation((success: SuccessCallback) => {
+      successCallback = success;
+    });
+
+    const { result } = renderHook(() => useGeolocation(), { wrapper });
+
+    act(() => {
+      result.current.requestLocation();
+    });
+    expect(result.current.status).toBe('pending');
+
+    act(() => {
+      result.current.useCentrum();
+    });
+    expect(result.current.status).toBe('fallback');
+    expect(result.current.coords).toEqual(FALLBACK);
+
+    act(() => {
+      successCallback?.({
+        coords: {
+          latitude: 57.99,
+          longitude: 12.99,
+          accuracy: 10,
+          altitude: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null,
+        },
+        timestamp: Date.now(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+    });
+
+    expect(result.current.status).toBe('fallback');
+    expect(result.current.coords).toEqual(FALLBACK);
   });
 });

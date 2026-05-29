@@ -1,6 +1,6 @@
 # Story 2.5: Free Time & Date Planner
 
-Status: in-progress
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -157,6 +157,60 @@ So that I can plan when to visit a venue for optimal sun exposure without a payw
   - [x] 8.14 Run the MVP monetization quarantine scan from Task 6.5.
   - [x] 8.15 Before changing sprint status to `review`, run `.\scripts\run-sh.ps1 scripts/story-review.sh 2-5-free-time-date-planner`. Do not directly edit sprint status to `review`.
 
+### Review Findings
+
+- [x] [Review][Patch] Future-date predictions are not actually date- or weather-driven [nextjs-app/lib/services/venue-planner.ts:63]
+- [x] [Review][Patch] Planner chrome hides the selected date and reverses the desktop date/time layout [nextjs-app/components/custom/time/TimeSliderPanel.tsx:51]
+- [x] [Review][Patch] Past in-season dates are accepted as future planner inputs [nextjs-app/lib/utils/time-planner.ts:99]
+- [x] [Review][Patch] Live times outside 06:00-21:00 can create out-of-range slider/API state [nextjs-app/lib/contexts/TimeContext.tsx:229]
+- [x] [Review][Patch] Venue detail can show stale placeholder data across slug or planner transitions [nextjs-app/components/custom/map/MapView.tsx:216]
+- [x] [Review][Patch] Full and mid mobile bottom-sheet states render at the same height [nextjs-app/app/globals.css:164]
+- [x] [Review][Patch] Venue thumbnails are ignored even when fixture/API URLs exist [nextjs-app/components/composed/venue/VenueCard.tsx:220]
+- [x] [Review][Patch] Enabled favourite/share/settings controls have no behavior [nextjs-app/components/custom/venue/VenueDetailOverlay.tsx:102]
+- [x] [Review][Patch] `_time=14:00` forces all map pins sunny outside explicit visual states [nextjs-app/components/custom/map/MapView.tsx:190]
+- [x] [Review][Patch] Calendar button accessible name omits the selected date [nextjs-app/components/custom/time/TimeSliderPanel.tsx:136]
+
+#### Round 2 follow-up review (2026-05-26)
+
+- [x] [Review][Decision] Story 2.6 is transitioned to review inside the Story 2.5 diff - resolved by Rasmus: keep it because Story 2.6 was intentionally moved to review separately. [`_bmad-output/implementation-artifacts/sprint-status.yaml:78`]
+- [x] [Review][Decision] `map-panel-venues` forced state conflicts with the canonical route-map contract - resolved by Rasmus: keep the partial list/mid snap because it matches the desired starting state, and update the canonical route-map note. [`nextjs-app/components/custom/map/MapView.tsx:255`]
+- [x] [Review][Decision] Live after-hours planner state displays a clamped slider time while querying live conditions - resolved by Rasmus: query the clamped planner boundary (`06:00`/`21:00`) so UI and API match outside planner hours. [`nextjs-app/lib/contexts/TimeContext.tsx:186`]
+- [x] [Review][Patch] Anchored mobile QuickInfo title target is below 44 px [nextjs-app/components/composed/venue/VenueQuickInfo.tsx:150]
+- [x] [Review][Patch] Mobile TimeSliderPanel uses `shadow-card` instead of required `shadow-card-up` [nextjs-app/components/custom/time/TimeSliderPanel.tsx:44]
+- [x] [Review][Patch] Desktop planner is constrained to map-panel remainder instead of spanning the bottom bar [nextjs-app/components/custom/map/MapView.tsx:388]
+- [x] [Review][Patch] Negative seasonal sun-window expansion can collapse short venue windows [nextjs-app/lib/services/venue-planner.ts:149]
+- [x] [Review][Patch] `--color-surface-slider-track` does not match the canonical DESIGN.md token [nextjs-app/app/globals.css:24]
+- [x] [Review][Patch] After-hours today mode must send the clamped planner query instead of live-now data [nextjs-app/lib/contexts/TimeContext.tsx:186]
+
+#### Round 3 final automatic review (2026-05-26)
+
+- [x] [Review][Patch] [High] Projected sun windows do not propagate to displayed ranges/timelines [nextjs-app/lib/services/venue-planner.ts:100]
+- [x] [Review][Patch] [Medium] Geometry-only weather requests are projected before the unavailable-weather override is applied [nextjs-app/app/api/venues/route.ts:278]
+- [x] [Review][Patch] [Medium] Projection regression tests use past planner dates that UI/API validation now rejects [nextjs-app/test/unit/venue-planner.test.ts:30]
+- [x] [Review][Patch] [Medium] Planner-updated venue surfaces still hardcode Swedish sun copy outside i18n [nextjs-app/components/custom/map/MapView.tsx:523]
+- [x] [Review][Patch] [Medium] Future-story controls remain enabled with no behavior and compact favourite targets are below 44 px [nextjs-app/components/composed/venue/VenueCard.tsx:193]
+- [x] [Review][Patch] [Low] Visual correction introduced arbitrary size utilities instead of design tokens [nextjs-app/components/composed/venue/VenueCard.tsx:99]
+- [x] [Review][Patch] [Low] Venue thumbnail images have no load-failure fallback [nextjs-app/components/composed/venue/VenueCard.tsx:249]
+- [x] [Review][Patch] [Low] Non-anchored QuickInfo renders a leading metadata separator before confidence [nextjs-app/components/composed/venue/VenueQuickInfo.tsx:178]
+- [x] [Review][Patch] [Low] Forced selected-venue visual state normalizes pins/list but not QuickInfo data [nextjs-app/components/custom/map/MapView.tsx:465]
+
+#### Round 4 override review (2026-05-26)
+
+- [x] [Review][Patch] [High] Missing current `map-primary` visual-gate evidence [nextjs-app/docs/design/references/screens/mobile/map-primary.png]
+- [x] [Review][Patch] [Medium] Mobile venue detail ignores projected sun windows [nextjs-app/components/composed/venue/VenueDetailContent.tsx:197]
+- [x] [Review][Patch] [Medium] Weather-dampened exposure can still classify as `Sunny` [nextjs-app/lib/services/venue-planner.ts:98]
+- [x] [Review][Patch] [Medium] Desktop tick labels use `text-text-body` instead of `text-text-muted` [nextjs-app/components/composed/time/TimeSlider.tsx:120]
+- [x] [Review][Patch] [Medium] Venue card sun copy bypasses i18n [nextjs-app/components/composed/venue/VenueCard.tsx:86]
+- [x] [Review][Patch] [Medium] Future-story `SOL NU` badge remains active in venue detail [nextjs-app/components/composed/venue/VenueDetailContent.tsx:114]
+- [x] [Review][Patch] [Low] API planner tests are date-time-bombed by fixed June 2026 dates [nextjs-app/test/unit/api/venues-route.test.ts:234]
+- [x] [Review][Patch] [Low] Past in-season dates are announced as outside-season dates [nextjs-app/components/composed/time/DatePickerDialog.tsx:131]
+- [x] [Review][Patch] [Low] Thumbnail error fallback can miss fast failed images [nextjs-app/components/composed/venue/VenueCard.tsx:260]
+
+#### Final readiness rereview (2026-05-27)
+
+- [x] [Review][Patch] [High] Bare mobile `?_time=14:00` still forced visual-reference venue data outside explicit `_state` [nextjs-app/components/custom/map/MapView.tsx:103]
+- [x] [Review][Patch] [Medium] Mobile venue detail best-window copy was hard-coded instead of using the projected timeline window [nextjs-app/components/composed/venue/VenueDetailContent.tsx:177]
+
 ## Dev Notes
 
 ### Current Implementation Surface
@@ -310,6 +364,34 @@ GPT-5
 - Final verification after visual fixes: `npx tsc --noEmit` passed; `npx eslint . --quiet` passed; `npx vitest run` passed (34 files, 241 tests); `npx playwright test` passed (39 passed, 26 skipped); monetization quarantine scan returned no active runtime hits.
 - Review-gate correction: the canonical `story-review.sh` preflight initially exposed a `map-panel-venues` visual instability. Fixed the zero-height top-panel slider track, aligned mobile filter-chip icons, raised MapLibre marker wrappers above the warm map overlay, tightened sunny pin composition, and normalized forced visual-reference map pins for `_state=map-panel-venues` / `_state=map-with-selected-venue` without changing unforced runtime data. Focused check passed: `npx vitest run test/components/MapView.test.tsx test/components/TimeSlider.test.tsx test/components/VenueList.test.tsx test/components/VenuePin.test.tsx test/components/VenuePinLayer.test.tsx` (5 files, 54 tests), then `.\scripts\run-sh.ps1 scripts/visual-validate.sh map-panel-venues "/?_state=map-panel-venues&_time=14:00" mobile` passed.
 - Canonical review gate passed: `.\scripts\run-sh.ps1 scripts/story-review.sh 2-5-free-time-date-planner` with `VISUAL_VALIDATE_PROVIDER=anthropic` ran lint, typecheck, `npx vitest run` (34 files, 242 tests), visual validation for `map-panel-venues`, `map-with-selected-venue`, and `venue-detail` mobile/desktop, then transitioned sprint status to `review`. Artifact: `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260522-103716.log`.
+- 2026-05-26 review-finding red tests: focused Vitest coverage failed before implementation across planner date/weather projection, planner chrome, past-date rejection, live-time clamping, venue-detail placeholder reuse, bottom-sheet snap sizing, thumbnails, and inert chrome controls.
+- 2026-05-26 review-finding focused green: `node ./node_modules/vitest/vitest.mjs run test/unit/time-planner.test.ts test/unit/venue-planner.test.ts test/unit/TimeContext.test.tsx test/components/TimeSliderPanel.test.tsx test/unit/queries/useVenueDetail.test.ts test/components/MobileBottomSheet.test.tsx test/components/VenueCard.test.tsx test/components/VenueDetailOverlay.test.tsx test/components/MapControls.test.tsx` passed (9 files, 64 tests).
+- 2026-05-26 deterministic verification: `node ./node_modules/typescript/bin/tsc --noEmit` passed; `node ./node_modules/eslint/bin/eslint.js . --quiet` passed; `node ./node_modules/vitest/vitest.mjs run` passed (36 files, 272 tests); the Task 6.5 monetization quarantine scan returned no active runtime hits.
+- 2026-05-26 visual-gate correction: the first canonical gate attempt was blocked by local visual-parser tooling, the second exposed `map-panel-venues` reference drift after full-sheet/thumbnail fixes, and the final direct visual check for `map-panel-venues` passed after restoring reference-safe forced-state list chrome.
+- 2026-05-26 canonical review gate passed: `.\scripts\run-sh.ps1 scripts/story-review.sh 2-5-free-time-date-planner` with `VISUAL_VALIDATE_PROVIDER=anthropic` ran lint, typecheck, `npx vitest run` (36 files, 272 tests), visual validation for `map-panel-venues`, `map-with-selected-venue`, and `venue-detail` mobile/desktop, then transitioned sprint status to `review`. Artifact: `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260526-120829.log`.
+- 2026-05-26 E2E verification: `node ./node_modules/@playwright/test/cli.js test --workers=1` passed (39 passed, 26 skipped) after updating mobile forced-sheet specs to start at the visual-reference `mid` snap and explicitly expand to `full`; post-E2E `tsc --noEmit` and `eslint . --quiet` passed.
+- 2026-05-26 Round 2 follow-up red tests: focused Vitest coverage failed before implementation for anchored QuickInfo target size, mobile planner shadow token, full-width desktop planner placement, seasonal short-window collapse, and after-hours planner query semantics.
+- 2026-05-26 Round 2 follow-up focused green: `node ./node_modules/vitest/vitest.mjs run test/components/VenueQuickInfo.test.tsx test/components/TimeSliderPanel.test.tsx test/components/MapView.test.tsx test/unit/venue-planner.test.ts test/unit/TimeContext.test.tsx` passed (5 files, 59 tests).
+- 2026-05-26 Round 2 static/unit verification: `node ./node_modules/typescript/bin/tsc --noEmit` passed; `node ./node_modules/eslint/bin/eslint.js . --quiet` passed; `node ./node_modules/vitest/vitest.mjs run` passed (36 files, 277 tests); the Task 6.5 monetization quarantine scan returned no active runtime hits.
+- 2026-05-26 Round 2 E2E verification: initial `node ./node_modules/@playwright/test/cli.js test --workers=1` exposed a desktop planner assertion mismatch and axe contrast failures on desktop tick labels; after correction, the targeted rerun passed and the full command passed (39 passed, 26 skipped).
+- 2026-05-26 canonical review gate retry: `powershell -ExecutionPolicy Bypass -File .\scripts\run-sh.ps1 scripts/story-review.sh 2-5-free-time-date-planner` required `C:\Program Files\nodejs` on PATH, then ran lint, typecheck, and `npm run test` successfully (36 files, 277 tests) but halted at `map-panel-venues` visual validation because Git Bash could not find `jq`, so the script could not parse Anthropic's JSON response. Artifact: `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260526-163446.log`.
+- 2026-05-26 visual provider diagnostic: a text-only Anthropic API probe returned HTTP 200 for `claude-sonnet-4-6`, confirming the key/model/provider were reachable. Re-running `scripts/visual-validate.sh map-panel-venues "/?_state=map-panel-venues&_time=14:00" mobile` with a temporary `%TEMP%` `jq` parser shim passed.
+- 2026-05-26 canonical review gate passed with the temporary parser shim: `scripts/story-review.sh 2-5-free-time-date-planner` ran lint, typecheck, `npm run test` (36 files, 277 tests), visual validation for `map-panel-venues`, `map-with-selected-venue`, and `venue-detail` mobile/desktop, then transitioned sprint status to `review`. Artifact: `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260526-164648.log`.
+- 2026-05-26 Round 3 red tests: focused Vitest coverage failed before implementation for projected sun-window propagation, geometry-only projection ordering, future-safe seasonal fixtures, localized QuickInfo sun ranges, disabled compact favourite controls, tokenized VenueCard sizing, thumbnail load-failure fallback, non-anchored QuickInfo separators, and forced visual QuickInfo normalization.
+- 2026-05-26 Round 3 focused green: `node ./node_modules/vitest/vitest.mjs run test/unit/venue-planner.test.ts test/unit/api/venues-route.test.ts test/unit/api/venue-detail-route.test.ts test/components/VenueCard.test.tsx test/components/VenueQuickInfo.test.tsx test/components/MapView.test.tsx` passed (6 files, 88 tests).
+- 2026-05-26 Round 3 deterministic verification: `node ./node_modules/typescript/bin/tsc --noEmit` passed; `node ./node_modules/eslint/bin/eslint.js . --quiet` passed; `node ./node_modules/vitest/vitest.mjs run` passed (36 files, 284 tests); the Task 6.5 monetization quarantine scan returned no active runtime hits.
+- 2026-05-26 Round 3 E2E verification: initial `node ./node_modules/@playwright/test/cli.js test --workers=1` had one onboarding-state race in the first mobile map smoke; focused rerun passed, then the full command passed (39 passed, 26 skipped).
+- 2026-05-26 canonical review gate passed with `VISUAL_VALIDATE_PROVIDER=anthropic`: `scripts/story-review.sh 2-5-free-time-date-planner` ran lint, typecheck, `npm run test` (36 files, 284 tests), visual validation for `map-panel-venues`, `map-with-selected-venue`, and `venue-detail` mobile/desktop, then transitioned sprint status to `review`. Artifact: `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260526-190624.log`.
+- 2026-05-27 Round 4 red tests: focused Vitest coverage failed before implementation for past-date calendar labels, desktop slider label contrast, localized venue-card sun copy, fast thumbnail fallback, projected venue-detail mobile timelines, future `SOL NU` badge quarantine, and weather-dampened sun status.
+- 2026-05-27 Round 4 focused green: `node ./node_modules/vitest/vitest.mjs run test/unit/venue-planner.test.ts test/components/TimeSlider.test.tsx test/components/VenueCard.test.tsx test/components/DatePickerDialog.test.tsx test/components/VenueDetailContent.test.tsx test/unit/api/venues-route.test.ts` passed (6 files, 52 tests). Additional focused checks passed for `TimeSliderPanel`, `MapView`, and `VenueDetailContent` regressions.
+- 2026-05-27 Round 4 deterministic verification: `node ./node_modules/typescript/bin/tsc --noEmit` passed; `node ./node_modules/eslint/bin/eslint.js . --quiet` passed; `node ./node_modules/vitest/vitest.mjs run` passed (36 files, 289 tests); the Task 6.5 monetization quarantine scan returned no active runtime hits.
+- 2026-05-27 Round 4 E2E verification: Playwright project shards passed with `node ./node_modules/@playwright/test/cli.js test --project=mobile --workers=1` (22 passed, 9 skipped), `--project=desktop --workers=1` (14 passed, 17 skipped), and `--project=a11y --workers=1` (3 passed). The unsharded command timed out before useful output in this Windows session, so shard results are the recorded evidence.
+- 2026-05-27 canonical review gate passed with `VISUAL_VALIDATE_PROVIDER=anthropic`: `scripts/story-review.sh 2-5-free-time-date-planner` ran lint, typecheck, `npm run test` (36 files, 289 tests), visual validation for `map-panel-venues`, `map-primary` mobile/desktop, `map-with-selected-venue`, and `venue-detail` mobile/desktop, then transitioned sprint status to `review`. Artifact: `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260527-075144.log`.
+- 2026-05-27 final rereview focused green: `node ./node_modules/vitest/vitest.mjs run test/components/MapView.test.tsx test/components/VenueDetailContent.test.tsx` passed (2 files, 43 tests) after adding regressions for bare mobile `?_time=14:00` preserving real pin/list data, explicit `_state=map-primary` visual normalization, and projected best-window detail copy.
+- 2026-05-27 final rereview deterministic verification: `node ./node_modules/typescript/bin/tsc --noEmit` passed; `node ./node_modules/eslint/bin/eslint.js . --quiet` passed; `node ./node_modules/vitest/vitest.mjs run` passed (36 files, 290 tests); the Task 6.5 monetization quarantine scan returned no active runtime hits.
+- 2026-05-27 final rereview visual diagnostics: canonical gate attempt `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260527-081759.log` exposed that bare `?_time=14:00` no longer matched the reference after removing runtime data normalization; `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260527-082034.log` then exposed the missing `bestWindow` next-intl placeholders. Both were fixed before completion.
+- 2026-05-27 final canonical review gate passed with `VISUAL_VALIDATE_PROVIDER=anthropic`: `scripts/story-review.sh 2-5-free-time-date-planner` ran lint, typecheck, `npm run test` (36 files, 290 tests), visual validation for `map-panel-venues`, `map-primary` mobile/desktop, `map-with-selected-venue`, and `venue-detail` mobile/desktop. Artifact: `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260527-082227.log`.
+- 2026-05-27 final E2E verification after the rereview fixes: Playwright project shards passed with `node ./node_modules/@playwright/test/cli.js test --project=mobile --workers=1` (22 passed, 9 skipped), `--project=desktop --workers=1` (14 passed, 17 skipped), and `--project=a11y --workers=1` (3 passed).
 
 ### Completion Notes List
 
@@ -328,6 +410,12 @@ GPT-5
 - 2026-05-21 refresh complete: active MVP Claude Design references were regenerated from the two MVP Unlocked pages, planning/story docs now record the MVP/Post-MVP split, and `_bmad-output/implementation-artifacts/visual-source-refresh-audit-2026-05-21.md` captures the completed-story/future-story drift audit.
 - Functional gap closure complete: live `Idag` mode now advances and polls, explicit planner mode avoids polling, and venue detail keeps previous data while new planner params fetch.
 - Visual composition correction implemented against the refreshed MVP references: top mobile planner/date chrome, mid/default venue sheet, selected-venue map callout, warm map tint, two-tab MVP bottom nav, desktop header-owned location/settings controls, 340px desktop venue list, and mobile/desktop venue detail composition. Automated visual gates now pass against the refreshed MVP reference set.
+- 2026-05-26 review patch complete: future-date predictions now vary by selected date/weather fixture, past dates and live out-of-range times are rejected/clamped, planner chrome exposes the selected date, and venue detail no longer reuses stale cross-slug placeholders.
+- 2026-05-26 UI correction complete: full sheet sizing is distinct from mid while visual-reference routes open at the reference-safe mid snap, venue cards render real thumbnail URLs in normal runtime, and favourite/share/settings controls are disabled until their owning behavior stories land.
+- 2026-05-26 Round 2 follow-up patch complete: anchored mobile QuickInfo title uses a 48px target, mobile planner uses `shadow-card-up`, desktop planner spans the bottom bar, seasonal fixture projection no longer shrinks short low-season windows, the slider-track token matches `DESIGN.md`, and after-hours today mode sends the clamped planner query. The canonical review gate passed after restoring the missing local JSON parser dependency via a temporary shim.
+- 2026-05-26 Round 3 patch complete: projected future sun windows now flow into list/detail ranges and timelines, geometry-only weather is applied before fixture projection, projection tests use future in-season dates, QuickInfo sun ranges use locale keys, compact favourite controls are disabled at a 44px target until Story 2.7, VenueCard thumbnail sizes are tokenized with load-failure fallback, QuickInfo metadata no longer starts with a separator, and forced selected-venue QuickInfo uses normalized visual-reference data. The canonical review gate passed.
+- 2026-05-27 Round 4 patch complete: current `map-primary` visual evidence was restored, mobile venue detail now renders projected sun windows, weather-dampened exposure no longer classifies as sunny, desktop slider labels use AA-safe muted token styling, venue-card sun units are localized, future detail headers no longer show `SOL NU`, API planner tests use date-stable in-season values, past in-season calendar dates have distinct labels, and fast thumbnail failures fall back reliably. The canonical review gate passed.
+- 2026-05-27 final rereview complete: bare mobile `?_time=14:00` now preserves real API-derived venue states, `map-primary` visual normalization is scoped behind dev-only `_state=map-primary`, mobile detail best-window copy uses projected timeline windows, the visual route recipe change is logged, all deterministic/E2E/visual gates passed, and Rasmus approved moving the story to done.
 
 ### File List
 
@@ -335,16 +423,34 @@ GPT-5
 - `_bmad-output/implementation-artifacts/deferred-work.md`
 - `_bmad-output/implementation-artifacts/visual-source-refresh-audit-2026-05-21.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `project-context.md`
+- `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260526-115637.log`
+- `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260526-120159.log`
+- `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260526-120829.log`
+- `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260526-163212.log`
+- `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260526-163446.log`
+- `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260526-164648.log`
+- `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260526-190624.log`
+- `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260527-074900.log`
+- `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260527-075144.log`
+- `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260527-081759.log`
+- `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260527-082034.log`
+- `_bmad-output/implementation-artifacts/validation/2-5-free-time-date-planner-review-20260527-082227.log`
 - `nextjs-app/lib/contexts/TimeContext.tsx`
 - `nextjs-app/lib/query-keys.ts`
 - `nextjs-app/lib/services/venue-planner.ts`
 - `nextjs-app/lib/utils/time-planner.ts`
 - `nextjs-app/app/globals.css`
 - `nextjs-app/docs/design/DESIGN.md`
+- `nextjs-app/docs/design/references/REBASELINE-LOG.md`
 - `nextjs-app/app/api/venues/route.ts`
 - `nextjs-app/app/api/venues/[slug]/route.ts`
 - `nextjs-app/components/composed/time/DatePickerDialog.tsx`
 - `nextjs-app/components/composed/time/TimeSlider.tsx`
+- `nextjs-app/components/composed/venue/VenueCard.tsx`
+- `nextjs-app/components/composed/venue/VenueDetailContent.tsx`
+- `nextjs-app/components/composed/venue/SunTimeline.tsx`
+- `nextjs-app/components/composed/venue/VenueListControls.tsx`
 - `nextjs-app/components/composed/venue/VenueQuickInfo.tsx`
 - `nextjs-app/components/custom/layout/MobileNavBar.tsx`
 - `nextjs-app/components/custom/map/MapContainer.tsx`
@@ -352,6 +458,7 @@ GPT-5
 - `nextjs-app/components/custom/map/MapView.tsx`
 - `nextjs-app/components/custom/sheets/MobileBottomSheet.tsx`
 - `nextjs-app/components/custom/time/TimeSliderPanel.tsx`
+- `nextjs-app/components/custom/venue/VenueDetailOverlay.tsx`
 - `nextjs-app/components/custom/venue/VenueList.tsx`
 - `nextjs-app/hooks/queries/useVenueSearch.ts`
 - `nextjs-app/hooks/queries/useVenueDetail.ts`
@@ -365,19 +472,32 @@ GPT-5
 - `nextjs-app/test/components/MapView.test.tsx`
 - `nextjs-app/test/components/MapControls.test.tsx`
 - `nextjs-app/test/components/MobileNavBar.test.tsx`
+- `nextjs-app/test/components/MobileBottomSheet.test.tsx`
 - `nextjs-app/test/components/TimeSlider.test.tsx`
 - `nextjs-app/test/components/TimeSliderPanel.test.tsx`
+- `nextjs-app/test/components/VenueCard.test.tsx`
+- `nextjs-app/test/components/VenueDetailContent.test.tsx`
+- `nextjs-app/test/components/VenueDetailOverlay.test.tsx`
+- `nextjs-app/test/components/VenueQuickInfo.test.tsx`
 - `nextjs-app/test/e2e/map-primary.spec.ts`
+- `nextjs-app/test/e2e/smoke.spec.ts`
 - `nextjs-app/test/e2e/responsive-layout.spec.ts`
 - `nextjs-app/test/unit/TimeContext.test.tsx`
 - `nextjs-app/test/unit/api/venue-detail-route.test.ts`
 - `nextjs-app/test/unit/api/venues-route.test.ts`
 - `nextjs-app/test/unit/queries/useVenueSearch.test.ts`
+- `nextjs-app/test/unit/queries/useVenueDetail.test.ts`
 - `nextjs-app/test/unit/query-keys.test.ts`
 - `nextjs-app/test/unit/time-planner.test.ts`
+- `nextjs-app/test/unit/venue-planner.test.ts`
 
 ## Change Log
 
 | Date       | Author   | Note |
 |------------|----------|------|
 | 2026-05-20 | SM (Bob) | Story drafted from epics.md Story 2.5, PRD v3.1, architecture, UX spec, design tokens, Claude Design planner sources, Story 2.4 learnings, current code reconnaissance, deferred-work entries targeted at 2.5, and Context7 docs for TanStack Query/date-fns-tz/Motion. Status -> ready-for-dev. |
+| 2026-05-26 | Dev (Amelia) | Addressed review findings for date/weather future predictions, planner chrome, date/time validation, stale detail data, sheet sizing, thumbnails, inert controls, and forced visual-reference sheet/list behavior. Canonical gate passed and status -> review. |
+| 2026-05-26 | Dev (Amelia) | Addressed Round 2 follow-up findings for QuickInfo target size, planner shadow/layout tokens, seasonal short-window projection, slider-track token, and after-hours clamped planner queries. Canonical gate passed after restoring the missing local `jq` parser via a temporary shim. Status -> review. |
+| 2026-05-26 | Dev (Amelia) | Addressed Round 3 follow-up findings for projected sun-window display/timelines, geometry-only projection order, i18n sun range copy, disabled compact favourite controls, tokenized thumbnails with load fallback, QuickInfo metadata separators, and forced visual QuickInfo normalization. Canonical gate passed and status -> review. |
+| 2026-05-27 | Dev (Amelia) | Addressed Round 4 override findings for map-primary visual evidence, mobile detail projected-window chart, weather-dampened status, desktop tick accessibility, i18n sun copy, future badge quarantine, date-stable API tests, past-date calendar labels, and fast thumbnail fallback. Canonical gate passed and status -> review. |
+| 2026-05-27 | Dev (Amelia) | Addressed final readiness rereview findings for bare `_time` runtime data, explicit `map-primary` visual state forcing, and projected best-window detail copy. Canonical gate and Playwright shards passed. Rasmus approved status -> done. |

@@ -11,6 +11,11 @@ const Icon = ({ name, size = 20, color = 'currentColor', fill = 'none', style = 
     heart: <path d="M12 21s-7-4.5-9-9.5C1.5 7.5 5 4 8 4c2 0 3.5 1 4 2.5C12.5 5 14 4 16 4c3 0 6.5 3.5 5 7.5-2 5-9 9.5-9 9.5z" fill={fill}/>,
     nav: <path d="M12 2 L 20 22 L 12 17 L 4 22 Z" fill={color}/>,
     location: <path d="M14 10l-10 4 6 2 2 6 4-10-2-2z"/>,
+    crosshair: <>
+      <circle cx="12" cy="12" r="8"/>
+      <circle cx="12" cy="12" r="1.5" fill={color} stroke="none"/>
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+    </>,
     plus: <path d="M12 5v14M5 12h14"/>,
     minus: <path d="M5 12h14"/>,
     chevronLeft: <path d="M15 18l-6-6 6-6"/>,

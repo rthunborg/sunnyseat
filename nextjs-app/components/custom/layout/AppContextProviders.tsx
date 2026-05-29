@@ -1,15 +1,17 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { PremiumProvider } from '@/lib/contexts/PremiumContext';
+import { Suspense, type ReactNode } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { MapInstanceProvider } from '@/lib/contexts/MapInstanceContext';
 import { MapSelectionProvider } from '@/lib/contexts/MapSelectionContext';
 import { TimeProvider } from '@/lib/contexts/TimeContext';
+import { FavouritesProvider } from '@/lib/contexts/FavouritesContext';
+import { GeolocationProvider } from '@/hooks/useGeolocation';
 
 /**
  * Mounts the cross-cutting client contexts in the order prescribed by
  * `_bmad-output/planning-artifacts/architecture.md` §"Context Provider
- * Nesting Order": Premium > MapInstance > MapSelection > Time.
+ * Nesting Order": Geolocation > MapInstance > MapSelection > Time.
  *
  * `MapInstance` wraps `MapSelection` so visual children (pin layer,
  * controls) can read the map ref while pin selection updates are scoped
@@ -21,16 +23,38 @@ import { TimeProvider } from '@/lib/contexts/TimeContext';
  * `QueryClientProvider` at the root outside the `[locale]` segment.
  *
  * Resolved provider tree:
- *   Query → Language → Premium → MapInstance → MapSelection → Time → children
+ *   Query → Language → Geolocation → MapInstance → MapSelection → Time → children
  */
 export function AppContextProviders({ children }: { children: ReactNode }) {
   return (
-    <PremiumProvider>
+    <GeolocationProvider>
       <MapInstanceProvider>
         <MapSelectionProvider>
-          <TimeProvider>{children}</TimeProvider>
+          <Suspense fallback={<DefaultTimeProviders>{children}</DefaultTimeProviders>}>
+            <SearchParamTimeProviders>{children}</SearchParamTimeProviders>
+          </Suspense>
         </MapSelectionProvider>
       </MapInstanceProvider>
-    </PremiumProvider>
+    </GeolocationProvider>
+  );
+}
+
+function SearchParamTimeProviders({ children }: { children: ReactNode }) {
+  const searchParams = useSearchParams();
+  const forcedDate = searchParams.get('_date') ?? undefined;
+  const forcedTime = searchParams.get('_time') ?? undefined;
+
+  return (
+    <TimeProvider forcedDate={forcedDate} forcedTime={forcedTime}>
+      <FavouritesProvider>{children}</FavouritesProvider>
+    </TimeProvider>
+  );
+}
+
+function DefaultTimeProviders({ children }: { children: ReactNode }) {
+  return (
+    <TimeProvider>
+      <FavouritesProvider>{children}</FavouritesProvider>
+    </TimeProvider>
   );
 }

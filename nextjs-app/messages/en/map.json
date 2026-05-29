@@ -2,9 +2,11 @@
   "loadingPlaces": "Loading places...",
   "tileLoadFailed": "Map could not load.",
   "loadFailed": "Could not load venues.",
+  "retry": "Try again",
   "zoomIn": "Zoom in",
   "zoomOut": "Zoom out",
   "myLocation": "My location",
+  "settings": "Settings",
   "pinSunnyAria": "{name} — sunny venue — {percent} percent sun",
   "pinPartialAria": "{name} — partially sunny venue — {percent} percent sun",
   "pinShadedAria": "{name} — shaded venue — {percent} percent sun"
