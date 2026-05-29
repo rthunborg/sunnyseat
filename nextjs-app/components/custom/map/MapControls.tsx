@@ -113,7 +113,7 @@ export function MapControls() {
     <div
       ref={controlsRef}
       data-testid="map-controls"
-      className="absolute right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*50)] z-floating-buttons flex flex-col gap-3 opacity-100 transition-opacity duration-200 ease-default motion-reduce:transition-none lg:hidden"
+      className="absolute right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*50)] z-floating-buttons flex flex-col gap-3 opacity-100 transition-opacity duration-200 ease-default motion-reduce:transition-none lg:top-[calc(var(--size-desktop-nav-h)+var(--spacing)*7)]"
     >
       <GlassButton
         ariaLabel={t('myLocation')}
@@ -136,7 +136,6 @@ export function MapControls() {
         onClick={handleZoomIn}
         disabled={!isMapReady}
         testId="map-control-zoom-in"
-        className="lg:hidden"
       >
         <Plus aria-hidden="true" style={{ width: 20, height: 20 }} />
       </GlassButton>
@@ -145,7 +144,6 @@ export function MapControls() {
         onClick={handleZoomOut}
         disabled={!isMapReady}
         testId="map-control-zoom-out"
-        className="lg:hidden"
       >
         <Minus aria-hidden="true" style={{ width: 20, height: 20 }} />
       </GlassButton>

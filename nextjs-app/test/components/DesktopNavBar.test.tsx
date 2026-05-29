@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import type { AnchorHTMLAttributes } from 'react';
 import { renderWithProviders } from '@/test/setup/test-utils';
 import { DesktopNavBar } from '@/components/custom/layout/DesktopNavBar';
+import { TimeProvider } from '@/lib/contexts/TimeContext';
 import type { GetVenuesResponse } from '@/lib/types/api';
 
 const SEARCH_DEBOUNCE_MS = 200;
@@ -118,7 +119,7 @@ describe('DesktopNavBar', () => {
   });
 
   it('renders the SunnySeat wordmark inside a link to /', () => {
-    renderWithProviders(<DesktopNavBar />, { messages: NAV_MESSAGES });
+    renderDesktopNav();
 
     const logo = screen.getByRole('link', {
       name: 'SunnySeat — gå till kartan',
@@ -128,7 +129,7 @@ describe('DesktopNavBar', () => {
   });
 
   it('renders the search combobox in the desktop navbar', () => {
-    renderWithProviders(<DesktopNavBar />, { messages: NAV_MESSAGES });
+    renderDesktopNav();
 
     const search = screen.getByRole('combobox', { name: 'Sök plats' });
     expect(search).toHaveAttribute('placeholder', 'Sök plats eller område i Göteborg...');
@@ -136,7 +137,7 @@ describe('DesktopNavBar', () => {
   });
 
   it('supports keyboard focus and selection from the navbar searchbox', async () => {
-    renderWithProviders(<DesktopNavBar />, { messages: NAV_MESSAGES });
+    renderDesktopNav();
 
     const search = screen.getByRole('combobox', { name: 'Sök plats' });
     fireEvent.focus(search);
@@ -158,7 +159,7 @@ describe('DesktopNavBar', () => {
   });
 
   it('shows a loading state instead of stale nearby results while a new search is debouncing', async () => {
-    renderWithProviders(<DesktopNavBar />, { messages: NAV_MESSAGES });
+    renderDesktopNav();
 
     const search = screen.getByRole('combobox', { name: 'Sök plats' });
     fireEvent.focus(search);
@@ -173,8 +174,17 @@ describe('DesktopNavBar', () => {
     );
   });
 
+  it('passes planner date and time to search queries', () => {
+    renderDesktopNav({ forcedDate: '2026-06-14', forcedTime: '14:00' });
+
+    expect(mockState.useVenueSearch).toHaveBeenCalledWith(expect.objectContaining({
+      date: '2026-06-14',
+      time: '14:00',
+    }));
+  });
+
   it('labels the outer <header> with the Swedish header aria-label', () => {
-    renderWithProviders(<DesktopNavBar />, { messages: NAV_MESSAGES });
+    renderDesktopNav();
 
     expect(screen.getByTestId('desktop-nav-bar')).toHaveAttribute(
       'aria-label',
@@ -183,7 +193,7 @@ describe('DesktopNavBar', () => {
   });
 
   it('keeps out-of-scope desktop chrome disabled until later stories own behavior', () => {
-    renderWithProviders(<DesktopNavBar />, { messages: NAV_MESSAGES });
+    renderDesktopNav();
 
     expect(screen.getByRole('button', { name: 'Innergård' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Föregående filter' })).toBeDisabled();
@@ -192,6 +202,21 @@ describe('DesktopNavBar', () => {
     expect(screen.getByRole('button', { name: 'Inställningar' })).toBeDisabled();
   });
 });
+
+function renderDesktopNav({
+  forcedDate,
+  forcedTime,
+}: {
+  forcedDate?: string;
+  forcedTime?: string;
+} = {}) {
+  return renderWithProviders(
+    <TimeProvider forcedDate={forcedDate} forcedTime={forcedTime}>
+      <DesktopNavBar />
+    </TimeProvider>,
+    { messages: NAV_MESSAGES },
+  );
+}
 
 function makeVenueResponse(): GetVenuesResponse {
   return {

@@ -26,7 +26,7 @@ export function DesktopNavBar() {
       <Link
         href="/"
         aria-label={t('nav.logoAria')}
-        className="flex shrink-0 items-center gap-3 text-display-lg text-text-logo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-primary focus-visible:rounded-sm"
+        className="flex shrink-0 items-center gap-3 text-display-lg text-text-logo focus:outline-none focus:ring-2 focus:ring-amber-primary focus:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-primary focus-visible:rounded-sm"
       >
         <span className="size-8 rounded-pill gradient-wordmark-sun shadow-wordmark-sun" />
         <span>

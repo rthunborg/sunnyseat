@@ -11,6 +11,7 @@ import { useVenueSearch } from '@/hooks/queries/useVenueSearch';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
+import { useTimeContext } from '@/lib/contexts/TimeContext';
 import { DURATION_FLY_MS } from '@/lib/constants/animation';
 import type { VenueDataDto } from '@/lib/types/api';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,7 @@ export function VenueSearchShell({
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
   const { selectVenue } = useMapSelection();
+  const plannerTime = useTimeContext();
   const trimmedQuery = query.trim();
   const [debouncedQuery, setDebouncedQuery] = useState(trimmedQuery);
 
@@ -53,6 +55,7 @@ export function VenueSearchShell({
     lng: geolocation.coords.lng,
     radiusKm: SEARCH_RADIUS_KM,
     q: debouncedQuery || undefined,
+    ...plannerTime.plannerQuery,
   });
   const isDebouncingSearch = trimmedQuery.length > 0 && trimmedQuery !== debouncedQuery;
   const venues = !isDebouncingSearch && Array.isArray(venueQuery.data?.venues)

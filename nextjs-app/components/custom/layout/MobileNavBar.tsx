@@ -64,6 +64,7 @@ export function MobileNavBar() {
             className={[
               'flex-1 flex flex-col items-center justify-center min-h-11 py-2 gap-1',
               'transition-colors duration-fast ease-default motion-reduce:transition-none',
+              'focus:outline-none focus:ring-2 focus:ring-amber-primary focus:rounded-sm',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-primary focus-visible:rounded-sm',
               isActive ? 'text-tab-active' : 'text-tab-inactive',
             ].join(' ')}

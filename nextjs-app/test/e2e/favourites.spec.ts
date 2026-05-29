@@ -17,6 +17,7 @@ test.describe('favourites', () => {
     test.skip(testInfo.project.name !== 'mobile', 'Runs in the mobile project only');
 
     await seedShell(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
 
     const firstVenue = page.getByRole('button', { name: /^Välj / }).first();
@@ -42,6 +43,7 @@ test.describe('favourites', () => {
     test.skip(testInfo.project.name !== 'mobile', 'Runs in the mobile project only');
 
     await seedShell(page, ['1']);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/favoriter');
 
     await expect(page.getByTestId('mobile-nav-tab-favoriter')).toHaveAttribute('data-active', 'true');

@@ -146,7 +146,9 @@ test.describe('map-primary', () => {
 
     await expect(page.getByTestId('map-container')).toBeVisible();
     await expect(page.locator('.gradient-map-overlay')).toHaveCount(1);
-    await expect(page.getByTestId('map-controls')).toBeHidden();
+    await expect(page.getByTestId('map-controls')).toBeVisible();
+    await expect(page.getByTestId('map-control-zoom-in')).toBeVisible();
+    await expect(page.getByTestId('map-control-zoom-out')).toBeVisible();
     const desktopNav = page.getByTestId('desktop-nav-bar');
     await expect(desktopNav).toBeVisible();
     await expect(desktopNav.getByRole('button', { name: 'Min plats' })).toBeVisible();
