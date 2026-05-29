@@ -58,18 +58,19 @@ function OnboardingGateInner() {
   const isForced = forcedState === 'onboarding';
   const { mapInstance } = useMapInstance();
 
-  // The server cannot read localStorage, so render nothing until the
-  // first client effect reads the flag. Otherwise returning-user visual
-  // captures render the onboarding screen on the server, remove it on
-  // the client, and trigger a hydration overlay in development.
-  const [hasHydrated, setHasHydrated] = useState(false);
+  // The server cannot read localStorage. Until the first client effect
+  // resolves the flag, render a visual blocker instead of exposing the
+  // map underneath a first-visit privacy choice. Returning users only
+  // see that blocker for the hydration window, not the full onboarding
+  // dialog.
+  const [hasReadFlag, setHasReadFlag] = useState(false);
   const [hasOnboarded, setHasOnboarded] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [pendingFly, setPendingFly] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     setHasOnboarded(readFlag());
-    setHasHydrated(true);
+    setHasReadFlag(true);
   }, []);
 
   // Defer the map flyTo until both the granted coords and the map
@@ -123,10 +124,11 @@ function OnboardingGateInner() {
     setPendingFly(null);
   }, []);
 
-  const shouldShow = hasHydrated && !dismissed && (isForced || !hasOnboarded);
+  const shouldShow = hasReadFlag && !dismissed && (isForced || !hasOnboarded);
+  const shouldBlockAppShell = !dismissed && (!hasReadFlag || isForced || !hasOnboarded);
 
   useEffect(() => {
-    if (!shouldShow || typeof document === 'undefined') return;
+    if (!shouldBlockAppShell || typeof document === 'undefined') return;
 
     const appShell = document.querySelector<HTMLElement>('[data-app-shell]');
     if (!appShell) return;
@@ -150,7 +152,11 @@ function OnboardingGateInner() {
         appShell.removeAttribute('inert');
       }
     };
-  }, [shouldShow]);
+  }, [shouldBlockAppShell]);
+
+  if (!hasReadFlag && !dismissed) {
+    return <OnboardingGatePlaceholder />;
+  }
 
   if (!shouldShow) return null;
 
@@ -163,6 +169,16 @@ function OnboardingGateInner() {
   );
 
   return typeof document === 'undefined' ? screen : createPortal(screen, document.body);
+}
+
+function OnboardingGatePlaceholder() {
+  return (
+    <div
+      aria-hidden="true"
+      data-testid="onboarding-gate-placeholder"
+      className="fixed inset-0 z-toast gradient-onboarding"
+    />
+  );
 }
 
 /**

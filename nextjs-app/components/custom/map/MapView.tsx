@@ -324,7 +324,7 @@ export function MapView() {
     ];
     return candidates.find((venue) => venueMatchesSlug(venue, venueSlugParam))?.id;
   }, [detailVenue, favouriteVenueRows, rawVenues, selectedVenueDto, venueSlugParam]);
-  const isVenueDetailRequested = canRequestVenueDetail;
+  const isVenueDetailRequested = canRequestVenueDetail && Boolean(detailFallbackVenue);
 
   useEffect(() => {
     if (!venueSlugParam || !selectedVenuePreview?.slug) return;

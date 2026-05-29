@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { OnboardingGateWithSuspense } from '@/components/custom/onboarding/OnboardingGate';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 
@@ -78,6 +79,12 @@ describe('<OnboardingGate />', () => {
   it('first visit (no flag, no _state): renders the onboarding screen', async () => {
     render(<OnboardingGateWithSuspense />);
     expect(await screen.findByTestId('onboarding-screen-stub')).toBeInTheDocument();
+  });
+
+  it('server-renders a blocking placeholder while the onboarded flag is unknown', () => {
+    expect(renderToString(<OnboardingGateWithSuspense />)).toContain(
+      'data-testid="onboarding-gate-placeholder"',
+    );
   });
 
   it('returning user (flag set, no _state): renders nothing', async () => {

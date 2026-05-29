@@ -970,6 +970,33 @@ describe('<MapView />', () => {
       expect(screen.queryByText('Unknown Sunny Place')).not.toBeInTheDocument();
     });
 
+    it('keeps selected QuickInfo visible when a stale detail slug cannot resolve', () => {
+      searchParamsMock = new URLSearchParams('venue=unknown-sunny-place');
+      selectedVenueIdMock = 'venue-1';
+      selectedVenuePreviewMock = makeVenue({
+        id: 'venue-1',
+        name: 'Kafé Magasinet',
+        slug: 'test-venue-sunny',
+      });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([selectedVenuePreviewMock]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useVenueDetailMock.mockReturnValue({
+        data: undefined,
+        isFetching: false,
+        isError: true,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.queryByTestId('mobile-venue-detail-sheet')).not.toBeInTheDocument();
+      expect(screen.getAllByTestId('venue-quick-info')).toHaveLength(2);
+      expect(screen.getAllByRole('button', { name: 'Kafé Magasinet' })).toHaveLength(2);
+    });
+
     it('keeps detail responses whose canonical slug differs from the URL alias', () => {
       searchParamsMock = new URLSearchParams('venue=legacy-alias');
       const aliasVenue = {
