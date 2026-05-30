@@ -31,6 +31,8 @@ inputDocuments:
 >
 > **Visual source refresh (2026-05-21):** MVP story drafting and visual gates must use only the refreshed Claude Design MVP Unlocked pages: `SunnySeat MVP Mobile Unlocked.html` and `SunnySeat MVP Desktop Unlocked.html`. Post-MVP Unlocked/Locked pages remain future-only references for payment, paywall, Season Pass, and locked-state work.
 >
+> **Admin removal correction (2026-05-30):** SunnySeat will not have an admin page, admin venue configuration UI, admin venue CRUD API, admin authentication surface, venue candidate review queue, or admin-operated building upload surface. New and changed venues are managed by direct database insert/update queries only. Story 3.0 is the first Epic 3 implementation story and removes the remaining admin artifacts from the codebase, docs, tests, and database cleanup plan before routing, feedback, and reviews proceed.
+>
 > **Story drafting guardrail:** Stories 2.5, 2.6, and 2.7 must be drafted as free MVP functionality. Their story files must include explicit review tasks proving active MVP code does not depend on `PremiumContext`, `usePremiumStatus`, `queryKeys.premium`, `/api/payments/*`, Swish helpers, paywall components, lock badges, Season Pass copy, or premium JSON messages. If dormant monetization code is worth saving, move it out of live runtime paths and preserve the contract in `future-monetization-season-pass.md` or an inactive `future-premium` archive; do not leave unused premium/payment providers, hooks, or route stubs wired into the MVP app.
 
 ## Overview
@@ -273,9 +275,10 @@ After favourites ship in Epic 2, users can view recently visited venues, opt int
 Users can learn how SunnySeat works (about page with accuracy stats and data sources), encounter a friendly 404 with redirect to map, install the app as a PWA, and see a graceful offline state with cached app shell.
 **FRs covered:** FR47, FR48, FR49, FR50
 
-### Phase 2 (Deferred)
-Admin UI rebuild and data expansion features deferred to post-launch.
-**FRs deferred:** FR36, FR37, FR38, FR39, FR40, FR41, FR42, FR43, FR44, FR45
+### Retired Admin/Data Expansion Scope
+Admin UI rebuild, admin venue CRUD/configuration, admin authentication, venue candidate review queues, and admin-operated data expansion are retired by the 2026-05-30 product decision. New and changed venues are managed by direct database insert/update queries only.
+**FRs retired or superseded by manual database operations:** FR36, FR38, FR39, FR40, FR41, FR42, FR43, FR44, FR45
+**FR retained with consumer-only interpretation:** FR37, limited to user feedback about existing venue outdoor seating and not a new-venue candidate queue.
 
 ---
 
@@ -1018,6 +1021,58 @@ So that I can return to venues I like without searching again.
 
 Users can get walking/biking directions to a venue, open it in their native maps app, submit sun accuracy feedback, confirm outdoor seating status, and read/write venue reviews. Completes the full venue visit loop.
 
+> **Epic 3 sequencing note (2026-05-30):** Story 3.0 must be implemented before Stories 3.1-3.4 so routing, feedback, reviews, and visit-loop hardening do not build on admin/auth/candidate-review code that is no longer product scope.
+
+### Story 3.0: Remove Admin Surface & Adopt Manual Venue Operations
+
+As a **product owner and maintainer**,
+I want all admin-related runtime code, tests, and documentation removed,
+So that SunnySeat only supports consumer MVP flows and venue changes happen through direct database insert/update queries.
+
+**Acceptance Criteria:**
+
+**Given** the project no longer supports an admin page or admin venue configuration
+**When** the active Next.js app is audited
+**Then** no `/admin` page, `/api/admin` route, admin venue CRUD route, admin login route, admin authentication middleware, admin-specific provider, or admin-only component remains in live runtime paths
+**And** no replacement admin UI/API is introduced in this story
+
+**Given** venues will be added or changed only by direct database insert/update queries
+**When** project documentation and planning artifacts are updated
+**Then** they clearly state that venue onboarding/configuration is manual database work
+**And** they no longer describe admin venue CRUD, admin geometry editing, admin building upload, admin candidate approval queues, or admin dashboards as planned SunnySeat product scope
+
+**Given** admin authentication is no longer product scope
+**When** dependencies, environment examples, types, and middleware are audited
+**Then** unused admin-auth packages, JWT admin environment variables, admin user DTOs, role/claim helpers, and admin-only validation helpers are removed
+**And** any server-only Supabase service-role code that remains is named and documented as backend infrastructure, not admin functionality
+
+**Given** previous code may include venue candidate, verification, review-needed, or admin override concepts
+**When** venue/domain types, mappers, fixtures, solar/building helpers, and public API responses are cleaned up
+**Then** admin/candidate-review fields are removed from active contracts unless they are still required for public consumer functionality
+**And** any retained manually-managed data concept uses neutral terminology such as manual or service-role rather than admin
+
+**Given** tests may still cover removed admin behavior
+**When** unit, component, E2E, and helper tests are audited
+**Then** every test whose purpose is admin login, admin auth, admin venue CRUD, admin review queues, admin dashboard, admin building upload, or admin-only validation is removed
+**And** remaining tests are updated so they assert the consumer/public behavior that still exists
+
+**Given** the live database may contain admin-only schema or data
+**When** the cleanup audit identifies database objects that should be dropped, renamed, or converted
+**Then** the dev agent does not run destructive database changes automatically
+**And** it creates `_bmad-output/implementation-artifacts/3-0-admin-db-cleanup.sql` containing the exact manual SQL for Rasmus to review and run
+**And** if no database cleanup is required, the story completion notes explicitly say so with the audit basis
+
+**Given** the admin cleanup is complete
+**When** the regression gate runs
+**Then** typecheck, lint, Vitest, Playwright, and an app build pass
+**And** consumer functionality for map discovery, venue list, venue detail, search, planner/date simulation, confidence/refresh, and favourites remains unbroken
+**And** scoped scans show no remaining admin runtime/test artifacts except approved historical planning references or this story's own cleanup notes
+
+**Design Gate Criteria:**
+- **Visual:** No standalone visual reference. This is a cleanup/infrastructure story with no intended consumer UI change.
+- **Behaviour:** Existing consumer flows must continue to behave as they did before the admin cleanup.
+- **Visual validation:** Run visual validation only if public consumer UI files are changed; otherwise document that no visual gate applies because no consumer UI was intentionally changed.
+
 ### Story 3.1: Routing & Navigation to Venue
 
 As a **user**,
@@ -1166,6 +1221,54 @@ So that I can learn from others' experiences and share mine.
 > - Add final visual-regression verification for the Story 2.2 accepted scope drift: decide whether aggregate venue star ratings surface in venue-list cards once reviews exist. If ratings surface in lists, wire the data/API and verify `scripts/visual-validate.sh map-panel-venues "/?_state=map-panel-venues" mobile` no longer fails for missing star/rating metadata. If ratings remain detail-only, rebaseline the venue-list reference with rationale and update `REBASELINE-LOG.md`. *(Source: Story 2.2 Anthropic visual gate accepted by Rasmus on 2026-05-14.)*
 > - Add final visual-regression verification for the Story 2.3 accepted venue-detail drift: decide whether aggregate ratings/review counts surface in the venue detail header and desktop left-list cards once reviews exist. If yes, wire the data/API and verify `scripts/visual-validate.sh venue-detail "/?venue=test-venue-sunny&_state=venue-detail" mobile` and `desktop` no longer fail for missing rating/review metadata. If ratings remain review-section-only, rebaseline the affected references with rationale and update `REBASELINE-LOG.md`. *(Source: Story 2.3 visual gate accepted by Rasmus on 2026-05-16.)*
 > - Add final visual-regression verification for the Story 2.4 accepted drift: decide whether rating, review-count, and price-level metadata surface in mobile venue-list cards and desktop venue-detail headers once reviews exist. If yes, wire the data/API and verify `map-panel-venues` and desktop `venue-detail` no longer fail for missing star/rating/price metadata. If these remain outside V1, rebaseline affected references with rationale. *(Source: Story 2.4 visual gates accepted by Rasmus on 2026-05-18.)*
+
+### Story 3.4: Routing & Visit Loop Hardening
+
+As a **user**,
+I want routing, feedback, and review flows to preserve my venue context across the full visit loop,
+So that I can move from finding a sunny venue to getting there and confirming it without losing state or trust.
+
+**Acceptance Criteria:**
+
+**Given** Stories 3.1, 3.2, and 3.3 have landed
+**When** route actions are audited across VenueQuickInfo, venue detail, venue list/favourite entry points, and feedback/review-adjacent surfaces
+**Then** all route actions use the shared routing helper/orchestrator contract
+**And** no duplicate hand-rolled native-map URL builders or direct `window.open` calls remain outside the approved routing boundary
+
+**Given** a user opens a venue from the map, list, favourite view, or a deep link
+**When** they dismiss the route overlay, close feedback/review forms, or use browser Back
+**Then** the app preserves selected venue, planner/date/time state, map/list context, and venue-detail scroll position where applicable
+**And** invalid venue slugs, loading states, and API errors render localized not-found or retry/error states instead of blank panels
+
+**Given** a mobile user taps "Visa Rutt"
+**When** the native-map handoff is initiated
+**Then** the route overlay shows the destination, confidence context, and estimated walk time before the app attempts to leave
+**And** if the handoff is blocked, the overlay remains visible with a localized retry/open-directions action
+
+**Given** route, feedback, and review controls are keyboard or screen-reader operated
+**When** the user navigates through the Epic 3 visit loop
+**Then** every interactive element has an accessible name, visible focus state, semantic role, and at least a 44x44 px target
+**And** `prefers-reduced-motion` users get instant or opacity-only state changes
+
+**Given** all Epic 3 user-facing copy is rendered
+**When** Swedish or English locale is active
+**Then** route, feedback, review, error, retry, and confirmation text uses scoped `next-intl` keys
+**And** no English hardcoded copy appears in Swedish UI
+
+**Given** the Epic 3 hardening pass is complete
+**When** the final regression gate runs
+**Then** `tsc`, `eslint`, `vitest`, and required Playwright coverage pass
+**And** visual validation covers `map-with-selected-venue`, `venue-detail` mobile/desktop, `feedback`, and `review` states, with any approved rebaseline documented in `REBASELINE-LOG.md`
+
+**Given** MVP scope excludes active monetization
+**When** Epic 3 runtime paths are scanned
+**Then** no Season Pass, Swish, premium, payment, paywall, or lock-badge dependency is wired into routing, feedback, or reviews
+**And** client components still respect the API boundary by avoiding direct imports from backend engine modules
+
+**Design Gate Criteria:**
+- **Behaviour:** Final Epic 3 route, feedback, review, Back, dismiss, blocked-handoff, loading, error, and deep-link flows preserve user context as specified above
+- **Accessibility:** Keyboard, screen-reader, reduced-motion, focus, and touch-target checks are included in the story test gate
+- **Visual validation:** Parent screen/state visual validation passes for `map-with-selected-venue`, `venue-detail` mobile/desktop, `feedback`, and `review`; reference changes require explicit rationale and `REBASELINE-LOG.md` update
 
 ---
 

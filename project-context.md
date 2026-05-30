@@ -29,7 +29,7 @@ A backend API application that helps people in Gothenburg find outdoor venue sea
 | Database | Supabase (PostgreSQL 15 + PostGIS) |
 | Sun Engine | TypeScript — NREL SPA + Turf.js (`nextjs-app/lib/solar/`) |
 | Weather | Met.no Locationforecast 2.0 (`nextjs-app/lib/weather/`) |
-| Auth (Admin) | JWT (bcryptjs + jsonwebtoken) |
+| Server Infrastructure | Supabase service-role clients for server-only backend jobs |
 | Payments | Swish Merchant API (Season Pass, Future Monetization only) |
 | Validation | Zod v4 |
 | Hosting | Vercel (Fluid Compute, Cron, CDN) |
@@ -37,7 +37,7 @@ A backend API application that helps people in Gothenburg find outdoor venue sea
 
 ### Current State
 
-- **Epics 1–3, 6, 6R, 7: Complete.** Backend foundation, sun/shadow engine, weather integration, platform migration from .NET/Azure to Next.js/Vercel/Supabase, admin operations platform.
+- **Epics 1–3, 6, 6R, 7: Complete.** Backend foundation, sun/shadow engine, weather integration, and platform migration from .NET/Azure to Next.js/Vercel/Supabase are complete. Admin operations are retired from active scope; venue changes are handled through direct database insert/update queries.
 - **Front-end: Fully removed (2026-03-25).** Clean slate for the fresh rebuild.
 - **Front-end rebuild — in Epic 2.** Epic 1 is complete, Story 2.4 is done, and Story 2.5 is in correction under the 2026-05-19 MVP scope correction plus the 2026-05-21 Claude Design split. PRD v3.1 and `epics.md` make planner/date/favourites free and preserve Season Pass / Swish as Future Monetization. Active MVP QA planning uses `_bmad-output/qa/mvp-test-design-scope-correction-2026-05-19.md`; older TEA QA docs are historical/Future Monetization input where they mention premium/payment scope.
 

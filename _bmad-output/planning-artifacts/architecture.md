@@ -25,6 +25,8 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 > **MVP scope correction (2026-05-19):** time planner, future date picker, future sun simulation, and favourites are free MVP functionality. Season Pass, Swish payments, premium activation, premium recovery, and payment failure flows are dormant Future Monetization architecture preserved in `future-monetization-season-pass.md`.
 >
 > **Visual source refresh (2026-05-21):** MVP implementation and visual gates use the refreshed Claude Design MVP Unlocked pages only. Post-MVP Unlocked/Locked pages remain future-only architecture references and must not reintroduce premium/payment runtime dependencies into MVP planner/date/favourites.
+>
+> **Admin removal correction (2026-05-30):** SunnySeat has no admin page, admin venue CRUD/configuration API, admin authentication surface, venue candidate review queue, or admin-operated building upload surface. Venue and geometry changes are manual database insert/update work. Server-only Supabase service-role usage remains backend infrastructure, not admin functionality.
 
 ## Project Context Analysis
 
@@ -40,8 +42,8 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 | Future Monetization (FR21–FR26) | Upsell, Swish payment (mobile + desktop), paid-status persistence, error handling | Dormant post-MVP payment state machine, session-based paid status, two distinct payment UX flows |
 | Partner & B2B (FR27–FR30) | Golden Pin, SOL NU badge, deep-links, analytics | Enhanced map markers, partner API integration, analytics dashboard |
 | User Personalization (FR31–FR35) | Favourites, recent history, push notifications, sharing | Client-side persistence, Web Push API, native share |
-| Data Expansion (FR36–FR38) | OSM ingestion, crowdsource verification, admin queue | Backend-only — no front-end architecture impact |
-| Administration Phase 2 (FR39–FR45) | Admin CRUD, geometry editor, accuracy dashboard | Deferred — excluded from this architecture |
+| Manual Venue Operations (FR36–FR38) | Existing-venue consumer verification plus direct database maintenance | No app runtime surface; no candidate approval queue |
+| Retired Administration (FR39–FR45) | Admin CRUD, geometry editor, building upload, auth, and dashboard retired | Excluded from product architecture |
 | Platform & Onboarding (FR46–FR50) | Onboarding, about page, 404, PWA, offline shell | Service worker, app manifest, static pages |
 
 **Non-Functional Requirements (37 NFRs across 6 categories):**
@@ -49,7 +51,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 | Category | Key NFRs | Architectural Impact |
 |----------|----------|---------------------|
 | Performance (9) | LCP ≤4.5s, INP ≤200ms, CLS ≤0.1, 600KB JS budget, 60fps map, <200ms API p95 (Plan B re-baselined 2026-05-06 — see PRD NFR2/NFR8 + line 339 below) | Async map loading, code-splitting, lazy-loading strategy, system font stack, precomputed data |
-| Security & Privacy (8) | Zero PII, hashed IPs, rate limiting, JWT admin, HTTPS, GDPR, future Swish compliance | Anonymous MVP session model, no cookies requiring consent, secure future payment flow |
+| Security & Privacy (8) | Zero PII, hashed IPs, public API rate limiting, HTTPS, GDPR, future Swish compliance | Anonymous MVP session model, no cookies requiring consent, secure future payment flow |
 | Scalability (4) | ≤10K MAU at ≤$100/mo, sunny-day 5x spikes, precomputed data, external tile CDN | Serverless auto-scaling, CDN caching, precomputation pipeline |
 | Accessibility (6) | WCAG 2.1 AA, keyboard nav, screen reader, colour contrast, reduced motion, shape not colour | Component-level ARIA, focus management, motion preferences, icon differentiation |
 | Integration (5) | Met.no, future Swish, MapLibre, Web Push, OSM | External service adapters, error boundaries, graceful degradation |
@@ -69,8 +71,8 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 **Brownfield constraints (existing backend):**
 - Next.js 16+ API routes already deployed on Vercel — front-end builds on top
 - Supabase (PostgreSQL + PostGIS) with established schema, RPCs, and migrations
-- Existing API contracts (venue search, sun exposure, feedback, auth, dormant/future payments, partners, health, cron)
-- TypeScript strict mode, Zod v4 validation, JWT admin auth already implemented
+- Existing API contracts (venue search, sun exposure, feedback, dormant/future payments, partners, health, cron)
+- TypeScript strict mode, Zod v4 validation, and server-only Supabase service-role infrastructure already implemented
 - 22 passing sun/shadow engine tests — regression protection in place
 
 **Hard performance constraints:**
@@ -216,7 +218,7 @@ npm install -D @axe-core/react eslint-plugin-jsx-a11y @next/bundle-analyzer vite
 - Push notification infrastructure (Web Push API — Epic 9 scope)
 - Partner analytics dashboard (Epic 9 scope)
 - Future monetization: Season Pass, Swish payment, paid-status JWT, and recovery by transaction ID
-- Admin UI architecture (Phase 2)
+- Manual database operations for venue additions and geometry corrections
 
 ### Data Architecture
 
@@ -245,7 +247,7 @@ npm install -D @axe-core/react eslint-plugin-jsx-a11y @next/bundle-analyzer vite
 
 **Public routes:** No auth. Zero PII. Anonymous by design.
 
-**Admin auth:** JWT (bcryptjs + jsonwebtoken) — existing. Bearer token on all `/api/admin/*`.
+**Admin auth:** Retired by the 2026-05-30 product decision. There are no `/api/admin/*` routes or admin JWTs in active runtime scope.
 
 **Future paid-status security (post-MVP, dormant):**
 - Server-signed JWT issued on payment confirmation
@@ -263,7 +265,7 @@ npm install -D @axe-core/react eslint-plugin-jsx-a11y @next/bundle-analyzer vite
 - Server issues new signed paid-status JWT
 - Zero PII required — Swish transaction ID is a reference the user already has
 
-**Rate limiting:** Token bucket per IP — 100 req/min public, 1000 req/min admin. 429 with Retry-After header.
+**Rate limiting:** Token bucket per IP on public APIs, currently 100 req/min unless a route-specific stricter limit is documented. 429 with Retry-After header.
 
 **API security:** HTTPS only (Vercel), CORS configured, no mixed content. Future Swish webhook handler must be idempotent.
 
@@ -353,7 +355,7 @@ Component layout, interaction patterns, viewport behaviour, and screen flows fol
 **Error tracking:** Vercel Analytics only for launch. Decision to add Sentry deferred — will reassess after first month of production traffic.
 
 **Environment configuration:**
-- Production: Vercel environment variables (SUPABASE_URL, keys, JWT_SECRET, CRON_SECRET, MAPTILER_KEY; SWISH credentials only when Future Monetization is reactivated)
+- Production: Vercel environment variables (SUPABASE_URL, keys, CRON_SECRET, MAPTILER_KEY; SWISH credentials only when Future Monetization is reactivated)
 - Preview: Separate Vercel env vars per PR
 - Development: `.env.local` (git-ignored)
 
@@ -627,8 +629,6 @@ nextjs-app/
 │       │   └── route.ts              # GET/POST — venue reviews
 │       ├── partners/
 │       │   └── sunny-now/route.ts    # GET — partner venues currently sunny
-│       └── admin/                    # Admin routes (existing, not modified)
-│           └── ...
 │
 ├── components/
 │   ├── ui/                           # ── LAYER 1: shadcn/ui primitives ──
@@ -750,12 +750,9 @@ nextjs-app/
 │   │   ├── server.ts
 │   │   ├── health.ts
 │   │   └── types.ts
-│   ├── middleware/                    # ── EXISTING — not modified ──
-│   │   ├── auth.ts
-│   │   ├── admin-auth.ts
+│   ├── middleware/                    # ── server request helpers ──
 │   │   └── request-logger.ts
-│   ├── buildings/                    # ── EXISTING — not modified ──
-│   │   └── import-geojson.ts
+│   ├── buildings/                    # ── backend building data helpers when needed ──
 │   ├── types/                        # ── EXISTING + NEW front-end types ──
 │   │   ├── index.ts                  # Re-exports
 │   │   ├── api.ts                    # API response types (existing)
@@ -889,7 +886,7 @@ All server state lives in the TanStack Query cache. No duplicating API data into
 | Premium Recovery (FR25) | `custom/future-premium/PremiumRecovery` | `mutations/useRecoverPremium` | `services/premium-token` |
 | Partner Pins (FR27–29) | `custom/map/VenuePinLayer` (partner variant), `composed/PartnerBadge` | `queries/usePartnersSunnyNow` | — |
 | Partner Analytics (FR30) | Deferred — API exists, dashboard in Phase 2 | — | — |
-| OSM Ingestion (FR36–38) | Admin Phase 2 — API exists | — | — |
+| Manual Venue Operations (FR36–38) | Direct database insert/update workflow; no app runtime surface | — | — |
 
 ### Integration Points
 
@@ -985,13 +982,13 @@ Project directory tree directly supports all architectural decisions. Server/cli
 
 **Epic Coverage:**
 - MVP Front-End: All applicable FRs (FR1–20, FR31–35, FR46–50) plus free planner FR10–11 mapped to specific components, hooks, and services
-- Future Monetization + Growth: FR21–30 mapped or preserved as dormant post-MVP architecture. FR36–38 (data expansion) and FR39–45 (admin) correctly deferred to Phase 2
+- Future Monetization + Growth: FR21–30 mapped or preserved as dormant post-MVP architecture. FR36 and FR38 plus FR39–45 are retired by the 2026-05-30 admin-removal decision; FR37 remains consumer feedback for existing venues.
 - Cross-epic dependencies handled: free planner state drives future sun queries, partner pins are a variant of the same VenuePinLayer, favourites/push build on the venue discovery foundation, and premium status is dormant Future Monetization only
 
 **Non-Functional Requirements Coverage:**
 All 37 NFRs addressed architecturally:
 - Performance (NFR1–9): 600KB JS budget (Plan B re-baselined 2026-05-06 — see PRD NFR8), MapLibre async load, skeleton loading, 5-min TanStack refetch, 60fps map target
-- Security (NFR10–17): Zero PII, hashed IPs, JWT admin tokens, future paid-status tokens / Swish txn ID recovery, HTTPS-only
+- Security (NFR10–17): Zero PII, hashed IPs, public API rate limiting, future paid-status tokens / Swish txn ID recovery, HTTPS-only
 - Scalability (NFR18–21): Vercel auto-scaling, Supabase pooling, precomputed data, CDN tiles
 - Accessibility (NFR22–27): WCAG 2.1 AA, axe-core CI, prefers-reduced-motion, ARIA, shape-differentiated pins
 - Integration (NFR28–32): All external services mapped with error handling

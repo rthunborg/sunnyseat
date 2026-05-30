@@ -24,7 +24,7 @@ export interface SunTimes {
   longitude: number;
 }
 
-export type HeightSource = 'Surveyed' | 'Osm' | 'Heuristic' | 'AdminOverride';
+export type HeightSource = 'Surveyed' | 'Osm' | 'Heuristic' | 'ManualOverride';
 
 export interface Building {
   id: number;

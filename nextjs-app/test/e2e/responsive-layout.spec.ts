@@ -1,10 +1,23 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 
-async function bypassOnboarding(page: import('@playwright/test').Page): Promise<void> {
+const APP_SETTLE_TIMEOUT_MS = 15_000;
+
+async function bypassOnboarding(page: Page): Promise<void> {
   await page.addInitScript((key: string) => {
     window.localStorage.setItem(key, '1');
   }, ONBOARDED_FLAG_KEY);
+}
+
+function visibleTestId(page: Page, testId: string): Locator {
+  return page.locator(`[data-testid="${testId}"]:visible`).first();
+}
+
+async function expectBypassedOnboarding(page: Page): Promise<void> {
+  await expect(page.getByTestId('onboarding-gate-placeholder')).toHaveCount(0, {
+    timeout: APP_SETTLE_TIMEOUT_MS,
+  });
+  await expect(page.getByTestId('onboarding-screen')).toHaveCount(0);
 }
 
 test.describe('Mobile responsive layout', () => {
@@ -18,8 +31,9 @@ test.describe('Mobile responsive layout', () => {
   test('M1: mobile nav bar is visible at the bottom of /', async ({ page }) => {
     await bypassOnboarding(page);
     await page.goto('/');
-    const nav = page.getByTestId('mobile-nav-bar');
-    await expect(nav).toBeVisible();
+    await expectBypassedOnboarding(page);
+    const nav = visibleTestId(page, 'mobile-nav-bar');
+    await expect(nav).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
 
     const navBox = await nav.boundingBox();
     const viewport = page.viewportSize();
@@ -33,7 +47,8 @@ test.describe('Mobile responsive layout', () => {
   test('M2: desktop nav bar is hidden on mobile viewport', async ({ page }) => {
     await bypassOnboarding(page);
     await page.goto('/');
-    await expect(page.getByTestId('desktop-nav-bar')).toBeHidden();
+    await expectBypassedOnboarding(page);
+    await expect(page.locator('[data-testid="desktop-nav-bar"]:visible')).toHaveCount(0);
   });
 
   test('M3: each tab exposes its visible text as the accessible name (WCAG 2.5.3)', async ({
@@ -41,6 +56,7 @@ test.describe('Mobile responsive layout', () => {
   }) => {
     await bypassOnboarding(page);
     await page.goto('/');
+    await expectBypassedOnboarding(page);
 
     // Playwright's mobile iPhone 14 emulation sends Accept-Language: en-US, so
     // next-intl redirects to /en and renders English labels. Map both locales.
@@ -51,8 +67,8 @@ test.describe('Mobile responsive layout', () => {
       : { naraMig: 'Nära mig', favoriter: 'Favoriter' };
 
     for (const [key, name] of Object.entries(labels)) {
-      const tab = page.getByTestId(`mobile-nav-tab-${key}`);
-      await expect(tab).toBeVisible();
+      const tab = visibleTestId(page, `mobile-nav-tab-${key}`);
+      await expect(tab).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
       await expect(tab).toHaveAccessibleName(name);
       // No aria-label override — keeps visible text == accessible name.
       await expect(tab).not.toHaveAttribute('aria-label', /./);
@@ -62,11 +78,12 @@ test.describe('Mobile responsive layout', () => {
   test('M4: the Nära mig tab is active when pathname is /', async ({ page }) => {
     await bypassOnboarding(page);
     await page.goto('/');
-    await expect(page.getByTestId('mobile-nav-tab-naraMig')).toHaveAttribute(
+    await expectBypassedOnboarding(page);
+    await expect(visibleTestId(page, 'mobile-nav-tab-naraMig')).toHaveAttribute(
       'data-active',
       'true',
     );
-    await expect(page.getByTestId('mobile-nav-tab-favoriter')).toHaveAttribute(
+    await expect(visibleTestId(page, 'mobile-nav-tab-favoriter')).toHaveAttribute(
       'data-active',
       'false',
     );
@@ -78,6 +95,7 @@ test.describe('Mobile responsive layout', () => {
   }) => {
     await bypassOnboarding(page);
     await page.goto('/');
+    await expectBypassedOnboarding(page);
 
     const tabKeys = ['naraMig', 'favoriter'] as const;
 
@@ -89,7 +107,7 @@ test.describe('Mobile responsive layout', () => {
     // non-`none` focus indicator once focused. DOM Tab-order is covered by
     // the Vitest component test (`supports keyboard navigation` above).
     for (const key of tabKeys) {
-      const tab = page.getByTestId(`mobile-nav-tab-${key}`);
+      const tab = visibleTestId(page, `mobile-nav-tab-${key}`);
       await tab.focus();
       await expect(tab).toBeFocused();
 
@@ -119,8 +137,9 @@ test.describe('Desktop responsive layout', () => {
   test('D1: desktop nav bar is visible at the top of /', async ({ page }) => {
     await bypassOnboarding(page);
     await page.goto('/');
-    const nav = page.getByTestId('desktop-nav-bar');
-    await expect(nav).toBeVisible();
+    await expectBypassedOnboarding(page);
+    const nav = visibleTestId(page, 'desktop-nav-bar');
+    await expect(nav).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
 
     const navBox = await nav.boundingBox();
     expect(navBox).not.toBeNull();
@@ -132,7 +151,8 @@ test.describe('Desktop responsive layout', () => {
   test('D2: mobile nav bar is hidden on desktop viewport', async ({ page }) => {
     await bypassOnboarding(page);
     await page.goto('/');
-    await expect(page.getByTestId('mobile-nav-bar')).toBeHidden();
+    await expectBypassedOnboarding(page);
+    await expect(page.locator('[data-testid="mobile-nav-bar"]:visible')).toHaveCount(0);
   });
 
   test('D3: desktop navbar exposes the real search combobox', async ({
@@ -140,9 +160,10 @@ test.describe('Desktop responsive layout', () => {
   }) => {
     await bypassOnboarding(page);
     await page.goto('/');
+    await expectBypassedOnboarding(page);
     const searchLandmark = page.getByRole('search', {
       name: /Sök plats|Search venue/,
-    });
+    }).first();
     await expect(searchLandmark).toBeVisible();
     const combobox = searchLandmark.getByRole('combobox', {
       name: /Sök plats|Search venue/,
@@ -159,10 +180,11 @@ test.describe('Desktop responsive layout', () => {
   }) => {
     await bypassOnboarding(page);
     await page.goto('/');
+    await expectBypassedOnboarding(page);
 
     // Focus the logo directly; Tab-key origin depends on surrounding page
     // content, so we assert focusability of the logo link itself.
-    const logoLink = page.locator('[data-testid="desktop-nav-bar"] a').first();
+    const logoLink = visibleTestId(page, 'desktop-nav-bar').locator('a').first();
     await logoLink.focus();
     await expect(logoLink).toBeFocused();
 

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '@/lib/supabase/server';
+import { supabaseServiceRole } from '@/lib/supabase/server';
 import { calculateSolarPosition } from './solar-calculation-service';
 import * as SG from './shadow-geometry';
 import type {
@@ -151,7 +151,7 @@ interface VenueRow {
 async function fetchVenue(
   venueId: number
 ): Promise<{ id: number; geometry: GeoJSON.Polygon }> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabaseServiceRole
     .from('venues')
     .select('Id, Geometry')
     .eq('Id', venueId)
@@ -171,7 +171,7 @@ async function fetchNearbyBuildings(
 ): Promise<Building[]> {
   const centroid = getCentroid(venueGeometry);
 
-  const { data, error } = await supabaseAdmin.rpc('get_buildings_near_point', {
+  const { data, error } = await supabaseServiceRole.rpc('get_buildings_near_point', {
     p_latitude: centroid[1],
     p_longitude: centroid[0],
     p_radius_meters: radiusDeg * 111300,
@@ -179,7 +179,7 @@ async function fetchNearbyBuildings(
 
   if (error) {
     console.error('Failed to fetch buildings:', error.message);
-    const { data: fallbackData } = await supabaseAdmin
+    const { data: fallbackData } = await supabaseServiceRole
       .from('buildings')
       .select('*')
       .gte('Height', SG.MIN_MEANINGFUL_HEIGHT)

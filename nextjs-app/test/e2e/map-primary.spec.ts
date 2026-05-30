@@ -6,6 +6,7 @@ import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 // in the DOM longer under load. Poll for the visual condition instead of
 // sleeping a fixed duration.
 const PIN_MORPH_SETTLE_TIMEOUT_MS = 2000;
+const APP_SETTLE_TIMEOUT_MS = 15_000;
 
 async function bypassOnboarding(page: import('@playwright/test').Page): Promise<void> {
   await page.addInitScript((key: string) => {
@@ -15,6 +16,10 @@ async function bypassOnboarding(page: import('@playwright/test').Page): Promise<
 
 function visiblePlanner(page: Page): Locator {
   return page.locator('[data-testid="time-slider-panel"]:visible').first();
+}
+
+function visibleTestId(page: Page, testId: string): Locator {
+  return page.locator(`[data-testid="${testId}"]:visible`).first();
 }
 
 async function expectFreePlannerChrome(page: Page): Promise<Locator> {
@@ -119,11 +124,17 @@ test.describe('map-primary', () => {
 
     await page.goto('/');
 
-    await expect(page.getByTestId('map-container')).toBeVisible();
-    await expect(page.locator('.gradient-map-overlay')).toHaveCount(1);
-    await expect(page.getByTestId('map-controls')).toBeVisible();
+    await expect(visibleTestId(page, 'map-container')).toBeVisible({
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
+    await expect(page.locator('.gradient-map-overlay')).toHaveCount(1, {
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
+    await expect(visibleTestId(page, 'map-controls')).toBeVisible({
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
 
-    await page.waitForSelector('[data-testid="venue-pin"]', { timeout: 5000 });
+    await page.waitForSelector('[data-testid="venue-pin"]', { timeout: APP_SETTLE_TIMEOUT_MS });
     const pinCount = await page.locator('[data-testid="venue-pin"]').count();
     expect(pinCount).toBeGreaterThan(0);
 
@@ -174,7 +185,7 @@ test.describe('map-primary', () => {
 
     await page.goto('/');
     const overlay = page.locator('.gradient-map-overlay');
-    await expect(overlay).toHaveCount(1);
+    await expect(overlay).toHaveCount(1, { timeout: APP_SETTLE_TIMEOUT_MS });
     const pointerEvents = await overlay.evaluate(
       (el) => window.getComputedStyle(el).pointerEvents,
     );

@@ -1,50 +1,6 @@
 // API Request and Response Types
 
 // ============================================================================
-// Authentication Types
-// ============================================================================
-
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
-
-export interface RefreshRequest {
-  refreshToken: string;
-}
-
-export interface LogoutRequest {
-  refreshToken: string;
-}
-
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
-}
-
-export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: string;
-  user: AdminUserInfo;
-}
-
-export interface RefreshResponse {
-  accessToken: string;
-  expiresAt: string;
-}
-
-export interface AdminUserInfo {
-  id: number;
-  username: string;
-  email: string;
-  role: string;
-  claims: string[];
-  lastLoginAt: string;
-  createdAt: string;
-}
-
-// ============================================================================
 // Venue Types
 // ============================================================================
 

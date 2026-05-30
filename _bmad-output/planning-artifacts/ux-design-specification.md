@@ -336,7 +336,7 @@ flowchart TD
 
 ### Partner Features in Consumer Experience
 
-Partner venues (B2B) appear within the normal consumer map experience with visual enhancements. No separate consumer-facing flow exists — the admin panel handles partner onboarding and pin configuration.
+Partner venues (B2B) appear within the normal consumer map experience with visual enhancements. No separate consumer-facing flow exists; partner onboarding and pin configuration are handled through direct database insert/update queries.
 
 **How partners appear to consumers:**
 

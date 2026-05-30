@@ -1,8 +1,5 @@
 import type { SunStatus, SkyCondition } from './design-tokens';
 
-/** 0 = Candidate (from OSM import), 1 = Verified (admin-approved) */
-export type VerificationStatus = 0 | 1;
-
 export interface Venue {
   id: string;
   name: string;
@@ -17,7 +14,6 @@ export interface Venue {
   type?: string;
   is_active?: boolean;
   is_mapped?: boolean;
-  verification_status?: VerificationStatus;
   osm_node_id?: number;
   is_partner?: boolean;
   booking_url?: string;
@@ -29,7 +25,6 @@ export interface Venue {
   polygon_quality?: number;
   orientation?: string | number;
   notes?: string;
-  review_needed?: boolean;
 }
 
 export interface SunWindow {

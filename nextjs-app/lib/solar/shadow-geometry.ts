@@ -154,7 +154,7 @@ export function calculateShadowConfidence(
     Surveyed: 1.0,
     Osm: 0.85,
     Heuristic: 0.7,
-    AdminOverride: 0.6,
+    ManualOverride: 0.6,
   };
   confidence *= heightMultiplier[building.heightSource] ?? 0.6;
 

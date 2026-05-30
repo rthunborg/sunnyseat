@@ -78,14 +78,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=[your-anon-key]
 SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
 ```
 
-#### Authentication
-
-```env
-JWT_SECRET=[your-secure-secret-key-min-32-chars]
-JWT_EXPIRATION_MINUTES=60
-REFRESH_TOKEN_EXPIRATION_DAYS=7
-```
-
 #### Cron Jobs
 
 ```env
