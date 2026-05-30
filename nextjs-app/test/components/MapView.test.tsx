@@ -1335,6 +1335,157 @@ describe('<MapView />', () => {
       ]);
     });
 
+    it('refreshes a selected out-of-radius search preview from the detail query after planner changes', async () => {
+      selectedVenueIdMock = 'outside-search';
+      selectedVenuePreviewMock = makeVenue({
+        id: 'outside-search',
+        name: 'Sökplatsen',
+        slug: 'outside-search',
+        status: 'Shaded',
+        sunExposurePercent: 12,
+        confidence: 44,
+        sunWindow: { start: '09:00', end: '10:00' },
+      });
+      const refreshedVenue = makeVenueDetail({
+        id: 'outside-search',
+        name: 'Sökplatsen',
+        slug: 'outside-search',
+        status: 'Sunny',
+        sunExposurePercent: 88,
+        confidence: 91,
+        sunWindow: { start: '13:30', end: '18:00' },
+      });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useVenueDetailMock.mockImplementation((slug, params) => ({
+        data: slug === 'outside-search' && params?.date === '2026-05-21'
+          ? {
+              venue: refreshedVenue,
+              meta: { sunDataSource: 'weather', weatherUpdatedAt: '2026-05-21T10:00:00.000Z' },
+              timestamp: 'now',
+            }
+          : undefined,
+        isFetching: false,
+        isError: false,
+      }));
+
+      render(<MapView />, { wrapper: Wrapper });
+      expect(screen.getAllByText('Sol 09:00–10:00')).toHaveLength(2);
+
+      fireEvent.click(screen.getAllByRole('button', { name: /Öppna kalender: Idag/ })[0]);
+      fireEvent.click(screen.getByRole('button', { name: 'Välj 21 maj 2026' }));
+
+      await waitFor(() =>
+        expect(useVenueDetailMock).toHaveBeenCalledWith('outside-search', {
+          date: '2026-05-21',
+          time: '12:15',
+          lat: 57.7089,
+          lng: 11.9746,
+        }),
+      );
+      expect(screen.getAllByText('Sol 13:30–18:00')).toHaveLength(2);
+      expect(JSON.parse(screen.getByTestId('venue-pin-layer-stub').dataset.venues ?? '[]')).toEqual([
+        expect.objectContaining({
+          id: 'outside-search',
+          sunStatus: 'Sunny',
+          sunExposurePercent: 88,
+        }),
+      ]);
+    });
+
+    it('ignores disabled cached favourite rows when refreshing an out-of-radius search preview', async () => {
+      selectedVenueIdMock = 'outside-search';
+      selectedVenuePreviewMock = makeVenue({
+        id: 'outside-search',
+        name: 'Sökfavoriten',
+        slug: 'outside-search',
+        status: 'Shaded',
+        sunExposurePercent: 15,
+        confidence: 40,
+        sunWindow: { start: '09:00', end: '10:00' },
+      });
+      const staleCachedFavourite = makeVenue({
+        id: 'outside-search',
+        name: 'Sökfavoriten',
+        slug: 'outside-search',
+        status: 'Shaded',
+        sunExposurePercent: 19,
+        confidence: 42,
+        sunWindow: { start: '09:30', end: '10:30' },
+      });
+      const refreshedVenue = makeVenueDetail({
+        id: 'outside-search',
+        name: 'Sökfavoriten',
+        slug: 'outside-search',
+        status: 'Sunny',
+        sunExposurePercent: 86,
+        confidence: 89,
+        sunWindow: { start: '13:15', end: '17:45' },
+      });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useFavouriteVenuesMock.mockReturnValue({
+        data: makeVenueResponse([staleCachedFavourite]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+        refetch: vi.fn(),
+      });
+      useFavouritesMock.mockReturnValue({
+        favouriteIds: ['outside-search'],
+        isHydrated: true,
+        isFavourite: (id: string) => id === 'outside-search',
+        toggleFavourite: vi.fn(),
+        addFavourite: vi.fn(),
+        removeFavourite: vi.fn(),
+      });
+      useVenueDetailMock.mockImplementation((slug, params) => ({
+        data: slug === 'outside-search' && params?.date === '2026-05-21'
+          ? {
+              venue: refreshedVenue,
+              meta: { sunDataSource: 'weather', weatherUpdatedAt: '2026-05-21T10:00:00.000Z' },
+              timestamp: 'now',
+            }
+          : undefined,
+        isFetching: false,
+        isError: false,
+      }));
+
+      render(<MapView />, { wrapper: Wrapper });
+      expect(useFavouriteVenuesMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ enabled: false }),
+      );
+
+      fireEvent.click(screen.getAllByRole('button', { name: /Öppna kalender: Idag/ })[0]);
+      fireEvent.click(screen.getByRole('button', { name: 'Välj 21 maj 2026' }));
+
+      await waitFor(() =>
+        expect(useVenueDetailMock).toHaveBeenCalledWith('outside-search', {
+          date: '2026-05-21',
+          time: '12:15',
+          lat: 57.7089,
+          lng: 11.9746,
+        }),
+      );
+      expect(screen.getAllByText('Sol 13:15–17:45')).toHaveLength(2);
+      expect(screen.queryByText('Sol 09:30–10:30')).not.toBeInTheDocument();
+      expect(JSON.parse(screen.getByTestId('venue-pin-layer-stub').dataset.venues ?? '[]')).toEqual([
+        expect.objectContaining({
+          id: 'outside-search',
+          sunStatus: 'Sunny',
+          sunExposurePercent: 86,
+        }),
+      ]);
+    });
+
     it('keeps the favourites skeleton while a newly saved favourite is fetching', () => {
       pathnameMock = '/favoriter';
       useFavouriteVenuesMock.mockReturnValue({
@@ -1490,6 +1641,7 @@ describe('<MapView />', () => {
 
       expect(screen.getByRole('search', { name: 'Sök plats' })).toBeInTheDocument();
       expect(screen.getByRole('combobox', { name: 'Sök plats' })).toBeInTheDocument();
+      expect(screen.getByRole('search', { name: 'Sök plats' }).parentElement).toHaveClass('z-bottom-sheet-full');
     });
 
     it('normalizes map pins only for forced visual-reference states', () => {
@@ -1604,6 +1756,28 @@ function makeVenueResponse(venues: GetVenuesResponse['venues']): GetVenuesRespon
     meta: { count: venues.length, radiusKm: 1.5 },
     timestamp: 'now',
     totalCount: venues.length,
+  };
+}
+
+function makeVenueDetail(
+  venue: Parameters<typeof makeVenue>[0],
+): GetVenueDetailResponse['venue'] {
+  return {
+    ...makeVenue(venue),
+    description: 'Detaljerad platsbeskrivning',
+    address: 'Testgatan 1',
+    openingHours: { display: 'Öppet till 22:00' },
+    timeline: {
+      timezone: 'Europe/Stockholm',
+      range: { start: '06:00', end: '21:00' },
+      windows: [
+        {
+          start: venue.sunWindow?.start ?? '13:00',
+          end: venue.sunWindow?.end ?? '18:30',
+          status: venue.status ?? 'Sunny',
+        },
+      ],
+    },
   };
 }
 

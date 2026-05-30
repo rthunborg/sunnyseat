@@ -1,19 +1,32 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { VenueQuickInfo } from '@/components/composed/venue/VenueQuickInfo';
+
+const motionState = vi.hoisted(() => ({
+  shouldReduceMotion: false,
+}));
 
 vi.mock('motion/react', async () => {
   const React = await import('react');
   type DivProps = React.HTMLAttributes<HTMLElement> & Record<string, unknown>;
   const motionAside = ({ children, ...props }: DivProps) => {
     const {
-      initial: _initial,
-      animate: _animate,
-      exit: _exit,
+      initial,
+      animate,
+      exit,
       transition: _transition,
       ...rest
     } = props;
-    return React.createElement('aside', rest, children);
+    return React.createElement(
+      'aside',
+      {
+        ...rest,
+        'data-motion-initial': JSON.stringify(initial),
+        'data-motion-animate': JSON.stringify(animate),
+        'data-motion-exit': JSON.stringify(exit),
+      },
+      children,
+    );
   };
   const motionDiv = ({ children, ...props }: DivProps) => {
     const {
@@ -28,7 +41,7 @@ vi.mock('motion/react', async () => {
   return {
     motion: { aside: motionAside, div: motionDiv },
     AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
-    useReducedMotion: () => false,
+    useReducedMotion: () => motionState.shouldReduceMotion,
   };
 });
 
@@ -48,6 +61,10 @@ const labels = {
 };
 
 describe('<VenueQuickInfo />', () => {
+  afterEach(() => {
+    motionState.shouldReduceMotion = false;
+  });
+
   it('renders venue summary content and exposes the route CTA', () => {
     render(
       <VenueQuickInfo
@@ -182,6 +199,48 @@ describe('<VenueQuickInfo />', () => {
     expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet: 92%');
     expect(screen.getByText(/Avstånd:/)).toHaveTextContent('Avstånd: 420 m');
     expect(screen.getByText('420 m')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('preserves pin anchoring transforms when reduced motion is enabled', () => {
+    motionState.shouldReduceMotion = true;
+
+    const { rerender } = render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        isLoadingSunData={false}
+        position={{ x: 180, y: 260 }}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    expect(JSON.parse(screen.getByRole('dialog', { name: 'Testbaren' }).dataset.motionAnimate ?? '{}')).toEqual({
+      opacity: 1,
+      x: '-50%',
+      y: 'calc(-100% - 40px)',
+    });
+
+    rerender(
+      <VenueQuickInfo
+        mode="desktop"
+        name="Testbaren"
+        isLoadingSunData={false}
+        position={{ x: 180, y: 260 }}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    expect(JSON.parse(screen.getByRole('dialog', { name: 'Testbaren' }).dataset.motionAnimate ?? '{}')).toEqual({
+      opacity: 1,
+      x: '-50%',
+      y: 'calc(-100% - 56px)',
+    });
   });
 
   it('falls back to safe thumbnail text and sun copy when optional data is missing', () => {

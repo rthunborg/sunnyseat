@@ -225,26 +225,62 @@ export function MapView() {
   const favouriteVenueRows = Array.isArray(favouriteVenueQuery.data?.venues)
     ? favouriteVenueQuery.data.venues
     : EMPTY_VENUES;
+  const activeFavouriteVenueRows = listMode === 'favourites'
+    ? favouriteVenueRows
+    : EMPTY_VENUES;
+  const selectedPreviewSlug = selectedVenuePreview?.slug || selectedVenuePreview?.venueSlug || null;
+  const selectedPreviewIsInCurrentRows = useMemo(() => {
+    if (!selectedVenuePreview) return false;
+    if (Array.isArray(rawVenues) && rawVenues.some((venue) => venue.id === selectedVenuePreview.id)) {
+      return true;
+    }
+    return activeFavouriteVenueRows.some((venue) => venue.id === selectedVenuePreview.id);
+  }, [activeFavouriteVenueRows, rawVenues, selectedVenuePreview]);
+  const canRequestVenueDetail = Boolean(venueSlugParam) &&
+    forcedState !== 'map-with-selected-venue';
+  const shouldRefreshSelectedPreview = Boolean(
+    selectedVenuePreview &&
+    selectedVenueId === selectedVenuePreview.id &&
+    selectedPreviewSlug &&
+    !selectedPreviewIsInCurrentRows &&
+    !canRequestVenueDetail,
+  );
+  const selectedPreviewDetailQuery = useVenueDetail(
+    shouldRefreshSelectedPreview ? selectedPreviewSlug : null,
+    {
+      ...plannerTime.plannerQuery,
+      lat: geolocation.coords.lat,
+      lng: geolocation.coords.lng,
+    },
+  );
+  const refreshedSelectedVenuePreview = useMemo(() => {
+    const detailVenue = selectedPreviewDetailQuery.data?.venue;
+    if (!selectedVenuePreview || !detailVenue) return null;
+    if (detailVenue.id !== selectedVenuePreview.id) return null;
+    if (!venueMatchesSlug(detailVenue, selectedPreviewSlug)) return null;
+    return detailVenue;
+  }, [selectedPreviewDetailQuery.data?.venue, selectedPreviewSlug, selectedVenuePreview]);
+  const selectedVenuePreviewForMap = refreshedSelectedVenuePreview ?? selectedVenuePreview;
   const venueDtosForMap = useMemo(() => {
     const base = Array.isArray(rawVenues) ? rawVenues : [];
     const seenIds = new Set(base.map((venue) => venue.id));
     const extraVenues: VenueDataDto[] = [];
 
-    for (const favouriteVenue of favouriteVenueRows) {
+    for (const favouriteVenue of activeFavouriteVenueRows) {
       if (seenIds.has(favouriteVenue.id)) continue;
       seenIds.add(favouriteVenue.id);
       extraVenues.push(favouriteVenue);
     }
 
-    if (selectedVenuePreview && !seenIds.has(selectedVenuePreview.id)) {
-      extraVenues.push(selectedVenuePreview);
+    if (selectedVenuePreviewForMap && !seenIds.has(selectedVenuePreviewForMap.id)) {
+      extraVenues.push(selectedVenuePreviewForMap);
     }
 
     if (extraVenues.length === 0) {
       return base;
     }
     return [...base, ...extraVenues];
-  }, [favouriteVenueRows, rawVenues, selectedVenuePreview]);
+  }, [activeFavouriteVenueRows, rawVenues, selectedVenuePreviewForMap]);
   const forceSunnyVisualPins = shouldUseForcedSunnyMapPins(forcedState);
   const venues = useMemo<VenuePinData[]>(() => {
     return venueDtosForMap.flatMap((v) => {
@@ -269,8 +305,6 @@ export function MapView() {
     if (!selectedVenueId) return null;
     return venues.find((venue) => venue.id === selectedVenueId) ?? null;
   }, [selectedVenueId, venues]);
-  const canRequestVenueDetail = Boolean(venueSlugParam) &&
-    forcedState !== 'map-with-selected-venue';
   const venueDetailQuery = useVenueDetail(
     canRequestVenueDetail ? venueSlugParam : null,
     {
@@ -298,7 +332,7 @@ export function MapView() {
       const listVenue = rawVenues.find((venue) => venueMatchesSlug(venue, venueSlugParam));
       if (listVenue) return listVenue;
     }
-    const favouriteVenue = favouriteVenueRows.find((venue) => venueMatchesSlug(venue, venueSlugParam));
+    const favouriteVenue = activeFavouriteVenueRows.find((venue) => venueMatchesSlug(venue, venueSlugParam));
     if (favouriteVenue) return favouriteVenue;
     if (venueMatchesSlug(selectedVenueDto, venueSlugParam)) return selectedVenueDto;
     if (venueDetailQuery.isFetching) {
@@ -307,7 +341,7 @@ export function MapView() {
     return null;
   }, [
     detailVenue,
-    favouriteVenueRows,
+    activeFavouriteVenueRows,
     rawVenues,
     selectedVenueDto,
     venueDetailQuery.isError,
@@ -319,11 +353,11 @@ export function MapView() {
     const candidates = [
       detailVenue,
       selectedVenueDto,
-      ...favouriteVenueRows,
+      ...activeFavouriteVenueRows,
       ...(Array.isArray(rawVenues) ? rawVenues : []),
     ];
     return candidates.find((venue) => venueMatchesSlug(venue, venueSlugParam))?.id;
-  }, [detailVenue, favouriteVenueRows, rawVenues, selectedVenueDto, venueSlugParam]);
+  }, [activeFavouriteVenueRows, detailVenue, rawVenues, selectedVenueDto, venueSlugParam]);
   const isVenueDetailRequested = canRequestVenueDetail && Boolean(detailFallbackVenue);
 
   useEffect(() => {
@@ -486,7 +520,9 @@ export function MapView() {
     );
   const quickInfoConfidenceMeta = isForcedVisualReference
     ? FORCED_VISUAL_CONFIDENCE_META
-    : selectedVenueId && favouriteVenueRows.some((venue) => venue.id === selectedVenueId)
+    : selectedVenueId && refreshedSelectedVenuePreview?.id === selectedVenueId
+    ? (selectedPreviewDetailQuery.data?.meta ?? venueQuery.data?.meta)
+    : selectedVenueId && activeFavouriteVenueRows.some((venue) => venue.id === selectedVenueId)
     ? (favouriteListConfidenceMeta ?? venueQuery.data?.meta)
     : venueQuery.data?.meta;
   const quickInfoSunWindowTemplate = tVenue('quickInfo.sunWindow', {
@@ -525,7 +561,7 @@ export function MapView() {
       <VenuePinLayer venues={venues} />
       <VenueSearchShell
         variant="mobile"
-        className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*3)] z-floating-buttons"
+        className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*3)] z-bottom-sheet-full"
         onVenueSelected={() => setMobileSheetState('peek')}
       />
       <TimeSliderPanel

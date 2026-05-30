@@ -376,7 +376,9 @@ function quickInfoInitial(
   shouldReduceMotion: boolean,
   desktopPlacement: VenueQuickInfoDesktopPlacement,
 ) {
-  if (shouldReduceMotion) return { opacity: 0 };
+  if (shouldReduceMotion) {
+    return { opacity: 0, ...quickInfoPositionTransform(isDesktop, isAnchoredMobile, desktopPlacement) };
+  }
   if (isDesktop) return { opacity: 0, scale: 0.95, ...desktopTransform(desktopPlacement) };
   if (isAnchoredMobile) return { opacity: 0, scale: 0.95, x: '-50%', y: 'calc(-100% - 40px)' };
   return {
@@ -391,7 +393,9 @@ function quickInfoAnimate(
   shouldReduceMotion: boolean,
   desktopPlacement: VenueQuickInfoDesktopPlacement,
 ) {
-  if (shouldReduceMotion) return { opacity: 1 };
+  if (shouldReduceMotion) {
+    return { opacity: 1, ...quickInfoPositionTransform(isDesktop, isAnchoredMobile, desktopPlacement) };
+  }
   if (isDesktop) return { opacity: 1, scale: 1, ...desktopTransform(desktopPlacement) };
   if (isAnchoredMobile) return { opacity: 1, scale: 1, x: '-50%', y: 'calc(-100% - 40px)' };
   return { opacity: 1, y: 0 };
@@ -404,7 +408,13 @@ function quickInfoExit(
   desktopPlacement: VenueQuickInfoDesktopPlacement,
 ) {
   const transition = { duration: DURATION_FAST_S, ease: EASE_EXIT };
-  if (shouldReduceMotion) return { opacity: 0, transition };
+  if (shouldReduceMotion) {
+    return {
+      opacity: 0,
+      ...quickInfoPositionTransform(isDesktop, isAnchoredMobile, desktopPlacement),
+      transition,
+    };
+  }
   if (isDesktop) {
     return { opacity: 0, scale: 0.95, ...desktopTransform(desktopPlacement), transition };
   }
@@ -412,6 +422,16 @@ function quickInfoExit(
     return { opacity: 0, scale: 0.95, x: '-50%', y: 'calc(-100% - 40px)', transition };
   }
   return { opacity: 0, y: '100%', transition };
+}
+
+function quickInfoPositionTransform(
+  isDesktop: boolean,
+  isAnchoredMobile: boolean,
+  desktopPlacement: VenueQuickInfoDesktopPlacement,
+) {
+  if (isDesktop) return desktopTransform(desktopPlacement);
+  if (isAnchoredMobile) return { x: '-50%', y: 'calc(-100% - 40px)' };
+  return {};
 }
 
 function desktopTransform(placement: VenueQuickInfoDesktopPlacement) {
