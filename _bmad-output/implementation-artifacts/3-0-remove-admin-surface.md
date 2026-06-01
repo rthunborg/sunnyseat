@@ -4,7 +4,7 @@ baseline_commit: 4ac03827ce31867e93be982e34456a80254ac0fc
 
 # Story 3.0: Remove Admin Surface & Adopt Manual Venue Operations
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -257,6 +257,8 @@ GPT-5 Codex
 - E2E harness assertions were hardened for existing consumer flows after the full Playwright matrix exposed timing/strict-locator flakes around onboarding and dynamic map startup; no consumer UI files changed.
 - No visual validation applies: no public consumer UI implementation files were intentionally changed.
 - Final scoped scans returned no active `nextjs-app` runtime/test admin-auth, candidate-review, `AdminOverride`, JWT, bcrypt, or jsonwebtoken artifacts.
+- Review follow-up addressed stale active planning references in `_bmad-output/planning-artifacts/epics.md` and the superseded project brief; Rasmus accepted the adjacent Story 3.1/3.4 tracker updates as intentional non-3.0 work.
+- Rasmus approved Story 3.0 after review and requested status -> done.
 
 ### File List
 
@@ -268,6 +270,7 @@ GPT-5 Codex
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `_bmad-output/implementation-artifacts/validation/3-0-remove-admin-surface-review-20260530-112439.log`
 - `_bmad-output/planning-artifacts/architecture.md`
+- `_bmad-output/planning-artifacts/brief/project-brief.md`
 - `_bmad-output/planning-artifacts/prd.md`
 - `_bmad-output/planning-artifacts/ux-design-specification.md`
 - `nextjs-app/.env.example`
@@ -298,3 +301,4 @@ GPT-5 Codex
 | 2026-05-30 | Codex  | Story drafted from Rasmus's admin-removal decision, current Epic 3 sequencing, and codebase audit of active admin/auth/venue CRUD remnants. Status -> ready-for-dev. |
 | 2026-05-30 | Codex  | Draft baseline typecheck/lint passed; story-file-audit completed with all seven checks passing. |
 | 2026-05-30 | Amelia | Removed active admin/auth/CRUD/candidate/building-upload surfaces, neutralized service-role/manual override terminology, updated docs/planning context, added manual DB cleanup handoff, hardened E2E timing selectors, and passed review gate. Status -> review. |
+| 2026-06-01 | Codex  | Addressed review findings in active planning docs and superseded brief; Rasmus approved accepted adjacent tracker work. Status -> done. |

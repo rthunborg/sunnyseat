@@ -78,16 +78,16 @@ FR32: Users can view their recently viewed venues.
 FR33: Users can receive push notifications when a favourited venue's sun state changes to sunny.
 FR34: Users can opt in or out of push notifications.
 FR35: Users can share a venue's sun status with others via their device's native share functionality.
-FR36: The system can ingest venue candidates from OpenStreetMap data tagged with outdoor seating attributes.
-FR37: Users can verify or flag venue outdoor seating status through a crowdsource confirmation flow.
-FR38: Ingested and crowd-verified venues are queued for admin review before becoming fully active.
-FR39: Admins can authenticate via secure login to access admin functionality. (Phase 2)
-FR40: Admins can create, read, update, and delete venues including their outdoor seating geometry. (Phase 2)
-FR41: Admins can edit venue patio polygons using a visual geometry editor. (Phase 2)
-FR42: Admins can upload and process building geometry data files for shadow calculations. (Phase 2)
-FR43: Admins can view an accuracy dashboard showing prediction accuracy trends per venue and system-wide. (Phase 2)
-FR44: Admins can review and approve or reject venue candidates from OSM ingestion and crowdsource submissions. (Phase 2)
-FR45: Admins can trigger precomputation recalculation for specific venues after data corrections. (Phase 2)
+FR36: Retired. New venue ingestion is handled outside the app through direct database insert/update queries.
+FR37: Users can verify or flag outdoor seating status for existing venues through a consumer confirmation flow.
+FR38: Retired. SunnySeat does not maintain a venue candidate approval queue.
+FR39: Retired. SunnySeat does not provide admin authentication.
+FR40: Retired. SunnySeat does not provide venue CRUD/configuration APIs.
+FR41: Retired. Patio polygon edits are direct database maintenance work, not an app geometry editor.
+FR42: Retired. Building geometry file changes are direct database/backend maintenance work, not an app upload surface.
+FR43: Retired. SunnySeat does not provide an admin accuracy dashboard.
+FR44: Retired. SunnySeat does not provide venue candidate review/approval tooling.
+FR45: Retired. SunnySeat does not provide app-level precomputation controls for maintainers.
 FR46: The app presents a branded onboarding screen on first visit explaining the product and prompting location access.
 FR47: Users can view an "About" page explaining how SunnySeat works, its data sources, and accuracy statistics.
 FR48: The app displays a friendly 404 page with navigation back to the main map when a non-existent route is accessed.
@@ -107,8 +107,8 @@ NFR8: Initial route JS <=280KB gzipped (excluding map library). MapLibre dynamic
 NFR9: Venue sun states auto-refresh every 5 minutes while the tab/app is active.
 NFR10: Zero personally identifiable information (PII) stored in the database. No user accounts, no email addresses, no names.
 NFR11: IP addresses hashed (SHA-256 + salt) before storage for rate limiting and duplicate detection.
-NFR12: All API endpoints rate-limited: 100 req/min per IP (public), 1,000 req/min (admin).
-NFR13: Admin authentication via JWT with token expiry <=24 hours.
+NFR12: Public API endpoints are rate-limited at 100 req/min per IP unless a route-specific stricter limit is documented.
+NFR13: Retired with the admin surface. Future paid-status tokens, if reintroduced post-MVP, remain separate Future Monetization scope.
 NFR14: All traffic served over HTTPS. No mixed content.
 NFR15: Future Swish payment data handled per Swish Merchant API security requirements. Transaction IDs stored; no card/bank details persisted.
 NFR16: GDPR compliance: no cookies requiring consent beyond session. Privacy policy accessible from About page.
@@ -229,16 +229,16 @@ FR32: Epic 6 — View recently viewed venues
 FR33: Epic 6 — Push notifications for sun state changes on favourites
 FR34: Epic 6 — Opt in/out of push notifications
 FR35: Epic 6 — Share venue sun status via native share
-FR36: Phase 2 — OSM venue candidate ingestion
-FR37: Phase 2 — Crowdsource outdoor seating verification
-FR38: Phase 2 — Queue ingested/verified venues for admin review
-FR39: Phase 2 — Admin authentication
-FR40: Phase 2 — Admin venue CRUD with geometry
-FR41: Phase 2 — Admin patio polygon editor
-FR42: Phase 2 — Admin building data upload
-FR43: Phase 2 — Admin accuracy dashboard
-FR44: Phase 2 — Admin venue candidate review queue
-FR45: Phase 2 — Admin precomputation trigger
+FR36: Retired — direct database insert/update queries outside the app
+FR37: Epic 3 — Consumer outdoor seating verification for existing venues
+FR38: Retired — no venue candidate approval queue
+FR39: Retired — no admin authentication surface
+FR40: Retired — no venue CRUD/configuration API
+FR41: Retired — no app geometry editor
+FR42: Retired — no app building upload surface
+FR43: Retired — no admin accuracy dashboard
+FR44: Retired — no venue candidate review queue
+FR45: Retired — no app precomputation controls
 FR46: Epic 1 — Branded onboarding screen with location prompt
 FR47: Epic 7 — About page (how it works, data sources, accuracy)
 FR48: Epic 7 — Friendly 404 page with map redirect

@@ -1,8 +1,10 @@
 # Project Brief — SunnySeat
 
-> Status: **Superseded for MVP scope** · Owner: Analyst · Last updated: 2026-05-19
+> Status: **Superseded for MVP and admin scope** · Owner: Analyst · Last updated: 2026-06-01
 >
 > **MVP scope correction:** PRD v3.1, `epics.md` v3.1, and `sprint-change-proposal-2026-05-19.md` supersede this original brief where they differ. Time planner, future date simulation, and favourites are free MVP functionality. Season Pass, Swish payment, paywalls, premium activation, premium recovery, and payment failure flows are preserved only for Future Monetization after MVP adoption.
+>
+> **Admin removal correction:** Story 3.0 and the 2026-05-30 product decision supersede the original admin/tooling assumptions in this brief. SunnySeat has no admin page, admin venue CRUD/configuration API, admin authentication surface, venue candidate review queue, or admin-operated building upload surface. New and changed venues are handled through direct database insert/update queries only.
 
 ## 1. Elevator Pitch
 
@@ -36,13 +38,13 @@ A **web app and PWA** that helps **people in Gothenburg** quickly **find outdoor
 
 - Patio-level sunlight prediction (minute-granularity) using building shadow modeling — no one else does this
 - Clear **now/next** timeline + **confidence %** factoring clouds
-- Lightweight admin to **manually map** accurate patio polygons (source of truth)
+- Manual database-maintained patio polygons as the source of truth
 - **Proprietary data moat:** verified outdoor seating database that Google/Apple Maps don't have
 - **B2B revenue:** partner venue features (Golden Pins, Sunny Now badge)
 
-**Must-have:** Venue DB with patio polygons, sun/shadow engine, now/next cards, map UI, confidence %, search/filter, admin tools, accuracy tracking.
+**Must-have:** Venue DB with patio polygons, sun/shadow engine, now/next cards, map UI, confidence %, search/filter, manual data-maintenance discipline, accuracy tracking.
 
-**Growth features:** PWA, OSM ingestion, crowdsource verification, B2B partners, and future consumer monetization. Time planner, date picker, and favourites are no longer premium features for MVP.
+**Growth features:** PWA, consumer verification for existing venues, B2B partners, and future consumer monetization. Time planner, date picker, and favourites are no longer premium features for MVP.
 
 ## 5. Competitive / Alternatives
 
@@ -54,16 +56,17 @@ A **web app and PWA** that helps **people in Gothenburg** quickly **find outdoor
 
 ### Complete (Epics 1–6)
 
-- Foundation & data setup, building import, admin auth
+- Foundation & data setup, building data, server-only service-role infrastructure
 - Sun/shadow engine (NREL SPA + 2.5D shadow geometry)
 - Weather integration (Met.no), confidence scoring
 - Public interface (map, cards, venue pages, feedback)
 - Platform migration to Next.js / Vercel / Supabase
 
-### Complete (Epic 7: Admin & Operations)
+### Retired Admin Operations
 
-- Admin backend APIs (auth, venue CRUD, building import, accuracy dashboard)
-- Admin front-end pages removed — will be rebuilt in Epic 8
+- Former admin backend/API/auth/dashboard plans are retired.
+- Venue and geometry changes are direct database insert/update work.
+- No admin front-end rebuild is planned.
 
 ### Planned (Epic 8: Front-end Implementation)
 
@@ -73,7 +76,7 @@ A **web app and PWA** that helps **people in Gothenburg** quickly **find outdoor
 ### Planned (Epic 9: Growth & Monetization)
 
 - PWA (installable, offline, app store ready)
-- Data moat (OSM ingestion, crowdsource verification)
+- Data moat via maintained venue geometry and consumer feedback signals
 - B2B (Golden Pins, Sunny Now badge, partner deep-links)
 - Future consumer monetization (Season Pass / Swish, feature boundary TBD after MVP adoption)
 
@@ -112,10 +115,10 @@ Notifications, multi-city, ML patio detection, bookings/loyalty, user accounts, 
 
 | Risk | Mitigation |
 |------|-----------|
-| Shadow accuracy | LOD1 heuristic heights + admin overrides + feedback loop |
+| Shadow accuracy | LOD1 heuristic heights + manual database corrections + feedback loop |
 | Cloud granularity | Met.no nowcast blend, confidence caps, transparency |
 | Swish setup delays | Preserve Future Monetization design; do not block MVP planner/date/favourites |
-| Admin workload | Top 100 venues + OSM bulk import + crowdsource |
+| Manual venue operations | Reviewed direct database insert/update workflow for venue and geometry changes |
 | Map performance | Precompute + cache + clustering |
 | Seasonality | Tomorrow/weekend planning; future date picker is free MVP scope |
 
@@ -126,6 +129,6 @@ Notifications, multi-city, ML patio detection, bookings/loyalty, user accounts, 
 | A: Foundation + Engine | 1, 2, 3 | ✅ Complete | Done |
 | B: Public Interface + Migration | 4, 5, 6 | ✅ Complete | Done |
 | C: Public Launch | 7 | 📋 In Progress | 3–4 weeks |
-| D: Admin & Operations | 8 | 📋 Planned | 3–4 weeks |
+| D: Admin & Operations | 8 | Retired by 2026-05-30 decision | n/a |
 | E: Growth & Monetization | 9 | 📋 Planned | 12–19 weeks |
 | **Total remaining** | | | **~18–27 weeks** |
