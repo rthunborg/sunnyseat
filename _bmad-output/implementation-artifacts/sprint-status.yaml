@@ -1,8 +1,8 @@
 # SunnySeat Sprint Status
 # Used by BMAD workflows: create-story, dev-story, sprint-planning, sprint-status
 #
-# generated: 2026-04-10
-# last_updated: 2026-04-20
+# generated: 2026-06-02
+# last_updated: 2026-06-02
 # project: sunnyseat
 # project_key: NOKEY
 # tracking_system: file-system
@@ -37,8 +37,10 @@
 # - SM typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
-generated: 2026-04-10
+generated: 2026-06-02
 last_updated: 2026-06-02
+# Note (2026-06-02): Rasmus approved Story 3.0.1 after Round 1 code-review fixes. Final gate rerun passed (`.\scripts\run-sh.ps1 scripts/story-review.sh 3-0-1-shadow-data-adr-planning-realignment`): lint, typecheck, and Vitest green; visual validation skipped because planning-only/no mapped screen ID. 3-0-1-shadow-data-adr-planning-realignment moved review -> done.
+# Note (2026-06-02): Story 3.0.1 Shadow Data ADR & Planning Realignment drafted by Codex and transitioned backlog -> ready-for-dev. Draft baseline passed with `cd nextjs-app && npx.cmd tsc --noEmit` and `cd nextjs-app && npx.cmd eslint . --quiet`; story-file-audit passed. Story remains planning-only and preserves the Epic 3 pause before Story 3.1 until all six shadow-data trust prelude stories complete.
 # Note (2026-06-02): Shadow data trust course correction approved by Rasmus. Epic 3 feature work is paused after Story 3.0 because `building_geodata/byggnad_kn1480.gpkg` is confirmed to be a 2D footprint source only, not sufficient building-height/shadow data. Added Epic 3 Prelude stories 3.0.1-3.0.6 for ADR/planning realignment, shadow_casters schema/RPC, open-geodata import pipeline, validation/spot-check gates, confidence engine data coverage, and uncertainty UX copy. Story 3.1 remains ready-for-dev but should not proceed until the prelude is complete.
 # Note (2026-06-01): Rasmus approved Story 3.0 after review. Follow-up corrected stale active planning references in epics.md and the superseded project brief; the adjacent Story 3.1/3.4 tracker work is accepted as intentional non-3.0 work. 3-0-remove-admin-surface moved review -> done.
 # Note (2026-05-30): Story 3.0 Remove Admin Surface & Adopt Manual Venue Operations drafted by Codex and inserted before Story 3.1 as the first Epic 3 implementation story. Rasmus decided SunnySeat will not have an admin page, admin venue configuration UI/API, admin auth surface, venue candidate review queue, or admin-operated building upload. Venue changes will be direct database insert/update queries only; implementation must remove admin runtime/docs/tests and provide a manual SQL file if DB cleanup is needed. Draft baseline passed with `cd nextjs-app && npx.cmd tsc --noEmit` and `cd nextjs-app && npx.cmd eslint . --quiet`; story-file-audit passed.
@@ -55,7 +57,7 @@ story_location: _bmad-output/implementation-artifacts
 
 # ============================================================
 # DEVELOPMENT STATUS (primary tracker — used by create-story / dev-story agents)
-# Source: _bmad-output/planning-artifacts/epics.md (v3.1 MVP scope correction, 2026-05-19)
+# Source: _bmad-output/planning-artifacts/epics.md (current sprint-planning refresh, 2026-06-02)
 # Scope: Front-end rebuild (Next.js 16 + Tailwind v4 + MapLibre GL + Motion)
 # Backend work (prior epic numbering) is complete and locked; see
 # completed_sprints below for history. None of the legacy story files in
@@ -73,7 +75,7 @@ development_status:
   1-6-ci-cd-quality-gates: done
   epic-1-retrospective: optional
 
-  # Epic 2: "Explore & Compare" — Venue List, Detail, Planner & Favourites
+  # Epic 2: "Explore & Compare" — Venue List, Detail & Sun Intelligence
   epic-2: done
   2-1-venue-quick-info-card: done
   2-2-venue-list-bottom-sheet: done
@@ -87,7 +89,7 @@ development_status:
   # Epic 3: "Go & Confirm" — Routing, Feedback & Reviews
   epic-3: in-progress
   3-0-remove-admin-surface: done
-  3-0-1-shadow-data-adr-planning-realignment: backlog
+  3-0-1-shadow-data-adr-planning-realignment: done
   3-0-2-shadow-caster-schema-rpc-contract: backlog
   3-0-3-open-geodata-import-pipeline: backlog
   3-0-4-geodata-validation-spot-check-gates: backlog

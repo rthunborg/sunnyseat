@@ -52,7 +52,7 @@ workflowType: 'prd'
 >
 > **Admin removal correction (2026-05-30):** SunnySeat will not ship an admin page, admin venue CRUD/configuration API, admin auth surface, venue candidate review queue, or admin-operated building upload surface. New and changed venues are handled through direct database insert/update queries only.
 >
-> **Shadow data trust correction (2026-06-02):** `building_geodata/byggnad_kn1480.gpkg` is a 2D footprint source only and is not sufficient for building-shadow modelling by itself. MVP launch geodata is scoped to the central EPSG:3007 bbox `x=140000..150000, y=6390000..6410000` and must use the combined open-data path: Lantmäteriet 2D footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation. Epic 3 feature work is paused after Story 3.0 until the shadow-data trust prelude is complete.
+> **Shadow data trust correction (2026-06-02):** `building_geodata/byggnad_kn1480.gpkg` is a 2D footprint source only and is not sufficient for building-shadow modelling by itself. MVP launch geodata is scoped to the central EPSG:3007 bbox `x=140000..150000, y=6390000..6410000` and must use the combined open-data path: 2D Lantmäteriet footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation. Epic 3 feature work is paused after Story 3.0 until the shadow-data trust prelude is complete.
 
 ## Executive Summary
 
@@ -167,7 +167,7 @@ The design reinforces this emotionally. A warm amber/sand palette, frosted glass
 
 - MVP launch geodata is central/south-central Gothenburg only: EPSG:3007 bbox `x=140000..150000, y=6390000..6410000`.
 - The former assumption that `building_geodata/byggnad_kn1480.gpkg` alone can power shadows is retired. It contributes 2D footprints and metadata, not building heights or roof geometry.
-- The MVP open-data path is: 2D footprints + Göteborg Baskarta 3D linework (`Takkonturer`, `Fasad`, `Skärmtak`) + Göteborg Höjdmodell 2022 DTM ground elevation.
+- The MVP open-data path is: 2D Lantmäteriet footprints + Göteborg Baskarta 3D linework (`Takkonturer`, `Fasad`, `Skärmtak`) + Göteborg Höjdmodell 2022 DTM-derived ground elevation.
 - Runtime building shadows use filtered/active shadow-caster records only. Review/quarantine records stay inactive until spot-checked; excluded records are diagnostics only.
 - "High confidence" is cluster-scoped. Each launch cluster needs at least 10 venue or street-facing checks across at least three sun conditions, with at least 70 total central checks and about 85-90% obvious building-shadow agreement before high building-shadow confidence is allowed.
 - Trees, hedges, awnings, umbrellas, bridges, seasonal furniture, and temporary structures remain known MVP uncertainty unless separately modelled or manually annotated. They cap confidence rather than silently invalidating the prediction.

@@ -6,7 +6,7 @@
 >
 > **Admin removal correction:** Story 3.0 and the 2026-05-30 product decision supersede the original admin/tooling assumptions in this brief. SunnySeat has no admin page, admin venue CRUD/configuration API, admin authentication surface, venue candidate review queue, or admin-operated building upload surface. New and changed venues are handled through direct database insert/update queries only.
 >
-> **Shadow data correction:** The 2026-06-02 shadow-data trust decision supersedes the original GeoPackage-only building-data assumption. `building_geodata/byggnad_kn1480.gpkg` is a 2D footprint source only; MVP building shadows use filtered central records derived from Lantmateriet footprints + Goteborg Baskarta 3D linework + Goteborg Hojdmodell 2022 DTM.
+> **Shadow data correction:** The 2026-06-02 shadow-data trust decision supersedes the original GeoPackage-only building-data assumption. `building_geodata/byggnad_kn1480.gpkg` is a 2D footprint source only; MVP building shadows use filtered central records derived from 2D Lantmäteriet footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation inside the EPSG:3007 bbox `x=140000..150000, y=6390000..6410000`.
 
 ## 1. Elevator Pitch
 
@@ -111,7 +111,7 @@ Notifications, multi-city, ML patio detection, bookings/loyalty, user accounts, 
 | Testing | Vitest + Playwright |
 
 **Budget:** ≤ $100/month operational cost.
-**Building data:** Lantmateriet GeoPackage already obtained as 2D footprint input only. MVP shadow casters require the combined central open-data pipeline documented in `decisions/shadow-data-trust-realignment.md`.
+**Building data:** Lantmäteriet GeoPackage already obtained as 2D footprint input only. MVP shadow casters require the combined central open-data pipeline documented in `decisions/shadow-data-trust-realignment.md`: 2D Lantmäteriet footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation.
 
 ## 9. Risks & Mitigations
 

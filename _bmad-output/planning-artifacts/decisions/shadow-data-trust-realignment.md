@@ -109,15 +109,15 @@ For MVP:
 
 ## Source Precedence
 
-Future paid DSM/LOD data overrides per object/source priority, not by wholesale replacement:
+Source precedence is per logical object/source priority. Higher-priority sources override lower-priority records for runtime selection, but they do not erase provenance-bearing fallback/source-comparison records:
 
 1. Manual verified override
 2. Paid LOD2/LOD3 or surveyed roof geometry
 3. Paid classified DSM/LAS-derived object height
-4. Current open-data derived height: footprint + Baskarta Z + DTM
+4. Current open-data derived height: 2D Lantmäteriet footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation
 5. OSM/heuristic fallback
 
-Open-derived records remain useful as fallback coverage and as source-comparison data.
+Every source tier, including manual overrides, paid sources, open-derived records, and OSM/heuristic fallbacks, must preserve source dataset, external ID or manual override ID, object metadata, source priority, import-batch traceability, and rollback path. Open-derived records remain useful as fallback coverage and as source-comparison data even when higher-priority sources arrive.
 
 ## Validation Gates
 

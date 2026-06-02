@@ -28,7 +28,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 >
 > **Admin removal correction (2026-05-30):** SunnySeat has no admin page, admin venue CRUD/configuration API, admin authentication surface, venue candidate review queue, or admin-operated building upload surface. Venue and geometry changes are manual database insert/update work. Server-only Supabase service-role usage remains backend infrastructure, not admin functionality.
 >
-> **Shadow data trust correction (2026-06-02):** `building_geodata/byggnad_kn1480.gpkg` is a 2D footprint source only. MVP building shadows must use the combined central open-data path: Lantmäteriet footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation. Runtime must read filtered active shadow-caster records only. Future paid DSM/LOD2/LOD3 sources override per object/source priority and do not replace the provenance model.
+> **Shadow data trust correction (2026-06-02):** `building_geodata/byggnad_kn1480.gpkg` is a 2D footprint source only. MVP building shadows must use the combined central open-data path: 2D Lantmäteriet footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation. Runtime must read filtered active shadow-caster records only. Future paid DSM/LOD2/LOD3 sources override per object/source priority and do not replace the provenance model.
 
 ## Project Context Analysis
 
@@ -291,14 +291,14 @@ updated_at
 - MVP default `caster_class = 'building'`, plus manually approved `structure` records when present
 - Review/quarantine records are stored inactive or omitted from runtime. Excluded records are diagnostics only.
 
-**Source precedence:** runtime chooses the best record per logical object by priority:
+**Source precedence:** runtime chooses the best record per logical object by priority. Higher-priority sources override lower-priority records for runtime selection, but they do not erase provenance-bearing fallback/source-comparison records:
 1. Manual verified override
 2. Paid LOD2/LOD3 or surveyed roof geometry
 3. Paid classified DSM/LAS-derived object height
-4. Current open-data derived height: footprint + Baskarta Z + DTM
+4. Current open-data derived height: 2D Lantmäteriet footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation
 5. OSM/heuristic fallback
 
-Open-derived records remain fallback coverage and source-comparison data even when higher-priority paid sources arrive.
+Every source tier, including manual overrides, paid sources, open-derived records, and OSM/heuristic fallbacks, must preserve source dataset, external ID or manual override ID, object metadata, source priority, import-batch traceability, and rollback path. Open-derived records remain fallback coverage and source-comparison data even when higher-priority sources arrive.
 
 **Confidence gates:** high building-shadow confidence is cluster-scoped, not citywide. Each launch cluster needs at least 10 venue or street-facing spot checks across morning/low-angle, midday/high-sun, and afternoon/evening directional shadow conditions, with at least 70 total central checks and about 85-90% obvious building-shadow agreement before "high confidence" is allowed for that cluster.
 
