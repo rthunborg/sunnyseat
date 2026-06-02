@@ -27,6 +27,8 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 > **Visual source refresh (2026-05-21):** MVP implementation and visual gates use the refreshed Claude Design MVP Unlocked pages only. Post-MVP Unlocked/Locked pages remain future-only architecture references and must not reintroduce premium/payment runtime dependencies into MVP planner/date/favourites.
 >
 > **Admin removal correction (2026-05-30):** SunnySeat has no admin page, admin venue CRUD/configuration API, admin authentication surface, venue candidate review queue, or admin-operated building upload surface. Venue and geometry changes are manual database insert/update work. Server-only Supabase service-role usage remains backend infrastructure, not admin functionality.
+>
+> **Shadow data trust correction (2026-06-02):** `building_geodata/byggnad_kn1480.gpkg` is a 2D footprint source only. MVP building shadows must use the combined central open-data path: Lantmäteriet footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation. Runtime must read filtered active shadow-caster records only. Future paid DSM/LOD2/LOD3 sources override per object/source priority and do not replace the provenance model.
 
 ## Project Context Analysis
 
@@ -74,6 +76,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 - Existing API contracts (venue search, sun exposure, feedback, dormant/future payments, partners, health, cron)
 - TypeScript strict mode, Zod v4 validation, and server-only Supabase service-role infrastructure already implemented
 - 22 passing sun/shadow engine tests — regression protection in place
+- Building/shadow data contract must be corrected before Epic 3 feature work continues. The old GeoPackage-only assumption is retired; the runtime contract must be backed by filtered, provenance-rich `shadow_casters` records.
 
 **Hard performance constraints:**
 - 600KB gzipped JS total budget (Plan B re-baselined 2026-05-06; was 400KB). Breakdown per Story 1.6 close-out measurement: MapLibre dynamic chunk ≤320KB, non-MapLibre route JS ≤280KB, total ≤600KB. See PRD NFR8 for the durable breakdown and rationale.
@@ -222,13 +225,82 @@ npm install -D @axe-core/react eslint-plugin-jsx-a11y @next/bundle-analyzer vite
 
 ### Data Architecture
 
-**Database:** Supabase (PostgreSQL 15 + PostGIS) — existing, no changes.
-- Spatial queries via PostGIS RPCs (get_venues_near_point, etc.)
+**Database:** Supabase (PostgreSQL 15 + PostGIS) — existing platform, with a required shadow-caster schema correction before Epic 3 feature work continues.
+- Spatial queries via PostGIS RPCs (get_venues_near_point, get_buildings_near_point compatibility, etc.)
 - GIST indexes on all geometry columns
 - Connection pooling via Supabase Supavisor
 - Migrations via SQL files in infrastructure/supabase/migrations/
 
 **Data Validation:** Zod v4 — existing on all API inputs.
+
+#### Shadow Caster Data Architecture
+
+**MVP launch scope:** EPSG:3007 bbox `x=140000..150000, y=6390000..6410000`, covering Inom Vallgraven, Nordstan, Lilla Bommen, Avenyn, Vasastan, Haga, Linné, and surrounding central/south-central areas. Whole Gothenburg is later expansion.
+
+**Authoritative MVP open-data path:**
+- `building_geodata/byggnad_kn1480.gpkg`: 2D footprints and object metadata only.
+- Göteborg Baskarta SHP `byggnad_l`: 3D linework, especially `Takkonturer`, `Fasad`, and `Skärmtak`.
+- Göteborg Höjdmodell 2022: DTM/ground model in RH2000.
+- Derived height method: `max roof/facade/shelter Z - DTM ground Z at representative point`.
+- Runtime geometry: WGS84 polygon emitted for the existing TypeScript shadow engine.
+
+**Runtime table contract:** create or migrate toward `shadow_casters` with at least:
+
+```text
+id
+geometry
+height_m
+ground_z_rh2000
+roof_z_rh2000
+height_method
+height_source
+source_dataset
+source_external_id
+source_footprint_fid
+source_object_type
+source_purpose
+source_geometry_type
+engine_geometry_method
+quality_score
+shadow_caster_tier
+filter_decision
+filter_reasons
+source_flags
+matched_line_count
+z_spread_m
+bbox_3007
+centroid_3007
+caster_class
+source_priority
+active
+import_batch_id
+imported_at
+updated_at
+```
+
+**Caster classes:**
+- `building`: derived from footprints + Baskarta roof/facade/shelter Z.
+- `structure`: bridges, large shelters, walls, major built objects.
+- `vegetation`: trees/hedges; initially disabled or low-confidence until better data exists.
+- `manual_override`: hand-entered corrections for known high-impact cases.
+
+**Runtime filtering:** `get_buildings_near_point` remains as a compatibility RPC name until the TypeScript engine contract is renamed, but it must return only active runtime casters:
+- `active = true`
+- `filter_decision = 'include'`
+- `height_m >= 3`
+- MVP default `caster_class = 'building'`, plus manually approved `structure` records when present
+- Review/quarantine records are stored inactive or omitted from runtime. Excluded records are diagnostics only.
+
+**Source precedence:** runtime chooses the best record per logical object by priority:
+1. Manual verified override
+2. Paid LOD2/LOD3 or surveyed roof geometry
+3. Paid classified DSM/LAS-derived object height
+4. Current open-data derived height: footprint + Baskarta Z + DTM
+5. OSM/heuristic fallback
+
+Open-derived records remain fallback coverage and source-comparison data even when higher-priority paid sources arrive.
+
+**Confidence gates:** high building-shadow confidence is cluster-scoped, not citywide. Each launch cluster needs at least 10 venue or street-facing spot checks across morning/low-angle, midday/high-sun, and afternoon/evening directional shadow conditions, with at least 70 total central checks and about 85-90% obvious building-shadow agreement before "high confidence" is allowed for that cluster.
 
 **Client-Side Persistence:**
 - **Favourites & recent venues:** localStorage. Simple key-value. No PII.
@@ -389,12 +461,12 @@ Component layout, interaction patterns, viewport behaviour, and screen flows fol
 
 ### Naming Patterns
 
-**Database Naming (existing — no changes):**
-- Tables: snake_case plural (venues, buildings, sun_windows, weather_slices, feedback)
+**Database Naming (existing + shadow-caster correction):**
+- Tables: snake_case plural (venues, shadow_casters, buildings compatibility view/table, sun_windows, weather_slices, feedback)
 - Columns: snake_case (venue_id, cloud_cover, created_at, is_partner)
 - Foreign keys: referenced_table_id (venue_id, not fk_venue)
 - Indexes: idx_table_column (idx_venues_geometry)
-- RPCs: snake_case verb_noun (get_venues_near_point)
+- RPCs: snake_case verb_noun (get_venues_near_point, get_buildings_near_point compatibility)
 
 **API Naming (existing — no changes):**
 - Routes: kebab-case directories + route.ts (app/api/sun-exposure/venue/[id]/route.ts)
@@ -752,7 +824,7 @@ nextjs-app/
 │   │   └── types.ts
 │   ├── middleware/                    # ── server request helpers ──
 │   │   └── request-logger.ts
-│   ├── buildings/                    # ── backend building data helpers when needed ──
+│   ├── buildings/                    # ── backend shadow-caster import/contract helpers when needed ──
 │   ├── types/                        # ── EXISTING + NEW front-end types ──
 │   │   ├── index.ts                  # Re-exports
 │   │   ├── api.ts                    # API response types (existing)
@@ -964,6 +1036,15 @@ All server state lives in the TanStack Query cache. No duplicating API data into
 6. `useVenueDetail(slug)` → TanStack Query → `GET /api/venues/[id]` → full detail
 7. `VenueDetail` renders in `MobileBottomSheet` or `DesktopSidePanel` (via `useMediaQuery`)
 8. Background: `useSunExposure` refetches every 5 minutes (TanStack `refetchInterval`)
+
+**Data Flow — Shadow Caster Lookup (Backend):**
+
+1. Import pipeline derives candidate heights from 2D footprints + Baskarta 3D linework + DTM ground elevation.
+2. Validation/filtering splits candidates into include, review, and exclude.
+3. Import stores include records as runtime-active `shadow_casters`; review records are inactive; excluded records remain diagnostics.
+4. `calculateVenueShadow` calls `get_buildings_near_point` compatibility RPC for nearby runtime-active casters.
+5. Shadow geometry uses `height_m`, caster geometry, and solar position to project shadows.
+6. Confidence logic applies building quality, source priority, cluster validation status, data coverage, low sun elevation, weather, and known unmodelled obstruction caps.
 
 ## Architecture Validation Results
 

@@ -33,6 +33,8 @@ inputDocuments:
 >
 > **Admin removal correction (2026-05-30):** SunnySeat will not have an admin page, admin venue configuration UI, admin venue CRUD API, admin authentication surface, venue candidate review queue, or admin-operated building upload surface. New and changed venues are managed by direct database insert/update queries only. Story 3.0 is the first Epic 3 implementation story and removes the remaining admin artifacts from the codebase, docs, tests, and database cleanup plan before routing, feedback, and reviews proceed.
 >
+> **Shadow data trust correction (2026-06-02):** Epic 3 feature work is paused after Story 3.0. Stories 3.0.1-3.0.6 form the "Epic 3 Prelude: Shadow Data Trust Realignment" block and must complete before Story 3.1 proceeds. The old assumption that `building_geodata/byggnad_kn1480.gpkg` alone supports shadows is retired; MVP shadow casters use filtered central records derived from 2D footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM.
+>
 > **Story drafting guardrail:** Stories 2.5, 2.6, and 2.7 must be drafted as free MVP functionality. Their story files must include explicit review tasks proving active MVP code does not depend on `PremiumContext`, `usePremiumStatus`, `queryKeys.premium`, `/api/payments/*`, Swish helpers, paywall components, lock badges, Season Pass copy, or premium JSON messages. If dormant monetization code is worth saving, move it out of live runtime paths and preserve the contract in `future-monetization-season-pass.md` or an inactive `future-premium` archive; do not leave unused premium/payment providers, hooks, or route stubs wired into the MVP app.
 
 ## Overview
@@ -254,6 +256,10 @@ Users open SunnySeat, grant location, and see a warm sand map with amber/grey ve
 ### Epic 2: "Explore & Compare" — Venue List, Detail, Planner & Favourites
 Users can browse a ranked venue list, search by name/area, view rich venue detail (photo, hours, address, sun timeline), see confidence percentages, scrub through time, select future dates for planning, save favourite venues, and have data auto-refresh in the background.
 **FRs covered:** FR2, FR3, FR7, FR8, FR9, FR10, FR11, FR12, FR13, FR14, FR31
+
+### Epic 3 Prelude: "Shadow Data Trust Realignment"
+Maintainers correct the building/shadow data architecture before routing, feedback, and reviews continue. This prelude adopts the MVP central open-data shadow-caster path, defines the schema/RPC contract, productionizes the import pipeline, adds validation and spot-check gates, recalibrates confidence semantics, and updates user-facing uncertainty copy.
+**FRs supported:** FR7, FR8, FR9, FR10, FR11, FR12, FR13, FR17, FR47
 
 ### Epic 3: "Go & Confirm" — Routing, Feedback & Reviews
 Users can get walking/biking directions to a venue, open it in their native maps app, submit sun accuracy feedback, confirm outdoor seating status, and read/write venue reviews. Completes the full venue visit loop.
@@ -1022,6 +1028,8 @@ So that I can return to venues I like without searching again.
 Users can get walking/biking directions to a venue, open it in their native maps app, submit sun accuracy feedback, confirm outdoor seating status, and read/write venue reviews. Completes the full venue visit loop.
 
 > **Epic 3 sequencing note (2026-05-30):** Story 3.0 must be implemented before Stories 3.1-3.4 so routing, feedback, reviews, and visit-loop hardening do not build on admin/auth/candidate-review code that is no longer product scope.
+>
+> **Epic 3 pause note (2026-06-02):** Story 3.0 is done, but Story 3.1 is paused. Complete Stories 3.0.1-3.0.6 first so routing, feedback, reviews, and confidence-heavy user flows do not build on the retired GeoPackage-only building data assumption.
 
 ### Story 3.0: Remove Admin Surface & Adopt Manual Venue Operations
 
@@ -1072,6 +1080,164 @@ So that SunnySeat only supports consumer MVP flows and venue changes happen thro
 - **Visual:** No standalone visual reference. This is a cleanup/infrastructure story with no intended consumer UI change.
 - **Behaviour:** Existing consumer flows must continue to behave as they did before the admin cleanup.
 - **Visual validation:** Run visual validation only if public consumer UI files are changed; otherwise document that no visual gate applies because no consumer UI was intentionally changed.
+
+### Story 3.0.1: Shadow Data ADR & Planning Realignment
+
+As a **maintainer**,
+I want the shadow-data course correction captured in durable planning artifacts,
+So that every future story uses the real MVP data assumptions instead of the retired GeoPackage-only assumption.
+
+**Acceptance Criteria:**
+
+**Given** `building_geodata/byggnad_kn1480.gpkg` has no Z geometry, building-height attribute, roof geometry, or DSM data
+**When** the ADR and planning docs are updated
+**Then** they state that the GeoPackage is a 2D footprint and metadata source only
+**And** they adopt the MVP open-data path: 2D footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation
+**And** they define the MVP launch bbox as EPSG:3007 `x=140000..150000, y=6390000..6410000`
+
+**Given** future paid DSM/LOD2/LOD3 data may become available
+**When** source precedence is documented
+**Then** manual verified overrides outrank paid LOD2/LOD3, paid classified DSM/LAS, current open-derived heights, and OSM/heuristic fallback
+**And** provenance and rollback requirements are preserved for every source.
+
+**Design Gate Criteria:**
+- **Visual:** No standalone visual reference. Planning-only story.
+- **Behaviour:** No runtime behaviour change.
+- **Visual validation:** Not applicable.
+
+### Story 3.0.2: Shadow Caster Schema & RPC Contract
+
+As a **backend maintainer**,
+I want a provenance-rich shadow-caster schema and runtime RPC contract,
+So that the shadow engine consumes only filtered active casters with explicit quality and source metadata.
+
+**Acceptance Criteria:**
+
+**Given** derived shadow casters need more metadata than the existing `Geometry`/`Height` compatibility shape
+**When** the database migration or manual SQL plan is created
+**Then** it defines `shadow_casters` fields for geometry, height, RH2000 ground/roof Z, height method/source, source dataset/external ID, source object metadata, quality score, tier, filter decision/reasons, CRS/provenance metadata, caster class, source priority, active flag, import batch, and timestamps.
+
+**Given** `nextjs-app/lib/solar/shadow-calculation-service.ts` currently calls `get_buildings_near_point`
+**When** the RPC contract is updated
+**Then** `get_buildings_near_point` remains as a compatibility RPC or view-backed adapter until the TypeScript engine is renamed
+**And** it returns only runtime-active records: `active = true`, `filter_decision = 'include'`, `height_m >= 3`, and MVP-approved caster classes.
+
+**Given** review and excluded records exist
+**When** they are imported or stored
+**Then** review/quarantine records are inactive until spot-checked
+**And** excluded records are omitted from runtime or retained only as diagnostics.
+
+**Design Gate Criteria:**
+- **Visual:** No standalone visual reference. Backend/data-contract story.
+- **Behaviour:** Public APIs should preserve existing response shape unless an explicit API contract update is part of the story.
+- **Visual validation:** Not applicable unless consumer UI files change.
+
+### Story 3.0.3: Open Geodata Import Pipeline
+
+As a **backend maintainer**,
+I want the local open-geodata prototype promoted into a repeatable import pipeline,
+So that central MVP shadow-caster records can be regenerated, validated, and imported without ad hoc scripts.
+
+**Acceptance Criteria:**
+
+**Given** the current prototype scripts live under `building_geodata/goteborg-open/tools/`
+**When** the production import pipeline is created
+**Then** it derives height candidates from the existing GeoPackage, Baskarta `byggnad_l`, and Höjdmodell 2022 DTM tiles
+**And** it emits WGS84 polygon runtime geometry plus source/provenance metadata
+**And** it preserves the EPSG:3007 bbox and CRS transformations explicitly.
+
+**Given** runtime should start conservatively
+**When** filtering runs
+**Then** it splits candidates into include, review, and exclude sets
+**And** MVP defaults exclude tiny/tall suspicious records, records below the 3 m meaningful-height threshold, and low-quality small `Komplementbyggnad` records.
+
+**Given** future source refreshes are expected
+**When** the pipeline runs
+**Then** it produces deterministic summaries and validation artifacts suitable for review before import.
+
+**Design Gate Criteria:**
+- **Visual:** No standalone visual reference. Backend/import story.
+- **Behaviour:** No direct consumer UI change.
+- **Visual validation:** Not applicable.
+
+### Story 3.0.4: Geodata Validation & Spot-Check Gates
+
+As a **QA maintainer**,
+I want deterministic geodata validation and central spot-check gates,
+So that high building-shadow confidence is earned per launch cluster instead of assumed globally.
+
+**Acceptance Criteria:**
+
+**Given** MVP launch is central/south-central Gothenburg
+**When** validation gates are defined
+**Then** they cover Inom Vallgraven, Nordstan, Lilla Bommen, Avenyn, Vasastan, Haga, Linné, and surrounding central areas inside the MVP bbox
+**And** high confidence is disabled for a cluster until at least 10 venue or street-facing test points are checked in that cluster.
+
+**Given** shadow behaviour changes by sun angle
+**When** spot checks are executed
+**Then** each cluster includes morning/low-angle, midday/high-sun, and afternoon/evening directional-shadow conditions
+**And** the central validation set includes at least 70 total checks.
+
+**Given** the target is trustworthy building-shadow modelling
+**When** results are evaluated
+**Then** a cluster needs about 85-90% obvious building-shadow agreement before high building-shadow confidence is allowed
+**And** trees, awnings, umbrellas, bridges, and temporary structures are recorded as uncertainty causes rather than silently counted as building-data failures.
+
+**Design Gate Criteria:**
+- **Visual:** No standalone visual reference. QA/data validation story.
+- **Behaviour:** No direct consumer UI change unless validation status is surfaced through confidence metadata.
+- **Visual validation:** Not applicable unless consumer UI files change.
+
+### Story 3.0.5: Confidence Engine Data Coverage
+
+As a **user**,
+I want confidence scores to reflect building-data coverage and known modelling gaps,
+So that SunnySeat does not overstate certainty when shadows are missing, low-quality, or affected by unmodelled obstructions.
+
+**Acceptance Criteria:**
+
+**Given** no nearby casting shadows can mean either a sunny venue or incomplete caster coverage
+**When** confidence is calculated
+**Then** empty casting-shadow results are not automatically treated as perfect building-data quality unless the surrounding data coverage is validated for the relevant cluster.
+
+**Given** runtime casters have source and quality metadata
+**When** shadow confidence is calculated
+**Then** source priority, quality score, caster tier, filter decision, cluster validation status, sun elevation, and weather state contribute to confidence.
+
+**Given** vegetation, awnings, umbrellas, bridges, and temporary structures are not fully modelled in MVP
+**When** a venue is near known or manually tagged obstruction risks
+**Then** confidence is capped or marked uncertain according to the configured obstruction class.
+
+**Design Gate Criteria:**
+- **Visual:** No standalone visual reference unless confidence UI copy changes in the same story.
+- **Behaviour:** Existing confidence displays remain available but become more conservative when data quality is lower.
+- **Visual validation:** Run only if visible confidence UI changes.
+
+### Story 3.0.6: UX Content for Sun Prediction Uncertainty
+
+As a **user**,
+I want concise Swedish copy that explains prediction uncertainty,
+So that I understand confidence without needing geodata details.
+
+**Acceptance Criteria:**
+
+**Given** SunnySeat models building shadows but not every obstruction
+**When** confidence help text, about-page copy, venue detail microcopy, or uncertainty labels are shown
+**Then** Swedish copy clearly communicates that building shadows are modelled while trees, awnings, umbrellas, bridges, and temporary structures can affect real conditions.
+
+**Given** a venue has low building-data confidence or known obstruction uncertainty
+**When** the venue appears in the map/list/detail surfaces
+**Then** the UI communicates uncertainty without implying the prediction is broken
+**And** it avoids exposing implementation details such as CRS, Baskarta, DTM, or import batch IDs in normal user copy.
+
+**Given** the app is Swedish-first
+**When** copy is added
+**Then** strings are added through scoped `next-intl` keys and English fallback copy is kept in sync.
+
+**Design Gate Criteria:**
+- **Visual:** Use existing confidence and about-page surfaces; no new standalone screen unless explicitly scoped.
+- **Behaviour:** Copy must be accessible, concise, and not color-only.
+- **Visual validation:** Required for any changed screen reference.
 
 ### Story 3.1: Routing & Navigation to Venue
 

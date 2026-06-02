@@ -75,7 +75,7 @@ inputDocuments:
 | Risk ID | Category | Description | P | I | Score | Mitigation | Owner | Timeline |
 |---------|----------|-------------|---|---|-------|------------|-------|----------|
 | **R-01** | **PERF** | MapLibre GL JS performance on low-end Android — 60fps map interaction may degrade with 50+ venue pins | 2 | 3 | **6** | Pin clustering >50 venues. Test on budget Android. Lighthouse mobile throttling in CI | Rasmus | Before map pin story |
-| **R-02** | **BUS** | Shadow accuracy trust erosion — LOD1 building data produces incorrect predictions, destroying user trust | 2 | 3 | **6** | Launch with 50 best-quality venues. Feedback loop surfaces bad predictions. Admin polygon overrides. >=85% accuracy target | Rasmus | Ongoing |
+| **R-02** | **BUS** | Shadow accuracy trust erosion — derived open-data shadow casters or unmodelled obstructions produce incorrect predictions, destroying user trust | 2 | 3 | **6** | Complete Epic 3 Prelude shadow-data trust stories before Story 3.1. Runtime uses filtered active casters only. High confidence requires cluster spot-check gates (10 checks/cluster, 70+ central checks, about 85-90% building-shadow agreement). Feedback loop surfaces bad predictions. | Rasmus | Before Epic 3 feature work resumes |
 
 ### Medium-Priority Risks (Score 3-5)
 

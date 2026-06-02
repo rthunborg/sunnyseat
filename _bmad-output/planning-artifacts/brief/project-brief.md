@@ -5,6 +5,8 @@
 > **MVP scope correction:** PRD v3.1, `epics.md` v3.1, and `sprint-change-proposal-2026-05-19.md` supersede this original brief where they differ. Time planner, future date simulation, and favourites are free MVP functionality. Season Pass, Swish payment, paywalls, premium activation, premium recovery, and payment failure flows are preserved only for Future Monetization after MVP adoption.
 >
 > **Admin removal correction:** Story 3.0 and the 2026-05-30 product decision supersede the original admin/tooling assumptions in this brief. SunnySeat has no admin page, admin venue CRUD/configuration API, admin authentication surface, venue candidate review queue, or admin-operated building upload surface. New and changed venues are handled through direct database insert/update queries only.
+>
+> **Shadow data correction:** The 2026-06-02 shadow-data trust decision supersedes the original GeoPackage-only building-data assumption. `building_geodata/byggnad_kn1480.gpkg` is a 2D footprint source only; MVP building shadows use filtered central records derived from Lantmateriet footprints + Goteborg Baskarta 3D linework + Goteborg Hojdmodell 2022 DTM.
 
 ## 1. Elevator Pitch
 
@@ -109,13 +111,13 @@ Notifications, multi-city, ML patio detection, bookings/loyalty, user accounts, 
 | Testing | Vitest + Playwright |
 
 **Budget:** ≤ $100/month operational cost.
-**Building data:** Lantmäteriet GeoPackage (.gpkg) already obtained.
+**Building data:** Lantmateriet GeoPackage already obtained as 2D footprint input only. MVP shadow casters require the combined central open-data pipeline documented in `decisions/shadow-data-trust-realignment.md`.
 
 ## 9. Risks & Mitigations
 
 | Risk | Mitigation |
 |------|-----------|
-| Shadow accuracy | LOD1 heuristic heights + manual database corrections + feedback loop |
+| Shadow accuracy | Filtered central open-data shadow casters + cluster spot-check gates + manual verified overrides + feedback loop |
 | Cloud granularity | Met.no nowcast blend, confidence caps, transparency |
 | Swish setup delays | Preserve Future Monetization design; do not block MVP planner/date/favourites |
 | Manual venue operations | Reviewed direct database insert/update workflow for venue and geometry changes |
