@@ -1,0 +1,40 @@
+SunnySeat story review gate
+Story: 3-0-1-shadow-data-adr-planning-realignment
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-0-1-shadow-data-adr-planning-realignment-review-20260602-185148.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/3-0-1-shadow-data-adr-planning-realignment.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  40 passed (40)
+      Tests  356 passed (356)
+   Start at  18:52:07
+   Duration  26.29s (transform 9.64s, setup 25.38s, import 40.17s, tests 58.97s, environment 139.31s)
+
+Skipping visual validation: no mapped screen ID found in story file
+Updated sprint status: 3-0-1-shadow-data-adr-planning-realignment -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-0-1-shadow-data-adr-planning-realignment-review-20260602-185148.log

@@ -22,6 +22,17 @@ export {
   calculateVenueShadowTimeline,
 } from './shadow-calculation-service';
 export {
+  CONSERVATIVE_CLUSTER_COVERAGE,
+  LAUNCH_CLUSTER_IDS,
+  buildCoverageMapFromValidationArtifact,
+  getShadowDataCoverage,
+} from './shadow-data-coverage';
+export {
+  OBSTRUCTION_RISK_CLASSES,
+  extractObstructionRiskClasses,
+  getObstructionRiskConfidenceCap,
+} from './obstruction-risk';
+export {
   calculateConfidenceFactors,
   calculateDisplayConfidence,
   isSufficientConfidence,

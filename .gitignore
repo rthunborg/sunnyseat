@@ -35,6 +35,10 @@ scripts/*
 !scripts/visual-validate.sh
 !scripts/fetch-claude-design.sh
 !scripts/run-sh.ps1
+!scripts/geodata/
+!scripts/geodata/**
+scripts/geodata/**/__pycache__/
+scripts/geodata/**/*.py[cod]
 
 # Codex workflow files are project-owned; personal Codex state remains ignored by
 # default unless explicitly unignored here.

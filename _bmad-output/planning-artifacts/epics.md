@@ -1213,6 +1213,9 @@ So that SunnySeat does not overstate certainty when shadows are missing, low-qua
 - **Behaviour:** Existing confidence displays remain available but become more conservative when data quality is lower.
 - **Visual validation:** Run only if visible confidence UI changes.
 
+> **Deferred items to incorporate from `_bmad-output/implementation-artifacts/deferred-work.md`** (the SM removes each entry from that file once carried into the drafted story):
+> - Preserve the Story 3.0.2 Round 3 deferred finding: an empty successful `get_buildings_near_point` response can still mean "no active caster coverage yet", not "fully sunny with high confidence". Story 3.0.5 must distinguish empty validated coverage from unknown/missing caster coverage and cap or mark confidence accordingly. *(Source: Story 3.0.2 code review Round 3, 2026-06-04; deferred-work audit 2026-06-04.)*
+
 ### Story 3.0.6: UX Content for Sun Prediction Uncertainty
 
 As a **user**,
@@ -1328,6 +1331,7 @@ So that I can help improve prediction accuracy for everyone.
 - **Visual validation:** Screenshot comparison against the active visual reference passes before QA handoff
 
 > **Deferred items to incorporate from `_bmad-output/implementation-artifacts/deferred-work.md`** (the SM removes each entry from that file once carried into the drafted story):
+> - Lift the onboarding-local Amber CTA implementation into `components/composed/` when the FeedbackPrompt `Skicka` button becomes the second real consumer. Preserve token-based styling, 44 px touch target, disabled 40% opacity, and reduced-motion behaviour. *(Source: Story 1.5 code review Round 1, 2026-05-05; deferred-work audit 2026-06-04.)*
 > - Add final visual-regression verification for the Story 2.3 accepted venue-detail drift if this story becomes the first source of user-confirmed venue attributes: decide the source of truth for detail amenity/tag chips such as `Innergård`, `Hund ok`, `Wifi`, and `Bakverk`, implement them in the venue detail DTO/UI if they remain in the accepted design, and verify `scripts/visual-validate.sh venue-detail "/?venue=test-venue-sunny&_state=venue-detail" mobile` and `desktop` no longer fail for missing tags. If tags are removed from product scope or assigned to a later venue-attribute story, rebaseline or retarget with rationale. *(Source: Story 2.3 visual gate accepted by Rasmus on 2026-05-16.)*
 > - Add final visual-regression verification for the Story 2.4 accepted desktop detail drift if this story becomes the first source of venue attributes: implement or explicitly reject amenity/tag chips such as `Innergård`, `Hund ok`, `Wifi`, and `Bakverk`, then verify `scripts/visual-validate.sh venue-detail "/?venue=test-venue-sunny&_state=venue-detail" desktop` no longer fails for missing tags, or rebaseline/retarget with rationale. *(Source: Story 2.4 visual gate accepted by Rasmus on 2026-05-18.)*
 
@@ -1718,6 +1722,8 @@ So that I can discover promoted venues with high-quality outdoor seating.
 
 > **Deferred items to incorporate from `_bmad-output/implementation-artifacts/deferred-work.md`** (the SM removes each entry from that file once carried into the drafted story):
 > - Consume the `isPartner` field that `VenuePinData` already carries (Story 1.4 plumbed it through `mapVenueDtoToPinData` as forward-compat). The new partner-styled pin variant is the planned consumer; the field has been waiting for this story since 1.4. *(Source: code review Round 1 of 1-4, 2026-05-01.)*
+> - Re-evaluate per-pin React root overhead before partner-pin styling increases marker complexity. `VenuePinLayer` still creates one `createRoot` subtree per pin; if partner variants keep that architecture, verify pin-render timing for 50+ venues remains within the architecture NFR or refactor the marker rendering strategy. *(Source: Story 1.6 code review W1, 2026-05-07; deferred-work audit 2026-06-04.)*
+> - Preserve MapLibre dynamic-chunk discipline when partner-pin work touches `MapContainer` or `VenuePinLayer`. Top-level `maplibre-gl` imports still exist in both files; Story 1.6's async-map verification catches current behaviour, but the code shape remains easy to regress if `MapView` is imported statically. *(Source: Story 1.6 code review W2, 2026-05-07; deferred-work audit 2026-06-04.)*
 
 ### Story 5.2: "SOL NU" Badge & Partner Deep-Links
 
@@ -1989,6 +1995,9 @@ So that I can understand and trust the sun predictions.
 - **Animation:** Accuracy stat count-up (800 ms) and scroll-trigger animations match spec timings (±50 ms tolerance)
 - **Visual validation:** Screenshot comparison against the active visual reference passes before QA handoff
 
+> **Deferred items to incorporate from `_bmad-output/implementation-artifacts/deferred-work.md`** (the SM removes each entry from that file once carried into the drafted story):
+> - If this story introduces the first runtime locale switcher, make existing MapLibre marker roots update their accessible names and localized copy on locale changes instead of waiting for venue selection or venue data changes. If Story 7.1 does not introduce a switcher, keep this item targeted to the first i18n-switcher story. *(Source: Story 1.4 Round 2 batch-apply, 2026-05-03; deferred-work audit 2026-06-04.)*
+
 ### Story 7.2: 404 Page
 
 As a **user**,
@@ -2086,3 +2095,6 @@ So that the app feels native and doesn't break without connectivity.
 
 > **Deferred items to incorporate from `_bmad-output/implementation-artifacts/deferred-work.md`** (the SM removes each entry from that file once carried into the drafted story):
 > - Add `env(safe-area-inset-bottom)` handling to `MobileNavBar.tsx:46,59` so the 44 px touch target is fully reachable on iPhone home-indicator devices. The fixed-bottom nav currently leaves 2 px of the touch box behind the safe-area boundary on those devices; the PWA standalone-display fix is the right place to land it. *(Source: code review of 1-3, 2026-04-20.)*
+> - Add a `storage` event listener to `OnboardingGate` so an onboarding completion in one tab dismisses the already-open onboarding overlay in another tab without reload. *(Source: Story 1.5 code review Round 1, 2026-05-05; deferred-work audit 2026-06-04.)*
+> - Re-check `maplibre-gl/dist/maplibre-gl.css` static import behaviour against the offline/PWA shell and async-map gate. The current JS verifier does not audit CSS hoisting, so this story should either extend the verification or document why the current hoisting remains acceptable. *(Source: Story 1.6 code review W3, 2026-05-07; deferred-work audit 2026-06-04.)*
+> - Rework or explicitly validate the full-viewport tile/style failure overlay so sighted fallback state and keyboard focus state are coherent. The current `pointer-events-none` overlay can show a cream fallback while tab focus continues through controls underneath. *(Source: Story 1.6 code review W6, 2026-05-07; deferred-work audit 2026-06-04.)*

@@ -1,0 +1,452 @@
+from __future__ import annotations
+
+import argparse
+import json
+import shutil
+import tempfile
+import unittest
+from pathlib import Path
+
+from scripts.geodata import shadow_caster_pipeline as pipeline
+
+
+ROOT = Path(__file__).resolve().parents[3]
+FIXTURE = ROOT / "scripts" / "geodata" / "testdata" / "shadow_caster_candidates.fixture.geojsonl"
+SPOT_CHECK_FIXTURE = ROOT / "scripts" / "geodata" / "testdata" / "spot_checks.fixture.jsonl"
+
+
+class ShadowCasterPipelineTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmpdir = Path(tempfile.mkdtemp(prefix="sunnyseat-geodata-test-"))
+        self.source = self.tmpdir / "candidates.geojsonl"
+        shutil.copyfile(FIXTURE, self.source)
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.tmpdir)
+
+    def make_spot_check_row(
+        self,
+        cluster_id: str,
+        index: int,
+        *,
+        agreement_result: str = "agree",
+        expected_building_shadow: str = "shadowed",
+        observed_manual_result: str = "shadowed",
+        uncertainty_causes: list[str] | None = None,
+        notes: str = "Fixture observation",
+    ) -> dict[str, object]:
+        buckets = sorted(pipeline.REQUIRED_SUN_CONDITION_BUCKETS)
+        lon, lat = pipeline.CLUSTERS_WGS84[cluster_id]
+        return {
+            "agreement_result": agreement_result,
+            "cluster_id": cluster_id,
+            "cluster_name": pipeline.CLUSTER_NAMES[cluster_id],
+            "coordinate_wgs84": {"lat": lat + index * 0.00001, "lon": lon + index * 0.00001},
+            "expected_building_shadow": expected_building_shadow,
+            "notes": notes,
+            "observed_manual_result": observed_manual_result,
+            "point_type": "street_facing",
+            "representative_local_datetime": "2026-06-21T09:00:00+02:00",
+            "reviewed_at": f"2026-06-05T10:{index:02d}:00+02:00",
+            "reviewer": "fixture",
+            "source_artifact": "fixture",
+            "spot_check_id": f"fixture-{cluster_id}-{index:02d}",
+            "sun_condition_bucket": buckets[index % len(buckets)],
+            "uncertainty_causes": uncertainty_causes or [],
+        }
+
+    def make_full_launch_rows(self, uncertain_per_cluster: int = 1) -> list[dict[str, object]]:
+        rows: list[dict[str, object]] = []
+        for cluster_id in pipeline.REQUIRED_SPOT_CHECK_CLUSTER_IDS:
+            for index in range(10):
+                if index >= 10 - uncertain_per_cluster:
+                    rows.append(self.make_spot_check_row(
+                        cluster_id,
+                        index,
+                        agreement_result="uncertain",
+                        uncertainty_causes=["awning"],
+                        notes="Awning obstruction",
+                    ))
+                else:
+                    rows.append(self.make_spot_check_row(cluster_id, index))
+        return rows
+
+    def test_filter_decisions_include_review_and_low_quality_komplementbyggnad_exclude(self) -> None:
+        features = pipeline.load_jsonl(self.source)
+        decisions = []
+        reasons_by_external_id = {}
+
+        for feature in features:
+            decision, reasons = pipeline.decide_filter(feature["properties"])
+            decisions.append(decision)
+            reasons_by_external_id[feature["properties"]["externalId"]] = reasons
+
+        self.assertEqual(decisions, ["include", "review", "exclude"])
+        self.assertIn("small-komplementbyggnad-low-quality", reasons_by_external_id["fixture-exclude"])
+        self.assertIn("single-line-tall", reasons_by_external_id["fixture-review"])
+
+    def test_shadow_casters_contract_mapping_preserves_active_defaults_and_crs(self) -> None:
+        import_batch_id = "fixture-batch"
+        rows = []
+        for feature in pipeline.load_jsonl(self.source):
+            decision, reasons = pipeline.decide_filter(feature["properties"])
+            enriched = pipeline.enriched_feature(feature, decision, reasons)
+            rows.append(pipeline.map_feature_to_shadow_caster_row(enriched, import_batch_id))
+
+        self.assertEqual([row["filter_decision"] for row in rows], ["include", "review", "exclude"])
+        self.assertEqual([row["active"] for row in rows], [True, False, False])
+        self.assertEqual(rows[0]["runtime_geometry_crs"], "EPSG:4326")
+        self.assertEqual(rows[0]["metric_crs"], "EPSG:3007")
+        self.assertEqual(rows[0]["source_priority"], pipeline.SOURCE_PRIORITIES["goteborg_open_derived"])
+        self.assertNotIn("logicalObjectId", rows[0]["source_object_metadata"])
+        self.assertEqual(rows[0]["bbox_3007"]["type"], "Polygon")
+        self.assertEqual(rows[0]["centroid_3007"]["type"], "Point")
+
+    def test_filter_summary_output_is_deterministic(self) -> None:
+        args = argparse.Namespace(
+            source=str(self.source),
+            out_dir=str(self.tmpdir),
+            include=None,
+            review=None,
+            excluded=None,
+            summary_json=None,
+            summary_md=None,
+        )
+        self.assertEqual(pipeline.command_filter(args), 0)
+        first = (self.tmpdir / "buildings_central_shadow_casters.filter_summary.json").read_text(encoding="utf-8")
+        self.assertEqual(pipeline.command_filter(args), 0)
+        second = (self.tmpdir / "buildings_central_shadow_casters.filter_summary.json").read_text(encoding="utf-8")
+
+        self.assertEqual(first, second)
+        summary = json.loads(first)
+        self.assertEqual(summary["decisionCounts"], {"exclude": 1, "include": 1, "review": 1})
+        self.assertEqual(summary["endToEndCounts"]["candidateRows"], 3)
+
+    def test_emit_import_and_validate_artifacts_without_database_access(self) -> None:
+        self.assertEqual(pipeline.command_filter(argparse.Namespace(
+            source=str(self.source),
+            out_dir=str(self.tmpdir),
+            include=None,
+            review=None,
+            excluded=None,
+            summary_json=None,
+            summary_md=None,
+        )), 0)
+        self.assertEqual(pipeline.command_emit_import(argparse.Namespace(
+            out_dir=str(self.tmpdir),
+            include=str(self.tmpdir / "buildings_central_shadow_casters.filtered.geojsonl"),
+            review=str(self.tmpdir / "buildings_central_shadow_casters.review.geojsonl"),
+            excluded=str(self.tmpdir / "buildings_central_shadow_casters.excluded.geojsonl"),
+            import_jsonl=None,
+            excluded_diagnostics_jsonl=None,
+            manifest=None,
+            sql_handoff=None,
+            import_batch_id="fixture-batch",
+        )), 0)
+
+        manifest = json.loads((self.tmpdir / "shadow_casters.import_manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["rowCounts"]["include"], 1)
+        self.assertEqual(manifest["rowCounts"]["review"], 1)
+        self.assertEqual(manifest["rowCounts"]["excludeDiagnostics"], 1)
+
+        self.assertEqual(pipeline.command_validate_artifacts(argparse.Namespace(
+            manifest=str(self.tmpdir / "shadow_casters.import_manifest.json"),
+            import_jsonl=None,
+            excluded_diagnostics_jsonl=None,
+            output_json=None,
+        )), 0)
+        handoff = (self.tmpdir / "shadow_casters.import_handoff.sql").read_text(encoding="utf-8")
+        self.assertIn("\\copy shadow_caster_import_stage", handoff)
+        self.assertNotIn("COPY public.", handoff)
+
+    def test_artifact_validation_fails_for_active_review_rows(self) -> None:
+        row = pipeline.map_feature_to_shadow_caster_row(
+            pipeline.enriched_feature(
+                pipeline.load_jsonl(self.source)[1],
+                "review",
+                ["single-line-tall"],
+            ),
+            "fixture-batch",
+        )
+        row["active"] = True
+        errors = pipeline.validate_rows([row], "fixture-batch")
+        self.assertTrue(any("active row must be include" in error for error in errors))
+
+    def test_artifact_validation_fails_when_metric_helpers_are_missing(self) -> None:
+        row = pipeline.map_feature_to_shadow_caster_row(
+            pipeline.enriched_feature(
+                pipeline.load_jsonl(self.source)[0],
+                "include",
+                [],
+            ),
+            "fixture-batch",
+        )
+        row["bbox_3007"] = None
+        row["centroid_3007"] = None
+
+        errors = pipeline.validate_rows([row], "fixture-batch")
+
+        self.assertTrue(any("bbox_3007 metric helper" in error for error in errors))
+        self.assertTrue(any("centroid_3007 metric helper" in error for error in errors))
+
+    def test_geodata_python_cache_files_remain_ignored(self) -> None:
+        gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
+
+        self.assertIn("scripts/geodata/**/__pycache__/", gitignore)
+        self.assertIn("scripts/geodata/**/*.py[cod]", gitignore)
+
+    def test_combined_hash_ignores_local_path_strings(self) -> None:
+        left = self.tmpdir / "left" / "include.geojsonl"
+        right = self.tmpdir / "right" / "include.geojsonl"
+        left.parent.mkdir()
+        right.parent.mkdir()
+        left.write_text("same-content\n", encoding="utf-8")
+        right.write_text("same-content\n", encoding="utf-8")
+        extra = {"sourceDataset": pipeline.SOURCE_DATASET}
+
+        self.assertEqual(
+            pipeline.combined_hash([left], extra),
+            pipeline.combined_hash([right], extra),
+        )
+
+    def test_shadow_casters_contract_mapping_includes_raw_source_and_match_provenance(self) -> None:
+        row = pipeline.map_feature_to_shadow_caster_row(
+            pipeline.enriched_feature(
+                pipeline.load_jsonl(self.source)[0],
+                "include",
+                [],
+            ),
+            "fixture-batch",
+        )
+
+        self.assertIn("rawSourceFiles", row["source_object_metadata"])
+        self.assertIn("matchBufferM", row["source_object_metadata"])
+        self.assertIn("dtmTileIds", row["source_object_metadata"])
+        self.assertIn("rawSourceFiles", row["provenance_metadata"])
+        self.assertIn("matchBufferM", row["provenance_metadata"])
+
+    def test_sql_handoff_escapes_literals_and_replaces_existing_batch_rows(self) -> None:
+        sql_path = self.tmpdir / "handoff.sql"
+        manifest = {
+            "importBatch": {
+                "id": "fixture-'batch",
+                "sourceDataset": "dataset-'quoted",
+                "sourceDescription": "source 'quoted'",
+                "sourceMetadata": {"owner": "O'Hara"},
+            },
+        }
+
+        pipeline.write_sql_handoff(
+            sql_path,
+            self.tmpdir / "import's.jsonl",
+            self.tmpdir / "diagnostics's.jsonl",
+            manifest,
+        )
+
+        handoff = sql_path.read_text(encoding="utf-8")
+        self.assertIn("begin;", handoff)
+        self.assertIn("'fixture-''batch'", handoff)
+        self.assertIn("'dataset-''quoted'", handoff)
+        self.assertIn("'source ''quoted'''", handoff)
+        self.assertIn("\"owner\": \"O''Hara\"", handoff)
+        self.assertIn("delete from public.shadow_casters", handoff)
+        self.assertIn("where import_batch_id = 'fixture-''batch';", handoff)
+        self.assertIn("\\copy shadow_caster_import_stage(payload_text) from '", handoff)
+        self.assertIn("import''s.jsonl", handoff)
+
+    def test_artifact_validation_fails_for_invalid_runtime_polygon(self) -> None:
+        row = pipeline.map_feature_to_shadow_caster_row(
+            pipeline.enriched_feature(
+                pipeline.load_jsonl(self.source)[0],
+                "include",
+                [],
+            ),
+            "fixture-batch",
+        )
+        row["geometry"] = {
+            "type": "Polygon",
+            "coordinates": [[
+                [0, 0],
+                [1, 1],
+                [1, 0],
+                [0, 1],
+                [0, 0],
+            ]],
+        }
+
+        errors = pipeline.validate_rows([row], "fixture-batch")
+
+        self.assertTrue(any("runtime geometry is invalid" in error for error in errors))
+
+    def test_dtm_sampler_boundaries_use_explicit_tile_indexing(self) -> None:
+        class FakeTile:
+            shape = (2, 2)
+            values = [[10.0, 20.0], [30.0, 40.0]]
+
+            def __getitem__(self, index: tuple[int, int]) -> float:
+                row, col = index
+                return self.values[row][col]
+
+        sampler = object.__new__(pipeline.DtmSampler)
+        tif_name = "199_10/199_100.tif"
+        tfw_name = "199_10/199_100.tfw"
+        sampler._members = {tif_name: object(), tfw_name: object()}
+        sampler._cache = {
+            tif_name: (
+                FakeTile(),
+                (1.0, 0.0, 0.0, -1.0, 100000.0, 200000.0),
+            )
+        }
+        sampler._zips = []
+        sampler._tifffile = None
+
+        self.assertEqual(sampler.sample(100001.0, 199999.0), 40.0)
+        self.assertEqual(sampler.sample(100000.5, 199999.5), 40.0)
+        self.assertIsNone(sampler.sample(100002.0, 199998.0))
+
+    def test_emit_spot_check_template_is_deterministic_and_covers_required_clusters(self) -> None:
+        source = self.tmpdir / "shadow_casters.import.jsonl"
+        rows = []
+        for feature in pipeline.load_jsonl(self.source):
+            row = pipeline.map_feature_to_shadow_caster_row(
+                pipeline.enriched_feature(feature, "include", []),
+                "fixture-batch",
+            )
+            rows.append(row)
+        pipeline.write_jsonl(source, rows)
+
+        output = self.tmpdir / "spot_checks.template.jsonl"
+        args = argparse.Namespace(source=str(source), output=str(output), per_cluster=10)
+
+        self.assertEqual(pipeline.command_emit_spot_check_template(args), 0)
+        first = output.read_text(encoding="utf-8")
+        self.assertEqual(pipeline.command_emit_spot_check_template(args), 0)
+        second = output.read_text(encoding="utf-8")
+
+        self.assertEqual(first, second)
+        template_rows = pipeline.load_jsonl(output)
+        self.assertGreaterEqual(len(template_rows), 70)
+        counts_by_cluster = {}
+        buckets_by_cluster = {}
+        for row in template_rows:
+            counts_by_cluster[row["cluster_id"]] = counts_by_cluster.get(row["cluster_id"], 0) + 1
+            buckets_by_cluster.setdefault(row["cluster_id"], set()).add(row["sun_condition_bucket"])
+
+        self.assertEqual(set(counts_by_cluster), set(pipeline.REQUIRED_SPOT_CHECK_CLUSTER_IDS))
+        self.assertTrue(all(count >= 10 for count in counts_by_cluster.values()))
+        self.assertTrue(
+            all(pipeline.REQUIRED_SUN_CONDITION_BUCKETS <= buckets for buckets in buckets_by_cluster.values())
+        )
+        self.assertEqual(template_rows, sorted(template_rows, key=lambda row: row["spot_check_id"]))
+        self.assertTrue(all(row["agreement_result"] == "pending" for row in template_rows))
+        self.assertTrue(all(row["expected_building_shadow"] == "" for row in template_rows))
+        self.assertTrue(all("venue or street-facing" in row["notes"] for row in template_rows))
+
+    def test_evaluate_spot_checks_separates_uncertainty_and_threshold_statuses(self) -> None:
+        rows = pipeline.load_jsonl(SPOT_CHECK_FIXTURE)
+        summary, errors = pipeline.evaluate_spot_check_rows(rows, required_cluster_ids=["inom-vallgraven", "nordstan", "haga"])
+
+        self.assertTrue(errors)
+        clusters = summary["clusters"]
+        self.assertEqual(clusters["inom-vallgraven"]["status"], "insufficient_evidence")
+        self.assertEqual(clusters["inom-vallgraven"]["agreementRate"], 1.0)
+        self.assertEqual(clusters["inom-vallgraven"]["uncertaintyCounts"], {"awning": 1})
+        self.assertEqual(clusters["inom-vallgraven"]["buildingAgreementDenominator"], 9)
+        self.assertEqual(clusters["nordstan"]["status"], "insufficient_evidence")
+        self.assertEqual(clusters["haga"]["status"], "blocked")
+        self.assertIn("central validation set has fewer than 70 completed checks", errors)
+
+    def test_full_launch_evidence_can_make_cluster_eligible(self) -> None:
+        summary, errors = pipeline.evaluate_spot_check_rows(self.make_full_launch_rows())
+
+        self.assertFalse(errors)
+        self.assertEqual(summary["status"], "pass")
+        self.assertEqual(summary["totalCompletedChecks"], 80)
+        self.assertTrue(all(
+            cluster["status"] == "eligible"
+            for cluster in summary["clusters"].values()
+        ))
+        self.assertTrue(all(
+            cluster["buildingAgreementDenominator"] == pipeline.MIN_BUILDING_AGREEMENT_DENOMINATOR
+            for cluster in summary["clusters"].values()
+        ))
+
+    def test_uncertain_rows_cannot_satisfy_clear_agreement_minimum(self) -> None:
+        summary, errors = pipeline.evaluate_spot_check_rows(self.make_full_launch_rows(uncertain_per_cluster=9))
+
+        self.assertTrue(errors)
+        self.assertEqual(summary["status"], "fail")
+        self.assertTrue(all(
+            cluster["status"] == "insufficient_evidence"
+            for cluster in summary["clusters"].values()
+        ))
+        self.assertIn("inom-vallgraven: fewer than 9 clear building-agreement checks", errors)
+
+    def test_evaluate_spot_checks_writes_json_and_markdown_reports(self) -> None:
+        output_json = self.tmpdir / "cluster_validation.json"
+        output_md = self.tmpdir / "cluster_validation.md"
+        result = pipeline.command_evaluate_spot_checks(argparse.Namespace(
+            source=str(SPOT_CHECK_FIXTURE),
+            output_json=str(output_json),
+            output_md=str(output_md),
+            require_all_clusters=False,
+        ))
+
+        self.assertEqual(result, 1)
+        first_json = output_json.read_text(encoding="utf-8")
+        first_md = output_md.read_text(encoding="utf-8")
+        pipeline.command_evaluate_spot_checks(argparse.Namespace(
+            source=str(SPOT_CHECK_FIXTURE),
+            output_json=str(output_json),
+            output_md=str(output_md),
+            require_all_clusters=False,
+        ))
+        self.assertEqual(output_json.read_text(encoding="utf-8"), first_json)
+        self.assertEqual(output_md.read_text(encoding="utf-8"), first_md)
+        self.assertIn("85%", first_md)
+        self.assertIn("insufficient_evidence", first_md)
+        parsed = json.loads(first_json)
+        self.assertEqual(parsed["scope"], "partial_cluster_set")
+        self.assertIn("partial cluster set is not a full launch-cluster gate", parsed["errors"])
+
+    def test_spot_check_validation_rejects_malformed_rows(self) -> None:
+        base = pipeline.load_jsonl(SPOT_CHECK_FIXTURE)[0]
+        malformed_cases = [
+            ("missing cluster ID", {"cluster_id": ""}),
+            ("unknown uncertainty cause", {"uncertainty_causes": ["billboard"]}),
+            ("other uncertainty requires notes", {"uncertainty_causes": ["other"], "notes": ""}),
+            ("invalid point type", {"point_type": "patio"}),
+            ("invalid agreement result", {"agreement_result": "maybe"}),
+            ("invalid coordinate", {"coordinate_wgs84": {"lon": 200, "lat": 57.7}}),
+            ("missing sun condition", {"sun_condition_bucket": ""}),
+            ("missing spot check ID", {"spot_check_id": ""}),
+            ("missing source artifact", {"source_artifact": ""}),
+            ("invalid representative time", {"representative_local_datetime": ""}),
+            ("agreement contradiction", {
+                "agreement_result": "agree",
+                "expected_building_shadow": "shadowed",
+                "observed_manual_result": "sunny",
+            }),
+            ("duplicate cause on agree", {"agreement_result": "agree", "uncertainty_causes": ["awning"]}),
+            ("uncertain without cause", {"agreement_result": "uncertain", "uncertainty_causes": []}),
+            ("outside declared cluster", {"cluster_id": "haga", "coordinate_wgs84": {"lon": 11.9639, "lat": 57.7053}}),
+        ]
+
+        for label, updates in malformed_cases:
+            row = dict(base)
+            row.update(updates)
+            errors = pipeline.validate_spot_check_row(row, 1)
+            self.assertTrue(errors, label)
+
+    def test_duplicate_spot_check_ids_fail_validation(self) -> None:
+        rows = self.make_full_launch_rows()
+        rows[1]["spot_check_id"] = rows[0]["spot_check_id"]
+
+        summary, errors = pipeline.evaluate_spot_check_rows(rows)
+
+        self.assertEqual(summary["status"], "fail")
+        self.assertTrue(any("duplicate spot_check_id" in error for error in errors))
+
+
+if __name__ == "__main__":
+    unittest.main()

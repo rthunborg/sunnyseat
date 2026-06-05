@@ -1,0 +1,40 @@
+SunnySeat story review gate
+Story: 3-0-5-confidence-engine-data-coverage
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-0-5-confidence-engine-data-coverage-review-20260605-191547.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/3-0-5-confidence-engine-data-coverage.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  45 passed (45)
+      Tests  379 passed (379)
+   Start at  19:16:07
+   Duration  23.64s (transform 8.17s, setup 25.49s, import 37.06s, tests 45.47s, environment 136.46s)
+
+Skipping visual validation: no mapped screen ID found in story file
+Updated sprint status: 3-0-5-confidence-engine-data-coverage -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-0-5-confidence-engine-data-coverage-review-20260605-191547.log

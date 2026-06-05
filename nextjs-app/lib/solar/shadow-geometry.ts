@@ -142,7 +142,7 @@ export function calculateShadowConfidence(
   solarPosition: SolarPosition,
   shadowLength: number
 ): number {
-  let confidence = 1.0;
+  let confidence = clamp01(building.qualityScore ?? 0.7);
 
   if (solarPosition.elevation < 10.0) confidence *= 0.7;
   else if (solarPosition.elevation < 20.0) confidence *= 0.9;
@@ -157,8 +157,69 @@ export function calculateShadowConfidence(
     ManualOverride: 0.6,
   };
   confidence *= heightMultiplier[building.heightSource] ?? 0.6;
+  confidence *= sourcePriorityMultiplier(building.sourcePriority);
+  confidence *= shadowCasterTierMultiplier(building.shadowCasterTier);
+  confidence *= filterDecisionMultiplier(building.filterDecision);
+  confidence *= casterClassMultiplier(building.casterClass);
 
-  return Math.max(0.0, Math.min(1.0, confidence));
+  return clamp01(confidence);
+}
+
+function sourcePriorityMultiplier(priority: number | undefined): number {
+  if (priority === undefined || !Number.isFinite(priority)) return 0.7;
+  if (priority <= 10) return 1;
+  if (priority <= 30) return 0.95;
+  if (priority <= 40) return 0.9;
+  if (priority <= 90) return 0.75;
+  return 0.65;
+}
+
+function shadowCasterTierMultiplier(tier: Building['shadowCasterTier']): number {
+  switch (tier) {
+    case 'primary':
+      return 1;
+    case 'secondary':
+      return 0.85;
+    case 'uncertain':
+      return 0.65;
+    case 'unknown':
+    case undefined:
+      return 0.7;
+  }
+}
+
+function filterDecisionMultiplier(decision: Building['filterDecision']): number {
+  switch (decision) {
+    case 'include':
+      return 1;
+    case 'review':
+      return 0.5;
+    case 'exclude':
+      return 0.3;
+    case 'unknown':
+    case undefined:
+      return 0.75;
+  }
+}
+
+function casterClassMultiplier(casterClass: Building['casterClass']): number {
+  switch (casterClass) {
+    case 'building':
+      return 1;
+    case 'manual_override':
+      return 0.95;
+    case 'structure':
+      return 0.85;
+    case 'vegetation':
+      return 0.5;
+    case 'unknown':
+    case undefined:
+      return 0.7;
+  }
+}
+
+function clamp01(value: number): number {
+  return Math.max(0.0, Math.min(1.0, value));
 }
 
 function extractPolygon(

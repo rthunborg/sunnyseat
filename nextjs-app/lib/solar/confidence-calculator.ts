@@ -3,8 +3,10 @@ import type {
   VenueShadowInfo,
   WeatherSlice,
   ConfidenceFactors,
-  ShadowProjection,
+  ShadowDataCoverage,
 } from './types';
+import { getObstructionRiskConfidenceCap } from './obstruction-risk';
+import { applyShadowDataCoverageCap } from './shadow-data-coverage';
 
 /**
  * Two modes:
@@ -18,7 +20,7 @@ export function calculateConfidenceFactors(
   solarPosition: SolarPosition,
   weatherData?: WeatherSlice | null
 ): ConfidenceFactors {
-  const buildingDataQuality = calcBuildingDataQuality(shadowInfo.castingShadows);
+  const buildingDataQuality = calcBuildingDataQuality(shadowInfo);
   const geometryPrecision = polygonQuality;
   const solarAccuracy = calcSolarAccuracy(solarPosition);
   const shadowAccuracy = calcShadowAccuracy(shadowInfo, solarPosition);
@@ -38,7 +40,9 @@ export function calculateConfidenceFactors(
     overallConfidence = applyConfidenceCaps(
       overallConfidence,
       weatherData,
-      buildingDataQuality
+      buildingDataQuality,
+      shadowInfo,
+      solarPosition
     );
   } else {
     overallConfidence =
@@ -46,7 +50,13 @@ export function calculateConfidenceFactors(
       geometryPrecision * 0.25 +
       solarAccuracy * 0.2 +
       shadowAccuracy * 0.15;
-    overallConfidence = applyConfidenceCaps(overallConfidence, null, buildingDataQuality);
+    overallConfidence = applyConfidenceCaps(
+      overallConfidence,
+      null,
+      buildingDataQuality,
+      shadowInfo,
+      solarPosition
+    );
   }
 
   overallConfidence = clamp(overallConfidence, 0, 1);
@@ -60,7 +70,8 @@ export function calculateConfidenceFactors(
     solarPosition,
     shadowInfo,
     overallConfidence,
-    weatherData
+    weatherData,
+    shadowInfo.shadowDataCoverage
   );
   const improvements = suggestImprovements(
     buildingDataQuality,
@@ -96,9 +107,15 @@ export function isSufficientConfidence(factors: ConfidenceFactors): boolean {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-function calcBuildingDataQuality(shadows: ShadowProjection[]): number {
-  if (shadows.length === 0) return 1.0;
-  return shadows.reduce((s, sh) => s + sh.confidence, 0) / shadows.length;
+function calcBuildingDataQuality(info: VenueShadowInfo): number {
+  if (info.castingShadows.length === 0) {
+    if (info.shadowDataCoverage?.allowsHighConfidence === true) return 1.0;
+    return applyShadowDataCoverageCap(Math.min(info.confidence, 1.0), info.shadowDataCoverage);
+  }
+  const average =
+    info.castingShadows.reduce((sum, shadow) => sum + shadow.confidence, 0) /
+    info.castingShadows.length;
+  return applyShadowDataCoverageCap(average, info.shadowDataCoverage);
 }
 
 function calcSolarAccuracy(pos: SolarPosition): number {
@@ -167,13 +184,19 @@ function weatherSourceReliability(source: string): number {
 function applyConfidenceCaps(
   confidence: number,
   weather: WeatherSlice | null | undefined,
-  buildingQuality: number
+  buildingQuality: number,
+  shadowInfo: VenueShadowInfo,
+  solarPosition: SolarPosition
 ): number {
   let c = confidence;
   if (weather?.isForecast === true) c = Math.min(c, 0.9);
   if (weather?.isForecast === false) c = Math.min(c, 0.95);
   if (!weather) c = Math.min(c, 0.6);
   if (buildingQuality < 0.6) c = Math.min(c, 0.7);
+  c = applyShadowDataCoverageCap(c, shadowInfo.shadowDataCoverage);
+  c = Math.min(c, getObstructionRiskConfidenceCap(shadowInfo.obstructionRisks));
+  if (solarPosition.elevation > 0 && solarPosition.elevation < 5) c = Math.min(c, 0.35);
+  else if (solarPosition.elevation > 0 && solarPosition.elevation < 10) c = Math.min(c, 0.55);
   return c;
 }
 
@@ -183,14 +206,21 @@ function identifyQualityIssues(
   pos: SolarPosition,
   info: VenueShadowInfo,
   overall: number,
-  weather?: WeatherSlice | null
+  weather?: WeatherSlice | null,
+  coverage?: ShadowDataCoverage
 ): string[] {
   const issues: string[] = [];
   if (buildingQuality < 0.7) issues.push('Building height data has low reliability');
+  if (coverage && !coverage.allowsHighConfidence) {
+    issues.push('Shadow-caster coverage is not validated for this launch cluster');
+  }
   if (geometryPrecision < 0.7) issues.push('Venue polygon has low quality score');
   if (pos.elevation > 0 && pos.elevation < 10) issues.push('Sun at low angle - shadow calculations less reliable');
   if (pos.elevation <= 0) issues.push('Sun below horizon - no direct sunlight');
   if (info.castingShadows.length > 5) issues.push('Complex shadow environment with many buildings');
+  if ((info.obstructionRisks?.length ?? 0) > 0) {
+    issues.push('Known unmodelled obstruction risk caps confidence');
+  }
   if (overall < 0.4) issues.push('Multiple data quality factors reduce overall confidence');
   if (!weather) {
     issues.push('No weather data available - confidence capped at 60%');

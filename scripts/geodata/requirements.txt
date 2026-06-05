@@ -1,0 +1,5 @@
+pyshp==3.0.9
+Shapely==2.1.2
+pyproj==3.7.2
+tifffile==2026.6.1
+imagecodecs==2026.5.10
