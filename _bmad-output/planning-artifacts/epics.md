@@ -33,7 +33,7 @@ inputDocuments:
 >
 > **Admin removal correction (2026-05-30):** SunnySeat will not have an admin page, admin venue configuration UI, admin venue CRUD API, admin authentication surface, venue candidate review queue, or admin-operated building upload surface. New and changed venues are managed by direct database insert/update queries only. Story 3.0 is the first Epic 3 implementation story and removes the remaining admin artifacts from the codebase, docs, tests, and database cleanup plan before routing, feedback, and reviews proceed.
 >
-> **Shadow data trust correction (2026-06-02):** Epic 3 feature work is paused after Story 3.0. Stories 3.0.1-3.0.6 form the "Epic 3 Prelude: Shadow Data Trust Realignment" block and must complete before Story 3.1 proceeds. The old assumption that `building_geodata/byggnad_kn1480.gpkg` alone supports shadows is retired; MVP shadow casters use filtered central records derived from 2D Lantmäteriet footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation.
+> **Shadow data trust correction (2026-06-02, clarified 2026-06-05):** Epic 3 feature work is paused after Story 3.0. Stories 3.0.1-3.0.7 form the "Epic 3 Prelude: Shadow Data Trust Realignment" block and must complete before Story 3.1 proceeds. The old assumption that `building_geodata/byggnad_kn1480.gpkg` alone supports shadows is retired; MVP shadow casters use filtered central records derived from 2D Lantmäteriet footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation. The active building subset remains Baskarta `byggnad_l` until broader Z-aware Baskarta layers are preflighted, classified, and validated.
 >
 > **Story drafting guardrail:** Stories 2.5, 2.6, and 2.7 must be drafted as free MVP functionality. Their story files must include explicit review tasks proving active MVP code does not depend on `PremiumContext`, `usePremiumStatus`, `queryKeys.premium`, `/api/payments/*`, Swish helpers, paywall components, lock badges, Season Pass copy, or premium JSON messages. If dormant monetization code is worth saving, move it out of live runtime paths and preserve the contract in `future-monetization-season-pass.md` or an inactive `future-premium` archive; do not leave unused premium/payment providers, hooks, or route stubs wired into the MVP app.
 
@@ -258,7 +258,7 @@ Users can browse a ranked venue list, search by name/area, view rich venue detai
 **FRs covered:** FR2, FR3, FR7, FR8, FR9, FR10, FR11, FR12, FR13, FR14, FR31
 
 ### Epic 3 Prelude: "Shadow Data Trust Realignment"
-Maintainers correct the building/shadow data architecture before routing, feedback, and reviews continue. This prelude adopts the MVP central open-data shadow-caster path, defines the schema/RPC contract, productionizes the import pipeline, adds validation and spot-check gates, recalibrates confidence semantics, and updates user-facing uncertainty copy.
+Maintainers correct the building/shadow data architecture before routing, feedback, and reviews continue. This prelude adopts the MVP central open-data shadow-caster path, defines the schema/RPC contract, productionizes the import pipeline, adds validation and spot-check gates, recalibrates confidence semantics, realigns Baskarta XYZ inventory handling, and updates user-facing uncertainty copy.
 **FRs supported:** FR7, FR8, FR9, FR10, FR11, FR12, FR13, FR17, FR47
 
 ### Epic 3: "Go & Confirm" — Routing, Feedback & Reviews
@@ -1029,7 +1029,7 @@ Users can get walking/biking directions to a venue, open it in their native maps
 
 > **Epic 3 sequencing note (2026-05-30):** Story 3.0 must be implemented before Stories 3.1-3.4 so routing, feedback, reviews, and visit-loop hardening do not build on admin/auth/candidate-review code that is no longer product scope.
 >
-> **Epic 3 pause note (2026-06-02):** Story 3.0 is done, but Story 3.1 is paused. Complete Stories 3.0.1-3.0.6 first so routing, feedback, reviews, and confidence-heavy user flows do not build on the retired GeoPackage-only building data assumption.
+> **Epic 3 pause note (updated 2026-06-05):** Story 3.0 is done, but Story 3.1 is paused. Complete Stories 3.0.1-3.0.7 first so routing, feedback, reviews, and confidence-heavy user flows do not build on the retired GeoPackage-only building data assumption or the narrower "Baskarta equals only `byggnad_l`" assumption.
 
 ### Story 3.0: Remove Admin Surface & Adopt Manual Venue Operations
 
@@ -1092,7 +1092,7 @@ So that every future story uses the real MVP data assumptions instead of the ret
 **Given** `building_geodata/byggnad_kn1480.gpkg` has no Z geometry, building-height attribute, roof geometry, or DSM data
 **When** the ADR and planning docs are updated
 **Then** they state that the GeoPackage is a 2D footprint and metadata source only
-**And** they adopt the MVP open-data path: 2D footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation
+**And** they adopt the MVP open-data path: 2D footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation
 **And** they define the MVP launch bbox as EPSG:3007 `x=140000..150000, y=6390000..6410000`
 
 **Given** future paid DSM/LOD2/LOD3 data may become available
@@ -1215,6 +1215,34 @@ So that SunnySeat does not overstate certainty when shadows are missing, low-qua
 
 > **Deferred items to incorporate from `_bmad-output/implementation-artifacts/deferred-work.md`** (the SM removes each entry from that file once carried into the drafted story):
 > - Preserve the Story 3.0.2 Round 3 deferred finding: an empty successful `get_buildings_near_point` response can still mean "no active caster coverage yet", not "fully sunny with high confidence". Story 3.0.5 must distinguish empty validated coverage from unknown/missing caster coverage and cap or mark confidence accordingly. *(Source: Story 3.0.2 code review Round 3, 2026-06-04; deferred-work audit 2026-06-04.)*
+
+### Story 3.0.7: Baskarta XYZ Inventory & Data Contract Realignment
+
+As a **maintainer**,
+I want Baskarta treated as a full XYZ object inventory with explicit preflight and source-geometry preservation,
+So that SunnySeat does not silently discard height-coded non-building objects or depend on a flattened export.
+
+**Acceptance Criteria:**
+
+**Given** Göteborgs Stad confirmed that the open Höjdmodell is DTM and that Baskarta contains XYZ object data
+**When** durable planning docs and geodata runbooks are updated
+**Then** they describe the MVP open-data path as 2D Lantmäteriet footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation
+**And** they state that `byggnad_l` is the first validated runtime building subset, not the complete Baskarta height strategy.
+
+**Given** Baskarta downloads may include multiple Z-aware point, line, and polygon layers
+**When** the preflight command runs against a Baskarta ZIP or extracted SHP directory
+**Then** it outputs layer inventory, geometry types, record counts, type distributions, Z ranges, missing-Z counts, and anomaly warnings
+**And** it fails loudly when expected Z-aware layers are flattened or missing Z values.
+
+**Given** future structure, vegetation, bridge, wall/fence, and obstruction-risk candidates may come from non-`byggnad_l` layers
+**When** the schema/import contract is extended
+**Then** source 3D geometry, source layer, source class/subclass, Z semantics notes, and collection/update metadata are preserved separately from the WGS84 runtime polygon geometry
+**And** non-building candidates remain inactive, diagnostics-only, or obstruction-risk-only until explicitly validated.
+
+**Design Gate Criteria:**
+- **Visual:** No standalone visual reference. Backend/data-contract story.
+- **Behaviour:** No consumer UI change and no runtime activation of new non-building caster classes.
+- **Visual validation:** Not applicable unless consumer UI files change.
 
 ### Story 3.0.6: UX Content for Sun Prediction Uncertainty
 

@@ -10,7 +10,7 @@ SunnySeat will adopt a combined open-data shadow-caster model for MVP:
 
 ```text
 2D Lantmäteriet building footprints
-+ Göteborg Baskarta 3D building linework
++ Göteborg Baskarta XYZ object inventory
 + Göteborg Höjdmodell 2022 DTM-derived ground elevation
 ```
 
@@ -43,7 +43,18 @@ Central retained coverage appears plausible across the launch clusters:
 - Nordstan: 394 included, p50/p90 height 14.6 / 22.5 m.
 - Linné: 601 included, p50/p90 height 14.4 / 23.8 m.
 
-The result is good enough to become the MVP open-data path if it is wrapped in a conservative schema, import pipeline, validation gates, and confidence semantics.
+The result is good enough to become the first MVP building-caster subset if it is wrapped in a conservative schema, import pipeline, validation gates, and confidence semantics.
+
+## 2026-06-05 Geodata Clarification
+
+Göteborgs Stad confirmed that the open Höjdmodell is a terrain model/DTM, not a DSM or surface model. They also clarified that Baskarta is the strongest open source for object heights because it contains XYZ coordinates, and that buildings, vegetation, bridges, and related objects may be height-coded as point, line, or polygon objects. The current `byggnad_l` pipeline remains a valid first building subset, but the durable source model is now **Baskarta XYZ object inventory**, not only "Baskarta 3D building linework."
+
+Implications:
+
+- Add a Baskarta layer/Z preflight before deriving or importing new source data.
+- Preserve source 3D geometry and source layer/class metadata, not only WGS84 runtime polygons.
+- Keep broader non-building layers inactive, diagnostics-only, or obstruction-risk-only until their Z semantics and object classes are validated.
+- Paid Göteborg 3D/LAS remains optional fallback/validation data, not an MVP prerequisite.
 
 ## Runtime Data Contract
 
@@ -63,6 +74,9 @@ source_footprint_fid
 source_object_type
 source_purpose
 source_geometry_type
+source_geom_3007
+source_layer
+source_subclass
 engine_geometry_method
 quality_score
 shadow_caster_tier
@@ -114,7 +128,7 @@ Source precedence is per logical object/source priority. Higher-priority sources
 1. Manual verified override
 2. Paid LOD2/LOD3 or surveyed roof geometry
 3. Paid classified DSM/LAS-derived object height
-4. Current open-data derived height: 2D Lantmäteriet footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation
+4. Current open-data derived height: 2D Lantmäteriet footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation
 5. OSM/heuristic fallback
 
 Every source tier, including manual overrides, paid sources, open-derived records, and OSM/heuristic fallbacks, must preserve source dataset, external ID or manual override ID, object metadata, source priority, import-batch traceability, and rollback path. Open-derived records remain useful as fallback coverage and as source-comparison data even when higher-priority sources arrive.
@@ -137,14 +151,15 @@ Trees, awnings, umbrellas, bridges, seasonal furniture, and temporary structures
 
 ## Consequences
 
-Epic 3 feature work is paused after Story 3.0. Stories 3.0.1-3.0.6 must complete before Story 3.1 proceeds:
+Epic 3 feature work is paused after Story 3.0. Stories 3.0.1-3.0.7 must complete before Story 3.1 proceeds. Story 3.0.7 is intentionally sequenced before Story 3.0.6 so user-facing uncertainty copy follows the corrected Baskarta XYZ model:
 
 1. Shadow Data ADR & Planning Realignment
 2. Shadow Caster Schema & RPC Contract
 3. Open Geodata Import Pipeline
 4. Geodata Validation & Spot-Check Gates
 5. Confidence Engine Data Coverage
-6. UX Content for Sun Prediction Uncertainty
+6. Baskarta XYZ Inventory & Data Contract Realignment
+7. UX Content for Sun Prediction Uncertainty
 
 This correction changes the backend/data foundation and confidence semantics, but does not change the customer-facing MVP promise. It narrows launch data scope to central Gothenburg and makes confidence more honest.
 

@@ -5,6 +5,8 @@ Project: SunnySeat
 Status: Approved by Rasmus for planning/tracker update
 Scope classification: Moderate backlog reorganization
 
+> **Supersession note (2026-06-05):** The Göteborgs Stad Geodata clarification refined this proposal. The open-data strategy is now described as 2D Lantmäteriet footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation. Baskarta `byggnad_l` remains the first validated runtime building subset, but it is not the full height/object strategy. Story 3.0.7 was added before Story 3.0.6 to implement Baskarta layer/Z preflight and source-geometry preservation. The original six-story wording below is retained as historical 2026-06-02 context.
+
 ## 1. Issue Summary
 
 The original backend/database plan assumed `building_geodata/byggnad_kn1480.gpkg` was sufficient building data for 2.5D shadow modelling.

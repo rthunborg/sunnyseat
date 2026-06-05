@@ -22,8 +22,8 @@ METRIC_CRS = "EPSG:3007"
 RUNTIME_GEOMETRY_CRS = "EPSG:4326"
 SOURCE_DATASET = "goteborg-open-derived-shadow-casters-v1"
 SOURCE_DESCRIPTION = (
-    "Lantmateriet building footprints + Goteborg Baskarta 3D byggnad_l "
-    "+ Goteborg Hojdmodell 2022 DTM"
+    "Lantmateriet building footprints + Goteborg Baskarta XYZ inventory "
+    "(current active building subset: byggnad_l) + Goteborg Hojdmodell 2022 DTM"
 )
 BUILDING_LINE_TYPES = {"Takkonturer", "Fasad", "Skärmtak"}
 MAJOR_TYPES = {"Bostad", "Verksamhet", "Samhällsfunktion", "Industri"}
@@ -953,7 +953,7 @@ def command_derive(args: argparse.Namespace) -> int:
         print("No footprints in bbox.", file=sys.stderr)
         return 1
 
-    print("Attaching Baskarta 3D building lines...", flush=True)
+    print("Attaching Baskarta XYZ building-line subset...", flush=True)
     line_summary = attach_baskarta_lines(footprints, baskarta_layer, bbox, args.match_buffer_m)
     raw_source_files = {
         "footprints": str(args.gpkg),

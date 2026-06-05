@@ -7,7 +7,7 @@ This tracked pipeline promotes the local prototype from `building_geodata/gotebo
 Raw inputs stay under `building_geodata/`, which is intentionally gitignored.
 
 - Footprints: `building_geodata/byggnad_kn1480.gpkg`
-- Baskarta 3D building linework: `building_geodata/goteborg-open/raw/baskarta/shp-extract/byggnad_l`
+- Göteborg Baskarta XYZ object inventory. The current Story 3.0.3 pipeline consumes the first validated building subset only: `building_geodata/goteborg-open/raw/baskarta/shp-extract/byggnad_l`.
 - DTM tiles:
   - `building_geodata/goteborg-open/raw/hojdmodell-2022/hojdmodell_2022_639_14.zip`
   - `building_geodata/goteborg-open/raw/hojdmodell-2022/hojdmodell_2022_640_14.zip`
@@ -124,6 +124,12 @@ qualityScore <= 0.65
 ```
 
 These records are excluded with reason `small-komplementbyggnad-low-quality`.
+
+## Baskarta XYZ Scope
+
+The Geodata clarification from 2026-06-05 means Baskarta should be treated as the primary open XYZ object inventory, not only as building linework. Layers such as `markdetaljer`, `kommunikation`, `markanvandning_p`, `anlaggningar_l`, and `anlaggningar_p` may contain Z-aware candidate objects for structures, vegetation, bridges, walls/fences, and obstruction-risk metadata.
+
+The current tracked pipeline intentionally remains building-only until Story 3.0.7 implements a layer/Z preflight and data-contract extension. Broader Baskarta layers must not become runtime-active shadow casters until their Z semantics, object classes, and validation evidence are known.
 
 ## Import Handoff
 

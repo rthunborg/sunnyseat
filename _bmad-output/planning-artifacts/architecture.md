@@ -28,7 +28,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 >
 > **Admin removal correction (2026-05-30):** SunnySeat has no admin page, admin venue CRUD/configuration API, admin authentication surface, venue candidate review queue, or admin-operated building upload surface. Venue and geometry changes are manual database insert/update work. Server-only Supabase service-role usage remains backend infrastructure, not admin functionality.
 >
-> **Shadow data trust correction (2026-06-02):** `building_geodata/byggnad_kn1480.gpkg` is a 2D footprint source only. MVP building shadows must use the combined central open-data path: 2D Lantmäteriet footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation. Runtime must read filtered active shadow-caster records only. Future paid DSM/LOD2/LOD3 sources override per object/source priority and do not replace the provenance model.
+> **Shadow data trust correction (2026-06-02, clarified 2026-06-05):** `building_geodata/byggnad_kn1480.gpkg` is a 2D footprint source only. MVP building shadows must use the combined central open-data path: 2D Lantmäteriet footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation. Runtime currently uses the first validated building subset from Baskarta `byggnad_l`; broader Z-aware Baskarta object layers must be preflighted, classified, and validated before runtime activation. Runtime must read filtered active shadow-caster records only. Future paid DSM/LOD2/LOD3 sources override per object/source priority and do not replace the provenance model.
 
 ## Project Context Analysis
 
@@ -239,10 +239,11 @@ npm install -D @axe-core/react eslint-plugin-jsx-a11y @next/bundle-analyzer vite
 
 **Authoritative MVP open-data path:**
 - `building_geodata/byggnad_kn1480.gpkg`: 2D footprints and object metadata only.
-- Göteborg Baskarta SHP `byggnad_l`: 3D linework, especially `Takkonturer`, `Fasad`, and `Skärmtak`.
+- Göteborg Baskarta XYZ object inventory: open source object geometry with Z-bearing point, line, and polygon layers. The current validated runtime building subset is SHP `byggnad_l`, especially `Takkonturer`, `Fasad`, and `Skärmtak`.
 - Göteborg Höjdmodell 2022: DTM/ground model in RH2000.
 - Derived height method: `max roof/facade/shelter Z - DTM ground Z at representative point`.
 - Runtime geometry: WGS84 polygon emitted for the existing TypeScript shadow engine.
+- Required preflight before broader use: layer inventory, geometry type, record count, type distribution, Z presence/range, missing-Z count, anomaly warnings, and fail-fast detection for flattened exports.
 
 **Runtime table contract:** create or migrate toward `shadow_casters` with at least:
 
@@ -260,6 +261,9 @@ source_footprint_fid
 source_object_type
 source_purpose
 source_geometry_type
+source_geom_3007
+source_layer
+source_subclass
 engine_geometry_method
 quality_score
 shadow_caster_tier
@@ -295,7 +299,7 @@ updated_at
 1. Manual verified override
 2. Paid LOD2/LOD3 or surveyed roof geometry
 3. Paid classified DSM/LAS-derived object height
-4. Current open-data derived height: 2D Lantmäteriet footprints + Göteborg Baskarta 3D linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation
+4. Current open-data derived height: 2D Lantmäteriet footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation
 5. OSM/heuristic fallback
 
 Every source tier, including manual overrides, paid sources, open-derived records, and OSM/heuristic fallbacks, must preserve source dataset, external ID or manual override ID, object metadata, source priority, import-batch traceability, and rollback path. Open-derived records remain fallback coverage and source-comparison data even when higher-priority sources arrive.
@@ -1039,7 +1043,7 @@ All server state lives in the TanStack Query cache. No duplicating API data into
 
 **Data Flow — Shadow Caster Lookup (Backend):**
 
-1. Import pipeline derives candidate heights from 2D footprints + Baskarta 3D linework + DTM ground elevation.
+1. Import pipeline derives current building candidate heights from 2D footprints + the validated Baskarta `byggnad_l` subset + DTM ground elevation; broader Baskarta XYZ layers require preflight/classification before use.
 2. Validation/filtering splits candidates into include, review, and exclude.
 3. Import stores include records as runtime-active `shadow_casters`; review records are inactive; excluded records remain diagnostics.
 4. `calculateVenueShadow` calls `get_buildings_near_point` compatibility RPC for nearby runtime-active casters.

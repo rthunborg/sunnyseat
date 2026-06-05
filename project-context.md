@@ -41,7 +41,7 @@ A backend API application that helps people in Gothenburg find outdoor venue sea
 
 - **Backend foundation, sun/shadow engine, weather integration, and platform migration are complete, but the building/shadow data contract is under correction.** The old assumption that `byggnad_kn1480.gpkg` alone supplied sufficient shadow-caster data is retired.
 - **Front-end rebuild Epic 1 and Epic 2 are complete.** Epic 3 has started only through Story 3.0, which removed the admin surface and adopted manual venue operations.
-- **Epic 3 feature work is paused before Story 3.1.** A six-story "Epic 3 Prelude: Shadow Data Trust Realignment" block must be completed first: ADR/planning realignment, schema/RPC contract, import pipeline, geodata validation gates, confidence engine coverage semantics, and uncertainty copy.
+- **Epic 3 feature work is paused before Story 3.1.** A seven-story "Epic 3 Prelude: Shadow Data Trust Realignment" block must be completed first: ADR/planning realignment, schema/RPC contract, import pipeline, geodata validation gates, confidence engine coverage semantics, Baskarta XYZ inventory/data-contract realignment, and uncertainty copy.
 - **Admin operations are retired from active scope.** Venue changes and geodata maintenance happen through reviewed direct database/import operations, not an admin UI/API.
 
 ---
@@ -196,5 +196,5 @@ This table is read by `scripts/story-review.sh` and `scripts/visual-validate.sh`
 - **Timezone:** Europe/Stockholm (CET/CEST, UTC handled server-side)
 - **Sun season:** March–October (useful outdoor sun hours)
 - **MVP geodata bbox:** EPSG:3007 `x=140000..150000, y=6390000..6410000`
-- **Building/shadow data:** 2D Lantmäteriet footprints + Göteborg Baskarta 3D building linework + Göteborg Höjdmodell 2022 DTM-derived ground elevation. Runtime must use filtered/active shadow-caster records only; review/quarantine records are not runtime-active until spot-checked.
+- **Building/shadow data:** 2D Lantmäteriet footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation. Current runtime building casters are derived from the first validated Baskarta subset, `byggnad_l` roof/facade/shelter linework; broader Baskarta XYZ layers must be preflighted, classified, and kept inactive or low-confidence until validated. Runtime must use filtered/active shadow-caster records only; review/quarantine records are not runtime-active until spot-checked.
 - **Weather source:** Met.no (primary, free, Norwegian Meteorological Institute)
