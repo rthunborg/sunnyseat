@@ -50,6 +50,8 @@ Run from the repository root in PowerShell.
 
 ```powershell
 python scripts/geodata/shadow_caster_pipeline.py derive
+python scripts/geodata/shadow_caster_pipeline.py preflight-baskarta --input building_geodata/goteborg-open/raw/baskarta.zip
+python scripts/geodata/shadow_caster_pipeline.py preflight-baskarta --input building_geodata/goteborg-open/raw/baskarta/shp-extract
 python scripts/geodata/shadow_caster_pipeline.py validate
 python scripts/geodata/shadow_caster_pipeline.py filter
 python scripts/geodata/shadow_caster_pipeline.py emit-import
@@ -70,6 +72,8 @@ All large generated outputs default to `building_geodata/goteborg-open/derived/`
 
 Candidate derivation:
 
+- `baskarta_preflight.json`
+- `baskarta_preflight.md`
 - `buildings_central_639_14_640_14_height_candidates.geojsonl`
 - `buildings_central_639_14_640_14_height_candidates.summary.json`
 
@@ -129,7 +133,9 @@ These records are excluded with reason `small-komplementbyggnad-low-quality`.
 
 The Geodata clarification from 2026-06-05 means Baskarta should be treated as the primary open XYZ object inventory, not only as building linework. Layers such as `markdetaljer`, `kommunikation`, `markanvandning_p`, `anlaggningar_l`, and `anlaggningar_p` may contain Z-aware candidate objects for structures, vegetation, bridges, walls/fences, and obstruction-risk metadata.
 
-The current tracked pipeline intentionally remains building-only until Story 3.0.7 implements a layer/Z preflight and data-contract extension. Broader Baskarta layers must not become runtime-active shadow casters until their Z semantics, object classes, and validation evidence are known.
+The current tracked pipeline now includes a layer/Z preflight and source-geometry data-contract extension, but runtime activation remains building-only for the first validated `byggnad_l` subset. Broader Baskarta layers must not become runtime-active shadow casters until their Z semantics, object classes, and validation evidence are known.
+
+Run `preflight-baskarta` before deriving or importing new Baskarta source data. It accepts either a Baskarta ZIP or an extracted SHP directory, inventories every SHP layer, and writes deterministic JSON plus Markdown under `building_geodata/goteborg-open/derived/` by default. The report includes layer name, geometry type, record count, available fields, common type-field distributions (`typ`, `obkod`, `objekttyp`, and related fields), Z min/max, missing-Z counts, non-finite Z counts, empty-geometry counts, expected-layer presence, and anomaly warnings. Known expected Z-aware layers include `byggnad_l`, `markdetaljer`, `kommunikation`, `markanvandning_p`, `anlaggningar_l`, and `anlaggningar_p`; if one of those layers is present but flattened or has missing/unusable Z, the command exits non-zero.
 
 ## Import Handoff
 

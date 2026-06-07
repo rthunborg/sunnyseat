@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import shutil
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 from scripts.geodata import shadow_caster_pipeline as pipeline
@@ -13,6 +15,7 @@ from scripts.geodata import shadow_caster_pipeline as pipeline
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURE = ROOT / "scripts" / "geodata" / "testdata" / "shadow_caster_candidates.fixture.geojsonl"
 SPOT_CHECK_FIXTURE = ROOT / "scripts" / "geodata" / "testdata" / "spot_checks.fixture.jsonl"
+BASKARTA_PREFLIGHT_FIXTURE = ROOT / "scripts" / "geodata" / "testdata" / "baskarta_preflight_layers.fixture.json"
 
 
 class ShadowCasterPipelineTest(unittest.TestCase):
@@ -70,6 +73,47 @@ class ShadowCasterPipelineTest(unittest.TestCase):
                 else:
                     rows.append(self.make_spot_check_row(cluster_id, index))
         return rows
+
+    def write_baskarta_fixture_layers(
+        self,
+        *layer_names: str,
+        target: Path | None = None,
+    ) -> Path:
+        import shapefile
+
+        fixture = json.loads(BASKARTA_PREFLIGHT_FIXTURE.read_text(encoding="utf-8"))
+        target = target or (self.tmpdir / "baskarta")
+        target.mkdir(parents=True, exist_ok=True)
+        selected = set(layer_names)
+        for layer in fixture:
+            if selected and layer["name"] not in selected:
+                continue
+            shape_type = getattr(shapefile, layer["shapeType"])
+            writer = shapefile.Writer(str(target / layer["name"]), shapeType=shape_type)
+            for field in layer["fields"]:
+                writer.field(*field)
+            for record in layer["records"]:
+                points = record["points"]
+                if layer["shapeType"] == "POINTZ":
+                    writer.pointz(*points[0])
+                elif layer["shapeType"] == "POLYLINEZ":
+                    writer.linez([points])
+                elif layer["shapeType"] == "POLYGONZ":
+                    writer.polyz([points])
+                elif layer["shapeType"] == "POLYLINE":
+                    writer.line([[point[:2] for point in points]])
+                else:
+                    raise AssertionError(f"Unhandled fixture shape type {layer['shapeType']}")
+                writer.record(**record["values"])
+            writer.close()
+        return target
+
+    def zip_baskarta_fixture(self, source: Path) -> Path:
+        archive = self.tmpdir / "baskarta.zip"
+        with zipfile.ZipFile(archive, "w") as zip_file:
+            for path in sorted(source.iterdir()):
+                zip_file.write(path, arcname=path.name)
+        return archive
 
     def test_filter_decisions_include_review_and_low_quality_komplementbyggnad_exclude(self) -> None:
         features = pipeline.load_jsonl(self.source)
@@ -224,6 +268,156 @@ class ShadowCasterPipelineTest(unittest.TestCase):
         self.assertIn("dtmTileIds", row["source_object_metadata"])
         self.assertIn("rawSourceFiles", row["provenance_metadata"])
         self.assertIn("matchBufferM", row["provenance_metadata"])
+
+    def test_shadow_casters_contract_mapping_preserves_source_3d_geometry_separately(self) -> None:
+        feature = pipeline.enriched_feature(
+            pipeline.load_jsonl(self.source)[0],
+            "include",
+            [],
+        )
+        feature["properties"]["sourceGeom3007"] = {
+            "type": "LineString",
+            "coordinates": [
+                [140000.0, 6390000.0, 24.5],
+                [140002.0, 6390002.0, 26.25],
+            ],
+        }
+        feature["properties"]["sourceLayer"] = "byggnad_l"
+        feature["properties"]["sourceSubclass"] = "Takkonturer"
+
+        row = pipeline.map_feature_to_shadow_caster_row(feature, "fixture-batch")
+
+        self.assertEqual(row["geometry"]["type"], "Polygon")
+        self.assertEqual(row["source_geom_3007"]["type"], "LineString")
+        self.assertEqual(row["source_geom_3007"]["coordinates"][0][2], 24.5)
+        self.assertEqual(row["source_layer"], "byggnad_l")
+        self.assertEqual(row["source_subclass"], "Takkonturer")
+        self.assertIn("RH2000", row["z_semantics"])
+        self.assertIn("rawSourceFiles", row["source_collection_metadata"])
+        self.assertIn("sourceRefresh", row["source_update_metadata"])
+
+    def test_candidate_output_emits_matched_baskarta_source_z_geometry(self) -> None:
+        from shapely.geometry import LineString, Polygon
+
+        class FakeSampler:
+            def sample(self, _x: float, _y: float) -> float:
+                return 10.0
+
+        footprint = pipeline.Footprint(
+            fid=42,
+            external_id="derived-source-z",
+            object_type="Bostad",
+            purpose="Bostad",
+            geom_3007=Polygon([
+                (140000.0, 6390000.0),
+                (140010.0, 6390000.0),
+                (140010.0, 6390010.0),
+                (140000.0, 6390010.0),
+                (140000.0, 6390000.0),
+            ]),
+            area_m2=100.0,
+        )
+        footprint.lines_by_type["Takkonturer"].extend([24.5, 26.25])
+        footprint.source_lines_by_type["Takkonturer"].append(LineString([
+            (140000.0, 6390000.0, 24.5),
+            (140010.0, 6390000.0, 26.25),
+        ]))
+        footprint.matched_line_count = 1
+        output = self.tmpdir / "derived-candidates.geojsonl"
+        summary = self.tmpdir / "derived-candidates.summary.json"
+
+        result = pipeline.emit_candidate_outputs(
+            [footprint],
+            FakeSampler(),
+            output,
+            summary,
+            pipeline.MVP_BBOX_3007,
+            {"sourceFiles": pipeline.DEFAULT_RAW_SOURCE_FILES},
+        )
+
+        self.assertEqual(result["stats"]["emitted"], 1)
+        feature = pipeline.load_jsonl(output)[0]
+        self.assertEqual(feature["properties"]["sourceGeometryType"], "LineStringZ")
+        self.assertEqual(feature["properties"]["sourceGeom3007"]["coordinates"][0][2], 24.5)
+
+        row = pipeline.map_feature_to_shadow_caster_row(feature, "fixture-batch")
+        self.assertIsNotNone(row)
+        self.assertEqual(row["source_geom_3007"]["coordinates"][1][2], 26.25)
+        self.assertFalse(any(
+            "source_geom_3007" in error
+            for error in pipeline.validate_rows([row], "fixture-batch")
+        ))
+
+    def test_artifact_validation_rejects_flattened_source_3d_geometry(self) -> None:
+        feature = pipeline.enriched_feature(
+            pipeline.load_jsonl(self.source)[0],
+            "include",
+            [],
+        )
+        feature["properties"]["sourceGeom3007"] = {
+            "type": "LineString",
+            "coordinates": [
+                [140000.0, 6390000.0],
+                [140002.0, 6390002.0],
+            ],
+        }
+        feature["properties"]["sourceLayer"] = "byggnad_l"
+        feature["properties"]["sourceSubclass"] = "Takkonturer"
+
+        row = pipeline.map_feature_to_shadow_caster_row(feature, "fixture-batch")
+        errors = pipeline.validate_rows([row], "fixture-batch")
+
+        self.assertTrue(any("source_geom_3007 position 0 is missing Z" in error for error in errors))
+
+    def test_artifact_validation_rejects_active_byggnad_l_without_source_geometry(self) -> None:
+        feature = pipeline.enriched_feature(
+            pipeline.load_jsonl(self.source)[0],
+            "include",
+            [],
+        )
+        feature["properties"].pop("sourceGeom3007", None)
+
+        row = pipeline.map_feature_to_shadow_caster_row(feature, "fixture-batch")
+        errors = pipeline.validate_rows([row], "fixture-batch")
+
+        self.assertTrue(any("active byggnad_l row requires source_geom_3007" in error for error in errors))
+
+    def test_artifact_validation_rejects_source_geometry_outside_epsg3007_bbox(self) -> None:
+        feature = pipeline.enriched_feature(
+            pipeline.load_jsonl(self.source)[0],
+            "include",
+            [],
+        )
+        feature["properties"]["sourceGeom3007"] = {
+            "type": "LineString",
+            "coordinates": [
+                [11.96, 57.70, 24.5],
+                [11.97, 57.71, 26.25],
+            ],
+        }
+
+        row = pipeline.map_feature_to_shadow_caster_row(feature, "fixture-batch")
+        errors = pipeline.validate_rows([row], "fixture-batch")
+
+        self.assertTrue(any("outside EPSG:3007 MVP bbox" in error for error in errors))
+
+    def test_shadow_casters_contract_keeps_non_building_source_layers_inactive(self) -> None:
+        feature = pipeline.enriched_feature(
+            pipeline.load_jsonl(self.source)[0],
+            "include",
+            [],
+        )
+        feature["properties"]["sourceLayer"] = "markdetaljer"
+        feature["properties"]["sourceSubclass"] = "Trad"
+        feature["properties"]["casterClass"] = "vegetation"
+
+        row = pipeline.map_feature_to_shadow_caster_row(feature, "fixture-batch")
+
+        self.assertEqual(row["filter_decision"], "include")
+        self.assertEqual(row["source_layer"], "markdetaljer")
+        self.assertEqual(row["source_subclass"], "Trad")
+        self.assertEqual(row["caster_class"], "vegetation")
+        self.assertFalse(row["active"])
 
     def test_sql_handoff_escapes_literals_and_replaces_existing_batch_rows(self) -> None:
         sql_path = self.tmpdir / "handoff.sql"
@@ -446,6 +640,177 @@ class ShadowCasterPipelineTest(unittest.TestCase):
 
         self.assertEqual(summary["status"], "fail")
         self.assertTrue(any("duplicate spot_check_id" in error for error in errors))
+
+    def test_preflight_baskarta_reports_z_layers_type_distributions_and_markdown(self) -> None:
+        source = self.write_baskarta_fixture_layers("byggnad_l", "markdetaljer", "anlaggningar_p")
+        output_json = self.tmpdir / "preflight.json"
+        output_md = self.tmpdir / "preflight.md"
+        args = argparse.Namespace(input=str(source), output_json=str(output_json), output_md=str(output_md))
+
+        self.assertEqual(pipeline.command_preflight_baskarta(args), 0)
+        first_json = output_json.read_text(encoding="utf-8")
+        self.assertEqual(pipeline.command_preflight_baskarta(args), 0)
+        self.assertEqual(output_json.read_text(encoding="utf-8"), first_json)
+
+        report = json.loads(first_json)
+        self.assertEqual(report["status"], "pass")
+        self.assertEqual([layer["layerName"] for layer in report["layers"]], ["anlaggningar_p", "byggnad_l", "markdetaljer"])
+        byggnad = next(layer for layer in report["layers"] if layer["layerName"] == "byggnad_l")
+        self.assertEqual(byggnad["geometryType"], "POLYLINEZ")
+        self.assertEqual(byggnad["recordCount"], 2)
+        self.assertEqual(byggnad["typeDistributions"]["typ"], {"Fasad": 1, "Takkonturer": 1})
+        self.assertEqual(byggnad["zStats"]["min"], 12.0)
+        self.assertEqual(byggnad["zStats"]["max"], 26.25)
+        self.assertEqual(byggnad["missingZCount"], 0)
+        self.assertIn("| byggnad_l | POLYLINEZ | 2 | 12.0..26.25 | 0 |", output_md.read_text(encoding="utf-8"))
+
+    def test_preflight_baskarta_accepts_zip_input(self) -> None:
+        source = self.write_baskarta_fixture_layers("byggnad_l", "markdetaljer", "anlaggningar_p")
+        archive = self.zip_baskarta_fixture(source)
+        output_json = self.tmpdir / "zip-preflight.json"
+        output_md = self.tmpdir / "zip-preflight.md"
+
+        self.assertEqual(pipeline.command_preflight_baskarta(argparse.Namespace(
+            input=str(archive),
+            output_json=str(output_json),
+            output_md=str(output_md),
+        )), 0)
+
+        report = json.loads(output_json.read_text(encoding="utf-8"))
+        self.assertEqual(report["status"], "pass")
+        self.assertEqual(report["inputKind"], "zip")
+        self.assertEqual(len(report["layers"]), 3)
+
+    def test_preflight_baskarta_fails_flattened_expected_layer(self) -> None:
+        source = self.write_baskarta_fixture_layers("kommunikation")
+        output_json = self.tmpdir / "flattened-preflight.json"
+        output_md = self.tmpdir / "flattened-preflight.md"
+
+        self.assertEqual(pipeline.command_preflight_baskarta(argparse.Namespace(
+            input=str(source),
+            output_json=str(output_json),
+            output_md=str(output_md),
+        )), 1)
+
+        report = json.loads(output_json.read_text(encoding="utf-8"))
+        self.assertEqual(report["status"], "fail")
+        self.assertTrue(any("kommunikation" in error and "flattened" in error for error in report["errors"]))
+        self.assertIn("flattened", output_md.read_text(encoding="utf-8"))
+
+    def test_preflight_baskarta_checks_expected_layers_case_insensitively(self) -> None:
+        import shapefile
+
+        source = self.tmpdir / "case-baskarta"
+        source.mkdir()
+        writer = shapefile.Writer(str(source / "Byggnad_L"), shapeType=shapefile.POLYLINE)
+        writer.field("typ", "C", 40)
+        writer.line([[[140000.0, 6390000.0], [140002.0, 6390002.0]]])
+        writer.record(typ="Takkonturer")
+        writer.close()
+        output_json = self.tmpdir / "case-preflight.json"
+        output_md = self.tmpdir / "case-preflight.md"
+
+        self.assertEqual(pipeline.command_preflight_baskarta(argparse.Namespace(
+            input=str(source),
+            output_json=str(output_json),
+            output_md=str(output_md),
+        )), 1)
+
+        report = json.loads(output_json.read_text(encoding="utf-8"))
+        self.assertIn("byggnad_l", report["expectedZLayers"]["present"])
+        self.assertTrue(any("Byggnad_L" in error and "flattened" in error for error in report["errors"]))
+
+    def test_preflight_baskarta_fails_expected_layer_with_missing_z_values(self) -> None:
+        import shapefile
+
+        source = self.tmpdir / "missing-z-baskarta"
+        source.mkdir()
+        writer = shapefile.Writer(str(source / "byggnad_l"), shapeType=shapefile.POLYLINEZ)
+        writer.field("typ", "C", 40)
+        writer.linez([[
+            [140000.0, 6390000.0, math.nan],
+            [140002.0, 6390002.0, 26.25],
+        ]])
+        writer.record(typ="Takkonturer")
+        writer.close()
+        output_json = self.tmpdir / "missing-z-preflight.json"
+        output_md = self.tmpdir / "missing-z-preflight.md"
+
+        self.assertEqual(pipeline.command_preflight_baskarta(argparse.Namespace(
+            input=str(source),
+            output_json=str(output_json),
+            output_md=str(output_md),
+        )), 1)
+
+        report = json.loads(output_json.read_text(encoding="utf-8"))
+        byggnad = next(layer for layer in report["layers"] if layer["layerName"] == "byggnad_l")
+        self.assertEqual(byggnad["missingZCount"], 1)
+        self.assertEqual(byggnad["nonFiniteZCount"], 1)
+        self.assertTrue(any("missing Z values" in error for error in report["errors"]))
+
+    def test_preflight_baskarta_discovers_uppercase_shp_extensions(self) -> None:
+        source = self.write_baskarta_fixture_layers("byggnad_l")
+        for suffix in [".shp", ".shx", ".dbf"]:
+            original = source / f"byggnad_l{suffix}"
+            temporary = source / f"byggnad_l_temp{suffix}"
+            upper = source / f"byggnad_l{suffix.upper()}"
+            original.rename(temporary)
+            temporary.rename(upper)
+        output_json = self.tmpdir / "uppercase-preflight.json"
+        output_md = self.tmpdir / "uppercase-preflight.md"
+
+        self.assertEqual(pipeline.command_preflight_baskarta(argparse.Namespace(
+            input=str(source),
+            output_json=str(output_json),
+            output_md=str(output_md),
+        )), 0)
+
+        report = json.loads(output_json.read_text(encoding="utf-8"))
+        self.assertEqual([layer["layerName"] for layer in report["layers"]], ["byggnad_l"])
+
+    def test_preflight_baskarta_reports_unreadable_layers_without_crashing(self) -> None:
+        source = self.tmpdir / "broken-baskarta"
+        source.mkdir()
+        (source / "byggnad_l.shp").write_bytes(b"not a shapefile")
+        output_json = self.tmpdir / "broken-preflight.json"
+        output_md = self.tmpdir / "broken-preflight.md"
+
+        self.assertEqual(pipeline.command_preflight_baskarta(argparse.Namespace(
+            input=str(source),
+            output_json=str(output_json),
+            output_md=str(output_md),
+        )), 1)
+
+        report = json.loads(output_json.read_text(encoding="utf-8"))
+        self.assertEqual(report["status"], "fail")
+        self.assertEqual(report["layers"][0]["geometryType"], "UNREADABLE")
+        self.assertTrue(any("cannot read SHP layer" in error for error in report["errors"]))
+        self.assertIn("cannot read SHP layer", output_md.read_text(encoding="utf-8"))
+
+    def test_preflight_baskarta_requires_typ_for_byggnad_runtime_classification(self) -> None:
+        import shapefile
+
+        source = self.tmpdir / "missing-typ-baskarta"
+        source.mkdir()
+        writer = shapefile.Writer(str(source / "byggnad_l"), shapeType=shapefile.POLYLINEZ)
+        writer.field("klass", "C", 40)
+        writer.linez([[
+            [140000.0, 6390000.0, 24.5],
+            [140002.0, 6390002.0, 26.25],
+        ]])
+        writer.record(klass="Takkonturer")
+        writer.close()
+        output_json = self.tmpdir / "missing-typ-preflight.json"
+        output_md = self.tmpdir / "missing-typ-preflight.md"
+
+        self.assertEqual(pipeline.command_preflight_baskarta(argparse.Namespace(
+            input=str(source),
+            output_json=str(output_json),
+            output_md=str(output_md),
+        )), 1)
+
+        report = json.loads(output_json.read_text(encoding="utf-8"))
+        self.assertTrue(any("requires typ field" in error for error in report["errors"]))
 
 
 if __name__ == "__main__":

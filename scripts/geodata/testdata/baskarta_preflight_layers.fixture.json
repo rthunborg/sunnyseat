@@ -1,0 +1,55 @@
+[
+  {
+    "fields": [["typ", "C", 40]],
+    "name": "byggnad_l",
+    "records": [
+      {
+        "points": [[140000.0, 6390000.0, 24.5], [140002.0, 6390002.0, 26.25]],
+        "values": {"typ": "Takkonturer"}
+      },
+      {
+        "points": [[140010.0, 6390010.0, 12.0], [140012.0, 6390012.0, 13.5]],
+        "values": {"typ": "Fasad"}
+      }
+    ],
+    "shapeType": "POLYLINEZ"
+  },
+  {
+    "fields": [["objekttyp", "C", 40]],
+    "name": "markdetaljer",
+    "records": [
+      {
+        "points": [[140020.0, 6390020.0, 7.25]],
+        "values": {"objekttyp": "Trad"}
+      }
+    ],
+    "shapeType": "POINTZ"
+  },
+  {
+    "fields": [["obkod", "C", 40]],
+    "name": "anlaggningar_p",
+    "records": [
+      {
+        "points": [
+          [140030.0, 6390030.0, 18.0],
+          [140034.0, 6390030.0, 19.0],
+          [140034.0, 6390034.0, 20.0],
+          [140030.0, 6390030.0, 18.0]
+        ],
+        "values": {"obkod": "Bro"}
+      }
+    ],
+    "shapeType": "POLYGONZ"
+  },
+  {
+    "fields": [["typ", "C", 40]],
+    "name": "kommunikation",
+    "records": [
+      {
+        "points": [[140040.0, 6390040.0], [140042.0, 6390042.0]],
+        "values": {"typ": "Gata"}
+      }
+    ],
+    "shapeType": "POLYLINE"
+  }
+]

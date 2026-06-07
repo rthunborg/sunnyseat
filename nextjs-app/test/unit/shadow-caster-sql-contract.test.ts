@@ -45,6 +45,12 @@ describe('shadow caster SQL contract handoff', () => {
       'source_object_type',
       'source_purpose',
       'source_geometry_type',
+      'source_geom_3007',
+      'source_layer',
+      'source_subclass',
+      'z_semantics',
+      'source_collection_metadata',
+      'source_update_metadata',
       'source_object_metadata',
       'engine_geometry_method',
       'runtime_geometry_crs',
@@ -88,10 +94,16 @@ describe('shadow caster SQL contract handoff', () => {
     expect(normalized).toContain('st_covers(st_makeenvelope(-180, -90, 180, 90, 4326), geometry)');
     expect(normalized).toContain('shadow_casters_active_requires_mvp_caster_class');
     expect(normalized).toContain("caster_class in ('building', 'structure', 'manual_override')");
+    expect(normalized).toContain('shadow_casters_active_building_requires_byggnad_l_source');
+    expect(normalized).toContain("caster_class <> 'building' or source_layer = 'byggnad_l'");
+    expect(normalized).toContain('shadow_casters_active_byggnad_l_requires_source_geom');
+    expect(normalized).toContain("source_layer is distinct from 'byggnad_l' or source_geom_3007 is not null");
     expect(normalized).toContain("nullif(btrim(source_dataset), '') is not null");
     expect(normalized).toContain('alter column filter_decision set not null');
     expect(normalized).toContain('alter column active set not null');
     expect(normalized).toContain('using gist ((geometry::geography))');
+    expect(normalized).toContain('source_geom_3007 geometry(geometryz, 3007)');
+    expect(normalized).toContain('idx_shadow_casters_source_geom_3007');
     expect(normalized).toContain('idx_shadow_casters_runtime_priority');
   });
 
@@ -109,6 +121,8 @@ describe('shadow caster SQL contract handoff', () => {
     expect(normalized).toContain("height_m::text in ('nan', 'infinity', '-infinity')");
     expect(normalized).toContain("caster_class = 'vegetation'");
     expect(normalized).toContain("caster_class = 'structure'");
+    expect(normalized).toContain("source_layer is distinct from 'byggnad_l'");
+    expect(normalized).toContain('source_geom_3007 is null');
     expect(normalized).toContain("source_flags @> array['manually_approved_runtime_structure']::text[]");
 
     const cleanupIndex = normalized.indexOf('existing-table data normalization');
@@ -170,7 +184,10 @@ describe('shadow caster SQL contract handoff', () => {
     expect(normalized).toContain('st_isvalid(sc.geometry)');
     expect(normalized).toContain('st_covers(st_makeenvelope(-180, -90, 180, 90, 4326), sc.geometry)');
     expect(normalized).toContain("nullif(btrim(sc.source_dataset), '') is not null");
-    expect(normalized).toContain("sc.caster_class in ('building', 'manual_override')");
+    expect(normalized).toContain("sc.caster_class = 'building'");
+    expect(normalized).toContain("sc.source_layer = 'byggnad_l'");
+    expect(normalized).toContain('sc.source_geom_3007 is not null');
+    expect(normalized).toContain("sc.caster_class = 'manual_override'");
     expect(normalized).toContain("sc.caster_class = 'structure'");
     expect(normalized).not.toMatch(/runtime_classes[^;]*vegetation/);
     expect(normalized).not.toMatch(/sc\.caster_class\s+in\s*\([^)]*vegetation/);
@@ -212,5 +229,31 @@ describe('shadow caster SQL contract handoff', () => {
     expect(normalized).toContain('pg_get_function_arguments');
     expect(normalized).toContain('routine_privileges');
     expect(normalized).toContain('select * from public.get_buildings_near_point');
+  });
+
+  it('preserves source 3D geometry and classification separately from runtime geometry', () => {
+    expect(normalized).toContain(
+      'source_geom_3007 geometry(geometryz, 3007)'
+    );
+    expect(normalized).toContain('comment on column public.shadow_casters.source_geom_3007');
+    expect(normalized).toContain('source 3d geometry');
+    expect(normalized).toContain('comment on column public.shadow_casters.source_layer');
+    expect(normalized).toContain('comment on column public.shadow_casters.z_semantics');
+    expect(normalized).toContain('source_collection_metadata');
+    expect(normalized).toContain('source_update_metadata');
+    expect(normalized).toContain("payload->>'source_layer'");
+    expect(normalized).toContain("payload->>'source_subclass'");
+    expect(normalized).toContain("payload->>'z_semantics'");
+    expect(normalized).toContain("payload->'source_collection_metadata'");
+    expect(normalized).toContain("payload->'source_update_metadata'");
+    expect(normalized).toContain("payload->>'source_geom_3007'");
+    expect(normalized).toContain(
+      "st_setsrid(st_geomfromgeojson(payload->>'source_geom_3007'), 3007)::geometry(geometryz, 3007)"
+    );
+    expect(normalized).not.toContain('st_force3d');
+    expect(normalized.indexOf('comment on column public.shadow_casters.source_geom_3007')).toBeGreaterThan(
+      normalized.indexOf('alter table public.shadow_casters add column if not exists source_geom_3007')
+    );
+    expect(normalized).toContain('geometry remains the wgs84 runtime polygon');
   });
 });

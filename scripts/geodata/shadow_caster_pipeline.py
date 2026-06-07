@@ -8,6 +8,7 @@ import numbers
 import sqlite3
 import statistics
 import sys
+import tempfile
 import zipfile
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -25,6 +26,11 @@ SOURCE_DESCRIPTION = (
     "Lantmateriet building footprints + Goteborg Baskarta XYZ inventory "
     "(current active building subset: byggnad_l) + Goteborg Hojdmodell 2022 DTM"
 )
+SOURCE_Z_SEMANTICS = (
+    "Baskarta XYZ source Z values are RH2000 object elevations; height_m is derived as "
+    "roof/facade/shelter source Z minus Goteborg Hojdmodell 2022 DTM ground_z_rh2000."
+)
+SOURCE_REFRESH_POLICY = "manual-reviewed-geodata-refresh"
 BUILDING_LINE_TYPES = {"Takkonturer", "Fasad", "Skärmtak"}
 MAJOR_TYPES = {"Bostad", "Verksamhet", "Samhällsfunktion", "Industri"}
 CLUSTER_RADIUS_M = 650.0
@@ -99,6 +105,41 @@ DEFAULT_RAW_SOURCE_FILES = {
         (DEFAULT_ROOT / "raw" / "hojdmodell-2022" / "hojdmodell_2022_640_14.zip").as_posix(),
     ],
 }
+BASKARTA_EXPECTED_Z_LAYERS = {
+    "byggnad_l",
+    "markdetaljer",
+    "kommunikation",
+    "markanvandning_p",
+    "anlaggningar_l",
+    "anlaggningar_p",
+}
+BASKARTA_COMMON_TYPE_FIELDS = (
+    "typ",
+    "obkod",
+    "objekttyp",
+    "objektstyp",
+    "detaljtyp",
+    "klass",
+    "subtyp",
+)
+BASKARTA_BUILDING_RUNTIME_TYPES = BUILDING_LINE_TYPES
+BASKARTA_Z_SHAPE_TYPES = {11, 13, 15, 18, 31}
+BASKARTA_SHAPE_TYPE_NAMES = {
+    0: "NULL",
+    1: "POINT",
+    3: "POLYLINE",
+    5: "POLYGON",
+    8: "MULTIPOINT",
+    11: "POINTZ",
+    13: "POLYLINEZ",
+    15: "POLYGONZ",
+    18: "MULTIPOINTZ",
+    21: "POINTM",
+    23: "POLYLINEM",
+    25: "POLYGONM",
+    28: "MULTIPOINTM",
+    31: "MULTIPATCH",
+}
 
 
 @dataclass
@@ -111,6 +152,7 @@ class Footprint:
     geom_4326: Any | None = None
     area_m2: float = 0.0
     lines_by_type: dict[str, list[float]] = field(default_factory=lambda: defaultdict(list))
+    source_lines_by_type: dict[str, list[Any]] = field(default_factory=lambda: defaultdict(list))
     matched_line_count: int = 0
 
     @property
@@ -253,6 +295,284 @@ def source_file_checksums(gpkg_path: Path, baskarta_layer: Path, dtm_zips: list[
     return dict(sorted(checksums.items()))
 
 
+def shape_type_name(shape_type: int) -> str:
+    return BASKARTA_SHAPE_TYPE_NAMES.get(shape_type, f"UNKNOWN_{shape_type}")
+
+
+def shape_z_values(shape: Any) -> tuple[list[float], int]:
+    raw_z = getattr(shape, "z", None)
+    if raw_z is None:
+        return [], 0
+    raw_values = (
+        raw_z
+        if hasattr(raw_z, "__iter__") and not isinstance(raw_z, (str, bytes))
+        else [raw_z]
+    )
+    finite: list[float] = []
+    non_finite = 0
+    for value in raw_values:
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            non_finite += 1
+            continue
+        if math.isfinite(number):
+            finite.append(number)
+        else:
+            non_finite += 1
+    return finite, non_finite
+
+
+def safe_extract_zip(archive_path: Path, target: Path) -> None:
+    target_resolved = target.resolve()
+    with zipfile.ZipFile(archive_path) as archive:
+        for member in archive.infolist():
+            member_target = (target / member.filename).resolve()
+            if target_resolved not in [member_target, *member_target.parents]:
+                raise ValueError(f"Unsafe ZIP path outside target: {member.filename}")
+            archive.extract(member, target)
+
+
+def preflight_baskarta_layer(root: Path, layer_path: Path) -> dict[str, Any]:
+    import shapefile
+
+    reader = shapefile.Reader(str(layer_path))
+    try:
+        fields = [str(field[0]) for field in reader.fields[1:]]
+        field_lookup = {field.lower(): field for field in fields}
+        type_fields = [field_lookup[name] for name in BASKARTA_COMMON_TYPE_FIELDS if name in field_lookup]
+        type_distributions: dict[str, Counter[str]] = {field: Counter() for field in type_fields}
+        finite_z: list[float] = []
+        missing_z_count = 0
+        non_finite_z_count = 0
+        empty_geometry_count = 0
+        record_count = 0
+
+        for shape_record in reader.iterShapeRecords():
+            record_count += 1
+            shp = shape_record.shape
+            points = list(getattr(shp, "points", []) or [])
+            if not points:
+                empty_geometry_count += 1
+            z_values, non_finite = shape_z_values(shp)
+            non_finite_z_count += non_finite
+            if points and (not z_values or len(z_values) < len(points)):
+                missing_z_count += 1
+            finite_z.extend(z_values)
+
+            record = shape_record.record.as_dict()
+            for field in type_fields:
+                raw_value = record.get(field)
+                value = "" if raw_value is None else str(raw_value).strip()
+                type_distributions[field][value or "<blank>"] += 1
+
+        shape_type = int(reader.shapeType)
+    finally:
+        reader.close()
+    layer_name = layer_path.stem
+    expected_layer_key = layer_name.casefold()
+    is_expected = expected_layer_key in BASKARTA_EXPECTED_Z_LAYERS
+    has_z_shape_type = shape_type in BASKARTA_Z_SHAPE_TYPES
+    z_min = round(min(finite_z), 3) if finite_z else None
+    z_max = round(max(finite_z), 3) if finite_z else None
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    if is_expected and not has_z_shape_type:
+        errors.append(f"{layer_name}: expected Z-aware layer is flattened as {shape_type_name(shape_type)}")
+    if is_expected and has_z_shape_type and not finite_z:
+        errors.append(f"{layer_name}: expected Z-aware layer has no usable Z values")
+    if is_expected and missing_z_count:
+        errors.append(f"{layer_name}: expected Z-aware layer has {missing_z_count} records with missing Z values")
+    if expected_layer_key == "byggnad_l":
+        typ_distribution = type_distributions.get("typ")
+        if typ_distribution is None:
+            errors.append(f"{layer_name}: byggnad_l requires typ field for runtime line classification")
+        else:
+            runtime_types = sorted(BASKARTA_BUILDING_RUNTIME_TYPES & set(typ_distribution))
+            if not runtime_types:
+                errors.append(
+                    f"{layer_name}: byggnad_l typ field has no recognized runtime values "
+                    f"({', '.join(sorted(BASKARTA_BUILDING_RUNTIME_TYPES))})"
+                )
+    if finite_z and (z_min is not None and z_min < -100 or z_max is not None and z_max > 500):
+        warnings.append(f"{layer_name}: anomalous Z range {z_min}..{z_max}")
+    if record_count and not type_fields:
+        warnings.append(f"{layer_name}: no common type field found; inspect availableFields")
+    if empty_geometry_count:
+        warnings.append(f"{layer_name}: {empty_geometry_count} empty geometries")
+    if non_finite_z_count:
+        warnings.append(f"{layer_name}: {non_finite_z_count} non-finite Z values")
+
+    return {
+        "availableFields": fields,
+        "emptyGeometryCount": empty_geometry_count,
+        "errors": errors,
+        "geometryType": shape_type_name(shape_type),
+        "hasZShapeType": has_z_shape_type,
+        "expectedLayerKey": expected_layer_key if is_expected else None,
+        "layerName": layer_name,
+        "layerPath": layer_path.relative_to(root).as_posix(),
+        "missingZCount": missing_z_count,
+        "nonFiniteZCount": non_finite_z_count,
+        "recordCount": record_count,
+        "typeDistributions": {
+            field: dict(sorted(counter.items()))
+            for field, counter in sorted(type_distributions.items())
+        },
+        "warnings": warnings,
+        "zStats": {
+            "count": len(finite_z),
+            "max": z_max,
+            "min": z_min,
+        },
+    }
+
+
+def unreadable_baskarta_layer(root: Path, layer_path: Path, exc: Exception) -> dict[str, Any]:
+    layer_name = layer_path.stem
+    expected_layer_key = layer_name.casefold()
+    is_expected = expected_layer_key in BASKARTA_EXPECTED_Z_LAYERS
+    return {
+        "availableFields": [],
+        "emptyGeometryCount": 0,
+        "errors": [f"{layer_name}: cannot read SHP layer: {exc}"],
+        "geometryType": "UNREADABLE",
+        "hasZShapeType": False,
+        "expectedLayerKey": expected_layer_key if is_expected else None,
+        "layerName": layer_name,
+        "layerPath": layer_path.relative_to(root).as_posix(),
+        "missingZCount": 0,
+        "nonFiniteZCount": 0,
+        "recordCount": 0,
+        "typeDistributions": {},
+        "warnings": [],
+        "zStats": {
+            "count": 0,
+            "max": None,
+            "min": None,
+        },
+    }
+
+
+def build_baskarta_preflight_report(input_path: Path, root: Path, input_kind: str) -> dict[str, Any]:
+    shapefiles = sorted(
+        (path for path in root.rglob("*") if path.suffix.casefold() == ".shp"),
+        key=lambda path: path.relative_to(root).as_posix().lower(),
+    )
+    layers: list[dict[str, Any]] = []
+    for path in shapefiles:
+        try:
+            layers.append(preflight_baskarta_layer(root, path))
+        except Exception as exc:
+            layers.append(unreadable_baskarta_layer(root, path, exc))
+    present_expected = sorted(
+        layer["expectedLayerKey"]
+        for layer in layers
+        if layer["expectedLayerKey"] in BASKARTA_EXPECTED_Z_LAYERS
+    )
+    errors = [
+        error
+        for layer in layers
+        for error in layer["errors"]
+    ]
+    warnings = [
+        warning
+        for layer in layers
+        for warning in layer["warnings"]
+    ]
+    missing_expected = sorted(BASKARTA_EXPECTED_Z_LAYERS - set(present_expected))
+    if not layers:
+        errors.append("No SHP layers found in Baskarta input")
+    elif missing_expected:
+        warnings.append(f"Expected Baskarta Z-aware layers not present in this input: {', '.join(missing_expected)}")
+
+    return {
+        "errors": sorted(errors),
+        "expectedZLayers": {
+            "known": sorted(BASKARTA_EXPECTED_Z_LAYERS),
+            "missing": missing_expected,
+            "present": present_expected,
+        },
+        "input": input_path.as_posix(),
+        "inputKind": input_kind,
+        "layers": layers,
+        "status": "fail" if errors else "pass",
+        "warnings": sorted(warnings),
+    }
+
+
+def write_baskarta_preflight_markdown(path: Path, report: dict[str, Any]) -> None:
+    lines = [
+        "# Baskarta XYZ Layer Preflight",
+        "",
+        f"- Input: `{report['input']}`",
+        f"- Input kind: `{report['inputKind']}`",
+        f"- Status: `{report['status']}`",
+        "",
+        "| Layer | Geometry | Records | Z range | Missing Z records | Issues |",
+        "|---|---:|---:|---:|---:|---|",
+    ]
+    for layer in report["layers"]:
+        z_min = layer["zStats"]["min"]
+        z_max = layer["zStats"]["max"]
+        z_range = "n/a" if z_min is None or z_max is None else f"{z_min}..{z_max}"
+        issues = "; ".join(layer["errors"] + layer["warnings"]) or "-"
+        lines.append(
+            f"| {layer['layerName']} | {layer['geometryType']} | {layer['recordCount']} | "
+            f"{z_range} | {layer['missingZCount']} | {issues} |"
+        )
+    if report["errors"]:
+        lines.extend(["", "## Errors", ""])
+        lines.extend(f"- {error}" for error in report["errors"])
+    if report["warnings"]:
+        lines.extend(["", "## Warnings", ""])
+        lines.extend(f"- {warning}" for warning in report["warnings"])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def command_preflight_baskarta(args: argparse.Namespace) -> int:
+    input_path = Path(args.input)
+    output_json = (
+        Path(args.output_json)
+        if args.output_json
+        else DEFAULT_ROOT / "derived" / "baskarta_preflight.json"
+    )
+    output_md = (
+        Path(args.output_md)
+        if args.output_md
+        else DEFAULT_ROOT / "derived" / "baskarta_preflight.md"
+    )
+
+    if input_path.is_file() and input_path.suffix.lower() == ".zip":
+        with tempfile.TemporaryDirectory(prefix="sunnyseat-baskarta-preflight-") as tmp:
+            root = Path(tmp)
+            safe_extract_zip(input_path, root)
+            report = build_baskarta_preflight_report(input_path, root, "zip")
+    elif input_path.is_dir():
+        report = build_baskarta_preflight_report(input_path, input_path, "directory")
+    else:
+        report = {
+            "errors": [f"Baskarta input must be a ZIP file or extracted SHP directory: {input_path.as_posix()}"],
+            "expectedZLayers": {
+                "known": sorted(BASKARTA_EXPECTED_Z_LAYERS),
+                "missing": sorted(BASKARTA_EXPECTED_Z_LAYERS),
+                "present": [],
+            },
+            "input": input_path.as_posix(),
+            "inputKind": "unknown",
+            "layers": [],
+            "status": "fail",
+            "warnings": [],
+        }
+
+    write_json(output_json, report)
+    write_baskarta_preflight_markdown(output_md, report)
+    print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+    return 1 if report["errors"] else 0
+
+
 def combined_hash(paths: Iterable[Path], extra: dict[str, Any] | None = None) -> str:
     digest = hashlib.sha256()
     for content_hash in sorted(file_sha256(path) for path in paths if path.exists()):
@@ -377,23 +697,47 @@ def load_footprints(gpkg_path: Path, bbox_3007: tuple[float, float, float, float
     return footprints, dict(stats_counter)
 
 
-def shape_part_lines(shape: Any) -> list[tuple[Any, list[float]]]:
+def shape_part_lines(shape: Any) -> list[tuple[Any, Any | None, list[float]]]:
     from shapely.geometry import LineString
 
     parts = list(shape.parts) + [len(shape.points)]
     z_values = list(getattr(shape, "z", []) or [])
-    lines: list[tuple[Any, list[float]]] = []
+    lines: list[tuple[Any, Any | None, list[float]]] = []
 
     for start, end in zip(parts, parts[1:]):
         points = shape.points[start:end]
         if len(points) < 2:
             continue
-        zs = z_values[start:end] if z_values else []
+        zs = z_values[start:end] if len(z_values) >= end else []
         line = LineString(points)
         if not line.is_empty and line.length > 0:
-            lines.append((line, zs))
+            line_z = None
+            if len(zs) == len(points):
+                try:
+                    xyz = [
+                        (float(point[0]), float(point[1]), float(z))
+                        for point, z in zip(points, zs)
+                    ]
+                except (TypeError, ValueError):
+                    xyz = []
+                if (
+                    len(xyz) == len(points)
+                    and all(math.isfinite(x) and math.isfinite(y) and math.isfinite(z) for x, y, z in xyz)
+                ):
+                    line_z = LineString(xyz)
+            lines.append((line, line_z, zs))
 
     return lines
+
+
+def source_geometry_from_lines(lines: list[Any]) -> tuple[dict[str, Any] | None, str | None]:
+    from shapely.geometry import MultiLineString, mapping
+
+    if not lines:
+        return None, None
+    if len(lines) == 1:
+        return mapping(lines[0]), "LineStringZ"
+    return mapping(MultiLineString(lines)), "MultiLineStringZ"
 
 
 def query_tree(tree: Any, geometries: list[Any], query_geom: Any) -> list[int]:
@@ -442,8 +786,11 @@ def attach_baskarta_lines(
             stats_counter["outside_bbox"] += 1
             continue
 
-        for line, zs in shape_part_lines(shp):
+        for line, line_z, zs in shape_part_lines(shp):
             if not zs:
+                stats_counter["missing_z"] += 1
+                continue
+            if line_z is None:
                 stats_counter["missing_z"] += 1
                 continue
             if not line.intersects(bbox_geom):
@@ -464,7 +811,11 @@ def attach_baskarta_lines(
                     if not clean_z:
                         stats_counter["implausible_z"] += 1
                         continue
+                    if len(clean_z) != len(zs):
+                        stats_counter["implausible_z"] += 1
+                        continue
                     footprint.lines_by_type[line_type].extend(clean_z)
+                    footprint.source_lines_by_type[line_type].append(line_z)
                     footprint.matched_line_count += 1
                     matched = True
 
@@ -532,11 +883,18 @@ def emit_candidate_outputs(
                 stats_counter["implausible_height"] += 1
                 continue
 
-            source_geom_type = footprint.geom_3007.geom_type
             engine_geom_3007 = largest_polygon(footprint.geom_3007)
             if engine_geom_3007 is None:
                 stats_counter["not_polygonal"] += 1
                 continue
+
+            selected_source_types = ["Takkonturer"] if roof_z_values else sorted(footprint.source_lines_by_type)
+            selected_source_lines = [
+                line
+                for line_type in selected_source_types
+                for line in footprint.source_lines_by_type.get(line_type, [])
+            ]
+            source_geom_3007, source_geom_type = source_geometry_from_lines(selected_source_lines)
 
             try:
                 geom_4326 = transform_geometry(engine_geom_3007, to_4326)
@@ -581,6 +939,11 @@ def emit_candidate_outputs(
                     "heightCandidateMethod": "max roof/facade/shelter Z minus DTM at representative point",
                     "engineGeometryMethod": "largest polygon part from source footprint",
                     "sourceGeometryType": source_geom_type,
+                    "sourceGeom3007": source_geom_3007,
+                    "sourceLayer": "byggnad_l",
+                    "sourceSubclass": ", ".join(selected_source_types),
+                    "zSemantics": SOURCE_Z_SEMANTICS,
+                    "sourceRefresh": SOURCE_REFRESH_POLICY,
                     "sourceFiles": inputs.get("sourceFiles", DEFAULT_RAW_SOURCE_FILES),
                     "sourceFileChecksums": inputs.get("sourceFileChecksums", {}),
                     "matchBufferM": inputs.get("matchBufferM", DEFAULT_MATCH_BUFFER_M),
@@ -797,11 +1160,20 @@ def map_feature_to_shadow_caster_row(
     quality_score = round(as_float(properties.get("shadowRuntimeQualityScore", properties.get("qualityScore"))), 3)
     bbox_3007_values = properties.get("bbox3007") or []
     centroid_3007_values = properties.get("centroid3007") or []
-    active = decision == "include"
     raw_source_files = properties.get("sourceFiles") or DEFAULT_RAW_SOURCE_FILES
     source_file_checksums_value = properties.get("sourceFileChecksums") or {}
     match_buffer_m = properties.get("matchBufferM", DEFAULT_MATCH_BUFFER_M)
     dtm_tile_ids = properties.get("dtmTileIds") or DEFAULT_DTM_TILE_IDS
+    source_layer = properties.get("sourceLayer") or "byggnad_l"
+    source_subclass = (
+        properties.get("sourceSubclass")
+        or properties.get("sourceGeometryType")
+        or properties.get("objectType")
+        or properties.get("purpose")
+    )
+    z_semantics = properties.get("zSemantics") or SOURCE_Z_SEMANTICS
+    caster_class = properties.get("casterClass") or ("building" if source_layer == "byggnad_l" else "structure")
+    active = decision == "include" and caster_class == "building" and source_layer == "byggnad_l"
 
     source_object_metadata = {
         "areaM2": properties.get("areaM2"),
@@ -815,6 +1187,28 @@ def map_feature_to_shadow_caster_row(
     }
     source_object_metadata = {
         key: value for key, value in source_object_metadata.items() if value is not None
+    }
+
+    source_collection_metadata = {
+        "dtmTileIds": dtm_tile_ids,
+        "matchBufferM": match_buffer_m,
+        "rawSourceFiles": raw_source_files,
+        "sourceDataset": properties.get("sourceDataset", SOURCE_DATASET),
+        "sourceDescription": SOURCE_DESCRIPTION,
+        "sourceFileChecksums": source_file_checksums_value,
+        "sourceLayer": source_layer,
+    }
+    source_collection_metadata = {
+        key: value for key, value in source_collection_metadata.items() if value is not None
+    }
+
+    source_update_metadata = {
+        "sourceModelDate": "2026-06-05",
+        "sourceRefresh": properties.get("sourceRefresh") or SOURCE_REFRESH_POLICY,
+        "sourceUpdateMode": "manual reviewed geodata refresh",
+    }
+    source_update_metadata = {
+        key: value for key, value in source_update_metadata.items() if value is not None
     }
 
     provenance_metadata = {
@@ -850,6 +1244,12 @@ def map_feature_to_shadow_caster_row(
         "source_object_type": properties.get("objectType"),
         "source_purpose": properties.get("purpose"),
         "source_geometry_type": properties.get("sourceGeometryType"),
+        "source_geom_3007": properties.get("sourceGeom3007"),
+        "source_layer": source_layer,
+        "source_subclass": source_subclass,
+        "z_semantics": z_semantics,
+        "source_collection_metadata": source_collection_metadata,
+        "source_update_metadata": source_update_metadata,
         "source_object_metadata": source_object_metadata,
         "engine_geometry_method": properties.get("engineGeometryMethod") or "largest polygon part from source footprint",
         "runtime_geometry_crs": RUNTIME_GEOMETRY_CRS,
@@ -864,7 +1264,7 @@ def map_feature_to_shadow_caster_row(
         "z_spread_m": properties.get("zSpreadM", round(z_spread(properties), 3)),
         "bbox_3007": make_bbox_polygon_3007(bbox_3007_values) if bbox_3007_values else None,
         "centroid_3007": make_centroid_point_3007(centroid_3007_values) if centroid_3007_values else None,
-        "caster_class": "building",
+        "caster_class": caster_class,
         "source_priority": OPEN_DERIVED_SOURCE_PRIORITY,
         "active": active,
         "import_batch_id": import_batch_id,
@@ -1479,6 +1879,12 @@ insert into public.shadow_casters (
   source_object_type,
   source_purpose,
   source_geometry_type,
+  source_geom_3007,
+  source_layer,
+  source_subclass,
+  z_semantics,
+  source_collection_metadata,
+  source_update_metadata,
   source_object_metadata,
   engine_geometry_method,
   runtime_geometry_crs,
@@ -1513,6 +1919,16 @@ select
   payload->>'source_object_type',
   payload->>'source_purpose',
   payload->>'source_geometry_type',
+  case
+    when nullif(payload->>'source_geom_3007', '') is not null
+      then st_setsrid(st_geomfromgeojson(payload->>'source_geom_3007'), 3007)::geometry(GeometryZ, 3007)
+    else null
+  end,
+  payload->>'source_layer',
+  payload->>'source_subclass',
+  payload->>'z_semantics',
+  payload->'source_collection_metadata',
+  payload->'source_update_metadata',
   payload->'source_object_metadata',
   payload->>'engine_geometry_method',
   payload->>'runtime_geometry_crs',
@@ -1563,6 +1979,13 @@ REQUIRED_ROW_FIELDS = {
     "height_source",
     "source_dataset",
     "source_footprint_fid",
+    "source_geometry_type",
+    "source_geom_3007",
+    "source_layer",
+    "source_subclass",
+    "z_semantics",
+    "source_collection_metadata",
+    "source_update_metadata",
     "source_object_metadata",
     "runtime_geometry_crs",
     "metric_crs",
@@ -1625,12 +2048,63 @@ def spot_check_coordinate_errors(cluster_id: str, lon: float, lat: float, prefix
     return errors
 
 
-def validate_geojson_geometry(value: Any, label: str, expected_type: str) -> list[str]:
+def iter_geojson_positions(value: Any) -> Iterable[Any]:
+    if isinstance(value, list | tuple):
+        if value and all(isinstance(item, numbers.Real) for item in value[:2]):
+            yield value
+        else:
+            for item in value:
+                yield from iter_geojson_positions(item)
+
+
+def validate_geojson_z_coordinates(value: Any, label: str) -> list[str]:
+    positions = list(iter_geojson_positions(value))
+    errors: list[str] = []
+    if not positions:
+        return [f"{label} geometry has no coordinate positions"]
+    for position_index, position in enumerate(positions):
+        if not isinstance(position, list | tuple) or len(position) < 3:
+            errors.append(f"{label} position {position_index} is missing Z")
+            continue
+        try:
+            z_value = float(position[2])
+        except (TypeError, ValueError):
+            errors.append(f"{label} position {position_index} has invalid Z")
+            continue
+        if not math.isfinite(z_value):
+            errors.append(f"{label} position {position_index} has non-finite Z")
+    return errors
+
+
+def validate_geojson_xy_bounds(
+    value: Any,
+    label: str,
+    bounds: tuple[float, float, float, float],
+) -> list[str]:
+    min_x, min_y, max_x, max_y = bounds
+    errors: list[str] = []
+    for position_index, position in enumerate(iter_geojson_positions(value)):
+        if not validate_coordinate_pair(position):
+            continue
+        x = float(position[0])
+        y = float(position[1])
+        if not (min_x <= x <= max_x and min_y <= y <= max_y):
+            errors.append(f"{label} position {position_index} is outside EPSG:3007 MVP bbox")
+    return errors
+
+
+def validate_geojson_geometry(
+    value: Any,
+    label: str,
+    expected_type: str | None,
+    *,
+    require_z: bool = False,
+) -> list[str]:
     errors: list[str] = []
     if not isinstance(value, dict):
         return [f"{label} geometry is required"]
 
-    if value.get("type") != expected_type:
+    if expected_type is not None and value.get("type") != expected_type:
         errors.append(f"{label} geometry must be {expected_type}")
         return errors
 
@@ -1650,6 +2124,12 @@ def validate_geojson_geometry(value: Any, label: str, expected_type: str) -> lis
     elif expected_type == "Point":
         if not validate_coordinate_pair(coordinates):
             errors.append(f"{label} point coordinates are invalid")
+    if require_z:
+        if value.get("type") == "GeometryCollection":
+            for geometry_index, geometry in enumerate(value.get("geometries") or []):
+                errors.extend(validate_geojson_z_coordinates(geometry.get("coordinates"), f"{label} geometry {geometry_index}"))
+        else:
+            errors.extend(validate_geojson_z_coordinates(coordinates, label))
 
     try:
         from shapely.geometry import shape
@@ -1657,7 +2137,7 @@ def validate_geojson_geometry(value: Any, label: str, expected_type: str) -> lis
         geometry = shape(value)
         if geometry.is_empty:
             errors.append(f"{label} geometry is empty")
-        if geometry.geom_type != expected_type:
+        if expected_type is not None and geometry.geom_type != expected_type:
             errors.append(f"{label} geometry parsed as {geometry.geom_type}, expected {expected_type}")
         if not geometry.is_valid:
             errors.append(f"{label} geometry is invalid")
@@ -2037,7 +2517,32 @@ def validate_rows(rows: list[dict[str, Any]], expected_batch_id: str) -> list[st
             errors.append(f"row {index}: CRS metadata mismatch")
         if not row.get("source_dataset"):
             errors.append(f"row {index}: source_dataset is required")
+        if not row.get("source_layer"):
+            errors.append(f"row {index}: source_layer is required")
+        if not row.get("source_subclass"):
+            errors.append(f"row {index}: source_subclass is required")
+        if not row.get("z_semantics"):
+            errors.append(f"row {index}: z_semantics is required")
         errors.extend(f"row {index}: {error}" for error in validate_geojson_geometry(row.get("geometry"), "runtime", "Polygon"))
+        source_geom_3007 = row.get("source_geom_3007")
+        if source_geom_3007 is not None:
+            errors.extend(
+                f"row {index}: {error}"
+                for error in validate_geojson_geometry(
+                    source_geom_3007,
+                    "source_geom_3007",
+                    None,
+                    require_z=True,
+                )
+            )
+            errors.extend(
+                f"row {index}: {error}"
+                for error in validate_geojson_xy_bounds(
+                    source_geom_3007.get("coordinates"),
+                    "source_geom_3007",
+                    MVP_BBOX_3007,
+                )
+            )
         errors.extend(
             f"row {index}: {error}"
             for error in validate_geojson_geometry(row.get("bbox_3007"), "bbox_3007 metric helper", "Polygon")
@@ -2046,8 +2551,14 @@ def validate_rows(rows: list[dict[str, Any]], expected_batch_id: str) -> list[st
             f"row {index}: {error}"
             for error in validate_geojson_geometry(row.get("centroid_3007"), "centroid_3007 metric helper", "Point")
         )
-        if row.get("caster_class") != "building":
-            errors.append(f"row {index}: caster_class must be building for this MVP open-data path")
+        if row.get("caster_class") not in {"building", "structure", "vegetation", "manual_override"}:
+            errors.append(f"row {index}: invalid caster_class {row.get('caster_class')!r}")
+        if row.get("active") is True and row.get("caster_class") != "building":
+            errors.append(f"row {index}: non-building rows must remain inactive in this MVP open-data path")
+        if row.get("active") is True and row.get("source_layer") != "byggnad_l":
+            errors.append(f"row {index}: non-byggnad_l rows must remain inactive in this MVP open-data path")
+        if row.get("active") is True and row.get("source_layer") == "byggnad_l" and source_geom_3007 is None:
+            errors.append(f"row {index}: active byggnad_l row requires source_geom_3007")
         decision = row.get("filter_decision")
         if decision not in {"include", "review", "exclude"}:
             errors.append(f"row {index}: invalid filter_decision {decision!r}")
@@ -2065,6 +2576,12 @@ def validate_rows(rows: list[dict[str, Any]], expected_batch_id: str) -> list[st
             errors.append(f"row {index}: provenance rawSourceFiles are required")
         if provenance.get("matchBufferM") is None:
             errors.append(f"row {index}: provenance matchBufferM is required")
+        collection_metadata = row.get("source_collection_metadata") or {}
+        if not isinstance(collection_metadata, dict) or not collection_metadata.get("rawSourceFiles"):
+            errors.append(f"row {index}: source_collection_metadata rawSourceFiles are required")
+        update_metadata = row.get("source_update_metadata") or {}
+        if not isinstance(update_metadata, dict) or not update_metadata.get("sourceRefresh"):
+            errors.append(f"row {index}: source_update_metadata sourceRefresh is required")
     return errors
 
 
@@ -2166,6 +2683,15 @@ def command_run_all(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SunnySeat shadow-caster geodata import pipeline")
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    preflight = subparsers.add_parser(
+        "preflight-baskarta",
+        help="inventory Baskarta ZIP or extracted SHP layers and validate Z-awareness without DB writes",
+    )
+    preflight.add_argument("--input", required=True)
+    preflight.add_argument("--output-json", default=str(DEFAULT_ROOT / "derived" / "baskarta_preflight.json"))
+    preflight.add_argument("--output-md", default=str(DEFAULT_ROOT / "derived" / "baskarta_preflight.md"))
+    preflight.set_defaults(func=command_preflight_baskarta)
 
     derive = subparsers.add_parser("derive", help="derive height candidates from local raw geodata")
     derive.add_argument("--root", default=str(DEFAULT_ROOT))

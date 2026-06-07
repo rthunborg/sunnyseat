@@ -58,6 +58,12 @@ create table if not exists public.shadow_casters (
   source_object_type text,
   source_purpose text,
   source_geometry_type text,
+  source_geom_3007 geometry(GeometryZ, 3007),
+  source_layer text,
+  source_subclass text,
+  z_semantics text,
+  source_collection_metadata jsonb not null default '{}'::jsonb,
+  source_update_metadata jsonb not null default '{}'::jsonb,
   source_object_metadata jsonb not null default '{}'::jsonb,
   engine_geometry_method text not null default 'wgs84_footprint_polygon',
   runtime_geometry_crs text not null default 'EPSG:4326',
@@ -85,17 +91,6 @@ create table if not exists public.shadow_casters (
 comment on table public.shadow_casters is
   'Runtime and diagnostic shadow-caster storage. Runtime reads must use only active/include records above the meaningful-height threshold.';
 
-comment on column public.shadow_casters.source_priority is
-  'Lower numeric source_priority wins for runtime selection: manual override before paid surveyed, paid DSM/LAS, open-derived, then OSM/heuristic fallback. Lower-priority records remain stored for provenance and source comparison.';
-comment on column public.shadow_casters.source_object_metadata is
-  'Structured source fields such as areaM2, baskartaZStats, logicalObjectId, and runtime approval flags. logicalObjectId must be a globally normalized canonical object key, not a source-local ID.';
-comment on column public.shadow_casters.provenance_metadata is
-  'CRS, derivation, rollback, and source-refresh metadata not represented by first-class columns.';
-comment on column public.shadow_casters.bbox_3007 is
-  'Metric EPSG:3007 bbox helper for the central MVP launch extent.';
-comment on column public.shadow_casters.centroid_3007 is
-  'Metric EPSG:3007 centroid helper for import validation and diagnostics.';
-
 alter table public.shadow_casters add column if not exists id bigint;
 alter table public.shadow_casters add column if not exists geometry geometry(Polygon, 4326);
 alter table public.shadow_casters add column if not exists height_m double precision;
@@ -109,6 +104,12 @@ alter table public.shadow_casters add column if not exists source_footprint_fid 
 alter table public.shadow_casters add column if not exists source_object_type text;
 alter table public.shadow_casters add column if not exists source_purpose text;
 alter table public.shadow_casters add column if not exists source_geometry_type text;
+alter table public.shadow_casters add column if not exists source_geom_3007 geometry(GeometryZ, 3007);
+alter table public.shadow_casters add column if not exists source_layer text;
+alter table public.shadow_casters add column if not exists source_subclass text;
+alter table public.shadow_casters add column if not exists z_semantics text;
+alter table public.shadow_casters add column if not exists source_collection_metadata jsonb default '{}'::jsonb;
+alter table public.shadow_casters add column if not exists source_update_metadata jsonb default '{}'::jsonb;
 alter table public.shadow_casters add column if not exists source_object_metadata jsonb default '{}'::jsonb;
 alter table public.shadow_casters add column if not exists engine_geometry_method text default 'wgs84_footprint_polygon';
 alter table public.shadow_casters add column if not exists runtime_geometry_crs text default 'EPSG:4326';
@@ -129,6 +130,31 @@ alter table public.shadow_casters add column if not exists active boolean defaul
 alter table public.shadow_casters add column if not exists import_batch_id text;
 alter table public.shadow_casters add column if not exists imported_at timestamptz default now();
 alter table public.shadow_casters add column if not exists updated_at timestamptz default now();
+
+comment on column public.shadow_casters.geometry is
+  'Geometry remains the WGS84 runtime polygon used by get_buildings_near_point; source 3D geometry is preserved separately in source_geom_3007.';
+comment on column public.shadow_casters.source_geom_3007 is
+  'Source 3D geometry in EPSG:3007, preserving Baskarta XYZ RH2000 Z coordinates separately from the WGS84 runtime polygon.';
+comment on column public.shadow_casters.source_layer is
+  'Original source layer for the selected source geometry, such as byggnad_l.';
+comment on column public.shadow_casters.source_subclass is
+  'Original source subclass or type value for the selected source geometry, such as Takkonturer.';
+comment on column public.shadow_casters.z_semantics is
+  'Human-readable explanation of the source Z model and height derivation semantics.';
+comment on column public.shadow_casters.source_collection_metadata is
+  'Structured metadata about raw source files, checksums, collection layers, and source inputs used to derive the row.';
+comment on column public.shadow_casters.source_update_metadata is
+  'Structured metadata describing source refresh policy and update model for the row.';
+comment on column public.shadow_casters.source_priority is
+  'Lower numeric source_priority wins for runtime selection: manual override before paid surveyed, paid DSM/LAS, open-derived, then OSM/heuristic fallback. Lower-priority records remain stored for provenance and source comparison.';
+comment on column public.shadow_casters.source_object_metadata is
+  'Structured source fields such as areaM2, baskartaZStats, logicalObjectId, and runtime approval flags. logicalObjectId must be a globally normalized canonical object key, not a source-local ID.';
+comment on column public.shadow_casters.provenance_metadata is
+  'CRS, derivation, rollback, and source-refresh metadata not represented by first-class columns.';
+comment on column public.shadow_casters.bbox_3007 is
+  'Metric EPSG:3007 bbox helper for the central MVP launch extent.';
+comment on column public.shadow_casters.centroid_3007 is
+  'Metric EPSG:3007 centroid helper for import validation and diagnostics.';
 
 create sequence if not exists public.shadow_casters_id_seq as bigint;
 alter sequence public.shadow_casters_id_seq owned by public.shadow_casters.id;
@@ -240,6 +266,8 @@ where filter_decision is null
 update public.shadow_casters
 set
   height_source = coalesce(height_source, 'Heuristic'),
+  source_collection_metadata = coalesce(source_collection_metadata, '{}'::jsonb),
+  source_update_metadata = coalesce(source_update_metadata, '{}'::jsonb),
   source_object_metadata = coalesce(source_object_metadata, '{}'::jsonb),
   engine_geometry_method = coalesce(engine_geometry_method, 'wgs84_footprint_polygon'),
   runtime_geometry_crs = coalesce(runtime_geometry_crs, 'EPSG:4326'),
@@ -254,6 +282,8 @@ set
   imported_at = coalesce(imported_at, now()),
   updated_at = coalesce(updated_at, now())
 where height_source is null
+  or source_collection_metadata is null
+  or source_update_metadata is null
   or source_object_metadata is null
   or engine_geometry_method is null
   or runtime_geometry_crs is null
@@ -290,6 +320,13 @@ where active = true
     or filter_decision is distinct from 'include'
     or caster_class not in ('building', 'structure', 'manual_override')
     or (
+      caster_class = 'building'
+      and (
+        source_layer is distinct from 'byggnad_l'
+        or source_geom_3007 is null
+      )
+    )
+    or (
       caster_class = 'structure'
       and not (
         source_flags @> array['manually_approved_runtime_structure']::text[]
@@ -300,6 +337,10 @@ where active = true
 
 alter table public.shadow_casters alter column height_source set default 'Heuristic';
 alter table public.shadow_casters alter column height_source set not null;
+alter table public.shadow_casters alter column source_collection_metadata set default '{}'::jsonb;
+alter table public.shadow_casters alter column source_collection_metadata set not null;
+alter table public.shadow_casters alter column source_update_metadata set default '{}'::jsonb;
+alter table public.shadow_casters alter column source_update_metadata set not null;
 alter table public.shadow_casters alter column source_object_metadata set default '{}'::jsonb;
 alter table public.shadow_casters alter column source_object_metadata set not null;
 alter table public.shadow_casters alter column engine_geometry_method set default 'wgs84_footprint_polygon';
@@ -337,6 +378,8 @@ alter table public.shadow_casters drop constraint if exists shadow_casters_activ
 alter table public.shadow_casters drop constraint if exists shadow_casters_active_requires_valid_geometry;
 alter table public.shadow_casters drop constraint if exists shadow_casters_active_requires_source_dataset;
 alter table public.shadow_casters drop constraint if exists shadow_casters_active_requires_mvp_caster_class;
+alter table public.shadow_casters drop constraint if exists shadow_casters_active_building_requires_byggnad_l_source;
+alter table public.shadow_casters drop constraint if exists shadow_casters_active_byggnad_l_requires_source_geom;
 alter table public.shadow_casters drop constraint if exists shadow_casters_review_records_inactive;
 alter table public.shadow_casters drop constraint if exists shadow_casters_excluded_records_inactive;
 alter table public.shadow_casters drop constraint if exists shadow_casters_active_structure_requires_approval;
@@ -396,6 +439,14 @@ alter table public.shadow_casters
   check (active is not true or caster_class in ('building', 'structure', 'manual_override'));
 
 alter table public.shadow_casters
+  add constraint shadow_casters_active_building_requires_byggnad_l_source
+  check (active is not true or caster_class <> 'building' or source_layer = 'byggnad_l');
+
+alter table public.shadow_casters
+  add constraint shadow_casters_active_byggnad_l_requires_source_geom
+  check (active is not true or source_layer is distinct from 'byggnad_l' or source_geom_3007 is not null);
+
+alter table public.shadow_casters
   add constraint shadow_casters_review_records_inactive
   check (filter_decision is distinct from 'review' or active = false);
 
@@ -422,7 +473,10 @@ create index if not exists idx_shadow_casters_geometry_geography_runtime
     and not st_isempty(geometry)
     and st_isvalid(geometry)
     and st_covers(st_makeenvelope(-180, -90, 180, 90, 4326), geometry)
-    and caster_class in ('building', 'structure', 'manual_override');
+    and (
+      (caster_class = 'building' and source_layer = 'byggnad_l' and source_geom_3007 is not null)
+      or caster_class in ('structure', 'manual_override')
+    );
 
 create index if not exists idx_shadow_casters_geometry
   on public.shadow_casters
@@ -435,6 +489,10 @@ create index if not exists idx_shadow_casters_bbox_3007
 create index if not exists idx_shadow_casters_centroid_3007
   on public.shadow_casters
   using gist (centroid_3007);
+
+create index if not exists idx_shadow_casters_source_geom_3007
+  on public.shadow_casters
+  using gist (source_geom_3007);
 
 create index if not exists idx_shadow_casters_runtime_priority
   on public.shadow_casters (active, filter_decision, caster_class, source_priority, import_batch_id)
@@ -541,7 +599,12 @@ as $$
       and st_covers(st_makeenvelope(-180, -90, 180, 90, 4326), sc.geometry)
       and nullif(btrim(sc.source_dataset), '') is not null
       and (
-        sc.caster_class in ('building', 'manual_override')
+        (
+          sc.caster_class = 'building'
+          and sc.source_layer = 'byggnad_l'
+          and sc.source_geom_3007 is not null
+        )
+        or sc.caster_class = 'manual_override'
         or (
           sc.caster_class = 'structure'
           and (
@@ -592,6 +655,20 @@ comment on function public.get_buildings_near_point(double precision, double pre
 -- - vegetation remains inactive until later confidence rules explicitly approve it
 -- - manually approved structures need source_flags to contain
 --   'manually_approved_runtime_structure' or source_object_metadata.runtimeApproved = true
+-- - source geometry contract: geometry remains the WGS84 runtime polygon, while
+--   source_geom_3007 stores the selected EPSG:3007 Z-aware source geometry.
+--
+-- JSONL payload mapping excerpt for the generated import handoff:
+--   case
+--     when nullif(payload->>'source_geom_3007', '') is not null
+--       then st_setsrid(st_geomfromgeojson(payload->>'source_geom_3007'), 3007)::geometry(GeometryZ, 3007)
+--     else null
+--   end as source_geom_3007
+--   payload->>'source_layer' as source_layer
+--   payload->>'source_subclass' as source_subclass
+--   payload->>'z_semantics' as z_semantics
+--   payload->'source_collection_metadata' as source_collection_metadata
+--   payload->'source_update_metadata' as source_update_metadata
 
 -- ============================================================================
 -- Section 4: privileges
@@ -673,6 +750,12 @@ where table_schema = 'public'
     'source_object_type',
     'source_purpose',
     'source_geometry_type',
+    'source_geom_3007',
+    'source_layer',
+    'source_subclass',
+    'z_semantics',
+    'source_collection_metadata',
+    'source_update_metadata',
     'source_object_metadata',
     'engine_geometry_method',
     'runtime_geometry_crs',
