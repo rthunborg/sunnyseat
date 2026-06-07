@@ -18,7 +18,10 @@ import {
 } from '@/lib/utils/validation';
 import { badRequest } from '@/lib/utils/api-errors';
 import { greatCircleMeters } from '@/lib/utils/geo';
-import { VENUE_FIXTURE } from '@/lib/services/venues-fixture';
+import {
+  normalizeVenueForResponse,
+  VENUE_FIXTURE,
+} from '@/lib/services/venues-fixture';
 import {
   applyPlannerSelectionToVenue,
   parseVenuePlannerParams,
@@ -42,9 +45,6 @@ const RATE_LIMIT_MAX_REQUESTS = 120;
 const COORDINATE_COLLISION_PRECISION = 6;
 const MISSING_CLIENT_RATE_LIMIT_KEY = 'missing-client-ip';
 const RATE_LIMIT_SWEEP_INTERVAL_MS = RATE_LIMIT_WINDOW_MS;
-const TIME_WINDOW_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
-const MAX_THUMBNAIL_ALT_LENGTH = 120;
-const MAX_THUMBNAIL_INITIALS_LENGTH = 3;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/u;
 const DIACRITIC_PATTERN = /[\u0300-\u036f]/gu;
 let lastRateLimitSweepAt = 0;
@@ -203,54 +203,6 @@ function clientKeyFromRequest(request: NextRequest): string {
   const realIp = request.headers.get('x-real-ip');
   if (realIp?.trim()) return clientKeyFromForwardedFor(realIp);
   return MISSING_CLIENT_RATE_LIMIT_KEY;
-}
-
-function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
-  const sunWindow =
-    venue.sunWindow &&
-    TIME_WINDOW_PATTERN.test(venue.sunWindow.start) &&
-    TIME_WINDOW_PATTERN.test(venue.sunWindow.end)
-      ? venue.sunWindow
-      : undefined;
-  const alt = normalizeShortText(venue.thumbnail?.alt, MAX_THUMBNAIL_ALT_LENGTH);
-  const initials = normalizeInitials(venue.thumbnail?.initials);
-  const url = normalizeThumbnailUrl(venue.thumbnail?.url);
-  return {
-    ...venue,
-    sunWindow,
-    thumbnail:
-      alt || initials || url
-        ? {
-            alt: alt ?? venue.venueName,
-            initials: initials ?? venue.venueName.slice(0, 2).toUpperCase(),
-            ...(url ? { url } : {}),
-          }
-        : undefined,
-  };
-}
-
-function normalizeShortText(value: string | undefined, maxLength: number): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed) return undefined;
-  return Array.from(trimmed).slice(0, maxLength).join('');
-}
-
-function normalizeInitials(value: string | undefined): string | undefined {
-  const trimmed = normalizeShortText(value, MAX_THUMBNAIL_INITIALS_LENGTH);
-  return trimmed?.toUpperCase();
-}
-
-function normalizeThumbnailUrl(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed) return undefined;
-  if (trimmed.startsWith('/')) return trimmed;
-  try {
-    const url = new URL(trimmed);
-    if (url.protocol === 'https:' || url.protocol === 'http:') return url.toString();
-  } catch {
-    return undefined;
-  }
-  return undefined;
 }
 
 export async function GET(request: NextRequest) {

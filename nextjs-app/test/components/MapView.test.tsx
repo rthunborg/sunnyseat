@@ -1073,6 +1073,7 @@ describe('<MapView />', () => {
       const { container } = render(<MapView />, { wrapper: Wrapper });
 
       expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'mid');
+      expect(screen.queryByRole('search', { name: 'Sök plats' })).not.toBeInTheDocument();
       expect(screen.queryByTestId('mobile-bottom-sheet-backdrop')).not.toBeInTheDocument();
       expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('Bellora');
       expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('95% sol');

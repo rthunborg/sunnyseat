@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { VENUE_FIXTURE } from '@/lib/services/venues-fixture';
+import {
+  normalizeVenueForResponse,
+  VENUE_FIXTURE,
+} from '@/lib/services/venues-fixture';
 import {
   applyPlannerSelectionToVenue,
   parseVenuePlannerParams,
@@ -141,7 +144,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         ),
       }
     : venue;
-  const weatherAdjustedVenue = applyFixtureWeatherAvailability(venueWithDistance, freshness);
+  const normalizedVenue = normalizeVenueForResponse(venueWithDistance);
+  const weatherAdjustedVenue = applyFixtureWeatherAvailability(normalizedVenue, freshness);
   const adjustedVenue = applyPlannerSelectionToVenue(weatherAdjustedVenue, planner.selection);
   const detail = buildDetailDto(
     adjustedVenue,

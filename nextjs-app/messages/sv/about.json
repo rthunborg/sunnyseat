@@ -1,1 +1,7 @@
-{}
+{
+  "title": "Hur fungerar SunnySeat?",
+  "summary": "SunnySeat visar vilka uteserveringar som verkar ha direkt sol just nu.",
+  "model": "Vi räknar på solens läge, byggnadsskuggor och väder för varje plats.",
+  "uncertainty": "Träd, markiser, parasoller, broar och tillfälliga konstruktioner kan påverka verkliga förhållanden på plats.",
+  "guidance": "Använd prognosen som vägledning när du väljer var du vill sitta."
+}

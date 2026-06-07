@@ -25,6 +25,10 @@ import {
   getConfidenceDisplayState,
   type ConfidenceDisplayLabels,
 } from '@/lib/utils/confidence-display';
+import {
+  getPredictionUncertaintyDisplay,
+  type PredictionUncertaintyDisplayLabels,
+} from '@/lib/utils/prediction-uncertainty-display';
 import { formatPlannerTime } from '@/lib/utils/time-planner';
 import { cn } from '@/lib/utils';
 
@@ -54,6 +58,7 @@ export type VenueDetailContentLabels = {
     outdoorSeats: string;
   };
   timeline: SunTimelineLabels;
+  uncertainty?: PredictionUncertaintyDisplayLabels;
 };
 
 export type VenueDetailContentProps = {
@@ -97,6 +102,12 @@ export function VenueDetailContent({
     meta: confidenceMeta,
     labels: confidenceDisplayLabels(labels),
   });
+  const uncertaintyDisplay = labels.uncertainty
+    ? getPredictionUncertaintyDisplay({
+        predictionUncertainty: venue.predictionUncertainty,
+        labels: labels.uncertainty,
+      })
+    : null;
 
   return (
     <article
@@ -194,6 +205,19 @@ export function VenueDetailContent({
                 labels={labels.timeline}
               />
             )
+          )}
+          {!loading && uncertaintyDisplay && (
+            <p className="mt-3 rounded-card bg-surface-sand px-3 py-2 text-body-sm-medium text-text-body">
+              <span className="font-bold text-text-primary">
+                {uncertaintyDisplay.visibleLabel}
+              </span>
+              <span className="text-text-faint"> · </span>
+              <span>{uncertaintyDisplay.visibleSummary}</span>
+              <span className="mt-1 block text-body-sm text-text-body">
+                {uncertaintyDisplay.descriptionText}
+              </span>
+              <span className="sr-only"> {uncertaintyDisplay.reasonText.join(' ')}</span>
+            </p>
           )}
         </section>
 

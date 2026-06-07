@@ -8,6 +8,24 @@ export type VenueSunStatus = 'Sunny' | 'Partial' | 'Shaded' | 'NoSun';
 
 export type SunDataSource = 'weather' | 'geometry-only';
 
+export type PredictionUncertaintyLevel = 'low' | 'medium' | 'high';
+
+export type PredictionUncertaintyReason =
+  | 'building_shadow_coverage'
+  | 'vegetation'
+  | 'awning'
+  | 'umbrella'
+  | 'bridge'
+  | 'temporary_structure'
+  | 'seasonal_furniture'
+  | 'weather'
+  | 'other';
+
+export interface PredictionUncertaintyDto {
+  level: PredictionUncertaintyLevel;
+  reasons: PredictionUncertaintyReason[];
+}
+
 export interface SunFreshnessMeta {
   weatherUpdatedAt?: string;
   sunDataSource?: SunDataSource;
@@ -55,6 +73,11 @@ export interface VenueDataDto {
    * surfaces, while confidence remains a trust/certainty metric.
    */
   sunExposurePercent: number;
+  /**
+   * Public, user-safe uncertainty metadata. Values intentionally describe
+   * user-facing uncertainty causes and must not expose source/geodata internals.
+   */
+  predictionUncertainty?: PredictionUncertaintyDto;
   sunWindow?: {
     start: string;
     end: string;

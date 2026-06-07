@@ -34,6 +34,7 @@ import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
 import { useTimeContext } from '@/lib/contexts/TimeContext';
 import { type VenuePinData } from '@/lib/types/map';
 import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
+import type { PredictionUncertaintyDisplayLabels } from '@/lib/utils/prediction-uncertainty-display';
 import { DURATION_FLY_MS } from '@/lib/constants/animation';
 import { useForcedState } from '@/lib/dev/use-forced-state';
 import { cn } from '@/lib/utils';
@@ -94,7 +95,6 @@ const TILE_FAILURE_RELEASE_THRESHOLD = 4;
  */
 export function MapView() {
   const tVenue = useTranslations('venue');
-  const tVenueDetail = useTranslations('venue.detail');
   const tVenueList = useTranslations('venue.list');
   const locale = useLocale();
   const geolocation = useGeolocation();
@@ -559,11 +559,13 @@ export function MapView() {
     <div className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full">
       <MapContainer />
       <VenuePinLayer venues={venues} />
-      <VenueSearchShell
-        variant="mobile"
-        className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*3)] z-bottom-sheet-full"
-        onVenueSelected={() => setMobileSheetState('peek')}
-      />
+      {!isForcedVisualReference && (
+        <VenueSearchShell
+          variant="mobile"
+          className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*3)] z-bottom-sheet-full"
+          onVenueSelected={() => setMobileSheetState('peek')}
+        />
+      )}
       <TimeSliderPanel
         variant="mobile"
         className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*18)]"
@@ -670,7 +672,7 @@ export function MapView() {
             confidenceMeta={detailConfidenceMeta}
             isLoading={venueDetailQuery.isFetching && !detailVenue}
             currentTime={plannerTime.selectedTime}
-            labels={venueDetailLabels(tVenueDetail)}
+            labels={venueDetailLabels(tVenue)}
             onDismiss={handleDismissDetails}
             onRoute={() => {}}
             isFavourite={detailFavouriteId ? favourites.isFavourite(detailFavouriteId) : false}
@@ -690,7 +692,7 @@ export function MapView() {
             confidenceMeta={detailConfidenceMeta}
             isLoading={venueDetailQuery.isFetching && !detailVenue}
             currentTime={plannerTime.selectedTime}
-            labels={venueDetailLabels(tVenueDetail)}
+            labels={venueDetailLabels(tVenue)}
             onDismiss={handleDismissDetails}
             onRoute={() => {}}
             isFavourite={detailFavouriteId ? favourites.isFavourite(detailFavouriteId) : false}
@@ -709,6 +711,7 @@ export function MapView() {
             sunTimeRange={resolveSunTimeRange(selectedQuickInfoVenue, quickInfoSunWindowTemplate)}
             confidencePercent={selectedQuickInfoVenue?.confidence}
             confidenceMeta={quickInfoConfidenceMeta}
+            predictionUncertainty={selectedQuickInfoVenue?.predictionUncertainty}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
             thumbnail={selectedQuickInfoVenue?.thumbnail}
@@ -734,6 +737,7 @@ export function MapView() {
             sunTimeRange={resolveSunTimeRange(selectedQuickInfoVenue, quickInfoSunWindowTemplate)}
             confidencePercent={selectedQuickInfoVenue?.confidence}
             confidenceMeta={quickInfoConfidenceMeta}
+            predictionUncertainty={selectedQuickInfoVenue?.predictionUncertainty}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
             thumbnail={selectedQuickInfoVenue?.thumbnail}
@@ -894,46 +898,82 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     sunUnavailable: t('quickInfo.sunUnavailable'),
     favouriteAdd: t('list.favouriteAdd'),
     favouriteRemove: t('list.favouriteRemove'),
+    uncertainty: predictionUncertaintyLabels(t),
   };
 }
 
-function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue.detail'>>) {
+function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
   return {
-    close: t('close'),
-    favourite: t('favourite'),
-    favouriteAdd: t('favouriteAdd'),
-    favouriteRemove: t('favouriteRemove'),
-    share: t('share'),
-    sectionTitle: t('sectionTitle'),
-    peakTime: t('peakTime', { time: '{time}' }),
-    bestWindow: t('bestWindow', { start: '{start}', end: '{end}' }),
-    openMaps: t('openMaps'),
-    route: t('route'),
-    photoPlaceholder: t('photoPlaceholder'),
-    loading: t('loading'),
-    detailsUnavailable: t('detailsUnavailable'),
-    openingHours: t('openingHours'),
-    address: t('address'),
-    shadowWarning: t('shadowWarning', { minutes: '{minutes}' }),
-    sunBadge: t('sunBadge', { percent: '{percent}' }),
-    confidence: t('confidence'),
-    confidenceApproximate: t('confidenceApproximate'),
-    confidenceUnavailable: t('confidenceUnavailable'),
-    city: t('city'),
-    openUntil: t('openUntil', { time: '{time}' }),
-    placeholderImageShort: t('placeholderImageShort'),
+    close: t('detail.close'),
+    favourite: t('detail.favourite'),
+    favouriteAdd: t('detail.favouriteAdd'),
+    favouriteRemove: t('detail.favouriteRemove'),
+    share: t('detail.share'),
+    sectionTitle: t('detail.sectionTitle'),
+    peakTime: t('detail.peakTime', { time: '{time}' }),
+    bestWindow: t('detail.bestWindow', { start: '{start}', end: '{end}' }),
+    openMaps: t('detail.openMaps'),
+    route: t('detail.route'),
+    photoPlaceholder: t('detail.photoPlaceholder'),
+    loading: t('detail.loading'),
+    detailsUnavailable: t('detail.detailsUnavailable'),
+    openingHours: t('detail.openingHours'),
+    address: t('detail.address'),
+    shadowWarning: t('detail.shadowWarning', { minutes: '{minutes}' }),
+    sunBadge: t('detail.sunBadge', { percent: '{percent}' }),
+    confidence: t('detail.confidence'),
+    confidenceApproximate: t('detail.confidenceApproximate'),
+    confidenceUnavailable: t('detail.confidenceUnavailable'),
+    city: t('detail.city'),
+    openUntil: t('detail.openUntil', { time: '{time}' }),
+    placeholderImageShort: t('detail.placeholderImageShort'),
     facts: {
-      distance: t('facts.distance'),
-      exposure: t('facts.exposure'),
-      bestAt: t('facts.bestAt'),
-      outdoorSeats: t('facts.outdoorSeats'),
+      distance: t('detail.facts.distance'),
+      exposure: t('detail.facts.exposure'),
+      bestAt: t('detail.facts.bestAt'),
+      outdoorSeats: t('detail.facts.outdoorSeats'),
     },
     timeline: {
-      ariaLabel: t('timeline.ariaLabel'),
-      currentTime: t('timeline.currentTime', { time: '{time}' }),
-      sunnyWindow: t('timeline.sunnyWindow', { start: '{start}', end: '{end}' }),
-      partialWindow: t('timeline.partialWindow', { start: '{start}', end: '{end}' }),
-      shadedWindow: t('timeline.shadedWindow', { start: '{start}', end: '{end}' }),
+      ariaLabel: t('detail.timeline.ariaLabel'),
+      currentTime: t('detail.timeline.currentTime', { time: '{time}' }),
+      sunnyWindow: t('detail.timeline.sunnyWindow', { start: '{start}', end: '{end}' }),
+      partialWindow: t('detail.timeline.partialWindow', { start: '{start}', end: '{end}' }),
+      shadedWindow: t('detail.timeline.shadedWindow', { start: '{start}', end: '{end}' }),
+    },
+    uncertainty: predictionUncertaintyLabels(t),
+  };
+}
+
+function predictionUncertaintyLabels(
+  t: ReturnType<typeof useTranslations<'venue'>>,
+): PredictionUncertaintyDisplayLabels {
+  return {
+    description: t('uncertainty.description'),
+    accessible: t('uncertainty.accessible', {
+      label: '{label}',
+      description: '{description}',
+    }),
+    levels: {
+      low: t('uncertainty.levels.low'),
+      medium: t('uncertainty.levels.medium'),
+      high: t('uncertainty.levels.high'),
+    },
+    short: {
+      building_shadow_coverage: t('uncertainty.short.building_shadow_coverage'),
+      obstruction: t('uncertainty.short.obstruction'),
+      weather: t('uncertainty.short.weather'),
+      other: t('uncertainty.short.other'),
+    },
+    reasons: {
+      building_shadow_coverage: t('uncertainty.reasons.building_shadow_coverage'),
+      vegetation: t('uncertainty.reasons.vegetation'),
+      awning: t('uncertainty.reasons.awning'),
+      umbrella: t('uncertainty.reasons.umbrella'),
+      bridge: t('uncertainty.reasons.bridge'),
+      temporary_structure: t('uncertainty.reasons.temporary_structure'),
+      seasonal_furniture: t('uncertainty.reasons.seasonal_furniture'),
+      weather: t('uncertainty.reasons.weather'),
+      other: t('uncertainty.reasons.other'),
     },
   };
 }

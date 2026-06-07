@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 import { GET } from '@/app/api/venues/[slug]/route';
 import { formatPlannerTime, parsePlannerTime, sunSeasonBounds } from '@/lib/utils/time-planner';
 import type { GetVenueDetailResponse } from '@/lib/types/api';
+import { expectNoSensitiveSourceTerms } from '../../setup/sensitive-source-terms';
 
 function makeRequest(slug: string, query = ''): NextRequest {
   return new NextRequest(`http://localhost/api/venues/${slug}${query}`);
@@ -108,6 +109,21 @@ describe('GET /api/venues/[slug]', () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as GetVenueDetailResponse;
     expect(body.venue.shadowWarningMinutes).toBe(0);
+  });
+
+  it('returns sanitized prediction uncertainty metadata for venue detail', async () => {
+    const res = await GET(makeRequest('brygghuset-lerum'), {
+      params: Promise.resolve({ slug: 'brygghuset-lerum' }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenueDetailResponse;
+    expect(body.venue.predictionUncertainty).toEqual({
+      level: 'medium',
+      reasons: ['vegetation', 'awning', 'seasonal_furniture'],
+    });
+
+    expectNoSensitiveSourceTerms(JSON.stringify(body));
   });
 
   it('applies selected planner date/time to venue detail and timeline', async () => {

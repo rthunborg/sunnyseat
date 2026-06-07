@@ -16,7 +16,11 @@ import {
   getConfidenceDisplayState,
   type ConfidenceDisplayLabels,
 } from '@/lib/utils/confidence-display';
-import type { SunFreshnessMeta } from '@/lib/types/api';
+import {
+  getPredictionUncertaintyDisplay,
+  type PredictionUncertaintyDisplayLabels,
+} from '@/lib/utils/prediction-uncertainty-display';
+import type { PredictionUncertaintyDto, SunFreshnessMeta } from '@/lib/types/api';
 import { cn } from '@/lib/utils';
 
 export type VenueCardLabels = {
@@ -34,6 +38,7 @@ export type VenueCardLabels = {
   statusMostlyShade?: string;
   statusFullSun?: string;
   statusPartialSun?: string;
+  uncertainty?: PredictionUncertaintyDisplayLabels;
 };
 
 export type VenueCardProps = {
@@ -44,6 +49,7 @@ export type VenueCardProps = {
   confidenceMeta?: SunFreshnessMeta;
   distanceMeters?: number;
   sunExposurePercent?: number;
+  predictionUncertainty?: PredictionUncertaintyDto;
   thumbnail?: {
     alt: string;
     initials: string;
@@ -71,6 +77,7 @@ export function VenueCard({
   confidenceMeta,
   distanceMeters,
   sunExposurePercent,
+  predictionUncertainty,
   thumbnail,
   isSunny,
   visualMetadata,
@@ -90,6 +97,15 @@ export function VenueCard({
     meta: confidenceMeta,
     labels: confidenceDisplayLabels(labels),
   });
+  const uncertaintyDisplay = labels.uncertainty
+    ? getPredictionUncertaintyDisplay({
+        predictionUncertainty,
+        labels: labels.uncertainty,
+      })
+    : null;
+  const selectLabel = uncertaintyDisplay
+    ? `${labels.select}, ${uncertaintyDisplay.accessibleText}`
+    : labels.select;
   const statusLabel = !isSunny
     ? (labels.statusMostlyShade ?? 'MEST SKUGGA')
     : (sunExposurePercent ?? 0) >= 75
@@ -118,7 +134,7 @@ export function VenueCard({
     >
       <button
         type="button"
-        aria-label={labels.select}
+        aria-label={selectLabel}
         onClick={onSelect}
         className="flex min-w-0 flex-1 items-center gap-3 rounded-card text-left outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
       >
@@ -147,6 +163,16 @@ export function VenueCard({
               )}
               <span>{statusLabel}</span>
             </span>
+            {uncertaintyDisplay && (
+              <span className="mt-1 block text-label-xs-medium text-text-body">
+                <span className="font-bold text-text-primary">
+                  {uncertaintyDisplay.visibleLabel}
+                </span>
+                <span className="text-text-faint"> · </span>
+                <span>{uncertaintyDisplay.visibleSummary}</span>
+                <span className="sr-only"> {uncertaintyDisplay.accessibleText}</span>
+              </span>
+            )}
           </>
         ) : (
           <>
@@ -181,7 +207,17 @@ export function VenueCard({
                   </span>
                 )
               )}
-            </span>{' '}
+            </span>
+            {uncertaintyDisplay && (
+              <span className="mt-1 block text-label-xs-medium text-text-body">
+                <span className="font-bold text-text-primary">
+                  {uncertaintyDisplay.visibleLabel}
+                </span>
+                <span className="text-text-faint"> · </span>
+                <span>{uncertaintyDisplay.visibleSummary}</span>
+                <span className="sr-only"> {uncertaintyDisplay.accessibleText}</span>
+              </span>
+            )}{' '}
             <span className="sr-only">
               {sunTimeRange ?? labels.sunUnavailable}. {confidenceDisplay.accessibleText}.{' '}
               {labels.distance}: {distance}.

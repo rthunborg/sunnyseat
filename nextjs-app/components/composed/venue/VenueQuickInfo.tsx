@@ -14,7 +14,11 @@ import {
   getConfidenceDisplayState,
   type ConfidenceDisplayLabels,
 } from '@/lib/utils/confidence-display';
-import type { SunFreshnessMeta } from '@/lib/types/api';
+import {
+  getPredictionUncertaintyDisplay,
+  type PredictionUncertaintyDisplayLabels,
+} from '@/lib/utils/prediction-uncertainty-display';
+import type { PredictionUncertaintyDto, SunFreshnessMeta } from '@/lib/types/api';
 import { cn } from '@/lib/utils';
 
 export type VenueQuickInfoMode = 'mobile' | 'desktop';
@@ -26,6 +30,7 @@ export type VenueQuickInfoProps = {
   sunTimeRange?: string;
   confidencePercent?: number;
   confidenceMeta?: SunFreshnessMeta;
+  predictionUncertainty?: PredictionUncertaintyDto;
   sunExposurePercent?: number;
   distanceMeters?: number;
   thumbnail?: {
@@ -54,6 +59,7 @@ export type VenueQuickInfoProps = {
     sunUnavailable: string;
     favouriteAdd?: string;
     favouriteRemove?: string;
+    uncertainty?: PredictionUncertaintyDisplayLabels;
   };
 };
 
@@ -66,6 +72,7 @@ export function VenueQuickInfo({
   sunTimeRange,
   confidencePercent,
   confidenceMeta,
+  predictionUncertainty,
   sunExposurePercent,
   distanceMeters,
   thumbnail,
@@ -87,6 +94,12 @@ export function VenueQuickInfo({
     meta: confidenceMeta,
     labels: confidenceDisplayLabels(labels),
   });
+  const uncertaintyDisplay = labels.uncertainty
+    ? getPredictionUncertaintyDisplay({
+        predictionUncertainty,
+        labels: labels.uncertainty,
+      })
+    : null;
   const positionedStyle = position
     ? {
         left: position.x,
@@ -214,6 +227,24 @@ export function VenueQuickInfo({
                         </span>
                       </span>
                     </p>
+                    {uncertaintyDisplay && (
+                      <p
+                        className={
+                          isAnchoredMobile
+                            ? 'mt-1 text-center text-label-xs-medium text-text-body'
+                            : 'mt-2 text-body-sm-medium text-text-body'
+                        }
+                      >
+                        <span className="font-bold text-text-primary">
+                          {uncertaintyDisplay.visibleLabel}
+                        </span>
+                        <span className="text-text-faint"> · </span>
+                        <span>{uncertaintyDisplay.visibleSummary}</span>
+                        <span className="sr-only">
+                          {' '}{uncertaintyDisplay.accessibleText}
+                        </span>
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

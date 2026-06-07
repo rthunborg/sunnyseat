@@ -5,6 +5,8 @@ import {
   peakTimeFromTimeline,
 } from '@/components/composed/venue/VenueDetailContent';
 import type { VenueDataDto, VenueDetailDto } from '@/lib/types/api';
+import type { PredictionUncertaintyDisplayLabels } from '@/lib/utils/prediction-uncertainty-display';
+import { expectNoSensitiveSourceTerms } from '../setup/sensitive-source-terms';
 
 const LIST_VENUE: VenueDataDto = {
   id: '1',
@@ -71,6 +73,34 @@ const labels = {
     sunnyWindow: 'Sol {start}-{end}',
     partialWindow: 'Delvis sol {start}-{end}',
     shadedWindow: 'Skugga {start}-{end}',
+  },
+};
+
+const uncertaintyLabels: PredictionUncertaintyDisplayLabels = {
+  description:
+    'Vi räknar på solens läge, byggnadsskuggor och väder. Träd, markiser, parasoller, broar och tillfälliga konstruktioner kan påverka platsen.',
+  accessible: '{label}. {description}',
+  levels: {
+    low: 'Låg osäkerhet',
+    medium: 'Osäker prognos',
+    high: 'Mer osäker prognos',
+  },
+  short: {
+    building_shadow_coverage: 'Byggnadsskuggor mer osäkra',
+    obstruction: 'Lokala hinder kan påverka',
+    weather: 'Vädret gör prognosen osäkrare',
+    other: 'Lokala förhållanden kan påverka',
+  },
+  reasons: {
+    building_shadow_coverage: 'Byggnadsskuggorna är beräknade med begränsad täckning här.',
+    vegetation: 'Träd kan påverka platsen.',
+    awning: 'Markiser kan påverka platsen.',
+    umbrella: 'Parasoller kan påverka platsen.',
+    bridge: 'Broar kan påverka platsen.',
+    temporary_structure: 'Tillfälliga konstruktioner kan påverka platsen.',
+    seasonal_furniture: 'Säsongsmöbler kan påverka platsen.',
+    weather: 'Vädret gör prognosen mer osäker.',
+    other: 'Lokala förhållanden kan påverka platsen.',
   },
 };
 
@@ -188,6 +218,37 @@ describe('VenueDetailContent', () => {
     expect(screen.queryByText(/Säkerhet:/)).toBeNull();
     expect(screen.getByText(/Säkerhet saknas/)).toHaveClass('sr-only');
     expect(screen.getByLabelText('95% sol')).toBeInTheDocument();
+  });
+
+  it('renders a concise uncertainty note near the sun forecast context', () => {
+    const { container } = render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={{
+          ...DETAIL,
+          predictionUncertainty: {
+            level: 'medium',
+            reasons: ['vegetation', 'source_layer' as never, 'awning', 'seasonal_furniture'],
+          },
+        }}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        currentTime="15:30"
+        labels={{ ...labels, uncertainty: uncertaintyLabels }}
+        onRoute={() => undefined}
+      />,
+    );
+
+    const note = screen.getByText('Osäker prognos').closest('p');
+    expect(note).toHaveTextContent('Lokala hinder kan påverka');
+    expect(note).toHaveTextContent(
+      'Vi räknar på solens läge, byggnadsskuggor och väder',
+    );
+    expect(note).toHaveTextContent('Träd kan påverka platsen');
+    expect(note).toHaveClass('bg-surface-sand');
+    expectNoSensitiveSourceTerms(container);
   });
 
   it('shows the venue name immediately while detail fields are loading', () => {
