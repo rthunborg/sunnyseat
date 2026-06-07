@@ -1,0 +1,47 @@
+SunnySeat story review gate
+Story: 3-1-routing-navigation-to-venue
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-1-routing-navigation-to-venue-review-20260607-191920.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/3-1-routing-navigation-to-venue.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  49 passed (49)
+      Tests  413 passed (413)
+   Start at  19:19:53
+   Duration  29.23s (transform 9.41s, setup 25.40s, import 41.26s, tests 54.73s, environment 173.19s)
+
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00' viewport='mobile'
+--- Visual validation: map-with-selected-venue ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00
+Waiting for selector [data-testid="venue-quick-info"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-ND7oj7.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure, colour scheme, UI chrome elements (time slider, venue popup card, bottom sheet, navigation bar), and map overlay components all properly positioned and styled; minor differences include additional text "ca 6 min" in the VISA RUTT button and a slightly different venue thumbnail in the bottom sheet, which are non-blocking dynamic data variations.
+Updated sprint status: 3-1-routing-navigation-to-venue -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-1-routing-navigation-to-venue-review-20260607-191920.log

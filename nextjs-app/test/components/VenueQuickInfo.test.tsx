@@ -58,6 +58,7 @@ const labels = {
   distance: 'Avstånd',
   loadingSun: 'Laddar soldata',
   sunUnavailable: 'Soltid saknas',
+  routeLoading: 'Öppnar kartor',
   favouriteAdd: 'Spara som favorit',
   favouriteRemove: 'Ta bort favorit',
 };
@@ -129,6 +130,46 @@ describe('<VenueQuickInfo />', () => {
     expect(screen.getByText(/95% SOL/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mer Info' })).toBeInTheDocument();
+  });
+
+  it('renders an approximate route estimate and loading state on the route CTA', () => {
+    const route = vi.fn();
+    const { rerender } = render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        routeEstimateLabel="ca 11 min promenad"
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={route}
+        labels={labels}
+      />,
+    );
+
+    expect(screen.getByText('ca 11 min promenad')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Visa Rutt, ca 11 min promenad' }));
+    expect(route).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        routeEstimateLabel="ca 11 min promenad"
+        isRouteLoading
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={route}
+        labels={labels}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Öppnar kartor' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+    expect(screen.getByText('ca 11 min promenad')).toBeInTheDocument();
   });
 
   it('does not render a leading separator before non-anchored confidence metadata', () => {

@@ -751,7 +751,7 @@ describe('<MapView />', () => {
       });
     });
 
-    it('opens directions from QuickInfo instead of rendering a dead route action', () => {
+    it('opens directions from QuickInfo and keeps an in-app route overlay available', () => {
       const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
       selectedVenueIdMock = 'venue-1';
       useVenueSearchMock.mockReturnValue({
@@ -764,12 +764,49 @@ describe('<MapView />', () => {
       });
 
       render(<MapView />, { wrapper: Wrapper });
-      fireEvent.click(screen.getAllByRole('button', { name: 'Visa Rutt' })[0]);
+      expect(screen.getAllByText('ca 2 min').length).toBeGreaterThanOrEqual(1);
+      fireEvent.click(screen.getAllByRole('button', { name: /Visa Rutt/ })[0]);
 
       expect(openSpy).toHaveBeenCalledWith(
-        'https://www.google.com/maps/dir/?api=1&destination=57.7%2C11.97',
+        'https://www.google.com/maps/dir/?api=1&destination=57.7%2C11.97&travelmode=walking&dir_action=navigate',
         '_blank',
         'noopener,noreferrer',
+      );
+      expect(screen.getByRole('dialog', { name: 'Rutt till Kafé Magasinet' })).toHaveTextContent(
+        'ca 2 min promenad',
+      );
+      expect(screen.getByRole('link', { name: 'ÖPPNA I KARTOR' })).toHaveAttribute(
+        'href',
+        'https://www.google.com/maps/dir/?api=1&destination=57.7%2C11.97&travelmode=walking&dir_action=navigate',
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Stäng rutt' }));
+      return waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: 'Rutt till Kafé Magasinet' })).toBeNull(),
+      );
+    });
+
+    it('clears a route overlay when the selected venue is cleared', async () => {
+      vi.spyOn(window, 'open').mockImplementation(() => null);
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      const { rerender } = render(<MapView />, { wrapper: Wrapper });
+      fireEvent.click(screen.getAllByRole('button', { name: /Visa Rutt/ })[0]);
+      expect(screen.getByRole('dialog', { name: 'Rutt till Kafé Magasinet' })).toBeInTheDocument();
+
+      selectedVenueIdMock = null;
+      selectedVenuePreviewMock = null;
+      rerender(<MapView />);
+
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: 'Rutt till Kafé Magasinet' })).not.toBeInTheDocument(),
       );
     });
 

@@ -22,6 +22,27 @@
     "sunUnavailable": "Sun time unavailable",
     "sunWindow": "Sun {start}–{end}"
   },
+  "route": {
+    "overlayTitle": "Route to {name}",
+    "loading": "Opening maps",
+    "walkEstimate": "about {minutes} min walk",
+    "walkEstimateCompact": "about {minutes} min",
+    "bikeEstimate": "about {minutes} min bike",
+    "unavailable": "Open maps for directions",
+    "openMaps": "OPEN IN MAPS",
+    "close": "Close route",
+    "directionFallback": "toward {neighborhood}",
+    "directions": {
+      "north": "north",
+      "northeast": "northeast",
+      "east": "east",
+      "southeast": "southeast",
+      "south": "south",
+      "southwest": "southwest",
+      "west": "west",
+      "northwest": "northwest"
+    }
+  },
   "uncertainty": {
     "description": "SunnySeat models sun position, building shadows, and weather. Trees, awnings, umbrellas, bridges, and temporary structures can affect conditions on site.",
     "accessible": "{label}. {description}",

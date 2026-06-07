@@ -1,7 +1,8 @@
 'use client';
 
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Heart, Navigation, Sun, X } from 'lucide-react';
+import { Heart, Sun, X } from 'lucide-react';
+import { RouteButton } from '@/components/composed/routing/RouteButton';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DURATION_DEFAULT_S,
@@ -44,6 +45,8 @@ export type VenueQuickInfoProps = {
   onDismiss: () => void;
   onOpenDetails: () => void;
   onRoute: () => void;
+  routeEstimateLabel?: string;
+  isRouteLoading?: boolean;
   onFavouriteToggle?: () => void;
   isFavourite?: boolean;
   labels: {
@@ -57,6 +60,7 @@ export type VenueQuickInfoProps = {
     distance: string;
     loadingSun: string;
     sunUnavailable: string;
+    routeLoading: string;
     favouriteAdd?: string;
     favouriteRemove?: string;
     uncertainty?: PredictionUncertaintyDisplayLabels;
@@ -82,6 +86,8 @@ export function VenueQuickInfo({
   onDismiss,
   onOpenDetails,
   onRoute,
+  routeEstimateLabel,
+  isRouteLoading = false,
   onFavouriteToggle,
   isFavourite = false,
   labels,
@@ -251,21 +257,15 @@ export function VenueQuickInfo({
             </motion.div>
           </AnimatePresence>
           <div className={cn('flex gap-2', isAnchoredMobile ? 'mt-2' : 'mt-3')}>
-            <button
-              type="button"
+            <RouteButton
+              label={labels.route}
+              loadingLabel={labels.routeLoading}
+              estimateLabel={routeEstimateLabel}
+              isLoading={isRouteLoading}
+              compact={isAnchoredMobile}
               onClick={onRoute}
-              className={
-                isAnchoredMobile
-                  ? 'min-h-11 min-w-0 flex-1 rounded-pill gradient-route-button shadow-route-button px-3 text-label-md uppercase text-amber-cta-text outline-none focus-visible:ring-2 focus-visible:ring-text-primary flex items-center justify-center gap-1.5 whitespace-nowrap'
-                  : 'min-h-11 flex-1 rounded-pill gradient-route-button shadow-route-button px-4 text-label-lg uppercase text-amber-cta-text outline-none focus-visible:ring-2 focus-visible:ring-text-primary flex items-center justify-center gap-2'
-              }
-            >
-              <Navigation
-                aria-hidden="true"
-                className={cn(isAnchoredMobile ? 'size-3.5' : 'size-4')}
-              />
-              {labels.route}
-            </button>
+              className="min-w-0 flex-1"
+            />
             <button
               type="button"
               onClick={onOpenDetails}

@@ -22,6 +22,27 @@
     "sunUnavailable": "Soltid saknas",
     "sunWindow": "Sol {start}–{end}"
   },
+  "route": {
+    "overlayTitle": "Rutt till {name}",
+    "loading": "Öppnar kartor",
+    "walkEstimate": "ca {minutes} min promenad",
+    "walkEstimateCompact": "ca {minutes} min",
+    "bikeEstimate": "ca {minutes} min cykel",
+    "unavailable": "Öppna kartor för vägbeskrivning",
+    "openMaps": "ÖPPNA I KARTOR",
+    "close": "Stäng rutt",
+    "directionFallback": "mot {neighborhood}",
+    "directions": {
+      "north": "norrut",
+      "northeast": "nordost",
+      "east": "österut",
+      "southeast": "sydost",
+      "south": "söderut",
+      "southwest": "sydväst",
+      "west": "västerut",
+      "northwest": "nordväst"
+    }
+  },
   "uncertainty": {
     "description": "Vi räknar på solens läge, byggnadsskuggor och väder. Träd, markiser, parasoller, broar och tillfälliga konstruktioner kan påverka platsen.",
     "accessible": "{label}. {description}",

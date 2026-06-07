@@ -13,6 +13,7 @@ import {
   type MobileBottomSheetState,
 } from '@/components/custom/sheets/MobileBottomSheet';
 import { VenueDetailOverlay } from '@/components/custom/venue/VenueDetailOverlay';
+import { RouteOverlay, type RouteOverlayLabels } from '@/components/custom/routing/RouteOverlay';
 import {
   VenueListControls,
   type VenueListModeSelection,
@@ -35,6 +36,15 @@ import { useTimeContext } from '@/lib/contexts/TimeContext';
 import { type VenuePinData } from '@/lib/types/map';
 import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
 import type { PredictionUncertaintyDisplayLabels } from '@/lib/utils/prediction-uncertainty-display';
+import {
+  buildGoogleMapsDirectionsUrl,
+  buildGoogleMapsSearchUrl,
+  buildNativeDirectionsUrl,
+  getRouteSummary,
+  resolveRoutingPlatform,
+  type CardinalDirection,
+  type RouteSummary,
+} from '@/lib/services/routing';
 import { DURATION_FLY_MS } from '@/lib/constants/animation';
 import { useForcedState } from '@/lib/dev/use-forced-state';
 import { cn } from '@/lib/utils';
@@ -113,7 +123,14 @@ export function MapView() {
   const [mobileSheetState, setMobileSheetState] =
     useState<MobileBottomSheetState>('mid');
   const [venueSortMode, setVenueSortMode] = useState<VenueListSortMode>('sun');
+  const [routeOverlay, setRouteOverlay] = useState<{
+    venueId: string;
+    labels: RouteOverlayLabels;
+    fallbackHref: string;
+  } | null>(null);
+  const [routeLoadingVenueId, setRouteLoadingVenueId] = useState<string | null>(null);
   const hasHandledFavouritesRouteEntryRef = useRef(false);
+  const routeLoadingTimerRef = useRef<number | null>(null);
   const isFavouritesRoute = isFavouritesPath(pathname);
   const [desktopListMode, setDesktopListMode] = useState<'near' | 'favourites'>(
     isFavouritesRoute ? 'favourites' : 'near',
@@ -529,10 +546,44 @@ export function MapView() {
     start: '{start}',
     end: '{end}',
   });
+  const routeText = routeLabels(tVenue);
+  const quickInfoRouteSummary = selectedQuickInfoVenue
+    ? getRouteSummary({ venue: selectedQuickInfoVenue, origin: geolocation.coords })
+    : null;
+  const quickInfoRouteEstimateLabel = quickInfoRouteSummary
+    ? routeEstimateLabel(quickInfoRouteSummary.walkMinutes, routeText.walkEstimateCompact)
+    : undefined;
+  const detailRouteVenue = detailFallbackVenue
+    ? (detailVenue ?? detailFallbackVenue)
+    : null;
+  const detailRouteSummary = detailRouteVenue
+    ? getRouteSummary({ venue: detailRouteVenue, origin: geolocation.coords })
+    : null;
+  const detailRouteEstimateLabel = detailRouteSummary
+    ? routeEstimateLabel(detailRouteSummary.walkMinutes, routeText.walkEstimate)
+    : undefined;
+  const activeRouteVenueId = isVenueDetailRequested
+    ? (detailRouteVenue?.id ?? null)
+    : (selectedQuickInfoVenue?.id ?? selectedVenueDto?.id ?? null);
 
   useEffect(() => {
     setDesktopListMode(isFavouritesRoute ? 'favourites' : 'near');
   }, [isFavouritesRoute]);
+
+  useEffect(() => {
+    return () => {
+      if (routeLoadingTimerRef.current !== null) {
+        window.clearTimeout(routeLoadingTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    setRouteOverlay((current) => {
+      if (!current || current.venueId === activeRouteVenueId) return current;
+      return null;
+    });
+  }, [activeRouteVenueId]);
 
   const handleDesktopListModeChange = (mode: VenueListModeSelection) => {
     setDesktopListMode(mode);
@@ -548,7 +599,37 @@ export function MapView() {
   const handleRouteSelectedVenue = () => {
     const venue = selectedQuickInfoVenue ?? selectedVenueDto;
     if (!venue) return;
-    openDirections(venue);
+    handleRouteVenue(venue);
+  };
+
+  const handleRouteDetailVenue = () => {
+    if (!detailRouteVenue) return;
+    handleRouteVenue(detailRouteVenue);
+  };
+
+  const handleRouteVenue = (venue: VenueDataDto) => {
+    const summary = getRouteSummary({ venue, origin: geolocation.coords });
+    const platform = typeof navigator === 'undefined'
+      ? 'google'
+      : resolveRoutingPlatform({
+          userAgent: navigator.userAgent,
+          maxTouchPoints: navigator.maxTouchPoints,
+        });
+    const directionsUrl = buildNativeDirectionsUrl(venue, platform);
+    setRouteOverlay({
+      venueId: venue.id,
+      labels: routeOverlayLabels(venue, summary, routeText),
+      fallbackHref: buildGoogleMapsDirectionsUrl(venue),
+    });
+    setRouteLoadingVenueId(venue.id);
+    if (routeLoadingTimerRef.current !== null) {
+      window.clearTimeout(routeLoadingTimerRef.current);
+    }
+    routeLoadingTimerRef.current = window.setTimeout(() => {
+      setRouteLoadingVenueId((current) => current === venue.id ? null : current);
+      routeLoadingTimerRef.current = null;
+    }, 200);
+    window.open(directionsUrl, '_blank', 'noopener,noreferrer');
   };
   const handleSortModeChange = (mode: VenueListSortMode) => {
     if (listMode === 'favourites') return;
@@ -674,12 +755,13 @@ export function MapView() {
             currentTime={plannerTime.selectedTime}
             labels={venueDetailLabels(tVenue)}
             onDismiss={handleDismissDetails}
-            onRoute={() => {}}
+            onRoute={handleRouteDetailVenue}
+            routeEstimateLabel={detailRouteEstimateLabel}
+            isRouteLoading={routeLoadingVenueId === detailRouteVenue?.id}
             isFavourite={detailFavouriteId ? favourites.isFavourite(detailFavouriteId) : false}
             onFavouriteToggle={
               detailFavouriteId ? () => favourites.toggleFavourite(detailFavouriteId) : undefined
             }
-            routeDisabled
             locale={locale}
           />
         )}
@@ -694,12 +776,13 @@ export function MapView() {
             currentTime={plannerTime.selectedTime}
             labels={venueDetailLabels(tVenue)}
             onDismiss={handleDismissDetails}
-            onRoute={() => {}}
+            onRoute={handleRouteDetailVenue}
+            routeEstimateLabel={detailRouteEstimateLabel}
+            isRouteLoading={routeLoadingVenueId === detailRouteVenue?.id}
             isFavourite={detailFavouriteId ? favourites.isFavourite(detailFavouriteId) : false}
             onFavouriteToggle={
               detailFavouriteId ? () => favourites.toggleFavourite(detailFavouriteId) : undefined
             }
-            routeDisabled
             locale={locale}
           />
         )}
@@ -720,6 +803,8 @@ export function MapView() {
             onDismiss={() => selectVenue(null)}
             onOpenDetails={handleOpenDetails}
             onRoute={handleRouteSelectedVenue}
+            routeEstimateLabel={quickInfoRouteEstimateLabel}
+            isRouteLoading={routeLoadingVenueId === selectedQuickInfoVenue?.id}
             isFavourite={selectedQuickInfoVenue ? favourites.isFavourite(selectedQuickInfoVenue.id) : false}
             onFavouriteToggle={
               selectedQuickInfoVenue
@@ -747,6 +832,8 @@ export function MapView() {
             onDismiss={() => selectVenue(null)}
             onOpenDetails={handleOpenDetails}
             onRoute={handleRouteSelectedVenue}
+            routeEstimateLabel={quickInfoRouteEstimateLabel}
+            isRouteLoading={routeLoadingVenueId === selectedQuickInfoVenue?.id}
             isFavourite={selectedQuickInfoVenue ? favourites.isFavourite(selectedQuickInfoVenue.id) : false}
             onFavouriteToggle={
               selectedQuickInfoVenue
@@ -754,6 +841,14 @@ export function MapView() {
                 : undefined
             }
             labels={quickInfoLabels(tVenue)}
+          />
+        )}
+        {routeOverlay && (
+          <RouteOverlay
+            key={routeOverlay.venueId}
+            labels={routeOverlay.labels}
+            fallbackHref={routeOverlay.fallbackHref}
+            onDismiss={() => setRouteOverlay(null)}
           />
         )}
       </AnimatePresence>
@@ -896,6 +991,7 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     distance: t('quickInfo.distance'),
     loadingSun: t('quickInfo.loadingSun'),
     sunUnavailable: t('quickInfo.sunUnavailable'),
+    routeLoading: t('route.loading'),
     favouriteAdd: t('list.favouriteAdd'),
     favouriteRemove: t('list.favouriteRemove'),
     uncertainty: predictionUncertaintyLabels(t),
@@ -914,6 +1010,7 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     bestWindow: t('detail.bestWindow', { start: '{start}', end: '{end}' }),
     openMaps: t('detail.openMaps'),
     route: t('detail.route'),
+    routeLoading: t('route.loading'),
     photoPlaceholder: t('detail.photoPlaceholder'),
     loading: t('detail.loading'),
     detailsUnavailable: t('detail.detailsUnavailable'),
@@ -942,6 +1039,64 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     },
     uncertainty: predictionUncertaintyLabels(t),
   };
+}
+
+function routeLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
+  return {
+    overlayTitle: t('route.overlayTitle', { name: '{name}' }),
+    loading: t('route.loading'),
+    walkEstimate: t('route.walkEstimate', { minutes: '{minutes}' }),
+    walkEstimateCompact: t('route.walkEstimateCompact', { minutes: '{minutes}' }),
+    bikeEstimate: t('route.bikeEstimate', { minutes: '{minutes}' }),
+    unavailable: t('route.unavailable'),
+    openMaps: t('route.openMaps'),
+    close: t('route.close'),
+    directionFallback: t('route.directionFallback', { neighborhood: '{neighborhood}' }),
+    directions: {
+      north: t('route.directions.north'),
+      northeast: t('route.directions.northeast'),
+      east: t('route.directions.east'),
+      southeast: t('route.directions.southeast'),
+      south: t('route.directions.south'),
+      southwest: t('route.directions.southwest'),
+      west: t('route.directions.west'),
+      northwest: t('route.directions.northwest'),
+    } satisfies Record<CardinalDirection, string>,
+  };
+}
+
+function routeOverlayLabels(
+  venue: VenueDataDto,
+  summary: RouteSummary,
+  labels: ReturnType<typeof routeLabels>,
+): RouteOverlayLabels {
+  return {
+    title: formatLabel(labels.overlayTitle, { name: venue.venueName }),
+    walk: routeEstimateLabel(summary.walkMinutes, labels.walkEstimate) ?? null,
+    bike: routeEstimateLabel(summary.bikeMinutes, labels.bikeEstimate) ?? null,
+    direction: routeDirectionLabel(summary.direction, venue.neighborhood, labels),
+    close: labels.close,
+    fallback: labels.openMaps,
+    unavailable: labels.unavailable,
+  };
+}
+
+function routeEstimateLabel(minutes: number | null, template: string): string | undefined {
+  if (minutes === null) return undefined;
+  return formatLabel(template, { minutes: String(minutes) });
+}
+
+function routeDirectionLabel(
+  direction: CardinalDirection | null,
+  neighborhood: string | undefined,
+  labels: ReturnType<typeof routeLabels>,
+): string | null {
+  if (direction) return labels.directions[direction];
+  const trimmedNeighborhood = neighborhood?.trim();
+  if (trimmedNeighborhood) {
+    return formatLabel(labels.directionFallback, { neighborhood: trimmedNeighborhood });
+  }
+  return null;
 }
 
 function predictionUncertaintyLabels(
@@ -1074,17 +1229,6 @@ function LoadingPill({ isFetching, isError, dataUpdatedAt }: LoadingPillProps) {
 function venueIdentityKey(venue: Pick<VenueDataDto, 'id' | 'slug' | 'venueSlug'> | null): string | null {
   if (!venue) return null;
   return `${venue.id}:${venue.slug}:${venue.venueSlug}`;
-}
-
-function openDirections(venue: VenueDataDto): void {
-  const destination = Number.isFinite(venue.location.lat) && Number.isFinite(venue.location.lng)
-    ? `${venue.location.lat},${venue.location.lng}`
-    : venue.venueName;
-  window.open(
-    `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`,
-    '_blank',
-    'noopener,noreferrer',
-  );
 }
 
 function MapVenueError({ onRetry }: { onRetry: () => unknown }) {

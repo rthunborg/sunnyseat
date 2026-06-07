@@ -8,12 +8,13 @@ import {
   Footprints,
   ImageIcon,
   MapPin,
-  Navigation,
   Star,
   Sun,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { RouteButton } from '@/components/composed/routing/RouteButton';
 import { SunTimeline, type SunTimelineLabels } from '@/components/composed/venue/SunTimeline';
+import { buildGoogleMapsSearchUrl } from '@/lib/services/routing';
 import type { SunFreshnessMeta, VenueDataDto, VenueDetailDto } from '@/lib/types/api';
 import {
   formatPeakHour,
@@ -38,6 +39,7 @@ export type VenueDetailContentLabels = {
   bestWindow?: string;
   openMaps: string;
   route: string;
+  routeLoading: string;
   photoPlaceholder: string;
   loading: string;
   detailsUnavailable: string;
@@ -70,6 +72,8 @@ export type VenueDetailContentProps = {
   isLoading?: boolean;
   className?: string;
   onRoute: () => void;
+  routeEstimateLabel?: string;
+  isRouteLoading?: boolean;
   routeDisabled?: boolean;
   mode?: 'mobile' | 'desktop';
   locale?: string;
@@ -84,6 +88,8 @@ export function VenueDetailContent({
   isLoading = false,
   className,
   onRoute,
+  routeEstimateLabel,
+  isRouteLoading = false,
   routeDisabled = false,
   mode = 'mobile',
   locale = 'sv',
@@ -311,8 +317,8 @@ export function VenueDetailContent({
                 <p>{detail?.address ?? labels.detailsUnavailable}</p>
                 <a
                   className="mt-2 inline-flex min-h-11 items-center gap-1 rounded-pill text-label-md text-amber-dark outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
-                  href={mapsUrl(detail ?? fallbackVenue)}
-                  rel="noreferrer"
+                  href={buildGoogleMapsSearchUrl(detail ?? fallbackVenue)}
+                  rel="noopener noreferrer"
                   target="_blank"
                 >
                   {labels.openMaps}
@@ -332,16 +338,15 @@ export function VenueDetailContent({
           )}
         </div>
 
-        <button
-          type="button"
-          aria-disabled={routeDisabled}
+        <RouteButton
+          label={labels.route}
+          loadingLabel={labels.routeLoading}
+          estimateLabel={routeEstimateLabel}
+          isLoading={isRouteLoading}
           disabled={routeDisabled}
-          onClick={routeDisabled ? undefined : onRoute}
-          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-pill gradient-route-button px-5 text-label-lg text-text-primary shadow-route-button outline-none focus-visible:ring-2 focus-visible:ring-text-primary disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <Navigation aria-hidden="true" className="size-5" />
-          {labels.route}
-        </button>
+          onClick={onRoute}
+          className="w-full text-text-primary"
+        />
       </div>
     </article>
   );
@@ -554,15 +559,6 @@ function timelineFromListVenue(venue: VenueDataDto): VenueDetailDto['timeline'] 
       ? [{ ...venue.sunWindow, status: venue.currentSunStatus }]
       : [],
   };
-}
-
-function mapsUrl(venue: VenueDetailDto | VenueDataDto): string {
-  const query = Number.isFinite(venue.location.lat) && Number.isFinite(venue.location.lng)
-    ? `${venue.location.lat},${venue.location.lng}`
-    : 'address' in venue && venue.address
-      ? venue.address
-      : venue.venueName;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
 function parseHour(time: string): number {

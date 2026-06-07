@@ -48,6 +48,7 @@ const labels = {
   bestWindow: 'Bäst {start}-{end}',
   openMaps: 'ÖPPNA I KARTOR',
   route: 'Visa Rutt',
+  routeLoading: 'Öppnar kartor',
   photoPlaceholder: 'Platshållarbild för platsen',
   loading: 'Laddar platsdetaljer',
   detailsUnavailable: 'Detaljer saknas',
@@ -131,9 +132,45 @@ describe('VenueDetailContent', () => {
     expect(screen.getByText('Säkerhet 92%')).toHaveClass('sr-only');
     expect(screen.getByRole('link', { name: /ÖPPNA I KARTOR/i })).toHaveAttribute(
       'href',
-      expect.stringContaining('57.705'),
+      'https://www.google.com/maps/search/?api=1&query=57.705%2C11.97',
+    );
+    expect(screen.getByRole('link', { name: /ÖPPNA I KARTOR/i })).toHaveAttribute(
+      'rel',
+      'noopener noreferrer',
     );
     expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeEnabled();
+  });
+
+  it('renders route estimate copy and a scoped loading label on the primary CTA', () => {
+    const { rerender } = render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        routeEstimateLabel="ca 11 min promenad"
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('ca 11 min promenad')).toBeInTheDocument();
+
+    rerender(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        routeEstimateLabel="ca 11 min promenad"
+        isRouteLoading
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Öppnar kartor' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
   });
 
   it('uses token-backed venue detail hero heights', () => {

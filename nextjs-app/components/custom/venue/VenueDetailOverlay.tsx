@@ -33,6 +33,8 @@ export type VenueDetailOverlayProps = {
   reducedMotion?: boolean;
   onDismiss: () => void;
   onRoute: () => void;
+  routeEstimateLabel?: string;
+  isRouteLoading?: boolean;
   onFavouriteToggle?: () => void;
   isFavourite?: boolean;
   routeDisabled?: boolean;
@@ -53,6 +55,8 @@ export function VenueDetailOverlay({
   reducedMotion,
   onDismiss,
   onRoute,
+  routeEstimateLabel,
+  isRouteLoading = false,
   onFavouriteToggle,
   isFavourite = false,
   routeDisabled = false,
@@ -141,6 +145,8 @@ export function VenueDetailOverlay({
             labels={labels}
             isLoading={isLoading}
             onRoute={onRoute}
+            routeEstimateLabel={routeEstimateLabel}
+            isRouteLoading={isRouteLoading}
             routeDisabled={routeDisabled}
             mode="desktop"
             locale={locale}
@@ -219,6 +225,8 @@ export function VenueDetailOverlay({
           labels={labels}
           isLoading={isLoading}
           onRoute={onRoute}
+          routeEstimateLabel={routeEstimateLabel}
+          isRouteLoading={isRouteLoading}
           routeDisabled={routeDisabled}
           mode="mobile"
           locale={locale}

@@ -39,6 +39,7 @@
 
 generated: 2026-06-02
 last_updated: 2026-06-07
+# Note (2026-06-07): Rasmus approved Story 3.1 after Round 1 BMAD code-review fixes. Final verification passed: focused routing/component Vitest (6 files / 101 tests), typecheck, lint, full Vitest (49 files / 416 tests), Playwright (43 passed / 30 skipped), visual validation for map-with-selected-venue mobile plus venue-detail mobile and desktop, API-boundary scan, MVP monetization quarantine scan, and final story-review gate rerun (`.\scripts\run-sh.ps1 scripts/story-review.sh 3-1-routing-navigation-to-venue`). 3-1-routing-navigation-to-venue moved review -> done.
 # Note (2026-06-07): Rasmus approved Story 3.0.6 after Round 1 BMAD code-review fixes. Final story-review gate passed (`.\scripts\run-sh.ps1 scripts/story-review.sh 3-0-6-ux-content-uncertainty-copy`): lint, typecheck, Vitest green (47 files / 401 tests), and visual validation passed for map-panel-venues, map-with-selected-venue, venue-detail mobile, and venue-detail desktop. 3-0-6-ux-content-uncertainty-copy moved review -> done. Story 3.1 is now unblocked.
 # Note (2026-06-07): Story 3.0.6 UX Content for Sun Prediction Uncertainty drafted by Bob/Codex and transitioned backlog -> ready-for-dev. Draft baseline passed with `cd nextjs-app && npx.cmd tsc --noEmit` and `cd nextjs-app && npx.cmd eslint . --quiet`; story-file-audit passed all seven checks. Story is frontend/content/API-contract scoped: add Swedish-first uncertainty copy and safe public metadata for existing confidence/about/detail surfaces, keep English fallback in sync, avoid geodata internals in user copy, and do not reopen confidence math, geodata imports, SQL, routing, feedback, reviews, admin, premium/payment, or create a new About route unless a live About surface already exists. Story 3.1 remains paused until 3.0.6 is implemented and approved.
 # Note (2026-06-07): Rasmus approved Story 3.0.7 after Round 2 BMAD subagent review fixes. Round 2 tightened Baskarta preflight robustness, active source-geometry validation, SQL source-layer/runtime guards, and fixture coverage. Final gates passed: `cd nextjs-app && npx.cmd tsc --noEmit`, `cd nextjs-app && npx.cmd eslint . --quiet`, `cd nextjs-app && npx.cmd vitest run` (45 files / 386 tests), `python -m py_compile scripts/geodata/shadow_caster_pipeline.py`, `python -m unittest discover -s scripts/geodata/tests` (33 tests), and focused SQL contract Vitest (9 tests). 3-0-7-baskarta-xyz-inventory-data-contract-realignment moved review -> done.
@@ -110,7 +111,7 @@ development_status:
   3-0-5-confidence-engine-data-coverage: done
   3-0-7-baskarta-xyz-inventory-data-contract-realignment: done
   3-0-6-ux-content-uncertainty-copy: done
-  3-1-routing-navigation-to-venue: ready-for-dev
+  3-1-routing-navigation-to-venue: done
   3-2-sun-accuracy-feedback: backlog
   3-3-venue-reviews: backlog
   3-4-routing-visit-loop-hardening: backlog
