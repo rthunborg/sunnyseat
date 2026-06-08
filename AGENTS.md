@@ -30,6 +30,14 @@ Agents normally run commands through PowerShell in this checkout. Do not execute
 
 If invoking Git Bash manually, use `C:\Program Files\Git\bin\bash.exe` explicitly. Do not rely on `bash` from `PATH`.
 
+### Local Docker / WSL Rules
+
+Use the project-local Compose files from the repository root: `compose.yaml` for persistent development PostGIS and `compose.test.yaml` for disposable test PostGIS. Docker-heavy work should run from a WSL/Linux filesystem checkout such as `/home/rasmus/repos/sunnyseat`, not `/mnt/c/...` or `/mnt/d/...`.
+
+Do not start ad hoc containers with fixed names or fixed host ports. Let Compose scope containers by project name, keep published ports bound to `127.0.0.1`, and override defaults through `.env` when needed. Inside Compose networks, services must talk to Postgres by service name (`postgres:5432`), not `localhost`.
+
+Stop dev infrastructure with `docker compose -f compose.yaml down`; reset persistent dev data with `docker compose -f compose.yaml down -v`. Stop and clear disposable test infrastructure with `docker compose -f compose.test.yaml down -v`. Do not create global Docker networks, volumes, daemon settings, or Docker Desktop/WSL changes unless explicitly asked.
+
 ## Repository Layout
 
 ```text
@@ -38,6 +46,10 @@ If invoking Git Bash manually, use `C:\Program Files\Git\bin\bash.exe` explicitl
   CLAUDE.md                                  temporary Claude Code compatibility shim
   project-context.md                         durable project context and Screen ID -> Route Map
   CODEX_MIGRATION_NOTES.md                   Codex workflow migration notes
+  compose.yaml                               persistent local PostGIS infrastructure
+  compose.test.yaml                          disposable local test PostGIS infrastructure
+  .env.example                               safe local Docker defaults
+  docs/local-docker.md                       local Docker/WSL operating guide
 
   .codex/
     config.toml                              repo-local Codex defaults
@@ -58,6 +70,7 @@ If invoking Git Bash manually, use `C:\Program Files\Git\bin\bash.exe` explicitl
     implementation-artifacts/                local/gitignored sprint status, story files, validation artifacts
 
   building_geodata/                          large local geodata inputs
+  docker/postgres/init/                      local PostGIS init SQL
 
   nextjs-app/
     app/                                     Next.js App Router pages, layouts, API routes
