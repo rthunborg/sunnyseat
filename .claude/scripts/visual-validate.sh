@@ -100,6 +100,9 @@ case "$SCREEN_ID" in
       WAIT_ARGS+=(--wait-for-selector '[data-testid="mobile-venue-detail-sheet"]' --wait-for-timeout 500)
     fi
     ;;
+  feedback)
+    WAIT_ARGS+=(--wait-for-selector '[data-testid="feedback-prompt"]' --wait-for-timeout 500)
+    ;;
   map-*)
     WAIT_ARGS+=(--wait-for-selector '[data-testid="venue-pin"]' --wait-for-timeout 500)
     ;;

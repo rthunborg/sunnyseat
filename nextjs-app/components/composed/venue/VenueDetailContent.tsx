@@ -77,6 +77,7 @@ export type VenueDetailContentProps = {
   routeDisabled?: boolean;
   mode?: 'mobile' | 'desktop';
   locale?: string;
+  feedbackSlot?: React.ReactNode;
 };
 
 export function VenueDetailContent({
@@ -93,6 +94,7 @@ export function VenueDetailContent({
   routeDisabled = false,
   mode = 'mobile',
   locale = 'sv',
+  feedbackSlot,
 }: VenueDetailContentProps) {
   const venue = detail ?? fallbackVenue;
   const loading = isLoading && !detail;
@@ -153,6 +155,8 @@ export function VenueDetailContent({
             <LoadingBlock label={labels.loading} />
           ) : null}
         </header>
+
+        {feedbackSlot}
 
         {isDesktop && !loading ? (
           <p className="text-body-lg text-text-body">

@@ -40,6 +40,7 @@ export type VenueDetailOverlayProps = {
   routeDisabled?: boolean;
   mode?: 'mobile' | 'desktop';
   locale?: string;
+  feedbackSlot?: React.ReactNode;
 };
 
 const DISMISS_DRAG_PX = 140;
@@ -62,6 +63,7 @@ export function VenueDetailOverlay({
   routeDisabled = false,
   mode = 'mobile',
   locale,
+  feedbackSlot,
 }: VenueDetailOverlayProps) {
   const prefersReducedMotion = useReducedMotion() ?? false;
   const shouldReduceMotion = reducedMotion ?? prefersReducedMotion;
@@ -150,6 +152,7 @@ export function VenueDetailOverlay({
             routeDisabled={routeDisabled}
             mode="desktop"
             locale={locale}
+            feedbackSlot={feedbackSlot}
           />
         </div>
       </motion.aside>
@@ -230,6 +233,7 @@ export function VenueDetailOverlay({
           routeDisabled={routeDisabled}
           mode="mobile"
           locale={locale}
+          feedbackSlot={feedbackSlot}
         />
       </div>
     </motion.aside>

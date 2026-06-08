@@ -43,6 +43,22 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-06-08 — `feedback` (mobile) — Story 3.2 Sun Accuracy Feedback (Amelia / dev-story)
+
+**Trigger:** Story 3.2 visual validation exposed that the active `feedback` reference still came from the MVP Mobile Unlocked Tweaks -> `Feedback` state, which renders an obsolete general app-feedback modal with star rating. Story 3.2 and `project-context.md` require an inline venue-detail sun accuracy + outdoor seating prompt at `/?venue=test-venue-sunny&_state=feedback`.
+
+**Resolution:** Re-baseline the mobile `feedback` PNG from the running Story 3.2 implementation and skip the stale Claude Design prototype recipe so future default prototype captures do not overwrite it. The visual provider now waits for `[data-testid="feedback-prompt"]` before comparing.
+
+**Source of new PNG:** Playwright capture of `http://localhost:3000/?venue=test-venue-sunny&_state=feedback&_time=14:00` at `390x844` with `sunnyseat_onboarded=1`, saved to `nextjs-app/docs/design/references/screens/mobile/feedback.png`.
+
+**Recipe change:** `nextjs-app/scripts/capture-claude-design-refs.mjs` marks the `feedback` recipe as skipped because the active MVP prototype state is obsolete for Story 3.2. `nextjs-app/docs/design/references/claude-design/STATE-MAPPING.md` documents the implementation-derived active PNG. `.claude/scripts/visual-validate.sh` now waits for `[data-testid="feedback-prompt"]`.
+
+**Verification:** PASS — `feedback` mobile after re-baseline via `scripts/visual-validate.sh`. Parent `venue-detail` mobile and desktop visual gates also passed after integration.
+
+**Reason / spec link:** Story 3.2 Acceptance Criteria require an inline FeedbackPrompt card inside the venue detail scroll area with outdoor seating and sun accuracy questions. The story source conflict note explicitly says to implement Story 3.2 AC and the active visual reference unless Rasmus changes the story; Rasmus approved rebaselining the stale `feedback` reference on 2026-06-08.
+
+**Re-evaluation trigger:** Revisit when the Claude Design MVP bundle is refreshed with a real inline Story 3.2 feedback state, when Story 3.3 review UI changes the adjacent `review` state, or when `FeedbackPrompt` layout/copy changes materially.
+
 ### 2026-05-28 — `favourites-tab` time-pinned visual route — Story 2.7 Save & View Favourites Round 2 review (Amelia / code-review)
 
 **Trigger:** Round 2 code review found the `favourites-tab` route map was storage-seeded but not time-pinned. The passing visual comparison accepted a dynamic time-slider difference, so later runs could drift with the live clock.

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { Navigation, Sun } from 'lucide-react';
+import { AmberCTAButton } from '@/components/composed/shared/AmberCTAButton';
 import { useGeolocation } from '@/hooks/useGeolocation';
 
 const EXIT_MS = 250;
@@ -172,18 +173,17 @@ export function OnboardingScreen({
         }}
         className="relative z-10"
       >
-        <button
-          type="button"
+        <AmberCTAButton
           onClick={handleUseLocation}
           disabled={pending}
           aria-busy={pending}
           data-testid="onboarding-cta-primary"
           data-pending={pending ? 'true' : 'false'}
-          className="w-full h-14 rounded-pill gradient-cta-amber shadow-cta flex items-center justify-center gap-2 text-amber-cta-text font-bold text-[16px] tracking-[-0.01em] motion-safe:data-[pending=true]:animate-pulse-cta disabled:cursor-not-allowed"
+          className="h-14 w-full text-[16px] font-bold tracking-[-0.01em] motion-safe:data-[pending=true]:animate-pulse-cta"
         >
           <Navigation aria-hidden="true" style={{ width: 16, height: 16 }} />
           {t('primaryCta')}
-        </button>
+        </AmberCTAButton>
         <button
           type="button"
           onClick={handleUseCentrum}

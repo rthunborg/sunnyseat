@@ -1,1 +1,18 @@
-{}
+{
+  "title": "Help us improve accuracy",
+  "venueAddressLabel": "Address",
+  "mapLink": "Get directions",
+  "outdoorQuestion": "Does this place have outdoor seating?",
+  "sunnyQuestion": "Was it sunny when you arrived?",
+  "yes": "Yes",
+  "no": "No",
+  "later": "Not sure",
+  "noteLabel": "Comment",
+  "notePlaceholder": "If you want to share more feedback about the place...",
+  "submit": "Send",
+  "submitting": "Sending feedback",
+  "close": "Close",
+  "success": "Thanks for your feedback.",
+  "error": "Could not send. Try again.",
+  "retry": "Try again"
+}

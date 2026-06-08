@@ -1,1 +1,18 @@
-{}
+{
+  "title": "Hjälp oss förbättra",
+  "venueAddressLabel": "Adress",
+  "mapLink": "Hitta hit",
+  "outdoorQuestion": "Har det här stället uteservering?",
+  "sunnyQuestion": "Var det soligt när du kom?",
+  "yes": "Ja",
+  "no": "Nej",
+  "later": "Inte säker",
+  "noteLabel": "Kommentar",
+  "notePlaceholder": "Om du vill ge oss feedback om platsen...",
+  "submit": "Skicka",
+  "submitting": "Skickar feedback",
+  "close": "Stäng",
+  "success": "Tack för din feedback.",
+  "error": "Kunde inte skicka. Försök igen.",
+  "retry": "Försök igen"
+}

@@ -136,6 +136,8 @@ const RECIPES = [
     prototype: PROTO.mvpMobile,
     localStorage: { sunny_screen: 'map' },
     steps: [{ wait: 400 }, { tweaks: 'Feedback' }, { wait: 400 }],
+    skip:
+      'Story 3.2 rebaselined feedback to the inline venue-detail sun accuracy prompt; MVP prototype Tweaks -> Feedback still renders obsolete general feedback modal.',
   },
   {
     screenId: 'review',

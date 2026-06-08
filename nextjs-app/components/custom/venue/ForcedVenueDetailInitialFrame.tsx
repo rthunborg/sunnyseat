@@ -31,7 +31,6 @@ export function ForcedVenueDetailInitialFrame({
   }, [dismissOnHydration]);
 
   if (!forcedVenueDetail || !visible) return null;
-
   return (
     <div
       data-testid="forced-venue-detail-initial-frame"

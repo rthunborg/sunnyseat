@@ -126,20 +126,30 @@ export interface CoordinatesDto {
 // ============================================================================
 
 export interface SubmitFeedbackRequest {
-  venueId: number;
+  venueId?: string;
+  venueSlug?: string;
   userTimestamp: string; // ISO 8601
-  predictedState: 'Sunny' | 'Partial' | 'Shaded';
-  wasSunny: boolean;
-  confidenceAtPrediction: number; // 0-100
+  predictedState: VenueSunStatus;
+  sunAccuracy?: FeedbackSunAccuracy;
+  wasSunny?: boolean;
+  outdoorSeatingConfirmed?: boolean;
+  confidenceAtPrediction?: number; // 0-100
+  note?: string;
 }
 
+export type FeedbackSunAccuracy = 'sunny' | 'not_sunny' | 'unsure';
+
 export interface FeedbackResponse {
-  id: number;
-  venueId: number;
+  id: string;
+  venueId: string;
+  venueSlug: string;
   userTimestamp: string;
-  predictedState: string;
-  wasSunny: boolean;
-  confidenceAtPrediction: number;
+  predictedState: VenueSunStatus;
+  sunAccuracy?: FeedbackSunAccuracy;
+  wasSunny?: boolean;
+  outdoorSeatingConfirmed?: boolean;
+  confidenceAtPrediction?: number;
+  note?: string;
   createdAt: string;
 }
 

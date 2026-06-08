@@ -38,7 +38,10 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-02
-last_updated: 2026-06-07
+last_updated: 2026-06-08
+# Note (2026-06-08): Rasmus approved Story 3.2 after Round 3 BMAD code-review fixes. Final verification passed: focused feedback Vitest (6 files / 38 tests), typecheck, lint, full Vitest (55 files / 454 tests), feedback Playwright spec (4 passed), and final story-review gate rerun with feedback visual validation (`.\scripts\run-sh.ps1 scripts/story-review.sh 3-2-sun-accuracy-feedback`). 3-2-sun-accuracy-feedback moved review -> done.
+# Note (2026-06-07): Amelia/Codex started Story 3.2 implementation. Baseline checks passed before editing: `cd nextjs-app && npx.cmd tsc --noEmit` and `cd nextjs-app && npx.cmd eslint . --quiet`.
+# Note (2026-06-07): Story 3.2 Sun Accuracy Feedback drafted by Bob/Codex and transitioned backlog -> ready-for-dev. Draft baseline passed with `cd nextjs-app && npx.cmd tsc --noEmit` and `cd nextjs-app && npx.cmd eslint . --quiet`; story-file-audit passed all seven checks. Story is feedback/outdoor-seating scoped: add inline venue-detail FeedbackPrompt, POST `/api/venues/[id]/feedback` via the existing `[slug]/feedback` route shape, TanStack mutation hook, sessionStorage duplicate suppression, likely-visited eligibility, forced `feedback` visual state, Amber CTA extraction, and venue tag/attribute debt resolution. Do not add reviews, admin/candidate queues, premium/payment, geodata imports, confidence recalibration, or live SQL execution without an explicit contract artifact.
 # Note (2026-06-07): Rasmus approved Story 3.1 after Round 1 BMAD code-review fixes. Final verification passed: focused routing/component Vitest (6 files / 101 tests), typecheck, lint, full Vitest (49 files / 416 tests), Playwright (43 passed / 30 skipped), visual validation for map-with-selected-venue mobile plus venue-detail mobile and desktop, API-boundary scan, MVP monetization quarantine scan, and final story-review gate rerun (`.\scripts\run-sh.ps1 scripts/story-review.sh 3-1-routing-navigation-to-venue`). 3-1-routing-navigation-to-venue moved review -> done.
 # Note (2026-06-07): Rasmus approved Story 3.0.6 after Round 1 BMAD code-review fixes. Final story-review gate passed (`.\scripts\run-sh.ps1 scripts/story-review.sh 3-0-6-ux-content-uncertainty-copy`): lint, typecheck, Vitest green (47 files / 401 tests), and visual validation passed for map-panel-venues, map-with-selected-venue, venue-detail mobile, and venue-detail desktop. 3-0-6-ux-content-uncertainty-copy moved review -> done. Story 3.1 is now unblocked.
 # Note (2026-06-07): Story 3.0.6 UX Content for Sun Prediction Uncertainty drafted by Bob/Codex and transitioned backlog -> ready-for-dev. Draft baseline passed with `cd nextjs-app && npx.cmd tsc --noEmit` and `cd nextjs-app && npx.cmd eslint . --quiet`; story-file-audit passed all seven checks. Story is frontend/content/API-contract scoped: add Swedish-first uncertainty copy and safe public metadata for existing confidence/about/detail surfaces, keep English fallback in sync, avoid geodata internals in user copy, and do not reopen confidence math, geodata imports, SQL, routing, feedback, reviews, admin, premium/payment, or create a new About route unless a live About surface already exists. Story 3.1 remains paused until 3.0.6 is implemented and approved.
@@ -112,7 +115,7 @@ development_status:
   3-0-7-baskarta-xyz-inventory-data-contract-realignment: done
   3-0-6-ux-content-uncertainty-copy: done
   3-1-routing-navigation-to-venue: done
-  3-2-sun-accuracy-feedback: backlog
+  3-2-sun-accuracy-feedback: done
   3-3-venue-reviews: backlog
   3-4-routing-visit-loop-hardening: backlog
   epic-3-retrospective: optional

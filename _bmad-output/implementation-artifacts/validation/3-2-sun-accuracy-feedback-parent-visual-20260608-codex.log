@@ -1,0 +1,22 @@
+Story 3.2 parent visual validation rerun - 2026-06-08T09:51:33.9266456+02:00
+Command: .\scripts\run-sh.ps1 scripts/visual-validate.sh feedback '/?venue=test-venue-sunny&_state=feedback' mobile
+--- Visual validation: feedback ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=feedback
+Waiting for selector [data-testid="feedback-prompt"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-WpOHaV.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with all key UI components present and correctly positioned, including the search bar, venue header with image placeholder, feedback form with yes/no buttons, comment textarea, and submit button, with consistent colour scheme and layout structure.
+Command: .\scripts\run-sh.ps1 scripts/visual-validate.sh venue-detail '/?venue=test-venue-sunny&_state=venue-detail&_time=14:00' mobile
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=14:00
+Waiting for selector [data-testid="mobile-venue-detail-sheet"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-pDTwsU.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure, color scheme, all UI components present (sun percentage badge, heart/close buttons, venue header with open status, sun forecast chart, description text, amenity tags, and info grid cards), and proper visual hierarchy throughout the venue detail screen.
+Command: .\scripts\run-sh.ps1 scripts/visual-validate.sh venue-detail '/?venue=test-venue-sunny&_state=venue-detail&_time=16:30' desktop
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=16:30
+Waiting for selector [data-testid="desktop-venue-detail-panel"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-IcWiKm.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with the correct three-panel layout (venue list, map, and venue detail panel), proper UI chrome including the top navigation bar with search, filter chips, sun percentage badge, time slider at the bottom, venue detail panel with soltider/amenity tags/address sections, and consistent warm/sand color scheme throughout.
