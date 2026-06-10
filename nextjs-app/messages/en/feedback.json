@@ -14,5 +14,36 @@
   "close": "Close",
   "success": "Thanks for your feedback.",
   "error": "Could not send. Try again.",
-  "retry": "Try again"
+  "retry": "Try again",
+  "review": {
+    "sectionTitle": "Reviews",
+    "summary": "{count, plural, =0 {No reviews} one {# review} other {# reviews}}",
+    "loading": "Loading reviews",
+    "loadError": "Could not load reviews.",
+    "retry": "Try again",
+    "empty": "No reviews yet.",
+    "open": "Leave a review",
+    "card": {
+      "rating": "Rating {rating} out of 5",
+      "noRating": "No rating",
+      "photoAttached": "Photo attached"
+    },
+    "form": {
+      "venueSubtitle": "Place in SunnySeat",
+      "heading": "Write a review",
+      "textLabel": "Review",
+      "experiencePrompt": "What was your experience at {name}?",
+      "textPlaceholder": "Share what the outdoor seating was like in the sun...",
+      "ratingLabel": "Rating (optional)",
+      "ratingValue": "{rating} out of 5",
+      "photo": "Add photo (optional)",
+      "photoSelected": "Selected photo: {name}",
+      "submit": "Send",
+      "submitting": "Sending",
+      "close": "Close",
+      "success": "Thanks for your review.",
+      "error": "Could not send. Try again.",
+      "retry": "Try again"
+    }
+  }
 }

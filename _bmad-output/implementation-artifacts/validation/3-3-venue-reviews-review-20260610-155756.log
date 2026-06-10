@@ -1,0 +1,71 @@
+SunnySeat story review gate
+Story: 3-3-venue-reviews
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-3-venue-reviews-review-20260610-155756.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/3-3-venue-reviews.md
+Current sprint status: review
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  62 passed (62)
+      Tests  494 passed (494)
+   Start at  15:58:14
+   Duration  28.63s (transform 8.04s, setup 34.34s, import 43.14s, tests 61.20s, environment 186.08s)
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues&_time=14:00' viewport='mobile'
+--- Visual validation: map-panel-venues ---
+Navigating to http://localhost:3000/?_state=map-panel-venues&_time=14:00
+Waiting for selector [data-testid="venue-pin"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-hXdh59.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the time slider at top, map area with warm/sand tint and venue pins, floating action buttons (location, settings, zoom controls) on the right, bottom sheet with filter chips (Mest sol, Nära mig, Kafé, Öppet nu) and venue list cards with correct styling — only minor differences are dynamic map content, different venue data, and the calendar icon showing "Idag" text instead of a calendar icon, which are acceptable variations.
+
+Running visual validation: screen='review' route='/?venue=test-venue-sunny&_state=review' viewport='mobile'
+--- Visual validation: review ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=review
+Waiting for selector [data-testid="review-form-mobile"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-k9SMfl.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with all key UI components present and correctly positioned — including the search bar, heart/close icons, review form with text area, star rating, photo upload link, submit and close buttons, and the existing review card at the bottom; minor differences in subtitle text and timestamp label wording are non-blocking dynamic content variations.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=14:00' viewport='mobile'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=14:00
+Waiting for selector [data-testid="mobile-venue-detail-sheet"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-F49YVp.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure, colour scheme, UI components (sun score badge, heart/close buttons, sun forecast chart, info grid cards, tags), and overall visual hierarchy all properly rendered.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=16:30' viewport='desktop'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=16:30
+Waiting for selector [data-testid="desktop-venue-detail-panel"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-LlgB03.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the left venue list panel, center map area, right venue detail panel, header with search/filters, time slider at bottom, sun percentage badge, venue detail information (name, rating, description, sun times, amenity tags, address), and consistent warm/golden colour scheme throughout.
+Story '3-3-venue-reviews' is already marked review. No sprint-status update needed.
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-3-venue-reviews-review-20260610-155756.log

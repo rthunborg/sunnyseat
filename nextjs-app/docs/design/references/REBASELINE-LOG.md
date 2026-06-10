@@ -43,6 +43,22 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-06-09 — `review` (mobile) — Story 3.3 Venue Reviews (Codex / dev-story)
+
+**Trigger:** Story 3.3 visual validation exposed that the active `review` reference still came from the MVP Mobile Unlocked Tweaks -> `Recension` state, which renders an obsolete modal with required rating, tags, and `Publicera` copy. Story 3.3 and `project-context.md` require an inline venue-detail review form at `/?venue=test-venue-sunny&_state=review`.
+
+**Resolution:** Re-baseline the mobile `review` PNG from the running Story 3.3 implementation and skip the stale Claude Design prototype recipe so future default prototype captures do not overwrite it. The visual provider now waits for `[data-testid="review-form"]` before comparing.
+
+**Source of new PNG:** Playwright capture of `http://localhost:3000/?venue=test-venue-sunny&_state=review` at `390x844` with `sunnyseat_onboarded=1`, saved to `nextjs-app/docs/design/references/screens/mobile/review.png`.
+
+**Recipe change:** `nextjs-app/scripts/capture-claude-design-refs.mjs` marks the `review` recipe as skipped because the active MVP prototype state is obsolete for Story 3.3. `nextjs-app/docs/design/references/claude-design/STATE-MAPPING.md` documents the implementation-derived active PNG. `.claude/scripts/visual-validate.sh` now waits for `[data-testid="review-form"]`.
+
+**Verification:** PASS — `review` mobile after re-baseline via `scripts/visual-validate.sh`.
+
+**Reason / spec link:** Story 3.3 Acceptance Criteria and UX spec `Screen: review` require an inline ReviewForm inside the venue detail scroll area where text enables `Skicka`, rating is optional, and opening is user-initiated via `Lämna ett omdöme`. The story source conflict note explicitly says not to copy the prototype modal or add the tag taxonomy. Rasmus approved removing old/legacy prototype references on 2026-06-09.
+
+**Re-evaluation trigger:** Revisit when the Claude Design MVP bundle is refreshed with a real inline Story 3.3 review state, when `ReviewFlow` layout/copy changes materially, or when the review visual route changes.
+
 ### 2026-06-08 — `feedback` (mobile) — Story 3.2 Sun Accuracy Feedback (Amelia / dev-story)
 
 **Trigger:** Story 3.2 visual validation exposed that the active `feedback` reference still came from the MVP Mobile Unlocked Tweaks -> `Feedback` state, which renders an obsolete general app-feedback modal with star rating. Story 3.2 and `project-context.md` require an inline venue-detail sun accuracy + outdoor seating prompt at `/?venue=test-venue-sunny&_state=feedback`.
@@ -204,6 +220,22 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 **Reason / spec link:** Same as the mobile entry above (P1 → Task 4.3, P3 → CLAUDE.md a11y rule, P2 → UX spec). Plus the 2026-05-04 second-pass entry's re-evaluation trigger #2 explicitly mandates this rebaseline whenever the mobile reference is updated.
 
 **Re-evaluation trigger:** Inherits all triggers from the 2026-05-04 second-pass entry (designer produces a desktop-specific design; mobile reference updated; any AC1 visual element of `OnboardingScreen` is changed). The locale-negotiation issue (deferred-work.md) is also a re-evaluation trigger if fixed — the helper script becomes redundant.
+
+### 2026-06-10 — `review` visual gate wait recipe — Story 3.3 review-finding fixes (Amelia / dev-story)
+
+**Trigger:** Story 3.3 review finding noted that mobile and desktop venue-detail overlays could mount duplicate `ReviewFlow` instances with duplicate heading IDs/test IDs. The implementation now scopes review flows and forms by overlay instance (`mobile` / `desktop`), which changed the visual gate's form wait selector.
+
+**Resolution:** No PNG changed. The legacy provider script `.claude/scripts/visual-validate.sh` now waits for `[data-testid="review-form-mobile"]` on mobile and `[data-testid="review-form-desktop"]` on desktop for the `review` screen instead of the obsolete shared `[data-testid="review-form"]`.
+
+**Source of new PNG:** None.
+
+**Recipe change:** `.claude/scripts/visual-validate.sh` `review)` wait-selector case only. `nextjs-app/scripts/capture-claude-design-refs.mjs` and `STATE-MAPPING.md` are unchanged.
+
+**Verification:** Re-run `.\scripts\run-sh.ps1 scripts/visual-validate.sh review "/?venue=test-venue-sunny&_state=review" mobile` after this recipe change before Story 3.3 returns to review.
+
+**Reason / spec link:** `AGENTS.md` requires any visual capture-recipe change to update this log in the same operation. Story 3.3 review finding required unique review-flow DOM identifiers while preserving the inline review visual gate.
+
+**Re-evaluation trigger:** Re-check this wait selector if `ReviewFlow`/`ReviewForm` test IDs change again, if the visual gate stops delegating to `.claude/scripts/visual-validate.sh`, or if a future desktop standalone `review` screen is added to `project-context.md`.
 
 ### 2026-05-05/06 — `map-primary` + `onboarding` (desktop) — Story 1.6 CI/CD Quality Gates Task 2.13 (Amelia / dev-story)
 

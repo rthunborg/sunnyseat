@@ -3,6 +3,7 @@ import {
   normalizeVenueForResponse,
   VENUE_FIXTURE,
 } from '@/lib/services/venues-fixture';
+import { getReviewSummaryForVenueFromPersistence } from '@/lib/services/venue-reviews-persistence';
 import {
   applyPlannerSelectionToVenue,
   parseVenuePlannerParams,
@@ -147,12 +148,19 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   const normalizedVenue = normalizeVenueForResponse(venueWithDistance);
   const weatherAdjustedVenue = applyFixtureWeatherAvailability(normalizedVenue, freshness);
   const adjustedVenue = applyPlannerSelectionToVenue(weatherAdjustedVenue, planner.selection);
+  let reviewSummary: VenueDetailDto['reviewSummary'];
+  try {
+    reviewSummary = await getReviewSummaryForVenueFromPersistence(adjustedVenue);
+  } catch {
+    reviewSummary = undefined;
+  }
   const detail = buildDetailDto(
     adjustedVenue,
     DETAIL_FIXTURE[venue.slug],
     planner.selection
       ? timelineProjectionFromAdjustedVenue(adjustedVenue)
       : undefined,
+    reviewSummary,
   );
   const response: GetVenueDetailResponse = {
     venue: detail,
@@ -172,6 +180,7 @@ function buildDetailDto(
   venue: VenueDataDto,
   fixture?: FixtureDetail,
   timelineProjection?: DetailTimelineProjection,
+  reviewSummary?: VenueDetailDto['reviewSummary'],
 ): VenueDetailDto {
   const timelineWindowStatus = timelineProjection?.windowStatus ?? venue.currentSunStatus;
   const peakTime = timelineProjection?.peakTime ?? fixture?.peakTime;
@@ -187,6 +196,7 @@ function buildDetailDto(
 
   return {
     ...venue,
+    reviewSummary,
     description:
       fixture?.description ??
       `${venue.venueName} har uteservering i ${venue.neighborhood}.`,

@@ -6,7 +6,7 @@ export function resolveForcedVisualVenueDetail(
 ): VenueDetailDto | null {
   if (process.env.NODE_ENV === 'production') return null;
   if (
-    (forcedState !== 'venue-detail' && forcedState !== 'feedback') ||
+    (forcedState !== 'venue-detail' && forcedState !== 'feedback' && forcedState !== 'review') ||
     slug !== 'test-venue-sunny'
   ) {
     return null;
@@ -30,6 +30,10 @@ export function resolveForcedVisualVenueDetail(
     thumbnail: {
       alt: 'Uteservering hos Kafé Magasinet',
       initials: 'KM',
+    },
+    reviewSummary: {
+      averageRating: 4.5,
+      reviewCount: 2,
     },
     description:
       'Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.',

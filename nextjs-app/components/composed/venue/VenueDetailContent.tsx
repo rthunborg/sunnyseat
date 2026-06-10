@@ -78,6 +78,7 @@ export type VenueDetailContentProps = {
   mode?: 'mobile' | 'desktop';
   locale?: string;
   feedbackSlot?: React.ReactNode;
+  reviewSlot?: React.ReactNode;
 };
 
 export function VenueDetailContent({
@@ -95,6 +96,7 @@ export function VenueDetailContent({
   mode = 'mobile',
   locale = 'sv',
   feedbackSlot,
+  reviewSlot,
 }: VenueDetailContentProps) {
   const venue = detail ?? fallbackVenue;
   const loading = isLoading && !detail;
@@ -351,6 +353,8 @@ export function VenueDetailContent({
           onClick={onRoute}
           className="w-full text-text-primary"
         />
+
+        {reviewSlot}
       </div>
     </article>
   );

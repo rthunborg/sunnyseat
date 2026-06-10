@@ -305,7 +305,7 @@ describe('VenueDetailContent', () => {
     expect(screen.getAllByTestId('venue-detail-skeleton').length).toBeGreaterThan(1);
   });
 
-  it('does not render future feedback or review flows in this story', () => {
+  it('does not render feedback or review slots unless explicitly provided', () => {
     render(
       <VenueDetailContent
         fallbackVenue={LIST_VENUE}
@@ -319,6 +319,70 @@ describe('VenueDetailContent', () => {
     expect(screen.queryByText(/Lämna ett omdöme/i)).toBeNull();
     expect(screen.queryByText(/Stämmer sol/i)).toBeNull();
     expect(screen.queryByRole('textbox')).toBeNull();
+  });
+
+  it('renders explicit review slots below the route CTA', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+        reviewSlot={<section aria-label="Omdömen">Lämna ett omdöme</section>}
+      />,
+    );
+
+    const routeButton = screen.getByRole('button', { name: 'Visa Rutt' });
+    const reviewSection = screen.getByLabelText('Omdömen');
+    expect(reviewSection).toHaveTextContent('Lämna ett omdöme');
+    expect(routeButton.compareDocumentPosition(reviewSection)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it('uses review-backed summary metadata in venue detail headers', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={{
+          ...DETAIL,
+          reviewSummary: {
+            averageRating: 4.5,
+            reviewCount: 2,
+          },
+        }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('4.5')).toBeInTheDocument();
+    expect(screen.getByText('(2)')).toBeInTheDocument();
+    expect(screen.queryByText('(842)')).toBeNull();
+  });
+
+  it('does not fall back to fixture ratings when review summary has no average', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={{
+          ...DETAIL,
+          reviewSummary: {
+            averageRating: null,
+            reviewCount: 1,
+          },
+        }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('-')).toBeInTheDocument();
+    expect(screen.getByText('(1)')).toBeInTheDocument();
+    expect(screen.queryByText('4.7')).toBeNull();
   });
 
   it('uses projected sun windows for mobile detail timeline output', () => {

@@ -213,6 +213,15 @@ vi.mock('@/components/custom/map/VenuePinLayer', () => ({
 vi.mock('@/components/custom/map/MapLoadingFallback', () => ({
   MapLoadingFallback: () => <div data-testid="map-loading-fallback-stub" />,
 }));
+vi.mock('@/components/custom/feedback/ReviewFlow', () => ({
+  ReviewFlow: ({ venue, instanceId }: { venue: { id: string }; instanceId?: string }) => (
+    <div
+      data-testid={`review-flow-stub-${instanceId ?? 'default'}`}
+      data-venue-id={venue.id}
+      data-instance-id={instanceId}
+    />
+  ),
+}));
 
 import { MapView } from '@/components/custom/map/MapView';
 
@@ -845,6 +854,8 @@ describe('<MapView />', () => {
       rerender(<MapView />);
       expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
       expect(screen.getByTestId('desktop-venue-detail-panel')).toBeInTheDocument();
+      expect(screen.getByTestId('review-flow-stub-mobile')).toHaveAttribute('data-instance-id', 'mobile');
+      expect(screen.getByTestId('review-flow-stub-desktop')).toHaveAttribute('data-instance-id', 'desktop');
       expect(screen.queryByTestId('venue-quick-info')).not.toBeInTheDocument();
     });
 

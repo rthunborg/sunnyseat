@@ -31,6 +31,11 @@ export const queryKeys = {
     exposure: (venueId: string, time?: string) =>
       [...queryKeys.sun.all, 'exposure', venueId, time] as const,
   },
+  reviews: {
+    all: ['reviews'] as const,
+    byVenue: (venueId: string) =>
+      [...queryKeys.reviews.all, 'venue', venueId] as const,
+  },
   weather: {
     all: ['weather'] as const,
     current: () => [...queryKeys.weather.all, 'current'] as const,

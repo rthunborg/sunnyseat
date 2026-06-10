@@ -103,6 +103,13 @@ case "$SCREEN_ID" in
   feedback)
     WAIT_ARGS+=(--wait-for-selector '[data-testid="feedback-prompt"]' --wait-for-timeout 500)
     ;;
+  review)
+    if [ "$VIEWPORT_TYPE" = "desktop" ]; then
+      WAIT_ARGS+=(--wait-for-selector '[data-testid="review-form-desktop"]' --wait-for-timeout 500)
+    else
+      WAIT_ARGS+=(--wait-for-selector '[data-testid="review-form-mobile"]' --wait-for-timeout 500)
+    fi
+    ;;
   map-*)
     WAIT_ARGS+=(--wait-for-selector '[data-testid="venue-pin"]' --wait-for-timeout 500)
     ;;

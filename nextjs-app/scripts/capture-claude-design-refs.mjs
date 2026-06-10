@@ -145,6 +145,8 @@ const RECIPES = [
     prototype: PROTO.mvpMobile,
     localStorage: { sunny_screen: 'map' },
     steps: [{ wait: 400 }, { tweaks: 'Recension' }, { wait: 400 }],
+    skip:
+      'Story 3.3 rebaselined review to the inline venue-detail ReviewForm; MVP prototype Tweaks -> Recension still renders obsolete required-rating/tag modal.',
   },
   {
     screenId: 'about',

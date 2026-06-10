@@ -21,6 +21,7 @@ import {
 } from '@/components/composed/venue/VenueListControls';
 import { FavouritesList } from '@/components/custom/favourites/FavouritesList';
 import { FeedbackFlow } from '@/components/custom/feedback/FeedbackFlow';
+import { ReviewFlow } from '@/components/custom/feedback/ReviewFlow';
 import { VenueSearchShell } from '@/components/custom/search/VenueSearchShell';
 import { resolveForcedVisualVenueDetail } from '@/components/custom/venue/forced-venue-detail';
 import { TimeSliderPanel } from '@/components/custom/time/TimeSliderPanel';
@@ -350,7 +351,7 @@ export function MapView() {
     feedbackVenue && (forcedState === 'feedback' || plannerTime.isLiveNow)
       ? (
           <FeedbackFlow
-            key={`${slotKey}-${feedbackVenue.id}`}
+            key={`feedback-${slotKey}-${feedbackVenue.id}`}
             venue={feedbackVenue}
             plannerTimestamp={plannerTime.currentTime.toISOString()}
             isLivePlannerTime={plannerTime.isLiveNow}
@@ -381,6 +382,20 @@ export function MapView() {
     venueDetailQuery.isFetching,
     venueSlugParam,
   ]);
+  const reviewVenue = (forcedVisualVenueDetail || !venueDetailQuery.isPlaceholderData)
+    ? (detailVenue ?? detailFallbackVenue)
+    : detailFallbackVenue;
+  const renderReviewSlot = (slotKey: string) => (
+    reviewVenue
+      ? (
+          <ReviewFlow
+            key={`review-${slotKey}-${reviewVenue.id}`}
+            venue={reviewVenue}
+            instanceId={slotKey}
+          />
+        )
+      : null
+  );
   const detailFavouriteId = useMemo(() => {
     if (!venueSlugParam) return undefined;
     const candidates = [
@@ -780,6 +795,7 @@ export function MapView() {
             }
             locale={locale}
             feedbackSlot={renderFeedbackSlot('mobile')}
+            reviewSlot={renderReviewSlot('mobile')}
           />
         )}
         {detailFallbackVenue && isVenueDetailRequested && (
@@ -802,6 +818,7 @@ export function MapView() {
             }
             locale={locale}
             feedbackSlot={renderFeedbackSlot('desktop')}
+            reviewSlot={renderReviewSlot('desktop')}
           />
         )}
         {selectedPinData && !isVenueDetailRequested && (

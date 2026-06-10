@@ -87,6 +87,7 @@ export interface VenueDataDto {
     initials: string;
     url?: string;
   };
+  reviewSummary?: ReviewSummaryDto;
 }
 
 export interface VenueDetailDto extends VenueDataDto {
@@ -119,6 +120,52 @@ export interface VenueSunTimelineWindowDto {
 export interface CoordinatesDto {
   lat: number;
   lng: number;
+}
+
+// ============================================================================
+// Review Types
+// ============================================================================
+
+export interface ReviewPhotoAttachmentDto {
+  name: string;
+  type: string;
+  size: number;
+  lastModified?: number;
+}
+
+export interface ReviewDto {
+  id: string;
+  venueId: string;
+  venueSlug: string;
+  text: string;
+  rating?: number;
+  photo?: ReviewPhotoAttachmentDto;
+  createdAt: string;
+}
+
+export interface ReviewSummaryDto {
+  averageRating: number | null;
+  reviewCount: number;
+}
+
+export interface GetReviewsResponse {
+  reviews: ReviewDto[];
+  summary: ReviewSummaryDto;
+  timestamp: string;
+}
+
+export interface SubmitReviewRequest {
+  venueId?: string;
+  venueSlug?: string;
+  text: string;
+  rating?: number;
+  photo?: ReviewPhotoAttachmentDto;
+}
+
+export interface SubmitReviewResponse {
+  review: ReviewDto;
+  summary: ReviewSummaryDto;
+  timestamp: string;
 }
 
 // ============================================================================
