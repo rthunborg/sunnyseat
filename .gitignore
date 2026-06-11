@@ -16,7 +16,9 @@ out/
 .cursor/
 .claude/*
 !.claude/scripts/
-.claude/settings*.json
+!.claude/hooks/
+!.claude/settings.json
+.claude/settings.local.json
 .claude/worktrees/
 *.swp
 *.swo
