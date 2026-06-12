@@ -27,6 +27,7 @@ import { resolveForcedVisualVenueDetail } from '@/components/custom/venue/forced
 import { TimeSliderPanel } from '@/components/custom/time/TimeSliderPanel';
 import { isVenueSunnyForList, VenueList } from '@/components/custom/venue/VenueList';
 import { useVenueDetail } from '@/hooks/queries/useVenueDetail';
+import { isVenueNotFoundError } from '@/hooks/queries/venue-query-options';
 import { useFavouriteVenues } from '@/hooks/queries/useFavouriteVenues';
 import { useVenueSearch } from '@/hooks/queries/useVenueSearch';
 import { useFavourites } from '@/hooks/useFavourites';
@@ -37,7 +38,12 @@ import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
 import { useTimeContext } from '@/lib/contexts/TimeContext';
 import { type VenuePinData } from '@/lib/types/map';
 import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
-import type { PredictionUncertaintyDisplayLabels } from '@/lib/utils/prediction-uncertainty-display';
+import { getConfidenceDisplayState } from '@/lib/utils/confidence-display';
+import {
+  getPredictionUncertaintyDisplay,
+  type PredictionUncertaintyDisplayLabels,
+} from '@/lib/utils/prediction-uncertainty-display';
+import type { RouteOverlayConfidence } from '@/components/custom/routing/RouteOverlay';
 import {
   buildGoogleMapsDirectionsUrl,
   buildGoogleMapsSearchUrl,
@@ -359,18 +365,25 @@ export function MapView() {
         )
       : null
   );
-  const detailFallbackVenue = useMemo(() => {
+  const detailFallback = useMemo((): {
+    venue: VenueDataDto;
+    isSynthetic: boolean;
+  } | null => {
     if (!venueSlugParam) return null;
-    if (detailVenue) return detailVenue;
+    if (detailVenue) return { venue: detailVenue, isSynthetic: false };
     if (Array.isArray(rawVenues)) {
       const listVenue = rawVenues.find((venue) => venueMatchesSlug(venue, venueSlugParam));
-      if (listVenue) return listVenue;
+      if (listVenue) return { venue: listVenue, isSynthetic: false };
     }
     const favouriteVenue = activeFavouriteVenueRows.find((venue) => venueMatchesSlug(venue, venueSlugParam));
-    if (favouriteVenue) return favouriteVenue;
-    if (venueMatchesSlug(selectedVenueDto, venueSlugParam)) return selectedVenueDto;
+    if (favouriteVenue) return { venue: favouriteVenue, isSynthetic: false };
+    if (selectedVenueDto && venueMatchesSlug(selectedVenueDto, venueSlugParam)) {
+      return { venue: selectedVenueDto, isSynthetic: false };
+    }
     if (venueDetailQuery.isFetching) {
-      return fallbackVenueFromSlug(venueSlugParam);
+      // Synthetic skeleton venue fabricated from the slug while the detail
+      // request is in flight — placeholder fields only, no real data.
+      return { venue: fallbackVenueFromSlug(venueSlugParam), isSynthetic: true };
     }
     return null;
   }, [
@@ -382,6 +395,8 @@ export function MapView() {
     venueDetailQuery.isFetching,
     venueSlugParam,
   ]);
+  const detailFallbackVenue = detailFallback?.venue ?? null;
+  const isSyntheticDetailFallback = detailFallback?.isSynthetic ?? false;
   const reviewVenue = (forcedVisualVenueDetail || !venueDetailQuery.isPlaceholderData)
     ? (detailVenue ?? detailFallbackVenue)
     : detailFallbackVenue;
@@ -630,15 +645,21 @@ export function MapView() {
   const handleRouteSelectedVenue = () => {
     const venue = selectedQuickInfoVenue ?? selectedVenueDto;
     if (!venue) return;
-    handleRouteVenue(venue);
+    handleRouteVenue(venue, quickInfoConfidenceMeta);
   };
 
   const handleRouteDetailVenue = () => {
     if (!detailRouteVenue) return;
-    handleRouteVenue(detailRouteVenue);
+    // The synthetic loading-fallback venue hardcodes placeholder fields
+    // (confidence: 0); withholding the freshness meta keeps the confidence
+    // display hidden instead of inventing "0%" for an unfetched venue.
+    handleRouteVenue(
+      detailRouteVenue,
+      isSyntheticDetailFallback ? undefined : detailConfidenceMeta,
+    );
   };
 
-  const handleRouteVenue = (venue: VenueDataDto) => {
+  const handleRouteVenue = (venue: VenueDataDto, confidenceMeta?: SunFreshnessMeta) => {
     const summary = getRouteSummary({ venue, origin: geolocation.coords });
     const platform = typeof navigator === 'undefined'
       ? 'google'
@@ -649,7 +670,7 @@ export function MapView() {
     const directionsUrl = buildNativeDirectionsUrl(venue, platform);
     setRouteOverlay({
       venueId: venue.id,
-      labels: routeOverlayLabels(venue, summary, routeText),
+      labels: routeOverlayLabels(venue, summary, routeText, confidenceMeta),
       fallbackHref: buildGoogleMapsDirectionsUrl(venue),
     });
     setRouteLoadingVenueId(venue.id);
@@ -666,6 +687,30 @@ export function MapView() {
     if (listMode === 'favourites') return;
     setVenueSortMode(mode);
   };
+
+  // Story 3.4 AC #2: a failed venue-detail request must surface a localized
+  // not-found/retry state instead of silently unmounting the overlay.
+  //  - No fallback content (pure deep link): 404 → not-found + back to map;
+  //    other errors → retry + back to map.
+  //  - Fallback content rendering (venue known from list/favourites rows):
+  //    the overlay already shows degraded localized content, so only a
+  //    retry affordance is added for transient errors; a 404 is suppressed
+  //    because contradicting visible venue content would mislead.
+  const detailErrorNotice = (() => {
+    if (!canRequestVenueDetail || !venueDetailQuery.isError) return null;
+    // While a retry is in flight the loading skeleton renders instead; the
+    // notice returns only once the refetch settles, so its variant never
+    // flips under the user's pointer mid-request.
+    if (venueDetailQuery.isFetching) return null;
+    // A map-level venue failure renders MapVenueError in the same slot;
+    // don't stack a second alert on top of its retry action.
+    if (venueQuery.isError) return null;
+    const isNotFound = isVenueNotFoundError(venueDetailQuery.error);
+    if (detailFallbackVenue) {
+      return isNotFound ? null : { isNotFound: false, showBack: false };
+    }
+    return { isNotFound, showBack: true };
+  })();
 
   return (
     <div className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full">
@@ -901,6 +946,16 @@ export function MapView() {
       {/* Venue API failure stays visible during background refetch; hide
           only once a refetch succeeds (`isError` flips false). */}
       {venueQuery.isError && <MapVenueError onRetry={() => venueQuery.refetch()} />}
+      {detailErrorNotice && (
+        <VenueDetailError
+          isNotFound={detailErrorNotice.isNotFound}
+          showBack={detailErrorNotice.showBack}
+          onRetry={() => {
+            void venueDetailQuery.refetch();
+          }}
+          onBack={handleDismissDetails}
+        />
+      )}
     </div>
   );
 }
@@ -1086,6 +1141,10 @@ function routeLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     unavailable: t('route.unavailable'),
     openMaps: t('route.openMaps'),
     close: t('route.close'),
+    confidence: t('route.confidence'),
+    confidenceApproximate: t('route.confidenceApproximate'),
+    confidenceUnavailable: t('route.confidenceUnavailable'),
+    uncertainty: predictionUncertaintyLabels(t),
     directionFallback: t('route.directionFallback', { neighborhood: '{neighborhood}' }),
     directions: {
       north: t('route.directions.north'),
@@ -1104,15 +1163,62 @@ function routeOverlayLabels(
   venue: VenueDataDto,
   summary: RouteSummary,
   labels: ReturnType<typeof routeLabels>,
+  confidenceMeta?: SunFreshnessMeta,
 ): RouteOverlayLabels {
   return {
     title: formatLabel(labels.overlayTitle, { name: venue.venueName }),
     walk: routeEstimateLabel(summary.walkMinutes, labels.walkEstimate) ?? null,
     bike: routeEstimateLabel(summary.bikeMinutes, labels.bikeEstimate) ?? null,
     direction: routeDirectionLabel(summary.direction, venue.neighborhood, labels),
+    confidence: routeConfidenceLabel(venue, labels, confidenceMeta),
     close: labels.close,
     fallback: labels.openMaps,
     unavailable: labels.unavailable,
+  };
+}
+
+/**
+ * The route overlay's "confidence context" reuses the exact public
+ * confidence/uncertainty presentation already shown on venue surfaces
+ * (Story 3.0.6 contract). When the public display is hidden (no fresh
+ * weather metadata, geometry-only source) the overlay shows nothing
+ * rather than inventing a number. The accessible variant spells out the
+ * approximate qualifier ("Säkerhet cirka 88%") that the visible "~" glyph
+ * does not convey to screen readers.
+ */
+function routeConfidenceLabel(
+  venue: VenueDataDto,
+  labels: ReturnType<typeof routeLabels>,
+  confidenceMeta?: SunFreshnessMeta,
+): RouteOverlayConfidence | null {
+  const confidenceDisplay = getConfidenceDisplayState({
+    confidence: venue.confidence,
+    meta: confidenceMeta,
+    labels: {
+      confidence: labels.confidence,
+      approximate: labels.confidenceApproximate,
+      unavailable: labels.confidenceUnavailable,
+    },
+  });
+  const uncertaintyDisplay = getPredictionUncertaintyDisplay({
+    predictionUncertainty: venue.predictionUncertainty,
+    labels: labels.uncertainty,
+  });
+  const uncertaintyLabel = uncertaintyDisplay?.visibleLabel ?? null;
+  const visibleParts = [
+    confidenceDisplay.visibleText
+      ? `${labels.confidence} ${confidenceDisplay.visibleText}`
+      : null,
+    uncertaintyLabel,
+  ].filter(Boolean);
+  if (visibleParts.length === 0) return null;
+  const accessibleParts = [
+    confidenceDisplay.visibleText ? confidenceDisplay.accessibleText : null,
+    uncertaintyLabel,
+  ].filter(Boolean);
+  return {
+    visible: visibleParts.join(' · '),
+    accessible: accessibleParts.join(' · '),
   };
 }
 
@@ -1264,6 +1370,54 @@ function LoadingPill({ isFetching, isError, dataUpdatedAt }: LoadingPillProps) {
 function venueIdentityKey(venue: Pick<VenueDataDto, 'id' | 'slug' | 'venueSlug'> | null): string | null {
   if (!venue) return null;
   return `${venue.id}:${venue.slug}:${venue.venueSlug}`;
+}
+
+/**
+ * Localized venue-detail not-found/error notice (Story 3.4 AC #2). Uses
+ * `z-toast` so the retry affordance stays reachable above an open detail
+ * overlay when fallback content is rendering behind a failed detail query.
+ */
+function VenueDetailError({
+  isNotFound,
+  showBack,
+  onRetry,
+  onBack,
+}: {
+  isNotFound: boolean;
+  showBack: boolean;
+  onRetry: () => void;
+  onBack: () => void;
+}) {
+  const t = useTranslations('venue');
+  return (
+    <div
+      role="alert"
+      data-testid="venue-detail-error"
+      className="absolute top-3 left-4 right-4 z-toast mx-auto flex max-w-[min(22rem,calc(100%-2rem))] flex-wrap items-center justify-between gap-2 rounded-card bg-surface-cream px-4 py-3 text-body-sm text-text-body shadow-card lg:left-1/2 lg:right-auto lg:-translate-x-1/2"
+    >
+      <span>{isNotFound ? t('detail.notFound') : t('detail.loadFailed')}</span>
+      <span className="flex shrink-0 items-center gap-1">
+        {!isNotFound && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="min-h-11 shrink-0 rounded-pill px-3 text-label-lg text-amber-dark outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+          >
+            {t('detail.retry')}
+          </button>
+        )}
+        {showBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="min-h-11 shrink-0 rounded-pill px-3 text-label-lg text-amber-dark outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+          >
+            {t('detail.backToMap')}
+          </button>
+        )}
+      </span>
+    </div>
+  );
 }
 
 function MapVenueError({ onRetry }: { onRetry: () => unknown }) {

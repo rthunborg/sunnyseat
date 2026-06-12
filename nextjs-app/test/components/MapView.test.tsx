@@ -61,6 +61,8 @@ const useVenueSearchMock = vi.fn<(params?: VenueSearchParams) => VenueQueryShape
   dataUpdatedAt: 0,
 }));
 
+// `refetch` is required to mirror the real TanStack hook contract (review
+// R1-P10) — production code must not optional-chain around a mock shape.
 const useVenueDetailMock = vi.fn<(slug?: string | null, params?: {
   date?: string;
   time?: string;
@@ -70,10 +72,13 @@ const useVenueDetailMock = vi.fn<(slug?: string | null, params?: {
   data: GetVenueDetailResponse | undefined;
   isFetching: boolean;
   isError: boolean;
+  error?: Error;
+  refetch: ReturnType<typeof vi.fn>;
 }>(() => ({
   data: undefined,
   isFetching: false,
   isError: false,
+  refetch: vi.fn(),
 }));
 const useFavouriteVenuesMock = vi.fn<(params?: FavouriteVenuesParams) => VenueQueryShape>(() => ({
   data: undefined,
@@ -301,6 +306,7 @@ describe('<MapView />', () => {
       data: undefined,
       isFetching: false,
       isError: false,
+      refetch: vi.fn(),
     });
     useFavouriteVenuesMock.mockReset().mockReturnValue({
       data: undefined,
@@ -819,6 +825,58 @@ describe('<MapView />', () => {
       );
     });
 
+    it('shows confidence context in the route overlay before the native-map handoff (Story 3.4 AC #3)', () => {
+      vi.spyOn(window, 'open').mockImplementation(() => null);
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: {
+          ...makeVenueResponse([
+            makeVenue({
+              id: 'venue-1',
+              name: 'Kafé Magasinet',
+              slug: 'test-venue-sunny',
+              confidence: 88,
+            }),
+          ]),
+          meta: {
+            count: 1,
+            radiusKm: 1.5,
+            sunDataSource: 'weather',
+            weatherUpdatedAt: '2999-01-01T00:00:00.000Z',
+          },
+        },
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+      fireEvent.click(screen.getAllByRole('button', { name: /Visa Rutt/ })[0]);
+
+      const overlay = screen.getByRole('dialog', { name: 'Rutt till Kafé Magasinet' });
+      expect(overlay).toHaveTextContent('Säkerhet 88%');
+      expect(overlay).toHaveTextContent('ca 2 min promenad');
+    });
+
+    it('keeps confidence hidden in the route overlay when the public confidence display is unavailable', () => {
+      vi.spyOn(window, 'open').mockImplementation(() => null);
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+      fireEvent.click(screen.getAllByRole('button', { name: /Visa Rutt/ })[0]);
+
+      const overlay = screen.getByRole('dialog', { name: 'Rutt till Kafé Magasinet' });
+      expect(overlay).not.toHaveTextContent('Säkerhet');
+    });
+
     it('plain venue deep links select the matching venue and render detail once data is available', () => {
       searchParamsMock = new URLSearchParams('venue=test-venue-sunny');
       const venue = makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' });
@@ -871,6 +929,7 @@ describe('<MapView />', () => {
         data: undefined,
         isFetching: true,
         isError: false,
+        refetch: vi.fn(),
       });
 
       render(<MapView />, { wrapper: Wrapper });
@@ -897,6 +956,7 @@ describe('<MapView />', () => {
         data: undefined,
         isFetching: true,
         isError: false,
+        refetch: vi.fn(),
       });
       useFavouritesMock.mockReturnValue({
         favouriteIds: [],
@@ -965,6 +1025,7 @@ describe('<MapView />', () => {
         },
         isFetching: false,
         isError: false,
+        refetch: vi.fn(),
       });
 
       render(<MapView />, { wrapper: Wrapper });
@@ -1010,6 +1071,7 @@ describe('<MapView />', () => {
         data: undefined,
         isFetching: false,
         isError: true,
+        refetch: vi.fn(),
       });
 
       render(<MapView />, { wrapper: Wrapper });
@@ -1036,6 +1098,7 @@ describe('<MapView />', () => {
         data: undefined,
         isFetching: false,
         isError: true,
+        refetch: vi.fn(),
       });
 
       render(<MapView />, { wrapper: Wrapper });
@@ -1043,6 +1106,191 @@ describe('<MapView />', () => {
       expect(screen.queryByTestId('mobile-venue-detail-sheet')).not.toBeInTheDocument();
       expect(screen.getAllByTestId('venue-quick-info')).toHaveLength(2);
       expect(screen.getAllByRole('button', { name: 'Kafé Magasinet' })).toHaveLength(2);
+    });
+
+    it('renders a localized not-found state with a way back to the map for an unknown venue slug (Story 3.4 AC #2)', () => {
+      searchParamsMock = new URLSearchParams('venue=unknown-sunny-place');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useVenueDetailMock.mockReturnValue({
+        data: undefined,
+        isFetching: false,
+        isError: true,
+        error: new Error('Venue detail failed: 404 Not Found'),
+        refetch: vi.fn(),
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const alert = screen.getByTestId('venue-detail-error');
+      expect(alert).toHaveTextContent('Platsen hittades inte.');
+      expect(within(alert).queryByRole('button', { name: 'Försök igen' })).toBeNull();
+      fireEvent.click(within(alert).getByRole('button', { name: 'Tillbaka till kartan' }));
+      expect(routerReplaceMock).toHaveBeenCalledWith('/');
+    });
+
+    it('renders a localized retry state when a venue detail deep link fails to load (Story 3.4 AC #2)', () => {
+      searchParamsMock = new URLSearchParams('venue=test-venue-sunny');
+      const refetch = vi.fn();
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useVenueDetailMock.mockReturnValue({
+        data: undefined,
+        isFetching: false,
+        isError: true,
+        error: new Error('Venue detail failed: 500 Internal Server Error'),
+        refetch,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const alert = screen.getByTestId('venue-detail-error');
+      expect(alert).toHaveTextContent('Kunde inte ladda platsen.');
+      fireEvent.click(within(alert).getByRole('button', { name: 'Försök igen' }));
+      expect(refetch).toHaveBeenCalled();
+      fireEvent.click(within(alert).getByRole('button', { name: 'Tillbaka till kartan' }));
+      expect(routerReplaceMock).toHaveBeenCalledWith('/');
+    });
+
+    it('keeps a retry affordance visible when detail data fails behind a fallback overlay (Story 3.4 AC #2)', () => {
+      searchParamsMock = new URLSearchParams('venue=test-venue-sunny');
+      const refetch = vi.fn();
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useVenueDetailMock.mockReturnValue({
+        data: undefined,
+        isFetching: false,
+        isError: true,
+        error: new Error('Venue detail failed: 500 Internal Server Error'),
+        refetch,
+      });
+
+      const { rerender } = render(<MapView />, { wrapper: Wrapper });
+      rerender(<MapView />);
+
+      expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
+      const alert = screen.getByTestId('venue-detail-error');
+      expect(within(alert).queryByRole('button', { name: 'Tillbaka till kartan' })).toBeNull();
+      fireEvent.click(within(alert).getByRole('button', { name: 'Försök igen' }));
+      expect(refetch).toHaveBeenCalled();
+    });
+
+    it('suppresses the not-found alert when fallback venue content already renders for a 404 detail', () => {
+      searchParamsMock = new URLSearchParams('venue=test-venue-sunny');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useVenueDetailMock.mockReturnValue({
+        data: undefined,
+        isFetching: false,
+        isError: true,
+        error: new Error('Venue detail failed: 404 Not Found'),
+        refetch: vi.fn(),
+      });
+
+      const { rerender } = render(<MapView />, { wrapper: Wrapper });
+      rerender(<MapView />);
+
+      expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
+      expect(screen.queryByTestId('venue-detail-error')).toBeNull();
+    });
+
+    it('hides the detail error notice while a retry is in flight (review R1-P2)', () => {
+      searchParamsMock = new URLSearchParams('venue=test-venue-sunny');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useVenueDetailMock.mockReturnValue({
+        data: undefined,
+        isFetching: true,
+        isError: true,
+        error: new Error('Venue detail failed: 500 Internal Server Error'),
+        refetch: vi.fn(),
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.queryByTestId('venue-detail-error')).toBeNull();
+    });
+
+    it('yields to the map-level venue error instead of stacking a second alert (review R1-P3)', () => {
+      searchParamsMock = new URLSearchParams('venue=test-venue-sunny');
+      useVenueSearchMock.mockReturnValue({
+        data: undefined,
+        isFetching: false,
+        isError: true,
+        dataUpdatedAt: 0,
+      });
+      useVenueDetailMock.mockReturnValue({
+        data: undefined,
+        isFetching: false,
+        isError: true,
+        error: new Error('Venue detail failed: 500 Internal Server Error'),
+        refetch: vi.fn(),
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.getByTestId('map-error-inline')).toBeInTheDocument();
+      expect(screen.queryByTestId('venue-detail-error')).toBeNull();
+    });
+
+    it('omits confidence context when routing from the synthetic loading-fallback venue (review R1-P1)', () => {
+      vi.spyOn(window, 'open').mockImplementation(() => null);
+      searchParamsMock = new URLSearchParams('venue=unknown-but-loading');
+      useVenueSearchMock.mockReturnValue({
+        data: {
+          ...makeVenueResponse([]),
+          meta: {
+            count: 0,
+            radiusKm: 1.5,
+            sunDataSource: 'weather',
+            weatherUpdatedAt: '2999-01-01T00:00:00.000Z',
+          },
+        },
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useVenueDetailMock.mockReturnValue({
+        data: undefined,
+        isFetching: true,
+        isError: false,
+        refetch: vi.fn(),
+      });
+
+      const { rerender } = render(<MapView />, { wrapper: Wrapper });
+      rerender(<MapView />);
+
+      expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
+      fireEvent.click(screen.getAllByRole('button', { name: /Visa Rutt/ })[0]);
+
+      const overlay = screen.getByRole('dialog', { name: 'Rutt till Unknown But Loading' });
+      // Fresh list meta + the synthetic venue's hardcoded confidence: 0 must
+      // not surface as an invented "Säkerhet 0%".
+      expect(overlay).not.toHaveTextContent('Säkerhet');
     });
 
     it('keeps detail responses whose canonical slug differs from the URL alias', () => {
@@ -1074,6 +1322,7 @@ describe('<MapView />', () => {
         },
         isFetching: false,
         isError: false,
+        refetch: vi.fn(),
       });
 
       render(<MapView />, { wrapper: Wrapper });
@@ -1420,6 +1669,7 @@ describe('<MapView />', () => {
           : undefined,
         isFetching: false,
         isError: false,
+        refetch: vi.fn(),
       }));
 
       render(<MapView />, { wrapper: Wrapper });
@@ -1506,6 +1756,7 @@ describe('<MapView />', () => {
           : undefined,
         isFetching: false,
         isError: false,
+        refetch: vi.fn(),
       }));
 
       render(<MapView />, { wrapper: Wrapper });

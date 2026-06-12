@@ -123,7 +123,7 @@ export function ReviewForm({
               }}
             >
               <header className="space-y-1">
-                <p className="text-body-sm text-text-muted">{labels.venueSubtitle}</p>
+                <p className="text-body-sm text-text-body">{labels.venueSubtitle}</p>
                 <h2 className="text-display-sm text-text-primary">{venueName}</h2>
                 <p className="text-heading-lg text-text-primary">{labels.heading}</p>
                 <p className="text-body-sm text-text-body">
@@ -212,11 +212,21 @@ export function ReviewForm({
                   <Camera aria-hidden="true" className="size-4" />
                   {labels.photo}
                 </button>
-                {photo && (
-                  <p className="break-words text-body-sm text-text-muted">
-                    {formatTemplate(labels.photoSelected, { name: photo.name })}
-                  </p>
-                )}
+                {/* Always mounted: a live region inserted together with its
+                    content is not reliably announced, so the region exists
+                    before a photo is picked and only its text changes.
+                    `sr-only` keeps the empty state out of the layout. */}
+                <p
+                  role="status"
+                  className={cn(
+                    'break-words text-body-sm text-text-body',
+                    !photo && 'sr-only',
+                  )}
+                >
+                  {photo
+                    ? formatTemplate(labels.photoSelected, { name: photo.name })
+                    : null}
+                </p>
               </div>
 
               {submitState === 'error' && (

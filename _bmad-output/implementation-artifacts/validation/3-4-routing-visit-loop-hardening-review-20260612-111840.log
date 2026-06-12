@@ -1,0 +1,79 @@
+SunnySeat story review gate
+Story: 3-4-routing-visit-loop-hardening
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-4-routing-visit-loop-hardening-review-20260612-111840.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/3-4-routing-visit-loop-hardening.md
+Current sprint status: review
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  64 passed (64)
+      Tests  525 passed (525)
+   Start at  11:18:58
+   Duration  32.01s (transform 6.43s, setup 36.86s, import 41.76s, tests 62.15s, environment 257.32s)
+
+
+Running visual validation: screen='feedback' route='/?venue=test-venue-sunny&_state=feedback' viewport='mobile'
+--- Visual validation: feedback ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=feedback
+Waiting for selector [data-testid="feedback-prompt"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-vCvGS5.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with all key UI components present and correctly positioned — search bar, venue header with sun score badge, placeholder image, title/status/rating row, feedback form with venue info, outdoor seating question, sunny question with three options, comment textarea, and submit button — with only minor spacing and dynamic data differences that are non-blocking.
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00' viewport='mobile'
+--- Visual validation: map-with-selected-venue ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00
+Waiting for selector [data-testid="venue-quick-info"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-Y5QVmE.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with all key UI chrome elements present and correctly styled — the time slider, venue popup card (Kafé Magasinet) with sun percentage, VISA RUTT and MER INFO buttons, map controls, bottom sheet (Skuggans Hus), and navigation bar all match in layout, colour scheme, and positioning.
+
+Running visual validation: screen='review' route='/?venue=test-venue-sunny&_state=review' viewport='mobile'
+--- Visual validation: review ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=review
+Waiting for selector [data-testid="review-form-mobile"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-0mg6Vs.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with the same layout structure, colour scheme, UI components (search bar, header, review form with text area, star rating, photo upload, submit/close buttons, and existing review card), with only minor non-blocking differences such as an extra subtitle line and slightly different label text for the photo upload option.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=14:00' viewport='mobile'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=14:00
+Waiting for selector [data-testid="mobile-venue-detail-sheet"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-phk3xF.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure, colour scheme, all major UI components present (sun percentage badge, hero image placeholder, venue title, open status pill, sun forecast chart, description, amenity tags, and info grid cards), and proper visual hierarchy throughout the venue detail screen.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=16:30' viewport='desktop'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=16:30
+Waiting for selector [data-testid="desktop-venue-detail-panel"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-wfKAxK.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the left venue list panel, central map area, time slider at bottom, and right venue detail panel with sun times, amenity tags, opening hours, and address — all using the correct warm/golden colour scheme and component styling.
+Story '3-4-routing-visit-loop-hardening' is already marked review. No sprint-status update needed.
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-4-routing-visit-loop-hardening-review-20260612-111840.log

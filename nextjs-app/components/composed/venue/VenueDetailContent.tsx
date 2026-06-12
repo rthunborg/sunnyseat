@@ -147,7 +147,7 @@ export function VenueDetailContent({
             <span className="flex items-center gap-1">
               <Star aria-hidden="true" className="size-4 fill-amber-gold text-amber-gold" />
               <span className="font-bold text-text-primary">{metadata.rating}</span>
-              <span className="text-text-muted">({metadata.reviewCount})</span>
+              <span className="text-text-body">({metadata.reviewCount})</span>
             </span>
             <span className="hidden text-text-faint lg:inline">·</span>
             <span className="hidden lg:inline">{metadata.price}</span>

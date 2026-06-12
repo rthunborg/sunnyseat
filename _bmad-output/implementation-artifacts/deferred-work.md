@@ -103,3 +103,8 @@ These were originally classified as `patch` in Round 2 triage but moved to `defe
 ## Deferred from: code review of 3-0-2-shadow-caster-schema-rpc-contract (2026-06-04)
 
 *(One entry — empty active shadow-caster coverage can still report full sun with high confidence — carried into Story 3.0.5 — Confidence Engine Data Coverage on 2026-06-05. Removed by SM per the deferred-work convention.)*
+
+## Deferred from: code review of 3-4-routing-visit-loop-hardening (2026-06-11)
+
+- **Mobile-viewport axe extension for the a11y gate** *(Target: Story 7.3 — PWA Installation & Offline Shell)* — The `a11y` Playwright project runs Desktop Chrome only, so mobile-sheet variants (mobile venue-detail sheet, mobile review form, `FactCard` muted labels) are outside the automated axe gate. Disclosed in Story 3.4 Completion Notes; mobile surfaces remain pinned by approved mobile visual references. [`nextjs-app/playwright.config.ts`, `nextjs-app/test/e2e/axe.spec.ts`] **TARGETED 2026-06-12:** carry-in reflected under Story 7.3 in `epics.md` alongside the other platform/gate items (W3, W6).
+- **`VenueCard` hardcoded Swedish sun-label fallbacks** *(Target: Story 5.1 — Golden Pin / Partner Visual Enhancement)* — `VenueCard.tsx:110-113` still carries `?? 'MEST SKUGGA'` / `?? 'FULL SOL'` / `?? 'DELVIS SOL'` fallbacks, the same defect class Story 3.4 Task 6.4 removed from `VenueQuickInfo`. Non-violating today (Swedish is the source language and `VenueList.tsx:119-121` always passes localized labels); remove the fallbacks and make the labels required when the surface is next touched. [`nextjs-app/components/composed/venue/VenueCard.tsx`] **TARGETED 2026-06-12:** carry-in reflected under Story 5.1 in `epics.md` (first story that reworks the venue card/pin surfaces).

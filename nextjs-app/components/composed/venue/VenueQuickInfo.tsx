@@ -61,8 +61,8 @@ export type VenueQuickInfoProps = {
     loadingSun: string;
     sunUnavailable: string;
     routeLoading: string;
-    favouriteAdd?: string;
-    favouriteRemove?: string;
+    favouriteAdd: string;
+    favouriteRemove: string;
     uncertainty?: PredictionUncertaintyDisplayLabels;
   };
 };
@@ -161,11 +161,7 @@ export function VenueQuickInfo({
           compact={isAnchoredMobile}
           forcePlaceholder={isAnchoredMobile}
           isFavourite={isFavourite}
-          favouriteLabel={
-            isFavourite
-              ? (labels.favouriteRemove ?? 'Ta bort favorit')
-              : (labels.favouriteAdd ?? 'Spara som favorit')
-          }
+          favouriteLabel={isFavourite ? labels.favouriteRemove : labels.favouriteAdd}
           onFavouriteToggle={onFavouriteToggle}
         />
         <div className={cn(isAnchoredMobile ? 'px-4 pt-3 pb-3' : 'p-4')}>

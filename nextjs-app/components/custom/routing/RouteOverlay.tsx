@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Bike, Compass, ExternalLink, Footprints, X } from 'lucide-react';
+import { Bike, Compass, ExternalLink, Footprints, Sun, X } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import {
   DURATION_FAST_S,
@@ -11,11 +11,28 @@ import {
 } from '@/lib/constants/animation';
 import { cn } from '@/lib/utils';
 
+/**
+ * Public confidence/uncertainty context for the destination. `visible` is
+ * the compact on-screen form (e.g. "Säkerhet ~88%"); `accessible` spells
+ * out qualifiers the visible glyphs don't convey to screen readers
+ * (e.g. "Säkerhet cirka 88%").
+ */
+export type RouteOverlayConfidence = {
+  visible: string;
+  accessible: string;
+};
+
 export type RouteOverlayLabels = {
   title: string;
   walk: string | null;
   bike: string | null;
   direction: string | null;
+  /**
+   * Formatted by the orchestrator from the same display helpers the venue
+   * surfaces use. Null when the public confidence display is unavailable —
+   * the overlay must not invent or leak a substitute.
+   */
+  confidence?: RouteOverlayConfidence | null;
   close: string;
   fallback: string;
   unavailable: string;
@@ -110,6 +127,12 @@ export function RouteOverlay({
         {labels.direction && (
           <RouteOverlayRow icon={<Compass aria-hidden="true" className="size-4" />}>
             {labels.direction}
+          </RouteOverlayRow>
+        )}
+        {labels.confidence && (
+          <RouteOverlayRow icon={<Sun aria-hidden="true" className="size-4" />}>
+            <span aria-hidden="true">{labels.confidence.visible}</span>
+            <span className="sr-only">{labels.confidence.accessible}</span>
           </RouteOverlayRow>
         )}
         {!hasRouteText && (

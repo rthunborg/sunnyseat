@@ -1,0 +1,969 @@
+diff --git a/nextjs-app/components/composed/feedback/ReviewForm.tsx b/nextjs-app/components/composed/feedback/ReviewForm.tsx
+index c3d90ec..5152e05 100644
+--- a/nextjs-app/components/composed/feedback/ReviewForm.tsx
++++ b/nextjs-app/components/composed/feedback/ReviewForm.tsx
+@@ -123,7 +123,7 @@ export function ReviewForm({
+               }}
+             >
+               <header className="space-y-1">
+-                <p className="text-body-sm text-text-muted">{labels.venueSubtitle}</p>
++                <p className="text-body-sm text-text-body">{labels.venueSubtitle}</p>
+                 <h2 className="text-display-sm text-text-primary">{venueName}</h2>
+                 <p className="text-heading-lg text-text-primary">{labels.heading}</p>
+                 <p className="text-body-sm text-text-body">
+@@ -213,7 +213,7 @@ export function ReviewForm({
+                   {labels.photo}
+                 </button>
+                 {photo && (
+-                  <p className="break-words text-body-sm text-text-muted">
++                  <p role="status" className="break-words text-body-sm text-text-body">
+                     {formatTemplate(labels.photoSelected, { name: photo.name })}
+                   </p>
+                 )}
+diff --git a/nextjs-app/components/composed/venue/VenueDetailContent.tsx b/nextjs-app/components/composed/venue/VenueDetailContent.tsx
+index d1493e2..93d03f0 100644
+--- a/nextjs-app/components/composed/venue/VenueDetailContent.tsx
++++ b/nextjs-app/components/composed/venue/VenueDetailContent.tsx
+@@ -147,7 +147,7 @@ export function VenueDetailContent({
+             <span className="flex items-center gap-1">
+               <Star aria-hidden="true" className="size-4 fill-amber-gold text-amber-gold" />
+               <span className="font-bold text-text-primary">{metadata.rating}</span>
+-              <span className="text-text-muted">({metadata.reviewCount})</span>
++              <span className="text-text-body">({metadata.reviewCount})</span>
+             </span>
+             <span className="hidden text-text-faint lg:inline">·</span>
+             <span className="hidden lg:inline">{metadata.price}</span>
+diff --git a/nextjs-app/components/composed/venue/VenueQuickInfo.tsx b/nextjs-app/components/composed/venue/VenueQuickInfo.tsx
+index 2911d30..5847297 100644
+--- a/nextjs-app/components/composed/venue/VenueQuickInfo.tsx
++++ b/nextjs-app/components/composed/venue/VenueQuickInfo.tsx
+@@ -61,8 +61,8 @@ export type VenueQuickInfoProps = {
+     loadingSun: string;
+     sunUnavailable: string;
+     routeLoading: string;
+-    favouriteAdd?: string;
+-    favouriteRemove?: string;
++    favouriteAdd: string;
++    favouriteRemove: string;
+     uncertainty?: PredictionUncertaintyDisplayLabels;
+   };
+ };
+@@ -161,11 +161,7 @@ export function VenueQuickInfo({
+           compact={isAnchoredMobile}
+           forcePlaceholder={isAnchoredMobile}
+           isFavourite={isFavourite}
+-          favouriteLabel={
+-            isFavourite
+-              ? (labels.favouriteRemove ?? 'Ta bort favorit')
+-              : (labels.favouriteAdd ?? 'Spara som favorit')
+-          }
++          favouriteLabel={isFavourite ? labels.favouriteRemove : labels.favouriteAdd}
+           onFavouriteToggle={onFavouriteToggle}
+         />
+         <div className={cn(isAnchoredMobile ? 'px-4 pt-3 pb-3' : 'p-4')}>
+diff --git a/nextjs-app/components/custom/map/MapView.tsx b/nextjs-app/components/custom/map/MapView.tsx
+index ed77b19..8c24655 100644
+--- a/nextjs-app/components/custom/map/MapView.tsx
++++ b/nextjs-app/components/custom/map/MapView.tsx
+@@ -27,6 +27,7 @@ import { resolveForcedVisualVenueDetail } from '@/components/custom/venue/forced
+ import { TimeSliderPanel } from '@/components/custom/time/TimeSliderPanel';
+ import { isVenueSunnyForList, VenueList } from '@/components/custom/venue/VenueList';
+ import { useVenueDetail } from '@/hooks/queries/useVenueDetail';
++import { isVenueNotFoundError } from '@/hooks/queries/venue-query-options';
+ import { useFavouriteVenues } from '@/hooks/queries/useFavouriteVenues';
+ import { useVenueSearch } from '@/hooks/queries/useVenueSearch';
+ import { useFavourites } from '@/hooks/useFavourites';
+@@ -37,7 +38,11 @@ import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
+ import { useTimeContext } from '@/lib/contexts/TimeContext';
+ import { type VenuePinData } from '@/lib/types/map';
+ import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
+-import type { PredictionUncertaintyDisplayLabels } from '@/lib/utils/prediction-uncertainty-display';
++import { getConfidenceDisplayState } from '@/lib/utils/confidence-display';
++import {
++  getPredictionUncertaintyDisplay,
++  type PredictionUncertaintyDisplayLabels,
++} from '@/lib/utils/prediction-uncertainty-display';
+ import {
+   buildGoogleMapsDirectionsUrl,
+   buildGoogleMapsSearchUrl,
+@@ -630,15 +635,15 @@ export function MapView() {
+   const handleRouteSelectedVenue = () => {
+     const venue = selectedQuickInfoVenue ?? selectedVenueDto;
+     if (!venue) return;
+-    handleRouteVenue(venue);
++    handleRouteVenue(venue, quickInfoConfidenceMeta);
+   };
+ 
+   const handleRouteDetailVenue = () => {
+     if (!detailRouteVenue) return;
+-    handleRouteVenue(detailRouteVenue);
++    handleRouteVenue(detailRouteVenue, detailConfidenceMeta);
+   };
+ 
+-  const handleRouteVenue = (venue: VenueDataDto) => {
++  const handleRouteVenue = (venue: VenueDataDto, confidenceMeta?: SunFreshnessMeta) => {
+     const summary = getRouteSummary({ venue, origin: geolocation.coords });
+     const platform = typeof navigator === 'undefined'
+       ? 'google'
+@@ -649,7 +654,7 @@ export function MapView() {
+     const directionsUrl = buildNativeDirectionsUrl(venue, platform);
+     setRouteOverlay({
+       venueId: venue.id,
+-      labels: routeOverlayLabels(venue, summary, routeText),
++      labels: routeOverlayLabels(venue, summary, routeText, confidenceMeta),
+       fallbackHref: buildGoogleMapsDirectionsUrl(venue),
+     });
+     setRouteLoadingVenueId(venue.id);
+@@ -667,6 +672,23 @@ export function MapView() {
+     setVenueSortMode(mode);
+   };
+ 
++  // Story 3.4 AC #2: a failed venue-detail request must surface a localized
++  // not-found/retry state instead of silently unmounting the overlay.
++  //  - No fallback content (pure deep link): 404 → not-found + back to map;
++  //    other errors → retry + back to map.
++  //  - Fallback content rendering (venue known from list/favourites rows):
++  //    the overlay already shows degraded localized content, so only a
++  //    retry affordance is added for transient errors; a 404 is suppressed
++  //    because contradicting visible venue content would mislead.
++  const detailErrorNotice = (() => {
++    if (!canRequestVenueDetail || !venueDetailQuery.isError) return null;
++    const isNotFound = isVenueNotFoundError(venueDetailQuery.error);
++    if (detailFallbackVenue) {
++      return isNotFound ? null : { isNotFound: false, showBack: false };
++    }
++    return { isNotFound, showBack: true };
++  })();
++
+   return (
+     <div className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full">
+       <MapContainer />
+@@ -901,6 +923,16 @@ export function MapView() {
+       {/* Venue API failure stays visible during background refetch; hide
+           only once a refetch succeeds (`isError` flips false). */}
+       {venueQuery.isError && <MapVenueError onRetry={() => venueQuery.refetch()} />}
++      {detailErrorNotice && (
++        <VenueDetailError
++          isNotFound={detailErrorNotice.isNotFound}
++          showBack={detailErrorNotice.showBack}
++          onRetry={() => {
++            void venueDetailQuery.refetch?.();
++          }}
++          onBack={handleDismissDetails}
++        />
++      )}
+     </div>
+   );
+ }
+@@ -1086,6 +1118,10 @@ function routeLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
+     unavailable: t('route.unavailable'),
+     openMaps: t('route.openMaps'),
+     close: t('route.close'),
++    confidence: t('route.confidence'),
++    confidenceApproximate: t('route.confidenceApproximate'),
++    confidenceUnavailable: t('route.confidenceUnavailable'),
++    uncertainty: predictionUncertaintyLabels(t),
+     directionFallback: t('route.directionFallback', { neighborhood: '{neighborhood}' }),
+     directions: {
+       north: t('route.directions.north'),
+@@ -1104,18 +1140,55 @@ function routeOverlayLabels(
+   venue: VenueDataDto,
+   summary: RouteSummary,
+   labels: ReturnType<typeof routeLabels>,
++  confidenceMeta?: SunFreshnessMeta,
+ ): RouteOverlayLabels {
+   return {
+     title: formatLabel(labels.overlayTitle, { name: venue.venueName }),
+     walk: routeEstimateLabel(summary.walkMinutes, labels.walkEstimate) ?? null,
+     bike: routeEstimateLabel(summary.bikeMinutes, labels.bikeEstimate) ?? null,
+     direction: routeDirectionLabel(summary.direction, venue.neighborhood, labels),
++    confidence: routeConfidenceLabel(venue, labels, confidenceMeta),
+     close: labels.close,
+     fallback: labels.openMaps,
+     unavailable: labels.unavailable,
+   };
+ }
+ 
++/**
++ * The route overlay's "confidence context" reuses the exact public
++ * confidence/uncertainty presentation already shown on venue surfaces
++ * (Story 3.0.6 contract). When the public display is hidden (no fresh
++ * weather metadata, geometry-only source) the overlay shows nothing
++ * rather than inventing a number.
++ */
++function routeConfidenceLabel(
++  venue: VenueDataDto,
++  labels: ReturnType<typeof routeLabels>,
++  confidenceMeta?: SunFreshnessMeta,
++): string | null {
++  const confidenceDisplay = getConfidenceDisplayState({
++    confidence: venue.confidence,
++    meta: confidenceMeta,
++    labels: {
++      confidence: labels.confidence,
++      approximate: labels.confidenceApproximate,
++      unavailable: labels.confidenceUnavailable,
++    },
++  });
++  const uncertaintyDisplay = getPredictionUncertaintyDisplay({
++    predictionUncertainty: venue.predictionUncertainty,
++    labels: labels.uncertainty,
++  });
++  const parts = [
++    confidenceDisplay.visibleText
++      ? `${labels.confidence} ${confidenceDisplay.visibleText}`
++      : null,
++    uncertaintyDisplay?.visibleLabel ?? null,
++  ].filter(Boolean);
++  if (parts.length === 0) return null;
++  return parts.join(' · ');
++}
++
+ function routeEstimateLabel(minutes: number | null, template: string): string | undefined {
+   if (minutes === null) return undefined;
+   return formatLabel(template, { minutes: String(minutes) });
+@@ -1266,6 +1339,54 @@ function venueIdentityKey(venue: Pick<VenueDataDto, 'id' | 'slug' | 'venueSlug'>
+   return `${venue.id}:${venue.slug}:${venue.venueSlug}`;
+ }
+ 
++/**
++ * Localized venue-detail not-found/error notice (Story 3.4 AC #2). Uses
++ * `z-toast` so the retry affordance stays reachable above an open detail
++ * overlay when fallback content is rendering behind a failed detail query.
++ */
++function VenueDetailError({
++  isNotFound,
++  showBack,
++  onRetry,
++  onBack,
++}: {
++  isNotFound: boolean;
++  showBack: boolean;
++  onRetry: () => void;
++  onBack: () => void;
++}) {
++  const t = useTranslations('venue');
++  return (
++    <div
++      role="alert"
++      data-testid="venue-detail-error"
++      className="absolute top-3 left-4 right-4 z-toast mx-auto flex max-w-[min(22rem,calc(100%-2rem))] flex-wrap items-center justify-between gap-2 rounded-card bg-surface-cream px-4 py-3 text-body-sm text-text-body shadow-card lg:left-1/2 lg:right-auto lg:-translate-x-1/2"
++    >
++      <span>{isNotFound ? t('detail.notFound') : t('detail.loadFailed')}</span>
++      <span className="flex shrink-0 items-center gap-1">
++        {!isNotFound && (
++          <button
++            type="button"
++            onClick={onRetry}
++            className="min-h-11 shrink-0 rounded-pill px-3 text-label-lg text-amber-dark outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
++          >
++            {t('detail.retry')}
++          </button>
++        )}
++        {showBack && (
++          <button
++            type="button"
++            onClick={onBack}
++            className="min-h-11 shrink-0 rounded-pill px-3 text-label-lg text-amber-dark outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
++          >
++            {t('detail.backToMap')}
++          </button>
++        )}
++      </span>
++    </div>
++  );
++}
++
+ function MapVenueError({ onRetry }: { onRetry: () => unknown }) {
+   const t = useTranslations('map');
+   return (
+diff --git a/nextjs-app/components/custom/routing/RouteOverlay.tsx b/nextjs-app/components/custom/routing/RouteOverlay.tsx
+index 43b47f4..1ac9617 100644
+--- a/nextjs-app/components/custom/routing/RouteOverlay.tsx
++++ b/nextjs-app/components/custom/routing/RouteOverlay.tsx
+@@ -1,7 +1,7 @@
+ 'use client';
+ 
+ import { useEffect, useRef } from 'react';
+-import { Bike, Compass, ExternalLink, Footprints, X } from 'lucide-react';
++import { Bike, Compass, ExternalLink, Footprints, Sun, X } from 'lucide-react';
+ import { motion, useReducedMotion } from 'motion/react';
+ import {
+   DURATION_FAST_S,
+@@ -16,6 +16,13 @@ export type RouteOverlayLabels = {
+   walk: string | null;
+   bike: string | null;
+   direction: string | null;
++  /**
++   * Public confidence/uncertainty context for the destination, formatted by
++   * the orchestrator from the same display helpers the venue surfaces use.
++   * Null when the public confidence display is unavailable — the overlay
++   * must not invent or leak a substitute.
++   */
++  confidence?: string | null;
+   close: string;
+   fallback: string;
+   unavailable: string;
+@@ -112,6 +119,11 @@ export function RouteOverlay({
+             {labels.direction}
+           </RouteOverlayRow>
+         )}
++        {labels.confidence && (
++          <RouteOverlayRow icon={<Sun aria-hidden="true" className="size-4" />}>
++            {labels.confidence}
++          </RouteOverlayRow>
++        )}
+         {!hasRouteText && (
+           <p className="rounded-card bg-surface-muted px-3 py-2 text-body-sm-medium text-text-body">
+             {labels.unavailable}
+diff --git a/nextjs-app/hooks/queries/venue-query-options.ts b/nextjs-app/hooks/queries/venue-query-options.ts
+index 098de51..2e4675d 100644
+--- a/nextjs-app/hooks/queries/venue-query-options.ts
++++ b/nextjs-app/hooks/queries/venue-query-options.ts
+@@ -17,3 +17,7 @@ export function venueQueryRetryDelay(attemptIndex: number): number {
+ function isClientHttpError(error: Error): boolean {
+   return /failed:\s4\d\d\b/i.test(error.message);
+ }
++
++export function isVenueNotFoundError(error: Error | null | undefined): boolean {
++  return Boolean(error && /failed:\s404\b/i.test(error.message));
++}
+diff --git a/nextjs-app/messages/en/venue.json b/nextjs-app/messages/en/venue.json
+index 8e6ac14..d6dda6f 100644
+--- a/nextjs-app/messages/en/venue.json
++++ b/nextjs-app/messages/en/venue.json
+@@ -31,6 +31,9 @@
+     "unavailable": "Open maps for directions",
+     "openMaps": "OPEN IN MAPS",
+     "close": "Close route",
++    "confidence": "Confidence",
++    "confidenceApproximate": "about",
++    "confidenceUnavailable": "Confidence unavailable",
+     "directionFallback": "toward {neighborhood}",
+     "directions": {
+       "north": "north",
+@@ -134,6 +137,10 @@
+     "photoPlaceholder": "Venue placeholder image",
+     "loading": "Loading venue details",
+     "detailsUnavailable": "Details unavailable",
++    "notFound": "Venue not found.",
++    "loadFailed": "Could not load the venue.",
++    "retry": "Try again",
++    "backToMap": "Back to map",
+     "openingHours": "Opening hours",
+     "address": "Address",
+     "shadowWarning": "Shady in {minutes} min",
+diff --git a/nextjs-app/messages/sv/venue.json b/nextjs-app/messages/sv/venue.json
+index 101f5c4..313c363 100644
+--- a/nextjs-app/messages/sv/venue.json
++++ b/nextjs-app/messages/sv/venue.json
+@@ -31,6 +31,9 @@
+     "unavailable": "Öppna kartor för vägbeskrivning",
+     "openMaps": "ÖPPNA I KARTOR",
+     "close": "Stäng rutt",
++    "confidence": "Säkerhet",
++    "confidenceApproximate": "cirka",
++    "confidenceUnavailable": "Säkerhet saknas",
+     "directionFallback": "mot {neighborhood}",
+     "directions": {
+       "north": "norrut",
+@@ -134,6 +137,10 @@
+     "photoPlaceholder": "Platshållarbild för platsen",
+     "loading": "Laddar platsdetaljer",
+     "detailsUnavailable": "Detaljer saknas",
++    "notFound": "Platsen hittades inte.",
++    "loadFailed": "Kunde inte ladda platsen.",
++    "retry": "Försök igen",
++    "backToMap": "Tillbaka till kartan",
+     "openingHours": "Öppettider",
+     "address": "Adress",
+     "shadowWarning": "Blir skuggigt om {minutes} min",
+diff --git a/nextjs-app/test/components/MapView.test.tsx b/nextjs-app/test/components/MapView.test.tsx
+index 0fcd75e..f5183a7 100644
+--- a/nextjs-app/test/components/MapView.test.tsx
++++ b/nextjs-app/test/components/MapView.test.tsx
+@@ -70,6 +70,8 @@ const useVenueDetailMock = vi.fn<(slug?: string | null, params?: {
+   data: GetVenueDetailResponse | undefined;
+   isFetching: boolean;
+   isError: boolean;
++  error?: Error;
++  refetch?: ReturnType<typeof vi.fn>;
+ }>(() => ({
+   data: undefined,
+   isFetching: false,
+@@ -819,6 +821,58 @@ describe('<MapView />', () => {
+       );
+     });
+ 
++    it('shows confidence context in the route overlay before the native-map handoff (Story 3.4 AC #3)', () => {
++      vi.spyOn(window, 'open').mockImplementation(() => null);
++      selectedVenueIdMock = 'venue-1';
++      useVenueSearchMock.mockReturnValue({
++        data: {
++          ...makeVenueResponse([
++            makeVenue({
++              id: 'venue-1',
++              name: 'Kafé Magasinet',
++              slug: 'test-venue-sunny',
++              confidence: 88,
++            }),
++          ]),
++          meta: {
++            count: 1,
++            radiusKm: 1.5,
++            sunDataSource: 'weather',
++            weatherUpdatedAt: '2999-01-01T00:00:00.000Z',
++          },
++        },
++        isFetching: false,
++        isError: false,
++        dataUpdatedAt: 1,
++      });
++
++      render(<MapView />, { wrapper: Wrapper });
++      fireEvent.click(screen.getAllByRole('button', { name: /Visa Rutt/ })[0]);
++
++      const overlay = screen.getByRole('dialog', { name: 'Rutt till Kafé Magasinet' });
++      expect(overlay).toHaveTextContent('Säkerhet 88%');
++      expect(overlay).toHaveTextContent('ca 2 min promenad');
++    });
++
++    it('keeps confidence hidden in the route overlay when the public confidence display is unavailable', () => {
++      vi.spyOn(window, 'open').mockImplementation(() => null);
++      selectedVenueIdMock = 'venue-1';
++      useVenueSearchMock.mockReturnValue({
++        data: makeVenueResponse([
++          makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' }),
++        ]),
++        isFetching: false,
++        isError: false,
++        dataUpdatedAt: 1,
++      });
++
++      render(<MapView />, { wrapper: Wrapper });
++      fireEvent.click(screen.getAllByRole('button', { name: /Visa Rutt/ })[0]);
++
++      const overlay = screen.getByRole('dialog', { name: 'Rutt till Kafé Magasinet' });
++      expect(overlay).not.toHaveTextContent('Säkerhet');
++    });
++
+     it('plain venue deep links select the matching venue and render detail once data is available', () => {
+       searchParamsMock = new URLSearchParams('venue=test-venue-sunny');
+       const venue = makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' });
+@@ -1045,6 +1099,112 @@ describe('<MapView />', () => {
+       expect(screen.getAllByRole('button', { name: 'Kafé Magasinet' })).toHaveLength(2);
+     });
+ 
++    it('renders a localized not-found state with a way back to the map for an unknown venue slug (Story 3.4 AC #2)', () => {
++      searchParamsMock = new URLSearchParams('venue=unknown-sunny-place');
++      useVenueSearchMock.mockReturnValue({
++        data: makeVenueResponse([]),
++        isFetching: false,
++        isError: false,
++        dataUpdatedAt: 1,
++      });
++      useVenueDetailMock.mockReturnValue({
++        data: undefined,
++        isFetching: false,
++        isError: true,
++        error: new Error('Venue detail failed: 404 Not Found'),
++        refetch: vi.fn(),
++      });
++
++      render(<MapView />, { wrapper: Wrapper });
++
++      const alert = screen.getByTestId('venue-detail-error');
++      expect(alert).toHaveTextContent('Platsen hittades inte.');
++      expect(within(alert).queryByRole('button', { name: 'Försök igen' })).toBeNull();
++      fireEvent.click(within(alert).getByRole('button', { name: 'Tillbaka till kartan' }));
++      expect(routerReplaceMock).toHaveBeenCalledWith('/');
++    });
++
++    it('renders a localized retry state when a venue detail deep link fails to load (Story 3.4 AC #2)', () => {
++      searchParamsMock = new URLSearchParams('venue=test-venue-sunny');
++      const refetch = vi.fn();
++      useVenueSearchMock.mockReturnValue({
++        data: makeVenueResponse([]),
++        isFetching: false,
++        isError: false,
++        dataUpdatedAt: 1,
++      });
++      useVenueDetailMock.mockReturnValue({
++        data: undefined,
++        isFetching: false,
++        isError: true,
++        error: new Error('Venue detail failed: 500 Internal Server Error'),
++        refetch,
++      });
++
++      render(<MapView />, { wrapper: Wrapper });
++
++      const alert = screen.getByTestId('venue-detail-error');
++      expect(alert).toHaveTextContent('Kunde inte ladda platsen.');
++      fireEvent.click(within(alert).getByRole('button', { name: 'Försök igen' }));
++      expect(refetch).toHaveBeenCalled();
++      fireEvent.click(within(alert).getByRole('button', { name: 'Tillbaka till kartan' }));
++      expect(routerReplaceMock).toHaveBeenCalledWith('/');
++    });
++
++    it('keeps a retry affordance visible when detail data fails behind a fallback overlay (Story 3.4 AC #2)', () => {
++      searchParamsMock = new URLSearchParams('venue=test-venue-sunny');
++      const refetch = vi.fn();
++      useVenueSearchMock.mockReturnValue({
++        data: makeVenueResponse([
++          makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' }),
++        ]),
++        isFetching: false,
++        isError: false,
++        dataUpdatedAt: 1,
++      });
++      useVenueDetailMock.mockReturnValue({
++        data: undefined,
++        isFetching: false,
++        isError: true,
++        error: new Error('Venue detail failed: 500 Internal Server Error'),
++        refetch,
++      });
++
++      const { rerender } = render(<MapView />, { wrapper: Wrapper });
++      rerender(<MapView />);
++
++      expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
++      const alert = screen.getByTestId('venue-detail-error');
++      expect(within(alert).queryByRole('button', { name: 'Tillbaka till kartan' })).toBeNull();
++      fireEvent.click(within(alert).getByRole('button', { name: 'Försök igen' }));
++      expect(refetch).toHaveBeenCalled();
++    });
++
++    it('suppresses the not-found alert when fallback venue content already renders for a 404 detail', () => {
++      searchParamsMock = new URLSearchParams('venue=test-venue-sunny');
++      useVenueSearchMock.mockReturnValue({
++        data: makeVenueResponse([
++          makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' }),
++        ]),
++        isFetching: false,
++        isError: false,
++        dataUpdatedAt: 1,
++      });
++      useVenueDetailMock.mockReturnValue({
++        data: undefined,
++        isFetching: false,
++        isError: true,
++        error: new Error('Venue detail failed: 404 Not Found'),
++        refetch: vi.fn(),
++      });
++
++      const { rerender } = render(<MapView />, { wrapper: Wrapper });
++      rerender(<MapView />);
++
++      expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
++      expect(screen.queryByTestId('venue-detail-error')).toBeNull();
++    });
++
+     it('keeps detail responses whose canonical slug differs from the URL alias', () => {
+       searchParamsMock = new URLSearchParams('venue=legacy-alias');
+       const aliasVenue = {
+diff --git a/nextjs-app/test/components/RouteOverlay.test.tsx b/nextjs-app/test/components/RouteOverlay.test.tsx
+index 547b0a1..5c5e984 100644
+--- a/nextjs-app/test/components/RouteOverlay.test.tsx
++++ b/nextjs-app/test/components/RouteOverlay.test.tsx
+@@ -58,6 +58,34 @@ describe('<RouteOverlay />', () => {
+     expect(onDismiss).toHaveBeenCalledTimes(1);
+   });
+ 
++  it('renders the public confidence context row when the orchestrator provides one (Story 3.4 AC #3)', () => {
++    render(
++      <RouteOverlay
++        labels={{ ...labels, confidence: 'Säkerhet 88% · Osäker prognos' }}
++        fallbackHref="https://www.google.com/maps/dir/?api=1&destination=57.705%2C11.97&travelmode=walking&dir_action=navigate"
++        onDismiss={() => undefined}
++      />,
++    );
++
++    expect(
++      screen.getByRole('dialog', { name: 'Rutt till Kafé Magasinet' }),
++    ).toHaveTextContent('Säkerhet 88% · Osäker prognos');
++  });
++
++  it('omits the confidence row entirely when the public confidence display is unavailable', () => {
++    render(
++      <RouteOverlay
++        labels={{ ...labels, confidence: null }}
++        fallbackHref="https://www.google.com/maps/dir/?api=1&destination=57.705%2C11.97&travelmode=walking&dir_action=navigate"
++        onDismiss={() => undefined}
++      />,
++    );
++
++    expect(
++      screen.getByRole('dialog', { name: 'Rutt till Kafé Magasinet' }),
++    ).not.toHaveTextContent('Säkerhet');
++  });
++
+   it('keeps an unavailable route state useful without numeric leakage', () => {
+     render(
+       <RouteOverlay
+diff --git a/nextjs-app/test/e2e/axe.spec.ts b/nextjs-app/test/e2e/axe.spec.ts
+index cc7565d..6875657 100644
+--- a/nextjs-app/test/e2e/axe.spec.ts
++++ b/nextjs-app/test/e2e/axe.spec.ts
+@@ -44,4 +44,62 @@ test.describe('axe-core a11y gate', () => {
+     const violations = await runAxe(page);
+     expect(violations, formatViolations(violations)).toEqual([]);
+   });
++
++  // Story 3.4 Task 5.4 — Epic 3 visit-loop surfaces: venue detail, route
++  // overlay, feedback prompt, and review form (forced states per the Screen
++  // ID → Route Map in project-context.md).
++
++  test('a11y: venue detail (/?venue=test-venue-sunny&_state=venue-detail)', async ({ page }) => {
++    await page.addInitScript((key: string) => {
++      window.localStorage.setItem(key, '1');
++    }, ONBOARDED_FLAG_KEY);
++
++    await page.goto('/?venue=test-venue-sunny&_state=venue-detail');
++    await page.locator('[data-testid="desktop-venue-detail-panel"]:visible').waitFor({ state: 'visible' });
++    const violations = await runAxe(page);
++    expect(violations, formatViolations(violations)).toEqual([]);
++  });
++
++  test('a11y: route overlay after Visa Rutt', async ({ page }) => {
++    await page.addInitScript((key: string) => {
++      window.localStorage.setItem(key, '1');
++    }, ONBOARDED_FLAG_KEY);
++    // Stub the native-map handoff so the runner never leaves the app and
++    // the overlay's blocked-handoff fallback state stays on screen.
++    await page.addInitScript(() => {
++      window.open = () => null;
++    });
++
++    await page.goto('/?venue=test-venue-sunny&_state=map-with-selected-venue');
++    await page.locator('[data-testid="venue-quick-info"]:visible').waitFor({ state: 'visible' });
++    await page
++      .locator('[data-testid="venue-quick-info"]:visible')
++      .getByRole('button', { name: /Visa Rutt/ })
++      .click();
++    await page.locator('[data-testid="route-overlay"]:visible').waitFor({ state: 'visible' });
++    const violations = await runAxe(page);
++    expect(violations, formatViolations(violations)).toEqual([]);
++  });
++
++  test('a11y: feedback prompt (/?venue=test-venue-sunny&_state=feedback)', async ({ page }) => {
++    await page.addInitScript((key: string) => {
++      window.localStorage.setItem(key, '1');
++    }, ONBOARDED_FLAG_KEY);
++
++    await page.goto('/?venue=test-venue-sunny&_state=feedback');
++    await page.locator('[data-testid="feedback-prompt"]:visible').waitFor({ state: 'visible' });
++    const violations = await runAxe(page);
++    expect(violations, formatViolations(violations)).toEqual([]);
++  });
++
++  test('a11y: review form (/?venue=test-venue-sunny&_state=review)', async ({ page }) => {
++    await page.addInitScript((key: string) => {
++      window.localStorage.setItem(key, '1');
++    }, ONBOARDED_FLAG_KEY);
++
++    await page.goto('/?venue=test-venue-sunny&_state=review');
++    await page.locator('[data-testid="review-form-desktop"]:visible').waitFor({ state: 'visible' });
++    const violations = await runAxe(page);
++    expect(violations, formatViolations(violations)).toEqual([]);
++  });
+ });
+diff --git a/nextjs-app/test/e2e/visit-loop.spec.ts b/nextjs-app/test/e2e/visit-loop.spec.ts
+new file mode 100644
+index 0000000..9bf4208
+--- /dev/null
++++ b/nextjs-app/test/e2e/visit-loop.spec.ts
+@@ -0,0 +1,124 @@
++import { expect, test, type Page } from '@playwright/test';
++import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
++
++// Story 3.4 Task 7.2 — Epic 3 visit-loop hardening coverage:
++// route overlay dismiss preserves venue context, deep links render detail,
++// invalid slugs surface the localized not-found state, and browser Back
++// from detail restores the map without stranding overlays.
++
++const APP_SETTLE_TIMEOUT_MS = 15_000;
++
++async function bypassOnboarding(page: Page): Promise<void> {
++  await page.addInitScript((key: string) => {
++    window.sessionStorage.clear();
++    window.localStorage.setItem(key, '1');
++  }, ONBOARDED_FLAG_KEY);
++}
++
++// Stub the native-map handoff exactly like map-primary.spec.ts — the test
++// runner must never navigate into a real maps app.
++async function stubWindowOpen(page: Page): Promise<void> {
++  await page.addInitScript(() => {
++    window.open = () => null;
++  });
++}
++
++function detailPanel(page: Page, projectName: string) {
++  return projectName === 'desktop'
++    ? page.getByTestId('desktop-venue-detail-panel')
++    : page.getByTestId('mobile-venue-detail-sheet');
++}
++
++test.describe('Epic 3 visit loop', () => {
++  test('deep link to /?venue=test-venue-sunny renders venue detail', async ({ page }, testInfo) => {
++    await bypassOnboarding(page);
++    await page.goto('/?venue=test-venue-sunny&_time=14:00');
++
++    const panel = detailPanel(page, testInfo.project.name);
++    await expect(panel).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
++    await expect(
++      panel.getByRole('heading', { name: 'Kafé Magasinet' }).first(),
++    ).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
++  });
++
++  test('route overlay shows destination, confidence context, and walk time, and dismiss preserves venue context', async ({ page }, testInfo) => {
++    await bypassOnboarding(page);
++    await stubWindowOpen(page);
++    await page.goto('/?venue=test-venue-sunny&_time=14:00');
++
++    const panel = detailPanel(page, testInfo.project.name);
++    await expect(panel).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
++    await panel.getByRole('button', { name: /Visa Rutt/ }).click();
++
++    const overlay = page.locator('[data-testid="route-overlay"]:visible');
++    await expect(overlay).toBeVisible();
++    // Destination + estimated walk time before the app attempts to leave.
++    await expect(overlay).toContainText('Rutt till Kafé Magasinet');
++    await expect(overlay).toContainText(/min promenad/);
++    // Blocked handoff (window.open → null): localized open-directions action
++    // keeps the *directions* intent (Story 3.1 Round 1 finding #4).
++    const fallback = overlay.getByRole('link', { name: 'ÖPPNA I KARTOR' });
++    await expect(fallback).toHaveAttribute('href', /google\.com\/maps\/dir\//);
++
++    await overlay.getByRole('button', { name: 'Stäng rutt' }).click();
++    await expect(page.locator('[data-testid="route-overlay"]')).toHaveCount(0);
++
++    // Venue context preserved: detail still open, URL untouched.
++    await expect(panel).toBeVisible();
++    expect(page.url()).toContain('venue=test-venue-sunny');
++    expect(page.url()).toMatch(/_time=14(%3A|:)00/);
++  });
++
++  test('invalid venue slug renders the localized not-found state with a way back to the map', async ({ page }) => {
++    await bypassOnboarding(page);
++    await page.goto('/?venue=this-venue-does-not-exist');
++
++    const notice = page.getByTestId('venue-detail-error');
++    await expect(notice).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
++    await expect(notice).toContainText('Platsen hittades inte.');
++
++    await notice.getByRole('button', { name: 'Tillbaka till kartan' }).click();
++    await expect(notice).toHaveCount(0);
++    await expect.poll(() => page.url()).not.toContain('venue=');
++    // Back on the coherent map state — pins still rendered.
++    await expect(
++      page.locator('[data-testid="venue-pin"]').first(),
++    ).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
++  });
++
++  test('browser Back from venue detail restores the map state without stranding overlays', async ({ page }, testInfo) => {
++    await bypassOnboarding(page);
++    await page.goto('/?_time=14:00');
++    await page.waitForSelector('[data-testid="venue-pin"]', { timeout: APP_SETTLE_TIMEOUT_MS });
++
++    // Select a venue through the UI so the detail URL transition is a real
++    // router push (Back must pop it). On mobile the mid-state bottom sheet
++    // covers the projected pin, so use the list card entry path there; on
++    // desktop use the pin entry path.
++    if (testInfo.project.name === 'desktop') {
++      await page.locator('[data-testid="venue-pin"][data-pin-state="sunny"]').first().click();
++    } else {
++      await page
++        .locator('[data-testid="mobile-bottom-sheet"]')
++        .getByRole('button', { name: /Välj Kafé Magasinet/ })
++        .click();
++    }
++    const quickInfo = page.locator('[data-testid="venue-quick-info"]:visible').first();
++    await expect(quickInfo).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
++    await quickInfo.getByRole('button', { name: 'Mer Info' }).click();
++
++    const panel = detailPanel(page, testInfo.project.name);
++    await expect(panel).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
++    expect(page.url()).toContain('venue=');
++
++    await page.goBack();
++
++    await expect(panel).toHaveCount(0);
++    await expect.poll(() => page.url()).not.toContain('venue=');
++    // Map context restored: pins remain, planner time param survived.
++    await expect(
++      page.locator('[data-testid="venue-pin"]').first(),
++    ).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
++    expect(page.url()).toMatch(/_time=14(%3A|:)00/);
++  });
++});
+diff --git a/nextjs-app/test/unit/messages-parity.test.ts b/nextjs-app/test/unit/messages-parity.test.ts
+new file mode 100644
+index 0000000..53982c6
+--- /dev/null
++++ b/nextjs-app/test/unit/messages-parity.test.ts
+@@ -0,0 +1,53 @@
++import { readFileSync, readdirSync } from 'node:fs';
++import path from 'node:path';
++import { describe, expect, it } from 'vitest';
++
++/**
++ * Story 3.4 Task 6.3 — sv/en message key parity pin.
++ *
++ * Swedish is the source language; English is the fallback. Every key a flow
++ * consumes must exist in both locales, otherwise next-intl falls back to raw
++ * key names at runtime. This test pins structural parity for every message
++ * namespace in both directions so a key added to one locale cannot silently
++ * ship without its counterpart.
++ */
++
++const MESSAGES_DIR = path.resolve(process.cwd(), 'messages');
++
++function listNamespaces(locale: string): string[] {
++  return readdirSync(path.join(MESSAGES_DIR, locale))
++    .filter((file) => file.endsWith('.json'))
++    .sort();
++}
++
++function flattenKeys(value: unknown, prefix = ''): string[] {
++  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
++    return [prefix];
++  }
++  return Object.entries(value as Record<string, unknown>).flatMap(([key, child]) =>
++    flattenKeys(child, prefix ? `${prefix}.${key}` : key),
++  );
++}
++
++function loadKeys(locale: string, namespaceFile: string): string[] {
++  const raw = readFileSync(path.join(MESSAGES_DIR, locale, namespaceFile), 'utf8');
++  return flattenKeys(JSON.parse(raw)).sort();
++}
++
++describe('sv/en message parity (Story 3.4 AC #5)', () => {
++  it('ships the same namespace files for both locales', () => {
++    expect(listNamespaces('sv')).toEqual(listNamespaces('en'));
++  });
++
++  for (const namespaceFile of listNamespaces('sv')) {
++    it(`keeps identical key sets in ${namespaceFile} for sv and en`, () => {
++      expect(loadKeys('en', namespaceFile)).toEqual(loadKeys('sv', namespaceFile));
++    });
++  }
++
++  it('covers the Epic 3 route/feedback/review namespaces', () => {
++    const namespaces = listNamespaces('sv');
++    expect(namespaces).toContain('venue.json');
++    expect(namespaces).toContain('feedback.json');
++  });
++});
+diff --git a/nextjs-app/test/unit/routing-boundary.test.ts b/nextjs-app/test/unit/routing-boundary.test.ts
+new file mode 100644
+index 0000000..e55a7e1
+--- /dev/null
++++ b/nextjs-app/test/unit/routing-boundary.test.ts
+@@ -0,0 +1,103 @@
++import { readFileSync, readdirSync, statSync } from 'node:fs';
++import path from 'node:path';
++import { describe, expect, it } from 'vitest';
++
++/**
++ * Story 3.4 Task 2.4 — routing-boundary contract pin.
++ *
++ * Story 3.1 established the shared routing contract: all native-map URLs
++ * are built by `lib/services/routing.ts`, and the single user-gesture
++ * `window.open` call site lives in `components/custom/map/MapView.tsx`.
++ * This scan test pins that boundary so a future story cannot silently
++ * reintroduce a hand-rolled maps URL builder or a stray `window.open`
++ * outside the approved orchestrator.
++ */
++
++const APP_ROOT = process.cwd();
++const SCANNED_DIRS = ['app', 'components', 'hooks', 'lib'] as const;
++const ROUTING_HELPER = normalize('lib/services/routing.ts');
++const WINDOW_OPEN_BOUNDARY = normalize('components/custom/map/MapView.tsx');
++
++const NATIVE_MAP_URL_PATTERNS: Array<{ name: string; pattern: RegExp }> = [
++  { name: 'Apple Maps URL', pattern: /maps\.apple/ },
++  { name: 'Google Maps URL', pattern: /google\.com\/maps/ },
++  { name: 'geo: URI scheme', pattern: /['"`]geo:/ },
++];
++
++function normalize(relativePath: string): string {
++  return relativePath.split(/[\\/]/).join('/');
++}
++
++function collectSourceFiles(dir: string, files: string[] = []): string[] {
++  for (const entry of readdirSync(dir)) {
++    const fullPath = path.join(dir, entry);
++    if (statSync(fullPath).isDirectory()) {
++      if (entry === 'node_modules' || entry === '.next') continue;
++      collectSourceFiles(fullPath, files);
++      continue;
++    }
++    if (/\.(ts|tsx)$/.test(entry) && !/\.(test|spec)\.(ts|tsx)$/.test(entry)) {
++      files.push(fullPath);
++    }
++  }
++  return files;
++}
++
++function scanRuntimeSources(): Array<{ relativePath: string; content: string }> {
++  return SCANNED_DIRS.flatMap((dir) =>
++    collectSourceFiles(path.join(APP_ROOT, dir)),
++  ).map((filePath) => ({
++    relativePath: normalize(path.relative(APP_ROOT, filePath)),
++    content: readFileSync(filePath, 'utf8'),
++  }));
++}
++
++describe('routing boundary contract (Story 3.4 AC #1)', () => {
++  const sources = scanRuntimeSources();
++
++  it('scans a non-trivial runtime source tree', () => {
++    expect(sources.length).toBeGreaterThan(50);
++    expect(sources.some((file) => file.relativePath === ROUTING_HELPER)).toBe(true);
++    expect(sources.some((file) => file.relativePath === WINDOW_OPEN_BOUNDARY)).toBe(true);
++  });
++
++  it('keeps window.open confined to the single MapView orchestrator call site', () => {
++    const offenders = sources
++      .filter((file) => file.relativePath !== WINDOW_OPEN_BOUNDARY)
++      .filter((file) => file.content.includes('window.open('))
++      .map((file) => file.relativePath);
++    expect(offenders).toEqual([]);
++
++    const boundary = sources.find((file) => file.relativePath === WINDOW_OPEN_BOUNDARY);
++    const callSites = boundary?.content.match(/window\.open\(/g) ?? [];
++    expect(callSites).toHaveLength(1);
++  });
++
++  it('keeps native-map URL builders confined to lib/services/routing.ts', () => {
++    for (const { name, pattern } of NATIVE_MAP_URL_PATTERNS) {
++      const offenders = sources
++        .filter((file) => file.relativePath !== ROUTING_HELPER)
++        .filter((file) => pattern.test(file.content))
++        .map((file) => `${file.relativePath} (${name})`);
++      expect(offenders).toEqual([]);
++    }
++  });
++
++  it('routes every consumer of maps URLs through the shared routing helper', () => {
++    const consumers = sources.filter(
++      (file) =>
++        file.relativePath !== ROUTING_HELPER &&
++        /from ['"]@\/lib\/services\/routing['"]/.test(file.content),
++    );
++    const consumerPaths = consumers.map((file) => file.relativePath).sort();
++    // The approved Epic 3 consumer set. A new consumer is fine — it must
++    // simply use the shared helper — but review this list consciously
++    // instead of letting an unrelated surface import URL builders by
++    // accident.
++    expect(consumerPaths).toEqual([
++      'components/composed/venue/VenueDetailContent.tsx',
++      'components/custom/feedback/FeedbackFlow.tsx',
++      'components/custom/map/MapView.tsx',
++    ]);
++  });
++});
