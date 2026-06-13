@@ -22,7 +22,7 @@ export function ForcedVenueDetailInitialFrame({
   forcedState,
   dismissOnHydration = false,
 }: ForcedVenueDetailInitialFrameProps) {
-  const tVenueDetail = useTranslations('venue.detail');
+  const tVenue = useTranslations('venue');
   const [visible, setVisible] = useState(true);
   const forcedVenueDetail = resolveForcedVisualVenueDetail(slug, forcedState);
 
@@ -31,7 +31,6 @@ export function ForcedVenueDetailInitialFrame({
   }, [dismissOnHydration]);
 
   if (!forcedVenueDetail || !visible) return null;
-
   return (
     <div
       data-testid="forced-venue-detail-initial-frame"
@@ -59,17 +58,17 @@ export function ForcedVenueDetailInitialFrame({
         className="absolute inset-x-0 bottom-0 top-12 z-bottom-sheet-full flex flex-col overflow-hidden rounded-t-sheet-full bg-surface-cream text-text-primary shadow-sheet-full-up lg:hidden"
       >
         <div className="absolute right-5 top-16 z-floating-buttons flex gap-3">
-          <StaticChromeButton label={tVenueDetail('favourite')}>
+          <StaticChromeButton label={tVenue('detail.favourite')}>
             <Heart aria-hidden="true" className="size-5" />
           </StaticChromeButton>
-          <StaticChromeButton label={tVenueDetail('close')}>
+          <StaticChromeButton label={tVenue('detail.close')}>
             <X aria-hidden="true" className="size-5" />
           </StaticChromeButton>
         </div>
         <button
           type="button"
           data-testid="mobile-venue-detail-handle"
-          aria-label={tVenueDetail('close')}
+          aria-label={tVenue('detail.close')}
           className="flex min-h-11 shrink-0 items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
         >
           <span
@@ -82,7 +81,7 @@ export function ForcedVenueDetailInitialFrame({
             fallbackVenue={forcedVenueDetail}
             detail={forcedVenueDetail}
             currentTime={currentTimeLabel()}
-            labels={venueDetailLabels(tVenueDetail)}
+            labels={venueDetailLabels(tVenue)}
             onRoute={() => undefined}
             routeDisabled
             mode="mobile"
@@ -97,13 +96,13 @@ export function ForcedVenueDetailInitialFrame({
         className="absolute bottom-0 right-0 top-0 z-bottom-sheet-full hidden w-venue-detail-panel flex-col overflow-hidden bg-surface-cream text-text-primary shadow-card lg:flex"
       >
         <div className="absolute right-4 top-4 z-floating-buttons flex gap-2">
-          <StaticChromeButton label={tVenueDetail('favourite')}>
+          <StaticChromeButton label={tVenue('detail.favourite')}>
             <Heart aria-hidden="true" className="size-4" />
           </StaticChromeButton>
-          <StaticChromeButton label={tVenueDetail('share')}>
+          <StaticChromeButton label={tVenue('detail.share')}>
             <Share2 aria-hidden="true" className="size-4" />
           </StaticChromeButton>
-          <StaticChromeButton label={tVenueDetail('close')}>
+          <StaticChromeButton label={tVenue('detail.close')}>
             <X aria-hidden="true" className="size-4" />
           </StaticChromeButton>
         </div>
@@ -112,7 +111,7 @@ export function ForcedVenueDetailInitialFrame({
             fallbackVenue={forcedVenueDetail}
             detail={forcedVenueDetail}
             currentTime={currentTimeLabel()}
-            labels={venueDetailLabels(tVenueDetail)}
+            labels={venueDetailLabels(tVenue)}
             onRoute={() => undefined}
             routeDisabled
             mode="desktop"
@@ -144,40 +143,41 @@ function StaticChromeButton({
   );
 }
 
-function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue.detail'>>) {
+function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
   return {
-    close: t('close'),
-    favourite: t('favourite'),
-    share: t('share'),
-    sectionTitle: t('sectionTitle'),
-    peakTime: t('peakTime', { time: '{time}' }),
-    openMaps: t('openMaps'),
-    route: t('route'),
-    photoPlaceholder: t('photoPlaceholder'),
-    loading: t('loading'),
-    detailsUnavailable: t('detailsUnavailable'),
-    openingHours: t('openingHours'),
-    address: t('address'),
-    shadowWarning: t('shadowWarning', { minutes: '{minutes}' }),
-    sunBadge: t('sunBadge', { percent: '{percent}' }),
-    confidence: t('confidence'),
-    confidenceApproximate: t('confidenceApproximate'),
-    confidenceUnavailable: t('confidenceUnavailable'),
-    city: t('city'),
-    openUntil: t('openUntil', { time: '{time}' }),
-    placeholderImageShort: t('placeholderImageShort'),
+    close: t('detail.close'),
+    favourite: t('detail.favourite'),
+    share: t('detail.share'),
+    sectionTitle: t('detail.sectionTitle'),
+    peakTime: t('detail.peakTime', { time: '{time}' }),
+    openMaps: t('detail.openMaps'),
+    route: t('detail.route'),
+    routeLoading: t('route.loading'),
+    photoPlaceholder: t('detail.photoPlaceholder'),
+    loading: t('detail.loading'),
+    detailsUnavailable: t('detail.detailsUnavailable'),
+    openingHours: t('detail.openingHours'),
+    address: t('detail.address'),
+    shadowWarning: t('detail.shadowWarning', { minutes: '{minutes}' }),
+    sunBadge: t('detail.sunBadge', { percent: '{percent}' }),
+    confidence: t('detail.confidence'),
+    confidenceApproximate: t('detail.confidenceApproximate'),
+    confidenceUnavailable: t('detail.confidenceUnavailable'),
+    city: t('detail.city'),
+    openUntil: t('detail.openUntil', { time: '{time}' }),
+    placeholderImageShort: t('detail.placeholderImageShort'),
     facts: {
-      distance: t('facts.distance'),
-      exposure: t('facts.exposure'),
-      bestAt: t('facts.bestAt'),
-      outdoorSeats: t('facts.outdoorSeats'),
+      distance: t('detail.facts.distance'),
+      exposure: t('detail.facts.exposure'),
+      bestAt: t('detail.facts.bestAt'),
+      outdoorSeats: t('detail.facts.outdoorSeats'),
     },
     timeline: {
-      ariaLabel: t('timeline.ariaLabel'),
-      currentTime: t('timeline.currentTime', { time: '{time}' }),
-      sunnyWindow: t('timeline.sunnyWindow', { start: '{start}', end: '{end}' }),
-      partialWindow: t('timeline.partialWindow', { start: '{start}', end: '{end}' }),
-      shadedWindow: t('timeline.shadedWindow', { start: '{start}', end: '{end}' }),
+      ariaLabel: t('detail.timeline.ariaLabel'),
+      currentTime: t('detail.timeline.currentTime', { time: '{time}' }),
+      sunnyWindow: t('detail.timeline.sunnyWindow', { start: '{start}', end: '{end}' }),
+      partialWindow: t('detail.timeline.partialWindow', { start: '{start}', end: '{end}' }),
+      shadedWindow: t('detail.timeline.shadedWindow', { start: '{start}', end: '{end}' }),
     },
   };
 }

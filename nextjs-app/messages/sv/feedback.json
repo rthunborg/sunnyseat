@@ -1,1 +1,49 @@
-{}
+{
+  "title": "Hjälp oss förbättra",
+  "venueAddressLabel": "Adress",
+  "mapLink": "Hitta hit",
+  "outdoorQuestion": "Har det här stället uteservering?",
+  "sunnyQuestion": "Var det soligt när du kom?",
+  "yes": "Ja",
+  "no": "Nej",
+  "later": "Inte säker",
+  "noteLabel": "Kommentar",
+  "notePlaceholder": "Om du vill ge oss feedback om platsen...",
+  "submit": "Skicka",
+  "submitting": "Skickar feedback",
+  "close": "Stäng",
+  "success": "Tack för din feedback.",
+  "error": "Kunde inte skicka. Försök igen.",
+  "retry": "Försök igen",
+  "review": {
+    "sectionTitle": "Omdömen",
+    "summary": "{count, plural, =0 {Inga omdömen} one {# omdöme} other {# omdömen}}",
+    "loading": "Laddar omdömen",
+    "loadError": "Kunde inte ladda omdömen.",
+    "retry": "Försök igen",
+    "empty": "Inga omdömen än.",
+    "open": "Lämna ett omdöme",
+    "card": {
+      "rating": "Betyg {rating} av 5",
+      "noRating": "Inget betyg",
+      "photoAttached": "Foto bifogat"
+    },
+    "form": {
+      "venueSubtitle": "Plats inom SunnySeat",
+      "heading": "Skriv ett omdöme",
+      "textLabel": "Omdöme",
+      "experiencePrompt": "Hur var din upplevelse på {name}?",
+      "textPlaceholder": "Berätta hur uteserveringen var i solen...",
+      "ratingLabel": "Betyg (valfritt)",
+      "ratingValue": "{rating} av 5",
+      "photo": "Lägg till foto (valfritt)",
+      "photoSelected": "Valt foto: {name}",
+      "submit": "Skicka",
+      "submitting": "Skickar",
+      "close": "Stäng",
+      "success": "Tack för ditt omdöme.",
+      "error": "Kunde inte skicka. Försök igen.",
+      "retry": "Försök igen"
+    }
+  }
+}

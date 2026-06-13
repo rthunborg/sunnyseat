@@ -43,6 +43,7 @@ const labels = {
   peakTime: 'Toppar kl {time}',
   openMaps: 'ÖPPNA I KARTOR',
   route: 'Visa Rutt',
+  routeLoading: 'Öppnar kartor',
   photoPlaceholder: 'Platshållarbild för platsen',
   loading: 'Laddar platsdetaljer',
   detailsUnavailable: 'Detaljer saknas',
@@ -241,7 +242,8 @@ describe('VenueDetailOverlay desktop', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the route placeholder disabled until routing lands', () => {
+  it('calls the route handler from the enabled detail route CTA', () => {
+    const onRoute = vi.fn();
     render(
       <VenueDetailOverlay
         mode="desktop"
@@ -250,15 +252,13 @@ describe('VenueDetailOverlay desktop', () => {
         currentTime="15:30"
         labels={labels}
         onDismiss={vi.fn()}
-        onRoute={vi.fn()}
-        routeDisabled
+        onRoute={onRoute}
+        routeEstimateLabel="ca 11 min promenad"
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Visa Rutt' })).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Visa Rutt, ca 11 min promenad' }));
+    expect(onRoute).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('ca 11 min promenad')).toBeInTheDocument();
   });
 });

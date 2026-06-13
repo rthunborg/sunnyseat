@@ -44,4 +44,75 @@ test.describe('axe-core a11y gate', () => {
     const violations = await runAxe(page);
     expect(violations, formatViolations(violations)).toEqual([]);
   });
+
+  // Story 3.4 Task 5.4 — Epic 3 visit-loop surfaces: venue detail, route
+  // overlay, feedback prompt, and review form (forced states per the Screen
+  // ID → Route Map in project-context.md).
+
+  test('a11y: venue detail (/?venue=test-venue-sunny&_state=venue-detail)', async ({ page }) => {
+    await page.addInitScript((key: string) => {
+      window.localStorage.setItem(key, '1');
+    }, ONBOARDED_FLAG_KEY);
+
+    await page.goto('/?venue=test-venue-sunny&_state=venue-detail');
+    await page.locator('[data-testid="desktop-venue-detail-panel"]:visible').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test('a11y: route overlay after Visa Rutt', async ({ page }) => {
+    await page.addInitScript((key: string) => {
+      window.localStorage.setItem(key, '1');
+    }, ONBOARDED_FLAG_KEY);
+    // Stub the native-map handoff so the runner never leaves the app and
+    // the overlay's blocked-handoff fallback state stays on screen.
+    await page.addInitScript(() => {
+      window.open = () => null;
+    });
+
+    await page.goto('/?venue=test-venue-sunny&_state=map-with-selected-venue');
+    await page.locator('[data-testid="venue-quick-info"]:visible').waitFor({ state: 'visible' });
+    await page
+      .locator('[data-testid="venue-quick-info"]:visible')
+      .getByRole('button', { name: /Visa Rutt/ })
+      .click();
+    await page.locator('[data-testid="route-overlay"]:visible').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test('a11y: feedback prompt (/?venue=test-venue-sunny&_state=feedback)', async ({ page }) => {
+    await page.addInitScript((key: string) => {
+      window.localStorage.setItem(key, '1');
+    }, ONBOARDED_FLAG_KEY);
+
+    await page.goto('/?venue=test-venue-sunny&_state=feedback');
+    await page.locator('[data-testid="feedback-prompt"]:visible').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test('a11y: review form (/?venue=test-venue-sunny&_state=review)', async ({ page }) => {
+    await page.addInitScript((key: string) => {
+      window.localStorage.setItem(key, '1');
+    }, ONBOARDED_FLAG_KEY);
+
+    await page.goto('/?venue=test-venue-sunny&_state=review');
+    await page.locator('[data-testid="review-form-desktop"]:visible').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  // Story 3.4 review R1-P7 — the localized venue-detail not-found/error
+  // notice is its own interactive surface and must pass the gate too.
+  test('a11y: venue detail not-found notice (/?venue=<invalid slug>)', async ({ page }) => {
+    await page.addInitScript((key: string) => {
+      window.localStorage.setItem(key, '1');
+    }, ONBOARDED_FLAG_KEY);
+
+    await page.goto('/?venue=this-venue-does-not-exist');
+    await page.getByTestId('venue-detail-error').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
 });

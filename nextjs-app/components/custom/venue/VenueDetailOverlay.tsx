@@ -33,11 +33,15 @@ export type VenueDetailOverlayProps = {
   reducedMotion?: boolean;
   onDismiss: () => void;
   onRoute: () => void;
+  routeEstimateLabel?: string;
+  isRouteLoading?: boolean;
   onFavouriteToggle?: () => void;
   isFavourite?: boolean;
   routeDisabled?: boolean;
   mode?: 'mobile' | 'desktop';
   locale?: string;
+  feedbackSlot?: React.ReactNode;
+  reviewSlot?: React.ReactNode;
 };
 
 const DISMISS_DRAG_PX = 140;
@@ -53,11 +57,15 @@ export function VenueDetailOverlay({
   reducedMotion,
   onDismiss,
   onRoute,
+  routeEstimateLabel,
+  isRouteLoading = false,
   onFavouriteToggle,
   isFavourite = false,
   routeDisabled = false,
   mode = 'mobile',
   locale,
+  feedbackSlot,
+  reviewSlot,
 }: VenueDetailOverlayProps) {
   const prefersReducedMotion = useReducedMotion() ?? false;
   const shouldReduceMotion = reducedMotion ?? prefersReducedMotion;
@@ -141,9 +149,13 @@ export function VenueDetailOverlay({
             labels={labels}
             isLoading={isLoading}
             onRoute={onRoute}
+            routeEstimateLabel={routeEstimateLabel}
+            isRouteLoading={isRouteLoading}
             routeDisabled={routeDisabled}
             mode="desktop"
             locale={locale}
+            feedbackSlot={feedbackSlot}
+            reviewSlot={reviewSlot}
           />
         </div>
       </motion.aside>
@@ -219,9 +231,13 @@ export function VenueDetailOverlay({
           labels={labels}
           isLoading={isLoading}
           onRoute={onRoute}
+          routeEstimateLabel={routeEstimateLabel}
+          isRouteLoading={isRouteLoading}
           routeDisabled={routeDisabled}
           mode="mobile"
           locale={locale}
+          feedbackSlot={feedbackSlot}
+          reviewSlot={reviewSlot}
         />
       </div>
     </motion.aside>

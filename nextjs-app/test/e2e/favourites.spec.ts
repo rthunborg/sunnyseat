@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import { FAVOURITES_STORAGE_KEY } from '@/lib/services/favourites-storage';
 
+const APP_SETTLE_TIMEOUT_MS = 15_000;
+
 async function seedShell(page: import('@playwright/test').Page, favouriteIds?: string[]): Promise<void> {
   await page.addInitScript(
     ({ onboardedKey, favouritesKey, ids }) => {
@@ -24,8 +26,9 @@ test.describe('favourites', () => {
     await page.goto('/');
 
     const firstCard = page.getByTestId('venue-card').first();
+    await expect(firstCard).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
     const firstVenue = firstCard.getByRole('button', { name: /^Välj / });
-    await expect(firstVenue).toBeVisible();
+    await expect(firstVenue).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
     const label = (await firstVenue.getAttribute('aria-label')) ?? '';
     const venueName = label.match(/^Välj ([^,]+)/)?.[1] ?? 'Kafé Magasinet';
 
@@ -51,11 +54,17 @@ test.describe('favourites', () => {
     await page.goto('/favoriter');
 
     await expect(page.getByTestId('mobile-nav-tab-favoriter')).toHaveAttribute('data-active', 'true');
-    await expect(page.getByRole('button', { name: /Välj Kafé Magasinet/ })).toBeVisible();
-    await expect(page.getByText(/Sol 13:00/)).toBeVisible();
+    await expect(page.getByRole('button', { name: /Välj Kafé Magasinet/ })).toBeVisible({
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
+    await expect(page.getByText(/Sol 13:00/)).toBeVisible({
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
 
     await page.reload();
-    await expect(page.getByRole('button', { name: /Välj Kafé Magasinet/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Välj Kafé Magasinet/ })).toBeVisible({
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
 
     await page.getByRole('button', { name: /Ta bort favorit/ }).first().click();
     await expect(

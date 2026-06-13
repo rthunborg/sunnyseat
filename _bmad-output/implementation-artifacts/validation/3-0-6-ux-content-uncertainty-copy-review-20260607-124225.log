@@ -1,0 +1,71 @@
+SunnySeat story review gate
+Story: 3-0-6-ux-content-uncertainty-copy
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-0-6-ux-content-uncertainty-copy-review-20260607-124225.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/3-0-6-ux-content-uncertainty-copy.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  47 passed (47)
+      Tests  400 passed (400)
+   Start at  12:42:54
+   Duration  27.44s (transform 9.47s, setup 28.53s, import 39.69s, tests 51.63s, environment 157.29s)
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues&_time=14:00' viewport='mobile'
+--- Visual validation: map-panel-venues ---
+Navigating to http://localhost:3000/?_state=map-panel-venues&_time=14:00
+Waiting for selector [data-testid="venue-pin"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-YcYidU.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure including the time slider at top, map area with warm/sand tint and correctly styled venue pins, bottom sheet with filter chips (Mest sol, Nära mig, Kafé, Öppet nu), venue list cards with proper styling, and floating map control buttons on the right side; minor differences in dynamic content (venue names, map geography, pin positions) are expected and non-blocking.
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00' viewport='mobile'
+--- Visual validation: map-with-selected-venue ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00
+Waiting for selector [data-testid="venue-quick-info"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-rlAAF4.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with identical UI chrome elements including the time slider, venue popup card (Kafé Magasinet) with correct buttons and styling, map overlay controls, bottom sheet (Skuggans Hus), and navigation bar — only minor differences in the bottom sheet venue thumbnail placeholder styling are present.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=14:00' viewport='mobile'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=14:00
+Waiting for selector [data-testid="mobile-venue-detail-sheet"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-VT9gaI.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure, colour scheme, all major UI components present (hero image area with sun percentage badge, favourite/close buttons, venue title with open status badge, sun forecast chart, description text, feature tags, and info grid cards), and proper visual hierarchy throughout the venue detail screen.
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=16:30' viewport='desktop'
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=16:30
+Waiting for selector [data-testid="desktop-venue-detail-panel"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-mxgIku.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with the correct three-panel layout (venue list, map, detail panel), venue detail panel with sun percentage badge, rating, description, solar times slider, amenity tags, and address section all present and correctly structured, with matching colour scheme and UI chrome throughout.
+Updated sprint status: 3-0-6-ux-content-uncertainty-copy -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-0-6-ux-content-uncertainty-copy-review-20260607-124225.log

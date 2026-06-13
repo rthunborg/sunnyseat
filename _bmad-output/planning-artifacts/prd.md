@@ -43,16 +43,20 @@ workflowType: 'prd'
 
 # PRD — SunnySeat (Gothenburg) · v3.1
 
-> Owner: Rasmus · Status: **Complete** · Last updated: 2026-05-19
+> Owner: Rasmus · Status: **Complete** · Last updated: 2026-06-02
 > Supersedes PRD v2.0 (backend-only). This version covers the customer-facing MVP front-end and preserves growth/monetization work as post-MVP planning.
 >
 > **MVP scope correction (2026-05-19):** time planner, future date picker, future sun simulation, and favourites are free MVP functionality. Season Pass, Swish payments, premium activation, premium recovery, and payment-failure flows are deferred to Future Monetization. Preserved details live in `future-monetization-season-pass.md`.
 >
 > **Visual source refresh (2026-05-21):** MVP visual validation uses only the refreshed Claude Design MVP Unlocked pages: `SunnySeat MVP Mobile Unlocked.html` and `SunnySeat MVP Desktop Unlocked.html`. Post-MVP Unlocked/Locked pages are future-only references for payment, paywall, Season Pass, and locked-state work.
+>
+> **Admin removal correction (2026-05-30):** SunnySeat will not ship an admin page, admin venue CRUD/configuration API, admin auth surface, venue candidate review queue, or admin-operated building upload surface. New and changed venues are handled through direct database insert/update queries only.
+>
+> **Shadow data trust correction (2026-06-02, clarified 2026-06-05):** `building_geodata/byggnad_kn1480.gpkg` is a 2D footprint source only and is not sufficient for building-shadow modelling by itself. MVP launch geodata is scoped to the central EPSG:3007 bbox `x=140000..150000, y=6390000..6410000` and must use the combined open-data path: 2D Lantmäteriet footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation. The current runtime building subset is derived from Baskarta `byggnad_l` roof/facade/shelter linework; broader Baskarta XYZ layers require preflight, classification, and validation before runtime activation. Epic 3 feature work is paused after Story 3.0 until the shadow-data trust prelude is complete.
 
 ## Executive Summary
 
-SunnySeat is a sun prediction engine for Gothenburg that answers a question no existing tool can: "which venue's outdoor seating is in direct sun right now?" It combines 2.5D building shadow geometry with real-time solar position calculations and Met.no weather data to produce venue-level, minute-granularity sunlight predictions with confidence scoring. The backend engine (sun/shadow calculations, weather integration, venue APIs, admin operations) is built and deployed. This PRD defines the customer-facing MVP front-end — a responsive PWA with a map-centric UI, free planning tools, and favourites. Consumer monetization through Season Pass and Swish is preserved for a future version after usage has grown.
+SunnySeat is a sun prediction engine for Gothenburg that answers a question no existing tool can: "which venue's outdoor seating is in direct sun right now?" It combines 2.5D building shadow geometry with real-time solar position calculations and Met.no weather data to produce venue-level, minute-granularity sunlight predictions with confidence scoring. The backend engine (sun/shadow calculations, weather integration, and public venue APIs) is built and deployed, but the MVP building data foundation is now being corrected to use derived open-data shadow casters instead of GeoPackage footprints alone. This PRD defines the customer-facing MVP front-end — a responsive PWA with a map-centric UI, free planning tools, and favourites. Consumer monetization through Season Pass and Swish is preserved for a future version after usage has grown.
 
 Target users are locals and visitors in Gothenburg seeking a sunny outdoor seat now or later today. The product solves the ephemeral, time-sensitive hunt for sun in a Nordic city where sunshine is precious and building shadows shift constantly. Users currently waste time wandering between venues or guessing from generic weather apps that answer "is it sunny in Gothenburg?" but never "is it sunny on *this* patio?"
 
@@ -153,13 +157,22 @@ The design reinforces this emotionally. A warm amber/sand palette, frosted glass
 - Payment processing, failure, retry, and recovery states
 - Premium activation persistence without accounts
 
-### Phase 2 — Admin UI Rebuild (after Phase 1)
+### Retired Admin/Data Expansion Scope
 
-- Admin front-end for venue CRUD with geometry editing
-- Building data import and management UI
-- Accuracy dashboard with per-venue trends
-- Data quality tools and venue validation UI
-- UX design happens when Phase 1 is complete — no resources yet
+- Admin front-end, venue CRUD/configuration APIs, venue candidate queues, building upload UI, and admin authentication are retired by the 2026-05-30 product decision.
+- New and changed venues are maintained through direct database insert/update queries.
+- Accuracy feedback remains consumer-facing validation for existing venues.
+
+### Shadow Data Trust Realignment
+
+- MVP launch geodata is central/south-central Gothenburg only: EPSG:3007 bbox `x=140000..150000, y=6390000..6410000`.
+- The former assumption that `building_geodata/byggnad_kn1480.gpkg` alone can power shadows is retired. It contributes 2D footprints and metadata, not building heights or roof geometry.
+- The MVP open-data path is: 2D Lantmäteriet footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation.
+- The current validated runtime building subset is Baskarta `byggnad_l` linework (`Takkonturer`, `Fasad`, `Skärmtak`) matched to Lantmäteriet footprints. Other Z-aware Baskarta layers are candidate structures, vegetation, bridge, wall/fence, and obstruction-risk sources until preflighted, classified, and validated.
+- Runtime building shadows use filtered/active shadow-caster records only. Review/quarantine records stay inactive until spot-checked; excluded records are diagnostics only.
+- "High confidence" is cluster-scoped. Each launch cluster needs at least 10 venue or street-facing checks across at least three sun conditions, with at least 70 total central checks and about 85-90% obvious building-shadow agreement before high building-shadow confidence is allowed.
+- Trees, hedges, awnings, umbrellas, bridges, seasonal furniture, and temporary structures remain known MVP uncertainty unless separately modelled or manually annotated. They cap confidence rather than silently invalidating the prediction.
+- Future paid DSM/LOD2/LOD3 data should override per object/source priority while preserving provenance and rollback. The open-derived records remain fallback coverage.
 
 ### Contingency: Minimal Launchable Slice
 
@@ -227,17 +240,9 @@ If circumstances require an early ship, the core sun discovery loop can launch i
 
 **Requirements revealed:** B2B partner onboarding flow, Golden Pin visual differentiation, "SOL NU" badge on venue cards, partner analytics dashboard, partner deep-link to venue detail.
 
-### Journey 5: "The Admin" — Phase 2 (lighter detail)
+### Retired Operations Journey
 
-**Opening Scene:** The SunnySeat admin needs to add 10 new venues that were submitted via OSM ingestion and crowdsource verification. Three venues have incorrect patio polygon data that's producing bad sun predictions.
-
-**Rising Action:** The admin logs into the admin UI, reviews the queue of unverified venue candidates, approves 8, rejects 2 (no longer have outdoor seating). They then open the accuracy dashboard, see that three venues have accuracy below 70% in the last 14 days, and inspect their patio polygons.
-
-**Climax:** The admin adjusts the patio polygon on one venue using the geometry editor — the polygon was covering a section that's now enclosed. They re-trigger precomputation for that venue. Accuracy improves to 88% within the next reporting cycle.
-
-**Resolution:** The admin reviews the overall system accuracy: 86% across all venues. They import a new batch of building data from Lantmäteriet to improve shadow accuracy for a neighbourhood where new construction changed the skyline.
-
-**Requirements revealed:** Admin authentication, venue candidate review queue, venue CRUD with geometry editor, accuracy dashboard with per-venue drill-down, building data import, precomputation trigger. (All Phase 2 — no UX resources yet.)
+The former admin journey is no longer planned product scope. Venue additions, patio geometry corrections, building-data corrections, and partner configuration are handled by maintainers through direct database insert/update queries. Consumer feedback still helps identify inaccurate venues, but it does not create a candidate queue or approval workflow.
 
 ### Journey Requirements Summary
 
@@ -247,13 +252,13 @@ If circumstances require an early ship, the core sun discovery loop can launch i
 | Erik — "The redirect" | Nearby venue comparison, quick switching between venues, reviews, the discovery-over-disappointment pattern |
 | Sara — "Planning Saturday" | Free planner, date picker, future time simulation, weather confidence, favourites |
 | Marcus — "Venue owner" | B2B partner features, Golden Pin, SOL NU badge, partner analytics, deep-links |
-| Admin — Phase 2 | Admin auth, venue queue, geometry editor, accuracy dashboard, building import |
+| Retired operations | Direct database insert/update queries for venue and geometry maintenance; no admin UI/API |
 
 ## Innovation & Novel Patterns
 
 ### Detected Innovation Areas
 
-**Novel data pipeline:** SunnySeat combines three existing technologies — NREL Solar Position Algorithm, Turf.js 2.5D building shadow geometry, and Met.no weather data — into a per-venue, per-minute sunlight prediction with confidence scoring. The individual components are well-established; the combination into a consumer-facing "is this patio sunny right now?" answer is genuinely new. No competitor offers patio-level sun prediction at any granularity.
+**Novel data pipeline:** SunnySeat combines NREL Solar Position Algorithm, Turf.js 2.5D shadow projection, Met.no weather data, and derived open-data shadow casters into a per-venue, per-minute sunlight prediction with confidence scoring. The MVP open-data strategy uses Lantmäteriet 2D footprints, Göteborg Baskarta XYZ object inventory, and Göteborg Höjdmodell 2022 DTM ground elevation. The current active building subset is derived from Baskarta roof/facade/shelter linework; other Z-aware object layers are candidates for validated structures, vegetation, and obstruction-risk metadata. No competitor offers patio-level sun prediction at any granularity.
 
 **"Recovery redirect" UX pattern:** Most map/discovery apps optimize for the user's first choice. SunnySeat's design deliberately optimizes for the *second* choice — the moment a user's first pick falls through (venue full, no seats) and the app immediately surfaces a sunny alternative nearby. This "recovery from disappointment" interaction is an unusual and intentional design pattern that transforms dead-ends into delightful redirects.
 
@@ -269,11 +274,14 @@ The accuracy feedback loop ("Var det soligt när du kom?") serves double duty: i
 
 ### Risk Mitigation
 
-The primary innovation risk is shadow accuracy with LOD1 building data (estimated heights rather than surveyed). If predictions feel wrong even once, user trust erodes. Mitigations already in the design:
-- Admin polygon overrides for known inaccuracies
-- User feedback loop to surface problem venues
-- Transparent confidence scoring that sets expectations rather than overpromising
-- Height hints and manual corrections for venues where LOD1 heights are insufficient
+The primary innovation risk is shadow accuracy with derived open-data building heights and incomplete obstruction modelling. If predictions feel wrong even once, user trust erodes. Mitigations now required for MVP:
+- Runtime uses only filtered active shadow-caster records in the central launch bbox.
+- Review/quarantine records stay out of runtime until spot-checked.
+- Cluster-level high confidence is gated by at least 70 central spot checks, at least 10 per launch cluster, across morning/low-angle, midday/high-sun, and afternoon/evening directional shadows.
+- Confidence scoring accounts for building-data quality, coverage, and unmodelled obstructions.
+- Manual verified overrides remain the highest-priority correction path.
+- User feedback loop surfaces problem venues and time windows.
+- Transparent confidence copy sets expectations rather than overpromising.
 
 ## Web App Specific Requirements
 
@@ -326,6 +334,7 @@ Minimal. Organic search is not a user acquisition channel. No SSR venue pages ne
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | MapLibre GL JS performance on low-end Android | Core experience degraded | Test on budget Android devices early. Pin clustering if >50 venues. |
+| Derived shadow-caster data overstates or understates building shadows | Prediction trust erodes | Complete the Epic 3 Prelude shadow-data trust block before routing/feedback/reviews; import filtered records only; gate high confidence by cluster spot checks. |
 | Swish merchant account approval delays | Future monetization delayed | Keep Season Pass/Swish work archived; do not block MVP planner/date/favourites. |
 | Future paid-status persistence without accounts | Future paid users could lose paid status | Preserve recovery design in Future Monetization before reactivating payment integration. |
 | PWA install friction on iOS Safari | Lower engagement | Clear install prompts, test Safari-specific PWA quirks early. |
@@ -344,7 +353,7 @@ Minimal. Organic search is not a user acquisition channel. No SSR venue pages ne
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | Solo developer bandwidth | Slow delivery | AI-assisted development, existing backend reduces scope. Minimal slice as fallback. |
-| No UX resources for Phase 2 (admin) | Phase 2 blocked | Defer admin UX until Phase 1 complete. Admin APIs functional via direct API calls. |
+| Manual venue operations need discipline | Data changes can drift without a UI | Maintain reviewed direct database insert/update queries and keep consumer feedback focused on existing venues. |
 
 ## Functional Requirements
 
@@ -403,21 +412,12 @@ Minimal. Organic search is not a user acquisition channel. No SSR venue pages ne
 - **FR34:** Users can opt in or out of push notifications.
 - **FR35:** Users can share a venue's sun status with others via their device's native share functionality.
 
-### Data Expansion
+### Manual Venue Operations
 
-- **FR36:** The system can ingest venue candidates from OpenStreetMap data tagged with outdoor seating attributes.
-- **FR37:** Users can verify or flag venue outdoor seating status through a crowdsource confirmation flow.
-- **FR38:** Ingested and crowd-verified venues are queued for admin review before becoming fully active.
-
-### Administration (Phase 2)
-
-- **FR39:** Admins can authenticate via secure login to access admin functionality.
-- **FR40:** Admins can create, read, update, and delete venues including their outdoor seating geometry.
-- **FR41:** Admins can edit venue patio polygons using a visual geometry editor.
-- **FR42:** Admins can upload and process building geometry data files for shadow calculations.
-- **FR43:** Admins can view an accuracy dashboard showing prediction accuracy trends per venue and system-wide.
-- **FR44:** Admins can review and approve or reject venue candidates from OSM ingestion and crowdsource submissions.
-- **FR45:** Admins can trigger precomputation recalculation for specific venues after data corrections.
+- **FR36:** Retired. New venue ingestion is handled outside the app through direct database insert/update queries.
+- **FR37:** Users can verify or flag outdoor seating status for existing venues through a consumer confirmation flow.
+- **FR38:** Retired. SunnySeat does not maintain a venue candidate approval queue.
+- **FR39-FR45:** Retired. SunnySeat does not provide admin authentication, venue CRUD/configuration, geometry editing, building upload, accuracy dashboard, candidate review, or precomputation controls as product scope.
 
 ### Platform & Onboarding
 
@@ -445,8 +445,8 @@ Minimal. Organic search is not a user acquisition channel. No SSR venue pages ne
 
 - **NFR10:** Zero personally identifiable information (PII) stored in the database. No user accounts, no email addresses, no names.
 - **NFR11:** IP addresses hashed (SHA-256 + salt) before storage for rate limiting and duplicate detection.
-- **NFR12:** All API endpoints rate-limited: 100 req/min per IP (public), 1,000 req/min (admin).
-- **NFR13:** Admin authentication via JWT with token expiry ≤24 hours.
+- **NFR12:** Public API endpoints are rate-limited at 100 req/min per IP unless a route-specific stricter limit is documented.
+- **NFR13:** Retired with the admin surface. Future paid-status tokens, if reintroduced post-MVP, remain separate Future Monetization scope.
 - **NFR14:** All traffic served over HTTPS. No mixed content.
 - **NFR15:** Future Swish payment data must be handled per Swish Merchant API security requirements. Transaction IDs stored; no card/bank details persisted.
 - **NFR16:** GDPR compliance: no cookies requiring consent beyond session. Privacy policy accessible from About page.

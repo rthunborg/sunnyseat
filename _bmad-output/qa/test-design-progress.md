@@ -138,7 +138,7 @@ inputDocuments:
 | ID | Risk | Cat | P | I | Score | Mitigation | Owner | Timeline |
 |----|------|-----|---|---|-------|------------|-------|----------|
 | R-01 | **MapLibre GL JS performance on low-end Android** — 60fps target may not hold on budget 2022 Android devices with 50+ venue pins | PERF | 2 | 3 | **6** | Pin clustering when >50 venues. Test on real budget Android device (BrowserStack/manual). Lighthouse mobile throttling in CI. Fallback: reduce pin detail at low zoom | Dev (Rasmus) | Before Epic 8 story that renders map pins |
-| R-02 | **Shadow accuracy trust erosion** — LOD1 building data (estimated heights) produces incorrect predictions. One bad experience and user trust collapses | BUS | 2 | 3 | **6** | Launch with 50 best-quality venues. Feedback loop ("Var det soligt?") surfaces bad venues. Admin polygon overrides. Accuracy target ≥85% rolling 14-day. Test: accuracy reporting endpoint validates feedback aggregation correctly | Dev (Rasmus) | Ongoing — existing backend mitigations, frontend feedback flow in Epic 8 |
+| R-02 | **Shadow accuracy trust erosion** — derived open-data shadow casters, missing caster coverage, or unmodelled trees/awnings/bridges produce incorrect predictions. One bad experience and user trust collapses | BUS | 2 | 3 | **6** | Complete Epic 3 Prelude shadow-data trust stories before Story 3.1. Runtime uses filtered active casters only. High confidence requires cluster spot-check gates: 10 checks/cluster, 70+ central checks, 3 sun conditions, about 85-90% obvious building-shadow agreement. Feedback flow ("Var det soligt?") surfaces bad venues and time windows. | Dev (Rasmus) | Before Epic 3 feature work resumes |
 
 #### MEDIUM Risk (Score 4–5) — Monitor, Test Coverage Required
 

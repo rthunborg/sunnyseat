@@ -1,5 +1,11 @@
-import { supabaseAdmin } from '@/lib/supabase/server';
+import { supabaseServiceRole } from '@/lib/supabase/server';
 import { calculateSolarPosition } from './solar-calculation-service';
+import { extractObstructionRiskClasses, getObstructionRiskConfidenceCap } from './obstruction-risk';
+import {
+  applyShadowDataCoverageCap,
+  getShadowDataCoverage,
+  type ShadowDataCoverageMap,
+} from './shadow-data-coverage';
 import * as SG from './shadow-geometry';
 import type {
   SolarPosition,
@@ -10,9 +16,14 @@ import type {
   ShadowTimelinePoint,
 } from './types';
 
+export interface CalculateVenueShadowOptions {
+  coverageMap?: ShadowDataCoverageMap;
+}
+
 export async function calculateVenueShadow(
   venueId: number,
-  timestamp: Date
+  timestamp: Date,
+  options: CalculateVenueShadowOptions = {}
 ): Promise<VenueShadowInfo> {
   const venue = await fetchVenue(venueId);
   const solarPosition = calculateSolarPosition(timestamp);
@@ -27,6 +38,18 @@ export async function calculateVenueShadow(
 
   const searchRadiusDeg = SG.MAX_SHADOW_DISTANCE / 111300.0;
   const buildings = await fetchNearbyBuildings(venue.geometry, searchRadiusDeg);
+  if (buildings === null) {
+    return createShadowDataUnavailableResult(venueId, timestamp, solarPosition);
+  }
+  const shadowDataCoverage = getShadowDataCoverage(venue.geometry, options.coverageMap);
+  const obstructionRisks = extractObstructionRiskClasses(
+    ...buildings.flatMap((building) => [
+      building.obstructionRisks,
+      building.sourceFlags,
+      building.sourceObjectMetadata,
+      building.provenanceMetadata,
+    ])
+  );
 
   const shadows: ShadowProjection[] = [];
   for (const building of buildings) {
@@ -51,6 +74,16 @@ export async function calculateVenueShadow(
       solarPosition,
       timestamp: new Date(),
       confidence,
+      casterMetadata: {
+        qualityScore: building.qualityScore,
+        sourcePriority: building.sourcePriority,
+        shadowCasterTier: building.shadowCasterTier ?? 'unknown',
+        filterDecision: building.filterDecision ?? 'unknown',
+        casterClass: building.casterClass ?? 'unknown',
+        sourceFlags: building.sourceFlags ?? [],
+        sourceObjectMetadata: building.sourceObjectMetadata,
+        provenanceMetadata: building.provenanceMetadata,
+      },
     });
   }
 
@@ -72,10 +105,17 @@ export async function calculateVenueShadow(
     ? SG.calculateShadowCoveragePercent(venue.geometry, shadowed)
     : 0.0;
   const sunlitPercent = Math.max(0.0, 100.0 - shadowedPercent);
-  const combinedConfidence =
-    affectingShadows.length > 0
-      ? affectingShadows.reduce((sum, s) => sum + s.confidence, 0) / affectingShadows.length
-      : 1.0;
+  const baseConfidence = averageConfidence(
+    affectingShadows.length > 0 ? affectingShadows : shadows
+  );
+  const coverageCappedConfidence = applyShadowDataCoverageCap(
+    baseConfidence,
+    shadowDataCoverage
+  );
+  const combinedConfidence = Math.min(
+    coverageCappedConfidence,
+    getObstructionRiskConfidenceCap(obstructionRisks)
+  );
 
   return {
     venueId,
@@ -87,6 +127,8 @@ export async function calculateVenueShadow(
     timestamp,
     confidence: combinedConfidence,
     solarPosition,
+    shadowDataCoverage,
+    obstructionRisks,
   };
 }
 
@@ -151,7 +193,7 @@ interface VenueRow {
 async function fetchVenue(
   venueId: number
 ): Promise<{ id: number; geometry: GeoJSON.Polygon }> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabaseServiceRole
     .from('venues')
     .select('Id, Geometry')
     .eq('Id', venueId)
@@ -168,40 +210,61 @@ async function fetchVenue(
 async function fetchNearbyBuildings(
   venueGeometry: GeoJSON.Polygon,
   radiusDeg: number
-): Promise<Building[]> {
+): Promise<Building[] | null> {
   const centroid = getCentroid(venueGeometry);
 
-  const { data, error } = await supabaseAdmin.rpc('get_buildings_near_point', {
-    p_latitude: centroid[1],
-    p_longitude: centroid[0],
-    p_radius_meters: radiusDeg * 111300,
-  });
+  let response: Awaited<ReturnType<typeof supabaseServiceRole.rpc>>;
+  try {
+    response = await supabaseServiceRole.rpc('get_buildings_near_point', {
+      p_latitude: centroid[1],
+      p_longitude: centroid[0],
+      p_radius_meters: radiusDeg * 111300,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('Failed to fetch runtime shadow casters:', message);
+    return null;
+  }
+
+  const { data, error } = response;
 
   if (error) {
-    console.error('Failed to fetch buildings:', error.message);
-    const { data: fallbackData } = await supabaseAdmin
-      .from('buildings')
-      .select('*')
-      .gte('Height', SG.MIN_MEANINGFUL_HEIGHT)
-      .limit(200);
-
-    if (!fallbackData) return [];
-    return fallbackData.map(mapBuildingRow);
+    console.error('Failed to fetch runtime shadow casters:', error.message);
+    return null;
   }
 
   return (data ?? []).map(mapBuildingRow);
 }
 
 function mapBuildingRow(row: Record<string, unknown>): Building {
+  const sourceFlags = readStringArray(row, 'SourceFlags', 'source_flags');
+  const sourceObjectMetadata = readRecord(row, 'SourceObjectMetadata', 'source_object_metadata');
+  const provenanceMetadata = readRecord(row, 'ProvenanceMetadata', 'provenance_metadata');
+  const casterClass = readCasterClass(row, 'CasterClass', 'caster_class')
+    ?? readCasterClass(row, 'BuildingType', 'building_type');
+
   return {
     id: row.Id as number,
     geometry: parseGeometry(row.Geometry as string),
     height: (row.Height as number) ?? 10.0,
     source: (row.Source as string) ?? 'unknown',
-    qualityScore: (row.QualityScore as number) ?? 1.0,
+    qualityScore: readClampedNumber(row, 0.7, 'QualityScore', 'quality_score'),
     externalId: row.ExternalId as string | undefined,
     heightSource: (row.HeightSource as Building['heightSource']) ?? 'Osm',
     buildingType: row.BuildingType as string | undefined,
+    sourcePriority: readNumber(row, 'SourcePriority', 'source_priority'),
+    shadowCasterTier: readShadowCasterTier(row, 'ShadowCasterTier', 'shadow_caster_tier'),
+    filterDecision: readFilterDecision(row, 'FilterDecision', 'filter_decision'),
+    casterClass,
+    sourceFlags,
+    sourceObjectMetadata,
+    provenanceMetadata,
+    obstructionRisks: extractObstructionRiskClasses(
+      sourceFlags,
+      sourceObjectMetadata,
+      provenanceMetadata,
+      casterClass === 'vegetation' ? 'tree' : null
+    ),
   };
 }
 
@@ -284,6 +347,94 @@ function getCentroid(polygon: GeoJSON.Polygon): [number, number] {
   return [cx / n, cy / n];
 }
 
+function averageConfidence(shadows: ShadowProjection[]): number {
+  if (shadows.length === 0) return 1.0;
+  return shadows.reduce((sum, shadow) => sum + shadow.confidence, 0) / shadows.length;
+}
+
+function readNumber(row: Record<string, unknown>, ...keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+  }
+  return undefined;
+}
+
+function readClampedNumber(
+  row: Record<string, unknown>,
+  fallback: number,
+  ...keys: string[]
+): number {
+  const value = readNumber(row, ...keys) ?? fallback;
+  return Math.max(0, Math.min(1, value));
+}
+
+function readStringArray(row: Record<string, unknown>, ...keys: string[]): string[] {
+  for (const key of keys) {
+    const value = row[key];
+    if (Array.isArray(value)) {
+      return value.filter((item): item is string => typeof item === 'string');
+    }
+    if (typeof value === 'string') return [value];
+  }
+  return [];
+}
+
+function readRecord(
+  row: Record<string, unknown>,
+  ...keys: string[]
+): Record<string, unknown> | undefined {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
+    }
+  }
+  return undefined;
+}
+
+function readShadowCasterTier(
+  row: Record<string, unknown>,
+  ...keys: string[]
+): Building['shadowCasterTier'] {
+  const value = readString(row, ...keys);
+  if (value === 'primary' || value === 'secondary' || value === 'uncertain') return value;
+  return value ? 'unknown' : undefined;
+}
+
+function readFilterDecision(
+  row: Record<string, unknown>,
+  ...keys: string[]
+): Building['filterDecision'] {
+  const value = readString(row, ...keys);
+  if (value === 'include' || value === 'review' || value === 'exclude') return value;
+  return value ? 'unknown' : undefined;
+}
+
+function readCasterClass(
+  row: Record<string, unknown>,
+  ...keys: string[]
+): Building['casterClass'] {
+  const value = readString(row, ...keys);
+  if (
+    value === 'building' ||
+    value === 'structure' ||
+    value === 'vegetation' ||
+    value === 'manual_override'
+  ) {
+    return value;
+  }
+  return value ? 'unknown' : undefined;
+}
+
+function readString(row: Record<string, unknown>, ...keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === 'string') return value.trim().toLowerCase();
+  }
+  return undefined;
+}
+
 function createNoSunResult(
   venueId: number,
   timestamp: Date,
@@ -317,6 +468,24 @@ function createLowConfidenceResult(
     sunlitGeometry: null,
     timestamp,
     confidence: 0.3,
+    solarPosition,
+  };
+}
+
+function createShadowDataUnavailableResult(
+  venueId: number,
+  timestamp: Date,
+  solarPosition: SolarPosition
+): VenueShadowInfo {
+  return {
+    venueId,
+    shadowedAreaPercent: 50.0,
+    sunlitAreaPercent: 50.0,
+    castingShadows: [],
+    shadowedGeometry: null,
+    sunlitGeometry: null,
+    timestamp,
+    confidence: 0.2,
     solarPosition,
   };
 }

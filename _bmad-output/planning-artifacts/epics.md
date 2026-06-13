@@ -31,6 +31,10 @@ inputDocuments:
 >
 > **Visual source refresh (2026-05-21):** MVP story drafting and visual gates must use only the refreshed Claude Design MVP Unlocked pages: `SunnySeat MVP Mobile Unlocked.html` and `SunnySeat MVP Desktop Unlocked.html`. Post-MVP Unlocked/Locked pages remain future-only references for payment, paywall, Season Pass, and locked-state work.
 >
+> **Admin removal correction (2026-05-30):** SunnySeat will not have an admin page, admin venue configuration UI, admin venue CRUD API, admin authentication surface, venue candidate review queue, or admin-operated building upload surface. New and changed venues are managed by direct database insert/update queries only. Story 3.0 is the first Epic 3 implementation story and removes the remaining admin artifacts from the codebase, docs, tests, and database cleanup plan before routing, feedback, and reviews proceed.
+>
+> **Shadow data trust correction (2026-06-02, clarified 2026-06-05):** Epic 3 feature work is paused after Story 3.0. Stories 3.0.1-3.0.7 form the "Epic 3 Prelude: Shadow Data Trust Realignment" block and must complete before Story 3.1 proceeds. The old assumption that `building_geodata/byggnad_kn1480.gpkg` alone supports shadows is retired; MVP shadow casters use filtered central records derived from 2D Lantmäteriet footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation. The active building subset remains Baskarta `byggnad_l` until broader Z-aware Baskarta layers are preflighted, classified, and validated.
+>
 > **Story drafting guardrail:** Stories 2.5, 2.6, and 2.7 must be drafted as free MVP functionality. Their story files must include explicit review tasks proving active MVP code does not depend on `PremiumContext`, `usePremiumStatus`, `queryKeys.premium`, `/api/payments/*`, Swish helpers, paywall components, lock badges, Season Pass copy, or premium JSON messages. If dormant monetization code is worth saving, move it out of live runtime paths and preserve the contract in `future-monetization-season-pass.md` or an inactive `future-premium` archive; do not leave unused premium/payment providers, hooks, or route stubs wired into the MVP app.
 
 ## Overview
@@ -76,16 +80,16 @@ FR32: Users can view their recently viewed venues.
 FR33: Users can receive push notifications when a favourited venue's sun state changes to sunny.
 FR34: Users can opt in or out of push notifications.
 FR35: Users can share a venue's sun status with others via their device's native share functionality.
-FR36: The system can ingest venue candidates from OpenStreetMap data tagged with outdoor seating attributes.
-FR37: Users can verify or flag venue outdoor seating status through a crowdsource confirmation flow.
-FR38: Ingested and crowd-verified venues are queued for admin review before becoming fully active.
-FR39: Admins can authenticate via secure login to access admin functionality. (Phase 2)
-FR40: Admins can create, read, update, and delete venues including their outdoor seating geometry. (Phase 2)
-FR41: Admins can edit venue patio polygons using a visual geometry editor. (Phase 2)
-FR42: Admins can upload and process building geometry data files for shadow calculations. (Phase 2)
-FR43: Admins can view an accuracy dashboard showing prediction accuracy trends per venue and system-wide. (Phase 2)
-FR44: Admins can review and approve or reject venue candidates from OSM ingestion and crowdsource submissions. (Phase 2)
-FR45: Admins can trigger precomputation recalculation for specific venues after data corrections. (Phase 2)
+FR36: Retired. New venue ingestion is handled outside the app through direct database insert/update queries.
+FR37: Users can verify or flag outdoor seating status for existing venues through a consumer confirmation flow.
+FR38: Retired. SunnySeat does not maintain a venue candidate approval queue.
+FR39: Retired. SunnySeat does not provide admin authentication.
+FR40: Retired. SunnySeat does not provide venue CRUD/configuration APIs.
+FR41: Retired. Patio polygon edits are direct database maintenance work, not an app geometry editor.
+FR42: Retired. Building geometry file changes are direct database/backend maintenance work, not an app upload surface.
+FR43: Retired. SunnySeat does not provide an admin accuracy dashboard.
+FR44: Retired. SunnySeat does not provide venue candidate review/approval tooling.
+FR45: Retired. SunnySeat does not provide app-level precomputation controls for maintainers.
 FR46: The app presents a branded onboarding screen on first visit explaining the product and prompting location access.
 FR47: Users can view an "About" page explaining how SunnySeat works, its data sources, and accuracy statistics.
 FR48: The app displays a friendly 404 page with navigation back to the main map when a non-existent route is accessed.
@@ -105,8 +109,8 @@ NFR8: Initial route JS <=280KB gzipped (excluding map library). MapLibre dynamic
 NFR9: Venue sun states auto-refresh every 5 minutes while the tab/app is active.
 NFR10: Zero personally identifiable information (PII) stored in the database. No user accounts, no email addresses, no names.
 NFR11: IP addresses hashed (SHA-256 + salt) before storage for rate limiting and duplicate detection.
-NFR12: All API endpoints rate-limited: 100 req/min per IP (public), 1,000 req/min (admin).
-NFR13: Admin authentication via JWT with token expiry <=24 hours.
+NFR12: Public API endpoints are rate-limited at 100 req/min per IP unless a route-specific stricter limit is documented.
+NFR13: Retired with the admin surface. Future paid-status tokens, if reintroduced post-MVP, remain separate Future Monetization scope.
 NFR14: All traffic served over HTTPS. No mixed content.
 NFR15: Future Swish payment data handled per Swish Merchant API security requirements. Transaction IDs stored; no card/bank details persisted.
 NFR16: GDPR compliance: no cookies requiring consent beyond session. Privacy policy accessible from About page.
@@ -227,16 +231,16 @@ FR32: Epic 6 — View recently viewed venues
 FR33: Epic 6 — Push notifications for sun state changes on favourites
 FR34: Epic 6 — Opt in/out of push notifications
 FR35: Epic 6 — Share venue sun status via native share
-FR36: Phase 2 — OSM venue candidate ingestion
-FR37: Phase 2 — Crowdsource outdoor seating verification
-FR38: Phase 2 — Queue ingested/verified venues for admin review
-FR39: Phase 2 — Admin authentication
-FR40: Phase 2 — Admin venue CRUD with geometry
-FR41: Phase 2 — Admin patio polygon editor
-FR42: Phase 2 — Admin building data upload
-FR43: Phase 2 — Admin accuracy dashboard
-FR44: Phase 2 — Admin venue candidate review queue
-FR45: Phase 2 — Admin precomputation trigger
+FR36: Retired — direct database insert/update queries outside the app
+FR37: Epic 3 — Consumer outdoor seating verification for existing venues
+FR38: Retired — no venue candidate approval queue
+FR39: Retired — no admin authentication surface
+FR40: Retired — no venue CRUD/configuration API
+FR41: Retired — no app geometry editor
+FR42: Retired — no app building upload surface
+FR43: Retired — no admin accuracy dashboard
+FR44: Retired — no venue candidate review queue
+FR45: Retired — no app precomputation controls
 FR46: Epic 1 — Branded onboarding screen with location prompt
 FR47: Epic 7 — About page (how it works, data sources, accuracy)
 FR48: Epic 7 — Friendly 404 page with map redirect
@@ -252,6 +256,10 @@ Users open SunnySeat, grant location, and see a warm sand map with amber/grey ve
 ### Epic 2: "Explore & Compare" — Venue List, Detail, Planner & Favourites
 Users can browse a ranked venue list, search by name/area, view rich venue detail (photo, hours, address, sun timeline), see confidence percentages, scrub through time, select future dates for planning, save favourite venues, and have data auto-refresh in the background.
 **FRs covered:** FR2, FR3, FR7, FR8, FR9, FR10, FR11, FR12, FR13, FR14, FR31
+
+### Epic 3 Prelude: "Shadow Data Trust Realignment"
+Maintainers correct the building/shadow data architecture before routing, feedback, and reviews continue. This prelude adopts the MVP central open-data shadow-caster path, defines the schema/RPC contract, productionizes the import pipeline, adds validation and spot-check gates, recalibrates confidence semantics, realigns Baskarta XYZ inventory handling, and updates user-facing uncertainty copy.
+**FRs supported:** FR7, FR8, FR9, FR10, FR11, FR12, FR13, FR17, FR47
 
 ### Epic 3: "Go & Confirm" — Routing, Feedback & Reviews
 Users can get walking/biking directions to a venue, open it in their native maps app, submit sun accuracy feedback, confirm outdoor seating status, and read/write venue reviews. Completes the full venue visit loop.
@@ -273,9 +281,10 @@ After favourites ship in Epic 2, users can view recently visited venues, opt int
 Users can learn how SunnySeat works (about page with accuracy stats and data sources), encounter a friendly 404 with redirect to map, install the app as a PWA, and see a graceful offline state with cached app shell.
 **FRs covered:** FR47, FR48, FR49, FR50
 
-### Phase 2 (Deferred)
-Admin UI rebuild and data expansion features deferred to post-launch.
-**FRs deferred:** FR36, FR37, FR38, FR39, FR40, FR41, FR42, FR43, FR44, FR45
+### Retired Admin/Data Expansion Scope
+Admin UI rebuild, admin venue CRUD/configuration, admin authentication, venue candidate review queues, and admin-operated data expansion are retired by the 2026-05-30 product decision. New and changed venues are managed by direct database insert/update queries only.
+**FRs retired or superseded by manual database operations:** FR36, FR38, FR39, FR40, FR41, FR42, FR43, FR44, FR45
+**FR retained with consumer-only interpretation:** FR37, limited to user feedback about existing venue outdoor seating and not a new-venue candidate queue.
 
 ---
 
@@ -1018,6 +1027,249 @@ So that I can return to venues I like without searching again.
 
 Users can get walking/biking directions to a venue, open it in their native maps app, submit sun accuracy feedback, confirm outdoor seating status, and read/write venue reviews. Completes the full venue visit loop.
 
+> **Epic 3 sequencing note (2026-05-30):** Story 3.0 must be implemented before Stories 3.1-3.4 so routing, feedback, reviews, and visit-loop hardening do not build on admin/auth/candidate-review code that is no longer product scope.
+>
+> **Epic 3 pause note (updated 2026-06-05):** Story 3.0 is done, but Story 3.1 is paused. Complete Stories 3.0.1-3.0.7 first so routing, feedback, reviews, and confidence-heavy user flows do not build on the retired GeoPackage-only building data assumption or the narrower "Baskarta equals only `byggnad_l`" assumption.
+
+### Story 3.0: Remove Admin Surface & Adopt Manual Venue Operations
+
+As a **product owner and maintainer**,
+I want all admin-related runtime code, tests, and documentation removed,
+So that SunnySeat only supports consumer MVP flows and venue changes happen through direct database insert/update queries.
+
+**Acceptance Criteria:**
+
+**Given** the project no longer supports an admin page or admin venue configuration
+**When** the active Next.js app is audited
+**Then** no `/admin` page, `/api/admin` route, admin venue CRUD route, admin login route, admin authentication middleware, admin-specific provider, or admin-only component remains in live runtime paths
+**And** no replacement admin UI/API is introduced in this story
+
+**Given** venues will be added or changed only by direct database insert/update queries
+**When** project documentation and planning artifacts are updated
+**Then** they clearly state that venue onboarding/configuration is manual database work
+**And** they no longer describe admin venue CRUD, admin geometry editing, admin building upload, admin candidate approval queues, or admin dashboards as planned SunnySeat product scope
+
+**Given** admin authentication is no longer product scope
+**When** dependencies, environment examples, types, and middleware are audited
+**Then** unused admin-auth packages, JWT admin environment variables, admin user DTOs, role/claim helpers, and admin-only validation helpers are removed
+**And** any server-only Supabase service-role code that remains is named and documented as backend infrastructure, not admin functionality
+
+**Given** previous code may include venue candidate, verification, review-needed, or admin override concepts
+**When** venue/domain types, mappers, fixtures, solar/building helpers, and public API responses are cleaned up
+**Then** admin/candidate-review fields are removed from active contracts unless they are still required for public consumer functionality
+**And** any retained manually-managed data concept uses neutral terminology such as manual or service-role rather than admin
+
+**Given** tests may still cover removed admin behavior
+**When** unit, component, E2E, and helper tests are audited
+**Then** every test whose purpose is admin login, admin auth, admin venue CRUD, admin review queues, admin dashboard, admin building upload, or admin-only validation is removed
+**And** remaining tests are updated so they assert the consumer/public behavior that still exists
+
+**Given** the live database may contain admin-only schema or data
+**When** the cleanup audit identifies database objects that should be dropped, renamed, or converted
+**Then** the dev agent does not run destructive database changes automatically
+**And** it creates `_bmad-output/implementation-artifacts/3-0-admin-db-cleanup.sql` containing the exact manual SQL for Rasmus to review and run
+**And** if no database cleanup is required, the story completion notes explicitly say so with the audit basis
+
+**Given** the admin cleanup is complete
+**When** the regression gate runs
+**Then** typecheck, lint, Vitest, Playwright, and an app build pass
+**And** consumer functionality for map discovery, venue list, venue detail, search, planner/date simulation, confidence/refresh, and favourites remains unbroken
+**And** scoped scans show no remaining admin runtime/test artifacts except approved historical planning references or this story's own cleanup notes
+
+**Design Gate Criteria:**
+- **Visual:** No standalone visual reference. This is a cleanup/infrastructure story with no intended consumer UI change.
+- **Behaviour:** Existing consumer flows must continue to behave as they did before the admin cleanup.
+- **Visual validation:** Run visual validation only if public consumer UI files are changed; otherwise document that no visual gate applies because no consumer UI was intentionally changed.
+
+### Story 3.0.1: Shadow Data ADR & Planning Realignment
+
+As a **maintainer**,
+I want the shadow-data course correction captured in durable planning artifacts,
+So that every future story uses the real MVP data assumptions instead of the retired GeoPackage-only assumption.
+
+**Acceptance Criteria:**
+
+**Given** `building_geodata/byggnad_kn1480.gpkg` has no Z geometry, building-height attribute, roof geometry, or DSM data
+**When** the ADR and planning docs are updated
+**Then** they state that the GeoPackage is a 2D footprint and metadata source only
+**And** they adopt the MVP open-data path: 2D footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation
+**And** they define the MVP launch bbox as EPSG:3007 `x=140000..150000, y=6390000..6410000`
+
+**Given** future paid DSM/LOD2/LOD3 data may become available
+**When** source precedence is documented
+**Then** manual verified overrides outrank paid LOD2/LOD3, paid classified DSM/LAS, current open-derived heights, and OSM/heuristic fallback
+**And** provenance and rollback requirements are preserved for every source.
+
+**Design Gate Criteria:**
+- **Visual:** No standalone visual reference. Planning-only story.
+- **Behaviour:** No runtime behaviour change.
+- **Visual validation:** Not applicable.
+
+### Story 3.0.2: Shadow Caster Schema & RPC Contract
+
+As a **backend maintainer**,
+I want a provenance-rich shadow-caster schema and runtime RPC contract,
+So that the shadow engine consumes only filtered active casters with explicit quality and source metadata.
+
+**Acceptance Criteria:**
+
+**Given** derived shadow casters need more metadata than the existing `Geometry`/`Height` compatibility shape
+**When** the database migration or manual SQL plan is created
+**Then** it defines `shadow_casters` fields for geometry, height, RH2000 ground/roof Z, height method/source, source dataset/external ID, source object metadata, quality score, tier, filter decision/reasons, CRS/provenance metadata, caster class, source priority, active flag, import batch, and timestamps.
+
+**Given** `nextjs-app/lib/solar/shadow-calculation-service.ts` currently calls `get_buildings_near_point`
+**When** the RPC contract is updated
+**Then** `get_buildings_near_point` remains as a compatibility RPC or view-backed adapter until the TypeScript engine is renamed
+**And** it returns only runtime-active records: `active = true`, `filter_decision = 'include'`, `height_m >= 3`, and MVP-approved caster classes.
+
+**Given** review and excluded records exist
+**When** they are imported or stored
+**Then** review/quarantine records are inactive until spot-checked
+**And** excluded records are omitted from runtime or retained only as diagnostics.
+
+**Design Gate Criteria:**
+- **Visual:** No standalone visual reference. Backend/data-contract story.
+- **Behaviour:** Public APIs should preserve existing response shape unless an explicit API contract update is part of the story.
+- **Visual validation:** Not applicable unless consumer UI files change.
+
+### Story 3.0.3: Open Geodata Import Pipeline
+
+As a **backend maintainer**,
+I want the local open-geodata prototype promoted into a repeatable import pipeline,
+So that central MVP shadow-caster records can be regenerated, validated, and imported without ad hoc scripts.
+
+**Acceptance Criteria:**
+
+**Given** the current prototype scripts live under `building_geodata/goteborg-open/tools/`
+**When** the production import pipeline is created
+**Then** it derives height candidates from the existing GeoPackage, Baskarta `byggnad_l`, and Höjdmodell 2022 DTM tiles
+**And** it emits WGS84 polygon runtime geometry plus source/provenance metadata
+**And** it preserves the EPSG:3007 bbox and CRS transformations explicitly.
+
+**Given** runtime should start conservatively
+**When** filtering runs
+**Then** it splits candidates into include, review, and exclude sets
+**And** MVP defaults exclude tiny/tall suspicious records, records below the 3 m meaningful-height threshold, and low-quality small `Komplementbyggnad` records.
+
+**Given** future source refreshes are expected
+**When** the pipeline runs
+**Then** it produces deterministic summaries and validation artifacts suitable for review before import.
+
+**Design Gate Criteria:**
+- **Visual:** No standalone visual reference. Backend/import story.
+- **Behaviour:** No direct consumer UI change.
+- **Visual validation:** Not applicable.
+
+### Story 3.0.4: Geodata Validation & Spot-Check Gates
+
+As a **QA maintainer**,
+I want deterministic geodata validation and central spot-check gates,
+So that high building-shadow confidence is earned per launch cluster instead of assumed globally.
+
+**Acceptance Criteria:**
+
+**Given** MVP launch is central/south-central Gothenburg
+**When** validation gates are defined
+**Then** they cover Inom Vallgraven, Nordstan, Lilla Bommen, Avenyn, Vasastan, Haga, Linné, and surrounding central areas inside the MVP bbox
+**And** high confidence is disabled for a cluster until at least 10 venue or street-facing test points are checked in that cluster.
+
+**Given** shadow behaviour changes by sun angle
+**When** spot checks are executed
+**Then** each cluster includes morning/low-angle, midday/high-sun, and afternoon/evening directional-shadow conditions
+**And** the central validation set includes at least 70 total checks.
+
+**Given** the target is trustworthy building-shadow modelling
+**When** results are evaluated
+**Then** a cluster needs about 85-90% obvious building-shadow agreement before high building-shadow confidence is allowed
+**And** trees, awnings, umbrellas, bridges, and temporary structures are recorded as uncertainty causes rather than silently counted as building-data failures.
+
+**Design Gate Criteria:**
+- **Visual:** No standalone visual reference. QA/data validation story.
+- **Behaviour:** No direct consumer UI change unless validation status is surfaced through confidence metadata.
+- **Visual validation:** Not applicable unless consumer UI files change.
+
+### Story 3.0.5: Confidence Engine Data Coverage
+
+As a **user**,
+I want confidence scores to reflect building-data coverage and known modelling gaps,
+So that SunnySeat does not overstate certainty when shadows are missing, low-quality, or affected by unmodelled obstructions.
+
+**Acceptance Criteria:**
+
+**Given** no nearby casting shadows can mean either a sunny venue or incomplete caster coverage
+**When** confidence is calculated
+**Then** empty casting-shadow results are not automatically treated as perfect building-data quality unless the surrounding data coverage is validated for the relevant cluster.
+
+**Given** runtime casters have source and quality metadata
+**When** shadow confidence is calculated
+**Then** source priority, quality score, caster tier, filter decision, cluster validation status, sun elevation, and weather state contribute to confidence.
+
+**Given** vegetation, awnings, umbrellas, bridges, and temporary structures are not fully modelled in MVP
+**When** a venue is near known or manually tagged obstruction risks
+**Then** confidence is capped or marked uncertain according to the configured obstruction class.
+
+**Design Gate Criteria:**
+- **Visual:** No standalone visual reference unless confidence UI copy changes in the same story.
+- **Behaviour:** Existing confidence displays remain available but become more conservative when data quality is lower.
+- **Visual validation:** Run only if visible confidence UI changes.
+
+> **Deferred items to incorporate from `_bmad-output/implementation-artifacts/deferred-work.md`** (the SM removes each entry from that file once carried into the drafted story):
+> - Preserve the Story 3.0.2 Round 3 deferred finding: an empty successful `get_buildings_near_point` response can still mean "no active caster coverage yet", not "fully sunny with high confidence". Story 3.0.5 must distinguish empty validated coverage from unknown/missing caster coverage and cap or mark confidence accordingly. *(Source: Story 3.0.2 code review Round 3, 2026-06-04; deferred-work audit 2026-06-04.)*
+
+### Story 3.0.7: Baskarta XYZ Inventory & Data Contract Realignment
+
+As a **maintainer**,
+I want Baskarta treated as a full XYZ object inventory with explicit preflight and source-geometry preservation,
+So that SunnySeat does not silently discard height-coded non-building objects or depend on a flattened export.
+
+**Acceptance Criteria:**
+
+**Given** Göteborgs Stad confirmed that the open Höjdmodell is DTM and that Baskarta contains XYZ object data
+**When** durable planning docs and geodata runbooks are updated
+**Then** they describe the MVP open-data path as 2D Lantmäteriet footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation
+**And** they state that `byggnad_l` is the first validated runtime building subset, not the complete Baskarta height strategy.
+
+**Given** Baskarta downloads may include multiple Z-aware point, line, and polygon layers
+**When** the preflight command runs against a Baskarta ZIP or extracted SHP directory
+**Then** it outputs layer inventory, geometry types, record counts, type distributions, Z ranges, missing-Z counts, and anomaly warnings
+**And** it fails loudly when expected Z-aware layers are flattened or missing Z values.
+
+**Given** future structure, vegetation, bridge, wall/fence, and obstruction-risk candidates may come from non-`byggnad_l` layers
+**When** the schema/import contract is extended
+**Then** source 3D geometry, source layer, source class/subclass, Z semantics notes, and collection/update metadata are preserved separately from the WGS84 runtime polygon geometry
+**And** non-building candidates remain inactive, diagnostics-only, or obstruction-risk-only until explicitly validated.
+
+**Design Gate Criteria:**
+- **Visual:** No standalone visual reference. Backend/data-contract story.
+- **Behaviour:** No consumer UI change and no runtime activation of new non-building caster classes.
+- **Visual validation:** Not applicable unless consumer UI files change.
+
+### Story 3.0.6: UX Content for Sun Prediction Uncertainty
+
+As a **user**,
+I want concise Swedish copy that explains prediction uncertainty,
+So that I understand confidence without needing geodata details.
+
+**Acceptance Criteria:**
+
+**Given** SunnySeat models building shadows but not every obstruction
+**When** confidence help text, about-page copy, venue detail microcopy, or uncertainty labels are shown
+**Then** Swedish copy clearly communicates that building shadows are modelled while trees, awnings, umbrellas, bridges, and temporary structures can affect real conditions.
+
+**Given** a venue has low building-data confidence or known obstruction uncertainty
+**When** the venue appears in the map/list/detail surfaces
+**Then** the UI communicates uncertainty without implying the prediction is broken
+**And** it avoids exposing implementation details such as CRS, Baskarta, DTM, or import batch IDs in normal user copy.
+
+**Given** the app is Swedish-first
+**When** copy is added
+**Then** strings are added through scoped `next-intl` keys and English fallback copy is kept in sync.
+
+**Design Gate Criteria:**
+- **Visual:** Use existing confidence and about-page surfaces; no new standalone screen unless explicitly scoped.
+- **Behaviour:** Copy must be accessible, concise, and not color-only.
+- **Visual validation:** Required for any changed screen reference.
+
 ### Story 3.1: Routing & Navigation to Venue
 
 As a **user**,
@@ -1107,6 +1359,7 @@ So that I can help improve prediction accuracy for everyone.
 - **Visual validation:** Screenshot comparison against the active visual reference passes before QA handoff
 
 > **Deferred items to incorporate from `_bmad-output/implementation-artifacts/deferred-work.md`** (the SM removes each entry from that file once carried into the drafted story):
+> - Lift the onboarding-local Amber CTA implementation into `components/composed/` when the FeedbackPrompt `Skicka` button becomes the second real consumer. Preserve token-based styling, 44 px touch target, disabled 40% opacity, and reduced-motion behaviour. *(Source: Story 1.5 code review Round 1, 2026-05-05; deferred-work audit 2026-06-04.)*
 > - Add final visual-regression verification for the Story 2.3 accepted venue-detail drift if this story becomes the first source of user-confirmed venue attributes: decide the source of truth for detail amenity/tag chips such as `Innergård`, `Hund ok`, `Wifi`, and `Bakverk`, implement them in the venue detail DTO/UI if they remain in the accepted design, and verify `scripts/visual-validate.sh venue-detail "/?venue=test-venue-sunny&_state=venue-detail" mobile` and `desktop` no longer fail for missing tags. If tags are removed from product scope or assigned to a later venue-attribute story, rebaseline or retarget with rationale. *(Source: Story 2.3 visual gate accepted by Rasmus on 2026-05-16.)*
 > - Add final visual-regression verification for the Story 2.4 accepted desktop detail drift if this story becomes the first source of venue attributes: implement or explicitly reject amenity/tag chips such as `Innergård`, `Hund ok`, `Wifi`, and `Bakverk`, then verify `scripts/visual-validate.sh venue-detail "/?venue=test-venue-sunny&_state=venue-detail" desktop` no longer fails for missing tags, or rebaseline/retarget with rationale. *(Source: Story 2.4 visual gate accepted by Rasmus on 2026-05-18.)*
 
@@ -1166,6 +1419,54 @@ So that I can learn from others' experiences and share mine.
 > - Add final visual-regression verification for the Story 2.2 accepted scope drift: decide whether aggregate venue star ratings surface in venue-list cards once reviews exist. If ratings surface in lists, wire the data/API and verify `scripts/visual-validate.sh map-panel-venues "/?_state=map-panel-venues" mobile` no longer fails for missing star/rating metadata. If ratings remain detail-only, rebaseline the venue-list reference with rationale and update `REBASELINE-LOG.md`. *(Source: Story 2.2 Anthropic visual gate accepted by Rasmus on 2026-05-14.)*
 > - Add final visual-regression verification for the Story 2.3 accepted venue-detail drift: decide whether aggregate ratings/review counts surface in the venue detail header and desktop left-list cards once reviews exist. If yes, wire the data/API and verify `scripts/visual-validate.sh venue-detail "/?venue=test-venue-sunny&_state=venue-detail" mobile` and `desktop` no longer fail for missing rating/review metadata. If ratings remain review-section-only, rebaseline the affected references with rationale and update `REBASELINE-LOG.md`. *(Source: Story 2.3 visual gate accepted by Rasmus on 2026-05-16.)*
 > - Add final visual-regression verification for the Story 2.4 accepted drift: decide whether rating, review-count, and price-level metadata surface in mobile venue-list cards and desktop venue-detail headers once reviews exist. If yes, wire the data/API and verify `map-panel-venues` and desktop `venue-detail` no longer fail for missing star/rating/price metadata. If these remain outside V1, rebaseline affected references with rationale. *(Source: Story 2.4 visual gates accepted by Rasmus on 2026-05-18.)*
+
+### Story 3.4: Routing & Visit Loop Hardening
+
+As a **user**,
+I want routing, feedback, and review flows to preserve my venue context across the full visit loop,
+So that I can move from finding a sunny venue to getting there and confirming it without losing state or trust.
+
+**Acceptance Criteria:**
+
+**Given** Stories 3.1, 3.2, and 3.3 have landed
+**When** route actions are audited across VenueQuickInfo, venue detail, venue list/favourite entry points, and feedback/review-adjacent surfaces
+**Then** all route actions use the shared routing helper/orchestrator contract
+**And** no duplicate hand-rolled native-map URL builders or direct `window.open` calls remain outside the approved routing boundary
+
+**Given** a user opens a venue from the map, list, favourite view, or a deep link
+**When** they dismiss the route overlay, close feedback/review forms, or use browser Back
+**Then** the app preserves selected venue, planner/date/time state, map/list context, and venue-detail scroll position where applicable
+**And** invalid venue slugs, loading states, and API errors render localized not-found or retry/error states instead of blank panels
+
+**Given** a mobile user taps "Visa Rutt"
+**When** the native-map handoff is initiated
+**Then** the route overlay shows the destination, confidence context, and estimated walk time before the app attempts to leave
+**And** if the handoff is blocked, the overlay remains visible with a localized retry/open-directions action
+
+**Given** route, feedback, and review controls are keyboard or screen-reader operated
+**When** the user navigates through the Epic 3 visit loop
+**Then** every interactive element has an accessible name, visible focus state, semantic role, and at least a 44x44 px target
+**And** `prefers-reduced-motion` users get instant or opacity-only state changes
+
+**Given** all Epic 3 user-facing copy is rendered
+**When** Swedish or English locale is active
+**Then** route, feedback, review, error, retry, and confirmation text uses scoped `next-intl` keys
+**And** no English hardcoded copy appears in Swedish UI
+
+**Given** the Epic 3 hardening pass is complete
+**When** the final regression gate runs
+**Then** `tsc`, `eslint`, `vitest`, and required Playwright coverage pass
+**And** visual validation covers `map-with-selected-venue`, `venue-detail` mobile/desktop, `feedback`, and `review` states, with any approved rebaseline documented in `REBASELINE-LOG.md`
+
+**Given** MVP scope excludes active monetization
+**When** Epic 3 runtime paths are scanned
+**Then** no Season Pass, Swish, premium, payment, paywall, or lock-badge dependency is wired into routing, feedback, or reviews
+**And** client components still respect the API boundary by avoiding direct imports from backend engine modules
+
+**Design Gate Criteria:**
+- **Behaviour:** Final Epic 3 route, feedback, review, Back, dismiss, blocked-handoff, loading, error, and deep-link flows preserve user context as specified above
+- **Accessibility:** Keyboard, screen-reader, reduced-motion, focus, and touch-target checks are included in the story test gate
+- **Visual validation:** Parent screen/state visual validation passes for `map-with-selected-venue`, `venue-detail` mobile/desktop, `feedback`, and `review`; reference changes require explicit rationale and `REBASELINE-LOG.md` update
 
 ---
 
@@ -1449,6 +1750,9 @@ So that I can discover promoted venues with high-quality outdoor seating.
 
 > **Deferred items to incorporate from `_bmad-output/implementation-artifacts/deferred-work.md`** (the SM removes each entry from that file once carried into the drafted story):
 > - Consume the `isPartner` field that `VenuePinData` already carries (Story 1.4 plumbed it through `mapVenueDtoToPinData` as forward-compat). The new partner-styled pin variant is the planned consumer; the field has been waiting for this story since 1.4. *(Source: code review Round 1 of 1-4, 2026-05-01.)*
+> - Re-evaluate per-pin React root overhead before partner-pin styling increases marker complexity. `VenuePinLayer` still creates one `createRoot` subtree per pin; if partner variants keep that architecture, verify pin-render timing for 50+ venues remains within the architecture NFR or refactor the marker rendering strategy. *(Source: Story 1.6 code review W1, 2026-05-07; deferred-work audit 2026-06-04.)*
+> - Preserve MapLibre dynamic-chunk discipline when partner-pin work touches `MapContainer` or `VenuePinLayer`. Top-level `maplibre-gl` imports still exist in both files; Story 1.6's async-map verification catches current behaviour, but the code shape remains easy to regress if `MapView` is imported statically. *(Source: Story 1.6 code review W2, 2026-05-07; deferred-work audit 2026-06-04.)*
+> - Remove the hardcoded Swedish sun-label fallbacks in `VenueCard.tsx` (`?? 'MEST SKUGGA'` / `?? 'FULL SOL'` / `?? 'DELVIS SOL'`) and make the labels required props, mirroring the Story 3.4 Task 6.4 `VenueQuickInfo` fix. Non-violating today (Swedish is the source language and `VenueList.tsx` always passes localized labels), but it is the same defect class and this story touches the venue card/pin surfaces. *(Source: Story 3.4 code review Round 1 defer D2, 2026-06-11.)*
 
 ### Story 5.2: "SOL NU" Badge & Partner Deep-Links
 
@@ -1667,6 +1971,11 @@ So that I can coordinate plans by sending them the venue info.
 
 Users can learn how SunnySeat works, encounter a friendly 404, install the app as a PWA, and see a graceful offline state.
 
+> **Epic 3 alignment note (2026-06-12):** Three corrections from Epic 3 must be honoured when these stories are drafted:
+> 1. **Data sources / accuracy framing (7.1).** The shadow-data trust prelude (Stories 3.0.1–3.0.7) corrected the data-source model and the confidence semantics. The About page's data-source list and "träffsäkerhet" claim must reflect the real model (Lantmäteriet footprints + Göteborgs Stad Baskarta 3D `byggnad_l` + Göteborgs Stad Höjdmodell DTM + Met.no weather + OpenStreetMap fallback), use the conservative, coverage-gated confidence wording from Stories 3.0.5/3.0.6, and reconcile with the existing uncertainty copy in `messages/{sv,en}/about.json`. Public copy must not leak geodata internals (EPSG, Baskarta layer names, DTM, RPC/SQL names) per the Story 3.0.6 contract.
+> 2. **Shared CTA components (7.2).** "RouteButton" in the 404 AC predates Story 3.1, which made `components/composed/routing/RouteButton.tsx` the **native-maps directions** CTA. The 404 "Hitta soliga platser nu →" control is an in-app navigation to the map, so it must use a plain navigation CTA/link styled with `gradient-route-button`, **not** the routing `RouteButton` (which builds maps-directions URLs and opens the native-map handoff).
+> 3. **Real-data dependency.** The app is still fixture-backed. The About accuracy stat being truthful, and the offline shell's "venue data loads normally on reconnect" meaning real data, both depend on the new "Wire Real Data" epic landing first. Treat that epic as a prerequisite for 7.1's accuracy claim and sequence accordingly.
+
 ### Story 7.1: About Page
 
 As a **user**,
@@ -1682,8 +1991,8 @@ So that I can understand and trust the sun predictions.
 - "Hur fungerar SunnySeat?" heading
 - Hero photo (sunset/outdoor scene)
 - "ALGORITMEN" section explaining sun position calculations, shadow modeling, weather integration
-- "DATAKÄLLOR" section listing Lantmäteriet, Met.no, OpenStreetMap — each as a list item with icon
-- "TRÄFFSÄKERHET" section with large "85%" stat display on warm gradient background with explanation text
+- "DATAKÄLLOR" section listing the open data sources — Lantmäteriet (byggnadsfotavtryck), Göteborgs Stad öppna data (3D-byggnader och höjdmodell), Met.no (väder), OpenStreetMap — each as a list item with icon (user-safe source names only; no EPSG/layer/DTM/RPC internals per Story 3.0.6)
+- "TRÄFFSÄKERHET" section on warm gradient background with explanation text; the headline figure must come from the validated, coverage-gated confidence model (Stories 3.0.5/3.0.6), framed consistently with the app's uncertainty copy rather than a hardcoded marketing "85%" (use a placeholder until the real validated figure is available)
 - "Kontakt & feedback" section at bottom
 - "Tillbaka till kartan" CTA link
 
@@ -1695,8 +2004,8 @@ So that I can understand and trust the sun predictions.
 **And** no "← Tillbaka" link — navigation via navbar
 
 **Given** the "TRÄFFSÄKERHET" section scrolls into view
-**When** the 85% stat becomes visible for the first time
-**Then** the number counts up from 0 to 85 (800ms, `easing-enter`) — one-time animation
+**When** the accuracy stat becomes visible for the first time
+**Then** the number counts up from 0 to the validated figure (800ms, `easing-enter`) — one-time animation
 
 **Given** the user taps "← Tillbaka" (mobile) or "Tillbaka till kartan" (either)
 **When** the navigation is triggered
@@ -1720,6 +2029,9 @@ So that I can understand and trust the sun predictions.
 - **Animation:** Accuracy stat count-up (800 ms) and scroll-trigger animations match spec timings (±50 ms tolerance)
 - **Visual validation:** Screenshot comparison against the active visual reference passes before QA handoff
 
+> **Deferred items to incorporate from `_bmad-output/implementation-artifacts/deferred-work.md`** (the SM removes each entry from that file once carried into the drafted story):
+> - If this story introduces the first runtime locale switcher, make existing MapLibre marker roots update their accessible names and localized copy on locale changes instead of waiting for venue selection or venue data changes. If Story 7.1 does not introduce a switcher, keep this item targeted to the first i18n-switcher story. *(Source: Story 1.4 Round 2 batch-apply, 2026-05-03; deferred-work audit 2026-06-04.)*
+
 ### Story 7.2: 404 Page
 
 As a **user**,
@@ -1734,7 +2046,7 @@ So that I'm never stuck on an invalid URL.
 - "SunnySeat" logo top-left
 - Centred content: amber pin icon with "?" inside (rounded square background, `color-amber-gold`)
 - "Den här platsen hittades inte" heading (`text-display-xl`, centred)
-- "Hitta soliga platser nu →" CTA (RouteButton, full-width, `gradient-route-button`)
+- "Hitta soliga platser nu →" in-app navigation CTA to the map (full-width, `gradient-route-button` styling — a plain navigation link/button, **not** the Story 3.1 routing `RouteButton`, which builds native-maps directions URLs)
 
 **Given** the 404 page renders on desktop
 **When** viewport >= 1024px
@@ -1817,3 +2129,124 @@ So that the app feels native and doesn't break without connectivity.
 
 > **Deferred items to incorporate from `_bmad-output/implementation-artifacts/deferred-work.md`** (the SM removes each entry from that file once carried into the drafted story):
 > - Add `env(safe-area-inset-bottom)` handling to `MobileNavBar.tsx:46,59` so the 44 px touch target is fully reachable on iPhone home-indicator devices. The fixed-bottom nav currently leaves 2 px of the touch box behind the safe-area boundary on those devices; the PWA standalone-display fix is the right place to land it. *(Source: code review of 1-3, 2026-04-20.)*
+> - Add a `storage` event listener to `OnboardingGate` so an onboarding completion in one tab dismisses the already-open onboarding overlay in another tab without reload. *(Source: Story 1.5 code review Round 1, 2026-05-05; deferred-work audit 2026-06-04.)*
+> - Re-check `maplibre-gl/dist/maplibre-gl.css` static import behaviour against the offline/PWA shell and async-map gate. The current JS verifier does not audit CSS hoisting, so this story should either extend the verification or document why the current hoisting remains acceptable. *(Source: Story 1.6 code review W3, 2026-05-07; deferred-work audit 2026-06-04.)*
+> - Rework or explicitly validate the full-viewport tile/style failure overlay so sighted fallback state and keyboard focus state are coherent. The current `pointer-events-none` overlay can show a cream fallback while tab focus continues through controls underneath. *(Source: Story 1.6 code review W6, 2026-05-07; deferred-work audit 2026-06-04.)*
+> - Extend the axe a11y Playwright gate with a mobile-viewport project (or mobile-sized scans of the existing routes) so mobile-sheet variants — mobile venue-detail sheet, mobile review form, `FactCard` muted labels — are inside the automated gate instead of relying solely on approved mobile visual references. The current `a11y` project runs Desktop Chrome only. *(Source: Story 3.4 Completion Notes known limitation + code review Round 1 defer D1, 2026-06-11.)*
+
+---
+
+## Epic 8: "Wire Real Data" — From Fixtures to the Live Supabase + Sun Engine
+
+The MVP frontend (Epics 1–3) is entirely fixture-backed: `/api/venues`, venue detail, feedback, and reviews all serve hardcoded or in-memory data. This epic replaces those fixtures with the real Supabase-backed data pipeline and the `lib/solar` sun/shadow engine, on top of the trustworthy data contracts the Epic 3.0.x shadow-data prelude established. When this epic completes, the app shows real Gothenburg venues with real, coverage-gated sun predictions, and feedback/reviews persist to Supabase.
+
+> **Sequencing (added 2026-06-12, Epic 3 retrospective):** This epic runs **next**, ahead of the deferred Epics 4 (Monetization), 5 (Partner Spotlight), and 6 (History/Notifications/Sharing). It is a **prerequisite for Epic 7 Story 7.1** (the About "träffsäkerhet" claim cannot be truthful until the real confidence model is live) and for any future push-notification work (Stories 6.2/6.3 need a real sun-state-over-time pipeline). The epic number is higher than 4–7 only because those were defined earlier; do not infer execution order from the number.
+>
+> **Foundation already in place (Epic 3, 2026-06-12):** the Supabase project (`hhnbxrhfhlzxgllxukzj`) was reset to a clean Epic-3-aligned slate — `shadow_casters` + `shadow_caster_import_batches` + the `get_buildings_near_point` RPC (Story 3.0.2 contract), `reviews` (Story 3.3), and `feedback` (Story 3.2 contract) all exist with RLS enabled; all old-backend tables/functions were removed. `shadow_casters` is empty pending Story 8.1's import.
+>
+> **Scope guardrails:** Respect the existing API boundary (client components never import `lib/solar`/`lib/weather`/`lib/supabase`/`lib/buildings`; all access via `app/api/*` + `hooks/queries`/`hooks/mutations`). Do not reintroduce admin/auth/moderation surfaces, monetization, or geodata internals in user copy (no EPSG/Baskarta/DTM/RPC names per Story 3.0.6). Do not change the URL/state-forcing contracts or the visual references; existing screens must keep passing their visual gates with real data swapped behind them.
+
+### Story 8.1: Shadow-Caster Geodata Import
+
+As a **maintainer**,
+I want the derived Gothenburg shadow-caster geodata loaded into `shadow_casters`,
+So that the sun/shadow engine has real building obstructions to compute against.
+
+**Acceptance Criteria:**
+
+**Given** the Story 3.0.3 import handoff (`building_geodata/goteborg-open/derived/shadow_casters.import.jsonl` + `shadow_casters.import_handoff.sql`)
+**When** the import is executed against the live Supabase project
+**Then** `shadow_casters` is populated with the `include`/`review`/`exclude` records per the Story 3.0.2 contract (active/include rows ≥ 3 m height, source geometry preserved), and an `shadow_caster_import_batches` row records the batch metadata and checksums
+
+**Given** the Story 3.0.4 validation/spot-check gates
+**When** the import completes
+**Then** the launch-cluster and central-area coverage thresholds pass and any unmodelled-obstruction uncertainty is recorded, with the gate report stored as an import artifact
+
+**Given** the `get_buildings_near_point` RPC
+**When** it is called for a central Gothenburg point after import
+**Then** it returns only active/include casters with meter-correct radius filtering (no empty-coverage-as-high-confidence regression — Story 3.0.5 contract holds)
+
+### Story 8.2: Real Venue Store & API
+
+As a **user**,
+I want the map and lists to show real Gothenburg venues,
+So that I'm looking at places I can actually visit.
+
+**Acceptance Criteria:**
+
+**Given** a Supabase `venues` table contract (defined in this story) seeded with the initial Gothenburg launch venues
+**When** `/api/venues` and the venue-detail route are requested
+**Then** they return real venues from Supabase (replacing `lib/services/venues-fixture.ts`), preserving the existing `VenueDataDto`/detail response shapes and the planner/time query contract so no frontend component changes are required
+
+**Given** the seeded `test-venue-sunny` slug used by visual/E2E gates
+**When** the real data source is wired
+**Then** that slug still resolves to a stable, gate-compatible venue so the five visual references and the Playwright suite keep passing
+
+**Given** the API boundary
+**When** the route reads venues
+**Then** access stays server-side via `lib/supabase` service-role infrastructure; no client component imports backend modules and query keys still come from `lib/query-keys.ts`
+
+### Story 8.3: Real Sun/Shadow/Weather Computation
+
+As a **user**,
+I want sun status, sun windows, confidence, and uncertainty to be computed from the real engine,
+So that the predictions I see are trustworthy.
+
+**Acceptance Criteria:**
+
+**Given** `lib/solar` (sun position + shadow casting via `get_buildings_near_point`) and `lib/weather` (Met.no Locationforecast)
+**When** a venue's sun data is computed for the requested time
+**Then** `currentSunStatus`, `sunExposurePercent`, `sunWindow`, `confidence`, and `predictionUncertainty` are produced from the real engine and serialized through the existing DTO fields
+
+**Given** the Story 3.0.5/3.0.6 confidence contract
+**When** shadow-caster coverage is empty or below threshold for a venue
+**Then** confidence is capped/marked rather than reported as confidently sunny, and the public uncertainty copy renders via the existing `next-intl` keys without leaking geodata internals
+
+**Given** the sun-freshness metadata contract (Story 2.6)
+**When** the response is built
+**Then** `sunDataSource`/`weatherUpdatedAt` reflect real weather freshness so the confidence display's exact/approximate/hidden states behave correctly
+
+### Story 8.4: Feedback & Review Persistence Enablement
+
+As a **product owner**,
+I want feedback and reviews to persist to Supabase,
+So that real user input is captured durably.
+
+**Acceptance Criteria:**
+
+**Given** the `feedback` (Story 3.2) and `reviews` (Story 3.3) contract tables exist with RLS enabled
+**When** `SUNNYSEAT_FEEDBACK_PERSISTENCE=supabase` and `SUNNYSEAT_REVIEW_PERSISTENCE=supabase` are set
+**Then** the existing server-only persistence adapters write to and read from Supabase, and the in-memory fallback remains the default for tests
+
+**Given** RLS policies must match the access model
+**When** policies are authored
+**Then** `reviews` gets a public read policy (anonymous public content) with writes restricted to the server `service_role`, and `feedback` writes stay server-only (no public/anon write policy); policies follow the Supabase security checklist (no `USING (true)` write policies, explicit `TO` clauses)
+
+**Given** the existing review/feedback E2E and unit suites
+**When** persistence is enabled
+**Then** the suites pass against intercepted/fixture data with no live Supabase dependency in CI, and a separate integration check verifies the real round-trip
+
+### Story 8.5: Production Config & Security Hardening
+
+As a **maintainer**,
+I want the live data path configured and secured for deployment,
+So that SunnySeat can go live safely.
+
+**Acceptance Criteria:**
+
+**Given** the Vercel deployment and Supabase project
+**When** environment is configured
+**Then** server-only secrets (`SUPABASE_SERVICE_ROLE_KEY`, Met.no config, persistence flags) are set per environment and never exposed to the client (no `NEXT_PUBLIC_` leakage of secrets)
+
+**Given** the Supabase security advisor
+**When** it is run after wiring
+**Then** application tables have appropriate RLS policies and remaining findings are limited to accepted PostGIS platform exceptions (`spatial_ref_sys`, `postgis`-in-public, `st_estimatedextent`), each documented as accepted
+
+**Given** generated DB types
+**When** the schema is stable
+**Then** `lib/supabase/types.ts` is regenerated from the live schema (replacing the placeholder) and the typecheck/lint/test gates pass
+
+**Design Gate Criteria (Epic 8 overall):**
+- **Behaviour:** Every existing screen behaves identically with real data swapped behind the API boundary; loading/empty/error states already built in Epics 1–3 handle real latency and failures.
+- **Visual validation:** The five existing gate states (`map-with-selected-venue`, `venue-detail` mobile/desktop, `feedback`, `review`) plus map-primary continue to pass against their references with real (or gate-seeded) data; any genuine visual change requires explicit rationale + `REBASELINE-LOG.md`.
+- **No new screens or visual references are introduced by this epic** — it is a data/infrastructure swap behind the existing UI.

@@ -17,3 +17,7 @@ export function venueQueryRetryDelay(attemptIndex: number): number {
 function isClientHttpError(error: Error): boolean {
   return /failed:\s4\d\d\b/i.test(error.message);
 }
+
+export function isVenueNotFoundError(error: Error | null | undefined): boolean {
+  return Boolean(error && /failed:\s404\b/i.test(error.message));
+}

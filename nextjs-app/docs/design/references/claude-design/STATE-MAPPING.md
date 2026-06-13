@@ -64,8 +64,8 @@ regenerates the MVP-covered active references below.
 | `map-panel-venues` | MVP Mobile Unlocked, `sunny_screen=map`, click sheet handle to full state | n/a |
 | `map-with-selected-venue` | MVP Mobile Unlocked, `sunny_screen=map`, click first `[data-pin]` | n/a |
 | `venue-detail` | MVP Mobile Unlocked, `sunny_screen=map`, click first pin, click `Mer info` | MVP Desktop Unlocked, click first pin, click `Mer info` |
-| `feedback` | MVP Mobile Unlocked, `sunny_screen=map`, Tweaks -> `Feedback` | n/a |
-| `review` | MVP Mobile Unlocked, `sunny_screen=map`, Tweaks -> `Recension` | n/a |
+| `feedback` | Implementation-derived active PNG from `/?venue=test-venue-sunny&_state=feedback`; MVP Mobile Unlocked Tweaks -> `Feedback` is obsolete general app-feedback modal and is skipped by the default prototype capture | n/a |
+| `review` | Implementation-derived active PNG from `/?venue=test-venue-sunny&_state=review`; MVP Mobile Unlocked Tweaks -> `Recension` is obsolete required-rating/tag modal and is skipped by the default prototype capture | n/a |
 | `about` | MVP Mobile Unlocked, `sunny_screen=map`, settings -> `Om SunnySeat` | MVP Desktop Unlocked, settings -> `Om SunnySeat` |
 | `favourites-tab` | MVP Mobile Unlocked, `sunny_screen=map`, seed `sunny_favs`, click `Favoriter` | MVP Desktop Unlocked, click `Favoriter` |
 

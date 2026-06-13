@@ -1,56 +1,30 @@
 // API Request and Response Types
 
 // ============================================================================
-// Authentication Types
-// ============================================================================
-
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
-
-export interface RefreshRequest {
-  refreshToken: string;
-}
-
-export interface LogoutRequest {
-  refreshToken: string;
-}
-
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
-}
-
-export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: string;
-  user: AdminUserInfo;
-}
-
-export interface RefreshResponse {
-  accessToken: string;
-  expiresAt: string;
-}
-
-export interface AdminUserInfo {
-  id: number;
-  username: string;
-  email: string;
-  role: string;
-  claims: string[];
-  lastLoginAt: string;
-  createdAt: string;
-}
-
-// ============================================================================
 // Venue Types
 // ============================================================================
 
 export type VenueSunStatus = 'Sunny' | 'Partial' | 'Shaded' | 'NoSun';
 
 export type SunDataSource = 'weather' | 'geometry-only';
+
+export type PredictionUncertaintyLevel = 'low' | 'medium' | 'high';
+
+export type PredictionUncertaintyReason =
+  | 'building_shadow_coverage'
+  | 'vegetation'
+  | 'awning'
+  | 'umbrella'
+  | 'bridge'
+  | 'temporary_structure'
+  | 'seasonal_furniture'
+  | 'weather'
+  | 'other';
+
+export interface PredictionUncertaintyDto {
+  level: PredictionUncertaintyLevel;
+  reasons: PredictionUncertaintyReason[];
+}
 
 export interface SunFreshnessMeta {
   weatherUpdatedAt?: string;
@@ -99,6 +73,11 @@ export interface VenueDataDto {
    * surfaces, while confidence remains a trust/certainty metric.
    */
   sunExposurePercent: number;
+  /**
+   * Public, user-safe uncertainty metadata. Values intentionally describe
+   * user-facing uncertainty causes and must not expose source/geodata internals.
+   */
+  predictionUncertainty?: PredictionUncertaintyDto;
   sunWindow?: {
     start: string;
     end: string;
@@ -108,6 +87,7 @@ export interface VenueDataDto {
     initials: string;
     url?: string;
   };
+  reviewSummary?: ReviewSummaryDto;
 }
 
 export interface VenueDetailDto extends VenueDataDto {
@@ -143,24 +123,80 @@ export interface CoordinatesDto {
 }
 
 // ============================================================================
+// Review Types
+// ============================================================================
+
+export interface ReviewPhotoAttachmentDto {
+  name: string;
+  type: string;
+  size: number;
+  lastModified?: number;
+}
+
+export interface ReviewDto {
+  id: string;
+  venueId: string;
+  venueSlug: string;
+  text: string;
+  rating?: number;
+  photo?: ReviewPhotoAttachmentDto;
+  createdAt: string;
+}
+
+export interface ReviewSummaryDto {
+  averageRating: number | null;
+  reviewCount: number;
+}
+
+export interface GetReviewsResponse {
+  reviews: ReviewDto[];
+  summary: ReviewSummaryDto;
+  timestamp: string;
+}
+
+export interface SubmitReviewRequest {
+  venueId?: string;
+  venueSlug?: string;
+  text: string;
+  rating?: number;
+  photo?: ReviewPhotoAttachmentDto;
+}
+
+export interface SubmitReviewResponse {
+  review: ReviewDto;
+  summary: ReviewSummaryDto;
+  timestamp: string;
+}
+
+// ============================================================================
 // Feedback Types
 // ============================================================================
 
 export interface SubmitFeedbackRequest {
-  venueId: number;
+  venueId?: string;
+  venueSlug?: string;
   userTimestamp: string; // ISO 8601
-  predictedState: 'Sunny' | 'Partial' | 'Shaded';
-  wasSunny: boolean;
-  confidenceAtPrediction: number; // 0-100
+  predictedState: VenueSunStatus;
+  sunAccuracy?: FeedbackSunAccuracy;
+  wasSunny?: boolean;
+  outdoorSeatingConfirmed?: boolean;
+  confidenceAtPrediction?: number; // 0-100
+  note?: string;
 }
 
+export type FeedbackSunAccuracy = 'sunny' | 'not_sunny' | 'unsure';
+
 export interface FeedbackResponse {
-  id: number;
-  venueId: number;
+  id: string;
+  venueId: string;
+  venueSlug: string;
   userTimestamp: string;
-  predictedState: string;
-  wasSunny: boolean;
-  confidenceAtPrediction: number;
+  predictedState: VenueSunStatus;
+  sunAccuracy?: FeedbackSunAccuracy;
+  wasSunny?: boolean;
+  outdoorSeatingConfirmed?: boolean;
+  confidenceAtPrediction?: number;
+  note?: string;
   createdAt: string;
 }
 

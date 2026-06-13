@@ -20,29 +20,6 @@ This document lists all environment variables required for the SunnySeat Next.js
 
 **Security Note:** `SUPABASE_SERVICE_ROLE_KEY` bypasses Row Level Security. Never expose it to the client.
 
-### Authentication
-
-| Variable | Description | Required | Default | Environment |
-|----------|-------------|----------|---------|-------------|
-| `JWT_SECRET` | Secret key for JWT token signing | Yes | - | All |
-| `JWT_EXPIRATION_MINUTES` | JWT token expiration in minutes | No | 60 | All |
-| `REFRESH_TOKEN_EXPIRATION_DAYS` | Refresh token expiration in days | No | 7 | All |
-
-**Security Requirements:**
-- `JWT_SECRET` must be at least 32 characters
-- Use a cryptographically secure random string
-- Never commit to version control
-- Rotate periodically
-
-**Generate secure secret:**
-```bash
-# Using OpenSSL
-openssl rand -base64 32
-
-# Using Node.js
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-```
-
 ### Cron Jobs
 
 | Variable | Description | Required | Environment |
@@ -93,11 +70,6 @@ NEXT_PUBLIC_SUPABASE_URL=https://[project-ref].supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[your-anon-key]
 SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
 
-# Authentication
-JWT_SECRET=[your-secure-secret-key-min-32-chars]
-JWT_EXPIRATION_MINUTES=60
-REFRESH_TOKEN_EXPIRATION_DAYS=7
-
 # Cron (for local testing)
 CRON_SECRET=[your-secure-secret-key-min-32-chars]
 
@@ -133,7 +105,7 @@ Configure in Vercel Dashboard → Project Settings → Environment Variables:
 The application validates required environment variables at startup:
 
 - **Client-side**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- **Server-side**: `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`
+- **Server-side**: `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`
 
 Missing variables will cause runtime errors with clear messages.
 
@@ -145,7 +117,7 @@ Missing variables will cause runtime errors with clear messages.
    - Never log or expose secrets in code
 
 2. **Use strong secrets**:
-   - Minimum 32 characters for JWT_SECRET and CRON_SECRET
+   - Minimum 32 characters for CRON_SECRET
    - Use cryptographically secure random generators
    - Rotate secrets periodically
 
@@ -160,7 +132,7 @@ Missing variables will cause runtime errors with clear messages.
 
 5. **Monitoring**:
    - Monitor for exposed secrets in logs
-   - Set up alerts for authentication failures
+   - Set up alerts for cron authentication failures
    - Review access logs regularly
 
 ## Troubleshooting
@@ -174,16 +146,6 @@ Missing variables will cause runtime errors with clear messages.
 2. Verify variables are set in Vercel (deployment)
 3. Ensure variable names match exactly (case-sensitive)
 4. Restart development server after adding variables
-
-### Invalid JWT Secret
-
-**Error**: JWT verification failures
-
-**Solution**:
-1. Verify `JWT_SECRET` is at least 32 characters
-2. Ensure same secret is used for signing and verification
-3. Check for whitespace or special characters
-4. Regenerate if compromised
 
 ### Cron Job Authentication Failures
 
@@ -204,7 +166,6 @@ Missing variables will cause runtime errors with clear messages.
 export NEXT_PUBLIC_SUPABASE_URL="https://test.supabase.co"
 export NEXT_PUBLIC_SUPABASE_ANON_KEY="test-key"
 export SUPABASE_SERVICE_ROLE_KEY="test-service-key"
-export JWT_SECRET="test-secret-min-32-characters-long"
 export CRON_SECRET="test-cron-secret-min-32-characters-long"
 
 # Run application
@@ -227,8 +188,6 @@ If migrating from .NET backend, map these variables:
 | `Supabase:Url` | `NEXT_PUBLIC_SUPABASE_URL` |
 | `Supabase:AnonKey` | `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
 | `Supabase:ServiceRoleKey` | `SUPABASE_SERVICE_ROLE_KEY` |
-| `Jwt:Secret` | `JWT_SECRET` |
-| `Jwt:ExpirationMinutes` | `JWT_EXPIRATION_MINUTES` |
 | `WeatherApi:Key` | `WEATHER_API_KEY` |
 | `WeatherApi:Url` | `WEATHER_API_URL` |
 

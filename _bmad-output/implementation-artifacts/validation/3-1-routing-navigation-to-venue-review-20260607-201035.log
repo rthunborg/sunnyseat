@@ -1,0 +1,47 @@
+SunnySeat story review gate
+Story: 3-1-routing-navigation-to-venue
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-1-routing-navigation-to-venue-review-20260607-201035.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/3-1-routing-navigation-to-venue.md
+Current sprint status: review
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  49 passed (49)
+      Tests  416 passed (416)
+   Start at  20:11:03
+   Duration  26.13s (transform 16.85s, setup 26.78s, import 44.49s, tests 46.57s, environment 156.68s)
+
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00' viewport='mobile'
+--- Visual validation: map-with-selected-venue ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00
+Waiting for selector [data-testid="venue-quick-info"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-sHnEIZ.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure, map UI chrome, venue popup card (Kafé Magasinet) with sun percentage, action buttons, map pins, bottom sheet (Skuggans Hus), and navigation bar all present and correctly styled; minor differences include additional "ca 6 min" text on the VISA RUTT button and a slightly different venue thumbnail in the bottom sheet, which are non-blocking dynamic data differences.
+Story '3-1-routing-navigation-to-venue' is already marked review. No sprint-status update needed.
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-1-routing-navigation-to-venue-review-20260607-201035.log

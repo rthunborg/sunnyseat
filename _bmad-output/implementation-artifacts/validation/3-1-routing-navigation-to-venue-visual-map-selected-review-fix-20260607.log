@@ -1,0 +1,6 @@
+--- Visual validation: map-with-selected-venue ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00
+Waiting for selector [data-testid="venue-quick-info"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-BmaRvF.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with correct layout structure, UI chrome elements (time slider, venue popup card, map overlay buttons, bottom sheet, and navigation bar), colour scheme, and pin styling all accurately reproduced.

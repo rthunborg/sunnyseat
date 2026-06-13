@@ -5,8 +5,10 @@ import {
   GET,
   validateVenueUniqueness,
 } from '@/app/api/venues/route';
+import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
 import { sunSeasonBounds } from '@/lib/utils/time-planner';
 import type { GetVenuesResponse, VenueDataDto } from '@/lib/types/api';
+import { expectNoSensitiveSourceTerms } from '../../setup/sensitive-source-terms';
 
 function makeRequest(query: string, headers?: HeadersInit): NextRequest {
   return new NextRequest(`http://localhost/api/venues${query}`, { headers });
@@ -162,6 +164,59 @@ describe('GET /api/venues', () => {
     expect(venue.thumbnail?.alt.length).toBeLessThanOrEqual(120);
     expect(venue.thumbnail?.initials.length).toBeLessThanOrEqual(3);
     expect(venue.thumbnail?.url).toMatch(/^https:\/\//);
+  });
+
+  it('returns sanitized prediction uncertainty metadata for seeded venues', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as GetVenuesResponse;
+    const lowCoverageVenue = body.venues.find((venue) => venue.slug === 'cafe-halvvags');
+    const obstructionVenue = body.venues.find((venue) => venue.slug === 'brygghuset-lerum');
+
+    expect(lowCoverageVenue?.predictionUncertainty).toEqual({
+      level: 'medium',
+      reasons: ['building_shadow_coverage'],
+    });
+    expect(obstructionVenue?.predictionUncertainty).toEqual({
+      level: 'medium',
+      reasons: ['vegetation', 'awning', 'seasonal_furniture'],
+    });
+
+    expectNoSensitiveSourceTerms(JSON.stringify(body));
+  });
+
+  it('normalizes invalid prediction uncertainty reasons without leaking internals', () => {
+    const normalized = normalizeVenueForResponse({
+      ...makeVenue({ id: 'unsafe', lat: 57.7, lng: 11.9 }),
+      predictionUncertainty: {
+        level: 'medium',
+        reasons: [
+          'building_shadow_coverage',
+          'building_shadow_coverage',
+          '',
+          'source_layer',
+          'Baskarta',
+          'vegetation',
+          'unexpected-internal-factor',
+        ],
+      },
+    } as unknown as VenueDataDto);
+
+    expect(normalized.predictionUncertainty).toEqual({
+      level: 'medium',
+      reasons: ['building_shadow_coverage', 'other', 'vegetation'],
+    });
+
+    const invalidLevel = normalizeVenueForResponse({
+      ...makeVenue({ id: 'invalid-level', lat: 57.71, lng: 11.91 }),
+      predictionUncertainty: {
+        level: 'source_layer',
+        reasons: ['vegetation'],
+      },
+    } as unknown as VenueDataDto);
+
+    expect(invalidLevel.predictionUncertainty).toBeUndefined();
   });
 
   it('filters venues by canonical q across venue name and neighborhood', async () => {

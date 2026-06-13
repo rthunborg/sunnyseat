@@ -1,0 +1,36 @@
+name: ${COMPOSE_PROJECT_NAME:-sunnyseat}
+
+services:
+  postgres:
+    image: postgis/postgis:15-3.5
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sunnyseat_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-sunnyseat}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sunnyseat_dev_password}
+      POSTGRES_INITDB_ARGS: --encoding=UTF8 --locale=C
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    command:
+      - postgres
+      - -c
+      - max_connections=40
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=64MB
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "${POSTGRES_USER:-sunnyseat}" -d "${POSTGRES_DB:-sunnyseat_dev}" && psql -U "${POSTGRES_USER:-sunnyseat}" -d "${POSTGRES_DB:-sunnyseat_dev}" -tAc "select postgis_version()" >/dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres_data:

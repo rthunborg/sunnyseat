@@ -5,6 +5,35 @@ import {
   VENUE_CARD_FADE_MS,
   VENUE_CARD_STAGGER_STEP_MS,
 } from '@/lib/constants/animation';
+import type { PredictionUncertaintyDisplayLabels } from '@/lib/utils/prediction-uncertainty-display';
+
+const uncertaintyLabels: PredictionUncertaintyDisplayLabels = {
+  description:
+    'Vi räknar på solens läge, byggnadsskuggor och väder. Träd, markiser, parasoller, broar och tillfälliga konstruktioner kan påverka platsen.',
+  accessible: '{label}. {description}',
+  levels: {
+    low: 'Låg osäkerhet',
+    medium: 'Osäker prognos',
+    high: 'Mer osäker prognos',
+  },
+  short: {
+    building_shadow_coverage: 'Byggnadsskuggor mer osäkra',
+    obstruction: 'Lokala hinder kan påverka',
+    weather: 'Vädret gör prognosen osäkrare',
+    other: 'Lokala förhållanden kan påverka',
+  },
+  reasons: {
+    building_shadow_coverage: 'Byggnadsskuggorna är beräknade med begränsad täckning här.',
+    vegetation: 'Träd kan påverka platsen.',
+    awning: 'Markiser kan påverka platsen.',
+    umbrella: 'Parasoller kan påverka platsen.',
+    bridge: 'Broar kan påverka platsen.',
+    temporary_structure: 'Tillfälliga konstruktioner kan påverka platsen.',
+    seasonal_furniture: 'Säsongsmöbler kan påverka platsen.',
+    weather: 'Vädret gör prognosen mer osäker.',
+    other: 'Lokala förhållanden kan påverka platsen.',
+  },
+};
 
 describe('<VenueCard />', () => {
   it('renders venue sunlight, confidence, distance, and an accessible activation label', () => {
@@ -111,6 +140,46 @@ describe('<VenueCard />', () => {
 
     expect(screen.getByTestId('venue-card')).toHaveTextContent('Säkerhet: ~80%');
     expect(screen.getByTestId('venue-card')).toHaveTextContent('Säkerhet cirka 80%');
+  });
+
+  it('renders visible and accessible uncertainty copy when metadata is present', () => {
+    render(
+      <VenueCard
+        name="Café Halvvägs"
+        sunTimeRange="Sol 15:10-17:20"
+        confidencePercent={70}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        distanceMeters={100}
+        sunExposurePercent={65}
+        predictionUncertainty={{
+          level: 'medium',
+          reasons: ['building_shadow_coverage'],
+        }}
+        thumbnail={{ alt: 'Uteservering', initials: 'CH' }}
+        isSunny
+        labels={{
+          select: 'Välj Café Halvvägs',
+          favourite: 'Spara {name}',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+          uncertainty: uncertaintyLabels,
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('Osäker prognos');
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('Byggnadsskuggor mer osäkra');
+    expect(screen.getByRole('button', { name: /Byggnadsskuggorna är beräknade/ }))
+      .toBeInTheDocument();
   });
 
   it('renders the venue thumbnail URL when one is available', () => {

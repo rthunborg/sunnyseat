@@ -189,7 +189,15 @@ export function getVenueVisualMetadata(
   locale = 'sv',
 ): VenueVisualMetadata {
   const key: MetadataLocale = locale === 'en' ? 'en' : 'sv';
-  return BY_SLUG[venue.slug]?.[key] ?? BY_SLUG[venue.venueSlug]?.[key] ?? DEFAULT_METADATA[key];
+  const metadata = BY_SLUG[venue.slug]?.[key] ?? BY_SLUG[venue.venueSlug]?.[key] ?? DEFAULT_METADATA[key];
+  if (!venue.reviewSummary) return metadata;
+  return {
+    ...metadata,
+    rating: venue.reviewSummary.averageRating === null
+      ? '-'
+      : venue.reviewSummary.averageRating.toFixed(1),
+    reviewCount: String(venue.reviewSummary.reviewCount),
+  };
 }
 
 export function formatVenueDistance(meters?: number): string {

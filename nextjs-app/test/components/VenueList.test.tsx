@@ -5,6 +5,7 @@ import { VenueList } from '@/components/custom/venue/VenueList';
 import { VenueListControls } from '@/components/composed/venue/VenueListControls';
 import venueMessages from '@/messages/sv/venue.json';
 import type { VenueDataDto } from '@/lib/types/api';
+import { expectNoSensitiveSourceTerms } from '../setup/sensitive-source-terms';
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return (
@@ -110,6 +111,37 @@ describe('<VenueList />', () => {
     expect(screen.getByRole('button', { name: /Säkerhet 90%/ })).toBeInTheDocument();
   });
 
+  it('renders localized uncertainty metadata on list cards when present', () => {
+    const { container } = render(
+      <VenueList
+        venues={[
+          makeVenue({
+            id: 'risk',
+            name: 'Brygghuset Lerum',
+            status: 'Partial',
+            distanceMeters: 120,
+            predictionUncertainty: {
+              level: 'medium',
+              reasons: ['vegetation', 'source_layer' as never, 'awning', 'seasonal_furniture'],
+            },
+          }),
+        ]}
+        mode="mobile"
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        onSelectVenue={vi.fn()}
+      />,
+      { wrapper: Wrapper },
+    );
+
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('Osäker prognos');
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('Lokala hinder kan påverka');
+    expect(screen.getByRole('button', { name: /Träd kan påverka platsen/ })).toBeInTheDocument();
+    expectNoSensitiveSourceTerms(container);
+  });
+
   it('places NaN distances after venues with finite distances', () => {
     render(
       <VenueList
@@ -150,6 +182,8 @@ describe('<VenueList />', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Mest sol' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Mest sol' })).toHaveClass('text-label-lg');
+    expect(screen.getByRole('button', { name: 'Mest sol' })).not.toHaveClass('text-label-md');
     expect(screen.getByRole('button', { name: 'Nära mig' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: 'Kafé, Kommer senare' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Öppet nu, Kommer senare' })).toBeDisabled();
@@ -181,12 +215,14 @@ function makeVenue({
   status,
   distanceMeters,
   sunExposurePercent,
+  predictionUncertainty,
 }: {
   id: string;
   name: string;
   status: VenueDataDto['currentSunStatus'];
   distanceMeters: number;
   sunExposurePercent?: number;
+  predictionUncertainty?: VenueDataDto['predictionUncertainty'];
 }): VenueDataDto {
   return {
     id,
@@ -201,6 +237,7 @@ function makeVenue({
     confidence: status === 'Sunny' ? 90 : 40,
     distanceMeters,
     sunExposurePercent: sunExposurePercent ?? (status === 'Sunny' ? 85 : 20),
+    predictionUncertainty,
     sunWindow: status === 'Sunny' ? { start: '13:00', end: '18:30' } : undefined,
     thumbnail: { alt: `${name} uteservering`, initials: name.slice(0, 2) },
   };

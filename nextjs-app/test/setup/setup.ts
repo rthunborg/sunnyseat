@@ -29,6 +29,11 @@ beforeEach(() => {
     writable: true,
     value: new MemoryStorage(),
   });
+  Object.defineProperty(window, 'sessionStorage', {
+    configurable: true,
+    writable: true,
+    value: new MemoryStorage(),
+  });
   if (!('ResizeObserver' in window)) {
     class TestResizeObserver implements ResizeObserver {
       observe(): void {}

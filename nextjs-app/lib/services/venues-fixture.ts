@@ -6,7 +6,32 @@
  * Fixture spans ~1 km around Gothenburg's centre (57.7089, 11.9746).
  * Lat/lng pinned to 4 decimal places so screenshot diffs stay deterministic.
  */
-import type { VenueDataDto } from '@/lib/types/api';
+import type {
+  PredictionUncertaintyDto,
+  PredictionUncertaintyLevel,
+  PredictionUncertaintyReason,
+  VenueDataDto,
+} from '@/lib/types/api';
+
+const TIME_WINDOW_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+const MAX_THUMBNAIL_ALT_LENGTH = 120;
+const MAX_THUMBNAIL_INITIALS_LENGTH = 3;
+
+const PREDICTION_UNCERTAINTY_LEVELS: ReadonlySet<PredictionUncertaintyLevel> =
+  new Set(['low', 'medium', 'high']);
+
+const PREDICTION_UNCERTAINTY_REASONS: ReadonlySet<PredictionUncertaintyReason> =
+  new Set([
+    'building_shadow_coverage',
+    'vegetation',
+    'awning',
+    'umbrella',
+    'bridge',
+    'temporary_structure',
+    'seasonal_furniture',
+    'weather',
+    'other',
+  ]);
 
 export const VENUE_FIXTURE: VenueDataDto[] = [
   {
@@ -86,6 +111,10 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 70,
     distanceMeters: 0,
     sunExposurePercent: 65,
+    predictionUncertainty: {
+      level: 'medium',
+      reasons: ['building_shadow_coverage'],
+    },
     sunWindow: { start: '15:10', end: '17:20' },
     thumbnail: {
       alt: 'Uteservering hos Café Halvvägs',
@@ -107,6 +136,10 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 66,
     distanceMeters: 0,
     sunExposurePercent: 58,
+    predictionUncertainty: {
+      level: 'medium',
+      reasons: ['vegetation', 'awning', 'seasonal_furniture'],
+    },
     sunWindow: { start: '13:35', end: '16:50' },
     thumbnail: {
       alt: 'Uteservering hos Brygghuset Lerum',
@@ -157,3 +190,109 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     },
   },
 ];
+
+export function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
+  const {
+    predictionUncertainty: rawPredictionUncertainty,
+    ...venueWithoutUncertainty
+  } = venue as VenueDataDto & { predictionUncertainty?: unknown };
+  const sunWindow =
+    venue.sunWindow &&
+    TIME_WINDOW_PATTERN.test(venue.sunWindow.start) &&
+    TIME_WINDOW_PATTERN.test(venue.sunWindow.end)
+      ? venue.sunWindow
+      : undefined;
+  const alt = normalizeShortText(venue.thumbnail?.alt, MAX_THUMBNAIL_ALT_LENGTH);
+  const initials = normalizeInitials(venue.thumbnail?.initials);
+  const url = normalizeThumbnailUrl(venue.thumbnail?.url);
+  const predictionUncertainty = normalizePredictionUncertainty(rawPredictionUncertainty);
+
+  return {
+    ...venueWithoutUncertainty,
+    sunWindow,
+    thumbnail:
+      alt || initials || url
+        ? {
+            alt: alt ?? venue.venueName,
+            initials: initials ?? venue.venueName.slice(0, 2).toUpperCase(),
+            ...(url ? { url } : {}),
+          }
+        : undefined,
+    ...(predictionUncertainty ? { predictionUncertainty } : {}),
+  };
+}
+
+function normalizePredictionUncertainty(value: unknown): PredictionUncertaintyDto | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const { level, reasons } = value as {
+    level?: unknown;
+    reasons?: unknown;
+  };
+  if (!isPredictionUncertaintyLevel(level)) return undefined;
+  const normalizedReasons = normalizePredictionUncertaintyReasons(reasons);
+  if (normalizedReasons.length === 0) return undefined;
+  return {
+    level,
+    reasons: normalizedReasons,
+  };
+}
+
+function isPredictionUncertaintyLevel(
+  value: unknown,
+): value is PredictionUncertaintyLevel {
+  return (
+    typeof value === 'string' &&
+    PREDICTION_UNCERTAINTY_LEVELS.has(value as PredictionUncertaintyLevel)
+  );
+}
+
+function normalizePredictionUncertaintyReasons(
+  value: unknown,
+): PredictionUncertaintyReason[] {
+  if (!Array.isArray(value)) return [];
+  const reasons: PredictionUncertaintyReason[] = [];
+  const seen = new Set<PredictionUncertaintyReason>();
+  for (const rawReason of value) {
+    const reason = normalizePredictionUncertaintyReason(rawReason);
+    if (!reason || seen.has(reason)) continue;
+    seen.add(reason);
+    reasons.push(reason);
+  }
+  return reasons;
+}
+
+function normalizePredictionUncertaintyReason(
+  value: unknown,
+): PredictionUncertaintyReason | null {
+  if (typeof value !== 'string') return null;
+  const reason = value.trim();
+  if (!reason) return null;
+  if (PREDICTION_UNCERTAINTY_REASONS.has(reason as PredictionUncertaintyReason)) {
+    return reason as PredictionUncertaintyReason;
+  }
+  return 'other';
+}
+
+function normalizeShortText(value: string | undefined, maxLength: number): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  return Array.from(trimmed).slice(0, maxLength).join('');
+}
+
+function normalizeInitials(value: string | undefined): string | undefined {
+  const trimmed = normalizeShortText(value, MAX_THUMBNAIL_INITIALS_LENGTH);
+  return trimmed?.toUpperCase();
+}
+
+function normalizeThumbnailUrl(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.startsWith('/')) return trimmed;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol === 'https:' || url.protocol === 'http:') return url.toString();
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}

@@ -43,7 +43,7 @@ function MapViewLoadingFallback() {
   const forcedState = useForcedState();
   if (
     process.env.NODE_ENV === 'production' ||
-    forcedState !== 'venue-detail' ||
+    (forcedState !== 'venue-detail' && forcedState !== 'feedback') ||
     !ForcedVenueDetailInitialFrame
   ) {
     return <MapLoadingFallback />;

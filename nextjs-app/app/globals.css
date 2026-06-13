@@ -270,6 +270,38 @@
   width: var(--size-search-desktop-w);
 }
 
+@utility min-h-venue-card {
+  min-height: var(--size-venue-card);
+}
+
+@utility min-h-venue-card-skeleton {
+  min-height: var(--size-venue-card-skeleton);
+}
+
+@utility h-venue-card-thumb {
+  height: var(--size-venue-card-thumb);
+}
+
+@utility w-venue-card-thumb {
+  width: var(--size-venue-card-thumb);
+}
+
+@utility h-venue-card-thumb-compact {
+  height: var(--size-venue-card-thumb-compact);
+}
+
+@utility w-venue-card-thumb-compact {
+  width: var(--size-venue-card-thumb-compact);
+}
+
+@utility h-venue-card-skeleton-image-h {
+  height: var(--size-venue-card-skeleton-image-h);
+}
+
+@utility w-venue-card-skeleton-image-w {
+  width: var(--size-venue-card-skeleton-image-w);
+}
+
 @utility w-venue-detail-panel {
   width: var(--size-venue-detail-panel-w);
 }

@@ -1,0 +1,6 @@
+--- Visual validation: venue-detail ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=14:00
+Waiting for selector [data-testid="mobile-venue-detail-sheet"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-WAhiAz.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with all key UI components present and correctly positioned — hero image area with sun percentage badge, favorite/close buttons, venue title with open status pill, sun forecast chart, description text, feature tags, and the four info cards (distance, exposure, best time, outdoor seats) all render correctly with matching colours and layout structure.

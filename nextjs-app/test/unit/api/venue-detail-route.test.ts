@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 import { GET } from '@/app/api/venues/[slug]/route';
 import { formatPlannerTime, parsePlannerTime, sunSeasonBounds } from '@/lib/utils/time-planner';
 import type { GetVenueDetailResponse } from '@/lib/types/api';
+import { expectNoSensitiveSourceTerms } from '../../setup/sensitive-source-terms';
 
 function makeRequest(slug: string, query = ''): NextRequest {
   return new NextRequest(`http://localhost/api/venues/${slug}${query}`);
@@ -10,12 +11,14 @@ function makeRequest(slug: string, query = ''): NextRequest {
 
 describe('GET /api/venues/[slug]', () => {
   beforeEach(() => {
+    vi.unstubAllEnvs();
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-05-26T10:15:00.000Z'));
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
 
   it('returns the detail DTO for a known venue slug', async () => {
@@ -57,6 +60,20 @@ describe('GET /api/venues/[slug]', () => {
     expect(res.headers.get('x-weather-updated-at')).toBeNull();
     expect(body.meta).toMatchObject({ sunDataSource: 'geometry-only' });
     expect(body.meta?.weatherUpdatedAt).toBeUndefined();
+  });
+
+  it('serves venue detail when only review summary persistence is unavailable', async () => {
+    vi.stubEnv('SUNNYSEAT_REVIEW_PERSISTENCE', 'supabase');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
+
+    const res = await GET(makeRequest('test-venue-sunny'), {
+      params: Promise.resolve({ slug: 'test-venue-sunny' }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenueDetailResponse;
+    expect(body.venue.slug).toBe('test-venue-sunny');
+    expect(body.venue.reviewSummary).toBeUndefined();
   });
 
   it('computes detail distance from canonical coordinates when supplied', async () => {
@@ -108,6 +125,21 @@ describe('GET /api/venues/[slug]', () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as GetVenueDetailResponse;
     expect(body.venue.shadowWarningMinutes).toBe(0);
+  });
+
+  it('returns sanitized prediction uncertainty metadata for venue detail', async () => {
+    const res = await GET(makeRequest('brygghuset-lerum'), {
+      params: Promise.resolve({ slug: 'brygghuset-lerum' }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenueDetailResponse;
+    expect(body.venue.predictionUncertainty).toEqual({
+      level: 'medium',
+      reasons: ['vegetation', 'awning', 'seasonal_furniture'],
+    });
+
+    expectNoSensitiveSourceTerms(JSON.stringify(body));
   });
 
   it('applies selected planner date/time to venue detail and timeline', async () => {

@@ -3,11 +3,13 @@
 import { Suspense, type ReactNode, useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
+import { AMBER_CTA_BUTTON_CLASSNAME } from '@/components/composed/shared/AmberCTAButton';
 import { useForcedState } from '@/lib/dev/use-forced-state';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import { DURATION_FLY_MS } from '@/lib/constants/animation';
+import { cn } from '@/lib/utils';
 import { OnboardingScreen } from './OnboardingScreen';
 
 const isDev = process.env.NODE_ENV !== 'production';
@@ -58,6 +60,7 @@ function OnboardingGateInner() {
   const t = useTranslations('onboarding');
   const forcedState = useForcedState();
   const isForced = forcedState === 'onboarding';
+  const bypassForVisualState = Boolean(forcedState && forcedState !== 'onboarding');
   const { mapInstance } = useMapInstance();
 
   // The server cannot read localStorage. Until the first client effect
@@ -126,8 +129,8 @@ function OnboardingGateInner() {
     setPendingFly(null);
   }, []);
 
-  const shouldShow = hasReadFlag && !dismissed && (isForced || !hasOnboarded);
-  const shouldBlockAppShell = !dismissed && (!hasReadFlag || isForced || !hasOnboarded);
+  const shouldShow = !bypassForVisualState && hasReadFlag && !dismissed && (isForced || !hasOnboarded);
+  const shouldBlockAppShell = !bypassForVisualState && !dismissed && (!hasReadFlag || isForced || !hasOnboarded);
 
   useEffect(() => {
     if (!shouldBlockAppShell || typeof document === 'undefined') return;
@@ -155,6 +158,8 @@ function OnboardingGateInner() {
       }
     };
   }, [shouldBlockAppShell]);
+
+  if (bypassForVisualState) return null;
 
   if (!hasReadFlag && !dismissed) {
     return (
@@ -229,7 +234,7 @@ function OnboardingGatePlaceholder({
         </p>
       </div>
       <div className="relative z-10">
-        <div className="w-full h-14 rounded-pill gradient-cta-amber shadow-cta flex items-center justify-center gap-2 text-amber-cta-text font-bold text-[16px] tracking-[-0.01em]">
+        <div className={cn(AMBER_CTA_BUTTON_CLASSNAME, 'h-14 w-full text-[16px] font-bold tracking-[-0.01em]')}>
           {primaryCta}
         </div>
         <div className="w-full mt-[18px] min-h-11 flex items-center justify-center bg-transparent text-white/90 underline underline-offset-4 text-body-sm font-bold">

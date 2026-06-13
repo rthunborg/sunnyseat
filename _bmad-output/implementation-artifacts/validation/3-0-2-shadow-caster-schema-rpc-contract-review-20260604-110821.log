@@ -1,0 +1,40 @@
+SunnySeat story review gate
+Story: 3-0-2-shadow-caster-schema-rpc-contract
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-0-2-shadow-caster-schema-rpc-contract-review-20260604-110821.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/3-0-2-shadow-caster-schema-rpc-contract.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  42 passed (42)
+      Tests  365 passed (365)
+   Start at  11:08:38
+   Duration  23.22s (transform 9.04s, setup 30.11s, import 37.93s, tests 47.84s, environment 143.29s)
+
+Skipping visual validation: no mapped screen ID found in story file
+Updated sprint status: 3-0-2-shadow-caster-schema-rpc-contract -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-0-2-shadow-caster-schema-rpc-contract-review-20260604-110821.log

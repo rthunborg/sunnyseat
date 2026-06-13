@@ -22,6 +22,56 @@
     "sunUnavailable": "Sun time unavailable",
     "sunWindow": "Sun {start}–{end}"
   },
+  "route": {
+    "overlayTitle": "Route to {name}",
+    "loading": "Opening maps",
+    "walkEstimate": "about {minutes} min walk",
+    "walkEstimateCompact": "about {minutes} min",
+    "bikeEstimate": "about {minutes} min bike",
+    "unavailable": "Open maps for directions",
+    "openMaps": "OPEN IN MAPS",
+    "close": "Close route",
+    "confidence": "Confidence",
+    "confidenceApproximate": "about",
+    "confidenceUnavailable": "Confidence unavailable",
+    "directionFallback": "toward {neighborhood}",
+    "directions": {
+      "north": "north",
+      "northeast": "northeast",
+      "east": "east",
+      "southeast": "southeast",
+      "south": "south",
+      "southwest": "southwest",
+      "west": "west",
+      "northwest": "northwest"
+    }
+  },
+  "uncertainty": {
+    "description": "SunnySeat models sun position, building shadows, and weather. Trees, awnings, umbrellas, bridges, and temporary structures can affect conditions on site.",
+    "accessible": "{label}. {description}",
+    "levels": {
+      "low": "Low uncertainty",
+      "medium": "Prediction uncertainty",
+      "high": "More uncertain forecast"
+    },
+    "short": {
+      "building_shadow_coverage": "Building shadows are less certain",
+      "obstruction": "Local obstructions can affect conditions",
+      "weather": "Weather makes the forecast less certain",
+      "other": "Local conditions can affect this place"
+    },
+    "reasons": {
+      "building_shadow_coverage": "Building shadows are calculated with limited coverage here.",
+      "vegetation": "Trees can affect this place.",
+      "awning": "Awnings can affect this place.",
+      "umbrella": "Umbrellas can affect this place.",
+      "bridge": "Bridges can affect this place.",
+      "temporary_structure": "Temporary structures can affect this place.",
+      "seasonal_furniture": "Seasonal furniture can affect this place.",
+      "weather": "Weather makes the forecast less certain.",
+      "other": "Local conditions can affect this place."
+    }
+  },
   "planner": {
     "panelLabel": "Plan sun time",
     "today": "Today",
@@ -87,6 +137,10 @@
     "photoPlaceholder": "Venue placeholder image",
     "loading": "Loading venue details",
     "detailsUnavailable": "Details unavailable",
+    "notFound": "Venue not found.",
+    "loadFailed": "Could not load the venue.",
+    "retry": "Try again",
+    "backToMap": "Back to map",
     "openingHours": "Opening hours",
     "address": "Address",
     "shadowWarning": "Shady in {minutes} min",

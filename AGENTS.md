@@ -9,7 +9,7 @@ This file is the canonical repo-level rulebook for Codex and other AI coding age
 > **Working directory:** The repository root (`C:\Users\Rasmus\sunnyseat\`) is **not** the Next.js app root. The application lives in `nextjs-app/`. Git operations and planning-doc reads happen from the root. All `npm`/`npx` app commands must run from `nextjs-app/`.
 
 - Frontend: Next.js 16.2.2 App Router, TypeScript strict, Tailwind CSS v4 CSS-first `@theme`, shadcn/ui v4, MapLibre GL JS 5.x, TanStack Query 5.x, Motion 12.x (`motion/react`), `@use-gesture/react`, `cmdk`, `next-intl`, Serwist, `date-fns-tz`
-- Backend: Supabase PostgreSQL 15 + PostGIS, Next.js API routes, Zod v4, JWT admin auth, dormant Future Monetization Swish Merchant API, Met.no Locationforecast 2.0
+- Backend: Supabase PostgreSQL 15 + PostGIS, Next.js API routes, Zod v4, server-only Supabase service-role infrastructure, dormant Future Monetization Swish Merchant API, Met.no Locationforecast 2.0
 - Deployment: Vercel
 
 ### Commands
@@ -30,6 +30,14 @@ Agents normally run commands through PowerShell in this checkout. Do not execute
 
 If invoking Git Bash manually, use `C:\Program Files\Git\bin\bash.exe` explicitly. Do not rely on `bash` from `PATH`.
 
+### Local Docker / WSL Rules
+
+Use the project-local Compose files from the repository root: `compose.yaml` for persistent development PostGIS and `compose.test.yaml` for disposable test PostGIS. Docker-heavy work should run from a WSL/Linux filesystem checkout such as `/home/rasmus/repos/sunnyseat`, not `/mnt/c/...` or `/mnt/d/...`.
+
+Do not start ad hoc containers with fixed names or fixed host ports. Let Compose scope containers by project name, keep published ports bound to `127.0.0.1`, and override defaults through `.env` when needed. Inside Compose networks, services must talk to Postgres by service name (`postgres:5432`), not `localhost`.
+
+Stop dev infrastructure with `docker compose -f compose.yaml down`; reset persistent dev data with `docker compose -f compose.yaml down -v`. Stop and clear disposable test infrastructure with `docker compose -f compose.test.yaml down -v`. Do not create global Docker networks, volumes, daemon settings, or Docker Desktop/WSL changes unless explicitly asked.
+
 ## Repository Layout
 
 ```text
@@ -38,6 +46,10 @@ If invoking Git Bash manually, use `C:\Program Files\Git\bin\bash.exe` explicitl
   CLAUDE.md                                  temporary Claude Code compatibility shim
   project-context.md                         durable project context and Screen ID -> Route Map
   CODEX_MIGRATION_NOTES.md                   Codex workflow migration notes
+  compose.yaml                               persistent local PostGIS infrastructure
+  compose.test.yaml                          disposable local test PostGIS infrastructure
+  .env.example                               safe local Docker defaults
+  docs/local-docker.md                       local Docker/WSL operating guide
 
   .codex/
     config.toml                              repo-local Codex defaults
@@ -58,6 +70,7 @@ If invoking Git Bash manually, use `C:\Program Files\Git\bin\bash.exe` explicitl
     implementation-artifacts/                local/gitignored sprint status, story files, validation artifacts
 
   building_geodata/                          large local geodata inputs
+  docker/postgres/init/                      local PostGIS init SQL
 
   nextjs-app/
     app/                                     Next.js App Router pages, layouts, API routes
@@ -69,7 +82,7 @@ If invoking Git Bash manually, use `C:\Program Files\Git\bin\bash.exe` explicitl
     lib/solar/                               existing sun/shadow engine; do not modify for frontend work
     lib/weather/                             existing Met.no adapter
     lib/supabase/                            existing Supabase clients/types
-    lib/middleware/                          existing auth/logging middleware
+    lib/middleware/                          existing logging middleware
     lib/buildings/                           existing building import helpers
     lib/query-keys.ts                        central TanStack Query key factory
     messages/                                next-intl translations, Swedish primary

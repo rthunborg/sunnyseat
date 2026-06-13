@@ -1,1 +1,7 @@
-{}
+{
+  "title": "How does SunnySeat work?",
+  "summary": "SunnySeat shows which outdoor seating areas appear to have direct sun right now.",
+  "model": "We model sun position, building shadows, and weather for each place.",
+  "uncertainty": "Trees, awnings, umbrellas, bridges, and temporary structures can affect real conditions on site.",
+  "guidance": "Use the forecast as guidance when choosing where to sit."
+}

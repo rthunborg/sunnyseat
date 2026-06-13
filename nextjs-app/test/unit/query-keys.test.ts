@@ -113,4 +113,12 @@ describe('queryKeys', () => {
       },
     ]);
   });
+
+  it('provides centralized review keys per venue identifier', () => {
+    expect(queryKeys.reviews.byVenue('test-venue-sunny')).toEqual([
+      'reviews',
+      'venue',
+      'test-venue-sunny',
+    ]);
+  });
 });

@@ -2,9 +2,11 @@
 
 > **Purpose:** This file is the BMAD dev agent's injection point for design awareness. BMAD's dev agent (Amelia) loads this as foundational reference in Step 2 of its workflow. It lives at the project root — not inside `_bmad/` — so it survives BMAD reinstalls without being overwritten.
 >
-> Last updated: 2026-05-28
+> Last updated: 2026-06-02
 >
 > **MVP scope correction:** planner, future date simulation, and favourites are free MVP functionality. Season Pass / Swish is Future Monetization only.
+>
+> **Shadow data correction:** `building_geodata/byggnad_kn1480.gpkg` is a 2D footprint source only and is not sufficient for shadow modelling by itself. MVP launch geodata is scoped to the central EPSG:3007 bbox `x=140000..150000, y=6390000..6410000` and adopts the combined open-data shadow-caster path documented in `_bmad-output/planning-artifacts/decisions/shadow-data-trust-realignment.md`.
 
 ---
 
@@ -29,7 +31,7 @@ A backend API application that helps people in Gothenburg find outdoor venue sea
 | Database | Supabase (PostgreSQL 15 + PostGIS) |
 | Sun Engine | TypeScript — NREL SPA + Turf.js (`nextjs-app/lib/solar/`) |
 | Weather | Met.no Locationforecast 2.0 (`nextjs-app/lib/weather/`) |
-| Auth (Admin) | JWT (bcryptjs + jsonwebtoken) |
+| Server Infrastructure | Supabase service-role clients for server-only backend jobs |
 | Payments | Swish Merchant API (Season Pass, Future Monetization only) |
 | Validation | Zod v4 |
 | Hosting | Vercel (Fluid Compute, Cron, CDN) |
@@ -37,9 +39,10 @@ A backend API application that helps people in Gothenburg find outdoor venue sea
 
 ### Current State
 
-- **Epics 1–3, 6, 6R, 7: Complete.** Backend foundation, sun/shadow engine, weather integration, platform migration from .NET/Azure to Next.js/Vercel/Supabase, admin operations platform.
-- **Front-end: Fully removed (2026-03-25).** Clean slate for the fresh rebuild.
-- **Front-end rebuild — in Epic 2.** Epic 1 is complete, Story 2.4 is done, and Story 2.5 is in correction under the 2026-05-19 MVP scope correction plus the 2026-05-21 Claude Design split. PRD v3.1 and `epics.md` make planner/date/favourites free and preserve Season Pass / Swish as Future Monetization. Active MVP QA planning uses `_bmad-output/qa/mvp-test-design-scope-correction-2026-05-19.md`; older TEA QA docs are historical/Future Monetization input where they mention premium/payment scope.
+- **Backend foundation, sun/shadow engine, weather integration, and platform migration are complete, but the building/shadow data contract is under correction.** The old assumption that `byggnad_kn1480.gpkg` alone supplied sufficient shadow-caster data is retired.
+- **Front-end rebuild Epic 1 and Epic 2 are complete.** Epic 3 has started only through Story 3.0, which removed the admin surface and adopted manual venue operations.
+- **Epic 3 feature work is paused before Story 3.1.** A seven-story "Epic 3 Prelude: Shadow Data Trust Realignment" block must be completed first: ADR/planning realignment, schema/RPC contract, import pipeline, geodata validation gates, confidence engine coverage semantics, Baskarta XYZ inventory/data-contract realignment, and uncertainty copy.
+- **Admin operations are retired from active scope.** Venue changes and geodata maintenance happen through reviewed direct database/import operations, not an admin UI/API.
 
 ---
 
@@ -56,6 +59,8 @@ A backend API application that helps people in Gothenburg find outdoor venue sea
 | MVP QA Addendum | `_bmad-output/qa/mvp-test-design-scope-correction-2026-05-19.md` |
 | Future Monetization Archive | `_bmad-output/planning-artifacts/future-monetization-season-pass.md` |
 | Design Decisions | `_bmad-output/planning-artifacts/decisions/` |
+| Shadow Data ADR | `_bmad-output/planning-artifacts/decisions/shadow-data-trust-realignment.md` |
+| Shadow Data Sprint Change Proposal | `_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-shadow-data-trust-realignment.md` |
 | Implementation Readiness Report | `_bmad-output/planning-artifacts/implementation-readiness-report-2026-04-15.md` |
 | Sprint Status | `_bmad-output/implementation-artifacts/sprint-status.yaml` |
 
@@ -190,5 +195,6 @@ This table is read by `scripts/story-review.sh` and `scripts/visual-validate.sh`
 - **Latitude:** 57.7089 | **Longitude:** 11.9746 | **Elevation:** 12m
 - **Timezone:** Europe/Stockholm (CET/CEST, UTC handled server-side)
 - **Sun season:** March–October (useful outdoor sun hours)
-- **Building data:** Lantmäteriet GeoPackage (.gpkg)
+- **MVP geodata bbox:** EPSG:3007 `x=140000..150000, y=6390000..6410000`
+- **Building/shadow data:** 2D Lantmäteriet footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation. Current runtime building casters are derived from the first validated Baskarta subset, `byggnad_l` roof/facade/shelter linework; broader Baskarta XYZ layers must be preflighted, classified, and kept inactive or low-confidence until validated. Runtime must use filtered/active shadow-caster records only; review/quarantine records are not runtime-active until spot-checked.
 - **Weather source:** Met.no (primary, free, Norwegian Meteorological Institute)

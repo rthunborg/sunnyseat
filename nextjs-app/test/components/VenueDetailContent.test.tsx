@@ -5,6 +5,8 @@ import {
   peakTimeFromTimeline,
 } from '@/components/composed/venue/VenueDetailContent';
 import type { VenueDataDto, VenueDetailDto } from '@/lib/types/api';
+import type { PredictionUncertaintyDisplayLabels } from '@/lib/utils/prediction-uncertainty-display';
+import { expectNoSensitiveSourceTerms } from '../setup/sensitive-source-terms';
 
 const LIST_VENUE: VenueDataDto = {
   id: '1',
@@ -46,6 +48,7 @@ const labels = {
   bestWindow: 'Bäst {start}-{end}',
   openMaps: 'ÖPPNA I KARTOR',
   route: 'Visa Rutt',
+  routeLoading: 'Öppnar kartor',
   photoPlaceholder: 'Platshållarbild för platsen',
   loading: 'Laddar platsdetaljer',
   detailsUnavailable: 'Detaljer saknas',
@@ -71,6 +74,34 @@ const labels = {
     sunnyWindow: 'Sol {start}-{end}',
     partialWindow: 'Delvis sol {start}-{end}',
     shadedWindow: 'Skugga {start}-{end}',
+  },
+};
+
+const uncertaintyLabels: PredictionUncertaintyDisplayLabels = {
+  description:
+    'Vi räknar på solens läge, byggnadsskuggor och väder. Träd, markiser, parasoller, broar och tillfälliga konstruktioner kan påverka platsen.',
+  accessible: '{label}. {description}',
+  levels: {
+    low: 'Låg osäkerhet',
+    medium: 'Osäker prognos',
+    high: 'Mer osäker prognos',
+  },
+  short: {
+    building_shadow_coverage: 'Byggnadsskuggor mer osäkra',
+    obstruction: 'Lokala hinder kan påverka',
+    weather: 'Vädret gör prognosen osäkrare',
+    other: 'Lokala förhållanden kan påverka',
+  },
+  reasons: {
+    building_shadow_coverage: 'Byggnadsskuggorna är beräknade med begränsad täckning här.',
+    vegetation: 'Träd kan påverka platsen.',
+    awning: 'Markiser kan påverka platsen.',
+    umbrella: 'Parasoller kan påverka platsen.',
+    bridge: 'Broar kan påverka platsen.',
+    temporary_structure: 'Tillfälliga konstruktioner kan påverka platsen.',
+    seasonal_furniture: 'Säsongsmöbler kan påverka platsen.',
+    weather: 'Vädret gör prognosen mer osäker.',
+    other: 'Lokala förhållanden kan påverka platsen.',
   },
 };
 
@@ -101,9 +132,45 @@ describe('VenueDetailContent', () => {
     expect(screen.getByText('Säkerhet 92%')).toHaveClass('sr-only');
     expect(screen.getByRole('link', { name: /ÖPPNA I KARTOR/i })).toHaveAttribute(
       'href',
-      expect.stringContaining('57.705'),
+      'https://www.google.com/maps/search/?api=1&query=57.705%2C11.97',
+    );
+    expect(screen.getByRole('link', { name: /ÖPPNA I KARTOR/i })).toHaveAttribute(
+      'rel',
+      'noopener noreferrer',
     );
     expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeEnabled();
+  });
+
+  it('renders route estimate copy and a scoped loading label on the primary CTA', () => {
+    const { rerender } = render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        routeEstimateLabel="ca 11 min promenad"
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('ca 11 min promenad')).toBeInTheDocument();
+
+    rerender(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        routeEstimateLabel="ca 11 min promenad"
+        isRouteLoading
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Öppnar kartor' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
   });
 
   it('uses token-backed venue detail hero heights', () => {
@@ -190,6 +257,37 @@ describe('VenueDetailContent', () => {
     expect(screen.getByLabelText('95% sol')).toBeInTheDocument();
   });
 
+  it('renders a concise uncertainty note near the sun forecast context', () => {
+    const { container } = render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={{
+          ...DETAIL,
+          predictionUncertainty: {
+            level: 'medium',
+            reasons: ['vegetation', 'source_layer' as never, 'awning', 'seasonal_furniture'],
+          },
+        }}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        currentTime="15:30"
+        labels={{ ...labels, uncertainty: uncertaintyLabels }}
+        onRoute={() => undefined}
+      />,
+    );
+
+    const note = screen.getByText('Osäker prognos').closest('p');
+    expect(note).toHaveTextContent('Lokala hinder kan påverka');
+    expect(note).toHaveTextContent(
+      'Vi räknar på solens läge, byggnadsskuggor och väder',
+    );
+    expect(note).toHaveTextContent('Träd kan påverka platsen');
+    expect(note).toHaveClass('bg-surface-sand');
+    expectNoSensitiveSourceTerms(container);
+  });
+
   it('shows the venue name immediately while detail fields are loading', () => {
     render(
       <VenueDetailContent
@@ -207,7 +305,7 @@ describe('VenueDetailContent', () => {
     expect(screen.getAllByTestId('venue-detail-skeleton').length).toBeGreaterThan(1);
   });
 
-  it('does not render future feedback or review flows in this story', () => {
+  it('does not render feedback or review slots unless explicitly provided', () => {
     render(
       <VenueDetailContent
         fallbackVenue={LIST_VENUE}
@@ -221,6 +319,70 @@ describe('VenueDetailContent', () => {
     expect(screen.queryByText(/Lämna ett omdöme/i)).toBeNull();
     expect(screen.queryByText(/Stämmer sol/i)).toBeNull();
     expect(screen.queryByRole('textbox')).toBeNull();
+  });
+
+  it('renders explicit review slots below the route CTA', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+        reviewSlot={<section aria-label="Omdömen">Lämna ett omdöme</section>}
+      />,
+    );
+
+    const routeButton = screen.getByRole('button', { name: 'Visa Rutt' });
+    const reviewSection = screen.getByLabelText('Omdömen');
+    expect(reviewSection).toHaveTextContent('Lämna ett omdöme');
+    expect(routeButton.compareDocumentPosition(reviewSection)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it('uses review-backed summary metadata in venue detail headers', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={{
+          ...DETAIL,
+          reviewSummary: {
+            averageRating: 4.5,
+            reviewCount: 2,
+          },
+        }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('4.5')).toBeInTheDocument();
+    expect(screen.getByText('(2)')).toBeInTheDocument();
+    expect(screen.queryByText('(842)')).toBeNull();
+  });
+
+  it('does not fall back to fixture ratings when review summary has no average', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={{
+          ...DETAIL,
+          reviewSummary: {
+            averageRating: null,
+            reviewCount: 1,
+          },
+        }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('-')).toBeInTheDocument();
+    expect(screen.getByText('(1)')).toBeInTheDocument();
+    expect(screen.queryByText('4.7')).toBeNull();
   });
 
   it('uses projected sun windows for mobile detail timeline output', () => {

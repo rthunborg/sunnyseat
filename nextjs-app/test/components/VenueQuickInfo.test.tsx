@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { VenueQuickInfo } from '@/components/composed/venue/VenueQuickInfo';
+import type { PredictionUncertaintyDisplayLabels } from '@/lib/utils/prediction-uncertainty-display';
+import { expectNoSensitiveSourceTerms } from '../setup/sensitive-source-terms';
 
 const motionState = vi.hoisted(() => ({
   shouldReduceMotion: false,
@@ -56,8 +58,37 @@ const labels = {
   distance: 'Avstånd',
   loadingSun: 'Laddar soldata',
   sunUnavailable: 'Soltid saknas',
+  routeLoading: 'Öppnar kartor',
   favouriteAdd: 'Spara som favorit',
   favouriteRemove: 'Ta bort favorit',
+};
+
+const uncertaintyLabels: PredictionUncertaintyDisplayLabels = {
+  description:
+    'Vi räknar på solens läge, byggnadsskuggor och väder. Träd, markiser, parasoller, broar och tillfälliga konstruktioner kan påverka platsen.',
+  accessible: '{label}. {description}',
+  levels: {
+    low: 'Låg osäkerhet',
+    medium: 'Osäker prognos',
+    high: 'Mer osäker prognos',
+  },
+  short: {
+    building_shadow_coverage: 'Byggnadsskuggor mer osäkra',
+    obstruction: 'Lokala hinder kan påverka',
+    weather: 'Vädret gör prognosen osäkrare',
+    other: 'Lokala förhållanden kan påverka',
+  },
+  reasons: {
+    building_shadow_coverage: 'Byggnadsskuggorna är beräknade med begränsad täckning här.',
+    vegetation: 'Träd kan påverka platsen.',
+    awning: 'Markiser kan påverka platsen.',
+    umbrella: 'Parasoller kan påverka platsen.',
+    bridge: 'Broar kan påverka platsen.',
+    temporary_structure: 'Tillfälliga konstruktioner kan påverka platsen.',
+    seasonal_furniture: 'Säsongsmöbler kan påverka platsen.',
+    weather: 'Vädret gör prognosen mer osäker.',
+    other: 'Lokala förhållanden kan påverka platsen.',
+  },
 };
 
 describe('<VenueQuickInfo />', () => {
@@ -101,6 +132,46 @@ describe('<VenueQuickInfo />', () => {
     expect(screen.getByRole('button', { name: 'Mer Info' })).toBeInTheDocument();
   });
 
+  it('renders an approximate route estimate and loading state on the route CTA', () => {
+    const route = vi.fn();
+    const { rerender } = render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        routeEstimateLabel="ca 11 min promenad"
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={route}
+        labels={labels}
+      />,
+    );
+
+    expect(screen.getByText('ca 11 min promenad')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Visa Rutt, ca 11 min promenad' }));
+    expect(route).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        routeEstimateLabel="ca 11 min promenad"
+        isRouteLoading
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={route}
+        labels={labels}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Öppnar kartor' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+    expect(screen.getByText('ca 11 min promenad')).toBeInTheDocument();
+  });
+
   it('does not render a leading separator before non-anchored confidence metadata', () => {
     render(
       <VenueQuickInfo
@@ -124,6 +195,37 @@ describe('<VenueQuickInfo />', () => {
 
     const metadata = screen.getByText(/Säkerhet:/).closest('p');
     expect(metadata?.textContent?.trim()).toMatch(/^Säkerhet:/);
+  });
+
+  it('renders uncertainty text for the selected map surface', () => {
+    const { container } = render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Brygghuset Lerum"
+        sunTimeRange="Sol 13:35–16:50"
+        confidencePercent={66}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        predictionUncertainty={{
+          level: 'medium',
+          reasons: ['vegetation', 'source_layer' as never, 'awning', 'seasonal_furniture'],
+        }}
+        sunExposurePercent={58}
+        distanceMeters={420}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={{ ...labels, uncertainty: uncertaintyLabels }}
+      />,
+    );
+
+    expect(screen.getByTestId('venue-quick-info')).toHaveTextContent('Osäker prognos');
+    expect(screen.getByTestId('venue-quick-info')).toHaveTextContent('Lokala hinder kan påverka');
+    expect(screen.getByText(/Träd kan påverka platsen/)).toHaveClass('sr-only');
+    expectNoSensitiveSourceTerms(container);
   });
 
   it('marks stale confidence as approximate and hides geometry-only confidence', () => {

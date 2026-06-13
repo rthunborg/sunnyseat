@@ -1,9 +1,9 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-let _supabaseAdmin: SupabaseClient | null = null;
+let _supabaseServiceRole: SupabaseClient | null = null;
 
-export function getSupabaseAdmin(): SupabaseClient {
-  if (_supabaseAdmin) return _supabaseAdmin;
+export function getSupabaseServiceRole(): SupabaseClient {
+  if (_supabaseServiceRole) return _supabaseServiceRole;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -12,19 +12,19 @@ export function getSupabaseAdmin(): SupabaseClient {
     throw new Error('Missing Supabase environment variables. Please check your .env.local file.');
   }
 
-  _supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  _supabaseServiceRole = createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
   });
 
-  return _supabaseAdmin;
+  return _supabaseServiceRole;
 }
 
-// Backward-compatible export — lazily initialized
-export const supabaseAdmin = new Proxy({} as SupabaseClient, {
+// Lazily initialized server-only client using the Supabase service-role key.
+export const supabaseServiceRole = new Proxy({} as SupabaseClient, {
   get(_target, prop) {
-    return Reflect.get(getSupabaseAdmin(), prop);
+    return Reflect.get(getSupabaseServiceRole(), prop);
   },
 });

@@ -8,12 +8,13 @@ import {
   Footprints,
   ImageIcon,
   MapPin,
-  Navigation,
   Star,
   Sun,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { RouteButton } from '@/components/composed/routing/RouteButton';
 import { SunTimeline, type SunTimelineLabels } from '@/components/composed/venue/SunTimeline';
+import { buildGoogleMapsSearchUrl } from '@/lib/services/routing';
 import type { SunFreshnessMeta, VenueDataDto, VenueDetailDto } from '@/lib/types/api';
 import {
   formatPeakHour,
@@ -25,6 +26,10 @@ import {
   getConfidenceDisplayState,
   type ConfidenceDisplayLabels,
 } from '@/lib/utils/confidence-display';
+import {
+  getPredictionUncertaintyDisplay,
+  type PredictionUncertaintyDisplayLabels,
+} from '@/lib/utils/prediction-uncertainty-display';
 import { formatPlannerTime } from '@/lib/utils/time-planner';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +39,7 @@ export type VenueDetailContentLabels = {
   bestWindow?: string;
   openMaps: string;
   route: string;
+  routeLoading: string;
   photoPlaceholder: string;
   loading: string;
   detailsUnavailable: string;
@@ -54,6 +60,7 @@ export type VenueDetailContentLabels = {
     outdoorSeats: string;
   };
   timeline: SunTimelineLabels;
+  uncertainty?: PredictionUncertaintyDisplayLabels;
 };
 
 export type VenueDetailContentProps = {
@@ -65,9 +72,13 @@ export type VenueDetailContentProps = {
   isLoading?: boolean;
   className?: string;
   onRoute: () => void;
+  routeEstimateLabel?: string;
+  isRouteLoading?: boolean;
   routeDisabled?: boolean;
   mode?: 'mobile' | 'desktop';
   locale?: string;
+  feedbackSlot?: React.ReactNode;
+  reviewSlot?: React.ReactNode;
 };
 
 export function VenueDetailContent({
@@ -79,9 +90,13 @@ export function VenueDetailContent({
   isLoading = false,
   className,
   onRoute,
+  routeEstimateLabel,
+  isRouteLoading = false,
   routeDisabled = false,
   mode = 'mobile',
   locale = 'sv',
+  feedbackSlot,
+  reviewSlot,
 }: VenueDetailContentProps) {
   const venue = detail ?? fallbackVenue;
   const loading = isLoading && !detail;
@@ -97,6 +112,12 @@ export function VenueDetailContent({
     meta: confidenceMeta,
     labels: confidenceDisplayLabels(labels),
   });
+  const uncertaintyDisplay = labels.uncertainty
+    ? getPredictionUncertaintyDisplay({
+        predictionUncertainty: venue.predictionUncertainty,
+        labels: labels.uncertainty,
+      })
+    : null;
 
   return (
     <article
@@ -126,7 +147,7 @@ export function VenueDetailContent({
             <span className="flex items-center gap-1">
               <Star aria-hidden="true" className="size-4 fill-amber-gold text-amber-gold" />
               <span className="font-bold text-text-primary">{metadata.rating}</span>
-              <span className="text-text-muted">({metadata.reviewCount})</span>
+              <span className="text-text-body">({metadata.reviewCount})</span>
             </span>
             <span className="hidden text-text-faint lg:inline">·</span>
             <span className="hidden lg:inline">{metadata.price}</span>
@@ -136,6 +157,8 @@ export function VenueDetailContent({
             <LoadingBlock label={labels.loading} />
           ) : null}
         </header>
+
+        {feedbackSlot}
 
         {isDesktop && !loading ? (
           <p className="text-body-lg text-text-body">
@@ -194,6 +217,19 @@ export function VenueDetailContent({
                 labels={labels.timeline}
               />
             )
+          )}
+          {!loading && uncertaintyDisplay && (
+            <p className="mt-3 rounded-card bg-surface-sand px-3 py-2 text-body-sm-medium text-text-body">
+              <span className="font-bold text-text-primary">
+                {uncertaintyDisplay.visibleLabel}
+              </span>
+              <span className="text-text-faint"> · </span>
+              <span>{uncertaintyDisplay.visibleSummary}</span>
+              <span className="mt-1 block text-body-sm text-text-body">
+                {uncertaintyDisplay.descriptionText}
+              </span>
+              <span className="sr-only"> {uncertaintyDisplay.reasonText.join(' ')}</span>
+            </p>
           )}
         </section>
 
@@ -287,8 +323,8 @@ export function VenueDetailContent({
                 <p>{detail?.address ?? labels.detailsUnavailable}</p>
                 <a
                   className="mt-2 inline-flex min-h-11 items-center gap-1 rounded-pill text-label-md text-amber-dark outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
-                  href={mapsUrl(detail ?? fallbackVenue)}
-                  rel="noreferrer"
+                  href={buildGoogleMapsSearchUrl(detail ?? fallbackVenue)}
+                  rel="noopener noreferrer"
                   target="_blank"
                 >
                   {labels.openMaps}
@@ -308,16 +344,17 @@ export function VenueDetailContent({
           )}
         </div>
 
-        <button
-          type="button"
-          aria-disabled={routeDisabled}
+        <RouteButton
+          label={labels.route}
+          loadingLabel={labels.routeLoading}
+          estimateLabel={routeEstimateLabel}
+          isLoading={isRouteLoading}
           disabled={routeDisabled}
-          onClick={routeDisabled ? undefined : onRoute}
-          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-pill gradient-route-button px-5 text-label-lg text-text-primary shadow-route-button outline-none focus-visible:ring-2 focus-visible:ring-text-primary disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <Navigation aria-hidden="true" className="size-5" />
-          {labels.route}
-        </button>
+          onClick={onRoute}
+          className="w-full text-text-primary"
+        />
+
+        {reviewSlot}
       </div>
     </article>
   );
@@ -530,15 +567,6 @@ function timelineFromListVenue(venue: VenueDataDto): VenueDetailDto['timeline'] 
       ? [{ ...venue.sunWindow, status: venue.currentSunStatus }]
       : [],
   };
-}
-
-function mapsUrl(venue: VenueDetailDto | VenueDataDto): string {
-  const query = Number.isFinite(venue.location.lat) && Number.isFinite(venue.location.lng)
-    ? `${venue.location.lat},${venue.location.lng}`
-    : 'address' in venue && venue.address
-      ? venue.address
-      : venue.venueName;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
 function parseHour(time: string): number {

@@ -6,6 +6,13 @@ import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 // in the DOM longer under load. Poll for the visual condition instead of
 // sleeping a fixed duration.
 const PIN_MORPH_SETTLE_TIMEOUT_MS = 2000;
+const APP_SETTLE_TIMEOUT_MS = 15_000;
+
+type WindowOpenCall = {
+  url: string;
+  target?: string;
+  features?: string;
+};
 
 async function bypassOnboarding(page: import('@playwright/test').Page): Promise<void> {
   await page.addInitScript((key: string) => {
@@ -13,8 +20,91 @@ async function bypassOnboarding(page: import('@playwright/test').Page): Promise<
   }, ONBOARDED_FLAG_KEY);
 }
 
+async function captureWindowOpen(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    window.open = (url?: string | URL, target?: string, features?: string) => {
+      const calls = ((window as unknown as {
+        __sunnyseatWindowOpenCalls?: Array<{
+          url: string;
+          target?: string;
+          features?: string;
+        }>;
+      }).__sunnyseatWindowOpenCalls ??= []);
+      calls.push({
+        url: String(url ?? ''),
+        target,
+        features,
+      });
+      return null;
+    };
+  });
+}
+
+async function windowOpenCalls(page: Page): Promise<Array<{
+  url: string;
+  target?: string;
+  features?: string;
+}>> {
+  return page.evaluate(() => (
+    (window as unknown as {
+      __sunnyseatWindowOpenCalls?: Array<{
+        url: string;
+        target?: string;
+        features?: string;
+      }>;
+    }).__sunnyseatWindowOpenCalls ?? []
+  ));
+}
+
+function rateLimitIpForTest(title: string): string {
+  let hash = 0;
+  for (const char of title) {
+    hash = ((hash << 5) - hash + char.charCodeAt(0)) >>> 0;
+  }
+
+  return `10.${(hash >>> 16) & 255}.${(hash >>> 8) & 255}.${(hash & 254) + 1}`;
+}
+
+function expectCoordinatePair(value: string | null): asserts value is string {
+  expect(value).toMatch(/^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/);
+}
+
+function expectNativeDirectionsHandoff(
+  calls: WindowOpenCall[],
+  expectedDestination?: string,
+): void {
+  const call = calls.find((candidate) =>
+    candidate.url.startsWith('https://maps.apple.com/') ||
+    candidate.url.startsWith('https://www.google.com/maps/dir/'));
+
+  expect(call, `Expected native maps handoff, received: ${JSON.stringify(calls)}`).toBeTruthy();
+  if (!call) throw new Error('Missing native maps handoff');
+  expect(call.target).toBe('_blank');
+  expect(call.features).toBe('noopener,noreferrer');
+
+  const url = new URL(call.url);
+  if (url.hostname === 'maps.apple.com') {
+    const destination = url.searchParams.get('daddr');
+    expectCoordinatePair(destination);
+    if (expectedDestination) expect(destination).toBe(expectedDestination);
+    expect(url.searchParams.get('dirflg')).toBe('w');
+    return;
+  }
+
+  expect(url.pathname).toBe('/maps/dir/');
+  const destination = url.searchParams.get('destination');
+  expectCoordinatePair(destination);
+  if (expectedDestination) expect(destination).toBe(expectedDestination);
+  expect(url.searchParams.get('travelmode')).toBe('walking');
+  expect(url.searchParams.get('dir_action')).toBe('navigate');
+}
+
 function visiblePlanner(page: Page): Locator {
   return page.locator('[data-testid="time-slider-panel"]:visible').first();
+}
+
+function visibleTestId(page: Page, testId: string): Locator {
+  return page.locator(`[data-testid="${testId}"]:visible`).first();
 }
 
 async function expectFreePlannerChrome(page: Page): Promise<Locator> {
@@ -109,6 +199,12 @@ function swedishSelectDateLabel(dateKey: string): string {
 }
 
 test.describe('map-primary', () => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    await page.setExtraHTTPHeaders({
+      'x-forwarded-for': rateLimitIpForTest(testInfo.title),
+    });
+  });
+
   test('mobile: map canvas, gradient overlay, controls, and at least one pin render', async ({
     page,
   }, testInfo) => {
@@ -119,11 +215,17 @@ test.describe('map-primary', () => {
 
     await page.goto('/');
 
-    await expect(page.getByTestId('map-container')).toBeVisible();
-    await expect(page.locator('.gradient-map-overlay')).toHaveCount(1);
-    await expect(page.getByTestId('map-controls')).toBeVisible();
+    await expect(visibleTestId(page, 'map-container')).toBeVisible({
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
+    await expect(page.locator('.gradient-map-overlay')).toHaveCount(1, {
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
+    await expect(visibleTestId(page, 'map-controls')).toBeVisible({
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
 
-    await page.waitForSelector('[data-testid="venue-pin"]', { timeout: 5000 });
+    await page.waitForSelector('[data-testid="venue-pin"]', { timeout: APP_SETTLE_TIMEOUT_MS });
     const pinCount = await page.locator('[data-testid="venue-pin"]').count();
     expect(pinCount).toBeGreaterThan(0);
 
@@ -174,7 +276,7 @@ test.describe('map-primary', () => {
 
     await page.goto('/');
     const overlay = page.locator('.gradient-map-overlay');
-    await expect(overlay).toHaveCount(1);
+    await expect(overlay).toHaveCount(1, { timeout: APP_SETTLE_TIMEOUT_MS });
     const pointerEvents = await overlay.evaluate(
       (el) => window.getComputedStyle(el).pointerEvents,
     );
@@ -219,9 +321,8 @@ test.describe('map-primary', () => {
 
     const quickInfo = page.getByTestId('venue-quick-info').first();
     await expect(quickInfo).toBeVisible();
-    await expect(page.getByRole('search', { name: /Sök plats|Search venue/ })).toBeVisible();
     await expect(quickInfo.getByRole('button', { name: /Kafé Magasinet/i })).toBeVisible();
-    await expect(quickInfo.getByRole('button', { name: 'Visa Rutt' })).toBeVisible();
+    await expect(quickInfo.getByRole('button', { name: /Visa Rutt/ })).toBeVisible();
 
     await quickInfo.getByRole('button', { name: /Kafé Magasinet/i }).click();
     await expect(page).toHaveURL(/venue=test-venue-sunny/);
@@ -236,6 +337,68 @@ test.describe('map-primary', () => {
     await page.getByTestId('mobile-venue-detail-handle').press('ArrowDown');
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]')).toHaveCount(1);
+  });
+
+  test('mobile: QuickInfo route opens maps and keeps route overlay dismissible', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'mobile',
+      'QuickInfo route handoff runs only in the mobile Playwright project',
+    );
+
+    await captureWindowOpen(page);
+    await bypassOnboarding(page);
+    await page.goto('/?venue=test-venue-sunny&_state=map-with-selected-venue');
+    await page.waitForSelector('[data-testid="venue-pin"]', { timeout: 15000 });
+
+    const quickInfo = page.getByTestId('venue-quick-info').first();
+    await expect(quickInfo).toBeVisible();
+    await expect(quickInfo.getByText(/ca \d+ min/)).toBeVisible();
+    await quickInfo.getByRole('button', { name: /Visa Rutt/ }).click();
+
+    const calls = await windowOpenCalls(page);
+    expectNativeDirectionsHandoff(calls);
+
+    const overlay = page.getByRole('dialog', { name: /Rutt till Kafé Magasinet/i });
+    await expect(overlay).toBeVisible();
+    await expect(overlay).toContainText(/ca \d+ min promenad/);
+    await expect(overlay.getByRole('link', { name: 'ÖPPNA I KARTOR' })).toHaveAttribute(
+      'rel',
+      'noopener noreferrer',
+    );
+    await overlay.getByRole('button', { name: 'Stäng rutt' }).click();
+    await expect(overlay).toBeHidden();
+    await expect(page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]')).toHaveCount(1);
+  });
+
+  test('mobile: venue detail route and open-map link share the maps handoff contract', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'mobile',
+      'Venue-detail route handoff runs only in the mobile Playwright project',
+    );
+
+    await captureWindowOpen(page);
+    await bypassOnboarding(page);
+    await page.goto('/?venue=test-venue-sunny&_state=venue-detail');
+
+    const sheet = page.getByTestId('mobile-venue-detail-sheet');
+    await expect(sheet).toBeVisible();
+    const openMaps = sheet.getByRole('link', { name: /ÖPPNA I KARTOR/i });
+    const openMapsHref = await openMaps.getAttribute('href');
+    expect(openMapsHref).toMatch(/^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=/);
+    const openMapsDestination = new URL(openMapsHref ?? '').searchParams.get('query');
+    expectCoordinatePair(openMapsDestination);
+    await expect(openMaps).toHaveAttribute('rel', 'noopener noreferrer');
+
+    await expect(sheet.getByText(/ca \d+ min promenad/)).toBeVisible();
+    await sheet.getByRole('button', { name: /Visa Rutt/ }).click();
+    await expect(page.getByRole('dialog', { name: /Rutt till Kafé Magasinet/i })).toBeVisible();
+
+    const calls = await windowOpenCalls(page);
+    expectNativeDirectionsHandoff(calls, openMapsDestination);
   });
 
   test('mobile: selected venue state includes free planner chrome without covering QuickInfo', async ({

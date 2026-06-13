@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 
+const APP_SETTLE_TIMEOUT_MS = 15_000;
+
 // e2e scope: routing, state-forcing, gate integration, dismissal.
 //
 // Locale: next-intl `localePrefix: 'as-needed'` honours `Accept-Language`
@@ -38,7 +40,9 @@ test.describe('Onboarding overlay', () => {
       window.localStorage.setItem(key, '1');
     }, ONBOARDED_FLAG_KEY);
     await page.goto('/');
-    await expect(page.getByTestId('map-container')).toBeVisible();
+    await expect(page.locator('[data-testid="map-container"]:visible').first()).toBeVisible({
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
     await expect(page.getByTestId('onboarding-screen')).toHaveCount(0);
   });
 });

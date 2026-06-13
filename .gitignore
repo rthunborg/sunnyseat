@@ -6,7 +6,9 @@ node_modules/
 out/
 
 # Environment files (contain secrets)
-.env*.local
+.env
+.env.*
+!.env.example
 
 # IDE / Editor
 .vscode/
@@ -14,7 +16,9 @@ out/
 .cursor/
 .claude/*
 !.claude/scripts/
-.claude/settings*.json
+!.claude/hooks/
+!.claude/settings.json
+.claude/settings.local.json
 .claude/worktrees/
 *.swp
 *.swo
@@ -35,6 +39,10 @@ scripts/*
 !scripts/visual-validate.sh
 !scripts/fetch-claude-design.sh
 !scripts/run-sh.ps1
+!scripts/geodata/
+!scripts/geodata/**
+scripts/geodata/**/__pycache__/
+scripts/geodata/**/*.py[cod]
 
 # Codex workflow files are project-owned; personal Codex state remains ignored by
 # default unless explicitly unignored here.
@@ -69,3 +77,7 @@ building_geodata/
 
 # Git worktrees
 .worktrees/
+
+# Local agent/tooling config (machine-specific; may carry tokens/link state)
+.mcp.json
+supabase/

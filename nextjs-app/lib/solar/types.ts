@@ -24,7 +24,50 @@ export interface SunTimes {
   longitude: number;
 }
 
-export type HeightSource = 'Surveyed' | 'Osm' | 'Heuristic' | 'AdminOverride';
+export type HeightSource = 'Surveyed' | 'Osm' | 'Heuristic' | 'ManualOverride';
+
+export type ShadowCasterTier = 'primary' | 'secondary' | 'uncertain' | 'unknown';
+export type ShadowCasterFilterDecision = 'include' | 'review' | 'exclude' | 'unknown';
+export type ShadowCasterClass = 'building' | 'structure' | 'vegetation' | 'manual_override' | 'unknown';
+
+export type ObstructionRiskClass =
+  | 'tree'
+  | 'awning'
+  | 'umbrella'
+  | 'bridge'
+  | 'temporary_structure'
+  | 'seasonal_furniture'
+  | 'other';
+
+export type ShadowDataCoverageStatus =
+  | 'eligible'
+  | 'blocked'
+  | 'insufficient_evidence'
+  | 'unknown';
+
+export interface ShadowDataCoverage {
+  clusterId: string | null;
+  clusterName: string | null;
+  status: ShadowDataCoverageStatus;
+  checkedCount: number;
+  agreementRate: number | null;
+  missingConditions: string[];
+  uncertaintyCounts: Partial<Record<ObstructionRiskClass | string, number>>;
+  evidenceFiles: string[];
+  allowsHighConfidence: boolean;
+  confidenceCap: number;
+}
+
+export interface RuntimeShadowCasterMetadata {
+  qualityScore: number;
+  sourcePriority?: number;
+  shadowCasterTier: ShadowCasterTier;
+  filterDecision: ShadowCasterFilterDecision;
+  casterClass: ShadowCasterClass;
+  sourceFlags: string[];
+  sourceObjectMetadata?: Record<string, unknown>;
+  provenanceMetadata?: Record<string, unknown>;
+}
 
 export interface Building {
   id: number;
@@ -35,6 +78,14 @@ export interface Building {
   externalId?: string;
   heightSource: HeightSource;
   buildingType?: string;
+  sourcePriority?: number;
+  shadowCasterTier?: ShadowCasterTier;
+  filterDecision?: ShadowCasterFilterDecision;
+  casterClass?: ShadowCasterClass;
+  sourceFlags?: string[];
+  sourceObjectMetadata?: Record<string, unknown>;
+  provenanceMetadata?: Record<string, unknown>;
+  obstructionRisks?: ObstructionRiskClass[];
 }
 
 export interface ShadowProjection {
@@ -46,6 +97,7 @@ export interface ShadowProjection {
   solarPosition: SolarPosition;
   timestamp: Date;
   confidence: number;
+  casterMetadata?: RuntimeShadowCasterMetadata;
 }
 
 export interface VenueShadowInfo {
@@ -58,6 +110,8 @@ export interface VenueShadowInfo {
   timestamp: Date;
   confidence: number;
   solarPosition: SolarPosition;
+  shadowDataCoverage?: ShadowDataCoverage;
+  obstructionRisks?: ObstructionRiskClass[];
 }
 
 export type SunState = 'Sunny' | 'Partial' | 'Shaded' | 'NoSun';

@@ -1,0 +1,41 @@
+SunnySeat story review gate
+Story: 3-0-6-ux-content-uncertainty-copy
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/3-0-6-ux-content-uncertainty-copy-review-20260607-132848.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/3-0-6-ux-content-uncertainty-copy.md
+Current sprint status: review
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  47 passed (47)
+      Tests  401 passed (401)
+   Start at  13:29:13
+   Duration  24.43s (transform 6.77s, setup 24.34s, import 34.36s, tests 46.05s, environment 145.98s)
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues&_time=14:00' viewport='mobile'
+--- Visual validation: map-panel-venues ---
+Navigating to http://localhost:3000/?_state=map-panel-venues&_time=14:00
+VISUAL GATE FAILED: Could not screenshot dev server at http://localhost:3000/?_state=map-panel-venues&_time=14:00
+Ensure the dev server is running before visual validation.
