@@ -77,3 +77,7 @@ building_geodata/
 
 # Git worktrees
 .worktrees/
+
+# Local agent/tooling config (machine-specific; may carry tokens/link state)
+.mcp.json
+supabase/

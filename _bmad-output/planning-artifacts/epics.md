@@ -1971,6 +1971,11 @@ So that I can coordinate plans by sending them the venue info.
 
 Users can learn how SunnySeat works, encounter a friendly 404, install the app as a PWA, and see a graceful offline state.
 
+> **Epic 3 alignment note (2026-06-12):** Three corrections from Epic 3 must be honoured when these stories are drafted:
+> 1. **Data sources / accuracy framing (7.1).** The shadow-data trust prelude (Stories 3.0.1–3.0.7) corrected the data-source model and the confidence semantics. The About page's data-source list and "träffsäkerhet" claim must reflect the real model (Lantmäteriet footprints + Göteborgs Stad Baskarta 3D `byggnad_l` + Göteborgs Stad Höjdmodell DTM + Met.no weather + OpenStreetMap fallback), use the conservative, coverage-gated confidence wording from Stories 3.0.5/3.0.6, and reconcile with the existing uncertainty copy in `messages/{sv,en}/about.json`. Public copy must not leak geodata internals (EPSG, Baskarta layer names, DTM, RPC/SQL names) per the Story 3.0.6 contract.
+> 2. **Shared CTA components (7.2).** "RouteButton" in the 404 AC predates Story 3.1, which made `components/composed/routing/RouteButton.tsx` the **native-maps directions** CTA. The 404 "Hitta soliga platser nu →" control is an in-app navigation to the map, so it must use a plain navigation CTA/link styled with `gradient-route-button`, **not** the routing `RouteButton` (which builds maps-directions URLs and opens the native-map handoff).
+> 3. **Real-data dependency.** The app is still fixture-backed. The About accuracy stat being truthful, and the offline shell's "venue data loads normally on reconnect" meaning real data, both depend on the new "Wire Real Data" epic landing first. Treat that epic as a prerequisite for 7.1's accuracy claim and sequence accordingly.
+
 ### Story 7.1: About Page
 
 As a **user**,
@@ -1986,8 +1991,8 @@ So that I can understand and trust the sun predictions.
 - "Hur fungerar SunnySeat?" heading
 - Hero photo (sunset/outdoor scene)
 - "ALGORITMEN" section explaining sun position calculations, shadow modeling, weather integration
-- "DATAKÄLLOR" section listing Lantmäteriet, Met.no, OpenStreetMap — each as a list item with icon
-- "TRÄFFSÄKERHET" section with large "85%" stat display on warm gradient background with explanation text
+- "DATAKÄLLOR" section listing the open data sources — Lantmäteriet (byggnadsfotavtryck), Göteborgs Stad öppna data (3D-byggnader och höjdmodell), Met.no (väder), OpenStreetMap — each as a list item with icon (user-safe source names only; no EPSG/layer/DTM/RPC internals per Story 3.0.6)
+- "TRÄFFSÄKERHET" section on warm gradient background with explanation text; the headline figure must come from the validated, coverage-gated confidence model (Stories 3.0.5/3.0.6), framed consistently with the app's uncertainty copy rather than a hardcoded marketing "85%" (use a placeholder until the real validated figure is available)
 - "Kontakt & feedback" section at bottom
 - "Tillbaka till kartan" CTA link
 
@@ -1999,8 +2004,8 @@ So that I can understand and trust the sun predictions.
 **And** no "← Tillbaka" link — navigation via navbar
 
 **Given** the "TRÄFFSÄKERHET" section scrolls into view
-**When** the 85% stat becomes visible for the first time
-**Then** the number counts up from 0 to 85 (800ms, `easing-enter`) — one-time animation
+**When** the accuracy stat becomes visible for the first time
+**Then** the number counts up from 0 to the validated figure (800ms, `easing-enter`) — one-time animation
 
 **Given** the user taps "← Tillbaka" (mobile) or "Tillbaka till kartan" (either)
 **When** the navigation is triggered
@@ -2041,7 +2046,7 @@ So that I'm never stuck on an invalid URL.
 - "SunnySeat" logo top-left
 - Centred content: amber pin icon with "?" inside (rounded square background, `color-amber-gold`)
 - "Den här platsen hittades inte" heading (`text-display-xl`, centred)
-- "Hitta soliga platser nu →" CTA (RouteButton, full-width, `gradient-route-button`)
+- "Hitta soliga platser nu →" in-app navigation CTA to the map (full-width, `gradient-route-button` styling — a plain navigation link/button, **not** the Story 3.1 routing `RouteButton`, which builds native-maps directions URLs)
 
 **Given** the 404 page renders on desktop
 **When** viewport >= 1024px
@@ -2128,3 +2133,120 @@ So that the app feels native and doesn't break without connectivity.
 > - Re-check `maplibre-gl/dist/maplibre-gl.css` static import behaviour against the offline/PWA shell and async-map gate. The current JS verifier does not audit CSS hoisting, so this story should either extend the verification or document why the current hoisting remains acceptable. *(Source: Story 1.6 code review W3, 2026-05-07; deferred-work audit 2026-06-04.)*
 > - Rework or explicitly validate the full-viewport tile/style failure overlay so sighted fallback state and keyboard focus state are coherent. The current `pointer-events-none` overlay can show a cream fallback while tab focus continues through controls underneath. *(Source: Story 1.6 code review W6, 2026-05-07; deferred-work audit 2026-06-04.)*
 > - Extend the axe a11y Playwright gate with a mobile-viewport project (or mobile-sized scans of the existing routes) so mobile-sheet variants — mobile venue-detail sheet, mobile review form, `FactCard` muted labels — are inside the automated gate instead of relying solely on approved mobile visual references. The current `a11y` project runs Desktop Chrome only. *(Source: Story 3.4 Completion Notes known limitation + code review Round 1 defer D1, 2026-06-11.)*
+
+---
+
+## Epic 8: "Wire Real Data" — From Fixtures to the Live Supabase + Sun Engine
+
+The MVP frontend (Epics 1–3) is entirely fixture-backed: `/api/venues`, venue detail, feedback, and reviews all serve hardcoded or in-memory data. This epic replaces those fixtures with the real Supabase-backed data pipeline and the `lib/solar` sun/shadow engine, on top of the trustworthy data contracts the Epic 3.0.x shadow-data prelude established. When this epic completes, the app shows real Gothenburg venues with real, coverage-gated sun predictions, and feedback/reviews persist to Supabase.
+
+> **Sequencing (added 2026-06-12, Epic 3 retrospective):** This epic runs **next**, ahead of the deferred Epics 4 (Monetization), 5 (Partner Spotlight), and 6 (History/Notifications/Sharing). It is a **prerequisite for Epic 7 Story 7.1** (the About "träffsäkerhet" claim cannot be truthful until the real confidence model is live) and for any future push-notification work (Stories 6.2/6.3 need a real sun-state-over-time pipeline). The epic number is higher than 4–7 only because those were defined earlier; do not infer execution order from the number.
+>
+> **Foundation already in place (Epic 3, 2026-06-12):** the Supabase project (`hhnbxrhfhlzxgllxukzj`) was reset to a clean Epic-3-aligned slate — `shadow_casters` + `shadow_caster_import_batches` + the `get_buildings_near_point` RPC (Story 3.0.2 contract), `reviews` (Story 3.3), and `feedback` (Story 3.2 contract) all exist with RLS enabled; all old-backend tables/functions were removed. `shadow_casters` is empty pending Story 8.1's import.
+>
+> **Scope guardrails:** Respect the existing API boundary (client components never import `lib/solar`/`lib/weather`/`lib/supabase`/`lib/buildings`; all access via `app/api/*` + `hooks/queries`/`hooks/mutations`). Do not reintroduce admin/auth/moderation surfaces, monetization, or geodata internals in user copy (no EPSG/Baskarta/DTM/RPC names per Story 3.0.6). Do not change the URL/state-forcing contracts or the visual references; existing screens must keep passing their visual gates with real data swapped behind them.
+
+### Story 8.1: Shadow-Caster Geodata Import
+
+As a **maintainer**,
+I want the derived Gothenburg shadow-caster geodata loaded into `shadow_casters`,
+So that the sun/shadow engine has real building obstructions to compute against.
+
+**Acceptance Criteria:**
+
+**Given** the Story 3.0.3 import handoff (`building_geodata/goteborg-open/derived/shadow_casters.import.jsonl` + `shadow_casters.import_handoff.sql`)
+**When** the import is executed against the live Supabase project
+**Then** `shadow_casters` is populated with the `include`/`review`/`exclude` records per the Story 3.0.2 contract (active/include rows ≥ 3 m height, source geometry preserved), and an `shadow_caster_import_batches` row records the batch metadata and checksums
+
+**Given** the Story 3.0.4 validation/spot-check gates
+**When** the import completes
+**Then** the launch-cluster and central-area coverage thresholds pass and any unmodelled-obstruction uncertainty is recorded, with the gate report stored as an import artifact
+
+**Given** the `get_buildings_near_point` RPC
+**When** it is called for a central Gothenburg point after import
+**Then** it returns only active/include casters with meter-correct radius filtering (no empty-coverage-as-high-confidence regression — Story 3.0.5 contract holds)
+
+### Story 8.2: Real Venue Store & API
+
+As a **user**,
+I want the map and lists to show real Gothenburg venues,
+So that I'm looking at places I can actually visit.
+
+**Acceptance Criteria:**
+
+**Given** a Supabase `venues` table contract (defined in this story) seeded with the initial Gothenburg launch venues
+**When** `/api/venues` and the venue-detail route are requested
+**Then** they return real venues from Supabase (replacing `lib/services/venues-fixture.ts`), preserving the existing `VenueDataDto`/detail response shapes and the planner/time query contract so no frontend component changes are required
+
+**Given** the seeded `test-venue-sunny` slug used by visual/E2E gates
+**When** the real data source is wired
+**Then** that slug still resolves to a stable, gate-compatible venue so the five visual references and the Playwright suite keep passing
+
+**Given** the API boundary
+**When** the route reads venues
+**Then** access stays server-side via `lib/supabase` service-role infrastructure; no client component imports backend modules and query keys still come from `lib/query-keys.ts`
+
+### Story 8.3: Real Sun/Shadow/Weather Computation
+
+As a **user**,
+I want sun status, sun windows, confidence, and uncertainty to be computed from the real engine,
+So that the predictions I see are trustworthy.
+
+**Acceptance Criteria:**
+
+**Given** `lib/solar` (sun position + shadow casting via `get_buildings_near_point`) and `lib/weather` (Met.no Locationforecast)
+**When** a venue's sun data is computed for the requested time
+**Then** `currentSunStatus`, `sunExposurePercent`, `sunWindow`, `confidence`, and `predictionUncertainty` are produced from the real engine and serialized through the existing DTO fields
+
+**Given** the Story 3.0.5/3.0.6 confidence contract
+**When** shadow-caster coverage is empty or below threshold for a venue
+**Then** confidence is capped/marked rather than reported as confidently sunny, and the public uncertainty copy renders via the existing `next-intl` keys without leaking geodata internals
+
+**Given** the sun-freshness metadata contract (Story 2.6)
+**When** the response is built
+**Then** `sunDataSource`/`weatherUpdatedAt` reflect real weather freshness so the confidence display's exact/approximate/hidden states behave correctly
+
+### Story 8.4: Feedback & Review Persistence Enablement
+
+As a **product owner**,
+I want feedback and reviews to persist to Supabase,
+So that real user input is captured durably.
+
+**Acceptance Criteria:**
+
+**Given** the `feedback` (Story 3.2) and `reviews` (Story 3.3) contract tables exist with RLS enabled
+**When** `SUNNYSEAT_FEEDBACK_PERSISTENCE=supabase` and `SUNNYSEAT_REVIEW_PERSISTENCE=supabase` are set
+**Then** the existing server-only persistence adapters write to and read from Supabase, and the in-memory fallback remains the default for tests
+
+**Given** RLS policies must match the access model
+**When** policies are authored
+**Then** `reviews` gets a public read policy (anonymous public content) with writes restricted to the server `service_role`, and `feedback` writes stay server-only (no public/anon write policy); policies follow the Supabase security checklist (no `USING (true)` write policies, explicit `TO` clauses)
+
+**Given** the existing review/feedback E2E and unit suites
+**When** persistence is enabled
+**Then** the suites pass against intercepted/fixture data with no live Supabase dependency in CI, and a separate integration check verifies the real round-trip
+
+### Story 8.5: Production Config & Security Hardening
+
+As a **maintainer**,
+I want the live data path configured and secured for deployment,
+So that SunnySeat can go live safely.
+
+**Acceptance Criteria:**
+
+**Given** the Vercel deployment and Supabase project
+**When** environment is configured
+**Then** server-only secrets (`SUPABASE_SERVICE_ROLE_KEY`, Met.no config, persistence flags) are set per environment and never exposed to the client (no `NEXT_PUBLIC_` leakage of secrets)
+
+**Given** the Supabase security advisor
+**When** it is run after wiring
+**Then** application tables have appropriate RLS policies and remaining findings are limited to accepted PostGIS platform exceptions (`spatial_ref_sys`, `postgis`-in-public, `st_estimatedextent`), each documented as accepted
+
+**Given** generated DB types
+**When** the schema is stable
+**Then** `lib/supabase/types.ts` is regenerated from the live schema (replacing the placeholder) and the typecheck/lint/test gates pass
+
+**Design Gate Criteria (Epic 8 overall):**
+- **Behaviour:** Every existing screen behaves identically with real data swapped behind the API boundary; loading/empty/error states already built in Epics 1–3 handle real latency and failures.
+- **Visual validation:** The five existing gate states (`map-with-selected-venue`, `venue-detail` mobile/desktop, `feedback`, `review`) plus map-primary continue to pass against their references with real (or gate-seeded) data; any genuine visual change requires explicit rationale + `REBASELINE-LOG.md`.
+- **No new screens or visual references are introduced by this epic** — it is a data/infrastructure swap behind the existing UI.
