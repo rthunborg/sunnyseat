@@ -2186,6 +2186,9 @@ So that I'm looking at places I can actually visit.
 **When** the route reads venues
 **Then** access stays server-side via `lib/supabase` service-role infrastructure; no client component imports backend modules and query keys still come from `lib/query-keys.ts`
 
+> **Deferred items to incorporate from `_bmad-output/implementation-artifacts/deferred-work.md`** (the SM removes each entry from that file once carried into the drafted story):
+> - Make `isVenueNotFoundError` robust against error-message format changes — carry a numeric `status` on the thrown venue error and detect 404 against it instead of matching `/failed:\s404\b/i` on the human-readable message (Story 3.4 code review Round 2, R2-D2). [`nextjs-app/hooks/queries/venue-query-options.ts:427`]
+
 ### Story 8.3: Real Sun/Shadow/Weather Computation
 
 As a **user**,
@@ -2225,6 +2228,9 @@ So that real user input is captured durably.
 **Given** the existing review/feedback E2E and unit suites
 **When** persistence is enabled
 **Then** the suites pass against intercepted/fixture data with no live Supabase dependency in CI, and a separate integration check verifies the real round-trip
+
+> **Deferred items to incorporate from `_bmad-output/implementation-artifacts/deferred-work.md`** (the SM removes each entry from that file once carried into the drafted story):
+> - Surface a localized rejection message when a review photo is refused — when `isSafeOptionalPhoto` rejects a pick (oversized, non-image, 0-byte, over-long name) the `role="status"` region must announce the refusal instead of silently clearing, so no user is left with a Camera button that appears to do nothing (Story 3.4 code review Round 2, R2-D1). [`nextjs-app/components/composed/feedback/ReviewForm.tsx:193-197,219-229`]
 
 ### Story 8.5: Production Config & Security Hardening
 
