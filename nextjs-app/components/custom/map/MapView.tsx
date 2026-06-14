@@ -697,15 +697,25 @@ export function MapView() {
   //    retry affordance is added for transient errors; a 404 is suppressed
   //    because contradicting visible venue content would mislead.
   const detailErrorNotice = (() => {
-    if (!canRequestVenueDetail || !venueDetailQuery.isError) return null;
-    // While a retry is in flight the loading skeleton renders instead; the
-    // notice returns only once the refetch settles, so its variant never
-    // flips under the user's pointer mid-request.
-    if (venueDetailQuery.isFetching) return null;
+    if (!canRequestVenueDetail) return null;
+    // A present-but-blank/whitespace `?venue=` slug never triggers a fetch
+    // (useVenueDetail disables the query on an empty trimmed slug), so it
+    // would otherwise strand a dead param with no surface. Treat it as a
+    // not-found, exactly like a 404 from a real lookup, so the user always
+    // gets a way back to the map (AC #2 invalid-slug clause).
+    const slugIsBlank =
+      venueSlugParam !== null && venueSlugParam.trim().length === 0;
+    if (!slugIsBlank) {
+      if (!venueDetailQuery.isError) return null;
+      // While a retry is in flight the loading skeleton renders instead; the
+      // notice returns only once the refetch settles, so its variant never
+      // flips under the user's pointer mid-request.
+      if (venueDetailQuery.isFetching) return null;
+    }
     // A map-level venue failure renders MapVenueError in the same slot;
     // don't stack a second alert on top of its retry action.
     if (venueQuery.isError) return null;
-    const isNotFound = isVenueNotFoundError(venueDetailQuery.error);
+    const isNotFound = slugIsBlank || isVenueNotFoundError(venueDetailQuery.error);
     if (detailFallbackVenue) {
       return isNotFound ? null : { isNotFound: false, showBack: false };
     }
@@ -1212,8 +1222,13 @@ function routeConfidenceLabel(
     uncertaintyLabel,
   ].filter(Boolean);
   if (visibleParts.length === 0) return null;
+  // `accessibleText` is always populated (the confidence value for the
+  // exact/approximate kinds, the "unavailable" label for the hidden kind).
+  // Include it unconditionally so a hidden-confidence-with-uncertainty row
+  // still announces "Säkerhet saknas" to screen readers, matching the
+  // VenueQuickInfo surface that shares this Story 3.0.6 helper.
   const accessibleParts = [
-    confidenceDisplay.visibleText ? confidenceDisplay.accessibleText : null,
+    confidenceDisplay.accessibleText,
     uncertaintyLabel,
   ].filter(Boolean);
   return {

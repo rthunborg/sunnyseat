@@ -877,6 +877,33 @@ describe('<MapView />', () => {
       expect(overlay).not.toHaveTextContent('Säkerhet');
     });
 
+    it('announces "confidence unavailable" to screen readers when only uncertainty renders in the route overlay (review R2-P2)', () => {
+      vi.spyOn(window, 'open').mockImplementation(() => null);
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          {
+            ...makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' }),
+            predictionUncertainty: { level: 'medium', reasons: ['weather'] },
+          },
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+      fireEvent.click(screen.getAllByRole('button', { name: /Visa Rutt/ })[0]);
+
+      const overlay = screen.getByRole('dialog', { name: 'Rutt till Kafé Magasinet' });
+      // Confidence is hidden (no fresh weather meta) so no visible percentage,
+      // but the uncertainty row renders and the sr-only accessible text must
+      // still state confidence is unavailable, matching VenueQuickInfo.
+      expect(overlay).not.toHaveTextContent(/Säkerhet \d/);
+      expect(overlay).toHaveTextContent('Säkerhet saknas');
+      expect(overlay).toHaveTextContent('Osäker prognos');
+    });
+
     it('plain venue deep links select the matching venue and render detail once data is available', () => {
       searchParamsMock = new URLSearchParams('venue=test-venue-sunny');
       const venue = makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' });
@@ -1121,6 +1148,34 @@ describe('<MapView />', () => {
         isFetching: false,
         isError: true,
         error: new Error('Venue detail failed: 404 Not Found'),
+        refetch: vi.fn(),
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const alert = screen.getByTestId('venue-detail-error');
+      expect(alert).toHaveTextContent('Platsen hittades inte.');
+      expect(within(alert).queryByRole('button', { name: 'Försök igen' })).toBeNull();
+      fireEvent.click(within(alert).getByRole('button', { name: 'Tillbaka till kartan' }));
+      expect(routerReplaceMock).toHaveBeenCalledWith('/');
+    });
+
+    it('renders a localized not-found state for a present-but-blank venue slug (Story 3.4 AC #2, review R2-P1)', () => {
+      // A whitespace-only ?venue= slug disables the detail query (it never
+      // errors), so without the R2-P1 fix the user would be stranded on a
+      // dead param with no surface.
+      searchParamsMock = new URLSearchParams('venue=%20');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useVenueDetailMock.mockReturnValue({
+        data: undefined,
+        isFetching: false,
+        isError: false,
+        error: undefined,
         refetch: vi.fn(),
       });
 
