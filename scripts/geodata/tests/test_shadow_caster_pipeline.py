@@ -450,6 +450,61 @@ class ShadowCasterPipelineTest(unittest.TestCase):
 
         self.assertTrue(any("outside EPSG:3007 MVP bbox" in error for error in errors))
 
+    def test_artifact_validation_allows_source_geometry_within_tolerance_on_lower_and_upper_edges(self) -> None:
+        # The tolerance expands all four edges symmetrically (min_x/min_y -= tol,
+        # max_x/max_y += tol). The +x edge is covered above; assert the lower
+        # (min_x, min_y) and upper-y (max_y) edges are expanded too, so a vertex
+        # just past each of those boundaries within tolerance is NOT rejected.
+        feature = pipeline.enriched_feature(
+            pipeline.load_jsonl(self.source)[0],
+            "include",
+            [],
+        )
+        tolerance = pipeline.MVP_BBOX_3007_SOURCE_GEOM_TOLERANCE_M
+        under_min_x = pipeline.MVP_BBOX_3007[0] - tolerance + 1.0
+        under_min_y = pipeline.MVP_BBOX_3007[1] - tolerance + 1.0
+        over_max_y = pipeline.MVP_BBOX_3007[3] + tolerance - 1.0
+        feature["properties"]["sourceGeom3007"] = {
+            "type": "LineString",
+            "coordinates": [
+                [under_min_x, 6395000.0, 24.5],
+                [145000.0, under_min_y, 25.0],
+                [145000.0, over_max_y, 26.25],
+            ],
+        }
+        feature["properties"]["sourceLayer"] = "byggnad_l"
+        feature["properties"]["sourceSubclass"] = "Takkonturer"
+
+        row = pipeline.map_feature_to_shadow_caster_row(feature, "fixture-batch")
+        errors = pipeline.validate_rows([row], "fixture-batch")
+
+        self.assertFalse(any("outside EPSG:3007 MVP bbox" in error for error in errors))
+
+    def test_artifact_validation_rejects_source_geometry_below_min_y_beyond_tolerance(self) -> None:
+        # The existing reject test only proves the +x edge still bites. Confirm the
+        # min-side guard bites too: a vertex well below min_y past the tolerance
+        # (metre-scale, not a CRS error) must still be rejected.
+        feature = pipeline.enriched_feature(
+            pipeline.load_jsonl(self.source)[0],
+            "include",
+            [],
+        )
+        under_min_y = pipeline.MVP_BBOX_3007[1] - pipeline.MVP_BBOX_3007_SOURCE_GEOM_TOLERANCE_M - 300.0
+        feature["properties"]["sourceGeom3007"] = {
+            "type": "LineString",
+            "coordinates": [
+                [145000.0, 6395000.0, 24.5],
+                [145000.0, under_min_y, 26.25],
+            ],
+        }
+        feature["properties"]["sourceLayer"] = "byggnad_l"
+        feature["properties"]["sourceSubclass"] = "Takkonturer"
+
+        row = pipeline.map_feature_to_shadow_caster_row(feature, "fixture-batch")
+        errors = pipeline.validate_rows([row], "fixture-batch")
+
+        self.assertTrue(any("outside EPSG:3007 MVP bbox" in error for error in errors))
+
     def test_shadow_casters_contract_keeps_non_building_source_layers_inactive(self) -> None:
         feature = pipeline.enriched_feature(
             pipeline.load_jsonl(self.source)[0],

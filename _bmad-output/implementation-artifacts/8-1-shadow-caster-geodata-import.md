@@ -5,7 +5,7 @@ drafted_at: 2026-06-14T17:58:25+02:00
 
 # Story 8.1: Shadow-Caster Geodata Import
 
-Status: in-progress
+Status: review
 
 > **Course correction (2026-06-15, approved by Rasmus):** AC1 (import) and AC3 (RPC + 3.0.5
 > confidence contract) are done & verified. AC2 (the Story 3.0.4 spot-check gate) is **carried to
@@ -13,6 +13,16 @@ Status: in-progress
 > deactivates ~1,569 real height-uncertain buildings, causing systematic false-sunny in central
 > clusters; AC2 cannot pass until that filter is revised. 8.1's done-ness is therefore re-scoped to
 > AC1+AC3. See `8-1-course-correction-2026-06-15.md` and `8-1-1-activate-height-uncertain-shadow-casters.md`.
+
+> **Batch-id reconciliation (2026-06-16, code review Round 1):** The batch id is the derived
+> `combinedInputChecksum`, so it changes on **every** regeneration. The Tasks (1.5, 3.1, 3.3, 5.3) and
+> Dev Notes below still cite the pre-regeneration id `open-goteborg-central-929478e740e0`; the batch
+> actually imported and verified live is **`open-goteborg-central-e91dd7302b7c`** (the 3.0.7
+> regeneration changed the input checksums). **Any re-run — including Story 8.1.1's re-import — MUST read
+> the current batch id from `shadow_casters.import_manifest.json` at run time; do not trust the
+> `…929478e740e0` literals in the task text.** In particular, Task 3.1's idempotent
+> `delete … where import_batch_id = …` and Task 5.3's single-row verification must use the manifest's
+> id — otherwise the delete matches zero rows and a re-import duplicates the batch.
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -269,3 +279,42 @@ Database writes (live `hhnbxrhfhlzxgllxukzj`): 58,731 rows into `public.shadow_c
   tolerance, CSV `\copy`, statement_timeout); executed live shadow-caster import (batch
   `open-goteborg-central-e91dd7302b7c`, 58,731 rows); verified RPC + invariants read-only. AC1 + AC3
   met; AC2 spot-check gate pending maintainer observations.
+
+### Review Findings
+
+**Round 1 of 3** — bmad-code-review, 2026-06-16. Scope: re-scoped AC1 + AC3 story; reviewed commit
+`c449fdc` code diff (`scripts/geodata/shadow_caster_pipeline.py` + `tests/test_shadow_caster_pipeline.py`).
+Layers: Blind Hunter + Edge Case Hunter + Acceptance Auditor (all three completed). 1 decision-needed,
+1 patch, 1 deferred, 11 dismissed as verified-handled noise. The three pipeline bug-fixes themselves
+(bbox tolerance, CSV control-char `\copy`, `statement_timeout=0`) were all confirmed correct: `json.dumps`
+always escapes U+0001/U+0002 so the CSV control bytes are safe, `validate_geojson_xy_bounds` has a single
+caller so the `tolerance=0.0` default leaks nowhere, and `set local` is correctly scoped inside `begin;`.
+
+- [x] [Review][Decision] **RESOLVED (Option 2 hybrid, 2026-06-16):** added the "Batch-id reconciliation"
+  callout near the top of this story — records the live batch id `…e91dd7302b7c` and mandates reading the
+  id from `shadow_casters.import_manifest.json` at run time rather than trusting the stale `…929478e740e0`
+  task literals. Original finding: Spec/code batch-id drift — Tasks 1.5, 3.1, 3.3, 5.3 and Dev Notes (lines 118–119)
+  hard-code the superseded batch id `open-goteborg-central-929478e740e0`, but the regenerated/imported
+  batch is `open-goteborg-central-e91dd7302b7c` (the 3.0.7-contract regeneration changed the input
+  checksums). Task 5.3's "exactly one row for …929478e740e0" verification is literally stale, and
+  re-running Task 3.1's idempotent `delete … where import_batch_id = '…929478e740e0'` would NOT clear
+  the live batch — risking duplicate rows on a future re-import. Disclosed in the Dev Agent Record /
+  Change Log but never reconciled into the task body. Decision: how to reconcile — (a) update the four
+  references to `…e91dd7302b7c`, (b) annotate that the batch id is checksum-derived and must be read
+  from `shadow_casters.import_manifest.json` at run time, or (c) leave as a historical record. (auditor)
+
+- [x] [Review][Patch] **FIXED (2026-06-16):** added two regression tests —
+  `test_artifact_validation_allows_source_geometry_within_tolerance_on_lower_and_upper_edges` (min_x/min_y/max_y
+  vertices within tolerance pass) and `test_artifact_validation_rejects_source_geometry_below_min_y_beyond_tolerance`
+  (min-side guard still bites). Python suite: 36 → 38 tests, all green. Original finding: bbox-tolerance tests
+  covered only the +x edge [scripts/geodata/tests/test_shadow_caster_pipeline.py:404]; the symmetric four-edge
+  expansion was unverified. (blind+edge)
+
+- [x] [Review][Defer] Non-dict `source_geom_3007` raises AttributeError in `validate_rows` [scripts/geodata/shadow_caster_pipeline.py:2564]
+  — deferred, pre-existing. When `source_geom_3007` is non-null but not a dict,
+  `source_geom_3007.get("coordinates")` raises `AttributeError` and aborts the whole `validate_rows`
+  pass instead of emitting a row-level error (the preceding `validate_geojson_geometry` returns a clean
+  error, but the bbox call still runs unconditionally). The diff only added the `tolerance=` kwarg to
+  this pre-existing line; not reachable via normal pipeline output (the validator validates its own
+  dict/None output) — only via corrupted/hand-edited artifacts. Cheap guard if folded in later:
+  `coords = source_geom_3007.get("coordinates") if isinstance(source_geom_3007, dict) else None`. (edge)
