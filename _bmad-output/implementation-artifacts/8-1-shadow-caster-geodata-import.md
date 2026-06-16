@@ -5,7 +5,7 @@ drafted_at: 2026-06-14T17:58:25+02:00
 
 # Story 8.1: Shadow-Caster Geodata Import
 
-Status: review
+Status: done
 
 > **Course correction (2026-06-15, approved by Rasmus):** AC1 (import) and AC3 (RPC + 3.0.5
 > confidence contract) are done & verified. AC2 (the Story 3.0.4 spot-check gate) is **carried to

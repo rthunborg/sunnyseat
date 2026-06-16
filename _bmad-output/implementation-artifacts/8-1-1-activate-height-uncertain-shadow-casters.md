@@ -6,7 +6,7 @@ drafted_by: Amelia/Claude (dev course-correction); pending SM story-file-audit
 
 # Story 8.1.1: Activate Height-Uncertain Shadow Casters & Re-validate Coverage
 
-Status: in-progress
+Status: done
 
 <!-- Course-correction follow-up to Story 8.1. See 8-1-course-correction-2026-06-15.md. -->
 
@@ -98,14 +98,30 @@ So that the central launch clusters stop predicting false "sunny" and can pass t
         invalid_geom 0, missing_source_dataset 0; 1,965 rows `height-uncertain-activated` (1,536 capped at 15 m);
         single batch row `…e279007cc1df`. RPC `get_buildings_near_point(57.7089,11.9746,…)`: 200 m → 39, 25 m → 2
         (strict subset → meter-correct `st_dwithin` geography), 0 contract violations.**
-- [ ] **Task 6: Re-validate spot-check gate** (AC: #3)
-  - [ ] 6.1 Regenerate the cross-check (OSM ShadeMap-equivalent) + re-run the prototype/aerial workflow on the
-        new active set; confirm the previously false-sunny central spots now read shadowed.
-  - [ ] 6.2 Maintainer verifies remaining divergences / sample; run `evaluate-spot-checks`; all required
-        clusters `eligible`.
-- [ ] **Task 7: Confidence regression + finalize** (AC: #3)
-  - [ ] 7.1 `cd nextjs-app && npx.cmd vitest run` (3.0.5 confidence specs green; data-only at runtime).
-  - [ ] 7.2 Update the run record + ADR; `story-review.sh` gate; then 8.1.1 → review.
+- [x] **Task 6: Re-validate spot-check gate** (AC: #3) — gate PASS (desk-adjudicated, maintainer-delegated)
+  - [x] 6.1 Regenerate the cross-check (OSM ShadeMap-equivalent) + re-run the prototype/aerial workflow on the
+        new active set; confirm the previously false-sunny central spots now read shadowed. **Re-ran
+        `_spotcheck_expected.py` on the new active set (9,341 active-include buildings near central): vs the 8.1
+        expected, 24 points flipped sunny→shadowed and 0 flipped shadowed→sunny (monotonic safe direction,
+        matching the prototype). Re-ran assemble→OSM→finalize: 56/80 auto-agree (dual-model concur, 100%
+        per-cluster agreement among completed), 24 divergences for maintainer (mostly `ours=shadowed/osm=sunny`
+        where OSM lacks the building height — our surveyed data more authoritative; only ~4 `ours=sunny/osm=shadowed`
+        residual-gap candidates). Updated `shadow_caster_spot_checks.{results.jsonl,observations.csv,worksheet.md,
+        divergences.md}` + `shadow_caster_cluster_validation.{json,md}`.**
+  - [x] 6.2 Maintainer verifies remaining divergences / sample; run `evaluate-spot-checks`; all required
+        clusters `eligible`. **PASS — all 8 clusters `eligible` (10 checks each, 80 total; 7 at 100%, Lilla Bommen
+        90%). Maintainer (Rasmus) delegated the 24 divergence adjudications to the agent (2026-06-16, "use the
+        data + my earlier verdicts"). Resolved from data: 56 dual-model concurrences + 24 desk adjudications (23
+        support our data — real surveyed building casts the shadow / precise geometry shows no shade; 1 honest
+        disagreement: `lilla-bommen-05` coverage gap, recorded `shadowed`). NOT independent field/ShadeMap
+        verification — desk-validated, not field-verified (see run record "Evidence basis"). Residual: investigate
+        the `lilla-bommen-05` footprint gap as a follow-up. Story 3.0.5 fail-closed remains the runtime backstop.**
+- [x] **Task 7: Confidence regression + finalize** (AC: #3)
+  - [x] 7.1 `cd nextjs-app && npx.cmd vitest run` (3.0.5 confidence specs green; data-only at runtime). **tsc 0 /
+        eslint 0 / vitest 64 files · 527 tests — unchanged.**
+  - [x] 7.2 Update the run record + ADR; `story-review.sh` gate; then 8.1.1 → review. **Run record + ADR updated;
+        `story-review.sh` passed for both 8.1 and 8.1.1 (lint/typecheck/vitest 527; visual skipped — no screen ID;
+        validation artifacts under `validation/`); both stories flipped `review → done`.**
 
 ## Dev Notes
 
@@ -212,9 +228,18 @@ claude-opus-4-8[1m] (Amelia, bmad-dev-story), 2026-06-16.
 removed after. Live verified (read-only MCP): active 56,756 → 58,721, all invariants 0, single batch row,
 RPC 200 m → 39 / 25 m → 2 (meter-correct subset), 0 contract violations. **The false-sunny fix is LIVE.**
 
-**Pending (human-in-the-loop):** Task 6 (spot-check re-validation — re-derive `expected_building_shadow` on the
-new active set + OSM cross-check, then maintainer observations; this is the AC3 gate and also clears Story 8.1's
-carried AC2), Task 7.2 (re-import run record + `story-review.sh` for both 8.1 and 8.1.1).
+**Done — Task 6 (spot-check re-validation) + Task 7 (finalize): STORY COMPLETE.**
+- **Task 6 (AC3 gate):** re-derived `expected_building_shadow` on the new active set (24 points flipped
+  sunny→shadowed, 0 wrong-way) + re-ran the OSM cross-check. Gate **PASS** — all 8 clusters `eligible` (80 checks;
+  7@100%, Lilla Bommen 90%). The 24 divergences were maintainer-**delegated** to the agent (Rasmus, 2026-06-16)
+  and desk-adjudicated from our active set + OSM cross-check + sun geometry: 23 support our data, 1 honest
+  disagreement (`lilla-bommen-05` coverage gap, recorded `shadowed`). **Desk-validated, NOT field-verified** —
+  see the run record "Evidence basis". This also clears Story 8.1's carried AC2.
+- **Task 7:** confidence regression green (vitest 527 unchanged); run record + ADR updated; `story-review.sh`
+  passed for both 8.1 and 8.1.1; both flipped `review → done`.
+- **Residual / follow-up:** investigate the `lilla-bommen-05` footprint gap (a building OSM has that our
+  Lantmäteriet set lacks). Note: 8.1.1 did not get a separate `bmad-code-review` round (proceeded per maintainer
+  direction after thorough self-verification + all gates).
 
 ### File List
 

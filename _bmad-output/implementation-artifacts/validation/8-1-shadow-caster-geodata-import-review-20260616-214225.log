@@ -1,0 +1,40 @@
+SunnySeat story review gate
+Story: 8-1-shadow-caster-geodata-import
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/8-1-shadow-caster-geodata-import-review-20260616-214225.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/8-1-shadow-caster-geodata-import.md
+Current sprint status: review
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  64 passed (64)
+      Tests  527 passed (527)
+   Start at  21:42:40
+   Duration  21.77s (transform 5.35s, setup 26.02s, import 31.04s, tests 42.99s, environment 165.22s)
+
+Skipping visual validation: no mapped screen ID found in story file
+Story '8-1-shadow-caster-geodata-import' is already marked review. No sprint-status update needed.
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/8-1-shadow-caster-geodata-import-review-20260616-214225.log
