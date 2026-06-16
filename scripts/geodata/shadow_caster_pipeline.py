@@ -18,6 +18,13 @@ from typing import Any, Iterable
 
 
 MVP_BBOX_3007 = (140000.0, 6390000.0, 150000.0, 6410000.0)
+# Footprints are kept for the central set by centroid-in-bbox, so a building that
+# straddles the MVP boundary legitimately has source_geom_3007 vertices a short
+# distance (observed max ~164 m) outside the bbox. The source-geometry bbox check
+# is a mis-projection guard (a wrongly-projected geometry lands ~140-174 km / many
+# degrees off), so a metre-scale tolerance keeps real edge buildings while still
+# rejecting gross CRS errors. EPSG:3007 units are metres, so this is metres.
+MVP_BBOX_3007_SOURCE_GEOM_TOLERANCE_M = 500.0
 SOURCE_FOOTPRINT_CRS = "EPSG:3006"
 METRIC_CRS = "EPSG:3007"
 RUNTIME_GEOMETRY_CRS = "EPSG:4326"
@@ -1833,12 +1840,20 @@ def write_sql_handoff(path: Path, import_jsonl: Path, diagnostics_jsonl: Path, m
 
 begin;
 
+-- The bulk \\copy upload can exceed Supabase's default per-statement timeout
+-- (2 min via the connection pooler); lift it for this transaction only.
+set local statement_timeout = 0;
+
 create temp table shadow_caster_import_stage (
   payload_text text not null
 ) on commit drop;
 
 -- Update paths if running psql from a different working directory.
-\\copy shadow_caster_import_stage(payload_text) from {import_path} with (format text);
+-- Load each JSONL line verbatim into one text column. CSV with control-char
+-- quote/delimiter (bytes that never occur in JSON) avoids COPY TEXT backslash
+-- escape processing, which would corrupt embedded backslashes (e.g. Windows
+-- paths like "building_geodata\\goteborg-open") and break the ::jsonb cast.
+\\copy shadow_caster_import_stage(payload_text) from {import_path} with (format csv, quote E'\\x01', delimiter E'\\x02');
 
 insert into public.shadow_caster_import_batches (
   id,
@@ -1956,7 +1971,7 @@ from (
 
 -- Optional diagnostics load. Review before enabling; excluded rows are inactive diagnostics.
 -- truncate table shadow_caster_import_stage;
--- \\copy shadow_caster_import_stage(payload_text) from {diagnostics_path} with (format text);
+-- \\copy shadow_caster_import_stage(payload_text) from {diagnostics_path} with (format csv, quote E'\\x01', delimiter E'\\x02');
 -- Repeat the insert above for diagnostic rows only if you want excluded diagnostics in public.shadow_casters.
 
 commit;
@@ -2080,8 +2095,16 @@ def validate_geojson_xy_bounds(
     value: Any,
     label: str,
     bounds: tuple[float, float, float, float],
+    tolerance: float = 0.0,
 ) -> list[str]:
+    # tolerance expands the bounds (in the bounds' own units) so geometry that
+    # legitimately straddles the boundary is accepted while gross mis-projection
+    # is still rejected. See MVP_BBOX_3007_SOURCE_GEOM_TOLERANCE_M.
     min_x, min_y, max_x, max_y = bounds
+    min_x -= tolerance
+    min_y -= tolerance
+    max_x += tolerance
+    max_y += tolerance
     errors: list[str] = []
     for position_index, position in enumerate(iter_geojson_positions(value)):
         if not validate_coordinate_pair(position):
@@ -2541,6 +2564,7 @@ def validate_rows(rows: list[dict[str, Any]], expected_batch_id: str) -> list[st
                     source_geom_3007.get("coordinates"),
                     "source_geom_3007",
                     MVP_BBOX_3007,
+                    tolerance=MVP_BBOX_3007_SOURCE_GEOM_TOLERANCE_M,
                 )
             )
         errors.extend(

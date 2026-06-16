@@ -401,6 +401,55 @@ class ShadowCasterPipelineTest(unittest.TestCase):
 
         self.assertTrue(any("outside EPSG:3007 MVP bbox" in error for error in errors))
 
+    def test_artifact_validation_allows_source_geometry_within_bbox_tolerance(self) -> None:
+        # Edge-of-bbox buildings are kept by centroid-in-bbox, so their source
+        # geometry can spill a short distance past the MVP boundary. Within the
+        # mis-projection tolerance these must NOT be rejected.
+        feature = pipeline.enriched_feature(
+            pipeline.load_jsonl(self.source)[0],
+            "include",
+            [],
+        )
+        over_x = pipeline.MVP_BBOX_3007[2] + pipeline.MVP_BBOX_3007_SOURCE_GEOM_TOLERANCE_M - 1.0
+        feature["properties"]["sourceGeom3007"] = {
+            "type": "LineString",
+            "coordinates": [
+                [149990.0, 6390010.0, 24.5],
+                [over_x, 6390012.0, 26.25],
+            ],
+        }
+        feature["properties"]["sourceLayer"] = "byggnad_l"
+        feature["properties"]["sourceSubclass"] = "Takkonturer"
+
+        row = pipeline.map_feature_to_shadow_caster_row(feature, "fixture-batch")
+        errors = pipeline.validate_rows([row], "fixture-batch")
+
+        self.assertFalse(any("outside EPSG:3007 MVP bbox" in error for error in errors))
+
+    def test_artifact_validation_rejects_source_geometry_beyond_bbox_tolerance(self) -> None:
+        # A vertex well past the tolerance (but still metre-scale, not a CRS error)
+        # must still be rejected so the mis-projection guard keeps biting.
+        feature = pipeline.enriched_feature(
+            pipeline.load_jsonl(self.source)[0],
+            "include",
+            [],
+        )
+        over_x = pipeline.MVP_BBOX_3007[2] + pipeline.MVP_BBOX_3007_SOURCE_GEOM_TOLERANCE_M + 300.0
+        feature["properties"]["sourceGeom3007"] = {
+            "type": "LineString",
+            "coordinates": [
+                [149990.0, 6390010.0, 24.5],
+                [over_x, 6390012.0, 26.25],
+            ],
+        }
+        feature["properties"]["sourceLayer"] = "byggnad_l"
+        feature["properties"]["sourceSubclass"] = "Takkonturer"
+
+        row = pipeline.map_feature_to_shadow_caster_row(feature, "fixture-batch")
+        errors = pipeline.validate_rows([row], "fixture-batch")
+
+        self.assertTrue(any("outside EPSG:3007 MVP bbox" in error for error in errors))
+
     def test_shadow_casters_contract_keeps_non_building_source_layers_inactive(self) -> None:
         feature = pipeline.enriched_feature(
             pipeline.load_jsonl(self.source)[0],
@@ -447,6 +496,34 @@ class ShadowCasterPipelineTest(unittest.TestCase):
         self.assertIn("where import_batch_id = 'fixture-''batch';", handoff)
         self.assertIn("\\copy shadow_caster_import_stage(payload_text) from '", handoff)
         self.assertIn("import''s.jsonl", handoff)
+
+    def test_sql_handoff_copy_preserves_backslashes_with_csv_control_chars(self) -> None:
+        # COPY TEXT escape-processes backslashes and would corrupt JSON payloads
+        # containing Windows-style paths (e.g. "building_geodata\\goteborg-open"),
+        # breaking the ::jsonb cast. The staging load must use CSV with control-char
+        # quote/delimiter so each JSONL line is read verbatim.
+        sql_path = self.tmpdir / "handoff.sql"
+        manifest = {
+            "importBatch": {
+                "id": "fixture-batch",
+                "sourceDataset": "dataset",
+                "sourceDescription": "desc",
+                "sourceMetadata": {"k": "v"},
+            },
+        }
+
+        pipeline.write_sql_handoff(
+            sql_path,
+            self.tmpdir / "import.jsonl",
+            self.tmpdir / "diagnostics.jsonl",
+            manifest,
+        )
+
+        handoff = sql_path.read_text(encoding="utf-8")
+        self.assertIn("with (format csv, quote E'\\x01', delimiter E'\\x02')", handoff)
+        self.assertNotIn("with (format text)", handoff)
+        # Bulk import must lift Supabase's default per-statement timeout for the load.
+        self.assertIn("set local statement_timeout = 0;", handoff)
 
     def test_artifact_validation_fails_for_invalid_runtime_polygon(self) -> None:
         row = pipeline.map_feature_to_shadow_caster_row(
