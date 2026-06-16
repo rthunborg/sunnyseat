@@ -6,7 +6,7 @@ drafted_by: Amelia/Claude (dev course-correction); pending SM story-file-audit
 
 # Story 8.1.1: Activate Height-Uncertain Shadow Casters & Re-validate Coverage
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Course-correction follow-up to Story 8.1. See 8-1-course-correction-2026-06-15.md. -->
 
@@ -69,26 +69,35 @@ So that the central launch clusters stop predicting false "sunny" and can pass t
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Agree the height + quality rule (architect/ADR)** (AC: #1)
-  - [ ] 1.1 Decide the conservative height rule for activated review buildings (z-range lower bound vs
+- [x] **Task 1: Agree the height + quality rule (architect/ADR)** (AC: #1)
+  - [x] 1.1 Decide the conservative height rule for activated review buildings (z-range lower bound vs
         conservative cap ~15 m vs per-reason) and the `quality_score` reduction factor. Record in the
         shadow-data-trust ADR ("existence certain, height uncertain → cast a conservative shadow, don't omit").
-- [ ] **Task 2: Revise the filter + tests** (AC: #1)
-  - [ ] 2.1 In `scripts/geodata/shadow_caster_pipeline.py`, reclassify qualifying height-uncertain
+- [x] **Task 2: Revise the filter + tests** (AC: #1)
+  - [x] 2.1 In `scripts/geodata/shadow_caster_pipeline.py`, reclassify qualifying height-uncertain
         `byggnad_l` review records to `include`/active with the agreed conservative height + lowered
         `quality_score` + a height-uncertain `source_flag`/reason. Keep non-buildings / sub-3 m / no-footprint
         as review/exclude.
-  - [ ] 2.2 Update `scripts/geodata/tests/test_shadow_caster_pipeline.py` to pin the reclassification and
+  - [x] 2.2 Update `scripts/geodata/tests/test_shadow_caster_pipeline.py` to pin the reclassification and
         the conservative-height/quality rule.
-- [ ] **Task 3: Re-derive + validate** (AC: #1, #2)
-  - [ ] 3.1 `run-all`; confirm `validate-artifacts` passes; record the new batch id/checksums.
-  - [ ] 3.2 `py_compile` + `unittest discover` green.
-- [ ] **Task 4: Local-PostGIS dry-run** (AC: #2)
-  - [ ] 4.1 Re-run the handoff against local PostGIS; confirm smoke checks + meter-correct RPC.
-- [ ] **Task 5: Live re-import** (AC: #2)
-  - [ ] 5.1 Delete the old batch rows + import the new batch via the IPv4 session pooler (see 8.1 run record
-        for the connection method); idempotent; smoke checks clean.
-  - [ ] 5.2 Read-only MCP verification: active/include count rose by the activated set; invariants 0; RPC ok.
+- [x] **Task 3: Re-derive + validate** (AC: #1, #2)
+  - [x] 3.1 `run-all`; confirm `validate-artifacts` passes; record the new batch id/checksums. **New batch `open-goteborg-central-e279007cc1df` (combinedInputChecksum `e279007cc1df…`); validate-artifacts `pass`, 0 errors. Counts: include 58,721 (+1,965 vs 8.1's 56,756), review 10 (−1,965), exclude 23,839. Real-data spot-verify: 1,965 rows flagged `height-uncertain-activated`, all `height_m ≤ 15` (cap applied), 0 active <3 m, 0 active non-byggnad_l.**
+  - [x] 3.2 `py_compile` + `unittest discover` green (44 tests, was 38).
+- [x] **Task 4: Local-PostGIS dry-run** (AC: #2)
+  - [x] 4.1 Re-run the handoff against local PostGIS; confirm smoke checks + meter-correct RPC. **Fresh `compose.yaml` PostGIS (15-3.5) + 3.0.2 schema; handoff via one-off psql container with `building_geodata/` bind-mounted. `COPY 58731` → `INSERT 0 58731` → `COMMIT` (all rows passed the real active-row CHECK constraints). Smoke checks all clean: include/active 58,721, review/inactive 10, active_below_3m 0, active_review_or_exclude 0, invalid_geometry 0, missing_source_dataset 0; `get_buildings_near_point(57.7089,11.9746,200)` returns active/include byggnad_l casters. Volume torn down after.**
+- [x] **Task 5: Live re-import** (AC: #2)
+  - [x] 5.1 Delete the old batch rows + import the new batch via the IPv4 session pooler (see 8.1 run record
+        for the connection method); idempotent; smoke checks clean. **Atomic replace via one-off psql container
+        over `SUPABASE_DB_POOLER_URL` (`.env.local`): the handoff's in-transaction delete was edited to cover
+        BOTH batch ids, so a single transaction did `DELETE 58731` (old `…e91dd7302b7c`) → `INSERT 0 58731`
+        (new `…e279007cc1df`) → `COMMIT` — no empty/duplicate window. Embedded smoke checks all 0. Stale old
+        batch-metadata row removed afterward via `psql` so exactly one batch row remains.**
+  - [x] 5.2 Read-only MCP verification: active/include count rose by the activated set; invariants 0; RPC ok.
+        **Live (`hhnbxrhfhlzxgllxukzj`): total 58,731; active 58,721 (56,756 → +1,965); review/inactive 10;
+        active_below_3m 0, active_non_include 0, active_non_byggnad_l 0, active_missing_source_geom 0,
+        invalid_geom 0, missing_source_dataset 0; 1,965 rows `height-uncertain-activated` (1,536 capped at 15 m);
+        single batch row `…e279007cc1df`. RPC `get_buildings_near_point(57.7089,11.9746,…)`: 200 m → 39, 25 m → 2
+        (strict subset → meter-correct `st_dwithin` geography), 0 contract violations.**
 - [ ] **Task 6: Re-validate spot-check gate** (AC: #3)
   - [ ] 6.1 Regenerate the cross-check (OSM ShadeMap-equivalent) + re-run the prototype/aerial workflow on the
         new active set; confirm the previously false-sunny central spots now read shadowed.
@@ -162,8 +171,60 @@ Before marking review:
 
 ### Agent Model Used
 
+claude-opus-4-8[1m] (Amelia, bmad-dev-story), 2026-06-16.
+
 ### Debug Log References
+
+- Task 1 decision (height rule + activation set + quality penalty) approved by Rasmus 2026-06-16; recorded in
+  `decisions/shadow-data-trust-realignment.md` §"2026-06-16 Story 8.1.1 Decision".
+- Filter design: `decide_filter` reclassifies a review building to include ONLY when every review reason ∈
+  `HEIGHT_UNCERTAIN_ACTIVATION_REASONS`; the conservative cap + `height-uncertain-activated` flag + the −0.25
+  penalty are applied in `enriched_feature`/`runtime_quality`. The existing include/review/exclude fixture trio
+  is unaffected — the fixture's review row also carries `no-roof-contour-for-material-height`, which is held
+  back, so it correctly stays review.
 
 ### Completion Notes List
 
+**Done — Tasks 1, 2, 3.2:**
+- **Task 1 (ADR):** cap = 15 m (`HEIGHT_UNCERTAIN_CONSERVATIVE_CAP_M`); activation set = `large-z-spread`,
+  `single-line-tall`, `limited-line-support`, `very-tall`; quality −0.25 (`HEIGHT_UNCERTAIN_QUALITY_PENALTY`)
+  + `height-uncertain-activated` flag; `no-roof-contour-for-material-height` + `missing-or-invalid-area` held
+  back as review. Recorded in the shadow-data-trust ADR.
+- **Task 2 (filter + tests):** `decide_filter` reclassifies the activatable height-uncertain review set →
+  include/active; `enriched_feature` caps the emitted height to 15 m + adds the flag; `runtime_quality` applies
+  the confidence-neutral −0.25. 6 regression tests added (reclassification, cap, short-building-unchanged,
+  very-tall, no-roof-contour held back, missing-area held back).
+- **Task 3.2:** `py_compile` + `unittest discover` → 44 tests green (was 38).
+
+**Done — Tasks 3, 4, and the Task 7.1 regression guard:**
+- **Task 3.1 (re-derive):** `run-all` → batch `open-goteborg-central-e279007cc1df` (combinedInputChecksum
+  `e279007cc1df…`); validate-artifacts `pass`, 0 errors. include 58,721 (+1,965), review 10, exclude 23,839.
+  Real-data spot-verify: 1,965 rows `height-uncertain-activated`, all `height_m ≤ 15`, 0 active <3 m, 0 active
+  non-byggnad_l. Reasons: large-z-spread 1,296, limited-line-support 671, single-line-tall 391, very-tall 12.
+- **Task 4 (local dry-run):** fresh `compose.yaml` PostGIS + 3.0.2 schema; handoff via mounted psql container
+  loaded `COPY 58731` → `INSERT 0 58731` → `COMMIT` (all active-row CHECK constraints held); smoke checks all 0;
+  RPC returns active/include casters. Volume torn down after.
+- **Task 7.1 (regression guard):** nextjs-app tsc 0 / eslint 0 / vitest 64 files · 527 tests (data-only; no
+  runtime regression).
+
+**Done — Task 5 (live re-import):** atomic replace on `hhnbxrhfhlzxgllxukzj` — one transaction did
+`DELETE 58731` (old `…e91dd7302b7c`) → `INSERT 0 58731` (new `…e279007cc1df`); stale old batch-metadata row
+removed after. Live verified (read-only MCP): active 56,756 → 58,721, all invariants 0, single batch row,
+RPC 200 m → 39 / 25 m → 2 (meter-correct subset), 0 contract violations. **The false-sunny fix is LIVE.**
+
+**Pending (human-in-the-loop):** Task 6 (spot-check re-validation — re-derive `expected_building_shadow` on the
+new active set + OSM cross-check, then maintainer observations; this is the AC3 gate and also clears Story 8.1's
+carried AC2), Task 7.2 (re-import run record + `story-review.sh` for both 8.1 and 8.1.1).
+
 ### File List
+
+Tracked (committed scope so far):
+- `scripts/geodata/shadow_caster_pipeline.py` — height-uncertain activation (constants +
+  `is_height_uncertain_activation`; `decide_filter` reclassification; `runtime_quality` penalty;
+  `enriched_feature` cap + flag).
+- `scripts/geodata/tests/test_shadow_caster_pipeline.py` — 6 regression tests.
+- `_bmad-output/planning-artifacts/decisions/shadow-data-trust-realignment.md` — ADR decision section.
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` — status flip + note.
+- `_bmad-output/implementation-artifacts/8-1-1-activate-height-uncertain-shadow-casters.md` — this story file.
+
+Local/gitignored (regenerated by run-all, not committed): `building_geodata/goteborg-open/derived/*`.

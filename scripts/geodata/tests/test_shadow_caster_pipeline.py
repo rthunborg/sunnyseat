@@ -129,6 +129,111 @@ class ShadowCasterPipelineTest(unittest.TestCase):
         self.assertIn("small-komplementbyggnad-low-quality", reasons_by_external_id["fixture-exclude"])
         self.assertIn("single-line-tall", reasons_by_external_id["fixture-review"])
 
+    def make_filter_feature(self, **prop_overrides: object) -> dict[str, object]:
+        # Build a candidate feature off the include fixture with property overrides,
+        # for exercising decide_filter / enriched_feature branches (Story 8.1.1).
+        base = pipeline.load_jsonl(self.source)[0]
+        properties = dict(base["properties"])
+        properties.update(prop_overrides)
+        return {"type": "Feature", "geometry": base["geometry"], "properties": properties}
+
+    def test_filter_activates_height_only_uncertain_review_building_as_include(self) -> None:
+        # Footprint certain (roof contour present, 4 matched lines); height uncertain
+        # only via a large z-spread -> activate as a conservative caster, not review.
+        properties = self.make_filter_feature(
+            heightM=40.0,
+            matchedLineCount=4,
+            baskartaZStats={"Takkonturer": {"count": 4, "minZ": 5.0, "maxZ": 30.0}},
+        )["properties"]
+
+        decision, reasons = pipeline.decide_filter(properties)
+
+        self.assertEqual(decision, "include")
+        self.assertEqual(reasons, ["large-z-spread"])
+
+    def test_height_uncertain_activation_caps_height_lowers_quality_and_flags(self) -> None:
+        feature = self.make_filter_feature(
+            heightM=40.0,
+            matchedLineCount=4,
+            baskartaZStats={"Takkonturer": {"count": 4, "minZ": 5.0, "maxZ": 30.0}},
+        )
+        decision, reasons = pipeline.decide_filter(feature["properties"])
+        row = pipeline.map_feature_to_shadow_caster_row(
+            pipeline.enriched_feature(feature, decision, reasons), "fixture-batch"
+        )
+
+        self.assertEqual(row["filter_decision"], "include")
+        self.assertIs(row["active"], True)
+        # 40 m estimate is capped to the conservative height.
+        self.assertEqual(row["height_m"], pipeline.HEIGHT_UNCERTAIN_CONSERVATIVE_CAP_M)
+        self.assertIn(pipeline.HEIGHT_UNCERTAIN_ACTIVATED_FLAG, row["source_flags"])
+        self.assertIn("large-z-spread", row["filter_reasons"])
+        # Confidence-neutral: same quality_score it carried as a review row.
+        self.assertAlmostEqual(
+            row["quality_score"],
+            pipeline.runtime_quality(feature["properties"], "review"),
+            places=3,
+        )
+        self.assertLess(row["quality_score"], 0.7)
+        # Active-row invariants still hold (active => include => >=3 m, validates clean).
+        self.assertGreaterEqual(row["height_m"], 3)
+        self.assertEqual(pipeline.validate_rows([row], "fixture-batch"), [])
+
+    def test_height_uncertain_activation_keeps_short_building_height(self) -> None:
+        # Below the cap the estimate is kept (the cap never inflates a height).
+        feature = self.make_filter_feature(
+            heightM=10.0,
+            matchedLineCount=4,
+            baskartaZStats={"Takkonturer": {"count": 4, "minZ": 5.0, "maxZ": 30.0}},
+        )
+        decision, reasons = pipeline.decide_filter(feature["properties"])
+        row = pipeline.map_feature_to_shadow_caster_row(
+            pipeline.enriched_feature(feature, decision, reasons), "fixture-batch"
+        )
+
+        self.assertEqual(decision, "include")
+        self.assertEqual(row["height_m"], 10.0)
+        self.assertIs(row["active"], True)
+
+    def test_very_tall_building_is_activated_at_conservative_cap(self) -> None:
+        feature = self.make_filter_feature(heightM=65.0, matchedLineCount=4)
+        decision, reasons = pipeline.decide_filter(feature["properties"])
+        row = pipeline.map_feature_to_shadow_caster_row(
+            pipeline.enriched_feature(feature, decision, reasons), "fixture-batch"
+        )
+
+        self.assertEqual(decision, "include")
+        self.assertEqual(reasons, ["very-tall"])
+        self.assertEqual(row["height_m"], pipeline.HEIGHT_UNCERTAIN_CONSERVATIVE_CAP_M)
+        self.assertIs(row["active"], True)
+
+    def test_height_uncertain_with_no_roof_contour_stays_review(self) -> None:
+        # Large z-spread but NO roof contour -> no-roof-contour-for-material-height is
+        # outside the activation set, so the building stays review/inactive.
+        feature = self.make_filter_feature(
+            heightM=40.0,
+            matchedLineCount=4,
+            baskartaZStats={"Fasad": {"count": 4, "minZ": 5.0, "maxZ": 30.0}},
+            sourceSubclass="Fasad",
+        )
+        decision, reasons = pipeline.decide_filter(feature["properties"])
+        row = pipeline.map_feature_to_shadow_caster_row(
+            pipeline.enriched_feature(feature, decision, reasons), "fixture-batch"
+        )
+
+        self.assertEqual(decision, "review")
+        self.assertIn("no-roof-contour-for-material-height", reasons)
+        self.assertIs(row["active"], False)
+        self.assertNotIn(pipeline.HEIGHT_UNCERTAIN_ACTIVATED_FLAG, row["source_flags"])
+
+    def test_missing_footprint_area_stays_review(self) -> None:
+        # A missing/invalid footprint is a geometry problem, not height uncertainty.
+        feature = self.make_filter_feature(areaM2=0.0, matchedLineCount=4)
+        decision, reasons = pipeline.decide_filter(feature["properties"])
+
+        self.assertEqual(decision, "review")
+        self.assertIn("missing-or-invalid-area", reasons)
+
     def test_shadow_casters_contract_mapping_preserves_active_defaults_and_crs(self) -> None:
         import_batch_id = "fixture-batch"
         rows = []

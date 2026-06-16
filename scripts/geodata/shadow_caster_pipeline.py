@@ -1030,6 +1030,37 @@ def source_flags(properties: dict[str, Any]) -> list[str]:
     return sorted(flags)
 
 
+# Story 8.1.1 / shadow-data-trust ADR: review reasons that mean "footprint certain,
+# height uncertain". A building held back ONLY for these is activated as a
+# conservative caster instead of being dropped (dropping caused systematic
+# false-"sunny" downtown). Any other review reason (no roof contour, missing
+# footprint) keeps the building in review.
+HEIGHT_UNCERTAIN_ACTIVATION_REASONS = frozenset(
+    {"large-z-spread", "single-line-tall", "limited-line-support", "very-tall"}
+)
+# Conservative height (metres) for activated height-uncertain casters: enough to
+# cast a meaningful central-Gothenburg shadow while clamping inflated/phantom height
+# estimates. Validated by the Story 8.1.1 prototype (resolved 7/8 confirmed
+# false-sunnies, only ever flipping sunny->shadowed). Re-checked by the Task 6 gate.
+HEIGHT_UNCERTAIN_CONSERVATIVE_CAP_M = 15.0
+# Same magnitude as the review penalty so activation is confidence-neutral: the row
+# casts a shadow but still down-weights confidence exactly as it did in review.
+HEIGHT_UNCERTAIN_QUALITY_PENALTY = 0.25
+HEIGHT_UNCERTAIN_ACTIVATED_FLAG = "height-uncertain-activated"
+
+
+def is_height_uncertain_activation(decision: str, reasons: Iterable[str]) -> bool:
+    """A footprint-certain building held back ONLY for height uncertainty we trust
+    (Story 8.1.1). Such a row is emitted include/active with a capped height +
+    lowered quality instead of being dropped to review."""
+    reason_set = set(reasons)
+    return (
+        decision == "include"
+        and bool(reason_set)
+        and reason_set.issubset(HEIGHT_UNCERTAIN_ACTIVATION_REASONS)
+    )
+
+
 def decide_filter(properties: dict[str, Any]) -> tuple[str, list[str]]:
     height = as_float(properties.get("heightM"))
     area = as_float(properties.get("areaM2"))
@@ -1066,12 +1097,23 @@ def decide_filter(properties: dict[str, Any]) -> tuple[str, list[str]]:
         reasons.append("missing-or-invalid-area")
 
     if reasons:
-        return "review", sorted(set(reasons))
+        deduped = sorted(set(reasons))
+        if set(deduped).issubset(HEIGHT_UNCERTAIN_ACTIVATION_REASONS):
+            # Footprint certain, height uncertain -> activate as a conservative
+            # caster (capped height + lowered quality applied in enriched_feature)
+            # rather than dropping it to review and casting no shadow there.
+            return "include", deduped
+        return "review", deduped
 
     return "include", []
 
 
-def runtime_quality(properties: dict[str, Any], decision: str) -> float:
+def runtime_quality(
+    properties: dict[str, Any],
+    decision: str,
+    *,
+    height_uncertain_activated: bool = False,
+) -> float:
     quality = as_float(properties.get("qualityScore"), 0.6)
     matched = as_int(properties.get("matchedLineCount"))
     spread = z_spread(properties)
@@ -1089,6 +1131,8 @@ def runtime_quality(properties: dict[str, Any], decision: str) -> float:
         quality -= 0.10
     if decision == "review":
         quality -= 0.25
+    elif height_uncertain_activated:
+        quality -= HEIGHT_UNCERTAIN_QUALITY_PENALTY
     if decision == "exclude":
         quality = min(quality, 0.2)
 
@@ -1109,15 +1153,29 @@ def tier(properties: dict[str, Any], quality: float) -> str:
 
 def enriched_feature(feature: dict[str, Any], decision: str, reasons: list[str]) -> dict[str, Any]:
     properties = dict(feature["properties"])
-    quality = runtime_quality(properties, decision)
+    activated = is_height_uncertain_activation(decision, reasons)
+    quality = runtime_quality(properties, decision, height_uncertain_activated=activated)
     properties["shadowImportDecision"] = decision
     properties["shadowFilterReasons"] = reasons
-    properties["shadowSourceFlags"] = source_flags(properties)
+    flags = source_flags(properties)
+    if activated:
+        flags = sorted(set(flags) | {HEIGHT_UNCERTAIN_ACTIVATED_FLAG})
+    properties["shadowSourceFlags"] = flags
     properties["shadowRuntimeQualityScore"] = quality
     properties["shadowCasterTier"] = tier(properties, quality)
     properties["zSpreadM"] = round(z_spread(properties), 3)
-    properties["shadowHeightM"] = properties.get("heightM")
-    properties["shadowHeightMethod"] = "height candidate retained after conservative import filtering"
+    if activated:
+        conservative_height = min(
+            as_float(properties.get("heightM")), HEIGHT_UNCERTAIN_CONSERVATIVE_CAP_M
+        )
+        properties["shadowHeightM"] = round(conservative_height, 3)
+        properties["shadowHeightMethod"] = (
+            "height-uncertain footprint activated at conservative "
+            f"{HEIGHT_UNCERTAIN_CONSERVATIVE_CAP_M:g} m cap (Story 8.1.1 ADR)"
+        )
+    else:
+        properties["shadowHeightM"] = properties.get("heightM")
+        properties["shadowHeightMethod"] = "height candidate retained after conservative import filtering"
     return {
         "type": "Feature",
         "geometry": feature["geometry"],
