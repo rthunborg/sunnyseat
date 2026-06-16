@@ -2166,6 +2166,28 @@ So that the sun/shadow engine has real building obstructions to compute against.
 **When** it is called for a central Gothenburg point after import
 **Then** it returns only active/include casters with meter-correct radius filtering (no empty-coverage-as-high-confidence regression — Story 3.0.5 contract holds)
 
+### Story 8.1.1: Activate Height-Uncertain Shadow Casters & Re-validate Coverage
+
+> **Added 2026-06-15 via course correction** (see `_bmad-output/implementation-artifacts/8-1-course-correction-2026-06-15.md`). Story 8.1's spot-check validation found the conservative Story 3.0.3/3.0.4 filter deactivates ~1,569 real height-uncertain buildings (footprints certain, only the height estimate is uncertain), so the engine casts no shadow there → systematic false-sunny in the dense central clusters. This story makes them conservative shadow-casters and re-validates coverage. Sequenced immediately after 8.1, before 8.2/8.3.
+
+As a **maintainer**,
+I want real buildings with uncertain height to still cast a conservative shadow (instead of being dropped),
+So that the central launch clusters stop predicting false "sunny" and can pass the spot-check gate.
+
+**Acceptance Criteria:**
+
+**Given** the Story 3.0.3 filter currently sends `large-z-spread` / `single-line-tall` / `limited-line-support` (and similar height-uncertainty) `byggnad_l` buildings to `review`/inactive
+**When** the filter is revised
+**Then** those buildings are emitted `filter_decision = include` / `active = true` with a conservative height (agreed rule — e.g. z-range lower bound or a conservative cap) and a lowered `quality_score` plus a `source_flag`/reason marking them height-uncertain; genuinely non-building, sub-3 m, or no-footprint records remain `review`/`exclude`; pipeline unit tests are updated to pin the new behaviour
+
+**Given** the revised filter
+**When** `run-all` regenerates artifacts and the handoff is re-run against the live project
+**Then** `validate-artifacts` passes, the old batch (`open-goteborg-central-e91dd7302b7c`) rows are replaced (delete-old + import-new batch), all Story 3.0.2 active-row invariants still hold (active ⇒ include ⇒ ≥3 m ⇒ byggnad_l ⇒ source_geom_3007), and the active-caster count rises by the activated set
+
+**Given** the re-imported data
+**When** the Story 3.0.4 spot-check gate is re-run (independent cross-check + maintainer-verified sampling)
+**Then** every required launch cluster is `eligible` (≥10/cluster, ≥70 central, all 3 sun buckets, ≥85% agreement), the previously false-sunny central spots now read shadowed, and the Story 3.0.5 fail-closed confidence behaviour is unchanged (lowered `quality_score` down-weights rather than the filter omitting the building)
+
 ### Story 8.2: Real Venue Store & API
 
 As a **user**,

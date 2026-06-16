@@ -44,28 +44,28 @@ So that the central launch clusters stop predicting false "sunny" and can pass t
    **Given** the Story 3.0.3 filter currently sends `large-z-spread` / `single-line-tall` /
    `limited-line-support` (and similar height-uncertainty) `byggnad_l` buildings to `review`/inactive
    **When** the filter is revised
-   **Then** those buildings are emitted `filter_decision = include`, `active = true`, with a
-   **conservative height** (agreed rule — e.g. z-range lower bound or a conservative cap) and a
-   **lowered `quality_score`** plus a `source_flag`/reason marking them height-uncertain; genuinely
-   non-building or sub-3 m / no-footprint records remain `review`/`exclude`. Pipeline unit tests
-   updated to pin the new behavior.
+   **Then** those buildings are emitted `filter_decision = include` / `active = true` with a conservative
+   height (agreed rule — e.g. z-range lower bound or a conservative cap) and a lowered `quality_score`
+   plus a `source_flag`/reason marking them height-uncertain; genuinely non-building, sub-3 m, or
+   no-footprint records remain `review`/`exclude`; pipeline unit tests are updated to pin the new behaviour
 
 2. **Re-derived artifacts validate and re-import cleanly into the live DB.**
    **Given** the revised filter
    **When** `run-all` regenerates artifacts and the handoff is re-run against the live project
-   **Then** `validate-artifacts` passes, the **old batch** (`open-goteborg-central-e91dd7302b7c`)
-   rows are replaced (delete-old + import-new batch), all 3.0.2 active-row invariants still hold
-   (active ⇒ include ⇒ ≥3 m ⇒ byggnad_l ⇒ source_geom), and the active count rises by the activated set.
+   **Then** `validate-artifacts` passes, the old batch (`open-goteborg-central-e91dd7302b7c`) rows are
+   replaced (delete-old + import-new batch), all Story 3.0.2 active-row invariants still hold
+   (active ⇒ include ⇒ ≥3 m ⇒ byggnad_l ⇒ source_geom_3007), and the active-caster count rises by the activated set
 
 3. **Spot-check gate passes; confidence stays honest.**
    **Given** the re-imported data
-   **When** the Story 3.0.4 gate is re-run (independent cross-check + maintainer-verified sampling)
-   **Then** every required launch cluster is `eligible` (≥10/cluster, ≥70 central, all 3 buckets,
+   **When** the Story 3.0.4 spot-check gate is re-run (independent cross-check + maintainer-verified sampling)
+   **Then** every required launch cluster is `eligible` (≥10/cluster, ≥70 central, all 3 sun buckets,
    ≥85% agreement), the previously false-sunny central spots now read shadowed, and the Story 3.0.5
-   fail-closed confidence behavior is unchanged (lowered `quality_score` down-weights, not omits).
+   fail-closed confidence behaviour is unchanged (lowered `quality_score` down-weights rather than the filter omitting the building)
 
-**Design Gate Criteria:** Backend/data story — no mapped Screen ID; Visual/Behaviour/Animation N/A;
-visual validation skipped (matches 8.1 / 3.0.2 / 3.0.4).
+> **No Design Gate Criteria for this story.** It is a backend/data-only change to the geodata filter plus
+> a live re-import — no mapped Screen ID and no consumer UI change. This is intentional per epics.md
+> (Epic 8 overall design-gate note); visual validation is skipped, matching Stories 8.1 / 3.0.2 / 3.0.4.
 
 ## Tasks / Subtasks
 
@@ -121,10 +121,40 @@ visual validation skipped (matches 8.1 / 3.0.2 / 3.0.4).
 - Don't leave buildings `review` with `active=true` (violates `shadow_casters_active_requires_include`).
 - Don't fabricate spot-check observations; the gate still needs independent evidence + maintainer sign-off.
 
+### File impact
+- **Modified (tracked):** `scripts/geodata/shadow_caster_pipeline.py` (filter reclassification +
+  conservative-height/quality rule); `scripts/geodata/tests/test_shadow_caster_pipeline.py`
+  (regression tests for the new rule); `_bmad-output/planning-artifacts/decisions/shadow-data-trust-realignment.md`
+  (ADR update); `_bmad-output/implementation-artifacts/sprint-status.yaml` (status + note).
+- **Created (tracked):** `_bmad-output/implementation-artifacts/8-1-1-shadow-caster-reimport-run-<date>.md`
+  (re-import run record: new batch id/checksums, row counts, smoke checks, passing spot-check gate summary).
+- **Local/gitignored (regenerated, NOT committed):** `building_geodata/goteborg-open/derived/*`
+  (new-batch artifacts), `shadow_caster_spot_checks.results.jsonl` + `…cluster_validation.*`.
+- **Database writes (not files):** re-import into live `public.shadow_casters` — delete the old batch
+  (`open-goteborg-central-e91dd7302b7c`) + insert the new batch with the activated set.
+- **Explicitly NOT created/modified:** no 3.0.2 schema/RPC migration; no `nextjs-app/**` changes; no
+  3.0.5 runtime confidence/shadow math; no RLS policies (Story 8.5 owns those).
+
+### Test gate (project is past the transitional phase → standard gates)
+Before marking review:
+- `cd nextjs-app && npx.cmd tsc --noEmit` (0) · `npx.cmd eslint . --quiet` (0) · `npx.cmd vitest run`
+  (baseline 64 files / 527 tests — unchanged; this story adds no `nextjs-app` code).
+- `python -m py_compile scripts/geodata/shadow_caster_pipeline.py` · `python -m unittest discover -s
+  scripts/geodata/tests` (green; +new filter-reclassification tests).
+- `evaluate-spot-checks` → every required cluster `eligible` (the AC3 gate).
+- `.\scripts\run-sh.ps1 scripts/story-review.sh 8-1-1-activate-height-uncertain-shadow-casters`
+  (visual validation skipped — no mapped screen ID).
+- E2E (`playwright test`) not required (no runtime/UI change). DESIGN.md / ux-design-specification are
+  N/A (backend/data story, no UI).
+
 ### References
+- [Source: CLAUDE.md] (root shim → `AGENTS.md` is the canonical agent rulebook)
+- [Source: project-context.md#Gothenburg Constants / Building-shadow data]
+- [Source: _bmad-output/planning-artifacts/epics.md#Story 8.1.1: Activate Height-Uncertain Shadow Casters]
+- [Source: _bmad-output/planning-artifacts/architecture.md#Data Flow — Shadow Caster Lookup (Backend)]
+- [Source: _bmad-output/planning-artifacts/decisions/shadow-data-trust-realignment.md]
 - [Source: _bmad-output/implementation-artifacts/8-1-course-correction-2026-06-15.md]
 - [Source: _bmad-output/implementation-artifacts/8-1-shadow-caster-import-run-2026-06-15.md]
-- [Source: _bmad-output/planning-artifacts/decisions/shadow-data-trust-realignment.md]
 - [Source: _bmad-output/implementation-artifacts/3-0-3-open-geodata-import-pipeline.md] / [3-0-4-…] / [3-0-5-…]
 - [Source: scripts/geodata/README.md] / [scripts/geodata/shadow_caster_pipeline.py]
 
