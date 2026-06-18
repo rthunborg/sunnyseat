@@ -18,10 +18,8 @@ import {
 } from '@/lib/utils/validation';
 import { badRequest } from '@/lib/utils/api-errors';
 import { greatCircleMeters } from '@/lib/utils/geo';
-import {
-  normalizeVenueForResponse,
-  VENUE_FIXTURE,
-} from '@/lib/services/venues-fixture';
+import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
+import { getVenues } from '@/lib/services/venue-store';
 import {
   applyPlannerSelectionToVenue,
   parseVenuePlannerParams,
@@ -235,7 +233,8 @@ export async function GET(request: NextRequest) {
     return badRequest('Longitude must be between -180 and 180 degrees');
   }
 
-  const uniqueness = validateVenueUniqueness(VENUE_FIXTURE);
+  const storeVenues = await getVenues();
+  const uniqueness = validateVenueUniqueness(storeVenues);
   if (!uniqueness.valid) {
     return NextResponse.json(
       { detail: uniqueness.reason, status: 500 },
@@ -267,7 +266,7 @@ export async function GET(request: NextRequest) {
   if (!planner.ok) return badRequest(planner.detail);
   const freshness = resolveFixtureSunFreshness(params);
 
-  const matchedVenues = VENUE_FIXTURE
+  const matchedVenues = storeVenues
     .map((v) => normalizeVenueForResponse(v))
     .map((v) => applyFixtureWeatherAvailability(v, freshness))
     .map((v) => applyPlannerSelectionToVenue(v, planner.selection))

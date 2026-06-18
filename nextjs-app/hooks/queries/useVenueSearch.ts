@@ -5,6 +5,7 @@ import { queryKeys } from '@/lib/query-keys';
 import type { GetVenuesResponse } from '@/lib/types/api';
 import { readSunFreshnessHeaders } from '@/lib/utils/sun-freshness';
 import {
+  HttpError,
   shouldRetryVenueQuery,
   venueQueryRetryDelay,
 } from './venue-query-options';
@@ -81,7 +82,7 @@ export function useVenueSearch(
       const url = `/api/venues?${searchParams.toString()}`;
       const res = await fetch(url, { signal });
       if (!res.ok) {
-        throw new Error(`Venue search failed: ${res.status} ${res.statusText}`);
+        throw new HttpError(`Venue search failed: ${res.status} ${res.statusText}`, res.status);
       }
       // A 200 with a non-JSON content-type usually means an auth wall or
       // proxy rewrote the response. Surface a useful error rather than

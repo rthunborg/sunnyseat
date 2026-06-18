@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
 import {
-  normalizeVenueForResponse,
-  VENUE_FIXTURE,
-} from '@/lib/services/venues-fixture';
+  getVenueBySlug,
+  storedVenueDetail,
+  toVenueData,
+  type StoredVenueDetail,
+} from '@/lib/services/venue-store';
 import { getReviewSummaryForVenueFromPersistence } from '@/lib/services/venue-reviews-persistence';
 import {
   applyPlannerSelectionToVenue,
@@ -30,14 +33,6 @@ type RouteContext = {
   params: Promise<{ slug: string }>;
 };
 
-type FixtureDetail = {
-  description: string;
-  address: string;
-  openingHours: VenueDetailDto['openingHours'];
-  peakTime: string;
-  shadowWarningMinutes?: number;
-};
-
 type DetailTimelineProjection = {
   peakTime?: string;
   windowStatus?: VenueDataDto['currentSunStatus'];
@@ -46,60 +41,6 @@ type DetailTimelineProjection = {
 type DetailCoordinates = {
   lat: number;
   lng: number;
-};
-
-const DETAIL_FIXTURE: Record<string, FixtureDetail> = {
-  'test-venue-sunny': {
-    description:
-      'Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.',
-    address: 'Tredje Långgatan 9, 413 03 Göteborg',
-    openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
-    peakTime: '15:30',
-    shadowWarningMinutes: 45,
-  },
-  'bryggeriet-soltak': {
-    description:
-      'Taknära sittplatser med bred solträff under lunch och eftermiddag.',
-    address: 'Linnégatan 21, 413 04 Göteborg',
-    openingHours: { display: 'Öppet till 23:00', closesAt: '23:00' },
-    peakTime: '15:00',
-  },
-  'solplats-magasinsgatan': {
-    description:
-      'Lugn innerstadsterrass med bäst sol när eftermiddagen vänder mot kväll.',
-    address: 'Magasinsgatan 17, 411 18 Göteborg',
-    openingHours: { display: 'Öppet till 21:00', closesAt: '21:00' },
-    peakTime: '15:30',
-  },
-  'cafe-halvvags': {
-    description:
-      'Avslappnat kvarterscafé med delvis sol på de yttre borden.',
-    address: 'Vasagatan 32, 411 24 Göteborg',
-    openingHours: { display: 'Öppet till 20:00', closesAt: '20:00' },
-    peakTime: '16:00',
-  },
-  'brygghuset-lerum': {
-    description:
-      'Skyddad gårdsmiljö med kortare solfönster och gott om sittplatser.',
-    address: 'Haga Nygata 8, 413 01 Göteborg',
-    openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
-    peakTime: '14:30',
-  },
-  'skuggans-hus': {
-    description:
-      'Sval uteservering som bara får korta solglimtar mellan husfasaderna.',
-    address: 'Södra Hamngatan 12, 411 14 Göteborg',
-    openingHours: { display: 'Öppet till 19:00', closesAt: '19:00' },
-    peakTime: '16:30',
-  },
-  'bistro-bakgarden': {
-    description:
-      'Bakgårdsservering med mest skugga, men en kort lunchsol vid klart väder.',
-    address: 'Engelbrektsgatan 44, 411 37 Göteborg',
-    openingHours: { display: 'Öppet till 21:00', closesAt: '21:00' },
-    peakTime: '12:00',
-    shadowWarningMinutes: 0,
-  },
 };
 
 export async function GET(_request: NextRequest, context: RouteContext) {
@@ -123,17 +64,18 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       { status: 400 },
     );
   }
-  const venue = VENUE_FIXTURE.find(
-    (candidate) => candidate.slug === decodedSlug || candidate.venueSlug === decodedSlug,
-  );
+  const stored = await getVenueBySlug(decodedSlug);
 
-  if (!venue) {
+  if (!stored) {
     return NextResponse.json(
       { detail: `Venue not found: ${decodedSlug}`, status: 404 },
       { status: 404 },
     );
   }
 
+  // Strip the detail block before the normalize/weather/planner pipeline (each
+  // stage spreads `...venue`); detail is applied explicitly via buildDetailDto.
+  const venue = toVenueData(stored);
   const venueWithDistance = coordinates.value
     ? {
         ...venue,
@@ -156,7 +98,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   }
   const detail = buildDetailDto(
     adjustedVenue,
-    DETAIL_FIXTURE[venue.slug],
+    storedVenueDetail(stored),
     planner.selection
       ? timelineProjectionFromAdjustedVenue(adjustedVenue)
       : undefined,
@@ -178,7 +120,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
 function buildDetailDto(
   venue: VenueDataDto,
-  fixture?: FixtureDetail,
+  fixture?: StoredVenueDetail,
   timelineProjection?: DetailTimelineProjection,
   reviewSummary?: VenueDetailDto['reviewSummary'],
 ): VenueDetailDto {

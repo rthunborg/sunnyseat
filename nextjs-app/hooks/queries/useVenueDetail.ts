@@ -5,6 +5,7 @@ import { queryKeys } from '@/lib/query-keys';
 import type { GetVenueDetailResponse } from '@/lib/types/api';
 import { readSunFreshnessHeaders } from '@/lib/utils/sun-freshness';
 import {
+  HttpError,
   shouldRetryVenueQuery,
   venueQueryRetryDelay,
 } from './venue-query-options';
@@ -70,7 +71,7 @@ export function useVenueDetail(
         },
       );
       if (!res.ok) {
-        throw new Error(`Venue detail failed: ${res.status} ${res.statusText}`);
+        throw new HttpError(`Venue detail failed: ${res.status} ${res.statusText}`, res.status);
       }
       const contentType = res.headers.get('content-type') ?? '';
       if (!contentType.toLowerCase().includes('application/json')) {
