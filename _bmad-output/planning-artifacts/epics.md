@@ -2274,6 +2274,8 @@ So that SunnySeat can go live safely.
 **When** the schema is stable
 **Then** `lib/supabase/types.ts` is regenerated from the live schema (replacing the placeholder) and the typecheck/lint/test gates pass
 
+> **Carried-in from Story 8.2 code review Round 2 (2026-06-18) — opt-in Supabase venue-store path, pre-cutover verification:** when this story enables the live read (`SUNNYSEAT_VENUE_STORE=supabase`), verify (a) **uniqueness-key alignment** — `validateVenueUniqueness` (`app/api/venues/route.ts`) dedupes on `id` + rounded coordinates while the `venues` contract enforces unique `id` + `slug`; two live venues sharing rounded coordinates would 500 the list route and a duplicate slug is caught only by the DB index, so align the assumptions (or relax the coord check) and confirm live venue-data integrity; and (b) **query-contract coverage** — the mocked `venue-store` tests don't assert the args to `.select(VENUE_SELECT_COLUMNS)` / `.eq('slug', …)`, so add query-contract assertions or a live round-trip so a snake_case column/filter typo is caught before production.
+
 **Design Gate Criteria (Epic 8 overall):**
 - **Behaviour:** Every existing screen behaves identically with real data swapped behind the API boundary; loading/empty/error states already built in Epics 1–3 handle real latency and failures.
 - **Visual validation:** The five existing gate states (`map-with-selected-venue`, `venue-detail` mobile/desktop, `feedback`, `review`) plus map-primary continue to pass against their references with real (or gate-seeded) data; any genuine visual change requires explicit rationale + `REBASELINE-LOG.md`.
