@@ -38,6 +38,7 @@
       "ratingValue": "{rating} out of 5",
       "photo": "Add photo (optional)",
       "photoSelected": "Selected photo: {name}",
+      "photoRejected": "The photo couldn't be added. Choose an image file under 5 MB.",
       "submit": "Send",
       "submitting": "Sending",
       "close": "Close",

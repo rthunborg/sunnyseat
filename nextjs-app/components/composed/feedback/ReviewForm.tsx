@@ -27,6 +27,7 @@ export type ReviewFormLabels = {
   ratingValue: string;
   photo: string;
   photoSelected: string;
+  photoRejected: string;
   submit: string;
   submitting: string;
   close: string;
@@ -66,6 +67,7 @@ export function ReviewForm({
   const [text, setText] = useState('');
   const [rating, setRating] = useState<number | undefined>();
   const [photo, setPhoto] = useState<ReviewPhotoAttachmentDto | undefined>();
+  const [photoRejected, setPhotoRejected] = useState(false);
   const disabled = isSubmitting || submitState === 'success';
   const canSubmit = text.trim().length > 0 && !disabled;
   const replacementTransition = reducedMotion
@@ -188,10 +190,12 @@ export function ReviewForm({
                     const file = event.target.files?.[0];
                     if (!file) {
                       setPhoto(undefined);
+                      setPhotoRejected(false);
                       return;
                     }
                     if (!isSafeOptionalPhoto(file)) {
                       setPhoto(undefined);
+                      setPhotoRejected(true);
                       event.currentTarget.value = '';
                       return;
                     }
@@ -201,6 +205,7 @@ export function ReviewForm({
                       size: file.size,
                       lastModified: file.lastModified,
                     });
+                    setPhotoRejected(false);
                   }}
                 />
                 <button
@@ -215,17 +220,22 @@ export function ReviewForm({
                 {/* Always mounted: a live region inserted together with its
                     content is not reliably announced, so the region exists
                     before a photo is picked and only its text changes.
-                    `sr-only` keeps the empty state out of the layout. */}
+                    `sr-only` keeps the empty state out of the layout. It
+                    announces either the selected photo or a rejection message
+                    (R2-D1) so a refused photo is never silently dropped. */}
                 <p
                   role="status"
                   className={cn(
-                    'break-words text-body-sm text-text-body',
-                    !photo && 'sr-only',
+                    'break-words text-body-sm',
+                    photoRejected ? 'text-error' : 'text-text-body',
+                    !photo && !photoRejected && 'sr-only',
                   )}
                 >
                   {photo
                     ? formatTemplate(labels.photoSelected, { name: photo.name })
-                    : null}
+                    : photoRejected
+                      ? labels.photoRejected
+                      : null}
                 </p>
               </div>
 
