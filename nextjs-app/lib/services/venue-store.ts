@@ -35,7 +35,21 @@ export type StoredVenueDetail = {
   shadowWarningMinutes?: number;
 };
 
-export type StoredVenue = VenueDataDto & StoredVenueDetail;
+/**
+ * Server-only venue attributes that are NEVER serialized into the client DTO.
+ *
+ * `seatingArea` is the venue's real outdoor seating-area polygon (Story 8.3
+ * DECISION B, polygon-first direction). When present the sun engine computes
+ * shadows against the true polygon; when absent it falls back to a synthesized
+ * point footprint. Consumed ONLY by `lib/services/sun-engine.ts` — `toVenueData`
+ * must not surface it (no DTO/frontend change; the gate venue stays
+ * byte-identical because launch venues leave it null → footprint fallback).
+ */
+export type StoredVenueServerOnly = {
+  seatingArea?: GeoJSON.Polygon;
+};
+
+export type StoredVenue = VenueDataDto & StoredVenueDetail & StoredVenueServerOnly;
 
 /**
  * Launch venue detail, keyed by slug. Folded into the in-memory seed and used
@@ -114,6 +128,9 @@ const VENUE_SELECT_COLUMNS = [
   'sun_exposure_percent',
   'sun_window',
   'prediction_uncertainty',
+  // Server-only (Story 8.3): the real seating-area polygon for the sun engine.
+  // Never mapped into toVenueData / VenueDataDto.
+  'seating_area',
 ].join(', ');
 
 type VenueRow = {
@@ -136,6 +153,8 @@ type VenueRow = {
   sun_exposure_percent?: number | null;
   sun_window?: VenueDataDto['sunWindow'] | null;
   prediction_uncertainty?: PredictionUncertaintyDto | null;
+  // Server-only seating-area polygon (Story 8.3); never serialized into the DTO.
+  seating_area?: GeoJSON.Polygon | null;
 };
 
 /**
@@ -297,6 +316,7 @@ function fromVenueRow(row: VenueRow): StoredVenue {
     );
   }
   const skyCondition = coerceSkyCondition(row.sky_condition);
+  const seatingArea = coerceSeatingArea(row.seating_area);
   const stored: StoredVenue = {
     id,
     venueId: id,
@@ -316,9 +336,48 @@ function fromVenueRow(row: VenueRow): StoredVenue {
       : {}),
     ...(row.sun_window ? { sunWindow: row.sun_window } : {}),
     ...(row.thumbnail ? { thumbnail: row.thumbnail } : {}),
+    ...(seatingArea ? { seatingArea } : {}),
     ...detailFromRow(row),
   };
   return stored;
+}
+
+/**
+ * Keep `seating_area` only when it is a GeoJSON `Polygon` with a well-formed
+ * outer ring (server-only). A null, malformed, or degenerate value is dropped so
+ * the sun engine falls back to the synthesized point footprint rather than
+ * throwing or computing a `[0,0]` centroid. [Story 8.3; review R1 hardening]
+ */
+function coerceSeatingArea(value: GeoJSON.Polygon | null | undefined): GeoJSON.Polygon | undefined {
+  if (
+    value &&
+    typeof value === 'object' &&
+    value.type === 'Polygon' &&
+    Array.isArray(value.coordinates) &&
+    isValidLinearRing(value.coordinates[0])
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
+/**
+ * A GeoJSON Polygon outer ring must be an array of at least 4 positions, each a
+ * `[number, number]` (lng, lat) pair. Anything less (empty ring, `[[]]`, short
+ * ring, non-numeric tuples) would break centroid/shadow math downstream.
+ */
+function isValidLinearRing(ring: unknown): boolean {
+  return (
+    Array.isArray(ring) &&
+    ring.length >= 4 &&
+    ring.every(
+      (pos) =>
+        Array.isArray(pos) &&
+        pos.length >= 2 &&
+        Number.isFinite(pos[0]) &&
+        Number.isFinite(pos[1]),
+    )
+  );
 }
 
 /**

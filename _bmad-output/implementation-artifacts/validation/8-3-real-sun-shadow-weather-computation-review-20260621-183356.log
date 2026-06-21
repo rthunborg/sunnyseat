@@ -1,0 +1,41 @@
+SunnySeat story review gate
+Story: 8-3-real-sun-shadow-weather-computation
+Mode: dry-run
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/8-3-real-sun-shadow-weather-computation-review-20260621-183356.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/8-3-real-sun-shadow-weather-computation.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  68 passed (68)
+      Tests  580 passed (580)
+   Start at  18:34:18
+   Duration  38.67s (transform 6.50s, setup 65.79s, import 64.17s, tests 61.35s, environment 316.64s)
+
+Skipping visual validation: no mapped screen ID found in story file
+
+DRY RUN: checks passed; sprint-status.yaml was not updated.
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/8-3-real-sun-shadow-weather-computation-review-20260621-183356.log

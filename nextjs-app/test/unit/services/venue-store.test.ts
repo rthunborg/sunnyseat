@@ -253,6 +253,47 @@ describe('venue-store (Supabase opt-in)', () => {
     expect(venue).not.toHaveProperty('skyCondition');
   });
 
+  it('keeps a well-formed seating_area polygon as a server-only field (never in the DTO)', async () => {
+    useSupabaseStore();
+    const seatingArea = {
+      type: 'Polygon',
+      coordinates: [[
+        [11.98, 57.71],
+        [11.981, 57.71],
+        [11.981, 57.711],
+        [11.98, 57.711],
+        [11.98, 57.71],
+      ]],
+    };
+    supabaseMock.state.singleResult = {
+      data: { ...SUPABASE_ROW, seating_area: seatingArea },
+      error: null,
+    };
+
+    const venue = await getVenueBySlug('supa-venue');
+    expect(venue?.seatingArea).toEqual(seatingArea);
+    // Server-only: the seating polygon must never surface through the client projection.
+    expect(toVenueData(venue!)).not.toHaveProperty('seatingArea');
+  });
+
+  it('drops a degenerate/non-Polygon seating_area so the engine falls back to the footprint (review R1 P2)', async () => {
+    useSupabaseStore();
+    const malformed = [
+      { type: 'Polygon', coordinates: [] }, // no ring
+      { type: 'Polygon', coordinates: [[]] }, // empty ring
+      { type: 'Polygon', coordinates: [[[11.98, 57.71], [11.981, 57.71]]] }, // short ring (<4)
+      { type: 'Point', coordinates: [11.98, 57.71] }, // not a Polygon
+    ];
+    for (const seating_area of malformed) {
+      supabaseMock.state.singleResult = {
+        data: { ...SUPABASE_ROW, seating_area },
+        error: null,
+      };
+      const venue = await getVenueBySlug('supa-venue');
+      expect(venue).not.toHaveProperty('seatingArea');
+    }
+  });
+
   it('rejects a row missing identity (id/slug) instead of emitting an empty-id venue', async () => {
     useSupabaseStore();
     supabaseMock.state.listResult = {

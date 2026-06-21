@@ -1,0 +1,2114 @@
+diff --git a/_bmad-output/implementation-artifacts/8-2-venues-store-contract.sql b/_bmad-output/implementation-artifacts/8-2-venues-store-contract.sql
+index 535c58c..6c697e5 100644
+--- a/_bmad-output/implementation-artifacts/8-2-venues-store-contract.sql
++++ b/_bmad-output/implementation-artifacts/8-2-venues-store-contract.sql
+@@ -87,6 +87,20 @@ comment on table public.venues is
+ -- do not also create a redundant auto-named unique constraint index.
+ create unique index if not exists idx_venues_slug on public.venues (slug);
+ 
++-- Story 8.3 (DECISION B, polygon-first): additive, nullable, SERVER-ONLY GeoJSON
++-- Polygon for the venue's real outdoor seating area. Consumed only by the
++-- sun-engine adapter (lib/services/sun-engine.ts) and NEVER serialized into the
++-- client VenueDataDto. Idempotent so re-running this contract on an existing
++-- table is safe. Launch/seed venues leave it null → the engine falls back to a
++-- synthesized point footprint, keeping the gate venue byte-identical. Populating
++-- real polygons for live venues is ongoing manual venue-data work (out of 8.3).
++alter table public.venues add column if not exists seating_area jsonb;
++
++comment on column public.venues.seating_area is
++  'Server-only GeoJSON Polygon of the venue outdoor seating area (Story 8.3). '
++  'Used by the sun engine for shadow casting; never returned in the API DTO. '
++  'Null → engine uses a synthesized point footprint around lat/lng.';
++
+ -- ============================================================================
+ -- Section 3: privileges / RLS (deny-by-default, server-only read)
+ -- ============================================================================
+diff --git a/nextjs-app/.env.example b/nextjs-app/.env.example
+index 11f5be7..0151f5a 100644
+--- a/nextjs-app/.env.example
++++ b/nextjs-app/.env.example
+@@ -11,6 +11,15 @@ SUNNYSEAT_VENUE_STORE=          # "supabase" reads public.venues (Story 8.2)
+ SUNNYSEAT_FEEDBACK_PERSISTENCE= # "supabase" writes public.feedback (Story 3.2)
+ SUNNYSEAT_REVIEW_PERSISTENCE=   # "supabase" reads/writes public.reviews (Story 3.3)
+ 
++# Sun engine (Story 8.3). Unset = the 8.2 seed sun values (byte-identical, CI
++# default). "real" computes currentSunStatus/skyCondition/confidence/
++# sunExposurePercent/sunWindow/predictionUncertainty live from lib/solar (shadow
++# casting via the get_buildings_near_point RPC) + lib/weather (Met.no). Weather
++# is a public API needing only the User-Agent below (no extra secret); "real"
++# additionally requires the Supabase service-role config above (for the RPC),
++# exactly like SUNNYSEAT_VENUE_STORE=supabase.
++SUNNYSEAT_SUN_ENGINE=           # "real" computes live sun/shadow/weather (Story 8.3)
++
+ # Cron job authentication
+ CRON_SECRET=[random-secret-for-cron-endpoints]
+ 
+diff --git a/nextjs-app/app/api/venues/[slug]/route.ts b/nextjs-app/app/api/venues/[slug]/route.ts
+index 10118db..bfc1112 100644
+--- a/nextjs-app/app/api/venues/[slug]/route.ts
++++ b/nextjs-app/app/api/venues/[slug]/route.ts
+@@ -15,6 +15,11 @@ import {
+   applyFixtureWeatherAvailability,
+   resolveFixtureSunFreshness,
+ } from '@/lib/services/weather-freshness-fixture';
++import {
++  applyRealSunEngine,
++  resolveRequestedAt,
++  shouldUseRealSunEngine,
++} from '@/lib/services/sun-engine';
+ import { badRequest } from '@/lib/utils/api-errors';
+ import { greatCircleMeters } from '@/lib/utils/geo';
+ import { formatPlannerTime, parsePlannerTime } from '@/lib/utils/time-planner';
+@@ -24,6 +29,7 @@ import {
+ } from '@/lib/utils/validation';
+ import type {
+   GetVenueDetailResponse,
++  SunFreshnessMeta,
+   VenueDataDto,
+   VenueDetailDto,
+ } from '@/lib/types/api';
+@@ -53,7 +59,6 @@ export async function GET(_request: NextRequest, context: RouteContext) {
+   }
+   const coordinates = parseDetailCoordinates(_request.nextUrl.searchParams);
+   if (!coordinates.ok) return badRequest(coordinates.detail);
+-  const freshness = resolveFixtureSunFreshness(_request.nextUrl.searchParams);
+   const { slug } = await context.params;
+   let decodedSlug: string;
+   try {
+@@ -73,23 +78,39 @@ export async function GET(_request: NextRequest, context: RouteContext) {
+     );
+   }
+ 
+-  // Strip the detail block before the normalize/weather/planner pipeline (each
+-  // stage spreads `...venue`); detail is applied explicitly via buildDetailDto.
+-  const venue = toVenueData(stored);
+-  const venueWithDistance = coordinates.value
+-    ? {
+-        ...venue,
+-        distanceMeters: greatCircleMeters(
+-          coordinates.value.lat,
+-          coordinates.value.lng,
+-          venue.location.lat,
+-          venue.location.lng,
+-        ),
+-      }
+-    : venue;
+-  const normalizedVenue = normalizeVenueForResponse(venueWithDistance);
+-  const weatherAdjustedVenue = applyFixtureWeatherAvailability(normalizedVenue, freshness);
+-  const adjustedVenue = applyPlannerSelectionToVenue(weatherAdjustedVenue, planner.selection);
++  // STORY 8.3 — real engine swap behind the frozen VenueDetailDto. Default
++  // (flag off) path is byte-identical to the 8.2 seed; the real path feeds the
++  // timeline projection (sunWindow/status/peakTime) from the engine and bypasses
++  // the planner + fixture-weather stages.
++  const useRealEngine = shouldUseRealSunEngine();
++  const now = new Date();
++  let adjustedVenue: VenueDataDto;
++  let freshness: SunFreshnessMeta;
++  let timelineProjection: DetailTimelineProjection | undefined;
++
++  if (useRealEngine) {
++    const requestedAt = resolveRequestedAt(planner.selection, now);
++    const outcome = await applyRealSunEngine(stored, requestedAt, now);
++    freshness = outcome.freshness;
++    const base = withDetailDistance(outcome.venue, coordinates.value);
++    adjustedVenue = normalizeVenueForResponse(base);
++    timelineProjection = {
++      ...(outcome.peakTime ? { peakTime: outcome.peakTime } : {}),
++      windowStatus: adjustedVenue.currentSunStatus,
++    };
++  } else {
++    freshness = resolveFixtureSunFreshness(_request.nextUrl.searchParams);
++    // Strip the detail block before the normalize/weather/planner pipeline (each
++    // stage spreads `...venue`); detail is applied explicitly via buildDetailDto.
++    const venue = withDetailDistance(toVenueData(stored), coordinates.value);
++    const normalizedVenue = normalizeVenueForResponse(venue);
++    const weatherAdjustedVenue = applyFixtureWeatherAvailability(normalizedVenue, freshness);
++    adjustedVenue = applyPlannerSelectionToVenue(weatherAdjustedVenue, planner.selection);
++    timelineProjection = planner.selection
++      ? timelineProjectionFromAdjustedVenue(adjustedVenue)
++      : undefined;
++  }
++
+   let reviewSummary: VenueDetailDto['reviewSummary'];
+   try {
+     reviewSummary = await getReviewSummaryForVenueFromPersistence(adjustedVenue);
+@@ -99,9 +120,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
+   const detail = buildDetailDto(
+     adjustedVenue,
+     storedVenueDetail(stored),
+-    planner.selection
+-      ? timelineProjectionFromAdjustedVenue(adjustedVenue)
+-      : undefined,
++    timelineProjection,
+     reviewSummary,
+   );
+   const response: GetVenueDetailResponse = {
+@@ -156,6 +175,22 @@ function buildDetailDto(
+   };
+ }
+ 
++function withDetailDistance(
++  venue: VenueDataDto,
++  coordinates: DetailCoordinates | undefined,
++): VenueDataDto {
++  if (!coordinates) return venue;
++  return {
++    ...venue,
++    distanceMeters: greatCircleMeters(
++      coordinates.lat,
++      coordinates.lng,
++      venue.location.lat,
++      venue.location.lng,
++    ),
++  };
++}
++
+ function parseDetailCoordinates(
+   params: URLSearchParams,
+ ): { ok: true; value: DetailCoordinates | undefined } | { ok: false; detail: string } {
+diff --git a/nextjs-app/app/api/venues/route.ts b/nextjs-app/app/api/venues/route.ts
+index e85351d..ba1adfb 100644
+--- a/nextjs-app/app/api/venues/route.ts
++++ b/nextjs-app/app/api/venues/route.ts
+@@ -28,7 +28,17 @@ import {
+   applyFixtureWeatherAvailability,
+   resolveFixtureSunFreshness,
+ } from '@/lib/services/weather-freshness-fixture';
+-import type { GetVenuesResponse, VenueDataDto } from '@/lib/types/api';
++import {
++  aggregateSunFreshness,
++  applyRealSunEngine,
++  resolveRequestedAt,
++  shouldUseRealSunEngine,
++} from '@/lib/services/sun-engine';
++import type {
++  GetVenuesResponse,
++  SunFreshnessMeta,
++  VenueDataDto,
++} from '@/lib/types/api';
+ import { sunFreshnessHeaders } from '@/lib/utils/sun-freshness';
+ 
+ const DEFAULT_RADIUS_KM = 1.5;
+@@ -264,16 +274,42 @@ export async function GET(request: NextRequest) {
+   if (!ids.success) return badRequest(ids.error);
+   const planner = parseVenuePlannerParams(params);
+   if (!planner.ok) return badRequest(planner.detail);
+-  const freshness = resolveFixtureSunFreshness(params);
+ 
+-  const matchedVenues = storeVenues
+-    .map((v) => normalizeVenueForResponse(v))
+-    .map((v) => applyFixtureWeatherAvailability(v, freshness))
+-    .map((v) => applyPlannerSelectionToVenue(v, planner.selection))
+-    .map((v) => ({
+-      ...v,
+-      distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),
+-    }))
++  // STORY 8.3 — real engine swap behind a frozen DTO. The default (flag off)
++  // path is byte-identical to the 8.2 seed; the real path replaces the sun
++  // fields before the SUN_STATUS_ORDER sort and bypasses the planner +
++  // fixture-weather stages (the engine computes for the requested time + real
++  // freshness). DECISION D: compute concurrently, degrade per-venue (never 500).
++  const useRealEngine = shouldUseRealSunEngine();
++  const now = new Date();
++  let freshness: SunFreshnessMeta;
++  let processedVenues: VenueDataDto[];
++
++  if (useRealEngine) {
++    const requestedAt = resolveRequestedAt(planner.selection, now);
++    const outcomes = await Promise.all(
++      storeVenues.map((v) => applyRealSunEngine(v, requestedAt, now)),
++    );
++    freshness = aggregateSunFreshness(outcomes.map((o) => o.freshness));
++    processedVenues = outcomes
++      .map((o) => normalizeVenueForResponse(o.venue))
++      .map((v) => ({
++        ...v,
++        distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),
++      }));
++  } else {
++    freshness = resolveFixtureSunFreshness(params);
++    processedVenues = storeVenues
++      .map((v) => normalizeVenueForResponse(v))
++      .map((v) => applyFixtureWeatherAvailability(v, freshness))
++      .map((v) => applyPlannerSelectionToVenue(v, planner.selection))
++      .map((v) => ({
++        ...v,
++        distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),
++      }));
++  }
++
++  const matchedVenues = processedVenues
+     .filter((v) => {
+       if (ids.value) return ids.value.includes(v.id);
+       if (q.value) return true;
+diff --git a/nextjs-app/lib/services/venue-store.ts b/nextjs-app/lib/services/venue-store.ts
+index 1830efb..e207fa2 100644
+--- a/nextjs-app/lib/services/venue-store.ts
++++ b/nextjs-app/lib/services/venue-store.ts
+@@ -35,7 +35,21 @@ export type StoredVenueDetail = {
+   shadowWarningMinutes?: number;
+ };
+ 
+-export type StoredVenue = VenueDataDto & StoredVenueDetail;
++/**
++ * Server-only venue attributes that are NEVER serialized into the client DTO.
++ *
++ * `seatingArea` is the venue's real outdoor seating-area polygon (Story 8.3
++ * DECISION B, polygon-first direction). When present the sun engine computes
++ * shadows against the true polygon; when absent it falls back to a synthesized
++ * point footprint. Consumed ONLY by `lib/services/sun-engine.ts` — `toVenueData`
++ * must not surface it (no DTO/frontend change; the gate venue stays
++ * byte-identical because launch venues leave it null → footprint fallback).
++ */
++export type StoredVenueServerOnly = {
++  seatingArea?: GeoJSON.Polygon;
++};
++
++export type StoredVenue = VenueDataDto & StoredVenueDetail & StoredVenueServerOnly;
+ 
+ /**
+  * Launch venue detail, keyed by slug. Folded into the in-memory seed and used
+@@ -114,6 +128,9 @@ const VENUE_SELECT_COLUMNS = [
+   'sun_exposure_percent',
+   'sun_window',
+   'prediction_uncertainty',
++  // Server-only (Story 8.3): the real seating-area polygon for the sun engine.
++  // Never mapped into toVenueData / VenueDataDto.
++  'seating_area',
+ ].join(', ');
+ 
+ type VenueRow = {
+@@ -136,6 +153,8 @@ type VenueRow = {
+   sun_exposure_percent?: number | null;
+   sun_window?: VenueDataDto['sunWindow'] | null;
+   prediction_uncertainty?: PredictionUncertaintyDto | null;
++  // Server-only seating-area polygon (Story 8.3); never serialized into the DTO.
++  seating_area?: GeoJSON.Polygon | null;
+ };
+ 
+ /**
+@@ -297,6 +316,7 @@ function fromVenueRow(row: VenueRow): StoredVenue {
+     );
+   }
+   const skyCondition = coerceSkyCondition(row.sky_condition);
++  const seatingArea = coerceSeatingArea(row.seating_area);
+   const stored: StoredVenue = {
+     id,
+     venueId: id,
+@@ -316,11 +336,29 @@ function fromVenueRow(row: VenueRow): StoredVenue {
+       : {}),
+     ...(row.sun_window ? { sunWindow: row.sun_window } : {}),
+     ...(row.thumbnail ? { thumbnail: row.thumbnail } : {}),
++    ...(seatingArea ? { seatingArea } : {}),
+     ...detailFromRow(row),
+   };
+   return stored;
+ }
+ 
++/**
++ * Keep `seating_area` only when it is a GeoJSON `Polygon` (server-only). A null,
++ * malformed, or non-Polygon value is dropped so the sun engine falls back to the
++ * synthesized point footprint rather than throwing. [Story 8.3]
++ */
++function coerceSeatingArea(value: GeoJSON.Polygon | null | undefined): GeoJSON.Polygon | undefined {
++  if (
++    value &&
++    typeof value === 'object' &&
++    value.type === 'Polygon' &&
++    Array.isArray(value.coordinates)
++  ) {
++    return value;
++  }
++  return undefined;
++}
++
+ /**
+  * Coerce a DB `current_sun_status` to a valid {@link VenueSunStatus}. An
+  * out-of-enum value (or null) collapses to `'NoSun'` — the safe default — so it
+diff --git a/nextjs-app/lib/solar/index.ts b/nextjs-app/lib/solar/index.ts
+index bfeccee..f1e6d2a 100644
+--- a/nextjs-app/lib/solar/index.ts
++++ b/nextjs-app/lib/solar/index.ts
+@@ -17,26 +17,28 @@ export {
+   MIN_MEANINGFUL_HEIGHT,
+   MIN_RELIABLE_ELEVATION,
+ } from './shadow-geometry';
+-export {
+-  calculateVenueShadow,
+-  calculateVenueShadowTimeline,
+-} from './shadow-calculation-service';
+-export {
+-  CONSERVATIVE_CLUSTER_COVERAGE,
+-  LAUNCH_CLUSTER_IDS,
+-  buildCoverageMapFromValidationArtifact,
+-  getShadowDataCoverage,
+-} from './shadow-data-coverage';
+-export {
+-  OBSTRUCTION_RISK_CLASSES,
+-  extractObstructionRiskClasses,
+-  getObstructionRiskConfidenceCap,
+-} from './obstruction-risk';
+-export {
+-  calculateConfidenceFactors,
+-  calculateDisplayConfidence,
+-  isSufficientConfidence,
+-} from './confidence-calculator';
++export {
++  calculateVenueShadow,
++  calculateVenueShadowForGeometry,
++  calculateVenueShadowTimeline,
++  calculateVenueShadowTimelineForGeometry,
++} from './shadow-calculation-service';
++export {
++  CONSERVATIVE_CLUSTER_COVERAGE,
++  LAUNCH_CLUSTER_IDS,
++  buildCoverageMapFromValidationArtifact,
++  getShadowDataCoverage,
++} from './shadow-data-coverage';
++export {
++  OBSTRUCTION_RISK_CLASSES,
++  extractObstructionRiskClasses,
++  getObstructionRiskConfidenceCap,
++} from './obstruction-risk';
++export {
++  calculateConfidenceFactors,
++  calculateDisplayConfidence,
++  isSufficientConfidence,
++} from './confidence-calculator';
+ export {
+   convertUtcToStockholm,
+   convertStockholmToUtc,
+diff --git a/nextjs-app/lib/solar/shadow-calculation-service.ts b/nextjs-app/lib/solar/shadow-calculation-service.ts
+index fff4e1d..487f282 100644
+--- a/nextjs-app/lib/solar/shadow-calculation-service.ts
++++ b/nextjs-app/lib/solar/shadow-calculation-service.ts
+@@ -18,30 +18,89 @@ import type {
+ 
+ export interface CalculateVenueShadowOptions {
+   coverageMap?: ShadowDataCoverageMap;
++  /**
++   * Numeric id used ONLY to populate the result's `venueId` field. The
++   * geometry-first entrypoint defaults this to 0 because the Story 8.2 venue
++   * store keys venues by text id and never consumes this field. [Story 8.3]
++   */
++  venueId?: number;
+ }
+ 
++/**
++ * Legacy entrypoint: resolves a venue's polygon from the PascalCase
++ * `Id`/`Geometry` `venues` table via {@link fetchVenue}, then delegates to
++ * {@link calculateVenueShadowForGeometry}. The Story 8.2 `public.venues` store
++ * is text-id / snake_case / point-only and INCOMPATIBLE with this table, so
++ * the Story 8.3 sun-engine adapter drives `calculateVenueShadowForGeometry`
++ * directly and never this wrapper. Left intact for any legacy caller.
++ */
+ export async function calculateVenueShadow(
+   venueId: number,
+   timestamp: Date,
+   options: CalculateVenueShadowOptions = {}
+ ): Promise<VenueShadowInfo> {
+   const venue = await fetchVenue(venueId);
++  return calculateVenueShadowForGeometry(venue.geometry, timestamp, {
++    ...options,
++    venueId,
++  });
++}
++
++/**
++ * Geometry-first shadow entrypoint (Story 8.3 DECISION B). Identical pipeline
++ * to the legacy {@link calculateVenueShadow} but takes a GeoJSON polygon
++ * directly (a venue's real seating-area polygon, or a synthesized footprint
++ * fallback) instead of looking it up in the incompatible legacy table.
++ * Inherits the Story 3.0.5/3.0.6 coverage + obstruction caps with no math change.
++ */
++export async function calculateVenueShadowForGeometry(
++  geometry: GeoJSON.Polygon,
++  timestamp: Date,
++  options: CalculateVenueShadowOptions = {}
++): Promise<VenueShadowInfo> {
++  const venueId = options.venueId ?? 0;
+   const solarPosition = calculateSolarPosition(timestamp);
+-
+-  if (!solarPosition.isSunVisible) {
+-    return createNoSunResult(venueId, timestamp, solarPosition, venue.geometry);
+-  }
+-
+-  if (solarPosition.elevation < SG.MIN_RELIABLE_ELEVATION) {
+-    return createLowConfidenceResult(venueId, timestamp, solarPosition);
+-  }
+-
++
++  if (!solarPosition.isSunVisible) {
++    return createNoSunResult(venueId, timestamp, solarPosition, geometry);
++  }
++
++  if (solarPosition.elevation < SG.MIN_RELIABLE_ELEVATION) {
++    return createLowConfidenceResult(venueId, timestamp, solarPosition);
++  }
++
+   const searchRadiusDeg = SG.MAX_SHADOW_DISTANCE / 111300.0;
+-  const buildings = await fetchNearbyBuildings(venue.geometry, searchRadiusDeg);
++  const buildings = await fetchNearbyBuildings(geometry, searchRadiusDeg);
+   if (buildings === null) {
+     return createShadowDataUnavailableResult(venueId, timestamp, solarPosition);
+   }
+-  const shadowDataCoverage = getShadowDataCoverage(venue.geometry, options.coverageMap);
++
++  return computeShadowInfo(
++    geometry,
++    timestamp,
++    solarPosition,
++    buildings,
++    venueId,
++    options.coverageMap
++  );
++}
++
++/**
++ * Pure (no-IO) shadow core shared by the single-shot entrypoint and the
++ * timeline sampler. Given already-fetched nearby buildings it projects
++ * shadows, computes shadowed/sunlit areas, and applies the coverage +
++ * obstruction confidence caps. Extracted verbatim from the original
++ * `calculateVenueShadow` body — no math change. [Story 8.3]
++ */
++function computeShadowInfo(
++  geometry: GeoJSON.Polygon,
++  timestamp: Date,
++  solarPosition: SolarPosition,
++  buildings: Building[],
++  venueId: number,
++  coverageMap?: ShadowDataCoverageMap
++): VenueShadowInfo {
++  const shadowDataCoverage = getShadowDataCoverage(geometry, coverageMap);
+   const obstructionRisks = extractObstructionRiskClasses(
+     ...buildings.flatMap((building) => [
+       building.obstructionRisks,
+@@ -53,22 +112,22 @@ export async function calculateVenueShadow(
+ 
+   const shadows: ShadowProjection[] = [];
+   for (const building of buildings) {
+-    if (building.height < SG.MIN_MEANINGFUL_HEIGHT) continue;
+-
+-    const shadowPoly = SG.projectBuildingShadow(
+-      building.geometry,
+-      building.height,
+-      solarPosition
+-    );
+-    if (!shadowPoly) continue;
+-
+-    const shadowLength = SG.calculateShadowLength(building.height, solarPosition.elevation);
+-    const confidence = SG.calculateShadowConfidence(building, solarPosition, shadowLength);
+-
+-    shadows.push({
+-      geometry: shadowPoly,
+-      length: shadowLength,
+-      direction: (solarPosition.azimuth + 180) % 360,
++    if (building.height < SG.MIN_MEANINGFUL_HEIGHT) continue;
++
++    const shadowPoly = SG.projectBuildingShadow(
++      building.geometry,
++      building.height,
++      solarPosition
++    );
++    if (!shadowPoly) continue;
++
++    const shadowLength = SG.calculateShadowLength(building.height, solarPosition.elevation);
++    const confidence = SG.calculateShadowConfidence(building, solarPosition, shadowLength);
++
++    shadows.push({
++      geometry: shadowPoly,
++      length: shadowLength,
++      direction: (solarPosition.azimuth + 180) % 360,
+       buildingId: building.id,
+       buildingHeight: building.height,
+       solarPosition,
+@@ -86,23 +145,23 @@ export async function calculateVenueShadow(
+       },
+     });
+   }
+-
+-  const affectingShadows = shadows.filter((s) => {
+-    try {
+-      return SG.calculateShadowCoveragePercent(venue.geometry, s.geometry) > 0;
+-    } catch {
+-      return false;
+-    }
+-  });
+-
+-  const shadowGeometries = affectingShadows.map((s) => s.geometry);
+-  const { shadowed, sunlit } = SG.calculateShadowedAndSunlitAreas(
+-    venue.geometry,
+-    shadowGeometries
+-  );
+-
++
++  const affectingShadows = shadows.filter((s) => {
++    try {
++      return SG.calculateShadowCoveragePercent(geometry, s.geometry) > 0;
++    } catch {
++      return false;
++    }
++  });
++
++  const shadowGeometries = affectingShadows.map((s) => s.geometry);
++  const { shadowed, sunlit } = SG.calculateShadowedAndSunlitAreas(
++    geometry,
++    shadowGeometries
++  );
++
+   const shadowedPercent = shadowed
+-    ? SG.calculateShadowCoveragePercent(venue.geometry, shadowed)
++    ? SG.calculateShadowCoveragePercent(geometry, shadowed)
+     : 0.0;
+   const sunlitPercent = Math.max(0.0, 100.0 - shadowedPercent);
+   const baseConfidence = averageConfidence(
+@@ -119,10 +178,10 @@ export async function calculateVenueShadow(
+ 
+   return {
+     venueId,
+-    shadowedAreaPercent: shadowedPercent,
+-    sunlitAreaPercent: sunlitPercent,
+-    castingShadows: affectingShadows,
+-    shadowedGeometry: shadowed,
++    shadowedAreaPercent: shadowedPercent,
++    sunlitAreaPercent: sunlitPercent,
++    castingShadows: affectingShadows,
++    shadowedGeometry: shadowed,
+     sunlitGeometry: sunlit,
+     timestamp,
+     confidence: combinedConfidence,
+@@ -131,82 +190,149 @@ export async function calculateVenueShadow(
+     obstructionRisks,
+   };
+ }
+-
+-export async function calculateVenueShadowTimeline(
+-  venueId: number,
+-  startTime: Date,
+-  endTime: Date,
+-  intervalMs: number
+-): Promise<ShadowTimeline> {
+-  if (startTime >= endTime) throw new Error('Start time must be before end time');
+-  if (intervalMs <= 0) throw new Error('Interval must be positive');
+-
+-  const points: ShadowTimelinePoint[] = [];
+-  let confidenceSum = 0;
+-
+-  for (
+-    let current = new Date(startTime.getTime());
+-    current <= endTime;
+-    current = new Date(current.getTime() + intervalMs)
+-  ) {
+-    try {
+-      const info = await calculateVenueShadow(venueId, current);
+-      points.push({
+-        timestamp: new Date(current),
+-        shadowedAreaPercent: info.shadowedAreaPercent,
+-        sunlitAreaPercent: info.sunlitAreaPercent,
+-        confidence: info.confidence,
+-        isSunVisible: info.solarPosition.isSunVisible,
+-      });
+-      confidenceSum += info.confidence;
+-    } catch {
+-      points.push({
+-        timestamp: new Date(current),
+-        shadowedAreaPercent: 50.0,
+-        sunlitAreaPercent: 50.0,
+-        confidence: 0.2,
+-        isSunVisible: true,
+-      });
+-      confidenceSum += 0.2;
+-    }
+-  }
+-
+-  return {
+-    venueId,
+-    startTime,
+-    endTime,
+-    intervalMs,
+-    points,
+-    averageConfidence: points.length > 0 ? confidenceSum / points.length : 0,
+-  };
+-}
+-
+-// ---------------------------------------------------------------------------
+-// Database helpers
+-// ---------------------------------------------------------------------------
+-
+-interface VenueRow {
+-  Id: number;
+-  Geometry: string;
+-}
+-
+-async function fetchVenue(
+-  venueId: number
+-): Promise<{ id: number; geometry: GeoJSON.Polygon }> {
++
++export async function calculateVenueShadowTimeline(
++  venueId: number,
++  startTime: Date,
++  endTime: Date,
++  intervalMs: number
++): Promise<ShadowTimeline> {
++  if (startTime >= endTime) throw new Error('Start time must be before end time');
++  if (intervalMs <= 0) throw new Error('Interval must be positive');
++
++  const points: ShadowTimelinePoint[] = [];
++  let confidenceSum = 0;
++
++  for (
++    let current = new Date(startTime.getTime());
++    current <= endTime;
++    current = new Date(current.getTime() + intervalMs)
++  ) {
++    try {
++      const info = await calculateVenueShadow(venueId, current);
++      points.push({
++        timestamp: new Date(current),
++        shadowedAreaPercent: info.shadowedAreaPercent,
++        sunlitAreaPercent: info.sunlitAreaPercent,
++        confidence: info.confidence,
++        isSunVisible: info.solarPosition.isSunVisible,
++      });
++      confidenceSum += info.confidence;
++    } catch {
++      points.push({
++        timestamp: new Date(current),
++        shadowedAreaPercent: 50.0,
++        sunlitAreaPercent: 50.0,
++        confidence: 0.2,
++        isSunVisible: true,
++      });
++      confidenceSum += 0.2;
++    }
++  }
++
++  return {
++    venueId,
++    startTime,
++    endTime,
++    intervalMs,
++    points,
++    averageConfidence: points.length > 0 ? confidenceSum / points.length : 0,
++  };
++}
++
++/**
++ * Geometry-first timeline (Story 8.3). Fetches the nearby shadow casters ONCE
++ * and samples shadows across [startTime, endTime], so a full-day sun-window
++ * scan costs a single RPC per venue rather than one RPC per sample. Used by the
++ * sun-engine adapter to derive `sunWindow` / `peakTime` for the requested day.
++ */
++export async function calculateVenueShadowTimelineForGeometry(
++  geometry: GeoJSON.Polygon,
++  startTime: Date,
++  endTime: Date,
++  intervalMs: number,
++  options: CalculateVenueShadowOptions = {}
++): Promise<ShadowTimeline> {
++  if (startTime >= endTime) throw new Error('Start time must be before end time');
++  if (intervalMs <= 0) throw new Error('Interval must be positive');
++
++  const venueId = options.venueId ?? 0;
++  const searchRadiusDeg = SG.MAX_SHADOW_DISTANCE / 111300.0;
++  const buildings = await fetchNearbyBuildings(geometry, searchRadiusDeg);
++
++  const points: ShadowTimelinePoint[] = [];
++  let confidenceSum = 0;
++
++  for (
++    let current = new Date(startTime.getTime());
++    current <= endTime;
++    current = new Date(current.getTime() + intervalMs)
++  ) {
++    const solarPosition = calculateSolarPosition(current);
++    let info: VenueShadowInfo;
++    if (!solarPosition.isSunVisible) {
++      info = createNoSunResult(venueId, current, solarPosition, geometry);
++    } else if (solarPosition.elevation < SG.MIN_RELIABLE_ELEVATION) {
++      info = createLowConfidenceResult(venueId, current, solarPosition);
++    } else if (buildings === null) {
++      info = createShadowDataUnavailableResult(venueId, current, solarPosition);
++    } else {
++      info = computeShadowInfo(
++        geometry,
++        current,
++        solarPosition,
++        buildings,
++        venueId,
++        options.coverageMap
++      );
++    }
++
++    points.push({
++      timestamp: new Date(current),
++      shadowedAreaPercent: info.shadowedAreaPercent,
++      sunlitAreaPercent: info.sunlitAreaPercent,
++      confidence: info.confidence,
++      isSunVisible: info.solarPosition.isSunVisible,
++    });
++    confidenceSum += info.confidence;
++  }
++
++  return {
++    venueId,
++    startTime,
++    endTime,
++    intervalMs,
++    points,
++    averageConfidence: points.length > 0 ? confidenceSum / points.length : 0,
++  };
++}
++
++// ---------------------------------------------------------------------------
++// Database helpers
++// ---------------------------------------------------------------------------
++
++interface VenueRow {
++  Id: number;
++  Geometry: string;
++}
++
++async function fetchVenue(
++  venueId: number
++): Promise<{ id: number; geometry: GeoJSON.Polygon }> {
+   const { data, error } = await supabaseServiceRole
+-    .from('venues')
+-    .select('Id, Geometry')
+-    .eq('Id', venueId)
+-    .single<VenueRow>();
+-
+-  if (error || !data) throw new Error(`Venue ${venueId} not found`);
+-
+-  return {
+-    id: data.Id,
+-    geometry: parseGeometry(data.Geometry),
+-  };
+-}
+-
++    .from('venues')
++    .select('Id, Geometry')
++    .eq('Id', venueId)
++    .single<VenueRow>();
++
++  if (error || !data) throw new Error(`Venue ${venueId} not found`);
++
++  return {
++    id: data.Id,
++    geometry: parseGeometry(data.Geometry),
++  };
++}
++
+ async function fetchNearbyBuildings(
+   venueGeometry: GeoJSON.Polygon,
+   radiusDeg: number
+@@ -235,7 +361,7 @@ async function fetchNearbyBuildings(
+ 
+   return (data ?? []).map(mapBuildingRow);
+ }
+-
++
+ function mapBuildingRow(row: Record<string, unknown>): Building {
+   const sourceFlags = readStringArray(row, 'SourceFlags', 'source_flags');
+   const sourceObjectMetadata = readRecord(row, 'SourceObjectMetadata', 'source_object_metadata');
+@@ -267,83 +393,83 @@ function mapBuildingRow(row: Record<string, unknown>): Building {
+     ),
+   };
+ }
+-
+-function parseGeometry(geom: unknown): GeoJSON.Polygon {
+-  if (typeof geom === 'string') {
+-    // Try JSON/GeoJSON first
+-    try {
+-      const parsed = JSON.parse(geom);
+-      if (parsed.type === 'Polygon') return parsed;
+-      if (parsed.coordinates) return { type: 'Polygon', coordinates: parsed.coordinates };
+-    } catch {
+-      // Not JSON — try WKB hex
+-    }
+-
+-    // Try WKB hex (PostgREST returns geography as hex-encoded WKB)
+-    const wkbResult = parseWkbHexPolygon(geom);
+-    if (wkbResult) return wkbResult;
+-  }
+-  if (typeof geom === 'object' && geom !== null) {
+-    const g = geom as Record<string, unknown>;
+-    if (g.type === 'Polygon') return geom as GeoJSON.Polygon;
+-  }
+-
+-  return { type: 'Polygon', coordinates: [[[0, 0], [0, 0], [0, 0], [0, 0]]] };
+-}
+-
+-/** Parse a PostGIS WKB hex string for a Polygon into GeoJSON */
+-function parseWkbHexPolygon(hex: string): GeoJSON.Polygon | null {
+-  try {
+-    const buf = Buffer.from(hex, 'hex');
+-    if (buf.length < 13) return null;
+-
+-    let offset = 0;
+-    const le = buf.readUInt8(offset) === 1;
+-    offset += 1;
+-
+-    const rawType = le ? buf.readUInt32LE(offset) : buf.readUInt32BE(offset);
+-    offset += 4;
+-    const hasSRID = (rawType & 0x20000000) !== 0;
+-    const geomType = rawType & 0xff;
+-    if (hasSRID) offset += 4;
+-
+-    if (geomType !== 3) return null; // Not a Polygon
+-
+-    const readDouble = (o: number) => le ? buf.readDoubleLE(o) : buf.readDoubleBE(o);
+-    const readUInt32 = (o: number) => le ? buf.readUInt32LE(o) : buf.readUInt32BE(o);
+-
+-    const numRings = readUInt32(offset);
+-    offset += 4;
+-
+-    const coordinates: number[][][] = [];
+-    for (let r = 0; r < numRings; r++) {
+-      const numPoints = readUInt32(offset);
+-      offset += 4;
+-      const ring: number[][] = [];
+-      for (let p = 0; p < numPoints; p++) {
+-        const x = readDouble(offset); offset += 8;
+-        const y = readDouble(offset); offset += 8;
+-        ring.push([x, y]);
+-      }
+-      coordinates.push(ring);
+-    }
+-
+-    return { type: 'Polygon', coordinates };
+-  } catch {
+-    return null;
+-  }
+-}
+-
++
++function parseGeometry(geom: unknown): GeoJSON.Polygon {
++  if (typeof geom === 'string') {
++    // Try JSON/GeoJSON first
++    try {
++      const parsed = JSON.parse(geom);
++      if (parsed.type === 'Polygon') return parsed;
++      if (parsed.coordinates) return { type: 'Polygon', coordinates: parsed.coordinates };
++    } catch {
++      // Not JSON — try WKB hex
++    }
++
++    // Try WKB hex (PostgREST returns geography as hex-encoded WKB)
++    const wkbResult = parseWkbHexPolygon(geom);
++    if (wkbResult) return wkbResult;
++  }
++  if (typeof geom === 'object' && geom !== null) {
++    const g = geom as Record<string, unknown>;
++    if (g.type === 'Polygon') return geom as GeoJSON.Polygon;
++  }
++
++  return { type: 'Polygon', coordinates: [[[0, 0], [0, 0], [0, 0], [0, 0]]] };
++}
++
++/** Parse a PostGIS WKB hex string for a Polygon into GeoJSON */
++function parseWkbHexPolygon(hex: string): GeoJSON.Polygon | null {
++  try {
++    const buf = Buffer.from(hex, 'hex');
++    if (buf.length < 13) return null;
++
++    let offset = 0;
++    const le = buf.readUInt8(offset) === 1;
++    offset += 1;
++
++    const rawType = le ? buf.readUInt32LE(offset) : buf.readUInt32BE(offset);
++    offset += 4;
++    const hasSRID = (rawType & 0x20000000) !== 0;
++    const geomType = rawType & 0xff;
++    if (hasSRID) offset += 4;
++
++    if (geomType !== 3) return null; // Not a Polygon
++
++    const readDouble = (o: number) => le ? buf.readDoubleLE(o) : buf.readDoubleBE(o);
++    const readUInt32 = (o: number) => le ? buf.readUInt32LE(o) : buf.readUInt32BE(o);
++
++    const numRings = readUInt32(offset);
++    offset += 4;
++
++    const coordinates: number[][][] = [];
++    for (let r = 0; r < numRings; r++) {
++      const numPoints = readUInt32(offset);
++      offset += 4;
++      const ring: number[][] = [];
++      for (let p = 0; p < numPoints; p++) {
++        const x = readDouble(offset); offset += 8;
++        const y = readDouble(offset); offset += 8;
++        ring.push([x, y]);
++      }
++      coordinates.push(ring);
++    }
++
++    return { type: 'Polygon', coordinates };
++  } catch {
++    return null;
++  }
++}
++
+ function getCentroid(polygon: GeoJSON.Polygon): [number, number] {
+-  const ring = polygon.coordinates[0];
+-  const n = ring.length - 1;
+-  if (n === 0) return [0, 0];
+-  let cx = 0;
+-  let cy = 0;
+-  for (let i = 0; i < n; i++) {
+-    cx += ring[i][0];
+-    cy += ring[i][1];
+-  }
++  const ring = polygon.coordinates[0];
++  const n = ring.length - 1;
++  if (n === 0) return [0, 0];
++  let cx = 0;
++  let cy = 0;
++  for (let i = 0; i < n; i++) {
++    cx += ring[i][0];
++    cy += ring[i][1];
++  }
+   return [cx / n, cy / n];
+ }
+ 
+@@ -434,40 +560,40 @@ function readString(row: Record<string, unknown>, ...keys: string[]): string | u
+   }
+   return undefined;
+ }
+-
+-function createNoSunResult(
+-  venueId: number,
+-  timestamp: Date,
+-  solarPosition: SolarPosition,
+-  venueGeometry: GeoJSON.Polygon
+-): VenueShadowInfo {
+-  return {
+-    venueId,
+-    shadowedAreaPercent: 100.0,
+-    sunlitAreaPercent: 0.0,
+-    castingShadows: [],
+-    shadowedGeometry: venueGeometry,
+-    sunlitGeometry: null,
+-    timestamp,
+-    confidence: 1.0,
+-    solarPosition,
+-  };
+-}
+-
++
++function createNoSunResult(
++  venueId: number,
++  timestamp: Date,
++  solarPosition: SolarPosition,
++  venueGeometry: GeoJSON.Polygon
++): VenueShadowInfo {
++  return {
++    venueId,
++    shadowedAreaPercent: 100.0,
++    sunlitAreaPercent: 0.0,
++    castingShadows: [],
++    shadowedGeometry: venueGeometry,
++    sunlitGeometry: null,
++    timestamp,
++    confidence: 1.0,
++    solarPosition,
++  };
++}
++
+ function createLowConfidenceResult(
+   venueId: number,
+   timestamp: Date,
+   solarPosition: SolarPosition
+ ): VenueShadowInfo {
+-  return {
+-    venueId,
+-    shadowedAreaPercent: 75.0,
+-    sunlitAreaPercent: 25.0,
+-    castingShadows: [],
+-    shadowedGeometry: null,
+-    sunlitGeometry: null,
+-    timestamp,
+-    confidence: 0.3,
++  return {
++    venueId,
++    shadowedAreaPercent: 75.0,
++    sunlitAreaPercent: 25.0,
++    castingShadows: [],
++    shadowedGeometry: null,
++    sunlitGeometry: null,
++    timestamp,
++    confidence: 0.3,
+     solarPosition,
+   };
+ }
+diff --git a/nextjs-app/lib/services/sun-engine.ts b/nextjs-app/lib/services/sun-engine.ts
+new file mode 100644
+index 0000000..f98d2c5
+--- /dev/null
++++ b/nextjs-app/lib/services/sun-engine.ts
+@@ -0,0 +1,480 @@
++/**
++ * STORY 8.3 — sun-engine adapter (server-only, env-gated).
++ *
++ * Replaces the TEMP seed sun-output fields (`currentSunStatus`, `skyCondition`,
++ * `confidence`, `sunExposurePercent`, `sunWindow`, `predictionUncertainty`) and
++ * the freshness metadata (`sunDataSource`, `weatherUpdatedAt`) with values
++ * computed by `lib/solar` (sun position + shadow casting via the
++ * `get_buildings_near_point` RPC) and `lib/weather` (Met.no), serialized through
++ * the UNCHANGED `VenueDataDto`. Durable venue attributes (Story 8.2) are left
++ * untouched.
++ *
++ * Env-gated exactly like `lib/services/venue-store.ts`: the default (flag unset)
++ * path never calls this adapter, so the route output stays byte-identical to the
++ * 8.2 seed. `SUNNYSEAT_SUN_ENGINE=real` (+ Supabase service-role config for the
++ * RPC) opts into the live computation. The engine + weather modules are loaded
++ * lazily so the default path has ZERO live-Supabase / live-Met.no dependency.
++ *
++ * Server-only — client components must never import this module (API boundary).
++ */
++import { fromZonedTime } from 'date-fns-tz';
++import { toVenueData, type StoredVenue } from '@/lib/services/venue-store';
++import type { VenuePlannerSelection } from '@/lib/services/venue-planner';
++import type {
++  PredictionUncertaintyDto,
++  PredictionUncertaintyLevel,
++  PredictionUncertaintyReason,
++  SunFreshnessMeta,
++  VenueDataDto,
++  VenueSunStatus,
++} from '@/lib/types/api';
++import {
++  SUN_DATA_SOURCE_GEOMETRY_ONLY,
++  SUN_DATA_SOURCE_WEATHER,
++} from '@/lib/utils/sun-freshness';
++import type {
++  ObstructionRiskClass,
++  ShadowTimelinePoint,
++  VenueShadowInfo,
++  WeatherSlice,
++} from '@/lib/solar/types';
++
++const STOCKHOLM_TIME_ZONE = 'Europe/Stockholm';
++
++/**
++ * Footprint fallback size (Story 8.3 DECISION B). The single documented tunable:
++ * a venue with no real `seatingArea` polygon gets a square of this side length
++ * (metres) centred on its point, keeping `sunExposurePercent` graded 0..100.
++ */
++export const VENUE_FOOTPRINT_FALLBACK_SIZE_M = 10;
++
++// Same-day sun-window scan (one RPC per venue via the timeline's single buildings
++// fetch). Coarse for MVP compute-on-request cost (DECISION D); a precompute
++// pipeline is the flagged follow-up if measured list latency exceeds posture.
++const SUN_WINDOW_SCAN_START = '05:00:00';
++const SUN_WINDOW_SCAN_END = '22:00:00';
++const SUN_WINDOW_SAMPLE_INTERVAL_MIN = 30;
++
++// Classification thresholds (mirror lib/solar sun-exposure-service classifySunState).
++const SUNNY_THRESHOLD_PERCENT = 70;
++const SUNLIT_THRESHOLD_PERCENT = 30;
++
++// Weather older than this (or any forecast slice) flags a `weather` uncertainty
++// reason, matching the confidence-display "approximate" boundary (Story 2.6).
++const STALE_WEATHER_AGE_MS = 2 * 60 * 60 * 1000;
++
++export type SunEngineOutcome = {
++  /** Base venue DTO with the six sun-output fields replaced by engine values. */
++  venue: VenueDataDto;
++  /** Real weather freshness for the response `meta` + `X-*` headers (Task 3). */
++  freshness: SunFreshnessMeta;
++  /** Engine-derived peak-exposure time (HH:mm Stockholm) for the detail timeline. */
++  peakTime?: string;
++};
++
++type SunEngineFields = Pick<
++  VenueDataDto,
++  'currentSunStatus' | 'confidence' | 'sunExposurePercent'
++> & {
++  skyCondition?: string;
++  sunWindow?: { start: string; end: string };
++  predictionUncertainty?: PredictionUncertaintyDto;
++};
++
++type GetForecast = (
++  latitude?: number,
++  longitude?: number,
++) => Promise<WeatherSlice[]>;
++
++// ---------------------------------------------------------------------------
++// Env gate (DECISION A / Task 1.3)
++// ---------------------------------------------------------------------------
++
++export function usesRealSunEngine(): boolean {
++  return process.env.SUNNYSEAT_SUN_ENGINE === 'real';
++}
++
++function hasSupabaseServiceRoleConfig(): boolean {
++  return Boolean(
++    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
++  );
++}
++
++/**
++ * The real engine runs only when explicitly opted in AND the service-role config
++ * the RPC needs is present. Otherwise the routes keep the byte-identical 8.2
++ * seed path. [Story 8.3 DECISION A]
++ */
++export function shouldUseRealSunEngine(): boolean {
++  return usesRealSunEngine() && hasSupabaseServiceRoleConfig();
++}
++
++// ---------------------------------------------------------------------------
++// Public entrypoints used by the routes
++// ---------------------------------------------------------------------------
++
++/**
++ * Resolve the instant to compute for (DECISION C): now, or the planner
++ * selection's Stockholm-local date+time converted to UTC.
++ */
++export function resolveRequestedAt(
++  selection: VenuePlannerSelection | undefined,
++  now: Date,
++): Date {
++  if (!selection) return now;
++  return fromZonedTime(`${selection.date}T${selection.time}:00`, STOCKHOLM_TIME_ZONE);
++}
++
++/**
++ * Collapse per-venue freshness into a single response-level `meta`/header value
++ * for the list route: weather (with the most recent timestamp) if any venue had
++ * weather, else geometry-only.
++ */
++export function aggregateSunFreshness(
++  freshnesses: readonly SunFreshnessMeta[],
++): SunFreshnessMeta {
++  let latest: string | undefined;
++  for (const freshness of freshnesses) {
++    if (freshness.sunDataSource === SUN_DATA_SOURCE_WEATHER && freshness.weatherUpdatedAt) {
++      // ISO-8601 timestamps from the same producer are lexicographically ordered.
++      if (!latest || freshness.weatherUpdatedAt > latest) {
++        latest = freshness.weatherUpdatedAt;
++      }
++    }
++  }
++  return latest
++    ? { sunDataSource: SUN_DATA_SOURCE_WEATHER, weatherUpdatedAt: latest }
++    : { sunDataSource: SUN_DATA_SOURCE_GEOMETRY_ONLY };
++}
++
++/**
++ * Compute the real sun-output fields for a venue, degrading to a safe per-venue
++ * result (never a throw → never a 500, DECISION D) if the engine or weather
++ * fetch fails. The route gates this behind {@link shouldUseRealSunEngine}.
++ */
++export async function applyRealSunEngine(
++  venue: StoredVenue,
++  requestedAt: Date,
++  now: Date = new Date(),
++): Promise<SunEngineOutcome> {
++  try {
++    return await computeRealSunEngine(venue, requestedAt, now);
++  } catch (error) {
++    console.error(
++      `Sun engine failed for venue ${venue.id}; degrading to seed values:`,
++      error instanceof Error ? error.message : String(error),
++    );
++    return {
++      venue: toVenueData(venue),
++      freshness: { sunDataSource: SUN_DATA_SOURCE_GEOMETRY_ONLY },
++    };
++  }
++}
++
++// ---------------------------------------------------------------------------
++// Real computation (lazy-loads the engine + weather — server-only)
++// ---------------------------------------------------------------------------
++
++async function computeRealSunEngine(
++  venue: StoredVenue,
++  requestedAt: Date,
++  now: Date,
++): Promise<SunEngineOutcome> {
++  const {
++    calculateVenueShadowForGeometry,
++    calculateVenueShadowTimelineForGeometry,
++    calculateConfidenceFactors,
++    calculateDisplayConfidence,
++  } = await import('@/lib/solar');
++  const { getForecast } = await import('@/lib/weather/met-no-service');
++
++  const geometry = resolveVenueGeometry(venue);
++
++  // Current shadow state at the requested instant (RPC #1).
++  const shadowInfo = await calculateVenueShadowForGeometry(geometry, requestedAt);
++  // Per-venue weather at the venue's OWN location for the requested time (Task 3.2)
++  // — not the engine's hardcoded Gothenburg-centre / current-only call.
++  const weather = await fetchWeatherForVenue(getForecast, venue.location, requestedAt, now);
++
++  const isSunVisible = shadowInfo.solarPosition.isSunVisible;
++  const sunExposurePercent = Math.round(clampPercent(shadowInfo.sunlitAreaPercent));
++  const currentSunStatus: VenueSunStatus = isSunVisible
++    ? classifySunStatus(sunExposurePercent)
++    : 'NoSun';
++
++  const confidenceFactors = calculateConfidenceFactors(
++    1.0,
++    shadowInfo,
++    shadowInfo.solarPosition,
++    weather,
++  );
++  const confidence = Math.round(clampPercent(calculateDisplayConfidence(confidenceFactors)));
++
++  const skyCondition = weather
++    ? skyConditionFromCloudCover(weather.cloudCover)
++    : 'unavailable';
++  const predictionUncertainty = buildPredictionUncertainty(
++    shadowInfo,
++    weather,
++    confidence,
++    now,
++  );
++
++  // Same-day sun-window scan (RPC #2 — one buildings fetch reused internally).
++  const { start: scanStart, end: scanEnd } = sameDayScanRange(requestedAt);
++  const timeline = await calculateVenueShadowTimelineForGeometry(
++    geometry,
++    scanStart,
++    scanEnd,
++    SUN_WINDOW_SAMPLE_INTERVAL_MIN * 60_000,
++  );
++  const sunWindow = extractSunlitWindow(timeline.points);
++  const peakTime = peakTimeFromTimeline(timeline.points);
++
++  const fields: SunEngineFields = {
++    currentSunStatus,
++    confidence,
++    sunExposurePercent,
++    skyCondition,
++    ...(sunWindow ? { sunWindow } : {}),
++    ...(predictionUncertainty ? { predictionUncertainty } : {}),
++  };
++
++  return {
++    venue: mergeSunFields(toVenueData(venue), fields),
++    freshness: weather
++      ? {
++          sunDataSource: SUN_DATA_SOURCE_WEATHER,
++          weatherUpdatedAt: weather.createdAt.toISOString(),
++        }
++      : { sunDataSource: SUN_DATA_SOURCE_GEOMETRY_ONLY },
++    ...(peakTime ? { peakTime } : {}),
++  };
++}
++
++/** Resolve the engine geometry: real seating polygon, else point footprint. */
++export function resolveVenueGeometry(
++  venue: Pick<StoredVenue, 'seatingArea' | 'location'>,
++): GeoJSON.Polygon {
++  if (venue.seatingArea) return venue.seatingArea;
++  return synthesizeFootprint(
++    venue.location.lat,
++    venue.location.lng,
++    VENUE_FOOTPRINT_FALLBACK_SIZE_M,
++  );
++}
++
++/** A small square polygon of side `sizeM` centred on (lat, lng). */
++export function synthesizeFootprint(
++  lat: number,
++  lng: number,
++  sizeM: number,
++): GeoJSON.Polygon {
++  const halfM = sizeM / 2;
++  const dLat = halfM / 111_320;
++  const dLng = halfM / (111_320 * Math.cos((lat * Math.PI) / 180));
++  const ring: number[][] = [
++    [lng - dLng, lat - dLat],
++    [lng + dLng, lat - dLat],
++    [lng + dLng, lat + dLat],
++    [lng - dLng, lat + dLat],
++    [lng - dLng, lat - dLat],
++  ];
++  return { type: 'Polygon', coordinates: [ring] };
++}
++
++async function fetchWeatherForVenue(
++  getForecast: GetForecast,
++  location: { lat: number; lng: number },
++  requestedAt: Date,
++  now: Date,
++): Promise<WeatherSlice | null> {
++  const forecast = await getForecast(location.lat, location.lng);
++  if (forecast.length === 0) return null;
++  // Met.no returns hourly slices from ~now; approximate "nearest to requestedAt"
++  // by hour offset (the slice time itself is not carried on WeatherSlice).
++  const hoursAhead = Math.max(
++    0,
++    Math.round((requestedAt.getTime() - now.getTime()) / 3_600_000),
++  );
++  return forecast[Math.min(hoursAhead, forecast.length - 1)] ?? null;
++}
++
++// ---------------------------------------------------------------------------
++// Pure DTO mappers (unit-tested directly)
++// ---------------------------------------------------------------------------
++
++/** Map sunlit% to the public sun-status enum (`NoSun` decided by the caller). */
++export function classifySunStatus(sunExposurePercent: number): VenueSunStatus {
++  if (sunExposurePercent >= SUNNY_THRESHOLD_PERCENT) return 'Sunny';
++  if (sunExposurePercent >= SUNLIT_THRESHOLD_PERCENT) return 'Partial';
++  return 'Shaded';
++}
++
++/** Map Met.no `cloud_area_fraction` (0..100) to the DTO `skyCondition`. */
++export function skyConditionFromCloudCover(cloudCover: number): string {
++  if (cloudCover < 20) return 'clear';
++  if (cloudCover <= 60) return 'partly-cloudy';
++  return 'overcast';
++}
++
++/**
++ * Build `predictionUncertainty` from coverage + obstruction risk + weather,
++ * mapped onto the existing {@link PredictionUncertaintyReason} union so the
++ * Story 3.0.6 `next-intl` copy renders without leaking geodata internals.
++ * Returns `undefined` when there is nothing to flag (matches the seed).
++ */
++export function buildPredictionUncertainty(
++  shadowInfo: Pick<VenueShadowInfo, 'shadowDataCoverage' | 'obstructionRisks'>,
++  weather: WeatherSlice | null,
++  confidence: number,
++  now: Date,
++): PredictionUncertaintyDto | undefined {
++  const reasons: PredictionUncertaintyReason[] = [];
++  const seen = new Set<PredictionUncertaintyReason>();
++  const add = (reason: PredictionUncertaintyReason) => {
++    if (!seen.has(reason)) {
++      seen.add(reason);
++      reasons.push(reason);
++    }
++  };
++
++  const coverage = shadowInfo.shadowDataCoverage;
++  if (coverage && coverage.status !== 'eligible') {
++    add('building_shadow_coverage');
++  }
++  for (const risk of shadowInfo.obstructionRisks ?? []) {
++    add(obstructionReason(risk));
++  }
++  if (isWeatherUncertain(weather, now)) {
++    add('weather');
++  }
++
++  if (reasons.length === 0) return undefined;
++  return { level: uncertaintyLevelFromConfidence(confidence), reasons };
++}
++
++/**
++ * Extract the venue's sun window as the longest contiguous run of sunlit samples
++ * (sun visible AND sunlit% at/above the Partial threshold). Returns `undefined`
++ * when there is no sunlit window. Times are HH:mm in `Europe/Stockholm`.
++ */
++export function extractSunlitWindow(
++  points: readonly ShadowTimelinePoint[],
++): { start: string; end: string } | undefined {
++  let bestStart = -1;
++  let bestEnd = -1;
++  let bestLen = 0;
++  let runStart = -1;
++  for (let i = 0; i < points.length; i++) {
++    const point = points[i];
++    const sunlit =
++      point.isSunVisible && point.sunlitAreaPercent >= SUNLIT_THRESHOLD_PERCENT;
++    if (sunlit) {
++      if (runStart === -1) runStart = i;
++      const len = i - runStart + 1;
++      if (len > bestLen) {
++        bestLen = len;
++        bestStart = runStart;
++        bestEnd = i;
++      }
++    } else {
++      runStart = -1;
++    }
++  }
++  if (bestStart === -1) return undefined;
++  return {
++    start: formatStockholmHHmm(points[bestStart].timestamp),
++    end: formatStockholmHHmm(points[bestEnd].timestamp),
++  };
++}
++
++/** Time of peak sunlit exposure (HH:mm Stockholm), or `undefined` if never sunlit. */
++export function peakTimeFromTimeline(
++  points: readonly ShadowTimelinePoint[],
++): string | undefined {
++  let best: ShadowTimelinePoint | undefined;
++  for (const point of points) {
++    if (!point.isSunVisible) continue;
++    if (!best || point.sunlitAreaPercent > best.sunlitAreaPercent) best = point;
++  }
++  if (!best || best.sunlitAreaPercent < SUNLIT_THRESHOLD_PERCENT) return undefined;
++  return formatStockholmHHmm(best.timestamp);
++}
++
++// ---------------------------------------------------------------------------
++// Internal helpers
++// ---------------------------------------------------------------------------
++
++function mergeSunFields(base: VenueDataDto, fields: SunEngineFields): VenueDataDto {
++  const merged: VenueDataDto = {
++    ...base,
++    currentSunStatus: fields.currentSunStatus,
++    confidence: fields.confidence,
++    sunExposurePercent: fields.sunExposurePercent,
++  };
++  // The engine OWNS all six sun-output fields: drop any seed-carried optional
++  // field the engine did not produce so the real path never leaks seed values.
++  if (fields.skyCondition !== undefined) merged.skyCondition = fields.skyCondition;
++  else delete merged.skyCondition;
++  if (fields.sunWindow !== undefined) merged.sunWindow = fields.sunWindow;
++  else delete merged.sunWindow;
++  if (fields.predictionUncertainty !== undefined) {
++    merged.predictionUncertainty = fields.predictionUncertainty;
++  } else {
++    delete merged.predictionUncertainty;
++  }
++  return merged;
++}
++
++function obstructionReason(risk: ObstructionRiskClass): PredictionUncertaintyReason {
++  // 'tree' maps to the public 'vegetation' copy key; the rest map 1:1 onto the
++  // PredictionUncertaintyReason union. normalizeVenueForResponse coerces any
++  // stray value to 'other' as the final sanitizer.
++  if (risk === 'tree') return 'vegetation';
++  return risk;
++}
++
++function isWeatherUncertain(weather: WeatherSlice | null, now: Date): boolean {
++  if (!weather) return true;
++  if (weather.isForecast) return true;
++  return now.getTime() - weather.createdAt.getTime() > STALE_WEATHER_AGE_MS;
++}
++
++function uncertaintyLevelFromConfidence(confidence: number): PredictionUncertaintyLevel {
++  if (confidence < 50) return 'high';
++  if (confidence < 75) return 'medium';
++  return 'low';
++}
++
++function sameDayScanRange(requestedAt: Date): { start: Date; end: Date } {
++  const dayKey = stockholmDateKey(requestedAt);
++  return {
++    start: fromZonedTime(`${dayKey}T${SUN_WINDOW_SCAN_START}`, STOCKHOLM_TIME_ZONE),
++    end: fromZonedTime(`${dayKey}T${SUN_WINDOW_SCAN_END}`, STOCKHOLM_TIME_ZONE),
++  };
++}
++
++function stockholmDateKey(date: Date): string {
++  // sv-SE renders dates as YYYY-MM-DD.
++  return new Intl.DateTimeFormat('sv-SE', {
++    timeZone: STOCKHOLM_TIME_ZONE,
++    year: 'numeric',
++    month: '2-digit',
++    day: '2-digit',
++  }).format(date);
++}
++
++function formatStockholmHHmm(date: Date): string {
++  // sv-SE renders times as 24-hour HH:mm.
++  return new Intl.DateTimeFormat('sv-SE', {
++    timeZone: STOCKHOLM_TIME_ZONE,
++    hour: '2-digit',
++    minute: '2-digit',
++    hour12: false,
++  }).format(date);
++}
++
++function clampPercent(value: number): number {
++  return Math.max(0, Math.min(100, value));
++}
+diff --git a/nextjs-app/test/unit/services/sun-engine.test.ts b/nextjs-app/test/unit/services/sun-engine.test.ts
+new file mode 100644
+index 0000000..1011b34
+--- /dev/null
++++ b/nextjs-app/test/unit/services/sun-engine.test.ts
+@@ -0,0 +1,404 @@
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
++import {
++  aggregateSunFreshness,
++  applyRealSunEngine,
++  buildPredictionUncertainty,
++  classifySunStatus,
++  extractSunlitWindow,
++  peakTimeFromTimeline,
++  resolveRequestedAt,
++  resolveVenueGeometry,
++  shouldUseRealSunEngine,
++  skyConditionFromCloudCover,
++  synthesizeFootprint,
++  usesRealSunEngine,
++} from '@/lib/services/sun-engine';
++import type { StoredVenue } from '@/lib/services/venue-store';
++import type { ObstructionRiskClass, ShadowTimelinePoint, WeatherSlice } from '@/lib/solar/types';
++
++// Real path drives the engine + weather through these two boundaries ONLY:
++// the get_buildings_near_point RPC and the Met.no weather fetch. Both mocked —
++// no live Supabase / Met.no, exactly like shadow-calculation-service.test.ts.
++const mocks = vi.hoisted(() => ({
++  from: vi.fn(),
++  rpc: vi.fn(),
++  getForecast: vi.fn(),
++  getCurrentWeather: vi.fn(),
++}));
++
++vi.mock('@/lib/supabase/server', () => ({
++  supabaseServiceRole: { from: mocks.from, rpc: mocks.rpc },
++  getSupabaseServiceRole: () => ({ from: mocks.from, rpc: mocks.rpc }),
++}));
++
++vi.mock('@/lib/weather/met-no-service', () => ({
++  getForecast: mocks.getForecast,
++  getCurrentWeather: mocks.getCurrentWeather,
++}));
++
++const SUMMER_MIDDAY = new Date('2026-06-21T10:30:00.000Z'); // Stockholm 12:30, sun high
++const WINTER_NIGHT = new Date('2026-01-15T18:00:00.000Z'); // Stockholm 19:00, sun down
++
++function makeStoredVenue(overrides: Partial<StoredVenue> = {}): StoredVenue {
++  return {
++    id: '1',
++    venueId: '1',
++    venueName: 'Kafé Magasinet',
++    venueSlug: 'test-venue-sunny',
++    slug: 'test-venue-sunny',
++    neighborhood: 'Inom Vallgraven',
++    location: { lat: 57.7053, lng: 11.9639 }, // inom-vallgraven launch cluster
++    currentSunStatus: 'Sunny',
++    skyCondition: 'clear',
++    isPartner: true,
++    confidence: 92,
++    distanceMeters: 0,
++    sunExposurePercent: 95,
++    sunWindow: { start: '13:00', end: '18:30' },
++    ...overrides,
++  };
++}
++
++function weatherSlice(overrides: Partial<WeatherSlice> = {}): WeatherSlice {
++  return {
++    cloudCover: 10,
++    temperature: 18,
++    isForecast: false,
++    source: 'metno',
++    createdAt: new Date(),
++    ...overrides,
++  };
++}
++
++function timelinePoint(overrides: Partial<ShadowTimelinePoint>): ShadowTimelinePoint {
++  return {
++    timestamp: new Date('2026-06-21T10:00:00.000Z'),
++    shadowedAreaPercent: 0,
++    sunlitAreaPercent: 100,
++    confidence: 0.6,
++    isSunVisible: true,
++    ...overrides,
++  };
++}
++
++describe('sun-engine pure mappers', () => {
++  it('maps Met.no cloud_area_fraction to skyCondition incl. boundaries', () => {
++    expect(skyConditionFromCloudCover(0)).toBe('clear');
++    expect(skyConditionFromCloudCover(19.9)).toBe('clear');
++    expect(skyConditionFromCloudCover(20)).toBe('partly-cloudy');
++    expect(skyConditionFromCloudCover(60)).toBe('partly-cloudy');
++    expect(skyConditionFromCloudCover(60.1)).toBe('overcast');
++    expect(skyConditionFromCloudCover(100)).toBe('overcast');
++  });
++
++  it('classifies sun status from the Sunny>=70 / Partial>=30 / Shaded thresholds', () => {
++    expect(classifySunStatus(100)).toBe('Sunny');
++    expect(classifySunStatus(70)).toBe('Sunny');
++    expect(classifySunStatus(69)).toBe('Partial');
++    expect(classifySunStatus(30)).toBe('Partial');
++    expect(classifySunStatus(29)).toBe('Shaded');
++    expect(classifySunStatus(0)).toBe('Shaded');
++  });
++
++  it('synthesizes a closed footprint polygon centred on the venue point', () => {
++    const polygon = synthesizeFootprint(57.7053, 11.9639, 10);
++    expect(polygon.type).toBe('Polygon');
++    const ring = polygon.coordinates[0];
++    expect(ring).toHaveLength(5);
++    expect(ring[0]).toEqual(ring[4]); // closed
++    // Centroid of the four corners is the venue point.
++    const cx = (ring[0][0] + ring[1][0] + ring[2][0] + ring[3][0]) / 4;
++    const cy = (ring[0][1] + ring[1][1] + ring[2][1] + ring[3][1]) / 4;
++    expect(cx).toBeCloseTo(11.9639, 6);
++    expect(cy).toBeCloseTo(57.7053, 6);
++  });
++
++  it('resolves the engine geometry polygon-first, footprint-fallback (DECISION B)', () => {
++    const polygon: GeoJSON.Polygon = {
++      type: 'Polygon',
++      coordinates: [[
++        [11.97, 57.70],
++        [11.971, 57.70],
++        [11.971, 57.701],
++        [11.97, 57.701],
++        [11.97, 57.70],
++      ]],
++    };
++    expect(resolveVenueGeometry(makeStoredVenue({ seatingArea: polygon }))).toBe(polygon);
++
++    const fallback = resolveVenueGeometry(makeStoredVenue({ seatingArea: undefined }));
++    expect(fallback.coordinates[0]).toHaveLength(5);
++  });
++
++  it('extracts the longest contiguous sunlit window, or undefined when none', () => {
++    const points: ShadowTimelinePoint[] = [
++      timelinePoint({ timestamp: new Date('2026-06-21T09:00:00.000Z'), sunlitAreaPercent: 10 }),
++      timelinePoint({ timestamp: new Date('2026-06-21T10:00:00.000Z'), sunlitAreaPercent: 80 }), // 12:00 Sthlm
++      timelinePoint({ timestamp: new Date('2026-06-21T12:00:00.000Z'), sunlitAreaPercent: 90 }), // 14:00 Sthlm
++      timelinePoint({ timestamp: new Date('2026-06-21T14:00:00.000Z'), sunlitAreaPercent: 5 }),
++    ];
++    expect(extractSunlitWindow(points)).toEqual({ start: '12:00', end: '14:00' });
++
++    const noSun = [
++      timelinePoint({ sunlitAreaPercent: 0, isSunVisible: false }),
++      timelinePoint({ sunlitAreaPercent: 10 }),
++    ];
++    expect(extractSunlitWindow(noSun)).toBeUndefined();
++  });
++
++  it('reports the peak-exposure time, or undefined when never sunlit', () => {
++    const points: ShadowTimelinePoint[] = [
++      timelinePoint({ timestamp: new Date('2026-06-21T10:00:00.000Z'), sunlitAreaPercent: 60 }),
++      timelinePoint({ timestamp: new Date('2026-06-21T11:00:00.000Z'), sunlitAreaPercent: 95 }), // 13:00 Sthlm
++    ];
++    expect(peakTimeFromTimeline(points)).toBe('13:00');
++    expect(peakTimeFromTimeline([timelinePoint({ sunlitAreaPercent: 5 })])).toBeUndefined();
++  });
++
++  it('builds predictionUncertainty: coverage->building_shadow_coverage, tree->vegetation, stale->weather', () => {
++    const now = new Date('2026-06-21T12:00:00.000Z');
++    const result = buildPredictionUncertainty(
++      {
++        shadowDataCoverage: {
++          clusterId: 'inom-vallgraven',
++          clusterName: 'Inom Vallgraven',
++          status: 'unknown',
++          checkedCount: 0,
++          agreementRate: null,
++          missingConditions: [],
++          uncertaintyCounts: {},
++          evidenceFiles: [],
++          allowsHighConfidence: false,
++          confidenceCap: 0.6,
++        },
++        obstructionRisks: ['tree', 'awning'],
++      },
++      weatherSlice({ isForecast: true }),
++      55,
++      now,
++    );
++    expect(result).toEqual({
++      level: 'medium',
++      reasons: ['building_shadow_coverage', 'vegetation', 'awning', 'weather'],
++    });
++  });
++
++  it('omits predictionUncertainty when coverage is eligible and weather is fresh', () => {
++    const now = new Date('2026-06-21T12:00:00.000Z');
++    const result = buildPredictionUncertainty(
++      {
++        shadowDataCoverage: {
++          clusterId: 'inom-vallgraven',
++          clusterName: 'Inom Vallgraven',
++          status: 'eligible',
++          checkedCount: 70,
++          agreementRate: 0.9,
++          missingConditions: [],
++          uncertaintyCounts: {},
++          evidenceFiles: ['fixture'],
++          allowsHighConfidence: true,
++          confidenceCap: 1,
++        },
++        obstructionRisks: [],
++      },
++      weatherSlice({ createdAt: now }),
++      90,
++      now,
++    );
++    expect(result).toBeUndefined();
++  });
++
++  it('derives the uncertainty level from the confidence band', () => {
++    const now = new Date('2026-06-21T12:00:00.000Z');
++    const coverage = {
++      obstructionRisks: ['tree'] as ObstructionRiskClass[],
++      shadowDataCoverage: undefined,
++    };
++    expect(buildPredictionUncertainty(coverage, weatherSlice({ createdAt: now }), 40, now)?.level).toBe('high');
++    expect(buildPredictionUncertainty(coverage, weatherSlice({ createdAt: now }), 60, now)?.level).toBe('medium');
++    expect(buildPredictionUncertainty(coverage, weatherSlice({ createdAt: now }), 80, now)?.level).toBe('low');
++  });
++
++  it('aggregates per-venue freshness to a single response value', () => {
++    expect(
++      aggregateSunFreshness([
++        { sunDataSource: 'weather', weatherUpdatedAt: '2026-06-21T10:00:00.000Z' },
++        { sunDataSource: 'geometry-only' },
++        { sunDataSource: 'weather', weatherUpdatedAt: '2026-06-21T10:05:00.000Z' },
++      ]),
++    ).toEqual({ sunDataSource: 'weather', weatherUpdatedAt: '2026-06-21T10:05:00.000Z' });
++
++    expect(aggregateSunFreshness([{ sunDataSource: 'geometry-only' }])).toEqual({
++      sunDataSource: 'geometry-only',
++    });
++  });
++
++  it('resolves the requested instant from now or the planner Stockholm-local selection', () => {
++    const now = new Date('2026-06-21T08:00:00.000Z');
++    expect(resolveRequestedAt(undefined, now)).toBe(now);
++    // 14:00 Stockholm summer (CEST, +02:00) === 12:00Z
++    expect(
++      resolveRequestedAt({ date: '2026-06-21', time: '14:00', isFutureDate: true }, now).toISOString(),
++    ).toBe('2026-06-21T12:00:00.000Z');
++  });
++});
++
++describe('shouldUseRealSunEngine / usesRealSunEngine env gate', () => {
++  afterEach(() => vi.unstubAllEnvs());
++
++  it('is opt-in via SUNNYSEAT_SUN_ENGINE=real and requires service-role config', () => {
++    vi.stubEnv('SUNNYSEAT_SUN_ENGINE', '');
++    expect(usesRealSunEngine()).toBe(false);
++    expect(shouldUseRealSunEngine()).toBe(false);
++
++    vi.stubEnv('SUNNYSEAT_SUN_ENGINE', 'real');
++    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', '');
++    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '');
++    expect(usesRealSunEngine()).toBe(true);
++    expect(shouldUseRealSunEngine()).toBe(false); // flag on but no config -> seed path
++
++    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
++    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key');
++    expect(shouldUseRealSunEngine()).toBe(true);
++  });
++});
++
++describe('applyRealSunEngine integration (mocked RPC + weather)', () => {
++  beforeEach(() => {
++    mocks.from.mockReset();
++    mocks.rpc.mockReset();
++    mocks.getForecast.mockReset();
++    mocks.getCurrentWeather.mockReset();
++    mocks.rpc.mockResolvedValue({ data: [], error: null }); // no shadow casters
++    mocks.getForecast.mockResolvedValue([weatherSlice()]);
++    vi.spyOn(console, 'error').mockImplementation(() => {});
++    vi.useFakeTimers();
++    vi.setSystemTime(SUMMER_MIDDAY);
++  });
++
++  afterEach(() => {
++    vi.useRealTimers();
++    vi.restoreAllMocks();
++  });
++
++  it('produces engine sun fields through the unchanged DTO (AC #1)', async () => {
++    const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
++
++    // No shadow casters at midday -> fully sunlit; integer 0..100.
++    expect(outcome.venue.currentSunStatus).toBe('Sunny');
++    expect(outcome.venue.sunExposurePercent).toBe(100);
++    expect(Number.isInteger(outcome.venue.confidence)).toBe(true);
++    expect(outcome.venue.confidence).toBeGreaterThanOrEqual(0);
++    expect(outcome.venue.confidence).toBeLessThanOrEqual(100);
++    expect(outcome.venue.skyCondition).toBe('clear'); // cloudCover 10
++  });
++
++  it('caps confidence below the high-confidence band for unknown coverage (Story 3.0.5)', async () => {
++    const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
++
++    // Conservative default coverage = unknown -> cannot be "confidently sunny".
++    expect(outcome.venue.confidence).toBeLessThan(70);
++    expect(outcome.venue.predictionUncertainty?.reasons).toContain('building_shadow_coverage');
++  });
++
++  it('reports NoSun when the sun is below the horizon (AC #1)', async () => {
++    vi.setSystemTime(WINTER_NIGHT);
++    const outcome = await applyRealSunEngine(makeStoredVenue(), WINTER_NIGHT, WINTER_NIGHT);
++    expect(outcome.venue.currentSunStatus).toBe('NoSun');
++    expect(outcome.venue.sunExposurePercent).toBe(0);
++  });
++
++  it('reflects real weather freshness when a weather slice is present (AC #3)', async () => {
++    const createdAt = new Date(SUMMER_MIDDAY);
++    mocks.getForecast.mockResolvedValue([weatherSlice({ createdAt })]);
++
++    const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
++    expect(outcome.freshness).toEqual({
++      sunDataSource: 'weather',
++      weatherUpdatedAt: createdAt.toISOString(),
++    });
++  });
++
++  it('falls back to geometry-only + unavailable sky when Met.no is unavailable (AC #3)', async () => {
++    mocks.getForecast.mockResolvedValue([]);
++
++    const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
++    expect(outcome.freshness).toEqual({ sunDataSource: 'geometry-only' });
++    expect(outcome.venue.skyCondition).toBe('unavailable');
++  });
++
++  it('drives calculateVenueShadowForGeometry, never the legacy fetchVenue table (DECISION B)', async () => {
++    await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
++    // The legacy fetchVenue path does supabaseServiceRole.from('venues')...single().
++    // The geometry-first adapter must never touch .from — only the RPC.
++    expect(mocks.from).not.toHaveBeenCalled();
++    expect(mocks.rpc).toHaveBeenCalledWith(
++      'get_buildings_near_point',
++      expect.objectContaining({
++        p_latitude: expect.any(Number),
++        p_longitude: expect.any(Number),
++        p_radius_meters: expect.any(Number),
++      }),
++    );
++  });
++
++  it('resolves geometry from the seating polygon when present, else the point footprint', async () => {
++    // Without a seatingArea: RPC centroid == the venue location.
++    await applyRealSunEngine(makeStoredVenue({ seatingArea: undefined }), SUMMER_MIDDAY, SUMMER_MIDDAY);
++    const [, footprintArgs] = mocks.rpc.mock.calls[0];
++    expect(footprintArgs.p_latitude).toBeCloseTo(57.7053, 4);
++    expect(footprintArgs.p_longitude).toBeCloseTo(11.9639, 4);
++
++    mocks.rpc.mockClear();
++
++    // With a seatingArea polygon: RPC centroid == the polygon centroid (offset
++    // from the point), proving the engine used the real polygon.
++    const seatingArea: GeoJSON.Polygon = {
++      type: 'Polygon',
++      coordinates: [[
++        [11.9698, 57.6998],
++        [11.9702, 57.6998],
++        [11.9702, 57.7002],
++        [11.9698, 57.7002],
++        [11.9698, 57.6998],
++      ]],
++    };
++    await applyRealSunEngine(makeStoredVenue({ seatingArea }), SUMMER_MIDDAY, SUMMER_MIDDAY);
++    const [, polygonArgs] = mocks.rpc.mock.calls[0];
++    expect(polygonArgs.p_latitude).toBeCloseTo(57.7000, 4);
++    expect(polygonArgs.p_longitude).toBeCloseTo(11.9700, 4);
++  });
++
++  it('maps obstruction-risk casters onto the public uncertainty reasons (Story 3.0.6)', async () => {
++    mocks.rpc.mockResolvedValue({
++      data: [{
++        Id: 1,
++        Geometry: JSON.stringify(synthesizeFootprint(57.7053, 11.9639, 6)),
++        Height: 12,
++        Source: 'goteborg_open_data',
++        QualityScore: 0.9,
++        HeightSource: 'Surveyed',
++        SourceFlags: ['obstruction:tree'],
++        FilterDecision: 'include',
++        CasterClass: 'vegetation',
++      }],
++      error: null,
++    });
++
++    const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
++    expect(outcome.venue.predictionUncertainty?.reasons).toContain('vegetation');
++  });
++
++  it('degrades to a safe seed result instead of throwing (never a 500, DECISION D)', async () => {
++    mocks.getForecast.mockResolvedValue([weatherSlice()]);
++    mocks.rpc.mockRejectedValue(new Error('boom'));
++    // RPC rejection is swallowed inside the engine (returns shadow-data-unavailable),
++    // so force a hard failure to exercise the adapter's own catch.
++    mocks.getForecast.mockRejectedValue(new Error('weather exploded'));
++
++    const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
++    expect(outcome.freshness).toEqual({ sunDataSource: 'geometry-only' });
++    // Safe fallback returns the venue's base DTO (seed values), never throws.
++    expect(outcome.venue.id).toBe('1');
++  });
++});
+diff --git a/nextjs-app/test/unit/api/venues-route-real-engine.test.ts b/nextjs-app/test/unit/api/venues-route-real-engine.test.ts
+new file mode 100644
+index 0000000..3d3ce00
+--- /dev/null
++++ b/nextjs-app/test/unit/api/venues-route-real-engine.test.ts
+@@ -0,0 +1,169 @@
++/**
++ * STORY 8.3 — real-engine route WIRING (SUNNYSEAT_SUN_ENGINE=real).
++ *
++ * Proves AC #4's "flag on" half at the route layer: /api/venues + /api/venues/
++ * [slug] route the venues through the sun-engine adapter, aggregate its real
++ * freshness into the response meta + X-* headers, bypass the planner/fixture-
++ * weather stages, and feed the detail timeline from the engine output.
++ *
++ * The adapter boundary is mocked here so the route test is deterministic and has
++ * ZERO live Supabase / Met.no dependency. The adapter's own engine integration
++ * (real lib/solar + mocked RPC + mocked weather) is covered by sun-engine.test.ts;
++ * the byte-identical default seed path is covered by venues-route.test.ts /
++ * venue-detail-route.test.ts.
++ */
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
++import { NextRequest } from 'next/server';
++import { toVenueData, type StoredVenue } from '@/lib/services/venue-store';
++import type { SunEngineOutcome } from '@/lib/services/sun-engine';
++import type { GetVenueDetailResponse, GetVenuesResponse } from '@/lib/types/api';
++
++const adapterMocks = vi.hoisted(() => ({
++  applyRealSunEngine: vi.fn(),
++  shouldUseRealSunEngine: vi.fn(() => true),
++}));
++
++vi.mock('@/lib/services/sun-engine', async (importOriginal) => {
++  const actual = await importOriginal<typeof import('@/lib/services/sun-engine')>();
++  return {
++    ...actual,
++    shouldUseRealSunEngine: adapterMocks.shouldUseRealSunEngine,
++    applyRealSunEngine: adapterMocks.applyRealSunEngine,
++  };
++});
++
++import { clearVenueRateLimitForTests, GET as LIST_GET } from '@/app/api/venues/route';
++import { GET as DETAIL_GET } from '@/app/api/venues/[slug]/route';
++
++const NOW = new Date('2026-06-21T10:30:00.000Z');
++
++function listRequest(query: string): NextRequest {
++  return new NextRequest(`http://localhost/api/venues${query}`);
++}
++
++function detailRequest(slug: string, query = ''): NextRequest {
++  return new NextRequest(`http://localhost/api/venues/${slug}${query}`);
++}
++
++/** A canned engine outcome: Partial @ 55% confidence with a replaced sun window. */
++function computedOutcome(venue: StoredVenue): SunEngineOutcome {
++  return {
++    venue: {
++      ...toVenueData(venue),
++      currentSunStatus: 'Partial',
++      confidence: 55,
++      sunExposurePercent: 60,
++      skyCondition: 'clear',
++      sunWindow: { start: '12:00', end: '16:00' },
++    },
++    freshness: { sunDataSource: 'weather', weatherUpdatedAt: NOW.toISOString() },
++    peakTime: '14:00',
++  };
++}
++
++/** A degraded / weather-unavailable engine outcome. */
++function unavailableOutcome(venue: StoredVenue): SunEngineOutcome {
++  return {
++    venue: {
++      ...toVenueData(venue),
++      currentSunStatus: 'NoSun',
++      confidence: 20,
++      sunExposurePercent: 0,
++      skyCondition: 'unavailable',
++    },
++    freshness: { sunDataSource: 'geometry-only' },
++  };
++}
++
++describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
++  beforeEach(() => {
++    vi.useFakeTimers();
++    vi.setSystemTime(NOW);
++    clearVenueRateLimitForTests();
++    adapterMocks.shouldUseRealSunEngine.mockReturnValue(true);
++    adapterMocks.applyRealSunEngine.mockReset();
++  });
++
++  afterEach(() => {
++    vi.useRealTimers();
++    vi.restoreAllMocks();
++  });
++
++  it('list route replaces sun fields from the engine and emits aggregated weather freshness', async () => {
++    adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) =>
++      computedOutcome(venue),
++    );
++
++    const res = await LIST_GET(listRequest('?lat=57.7089&lng=11.9746'));
++    expect(res.status).toBe(200);
++    const body = (await res.json()) as GetVenuesResponse;
++
++    expect(body.venues.length).toBeGreaterThan(0);
++    expect(res.headers.get('x-sun-data-source')).toBe('weather');
++    expect(body.meta.sunDataSource).toBe('weather');
++    expect(body.meta.weatherUpdatedAt).toBe(NOW.toISOString());
++    // The adapter ran once per stored venue.
++    expect(adapterMocks.applyRealSunEngine).toHaveBeenCalled();
++    // Engine fields replaced the seed: 55% confidence, replaced sun window.
++    expect(body.venues.every((v) => v.confidence === 55)).toBe(true);
++    const sunny = body.venues.find((v) => v.slug === 'test-venue-sunny');
++    expect(sunny?.sunWindow).toEqual({ start: '12:00', end: '16:00' });
++  });
++
++  it('list route bypasses the planner seasonal sim on the real path (DECISION C)', async () => {
++    adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) =>
++      computedOutcome(venue),
++    );
++
++    // A future planner selection would normally drive applyPlannerSelectionToVenue;
++    // on the real path the engine output is used verbatim instead.
++    const res = await LIST_GET(
++      listRequest('?lat=57.7089&lng=11.9746&date=2026-07-10&time=20:00'),
++    );
++    expect(res.status).toBe(200);
++    const body = (await res.json()) as GetVenuesResponse;
++    const sunny = body.venues.find((v) => v.slug === 'test-venue-sunny');
++    expect(sunny?.currentSunStatus).toBe('Partial'); // engine value, not planner 'Shaded'
++    expect(sunny?.confidence).toBe(55);
++  });
++
++  it('list route reports geometry-only when the engine has no weather', async () => {
++    adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) =>
++      unavailableOutcome(venue),
++    );
++
++    const res = await LIST_GET(listRequest('?lat=57.7089&lng=11.9746'));
++    expect(res.status).toBe(200);
++    expect(res.headers.get('cache-control')).toContain('must-revalidate');
++    const body = (await res.json()) as GetVenuesResponse;
++    expect(body.meta.sunDataSource).toBe('geometry-only');
++    expect(res.headers.get('x-weather-updated-at')).toBeNull();
++    expect(body.venues.every((v) => v.skyCondition === 'unavailable')).toBe(true);
++  });
++
++  it('detail route feeds the timeline projection from the engine output', async () => {
++    adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) =>
++      computedOutcome(venue),
++    );
++
++    const res = await DETAIL_GET(detailRequest('test-venue-sunny'), {
++      params: Promise.resolve({ slug: 'test-venue-sunny' }),
++    });
++    expect(res.status).toBe(200);
++    const body = (await res.json()) as GetVenueDetailResponse;
++
++    expect(res.headers.get('x-sun-data-source')).toBe('weather');
++    expect(body.meta?.sunDataSource).toBe('weather');
++    expect(body.venue.confidence).toBe(55);
++    // Durable detail attributes (Story 8.2) are untouched by the engine swap.
++    expect(body.venue.venueName).toBe('Kafé Magasinet');
++    expect(body.venue.shadowWarningMinutes).toBe(45);
++    // Timeline window + peak come from the engine output.
++    expect(body.venue.timeline.windows[0]).toEqual({
++      start: '12:00',
++      end: '16:00',
++      status: 'Partial',
++    });
++    expect(body.venue.timeline.peakTime).toBe('14:00');
++  });
++});

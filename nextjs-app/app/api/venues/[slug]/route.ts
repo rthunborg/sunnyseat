@@ -15,6 +15,11 @@ import {
   applyFixtureWeatherAvailability,
   resolveFixtureSunFreshness,
 } from '@/lib/services/weather-freshness-fixture';
+import {
+  applyRealSunEngine,
+  resolveRequestedAt,
+  shouldUseRealSunEngine,
+} from '@/lib/services/sun-engine';
 import { badRequest } from '@/lib/utils/api-errors';
 import { greatCircleMeters } from '@/lib/utils/geo';
 import { formatPlannerTime, parsePlannerTime } from '@/lib/utils/time-planner';
@@ -24,6 +29,7 @@ import {
 } from '@/lib/utils/validation';
 import type {
   GetVenueDetailResponse,
+  SunFreshnessMeta,
   VenueDataDto,
   VenueDetailDto,
 } from '@/lib/types/api';
@@ -53,7 +59,6 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   }
   const coordinates = parseDetailCoordinates(_request.nextUrl.searchParams);
   if (!coordinates.ok) return badRequest(coordinates.detail);
-  const freshness = resolveFixtureSunFreshness(_request.nextUrl.searchParams);
   const { slug } = await context.params;
   let decodedSlug: string;
   try {
@@ -73,23 +78,39 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     );
   }
 
-  // Strip the detail block before the normalize/weather/planner pipeline (each
-  // stage spreads `...venue`); detail is applied explicitly via buildDetailDto.
-  const venue = toVenueData(stored);
-  const venueWithDistance = coordinates.value
-    ? {
-        ...venue,
-        distanceMeters: greatCircleMeters(
-          coordinates.value.lat,
-          coordinates.value.lng,
-          venue.location.lat,
-          venue.location.lng,
-        ),
-      }
-    : venue;
-  const normalizedVenue = normalizeVenueForResponse(venueWithDistance);
-  const weatherAdjustedVenue = applyFixtureWeatherAvailability(normalizedVenue, freshness);
-  const adjustedVenue = applyPlannerSelectionToVenue(weatherAdjustedVenue, planner.selection);
+  // STORY 8.3 — real engine swap behind the frozen VenueDetailDto. Default
+  // (flag off) path is byte-identical to the 8.2 seed; the real path feeds the
+  // timeline projection (sunWindow/status/peakTime) from the engine and bypasses
+  // the planner + fixture-weather stages.
+  const useRealEngine = shouldUseRealSunEngine();
+  const now = new Date();
+  let adjustedVenue: VenueDataDto;
+  let freshness: SunFreshnessMeta;
+  let timelineProjection: DetailTimelineProjection | undefined;
+
+  if (useRealEngine) {
+    const requestedAt = resolveRequestedAt(planner.selection, now);
+    const outcome = await applyRealSunEngine(stored, requestedAt, now);
+    freshness = outcome.freshness;
+    const base = withDetailDistance(outcome.venue, coordinates.value);
+    adjustedVenue = normalizeVenueForResponse(base);
+    timelineProjection = {
+      ...(outcome.peakTime ? { peakTime: outcome.peakTime } : {}),
+      windowStatus: adjustedVenue.currentSunStatus,
+    };
+  } else {
+    freshness = resolveFixtureSunFreshness(_request.nextUrl.searchParams);
+    // Strip the detail block before the normalize/weather/planner pipeline (each
+    // stage spreads `...venue`); detail is applied explicitly via buildDetailDto.
+    const venue = withDetailDistance(toVenueData(stored), coordinates.value);
+    const normalizedVenue = normalizeVenueForResponse(venue);
+    const weatherAdjustedVenue = applyFixtureWeatherAvailability(normalizedVenue, freshness);
+    adjustedVenue = applyPlannerSelectionToVenue(weatherAdjustedVenue, planner.selection);
+    timelineProjection = planner.selection
+      ? timelineProjectionFromAdjustedVenue(adjustedVenue)
+      : undefined;
+  }
+
   let reviewSummary: VenueDetailDto['reviewSummary'];
   try {
     reviewSummary = await getReviewSummaryForVenueFromPersistence(adjustedVenue);
@@ -99,9 +120,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   const detail = buildDetailDto(
     adjustedVenue,
     storedVenueDetail(stored),
-    planner.selection
-      ? timelineProjectionFromAdjustedVenue(adjustedVenue)
-      : undefined,
+    timelineProjection,
     reviewSummary,
   );
   const response: GetVenueDetailResponse = {
@@ -153,6 +172,22 @@ function buildDetailDto(
     ...(fixture?.shadowWarningMinutes != null
       ? { shadowWarningMinutes: fixture.shadowWarningMinutes }
       : {}),
+  };
+}
+
+function withDetailDistance(
+  venue: VenueDataDto,
+  coordinates: DetailCoordinates | undefined,
+): VenueDataDto {
+  if (!coordinates) return venue;
+  return {
+    ...venue,
+    distanceMeters: greatCircleMeters(
+      coordinates.lat,
+      coordinates.lng,
+      venue.location.lat,
+      venue.location.lng,
+    ),
   };
 }
 

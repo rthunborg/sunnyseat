@@ -19,7 +19,9 @@ export {
 } from './shadow-geometry';
 export {
   calculateVenueShadow,
+  calculateVenueShadowForGeometry,
   calculateVenueShadowTimeline,
+  calculateVenueShadowTimelineForGeometry,
 } from './shadow-calculation-service';
 export {
   CONSERVATIVE_CLUSTER_COVERAGE,

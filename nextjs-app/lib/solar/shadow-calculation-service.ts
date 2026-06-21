@@ -18,18 +18,51 @@ import type {
 
 export interface CalculateVenueShadowOptions {
   coverageMap?: ShadowDataCoverageMap;
+  /**
+   * Numeric id used ONLY to populate the result's `venueId` field. The
+   * geometry-first entrypoint defaults this to 0 because the Story 8.2 venue
+   * store keys venues by text id and never consumes this field. [Story 8.3]
+   */
+  venueId?: number;
 }
 
+/**
+ * Legacy entrypoint: resolves a venue's polygon from the PascalCase
+ * `Id`/`Geometry` `venues` table via {@link fetchVenue}, then delegates to
+ * {@link calculateVenueShadowForGeometry}. The Story 8.2 `public.venues` store
+ * is text-id / snake_case / point-only and INCOMPATIBLE with this table, so
+ * the Story 8.3 sun-engine adapter drives `calculateVenueShadowForGeometry`
+ * directly and never this wrapper. Left intact for any legacy caller.
+ */
 export async function calculateVenueShadow(
   venueId: number,
   timestamp: Date,
   options: CalculateVenueShadowOptions = {}
 ): Promise<VenueShadowInfo> {
   const venue = await fetchVenue(venueId);
+  return calculateVenueShadowForGeometry(venue.geometry, timestamp, {
+    ...options,
+    venueId,
+  });
+}
+
+/**
+ * Geometry-first shadow entrypoint (Story 8.3 DECISION B). Identical pipeline
+ * to the legacy {@link calculateVenueShadow} but takes a GeoJSON polygon
+ * directly (a venue's real seating-area polygon, or a synthesized footprint
+ * fallback) instead of looking it up in the incompatible legacy table.
+ * Inherits the Story 3.0.5/3.0.6 coverage + obstruction caps with no math change.
+ */
+export async function calculateVenueShadowForGeometry(
+  geometry: GeoJSON.Polygon,
+  timestamp: Date,
+  options: CalculateVenueShadowOptions = {}
+): Promise<VenueShadowInfo> {
+  const venueId = options.venueId ?? 0;
   const solarPosition = calculateSolarPosition(timestamp);
 
   if (!solarPosition.isSunVisible) {
-    return createNoSunResult(venueId, timestamp, solarPosition, venue.geometry);
+    return createNoSunResult(venueId, timestamp, solarPosition, geometry);
   }
 
   if (solarPosition.elevation < SG.MIN_RELIABLE_ELEVATION) {
@@ -37,11 +70,37 @@ export async function calculateVenueShadow(
   }
 
   const searchRadiusDeg = SG.MAX_SHADOW_DISTANCE / 111300.0;
-  const buildings = await fetchNearbyBuildings(venue.geometry, searchRadiusDeg);
+  const buildings = await fetchNearbyBuildings(geometry, searchRadiusDeg);
   if (buildings === null) {
     return createShadowDataUnavailableResult(venueId, timestamp, solarPosition);
   }
-  const shadowDataCoverage = getShadowDataCoverage(venue.geometry, options.coverageMap);
+
+  return computeShadowInfo(
+    geometry,
+    timestamp,
+    solarPosition,
+    buildings,
+    venueId,
+    options.coverageMap
+  );
+}
+
+/**
+ * Pure (no-IO) shadow core shared by the single-shot entrypoint and the
+ * timeline sampler. Given already-fetched nearby buildings it projects
+ * shadows, computes shadowed/sunlit areas, and applies the coverage +
+ * obstruction confidence caps. Extracted verbatim from the original
+ * `calculateVenueShadow` body — no math change. [Story 8.3]
+ */
+function computeShadowInfo(
+  geometry: GeoJSON.Polygon,
+  timestamp: Date,
+  solarPosition: SolarPosition,
+  buildings: Building[],
+  venueId: number,
+  coverageMap?: ShadowDataCoverageMap
+): VenueShadowInfo {
+  const shadowDataCoverage = getShadowDataCoverage(geometry, coverageMap);
   const obstructionRisks = extractObstructionRiskClasses(
     ...buildings.flatMap((building) => [
       building.obstructionRisks,
@@ -89,7 +148,7 @@ export async function calculateVenueShadow(
 
   const affectingShadows = shadows.filter((s) => {
     try {
-      return SG.calculateShadowCoveragePercent(venue.geometry, s.geometry) > 0;
+      return SG.calculateShadowCoveragePercent(geometry, s.geometry) > 0;
     } catch {
       return false;
     }
@@ -97,12 +156,12 @@ export async function calculateVenueShadow(
 
   const shadowGeometries = affectingShadows.map((s) => s.geometry);
   const { shadowed, sunlit } = SG.calculateShadowedAndSunlitAreas(
-    venue.geometry,
+    geometry,
     shadowGeometries
   );
 
   const shadowedPercent = shadowed
-    ? SG.calculateShadowCoveragePercent(venue.geometry, shadowed)
+    ? SG.calculateShadowCoveragePercent(geometry, shadowed)
     : 0.0;
   const sunlitPercent = Math.max(0.0, 100.0 - shadowedPercent);
   const baseConfidence = averageConfidence(
@@ -160,6 +219,87 @@ export async function calculateVenueShadowTimeline(
       });
       confidenceSum += info.confidence;
     } catch {
+      points.push({
+        timestamp: new Date(current),
+        shadowedAreaPercent: 50.0,
+        sunlitAreaPercent: 50.0,
+        confidence: 0.2,
+        isSunVisible: true,
+      });
+      confidenceSum += 0.2;
+    }
+  }
+
+  return {
+    venueId,
+    startTime,
+    endTime,
+    intervalMs,
+    points,
+    averageConfidence: points.length > 0 ? confidenceSum / points.length : 0,
+  };
+}
+
+/**
+ * Geometry-first timeline (Story 8.3). Fetches the nearby shadow casters ONCE
+ * and samples shadows across [startTime, endTime], so a full-day sun-window
+ * scan costs a single RPC per venue rather than one RPC per sample. Used by the
+ * sun-engine adapter to derive `sunWindow` / `peakTime` for the requested day.
+ */
+export async function calculateVenueShadowTimelineForGeometry(
+  geometry: GeoJSON.Polygon,
+  startTime: Date,
+  endTime: Date,
+  intervalMs: number,
+  options: CalculateVenueShadowOptions = {}
+): Promise<ShadowTimeline> {
+  if (startTime >= endTime) throw new Error('Start time must be before end time');
+  if (intervalMs <= 0) throw new Error('Interval must be positive');
+
+  const venueId = options.venueId ?? 0;
+  const searchRadiusDeg = SG.MAX_SHADOW_DISTANCE / 111300.0;
+  const buildings = await fetchNearbyBuildings(geometry, searchRadiusDeg);
+
+  const points: ShadowTimelinePoint[] = [];
+  let confidenceSum = 0;
+
+  for (
+    let current = new Date(startTime.getTime());
+    current <= endTime;
+    current = new Date(current.getTime() + intervalMs)
+  ) {
+    try {
+      const solarPosition = calculateSolarPosition(current);
+      let info: VenueShadowInfo;
+      if (!solarPosition.isSunVisible) {
+        info = createNoSunResult(venueId, current, solarPosition, geometry);
+      } else if (solarPosition.elevation < SG.MIN_RELIABLE_ELEVATION) {
+        info = createLowConfidenceResult(venueId, current, solarPosition);
+      } else if (buildings === null) {
+        info = createShadowDataUnavailableResult(venueId, current, solarPosition);
+      } else {
+        info = computeShadowInfo(
+          geometry,
+          current,
+          solarPosition,
+          buildings,
+          venueId,
+          options.coverageMap
+        );
+      }
+
+      points.push({
+        timestamp: new Date(current),
+        shadowedAreaPercent: info.shadowedAreaPercent,
+        sunlitAreaPercent: info.sunlitAreaPercent,
+        confidence: info.confidence,
+        isSunVisible: info.solarPosition.isSunVisible,
+      });
+      confidenceSum += info.confidence;
+    } catch {
+      // Mirror the legacy calculateVenueShadowTimeline per-sample guard: one bad
+      // sample degrades to a neutral 50/50 point rather than rejecting the whole
+      // timeline (which would degrade the entire venue to seed). [Story 8.3 review R1]
       points.push({
         timestamp: new Date(current),
         shadowedAreaPercent: 50.0,

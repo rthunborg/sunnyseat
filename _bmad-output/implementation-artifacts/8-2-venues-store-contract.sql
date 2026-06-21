@@ -87,6 +87,20 @@ comment on table public.venues is
 -- do not also create a redundant auto-named unique constraint index.
 create unique index if not exists idx_venues_slug on public.venues (slug);
 
+-- Story 8.3 (DECISION B, polygon-first): additive, nullable, SERVER-ONLY GeoJSON
+-- Polygon for the venue's real outdoor seating area. Consumed only by the
+-- sun-engine adapter (lib/services/sun-engine.ts) and NEVER serialized into the
+-- client VenueDataDto. Idempotent so re-running this contract on an existing
+-- table is safe. Launch/seed venues leave it null → the engine falls back to a
+-- synthesized point footprint, keeping the gate venue byte-identical. Populating
+-- real polygons for live venues is ongoing manual venue-data work (out of 8.3).
+alter table public.venues add column if not exists seating_area jsonb;
+
+comment on column public.venues.seating_area is
+  'Server-only GeoJSON Polygon of the venue outdoor seating area (Story 8.3). '
+  'Used by the sun engine for shadow casting; never returned in the API DTO. '
+  'Null → engine uses a synthesized point footprint around lat/lng.';
+
 -- ============================================================================
 -- Section 3: privileges / RLS (deny-by-default, server-only read)
 -- ============================================================================

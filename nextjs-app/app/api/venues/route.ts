@@ -28,7 +28,17 @@ import {
   applyFixtureWeatherAvailability,
   resolveFixtureSunFreshness,
 } from '@/lib/services/weather-freshness-fixture';
-import type { GetVenuesResponse, VenueDataDto } from '@/lib/types/api';
+import {
+  aggregateSunFreshness,
+  applyRealSunEngine,
+  resolveRequestedAt,
+  shouldUseRealSunEngine,
+} from '@/lib/services/sun-engine';
+import type {
+  GetVenuesResponse,
+  SunFreshnessMeta,
+  VenueDataDto,
+} from '@/lib/types/api';
 import { sunFreshnessHeaders } from '@/lib/utils/sun-freshness';
 
 const DEFAULT_RADIUS_KM = 1.5;
@@ -264,16 +274,42 @@ export async function GET(request: NextRequest) {
   if (!ids.success) return badRequest(ids.error);
   const planner = parseVenuePlannerParams(params);
   if (!planner.ok) return badRequest(planner.detail);
-  const freshness = resolveFixtureSunFreshness(params);
 
-  const matchedVenues = storeVenues
-    .map((v) => normalizeVenueForResponse(v))
-    .map((v) => applyFixtureWeatherAvailability(v, freshness))
-    .map((v) => applyPlannerSelectionToVenue(v, planner.selection))
-    .map((v) => ({
-      ...v,
-      distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),
-    }))
+  // STORY 8.3 — real engine swap behind a frozen DTO. The default (flag off)
+  // path is byte-identical to the 8.2 seed; the real path replaces the sun
+  // fields before the SUN_STATUS_ORDER sort and bypasses the planner +
+  // fixture-weather stages (the engine computes for the requested time + real
+  // freshness). DECISION D: compute concurrently, degrade per-venue (never 500).
+  const useRealEngine = shouldUseRealSunEngine();
+  const now = new Date();
+  let freshness: SunFreshnessMeta;
+  let processedVenues: VenueDataDto[];
+
+  if (useRealEngine) {
+    const requestedAt = resolveRequestedAt(planner.selection, now);
+    const outcomes = await Promise.all(
+      storeVenues.map((v) => applyRealSunEngine(v, requestedAt, now)),
+    );
+    freshness = aggregateSunFreshness(outcomes.map((o) => o.freshness));
+    processedVenues = outcomes
+      .map((o) => normalizeVenueForResponse(o.venue))
+      .map((v) => ({
+        ...v,
+        distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),
+      }));
+  } else {
+    freshness = resolveFixtureSunFreshness(params);
+    processedVenues = storeVenues
+      .map((v) => normalizeVenueForResponse(v))
+      .map((v) => applyFixtureWeatherAvailability(v, freshness))
+      .map((v) => applyPlannerSelectionToVenue(v, planner.selection))
+      .map((v) => ({
+        ...v,
+        distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),
+      }));
+  }
+
+  const matchedVenues = processedVenues
     .filter((v) => {
       if (ids.value) return ids.value.includes(v.id);
       if (q.value) return true;
