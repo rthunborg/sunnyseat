@@ -172,6 +172,7 @@ The design reinforces this emotionally. A warm amber/sand palette, frosted glass
 - Runtime building shadows use filtered/active shadow-caster records only. Review/quarantine records stay inactive until spot-checked; excluded records are diagnostics only.
 - "High confidence" is cluster-scoped. Each launch cluster needs at least 10 venue or street-facing checks across at least three sun conditions, with at least 70 total central checks and about 85-90% obvious building-shadow agreement before high building-shadow confidence is allowed.
 - Trees, hedges, awnings, umbrellas, bridges, seasonal furniture, and temporary structures remain known MVP uncertainty unless separately modelled or manually annotated. They cap confidence rather than silently invalidating the prediction.
+- An optional per-venue seating-surface elevation (`seating_elevation_m`) refines shadow accuracy for elevated venues (rooftop bars, raised/hilltop terraces): a caster only shadows a venue by its height *above* the venue's seating surface. Captured at venue-load time; consumed by the sun engine per Epic 8 Stories 8.6 (height gate — rooftop/raised) and 8.7 (DTM ground-elevation delta — hilltop terrain). Venues with no recorded elevation are computed at ground level as before.
 - Future paid DSM/LOD2/LOD3 data should override per object/source priority while preserving provenance and rollback. The open-derived records remain fallback coverage.
 
 ### Contingency: Minimal Launchable Slice
@@ -374,6 +375,7 @@ Minimal. Organic search is not a user acquisition channel. No SSR venue pages ne
 - **FR10:** Users can select a future date and simulate sun exposure states for all venues on that date.
 - **FR11:** Users can scrub through time on a selected future date to see predicted sun states.
 - **FR12:** The system displays confidence scores that blend geometric sun certainty with weather-based cloud cover uncertainty.
+- **FR12a:** The system supports an optional per-venue seating-surface elevation so that venues whose outdoor seating sits above street level (rooftop bars, raised terraces, balconies) or on elevated terrain (hilltop terraces) are predicted from the height of their seating surface rather than as if at ground level. When no elevation is recorded, the venue is computed at ground level (default behaviour). *(Backend accuracy refinement of FR7/FR12; no new user-facing surface.)*
 - **FR13:** The system auto-refreshes venue sun states periodically while the app is active, without requiring manual reload.
 
 ### Venue Engagement

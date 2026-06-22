@@ -2282,3 +2282,55 @@ So that SunnySeat can go live safely.
 - **Behaviour:** Every existing screen behaves identically with real data swapped behind the API boundary; loading/empty/error states already built in Epics 1–3 handle real latency and failures.
 - **Visual validation:** The five existing gate states (`map-with-selected-venue`, `venue-detail` mobile/desktop, `feedback`, `review`) plus map-primary continue to pass against their references with real (or gate-seeded) data; any genuine visual change requires explicit rationale + `REBASELINE-LOG.md`.
 - **No new screens or visual references are introduced by this epic** — it is a data/infrastructure swap behind the existing UI.
+
+### Story 8.6: Elevation-Aware Shadow Gate for Rooftop / Raised Venues
+
+> **Added 2026-06-22 (party-mode scoping session).** Promotes the venue-elevation follow-up deferred from Story 8.5 (`deferred-work.md` → "Story 8.5 follow-up — venue elevation"). The shadow engine is currently 2D / ground-level for the *target* venue: `lib/solar/shadow-calculation-service.ts → computeShadowInfo` does a flat 2D overlap of each caster's shadow against the seating polygon with **no venue-elevation input**, so a rooftop bar or raised terrace that physically sits above its neighbours is wrongly reported as shaded (high confidence, wrong answer). The nullable `public.venues.seating_elevation_m` column (Story 8.2 contract — metres of the seating surface above local ground) already records this, **capture-only** today. This story makes the engine *consume* it via a lightweight height gate (Tier 1 — the flat-city rooftop case). Terrain/ground-elevation handling for hilltop venues is Story 8.7. Backend/data-accuracy only — no new screen.
+
+As a **sun-seeker**,
+I want a venue whose outdoor seating sits above street level (rooftop bar, raised terrace, balcony) to be predicted from the height of its seating surface,
+So that a venue sitting above its neighbouring buildings is not wrongly reported as shaded.
+
+**Acceptance Criteria:**
+
+**Given** a venue with `seating_elevation_m` set (> 0) and nearby active shadow casters
+**When** the sun engine computes the venue's shadow
+**Then** a caster only shadows the venue by its height *above* the seating surface — its effective casting height is reduced by `seating_elevation_m` before the meaningful-height gate, so a caster at or below the seating surface no longer contributes a shadow to that venue
+
+**Given** a venue with `seating_elevation_m` null or 0 (every current fixture / launch venue)
+**When** the engine computes the venue's shadow
+**Then** behaviour is byte-identical to today's ground-level 2D overlap — no regression, and the existing visual gates pass with no rebaseline
+
+**Given** the server-only venue store (`lib/services/venue-store.ts`)
+**When** a Supabase venue row carries `seating_elevation_m`
+**Then** it is selected via `VENUE_SELECT_COLUMNS`, mapped through `StoredVenue` as a **server-only** field (never serialized into `VenueDataDto`, mirroring `seatingArea`), and threaded into `lib/services/sun-engine.ts` → the `computeShadowInfo` call chain (list + detail + timeline paths)
+
+**Given** the height gate is all-or-nothing (a caster taller than the seating surface still casts a full-coverage shadow; sub-shadow partial occlusion is not modelled)
+**When** predictions are produced for elevated venues
+**Then** this approximation is documented as a known MVP limitation, consistent with the engine's existing "coarse for MVP" treatment, rather than presented as a silently over-confident result
+
+**Design Gate Criteria (Epic 8 overall):** Backend/data accuracy only — no new screen or visual reference. Existing gate states continue to pass unchanged (launch venues keep `seating_elevation_m` null → existing ground-level path). User-facing copy stays free of geodata internals (no elevation-in-metres jargon per Story 3.0.6).
+
+### Story 8.7: Terrain-Aware Ground Elevation for Hilltop Venues
+
+> **Added 2026-06-22 (party-mode scoping session).** Tier 2 of the venue-elevation follow-up (see Story 8.6 and `deferred-work.md`). Story 8.6 handles a venue raised above its *own* ground (rooftop / raised terrace). This story handles a venue on raised *terrain* (a hilltop terrace), where the relevant comparison is the venue's **ground** elevation versus each caster's ground elevation. The Göteborg Höjdmodell 2022 DTM is already in the geodata pipeline (used to derive building heights — `max roof/facade Z − DTM ground Z`), so this is a ground-elevation lookup at the venue point, **not a new data acquisition**. Backend/data-accuracy only — no new screen.
+
+As a **sun-seeker**,
+I want a venue on elevated terrain to account for the ground-height difference between it and the surrounding buildings,
+So that a venue standing on a rise is not wrongly shadowed by buildings that sit on lower ground.
+
+**Acceptance Criteria:**
+
+**Given** the Göteborg Höjdmodell 2022 DTM ground model already used by the import pipeline
+**When** the engine computes the shadow for a venue on elevated terrain
+**Then** a caster's effective shadow-casting height relative to the venue is measured against the venue's DTM ground elevation (not the caster's own ground), so a building standing downhill from the venue stops shadowing it once its roof falls below the venue's seating surface
+
+**Given** a venue on flat terrain with no meaningful ground delta to its nearby casters
+**When** the engine computes its shadow
+**Then** the result is unchanged from Story 8.6 / today (the ground delta contributes ~0)
+
+**Given** the combined Story 8.6 (height above own ground) + Story 8.7 (terrain ground delta) inputs are both present for a venue
+**When** the engine computes its shadow
+**Then** the effective-height test composes them coherently — caster roof *absolute* height vs. venue seating-surface *absolute* height (venue DTM ground + `seating_elevation_m`) — without double-counting the elevation
+
+**Design Gate Criteria (Epic 8 overall):** Backend/data accuracy only — no new screen or visual reference; identical gate-pass expectations as Story 8.6 (default path byte-identical).

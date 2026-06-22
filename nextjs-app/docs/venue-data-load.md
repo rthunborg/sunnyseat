@@ -29,7 +29,7 @@ is the human/agent-facing "what to collect and in what shape" guide.
 | `peak_time` | text | — | `"HH:mm"`, e.g. `"15:30"`. |
 | `shadow_warning_minutes` | integer ≥ 0 | — | Minutes-until-shadow hint. |
 | **`seating_area`** | jsonb (GeoJSON Polygon) | — but **important** | The outdoor seating footprint the sun engine casts shadows onto. WGS84, `[lng, lat]` order, closed ring. Null → engine uses a ~10 m square around `lat/lng` (less precise). |
-| **`seating_elevation_m`** | double precision ≥ 0 | optional | Estimated metres of the **seating surface above local ground/street**. Null/0 = street level. Rooftop bars / raised terraces / balconies use the approx floor height (4th floor ≈ 12 m). **Capture-only today** — recorded so a future elevation-aware (2.5D) shadow follow-up can stop nearby buildings from wrongly shadowing an elevated venue. The engine does **not** consume it yet (see "Elevation" below). |
+| **`seating_elevation_m`** | double precision ≥ 0 | optional | Estimated metres of the **seating surface above local ground/street**. Null/0 = street level. Rooftop bars / raised terraces / balconies use the approx floor height (4th floor ≈ 12 m). **Capture-only today; engine consumption is planned as Epic 8 Stories 8.6 (rooftop/raised — height gate) + 8.7 (hilltop — DTM ground delta).** Record the estimate now regardless so the data is ready when those ship. The engine does **not** consume it yet (see "Elevation" below). |
 
 ### 2. Engine-managed columns — placeholders only
 
@@ -89,13 +89,14 @@ input**, so a rooftop bar or a venue well above surrounding rooftops is currentl
 computed as if it sat on the street and can be **wrongly shadowed** by adjacent
 buildings.
 
-`seating_elevation_m` is captured now so this data isn't lost. **Consuming it is a
-tracked follow-up** (an elevation-aware 2.5D shadow check: a building only shadows
-the elevated venue using its height *above* the seating surface; buildings shorter
-than the venue stop mattering; steep-terrain/hill cases additionally need the DTM
-ground elevation at the venue point). Until then, leave `seating_elevation_m` null
-for street-level venues and record an estimate for elevated ones — predictions for
-those few elevated venues may read more-shadowed-than-reality.
+`seating_elevation_m` is captured now so this data isn't lost. **Consuming it is
+planned as Epic 8 Stories 8.6 + 8.7** (an elevation-aware shadow check: a building
+only shadows the elevated venue using its height *above* the seating surface, so
+buildings shorter than the venue stop mattering — Story 8.6; steep-terrain/hill
+cases additionally use the DTM ground elevation at the venue point — Story 8.7).
+Until those ship, leave `seating_elevation_m` null for street-level venues and
+record an estimate for elevated ones — predictions for those few elevated venues may
+read more-shadowed-than-reality in the meantime.
 
 ## Notes
 
