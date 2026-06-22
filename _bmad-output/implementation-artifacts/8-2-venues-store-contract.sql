@@ -101,13 +101,29 @@ comment on column public.venues.seating_area is
   'Used by the sun engine for shadow casting; never returned in the API DTO. '
   'Null → engine uses a synthesized point footprint around lat/lng.';
 
+-- Additive, nullable, SERVER-ONLY estimated height of the outdoor SEATING SURFACE
+-- above the immediately-surrounding ground/street level, in metres. Null/0 =
+-- street level. Rooftop bars / raised terraces / balcony seating use the
+-- approximate floor height (e.g. a 4th-floor terrace ≈ 12 m). CAPTURE-ONLY for
+-- now: it lets venue data be collected with elevation so a future
+-- elevation-aware (2.5D) shadow follow-up can stop nearby buildings from wrongly
+-- shadowing an elevated venue. NOT yet consumed by the engine. Never serialized
+-- into the client DTO. See nextjs-app/docs/venue-data-load.md.
+alter table public.venues add column if not exists seating_elevation_m double precision
+  check (seating_elevation_m is null or seating_elevation_m >= 0);
+
+comment on column public.venues.seating_elevation_m is
+  'Server-only estimated metres of the outdoor seating surface above local '
+  'ground (rooftop/raised terraces). Null = street level. Capture-only until the '
+  'elevation-aware shadow follow-up consumes it; never returned in the API DTO.';
+
 -- ============================================================================
 -- Section 3: privileges / RLS (deny-by-default, server-only read)
 -- ============================================================================
 
 -- Reads happen server-side via getSupabaseServiceRole() which bypasses RLS,
--- exactly like the reviews/feedback/shadow_casters adapters. No anon/public
--- read policy in this story; a public-read policy (if ever wanted) is Story 8.5.
+-- exactly like the reviews/feedback/shadow_casters adapters. No anon/public read
+-- policy: venues are served through /api/venues, not a direct anon client.
 alter table public.venues enable row level security;
 
 revoke all on table public.venues from anon;
@@ -115,6 +131,20 @@ revoke all on table public.venues from authenticated;
 revoke all on table public.venues from public;
 
 grant select on table public.venues to service_role;
+
+-- Story 8.5: the access-model policy the security advisor needs. service_role
+-- already BYPASSES RLS (so the runtime works regardless), but an RLS-enabled
+-- table with ZERO policies trips the advisor's `rls_enabled_no_policy` INFO.
+-- This explicit service-role SELECT policy documents the server-only access
+-- model AND clears that INFO. No anon/authenticated policy (no public venue
+-- read path exists). Idempotent: drop-if-exists before create.
+-- Security checklist: scoped via explicit TO service_role; SELECT-only; no
+-- write policy (venue changes are manual DB work, not via the app).
+drop policy if exists venues_service_read on public.venues;
+create policy venues_service_read
+  on public.venues for select
+  to service_role
+  using (true);
 
 -- ============================================================================
 -- Section 4: seed (idempotent) — byte-identical to lib/services/venues-fixture.ts
@@ -246,3 +276,13 @@ select grantee, privilege_type
 from information_schema.role_table_grants
 where table_schema = 'public' and table_name = 'venues'
 order by grantee, privilege_type;
+
+-- Expect RLS enabled and exactly one policy: venues_service_read (select,
+-- {service_role}). Confirm NO anon/authenticated/public policy of any kind.
+select relrowsecurity as venues_rls_enabled
+from pg_class where oid = 'public.venues'::regclass;
+
+select policyname, cmd, roles, qual, with_check
+from pg_policies
+where schemaname = 'public' and tablename = 'venues'
+order by policyname;

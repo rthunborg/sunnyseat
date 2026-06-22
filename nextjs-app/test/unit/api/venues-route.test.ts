@@ -442,22 +442,33 @@ describe('GET /api/venues', () => {
     expect(result).toEqual({ valid: false, reason: 'Duplicate venue id: dupe' });
   });
 
-  it('detects duplicate venue coordinates before map data is rendered', () => {
+  it('detects duplicate venue slugs before map data is rendered (DB unique key idx_venues_slug)', () => {
     const result = validateVenueUniqueness([
-      makeVenue({ id: 'a', lat: 57.7, lng: 11.9 }),
-      makeVenue({ id: 'b', lat: 57.7000001, lng: 11.9000001 }),
+      makeVenue({ id: 'a', slug: 'dupe-slug', lat: 57.7, lng: 11.9 }),
+      makeVenue({ id: 'b', slug: 'dupe-slug', lat: 57.71, lng: 11.91 }),
     ]);
-    expect(result.valid).toBe(false);
-    if (!result.valid) expect(result.reason).toMatch(/coordinates/i);
+    expect(result).toEqual({ valid: false, reason: 'Duplicate venue slug: dupe-slug' });
+  });
+
+  it('accepts two distinct venues at near-identical coordinates (coords are not a DB key)', () => {
+    // Story 8.5 6.1: aligned with the DB unique keys (id + slug); coordinates are
+    // NOT a unique key, so co-located distinct venues must not 500 the list route.
+    const result = validateVenueUniqueness([
+      makeVenue({ id: 'a', slug: 'a', lat: 57.7, lng: 11.9 }),
+      makeVenue({ id: 'b', slug: 'b', lat: 57.7000001, lng: 11.9000001 }),
+    ]);
+    expect(result).toEqual({ valid: true });
   });
 });
 
 function makeVenue({
   id,
+  slug = id,
   lat,
   lng,
 }: {
   id: string;
+  slug?: string;
   lat: number;
   lng: number;
 }): VenueDataDto {
@@ -465,8 +476,8 @@ function makeVenue({
     id,
     venueId: id,
     venueName: `Venue ${id}`,
-    venueSlug: id,
-    slug: id,
+    venueSlug: slug,
+    slug,
     neighborhood: 'Centrum',
     location: { lat, lng },
     currentSunStatus: 'Sunny',

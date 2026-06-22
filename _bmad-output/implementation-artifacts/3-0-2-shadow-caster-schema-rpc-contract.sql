@@ -709,6 +709,47 @@ grant select on table public.shadow_casters to service_role;
 -- or authenticated; runtime access stays behind existing server-side
 -- service-role code.
 
+-- Story 8.5: import-batch registry privileges (parallel to shadow_casters —
+-- server-only). The batch table carries no policy/grant in the original 3.0.2
+-- contract; geodata + provenance are server-only.
+revoke all on table public.shadow_caster_import_batches from anon;
+revoke all on table public.shadow_caster_import_batches from authenticated;
+revoke all on table public.shadow_caster_import_batches from public;
+
+grant select on table public.shadow_caster_import_batches to service_role;
+
+-- ============================================================================
+-- Section 4b: RLS access-model policies (Story 8.5) — server-only geodata
+-- ============================================================================
+--
+-- shadow_casters + shadow_caster_import_batches are server-only geodata: the
+-- runtime reads them via getSupabaseServiceRole() (which BYPASSES RLS) and the
+-- SECURITY INVOKER get_buildings_near_point RPC executed as service_role. With
+-- RLS enabled and ZERO policies, the security advisor flags both tables
+-- `rls_enabled_no_policy` (INFO). These explicit service-role SELECT policies
+-- document the server-only access model AND clear those INFOs. There is NO
+-- anon/authenticated/public policy — geodata is never directly client-readable.
+-- service_role bypasses RLS, so the runtime is unaffected either way.
+-- Security checklist: each policy is scoped via explicit TO service_role,
+-- SELECT-only; deny-by-default (revoke-all) preserved above; no FOR ALL policy;
+-- no anon/authenticated read. Idempotent: drop-if-exists + enable-if-not-already.
+
+alter table public.shadow_casters enable row level security;
+alter table public.shadow_caster_import_batches enable row level security;
+
+drop policy if exists shadow_casters_service_read on public.shadow_casters;
+create policy shadow_casters_service_read
+  on public.shadow_casters for select
+  to service_role
+  using (true);
+
+drop policy if exists shadow_caster_import_batches_service_read
+  on public.shadow_caster_import_batches;
+create policy shadow_caster_import_batches_service_read
+  on public.shadow_caster_import_batches for select
+  to service_role
+  using (true);
+
 -- ============================================================================
 -- Section 5: rollback notes
 -- ============================================================================
@@ -832,6 +873,22 @@ where table_schema = 'public'
   and table_name = 'shadow_casters'
   and privilege_type = 'SELECT'
 order by grantee, privilege_type;
+
+-- Story 8.5: RLS enabled + exactly one service-role SELECT policy on each
+-- geodata table, NO anon/authenticated/public policy.
+select c.relname as table, c.relrowsecurity as rls_enabled,
+  coalesce((select count(*) from pg_policies p
+            where p.schemaname = 'public' and p.tablename = c.relname), 0) as policy_count
+from pg_class c
+where c.oid in ('public.shadow_casters'::regclass,
+                'public.shadow_caster_import_batches'::regclass)
+order by c.relname;
+
+select tablename, policyname, cmd, roles, qual
+from pg_policies
+where schemaname = 'public'
+  and tablename in ('shadow_casters', 'shadow_caster_import_batches')
+order by tablename, policyname;
 
 -- Sample runtime query. Expect zero rows until Story 3.0.3 imports data.
 select *

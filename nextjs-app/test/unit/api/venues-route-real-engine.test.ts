@@ -110,6 +110,31 @@ describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
     expect(sunny?.sunWindow).toEqual({ start: '12:00', end: '16:00' });
   });
 
+  it('degrades a single throwing venue to its seed without 500ing the list (allSettled invariant, 5.2)', async () => {
+    // Even though applyRealSunEngine degrades internally today, the route fan-out
+    // must be STRUCTURALLY resilient: a future adapter throw cannot 500 the list.
+    adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) => {
+      if (venue.slug === 'test-venue-sunny') throw new Error('adapter blew up');
+      return computedOutcome(venue);
+    });
+
+    const res = await LIST_GET(listRequest('?lat=57.7089&lng=11.9746'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+
+    // The throwing venue is still present, degraded to its seed values
+    // (Sunny / 92), not the engine's Partial / 55.
+    const sunny = body.venues.find((v) => v.slug === 'test-venue-sunny');
+    expect(sunny).toBeDefined();
+    expect(sunny?.currentSunStatus).toBe('Sunny');
+    expect(sunny?.confidence).toBe(92);
+
+    // Other venues still received engine values.
+    const others = body.venues.filter((v) => v.slug !== 'test-venue-sunny');
+    expect(others.length).toBeGreaterThan(0);
+    expect(others.every((v) => v.confidence === 55)).toBe(true);
+  });
+
   it('list route bypasses the planner seasonal sim on the real path (DECISION C)', async () => {
     adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) =>
       computedOutcome(venue),

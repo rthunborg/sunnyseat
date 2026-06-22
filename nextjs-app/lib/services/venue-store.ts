@@ -108,7 +108,7 @@ const VENUE_DETAIL_SEED: Record<string, StoredVenueDetail> = {
   },
 };
 
-const VENUE_SELECT_COLUMNS = [
+export const VENUE_SELECT_COLUMNS = [
   'id',
   'slug',
   'venue_name',

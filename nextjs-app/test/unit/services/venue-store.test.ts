@@ -4,6 +4,7 @@ import {
   getVenues,
   storedVenueDetail,
   toVenueData,
+  VENUE_SELECT_COLUMNS,
   type StoredVenue,
 } from '@/lib/services/venue-store';
 import { validateVenueUniqueness } from '@/app/api/venues/route';
@@ -13,18 +14,19 @@ const supabaseMock = vi.hoisted(() => {
     listResult: { data: [] as unknown, error: null as unknown },
     singleResult: { data: null as unknown, error: null as unknown },
   };
-  const select = () => ({
+  const maybeSingle = vi.fn(() => Promise.resolve(state.singleResult));
+  const eq = vi.fn(() => ({ maybeSingle }));
+  const select = vi.fn(() => ({
     // Thenable so `await client.from('venues').select(cols)` resolves the list.
     then: (
       onFulfilled: (value: unknown) => unknown,
       onRejected?: (reason: unknown) => unknown,
     ) => Promise.resolve(state.listResult).then(onFulfilled, onRejected),
-    eq: () => ({
-      maybeSingle: () => Promise.resolve(state.singleResult),
-    }),
-  });
-  const client = { from: () => ({ select }) };
-  return { state, client };
+    eq,
+  }));
+  const from = vi.fn(() => ({ select }));
+  const client = { from };
+  return { state, client, from, select, eq, maybeSingle };
 });
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -127,6 +129,45 @@ describe('venue-store (Supabase opt-in)', () => {
     vi.unstubAllEnvs();
     supabaseMock.state.listResult = { data: [], error: null };
     supabaseMock.state.singleResult = { data: null, error: null };
+    supabaseMock.from.mockClear();
+    supabaseMock.select.mockClear();
+    supabaseMock.eq.mockClear();
+    supabaseMock.maybeSingle.mockClear();
+  });
+
+  it('issues the agreed Supabase query contract: full column list + slug filter (R2 6.2)', async () => {
+    useSupabaseStore();
+    supabaseMock.state.singleResult = { data: SUPABASE_ROW, error: null };
+
+    await getVenueBySlug('supa-venue');
+
+    // Reads public.venues with the exact agreed column projection and filters by
+    // slug — so a snake_case column/filter typo is caught offline before the live
+    // table. VENUE_SELECT_COLUMNS is imported from the source so it cannot drift.
+    expect(supabaseMock.from).toHaveBeenCalledWith('venues');
+    expect(supabaseMock.select).toHaveBeenCalledWith(VENUE_SELECT_COLUMNS);
+    expect(supabaseMock.eq).toHaveBeenCalledWith('slug', 'supa-venue');
+
+    // The column set must include all 20 contract columns (incl. the server-only
+    // seating_area). A dropped/renamed column would fail here.
+    const columns = VENUE_SELECT_COLUMNS.split(', ');
+    expect(columns).toEqual([
+      'id', 'slug', 'venue_name', 'neighborhood', 'lat', 'lng', 'is_partner',
+      'thumbnail', 'description', 'address', 'opening_hours', 'peak_time',
+      'shadow_warning_minutes', 'current_sun_status', 'sky_condition', 'confidence',
+      'sun_exposure_percent', 'sun_window', 'prediction_uncertainty', 'seating_area',
+    ]);
+    expect(columns).toHaveLength(20);
+  });
+
+  it('selects the full column list on the list read too', async () => {
+    useSupabaseStore();
+    supabaseMock.state.listResult = { data: [SUPABASE_ROW], error: null };
+
+    await getVenues();
+
+    expect(supabaseMock.from).toHaveBeenCalledWith('venues');
+    expect(supabaseMock.select).toHaveBeenCalledWith(VENUE_SELECT_COLUMNS);
   });
 
   it('fails closed when configured for Supabase without full credentials', async () => {

@@ -4,7 +4,9 @@ import {
   applyRealSunEngine,
   buildPredictionUncertainty,
   classifySunStatus,
+  createDedupedForecastFetcher,
   extractSunlitWindow,
+  mapWithConcurrency,
   peakTimeFromTimeline,
   resolveRequestedAt,
   resolveVenueGeometry,
@@ -214,9 +216,46 @@ describe('sun-engine pure mappers', () => {
       obstructionRisks: ['tree'] as ObstructionRiskClass[],
       shadowDataCoverage: undefined,
     };
-    expect(buildPredictionUncertainty(coverage, weatherSlice({ createdAt: now }), 40, now)?.level).toBe('high');
-    expect(buildPredictionUncertainty(coverage, weatherSlice({ createdAt: now }), 60, now)?.level).toBe('medium');
-    expect(buildPredictionUncertainty(coverage, weatherSlice({ createdAt: now }), 80, now)?.level).toBe('low');
+    expect(buildPredictionUncertainty(coverage, weatherSlice({ createdAt: now, validAt: now }), 40, now)?.level).toBe('high');
+    expect(buildPredictionUncertainty(coverage, weatherSlice({ createdAt: now, validAt: now }), 60, now)?.level).toBe('medium');
+    expect(buildPredictionUncertainty(coverage, weatherSlice({ createdAt: now, validAt: now }), 80, now)?.level).toBe('low');
+  });
+
+  it('flags weather uncertainty when the slice valid-time is >2h stale, not the fetch instant (5.3)', () => {
+    const now = new Date('2026-06-21T12:00:00.000Z');
+    // Fetched "now" (createdAt), but the slice is valid for 3h ago → genuinely
+    // stale. The OLD code keyed staleness off createdAt and could never fire.
+    const staleValidAt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    const result = buildPredictionUncertainty(
+      { shadowDataCoverage: undefined, obstructionRisks: [] },
+      weatherSlice({ isForecast: false, createdAt: now, validAt: staleValidAt }),
+      80,
+      now,
+    );
+    expect(result?.reasons).toContain('weather');
+  });
+
+  it('does NOT flag weather uncertainty for a fresh current slice (validAt ~ now)', () => {
+    const now = new Date('2026-06-21T12:00:00.000Z');
+    const result = buildPredictionUncertainty(
+      { shadowDataCoverage: undefined, obstructionRisks: [] },
+      weatherSlice({ isForecast: false, createdAt: now, validAt: now }),
+      80,
+      now,
+    );
+    expect(result).toBeUndefined();
+  });
+
+  it('flags a future-planner forecast slice as approximate via isForecast (5.3)', () => {
+    const now = new Date('2026-06-21T12:00:00.000Z');
+    const futureValidAt = new Date(now.getTime() + 8 * 60 * 60 * 1000); // planning ahead
+    const result = buildPredictionUncertainty(
+      { shadowDataCoverage: undefined, obstructionRisks: [] },
+      weatherSlice({ isForecast: true, createdAt: now, validAt: futureValidAt }),
+      80,
+      now,
+    );
+    expect(result?.reasons).toContain('weather');
   });
 
   it('aggregates per-venue freshness to a single response value', () => {
@@ -400,5 +439,44 @@ describe('applyRealSunEngine integration (mocked RPC + weather)', () => {
     expect(outcome.freshness).toEqual({ sunDataSource: 'geometry-only' });
     // Safe fallback returns the venue's base DTO (seed values), never throws.
     expect(outcome.venue.id).toBe('1');
+  });
+});
+
+describe('mapWithConcurrency + createDedupedForecastFetcher (Story 8.5 5.1/5.2)', () => {
+  it('never runs more than the concurrency cap at once and preserves input order', async () => {
+    let active = 0;
+    let maxActive = 0;
+    const task = async (n: number): Promise<number> => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      active -= 1;
+      return n * 2;
+    };
+
+    const results = await mapWithConcurrency([1, 2, 3, 4, 5, 6, 7], 3, task);
+
+    expect(maxActive).toBeLessThanOrEqual(3);
+    expect(maxActive).toBeGreaterThan(1); // actually ran concurrently
+    expect(results).toEqual([2, 4, 6, 8, 10, 12, 14]); // order preserved
+  });
+
+  it('returns an empty result for no items without running the task', async () => {
+    const task = vi.fn(async (n: number) => n);
+    expect(await mapWithConcurrency([], 4, task)).toEqual([]);
+    expect(task).not.toHaveBeenCalled();
+  });
+
+  it('dedupes Met.no forecasts by rounded coordinates (one upstream fetch per ≤4-decimal key)', async () => {
+    const underlying = vi.fn(async () => [weatherSlice()]);
+    const deduped = createDedupedForecastFetcher(underlying);
+
+    await Promise.all([
+      deduped(57.70531, 11.96391), // rounds to 57.7053,11.9639
+      deduped(57.70534, 11.96394), // same rounded key → coalesced
+      deduped(57.71823, 11.98012), // distinct key
+    ]);
+
+    expect(underlying).toHaveBeenCalledTimes(2);
   });
 });

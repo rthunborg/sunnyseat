@@ -237,7 +237,9 @@ async function readSupabaseReviewsForVenue(venue: VenueDataDto): Promise<ReviewD
   const { data, error } = await getSupabaseServiceRole()
     .from('reviews')
     .select('id, venue_id, venue_slug, text, rating, photo_name, photo_type, photo_size, photo_last_modified, created_at')
-    .or(`venue_id.eq.${venue.id},venue_slug.eq.${venue.slug}`)
+    .or(
+      `venue_id.eq.${orFilterValue(venue.id)},venue_slug.eq.${orFilterValue(venue.slug)}`,
+    )
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -245,6 +247,18 @@ async function readSupabaseReviewsForVenue(venue: VenueDataDto): Promise<ReviewD
   }
 
   return ((data ?? []) as ReviewSelectRow[]).map((row) => fromReviewSelectRow(row, venue));
+}
+
+/**
+ * Quote + escape a value for a PostgREST `.or()` operand. Once the live venue
+ * store supplies arbitrary slugs, a reserved token (`,` `.` `(` `)` `:`) raw-
+ * interpolated into the filter could corrupt it or match unintended rows.
+ * PostgREST treats a double-quoted operand as a literal; inner `"` and `\` are
+ * backslash-escaped. For plain values (`"1"`, `"test-venue-sunny"`) the quotes
+ * are semantically transparent for a text column. [Story 8.5 6.3 / AC#4d]
+ */
+function orFilterValue(value: string): string {
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
 function toReviewInsertRow(review: ReviewDto): ReviewInsertRow {

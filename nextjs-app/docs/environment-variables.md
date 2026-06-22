@@ -6,44 +6,54 @@ This document lists all environment variables required for the SunnySeat Next.js
 
 ### Supabase Configuration
 
-| Variable | Description | Required | Environment |
-|----------|-------------|----------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Yes | All |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous/public key | Yes | All |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side only) | Yes | All |
+| Variable | Description | Required | Secret? | Environment |
+|----------|-------------|----------|---------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Yes | No (public) | All |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-only) | Yes (live path) | **Yes** | All |
 
 **How to get:**
 1. Go to Supabase Dashboard → Project Settings → API
 2. Copy Project URL → `NEXT_PUBLIC_SUPABASE_URL`
-3. Copy `anon` `public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Copy `service_role` `secret` key → `SUPABASE_SERVICE_ROLE_KEY`
+3. Copy `service_role` `secret` key → `SUPABASE_SERVICE_ROLE_KEY`
 
-**Security Note:** `SUPABASE_SERVICE_ROLE_KEY` bypasses Row Level Security. Never expose it to the client.
+**Security Note:** `SUPABASE_SERVICE_ROLE_KEY` bypasses Row Level Security and is
+read only by server-only `lib/` modules. Never expose it to the client; never
+give it a `NEXT_PUBLIC_` prefix. All data access flows through `/api/*` routes
+using the service-role client — there is **no anon/browser Supabase client**, so
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` is not needed (you can remove it from your env).
 
-### Cron Jobs
+### Data-source adapters (server-only feature flags)
 
 | Variable | Description | Required | Environment |
 |----------|-------------|----------|-------------|
-| `CRON_SECRET` | Secret for authenticating Vercel Cron requests | Yes | Production, Preview |
+| `SUNNYSEAT_VENUE_STORE` | `supabase` reads `public.venues` (else in-memory seed) | No | Production only |
+| `SUNNYSEAT_SUN_ENGINE` | `real` computes live sun/shadow/weather (else seed) | No | Production only |
+| `SUNNYSEAT_FEEDBACK_PERSISTENCE` | `supabase` writes `public.feedback` | No | Production only |
+| `SUNNYSEAT_REVIEW_PERSISTENCE` | `supabase` reads/writes `public.reviews` | No | Production only |
 
-**Security Requirements:**
-- Must be at least 32 characters
-- Use a cryptographically secure random string
-- Must match the secret configured in Vercel Cron settings
+Unset = the in-memory fixture/seed default, so CI and local dev have **zero
+live-Supabase dependency** and the output is byte-identical to the fixture era.
+These are flipped on for the **Production** environment only (Story 8.5). Never
+set them in committed CI/test config. Non-secret, but server-only (never
+`NEXT_PUBLIC_`).
 
-**Generate secure secret:**
-```bash
-openssl rand -base64 32
-```
+### Weather API (Met.no)
 
-### Weather API (Optional)
-
-| Variable | Description | Required | Default | Environment |
+| Variable | Description | Required | Secret? | Environment |
 |----------|-------------|----------|---------|-------------|
-| `WEATHER_API_KEY` | OpenWeatherMap API key | No | - | All |
-| `WEATHER_API_URL` | OpenWeatherMap API base URL | No | `https://api.openweathermap.org/data/2.5` | All |
+| `MET_NO_USER_AGENT` | Met.no `User-Agent` with a real contact email (TOS) | Recommended on live path | No (public identifier) | All |
 
-**Note:** Required only if weather service is implemented.
+Met.no Locationforecast is a free public API needing no key — only an identifying
+`User-Agent` with a way to make contact per its Terms of Service. Server-only
+(read in `lib/weather/met-no-service.ts`); never `NEXT_PUBLIC_`. If unset, the
+code falls back to a non-secret default that still identifies the app. (There is
+no OpenWeatherMap dependency.)
+
+### Cron Jobs
+
+There are **no `/api/cron` endpoints** in the MVP (compute-on-request, DECISION D
+— no precompute/Cron pipeline), so **no `CRON_SECRET` is required**. Reintroduce
+one here only if a cron endpoint is added.
 
 ### Application Configuration
 
@@ -67,20 +77,23 @@ Create `.env.local` file in `nextjs-app/` directory:
 ```env
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://[project-ref].supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=[your-anon-key]
 SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
 
-# Cron (for local testing)
-CRON_SECRET=[your-secure-secret-key-min-32-chars]
+# Data-source adapters (omit to use the in-memory seed default)
+# SUNNYSEAT_VENUE_STORE=supabase
+# SUNNYSEAT_SUN_ENGINE=real
+# SUNNYSEAT_FEEDBACK_PERSISTENCE=supabase
+# SUNNYSEAT_REVIEW_PERSISTENCE=supabase
 
-# Weather API (optional)
-WEATHER_API_KEY=[openweathermap-key]
-WEATHER_API_URL=https://api.openweathermap.org/data/2.5
+# Met.no weather (public API; identifying User-Agent with a contact email)
+MET_NO_USER_AGENT=SunnySeat/1.0 rasmus.thunborg@enhancior.se
 
 # Application
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 NODE_ENV=development
 ```
+
+See `.env.example` for the authoritative annotated list.
 
 ### Preview (Vercel Preview Deployments)
 
@@ -102,12 +115,16 @@ Configure in Vercel Dashboard → Project Settings → Environment Variables:
 
 ## Variable Validation
 
-The application validates required environment variables at startup:
+The live data path fails closed if its required server-side config is missing:
 
-- **Client-side**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- **Server-side**: `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`
+- **Public (client-readable)**: `NEXT_PUBLIC_SUPABASE_URL` (the anon key is not
+  consumed by runtime code today).
+- **Server-side (live path)**: `SUPABASE_SERVICE_ROLE_KEY` — the env-gated
+  adapters throw a clear "credentials are incomplete" error if a `SUNNYSEAT_*`
+  flag is set to a live value without it. With the flags unset (the default),
+  the in-memory/seed path needs none of these.
 
-Missing variables will cause runtime errors with clear messages.
+No secret carries a `NEXT_PUBLIC_` prefix.
 
 ## Security Best Practices
 

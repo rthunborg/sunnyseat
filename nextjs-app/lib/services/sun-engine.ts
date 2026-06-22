@@ -114,6 +114,68 @@ export function shouldUseRealSunEngine(): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Batch fan-out: concurrency cap + Met.no forecast dedupe (Story 8.5 5.1/5.2)
+// ---------------------------------------------------------------------------
+
+// Met.no TOS: truncate coordinates to ≤4 decimals. Rounding to 4 decimals is
+// also the dedupe key — nearby venues that round to the same key share ONE
+// upstream fetch, keeping aggregate Met.no load well under the 20 req/s cap.
+const FORECAST_COORD_PRECISION = 4;
+
+/** Concurrency cap on the per-venue engine fan-out for the list route. */
+export const SUN_ENGINE_LIST_CONCURRENCY = 6;
+
+function forecastCoordKey(latitude?: number, longitude?: number): string {
+  const lat = Number.isFinite(latitude) ? (latitude as number) : Number.NaN;
+  const lng = Number.isFinite(longitude) ? (longitude as number) : Number.NaN;
+  return `${lat.toFixed(FORECAST_COORD_PRECISION)},${lng.toFixed(FORECAST_COORD_PRECISION)}`;
+}
+
+/**
+ * Wrap a forecast fetcher so concurrent calls with the same rounded coordinates
+ * issue ONE upstream Met.no request (in-flight coalescing). Create a fresh
+ * instance per list request — batch-scoped, so there is no cross-request
+ * staleness beyond Met.no's own fetch-cache revalidation. [Story 8.5 5.1 / AC#4b]
+ */
+export function createDedupedForecastFetcher(getForecast: GetForecast): GetForecast {
+  const inFlight = new Map<string, Promise<WeatherSlice[]>>();
+  return (latitude, longitude) => {
+    const key = forecastCoordKey(latitude, longitude);
+    const existing = inFlight.get(key);
+    if (existing) return existing;
+    const pending = getForecast(latitude, longitude);
+    inFlight.set(key, pending);
+    return pending;
+  };
+}
+
+/**
+ * Run `task` over `items` with at most `concurrency` in flight at once, preserving
+ * input order in the results. Bounds the per-venue RPC + Met.no fan-out as the
+ * venue set grows (compute-on-request, DECISION D). The caller is responsible for
+ * making `task` non-throwing if a rejection must not abort the batch (the list
+ * route wraps each venue → {@link safeSeedOutcome}). [Story 8.5 5.1 / AC#4b]
+ */
+export async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  task: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const limit = Math.max(1, Math.min(concurrency, items.length || 1));
+
+  async function worker(): Promise<void> {
+    for (let i = nextIndex++; i < items.length; i = nextIndex++) {
+      results[i] = await task(items[i], i);
+    }
+  }
+
+  await Promise.all(Array.from({ length: limit }, () => worker()));
+  return results;
+}
+
+// ---------------------------------------------------------------------------
 // Public entrypoints used by the routes
 // ---------------------------------------------------------------------------
 
@@ -160,19 +222,29 @@ export async function applyRealSunEngine(
   venue: StoredVenue,
   requestedAt: Date,
   now: Date = new Date(),
+  getForecastOverride?: GetForecast,
 ): Promise<SunEngineOutcome> {
   try {
-    return await computeRealSunEngine(venue, requestedAt, now);
+    return await computeRealSunEngine(venue, requestedAt, now, getForecastOverride);
   } catch (error) {
     console.error(
       `Sun engine failed for venue ${venue.id}; degrading to seed values:`,
       error instanceof Error ? error.message : String(error),
     );
-    return {
-      venue: toVenueData(venue),
-      freshness: { sunDataSource: SUN_DATA_SOURCE_GEOMETRY_ONLY },
-    };
+    return safeSeedOutcome(venue);
   }
+}
+
+/**
+ * The safe per-venue fallback: the venue's base DTO with geometry-only freshness.
+ * Used by {@link applyRealSunEngine}'s own catch AND by the batch runner so a
+ * future adapter throw can never 500 the list route (DECISION D / Story 8.5 5.2).
+ */
+export function safeSeedOutcome(venue: StoredVenue): SunEngineOutcome {
+  return {
+    venue: toVenueData(venue),
+    freshness: { sunDataSource: SUN_DATA_SOURCE_GEOMETRY_ONLY },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -183,6 +255,7 @@ async function computeRealSunEngine(
   venue: StoredVenue,
   requestedAt: Date,
   now: Date,
+  getForecastOverride?: GetForecast,
 ): Promise<SunEngineOutcome> {
   const {
     calculateVenueShadowForGeometry,
@@ -190,7 +263,11 @@ async function computeRealSunEngine(
     calculateConfidenceFactors,
     calculateDisplayConfidence,
   } = await import('@/lib/solar');
-  const { getForecast } = await import('@/lib/weather/met-no-service');
+  // On the list route the batch passes a deduped fetcher (one Met.no call per
+  // rounded coordinate); the detail route / direct callers lazy-import the real
+  // fetcher so the default path stays offline. [Story 8.5 Task 5.1]
+  const getForecast =
+    getForecastOverride ?? (await import('@/lib/weather/met-no-service')).getForecast;
 
   const geometry = resolveVenueGeometry(venue);
 
@@ -198,7 +275,7 @@ async function computeRealSunEngine(
   const shadowInfo = await calculateVenueShadowForGeometry(geometry, requestedAt);
   // Per-venue weather at the venue's OWN location for the requested time (Task 3.2)
   // — not the engine's hardcoded Gothenburg-centre / current-only call.
-  const weather = await fetchWeatherForVenue(getForecast, venue.location, requestedAt, now);
+  const weather = await fetchWeatherForVenue(getForecast, venue.location, requestedAt);
 
   const isSunVisible = shadowInfo.solarPosition.isSunVisible;
   const sunExposurePercent = Math.round(clampPercent(shadowInfo.sunlitAreaPercent));
@@ -249,7 +326,10 @@ async function computeRealSunEngine(
     freshness: weather
       ? {
           sunDataSource: SUN_DATA_SOURCE_WEATHER,
-          weatherUpdatedAt: weather.createdAt.toISOString(),
+          // The slice's valid-time (not the fetch instant) is the honest
+          // freshness: a future-planner forecast slice carries its future
+          // valid-time, not a misleading "now". [Story 8.5 Task 5.3 / AC#4c]
+          weatherUpdatedAt: weatherValidAt(weather).toISOString(),
         }
       : { sunDataSource: SUN_DATA_SOURCE_GEOMETRY_ONLY },
     ...(peakTime ? { peakTime } : {}),
@@ -291,17 +371,22 @@ async function fetchWeatherForVenue(
   getForecast: GetForecast,
   location: { lat: number; lng: number },
   requestedAt: Date,
-  now: Date,
 ): Promise<WeatherSlice | null> {
   const forecast = await getForecast(location.lat, location.lng);
   if (forecast.length === 0) return null;
-  // Met.no returns hourly slices from ~now; approximate "nearest to requestedAt"
-  // by hour offset (the slice time itself is not carried on WeatherSlice).
-  const hoursAhead = Math.max(
-    0,
-    Math.round((requestedAt.getTime() - now.getTime()) / 3_600_000),
-  );
-  return forecast[Math.min(hoursAhead, forecast.length - 1)] ?? null;
+  // Pick the slice whose valid-time is closest to the requested instant. Now
+  // that WeatherSlice carries `validAt` we match directly instead of the old
+  // hour-offset approximation. [Story 8.5 Task 5.3]
+  let best = forecast[0];
+  let bestDelta = Math.abs(weatherValidAt(best).getTime() - requestedAt.getTime());
+  for (const slice of forecast) {
+    const delta = Math.abs(weatherValidAt(slice).getTime() - requestedAt.getTime());
+    if (delta < bestDelta) {
+      best = slice;
+      bestDelta = delta;
+    }
+  }
+  return best;
 }
 
 // ---------------------------------------------------------------------------
@@ -439,10 +524,20 @@ function obstructionReason(risk: ObstructionRiskClass): PredictionUncertaintyRea
   return risk;
 }
 
+/** The slice's own valid-time, falling back to the fetch instant if absent. */
+function weatherValidAt(weather: WeatherSlice): Date {
+  return weather.validAt ?? weather.createdAt;
+}
+
 function isWeatherUncertain(weather: WeatherSlice | null, now: Date): boolean {
   if (!weather) return true;
+  // A forecast slice (future or >30min ahead) is never a fresh current
+  // measurement → always "approximate".
   if (weather.isForecast) return true;
-  return now.getTime() - weather.createdAt.getTime() > STALE_WEATHER_AGE_MS;
+  // A current slice whose valid-time is more than STALE_WEATHER_AGE_MS in the
+  // past is stale. Using validAt (not the fetch instant, which is always ~now)
+  // is what lets NFR34's freshness cap actually fire. [Story 8.5 Task 5.3]
+  return now.getTime() - weatherValidAt(weather).getTime() > STALE_WEATHER_AGE_MS;
 }
 
 function uncertaintyLevelFromConfidence(confidence: number): PredictionUncertaintyLevel {

@@ -139,7 +139,16 @@ export interface WeatherSlice {
   visibility?: number;
   isForecast: boolean;
   source: string;
+  /** When the slice was fetched (data-age model for the confidence calculator). */
   createdAt: Date;
+  /**
+   * The slice's own valid-time (Met.no `entry.time`). Used by the sun-engine
+   * adapter for honest `weatherUpdatedAt` freshness and the >2h "approximate"
+   * staleness signal, so a future-planner forecast slice is not advertised as
+   * fresh "now". Optional so existing non-Met.no WeatherSlice producers and
+   * fixtures remain valid. [Story 8.5 Task 5.3 / AC#4c]
+   */
+  validAt?: Date;
 }
 
 export interface ConfidenceFactors {

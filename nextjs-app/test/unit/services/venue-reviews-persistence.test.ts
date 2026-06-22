@@ -237,12 +237,40 @@ describe('venue-reviews-persistence', () => {
     });
 
     const reviews = await getVenueReviewsFromPersistence(venue);
-    expect(or).toHaveBeenCalledWith('venue_id.eq.1,venue_slug.eq.test-venue-sunny');
+    // Operands are double-quoted so reserved PostgREST tokens in a slug/id can't
+    // corrupt the filter; plain values are semantically unchanged. [Story 8.5 6.3]
+    expect(or).toHaveBeenCalledWith('venue_id.eq."1",venue_slug.eq."test-venue-sunny"');
     expect(order).toHaveBeenCalledWith('created_at', { ascending: false });
     // Clean swap: the live read returns ONLY DB rows; the in-memory fixture
     // seeds (review_fixture_1_*) must not leak into the Supabase-backed path.
     expect(reviews).toHaveLength(1);
     expect(reviews.every((review) => !review.id.startsWith('review_fixture_'))).toBe(true);
     expect(reviews[0]).toMatchObject({ id: 'db_review_1', text: 'Live DB review.', rating: 4 });
+  });
+
+  it('escapes reserved PostgREST tokens in the slug so the .or() filter cannot be corrupted (6.3)', async () => {
+    vi.stubEnv('SUNNYSEAT_REVIEW_PERSISTENCE', 'supabase');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key');
+
+    const order = vi.fn(async () => ({ data: [], error: null }));
+    const or = vi.fn(() => ({ order }));
+    const readSelect = vi.fn(() => ({ or }));
+    supabaseMocks.from.mockImplementation((table: string) => {
+      if (table !== 'reviews') throw new Error(`unexpected table ${table}`);
+      return { select: readSelect };
+    });
+
+    // A live venue store can supply arbitrary slugs; a reserved token (comma,
+    // dot, parens, quote) must be quoted/escaped, not raw-interpolated.
+    const hostileVenue = {
+      id: '1,2',
+      slug: 'a","b',
+    } as Parameters<typeof getVenueReviewsFromPersistence>[0];
+
+    await getVenueReviewsFromPersistence(hostileVenue);
+
+    // Each operand wrapped in double quotes; inner quotes backslash-escaped.
+    expect(or).toHaveBeenCalledWith('venue_id.eq."1,2",venue_slug.eq."a\\",\\"b"');
   });
 });

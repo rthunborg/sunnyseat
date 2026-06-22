@@ -31,8 +31,12 @@ import {
 import {
   aggregateSunFreshness,
   applyRealSunEngine,
+  createDedupedForecastFetcher,
+  mapWithConcurrency,
   resolveRequestedAt,
+  safeSeedOutcome,
   shouldUseRealSunEngine,
+  SUN_ENGINE_LIST_CONCURRENCY,
 } from '@/lib/services/sun-engine';
 import type {
   GetVenuesResponse,
@@ -50,7 +54,6 @@ const MAX_IDS = MAX_RESULTS;
 const MAX_IDS_QUERY_LENGTH = MAX_IDS * (MAX_ID_LENGTH + 1) - 1;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 120;
-const COORDINATE_COLLISION_PRECISION = 6;
 const MISSING_CLIENT_RATE_LIMIT_KEY = 'missing-client-ip';
 const RATE_LIMIT_SWEEP_INTERVAL_MS = RATE_LIMIT_WINDOW_MS;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/u;
@@ -175,27 +178,32 @@ export function clearVenueRateLimitForTests() {
   lastRateLimitSweepAt = 0;
 }
 
+/**
+ * Reject a venue set that violates the DB's unique keys before it reaches the
+ * map: `id` (the `public.venues` PRIMARY KEY) and `slug` (the unique index
+ * `idx_venues_slug`). Coordinates are deliberately NOT checked — they are not a
+ * DB unique key, so two legitimately-distinct venues may sit at near-identical
+ * coordinates (same building/block) without being a data error, and the old
+ * rounded-coordinate check would 500 the list route for them. [Story 8.5 6.1]
+ */
 export function validateVenueUniqueness(
   venues: VenueDataDto[],
 ): { valid: true } | { valid: false; reason: string } {
   const ids = new Set<string>();
-  const coords = new Set<string>();
+  const slugs = new Set<string>();
   for (const venue of venues) {
     if (ids.has(venue.id)) {
       return { valid: false, reason: `Duplicate venue id: ${venue.id}` };
     }
     ids.add(venue.id);
 
-    const lat = venue.location?.lat;
-    const lng = venue.location?.lng;
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-    const key = `${lat.toFixed(COORDINATE_COLLISION_PRECISION)},${lng.toFixed(
-      COORDINATE_COLLISION_PRECISION,
-    )}`;
-    if (coords.has(key)) {
-      return { valid: false, reason: `Duplicate venue coordinates: ${key}` };
+    const slug = venue.slug;
+    if (slug) {
+      if (slugs.has(slug)) {
+        return { valid: false, reason: `Duplicate venue slug: ${slug}` };
+      }
+      slugs.add(slug);
     }
-    coords.add(key);
   }
   return { valid: true };
 }
@@ -287,8 +295,25 @@ export async function GET(request: NextRequest) {
 
   if (useRealEngine) {
     const requestedAt = resolveRequestedAt(planner.selection, now);
-    const outcomes = await Promise.all(
-      storeVenues.map((v) => applyRealSunEngine(v, requestedAt, now)),
+    // Dedupe Met.no fetches by rounded coordinates + cap the concurrent per-venue
+    // fan-out, and degrade each venue to a safe seed result on any throw so the
+    // list route can NEVER 500 on the real path (DECISION D / Story 8.5 5.1+5.2).
+    const { getForecast } = await import('@/lib/weather/met-no-service');
+    const dedupedForecast = createDedupedForecastFetcher(getForecast);
+    const outcomes = await mapWithConcurrency(
+      storeVenues,
+      SUN_ENGINE_LIST_CONCURRENCY,
+      async (v) => {
+        try {
+          return await applyRealSunEngine(v, requestedAt, now, dedupedForecast);
+        } catch (error) {
+          console.error(
+            `Sun engine failed for venue ${v.id}; degrading:`,
+            error instanceof Error ? error.message : String(error),
+          );
+          return safeSeedOutcome(v);
+        }
+      },
     );
     freshness = aggregateSunFreshness(outcomes.map((o) => o.freshness));
     processedVenues = outcomes

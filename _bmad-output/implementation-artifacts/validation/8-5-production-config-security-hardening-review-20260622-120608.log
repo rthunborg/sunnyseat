@@ -1,0 +1,40 @@
+SunnySeat story review gate
+Story: 8-5-production-config-security-hardening
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/8-5-production-config-security-hardening-review-20260622-120608.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/8-5-production-config-security-hardening.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  70 passed (70)
+      Tests  606 passed (606)
+   Start at  12:06:26
+   Duration  28.24s (transform 5.41s, setup 40.77s, import 45.39s, tests 50.52s, environment 225.00s)
+
+Skipping visual validation: no mapped screen ID found in story file
+Updated sprint status: 8-5-production-config-security-hardening -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/8-5-production-config-security-hardening-review-20260622-120608.log

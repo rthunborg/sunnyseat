@@ -92,6 +92,7 @@ Stop dev infrastructure with `docker compose -f compose.yaml down`; reset persis
     docs/design/references/screens/          visual validation reference PNGs
     docs/design/references/REBASELINE-LOG.md rebaseline audit trail
     docs/dev/state-forcing.md                `_state` query param convention
+    docs/venue-data-load.md                  how to add a real venue (structure, seating polygon, elevation)
     scripts/capture-claude-design-refs.mjs   reference PNG capture helper, if present locally
 ```
 
