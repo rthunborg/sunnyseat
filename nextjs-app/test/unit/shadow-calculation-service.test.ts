@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { calculateVenueShadow } from '@/lib/solar/shadow-calculation-service';
+import {
+  calculateVenueShadow,
+  calculateVenueShadowForGeometry,
+} from '@/lib/solar/shadow-calculation-service';
 
 const mocks = vi.hoisted(() => ({
   from: vi.fn(),
@@ -298,5 +301,231 @@ describe('shadow calculation service RPC boundary', () => {
       })
     );
     expect(result.obstructionRisks).toContain('awning');
+  });
+});
+
+describe('Story 8.6 seating-elevation height gate', () => {
+  // Sun high over Gothenburg (Stockholm 12:30) so casters reliably project — the
+  // same instant the RPC-boundary tests above use to cast a height-12 shadow.
+  const NOON = new Date('2026-06-21T10:30:00.000Z');
+
+  // A caster whose footprint coincides with the venue, so when it is NOT gated
+  // out its projected shadow fully covers the venue (binary, deterministic): the
+  // only variable under test is the height gate, not the overlap geometry.
+  function casterRpc(height: number) {
+    return {
+      data: [{
+        Id: 2001,
+        Geometry: JSON.stringify(venueGeometry),
+        Height: height,
+        Source: 'goteborg_open_data',
+        QualityScore: 0.9,
+        HeightSource: 'Surveyed',
+        BuildingType: 'building',
+      }],
+      error: null,
+    };
+  }
+
+  beforeEach(() => {
+    mocks.from.mockReset();
+    mocks.rpc.mockReset();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('excludes a caster shorter than the seating elevation → venue reported sunlit (AC1)', async () => {
+    mocks.rpc.mockResolvedValue(casterRpc(12));
+
+    // effectiveHeight = 12 - 50 < MIN_MEANINGFUL_HEIGHT → caster gated out.
+    const result = await calculateVenueShadowForGeometry(venueGeometry, NOON, {
+      seatingElevationM: 50,
+    });
+
+    expect(result.castingShadows).toEqual([]);
+    expect(result.shadowedAreaPercent).toBe(0);
+    expect(result.sunlitAreaPercent).toBe(100);
+  });
+
+  it('the SAME caster shadows the venue at ground level (seatingElevationM 0) — proves the gate (AC1)', async () => {
+    mocks.rpc.mockResolvedValue(casterRpc(12));
+
+    const result = await calculateVenueShadowForGeometry(venueGeometry, NOON, {
+      seatingElevationM: 0,
+    });
+
+    expect(result.castingShadows.length).toBeGreaterThan(0);
+    expect(result.shadowedAreaPercent).toBeGreaterThan(0);
+    expect(result.sunlitAreaPercent).toBeLessThan(100);
+  });
+
+  it('still shadows the venue when the caster is much taller than the terrace (AC1/AC4)', async () => {
+    mocks.rpc.mockResolvedValue(casterRpc(50));
+
+    // effectiveHeight = 50 - 10 = 40 ≥ MIN_MEANINGFUL_HEIGHT → still casts.
+    const result = await calculateVenueShadowForGeometry(venueGeometry, NOON, {
+      seatingElevationM: 10,
+    });
+
+    expect(result.castingShadows.length).toBeGreaterThan(0);
+    expect(result.shadowedAreaPercent).toBeGreaterThan(0);
+  });
+
+  it('keeps the TRUE caster height in the projection record while gating on effective height (provenance)', async () => {
+    mocks.rpc.mockResolvedValue(casterRpc(12));
+
+    const result = await calculateVenueShadowForGeometry(venueGeometry, NOON, {
+      seatingElevationM: 5, // effectiveHeight = 7 ≥ 3 → casts
+    });
+
+    expect(result.castingShadows[0].buildingHeight).toBe(12);
+  });
+
+  it('is byte-identical for seatingElevationM unset vs 0 (AC2 regression)', async () => {
+    mocks.rpc.mockResolvedValue(casterRpc(12));
+    const unset = await calculateVenueShadowForGeometry(venueGeometry, NOON);
+
+    mocks.rpc.mockResolvedValue(casterRpc(12));
+    const zero = await calculateVenueShadowForGeometry(venueGeometry, NOON, {
+      seatingElevationM: 0,
+    });
+
+    expect(unset.shadowedAreaPercent).toBe(zero.shadowedAreaPercent);
+    expect(unset.sunlitAreaPercent).toBe(zero.sunlitAreaPercent);
+    // Meaningful only if the caster actually casts at ground level.
+    expect(unset.shadowedAreaPercent).toBeGreaterThan(0);
+  });
+});
+
+describe('Story 8.7 terrain ground-elevation gate', () => {
+  const NOON = new Date('2026-06-21T10:30:00.000Z');
+
+  // A caster footprint coinciding with the venue (full-coverage when it casts), with
+  // the RH2000 absolute Z columns the 8.7 RPC now exposes. roofZRh2000 is set to an
+  // INFLATED value (groundZ + rawHeight) to prove the gate uses the conservative
+  // runtime height + the ground delta, NOT the raw roof Z.
+  function casterRpcZ(height: number, groundZ: number, rawHeight = height) {
+    return {
+      data: [{
+        Id: 7001,
+        Geometry: JSON.stringify(venueGeometry),
+        Height: height,
+        Source: 'goteborg_open_data',
+        QualityScore: 0.9,
+        HeightSource: 'Surveyed',
+        BuildingType: 'building',
+        GroundZRh2000: groundZ,
+        RoofZRh2000: groundZ + rawHeight,
+      }],
+      error: null,
+    };
+  }
+
+  beforeEach(() => {
+    mocks.from.mockReset();
+    mocks.rpc.mockReset();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('excludes a caster standing downhill from the venue (its roof falls below the seating surface) (AC1)', async () => {
+    // Venue ground at 40 m; a height-12 caster on ground at 10 m → roof at 22 m, which
+    // is below the venue surface (40 m): effectiveHeight = 12 + (10 − 40) = −18 < gate.
+    mocks.rpc.mockResolvedValue(casterRpcZ(12, 10));
+
+    const result = await calculateVenueShadowForGeometry(venueGeometry, NOON, {
+      venueGroundZ: 40,
+    });
+
+    expect(result.castingShadows).toEqual([]);
+    expect(result.sunlitAreaPercent).toBe(100);
+  });
+
+  it('the SAME caster shadows the venue when it stands uphill (high ground Z) — proves the terrain delta (AC1)', async () => {
+    // Same height-12 caster, same venue ground (40 m), but caster ground at 70 m →
+    // roof at 82 m, well above the venue surface: effectiveHeight = 12 + (70 − 40) = 42.
+    mocks.rpc.mockResolvedValue(casterRpcZ(12, 70));
+
+    const result = await calculateVenueShadowForGeometry(venueGeometry, NOON, {
+      venueGroundZ: 40,
+    });
+
+    expect(result.castingShadows.length).toBeGreaterThan(0);
+    expect(result.shadowedAreaPercent).toBeGreaterThan(0);
+  });
+
+  it('is byte-identical to the Story 8.6 relative gate on flat terrain (casterGroundZ == venueGroundZ) (AC2/AC3)', async () => {
+    // Flat terrain: ground delta is 0, so the absolute gate must reduce EXACTLY to 8.6.
+    // roofZRh2000 is inflated (rawHeight 60) to prove it is NOT used as the casting
+    // height — otherwise this would diverge from the height-12 relative result.
+    mocks.rpc.mockResolvedValue(casterRpcZ(12, 20, 60));
+    const terrain = await calculateVenueShadowForGeometry(venueGeometry, NOON, {
+      venueGroundZ: 20,
+    });
+
+    mocks.rpc.mockResolvedValue(casterRpcZ(12, 20, 60));
+    const relative = await calculateVenueShadowForGeometry(venueGeometry, NOON);
+
+    expect(terrain.shadowedAreaPercent).toBe(relative.shadowedAreaPercent);
+    expect(terrain.sunlitAreaPercent).toBe(relative.sunlitAreaPercent);
+    // Meaningful only if the caster actually casts (height 12 at ground level).
+    expect(terrain.shadowedAreaPercent).toBeGreaterThan(0);
+  });
+
+  it('falls back to the relative gate when the venue has no groundElevationM (AC2 no regression)', async () => {
+    // Caster carries Z, but the venue does not → terrain delta is NOT applied; the
+    // height-12 caster casts exactly as in 8.6 (would be EXCLUDED if a downhill delta
+    // were wrongly applied).
+    mocks.rpc.mockResolvedValue(casterRpcZ(12, 10));
+    const result = await calculateVenueShadowForGeometry(venueGeometry, NOON);
+
+    expect(result.castingShadows.length).toBeGreaterThan(0);
+    expect(result.shadowedAreaPercent).toBeGreaterThan(0);
+  });
+
+  it('falls back to the relative gate when a caster has no roof/ground Z (AC2 no regression)', async () => {
+    // Venue has groundElevationM, but this caster (e.g. a fixture) lacks the Z columns
+    // → no terrain delta for it; it casts on the conservative relative height.
+    mocks.rpc.mockResolvedValue({
+      data: [{
+        Id: 7002,
+        Geometry: JSON.stringify(venueGeometry),
+        Height: 12,
+        Source: 'goteborg_open_data',
+        QualityScore: 0.9,
+        HeightSource: 'Surveyed',
+        BuildingType: 'building',
+      }],
+      error: null,
+    });
+
+    const result = await calculateVenueShadowForGeometry(venueGeometry, NOON, {
+      venueGroundZ: 40,
+    });
+
+    expect(result.castingShadows.length).toBeGreaterThan(0);
+    expect(result.shadowedAreaPercent).toBeGreaterThan(0);
+  });
+
+  it('composes with the Story 8.6 seating elevation without double-counting (AC3)', async () => {
+    // Venue surface Z = venueGroundZ (20) + seatingElevationM (10) = 30. A height-12
+    // caster on ground at 20 → roof at 32, only 2 m above the surface (< MIN 3) → gated
+    // out. effectiveHeight = 12 − 10 + (20 − 20) = 2. (Single absolute comparison; the
+    // seating elevation is not subtracted twice.)
+    mocks.rpc.mockResolvedValue(casterRpcZ(12, 20));
+
+    const result = await calculateVenueShadowForGeometry(venueGeometry, NOON, {
+      seatingElevationM: 10,
+      venueGroundZ: 20,
+    });
+
+    expect(result.castingShadows).toEqual([]);
+    expect(result.sunlitAreaPercent).toBe(100);
   });
 });

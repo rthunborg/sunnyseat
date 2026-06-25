@@ -428,6 +428,72 @@ describe('applyRealSunEngine integration (mocked RPC + weather)', () => {
     expect(outcome.venue.predictionUncertainty?.reasons).toContain('vegetation');
   });
 
+  it('threads seatingElevationM through to the height gate: a raised terrace excludes an otherwise-shadowing caster (Story 8.6 AC #1/#3)', async () => {
+    // A height-12 caster whose footprint coincides with the venue footprint, so
+    // at ground level it fully shadows the venue.
+    const caster = synthesizeFootprint(57.7053, 11.9639, 10);
+    mocks.rpc.mockResolvedValue({
+      data: [{
+        Id: 3001,
+        Geometry: JSON.stringify(caster),
+        Height: 12,
+        Source: 'goteborg_open_data',
+        QualityScore: 0.9,
+        HeightSource: 'Surveyed',
+        BuildingType: 'building',
+      }],
+      error: null,
+    });
+
+    // Ground-level venue (no seatingElevationM): the caster shadows it.
+    const groundLevel = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
+    // Same venue raised 50 m: effectiveHeight = 12 - 50 < 0 → caster gated out → sunlit.
+    const rooftop = await applyRealSunEngine(
+      makeStoredVenue({ seatingElevationM: 50 }),
+      SUMMER_MIDDAY,
+      SUMMER_MIDDAY,
+    );
+
+    expect(groundLevel.venue.sunExposurePercent).toBeLessThan(100);
+    expect(rooftop.venue.sunExposurePercent).toBe(100);
+    expect(rooftop.venue.sunExposurePercent).toBeGreaterThan(
+      groundLevel.venue.sunExposurePercent,
+    );
+    expect(rooftop.venue.currentSunStatus).toBe('Sunny');
+  });
+
+  it('threads groundElevationM end-to-end: a venue uphill of a downhill caster is no longer shadowed (Story 8.7 AC #1/#3)', async () => {
+    // A height-12 caster whose footprint coincides with the venue, standing on ground
+    // at 10 m RH2000 (roof ≈ 22 m). At ground level it shadows the venue.
+    const caster = synthesizeFootprint(57.7053, 11.9639, 10);
+    const rpcRow = {
+      Id: 4001,
+      Geometry: JSON.stringify(caster),
+      Height: 12,
+      Source: 'goteborg_open_data',
+      QualityScore: 0.9,
+      HeightSource: 'Surveyed',
+      BuildingType: 'building',
+      GroundZRh2000: 10,
+      RoofZRh2000: 22,
+    };
+    mocks.rpc.mockResolvedValue({ data: [rpcRow], error: null });
+
+    // Venue with no ground elevation (flat assumption) → caster shadows it.
+    const flat = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
+    // Same venue on a 40 m rise → the downhill caster's roof (22 m) is below the
+    // venue surface (40 m) → gated out → fully sunlit.
+    const hilltop = await applyRealSunEngine(
+      makeStoredVenue({ groundElevationM: 40 }),
+      SUMMER_MIDDAY,
+      SUMMER_MIDDAY,
+    );
+
+    expect(flat.venue.sunExposurePercent).toBeLessThan(100);
+    expect(hilltop.venue.sunExposurePercent).toBe(100);
+    expect(hilltop.venue.currentSunStatus).toBe('Sunny');
+  });
+
   it('degrades to a safe seed result instead of throwing (never a 500, DECISION D)', async () => {
     mocks.getForecast.mockResolvedValue([weatherSlice()]);
     mocks.rpc.mockRejectedValue(new Error('boom'));

@@ -1,6 +1,6 @@
 # Story 8.6: Elevation-Aware Shadow Gate for Rooftop / Raised Venues
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -52,37 +52,37 @@ This is **backend / data-accuracy only — no new screen**. It rides on the **op
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Baseline gate (Supporting — pre-work, not a direct AC)**
-  - [ ] 1.1 Run the baseline gate clean at the current tree: `cd nextjs-app && npx tsc --noEmit && npx eslint . && npx vitest run` (expect ≥ 70 files / ≥ 606 tests, matching the post-8.5 baseline). Record counts.
-  - [ ] 1.2 Confirm the default path is flag-off: `SUNNYSEAT_SUN_ENGINE` unset → `shouldUseRealSunEngine()` false → adapter never called.
+- [x] **Task 1 — Baseline gate (Supporting — pre-work, not a direct AC)**
+  - [x] 1.1 Run the baseline gate clean at the current tree: `cd nextjs-app && npx tsc --noEmit && npx eslint . && npx vitest run` (expect ≥ 70 files / ≥ 606 tests, matching the post-8.5 baseline). Record counts. → **Clean: tsc 0, eslint 0, vitest 70 files / 606 tests.**
+  - [x] 1.2 Confirm the default path is flag-off: `SUNNYSEAT_SUN_ENGINE` unset → `shouldUseRealSunEngine()` false → adapter never called. → Confirmed (sun-engine env-gate tests pass; default path never calls `applyRealSunEngine`).
 
-- [ ] **Task 2 — Thread `seating_elevation_m` through the venue store (AC: #3)**
-  - [ ] 2.1 Add `seatingElevationM?: number` to `StoredVenueServerOnly` in `lib/services/venue-store.ts` (server-only, alongside `seatingArea`). Document it is NEVER surfaced by `toVenueData`.
-  - [ ] 2.2 Add `'seating_elevation_m'` to `VENUE_SELECT_COLUMNS` and `seating_elevation_m?: number | null` to the `VenueRow` type.
-  - [ ] 2.3 In `fromVenueRow`, map it via a `coerceSeatingElevation(row.seating_elevation_m)` guard (mirror `coerceSeatingArea`): keep only a finite number `>= 0`; drop null / negative / NaN → field absent (treated as ground level). Spread it conditionally like `...(seatingArea ? { seatingArea } : {})`.
-  - [ ] 2.4 Verify `toVenueData` does NOT copy `seatingElevationM` into the base DTO (server-only boundary — same as `seatingArea`).
+- [x] **Task 2 — Thread `seating_elevation_m` through the venue store (AC: #3)**
+  - [x] 2.1 Add `seatingElevationM?: number` to `StoredVenueServerOnly` in `lib/services/venue-store.ts` (server-only, alongside `seatingArea`). Document it is NEVER surfaced by `toVenueData`.
+  - [x] 2.2 Add `'seating_elevation_m'` to `VENUE_SELECT_COLUMNS` and `seating_elevation_m?: number | null` to the `VenueRow` type.
+  - [x] 2.3 In `fromVenueRow`, map it via a `coerceSeatingElevation(row.seating_elevation_m)` guard (mirror `coerceSeatingArea`): keep only a finite number `>= 0`; drop null / negative / NaN → field absent (treated as ground level). Spread it conditionally (`...(seatingElevationM !== undefined ? { seatingElevationM } : {})`, so a stored `0` is preserved as ground level).
+  - [x] 2.4 Verify `toVenueData` does NOT copy `seatingElevationM` into the base DTO (server-only boundary — same as `seatingArea`). → Boundary asserted in the venue-store test.
 
-- [ ] **Task 3 — Thread elevation into the engine call chain (AC: #1, #3)**
-  - [ ] 3.1 In `lib/services/sun-engine.ts` `computeRealSunEngine`, read `venue.seatingElevationM` (default 0) and pass it to both `calculateVenueShadowForGeometry(geometry, requestedAt, …)` and `calculateVenueShadowTimelineForGeometry(geometry, …)`.
-  - [ ] 3.2 In `lib/solar/shadow-calculation-service.ts`, add an optional `seatingElevationM = 0` parameter to `calculateVenueShadowForGeometry`, `calculateVenueShadowTimelineForGeometry`, and the internal `computeShadowInfo`, threaded through unchanged where it is not yet used. Keep the existing `calculateVenueShadow` (id-based) signature additive/back-compatible (default 0).
-  - [ ] 3.3 Update the `lib/solar` barrel (`lib/solar/index.ts`) only if the exported signatures change in a way that needs re-export (they are additive, so likely no change).
+- [x] **Task 3 — Thread elevation into the engine call chain (AC: #1, #3)**
+  - [x] 3.1 In `lib/services/sun-engine.ts` `computeRealSunEngine`, read `venue.seatingElevationM` (default 0) and pass it to both `calculateVenueShadowForGeometry(geometry, requestedAt, …)` and `calculateVenueShadowTimelineForGeometry(geometry, …)`. → Passed via the `{ seatingElevationM }` options object to both.
+  - [x] 3.2 In `lib/solar/shadow-calculation-service.ts`, add an optional `seatingElevationM = 0` parameter to `calculateVenueShadowForGeometry`, `calculateVenueShadowTimelineForGeometry`, and the internal `computeShadowInfo`, threaded through unchanged where it is not yet used. Keep the existing `calculateVenueShadow` (id-based) signature additive/back-compatible (default 0). → Added `seatingElevationM?` to `CalculateVenueShadowOptions` (additive; legacy `calculateVenueShadow` forwards `options` so it stays back-compatible) + a defaulted positional `seatingElevationM = 0` on the internal `computeShadowInfo`.
+  - [x] 3.3 Update the `lib/solar` barrel (`lib/solar/index.ts`) only if the exported signatures change in a way that needs re-export (they are additive, so likely no change). → No change needed (signatures are additive via the options object).
 
-- [ ] **Task 4 — Apply the height gate in `computeShadowInfo` (AC: #1, #4)**
-  - [ ] 4.1 In the caster loop (`shadow-calculation-service.ts:114`), compute `effectiveHeight = building.height - seatingElevationM`. Replace the gate `if (building.height < SG.MIN_MEANINGFUL_HEIGHT) continue;` with `if (effectiveHeight < SG.MIN_MEANINGFUL_HEIGHT) continue;` so a caster at/below the seating surface is excluded.
-  - [ ] 4.2 Use `effectiveHeight` (not `building.height`) for the shadow geometry + length so the part *above* the terrace casts the shadow: `SG.projectBuildingShadow(building.geometry, effectiveHeight, solarPosition)` and `SG.calculateShadowLength(effectiveHeight, …)`. Keep `buildingHeight: building.height` in the `ShadowProjection` record for provenance (the gate/length use effective height; the record keeps the true caster height).
-  - [ ] 4.3 Add a short code comment marking the **all-or-nothing MVP approximation** (a caster slightly taller than the terrace still casts a full-coverage shadow; sub-shadow partial occlusion is Tier-3 future work) — satisfies AC4.
-  - [ ] 4.4 Confirm `seatingElevationM = 0` makes `effectiveHeight === building.height` so the math is **identical** to today (AC2).
+- [x] **Task 4 — Apply the height gate in `computeShadowInfo` (AC: #1, #4)**
+  - [x] 4.1 In the caster loop (`shadow-calculation-service.ts:114`), compute `effectiveHeight = building.height - seatingElevationM`. Replace the gate `if (building.height < SG.MIN_MEANINGFUL_HEIGHT) continue;` with `if (effectiveHeight < SG.MIN_MEANINGFUL_HEIGHT) continue;` so a caster at/below the seating surface is excluded.
+  - [x] 4.2 Use `effectiveHeight` (not `building.height`) for the shadow geometry + length so the part *above* the terrace casts the shadow: `SG.projectBuildingShadow(building.geometry, effectiveHeight, solarPosition)` and `SG.calculateShadowLength(effectiveHeight, …)`. Keep `buildingHeight: building.height` in the `ShadowProjection` record for provenance (the gate/length use effective height; the record keeps the true caster height). → `buildingHeight: building.height` left untouched.
+  - [x] 4.3 Add a short code comment marking the **all-or-nothing MVP approximation** (a caster slightly taller than the terrace still casts a full-coverage shadow; sub-shadow partial occlusion is Tier-3 future work) — satisfies AC4.
+  - [x] 4.4 Confirm `seatingElevationM = 0` makes `effectiveHeight === building.height` so the math is **identical** to today (AC2). → Confirmed in code + the byte-identical regression test.
 
-- [ ] **Task 5 — Tests (AC: all)**
-  - [ ] 5.1 `test/unit/services/venue-store.test.ts` (or the existing venue-store test): a row with `seating_elevation_m` maps to `StoredVenue.seatingElevationM`; null/negative/NaN → field absent; `toVenueData` output never contains it (boundary assertion); `VENUE_SELECT_COLUMNS` includes `seating_elevation_m` (query-contract assertion, mirroring the 8.5 contract tests).
-  - [ ] 5.2 `lib/solar` shadow-service unit test: a caster shorter than `seatingElevationM` is excluded (venue reported sunlit); the SAME caster with `seatingElevationM = 0` shadows the venue (proves the gate). A caster much taller than the terrace still shadows it.
-  - [ ] 5.3 Regression: `seatingElevationM` unset/0 yields byte-identical `shadowedAreaPercent` / `sunlitAreaPercent` to the pre-change result for a fixture geometry (AC2).
-  - [ ] 5.4 Run the full gate: `tsc` 0, `eslint` 0, `vitest` ≥ baseline (no dropped tests; new tests added). No new Playwright/visual specs (no new screen).
+- [x] **Task 5 — Tests (AC: all)**
+  - [x] 5.1 `test/unit/services/venue-store.test.ts` (or the existing venue-store test): a row with `seating_elevation_m` maps to `StoredVenue.seatingElevationM`; null/negative/NaN → field absent; `toVenueData` output never contains it (boundary assertion); `VENUE_SELECT_COLUMNS` includes `seating_elevation_m` (query-contract assertion, mirroring the 8.5 contract tests). → +3 tests; contract test now asserts 21 columns incl. `seating_elevation_m`.
+  - [x] 5.2 `lib/solar` shadow-service unit test: a caster shorter than `seatingElevationM` is excluded (venue reported sunlit); the SAME caster with `seatingElevationM = 0` shadows the venue (proves the gate). A caster much taller than the terrace still shadows it. → +5 tests in `shadow-calculation-service.test.ts` (incl. provenance + AC2 regression). Plus +1 engine-threading test in `sun-engine.test.ts` (AC3 end-to-end).
+  - [x] 5.3 Regression: `seatingElevationM` unset/0 yields byte-identical `shadowedAreaPercent` / `sunlitAreaPercent` to the pre-change result for a fixture geometry (AC2).
+  - [x] 5.4 Run the full gate: `tsc` 0, `eslint` 0, `vitest` ≥ baseline (no dropped tests; new tests added). No new Playwright/visual specs (no new screen). → **Gate green: tsc 0, eslint 0, vitest 70 files / 615 tests (+9); visual validation auto-skipped (no mapped screen ID).**
 
-- [ ] **Task 6 — Docs + deferred-work closeout (AC: all)**
-  - [ ] 6.1 Update `nextjs-app/docs/venue-data-load.md`: change the `seating_elevation_m` "Elevation" note from "planned" to "consumed (rooftop/raised height gate) as of Story 8.6; terrain/hilltop DTM delta is Story 8.7."
-  - [ ] 6.2 Per the deferred-work queue convention, the SM removes the "Story 8.5 follow-up — venue elevation" entry from `deferred-work.md` when this story is drafted (the height-gate AC is now carried here); leave the residual Tier-2 terrain scope pointing at Story 8.7.
-  - [ ] 6.3 Update `sprint-status.yaml`: `8-6-elevation-aware-shadow-rooftop` → `review` when dev-complete (via the story-review gate), not before.
+- [x] **Task 6 — Docs + deferred-work closeout (AC: all)**
+  - [x] 6.1 Update `nextjs-app/docs/venue-data-load.md`: change the `seating_elevation_m` "Elevation" note from "planned" to "consumed (rooftop/raised height gate) as of Story 8.6; terrain/hilltop DTM delta is Story 8.7."
+  - [x] 6.2 Per the deferred-work queue convention, the SM removes the "Story 8.5 follow-up — venue elevation" entry from `deferred-work.md` when this story is drafted (the height-gate AC is now carried here); leave the residual Tier-2 terrain scope pointing at Story 8.7. → Already removed at draft time; the historical breadcrumb (deferred-work.md §"Story 8.5 follow-up — venue elevation") already points the residual Tier-2 terrain scope at Story 8.7; left intact.
+  - [x] 6.3 Update `sprint-status.yaml`: `8-6-elevation-aware-shadow-rooftop` → `review` when dev-complete (via the story-review gate), not before.
 
 ## Dev Notes
 
@@ -152,8 +152,46 @@ app/api/venues/route.ts  (list)        app/api/venues/[slug]/route.ts (detail)
 
 ### Agent Model Used
 
+Amelia (BMAD dev-story) / Claude Opus 4.8.
+
 ### Debug Log References
+
+- Baseline gate (pre-change, Task 1.1): `tsc --noEmit` 0, `eslint .` 0, `vitest run` 70 files / 606 tests — clean, matching the post-8.5 baseline.
+- Final gate (`scripts/story-review.sh --dry-run 8-6-elevation-aware-shadow-rooftop`): lint 0, typecheck 0, vitest **70 files / 615 tests** (+9), visual validation auto-skipped (no mapped screen ID — backend-only). Artifact: `_bmad-output/implementation-artifacts/validation/8-6-elevation-aware-shadow-rooftop-review-20260622-153358.log`.
 
 ### Completion Notes List
 
+- **Tier-1 height gate implemented end-to-end.** The behavioural change is one line in `computeShadowInfo`: `effectiveHeight = building.height − seatingElevationM`, then the meaningful-height gate, shadow projection, and shadow length all use `effectiveHeight`. Everything else is plumbing the server-only value down the call chain.
+- **AC1** (rooftop excludes low casters): proven by the shadow-service tests (a height-12 caster is excluded at `seatingElevationM = 50` → venue sunlit; the SAME caster at `seatingElevationM = 0` shadows it) and the sun-engine end-to-end threading test (a 50 m terrace flips an otherwise-shadowed venue to 100 % sunlit / `Sunny`).
+- **AC2** (default byte-identical): `seatingElevationM` defaults to 0 everywhere → `effectiveHeight === building.height` → identical math. Proven by the byte-identical regression test (unset vs explicit 0) and the unchanged 606 prior tests. Every fixture/launch venue leaves `seating_elevation_m` null, so the default seed path is untouched and no visual rebaseline is needed.
+- **AC3** (threading): `seating_elevation_m` → `VENUE_SELECT_COLUMNS` + `VenueRow` → `coerceSeatingElevation` (finite `>= 0`, else absent) → `StoredVenueServerOnly.seatingElevationM` → `sun-engine.computeRealSunEngine` → both `calculateVenueShadowForGeometry` and `calculateVenueShadowTimelineForGeometry` (list + detail + timeline) → `computeShadowInfo`. Server-only boundary preserved: `toVenueData` never copies it (asserted).
+- **AC4** (documented MVP approximation): the all-or-nothing nature (a caster slightly taller than the terrace still casts a full-coverage shadow; sub-shadow partial occlusion is Tier-3 future work) is documented in a code comment in `computeShadowInfo` and in `docs/venue-data-load.md`.
+- **No SQL/migration** (the `seating_elevation_m` column already exists from the Story 8.2 contract), **no `VenueDataDto` change** (server-only field), **no client component**, **no new Playwright/visual reference**. Default-path Playwright specs were not re-run: the change is server-only and inert on the default seed path (byte-identical, verified by the unchanged vitest suite), consistent with the gate auto-skipping visual validation for this backend-only story.
+- Story 8.7 (Tier-2 terrain / hilltop DTM ground delta) remains the residual out-of-scope follow-up.
+
 ### File List
+
+- `nextjs-app/lib/services/venue-store.ts` — added server-only `seatingElevationM` to `StoredVenueServerOnly`; `seating_elevation_m` in `VENUE_SELECT_COLUMNS` + `VenueRow`; `coerceSeatingElevation` guard + conditional spread in `fromVenueRow`.
+- `nextjs-app/lib/services/sun-engine.ts` — `computeRealSunEngine` reads `venue.seatingElevationM` (default 0) and threads it into the single-shot + timeline shadow calls.
+- `nextjs-app/lib/solar/shadow-calculation-service.ts` — `seatingElevationM?` added to `CalculateVenueShadowOptions`; threaded into `computeShadowInfo` (defaulted positional param); height gate uses `effectiveHeight = building.height − seatingElevationM` (gate + projection + length), keeping `buildingHeight` provenance.
+- `nextjs-app/test/unit/services/venue-store.test.ts` — 21-column contract assertion; +3 mapping/boundary/drop tests for `seating_elevation_m`.
+- `nextjs-app/test/unit/shadow-calculation-service.test.ts` — +5 height-gate tests (exclude/cast/tall/provenance/AC2-regression).
+- `nextjs-app/test/unit/services/sun-engine.test.ts` — +1 engine-threading test (AC3 end-to-end).
+- `nextjs-app/docs/venue-data-load.md` — Elevation section updated from "planned" to "consumed (Tier-1 height gate) as of Story 8.6; Tier-2 terrain is Story 8.7".
+- `_bmad-output/implementation-artifacts/8-6-elevation-aware-shadow-rooftop.md` — task checkboxes, Dev Agent Record, Status → review.
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` — `8-6-elevation-aware-shadow-rooftop`: ready-for-dev → in-progress → review.
+- `_bmad-output/implementation-artifacts/validation/8-6-elevation-aware-shadow-rooftop-review-20260622-153358.log` — gate artifact (created by the review script).
+
+## Change Log
+
+- 2026-06-22 — Story 8.6 implemented (Tier-1 elevation-aware shadow height gate). Threaded the server-only `seating_elevation_m` through venue-store → sun-engine → `computeShadowInfo`; a caster now only shadows a venue by its height above the seating surface. Default path byte-identical (every launch venue null). Tests +9 (vitest 606 → 615); docs updated. Status ready-for-dev → review.
+
+## Review Findings
+
+**Round 1 of 3** — bmad-code-review, 2026-06-22 (Blind Hunter + Edge Case Hunter + Acceptance Auditor). Acceptance Auditor verdict: PASS on AC1–AC4 and all anti-patterns. 11 raw findings → 1 decision-needed, 2 patch, 0 defer, 8 dismissed.
+
+- [x] [Review][Decision → Dismissed] Elevated venues can report equal-or-higher confidence on the coarser height-gate model — Reducing `effectiveHeight` shortens `shadowLength`, which avoids the `>50 m`/`>100 m` confidence penalties in `calculateShadowConfidence` (`lib/solar/shadow-geometry.ts:150-151`); gating out sub-terrace casters lowers `castingShadows.length`, shrinking the `complexityPenalty` in `calcShadowAccuracy` (`lib/solar/confidence-calculator.ts:134`) and, when all casters are gated, can push `calcBuildingDataQuality` toward 1.0 (`lib/solar/confidence-calculator.ts:111-113`). **Resolution (Rasmus, 2026-06-22): dismissed — the higher confidence is legitimate (fewer real casters above a rooftop = genuinely sunnier); no cap/flag added.**
+- [x] [Review][Patch] Field-table blurb still labels `seating_elevation_m` "Capture-only today … engine consumption is planned … does not consume it yet", contradicting the shipped gate and the file's own updated "Elevation" section (Task 6.1 updated the prose section but missed the table row) [nextjs-app/docs/venue-data-load.md:32] — **fixed 2026-06-22: table row now reads "Consumed by the engine as of Story 8.6 … hilltop DTM remains Story 8.7".**
+- [x] [Review][Patch] All-or-nothing code comment / docs describe only the "caster taller than the terrace" flip; they omit the symmetric 0–3 m dead-band — a caster genuinely 0–3 m above the seating surface is now silently dropped because `MIN_MEANINGFUL_HEIGHT` (3.0) is applied to `effectiveHeight`. Add one clause noting this for completeness [nextjs-app/lib/solar/shadow-calculation-service.ts:121] — **fixed 2026-06-22: added a clause to the gate comment documenting the 0–MIN_MEANINGFUL_HEIGHT dead-band above the seating surface.**
+
+**Dismissed (not persisted as action items):** engine-receives-DTO-so-feature-inert (false — `computeRealSunEngine` gets `StoredVenue`; proven by the e2e test); 21-column assertion brittle (false — the test asserts the full ordered list incl. the literal `seating_elevation_m`); `MIN_MEANINGFUL_HEIGHT` might be 0 (false — it is 3.0, negatives are gated); e2e test passes for wrong reason (false — the shadow-service suite triangulates the subtraction via the elevation-5/elevation-10 casting cases); `buildingHeight` provenance mismatch (intended — Task 4.2 mandates keeping true height; never re-read for geometry); `coerceSeatingElevation` swallows bad data silently (intended — Task 2.3; DB `CHECK >= 0` makes negatives/NaN unreachable; fail-safe direction); "byte-identical" conflates query vs output (pedantic — refers to computed output); default-to-0 duplicated across call sites (intentional layered defense, not a bug).

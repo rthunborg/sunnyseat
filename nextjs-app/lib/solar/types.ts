@@ -78,6 +78,20 @@ export interface Building {
   externalId?: string;
   heightSource: HeightSource;
   buildingType?: string;
+  /**
+   * RH2000 absolute ground/roof elevation (metres) of the caster, from
+   * `shadow_casters.ground_z_rh2000` / `roof_z_rh2000` via the `get_buildings_near_point`
+   * RPC (Story 8.7). Optional: non-RPC / fixture casters omit them and the engine
+   * falls back to the relative (Story 8.6) height gate.
+   *
+   * IMPORTANT: `roofZRh2000 − groundZRh2000` is the RAW source height and does NOT
+   * equal `height` for the ~1.2k height-uncertain casters that Story 8.1.1 capped at a
+   * conservative 15 m. The terrain gate therefore uses `groundZRh2000` (the ground
+   * delta) together with the conservative runtime `height`, NOT `roofZRh2000` as the
+   * casting height — see `computeShadowInfo`.
+   */
+  groundZRh2000?: number;
+  roofZRh2000?: number;
   sourcePriority?: number;
   shadowCasterTier?: ShadowCasterTier;
   filterDecision?: ShadowCasterFilterDecision;

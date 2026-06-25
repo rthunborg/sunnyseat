@@ -1,0 +1,40 @@
+SunnySeat story review gate
+Story: 8-7-elevation-aware-shadow-terrain
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/8-7-elevation-aware-shadow-terrain-review-20260622-172527.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/8-7-elevation-aware-shadow-terrain.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  70 passed (70)
+      Tests  625 passed (625)
+   Start at  17:25:43
+   Duration  20.64s (transform 4.05s, setup 25.28s, import 34.13s, tests 42.01s, environment 160.89s)
+
+Skipping visual validation: no mapped screen ID found in story file
+Updated sprint status: 8-7-elevation-aware-shadow-terrain -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/8-7-elevation-aware-shadow-terrain-review-20260622-172527.log

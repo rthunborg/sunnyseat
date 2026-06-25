@@ -24,6 +24,24 @@ export interface CalculateVenueShadowOptions {
    * store keys venues by text id and never consumes this field. [Story 8.3]
    */
   venueId?: number;
+  /**
+   * Metres the venue's seating surface sits above its own local ground (Story 8.6
+   * height gate). A nearby caster only shadows the venue by its height ABOVE this
+   * surface: `effectiveHeight = building.height - seatingElevationM`. Defaults to
+   * 0 (ground level) so the math is identical to the pre-8.6 behaviour. A negative
+   * value is floored to 0 at the call sites (`Math.max(0, …)`) — the data layer
+   * (`coerceSeatingElevation`) already drops negatives, this just keeps the public
+   * entrypoint honouring its own ground-level-minimum invariant.
+   */
+  seatingElevationM?: number;
+  /**
+   * RH2000 absolute ground elevation (metres) at the venue point (Story 8.7 terrain
+   * gate). When this AND a caster's `groundZRh2000` are both known, the gate uses the
+   * absolute ground delta so a caster standing downhill stops shadowing a venue uphill
+   * from it. Undefined (or a caster lacking `groundZRh2000`) falls back to the Story 8.6
+   * relative gate, so flat terrain and the default path stay byte-identical.
+   */
+  venueGroundZ?: number;
 }
 
 /**
@@ -81,7 +99,9 @@ export async function calculateVenueShadowForGeometry(
     solarPosition,
     buildings,
     venueId,
-    options.coverageMap
+    options.coverageMap,
+    Math.max(0, options.seatingElevationM ?? 0),
+    options.venueGroundZ
   );
 }
 
@@ -98,8 +118,29 @@ function computeShadowInfo(
   solarPosition: SolarPosition,
   buildings: Building[],
   venueId: number,
-  coverageMap?: ShadowDataCoverageMap
+  coverageMap?: ShadowDataCoverageMap,
+  seatingElevationM = 0,
+  venueGroundZ?: number
 ): VenueShadowInfo {
+  // Story 8.7 terrain gate: when the venue's own RH2000 ground elevation is known,
+  // a caster's effective casting height is measured against the venue's GROUND, not
+  // the caster's own. The absolute caster-roof Z is `casterGroundZ + height` (the
+  // conservative runtime `height`, NOT roof_z_rh2000 — see below), and the venue
+  // seating-surface Z is `venueGroundZ + seatingElevationM`, so
+  //   effectiveHeight = (casterGroundZ + height) − (venueGroundZ + seatingElevationM)
+  //                   = (height − seatingElevationM) + (casterGroundZ − venueGroundZ)
+  // i.e. the Story 8.6 relative effective height PLUS the ground delta. A caster
+  // downhill from the venue (casterGroundZ < venueGroundZ) is therefore gated out
+  // once its roof falls below the venue's seating surface (AC1), while flat terrain
+  // (casterGroundZ == venueGroundZ → delta 0) reduces EXACTLY to Story 8.6 (AC2/AC3).
+  //
+  // Why `height` and not `roofZRh2000`: for the ~1.2k height-uncertain casters that
+  // Story 8.1.1 capped at a conservative 15 m, `roofZRh2000 − groundZRh2000` is the
+  // RAW (uncapped, taller) source height. Using roof_z as the casting height would
+  // resurrect those raw heights and re-introduce the over-shadowing 8.1.1 fixed, and
+  // would break the AC2 flat-terrain byte-identity. So only the GROUND delta comes
+  // from absolute Z; the casting height stays the conservative runtime `height`.
+  const venueGroundZKnown = typeof venueGroundZ === 'number' && Number.isFinite(venueGroundZ);
   const shadowDataCoverage = getShadowDataCoverage(geometry, coverageMap);
   const obstructionRisks = extractObstructionRiskClasses(
     ...buildings.flatMap((building) => [
@@ -112,16 +153,41 @@ function computeShadowInfo(
 
   const shadows: ShadowProjection[] = [];
   for (const building of buildings) {
-    if (building.height < SG.MIN_MEANINGFUL_HEIGHT) continue;
+    // Story 8.6 height gate: a caster only shadows the venue by its height ABOVE
+    // the seating surface, so a caster at/below that surface is excluded and the
+    // part above the terrace is what casts the shadow. ALL-OR-NOTHING MVP
+    // approximation — a caster slightly taller than the terrace still casts a
+    // FULL-coverage shadow; fractional / sub-shadow partial occlusion is Tier-3
+    // future work (AC4). Symmetrically, MIN_MEANINGFUL_HEIGHT applies to
+    // effectiveHeight, so a caster only 0–MIN_MEANINGFUL_HEIGHT m above the
+    // seating surface is dropped as not-meaningful (same coarse floor that already
+    // ignores sub-3 m casters at ground level). seatingElevationM defaults to 0,
+    // so for a ground-level venue effectiveHeight === building.height and the math
+    // is unchanged (AC2).
+    //
+    // Story 8.7 terrain delta: when both the venue ground Z and this caster's ground
+    // Z are known, add the ground delta (casterGroundZ − venueGroundZ) so a caster
+    // standing downhill stops mattering once its roof drops below the venue surface.
+    // Any missing / non-finite Z falls back to the relative gate (no degenerate
+    // polygon), keeping flat terrain and the default path byte-identical (AC2).
+    const useTerrainDelta =
+      venueGroundZKnown &&
+      typeof building.groundZRh2000 === 'number' &&
+      Number.isFinite(building.groundZRh2000);
+    const groundDelta = useTerrainDelta
+      ? (building.groundZRh2000 as number) - (venueGroundZ as number)
+      : 0;
+    const effectiveHeight = building.height - seatingElevationM + groundDelta;
+    if (effectiveHeight < SG.MIN_MEANINGFUL_HEIGHT) continue;
 
     const shadowPoly = SG.projectBuildingShadow(
       building.geometry,
-      building.height,
+      effectiveHeight,
       solarPosition
     );
     if (!shadowPoly) continue;
 
-    const shadowLength = SG.calculateShadowLength(building.height, solarPosition.elevation);
+    const shadowLength = SG.calculateShadowLength(effectiveHeight, solarPosition.elevation);
     const confidence = SG.calculateShadowConfidence(building, solarPosition, shadowLength);
 
     shadows.push({
@@ -284,7 +350,9 @@ export async function calculateVenueShadowTimelineForGeometry(
           solarPosition,
           buildings,
           venueId,
-          options.coverageMap
+          options.coverageMap,
+          Math.max(0, options.seatingElevationM ?? 0),
+          options.venueGroundZ
         );
       }
 
@@ -396,6 +464,10 @@ function mapBuildingRow(row: Record<string, unknown>): Building {
     shadowCasterTier: readShadowCasterTier(row, 'ShadowCasterTier', 'shadow_caster_tier'),
     filterDecision: readFilterDecision(row, 'FilterDecision', 'filter_decision'),
     casterClass,
+    // RH2000 absolute Z (Story 8.7). readNumber returns undefined for missing /
+    // non-finite values, so a fixture caster without them falls back to the relative gate.
+    groundZRh2000: readNumber(row, 'GroundZRh2000', 'ground_z_rh2000'),
+    roofZRh2000: readNumber(row, 'RoofZRh2000', 'roof_z_rh2000'),
     sourceFlags,
     sourceObjectMetadata,
     provenanceMetadata,

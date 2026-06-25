@@ -309,6 +309,7 @@ export type Database = {
           created_at: string
           current_sun_status: string
           description: string | null
+          ground_elevation_m: number | null
           id: string
           is_partner: boolean
           lat: number
@@ -334,6 +335,7 @@ export type Database = {
           created_at?: string
           current_sun_status: string
           description?: string | null
+          ground_elevation_m?: number | null
           id: string
           is_partner?: boolean
           lat: number
@@ -359,6 +361,7 @@ export type Database = {
           created_at?: string
           current_sun_status?: string
           description?: string | null
+          ground_elevation_m?: number | null
           id?: string
           is_partner?: boolean
           lat?: number
@@ -696,11 +699,13 @@ export type Database = {
           ExternalId: string
           FilterDecision: string
           Geometry: string
+          GroundZRh2000: number
           Height: number
           HeightSource: string
           Id: number
           ProvenanceMetadata: Json
           QualityScore: number
+          RoofZRh2000: number
           ShadowCasterTier: string
           Source: string
           SourceFlags: string[]

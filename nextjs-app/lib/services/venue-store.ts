@@ -47,6 +47,27 @@ export type StoredVenueDetail = {
  */
 export type StoredVenueServerOnly = {
   seatingArea?: GeoJSON.Polygon;
+  /**
+   * Metres the venue's outdoor seating surface sits above its own local ground
+   * (rooftop bar / raised terrace / balcony). Story 8.6 height gate: a nearby
+   * caster only shadows the venue by its height ABOVE this surface. Consumed ONLY
+   * by `lib/services/sun-engine.ts` → the shadow engine; like `seatingArea` it is
+   * a server-only field and `toVenueData` must NEVER surface it into the DTO.
+   * Absent / null / negative / NaN is treated as ground level (0), keeping the
+   * default path byte-identical (every launch venue leaves it null).
+   */
+  seatingElevationM?: number;
+  /**
+   * RH2000 absolute ground elevation (metres) at the venue point (Story 8.7 terrain
+   * gate). Unlike `seatingElevationM` this is an ABSOLUTE elevation and MAY BE
+   * NEGATIVE (live caster ground Z ranges roughly −6 .. 100 m). Consumed ONLY by
+   * `lib/services/sun-engine.ts` → the shadow engine to measure casters against the
+   * venue's own ground; like `seatingArea` it is server-only and `toVenueData` must
+   * NEVER surface it. Absent / null / non-finite → the engine uses the Story 8.6
+   * relative gate, so the default path stays byte-identical (every launch venue
+   * leaves it null).
+   */
+  groundElevationM?: number;
 };
 
 export type StoredVenue = VenueDataDto & StoredVenueDetail & StoredVenueServerOnly;
@@ -131,6 +152,12 @@ export const VENUE_SELECT_COLUMNS = [
   // Server-only (Story 8.3): the real seating-area polygon for the sun engine.
   // Never mapped into toVenueData / VenueDataDto.
   'seating_area',
+  // Server-only (Story 8.6): metres the seating surface sits above local ground
+  // (rooftop / raised-terrace height gate). Never mapped into the DTO.
+  'seating_elevation_m',
+  // Server-only (Story 8.7): RH2000 absolute ground elevation (Z) at the venue
+  // point for the terrain gate (may be negative). Never mapped into the DTO.
+  'ground_elevation_m',
 ].join(', ');
 
 type VenueRow = {
@@ -155,6 +182,11 @@ type VenueRow = {
   prediction_uncertainty?: PredictionUncertaintyDto | null;
   // Server-only seating-area polygon (Story 8.3); never serialized into the DTO.
   seating_area?: GeoJSON.Polygon | null;
+  // Server-only seating-surface elevation in metres (Story 8.6); never in the DTO.
+  seating_elevation_m?: number | null;
+  // Server-only RH2000 absolute ground Z at the venue point (Story 8.7); may be
+  // negative; never in the DTO.
+  ground_elevation_m?: number | null;
 };
 
 /**
@@ -317,6 +349,8 @@ function fromVenueRow(row: VenueRow): StoredVenue {
   }
   const skyCondition = coerceSkyCondition(row.sky_condition);
   const seatingArea = coerceSeatingArea(row.seating_area);
+  const seatingElevationM = coerceSeatingElevation(row.seating_elevation_m);
+  const groundElevationM = coerceGroundElevation(row.ground_elevation_m);
   const stored: StoredVenue = {
     id,
     venueId: id,
@@ -337,6 +371,8 @@ function fromVenueRow(row: VenueRow): StoredVenue {
     ...(row.sun_window ? { sunWindow: row.sun_window } : {}),
     ...(row.thumbnail ? { thumbnail: row.thumbnail } : {}),
     ...(seatingArea ? { seatingArea } : {}),
+    ...(seatingElevationM !== undefined ? { seatingElevationM } : {}),
+    ...(groundElevationM !== undefined ? { groundElevationM } : {}),
     ...detailFromRow(row),
   };
   return stored;
@@ -359,6 +395,30 @@ function coerceSeatingArea(value: GeoJSON.Polygon | null | undefined): GeoJSON.P
     return value;
   }
   return undefined;
+}
+
+/**
+ * Keep `seating_elevation_m` only as a finite number `>= 0` metres (server-only,
+ * Story 8.6). A null / negative / NaN value is dropped → the field is absent and
+ * the sun engine treats the venue as ground level (elevation 0), so the default
+ * path stays byte-identical. A stored `0` is preserved (also ground level) so the
+ * mapping faithfully reflects the column.
+ */
+function coerceSeatingElevation(value: number | null | undefined): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? value
+    : undefined;
+}
+
+/**
+ * Keep `ground_elevation_m` only as a finite number (server-only, Story 8.7). Unlike
+ * `seating_elevation_m` this is an ABSOLUTE RH2000 ground Z and MAY BE NEGATIVE (so
+ * there is no `>= 0` guard). A null / non-finite value is dropped → the field is
+ * absent and the sun engine uses the Story 8.6 relative gate, keeping the default
+ * path byte-identical. A stored `0` is preserved (sea-level datum is a valid ground Z).
+ */
+function coerceGroundElevation(value: number | null | undefined): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
 /**

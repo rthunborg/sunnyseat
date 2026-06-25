@@ -557,7 +557,12 @@ returns table (
   "CasterClass" text,
   "SourceFlags" text[],
   "SourceObjectMetadata" jsonb,
-  "ProvenanceMetadata" jsonb
+  "ProvenanceMetadata" jsonb,
+  -- Story 8.7: RH2000 absolute Z (metres) for the terrain-aware shadow gate.
+  -- Appended after the original 15 columns; the TS Building mapper reads them
+  -- optionally and falls back to the relative (Story 8.6) gate when absent.
+  "GroundZRh2000" double precision,
+  "RoofZRh2000" double precision
 )
 language sql
 stable
@@ -634,14 +639,16 @@ as $$
     c.caster_class as "CasterClass",
     c.source_flags as "SourceFlags",
     c.source_object_metadata as "SourceObjectMetadata",
-    c.provenance_metadata as "ProvenanceMetadata"
+    c.provenance_metadata as "ProvenanceMetadata",
+    c.ground_z_rh2000 as "GroundZRh2000",
+    c.roof_z_rh2000 as "RoofZRh2000"
   from candidates c
   where c.runtime_rank = 1
   order by c.source_priority asc, c.quality_score desc nulls last, c.id asc;
 $$;
 
 comment on function public.get_buildings_near_point(double precision, double precision, double precision) is
-  'Compatibility RPC for the current TypeScript Building mapper. Returns only active/include runtime shadow_casters with meter-correct geography radius filtering.';
+  'Compatibility RPC for the current TypeScript Building mapper. Returns only active/include runtime shadow_casters with meter-correct geography radius filtering. Story 8.7 appended GroundZRh2000/RoofZRh2000 (RH2000 absolute Z) for the terrain-aware shadow gate.';
 
 -- ============================================================================
 -- Section 3: import/backfill placeholders

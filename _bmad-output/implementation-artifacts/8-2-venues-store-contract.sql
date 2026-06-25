@@ -114,8 +114,24 @@ alter table public.venues add column if not exists seating_elevation_m double pr
 
 comment on column public.venues.seating_elevation_m is
   'Server-only estimated metres of the outdoor seating surface above local '
-  'ground (rooftop/raised terraces). Null = street level. Capture-only until the '
-  'elevation-aware shadow follow-up consumes it; never returned in the API DTO.';
+  'ground (rooftop/raised terraces). Null = street level. Consumed by the engine '
+  'as of Story 8.6 (Tier-1 rooftop/raised height gate); never returned in the API DTO.';
+
+-- Story 8.7 (terrain / hilltop): additive, nullable, SERVER-ONLY RH2000 absolute
+-- ground elevation (Z, metres) at the venue point, derived offline at venue-load
+-- (same provenance as shadow_casters.ground_z_rh2000). Lets the shadow engine
+-- compare a caster's absolute roof height against the venue's OWN ground so a
+-- building standing downhill stops shadowing a venue uphill from it. Unlike
+-- seating_elevation_m this is an ABSOLUTE elevation and MAY BE NEGATIVE (there is
+-- intentionally NO >= 0 check). Null -> engine falls back to the Story 8.6 relative
+-- height gate (byte-identical default path). Never serialized into the client DTO.
+-- See nextjs-app/docs/venue-data-load.md.
+alter table public.venues add column if not exists ground_elevation_m double precision;
+
+comment on column public.venues.ground_elevation_m is
+  'Server-only RH2000 ground elevation (absolute Z, metres) at the venue point '
+  '(Story 8.7 terrain gate). May be negative. Null -> Story 8.6 relative height gate. '
+  'Never returned in the API DTO.';
 
 -- ============================================================================
 -- Section 3: privileges / RLS (deny-by-default, server-only read)

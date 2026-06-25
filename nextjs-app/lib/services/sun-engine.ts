@@ -270,9 +270,22 @@ async function computeRealSunEngine(
     getForecastOverride ?? (await import('@/lib/weather/met-no-service')).getForecast;
 
   const geometry = resolveVenueGeometry(venue);
+  // Story 8.6 height gate: how high the seating surface sits above local ground
+  // (rooftop / raised terrace). Default 0 → ground level → byte-identical math.
+  // Threaded into BOTH the single-shot and the timeline shadow computations so
+  // the list, detail, and sun-window paths all honour the elevation. [AC#1, AC#3]
+  const seatingElevationM = venue.seatingElevationM ?? 0;
+  // Story 8.7 terrain gate: the venue's own RH2000 ground elevation. Undefined for
+  // every fixture / street-level venue → the engine uses the Story 8.6 relative gate
+  // (byte-identical). When set (a hilltop venue), the gate measures casters against
+  // the venue's ground via the absolute ground delta. [AC#1, AC#3]
+  const venueGroundZ = venue.groundElevationM;
 
   // Current shadow state at the requested instant (RPC #1).
-  const shadowInfo = await calculateVenueShadowForGeometry(geometry, requestedAt);
+  const shadowInfo = await calculateVenueShadowForGeometry(geometry, requestedAt, {
+    seatingElevationM,
+    venueGroundZ,
+  });
   // Per-venue weather at the venue's OWN location for the requested time (Task 3.2)
   // — not the engine's hardcoded Gothenburg-centre / current-only call.
   const weather = await fetchWeatherForVenue(getForecast, venue.location, requestedAt);
@@ -308,6 +321,7 @@ async function computeRealSunEngine(
     scanStart,
     scanEnd,
     SUN_WINDOW_SAMPLE_INTERVAL_MIN * 60_000,
+    { seatingElevationM, venueGroundZ },
   );
   const sunWindow = extractSunlitWindow(timeline.points);
   const peakTime = peakTimeFromTimeline(timeline.points);

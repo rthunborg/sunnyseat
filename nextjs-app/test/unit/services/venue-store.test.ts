@@ -148,16 +148,18 @@ describe('venue-store (Supabase opt-in)', () => {
     expect(supabaseMock.select).toHaveBeenCalledWith(VENUE_SELECT_COLUMNS);
     expect(supabaseMock.eq).toHaveBeenCalledWith('slug', 'supa-venue');
 
-    // The column set must include all 20 contract columns (incl. the server-only
-    // seating_area). A dropped/renamed column would fail here.
+    // The column set must include all 22 contract columns (incl. the server-only
+    // seating_area, seating_elevation_m, and ground_elevation_m). A dropped/renamed
+    // column would fail here.
     const columns = VENUE_SELECT_COLUMNS.split(', ');
     expect(columns).toEqual([
       'id', 'slug', 'venue_name', 'neighborhood', 'lat', 'lng', 'is_partner',
       'thumbnail', 'description', 'address', 'opening_hours', 'peak_time',
       'shadow_warning_minutes', 'current_sun_status', 'sky_condition', 'confidence',
       'sun_exposure_percent', 'sun_window', 'prediction_uncertainty', 'seating_area',
+      'seating_elevation_m', 'ground_elevation_m',
     ]);
-    expect(columns).toHaveLength(20);
+    expect(columns).toHaveLength(22);
   });
 
   it('selects the full column list on the list read too', async () => {
@@ -332,6 +334,80 @@ describe('venue-store (Supabase opt-in)', () => {
       };
       const venue = await getVenueBySlug('supa-venue');
       expect(venue).not.toHaveProperty('seatingArea');
+    }
+  });
+
+  it('maps a positive seating_elevation_m to a server-only seatingElevationM (never in the DTO) (Story 8.6)', async () => {
+    useSupabaseStore();
+    supabaseMock.state.singleResult = {
+      data: { ...SUPABASE_ROW, seating_elevation_m: 12.5 },
+      error: null,
+    };
+
+    const venue = await getVenueBySlug('supa-venue');
+    expect(venue?.seatingElevationM).toBe(12.5);
+    // Server-only: the seating elevation must never surface through the client projection.
+    expect(toVenueData(venue!)).not.toHaveProperty('seatingElevationM');
+  });
+
+  it('preserves a stored seating_elevation_m of 0 (ground level) (Story 8.6)', async () => {
+    useSupabaseStore();
+    supabaseMock.state.singleResult = {
+      data: { ...SUPABASE_ROW, seating_elevation_m: 0 },
+      error: null,
+    };
+
+    const venue = await getVenueBySlug('supa-venue');
+    expect(venue?.seatingElevationM).toBe(0);
+  });
+
+  it('drops a null / negative / NaN seating_elevation_m so the venue is treated as ground level (Story 8.6)', async () => {
+    useSupabaseStore();
+    for (const seating_elevation_m of [null, -3, Number.NaN] as const) {
+      supabaseMock.state.singleResult = {
+        data: { ...SUPABASE_ROW, seating_elevation_m },
+        error: null,
+      };
+      const venue = await getVenueBySlug('supa-venue');
+      expect(venue).not.toHaveProperty('seatingElevationM');
+    }
+  });
+
+  it('maps a ground_elevation_m to a server-only groundElevationM (never in the DTO) (Story 8.7)', async () => {
+    useSupabaseStore();
+    supabaseMock.state.singleResult = {
+      data: { ...SUPABASE_ROW, ground_elevation_m: 38.4 },
+      error: null,
+    };
+
+    const venue = await getVenueBySlug('supa-venue');
+    expect(venue?.groundElevationM).toBe(38.4);
+    // Server-only: the ground elevation must never surface through the client projection.
+    expect(toVenueData(venue!)).not.toHaveProperty('groundElevationM');
+  });
+
+  it('keeps a NEGATIVE ground_elevation_m (absolute RH2000 Z, may be below datum) (Story 8.7)', async () => {
+    useSupabaseStore();
+    supabaseMock.state.singleResult = {
+      data: { ...SUPABASE_ROW, ground_elevation_m: -4.2 },
+      error: null,
+    };
+
+    const venue = await getVenueBySlug('supa-venue');
+    // Unlike seating_elevation_m, ground_elevation_m is an absolute elevation and a
+    // negative value is valid (and must be preserved, not dropped).
+    expect(venue?.groundElevationM).toBe(-4.2);
+  });
+
+  it('drops a null / NaN ground_elevation_m so the venue falls back to the relative gate (Story 8.7)', async () => {
+    useSupabaseStore();
+    for (const ground_elevation_m of [null, Number.NaN] as const) {
+      supabaseMock.state.singleResult = {
+        data: { ...SUPABASE_ROW, ground_elevation_m },
+        error: null,
+      };
+      const venue = await getVenueBySlug('supa-venue');
+      expect(venue).not.toHaveProperty('groundElevationM');
     }
   });
 
