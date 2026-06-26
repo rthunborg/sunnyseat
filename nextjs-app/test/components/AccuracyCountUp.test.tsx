@@ -57,4 +57,19 @@ describe('<AccuracyCountUp />', () => {
     expect(animateMock).not.toHaveBeenCalled();
     expect(screen.getByTestId('about-accuracy-stat')).toHaveTextContent('0%');
   });
+
+  it('does not replay the count-up if reduced motion is toggled off after the figure is shown (AC #3 one-time)', () => {
+    // Shown instantly under reduced motion.
+    reducedMotionMock.mockReturnValue(true);
+    const { rerender } = render(<AccuracyCountUp value={85} suffix="%" ariaLabel="x" />);
+    expect(animateMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('about-accuracy-stat')).toHaveTextContent('85%');
+
+    // User disables prefers-reduced-motion while the stat is still in view: the
+    // figure must stay at 85 — no reset to 0, no tween replay.
+    reducedMotionMock.mockReturnValue(false);
+    rerender(<AccuracyCountUp value={85} suffix="%" ariaLabel="x" />);
+    expect(animateMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('about-accuracy-stat')).toHaveTextContent('85%');
+  });
 });

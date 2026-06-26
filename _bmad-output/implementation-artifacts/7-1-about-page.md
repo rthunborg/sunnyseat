@@ -1,6 +1,6 @@
 # Story 7.1: About Page
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -256,3 +256,11 @@ Other decisions / notes:
 |------|--------|
 | 2026-06-25 | Story 7.1 implementation (Amelia/Opus 4.8): About page (`/about`) + minimal privacy page (`/sekretess`); accuracy count-up (Motion, reduced-motion-aware) behind a named placeholder constant; 4 user-safe data sources; desktop "Om" navbar link; i18n `about` scope extended + new `privacy` scope; 15 new component tests. Static gates green (tsc 0, eslint 0, vitest 73/642). Visual gate pending the maintainer-provided hero photo. Status → in-progress. |
 | 2026-06-26 | Hero photos provided: switched to a `<picture>` element (art-directed portrait/landscape, dropped the heavier `.webp`). Rebaselined `about` (mobile + desktop) + the 3 navbar-ripple desktop references from the implementation; skipped the obsolete prototype `about` recipe; added REBASELINE-LOG entries. Ran `scripts/story-review.sh 7-1-about-page` → lint 0 / tsc 0 / vitest 73 files 642 tests / visual `about` mobile + desktop PASS → sprint-status `review`. Status → review. |
+
+## Review Findings
+
+**Round 1 of 3** — bmad-code-review (Blind Hunter + Edge Case Hunter + Acceptance Auditor, parallel subagents; Opus 4.8 orchestrator), 2026-06-26. Reviewed commit `1df441e` (diff vs `fa4a70f`; 22 code files, ~1004 LOC, binaries/PNGs excluded). **Acceptance Auditor: all 7 ACs PASS** — both scope additions (privacy `/sekretess` page, DesktopNavBar "Om" link) are spec-sanctioned (Task 7.1 + AC2, maintainer-approved), all four named anti-patterns honored (no hardcoded 85% outside the constant; no routing `RouteButton`; no "Om" bottom-nav tab; no geodata internals in copy), tokens resolve, and the REBASELINE-LOG integrity checks out against the on-disk PNGs. The `messages-parity.test.ts` auto-discovers `about.json` + the new `privacy.json` (key-set + ICU parity), so both hunters' "no sv/en parity guard" concern is a false positive. **No unresolved HIGH/MEDIUM.** Triage: 0 decision-needed, 1 patch, 2 defer, ~20 dismissed (false positives / by-design / handled-elsewhere).
+
+- [x] [Review][Patch] **FIXED** — Count-up replayed if `prefers-reduced-motion` was toggled OFF at runtime while the stat was in view (`{ once: true }` guarded only `useInView`, not the tween, so the figure reset to 0 and re-animated — marginally violating AC3's "one-time animation"). Added a `hasRun` ref so the tween fires at most once, while still snapping to the final figure if reduced motion is enabled mid-animation; +1 regression test. Gate re-run green (tsc 0, eslint 0, vitest 73 files / 643 tests). (LOW; blind+edge) [nextjs-app/components/custom/about/AccuracyCountUp.tsx:37-51]
+- [x] [Review][Defer] Rebaseline capture scripts can silently poison a visual baseline — `capture-navbar-ripple-rebaseline.mjs` catches the wait-selector timeout (WARN) then screenshots anyway, and both new one-off scripts default-write directly into the reference PNG dirs. Tooling-only; this round's baselines were captured + visual-gate-verified PASS. [nextjs-app/scripts/capture-navbar-ripple-rebaseline.mjs:54-63] — deferred, tooling hardening
+- [x] [Review][Defer] Focal accuracy stat uses an un-tokenized arbitrary font size `text-[56px] lg:text-[64px]` (no `text-display-stat` token; largest type token `text-display-xl` is 28px) — already flagged as a token gap in Completion Notes. [nextjs-app/components/custom/about/AboutPage.tsx:114] — deferred, design-token debt

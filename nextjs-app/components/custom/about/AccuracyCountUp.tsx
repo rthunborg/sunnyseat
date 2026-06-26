@@ -33,14 +33,23 @@ export function AccuracyCountUp({ value, suffix, ariaLabel, className }: Accurac
   const inView = useInView(ref, { once: true, amount: 0.6 });
   const reduceMotion = useReducedMotion() ?? false;
   const [display, setDisplay] = useState(0);
+  // The count-up is a one-time animation (AC #3). `once: true` only stops
+  // `useInView` re-firing; this ref makes "fire once" hold across dependency
+  // changes too, so disabling prefers-reduced-motion at runtime can't reset the
+  // already-shown figure back to 0 and replay the tween.
+  const hasRun = useRef(false);
 
   useEffect(() => {
-    // Reduced motion: show the final figure immediately, regardless of scroll.
+    // Reduced motion: show the final figure immediately, regardless of scroll
+    // (also covers enabling reduced motion mid-animation — snap to the final).
     if (reduceMotion) {
+      hasRun.current = true;
       setDisplay(value);
       return;
     }
+    if (hasRun.current) return;
     if (!inView) return;
+    hasRun.current = true;
     const controls = animate(0, value, {
       duration: ABOUT_ACCURACY_COUNTUP_MS / 1000,
       ease: EASE_ENTER,
