@@ -218,8 +218,11 @@ const RECIPES = [
   // desktop onboarding: intentionally preserved as the existing curated
   // implementation-derived baseline until Rasmus accepts a new desktop-specific
   // onboarding design. See REBASELINE-LOG.md 2026-05-04 entries.
-  // not-found: keep the legacy 404 references; the prototype "Tomt" modal is an
-  // empty venue/search state, not the routed app 404 page.
+  // not-found: Story 7.2 rebaselined both references to the routed /not-found
+  // implementation (amber-gold pin tile + heading + map CTA; desktop = bespoke
+  // minimal navbar). The prototype "Tomt" modal is an empty venue/search state,
+  // not the routed app 404 page, so there is no prototype recipe here. Re-baseline
+  // via scripts/capture-not-found-rebaseline.mjs against the running app.
   // map-primary-offline: needs its first implementation-driven baseline when the
   // offline shell story lands.
   // premium/paywall/payment/recovery: Future Monetization only. Existing active

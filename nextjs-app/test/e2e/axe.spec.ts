@@ -119,6 +119,15 @@ test.describe('axe-core a11y gate', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
+  // Story 7.2 — the global 404 page. `/__sunnyseat-invalid` is a deliberately
+  // invalid path (Screen ID → Route Map) so Next.js renders `app/not-found.tsx`.
+  test('a11y: not-found page (/__sunnyseat-invalid)', async ({ page }) => {
+    await page.goto('/__sunnyseat-invalid');
+    await page.getByTestId('not-found-page').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
   // Story 3.4 review R1-P7 — the localized venue-detail not-found/error
   // notice is its own interactive surface and must pass the gate too.
   test('a11y: venue detail not-found notice (/?venue=<invalid slug>)', async ({ page }) => {

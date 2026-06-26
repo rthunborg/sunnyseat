@@ -27,5 +27,9 @@
       "sourdough": "Sourdough",
       "rooftop": "Rooftop"
     }
+  },
+  "notFound": {
+    "heading": "This page could not be found",
+    "cta": "Find sunny spots now →"
   }
 }

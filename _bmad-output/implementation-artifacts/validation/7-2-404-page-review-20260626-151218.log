@@ -1,0 +1,40 @@
+SunnySeat story review gate
+Story: 7-2-404-page
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/7-2-404-page-review-20260626-151218.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/7-2-404-page.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  74 passed (74)
+      Tests  651 passed (651)
+   Start at  15:12:50
+   Duration  36.83s (transform 6.28s, setup 61.13s, import 59.54s, tests 57.54s, environment 294.56s)
+
+Skipping visual validation: no mapped screen ID found in story file
+Updated sprint status: 7-2-404-page -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/7-2-404-page-review-20260626-151218.log

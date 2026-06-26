@@ -189,7 +189,7 @@ development_status:
   # Epic 7: "Polish & Platform" — About, 404, PWA & Offline
   epic-7: in-progress
   7-1-about-page: done
-  7-2-404-page: ready-for-dev
+  7-2-404-page: review
   7-3-pwa-installation-offline-shell: ready-for-dev
   epic-7-retrospective: optional
 

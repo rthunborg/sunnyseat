@@ -43,6 +43,22 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-06-26 — `not-found` (mobile + desktop) — Story 7.2 404 Page (Amelia / dev-story)
+
+**Trigger:** Story 7.2 replaces the hardcoded-Swedish `app/not-found.tsx` stub with the designed, internationalized 404 (AC1/AC2: wordmark; centred amber-gold rounded-square pin tile with a "?"; `Den här platsen hittades inte` heading; in-app map CTA). The active `not-found` references were UNLOGGED legacy carryover — NOT part of the 2026-05-21 MVP refresh and with no prior REBASELINE-LOG entry — and they diverge from the AC implementation: the legacy mobile reference shows a bare pin outline with **no amber-gold rounded square** (which AC1 explicitly mandates), and the legacy desktop reference shows a stale **full venue-search navbar** that predates the current chrome.
+
+**Resolution:** Re-baseline both `not-found` references from the running implementation. Per a maintainer decision (Rasmus, 2026-06-26), the desktop 404 uses a **bespoke minimal navbar** (wordmark + inert location/settings icons, no search box) rather than the live `<DesktopNavBar/>`: the root 404 renders OUTSIDE the `[locale]` tree, so the real navbar's venue-search combobox (which depends on the map/search/time/geolocation contexts in `AppContextProviders`) cannot mount there, and a static dead-end page should not pull in the map/search subsystem. There is no prototype recipe for `not-found` (the prototype "Tomt" modal is an empty venue/search state, not the routed 404), so the capture-recipe comment in `capture-claude-design-refs.mjs` now points at the implementation rebaseline helper.
+
+**Source of new PNG:** Playwright capture of `http://localhost:3000/__sunnyseat-invalid` (deliberately-invalid path → global `app/not-found.tsx`) at `390×844` and `1440×900`, `deviceScaleFactor: 2`, `Accept-Language: sv-SE` (waits for `[data-testid="not-found-page"]`), via `nextjs-app/scripts/capture-not-found-rebaseline.mjs`. Saved to `docs/design/references/screens/{mobile,desktop}/not-found.png` (780×1688 / 2880×1800).
+
+**Recipe change:** `nextjs-app/scripts/capture-claude-design-refs.mjs` — the `not-found` comment block updated from "keep the legacy 404 references" to record the Story 7.2 implementation rebaseline. New helper `nextjs-app/scripts/capture-not-found-rebaseline.mjs` added (documented in its header).
+
+**Verification:** PASS — `not-found` mobile and desktop via `scripts/visual-validate.sh not-found /__sunnyseat-invalid {mobile,desktop}` (`VISUAL_VALIDATE_PROVIDER=claude`). Self-consistent baseline (the reference is the implementation), same pattern as the 2026-05-04/05 `onboarding` desktop baselines.
+
+**Reason / spec link:** Story 7.2 AC1 (amber-gold rounded-square pin tile) + AC2 (desktop navbar visible, auto-width CTA) + Design Gate; the legacy references were unlogged and obsolete. The desktop bespoke-navbar choice is the maintainer decision recorded above; `AGENTS.md` requires reference re-baselines and capture-recipe changes to be logged in the same operation.
+
+**Re-evaluation trigger:** Re-capture (via `capture-not-found-rebaseline.mjs`) when the 404 layout/copy changes materially, when the desktop chrome decision is revisited (e.g. switching to the live `DesktopNavBar`), or when the shared wordmark chrome changes.
+
 ### 2026-06-26 — `about` (mobile + desktop) — Story 7.1 About Page (Amelia / dev-story)
 
 **Trigger:** Story 7.1 implements the standalone `/about` route per AC1/AC2 (mobile top bar + heading + hero photo + ALGORITMEN/DATAKÄLLOR/TRÄFFSÄKERHET count-up + contact + privacy link + CTA; desktop = real `DesktopNavBar` + centred 720 px content + two-column sources + footer). The active MVP `about` references were captured from the simplified Claude Design prototype (Settings → "Om SunnySeat"), which renders an obsolete screen: the mobile reference had no hero and no accuracy stat (only one data source), and the desktop reference showed a simplified header instead of the real navbar. The implementation legitimately diverges.
