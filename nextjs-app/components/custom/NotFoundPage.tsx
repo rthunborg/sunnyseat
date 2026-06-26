@@ -34,6 +34,10 @@ export function NotFoundPage() {
   const t = useTranslations('common');
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
+  // Guards the one-shot exit fade: a rapid double-click (or any re-entry while
+  // the fade is already in flight) must navigate to the map exactly once, not
+  // push `/` onto the history stack twice.
+  const navigatingRef = useRef(false);
   // `?? true` keeps the first paint static (no float flash) until the
   // matchMedia query resolves; same convention as `VenuePin`.
   const reduceMotion = useReducedMotion() ?? true;
@@ -51,6 +55,8 @@ export function NotFoundPage() {
     const node = rootRef.current;
     if (!node) return;
     event.preventDefault();
+    if (navigatingRef.current) return;
+    navigatingRef.current = true;
     const goToMap = () => router.push('/');
     void animate(node, { opacity: 0 }, { duration: DURATION_SLOW_S, ease: EASE_EXIT }).finished.then(
       goToMap,

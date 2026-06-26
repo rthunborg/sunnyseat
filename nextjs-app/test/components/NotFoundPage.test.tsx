@@ -89,6 +89,15 @@ describe('<NotFoundPage />', () => {
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/'));
   });
 
+  it('navigates only once on a rapid double-click (AC4 robustness)', async () => {
+    renderWithProviders(<NotFoundPage />, { messages: svMessages });
+    const cta = screen.getByTestId('not-found-cta');
+    fireEvent.click(cta);
+    fireEvent.click(cta);
+    expect(animateMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(pushMock).toHaveBeenCalledTimes(1));
+  });
+
   it('skips the exit fade under reduced motion and lets the link navigate (AC5)', () => {
     reducedMotionMock.mockReturnValue(true);
     renderWithProviders(<NotFoundPage />, { messages: svMessages });

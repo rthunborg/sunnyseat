@@ -12,6 +12,10 @@ Items intentionally not fixed in the story that raised them. Each entry links ba
 
 *(Four entries carried into Story 1.6 — CI/CD Quality Gates on 2026-05-05: `i18n/request.ts` try/catch verification (Task 1), font generic-family fallback (Task 2.8), build-time deps → devDependencies (Task 4.5), `--ease-*` vs `easing-*` reconciliation (Task 2.7). Removed by SM per the deferred-work convention.)*
 
+## Deferred from: code review of 7-2-404-page (2026-06-26)
+
+- **Inert desktop-nav icons on the 404 page are announced as disabled buttons + carry dead `focus-visible` classes** *(Target: None — conditional polish; reactivate if a11y copy/SR audit revisits the 404)* — `nextjs-app/components/custom/NotFoundPage.tsx` `InertHeaderIcon` renders the decorative location/settings chrome (mirroring the live DesktopNavBar visual) as `disabled` `<button aria-label="…">`s. SR browse mode therefore announces "My location / Settings, unavailable" on a static dead-end page, and the `focus-visible:ring-*` classes are unreachable because a disabled control is not focusable. Consider `aria-hidden="true"` on the purely-decorative icons (and drop the dead focus classes), or keep the visual parity as a deliberate choice. axe is currently clean, so this is non-blocking polish, not a violation. [Round 1 code review of Story 7.2]
+
 ## Deferred from: code review of 1-2-dev-only-state-forcing-mechanism (2026-04-19)
 
 *(All entries from this review have been carried into Story 1.5 — Onboarding & Geolocation, AC7 / Task 11. Removed by SM on 2026-05-04 per the deferred-work convention.)*
