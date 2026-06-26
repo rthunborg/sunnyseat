@@ -160,6 +160,8 @@ const RECIPES = [
       { clickText: 'Om SunnySeat' },
       { wait: 500 },
     ],
+    skip:
+      'Story 7.1 rebaselined about to the standalone /about route implementation (hero, ALGORITMEN/DATAKÄLLOR/TRÄFFSÄKERHET count-up, contact + privacy link); the MVP prototype Settings -> Om SunnySeat renders an obsolete simplified screen (no hero, no accuracy stat). Re-baseline via scripts/capture-about-rebaseline.mjs against the running app.',
   },
   {
     screenId: 'favourites-tab',
@@ -202,6 +204,8 @@ const RECIPES = [
       { clickText: 'Om SunnySeat' },
       { wait: 500 },
     ],
+    skip:
+      'Story 7.1 rebaselined about to the standalone /about route implementation (full DesktopNavBar incl. the new "Om" link, hero, sections, count-up, footer); the MVP prototype Settings -> Om SunnySeat renders an obsolete simplified screen. Re-baseline via scripts/capture-about-rebaseline.mjs against the running app.',
   },
   {
     screenId: 'favourites-tab',

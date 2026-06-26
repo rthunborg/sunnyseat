@@ -2,7 +2,7 @@ import { getRequestConfig } from 'next-intl/server';
 import { hasLocale } from 'next-intl';
 import { routing } from './routing';
 
-const SCOPES = ['common', 'map', 'onboarding', 'venue', 'feedback', 'about', 'favourites'] as const;
+const SCOPES = ['common', 'map', 'onboarding', 'venue', 'feedback', 'about', 'favourites', 'privacy'] as const;
 type Scope = (typeof SCOPES)[number];
 
 async function loadScope(locale: string, scope: Scope): Promise<Record<string, unknown>> {

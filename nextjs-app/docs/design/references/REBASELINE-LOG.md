@@ -43,6 +43,38 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-06-26 — `about` (mobile + desktop) — Story 7.1 About Page (Amelia / dev-story)
+
+**Trigger:** Story 7.1 implements the standalone `/about` route per AC1/AC2 (mobile top bar + heading + hero photo + ALGORITMEN/DATAKÄLLOR/TRÄFFSÄKERHET count-up + contact + privacy link + CTA; desktop = real `DesktopNavBar` + centred 720 px content + two-column sources + footer). The active MVP `about` references were captured from the simplified Claude Design prototype (Settings → "Om SunnySeat"), which renders an obsolete screen: the mobile reference had no hero and no accuracy stat (only one data source), and the desktop reference showed a simplified header instead of the real navbar. The implementation legitimately diverges.
+
+**Resolution:** Re-baseline both `about` references from the running implementation and skip the obsolete prototype recipe so future default captures do not overwrite them (same pattern as `feedback`/`review`).
+
+**Source of new PNG:** Playwright capture of `http://localhost:3000/about` at `390×844` and `1440×900`, `deviceScaleFactor: 2`, `Accept-Language: sv-SE` (waits for `[data-testid="about-page"]` + hero `<img>.decode()`), via `nextjs-app/scripts/capture-about-rebaseline.mjs`. Saved to `docs/design/references/screens/{mobile,desktop}/about.png` (780×1688 / 2880×1800).
+
+**Recipe change:** `nextjs-app/scripts/capture-claude-design-refs.mjs` — both `about` recipes (mobile + desktop) marked `skip` with a Story 7.1 reason. New helper `nextjs-app/scripts/capture-about-rebaseline.mjs` added (documented in its header).
+
+**Verification:** PASS — `about` mobile and desktop via `scripts/visual-validate.sh about /about {mobile,desktop}` (`VISUAL_VALIDATE_PROVIDER=claude`).
+
+**Reason / spec link:** Story 7.1 AC1–AC2 + Design Gate; the prototype "Om SunnySeat" state predates the real `/about` route. Hero is a maintainer-provided photo (`public/about/hero_sunset_{mobile,desktop}.jpeg`, art-directed via `<picture>`). The accuracy stat is the placeholder constant `ABOUT_ACCURACY_PLACEHOLDER` rendered by the Motion count-up.
+
+**Re-evaluation trigger:** Re-capture (via `capture-about-rebaseline.mjs`) when the `/about` layout/copy changes materially, the hero asset is replaced, or the accuracy placeholder is swapped for the validated Epic 8 figure.
+
+### 2026-06-26 — `map-primary` / `venue-detail` / `favourites-tab` (desktop) — Story 7.1 DesktopNavBar "Om" link ripple (Amelia / dev-story)
+
+**Trigger:** Story 7.1 adds an "Om" → `/about` link to the shared `DesktopNavBar` (the desktop entry point to the new route, per AC2 "navigation via navbar"). The navbar is shared chrome, so every desktop reference that includes it drifted by the added link.
+
+**Resolution:** Re-baseline the three implementation-derived desktop references that show the navbar, from the running implementation. Mobile references are unaffected (the bottom `MobileNavBar` did not change — no "Om" tab was added, per Task 2.4).
+
+**Source of new PNG:** Playwright captures at `1440×900`, `deviceScaleFactor: 2`, `Accept-Language: sv-SE`, onboarded (+ seeded favourites for `favourites-tab`), via `nextjs-app/scripts/capture-navbar-ripple-rebaseline.mjs`, using the Screen ID → Route Map routes (`/?_time=16:30`; `/?venue=test-venue-sunny&_state=venue-detail&_time=16:30`; `/favoriter?_state=favourites-tab&_time=14:00`). Saved to `docs/design/references/screens/desktop/{map-primary,venue-detail,favourites-tab}.png`.
+
+**Recipe change:** None to `capture-claude-design-refs.mjs` for these three (their recipes already pointed at the prototype while the references were implementation-derived — a pre-existing state). **Caveat:** because the prototype desktop HTML can never contain the app's "Om" link, re-running `capture-claude-design-refs.mjs` for these desktop screen IDs would regenerate a prototype capture WITHOUT the link and regress them — recapture from the implementation via `capture-navbar-ripple-rebaseline.mjs` instead. New helper `nextjs-app/scripts/capture-navbar-ripple-rebaseline.mjs` added (documented in its header).
+
+**Verification:** PASS — all three desktop screens via `scripts/visual-validate.sh <id> <route> desktop`.
+
+**Reason / spec link:** Story 7.1 desktop entry-point decision (maintainer-approved 2026-06-25); `AGENTS.md` requires shared-chrome reference drift to be re-baselined and logged in the same operation.
+
+**Re-evaluation trigger:** Re-capture when `DesktopNavBar` changes again, or when any of these three screens gets its own implementation re-baseline.
+
 ### 2026-06-09 — `review` (mobile) — Story 3.3 Venue Reviews (Codex / dev-story)
 
 **Trigger:** Story 3.3 visual validation exposed that the active `review` reference still came from the MVP Mobile Unlocked Tweaks -> `Recension` state, which renders an obsolete modal with required rating, tags, and `Publicera` copy. Story 3.3 and `project-context.md` require an inline venue-detail review form at `/?venue=test-venue-sunny&_state=review`.

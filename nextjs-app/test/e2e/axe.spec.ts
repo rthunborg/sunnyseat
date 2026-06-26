@@ -103,6 +103,22 @@ test.describe('axe-core a11y gate', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
+  // Story 7.1 — the About page is the first standalone scrolling content
+  // route. It (and its privacy sub-page) must pass the gate too.
+  test('a11y: about page (/about)', async ({ page }) => {
+    await page.goto('/about');
+    await page.getByTestId('about-page').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test('a11y: privacy page (/sekretess)', async ({ page }) => {
+    await page.goto('/sekretess');
+    await page.getByTestId('privacy-page').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
   // Story 3.4 review R1-P7 — the localized venue-detail not-found/error
   // notice is its own interactive surface and must pass the gate too.
   test('a11y: venue detail not-found notice (/?venue=<invalid slug>)', async ({ page }) => {
