@@ -6,10 +6,14 @@ import { useEffect, useState } from 'react';
  * Reports the browser's connectivity using `navigator.onLine` plus the
  * `online`/`offline` window events (Story 7.3 Task 4.1).
  *
- * SSR-safe: the initial value is `true` so a connected user never sees the
- * offline shell flash before hydration. The first client effect immediately
- * re-syncs from `navigator.onLine`, so a device that was already offline at
- * mount resolves to `false` within the first commit.
+ * SSR-safe: a lazy initializer reads `navigator.onLine` on the first client
+ * commit, so a device that is already offline at mount renders the offline
+ * shell immediately — with no one-frame flash of the online tree. On the
+ * server (no `navigator`) it falls back to `true`; the sole consumer
+ * (`MapView`) is `ssr:false`, and the `typeof` guard keeps the hook safe for
+ * any future server-rendered caller. The effect still re-syncs once on mount
+ * (covering any change between render and commit) and subscribes to the
+ * `online`/`offline` events.
  *
  * `navigator.onLine` is a coarse signal (it only proves the browser has *a*
  * network interface, not reachability), which is exactly what the offline
@@ -18,12 +22,14 @@ import { useEffect, useState } from 'react';
  * its fetches while offline and resumes them when the `online` event fires.
  */
 export function useOnlineStatus(): boolean {
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(
+    () => (typeof navigator !== 'undefined' ? navigator.onLine : true),
+  );
 
   useEffect(() => {
     const sync = () => setIsOnline(navigator.onLine);
-    // Re-sync immediately in case the browser was offline at mount, before
-    // any `online`/`offline` event has fired.
+    // Re-sync once on mount in case connectivity changed between the lazy
+    // initializer and this effect, before any `online`/`offline` event fired.
     sync();
     window.addEventListener('online', sync);
     window.addEventListener('offline', sync);
