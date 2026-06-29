@@ -31,5 +31,8 @@
   "notFound": {
     "heading": "This page could not be found",
     "cta": "Find sunny spots now →"
+  },
+  "offline": {
+    "banner": "No connection"
   }
 }

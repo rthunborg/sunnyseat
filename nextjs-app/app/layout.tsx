@@ -1,6 +1,7 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, Manrope } from 'next/font/google';
 import { getLocale } from 'next-intl/server';
+import { ServiceWorkerProvider } from './ServiceWorkerProvider';
 import { Providers } from './providers';
 import './globals.css';
 
@@ -21,6 +22,25 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: 'SunnySeat',
   description: 'Hitta soliga uteserveringar i Göteborg',
+  // PWA installability (Story 7.3 AC1): link the web app manifest
+  // (served from `app/manifest.ts`) and the iOS add-to-home-screen icon
+  // + standalone web-app hints (iOS has no `beforeinstallprompt`).
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'SunnySeat',
+  },
+  icons: {
+    icon: '/icons/icon-192.png',
+    apple: '/icons/apple-touch-icon.png',
+  },
+};
+
+// `theme_color` for the browser/OS chrome. Next 16 requires the theme colour
+// in the `viewport` export, not `metadata`. Matches `--color-amber-primary`.
+export const viewport: Viewport = {
+  themeColor: '#ffbf00',
 };
 
 export default async function RootLayout({
@@ -39,7 +59,12 @@ export default async function RootLayout({
       className={`${plusJakartaSans.variable} ${manrope.variable}`}
     >
       <body>
-        <Providers>{children}</Providers>
+        {/* Register the app-shell service worker (Story 7.3 AC2) behind a
+            client boundary — see ServiceWorkerProvider for why the wrapper is
+            required. */}
+        <ServiceWorkerProvider>
+          <Providers>{children}</Providers>
+        </ServiceWorkerProvider>
       </body>
     </html>
   );

@@ -43,6 +43,22 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-06-26 — `map-primary-offline` (mobile + desktop) — Story 7.3 PWA Installation & Offline Shell (Amelia / dev-story)
+
+**Trigger:** Story 7.3 implements the offline shell — `map-primary-offline` was a declared-but-unimplemented `_state` literal (project-context.md Screen ID → Route Map) with **no reference PNG in the MVP bundle**. `capture-claude-design-refs.mjs` flagged it as "needs its first implementation-driven baseline when the offline shell story lands". This is a **first-baseline capture**, not a re-baseline of an existing reference.
+
+**Resolution:** Capture the first implementation-driven `map-primary-offline` reference at both viewports from the running offline shell (AC3: cached map background + "Ingen anslutning" banner, no venue data/pins/predictions). There is no prototype recipe for the offline shell (the prototype "Tomt" modal is an empty venue/search state, not the routed offline shell), so the capture-recipe comment in `capture-claude-design-refs.mjs` points at the implementation rebaseline helper — same pattern as `not-found` / `about`. Self-consistent baseline (the reference IS the implementation).
+
+**Source of new PNG:** Playwright capture of `http://localhost:3000/?_state=map-primary-offline` at `390×844` and `1440×900`, `deviceScaleFactor: 2`, `Accept-Language: sv-SE`, onboarded (waits for `[data-testid="offline-banner"]`, +1.5 s settle for the banner slide-in + cached-map paint), via `nextjs-app/scripts/capture-offline-rebaseline.mjs`. Saved to `docs/design/references/screens/{mobile,desktop}/map-primary-offline.png` (780×1688 / 2880×1800). Mobile = top "Ingen anslutning" banner + cached map + bottom `MobileNavBar`; desktop = real `DesktopNavBar` above the centred banner + cached map.
+
+**Recipe change:** `nextjs-app/scripts/capture-claude-design-refs.mjs` — the `map-primary-offline` comment block updated from "needs its first implementation-driven baseline" to record the Story 7.3 capture. New helper `nextjs-app/scripts/capture-offline-rebaseline.mjs` added (documented in its header). `.claude/scripts/visual-validate.sh` — added a `map-primary-offline)` wait-selector case (waits for `[data-testid="offline-banner"]` instead of the generic `map-*` `venue-pin`, which never appears offline); it must precede the `map-*` case.
+
+**Verification:** Implementation-derived baseline; the gate compares the running offline shell against itself. Per the visual-gate prompt, map tile/content differences are ignored, so the non-deterministic cached-map background does not affect the comparison.
+
+**Reason / spec link:** Story 7.3 AC3 (offline shell) + AC7 (dev forced-state reachability) + Design Gate (Visual + Visual validation). `AGENTS.md` requires every reference PNG addition and capture-recipe change to be logged in the same operation. Same self-fulfilling-baseline justification as the 2026-05-04/05 `onboarding` desktop and the 2026-06-26 `not-found`/`about` entries.
+
+**Re-evaluation trigger:** Re-capture (via `capture-offline-rebaseline.mjs`) when the offline shell layout/copy changes materially, when the offline-banner styling/animation changes, or when the shared map/nav chrome changes.
+
 ### 2026-06-26 — `not-found` (mobile + desktop) — Story 7.2 404 Page (Amelia / dev-story)
 
 **Trigger:** Story 7.2 replaces the hardcoded-Swedish `app/not-found.tsx` stub with the designed, internationalized 404 (AC1/AC2: wordmark; centred amber-gold rounded-square pin tile with a "?"; `Den här platsen hittades inte` heading; in-app map CTA). The active `not-found` references were UNLOGGED legacy carryover — NOT part of the 2026-05-21 MVP refresh and with no prior REBASELINE-LOG entry — and they diverge from the AC implementation: the legacy mobile reference shows a bare pin outline with **no amber-gold rounded square** (which AC1 explicitly mandates), and the legacy desktop reference shows a stale **full venue-search navbar** that predates the current chrome.

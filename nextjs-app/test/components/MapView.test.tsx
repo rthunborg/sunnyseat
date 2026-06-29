@@ -476,6 +476,84 @@ describe('<MapView />', () => {
     });
   });
 
+  describe('offline shell (Story 7.3)', () => {
+    function setOnLine(value: boolean) {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value });
+    }
+
+    afterEach(() => {
+      // Leave the shared navigator back online for the other suites.
+      setOnLine(true);
+    });
+
+    it('forced map-primary-offline renders the cached map + banner and hides all venue data (AC3/AC7)', () => {
+      searchParamsMock = new URLSearchParams('_state=map-primary-offline');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      // Cached map background still renders.
+      expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
+      // "Ingen anslutning" banner is a polite live region.
+      const banner = screen.getByTestId('offline-banner');
+      expect(banner).toHaveTextContent('Ingen anslutning');
+      expect(banner).toHaveAttribute('role', 'status');
+      expect(banner).toHaveAttribute('aria-live', 'polite');
+      // No venue data: pins, quick info, list controls, search, loading pill.
+      expect(screen.queryByTestId('venue-pin-layer-stub')).toBeNull();
+      expect(screen.queryByTestId('venue-quick-info')).toBeNull();
+      expect(screen.queryByTestId('map-loading-pill')).toBeNull();
+      expect(screen.queryAllByTestId('time-slider-panel')).toHaveLength(0);
+    });
+
+    it('renders the English offline copy under the en locale (AC6)', () => {
+      searchParamsMock = new URLSearchParams('_state=map-primary-offline');
+
+      render(<MapView />, { wrapper: EnglishWrapper });
+
+      expect(screen.getByTestId('offline-banner')).toHaveTextContent('No connection');
+    });
+
+    it('shows the offline shell when the device goes offline and reloads venue data on reconnect (AC3/AC4)', async () => {
+      setOnLine(true);
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      // Online: venue layer present, no offline banner.
+      expect(screen.getByTestId('venue-pin-layer-stub')).toBeInTheDocument();
+      expect(screen.queryByTestId('offline-banner')).toBeNull();
+
+      // Lose connectivity.
+      setOnLine(false);
+      act(() => {
+        window.dispatchEvent(new Event('offline'));
+      });
+      expect(await screen.findByTestId('offline-banner')).toBeInTheDocument();
+      expect(screen.queryByTestId('venue-pin-layer-stub')).toBeNull();
+
+      // Reconnect — the venue-data tree (driven by the existing query layer)
+      // comes back; no hand-rolled fetch is involved.
+      setOnLine(true);
+      act(() => {
+        window.dispatchEvent(new Event('online'));
+      });
+      await waitFor(() =>
+        expect(screen.getByTestId('venue-pin-layer-stub')).toBeInTheDocument(),
+      );
+    });
+  });
+
   describe('cumulative LoadingPill timer (Task 9)', () => {
     it('shows the pill after 3 s of cumulative fetching even across an isFetching=false gap', async () => {
       const dataUpdatedAt = 0;

@@ -140,4 +140,19 @@ test.describe('axe-core a11y gate', () => {
     const violations = await runAxe(page);
     expect(violations, formatViolations(violations)).toEqual([]);
   });
+
+  // Story 7.3 Task 9.2 — the offline shell. `/?_state=map-primary-offline`
+  // forces the cached app shell + "Ingen anslutning" banner with no venue
+  // data, regardless of real network state. The mobile-viewport variant is
+  // covered by the `a11y-mobile` project (axe-mobile.spec.ts / Task 8.5).
+  test('a11y: offline shell (/?_state=map-primary-offline)', async ({ page }) => {
+    await page.addInitScript((key: string) => {
+      window.localStorage.setItem(key, '1');
+    }, ONBOARDED_FLAG_KEY);
+
+    await page.goto('/?_state=map-primary-offline');
+    await page.getByTestId('offline-banner').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
 });

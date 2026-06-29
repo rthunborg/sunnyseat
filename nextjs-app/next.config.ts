@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { withSerwist } from '@serwist/turbopack';
 
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
@@ -21,7 +22,10 @@ const nextConfig: NextConfig = {
   devIndicators: false,
 };
 
-const config = withNextIntl(nextConfig);
+// Compose Serwist (Turbopack-native PWA integration — adds esbuild to
+// `serverExternalPackages` for the SW route bundling) around the existing
+// next-intl plugin; the optional bundle-analyzer still wraps the result below.
+const config = withSerwist(withNextIntl(nextConfig));
 
 export default process.env.ANALYZE === 'true'
   ? (async () => {

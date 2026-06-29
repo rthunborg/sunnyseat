@@ -110,6 +110,12 @@ case "$SCREEN_ID" in
       WAIT_ARGS+=(--wait-for-selector '[data-testid="review-form-mobile"]' --wait-for-timeout 500)
     fi
     ;;
+  map-primary-offline)
+    # Story 7.3: the offline shell intentionally shows NO venue pins, so the
+    # generic `map-*` venue-pin wait below would time out. Wait for the
+    # "Ingen anslutning" banner instead. Must precede the `map-*` case.
+    WAIT_ARGS+=(--wait-for-selector '[data-testid="offline-banner"]' --wait-for-timeout 500)
+    ;;
   map-*)
     WAIT_ARGS+=(--wait-for-selector '[data-testid="venue-pin"]' --wait-for-timeout 500)
     ;;

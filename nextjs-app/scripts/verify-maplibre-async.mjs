@@ -15,6 +15,25 @@
 // Turbopack ships hashed filenames (no stable name like `vendor.js`), so
 // content-grep + manifest cross-reference is more robust than name-based
 // patterns.
+//
+// Story 7.3 Task 8.3 — CSS scope (deferred-work W3). This gate audits JS
+// chunks only; it deliberately does NOT extend to `maplibre-gl/dist/
+// maplibre-gl.css` (imported at the top of MapContainer). That static CSS
+// import is acceptable as-is, for the offline shell and otherwise, because:
+//   1. MapContainer is only reached through the single `next/dynamic`
+//      (`ssr: false`) boundary in MapViewDynamic, so its module graph — and
+//      the CSS it pulls — is part of the async MapView path, never the
+//      initial document.
+//   2. The performance budget that this verifier backstops (PRD NFR8) is a
+//      *JS* budget (≤600 KB gzipped total). The MapLibre stylesheet is a few
+//      KB of static CSS and is not counted against it; even if Next hoists it
+//      into the route's CSS bundle, the cost is negligible.
+//   3. The offline shell still renders MapContainer (the cached map
+//      background), so the MapLibre canvas/control styles are required on that
+//      path anyway — deferring or code-splitting the CSS would buy nothing for
+//      the offline case and risk an unstyled-map flash.
+// If MapLibre's CSS ever grows materially or a CSS-budget gate is introduced,
+// revisit this and add a CSS-chunk cross-reference here.
 
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { join, relative } from 'node:path';

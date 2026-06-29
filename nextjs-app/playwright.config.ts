@@ -18,24 +18,35 @@ export default defineConfig({
   // CI workflow's E2E and A11y steps are wired by `--project=<name>`
   // instead of `--grep-invert "a11y:"` (a naming-convention coupling
   // with no schema or PR-template enforcement; R-007). The mobile and
-  // desktop projects exclude axe.spec.ts; the a11y project runs ONLY
-  // axe.spec.ts. Adding any future test to axe.spec.ts is now self-
+  // desktop projects exclude the axe specs; the a11y projects run ONLY
+  // the axe specs. Adding any future test to an axe spec is now self-
   // routing — it cannot accidentally double-execute in the E2E step.
+  //
+  // Story 7.3 Task 8.5: `a11y-mobile` runs axe-mobile.spec.ts at an
+  // iPhone-14 viewport so the mobile-sheet variants (mobile venue-detail
+  // sheet, mobile review form, mobile feedback prompt) and the offline shell
+  // are inside the automated gate — the desktop-only `a11y` project cannot
+  // reach those `lg`-breakpoint-hidden surfaces.
   projects: [
     {
       name: 'mobile',
-      testIgnore: '**/axe.spec.ts',
+      testIgnore: ['**/axe.spec.ts', '**/axe-mobile.spec.ts'],
       use: { ...devices['iPhone 14'] },
     },
     {
       name: 'desktop',
-      testIgnore: '**/axe.spec.ts',
+      testIgnore: ['**/axe.spec.ts', '**/axe-mobile.spec.ts'],
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'a11y',
       testMatch: '**/axe.spec.ts',
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'a11y-mobile',
+      testMatch: '**/axe-mobile.spec.ts',
+      use: { ...devices['iPhone 14'] },
     },
   ],
   webServer: {
