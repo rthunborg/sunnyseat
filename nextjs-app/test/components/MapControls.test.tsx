@@ -8,6 +8,16 @@ import { MapControls } from '@/components/custom/map/MapControls';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
 import { GeolocationProvider } from '@/hooks/useGeolocation';
 
+const settingsState = vi.hoisted(() => ({ openSettings: vi.fn() }));
+vi.mock('@/lib/contexts/SettingsContext', () => ({
+  useSettings: () => ({
+    activeView: null,
+    openSettings: settingsState.openSettings,
+    openFeedback: vi.fn(),
+    close: vi.fn(),
+  }),
+}));
+
 type MapInstanceContextValue = React.ComponentProps<
   typeof MapInstanceContext.Provider
 >['value'];
@@ -295,22 +305,24 @@ describe('<MapControls />', () => {
     expect(wrapper.style.opacity).toBe('1');
   });
 
-  it('renders all three buttons disabled while mapInstance is null', () => {
+  it('renders the map-action buttons disabled while mapInstance is null (settings stays enabled)', () => {
     // Story 1.6 review (P37): native `disabled` is the only signal — the
     // explicit `aria-disabled` attribute was removed (it was redundant
     // with `disabled` and caused double-announcement on some AT).
     const { getByTestId } = render(<MapControls />, { wrapper: makeNullMapWrapper() });
 
-    for (const id of ['map-control-zoom-in', 'map-control-zoom-out', 'map-control-my-location', 'map-control-settings']) {
+    for (const id of ['map-control-zoom-in', 'map-control-zoom-out', 'map-control-my-location']) {
       const btn = getByTestId(id);
       expect(btn).toBeDisabled();
       // The DOM disabled attribute is what AT reads; assert that, not
       // a synthesised aria-disabled mirror.
       expect(btn).toHaveAttribute('disabled');
     }
+    // Settings opens the settings modal — independent of the map being ready.
+    expect(getByTestId('map-control-settings')).not.toBeDisabled();
   });
 
-  it('enabled map-action buttons are NOT disabled while future settings stays disabled', () => {
+  it('settings button is enabled and opens the settings modal on click', () => {
     const { getByTestId } = render(<MapControls />, { wrapper: makeWrapper(stubMap) });
 
     for (const id of ['map-control-zoom-in', 'map-control-zoom-out', 'map-control-my-location']) {
@@ -318,7 +330,10 @@ describe('<MapControls />', () => {
       expect(btn).not.toBeDisabled();
       expect(btn).not.toHaveAttribute('aria-disabled');
     }
-    expect(getByTestId('map-control-settings')).toBeDisabled();
+    const settings = getByTestId('map-control-settings');
+    expect(settings).not.toBeDisabled();
+    fireEvent.click(settings);
+    expect(settingsState.openSettings).toHaveBeenCalledTimes(1);
   });
 
   it('removes both drag listeners on unmount (one off() per on())', () => {

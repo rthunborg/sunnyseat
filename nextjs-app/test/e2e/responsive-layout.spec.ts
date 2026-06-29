@@ -58,8 +58,9 @@ test.describe('Mobile responsive layout', () => {
     await page.goto('/');
     await expectBypassedOnboarding(page);
 
-    // Playwright's mobile iPhone 14 emulation sends Accept-Language: en-US, so
-    // next-intl redirects to /en and renders English labels. Map both locales.
+    // Swedish is the default for everyone (localeDetection disabled), so `/`
+    // renders Swedish labels; the English branch only applies if a future test
+    // pins the `/en` prefix. Keep the mapping so the assertion stays robust.
     const pathname = new URL(page.url()).pathname;
     const isEnglish = pathname.startsWith('/en');
     const labels = isEnglish
@@ -196,5 +197,68 @@ test.describe('Desktop responsive layout', () => {
       focusStyle.outlineStyle !== 'none' ||
       (focusStyle.boxShadow !== 'none' && focusStyle.boxShadow !== '');
     expect(hasVisibleIndicator).toBe(true);
+  });
+
+  // Layout-invariant gate (hardening for the full-width time-planner miss):
+  // the LLM screenshot gate is told to forgive sizing, so it could not catch
+  // a chrome bar shipped edge-to-edge. These deterministic bounding-box
+  // assertions can, and double as regression tests for the planner + map
+  // control de-duplication.
+  test('D5: the desktop time planner clears the venue list sidebar and stays contained (not full-bleed)', async ({
+    page,
+  }) => {
+    await bypassOnboarding(page);
+    await page.goto('/');
+    await expectBypassedOnboarding(page);
+
+    const sidebar = visibleTestId(page, 'desktop-venue-list-panel');
+    await expect(sidebar).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+    const planner = visibleTestId(page, 'time-slider-panel');
+    await expect(planner).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+
+    const sidebarBox = await sidebar.boundingBox();
+    const plannerBox = await planner.boundingBox();
+    const viewport = page.viewportSize();
+    expect(sidebarBox).not.toBeNull();
+    expect(plannerBox).not.toBeNull();
+    expect(viewport).not.toBeNull();
+    if (sidebarBox && plannerBox && viewport) {
+      // Must begin to the RIGHT of the venue list, never slide under it.
+      expect(plannerBox.x).toBeGreaterThanOrEqual(sidebarBox.x + sidebarBox.width - 1);
+      // Must stay inside the viewport and NOT stretch edge-to-edge: at least
+      // the sidebar's width of horizontal space stays clear of the planner.
+      // (The shipped bug rendered it `left-4 right-4` — full-bleed.)
+      expect(plannerBox.x + plannerBox.width).toBeLessThanOrEqual(viewport.width + 1);
+      expect(plannerBox.width).toBeLessThan(viewport.width - sidebarBox.width + 2);
+    }
+  });
+
+  test('D6: redundant map-stack locate/settings are hidden on desktop while zoom +/- remain', async ({
+    page,
+  }) => {
+    await bypassOnboarding(page);
+    await page.goto('/');
+    await expectBypassedOnboarding(page);
+
+    // Zoom controls are a desktop-welcome addition — they stay.
+    await expect(visibleTestId(page, 'map-control-zoom-in')).toBeVisible({
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
+    await expect(visibleTestId(page, 'map-control-zoom-out')).toBeVisible();
+
+    // Locate + settings must NOT be duplicated over the map on desktop — the
+    // top nav owns them. Hidden via `lg:hidden`, so nothing visible here.
+    await expect(page.locator('[data-testid="map-control-my-location"]:visible')).toHaveCount(0);
+    await expect(page.locator('[data-testid="map-control-settings"]:visible')).toHaveCount(0);
+  });
+
+  test('D7: the desktop nav my-location button is shown and wired (enabled)', async ({ page }) => {
+    await bypassOnboarding(page);
+    await page.goto('/');
+    await expectBypassedOnboarding(page);
+
+    const locate = visibleTestId(page, 'desktop-nav-my-location');
+    await expect(locate).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+    await expect(locate).toBeEnabled();
   });
 });

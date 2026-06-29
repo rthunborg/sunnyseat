@@ -7,6 +7,8 @@ import { MapSelectionProvider } from '@/lib/contexts/MapSelectionContext';
 import { TimeProvider } from '@/lib/contexts/TimeContext';
 import { FavouritesProvider } from '@/lib/contexts/FavouritesContext';
 import { GeolocationProvider } from '@/hooks/useGeolocation';
+import { SettingsProvider } from '@/lib/contexts/SettingsContext';
+import { SettingsModalRoot } from '@/components/custom/settings/SettingsModalRoot';
 
 /**
  * Mounts the cross-cutting client contexts in the order prescribed by
@@ -30,9 +32,14 @@ export function AppContextProviders({ children }: { children: ReactNode }) {
     <GeolocationProvider>
       <MapInstanceProvider>
         <MapSelectionProvider>
-          <Suspense fallback={<DefaultTimeProviders>{children}</DefaultTimeProviders>}>
-            <SearchParamTimeProviders>{children}</SearchParamTimeProviders>
-          </Suspense>
+          <SettingsProvider>
+            <Suspense fallback={<DefaultTimeProviders>{children}</DefaultTimeProviders>}>
+              <SearchParamTimeProviders>{children}</SearchParamTimeProviders>
+            </Suspense>
+            {/* One mount point for the settings + app-feedback modals, openable
+                from the desktop nav and the mobile map controls. */}
+            <SettingsModalRoot />
+          </SettingsProvider>
         </MapSelectionProvider>
       </MapInstanceProvider>
     </GeolocationProvider>

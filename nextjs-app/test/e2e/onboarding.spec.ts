@@ -5,11 +5,10 @@ const APP_SETTLE_TIMEOUT_MS = 15_000;
 
 // e2e scope: routing, state-forcing, gate integration, dismissal.
 //
-// Locale: next-intl `localePrefix: 'as-needed'` honours `Accept-Language`
-// at `/`. Playwright's default `en-US` steers root requests to `/en`
-// (English). To assert Swedish copy in e2e, set `extraHTTPHeaders:
-// { 'Accept-Language': 'sv-SE,sv;q=0.9' }` per-`test.use()` block — see
-// `docs/dev/ci-gates.md` §"Adding locale-aware e2e tests".
+// Locale: Swedish is the default for everyone. `localeDetection` is disabled
+// in `i18n/routing`, so `/` always renders Swedish regardless of the browser's
+// Accept-Language; English is only served from the explicit `/en` prefix (the
+// manual language switcher navigates there).
 test.describe('Onboarding overlay', () => {
   test('forces the onboarding state via _state=onboarding', async ({ page }) => {
     await page.goto('/?_state=onboarding');
@@ -48,17 +47,12 @@ test.describe('Onboarding overlay', () => {
 });
 
 test.describe('Onboarding overlay (Swedish locale)', () => {
-  // Override the default Accept-Language so next-intl's `as-needed` mode
-  // negotiates to Swedish at `/`. Story 1.6 Task 10 — confirms that the
-  // negotiation works as designed; the original Story 1.5 deferred-work
-  // hypothesis ("Accept-Language doesn't trigger sv") was wrong.
-  // Playwright's `locale` option drives the browser's `Accept-Language`
-  // from the chromium side, which is what next-intl's middleware reads.
-  // `extraHTTPHeaders` does NOT override device-emulation language headers,
-  // so always reach for `locale` here.
+  // Swedish is now the default at `/` for every browser (localeDetection is
+  // disabled), so this no longer depends on Accept-Language. The explicit
+  // `locale: 'sv-SE'` is kept as a belt-and-braces guard.
   test.use({ locale: 'sv-SE' });
 
-  test('renders the Swedish headline when Accept-Language asks for sv', async ({
+  test('renders the Swedish headline at the default root route', async ({
     page,
   }) => {
     await page.goto('/?_state=onboarding');

@@ -7,6 +7,7 @@ import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
 import { DURATION_FLY_MS } from '@/lib/constants/animation';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { useSettings } from '@/lib/contexts/SettingsContext';
 
 const ZOOM_DURATION_MS = 200;
 const DRAG_FADE_OPACITY = '0.6';
@@ -46,11 +47,16 @@ const DRAG_FADE_OPACITY = '0.6';
  *   • Story 1.5 — wired my-location to `useGeolocation`.
  *   • Story 1.6 review — token-driven desktop offset (P14), `aria-disabled`
  *     dropped in favour of native `disabled` (P37), comment refresh (P38).
+ *   • Desktop de-duplication — locate + settings are `lg:hidden`; the desktop
+ *     top nav owns those actions, so the map stack keeps only zoom +/- there.
+ *   • Settings now opens the settings modal (mobile entry point) via
+ *     `useSettings()`; it is always enabled (not gated on `mapInstance`).
  */
 export function MapControls() {
   const t = useTranslations('map');
   const { mapInstance } = useMapInstance();
   const geolocation = useGeolocation();
+  const { openSettings } = useSettings();
   const controlsRef = useRef<HTMLDivElement | null>(null);
   const isMapReady = mapInstance !== null;
 
@@ -86,11 +92,6 @@ export function MapControls() {
     geolocation.requestLocation();
   };
 
-  const handleSettings = () => {
-    // The refreshed MVP reference exposes settings from the map chrome.
-    // The settings sheet itself is handled by a later scoped story.
-  };
-
   // Fly to the user's location once the geolocation request resolves to
   // success. On fallback (denial / unavailable) we silently keep the
   // current map centre. For returning users with granted permission, the
@@ -115,19 +116,24 @@ export function MapControls() {
       data-testid="map-controls"
       className="absolute right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*50)] z-floating-buttons flex flex-col gap-3 opacity-100 transition-opacity duration-200 ease-default motion-reduce:transition-none lg:top-[calc(var(--size-desktop-nav-h)+var(--spacing)*7)]"
     >
+      {/* Locate + settings are `lg:hidden`: on desktop the top nav owns these
+          actions, so duplicating them over the map is redundant chrome. They
+          remain on mobile, where the bottom nav has no locate/settings and the
+          map stack is the only access point. Zoom +/- stay at every breakpoint. */}
       <GlassButton
         ariaLabel={t('myLocation')}
         onClick={handleMyLocation}
         disabled={!isMapReady}
         testId="map-control-my-location"
+        className="lg:hidden"
       >
         <LocateFixed aria-hidden="true" style={{ width: 20, height: 20 }} />
       </GlassButton>
       <GlassButton
         ariaLabel={t('settings')}
-        onClick={handleSettings}
-        disabled
+        onClick={openSettings}
         testId="map-control-settings"
+        className="lg:hidden"
       >
         <Settings aria-hidden="true" style={{ width: 20, height: 20 }} />
       </GlassButton>
@@ -154,13 +160,13 @@ export function MapControls() {
 type GlassButtonProps = {
   ariaLabel: string;
   onClick: () => void;
-  disabled: boolean;
+  disabled?: boolean;
   testId: string;
   className?: string;
   children: React.ReactNode;
 };
 
-function GlassButton({ ariaLabel, onClick, disabled, testId, className, children }: GlassButtonProps) {
+function GlassButton({ ariaLabel, onClick, disabled = false, testId, className, children }: GlassButtonProps) {
   // Story 1.6 review (P37): native `disabled` already removes the button
   // from the tab order and exposes the disabled state to assistive tech;
   // adding `aria-disabled` on top either is ignored or causes double

@@ -200,6 +200,23 @@ export interface FeedbackResponse {
   createdAt: string;
 }
 
+// General app-experience feedback (star rating + optional comment), distinct
+// from the per-venue sun-accuracy feedback above. Submitted from the settings
+// modal; persisted to the write-only `app_feedback` sink.
+export interface SubmitAppFeedbackRequest {
+  rating: number; // 1-5 stars
+  comment?: string;
+  locale?: string;
+}
+
+export interface AppFeedbackResponse {
+  id: string;
+  rating: number;
+  comment?: string;
+  locale?: string;
+  createdAt: string;
+}
+
 export interface QueryFeedbackRequest {
   venueId?: number;
   startDate?: string;

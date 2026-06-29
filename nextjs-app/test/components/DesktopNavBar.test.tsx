@@ -12,6 +12,17 @@ const mockState = vi.hoisted(() => ({
   selectVenue: vi.fn(),
   easeTo: vi.fn(),
   useVenueSearch: vi.fn(),
+  requestLocation: vi.fn(),
+  openSettings: vi.fn(),
+}));
+
+vi.mock('@/lib/contexts/SettingsContext', () => ({
+  useSettings: () => ({
+    activeView: null,
+    openSettings: mockState.openSettings,
+    openFeedback: vi.fn(),
+    close: vi.fn(),
+  }),
 }));
 
 vi.mock('@/hooks/useGeolocation', async (importOriginal) => {
@@ -21,7 +32,7 @@ vi.mock('@/hooks/useGeolocation', async (importOriginal) => {
     useGeolocation: () => ({
     status: 'idle',
     coords: { lat: 57.7089, lng: 11.9746 },
-    requestLocation: () => {},
+    requestLocation: mockState.requestLocation,
     useCentrum: () => {},
     }),
   };
@@ -54,6 +65,10 @@ vi.mock('next-intl/navigation', () => ({
         {children}
       </a>
     ),
+    usePathname: () => '/',
+    useRouter: () => ({ replace: vi.fn(), push: vi.fn(), prefetch: vi.fn() }),
+    redirect: vi.fn(),
+    getPathname: vi.fn(),
   }),
 }));
 
@@ -76,6 +91,9 @@ const NAV_MESSAGES = {
       next: 'Nästa filter',
       myLocation: 'Min plats',
       settings: 'Inställningar',
+      language: 'Språk',
+      switchToSwedish: 'Byt till svenska',
+      switchToEnglish: 'Byt till engelska',
       filterChips: {
         courtyard: 'Innergård',
         dogs: 'Hund ok',
@@ -198,8 +216,35 @@ describe('DesktopNavBar', () => {
     expect(screen.getByRole('button', { name: 'Innergård' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Föregående filter' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Nästa filter' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Min plats' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Inställningar' })).toBeDisabled();
+  });
+
+  it('opens the settings modal from the settings button and no longer renders a standalone About link', () => {
+    renderDesktopNav();
+
+    // About now lives inside the settings modal ("Om SunnySeat").
+    expect(screen.queryByTestId('desktop-nav-about')).not.toBeInTheDocument();
+
+    const settings = screen.getByRole('button', { name: 'Inställningar' });
+    expect(settings).toBeEnabled();
+    fireEvent.click(settings);
+    expect(mockState.openSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it('wires the my-location button to request geolocation (the canonical desktop control)', () => {
+    renderDesktopNav();
+
+    const locate = screen.getByRole('button', { name: 'Min plats' });
+    expect(locate).toBeEnabled();
+    fireEvent.click(locate);
+    expect(mockState.requestLocation).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders the SV/EN language switcher group', () => {
+    renderDesktopNav();
+
+    expect(screen.getByRole('group', { name: 'Språk' })).toBeInTheDocument();
+    expect(screen.getByTestId('language-switch-sv')).toBeInTheDocument();
+    expect(screen.getByTestId('language-switch-en')).toBeInTheDocument();
   });
 });
 
