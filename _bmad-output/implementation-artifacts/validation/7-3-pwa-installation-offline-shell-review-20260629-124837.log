@@ -1,0 +1,55 @@
+SunnySeat story review gate
+Story: 7-3-pwa-installation-offline-shell
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/7-3-pwa-installation-offline-shell-review-20260629-124837.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/7-3-pwa-installation-offline-shell.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  77 passed (77)
+      Tests  665 passed (665)
+   Start at  12:48:58
+   Duration  34.91s (transform 8.19s, setup 57.44s, import 63.24s, tests 58.96s, environment 277.57s)
+
+
+Running visual validation: screen='map-primary-offline' route='/?_state=map-primary-offline' viewport='mobile'
+--- Visual validation: map-primary-offline ---
+Navigating to http://localhost:3000/?_state=map-primary-offline
+Waiting for selector [data-testid="offline-banner"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-JXBkYM.png
+VISUAL GATE PASSED: PASS: The implementation matches the reference well — the offline banner ("Ingen anslutning") is correctly positioned at the top, the warm/sand-tinted map area is present (map tiles appear lighter/not fully loaded in the implementation, which is acceptable for an offline state), and the bottom navigation bar with "NÄRA MIG" (active/orange) and "FAVORITER" icons is correctly rendered.
+
+Running visual validation: screen='map-primary-offline' route='/?_state=map-primary-offline' viewport='desktop'
+--- Visual validation: map-primary-offline ---
+Navigating to http://localhost:3000/?_state=map-primary-offline
+Waiting for selector [data-testid="offline-banner"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-Dcu8nY.png
+VISUAL GATE PASSED: PASS: The implementation matches the reference closely — the header with logo, search bar, filter chips, and "Ingen anslutning" offline banner are all correctly positioned and styled, with the map area showing the expected warm/sand background colour tint (map tiles not loaded due to offline state, which is acceptable).
+Updated sprint status: 7-3-pwa-installation-offline-shell -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/7-3-pwa-installation-offline-shell-review-20260629-124837.log

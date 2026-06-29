@@ -170,3 +170,18 @@ This correction changes the backend/data foundation and confidence semantics, bu
 - Which manually annotated structures, if any, are worth adding before MVP launch?
 - How should cluster validation status be stored: per cluster table, import-batch metadata, or a lightweight config table?
 - When the TypeScript engine is updated, should the compatibility term `building` be renamed to `shadowCaster` throughout?
+
+## 2026-06-16 Story 8.1.1 Decision: Activate Height-Uncertain Casters
+
+**Problem.** Story 8.1's spot-check validation showed the conservative 3.0.3/3.0.4 filter sends ~1,569 real ≥10 m `byggnad_l` buildings to `review`/inactive purely because their *height estimate* is uncertain (`large-z-spread`, `single-line-tall`, `limited-line-support`, and `very-tall` >60 m). Their footprints are certain (Lantmäteriet). Deactivating them means the engine casts no shadow there → systematic false-"sunny" in the dense central clusters. A local prototype that activated review buildings at a conservative ~15 m height resolved 7 of 8 confirmed false-sunnies, flipping only sunny→shadowed.
+
+**Decision (approved by Rasmus, 2026-06-16).** *Existence certain, height uncertain → cast a conservative shadow, don't omit.* In `decide_filter`, a `byggnad_l` building held back **only** for height-uncertainty reasons we trust is reclassified `review → include`/`active` instead of being dropped:
+
+- **Activation set:** `large-z-spread`, `single-line-tall`, `limited-line-support`, **and `very-tall` (>60 m)**. A building is activated only when *every* one of its review reasons is in this set (`HEIGHT_UNCERTAIN_ACTIVATION_REASONS`).
+- **Held back as `review`:** `no-roof-contour-for-material-height` (height inferred with no roof contour to confirm it — revisit if the Task 6 gate still shows residual false-sunnies) and `missing-or-invalid-area` (no trustworthy footprint — a geometry problem, not height). The hard-exclude set (<3 m, tiny-tall, >80 m, z-spread >60 m, small-komplement-low-quality) is unchanged.
+- **Conservative height:** `height_m = min(estimate, 15 m)` (`HEIGHT_UNCERTAIN_CONSERVATIVE_CAP_M`). 15 m casts a meaningful central shadow (cluster medians 14–19 m) while clamping inflated/phantom estimates so one bad Z reading can't black out a block. The cap is a single tunable constant; if the Task 6 re-validation shows residual false-sunnies near genuine tall towers, raise it to 20–24 m and re-derive.
+- **Quality:** subtract `0.25` (`HEIGHT_UNCERTAIN_QUALITY_PENALTY`) — the same magnitude these rows carried as `review` — plus a `height-uncertain-activated` source-flag. Activation is therefore **confidence-neutral**: the building now exists for casting shade but the Story 3.0.5 engine down-weights confidence exactly as before, so no empty/uncertain cluster gains high confidence from this change.
+
+**Why not the alternatives.** A z-range *lower* bound was rejected: for exactly these buildings the Z data is noisy/sparse, and a lower height means a shorter shadow → *more* false-"sunny", the wrong error direction (a user sent to a shaded seat they were told was sunny is the worst outcome). A flat cap errs toward shade — the safe direction for a sun app — and is what the prototype validated. A higher starting cap (20 m) was held in reserve pending the Task 6 gate.
+
+**Scope.** Filter/classification logic in `scripts/geodata/shadow_caster_pipeline.py` only. The 3.0.2 schema/RPC, the 3.0.5 runtime confidence/shadow math, RLS (Story 8.5), and all `nextjs-app` runtime code are unchanged. Activated rows still satisfy every active-row DB invariant (`active ⇒ include ⇒ ≥3 m ⇒ byggnad_l ⇒ source_geom_3007`).

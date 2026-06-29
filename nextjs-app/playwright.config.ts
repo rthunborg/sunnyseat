@@ -3,7 +3,13 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './test/e2e',
   timeout: 30_000,
-  retries: 0,
+  // CI runs E2E against the dev server (`npm run dev`); the first hit on a
+  // route triggers on-demand Turbopack compilation that can eat into a test's
+  // 30s budget and flake an animation-"stable" wait (observed on
+  // feedback.spec.ts under CI load — the button resolved visible+enabled but
+  // never settled in time). Retry twice in CI, where the warmed second attempt
+  // is fast; keep 0 locally so flakes surface immediately during development.
+  retries: process.env.CI ? 2 : 0,
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
@@ -18,24 +24,35 @@ export default defineConfig({
   // CI workflow's E2E and A11y steps are wired by `--project=<name>`
   // instead of `--grep-invert "a11y:"` (a naming-convention coupling
   // with no schema or PR-template enforcement; R-007). The mobile and
-  // desktop projects exclude axe.spec.ts; the a11y project runs ONLY
-  // axe.spec.ts. Adding any future test to axe.spec.ts is now self-
+  // desktop projects exclude the axe specs; the a11y projects run ONLY
+  // the axe specs. Adding any future test to an axe spec is now self-
   // routing — it cannot accidentally double-execute in the E2E step.
+  //
+  // Story 7.3 Task 8.5: `a11y-mobile` runs axe-mobile.spec.ts at an
+  // iPhone-14 viewport so the mobile-sheet variants (mobile venue-detail
+  // sheet, mobile review form, mobile feedback prompt) and the offline shell
+  // are inside the automated gate — the desktop-only `a11y` project cannot
+  // reach those `lg`-breakpoint-hidden surfaces.
   projects: [
     {
       name: 'mobile',
-      testIgnore: '**/axe.spec.ts',
+      testIgnore: ['**/axe.spec.ts', '**/axe-mobile.spec.ts'],
       use: { ...devices['iPhone 14'] },
     },
     {
       name: 'desktop',
-      testIgnore: '**/axe.spec.ts',
+      testIgnore: ['**/axe.spec.ts', '**/axe-mobile.spec.ts'],
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'a11y',
       testMatch: '**/axe.spec.ts',
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'a11y-mobile',
+      testMatch: '**/axe-mobile.spec.ts',
+      use: { ...devices['iPhone 14'] },
     },
   ],
   webServer: {

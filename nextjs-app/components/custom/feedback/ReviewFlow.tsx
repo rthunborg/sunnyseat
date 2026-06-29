@@ -224,6 +224,7 @@ function reviewLabels(t: ReturnType<typeof useTranslations<'feedback.review'>>) 
       ratingValue: t('form.ratingValue', { rating: '{rating}' }),
       photo: t('form.photo'),
       photoSelected: t('form.photoSelected', { name: '{name}' }),
+      photoRejected: t('form.photoRejected'),
       submit: t('form.submit'),
       submitting: t('form.submitting'),
       close: t('form.close'),

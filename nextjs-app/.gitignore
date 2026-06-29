@@ -40,6 +40,9 @@ CLAUDE.md
 scripts/*
 !scripts/capture-claude-design-refs.mjs
 !scripts/capture-onboarding-rebaseline.mjs
+!scripts/capture-about-rebaseline.mjs
+!scripts/capture-navbar-ripple-rebaseline.mjs
+!scripts/capture-not-found-rebaseline.mjs
 !scripts/verify-maplibre-async.mjs
 
 # vercel

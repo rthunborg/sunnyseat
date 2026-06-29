@@ -2,7 +2,18 @@ import { GOTHENBURG } from '@/lib/solar/constants';
 import type { WeatherSlice } from '@/lib/solar/types';
 
 const API_BASE = 'https://api.met.no/weatherapi';
-const USER_AGENT = 'SunnySeat/1.0 github.com/sunnyseat/app';
+
+// Met.no TOS requires an identifying User-Agent with a way to make contact.
+// Sourced from MET_NO_USER_AGENT (overridable per environment) and falls back to
+// a non-secret default carrying the project maintainer's contact-of-record, so
+// even the fallback is TOS-compliant. This is NOT a secret — it must NOT be
+// NEXT_PUBLIC_, but it carries no credential (the contact address is public by
+// TOS design). [Story 8.5 Task 5.4 / AC#4e]
+const DEFAULT_USER_AGENT = 'SunnySeat/1.0 rasmus.thunborg@enhancior.se';
+
+function userAgent(): string {
+  return process.env.MET_NO_USER_AGENT?.trim() || DEFAULT_USER_AGENT;
+}
 
 interface MetNoResponse {
   properties?: {
@@ -42,7 +53,7 @@ export async function getForecast(
     const url = `${API_BASE}/locationforecast/2.0/compact?lat=${latitude.toFixed(4)}&lon=${longitude.toFixed(4)}`;
 
     const res = await fetch(url, {
-      headers: { 'User-Agent': USER_AGENT },
+      headers: { 'User-Agent': userAgent() },
       next: { revalidate: 300 },
     });
 
@@ -62,10 +73,10 @@ export async function getForecast(
       const instant = entry.data?.instant?.details;
       if (!instant) continue;
 
-      const entryTime = new Date(entry.time).getTime();
+      const validAt = new Date(entry.time);
+      const entryTime = validAt.getTime();
       const isForecast = entryTime > now + 30 * 60000;
 
-      const precip = entry.data?.next_1_hours?.details?.precipitation_amount;
       const fogFraction = instant.fog_area_fraction;
       const visibility =
         fogFraction != null ? (100 - fogFraction) / 10.0 : undefined;
@@ -76,7 +87,13 @@ export async function getForecast(
         visibility,
         isForecast,
         source: 'metno',
+        // createdAt = when WE fetched (kept for confidence-calculator's data-age
+        // model). validAt = the slice's own valid-time, used by the sun-engine
+        // adapter for honest freshness + the >2h "approximate" signal so it can
+        // actually fire and a future-planner slice is not advertised as fresh
+        // "now". [Story 8.5 Task 5.3 / AC#4c]
         createdAt: new Date(),
+        validAt,
       });
     }
 
@@ -91,7 +108,7 @@ export async function isAvailable(): Promise<boolean> {
   try {
     const url = `${API_BASE}/locationforecast/2.0/compact?lat=57.7089&lon=11.9746`;
     const res = await fetch(url, {
-      headers: { 'User-Agent': USER_AGENT },
+      headers: { 'User-Agent': userAgent() },
       signal: AbortSignal.timeout(5000),
     });
     return res.ok;

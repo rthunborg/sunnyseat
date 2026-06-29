@@ -1,0 +1,55 @@
+SunnySeat story review gate
+Story: 8-4-feedback-review-persistence-enablement
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/8-4-feedback-review-persistence-enablement-review-20260621-205523.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/8-4-feedback-review-persistence-enablement.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  69 passed (69)
+      Tests  590 passed (590)
+   Start at  20:55:46
+   Duration  38.02s (transform 6.74s, setup 61.22s, import 68.45s, tests 61.01s, environment 303.13s)
+
+
+Running visual validation: screen='feedback' route='/?venue=test-venue-sunny&_state=feedback' viewport='mobile'
+--- Visual validation: feedback ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=feedback
+Waiting for selector [data-testid="feedback-prompt"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-fxa8if.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with all key UI components present and correctly positioned — search bar, venue header with sun score badge, placeholder image, open status pill, feedback form with venue info, outdoor seating question, sun condition question with three options, comment textarea, and submit button — with only minor spacing and dynamic data differences (rating count) that are non-blocking.
+
+Running visual validation: screen='review' route='/?venue=test-venue-sunny&_state=review' viewport='mobile'
+--- Visual validation: review ---
+Navigating to http://localhost:3000/?venue=test-venue-sunny&_state=review
+Waiting for selector [data-testid="review-form-mobile"]...
+Waiting for timeout 500...
+Capturing screenshot into C:/Users/Rasmus/AppData/Local/Temp/impl-NNEjEv.png
+VISUAL GATE PASSED: PASS: The implementation closely matches the reference design with all key UI components present and correctly positioned — search bar, header with heart/close buttons, review form with textarea, star rating, photo upload, and submit/close buttons all render correctly with matching colour scheme and layout structure; minor differences in subtitle text and photo button label wording are non-blocking content variations.
+Updated sprint status: 8-4-feedback-review-persistence-enablement -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/8-4-feedback-review-persistence-enablement-review-20260621-205523.log

@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
+import { HttpError } from '@/hooks/queries/venue-query-options';
 import type {
   GetReviewsResponse,
   GetVenueDetailResponse,
@@ -23,7 +24,7 @@ export function useSubmitReview(identifier: string) {
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        throw new Error(`Review submit failed: ${res.status} ${res.statusText}`);
+        throw new HttpError(`Review submit failed: ${res.status} ${res.statusText}`, res.status);
       }
       const contentType = res.headers.get('content-type') ?? '';
       if (!contentType.toLowerCase().includes('application/json')) {

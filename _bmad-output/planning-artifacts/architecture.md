@@ -1048,7 +1048,8 @@ All server state lives in the TanStack Query cache. No duplicating API data into
 3. Import stores include records as runtime-active `shadow_casters`; review records are inactive; excluded records remain diagnostics.
 4. `calculateVenueShadow` calls `get_buildings_near_point` compatibility RPC for nearby runtime-active casters.
 5. Shadow geometry uses `height_m`, caster geometry, and solar position to project shadows.
-6. Confidence logic applies building quality, source priority, cluster validation status, data coverage, low sun elevation, weather, and known unmodelled obstruction caps.
+6. An optional per-venue seating-surface elevation (`venues.seating_elevation_m`, server-only) gates which casters shadow the venue: a caster only contributes a shadow by its height *above* the seating surface, so a building at or below an elevated venue (rooftop bar, raised/hilltop terrace) stops shadowing it. Null/0 elevation = ground-level (default, byte-identical to the pre-8.6 path). Height-above-own-ground is Epic 8 Story 8.6; terrain/DTM ground-delta for hilltop venues is Story 8.7.
+7. Confidence logic applies building quality, source priority, cluster validation status, data coverage, low sun elevation, weather, and known unmodelled obstruction caps.
 
 ## Architecture Validation Results
 

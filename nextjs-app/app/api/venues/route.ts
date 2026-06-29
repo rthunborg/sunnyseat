@@ -18,10 +18,8 @@ import {
 } from '@/lib/utils/validation';
 import { badRequest } from '@/lib/utils/api-errors';
 import { greatCircleMeters } from '@/lib/utils/geo';
-import {
-  normalizeVenueForResponse,
-  VENUE_FIXTURE,
-} from '@/lib/services/venues-fixture';
+import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
+import { getVenues } from '@/lib/services/venue-store';
 import {
   applyPlannerSelectionToVenue,
   parseVenuePlannerParams,
@@ -30,7 +28,21 @@ import {
   applyFixtureWeatherAvailability,
   resolveFixtureSunFreshness,
 } from '@/lib/services/weather-freshness-fixture';
-import type { GetVenuesResponse, VenueDataDto } from '@/lib/types/api';
+import {
+  aggregateSunFreshness,
+  applyRealSunEngine,
+  createDedupedForecastFetcher,
+  mapWithConcurrency,
+  resolveRequestedAt,
+  safeSeedOutcome,
+  shouldUseRealSunEngine,
+  SUN_ENGINE_LIST_CONCURRENCY,
+} from '@/lib/services/sun-engine';
+import type {
+  GetVenuesResponse,
+  SunFreshnessMeta,
+  VenueDataDto,
+} from '@/lib/types/api';
 import { sunFreshnessHeaders } from '@/lib/utils/sun-freshness';
 
 const DEFAULT_RADIUS_KM = 1.5;
@@ -42,7 +54,6 @@ const MAX_IDS = MAX_RESULTS;
 const MAX_IDS_QUERY_LENGTH = MAX_IDS * (MAX_ID_LENGTH + 1) - 1;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 120;
-const COORDINATE_COLLISION_PRECISION = 6;
 const MISSING_CLIENT_RATE_LIMIT_KEY = 'missing-client-ip';
 const RATE_LIMIT_SWEEP_INTERVAL_MS = RATE_LIMIT_WINDOW_MS;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/u;
@@ -167,27 +178,32 @@ export function clearVenueRateLimitForTests() {
   lastRateLimitSweepAt = 0;
 }
 
+/**
+ * Reject a venue set that violates the DB's unique keys before it reaches the
+ * map: `id` (the `public.venues` PRIMARY KEY) and `slug` (the unique index
+ * `idx_venues_slug`). Coordinates are deliberately NOT checked — they are not a
+ * DB unique key, so two legitimately-distinct venues may sit at near-identical
+ * coordinates (same building/block) without being a data error, and the old
+ * rounded-coordinate check would 500 the list route for them. [Story 8.5 6.1]
+ */
 export function validateVenueUniqueness(
   venues: VenueDataDto[],
 ): { valid: true } | { valid: false; reason: string } {
   const ids = new Set<string>();
-  const coords = new Set<string>();
+  const slugs = new Set<string>();
   for (const venue of venues) {
     if (ids.has(venue.id)) {
       return { valid: false, reason: `Duplicate venue id: ${venue.id}` };
     }
     ids.add(venue.id);
 
-    const lat = venue.location?.lat;
-    const lng = venue.location?.lng;
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-    const key = `${lat.toFixed(COORDINATE_COLLISION_PRECISION)},${lng.toFixed(
-      COORDINATE_COLLISION_PRECISION,
-    )}`;
-    if (coords.has(key)) {
-      return { valid: false, reason: `Duplicate venue coordinates: ${key}` };
+    const slug = venue.slug;
+    if (slug) {
+      if (slugs.has(slug)) {
+        return { valid: false, reason: `Duplicate venue slug: ${slug}` };
+      }
+      slugs.add(slug);
     }
-    coords.add(key);
   }
   return { valid: true };
 }
@@ -235,7 +251,8 @@ export async function GET(request: NextRequest) {
     return badRequest('Longitude must be between -180 and 180 degrees');
   }
 
-  const uniqueness = validateVenueUniqueness(VENUE_FIXTURE);
+  const storeVenues = await getVenues();
+  const uniqueness = validateVenueUniqueness(storeVenues);
   if (!uniqueness.valid) {
     return NextResponse.json(
       { detail: uniqueness.reason, status: 500 },
@@ -265,16 +282,59 @@ export async function GET(request: NextRequest) {
   if (!ids.success) return badRequest(ids.error);
   const planner = parseVenuePlannerParams(params);
   if (!planner.ok) return badRequest(planner.detail);
-  const freshness = resolveFixtureSunFreshness(params);
 
-  const matchedVenues = VENUE_FIXTURE
-    .map((v) => normalizeVenueForResponse(v))
-    .map((v) => applyFixtureWeatherAvailability(v, freshness))
-    .map((v) => applyPlannerSelectionToVenue(v, planner.selection))
-    .map((v) => ({
-      ...v,
-      distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),
-    }))
+  // STORY 8.3 — real engine swap behind a frozen DTO. The default (flag off)
+  // path is byte-identical to the 8.2 seed; the real path replaces the sun
+  // fields before the SUN_STATUS_ORDER sort and bypasses the planner +
+  // fixture-weather stages (the engine computes for the requested time + real
+  // freshness). DECISION D: compute concurrently, degrade per-venue (never 500).
+  const useRealEngine = shouldUseRealSunEngine();
+  const now = new Date();
+  let freshness: SunFreshnessMeta;
+  let processedVenues: VenueDataDto[];
+
+  if (useRealEngine) {
+    const requestedAt = resolveRequestedAt(planner.selection, now);
+    // Dedupe Met.no fetches by rounded coordinates + cap the concurrent per-venue
+    // fan-out, and degrade each venue to a safe seed result on any throw so the
+    // list route can NEVER 500 on the real path (DECISION D / Story 8.5 5.1+5.2).
+    const { getForecast } = await import('@/lib/weather/met-no-service');
+    const dedupedForecast = createDedupedForecastFetcher(getForecast);
+    const outcomes = await mapWithConcurrency(
+      storeVenues,
+      SUN_ENGINE_LIST_CONCURRENCY,
+      async (v) => {
+        try {
+          return await applyRealSunEngine(v, requestedAt, now, dedupedForecast);
+        } catch (error) {
+          console.error(
+            `Sun engine failed for venue ${v.id}; degrading:`,
+            error instanceof Error ? error.message : String(error),
+          );
+          return safeSeedOutcome(v);
+        }
+      },
+    );
+    freshness = aggregateSunFreshness(outcomes.map((o) => o.freshness));
+    processedVenues = outcomes
+      .map((o) => normalizeVenueForResponse(o.venue))
+      .map((v) => ({
+        ...v,
+        distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),
+      }));
+  } else {
+    freshness = resolveFixtureSunFreshness(params);
+    processedVenues = storeVenues
+      .map((v) => normalizeVenueForResponse(v))
+      .map((v) => applyFixtureWeatherAvailability(v, freshness))
+      .map((v) => applyPlannerSelectionToVenue(v, planner.selection))
+      .map((v) => ({
+        ...v,
+        distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),
+      }));
+  }
+
+  const matchedVenues = processedVenues
     .filter((v) => {
       if (ids.value) return ids.value.includes(v.id);
       if (q.value) return true;

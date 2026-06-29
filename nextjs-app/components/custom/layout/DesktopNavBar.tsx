@@ -64,6 +64,13 @@ export function DesktopNavBar() {
       </nav>
 
       <div className="flex shrink-0 items-center gap-2">
+        <Link
+          href="/about"
+          data-testid="desktop-nav-about"
+          className="flex min-h-11 items-center rounded-pill px-3 text-label-lg text-text-body transition-colors duration-fast ease-default hover:text-amber-dark focus:outline-none focus:ring-2 focus:ring-amber-primary focus:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-primary focus-visible:rounded-sm"
+        >
+          {t('nav.om')}
+        </Link>
         <HeaderIconButton label={t('nav.myLocation')}>
           <LocateFixed aria-hidden="true" className="size-5" />
         </HeaderIconButton>

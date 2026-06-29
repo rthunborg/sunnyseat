@@ -1,0 +1,41 @@
+SunnySeat story review gate
+Story: 8-6-elevation-aware-shadow-rooftop
+Mode: dry-run
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/8-6-elevation-aware-shadow-rooftop-review-20260622-153358.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/8-6-elevation-aware-shadow-rooftop.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  70 passed (70)
+      Tests  615 passed (615)
+   Start at  15:34:13
+   Duration  24.37s (transform 3.94s, setup 31.21s, import 37.81s, tests 46.98s, environment 197.44s)
+
+Skipping visual validation: no mapped screen ID found in story file
+
+DRY RUN: checks passed; sprint-status.yaml was not updated.
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/8-6-elevation-aware-shadow-rooftop-review-20260622-153358.log

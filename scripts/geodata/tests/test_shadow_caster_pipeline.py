@@ -129,6 +129,111 @@ class ShadowCasterPipelineTest(unittest.TestCase):
         self.assertIn("small-komplementbyggnad-low-quality", reasons_by_external_id["fixture-exclude"])
         self.assertIn("single-line-tall", reasons_by_external_id["fixture-review"])
 
+    def make_filter_feature(self, **prop_overrides: object) -> dict[str, object]:
+        # Build a candidate feature off the include fixture with property overrides,
+        # for exercising decide_filter / enriched_feature branches (Story 8.1.1).
+        base = pipeline.load_jsonl(self.source)[0]
+        properties = dict(base["properties"])
+        properties.update(prop_overrides)
+        return {"type": "Feature", "geometry": base["geometry"], "properties": properties}
+
+    def test_filter_activates_height_only_uncertain_review_building_as_include(self) -> None:
+        # Footprint certain (roof contour present, 4 matched lines); height uncertain
+        # only via a large z-spread -> activate as a conservative caster, not review.
+        properties = self.make_filter_feature(
+            heightM=40.0,
+            matchedLineCount=4,
+            baskartaZStats={"Takkonturer": {"count": 4, "minZ": 5.0, "maxZ": 30.0}},
+        )["properties"]
+
+        decision, reasons = pipeline.decide_filter(properties)
+
+        self.assertEqual(decision, "include")
+        self.assertEqual(reasons, ["large-z-spread"])
+
+    def test_height_uncertain_activation_caps_height_lowers_quality_and_flags(self) -> None:
+        feature = self.make_filter_feature(
+            heightM=40.0,
+            matchedLineCount=4,
+            baskartaZStats={"Takkonturer": {"count": 4, "minZ": 5.0, "maxZ": 30.0}},
+        )
+        decision, reasons = pipeline.decide_filter(feature["properties"])
+        row = pipeline.map_feature_to_shadow_caster_row(
+            pipeline.enriched_feature(feature, decision, reasons), "fixture-batch"
+        )
+
+        self.assertEqual(row["filter_decision"], "include")
+        self.assertIs(row["active"], True)
+        # 40 m estimate is capped to the conservative height.
+        self.assertEqual(row["height_m"], pipeline.HEIGHT_UNCERTAIN_CONSERVATIVE_CAP_M)
+        self.assertIn(pipeline.HEIGHT_UNCERTAIN_ACTIVATED_FLAG, row["source_flags"])
+        self.assertIn("large-z-spread", row["filter_reasons"])
+        # Confidence-neutral: same quality_score it carried as a review row.
+        self.assertAlmostEqual(
+            row["quality_score"],
+            pipeline.runtime_quality(feature["properties"], "review"),
+            places=3,
+        )
+        self.assertLess(row["quality_score"], 0.7)
+        # Active-row invariants still hold (active => include => >=3 m, validates clean).
+        self.assertGreaterEqual(row["height_m"], 3)
+        self.assertEqual(pipeline.validate_rows([row], "fixture-batch"), [])
+
+    def test_height_uncertain_activation_keeps_short_building_height(self) -> None:
+        # Below the cap the estimate is kept (the cap never inflates a height).
+        feature = self.make_filter_feature(
+            heightM=10.0,
+            matchedLineCount=4,
+            baskartaZStats={"Takkonturer": {"count": 4, "minZ": 5.0, "maxZ": 30.0}},
+        )
+        decision, reasons = pipeline.decide_filter(feature["properties"])
+        row = pipeline.map_feature_to_shadow_caster_row(
+            pipeline.enriched_feature(feature, decision, reasons), "fixture-batch"
+        )
+
+        self.assertEqual(decision, "include")
+        self.assertEqual(row["height_m"], 10.0)
+        self.assertIs(row["active"], True)
+
+    def test_very_tall_building_is_activated_at_conservative_cap(self) -> None:
+        feature = self.make_filter_feature(heightM=65.0, matchedLineCount=4)
+        decision, reasons = pipeline.decide_filter(feature["properties"])
+        row = pipeline.map_feature_to_shadow_caster_row(
+            pipeline.enriched_feature(feature, decision, reasons), "fixture-batch"
+        )
+
+        self.assertEqual(decision, "include")
+        self.assertEqual(reasons, ["very-tall"])
+        self.assertEqual(row["height_m"], pipeline.HEIGHT_UNCERTAIN_CONSERVATIVE_CAP_M)
+        self.assertIs(row["active"], True)
+
+    def test_height_uncertain_with_no_roof_contour_stays_review(self) -> None:
+        # Large z-spread but NO roof contour -> no-roof-contour-for-material-height is
+        # outside the activation set, so the building stays review/inactive.
+        feature = self.make_filter_feature(
+            heightM=40.0,
+            matchedLineCount=4,
+            baskartaZStats={"Fasad": {"count": 4, "minZ": 5.0, "maxZ": 30.0}},
+            sourceSubclass="Fasad",
+        )
+        decision, reasons = pipeline.decide_filter(feature["properties"])
+        row = pipeline.map_feature_to_shadow_caster_row(
+            pipeline.enriched_feature(feature, decision, reasons), "fixture-batch"
+        )
+
+        self.assertEqual(decision, "review")
+        self.assertIn("no-roof-contour-for-material-height", reasons)
+        self.assertIs(row["active"], False)
+        self.assertNotIn(pipeline.HEIGHT_UNCERTAIN_ACTIVATED_FLAG, row["source_flags"])
+
+    def test_missing_footprint_area_stays_review(self) -> None:
+        # A missing/invalid footprint is a geometry problem, not height uncertainty.
+        feature = self.make_filter_feature(areaM2=0.0, matchedLineCount=4)
+        decision, reasons = pipeline.decide_filter(feature["properties"])
+
+        self.assertEqual(decision, "review")
+        self.assertIn("missing-or-invalid-area", reasons)
+
     def test_shadow_casters_contract_mapping_preserves_active_defaults_and_crs(self) -> None:
         import_batch_id = "fixture-batch"
         rows = []
@@ -401,6 +506,110 @@ class ShadowCasterPipelineTest(unittest.TestCase):
 
         self.assertTrue(any("outside EPSG:3007 MVP bbox" in error for error in errors))
 
+    def test_artifact_validation_allows_source_geometry_within_bbox_tolerance(self) -> None:
+        # Edge-of-bbox buildings are kept by centroid-in-bbox, so their source
+        # geometry can spill a short distance past the MVP boundary. Within the
+        # mis-projection tolerance these must NOT be rejected.
+        feature = pipeline.enriched_feature(
+            pipeline.load_jsonl(self.source)[0],
+            "include",
+            [],
+        )
+        over_x = pipeline.MVP_BBOX_3007[2] + pipeline.MVP_BBOX_3007_SOURCE_GEOM_TOLERANCE_M - 1.0
+        feature["properties"]["sourceGeom3007"] = {
+            "type": "LineString",
+            "coordinates": [
+                [149990.0, 6390010.0, 24.5],
+                [over_x, 6390012.0, 26.25],
+            ],
+        }
+        feature["properties"]["sourceLayer"] = "byggnad_l"
+        feature["properties"]["sourceSubclass"] = "Takkonturer"
+
+        row = pipeline.map_feature_to_shadow_caster_row(feature, "fixture-batch")
+        errors = pipeline.validate_rows([row], "fixture-batch")
+
+        self.assertFalse(any("outside EPSG:3007 MVP bbox" in error for error in errors))
+
+    def test_artifact_validation_rejects_source_geometry_beyond_bbox_tolerance(self) -> None:
+        # A vertex well past the tolerance (but still metre-scale, not a CRS error)
+        # must still be rejected so the mis-projection guard keeps biting.
+        feature = pipeline.enriched_feature(
+            pipeline.load_jsonl(self.source)[0],
+            "include",
+            [],
+        )
+        over_x = pipeline.MVP_BBOX_3007[2] + pipeline.MVP_BBOX_3007_SOURCE_GEOM_TOLERANCE_M + 300.0
+        feature["properties"]["sourceGeom3007"] = {
+            "type": "LineString",
+            "coordinates": [
+                [149990.0, 6390010.0, 24.5],
+                [over_x, 6390012.0, 26.25],
+            ],
+        }
+        feature["properties"]["sourceLayer"] = "byggnad_l"
+        feature["properties"]["sourceSubclass"] = "Takkonturer"
+
+        row = pipeline.map_feature_to_shadow_caster_row(feature, "fixture-batch")
+        errors = pipeline.validate_rows([row], "fixture-batch")
+
+        self.assertTrue(any("outside EPSG:3007 MVP bbox" in error for error in errors))
+
+    def test_artifact_validation_allows_source_geometry_within_tolerance_on_lower_and_upper_edges(self) -> None:
+        # The tolerance expands all four edges symmetrically (min_x/min_y -= tol,
+        # max_x/max_y += tol). The +x edge is covered above; assert the lower
+        # (min_x, min_y) and upper-y (max_y) edges are expanded too, so a vertex
+        # just past each of those boundaries within tolerance is NOT rejected.
+        feature = pipeline.enriched_feature(
+            pipeline.load_jsonl(self.source)[0],
+            "include",
+            [],
+        )
+        tolerance = pipeline.MVP_BBOX_3007_SOURCE_GEOM_TOLERANCE_M
+        under_min_x = pipeline.MVP_BBOX_3007[0] - tolerance + 1.0
+        under_min_y = pipeline.MVP_BBOX_3007[1] - tolerance + 1.0
+        over_max_y = pipeline.MVP_BBOX_3007[3] + tolerance - 1.0
+        feature["properties"]["sourceGeom3007"] = {
+            "type": "LineString",
+            "coordinates": [
+                [under_min_x, 6395000.0, 24.5],
+                [145000.0, under_min_y, 25.0],
+                [145000.0, over_max_y, 26.25],
+            ],
+        }
+        feature["properties"]["sourceLayer"] = "byggnad_l"
+        feature["properties"]["sourceSubclass"] = "Takkonturer"
+
+        row = pipeline.map_feature_to_shadow_caster_row(feature, "fixture-batch")
+        errors = pipeline.validate_rows([row], "fixture-batch")
+
+        self.assertFalse(any("outside EPSG:3007 MVP bbox" in error for error in errors))
+
+    def test_artifact_validation_rejects_source_geometry_below_min_y_beyond_tolerance(self) -> None:
+        # The existing reject test only proves the +x edge still bites. Confirm the
+        # min-side guard bites too: a vertex well below min_y past the tolerance
+        # (metre-scale, not a CRS error) must still be rejected.
+        feature = pipeline.enriched_feature(
+            pipeline.load_jsonl(self.source)[0],
+            "include",
+            [],
+        )
+        under_min_y = pipeline.MVP_BBOX_3007[1] - pipeline.MVP_BBOX_3007_SOURCE_GEOM_TOLERANCE_M - 300.0
+        feature["properties"]["sourceGeom3007"] = {
+            "type": "LineString",
+            "coordinates": [
+                [145000.0, 6395000.0, 24.5],
+                [145000.0, under_min_y, 26.25],
+            ],
+        }
+        feature["properties"]["sourceLayer"] = "byggnad_l"
+        feature["properties"]["sourceSubclass"] = "Takkonturer"
+
+        row = pipeline.map_feature_to_shadow_caster_row(feature, "fixture-batch")
+        errors = pipeline.validate_rows([row], "fixture-batch")
+
+        self.assertTrue(any("outside EPSG:3007 MVP bbox" in error for error in errors))
+
     def test_shadow_casters_contract_keeps_non_building_source_layers_inactive(self) -> None:
         feature = pipeline.enriched_feature(
             pipeline.load_jsonl(self.source)[0],
@@ -447,6 +656,34 @@ class ShadowCasterPipelineTest(unittest.TestCase):
         self.assertIn("where import_batch_id = 'fixture-''batch';", handoff)
         self.assertIn("\\copy shadow_caster_import_stage(payload_text) from '", handoff)
         self.assertIn("import''s.jsonl", handoff)
+
+    def test_sql_handoff_copy_preserves_backslashes_with_csv_control_chars(self) -> None:
+        # COPY TEXT escape-processes backslashes and would corrupt JSON payloads
+        # containing Windows-style paths (e.g. "building_geodata\\goteborg-open"),
+        # breaking the ::jsonb cast. The staging load must use CSV with control-char
+        # quote/delimiter so each JSONL line is read verbatim.
+        sql_path = self.tmpdir / "handoff.sql"
+        manifest = {
+            "importBatch": {
+                "id": "fixture-batch",
+                "sourceDataset": "dataset",
+                "sourceDescription": "desc",
+                "sourceMetadata": {"k": "v"},
+            },
+        }
+
+        pipeline.write_sql_handoff(
+            sql_path,
+            self.tmpdir / "import.jsonl",
+            self.tmpdir / "diagnostics.jsonl",
+            manifest,
+        )
+
+        handoff = sql_path.read_text(encoding="utf-8")
+        self.assertIn("with (format csv, quote E'\\x01', delimiter E'\\x02')", handoff)
+        self.assertNotIn("with (format text)", handoff)
+        # Bulk import must lift Supabase's default per-statement timeout for the load.
+        self.assertIn("set local statement_timeout = 0;", handoff)
 
     def test_artifact_validation_fails_for_invalid_runtime_polygon(self) -> None:
         row = pipeline.map_feature_to_shadow_caster_row(

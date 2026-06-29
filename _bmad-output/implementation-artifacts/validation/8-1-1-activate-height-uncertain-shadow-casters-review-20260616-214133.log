@@ -1,0 +1,40 @@
+SunnySeat story review gate
+Story: 8-1-1-activate-height-uncertain-shadow-casters
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/8-1-1-activate-height-uncertain-shadow-casters-review-20260616-214133.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/8-1-1-activate-height-uncertain-shadow-casters.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+
+ Test Files  64 passed (64)
+      Tests  527 passed (527)
+   Start at  21:41:49
+   Duration  23.70s (transform 6.56s, setup 27.12s, import 33.12s, tests 46.30s, environment 186.74s)
+
+Skipping visual validation: no mapped screen ID found in story file
+Updated sprint status: 8-1-1-activate-height-uncertain-shadow-casters -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/8-1-1-activate-height-uncertain-shadow-casters-review-20260616-214133.log

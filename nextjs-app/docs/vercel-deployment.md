@@ -19,7 +19,8 @@ This guide covers the complete setup and deployment process for the SunnySeat Ne
 - Vercel account ([sign up](https://vercel.com/signup))
 - GitHub repository with the project code
 - Supabase project with database configured
-- OpenWeatherMap API key (if using weather service)
+- A contact email for the Met.no `User-Agent` (the weather API is free and
+  keyless; see `MET_NO_USER_AGENT`)
 
 ## Vercel Project Setup
 
@@ -70,25 +71,35 @@ The project is automatically linked when you import from GitHub. To verify:
 
 Configure these in **Project Settings** → **Environment Variables**:
 
+See `nextjs-app/.env.example` for the authoritative annotated list and
+`docs/environment-variables.md` for per-variable detail. Mark every secret
+**"Sensitive"** in Vercel.
+
 #### Supabase Configuration
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://[project-ref].supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=[your-anon-key]
-SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
+SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]   # SECRET, server-only, never NEXT_PUBLIC_
 ```
 
-#### Cron Jobs
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` is currently unused (no anon client is wired) —
+leave it blank. Map tiles need no key (keyless OpenFreeMap style).
+
+#### Data-source feature flags (Production only)
 
 ```env
-CRON_SECRET=[your-secure-random-secret-key-min-32-chars]
+SUNNYSEAT_VENUE_STORE=supabase
+SUNNYSEAT_SUN_ENGINE=real
+SUNNYSEAT_FEEDBACK_PERSISTENCE=supabase
+SUNNYSEAT_REVIEW_PERSISTENCE=supabase
 ```
 
-#### Weather API (Optional)
+Unset everywhere else; the default is the in-memory seed (zero live dependency).
+
+#### Weather API (Met.no — free, keyless)
 
 ```env
-WEATHER_API_KEY=[openweathermap-key]
-WEATHER_API_URL=https://api.openweathermap.org/data/2.5
+MET_NO_USER_AGENT=SunnySeat/1.0 rasmus.thunborg@enhancior.se   # non-secret identifier, server-only
 ```
 
 #### Application URL
@@ -97,6 +108,8 @@ WEATHER_API_URL=https://api.openweathermap.org/data/2.5
 NEXT_PUBLIC_APP_URL=https://sunnyseat.se
 NODE_ENV=production
 ```
+
+There are no `/api/cron` endpoints in the MVP, so no `CRON_SECRET` is needed.
 
 ### Environment-Specific Configuration
 
@@ -129,35 +142,16 @@ Vercel supports three environments:
 
 ## Build Configuration
 
-The project uses `vercel.json` for Vercel-specific configuration:
+The project uses `vercel.json` for Vercel-specific configuration. There are no
+cron jobs in the MVP (compute-on-request, DECISION D), so `vercel.json` declares
+no `crons`:
 
 ```json
 {
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "crons": [
-    {
-      "path": "/api/cron/weather-ingestion",
-      "schedule": "*/10 * * * *"
-    },
-    {
-      "path": "/api/cron/accuracy-metrics",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron/precomputation-schedule",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/cache-warmup",
-      "schedule": "0 3,15 * * *"
-    },
-    {
-      "path": "/api/cron/cleanup-old-data",
-      "schedule": "0 1 * * 0"
-    }
-  ]
+  "installCommand": "npm install --include=dev && (cd .. && npm install --no-package-lock lightningcss@1.31.1 2>&1 || true)"
 }
 ```
 

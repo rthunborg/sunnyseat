@@ -155,6 +155,15 @@ export function MapContainer() {
       <div
         ref={containerRef}
         data-testid="map-container"
+        // Story 7.3 Task 8.4: once tile/style loading has hard-failed, the
+        // cream status overlay below communicates the failure visually. Mark
+        // the now non-functional, visually-covered MapLibre canvas `inert` so
+        // keyboard and screen-reader users don't tab into a map they can't see
+        // or use — keeping the sighted fallback and the focus state coherent
+        // (the same "communicate unavailability" stance as the offline shell).
+        // Clears automatically when a tile source recovers and `tilesFailed`
+        // flips back to false.
+        inert={tilesFailed}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
       />
       <div

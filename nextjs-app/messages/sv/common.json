@@ -27,5 +27,12 @@
       "sourdough": "Surdeg",
       "rooftop": "Takt"
     }
+  },
+  "notFound": {
+    "heading": "Den här platsen hittades inte",
+    "cta": "Hitta soliga platser nu →"
+  },
+  "offline": {
+    "banner": "Ingen anslutning"
   }
 }

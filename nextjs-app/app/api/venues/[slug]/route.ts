@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
 import {
-  normalizeVenueForResponse,
-  VENUE_FIXTURE,
-} from '@/lib/services/venues-fixture';
+  getVenueBySlug,
+  storedVenueDetail,
+  toVenueData,
+  type StoredVenueDetail,
+} from '@/lib/services/venue-store';
 import { getReviewSummaryForVenueFromPersistence } from '@/lib/services/venue-reviews-persistence';
 import {
   applyPlannerSelectionToVenue,
@@ -12,6 +15,11 @@ import {
   applyFixtureWeatherAvailability,
   resolveFixtureSunFreshness,
 } from '@/lib/services/weather-freshness-fixture';
+import {
+  applyRealSunEngine,
+  resolveRequestedAt,
+  shouldUseRealSunEngine,
+} from '@/lib/services/sun-engine';
 import { badRequest } from '@/lib/utils/api-errors';
 import { greatCircleMeters } from '@/lib/utils/geo';
 import { formatPlannerTime, parsePlannerTime } from '@/lib/utils/time-planner';
@@ -21,6 +29,7 @@ import {
 } from '@/lib/utils/validation';
 import type {
   GetVenueDetailResponse,
+  SunFreshnessMeta,
   VenueDataDto,
   VenueDetailDto,
 } from '@/lib/types/api';
@@ -28,14 +37,6 @@ import { sunFreshnessHeaders } from '@/lib/utils/sun-freshness';
 
 type RouteContext = {
   params: Promise<{ slug: string }>;
-};
-
-type FixtureDetail = {
-  description: string;
-  address: string;
-  openingHours: VenueDetailDto['openingHours'];
-  peakTime: string;
-  shadowWarningMinutes?: number;
 };
 
 type DetailTimelineProjection = {
@@ -48,60 +49,6 @@ type DetailCoordinates = {
   lng: number;
 };
 
-const DETAIL_FIXTURE: Record<string, FixtureDetail> = {
-  'test-venue-sunny': {
-    description:
-      'Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.',
-    address: 'Tredje Långgatan 9, 413 03 Göteborg',
-    openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
-    peakTime: '15:30',
-    shadowWarningMinutes: 45,
-  },
-  'bryggeriet-soltak': {
-    description:
-      'Taknära sittplatser med bred solträff under lunch och eftermiddag.',
-    address: 'Linnégatan 21, 413 04 Göteborg',
-    openingHours: { display: 'Öppet till 23:00', closesAt: '23:00' },
-    peakTime: '15:00',
-  },
-  'solplats-magasinsgatan': {
-    description:
-      'Lugn innerstadsterrass med bäst sol när eftermiddagen vänder mot kväll.',
-    address: 'Magasinsgatan 17, 411 18 Göteborg',
-    openingHours: { display: 'Öppet till 21:00', closesAt: '21:00' },
-    peakTime: '15:30',
-  },
-  'cafe-halvvags': {
-    description:
-      'Avslappnat kvarterscafé med delvis sol på de yttre borden.',
-    address: 'Vasagatan 32, 411 24 Göteborg',
-    openingHours: { display: 'Öppet till 20:00', closesAt: '20:00' },
-    peakTime: '16:00',
-  },
-  'brygghuset-lerum': {
-    description:
-      'Skyddad gårdsmiljö med kortare solfönster och gott om sittplatser.',
-    address: 'Haga Nygata 8, 413 01 Göteborg',
-    openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
-    peakTime: '14:30',
-  },
-  'skuggans-hus': {
-    description:
-      'Sval uteservering som bara får korta solglimtar mellan husfasaderna.',
-    address: 'Södra Hamngatan 12, 411 14 Göteborg',
-    openingHours: { display: 'Öppet till 19:00', closesAt: '19:00' },
-    peakTime: '16:30',
-  },
-  'bistro-bakgarden': {
-    description:
-      'Bakgårdsservering med mest skugga, men en kort lunchsol vid klart väder.',
-    address: 'Engelbrektsgatan 44, 411 37 Göteborg',
-    openingHours: { display: 'Öppet till 21:00', closesAt: '21:00' },
-    peakTime: '12:00',
-    shadowWarningMinutes: 0,
-  },
-};
-
 export async function GET(_request: NextRequest, context: RouteContext) {
   const planner = parseVenuePlannerParams(_request.nextUrl.searchParams);
   if (!planner.ok) {
@@ -112,7 +59,6 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   }
   const coordinates = parseDetailCoordinates(_request.nextUrl.searchParams);
   if (!coordinates.ok) return badRequest(coordinates.detail);
-  const freshness = resolveFixtureSunFreshness(_request.nextUrl.searchParams);
   const { slug } = await context.params;
   let decodedSlug: string;
   try {
@@ -123,31 +69,48 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       { status: 400 },
     );
   }
-  const venue = VENUE_FIXTURE.find(
-    (candidate) => candidate.slug === decodedSlug || candidate.venueSlug === decodedSlug,
-  );
+  const stored = await getVenueBySlug(decodedSlug);
 
-  if (!venue) {
+  if (!stored) {
     return NextResponse.json(
       { detail: `Venue not found: ${decodedSlug}`, status: 404 },
       { status: 404 },
     );
   }
 
-  const venueWithDistance = coordinates.value
-    ? {
-        ...venue,
-        distanceMeters: greatCircleMeters(
-          coordinates.value.lat,
-          coordinates.value.lng,
-          venue.location.lat,
-          venue.location.lng,
-        ),
-      }
-    : venue;
-  const normalizedVenue = normalizeVenueForResponse(venueWithDistance);
-  const weatherAdjustedVenue = applyFixtureWeatherAvailability(normalizedVenue, freshness);
-  const adjustedVenue = applyPlannerSelectionToVenue(weatherAdjustedVenue, planner.selection);
+  // STORY 8.3 — real engine swap behind the frozen VenueDetailDto. Default
+  // (flag off) path is byte-identical to the 8.2 seed; the real path feeds the
+  // timeline projection (sunWindow/status/peakTime) from the engine and bypasses
+  // the planner + fixture-weather stages.
+  const useRealEngine = shouldUseRealSunEngine();
+  const now = new Date();
+  let adjustedVenue: VenueDataDto;
+  let freshness: SunFreshnessMeta;
+  let timelineProjection: DetailTimelineProjection | undefined;
+
+  if (useRealEngine) {
+    const requestedAt = resolveRequestedAt(planner.selection, now);
+    const outcome = await applyRealSunEngine(stored, requestedAt, now);
+    freshness = outcome.freshness;
+    const base = withDetailDistance(outcome.venue, coordinates.value);
+    adjustedVenue = normalizeVenueForResponse(base);
+    timelineProjection = {
+      ...(outcome.peakTime ? { peakTime: outcome.peakTime } : {}),
+      windowStatus: adjustedVenue.currentSunStatus,
+    };
+  } else {
+    freshness = resolveFixtureSunFreshness(_request.nextUrl.searchParams);
+    // Strip the detail block before the normalize/weather/planner pipeline (each
+    // stage spreads `...venue`); detail is applied explicitly via buildDetailDto.
+    const venue = withDetailDistance(toVenueData(stored), coordinates.value);
+    const normalizedVenue = normalizeVenueForResponse(venue);
+    const weatherAdjustedVenue = applyFixtureWeatherAvailability(normalizedVenue, freshness);
+    adjustedVenue = applyPlannerSelectionToVenue(weatherAdjustedVenue, planner.selection);
+    timelineProjection = planner.selection
+      ? timelineProjectionFromAdjustedVenue(adjustedVenue)
+      : undefined;
+  }
+
   let reviewSummary: VenueDetailDto['reviewSummary'];
   try {
     reviewSummary = await getReviewSummaryForVenueFromPersistence(adjustedVenue);
@@ -156,10 +119,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   }
   const detail = buildDetailDto(
     adjustedVenue,
-    DETAIL_FIXTURE[venue.slug],
-    planner.selection
-      ? timelineProjectionFromAdjustedVenue(adjustedVenue)
-      : undefined,
+    storedVenueDetail(stored),
+    timelineProjection,
     reviewSummary,
   );
   const response: GetVenueDetailResponse = {
@@ -178,7 +139,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
 function buildDetailDto(
   venue: VenueDataDto,
-  fixture?: FixtureDetail,
+  fixture?: StoredVenueDetail,
   timelineProjection?: DetailTimelineProjection,
   reviewSummary?: VenueDetailDto['reviewSummary'],
 ): VenueDetailDto {
@@ -211,6 +172,22 @@ function buildDetailDto(
     ...(fixture?.shadowWarningMinutes != null
       ? { shadowWarningMinutes: fixture.shadowWarningMinutes }
       : {}),
+  };
+}
+
+function withDetailDistance(
+  venue: VenueDataDto,
+  coordinates: DetailCoordinates | undefined,
+): VenueDataDto {
+  if (!coordinates) return venue;
+  return {
+    ...venue,
+    distanceMeters: greatCircleMeters(
+      coordinates.lat,
+      coordinates.lng,
+      venue.location.lat,
+      venue.location.lng,
+    ),
   };
 }
 

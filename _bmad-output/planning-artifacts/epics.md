@@ -1753,6 +1753,7 @@ So that I can discover promoted venues with high-quality outdoor seating.
 > - Re-evaluate per-pin React root overhead before partner-pin styling increases marker complexity. `VenuePinLayer` still creates one `createRoot` subtree per pin; if partner variants keep that architecture, verify pin-render timing for 50+ venues remains within the architecture NFR or refactor the marker rendering strategy. *(Source: Story 1.6 code review W1, 2026-05-07; deferred-work audit 2026-06-04.)*
 > - Preserve MapLibre dynamic-chunk discipline when partner-pin work touches `MapContainer` or `VenuePinLayer`. Top-level `maplibre-gl` imports still exist in both files; Story 1.6's async-map verification catches current behaviour, but the code shape remains easy to regress if `MapView` is imported statically. *(Source: Story 1.6 code review W2, 2026-05-07; deferred-work audit 2026-06-04.)*
 > - Remove the hardcoded Swedish sun-label fallbacks in `VenueCard.tsx` (`?? 'MEST SKUGGA'` / `?? 'FULL SOL'` / `?? 'DELVIS SOL'`) and make the labels required props, mirroring the Story 3.4 Task 6.4 `VenueQuickInfo` fix. Non-violating today (Swedish is the source language and `VenueList.tsx` always passes localized labels), but it is the same defect class and this story touches the venue card/pin surfaces. *(Source: Story 3.4 code review Round 1 defer D2, 2026-06-11.)*
+> - Fix the AA colour-contrast (WCAG 1.4.3 / NFR25 "amber palette verified against cream backgrounds") on the venue-card decorative `aria-hidden` sun-percentage label — `text-amber-text` (#fbbc00) on `surface-cream` ≈ **1.63:1**, a SERIOUS axe violation surfaced on every venue-card surface (`map-primary`, the `venue-detail` sheet, feedback/review) at the mobile viewport. This is the same amber-on-cream class as the partner-pin work and is the blocker for the four `test.fixme` mobile a11y scans. While doing the amber/cream contrast sweep, also fix the two adjacent decorative-text near-failures the same gate flagged: the desktop `venue-detail` amber label `#6e5101` ≈ **4.47:1** (borderline), and the About/Privacy footer wordmark `<span class="text-display-sm text-text-muted">sunnyseat</span>` (#938e81 on cream, 16px/800 ⇒ not "large text") ≈ **3.13:1** (non-venue-card, but the same below-AA decorative-text class — fold it into this pass since there is no other owning story). Darkening any of these will ripple the `map-primary`/`venue-detail`/`favourites-tab` (+ `about`) visual references → rebaseline + REBASELINE-LOG entry in the same change. On completion, flip the four `test.fixme` venue-card scans in `nextjs-app/test/e2e/axe-mobile.spec.ts` back to `test`, and re-confirm the existing desktop `about`/`privacy`/`venue-detail` scans in `axe.spec.ts` pass. *(Source: Story 7.3 a11y gate — pre-existing color-contrast red at HEAD under axe-core 4.11.4, 2026-06-29.)*
 
 ### Story 5.2: "SOL NU" Badge & Partner Deep-Links
 
@@ -2166,6 +2167,28 @@ So that the sun/shadow engine has real building obstructions to compute against.
 **When** it is called for a central Gothenburg point after import
 **Then** it returns only active/include casters with meter-correct radius filtering (no empty-coverage-as-high-confidence regression — Story 3.0.5 contract holds)
 
+### Story 8.1.1: Activate Height-Uncertain Shadow Casters & Re-validate Coverage
+
+> **Added 2026-06-15 via course correction** (see `_bmad-output/implementation-artifacts/8-1-course-correction-2026-06-15.md`). Story 8.1's spot-check validation found the conservative Story 3.0.3/3.0.4 filter deactivates ~1,569 real height-uncertain buildings (footprints certain, only the height estimate is uncertain), so the engine casts no shadow there → systematic false-sunny in the dense central clusters. This story makes them conservative shadow-casters and re-validates coverage. Sequenced immediately after 8.1, before 8.2/8.3.
+
+As a **maintainer**,
+I want real buildings with uncertain height to still cast a conservative shadow (instead of being dropped),
+So that the central launch clusters stop predicting false "sunny" and can pass the spot-check gate.
+
+**Acceptance Criteria:**
+
+**Given** the Story 3.0.3 filter currently sends `large-z-spread` / `single-line-tall` / `limited-line-support` (and similar height-uncertainty) `byggnad_l` buildings to `review`/inactive
+**When** the filter is revised
+**Then** those buildings are emitted `filter_decision = include` / `active = true` with a conservative height (agreed rule — e.g. z-range lower bound or a conservative cap) and a lowered `quality_score` plus a `source_flag`/reason marking them height-uncertain; genuinely non-building, sub-3 m, or no-footprint records remain `review`/`exclude`; pipeline unit tests are updated to pin the new behaviour
+
+**Given** the revised filter
+**When** `run-all` regenerates artifacts and the handoff is re-run against the live project
+**Then** `validate-artifacts` passes, the old batch (`open-goteborg-central-e91dd7302b7c`) rows are replaced (delete-old + import-new batch), all Story 3.0.2 active-row invariants still hold (active ⇒ include ⇒ ≥3 m ⇒ byggnad_l ⇒ source_geom_3007), and the active-caster count rises by the activated set
+
+**Given** the re-imported data
+**When** the Story 3.0.4 spot-check gate is re-run (independent cross-check + maintainer-verified sampling)
+**Then** every required launch cluster is `eligible` (≥10/cluster, ≥70 central, all 3 sun buckets, ≥85% agreement), the previously false-sunny central spots now read shadowed, and the Story 3.0.5 fail-closed confidence behaviour is unchanged (lowered `quality_score` down-weights rather than the filter omitting the building)
+
 ### Story 8.2: Real Venue Store & API
 
 As a **user**,
@@ -2252,7 +2275,63 @@ So that SunnySeat can go live safely.
 **When** the schema is stable
 **Then** `lib/supabase/types.ts` is regenerated from the live schema (replacing the placeholder) and the typecheck/lint/test gates pass
 
+> **Carried-in from Story 8.2 code review Round 2 (2026-06-18) — opt-in Supabase venue-store path, pre-cutover verification:** when this story enables the live read (`SUNNYSEAT_VENUE_STORE=supabase`), verify (a) **uniqueness-key alignment** — `validateVenueUniqueness` (`app/api/venues/route.ts`) dedupes on `id` + rounded coordinates while the `venues` contract enforces unique `id` + `slug`; two live venues sharing rounded coordinates would 500 the list route and a duplicate slug is caught only by the DB index, so align the assumptions (or relax the coord check) and confirm live venue-data integrity; and (b) **query-contract coverage** — the mocked `venue-store` tests don't assert the args to `.select(VENUE_SELECT_COLUMNS)` / `.eq('slug', …)`, so add query-contract assertions or a live round-trip so a snake_case column/filter typo is caught before production.
+
+> **Carried-in from Story 8.3 code review Round 1 (2026-06-21) — opt-in real sun-engine path, pre-cutover hardening:** when this story enables the live engine (`SUNNYSEAT_SUN_ENGINE=real`), address (a) **fan-out & third-party load** — the real list path issues 2 Supabase RPCs + 1 Met.no forecast per venue via an uncapped `Promise.all` and nearby venues fetch near-duplicate forecasts; add a concurrency cap and/or dedupe forecasts by rounded coordinates (and revisit the DECISION D precompute/Cron follow-up) to respect Met.no's usage policy and avoid connection exhaustion under load; and (b) **"never 500" invariant** — the per-venue degrade currently rests solely on `applyRealSunEngine`'s internal try/catch behind `Promise.all`; switch to `Promise.allSettled` (or a defensive wrapper) so a future refactor that lets the adapter throw cannot 500 the whole endpoint; and (c) **AC #3 weather-freshness fidelity** — `getForecast` stamps `createdAt: new Date()` on every slice (incl. forecasts) and the adapter reports it as `weatherUpdatedAt`, so the confidence-display "approximate" state (weather >2h old) never fires and future-planner slices are advertised as fresh "now"; at cutover extend `WeatherSlice` with a `validAt`/slice-time field (used for both `weatherUpdatedAt` and staleness) or derive the approximate/stale signal from `isForecast`. (See `deferred-work.md` → "code review Round 1 of 8-3-…" for the full list.)
+
 **Design Gate Criteria (Epic 8 overall):**
 - **Behaviour:** Every existing screen behaves identically with real data swapped behind the API boundary; loading/empty/error states already built in Epics 1–3 handle real latency and failures.
 - **Visual validation:** The five existing gate states (`map-with-selected-venue`, `venue-detail` mobile/desktop, `feedback`, `review`) plus map-primary continue to pass against their references with real (or gate-seeded) data; any genuine visual change requires explicit rationale + `REBASELINE-LOG.md`.
 - **No new screens or visual references are introduced by this epic** — it is a data/infrastructure swap behind the existing UI.
+
+### Story 8.6: Elevation-Aware Shadow Gate for Rooftop / Raised Venues
+
+> **Added 2026-06-22 (party-mode scoping session).** Promotes the venue-elevation follow-up deferred from Story 8.5 (`deferred-work.md` → "Story 8.5 follow-up — venue elevation"). The shadow engine is currently 2D / ground-level for the *target* venue: `lib/solar/shadow-calculation-service.ts → computeShadowInfo` does a flat 2D overlap of each caster's shadow against the seating polygon with **no venue-elevation input**, so a rooftop bar or raised terrace that physically sits above its neighbours is wrongly reported as shaded (high confidence, wrong answer). The nullable `public.venues.seating_elevation_m` column (Story 8.2 contract — metres of the seating surface above local ground) already records this, **capture-only** today. This story makes the engine *consume* it via a lightweight height gate (Tier 1 — the flat-city rooftop case). Terrain/ground-elevation handling for hilltop venues is Story 8.7. Backend/data-accuracy only — no new screen.
+
+As a **sun-seeker**,
+I want a venue whose outdoor seating sits above street level (rooftop bar, raised terrace, balcony) to be predicted from the height of its seating surface,
+So that a venue sitting above its neighbouring buildings is not wrongly reported as shaded.
+
+**Acceptance Criteria:**
+
+**Given** a venue with `seating_elevation_m` set (> 0) and nearby active shadow casters
+**When** the sun engine computes the venue's shadow
+**Then** a caster only shadows the venue by its height *above* the seating surface — its effective casting height is reduced by `seating_elevation_m` before the meaningful-height gate, so a caster at or below the seating surface no longer contributes a shadow to that venue
+
+**Given** a venue with `seating_elevation_m` null or 0 (every current fixture / launch venue)
+**When** the engine computes the venue's shadow
+**Then** behaviour is byte-identical to today's ground-level 2D overlap — no regression, and the existing visual gates pass with no rebaseline
+
+**Given** the server-only venue store (`lib/services/venue-store.ts`)
+**When** a Supabase venue row carries `seating_elevation_m`
+**Then** it is selected via `VENUE_SELECT_COLUMNS`, mapped through `StoredVenue` as a **server-only** field (never serialized into `VenueDataDto`, mirroring `seatingArea`), and threaded into `lib/services/sun-engine.ts` → the `computeShadowInfo` call chain (list + detail + timeline paths)
+
+**Given** the height gate is all-or-nothing (a caster taller than the seating surface still casts a full-coverage shadow; sub-shadow partial occlusion is not modelled)
+**When** predictions are produced for elevated venues
+**Then** this approximation is documented as a known MVP limitation, consistent with the engine's existing "coarse for MVP" treatment, rather than presented as a silently over-confident result
+
+**Design Gate Criteria (Epic 8 overall):** Backend/data accuracy only — no new screen or visual reference. Existing gate states continue to pass unchanged (launch venues keep `seating_elevation_m` null → existing ground-level path). User-facing copy stays free of geodata internals (no elevation-in-metres jargon per Story 3.0.6).
+
+### Story 8.7: Terrain-Aware Ground Elevation for Hilltop Venues
+
+> **Added 2026-06-22 (party-mode scoping session).** Tier 2 of the venue-elevation follow-up (see Story 8.6 and `deferred-work.md`). Story 8.6 handles a venue raised above its *own* ground (rooftop / raised terrace). This story handles a venue on raised *terrain* (a hilltop terrace), where the relevant comparison is the venue's **ground** elevation versus each caster's ground elevation. The Göteborg Höjdmodell 2022 DTM is already in the geodata pipeline (used to derive building heights — `max roof/facade Z − DTM ground Z`), so this is a ground-elevation lookup at the venue point, **not a new data acquisition**. Backend/data-accuracy only — no new screen.
+
+As a **sun-seeker**,
+I want a venue on elevated terrain to account for the ground-height difference between it and the surrounding buildings,
+So that a venue standing on a rise is not wrongly shadowed by buildings that sit on lower ground.
+
+**Acceptance Criteria:**
+
+**Given** the Göteborg Höjdmodell 2022 DTM ground model already used by the import pipeline
+**When** the engine computes the shadow for a venue on elevated terrain
+**Then** a caster's effective shadow-casting height relative to the venue is measured against the venue's DTM ground elevation (not the caster's own ground), so a building standing downhill from the venue stops shadowing it once its roof falls below the venue's seating surface
+
+**Given** a venue on flat terrain with no meaningful ground delta to its nearby casters
+**When** the engine computes its shadow
+**Then** the result is unchanged from Story 8.6 / today (the ground delta contributes ~0)
+
+**Given** the combined Story 8.6 (height above own ground) + Story 8.7 (terrain ground delta) inputs are both present for a venue
+**When** the engine computes its shadow
+**Then** the effective-height test composes them coherently — caster roof *absolute* height vs. venue seating-surface *absolute* height (venue DTM ground + `seating_elevation_m`) — without double-counting the elevation
+
+**Design Gate Criteria (Epic 8 overall):** Backend/data accuracy only — no new screen or visual reference; identical gate-pass expectations as Story 8.6 (default path byte-identical).

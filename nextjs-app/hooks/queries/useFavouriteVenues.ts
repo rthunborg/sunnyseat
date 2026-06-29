@@ -6,6 +6,7 @@ import { sanitizeFavouriteIds } from '@/lib/services/favourites-storage';
 import type { GetVenuesResponse } from '@/lib/types/api';
 import { readSunFreshnessHeaders } from '@/lib/utils/sun-freshness';
 import {
+  HttpError,
   shouldRetryVenueQuery,
   venueQueryRetryDelay,
 } from './venue-query-options';
@@ -47,7 +48,7 @@ export function useFavouriteVenues(
       }
       const res = await fetch(`/api/venues?${searchParams.toString()}`, { signal });
       if (!res.ok) {
-        throw new Error(`Favourite venues failed: ${res.status} ${res.statusText}`);
+        throw new HttpError(`Favourite venues failed: ${res.status} ${res.statusText}`, res.status);
       }
       const contentType = res.headers.get('content-type') ?? '';
       if (!contentType.toLowerCase().includes('application/json')) {

@@ -12,6 +12,7 @@ const labels = {
   ratingValue: '{rating} av 5',
   photo: 'Lägg till foto (valfritt)',
   photoSelected: 'Valt foto: {name}',
+  photoRejected: 'Fotot kunde inte läggas till. Välj en bildfil under 5 MB.',
   submit: 'Skicka',
   submitting: 'Skickar',
   close: 'Stäng',
@@ -103,6 +104,83 @@ describe('ReviewForm', () => {
     expect(onSubmit).toHaveBeenCalledWith({
       text: 'Texten ska fortfarande gå att skicka.',
     });
+  });
+
+  it('announces the localized rejection in the status region when a refused photo is picked and clears photo state', () => {
+    const onSubmit = vi.fn();
+    render(
+      <ReviewForm
+        venueName="Kafé Magasinet"
+        labels={labels}
+        onSubmit={onSubmit}
+        onClose={() => undefined}
+      />,
+    );
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const oversized = new File(['x'.repeat(6 * 1024 * 1024)], 'huge.jpg', { type: 'image/jpeg' });
+    fireEvent.change(input, { target: { files: [oversized] } });
+
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent('Fotot kunde inte läggas till. Välj en bildfil under 5 MB.');
+    expect(status).not.toHaveClass('sr-only');
+    expect(screen.queryByText(/Valt foto:/)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Omdöme' }), {
+      target: { value: 'Sol hela eftermiddagen.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Skicka' }));
+    expect(onSubmit).toHaveBeenCalledWith({ text: 'Sol hela eftermiddagen.' });
+  });
+
+  it.each([
+    ['non-image', new File(['x'], 'doc.pdf', { type: 'application/pdf' })],
+    ['zero-byte', new File([], 'empty.jpg', { type: 'image/jpeg' })],
+    ['over-long name', new File(['x'], `${'a'.repeat(121)}.jpg`, { type: 'image/jpeg' })],
+  ])('announces the rejection for a %s photo', (_label, file) => {
+    render(
+      <ReviewForm
+        venueName="Kafé Magasinet"
+        labels={labels}
+        onSubmit={vi.fn()}
+        onClose={() => undefined}
+      />,
+    );
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Fotot kunde inte läggas till. Välj en bildfil under 5 MB.',
+    );
+    expect(screen.queryByText(/Valt foto:/)).not.toBeInTheDocument();
+  });
+
+  it('clears the rejection announcement once a valid photo is selected', () => {
+    render(
+      <ReviewForm
+        venueName="Kafé Magasinet"
+        labels={labels}
+        onSubmit={vi.fn()}
+        onClose={() => undefined}
+      />,
+    );
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { files: [new File(['x'.repeat(6 * 1024 * 1024)], 'huge.jpg', { type: 'image/jpeg' })] },
+    });
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Fotot kunde inte läggas till. Välj en bildfil under 5 MB.',
+    );
+
+    fireEvent.change(input, {
+      target: { files: [new File(['image'], 'ok.jpg', { type: 'image/jpeg' })] },
+    });
+    expect(screen.getByText('Valt foto: ok.jpg')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Fotot kunde inte läggas till. Välj en bildfil under 5 MB.'),
+    ).not.toBeInTheDocument();
   });
 
   it('disables inputs while submitting and shows the loading label', () => {

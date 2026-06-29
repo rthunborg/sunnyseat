@@ -78,6 +78,22 @@ function OnboardingGateInner() {
     setHasReadFlag(true);
   }, []);
 
+  // Story 7.3 Task 8.2: keep the onboarded flag in sync across tabs. The
+  // `storage` event fires only in OTHER tabs, so completing onboarding in one
+  // tab dismisses an overlay still open in another without a reload. A forced
+  // dev state (`isForced`) keeps the overlay shown regardless, because
+  // `shouldShow` ORs `isForced` ahead of `!hasOnboarded`.
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      // `key === null` is a `localStorage.clear()`; otherwise only react to the
+      // onboarded flag.
+      if (event.key !== null && event.key !== ONBOARDED_FLAG_KEY) return;
+      setHasOnboarded(readFlag());
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   // Defer the map flyTo until both the granted coords and the map
   // instance are ready — the dynamic-imported MapView may not have
   // initialised the MapLibre canvas at the moment the user grants

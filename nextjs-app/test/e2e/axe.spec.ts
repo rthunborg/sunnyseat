@@ -103,6 +103,44 @@ test.describe('axe-core a11y gate', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
+  // Story 7.1 — the About page is the first standalone scrolling content
+  // route. It (and its privacy sub-page) must pass the gate too.
+  //
+  // FAST-FOLLOW (maintainer decision, 2026-06-29 — Epic 7 close-out): both the
+  // About and Privacy pages currently fail color-contrast on ONE shared
+  // element — the content-page footer wordmark (`text-text-muted` #938e81 on
+  // the cream surface #fdfaf4, 16px bold) is 3.13:1 vs the WCAG 1.4.3 AA 4.5:1
+  // threshold (SERIOUS). This is PRE-EXISTING design-token debt, not page
+  // logic, and was deliberately designated a post-launch fast-follow rather
+  // than an MVP launch gate. The rest of each page is axe-clean. These two
+  // scans are `test.fixme` (not deleted) so the coverage intent is recorded;
+  // flip them back to `test` once the footer token meets 4.5:1. Tracked in
+  // deferred-work.md, targeted at Story 5.1 / a focused a11y pass. (The mobile
+  // venue-card amber-label contrast debt is handled the same way in
+  // axe-mobile.spec.ts.)
+  test.fixme('a11y: about page (/about)', async ({ page }) => {
+    await page.goto('/about');
+    await page.getByTestId('about-page').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test.fixme('a11y: privacy page (/sekretess)', async ({ page }) => {
+    await page.goto('/sekretess');
+    await page.getByTestId('privacy-page').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  // Story 7.2 — the global 404 page. `/__sunnyseat-invalid` is a deliberately
+  // invalid path (Screen ID → Route Map) so Next.js renders `app/not-found.tsx`.
+  test('a11y: not-found page (/__sunnyseat-invalid)', async ({ page }) => {
+    await page.goto('/__sunnyseat-invalid');
+    await page.getByTestId('not-found-page').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
   // Story 3.4 review R1-P7 — the localized venue-detail not-found/error
   // notice is its own interactive surface and must pass the gate too.
   test('a11y: venue detail not-found notice (/?venue=<invalid slug>)', async ({ page }) => {
@@ -112,6 +150,21 @@ test.describe('axe-core a11y gate', () => {
 
     await page.goto('/?venue=this-venue-does-not-exist');
     await page.getByTestId('venue-detail-error').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  // Story 7.3 Task 9.2 — the offline shell. `/?_state=map-primary-offline`
+  // forces the cached app shell + "Ingen anslutning" banner with no venue
+  // data, regardless of real network state. The mobile-viewport variant is
+  // covered by the `a11y-mobile` project (axe-mobile.spec.ts / Task 8.5).
+  test('a11y: offline shell (/?_state=map-primary-offline)', async ({ page }) => {
+    await page.addInitScript((key: string) => {
+      window.localStorage.setItem(key, '1');
+    }, ONBOARDED_FLAG_KEY);
+
+    await page.goto('/?_state=map-primary-offline');
+    await page.getByTestId('offline-banner').waitFor({ state: 'visible' });
     const violations = await runAxe(page);
     expect(violations, formatViolations(violations)).toEqual([]);
   });

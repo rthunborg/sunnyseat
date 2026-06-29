@@ -38,6 +38,7 @@
       "ratingValue": "{rating} av 5",
       "photo": "Lägg till foto (valfritt)",
       "photoSelected": "Valt foto: {name}",
+      "photoRejected": "Fotot kunde inte läggas till. Välj en bildfil under 5 MB.",
       "submit": "Skicka",
       "submitting": "Skickar",
       "close": "Stäng",

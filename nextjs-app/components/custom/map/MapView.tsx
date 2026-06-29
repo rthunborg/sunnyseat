@@ -32,6 +32,7 @@ import { useFavouriteVenues } from '@/hooks/queries/useFavouriteVenues';
 import { useVenueSearch } from '@/hooks/queries/useVenueSearch';
 import { useFavourites } from '@/hooks/useFavourites';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
@@ -58,6 +59,7 @@ import { useForcedState } from '@/lib/dev/use-forced-state';
 import { cn } from '@/lib/utils';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
 import { mapVenueDtoToPinData } from '@/lib/utils/venue-pin-mapping';
+import { OfflineBanner } from '@/components/custom/offline/OfflineBanner';
 import { MapContainer } from './MapContainer';
 import { MapLoadingFallback } from './MapLoadingFallback';
 import { VenuePinLayer } from './VenuePinLayer';
@@ -124,6 +126,16 @@ export function MapView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const forcedState = useForcedState();
+  const isOnline = useOnlineStatus();
+  // Offline shell (Story 7.3 AC3/AC4/AC7): render the cached map background +
+  // "Ingen anslutning" banner and hide ALL venue data when the device is
+  // offline OR the dev `map-primary-offline` state is forced. This is computed
+  // here, alongside the other hooks, so the venue-data tree can be gated in
+  // the single return below without ever changing hook order. The TanStack
+  // Query layer pauses its fetches while offline and resumes them when the
+  // `online` event flips `isOnline`, so reconnect reloads venue data through
+  // the existing query flow without a hand-rolled fetch.
+  const showOfflineShell = forcedState === 'map-primary-offline' || !isOnline;
   const venueSlugParam = searchParams.get('venue');
   const [quickInfoPosition, setQuickInfoPosition] = useState<{ x: number; y: number } | undefined>();
   const [quickInfoDesktopPlacement, setQuickInfoDesktopPlacement] =
@@ -725,6 +737,11 @@ export function MapView() {
   return (
     <div className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full">
       <MapContainer />
+      {/* Offline shell (Story 7.3): keep the cached map background but hide
+          every venue-data surface (pins, search, sheet, list, overlays,
+          controls, errors) so only the map + "Ingen anslutning" banner show. */}
+      {!showOfflineShell && (
+        <>
       <VenuePinLayer venues={venues} />
       {!isForcedVisualReference && (
         <VenueSearchShell
@@ -966,6 +983,9 @@ export function MapView() {
           onBack={handleDismissDetails}
         />
       )}
+        </>
+      )}
+      <OfflineBanner visible={showOfflineShell} />
     </div>
   );
 }

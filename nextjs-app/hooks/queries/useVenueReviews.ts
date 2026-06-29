@@ -3,6 +3,7 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import type { GetReviewsResponse } from '@/lib/types/api';
+import { HttpError } from './venue-query-options';
 
 const ONE_MINUTE = 60 * 1000;
 
@@ -19,7 +20,7 @@ export function useVenueReviews(
         { signal },
       );
       if (!res.ok) {
-        throw new Error(`Venue reviews failed: ${res.status} ${res.statusText}`);
+        throw new HttpError(`Venue reviews failed: ${res.status} ${res.statusText}`, res.status);
       }
       const contentType = res.headers.get('content-type') ?? '';
       if (!contentType.toLowerCase().includes('application/json')) {

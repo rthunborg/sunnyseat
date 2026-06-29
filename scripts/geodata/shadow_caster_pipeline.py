@@ -18,6 +18,13 @@ from typing import Any, Iterable
 
 
 MVP_BBOX_3007 = (140000.0, 6390000.0, 150000.0, 6410000.0)
+# Footprints are kept for the central set by centroid-in-bbox, so a building that
+# straddles the MVP boundary legitimately has source_geom_3007 vertices a short
+# distance (observed max ~164 m) outside the bbox. The source-geometry bbox check
+# is a mis-projection guard (a wrongly-projected geometry lands ~140-174 km / many
+# degrees off), so a metre-scale tolerance keeps real edge buildings while still
+# rejecting gross CRS errors. EPSG:3007 units are metres, so this is metres.
+MVP_BBOX_3007_SOURCE_GEOM_TOLERANCE_M = 500.0
 SOURCE_FOOTPRINT_CRS = "EPSG:3006"
 METRIC_CRS = "EPSG:3007"
 RUNTIME_GEOMETRY_CRS = "EPSG:4326"
@@ -1023,6 +1030,37 @@ def source_flags(properties: dict[str, Any]) -> list[str]:
     return sorted(flags)
 
 
+# Story 8.1.1 / shadow-data-trust ADR: review reasons that mean "footprint certain,
+# height uncertain". A building held back ONLY for these is activated as a
+# conservative caster instead of being dropped (dropping caused systematic
+# false-"sunny" downtown). Any other review reason (no roof contour, missing
+# footprint) keeps the building in review.
+HEIGHT_UNCERTAIN_ACTIVATION_REASONS = frozenset(
+    {"large-z-spread", "single-line-tall", "limited-line-support", "very-tall"}
+)
+# Conservative height (metres) for activated height-uncertain casters: enough to
+# cast a meaningful central-Gothenburg shadow while clamping inflated/phantom height
+# estimates. Validated by the Story 8.1.1 prototype (resolved 7/8 confirmed
+# false-sunnies, only ever flipping sunny->shadowed). Re-checked by the Task 6 gate.
+HEIGHT_UNCERTAIN_CONSERVATIVE_CAP_M = 15.0
+# Same magnitude as the review penalty so activation is confidence-neutral: the row
+# casts a shadow but still down-weights confidence exactly as it did in review.
+HEIGHT_UNCERTAIN_QUALITY_PENALTY = 0.25
+HEIGHT_UNCERTAIN_ACTIVATED_FLAG = "height-uncertain-activated"
+
+
+def is_height_uncertain_activation(decision: str, reasons: Iterable[str]) -> bool:
+    """A footprint-certain building held back ONLY for height uncertainty we trust
+    (Story 8.1.1). Such a row is emitted include/active with a capped height +
+    lowered quality instead of being dropped to review."""
+    reason_set = set(reasons)
+    return (
+        decision == "include"
+        and bool(reason_set)
+        and reason_set.issubset(HEIGHT_UNCERTAIN_ACTIVATION_REASONS)
+    )
+
+
 def decide_filter(properties: dict[str, Any]) -> tuple[str, list[str]]:
     height = as_float(properties.get("heightM"))
     area = as_float(properties.get("areaM2"))
@@ -1059,12 +1097,23 @@ def decide_filter(properties: dict[str, Any]) -> tuple[str, list[str]]:
         reasons.append("missing-or-invalid-area")
 
     if reasons:
-        return "review", sorted(set(reasons))
+        deduped = sorted(set(reasons))
+        if set(deduped).issubset(HEIGHT_UNCERTAIN_ACTIVATION_REASONS):
+            # Footprint certain, height uncertain -> activate as a conservative
+            # caster (capped height + lowered quality applied in enriched_feature)
+            # rather than dropping it to review and casting no shadow there.
+            return "include", deduped
+        return "review", deduped
 
     return "include", []
 
 
-def runtime_quality(properties: dict[str, Any], decision: str) -> float:
+def runtime_quality(
+    properties: dict[str, Any],
+    decision: str,
+    *,
+    height_uncertain_activated: bool = False,
+) -> float:
     quality = as_float(properties.get("qualityScore"), 0.6)
     matched = as_int(properties.get("matchedLineCount"))
     spread = z_spread(properties)
@@ -1082,6 +1131,8 @@ def runtime_quality(properties: dict[str, Any], decision: str) -> float:
         quality -= 0.10
     if decision == "review":
         quality -= 0.25
+    elif height_uncertain_activated:
+        quality -= HEIGHT_UNCERTAIN_QUALITY_PENALTY
     if decision == "exclude":
         quality = min(quality, 0.2)
 
@@ -1102,15 +1153,29 @@ def tier(properties: dict[str, Any], quality: float) -> str:
 
 def enriched_feature(feature: dict[str, Any], decision: str, reasons: list[str]) -> dict[str, Any]:
     properties = dict(feature["properties"])
-    quality = runtime_quality(properties, decision)
+    activated = is_height_uncertain_activation(decision, reasons)
+    quality = runtime_quality(properties, decision, height_uncertain_activated=activated)
     properties["shadowImportDecision"] = decision
     properties["shadowFilterReasons"] = reasons
-    properties["shadowSourceFlags"] = source_flags(properties)
+    flags = source_flags(properties)
+    if activated:
+        flags = sorted(set(flags) | {HEIGHT_UNCERTAIN_ACTIVATED_FLAG})
+    properties["shadowSourceFlags"] = flags
     properties["shadowRuntimeQualityScore"] = quality
     properties["shadowCasterTier"] = tier(properties, quality)
     properties["zSpreadM"] = round(z_spread(properties), 3)
-    properties["shadowHeightM"] = properties.get("heightM")
-    properties["shadowHeightMethod"] = "height candidate retained after conservative import filtering"
+    if activated:
+        conservative_height = min(
+            as_float(properties.get("heightM")), HEIGHT_UNCERTAIN_CONSERVATIVE_CAP_M
+        )
+        properties["shadowHeightM"] = round(conservative_height, 3)
+        properties["shadowHeightMethod"] = (
+            "height-uncertain footprint activated at conservative "
+            f"{HEIGHT_UNCERTAIN_CONSERVATIVE_CAP_M:g} m cap (Story 8.1.1 ADR)"
+        )
+    else:
+        properties["shadowHeightM"] = properties.get("heightM")
+        properties["shadowHeightMethod"] = "height candidate retained after conservative import filtering"
     return {
         "type": "Feature",
         "geometry": feature["geometry"],
@@ -1833,12 +1898,20 @@ def write_sql_handoff(path: Path, import_jsonl: Path, diagnostics_jsonl: Path, m
 
 begin;
 
+-- The bulk \\copy upload can exceed Supabase's default per-statement timeout
+-- (2 min via the connection pooler); lift it for this transaction only.
+set local statement_timeout = 0;
+
 create temp table shadow_caster_import_stage (
   payload_text text not null
 ) on commit drop;
 
 -- Update paths if running psql from a different working directory.
-\\copy shadow_caster_import_stage(payload_text) from {import_path} with (format text);
+-- Load each JSONL line verbatim into one text column. CSV with control-char
+-- quote/delimiter (bytes that never occur in JSON) avoids COPY TEXT backslash
+-- escape processing, which would corrupt embedded backslashes (e.g. Windows
+-- paths like "building_geodata\\goteborg-open") and break the ::jsonb cast.
+\\copy shadow_caster_import_stage(payload_text) from {import_path} with (format csv, quote E'\\x01', delimiter E'\\x02');
 
 insert into public.shadow_caster_import_batches (
   id,
@@ -1956,7 +2029,7 @@ from (
 
 -- Optional diagnostics load. Review before enabling; excluded rows are inactive diagnostics.
 -- truncate table shadow_caster_import_stage;
--- \\copy shadow_caster_import_stage(payload_text) from {diagnostics_path} with (format text);
+-- \\copy shadow_caster_import_stage(payload_text) from {diagnostics_path} with (format csv, quote E'\\x01', delimiter E'\\x02');
 -- Repeat the insert above for diagnostic rows only if you want excluded diagnostics in public.shadow_casters.
 
 commit;
@@ -2080,8 +2153,16 @@ def validate_geojson_xy_bounds(
     value: Any,
     label: str,
     bounds: tuple[float, float, float, float],
+    tolerance: float = 0.0,
 ) -> list[str]:
+    # tolerance expands the bounds (in the bounds' own units) so geometry that
+    # legitimately straddles the boundary is accepted while gross mis-projection
+    # is still rejected. See MVP_BBOX_3007_SOURCE_GEOM_TOLERANCE_M.
     min_x, min_y, max_x, max_y = bounds
+    min_x -= tolerance
+    min_y -= tolerance
+    max_x += tolerance
+    max_y += tolerance
     errors: list[str] = []
     for position_index, position in enumerate(iter_geojson_positions(value)):
         if not validate_coordinate_pair(position):
@@ -2541,6 +2622,7 @@ def validate_rows(rows: list[dict[str, Any]], expected_batch_id: str) -> list[st
                     source_geom_3007.get("coordinates"),
                     "source_geom_3007",
                     MVP_BBOX_3007,
+                    tolerance=MVP_BBOX_3007_SOURCE_GEOM_TOLERANCE_M,
                 )
             )
         errors.extend(

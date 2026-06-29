@@ -1,0 +1,1404 @@
+diff --git a/_bmad-output/implementation-artifacts/8-2-venues-store-contract.sql b/_bmad-output/implementation-artifacts/8-2-venues-store-contract.sql
+new file mode 100644
+index 0000000..535c58c
+--- /dev/null
++++ b/_bmad-output/implementation-artifacts/8-2-venues-store-contract.sql
+@@ -0,0 +1,234 @@
++-- MANUAL-RUN ONLY: review before executing in Supabase.
++-- Story 8.2: Real Venue Store & API.
++--
++-- Purpose: define the public.venues contract that backs /api/venues and
++-- /api/venues/[slug] when SUNNYSEAT_VENUE_STORE=supabase. This is an
++-- implementation handoff artifact, NOT an auto-applied migration. The Next.js
++-- app defaults to an in-memory seed (lib/services/venue-store.ts) so CI has
++-- zero live-Supabase dependency; this file is the production cutover path that
++-- Story 8.5 finalizes.
++--
++-- Conventions mirror 3-3-reviews-contract.sql / 3-2-feedback-contract.sql /
++-- 3-0-2-shadow-caster-schema-rpc-contract.sql: snake_case columns, jsonb for
++-- nested DTO shapes, create-if-not-exists, deny-by-default RLS with a single
++-- service_role select grant, idempotent seed, and end-of-file smoke checks.
++--
++-- IMPORTANT SCOPE NOTE (8.2 <-> 8.3 seam): the sun-engine columns
++-- (current_sun_status, sky_condition, confidence, sun_exposure_percent,
++-- sun_window, prediction_uncertainty) are TEMPORARY seed carriers so the DTO
++-- output stays complete and the gate venue is byte-identical to the fixture.
++-- Story 8.3 replaces them with the real lib/solar + lib/weather engine. Do NOT
++-- treat these as authoritative sun data.
++--
++-- id is text (not a uuid/FK) to stay join/lookup-compatible with the existing
++-- reviews.venue_id text / feedback.venue_id text identifiers ("1".."7").
++-- Adding a typed FK from reviews/feedback -> venues is intentionally out of
++-- scope here (it would couple Story 8.4); it belongs to 8.4/8.5 if ever wanted.
++
++-- ============================================================================
++-- Section 1: diagnostics
++-- ============================================================================
++
++-- Existing venues table, if any (expected: none before this story).
++select to_regclass('public.venues') as venues_table;
++
++-- Confirm the join-compatible identifier types on the related tables.
++select table_name, column_name, data_type
++from information_schema.columns
++where table_schema = 'public'
++  and table_name in ('reviews', 'feedback')
++  and column_name in ('venue_id', 'venue_slug')
++order by table_name, column_name;
++
++-- ============================================================================
++-- Section 2: schema creation
++-- ============================================================================
++
++create table if not exists public.venues (
++  id text primary key,
++  slug text not null,
++  venue_name text not null,
++  neighborhood text not null,
++  lat double precision not null,
++  lng double precision not null,
++  is_partner boolean not null default false,
++  thumbnail jsonb,
++  -- Detail block (served by /api/venues/[slug] only).
++  description text,
++  address text,
++  opening_hours jsonb,
++  peak_time text,
++  shadow_warning_minutes integer check (
++    shadow_warning_minutes is null or shadow_warning_minutes >= 0
++  ),
++  -- Sun-engine columns below are TEMPORARY seed carriers superseded by Story 8.3.
++  current_sun_status text not null check (
++    current_sun_status in ('Sunny', 'Partial', 'Shaded', 'NoSun')
++  ),
++  sky_condition text check (
++    sky_condition is null
++    or sky_condition in ('clear', 'partly-cloudy', 'overcast', 'unavailable')
++  ),
++  confidence integer not null check (confidence between 0 and 100),
++  sun_exposure_percent integer not null check (sun_exposure_percent between 0 and 100),
++  sun_window jsonb,
++  prediction_uncertainty jsonb,
++  created_at timestamptz not null default now(),
++  updated_at timestamptz not null default now()
++);
++
++comment on table public.venues is
++  'Real venue store backing /api/venues (Story 8.2). The sun-engine columns '
++  '(current_sun_status, sky_condition, confidence, sun_exposure_percent, '
++  'sun_window, prediction_uncertainty) are TEMPORARY seed carriers replaced by '
++  'the real engine in Story 8.3.';
++
++-- slug uniqueness via the conventionally-named index (idx_table_column) so we
++-- do not also create a redundant auto-named unique constraint index.
++create unique index if not exists idx_venues_slug on public.venues (slug);
++
++-- ============================================================================
++-- Section 3: privileges / RLS (deny-by-default, server-only read)
++-- ============================================================================
++
++-- Reads happen server-side via getSupabaseServiceRole() which bypasses RLS,
++-- exactly like the reviews/feedback/shadow_casters adapters. No anon/public
++-- read policy in this story; a public-read policy (if ever wanted) is Story 8.5.
++alter table public.venues enable row level security;
++
++revoke all on table public.venues from anon;
++revoke all on table public.venues from authenticated;
++revoke all on table public.venues from public;
++
++grant select on table public.venues to service_role;
++
++-- ============================================================================
++-- Section 4: seed (idempotent) — byte-identical to lib/services/venues-fixture.ts
++-- VENUE_FIXTURE + the [slug] route DETAIL_FIXTURE. Re-running is safe.
++-- ============================================================================
++
++insert into public.venues (
++  id, slug, venue_name, neighborhood, lat, lng, is_partner, thumbnail,
++  description, address, opening_hours, peak_time, shadow_warning_minutes,
++  current_sun_status, sky_condition, confidence, sun_exposure_percent,
++  sun_window, prediction_uncertainty
++) values
++  (
++    '1', 'test-venue-sunny', 'Kafé Magasinet', 'Inom Vallgraven', 57.7050, 11.9700, true,
++    '{"alt":"Uteservering hos Kafé Magasinet","initials":"KM","url":"https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=560&q=80"}'::jsonb,
++    'Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.',
++    'Tredje Långgatan 9, 413 03 Göteborg',
++    '{"display":"Öppet till 22:00","closesAt":"22:00"}'::jsonb,
++    '15:30', 45,
++    'Sunny', 'clear', 92, 95,
++    '{"start":"13:00","end":"18:30"}'::jsonb, null
++  ),
++  (
++    '2', 'bryggeriet-soltak', 'Bryggerietsoltak', 'Linnéstaden', 57.7035, 11.9520, false,
++    '{"alt":"Uteservering hos Bryggerietsoltak","initials":"BS","url":"https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=560&q=80"}'::jsonb,
++    'Taknära sittplatser med bred solträff under lunch och eftermiddag.',
++    'Linnégatan 21, 413 04 Göteborg',
++    '{"display":"Öppet till 23:00","closesAt":"23:00"}'::jsonb,
++    '15:00', null,
++    'Sunny', 'clear', 88, 89,
++    '{"start":"12:45","end":"18:15"}'::jsonb, null
++  ),
++  (
++    '3', 'solplats-magasinsgatan', 'Solplats Magasinsgatan', 'Inom Vallgraven', 57.7080, 11.9655, false,
++    '{"alt":"Uteservering på Solplats Magasinsgatan","initials":"SM","url":"https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=560&q=80"}'::jsonb,
++    'Lugn innerstadsterrass med bäst sol när eftermiddagen vänder mot kväll.',
++    'Magasinsgatan 17, 411 18 Göteborg',
++    '{"display":"Öppet till 21:00","closesAt":"21:00"}'::jsonb,
++    '15:30', null,
++    'Sunny', 'partly-cloudy', 78, 82,
++    '{"start":"14:00","end":"17:45"}'::jsonb, null
++  ),
++  (
++    '4', 'cafe-halvvags', 'Café Halvvägs', 'Vasastaden', 57.7000, 11.9710, false,
++    '{"alt":"Uteservering hos Café Halvvägs","initials":"CH","url":"https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=560&q=80"}'::jsonb,
++    'Avslappnat kvarterscafé med delvis sol på de yttre borden.',
++    'Vasagatan 32, 411 24 Göteborg',
++    '{"display":"Öppet till 20:00","closesAt":"20:00"}'::jsonb,
++    '16:00', null,
++    'Partial', 'partly-cloudy', 70, 65,
++    '{"start":"15:10","end":"17:20"}'::jsonb,
++    '{"level":"medium","reasons":["building_shadow_coverage"]}'::jsonb
++  ),
++  (
++    '5', 'brygghuset-lerum', 'Brygghuset Lerum', 'Haga', 57.7115, 11.9605, false,
++    '{"alt":"Uteservering hos Brygghuset Lerum","initials":"BL","url":"https://images.unsplash.com/photo-1508424757105-b6d5ad9329d0?auto=format&fit=crop&w=560&q=80"}'::jsonb,
++    'Skyddad gårdsmiljö med kortare solfönster och gott om sittplatser.',
++    'Haga Nygata 8, 413 01 Göteborg',
++    '{"display":"Öppet till 22:00","closesAt":"22:00"}'::jsonb,
++    '14:30', null,
++    'Partial', 'partly-cloudy', 66, 58,
++    '{"start":"13:35","end":"16:50"}'::jsonb,
++    '{"level":"medium","reasons":["vegetation","awning","seasonal_furniture"]}'::jsonb
++  ),
++  (
++    '6', 'skuggans-hus', 'Skuggans Hus', 'Inom Vallgraven', 57.7095, 11.9785, false,
++    '{"alt":"Uteservering hos Skuggans Hus","initials":"SH","url":"https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=560&q=80"}'::jsonb,
++    'Sval uteservering som bara får korta solglimtar mellan husfasaderna.',
++    'Södra Hamngatan 12, 411 14 Göteborg',
++    '{"display":"Öppet till 19:00","closesAt":"19:00"}'::jsonb,
++    '16:30', null,
++    'Shaded', 'overcast', 80, 22,
++    '{"start":"16:10","end":"16:45"}'::jsonb, null
++  ),
++  (
++    '7', 'bistro-bakgarden', 'Bistro Bakgården', 'Vasastaden', 57.7060, 11.9820, false,
++    '{"alt":"Uteservering hos Bistro Bakgården","initials":"BB","url":"https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=560&q=80"}'::jsonb,
++    'Bakgårdsservering med mest skugga, men en kort lunchsol vid klart väder.',
++    'Engelbrektsgatan 44, 411 37 Göteborg',
++    '{"display":"Öppet till 21:00","closesAt":"21:00"}'::jsonb,
++    '12:00', 0,
++    'Shaded', 'overcast', 75, 14,
++    '{"start":"11:30","end":"12:20"}'::jsonb, null
++  )
++on conflict (id) do update set
++  slug = excluded.slug,
++  venue_name = excluded.venue_name,
++  neighborhood = excluded.neighborhood,
++  lat = excluded.lat,
++  lng = excluded.lng,
++  is_partner = excluded.is_partner,
++  thumbnail = excluded.thumbnail,
++  description = excluded.description,
++  address = excluded.address,
++  opening_hours = excluded.opening_hours,
++  peak_time = excluded.peak_time,
++  shadow_warning_minutes = excluded.shadow_warning_minutes,
++  current_sun_status = excluded.current_sun_status,
++  sky_condition = excluded.sky_condition,
++  confidence = excluded.confidence,
++  sun_exposure_percent = excluded.sun_exposure_percent,
++  sun_window = excluded.sun_window,
++  prediction_uncertainty = excluded.prediction_uncertainty,
++  updated_at = now();
++
++-- ============================================================================
++-- Section 5: rollback notes
++-- ============================================================================
++-- To fully remove this contract (does not touch reviews/feedback):
++--   drop table if exists public.venues;
++-- The unique index idx_venues_slug is dropped with the table.
++
++-- ============================================================================
++-- Section 6: smoke checks (run after apply)
++-- ============================================================================
++
++-- Expect 7 seeded launch venues.
++select count(*) as venue_count from public.venues;
++
++-- Expect the gate venue to resolve with byte-identical core values.
++select id, slug, venue_name, neighborhood, lat, lng, is_partner,
++       current_sun_status, confidence, sun_exposure_percent,
++       sun_window, shadow_warning_minutes
++from public.venues
++where slug = 'test-venue-sunny';
++
++-- Expect deny-by-default: only service_role holds a grant.
++select grantee, privilege_type
++from information_schema.role_table_grants
++where table_schema = 'public' and table_name = 'venues'
++order by grantee, privilege_type;
+diff --git a/nextjs-app/.env.example b/nextjs-app/.env.example
+index c406db3..11f5be7 100644
+--- a/nextjs-app/.env.example
++++ b/nextjs-app/.env.example
+@@ -3,8 +3,16 @@ NEXT_PUBLIC_SUPABASE_URL=https://[project].supabase.co
+ NEXT_PUBLIC_SUPABASE_ANON_KEY=[anon-key]
+ SUPABASE_SERVICE_ROLE_KEY=[service-role-key]
+ 
+-# Cron job authentication
+-CRON_SECRET=[random-secret-for-cron-endpoints]
++# Data-source adapters (server-only). Unset = in-memory fixture default (CI has
++# no live-Supabase dependency). Set to "supabase" to read the live tables via
++# the service-role client. Requires NEXT_PUBLIC_SUPABASE_URL +
++# SUPABASE_SERVICE_ROLE_KEY above.
++SUNNYSEAT_VENUE_STORE=          # "supabase" reads public.venues (Story 8.2)
++SUNNYSEAT_FEEDBACK_PERSISTENCE= # "supabase" writes public.feedback (Story 3.2)
++SUNNYSEAT_REVIEW_PERSISTENCE=   # "supabase" reads/writes public.reviews (Story 3.3)
++
++# Cron job authentication
++CRON_SECRET=[random-secret-for-cron-endpoints]
+ 
+ # Met.no weather API (requires identifying User-Agent per TOS)
+ MET_NO_USER_AGENT=sunnyseat/1.0 [your-email@example.com]
+diff --git a/nextjs-app/app/api/venues/[slug]/route.ts b/nextjs-app/app/api/venues/[slug]/route.ts
+index f7dfe39..10118db 100644
+--- a/nextjs-app/app/api/venues/[slug]/route.ts
++++ b/nextjs-app/app/api/venues/[slug]/route.ts
+@@ -1,8 +1,11 @@
+ import { NextRequest, NextResponse } from 'next/server';
++import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
+ import {
+-  normalizeVenueForResponse,
+-  VENUE_FIXTURE,
+-} from '@/lib/services/venues-fixture';
++  getVenueBySlug,
++  storedVenueDetail,
++  toVenueData,
++  type StoredVenueDetail,
++} from '@/lib/services/venue-store';
+ import { getReviewSummaryForVenueFromPersistence } from '@/lib/services/venue-reviews-persistence';
+ import {
+   applyPlannerSelectionToVenue,
+@@ -30,14 +33,6 @@ type RouteContext = {
+   params: Promise<{ slug: string }>;
+ };
+ 
+-type FixtureDetail = {
+-  description: string;
+-  address: string;
+-  openingHours: VenueDetailDto['openingHours'];
+-  peakTime: string;
+-  shadowWarningMinutes?: number;
+-};
+-
+ type DetailTimelineProjection = {
+   peakTime?: string;
+   windowStatus?: VenueDataDto['currentSunStatus'];
+@@ -48,60 +43,6 @@ type DetailCoordinates = {
+   lng: number;
+ };
+ 
+-const DETAIL_FIXTURE: Record<string, FixtureDetail> = {
+-  'test-venue-sunny': {
+-    description:
+-      'Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.',
+-    address: 'Tredje Långgatan 9, 413 03 Göteborg',
+-    openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
+-    peakTime: '15:30',
+-    shadowWarningMinutes: 45,
+-  },
+-  'bryggeriet-soltak': {
+-    description:
+-      'Taknära sittplatser med bred solträff under lunch och eftermiddag.',
+-    address: 'Linnégatan 21, 413 04 Göteborg',
+-    openingHours: { display: 'Öppet till 23:00', closesAt: '23:00' },
+-    peakTime: '15:00',
+-  },
+-  'solplats-magasinsgatan': {
+-    description:
+-      'Lugn innerstadsterrass med bäst sol när eftermiddagen vänder mot kväll.',
+-    address: 'Magasinsgatan 17, 411 18 Göteborg',
+-    openingHours: { display: 'Öppet till 21:00', closesAt: '21:00' },
+-    peakTime: '15:30',
+-  },
+-  'cafe-halvvags': {
+-    description:
+-      'Avslappnat kvarterscafé med delvis sol på de yttre borden.',
+-    address: 'Vasagatan 32, 411 24 Göteborg',
+-    openingHours: { display: 'Öppet till 20:00', closesAt: '20:00' },
+-    peakTime: '16:00',
+-  },
+-  'brygghuset-lerum': {
+-    description:
+-      'Skyddad gårdsmiljö med kortare solfönster och gott om sittplatser.',
+-    address: 'Haga Nygata 8, 413 01 Göteborg',
+-    openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
+-    peakTime: '14:30',
+-  },
+-  'skuggans-hus': {
+-    description:
+-      'Sval uteservering som bara får korta solglimtar mellan husfasaderna.',
+-    address: 'Södra Hamngatan 12, 411 14 Göteborg',
+-    openingHours: { display: 'Öppet till 19:00', closesAt: '19:00' },
+-    peakTime: '16:30',
+-  },
+-  'bistro-bakgarden': {
+-    description:
+-      'Bakgårdsservering med mest skugga, men en kort lunchsol vid klart väder.',
+-    address: 'Engelbrektsgatan 44, 411 37 Göteborg',
+-    openingHours: { display: 'Öppet till 21:00', closesAt: '21:00' },
+-    peakTime: '12:00',
+-    shadowWarningMinutes: 0,
+-  },
+-};
+-
+ export async function GET(_request: NextRequest, context: RouteContext) {
+   const planner = parseVenuePlannerParams(_request.nextUrl.searchParams);
+   if (!planner.ok) {
+@@ -123,17 +64,18 @@ export async function GET(_request: NextRequest, context: RouteContext) {
+       { status: 400 },
+     );
+   }
+-  const venue = VENUE_FIXTURE.find(
+-    (candidate) => candidate.slug === decodedSlug || candidate.venueSlug === decodedSlug,
+-  );
++  const stored = await getVenueBySlug(decodedSlug);
+ 
+-  if (!venue) {
++  if (!stored) {
+     return NextResponse.json(
+       { detail: `Venue not found: ${decodedSlug}`, status: 404 },
+       { status: 404 },
+     );
+   }
+ 
++  // Strip the detail block before the normalize/weather/planner pipeline (each
++  // stage spreads `...venue`); detail is applied explicitly via buildDetailDto.
++  const venue = toVenueData(stored);
+   const venueWithDistance = coordinates.value
+     ? {
+         ...venue,
+@@ -156,7 +98,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
+   }
+   const detail = buildDetailDto(
+     adjustedVenue,
+-    DETAIL_FIXTURE[venue.slug],
++    storedVenueDetail(stored),
+     planner.selection
+       ? timelineProjectionFromAdjustedVenue(adjustedVenue)
+       : undefined,
+@@ -178,7 +120,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
+ 
+ function buildDetailDto(
+   venue: VenueDataDto,
+-  fixture?: FixtureDetail,
++  fixture?: StoredVenueDetail,
+   timelineProjection?: DetailTimelineProjection,
+   reviewSummary?: VenueDetailDto['reviewSummary'],
+ ): VenueDetailDto {
+diff --git a/nextjs-app/app/api/venues/route.ts b/nextjs-app/app/api/venues/route.ts
+index 0552f95..e85351d 100644
+--- a/nextjs-app/app/api/venues/route.ts
++++ b/nextjs-app/app/api/venues/route.ts
+@@ -18,10 +18,8 @@ import {
+ } from '@/lib/utils/validation';
+ import { badRequest } from '@/lib/utils/api-errors';
+ import { greatCircleMeters } from '@/lib/utils/geo';
+-import {
+-  normalizeVenueForResponse,
+-  VENUE_FIXTURE,
+-} from '@/lib/services/venues-fixture';
++import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
++import { getVenues } from '@/lib/services/venue-store';
+ import {
+   applyPlannerSelectionToVenue,
+   parseVenuePlannerParams,
+@@ -235,7 +233,8 @@ export async function GET(request: NextRequest) {
+     return badRequest('Longitude must be between -180 and 180 degrees');
+   }
+ 
+-  const uniqueness = validateVenueUniqueness(VENUE_FIXTURE);
++  const storeVenues = await getVenues();
++  const uniqueness = validateVenueUniqueness(storeVenues);
+   if (!uniqueness.valid) {
+     return NextResponse.json(
+       { detail: uniqueness.reason, status: 500 },
+@@ -267,7 +266,7 @@ export async function GET(request: NextRequest) {
+   if (!planner.ok) return badRequest(planner.detail);
+   const freshness = resolveFixtureSunFreshness(params);
+ 
+-  const matchedVenues = VENUE_FIXTURE
++  const matchedVenues = storeVenues
+     .map((v) => normalizeVenueForResponse(v))
+     .map((v) => applyFixtureWeatherAvailability(v, freshness))
+     .map((v) => applyPlannerSelectionToVenue(v, planner.selection))
+diff --git a/nextjs-app/hooks/mutations/useSubmitFeedback.ts b/nextjs-app/hooks/mutations/useSubmitFeedback.ts
+index edd2cac..7f841b9 100644
+--- a/nextjs-app/hooks/mutations/useSubmitFeedback.ts
++++ b/nextjs-app/hooks/mutations/useSubmitFeedback.ts
+@@ -2,6 +2,7 @@
+ 
+ import { useMutation } from '@tanstack/react-query';
+ import { markVenueFeedbackSubmitted } from '@/lib/services/feedback-session';
++import { HttpError } from '@/hooks/queries/venue-query-options';
+ import type { FeedbackResponse, SubmitFeedbackRequest } from '@/lib/types/api';
+ 
+ export function useSubmitFeedback(identifier: string) {
+@@ -15,7 +16,7 @@ export function useSubmitFeedback(identifier: string) {
+         body: JSON.stringify(payload),
+       });
+       if (!res.ok) {
+-        throw new Error(`Feedback submit failed: ${res.status} ${res.statusText}`);
++        throw new HttpError(`Feedback submit failed: ${res.status} ${res.statusText}`, res.status);
+       }
+       return (await res.json()) as FeedbackResponse;
+     },
+diff --git a/nextjs-app/hooks/mutations/useSubmitReview.ts b/nextjs-app/hooks/mutations/useSubmitReview.ts
+index 0b0b82f..62d8a65 100644
+--- a/nextjs-app/hooks/mutations/useSubmitReview.ts
++++ b/nextjs-app/hooks/mutations/useSubmitReview.ts
+@@ -2,6 +2,7 @@
+ 
+ import { useMutation, useQueryClient } from '@tanstack/react-query';
+ import { queryKeys } from '@/lib/query-keys';
++import { HttpError } from '@/hooks/queries/venue-query-options';
+ import type {
+   GetReviewsResponse,
+   GetVenueDetailResponse,
+@@ -23,7 +24,7 @@ export function useSubmitReview(identifier: string) {
+         body: JSON.stringify(payload),
+       });
+       if (!res.ok) {
+-        throw new Error(`Review submit failed: ${res.status} ${res.statusText}`);
++        throw new HttpError(`Review submit failed: ${res.status} ${res.statusText}`, res.status);
+       }
+       const contentType = res.headers.get('content-type') ?? '';
+       if (!contentType.toLowerCase().includes('application/json')) {
+diff --git a/nextjs-app/hooks/queries/useFavouriteVenues.ts b/nextjs-app/hooks/queries/useFavouriteVenues.ts
+index dc30fb1..b5b54d1 100644
+--- a/nextjs-app/hooks/queries/useFavouriteVenues.ts
++++ b/nextjs-app/hooks/queries/useFavouriteVenues.ts
+@@ -6,6 +6,7 @@ import { sanitizeFavouriteIds } from '@/lib/services/favourites-storage';
+ import type { GetVenuesResponse } from '@/lib/types/api';
+ import { readSunFreshnessHeaders } from '@/lib/utils/sun-freshness';
+ import {
++  HttpError,
+   shouldRetryVenueQuery,
+   venueQueryRetryDelay,
+ } from './venue-query-options';
+@@ -47,7 +48,7 @@ export function useFavouriteVenues(
+       }
+       const res = await fetch(`/api/venues?${searchParams.toString()}`, { signal });
+       if (!res.ok) {
+-        throw new Error(`Favourite venues failed: ${res.status} ${res.statusText}`);
++        throw new HttpError(`Favourite venues failed: ${res.status} ${res.statusText}`, res.status);
+       }
+       const contentType = res.headers.get('content-type') ?? '';
+       if (!contentType.toLowerCase().includes('application/json')) {
+diff --git a/nextjs-app/hooks/queries/useVenueDetail.ts b/nextjs-app/hooks/queries/useVenueDetail.ts
+index 74b11ff..c18cb20 100644
+--- a/nextjs-app/hooks/queries/useVenueDetail.ts
++++ b/nextjs-app/hooks/queries/useVenueDetail.ts
+@@ -5,6 +5,7 @@ import { queryKeys } from '@/lib/query-keys';
+ import type { GetVenueDetailResponse } from '@/lib/types/api';
+ import { readSunFreshnessHeaders } from '@/lib/utils/sun-freshness';
+ import {
++  HttpError,
+   shouldRetryVenueQuery,
+   venueQueryRetryDelay,
+ } from './venue-query-options';
+@@ -70,7 +71,7 @@ export function useVenueDetail(
+         },
+       );
+       if (!res.ok) {
+-        throw new Error(`Venue detail failed: ${res.status} ${res.statusText}`);
++        throw new HttpError(`Venue detail failed: ${res.status} ${res.statusText}`, res.status);
+       }
+       const contentType = res.headers.get('content-type') ?? '';
+       if (!contentType.toLowerCase().includes('application/json')) {
+diff --git a/nextjs-app/hooks/queries/useVenueReviews.ts b/nextjs-app/hooks/queries/useVenueReviews.ts
+index 1816e22..197869e 100644
+--- a/nextjs-app/hooks/queries/useVenueReviews.ts
++++ b/nextjs-app/hooks/queries/useVenueReviews.ts
+@@ -3,6 +3,7 @@
+ import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+ import { queryKeys } from '@/lib/query-keys';
+ import type { GetReviewsResponse } from '@/lib/types/api';
++import { HttpError } from './venue-query-options';
+ 
+ const ONE_MINUTE = 60 * 1000;
+ 
+@@ -19,7 +20,7 @@ export function useVenueReviews(
+         { signal },
+       );
+       if (!res.ok) {
+-        throw new Error(`Venue reviews failed: ${res.status} ${res.statusText}`);
++        throw new HttpError(`Venue reviews failed: ${res.status} ${res.statusText}`, res.status);
+       }
+       const contentType = res.headers.get('content-type') ?? '';
+       if (!contentType.toLowerCase().includes('application/json')) {
+diff --git a/nextjs-app/hooks/queries/useVenueSearch.ts b/nextjs-app/hooks/queries/useVenueSearch.ts
+index 715a7d8..cf7958f 100644
+--- a/nextjs-app/hooks/queries/useVenueSearch.ts
++++ b/nextjs-app/hooks/queries/useVenueSearch.ts
+@@ -5,6 +5,7 @@ import { queryKeys } from '@/lib/query-keys';
+ import type { GetVenuesResponse } from '@/lib/types/api';
+ import { readSunFreshnessHeaders } from '@/lib/utils/sun-freshness';
+ import {
++  HttpError,
+   shouldRetryVenueQuery,
+   venueQueryRetryDelay,
+ } from './venue-query-options';
+@@ -81,7 +82,7 @@ export function useVenueSearch(
+       const url = `/api/venues?${searchParams.toString()}`;
+       const res = await fetch(url, { signal });
+       if (!res.ok) {
+-        throw new Error(`Venue search failed: ${res.status} ${res.statusText}`);
++        throw new HttpError(`Venue search failed: ${res.status} ${res.statusText}`, res.status);
+       }
+       // A 200 with a non-JSON content-type usually means an auth wall or
+       // proxy rewrote the response. Surface a useful error rather than
+diff --git a/nextjs-app/hooks/queries/venue-query-options.ts b/nextjs-app/hooks/queries/venue-query-options.ts
+index 2e4675d..9b7a316 100644
+--- a/nextjs-app/hooks/queries/venue-query-options.ts
++++ b/nextjs-app/hooks/queries/venue-query-options.ts
+@@ -2,6 +2,23 @@ export const VENUE_QUERY_RETRY_ATTEMPTS = 3;
+ export const VENUE_QUERY_RETRY_DELAY_MS = 1000;
+ export const VENUE_QUERY_RETRY_DELAY_MAX_MS = 30_000;
+ 
++/**
++ * Error carrying the originating HTTP status, so not-found / client-error
++ * detection keys off the numeric status rather than the human-readable message
++ * (Story 8.2, AC #4 — carried from Story 3.4 review R2-D2). The message text is
++ * preserved verbatim so the message-regex fallback below still applies to any
++ * error thrown without a status.
++ */
++export class HttpError extends Error {
++  readonly status: number;
++
++  constructor(message: string, status: number) {
++    super(message);
++    this.name = 'HttpError';
++    this.status = status;
++  }
++}
++
+ export function shouldRetryVenueQuery(failureCount: number, error: Error): boolean {
+   if (isClientHttpError(error)) return false;
+   return failureCount < VENUE_QUERY_RETRY_ATTEMPTS;
+@@ -14,10 +31,28 @@ export function venueQueryRetryDelay(attemptIndex: number): number {
+   );
+ }
+ 
++function httpStatusFromError(error: unknown): number | undefined {
++  // Only our deliberate HttpError carries a trusted HTTP status. A foreign
++  // error that merely happens to expose a `status` field — or a non-integer /
++  // negative one — is ignored and falls through to the message-regex fallback.
++  // [Story 8.2 review R1-P5]
++  if (error instanceof HttpError && Number.isInteger(error.status)) {
++    return error.status;
++  }
++  return undefined;
++}
++
+ function isClientHttpError(error: Error): boolean {
++  const status = httpStatusFromError(error);
++  if (status !== undefined) return status >= 400 && status <= 499;
++  // Defensive fallback for errors thrown without a numeric status.
+   return /failed:\s4\d\d\b/i.test(error.message);
+ }
+ 
+ export function isVenueNotFoundError(error: Error | null | undefined): boolean {
+-  return Boolean(error && /failed:\s404\b/i.test(error.message));
++  if (!error) return false;
++  const status = httpStatusFromError(error);
++  if (status !== undefined) return status === 404;
++  // Defensive fallback for errors thrown without a numeric status.
++  return /failed:\s404\b/i.test(error.message);
+ }
+diff --git a/nextjs-app/lib/services/venue-store.ts b/nextjs-app/lib/services/venue-store.ts
+new file mode 100644
+index 0000000..1830efb
+--- /dev/null
++++ b/nextjs-app/lib/services/venue-store.ts
+@@ -0,0 +1,367 @@
++/**
++ * STORY 8.2 — venue store abstraction (server-only).
++ *
++ * The single source the venue API routes read from. Defaults to an in-memory
++ * seed built from `VENUE_FIXTURE` (+ the launch detail block) so CI and tests
++ * have ZERO live-Supabase dependency and the route output stays byte-identical
++ * to the fixture era. Set `SUNNYSEAT_VENUE_STORE=supabase` to read the real
++ * `public.venues` table via the service-role client — mirroring the
++ * `venue-reviews-persistence.ts` / `venue-feedback-persistence.ts` adapters.
++ *
++ * The sun-engine fields (`currentSunStatus`, `skyCondition`, `confidence`,
++ * `sunExposurePercent`, `sunWindow`, `predictionUncertainty`) are TEMPORARY
++ * seed carriers superseded by the real engine in Story 8.3.
++ *
++ * Server-only — client components must never import this module (API boundary).
++ */
++import { VENUE_FIXTURE } from '@/lib/services/venues-fixture';
++import type {
++  PredictionUncertaintyDto,
++  VenueDataDto,
++  VenueDetailDto,
++  VenueSunStatus,
++} from '@/lib/types/api';
++
++/**
++ * Detail attributes served only by `/api/venues/[slug]`. Kept separate from the
++ * list DTO: the route pipeline spreads `...venue`, so folding these into the
++ * list source would leak them into the `/api/venues` response shape.
++ */
++export type StoredVenueDetail = {
++  description?: string;
++  address?: string;
++  openingHours?: VenueDetailDto['openingHours'];
++  peakTime?: string;
++  shadowWarningMinutes?: number;
++};
++
++export type StoredVenue = VenueDataDto & StoredVenueDetail;
++
++/**
++ * Launch venue detail, keyed by slug. Folded into the in-memory seed and used
++ * as the byte-identical baseline for the `8-2-venues-store-contract.sql` seed.
++ */
++const VENUE_DETAIL_SEED: Record<string, StoredVenueDetail> = {
++  'test-venue-sunny': {
++    description:
++      'Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.',
++    address: 'Tredje Långgatan 9, 413 03 Göteborg',
++    openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
++    peakTime: '15:30',
++    shadowWarningMinutes: 45,
++  },
++  'bryggeriet-soltak': {
++    description:
++      'Taknära sittplatser med bred solträff under lunch och eftermiddag.',
++    address: 'Linnégatan 21, 413 04 Göteborg',
++    openingHours: { display: 'Öppet till 23:00', closesAt: '23:00' },
++    peakTime: '15:00',
++  },
++  'solplats-magasinsgatan': {
++    description:
++      'Lugn innerstadsterrass med bäst sol när eftermiddagen vänder mot kväll.',
++    address: 'Magasinsgatan 17, 411 18 Göteborg',
++    openingHours: { display: 'Öppet till 21:00', closesAt: '21:00' },
++    peakTime: '15:30',
++  },
++  'cafe-halvvags': {
++    description: 'Avslappnat kvarterscafé med delvis sol på de yttre borden.',
++    address: 'Vasagatan 32, 411 24 Göteborg',
++    openingHours: { display: 'Öppet till 20:00', closesAt: '20:00' },
++    peakTime: '16:00',
++  },
++  'brygghuset-lerum': {
++    description:
++      'Skyddad gårdsmiljö med kortare solfönster och gott om sittplatser.',
++    address: 'Haga Nygata 8, 413 01 Göteborg',
++    openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
++    peakTime: '14:30',
++  },
++  'skuggans-hus': {
++    description:
++      'Sval uteservering som bara får korta solglimtar mellan husfasaderna.',
++    address: 'Södra Hamngatan 12, 411 14 Göteborg',
++    openingHours: { display: 'Öppet till 19:00', closesAt: '19:00' },
++    peakTime: '16:30',
++  },
++  'bistro-bakgarden': {
++    description:
++      'Bakgårdsservering med mest skugga, men en kort lunchsol vid klart väder.',
++    address: 'Engelbrektsgatan 44, 411 37 Göteborg',
++    openingHours: { display: 'Öppet till 21:00', closesAt: '21:00' },
++    peakTime: '12:00',
++    shadowWarningMinutes: 0,
++  },
++};
++
++const VENUE_SELECT_COLUMNS = [
++  'id',
++  'slug',
++  'venue_name',
++  'neighborhood',
++  'lat',
++  'lng',
++  'is_partner',
++  'thumbnail',
++  'description',
++  'address',
++  'opening_hours',
++  'peak_time',
++  'shadow_warning_minutes',
++  'current_sun_status',
++  'sky_condition',
++  'confidence',
++  'sun_exposure_percent',
++  'sun_window',
++  'prediction_uncertainty',
++].join(', ');
++
++type VenueRow = {
++  id?: string | null;
++  slug?: string | null;
++  venue_name?: string | null;
++  neighborhood?: string | null;
++  lat?: number | null;
++  lng?: number | null;
++  is_partner?: boolean | null;
++  thumbnail?: VenueDataDto['thumbnail'] | null;
++  description?: string | null;
++  address?: string | null;
++  opening_hours?: VenueDetailDto['openingHours'] | null;
++  peak_time?: string | null;
++  shadow_warning_minutes?: number | null;
++  current_sun_status?: string | null;
++  sky_condition?: string | null;
++  confidence?: number | null;
++  sun_exposure_percent?: number | null;
++  sun_window?: VenueDataDto['sunWindow'] | null;
++  prediction_uncertainty?: PredictionUncertaintyDto | null;
++};
++
++/**
++ * Venues for the list route (`/api/venues`). Returns BASE venue fields only —
++ * the detail block is intentionally omitted so the existing list DTO shape is
++ * unchanged. Detail is served by {@link getVenueBySlug}.
++ */
++export async function getVenues(): Promise<StoredVenue[]> {
++  if (!usesSupabaseVenueStore()) {
++    return VENUE_FIXTURE.map((venue) => ({ ...venue }));
++  }
++  if (!hasSupabaseServiceRoleConfig()) {
++    throw new Error(
++      'Venue store is configured for Supabase but credentials are incomplete',
++    );
++  }
++  const rows = await readSupabaseVenues();
++  return rows.map(toVenueData);
++}
++
++/**
++ * A single venue (base + detail block) for the detail route
++ * (`/api/venues/[slug]`). Returns `null` when no venue matches the slug.
++ */
++export async function getVenueBySlug(slug: string): Promise<StoredVenue | null> {
++  const normalized = slug.trim();
++  if (!normalized) return null;
++  if (!usesSupabaseVenueStore()) {
++    return (
++      buildInMemorySeed().find(
++        (venue) => venue.slug === normalized || venue.venueSlug === normalized,
++      ) ?? null
++    );
++  }
++  if (!hasSupabaseServiceRoleConfig()) {
++    throw new Error(
++      'Venue store is configured for Supabase but credentials are incomplete',
++    );
++  }
++  return readSupabaseVenueBySlug(normalized);
++}
++
++/** Strip the detail block, yielding the base list DTO shape. */
++export function toVenueData(venue: StoredVenue): VenueDataDto {
++  const base: VenueDataDto = {
++    id: venue.id,
++    venueId: venue.venueId,
++    venueName: venue.venueName,
++    venueSlug: venue.venueSlug,
++    slug: venue.slug,
++    neighborhood: venue.neighborhood,
++    location: venue.location,
++    currentSunStatus: venue.currentSunStatus,
++    isPartner: venue.isPartner,
++    confidence: venue.confidence,
++    distanceMeters: venue.distanceMeters,
++    sunExposurePercent: venue.sunExposurePercent,
++  };
++  if (venue.skyCondition !== undefined) base.skyCondition = venue.skyCondition;
++  if (venue.predictionUncertainty !== undefined) {
++    base.predictionUncertainty = venue.predictionUncertainty;
++  }
++  if (venue.sunWindow !== undefined) base.sunWindow = venue.sunWindow;
++  if (venue.thumbnail !== undefined) base.thumbnail = venue.thumbnail;
++  if (venue.reviewSummary !== undefined) base.reviewSummary = venue.reviewSummary;
++  return base;
++}
++
++/** Extract just the detail block from a stored venue. */
++export function storedVenueDetail(venue: StoredVenue): StoredVenueDetail {
++  const detail: StoredVenueDetail = {};
++  if (venue.description !== undefined) detail.description = venue.description;
++  if (venue.address !== undefined) detail.address = venue.address;
++  if (venue.openingHours !== undefined) detail.openingHours = venue.openingHours;
++  if (venue.peakTime !== undefined) detail.peakTime = venue.peakTime;
++  if (venue.shadowWarningMinutes !== undefined) {
++    detail.shadowWarningMinutes = venue.shadowWarningMinutes;
++  }
++  return detail;
++}
++
++function buildInMemorySeed(): StoredVenue[] {
++  return VENUE_FIXTURE.map((venue) => ({
++    ...venue,
++    ...(VENUE_DETAIL_SEED[venue.slug] ?? {}),
++  }));
++}
++
++function usesSupabaseVenueStore(): boolean {
++  return process.env.SUNNYSEAT_VENUE_STORE === 'supabase';
++}
++
++function hasSupabaseServiceRoleConfig(): boolean {
++  return Boolean(
++    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
++  );
++}
++
++async function readSupabaseVenues(): Promise<StoredVenue[]> {
++  const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
++  const { data, error } = await getSupabaseServiceRole()
++    .from('venues')
++    .select(VENUE_SELECT_COLUMNS);
++  if (error) {
++    throw new Error(`Venue store failed: ${error.message}`);
++  }
++  return ((data ?? []) as VenueRow[]).map(fromVenueRow);
++}
++
++async function readSupabaseVenueBySlug(slug: string): Promise<StoredVenue | null> {
++  const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
++  const { data, error } = await getSupabaseServiceRole()
++    .from('venues')
++    .select(VENUE_SELECT_COLUMNS)
++    .eq('slug', slug)
++    .maybeSingle();
++  if (error) {
++    throw new Error(`Venue store failed: ${error.message}`);
++  }
++  return data ? fromVenueRow(data as VenueRow) : null;
++}
++
++const SUN_STATUSES: readonly VenueSunStatus[] = [
++  'Sunny',
++  'Partial',
++  'Shaded',
++  'NoSun',
++];
++const SKY_CONDITIONS: readonly string[] = [
++  'clear',
++  'partly-cloudy',
++  'overcast',
++  'unavailable',
++];
++
++/**
++ * Defensive snake_case row -> StoredVenue mapping. Tolerates null jsonb
++ * sub-fields; further DTO sanitization (malformed sunWindow/thumbnail/reasons)
++ * is handled downstream by `normalizeVenueForResponse` in the route pipeline.
++ *
++ * Identity (`id`/`slug`) and coordinates are REQUIRED: a row missing them is a
++ * data error and throws rather than emitting a plausible-but-wrong `(0,0)` /
++ * empty-id venue (which would also collide in `validateVenueUniqueness`).
++ * [Story 8.2 review R1-P2]
++ */
++function fromVenueRow(row: VenueRow): StoredVenue {
++  const id = row.id?.trim();
++  const slug = row.slug?.trim();
++  if (!id || !slug) {
++    throw new Error(
++      `Venue store failed: row missing id/slug (id=${formatBadValue(row.id)}, slug=${formatBadValue(row.slug)})`,
++    );
++  }
++  const lat = row.lat;
++  const lng = row.lng;
++  if (!isFiniteNumber(lat) || !isFiniteNumber(lng)) {
++    throw new Error(
++      `Venue store failed: venue ${id} has invalid coordinates (lat=${formatBadValue(row.lat)}, lng=${formatBadValue(row.lng)})`,
++    );
++  }
++  const skyCondition = coerceSkyCondition(row.sky_condition);
++  const stored: StoredVenue = {
++    id,
++    venueId: id,
++    venueName: row.venue_name ?? '',
++    venueSlug: slug,
++    slug,
++    neighborhood: row.neighborhood ?? '',
++    location: { lat, lng },
++    currentSunStatus: coerceSunStatus(row.current_sun_status),
++    isPartner: Boolean(row.is_partner),
++    confidence: numberOr(row.confidence, 0),
++    distanceMeters: 0,
++    sunExposurePercent: numberOr(row.sun_exposure_percent, 0),
++    ...(skyCondition ? { skyCondition } : {}),
++    ...(row.prediction_uncertainty
++      ? { predictionUncertainty: row.prediction_uncertainty }
++      : {}),
++    ...(row.sun_window ? { sunWindow: row.sun_window } : {}),
++    ...(row.thumbnail ? { thumbnail: row.thumbnail } : {}),
++    ...detailFromRow(row),
++  };
++  return stored;
++}
++
++/**
++ * Coerce a DB `current_sun_status` to a valid {@link VenueSunStatus}. An
++ * out-of-enum value (or null) collapses to `'NoSun'` — the safe default — so it
++ * never leaks into the DTO and never NaNs the route's list-sort comparator
++ * (`SUN_STATUS_ORDER[invalid]` would be `undefined`). [Story 8.2 review R1-P1]
++ */
++function coerceSunStatus(value: string | null | undefined): VenueSunStatus {
++  return SUN_STATUSES.includes(value as VenueSunStatus)
++    ? (value as VenueSunStatus)
++    : 'NoSun';
++}
++
++/**
++ * Keep `sky_condition` only when it is one of the known values; an out-of-enum
++ * value is dropped (mirroring how `normalizeVenueForResponse` drops malformed
++ * optional fields) rather than leaking into the DTO. [Story 8.2 review R1-P1]
++ */
++function coerceSkyCondition(value: string | null | undefined): string | undefined {
++  return value && SKY_CONDITIONS.includes(value) ? value : undefined;
++}
++
++function isFiniteNumber(value: unknown): value is number {
++  return typeof value === 'number' && Number.isFinite(value);
++}
++
++function formatBadValue(value: unknown): string {
++  return value == null ? String(value) : JSON.stringify(value);
++}
++
++function detailFromRow(row: VenueRow): StoredVenueDetail {
++  const detail: StoredVenueDetail = {};
++  if (row.description != null) detail.description = row.description;
++  if (row.address != null) detail.address = row.address;
++  if (row.opening_hours) detail.openingHours = row.opening_hours;
++  if (row.peak_time != null) detail.peakTime = row.peak_time;
++  if (row.shadow_warning_minutes != null) {
++    detail.shadowWarningMinutes = row.shadow_warning_minutes;
++  }
++  return detail;
++}
++
++function numberOr(value: number | null | undefined, fallback: number): number {
++  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
++}
+diff --git a/nextjs-app/test/unit/queries/venue-query-options.test.ts b/nextjs-app/test/unit/queries/venue-query-options.test.ts
+new file mode 100644
+index 0000000..19be9ff
+--- /dev/null
++++ b/nextjs-app/test/unit/queries/venue-query-options.test.ts
+@@ -0,0 +1,81 @@
++import { describe, expect, it } from 'vitest';
++import {
++  HttpError,
++  isVenueNotFoundError,
++  shouldRetryVenueQuery,
++  venueQueryRetryDelay,
++  VENUE_QUERY_RETRY_ATTEMPTS,
++} from '@/hooks/queries/venue-query-options';
++
++describe('HttpError', () => {
++  it('carries the numeric status alongside the message', () => {
++    const error = new HttpError('Venue detail failed: 404 Not Found', 404);
++    expect(error).toBeInstanceOf(Error);
++    expect(error.message).toBe('Venue detail failed: 404 Not Found');
++    expect(error.status).toBe(404);
++    expect(error.name).toBe('HttpError');
++  });
++});
++
++describe('isVenueNotFoundError (status-first, regex fallback)', () => {
++  it('treats a status-404 error as not-found regardless of message text', () => {
++    expect(isVenueNotFoundError(new HttpError('any wording at all', 404))).toBe(true);
++  });
++
++  it('does not treat non-404 status errors as not-found', () => {
++    expect(isVenueNotFoundError(new HttpError('Venue detail failed: 500', 500))).toBe(false);
++    expect(isVenueNotFoundError(new HttpError('Venue detail failed: 403', 403))).toBe(false);
++  });
++
++  it('returns false for null/undefined', () => {
++    expect(isVenueNotFoundError(null)).toBe(false);
++    expect(isVenueNotFoundError(undefined)).toBe(false);
++  });
++
++  it('falls back to the message regex when no numeric status is present', () => {
++    expect(isVenueNotFoundError(new Error('Venue detail failed: 404 Not Found'))).toBe(true);
++    expect(isVenueNotFoundError(new Error('Venue detail failed: 500'))).toBe(false);
++    expect(isVenueNotFoundError(new Error('network error'))).toBe(false);
++  });
++
++  it('ignores a status field on a non-HttpError (status trust is HttpError-only)', () => {
++    // status 404 would mean not-found, but a foreign error is not trusted, so
++    // the message regex decides — and "500" is not a 404. [Story 8.2 R1-P5]
++    const foreign = Object.assign(new Error('Venue detail failed: 500'), { status: 404 });
++    expect(isVenueNotFoundError(foreign)).toBe(false);
++  });
++});
++
++describe('shouldRetryVenueQuery (status-first, regex fallback)', () => {
++  it('does not retry 4xx client errors detected by status', () => {
++    expect(shouldRetryVenueQuery(0, new HttpError('Venue search failed: 404', 404))).toBe(false);
++    expect(shouldRetryVenueQuery(0, new HttpError('Venue search failed: 400', 400))).toBe(false);
++  });
++
++  it('retries server errors detected by status (until the attempt cap)', () => {
++    expect(shouldRetryVenueQuery(0, new HttpError('Venue search failed: 500', 500))).toBe(true);
++    expect(
++      shouldRetryVenueQuery(VENUE_QUERY_RETRY_ATTEMPTS, new HttpError('Venue search failed: 500', 500)),
++    ).toBe(false);
++  });
++
++  it('falls back to the message regex for errors without a status', () => {
++    expect(shouldRetryVenueQuery(0, new Error('Venue search failed: 404 Not Found'))).toBe(false);
++    expect(shouldRetryVenueQuery(0, new Error('Venue search failed: 503'))).toBe(true);
++    expect(shouldRetryVenueQuery(0, new Error('unexpected content-type'))).toBe(true);
++  });
++
++  it('does not trust a foreign status field for retry decisions (HttpError-only gate)', () => {
++    // A 404 on a non-HttpError is ignored; the retryable "503" message wins. [R1-P5]
++    const foreign = Object.assign(new Error('Venue search failed: 503'), { status: 404 });
++    expect(shouldRetryVenueQuery(0, foreign)).toBe(true);
++  });
++});
++
++describe('venueQueryRetryDelay', () => {
++  it('grows exponentially and caps', () => {
++    expect(venueQueryRetryDelay(0)).toBe(1000);
++    expect(venueQueryRetryDelay(1)).toBe(2000);
++    expect(venueQueryRetryDelay(10)).toBe(30_000);
++  });
++});
+diff --git a/nextjs-app/test/unit/services/venue-store.test.ts b/nextjs-app/test/unit/services/venue-store.test.ts
+new file mode 100644
+index 0000000..202c123
+--- /dev/null
++++ b/nextjs-app/test/unit/services/venue-store.test.ts
+@@ -0,0 +1,319 @@
++import { beforeEach, describe, expect, it, vi } from 'vitest';
++import {
++  getVenueBySlug,
++  getVenues,
++  storedVenueDetail,
++  toVenueData,
++  type StoredVenue,
++} from '@/lib/services/venue-store';
++import { validateVenueUniqueness } from '@/app/api/venues/route';
++
++const supabaseMock = vi.hoisted(() => {
++  const state = {
++    listResult: { data: [] as unknown, error: null as unknown },
++    singleResult: { data: null as unknown, error: null as unknown },
++  };
++  const select = () => ({
++    // Thenable so `await client.from('venues').select(cols)` resolves the list.
++    then: (
++      onFulfilled: (value: unknown) => unknown,
++      onRejected?: (reason: unknown) => unknown,
++    ) => Promise.resolve(state.listResult).then(onFulfilled, onRejected),
++    eq: () => ({
++      maybeSingle: () => Promise.resolve(state.singleResult),
++    }),
++  });
++  const client = { from: () => ({ select }) };
++  return { state, client };
++});
++
++vi.mock('@/lib/supabase/server', () => ({
++  getSupabaseServiceRole: () => supabaseMock.client,
++}));
++
++function useSupabaseStore() {
++  vi.stubEnv('SUNNYSEAT_VENUE_STORE', 'supabase');
++  vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
++  vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key');
++}
++
++const SUPABASE_ROW = {
++  id: '9',
++  slug: 'supa-venue',
++  venue_name: 'Supa Venue',
++  neighborhood: 'Centrum',
++  lat: 57.71,
++  lng: 11.98,
++  is_partner: true,
++  thumbnail: { alt: 'Supa', initials: 'SV', url: 'https://example.com/x.jpg' },
++  description: 'En riktig uteservering.',
++  address: 'Storgatan 1, Göteborg',
++  opening_hours: { display: 'Öppet till 22:00', closesAt: '22:00' },
++  peak_time: '15:00',
++  shadow_warning_minutes: 30,
++  current_sun_status: 'Sunny',
++  sky_condition: 'clear',
++  confidence: 84,
++  sun_exposure_percent: 77,
++  sun_window: { start: '12:00', end: '18:00' },
++  prediction_uncertainty: { level: 'low', reasons: ['weather'] },
++};
++
++describe('venue-store (default in-memory)', () => {
++  beforeEach(() => {
++    vi.unstubAllEnvs();
++    supabaseMock.state.listResult = { data: [], error: null };
++    supabaseMock.state.singleResult = { data: null, error: null };
++  });
++
++  it('returns the canonical launch list that passes uniqueness validation', async () => {
++    const venues = await getVenues();
++    expect(venues).toHaveLength(7);
++    expect(validateVenueUniqueness(venues)).toEqual({ valid: true });
++
++    const gate = venues.find((venue) => venue.slug === 'test-venue-sunny');
++    expect(gate).toMatchObject({
++      id: '1',
++      venueId: '1',
++      venueName: 'Kafé Magasinet',
++      neighborhood: 'Inom Vallgraven',
++      location: { lat: 57.705, lng: 11.97 },
++      isPartner: true,
++      confidence: 92,
++      sunExposurePercent: 95,
++      sunWindow: { start: '13:00', end: '18:30' },
++    });
++  });
++
++  it('omits the detail block from the list shape (served only by slug)', async () => {
++    const venues = await getVenues();
++    for (const venue of venues) {
++      expect(venue).not.toHaveProperty('description');
++      expect(venue).not.toHaveProperty('address');
++      expect(venue).not.toHaveProperty('openingHours');
++      expect(venue).not.toHaveProperty('peakTime');
++      expect(venue).not.toHaveProperty('shadowWarningMinutes');
++    }
++  });
++
++  it('resolves the gate venue with its detail block by slug', async () => {
++    const venue = await getVenueBySlug('test-venue-sunny');
++    expect(venue).toMatchObject({
++      id: '1',
++      venueName: 'Kafé Magasinet',
++      description:
++        'Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.',
++      address: 'Tredje Långgatan 9, 413 03 Göteborg',
++      openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
++      peakTime: '15:30',
++      shadowWarningMinutes: 45,
++    });
++  });
++
++  it('resolves by venueSlug as well and trims the input', async () => {
++    const venue = await getVenueBySlug('  test-venue-sunny  ');
++    expect(venue?.id).toBe('1');
++  });
++
++  it('returns null for unknown, empty, or whitespace slugs', async () => {
++    expect(await getVenueBySlug('does-not-exist')).toBeNull();
++    expect(await getVenueBySlug('')).toBeNull();
++    expect(await getVenueBySlug('   ')).toBeNull();
++  });
++});
++
++describe('venue-store (Supabase opt-in)', () => {
++  beforeEach(() => {
++    vi.unstubAllEnvs();
++    supabaseMock.state.listResult = { data: [], error: null };
++    supabaseMock.state.singleResult = { data: null, error: null };
++  });
++
++  it('fails closed when configured for Supabase without full credentials', async () => {
++    vi.stubEnv('SUNNYSEAT_VENUE_STORE', 'supabase');
++    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
++
++    await expect(getVenues()).rejects.toThrow(
++      'Venue store is configured for Supabase but credentials are incomplete',
++    );
++    await expect(getVenueBySlug('supa-venue')).rejects.toThrow(
++      'Venue store is configured for Supabase but credentials are incomplete',
++    );
++  });
++
++  it('maps snake_case rows to base list DTOs (detail stripped)', async () => {
++    useSupabaseStore();
++    supabaseMock.state.listResult = { data: [SUPABASE_ROW], error: null };
++
++    const venues = await getVenues();
++    expect(venues).toHaveLength(1);
++    expect(venues[0]).toMatchObject({
++      id: '9',
++      venueId: '9',
++      venueName: 'Supa Venue',
++      venueSlug: 'supa-venue',
++      slug: 'supa-venue',
++      neighborhood: 'Centrum',
++      location: { lat: 57.71, lng: 11.98 },
++      isPartner: true,
++      confidence: 84,
++      distanceMeters: 0,
++      sunExposurePercent: 77,
++      skyCondition: 'clear',
++      sunWindow: { start: '12:00', end: '18:00' },
++      predictionUncertainty: { level: 'low', reasons: ['weather'] },
++      thumbnail: { alt: 'Supa', initials: 'SV', url: 'https://example.com/x.jpg' },
++    });
++    expect(venues[0]).not.toHaveProperty('description');
++    expect(venues[0]).not.toHaveProperty('peakTime');
++  });
++
++  it('maps a row to a detailed StoredVenue by slug', async () => {
++    useSupabaseStore();
++    supabaseMock.state.singleResult = { data: SUPABASE_ROW, error: null };
++
++    const venue = await getVenueBySlug('supa-venue');
++    expect(venue).toMatchObject({
++      id: '9',
++      description: 'En riktig uteservering.',
++      address: 'Storgatan 1, Göteborg',
++      openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
++      peakTime: '15:00',
++      shadowWarningMinutes: 30,
++    });
++  });
++
++  it('tolerates null jsonb sub-fields without crashing', async () => {
++    useSupabaseStore();
++    const sparseRow = {
++      id: '10',
++      slug: 'sparse',
++      venue_name: 'Sparse',
++      neighborhood: 'Nord',
++      lat: 57.7,
++      lng: 11.9,
++      is_partner: false,
++      thumbnail: null,
++      description: null,
++      address: null,
++      opening_hours: null,
++      peak_time: null,
++      shadow_warning_minutes: null,
++      current_sun_status: 'Shaded',
++      sky_condition: null,
++      confidence: 50,
++      sun_exposure_percent: 10,
++      sun_window: null,
++      prediction_uncertainty: null,
++    };
++    supabaseMock.state.singleResult = { data: sparseRow, error: null };
++
++    const venue = await getVenueBySlug('sparse');
++    expect(venue).toMatchObject({
++      id: '10',
++      currentSunStatus: 'Shaded',
++      confidence: 50,
++      sunExposurePercent: 10,
++      isPartner: false,
++    });
++    expect(venue).not.toHaveProperty('thumbnail');
++    expect(venue).not.toHaveProperty('sunWindow');
++    expect(venue).not.toHaveProperty('predictionUncertainty');
++    expect(venue).not.toHaveProperty('skyCondition');
++    expect(venue).not.toHaveProperty('description');
++  });
++
++  it('returns null when no row matches the slug', async () => {
++    useSupabaseStore();
++    supabaseMock.state.singleResult = { data: null, error: null };
++    expect(await getVenueBySlug('missing')).toBeNull();
++  });
++
++  it('throws a stable error when the Supabase read fails', async () => {
++    useSupabaseStore();
++    supabaseMock.state.listResult = { data: null, error: { message: 'boom' } };
++    await expect(getVenues()).rejects.toThrow('Venue store failed: boom');
++  });
++
++  it('throws a stable error when the by-slug Supabase read fails', async () => {
++    useSupabaseStore();
++    supabaseMock.state.singleResult = { data: null, error: { message: 'boom' } };
++    await expect(getVenueBySlug('supa-venue')).rejects.toThrow('Venue store failed: boom');
++  });
++
++  it('coerces an out-of-enum current_sun_status to NoSun and drops an unknown sky_condition', async () => {
++    useSupabaseStore();
++    supabaseMock.state.singleResult = {
++      data: { ...SUPABASE_ROW, current_sun_status: 'Bogus', sky_condition: 'mystery' },
++      error: null,
++    };
++
++    const venue = await getVenueBySlug('supa-venue');
++    expect(venue?.currentSunStatus).toBe('NoSun');
++    expect(venue).not.toHaveProperty('skyCondition');
++  });
++
++  it('rejects a row missing identity (id/slug) instead of emitting an empty-id venue', async () => {
++    useSupabaseStore();
++    supabaseMock.state.listResult = {
++      data: [{ ...SUPABASE_ROW, id: null }],
++      error: null,
++    };
++    await expect(getVenues()).rejects.toThrow('Venue store failed: row missing id/slug');
++  });
++
++  it('rejects a row with non-finite coordinates instead of emitting a (0,0) venue', async () => {
++    useSupabaseStore();
++    supabaseMock.state.singleResult = {
++      data: { ...SUPABASE_ROW, lat: null },
++      error: null,
++    };
++    await expect(getVenueBySlug('supa-venue')).rejects.toThrow(
++      'Venue store failed: venue 9 has invalid coordinates',
++    );
++  });
++});
++
++describe('venue-store projection helpers', () => {
++  const stored: StoredVenue = {
++    id: '1',
++    venueId: '1',
++    venueName: 'Kafé Magasinet',
++    venueSlug: 'test-venue-sunny',
++    slug: 'test-venue-sunny',
++    neighborhood: 'Inom Vallgraven',
++    location: { lat: 57.705, lng: 11.97 },
++    currentSunStatus: 'Sunny',
++    skyCondition: 'clear',
++    isPartner: true,
++    confidence: 92,
++    distanceMeters: 0,
++    sunExposurePercent: 95,
++    sunWindow: { start: '13:00', end: '18:30' },
++    description: 'desc',
++    address: 'addr',
++    openingHours: { display: 'Öppet till 22:00' },
++    peakTime: '15:30',
++    shadowWarningMinutes: 45,
++  };
++
++  it('toVenueData strips the detail block but keeps base fields', () => {
++    const base = toVenueData(stored);
++    expect(base).not.toHaveProperty('description');
++    expect(base).not.toHaveProperty('address');
++    expect(base).not.toHaveProperty('openingHours');
++    expect(base).not.toHaveProperty('peakTime');
++    expect(base).not.toHaveProperty('shadowWarningMinutes');
++    expect(base).toMatchObject({ id: '1', skyCondition: 'clear', sunWindow: { start: '13:00', end: '18:30' } });
++  });
++
++  it('storedVenueDetail extracts only the detail block', () => {
++    expect(storedVenueDetail(stored)).toEqual({
++      description: 'desc',
++      address: 'addr',
++      openingHours: { display: 'Öppet till 22:00' },
++      peakTime: '15:30',
++      shadowWarningMinutes: 45,
++    });
++  });
++});
