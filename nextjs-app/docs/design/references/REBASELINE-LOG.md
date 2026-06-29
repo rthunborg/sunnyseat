@@ -43,6 +43,20 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-06-29 — `onboarding` (desktop only) — post-launch design fix (onboarding desktop layout)
+
+**Trigger:** A post-launch design/UX review of the live site found the onboarding screen had **no desktop layout** — the mobile full-bleed design was scaled to 1440px+, so the primary CTA spanned ~1376px (full width) and the centred copy floated in a large empty band above a bottom-anchored button. The prior `onboarding` desktop reference was a **self-fulfilling baseline** (captured 2026-05-04/05 from the implementation), so it memorialised the mobile-scaled layout and the LLM-eyeball visual gate (which ignores sizing/spacing) never flagged it.
+
+**Resolution:** `OnboardingScreen.tsx` now applies a desktop-only treatment (`lg:` utilities only — mobile markup unchanged): the outer overlay centres its content (`lg:items-center lg:justify-center lg:gap-7`), the hero stops growing (`lg:flex-none`), and the CTA stack is constrained (`lg:w-full lg:max-w-md`) so the buttons sit at a sensible ~448 px width in a cohesive, vertically-centred group instead of full-bleed. Only the **desktop** `onboarding` reference is re-captured; the **mobile** reference is byte-identical (no mobile code path changed) and was left untouched.
+
+**Source of new PNG:** `node nextjs-app/scripts/capture-onboarding-rebaseline.mjs` (existing helper) — Playwright capture of `http://localhost:3000/?_state=onboarding` at `1440×900`, `deviceScaleFactor: 1`, `Accept-Language: sv-SE`. Saved to `docs/design/references/screens/desktop/onboarding.png` (1440×900). Mobile capture from the same run was discarded (identical to the committed reference).
+
+**Verification:** Implementation-derived baseline (the reference IS the implementation). The new desktop render was eyeballed directly (the visual gate ignores sizing, so it cannot be relied on for a layout change); mobile was confirmed unchanged by direct capture comparison.
+
+**Reason / spec link:** Post-launch polish requested by the maintainer; no story. The prototype bundle has no desktop onboarding design (onboarding is a mobile-first overlay), so engineering judgment defined the centred-card desktop layout per the `frontend-component` skill's "match visual intent, not prototype structure" rule. Same self-fulfilling-baseline justification as the 2026-05-04/05 `onboarding` desktop entry it supersedes.
+
+**Re-evaluation trigger:** Re-capture when the onboarding copy, CTA treatment, or the gradient/brand chrome changes materially.
+
 ### 2026-06-26 — `map-primary-offline` (mobile + desktop) — Story 7.3 PWA Installation & Offline Shell (Amelia / dev-story)
 
 **Trigger:** Story 7.3 implements the offline shell — `map-primary-offline` was a declared-but-unimplemented `_state` literal (project-context.md Screen ID → Route Map) with **no reference PNG in the MVP bundle**. `capture-claude-design-refs.mjs` flagged it as "needs its first implementation-driven baseline when the offline shell story lands". This is a **first-baseline capture**, not a re-baseline of an existing reference.

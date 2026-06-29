@@ -26,13 +26,22 @@ export type AccuracyCountUpProps = {
  * label announces the final figure once, so assistive tech never reads a
  * rapidly-changing number. Under `prefers-reduced-motion` the figure renders
  * instantly at its final value with no count-up.
+ *
+ * Resting state: the initial render shows the final `value` (not 0), so SSR,
+ * no-JS, and crawler renders show the real figure rather than shipping a stuck
+ * "0%". A JS client resets to 0 only while the stat is still below the fold
+ * (off-screen, so the reset is never seen) and counts up as it scrolls into
+ * view — a connected user sees the 0 → value animation, never a resting 0%.
  */
 export function AccuracyCountUp({ value, suffix, ariaLabel, className }: AccuracyCountUpProps) {
   const ref = useRef<HTMLDivElement>(null);
   // `amount: 0.6` so the stat is meaningfully on-screen before it counts.
   const inView = useInView(ref, { once: true, amount: 0.6 });
   const reduceMotion = useReducedMotion() ?? false;
-  const [display, setDisplay] = useState(0);
+  // Initial value is the final figure so SSR / no-JS / crawler renders show the
+  // real number, never a stuck "0%". The effect below resets to 0 only while
+  // off-screen (see the !inView branch) so the count-up still plays on scroll-in.
+  const [display, setDisplay] = useState(value);
   // The count-up is a one-time animation (AC #3). `once: true` only stops
   // `useInView` re-firing; this ref makes "fire once" hold across dependency
   // changes too, so disabling prefers-reduced-motion at runtime can't reset the
@@ -48,7 +57,14 @@ export function AccuracyCountUp({ value, suffix, ariaLabel, className }: Accurac
       return;
     }
     if (hasRun.current) return;
-    if (!inView) return;
+    // Below the fold: reset to 0 so the count-up has somewhere to start. This
+    // runs while the stat is off-screen, so the reset itself is never seen; the
+    // initial `value` covered SSR / no-JS. `hasRun` stays false so the tween
+    // still fires when the stat scrolls into view.
+    if (!inView) {
+      setDisplay(0);
+      return;
+    }
     hasRun.current = true;
     const controls = animate(0, value, {
       duration: ABOUT_ACCURACY_COUNTUP_MS / 1000,
