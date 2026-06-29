@@ -346,7 +346,7 @@ test.describe('map-primary', () => {
       /57\.705/,
     );
     await page.getByTestId('mobile-venue-detail-handle').press('ArrowDown');
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/(\?.*)?$/); // map root; tolerate the forced dev `?_time=` query
     await expect(page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]')).toHaveCount(1);
   });
 
@@ -639,7 +639,7 @@ test.describe('map-primary', () => {
       expect(panelBox.width).toBeCloseTo(390, 0);
     }
     await panel.getByRole('button', { name: 'Stäng platsdetaljer' }).click();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/(\?.*)?$/); // map root; tolerate the forced dev `?_time=` query
   });
 
   test('desktop: venue detail and planner bottom bar spans the map viewport under overlay panels', async ({
