@@ -3,7 +3,13 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './test/e2e',
   timeout: 30_000,
-  retries: 0,
+  // CI runs E2E against the dev server (`npm run dev`); the first hit on a
+  // route triggers on-demand Turbopack compilation that can eat into a test's
+  // 30s budget and flake an animation-"stable" wait (observed on
+  // feedback.spec.ts under CI load — the button resolved visible+enabled but
+  // never settled in time). Retry twice in CI, where the warmed second attempt
+  // is fast; keep 0 locally so flakes surface immediately during development.
+  retries: process.env.CI ? 2 : 0,
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
