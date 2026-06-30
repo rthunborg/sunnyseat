@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T14:36:17Z"
+updated_at: "2026-06-30T15:03:13Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 548
@@ -53,7 +53,15 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: live-app-hardening-clean-up
-active_story: 9-0-production-gate-the-dev-planner-forcing-url-leak
-stories_landed: []
+active_story: null
+stories_landed:
+  - 9-0-production-gate-the-dev-planner-forcing-url-leak
 auto_decisions: []
-uat_items: []
+uat_items:
+  - "[9-0] Dev (npm run dev), open /?_time=21:00&_date=2026-07-01 -> planner shows forced 21:00 on 2026-07-01 and does NOT advance with the real clock (forcing honoured in dev). [AC#1 dev, AC#2]"
+  - "[9-0] Dev, open / with no params -> planner shows live current time and ticks forward (~every minute). [AC#1 baseline]"
+  - "[9-0] Production (npm run build && npm run start), open /?_time=21:00&_date=2026-07-01 -> forcing IGNORED: live current Stockholm time/date shown, clock advances. [AC#1 prod, core fix]"
+  - "[9-0] Production, open /?_time=13:00 (time only) -> still ignored: live time shown, no pinned 13:00. [AC#1 single-param edge]"
+  - "[9-0] Production, open plain / -> identical to forced-URL prod case (live clock), confirming prod has one un-forced path regardless of URL. [AC#1 equivalence]"
+  - "[9-0] Run deterministic-sun e2e vs dev (npx playwright test test/e2e/map-primary.spec.ts --project=desktop) -> ?_time=13:00 specs stay green/stable (pre-existing 645:7 width-assertion failure is unrelated). [AC#2]"
+  - "[9-0] Run unit guard (npm run test -- AppContextProviders) -> test/components/AppContextProviders.test.tsx passes: prod ignores forced _time/_date and never calls useSearchParams; dev/test honour them. [AC#3]"
