@@ -218,7 +218,7 @@ development_status:
   # All backlog: no story files drafted yet; implementation begins in a later session.
   epic-9: in-progress
   9-0-production-gate-the-dev-planner-forcing-url-leak: ready-for-dev
-  9-1-clean-app-content-sweep: backlog
+  9-1-clean-app-content-sweep: ready-for-dev
   9-2-design-system-cta-token-fix-copy-correction: backlog
   9-3-venue-sun-compute-performance-server-caching: backlog
   9-4-client-query-hygiene-time-change-debounce: backlog
