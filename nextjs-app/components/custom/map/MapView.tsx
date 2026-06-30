@@ -911,7 +911,6 @@ export function MapView() {
             sunTimeRange={resolveSunTimeRange(selectedQuickInfoVenue, quickInfoSunWindowTemplate)}
             confidencePercent={selectedQuickInfoVenue?.confidence}
             confidenceMeta={quickInfoConfidenceMeta}
-            predictionUncertainty={selectedQuickInfoVenue?.predictionUncertainty}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
             thumbnail={selectedQuickInfoVenue?.thumbnail}
@@ -939,7 +938,6 @@ export function MapView() {
             sunTimeRange={resolveSunTimeRange(selectedQuickInfoVenue, quickInfoSunWindowTemplate)}
             confidencePercent={selectedQuickInfoVenue?.confidence}
             confidenceMeta={quickInfoConfidenceMeta}
-            predictionUncertainty={selectedQuickInfoVenue?.predictionUncertainty}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
             thumbnail={selectedQuickInfoVenue?.thumbnail}
@@ -1124,7 +1122,6 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     routeLoading: t('route.loading'),
     favouriteAdd: t('list.favouriteAdd'),
     favouriteRemove: t('list.favouriteRemove'),
-    uncertainty: predictionUncertaintyLabels(t),
   };
 }
 
@@ -1146,7 +1143,6 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     detailsUnavailable: t('detail.detailsUnavailable'),
     openingHours: t('detail.openingHours'),
     address: t('detail.address'),
-    shadowWarning: t('detail.shadowWarning', { minutes: '{minutes}' }),
     sunBadge: t('detail.sunBadge', { percent: '{percent}' }),
     confidence: t('detail.confidence'),
     confidenceApproximate: t('detail.confidenceApproximate'),
@@ -1156,9 +1152,6 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     placeholderImageShort: t('detail.placeholderImageShort'),
     facts: {
       distance: t('detail.facts.distance'),
-      exposure: t('detail.facts.exposure'),
-      bestAt: t('detail.facts.bestAt'),
-      outdoorSeats: t('detail.facts.outdoorSeats'),
     },
     timeline: {
       ariaLabel: t('detail.timeline.ariaLabel'),
@@ -1167,7 +1160,6 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
       partialWindow: t('detail.timeline.partialWindow', { start: '{start}', end: '{end}' }),
       shadedWindow: t('detail.timeline.shadedWindow', { start: '{start}', end: '{end}' }),
     },
-    uncertainty: predictionUncertaintyLabels(t),
   };
 }
 

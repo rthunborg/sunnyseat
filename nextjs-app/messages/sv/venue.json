@@ -143,7 +143,6 @@
     "backToMap": "Tillbaka till kartan",
     "openingHours": "Öppettider",
     "address": "Adress",
-    "shadowWarning": "Blir skuggigt om {minutes} min",
     "sunBadge": "{percent}% sol",
     "confidence": "Säkerhet",
     "confidenceApproximate": "cirka",
@@ -152,10 +151,7 @@
     "openUntil": "ÖPPET · {time}",
     "placeholderImageShort": "Platshållarbild",
     "facts": {
-      "distance": "AVSTÅND",
-      "exposure": "EXPONERING",
-      "bestAt": "BÄST KL.",
-      "outdoorSeats": "PLATSER UTE"
+      "distance": "AVSTÅND"
     },
     "timeline": {
       "ariaLabel": "Soltider idag",

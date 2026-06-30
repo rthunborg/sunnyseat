@@ -143,7 +143,6 @@
     "backToMap": "Back to map",
     "openingHours": "Opening hours",
     "address": "Address",
-    "shadowWarning": "Shady in {minutes} min",
     "sunBadge": "{percent}% sun",
     "confidence": "Confidence",
     "confidenceApproximate": "about",
@@ -152,10 +151,7 @@
     "openUntil": "OPEN · {time}",
     "placeholderImageShort": "Placeholder image",
     "facts": {
-      "distance": "DISTANCE",
-      "exposure": "EXPOSURE",
-      "bestAt": "BEST AT",
-      "outdoorSeats": "OUTDOOR SEATS"
+      "distance": "DISTANCE"
     },
     "timeline": {
       "ariaLabel": "Sun times today",

@@ -241,7 +241,7 @@ insert into public.venues (
     'Bakgårdsservering med mest skugga, men en kort lunchsol vid klart väder.',
     'Engelbrektsgatan 44, 411 37 Göteborg',
     '{"display":"Öppet till 21:00","closesAt":"21:00"}'::jsonb,
-    '12:00', 0,
+    '12:00', null,
     'Shaded', 'overcast', 75, 14,
     '{"start":"11:30","end":"12:20"}'::jsonb, null
   )

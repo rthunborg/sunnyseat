@@ -5,8 +5,6 @@ import {
   peakTimeFromTimeline,
 } from '@/components/composed/venue/VenueDetailContent';
 import type { VenueDataDto, VenueDetailDto } from '@/lib/types/api';
-import type { PredictionUncertaintyDisplayLabels } from '@/lib/utils/prediction-uncertainty-display';
-import { expectNoSensitiveSourceTerms } from '../setup/sensitive-source-terms';
 
 const LIST_VENUE: VenueDataDto = {
   id: '1',
@@ -39,7 +37,6 @@ const DETAIL: VenueDetailDto = {
     windows: [{ start: '13:00', end: '18:30', status: 'Sunny' }],
     peakTime: '15:30',
   },
-  shadowWarningMinutes: 45,
 };
 
 const labels = {
@@ -54,7 +51,6 @@ const labels = {
   detailsUnavailable: 'Detaljer saknas',
   openingHours: 'Öppettider',
   address: 'Adress',
-  shadowWarning: 'Blir skuggigt om {minutes} min',
   sunBadge: '{percent}% sol',
   confidence: 'Säkerhet',
   confidenceApproximate: 'cirka',
@@ -64,9 +60,6 @@ const labels = {
   placeholderImageShort: 'Platshållarbild',
   facts: {
     distance: 'AVSTÅND',
-    exposure: 'EXPONERING',
-    bestAt: 'BÄST KL.',
-    outdoorSeats: 'PLATSER UTE',
   },
   timeline: {
     ariaLabel: 'Soltider idag',
@@ -77,36 +70,8 @@ const labels = {
   },
 };
 
-const uncertaintyLabels: PredictionUncertaintyDisplayLabels = {
-  description:
-    'Vi räknar på solens läge, byggnadsskuggor och väder. Träd, markiser, parasoller, broar och tillfälliga konstruktioner kan påverka platsen.',
-  accessible: '{label}. {description}',
-  levels: {
-    low: 'Låg osäkerhet',
-    medium: 'Osäker prognos',
-    high: 'Mer osäker prognos',
-  },
-  short: {
-    building_shadow_coverage: 'Byggnadsskuggor mer osäkra',
-    obstruction: 'Lokala hinder kan påverka',
-    weather: 'Vädret gör prognosen osäkrare',
-    other: 'Lokala förhållanden kan påverka',
-  },
-  reasons: {
-    building_shadow_coverage: 'Byggnadsskuggorna är beräknade med begränsad täckning här.',
-    vegetation: 'Träd kan påverka platsen.',
-    awning: 'Markiser kan påverka platsen.',
-    umbrella: 'Parasoller kan påverka platsen.',
-    bridge: 'Broar kan påverka platsen.',
-    temporary_structure: 'Tillfälliga konstruktioner kan påverka platsen.',
-    seasonal_furniture: 'Säsongsmöbler kan påverka platsen.',
-    weather: 'Vädret gör prognosen mer osäker.',
-    other: 'Lokala förhållanden kan påverka platsen.',
-  },
-};
-
 describe('VenueDetailContent', () => {
-  it('renders detail content, warning, maps link, and route CTA', () => {
+  it('renders detail content, the real distance fact, maps link, and route CTA', () => {
     render(
       <VenueDetailContent
         fallbackVenue={LIST_VENUE}
@@ -125,8 +90,13 @@ describe('VenueDetailContent', () => {
     expect(screen.getByText('Stor uteservering med eftermiddagssol.')).toHaveClass('text-body-lg');
     expect(screen.getByText('Solprognos idag')).toHaveClass('text-heading-lg');
     expect(screen.getByText('Innergård')).toBeInTheDocument();
-    expect(screen.getByText('PLATSER UTE')).toBeInTheDocument();
-    expect(screen.getByText('Blir skuggigt om 45 min')).toHaveClass('text-error');
+    // De-bloat sweep (Story 9.1): the fabricated fact cards + dead shadow-warning
+    // line are gone; only the genuine AVSTÅND fact survives.
+    expect(screen.getByText('AVSTÅND')).toBeInTheDocument();
+    expect(screen.queryByText('EXPONERING')).not.toBeInTheDocument();
+    expect(screen.queryByText('BÄST KL.')).not.toBeInTheDocument();
+    expect(screen.queryByText('PLATSER UTE')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Blir skuggigt om/)).not.toBeInTheDocument();
     expect(screen.getByLabelText('95% sol')).toContainHTML('svg');
     expect(screen.queryByText(/Säkerhet:/)).not.toBeInTheDocument();
     expect(screen.getByText('Säkerhet 92%')).toHaveClass('sr-only');
@@ -257,15 +227,15 @@ describe('VenueDetailContent', () => {
     expect(screen.getByLabelText('95% sol')).toBeInTheDocument();
   });
 
-  it('renders a concise uncertainty note near the sun forecast context', () => {
-    const { container } = render(
+  it('does not render the removed uncertainty disclaimer text (Story 9.1 de-bloat)', () => {
+    render(
       <VenueDetailContent
         fallbackVenue={LIST_VENUE}
         detail={{
           ...DETAIL,
           predictionUncertainty: {
             level: 'medium',
-            reasons: ['vegetation', 'source_layer' as never, 'awning', 'seasonal_furniture'],
+            reasons: ['vegetation', 'awning', 'seasonal_furniture'],
           },
         }}
         confidenceMeta={{
@@ -273,19 +243,17 @@ describe('VenueDetailContent', () => {
           weatherUpdatedAt: new Date().toISOString(),
         }}
         currentTime="15:30"
-        labels={{ ...labels, uncertainty: uncertaintyLabels }}
+        labels={labels}
         onRoute={() => undefined}
       />,
     );
 
-    const note = screen.getByText('Osäker prognos').closest('p');
-    expect(note).toHaveTextContent('Lokala hinder kan påverka');
-    expect(note).toHaveTextContent(
-      'Vi räknar på solens läge, byggnadsskuggor och väder',
-    );
-    expect(note).toHaveTextContent('Träd kan påverka platsen');
-    expect(note).toHaveClass('bg-surface-sand');
-    expectNoSensitiveSourceTerms(container);
+    expect(screen.queryByText('Osäker prognos')).not.toBeInTheDocument();
+    expect(screen.queryByText('Lokala hinder kan påverka')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Vi räknar på solens läge/),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Träd kan påverka platsen/)).not.toBeInTheDocument();
   });
 
   it('shows the venue name immediately while detail fields are loading', () => {

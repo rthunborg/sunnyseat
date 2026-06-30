@@ -1507,7 +1507,10 @@ describe('<MapView />', () => {
       expect(screen.queryByTestId('mobile-bottom-sheet-backdrop')).not.toBeInTheDocument();
       expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('Bellora');
       expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('95% sol');
-      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('Säkerhet: 95%');
+      // Story 9.1: the visible confidence chip remains; the duplicated
+      // "Säkerhet: 95%" sr-only repeat was removed.
+      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('95%');
+      expect(screen.getAllByTestId('venue-card')[0]).not.toHaveTextContent('Säkerhet: 95%');
       expect(container.querySelector('img[src="https://example.com/bellora.jpg"]')).toBeNull();
     });
 

@@ -47,7 +47,6 @@ export function resolveForcedVisualVenueDetail(
       ],
       peakTime: '14:00',
     },
-    shadowWarningMinutes: 45,
   };
 }
 

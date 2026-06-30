@@ -16,11 +16,7 @@ import {
   getConfidenceDisplayState,
   type ConfidenceDisplayLabels,
 } from '@/lib/utils/confidence-display';
-import {
-  getPredictionUncertaintyDisplay,
-  type PredictionUncertaintyDisplayLabels,
-} from '@/lib/utils/prediction-uncertainty-display';
-import type { PredictionUncertaintyDto, SunFreshnessMeta } from '@/lib/types/api';
+import type { SunFreshnessMeta } from '@/lib/types/api';
 import { cn } from '@/lib/utils';
 
 export type VenueCardLabels = {
@@ -38,7 +34,6 @@ export type VenueCardLabels = {
   statusMostlyShade?: string;
   statusFullSun?: string;
   statusPartialSun?: string;
-  uncertainty?: PredictionUncertaintyDisplayLabels;
 };
 
 export type VenueCardProps = {
@@ -49,7 +44,6 @@ export type VenueCardProps = {
   confidenceMeta?: SunFreshnessMeta;
   distanceMeters?: number;
   sunExposurePercent?: number;
-  predictionUncertainty?: PredictionUncertaintyDto;
   thumbnail?: {
     alt: string;
     initials: string;
@@ -77,7 +71,6 @@ export function VenueCard({
   confidenceMeta,
   distanceMeters,
   sunExposurePercent,
-  predictionUncertainty,
   thumbnail,
   isSunny,
   visualMetadata,
@@ -97,15 +90,10 @@ export function VenueCard({
     meta: confidenceMeta,
     labels: confidenceDisplayLabels(labels),
   });
-  const uncertaintyDisplay = labels.uncertainty
-    ? getPredictionUncertaintyDisplay({
-        predictionUncertainty,
-        labels: labels.uncertainty,
-      })
-    : null;
-  const selectLabel = uncertaintyDisplay
-    ? `${labels.select}, ${uncertaintyDisplay.accessibleText}`
-    : labels.select;
+  // Story 9.1 de-bloat: the button's accessible name (labels.select) already
+  // carries name + sun% + Säkerhet (once) + Avstånd, so we no longer append the
+  // prediction-uncertainty paragraph to it.
+  const selectLabel = labels.select;
   const statusLabel = !isSunny
     ? (labels.statusMostlyShade ?? 'MEST SKUGGA')
     : (sunExposurePercent ?? 0) >= 75
@@ -163,16 +151,6 @@ export function VenueCard({
               )}
               <span>{statusLabel}</span>
             </span>
-            {uncertaintyDisplay && (
-              <span className="mt-1 block text-label-xs-medium text-text-body">
-                <span className="font-bold text-text-primary">
-                  {uncertaintyDisplay.visibleLabel}
-                </span>
-                <span className="text-text-faint"> · </span>
-                <span>{uncertaintyDisplay.visibleSummary}</span>
-                <span className="sr-only"> {uncertaintyDisplay.accessibleText}</span>
-              </span>
-            )}
           </>
         ) : (
           <>
@@ -188,39 +166,17 @@ export function VenueCard({
               )}
               <span className="text-text-faint">·</span>
               <span className="font-extrabold text-amber-dark">{sunPercent} {sunUnitLabel}</span>
-              {confidenceDisplay.visibleText && (
-                showVisibleConfidence ? (
-                  <>
-                    <span className="text-text-faint">·</span>
-                    <span className="font-extrabold text-label-xs text-amber-text">
-                      <span className="sr-only">
-                        {labels.confidence}: {confidenceDisplay.visibleText}{' '}
-                        {confidenceDisplay.accessibleText}
-                      </span>
-                      <span aria-hidden="true">{confidenceDisplay.visibleText}</span>
-                    </span>
-                  </>
-                ) : (
-                  <span className="sr-only">
-                    {labels.confidence}: {confidenceDisplay.visibleText}{' '}
-                    {confidenceDisplay.accessibleText}
+              {confidenceDisplay.visibleText && showVisibleConfidence && (
+                <>
+                  <span className="text-text-faint">·</span>
+                  <span
+                    aria-hidden="true"
+                    className="font-extrabold text-label-xs text-amber-text"
+                  >
+                    {confidenceDisplay.visibleText}
                   </span>
-                )
+                </>
               )}
-            </span>
-            {uncertaintyDisplay && (
-              <span className="mt-1 block text-label-xs-medium text-text-body">
-                <span className="font-bold text-text-primary">
-                  {uncertaintyDisplay.visibleLabel}
-                </span>
-                <span className="text-text-faint"> · </span>
-                <span>{uncertaintyDisplay.visibleSummary}</span>
-                <span className="sr-only"> {uncertaintyDisplay.accessibleText}</span>
-              </span>
-            )}{' '}
-            <span className="sr-only">
-              {sunTimeRange ?? labels.sunUnavailable}. {confidenceDisplay.accessibleText}.{' '}
-              {labels.distance}: {distance}.
             </span>
             {visualMetadata && (
               <span className="mt-2 flex flex-wrap gap-1">

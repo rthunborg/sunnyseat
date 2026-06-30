@@ -107,11 +107,16 @@ describe('<VenueList />', () => {
       { wrapper: Wrapper },
     );
 
-    expect(screen.getByTestId('venue-card')).toHaveTextContent('Säkerhet: 90%');
-    expect(screen.getByRole('button', { name: /Säkerhet 90%/ })).toBeInTheDocument();
+    // Story 9.1: the visible confidence chip stays; confidence appears once in
+    // the button accessible name and the duplicated "Säkerhet:" sr-only is gone.
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('90%');
+    expect(screen.getByTestId('venue-card')).not.toHaveTextContent('Säkerhet: 90%');
+    const selectButton = screen.getByRole('button', { name: /Säkerhet 90%/ });
+    expect(selectButton).toBeInTheDocument();
+    expect(selectButton.getAttribute('aria-label')?.match(/Säkerhet/g)).toHaveLength(1);
   });
 
-  it('renders localized uncertainty metadata on list cards when present', () => {
+  it('does not surface prediction-uncertainty metadata on list cards (Story 9.1 de-bloat)', () => {
     const { container } = render(
       <VenueList
         venues={[
@@ -122,7 +127,7 @@ describe('<VenueList />', () => {
             distanceMeters: 120,
             predictionUncertainty: {
               level: 'medium',
-              reasons: ['vegetation', 'source_layer' as never, 'awning', 'seasonal_furniture'],
+              reasons: ['vegetation', 'awning', 'seasonal_furniture'],
             },
           }),
         ]}
@@ -136,9 +141,13 @@ describe('<VenueList />', () => {
       { wrapper: Wrapper },
     );
 
-    expect(screen.getByTestId('venue-card')).toHaveTextContent('Osäker prognos');
-    expect(screen.getByTestId('venue-card')).toHaveTextContent('Lokala hinder kan påverka');
-    expect(screen.getByRole('button', { name: /Träd kan påverka platsen/ })).toBeInTheDocument();
+    const card = screen.getByTestId('venue-card');
+    expect(card).not.toHaveTextContent('Osäker prognos');
+    expect(card).not.toHaveTextContent('Lokala hinder kan påverka');
+    expect(screen.queryByText(/Träd kan påverka platsen/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Träd kan påverka platsen/ }),
+    ).not.toBeInTheDocument();
     expectNoSensitiveSourceTerms(container);
   });
 

@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { VenueQuickInfo } from '@/components/composed/venue/VenueQuickInfo';
-import type { PredictionUncertaintyDisplayLabels } from '@/lib/utils/prediction-uncertainty-display';
 import { expectNoSensitiveSourceTerms } from '../setup/sensitive-source-terms';
 
 const motionState = vi.hoisted(() => ({
@@ -61,34 +60,6 @@ const labels = {
   routeLoading: 'Öppnar kartor',
   favouriteAdd: 'Spara som favorit',
   favouriteRemove: 'Ta bort favorit',
-};
-
-const uncertaintyLabels: PredictionUncertaintyDisplayLabels = {
-  description:
-    'Vi räknar på solens läge, byggnadsskuggor och väder. Träd, markiser, parasoller, broar och tillfälliga konstruktioner kan påverka platsen.',
-  accessible: '{label}. {description}',
-  levels: {
-    low: 'Låg osäkerhet',
-    medium: 'Osäker prognos',
-    high: 'Mer osäker prognos',
-  },
-  short: {
-    building_shadow_coverage: 'Byggnadsskuggor mer osäkra',
-    obstruction: 'Lokala hinder kan påverka',
-    weather: 'Vädret gör prognosen osäkrare',
-    other: 'Lokala förhållanden kan påverka',
-  },
-  reasons: {
-    building_shadow_coverage: 'Byggnadsskuggorna är beräknade med begränsad täckning här.',
-    vegetation: 'Träd kan påverka platsen.',
-    awning: 'Markiser kan påverka platsen.',
-    umbrella: 'Parasoller kan påverka platsen.',
-    bridge: 'Broar kan påverka platsen.',
-    temporary_structure: 'Tillfälliga konstruktioner kan påverka platsen.',
-    seasonal_furniture: 'Säsongsmöbler kan påverka platsen.',
-    weather: 'Vädret gör prognosen mer osäker.',
-    other: 'Lokala förhållanden kan påverka platsen.',
-  },
 };
 
 describe('<VenueQuickInfo />', () => {
@@ -197,7 +168,7 @@ describe('<VenueQuickInfo />', () => {
     expect(metadata?.textContent?.trim()).toMatch(/^Säkerhet:/);
   });
 
-  it('renders uncertainty text for the selected map surface', () => {
+  it('does not surface the removed uncertainty disclaimer on the map quick-info (Story 9.1 de-bloat)', () => {
     const { container } = render(
       <VenueQuickInfo
         mode="mobile"
@@ -208,23 +179,22 @@ describe('<VenueQuickInfo />', () => {
           sunDataSource: 'weather',
           weatherUpdatedAt: new Date().toISOString(),
         }}
-        predictionUncertainty={{
-          level: 'medium',
-          reasons: ['vegetation', 'source_layer' as never, 'awning', 'seasonal_furniture'],
-        }}
         sunExposurePercent={58}
         distanceMeters={420}
         isLoadingSunData={false}
         onDismiss={() => {}}
         onOpenDetails={() => {}}
         onRoute={() => {}}
-        labels={{ ...labels, uncertainty: uncertaintyLabels }}
+        labels={labels}
       />,
     );
 
-    expect(screen.getByTestId('venue-quick-info')).toHaveTextContent('Osäker prognos');
-    expect(screen.getByTestId('venue-quick-info')).toHaveTextContent('Lokala hinder kan påverka');
-    expect(screen.getByText(/Träd kan påverka platsen/)).toHaveClass('sr-only');
+    const card = screen.getByTestId('venue-quick-info');
+    expect(card).not.toHaveTextContent('Osäker prognos');
+    expect(card).not.toHaveTextContent('Lokala hinder kan påverka');
+    expect(screen.queryByText(/Träd kan påverka platsen/)).not.toBeInTheDocument();
+    // The kept signal still renders.
+    expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet: 66%');
     expectNoSensitiveSourceTerms(container);
   });
 
