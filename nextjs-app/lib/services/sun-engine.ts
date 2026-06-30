@@ -271,6 +271,16 @@ export async function applyRealSunEngine(
  * computed value for a given (venue, time bucket, day), so caching on the value is
  * correct.
  *
+ * NOTE: `now` (the wall-clock fetch instant) is also intentionally NOT part of the
+ * key. Its only effect on the outcome is the `'weather'` uncertainty flag in
+ * `isWeatherUncertain`, which trips once a CURRENT (non-forecast) weather slice's
+ * valid-time is > `STALE_WEATHER_AGE_MS` (2 h) before `now`. Within one 15-min
+ * `requestedAt` bucket `now` drifts ≤ 15 min and the cache entry's TTL is also
+ * 15 min, so that 2 h threshold cannot flip from `now`-drift alone inside a live
+ * cached bucket — the staleness is bounded by the documented 15-min window, so
+ * folding `now` into the key would only churn the cache without changing any
+ * served value. [Story 9.3 review R1]
+ *
  * The cache "variant" suffix folds in the inputs that change the computed sun
  * output but are per-venue CONSTANTS in production (resolved-geometry centroid +
  * seating/ground elevation). Keying on the venue id alone is already correct in

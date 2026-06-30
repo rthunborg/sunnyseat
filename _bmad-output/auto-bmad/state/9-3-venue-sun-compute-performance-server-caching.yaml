@@ -5,10 +5,10 @@ epic_num: 9
 story_num: 3
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T18:07:14Z"
+updated_at: "2026-06-30T18:14:21Z"
 started_at: "2026-06-30T16:54:55Z"
 completed_at: null
-active_seconds: 4281
+active_seconds: 4695
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "Server-side caching with time-bucketed keys + shared get_buildings_near_point cache = concurrency/hard-to-reproduce staleness (§2 High); CDN edge-cache strategy change also alters public API behaviour."
 epic_story_count: 11
 stories_after_in_epic: 7
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [c654f44, 2525a48, "6844981", 39a8def]
+commits: [c654f44, 2525a48, "6844981", 39a8def, 697aaa2]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -52,3 +52,4 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: f091f6774fcaa8486aa511020a5791afc87ca6ab
+tier_a_review: "Tier-A thin review (auditor+security, R=1): verdict Approve, 4 Low (security 0). 2 Low patches applied (doc NOTE that `now` is intentionally excluded from sun key (TTL-bounded); removed dead lastRateLimitSweepAt const); 2 dismissed (shared buildings cache correct-by-design; theoretical [0,0] centroid). 0 Decisions. Post-fix clean, tsc 0."

@@ -263,3 +263,14 @@ claude-opus-4-8 (Amelia / dev-story)
 ### Change Log
 
 - 2026-06-30 — Story 9.3 implemented (dedupe per-venue building fetch 2→1; +buildings cache 24h + sun-compute cache 15 min applied to list AND detail; AC3 Option A — relocated rate-limiting to the Edge proxy for edge-cacheability, Edge-safe pure-JS IP validator; byte-identical sun outputs; architecture.md Caching Strategy documented). Gate green (lint/tsc/vitest 728 + next build). Status ready-for-dev → review.
+
+## Review Findings
+
+_Thin Tier-A review (R1): Acceptance Auditor lens (verdict Approve, 4 low/non-blocking) + dedicated Security review (0 findings). Blind/Edge lenses intentionally not run in Tier A. Triage: 0 Decisions, 2 Patches (both applied), 0 Defers, 2 Dismissed (noise). Verdict: **Approve.**_
+
+- [x] [Review][Patch][Low] `now`/`isWeatherUncertain` silently excluded from the sun-compute cache key — documenting comment added: `now` is intentionally out of the key because its only output effect (the 2 h `STALE_WEATHER_AGE_MS` weather-staleness flip in `isWeatherUncertain`) cannot occur within the 15-min `requestedAt` bucket / 15-min TTL, so it is staleness-bounded. [nextjs-app/lib/services/sun-engine.ts:269-282 (computeRealSunEngineCached doc block)]
+- [x] [Review][Patch][Low] Dead `lastRateLimitSweepAt` constant left in the GET route after the rate-limiter extraction — removed; the readers (`checkRateLimit`, `clearVenueRateLimitForTests`) all moved to `lib/utils/rate-limit.ts`, so the constant was referenced nowhere. tsc clean after removal. [nextjs-app/app/api/venues/route.ts:56 (deleted)]
+
+_Dismissed (noise, not persisted as actionable):_
+- _Buildings cache shared across different venue ids (auditor #3) — correct by design and already documented (casters depend solely on centroid+radius; the auditor itself confirms "no key-collision correctness risk"); the existing key-builder + `fetchCachedVenueBuildings` doc comments already explain the centroid+radius keying and co-located collapse. No defect → Dismiss._
+- _Degenerate `[0,0]` centroid collapses to one shared key (auditor #4) — explicitly theoretical / non-production: every live venue has a real seating polygon or a synthesized footprint fallback, so an empty/degenerate outer ring is unreachable. Hypothetical, no realistic trigger → Dismiss (Low selectivity)._

@@ -53,7 +53,6 @@ const MAX_IDS = MAX_RESULTS;
 const MAX_IDS_QUERY_LENGTH = MAX_IDS * (MAX_ID_LENGTH + 1) - 1;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/u;
 const DIACRITIC_PATTERN = /[\u0300-\u036f]/gu;
-const lastRateLimitSweepAt = 0;
 
 const SUN_STATUS_ORDER: Record<VenueDataDto['currentSunStatus'], number> = {
   Sunny: 0,
