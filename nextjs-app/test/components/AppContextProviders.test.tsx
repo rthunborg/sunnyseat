@@ -45,13 +45,14 @@ vi.mock('@/components/custom/settings/SettingsModalRoot', () => ({
 const FORCED_DATE = '2026-07-01';
 const FORCED_TIME = '13:00';
 
-async function renderUnderEnv(nodeEnv: string) {
+async function renderUnderEnv(
+  nodeEnv: string,
+  query = `_time=${FORCED_TIME}&_date=${FORCED_DATE}`,
+) {
   vi.stubEnv('NODE_ENV', nodeEnv);
   const { useSearchParams } = await import('next/navigation');
   vi.mocked(useSearchParams).mockReturnValue(
-    new URLSearchParams(
-      `_time=${FORCED_TIME}&_date=${FORCED_DATE}`,
-    ) as ReturnType<typeof useSearchParams>,
+    new URLSearchParams(query) as ReturnType<typeof useSearchParams>,
   );
   // Import the consumer hook from the SAME fresh module generation as the
   // provider tree below — `vi.resetModules()` in beforeEach means a statically
@@ -111,6 +112,59 @@ describe('AppContextProviders — `?_time=`/`?_date=` production gate', () => {
     expect(probe).not.toHaveTextContent(FORCED_DATE);
     // `useSearchParams` is not called at all — the dev branch is unreachable
     // in production and DCE-eligible (zero-bundle-footprint contract).
+    expect(useSearchParams).not.toHaveBeenCalled();
+  });
+
+  // The gate is a literal `=== 'production'` comparison, NOT an allowlist of
+  // known dev envs. Any non-production NODE_ENV (here an arbitrary "preview"
+  // string, as AC #1 calls out for preview builds) must keep forcing active.
+  it('honours forcing for an arbitrary non-production env (e.g. preview)', async () => {
+    const { useSearchParams } = await renderUnderEnv('preview');
+
+    expect(await screen.findByTestId('probe')).toHaveTextContent(
+      `${FORCED_DATE} ${FORCED_TIME}`,
+    );
+    expect(useSearchParams).toHaveBeenCalled();
+  });
+
+  // `?_time=` without `?_date=`: the time is forced and the date falls back to
+  // today (stateFromForcedPlanner uses stockholmDateKey(clock()) when
+  // forcedDate is absent). The existing dev/test cases always supply both
+  // params, so this exercises the date-fallback branch that they do not.
+  it('honours `?_time=` alone in development (forces time, date falls back to today)', async () => {
+    const { useSearchParams } = await renderUnderEnv('development', `_time=${FORCED_TIME}`);
+
+    const probe = await screen.findByTestId('probe');
+    // Time IS forced; the forced 2026-07-01 date is NOT applied (no `_date`),
+    // so the date resolves to today rather than the forced date.
+    expect(probe).toHaveTextContent(FORCED_TIME);
+    expect(probe).not.toHaveTextContent(FORCED_DATE);
+    expect(useSearchParams).toHaveBeenCalled();
+  });
+
+  // `?_date=` without `?_time=`: stateFromForcedPlanner returns null when
+  // forcedTime is absent, so a date-only URL is a no-op even in development —
+  // the forced 2026-07-01 date must NOT be applied. Guards against a regression
+  // that would honour `_date` independently of `_time`.
+  it('ignores `?_date=` alone in development (no `_time` ⇒ no forcing)', async () => {
+    const { useSearchParams } = await renderUnderEnv('development', `_date=${FORCED_DATE}`);
+
+    const probe = await screen.findByTestId('probe');
+    expect(probe).not.toHaveTextContent(FORCED_DATE);
+    // The URL was still read (dev branch is live), it simply produced no force.
+    expect(useSearchParams).toHaveBeenCalled();
+  });
+
+  // Production gate fires regardless of which params are present: a `?_time=`
+  // alone URL must still be ignored and never read in production.
+  it('ignores `?_time=` alone in production and never reads the URL', async () => {
+    const { useSearchParams } = await renderUnderEnv('production', `_time=${FORCED_TIME}`);
+
+    const probe = await screen.findByTestId('probe');
+    // Un-forced tree: the forced 2026-07-01 date is never pinned. (The forced
+    // time is not asserted-absent here because the live clock could legitimately
+    // read 13:00 — the load-bearing proof is that the URL is never read at all.)
+    expect(probe).not.toHaveTextContent(FORCED_DATE);
     expect(useSearchParams).not.toHaveBeenCalled();
   });
 });
