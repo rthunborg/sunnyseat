@@ -243,3 +243,20 @@ Amelia (Dev) — Claude Opus 4.8 (claude-opus-4-8)
 ### Change Log
 
 - 2026-06-30 — Implemented the CLIENT-half query-hygiene fixes (Amelia/Claude, Opus 4.8): AC1 source Favoriter from the loaded `venues.list`/`planner` cache (derive-from-list; favourites query gated off when all favourites are loaded → 0 redundant fetch); AC2 gate the first venue fetch on a settled `geolocation.status` (success/fallback) via a new `enabled` param on `useVenueSearch`, killing the fallback→GPS double-fetch; AC3 `useDeferredValue(plannerTime.plannerQuery)` so a slider drag enqueues at most one settled `/api/venues` request while the thumb stays live and live-now semantics are preserved. +1 test file / +12 tests (88 files / 772 tests; tsc 0, eslint 0). No visual change, no server-file change, no DTO/bucket/staleTime change. Status → review.
+
+## Review Findings
+
+**Review type:** THIN (Tier-A, epic-mode) single-pass — Acceptance Auditor lens + dedicated Security review (R=1). Blind Hunter / Edge Case Hunter intentionally NOT run in Tier A (their absence is by design, not a failed layer).
+
+**Verdict:** Approve. Critical 0 · High 0 · Med 0 · Low 0 (surviving). Open Decisions: 0.
+
+**Surviving findings (after triage):** 0. All three ACs implemented as specified; the four named risk vectors (gate over-suppression, deferred-value staleness, keepPreviousData masking a changed result, VenueSearchShell ungated) were each checked and do not manifest. Security: 0 exploitable findings (geolocation coords / favourite ids / favourite rows all reach `URLSearchParams`/React text via finite-number coercion + `bucket()` + `sanitizeFavouriteIds` + default React escaping; no new network surface, no secrets/crypto/auth, the `enabled` flag is a client gate not a trust boundary).
+
+**Dismissed as noise (5):**
+- [Low → Dismiss · cosmetic] `favouriteListConfidenceMeta = favouriteVenueQuery.data?.meta ?? venueQuery.data?.meta` (`MapView.tsx:307-308`) falls back to the LIST meta during the favourites query's in-flight/placeholder window in the mixed/topped-up case. Both queries carry the SAME `deferredPlanner` + bucketed coords, so the sun-freshness headers are for the same request shape → at worst a transient cosmetic confidence-label match, NOT a data-honesty break and NOT an AC violation. Fails the Low-selectivity test (cosmetic/already-equivalent, transient, no user-visible wrong outcome) → dismissed.
+- [Info → Dismiss · verification] `favouritesAllInLoadedList` is vacuously `true` for an empty favourites set; `useFavouriteVenues` additionally guards `ids.length > 0` — both layers agree on the 0-fetch path for empty favourites. Boundary confirmed handled; no defect.
+- [Info → Dismiss · verification] AC2 gate does not over-suppress a legitimate first load — `idle` is genuinely transient (returning users auto-acquire; first-time users held behind the inert `OnboardingGate` until they settle status); status never reverts to `idle`, so the gate cannot re-suppress a later refetch. No defect.
+- [Info → Dismiss · verification] AC3 `useDeferredValue` does not stale the DISPLAYED data (only the query-driving copy is deferred; thumb/badge read `selectedMinutes`/`selectedTime` directly) and `keepPreviousData` masks only the transition render, not a genuinely-changed result. Live-now semantics preserved (defers the same `undefined`-when-live `plannerQuery`). No defect.
+- [Info → Dismiss · verification] `VenueSearchShell` correctly left ungated (`undefined !== false` → enabled; governed by its own 200 ms debounce, not the coords gate); the `lastMapViewSearchCall()` test helper distinguishes the gated MapView call from the ungated shell call. No defect.
+
+**Deferrals logged:** 0 (no `[Review][Defer]` items). **Failed layers:** none.

@@ -5,10 +5,10 @@ epic_num: 9
 story_num: 4
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T19:08:05Z"
+updated_at: "2026-06-30T19:11:55Z"
 started_at: "2026-06-30T18:21:04Z"
 completed_at: null
-active_seconds: 2793
+active_seconds: 3013
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "Non-trivial data-fetching logic across multiple modules (query-key gating, favourites cache derivation, time-scrubber debounce) = Medium; client-side debounce is reproducible, no High signals."
 epic_story_count: 11
 stories_after_in_epic: 6
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [2bf4ae4, "3956378", 1ee0bd5]
+commits: [2bf4ae4, "3956378", 1ee0bd5, 6f577c9]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -52,3 +52,4 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: cfc42312baa73eaa42a251c5ac7f26545624f6d0
+tier_a_review: "Tier-A thin review (auditor+security, R=1): verdict Approve, 0 surviving findings (1 Low cosmetic + 4 Info dismissed). Security clean (0). 0 Decisions. No fix needed."
