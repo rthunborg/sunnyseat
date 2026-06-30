@@ -222,6 +222,24 @@ vi.mock('@/components/custom/map/VenuePinLayer', () => ({
     <div data-testid="venue-pin-layer-stub" data-venues={JSON.stringify(venues)} />
   ),
 }));
+// Story 9.5 AC2: stub the user-location layer (it mounts a real MapLibre
+// Marker, which the stub map instance can't service) and surface its props so
+// the MapView-level gating assertion can verify status/coords are threaded.
+vi.mock('@/components/custom/map/UserLocationLayer', () => ({
+  UserLocationLayer: ({
+    status,
+    coords,
+  }: {
+    status: string;
+    coords: { lat: number; lng: number };
+  }) => (
+    <div
+      data-testid="user-location-layer-stub"
+      data-status={status}
+      data-coords={JSON.stringify(coords)}
+    />
+  ),
+}));
 vi.mock('@/components/custom/map/MapLoadingFallback', () => ({
   MapLoadingFallback: () => <div data-testid="map-loading-fallback-stub" />,
 }));
@@ -505,6 +523,50 @@ describe('<MapView />', () => {
         stubMap.__error[0]?.({ error: { message: 'unrelated warning' } });
       });
       expect(screen.getByTestId('map-tile-paint-cover')).toBeInTheDocument();
+    });
+  });
+
+  describe('user-location dot gating (Story 9.5 AC2)', () => {
+    it('threads status + coords into the UserLocationLayer on a real GPS fix', () => {
+      useGeolocationMock.mockReturnValue({
+        status: 'success',
+        coords: { lat: 57.705, lng: 11.93 },
+        requestLocation: vi.fn(),
+        useCentrum: vi.fn(),
+      });
+      render(<MapView />, { wrapper: Wrapper });
+      const layer = screen.getByTestId('user-location-layer-stub');
+      // The layer itself owns the "draw the dot only on success" decision; the
+      // MapView contract is that it threads the live status + coords through.
+      expect(layer).toHaveAttribute('data-status', 'success');
+      expect(layer).toHaveAttribute(
+        'data-coords',
+        JSON.stringify({ lat: 57.705, lng: 11.93 }),
+      );
+    });
+
+    it('threads the fallback status through so the layer suppresses the dot', () => {
+      useGeolocationMock.mockReturnValue({
+        status: 'fallback',
+        coords: { lat: 57.7089, lng: 11.9746 },
+        requestLocation: vi.fn(),
+        useCentrum: vi.fn(),
+      });
+      render(<MapView />, { wrapper: Wrapper });
+      expect(screen.getByTestId('user-location-layer-stub')).toHaveAttribute(
+        'data-status',
+        'fallback',
+      );
+    });
+
+    it('does not mount the user-location layer in the offline shell', () => {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
+      try {
+        render(<MapView />, { wrapper: Wrapper });
+        expect(screen.queryByTestId('user-location-layer-stub')).toBeNull();
+      } finally {
+        Object.defineProperty(navigator, 'onLine', { configurable: true, value: true });
+      }
     });
   });
 

@@ -75,6 +75,8 @@ function ControlsWrapper({ children }: { children: ReactNode }) {
     flyTo: vi.fn(),
     zoomIn: vi.fn(),
     zoomOut: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
   } as unknown as maplibregl.Map;
   const mapRef = useRef<maplibregl.Map | null>(stubMap);
   const value: MapInstanceContextValue = {
@@ -89,7 +91,7 @@ function ControlsWrapper({ children }: { children: ReactNode }) {
   );
 }
 
-describe.skip('Story 9.5 AC4(a) — locate-button pending/denied feedback (RED)', () => {
+describe('Story 9.5 AC4(a) — locate-button pending/denied feedback (RED)', () => {
   afterEach(() => {
     geoState.status = 'idle';
   });
@@ -119,22 +121,18 @@ describe.skip('Story 9.5 AC4(a) — locate-button pending/denied feedback (RED)'
 /**
  * (b) SW controllerchange → single reload (no loop).
  */
-const SW_RELOAD_MODULE = '@/hooks/useServiceWorkerUpdate';
-
 type RegisterSwUpdateReload = () => () => void;
 
 async function loadRegisterSwUpdateReload(): Promise<RegisterSwUpdateReload> {
-  const mod = (await import(/* @vite-ignore */ SW_RELOAD_MODULE)) as {
-    registerServiceWorkerUpdateReload: RegisterSwUpdateReload;
-  };
+  const mod = await import('@/hooks/useServiceWorkerUpdate');
   return mod.registerServiceWorkerUpdateReload;
 }
 
-describe.skip('Story 9.5 AC4(b) — SW controllerchange forces ONE reload, no loop (RED)', () => {
+describe('Story 9.5 AC4(b) — SW controllerchange forces ONE reload, no loop (RED)', () => {
   let listeners: Array<() => void>;
   let reloadSpy: Mock;
   let originalSW: PropertyDescriptor | undefined;
-  let originalReload: PropertyDescriptor | undefined;
+  let originalLocation: PropertyDescriptor | undefined;
 
   beforeEach(() => {
     listeners = [];
@@ -157,17 +155,19 @@ describe.skip('Story 9.5 AC4(b) — SW controllerchange forces ONE reload, no lo
       },
     });
 
-    originalReload = Object.getOwnPropertyDescriptor(window.location, 'reload');
-    Object.defineProperty(window.location, 'reload', {
+    // jsdom marks `window.location.reload` non-configurable, so swap the whole
+    // `window.location` object for a stub whose `reload` is the spy.
+    originalLocation = Object.getOwnPropertyDescriptor(window, 'location');
+    Object.defineProperty(window, 'location', {
       configurable: true,
-      value: reloadSpy,
+      value: { ...window.location, reload: reloadSpy },
     });
   });
 
   afterEach(() => {
     if (originalSW) Object.defineProperty(navigator, 'serviceWorker', originalSW);
     else delete (navigator as unknown as Record<string, unknown>).serviceWorker;
-    if (originalReload) Object.defineProperty(window.location, 'reload', originalReload);
+    if (originalLocation) Object.defineProperty(window, 'location', originalLocation);
   });
 
   it('reloads exactly ONCE on a controllerchange event', async () => {

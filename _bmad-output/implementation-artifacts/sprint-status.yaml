@@ -229,7 +229,7 @@ development_status:
   9-2-design-system-cta-token-fix-copy-correction: review
   9-3-venue-sun-compute-performance-server-caching: review
   9-4-client-query-hygiene-time-change-debounce: review
-  9-5-location-onboarding-reliability: ready-for-dev
+  9-5-location-onboarding-reliability: review
   9-6-map-chrome-consolidation-dead-control-cleanup: backlog
   9-7-tag-filtering-real-data-working-chips: backlog
   9-8-venue-sharing-real: backlog

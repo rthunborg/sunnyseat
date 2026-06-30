@@ -5,10 +5,10 @@ epic_num: 9
 story_num: 5
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T19:38:02Z"
+updated_at: "2026-06-30T20:36:03Z"
 started_at: "2026-06-30T19:14:39Z"
 completed_at: null
-active_seconds: 1384
+active_seconds: 4855
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "Hydration-timing race (first-render placeholder flash + early-click reliability) + SW update edge case = hard-to-reproduce behaviour; spans onboarding gate / geolocation provider / marker layer / distance label / SW flow -> High."
 epic_story_count: 11
 stories_after_in_epic: 5
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [03026e7, ad1f711]
+commits: [03026e7, ad1f711, efaf5f2]
 phase8_steps:
   trace_gate: null
   nfr: null

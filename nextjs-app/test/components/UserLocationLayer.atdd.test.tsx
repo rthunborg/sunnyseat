@@ -32,10 +32,7 @@ import { render } from '@testing-library/react';
 import { createElement, useRef, type ComponentType, type ReactNode } from 'react';
 import maplibregl from 'maplibre-gl';
 import { MapInstanceContext } from '@/lib/contexts/MapInstanceContext';
-
-// Runtime-only specifier so static analysis (tsc + vite import-analysis) never
-// resolves a not-yet-existing module. Only the un-skipped (post-impl) run touches it.
-const USER_LOCATION_LAYER_MODULE = '@/components/custom/map/UserLocationLayer';
+import { UserLocationLayer } from '@/components/custom/map/UserLocationLayer';
 
 type UserLocationLayerProps = {
   status: 'idle' | 'pending' | 'success' | 'fallback';
@@ -43,10 +40,7 @@ type UserLocationLayerProps = {
 };
 
 async function loadUserLocationLayer(): Promise<ComponentType<UserLocationLayerProps>> {
-  const mod = (await import(/* @vite-ignore */ USER_LOCATION_LAYER_MODULE)) as {
-    UserLocationLayer: ComponentType<UserLocationLayerProps>;
-  };
-  return mod.UserLocationLayer;
+  return UserLocationLayer;
 }
 
 type MapInstanceContextValue = React.ComponentProps<
@@ -103,7 +97,7 @@ function makeWrapper() {
 
 const SUCCESS_COORDS = { lat: 57.705, lng: 11.93 };
 
-describe.skip('Story 9.5 AC2 — UserLocationLayer amber UserPin (RED)', () => {
+describe('Story 9.5 AC2 — UserLocationLayer amber UserPin (RED)', () => {
   beforeEach(() => {
     allMarkers.length = 0;
   });

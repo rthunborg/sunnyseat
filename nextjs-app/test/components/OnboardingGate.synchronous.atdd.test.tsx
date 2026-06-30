@@ -72,7 +72,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
-describe.skip('Story 9.5 AC1 — synchronous first-render onboarding gate (RED)', () => {
+describe('Story 9.5 AC1 — synchronous first-render onboarding gate (RED)', () => {
   let originalLocalStorage: PropertyDescriptor | undefined;
   let store: Map<string, string>;
 

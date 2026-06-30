@@ -104,6 +104,7 @@
     "confidenceApproximate": "cirka",
     "confidenceUnavailable": "Säkerhet saknas",
     "distance": "Avstånd",
+    "distanceApproximate": "≈ från centrum",
     "sunUnavailable": "Soltid saknas",
     "statusMostlyShade": "MEST SKUGGA",
     "statusFullSun": "FULL SOL",

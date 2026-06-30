@@ -63,6 +63,7 @@ import { OfflineBanner } from '@/components/custom/offline/OfflineBanner';
 import { MapContainer } from './MapContainer';
 import { MapLoadingFallback } from './MapLoadingFallback';
 import { VenuePinLayer } from './VenuePinLayer';
+import { UserLocationLayer } from './UserLocationLayer';
 import { MapControls } from './MapControls';
 
 const SLOW_LOAD_PILL_MS = 3000;
@@ -173,6 +174,11 @@ export function MapView() {
   // permission-grant-after-fallback transition is masked by `keepPreviousData`.
   const coordsSettled =
     geolocation.status === 'success' || geolocation.status === 'fallback';
+  // Story 9.5 AC3: on the Gothenburg-centrum fallback the venue distances are
+  // centrum-relative, not a real personal fix — the list annotates them
+  // "≈ från centrum" so the number is honest. Only the LABEL changes; the
+  // value (still the centrum-relative distance) is never hidden.
+  const locationIsApproximate = geolocation.status === 'fallback';
   // Story 9.4 AC3: defer the planner key that drives the venue queries so a
   // rapid drag (each snapped 15-min step flips `plannerTime.plannerQuery`)
   // enqueues at most ONE fetch after the user settles. The slider thumb +
@@ -823,6 +829,11 @@ export function MapView() {
       {!showOfflineShell && (
         <>
       <VenuePinLayer venues={venues} />
+      {/* Story 9.5 AC2: the amber user-location dot. Gated on a real GPS fix
+          (`status === 'success'`) so it is NOT drawn while sitting on the
+          Gothenburg-centrum fallback / idle / pending. Additive only — the
+          fly-to recenter lives in OnboardingGate + MapControls. */}
+      <UserLocationLayer status={geolocation.status} coords={geolocation.coords} />
       {!isForcedVisualReference && (
         <VenueSearchShell
           variant="mobile"
@@ -885,6 +896,7 @@ export function MapView() {
             sortMode={effectiveSortMode}
             confidenceMeta={listConfidenceMeta}
             showVisibleConfidence={!isForcedVisualReference}
+            locationIsApproximate={locationIsApproximate}
             isLoading={venueQuery.isFetching && listVenues.length === 0}
             animateCards={mobileSheetState === 'full'}
             compactCards={mobileSheetState === 'peek'}
@@ -928,6 +940,7 @@ export function MapView() {
               sortMode={effectiveSortMode}
               confidenceMeta={listConfidenceMeta}
               showVisibleConfidence={!isForcedVisualReference}
+              locationIsApproximate={locationIsApproximate}
               isLoading={venueQuery.isFetching && listVenues.length === 0}
               onSelectVenue={handleSelectVenueFromList}
               onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}

@@ -21,6 +21,14 @@ export type VenueListProps = {
   compactCards?: boolean;
   confidenceMeta?: SunFreshnessMeta;
   showVisibleConfidence?: boolean;
+  /**
+   * Story 9.5 AC3: when the origin is the Gothenburg-centrum fallback (no real
+   * personal fix), the distances are centrum-relative, not from the user. The
+   * card then annotates each distance "≈ från centrum" so the number is honest
+   * rather than implying a true personal distance. The real value is never
+   * hidden — only the label changes.
+   */
+  locationIsApproximate?: boolean;
   onFavouriteToggle?: (venue: VenueDataDto) => void;
   isFavourite?: (id: string) => boolean;
 };
@@ -35,6 +43,7 @@ export function VenueList({
   compactCards,
   confidenceMeta,
   showVisibleConfidence = true,
+  locationIsApproximate = false,
   onFavouriteToggle,
   isFavourite,
 }: VenueListProps) {
@@ -88,6 +97,7 @@ export function VenueList({
             confidencePercent={venue.confidence}
             confidenceMeta={confidenceMeta}
             distanceMeters={venue.distanceMeters}
+            distanceIsApproximate={locationIsApproximate}
             sunExposurePercent={venue.sunExposurePercent}
             thumbnail={venue.thumbnail}
             isSunny={isVenueSunnyForList(venue)}
@@ -112,6 +122,7 @@ export function VenueList({
               confidenceApproximate: t('confidenceApproximate'),
               confidenceUnavailable: t('confidenceUnavailable'),
               distance: t('distance'),
+              distanceApproximate: t('distanceApproximate'),
               sunUnavailable: t('sunUnavailable'),
               statusMostlyShade: t('statusMostlyShade'),
               statusFullSun: t('statusFullSun'),

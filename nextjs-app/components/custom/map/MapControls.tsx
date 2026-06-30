@@ -120,14 +120,30 @@ export function MapControls() {
           actions, so duplicating them over the map is redundant chrome. They
           remain on mobile, where the bottom nav has no locate/settings and the
           map stack is the only access point. Zoom +/- stay at every breakpoint. */}
+      {/* Story 9.5 AC4(a): surface the locate request state. `pending` drives
+          an in-flight signal (`aria-busy` + a pulsing icon); `fallback`
+          (denied / timeout / unavailable) keeps the button CLICKABLE so the
+          user can re-request instead of silently sitting on the centrum
+          fallback. The button is only disabled while the map is not yet ready,
+          never because the request resolved to the fallback. */}
       <GlassButton
         ariaLabel={t('myLocation')}
         onClick={handleMyLocation}
         disabled={!isMapReady}
+        busy={geolocation.status === 'pending'}
         testId="map-control-my-location"
+        dataLocateState={geolocation.status}
         className="lg:hidden"
       >
-        <LocateFixed aria-hidden="true" style={{ width: 20, height: 20 }} />
+        <LocateFixed
+          aria-hidden="true"
+          style={{ width: 20, height: 20 }}
+          className={
+            geolocation.status === 'pending'
+              ? 'motion-safe:animate-pulse'
+              : undefined
+          }
+        />
       </GlassButton>
       <GlassButton
         ariaLabel={t('settings')}
@@ -161,12 +177,26 @@ type GlassButtonProps = {
   ariaLabel: string;
   onClick: () => void;
   disabled?: boolean;
+  /** Story 9.5 AC4(a): in-flight signal → sets `aria-busy="true"`. */
+  busy?: boolean;
+  /** Story 9.5 AC4(a): exposes the locate request state on the button DOM so
+   * tests + assistive styling can branch on idle/pending/success/fallback. */
+  dataLocateState?: string;
   testId: string;
   className?: string;
   children: React.ReactNode;
 };
 
-function GlassButton({ ariaLabel, onClick, disabled = false, testId, className, children }: GlassButtonProps) {
+function GlassButton({
+  ariaLabel,
+  onClick,
+  disabled = false,
+  busy = false,
+  dataLocateState,
+  testId,
+  className,
+  children,
+}: GlassButtonProps) {
   // Story 1.6 review (P37): native `disabled` already removes the button
   // from the tab order and exposes the disabled state to assistive tech;
   // adding `aria-disabled` on top either is ignored or causes double
@@ -177,6 +207,8 @@ function GlassButton({ ariaLabel, onClick, disabled = false, testId, className, 
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
+      aria-busy={busy || undefined}
+      data-locate-state={dataLocateState}
       data-testid={testId}
       className={`size-12 rounded-pill bg-glass-standard backdrop-blur-standard shadow-button-float flex items-center justify-center text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:rounded-pill disabled:opacity-50 disabled:cursor-not-allowed ${className ?? ''}`}
     >

@@ -58,7 +58,7 @@ test.describe('Onboarding overlay', () => {
 // Deterministic by construction: a fresh Playwright context starts with empty
 // localStorage, so no wall-clock or timing dependency — the assertion is purely
 // "first-time user sees the overlay, the map is NOT interactable underneath".
-test.describe.skip('Story 9.5 — clean-context onboarding reliability (RED)', () => {
+test.describe('Story 9.5 — clean-context onboarding reliability (RED)', () => {
   test('a first-time user (empty localStorage) reliably sees the welcome overlay', async ({
     page,
   }) => {

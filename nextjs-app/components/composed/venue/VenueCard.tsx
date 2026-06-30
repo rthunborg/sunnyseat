@@ -30,6 +30,9 @@ export type VenueCardLabels = {
   confidenceApproximate: string;
   confidenceUnavailable: string;
   distance: string;
+  /** Story 9.5 AC3: honest "≈ från centrum" annotation shown alongside the
+   * distance when the origin is the Gothenburg-centrum fallback. */
+  distanceApproximate?: string;
   sunUnavailable: string;
   statusMostlyShade?: string;
   statusFullSun?: string;
@@ -43,6 +46,9 @@ export type VenueCardProps = {
   confidencePercent?: number;
   confidenceMeta?: SunFreshnessMeta;
   distanceMeters?: number;
+  /** Story 9.5 AC3: the distance is centrum-relative (Gothenburg fallback),
+   * not a real personal fix — annotate it honestly. */
+  distanceIsApproximate?: boolean;
   sunExposurePercent?: number;
   thumbnail?: {
     alt: string;
@@ -70,6 +76,7 @@ export function VenueCard({
   confidencePercent,
   confidenceMeta,
   distanceMeters,
+  distanceIsApproximate = false,
   sunExposurePercent,
   thumbnail,
   isSunny,
@@ -100,6 +107,13 @@ export function VenueCard({
       ? (labels.statusFullSun ?? 'FULL SOL')
       : (labels.statusPartialSun ?? 'DELVIS SOL');
   const sunUnitLabel = labels.sun.toLocaleLowerCase();
+  // Story 9.5 AC3: honest centrum-relative annotation. Shown only on the
+  // Gothenburg-centrum fallback; the real distance number stays visible —
+  // only the label is qualified ("≈ från centrum").
+  const approximateLabel =
+    distanceIsApproximate && labels.distanceApproximate
+      ? labels.distanceApproximate
+      : null;
 
   return (
     <article
@@ -142,6 +156,9 @@ export function VenueCard({
             <span className="mt-1 block truncate text-body-sm-medium text-text-body">
               {neighborhood ? `${neighborhood} · ` : ''}
               {distance}
+              {approximateLabel && (
+                <span className="ml-1 text-label-xs text-text-muted">{approximateLabel}</span>
+              )}
             </span>
             <span className="mt-1 flex items-center gap-1 text-label-xs text-amber-dark">
               {isSunny ? (
@@ -157,6 +174,9 @@ export function VenueCard({
             <span className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-1 text-body-sm-medium text-text-body">
               <Footprints aria-hidden="true" className="size-3.5 shrink-0 text-amber-dark" />
               <span>{distance}</span>
+              {approximateLabel && (
+                <span className="text-label-xs text-text-muted">{approximateLabel}</span>
+              )}
               {visualMetadata && (
                 <>
                   <span className="text-text-faint">·</span>

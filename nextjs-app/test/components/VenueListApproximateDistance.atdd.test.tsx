@@ -80,7 +80,7 @@ function renderList(props: { locationIsApproximate?: boolean }) {
   );
 }
 
-describe.skip('Story 9.5 AC3 — honest approximate-distance label on fallback (RED)', () => {
+describe('Story 9.5 AC3 — honest approximate-distance label on fallback (RED)', () => {
   it('shows the "≈ från centrum" approximate treatment when locationIsApproximate is true (fallback)', () => {
     renderList({ locationIsApproximate: true });
     expect(screen.getByText(new RegExp(APPROXIMATE_LABEL))).toBeInTheDocument();
@@ -95,7 +95,10 @@ describe.skip('Story 9.5 AC3 — honest approximate-distance label on fallback (
     renderList({ locationIsApproximate: true });
     // The distance number stays visible — 9.1's anti-pattern was an absent/
     // contradictory number, not an honestly-labelled centrum-relative one.
-    expect(screen.getByText(/\d/)).toBeInTheDocument();
+    // makeVenue() sets distanceMeters: 250, which formats to "250 m". Assert
+    // the concrete distance number renders rather than any digit-bearing node
+    // (the full card also carries a sun-% figure).
+    expect(screen.getByText('250 m')).toBeInTheDocument();
   });
 });
 
@@ -105,7 +108,7 @@ describe.skip('Story 9.5 AC3 — honest approximate-distance label on fallback (
  * locales is sufficient. This explicit assertion documents the contract and
  * fails loudly (RED) until the sv key exists.
  */
-describe.skip('Story 9.5 AC3 — approximate-distance i18n key present (RED)', () => {
+describe('Story 9.5 AC3 — approximate-distance i18n key present (RED)', () => {
   it('sv/venue.json defines the approximate-distance label key', () => {
     const flat = JSON.stringify(venueMessages);
     expect(flat).toContain(APPROXIMATE_LABEL);

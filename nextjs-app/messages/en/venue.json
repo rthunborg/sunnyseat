@@ -104,6 +104,7 @@
     "confidenceApproximate": "about",
     "confidenceUnavailable": "Confidence unavailable",
     "distance": "Distance",
+    "distanceApproximate": "≈ from centre",
     "sunUnavailable": "Sun time unavailable",
     "statusMostlyShade": "MOSTLY SHADE",
     "statusFullSun": "FULL SUN",
