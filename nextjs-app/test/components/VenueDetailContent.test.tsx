@@ -409,6 +409,66 @@ describe('VenueDetailContent', () => {
     expect(screen.queryByText('Sol 10:00-11:00')).not.toBeInTheDocument();
   });
 
+  it('keeps the de-bloated mobile fact area to a single full-width AVSTÅND tile with no orphaned cell (Story 9.1 AC #2)', () => {
+    const { container } = render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    // Exactly one FactCard survives (AVSTÅND) — the EXPONERING / BÄST KL. /
+    // PLATSER UTE tiles are gone, so there is no 2-col grid leaving an empty cell.
+    const factLabels = screen.getAllByText('AVSTÅND');
+    expect(factLabels).toHaveLength(1);
+    const factCard = factLabels[0].closest('section');
+    expect(factCard).not.toBeNull();
+    // The surviving tile is not wrapped in a grid-cols-2 container (no orphaned cell).
+    expect(container.querySelector('.grid-cols-2')).toBeNull();
+    // The fabricated-fact icons (Compass exposure, Armchair seats) are gone.
+    expect(screen.queryByText('EXPONERING')).not.toBeInTheDocument();
+    expect(screen.queryByText('PLATSER UTE')).not.toBeInTheDocument();
+    expect(screen.queryByText('BÄST KL.')).not.toBeInTheDocument();
+    // The real distance value still renders inside the surviving tile (a metres
+    // figure), proving the kept signal is intact after the de-bloat.
+    expect(factCard?.textContent).toMatch(/\d+\s?m|\d+(?:\.\d+)?\s?km/);
+  });
+
+  it('removes the desktop EXPONERING row and the mobile-only AVSTÅND fact while keeping confidence in desktop mode (Story 9.1 AC #1)', () => {
+    render(
+      <VenueDetailContent
+        mode="desktop"
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    // Desktop EXPONERING DetailRow + the fabricated fact labels are absent.
+    expect(screen.queryByText('EXPONERING')).not.toBeInTheDocument();
+    expect(screen.queryByText('BÄST KL.')).not.toBeInTheDocument();
+    expect(screen.queryByText('PLATSER UTE')).not.toBeInTheDocument();
+    // The AVSTÅND FactCard is mobile-only — it must not appear in desktop mode.
+    expect(screen.queryByText('AVSTÅND')).not.toBeInTheDocument();
+    // No dead shadow-warning copy in desktop either.
+    expect(screen.queryByText(/Blir skuggigt om/)).not.toBeInTheDocument();
+    // The preserved confidence signal still renders (announced once, sr-only).
+    expect(screen.getByText('Säkerhet 92%')).toHaveClass('sr-only');
+    expect(screen.queryByText(/Säkerhet:/)).not.toBeInTheDocument();
+    // The kept opening-hours and address rows survive (they back genuine signals).
+    expect(screen.getByText('Öppettider')).toBeInTheDocument();
+    expect(screen.getByText('Adress')).toBeInTheDocument();
+  });
+
   it('does not render future partner badges in active venue detail runtime', () => {
     render(
       <VenueDetailContent

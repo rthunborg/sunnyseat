@@ -164,6 +164,85 @@ describe('<VenueCard />', () => {
     expect(selectButton.getAttribute('aria-label')?.match(/Säkerhet/g)).toHaveLength(1);
   });
 
+  it('does not surface prediction-uncertainty copy in compact mode either (Story 9.1 de-bloat)', () => {
+    render(
+      <VenueCard
+        name="Café Halvvägs"
+        sunTimeRange="Sol 15:10-17:20"
+        confidencePercent={70}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        distanceMeters={100}
+        sunExposurePercent={65}
+        thumbnail={{ alt: 'Uteservering', initials: 'CH' }}
+        isSunny
+        compact
+        labels={{
+          select: 'Välj Café Halvvägs, Sol 15:10-17:20, Säkerhet 70%, Avstånd 100 m',
+          favourite: 'Spara {name}',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    const card = screen.getByTestId('venue-card');
+    expect(card).not.toHaveTextContent('Osäker prognos');
+    expect(card).not.toHaveTextContent('Byggnadsskuggor mer osäkra');
+    expect(screen.queryByText(/Byggnadsskuggorna är beräknade/)).not.toBeInTheDocument();
+    // Confidence still appears exactly once, in the accessible name.
+    const selectButton = screen.getByRole('button', { name: /Välj Café Halvvägs/ });
+    expect(selectButton.getAttribute('aria-label')?.match(/Säkerhet/g)).toHaveLength(1);
+  });
+
+  it('leaves no orphaned trailing separator when the visible confidence chip is suppressed (Story 9.1 AC #2)', () => {
+    render(
+      <VenueCard
+        name="Bellora"
+        sunTimeRange="Sol 13:00-18:30"
+        confidencePercent={80}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        distanceMeters={180}
+        sunExposurePercent={76}
+        thumbnail={{ alt: 'Uteservering', initials: 'BE' }}
+        isSunny
+        showVisibleConfidence={false}
+        labels={{
+          select: 'Välj Bellora',
+          favourite: 'Spara {name}',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    // With the confidence chip hidden, the meta row keeps the kept sun signal
+    // and must not end on a dangling middot.
+    const metaRow = screen.getByText('sol', { exact: false }).closest('span');
+    const normalized = metaRow?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    expect(normalized).toContain('76% sol');
+    expect(normalized.endsWith('·')).toBe(false);
+    // The hidden chip is not rendered as visible text.
+    expect(screen.getByTestId('venue-card')).not.toHaveTextContent('80%');
+  });
+
   it('renders the venue thumbnail URL when one is available', () => {
     render(
       <VenueCard

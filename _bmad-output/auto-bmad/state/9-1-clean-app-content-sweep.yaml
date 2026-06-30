@@ -5,10 +5,10 @@ epic_num: 9
 story_num: 1
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T16:09:16Z"
+updated_at: "2026-06-30T16:15:13Z"
 started_at: "2026-06-30T15:04:55Z"
 completed_at: null
-active_seconds: 3838
+active_seconds: 4170
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "Touches multiple modules (VenueDetailContent, VenueQuickInfo, i18n JSON, prediction-uncertainty-display logic, seed, unit tests) = Medium; no High signals."
 epic_story_count: 11
 stories_after_in_epic: 9
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [6b76e8e, 3cff783]
+commits: [6b76e8e, 3cff783, 2441e9a]
 phase8_steps:
   trace_gate: null
   nfr: null

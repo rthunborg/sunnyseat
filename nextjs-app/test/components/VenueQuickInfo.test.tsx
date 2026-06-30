@@ -198,6 +198,98 @@ describe('<VenueQuickInfo />', () => {
     expectNoSensitiveSourceTerms(container);
   });
 
+  it('does not surface the removed disclaimer in anchored-mobile or desktop quick-info, and keeps confidence once (Story 9.1 de-bloat)', () => {
+    const { rerender } = render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Brygghuset Lerum"
+        sunTimeRange="Sol 13:35–16:50"
+        confidencePercent={66}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        sunExposurePercent={58}
+        distanceMeters={420}
+        position={{ x: 180, y: 260 }}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    let card = screen.getByTestId('venue-quick-info');
+    expect(card).not.toHaveTextContent('Osäker prognos');
+    expect(card).not.toHaveTextContent('Lokala hinder kan påverka');
+    expect(screen.queryByText(/Vi räknar på solens läge/)).not.toBeInTheDocument();
+    // Confidence label survives exactly once in anchored mode.
+    expect(card.querySelectorAll('.sr-only')).not.toHaveLength(0);
+    expect(screen.getAllByText(/Säkerhet/).length).toBeGreaterThan(0);
+
+    rerender(
+      <VenueQuickInfo
+        mode="desktop"
+        name="Brygghuset Lerum"
+        sunTimeRange="Sol 13:35–16:50"
+        confidencePercent={66}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        sunExposurePercent={58}
+        distanceMeters={420}
+        position={{ x: 200, y: 200 }}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    card = screen.getByTestId('venue-quick-info');
+    expect(card).not.toHaveTextContent('Osäker prognos');
+    expect(card).not.toHaveTextContent('Lokala hinder kan påverka');
+    expect(screen.queryByText(/Vi räknar på solens läge/)).not.toBeInTheDocument();
+    // The kept confidence + sun signals still render in desktop placement.
+    expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet: 66%');
+    expect(screen.getByText(/58% SOL/)).toBeInTheDocument();
+  });
+
+  it('does not render a leading separator before the anchored-mobile distance metadata (Story 9.1 AC #2)', () => {
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunTimeRange="Sol 13:00–18:30"
+        confidencePercent={92}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        sunExposurePercent={95}
+        distanceMeters={420}
+        position={{ x: 180, y: 260 }}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    // Anchored mode collapses the sun-window + confidence + distance onto one
+    // wrapping row; the confidence paragraph must not start or end on a dangling
+    // middot now that the uncertainty fragment was removed.
+    const metadata = screen.getByText(/Säkerhet:/).closest('p');
+    const normalized = metadata?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    expect(normalized.startsWith('·')).toBe(false);
+    expect(normalized.endsWith('·')).toBe(false);
+    expect(normalized).toContain('Säkerhet: 92%');
+  });
+
   it('marks stale confidence as approximate and hides geometry-only confidence', () => {
     const { rerender } = render(
       <VenueQuickInfo
