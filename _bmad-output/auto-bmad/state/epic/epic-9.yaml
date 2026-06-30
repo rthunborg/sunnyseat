@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T16:09:16Z"
+updated_at: "2026-06-30T16:22:19Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 613
@@ -54,15 +54,24 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: live-app-hardening-clean-up
-active_story: 9-1-clean-app-content-sweep
+active_story: null
 stories_landed:
   - 9-0-production-gate-the-dev-planner-forcing-url-leak
+  - 9-1-clean-app-content-sweep
 auto_decisions: []
 uat_items:
   - "[9-0] Dev (npm run dev), open /?_time=21:00&_date=2026-07-01 -> planner shows forced 21:00 on 2026-07-01 and does NOT advance with the real clock (forcing honoured in dev). [AC#1 dev, AC#2]"
   - "[9-0] Dev, open / with no params -> planner shows live current time and ticks forward (~every minute). [AC#1 baseline]"
   - "[9-0] Production (npm run build && npm run start), open /?_time=21:00&_date=2026-07-01 -> forcing IGNORED: live current Stockholm time/date shown, clock advances. [AC#1 prod, core fix]"
   - "[9-0] Production, open /?_time=13:00 (time only) -> still ignored: live time shown, no pinned 13:00. [AC#1 single-param edge]"
-  - "[9-0] Production, open plain / -> identical to forced-URL prod case (live clock), confirming prod has one un-forced path regardless of URL. [AC#1 equivalence]"
-  - "[9-0] Run deterministic-sun e2e vs dev (npx playwright test test/e2e/map-primary.spec.ts --project=desktop) -> ?_time=13:00 specs stay green/stable (pre-existing 645:7 width-assertion failure is unrelated). [AC#2]"
-  - "[9-0] Run unit guard (npm run test -- AppContextProviders) -> test/components/AppContextProviders.test.tsx passes: prod ignores forced _time/_date and never calls useSearchParams; dev/test honour them. [AC#3]"
+  - "[9-0] Production, open plain / -> identical to forced-URL prod case (live clock). [AC#1 equivalence]"
+  - "[9-0] Run deterministic-sun e2e vs dev (npx playwright test test/e2e/map-primary.spec.ts --project=desktop) -> ?_time=13:00 specs stay green (pre-existing 645:7 width-assertion failure unrelated). [AC#2]"
+  - "[9-0] Run unit guard (npm run test -- AppContextProviders) -> prod ignores forced _time/_date and never calls useSearchParams; dev/test honour them. [AC#3]"
+  - "[9-1] Venue detail (mobile+desktop, /?venue=test-venue-sunny&_state=venue-detail&_time=14:00): EXPONERING, BÄST KL., PLATSER UTE, the 'Vi räknar…' paragraph, the uncertainty-reason middot line, and 'Blir skuggigt om X min' are ALL absent. [AC#1]"
+  - "[9-1] Venue detail: preserved signals still render — % SOL badge, single full-width AVSTÅND card (no empty 2nd cell), Säkerhet/confidence, Solprognos timeline, Öppettider/Adress/Visa Rutt. [AC#1]"
+  - "[9-1] Venue detail: no orphaned middot/empty row/dangling label where removed tiles were (mobile+desktop). [AC#2]"
+  - "[9-1] Quick-info card (/?_state=map-with-selected-venue&_time=14:00, mobile): no uncertainty paragraph/reason; still shows sun range, Säkerhet %, Avstånd, % SOL badge, Mer Info/Visa Rutt. Visa Rutt route overlay STILL shows 'Säkerhet · <level>' (KEPT route uncertainty util). [AC#1]"
+  - "[9-1] Venue list cards (/?_state=map-panel-venues mobile + /?_time=16:30 desktop): no uncertainty text; distance + sun% + amber Säkerhet chip present; clean separators (no dangling trailing middot). [AC#1/#2]"
+  - "[9-1] aria-label cleanliness (AC#3): card select-button accessible name reads essentials only; 'Säkerhet' announced ONCE (no 'Säkerhet: 60% Säkerhet 60%' dup); no embedded 'Vi räknar…' paragraph."
+  - "[9-1] Behaviour/animation: shaded/low-sun cards still show confidence (no empty placeholder row); favourite toggle works post-aria-refactor; list fade/stagger + quick-info slide-up unbroken."
+  - "[9-1] CAVEAT: venue-detail mobile+desktop automated VISUAL gate FAILS until maintainer re-baselines reference PNGs (stale = old design). Manual checks above are authoritative meanwhile; map-with-selected-venue + map-panel-venues gates already PASS."
