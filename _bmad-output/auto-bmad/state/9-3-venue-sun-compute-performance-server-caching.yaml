@@ -5,10 +5,10 @@ epic_num: 9
 story_num: 3
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T18:14:21Z"
+updated_at: "2026-06-30T18:17:50Z"
 started_at: "2026-06-30T16:54:55Z"
 completed_at: null
-active_seconds: 4695
+active_seconds: 4871
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -26,8 +26,11 @@ code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
-story_trace: null
-commits: [c654f44, 2525a48, "6844981", 39a8def, 697aaa2]
+story_trace:
+  verdict: PASS
+  uncovered: []
+  ran: true
+commits: [c654f44, 2525a48, "6844981", 39a8def, 697aaa2, 0ef98b9]
 phase8_steps:
   trace_gate: null
   nfr: null
