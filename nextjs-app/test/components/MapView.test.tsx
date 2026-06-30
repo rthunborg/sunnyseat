@@ -2331,6 +2331,58 @@ describe('<MapView />', () => {
         );
       });
 
+      it('enables the favourites fetch when only SOME favourites are loaded, and still derives the loaded ones from cache', () => {
+        // Boundary between the all-loaded (0 fetch) and none-loaded (fetch)
+        // cases: `favouritesAllInLoadedList` is an `.every()`, so a SINGLE
+        // missing favourite must flip the network query on — while the
+        // already-loaded favourite is still rendered from the list cache
+        // (and the network query, which only returns the missing one, tops
+        // it up rather than replacing the derived rows).
+        pathnameMock = '/favoriter';
+        const loadedFavourite = makeVenue({ id: 'venue-loaded', name: 'Närfavorit' });
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([
+            loadedFavourite,
+            makeVenue({ id: 'venue-other', name: 'Inte favorit' }),
+          ]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+        const missingFavourite = makeVenue({ id: 'venue-missing', name: 'Utflyktsfavorit' });
+        useFavouriteVenuesMock.mockReturnValue({
+          data: makeVenueResponse([missingFavourite]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+          refetch: vi.fn(),
+        });
+        useFavouritesMock.mockReturnValue({
+          favouriteIds: ['venue-loaded', 'venue-missing'],
+          isHydrated: true,
+          isFavourite: (id: string) => id === 'venue-loaded' || id === 'venue-missing',
+          toggleFavourite: vi.fn(),
+          addFavourite: vi.fn(),
+          removeFavourite: vi.fn(),
+        });
+
+        render(<MapView />, { wrapper: Wrapper });
+
+        // One favourite is missing from the loaded list → the network query
+        // is enabled (it must NOT stay gated just because the OTHER is loaded).
+        expect(useFavouriteVenuesMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            ids: ['venue-loaded', 'venue-missing'],
+            enabled: true,
+          }),
+        );
+        // Both the cache-derived favourite and the network-topped-up favourite
+        // render; the non-favourite loaded venue is filtered out.
+        expect(screen.getAllByRole('button', { name: /Välj Närfavorit/ }).length).toBeGreaterThan(0);
+        expect(screen.getAllByRole('button', { name: /Välj Utflyktsfavorit/ }).length).toBeGreaterThan(0);
+        expect(screen.queryByRole('button', { name: /Välj Inte favorit/ })).not.toBeInTheDocument();
+      });
+
       it('falls back to a real favourites fetch for a favourited id NOT in the loaded list (out-of-radius / cold deep link)', () => {
         pathnameMock = '/favoriter';
         // Loaded list does NOT contain the favourited id.

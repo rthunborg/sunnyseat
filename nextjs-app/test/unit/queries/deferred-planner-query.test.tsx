@@ -125,6 +125,60 @@ describe('Story 9.4 AC3 — deferred planner query', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
+  it('collapses a rapid multi-step drag into FEWER distinct planner query keys than slider steps (key-churn, not just fetch-count)', async () => {
+    // Complements the fetch-count assertion above with the query-KEY view the
+    // story calls out: `useVenueSearch` is the boundary the deferred planner
+    // feeds, so the number of DISTINCT planner keys it observes across a rapid
+    // drag is what determines query-key churn. With `useDeferredValue`, React
+    // coalesces the intermediate snapped values, so the search sees far fewer
+    // distinct keys than the count of `setSelectedMinutes` calls — never one
+    // key per step. Asserting distinct-key COUNT (not wall-clock timing)
+    // keeps this deterministic and non-flaky.
+    let ctx!: ReturnType<typeof useTimeContext>;
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+
+    render(<PlannerSearchHarness onContext={(c) => { ctx = c; }} />, {
+      wrapper: makeWrapper(client),
+    });
+
+    await waitFor(() => expect(ctx.isLiveNow).toBe(true));
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
+
+    const stepCount = 6;
+    await act(async () => {
+      // Six rapid snapped steps in one batch, settling on 16:00.
+      ctx.setSelectedMinutes(11 * 60);
+      ctx.setSelectedMinutes(12 * 60);
+      ctx.setSelectedMinutes(13 * 60);
+      ctx.setSelectedMinutes(14 * 60);
+      ctx.setSelectedMinutes(15 * 60);
+      ctx.setSelectedMinutes(16 * 60);
+    });
+
+    await waitFor(() =>
+      expect(searchParamsLog[searchParamsLog.length - 1]).toEqual({
+        date: '2026-05-20',
+        time: '16:00',
+      }),
+    );
+
+    // Count the DISTINCT planner keys the search hook was fed across the drag.
+    const distinctPlannerKeys = new Set(
+      searchParamsLog.map((p) => `${p.date ?? ''}|${p.time ?? ''}`),
+    );
+    // The drag fired 6 snapped steps; the deferred key must NOT produce one
+    // distinct key per step. We assert it stayed strictly below the step
+    // count (the live key + a small number of deferred snapshots ending on
+    // 16:00), proving the per-step query-key churn was collapsed.
+    expect(distinctPlannerKeys.size).toBeLessThan(stepCount);
+    // The settled key is present and the live (planner-less) key was the start.
+    expect(distinctPlannerKeys.has('2026-05-20|16:00')).toBe(true);
+    expect(distinctPlannerKeys.has('|')).toBe(true);
+    // And the network reflects the same collapse: live + one settled = 2.
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
   it('settling the slider back ON the current live time resolves to the planner-LESS live key (not a stale planner no-op)', async () => {
     let ctx!: ReturnType<typeof useTimeContext>;
     const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
