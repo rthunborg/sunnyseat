@@ -42,7 +42,14 @@ vi.mock('@/components/custom/settings/SettingsModalRoot', () => ({
   SettingsModalRoot: () => null,
 }));
 
-const FORCED_DATE = '2026-07-01';
+// Anchored to a far-future year so the live Stockholm date can NEVER equal it.
+// This keeps the production `not.toHaveTextContent(FORCED_DATE)` assertions
+// robust against the wall clock: a literal near-future date (e.g. 2026-07-01)
+// would collide with the live `stockholmDateKey(new Date())` once the clock
+// rolls over, falsely failing the gate test even though production correctly
+// never reads the URL. The load-bearing, time-independent proof remains
+// `expect(useSearchParams).not.toHaveBeenCalled()`.
+const FORCED_DATE = '2999-12-31';
 const FORCED_TIME = '13:00';
 
 async function renderUnderEnv(
