@@ -78,6 +78,9 @@ building_geodata/
 # Git worktrees
 .worktrees/
 
+# Playwright MCP run artifacts (console / page dumps)
+.playwright-mcp/
+
 # Local agent/tooling config (machine-specific; may carry tokens/link state)
 .mcp.json
 supabase/
