@@ -119,7 +119,7 @@ export function OnboardingScreen({
             : OUTER_ENTRANCE_DURATION_S,
         ease: phase === 'exiting' ? 'easeIn' : 'easeOut',
       }}
-      className="fixed inset-0 z-toast gradient-onboarding text-white flex flex-col px-8 py-16 overflow-hidden"
+      className="fixed inset-0 z-toast gradient-onboarding text-white flex flex-col px-8 py-16 overflow-hidden lg:items-center lg:justify-center lg:gap-7"
     >
       {/* Decorative sun bursts — token-backed gradients (DESIGN.md §Gradients). */}
       <div
@@ -132,7 +132,7 @@ export function OnboardingScreen({
       />
 
       {/* Brand wordmark */}
-      <div className="mt-5 flex justify-center items-center gap-2 font-display font-extrabold text-[22px] tracking-[-0.04em] text-white/90 relative z-10">
+      <div className="mt-5 lg:mt-0 flex justify-center items-center gap-2 font-display font-extrabold text-[22px] tracking-[-0.04em] text-white/90 relative z-10">
         <span
           aria-hidden="true"
           className="w-7 h-7 rounded-full gradient-wordmark-sun shadow-wordmark-sun"
@@ -149,7 +149,7 @@ export function OnboardingScreen({
           delay: reduceMotion ? 0 : ENTRANCE_HEADLINE_DELAY_S,
           ease: 'easeOut',
         }}
-        className="flex-1 flex flex-col justify-center items-center relative z-10 text-balance"
+        className="flex-1 lg:flex-none flex flex-col justify-center items-center relative z-10 text-balance"
       >
         <h1
           id="onboarding-headline"
@@ -171,7 +171,7 @@ export function OnboardingScreen({
           delay: reduceMotion ? 0 : ENTRANCE_CTA_DELAY_S,
           ease: 'easeOut',
         }}
-        className="relative z-10"
+        className="relative z-10 lg:w-full lg:max-w-md"
       >
         <AmberCTAButton
           onClick={handleUseLocation}

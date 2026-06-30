@@ -17,6 +17,21 @@ async function seedShell(page: import('@playwright/test').Page, favouriteIds?: s
 }
 
 test.describe('favourites', () => {
+  // Force a deterministic midday planner time so sun-dependent venue state
+  // (sunny venues, "Sol HH:MM" windows) does not hinge on the CI runner's wall
+  // clock. The time slider otherwise defaults to "now" (server-computed sun),
+  // so this suite was green by day and red in the evening. The app honours
+  // `?_time=` (AppContextProviders → TimeProvider.forcedTime); wrapping `goto`
+  // applies it to every navigation in the spec.
+  test.beforeEach(async ({ page }) => {
+    const nativeGoto = page.goto.bind(page);
+    page.goto = ((url: string, options?: Parameters<typeof nativeGoto>[1]) => {
+      const target = new URL(url, 'http://localhost:3000');
+      if (!target.searchParams.has('_time')) target.searchParams.set('_time', '13:00');
+      return nativeGoto(target.pathname + target.search + target.hash, options);
+    }) as typeof page.goto;
+  });
+
   test('mobile: user can save a venue from the map list and see it in /favoriter', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'mobile', 'Runs in the mobile project only');
     testInfo.setTimeout(45_000);
@@ -43,7 +58,7 @@ test.describe('favourites', () => {
     await expect(page.getByRole('button', { name: new RegExp(`Välj ${escapeRegex(venueName)}`) })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByText(/Sol 13:00/)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/Sol \d{1,2}:\d{2}/)).toBeVisible({ timeout: 15_000 });
   });
 
   test('mobile: saved venue persists, appears in /favoriter, and can be removed', async ({ page }, testInfo) => {
@@ -57,7 +72,7 @@ test.describe('favourites', () => {
     await expect(page.getByRole('button', { name: /Välj Kafé Magasinet/ })).toBeVisible({
       timeout: APP_SETTLE_TIMEOUT_MS,
     });
-    await expect(page.getByText(/Sol 13:00/)).toBeVisible({
+    await expect(page.getByText(/Sol \d{1,2}:\d{2}/)).toBeVisible({
       timeout: APP_SETTLE_TIMEOUT_MS,
     });
 

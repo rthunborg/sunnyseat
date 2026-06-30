@@ -203,6 +203,17 @@ test.describe('map-primary', () => {
     await page.setExtraHTTPHeaders({
       'x-forwarded-for': rateLimitIpForTest(testInfo.title),
     });
+    // Force a deterministic midday planner time so sun-dependent state (the
+    // `sunny` pin state, server-computed) does not hinge on the CI runner's
+    // wall clock — the slider otherwise defaults to "now", so this suite was
+    // green by day and red in the evening. The app honours `?_time=`
+    // (AppContextProviders → TimeProvider.forcedTime).
+    const nativeGoto = page.goto.bind(page);
+    page.goto = ((url: string, options?: Parameters<typeof nativeGoto>[1]) => {
+      const target = new URL(url, 'http://localhost:3000');
+      if (!target.searchParams.has('_time')) target.searchParams.set('_time', '13:00');
+      return nativeGoto(target.pathname + target.search + target.hash, options);
+    }) as typeof page.goto;
   });
 
   test('mobile: map canvas, gradient overlay, controls, and at least one pin render', async ({
@@ -335,7 +346,7 @@ test.describe('map-primary', () => {
       /57\.705/,
     );
     await page.getByTestId('mobile-venue-detail-handle').press('ArrowDown');
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/(\?.*)?$/); // map root; tolerate the forced dev `?_time=` query
     await expect(page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]')).toHaveCount(1);
   });
 
@@ -628,7 +639,7 @@ test.describe('map-primary', () => {
       expect(panelBox.width).toBeCloseTo(390, 0);
     }
     await panel.getByRole('button', { name: 'Stäng platsdetaljer' }).click();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/(\?.*)?$/); // map root; tolerate the forced dev `?_time=` query
   });
 
   test('desktop: venue detail and planner bottom bar spans the map viewport under overlay panels', async ({
