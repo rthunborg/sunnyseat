@@ -221,3 +221,14 @@ Kept intentionally (NOT deleted — still consumed by the RouteOverlay):
 ### Change Log
 
 - 2026-06-30 — Story 9.1 de-bloat implemented: removed the EXPONERING/uncertainty/BÄST KL./PLATSER UTE/shadow-warning content from venue card + detail + quick-info, de-duplicated the venue-card accessible name (AC #3), deleted the unreferenced `detail.facts.{exposure,bestAt,outdoorSeats}` + `detail.shadowWarning` i18n keys (both locales), and nulled the bistro-bakgarden `shadow_warning_minutes` seed live + in the 8-2 contract SQL. Kept `prediction-uncertainty-display` + `uncertainty.*` keys for the surviving RouteOverlay. Status → review.
+
+### Review Findings
+
+Code review (THIN Tier-A, epic-mode, R=1): Acceptance Auditor lens + dedicated security review. **Verdict: Approve.** Severity counts — Critical 0 / High 0 / Med 0 / Low 0 (surviving). All 4 ACs confirmed faithfully implemented, KEEP scoping constraint verified clean (no over-deletion of the route-overlay surface). Security: 0 findings (net content reduction; removed JSX/labels/i18n only — no new executable surface, no injection/auth/crypto/XSS exposure). No surviving Decision / Patch / Defer items.
+
+Dismissed (noise) — 3 Low, all categorized already-handled:
+- [Dismissed][Low] `getVenueVisualMetadata.exposure/bestAt/seats` outputs left dead — explicit story decision (Dev Notes "Persistent facts" + Task 1): the util is shared and pruning is out of de-bloat scope; the fabricated values are no longer surfaced to the user, which satisfies the AC intent. Documented intentional deviation, not a defect. (category: already-handled / out-of-scope)
+- [Dismissed][Low] `forced-venue-detail.ts` `shadowWarningMinutes: 45` removal undocumented-in-AC — the auditor itself concludes "Correct, not a violation"; the dev found the extra consumer via grep and trimmed it + the matching `shadowWarning` label so the deleted i18n key is truly unreferenced (prevents an orphaned `t('detail.shadowWarning')` runtime throw). Correct implementation detail, not a defect. (category: already-handled)
+- [Dismissed][Low] 8-2 contract SQL seed change (`0` → `null` for bistro-bakgarden) "not visible in the diff" — DIFF-SCOPE ARTIFACT: the review diff intentionally excludes `_bmad-output/` paths. The SQL change IS committed (verified in commit 2441e9a, 1 file changed) and is recorded in the story File List + Task 6. (category: already-handled / diff-scope artifact)
+
+Failed layers: none (Tier-A thin review runs only the Auditor + security lenses by design; Blind/Edge lenses intentionally not run — absence is not a failed layer).
