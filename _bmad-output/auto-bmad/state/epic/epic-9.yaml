@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T16:23:42Z"
+updated_at: "2026-06-30T16:53:02Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 677
@@ -54,10 +54,11 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: live-app-hardening-clean-up
-active_story: 9-2-design-system-cta-token-fix-copy-correction
+active_story: null
 stories_landed:
   - 9-0-production-gate-the-dev-planner-forcing-url-leak
   - 9-1-clean-app-content-sweep
+  - 9-2-design-system-cta-token-fix-copy-correction
 auto_decisions: []
 uat_items:
   - "[9-0] Dev (npm run dev), open /?_time=21:00&_date=2026-07-01 -> planner shows forced 21:00 on 2026-07-01 and does NOT advance with the real clock (forcing honoured in dev). [AC#1 dev, AC#2]"
@@ -75,3 +76,10 @@ uat_items:
   - "[9-1] aria-label cleanliness (AC#3): card select-button accessible name reads essentials only; 'Säkerhet' announced ONCE (no 'Säkerhet: 60% Säkerhet 60%' dup); no embedded 'Vi räknar…' paragraph."
   - "[9-1] Behaviour/animation: shaded/low-sun cards still show confidence (no empty placeholder row); favourite toggle works post-aria-refactor; list fade/stagger + quick-info slide-up unbroken."
   - "[9-1] CAVEAT: venue-detail mobile+desktop automated VISUAL gate FAILS until maintainer re-baselines reference PNGs (stale = old design). Manual checks above are authoritative meanwhile; map-with-selected-venue + map-panel-venues gates already PASS."
+  - "[9-2] SETUP: cd nextjs-app && npm run dev (http://localhost:3000). If gradients still look olive after the edit, wipe .next and restart (Turbopack caches stale CSS)."
+  - "[9-2] VISA RUTT route-overlay button (/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00, mobile) -> gold->bright-amber gradient (gold top, bright amber bottom), NO olive/dark-green start; tap opens native maps. [AC#1]"
+  - "[9-2] /about 'Tillbaka till kartan' CTA, mobile (~390px) AND desktop (~1280px) -> same gold->bright-amber ramp, no olive; navigates back to the map. [AC#1]"
+  - "[9-2] 404 CTA on a bogus route (/__sunnyseat-invalid), mobile + desktop -> gold->bright-amber ramp, no olive; returns to map. [AC#1]"
+  - "[9-2] CTA hover/active/focus -> dims (hover:opacity-90), focus ring on Tab, pill/padding/icon/shadow unchanged — only the gradient colour shifted. [Behaviour gate]"
+  - "[9-2] Amber-gradient audit surfaces: venue-detail sun-% badge = clean gold flat fill; 'ÖPPET' status badge = clean bright-amber; neither reads olive. [AC#3]"
+  - "[9-2] Swedish (default) nav rooftop filter chip reads 'Takterrass' (not the old 'Takt'); switch to English -> same chip reads 'Rooftop'. [AC#2]"
