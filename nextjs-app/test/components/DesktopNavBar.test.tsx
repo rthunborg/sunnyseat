@@ -102,7 +102,7 @@ const NAV_MESSAGES = {
         morningSun: 'Morgonsol',
         takeAway: 'Take-away',
         sourdough: 'Surdeg',
-        rooftop: 'Takt',
+        rooftop: 'Takterrass',
       },
     },
   },

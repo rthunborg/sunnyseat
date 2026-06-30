@@ -72,7 +72,7 @@ Last audited: 2026-04-06
 
 | Token | Value | Usage |
 |---|---|---|
-| `gradient-route-button` | `linear-gradient(169deg, #735c00 0%, #d4af37 100%)` | "Visa Rutt" primary route button |
+| `gradient-route-button` | `linear-gradient(169deg, #d4af37 0%, #ffbf00 100%)` | "Visa Rutt" primary route button |
 | `gradient-cta-amber` | `linear-gradient(171deg, #d4af37 0%, #ffbf00 100%)` | Feedback/validation CTA buttons |
 | `gradient-premium-button` | `linear-gradient(174deg, #d4af37 0%, #ffbf00 100%)` | Premium upsell "Visa Säsongskortet" button |
 | `gradient-map-overlay` | `linear-gradient(66deg, rgba(245,158,11,0.05) 0%, rgba(245,158,11,0) 50%, rgba(249,115,22,0.1) 100%)` | Subtle warm map tint overlay |
@@ -394,15 +394,15 @@ Text: text-label-lg (14px / Bold / Manrope) / color-amber-cta-text (#554300)
 Height: 36–48px (context-dependent — see component size tokens)
 ```
 
-### Route Button (gold-to-dark gradient)
+### Route Button (gold-to-bright-amber gradient)
 
 ```
-Background: gradient-route-button
+Background: gradient-route-button (gold #d4af37 → bright-amber #ffbf00, same family as gradient-cta-amber)
 Border-radius: radius-pill
 Shadow: shadow-route-button
 Padding: space-4 (8px) vertical, space-5 (10px) horizontal approx.
 Gap: space-2 (4px) between icon and label
-Text: ~12px / Bold / Manrope / #27272a (near-black)
+Text: ~12px / Bold / Manrope / color-amber-cta-text (#554300)
 Width: 278px (mobile)
 ```
 

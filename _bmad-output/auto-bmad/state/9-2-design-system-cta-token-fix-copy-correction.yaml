@@ -5,10 +5,10 @@ epic_num: 9
 story_num: 2
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T16:31:19Z"
+updated_at: "2026-06-30T16:47:36Z"
 started_at: "2026-06-30T16:23:42Z"
 completed_at: null
-active_seconds: 447
+active_seconds: 1415
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: []
 tea_rationale: "Styling-only (CSS gradient token olive->amber) + copy fix (Takt->Takterrass) + matching test literal; no business logic / stateful flow = Low."
 epic_story_count: 11
 stories_after_in_epic: 8
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [1585fdb]
+commits: [1585fdb, 20f3c19]
 phase8_steps:
   trace_gate: null
   nfr: null
