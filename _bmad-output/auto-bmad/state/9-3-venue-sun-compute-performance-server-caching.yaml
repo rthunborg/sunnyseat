@@ -5,10 +5,10 @@ epic_num: 9
 story_num: 3
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T17:59:32Z"
+updated_at: "2026-06-30T18:07:14Z"
 started_at: "2026-06-30T16:54:55Z"
 completed_at: null
-active_seconds: 3839
+active_seconds: 4281
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "Server-side caching with time-bucketed keys + shared get_buildings_near_point cache = concurrency/hard-to-reproduce staleness (§2 High); CDN edge-cache strategy change also alters public API behaviour."
 epic_story_count: 11
 stories_after_in_epic: 7
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [c654f44, 2525a48, "6844981"]
+commits: [c654f44, 2525a48, "6844981", 39a8def]
 phase8_steps:
   trace_gate: null
   nfr: null

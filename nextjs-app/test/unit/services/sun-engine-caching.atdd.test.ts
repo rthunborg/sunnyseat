@@ -33,7 +33,10 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyRealSunEngine } from '@/lib/services/sun-engine';
-import { clearSunEngineCachesForTests } from '@/lib/services/sun-engine-cache';
+import {
+  BUILDINGS_CACHE_TTL_MS,
+  clearSunEngineCachesForTests,
+} from '@/lib/services/sun-engine-cache';
 import type { StoredVenue } from '@/lib/services/venue-store';
 import type { WeatherSlice } from '@/lib/solar/types';
 
@@ -308,5 +311,99 @@ describe('Story 9.3 AC2 — per-bucket sun-compute cache', () => {
     // outcome carries the same weatherUpdatedAt the weather slice gave it.
     const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
     expect(outcome.freshness.weatherUpdatedAt).toBe(weatherSlice().createdAt.toISOString());
+  });
+});
+
+// ===========================================================================
+// Story 9.3 — ADDITIONAL gaps (TTL expiry under fake timers, degraded-not-
+// pinned at the sun-compute seam, distinct-venue non-collapse, detail-route
+// cache parity). These extend — and do not duplicate — the call-count asserts
+// above. The cache helpers read the default `Date.now()`, so advancing the fake
+// clock drives real TTL expiry deterministically (no wall-clock latency asserts).
+// ===========================================================================
+describe('Story 9.3 — TTL expiry & eviction (fake-timer driven, deterministic)', () => {
+  // P1 — the 24h buildings cache expires; a request past the TTL re-fetches.
+  it('re-fetches buildings after the 24h TTL elapses (same centroid)', async () => {
+    await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
+    const afterFirst = mocks.rpc.mock.calls.filter(
+      ([fn]) => fn === 'get_buildings_near_point',
+    ).length;
+    expect(afterFirst).toBe(1);
+
+    // Advance the wall clock past the 24h buildings TTL. The sun-compute cache
+    // (15 min) has long since expired too, so the recompute reaches the buildings
+    // fetch — and that fetch is now a cache MISS, so the RPC fires again.
+    vi.advanceTimersByTime(BUILDINGS_CACHE_TTL_MS + 60_000);
+    const later = new Date(SUMMER_MIDDAY.getTime() + BUILDINGS_CACHE_TTL_MS + 60_000);
+
+    await applyRealSunEngine(makeStoredVenue(), later, later);
+    const afterSecond = mocks.rpc.mock.calls.filter(
+      ([fn]) => fn === 'get_buildings_near_point',
+    ).length;
+
+    expect(afterSecond).toBe(2); // TTL expired -> exactly one more RPC, not pinned forever
+  });
+});
+
+describe('Story 9.3 — degraded compute is NOT pinned in the sun-compute cache', () => {
+  // P0 — a building-RPC-FAILED (degraded) compute must not be cached: the next
+  // request IN THE SAME BUCKET must recompute and recover, never serve the pinned
+  // degraded outcome for the whole 15-min window. This exercises the
+  // `cacheable: buildings !== null` flag at the engine seam (distinct from the
+  // buildings-cache null test above, which only proves the buildings layer).
+  it('recomputes a same-bucket request after a degraded (building-RPC-failed) compute', async () => {
+    // First compute: building RPC fails -> degraded 50/50 outcome, NOT cacheable.
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { message: 'rpc down' } });
+    const degraded = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
+    expect(degraded.venue.sunExposurePercent).toBe(50); // degraded marker
+
+    // Same venue, SAME 15-min bucket. If the degraded outcome had been pinned in
+    // the sun-compute cache, this would short-circuit and return 50 again with no
+    // RPC. Because it was NOT cached, the engine recomputes — and the RPC now
+    // succeeds (default mock: empty casters -> full sun).
+    const recovered = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
+
+    expect(recovered.venue.sunExposurePercent).toBe(100); // recovered, not pinned at 50
+    expect(recovered.venue.sunExposurePercent).not.toBe(degraded.venue.sunExposurePercent);
+  });
+});
+
+describe('Story 9.3 — distinct venues do NOT collapse to one buildings entry', () => {
+  // P1 — the co-located collapse test proves NEAR venues share a key; this proves
+  // FAR venues (different 4-dp centroid) keep INDEPENDENT entries — no false cache
+  // collision that would serve one venue's casters for another.
+  it('issues a separate building RPC for venues at distinct (4-dp) centroids', async () => {
+    const here = makeStoredVenue({ id: '1', location: { lat: 57.7053, lng: 11.9639 } });
+    // ~150 m+ away — rounds to a different 4-dp key.
+    const elsewhere = makeStoredVenue({ id: '2', location: { lat: 57.7071, lng: 11.9662 } });
+
+    await applyRealSunEngine(here, SUMMER_MIDDAY, SUMMER_MIDDAY);
+    await applyRealSunEngine(elsewhere, SUMMER_MIDDAY, SUMMER_MIDDAY);
+
+    const buildingCalls = mocks.rpc.mock.calls.filter(
+      ([fn]) => fn === 'get_buildings_near_point',
+    );
+    expect(buildingCalls).toHaveLength(2); // two distinct keys -> two RPCs
+  });
+});
+
+describe('Story 9.3 AC2 — detail "Mer info" route shares the engine cache (parity)', () => {
+  // P0 — the cache lives in the engine seam (applyRealSunEngine), which BOTH the
+  // list route and the /api/venues/[slug] detail route call. So a detail request
+  // for a venue already computed by a list request in the SAME bucket is RPC-free.
+  // Driving applyRealSunEngine twice for the same (venue, bucket) reproduces the
+  // list-then-detail path at the seam both routes share — proving "Mer info"
+  // benefits equally without any route-side cache code.
+  it('serves a detail-path compute from the same-bucket cache the list primed (0 extra RPCs)', async () => {
+    // "List" computes venue 1 at the bucket.
+    await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
+    const afterList = mocks.rpc.mock.calls.length;
+
+    // "Detail" for the same venue in the same bucket -> fully cached at the seam.
+    const detailOutcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
+    const afterDetail = mocks.rpc.mock.calls.length;
+
+    expect(afterDetail).toBe(afterList); // no additional RPC for the detail path
+    expect(detailOutcome.venue.id).toBe('1');
   });
 });

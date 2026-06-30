@@ -3,47 +3,52 @@ stepsCompleted:
   - 'step-01-preflight-and-context'
   - 'step-02-identify-targets'
   - 'step-03-generate-tests'
-  - 'step-03c-aggregate'
-lastStep: 'step-03c-aggregate'
+  - 'step-04-validate-and-summarize'
+lastStep: 'step-04-validate-and-summarize'
 lastSaved: '2026-06-30'
 inputDocuments:
-  - '_bmad-output/implementation-artifacts/9-1-clean-app-content-sweep.md'
-  - 'nextjs-app/components/composed/venue/VenueDetailContent.tsx'
-  - 'nextjs-app/components/composed/venue/VenueCard.tsx'
-  - 'nextjs-app/components/composed/venue/VenueQuickInfo.tsx'
-  - 'nextjs-app/lib/utils/confidence-display.ts'
-  - 'nextjs-app/messages/sv/venue.json'
+  - '_bmad-output/implementation-artifacts/9-3-venue-sun-compute-performance-server-caching.md'
+  - 'nextjs-app/lib/services/sun-engine-cache.ts'
+  - 'nextjs-app/lib/utils/rate-limit.ts'
+  - 'nextjs-app/lib/services/sun-engine.ts'
+  - 'nextjs-app/app/api/venues/[slug]/route.ts'
+  - 'nextjs-app/test/unit/services/sun-engine-caching.atdd.test.ts'
+  - 'nextjs-app/test/unit/api/venues-route-caching.atdd.test.ts'
+  - 'nextjs-app/test/unit/utils/rate-limit.test.ts'
 ---
 
-# Automation Summary — Story 9.1 Clean-App Content Sweep
+# Automation Expansion Summary — Story 9.3 (Venue Sun-Compute Performance / Server Caching)
 
 ## Preflight & Context
-- Stack: `frontend` (Next.js + React; vitest + @testing-library/react component tests, Playwright e2e). Framework present — no HALT.
-- Mode: BMad-Integrated, scoped to Story 9.1 (venue card + detail de-bloat). Coverage-expansion only.
-- TEA config: `test_stack_type: auto`, execution_mode `auto`. Given the tightly-scoped, surgical nature (extend existing vitest component specs with a narrow, well-defined assertion set), ran sequentially in-session rather than dispatching the API/E2E subagent fan-out — the targets are all React-component unit/component-level, no new API or e2e surface.
+- Stack: backend/perf (Next.js + Vitest 4, jsdom). Framework present — no HALT.
+- Mode: BMad-Integrated, scoped to Story 9.3 (sun-compute building-fetch dedupe, the process-scoped TTL caches in `lib/services/sun-engine-cache.ts`, the Edge proxy rate-limiter in `proxy.ts` / `lib/utils/rate-limit.ts`, and `/api/venues` + `/api/venues/[slug]` caching). Coverage-expansion only.
+- Given the tightly-scoped, deterministic nature (extend existing Vitest unit specs at named gaps), executed in-session rather than dispatching the API/E2E subagent fan-out — all targets are unit-level, no new API/e2e surface.
+- Existing coverage reviewed to avoid duplication: `rate-limit.test.ts` (IP validation/token-bucket quota/reset/independent keys — already complete, NOT touched), `sun-engine-caching.atdd.test.ts` (dedupe 2→1, byte-identical, null-buildings, co-located collapse, same/new bucket), `venues-route-caching.atdd.test.ts` (route headers/ETag/304/429).
 
 ## Targets & Coverage Plan (test levels / priorities)
-All component-level (vitest + RTL). The dev had already added the core negative guards; these fill genuine gaps without duplicating existing assertions.
+All unit-level (Vitest), deterministic (call-counts, cache keys, injected/fake clock). NO wall-clock latency asserts (project lesson). No existing assertion duplicated.
 
-| Target | Level | Priority | Gap filled |
-|---|---|---|---|
-| VenueDetailContent (mobile) | Component | P1 | AC #2 — exactly one full-width AVSTÅND FactCard, no `grid-cols-2` orphaned cell, fabricated EXPONERING/BÄST KL./PLATSER UTE absent, kept distance value renders |
-| VenueDetailContent (desktop) | Component | P1 | AC #1 — desktop EXPONERING DetailRow + fabricated facts absent; mobile-only AVSTÅND not leaked into desktop; shadow-warning absent; confidence preserved once (sr-only) |
-| VenueCard (compact) | Component | P2 | AC #1 — uncertainty copy absent in compact mode (previously only non-compact covered); confidence announced exactly once |
-| VenueCard (confidence hidden) | Component | P2 | AC #2 — no orphaned trailing middot when `showVisibleConfidence={false}`; kept "% sol" signal renders; hidden chip not shown |
-| VenueQuickInfo (anchored + desktop) | Component | P1 | AC #1/#2 — disclaimer absent in anchored-mobile AND desktop modes (dev only covered non-anchored mobile); confidence/sun preserved; no leading/trailing middot in anchored metadata row |
+| Gap (from brief) | Where covered | Priority |
+|---|---|---|
+| TTL expiry / eviction with fake timers | `sun-engine-cache.test.ts` (TtlCache boundary `expiresAt<=now`, lazy eviction, TTL restart, 24h/15min constants) + `sun-engine-caching.atdd.test.ts` (24h buildings TTL → re-fetch via fake timers) | P1 |
+| Cache-key collisions vs co-located venues | `sun-engine-cache.test.ts` (`buildingsCacheKey` collapse vs near-but-distinct separation, radius folding, lat/lng ordering, NaN sentinel; `timeBucketMs`/`sunComputeCacheKey` 15-min flooring + id/day/variant disambiguation) | P1 |
+| Detail-route cache parity | `sun-engine-caching.atdd.test.ts` (list-then-detail through the shared `applyRealSunEngine` engine seam → 0 extra RPCs) | P0 |
+| Concurrent / repeated-request cache reuse | `sun-engine-cache.test.ts` (one shared in-flight promise per key + rejection eviction for `getOrFetchNonNull`, `getOrComputeConditional`, `getOrCompute`) | P0 |
+| Success-only caching (degraded NOT pinned) | `sun-engine-cache.test.ts` (`getOrFetchNonNull` never caches null; `getOrComputeConditional` cacheable:false not stored) + `sun-engine-caching.atdd.test.ts` (engine seam: building-RPC-failed compute recomputes & recovers same-bucket, 50→100) | P0 |
+| Distinct venues NOT collapsing (negative of co-location) | `sun-engine-caching.atdd.test.ts` (two distinct 4-dp centroids → 2 RPCs) | P1 |
 
 ## Tests Generated
-6 new component tests added across 3 existing files (no new files; extended existing suites):
-- `test/components/VenueDetailContent.test.tsx` (+2)
-- `test/components/VenueCard.test.tsx` (+2)
-- `test/components/VenueQuickInfo.test.tsx` (+2)
+- **New file:** `nextjs-app/test/unit/services/sun-engine-cache.test.ts` — 28 pure-unit tests for `TtlCache`, `buildingsCacheKey`, `sunComputeCacheKey`/`timeBucketMs`, and the three `getOr*` helpers.
+- **Extended:** `nextjs-app/test/unit/services/sun-engine-caching.atdd.test.ts` — +4 engine-level integration tests (10 → 14) + imported `BUILDINGS_CACHE_TTL_MS`.
 
 ## Results
-- Target files: 3 passed / 44 tests (was 38 → +6).
-- Full suite: 83 files / 699 tests passed (was 693 → +6, no regressions).
-- Visual references: NOT touched (forbidden by task + gate script). No re-baseline performed.
+- `tsc --noEmit`: 0 errors. `eslint . --quiet`: 0 errors.
+- Full suite: **87 files / 760 tests passed** (was 86 / 728 → net +32 tests, none removed or weakened).
+- No source code modified; no visual references touched (story is backend-only, visual gate auto-skips).
 
 ## Coverage notes / deferred
-- Orphaned-separator assertions use normalized `textContent` middot checks (start/end-of-row), which is the deterministic backstop the LLM visual gate misses (per project MEMORY "visual gate is an LLM eyeball").
-- No e2e/API tests generated — the de-bloat sweep added no new routes, endpoints, or user journeys; the deterministic geometric backstop (`responsive-layout.spec.ts` D5–D7) already exists and is owned by the story's design-gate task.
+- The cache helpers expose an injectable `now`, so most TTL behaviour is asserted purely (no timer mocking). The one integrated 24h-TTL test drives the engine's default `Date.now()` path under `vi.useFakeTimers()` + `vi.advanceTimersByTime`, which is deterministic.
+- Live cold/warm wall-clock latency remains a maintainer/preview measurement (Task 5 escalation), intentionally NOT asserted in CI.
+
+## Next recommended workflow
+`test-review` (validate test quality) or `trace` (traceability matrix) for Story 9.3.
