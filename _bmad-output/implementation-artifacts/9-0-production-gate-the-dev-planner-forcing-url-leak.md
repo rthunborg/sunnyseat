@@ -1,6 +1,6 @@
 # Story 9.0: Production-Gate the Dev Planner-Forcing URL Leak
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -20,25 +20,25 @@ so that no production URL can silently pin the planner and disable the live cloc
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Gate `_time`/`_date` reads behind `NODE_ENV !== 'production'` in `AppContextProviders.tsx` (AC: #1)**
-  - [ ] In `nextjs-app/components/custom/layout/AppContextProviders.tsx`, make `SearchParamTimeProviders` return the un-forced provider tree when `process.env.NODE_ENV === 'production'` — i.e. `forcedTime`/`forcedDate` resolve to `undefined` so `TimeProvider` runs its live-clock + normal selection path (see Dev Notes "Implementation approach").
-  - [ ] Mirror the exact contract of the sibling gate in `lib/dev/use-forced-state.ts:16-25`: a literal `process.env.NODE_ENV === 'production'` early branch placed BEFORE `useSearchParams()` so the Next.js bundler dead-code-eliminates the `useSearchParams` call (and the `_time`/`_date` branch) from the production bundle. Use a separate non-hook gate function or branch component to avoid a real rules-of-hooks violation — DO NOT add a bare `if (prod) return` above `useSearchParams()` inside the same component without the `eslint-disable-next-line react-hooks/rules-of-hooks` justification the hook uses (see Dev Notes).
-  - [ ] Preserve the existing `<Suspense fallback={<DefaultTimeProviders>…}>` boundary — `useSearchParams()` still requires a Suspense parent in App Router for non-prod renders. The production path must NOT call `useSearchParams()` at all.
-  - [ ] Do NOT touch `TimeProvider` (`lib/contexts/TimeContext.tsx`); the gate lives entirely at the `AppContextProviders` read site. When `forcedTime` is `undefined`, `TimeProvider` already runs the live-clock interval and default time/date selection — verified at `TimeContext.tsx:88-117` (the `if (forcedTime)` guards short-circuit to the live path).
+- [x] **Task 1 — Gate `_time`/`_date` reads behind `NODE_ENV !== 'production'` in `AppContextProviders.tsx` (AC: #1)**
+  - [x] In `nextjs-app/components/custom/layout/AppContextProviders.tsx`, make `SearchParamTimeProviders` return the un-forced provider tree when `process.env.NODE_ENV === 'production'` — i.e. `forcedTime`/`forcedDate` resolve to `undefined` so `TimeProvider` runs its live-clock + normal selection path (see Dev Notes "Implementation approach").
+  - [x] Mirror the exact contract of the sibling gate in `lib/dev/use-forced-state.ts:16-25`: a literal `process.env.NODE_ENV === 'production'` early branch placed BEFORE `useSearchParams()` so the Next.js bundler dead-code-eliminates the `useSearchParams` call (and the `_time`/`_date` branch) from the production bundle. Used the recommended two-component split (`SearchParamTimeProviders` branches on the build-time constant; the dev path lives in `DevSearchParamTimeProviders`) so NO `eslint-disable react-hooks/rules-of-hooks` is needed.
+  - [x] Preserve the existing `<Suspense fallback={<DefaultTimeProviders>…}>` boundary — `useSearchParams()` still requires a Suspense parent in App Router for non-prod renders. The production path renders `DefaultTimeProviders` and never calls `useSearchParams()`.
+  - [x] Do NOT touch `TimeProvider` (`lib/contexts/TimeContext.tsx`); the gate lives entirely at the `AppContextProviders` read site. When `forcedTime` is `undefined`, `TimeProvider` already runs the live-clock interval and default time/date selection — verified at `TimeContext.tsx:88-117` (the `if (forcedTime)` guards short-circuit to the live path). `TimeContext.tsx` left untouched.
 
-- [ ] **Task 2 — Regression test: `_time`/`_date` ignored in prod, honoured otherwise (AC: #3)**
-  - [ ] Add a test that mirrors `nextjs-app/test/unit/use-forced-state.test.ts` (the canonical pattern): mock `next/navigation`'s `useSearchParams`, drive `process.env.NODE_ENV` with `vi.stubEnv`, and assert that under `'production'` the forced time/date are NOT applied (and `useSearchParams` is NOT called), while under `'development'` they ARE applied.
-  - [ ] Test placement: prefer `nextjs-app/test/components/AppContextProviders.test.tsx` (component test, since the gate lives in a component) OR a focused unit test alongside `test/unit/use-forced-state.test.ts` if the gate logic is extracted into a small testable helper. Match whichever the implementation shape makes cleanly assertable — see Dev Notes "Test design".
-  - [ ] If assertion is via `TimeProvider` behaviour, render `AppContextProviders` (or the gated sub-tree) with `?_time=13:00`/`?_date=YYYY-MM-DD` mocked and read the resulting `useTimeContext()` `selectedTime`/`selectedDate`: prod ⇒ live/default values, non-prod ⇒ forced `13:00` / forced date.
-  - [ ] Use `vi.unstubAllEnvs()` / `vi.resetModules()` in teardown (mirror `use-forced-state.test.ts:9-16`), because the `NODE_ENV === 'production'` branch is module-load-time-sensitive when DCE is involved — reset modules between env-stub variations.
+- [x] **Task 2 — Regression test: `_time`/`_date` ignored in prod, honoured otherwise (AC: #3)**
+  - [x] Added `nextjs-app/test/components/AppContextProviders.test.tsx` mirroring `test/unit/use-forced-state.test.ts`: mocks `next/navigation`'s `useSearchParams`, drives `NODE_ENV` with `vi.stubEnv`, asserts production ignores the forced date AND never calls `useSearchParams`, while development/test apply the forced `13:00`/`2026-07-01`.
+  - [x] Placed at `nextjs-app/test/components/AppContextProviders.test.tsx` (component test, since the gate lives in a component). Heavy non-time providers (Geolocation/Map/Settings/SettingsModalRoot) are mocked to transparent passthroughs so the test renders the REAL wired `AppContextProviders` tree and exercises the actual gate.
+  - [x] Behavioural assertion via `TimeProvider`: a `Probe` reads `useTimeContext().selectedDate`/`selectedTime` — prod ⇒ forced date NOT present, non-prod ⇒ forced `2026-07-01 13:00`. (`useTimeContext` imported from the same fresh module generation as `AppContextProviders` to avoid a stale-context mismatch under `vi.resetModules()`.)
+  - [x] `vi.resetModules()` in `beforeEach`, `vi.unstubAllEnvs()` + `vi.clearAllMocks()` in `afterEach`; module re-imported after each env stub.
 
-- [ ] **Task 3 — Verify e2e determinism is preserved; confirm CI e2e build mode (AC: #2)**
-  - [ ] Run the time-dependent e2e specs locally (`nextjs-app/test/e2e/map-primary.spec.ts` is the canonical one that injects `?_time=13:00` in `beforeEach`) and confirm they still pass — the dev server (`next dev`, `NODE_ENV=development`) keeps the forcing active. Other specs that append `?_time=`/`?_date=`: `onboarding.spec.ts`, `favourites.spec.ts`, `axe.spec.ts`, `axe-mobile.spec.ts`, `review.spec.ts`, `visit-loop.spec.ts`, `feedback.spec.ts`.
-  - [ ] CONFIRMED PREREQUISITE (resolves the epic-9 retro open question): CI runs Playwright via `playwright.config.ts` `webServer.command = 'npm run dev'` → `next dev --turbopack` → `NODE_ENV=development`; the CI workflow `.github/workflows/build-and-test-nextjs.yml` runs `npx playwright test --project=mobile --project=desktop` / `--project=a11y` against that dev server. There is NO `next build` / `next start` in the e2e path. Therefore the new production gate does NOT fire in CI e2e and the deterministic sun specs stay green. **DO NOT introduce a production e2e build mode without re-evaluating this gate** (the gate would silently disable `?_time=` and break those specs).
-  - [ ] Verify the whole vitest suite still passes (`npm run test:unit` or equivalent) and the new test is included.
+- [x] **Task 3 — Verify e2e determinism is preserved; confirm CI e2e build mode (AC: #2)**
+  - [x] Ran `test/e2e/map-primary.spec.ts` (`--project=desktop`) against the dev server: the `?_time=13:00`-injecting suite behaves unchanged. One failure (`645:7 desktop: venue detail and planner bottom bar spans the map viewport`) is PRE-EXISTING and unrelated — it is a desktop-viewport bounding-box layout assertion driven by `?_state=venue-detail` (not `_time`/`_date`); confirmed it fails identically (received width 874) against the baseline ungated code via a stash comparison.
+  - [x] CONFIRMED PREREQUISITE: re-read `playwright.config.ts:58-62` (`webServer.command = 'npm run dev'`) and `.github/workflows/build-and-test-nextjs.yml:109-113` (`npx playwright test --project=...` against the dev server). No `next build`/`next start` in the e2e path → the production gate does NOT fire in CI e2e → deterministic sun specs stay green. The risk reactivates only if a future change switches the e2e webServer to a production build.
+  - [x] Full vitest suite passes: 83 files / 689 tests (was 686; +3 new). `npm run test` green.
 
-- [ ] **Task 4 — Documentation touch-up (low effort, keeps the convention truthful)**
-  - [ ] Extend `nextjs-app/docs/dev/state-forcing.md` (or its "Production guarantee" section) to note that `?_time=`/`?_date=` planner-forcing is now gated identically to `?_state=` — production returns no forcing, dev/preview keep it for tooling and e2e. The doc currently documents only `_state`; keep the two mechanisms' production guarantee described together so the next reader doesn't reintroduce the leak.
+- [x] **Task 4 — Documentation touch-up (low effort, keeps the convention truthful)**
+  - [x] Extended `nextjs-app/docs/dev/state-forcing.md` §"Production guarantee" to document that `?_time=`/`?_date=` is now gated identically to `?_state=` — production returns the un-forced tree; dev/preview/test keep forcing for tooling and e2e — with the "do not reintroduce an un-gated read" warning, describing both mechanisms together.
 
 ## Dev Notes
 
@@ -156,8 +156,23 @@ No active deferred-work entry overlaps this story's area. The original dev-only-
 
 ### Agent Model Used
 
+claude-opus-4-8 (auto-bmad dev-story delegate)
+
 ### Debug Log References
+
+- First test draft failed: `useTimeContext` threw "must be used within <TimeProvider>" because `Probe` statically imported `useTimeContext` while `AppContextProviders` was dynamically imported after `vi.resetModules()` — two different `TimeContext` module instances. Fixed by importing `useTimeContext` from the same fresh module generation (inside `renderUnderEnv`, after the reset) and defining `Probe` there.
+- Pre-existing e2e failure confirmation: stashed `AppContextProviders.tsx`, re-ran `map-primary.spec.ts:645` against baseline → failed identically (received 874), proving the failure is unrelated to this gate; restored the change.
 
 ### Completion Notes List
 
+- Implemented the two-component split recommended in Dev Notes (`SearchParamTimeProviders` branches on `process.env.NODE_ENV === 'production'`; dev reads moved to a new `DevSearchParamTimeProviders`; production reuses the existing `DefaultTimeProviders`). No `eslint-disable react-hooks/rules-of-hooks` needed — the conditional component selection is on a build-time constant and the dev branch's `useSearchParams` is DCE-eligible in production.
+- `TimeContext.tsx` untouched, per AC #1 (gate lives at the read site).
+- Regression test renders the real wired `AppContextProviders` tree (heavy non-time providers mocked to passthroughs) and asserts both the behavioural contract (forced date applied dev/test, ignored prod) and the call-tracking contract (`useSearchParams` not called in production).
+- AC #2 (e2e determinism) preserved: CI e2e runs against `next dev` (`NODE_ENV=development`), so the gate does not fire and `?_time=13:00` forcing stays active. Verified config + workflow.
+- typecheck clean, eslint clean on changed files, full vitest suite green (689/689).
+
 ### File List
+
+- `nextjs-app/components/custom/layout/AppContextProviders.tsx` (modified — production gate + new `DevSearchParamTimeProviders`)
+- `nextjs-app/test/components/AppContextProviders.test.tsx` (new — regression guard)
+- `nextjs-app/docs/dev/state-forcing.md` (modified — `_time`/`_date` production guarantee documented alongside `_state`)

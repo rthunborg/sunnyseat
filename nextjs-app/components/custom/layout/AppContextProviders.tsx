@@ -46,7 +46,28 @@ export function AppContextProviders({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Reads `?_time=`/`?_date=` planner-forcing parameters from the URL — but only
+ * outside production. The literal `process.env.NODE_ENV === 'production'` check
+ * lets the Next.js bundler dead-code-eliminate the entire dev branch (and its
+ * `useSearchParams` call) from production bundles, so no production URL can pin
+ * the planner and disable the live clock. This mirrors the sibling `?_state=`
+ * gate in `lib/dev/use-forced-state.ts`; see `docs/dev/state-forcing.md`.
+ *
+ * The branch is on a build-time constant, so selecting a different child
+ * component per build does NOT violate the rules of hooks: in any given build
+ * exactly one branch is reachable. The production path renders
+ * `DefaultTimeProviders` (no `forcedDate`/`forcedTime`), which restores the
+ * live-clock interval and normal time/date selection in `TimeProvider`.
+ */
 function SearchParamTimeProviders({ children }: { children: ReactNode }) {
+  if (process.env.NODE_ENV === 'production') {
+    return <DefaultTimeProviders>{children}</DefaultTimeProviders>;
+  }
+  return <DevSearchParamTimeProviders>{children}</DevSearchParamTimeProviders>;
+}
+
+function DevSearchParamTimeProviders({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   const forcedDate = searchParams.get('_date') ?? undefined;
   const forcedTime = searchParams.get('_time') ?? undefined;

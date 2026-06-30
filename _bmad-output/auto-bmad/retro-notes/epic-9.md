@@ -4,3 +4,5 @@
 
 ## Story 9-0-production-gate-the-dev-planner-forcing-url-leak
 - [Phase 3 — create-story] CI-e2e build-mode open Q RESOLVED: CI runs Playwright vs `next dev` (NODE_ENV=development) per playwright.config.ts webServer + build-and-test-nextjs.yml (no next build/start in the e2e path), so Story 9.0's prod-gate does not fire in CI and the deterministic ?_time=13:00 sun specs stay green. Reopen only if the Playwright webServer switches to a production build.
+- [Phase 5 — dev-story] Pre-existing UNRELATED e2e failure observed: nextjs-app e2e map-primary.spec.ts:645 (desktop planner-bar viewport-width layout assertion, driven by ?_state=venue-detail) fails identically on baseline main — NOT introduced by 9.0. Likely to show red in epic CI; track separately (candidate for Story 9.10 regression pass).
+- [Phase 5 — dev-story] 9.0 used a two-component split (DefaultTimeProviders for prod + DevSearchParamTimeProviders for dev/test) so the useSearchParams reads are DCE-eligible in prod — avoids any react-hooks/rules-of-hooks disable. Convention worth reusing for other NODE_ENV-gated provider reads.
