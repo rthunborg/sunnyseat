@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T19:00:36Z"
+updated_at: "2026-06-30T19:13:13Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 821
@@ -56,12 +56,13 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: live-app-hardening-clean-up
-active_story: 9-4-client-query-hygiene-time-change-debounce
+active_story: null
 stories_landed:
   - 9-0-production-gate-the-dev-planner-forcing-url-leak
   - 9-1-clean-app-content-sweep
   - 9-2-design-system-cta-token-fix-copy-correction
   - 9-3-venue-sun-compute-performance-server-caching
+  - 9-4-client-query-hygiene-time-change-debounce
 auto_decisions: []
 uat_items:
   - "[9-0] Dev (npm run dev), open /?_time=21:00&_date=2026-07-01 -> planner shows forced 21:00 on 2026-07-01 and does NOT advance with the real clock (forcing honoured in dev). [AC#1 dev, AC#2]"
@@ -94,3 +95,10 @@ uat_items:
   - "[9-3] Relocated rate limit (now in Edge proxy.ts; runs in-process on next dev): for i in $(seq 1 130); do curl -s -o /dev/null -w '%{http_code}\n' -H 'X-Forwarded-For: 8.8.8.8' .../api/venues; done -> first ~120 = 200, rest = 429 within the minute; malformed XFF ('not-an-ip') -> 400."
   - "[9-3] Warm-vs-cold (real-engine path): warm the server, open the venue list, reload it, open 'Mer info' then reopen without changing the time -> 2nd list load + reopened detail feel materially snappier (buildings 24h + sun 15min caches). Subjective; exact ms deferred to a maintainer preview run."
   - "[9-3] Byte-identical sun outputs: for the same venue + same time-of-day, currentSunStatus / sun-window / peak-time (UI + /api/venues/<slug> JSON) read CORRECT and UNCHANGED from before the perf fix — caching only makes it faster, never alters the sun output. [AC1]"
+  - "[9-4] First-load single fetch (AC2): hard-reload with DevTools Network filtered to 'venues' -> exactly ONE GET /api/venues fires, only AFTER location settles (no earlier fallback-coords request that re-fires at GPS = no double-fetch)."
+  - "[9-4] Pre-settle gating (AC2): reload and watch the geolocation-pending window -> NO /api/venues request while location is still resolving (idle/pending); the first+only request appears once status = success/fallback."
+  - "[9-4] Time-drag coalescing (AC3): drag the time slider rapidly across many 15-min steps in one motion and release -> Network shows at most ONE new /api/venues after release (not one per snapped step)."
+  - "[9-4] Thumb/badge stay live during drag (AC3): the slider thumb + time badge update continuously/smoothly throughout the drag (decoupled from the deferred query) — never freeze on the network."
+  - "[9-4] List freshness after settle (AC3): after the drag settles, the venue list/sun data updates to the new settled time (not left showing stale pre-drag data) once the single request resolves."
+  - "[9-4] Live-now state (AC3): drag away from the current time then back onto it -> reads as an intentional 'live now' state (request, if any, carries no planner params), not a silent no-op."
+  - "[9-4] Favoriter derives from cache (AC1): with Närmast loaded (>=1 favourite visible), clear Network and switch to Favoriter -> NO new /api/venues?ids= fires, favourites appear instantly; toggling Närmast<->Favoriter issues no further /api/venues."
