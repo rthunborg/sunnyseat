@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T16:54:55Z"
+updated_at: "2026-06-30T17:59:31Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 755
@@ -50,6 +50,7 @@ open_questions:
   - "[RESOLVED in 9.0 create-story] CI e2e runs Playwright against `next dev` (development), so Story 9.0 prod-gate does NOT fire in CI; deterministic ?_time= sun specs stay green. Reopen only if the e2e webServer switches to next build/start."
 deferred_work:
   - "[9-1] Maintainer: re-baseline venue-detail visual references (nextjs-app/docs/design/references/screens/{mobile,desktop}/venue-detail.png) to the de-bloated surface so the visual gate flips green. The gate script forbids the dev agent from editing references — deliberate hand-off, not a bypass."
+  - "[9-3] Live cold/warm wall-clock latency timings deferred to a maintainer/preview run (live-Supabase ms-timing is non-reproducible locally and the epic forbids flaky timing asserts); the in-CI signal is the RPC-count + cache-hit tests + the manual 14->7 RPC evidence."
 blockers: []
 overrides: {}
 constraints: []

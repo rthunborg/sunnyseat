@@ -22,8 +22,10 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import { clearVenueRateLimitForTests, GET as listGET } from '@/app/api/venues/route';
+import { GET as listGET } from '@/app/api/venues/route';
 import { GET as detailGET } from '@/app/api/venues/[slug]/route';
+import { venueRateLimitMiddleware as middleware } from '@/lib/utils/venue-rate-limit-middleware';
+import { clearVenueRateLimitForTests } from '@/lib/utils/rate-limit';
 
 function listRequest(query: string, headers?: HeadersInit): NextRequest {
   return new NextRequest(`http://localhost/api/venues${query}`, { headers });
@@ -46,9 +48,9 @@ afterEach(() => {
 // ===========================================================================
 // AC3 — rate-limiting relocated so the response is edge-cacheable
 // ===========================================================================
-describe.skip('Story 9.3 AC3 — edge-cacheable list route after rate-limit relocation (RED)', () => {
+describe('Story 9.3 AC3 — edge-cacheable list route after rate-limit relocation', () => {
   // P0 — the cache header is still set and now actually honour-able by the edge.
-  it.skip('returns a public s-maxage=30 Cache-Control the edge can honour', async () => {
+  it('returns a public s-maxage=30 Cache-Control the edge can honour', async () => {
     const res = await listGET(listRequest('?lat=57.7089&lng=11.9746'));
     expect(res.status).toBe(200);
     expect(res.headers.get('Cache-Control')).toMatch(/s-maxage=30/);
@@ -60,7 +62,7 @@ describe.skip('Story 9.3 AC3 — edge-cacheable list route after rate-limit relo
   // (that read is what forced the route dynamic and killed s-maxage). Identical
   // responses regardless of the forwarded-IP header proves the handler no longer
   // varies on it.
-  it.skip('does not vary the response on x-forwarded-for (limiter moved to the edge)', async () => {
+  it('does not vary the response on x-forwarded-for (limiter moved to the edge)', async () => {
     const a = await listGET(listRequest('?lat=57.7089&lng=11.9746', { 'x-forwarded-for': '1.1.1.1' }));
     const b = await listGET(listRequest('?lat=57.7089&lng=11.9746', { 'x-forwarded-for': '2.2.2.2' }));
     // Same ETag => response identical, not keyed on the client IP.
@@ -69,23 +71,19 @@ describe.skip('Story 9.3 AC3 — edge-cacheable list route after rate-limit relo
     expect(b.status).toBe(200);
   });
 
-  // P0 — rate-limiting is STILL enforced (just from its new home). DoS
-  // protection must not be lost when the limiter moves. If the limiter now
-  // lives in middleware.ts, this exercises that entry point; if a test-only
-  // limiter hook remains on the route, drive that. Adjust the import to the
-  // limiter's new public surface — do NOT delete this assertion.
-  it.skip('still enforces the 429 rate-limit from the relocated limiter', async () => {
-    // EXPECTED: hammering the limiter boundary eventually yields 429.
-    // (Dev wires this to the relocated limiter — middleware or extracted fn.)
-    let last: Response | undefined;
+  // P0 — rate-limiting is STILL enforced (just from its new home). DoS protection
+  // must not be lost when the limiter moves. Option A put the limiter in
+  // `middleware.ts` (Edge), so this drives that entry point directly.
+  it('still enforces the 429 rate-limit from the relocated limiter (middleware)', () => {
+    let last: ReturnType<typeof middleware> | undefined;
     for (let i = 0; i < 200; i++) {
-      last = await listGET(listRequest('?lat=57.7089&lng=11.9746', { 'x-forwarded-for': '9.9.9.9' }));
+      last = middleware(listRequest('?lat=57.7089&lng=11.9746', { 'x-forwarded-for': '9.9.9.9' }));
     }
     expect(last?.status).toBe(429);
   });
 
   // P1 — the ETag / 304 freshness contract survives the relocation.
-  it.skip('preserves the ETag + 304 if-none-match path', async () => {
+  it('preserves the ETag + 304 if-none-match path', async () => {
     const first = await listGET(listRequest('?lat=57.7089&lng=11.9746'));
     const etag = first.headers.get('ETag');
     expect(etag).toBeTruthy();
@@ -96,7 +94,7 @@ describe.skip('Story 9.3 AC3 — edge-cacheable list route after rate-limit relo
   });
 
   // P1 — freshness headers preserved on the list route.
-  it.skip('preserves X-Sun-Data-Source + X-Weather-Updated-At on the list route', async () => {
+  it('preserves X-Sun-Data-Source + X-Weather-Updated-At on the list route', async () => {
     const res = await listGET(listRequest('?lat=57.7089&lng=11.9746'));
     expect(res.headers.get('x-sun-data-source')).toBeTruthy();
     expect(res.headers.get('x-weather-updated-at')).toMatch(/T/);
@@ -106,9 +104,9 @@ describe.skip('Story 9.3 AC3 — edge-cacheable list route after rate-limit relo
 // ===========================================================================
 // AC2 — the detail "Mer info" route benefits equally + keeps its headers
 // ===========================================================================
-describe.skip('Story 9.3 AC2/AC3 — detail route benefits equally (RED)', () => {
+describe('Story 9.3 AC2/AC3 — detail route benefits equally', () => {
   // P1 — detail route also advertises an edge-cacheable response.
-  it.skip('sets a public s-maxage Cache-Control on the detail route', async () => {
+  it('sets a public s-maxage Cache-Control on the detail route', async () => {
     const res = await detailGET(detailRequest('test-venue-sunny'), {
       params: Promise.resolve({ slug: 'test-venue-sunny' }),
     });
@@ -117,7 +115,7 @@ describe.skip('Story 9.3 AC2/AC3 — detail route benefits equally (RED)', () =>
   });
 
   // P1 — freshness headers preserved on the detail route.
-  it.skip('preserves X-Sun-Data-Source + X-Weather-Updated-At on the detail route', async () => {
+  it('preserves X-Sun-Data-Source + X-Weather-Updated-At on the detail route', async () => {
     const res = await detailGET(detailRequest('test-venue-sunny'), {
       params: Promise.resolve({ slug: 'test-venue-sunny' }),
     });
@@ -128,7 +126,7 @@ describe.skip('Story 9.3 AC2/AC3 — detail route benefits equally (RED)', () =>
   // P2 — REGRESSION GUARD: the default (flag-off) seed path stays byte-identical.
   // Story 9.3 is "no behaviour change, only faster". The DTO shape and seed
   // values must not move on the CI default path.
-  it.skip('keeps the default seed detail DTO byte-identical (no behaviour drift)', async () => {
+  it('keeps the default seed detail DTO byte-identical (no behaviour drift)', async () => {
     const res = await detailGET(detailRequest('test-venue-sunny'), {
       params: Promise.resolve({ slug: 'test-venue-sunny' }),
     });

@@ -32,8 +32,9 @@ vi.mock('@/lib/services/sun-engine', async (importOriginal) => {
   };
 });
 
-import { clearVenueRateLimitForTests, GET as LIST_GET } from '@/app/api/venues/route';
+import { GET as LIST_GET } from '@/app/api/venues/route';
 import { GET as DETAIL_GET } from '@/app/api/venues/[slug]/route';
+import { clearVenueRateLimitForTests } from '@/lib/utils/rate-limit';
 
 const NOW = new Date('2026-06-21T10:30:00.000Z');
 

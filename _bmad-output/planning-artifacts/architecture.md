@@ -319,6 +319,41 @@ Every source tier, including manual overrides, paid sources, open-derived record
 - Server: Met.no weather data with 5-minute in-memory revalidation cache
 - Precomputed: Sun exposure data refreshed daily via Vercel Cron
 
+**Story 9.3 — server sun-compute caching + edge-cacheable venue reads (the live perf fix):**
+
+The real sun engine (`SUNNYSEAT_SUN_ENGINE=real`) used to fire **two** `get_buildings_near_point`
+RPCs per venue per request (one for the current shadow, one for the full-day timeline) with **no
+server cache**, so every `/api/venues` and `/api/venues/[slug]` load re-ran the whole engine. Story
+9.3 fixes this in three layers (no behaviour/output change — byte-identical sun outputs, gated by a
+deep-equality snapshot):
+
+- **Building-fetch dedupe (AC1):** the shadow casters are fetched **once** per venue per request and
+  shared by both the single-shot shadow and the timeline (≈14→7 RPCs for the 7-venue list).
+- **Buildings cache (AC2):** `get_buildings_near_point` is wrapped in a server TTL cache keyed on the
+  **rounded centroid (4 dp ≈ 11 m) + radius**, **24 h** revalidate (building geometry is effectively
+  static). Co-located venues collapse to one RPC; only successful (non-null) results are cached.
+- **Sun-compute cache (AC2):** the computed outcome is cached per **(venue id, 15-min time bucket,
+  Stockholm day)**, **15 min** revalidate — applied inside the shared engine seam so **both** the list
+  and the detail ("Mer info") route inherit it. Degraded (building-RPC-failed) computes are NOT cached.
+  Both caches live in `lib/services/sun-engine-cache.ts` as process-scoped TTL maps (survive across
+  warm-instance invocations; lost on cold start — fine at MVP scale, 7 venues / ≤10K MAU).
+- **Edge-cacheability — AC3 decision = Option A (relocate rate-limiting):** the venue list route's GET
+  handler used to read `x-forwarded-for` / `x-real-ip` for the per-IP token-bucket limiter, which made
+  the route effectively dynamic and killed the already-present `Cache-Control: public, s-maxage=30`
+  header. The limiter was **moved into the Edge proxy** (`proxy.ts` → `lib/utils/venue-rate-limit-middleware.ts`,
+  matched on `/api/venues` + `/api/venues/[slug]`), so the GET handler is now a pure, header-independent
+  function and the `s-maxage=30` response is genuinely edge-cacheable. DoS protection (429) and
+  malformed-XFF rejection (400) are preserved in the proxy; the IP validator is pure-JS (no `node:net`)
+  to stay Edge-runtime-safe. Option B (a Vercel-Cron precompute pipeline) was judged disproportionate
+  for this story and NOT adopted.
+
+  **Agreed staleness window (AC3):** client TanStack 5-min stale time · **CDN `s-maxage=30` (30 s)** ·
+  **sun-compute server cache 15 min** (worst-case a cached bucket is ≤15 min stale before the next
+  wall-clock bucket forces a recompute) · **buildings server cache 24 h** (a stale building set does
+  not move the sun; it only misses a newly-imported caster — a rare offline data event). The weather
+  honesty signal (`isForecast` / >2h "approximate" / `weatherUpdatedAt` valid-time) is preserved
+  unchanged — the cached outcome carries the same honest freshness the weather slice gave it.
+
 ### Authentication & Security
 
 **Public routes:** No auth. Zero PII. Anonymous by design.

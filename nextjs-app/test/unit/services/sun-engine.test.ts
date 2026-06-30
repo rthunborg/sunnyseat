@@ -15,6 +15,7 @@ import {
   synthesizeFootprint,
   usesRealSunEngine,
 } from '@/lib/services/sun-engine';
+import { clearSunEngineCachesForTests } from '@/lib/services/sun-engine-cache';
 import type { StoredVenue } from '@/lib/services/venue-store';
 import type { ObstructionRiskClass, ShadowTimelinePoint, WeatherSlice } from '@/lib/solar/types';
 
@@ -304,6 +305,11 @@ describe('shouldUseRealSunEngine / usesRealSunEngine env gate', () => {
 
 describe('applyRealSunEngine integration (mocked RPC + weather)', () => {
   beforeEach(() => {
+    // Story 9.3: the engine now caches per (venue, 15-min bucket, day) + buildings
+    // per (centroid, radius). These cases reuse the same venue/time, so clear both
+    // caches each test to keep them independent (otherwise a primed success would
+    // shadow a later case that mocks a failure).
+    clearSunEngineCachesForTests();
     mocks.from.mockReset();
     mocks.rpc.mockReset();
     mocks.getForecast.mockReset();

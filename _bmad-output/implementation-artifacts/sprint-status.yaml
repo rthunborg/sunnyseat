@@ -224,7 +224,7 @@ development_status:
   9-0-production-gate-the-dev-planner-forcing-url-leak: ready-for-dev
   9-1-clean-app-content-sweep: review
   9-2-design-system-cta-token-fix-copy-correction: review
-  9-3-venue-sun-compute-performance-server-caching: ready-for-dev
+  9-3-venue-sun-compute-performance-server-caching: review
   9-4-client-query-hygiene-time-change-debounce: backlog
   9-5-location-onboarding-reliability: backlog
   9-6-map-chrome-consolidation-dead-control-cleanup: backlog
