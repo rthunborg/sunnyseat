@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T17:59:31Z"
+updated_at: "2026-06-30T18:19:39Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 755
@@ -55,11 +55,12 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: live-app-hardening-clean-up
-active_story: 9-3-venue-sun-compute-performance-server-caching
+active_story: null
 stories_landed:
   - 9-0-production-gate-the-dev-planner-forcing-url-leak
   - 9-1-clean-app-content-sweep
   - 9-2-design-system-cta-token-fix-copy-correction
+  - 9-3-venue-sun-compute-performance-server-caching
 auto_decisions: []
 uat_items:
   - "[9-0] Dev (npm run dev), open /?_time=21:00&_date=2026-07-01 -> planner shows forced 21:00 on 2026-07-01 and does NOT advance with the real clock (forcing honoured in dev). [AC#1 dev, AC#2]"
@@ -84,3 +85,11 @@ uat_items:
   - "[9-2] CTA hover/active/focus -> dims (hover:opacity-90), focus ring on Tab, pill/padding/icon/shadow unchanged — only the gradient colour shifted. [Behaviour gate]"
   - "[9-2] Amber-gradient audit surfaces: venue-detail sun-% badge = clean gold flat fill; 'ÖPPET' status badge = clean bright-amber; neither reads olive. [AC#3]"
   - "[9-2] Swedish (default) nav rooftop filter chip reads 'Takterrass' (not the old 'Takt'); switch to English -> same chip reads 'Rooftop'. [AC#2]"
+  - "[9-3] SETUP: cd nextjs-app && npm run dev. Real caching/edge behaviour only engages with SUNNYSEAT_SUN_ENGINE=real + Supabase service-role in .env.local (flag-off returns the seed, no engine). Rate limit = 120 req/60s per IP."
+  - "[9-3] curl -sD - http://localhost:3000/api/venues -o /dev/null -> Cache-Control: public, max-age=30, s-maxage=30, must-revalidate + an ETag present. [AC3]"
+  - "[9-3] Conditional 304: re-request with -H 'If-None-Match: <etag>' -> HTTP 304, same ETag + Cache-Control echoed, empty body. [AC3]"
+  - "[9-3] Freshness headers: /api/venues AND /api/venues/<slug> both carry X-Sun-Data-Source + X-Weather-Updated-At; detail route also has Cache-Control s-maxage=30. [AC2 detail parity]"
+  - "[9-3] Edge-cacheable: request /api/venues plain and with -H 'X-Forwarded-For: 9.9.9.9' -> identical ETag + body (GET no longer reads request IP). NOTE: whether the CDN actually SERVES the s-maxage copy is a Vercel-edge behaviour, NOT observable on next dev. [AC3]"
+  - "[9-3] Relocated rate limit (now in Edge proxy.ts; runs in-process on next dev): for i in $(seq 1 130); do curl -s -o /dev/null -w '%{http_code}\n' -H 'X-Forwarded-For: 8.8.8.8' .../api/venues; done -> first ~120 = 200, rest = 429 within the minute; malformed XFF ('not-an-ip') -> 400."
+  - "[9-3] Warm-vs-cold (real-engine path): warm the server, open the venue list, reload it, open 'Mer info' then reopen without changing the time -> 2nd list load + reopened detail feel materially snappier (buildings 24h + sun 15min caches). Subjective; exact ms deferred to a maintainer preview run."
+  - "[9-3] Byte-identical sun outputs: for the same venue + same time-of-day, currentSunStatus / sun-window / peak-time (UI + /api/venues/<slug> JSON) read CORRECT and UNCHANGED from before the perf fix — caching only makes it faster, never alters the sun output. [AC1]"
