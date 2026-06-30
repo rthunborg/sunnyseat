@@ -5,10 +5,10 @@ epic_num: 9
 story_num: 4
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T18:30:26Z"
+updated_at: "2026-06-30T19:00:36Z"
 started_at: "2026-06-30T18:21:04Z"
 completed_at: null
-active_seconds: 553
+active_seconds: 2353
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "Non-trivial data-fetching logic across multiple modules (query-key gating, favourites cache derivation, time-scrubber debounce) = Medium; client-side debounce is reproducible, no High signals."
 epic_story_count: 11
 stories_after_in_epic: 6
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [2bf4ae4]
+commits: [2bf4ae4, "3956378"]
 phase8_steps:
   trace_gate: null
   nfr: null

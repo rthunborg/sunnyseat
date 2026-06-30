@@ -31,3 +31,5 @@
 
 ## Story 9-4-client-query-hygiene-time-change-debounce
 - [Phase 3 — create-story] 9.4/9.3 alignment: the client time-slider step (PLANNER_STEP_MINUTES=15) == 9.3's 15-min server cache bucket, so a settled (debounced) client fetch lands on a warm server-cache boundary. Client TanStack staleTime stays 5 min (finer than the 15-min bucket) — harmless given the 15-min step, but worth a glance if a future story revisits the client window.
+- [Phase 5 — dev-story] useVenueSearch is consumed by BOTH MapView (now gated: enabled + coordsSettled) AND VenueSearchShell (typed-search, intentionally LEFT ungated — debounced/user-initiated, not part of the first-paint double-fetch). Future query-gating must distinguish the two call sites; the new lastMapViewSearchCall() test helper keys off the `enabled` prop the search shell omits.
+- [Phase 5 — dev-story] 9.4 decisions: AC1 derive-favourites-from-list-cache (no separate fetch), AC2 gate on settled geolocation, AC3 useDeferredValue in MapView + keepPreviousData mask. useFavouriteVenues.ts + TimeContext.tsx left untouched; staleTime/bucket/DTO/query-keys unchanged.

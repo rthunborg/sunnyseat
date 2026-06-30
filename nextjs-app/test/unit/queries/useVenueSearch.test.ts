@@ -535,6 +535,40 @@ describe('useVenueSearch', () => {
     expect(options?.refetchInterval).toBe(false);
   });
 
+  it('does NOT fire fetch while gated by enabled: false, then fires exactly once when enabled (AC2 geolocation gate)', async () => {
+    // Story 9.4 AC2: MapView gates the first venue fetch until geolocation
+    // settles. The hook combines the caller `enabled` flag with its internal
+    // `inputsValid` guard. While `enabled` is false (status idle/pending) no
+    // fetch fires; flipping it true (status success|fallback) fires once at
+    // the settled coords. `keepPreviousData` masks any later key change.
+    fetchSpy.mockResolvedValue(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+    function StableWrapper({ children }: { children: ReactNode }) {
+      return createElement(QueryClientProvider, { client }, children);
+    }
+
+    const { result, rerender } = renderHook(
+      ({ enabled }: { enabled: boolean }) =>
+        useVenueSearch({ lat: 57.7089, lng: 11.9746, radiusKm: 1.5, enabled }),
+      { wrapper: StableWrapper, initialProps: { enabled: false } },
+    );
+
+    // Gated: the query stays in fetchStatus 'idle' and fetch never fires.
+    await waitFor(() => expect(result.current.fetchStatus).toBe('idle'));
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    // Geolocation settled → enabled flips true → exactly one fetch fires.
+    rerender({ enabled: true });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('configures refetchOnWindowFocus: false (window focus does NOT trigger a refetch even when stale)', async () => {
     // Story 1.6 review (P19, Edge Case Hunter 9.2 → Round 2 R2-P5): the
     // original test dispatched a `focus` event and asserted no refetch —

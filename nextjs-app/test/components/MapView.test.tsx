@@ -45,10 +45,17 @@ type VenueSearchParams = {
   q?: string;
   date?: string;
   time?: string;
+  enabled?: boolean;
 };
 
-const useGeolocationMock = vi.fn(() => ({
-  status: 'idle' as const,
+type GeolocationStatus = 'idle' | 'pending' | 'success' | 'fallback';
+const useGeolocationMock = vi.fn<() => {
+  status: GeolocationStatus;
+  coords: { lat: number; lng: number };
+  requestLocation: () => void;
+  useCentrum: () => void;
+}>(() => ({
+  status: 'success',
   coords: { lat: 57.7089, lng: 11.9746 },
   requestLocation: () => {},
   useCentrum: () => {},
@@ -273,7 +280,29 @@ function EnglishWrapper({ children }: { children: ReactNode }) {
 }
 
 function expectVenueSearchCall(expected: VenueSearchParams) {
-  expect(useVenueSearchMock.mock.calls.map(([params]) => params)).toContainEqual(expected);
+  // Story 9.4 AC2: the live venue search is now gated on a settled
+  // geolocation status, so every call carries `enabled` (true under the
+  // default `success` mock). Callers assert the geo/planner shape; the gate
+  // flag is injected here so the existing call-shape expectations stay terse.
+  expect(useVenueSearchMock.mock.calls.map(([params]) => params)).toContainEqual({
+    enabled: true,
+    ...expected,
+  });
+}
+
+/**
+ * `useVenueSearch` is consumed by BOTH MapView (the gated list query) and the
+ * VenueSearchShell (the typed-query search, which is never coordinate-gated).
+ * The two are distinguishable by shape: only MapView passes `enabled`, and
+ * only the search shell passes a `q` key. This returns the most recent
+ * MapView (list) call so AC2/AC3 assertions don't accidentally read the
+ * search-shell call.
+ */
+function lastMapViewSearchCall(): VenueSearchParams | undefined {
+  const mapViewCalls = useVenueSearchMock.mock.calls
+    .map(([params]) => params)
+    .filter((params): params is VenueSearchParams => Boolean(params) && 'enabled' in params!);
+  return mapViewCalls[mapViewCalls.length - 1];
 }
 
 function waitMs(ms: number) {
@@ -291,7 +320,10 @@ describe('<MapView />', () => {
     routerPushMock.mockClear();
     routerReplaceMock.mockClear();
     useGeolocationMock.mockReset().mockReturnValue({
-      status: 'idle',
+      // Story 9.4 AC2: default to a settled status so the venue/favourites
+      // queries are enabled (mirrors the common returning-user-with-GPS case).
+      // The idle/pending gating is exercised explicitly in the AC2 suite.
+      status: 'success',
       coords: { lat: 57.7089, lng: 11.9746 },
       requestLocation: () => {},
       useCentrum: () => {},
@@ -2211,6 +2243,236 @@ describe('<MapView />', () => {
       expect(stubMap.easeTo).toHaveBeenCalledWith({
         center: [11.97, 57.7],
         duration: 500,
+      });
+    });
+  });
+
+  describe('Story 9.4 — client query hygiene', () => {
+    describe('AC1 — Favoriter sourced from the loaded list cache', () => {
+      it('issues NO favourites fetch and renders the filtered venues when the favourited ids are already in the loaded list', () => {
+        // Loaded Närmast list already holds the favourited venue.
+        pathnameMock = '/favoriter';
+        const loadedVenue = makeVenue({ id: 'venue-1', name: 'Bellora' });
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([
+            loadedVenue,
+            makeVenue({ id: 'venue-2', name: 'Annan plats' }),
+          ]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+        // The favourites query returns nothing — it must not be the source.
+        useFavouriteVenuesMock.mockReturnValue({
+          data: undefined,
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 0,
+          refetch: vi.fn(),
+        });
+        useFavouritesMock.mockReturnValue({
+          favouriteIds: ['venue-1'],
+          isHydrated: true,
+          isFavourite: (id: string) => id === 'venue-1',
+          toggleFavourite: vi.fn(),
+          addFavourite: vi.fn(),
+          removeFavourite: vi.fn(),
+        });
+
+        render(<MapView />, { wrapper: Wrapper });
+
+        // The network favourites query is gated OFF (0 new /api/venues fetch).
+        expect(useFavouriteVenuesMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({ ids: ['venue-1'], enabled: false }),
+        );
+        // The favourites list still renders the venue, derived from the
+        // loaded Närmast list cache (not from a favourites fetch).
+        expect(screen.getAllByRole('button', { name: /Välj Bellora/ }).length).toBeGreaterThan(0);
+        // The non-favourite loaded venue is filtered out of the favourites view.
+        expect(screen.queryByRole('button', { name: /Välj Annan plats/ })).not.toBeInTheDocument();
+      });
+
+      it('keeps the Närmast→Favoriter toggle from enabling a fetch when every favourite is loaded', () => {
+        const loadedVenue = makeVenue({ id: 'venue-1', name: 'Bellora' });
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([loadedVenue]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+        useFavouriteVenuesMock.mockReturnValue({
+          data: undefined,
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 0,
+          refetch: vi.fn(),
+        });
+        useFavouritesMock.mockReturnValue({
+          favouriteIds: ['venue-1'],
+          isHydrated: true,
+          isFavourite: (id: string) => id === 'venue-1',
+          toggleFavourite: vi.fn(),
+          addFavourite: vi.fn(),
+          removeFavourite: vi.fn(),
+        });
+
+        // Start on Närmast — favourites query disabled (not the active view).
+        const view = render(<MapView />, { wrapper: Wrapper });
+        expect(useFavouriteVenuesMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({ enabled: false }),
+        );
+
+        // Switch to Favoriter — STILL disabled, because the favourited venue
+        // is already in the loaded list (derive-from-cache, instant toggle).
+        pathnameMock = '/favoriter';
+        view.rerender(<MapView />);
+        expect(useFavouriteVenuesMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({ enabled: false }),
+        );
+      });
+
+      it('falls back to a real favourites fetch for a favourited id NOT in the loaded list (out-of-radius / cold deep link)', () => {
+        pathnameMock = '/favoriter';
+        // Loaded list does NOT contain the favourited id.
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([makeVenue({ id: 'venue-loaded', name: 'Närplats' })]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+        const outsideFavourite = makeVenue({ id: 'outside-favourite', name: 'Utflyktsplats' });
+        useFavouriteVenuesMock.mockReturnValue({
+          data: makeVenueResponse([outsideFavourite]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+          refetch: vi.fn(),
+        });
+        useFavouritesMock.mockReturnValue({
+          favouriteIds: ['outside-favourite'],
+          isHydrated: true,
+          isFavourite: (id: string) => id === 'outside-favourite',
+          toggleFavourite: vi.fn(),
+          addFavourite: vi.fn(),
+          removeFavourite: vi.fn(),
+        });
+
+        render(<MapView />, { wrapper: Wrapper });
+
+        // The favourite is missing from the loaded list → the network query
+        // is enabled so the out-of-radius favourite can still load.
+        expect(useFavouriteVenuesMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({ ids: ['outside-favourite'], enabled: true }),
+        );
+        expect(screen.getAllByRole('button', { name: /Välj Utflyktsplats/ }).length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('AC2 — gate the venue query until geolocation settles', () => {
+      function setGeolocationStatus(status: 'idle' | 'pending' | 'success' | 'fallback') {
+        useGeolocationMock.mockReturnValue({
+          status,
+          coords: { lat: 57.7089, lng: 11.9746 },
+          requestLocation: () => {},
+          useCentrum: () => {},
+        });
+      }
+
+      it('does NOT enable the venue search while geolocation is idle or pending', () => {
+        setGeolocationStatus('idle');
+        const view = render(<MapView />, { wrapper: Wrapper });
+        expect(lastMapViewSearchCall()).toMatchObject({ enabled: false });
+
+        setGeolocationStatus('pending');
+        view.rerender(<MapView />);
+        expect(lastMapViewSearchCall()).toMatchObject({ enabled: false });
+      });
+
+      it('enables the venue search exactly once geolocation settles to success', () => {
+        setGeolocationStatus('idle');
+        const view = render(<MapView />, { wrapper: Wrapper });
+        expect(lastMapViewSearchCall()).toMatchObject({ enabled: false });
+
+        setGeolocationStatus('success');
+        view.rerender(<MapView />);
+        expect(lastMapViewSearchCall()).toMatchObject({ enabled: true });
+      });
+
+      it('enables the venue search for a fallback (centrum) user so they still get exactly one prompt fetch', () => {
+        setGeolocationStatus('fallback');
+        render(<MapView />, { wrapper: Wrapper });
+        expect(lastMapViewSearchCall()).toMatchObject({ enabled: true });
+      });
+
+      it('keeps the favourites query gated on a settled status too (no cold-deep-link fetch before location resolves)', () => {
+        pathnameMock = '/favoriter';
+        setGeolocationStatus('pending');
+        // A favourite NOT in the (empty) loaded list would normally enable the
+        // fetch, but the coordinate gate must hold it until location settles.
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+        useFavouritesMock.mockReturnValue({
+          favouriteIds: ['outside-favourite'],
+          isHydrated: true,
+          isFavourite: (id: string) => id === 'outside-favourite',
+          toggleFavourite: vi.fn(),
+          addFavourite: vi.fn(),
+          removeFavourite: vi.fn(),
+        });
+
+        render(<MapView />, { wrapper: Wrapper });
+        expect(useFavouriteVenuesMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({ enabled: false }),
+        );
+      });
+    });
+
+    describe('AC3 — deferred planner key (live-now semantics preserved)', () => {
+      it('feeds the venue search a planner-less key while live (no date/time on the call)', () => {
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+
+        render(<MapView />, { wrapper: Wrapper });
+
+        // Live now → MapView defers `plannerTime.plannerQuery` which is
+        // `undefined`, so the list search call carries no date/time (the
+        // planner-less live key).
+        const lastCall = lastMapViewSearchCall();
+        expect(lastCall).toMatchObject({ lat: 57.7089, lng: 11.9746, radiusKm: 1.5, enabled: true });
+        expect(lastCall).not.toHaveProperty('date');
+        expect(lastCall).not.toHaveProperty('time');
+      });
+
+      it('feeds the venue search a single planner key after a future date is committed', async () => {
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+
+        render(<MapView />, { wrapper: Wrapper });
+
+        fireEvent.click(screen.getAllByRole('button', { name: /Öppna kalender: Idag/ })[0]);
+        fireEvent.click(screen.getByRole('button', { name: 'Välj 21 maj 2026' }));
+
+        await waitFor(() =>
+          expectVenueSearchCall({
+            lat: 57.7089,
+            lng: 11.9746,
+            radiusKm: 1.5,
+            date: '2026-05-21',
+            time: '12:15',
+          }),
+        );
       });
     });
   });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { AnimatePresence } from 'motion/react';
 import { useSearchParams } from 'next/navigation';
@@ -164,18 +164,60 @@ export function MapView() {
     forcedState === 'map-primary' ||
     forcedState === 'map-panel-venues' ||
     forcedState === 'map-with-selected-venue';
+  // Story 9.4 AC2: gate the FIRST venue fetch until the user's location has
+  // resolved to a real value (`success`) or the centrum fallback. While the
+  // status is `idle`/`pending` the fallback-centrum key and the eventual
+  // real-GPS key would otherwise both fire — two round-trips on first paint.
+  // The gate releases on the FIRST settled status (never waits indefinitely),
+  // so a fallback user still gets exactly one prompt fetch at centrum, and a
+  // permission-grant-after-fallback transition is masked by `keepPreviousData`.
+  const coordsSettled =
+    geolocation.status === 'success' || geolocation.status === 'fallback';
+  // Story 9.4 AC3: defer the planner key that drives the venue queries so a
+  // rapid drag (each snapped 15-min step flips `plannerTime.plannerQuery`)
+  // enqueues at most ONE fetch after the user settles. The slider thumb +
+  // time badge keep updating live off `selectedMinutes`/`selectedTime`; only
+  // the query-driving copy is deferred. `keepPreviousData` masks the
+  // in-between renders. Deferring the SAME `plannerQuery` the context already
+  // derives from `isLiveNow` preserves the "live now" semantics for free:
+  // settling back to the current wall-clock time defers to `undefined` (the
+  // planner-less live key), settling off it defers to a single planner key.
+  const deferredPlanner = useDeferredValue(plannerTime.plannerQuery);
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
     radiusKm: SEARCH_RADIUS_KM,
-    ...plannerTime.plannerQuery,
+    enabled: coordsSettled,
+    ...deferredPlanner,
   });
+  // Story 9.4 AC1: when the favourited venues are already present in the
+  // loaded Närmast list (the common case — the live store holds a handful of
+  // venues, so favourites are almost always a subset of what is loaded),
+  // render Favoriter by filtering the loaded list rather than firing a fresh
+  // `/api/venues?ids=…`. Only fall back to the network favourites query when a
+  // favourited id is NOT in the loaded list (a favourite outside the search
+  // radius, or a cold `/favoriter` deep link with no list yet). This keeps the
+  // Närmast↔Favoriter toggle instant and issues 0 new requests when loaded.
+  const loadedVenueIds = useMemo(() => {
+    const rows = venueQuery.data?.venues;
+    return new Set(Array.isArray(rows) ? rows.map((venue) => venue.id) : []);
+  }, [venueQuery.data?.venues]);
+  const favouritesAllInLoadedList = favourites.favouriteIds.every((id) =>
+    loadedVenueIds.has(id),
+  );
+  // Enable the network favourites query only when we actually need it: the
+  // favourites view is active AND at least one favourited id is missing from
+  // the loaded list (so the derive-from-list path cannot cover it). Coordinate
+  // gating (AC2) still applies so a cold `/favoriter` entry waits for a
+  // settled location before its single fetch.
+  const needsFavouriteFetch =
+    listMode === 'favourites' && !favouritesAllInLoadedList;
   const favouriteVenueQuery = useFavouriteVenues({
     ids: favourites.favouriteIds,
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
-    enabled: listMode === 'favourites',
-    ...plannerTime.plannerQuery,
+    enabled: coordsSettled && needsFavouriteFetch,
+    ...deferredPlanner,
   });
 
   // Show the loading skeleton until MapLibre paints its first non-metadata
@@ -258,10 +300,48 @@ export function MapView() {
   // (real Supabase rows in 2.x will sometimes have NULL geometry until
   // backfilled). Skip those rather than crash the entire map.
   const rawVenues = venueQuery.data?.venues;
-  const favouriteListConfidenceMeta = favouriteVenueQuery.data?.meta;
-  const favouriteVenueRows = Array.isArray(favouriteVenueQuery.data?.venues)
+  // Confidence meta for the favourites surface: prefer the network favourites
+  // query's meta when it ran (out-of-radius / cold deep-link), otherwise fall
+  // back to the loaded list meta, since AC1 may source the rows entirely from
+  // the Närmast list cache without a favourites fetch.
+  const favouriteListConfidenceMeta =
+    favouriteVenueQuery.data?.meta ?? venueQuery.data?.meta;
+  // Story 9.4 AC1: build the favourites rows by preferring the loaded Närmast
+  // list (no extra fetch when the favourites are already loaded — the common
+  // case) and only topping up with the network favourites query for ids the
+  // loaded list does not cover (out-of-radius favourites / cold `/favoriter`
+  // deep link). This keeps the Närmast↔Favoriter toggle instant: when every
+  // favourite is in the list cache the favourites query stays disabled and
+  // these rows come straight from `rawVenues`.
+  const favouriteIdsForRows = favourites.favouriteIds;
+  const networkFavouriteRows = Array.isArray(favouriteVenueQuery.data?.venues)
     ? favouriteVenueQuery.data.venues
     : EMPTY_VENUES;
+  const favouriteVenueRows = useMemo<VenueDataDto[]>(() => {
+    const allowed = new Set(favouriteIdsForRows);
+    if (allowed.size === 0) return EMPTY_VENUES;
+    const seen = new Set<string>();
+    const rows: VenueDataDto[] = [];
+    // List cache first — these are the freshly-loaded rows for the current
+    // coords/planner, so they take precedence over a possibly-stale network
+    // favourites payload for the same id.
+    if (Array.isArray(rawVenues)) {
+      for (const venue of rawVenues) {
+        if (allowed.has(venue.id) && !seen.has(venue.id)) {
+          seen.add(venue.id);
+          rows.push(venue);
+        }
+      }
+    }
+    // Top up with any network favourite rows the list did not cover.
+    for (const venue of networkFavouriteRows) {
+      if (allowed.has(venue.id) && !seen.has(venue.id)) {
+        seen.add(venue.id);
+        rows.push(venue);
+      }
+    }
+    return rows.length === 0 ? EMPTY_VENUES : rows;
+  }, [favouriteIdsForRows, networkFavouriteRows, rawVenues]);
   const activeFavouriteVenueRows = listMode === 'favourites'
     ? favouriteVenueRows
     : EMPTY_VENUES;

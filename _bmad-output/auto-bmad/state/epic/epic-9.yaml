@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T18:21:03Z"
+updated_at: "2026-06-30T19:00:36Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 821
@@ -51,6 +51,7 @@ open_questions:
 deferred_work:
   - "[9-1] Maintainer: re-baseline venue-detail visual references (nextjs-app/docs/design/references/screens/{mobile,desktop}/venue-detail.png) to the de-bloated surface so the visual gate flips green. The gate script forbids the dev agent from editing references — deliberate hand-off, not a bypass."
   - "[9-3] Live cold/warm wall-clock latency timings deferred to a maintainer/preview run (live-Supabase ms-timing is non-reproducible locally and the epic forbids flaky timing asserts); the in-CI signal is the RPC-count + cache-hit tests + the manual 14->7 RPC evidence."
+  - "[9-4] useVenueDetail intentionally left on the non-deferred planner (single, 9.3-server-cached venue, outside AC3's list-churn scope); residual: dragging the slider with a detail panel open still re-keys the cheap detail query per step. Hand-off candidate to Story 9.10's regression pass if observed; not a 9.4 deliverable."
 blockers: []
 overrides: {}
 constraints: []

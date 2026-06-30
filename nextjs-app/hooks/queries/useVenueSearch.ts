@@ -22,6 +22,11 @@ type Params = {
   q?: string;
   date?: string;
   time?: string;
+  // Story 9.4 AC2: lets the caller gate the FIRST fetch until geolocation
+  // settles (so the fallback-centrum key and the real-GPS key don't both
+  // fire). Defaults to enabled; combined with the internal `inputsValid`
+  // guard. `keepPreviousData` still masks any later key change.
+  enabled?: boolean;
 };
 
 // Round coordinates to 4 decimals (~11 m at Gothenburg's latitude — well
@@ -107,7 +112,7 @@ export function useVenueSearch(
     retry: shouldRetryVenueQuery,
     retryDelay: venueQueryRetryDelay,
     placeholderData: keepPreviousData,
-    enabled: inputsValid,
+    enabled: params.enabled !== false && inputsValid,
   });
 }
 
