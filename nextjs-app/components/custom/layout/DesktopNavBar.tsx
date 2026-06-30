@@ -5,6 +5,10 @@ import { ChevronLeft, ChevronRight, LocateFixed, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
 import { VenueSearchShell } from '@/components/custom/search/VenueSearchShell';
+import { LanguageSwitcher } from '@/components/custom/layout/LanguageSwitcher';
+import { useGeolocation } from '@/hooks/useGeolocation';
+import { useSettings } from '@/lib/contexts/SettingsContext';
+import { cn } from '@/lib/utils';
 
 /**
  * Desktop top navigation (viewport >= 1024 px). 84 px tall, holds the
@@ -16,6 +20,8 @@ import { VenueSearchShell } from '@/components/custom/search/VenueSearchShell';
  */
 export function DesktopNavBar() {
   const t = useTranslations('common');
+  const geolocation = useGeolocation();
+  const { openSettings } = useSettings();
 
   return (
     <header
@@ -64,17 +70,24 @@ export function DesktopNavBar() {
       </nav>
 
       <div className="flex shrink-0 items-center gap-2">
-        <Link
-          href="/about"
-          data-testid="desktop-nav-about"
-          className="flex min-h-11 items-center rounded-pill px-3 text-label-lg text-text-body transition-colors duration-fast ease-default hover:text-amber-dark focus:outline-none focus:ring-2 focus:ring-amber-primary focus:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-primary focus-visible:rounded-sm"
+        <LanguageSwitcher />
+        {/* About moved into the settings modal ("Om SunnySeat"); the standalone
+            top-nav About link was removed to declutter the header. */}
+        {/* Locate is the canonical desktop control (the map-stack duplicate is
+            `lg:hidden`); it shares the geolocation context, so the fly-to wired
+            in MapControls fires on success. Settings opens the settings modal. */}
+        <HeaderIconButton
+          label={t('nav.myLocation')}
+          onClick={() => geolocation.requestLocation()}
+          testId="desktop-nav-my-location"
         >
-          {t('nav.om')}
-        </Link>
-        <HeaderIconButton label={t('nav.myLocation')}>
           <LocateFixed aria-hidden="true" className="size-5" />
         </HeaderIconButton>
-        <HeaderIconButton label={t('nav.settings')}>
+        <HeaderIconButton
+          label={t('nav.settings')}
+          onClick={openSettings}
+          testId="desktop-nav-settings"
+        >
           <Settings aria-hidden="true" className="size-5" />
         </HeaderIconButton>
       </div>
@@ -105,16 +118,29 @@ function HeaderChevron({
 function HeaderIconButton({
   label,
   children,
+  onClick,
+  disabled = onClick === undefined,
+  testId,
 }: {
   label: string;
   children: ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type="button"
       aria-label={label}
-      disabled
-      className="flex size-11 cursor-not-allowed items-center justify-center rounded-pill text-text-body opacity-60 outline-none transition-colors duration-fast ease-default focus-visible:ring-2 focus-visible:ring-text-primary"
+      onClick={onClick}
+      disabled={disabled}
+      data-testid={testId}
+      className={cn(
+        'flex size-11 items-center justify-center rounded-pill text-text-body outline-none transition-colors duration-fast ease-default focus-visible:ring-2 focus-visible:ring-text-primary',
+        disabled
+          ? 'cursor-not-allowed opacity-60'
+          : 'hover:bg-surface-cream/60 hover:text-amber-dark',
+      )}
     >
       {children}
     </button>

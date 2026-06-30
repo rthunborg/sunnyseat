@@ -17,6 +17,9 @@
     "next": "Nästa filter",
     "myLocation": "Min plats",
     "settings": "Inställningar",
+    "language": "Språk",
+    "switchToSwedish": "Byt till svenska",
+    "switchToEnglish": "Byt till engelska",
     "filterChips": {
       "courtyard": "Innergård",
       "dogs": "Hund ok",
@@ -34,5 +37,31 @@
   },
   "offline": {
     "banner": "Ingen anslutning"
+  },
+  "settings": {
+    "title": "Inställningar",
+    "subtitle": "SunnySeat · version 1.0",
+    "feedbackTitle": "Skicka feedback",
+    "feedbackSubtitle": "Hjälp oss göra appen bättre",
+    "aboutTitle": "Om SunnySeat",
+    "aboutSubtitle": "Så fungerar våra sol-prognoser",
+    "language": "Språk",
+    "close": "Stäng",
+    "closeAria": "Stäng inställningar"
+  },
+  "appFeedback": {
+    "title": "Kontakt & feedback",
+    "subtitle": "Hur var din upplevelse av SunnySeat idag?",
+    "ratingLabel": "Sätt betyg",
+    "ratingStar": "{rating} av 5",
+    "commentPlaceholder": "Berätta mer (valfritt)…",
+    "submit": "Skicka",
+    "submitting": "Skickar…",
+    "cancel": "Avbryt",
+    "close": "Stäng",
+    "closeAria": "Stäng feedback",
+    "successTitle": "Tack!",
+    "successBody": "Din feedback hjälper oss göra SunnySeat bättre.",
+    "error": "Det gick inte att skicka feedbacken. Försök igen."
   }
 }

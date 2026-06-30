@@ -6,7 +6,12 @@ import { useRouter } from 'next/navigation';
 import { usePathname } from '@/i18n/navigation';
 import { routing } from '@/i18n/routing';
 
-const STORAGE_KEY = 'sunnyseat:locale';
+/**
+ * sessionStorage key holding the user's EXPLICIT language choice (set by the
+ * in-app `LanguageSwitcher`). Exported so the switcher writes the same key the
+ * sync hook reads.
+ */
+export const LOCALE_PREFERENCE_STORAGE_KEY = 'sunnyseat:locale';
 
 type SupportedLocale = (typeof routing.locales)[number];
 
@@ -15,26 +20,26 @@ function isSupportedLocale(candidate: string | undefined | null): candidate is S
 }
 
 /**
- * Resolve the user's preferred locale per AC4 of Story 1.1:
- *   URL param → sessionStorage → navigator.language → default SV
+ * Read the user's EXPLICIT stored locale preference — the one the in-app
+ * language switcher persists. Returns null when the user has never chosen.
  *
- * The URL-param step is handled by next-intl's proxy/middleware before this
- * hook ever runs. This hook implements the remaining steps: if the URL's
- * active locale differs from the user's stored or browser-stated preference,
- * rewrite the URL to match and persist the chosen locale to sessionStorage.
+ * BUGFIX: this previously also fell back to `navigator.language`, which is why
+ * an English-configured browser visiting `/sv` was bounced to `/en` a moment
+ * after the Swedish page rendered. Browser-language negotiation for first-time
+ * visitors is already handled server-side by the next-intl middleware
+ * (Accept-Language → `NEXT_LOCALE` cookie). The client now only enforces an
+ * EXPLICIT stored choice, so explicit URLs and the switcher always win and
+ * there is no surprise client-side redirect.
  */
 function readStoredPreference(): SupportedLocale | null {
   if (typeof window === 'undefined') return null;
 
   try {
-    const stored = window.sessionStorage.getItem(STORAGE_KEY);
+    const stored = window.sessionStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY);
     if (isSupportedLocale(stored)) return stored;
   } catch {
     // sessionStorage may be disabled (private mode, sandboxed iframe) — ignore.
   }
-
-  const navTag = window.navigator.language?.split('-')[0]?.toLowerCase();
-  if (isSupportedLocale(navTag)) return navTag;
 
   return null;
 }
@@ -56,33 +61,27 @@ function buildLocalizedPath(targetLocale: SupportedLocale, basePath: string): st
   return `/${targetLocale}${base}`;
 }
 
+/**
+ * Enforce the user's EXPLICIT stored language preference on the client.
+ *
+ * When the user has chosen a language via the switcher and lands on a URL in a
+ * different locale, redirect to honor that choice. When there is no stored
+ * choice (or the URL already matches it), do nothing — the server-resolved
+ * locale stands. This is intentionally NOT a browser-language auto-redirector;
+ * that job belongs to the next-intl middleware, and conflating the two caused
+ * the `/sv` → `/en` bounce.
+ */
 export function useLocaleSync(): void {
   const currentLocale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    const preferred = readStoredPreference() ?? routing.defaultLocale;
+    const preferred = readStoredPreference();
 
-    // If the URL already matches the user's preference, persist the effective
-    // locale so future visits remain stable and return.
-    if (preferred === currentLocale) {
-      try {
-        window.sessionStorage.setItem(STORAGE_KEY, currentLocale);
-      } catch {
-        // ignore storage write failures
-      }
-      return;
-    }
-
-    try {
-      window.sessionStorage.setItem(STORAGE_KEY, preferred);
-    } catch {
-      // ignore
-    }
+    if (!preferred || preferred === currentLocale) return;
 
     const base = stripLeadingLocale(pathname);
-    const nextPath = buildLocalizedPath(preferred, base);
-    router.replace(nextPath);
+    router.replace(buildLocalizedPath(preferred, base));
   }, [currentLocale, pathname, router]);
 }

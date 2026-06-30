@@ -17,6 +17,9 @@
     "next": "Next filter",
     "myLocation": "My location",
     "settings": "Settings",
+    "language": "Language",
+    "switchToSwedish": "Switch to Swedish",
+    "switchToEnglish": "Switch to English",
     "filterChips": {
       "courtyard": "Courtyard",
       "dogs": "Dogs ok",
@@ -34,5 +37,31 @@
   },
   "offline": {
     "banner": "No connection"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "SunnySeat · version 1.0",
+    "feedbackTitle": "Send feedback",
+    "feedbackSubtitle": "Help us make the app better",
+    "aboutTitle": "About SunnySeat",
+    "aboutSubtitle": "How our sun forecasts work",
+    "language": "Language",
+    "close": "Close",
+    "closeAria": "Close settings"
+  },
+  "appFeedback": {
+    "title": "Contact & feedback",
+    "subtitle": "How was your experience of SunnySeat today?",
+    "ratingLabel": "Rate",
+    "ratingStar": "{rating} of 5",
+    "commentPlaceholder": "Tell us more (optional)…",
+    "submit": "Send",
+    "submitting": "Sending…",
+    "cancel": "Cancel",
+    "close": "Close",
+    "closeAria": "Close feedback",
+    "successTitle": "Thanks!",
+    "successBody": "Your feedback helps us make SunnySeat better.",
+    "error": "Could not send your feedback. Please try again."
   }
 }

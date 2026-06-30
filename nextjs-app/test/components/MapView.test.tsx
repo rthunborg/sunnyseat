@@ -1589,7 +1589,7 @@ describe('<MapView />', () => {
       expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
     });
 
-    it('renders the desktop planner as a full-width bottom bar instead of constraining it around side panels', () => {
+    it('constrains the desktop planner to clear the venue list and shrink for the open detail panel', () => {
       searchParamsMock = new URLSearchParams('venue=test-venue-sunny&_state=venue-detail');
       useVenueSearchMock.mockReturnValue({
         data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora', slug: 'test-venue-sunny' })]),
@@ -1603,8 +1603,38 @@ describe('<MapView />', () => {
       const desktopPlanner = screen
         .getAllByTestId('time-slider-panel')
         .find((panel) => panel.className.includes('lg:flex'));
-      expect(desktopPlanner).toHaveClass('left-4', 'right-4');
-      expect(desktopPlanner?.className).not.toContain('var(--size-venue-list-desktop-w)');
+      // Matches the Claude Design reference: offset to clear the 340px venue
+      // list on the left, and shrunk from the right by the 390px detail panel
+      // while it is open. Never the full-bleed `left-4 right-4` it shipped as.
+      expect(desktopPlanner?.className).toContain(
+        'left-[calc(var(--size-venue-list-desktop-w)+1rem)]',
+      );
+      expect(desktopPlanner?.className).toContain(
+        'right-[calc(var(--size-venue-detail-panel-w)+1rem)]',
+      );
+      expect(desktopPlanner).not.toHaveClass('left-4');
+    });
+
+    it('right-aligns the desktop planner to the viewport edge when no detail panel is open', () => {
+      searchParamsMock = new URLSearchParams();
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const desktopPlanner = screen
+        .getAllByTestId('time-slider-panel')
+        .find((panel) => panel.className.includes('lg:flex'));
+      // Still clears the venue list on the left, but with no detail panel open
+      // the right edge sits at the standard 16px inset.
+      expect(desktopPlanner?.className).toContain(
+        'left-[calc(var(--size-venue-list-desktop-w)+1rem)]',
+      );
+      expect(desktopPlanner).toHaveClass('right-4');
       expect(desktopPlanner?.className).not.toContain('var(--size-venue-detail-panel-w)');
     });
 

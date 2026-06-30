@@ -754,9 +754,19 @@ export function MapView() {
         variant="mobile"
         className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*18)]"
       />
+      {/* Desktop planner mirrors the Claude Design reference (src-desktop/
+          App.jsx): a contained bar offset to clear the 340px venue list on the
+          left, shrinking from the right by the 390px detail panel's width when
+          it is open — NOT the full-bleed `left-4 right-4` it originally shipped
+          as. Tokens: --size-venue-list-desktop-w, --size-venue-detail-panel-w. */}
       <TimeSliderPanel
         variant="desktop"
-        className="absolute bottom-6 left-4 right-4"
+        className={cn(
+          'absolute bottom-6 left-[calc(var(--size-venue-list-desktop-w)+1rem)] transition-[right] duration-200 ease-default motion-reduce:transition-none',
+          isVenueDetailRequested
+            ? 'right-[calc(var(--size-venue-detail-panel-w)+1rem)]'
+            : 'right-4',
+        )}
       />
       <MobileBottomSheet
         state={mobileSheetState}
