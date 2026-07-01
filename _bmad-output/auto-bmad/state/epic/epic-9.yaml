@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T11:31:18Z"
+updated_at: "2026-07-01T11:51:50Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 991
@@ -62,7 +62,7 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: live-app-hardening-clean-up
-active_story: 9-7-tag-filtering-real-data-working-chips
+active_story: null
 stories_landed:
   - 9-0-production-gate-the-dev-planner-forcing-url-leak
   - 9-1-clean-app-content-sweep
@@ -71,6 +71,7 @@ stories_landed:
   - 9-4-client-query-hygiene-time-change-debounce
   - 9-5-location-onboarding-reliability
   - 9-6-map-chrome-consolidation-dead-control-cleanup
+  - 9-7-tag-filtering-real-data-working-chips
 auto_decisions: []
 uat_items:
   - "[9-0] Dev (npm run dev), open /?_time=21:00&_date=2026-07-01 -> planner shows forced 21:00 on 2026-07-01 and does NOT advance with the real clock (forcing honoured in dev). [AC#1 dev, AC#2]"
@@ -126,3 +127,11 @@ uat_items:
   - "[9-6] Desktop: the filter-chip row has NO pager chevron arrows flanking it — the dead </> nav-pager chevrons are GONE (the 8 disabled filter chips remain; those are Story 9.7's). [AC3]"
   - "[9-6] Mobile: in the venue-list sort/controls row only the working sort buttons (Sol/sun + Nära/distance) remain — the disabled Café + Öppet-nu category buttons are GONE. [AC3]"
   - "[9-6] Either viewport: click the search box, type a query returning results, press Enter WITHOUT arrowing down -> the first result is selected and the map pans to it (cmdk auto-highlights the first item). Bare-Enter no longer does nothing. [AC4]"
+  - "[9-7] SETUP: cd nextjs-app && npm run dev, DESKTOP viewport >=1024px (tag chips are desktop-only). Real DB tags require the real data path (SUNNYSEAT_VENUE_STORE=supabase, the live default); the fixture path uses the same 7 seeded arrays so all steps still exercise. No 'clear all' button — clear by toggling each active chip off."
+  - "[9-7] Chips enabled + real labels (AC1/AC2): the top-nav filter-chip row is interactive (not greyed/cursor-not-allowed) and shows REAL DB tags (e.g. Innergård, Hund ok, Wifi, Kanal, Kväll — the first-seen union of the 7 venues), NOT the fabricated placeholders and NOT a truncated 'Takt'."
+  - "[9-7] Chip filters list + pins TOGETHER (AC3): click one chip (e.g. Innergård) -> the venue LIST and the map PINS both narrow to only venues carrying that tag, simultaneously (shared TagFilterContext, not just one surface)."
+  - "[9-7] Active on-pill (AC4): the clicked chip flips to the on state (dark #1b1b1e / text-primary bg, white label, aria-pressed=true); click again -> deactivates and the full set returns."
+  - "[9-7] Second chip WIDENS = OR/union (AC4): with one chip active, click a DISJOINT second chip (e.g. Kanal) -> the result set GROWS to venues matching EITHER tag (union), it does NOT shrink to the intersection."
+  - "[9-7] Graceful-empty + clear (AC4): a venue with no matching tag is EXCLUDED while a chip is active but reappears once all chips are cleared; a zero-match combination shows the 'Inga platser hittades' empty state (not a broken/blank list or a stuck skeleton)."
+  - "[9-7] sv/en casing (AC5): switch language -> chip labels read with consistent FULL casing (sv Innergård/Kväll <-> en Courtyard/Evening; never a truncated 'Takt'); filtering matches on the canonical sv value so results are locale-independent."
+  - "[9-7] Drag-with-chip fires no extra requests (9.4 hygiene): DevTools > Network (filter venues), activate a chip, drag the time slider back and forth -> NO burst of /api/venues per step (nav + map queries de-dupe byte-identically; the tag filter is pure client-side .filter()). Most meaningful on the real data path."
