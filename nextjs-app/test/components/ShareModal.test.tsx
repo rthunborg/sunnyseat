@@ -59,6 +59,30 @@ describe('<ShareModal /> (Story 9.8)', () => {
     expect(decodeURIComponent(whatsapp)).toContain(URL);
   });
 
+  it('every share target points at its own brand share-intent host with the venue URL', () => {
+    render(<ShareModal open onClose={vi.fn()} venueName="Kafé Magasinet" url={URL} />);
+    const cases: Array<[string, string]> = [
+      ['share-target-whatsapp', 'wa.me'],
+      ['share-target-facebook', 'facebook.com/sharer'],
+      ['share-target-x', 'twitter.com/intent'],
+      ['share-target-telegram', 't.me/share'],
+      ['share-target-email', 'mailto:'],
+    ];
+    for (const [testid, host] of cases) {
+      const href = screen.getByTestId(testid).getAttribute('href') ?? '';
+      expect(href).toContain(host);
+      expect(decodeURIComponent(href)).toContain(URL);
+    }
+  });
+
+  it('opens external share targets in a new tab with a safe rel', () => {
+    render(<ShareModal open onClose={vi.fn()} venueName="Kafé Magasinet" url={URL} />);
+    const whatsapp = screen.getByTestId('share-target-whatsapp');
+    expect(whatsapp).toHaveAttribute('target', '_blank');
+    // noopener guards against reverse-tabnabbing on the opened share page.
+    expect(whatsapp.getAttribute('rel') ?? '').toContain('noopener');
+  });
+
   it('copies the URL and flips to the "Kopierad" confirmation state', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
@@ -90,6 +114,63 @@ describe('<ShareModal /> (Story 9.8)', () => {
     // Give any (incorrect) state flip a chance to render, then assert it did not.
     await Promise.resolve();
     expect(screen.getByTestId('share-modal-copy')).toHaveTextContent('Kopiera länk');
+  });
+
+  it('does not throw or flip when navigator.clipboard is entirely absent', async () => {
+    // An insecure context (or an old browser) exposes no clipboard API at all.
+    // The URL stays visible for manual copy; the button must not throw or lie.
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined });
+
+    render(<ShareModal open onClose={vi.fn()} venueName="Kafé Magasinet" url={URL} />);
+    expect(() => fireEvent.click(screen.getByTestId('share-modal-copy'))).not.toThrow();
+    await Promise.resolve();
+    expect(screen.getByTestId('share-modal-copy')).toHaveTextContent('Kopiera länk');
+    // The URL is still shown so the user can select-and-copy by hand.
+    expect(screen.getByTestId('share-modal-url')).toHaveTextContent(URL);
+  });
+
+  it('reverts the "Kopierad" confirmation back to "Kopiera länk" after the feedback delay', async () => {
+    vi.useFakeTimers();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    render(<ShareModal open onClose={vi.fn()} venueName="Kafé Magasinet" url={URL} />);
+    fireEvent.click(screen.getByTestId('share-modal-copy'));
+
+    // Let the awaited clipboard write settle, then confirm the flip.
+    await vi.waitFor(() =>
+      expect(screen.getByTestId('share-modal-copy')).toHaveTextContent('Kopierad'),
+    );
+    // After the 1800 ms feedback window it reverts to the idle label.
+    await vi.advanceTimersByTimeAsync(1800);
+    await vi.waitFor(() =>
+      expect(screen.getByTestId('share-modal-copy')).toHaveTextContent('Kopiera länk'),
+    );
+  });
+
+  it('resets the copied state when the modal is closed and re-opened', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    const { rerender } = render(
+      <ShareModal open onClose={vi.fn()} venueName="Kafé Magasinet" url={URL} />,
+    );
+    fireEvent.click(screen.getByTestId('share-modal-copy'));
+    await waitFor(() => expect(screen.getByTestId('share-modal-copy')).toHaveTextContent('Kopierad'));
+
+    rerender(<ShareModal open={false} onClose={vi.fn()} venueName="Kafé Magasinet" url={URL} />);
+    rerender(<ShareModal open onClose={vi.fn()} venueName="Kafé Magasinet" url={URL} />);
+
+    // A fresh open must start from the idle label, never a stale "Kopierad".
+    await waitFor(() =>
+      expect(screen.getByTestId('share-modal-copy')).toHaveTextContent('Kopiera länk'),
+    );
   });
 
   it('closes from the close button and Escape', () => {

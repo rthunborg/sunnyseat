@@ -67,6 +67,33 @@ describe('buildVenueShareUrl (AC1/AC3 — share URL shape)', () => {
     expect(url).toContain('ref=newsletter');
     expect(url).toContain('venue=kafe-magasinet');
   });
+
+  it('tolerates a leading "?" or a bare search string identically', () => {
+    // window.location.search carries a leading "?"; a hand-built search may not.
+    // URLSearchParams treats a leading "?" as part of the first key, so the
+    // builder must round-trip both forms to the same clean venue link.
+    const withQ = buildVenueShareUrl('https://sunnyseat.app', '/', '?tags=rooftop', 'x');
+    const withoutQ = buildVenueShareUrl('https://sunnyseat.app', '/', 'tags=rooftop', 'x');
+    expect(withQ).toBe('https://sunnyseat.app/?venue=x');
+    expect(withoutQ).toBe('https://sunnyseat.app/?venue=x');
+  });
+
+  it('drops the tag-filter param under BOTH the "tags" and legacy "tag" keys', () => {
+    const url = buildVenueShareUrl(
+      'https://sunnyseat.app',
+      '/en',
+      '?tag=rooftop&tags=terrace',
+      'kafe-magasinet',
+    );
+    expect(url).toBe('https://sunnyseat.app/en?venue=kafe-magasinet');
+  });
+
+  it('does NOT strip a fragment/hash — it is not part of window.location.search', () => {
+    // The builder only reconstructs origin+pathname+query; any hash the caller
+    // passes in `search` is ignored, never leaked into the shared link.
+    const url = buildVenueShareUrl('https://sunnyseat.app', '/', '?_time=14:00', 'x');
+    expect(url).not.toContain('#');
+  });
 });
 
 describe('currentVenueShareUrl (client-only reader)', () => {
@@ -97,6 +124,34 @@ describe('currentVenueShareUrl (client-only reader)', () => {
     expect(currentVenueShareUrl(null)).toBeNull();
     expect(currentVenueShareUrl(undefined)).toBeNull();
     expect(currentVenueShareUrl('')).toBeNull();
+  });
+
+  it('strips the sharer live planner/dev params from the recipient link', () => {
+    // A sharer sitting on a dev-forced, time-planned, tag-filtered URL must hand
+    // the recipient a clean venue link — the strip must apply to the LIVE search,
+    // not just to a hand-built one.
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        origin: 'https://sunnyseat.app',
+        pathname: '/en',
+        search: '?_state=venue-detail&_time=14:00&_date=2026-07-01&tags=rooftop&venue=old',
+      },
+    });
+    expect(currentVenueShareUrl('kafe-magasinet')).toBe(
+      'https://sunnyseat.app/en?venue=kafe-magasinet',
+    );
+  });
+
+  it('accepts a whitespace-only slug verbatim (slug filtering is MapView\'s job, not the builder\'s)', () => {
+    // The builder only guards falsy slugs; a whitespace slug is truthy, so it is
+    // preserved (URL-encoded). Whether such a slug resolves is a routing concern
+    // exercised by MapView's deep-link tests, kept out of the pure builder.
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { origin: 'https://sunnyseat.app', pathname: '/', search: '' },
+    });
+    expect(currentVenueShareUrl(' ')).toBe('https://sunnyseat.app/?venue=+');
   });
 });
 
@@ -152,6 +207,33 @@ describe('shareVenueNatively (AC1 — capability-gated native share)', () => {
 
   it('reports "failed" for a non-abort rejection (→ modal fallback)', async () => {
     stubShare(() => Promise.reject(new DOMException('Denied', 'NotAllowedError')));
+    await expect(
+      shareVenueNatively({ title: 'Kafé Magasinet', url: 'https://sunnyseat.app/?venue=x' }),
+    ).resolves.toBe('failed');
+  });
+
+  it('reports "failed" when navigator.share throws SYNCHRONOUSLY (not just rejects)', async () => {
+    // Some engines throw synchronously (e.g. a security error) instead of
+    // returning a rejected promise. The try/catch must still keep the button
+    // alive by routing to the modal fallback.
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      writable: true,
+      value: vi.fn(() => {
+        throw new DOMException('Not allowed', 'NotAllowedError');
+      }),
+    });
+    await expect(
+      shareVenueNatively({ title: 'Kafé Magasinet', url: 'https://sunnyseat.app/?venue=x' }),
+    ).resolves.toBe('failed');
+  });
+
+  it('classifies a NON-DOMException abort-named rejection as "failed", not "cancelled"', async () => {
+    // The cancel path is pinned to a real DOMException AbortError. A plain Error
+    // that merely borrows the name must NOT be mistaken for a user cancel — it
+    // falls back to the modal so the share path is never silently swallowed.
+    const abortLike = Object.assign(new Error('aborted'), { name: 'AbortError' });
+    stubShare(() => Promise.reject(abortLike));
     await expect(
       shareVenueNatively({ title: 'Kafé Magasinet', url: 'https://sunnyseat.app/?venue=x' }),
     ).resolves.toBe('failed');

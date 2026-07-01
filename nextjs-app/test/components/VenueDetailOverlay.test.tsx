@@ -433,4 +433,85 @@ describe('VenueDetailOverlay sharing (Story 9.8)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Dela plats' }));
     await waitFor(() => expect(screen.getByTestId('share-modal')).toBeInTheDocument());
   });
+
+  it('does nothing (no modal, no throw) when the venue has no shareable slug', async () => {
+    // currentVenueShareUrl returns null without a slug, so handleShare bails out
+    // before touching navigator.share — the button is inert but never errors.
+    const share = stubShare(() => Promise.resolve());
+    // Force both slug sources absent — a real DTO always carries one, but the
+    // early-return guard must hold if a malformed one ever reaches the overlay.
+    const noSlug = { ...FALLBACK, slug: undefined, venueSlug: undefined } as unknown as VenueDataDto;
+    const noSlugDetail = { ...DETAIL, slug: undefined, venueSlug: undefined } as unknown as VenueDetailDto;
+    render(
+      <VenueDetailOverlay
+        mode="desktop"
+        fallbackVenue={noSlug}
+        detail={noSlugDetail}
+        currentTime="15:30"
+        labels={labels}
+        onDismiss={vi.fn()}
+        onRoute={vi.fn()}
+      />,
+    );
+
+    expect(() => fireEvent.click(screen.getByRole('button', { name: 'Dela plats' }))).not.toThrow();
+    await Promise.resolve();
+    expect(share).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('share-modal')).not.toBeInTheDocument();
+  });
+
+  it('the desktop fallback modal supports the full copy-link round-trip and closes', async () => {
+    // End-to-end: no native share → modal opens with the deep-link URL → copy
+    // writes that exact URL → the modal closes. Guards the wired path, not just
+    // the ShareModal unit in isolation.
+    removeShare();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+
+    render(
+      <VenueDetailOverlay
+        mode="desktop"
+        fallbackVenue={FALLBACK}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        onDismiss={vi.fn()}
+        onRoute={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dela plats' }));
+    await waitFor(() => expect(screen.getByTestId('share-modal')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('share-modal-copy'));
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith('https://sunnyseat.app/?venue=test-venue-sunny'),
+    );
+
+    fireEvent.click(screen.getByTestId('share-modal-close'));
+    await waitFor(() => expect(screen.queryByTestId('share-modal')).not.toBeInTheDocument());
+  });
+
+  it('prefers detail.slug over the fallback venueSlug for the share URL', async () => {
+    // The slug source is `detail?.slug ?? fallbackVenue.slug ?? fallbackVenue.venueSlug`.
+    // A loaded detail with its own canonical slug must win over the skeleton.
+    const share = stubShare(() => Promise.resolve());
+    render(
+      <VenueDetailOverlay
+        mode="mobile"
+        fallbackVenue={{ ...FALLBACK, slug: 'skeleton-slug', venueSlug: 'skeleton-slug' }}
+        detail={{ ...DETAIL, slug: 'canonical-slug' }}
+        currentTime="15:30"
+        labels={labels}
+        onDismiss={vi.fn()}
+        onRoute={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dela plats' }));
+    await waitFor(() => expect(share).toHaveBeenCalled());
+    expect(share).toHaveBeenCalledWith(
+      expect.objectContaining({ url: 'https://sunnyseat.app/?venue=canonical-slug' }),
+    );
+  });
 });
