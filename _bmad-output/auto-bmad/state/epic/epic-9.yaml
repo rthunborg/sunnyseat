@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T15:10:11Z"
+updated_at: "2026-07-01T16:05:33Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 1207
@@ -62,7 +62,7 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: live-app-hardening-clean-up
-active_story: 9-10-mobile-device-verification-pass-regression-guards
+active_story: null
 stories_landed:
   - 9-0-production-gate-the-dev-planner-forcing-url-leak
   - 9-1-clean-app-content-sweep
@@ -74,6 +74,7 @@ stories_landed:
   - 9-7-tag-filtering-real-data-working-chips
   - 9-8-venue-sharing-real
   - 9-9-mobile-venue-quick-info-card-rework
+  - 9-10-mobile-device-verification-pass-regression-guards
 auto_decisions:
   - "Share-target tiles render text glyphs instead of brand icons [Med] → defer: brand-mark fidelity is a maintainer visual-gate/asset call at rebaseline, logged to deferred-work.md (Tier A, 9-8-venue-sharing-real)"
   - "Shipped share targets differ from the reference's five tiles [Med] → dismiss: functional-only is the correct OQ4 default and Epic 9's anti-dead-control mandate; strict 5-tile parity would reintroduce dead tiles (Tier A, 9-8-venue-sharing-real)"
@@ -171,3 +172,17 @@ uat_items:
   - "[9-9] Honest distance GRANTED: set a custom geolocation fix (DevTools Sensors), reload, select a venue -> distance shows the number WITHOUT the '≈ från centrum' qualifier. [AC3]"
   - "[9-9] Honest-distance parity: with fallback active, compare the same venue's distance in the list card vs the quick-info card -> both agree it's centrum-relative (both qualified). [AC3]"
   - "[9-9] Animation: select a venue then a different pin -> content crossfades to the new venue; dismissing slides/fades out; with OS 'reduce motion' on, transitions are opacity-only (no slide/scale). [Animation gate]"
+  - "[9-10] SETUP: cd nextjs-app && npm run dev -> http://localhost:3000 (dev honours ?_time= / ?_state= forcing)."
+  - "[9-10] Null-coord project() fix (Task 3): open DevTools Console un-filtered, load a ?venue=<null-coord-slug>&_state=map-with-selected-venue deep-link (a venue with NO coordinates), pan/zoom -> NO repeated MapLibre 'Expected value to be of type number, but found null' warning (pre-fix it fired ~3x + re-fired on every move/zoom). NOTE: reproducing by hand needs a real null-coord venue row (fixtures all have coords) -> otherwise automated-only via item 3."
+  - "[9-10] Guard automated proof: npx vitest run test/components/MapView.test.tsx -> the Task-3 tests pass (wholly-null location + null lat/lng never call project; finite-coord still projects; guard bails before the move/zoom listener registers)."
+  - "[9-10] Normal path unbroken: open /?venue=test-venue-sunny&_state=map-with-selected-venue&_time=13:00 -> the quick-info card anchors to the pin (a well-formed venue still projects/positions)."
+  - "[9-10] Mobile onboarding gate (9.5): DevTools iPhone-14 emulation, clear localStorage, load / -> the welcome overlay gates the map, shell behind is inert/aria-hidden, NO map flash-through."
+  - "[9-10] Mobile location dot (9.5): grant a Gothenburg geolocation override + reload with onboarded flag set -> one amber user-location-pin at your coords; absent on fallback. NOTE: DevTools emulation doesn't fire the onboarding-CTA getCurrentPosition faithfully — use the returning-user auto-acquire path; CTA prompt is a needs-human real-device check (logged pre-existing gap)."
+  - "[9-10] Mobile chrome consolidation (9.6): on / (mobile) -> a SINGLE control set: top-bar locate + settings enabled, the gear OPENS the Settings modal (not a dead stub), duplicate floating locate/settings over the map are GONE, zoom +/- remain."
+  - "[9-10] Mobile sharing (9.8): open /?venue=test-venue-sunny&_state=venue-detail (mobile) -> the venue-detail sheet shows an enabled 'Dela plats' share button (tapping invokes native share where supported)."
+  - "[9-10] Mobile quick-info rework (9.9): open /?venue=test-venue-sunny&_state=map-with-selected-venue&_time=13:00 (mobile) -> the reworked card renders without overflow and sits CLEAR below the 'Planera soltid' planner panel (badge not jammed under the slider)."
+  - "[9-10] Clean-app deletions + CTA token (9.1/9.2): mobile venue detail -> NO EXPONERING / uncertainty-reason / 'Blir skuggigt om X min' / fabricated 'BÄST KL.'/'Platser ute ~N' cards / orphaned separators; real %-Säkerhet + Avstånd cards remain; VISA RUTT CTA is the gold->bright-amber ramp with NO olive start."
+  - "[9-10] Mobile regression net: npx playwright test --project=mobile -> epic-9-mobile-regression.spec.ts passes 5/5 (onboarding gate, location dot, share button, single-control-set/settings-modal, live-layout planner clearance). Expect ~4 PRE-EXISTING mobile failures unrelated to 9.10 (2 onboarding CTA-geolocation, 2 favourites 'Sol HH:MM' label) — logged maintainer follow-ups, not regressions."
+  - "[9-10] Clean-URL date guard: npx vitest run test/unit/queries/clean-url-date-selection.test.tsx -> 2 tests pass (a future date on a clean/un-forced URL flows into the /api/venues query key + fires exactly one fresh fetch; reselecting today returns to the live planner-less key)."
+  - "[9-10] Confirmed AC2 guards green: npx vitest run test/components/AppContextProviders.test.tsx test/unit/queries/deferred-planner-query.test.tsx test/components/MapView.test.tsx test/components/UserLocationLayer.atdd.test.tsx test/components/UserPin.test.tsx -> all pass (prod-gate ignores ?_time=, settled time change = one venues request, Favoriter<->Närmast no redundant fetch, dot on success/hidden on fallback)."
+  - "[9-10] Full gate sanity: npx tsc --noEmit (0), npx eslint . --quiet (0), npx vitest run (all green). NEEDS-HUMAN: physical real-device native share + real-GPS onboarding-CTA prompt; the stale mobile reference-PNG rebaseline cascade is a maintainer follow-up (not gate-able here)."
