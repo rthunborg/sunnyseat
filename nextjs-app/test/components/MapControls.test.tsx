@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { act, fireEvent, render } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { useRef, type ReactNode } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
 import type maplibregl from 'maplibre-gl';
@@ -216,6 +218,32 @@ describe('<MapControls />', () => {
       expect(btn).not.toBeDisabled();
       expect(btn).not.toHaveAttribute('aria-disabled');
     }
+  });
+
+  it('leaves no orphaned floating locate/settings wiring in the source (imports, testids, handler)', () => {
+    // Rendered-absence is asserted above; this guards the SOURCE so a future
+    // edit cannot reintroduce a dead handler/import for the removed floating
+    // locate + settings buttons (Story 9.6 root cause #3 — "visual shell
+    // without plumbing"). If any of these strings resurface, the buttons are
+    // creeping back in.
+    const source = readFileSync(
+      join(process.cwd(), 'components', 'custom', 'map', 'MapControls.tsx'),
+      'utf8',
+    );
+    // Strip block/line comments so stale prose (e.g. a history note mentioning
+    // the old useSettings wiring) can't mask a live orphan — we only want to
+    // catch executable code that resurrects the removed controls.
+    const code = source
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/.*$/gm, '');
+    expect(code).not.toContain('LocateFixed');
+    expect(code).not.toContain('map-control-my-location');
+    expect(code).not.toContain('map-control-settings');
+    expect(code).not.toContain('handleMyLocation');
+    // Settings is no longer opened from the map stack (top bar / desktop nav own
+    // it now) — the useSettings import + openSettings call must be gone from code.
+    expect(code).not.toContain('useSettings');
+    expect(code).not.toContain('openSettings');
   });
 
   it('removes both drag listeners on unmount (one off() per on())', () => {

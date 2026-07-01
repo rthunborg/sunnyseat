@@ -148,4 +148,30 @@ describe('<VenueSearchShell variant="mobile" /> top-bar controls (Story 9.6)', (
     expect(locate).toHaveAttribute('data-locate-state', 'fallback');
     expect(locate).not.toHaveAttribute('aria-busy');
   });
+
+  it('clears the busy signal once geolocation resolves to success (completes the 9.5 state matrix)', () => {
+    geoState.status = 'success';
+    const { getByTestId } = render(<VenueSearchShell variant="mobile" />, { wrapper: Wrapper });
+    const locate = getByTestId('search-shell-my-location') as HTMLButtonElement;
+    // aria-busy is only set while pending — success must drop it so AT does not
+    // keep announcing a permanent busy locate control after the pin lands.
+    expect(locate).not.toHaveAttribute('aria-busy');
+    expect(locate).toHaveAttribute('data-locate-state', 'success');
+    expect(locate.disabled).toBe(false);
+  });
+
+  it('renders the search combobox with no floating locate/settings duplicates on the shell surface', () => {
+    // Story 9.6 consolidation: the mobile shell is the SINGLE mobile access
+    // point. It owns exactly one locate + one settings control — the removed
+    // MapControls duplicates must never resurface here under their old testids.
+    const { getByRole, getAllByTestId, queryByTestId } = render(
+      <VenueSearchShell variant="mobile" />,
+      { wrapper: Wrapper },
+    );
+    expect(getByRole('combobox', { name: 'Sök plats' })).toBeInTheDocument();
+    expect(getAllByTestId('search-shell-my-location')).toHaveLength(1);
+    expect(getAllByTestId('search-shell-settings')).toHaveLength(1);
+    expect(queryByTestId('map-control-my-location')).toBeNull();
+    expect(queryByTestId('map-control-settings')).toBeNull();
+  });
 });
