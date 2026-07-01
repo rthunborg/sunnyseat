@@ -5,10 +5,10 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T08:57:26Z"
+updated_at: "2026-07-01T08:58:31Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
-active_seconds: 888
+active_seconds: 936
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -59,7 +59,7 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: live-app-hardening-clean-up
-active_story: null
+active_story: 9-6-map-chrome-consolidation-dead-control-cleanup
 stories_landed:
   - 9-0-production-gate-the-dev-planner-forcing-url-leak
   - 9-1-clean-app-content-sweep
