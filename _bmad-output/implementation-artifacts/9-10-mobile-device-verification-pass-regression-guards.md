@@ -401,3 +401,10 @@ Amelia (bmad-dev-story) — claude-opus-4-8
 ### Change Log
 
 - 2026-07-01 — Story 9.10 implemented (Amelia/Opus 4.8): mobile-viewport verification pass (AC1) across all Epic 9 surfaces; AC2 regression net consolidated (4 existing guards confirmed green + net-new clean-URL date-selection guard + consolidated mobile e2e spec); Task-3 MapLibre null-coord warning root-caused to the unguarded `MapView` QuickInfo projection and fixed with a `hasValidVenueLocation` guard (+3 focused tests). Gate green (tsc 0 / eslint 0 / vitest 106 files·936 tests). Mobile e2e 38 pass / 4 pre-existing failures (logged as maintainer follow-ups). Status → review.
+
+### Review Findings
+
+_(Thin Tier-A review — Acceptance Auditor + dedicated security review; the Blind Hunter and Edge-Case Hunter lenses were intentionally NOT run in this thin pass. Verdict: Approve. Security: no exploitable vulnerabilities found. All raised findings dismissed as noise/cosmetic — 0 surviving.)_
+
+- Dismissed (Low, noise): stale in-code/Completion-Notes line-ref citing the sibling `easeTo` guard at `:696` (actual `:705-706`) — stale-line-ref nit; symmetry described is real, no correctness/gate impact.
+- Dismissed (Low, noise): diff deletes the generated Playwright run-artifact `nextjs-app/test-results/.last-run.json` (not in File List) — obvious non-code generated build artifact; benign hygiene, no code impact.
