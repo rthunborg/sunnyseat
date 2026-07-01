@@ -210,6 +210,28 @@ describe('DesktopNavBar', () => {
     }));
   });
 
+  it('feeds useVenueSearch the SAME deferred-planner key + coordsSettled gate as MapView (Story 9.4 de-dupe invariant) — Story 9.7 review patch', () => {
+    // The nav's chip-driving venue query MUST be byte-identical to MapView's so
+    // TanStack collapses them into ONE request during a slider drag / before
+    // geolocation settles. MapView issues:
+    //   useVenueSearch({ lat, lng, radiusKm: 1.5, enabled: coordsSettled,
+    //                    ...useDeferredValue(plannerTime.plannerQuery) })
+    // with coordsSettled = status === 'success' || 'fallback'. The geolocation
+    // mock here is `idle` → coordsSettled === false → the nav must pass
+    // `enabled: false` (the missing-gate defect this patch fixes) AND the same
+    // radius/coords the deferred planner rides on.
+    renderDesktopNav({ forcedDate: '2026-06-14', forcedTime: '14:00' });
+
+    expect(mockState.useVenueSearch).toHaveBeenCalledWith({
+      lat: 57.7089,
+      lng: 11.9746,
+      radiusKm: 1.5,
+      enabled: false,
+      date: '2026-06-14',
+      time: '14:00',
+    });
+  });
+
   it('labels the outer <header> with the Swedish header aria-label', () => {
     renderDesktopNav();
 

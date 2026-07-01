@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useDeferredValue, useMemo } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { LocateFixed, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -37,11 +37,22 @@ export function DesktopNavBar() {
   // the chips are the real union of the loaded venues' tags (AC2) with ZERO new
   // network requests — TanStack de-dupes on the identical key (no `q`, same
   // coords/radius/planner). The nav only reads the cached data for `allTags`.
+  //
+  // The nav's key + gate MUST be byte-identical to MapView's for the de-dupe to
+  // hold. MapView (MapView.tsx:194-201) feeds `useDeferredValue(plannerTime.
+  // plannerQuery)` gated on `enabled: coordsSettled`; the nav mirrors BOTH so a
+  // rapid time-slider drag never diverges the two keys (Story 9.4 fetch-hygiene:
+  // the un-deferred planner would jump ahead of MapView's deferred key and fire
+  // an extra ungated fetch) and neither fires before geolocation settles.
+  const coordsSettled =
+    geolocation.status === 'success' || geolocation.status === 'fallback';
+  const deferredPlanner = useDeferredValue(plannerTime.plannerQuery);
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
     radiusKm: SEARCH_RADIUS_KM,
-    ...plannerTime.plannerQuery,
+    enabled: coordsSettled,
+    ...deferredPlanner,
   });
   const allTags = useMemo(
     () => collectTags(venueQuery.data?.venues ?? []),
