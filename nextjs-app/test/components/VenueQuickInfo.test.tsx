@@ -55,6 +55,7 @@ const labels = {
   confidenceApproximate: 'cirka',
   confidenceUnavailable: 'Säkerhet saknas',
   distance: 'Avstånd',
+  distanceApproximate: '≈ från centrum',
   loadingSun: 'Laddar soldata',
   sunUnavailable: 'Soltid saknas',
   routeLoading: 'Öppnar kartor',

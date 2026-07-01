@@ -76,9 +76,30 @@ const QUICK_INFO_DESKTOP_PIN_GAP = 56;
 const QUICK_INFO_DESKTOP_VIEWPORT_GUTTER = 16;
 const QUICK_INFO_MOBILE_WIDTH = 230;
 const QUICK_INFO_MOBILE_HEIGHT_ESTIMATE = 170;
-const QUICK_INFO_MOBILE_PIN_GAP = 56;
-const QUICK_INFO_MOBILE_TOP_CLEARANCE = 192;
+// The anchored mobile card renders ABOVE the pin via
+// `translate(-50%, calc(-100% - 40px))` (VenueQuickInfo). So for a projected
+// pin at `y`, the card's rendered TOP edge is `y - cardHeight - 40`. This gap
+// must match the transform's `40px` so the clearance math below stays honest.
+const QUICK_INFO_MOBILE_ANCHOR_GAP = 40;
 const QUICK_INFO_MOBILE_VIEWPORT_GUTTER = 16;
+// Story 9.9 AC3 — planner-panel collision. The mobile "Planera soltid"
+// TimeSliderPanel is positioned at `top: safe-area + var(--spacing)*18`
+// (= safe-area + 72px) and the mobile search shell sits above it. The smoke
+// test found the quick-info card's sun-% badge jamming UNDER the slider, so we
+// derive the card's minimum `y` from the planner-panel BOTTOM rather than a
+// bare magic clearance: the card TOP (`y - cardHeight - 40`) must sit at least
+// one gutter BELOW the planner bottom at common mobile heights.
+//   planner bottom ≈ SAFE_AREA_MAX + PLANNER_TOP_OFFSET + PLANNER_HEIGHT
+// SAFE_AREA_MAX covers the tallest common notch inset (~59px); PLANNER_TOP_OFFSET
+// mirrors `var(--spacing)*18 = 72px`; PLANNER_HEIGHT is the mobile panel's own
+// rendered height (`pt-5 pb-2` + a 44px slider/calendar row ≈ 80px). Keep these
+// in sync with TimeSliderPanel's mobile offset (MapView.tsx ~line 872) — if that
+// `top-[…*18]` offset or the panel padding changes, update these.
+const MOBILE_SAFE_AREA_MAX_PX = 59;
+const MOBILE_PLANNER_TOP_OFFSET_PX = 72;
+const MOBILE_PLANNER_HEIGHT_PX = 80;
+const QUICK_INFO_MOBILE_PLANNER_BOTTOM_PX =
+  MOBILE_SAFE_AREA_MAX_PX + MOBILE_PLANNER_TOP_OFFSET_PX + MOBILE_PLANNER_HEIGHT_PX;
 const MOBILE_NAV_HEIGHT_PX = 52;
 const MOBILE_SHEET_MID_HEIGHT_PX = 320;
 const FORCED_VISUAL_CONFIDENCE_META: SunFreshnessMeta = {
@@ -616,10 +637,14 @@ export function MapView() {
         ? QUICK_INFO_DESKTOP_HEIGHT_ESTIMATE +
           QUICK_INFO_DESKTOP_PIN_GAP +
           QUICK_INFO_DESKTOP_VIEWPORT_GUTTER
-        : QUICK_INFO_MOBILE_HEIGHT_ESTIMATE +
-          QUICK_INFO_MOBILE_PIN_GAP +
-          QUICK_INFO_MOBILE_TOP_CLEARANCE +
-          QUICK_INFO_MOBILE_VIEWPORT_GUTTER;
+        : // Story 9.9 AC3: the card TOP renders at `y - cardHeight - anchorGap`.
+          // Require that top to sit a gutter BELOW the planner-panel bottom, so
+          // `minY = plannerBottom + gutter + cardHeight + anchorGap`. This keeps
+          // the sun-% badge (top-left of the card) clear of the slider above it.
+          QUICK_INFO_MOBILE_PLANNER_BOTTOM_PX +
+          QUICK_INFO_MOBILE_VIEWPORT_GUTTER +
+          QUICK_INFO_MOBILE_HEIGHT_ESTIMATE +
+          QUICK_INFO_MOBILE_ANCHOR_GAP;
       const maxY = isDesktopViewport
         ? height - QUICK_INFO_DESKTOP_VIEWPORT_GUTTER
         : Math.max(
@@ -1032,6 +1057,7 @@ export function MapView() {
             confidenceMeta={quickInfoConfidenceMeta}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
+            distanceIsApproximate={locationIsApproximate}
             thumbnail={selectedQuickInfoVenue?.thumbnail}
             isLoadingSunData={!selectedQuickInfoVenue}
             position={quickInfoPosition}
@@ -1059,6 +1085,7 @@ export function MapView() {
             confidenceMeta={quickInfoConfidenceMeta}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
+            distanceIsApproximate={locationIsApproximate}
             thumbnail={selectedQuickInfoVenue?.thumbnail}
             isLoadingSunData={!selectedQuickInfoVenue}
             position={quickInfoPosition}
@@ -1237,6 +1264,7 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     confidenceApproximate: t('quickInfo.confidenceApproximate'),
     confidenceUnavailable: t('quickInfo.confidenceUnavailable'),
     distance: t('quickInfo.distance'),
+    distanceApproximate: t('quickInfo.distanceApproximate'),
     loadingSun: t('quickInfo.loadingSun'),
     sunUnavailable: t('quickInfo.sunUnavailable'),
     routeLoading: t('route.loading'),

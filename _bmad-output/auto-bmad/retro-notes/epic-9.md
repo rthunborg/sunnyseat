@@ -74,3 +74,4 @@
 - [Phase 3 — create-story] Ledger doc-path drift: the 9.5 deferred note points at components/custom/venue/VenueQuickInfo.tsx but the component actually lives at components/composed/venue/VenueQuickInfo.tsx — verify file-impact maps against the tree, not the doc.
 - [Phase 3 — create-story] Story 9.9 is pure layout/positioning polish — AC1's 'content removals' were already done by Story 9.1 on this branch; the 9.10 verification pass + retro must NOT double-count removal work.
 - [Phase 3 — create-story] Story 9.5's honest-distance-label defer (Target:9.9) is folded into 9.9 Task 3 — E8b reconcile/archive should mark it resolved once 9.9 lands (queue-not-archive: its ledger entry leaves on completion).
+- [Phase 5 — dev-story] 9.9 mobile quick-info clearance is now DERIVED from planner-panel geometry (MOBILE_PLANNER_* constants in MapView, ~211px bottom) not a magic TOP_CLEARANCE — keep in sync if TimeSliderPanel's mobile offset/padding changes (comment added).

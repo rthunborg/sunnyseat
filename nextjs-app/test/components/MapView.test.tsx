@@ -902,6 +902,92 @@ describe('<MapView />', () => {
       expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
     });
 
+    it('clamps the mobile QuickInfo card below the planner panel (Story 9.9 AC3)', () => {
+      // A pin projected near the TOP of the viewport (project → y=260) would,
+      // unclamped, anchor the card ABOVE the pin and collide with the mobile
+      // "Planera soltid" TimeSliderPanel (safe-area + 72px offset + panel
+      // height). The mobile `minY` clamp must push the card's `top` down so its
+      // rendered top edge (`top - cardHeight - 40`) sits clear of the planner.
+      //
+      // Derived floor (must stay in sync with MapView's mobile constants):
+      //   plannerBottom = SAFE_AREA(59) + PLANNER_OFFSET(72) + PLANNER_HEIGHT(80) = 211
+      //   minY = plannerBottom + gutter(16) + cardHeight(170) + anchorGap(40) = 437
+      const EXPECTED_MOBILE_MIN_Y = 437;
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Testbaren', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const mobileCard = screen
+        .getAllByTestId('venue-quick-info')
+        .find((el) => el.className.includes('w-[var(--size-quick-info-mobile-w)]'));
+      expect(mobileCard).toBeDefined();
+      const top = Number.parseFloat(
+        (mobileCard as HTMLElement).style.top.replace('px', ''),
+      );
+      // The projected pin (y=260) is above the floor, so the card clamps down to
+      // exactly the planner-clearing minimum.
+      expect(top).toBe(EXPECTED_MOBILE_MIN_Y);
+      // Card top edge = top - cardHeight(170) - anchorGap(40) must clear the
+      // planner bottom (211) by at least a gutter (16).
+      expect(top - 170 - 40).toBeGreaterThanOrEqual(211 + 16);
+    });
+
+    it('threads the honest approximate-distance label into the mobile QuickInfo on the centrum fallback (Story 9.9 Task 3)', () => {
+      selectedVenueIdMock = 'venue-1';
+      useGeolocationMock.mockReturnValue({
+        status: 'fallback',
+        coords: { lat: 57.7089, lng: 11.9746 },
+        requestLocation: () => {},
+        useCentrum: () => {},
+      });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Testbaren', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      // Both mobile + desktop cards render the annotation on the fallback.
+      expect(screen.getAllByText('≈ från centrum').length).toBeGreaterThanOrEqual(1);
+      // The real distance value is still present, never hidden.
+      expect(screen.getAllByTestId('venue-quick-info')[0]).toHaveTextContent('180 m');
+    });
+
+    it('omits the approximate-distance label on a real GPS fix (Story 9.9 Task 3)', () => {
+      selectedVenueIdMock = 'venue-1';
+      useGeolocationMock.mockReturnValue({
+        status: 'success',
+        coords: { lat: 57.7089, lng: 11.9746 },
+        requestLocation: () => {},
+        useCentrum: () => {},
+      });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Testbaren', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.queryByText('≈ från centrum')).toBeNull();
+      expect(screen.getAllByTestId('venue-quick-info')[0]).toHaveTextContent('180 m');
+    });
+
     it('keeps selected QuickInfo data visible during background venue refetch', () => {
       selectedVenueIdMock = 'venue-1';
       useVenueSearchMock.mockReturnValue({

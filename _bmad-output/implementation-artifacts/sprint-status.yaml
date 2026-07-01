@@ -237,7 +237,7 @@ development_status:
   9-6-map-chrome-consolidation-dead-control-cleanup: review
   9-7-tag-filtering-real-data-working-chips: review
   9-8-venue-sharing-real: review
-  9-9-mobile-venue-quick-info-card-rework: ready-for-dev
+  9-9-mobile-venue-quick-info-card-rework: review
   9-10-mobile-device-verification-pass-regression-guards: backlog
   epic-9-retrospective: optional
 

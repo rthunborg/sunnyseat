@@ -18,6 +18,7 @@
     "confidenceApproximate": "about",
     "confidenceUnavailable": "Confidence unavailable",
     "distance": "Distance",
+    "distanceApproximate": "≈ from centre",
     "loadingSun": "Loading sun data",
     "sunUnavailable": "Sun time unavailable",
     "sunWindow": "Sun {start}–{end}"
