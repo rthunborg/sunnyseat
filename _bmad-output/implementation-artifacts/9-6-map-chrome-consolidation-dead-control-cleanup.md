@@ -215,3 +215,14 @@ claude-opus-4-8 (auto-bmad dev-story delegate)
 2. **Where the success-fly-to lives after removing the floating locate (Task 1):** `DesktopNavBar` relies on the fly-to `useEffect` that currently sits in `MapControls` (`:100-108`). `MapControls` still mounts (zoom stack) so the effect CAN stay, but it would then live in a component that no longer renders any locate button — a code-smell. Dev default: keep it in `MapControls` if it's the smallest correct change; extract to a shared hook only if that reads cleaner. Either way, BOTH the mobile top-bar locate AND `desktop-nav-my-location` must still recenter on success — verify. Not a blocker.
 3. **Full-remove vs leave-unreferenced for `categoryCafe`/`openNow` i18n keys + label-type members (Task 3):** the story recommends full removal for cleanliness, but that touches the `VenueListControlsLabels` type + its `MapView.tsx`/`VenueList.tsx` call sites + both-locale JSON. If the ripple is larger than expected, leaving the keys unreferenced-but-present (removing only the buttons) is an acceptable fallback that keeps `messages-parity` green. Dev decides; record the choice. Not a blocker.
 4. **Visual-reference rebaseline for the consolidated `map-primary` chrome:** removing the floating locate/settings + enabling the gear changes the mobile map chrome, so the stale `map-primary.png` reference will FAIL the visual gate by design (removal-inverts-the-gate). Capturing a new baseline is a maintainer rebaseline decision (the dev agent is forbidden from self-blessing references). Expect to route this to maintainer sign-off at QA handoff — flag it, do not block dev on it.
+
+## Review Findings
+
+**Code review (2026-07-01) — THIN Tier-A (epic-mode), R=1: Acceptance Auditor lens + dedicated Security review only (Blind/Edge intentionally not run in Tier A — not failed layers).**
+
+**Verdict: PASS.** Auditor confirmed all 4 ACs satisfied + the CRITICAL Story-9.5 relocation check passes; Security reported a genuine zero. Triage yielded **0 surviving findings**.
+
+- Critical: 0 · High: 0 · Medium: 0 · Low: 0
+- Open Decisions: 0 · Deferrals logged: 0
+- Failed layers: none
+- Dismissed as noise: 3 — (1) [Low] AC4 test doesn't exercise the `filterResults={true}` "first VISIBLE" edge — dismissed as hypothetical: production `VenueSearchShell` always passes `filterResults={false}`, so the shipped call site is correctly covered; the gap has no realistic trigger. (2) [Low] Stale `DesktopNavBar` JSDoc still mentions the removed chevrons — dismissed as cosmetic doc drift, no behavioural/AC impact. (3) [Info] 404-page `NotFoundPage.tsx` inert chrome left untouched — dismissed as below-Low informational and explicitly scoped out by Dev Notes ("Do NOT edit `NotFoundPage.tsx`").
