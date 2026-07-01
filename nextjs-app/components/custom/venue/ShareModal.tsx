@@ -164,8 +164,16 @@ export function ShareModal({ open, onClose, venueName, url }: ShareModalProps) {
             className="relative max-h-[calc(100dvh-2rem)] w-full overflow-y-auto rounded-t-panel bg-surface-cream p-6 text-text-primary shadow-sheet-full-up outline-none lg:max-w-[28.75rem] lg:rounded-panel"
             initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 32 }}
             animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 32 }}
-            transition={{ duration: shouldReduceMotion ? 0 : DURATION_SLOW_S, ease: EASE_EXIT }}
+            exit={
+              shouldReduceMotion
+                ? { opacity: 0, transition: { duration: 0, ease: EASE_EXIT } }
+                : {
+                    opacity: 0,
+                    y: 32,
+                    transition: { duration: DURATION_SLOW_S, ease: EASE_EXIT },
+                  }
+            }
+            transition={{ duration: shouldReduceMotion ? 0 : DURATION_SLOW_S, ease: EASE_ENTER }}
             onPointerDown={(event) => event.stopPropagation()}
             onKeyDown={(event) => {
               if (event.key === 'Escape') {

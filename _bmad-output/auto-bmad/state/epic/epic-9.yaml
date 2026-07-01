@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T11:52:55Z"
+updated_at: "2026-07-01T13:57:06Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 1041
@@ -72,7 +72,9 @@ stories_landed:
   - 9-5-location-onboarding-reliability
   - 9-6-map-chrome-consolidation-dead-control-cleanup
   - 9-7-tag-filtering-real-data-working-chips
-auto_decisions: []
+auto_decisions:
+  - "Share-target tiles render text glyphs instead of brand icons [Med] → defer: brand-mark fidelity is a maintainer visual-gate/asset call at rebaseline, logged to deferred-work.md (Tier A, 9-8-venue-sharing-real)"
+  - "Shipped share targets differ from the reference's five tiles [Med] → dismiss: functional-only is the correct OQ4 default and Epic 9's anti-dead-control mandate; strict 5-tile parity would reintroduce dead tiles (Tier A, 9-8-venue-sharing-real)"
 uat_items:
   - "[9-0] Dev (npm run dev), open /?_time=21:00&_date=2026-07-01 -> planner shows forced 21:00 on 2026-07-01 and does NOT advance with the real clock (forcing honoured in dev). [AC#1 dev, AC#2]"
   - "[9-0] Dev, open / with no params -> planner shows live current time and ticks forward (~every minute). [AC#1 baseline]"
