@@ -6,15 +6,37 @@ import type maplibregl from 'maplibre-gl';
 import { MapInstanceContext } from '@/lib/contexts/MapInstanceContext';
 import { MapControls } from '@/components/custom/map/MapControls';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
-import { GeolocationProvider } from '@/hooks/useGeolocation';
 
-const settingsState = vi.hoisted(() => ({ openSettings: vi.fn() }));
+// Story 9.6: the floating locate + settings buttons were removed from
+// MapControls (they duplicated the mobile top-bar pair and the desktop nav).
+// This suite now covers only the surviving concerns: zoom +/-, the drag-fade,
+// the shared success-fly-to effect, and listener cleanup. The locate-button
+// reliability feedback (Story 9.5) moved to `VenueSearchShell` and is covered
+// in `VenueSearchShell.test.tsx`.
+
+// Settings is no longer consumed by MapControls; keep a harmless mock so the
+// component tree never reaches the real provider by accident.
 vi.mock('@/lib/contexts/SettingsContext', () => ({
   useSettings: () => ({
     activeView: null,
-    openSettings: settingsState.openSettings,
+    openSettings: vi.fn(),
     openFeedback: vi.fn(),
     close: vi.fn(),
+  }),
+}));
+
+// Drive `useGeolocation` directly so the shared success-fly-to effect can be
+// exercised without any locate button (the buttons live elsewhere now).
+const geoState = vi.hoisted(() => ({
+  status: 'idle' as string,
+  coords: { lat: 57.7089, lng: 11.9746 },
+}));
+vi.mock('@/hooks/useGeolocation', () => ({
+  useGeolocation: () => ({
+    status: geoState.status,
+    coords: geoState.coords,
+    requestLocation: vi.fn(),
+    useCentrum: vi.fn(),
   }),
 }));
 
@@ -32,30 +54,6 @@ const messages = {
 };
 
 type DragHandler = () => void;
-
-// Story 1.6 review P15: typed fixture for GeolocationPosition. Replaces
-// two `as any` smuggles that were bypassing the `toJSON()` method on the
-// real DOM lib type. `toJSON: () => ({})` matches the real signature.
-function makeMockPosition(coords: {
-  latitude: number;
-  longitude: number;
-  accuracy: number;
-}): GeolocationPosition {
-  return {
-    coords: {
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-      accuracy: coords.accuracy,
-      altitude: null,
-      altitudeAccuracy: null,
-      heading: null,
-      speed: null,
-      toJSON: () => ({}),
-    } as GeolocationCoordinates,
-    timestamp: Date.now(),
-    toJSON: () => ({}),
-  };
-}
 
 type StubMap = {
   zoomIn: Mock;
@@ -99,11 +97,9 @@ function makeWrapper(stubMap: StubMap) {
     };
     return (
       <NextIntlClientProvider locale="sv" messages={messages}>
-        <GeolocationProvider>
-          <MapInstanceContext.Provider value={value}>
-            {children}
-          </MapInstanceContext.Provider>
-        </GeolocationProvider>
+        <MapInstanceContext.Provider value={value}>
+          {children}
+        </MapInstanceContext.Provider>
       </NextIntlClientProvider>
     );
   };
@@ -119,11 +115,9 @@ function makeNullMapWrapper() {
     };
     return (
       <NextIntlClientProvider locale="sv" messages={messages}>
-        <GeolocationProvider>
-          <MapInstanceContext.Provider value={value}>
-            {children}
-          </MapInstanceContext.Provider>
-        </GeolocationProvider>
+        <MapInstanceContext.Provider value={value}>
+          {children}
+        </MapInstanceContext.Provider>
       </NextIntlClientProvider>
     );
   };
@@ -134,18 +128,23 @@ describe('<MapControls />', () => {
 
   beforeEach(() => {
     stubMap = makeStubMap();
+    geoState.status = 'idle';
+    geoState.coords = { lat: 57.7089, lng: 11.9746 };
   });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders four buttons with localised aria-labels', () => {
-    const { getByTestId } = render(<MapControls />, { wrapper: makeWrapper(stubMap) });
+  it('renders only the zoom buttons with localised aria-labels (no floating locate/settings)', () => {
+    const { getByTestId, queryByTestId } = render(<MapControls />, {
+      wrapper: makeWrapper(stubMap),
+    });
     expect(getByTestId('map-control-zoom-in')).toHaveAttribute('aria-label', 'Zooma in');
     expect(getByTestId('map-control-zoom-out')).toHaveAttribute('aria-label', 'Zooma ut');
-    expect(getByTestId('map-control-my-location')).toHaveAttribute('aria-label', 'Min plats');
-    expect(getByTestId('map-control-settings')).toHaveAttribute('aria-label', 'Inställningar');
+    // Story 9.6: the floating locate + settings buttons are gone from the stack.
+    expect(queryByTestId('map-control-my-location')).toBeNull();
+    expect(queryByTestId('map-control-settings')).toBeNull();
   });
 
   it('zoom+ button calls map.zoomIn with a 200 ms duration', () => {
@@ -160,135 +159,24 @@ describe('<MapControls />', () => {
     expect(stubMap.zoomOut).toHaveBeenCalled();
   });
 
-  it('my-location button: requests browser geolocation and flies to the resolved coords on success', () => {
-    const originalGeolocation = Object.getOwnPropertyDescriptor(
-      globalThis.navigator,
-      'geolocation',
-    );
-    const getCurrentPosition = vi.fn(
-      (success: (pos: GeolocationPosition) => void) => {
-        success(
-          makeMockPosition({ latitude: 57.71, longitude: 11.99, accuracy: 10 }),
-        );
-      },
-    );
-    Object.defineProperty(globalThis.navigator, 'geolocation', {
-      configurable: true,
-      writable: true,
-      value: { getCurrentPosition },
+  it('shared success-fly-to: flies to the resolved coords when geolocation resolves to success', () => {
+    // The success fly-to still lives in MapControls (shared for both the mobile
+    // top-bar locate and the desktop-nav locate, which drive the same
+    // useGeolocation context). Here we drive the hook state directly.
+    geoState.status = 'success';
+    geoState.coords = { lat: 57.71, lng: 11.99 };
+    render(<MapControls />, { wrapper: makeWrapper(stubMap) });
+    expect(stubMap.flyTo).toHaveBeenCalledWith({
+      center: [11.99, 57.71],
+      zoom: GOTHENBURG_CENTRE.zoom,
+      duration: 500,
     });
-
-    try {
-      const { getByTestId } = render(<MapControls />, { wrapper: makeWrapper(stubMap) });
-      fireEvent.click(getByTestId('map-control-my-location'));
-      expect(getCurrentPosition).toHaveBeenCalledTimes(1);
-      expect(stubMap.flyTo).toHaveBeenCalledWith({
-        center: [11.99, 57.71],
-        zoom: GOTHENBURG_CENTRE.zoom,
-        duration: 500,
-      });
-    } finally {
-      if (originalGeolocation) {
-        Object.defineProperty(globalThis.navigator, 'geolocation', originalGeolocation);
-      }
-    }
   });
 
-  it('my-location button: silently keeps the current map centre on permission denial', () => {
-    const originalGeolocation = Object.getOwnPropertyDescriptor(
-      globalThis.navigator,
-      'geolocation',
-    );
-    const getCurrentPosition = vi.fn(
-      (
-        _success: (pos: GeolocationPosition) => void,
-        error: (e: GeolocationPositionError) => void,
-      ) => {
-        error({
-          code: 1,
-          message: 'denied',
-          PERMISSION_DENIED: 1,
-          POSITION_UNAVAILABLE: 2,
-          TIMEOUT: 3,
-        } as GeolocationPositionError);
-      },
-    );
-    Object.defineProperty(globalThis.navigator, 'geolocation', {
-      configurable: true,
-      writable: true,
-      value: { getCurrentPosition },
-    });
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-    try {
-      const { getByTestId } = render(<MapControls />, { wrapper: makeWrapper(stubMap) });
-      fireEvent.click(getByTestId('map-control-my-location'));
-      expect(getCurrentPosition).toHaveBeenCalledTimes(1);
-      expect(stubMap.flyTo).not.toHaveBeenCalled();
-    } finally {
-      warnSpy.mockRestore();
-      if (originalGeolocation) {
-        Object.defineProperty(globalThis.navigator, 'geolocation', originalGeolocation);
-      }
-    }
-  });
-
-  it('my-location button: deny then grant — second click flies to coords', async () => {
-    const originalGeolocation = Object.getOwnPropertyDescriptor(
-      globalThis.navigator,
-      'geolocation',
-    );
-    let callCount = 0;
-    const getCurrentPosition = vi.fn(
-      (
-        success: (pos: GeolocationPosition) => void,
-        error: (e: GeolocationPositionError) => void,
-      ) => {
-        callCount += 1;
-        if (callCount === 1) {
-          // First click: deny.
-          error({
-            code: 1,
-            message: 'denied',
-            PERMISSION_DENIED: 1,
-            POSITION_UNAVAILABLE: 2,
-            TIMEOUT: 3,
-          } as GeolocationPositionError);
-        } else {
-          // Second click: grant.
-          success(
-            makeMockPosition({ latitude: 57.72, longitude: 11.95, accuracy: 10 }),
-          );
-        }
-      },
-    );
-    Object.defineProperty(globalThis.navigator, 'geolocation', {
-      configurable: true,
-      writable: true,
-      value: { getCurrentPosition },
-    });
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-    try {
-      const { getByTestId } = render(<MapControls />, { wrapper: makeWrapper(stubMap) });
-      const myLocation = getByTestId('map-control-my-location');
-
-      fireEvent.click(myLocation);
-      expect(stubMap.flyTo).not.toHaveBeenCalled();
-
-      fireEvent.click(myLocation);
-      expect(getCurrentPosition).toHaveBeenCalledTimes(2);
-      expect(stubMap.flyTo).toHaveBeenCalledWith({
-        center: [11.95, 57.72],
-        zoom: GOTHENBURG_CENTRE.zoom,
-        duration: 500,
-      });
-    } finally {
-      warnSpy.mockRestore();
-      if (originalGeolocation) {
-        Object.defineProperty(globalThis.navigator, 'geolocation', originalGeolocation);
-      }
-    }
+  it('shared success-fly-to: keeps the current map centre on fallback (no fly)', () => {
+    geoState.status = 'fallback';
+    render(<MapControls />, { wrapper: makeWrapper(stubMap) });
+    expect(stubMap.flyTo).not.toHaveBeenCalled();
   });
 
   it('fades the controls to 60% during a map drag and back to full opacity on dragend', () => {
@@ -305,35 +193,29 @@ describe('<MapControls />', () => {
     expect(wrapper.style.opacity).toBe('1');
   });
 
-  it('renders the map-action buttons disabled while mapInstance is null (settings stays enabled)', () => {
+  it('renders the zoom buttons disabled while mapInstance is null', () => {
     // Story 1.6 review (P37): native `disabled` is the only signal — the
     // explicit `aria-disabled` attribute was removed (it was redundant
     // with `disabled` and caused double-announcement on some AT).
     const { getByTestId } = render(<MapControls />, { wrapper: makeNullMapWrapper() });
 
-    for (const id of ['map-control-zoom-in', 'map-control-zoom-out', 'map-control-my-location']) {
+    for (const id of ['map-control-zoom-in', 'map-control-zoom-out']) {
       const btn = getByTestId(id);
       expect(btn).toBeDisabled();
       // The DOM disabled attribute is what AT reads; assert that, not
       // a synthesised aria-disabled mirror.
       expect(btn).toHaveAttribute('disabled');
     }
-    // Settings opens the settings modal — independent of the map being ready.
-    expect(getByTestId('map-control-settings')).not.toBeDisabled();
   });
 
-  it('settings button is enabled and opens the settings modal on click', () => {
+  it('enables the zoom buttons once the map is ready', () => {
     const { getByTestId } = render(<MapControls />, { wrapper: makeWrapper(stubMap) });
 
-    for (const id of ['map-control-zoom-in', 'map-control-zoom-out', 'map-control-my-location']) {
+    for (const id of ['map-control-zoom-in', 'map-control-zoom-out']) {
       const btn = getByTestId(id);
       expect(btn).not.toBeDisabled();
       expect(btn).not.toHaveAttribute('aria-disabled');
     }
-    const settings = getByTestId('map-control-settings');
-    expect(settings).not.toBeDisabled();
-    fireEvent.click(settings);
-    expect(settingsState.openSettings).toHaveBeenCalledTimes(1);
   });
 
   it('removes both drag listeners on unmount (one off() per on())', () => {

@@ -72,6 +72,32 @@ describe('<VenueSearchCombobox />', () => {
     expect(onSelectVenue).toHaveBeenCalledWith(expect.objectContaining({ id: '1' }));
   });
 
+  // Story 9.6 AC4 (low-priority polish): pressing Enter with NO prior ArrowDown
+  // selects the first visible result. Verified empirically: cmdk 1.1.1 (with
+  // `shouldFilter={false}`) auto-highlights the first item when the list opens,
+  // so a bare Enter already fires that item's `onSelect` — no explicit keydown
+  // handler was needed. This test documents + guards that default behaviour.
+  it('selects the first visible result on a bare Enter with no prior ArrowDown', () => {
+    const onSelectVenue = vi.fn();
+    render(
+      <Harness
+        venues={[
+          makeVenue({ id: '1', name: 'Kafé Magasinet', neighborhood: 'Inom Vallgraven' }),
+          makeVenue({ id: '2', name: 'Café Halvvägs', neighborhood: 'Vasastaden' }),
+        ]}
+        onSelectVenue={onSelectVenue}
+      />,
+    );
+
+    const input = screen.getByRole('combobox', { name: 'Sök plats' });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'kafé' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onSelectVenue).toHaveBeenCalledTimes(1);
+    expect(onSelectVenue).toHaveBeenCalledWith(expect.objectContaining({ id: '1' }));
+  });
+
   it('dismisses on Escape, clears query from the clear button, and renders no-results copy', async () => {
     const onSelectVenue = vi.fn();
     render(

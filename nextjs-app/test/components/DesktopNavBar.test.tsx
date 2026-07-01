@@ -210,12 +210,18 @@ describe('DesktopNavBar', () => {
     );
   });
 
-  it('keeps out-of-scope desktop chrome disabled until later stories own behavior', () => {
+  it('keeps the out-of-scope filter chips disabled until Story 9.7 owns them', () => {
     renderDesktopNav();
 
+    // Story 9.7 (Tag Filtering) owns the decorative chips — they stay disabled.
     expect(screen.getByRole('button', { name: 'Innergård' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Föregående filter' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Nästa filter' })).toBeDisabled();
+  });
+
+  it('no longer renders the dead pager chevrons (Story 9.6 removed them)', () => {
+    renderDesktopNav();
+
+    expect(screen.queryByRole('button', { name: 'Föregående filter' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Nästa filter' })).toBeNull();
   });
 
   it('opens the settings modal from the settings button and no longer renders a standalone About link', () => {

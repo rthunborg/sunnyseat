@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { ChevronLeft, ChevronRight, LocateFixed, Settings } from 'lucide-react';
+import { LocateFixed, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
 import { VenueSearchShell } from '@/components/custom/search/VenueSearchShell';
@@ -42,11 +42,14 @@ export function DesktopNavBar() {
 
       <VenueSearchShell variant="desktop" />
 
+      {/* Story 9.6: the two dead pager chevrons that flanked this chip row were
+          removed (inert `disabled` placeholders with no handler read as broken).
+          The 8 filter chips remain the decorative tag placeholders that Story
+          9.7 (Tag Filtering) will wire up. */}
       <nav
         aria-label={t('nav.filter')}
         className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
       >
-        <HeaderChevron label={t('nav.previous')} direction="left" />
         {[
           t('nav.filterChips.courtyard'),
           t('nav.filterChips.dogs'),
@@ -66,7 +69,6 @@ export function DesktopNavBar() {
               {chip}
             </button>
         ))}
-        <HeaderChevron label={t('nav.next')} direction="right" />
       </nav>
 
       <div className="flex shrink-0 items-center gap-2">
@@ -92,26 +94,6 @@ export function DesktopNavBar() {
         </HeaderIconButton>
       </div>
     </header>
-  );
-}
-
-function HeaderChevron({
-  label,
-  direction,
-}: {
-  label: string;
-  direction: 'left' | 'right';
-}) {
-  const Icon = direction === 'left' ? ChevronLeft : ChevronRight;
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      disabled
-      className="flex size-9 shrink-0 cursor-not-allowed items-center justify-center rounded-pill text-text-muted outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
-    >
-      <Icon aria-hidden="true" className="size-4" />
-    </button>
   );
 }
 

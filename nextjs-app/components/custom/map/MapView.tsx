@@ -1411,8 +1411,6 @@ function venueListControlLabels(t: ReturnType<typeof useTranslations<'venue.list
     topPicks: t('controls.topPicks'),
     sortBySun: t('controls.sortBySun'),
     sortByDistance: t('controls.sortByDistance'),
-    categoryCafe: t('controls.categoryCafe'),
-    openNow: t('controls.openNow'),
     unavailable: t('controls.unavailable'),
   };
 }

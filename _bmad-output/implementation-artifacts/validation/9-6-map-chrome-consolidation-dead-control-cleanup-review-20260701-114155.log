@@ -1,0 +1,9 @@
+SunnySeat story review gate
+Story: 9-6-map-chrome-consolidation-dead-control-cleanup
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/9-6-map-chrome-consolidation-dead-control-cleanup-review-20260701-114155.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/9-6-map-chrome-consolidation-dead-control-cleanup.md
+Current sprint status: ready-for-dev
+ERROR: expected '9-6-map-chrome-consolidation-dead-control-cleanup' to be in-progress before review, got 'ready-for-dev'

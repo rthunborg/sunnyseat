@@ -11,6 +11,7 @@ import { useVenueSearch } from '@/hooks/queries/useVenueSearch';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
+import { useSettings } from '@/lib/contexts/SettingsContext';
 import { useTimeContext } from '@/lib/contexts/TimeContext';
 import { DURATION_FLY_MS } from '@/lib/constants/animation';
 import type { VenueDataDto } from '@/lib/types/api';
@@ -39,6 +40,7 @@ export function VenueSearchShell({
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
   const { selectVenue } = useMapSelection();
+  const { openSettings } = useSettings();
   const plannerTime = useTimeContext();
   const trimmedQuery = query.trim();
   const [debouncedQuery, setDebouncedQuery] = useState(trimmedQuery);
@@ -100,19 +102,37 @@ export function VenueSearchShell({
           maxLength={MAX_QUERY_LENGTH}
           className="min-w-0 flex-1"
         />
+        {/* Story 9.6: this is the single surviving mobile locate control (the
+            floating MapControls duplicate was removed). Story 9.5 AC4(a)'s
+            locate-reliability feedback was RELOCATED here from that removed
+            button: `pending` sets `aria-busy` + pulses the icon; `fallback`
+            (denied / timeout / unavailable) is surfaced via `data-locate-state`
+            while the button stays clickable so the user can re-request instead
+            of silently sitting on the centrum fallback. The success fly-to still
+            lives in MapControls' shared effect (same `useGeolocation` context). */}
         <button
           type="button"
           aria-label={tNav('myLocation')}
+          aria-busy={geolocation.status === 'pending' || undefined}
+          data-locate-state={geolocation.status}
+          data-testid="search-shell-my-location"
           onClick={geolocation.requestLocation}
           className="flex size-11 shrink-0 items-center justify-center rounded-pill bg-glass-standard text-text-primary shadow-button-float backdrop-blur-standard outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
         >
-          <Navigation aria-hidden="true" className="size-5" />
+          <Navigation
+            aria-hidden="true"
+            className={cn(
+              'size-5',
+              geolocation.status === 'pending' && 'motion-safe:animate-pulse',
+            )}
+          />
         </button>
         <button
           type="button"
           aria-label={t('settings')}
-          disabled
-          className="flex size-11 shrink-0 cursor-not-allowed items-center justify-center rounded-pill bg-glass-standard text-text-primary opacity-60 shadow-button-float backdrop-blur-standard outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+          data-testid="search-shell-settings"
+          onClick={openSettings}
+          className="flex size-11 shrink-0 items-center justify-center rounded-pill bg-glass-standard text-text-primary shadow-button-float backdrop-blur-standard outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
         >
           <Settings aria-hidden="true" className="size-5" />
         </button>

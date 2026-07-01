@@ -1,31 +1,28 @@
 /**
- * ATDD RED-PHASE SCAFFOLD — Story 9.5 AC4
+ * ATDD SCAFFOLD — Story 9.5 AC4
  * (a) Locate-button pending/denied feedback + (b) SW controllerchange→single reload.
  *
- * STATUS: describe.skip — both surfaces assert POST-implementation behaviour:
- *  - (a) MapControls' locate button exposes no pending/denied state today, so the
- *    `aria-busy` / `data-locate-state` assertions are RED.
- *  - (b) the SW-update reload handler module does not exist yet; it is loaded via a
- *    runtime dynamic specifier so neither tsc nor vite import-analysis trips on the
- *    not-yet-existing path. Skipped so CI stays green. The dev (Task 4) wires the
- *    feedback + adds the controllerchange→reload hook, then un-skips this block.
+ * STORY 9.6 UPDATE: Story 9.5 originally wired the (a) locate-reliability feedback
+ * on the FLOATING `MapControls` locate button. Story 9.6 removed that duplicate
+ * floating button and RELOCATED the feedback onto the single surviving mobile
+ * locate control — the top-bar `Navigation` button in `VenueSearchShell`
+ * (`data-testid="search-shell-my-location"`). Part (a) below now asserts the
+ * SAME reliability contract against that surviving surface, so 9.5's behaviour is
+ * preserved after the consolidation rather than silently dropped.
  *
- * What this proves (deterministic — attribute branching + mocked SW event, no timing):
- *  - (a) status === 'pending'  → the locate button reflects a pending state
+ * STATUS: describe.skip — part (b) still targets a SW-update reload handler module
+ * loaded via a runtime dynamic specifier; the block stays skipped so CI is not
+ * gated on it. Part (a) is now GREEN against the relocated surface and could be
+ * un-skipped independently, but is kept in this cohesive 9.5-AC4 file.
+ *
+ * What part (a) proves (deterministic — attribute branching, no timing):
+ *  - status === 'pending'  → the surviving locate button reflects a pending state
  *        (aria-busy="true" and/or data-locate-state="pending").
- *  - (a) status === 'fallback' → the locate button stays available to RETRY
+ *  - status === 'fallback' → the locate button stays available to RETRY
  *        (not disabled) and reflects a denied/fallback state — instead of silently
  *        sitting on the fallback with no affordance.
- *  - (b) a single `controllerchange` event triggers exactly ONE reload
- *        (location.reload called once) — and a SECOND controllerchange does NOT
- *        reload again (the `refreshing` guard: no reload loop).
  *
- * The locate-state attribute name is the dev's call; this scaffold asserts the two
- * most likely honest signals (aria-busy + data-locate-state). The dev keeps whichever
- * they implement and deletes the other assertion when un-skipping.
- *
- * The SW handler's expected shape this scaffold assumes (the dev may name it
- * differently — adjust the import + call site, keep the assertions):
+ * The SW handler's expected shape part (b) assumes:
  *   registerServiceWorkerUpdateReload(): () => void   // returns a cleanup fn
  * It listens for `navigator.serviceWorker` 'controllerchange' and reloads once.
  */
@@ -34,15 +31,27 @@ import { render } from '@testing-library/react';
 import { useRef, type ReactNode } from 'react';
 import type maplibregl from 'maplibre-gl';
 import { NextIntlClientProvider } from 'next-intl';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MapInstanceContext } from '@/lib/contexts/MapInstanceContext';
-import { MapControls } from '@/components/custom/map/MapControls';
+import { VenueSearchShell } from '@/components/custom/search/VenueSearchShell';
 
 const messages = {
-  map: {
-    zoomIn: 'Zooma in',
-    zoomOut: 'Zooma ut',
-    myLocation: 'Min plats',
-    settings: 'Inställningar',
+  common: {
+    nav: {
+      myLocation: 'Min plats',
+    },
+  },
+  venue: {
+    search: {
+      label: 'Sök plats',
+      placeholder: 'Sök plats eller område i Göteborg...',
+      clear: 'Rensa sökning',
+      loading: 'Söker platser',
+      error: 'Sökningen kunde inte genomföras',
+      noResults: 'Inga resultat för "{query}"',
+      resultCount: '{count, plural, one {# resultat} other {# resultat}}',
+      settings: 'Inställningar',
+    },
   },
 };
 
@@ -53,6 +62,27 @@ vi.mock('@/lib/contexts/SettingsContext', () => ({
     openFeedback: vi.fn(),
     close: vi.fn(),
   }),
+}));
+
+vi.mock('@/hooks/queries/useVenueSearch', () => ({
+  useVenueSearch: () => ({
+    data: { venues: [] },
+    isFetching: false,
+    isError: false,
+    dataUpdatedAt: 1,
+  }),
+}));
+
+vi.mock('@/lib/contexts/MapSelectionContext', () => ({
+  useMapSelection: () => ({
+    selectedVenueId: null,
+    selectVenue: vi.fn(),
+    toggleVenue: vi.fn(),
+  }),
+}));
+
+vi.mock('@/lib/contexts/TimeContext', () => ({
+  useTimeContext: () => ({ plannerQuery: {} }),
 }));
 
 // Mockable geolocation status so the locate-feedback branch is driven directly.
@@ -70,13 +100,10 @@ type MapInstanceContextValue = React.ComponentProps<
   typeof MapInstanceContext.Provider
 >['value'];
 
-function ControlsWrapper({ children }: { children: ReactNode }) {
+function SearchShellWrapper({ children }: { children: ReactNode }) {
   const stubMap = {
+    easeTo: vi.fn(),
     flyTo: vi.fn(),
-    zoomIn: vi.fn(),
-    zoomOut: vi.fn(),
-    on: vi.fn(),
-    off: vi.fn(),
   } as unknown as maplibregl.Map;
   const mapRef = useRef<maplibregl.Map | null>(stubMap);
   const value: MapInstanceContextValue = {
@@ -84,23 +111,30 @@ function ControlsWrapper({ children }: { children: ReactNode }) {
     mapInstance: stubMap,
     setMapInstance: () => {},
   };
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return (
-    <NextIntlClientProvider locale="sv" messages={messages}>
-      <MapInstanceContext.Provider value={value}>{children}</MapInstanceContext.Provider>
-    </NextIntlClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <NextIntlClientProvider locale="sv" messages={messages}>
+        <MapInstanceContext.Provider value={value}>{children}</MapInstanceContext.Provider>
+      </NextIntlClientProvider>
+    </QueryClientProvider>
   );
 }
 
-describe('Story 9.5 AC4(a) — locate-button pending/denied feedback (RED)', () => {
+describe('Story 9.5 AC4(a) — locate-button pending/denied feedback (relocated to VenueSearchShell by 9.6)', () => {
   afterEach(() => {
     geoState.status = 'idle';
   });
 
-  it('reflects a PENDING state on the locate button while status === "pending"', () => {
+  it('reflects a PENDING state on the surviving locate button while status === "pending"', () => {
     geoState.status = 'pending';
-    const { getByTestId } = render(<MapControls />, { wrapper: ControlsWrapper });
-    const btn = getByTestId('map-control-my-location');
-    // Honest in-flight signal — either is acceptable; dev keeps one.
+    const { getByTestId } = render(<VenueSearchShell variant="mobile" />, {
+      wrapper: SearchShellWrapper,
+    });
+    const btn = getByTestId('search-shell-my-location');
+    // Honest in-flight signal — both are wired.
     expect(
       btn.getAttribute('aria-busy') === 'true' ||
         btn.getAttribute('data-locate-state') === 'pending',
@@ -109,8 +143,10 @@ describe('Story 9.5 AC4(a) — locate-button pending/denied feedback (RED)', () 
 
   it('keeps the locate button available to RETRY on status === "fallback" (denied/unavailable)', () => {
     geoState.status = 'fallback';
-    const { getByTestId } = render(<MapControls />, { wrapper: ControlsWrapper });
-    const btn = getByTestId('map-control-my-location') as HTMLButtonElement;
+    const { getByTestId } = render(<VenueSearchShell variant="mobile" />, {
+      wrapper: SearchShellWrapper,
+    });
+    const btn = getByTestId('search-shell-my-location') as HTMLButtonElement;
     // The whole point of AC4: NOT silently sitting on the fallback — the button
     // must stay clickable so the user can re-request.
     expect(btn.disabled).toBe(false);

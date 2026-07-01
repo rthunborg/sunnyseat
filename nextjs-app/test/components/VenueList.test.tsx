@@ -171,7 +171,7 @@ describe('<VenueList />', () => {
     ]);
   });
 
-  it('renders mobile discovery chips with unavailable future filters disabled', () => {
+  it('renders the working sort buttons and no longer renders the dead category placeholders', () => {
     render(
       <VenueListControls
         mode="mobile"
@@ -183,8 +183,6 @@ describe('<VenueList />', () => {
           topPicks: 'Toppval nära dig',
           sortBySun: 'Mest sol',
           sortByDistance: 'Nära mig',
-          categoryCafe: 'Kafé',
-          openNow: 'Öppet nu',
           unavailable: 'Kommer senare',
         }}
       />,
@@ -194,8 +192,9 @@ describe('<VenueList />', () => {
     expect(screen.getByRole('button', { name: 'Mest sol' })).toHaveClass('text-label-lg');
     expect(screen.getByRole('button', { name: 'Mest sol' })).not.toHaveClass('text-label-md');
     expect(screen.getByRole('button', { name: 'Nära mig' })).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getByRole('button', { name: 'Kafé, Kommer senare' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Öppet nu, Kommer senare' })).toBeDisabled();
+    // Story 9.6: the "Café"/"Öppet nu" dead category placeholders were removed.
+    expect(screen.queryByRole('button', { name: /Kafé/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Öppet nu/ })).toBeNull();
   });
 
   it('renders an empty state and calls selection with the selected DTO', () => {

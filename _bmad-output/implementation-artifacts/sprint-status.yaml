@@ -231,7 +231,7 @@ development_status:
   9-3-venue-sun-compute-performance-server-caching: review
   9-4-client-query-hygiene-time-change-debounce: review
   9-5-location-onboarding-reliability: review
-  9-6-map-chrome-consolidation-dead-control-cleanup: ready-for-dev
+  9-6-map-chrome-consolidation-dead-control-cleanup: review
   9-7-tag-filtering-real-data-working-chips: backlog
   9-8-venue-sharing-real: backlog
   9-9-mobile-venue-quick-info-card-rework: backlog
