@@ -76,3 +76,7 @@
 - [Phase 3 — create-story] Story 9.5's honest-distance-label defer (Target:9.9) is folded into 9.9 Task 3 — E8b reconcile/archive should mark it resolved once 9.9 lands (queue-not-archive: its ledger entry leaves on completion).
 - [Phase 5 — dev-story] 9.9 mobile quick-info clearance is now DERIVED from planner-panel geometry (MOBILE_PLANNER_* constants in MapView, ~211px bottom) not a magic TOP_CLEARANCE — keep in sync if TimeSliderPanel's mobile offset/padding changes (comment added).
 - [Phase 6 — automate] MapView component tests are constrained by the shared map mock (hardcoded 390x700 canvas collapses maxY->minY) + jsdom's missing matchMedia (always resolves the mobile branch) — desktop-branch/variable-canvas assertions need a shared-mock rewrite; out of scope for presentational coverage.
+
+## Story 9-10-mobile-device-verification-pass-regression-guards
+- [Phase 3 — create-story] Epic-9's mobile 'verification' surface is thinner than it reads — the `mobile` Playwright project already runs every non-axe spec at iPhone 14 and 4/5 of 9.10's AC2 guards already exist; real net-new is one clean-URL-date guard + a consolidated mobile e2e spec + the MapLibre null-coordinate warning hunt.
+- [Phase 3 — create-story] EPIC CLOSE-OUT BLOCKER: the stale reference-PNG rebaseline cascade (map-with-selected-venue / venue-detail / map-primary + missing share-modal & location-dot refs) has compounded across 9.1/9.5/9.6/9.7/9.8/9.9 — ONE maintainer rebaseline action; Epic-9 cannot truthfully claim a green visual gate until it lands.
