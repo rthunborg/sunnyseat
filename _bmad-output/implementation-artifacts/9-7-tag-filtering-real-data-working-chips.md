@@ -1,6 +1,6 @@
 # Story 9.7: Tag Filtering — Real Data + Working Chips
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -28,13 +28,13 @@ _(Verbatim intent from epics.md §"Story 9.7: Tag Filtering (Real Data + Working
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Read the coordination + data-sourcing context FIRST (no code)**
-  - [ ] Read Dev Notes §"DATA SOURCING" in full — it resolves the "how do we get truthful tags without fabricating them" question that defines this story. Do **not** invent new tag values.
-  - [ ] Read §"Why this exists (root cause #2)", §"Where the chips live vs where the venues live (the split)", and §"Constraints carried from Epic 9 retro-notes (binding)".
-  - [ ] Confirm against HEAD: the 8 chips + the `<nav aria-label={t('nav.filter')}>` wrapper are still in `DesktopNavBar.tsx:49-72` (Story 9.6 left them for this story); `DesktopNavBar.test.tsx:213-218` still asserts the `'Innergård'` chip is `disabled` (this test MUST be updated by this story).
+- [x] **Task 1 — Read the coordination + data-sourcing context FIRST (no code)**
+  - [x] Read Dev Notes §"DATA SOURCING" in full — it resolves the "how do we get truthful tags without fabricating them" question that defines this story. Do **not** invent new tag values.
+  - [x] Read §"Why this exists (root cause #2)", §"Where the chips live vs where the venues live (the split)", and §"Constraints carried from Epic 9 retro-notes (binding)".
+  - [x] Confirm against HEAD: the 8 chips + the `<nav aria-label={t('nav.filter')}>` wrapper are still in `DesktopNavBar.tsx:49-72` (Story 9.6 left them for this story); `DesktopNavBar.test.tsx:213-218` still asserts the `'Innergård'` chip is `disabled` (this test MUST be updated by this story).
 
-- [ ] **Task 2 — Additive `tags` column on the venue contract (migration + types + select) (AC: #1, #6)**
-  - [ ] Add to `_bmad-output/implementation-artifacts/8-2-venues-store-contract.sql` (the contract handoff `.sql`, manual-run-only) an **idempotent additive** column in Section 2, following the existing `alter table … add column if not exists` pattern used for `seating_area` / `seating_elevation_m` / `ground_elevation_m`:
+- [x] **Task 2 — Additive `tags` column on the venue contract (migration + types + select) (AC: #1, #6)**
+  - [x] Add to `_bmad-output/implementation-artifacts/8-2-venues-store-contract.sql` (the contract handoff `.sql`, manual-run-only) an **idempotent additive** column in Section 2, following the existing `alter table … add column if not exists` pattern used for `seating_area` / `seating_elevation_m` / `ground_elevation_m`:
     ```sql
     alter table public.venues add column if not exists tags text[] not null default '{}';
     comment on column public.venues.tags is
@@ -43,53 +43,49 @@ _(Verbatim intent from epics.md §"Story 9.7: Tag Filtering (Real Data + Working
       'Serialized into the client VenueDataDto (unlike the server-only seating_* columns).';
     ```
     Use `text[] not null default '{}'` (NOT `jsonb`) — it is the simplest array-intersection-friendly shape, matches the reference `v.tags` string-array, and Supabase maps it to `string[]` in `types.ts`. (`jsonb` is the fallback only if a reviewer objects; document the choice either way.)
-  - [ ] Update the **seed** (Section 4): add `tags` to the `insert into public.venues (…)` column list and give each of the 7 rows its deterministic tag array from §"DATA SOURCING · Seed values" below. Add `tags = excluded.tags` to the `on conflict (id) do update set` block so a re-seed is idempotent.
-  - [ ] Update Section 6 smoke checks: add a `select id, slug, tags from public.venues order by id;` expectation and note the 7 expected arrays.
-  - [ ] Update Section 5 rollback notes: `alter table public.venues drop column if exists tags;` is the additive rollback (the column drop is reversible; the table-drop rollback already covers it).
-  - [ ] Update `nextjs-app/lib/supabase/types.ts` `venues` table `Row` / `Insert` / `Update` to add `tags: string[]` (Row: `string[]`; Insert/Update: `tags?: string[]`). This file is the schema source-of-truth; the note at its top says to regenerate via the Supabase types generator after a schema change — a hand-edit that matches the generator output is acceptable here (keep the shape the generator would produce: `tags: string[]` on Row, `tags?: string[]` on Insert/Update).
-  - [ ] **APPLY the migration + seed to the LIVE `public.venues` store.** The app is on the real data path (`SUNNYSEAT_VENUE_STORE=supabase` in Production). Per the 9.1 retro pattern ("live Supabase UPDATE"), run the additive `alter table … add column if not exists tags …` + the idempotent tag seed against the live DB (via the Supabase MCP `apply_migration`/SQL tools, or the documented IPv4 session-pooler psql path in `reference_supabase_db_import_connection`). It is safe: additive, idempotent, only 7 test venues, no production data, no data-loss risk (maintainer-confirmed in epics.md). Record the applied SQL + row-count verification in the Completion Notes / Debug Log.
+  - [x] Update the **seed** (Section 4): add `tags` to the `insert into public.venues (…)` column list and give each of the 7 rows its deterministic tag array from §"DATA SOURCING · Seed values" below. Add `tags = excluded.tags` to the `on conflict (id) do update set` block so a re-seed is idempotent.
+  - [x] Update Section 6 smoke checks: add a `select id, slug, tags from public.venues order by id;` expectation and note the 7 expected arrays.
+  - [x] Update Section 5 rollback notes: `alter table public.venues drop column if exists tags;` is the additive rollback (the column drop is reversible; the table-drop rollback already covers it).
+  - [x] Update `nextjs-app/lib/supabase/types.ts` `venues` table `Row` / `Insert` / `Update` to add `tags: string[]` (Row: `string[]`; Insert/Update: `tags?: string[]`). This file is the schema source-of-truth; the note at its top says to regenerate via the Supabase types generator after a schema change — a hand-edit that matches the generator output is acceptable here (keep the shape the generator would produce: `tags: string[]` on Row, `tags?: string[]` on Insert/Update).
+  - [x] **APPLY the migration + seed to the LIVE `public.venues` store.** Applied via the IPv4 session-pooler psql path (Docker `postgis/postgis:15-3.5`, `SUPABASE_DB_POOLER_URL` from repo-root `.env.local`) in a single transaction: `alter table … add column if not exists tags text[] not null default '{}'` + 7 idempotent `update … set tags = …`. Verified: 7 rows, all tag arrays match the seed, no data loss. (Supabase MCP tools were not exposed as callable functions in this session, so the documented pooler-psql path was used per `reference_supabase_db_import_connection`.)
 
-- [ ] **Task 3 — Surface `tags` through the store adapter + DTO (AC: #1)**
-  - [ ] `nextjs-app/lib/types/api.ts` — add `tags: string[];` to `VenueDataDto` (required, defaults to `[]` at the mapping boundary so it is never `undefined`). It is a **public, client-safe** field (unlike the server-only `seating_*`), so it IS serialized into the DTO.
-  - [ ] `nextjs-app/lib/services/venue-store.ts`:
-    - Add `'tags'` to `VENUE_SELECT_COLUMNS`.
-    - Add `tags?: string[] | null` to the local `VenueRow` type.
-    - In `fromVenueRow`, coerce defensively: `tags: coerceTags(row.tags)` where `coerceTags` returns a `string[]` — keep only non-empty trimmed strings, drop non-array / null → `[]`, de-dupe. (Mirror the defensive `coerce*` helpers already in this file. A malformed/null column must yield `[]`, never crash — AC1/AC4 graceful-empty requirement.)
-    - In `toVenueData`, always set `base.tags = venue.tags ?? []` (unconditional — the field is required on the DTO, so `[]` is the honest "no tags" value; do NOT use the `if (x !== undefined)` optional-spread pattern here).
-  - [ ] `nextjs-app/lib/services/venues-fixture.ts` (the in-memory seed / `VENUE_FIXTURE`) — add `tags` to each of the 7 fixture venues with the SAME §"DATA SOURCING · Seed values" arrays, so the default (non-Supabase) CI path and the live path are byte-consistent, and the DTO always has `tags`. (Verify: `VENUE_FIXTURE` is the source both `getVenues` [fixture branch] and the 8-2 seed derive from — keep them identical.)
-  - [ ] Confirm `normalizeVenueForResponse` (in `venues-fixture.ts`) passes `tags` through untouched (it spreads the venue; if it allow-lists fields, add `tags`). The route's `matchesVenueQuery` / sort / distance logic does NOT need to change — tag filtering is CLIENT-side (see Task 4 rationale).
+- [x] **Task 3 — Surface `tags` through the store adapter + DTO (AC: #1)**
+  - [x] `nextjs-app/lib/types/api.ts` — added `tags: string[];` to `VenueDataDto` (required, defaults to `[]` at the mapping boundary so it is never `undefined`). Public, client-safe field, serialized into the DTO.
+  - [x] `nextjs-app/lib/services/venue-store.ts`: `'tags'` in `VENUE_SELECT_COLUMNS`; `tags?: string[] | null` on `VenueRow`; `tags: coerceTags(row.tags)` in `fromVenueRow` (new `coerceTags` helper — keeps non-empty trimmed strings, de-dupes, non-array/null/garbage → `[]`, never crashes); `toVenueData` sets `tags: venue.tags ?? []` unconditionally.
+  - [x] `nextjs-app/lib/services/venues-fixture.ts` — added the same `tags` arrays to all 7 `VENUE_FIXTURE` venues (byte-consistent with the live seed).
+  - [x] Confirmed `normalizeVenueForResponse` passes `tags` through untouched (it spreads the venue; no allow-list). Route sort/distance logic unchanged — tag filtering is client-side.
 
-- [ ] **Task 4 — New shared tag-filter state (context) consumable by nav + venue surfaces (AC: #3, #4)**
-  - [ ] Create `nextjs-app/lib/contexts/TagFilterContext.tsx` (a `'use client'` context provider + `useTagFilter()` hook), mirroring the existing lightweight context pattern (`SettingsContext.tsx` / `MapSelectionContext.tsx`): state = `activeTags: Set<string>` (or `readonly string[]`), API = `{ activeTags, toggleTag(tag), clearTags(), isActive(tag) }`. Default context value is a **no-op** object (not a throw) so components render safely in unit tests without the provider (match `SettingsContext.tsx:23-34`).
-  - [ ] Mount `TagFilterProvider` in `nextjs-app/components/custom/layout/AppContextProviders.tsx` so BOTH `DesktopNavBar` (via `ResponsiveLayout`, a sibling of `children`) AND `MapView` (via `children`) are inside it. Place it at a level that wraps `{children}` and the nav — the cleanest spot is wrapping the whole tree inside `SettingsProvider` (alongside the Time/Favourites providers) OR just inside `GeolocationProvider`. Verify: `DesktopNavBar` is rendered by `ResponsiveLayout` in `app/[locale]/layout.tsx`, which is nested inside `AppContextProviders`; `MapView` is `children`. Both must resolve the SAME provider instance. (This is the crux of AC3's "shared via context consumable by both the nav and the venue surfaces" — the chip UI and the venue surfaces are in **separate component subtrees** joined only at `AppContextProviders`.)
-  - [ ] The context is client-only ephemeral state (no URL/localStorage persistence required by the ACs — keep it simple; do NOT add query-param plumbing, which would collide with the Story 9.0 planner-forcing gate concerns).
+- [x] **Task 4 — New shared tag-filter state (context) consumable by nav + venue surfaces (AC: #3, #4)**
+  - [x] Created `nextjs-app/lib/contexts/TagFilterContext.tsx` (`'use client'` provider + `useTagFilter()` hook): `activeTags: ReadonlySet<string>`, API `{ activeTags, toggleTag(tag), clearTags(), isActive(tag) }`, no-op default (renders without a provider, mirrors `SettingsContext`).
+  - [x] Mounted `TagFilterProvider` in `AppContextProviders.tsx` wrapping the whole tree just inside `GeolocationProvider` — so both `DesktopNavBar` (ResponsiveLayout sibling of children) and `MapView` (children) resolve the SAME instance. Order-independent sibling; provider nesting order preserved.
+  - [x] Client-only ephemeral state; no URL/localStorage plumbing (avoids the Story 9.0 planner-gate surface).
 
-- [ ] **Task 5 — Data-drive + enable the chip row in `DesktopNavBar` (AC: #2, #3, #5)**
-  - [ ] Replace the hardcoded 8-chip `filterChips.*` list in `DesktopNavBar.tsx:49-72` with a data-driven row: compute `allTags` = the union of `venue.tags` across the loaded venues, first-seen order (reference `TopBar.jsx:5-12`). Source the loaded venues from the SAME `useVenueSearch(...)` call the desktop nav's `VenueSearchShell` already issues — OR, cleaner, read them from the tag-filter/venue data available in context. **Simplest correct approach:** have `DesktopNavBar` call `useVenueSearch` with the same coords/planner args the shell uses (the nav already lives under all the needed providers) and derive `allTags` from `venueQuery.data?.venues`. Guard for the loading/empty case: render nothing (or a stable skeleton) when there are no venues yet, so the row doesn't flash.
-  - [ ] Each chip is an **enabled** `<button>`: idle style = existing `border border-divider bg-white text-text-body … rounded-pill h-9 px-4 shadow-subtle` (KEEP the current idle classes — they already match the reference idle pill); active style = `bg-text-primary text-white border-text-primary` (the reference "on" pill, `#1b1b1e` bg + white label; `bg-text-primary` maps to `--color-text-primary: #1b1b1e`). Toggle via `useTagFilter().toggleTag(tag)`; `aria-pressed={isActive(tag)}`. Remove `disabled` + `cursor-not-allowed`. Add a smooth `transition-colors duration-fast` for the toggle (Animation gate).
-  - [ ] **Copy (AC5):** chip labels ARE the tag values now (localized data-layer strings), so the hardcoded `nav.filterChips.*` i18n block is no longer the chip source. Decide with the reviewer default: (a) DELETE the now-unreferenced `nav.filterChips.*` keys from BOTH `sv`/`en` `common.json` (parity-guarded by `messages-parity.test.ts`) if nothing else reads them, OR (b) keep them only if another surface consumes them (grep first — Task 8). The `nav.filter` key (the `<nav aria-label>`) STAYS. Verify no chip renders a truncated "Takt": the seed uses the full "Takterrass".
+- [x] **Task 5 — Data-drive + enable the chip row in `DesktopNavBar` (AC: #2, #3, #5)**
+  - [x] Replaced the hardcoded 8-chip `filterChips.*` list with a data-driven row: `allTags = collectTags(venueQuery.data?.venues ?? [])` (union, first-seen order). The nav reuses the SAME `useVenueSearch` key MapView issues (no `q`, same coords/radius/planner) → TanStack de-dupes, zero new requests. Guard: the `<nav>` renders nothing until ≥1 tag is loaded (no flash).
+  - [x] Each chip is an enabled `<button>` (idle classes kept; active = `bg-text-primary text-white border-text-primary`), toggled via `useTagFilter().toggleTag(tag)`, `aria-pressed={isActive(tag)}`, `transition-colors duration-fast`. `disabled`/`cursor-not-allowed` removed.
+  - [x] **Copy (AC5):** chip labels come from the tag values (`localizeTag(tag, locale)` — canonical `sv`, `sv→en` display map in `lib/utils/venue-tags.ts`). Removed the now-unreferenced `nav.filterChips.*` keys from BOTH `sv`/`en` `common.json` (parity-guarded, kept green). `nav.filter` STAYS. No truncated "Takt" — seed uses full words; "Takterrass" only appears if a venue carries it (none do → correct data-driven behaviour).
 
-- [ ] **Task 6 — Apply the filter to the venue surfaces in `MapView` (AC: #3, #4)**
-  - [ ] In `nextjs-app/components/custom/map/MapView.tsx`, read `useTagFilter()` and derive a single `tagFilteredVenues` from `rawVenues` (`venueQuery.data?.venues`): when `activeTags.size === 0` → pass through unchanged (AC4 no-op); otherwise keep venues where `venue.tags.some(t => activeTags.has(t))` (OR/union intersection — AC3). Apply this BEFORE the existing `listVenues` (line ~658) and `venueDtosForMap`/`venues` (pin) derivations so BOTH the desktop+mobile lists AND the map pins are filtered from the same source. (Favourites mode: apply the tag filter to the favourites rows too, OR scope tag filtering to the Närmast list only — default: apply to the currently-shown list surface consistently; document the choice. Simplest: filter `rawVenues` once and let both `listVenues` and `favouriteVenueRows`-from-list derive from the filtered set — but note favourites also has a network path. Keep the tag filter on the `listVenues` + pin derivations; leave the favourites network path untouched to avoid double-filtering complexity, and document this scope decision.)
-  - [ ] **Empty state (AC3):** `VenueList` already renders the empty copy (`venue.list.empty`, "Inga platser…") when `sortedVenues.length === 0` — so a tag filter that matches nothing already shows a clear empty state via the existing path. Verify the empty state reads sensibly for the "no tag matches" case (it currently says the generic list-empty copy; that is acceptable, but confirm it is not gated on `isLoading`). If the reviewer wants a tag-specific empty message, that is an enhancement — default is to reuse the existing `venue.list.empty`.
-  - [ ] Do NOT change `useVenueSearch` gating, the query keys, `staleTime`, the planner deferral (Story 9.4), or the pin/list memo dependency shapes beyond adding the tag-filter input. The tag filter is a pure client-side `.filter()` over already-fetched data — it must issue **zero** new network requests (consistent with Story 9.4's fetch-hygiene spine).
+- [x] **Task 6 — Apply the filter to the venue surfaces in `MapView` (AC: #3, #4)**
+  - [x] Added `useTagFilter()` + a single `tagFilteredVenues = filterVenuesByTags(rawVenues, activeTags)` memo (0 active → pass-through; ≥1 → OR/union `.some()`). Rewired BOTH `listVenues` and the pin base `venueDtosForMap` off it → desktop/mobile lists AND map pins filter identically from one source. Zero new network requests. Favourites-mode rows + the selected-preview venue are still merged into pins so a selected/favourited pin doesn't vanish; the **favourites NETWORK path is left unfiltered** (scope decision — filtering is scoped to the Närmast list + pins, avoiding double-filtering).
+  - [x] **Empty state (AC3):** verified `VenueList` renders `venue.list.empty` ("Inga platser hittades…") when the filtered list is empty, NOT gated on `isLoading` (the `isLoading` branch is `isFetching && length===0`; a 0-match filter with data present is not loading). Reused the existing copy (no tag-specific message).
+  - [x] No change to `useVenueSearch` gating/keys/`staleTime` or the Story 9.4 planner deferral — the tag filter is a pure client `.filter()` over fetched data.
 
-- [ ] **Task 7 — Mobile chip surface decision (AC: #3 — scope) [OPEN QUESTION 1]**
-  - [ ] The chip row exists ONLY on desktop today (`DesktopNavBar`); the mobile app (`MapView` bottom sheet + `VenueSearchShell` top row) has **no chip row**, and the Claude Design **mobile/free reference (`src-free/App.jsx`) has NO tag-chip surface** (only the desktop `src-desktop/TopBar.jsx` does). The ACs say the filter must affect "the venue list and map pins" (which are shared) but do not clearly mandate a NEW mobile chip UI. **Default (autonomous):** wire the shared context + filter so the **behaviour** works on all surfaces, and add the **chip UI on desktop only** (matching the only reference that has one). Do NOT invent a mobile chip row with no reference (that would risk a visual-gate/design drift). If a mobile chip surface is genuinely wanted, it needs a design reference → surface as **Open Question 1** for the maintainer rather than fabricating a layout. Note this scope decision explicitly in Completion Notes.
+- [x] **Task 7 — Mobile chip surface decision (AC: #3 — scope) [OPEN QUESTION 1]**
+  - [x] **Default taken:** wired the shared context + filter so the BEHAVIOUR works on all surfaces (mobile + desktop lists and pins filter), and added the chip UI on **desktop only** (`DesktopNavBar`, the only reference with a chip row — `src-desktop/TopBar.jsx`). Did NOT invent a mobile chip row (no reference → visual-gate/design-drift risk). Noted in Completion Notes.
 
-- [ ] **Task 8 — Tests + regression (AC: #1–#6, standard gate)**
-  - [ ] `DesktopNavBar.test.tsx`: UPDATE the `'keeps the out-of-scope filter chips disabled until Story 9.7 owns them'` test (line 213-218) — it now asserts the chips are **enabled** and data-driven. Add: chips render from the loaded venues' tag union (mock `useVenueSearch` to return venues with known tags); clicking a chip sets `aria-pressed=true` + the active pill classes; a second click clears it. Wrap the render in the `TagFilterProvider` (or rely on the no-op default + assert toggle via a spy).
-  - [ ] New `TagFilterContext.test.tsx` (or fold into an existing context test): `toggleTag` adds/removes; `clearTags`; `isActive`; no-op default value renders without a provider.
-  - [ ] `venue-store.test.ts`: assert the Supabase mock's `.select(VENUE_SELECT_COLUMNS)` now includes `tags`; `fromVenueRow` maps `tags` (array in → same array; `null` in → `[]`; non-array/garbage → `[]`; de-dupes; trims empties); `toVenueData` always emits `tags` (`[]` when absent).
-  - [ ] `venues-route.test.ts`: the DTO now carries `tags` for each venue (fixture path) — assert presence + `[]`-default shape; assert the route does NOT tag-filter server-side (a request with no tag param returns all in-radius venues unchanged — the tag filter is client-side).
-  - [ ] A `MapView`/list-filter test (component or a focused unit over the derive helper): with `activeTags` empty → all venues; with one active tag → only venues whose `tags` include it; multi-select → union; no matches → empty state (`venue.list.empty`) rendered; pins filtered identically.
-  - [ ] `messages-parity.test.ts` stays green (18 keys) — if `nav.filterChips.*` is removed, remove from BOTH locales in the same change; if kept, parity is unaffected.
-  - [ ] `shadow-caster-sql-contract.test.ts` / any 8-2 contract test: if a test asserts the venue contract column set, add `tags`. (Grep for a contract-columns test before assuming.)
-  - [ ] Run the gate: `cd nextjs-app && npx tsc --noEmit` (0) · `npx eslint . --quiet` (0) · `npx vitest run` (all green). Record before/after counts.
+- [x] **Task 8 — Tests + regression (AC: #1–#6, standard gate)**
+  - [x] `DesktopNavBar.test.tsx`: flipped the disabled-chip marker test → 3 tests (chips render from the venue tag union, de-duped/first-seen; chips ENABLED, no `cursor-not-allowed`, `aria-pressed=false`; click toggles `aria-pressed=true` + active pill classes, re-click clears). Wrapped the render in a real `TagFilterProvider`; the search-selection test uses a single-venue response for determinism.
+  - [x] Context + util unit coverage delivered via the un-skipped ATDD files: `TagFilterContext.atdd.test.tsx` (no-op default, toggle, clear, isActive, shared-sibling-subtree read/write) and `VenueTagsData.atdd.test.tsx` (`collectTags` union, `filterVenuesByTags` 0/1/multi/no-match, `localizeTag` sv/en casing) — no separate `TagFilterContext.test.tsx` needed.
+  - [x] `venue-store.test.ts`: column list now includes `tags` (23 cols) + `toContain('tags')`; new tests: `fromVenueRow` maps a tags array; null/non-array/garbage → `[]`; drops non-string/empty/dup + trims; absent column → `[]`; `toVenueData` surfaces `tags`.
+  - [x] `venues-route.test.ts`: new test asserting every DTO carries `tags` (array), the gate venue carries its seeded tags, and the route does NOT tag-filter server-side (`?tags=` no-ops).
+  - [x] MapView list-filter: new `MapView.test.tsx` describe block (mocked `useTagFilter`): 0 active → all in list + pins; 1 active → only matching in BOTH; multi = OR/union; no match → empty `venue.list.empty` copy + zero pins.
+  - [x] `messages-parity.test.ts` green — `nav.filterChips.*` removed from BOTH locales in the same change.
+  - [x] No `shadow-caster-sql-contract`/8-2 contract-columns test asserts the venue column set beyond `venue-store.test.ts` (grepped) — updated there.
+  - [x] Also un-skipped the 18 ATDD tests (`describe.skip` → `describe` in the 3 files), and added a `scrollIntoView` no-op polyfill to `test/setup/setup.ts` (jsdom gap cmdk hits when the combobox has >1 option). Gate: `tsc` 0 · `eslint` 0 · `vitest` 101 files / 861 tests all green (before: 98+3skip files / 832+18skip; +3 active ATDD files, +11 new tests, 0 skipped).
 
-- [ ] **Task 9 — Design gate: visual validation of the active-filter state (frontend gate)**
-  - [ ] Capture a screenshot of the desktop **active-filter state** (one or more chips "on" in the dark pill style + the filtered venue list/pins) and compare against the reference `TopBar.jsx` chip styling. Use the **manual visual affordance on this host** (see Dev Notes §"Visual gate on this host") — the automated `visual-validate.sh` fails on this Windows host (retro-notes 9-2). `VISUAL_VALIDATE_PROVIDER=none ALLOW_MANUAL_VISUAL_VALIDATION=1`; wipe `.next` + restart dev before capture; verify the served CSS chunk. Record rationale in Completion Notes. Do NOT edit reference PNGs — if the reference `map-primary`/nav PNG does not depict enabled chips, route the rebaseline to maintainer sign-off (dev is forbidden from self-blessing references).
-  - [ ] Move Status → `review` (the orchestrator owns sprint-status / gate / commit / PR).
+- [x] **Task 9 — Design gate: visual validation of the active-filter state (frontend gate)**
+  - [x] Visual gate performed via the documented manual affordance (see Completion Notes §"Visual gate"). `VISUAL_VALIDATE_PROVIDER=none ALLOW_MANUAL_VISUAL_VALIDATION=1`. The active/idle chip styling maps to the reference `TopBar.jsx` "on" pill (`#1b1b1e`/text-primary bg + white label) and idle pill (white + divider border + body text); reference PNG rebaseline (enabled chips) routed to maintainer — dev did NOT edit reference PNGs.
+  - [x] Status → `review`.
 
 ## Dev Notes
 
@@ -266,11 +262,82 @@ Project is past all transitional phases — the standard gate applies (run from 
 
 ### Agent Model Used
 
+Amelia (bmad-dev-story) — Claude Opus 4.8 (claude-opus-4-8).
+
 ### Debug Log References
+
+- **Live migration + seed (Task 2).** Applied to the LIVE `public.venues` store (project ref `hhnbxrhfhlzxgllxukzj`) via the IPv4 session-pooler psql path (`reference_supabase_db_import_connection`): Docker `postgis/postgis:15-3.5`, `SUPABASE_DB_POOLER_URL` from repo-root `.env.local`, in a single transaction. Pre-check confirmed the maintainer note exactly: 24 columns, NO `tags`, exactly 7 venues (no production data). Applied SQL:
+  ```sql
+  begin;
+  alter table public.venues add column if not exists tags text[] not null default '{}';
+  comment on column public.venues.tags is 'User-facing amenity/attribute tags for chip filtering (Story 9.7)…';
+  update public.venues set tags = '{Innergård,Hund ok,Wifi,Bakverk}', updated_at = now() where id = '1';
+  update … '{Morgonsol,Take-away,Surdeg}' where id = '2';
+  update … '{Kanal,Skaldjur}' where id = '3';
+  update … '{Parasoller,Specialkaffe}' where id = '4';
+  update … '{Innergård,Hund ok}' where id = '5';
+  update … '{Svalt,Lunch}' where id = '6';
+  update … '{Bakgård,Kväll}' where id = '7';
+  commit;
+  ```
+  Verification (`select id, slug, tags from public.venues order by id::int`): all 7 arrays match the seed byte-for-byte, `count(*) = 7`, no data loss. Migration is additive + idempotent + reversible (`drop column if exists tags`). NOTE: the Supabase MCP tools were not exposed as callable functions in this session, so the documented pooler-psql path was used instead of `apply_migration`.
+- **Gate.** From `nextjs-app/`: `npx tsc --noEmit` → 0; `npx eslint . --quiet` → 0; `npx vitest run` → 101 files / 861 tests, all green (0 skipped). Baseline at start: 98 passed + 3 skipped files (101), 832 passed + 18 skipped tests (850) — the 18 skipped were the 3 ATDD files, now un-skipped and passing.
 
 ### Completion Notes List
 
+**What shipped (all 6 ACs):**
+- **AC1/AC6 — real tags on the contract, additive/idempotent/reversible.** `tags text[] not null default '{}'` added to the 8-2 contract `.sql` (schema + 7-row seed + smoke + rollback), `lib/supabase/types.ts` (`venues` Row `tags: string[]`, Insert/Update `tags?: string[]`), and `lib/services/venue-store.ts` (`VENUE_SELECT_COLUMNS` += `tags`; `VenueRow.tags`; new defensive `coerceTags` → `[]` for null/garbage, de-dupes, trims; `toVenueData` emits `tags` unconditionally). Applied + verified on the live DB (Debug Log). Values sourced deterministically from `venue-visual-metadata.ts` `BY_SLUG` (the placeholder being replaced) — NOT fabricated.
+- **AC1/AC3/AC4 — DTO + client filter.** `VenueDataDto.tags: string[]` (required, client-safe). New `lib/utils/venue-tags.ts`: `collectTags` (union, first-seen), `filterVenuesByTags` (0 active → all incl. tag-less; ≥1 → OR/union `.some()`), `localizeTag` (canonical sv + sv→en display map).
+- **AC3 — shared context.** New `lib/contexts/TagFilterContext.tsx` (no-op default), mounted in `AppContextProviders` wrapping the whole tree just inside `GeolocationProvider` — so the chip row (`DesktopNavBar`, a `ResponsiveLayout` sibling of children) and the venue surfaces (`MapView`, children) resolve the SAME instance.
+- **AC2/AC3/AC5 — chip row.** `DesktopNavBar` now derives `allTags` from the SAME `useVenueSearch` key MapView issues (TanStack de-dupes → 0 new requests), renders enabled toggleable chips (idle white pill / active `bg-text-primary text-white` dark pill), `aria-pressed`, `transition-colors duration-fast`. Labels via `localizeTag`. Removed the hardcoded `nav.filterChips.*` list.
+- **AC3/AC4 — MapView.** Single `tagFilteredVenues = filterVenuesByTags(rawVenues, activeTags)` memo feeds BOTH `listVenues` and the pin base `venueDtosForMap` → list + pins filter identically. Empty result → existing `venue.list.empty` copy.
+
+**Decisions / scope (defaults taken, per story Open Questions):**
+- **OQ1 (mobile chip surface):** wired the shared filter BEHAVIOUR on all surfaces (mobile + desktop lists and pins filter); the chip UI is **desktop-only** (`DesktopNavBar` — the only reference with a chip row, `src-desktop/TopBar.jsx`). Did NOT invent a mobile chip row (no reference → design-drift risk).
+- **OQ2 (localization):** approach (A) — canonical `sv` array on the column + a deterministic `sv→en` display map in `venue-tags.ts` (values from the existing placeholder). DB stays single-source; matching is on the canonical value, only the display is localized.
+- **OQ3 (`nav.filterChips.*`):** DELETED from both `sv`/`en` `common.json` (grepped — no other consumer; `DesktopNavBar.tsx` no longer reads them). Parity kept green. `nav.filter` (the `<nav aria-label>`) STAYS.
+- **Favourites scope:** tag filtering is scoped to the Närmast list + pins. The favourites NETWORK path is left unfiltered (avoids double-filtering); favourites-mode rows + the selected-preview venue are still merged into pins so a selected/favourited pin never vanishes on a chip toggle.
+- **Seeded tags (exact, per venue id):** 1 `{Innergård,Hund ok,Wifi,Bakverk}` · 2 `{Morgonsol,Take-away,Surdeg}` · 3 `{Kanal,Skaldjur}` · 4 `{Parasoller,Specialkaffe}` · 5 `{Innergård,Hund ok}` · 6 `{Svalt,Lunch}` · 7 `{Bakgård,Kväll}`.
+
+**Test-infra note:** added a `scrollIntoView` no-op polyfill to `test/setup/setup.ts` (jsdom does not implement it; cmdk — the venue-search combobox — calls it when >1 option is present, which the multi-venue DesktopNavBar fixture now triggers).
+
+**Visual gate (Task 9 — manual affordance, this Windows host):** the automated `.claude/scripts/visual-validate.sh` errors on its `mktemp /tmp/impl-XXXXXX.png` path (the Windows-native Playwright binary cannot write there — the documented host tooling bug, retro-notes 9-2). Reproduced the gate comparison by hand: wiped `.next`, restarted `next dev`, captured the desktop `map-primary` **active-filter state** (route `/?_time=16:30`, viewport 1440×900, `sunnyseat_onboarded=1`) to a Windows-safe path with the first chip toggled ON, then ran the SAME `claude-sonnet-4-6` comparison against the on-disk `references/screens/desktop/map-primary.png`. Rationale recorded here; reference PNGs were NOT edited (dev is forbidden from self-blessing baselines).
+  - **Capture verified the story's own surface is correct:** the active chip renders the reference "on" pill (`aria-pressed=true`, `bg-text-primary` = `#1b1b1e` bg + white label); idle chips are white pills with divider border + body text; the venue list AND map pins are both filtered to the 2 venues carrying "Innergård". Chips are data-driven from real tags (no truncated "Takt").
+  - **Verdict = FAIL, but 100% scope-drift in the STALE reference (Case B), NOT a Story 9.7 defect.** The reviewer flags only: (a) the **time slider** horizontal position, (b) a **floating map location button**, (c) an **"Om" nav link** — ALL pre-existing and untouched by this story (Story 9.7 only touches the chip row, the tag context, and MapView's venue-derivation memos). Proof: the identical FAIL appears on an **idle baseline capture** (no chip toggled), which changes nothing this story owns. The reference PNG predates Epic 9 chrome work — it still shows the `<` pager chevron that **Story 9.6 removed** and the floating locate button that **9.5/9.6 consolidated**, and its chip row matches my idle styling. The chip work itself needs NO rebaseline; the reference is simply older than 9.5/9.6/9.7's chrome.
+  - **Routing:** per the story + the visual-validation skill's Case-B guidance, the reference rebaseline (to depict the post-9.5/9.6 chrome + enabled/active chips) is routed to **maintainer sign-off**. Did NOT force a pass, did NOT edit the reference PNG, did NOT modify the gate script.
+
 ### File List
+
+**New:**
+- `nextjs-app/lib/contexts/TagFilterContext.tsx`
+- `nextjs-app/lib/utils/venue-tags.ts`
+
+**Modified (source):**
+- `_bmad-output/implementation-artifacts/8-2-venues-store-contract.sql` — additive `tags` column + comment + 7-row seed + `on conflict` + smoke + rollback.
+- `nextjs-app/lib/supabase/types.ts` — `venues` Row/Insert/Update `tags`.
+- `nextjs-app/lib/types/api.ts` — `VenueDataDto.tags: string[]`.
+- `nextjs-app/lib/services/venue-store.ts` — `VENUE_SELECT_COLUMNS` += `tags`; `VenueRow.tags`; `coerceTags`; `toVenueData` unconditional `tags`.
+- `nextjs-app/lib/services/venues-fixture.ts` — `tags` on all 7 `VENUE_FIXTURE` venues.
+- `nextjs-app/components/custom/layout/AppContextProviders.tsx` — mount `TagFilterProvider`.
+- `nextjs-app/components/custom/layout/DesktopNavBar.tsx` — data-driven, enabled, toggleable chip row.
+- `nextjs-app/components/custom/map/MapView.tsx` — `useTagFilter` + `tagFilteredVenues` feeding `listVenues` + pin `venueDtosForMap`; `tags: []` on the synthetic `fallbackVenueFromSlug`.
+- `nextjs-app/components/custom/venue/forced-venue-detail.ts` — `tags` on the forced-visual detail venue.
+- `nextjs-app/messages/sv/common.json`, `nextjs-app/messages/en/common.json` — removed `nav.filterChips.*` (both locales, lockstep).
+
+**Modified (tests) + LIVE DB:**
+- Live `public.venues` — additive `tags` column + 7-row seed applied + verified.
+- `nextjs-app/test/components/{TagFilterContext,VenueTagsData,DesktopNavBarTagChips}.atdd.test.tsx` — un-skipped (18 tests now active + passing).
+- `nextjs-app/test/components/DesktopNavBar.test.tsx` — flipped disabled→enabled chip tests + toggle test; multi-venue fixture; single-venue response for the search test; `TagFilterProvider` wrap.
+- `nextjs-app/test/components/MapView.test.tsx` — `useTagFilter` mock + Story 9.7 tag-filter describe block (list + pins).
+- `nextjs-app/test/unit/services/venue-store.test.ts` — 23-column list assertion; new `coerceTags`/`toVenueData` tag tests.
+- `nextjs-app/test/unit/api/venues-route.test.ts` — DTO-carries-tags + no-server-filter test.
+- `nextjs-app/test/setup/setup.ts` — `scrollIntoView` polyfill.
+- Fixture `tags: []` (required-field guardrail) added to: `test/components/{ReviewFlow,VenueDetailContent,VenueDetailOverlay,VenueList,VenueSearchCombobox,FavouritesList,FeedbackFlow}.test.tsx`, `test/unit/{api/venues-route,mutations/useSubmitReview,queries/useFavouriteVenues,queries/useVenueDetail,queries/useVenueSearch,services/sun-engine,venue-planner,utils/venue-pin-mapping}.test.ts(x)`.
+- `nextjs-app/test/unit/services/sun-engine-caching.atdd.test.ts` — inline snapshot updated (venue now carries `tags: []`).
+
+### Change Log
+
+- 2026-07-01 — Story 9.7 implemented (Amelia/Opus 4.8): real `tags` source added to the venue contract (live-DB migration + seed applied), surfaced through `VenueDataDto`, and wired to a data-driven, enabled, toggleable desktop chip row via a shared `TagFilterContext`; MapView filters both the venue list and the map pins from one tag-filtered source (OR/union multi-select, graceful-empty default). Gate green (tsc 0 / eslint 0 / vitest 101 files · 861 tests). Status → review.
 
 ## Open Questions
 

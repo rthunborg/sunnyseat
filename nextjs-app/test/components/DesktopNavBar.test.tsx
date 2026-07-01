@@ -4,6 +4,7 @@ import type { AnchorHTMLAttributes } from 'react';
 import { renderWithProviders } from '@/test/setup/test-utils';
 import { DesktopNavBar } from '@/components/custom/layout/DesktopNavBar';
 import { TimeProvider } from '@/lib/contexts/TimeContext';
+import { TagFilterProvider } from '@/lib/contexts/TagFilterContext';
 import type { GetVenuesResponse } from '@/lib/types/api';
 
 const SEARCH_DEBOUNCE_MS = 200;
@@ -155,6 +156,14 @@ describe('DesktopNavBar', () => {
   });
 
   it('supports keyboard focus and selection from the navbar searchbox', async () => {
+    // Single-result response so the keyboard navigation is deterministic
+    // (the default multi-venue response drives the chip-union tests instead).
+    mockState.useVenueSearch.mockReturnValue({
+      data: makeSingleVenueResponse(),
+      isFetching: false,
+      isError: false,
+      dataUpdatedAt: 1,
+    });
     renderDesktopNav();
 
     const search = screen.getByRole('combobox', { name: 'Sök plats' });
@@ -210,11 +219,45 @@ describe('DesktopNavBar', () => {
     );
   });
 
-  it('keeps the out-of-scope filter chips disabled until Story 9.7 owns them', () => {
+  it('renders the chip row from the loaded venues tag UNION (data-driven, de-duped, first-seen order) — Story 9.7', () => {
     renderDesktopNav();
 
-    // Story 9.7 (Tag Filtering) owns the decorative chips — they stay disabled.
-    expect(screen.getByRole('button', { name: 'Innergård' })).toBeDisabled();
+    // Union of ['Innergård','Hund ok','Wifi'] + ['Innergård','Hund ok'] = 3 chips.
+    expect(screen.getByRole('button', { name: 'Innergård' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Hund ok' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Wifi' })).toBeInTheDocument();
+    // A tag no venue carries must NOT render (the hardcoded 'Takterrass'
+    // placeholder is gone — chips are the real tag union now).
+    expect(screen.queryByRole('button', { name: 'Takterrass' })).toBeNull();
+  });
+
+  it('enables the filter chips (no disabled / cursor-not-allowed) — flips the Story 9.6 marker', () => {
+    renderDesktopNav();
+
+    const chip = screen.getByRole('button', { name: 'Innergård' });
+    expect(chip).toBeEnabled();
+    expect(chip.className).not.toContain('cursor-not-allowed');
+    expect(chip).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('toggles a chip on/off through the shared context (active "on" pill; re-click clears) — Story 9.7', () => {
+    renderDesktopNav();
+
+    const chip = screen.getByRole('button', { name: 'Innergård' });
+    expect(chip).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(chip);
+    const active = screen.getByRole('button', { name: 'Innergård' });
+    expect(active).toHaveAttribute('aria-pressed', 'true');
+    // Reference "on" pill: dark #1b1b1e (bg-text-primary) + white label.
+    expect(active.className).toContain('bg-text-primary');
+    expect(active.className).toContain('text-white');
+
+    fireEvent.click(active);
+    expect(screen.getByRole('button', { name: 'Innergård' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
   });
 
   it('no longer renders the dead pager chevrons (Story 9.6 removed them)', () => {
@@ -262,9 +305,13 @@ function renderDesktopNav({
   forcedTime?: string;
 } = {}) {
   return renderWithProviders(
-    <TimeProvider forcedDate={forcedDate} forcedTime={forcedTime}>
-      <DesktopNavBar />
-    </TimeProvider>,
+    // Story 9.7: the chip row writes to the shared TagFilterContext, so the nav
+    // must render inside a real TagFilterProvider for the toggle to update state.
+    <TagFilterProvider>
+      <TimeProvider forcedDate={forcedDate} forcedTime={forcedTime}>
+        <DesktopNavBar />
+      </TimeProvider>
+    </TagFilterProvider>,
     { messages: NAV_MESSAGES },
   );
 }
@@ -285,12 +332,43 @@ function makeVenueResponse(): GetVenuesResponse {
         confidence: 92,
         distanceMeters: 180,
         sunExposurePercent: 95,
+        // Story 9.7: real tags drive the data-driven chip row (union, first-seen
+        // order). 'Take-away' repeats across the two venues → de-duped to one chip.
+        tags: ['Innergård', 'Hund ok', 'Wifi'],
         sunWindow: { start: '13:00', end: '18:30' },
         thumbnail: { alt: 'Kafé Magasinet uteservering', initials: 'KM' },
       },
+      {
+        id: 'venue-5',
+        venueId: 'venue-5',
+        venueName: 'Brygghuset Lerum',
+        venueSlug: 'brygghuset-lerum',
+        slug: 'brygghuset-lerum',
+        neighborhood: 'Haga',
+        location: { lat: 57.7115, lng: 11.9605 },
+        currentSunStatus: 'Partial',
+        isPartner: false,
+        confidence: 66,
+        distanceMeters: 260,
+        sunExposurePercent: 58,
+        tags: ['Innergård', 'Hund ok'],
+        sunWindow: { start: '13:35', end: '16:50' },
+        thumbnail: { alt: 'Brygghuset Lerum uteservering', initials: 'BL' },
+      },
     ],
-    meta: { count: 1, radiusKm: 1.5 },
+    meta: { count: 2, radiusKm: 1.5 },
     timestamp: 'now',
+    totalCount: 2,
+  };
+}
+
+// Single-result response for the deterministic keyboard-selection test.
+function makeSingleVenueResponse(): GetVenuesResponse {
+  const full = makeVenueResponse();
+  return {
+    ...full,
+    venues: [full.venues[0]],
+    meta: { count: 1, radiusKm: 1.5 },
     totalCount: 1,
   };
 }

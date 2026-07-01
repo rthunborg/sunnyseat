@@ -74,6 +74,16 @@ export interface VenueDataDto {
    */
   sunExposurePercent: number;
   /**
+   * User-facing amenity/attribute tags (Story 9.7 tag filtering). Sourced from
+   * the real `public.venues.tags` column, NOT the fabricated
+   * `venue-visual-metadata.ts` placeholder. Canonical Swedish values; the chip
+   * UI localizes the DISPLAY via `localizeTag`, but filter matching always uses
+   * the canonical stored value. Required + always an array: `[]` means "no tags"
+   * (a venue with `[]` is only ever hidden when a chip is active and it matches
+   * none — the graceful-empty / show-all-when-nothing-selected default).
+   */
+  tags: string[];
+  /**
    * Public, user-safe uncertainty metadata. Values intentionally describe
    * user-facing uncertainty causes and must not expose source/geodata internals.
    */

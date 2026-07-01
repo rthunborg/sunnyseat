@@ -26,6 +26,7 @@ export function resolveForcedVisualVenueDetail(
     confidence: 95,
     distanceMeters: 420,
     sunExposurePercent: 95,
+    tags: ['Innergård', 'Hund ok', 'Wifi', 'Bakverk'],
     sunWindow: { start: '11:00', end: '15:00' },
     thumbnail: {
       alt: 'Uteservering hos Kafé Magasinet',

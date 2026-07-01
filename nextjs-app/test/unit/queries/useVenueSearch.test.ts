@@ -25,6 +25,7 @@ const SAMPLE_VENUE: VenueDataDto = {
   confidence: 92,
   distanceMeters: 100,
   sunExposurePercent: 95,
+  tags: [],
   sunWindow: { start: '13:00', end: '18:30' },
 };
 
@@ -73,6 +74,7 @@ describe('useVenueSearch', () => {
     expect(result.current.data?.venues[0]).toMatchObject({
       confidence: 92,
       sunExposurePercent: 95,
+      tags: [],
     });
 
     const calledUrl = fetchSpy.mock.calls[0]?.[0] as string;
@@ -227,6 +229,7 @@ describe('useVenueSearch', () => {
           confidence: 92,
           distanceMeters: 100,
           sunExposurePercent: 95,
+          tags: [],
         },
       ],
       meta: { count: 1, radiusKm: 1.5 },

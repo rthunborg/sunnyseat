@@ -57,6 +57,7 @@ function makeStoredVenue(overrides: Partial<StoredVenue> = {}): StoredVenue {
     confidence: 92,
     distanceMeters: 0,
     sunExposurePercent: 95,
+    tags: [],
     sunWindow: { start: '13:00', end: '18:30' },
     ...overrides,
   };

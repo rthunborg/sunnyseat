@@ -149,6 +149,9 @@ export const VENUE_SELECT_COLUMNS = [
   'sun_exposure_percent',
   'sun_window',
   'prediction_uncertainty',
+  // Story 9.7: user-facing tags for the desktop chip filter. Unlike the
+  // server-only columns below, this IS mapped into the client VenueDataDto.
+  'tags',
   // Server-only (Story 8.3): the real seating-area polygon for the sun engine.
   // Never mapped into toVenueData / VenueDataDto.
   'seating_area',
@@ -180,6 +183,9 @@ type VenueRow = {
   sun_exposure_percent?: number | null;
   sun_window?: VenueDataDto['sunWindow'] | null;
   prediction_uncertainty?: PredictionUncertaintyDto | null;
+  // Story 9.7 user-facing tags; mapped into the DTO (client-safe, unlike the
+  // server-only columns below). May be null/garbage from a bad row → coerced [].
+  tags?: string[] | null;
   // Server-only seating-area polygon (Story 8.3); never serialized into the DTO.
   seating_area?: GeoJSON.Polygon | null;
   // Server-only seating-surface elevation in metres (Story 8.6); never in the DTO.
@@ -244,6 +250,10 @@ export function toVenueData(venue: StoredVenue): VenueDataDto {
     confidence: venue.confidence,
     distanceMeters: venue.distanceMeters,
     sunExposurePercent: venue.sunExposurePercent,
+    // Required DTO field (Story 9.7): `[]` is the honest "no tags" value, so it
+    // is set unconditionally — NOT with the optional `if (x !== undefined)`
+    // pattern the server-only fields use.
+    tags: venue.tags ?? [],
   };
   if (venue.skyCondition !== undefined) base.skyCondition = venue.skyCondition;
   if (venue.predictionUncertainty !== undefined) {
@@ -253,6 +263,27 @@ export function toVenueData(venue: StoredVenue): VenueDataDto {
   if (venue.thumbnail !== undefined) base.thumbnail = venue.thumbnail;
   if (venue.reviewSummary !== undefined) base.reviewSummary = venue.reviewSummary;
   return base;
+}
+
+/**
+ * Coerce a DB `tags` column to a clean `string[]` (Story 9.7). A non-array,
+ * null, or garbage value → `[]` (graceful-empty — AC1/AC4: a tag-less venue is
+ * only ever hidden when a chip is active). Keeps only non-empty trimmed strings
+ * and de-dupes, mirroring the defensive `coerce*` helpers above. The field is
+ * required on the DTO, so this NEVER returns undefined.
+ */
+function coerceTags(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const tags: string[] = [];
+  for (const entry of value) {
+    if (typeof entry !== 'string') continue;
+    const trimmed = entry.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    tags.push(trimmed);
+  }
+  return tags;
 }
 
 /** Extract just the detail block from a stored venue. */
@@ -364,6 +395,7 @@ function fromVenueRow(row: VenueRow): StoredVenue {
     confidence: numberOr(row.confidence, 0),
     distanceMeters: 0,
     sunExposurePercent: numberOr(row.sun_exposure_percent, 0),
+    tags: coerceTags(row.tags),
     ...(skyCondition ? { skyCondition } : {}),
     ...(row.prediction_uncertainty
       ? { predictionUncertainty: row.prediction_uncertainty }

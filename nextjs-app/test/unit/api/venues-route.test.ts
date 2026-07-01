@@ -23,6 +23,28 @@ describe('GET /api/venues', () => {
     vi.useRealTimers();
   });
 
+  it('carries real tags on each venue DTO and does NOT tag-filter server-side (Story 9.7)', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+
+    // Every DTO exposes `tags` as an array (required field, never undefined).
+    for (const venue of body.venues) {
+      expect(Array.isArray(venue.tags)).toBe(true);
+    }
+    // The fixture gate venue carries its real seeded tags.
+    const gate = body.venues.find((v) => v.slug === 'test-venue-sunny');
+    expect(gate?.tags).toEqual(['Innergård', 'Hund ok', 'Wifi', 'Bakverk']);
+
+    // With no tag param the route returns ALL in-radius venues unchanged — tag
+    // filtering is CLIENT-side, so a `?tags=` param has no server effect.
+    const withTagParam = await GET(
+      makeRequest('?lat=57.7089&lng=11.9746&tags=NoSuchTag'),
+    );
+    const withTagBody = (await withTagParam.json()) as GetVenuesResponse;
+    expect(withTagBody.venues.length).toBe(body.venues.length);
+  });
+
   it('returns 200 with sun-status-sorted venues for a valid lat/lng', async () => {
     const res = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
     expect(res.status).toBe(200);
@@ -486,6 +508,7 @@ function makeVenue({
     confidence: 90,
     distanceMeters: 0,
     sunExposurePercent: 90,
+    tags: [],
   };
 }
 

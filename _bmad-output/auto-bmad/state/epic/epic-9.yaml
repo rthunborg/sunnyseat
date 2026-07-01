@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T10:00:39Z"
+updated_at: "2026-07-01T11:31:18Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 991
@@ -56,6 +56,8 @@ deferred_work:
   - "[9-5 review] AC3 honest-distance label not applied to VenueQuickInfo -> owned by Story 9.9 (quick-info rework). Logged to deferred-work.md."
   - "[9-5 review] AC4 'denied'-vs-'fallback' geolocation-status granularity not distinguished (used 'fallback' as the honest signal) -> conditional/None. Logged to deferred-work.md."
   - "[9-6] Maintainer: rebaseline map-primary.png (mobile+desktop) — stale references still show the removed floating locate/settings buttons + category chips + nav chevrons. CAVEAT: the _state=map-primary forced route suppresses the mobile top-bar (isForcedVisualReference), so capture the REAL returning-user render, not the _state-forced one. Consolidated capture in the dev session scratchpad."
+  - "[9-7] Mobile tag-chip UI deferred (Open Q1): the shared tag-filter BEHAVIOUR works on all surfaces but the chip UI is desktop-only (no design reference for a mobile chip row). A mobile chip surface needs a design reference -> maintainer decision."
+  - "[9-7] The map-primary.png desktop reference rebaseline (already flagged under 9.6) now ALSO must reflect 9.7's active tag-chip pill state (list+pins filtered) — one combined maintainer rebaseline covering 9.5/9.6/9.7 chrome changes."
 blockers: []
 overrides: {}
 constraints: []

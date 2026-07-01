@@ -105,7 +105,7 @@ const ROW_WITH_NULL_TAGS = {
   tags: null,
 };
 
-describe.skip('Story 9.7 AC1 — venue DTO carries real tags from the DB adapter (RED)', () => {
+describe('Story 9.7 AC1 — venue DTO carries real tags from the DB adapter (RED)', () => {
   const ORIGINAL_STORE_ENV = process.env.SUNNYSEAT_VENUE_STORE;
   const ORIGINAL_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const ORIGINAL_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -175,7 +175,7 @@ const VENUES: VenueWithTags[] = [
   { tags: [] }, // 4 — graceful-empty venue (no tags)
 ];
 
-describe.skip('Story 9.7 AC2/AC3/AC4 — tag-filter + union helpers (RED)', () => {
+describe('Story 9.7 AC2/AC3/AC4 — tag-filter + union helpers (RED)', () => {
   it('collectTags returns the allTags UNION in first-seen order (AC2)', async () => {
     const { collectTags } = await loadVenueTags();
     expect(collectTags(VENUES)).toEqual([
@@ -216,7 +216,7 @@ describe.skip('Story 9.7 AC2/AC3/AC4 — tag-filter + union helpers (RED)', () =
   });
 });
 
-describe.skip('Story 9.7 AC5 — localizeTag copy casing consistent across sv/en (RED)', () => {
+describe('Story 9.7 AC5 — localizeTag copy casing consistent across sv/en (RED)', () => {
   it('sv passes the canonical stored value through unchanged', async () => {
     const { localizeTag } = await loadVenueTags();
     expect(localizeTag('Innergård', 'sv')).toBe('Innergård');

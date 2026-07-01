@@ -17,17 +17,7 @@
     "settings": "Settings",
     "language": "Language",
     "switchToSwedish": "Switch to Swedish",
-    "switchToEnglish": "Switch to English",
-    "filterChips": {
-      "courtyard": "Courtyard",
-      "dogs": "Dogs ok",
-      "wifi": "Wi-Fi",
-      "pastries": "Pastries",
-      "morningSun": "Morning sun",
-      "takeAway": "Take-away",
-      "sourdough": "Sourdough",
-      "rooftop": "Rooftop"
-    }
+    "switchToEnglish": "Switch to English"
   },
   "notFound": {
     "heading": "This page could not be found",

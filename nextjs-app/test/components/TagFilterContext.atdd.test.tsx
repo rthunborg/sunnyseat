@@ -55,7 +55,7 @@ async function loadTagFilter(): Promise<TagFilterModule> {
   return (await import(/* @vite-ignore */ TAG_FILTER_CTX)) as unknown as TagFilterModule;
 }
 
-describe.skip('Story 9.7 AC3/AC4 — shared TagFilterContext (RED)', () => {
+describe('Story 9.7 AC3/AC4 — shared TagFilterContext (RED)', () => {
   it('exposes a no-op default value so consumers render WITHOUT a provider (no throw)', async () => {
     const { useTagFilter } = await loadTagFilter();
 

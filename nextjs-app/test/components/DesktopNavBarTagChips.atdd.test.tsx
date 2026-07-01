@@ -191,7 +191,7 @@ function renderNav() {
   );
 }
 
-describe.skip('Story 9.7 AC2/AC3/AC5 — data-driven, enabled, toggleable chip row (RED)', () => {
+describe('Story 9.7 AC2/AC3/AC5 — data-driven, enabled, toggleable chip row (RED)', () => {
   beforeEach(async () => {
     (mockState.useVenueSearch as Mock).mockReset().mockReturnValue({
       data: makeVenueResponse(),

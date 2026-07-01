@@ -36,6 +36,7 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
+import { useTagFilter } from '@/lib/contexts/TagFilterContext';
 import { useTimeContext } from '@/lib/contexts/TimeContext';
 import { type VenuePinData } from '@/lib/types/map';
 import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
@@ -59,6 +60,7 @@ import { useForcedState } from '@/lib/dev/use-forced-state';
 import { cn } from '@/lib/utils';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
 import { mapVenueDtoToPinData } from '@/lib/utils/venue-pin-mapping';
+import { filterVenuesByTags } from '@/lib/utils/venue-tags';
 import { OfflineBanner } from '@/components/custom/offline/OfflineBanner';
 import { MapContainer } from './MapContainer';
 import { MapLoadingFallback } from './MapLoadingFallback';
@@ -121,6 +123,7 @@ export function MapView() {
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
   const { selectedVenueId, selectedVenuePreview, selectVenue } = useMapSelection();
+  const { activeTags } = useTagFilter();
   const plannerTime = useTimeContext();
   const favourites = useFavourites();
   const router = useRouter();
@@ -306,6 +309,20 @@ export function MapView() {
   // (real Supabase rows in 2.x will sometimes have NULL geometry until
   // backfilled). Skip those rather than crash the entire map.
   const rawVenues = venueQuery.data?.venues;
+  // Story 9.7: apply the shared tag filter to the loaded Närmast list ONCE, so
+  // BOTH the venue lists (desktop + mobile) AND the map pins derive from the same
+  // filtered source. Pure client `.filter()` over already-fetched data — issues
+  // ZERO new network requests (Story 9.4 fetch-hygiene spine untouched). With no
+  // active chip this is a pass-through (AC4 no-op: ALL venues, incl. tag-less
+  // ones); with ≥1 active chip a venue is kept iff its tags intersect the
+  // selection (OR/union — AC3). No match → [] → the existing `venue.list.empty`
+  // state renders. The favourites NETWORK path is intentionally left unfiltered
+  // (scope decision — see Task 6 Completion Notes): tag filtering is scoped to
+  // the Närmast list + pins, avoiding double-filtering the favourites surface.
+  const tagFilteredVenues = useMemo(() => {
+    if (!Array.isArray(rawVenues)) return rawVenues;
+    return filterVenuesByTags(rawVenues, activeTags);
+  }, [activeTags, rawVenues]);
   // Confidence meta for the favourites surface: prefer the network favourites
   // query's meta when it ran (out-of-radius / cold deep-link), otherwise fall
   // back to the loaded list meta, since AC1 may source the rows entirely from
@@ -385,7 +402,11 @@ export function MapView() {
   }, [selectedPreviewDetailQuery.data?.venue, selectedPreviewSlug, selectedVenuePreview]);
   const selectedVenuePreviewForMap = refreshedSelectedVenuePreview ?? selectedVenuePreview;
   const venueDtosForMap = useMemo(() => {
-    const base = Array.isArray(rawVenues) ? rawVenues : [];
+    // Story 9.7: pins derive from the tag-filtered Närmast list, so an active
+    // chip filters the map pins identically to the venue list (AC3). The
+    // favourites-mode rows + the selected-preview venue are still merged in so a
+    // selected/favourited pin does not vanish when a chip is toggled.
+    const base = Array.isArray(tagFilteredVenues) ? tagFilteredVenues : [];
     const seenIds = new Set(base.map((venue) => venue.id));
     const extraVenues: VenueDataDto[] = [];
 
@@ -403,7 +424,7 @@ export function MapView() {
       return base;
     }
     return [...base, ...extraVenues];
-  }, [activeFavouriteVenueRows, rawVenues, selectedVenuePreviewForMap]);
+  }, [activeFavouriteVenueRows, tagFilteredVenues, selectedVenuePreviewForMap]);
   const forceSunnyVisualPins = shouldUseForcedSunnyMapPins(forcedState);
   const venues = useMemo<VenuePinData[]>(() => {
     return venueDtosForMap.flatMap((v) => {
@@ -657,12 +678,17 @@ export function MapView() {
 
   const listVenues = useMemo(
     () => {
-      const validVenues = Array.isArray(rawVenues) ? rawVenues.filter(hasValidVenueLocation) : [];
+      // Story 9.7: desktop + mobile lists derive from the tag-filtered set, so an
+      // active chip filters the list identically to the pins (AC3). Empty result
+      // → `venue.list.empty` renders via VenueList's existing empty path.
+      const validVenues = Array.isArray(tagFilteredVenues)
+        ? tagFilteredVenues.filter(hasValidVenueLocation)
+        : [];
       return isForcedVisualReference
         ? validVenues.map(normalizeForcedVisualVenue)
         : validVenues;
     },
-    [isForcedVisualReference, rawVenues],
+    [isForcedVisualReference, tagFilteredVenues],
   );
   const listConfidenceMeta = isForcedVisualReference
     ? FORCED_VISUAL_CONFIDENCE_META
@@ -1145,6 +1171,7 @@ function fallbackVenueFromSlug(slug: string): VenueDataDto {
     confidence: 0,
     distanceMeters: Number.NaN,
     sunExposurePercent: 0,
+    tags: [],
     thumbnail: { alt: name, initials: name.slice(0, 2) },
   };
 }

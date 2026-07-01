@@ -17,17 +17,7 @@
     "settings": "Inställningar",
     "language": "Språk",
     "switchToSwedish": "Byt till svenska",
-    "switchToEnglish": "Byt till engelska",
-    "filterChips": {
-      "courtyard": "Innergård",
-      "dogs": "Hund ok",
-      "wifi": "Wifi",
-      "pastries": "Bakverk",
-      "morningSun": "Morgonsol",
-      "takeAway": "Take-away",
-      "sourdough": "Surdeg",
-      "rooftop": "Takterrass"
-    }
+    "switchToEnglish": "Byt till engelska"
   },
   "notFound": {
     "heading": "Den här platsen hittades inte",

@@ -245,6 +245,7 @@ function makeVenue({
     confidence: status === 'Sunny' ? 90 : 40,
     distanceMeters,
     sunExposurePercent: sunExposurePercent ?? (status === 'Sunny' ? 85 : 20),
+    tags: [],
     predictionUncertainty,
     sunWindow: status === 'Sunny' ? { start: '13:00', end: '18:30' } : undefined,
     thumbnail: { alt: `${name} uteservering`, initials: name.slice(0, 2) },

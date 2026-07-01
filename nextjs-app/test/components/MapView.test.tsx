@@ -144,6 +144,14 @@ function makeStubMap(opts: { tilesAlreadyLoaded?: boolean } = {}): StubMap {
 
 let stubMap: StubMap;
 let selectedVenueIdMock: string | null = null;
+// Story 9.7: the shared tag-filter selection. Empty by default (no-op → all
+// venues); mutate it per test (add tags) to assert list + pins filter
+// identically. Kept as a stable Set reference (cleared, never reassigned).
+const activeTagsMock = new Set<string>();
+function setActiveTags(...tags: string[]): void {
+  activeTagsMock.clear();
+  for (const tag of tags) activeTagsMock.add(tag);
+}
 let selectedVenuePreviewMock: GetVenuesResponse['venues'][number] | null = null;
 let searchParamsMock = new URLSearchParams();
 let pathnameMock = '/';
@@ -197,6 +205,15 @@ vi.mock('@/lib/contexts/MapSelectionContext', () => ({
       selectedVenueIdMock = selectedVenueIdMock === id ? null : id;
       selectedVenuePreviewMock = null;
     },
+  }),
+}));
+
+vi.mock('@/lib/contexts/TagFilterContext', () => ({
+  useTagFilter: () => ({
+    activeTags: activeTagsMock,
+    toggleTag: () => {},
+    clearTags: () => {},
+    isActive: (tag: string) => activeTagsMock.has(tag),
   }),
 }));
 
@@ -332,6 +349,7 @@ describe('<MapView />', () => {
     stubMap = makeStubMap();
     selectedVenueIdMock = null;
     selectedVenuePreviewMock = null;
+    activeTagsMock.clear();
     searchParamsMock = new URLSearchParams();
     pathnameMock = '/';
     selectVenueMock.mockClear();
@@ -855,6 +873,7 @@ describe('<MapView />', () => {
               confidence: 92,
               distanceMeters: 420,
               sunExposurePercent: 95,
+              tags: [],
               sunWindow: { start: '13:00', end: '18:30' },
               thumbnail: {
                 alt: 'Uteservering hos Testbaren',
@@ -1684,6 +1703,79 @@ describe('<MapView />', () => {
         expect.stringContaining('Bellora'),
       ]);
       expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
+    });
+
+    describe('Story 9.7 — tag filter (list + pins filter identically)', () => {
+      // Three venues: two carry Innergård, one carries only Kanal.
+      const venueA = { ...makeVenue({ id: 'v-a', name: 'Alfa' }), tags: ['Innergård', 'Hund ok'] };
+      const venueB = { ...makeVenue({ id: 'v-b', name: 'Beta' }), tags: ['Kanal'] };
+      const venueC = { ...makeVenue({ id: 'v-c', name: 'Gamma' }), tags: ['Innergård'] };
+
+      function mockThreeVenues() {
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([venueA, venueB, venueC]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+      }
+
+      function pinLayerIds(): string[] {
+        const raw = screen.getByTestId('venue-pin-layer-stub').getAttribute('data-venues') ?? '[]';
+        return (JSON.parse(raw) as Array<{ id: string }>).map((pin) => pin.id);
+      }
+
+      function desktopVenueCardNames(): string[] {
+        return within(screen.getByTestId('desktop-venue-list-panel'))
+          .getAllByTestId('venue-card')
+          .map((card) => card.textContent ?? '');
+      }
+
+      it('no active chip → ALL venues in both the list and the pins (AC4 no-op)', () => {
+        mockThreeVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        expect(pinLayerIds()).toEqual(['v-a', 'v-b', 'v-c']);
+        const names = desktopVenueCardNames();
+        expect(names.some((n) => n.includes('Alfa'))).toBe(true);
+        expect(names.some((n) => n.includes('Beta'))).toBe(true);
+        expect(names.some((n) => n.includes('Gamma'))).toBe(true);
+      });
+
+      it('one active chip → only matching venues, in BOTH the list and the pins (AC3)', () => {
+        setActiveTags('Innergård');
+        mockThreeVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        // Pins filtered identically to the list: Beta (Kanal-only) is excluded.
+        expect(pinLayerIds()).toEqual(['v-a', 'v-c']);
+        const names = desktopVenueCardNames();
+        expect(names.some((n) => n.includes('Alfa'))).toBe(true);
+        expect(names.some((n) => n.includes('Gamma'))).toBe(true);
+        expect(names.some((n) => n.includes('Beta'))).toBe(false);
+      });
+
+      it('multi-select is OR/union — a venue matches ANY active tag (AC3)', () => {
+        setActiveTags('Innergård', 'Kanal');
+        mockThreeVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        // Innergård (Alfa, Gamma) OR Kanal (Beta) → all three, source order kept.
+        expect(pinLayerIds()).toEqual(['v-a', 'v-b', 'v-c']);
+      });
+
+      it('no venue matches → empty list state + zero pins (AC3)', () => {
+        setActiveTags('NoSuchTag');
+        mockThreeVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        expect(pinLayerIds()).toEqual([]);
+        expect(
+          within(screen.getByTestId('desktop-venue-list-panel')).queryAllByTestId('venue-card'),
+        ).toHaveLength(0);
+        // The existing venue.list.empty copy renders (not gated on isLoading).
+        expect(screen.getAllByText('Inga platser hittades i det här området.').length).toBeGreaterThan(0);
+      });
     });
 
     it('constrains the desktop planner to clear the venue list and shrink for the open detail panel', () => {
@@ -2655,6 +2747,7 @@ function makeVenue({
     confidence,
     distanceMeters: 180,
     sunExposurePercent,
+    tags: [],
     sunWindow,
     thumbnail: {
       alt: `${name} uteservering`,

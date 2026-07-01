@@ -167,6 +167,7 @@ describe('Story 9.3 AC1 — single shared building fetch', () => {
             "end": "21:00",
             "start": "05:30",
           },
+          "tags": [],
           "venueId": "1",
           "venueName": "Kafé Magasinet",
           "venueSlug": "test-venue-sunny",
