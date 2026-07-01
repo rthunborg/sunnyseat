@@ -4,10 +4,10 @@ story_key: epic-9
 epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
-status: in-progress
-updated_at: "2026-07-01T17:46:01Z"
+status: done
+updated_at: "2026-07-01T18:06:03Z"
 started_at: "2026-06-30T14:18:23Z"
-completed_at: null
+completed_at: "2026-07-01T18:06:03Z"
 active_seconds: 6470
 timing_anchor: null
 is_first_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: "auto-continued (epic — no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [aa94d0e, 08c4484, 0a641ff, fb8636a]
+commits: [aa94d0e, 08c4484, 0a641ff, fb8636a, 076682b]
 phase8_steps:
   trace_gate: done
   nfr: done
@@ -39,9 +39,9 @@ phase8_steps:
 gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 4
-pr_url: null
-ci_run_url: null
-ci_status: unknown
+pr_url: "https://github.com/rthunborg/sunnyseat/pull/15"
+ci_run_url: "https://github.com/rthunborg/sunnyseat/actions/runs/28537071745"
+ci_status: failed
 pr_merged: false
 merge_method: null
 merge_commit: null
@@ -58,7 +58,8 @@ deferred_work:
   - "[9-6] Maintainer: rebaseline map-primary.png (mobile+desktop) — stale references still show the removed floating locate/settings buttons + category chips + nav chevrons. CAVEAT: the _state=map-primary forced route suppresses the mobile top-bar (isForcedVisualReference), so capture the REAL returning-user render, not the _state-forced one. Consolidated capture in the dev session scratchpad."
   - "[9-7] Mobile tag-chip UI deferred (Open Q1): the shared tag-filter BEHAVIOUR works on all surfaces but the chip UI is desktop-only (no design reference for a mobile chip row). A mobile chip surface needs a design reference -> maintainer decision."
   - "[9-7] The map-primary.png desktop reference rebaseline (already flagged under 9.6) now ALSO must reflect 9.7's active tag-chip pill state (list+pins filtered) — one combined maintainer rebaseline covering 9.5/9.6/9.7 chrome changes."
-blockers: []
+blockers:
+  - "Epic 9 PR #15 CI red on the E2E step (4 specs). map-primary.spec.ts:645/665 (desktop planner-bar) is CONFIRMED pre-existing (red on main + flagged red back in 9.0). favourites.spec.ts:35/64 (mobile 'Sol HH:MM' label) + onboarding.spec.ts:22 (mobile skip-dismiss) are red on the branch but NOT on main's latest failed run, and both spec files are unchanged by epic 9 — LIKELY the epic's onboarding (9.5) / favourites (9.4/9.9 + integration FavouritesList) component reworks regressed the mobile-project behavior; needs maintainer verification (possible real mobile regressions, not confidently pre-existing). NOTE epic 9 also FIXED several of main's own e2e reds (feedback:34/66, map-primary:451/467/474). PR left as draft; all 11 stories stay at review pending CI resolution."
 overrides: {}
 constraints: []
 epic_slug: live-app-hardening-clean-up
