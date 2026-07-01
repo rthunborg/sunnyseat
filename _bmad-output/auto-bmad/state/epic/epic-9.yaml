@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T08:51:59Z"
+updated_at: "2026-07-01T08:57:26Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 888
@@ -59,13 +59,14 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: live-app-hardening-clean-up
-active_story: 9-5-location-onboarding-reliability
+active_story: null
 stories_landed:
   - 9-0-production-gate-the-dev-planner-forcing-url-leak
   - 9-1-clean-app-content-sweep
   - 9-2-design-system-cta-token-fix-copy-correction
   - 9-3-venue-sun-compute-performance-server-caching
   - 9-4-client-query-hygiene-time-change-debounce
+  - 9-5-location-onboarding-reliability
 auto_decisions: []
 uat_items:
   - "[9-0] Dev (npm run dev), open /?_time=21:00&_date=2026-07-01 -> planner shows forced 21:00 on 2026-07-01 and does NOT advance with the real clock (forcing honoured in dev). [AC#1 dev, AC#2]"
@@ -105,3 +106,12 @@ uat_items:
   - "[9-4] List freshness after settle (AC3): after the drag settles, the venue list/sun data updates to the new settled time (not left showing stale pre-drag data) once the single request resolves."
   - "[9-4] Live-now state (AC3): drag away from the current time then back onto it -> reads as an intentional 'live now' state (request, if any, carries no planner params), not a silent no-op."
   - "[9-4] Favoriter derives from cache (AC1): with Närmast loaded (>=1 favourite visible), clear Network and switch to Favoriter -> NO new /api/venues?ids= fires, favourites appear instantly; toggling Närmast<->Favoriter issues no further /api/venues."
+  - "[9-5] SETUP: cd nextjs-app && npm run dev (http://localhost:3000). DevTools > Sensors to grant/deny/emulate geolocation; device-toolbar (mobile viewport) for the floating locate button (lg:hidden on desktop). Fresh Incognito / clear site data for each first-time-user run."
+  - "[9-5] First-paint no map-flash (AC1): Incognito (empty localStorage), reload -> the amber welcome overlay covers the whole screen on the FIRST frame; the map must NOT briefly show through before it. PASS = zero map-behind-overlay flash."
+  - "[9-5] First-click liveness / no dead-click (AC1): on the fresh first-paint overlay, click 'Use my location' IMMEDIATELY as the very first interaction -> the geolocation permission prompt fires every time (repeat a few reloads). PASS = never a dead first click."
+  - "[9-5] Amber dot on GRANT (AC2): DevTools Sensors set a Gothenburg lat/lng, click Use my location -> Allow -> overlay fades, map recenters, ONE amber dot (18px, white ring, halo) at your coords; change coords + re-trigger -> same dot repositions without flicker."
+  - "[9-5] NO dot on DENY/fallback (AC2): fresh Incognito; Block the prompt OR click skip -> map centres on Gothenburg centrum, NO amber user-location dot."
+  - "[9-5] Honest distance labels (AC3): compare list distances between the deny/skip run and the grant run -> fallback reads '≈ från centrum' (sv)/'≈ from centre' (en); a real granted fix omits the qualifier."
+  - "[9-5] Locate-button feedback — MOBILE viewport only (lg:hidden on desktop) (AC4): click the floating locate button -> aria-busy + pulsing icon (data-locate-state=pending); on deny/fallback it stays CLICKABLE (data-locate-state=fallback) and re-requests on re-click."
+  - "[9-5] Returning user straight to map (AC1): after completing a grant/deny once in a normal window, reload (flag now set) -> the map appears directly with NO welcome overlay and no overlay-then-null flash."
+  - "[9-5] SW-update reload = PRODUCTION ONLY (AC4c): not testable on npm run dev (SW disabled in dev). Verify on a deployed build where a new SW activates over an open tab -> exactly one auto-reload, no loop."
