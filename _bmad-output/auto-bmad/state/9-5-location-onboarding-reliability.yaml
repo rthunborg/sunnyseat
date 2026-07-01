@@ -5,10 +5,10 @@ epic_num: 9
 story_num: 5
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T08:35:55Z"
+updated_at: "2026-07-01T08:52:00Z"
 started_at: "2026-06-30T19:14:39Z"
 completed_at: null
-active_seconds: 5440
+active_seconds: 6389
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "Hydration-timing race (first-render placeholder flash + early-click reliability) + SW update edge case = hard-to-reproduce behaviour; spans onboarding gate / geolocation provider / marker layer / distance label / SW flow -> High."
 epic_story_count: 11
 stories_after_in_epic: 5
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [03026e7, ad1f711, efaf5f2, 40aaf9c]
+commits: [03026e7, ad1f711, efaf5f2, 40aaf9c, 43c89af]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -52,3 +52,4 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: 184f655ed546fb9734b8e49ce3758989f04db61e
+tier_a_review: "Tier-A thin review (auditor+security, R=1): verdict Changes Requested -> fixed. 0 Crit/High; 2 Med (1 fixed=MED-1 portal/inert dead-click window -> shouldBlockAppShell gated on mounted; 1 deferred=MED-2 quick-info label->9.9), 4 Low (1 deferred=denied-vs-fallback, 3 dismissed). Security 0. 0 Decisions. Post-fix clean, suite 817 green."

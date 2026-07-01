@@ -220,7 +220,16 @@ function OnboardingGateInner() {
   // cross-tab onboarding flips `dismissed` through the effect above.
   const shouldShow =
     !bypassForVisualState && !dismissed && (isForced || !initialHasOnboarded);
-  const shouldBlockAppShell = shouldShow;
+  // Gate shell-inerting on `mounted` too. `<OnboardingGateWithSuspense />` is
+  // nested INSIDE the `[data-app-shell]` subtree (rendered by
+  // `app/[locale]/layout.tsx`'s `<ResponsiveLayout>`), so on the first client
+  // commit — while `mounted === false` and the overlay is still rendered inline
+  // inside that subtree — inerting the shell would inert the interactive overlay
+  // ITSELF, reintroducing the dead-click. When `mounted` flips true the same
+  // re-render both portals the overlay to `document.body` (out of the subtree)
+  // and arms this effect, so the shell is never inert while the overlay is
+  // inline. This makes the dead-click escape structural, not effect-order-timed.
+  const shouldBlockAppShell = shouldShow && mounted;
 
   useEffect(() => {
     if (!shouldBlockAppShell || typeof document === 'undefined') return;

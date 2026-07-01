@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-06-30T20:36:03Z"
+updated_at: "2026-07-01T08:51:59Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 888
@@ -53,6 +53,8 @@ deferred_work:
   - "[9-3] Live cold/warm wall-clock latency timings deferred to a maintainer/preview run (live-Supabase ms-timing is non-reproducible locally and the epic forbids flaky timing asserts); the in-CI signal is the RPC-count + cache-hit tests + the manual 14->7 RPC evidence."
   - "[9-4] useVenueDetail intentionally left on the non-deferred planner (single, 9.3-server-cached venue, outside AC3's list-churn scope); residual: dragging the slider with a detail panel open still re-keys the cheap detail query per step. Hand-off candidate to Story 9.10's regression pass if observed; not a 9.4 deliverable."
   - "[9-5] Maintainer: capture/bless a reference PNG for the map-with-user-location-dot state (mobile+desktop) — none exists; dev captured candidates to scratch and is forbidden from self-blessing references. (onboarding mobile+desktop visual gate already PASS; map-primary FAILs are pre-existing stale-reference drift, not 9.5.)"
+  - "[9-5 review] AC3 honest-distance label not applied to VenueQuickInfo -> owned by Story 9.9 (quick-info rework). Logged to deferred-work.md."
+  - "[9-5 review] AC4 'denied'-vs-'fallback' geolocation-status granularity not distinguished (used 'fallback' as the honest signal) -> conditional/None. Logged to deferred-work.md."
 blockers: []
 overrides: {}
 constraints: []

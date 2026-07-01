@@ -177,4 +177,33 @@ describe('Story 9.5 AC1 — synchronous first-render onboarding gate (RED)', () 
 
     shell.remove();
   });
+
+  it('portals the interactive overlay OUT of the inert `[data-app-shell]` subtree (structural dead-click fix, MED-1)', async () => {
+    // The gate is mounted INSIDE the `[data-app-shell]` subtree (as it is in the
+    // real `[locale]/layout.tsx` → <ResponsiveLayout>). The MED-1 fix gates
+    // `shouldBlockAppShell` on `mounted`, so the shell is only ever inert once the
+    // `mounted` re-render has portalled the overlay OUT to document.body. This
+    // asserts the resulting invariant: whenever the shell carries `inert`, the
+    // interactive onboarding overlay is NOT a descendant of it — so the wired CTA
+    // never sits under an inert ancestor. (The transient same-commit inline frame
+    // the fix removes is a browser paint concern that jsdom flushes away inside
+    // `act()`; the clean-context e2e onboarding spec is the behavioural guard for
+    // the dead-click. This unit test locks the portal-out / inert end-state.)
+    const shell = document.createElement('div');
+    shell.setAttribute('data-app-shell', '');
+    document.body.appendChild(shell);
+
+    render(<OnboardingGateWithSuspense />, { wrapper: Wrapper, container: shell });
+
+    await waitFor(() => expect(shell).toHaveAttribute('inert'));
+
+    // Overlay is present and interactive on-screen …
+    const overlay = screen.getByTestId('onboarding-screen');
+    expect(overlay).toBeInTheDocument();
+    expect(screen.getByTestId('onboarding-cta-primary')).toBeInTheDocument();
+    // … but portalled OUT of the inert shell (lives under <body>, not the shell).
+    expect(shell.contains(overlay)).toBe(false);
+
+    shell.remove();
+  });
 });
