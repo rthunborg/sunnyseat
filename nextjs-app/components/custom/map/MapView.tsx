@@ -612,7 +612,16 @@ export function MapView() {
   }, [forcedState, rawVenues, selectVenue, selectedVenuePreview, venueSlugParam]);
 
   useEffect(() => {
-    if (!mapInstance || !selectedVenueDto) {
+    // Story 9.10 Task 3: guard against a selected venue whose coordinates are
+    // null / non-finite (the `?venue=<slug>` deep-link at :604 selects a match
+    // WITHOUT a location check, and real venue rows can carry a null lat/lng
+    // despite the `CoordinatesDto` type). Without this guard,
+    // `mapInstance.project([null, null])` fires MapLibre's "Expected value to
+    // be of type number, but found null" warning — once on the effect run and
+    // again on every `move`/`zoom` (the 3× warning observed live, epics.md:2359).
+    // Skip positioning entirely (same as the no-selection branch) so the sibling
+    // `easeTo` guard (`hasValidVenueLocation`, :696) and this stay symmetric.
+    if (!mapInstance || !selectedVenueDto || !hasValidVenueLocation(selectedVenueDto)) {
       setQuickInfoPosition(undefined);
       setQuickInfoDesktopPlacement('above');
       return;

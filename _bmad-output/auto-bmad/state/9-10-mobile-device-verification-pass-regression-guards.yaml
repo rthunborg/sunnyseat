@@ -5,10 +5,10 @@ epic_num: 9
 story_num: 10
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T15:17:11Z"
+updated_at: "2026-07-01T15:52:49Z"
 started_at: "2026-07-01T15:10:11Z"
 completed_at: null
-active_seconds: 408
+active_seconds: 2535
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "Verification/regression-guard story adding tests across multiple existing Epic-9 modules (date/time fetch, location dot, chrome, tag filtering, sharing, quick-info card) with no new product behavior — not High (no auth/payment/data-integrity/public-API/concurrency), but multi-module scope pushes above Low."
 epic_story_count: 11
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [4afba9a]
+commits: [4afba9a, 8fe972c]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -47,7 +47,11 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work: []
+deferred_work:
+  - "[9-10] Maintainer: physical real-device spot-check (no attached device here; iPhone-14 Playwright profile is the automated proxy) — native navigator.share() + the onboarding-CTA geolocation prompt on real hardware."
+  - "[9-10] Maintainer: the consolidated stale reference-PNG rebaseline cascade (map-with-selected-venue / venue-detail / map-primary + new share-modal & location-dot refs across 9.1/9.5/9.6/9.7/9.8/9.9) — ONE action; blocks the Epic-9 green visual gate. Dev is forbidden from editing references."
+  - "[9-10] Two mobile-only PRE-EXISTING failures logged (red at HEAD with the 9.10 guard reverted, NOT 9.10 regressions): (1) onboarding-CTA geolocation doesn't resolve under iPhone-14 emulation; (2) the mobile Favoriter view omits the 'Sol HH:MM' sun-window label."
+  - "[9-10] Pre-existing DESKTOP red map-primary.spec.ts:645 (planner-bar viewport-width) confirmed still red, desktop-only, unrelated to Epic 9 — tracked separately."
 blockers: []
 overrides: {}
 constraints: []

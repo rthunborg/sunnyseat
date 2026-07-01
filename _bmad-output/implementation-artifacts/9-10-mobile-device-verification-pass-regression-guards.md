@@ -1,6 +1,6 @@
 # Story 9.10: Mobile-Device Verification Pass & Regression Guards
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -74,12 +74,12 @@ honestly — do NOT fabricate Visual/Behaviour/Animation gates for a surface tha
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Mobile-viewport verification pass (AC1)**
-  - [ ] Run the FULL existing e2e suite at the mobile profile: `npx playwright test --project=mobile`
+- [x] **Task 1 — Mobile-viewport verification pass (AC1)**
+  - [x] Run the FULL existing e2e suite at the mobile profile: `npx playwright test --project=mobile`
         (the `mobile` project = `iPhone 14` device profile, runs every spec except the axe specs — see
         `playwright.config.ts:36-41`). Confirm the suite is green at the mobile viewport and record the
         pass/fail per spec in Completion Notes.
-  - [ ] Walk each Epic 9-touched surface at mobile and confirm the fix holds. Map of surface → owning
+  - [x] Walk each Epic 9-touched surface at mobile and confirm the fix holds. Map of surface → owning
         story → what to confirm on mobile:
     - **9.1 clean-app deletions** (`VenueDetailContent.tsx`, `VenueQuickInfo.tsx`): NO EXPONERING /
       uncertainty-reason line / "Blir skuggigt om X min" / explanatory paragraph / fabricated "BÄST KL."
@@ -109,18 +109,18 @@ honestly — do NOT fabricate Visual/Behaviour/Animation gates for a surface tha
     - **9.9 quick-info card** (`VenueQuickInfo`, `MapView` positioning): the reworked mobile card holds
       across full/partial/shaded sun states without overflow/truncation on common widths (360–430 CSS px)
       and sits CLEAR of the "Planera soltid" planner panel (the sun-% badge is NOT jammed under the slider).
-  - [ ] Perform the manual real-device (or DevTools device-emulation) spot-check the maintainer asked for,
+  - [x] Perform the manual real-device (or DevTools device-emulation) spot-check the maintainer asked for,
         and record it. If a real device is unavailable in this environment, use the Playwright `iPhone 14`
         profile as the automated proxy and NOTE explicitly in Completion Notes that the physical-device
         spot-check is deferred to the maintainer (a `needs-human` verification step, not a blocker for the
         code deliverable).
-  - [ ] Log every mobile-only gap found as a follow-up (deferred-work entry with a target, or a story
+  - [x] Log every mobile-only gap found as a follow-up (deferred-work entry with a target, or a story
         Open Question) — do NOT silently fix a large mobile-only defect inside this verification pass;
         scope it. A trivial, obviously-safe mobile-only fix MAY be made if it is small and covered by a
         new test, but record it.
 
-- [ ] **Task 2 — Consolidate + fill the AC2 regression guards**
-  - [ ] AC2 says "cover **at least**" the five behaviours. Most already have isolated coverage — VERIFY
+- [x] **Task 2 — Consolidate + fill the AC2 regression guards**
+  - [x] AC2 says "cover **at least**" the five behaviours. Most already have isolated coverage — VERIFY
         each is present and green, and add the MISSING dimension (a clean-URL date-selection guard, and a
         consolidated mobile-e2e journey). Existing coverage to confirm (do NOT duplicate; reference/extend):
     - **`?_time=` prod-gate:** `test/components/AppContextProviders.test.tsx` (Story 9.0 —
@@ -141,7 +141,7 @@ honestly — do NOT fabricate Visual/Behaviour/Animation gates for a surface tha
       it complements the 9.0 prod-gate test which proves the URL is ignored in prod — this proves normal
       in-app date selection still drives a refetch). Keep it deterministic (mock `fetch`, assert the query
       key / request carries the newly-selected date).
-  - [ ] Add a **consolidated mobile e2e regression spec** (e.g. `test/e2e/epic-9-mobile-regression.spec.ts`
+  - [x] Add a **consolidated mobile e2e regression spec** (e.g. `test/e2e/epic-9-mobile-regression.spec.ts`
         or fold into existing specs) that runs under `--project=mobile` and asserts the load-bearing Epic 9
         behaviours at the mobile viewport: onboarding gate shows for a clean context (reuse the 9.5
         empty-localStorage pattern from `onboarding.spec.ts`), the location dot appears on a mocked
@@ -149,13 +149,13 @@ honestly — do NOT fabricate Visual/Behaviour/Animation gates for a surface tha
         visible in the mobile chrome. Reuse existing e2e helpers (`test/e2e/helpers`, `bypassOnboarding`,
         the geolocation-mock pattern). Keep sun/time assertions deterministic with `?_time=13:00` (the
         e2e forcing is dev-mode only and stays honoured under `next dev` — retro-notes 9-0).
-  - [ ] Run the full gate: `tsc --noEmit` (0 errors), `eslint` (0 errors), `vitest run` (all green), and
+  - [x] Run the full gate: `tsc --noEmit` (0 errors), `eslint` (0 errors), `vitest run` (all green), and
         messages-parity. **Baseline: 115 test files** on this branch (105 vitest files from the 9.9 record
         + the e2e specs); the vitest/e2e count is expected to INCREASE (new clean-URL-date guard + mobile
         regression spec), none dropped.
 
-- [ ] **Task 3 — Investigate + guard the MapLibre "type number, found null" console warning (epics.md:2359)**
-  - [ ] Reproduce the 3× "Expected value to be of type number, but found null" warning from the map blob
+- [x] **Task 3 — Investigate + guard the MapLibre "type number, found null" console warning (epics.md:2359)**
+  - [x] Reproduce the 3× "Expected value to be of type number, but found null" warning from the map blob
         on the live/dev path (it is a WARNING, not an error — no functional break reported). Likely
         sources, in order of suspicion:
     - A **data-driven MapLibre paint/layout expression** (`['get', <prop>]` fed into a number-typed style
@@ -165,10 +165,10 @@ honestly — do NOT fabricate Visual/Behaviour/Animation gates for a surface tha
       `MapContainer.tsx`, or a pin/user-layer expression).
     - A marker `setLngLat([lng, lat])` where a coordinate is null/undefined (`VenuePinLayer.tsx:139,195`,
       `UserLocationLayer.tsx:68-79`) — though a null coord typically throws rather than warns, confirm.
-  - [ ] Once located, add a defensive guard (coerce/skip nulls at the boundary, or a fallback in the style
+  - [x] Once located, add a defensive guard (coerce/skip nulls at the boundary, or a fallback in the style
         expression) so the warning no longer fires, and add a focused test around the guard (feed a
         null-bearing venue/coord and assert the layer/marker code handles it without warning/throwing).
-  - [ ] **If the source cannot be pinned down deterministically within a reasonable investigation** (e.g.
+  - [x] **If the source cannot be pinned down deterministically within a reasonable investigation** (e.g.
         it originates inside a vendored MapLibre style the app does not own), do NOT guess-patch app code.
         Record the finding, the ruled-out sources, and a precise repro in Completion Notes and log it as a
         targeted deferred-work follow-up (`Target: None — conditional`), then proceed. This is a
@@ -336,10 +336,68 @@ KNOWINGLY records as a maintainer follow-up — do NOT reopen unrelated ledger i
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Amelia (bmad-dev-story) — claude-opus-4-8
 
 ### Debug Log References
 
+- Full gate at completion: `tsc --noEmit` 0 errors · `eslint . --quiet` 0 errors · `vitest run` 106 files / 936 tests all green (baseline 105 files / 931 tests → +1 file, +5 tests; none dropped). Messages-parity (`test/unit/messages-parity.test.ts`) green within the run — no new i18n keys added.
+- Mobile e2e pass (`npx playwright test --project=mobile`, run vs a local `next dev` on :3000): **38 passed, 12 skipped (desktop-gated), 4 failed — all 4 PRE-EXISTING** (verified red at branch HEAD with the 9.10 MapView guard reverted). New `epic-9-mobile-regression.spec.ts`: 5/5 pass on `--project=mobile`.
+- Task-3 RED proof: with the MapView guard reverted, `MapView.test.tsx` "null/non-finite location" test fails at the `updatePosition` projection; with the guard, green. (Local host quirk: Next single-dev-server lock is per-project-dir, so a second `next dev` defers to :3100 and exits — had to free :3000 and run one server; Playwright `webServer` auto-start had timed out on the first attempt.)
+
 ### Completion Notes List
 
+**Story type reminder:** verification + regression-net pass, NOT a feature. Only ONE line of 9.x feature code was changed (the Task-3 null-coord guard in MapView); everything else is new tests + verification. No new component / i18n key / dependency / design surface, exactly as scoped.
+
+**Task 1 — Mobile-viewport verification pass (AC1)**
+- FULL mobile e2e suite (`--project=mobile`, iPhone 14) result, per spec:
+  - `smoke.spec.ts` ✅ · `map-primary.spec.ts` (mobile tests) ✅ · `responsive-layout.spec.ts` (M1–M6) ✅ · `visit-loop.spec.ts` ✅ · `feedback.spec.ts` ✅ · `review.spec.ts` ✅ · `epic-9-mobile-regression.spec.ts` (NEW) ✅ 5/5.
+  - `onboarding.spec.ts` — 5 pass, **2 PRE-EXISTING FAILURES** on mobile: (line 22) "skip link dismisses" and (line 88) "first-frame CTA triggers geolocation flow". Both hinge on the onboarding overlay dismissing after a CTA/skip interaction; under the iPhone-14 Chromium emulation the CTA-triggered `getCurrentPosition` does not resolve and the exit never fires. Verified identical red with the 9.10 guard reverted → NOT introduced by 9.10.
+  - `favourites.spec.ts` — 2 mobile tests, **PRE-EXISTING FAILURES**: both find the venue card ("82% sol" renders, favouriting works) but the `Sol HH:MM` sun-window label is absent in the mobile favourites view. Verified identical red with the guard reverted. Pre-existing mobile favourites-view display gap, unrelated to Epic 9 (favourites network path untouched by 9.x except 9.7 which left it unfiltered).
+  - `axe.spec.ts` / `axe-mobile.spec.ts` are excluded from `--project=mobile` by design (`playwright.config.ts:39`); not part of this pass.
+- Surface-by-surface confirmation at the mobile viewport (via the mobile e2e suite + reading the merged 9.x code):
+  - **9.1 clean-app deletions** — `VenueQuickInfo`/`VenueDetailContent` carry no EXPONERING / uncertainty-reason / "Blir skuggigt om X min" / fabricated fact cards (grep-verified clean on this branch; the real "% Säkerhet"/"Avstånd" surfaces remain). Mobile detail sheet + quick-info render these correctly.
+  - **9.2 CTA token** — VISA RUTT (RouteButton) present in the mobile quick-info (`map-primary` mobile tests exercise `Visa Rutt`); the corrected `--gradient-route-button` ramp is a global token, viewport-independent.
+  - **9.3/9.4 performance + query hygiene** — behavioural, no visual delta; confirmed via the AC2 unit guards (settled-one-request, Favoriter no-refetch) which are green, plus the new clean-URL date guard.
+  - **9.5 location dot + onboarding** — clean-context onboarding gate shows on mobile (regression test 1 ✅); the amber `user-location-pin` renders on a geolocation success on mobile (regression test 2 ✅, via the reliable returning-user auto-acquire path — see mobile-only gap below).
+  - **9.6 chrome consolidation** — single mobile control set: top-bar locate + settings enabled, settings opens the modal, NO floating locate/settings duplicates, zoom +/- remain (regression test 4 ✅ + `responsive-layout` M6 ✅).
+  - **9.7 tag filtering** — chip row is desktop-only by design; no broken/dead chip surface on mobile, mobile list/pins unregressed (mobile map-primary pins render ✅).
+  - **9.8 sharing** — mobile venue header exposes an ENABLED share button ("Dela plats"); `handleShare` is capability-gated native share with a modal fallback (regression test 3 ✅). `?venue=<slug>` deep-link resolves (existing `share.ts` + routing).
+  - **9.9 quick-info card** — reworked mobile card renders; LIVE-layout clearance now asserted: the rendered card's top edge sits below the rendered `TimeSliderPanel` bottom edge (regression test 5 ✅ — this folds in the 9.9 review defer, upgrading it from arithmetic-only to a real bounding-box guard).
+- **Manual/physical-device spot-check → deferred to maintainer (`needs-human`, NOT a blocker):** this Windows host has no attached physical iOS/Android device; the Playwright `iPhone 14` emulation profile is the automated proxy used above. A real-hardware spot-check (esp. of native `navigator.share()` sheet behaviour and the onboarding-CTA geolocation prompt, which the emulator does not exercise faithfully — see gap below) is handed to the maintainer.
+
+**Mobile-only gaps found (logged, NOT silently fixed):**
+1. **[Mobile-only, PRE-EXISTING — Target: maintainer follow-up]** Under the iPhone-14 Playwright emulation, the onboarding-CTA path (`getCurrentPosition` after "Använd min plats") does not resolve, so the overlay never exits (`onboarding.spec.ts:22` + `:88` red on mobile). The returning-user silent auto-acquire path DOES resolve and render the dot reliably (proven), so this is an emulation/interaction quirk, not necessarily a real-device defect — but it is unverified on hardware. The 9.10 mobile regression spec therefore asserts the location dot via the reliable auto-acquire path. Maintainer should confirm the onboarding-CTA geolocation prompt on a real device.
+2. **[Mobile-only, PRE-EXISTING — Target: maintainer follow-up]** The mobile favourites view does not render the `Sol HH:MM` sun-window label that the desktop/list path shows (`favourites.spec.ts:35` + `:64`). Venue + favourite state are correct; only the sun-window label is missing. Untouched by Epic 9; scoped out, logged for the maintainer.
+
+**Task 2 — AC2 regression guards**
+- All 4 pre-existing AC2 guards CONFIRMED PRESENT + GREEN (not rewritten): `?_time=` prod-gate (`AppContextProviders.test.tsx`), settled-one-request (`deferred-planner-query.test.tsx`, `toHaveBeenCalledTimes(2)`), Favoriter↔Närmast no-refetch (`MapView.test.tsx` + `useFavouriteVenues.test.ts`), location-dot success/fallback (`UserLocationLayer.atdd.test.tsx` + `UserPin.test.tsx`).
+- **NET-NEW clean-URL date-selection guard** added: `test/unit/queries/clean-url-date-selection.test.tsx` (2 tests). Mirrors the 9.4 harness (real `TimeProvider` seeded with a fixed clock + NO forced planner = the clean/production in-app path, real `useVenueSearch`, mocked `fetch`). Proves selecting a future date flips `plannerQuery` undefined→`{date,time}`, flows the new date into the query key AND the `/api/venues` request URL, and fires exactly one fresh planner-keyed fetch — the complement to the 9.0 prod-gate (which proves the URL is *ignored*; this proves normal in-app date selection still *refetches*). Second test proves the reverse direction (reselecting today returns to the live planner-less key).
+- **Consolidated mobile e2e regression spec** added: `test/e2e/epic-9-mobile-regression.spec.ts` (5 mobile-only tests, `?_time=13:00`-deterministic) covering 9.5 onboarding gate, 9.5 location dot, 9.8 share button, 9.6 single-control-set/settings-modal, and the 9.9 live-layout planner clearance.
+
+**Task 3 — MapLibre "type number, found null" console warning — INVESTIGATED + GUARDED (source pinned, fix applied)**
+- ROOT CAUSE pinned deterministically to app code (NOT the vendored style): the QuickInfo-position effect at `MapView.tsx` (the `updatePosition` closure) called `mapInstance.project([selectedVenueDto.location.lng, selectedVenueDto.location.lat])` WITHOUT a coordinate finiteness guard. A selected venue can carry a null/non-finite `location` (real venue rows can have null coords despite the non-null `CoordinatesDto` type; the `?venue=<slug>` deep-link at `MapView.tsx:604` selects a matched venue with NO location check — unlike the sibling `easeTo` at `:696`, which IS guarded by `hasValidVenueLocation`). `project([null, null])` emits MapLibre's exact "Expected value to be of type number, but found null" warning, re-firing on the effect run and on every `move`/`zoom` event → the observed 3× count (epics.md:2359).
+- RULED OUT: no app-owned data-driven paint/layout expression exists (`grep` for `setPaintProperty`/`setLayoutProperty`/`addLayer`/`addSource` across `nextjs-app/` returns none — the app uses the OpenFreeMap `positron` style verbatim and renders all markers as DOM overlays). The venue-pin `setLngLat` sites are already fully guarded upstream (`mapVenueDtoToPinData` returns null for non-finite coords → filtered out before `VenuePinLayer`); `UserLocationLayer.setLngLat` only runs on `status==='success'`. The unguarded `project(...)` was the sole remaining null-coord sink.
+- FIX (minimal, in-file): extended the `updatePosition` effect's early-return guard to `!hasValidVenueLocation(selectedVenueDto)`, so a null/non-finite-coord selected venue clears the quick-info position and never projects — mirroring the existing `easeTo` guard for symmetry. No behaviour change for well-formed venues (positive-control test confirms they still project).
+- TESTS: 3 new focused tests in `MapView.test.tsx` — (a) selected venue with wholly-null `location` does not call `project`, (b) selected venue with a present `location` object but null lat/lng (the exact live warning shape) does not call `project`, (c) positive control: a finite-coord selected venue DOES project (guard is a null filter, not a blanket regression). RED-verified (fails without the guard).
+
+**Design Gate (verification story):**
+- Behaviour: AC2 regression suite green; each Epic 9 fix confirmed at the mobile viewport (above); mobile-only gaps logged not swallowed. ✅
+- Visual / Visual-validation: this story adds NO new screenshot surface, so there is nothing new to byte-compare. Did NOT edit any reference PNG or force a visual pass. The stale-reference rebaseline cascade remains a maintainer follow-up (consolidated below). ✅ (honest — not a 9.10 defect).
+- Animation: N/A (no new animation); no Epic 9 fix observed to regress an existing mobile animation.
+
+**Maintainer follow-ups (consolidated — deferred-work folded into this final story):**
+- **[Consolidate — stale reference-PNG rebaseline cascade; Target: maintainer rebaseline + `REBASELINE-LOG.md`]** The mobile `map-with-selected-venue`, `venue-detail`, and `map-primary` reference PNGs predate the 9.1 content removals + 9.5/9.6/9.7 chrome; there is NO reference for the 9.8 desktop share modal or the 9.5 location dot. The 9.10 Design-Gate "references pass at mobile breakpoints" is BLOCKED on this maintainer rebaseline. Dev did NOT edit references (forbidden). Screens/breakpoints to rebaseline in one pass: `map-primary` (mobile+desktop, post-9.5/9.6/9.7 chrome), `map-with-selected-venue` (mobile, post-9.1/9.9 quick-info rework + 9.5 dot), `venue-detail` (mobile+desktop, post-9.1 removals + 9.8 enabled/mobile share button), and a NEW reference for the 9.8 desktop share modal + the 9.5 location dot.
+- **[9.9 review conditional — RESOLVED here]** The planner-clearance guard was arithmetic-only (`top===437`); 9.10's mobile e2e spec adds the LIVE-DOM bounding-box clearance assertion (card top ≥ planner bottom). Conditional closed.
+- **[9.7 empty-vs-skeleton / 9.8 clipboard + brand-tile conditionals]** Not observed to trigger during the mobile pass; left with the maintainer as narrow HTTPS-only / concurrent-refetch edges (unchanged by 9.10).
+- **[Pre-existing DESKTOP red — track separately, do NOT fix here]** `map-primary.spec.ts:645` (desktop venue-detail planner-bar viewport-width) is STILL RED at HEAD, desktop-project only, unrelated to Epic 9 — confirmed this pass. A second desktop flake at `:249` (map-container not visible within 5s on a cold Turbopack route under `next dev`, retries=0 locally) is also pre-existing/timing, not 9.10. Neither affects the `--project=mobile` pass.
+
 ### File List
+
+- `nextjs-app/components/custom/map/MapView.tsx` — MODIFIED (Task 3): guard the QuickInfo `updatePosition` effect with `hasValidVenueLocation(selectedVenueDto)` so a null/non-finite-coord selected venue never reaches `mapInstance.project([...])` (fixes the 3× MapLibre "type number, found null" warning).
+- `nextjs-app/test/components/MapView.test.tsx` — MODIFIED: +3 tests around the Task-3 null-coord projection guard (wholly-null location, null lat/lng on a present location object, and a finite-coord positive control).
+- `nextjs-app/test/unit/queries/clean-url-date-selection.test.tsx` — NEW (Task 2, net-new AC2 guard): clean-URL date selection flows the new date into the venue query + fires a fresh fetch (2 tests).
+- `nextjs-app/test/e2e/epic-9-mobile-regression.spec.ts` — NEW (Task 2): consolidated Epic 9 mobile (iPhone 14) regression net — onboarding gate, location dot, share button, single-control-set/settings-modal, live-layout planner clearance (5 mobile-only tests).
+
+### Change Log
+
+- 2026-07-01 — Story 9.10 implemented (Amelia/Opus 4.8): mobile-viewport verification pass (AC1) across all Epic 9 surfaces; AC2 regression net consolidated (4 existing guards confirmed green + net-new clean-URL date-selection guard + consolidated mobile e2e spec); Task-3 MapLibre null-coord warning root-caused to the unguarded `MapView` QuickInfo projection and fixed with a `hasValidVenueLocation` guard (+3 focused tests). Gate green (tsc 0 / eslint 0 / vitest 106 files·936 tests). Mobile e2e 38 pass / 4 pre-existing failures (logged as maintainer follow-ups). Status → review.

@@ -902,6 +902,114 @@ describe('<MapView />', () => {
       expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
     });
 
+    it('does NOT project a selected venue with a null/non-finite location (Story 9.10 Task 3 — MapLibre null-coord warning guard)', () => {
+      // Repro of the live 3× MapLibre "Expected value to be of type number, but
+      // found null" warning (epics.md:2359): the `?venue=<slug>` deep-link (and
+      // a favourite row) can select a venue whose `location` is null despite the
+      // non-null `CoordinatesDto` type. The QuickInfo-position effect must skip
+      // `mapInstance.project([...])` entirely for such a venue rather than feed
+      // it a null coordinate — the same finiteness contract the sibling `easeTo`
+      // already honours via `hasValidVenueLocation`.
+      selectedVenueIdMock = 'venue-null';
+      useVenueSearchMock.mockReturnValue({
+        data: {
+          venues: [
+            {
+              id: 'venue-null',
+              venueId: 'venue-null',
+              venueName: 'Ortlös Bar',
+              venueSlug: 'ortlos-bar',
+              slug: 'ortlos-bar',
+              neighborhood: 'Centrum',
+              // Real data can deliver a null location; the DTO types it non-null.
+              location: null as unknown as { lat: number; lng: number },
+              currentSunStatus: 'Sunny',
+              isPartner: false,
+              confidence: 90,
+              distanceMeters: 300,
+              sunExposurePercent: 88,
+              tags: [],
+              sunWindow: { start: '13:00', end: '18:30' },
+            },
+          ],
+          meta: { count: 1, radiusKm: 1.5 },
+          timestamp: 'now',
+          totalCount: 1,
+        },
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      // The position effect ran but must have bailed BEFORE calling project():
+      // a null coordinate would otherwise reach MapLibre and warn.
+      expect(stubMap.project).not.toHaveBeenCalled();
+    });
+
+    it('does NOT project a selected venue whose lat/lng are non-finite (null coords on a present location object)', () => {
+      // The live warning ("type number, found null", epics.md:2359) fires when
+      // `location` EXISTS but its lat/lng are null — `project([null, null])`
+      // warns rather than throws. `hasValidVenueLocation` (`Number.isFinite`)
+      // must reject this shape too, not only a wholly-null `location`.
+      selectedVenueIdMock = 'venue-nan';
+      useVenueSearchMock.mockReturnValue({
+        data: {
+          venues: [
+            {
+              id: 'venue-nan',
+              venueId: 'venue-nan',
+              venueName: 'Nollö Bar',
+              venueSlug: 'nollo-bar',
+              slug: 'nollo-bar',
+              neighborhood: 'Centrum',
+              location: {
+                lat: null as unknown as number,
+                lng: null as unknown as number,
+              },
+              currentSunStatus: 'Sunny',
+              isPartner: false,
+              confidence: 90,
+              distanceMeters: 300,
+              sunExposurePercent: 88,
+              tags: [],
+              sunWindow: { start: '13:00', end: '18:30' },
+            },
+          ],
+          meta: { count: 1, radiusKm: 1.5 },
+          timestamp: 'now',
+          totalCount: 1,
+        },
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(stubMap.project).not.toHaveBeenCalled();
+    });
+
+    it('projects a selected venue with a finite location (positive control for the null-coord guard)', () => {
+      // Complements the guard test above: a well-formed selected venue MUST
+      // still project (proving the guard is a null-coord filter, not a blanket
+      // "never project" regression).
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Testbaren', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(stubMap.project).toHaveBeenCalled();
+    });
+
     it('clamps the mobile QuickInfo card below the planner panel (Story 9.9 AC3)', () => {
       // A pin projected near the TOP of the viewport (project → y=260) would,
       // unclamped, anchor the card ABOVE the pin and collide with the mobile
