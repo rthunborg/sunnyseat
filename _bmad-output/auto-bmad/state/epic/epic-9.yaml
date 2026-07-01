@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T14:09:29Z"
+updated_at: "2026-07-01T15:09:08Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 1157
@@ -62,7 +62,7 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: live-app-hardening-clean-up
-active_story: 9-9-mobile-venue-quick-info-card-rework
+active_story: null
 stories_landed:
   - 9-0-production-gate-the-dev-planner-forcing-url-leak
   - 9-1-clean-app-content-sweep
@@ -73,6 +73,7 @@ stories_landed:
   - 9-6-map-chrome-consolidation-dead-control-cleanup
   - 9-7-tag-filtering-real-data-working-chips
   - 9-8-venue-sharing-real
+  - 9-9-mobile-venue-quick-info-card-rework
 auto_decisions:
   - "Share-target tiles render text glyphs instead of brand icons [Med] → defer: brand-mark fidelity is a maintainer visual-gate/asset call at rebaseline, logged to deferred-work.md (Tier A, 9-8-venue-sharing-real)"
   - "Shipped share targets differ from the reference's five tiles [Med] → dismiss: functional-only is the correct OQ4 default and Epic 9's anti-dead-control mandate; strict 5-tile parity would reintroduce dead tiles (Tier A, 9-8-venue-sharing-real)"
@@ -153,3 +154,20 @@ uat_items:
   - "[9-8] i18n: switch to English, open a venue, click Share -> modal title/subtitle/'Copy link'/'Copied'/target labels all render in English ('Share {name}'). [i18n parity]"
   - "[9-8] Reduced motion (edge): enable OS 'reduce motion', open the share modal -> appears/dismisses without the slide/scale spring (opacity-only); all buttons still function."
   - "[9-8] KNOWN caveats a tester should expect (documented/deferred): share-target tiles render text glyphs (Wa/f/X/Tg/@) not brand logos; clipboard silently no-ops only in an insecure context (off HTTPS/localhost); the automated visual-validate gate is blocked by the host /tmp bug."
+  - "[9-9] SETUP: cd nextjs-app && npm run dev; use a MOBILE viewport 360-430 CSS px (DevTools device toolbar) for all checks (the card is lg:hidden)."
+  - "[9-9] Open http://localhost:3000/?_state=map-with-selected-venue (390px) -> the compact quick-info card renders anchored above a map pin (~230px wide) with a downward triangle tail. [AC1]"
+  - "[9-9] Card header strip: '% SOL' badge is a small pill top-LEFT of the 72px photo strip, favourite heart top-RIGHT; they don't overlap/crowd. [AC1]"
+  - "[9-9] Close (X) button is a floating dark pill just ABOVE the card's top-right corner (not partway down the side); clicking it dismisses the card. [AC1]"
+  - "[9-9] Card body shows ONLY: centered venue name, amber sun-window line, a confidence % figure, and the distance — NO EXPONERING block, NO uncertainty/Osäker reason, NO 'Blir skuggigt om X min', NO explanatory paragraph. [AC1 / 9.1 removals]"
+  - "[9-9] Bottom row: a full-width-ish 'VISA RUTT' gold->amber gradient button (flex-1) left with 'MER INFO' outlined button right; both enabled, not greyed. [AC1]"
+  - "[9-9] Tap 'VISA RUTT' -> route action fires (route overlay / maps affordance opens) — wired, not dead. [AC1 behaviour]"
+  - "[9-9] Tap 'MER INFO' (or the centered venue name) -> the full venue detail view opens. [AC1 behaviour]"
+  - "[9-9] Tap the favourite heart on the strip -> toggles filled/unfilled (wired handler). [AC1 behaviour]"
+  - "[9-9] Full-sun: load .../?_state=map-with-selected-venue&_time=13:00 -> high '% SOL' badge + populated sun window; layout holds, no overflow/clipping at 360px. [AC2]"
+  - "[9-9] Shaded/partial (e.g. _time=21:00): sun line shows the 'Soltid saknas' fallback (not a range) and the card still renders cleanly with no overflow at 360-430px. [AC2]"
+  - "[9-9] Cross-width: repeat at 360px and 430px -> name, sun line, distance, both CTAs fit without horizontal overflow or truncation. [AC2]"
+  - "[9-9] Planner-collision: with the 'Planera soltid' time-slider panel visible, select a pin near the TOP of the map -> the card is pushed down so its top edge/'% SOL' badge sits clearly BELOW the planner panel with a visible gap (no overlap). [AC3]"
+  - "[9-9] Honest distance FALLBACK: deny/skip geolocation (DevTools Sensors 'unavailable' or dismiss prompt), reload, select a venue -> distance shows the real number annotated '≈ från centrum' (sv default). [AC3]"
+  - "[9-9] Honest distance GRANTED: set a custom geolocation fix (DevTools Sensors), reload, select a venue -> distance shows the number WITHOUT the '≈ från centrum' qualifier. [AC3]"
+  - "[9-9] Honest-distance parity: with fallback active, compare the same venue's distance in the list card vs the quick-info card -> both agree it's centrum-relative (both qualified). [AC3]"
+  - "[9-9] Animation: select a venue then a different pin -> content crossfades to the new venue; dismissing slides/fades out; with OS 'reduce motion' on, transitions are opacity-only (no slide/scale). [Animation gate]"
