@@ -133,6 +133,15 @@
     "favouriteAdd": "Spara som favorit",
     "favouriteRemove": "Ta bort favorit",
     "share": "Dela plats",
+    "shareModal": {
+      "title": "Dela {name}",
+      "subtitle": "Skicka platsen till en vän eller kopiera länken.",
+      "copyLink": "Kopiera länk",
+      "copied": "Kopierad",
+      "close": "Stäng",
+      "shareText": "Kolla in soltiden på {name}",
+      "target": "Dela till {target}"
+    },
     "photoPlaceholder": "Platshållarbild för platsen",
     "loading": "Laddar platsdetaljer",
     "detailsUnavailable": "Detaljer saknas",

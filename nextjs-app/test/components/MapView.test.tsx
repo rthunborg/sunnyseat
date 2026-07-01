@@ -1112,6 +1112,30 @@ describe('<MapView />', () => {
       expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
     });
 
+    it('a shared ?venue=<slug> deep-link opens the recipient on the venue detail (Story 9.8 AC3 regression guard)', () => {
+      // This is the exact URL shape `buildVenueShareUrl` produces — a clean
+      // `?venue=<slug>` with no planner/dev params. A recipient landing here
+      // must resolve straight to the venue detail. Guards AC3 against a future
+      // routing change silently breaking every previously-shared link.
+      const shareUrl = new URL('https://sunnyseat.app/?venue=test-venue-sunny');
+      searchParamsMock = new URLSearchParams(shareUrl.search);
+      expect(searchParamsMock.get('venue')).toBe('test-venue-sunny');
+      const venue = makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([venue]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      const { rerender } = render(<MapView />, { wrapper: Wrapper });
+      expect(selectVenueMock).toHaveBeenCalledWith('venue-1', expect.objectContaining({ id: 'venue-1' }));
+      rerender(<MapView />);
+      expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
+      expect(screen.getByTestId('desktop-venue-detail-panel')).toBeInTheDocument();
+      expect(screen.getAllByRole('heading', { name: 'Kafé Magasinet' }).length).toBeGreaterThan(0);
+    });
+
     it('direct venue-detail visual-validation URL selects the matching venue once list data is available', () => {
       searchParamsMock = new URLSearchParams('venue=test-venue-sunny&_state=venue-detail');
       useVenueSearchMock.mockReturnValue({

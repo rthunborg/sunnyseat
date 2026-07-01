@@ -1252,6 +1252,7 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     favouriteAdd: t('detail.favouriteAdd'),
     favouriteRemove: t('detail.favouriteRemove'),
     share: t('detail.share'),
+    shareText: t('detail.shareModal.shareText', { name: '{name}' }),
     sectionTitle: t('detail.sectionTitle'),
     peakTime: t('detail.peakTime', { time: '{time}' }),
     bestWindow: t('detail.bestWindow', { start: '{start}', end: '{end}' }),

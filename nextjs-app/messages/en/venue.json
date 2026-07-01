@@ -133,6 +133,15 @@
     "favouriteAdd": "Save as favourite",
     "favouriteRemove": "Remove favourite",
     "share": "Share venue",
+    "shareModal": {
+      "title": "Share {name}",
+      "subtitle": "Send the venue to a friend or copy the link.",
+      "copyLink": "Copy link",
+      "copied": "Copied",
+      "close": "Close",
+      "shareText": "Check out the sun times at {name}",
+      "target": "Share to {target}"
+    },
     "photoPlaceholder": "Venue placeholder image",
     "loading": "Loading venue details",
     "detailsUnavailable": "Details unavailable",

@@ -5,10 +5,10 @@ epic_num: 9
 story_num: 8
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T12:01:19Z"
+updated_at: "2026-07-01T13:37:47Z"
 started_at: "2026-07-01T11:52:55Z"
 completed_at: null
-active_seconds: 494
+active_seconds: 2686
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "New stateful share flow (native Web Share / desktop copy-link+targets) with platform-branching across venue-detail header + mobile entry + deep-link routing = Medium; no auth/payments/data-integrity/public-API High signals."
 epic_story_count: 11
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [51054f9]
+commits: [51054f9, db8d22b]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -47,7 +47,10 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work: []
+deferred_work:
+  - "[9-8] Planner-time sharing (?_time=) intentionally not built — prod-gated by Story 9.0; flag if a maintainer wants shareable pinned-time URLs."
+  - "[9-8] Maintainer: rebaseline venue-detail reference PNGs (mobile+desktop) for the new enabled desktop + mobile share button and the share modal state (dev forbidden from self-blessing)."
+  - "[9-8] SM: retarget deferred-work.md 'Share action behaviour' entry from Story 6.4 -> 9.8 (now implemented)."
 blockers: []
 overrides: {}
 constraints: []

@@ -148,6 +148,7 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     close: t('detail.close'),
     favourite: t('detail.favourite'),
     share: t('detail.share'),
+    shareText: t('detail.shareModal.shareText', { name: '{name}' }),
     sectionTitle: t('detail.sectionTitle'),
     peakTime: t('detail.peakTime', { time: '{time}' }),
     openMaps: t('detail.openMaps'),
