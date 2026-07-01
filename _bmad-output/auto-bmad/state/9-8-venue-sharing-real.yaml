@@ -5,10 +5,10 @@ epic_num: 9
 story_num: 8
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T11:52:55Z"
+updated_at: "2026-07-01T12:01:19Z"
 started_at: "2026-07-01T11:52:55Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 494
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "New stateful share flow (native Web Share / desktop copy-link+targets) with platform-branching across venue-detail header + mobile entry + deep-link routing = Medium; no auth/payments/data-integrity/public-API High signals."
 epic_story_count: 11
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 3]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: []
+commits: [51054f9]
 phase8_steps:
   trace_gate: null
   nfr: null
