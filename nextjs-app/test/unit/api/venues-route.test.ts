@@ -183,7 +183,7 @@ describe('GET /api/venues', () => {
   // also routes mutation subpaths (POST /api/venues/[slug]/feedback) through this
   // middleware — those must NOT share the read quota, or heavy browsing could 429
   // a feedback submission (and vice-versa).
-  it('does NOT rate-limit non-GET (mutation) requests — they keep their own quota', () => {
+  it('does NOT rate-limit non-GET (mutation) requests — the feedback POST passes through the edge limiter, not subject to the GET read bucket', () => {
     const makePost = () =>
       new NextRequest('http://localhost/api/venues/test-venue/feedback', {
         method: 'POST',

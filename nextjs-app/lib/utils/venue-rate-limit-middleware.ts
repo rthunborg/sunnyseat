@@ -17,10 +17,12 @@ import { checkRateLimit, clientKeyFromHeaders } from '@/lib/utils/rate-limit';
 export function venueRateLimitMiddleware(request: NextRequest): NextResponse {
   // Story 9.3 scoped this bucket to the venue READ routes only. The proxy matcher
   // also routes mutation subpaths here (notably `POST /api/venues/[slug]/feedback`),
-  // so gate the read-quota check to GET — otherwise a feedback submission and a
-  // browsing read would share one 120/60s per-IP bucket and 429 each other, a
-  // net-new cross-route behaviour never in 9.3's scope. Non-GET requests pass
-  // through untouched, keeping their own quota.
+  // so gate this read rate-limit bucket to `method === 'GET'` — otherwise a feedback
+  // submission and a browsing read would share one 120/60s per-IP bucket and 429 each
+  // other, a net-new cross-route behaviour never in 9.3's scope. The feedback POST
+  // (and any non-GET mutation) is intentionally NOT edge-throttled here: it is an
+  // anonymous route guarded by its own strict Zod schema. There is no separate
+  // mutation rate-limit bucket — these requests simply pass through untouched.
   if (request.method !== 'GET') {
     return NextResponse.next();
   }

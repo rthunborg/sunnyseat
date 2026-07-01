@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T16:37:38Z"
+updated_at: "2026-07-01T17:32:32Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 1207
@@ -21,7 +21,7 @@ tea_rationale: null
 epic_story_count: 11
 stories_after_in_epic: null
 completed_phases: [0, 1, 2]
-code_review_iterations: 1
+code_review_iterations: 2
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
