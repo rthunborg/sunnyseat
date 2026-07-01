@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T13:57:06Z"
+updated_at: "2026-07-01T14:06:13Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 1041
@@ -62,7 +62,7 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: live-app-hardening-clean-up
-active_story: 9-8-venue-sharing-real
+active_story: null
 stories_landed:
   - 9-0-production-gate-the-dev-planner-forcing-url-leak
   - 9-1-clean-app-content-sweep
@@ -72,6 +72,7 @@ stories_landed:
   - 9-5-location-onboarding-reliability
   - 9-6-map-chrome-consolidation-dead-control-cleanup
   - 9-7-tag-filtering-real-data-working-chips
+  - 9-8-venue-sharing-real
 auto_decisions:
   - "Share-target tiles render text glyphs instead of brand icons [Med] → defer: brand-mark fidelity is a maintainer visual-gate/asset call at rebaseline, logged to deferred-work.md (Tier A, 9-8-venue-sharing-real)"
   - "Shipped share targets differ from the reference's five tiles [Med] → dismiss: functional-only is the correct OQ4 default and Epic 9's anti-dead-control mandate; strict 5-tile parity would reintroduce dead tiles (Tier A, 9-8-venue-sharing-real)"
@@ -137,3 +138,18 @@ uat_items:
   - "[9-7] Graceful-empty + clear (AC4): a venue with no matching tag is EXCLUDED while a chip is active but reappears once all chips are cleared; a zero-match combination shows the 'Inga platser hittades' empty state (not a broken/blank list or a stuck skeleton)."
   - "[9-7] sv/en casing (AC5): switch language -> chip labels read with consistent FULL casing (sv Innergård/Kväll <-> en Courtyard/Evening; never a truncated 'Takt'); filtering matches on the canonical sv value so results are locale-independent."
   - "[9-7] Drag-with-chip fires no extra requests (9.4 hygiene): DevTools > Network (filter venues), activate a chip, drag the time slider back and forth -> NO burst of /api/venues per step (nav + map queries de-dupe byte-identically; the tag filter is pure client-side .filter()). Most meaningful on the real data path."
+  - "[9-8] SETUP: cd nextjs-app && npm run dev, open http://localhost:3000 (desktop); use dev-tools device emulation for the mobile checks."
+  - "[9-8] Desktop: open a venue detail (click a pin/card -> right-side detail panel) -> top-right cluster shows Heart, Share (arrow), Close; the Share button is ENABLED (not greyed), frosted-pill styled. [AC1]"
+  - "[9-8] Desktop: click Share -> a centered modal opens ABOVE the detail panel with title 'Dela {venue}', subtitle, a row of 5 brand-colored target tiles, and a copy-link row showing the URL. [AC1]"
+  - "[9-8] Desktop share modal: the copy-link URL reads http://localhost:3000/?venue=<slug> (sv default: no locale prefix) with NO _state/_time/_date/tags params, even if the address bar had them. [AC3/OQ1]"
+  - "[9-8] Desktop: click 'Kopiera lank' -> flips to 'Kopierad' + check icon ~1.8s then reverts; Ctrl+V elsewhere pastes exactly the ?venue=<slug> URL shown. [AC1]"
+  - "[9-8] Desktop modal: click WhatsApp/Facebook/X/Telegram tile -> new tab to that service's share-intent URL prefilled with the venue link/text; click 'E-post' -> OS mail composer opens with the venue URL in the body. [AC1]"
+  - "[9-8] Desktop modal: press Escape -> modal closes, detail panel stays; re-open + click the dark scrim outside the card -> also closes; the modal's x button closes only the modal. [AC1/behaviour]"
+  - "[9-8] Mobile viewport: open a venue detail (bottom sheet) -> top-right cluster now shows Heart, Share (arrow), Close; the Share button EXISTS + is enabled (mobile previously had none). [AC2]"
+  - "[9-8] Mobile w/ navigator.share (mobile Safari/Chrome over HTTPS/localhost): tap Share -> OS native share sheet appears with the venue name as title + the ?venue=<slug> URL; cancel -> nothing else happens (no error, no modal). [AC1]"
+  - "[9-8] Desktop browser WITHOUT navigator.share: click Share -> falls back to opening the ShareModal (copy-link + targets) — the button is never dead. [AC1 graceful degradation]"
+  - "[9-8] Deep-link (AC3): open http://localhost:3000/?venue=<real-slug> in a fresh/incognito tab -> the correct venue's detail resolves (recipient lands directly on the shared venue)."
+  - "[9-8] Deep-link locale: open http://localhost:3000/en/?venue=<slug> -> resolves the same venue with English UI (the /en locale prefix is preserved in shared links). [AC3]"
+  - "[9-8] i18n: switch to English, open a venue, click Share -> modal title/subtitle/'Copy link'/'Copied'/target labels all render in English ('Share {name}'). [i18n parity]"
+  - "[9-8] Reduced motion (edge): enable OS 'reduce motion', open the share modal -> appears/dismisses without the slide/scale spring (opacity-only); all buttons still function."
+  - "[9-8] KNOWN caveats a tester should expect (documented/deferred): share-target tiles render text glyphs (Wa/f/X/Tg/@) not brand logos; clipboard silently no-ops only in an insecure context (off HTTPS/localhost); the automated visual-validate gate is blocked by the host /tmp bug."
