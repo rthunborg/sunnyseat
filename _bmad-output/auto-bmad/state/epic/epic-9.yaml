@@ -5,11 +5,11 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T17:32:32Z"
+updated_at: "2026-07-01T17:42:27Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
-active_seconds: 1207
-timing_anchor: 1782922632
+active_seconds: 5755
+timing_anchor: 1782927237
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,25 +20,25 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 11
 stories_after_in_epic: null
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 7, 81, 82]
 code_review_iterations: 2
-code_review_loop_done: false
-hitl_halt: null
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic — no halt)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [aa94d0e]
+commits: [aa94d0e, 08c4484, 0a641ff, fb8636a]
 phase8_steps:
   trace_gate: done
   nfr: done
   test_review: done
-  project_context: null
-  reconcile: null
-  archive: null
-  retro: null
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
 gate_decision: PASS
 gate_iterations: 0
-deferred_work_archived: 0
+deferred_work_archived: 4
 pr_url: null
 ci_run_url: null
 ci_status: unknown
@@ -190,3 +190,5 @@ uat_items:
   - "[9-10] Clean-URL date guard: npx vitest run test/unit/queries/clean-url-date-selection.test.tsx -> 2 tests pass (a future date on a clean/un-forced URL flows into the /api/venues query key + fires exactly one fresh fetch; reselecting today returns to the live planner-less key)."
   - "[9-10] Confirmed AC2 guards green: npx vitest run test/components/AppContextProviders.test.tsx test/unit/queries/deferred-planner-query.test.tsx test/components/MapView.test.tsx test/components/UserLocationLayer.atdd.test.tsx test/components/UserPin.test.tsx -> all pass (prod-gate ignores ?_time=, settled time change = one venues request, Favoriter<->Närmast no redundant fetch, dot on success/hidden on fallback)."
   - "[9-10] Full gate sanity: npx tsc --noEmit (0), npx eslint . --quiet (0), npx vitest run (all green). NEEDS-HUMAN: physical real-device native share + real-GPS onboarding-CTA prompt; the stale mobile reference-PNG rebaseline cascade is a maintainer follow-up (not gate-able here)."
+integration_review_done: true
+planning_drift: "Detail-level only, non-blocking (no structural drift, no auto re-sync run): sprint-status 9-0 stale ready-for-dev vs the story file's review (E_final batch-flip corrects it); architecture.md cites a non-existent LocationPermission.tsx (permission flow actually lives in OnboardingScreen.tsx + useGeolocation.tsx); deferred-work.md 'Share action behaviour' entry still targets the cut Story 6.4 (fulfilled by 9.8 — retarget->9.8 or remove); ux-design-spec was already correct (9.6 realigned code TO the spec)."
