@@ -546,4 +546,201 @@ describe('<VenueQuickInfo />', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Stäng platskort' }));
     expect(dismiss).toHaveBeenCalledTimes(1);
   });
+
+  // ---------------------------------------------------------------------------
+  // Story 9.9 coverage expansion (bmad-testarch-automate) — branches the dev
+  // suite left uncovered: distance formatting boundaries, sun-% clamping, and
+  // the AC2 "layout holds across sun states" invariant on the anchored-mobile
+  // (compact) strip with its compact-aware badge/heart placement.
+  // ---------------------------------------------------------------------------
+
+  it('formats a >=1000 m distance as kilometres and rounds sub-km metres (formatDistance boundary)', () => {
+    const { rerender } = render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunTimeRange="Sol 13:00–18:30"
+        confidencePercent={92}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        distanceMeters={1500}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    // >= 1000 → one-decimal km.
+    expect(screen.getByText(/Avstånd:/)).toHaveTextContent('Avstånd: 1.5 km');
+
+    // Exactly at the 1000 boundary → still km (1.0 km), not "1000 m".
+    rerender(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        distanceMeters={1000}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+    expect(screen.getByText(/Avstånd:/)).toHaveTextContent('Avstånd: 1.0 km');
+
+    // Sub-km metres are rounded to a whole number.
+    rerender(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        distanceMeters={423.7}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+    expect(screen.getByText(/Avstånd:/)).toHaveTextContent('Avstånd: 424 m');
+  });
+
+  it('renders an em-dash placeholder when the distance is unknown (formatDistance non-finite)', () => {
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        distanceMeters={undefined}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    expect(screen.getByText(/Avstånd:/)).toHaveTextContent('Avstånd: –');
+  });
+
+  it('clamps the sun-exposure badge to the 0–100% range (formatPercent boundaries)', () => {
+    const { rerender } = render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunExposurePercent={140}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+    expect(screen.getByText(/SOL/)).toHaveTextContent('100% SOL');
+
+    rerender(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunExposurePercent={-25}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+    expect(screen.getByText(/SOL/)).toHaveTextContent('0% SOL');
+  });
+
+  it('hides the sun-exposure badge entirely when the exposure value is absent', () => {
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunExposurePercent={undefined}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+    expect(screen.queryByText(/SOL/)).toBeNull();
+  });
+
+  it.each([
+    ['full sun', 95, 'Sol 12:00–20:00'],
+    ['partial sun', 55, 'Sol 15:30–17:00'],
+    ['shaded (no window)', 0, undefined],
+  ])(
+    'holds the anchored-mobile compact layout across sun states without dropping the CTA row (%s)',
+    (_label, exposure, sunTimeRange) => {
+      render(
+        <VenueQuickInfo
+          mode="mobile"
+          name="Testbaren"
+          sunTimeRange={sunTimeRange}
+          confidencePercent={80}
+          confidenceMeta={{
+            sunDataSource: 'weather',
+            weatherUpdatedAt: new Date().toISOString(),
+          }}
+          sunExposurePercent={exposure}
+          distanceMeters={420}
+          position={{ x: 180, y: 260 }}
+          isLoadingSunData={false}
+          onDismiss={() => {}}
+          onOpenDetails={() => {}}
+          onRoute={() => {}}
+          onFavouriteToggle={() => {}}
+          labels={labels}
+        />,
+      );
+
+      // The sun window resolves to either the range or the honest fallback copy.
+      expect(
+        screen.getByText(sunTimeRange ?? 'Soltid saknas'),
+      ).toBeInTheDocument();
+      // The CTA row survives in every sun state — VISA RUTT + MER INFO.
+      expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Mer Info' })).toBeInTheDocument();
+      // The distance value stays legible (never truncated to nothing).
+      expect(screen.getByTestId('venue-quick-info')).toHaveTextContent('420 m');
+      // Compact-strip badge/heart placement (Story 9.9 reference match): the
+      // sun-% pill sits top-LEFT (`left-2 top-2`) and the favourite heart
+      // top-RIGHT (`right-2 top-2`) so the two never crowd on the 72px strip.
+      if (exposure > 0) {
+        const badge = screen.getByText(/SOL/).closest('div');
+        expect(badge).toHaveClass('left-2', 'top-2');
+      }
+      const heart = screen.getByRole('button', { name: 'Spara som favorit' });
+      expect(heart).toHaveClass('right-2', 'top-2');
+      expect(heart).toHaveClass('size-11'); // WCAG 44px tap target preserved.
+    },
+  );
+
+  it('uses the fuller badge/heart insets on the non-compact (bottom-sheet) strip', () => {
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunExposurePercent={95}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        onFavouriteToggle={() => {}}
+        labels={labels}
+      />,
+    );
+
+    // No `position` → non-anchored bottom-sheet variant → fuller insets.
+    const badge = screen.getByText(/SOL/).closest('div');
+    expect(badge).toHaveClass('left-3', 'top-3');
+    const heart = screen.getByRole('button', { name: 'Spara som favorit' });
+    expect(heart).toHaveClass('right-3', 'top-3');
+  });
 });

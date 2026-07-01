@@ -5,50 +5,40 @@ stepsCompleted:
   - 'step-03-generate-tests'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-06-30'
+lastSaved: '2026-07-01'
 inputDocuments:
-  - '_bmad-output/implementation-artifacts/9-3-venue-sun-compute-performance-server-caching.md'
-  - 'nextjs-app/lib/services/sun-engine-cache.ts'
-  - 'nextjs-app/lib/utils/rate-limit.ts'
-  - 'nextjs-app/lib/services/sun-engine.ts'
-  - 'nextjs-app/app/api/venues/[slug]/route.ts'
-  - 'nextjs-app/test/unit/services/sun-engine-caching.atdd.test.ts'
-  - 'nextjs-app/test/unit/api/venues-route-caching.atdd.test.ts'
-  - 'nextjs-app/test/unit/utils/rate-limit.test.ts'
+  - '_bmad-output/implementation-artifacts/9-9-mobile-venue-quick-info-card-rework.md'
+  - 'nextjs-app/components/composed/venue/VenueQuickInfo.tsx'
+  - 'nextjs-app/components/custom/map/MapView.tsx'
+  - 'nextjs-app/test/components/VenueQuickInfo.test.tsx'
+  - 'nextjs-app/test/components/VenueQuickInfoApproximateDistance.test.tsx'
+  - 'nextjs-app/test/components/MapView.test.tsx'
 ---
 
-# Automation Expansion Summary — Story 9.3 (Venue Sun-Compute Performance / Server Caching)
+# Automation Expansion Summary — Story 9.9 (Mobile Venue Quick-Info Card Rework)
 
 ## Preflight & Context
-- Stack: backend/perf (Next.js + Vitest 4, jsdom). Framework present — no HALT.
-- Mode: BMad-Integrated, scoped to Story 9.3 (sun-compute building-fetch dedupe, the process-scoped TTL caches in `lib/services/sun-engine-cache.ts`, the Edge proxy rate-limiter in `proxy.ts` / `lib/utils/rate-limit.ts`, and `/api/venues` + `/api/venues/[slug]` caching). Coverage-expansion only.
-- Given the tightly-scoped, deterministic nature (extend existing Vitest unit specs at named gaps), executed in-session rather than dispatching the API/E2E subagent fan-out — all targets are unit-level, no new API/e2e surface.
-- Existing coverage reviewed to avoid duplication: `rate-limit.test.ts` (IP validation/token-bucket quota/reset/independent keys — already complete, NOT touched), `sun-engine-caching.atdd.test.ts` (dedupe 2→1, byte-identical, null-buildings, co-located collapse, same/new bucket), `venues-route-caching.atdd.test.ts` (route headers/ETag/304/429).
+- Stack: frontend (Next.js + Vitest 4 / jsdom + @testing-library/react; Playwright present for e2e). Framework present — no HALT.
+- Mode: BMad-Integrated, scoped to Story 9.9 — the `VenueQuickInfo` compact/anchored-mobile layout branching + the `distanceIsApproximate` honest-distance label, and the MapView planner-clearance + honest-distance wiring. Coverage-expansion only; no production code touched.
+- In-session unit/component authoring (deterministic DOM + mocked motion/map), no API/e2e subagent fan-out needed — all targets are component-level.
+- Existing coverage reviewed to avoid duplication:
+  - `VenueQuickInfo.test.tsx` (15 tests): summary render, route CTA + loading, Story 9.1 de-bloat invariants, stale/geometry confidence, anchored confidence, reduced-motion transforms, thumbnail fallbacks, skeleton, pointer-stop, close/more-info, favourite toggle.
+  - `VenueQuickInfoApproximateDistance.test.tsx` (5 tests): honest-distance present/absent/missing-label/sr-only-clean across anchored + non-anchored.
+  - `MapView.test.tsx`: planner-clearance clamp (top===437), honest-distance fallback-present + real-fix-absent wiring.
 
-## Targets & Coverage Plan (test levels / priorities)
-All unit-level (Vitest), deterministic (call-counts, cache keys, injected/fake clock). NO wall-clock latency asserts (project lesson). No existing assertion duplicated.
+## Gaps Identified & Filled (VenueQuickInfo.test.tsx, +8 tests)
+All component-level (Vitest + Testing Library), deterministic DOM assertions. No existing assertion duplicated.
+- **`formatDistance` boundaries (P2)** — previously untested: `>=1000 m → "1.5 km"`, the exact `1000 m → "1.0 km"` boundary, and sub-km rounding (`423.7 → "424 m"`). Plus the non-finite/unknown path (`undefined → "–"` em-dash).
+- **`formatPercent` clamping (P2)** — the `% SOL` badge clamps out-of-range exposure: `140 → "100% SOL"`, `-25 → "0% SOL"`; and the badge is fully absent when exposure is `undefined`.
+- **AC2 "layout holds across sun states" on the compact strip (P1)** — parametrized full/partial/shaded(no-window): each state keeps the sun copy (range or honest `Soltid saknas` fallback), keeps BOTH CTAs (VISA RUTT + MER INFO), keeps the distance value legible, and holds compact-strip badge/heart placement (`% SOL` top-LEFT `left-2 top-2`, favourite heart top-RIGHT `right-2 top-2` with the 44px WCAG `size-11` tap target preserved).
+- **Non-compact insets contrast** — the non-anchored (bottom-sheet) strip uses the fuller `left-3 top-3` / `right-3 top-3` insets, guarding the compact-vs-full branch divergence the 9.9 rework introduced.
 
-| Gap (from brief) | Where covered | Priority |
-|---|---|---|
-| TTL expiry / eviction with fake timers | `sun-engine-cache.test.ts` (TtlCache boundary `expiresAt<=now`, lazy eviction, TTL restart, 24h/15min constants) + `sun-engine-caching.atdd.test.ts` (24h buildings TTL → re-fetch via fake timers) | P1 |
-| Cache-key collisions vs co-located venues | `sun-engine-cache.test.ts` (`buildingsCacheKey` collapse vs near-but-distinct separation, radius folding, lat/lng ordering, NaN sentinel; `timeBucketMs`/`sunComputeCacheKey` 15-min flooring + id/day/variant disambiguation) | P1 |
-| Detail-route cache parity | `sun-engine-caching.atdd.test.ts` (list-then-detail through the shared `applyRealSunEngine` engine seam → 0 extra RPCs) | P0 |
-| Concurrent / repeated-request cache reuse | `sun-engine-cache.test.ts` (one shared in-flight promise per key + rejection eviction for `getOrFetchNonNull`, `getOrComputeConditional`, `getOrCompute`) | P0 |
-| Success-only caching (degraded NOT pinned) | `sun-engine-cache.test.ts` (`getOrFetchNonNull` never caches null; `getOrComputeConditional` cacheable:false not stored) + `sun-engine-caching.atdd.test.ts` (engine seam: building-RPC-failed compute recomputes & recovers same-bucket, 50→100) | P0 |
-| Distinct venues NOT collapsing (negative of co-location) | `sun-engine-caching.atdd.test.ts` (two distinct 4-dp centroids → 2 RPCs) | P1 |
+## Not Added (deliberate — would duplicate or hit harness limits)
+- MapView "low pin not force-clamped" case: the shared map mock hardcodes a 390×700 canvas, so `maxY` collapses to `minY` (437) and every projected `y` clamps to 437 — a low-pin assertion would be identical to the existing clamp test, not additive.
+- MapView desktop-branch-untouched invariant: jsdom has no `matchMedia`, so the shared harness always resolves the mobile branch; a desktop-path assertion isn't reachable without rewriting the shared mock (out of scope for a presentational-rework coverage pass).
 
-## Tests Generated
-- **New file:** `nextjs-app/test/unit/services/sun-engine-cache.test.ts` — 28 pure-unit tests for `TtlCache`, `buildingsCacheKey`, `sunComputeCacheKey`/`timeBucketMs`, and the three `getOr*` helpers.
-- **Extended:** `nextjs-app/test/unit/services/sun-engine-caching.atdd.test.ts` — +4 engine-level integration tests (10 → 14) + imported `BUILDINGS_CACHE_TTL_MS`.
-
-## Results
-- `tsc --noEmit`: 0 errors. `eslint . --quiet`: 0 errors.
-- Full suite: **87 files / 760 tests passed** (was 86 / 728 → net +32 tests, none removed or weakened).
-- No source code modified; no visual references touched (story is backend-only, visual gate auto-skips).
-
-## Coverage notes / deferred
-- The cache helpers expose an injectable `now`, so most TTL behaviour is asserted purely (no timer mocking). The one integrated 24h-TTL test drives the engine's default `Date.now()` path under `vi.useFakeTimers()` + `vi.advanceTimersByTime`, which is deterministic.
-- Live cold/warm wall-clock latency remains a maintainer/preview measurement (Task 5 escalation), intentionally NOT asserted in CI.
-
-## Next recommended workflow
-`test-review` (validate test quality) or `trace` (traceability matrix) for Story 9.3.
+## Validation
+- `tsc --noEmit`: 0 errors.
+- `eslint test/components/VenueQuickInfo.test.tsx`: 0 errors / 0 warnings.
+- Targeted: `VenueQuickInfo.test.tsx` 23 passed (was 15).
+- Full suite: **105 test files / 931 tests all passing** (was 105 files / 923 tests at dev-story handoff — +8 tests, no files dropped, no regressions). The `Not implemented: navigation` line is a benign pre-existing jsdom log, not a failure.
