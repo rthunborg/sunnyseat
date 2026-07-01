@@ -1,6 +1,6 @@
 'use client';
 
-import { useDeferredValue, useMemo } from 'react';
+import { useDeferredValue, useEffect, useMemo } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { LocateFixed, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -30,7 +30,7 @@ export function DesktopNavBar() {
   const locale = useLocale();
   const geolocation = useGeolocation();
   const { openSettings } = useSettings();
-  const { isActive, toggleTag } = useTagFilter();
+  const { isActive, toggleTag, retainTags } = useTagFilter();
   const plannerTime = useTimeContext();
 
   // Story 9.7: source the chip row from the SAME venue query MapView issues, so
@@ -58,6 +58,18 @@ export function DesktopNavBar() {
     () => collectTags(venueQuery.data?.venues ?? []),
     [venueQuery.data?.venues],
   );
+
+  // Story 9.7 orphaned-tag guard: when the venue set changes (new location/time)
+  // an active tag can vanish from `allTags` while staying active in the shared
+  // TagFilterContext — its chip stops rendering (the `allTags.length` gate) but it
+  // keeps filtering the list + pins to empty with NO affordance to un-toggle it.
+  // Prune `activeTags` to the intersection with the newly loaded union so a stale
+  // filter can never strand the surfaces. Only runs once a venue set has actually
+  // loaded (`venueQuery.data`) — never prunes during the pre-fetch empty window.
+  useEffect(() => {
+    if (!venueQuery.data) return;
+    retainTags(allTags);
+  }, [venueQuery.data, allTags, retainTags]);
 
   return (
     <header

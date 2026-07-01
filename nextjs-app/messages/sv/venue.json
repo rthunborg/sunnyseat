@@ -160,7 +160,8 @@
     "openUntil": "ÖPPET · {time}",
     "placeholderImageShort": "Platshållarbild",
     "facts": {
-      "distance": "AVSTÅND"
+      "distance": "AVSTÅND",
+      "distanceApproximate": "≈ från centrum"
     },
     "timeline": {
       "ariaLabel": "Soltider idag",

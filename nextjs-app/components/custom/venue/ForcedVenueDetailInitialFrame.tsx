@@ -148,7 +148,9 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     close: t('detail.close'),
     favourite: t('detail.favourite'),
     share: t('detail.share'),
-    shareText: t('detail.shareModal.shareText', { name: '{name}' }),
+    // No `shareText`: the forced frame renders only a static, non-interactive
+    // share button (initial-paint screenshot surface) — no live ShareModal or
+    // native share is wired here, so a share-text label would be dead threading.
     sectionTitle: t('detail.sectionTitle'),
     peakTime: t('detail.peakTime', { time: '{time}' }),
     openMaps: t('detail.openMaps'),

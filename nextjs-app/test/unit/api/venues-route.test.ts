@@ -179,6 +179,44 @@ describe('GET /api/venues', () => {
     expect(last?.status).toBe(429);
   });
 
+  // Epic 9 review fix: the read bucket is scoped to GET only. The proxy matcher
+  // also routes mutation subpaths (POST /api/venues/[slug]/feedback) through this
+  // middleware — those must NOT share the read quota, or heavy browsing could 429
+  // a feedback submission (and vice-versa).
+  it('does NOT rate-limit non-GET (mutation) requests — they keep their own quota', () => {
+    const makePost = () =>
+      new NextRequest('http://localhost/api/venues/test-venue/feedback', {
+        method: 'POST',
+        headers: { 'X-Forwarded-For': '203.0.113.99' },
+      });
+    let last: ReturnType<typeof middleware> | null = null;
+    // Far past the GET bucket (120/60s) — a POST is never throttled by this bucket.
+    for (let i = 0; i < 200; i++) {
+      last = middleware(makePost());
+    }
+    expect(last?.status).not.toBe(429);
+    expect(last?.status).not.toBe(400);
+  });
+
+  it('a flood of GET reads does not consume the POST mutation quota', () => {
+    // Exhaust the GET bucket for an IP...
+    let getLast: ReturnType<typeof middleware> | null = null;
+    for (let i = 0; i < 121; i++) {
+      getLast = middleware(
+        makeRequest('?lat=57.7089&lng=11.9746', { 'X-Forwarded-For': '203.0.113.7' }),
+      );
+    }
+    expect(getLast?.status).toBe(429);
+    // ...a POST from the SAME IP still passes (separate concern, no shared 429).
+    const postRes = middleware(
+      new NextRequest('http://localhost/api/venues/test-venue/feedback', {
+        method: 'POST',
+        headers: { 'X-Forwarded-For': '203.0.113.7' },
+      }),
+    );
+    expect(postRes.status).not.toBe(429);
+  });
+
   it('normalizes optional display fields before returning venues', async () => {
     const res = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
     const body = (await res.json()) as GetVenuesResponse;

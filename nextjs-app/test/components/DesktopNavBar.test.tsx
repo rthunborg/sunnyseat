@@ -282,6 +282,45 @@ describe('DesktopNavBar', () => {
     );
   });
 
+  it('prunes an active tag that disappears from the new venue union so it can never orphan-strand the surfaces — Epic 9 review fix', () => {
+    const { rerender } = renderDesktopNav();
+
+    // Activate 'Wifi' (present in the initial union).
+    const wifi = screen.getByRole('button', { name: 'Wifi' });
+    fireEvent.click(wifi);
+    expect(screen.getByRole('button', { name: 'Wifi' })).toHaveAttribute('aria-pressed', 'true');
+
+    // The venue set changes (new location/time) and 'Wifi' is no longer in ANY
+    // loaded venue's tags → its chip stops rendering. Without the prune it would
+    // stay active in context, silently filtering the list + pins to empty with no
+    // chip to clear it.
+    mockState.useVenueSearch.mockReturnValue({
+      data: {
+        ...makeVenueResponse(),
+        venues: makeVenueResponse().venues.map((venue) => ({
+          ...venue,
+          tags: ['Innergård', 'Hund ok'],
+        })),
+      },
+      isFetching: false,
+      isError: false,
+      dataUpdatedAt: 2,
+    });
+
+    rerender(
+      <TagFilterProvider>
+        <TimeProvider>
+          <DesktopNavBar />
+        </TimeProvider>
+      </TagFilterProvider>,
+    );
+
+    // The orphaned 'Wifi' chip is gone AND, if it were to re-appear, it would be
+    // un-pressed (pruned from active state) — never a stranded, unclearable filter.
+    expect(screen.queryByRole('button', { name: 'Wifi' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Innergård' })).toBeInTheDocument();
+  });
+
   it('no longer renders the dead pager chevrons (Story 9.6 removed them)', () => {
     renderDesktopNav();
 

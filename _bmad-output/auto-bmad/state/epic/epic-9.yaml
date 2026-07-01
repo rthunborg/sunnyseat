@@ -5,11 +5,11 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T16:16:52Z"
+updated_at: "2026-07-01T16:37:38Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 1207
-timing_anchor: 1782921957
+timing_anchor: 1782922632
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -21,7 +21,7 @@ tea_rationale: null
 epic_story_count: 11
 stories_after_in_epic: null
 completed_phases: [0, 1, 2]
-code_review_iterations: 0
+code_review_iterations: 1
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
@@ -78,6 +78,10 @@ stories_landed:
 auto_decisions:
   - "Share-target tiles render text glyphs instead of brand icons [Med] → defer: brand-mark fidelity is a maintainer visual-gate/asset call at rebaseline, logged to deferred-work.md (Tier A, 9-8-venue-sharing-real)"
   - "Shipped share targets differ from the reference's five tiles [Med] → dismiss: functional-only is the correct OQ4 default and Epic 9's anti-dead-control mandate; strict 5-tile parity would reintroduce dead tiles (Tier A, 9-8-venue-sharing-real)"
+  - "Venue-detail route + feedback POST swept into read rate-limit bucket [Med] → fix: gate venueRateLimitMiddleware to GET only so mutations keep their own quota (E_review, epic-9)"
+  - "DesktopNavBar active tag orphaned with no chip to clear [Med] → fix: prune activeTags to the new allTags union on venue-set change (E_review, epic-9)"
+  - "Honest-distance annotation missing on Favoriter list + venue-detail Avstånd card [Med] → fix: thread distanceIsApproximate to FavouritesList + VenueDetailContent (E_review, epic-9)"
+  - "ForcedVenueDetailInitialFrame dead shareText label thread [Low] → fix: remove the unused label (E_review, epic-9)"
 uat_items:
   - "[9-0] Dev (npm run dev), open /?_time=21:00&_date=2026-07-01 -> planner shows forced 21:00 on 2026-07-01 and does NOT advance with the real clock (forcing honoured in dev). [AC#1 dev, AC#2]"
   - "[9-0] Dev, open / with no params -> planner shows live current time and ticks forward (~every minute). [AC#1 baseline]"

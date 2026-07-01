@@ -29,6 +29,14 @@ export type TagFilterContextValue = {
   toggleTag: (tag: string) => void;
   clearTags: () => void;
   isActive: (tag: string) => boolean;
+  /**
+   * Prune `activeTags` to the intersection with `availableTags` — toggle off any
+   * active tag no longer present in the currently loaded venue set's tag union.
+   * Guards against an orphaned active filter with no visible chip to clear it
+   * (a stale filter silently stranding the list + pins to empty). Story 9.7
+   * "dead/confusing control" class. No-op (stable reference) when nothing changes.
+   */
+  retainTags: (availableTags: readonly string[]) => void;
 };
 
 const EMPTY_TAGS: ReadonlySet<string> = new Set();
@@ -46,6 +54,7 @@ const TagFilterContext = createContext<TagFilterContextValue>({
   toggleTag: noop,
   clearTags: noop,
   isActive: () => false,
+  retainTags: noop,
 });
 
 export function TagFilterProvider({ children }: { children: ReactNode }) {
@@ -67,11 +76,29 @@ export function TagFilterProvider({ children }: { children: ReactNode }) {
     setActiveTags((prev) => (prev.size === 0 ? prev : EMPTY_TAGS));
   }, []);
 
+  const retainTags = useCallback((availableTags: readonly string[]) => {
+    setActiveTags((prev) => {
+      if (prev.size === 0) return prev;
+      const available = new Set(availableTags);
+      let changed = false;
+      const next = new Set<string>();
+      for (const tag of prev) {
+        if (available.has(tag)) {
+          next.add(tag);
+        } else {
+          changed = true;
+        }
+      }
+      if (!changed) return prev;
+      return next.size === 0 ? EMPTY_TAGS : next;
+    });
+  }, []);
+
   const isActive = useCallback((tag: string) => activeTags.has(tag), [activeTags]);
 
   const value = useMemo<TagFilterContextValue>(
-    () => ({ activeTags, toggleTag, clearTags, isActive }),
-    [activeTags, toggleTag, clearTags, isActive],
+    () => ({ activeTags, toggleTag, clearTags, isActive, retainTags }),
+    [activeTags, toggleTag, clearTags, isActive, retainTags],
   );
 
   return <TagFilterContext.Provider value={value}>{children}</TagFilterContext.Provider>;

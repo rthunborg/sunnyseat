@@ -940,6 +940,7 @@ export function MapView() {
             mode="mobile"
             sortMode={effectiveSortMode}
             confidenceMeta={favouriteListConfidenceMeta}
+            locationIsApproximate={locationIsApproximate}
             isLoading={isFavouriteListLoading}
             isError={favouriteVenueQuery.isError}
             onRetry={() => favouriteVenueQuery.refetch()}
@@ -986,6 +987,7 @@ export function MapView() {
               mode="desktop"
               sortMode={effectiveSortMode}
               confidenceMeta={favouriteListConfidenceMeta}
+              locationIsApproximate={locationIsApproximate}
               isLoading={isFavouriteListLoading}
               isError={favouriteVenueQuery.isError}
               onRetry={() => favouriteVenueQuery.refetch()}
@@ -1029,6 +1031,7 @@ export function MapView() {
               detailFavouriteId ? () => favourites.toggleFavourite(detailFavouriteId) : undefined
             }
             locale={locale}
+            distanceIsApproximate={locationIsApproximate}
             feedbackSlot={renderFeedbackSlot('mobile')}
             reviewSlot={renderReviewSlot('mobile')}
           />
@@ -1052,6 +1055,7 @@ export function MapView() {
               detailFavouriteId ? () => favourites.toggleFavourite(detailFavouriteId) : undefined
             }
             locale={locale}
+            distanceIsApproximate={locationIsApproximate}
             feedbackSlot={renderFeedbackSlot('desktop')}
             reviewSlot={renderReviewSlot('desktop')}
           />
@@ -1310,6 +1314,7 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     placeholderImageShort: t('detail.placeholderImageShort'),
     facts: {
       distance: t('detail.facts.distance'),
+      distanceApproximate: t('detail.facts.distanceApproximate'),
     },
     timeline: {
       ariaLabel: t('detail.timeline.ariaLabel'),

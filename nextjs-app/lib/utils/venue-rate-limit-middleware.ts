@@ -15,6 +15,16 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { checkRateLimit, clientKeyFromHeaders } from '@/lib/utils/rate-limit';
 
 export function venueRateLimitMiddleware(request: NextRequest): NextResponse {
+  // Story 9.3 scoped this bucket to the venue READ routes only. The proxy matcher
+  // also routes mutation subpaths here (notably `POST /api/venues/[slug]/feedback`),
+  // so gate the read-quota check to GET — otherwise a feedback submission and a
+  // browsing read would share one 120/60s per-IP bucket and 429 each other, a
+  // net-new cross-route behaviour never in 9.3's scope. Non-GET requests pass
+  // through untouched, keeping their own quota.
+  if (request.method !== 'GET') {
+    return NextResponse.next();
+  }
+
   const clientKey = clientKeyFromHeaders(request.headers);
 
   if (clientKey === 'invalid') {

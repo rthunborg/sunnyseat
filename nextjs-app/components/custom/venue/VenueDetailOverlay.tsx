@@ -43,6 +43,10 @@ export type VenueDetailOverlayProps = {
   routeDisabled?: boolean;
   mode?: 'mobile' | 'desktop';
   locale?: string;
+  /** Story 9.5 AC3: the distance shown on the detail's Avstånd card is
+   * centrum-relative (Gothenburg-centrum geolocation fallback), not a real
+   * personal fix — thread through so the card qualifies it honestly. */
+  distanceIsApproximate?: boolean;
   feedbackSlot?: React.ReactNode;
   reviewSlot?: React.ReactNode;
 };
@@ -67,6 +71,7 @@ export function VenueDetailOverlay({
   routeDisabled = false,
   mode = 'mobile',
   locale,
+  distanceIsApproximate = false,
   feedbackSlot,
   reviewSlot,
 }: VenueDetailOverlayProps) {
@@ -80,7 +85,10 @@ export function VenueDetailOverlay({
   const shareSlug = detail?.slug ?? fallbackVenue.slug ?? fallbackVenue.venueSlug;
   const shareTitle = fallbackVenue.venueName;
   const shareText = labels.shareText
-    ? labels.shareText.replace('{name}', shareTitle)
+    ? // Use a replacer FUNCTION so a venue name containing `$&`/`$1`/`` $` ``/`$'`
+      // (String.prototype.replace special replacement patterns) is inserted
+      // verbatim rather than being interpreted.
+      labels.shareText.replace('{name}', () => shareTitle)
     : undefined;
 
   // Capability-gated share: native Web Share sheet where available (mobile),
@@ -175,6 +183,7 @@ export function VenueDetailOverlay({
             confidenceMeta={confidenceMeta}
             currentTime={currentTime}
             labels={labels}
+            distanceIsApproximate={distanceIsApproximate}
             isLoading={isLoading}
             onRoute={onRoute}
             routeEstimateLabel={routeEstimateLabel}
@@ -266,6 +275,7 @@ export function VenueDetailOverlay({
           confidenceMeta={confidenceMeta}
           currentTime={currentTime}
           labels={labels}
+          distanceIsApproximate={distanceIsApproximate}
           isLoading={isLoading}
           onRoute={onRoute}
           routeEstimateLabel={routeEstimateLabel}

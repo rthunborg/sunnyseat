@@ -105,7 +105,7 @@ export function VenueQuickInfo({
   // Shown only on the Gothenburg-centrum fallback AND when a label is provided;
   // the real distance number always stays visible — only the label is qualified.
   const approximateDistanceLabel =
-    distanceIsApproximate && labels.distanceApproximate
+    distanceIsApproximate && labels.distanceApproximate && Number.isFinite(distanceMeters)
       ? labels.distanceApproximate
       : null;
   const positionedStyle = position

@@ -48,6 +48,10 @@ export type VenueDetailContentLabels = {
   placeholderImageShort: string;
   facts: {
     distance: string;
+    /** Story 9.5 AC3: honest "≈ från centrum" qualifier shown on the Avstånd
+     * card when the origin is the Gothenburg-centrum fallback (not a real
+     * personal fix). Only the label is qualified; the value stays visible. */
+    distanceApproximate?: string;
   };
   timeline: SunTimelineLabels;
 };
@@ -58,6 +62,10 @@ export type VenueDetailContentProps = {
   confidenceMeta?: SunFreshnessMeta;
   currentTime: string;
   labels: VenueDetailContentLabels;
+  /** Story 9.5 AC3 (folded into 9.9): the distance is centrum-relative (the
+   * Gothenburg-centrum geolocation fallback), not a real personal fix — annotate
+   * the Avstånd card's distance honestly. Mirrors `VenueList.locationIsApproximate`. */
+  distanceIsApproximate?: boolean;
   isLoading?: boolean;
   className?: string;
   onRoute: () => void;
@@ -76,6 +84,7 @@ export function VenueDetailContent({
   confidenceMeta,
   currentTime,
   labels,
+  distanceIsApproximate = false,
   isLoading = false,
   className,
   onRoute,
@@ -234,6 +243,13 @@ export function VenueDetailContent({
             icon={<Footprints aria-hidden="true" className="size-5" />}
             label={labels.facts.distance}
             value={metadata.distance ?? formatVenueDistance(venue.distanceMeters)}
+            approximateLabel={
+              distanceIsApproximate &&
+              labels.facts.distanceApproximate &&
+              Number.isFinite(venue.distanceMeters)
+                ? labels.facts.distanceApproximate
+                : undefined
+            }
           />
         )}
 
@@ -375,10 +391,12 @@ function FactCard({
   icon,
   label,
   value,
+  approximateLabel,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  approximateLabel?: string;
 }) {
   return (
     <section className="rounded-card border border-divider bg-white p-3">
@@ -386,7 +404,12 @@ function FactCard({
         <span className="text-amber-dark">{icon}</span>
         <span>{label}</span>
       </div>
-      <p className="text-heading-xl text-text-primary">{value}</p>
+      <p className="flex flex-wrap items-baseline gap-x-2 text-heading-xl text-text-primary">
+        <span>{value}</span>
+        {approximateLabel && (
+          <span className="text-label-xs font-normal text-text-muted">{approximateLabel}</span>
+        )}
+      </p>
     </section>
   );
 }

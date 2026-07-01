@@ -62,6 +62,7 @@ function labels(
 function renderQuickInfo(props: {
   distanceIsApproximate?: boolean;
   anchored?: boolean;
+  distanceMeters?: number;
   labelOverrides?: Partial<VenueQuickInfoProps['labels']>;
 }) {
   return render(
@@ -72,7 +73,7 @@ function renderQuickInfo(props: {
       confidencePercent={92}
       confidenceMeta={{ sunDataSource: 'weather', weatherUpdatedAt: new Date().toISOString() }}
       sunExposurePercent={80}
-      distanceMeters={420}
+      distanceMeters={props.distanceMeters ?? 420}
       distanceIsApproximate={props.distanceIsApproximate}
       position={props.anchored ? { x: 180, y: 260 } : undefined}
       isLoadingSunData={false}
@@ -101,6 +102,17 @@ describe('Story 9.9 — VenueQuickInfo approximate-distance boundary', () => {
       renderQuickInfo({ distanceIsApproximate: false, anchored });
       expect(screen.queryByText(APPROXIMATE)).toBeNull();
       expect(screen.getByTestId('venue-quick-info')).toHaveTextContent('420 m');
+    },
+  );
+
+  it.each([false, true])(
+    'does NOT show the approximate label beside a non-numeric distance (NaN → "–", anchored=%s)',
+    (anchored) => {
+      // fallbackVenueFromSlug sets distanceMeters: NaN — the label is gated on
+      // Number.isFinite so it never sits beside the "–" placeholder.
+      renderQuickInfo({ distanceIsApproximate: true, distanceMeters: Number.NaN, anchored });
+      expect(screen.queryByText(APPROXIMATE)).toBeNull();
+      expect(screen.getByTestId('venue-quick-info')).toHaveTextContent('–');
     },
   );
 

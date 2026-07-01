@@ -492,6 +492,31 @@ describe('VenueDetailOverlay sharing (Story 9.8)', () => {
     await waitFor(() => expect(screen.queryByTestId('share-modal')).not.toBeInTheDocument());
   });
 
+  it('inserts a venue name containing $-patterns verbatim into the share text (no regex corruption)', async () => {
+    // `String.prototype.replace(str, str)` treats `$&`/`$1`/`` $` ``/`$'` in the
+    // replacement (the venue name) as special patterns. A replacer FUNCTION keeps
+    // the name literal, so "Bar $1 $& Grill" is NOT mangled.
+    const share = stubShare(() => Promise.resolve());
+    const trickyName = 'Bar $1 $& Grill';
+    render(
+      <VenueDetailOverlay
+        mode="mobile"
+        fallbackVenue={{ ...FALLBACK, venueName: trickyName }}
+        detail={{ ...DETAIL, venueName: trickyName }}
+        currentTime="15:30"
+        labels={labels}
+        onDismiss={vi.fn()}
+        onRoute={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dela plats' }));
+    await waitFor(() => expect(share).toHaveBeenCalled());
+    expect(share).toHaveBeenCalledWith(
+      expect.objectContaining({ text: `Kolla in soltiden på ${trickyName}` }),
+    );
+  });
+
   it('prefers detail.slug over the fallback venueSlug for the share URL', async () => {
     // The slug source is `detail?.slug ?? fallbackVenue.slug ?? fallbackVenue.venueSlug`.
     // A loaded detail with its own canonical slug must win over the skeleton.

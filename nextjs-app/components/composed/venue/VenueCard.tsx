@@ -110,8 +110,11 @@ export function VenueCard({
   // Story 9.5 AC3: honest centrum-relative annotation. Shown only on the
   // Gothenburg-centrum fallback; the real distance number stays visible —
   // only the label is qualified ("≈ från centrum").
+  // Gated on a finite distance: on the fallbackVenueFromSlug path distanceMeters
+  // is NaN (rendered as "–"), and qualifying a non-numeric placeholder with
+  // "≈ från centrum" is more confusing than the ambiguity AC3 set out to fix.
   const approximateLabel =
-    distanceIsApproximate && labels.distanceApproximate
+    distanceIsApproximate && labels.distanceApproximate && Number.isFinite(distanceMeters)
       ? labels.distanceApproximate
       : null;
 

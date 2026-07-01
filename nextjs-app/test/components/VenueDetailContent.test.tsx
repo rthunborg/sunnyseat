@@ -61,6 +61,7 @@ const labels = {
   placeholderImageShort: 'Platshållarbild',
   facts: {
     distance: 'AVSTÅND',
+    distanceApproximate: '≈ från centrum',
   },
   timeline: {
     ariaLabel: 'Soltider idag',
@@ -468,6 +469,49 @@ describe('VenueDetailContent', () => {
     // The kept opening-hours and address rows survive (they back genuine signals).
     expect(screen.getByText('Öppettider')).toBeInTheDocument();
     expect(screen.getByText('Adress')).toBeInTheDocument();
+  });
+
+  it('qualifies the Avstånd card honestly on the centrum fallback (Story 9.5 AC3)', () => {
+    const { rerender } = render(
+      <VenueDetailContent
+        fallbackVenue={{ ...LIST_VENUE, distanceMeters: 250 }}
+        detail={{ ...DETAIL, distanceMeters: 250 }}
+        distanceIsApproximate
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    const factCard = screen.getByText('AVSTÅND').closest('section');
+    expect(factCard).toHaveTextContent('≈ från centrum');
+
+    // A real personal fix does not qualify the distance.
+    rerender(
+      <VenueDetailContent
+        fallbackVenue={{ ...LIST_VENUE, distanceMeters: 250 }}
+        detail={{ ...DETAIL, distanceMeters: 250 }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+    expect(screen.queryByText('≈ från centrum')).toBeNull();
+  });
+
+  it('does not qualify the Avstånd card when the distance is non-numeric (NaN)', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={{ ...LIST_VENUE, distanceMeters: Number.NaN }}
+        detail={{ ...DETAIL, distanceMeters: Number.NaN }}
+        distanceIsApproximate
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.queryByText('≈ från centrum')).toBeNull();
   });
 
   it('does not render future partner badges in active venue detail runtime', () => {

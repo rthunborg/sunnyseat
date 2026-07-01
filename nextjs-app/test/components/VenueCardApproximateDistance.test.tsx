@@ -40,13 +40,14 @@ function labels(overrides: Partial<VenueCardLabels> = {}): VenueCardLabels {
 function renderCard(props: {
   distanceIsApproximate?: boolean;
   compact?: boolean;
+  distanceMeters?: number;
   labelOverrides?: Partial<VenueCardLabels>;
 }) {
   return render(
     <VenueCard
       name="Solterrassen"
       neighborhood="Centrum"
-      distanceMeters={250}
+      distanceMeters={props.distanceMeters ?? 250}
       sunExposurePercent={80}
       isSunny
       distanceIsApproximate={props.distanceIsApproximate}
@@ -75,6 +76,19 @@ describe('Story 9.5 AC3 — VenueCard approximate-distance boundary', () => {
       renderCard({ distanceIsApproximate: false, compact });
       expect(screen.queryByText(APPROXIMATE)).toBeNull();
       expect(screen.getByTestId('venue-card')).toHaveTextContent('250 m');
+    },
+  );
+
+  it.each([false, true])(
+    'does NOT show the approximate label beside a non-numeric distance (NaN → "–", compact=%s)',
+    (compact) => {
+      // fallbackVenueFromSlug sets distanceMeters: NaN — qualifying a "–"
+      // placeholder with "≈ från centrum" is more confusing than the ambiguity
+      // AC3 set out to fix, so the label is gated on Number.isFinite.
+      renderCard({ distanceIsApproximate: true, distanceMeters: Number.NaN, compact });
+      expect(screen.queryByText(APPROXIMATE)).toBeNull();
+      // Non-numeric distance renders the "-" placeholder, never a number.
+      expect(screen.getByTestId('venue-card')).toHaveTextContent('-');
     },
   );
 

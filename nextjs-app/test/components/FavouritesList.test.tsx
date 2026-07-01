@@ -53,6 +53,7 @@ const messages = {
       confidenceApproximate: 'cirka',
       confidenceUnavailable: 'Säkerhet saknas',
       distance: 'Avstånd',
+      distanceApproximate: '≈ från centrum',
       sunUnavailable: 'Soltid saknas',
       statusMostlyShade: 'MEST SKUGGA',
       statusFullSun: 'FULL SOL',
@@ -126,6 +127,42 @@ describe('<FavouritesList />', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Kunde inte ladda favoriter.');
     fireEvent.click(screen.getByRole('button', { name: 'Försök igen' }));
     expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it('threads locationIsApproximate so favourite cards qualify the distance honestly', () => {
+    renderWithProviders(
+      <FavouritesList
+        favouriteIds={['1']}
+        venues={[venue]}
+        mode="mobile"
+        sortMode="sun"
+        locationIsApproximate
+        onSelectVenue={vi.fn()}
+        onFavouriteToggle={vi.fn()}
+        isFavourite={() => true}
+      />,
+      { messages },
+    );
+
+    expect(screen.getByText('≈ från centrum')).toBeInTheDocument();
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('180 m');
+  });
+
+  it('does NOT qualify the distance when the location is a real personal fix', () => {
+    renderWithProviders(
+      <FavouritesList
+        favouriteIds={['1']}
+        venues={[venue]}
+        mode="mobile"
+        sortMode="sun"
+        onSelectVenue={vi.fn()}
+        onFavouriteToggle={vi.fn()}
+        isFavourite={() => true}
+      />,
+      { messages },
+    );
+
+    expect(screen.queryByText('≈ från centrum')).toBeNull();
   });
 
   it('keeps favourite cards sorted sunny-first even when the parent sort mode is distance', () => {
