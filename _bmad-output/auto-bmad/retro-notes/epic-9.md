@@ -69,3 +69,8 @@
 - [Phase 5 — dev-story] next-intl usePathname() strips the locale prefix — build share URLs from raw window.location (origin+pathname+search) to preserve /en, not next-intl's pathname.
 - [Phase 5 — dev-story] The routing-boundary scan test greps literal window.open( / maps.apple / google.com/maps / geo: even inside comments — scanned files must avoid those literals in prose.
 - [Phase 5 — dev-story] Design system has no success/green token; the copy-confirmation fell back to surface-sand/amber-dark + Check icon. A --color-status-success token would let confirmations match the reference.
+
+## Story 9-9-mobile-venue-quick-info-card-rework
+- [Phase 3 — create-story] Ledger doc-path drift: the 9.5 deferred note points at components/custom/venue/VenueQuickInfo.tsx but the component actually lives at components/composed/venue/VenueQuickInfo.tsx — verify file-impact maps against the tree, not the doc.
+- [Phase 3 — create-story] Story 9.9 is pure layout/positioning polish — AC1's 'content removals' were already done by Story 9.1 on this branch; the 9.10 verification pass + retro must NOT double-count removal work.
+- [Phase 3 — create-story] Story 9.5's honest-distance-label defer (Target:9.9) is folded into 9.9 Task 3 — E8b reconcile/archive should mark it resolved once 9.9 lands (queue-not-archive: its ledger entry leaves on completion).
