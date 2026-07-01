@@ -5,7 +5,7 @@ epic_num: 9
 story_num: null
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T09:44:40Z"
+updated_at: "2026-07-01T09:59:24Z"
 started_at: "2026-06-30T14:18:23Z"
 completed_at: null
 active_seconds: 936
@@ -60,7 +60,7 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: live-app-hardening-clean-up
-active_story: 9-6-map-chrome-consolidation-dead-control-cleanup
+active_story: null
 stories_landed:
   - 9-0-production-gate-the-dev-planner-forcing-url-leak
   - 9-1-clean-app-content-sweep
@@ -68,6 +68,7 @@ stories_landed:
   - 9-3-venue-sun-compute-performance-server-caching
   - 9-4-client-query-hygiene-time-change-debounce
   - 9-5-location-onboarding-reliability
+  - 9-6-map-chrome-consolidation-dead-control-cleanup
 auto_decisions: []
 uat_items:
   - "[9-0] Dev (npm run dev), open /?_time=21:00&_date=2026-07-01 -> planner shows forced 21:00 on 2026-07-01 and does NOT advance with the real clock (forcing honoured in dev). [AC#1 dev, AC#2]"
@@ -116,3 +117,10 @@ uat_items:
   - "[9-5] Locate-button feedback — MOBILE viewport only (lg:hidden on desktop) (AC4): click the floating locate button -> aria-busy + pulsing icon (data-locate-state=pending); on deny/fallback it stays CLICKABLE (data-locate-state=fallback) and re-requests on re-click."
   - "[9-5] Returning user straight to map (AC1): after completing a grant/deny once in a normal window, reload (flag now set) -> the map appears directly with NO welcome overlay and no overlay-then-null flash."
   - "[9-5] SW-update reload = PRODUCTION ONLY (AC4c): not testable on npm run dev (SW disabled in dev). Verify on a deployed build where a new SW activates over an open tab -> exactly one auto-reload, no loop."
+  - "[9-6] Mobile (<1024px, DevTools device-toolbar): over the map ONLY the vertical zoom +/- stack floats — the previously-floating locate + settings buttons are GONE. (The old map-primary reference PNG still shows the 4-button stack, so the automated visual gate FAILs by design -> maintainer rebaseline, not a defect.) [AC1]"
+  - "[9-6] Mobile: in the top search row, click the settings gear -> it now OPENS the settings modal (previously greyed/cursor-not-allowed, did nothing). Confirm the modal opens and the gear is not greyed. [AC2]"
+  - "[9-6] Mobile: click the top-bar locate button (Navigation icon, left of the gear) + watch DevTools Elements -> aria-busy=true + data-locate-state=pending + pulse while resolving; recentres on success; on deny/unavailable -> data-locate-state=fallback and STAYS clickable to re-request (no dead-click regression — 9.5's relocated wiring). [AC1]"
+  - "[9-6] Desktop (>=1024px): top-nav 'My location' (desktop-nav-my-location, crosshair) -> map recentres/flies to your location on success (shared fly-to). Confirm both this + the mobile top-bar locate recentre on success."
+  - "[9-6] Desktop: the filter-chip row has NO pager chevron arrows flanking it — the dead </> nav-pager chevrons are GONE (the 8 disabled filter chips remain; those are Story 9.7's). [AC3]"
+  - "[9-6] Mobile: in the venue-list sort/controls row only the working sort buttons (Sol/sun + Nära/distance) remain — the disabled Café + Öppet-nu category buttons are GONE. [AC3]"
+  - "[9-6] Either viewport: click the search box, type a query returning results, press Enter WITHOUT arrowing down -> the first result is selected and the map pans to it (cmdk auto-highlights the first item). Bare-Enter no longer does nothing. [AC4]"
