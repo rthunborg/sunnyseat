@@ -5,10 +5,10 @@ epic_num: 9
 story_num: 9
 branch: epic/9-live-app-hardening-clean-up
 status: in-progress
-updated_at: "2026-07-01T15:01:51Z"
+updated_at: "2026-07-01T15:06:52Z"
 started_at: "2026-07-01T14:09:30Z"
 completed_at: null
-active_seconds: 3054
+active_seconds: 3340
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "Stateful UI component rework (VenueQuickInfo mobile quick-info card: sun-state branching, CTA/heart/close actions, overlap/positioning fix) — non-trivial UI logic but no auth/payments/data-integrity/external-API/security signals -> Medium."
 epic_story_count: 11
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3, 5, 6]
+completed_phases: [0, 1, 2, 3, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [c7bb11d, c8fcbec, e2995f8]
+commits: [c7bb11d, c8fcbec, e2995f8, 01b7d93]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -53,3 +53,4 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: 05c105b7cf75673ba0f42ca3f1f88de4392754b7
+tier_a_review: "Approve — 1 Low Defer persisted+logged (AC3 clearance rests on fixed estimates); 0 Patch, 0 Decision, 4 dismissed noise; security 0; Critical/High 0; convergence clean"

@@ -205,3 +205,11 @@ claude-opus-4-8 (Amelia / dev-story)
 - `nextjs-app/test/components/MapView.test.tsx` (modified — planner-clearance regression + honest-distance wiring tests)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified — 9-9 → review)
 - `_bmad-output/implementation-artifacts/deferred-work.md` (modified — closed the Target:9.9 honest-distance entry)
+
+### Review Findings
+
+<!-- THIN (Tier-A) review: only the Acceptance Auditor lens ran (Blind Hunter + Edge-Case
+     Hunter intentionally NOT run in this thin pass). A dedicated security review also ran and
+     found NO exploitable vulnerabilities (purely client-side presentational change). -->
+
+- [x] [Review][Defer][Low] AC3 planner-clearance margin rests on fixed estimates unanchored to the live DOM [nextjs-app/components/custom/map/MapView.tsx:165-169] — deferred, pre-existing. `MOBILE_PLANNER_HEIGHT_PX = 80` and `QUICK_INFO_MOBILE_HEIGHT_ESTIMATE = 170` are self-conceded approximations; the one-gutter (16px) AC3 margin is eroded from either end if the real rendered `TimeSliderPanel` mobile height exceeds ~80px (tall common devices) OR a long venue name wraps the fixed-230px card taller than 170px — either can re-introduce the exact badge-under-slider overlap AC3 exists to kill. The regression test asserts only the arithmetic (`top === 437`), not that 437 clears the live panel. Genuine-but-minor; the fix (anchor the constants to a measured DOM height and/or add a real-layout clearance assertion) is follow-up, not a mechanical patch on this diff.
