@@ -1010,6 +1010,76 @@ describe('<MapView />', () => {
       expect(stubMap.project).toHaveBeenCalled();
     });
 
+    it('does NOT register move/zoom position listeners for a null-coord selected venue (Story 9.10 Task 3 — no re-projection on pan/zoom)', () => {
+      // The live warning was observed 3× (epics.md:2359) because the QuickInfo
+      // position effect re-runs `updatePosition` on EVERY `move`/`zoom` event.
+      // The guard's load-bearing value is not only skipping the initial
+      // `project()` (asserted above) but bailing BEFORE the `mapInstance.on('move'
+      // /'zoom', ...)` registrations — so a subsequent pan/zoom can never re-feed
+      // a null coord to MapLibre. A refactor that instead bailed INSIDE
+      // `updatePosition` would still pass the initial-project assertions yet
+      // silently re-introduce the per-event re-fire; this test closes that gap.
+      // `move`/`zoom` are ONLY ever registered by this effect (MapView.tsx:677-678),
+      // so their absence in `stubMap.on` proves the listeners were never attached.
+      selectedVenueIdMock = 'venue-null';
+      useVenueSearchMock.mockReturnValue({
+        data: {
+          venues: [
+            {
+              id: 'venue-null',
+              venueId: 'venue-null',
+              venueName: 'Ortlös Bar',
+              venueSlug: 'ortlos-bar',
+              slug: 'ortlos-bar',
+              neighborhood: 'Centrum',
+              location: null as unknown as { lat: number; lng: number },
+              currentSunStatus: 'Sunny',
+              isPartner: false,
+              confidence: 90,
+              distanceMeters: 300,
+              sunExposurePercent: 88,
+              tags: [],
+              sunWindow: { start: '13:00', end: '18:30' },
+            },
+          ],
+          meta: { count: 1, radiusKm: 1.5 },
+          timestamp: 'now',
+          totalCount: 1,
+        },
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const listenerEvents = stubMap.on.mock.calls.map((call) => call[0]);
+      expect(listenerEvents).not.toContain('move');
+      expect(listenerEvents).not.toContain('zoom');
+    });
+
+    it('registers move/zoom position listeners for a finite-coord selected venue (positive control for the re-projection guard)', () => {
+      // Symmetric positive control: a well-formed venue MUST attach the
+      // `move`/`zoom` listeners so the card keeps tracking the pin during a
+      // pan/zoom — proving the guard above suppresses listeners ONLY for the
+      // null-coord case, not for every selection.
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Testbaren', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const listenerEvents = stubMap.on.mock.calls.map((call) => call[0]);
+      expect(listenerEvents).toContain('move');
+      expect(listenerEvents).toContain('zoom');
+    });
+
     it('clamps the mobile QuickInfo card below the planner panel (Story 9.9 AC3)', () => {
       // A pin projected near the TOP of the viewport (project → y=260) would,
       // unclamped, anchor the card ABOVE the pin and collide with the mobile

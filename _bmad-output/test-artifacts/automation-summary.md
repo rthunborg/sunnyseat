@@ -7,38 +7,36 @@ stepsCompleted:
 lastStep: 'step-04-validate-and-summarize'
 lastSaved: '2026-07-01'
 inputDocuments:
-  - '_bmad-output/implementation-artifacts/9-9-mobile-venue-quick-info-card-rework.md'
-  - 'nextjs-app/components/composed/venue/VenueQuickInfo.tsx'
+  - '_bmad-output/implementation-artifacts/9-10-mobile-device-verification-pass-regression-guards.md'
   - 'nextjs-app/components/custom/map/MapView.tsx'
-  - 'nextjs-app/test/components/VenueQuickInfo.test.tsx'
-  - 'nextjs-app/test/components/VenueQuickInfoApproximateDistance.test.tsx'
   - 'nextjs-app/test/components/MapView.test.tsx'
 ---
 
-# Automation Expansion Summary — Story 9.9 (Mobile Venue Quick-Info Card Rework)
+# Automation Expansion Summary — Story 9.10 (Mobile-Device Verification Pass & Regression Guards)
 
 ## Preflight & Context
 - Stack: frontend (Next.js + Vitest 4 / jsdom + @testing-library/react; Playwright present for e2e). Framework present — no HALT.
-- Mode: BMad-Integrated, scoped to Story 9.9 — the `VenueQuickInfo` compact/anchored-mobile layout branching + the `distanceIsApproximate` honest-distance label, and the MapView planner-clearance + honest-distance wiring. Coverage-expansion only; no production code touched.
-- In-session unit/component authoring (deterministic DOM + mocked motion/map), no API/e2e subagent fan-out needed — all targets are component-level.
-- Existing coverage reviewed to avoid duplication:
-  - `VenueQuickInfo.test.tsx` (15 tests): summary render, route CTA + loading, Story 9.1 de-bloat invariants, stale/geometry confidence, anchored confidence, reduced-motion transforms, thumbnail fallbacks, skeleton, pointer-stop, close/more-info, favourite toggle.
-  - `VenueQuickInfoApproximateDistance.test.tsx` (5 tests): honest-distance present/absent/missing-label/sr-only-clean across anchored + non-anchored.
-  - `MapView.test.tsx`: planner-clearance clamp (top===437), honest-distance fallback-present + real-fix-absent wiring.
+- Mode: BMad-Integrated, scoped to Story 9.10's ONLY net-new production code: the `hasValidVenueLocation(selectedVenueDto)` guard on the QuickInfo `updatePosition` effect in `MapView.tsx` (Task 3 — the MapLibre "type number, found null" null-coord fix). Coverage-expansion only; NO production code touched (feature file has zero diff).
+- Story is itself a regression/verification pass. The dev already authored: 3 null-coord `project()` guard tests in `MapView.test.tsx`, a clean-URL date-selection unit guard, and the consolidated iPhone-14 mobile e2e spec. Those were NOT duplicated.
 
-## Gaps Identified & Filled (VenueQuickInfo.test.tsx, +8 tests)
-All component-level (Vitest + Testing Library), deterministic DOM assertions. No existing assertion duplicated.
-- **`formatDistance` boundaries (P2)** — previously untested: `>=1000 m → "1.5 km"`, the exact `1000 m → "1.0 km"` boundary, and sub-km rounding (`423.7 → "424 m"`). Plus the non-finite/unknown path (`undefined → "–"` em-dash).
-- **`formatPercent` clamping (P2)** — the `% SOL` badge clamps out-of-range exposure: `140 → "100% SOL"`, `-25 → "0% SOL"`; and the badge is fully absent when exposure is `undefined`.
-- **AC2 "layout holds across sun states" on the compact strip (P1)** — parametrized full/partial/shaded(no-window): each state keeps the sun copy (range or honest `Soltid saknas` fallback), keeps BOTH CTAs (VISA RUTT + MER INFO), keeps the distance value legible, and holds compact-strip badge/heart placement (`% SOL` top-LEFT `left-2 top-2`, favourite heart top-RIGHT `right-2 top-2` with the 44px WCAG `size-11` tap target preserved).
-- **Non-compact insets contrast** — the non-anchored (bottom-sheet) strip uses the fuller `left-3 top-3` / `right-3 top-3` insets, guarding the compact-vs-full branch divergence the 9.9 rework introduced.
+## Existing coverage reviewed (to avoid duplication)
+- `MapView.test.tsx` — dev's 3 Task-3 tests: (a) wholly-null `location` → `project` not called; (b) present `location` with null lat/lng → `project` not called; (c) finite-coord positive control → `project` IS called. All assert the INITIAL effect run only.
+- `test/unit/queries/clean-url-date-selection.test.tsx` (2 tests), `test/e2e/epic-9-mobile-regression.spec.ts` (5 mobile tests): already cover the AC2 behavioural net — not re-derived.
 
-## Not Added (deliberate — would duplicate or hit harness limits)
-- MapView "low pin not force-clamped" case: the shared map mock hardcodes a 390×700 canvas, so `maxY` collapses to `minY` (437) and every projected `y` clamps to 437 — a low-pin assertion would be identical to the existing clamp test, not additive.
-- MapView desktop-branch-untouched invariant: jsdom has no `matchMedia`, so the shared harness always resolves the mobile branch; a desktop-path assertion isn't reachable without rewriting the shared mock (out of scope for a presentational-rework coverage pass).
+## Gap Identified & Filled (MapView.test.tsx, +2 tests)
+One genuine gap in the net-new guard: the dev's tests assert `project` is skipped on the INITIAL effect run, but the root cause (epics.md:2359) was that the warning fired **3×** because `updatePosition` is registered as a `move`/`zoom` listener and re-fires on every pan/zoom. The guard's load-bearing value is that for an invalid venue it bails BEFORE `mapInstance.on('move'/'zoom', …)`, so no subsequent map interaction can re-project a null coord. That "no re-fire on pan/zoom" dimension was untested — a refactor that instead bailed INSIDE `updatePosition` would pass all three existing tests yet silently re-introduce the per-event warning.
+- **Negative:** null-coord selected venue → `stubMap.on` never called with `'move'` or `'zoom'` (`move`/`zoom` are registered ONLY by this effect at MapView.tsx:677-678, so their absence proves no listener attached).
+- **Positive control:** finite-coord selected venue → `'move'` and `'zoom'` listeners ARE attached (guard suppresses listeners only for the null case, not every selection).
+
+## RED proof
+Reverted the guard to `if (!mapInstance || !selectedVenueDto)` → the new null-coord listener test FAILS (effect attaches `move`/`zoom` and `updatePosition` dereferences the null location); positive control still passes. Restored guard → all green. Confirms the test closes a real regression path, not a tautology.
+
+## Not added (deliberate)
+- Firing a synthetic `move`/`zoom` and asserting no second `project` call: redundant with the listener-absence assertion (no listener ⇒ no re-fire) and would couple to the stub's handler-invocation plumbing; the registration-absence assertion is the tighter, less brittle guard.
+- Desktop-branch / variable-canvas assertions: shared map mock hardcodes 390×700 and jsdom lacks `matchMedia` (always mobile branch) — out of scope per retro-notes 9-9.
 
 ## Validation
 - `tsc --noEmit`: 0 errors.
-- `eslint test/components/VenueQuickInfo.test.tsx`: 0 errors / 0 warnings.
-- Targeted: `VenueQuickInfo.test.tsx` 23 passed (was 15).
-- Full suite: **105 test files / 931 tests all passing** (was 105 files / 923 tests at dev-story handoff — +8 tests, no files dropped, no regressions). The `Not implemented: navigation` line is a benign pre-existing jsdom log, not a failure.
+- `eslint test/components/MapView.test.tsx --quiet`: 0 errors.
+- Targeted: `MapView.test.tsx` 97 passed (was 95).
+- Full suite: **106 test files / 938 tests all passing** (was 106 files / 936 tests at dev-story handoff — +2 tests, no files dropped, no regressions). The `Not implemented: navigation` line is a benign pre-existing jsdom log, not a failure.
