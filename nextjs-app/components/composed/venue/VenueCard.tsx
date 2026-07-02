@@ -159,8 +159,11 @@ export function VenueCard({
             <span className="mt-1 block truncate text-body-sm-medium text-text-body">
               {neighborhood ? `${neighborhood} · ` : ''}
               {distance}
+              {/* text-body, not text-muted: muted (60% alpha) is ≈3.18:1 on the
+                  white card and fails the axe AA contrast gate at label-xs size;
+                  the smaller size alone carries the de-emphasis. */}
               {approximateLabel && (
-                <span className="ml-1 text-label-xs text-text-muted">{approximateLabel}</span>
+                <span className="ml-1 text-label-xs text-text-body">{approximateLabel}</span>
               )}
             </span>
             <span className="mt-1 flex items-center gap-1 text-label-xs text-amber-dark">
@@ -178,7 +181,7 @@ export function VenueCard({
               <Footprints aria-hidden="true" className="size-3.5 shrink-0 text-amber-dark" />
               <span>{distance}</span>
               {approximateLabel && (
-                <span className="text-label-xs text-text-muted">{approximateLabel}</span>
+                <span className="text-label-xs text-text-body">{approximateLabel}</span>
               )}
               {visualMetadata && (
                 <>

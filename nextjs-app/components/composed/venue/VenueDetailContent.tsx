@@ -406,8 +406,10 @@ function FactCard({
       </div>
       <p className="flex flex-wrap items-baseline gap-x-2 text-heading-xl text-text-primary">
         <span>{value}</span>
+        {/* text-body, not text-muted: muted (60% alpha) fails the axe AA
+            contrast gate on the white card at label-xs size. */}
         {approximateLabel && (
-          <span className="text-label-xs font-normal text-text-muted">{approximateLabel}</span>
+          <span className="text-label-xs font-normal text-text-body">{approximateLabel}</span>
         )}
       </p>
     </section>

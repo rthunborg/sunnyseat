@@ -241,7 +241,9 @@ export function VenueQuickInfo({
                         <span
                           aria-hidden={isAnchoredMobile ? true : undefined}
                           className={cn(
-                            'font-normal text-text-muted',
+                            // text-body, not text-muted: muted (60% alpha) fails
+                            // the axe AA contrast gate on the white card at this size.
+                            'font-normal text-text-body',
                             isAnchoredMobile ? 'text-label-xs' : 'ml-1 text-label-xs',
                           )}
                         >
