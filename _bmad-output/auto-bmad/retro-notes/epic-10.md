@@ -1,0 +1,4 @@
+## Story epic-10
+- [Phase 2 â€” test-design] E2E has no deterministic weather-boundary mock today â€” specs hit real /api/venues and ?_time= only pins wall clock, not sky; story 10.5's weather matrix will be sky-flaky unless a mock (page.route on /api/venues* or dev-only weather-forcing param) lands FIRST (risk R-005, entry criterion).
+- [Phase 2 â€” test-design] design-tokens.ts SkyCondition already carries 'rain'/'unavailable' but SunStatus has no cloud/obscured value â€” the union extension (R-003) is the real sweep surface (43 files read currentSunStatus/sunStatus/predictedState); use a never-exhaustive switch so a missed consumer is a compile error.
+- [Phase 2 â€” test-design] Four thresholds deliberately UNKNOWN in test design (cloud-gate â‰¥80 proposed, layer weighting, rain-rate, nowcast horizon) â€” resolve during story drafting; tests assert relative boundary behaviour so they survive re-tuning.
