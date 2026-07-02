@@ -65,3 +65,49 @@ Reconcile marked 0 new resolutions (the one epic-9-landed item — 9.5→9.9 hon
 1. OPTIONAL — none of these gate the epic's `done` status or the merge: the consolidated reference-PNG rebaseline [A1] before claiming a green automated visual gate; a live p95 capture in a preview deploy; a physical real-device spot-check of native share + the real-GPS onboarding-CTA prompt. All are the epic's known close-out debt, tracked in the retrospective's action items.
 
 **Next:** (none — Epic 9 is the last authored epic; no Epic 10 exists in epics.md. Epics 4/5/6 remain deferred.)
+
+## Report — 2026-07-02T11:20:37Z (halted — epic already done)
+
+**Epic:** `9` — 11 stories.
+**Branch:** `epic/9-live-app-hardening-clean-up` (HEAD `8b0697a`).
+**Pipeline status:** Halted at E0 — the epic-9 auto-bmad run already completed 2026-07-01 (anchor status: done); nothing to re-run. Terminal disposition was CAVEATED: CI red on PR #15 -> PR left as draft, batch BMAD-status flip skipped, all 11 stories remain at review pending human CI resolution.
+**Continues:** 2026-07-01T17:50:49Z (final) — that section was written pre-push; the CI-red caveat resolved after it, so it is recorded here.
+
+**Summary:** This invocation (/auto-bmad epic 9, 2026-07-02) found the epic anchor at status: done and hard-stopped per the epic-already-done rule. Current facts at halt: PR #15 OPEN + draft, build-and-test = FAILURE; working tree dirty on epic/9-live-app-hardening-clean-up with in-progress edits to OnboardingGate.tsx, VenueCard.tsx + their tests — exactly the files implicated in the recorded CI blocker (mobile onboarding/favourites e2e regressions), i.e. a human fix appears mid-flight. No pipeline work was performed and nothing was committed.
+
+**Timing:** started 2026-06-30T14:18:23Z; completed 2026-07-01T18:06:03Z — elapsed 27h 47m (≈1h 47m AI-run, ≈25h 59m human/idle wait); resumed 1×.
+
+**Stories:**
+1. (none this session — no story entered; all 11 stories were landed by the prior run and sit at review)
+
+**Skipped (already done):** all 11 (landed by the prior run; epic anchor done)
+
+**Integration review:** (not run this session — completed in the prior run: converged clean, 2 iterations, 0 Critical/High open)
+
+**Epic gate:** (not run this session — prior run: trace PASS 30/30 ACs, NFR PASS, test-review 92/100)
+
+**TEA:** (not run this session)
+
+**UAT:**
+1. (not re-run — the consolidated 89-step checklist from the prior run stands: _bmad-output/implementation-artifacts/epic-9-uat-checklist.md)
+
+**Overrides:** none
+
+**Open questions:**
+1. (none new this session)
+
+**Deferred work:**
+1. (none new this session — the prior run's ledger stands)
+
+**Auto-decided (epic mode):**
+1. (none this session)
+
+**Planning drift:** (none new; NOTE the prior run's expectation 'the E_final batch-flip corrects sprint-status 9-0' did NOT materialize — the flip was skipped by the CI-red caveat, so 9-0 still reads ready-for-dev in sprint-status.yaml)
+
+**⚠️ Needs human:**
+1. Resolve the CI red on PR #15 (build-and-test FAILURE): the recorded blocker names favourites.spec.ts:35/64 (mobile 'Sol HH:MM') + onboarding.spec.ts:22 (mobile skip-dismiss) as likely epic-9 regressions (map-primary:645/665 is confirmed pre-existing). The dirty working tree already carries candidate fixes (OnboardingGate/VenueCard + tests) — finish, commit, and push them to the epic branch.
+2. Once CI is green: mark PR #15 ready (un-draft) and merge it.
+3. Then flip the BMAD statuses: all 11 epic-9 stories from review to done (story files + sprint-status.yaml) — the batch flip the caveated run deliberately skipped. Note 9-0's sprint-status entry is stale at ready-for-dev and needs the same correction.
+4. If you want auto-bmad to help finish this, it cannot be done via '/auto-bmad epic 9' (the run is terminal); the CI fix is ordinary dev work on the epic branch.
+
+**Next:** (none — Epic 9 is the last authored epic; Epics 4/5/6 remain deferred)
