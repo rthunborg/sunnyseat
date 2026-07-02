@@ -1,6 +1,6 @@
 # Story 9.4: Client Query Hygiene & Time-Change Debounce
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

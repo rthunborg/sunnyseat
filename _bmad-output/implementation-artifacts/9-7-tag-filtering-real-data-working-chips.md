@@ -1,6 +1,6 @@
 # Story 9.7: Tag Filtering — Real Data + Working Chips
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

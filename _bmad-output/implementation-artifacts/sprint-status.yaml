@@ -229,17 +229,17 @@ development_status:
   # Authored 2026-06-30 (party-mode live-app triage + mobile Playwright smoke-test). Listed in phase/execution order.
   # All backlog: no story files drafted yet; implementation begins in a later session.
   epic-9: in-progress
-  9-0-production-gate-the-dev-planner-forcing-url-leak: ready-for-dev
-  9-1-clean-app-content-sweep: review
-  9-2-design-system-cta-token-fix-copy-correction: review
-  9-3-venue-sun-compute-performance-server-caching: review
-  9-4-client-query-hygiene-time-change-debounce: review
-  9-5-location-onboarding-reliability: review
-  9-6-map-chrome-consolidation-dead-control-cleanup: review
-  9-7-tag-filtering-real-data-working-chips: review
-  9-8-venue-sharing-real: review
-  9-9-mobile-venue-quick-info-card-rework: review
-  9-10-mobile-device-verification-pass-regression-guards: review
+  9-0-production-gate-the-dev-planner-forcing-url-leak: done
+  9-1-clean-app-content-sweep: done
+  9-2-design-system-cta-token-fix-copy-correction: done
+  9-3-venue-sun-compute-performance-server-caching: done
+  9-4-client-query-hygiene-time-change-debounce: done
+  9-5-location-onboarding-reliability: done
+  9-6-map-chrome-consolidation-dead-control-cleanup: done
+  9-7-tag-filtering-real-data-working-chips: done
+  9-8-venue-sharing-real: done
+  9-9-mobile-venue-quick-info-card-rework: done
+  9-10-mobile-device-verification-pass-regression-guards: done
   epic-9-retrospective: done
 # Note (2026-07-01, retrospective epic-9 — epic-9-retrospective -> done): bmad-retrospective (auto-bmad delegate; solo-participant party mode, Rasmus as sole facilitator+participant) synthesized the full Epic 9 retro from retro-notes/epic-9.md + all 11 story files (9-0..9-10, all Status: review) + deferred-work.md + this file. Saved _bmad-output/implementation-artifacts/epic-9-retro-2026-07-01.md (9 sections: summary/metrics, what-went-well, what-was-hard, key-insights, Epic-8-retro follow-through, next-epic preview [none authored yet], 7 action items, readiness assessment, next steps). Epic verdict: complete and solid from a story perspective (30/30 ACs traced PASS, 106 files/936 vitest green, 1 genuine production bug found+fixed by 9.10 Task 3 MapLibre null-coord guard); the one real carry-forward is the consolidated reference-PNG rebaseline (A1, maintainer-only per the dev-forbidden-to-self-bless rule) — NOT a code defect. Flagged the stale 9-0:ready-for-dev entry in THIS file (line ~232, story file says Status:review) for correction at the epic-boundary batch-flip to done (A2) — left AS-IS here since flipping individual story statuses to done is the orchestrator's epic-boundary step, not this retro's job. Also flagged: Epic 8's A2 (vercel.json lightningcss swallow) + A3 (line-ending normalization) still open across two epics now (A6); ATDD (RED)-scaffold metadata cleanup + MapView.test.tsx split as low-urgency dev debt (A3/A4). No Epic 10 exists in epics.md yet, so next-epic-preview + prep-task steps were skipped per the workflow's own "next epic NOT found" branch. This file edit uncommitted in the working tree (orchestrator owns git/PR). Next: orchestrator epic-boundary flow (merge, batch-flip story statuses to done including the 9-0 correction).
 

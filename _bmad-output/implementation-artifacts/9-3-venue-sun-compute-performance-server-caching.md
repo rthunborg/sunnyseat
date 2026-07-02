@@ -1,6 +1,6 @@
 # Story 9.3: Venue Sun-Compute Performance — Server Caching
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

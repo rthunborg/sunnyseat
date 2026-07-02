@@ -1,6 +1,6 @@
 # Story 9.1: Clean-App Content Sweep (Venue Card & Detail De-Bloat)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

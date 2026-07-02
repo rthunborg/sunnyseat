@@ -1,6 +1,6 @@
 # Story 9.2: Design-System CTA Token Fix + Copy Correction
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

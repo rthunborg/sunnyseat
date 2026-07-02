@@ -1,6 +1,6 @@
 # Story 9.0: Production-Gate the Dev Planner-Forcing URL Leak
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
