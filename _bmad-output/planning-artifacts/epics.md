@@ -2641,3 +2641,149 @@ So that the fixes hold on the form factor most users are on and don't silently r
 **Then** they cover at least: clean-URL date selection refetches with the new date; a settled time change issues exactly one venues request; Favoriter↔Närmast issues no redundant fetch; the location dot renders on geolocation success; and the planner-leak gate ignores `?_time=` in production
 
 **Design Gate Criteria (verification story):** No new UI of its own; the gate is that all other Epic 9 stories' visual references pass at mobile breakpoints and the regression suite is green.
+
+## Epic 10: "Honest Sky" — Weather-Gated Two-Signal Sun Display
+
+The live app currently answers *"which terraces would be sunny if the sky were clear"* — on an overcast, rainy afternoon it shows venues at 63–100% with FULL SOL badges, contradicting what any user can see out their window. This epic makes the headline sun state weather-honest while preserving the geometric sun-position layer (the product's unique IP) as a clearly-labelled second signal: *"cloudy now — but when it clears, THIS is the terrace in sun."*
+
+> **Added 2026-07-02 (party-mode live-app investigation).** Source: maintainer report of the live app showing 63–100% sun during rain in central Gothenburg (16:17 local), investigated against the code. Root causes, so stories are drafted against the real cause:
+> 1. **The sun state is geometry-only.** `lib/services/sun-engine.ts` computes `sunExposurePercent` and `currentSunStatus` purely from sun position + building shadows (`isSunVisible` = above horizon — astronomy, not meteorology). Met.no weather IS fetched per venue but feeds only `skyCondition`, `confidence`, and `predictionUncertainty` — it never gates the displayed state.
+> 2. **`calcCloudCertainty` never reads `weather.cloudCover`** (`lib/solar/confidence-calculator.ts:151-157`). It scores freshness/forecast-flag/source-reliability only, so fresh Met.no data during a downpour yields ~0.9 "cloud certainty" and a high confidence figure. FR12's promised blend ("geometric sun certainty with weather-based cloud cover uncertainty") was never implemented.
+> 3. **`skyCondition` is computed and serialized but never rendered.** The engine maps cloud cover to `clear`/`partly-cloudy`/`overcast` in the DTO; no component consumes it — the one honest weather signal dies in transit.
+> 4. **Missing cloud data defaults to clear sky.** `lib/weather/met-no-service.ts:85` does `cloud_area_fraction ?? 0` — the optimistic default is exactly the wrong failure mode (absent data must read as "unknown", never "sunny").
+>
+> **Maintainer decisions (2026-07-02):** Display model = **two-signal** (headline state gated by weather; geometric % / sun windows preserved as clearly-labelled clear-sky potential) — chosen over a hard gate (throws away the differentiator: venue ranking + "when it clears" info) and over blending cloud into the % (fabricates an undefendable number; the % must keep one physical meaning). **Tiers 0, 1, and 2 are all in-scope for this epic:** Tier 0 = gate on the `cloud_area_fraction` we already fetch + fix root causes 2 and 4; Tier 1 = Met.no `complete` endpoint for the low/medium/high cloud split (thin cirrus ≠ blocking stratus); Tier 2 = Met.no Nowcast 2.0 radar precipitation as an additional no-sun signal. **Hard constraint on Tier 2: absence of rain must NEVER imply sun** — no-rain contributes nothing positive; sun position, building shadows, and cloud cover still gate. Tier 3 (commercial satellite irradiance nowcasting, e.g. Solcast-type feeds) is explicitly OUT of this epic — backlog, revisit only if user feedback says the hourly cloud signal feels laggy.
+>
+> **Physics guardrail (for story drafting and copy):** per-cloud, per-patio "is THIS terrace's sun blocked by THAT cloud right now" is not achievable from any data source — cumulus shadows are ~hundreds of metres moving 30–50 km/h; Met.no's Nordic model is a ~2.5 km grid (all of central Gothenburg ≈ 1–2 cells), and even 5–15-min satellite imagery is stale on arrival. Weather is a citywide-scale signal; geometry is the per-patio signal. UI copy must never claim per-venue cloud precision, and per-venue cloud *differences* within the city should be treated as noise, not signal.
+>
+> **Scope guardrails:** Respect the existing API boundary (client components never import `lib/weather`/`lib/solar`/`lib/supabase`; all access via `app/api/*` + hooks). The geometric meaning of `sunExposurePercent`, `sunWindow`, and `peakTime` must NOT change (clear-sky potential); the weather gate is a separate, additive signal. Met.no TOS compliance carries over (identifying User-Agent, coordinate truncation to ≤4 decimals, request dedupe/caching — Nowcast included). Existing screens must keep passing their visual gates except where the new "sun behind clouds" state is deliberately introduced. Test determinism: sun e2e specs force `?_time=13:00` (server computes from wall clock); weather-state specs must mock the weather boundary equally deterministically or they will be sky-flaky.
+
+### Story 10.1: Cloud-Gated Sun State & Weather-Truth Fixes (Engine)
+
+As a **user**,
+I want the app's headline sun state to reflect the actual sky, not just sun position and building shadows,
+So that the app never tells me a terrace is in full sun while it is raining.
+
+**Acceptance Criteria:**
+
+**Given** the sun engine (`lib/services/sun-engine.ts`) currently derives `currentSunStatus` from geometry alone
+**When** effective cloud cover at the requested instant meets or exceeds a single named, documented threshold (tunable constant, proposed default ≥ 80)
+**Then** the venue's headline state becomes a new weather-gated status (extend `VenueSunStatus` with a `CloudObscured` value) instead of `Sunny`/`Partial`, while `sunExposurePercent`, `sunWindow`, and `peakTime` keep their geometric clear-sky meaning unchanged, and the existing below-horizon precedence is preserved (`NoSun` still wins; the cloud gate applies only when the sun is geometrically up and the venue is geometrically sunlit)
+
+**Given** `lib/weather/met-no-service.ts:85` currently defaults a missing `cloud_area_fraction` to `0` (clear sky)
+**When** a timeseries entry lacks cloud data
+**Then** the slice is treated as weather-unknown for gating (no gate applied, no fabricated clear sky), the response's freshness/uncertainty signals reflect the missing weather (existing `geometry-only` / `weather` uncertainty plumbing), and a unit test proves missing cloud data can never produce a "clear" gate input
+
+**Given** `calcCloudCertainty` (`lib/solar/confidence-calculator.ts`) currently ignores `weather.cloudCover`, violating FR12
+**When** the confidence blend is fixed
+**Then** cloud amount genuinely lowers displayed confidence (documented formula — e.g. certainty falls as cover rises toward total overcast), the geometry-only (no-weather) path is byte-identical to today, and a red-first unit test proves 100% cloud cover yields materially lower confidence than 0% with otherwise identical inputs
+
+**Given** the DTO contract changes (`VenueSunStatus` union gains a value)
+**When** the new status ships
+**Then** every consumer of `currentSunStatus` is swept and handles the new value (API sanitizer/`normalizeVenueForResponse`, `lib/types/api.ts`, fixtures, `FeedbackFlow` predicted-state, list/pin/card switch statements — rendering may be a placeholder until Story 10.2), the venues-route contract tests cover it, and the sun-compute cache (15-min bucket) demonstrably caches the gated outcome with its weather slice so cached buckets stay internally consistent
+
+**Design Gate Criteria (backend/engine — no new screen of its own):** No intentional visual change in this story (Story 10.2 owns the UI); existing gate states pass unchanged on the clear-sky path. The acceptance signal is the test suite: overcast → gated status, missing-cloud → no fabricated clear, cloud cover → confidence drop, all red-first.
+
+### Story 10.2: "Sun Behind Clouds" Two-Signal UI State
+
+As a **user**,
+I want to see at a glance that the sun is behind clouds right now — while still seeing which terraces have the best sun position when it clears,
+So that the app is honest about the sky and still uniquely useful on a grey day.
+
+**Acceptance Criteria:**
+
+**Given** a venue whose engine state is the new cloud-gated status
+**When** it renders anywhere — map pin (`VenuePin`/`VenuePinLayer`), venue card (`VenueCard`), quick-info (`VenueQuickInfo`), detail (`VenueDetailContent`), list (`VenueList`)
+**Then** the headline presentation is a muted/cloud state ("Sol bakom moln" / "Sun behind clouds") that is visually unmistakable from BOTH the amber sunny state AND the grey shaded state (a fourth visual state: Sunny / Partial / Shaded / Obscured), and no surface shows "FULL SOL"/"DELVIS SOL" or an amber sun badge while the gate is active
+
+**Given** the two-signal model preserves the geometric layer
+**When** a cloud-gated venue renders its details
+**Then** the geometric potential remains visible and clearly labelled as position-not-weather (e.g. "Solläge 100% · sol här när det klarnar" — final copy at design discretion), the sun-window timeline keeps rendering as clear-sky potential, and list ranking ("Mest sol") continues to rank by geometric solläge so venue comparison still works under an overcast sky
+
+**Given** the serialized-but-never-rendered `skyCondition` field
+**When** the UI state ships
+**Then** the current sky condition is surfaced on at least the venue detail/quick-info surface (clear / partly cloudy / overcast — plain-language copy, no geodata or meteorology internals per Story 3.0.6), with `sv`/`en` message parity and the new keys added to both locales
+
+**Given** accessibility and honest labelling requirements (Epic 9 lessons)
+**When** the new state renders
+**Then** each surface's accessible name includes the obscured state exactly once (no duplicated or orphaned phrases), the muted palette meets WCAG AA contrast (the axe CI gate stays green), and the state change is covered by component tests across all four visual states
+
+**Design Gate Criteria:**
+- **Visual:** The Obscured state on pin + card + quick-info + detail is distinct from Sunny/Partial/Shaded at a glance; muted palette matches the design-token system (no ad-hoc hexes)
+- **Behaviour:** Gate active → no FULL SOL/amber anywhere; geometric potential labelled as position; sorting still works; clear-sky venues unchanged
+- **Animation:** Existing pin/card transitions unchanged; no flash when a venue crosses the gate on refresh
+- **Visual validation:** Screenshot comparison of an overcast-state card + pin + detail (mobile & desktop, forced via mocked weather) against references passes before QA handoff
+
+### Story 10.3: Layered Cloud Detail (Met.no `complete` Endpoint + Effective Cover)
+
+As a **user**,
+I want thin high haze treated differently from a blocking low cloud deck,
+So that the app doesn't cry "no sun" under cirrus you can feel the sun through.
+
+**Acceptance Criteria:**
+
+**Given** `lib/weather/met-no-service.ts` currently calls the `compact` Locationforecast endpoint
+**When** it switches to the `complete` endpoint (same API, same TOS posture, same coordinate truncation and caching)
+**Then** `WeatherSlice` additionally carries `cloud_area_fraction_low`/`_medium`/`_high` (and the total retained), and the fetch/dedupe/revalidate behaviour is otherwise unchanged
+
+**Given** the three-layer split is available
+**When** effective cloud cover is computed for the Story 10.1 gate and the FR12 confidence blend
+**Then** a documented, named-constant weighting makes low/medium cloud dominate and high cloud contribute only weakly (thin cirrus ≠ blocking stratus; exact formula is the story's design decision, recorded with rationale), and unit tests pin the formula's boundary behaviour (e.g. 100% high-only must NOT trip the gate; 100% low must)
+
+**Given** the split fields may be absent for some timeseries entries
+**When** any layer field is missing
+**Then** the computation falls back to the total `cloud_area_fraction` (Tier 0 behaviour) — and per Story 10.1's rule, a missing total still means weather-unknown, never clear
+
+**Design Gate Criteria (backend/data — no new screen):** No visual change beyond gate-input accuracy; existing overcast/clear visual states from Story 10.2 pass unchanged. Acceptance signal is the formula's unit-test matrix.
+
+### Story 10.4: Rain-Now Signal (Met.no Nowcast 2.0)
+
+As a **user**,
+I want the app to know it is raining right now,
+So that a terrace is never presented as a sun destination during active rain.
+
+**Acceptance Criteria:**
+
+**Given** Met.no Nowcast 2.0 provides radar-based ~5-minute precipitation for the Nordics
+**When** a nowcast client is added to `lib/weather` (TOS-compliant User-Agent, ≤4-decimal coordinates, per-coordinate dedupe + short-TTL caching consistent with the 5-min product cadence, graceful `[]`/null degradation on failure — mirroring the forecast client's posture)
+**Then** the engine can obtain "precipitation rate at this coordinate now" for near-now requests, and a nowcast outage degrades silently to Tier 0/1 behaviour (never a throw, never a 500, no fabricated values)
+
+**Given** active precipitation (rate above zero) at the requested near-now instant
+**When** the headline state is derived
+**Then** the venue is cloud-gated regardless of the cloud-fraction value (rain wins), and the surfaced sky condition reflects rain in plain language
+
+**Given** the hard constraint that **absence of rain must NEVER imply sun**
+**When** the nowcast reports no precipitation
+**Then** the no-rain result contributes NOTHING positive to the sun state — sun position, building shadows, and (effective) cloud cover still fully decide the outcome — and a dedicated red-first unit test proves a no-rain + overcast + geometrically-sunlit venue is still cloud-gated, plus a test that no-rain + clear + geometrically-shaded is still Shaded
+
+**Given** the planner allows future date/time selection
+**When** `requestedAt` is beyond the nowcast's short horizon (or on a future day)
+**Then** the nowcast signal is not consulted (forecast cloud data governs, as in Tiers 0/1), so future planning never mixes in a stale "now" radar reading
+
+**Design Gate Criteria (backend/data — no new screen):** No new UI surface (rain reuses the Story 10.2 obscured presentation + sky-condition copy). Acceptance signal: the constraint tests above + engine tests proving rain forces the gate and nowcast failure changes nothing.
+
+### Story 10.5: Weather-Reality Verification Pass & Regression Guards
+
+As a **maintainer**,
+I want the weather-gated display verified against the real sky and protected by deterministic regression tests,
+So that "the app said sunny while it rained" can never silently return.
+
+**Acceptance Criteria:**
+
+**Given** the full Tier 0+1+2 stack is implemented
+**When** a deterministic e2e matrix runs with the weather boundary mocked (overcast ≥ threshold, clear, high-cirrus-only, active rain, weather-missing) at a forced `?_time=`
+**Then** each scenario asserts the correct card + pin + detail presentation (obscured / sunny / sunny-under-cirrus / obscured-rain / ungated-with-uncertainty respectively), and the suite is wall-clock- and sky-independent (no live Met.no calls in CI)
+
+**Given** the live app and a real grey-or-clear day
+**When** a manual reality spot-check is performed against the live site and the raw Met.no responses for central Gothenburg
+**Then** the displayed states match the observable sky and the fetched cloud/precipitation values, with the outcome recorded in the story record (screenshots + fetched values), and any mismatch triaged to a root cause before the epic closes
+
+**Given** the About page explains predictions and cites accuracy
+**When** the two-signal model ships
+**Then** the About copy still truthfully describes the model (geometry + weather now genuinely blended per FR12) with `sv`/`en` parity, updated if any claim became stale
+
+**Given** the historical failure mode (weather fetched but not consumed)
+**When** regression guards are added
+**Then** they cover at least: 100% cloud can never render FULL SOL on any surface; missing cloud data never renders as clear; confidence at 100% cloud < confidence at 0% cloud; rain forces the obscured state; no-rain changes nothing; and the geometric fields (`sunExposurePercent`, `sunWindow`) remain byte-identical across weather variations for the same geometry and instant
+
+**Design Gate Criteria (verification story):** No new UI of its own; the gate is the mocked-weather e2e matrix green in CI, the recorded live spot-check, and all Story 10.2 visual references passing at both breakpoints.
