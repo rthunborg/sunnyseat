@@ -18,6 +18,7 @@
     "confidenceApproximate": "about",
     "confidenceUnavailable": "Confidence unavailable",
     "distance": "Distance",
+    "distanceApproximate": "≈ from centre",
     "loadingSun": "Loading sun data",
     "sunUnavailable": "Sun time unavailable",
     "sunWindow": "Sun {start}–{end}"
@@ -104,6 +105,7 @@
     "confidenceApproximate": "about",
     "confidenceUnavailable": "Confidence unavailable",
     "distance": "Distance",
+    "distanceApproximate": "≈ from centre",
     "sunUnavailable": "Sun time unavailable",
     "statusMostlyShade": "MOSTLY SHADE",
     "statusFullSun": "FULL SUN",
@@ -118,8 +120,6 @@
       "topPicks": "Top picks near you",
       "sortBySun": "Most sun",
       "sortByDistance": "Closest",
-      "categoryCafe": "Cafe",
-      "openNow": "Open now",
       "unavailable": "Coming later"
     }
   },
@@ -134,6 +134,15 @@
     "favouriteAdd": "Save as favourite",
     "favouriteRemove": "Remove favourite",
     "share": "Share venue",
+    "shareModal": {
+      "title": "Share {name}",
+      "subtitle": "Send the venue to a friend or copy the link.",
+      "copyLink": "Copy link",
+      "copied": "Copied",
+      "close": "Close",
+      "shareText": "Check out the sun times at {name}",
+      "target": "Share to {target}"
+    },
     "photoPlaceholder": "Venue placeholder image",
     "loading": "Loading venue details",
     "detailsUnavailable": "Details unavailable",
@@ -143,7 +152,6 @@
     "backToMap": "Back to map",
     "openingHours": "Opening hours",
     "address": "Address",
-    "shadowWarning": "Shady in {minutes} min",
     "sunBadge": "{percent}% sun",
     "confidence": "Confidence",
     "confidenceApproximate": "about",
@@ -153,9 +161,7 @@
     "placeholderImageShort": "Placeholder image",
     "facts": {
       "distance": "DISTANCE",
-      "exposure": "EXPOSURE",
-      "bestAt": "BEST AT",
-      "outdoorSeats": "OUTDOOR SEATS"
+      "distanceApproximate": "≈ from centre"
     },
     "timeline": {
       "ariaLabel": "Sun times today",

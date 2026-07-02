@@ -2,12 +2,11 @@
 
 import { useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { LocateFixed, Minus, Plus, Settings } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
 import { DURATION_FLY_MS } from '@/lib/constants/animation';
 import { useGeolocation } from '@/hooks/useGeolocation';
-import { useSettings } from '@/lib/contexts/SettingsContext';
 
 const ZOOM_DURATION_MS = 200;
 const DRAG_FADE_OPACITY = '0.6';
@@ -56,7 +55,6 @@ export function MapControls() {
   const t = useTranslations('map');
   const { mapInstance } = useMapInstance();
   const geolocation = useGeolocation();
-  const { openSettings } = useSettings();
   const controlsRef = useRef<HTMLDivElement | null>(null);
   const isMapReady = mapInstance !== null;
 
@@ -88,15 +86,15 @@ export function MapControls() {
     mapInstance?.zoomOut({ duration: ZOOM_DURATION_MS });
   };
 
-  const handleMyLocation = () => {
-    geolocation.requestLocation();
-  };
-
-  // Fly to the user's location once the geolocation request resolves to
-  // success. On fallback (denial / unavailable) we silently keep the
-  // current map centre. For returning users with granted permission, the
-  // hook auto-runs on mount and this effect re-centres the map on their
-  // current location — the desired returning-user behaviour.
+  // Shared success-fly-to (Story 9.6). The locate buttons themselves now live
+  // outside this component — the mobile top-bar locate (`VenueSearchShell`) and
+  // the desktop-nav locate (`DesktopNavBar`) — but both drive the same
+  // `useGeolocation` context, so this single effect re-centres the map to the
+  // resolved coordinates whichever button fired the request. On fallback
+  // (denial / unavailable) we silently keep the current map centre. For
+  // returning users with granted permission, the hook auto-runs on mount and
+  // this effect re-centres on their current location — the desired
+  // returning-user behaviour.
   useEffect(() => {
     if (!mapInstance) return;
     if (geolocation.status !== 'success') return;
@@ -116,27 +114,15 @@ export function MapControls() {
       data-testid="map-controls"
       className="absolute right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*50)] z-floating-buttons flex flex-col gap-3 opacity-100 transition-opacity duration-200 ease-default motion-reduce:transition-none lg:top-[calc(var(--size-desktop-nav-h)+var(--spacing)*7)]"
     >
-      {/* Locate + settings are `lg:hidden`: on desktop the top nav owns these
-          actions, so duplicating them over the map is redundant chrome. They
-          remain on mobile, where the bottom nav has no locate/settings and the
-          map stack is the only access point. Zoom +/- stay at every breakpoint. */}
-      <GlassButton
-        ariaLabel={t('myLocation')}
-        onClick={handleMyLocation}
-        disabled={!isMapReady}
-        testId="map-control-my-location"
-        className="lg:hidden"
-      >
-        <LocateFixed aria-hidden="true" style={{ width: 20, height: 20 }} />
-      </GlassButton>
-      <GlassButton
-        ariaLabel={t('settings')}
-        onClick={openSettings}
-        testId="map-control-settings"
-        className="lg:hidden"
-      >
-        <Settings aria-hidden="true" style={{ width: 20, height: 20 }} />
-      </GlassButton>
+      {/* Story 9.6: the floating locate + settings buttons were removed from
+          this stack (they duplicated the top-bar pair on mobile and the desktop
+          nav on desktop). Zoom +/- are the only genuinely map-specific controls
+          with no top-bar equivalent, so they stay at every breakpoint. The
+          locate reliability feedback (Story 9.5 AC4(a)) now lives on the
+          surviving mobile top-bar locate button in `VenueSearchShell`. This
+          component still owns the shared success-fly-to effect below — it fires
+          for BOTH the mobile top-bar locate and the desktop-nav locate, which
+          both drive the same `useGeolocation` context. */}
       <GlassButton
         ariaLabel={t('zoomIn')}
         onClick={handleZoomIn}
@@ -161,12 +147,26 @@ type GlassButtonProps = {
   ariaLabel: string;
   onClick: () => void;
   disabled?: boolean;
+  /** Story 9.5 AC4(a): in-flight signal → sets `aria-busy="true"`. */
+  busy?: boolean;
+  /** Story 9.5 AC4(a): exposes the locate request state on the button DOM so
+   * tests + assistive styling can branch on idle/pending/success/fallback. */
+  dataLocateState?: string;
   testId: string;
   className?: string;
   children: React.ReactNode;
 };
 
-function GlassButton({ ariaLabel, onClick, disabled = false, testId, className, children }: GlassButtonProps) {
+function GlassButton({
+  ariaLabel,
+  onClick,
+  disabled = false,
+  busy = false,
+  dataLocateState,
+  testId,
+  className,
+  children,
+}: GlassButtonProps) {
   // Story 1.6 review (P37): native `disabled` already removes the button
   // from the tab order and exposes the disabled state to assistive tech;
   // adding `aria-disabled` on top either is ignored or causes double
@@ -177,6 +177,8 @@ function GlassButton({ ariaLabel, onClick, disabled = false, testId, className, 
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
+      aria-busy={busy || undefined}
+      data-locate-state={dataLocateState}
       data-testid={testId}
       className={`size-12 rounded-pill bg-glass-standard backdrop-blur-standard shadow-button-float flex items-center justify-center text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:rounded-pill disabled:opacity-50 disabled:cursor-not-allowed ${className ?? ''}`}
     >

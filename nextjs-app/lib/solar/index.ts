@@ -20,8 +20,12 @@ export {
 export {
   calculateVenueShadow,
   calculateVenueShadowForGeometry,
+  calculateVenueShadowFromBuildings,
   calculateVenueShadowTimeline,
   calculateVenueShadowTimelineForGeometry,
+  calculateVenueShadowTimelineFromBuildings,
+  fetchVenueBuildings,
+  SHADOW_SEARCH_RADIUS_DEG,
 } from './shadow-calculation-service';
 export {
   CONSERVATIVE_CLUSTER_COVERAGE,

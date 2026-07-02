@@ -133,6 +133,19 @@ comment on column public.venues.ground_elevation_m is
   '(Story 8.7 terrain gate). May be negative. Null -> Story 8.6 relative height gate. '
   'Never returned in the API DTO.';
 
+-- Story 9.7 (Tag Filtering): additive, NOT NULL default '{}' text[] of user-facing
+-- amenity/attribute tags for the desktop chip filter. Unlike the server-only
+-- seating_* columns above, this IS serialized into the client VenueDataDto. Empty
+-- array = no tags (graceful-empty: such a venue is only ever hidden when a chip is
+-- active and it matches none). Idempotent so re-running this contract is safe;
+-- existing rows get '{}' by the default, then the seed overwrites the 7 test venues.
+alter table public.venues add column if not exists tags text[] not null default '{}';
+
+comment on column public.venues.tags is
+  'User-facing amenity/attribute tags for chip filtering (Story 9.7). '
+  'text[] (empty array = no tags). Localized at the data layer per venue-data-load.md. '
+  'Serialized into the client VenueDataDto (unlike the server-only seating_* columns).';
+
 -- ============================================================================
 -- Section 3: privileges / RLS (deny-by-default, server-only read)
 -- ============================================================================
@@ -171,7 +184,7 @@ insert into public.venues (
   id, slug, venue_name, neighborhood, lat, lng, is_partner, thumbnail,
   description, address, opening_hours, peak_time, shadow_warning_minutes,
   current_sun_status, sky_condition, confidence, sun_exposure_percent,
-  sun_window, prediction_uncertainty
+  sun_window, prediction_uncertainty, tags
 ) values
   (
     '1', 'test-venue-sunny', 'Kafé Magasinet', 'Inom Vallgraven', 57.7050, 11.9700, true,
@@ -181,7 +194,8 @@ insert into public.venues (
     '{"display":"Öppet till 22:00","closesAt":"22:00"}'::jsonb,
     '15:30', 45,
     'Sunny', 'clear', 92, 95,
-    '{"start":"13:00","end":"18:30"}'::jsonb, null
+    '{"start":"13:00","end":"18:30"}'::jsonb, null,
+    '{Innergård,Hund ok,Wifi,Bakverk}'
   ),
   (
     '2', 'bryggeriet-soltak', 'Bryggerietsoltak', 'Linnéstaden', 57.7035, 11.9520, false,
@@ -191,7 +205,8 @@ insert into public.venues (
     '{"display":"Öppet till 23:00","closesAt":"23:00"}'::jsonb,
     '15:00', null,
     'Sunny', 'clear', 88, 89,
-    '{"start":"12:45","end":"18:15"}'::jsonb, null
+    '{"start":"12:45","end":"18:15"}'::jsonb, null,
+    '{Morgonsol,Take-away,Surdeg}'
   ),
   (
     '3', 'solplats-magasinsgatan', 'Solplats Magasinsgatan', 'Inom Vallgraven', 57.7080, 11.9655, false,
@@ -201,7 +216,8 @@ insert into public.venues (
     '{"display":"Öppet till 21:00","closesAt":"21:00"}'::jsonb,
     '15:30', null,
     'Sunny', 'partly-cloudy', 78, 82,
-    '{"start":"14:00","end":"17:45"}'::jsonb, null
+    '{"start":"14:00","end":"17:45"}'::jsonb, null,
+    '{Kanal,Skaldjur}'
   ),
   (
     '4', 'cafe-halvvags', 'Café Halvvägs', 'Vasastaden', 57.7000, 11.9710, false,
@@ -212,7 +228,8 @@ insert into public.venues (
     '16:00', null,
     'Partial', 'partly-cloudy', 70, 65,
     '{"start":"15:10","end":"17:20"}'::jsonb,
-    '{"level":"medium","reasons":["building_shadow_coverage"]}'::jsonb
+    '{"level":"medium","reasons":["building_shadow_coverage"]}'::jsonb,
+    '{Parasoller,Specialkaffe}'
   ),
   (
     '5', 'brygghuset-lerum', 'Brygghuset Lerum', 'Haga', 57.7115, 11.9605, false,
@@ -223,7 +240,8 @@ insert into public.venues (
     '14:30', null,
     'Partial', 'partly-cloudy', 66, 58,
     '{"start":"13:35","end":"16:50"}'::jsonb,
-    '{"level":"medium","reasons":["vegetation","awning","seasonal_furniture"]}'::jsonb
+    '{"level":"medium","reasons":["vegetation","awning","seasonal_furniture"]}'::jsonb,
+    '{Innergård,Hund ok}'
   ),
   (
     '6', 'skuggans-hus', 'Skuggans Hus', 'Inom Vallgraven', 57.7095, 11.9785, false,
@@ -233,7 +251,8 @@ insert into public.venues (
     '{"display":"Öppet till 19:00","closesAt":"19:00"}'::jsonb,
     '16:30', null,
     'Shaded', 'overcast', 80, 22,
-    '{"start":"16:10","end":"16:45"}'::jsonb, null
+    '{"start":"16:10","end":"16:45"}'::jsonb, null,
+    '{Svalt,Lunch}'
   ),
   (
     '7', 'bistro-bakgarden', 'Bistro Bakgården', 'Vasastaden', 57.7060, 11.9820, false,
@@ -241,9 +260,10 @@ insert into public.venues (
     'Bakgårdsservering med mest skugga, men en kort lunchsol vid klart väder.',
     'Engelbrektsgatan 44, 411 37 Göteborg',
     '{"display":"Öppet till 21:00","closesAt":"21:00"}'::jsonb,
-    '12:00', 0,
+    '12:00', null,
     'Shaded', 'overcast', 75, 14,
-    '{"start":"11:30","end":"12:20"}'::jsonb, null
+    '{"start":"11:30","end":"12:20"}'::jsonb, null,
+    '{Bakgård,Kväll}'
   )
 on conflict (id) do update set
   slug = excluded.slug,
@@ -264,6 +284,7 @@ on conflict (id) do update set
   sun_exposure_percent = excluded.sun_exposure_percent,
   sun_window = excluded.sun_window,
   prediction_uncertainty = excluded.prediction_uncertainty,
+  tags = excluded.tags,
   updated_at = now();
 
 -- ============================================================================
@@ -272,6 +293,10 @@ on conflict (id) do update set
 -- To fully remove this contract (does not touch reviews/feedback):
 --   drop table if exists public.venues;
 -- The unique index idx_venues_slug is dropped with the table.
+--
+-- Additive-column rollback (Story 9.7 tags — reversible without a table drop):
+--   alter table public.venues drop column if exists tags;
+-- The table-drop rollback above already removes it too.
 
 -- ============================================================================
 -- Section 6: smoke checks (run after apply)
@@ -286,6 +311,16 @@ select id, slug, venue_name, neighborhood, lat, lng, is_partner,
        sun_window, shadow_warning_minutes
 from public.venues
 where slug = 'test-venue-sunny';
+
+-- Story 9.7: expect the 7 seeded tag arrays (Swedish canonical values).
+--   1 test-venue-sunny        {Innergård,Hund ok,Wifi,Bakverk}
+--   2 bryggeriet-soltak       {Morgonsol,Take-away,Surdeg}
+--   3 solplats-magasinsgatan  {Kanal,Skaldjur}
+--   4 cafe-halvvags           {Parasoller,Specialkaffe}
+--   5 brygghuset-lerum        {Innergård,Hund ok}
+--   6 skuggans-hus            {Svalt,Lunch}
+--   7 bistro-bakgarden        {Bakgård,Kväll}
+select id, slug, tags from public.venues order by id;
 
 -- Expect deny-by-default: only service_role holds a grant.
 select grantee, privilege_type

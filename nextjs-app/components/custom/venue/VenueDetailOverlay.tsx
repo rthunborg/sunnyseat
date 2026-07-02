@@ -1,10 +1,11 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useDrag } from '@use-gesture/react';
 import { Heart, Share2, X } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { VenueDetailContent, type VenueDetailContentLabels } from '@/components/composed/venue/VenueDetailContent';
+import { ShareModal } from '@/components/custom/venue/ShareModal';
 import {
   DURATION_DETAIL_EXIT_S,
   DURATION_FAST_S,
@@ -14,6 +15,7 @@ import {
 } from '@/lib/constants/animation';
 import type { SunFreshnessMeta, VenueDataDto, VenueDetailDto } from '@/lib/types/api';
 import { cn } from '@/lib/utils';
+import { currentVenueShareUrl, shareVenueNatively } from '@/lib/utils/share';
 
 export type VenueDetailOverlayLabels = VenueDetailContentLabels & {
   close: string;
@@ -21,6 +23,7 @@ export type VenueDetailOverlayLabels = VenueDetailContentLabels & {
   favouriteAdd?: string;
   favouriteRemove?: string;
   share: string;
+  shareText?: string;
 };
 
 export type VenueDetailOverlayProps = {
@@ -40,6 +43,10 @@ export type VenueDetailOverlayProps = {
   routeDisabled?: boolean;
   mode?: 'mobile' | 'desktop';
   locale?: string;
+  /** Story 9.5 AC3: the distance shown on the detail's Avstånd card is
+   * centrum-relative (Gothenburg-centrum geolocation fallback), not a real
+   * personal fix — thread through so the card qualifies it honestly. */
+  distanceIsApproximate?: boolean;
   feedbackSlot?: React.ReactNode;
   reviewSlot?: React.ReactNode;
 };
@@ -64,6 +71,7 @@ export function VenueDetailOverlay({
   routeDisabled = false,
   mode = 'mobile',
   locale,
+  distanceIsApproximate = false,
   feedbackSlot,
   reviewSlot,
 }: VenueDetailOverlayProps) {
@@ -71,6 +79,34 @@ export function VenueDetailOverlay({
   const shouldReduceMotion = reducedMotion ?? prefersReducedMotion;
   const scrollBodyRef = useRef<HTMLDivElement>(null);
   const [dragY, setDragY] = useState(0);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+
+  const shareSlug = detail?.slug ?? fallbackVenue.slug ?? fallbackVenue.venueSlug;
+  const shareTitle = fallbackVenue.venueName;
+  const shareText = labels.shareText
+    ? // Use a replacer FUNCTION so a venue name containing `$&`/`$1`/`` $` ``/`$'`
+      // (String.prototype.replace special replacement patterns) is inserted
+      // verbatim rather than being interpreted.
+      labels.shareText.replace('{name}', () => shareTitle)
+    : undefined;
+
+  // Capability-gated share: native Web Share sheet where available (mobile),
+  // otherwise the copy-link + targets modal (desktop). The decision is capability
+  // based (does `navigator.share` exist?), never a viewport guess. Client-only:
+  // the URL is read from `window.location` at click time, never during render.
+  const handleShare = useCallback(async () => {
+    const url = currentVenueShareUrl(shareSlug);
+    if (!url) return;
+    const outcome = await shareVenueNatively({ title: shareTitle, text: shareText, url });
+    // `shared`/`cancelled` are terminal (the OS sheet handled it or the user
+    // dismissed it). `unsupported`/`failed` fall back to the modal so the button
+    // is never dead and no rejection is left unhandled.
+    if (outcome === 'unsupported' || outcome === 'failed') {
+      setShareUrl(url);
+      setShareOpen(true);
+    }
+  }, [shareSlug, shareTitle, shareText]);
   const enterTransition = {
     duration: shouldReduceMotion ? DURATION_FAST_S : DURATION_SLOW_S,
     ease: shouldReduceMotion ? EASE_EXIT : EASE_SPRING,
@@ -133,7 +169,7 @@ export function VenueDetailOverlay({
           >
             <Heart aria-hidden="true" className={cn('size-4', isFavourite && 'fill-current')} />
           </ChromeButton>
-          <ChromeButton label={labels.share} disabled>
+          <ChromeButton label={labels.share} onClick={handleShare}>
             <Share2 aria-hidden="true" className="size-4" />
           </ChromeButton>
           <ChromeButton label={labels.close} onClick={onDismiss}>
@@ -147,6 +183,7 @@ export function VenueDetailOverlay({
             confidenceMeta={confidenceMeta}
             currentTime={currentTime}
             labels={labels}
+            distanceIsApproximate={distanceIsApproximate}
             isLoading={isLoading}
             onRoute={onRoute}
             routeEstimateLabel={routeEstimateLabel}
@@ -158,6 +195,12 @@ export function VenueDetailOverlay({
             reviewSlot={reviewSlot}
           />
         </div>
+        <ShareModal
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          venueName={shareTitle}
+          url={shareUrl}
+        />
       </motion.aside>
     );
   }
@@ -191,6 +234,9 @@ export function VenueDetailOverlay({
           disabled={!onFavouriteToggle}
         >
           <Heart aria-hidden="true" className={cn('size-5', isFavourite && 'fill-current')} />
+        </ChromeButton>
+        <ChromeButton label={labels.share} onClick={handleShare}>
+          <Share2 aria-hidden="true" className="size-5" />
         </ChromeButton>
         <ChromeButton label={labels.close} onClick={onDismiss}>
           <X aria-hidden="true" className="size-5" />
@@ -229,6 +275,7 @@ export function VenueDetailOverlay({
           confidenceMeta={confidenceMeta}
           currentTime={currentTime}
           labels={labels}
+          distanceIsApproximate={distanceIsApproximate}
           isLoading={isLoading}
           onRoute={onRoute}
           routeEstimateLabel={routeEstimateLabel}
@@ -240,6 +287,12 @@ export function VenueDetailOverlay({
           reviewSlot={reviewSlot}
         />
       </div>
+      <ShareModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        venueName={shareTitle}
+        url={shareUrl}
+      />
     </motion.aside>
   );
 }

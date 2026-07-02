@@ -25,6 +25,7 @@ const SAMPLE_RESPONSE: GetVenueDetailResponse = {
     confidence: 92,
     distanceMeters: 0,
     sunExposurePercent: 95,
+    tags: [],
     description: 'Stor uteservering med eftermiddagssol.',
     openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
     address: 'Tredje Långgatan 9, Göteborg',
@@ -177,6 +178,7 @@ describe('useVenueDetail', () => {
       venue: {
         ...SAMPLE_RESPONSE.venue,
         sunExposurePercent: 95,
+        tags: [],
       },
     };
     const secondResponse: GetVenueDetailResponse = {
@@ -184,6 +186,7 @@ describe('useVenueDetail', () => {
       venue: {
         ...SAMPLE_RESPONSE.venue,
         sunExposurePercent: 61,
+        tags: [],
       },
     };
     let resolveSecond: ((value: Response) => void) | undefined;

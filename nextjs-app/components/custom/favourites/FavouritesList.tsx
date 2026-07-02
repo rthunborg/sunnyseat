@@ -14,6 +14,12 @@ type FavouritesListProps = {
   isFavourite: (id: string) => boolean;
   sortMode: VenueListSortMode;
   confidenceMeta?: SunFreshnessMeta;
+  /** Story 9.5 AC3: the distances are centrum-relative (Gothenburg-centrum
+   * geolocation fallback), not a real personal fix — thread through so the
+   * favourite cards qualify each distance "≈ från centrum" honestly. Mirrors
+   * the `VenueList.locationIsApproximate` wiring MapView already does for the
+   * near-me list. */
+  locationIsApproximate?: boolean;
   isLoading?: boolean;
   isError?: boolean;
   onRetry?: () => unknown;
@@ -29,6 +35,7 @@ export function FavouritesList({
   onFavouriteToggle,
   isFavourite,
   confidenceMeta,
+  locationIsApproximate = false,
   isLoading = false,
   isError = false,
   onRetry,
@@ -83,6 +90,7 @@ export function FavouritesList({
       mode={mode}
       sortMode="sun"
       confidenceMeta={confidenceMeta}
+      locationIsApproximate={locationIsApproximate}
       isLoading={isLoading}
       animateCards={animateCards}
       compactCards={compactCards}

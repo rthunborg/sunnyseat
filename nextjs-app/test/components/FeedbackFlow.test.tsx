@@ -45,6 +45,7 @@ const VENUE: VenueDetailDto = {
   confidence: 92,
   distanceMeters: 0,
   sunExposurePercent: 95,
+  tags: [],
   sunWindow: { start: '13:00', end: '18:30' },
   description: 'Stor uteservering med eftermiddagssol.',
   address: 'Tredje Långgatan 9, Göteborg',

@@ -5,35 +5,6 @@ import {
   VENUE_CARD_FADE_MS,
   VENUE_CARD_STAGGER_STEP_MS,
 } from '@/lib/constants/animation';
-import type { PredictionUncertaintyDisplayLabels } from '@/lib/utils/prediction-uncertainty-display';
-
-const uncertaintyLabels: PredictionUncertaintyDisplayLabels = {
-  description:
-    'Vi räknar på solens läge, byggnadsskuggor och väder. Träd, markiser, parasoller, broar och tillfälliga konstruktioner kan påverka platsen.',
-  accessible: '{label}. {description}',
-  levels: {
-    low: 'Låg osäkerhet',
-    medium: 'Osäker prognos',
-    high: 'Mer osäker prognos',
-  },
-  short: {
-    building_shadow_coverage: 'Byggnadsskuggor mer osäkra',
-    obstruction: 'Lokala hinder kan påverka',
-    weather: 'Vädret gör prognosen osäkrare',
-    other: 'Lokala förhållanden kan påverka',
-  },
-  reasons: {
-    building_shadow_coverage: 'Byggnadsskuggorna är beräknade med begränsad täckning här.',
-    vegetation: 'Träd kan påverka platsen.',
-    awning: 'Markiser kan påverka platsen.',
-    umbrella: 'Parasoller kan påverka platsen.',
-    bridge: 'Broar kan påverka platsen.',
-    temporary_structure: 'Tillfälliga konstruktioner kan påverka platsen.',
-    seasonal_furniture: 'Säsongsmöbler kan påverka platsen.',
-    weather: 'Vädret gör prognosen mer osäker.',
-    other: 'Lokala förhållanden kan påverka platsen.',
-  },
-};
 
 describe('<VenueCard />', () => {
   it('renders venue sunlight, confidence, distance, and an accessible activation label', () => {
@@ -67,14 +38,22 @@ describe('<VenueCard />', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: /Välj Kafé Magasinet/ })).toBeInTheDocument();
+    // Story 9.1: the accessible name carries name + sun + Säkerhet (once) +
+    // Avstånd via labels.select — the in-card sr-only repeats are gone.
+    const selectButton = screen.getByRole('button', {
+      name: 'Välj Kafé Magasinet, Sol 13:00-18:30, Säkerhet 92%, Avstånd 180 m',
+    });
+    expect(selectButton).toBeInTheDocument();
+    // "Säkerhet" appears exactly once in the accessible name (AC #3 de-dup).
+    expect(selectButton.getAttribute('aria-label')?.match(/Säkerhet/g)).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Spara Kafé Magasinet' })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Uteservering' })).toBeInTheDocument();
     expect(screen.getByText('Kafé Magasinet')).toBeInTheDocument();
-    expect(screen.getByTestId('venue-card')).toHaveTextContent('Sol 13:00-18:30');
-    expect(screen.getByTestId('venue-card')).toHaveTextContent('Säkerhet: 92%');
-    expect(screen.getByTestId('venue-card')).toHaveTextContent('Avstånd: 180 m');
+    // No duplicated "Säkerhet: 92% Säkerhet 92%" sr-only repeat remains in the card body.
+    expect(screen.getByTestId('venue-card')).not.toHaveTextContent('Säkerhet: 92%');
+    // The kept visible signals still render.
     expect(screen.getByTestId('venue-card')).toHaveTextContent('92% sol');
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('92%');
 
     fireEvent.click(screen.getByRole('button', { name: /Välj Kafé Magasinet/ }));
     expect(onSelect).toHaveBeenCalledTimes(1);
@@ -138,11 +117,14 @@ describe('<VenueCard />', () => {
       />,
     );
 
-    expect(screen.getByTestId('venue-card')).toHaveTextContent('Säkerhet: ~80%');
-    expect(screen.getByTestId('venue-card')).toHaveTextContent('Säkerhet cirka 80%');
+    // Story 9.1: the approximate value renders as the visible "~80%" chip; the
+    // duplicated "Säkerhet:" sr-only repeat is gone (the accessible value lives
+    // once in the button aria-label, which here is the plain 'Välj Bellora').
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('~80%');
+    expect(screen.getByTestId('venue-card')).not.toHaveTextContent('Säkerhet:');
   });
 
-  it('renders visible and accessible uncertainty copy when metadata is present', () => {
+  it('does not surface prediction-uncertainty copy on the card (Story 9.1 de-bloat)', () => {
     render(
       <VenueCard
         name="Café Halvvägs"
@@ -154,14 +136,10 @@ describe('<VenueCard />', () => {
         }}
         distanceMeters={100}
         sunExposurePercent={65}
-        predictionUncertainty={{
-          level: 'medium',
-          reasons: ['building_shadow_coverage'],
-        }}
         thumbnail={{ alt: 'Uteservering', initials: 'CH' }}
         isSunny
         labels={{
-          select: 'Välj Café Halvvägs',
+          select: 'Välj Café Halvvägs, Sol 15:10-17:20, Säkerhet 70%, Avstånd 100 m',
           favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
@@ -170,16 +148,102 @@ describe('<VenueCard />', () => {
           confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
-          uncertainty: uncertaintyLabels,
         }}
         onSelect={vi.fn()}
       />,
     );
 
-    expect(screen.getByTestId('venue-card')).toHaveTextContent('Osäker prognos');
-    expect(screen.getByTestId('venue-card')).toHaveTextContent('Byggnadsskuggor mer osäkra');
-    expect(screen.getByRole('button', { name: /Byggnadsskuggorna är beräknade/ }))
-      .toBeInTheDocument();
+    const card = screen.getByTestId('venue-card');
+    expect(card).not.toHaveTextContent('Osäker prognos');
+    expect(card).not.toHaveTextContent('Byggnadsskuggor mer osäkra');
+    expect(
+      screen.queryByText(/Byggnadsskuggorna är beräknade/),
+    ).not.toBeInTheDocument();
+    // Confidence still appears exactly once, in the accessible name.
+    const selectButton = screen.getByRole('button', { name: /Välj Café Halvvägs/ });
+    expect(selectButton.getAttribute('aria-label')?.match(/Säkerhet/g)).toHaveLength(1);
+  });
+
+  it('does not surface prediction-uncertainty copy in compact mode either (Story 9.1 de-bloat)', () => {
+    render(
+      <VenueCard
+        name="Café Halvvägs"
+        sunTimeRange="Sol 15:10-17:20"
+        confidencePercent={70}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        distanceMeters={100}
+        sunExposurePercent={65}
+        thumbnail={{ alt: 'Uteservering', initials: 'CH' }}
+        isSunny
+        compact
+        labels={{
+          select: 'Välj Café Halvvägs, Sol 15:10-17:20, Säkerhet 70%, Avstånd 100 m',
+          favourite: 'Spara {name}',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    const card = screen.getByTestId('venue-card');
+    expect(card).not.toHaveTextContent('Osäker prognos');
+    expect(card).not.toHaveTextContent('Byggnadsskuggor mer osäkra');
+    expect(screen.queryByText(/Byggnadsskuggorna är beräknade/)).not.toBeInTheDocument();
+    // Confidence still appears exactly once, in the accessible name.
+    const selectButton = screen.getByRole('button', { name: /Välj Café Halvvägs/ });
+    expect(selectButton.getAttribute('aria-label')?.match(/Säkerhet/g)).toHaveLength(1);
+  });
+
+  it('leaves no orphaned trailing separator when the visible confidence chip is suppressed (Story 9.1 AC #2)', () => {
+    render(
+      <VenueCard
+        name="Bellora"
+        sunTimeRange="Sol 13:00-18:30"
+        confidencePercent={80}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        distanceMeters={180}
+        sunExposurePercent={76}
+        thumbnail={{ alt: 'Uteservering', initials: 'BE' }}
+        isSunny
+        showVisibleConfidence={false}
+        labels={{
+          select: 'Välj Bellora',
+          favourite: 'Spara {name}',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    // With the confidence chip hidden, the meta row keeps the kept sun signal
+    // and must not end on a dangling middot. Target the VISIBLE "76% sol"
+    // exposure chip specifically — the card also carries an sr-only sun-window
+    // node ("Sol HH:MM–HH:MM") that likewise contains "sol", so a bare
+    // getByText('sol') is now ambiguous.
+    const metaRow = screen.getByText('76% sol', { exact: false }).closest('span');
+    const normalized = metaRow?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    expect(normalized).toContain('76% sol');
+    expect(normalized.endsWith('·')).toBe(false);
+    // The hidden chip is not rendered as visible text.
+    expect(screen.getByTestId('venue-card')).not.toHaveTextContent('80%');
   });
 
   it('renders the venue thumbnail URL when one is available', () => {

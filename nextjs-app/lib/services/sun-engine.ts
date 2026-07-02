@@ -20,6 +20,15 @@
 import { fromZonedTime } from 'date-fns-tz';
 import { toVenueData, type StoredVenue } from '@/lib/services/venue-store';
 import type { VenuePlannerSelection } from '@/lib/services/venue-planner';
+import {
+  buildingsCacheKey,
+  getBuildingsCache,
+  getOrComputeConditional,
+  getOrFetchNonNull,
+  getSunComputeCache,
+  sunComputeCacheKey,
+} from '@/lib/services/sun-engine-cache';
+import type { Building } from '@/lib/solar/types';
 import type {
   PredictionUncertaintyDto,
   PredictionUncertaintyLevel,
@@ -48,13 +57,19 @@ const STOCKHOLM_TIME_ZONE = 'Europe/Stockholm';
  */
 export const VENUE_FOOTPRINT_FALLBACK_SIZE_M = 10;
 
-// Same-day sun-window scan (one RPC per venue via the timeline's single buildings
-// fetch). Coarse for MVP compute-on-request cost (DECISION D); a precompute
-// pipeline is the flagged follow-up if measured list latency exceeds posture.
-// Bounds cover the full civil day at Gothenburg's latitude — at midsummer the
-// sun is up before 05:00 and after 22:00, so a narrower scan would clip the true
-// sunlit window. The single-RPC timeline makes the extra solar samples cheap.
-// [Story 8.3 review R1]
+// Same-day sun-window scan. Coarse for MVP compute-on-request cost (DECISION D);
+// a precompute pipeline is the flagged follow-up if measured list latency exceeds
+// posture. Bounds cover the full civil day at Gothenburg's latitude — at midsummer
+// the sun is up before 05:00 and after 22:00, so a narrower scan would clip the
+// true sunlit window. [Story 8.3 review R1]
+//
+// STORY 9.3 (AC1): the building set is now fetched ONCE per venue per request
+// (via `fetchVenueBuildings`, cached on rounded centroid + radius) and shared by
+// BOTH the single-shot current-shadow computation AND this full-day timeline, so
+// a request issues ONE `get_buildings_near_point` RPC per venue rather than two.
+// The earlier "one RPC per venue via the timeline's single buildings fetch"
+// comment here was FALSE: the timeline reused one fetch across its ~41 samples,
+// but the single-shot call fetched independently, so two RPCs fired per venue.
 const SUN_WINDOW_SCAN_START = '03:00:00';
 const SUN_WINDOW_SCAN_END = '23:00:00';
 const SUN_WINDOW_SAMPLE_INTERVAL_MIN = 30;
@@ -225,7 +240,7 @@ export async function applyRealSunEngine(
   getForecastOverride?: GetForecast,
 ): Promise<SunEngineOutcome> {
   try {
-    return await computeRealSunEngine(venue, requestedAt, now, getForecastOverride);
+    return await computeRealSunEngineCached(venue, requestedAt, now, getForecastOverride);
   } catch (error) {
     console.error(
       `Sun engine failed for venue ${venue.id}; degrading to seed values:`,
@@ -233,6 +248,71 @@ export async function applyRealSunEngine(
     );
     return safeSeedOutcome(venue);
   }
+}
+
+/**
+ * STORY 9.3 (AC2/Task 3): cache the computed {@link SunEngineOutcome} per
+ * `(venue id, 15-min time bucket, Stockholm day)`. A repeat request in the same
+ * bucket — the common case on the live app, where the slider snaps to 15-min steps
+ * and the list + detail routes recompute on every load — is served from the cache
+ * instead of re-running the engine (and its building RPC + ~41 shadow projections).
+ * A new wall-clock bucket recomputes, so worst-case sun staleness is one bucket
+ * (15 min). The cache lives HERE, inside the shared engine seam, so BOTH
+ * `/api/venues` (list) and `/api/venues/[slug]` (detail/"Mer info") inherit it
+ * without duplicating cache logic (AC2 is explicit that detail benefits equally).
+ *
+ * ONLY successful computes are cached; a throw propagates to {@link applyRealSunEngine}'s
+ * safe-seed catch and is NEVER pinned. The cached outcome carries its own honest
+ * `weatherUpdatedAt` (the weather slice was cached WITH it), so the freshness signal
+ * stays truthful for future-planner buckets. [Story 9.3 Task 3]
+ *
+ * NOTE: a per-request `getForecastOverride` (the list route's deduped fetcher) is
+ * NOT part of the key — it only affects WHICH upstream call coalesces, never the
+ * computed value for a given (venue, time bucket, day), so caching on the value is
+ * correct.
+ *
+ * NOTE: `now` (the wall-clock fetch instant) is also intentionally NOT part of the
+ * key. Its only effect on the outcome is the `'weather'` uncertainty flag in
+ * `isWeatherUncertain`, which trips once a CURRENT (non-forecast) weather slice's
+ * valid-time is > `STALE_WEATHER_AGE_MS` (2 h) before `now`. Within one 15-min
+ * `requestedAt` bucket `now` drifts ≤ 15 min and the cache entry's TTL is also
+ * 15 min, so that 2 h threshold cannot flip from `now`-drift alone inside a live
+ * cached bucket — the staleness is bounded by the documented 15-min window, so
+ * folding `now` into the key would only churn the cache without changing any
+ * served value. [Story 9.3 review R1]
+ *
+ * The cache "variant" suffix folds in the inputs that change the computed sun
+ * output but are per-venue CONSTANTS in production (resolved-geometry centroid +
+ * seating/ground elevation). Keying on the venue id alone is already correct in
+ * production; the variant suffix just makes the cache defensively correct if two
+ * logical venues ever share an id with different geometry/elevation.
+ */
+async function computeRealSunEngineCached(
+  venue: StoredVenue,
+  requestedAt: Date,
+  now: Date,
+  getForecastOverride?: GetForecast,
+): Promise<SunEngineOutcome> {
+  const { cache, inFlight } = getSunComputeCache<SunEngineOutcome>();
+  const [centroidLng, centroidLat] = polygonCentroid(resolveVenueGeometry(venue));
+  const variantKey =
+    `${centroidLat.toFixed(5)},${centroidLng.toFixed(5)}` +
+    `:${venue.seatingElevationM ?? 0}:${venue.groundElevationM ?? ''}`;
+  const key = sunComputeCacheKey(
+    venue.id,
+    requestedAt,
+    stockholmDateKey(requestedAt),
+    variantKey,
+  );
+  return getOrComputeConditional(cache, inFlight, key, async () => {
+    const { outcome, cacheable } = await computeRealSunEngineResult(
+      venue,
+      requestedAt,
+      now,
+      getForecastOverride,
+    );
+    return { value: outcome, cacheable };
+  });
 }
 
 /**
@@ -248,20 +328,71 @@ export function safeSeedOutcome(venue: StoredVenue): SunEngineOutcome {
 }
 
 // ---------------------------------------------------------------------------
+// Buildings cache (Story 9.3 Task 2) — wraps the single shared building fetch
+// ---------------------------------------------------------------------------
+
+/**
+ * Centroid (lng, lat) of a polygon's outer ring — mirrors the engine-internal
+ * `getCentroid` in shadow-calculation-service so the buildings cache key matches
+ * the centroid the RPC is actually issued at. [Story 9.3 Task 2]
+ */
+function polygonCentroid(polygon: GeoJSON.Polygon): [number, number] {
+  const ring = polygon.coordinates[0];
+  const n = ring.length - 1;
+  if (n <= 0) return [0, 0];
+  let cx = 0;
+  let cy = 0;
+  for (let i = 0; i < n; i++) {
+    cx += ring[i][0];
+    cy += ring[i][1];
+  }
+  return [cx / n, cy / n];
+}
+
+/**
+ * Fetch the venue's shadow casters through the buildings cache (rounded centroid
+ * @4dp + radius-in-metres key, 24h TTL). Co-located venues that round to the same
+ * key share ONE RPC; a repeat request within the window is RPC-free. A `null` (RPC
+ * failure) is never cached as success — the next request retries. [Story 9.3 Task 2]
+ */
+async function fetchCachedVenueBuildings(
+  geometry: GeoJSON.Polygon,
+  fetchVenueBuildings: (geometry: GeoJSON.Polygon) => Promise<Building[] | null>,
+  searchRadiusDeg: number,
+): Promise<Building[] | null> {
+  const { cache, inFlight } = getBuildingsCache<Building[]>();
+  const [centroidLng, centroidLat] = polygonCentroid(geometry);
+  const key = buildingsCacheKey(centroidLng, centroidLat, searchRadiusDeg * 111300);
+  return getOrFetchNonNull(cache, inFlight, key, () => fetchVenueBuildings(geometry));
+}
+
+// ---------------------------------------------------------------------------
 // Real computation (lazy-loads the engine + weather — server-only)
 // ---------------------------------------------------------------------------
 
-async function computeRealSunEngine(
+/**
+ * The internal compute result plus whether it is safe to cache. A building-RPC
+ * failure (`buildings === null`) produces a DEGRADED data-unavailable outcome that
+ * must NOT be pinned in the per-bucket sun cache — otherwise a transient RPC
+ * failure would persist for the whole TTL window. Weather being merely absent
+ * (Met.no empty) is NOT degraded: the sun geometry computed fine, so that outcome
+ * is cacheable. [Story 9.3 Task 3 — "cache only successful results"]
+ */
+type ComputeResult = { outcome: SunEngineOutcome; cacheable: boolean };
+
+async function computeRealSunEngineResult(
   venue: StoredVenue,
   requestedAt: Date,
   now: Date,
   getForecastOverride?: GetForecast,
-): Promise<SunEngineOutcome> {
+): Promise<ComputeResult> {
   const {
-    calculateVenueShadowForGeometry,
-    calculateVenueShadowTimelineForGeometry,
+    calculateVenueShadowFromBuildings,
+    calculateVenueShadowTimelineFromBuildings,
+    fetchVenueBuildings,
     calculateConfidenceFactors,
     calculateDisplayConfidence,
+    SHADOW_SEARCH_RADIUS_DEG,
   } = await import('@/lib/solar');
   // On the list route the batch passes a deduped fetcher (one Met.no call per
   // rounded coordinate); the detail route / direct callers lazy-import the real
@@ -281,8 +412,21 @@ async function computeRealSunEngine(
   // the venue's ground via the absolute ground delta. [AC#1, AC#3]
   const venueGroundZ = venue.groundElevationM;
 
-  // Current shadow state at the requested instant (RPC #1).
-  const shadowInfo = await calculateVenueShadowForGeometry(geometry, requestedAt, {
+  // STORY 9.3 (AC1): fetch the shadow casters ONCE per venue per request and share
+  // them with BOTH the single-shot shadow AND the full-day timeline (previously two
+  // independent get_buildings_near_point RPCs fired per venue). The fetch is wrapped
+  // in the buildings cache (rounded centroid @4dp + radius, 24h TTL) so co-located
+  // venues collapse to one RPC and a repeat request within the window is RPC-free.
+  // A `null` (RPC failure) is NOT cached as success and is fed to both calculations,
+  // reproducing the pre-9.3 data-unavailable behaviour exactly.
+  const buildings = await fetchCachedVenueBuildings(
+    geometry,
+    fetchVenueBuildings,
+    SHADOW_SEARCH_RADIUS_DEG,
+  );
+
+  // Current shadow state at the requested instant (uses the shared building set).
+  const shadowInfo = calculateVenueShadowFromBuildings(geometry, requestedAt, buildings, {
     seatingElevationM,
     venueGroundZ,
   });
@@ -314,13 +458,18 @@ async function computeRealSunEngine(
     now,
   );
 
-  // Same-day sun-window scan (RPC #2 — one buildings fetch reused internally).
+  // Same-day sun-window scan. STORY 9.3 (AC1): reuses the SAME shared building set
+  // fetched above (no second RPC). The pure `*FromBuildings` timeline samples each
+  // 30-min step against the shared casters; a `null` set degrades every in-sun
+  // sample to data-unavailable exactly as before, and the per-sample try/catch
+  // neutral-50/50 fallback is unchanged.
   const { start: scanStart, end: scanEnd } = sameDayScanRange(requestedAt);
-  const timeline = await calculateVenueShadowTimelineForGeometry(
+  const timeline = calculateVenueShadowTimelineFromBuildings(
     geometry,
     scanStart,
     scanEnd,
     SUN_WINDOW_SAMPLE_INTERVAL_MIN * 60_000,
+    buildings,
     { seatingElevationM, venueGroundZ },
   );
   const sunWindow = extractSunlitWindow(timeline.points);
@@ -335,7 +484,7 @@ async function computeRealSunEngine(
     ...(predictionUncertainty ? { predictionUncertainty } : {}),
   };
 
-  return {
+  const outcome: SunEngineOutcome = {
     venue: mergeSunFields(toVenueData(venue), fields),
     freshness: weather
       ? {
@@ -348,6 +497,11 @@ async function computeRealSunEngine(
       : { sunDataSource: SUN_DATA_SOURCE_GEOMETRY_ONLY },
     ...(peakTime ? { peakTime } : {}),
   };
+
+  // A failed building RPC (`buildings === null`) yields a degraded data-unavailable
+  // compute — do NOT cache it, so the next request retries the RPC rather than
+  // serving the transient failure for the whole 15-min window. [Story 9.3 Task 3]
+  return { outcome, cacheable: buildings !== null };
 }
 
 /** Resolve the engine geometry: real seating polygon, else point footprint. */

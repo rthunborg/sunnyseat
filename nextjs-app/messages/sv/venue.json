@@ -18,6 +18,7 @@
     "confidenceApproximate": "cirka",
     "confidenceUnavailable": "Säkerhet saknas",
     "distance": "Avstånd",
+    "distanceApproximate": "≈ från centrum",
     "loadingSun": "Laddar soldata",
     "sunUnavailable": "Soltid saknas",
     "sunWindow": "Sol {start}–{end}"
@@ -104,6 +105,7 @@
     "confidenceApproximate": "cirka",
     "confidenceUnavailable": "Säkerhet saknas",
     "distance": "Avstånd",
+    "distanceApproximate": "≈ från centrum",
     "sunUnavailable": "Soltid saknas",
     "statusMostlyShade": "MEST SKUGGA",
     "statusFullSun": "FULL SOL",
@@ -118,8 +120,6 @@
       "topPicks": "Toppval nära dig",
       "sortBySun": "Mest sol",
       "sortByDistance": "Närmast",
-      "categoryCafe": "Kafé",
-      "openNow": "Öppet nu",
       "unavailable": "Kommer senare"
     }
   },
@@ -134,6 +134,15 @@
     "favouriteAdd": "Spara som favorit",
     "favouriteRemove": "Ta bort favorit",
     "share": "Dela plats",
+    "shareModal": {
+      "title": "Dela {name}",
+      "subtitle": "Skicka platsen till en vän eller kopiera länken.",
+      "copyLink": "Kopiera länk",
+      "copied": "Kopierad",
+      "close": "Stäng",
+      "shareText": "Kolla in soltiden på {name}",
+      "target": "Dela till {target}"
+    },
     "photoPlaceholder": "Platshållarbild för platsen",
     "loading": "Laddar platsdetaljer",
     "detailsUnavailable": "Detaljer saknas",
@@ -143,7 +152,6 @@
     "backToMap": "Tillbaka till kartan",
     "openingHours": "Öppettider",
     "address": "Adress",
-    "shadowWarning": "Blir skuggigt om {minutes} min",
     "sunBadge": "{percent}% sol",
     "confidence": "Säkerhet",
     "confidenceApproximate": "cirka",
@@ -153,9 +161,7 @@
     "placeholderImageShort": "Platshållarbild",
     "facts": {
       "distance": "AVSTÅND",
-      "exposure": "EXPONERING",
-      "bestAt": "BÄST KL.",
-      "outdoorSeats": "PLATSER UTE"
+      "distanceApproximate": "≈ från centrum"
     },
     "timeline": {
       "ariaLabel": "Soltider idag",

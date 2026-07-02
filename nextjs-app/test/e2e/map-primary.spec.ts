@@ -642,7 +642,7 @@ test.describe('map-primary', () => {
     await expect(page).toHaveURL(/\/(\?.*)?$/); // map root; tolerate the forced dev `?_time=` query
   });
 
-  test('desktop: venue detail and planner bottom bar spans the map viewport under overlay panels', async ({
+  test('desktop: venue detail keeps the planner bar contained between the overlay panels', async ({
     page,
   }, testInfo) => {
     test.skip(
@@ -655,15 +655,32 @@ test.describe('map-primary', () => {
     const panel = page.getByTestId('desktop-venue-detail-panel');
     await expect(panel).toBeVisible();
     const planner = await expectFreePlannerChrome(page);
+    const listPanel = page.getByTestId('desktop-venue-list-panel');
+    await expect(listPanel).toBeVisible();
 
-    const panelBox = await panel.boundingBox();
-    const plannerBox = await planner.boundingBox();
-    expect(panelBox).not.toBeNull();
-    expect(plannerBox).not.toBeNull();
-    if (panelBox && plannerBox) {
-      expect(plannerBox.x).toBeLessThan(panelBox.x);
-      expect(plannerBox.x + plannerBox.width).toBeGreaterThan(panelBox.x + panelBox.width - 24);
-    }
+    // The desktop planner is a CONTAINED bar mirroring the Claude Design
+    // reference (MapView.tsx desktop TimeSliderPanel, landed with the settings
+    // modal in e371005): it clears the venue-list panel on the left and shrinks
+    // from the right to clear the 390px detail panel while it is open — it no
+    // longer spans the full map viewport under the overlay panels, which is
+    // what this test asserted before it was updated. The panel slides in with a
+    // 200ms right-edge transition, so poll until the boxes settle.
+    await expect(async () => {
+      const panelBox = await panel.boundingBox();
+      const plannerBox = await planner.boundingBox();
+      const listBox = await listPanel.boundingBox();
+      expect(panelBox).not.toBeNull();
+      expect(plannerBox).not.toBeNull();
+      expect(listBox).not.toBeNull();
+      if (panelBox && plannerBox && listBox) {
+        // Clears the venue list on the left …
+        expect(plannerBox.x).toBeGreaterThanOrEqual(listBox.x + listBox.width);
+        // … stops before the open detail panel on the right …
+        expect(plannerBox.x + plannerBox.width).toBeLessThanOrEqual(panelBox.x + 1);
+        // … and is still a substantial bar between them, not a collapsed sliver.
+        expect(plannerBox.width).toBeGreaterThan(300);
+      }
+    }).toPass({ timeout: 5_000 });
   });
 
   test('desktop: venue list renders as a 340px overlay panel above the full map', async ({

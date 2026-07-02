@@ -59,6 +59,7 @@ describe('useSubmitReview', () => {
           confidence: 90,
           distanceMeters: 100,
           sunExposurePercent: 95,
+          tags: [],
           reviewSummary: { averageRating: null, reviewCount: 0 },
           description: 'Detalj',
           address: 'Testgatan 1',

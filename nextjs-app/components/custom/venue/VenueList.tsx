@@ -6,7 +6,6 @@ import { VenueCard, VenueCardSkeleton } from '@/components/composed/venue/VenueC
 import type { VenueListSortMode } from '@/components/composed/venue/VenueListControls';
 import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
 import { getConfidenceDisplayState } from '@/lib/utils/confidence-display';
-import type { PredictionUncertaintyDisplayLabels } from '@/lib/utils/prediction-uncertainty-display';
 import { getVenueVisualMetadata } from '@/lib/utils/venue-visual-metadata';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +21,14 @@ export type VenueListProps = {
   compactCards?: boolean;
   confidenceMeta?: SunFreshnessMeta;
   showVisibleConfidence?: boolean;
+  /**
+   * Story 9.5 AC3: when the origin is the Gothenburg-centrum fallback (no real
+   * personal fix), the distances are centrum-relative, not from the user. The
+   * card then annotates each distance "≈ från centrum" so the number is honest
+   * rather than implying a true personal distance. The real value is never
+   * hidden — only the label changes.
+   */
+  locationIsApproximate?: boolean;
   onFavouriteToggle?: (venue: VenueDataDto) => void;
   isFavourite?: (id: string) => boolean;
 };
@@ -36,11 +43,11 @@ export function VenueList({
   compactCards,
   confidenceMeta,
   showVisibleConfidence = true,
+  locationIsApproximate = false,
   onFavouriteToggle,
   isFavourite,
 }: VenueListProps) {
   const t = useTranslations('venue.list');
-  const tVenue = useTranslations('venue');
   const locale = useLocale();
   const sortedVenues = useMemo(() => sortVenuesForList(venues, sortMode), [venues, sortMode]);
   const compact = compactCards ?? mode === 'desktop';
@@ -90,8 +97,8 @@ export function VenueList({
             confidencePercent={venue.confidence}
             confidenceMeta={confidenceMeta}
             distanceMeters={venue.distanceMeters}
+            distanceIsApproximate={locationIsApproximate}
             sunExposurePercent={venue.sunExposurePercent}
-            predictionUncertainty={venue.predictionUncertainty}
             thumbnail={venue.thumbnail}
             isSunny={isVenueSunnyForList(venue)}
             visualMetadata={getVenueVisualMetadata(venue, locale)}
@@ -115,11 +122,11 @@ export function VenueList({
               confidenceApproximate: t('confidenceApproximate'),
               confidenceUnavailable: t('confidenceUnavailable'),
               distance: t('distance'),
+              distanceApproximate: t('distanceApproximate'),
               sunUnavailable: t('sunUnavailable'),
               statusMostlyShade: t('statusMostlyShade'),
               statusFullSun: t('statusFullSun'),
               statusPartialSun: t('statusPartialSun'),
-              uncertainty: predictionUncertaintyLabels(tVenue),
             }}
             isFavourite={isFavourite?.(venue.id) ?? false}
             onFavouriteToggle={onFavouriteToggle ? () => onFavouriteToggle(venue) : undefined}
@@ -129,40 +136,6 @@ export function VenueList({
       })}
     </div>
   );
-}
-
-function predictionUncertaintyLabels(
-  t: ReturnType<typeof useTranslations<'venue'>>,
-): PredictionUncertaintyDisplayLabels {
-  return {
-    description: t('uncertainty.description'),
-    accessible: t('uncertainty.accessible', {
-      label: '{label}',
-      description: '{description}',
-    }),
-    levels: {
-      low: t('uncertainty.levels.low'),
-      medium: t('uncertainty.levels.medium'),
-      high: t('uncertainty.levels.high'),
-    },
-    short: {
-      building_shadow_coverage: t('uncertainty.short.building_shadow_coverage'),
-      obstruction: t('uncertainty.short.obstruction'),
-      weather: t('uncertainty.short.weather'),
-      other: t('uncertainty.short.other'),
-    },
-    reasons: {
-      building_shadow_coverage: t('uncertainty.reasons.building_shadow_coverage'),
-      vegetation: t('uncertainty.reasons.vegetation'),
-      awning: t('uncertainty.reasons.awning'),
-      umbrella: t('uncertainty.reasons.umbrella'),
-      bridge: t('uncertainty.reasons.bridge'),
-      temporary_structure: t('uncertainty.reasons.temporary_structure'),
-      seasonal_furniture: t('uncertainty.reasons.seasonal_furniture'),
-      weather: t('uncertainty.reasons.weather'),
-      other: t('uncertainty.reasons.other'),
-    },
-  };
 }
 
 export function sortVenuesForSunList(venues: VenueDataDto[]): VenueDataDto[] {

@@ -34,6 +34,13 @@ beforeEach(() => {
     writable: true,
     value: new MemoryStorage(),
   });
+  // jsdom does not implement `Element.prototype.scrollIntoView`; cmdk
+  // (the venue-search combobox) calls it on keyboard navigation / when a
+  // second option is present. Install a no-op so combobox tests don't throw
+  // `scrollIntoView is not a function`.
+  if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = function scrollIntoView(): void {};
+  }
   if (!('ResizeObserver' in window)) {
     class TestResizeObserver implements ResizeObserver {
       observe(): void {}

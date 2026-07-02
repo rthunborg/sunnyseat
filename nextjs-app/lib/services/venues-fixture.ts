@@ -48,6 +48,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 92,
     distanceMeters: 0,
     sunExposurePercent: 95,
+    tags: ['Innergård', 'Hund ok', 'Wifi', 'Bakverk'],
     sunWindow: { start: '13:00', end: '18:30' },
     thumbnail: {
       alt: 'Uteservering hos Kafé Magasinet',
@@ -69,6 +70,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 88,
     distanceMeters: 0,
     sunExposurePercent: 89,
+    tags: ['Morgonsol', 'Take-away', 'Surdeg'],
     sunWindow: { start: '12:45', end: '18:15' },
     thumbnail: {
       alt: 'Uteservering hos Bryggerietsoltak',
@@ -90,6 +92,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 78,
     distanceMeters: 0,
     sunExposurePercent: 82,
+    tags: ['Kanal', 'Skaldjur'],
     sunWindow: { start: '14:00', end: '17:45' },
     thumbnail: {
       alt: 'Uteservering på Solplats Magasinsgatan',
@@ -111,6 +114,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 70,
     distanceMeters: 0,
     sunExposurePercent: 65,
+    tags: ['Parasoller', 'Specialkaffe'],
     predictionUncertainty: {
       level: 'medium',
       reasons: ['building_shadow_coverage'],
@@ -136,6 +140,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 66,
     distanceMeters: 0,
     sunExposurePercent: 58,
+    tags: ['Innergård', 'Hund ok'],
     predictionUncertainty: {
       level: 'medium',
       reasons: ['vegetation', 'awning', 'seasonal_furniture'],
@@ -161,6 +166,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 80,
     distanceMeters: 0,
     sunExposurePercent: 22,
+    tags: ['Svalt', 'Lunch'],
     sunWindow: { start: '16:10', end: '16:45' },
     thumbnail: {
       alt: 'Uteservering hos Skuggans Hus',
@@ -182,6 +188,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 75,
     distanceMeters: 0,
     sunExposurePercent: 14,
+    tags: ['Bakgård', 'Kväll'],
     sunWindow: { start: '11:30', end: '12:20' },
     thumbnail: {
       alt: 'Uteservering hos Bistro Bakgården',

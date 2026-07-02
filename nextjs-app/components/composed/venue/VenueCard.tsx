@@ -16,11 +16,7 @@ import {
   getConfidenceDisplayState,
   type ConfidenceDisplayLabels,
 } from '@/lib/utils/confidence-display';
-import {
-  getPredictionUncertaintyDisplay,
-  type PredictionUncertaintyDisplayLabels,
-} from '@/lib/utils/prediction-uncertainty-display';
-import type { PredictionUncertaintyDto, SunFreshnessMeta } from '@/lib/types/api';
+import type { SunFreshnessMeta } from '@/lib/types/api';
 import { cn } from '@/lib/utils';
 
 export type VenueCardLabels = {
@@ -34,11 +30,13 @@ export type VenueCardLabels = {
   confidenceApproximate: string;
   confidenceUnavailable: string;
   distance: string;
+  /** Story 9.5 AC3: honest "≈ från centrum" annotation shown alongside the
+   * distance when the origin is the Gothenburg-centrum fallback. */
+  distanceApproximate?: string;
   sunUnavailable: string;
   statusMostlyShade?: string;
   statusFullSun?: string;
   statusPartialSun?: string;
-  uncertainty?: PredictionUncertaintyDisplayLabels;
 };
 
 export type VenueCardProps = {
@@ -48,8 +46,10 @@ export type VenueCardProps = {
   confidencePercent?: number;
   confidenceMeta?: SunFreshnessMeta;
   distanceMeters?: number;
+  /** Story 9.5 AC3: the distance is centrum-relative (Gothenburg fallback),
+   * not a real personal fix — annotate it honestly. */
+  distanceIsApproximate?: boolean;
   sunExposurePercent?: number;
-  predictionUncertainty?: PredictionUncertaintyDto;
   thumbnail?: {
     alt: string;
     initials: string;
@@ -76,8 +76,8 @@ export function VenueCard({
   confidencePercent,
   confidenceMeta,
   distanceMeters,
+  distanceIsApproximate = false,
   sunExposurePercent,
-  predictionUncertainty,
   thumbnail,
   isSunny,
   visualMetadata,
@@ -97,21 +97,26 @@ export function VenueCard({
     meta: confidenceMeta,
     labels: confidenceDisplayLabels(labels),
   });
-  const uncertaintyDisplay = labels.uncertainty
-    ? getPredictionUncertaintyDisplay({
-        predictionUncertainty,
-        labels: labels.uncertainty,
-      })
-    : null;
-  const selectLabel = uncertaintyDisplay
-    ? `${labels.select}, ${uncertaintyDisplay.accessibleText}`
-    : labels.select;
+  // Story 9.1 de-bloat: the button's accessible name (labels.select) already
+  // carries name + sun% + Säkerhet (once) + Avstånd, so we no longer append the
+  // prediction-uncertainty paragraph to it.
+  const selectLabel = labels.select;
   const statusLabel = !isSunny
     ? (labels.statusMostlyShade ?? 'MEST SKUGGA')
     : (sunExposurePercent ?? 0) >= 75
       ? (labels.statusFullSun ?? 'FULL SOL')
       : (labels.statusPartialSun ?? 'DELVIS SOL');
   const sunUnitLabel = labels.sun.toLocaleLowerCase();
+  // Story 9.5 AC3: honest centrum-relative annotation. Shown only on the
+  // Gothenburg-centrum fallback; the real distance number stays visible —
+  // only the label is qualified ("≈ från centrum").
+  // Gated on a finite distance: on the fallbackVenueFromSlug path distanceMeters
+  // is NaN (rendered as "–"), and qualifying a non-numeric placeholder with
+  // "≈ från centrum" is more confusing than the ambiguity AC3 set out to fix.
+  const approximateLabel =
+    distanceIsApproximate && labels.distanceApproximate && Number.isFinite(distanceMeters)
+      ? labels.distanceApproximate
+      : null;
 
   return (
     <article
@@ -154,6 +159,12 @@ export function VenueCard({
             <span className="mt-1 block truncate text-body-sm-medium text-text-body">
               {neighborhood ? `${neighborhood} · ` : ''}
               {distance}
+              {/* text-body, not text-muted: muted (60% alpha) is ≈3.18:1 on the
+                  white card and fails the axe AA contrast gate at label-xs size;
+                  the smaller size alone carries the de-emphasis. */}
+              {approximateLabel && (
+                <span className="ml-1 text-label-xs text-text-body">{approximateLabel}</span>
+              )}
             </span>
             <span className="mt-1 flex items-center gap-1 text-label-xs text-amber-dark">
               {isSunny ? (
@@ -163,22 +174,15 @@ export function VenueCard({
               )}
               <span>{statusLabel}</span>
             </span>
-            {uncertaintyDisplay && (
-              <span className="mt-1 block text-label-xs-medium text-text-body">
-                <span className="font-bold text-text-primary">
-                  {uncertaintyDisplay.visibleLabel}
-                </span>
-                <span className="text-text-faint"> · </span>
-                <span>{uncertaintyDisplay.visibleSummary}</span>
-                <span className="sr-only"> {uncertaintyDisplay.accessibleText}</span>
-              </span>
-            )}
           </>
         ) : (
           <>
             <span className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-1 text-body-sm-medium text-text-body">
               <Footprints aria-hidden="true" className="size-3.5 shrink-0 text-amber-dark" />
               <span>{distance}</span>
+              {approximateLabel && (
+                <span className="text-label-xs text-text-body">{approximateLabel}</span>
+              )}
               {visualMetadata && (
                 <>
                   <span className="text-text-faint">·</span>
@@ -188,39 +192,17 @@ export function VenueCard({
               )}
               <span className="text-text-faint">·</span>
               <span className="font-extrabold text-amber-dark">{sunPercent} {sunUnitLabel}</span>
-              {confidenceDisplay.visibleText && (
-                showVisibleConfidence ? (
-                  <>
-                    <span className="text-text-faint">·</span>
-                    <span className="font-extrabold text-label-xs text-amber-text">
-                      <span className="sr-only">
-                        {labels.confidence}: {confidenceDisplay.visibleText}{' '}
-                        {confidenceDisplay.accessibleText}
-                      </span>
-                      <span aria-hidden="true">{confidenceDisplay.visibleText}</span>
-                    </span>
-                  </>
-                ) : (
-                  <span className="sr-only">
-                    {labels.confidence}: {confidenceDisplay.visibleText}{' '}
-                    {confidenceDisplay.accessibleText}
+              {confidenceDisplay.visibleText && showVisibleConfidence && (
+                <>
+                  <span className="text-text-faint">·</span>
+                  <span
+                    aria-hidden="true"
+                    className="font-extrabold text-label-xs text-amber-text"
+                  >
+                    {confidenceDisplay.visibleText}
                   </span>
-                )
+                </>
               )}
-            </span>
-            {uncertaintyDisplay && (
-              <span className="mt-1 block text-label-xs-medium text-text-body">
-                <span className="font-bold text-text-primary">
-                  {uncertaintyDisplay.visibleLabel}
-                </span>
-                <span className="text-text-faint"> · </span>
-                <span>{uncertaintyDisplay.visibleSummary}</span>
-                <span className="sr-only"> {uncertaintyDisplay.accessibleText}</span>
-              </span>
-            )}{' '}
-            <span className="sr-only">
-              {sunTimeRange ?? labels.sunUnavailable}. {confidenceDisplay.accessibleText}.{' '}
-              {labels.distance}: {distance}.
             </span>
             {visualMetadata && (
               <span className="mt-2 flex flex-wrap gap-1">
@@ -234,6 +216,20 @@ export function VenueCard({
                 ))}
               </span>
             )}
+            {/* Sun window ("Sol HH:MM–HH:MM"): a genuinely-real signal (the sunny
+                hours) kept discoverable to screen readers. Story 9.1's de-bloat
+                removed the OLD sr-only block because it DUPLICATED the
+                confidence + distance already in the button's accessible name —
+                but that block also carried the sun window, which is not a
+                duplicate and is the core value the favourites view surfaces per
+                saved venue. Re-added on its own (sr-only, so the visible card
+                stays de-bloated per 9.1) in the NON-COMPACT variant only —
+                matching the pre-9.1 placement so the mobile `/favoriter` card
+                (bottom sheet at 'mid') exposes it while the always-compact
+                desktop-list-panel card does not (keeping a single DOM match). */}
+            <span className="sr-only" data-testid="venue-card-sun-window">
+              {sunTimeRange ?? labels.sunUnavailable}
+            </span>
           </>
         )}
       </span>

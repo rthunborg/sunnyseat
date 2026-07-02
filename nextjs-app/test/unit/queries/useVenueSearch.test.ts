@@ -25,6 +25,7 @@ const SAMPLE_VENUE: VenueDataDto = {
   confidence: 92,
   distanceMeters: 100,
   sunExposurePercent: 95,
+  tags: [],
   sunWindow: { start: '13:00', end: '18:30' },
 };
 
@@ -73,6 +74,7 @@ describe('useVenueSearch', () => {
     expect(result.current.data?.venues[0]).toMatchObject({
       confidence: 92,
       sunExposurePercent: 95,
+      tags: [],
     });
 
     const calledUrl = fetchSpy.mock.calls[0]?.[0] as string;
@@ -227,6 +229,7 @@ describe('useVenueSearch', () => {
           confidence: 92,
           distanceMeters: 100,
           sunExposurePercent: 95,
+          tags: [],
         },
       ],
       meta: { count: 1, radiusKm: 1.5 },
@@ -533,6 +536,92 @@ describe('useVenueSearch', () => {
     const options = query?.options as { refetchInterval?: unknown } | undefined;
 
     expect(options?.refetchInterval).toBe(false);
+  });
+
+  it('does NOT fire fetch while gated by enabled: false, then fires exactly once when enabled (AC2 geolocation gate)', async () => {
+    // Story 9.4 AC2: MapView gates the first venue fetch until geolocation
+    // settles. The hook combines the caller `enabled` flag with its internal
+    // `inputsValid` guard. While `enabled` is false (status idle/pending) no
+    // fetch fires; flipping it true (status success|fallback) fires once at
+    // the settled coords. `keepPreviousData` masks any later key change.
+    fetchSpy.mockResolvedValue(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+    function StableWrapper({ children }: { children: ReactNode }) {
+      return createElement(QueryClientProvider, { client }, children);
+    }
+
+    const { result, rerender } = renderHook(
+      ({ enabled }: { enabled: boolean }) =>
+        useVenueSearch({ lat: 57.7089, lng: 11.9746, radiusKm: 1.5, enabled }),
+      { wrapper: StableWrapper, initialProps: { enabled: false } },
+    );
+
+    // Gated: the query stays in fetchStatus 'idle' and fetch never fires.
+    await waitFor(() => expect(result.current.fetchStatus).toBe('idle'));
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    // Geolocation settled → enabled flips true → exactly one fetch fires.
+    rerender({ enabled: true });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('gated idle@fallback-coords then settled@GPS-coords fires EXACTLY ONE fetch, at the GPS bucket (AC2 double-fetch kill)', async () => {
+    // Story 9.4 AC2 — the actual double-fetch root cause: before the gate,
+    // the list query ran immediately at the GOTHENBURG_CENTRE fallback coords
+    // (status idle), then a real-GPS resolve flipped to a DIFFERENT bucketed
+    // key and fired a SECOND `/api/venues`. The `enabled: coordsSettled` gate
+    // suppresses the fallback-bucket fetch entirely, so only the settled GPS
+    // bucket fetches — exactly once. This complements the static-coords
+    // `enabled:false→true` case by changing BOTH the gate AND the coords in
+    // the same transition (the real-world shape the gate has to defuse).
+    fetchSpy.mockResolvedValue(
+      new Response(JSON.stringify(SAMPLE_RESPONSE), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+    function StableWrapper({ children }: { children: ReactNode }) {
+      return createElement(QueryClientProvider, { client }, children);
+    }
+
+    // GOTHENBURG_CENTRE fallback coords, gated off (status idle/pending).
+    const FALLBACK_COORDS = { lat: 57.7089, lng: 11.9746 };
+    // A real GPS fix lands in a DIFFERENT 4-dp bucket → a distinct query key.
+    const GPS_COORDS = { lat: 57.7012, lng: 11.9881 };
+
+    const { result, rerender } = renderHook(
+      ({ lat, lng, enabled }: { lat: number; lng: number; enabled: boolean }) =>
+        useVenueSearch({ lat, lng, radiusKm: 1.5, enabled }),
+      {
+        wrapper: StableWrapper,
+        initialProps: { ...FALLBACK_COORDS, enabled: false },
+      },
+    );
+
+    // Gated at the fallback coords: NO fetch fires (the suppressed first round-trip).
+    await waitFor(() => expect(result.current.fetchStatus).toBe('idle'));
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    // Geolocation settles to a real GPS fix in a new bucket → gate releases.
+    rerender({ ...GPS_COORDS, enabled: true });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    // Exactly ONE fetch total — the fallback-bucket round-trip never happened.
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    // And it went to the settled GPS bucket, not the fallback centrum coords.
+    const calledUrl = fetchSpy.mock.calls[0]?.[0] as string;
+    expect(calledUrl).toContain('lat=57.7012');
+    expect(calledUrl).toContain('lng=11.9881');
+    expect(calledUrl).not.toContain('lat=57.7089');
   });
 
   it('configures refetchOnWindowFocus: false (window focus does NOT trigger a refetch even when stale)', async () => {

@@ -8,6 +8,7 @@ import { TimeProvider } from '@/lib/contexts/TimeContext';
 import { FavouritesProvider } from '@/lib/contexts/FavouritesContext';
 import { GeolocationProvider } from '@/hooks/useGeolocation';
 import { SettingsProvider } from '@/lib/contexts/SettingsContext';
+import { TagFilterProvider } from '@/lib/contexts/TagFilterContext';
 import { SettingsModalRoot } from '@/components/custom/settings/SettingsModalRoot';
 
 /**
@@ -25,28 +26,58 @@ import { SettingsModalRoot } from '@/components/custom/settings/SettingsModalRoo
  * `QueryClientProvider` at the root outside the `[locale]` segment.
  *
  * Resolved provider tree:
- *   Query → Language → Geolocation → MapInstance → MapSelection → Time → children
+ *   Query → Language → Geolocation → TagFilter → MapInstance → MapSelection → Time → children
+ *
+ * `TagFilterProvider` (Story 9.7) is an order-independent sibling — it wraps the
+ * whole tree so BOTH the chip UI (the `DesktopNavBar` subtree, a `ResponsiveLayout`
+ * sibling of `children`) AND the venue surfaces (`MapView`, which is `children`)
+ * resolve the SAME provider instance. The chip row writes `toggleTag`; the venue
+ * list + pins read `activeTags`. The two live in separate subtrees joined only
+ * here, so this is the only mount point that reaches both (Dev Notes §"the split").
  */
 export function AppContextProviders({ children }: { children: ReactNode }) {
   return (
     <GeolocationProvider>
-      <MapInstanceProvider>
-        <MapSelectionProvider>
-          <SettingsProvider>
-            <Suspense fallback={<DefaultTimeProviders>{children}</DefaultTimeProviders>}>
-              <SearchParamTimeProviders>{children}</SearchParamTimeProviders>
-            </Suspense>
-            {/* One mount point for the settings + app-feedback modals, openable
-                from the desktop nav and the mobile map controls. */}
-            <SettingsModalRoot />
-          </SettingsProvider>
-        </MapSelectionProvider>
-      </MapInstanceProvider>
+      <TagFilterProvider>
+        <MapInstanceProvider>
+          <MapSelectionProvider>
+            <SettingsProvider>
+              <Suspense fallback={<DefaultTimeProviders>{children}</DefaultTimeProviders>}>
+                <SearchParamTimeProviders>{children}</SearchParamTimeProviders>
+              </Suspense>
+              {/* One mount point for the settings + app-feedback modals, openable
+                  from the desktop nav and the mobile map controls. */}
+              <SettingsModalRoot />
+            </SettingsProvider>
+          </MapSelectionProvider>
+        </MapInstanceProvider>
+      </TagFilterProvider>
     </GeolocationProvider>
   );
 }
 
+/**
+ * Reads `?_time=`/`?_date=` planner-forcing parameters from the URL — but only
+ * outside production. The literal `process.env.NODE_ENV === 'production'` check
+ * lets the Next.js bundler dead-code-eliminate the entire dev branch (and its
+ * `useSearchParams` call) from production bundles, so no production URL can pin
+ * the planner and disable the live clock. This mirrors the sibling `?_state=`
+ * gate in `lib/dev/use-forced-state.ts`; see `docs/dev/state-forcing.md`.
+ *
+ * The branch is on a build-time constant, so selecting a different child
+ * component per build does NOT violate the rules of hooks: in any given build
+ * exactly one branch is reachable. The production path renders
+ * `DefaultTimeProviders` (no `forcedDate`/`forcedTime`), which restores the
+ * live-clock interval and normal time/date selection in `TimeProvider`.
+ */
 function SearchParamTimeProviders({ children }: { children: ReactNode }) {
+  if (process.env.NODE_ENV === 'production') {
+    return <DefaultTimeProviders>{children}</DefaultTimeProviders>;
+  }
+  return <DevSearchParamTimeProviders>{children}</DevSearchParamTimeProviders>;
+}
+
+function DevSearchParamTimeProviders({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   const forcedDate = searchParams.get('_date') ?? undefined;
   const forcedTime = searchParams.get('_time') ?? undefined;

@@ -45,10 +45,17 @@ type VenueSearchParams = {
   q?: string;
   date?: string;
   time?: string;
+  enabled?: boolean;
 };
 
-const useGeolocationMock = vi.fn(() => ({
-  status: 'idle' as const,
+type GeolocationStatus = 'idle' | 'pending' | 'success' | 'fallback';
+const useGeolocationMock = vi.fn<() => {
+  status: GeolocationStatus;
+  coords: { lat: number; lng: number };
+  requestLocation: () => void;
+  useCentrum: () => void;
+}>(() => ({
+  status: 'success',
   coords: { lat: 57.7089, lng: 11.9746 },
   requestLocation: () => {},
   useCentrum: () => {},
@@ -137,6 +144,14 @@ function makeStubMap(opts: { tilesAlreadyLoaded?: boolean } = {}): StubMap {
 
 let stubMap: StubMap;
 let selectedVenueIdMock: string | null = null;
+// Story 9.7: the shared tag-filter selection. Empty by default (no-op → all
+// venues); mutate it per test (add tags) to assert list + pins filter
+// identically. Kept as a stable Set reference (cleared, never reassigned).
+const activeTagsMock = new Set<string>();
+function setActiveTags(...tags: string[]): void {
+  activeTagsMock.clear();
+  for (const tag of tags) activeTagsMock.add(tag);
+}
 let selectedVenuePreviewMock: GetVenuesResponse['venues'][number] | null = null;
 let searchParamsMock = new URLSearchParams();
 let pathnameMock = '/';
@@ -193,6 +208,15 @@ vi.mock('@/lib/contexts/MapSelectionContext', () => ({
   }),
 }));
 
+vi.mock('@/lib/contexts/TagFilterContext', () => ({
+  useTagFilter: () => ({
+    activeTags: activeTagsMock,
+    toggleTag: () => {},
+    clearTags: () => {},
+    isActive: (tag: string) => activeTagsMock.has(tag),
+  }),
+}));
+
 vi.mock('next/navigation', () => ({
   useSearchParams: () => searchParamsMock,
 }));
@@ -213,6 +237,24 @@ vi.mock('@/components/custom/map/MapControls', () => ({
 vi.mock('@/components/custom/map/VenuePinLayer', () => ({
   VenuePinLayer: ({ venues }: { venues: VenuePinData[] }) => (
     <div data-testid="venue-pin-layer-stub" data-venues={JSON.stringify(venues)} />
+  ),
+}));
+// Story 9.5 AC2: stub the user-location layer (it mounts a real MapLibre
+// Marker, which the stub map instance can't service) and surface its props so
+// the MapView-level gating assertion can verify status/coords are threaded.
+vi.mock('@/components/custom/map/UserLocationLayer', () => ({
+  UserLocationLayer: ({
+    status,
+    coords,
+  }: {
+    status: string;
+    coords: { lat: number; lng: number };
+  }) => (
+    <div
+      data-testid="user-location-layer-stub"
+      data-status={status}
+      data-coords={JSON.stringify(coords)}
+    />
   ),
 }));
 vi.mock('@/components/custom/map/MapLoadingFallback', () => ({
@@ -273,7 +315,29 @@ function EnglishWrapper({ children }: { children: ReactNode }) {
 }
 
 function expectVenueSearchCall(expected: VenueSearchParams) {
-  expect(useVenueSearchMock.mock.calls.map(([params]) => params)).toContainEqual(expected);
+  // Story 9.4 AC2: the live venue search is now gated on a settled
+  // geolocation status, so every call carries `enabled` (true under the
+  // default `success` mock). Callers assert the geo/planner shape; the gate
+  // flag is injected here so the existing call-shape expectations stay terse.
+  expect(useVenueSearchMock.mock.calls.map(([params]) => params)).toContainEqual({
+    enabled: true,
+    ...expected,
+  });
+}
+
+/**
+ * `useVenueSearch` is consumed by BOTH MapView (the gated list query) and the
+ * VenueSearchShell (the typed-query search, which is never coordinate-gated).
+ * The two are distinguishable by shape: only MapView passes `enabled`, and
+ * only the search shell passes a `q` key. This returns the most recent
+ * MapView (list) call so AC2/AC3 assertions don't accidentally read the
+ * search-shell call.
+ */
+function lastMapViewSearchCall(): VenueSearchParams | undefined {
+  const mapViewCalls = useVenueSearchMock.mock.calls
+    .map(([params]) => params)
+    .filter((params): params is VenueSearchParams => Boolean(params) && 'enabled' in params!);
+  return mapViewCalls[mapViewCalls.length - 1];
 }
 
 function waitMs(ms: number) {
@@ -285,13 +349,17 @@ describe('<MapView />', () => {
     stubMap = makeStubMap();
     selectedVenueIdMock = null;
     selectedVenuePreviewMock = null;
+    activeTagsMock.clear();
     searchParamsMock = new URLSearchParams();
     pathnameMock = '/';
     selectVenueMock.mockClear();
     routerPushMock.mockClear();
     routerReplaceMock.mockClear();
     useGeolocationMock.mockReset().mockReturnValue({
-      status: 'idle',
+      // Story 9.4 AC2: default to a settled status so the venue/favourites
+      // queries are enabled (mirrors the common returning-user-with-GPS case).
+      // The idle/pending gating is exercised explicitly in the AC2 suite.
+      status: 'success',
       coords: { lat: 57.7089, lng: 11.9746 },
       requestLocation: () => {},
       useCentrum: () => {},
@@ -473,6 +541,50 @@ describe('<MapView />', () => {
         stubMap.__error[0]?.({ error: { message: 'unrelated warning' } });
       });
       expect(screen.getByTestId('map-tile-paint-cover')).toBeInTheDocument();
+    });
+  });
+
+  describe('user-location dot gating (Story 9.5 AC2)', () => {
+    it('threads status + coords into the UserLocationLayer on a real GPS fix', () => {
+      useGeolocationMock.mockReturnValue({
+        status: 'success',
+        coords: { lat: 57.705, lng: 11.93 },
+        requestLocation: vi.fn(),
+        useCentrum: vi.fn(),
+      });
+      render(<MapView />, { wrapper: Wrapper });
+      const layer = screen.getByTestId('user-location-layer-stub');
+      // The layer itself owns the "draw the dot only on success" decision; the
+      // MapView contract is that it threads the live status + coords through.
+      expect(layer).toHaveAttribute('data-status', 'success');
+      expect(layer).toHaveAttribute(
+        'data-coords',
+        JSON.stringify({ lat: 57.705, lng: 11.93 }),
+      );
+    });
+
+    it('threads the fallback status through so the layer suppresses the dot', () => {
+      useGeolocationMock.mockReturnValue({
+        status: 'fallback',
+        coords: { lat: 57.7089, lng: 11.9746 },
+        requestLocation: vi.fn(),
+        useCentrum: vi.fn(),
+      });
+      render(<MapView />, { wrapper: Wrapper });
+      expect(screen.getByTestId('user-location-layer-stub')).toHaveAttribute(
+        'data-status',
+        'fallback',
+      );
+    });
+
+    it('does not mount the user-location layer in the offline shell', () => {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
+      try {
+        render(<MapView />, { wrapper: Wrapper });
+        expect(screen.queryByTestId('user-location-layer-stub')).toBeNull();
+      } finally {
+        Object.defineProperty(navigator, 'onLine', { configurable: true, value: true });
+      }
     });
   });
 
@@ -761,6 +873,7 @@ describe('<MapView />', () => {
               confidence: 92,
               distanceMeters: 420,
               sunExposurePercent: 95,
+              tags: [],
               sunWindow: { start: '13:00', end: '18:30' },
               thumbnail: {
                 alt: 'Uteservering hos Testbaren',
@@ -787,6 +900,270 @@ describe('<MapView />', () => {
 
       rerender(<MapView />);
       expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
+    });
+
+    it('does NOT project a selected venue with a null/non-finite location (Story 9.10 Task 3 — MapLibre null-coord warning guard)', () => {
+      // Repro of the live 3× MapLibre "Expected value to be of type number, but
+      // found null" warning (epics.md:2359): the `?venue=<slug>` deep-link (and
+      // a favourite row) can select a venue whose `location` is null despite the
+      // non-null `CoordinatesDto` type. The QuickInfo-position effect must skip
+      // `mapInstance.project([...])` entirely for such a venue rather than feed
+      // it a null coordinate — the same finiteness contract the sibling `easeTo`
+      // already honours via `hasValidVenueLocation`.
+      selectedVenueIdMock = 'venue-null';
+      useVenueSearchMock.mockReturnValue({
+        data: {
+          venues: [
+            {
+              id: 'venue-null',
+              venueId: 'venue-null',
+              venueName: 'Ortlös Bar',
+              venueSlug: 'ortlos-bar',
+              slug: 'ortlos-bar',
+              neighborhood: 'Centrum',
+              // Real data can deliver a null location; the DTO types it non-null.
+              location: null as unknown as { lat: number; lng: number },
+              currentSunStatus: 'Sunny',
+              isPartner: false,
+              confidence: 90,
+              distanceMeters: 300,
+              sunExposurePercent: 88,
+              tags: [],
+              sunWindow: { start: '13:00', end: '18:30' },
+            },
+          ],
+          meta: { count: 1, radiusKm: 1.5 },
+          timestamp: 'now',
+          totalCount: 1,
+        },
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      // The position effect ran but must have bailed BEFORE calling project():
+      // a null coordinate would otherwise reach MapLibre and warn.
+      expect(stubMap.project).not.toHaveBeenCalled();
+    });
+
+    it('does NOT project a selected venue whose lat/lng are non-finite (null coords on a present location object)', () => {
+      // The live warning ("type number, found null", epics.md:2359) fires when
+      // `location` EXISTS but its lat/lng are null — `project([null, null])`
+      // warns rather than throws. `hasValidVenueLocation` (`Number.isFinite`)
+      // must reject this shape too, not only a wholly-null `location`.
+      selectedVenueIdMock = 'venue-nan';
+      useVenueSearchMock.mockReturnValue({
+        data: {
+          venues: [
+            {
+              id: 'venue-nan',
+              venueId: 'venue-nan',
+              venueName: 'Nollö Bar',
+              venueSlug: 'nollo-bar',
+              slug: 'nollo-bar',
+              neighborhood: 'Centrum',
+              location: {
+                lat: null as unknown as number,
+                lng: null as unknown as number,
+              },
+              currentSunStatus: 'Sunny',
+              isPartner: false,
+              confidence: 90,
+              distanceMeters: 300,
+              sunExposurePercent: 88,
+              tags: [],
+              sunWindow: { start: '13:00', end: '18:30' },
+            },
+          ],
+          meta: { count: 1, radiusKm: 1.5 },
+          timestamp: 'now',
+          totalCount: 1,
+        },
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(stubMap.project).not.toHaveBeenCalled();
+    });
+
+    it('projects a selected venue with a finite location (positive control for the null-coord guard)', () => {
+      // Complements the guard test above: a well-formed selected venue MUST
+      // still project (proving the guard is a null-coord filter, not a blanket
+      // "never project" regression).
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Testbaren', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(stubMap.project).toHaveBeenCalled();
+    });
+
+    it('does NOT register move/zoom position listeners for a null-coord selected venue (Story 9.10 Task 3 — no re-projection on pan/zoom)', () => {
+      // The live warning was observed 3× (epics.md:2359) because the QuickInfo
+      // position effect re-runs `updatePosition` on EVERY `move`/`zoom` event.
+      // The guard's load-bearing value is not only skipping the initial
+      // `project()` (asserted above) but bailing BEFORE the `mapInstance.on('move'
+      // /'zoom', ...)` registrations — so a subsequent pan/zoom can never re-feed
+      // a null coord to MapLibre. A refactor that instead bailed INSIDE
+      // `updatePosition` would still pass the initial-project assertions yet
+      // silently re-introduce the per-event re-fire; this test closes that gap.
+      // `move`/`zoom` are ONLY ever registered by this effect (MapView.tsx:677-678),
+      // so their absence in `stubMap.on` proves the listeners were never attached.
+      selectedVenueIdMock = 'venue-null';
+      useVenueSearchMock.mockReturnValue({
+        data: {
+          venues: [
+            {
+              id: 'venue-null',
+              venueId: 'venue-null',
+              venueName: 'Ortlös Bar',
+              venueSlug: 'ortlos-bar',
+              slug: 'ortlos-bar',
+              neighborhood: 'Centrum',
+              location: null as unknown as { lat: number; lng: number },
+              currentSunStatus: 'Sunny',
+              isPartner: false,
+              confidence: 90,
+              distanceMeters: 300,
+              sunExposurePercent: 88,
+              tags: [],
+              sunWindow: { start: '13:00', end: '18:30' },
+            },
+          ],
+          meta: { count: 1, radiusKm: 1.5 },
+          timestamp: 'now',
+          totalCount: 1,
+        },
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const listenerEvents = stubMap.on.mock.calls.map((call) => call[0]);
+      expect(listenerEvents).not.toContain('move');
+      expect(listenerEvents).not.toContain('zoom');
+    });
+
+    it('registers move/zoom position listeners for a finite-coord selected venue (positive control for the re-projection guard)', () => {
+      // Symmetric positive control: a well-formed venue MUST attach the
+      // `move`/`zoom` listeners so the card keeps tracking the pin during a
+      // pan/zoom — proving the guard above suppresses listeners ONLY for the
+      // null-coord case, not for every selection.
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Testbaren', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const listenerEvents = stubMap.on.mock.calls.map((call) => call[0]);
+      expect(listenerEvents).toContain('move');
+      expect(listenerEvents).toContain('zoom');
+    });
+
+    it('clamps the mobile QuickInfo card below the planner panel (Story 9.9 AC3)', () => {
+      // A pin projected near the TOP of the viewport (project → y=260) would,
+      // unclamped, anchor the card ABOVE the pin and collide with the mobile
+      // "Planera soltid" TimeSliderPanel (safe-area + 72px offset + panel
+      // height). The mobile `minY` clamp must push the card's `top` down so its
+      // rendered top edge (`top - cardHeight - 40`) sits clear of the planner.
+      //
+      // Derived floor (must stay in sync with MapView's mobile constants):
+      //   plannerBottom = SAFE_AREA(59) + PLANNER_OFFSET(72) + PLANNER_HEIGHT(80) = 211
+      //   minY = plannerBottom + gutter(16) + cardHeight(170) + anchorGap(40) = 437
+      const EXPECTED_MOBILE_MIN_Y = 437;
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Testbaren', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const mobileCard = screen
+        .getAllByTestId('venue-quick-info')
+        .find((el) => el.className.includes('w-[var(--size-quick-info-mobile-w)]'));
+      expect(mobileCard).toBeDefined();
+      const top = Number.parseFloat(
+        (mobileCard as HTMLElement).style.top.replace('px', ''),
+      );
+      // The projected pin (y=260) is above the floor, so the card clamps down to
+      // exactly the planner-clearing minimum.
+      expect(top).toBe(EXPECTED_MOBILE_MIN_Y);
+      // Card top edge = top - cardHeight(170) - anchorGap(40) must clear the
+      // planner bottom (211) by at least a gutter (16).
+      expect(top - 170 - 40).toBeGreaterThanOrEqual(211 + 16);
+    });
+
+    it('threads the honest approximate-distance label into the mobile QuickInfo on the centrum fallback (Story 9.9 Task 3)', () => {
+      selectedVenueIdMock = 'venue-1';
+      useGeolocationMock.mockReturnValue({
+        status: 'fallback',
+        coords: { lat: 57.7089, lng: 11.9746 },
+        requestLocation: () => {},
+        useCentrum: () => {},
+      });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Testbaren', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      // Both mobile + desktop cards render the annotation on the fallback.
+      expect(screen.getAllByText('≈ från centrum').length).toBeGreaterThanOrEqual(1);
+      // The real distance value is still present, never hidden.
+      expect(screen.getAllByTestId('venue-quick-info')[0]).toHaveTextContent('180 m');
+    });
+
+    it('omits the approximate-distance label on a real GPS fix (Story 9.9 Task 3)', () => {
+      selectedVenueIdMock = 'venue-1';
+      useGeolocationMock.mockReturnValue({
+        status: 'success',
+        coords: { lat: 57.7089, lng: 11.9746 },
+        requestLocation: () => {},
+        useCentrum: () => {},
+      });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Testbaren', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.queryByText('≈ från centrum')).toBeNull();
+      expect(screen.getAllByTestId('venue-quick-info')[0]).toHaveTextContent('180 m');
     });
 
     it('keeps selected QuickInfo data visible during background venue refetch', () => {
@@ -997,6 +1374,30 @@ describe('<MapView />', () => {
       expect(selectVenueMock).toHaveBeenCalledWith('venue-1', expect.objectContaining({ id: 'venue-1' }));
       rerender(<MapView />);
       expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
+    });
+
+    it('a shared ?venue=<slug> deep-link opens the recipient on the venue detail (Story 9.8 AC3 regression guard)', () => {
+      // This is the exact URL shape `buildVenueShareUrl` produces — a clean
+      // `?venue=<slug>` with no planner/dev params. A recipient landing here
+      // must resolve straight to the venue detail. Guards AC3 against a future
+      // routing change silently breaking every previously-shared link.
+      const shareUrl = new URL('https://sunnyseat.app/?venue=test-venue-sunny');
+      searchParamsMock = new URLSearchParams(shareUrl.search);
+      expect(searchParamsMock.get('venue')).toBe('test-venue-sunny');
+      const venue = makeVenue({ id: 'venue-1', name: 'Kafé Magasinet', slug: 'test-venue-sunny' });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([venue]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      const { rerender } = render(<MapView />, { wrapper: Wrapper });
+      expect(selectVenueMock).toHaveBeenCalledWith('venue-1', expect.objectContaining({ id: 'venue-1' }));
+      rerender(<MapView />);
+      expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
+      expect(screen.getByTestId('desktop-venue-detail-panel')).toBeInTheDocument();
+      expect(screen.getAllByRole('heading', { name: 'Kafé Magasinet' }).length).toBeGreaterThan(0);
     });
 
     it('direct venue-detail visual-validation URL selects the matching venue once list data is available', () => {
@@ -1507,7 +1908,10 @@ describe('<MapView />', () => {
       expect(screen.queryByTestId('mobile-bottom-sheet-backdrop')).not.toBeInTheDocument();
       expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('Bellora');
       expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('95% sol');
-      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('Säkerhet: 95%');
+      // Story 9.1: the visible confidence chip remains; the duplicated
+      // "Säkerhet: 95%" sr-only repeat was removed.
+      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('95%');
+      expect(screen.getAllByTestId('venue-card')[0]).not.toHaveTextContent('Säkerhet: 95%');
       expect(container.querySelector('img[src="https://example.com/bellora.jpg"]')).toBeNull();
     });
 
@@ -1587,6 +1991,79 @@ describe('<MapView />', () => {
         expect.stringContaining('Bellora'),
       ]);
       expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
+    });
+
+    describe('Story 9.7 — tag filter (list + pins filter identically)', () => {
+      // Three venues: two carry Innergård, one carries only Kanal.
+      const venueA = { ...makeVenue({ id: 'v-a', name: 'Alfa' }), tags: ['Innergård', 'Hund ok'] };
+      const venueB = { ...makeVenue({ id: 'v-b', name: 'Beta' }), tags: ['Kanal'] };
+      const venueC = { ...makeVenue({ id: 'v-c', name: 'Gamma' }), tags: ['Innergård'] };
+
+      function mockThreeVenues() {
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([venueA, venueB, venueC]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+      }
+
+      function pinLayerIds(): string[] {
+        const raw = screen.getByTestId('venue-pin-layer-stub').getAttribute('data-venues') ?? '[]';
+        return (JSON.parse(raw) as Array<{ id: string }>).map((pin) => pin.id);
+      }
+
+      function desktopVenueCardNames(): string[] {
+        return within(screen.getByTestId('desktop-venue-list-panel'))
+          .getAllByTestId('venue-card')
+          .map((card) => card.textContent ?? '');
+      }
+
+      it('no active chip → ALL venues in both the list and the pins (AC4 no-op)', () => {
+        mockThreeVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        expect(pinLayerIds()).toEqual(['v-a', 'v-b', 'v-c']);
+        const names = desktopVenueCardNames();
+        expect(names.some((n) => n.includes('Alfa'))).toBe(true);
+        expect(names.some((n) => n.includes('Beta'))).toBe(true);
+        expect(names.some((n) => n.includes('Gamma'))).toBe(true);
+      });
+
+      it('one active chip → only matching venues, in BOTH the list and the pins (AC3)', () => {
+        setActiveTags('Innergård');
+        mockThreeVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        // Pins filtered identically to the list: Beta (Kanal-only) is excluded.
+        expect(pinLayerIds()).toEqual(['v-a', 'v-c']);
+        const names = desktopVenueCardNames();
+        expect(names.some((n) => n.includes('Alfa'))).toBe(true);
+        expect(names.some((n) => n.includes('Gamma'))).toBe(true);
+        expect(names.some((n) => n.includes('Beta'))).toBe(false);
+      });
+
+      it('multi-select is OR/union — a venue matches ANY active tag (AC3)', () => {
+        setActiveTags('Innergård', 'Kanal');
+        mockThreeVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        // Innergård (Alfa, Gamma) OR Kanal (Beta) → all three, source order kept.
+        expect(pinLayerIds()).toEqual(['v-a', 'v-b', 'v-c']);
+      });
+
+      it('no venue matches → empty list state + zero pins (AC3)', () => {
+        setActiveTags('NoSuchTag');
+        mockThreeVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        expect(pinLayerIds()).toEqual([]);
+        expect(
+          within(screen.getByTestId('desktop-venue-list-panel')).queryAllByTestId('venue-card'),
+        ).toHaveLength(0);
+        // The existing venue.list.empty copy renders (not gated on isLoading).
+        expect(screen.getAllByText('Inga platser hittades i det här området.').length).toBeGreaterThan(0);
+      });
     });
 
     it('constrains the desktop planner to clear the venue list and shrink for the open detail panel', () => {
@@ -2211,6 +2688,288 @@ describe('<MapView />', () => {
       });
     });
   });
+
+  describe('Story 9.4 — client query hygiene', () => {
+    describe('AC1 — Favoriter sourced from the loaded list cache', () => {
+      it('issues NO favourites fetch and renders the filtered venues when the favourited ids are already in the loaded list', () => {
+        // Loaded Närmast list already holds the favourited venue.
+        pathnameMock = '/favoriter';
+        const loadedVenue = makeVenue({ id: 'venue-1', name: 'Bellora' });
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([
+            loadedVenue,
+            makeVenue({ id: 'venue-2', name: 'Annan plats' }),
+          ]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+        // The favourites query returns nothing — it must not be the source.
+        useFavouriteVenuesMock.mockReturnValue({
+          data: undefined,
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 0,
+          refetch: vi.fn(),
+        });
+        useFavouritesMock.mockReturnValue({
+          favouriteIds: ['venue-1'],
+          isHydrated: true,
+          isFavourite: (id: string) => id === 'venue-1',
+          toggleFavourite: vi.fn(),
+          addFavourite: vi.fn(),
+          removeFavourite: vi.fn(),
+        });
+
+        render(<MapView />, { wrapper: Wrapper });
+
+        // The network favourites query is gated OFF (0 new /api/venues fetch).
+        expect(useFavouriteVenuesMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({ ids: ['venue-1'], enabled: false }),
+        );
+        // The favourites list still renders the venue, derived from the
+        // loaded Närmast list cache (not from a favourites fetch).
+        expect(screen.getAllByRole('button', { name: /Välj Bellora/ }).length).toBeGreaterThan(0);
+        // The non-favourite loaded venue is filtered out of the favourites view.
+        expect(screen.queryByRole('button', { name: /Välj Annan plats/ })).not.toBeInTheDocument();
+      });
+
+      it('keeps the Närmast→Favoriter toggle from enabling a fetch when every favourite is loaded', () => {
+        const loadedVenue = makeVenue({ id: 'venue-1', name: 'Bellora' });
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([loadedVenue]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+        useFavouriteVenuesMock.mockReturnValue({
+          data: undefined,
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 0,
+          refetch: vi.fn(),
+        });
+        useFavouritesMock.mockReturnValue({
+          favouriteIds: ['venue-1'],
+          isHydrated: true,
+          isFavourite: (id: string) => id === 'venue-1',
+          toggleFavourite: vi.fn(),
+          addFavourite: vi.fn(),
+          removeFavourite: vi.fn(),
+        });
+
+        // Start on Närmast — favourites query disabled (not the active view).
+        const view = render(<MapView />, { wrapper: Wrapper });
+        expect(useFavouriteVenuesMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({ enabled: false }),
+        );
+
+        // Switch to Favoriter — STILL disabled, because the favourited venue
+        // is already in the loaded list (derive-from-cache, instant toggle).
+        pathnameMock = '/favoriter';
+        view.rerender(<MapView />);
+        expect(useFavouriteVenuesMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({ enabled: false }),
+        );
+      });
+
+      it('enables the favourites fetch when only SOME favourites are loaded, and still derives the loaded ones from cache', () => {
+        // Boundary between the all-loaded (0 fetch) and none-loaded (fetch)
+        // cases: `favouritesAllInLoadedList` is an `.every()`, so a SINGLE
+        // missing favourite must flip the network query on — while the
+        // already-loaded favourite is still rendered from the list cache
+        // (and the network query, which only returns the missing one, tops
+        // it up rather than replacing the derived rows).
+        pathnameMock = '/favoriter';
+        const loadedFavourite = makeVenue({ id: 'venue-loaded', name: 'Närfavorit' });
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([
+            loadedFavourite,
+            makeVenue({ id: 'venue-other', name: 'Inte favorit' }),
+          ]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+        const missingFavourite = makeVenue({ id: 'venue-missing', name: 'Utflyktsfavorit' });
+        useFavouriteVenuesMock.mockReturnValue({
+          data: makeVenueResponse([missingFavourite]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+          refetch: vi.fn(),
+        });
+        useFavouritesMock.mockReturnValue({
+          favouriteIds: ['venue-loaded', 'venue-missing'],
+          isHydrated: true,
+          isFavourite: (id: string) => id === 'venue-loaded' || id === 'venue-missing',
+          toggleFavourite: vi.fn(),
+          addFavourite: vi.fn(),
+          removeFavourite: vi.fn(),
+        });
+
+        render(<MapView />, { wrapper: Wrapper });
+
+        // One favourite is missing from the loaded list → the network query
+        // is enabled (it must NOT stay gated just because the OTHER is loaded).
+        expect(useFavouriteVenuesMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            ids: ['venue-loaded', 'venue-missing'],
+            enabled: true,
+          }),
+        );
+        // Both the cache-derived favourite and the network-topped-up favourite
+        // render; the non-favourite loaded venue is filtered out.
+        expect(screen.getAllByRole('button', { name: /Välj Närfavorit/ }).length).toBeGreaterThan(0);
+        expect(screen.getAllByRole('button', { name: /Välj Utflyktsfavorit/ }).length).toBeGreaterThan(0);
+        expect(screen.queryByRole('button', { name: /Välj Inte favorit/ })).not.toBeInTheDocument();
+      });
+
+      it('falls back to a real favourites fetch for a favourited id NOT in the loaded list (out-of-radius / cold deep link)', () => {
+        pathnameMock = '/favoriter';
+        // Loaded list does NOT contain the favourited id.
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([makeVenue({ id: 'venue-loaded', name: 'Närplats' })]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+        const outsideFavourite = makeVenue({ id: 'outside-favourite', name: 'Utflyktsplats' });
+        useFavouriteVenuesMock.mockReturnValue({
+          data: makeVenueResponse([outsideFavourite]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+          refetch: vi.fn(),
+        });
+        useFavouritesMock.mockReturnValue({
+          favouriteIds: ['outside-favourite'],
+          isHydrated: true,
+          isFavourite: (id: string) => id === 'outside-favourite',
+          toggleFavourite: vi.fn(),
+          addFavourite: vi.fn(),
+          removeFavourite: vi.fn(),
+        });
+
+        render(<MapView />, { wrapper: Wrapper });
+
+        // The favourite is missing from the loaded list → the network query
+        // is enabled so the out-of-radius favourite can still load.
+        expect(useFavouriteVenuesMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({ ids: ['outside-favourite'], enabled: true }),
+        );
+        expect(screen.getAllByRole('button', { name: /Välj Utflyktsplats/ }).length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('AC2 — gate the venue query until geolocation settles', () => {
+      function setGeolocationStatus(status: 'idle' | 'pending' | 'success' | 'fallback') {
+        useGeolocationMock.mockReturnValue({
+          status,
+          coords: { lat: 57.7089, lng: 11.9746 },
+          requestLocation: () => {},
+          useCentrum: () => {},
+        });
+      }
+
+      it('does NOT enable the venue search while geolocation is idle or pending', () => {
+        setGeolocationStatus('idle');
+        const view = render(<MapView />, { wrapper: Wrapper });
+        expect(lastMapViewSearchCall()).toMatchObject({ enabled: false });
+
+        setGeolocationStatus('pending');
+        view.rerender(<MapView />);
+        expect(lastMapViewSearchCall()).toMatchObject({ enabled: false });
+      });
+
+      it('enables the venue search exactly once geolocation settles to success', () => {
+        setGeolocationStatus('idle');
+        const view = render(<MapView />, { wrapper: Wrapper });
+        expect(lastMapViewSearchCall()).toMatchObject({ enabled: false });
+
+        setGeolocationStatus('success');
+        view.rerender(<MapView />);
+        expect(lastMapViewSearchCall()).toMatchObject({ enabled: true });
+      });
+
+      it('enables the venue search for a fallback (centrum) user so they still get exactly one prompt fetch', () => {
+        setGeolocationStatus('fallback');
+        render(<MapView />, { wrapper: Wrapper });
+        expect(lastMapViewSearchCall()).toMatchObject({ enabled: true });
+      });
+
+      it('keeps the favourites query gated on a settled status too (no cold-deep-link fetch before location resolves)', () => {
+        pathnameMock = '/favoriter';
+        setGeolocationStatus('pending');
+        // A favourite NOT in the (empty) loaded list would normally enable the
+        // fetch, but the coordinate gate must hold it until location settles.
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+        useFavouritesMock.mockReturnValue({
+          favouriteIds: ['outside-favourite'],
+          isHydrated: true,
+          isFavourite: (id: string) => id === 'outside-favourite',
+          toggleFavourite: vi.fn(),
+          addFavourite: vi.fn(),
+          removeFavourite: vi.fn(),
+        });
+
+        render(<MapView />, { wrapper: Wrapper });
+        expect(useFavouriteVenuesMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({ enabled: false }),
+        );
+      });
+    });
+
+    describe('AC3 — deferred planner key (live-now semantics preserved)', () => {
+      it('feeds the venue search a planner-less key while live (no date/time on the call)', () => {
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+
+        render(<MapView />, { wrapper: Wrapper });
+
+        // Live now → MapView defers `plannerTime.plannerQuery` which is
+        // `undefined`, so the list search call carries no date/time (the
+        // planner-less live key).
+        const lastCall = lastMapViewSearchCall();
+        expect(lastCall).toMatchObject({ lat: 57.7089, lng: 11.9746, radiusKm: 1.5, enabled: true });
+        expect(lastCall).not.toHaveProperty('date');
+        expect(lastCall).not.toHaveProperty('time');
+      });
+
+      it('feeds the venue search a single planner key after a future date is committed', async () => {
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+
+        render(<MapView />, { wrapper: Wrapper });
+
+        fireEvent.click(screen.getAllByRole('button', { name: /Öppna kalender: Idag/ })[0]);
+        fireEvent.click(screen.getByRole('button', { name: 'Välj 21 maj 2026' }));
+
+        await waitFor(() =>
+          expectVenueSearchCall({
+            lat: 57.7089,
+            lng: 11.9746,
+            radiusKm: 1.5,
+            date: '2026-05-21',
+            time: '12:15',
+          }),
+        );
+      });
+    });
+  });
 });
 
 function makeVenueResponse(venues: GetVenuesResponse['venues']): GetVenuesResponse {
@@ -2276,6 +3035,7 @@ function makeVenue({
     confidence,
     distanceMeters: 180,
     sunExposurePercent,
+    tags: [],
     sunWindow,
     thumbnail: {
       alt: `${name} uteservering`,

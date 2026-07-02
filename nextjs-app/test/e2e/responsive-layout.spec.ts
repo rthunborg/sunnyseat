@@ -125,6 +125,29 @@ test.describe('Mobile responsive layout', () => {
       expect(hasVisibleIndicator).toBe(true);
     }
   });
+
+  test('M6: the top-bar locate + settings pair is the single mobile access point (no floating duplicates)', async ({
+    page,
+  }) => {
+    await bypassOnboarding(page);
+    await page.goto('/');
+    await expectBypassedOnboarding(page);
+
+    // Story 9.6: the surviving mobile locate + settings live in the top search
+    // row. Both are present, enabled, and are the ONLY such controls.
+    const locate = visibleTestId(page, 'search-shell-my-location');
+    await expect(locate).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+    await expect(locate).toBeEnabled();
+
+    const settings = visibleTestId(page, 'search-shell-settings');
+    await expect(settings).toBeVisible();
+    await expect(settings).toBeEnabled();
+
+    // The floating map-stack locate/settings duplicates are gone; zoom stays.
+    await expect(page.locator('[data-testid="map-control-my-location"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="map-control-settings"]')).toHaveCount(0);
+    await expect(visibleTestId(page, 'map-control-zoom-in')).toBeVisible();
+  });
 });
 
 test.describe('Desktop responsive layout', () => {
@@ -233,23 +256,24 @@ test.describe('Desktop responsive layout', () => {
     }
   });
 
-  test('D6: redundant map-stack locate/settings are hidden on desktop while zoom +/- remain', async ({
+  test('D6: the floating map-stack locate/settings are removed while zoom +/- remain', async ({
     page,
   }) => {
     await bypassOnboarding(page);
     await page.goto('/');
     await expectBypassedOnboarding(page);
 
-    // Zoom controls are a desktop-welcome addition — they stay.
+    // Zoom controls are the only genuinely map-specific controls — they stay.
     await expect(visibleTestId(page, 'map-control-zoom-in')).toBeVisible({
       timeout: APP_SETTLE_TIMEOUT_MS,
     });
     await expect(visibleTestId(page, 'map-control-zoom-out')).toBeVisible();
 
-    // Locate + settings must NOT be duplicated over the map on desktop — the
-    // top nav owns them. Hidden via `lg:hidden`, so nothing visible here.
-    await expect(page.locator('[data-testid="map-control-my-location"]:visible')).toHaveCount(0);
-    await expect(page.locator('[data-testid="map-control-settings"]:visible')).toHaveCount(0);
+    // Story 9.6: the floating locate + settings buttons were REMOVED entirely
+    // (not merely `lg:hidden`). Assert zero instances in the DOM, not just zero
+    // visible — the desktop nav owns locate/settings.
+    await expect(page.locator('[data-testid="map-control-my-location"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="map-control-settings"]')).toHaveCount(0);
   });
 
   test('D7: the desktop nav my-location button is shown and wired (enabled)', async ({ page }) => {

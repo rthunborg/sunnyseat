@@ -55,5 +55,6 @@ function makeVenue({
     confidence: 91,
     distanceMeters: 320,
     sunExposurePercent: currentSunStatus === 'NoSun' ? 0 : 82,
+    tags: [],
   };
 }

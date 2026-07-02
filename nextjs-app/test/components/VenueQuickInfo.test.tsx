@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { VenueQuickInfo } from '@/components/composed/venue/VenueQuickInfo';
-import type { PredictionUncertaintyDisplayLabels } from '@/lib/utils/prediction-uncertainty-display';
 import { expectNoSensitiveSourceTerms } from '../setup/sensitive-source-terms';
 
 const motionState = vi.hoisted(() => ({
@@ -56,39 +55,12 @@ const labels = {
   confidenceApproximate: 'cirka',
   confidenceUnavailable: 'Säkerhet saknas',
   distance: 'Avstånd',
+  distanceApproximate: '≈ från centrum',
   loadingSun: 'Laddar soldata',
   sunUnavailable: 'Soltid saknas',
   routeLoading: 'Öppnar kartor',
   favouriteAdd: 'Spara som favorit',
   favouriteRemove: 'Ta bort favorit',
-};
-
-const uncertaintyLabels: PredictionUncertaintyDisplayLabels = {
-  description:
-    'Vi räknar på solens läge, byggnadsskuggor och väder. Träd, markiser, parasoller, broar och tillfälliga konstruktioner kan påverka platsen.',
-  accessible: '{label}. {description}',
-  levels: {
-    low: 'Låg osäkerhet',
-    medium: 'Osäker prognos',
-    high: 'Mer osäker prognos',
-  },
-  short: {
-    building_shadow_coverage: 'Byggnadsskuggor mer osäkra',
-    obstruction: 'Lokala hinder kan påverka',
-    weather: 'Vädret gör prognosen osäkrare',
-    other: 'Lokala förhållanden kan påverka',
-  },
-  reasons: {
-    building_shadow_coverage: 'Byggnadsskuggorna är beräknade med begränsad täckning här.',
-    vegetation: 'Träd kan påverka platsen.',
-    awning: 'Markiser kan påverka platsen.',
-    umbrella: 'Parasoller kan påverka platsen.',
-    bridge: 'Broar kan påverka platsen.',
-    temporary_structure: 'Tillfälliga konstruktioner kan påverka platsen.',
-    seasonal_furniture: 'Säsongsmöbler kan påverka platsen.',
-    weather: 'Vädret gör prognosen mer osäker.',
-    other: 'Lokala förhållanden kan påverka platsen.',
-  },
 };
 
 describe('<VenueQuickInfo />', () => {
@@ -197,7 +169,7 @@ describe('<VenueQuickInfo />', () => {
     expect(metadata?.textContent?.trim()).toMatch(/^Säkerhet:/);
   });
 
-  it('renders uncertainty text for the selected map surface', () => {
+  it('does not surface the removed uncertainty disclaimer on the map quick-info (Story 9.1 de-bloat)', () => {
     const { container } = render(
       <VenueQuickInfo
         mode="mobile"
@@ -208,24 +180,115 @@ describe('<VenueQuickInfo />', () => {
           sunDataSource: 'weather',
           weatherUpdatedAt: new Date().toISOString(),
         }}
-        predictionUncertainty={{
-          level: 'medium',
-          reasons: ['vegetation', 'source_layer' as never, 'awning', 'seasonal_furniture'],
-        }}
         sunExposurePercent={58}
         distanceMeters={420}
         isLoadingSunData={false}
         onDismiss={() => {}}
         onOpenDetails={() => {}}
         onRoute={() => {}}
-        labels={{ ...labels, uncertainty: uncertaintyLabels }}
+        labels={labels}
       />,
     );
 
-    expect(screen.getByTestId('venue-quick-info')).toHaveTextContent('Osäker prognos');
-    expect(screen.getByTestId('venue-quick-info')).toHaveTextContent('Lokala hinder kan påverka');
-    expect(screen.getByText(/Träd kan påverka platsen/)).toHaveClass('sr-only');
+    const card = screen.getByTestId('venue-quick-info');
+    expect(card).not.toHaveTextContent('Osäker prognos');
+    expect(card).not.toHaveTextContent('Lokala hinder kan påverka');
+    expect(screen.queryByText(/Träd kan påverka platsen/)).not.toBeInTheDocument();
+    // The kept signal still renders.
+    expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet: 66%');
     expectNoSensitiveSourceTerms(container);
+  });
+
+  it('does not surface the removed disclaimer in anchored-mobile or desktop quick-info, and keeps confidence once (Story 9.1 de-bloat)', () => {
+    const { rerender } = render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Brygghuset Lerum"
+        sunTimeRange="Sol 13:35–16:50"
+        confidencePercent={66}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        sunExposurePercent={58}
+        distanceMeters={420}
+        position={{ x: 180, y: 260 }}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    let card = screen.getByTestId('venue-quick-info');
+    expect(card).not.toHaveTextContent('Osäker prognos');
+    expect(card).not.toHaveTextContent('Lokala hinder kan påverka');
+    expect(screen.queryByText(/Vi räknar på solens läge/)).not.toBeInTheDocument();
+    // Confidence label survives exactly once in anchored mode.
+    expect(card.querySelectorAll('.sr-only')).not.toHaveLength(0);
+    expect(screen.getAllByText(/Säkerhet/).length).toBeGreaterThan(0);
+
+    rerender(
+      <VenueQuickInfo
+        mode="desktop"
+        name="Brygghuset Lerum"
+        sunTimeRange="Sol 13:35–16:50"
+        confidencePercent={66}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        sunExposurePercent={58}
+        distanceMeters={420}
+        position={{ x: 200, y: 200 }}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    card = screen.getByTestId('venue-quick-info');
+    expect(card).not.toHaveTextContent('Osäker prognos');
+    expect(card).not.toHaveTextContent('Lokala hinder kan påverka');
+    expect(screen.queryByText(/Vi räknar på solens läge/)).not.toBeInTheDocument();
+    // The kept confidence + sun signals still render in desktop placement.
+    expect(screen.getByText(/Säkerhet:/)).toHaveTextContent('Säkerhet: 66%');
+    expect(screen.getByText(/58% SOL/)).toBeInTheDocument();
+  });
+
+  it('does not render a leading separator before the anchored-mobile distance metadata (Story 9.1 AC #2)', () => {
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunTimeRange="Sol 13:00–18:30"
+        confidencePercent={92}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        sunExposurePercent={95}
+        distanceMeters={420}
+        position={{ x: 180, y: 260 }}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    // Anchored mode collapses the sun-window + confidence + distance onto one
+    // wrapping row; the confidence paragraph must not start or end on a dangling
+    // middot now that the uncertainty fragment was removed.
+    const metadata = screen.getByText(/Säkerhet:/).closest('p');
+    const normalized = metadata?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    expect(normalized.startsWith('·')).toBe(false);
+    expect(normalized.endsWith('·')).toBe(false);
+    expect(normalized).toContain('Säkerhet: 92%');
   });
 
   it('marks stale confidence as approximate and hides geometry-only confidence', () => {
@@ -482,5 +545,202 @@ describe('<VenueQuickInfo />', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Stäng platskort' }));
     expect(dismiss).toHaveBeenCalledTimes(1);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Story 9.9 coverage expansion (bmad-testarch-automate) — branches the dev
+  // suite left uncovered: distance formatting boundaries, sun-% clamping, and
+  // the AC2 "layout holds across sun states" invariant on the anchored-mobile
+  // (compact) strip with its compact-aware badge/heart placement.
+  // ---------------------------------------------------------------------------
+
+  it('formats a >=1000 m distance as kilometres and rounds sub-km metres (formatDistance boundary)', () => {
+    const { rerender } = render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunTimeRange="Sol 13:00–18:30"
+        confidencePercent={92}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        distanceMeters={1500}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    // >= 1000 → one-decimal km.
+    expect(screen.getByText(/Avstånd:/)).toHaveTextContent('Avstånd: 1.5 km');
+
+    // Exactly at the 1000 boundary → still km (1.0 km), not "1000 m".
+    rerender(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        distanceMeters={1000}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+    expect(screen.getByText(/Avstånd:/)).toHaveTextContent('Avstånd: 1.0 km');
+
+    // Sub-km metres are rounded to a whole number.
+    rerender(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        distanceMeters={423.7}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+    expect(screen.getByText(/Avstånd:/)).toHaveTextContent('Avstånd: 424 m');
+  });
+
+  it('renders an em-dash placeholder when the distance is unknown (formatDistance non-finite)', () => {
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        distanceMeters={undefined}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    expect(screen.getByText(/Avstånd:/)).toHaveTextContent('Avstånd: –');
+  });
+
+  it('clamps the sun-exposure badge to the 0–100% range (formatPercent boundaries)', () => {
+    const { rerender } = render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunExposurePercent={140}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+    expect(screen.getByText(/SOL/)).toHaveTextContent('100% SOL');
+
+    rerender(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunExposurePercent={-25}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+    expect(screen.getByText(/SOL/)).toHaveTextContent('0% SOL');
+  });
+
+  it('hides the sun-exposure badge entirely when the exposure value is absent', () => {
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunExposurePercent={undefined}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+    expect(screen.queryByText(/SOL/)).toBeNull();
+  });
+
+  it.each([
+    ['full sun', 95, 'Sol 12:00–20:00'],
+    ['partial sun', 55, 'Sol 15:30–17:00'],
+    ['shaded (no window)', 0, undefined],
+  ])(
+    'holds the anchored-mobile compact layout across sun states without dropping the CTA row (%s)',
+    (_label, exposure, sunTimeRange) => {
+      render(
+        <VenueQuickInfo
+          mode="mobile"
+          name="Testbaren"
+          sunTimeRange={sunTimeRange}
+          confidencePercent={80}
+          confidenceMeta={{
+            sunDataSource: 'weather',
+            weatherUpdatedAt: new Date().toISOString(),
+          }}
+          sunExposurePercent={exposure}
+          distanceMeters={420}
+          position={{ x: 180, y: 260 }}
+          isLoadingSunData={false}
+          onDismiss={() => {}}
+          onOpenDetails={() => {}}
+          onRoute={() => {}}
+          onFavouriteToggle={() => {}}
+          labels={labels}
+        />,
+      );
+
+      // The sun window resolves to either the range or the honest fallback copy.
+      expect(
+        screen.getByText(sunTimeRange ?? 'Soltid saknas'),
+      ).toBeInTheDocument();
+      // The CTA row survives in every sun state — VISA RUTT + MER INFO.
+      expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Mer Info' })).toBeInTheDocument();
+      // The distance value stays legible (never truncated to nothing).
+      expect(screen.getByTestId('venue-quick-info')).toHaveTextContent('420 m');
+      // Compact-strip badge/heart placement (Story 9.9 reference match): the
+      // sun-% pill sits top-LEFT (`left-2 top-2`) and the favourite heart
+      // top-RIGHT (`right-2 top-2`) so the two never crowd on the 72px strip.
+      if (exposure > 0) {
+        const badge = screen.getByText(/SOL/).closest('div');
+        expect(badge).toHaveClass('left-2', 'top-2');
+      }
+      const heart = screen.getByRole('button', { name: 'Spara som favorit' });
+      expect(heart).toHaveClass('right-2', 'top-2');
+      expect(heart).toHaveClass('size-11'); // WCAG 44px tap target preserved.
+    },
+  );
+
+  it('uses the fuller badge/heart insets on the non-compact (bottom-sheet) strip', () => {
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunExposurePercent={95}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        onFavouriteToggle={() => {}}
+        labels={labels}
+      />,
+    );
+
+    // No `position` → non-anchored bottom-sheet variant → fuller insets.
+    const badge = screen.getByText(/SOL/).closest('div');
+    expect(badge).toHaveClass('left-3', 'top-3');
+    const heart = screen.getByRole('button', { name: 'Spara som favorit' });
+    expect(heart).toHaveClass('right-3', 'top-3');
   });
 });

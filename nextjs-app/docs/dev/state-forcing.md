@@ -10,6 +10,8 @@ It is strictly a development/preview convenience. It never affects production bu
 
 `useForcedState()` returns `null` unconditionally when `process.env.NODE_ENV === 'production'`. The literal `=== 'production'` check at the top of the hook allows the Next.js bundler to dead-code-eliminate the `useSearchParams` call below it, so `_state`, the hook body, and any caller's `_state` branches are all stripped from the production bundle. **Zero bundle footprint.**
 
+The **same production guarantee covers the planner-forcing `?_time=` / `?_date=` parameters** (Story 9.0). `SearchParamTimeProviders` in `nextjs-app/components/custom/layout/AppContextProviders.tsx` branches on the same literal `process.env.NODE_ENV === 'production'` check *before* reading the URL: in production it renders the un-forced `DefaultTimeProviders` (live-clock interval + normal time/date selection), so no production URL can pin the planner to a fixed moment. Outside production (dev/preview/test) the `_time`/`_date` reads stay active for tooling and the deterministic-sun e2e specs. Because the dev branch lives in a separate child component (`DevSearchParamTimeProviders`) whose entire body — including its `useSearchParams` call — is unreachable in production, the bundler DCEs it just like the `_state` hook. **Keep these two mechanisms gated identically; do not reintroduce an un-gated `_time`/`_date` read.**
+
 ## Usage
 
 Mark your component `'use client'`, call `useForcedState()` once, and branch on the return value. The canonical reference implementation is the onboarding gate at `nextjs-app/components/custom/onboarding/OnboardingGate.tsx` — it shows the full pattern (state-forcing override, Suspense boundary, side-effect gating). The minimal shape:

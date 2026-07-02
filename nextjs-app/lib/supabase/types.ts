@@ -325,6 +325,7 @@ export type Database = {
           slug: string
           sun_exposure_percent: number
           sun_window: Json | null
+          tags: string[]
           thumbnail: Json | null
           updated_at: string
           venue_name: string
@@ -351,6 +352,7 @@ export type Database = {
           slug: string
           sun_exposure_percent: number
           sun_window?: Json | null
+          tags?: string[]
           thumbnail?: Json | null
           updated_at?: string
           venue_name: string
@@ -377,6 +379,7 @@ export type Database = {
           slug?: string
           sun_exposure_percent?: number
           sun_window?: Json | null
+          tags?: string[]
           thumbnail?: Json | null
           updated_at?: string
           venue_name?: string

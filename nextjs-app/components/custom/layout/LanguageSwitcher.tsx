@@ -60,7 +60,10 @@ export function LanguageSwitcher() {
             data-testid={`language-switch-${loc}`}
             className={cn(
               'flex items-center gap-1.5 rounded-pill px-2 py-1 text-label-sm font-semibold uppercase outline-none transition-colors duration-fast ease-default focus-visible:ring-2 focus-visible:ring-amber-primary',
-              active ? 'bg-surface-cream text-amber-dark' : 'text-text-muted hover:text-text-body',
+              // Inactive state uses text-body, not text-muted: muted is 60%
+              // alpha (≈3.18:1 on this white pill) and fails the axe WCAG AA
+              // color-contrast gate at this 11px label size.
+              active ? 'bg-surface-cream text-amber-dark' : 'text-text-body hover:text-text-primary',
             )}
           >
             <span className="block overflow-hidden rounded-[2px] leading-none ring-1 ring-black/5">

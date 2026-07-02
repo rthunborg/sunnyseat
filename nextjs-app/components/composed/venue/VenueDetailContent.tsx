@@ -1,9 +1,7 @@
 'use client';
 
 import {
-  Armchair,
   Clock,
-  Compass,
   ExternalLink,
   Footprints,
   ImageIcon,
@@ -26,10 +24,6 @@ import {
   getConfidenceDisplayState,
   type ConfidenceDisplayLabels,
 } from '@/lib/utils/confidence-display';
-import {
-  getPredictionUncertaintyDisplay,
-  type PredictionUncertaintyDisplayLabels,
-} from '@/lib/utils/prediction-uncertainty-display';
 import { formatPlannerTime } from '@/lib/utils/time-planner';
 import { cn } from '@/lib/utils';
 
@@ -45,7 +39,6 @@ export type VenueDetailContentLabels = {
   detailsUnavailable: string;
   openingHours: string;
   address: string;
-  shadowWarning: string;
   sunBadge: string;
   confidence: string;
   confidenceApproximate: string;
@@ -55,12 +48,12 @@ export type VenueDetailContentLabels = {
   placeholderImageShort: string;
   facts: {
     distance: string;
-    exposure: string;
-    bestAt: string;
-    outdoorSeats: string;
+    /** Story 9.5 AC3: honest "≈ från centrum" qualifier shown on the Avstånd
+     * card when the origin is the Gothenburg-centrum fallback (not a real
+     * personal fix). Only the label is qualified; the value stays visible. */
+    distanceApproximate?: string;
   };
   timeline: SunTimelineLabels;
-  uncertainty?: PredictionUncertaintyDisplayLabels;
 };
 
 export type VenueDetailContentProps = {
@@ -69,6 +62,10 @@ export type VenueDetailContentProps = {
   confidenceMeta?: SunFreshnessMeta;
   currentTime: string;
   labels: VenueDetailContentLabels;
+  /** Story 9.5 AC3 (folded into 9.9): the distance is centrum-relative (the
+   * Gothenburg-centrum geolocation fallback), not a real personal fix — annotate
+   * the Avstånd card's distance honestly. Mirrors `VenueList.locationIsApproximate`. */
+  distanceIsApproximate?: boolean;
   isLoading?: boolean;
   className?: string;
   onRoute: () => void;
@@ -87,6 +84,7 @@ export function VenueDetailContent({
   confidenceMeta,
   currentTime,
   labels,
+  distanceIsApproximate = false,
   isLoading = false,
   className,
   onRoute,
@@ -103,7 +101,6 @@ export function VenueDetailContent({
   const timeline = detail?.timeline ?? timelineFromListVenue(fallbackVenue);
   const metadata = getVenueVisualMetadata(venue, locale);
   const peakHour = formatPeakHour(venue);
-  const bestAt = metadata.bestAt ?? peakHour;
   const bestWindow = bestWindowLabel(timeline, labels) ?? formatLabel(labels.peakTime, { time: peakHour });
   const openUntil = detail?.openingHours.closesAt ?? '22:00';
   const isDesktop = mode === 'desktop';
@@ -112,12 +109,6 @@ export function VenueDetailContent({
     meta: confidenceMeta,
     labels: confidenceDisplayLabels(labels),
   });
-  const uncertaintyDisplay = labels.uncertainty
-    ? getPredictionUncertaintyDisplay({
-        predictionUncertainty: venue.predictionUncertainty,
-        labels: labels.uncertainty,
-      })
-    : null;
 
   return (
     <article
@@ -218,19 +209,6 @@ export function VenueDetailContent({
               />
             )
           )}
-          {!loading && uncertaintyDisplay && (
-            <p className="mt-3 rounded-card bg-surface-sand px-3 py-2 text-body-sm-medium text-text-body">
-              <span className="font-bold text-text-primary">
-                {uncertaintyDisplay.visibleLabel}
-              </span>
-              <span className="text-text-faint"> · </span>
-              <span>{uncertaintyDisplay.visibleSummary}</span>
-              <span className="mt-1 block text-body-sm text-text-body">
-                {uncertaintyDisplay.descriptionText}
-              </span>
-              <span className="sr-only"> {uncertaintyDisplay.reasonText.join(' ')}</span>
-            </p>
-          )}
         </section>
 
         {!isDesktop && !loading && (
@@ -261,28 +239,18 @@ export function VenueDetailContent({
         </div>
 
         {!isDesktop && (
-          <div className="grid grid-cols-2 gap-3">
-            <FactCard
-              icon={<Footprints aria-hidden="true" className="size-5" />}
-              label={labels.facts.distance}
-              value={metadata.distance ?? formatVenueDistance(venue.distanceMeters)}
-            />
-            <FactCard
-              icon={<Compass aria-hidden="true" className="size-5" />}
-              label={labels.facts.exposure}
-              value={metadata.exposure}
-            />
-            <FactCard
-              icon={<Clock aria-hidden="true" className="size-5" />}
-              label={labels.facts.bestAt}
-              value={bestAt}
-            />
-            <FactCard
-              icon={<Armchair aria-hidden="true" className="size-5" />}
-              label={labels.facts.outdoorSeats}
-              value={metadata.seats}
-            />
-          </div>
+          <FactCard
+            icon={<Footprints aria-hidden="true" className="size-5" />}
+            label={labels.facts.distance}
+            value={metadata.distance ?? formatVenueDistance(venue.distanceMeters)}
+            approximateLabel={
+              distanceIsApproximate &&
+              labels.facts.distanceApproximate &&
+              Number.isFinite(venue.distanceMeters)
+                ? labels.facts.distanceApproximate
+                : undefined
+            }
+          />
         )}
 
         <div className="space-y-5 border-t border-divider pt-5">
@@ -296,16 +264,7 @@ export function VenueDetailContent({
                 className="h-5 w-44 bg-surface-muted"
               />
             ) : (
-              <>
-                <p>{detail?.openingHours.display ?? labels.detailsUnavailable}</p>
-                {detail?.shadowWarningMinutes != null && (
-                  <p className="mt-1 text-error">
-                    {formatLabel(labels.shadowWarning, {
-                      minutes: String(detail.shadowWarningMinutes),
-                    })}
-                  </p>
-                )}
-              </>
+              <p>{detail?.openingHours.display ?? labels.detailsUnavailable}</p>
             )}
           </DetailRow>
 
@@ -333,15 +292,6 @@ export function VenueDetailContent({
               </>
             )}
           </DetailRow>
-
-          {isDesktop && (
-            <DetailRow
-              icon={<Compass aria-hidden="true" className="size-5" />}
-              title={labels.facts.exposure}
-            >
-              {metadata.exposure}
-            </DetailRow>
-          )}
         </div>
 
         <RouteButton
@@ -441,10 +391,12 @@ function FactCard({
   icon,
   label,
   value,
+  approximateLabel,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  approximateLabel?: string;
 }) {
   return (
     <section className="rounded-card border border-divider bg-white p-3">
@@ -452,7 +404,14 @@ function FactCard({
         <span className="text-amber-dark">{icon}</span>
         <span>{label}</span>
       </div>
-      <p className="text-heading-xl text-text-primary">{value}</p>
+      <p className="flex flex-wrap items-baseline gap-x-2 text-heading-xl text-text-primary">
+        <span>{value}</span>
+        {/* text-body, not text-muted: muted (60% alpha) fails the axe AA
+            contrast gate on the white card at label-xs size. */}
+        {approximateLabel && (
+          <span className="text-label-xs font-normal text-text-body">{approximateLabel}</span>
+        )}
+      </p>
     </section>
   );
 }

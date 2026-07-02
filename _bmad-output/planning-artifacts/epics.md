@@ -2335,3 +2335,309 @@ So that a venue standing on a rise is not wrongly shadowed by buildings that sit
 **Then** the effective-height test composes them coherently — caster roof *absolute* height vs. venue seating-surface *absolute* height (venue DTM ground + `seating_elevation_m`) — without double-counting the elevation
 
 **Design Gate Criteria (Epic 8 overall):** Backend/data accuracy only — no new screen or visual reference; identical gate-pass expectations as Story 8.6 (default path byte-identical).
+
+## Epic 9: "Live-App Hardening & Clean-Up" — Post-Launch Polish, Performance & Truthful Data
+
+After production cutover, real-world desktop testing surfaced a batch of design-drift, dead-control, performance, content-bloat, and location issues. This epic fixes them and applies a deliberate **"clean app, no information overload"** product principle throughout.
+
+> **Added 2026-06-30 (party-mode triage session).** Source: a maintainer walkthrough of the live app with annotated screenshots, investigated by a multi-agent code triage. The findings collapsed ~16 reported symptoms into five shared root causes, captured here so stories are drafted against the real cause, not the surface symptom:
+> 1. **One wrong CTA gradient token.** `nextjs-app/app/globals.css` defines `--gradient-route-button` as an olive→gold ramp (`--color-amber-dark #735c00 → --color-amber-gold`); the canonical reference and the already-correct sibling token `--gradient-cta-amber` (`#d4af37 → #ffbf00`) ramp the opposite way. Every "legacy" gold/olive button (VISA RUTT, "Tillbaka till kartan", 404 CTA) inherits this one token. (Story 9.2)
+> 2. **Fabricated per-slug venue metadata.** `nextjs-app/lib/utils/venue-visual-metadata.ts` invents `exposure`, `tags`, distance, seats, price for every card and detail panel via a hardcoded `BY_SLUG` table + `DEFAULT_METADATA` fallback; only rating/reviewCount are real. The venue type's `orientation` field is never consumed. This is the upstream cause of the wrong "EXPONERING" value and the absence of any truthful field to filter tags on. (Stories 9.1, 9.7)
+> 3. **"Visual shell without plumbing."** Controls rendered `disabled`/`cursor-not-allowed` with no state, handler, or consumer: top-nav tag chips, nav pager chevrons, list category buttons, the venue-detail share button, and a duplicate mobile-search settings button. (Stories 9.6, 9.7, 9.8)
+> 4. **Time/date wired straight into the TanStack query key with no debounce, over a heavy uncached engine.** Each snapped 15-min change fires a fresh `/api/venues` round-trip; per request the real engine runs N venues × 2 Supabase `get_buildings_near_point` RPCs (~145–440 ms each, measured live) + ~41 shadow projections, with no server cache; the same cost hits the venue-detail route. (Stories 9.3, 9.4)
+> 5. **Onboarding gate renders a non-interactive placeholder on first paint** (`OnboardingGate.tsx`), with the real screen portalled in only after client hydration of a `localStorage`-gated effect — causing both the brief "map flashes before the welcome overlay" and the intermittent "Use my location did nothing" dead-click, compounded by a service-worker stale-shell window. (Story 9.5)
+>
+> **Verified NOT broken (no story needed):** the date picker works (the "no effect" report was the last-day-of-month month-view edge — navigating to the next month and selecting works); the search bar is a working autocomplete dropdown (Enter-to-submit polish only); the venue-detail "SOLTIDER IDAG" strip is read-only by design, matching the reference. The latent `?_time=`/`?_date=` production planner-pin leak is still fixed as hygiene (Story 9.0).
+>
+> **Maintainer decisions (2026-06-30):** EXPONERING text → **remove**; uncertainty-reason text ("Osäker prognos · Byggnadsskuggor · mer osäkra") → **remove** (the % already carries the trust signal); "Blir skuggigt om X min" → **remove entirely** (never computed on the live path); "Vi räknar på solens läge…" explanatory paragraph → **remove**; tag filtering → **build for real** (requires real tag data on Supabase venues first); venue sharing → **build for real** (desktop + mobile); map chrome → keep the top-bar locate + settings buttons (enable the disabled settings gear), remove the duplicate floating ones over the map.
+
+> **Mobile live smoke-test addendum (2026-06-30).** A Playwright pass over the live site at 390×844 (iPhone) confirmed the issues above also reproduce on mobile and surfaced additional findings, folded into the stories below:
+> - **Fabricated fact cards contradict the real engine (data-integrity, not just bloat).** Beyond the EXPONERING block, the venue-detail fact grid shows "BÄST KL." and "Platser ute ~N" sourced from the hardcoded `venue-visual-metadata.ts` placeholders. On Café Halvvägs the real Solprognos reads "Bäst 08:30–14:00" while the "BÄST KL." card reads "18:00" — a visible contradiction. The per-card tag pills are the same fabricated placeholders. → Story 9.1 (remove the fabricated/contradictory fact cards alongside EXPONERING) + Story 9.7 (make tags real). **Maintainer default applied:** treat fabricated "BÄST KL." / "Platser ute" the same as EXPONERING (remove unless a truthful source exists), since a contradictory value is worse than an absent one.
+> - **Accessibility: verbose + duplicated card labels.** Every venue-card button's accessible name embeds the entire uncertainty paragraph and duplicates the confidence ("Säkerhet: 60% Säkerhet 60%"). → Story 9.1 (clean the aria-labels when the visible text is removed).
+> - **Mobile quick-info card collides with the time-slider panel.** When a venue is selected, the quick-info card overlaps the "Planera soltid" planner panel above it (the sun-% badge is jammed under the slider). → Story 9.9.
+> - **Audit ALL amber gradient surfaces, not just the 3 known CTAs.** The detail-header sun-% badge and "ÖPPET" status badge also read as gold/olive; confirm whether they use the legacy ramp. → Story 9.2 (widen to an audit of every amber-gradient surface).
+> - **Console warnings (no errors):** 3× "Expected value to be of type number, but found null" from the map blob (likely a null coordinate/expression in a MapLibre layer). → Story 9.10 (investigate + guard).
+> - **Onboarding did not gate a fresh automated session** — the live site loaded straight to the map with no welcome overlay in a clean (empty-localStorage) Playwright context. Additional evidence for the Story 9.5 onboarding-gate hydration defect; the story must verify a true new user reliably sees the welcome screen.
+> - **All venue photos are placeholders** ("PLATSHÅLLARBILD") on the live data path — a real-photo content gap (likely a separate data-population task, noted here for visibility, not yet a story).
+
+### Story 9.0: Production-Gate the Dev Planner-Forcing URL Leak
+
+As a **maintainer**,
+I want the `?_time=`/`?_date=` planner-forcing parameters to be honoured only outside production,
+So that no production URL can silently pin the planner and disable the live clock.
+
+**Acceptance Criteria:**
+
+**Given** `nextjs-app/components/custom/layout/AppContextProviders.tsx` reads `_time`/`_date` from the URL
+**When** the app runs in production (`process.env.NODE_ENV === 'production'`)
+**Then** `forcedTime`/`forcedDate` are always `undefined` (mirroring the existing gate in `lib/dev/use-forced-state.ts`), so the live-clock interval and normal time/date selection operate, while dev/preview keep the forcing behaviour for tooling and e2e
+
+**Given** the e2e suite that appends `?_time=` for deterministic sun assertions
+**When** it runs against a non-production build
+**Then** the forcing still applies and the existing time-dependent specs remain stable
+
+**Given** a regression guard is needed
+**When** the gate is added
+**Then** a unit/integration test asserts that `_time`/`_date` are ignored under a simulated production env and honoured otherwise
+
+### Story 9.1: Clean-App Content Sweep (Venue Card & Detail De-Bloat)
+
+As a **user**,
+I want the venue card and detail to show only the essential verdict (a sun % and the basics),
+So that the app feels clean and I'm not overloaded with explanatory noise.
+
+**Acceptance Criteria:**
+
+**Given** the venue detail panel (`VenueDetailContent.tsx`) and quick-info card (`VenueQuickInfo.tsx`) on mobile and desktop
+**When** they render
+**Then** the following are removed: the "EXPONERING" / exposure block, the uncertainty-reason line ("Osäker prognos · Byggnadsskuggor · mer osäkra" and its variants), the "Blir skuggigt om X min" line, and the "Vi räknar på solens läge, byggnadsskuggor och väder…" explanatory paragraph, plus the fabricated venue-detail fact cards that have no truthful source — "BÄST KL." (which contradicts the real Solprognos best-time, e.g. "BÄST KL. 18:00" vs a real "Bäst 08:30–14:00") and "Platser ute ~N" (fabricated seat count) — while the confidence/"Säkerhet %" figure and genuinely-real fact cards (e.g. "Avstånd") are preserved as the trustworthy signals
+
+**Given** these elements are removed
+**When** the layout reflows
+**Then** no orphaned separators, middots ("·"), empty rows, or dangling labels remain in either breakpoint
+
+**Given** the venue-card accessible name currently embeds the entire uncertainty paragraph and duplicates the confidence ("Säkerhet: 60% Säkerhet 60%")
+**When** the visible bloat text is removed
+**Then** each card's `aria-label` / accessible name is also reduced to the essentials (name, sun %, confidence once, distance) with no duplicated or orphaned phrases
+
+**Given** the supporting code and content
+**When** the sweep is complete
+**Then** the now-unused i18n keys are removed from `messages/{sv,en}/venue.json`, the dead `shadowWarningMinutes` render branch + `prediction-uncertainty-display` reason logic are removed (or reduced to what the % still needs), the stale `bistro-bakgarden.shadow_warning_minutes=0` seed is nulled, and the corresponding unit test (`test/unit/prediction-uncertainty-display.test.ts`) is updated/removed accordingly
+
+**Design Gate Criteria:**
+- **Visual:** Venue card + detail match the reference `QuickInfo`/`VenueDetail` with the removed elements absent and spacing intact
+- **Behaviour:** Confidence % still renders for all venue states; no empty/placeholder rows in any state
+- **Animation:** No regressions to existing sun-timeline / confidence animations
+- **Visual validation:** Screenshot comparison of card + detail (mobile & desktop) against references passes before QA handoff
+
+### Story 9.2: Design-System CTA Token Fix + Copy Correction
+
+As a **user**,
+I want all primary buttons to use the current gold→amber design, not a legacy olive fill,
+So that the app looks consistent and current.
+
+**Acceptance Criteria:**
+
+**Given** `--gradient-route-button` in `nextjs-app/app/globals.css` currently ramps olive→gold
+**When** the token is corrected to the canonical gold→bright-amber ramp (matching `--gradient-cta-amber` / the reference)
+**Then** all three consumers — `RouteButton.tsx` ("VISA RUTT"), `AboutPage.tsx` ("Tillbaka till kartan", mobile + desktop), and `NotFoundPage.tsx` (404 CTA) — render the corrected gradient with their existing shadow tokens intact, and the `amber-cta-text` foreground still meets contrast on the brighter end stop
+
+**Given** the Swedish filter-chip label
+**When** `messages/sv/common.json` is corrected
+**Then** the `nav.filterChips.rooftop` value changes from "Takt" to "Takterrass" (EN stays "Rooftop") and the duplicated fixture string in `test/components/DesktopNavBar.test.tsx` is updated to match
+
+**Given** the mobile smoke test found other amber-gradient surfaces that read as gold/olive (the venue-detail sun-% badge and the "ÖPPET" status badge), not just the three known CTAs
+**When** the token fix lands
+**Then** every amber-gradient surface is audited against the canonical ramp — any still using the legacy olive `--color-amber-dark` start is corrected, and surfaces already on the correct ramp are confirmed unchanged
+
+**Design Gate Criteria:**
+- **Visual:** Corrected CTAs match the reference button styling (gold→bright-amber); no olive start stop anywhere
+- **Behaviour:** Buttons keep their existing actions and hover/active states
+- **Animation:** Existing button transitions unchanged
+- **Visual validation:** Screenshot comparison of the route CTA + About CTA against references passes before QA handoff
+
+### Story 9.3: Venue Sun-Compute Performance — Server Caching
+
+As a **user**,
+I want the venue list and the "Mer info" detail panel to load fast,
+So that the app feels responsive instead of stalling on every load.
+
+**Acceptance Criteria:**
+
+**Given** `computeRealSunEngine` (`lib/services/sun-engine.ts`) currently fetches nearby buildings twice per venue (once for current-shadow, once for the timeline)
+**When** it is refactored to fetch the building set once and reuse it for both
+**Then** RPC volume per request is halved (≈14→7 for the current 7 venues) with byte-identical sun outputs, and the stale "one buildings fetch reused internally" comments are corrected
+
+**Given** building geometry changes very rarely and sun state changes slowly
+**When** caching is added
+**Then** the `get_buildings_near_point` result is wrapped in a server cache keyed on rounded centroid + radius (long revalidate), and the per-(venue, rounded-time-bucket, day) sun computation is cached so repeated requests within a bucket are near-free — applied to **both** `/api/venues` (list) and `/api/venues/[slug]` (detail) so "Mer info" benefits equally
+
+**Given** the dynamic route currently defeats CDN caching (the `s-maxage` header is dead because the handler reads request headers for rate-limiting)
+**When** the caching strategy lands
+**Then** either rate-limiting is moved so the cacheable response can be edge-cached, or the precompute follow-up flagged in `sun-engine.ts` is adopted; the chosen approach is documented, and sun-data freshness stays within an agreed staleness window
+
+**Design Gate Criteria (backend/perf — no new screen):** No visual change; existing gate states pass unchanged with real/cached data. Performance is the acceptance signal: warm-cache list + detail loads are materially faster than the pre-fix baseline (capture before/after timings in the story record).
+
+### Story 9.4: Client Query Hygiene & Time-Change Debounce
+
+As a **user**,
+I want changing the time and switching to Favoriter to feel instant,
+So that I'm not waiting on redundant network round-trips.
+
+**Acceptance Criteria:**
+
+**Given** the "Favoriter" tab uses a separate, non-shared query that refetches the engine for already-loaded venues
+**When** the favourites view is sourced from the existing `venues.list` cache (derive by filtering loaded venues by favourite ids, or seed the favourites query from cache with an appropriate `staleTime`)
+**Then** entering Favoriter no longer issues a fresh `/api/venues` request when the venues are already loaded, and toggling between "Närmast" and "Favoriter" is instant
+
+**Given** the list currently fetches once at the geolocation fallback coords and again when real GPS resolves (a different bucketed key)
+**When** the double-fetch is addressed (gate the first fetch until geolocation settles, or widen the coordinate bucket)
+**Then** initial load issues a single venue request in the common case, with `keepPreviousData` still masking any necessary transition
+
+**Given** the time scrubber currently feeds `selectedMinutes` straight into the query key on every change
+**When** the time→query coupling is debounced/committed on settle (commit on pointer-up / arrow / blur via the existing `onSnap`, or `useDeferredValue` in `MapView`)
+**Then** a drag enqueues at most one `/api/venues` request after the user settles, and returning the slider to the current time reads as an intentional "live now" state rather than a silent no-op
+
+**Design Gate Criteria:**
+- **Visual:** No visual change to the list, favourites, or time controls
+- **Behaviour:** Favoriter↔Närmast switch issues no redundant fetch; one request per settled time; live-now state is clear
+- **Animation:** Slider thumb stays smooth during drag (visual position decoupled from the committed query)
+- **Visual validation:** N/A beyond confirming list/favourites render identically; behaviour covered by regression tests in Story 9.10
+
+### Story 9.5: Location & Onboarding Reliability
+
+As a **user**,
+I want the welcome screen to appear cleanly and "Use my location" to reliably work and show me on the map,
+So that I trust the app knows where I am.
+
+**Acceptance Criteria:**
+
+**Given** the onboarding gate currently renders a non-interactive placeholder on first paint and portals the real screen in after hydration
+**When** the gate reads its "onboarded" state synchronously on first render (e.g. a server-readable cookie or `useSyncExternalStore`)
+**Then** the correct screen (welcome or map) is shown from the first frame — eliminating the brief "map flashes before the welcome overlay" — and the real, wired "Use my location" button exists immediately so an early click always triggers the permission prompt
+
+**Given** geolocation resolves successfully
+**When** the map renders
+**Then** a "you-are-here" marker (the amber `UserPin` from the design reference) is drawn at the user's coordinates via a dedicated marker layer, updates on coordinate changes, and is not shown while status is the Gothenburg fallback
+
+**Given** the user skips/denies location (origin is the Gothenburg-centre fallback)
+**When** distances and the "Närmast" sort render
+**Then** the UI is honest about it — distances are labelled approximate / "≈ från centrum" (or "Närmast" is suppressed) rather than implying a real personal fix
+
+**Given** a returning user whose permission state is "prompt", and the service-worker can serve a stale precached shell after a deploy
+**When** these edge cases occur
+**Then** the app surfaces a way to (re-)request location instead of silently using the fallback, the locate button shows pending/denied feedback, and an activated SW update prompts/forces a reload so the fresh shell is shown
+
+**Design Gate Criteria:**
+- **Visual:** User-location dot matches the reference `UserPin` (amber dot + halo); welcome screen covers the map with no flash
+- **Behaviour:** "Use my location" reliably prompts and recenters; dot appears on success; honest distance labelling when denied
+- **Animation:** No map-flash on load; dot appears without jarring jump; existing fly-to animation preserved
+- **Visual validation:** Screenshot of map with the location dot + clean first paint of the welcome screen passes before QA handoff
+
+### Story 9.6: Map Chrome Consolidation & Dead-Control Cleanup
+
+As a **user**,
+I want one clear set of map controls and no buttons that don't do anything,
+So that the interface is clean and every control works.
+
+**Acceptance Criteria:**
+
+**Given** the mobile UI currently shows duplicate locate + settings buttons — one pair in the top search row (`VenueSearchShell.tsx`) and one pair floating over the map (`MapControls.tsx`)
+**When** the chrome is consolidated
+**Then** the floating mobile locate + settings buttons are removed from `MapControls` (zoom +/- remain), and the top-bar pair is kept as the single access point
+
+**Given** the top-bar settings gear is currently hard-`disabled` (`VenueSearchShell.tsx:111-118`)
+**When** it is wired
+**Then** it opens the settings modal via `useSettings().openSettings` (the same call `MapControls` used), and the top-bar locate button continues to request location — both fully functional, neither greyed out
+
+**Given** other disabled placeholder controls exist (nav pager chevrons in `DesktopNavBar.tsx`, "Café"/"Öppet nu" category buttons in `VenueListControls.tsx`)
+**When** the cleanup runs
+**Then** these are hidden/removed until their features are built, so no inert control reads as broken (tag chips are handled in Story 9.7; the share button in Story 9.8)
+
+**Given** the search bar is a working autocomplete with no submit affordance
+**When** a low-priority polish is applied
+**Then** pressing Enter with no highlighted option selects the first visible result (pans the map), closing the "type-then-Enter does nothing" expectation gap
+
+**Design Gate Criteria:**
+- **Visual:** Single, consistent control set on mobile; no greyed/disabled controls remain on screen
+- **Behaviour:** Kept locate + settings buttons both work; removed/hidden controls are gone; Enter selects first search result
+- **Animation:** Control hover/press states unchanged
+- **Visual validation:** Screenshot of the mobile map chrome (top bar + remaining zoom stack) passes before QA handoff
+
+### Story 9.7: Tag Filtering (Real Data + Working Chips)
+
+As a **user**,
+I want to tap a tag (Innergård, Hund ok, Wifi…) and filter venues to those that match,
+So that I can quickly narrow to places that fit what I want.
+
+**Acceptance Criteria:**
+
+**Given** venue "tags" today are decorative per-slug placeholders with no truthful source
+**When** real tag/amenity data is added to the Supabase `venues` contract and surfaced through the venue DTO (replacing the `venue-visual-metadata.ts` placeholders for tags)
+**Then** each venue exposes its real tag set, and the chip row is data-driven (derived from the union of venue tags, matching the reference approach) rather than a hardcoded list
+
+**Given** a user taps one or more tag chips
+**When** the filter state changes (shared via context/lifted state consumable by both the nav and the venue surfaces)
+**Then** active chips render in the reference "on" pill style, and the venue list and map pins are filtered to venues whose tags intersect the active selection, with a clear empty state when nothing matches
+
+**Given** the chip labels
+**When** they render
+**Then** they use corrected copy (e.g. "Takterrass" not "Takt") and consistent casing across locales
+
+> **Data prerequisite (maintainer note, 2026-06-30 — verified against the live DB, project ref `hhnbxrhfhlzxgllxukzj`):** the live `public.venues` table currently has **no `tags` column** (24 columns: id, slug, venue_name, neighborhood, lat, lng, is_partner, thumbnail, description, address, opening_hours, peak_time, shadow_warning_minutes, current_sun_status, sky_condition, confidence, sun_exposure_percent, sun_window, prediction_uncertainty, created_at, updated_at, seating_area, seating_elevation_m, ground_elevation_m — and no `orientation` column either). This story must therefore **add the column via an additive migration** (e.g. `tags text[] not null default '{}'`, or `jsonb` — match the venue-data contract / `VENUE_SELECT_COLUMNS` convention) and update the `.sql` contract file + `lib/supabase/types.ts` accordingly. The table holds **only the 7 test/fixture venues** (Kafé Magasinet, Bryggerietsoltak, Solplats Magasinsgatan, Café Halvvägs, Brygghuset Lerum, Skuggans Hus, Bistro Bakgården) — **no production data**, so the migration is safe with **no data-loss risk**. Maintainer decision: **seed those 7 test venues with representative tags** (e.g. Innergård, Hund ok, Wifi, Takterrass) so the chips have real data to filter on. The column add + test-data seed are **in-scope dev work for this story** — they do **not** require a separate maintainer `needs-human` step.
+
+**Design Gate Criteria:**
+- **Visual:** Chips (idle + active) match the reference `TopBar` styling
+- **Behaviour:** Tapping chips filters list + map; multi-select intersects; empty state shown when no matches
+- **Animation:** Chip toggle + list/pin update transitions are smooth
+- **Visual validation:** Screenshot of active-filter state (chips + filtered list) passes before QA handoff
+
+### Story 9.8: Venue Sharing (Real)
+
+As a **user**,
+I want to share a venue's sun status with a friend,
+So that I can invite someone to a sunny spot.
+
+**Acceptance Criteria:**
+
+**Given** the venue-detail share (↗) button is currently a disabled stub with no handler
+**When** sharing is implemented
+**Then** the button is enabled and wired: on mobile it invokes the native `navigator.share()` with the venue link/title; on desktop it opens a share surface (copy-link + share targets) modeled on the reference `ShareModal.jsx`
+
+**Given** mobile currently has no share entry point in the venue header
+**When** sharing ships
+**Then** the share affordance is available on mobile as well as desktop, using the existing `detail.share` i18n string
+
+**Given** the share link is opened by a recipient
+**When** they land on the venue
+**Then** the deep-link resolves to the correct venue detail (reusing existing routing/slug handling)
+
+**Design Gate Criteria:**
+- **Visual:** Share button (enabled) + desktop share surface match the reference styling
+- **Behaviour:** Native share on mobile; copy-link + targets on desktop; deep-link resolves
+- **Animation:** Share surface open/close matches modal transition spec
+- **Visual validation:** Screenshot of the enabled share control + desktop share surface passes before QA handoff
+
+### Story 9.9: Mobile Venue Quick-Info Card Rework
+
+As a **user**,
+I want the mobile quick-info card to look polished,
+So that the most common surface feels well-crafted, not cramped.
+
+**Acceptance Criteria:**
+
+**Given** the current mobile `VenueQuickInfo` card looks cramped/off versus the reference
+**When** it is reworked toward the reference `QuickInfo.jsx` (mobile)
+**Then** spacing, type hierarchy, badge placement, and the CTA row (VISA RUTT with the corrected token + MER INFO) match the reference, incorporating the Story 9.1 content removals (no uncertainty-reason line)
+
+**Given** the card renders for venues across sun states (full sun / partial / shaded)
+**When** each state shows
+**Then** the layout holds without overflow or truncation on common mobile widths
+
+**Given** a venue is selected on mobile (the smoke test found the quick-info card overlapping the "Planera soltid" time-slider panel above it — the sun-% badge jammed under the slider)
+**When** the quick-info card is shown
+**Then** it sits clear of the planner panel with correct vertical spacing, no overlap at common mobile heights
+
+**Design Gate Criteria:**
+- **Visual:** Mobile quick-info card matches the reference `QuickInfo` layout and spacing
+- **Behaviour:** Heart/close/CTA actions work; card states render correctly
+- **Animation:** Card present/dismiss transitions match spec
+- **Visual validation:** Screenshot comparison of the reworked mobile card against the reference passes before QA handoff
+
+### Story 9.10: Mobile-Device Verification Pass & Regression Guards
+
+As a **maintainer**,
+I want every Epic 9 fix verified on mobile and protected by regression tests,
+So that the fixes hold on the form factor most users are on and don't silently regress.
+
+**Acceptance Criteria:**
+
+**Given** the maintainer has so far tested primarily on desktop
+**When** a mobile-viewport verification pass is run (Playwright mobile profile + manual spot-check on a real device) across all Epic 9-touched surfaces
+**Then** each fix is confirmed on mobile — clean-app deletions, CTA token, performance, location dot + onboarding, chrome consolidation, tag filtering, sharing, and the reworked quick-info card — and any mobile-only gaps are logged as follow-ups
+
+**Given** the behavioural fixes need protection
+**When** regression tests are added
+**Then** they cover at least: clean-URL date selection refetches with the new date; a settled time change issues exactly one venues request; Favoriter↔Närmast issues no redundant fetch; the location dot renders on geolocation success; and the planner-leak gate ignores `?_time=` in production
+
+**Design Gate Criteria (verification story):** No new UI of its own; the gate is that all other Epic 9 stories' visual references pass at mobile breakpoints and the regression suite is green.

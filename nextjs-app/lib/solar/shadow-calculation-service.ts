@@ -65,17 +65,76 @@ export async function calculateVenueShadow(
 }
 
 /**
+ * The shadow-caster search radius in degrees for a venue geometry. Both the
+ * single-shot shadow and the full-day timeline use the SAME radius and the SAME
+ * centroid, so a caller (the Story 9.3 sun-engine) can fetch the building set
+ * ONCE with {@link fetchVenueBuildings} and feed it to both
+ * {@link calculateVenueShadowFromBuildings} and
+ * {@link calculateVenueShadowTimelineFromBuildings}. [Story 9.3 AC1]
+ */
+export const SHADOW_SEARCH_RADIUS_DEG = SG.MAX_SHADOW_DISTANCE / 111300.0;
+
+/**
+ * Fetch the nearby shadow casters for a venue geometry ONCE so both the
+ * single-shot shadow and the full-day timeline can reuse the result (Story 9.3
+ * AC1 — was previously fetched twice per venue, one RPC inside each entrypoint).
+ * Returns `null` on RPC failure; the caller MUST preserve the `null`
+ * (data-unavailable) behaviour for BOTH the single-shot and the timeline path.
+ */
+export async function fetchVenueBuildings(
+  geometry: GeoJSON.Polygon,
+): Promise<Building[] | null> {
+  return fetchNearbyBuildings(geometry, SHADOW_SEARCH_RADIUS_DEG);
+}
+
+/**
  * Geometry-first shadow entrypoint (Story 8.3 DECISION B). Identical pipeline
  * to the legacy {@link calculateVenueShadow} but takes a GeoJSON polygon
  * directly (a venue's real seating-area polygon, or a synthesized footprint
  * fallback) instead of looking it up in the incompatible legacy table.
  * Inherits the Story 3.0.5/3.0.6 coverage + obstruction caps with no math change.
+ *
+ * Thin wrapper: fetches the building set then delegates to the pure
+ * {@link calculateVenueShadowFromBuildings}. Legacy callers and the existing
+ * tests stay valid. The Story 9.3 sun-engine bypasses this wrapper and calls
+ * {@link fetchVenueBuildings} + {@link calculateVenueShadowFromBuildings}
+ * directly so the building set is fetched once and shared with the timeline.
  */
 export async function calculateVenueShadowForGeometry(
   geometry: GeoJSON.Polygon,
   timestamp: Date,
   options: CalculateVenueShadowOptions = {}
 ): Promise<VenueShadowInfo> {
+  const solarPosition = calculateSolarPosition(timestamp);
+  // Match the historical fetch-then-compute ordering exactly: the RPC only
+  // fires when the sun is visible AND above the reliable-elevation floor, so a
+  // pre-fetched caller must apply the same gates (see *FromBuildings).
+  if (!solarPosition.isSunVisible || solarPosition.elevation < SG.MIN_RELIABLE_ELEVATION) {
+    return calculateVenueShadowFromBuildings(geometry, timestamp, null, options);
+  }
+  const buildings = await fetchVenueBuildings(geometry);
+  return calculateVenueShadowFromBuildings(geometry, timestamp, buildings, options);
+}
+
+/**
+ * Pure (no IO) single-shot shadow entrypoint: identical to
+ * {@link calculateVenueShadowForGeometry} but takes an ALREADY-FETCHED building
+ * set (or `null` for an RPC failure) instead of issuing the
+ * `get_buildings_near_point` RPC itself. Lets the Story 9.3 sun-engine fetch
+ * the casters once and reuse them for both the single-shot shadow and the
+ * timeline. Preserves the null behaviour exactly: `buildings === null` →
+ * {@link createShadowDataUnavailableResult}. [Story 9.3 AC1]
+ *
+ * Note: the no-sun / low-elevation early-outs are evaluated FIRST (matching the
+ * fetch-then-compute wrapper), so a `null` building set only surfaces as
+ * data-unavailable when the sun is actually up — exactly as before.
+ */
+export function calculateVenueShadowFromBuildings(
+  geometry: GeoJSON.Polygon,
+  timestamp: Date,
+  buildings: Building[] | null,
+  options: CalculateVenueShadowOptions = {}
+): VenueShadowInfo {
   const venueId = options.venueId ?? 0;
   const solarPosition = calculateSolarPosition(timestamp);
 
@@ -87,8 +146,6 @@ export async function calculateVenueShadowForGeometry(
     return createLowConfidenceResult(venueId, timestamp, solarPosition);
   }
 
-  const searchRadiusDeg = SG.MAX_SHADOW_DISTANCE / 111300.0;
-  const buildings = await fetchNearbyBuildings(geometry, searchRadiusDeg);
   if (buildings === null) {
     return createShadowDataUnavailableResult(venueId, timestamp, solarPosition);
   }
@@ -311,6 +368,11 @@ export async function calculateVenueShadowTimeline(
  * and samples shadows across [startTime, endTime], so a full-day sun-window
  * scan costs a single RPC per venue rather than one RPC per sample. Used by the
  * sun-engine adapter to derive `sunWindow` / `peakTime` for the requested day.
+ *
+ * Thin wrapper: fetches the building set then delegates to the pure
+ * {@link calculateVenueShadowTimelineFromBuildings}. The Story 9.3 sun-engine
+ * bypasses this wrapper and shares ONE {@link fetchVenueBuildings} result with
+ * the single-shot path so a request issues a single building RPC, not two.
  */
 export async function calculateVenueShadowTimelineForGeometry(
   geometry: GeoJSON.Polygon,
@@ -322,9 +384,40 @@ export async function calculateVenueShadowTimelineForGeometry(
   if (startTime >= endTime) throw new Error('Start time must be before end time');
   if (intervalMs <= 0) throw new Error('Interval must be positive');
 
+  const buildings = await fetchVenueBuildings(geometry);
+  return calculateVenueShadowTimelineFromBuildings(
+    geometry,
+    startTime,
+    endTime,
+    intervalMs,
+    buildings,
+    options,
+  );
+}
+
+/**
+ * Pure (no IO) full-day timeline: identical sampling to
+ * {@link calculateVenueShadowTimelineForGeometry} but takes an ALREADY-FETCHED
+ * building set (or `null` for an RPC failure) instead of issuing the RPC. Lets
+ * the Story 9.3 sun-engine reuse the single shared {@link fetchVenueBuildings}
+ * result. Preserves the per-sample null behaviour exactly: when
+ * `buildings === null`, each in-sun sample becomes
+ * {@link createShadowDataUnavailableResult} (matching the pre-9.3 timeline
+ * loop), and the per-sample try/catch neutral-50/50 fallback is unchanged.
+ * [Story 9.3 AC1]
+ */
+export function calculateVenueShadowTimelineFromBuildings(
+  geometry: GeoJSON.Polygon,
+  startTime: Date,
+  endTime: Date,
+  intervalMs: number,
+  buildings: Building[] | null,
+  options: CalculateVenueShadowOptions = {}
+): ShadowTimeline {
+  if (startTime >= endTime) throw new Error('Start time must be before end time');
+  if (intervalMs <= 0) throw new Error('Interval must be positive');
+
   const venueId = options.venueId ?? 0;
-  const searchRadiusDeg = SG.MAX_SHADOW_DISTANCE / 111300.0;
-  const buildings = await fetchNearbyBuildings(geometry, searchRadiusDeg);
 
   const points: ShadowTimelinePoint[] = [];
   let confidenceSum = 0;

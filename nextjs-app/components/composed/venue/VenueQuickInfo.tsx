@@ -15,11 +15,7 @@ import {
   getConfidenceDisplayState,
   type ConfidenceDisplayLabels,
 } from '@/lib/utils/confidence-display';
-import {
-  getPredictionUncertaintyDisplay,
-  type PredictionUncertaintyDisplayLabels,
-} from '@/lib/utils/prediction-uncertainty-display';
-import type { PredictionUncertaintyDto, SunFreshnessMeta } from '@/lib/types/api';
+import type { SunFreshnessMeta } from '@/lib/types/api';
 import { cn } from '@/lib/utils';
 
 export type VenueQuickInfoMode = 'mobile' | 'desktop';
@@ -31,9 +27,12 @@ export type VenueQuickInfoProps = {
   sunTimeRange?: string;
   confidencePercent?: number;
   confidenceMeta?: SunFreshnessMeta;
-  predictionUncertainty?: PredictionUncertaintyDto;
   sunExposurePercent?: number;
   distanceMeters?: number;
+  /** Story 9.5 AC3 (folded into 9.9): the distance is centrum-relative
+   * (Gothenburg fallback), not a real personal fix — annotate it honestly.
+   * Mirrors `VenueCard.distanceIsApproximate`. */
+  distanceIsApproximate?: boolean;
   thumbnail?: {
     alt: string;
     initials: string;
@@ -58,12 +57,14 @@ export type VenueQuickInfoProps = {
     confidenceApproximate: string;
     confidenceUnavailable: string;
     distance: string;
+    /** Story 9.5 AC3 (folded into 9.9): honest "≈ från centrum" annotation
+     * shown alongside the distance value on the Gothenburg-centrum fallback. */
+    distanceApproximate?: string;
     loadingSun: string;
     sunUnavailable: string;
     routeLoading: string;
     favouriteAdd: string;
     favouriteRemove: string;
-    uncertainty?: PredictionUncertaintyDisplayLabels;
   };
 };
 
@@ -76,9 +77,9 @@ export function VenueQuickInfo({
   sunTimeRange,
   confidencePercent,
   confidenceMeta,
-  predictionUncertainty,
   sunExposurePercent,
   distanceMeters,
+  distanceIsApproximate = false,
   thumbnail,
   isLoadingSunData,
   position,
@@ -100,12 +101,13 @@ export function VenueQuickInfo({
     meta: confidenceMeta,
     labels: confidenceDisplayLabels(labels),
   });
-  const uncertaintyDisplay = labels.uncertainty
-    ? getPredictionUncertaintyDisplay({
-        predictionUncertainty,
-        labels: labels.uncertainty,
-      })
-    : null;
+  // Story 9.5 AC3 (folded into 9.9): the honest centrum-relative annotation.
+  // Shown only on the Gothenburg-centrum fallback AND when a label is provided;
+  // the real distance number always stays visible — only the label is qualified.
+  const approximateDistanceLabel =
+    distanceIsApproximate && labels.distanceApproximate && Number.isFinite(distanceMeters)
+      ? labels.distanceApproximate
+      : null;
   const positionedStyle = position
     ? {
         left: position.x,
@@ -145,7 +147,10 @@ export function VenueQuickInfo({
           className={cn(
             'absolute z-base size-11 rounded-pill backdrop-blur-standard shadow-button-sm flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
             isAnchoredMobile
-              ? '-right-4 top-14 bg-text-primary/65 text-white'
+              ? // Story 9.9: match the reference (`src-free/QuickInfo.jsx`
+                // close at top:-14 right:-10) — a floating pill nudged just
+                // above the card's top-right corner, not partway down the side.
+                '-right-3 -top-3 bg-text-primary/65 text-white'
               : cn(
                   onFavouriteToggle ? 'left-2 top-2' : 'right-2 top-2',
                   'bg-glass-standard text-text-primary',
@@ -164,7 +169,7 @@ export function VenueQuickInfo({
           favouriteLabel={isFavourite ? labels.favouriteRemove : labels.favouriteAdd}
           onFavouriteToggle={onFavouriteToggle}
         />
-        <div className={cn(isAnchoredMobile ? 'px-4 pt-3 pb-3' : 'p-4')}>
+        <div className={cn(isAnchoredMobile ? 'px-3 pt-2 pb-2.5' : 'p-4')}>
           <AnimatePresence>
             <motion.div
               key={name}
@@ -178,7 +183,11 @@ export function VenueQuickInfo({
                 onClick={onOpenDetails}
                 className={
                   isAnchoredMobile
-                    ? 'min-h-12 w-full px-2 py-2 text-heading-md text-text-primary text-center outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:rounded-card'
+                    ? // Story 9.9: centered name row matching the reference
+                      // (fontSize 13 / weight 700 / centered). `min-h-12`
+                      // preserves the tap target; padding is tightened to the
+                      // reference's compact rhythm.
+                      'min-h-12 w-full px-2 py-1 text-heading-md text-text-primary text-center outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:rounded-card'
                     : 'min-h-11 w-full text-heading-md text-text-primary text-left outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:rounded-card'
                 }
               >
@@ -228,25 +237,21 @@ export function VenueQuickInfo({
                             : `${labels.distance}: ${formatDistance(distanceMeters)}`}
                         </span>
                       </span>
+                      {approximateDistanceLabel && (
+                        <span
+                          aria-hidden={isAnchoredMobile ? true : undefined}
+                          className={cn(
+                            // text-body, not text-muted: muted (60% alpha) fails
+                            // the axe AA contrast gate on the white card at this size.
+                            'font-normal text-text-body',
+                            isAnchoredMobile ? 'text-label-xs' : 'ml-1 text-label-xs',
+                          )}
+                        >
+                          {isAnchoredMobile ? ' ' : ''}
+                          {approximateDistanceLabel}
+                        </span>
+                      )}
                     </p>
-                    {uncertaintyDisplay && (
-                      <p
-                        className={
-                          isAnchoredMobile
-                            ? 'mt-1 text-center text-label-xs-medium text-text-body'
-                            : 'mt-2 text-body-sm-medium text-text-body'
-                        }
-                      >
-                        <span className="font-bold text-text-primary">
-                          {uncertaintyDisplay.visibleLabel}
-                        </span>
-                        <span className="text-text-faint"> · </span>
-                        <span>{uncertaintyDisplay.visibleSummary}</span>
-                        <span className="sr-only">
-                          {' '}{uncertaintyDisplay.accessibleText}
-                        </span>
-                      </p>
-                    )}
                   </div>
                 )}
               </div>
@@ -371,8 +376,19 @@ function VenueThumbnail({
         </div>
       )}
       {sunExposureText && (
-        <div className="absolute left-3 top-3 rounded-badge bg-amber-gold/90 backdrop-blur-standard px-3 py-1.5 text-display-sm text-amber-cta-text shadow-subtle flex items-center gap-1.5">
-          <Sun aria-hidden="true" className="size-4" />
+        <div
+          className={cn(
+            'absolute rounded-badge bg-amber-gold/90 backdrop-blur-standard text-amber-cta-text shadow-subtle flex items-center',
+            // Story 9.9: on the 72px compact (anchored-mobile) strip, match the
+            // reference's small top-left "% Sol" pill (top:8 left:8, tight
+            // padding) so it never jams against the favourite heart or the
+            // planner slider above the card.
+            compact
+              ? 'left-2 top-2 gap-1 px-2 py-1 text-label-xs-medium'
+              : 'left-3 top-3 gap-1.5 px-3 py-1.5 text-display-sm',
+          )}
+        >
+          <Sun aria-hidden="true" className={compact ? 'size-3' : 'size-4'} />
           {sunExposureText} SOL
         </div>
       )}
@@ -386,7 +402,11 @@ function VenueThumbnail({
             onFavouriteToggle();
           }}
           className={cn(
-            'absolute right-3 top-3 flex size-11 items-center justify-center rounded-pill bg-glass-standard text-text-primary shadow-button-sm backdrop-blur-standard outline-none transition-colors duration-fast ease-default focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none',
+            // Keep the 44px accessible tap target (WCAG) on both strips; only
+            // the edge inset tightens toward the reference (top:8 right:8) on
+            // the compact anchored-mobile strip.
+            'absolute flex size-11 items-center justify-center rounded-pill bg-glass-standard text-text-primary shadow-button-sm backdrop-blur-standard outline-none transition-colors duration-fast ease-default focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none',
+            compact ? 'right-2 top-2' : 'right-3 top-3',
             isFavourite && 'bg-glass-lavender',
           )}
         >

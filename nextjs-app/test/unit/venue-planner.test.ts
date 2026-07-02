@@ -16,6 +16,7 @@ const BASE_VENUE: VenueDataDto = {
   confidence: 92,
   distanceMeters: 0,
   sunExposurePercent: 95,
+  tags: [],
   sunWindow: { start: '13:00', end: '18:30' },
 };
 

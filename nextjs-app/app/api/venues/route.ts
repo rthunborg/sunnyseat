@@ -10,7 +10,6 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'node:crypto';
-import { isIP } from 'node:net';
 import {
   validateLatitude,
   validateLongitude,
@@ -52,13 +51,8 @@ const MAX_QUERY_LENGTH = 80;
 const MAX_ID_LENGTH = 80;
 const MAX_IDS = MAX_RESULTS;
 const MAX_IDS_QUERY_LENGTH = MAX_IDS * (MAX_ID_LENGTH + 1) - 1;
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_REQUESTS = 120;
-const MISSING_CLIENT_RATE_LIMIT_KEY = 'missing-client-ip';
-const RATE_LIMIT_SWEEP_INTERVAL_MS = RATE_LIMIT_WINDOW_MS;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/u;
 const DIACRITIC_PATTERN = /[\u0300-\u036f]/gu;
-let lastRateLimitSweepAt = 0;
 
 const SUN_STATUS_ORDER: Record<VenueDataDto['currentSunStatus'], number> = {
   Sunny: 0,
@@ -140,44 +134,6 @@ function parseIdsFilter(
   return { success: true, value: ids.length > 0 ? ids : undefined };
 }
 
-type RateLimitBucket = {
-  count: number;
-  resetAt: number;
-};
-
-const rateLimitBuckets = new Map<string, RateLimitBucket>();
-
-function clientKeyFromForwardedFor(value: string | null): string {
-  if (value === null) return MISSING_CLIENT_RATE_LIMIT_KEY;
-  const [first] = value.split(',');
-  const candidate = first.trim();
-  if (!candidate || /[\r\n]/.test(candidate) || candidate.length > 64) return 'invalid';
-  if (isIP(candidate) !== 0) return candidate.toLowerCase();
-  return 'invalid';
-}
-
-function checkRateLimit(key: string, now = Date.now()): boolean {
-  if (now - lastRateLimitSweepAt >= RATE_LIMIT_SWEEP_INTERVAL_MS) {
-    for (const [bucketKey, bucket] of rateLimitBuckets) {
-      if (bucket.resetAt <= now) rateLimitBuckets.delete(bucketKey);
-    }
-    lastRateLimitSweepAt = now;
-  }
-  const bucket = rateLimitBuckets.get(key);
-  if (!bucket || bucket.resetAt <= now) {
-    rateLimitBuckets.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return true;
-  }
-  if (bucket.count >= RATE_LIMIT_MAX_REQUESTS) return false;
-  bucket.count += 1;
-  return true;
-}
-
-export function clearVenueRateLimitForTests() {
-  rateLimitBuckets.clear();
-  lastRateLimitSweepAt = 0;
-}
-
 /**
  * Reject a venue set that violates the DB's unique keys before it reaches the
  * map: `id` (the `public.venues` PRIMARY KEY) and `slug` (the unique index
@@ -213,27 +169,18 @@ function weakEtag(input: unknown): string {
   return `W/"${digest}"`;
 }
 
-function clientKeyFromRequest(request: NextRequest): string {
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  if (forwardedFor?.trim()) return clientKeyFromForwardedFor(forwardedFor);
-  const realIp = request.headers.get('x-real-ip');
-  if (realIp?.trim()) return clientKeyFromForwardedFor(realIp);
-  return MISSING_CLIENT_RATE_LIMIT_KEY;
-}
+// STORY 9.3 (AC3, Option A): the per-IP rate limiter that used to live here (an
+// `x-forwarded-for` / `x-real-ip` read + token bucket) has MOVED to `middleware.ts`
+// (Edge), which runs BEFORE the response cache. The GET handler below no longer
+// reads any request header, so it is a pure, header-independent function and its
+// `Cache-Control: public, s-maxage=30` response is now genuinely edge-cacheable
+// (previously the header read forced the route dynamic and the s-maxage was dead).
+// DoS protection (429) + malformed-XFF rejection (400) are preserved in middleware.
+// Staleness window: CDN s-maxage 30s / sun-compute cache 15 min / buildings cache
+// 24h (see `lib/services/sun-engine-cache.ts` + architecture.md Caching Strategy).
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
-
-  const clientKey = clientKeyFromRequest(request);
-  if (clientKey === 'invalid') {
-    return badRequest('Invalid X-Forwarded-For header');
-  }
-  if (!checkRateLimit(clientKey)) {
-    return NextResponse.json(
-      { detail: 'Too many venue requests', status: 429 },
-      { status: 429 },
-    );
-  }
 
   if (params.has('latitude') || params.has('longitude')) {
     return badRequest('Use canonical coordinate parameters: lat and lng');

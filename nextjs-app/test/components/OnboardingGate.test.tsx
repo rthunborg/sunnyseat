@@ -53,6 +53,29 @@ function Wrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Run `fn` with the global `document` shadowed to `undefined` so a
+ * `renderToString` call takes the same "no DOM" branch a real Node SSR render
+ * does. jsdom otherwise leaves `document` defined during `renderToString`,
+ * which does not match production SSR and would make the gate's client-only
+ * `createPortal` path run (portals are not serialised, so the overlay would be
+ * absent from the string). Restored in a `finally` so later tests keep the DOM.
+ */
+function withoutDocument<T>(fn: () => T): T {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  Object.defineProperty(globalThis, 'document', {
+    configurable: true,
+    value: undefined,
+  });
+  try {
+    return fn();
+  } finally {
+    if (descriptor) {
+      Object.defineProperty(globalThis, 'document', descriptor);
+    }
+  }
+}
+
 function renderGate(options?: Parameters<typeof render>[1]) {
   return render(<OnboardingGateWithSuspense />, {
     wrapper: Wrapper,
@@ -98,14 +121,28 @@ describe('<OnboardingGate />', () => {
     expect(await screen.findByTestId('onboarding-screen-stub')).toBeInTheDocument();
   });
 
-  it('server-renders a blocking placeholder while the onboarded flag is unknown', () => {
-    const html = renderToString(
-      <Wrapper>
-        <OnboardingGateWithSuspense />
-      </Wrapper>,
+  it('server-renders the welcome overlay (getServerSnapshot === false), not a placeholder', () => {
+    // Story 9.5 AC1: the synchronous gate uses `getServerSnapshot = false`, so
+    // the server HTML shows the welcome overlay for a first visit and never the
+    // old non-interactive placeholder div. The map is never leaked under a
+    // privacy choice on the server frame.
+    //
+    // The gate portals the overlay to `document.body` on the CLIENT and renders
+    // it INLINE on the server (keyed on `typeof document === 'undefined'`, the
+    // real Node-SSR condition). jsdom leaks a `document` into `renderToString`,
+    // which does NOT match real Next SSR, so shadow it away for the duration of
+    // this render to exercise the true server path (portals are not serialised
+    // by `renderToString`, so the inline path is what puts the overlay in the
+    // SSR HTML).
+    const html = withoutDocument(() =>
+      renderToString(
+        <Wrapper>
+          <OnboardingGateWithSuspense />
+        </Wrapper>,
+      ),
     );
-    expect(html).toContain('data-testid="onboarding-gate-placeholder"');
-    expect(html).toContain('Hitta uteplatser');
+    expect(html).toContain('data-testid="onboarding-screen-stub"');
+    expect(html).not.toContain('data-testid="onboarding-gate-placeholder"');
   });
 
   it('returning user (flag set, no _state): renders nothing', async () => {

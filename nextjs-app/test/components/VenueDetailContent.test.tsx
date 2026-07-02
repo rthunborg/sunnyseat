@@ -5,8 +5,6 @@ import {
   peakTimeFromTimeline,
 } from '@/components/composed/venue/VenueDetailContent';
 import type { VenueDataDto, VenueDetailDto } from '@/lib/types/api';
-import type { PredictionUncertaintyDisplayLabels } from '@/lib/utils/prediction-uncertainty-display';
-import { expectNoSensitiveSourceTerms } from '../setup/sensitive-source-terms';
 
 const LIST_VENUE: VenueDataDto = {
   id: '1',
@@ -21,6 +19,7 @@ const LIST_VENUE: VenueDataDto = {
   confidence: 92,
   distanceMeters: 0,
   sunExposurePercent: 95,
+  tags: [],
   sunWindow: { start: '13:00', end: '18:30' },
   thumbnail: {
     alt: 'Uteservering hos Kafé Magasinet',
@@ -39,7 +38,6 @@ const DETAIL: VenueDetailDto = {
     windows: [{ start: '13:00', end: '18:30', status: 'Sunny' }],
     peakTime: '15:30',
   },
-  shadowWarningMinutes: 45,
 };
 
 const labels = {
@@ -54,7 +52,6 @@ const labels = {
   detailsUnavailable: 'Detaljer saknas',
   openingHours: 'Öppettider',
   address: 'Adress',
-  shadowWarning: 'Blir skuggigt om {minutes} min',
   sunBadge: '{percent}% sol',
   confidence: 'Säkerhet',
   confidenceApproximate: 'cirka',
@@ -64,9 +61,7 @@ const labels = {
   placeholderImageShort: 'Platshållarbild',
   facts: {
     distance: 'AVSTÅND',
-    exposure: 'EXPONERING',
-    bestAt: 'BÄST KL.',
-    outdoorSeats: 'PLATSER UTE',
+    distanceApproximate: '≈ från centrum',
   },
   timeline: {
     ariaLabel: 'Soltider idag',
@@ -77,36 +72,8 @@ const labels = {
   },
 };
 
-const uncertaintyLabels: PredictionUncertaintyDisplayLabels = {
-  description:
-    'Vi räknar på solens läge, byggnadsskuggor och väder. Träd, markiser, parasoller, broar och tillfälliga konstruktioner kan påverka platsen.',
-  accessible: '{label}. {description}',
-  levels: {
-    low: 'Låg osäkerhet',
-    medium: 'Osäker prognos',
-    high: 'Mer osäker prognos',
-  },
-  short: {
-    building_shadow_coverage: 'Byggnadsskuggor mer osäkra',
-    obstruction: 'Lokala hinder kan påverka',
-    weather: 'Vädret gör prognosen osäkrare',
-    other: 'Lokala förhållanden kan påverka',
-  },
-  reasons: {
-    building_shadow_coverage: 'Byggnadsskuggorna är beräknade med begränsad täckning här.',
-    vegetation: 'Träd kan påverka platsen.',
-    awning: 'Markiser kan påverka platsen.',
-    umbrella: 'Parasoller kan påverka platsen.',
-    bridge: 'Broar kan påverka platsen.',
-    temporary_structure: 'Tillfälliga konstruktioner kan påverka platsen.',
-    seasonal_furniture: 'Säsongsmöbler kan påverka platsen.',
-    weather: 'Vädret gör prognosen mer osäker.',
-    other: 'Lokala förhållanden kan påverka platsen.',
-  },
-};
-
 describe('VenueDetailContent', () => {
-  it('renders detail content, warning, maps link, and route CTA', () => {
+  it('renders detail content, the real distance fact, maps link, and route CTA', () => {
     render(
       <VenueDetailContent
         fallbackVenue={LIST_VENUE}
@@ -125,8 +92,13 @@ describe('VenueDetailContent', () => {
     expect(screen.getByText('Stor uteservering med eftermiddagssol.')).toHaveClass('text-body-lg');
     expect(screen.getByText('Solprognos idag')).toHaveClass('text-heading-lg');
     expect(screen.getByText('Innergård')).toBeInTheDocument();
-    expect(screen.getByText('PLATSER UTE')).toBeInTheDocument();
-    expect(screen.getByText('Blir skuggigt om 45 min')).toHaveClass('text-error');
+    // De-bloat sweep (Story 9.1): the fabricated fact cards + dead shadow-warning
+    // line are gone; only the genuine AVSTÅND fact survives.
+    expect(screen.getByText('AVSTÅND')).toBeInTheDocument();
+    expect(screen.queryByText('EXPONERING')).not.toBeInTheDocument();
+    expect(screen.queryByText('BÄST KL.')).not.toBeInTheDocument();
+    expect(screen.queryByText('PLATSER UTE')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Blir skuggigt om/)).not.toBeInTheDocument();
     expect(screen.getByLabelText('95% sol')).toContainHTML('svg');
     expect(screen.queryByText(/Säkerhet:/)).not.toBeInTheDocument();
     expect(screen.getByText('Säkerhet 92%')).toHaveClass('sr-only');
@@ -257,15 +229,15 @@ describe('VenueDetailContent', () => {
     expect(screen.getByLabelText('95% sol')).toBeInTheDocument();
   });
 
-  it('renders a concise uncertainty note near the sun forecast context', () => {
-    const { container } = render(
+  it('does not render the removed uncertainty disclaimer text (Story 9.1 de-bloat)', () => {
+    render(
       <VenueDetailContent
         fallbackVenue={LIST_VENUE}
         detail={{
           ...DETAIL,
           predictionUncertainty: {
             level: 'medium',
-            reasons: ['vegetation', 'source_layer' as never, 'awning', 'seasonal_furniture'],
+            reasons: ['vegetation', 'awning', 'seasonal_furniture'],
           },
         }}
         confidenceMeta={{
@@ -273,19 +245,17 @@ describe('VenueDetailContent', () => {
           weatherUpdatedAt: new Date().toISOString(),
         }}
         currentTime="15:30"
-        labels={{ ...labels, uncertainty: uncertaintyLabels }}
+        labels={labels}
         onRoute={() => undefined}
       />,
     );
 
-    const note = screen.getByText('Osäker prognos').closest('p');
-    expect(note).toHaveTextContent('Lokala hinder kan påverka');
-    expect(note).toHaveTextContent(
-      'Vi räknar på solens läge, byggnadsskuggor och väder',
-    );
-    expect(note).toHaveTextContent('Träd kan påverka platsen');
-    expect(note).toHaveClass('bg-surface-sand');
-    expectNoSensitiveSourceTerms(container);
+    expect(screen.queryByText('Osäker prognos')).not.toBeInTheDocument();
+    expect(screen.queryByText('Lokala hinder kan påverka')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Vi räknar på solens läge/),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Träd kan påverka platsen/)).not.toBeInTheDocument();
   });
 
   it('shows the venue name immediately while detail fields are loading', () => {
@@ -439,6 +409,109 @@ describe('VenueDetailContent', () => {
 
     expect(screen.getByText('Delvis sol 10:00-11:00')).toBeInTheDocument();
     expect(screen.queryByText('Sol 10:00-11:00')).not.toBeInTheDocument();
+  });
+
+  it('keeps the de-bloated mobile fact area to a single full-width AVSTÅND tile with no orphaned cell (Story 9.1 AC #2)', () => {
+    const { container } = render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    // Exactly one FactCard survives (AVSTÅND) — the EXPONERING / BÄST KL. /
+    // PLATSER UTE tiles are gone, so there is no 2-col grid leaving an empty cell.
+    const factLabels = screen.getAllByText('AVSTÅND');
+    expect(factLabels).toHaveLength(1);
+    const factCard = factLabels[0].closest('section');
+    expect(factCard).not.toBeNull();
+    // The surviving tile is not wrapped in a grid-cols-2 container (no orphaned cell).
+    expect(container.querySelector('.grid-cols-2')).toBeNull();
+    // The fabricated-fact icons (Compass exposure, Armchair seats) are gone.
+    expect(screen.queryByText('EXPONERING')).not.toBeInTheDocument();
+    expect(screen.queryByText('PLATSER UTE')).not.toBeInTheDocument();
+    expect(screen.queryByText('BÄST KL.')).not.toBeInTheDocument();
+    // The real distance value still renders inside the surviving tile (a metres
+    // figure), proving the kept signal is intact after the de-bloat.
+    expect(factCard?.textContent).toMatch(/\d+\s?m|\d+(?:\.\d+)?\s?km/);
+  });
+
+  it('removes the desktop EXPONERING row and the mobile-only AVSTÅND fact while keeping confidence in desktop mode (Story 9.1 AC #1)', () => {
+    render(
+      <VenueDetailContent
+        mode="desktop"
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    // Desktop EXPONERING DetailRow + the fabricated fact labels are absent.
+    expect(screen.queryByText('EXPONERING')).not.toBeInTheDocument();
+    expect(screen.queryByText('BÄST KL.')).not.toBeInTheDocument();
+    expect(screen.queryByText('PLATSER UTE')).not.toBeInTheDocument();
+    // The AVSTÅND FactCard is mobile-only — it must not appear in desktop mode.
+    expect(screen.queryByText('AVSTÅND')).not.toBeInTheDocument();
+    // No dead shadow-warning copy in desktop either.
+    expect(screen.queryByText(/Blir skuggigt om/)).not.toBeInTheDocument();
+    // The preserved confidence signal still renders (announced once, sr-only).
+    expect(screen.getByText('Säkerhet 92%')).toHaveClass('sr-only');
+    expect(screen.queryByText(/Säkerhet:/)).not.toBeInTheDocument();
+    // The kept opening-hours and address rows survive (they back genuine signals).
+    expect(screen.getByText('Öppettider')).toBeInTheDocument();
+    expect(screen.getByText('Adress')).toBeInTheDocument();
+  });
+
+  it('qualifies the Avstånd card honestly on the centrum fallback (Story 9.5 AC3)', () => {
+    const { rerender } = render(
+      <VenueDetailContent
+        fallbackVenue={{ ...LIST_VENUE, distanceMeters: 250 }}
+        detail={{ ...DETAIL, distanceMeters: 250 }}
+        distanceIsApproximate
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    const factCard = screen.getByText('AVSTÅND').closest('section');
+    expect(factCard).toHaveTextContent('≈ från centrum');
+
+    // A real personal fix does not qualify the distance.
+    rerender(
+      <VenueDetailContent
+        fallbackVenue={{ ...LIST_VENUE, distanceMeters: 250 }}
+        detail={{ ...DETAIL, distanceMeters: 250 }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+    expect(screen.queryByText('≈ från centrum')).toBeNull();
+  });
+
+  it('does not qualify the Avstånd card when the distance is non-numeric (NaN)', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={{ ...LIST_VENUE, distanceMeters: Number.NaN }}
+        detail={{ ...DETAIL, distanceMeters: Number.NaN }}
+        distanceIsApproximate
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.queryByText('≈ från centrum')).toBeNull();
   });
 
   it('does not render future partner badges in active venue detail runtime', () => {

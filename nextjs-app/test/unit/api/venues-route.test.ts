@@ -1,10 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import {
-  clearVenueRateLimitForTests,
-  GET,
-  validateVenueUniqueness,
-} from '@/app/api/venues/route';
+import { GET, validateVenueUniqueness } from '@/app/api/venues/route';
+import { venueRateLimitMiddleware as middleware } from '@/lib/utils/venue-rate-limit-middleware';
+import { clearVenueRateLimitForTests } from '@/lib/utils/rate-limit';
 import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
 import { sunSeasonBounds } from '@/lib/utils/time-planner';
 import type { GetVenuesResponse, VenueDataDto } from '@/lib/types/api';
@@ -23,6 +21,28 @@ describe('GET /api/venues', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('carries real tags on each venue DTO and does NOT tag-filter server-side (Story 9.7)', async () => {
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+
+    // Every DTO exposes `tags` as an array (required field, never undefined).
+    for (const venue of body.venues) {
+      expect(Array.isArray(venue.tags)).toBe(true);
+    }
+    // The fixture gate venue carries its real seeded tags.
+    const gate = body.venues.find((v) => v.slug === 'test-venue-sunny');
+    expect(gate?.tags).toEqual(['Innergård', 'Hund ok', 'Wifi', 'Bakverk']);
+
+    // With no tag param the route returns ALL in-radius venues unchanged — tag
+    // filtering is CLIENT-side, so a `?tags=` param has no server effect.
+    const withTagParam = await GET(
+      makeRequest('?lat=57.7089&lng=11.9746&tags=NoSuchTag'),
+    );
+    const withTagBody = (await withTagParam.json()) as GetVenuesResponse;
+    expect(withTagBody.venues.length).toBe(body.venues.length);
   });
 
   it('returns 200 with sun-status-sorted venues for a valid lat/lng', async () => {
@@ -112,21 +132,24 @@ describe('GET /api/venues', () => {
     expect(body.detail).toMatch(/lat and lng/i);
   });
 
-  it('rejects malformed X-Forwarded-For instead of trusting it as a key', async () => {
-    const res = await GET(
+  // STORY 9.3 (AC3, Option A): the per-IP limiter + malformed-XFF rejection MOVED
+  // from the GET handler to `middleware.ts` (Edge) so the GET response is no longer
+  // dynamic and the s-maxage=30 header is genuinely edge-cacheable. These tests now
+  // drive the relocated limiter via `middleware()`; the route handler itself no
+  // longer reads the forwarding headers (covered by the AC3 edge-cacheable specs).
+  it('rejects malformed X-Forwarded-For in middleware instead of trusting it as a key', () => {
+    const res = middleware(
       makeRequest('?lat=57.7089&lng=11.9746', {
         'X-Forwarded-For': '999.999.999.999',
       }),
     );
     expect(res.status).toBe(400);
-    const body = (await res.json()) as { detail: string };
-    expect(body.detail).toMatch(/x-forwarded-for/i);
   });
 
-  it('rate-limits repeated requests from the same forwarded IP', async () => {
-    let last: Response | null = null;
+  it('rate-limits repeated requests from the same forwarded IP (middleware)', () => {
+    let last: ReturnType<typeof middleware> | null = null;
     for (let i = 0; i < 121; i++) {
-      last = await GET(
+      last = middleware(
         makeRequest('?lat=57.7089&lng=11.9746', {
           'X-Forwarded-For': '203.0.113.8',
         }),
@@ -135,18 +158,18 @@ describe('GET /api/venues', () => {
     expect(last?.status).toBe(429);
   });
 
-  it('rate-limits requests without forwarded headers through a fallback bucket', async () => {
-    let last: Response | null = null;
+  it('rate-limits requests without forwarded headers through a fallback bucket (middleware)', () => {
+    let last: ReturnType<typeof middleware> | null = null;
     for (let i = 0; i < 121; i++) {
-      last = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
+      last = middleware(makeRequest('?lat=57.7089&lng=11.9746'));
     }
     expect(last?.status).toBe(429);
   });
 
-  it('falls back to X-Real-IP when X-Forwarded-For is blank', async () => {
-    let last: Response | null = null;
+  it('falls back to X-Real-IP when X-Forwarded-For is blank (middleware)', () => {
+    let last: ReturnType<typeof middleware> | null = null;
     for (let i = 0; i < 121; i++) {
-      last = await GET(
+      last = middleware(
         makeRequest('?lat=57.7089&lng=11.9746', {
           'X-Forwarded-For': '   ',
           'X-Real-IP': '203.0.113.44',
@@ -154,6 +177,44 @@ describe('GET /api/venues', () => {
       );
     }
     expect(last?.status).toBe(429);
+  });
+
+  // Epic 9 review fix: the read bucket is scoped to GET only. The proxy matcher
+  // also routes mutation subpaths (POST /api/venues/[slug]/feedback) through this
+  // middleware — those must NOT share the read quota, or heavy browsing could 429
+  // a feedback submission (and vice-versa).
+  it('does NOT rate-limit non-GET (mutation) requests — the feedback POST passes through the edge limiter, not subject to the GET read bucket', () => {
+    const makePost = () =>
+      new NextRequest('http://localhost/api/venues/test-venue/feedback', {
+        method: 'POST',
+        headers: { 'X-Forwarded-For': '203.0.113.99' },
+      });
+    let last: ReturnType<typeof middleware> | null = null;
+    // Far past the GET bucket (120/60s) — a POST is never throttled by this bucket.
+    for (let i = 0; i < 200; i++) {
+      last = middleware(makePost());
+    }
+    expect(last?.status).not.toBe(429);
+    expect(last?.status).not.toBe(400);
+  });
+
+  it('a flood of GET reads does not consume the POST mutation quota', () => {
+    // Exhaust the GET bucket for an IP...
+    let getLast: ReturnType<typeof middleware> | null = null;
+    for (let i = 0; i < 121; i++) {
+      getLast = middleware(
+        makeRequest('?lat=57.7089&lng=11.9746', { 'X-Forwarded-For': '203.0.113.7' }),
+      );
+    }
+    expect(getLast?.status).toBe(429);
+    // ...a POST from the SAME IP still passes (separate concern, no shared 429).
+    const postRes = middleware(
+      new NextRequest('http://localhost/api/venues/test-venue/feedback', {
+        method: 'POST',
+        headers: { 'X-Forwarded-For': '203.0.113.7' },
+      }),
+    );
+    expect(postRes.status).not.toBe(429);
   });
 
   it('normalizes optional display fields before returning venues', async () => {
@@ -485,6 +546,7 @@ function makeVenue({
     confidence: 90,
     distanceMeters: 0,
     sunExposurePercent: 90,
+    tags: [],
   };
 }
 

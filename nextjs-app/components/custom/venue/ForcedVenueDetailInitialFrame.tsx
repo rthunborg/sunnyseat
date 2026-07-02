@@ -148,6 +148,9 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     close: t('detail.close'),
     favourite: t('detail.favourite'),
     share: t('detail.share'),
+    // No `shareText`: the forced frame renders only a static, non-interactive
+    // share button (initial-paint screenshot surface) — no live ShareModal or
+    // native share is wired here, so a share-text label would be dead threading.
     sectionTitle: t('detail.sectionTitle'),
     peakTime: t('detail.peakTime', { time: '{time}' }),
     openMaps: t('detail.openMaps'),
@@ -158,7 +161,6 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     detailsUnavailable: t('detail.detailsUnavailable'),
     openingHours: t('detail.openingHours'),
     address: t('detail.address'),
-    shadowWarning: t('detail.shadowWarning', { minutes: '{minutes}' }),
     sunBadge: t('detail.sunBadge', { percent: '{percent}' }),
     confidence: t('detail.confidence'),
     confidenceApproximate: t('detail.confidenceApproximate'),
@@ -168,9 +170,6 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     placeholderImageShort: t('detail.placeholderImageShort'),
     facts: {
       distance: t('detail.facts.distance'),
-      exposure: t('detail.facts.exposure'),
-      bestAt: t('detail.facts.bestAt'),
-      outdoorSeats: t('detail.facts.outdoorSeats'),
     },
     timeline: {
       ariaLabel: t('detail.timeline.ariaLabel'),

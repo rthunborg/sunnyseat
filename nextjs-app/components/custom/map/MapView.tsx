@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { AnimatePresence } from 'motion/react';
 import { useSearchParams } from 'next/navigation';
@@ -36,6 +36,7 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
+import { useTagFilter } from '@/lib/contexts/TagFilterContext';
 import { useTimeContext } from '@/lib/contexts/TimeContext';
 import { type VenuePinData } from '@/lib/types/map';
 import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
@@ -59,10 +60,12 @@ import { useForcedState } from '@/lib/dev/use-forced-state';
 import { cn } from '@/lib/utils';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
 import { mapVenueDtoToPinData } from '@/lib/utils/venue-pin-mapping';
+import { filterVenuesByTags } from '@/lib/utils/venue-tags';
 import { OfflineBanner } from '@/components/custom/offline/OfflineBanner';
 import { MapContainer } from './MapContainer';
 import { MapLoadingFallback } from './MapLoadingFallback';
 import { VenuePinLayer } from './VenuePinLayer';
+import { UserLocationLayer } from './UserLocationLayer';
 import { MapControls } from './MapControls';
 
 const SLOW_LOAD_PILL_MS = 3000;
@@ -73,9 +76,30 @@ const QUICK_INFO_DESKTOP_PIN_GAP = 56;
 const QUICK_INFO_DESKTOP_VIEWPORT_GUTTER = 16;
 const QUICK_INFO_MOBILE_WIDTH = 230;
 const QUICK_INFO_MOBILE_HEIGHT_ESTIMATE = 170;
-const QUICK_INFO_MOBILE_PIN_GAP = 56;
-const QUICK_INFO_MOBILE_TOP_CLEARANCE = 192;
+// The anchored mobile card renders ABOVE the pin via
+// `translate(-50%, calc(-100% - 40px))` (VenueQuickInfo). So for a projected
+// pin at `y`, the card's rendered TOP edge is `y - cardHeight - 40`. This gap
+// must match the transform's `40px` so the clearance math below stays honest.
+const QUICK_INFO_MOBILE_ANCHOR_GAP = 40;
 const QUICK_INFO_MOBILE_VIEWPORT_GUTTER = 16;
+// Story 9.9 AC3 — planner-panel collision. The mobile "Planera soltid"
+// TimeSliderPanel is positioned at `top: safe-area + var(--spacing)*18`
+// (= safe-area + 72px) and the mobile search shell sits above it. The smoke
+// test found the quick-info card's sun-% badge jamming UNDER the slider, so we
+// derive the card's minimum `y` from the planner-panel BOTTOM rather than a
+// bare magic clearance: the card TOP (`y - cardHeight - 40`) must sit at least
+// one gutter BELOW the planner bottom at common mobile heights.
+//   planner bottom ≈ SAFE_AREA_MAX + PLANNER_TOP_OFFSET + PLANNER_HEIGHT
+// SAFE_AREA_MAX covers the tallest common notch inset (~59px); PLANNER_TOP_OFFSET
+// mirrors `var(--spacing)*18 = 72px`; PLANNER_HEIGHT is the mobile panel's own
+// rendered height (`pt-5 pb-2` + a 44px slider/calendar row ≈ 80px). Keep these
+// in sync with TimeSliderPanel's mobile offset (MapView.tsx ~line 872) — if that
+// `top-[…*18]` offset or the panel padding changes, update these.
+const MOBILE_SAFE_AREA_MAX_PX = 59;
+const MOBILE_PLANNER_TOP_OFFSET_PX = 72;
+const MOBILE_PLANNER_HEIGHT_PX = 80;
+const QUICK_INFO_MOBILE_PLANNER_BOTTOM_PX =
+  MOBILE_SAFE_AREA_MAX_PX + MOBILE_PLANNER_TOP_OFFSET_PX + MOBILE_PLANNER_HEIGHT_PX;
 const MOBILE_NAV_HEIGHT_PX = 52;
 const MOBILE_SHEET_MID_HEIGHT_PX = 320;
 const FORCED_VISUAL_CONFIDENCE_META: SunFreshnessMeta = {
@@ -120,6 +144,7 @@ export function MapView() {
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
   const { selectedVenueId, selectedVenuePreview, selectVenue } = useMapSelection();
+  const { activeTags } = useTagFilter();
   const plannerTime = useTimeContext();
   const favourites = useFavourites();
   const router = useRouter();
@@ -164,18 +189,65 @@ export function MapView() {
     forcedState === 'map-primary' ||
     forcedState === 'map-panel-venues' ||
     forcedState === 'map-with-selected-venue';
+  // Story 9.4 AC2: gate the FIRST venue fetch until the user's location has
+  // resolved to a real value (`success`) or the centrum fallback. While the
+  // status is `idle`/`pending` the fallback-centrum key and the eventual
+  // real-GPS key would otherwise both fire — two round-trips on first paint.
+  // The gate releases on the FIRST settled status (never waits indefinitely),
+  // so a fallback user still gets exactly one prompt fetch at centrum, and a
+  // permission-grant-after-fallback transition is masked by `keepPreviousData`.
+  const coordsSettled =
+    geolocation.status === 'success' || geolocation.status === 'fallback';
+  // Story 9.5 AC3: on the Gothenburg-centrum fallback the venue distances are
+  // centrum-relative, not a real personal fix — the list annotates them
+  // "≈ från centrum" so the number is honest. Only the LABEL changes; the
+  // value (still the centrum-relative distance) is never hidden.
+  const locationIsApproximate = geolocation.status === 'fallback';
+  // Story 9.4 AC3: defer the planner key that drives the venue queries so a
+  // rapid drag (each snapped 15-min step flips `plannerTime.plannerQuery`)
+  // enqueues at most ONE fetch after the user settles. The slider thumb +
+  // time badge keep updating live off `selectedMinutes`/`selectedTime`; only
+  // the query-driving copy is deferred. `keepPreviousData` masks the
+  // in-between renders. Deferring the SAME `plannerQuery` the context already
+  // derives from `isLiveNow` preserves the "live now" semantics for free:
+  // settling back to the current wall-clock time defers to `undefined` (the
+  // planner-less live key), settling off it defers to a single planner key.
+  const deferredPlanner = useDeferredValue(plannerTime.plannerQuery);
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
     radiusKm: SEARCH_RADIUS_KM,
-    ...plannerTime.plannerQuery,
+    enabled: coordsSettled,
+    ...deferredPlanner,
   });
+  // Story 9.4 AC1: when the favourited venues are already present in the
+  // loaded Närmast list (the common case — the live store holds a handful of
+  // venues, so favourites are almost always a subset of what is loaded),
+  // render Favoriter by filtering the loaded list rather than firing a fresh
+  // `/api/venues?ids=…`. Only fall back to the network favourites query when a
+  // favourited id is NOT in the loaded list (a favourite outside the search
+  // radius, or a cold `/favoriter` deep link with no list yet). This keeps the
+  // Närmast↔Favoriter toggle instant and issues 0 new requests when loaded.
+  const loadedVenueIds = useMemo(() => {
+    const rows = venueQuery.data?.venues;
+    return new Set(Array.isArray(rows) ? rows.map((venue) => venue.id) : []);
+  }, [venueQuery.data?.venues]);
+  const favouritesAllInLoadedList = favourites.favouriteIds.every((id) =>
+    loadedVenueIds.has(id),
+  );
+  // Enable the network favourites query only when we actually need it: the
+  // favourites view is active AND at least one favourited id is missing from
+  // the loaded list (so the derive-from-list path cannot cover it). Coordinate
+  // gating (AC2) still applies so a cold `/favoriter` entry waits for a
+  // settled location before its single fetch.
+  const needsFavouriteFetch =
+    listMode === 'favourites' && !favouritesAllInLoadedList;
   const favouriteVenueQuery = useFavouriteVenues({
     ids: favourites.favouriteIds,
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
-    enabled: listMode === 'favourites',
-    ...plannerTime.plannerQuery,
+    enabled: coordsSettled && needsFavouriteFetch,
+    ...deferredPlanner,
   });
 
   // Show the loading skeleton until MapLibre paints its first non-metadata
@@ -258,10 +330,62 @@ export function MapView() {
   // (real Supabase rows in 2.x will sometimes have NULL geometry until
   // backfilled). Skip those rather than crash the entire map.
   const rawVenues = venueQuery.data?.venues;
-  const favouriteListConfidenceMeta = favouriteVenueQuery.data?.meta;
-  const favouriteVenueRows = Array.isArray(favouriteVenueQuery.data?.venues)
+  // Story 9.7: apply the shared tag filter to the loaded Närmast list ONCE, so
+  // BOTH the venue lists (desktop + mobile) AND the map pins derive from the same
+  // filtered source. Pure client `.filter()` over already-fetched data — issues
+  // ZERO new network requests (Story 9.4 fetch-hygiene spine untouched). With no
+  // active chip this is a pass-through (AC4 no-op: ALL venues, incl. tag-less
+  // ones); with ≥1 active chip a venue is kept iff its tags intersect the
+  // selection (OR/union — AC3). No match → [] → the existing `venue.list.empty`
+  // state renders. The favourites NETWORK path is intentionally left unfiltered
+  // (scope decision — see Task 6 Completion Notes): tag filtering is scoped to
+  // the Närmast list + pins, avoiding double-filtering the favourites surface.
+  const tagFilteredVenues = useMemo(() => {
+    if (!Array.isArray(rawVenues)) return rawVenues;
+    return filterVenuesByTags(rawVenues, activeTags);
+  }, [activeTags, rawVenues]);
+  // Confidence meta for the favourites surface: prefer the network favourites
+  // query's meta when it ran (out-of-radius / cold deep-link), otherwise fall
+  // back to the loaded list meta, since AC1 may source the rows entirely from
+  // the Närmast list cache without a favourites fetch.
+  const favouriteListConfidenceMeta =
+    favouriteVenueQuery.data?.meta ?? venueQuery.data?.meta;
+  // Story 9.4 AC1: build the favourites rows by preferring the loaded Närmast
+  // list (no extra fetch when the favourites are already loaded — the common
+  // case) and only topping up with the network favourites query for ids the
+  // loaded list does not cover (out-of-radius favourites / cold `/favoriter`
+  // deep link). This keeps the Närmast↔Favoriter toggle instant: when every
+  // favourite is in the list cache the favourites query stays disabled and
+  // these rows come straight from `rawVenues`.
+  const favouriteIdsForRows = favourites.favouriteIds;
+  const networkFavouriteRows = Array.isArray(favouriteVenueQuery.data?.venues)
     ? favouriteVenueQuery.data.venues
     : EMPTY_VENUES;
+  const favouriteVenueRows = useMemo<VenueDataDto[]>(() => {
+    const allowed = new Set(favouriteIdsForRows);
+    if (allowed.size === 0) return EMPTY_VENUES;
+    const seen = new Set<string>();
+    const rows: VenueDataDto[] = [];
+    // List cache first — these are the freshly-loaded rows for the current
+    // coords/planner, so they take precedence over a possibly-stale network
+    // favourites payload for the same id.
+    if (Array.isArray(rawVenues)) {
+      for (const venue of rawVenues) {
+        if (allowed.has(venue.id) && !seen.has(venue.id)) {
+          seen.add(venue.id);
+          rows.push(venue);
+        }
+      }
+    }
+    // Top up with any network favourite rows the list did not cover.
+    for (const venue of networkFavouriteRows) {
+      if (allowed.has(venue.id) && !seen.has(venue.id)) {
+        seen.add(venue.id);
+        rows.push(venue);
+      }
+    }
+    return rows.length === 0 ? EMPTY_VENUES : rows;
+  }, [favouriteIdsForRows, networkFavouriteRows, rawVenues]);
   const activeFavouriteVenueRows = listMode === 'favourites'
     ? favouriteVenueRows
     : EMPTY_VENUES;
@@ -299,7 +423,11 @@ export function MapView() {
   }, [selectedPreviewDetailQuery.data?.venue, selectedPreviewSlug, selectedVenuePreview]);
   const selectedVenuePreviewForMap = refreshedSelectedVenuePreview ?? selectedVenuePreview;
   const venueDtosForMap = useMemo(() => {
-    const base = Array.isArray(rawVenues) ? rawVenues : [];
+    // Story 9.7: pins derive from the tag-filtered Närmast list, so an active
+    // chip filters the map pins identically to the venue list (AC3). The
+    // favourites-mode rows + the selected-preview venue are still merged in so a
+    // selected/favourited pin does not vanish when a chip is toggled.
+    const base = Array.isArray(tagFilteredVenues) ? tagFilteredVenues : [];
     const seenIds = new Set(base.map((venue) => venue.id));
     const extraVenues: VenueDataDto[] = [];
 
@@ -317,7 +445,7 @@ export function MapView() {
       return base;
     }
     return [...base, ...extraVenues];
-  }, [activeFavouriteVenueRows, rawVenues, selectedVenuePreviewForMap]);
+  }, [activeFavouriteVenueRows, tagFilteredVenues, selectedVenuePreviewForMap]);
   const forceSunnyVisualPins = shouldUseForcedSunnyMapPins(forcedState);
   const venues = useMemo<VenuePinData[]>(() => {
     return venueDtosForMap.flatMap((v) => {
@@ -484,7 +612,16 @@ export function MapView() {
   }, [forcedState, rawVenues, selectVenue, selectedVenuePreview, venueSlugParam]);
 
   useEffect(() => {
-    if (!mapInstance || !selectedVenueDto) {
+    // Story 9.10 Task 3: guard against a selected venue whose coordinates are
+    // null / non-finite (the `?venue=<slug>` deep-link at :604 selects a match
+    // WITHOUT a location check, and real venue rows can carry a null lat/lng
+    // despite the `CoordinatesDto` type). Without this guard,
+    // `mapInstance.project([null, null])` fires MapLibre's "Expected value to
+    // be of type number, but found null" warning — once on the effect run and
+    // again on every `move`/`zoom` (the 3× warning observed live, epics.md:2359).
+    // Skip positioning entirely (same as the no-selection branch) so the sibling
+    // `easeTo` guard (`hasValidVenueLocation`, :696) and this stay symmetric.
+    if (!mapInstance || !selectedVenueDto || !hasValidVenueLocation(selectedVenueDto)) {
       setQuickInfoPosition(undefined);
       setQuickInfoDesktopPlacement('above');
       return;
@@ -509,10 +646,14 @@ export function MapView() {
         ? QUICK_INFO_DESKTOP_HEIGHT_ESTIMATE +
           QUICK_INFO_DESKTOP_PIN_GAP +
           QUICK_INFO_DESKTOP_VIEWPORT_GUTTER
-        : QUICK_INFO_MOBILE_HEIGHT_ESTIMATE +
-          QUICK_INFO_MOBILE_PIN_GAP +
-          QUICK_INFO_MOBILE_TOP_CLEARANCE +
-          QUICK_INFO_MOBILE_VIEWPORT_GUTTER;
+        : // Story 9.9 AC3: the card TOP renders at `y - cardHeight - anchorGap`.
+          // Require that top to sit a gutter BELOW the planner-panel bottom, so
+          // `minY = plannerBottom + gutter + cardHeight + anchorGap`. This keeps
+          // the sun-% badge (top-left of the card) clear of the slider above it.
+          QUICK_INFO_MOBILE_PLANNER_BOTTOM_PX +
+          QUICK_INFO_MOBILE_VIEWPORT_GUTTER +
+          QUICK_INFO_MOBILE_HEIGHT_ESTIMATE +
+          QUICK_INFO_MOBILE_ANCHOR_GAP;
       const maxY = isDesktopViewport
         ? height - QUICK_INFO_DESKTOP_VIEWPORT_GUTTER
         : Math.max(
@@ -571,12 +712,17 @@ export function MapView() {
 
   const listVenues = useMemo(
     () => {
-      const validVenues = Array.isArray(rawVenues) ? rawVenues.filter(hasValidVenueLocation) : [];
+      // Story 9.7: desktop + mobile lists derive from the tag-filtered set, so an
+      // active chip filters the list identically to the pins (AC3). Empty result
+      // → `venue.list.empty` renders via VenueList's existing empty path.
+      const validVenues = Array.isArray(tagFilteredVenues)
+        ? tagFilteredVenues.filter(hasValidVenueLocation)
+        : [];
       return isForcedVisualReference
         ? validVenues.map(normalizeForcedVisualVenue)
         : validVenues;
     },
-    [isForcedVisualReference, rawVenues],
+    [isForcedVisualReference, tagFilteredVenues],
   );
   const listConfidenceMeta = isForcedVisualReference
     ? FORCED_VISUAL_CONFIDENCE_META
@@ -743,6 +889,11 @@ export function MapView() {
       {!showOfflineShell && (
         <>
       <VenuePinLayer venues={venues} />
+      {/* Story 9.5 AC2: the amber user-location dot. Gated on a real GPS fix
+          (`status === 'success'`) so it is NOT drawn while sitting on the
+          Gothenburg-centrum fallback / idle / pending. Additive only — the
+          fly-to recenter lives in OnboardingGate + MapControls. */}
+      <UserLocationLayer status={geolocation.status} coords={geolocation.coords} />
       {!isForcedVisualReference && (
         <VenueSearchShell
           variant="mobile"
@@ -789,6 +940,7 @@ export function MapView() {
             mode="mobile"
             sortMode={effectiveSortMode}
             confidenceMeta={favouriteListConfidenceMeta}
+            locationIsApproximate={locationIsApproximate}
             isLoading={isFavouriteListLoading}
             isError={favouriteVenueQuery.isError}
             onRetry={() => favouriteVenueQuery.refetch()}
@@ -805,6 +957,7 @@ export function MapView() {
             sortMode={effectiveSortMode}
             confidenceMeta={listConfidenceMeta}
             showVisibleConfidence={!isForcedVisualReference}
+            locationIsApproximate={locationIsApproximate}
             isLoading={venueQuery.isFetching && listVenues.length === 0}
             animateCards={mobileSheetState === 'full'}
             compactCards={mobileSheetState === 'peek'}
@@ -834,6 +987,7 @@ export function MapView() {
               mode="desktop"
               sortMode={effectiveSortMode}
               confidenceMeta={favouriteListConfidenceMeta}
+              locationIsApproximate={locationIsApproximate}
               isLoading={isFavouriteListLoading}
               isError={favouriteVenueQuery.isError}
               onRetry={() => favouriteVenueQuery.refetch()}
@@ -848,6 +1002,7 @@ export function MapView() {
               sortMode={effectiveSortMode}
               confidenceMeta={listConfidenceMeta}
               showVisibleConfidence={!isForcedVisualReference}
+              locationIsApproximate={locationIsApproximate}
               isLoading={venueQuery.isFetching && listVenues.length === 0}
               onSelectVenue={handleSelectVenueFromList}
               onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
@@ -876,6 +1031,7 @@ export function MapView() {
               detailFavouriteId ? () => favourites.toggleFavourite(detailFavouriteId) : undefined
             }
             locale={locale}
+            distanceIsApproximate={locationIsApproximate}
             feedbackSlot={renderFeedbackSlot('mobile')}
             reviewSlot={renderReviewSlot('mobile')}
           />
@@ -899,6 +1055,7 @@ export function MapView() {
               detailFavouriteId ? () => favourites.toggleFavourite(detailFavouriteId) : undefined
             }
             locale={locale}
+            distanceIsApproximate={locationIsApproximate}
             feedbackSlot={renderFeedbackSlot('desktop')}
             reviewSlot={renderReviewSlot('desktop')}
           />
@@ -911,9 +1068,9 @@ export function MapView() {
             sunTimeRange={resolveSunTimeRange(selectedQuickInfoVenue, quickInfoSunWindowTemplate)}
             confidencePercent={selectedQuickInfoVenue?.confidence}
             confidenceMeta={quickInfoConfidenceMeta}
-            predictionUncertainty={selectedQuickInfoVenue?.predictionUncertainty}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
+            distanceIsApproximate={locationIsApproximate}
             thumbnail={selectedQuickInfoVenue?.thumbnail}
             isLoadingSunData={!selectedQuickInfoVenue}
             position={quickInfoPosition}
@@ -939,9 +1096,9 @@ export function MapView() {
             sunTimeRange={resolveSunTimeRange(selectedQuickInfoVenue, quickInfoSunWindowTemplate)}
             confidencePercent={selectedQuickInfoVenue?.confidence}
             confidenceMeta={quickInfoConfidenceMeta}
-            predictionUncertainty={selectedQuickInfoVenue?.predictionUncertainty}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
+            distanceIsApproximate={locationIsApproximate}
             thumbnail={selectedQuickInfoVenue?.thumbnail}
             isLoadingSunData={!selectedQuickInfoVenue}
             position={quickInfoPosition}
@@ -1054,6 +1211,7 @@ function fallbackVenueFromSlug(slug: string): VenueDataDto {
     confidence: 0,
     distanceMeters: Number.NaN,
     sunExposurePercent: 0,
+    tags: [],
     thumbnail: { alt: name, initials: name.slice(0, 2) },
   };
 }
@@ -1119,12 +1277,12 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     confidenceApproximate: t('quickInfo.confidenceApproximate'),
     confidenceUnavailable: t('quickInfo.confidenceUnavailable'),
     distance: t('quickInfo.distance'),
+    distanceApproximate: t('quickInfo.distanceApproximate'),
     loadingSun: t('quickInfo.loadingSun'),
     sunUnavailable: t('quickInfo.sunUnavailable'),
     routeLoading: t('route.loading'),
     favouriteAdd: t('list.favouriteAdd'),
     favouriteRemove: t('list.favouriteRemove'),
-    uncertainty: predictionUncertaintyLabels(t),
   };
 }
 
@@ -1135,6 +1293,7 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     favouriteAdd: t('detail.favouriteAdd'),
     favouriteRemove: t('detail.favouriteRemove'),
     share: t('detail.share'),
+    shareText: t('detail.shareModal.shareText', { name: '{name}' }),
     sectionTitle: t('detail.sectionTitle'),
     peakTime: t('detail.peakTime', { time: '{time}' }),
     bestWindow: t('detail.bestWindow', { start: '{start}', end: '{end}' }),
@@ -1146,7 +1305,6 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     detailsUnavailable: t('detail.detailsUnavailable'),
     openingHours: t('detail.openingHours'),
     address: t('detail.address'),
-    shadowWarning: t('detail.shadowWarning', { minutes: '{minutes}' }),
     sunBadge: t('detail.sunBadge', { percent: '{percent}' }),
     confidence: t('detail.confidence'),
     confidenceApproximate: t('detail.confidenceApproximate'),
@@ -1156,9 +1314,7 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     placeholderImageShort: t('detail.placeholderImageShort'),
     facts: {
       distance: t('detail.facts.distance'),
-      exposure: t('detail.facts.exposure'),
-      bestAt: t('detail.facts.bestAt'),
-      outdoorSeats: t('detail.facts.outdoorSeats'),
+      distanceApproximate: t('detail.facts.distanceApproximate'),
     },
     timeline: {
       ariaLabel: t('detail.timeline.ariaLabel'),
@@ -1167,7 +1323,6 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
       partialWindow: t('detail.timeline.partialWindow', { start: '{start}', end: '{end}' }),
       shadedWindow: t('detail.timeline.shadedWindow', { start: '{start}', end: '{end}' }),
     },
-    uncertainty: predictionUncertaintyLabels(t),
   };
 }
 
@@ -1326,8 +1481,6 @@ function venueListControlLabels(t: ReturnType<typeof useTranslations<'venue.list
     topPicks: t('controls.topPicks'),
     sortBySun: t('controls.sortBySun'),
     sortByDistance: t('controls.sortByDistance'),
-    categoryCafe: t('controls.categoryCafe'),
-    openNow: t('controls.openNow'),
     unavailable: t('controls.unavailable'),
   };
 }

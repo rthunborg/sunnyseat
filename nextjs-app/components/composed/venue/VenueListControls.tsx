@@ -1,6 +1,6 @@
 'use client';
 
-import { Coffee, Heart, Navigation, PersonStanding, Sun, UsersRound } from 'lucide-react';
+import { Heart, Navigation, PersonStanding, Sun } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -13,8 +13,6 @@ export type VenueListControlsLabels = {
   topPicks: string;
   sortBySun: string;
   sortByDistance: string;
-  categoryCafe: string;
-  openNow: string;
   unavailable: string;
 };
 
@@ -96,22 +94,10 @@ export function VenueListControls({
       >
         {labels.nearTab}
       </SortButton>
-      <SortButton
-        disabled
-        unavailable={labels.unavailable}
-        icon={<Coffee aria-hidden="true" className="size-4" />}
-        compact
-      >
-        {labels.categoryCafe}
-      </SortButton>
-      <SortButton
-        disabled
-        unavailable={labels.unavailable}
-        icon={<UsersRound aria-hidden="true" className="size-4" />}
-        compact
-      >
-        {labels.openNow}
-      </SortButton>
+      {/* Story 9.6: the "Café"/"Öppet nu" category placeholders were removed —
+          they were inert `disabled` buttons with no handler (root cause #3,
+          "visual shell without plumbing"). The working sun/distance sort
+          buttons above stay. */}
     </div>
   );
 }

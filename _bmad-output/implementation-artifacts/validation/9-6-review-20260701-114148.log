@@ -1,0 +1,8 @@
+SunnySeat story review gate
+Story: 9-6
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/9-6-review-20260701-114148.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/9-6-map-chrome-consolidation-dead-control-cleanup.md
+ERROR: story '9-6' not found in sprint-status.yaml

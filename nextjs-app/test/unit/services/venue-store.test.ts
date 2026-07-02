@@ -156,10 +156,13 @@ describe('venue-store (Supabase opt-in)', () => {
       'id', 'slug', 'venue_name', 'neighborhood', 'lat', 'lng', 'is_partner',
       'thumbnail', 'description', 'address', 'opening_hours', 'peak_time',
       'shadow_warning_minutes', 'current_sun_status', 'sky_condition', 'confidence',
-      'sun_exposure_percent', 'sun_window', 'prediction_uncertainty', 'seating_area',
-      'seating_elevation_m', 'ground_elevation_m',
+      'sun_exposure_percent', 'sun_window', 'prediction_uncertainty', 'tags',
+      'seating_area', 'seating_elevation_m', 'ground_elevation_m',
     ]);
-    expect(columns).toHaveLength(22);
+    expect(columns).toHaveLength(23);
+    // Story 9.7: `tags` IS a client field (mapped into the DTO), unlike the
+    // server-only seating_* columns.
+    expect(columns).toContain('tags');
   });
 
   it('selects the full column list on the list read too', async () => {
@@ -411,6 +414,57 @@ describe('venue-store (Supabase opt-in)', () => {
     }
   });
 
+  it('maps a tags array from the store row into the DTO (Story 9.7)', async () => {
+    useSupabaseStore();
+    supabaseMock.state.singleResult = {
+      data: { ...SUPABASE_ROW, tags: ['Innergård', 'Hund ok', 'Wifi'] },
+      error: null,
+    };
+
+    const venue = await getVenueBySlug('supa-venue');
+    expect(venue?.tags).toEqual(['Innergård', 'Hund ok', 'Wifi']);
+    // Unlike the server-only seating_* columns, `tags` IS surfaced into the DTO.
+    expect(toVenueData(venue!).tags).toEqual(['Innergård', 'Hund ok', 'Wifi']);
+  });
+
+  it('coerces a null / non-array / garbage tags column to [] (graceful-empty — Story 9.7)', async () => {
+    useSupabaseStore();
+    for (const tags of [null, undefined, 'not-an-array', 42, {}] as const) {
+      supabaseMock.state.singleResult = {
+        data: { ...SUPABASE_ROW, tags },
+        error: null,
+      };
+      const venue = await getVenueBySlug('supa-venue');
+      // Never undefined, never a crash — always an array (AC1/AC4).
+      expect(venue?.tags).toEqual([]);
+      expect(Array.isArray(venue?.tags)).toBe(true);
+    }
+  });
+
+  it('drops non-string / empty / duplicate tag entries and trims (Story 9.7)', async () => {
+    useSupabaseStore();
+    supabaseMock.state.singleResult = {
+      data: {
+        ...SUPABASE_ROW,
+        tags: ['Innergård', '  Hund ok  ', '', '   ', 'Innergård', 7, null, 'Wifi'],
+      },
+      error: null,
+    };
+
+    const venue = await getVenueBySlug('supa-venue');
+    expect(venue?.tags).toEqual(['Innergård', 'Hund ok', 'Wifi']);
+  });
+
+  it('emits tags: [] when the column is absent so the DTO field is always present (Story 9.7)', async () => {
+    useSupabaseStore();
+    const { tags: _omit, ...rowWithoutTags } = { ...SUPABASE_ROW, tags: undefined };
+    void _omit;
+    supabaseMock.state.listResult = { data: [rowWithoutTags], error: null };
+
+    const venues = await getVenues();
+    expect(venues[0].tags).toEqual([]);
+  });
+
   it('rejects a row missing identity (id/slug) instead of emitting an empty-id venue', async () => {
     useSupabaseStore();
     supabaseMock.state.listResult = {
@@ -447,6 +501,7 @@ describe('venue-store projection helpers', () => {
     confidence: 92,
     distanceMeters: 0,
     sunExposurePercent: 95,
+    tags: ['Innergård', 'Hund ok', 'Wifi', 'Bakverk'],
     sunWindow: { start: '13:00', end: '18:30' },
     description: 'desc',
     address: 'addr',
@@ -463,6 +518,8 @@ describe('venue-store projection helpers', () => {
     expect(base).not.toHaveProperty('peakTime');
     expect(base).not.toHaveProperty('shadowWarningMinutes');
     expect(base).toMatchObject({ id: '1', skyCondition: 'clear', sunWindow: { start: '13:00', end: '18:30' } });
+    // Story 9.7: `tags` IS a client field — it survives the projection.
+    expect(base.tags).toEqual(['Innergård', 'Hund ok', 'Wifi', 'Bakverk']);
   });
 
   it('storedVenueDetail extracts only the detail block', () => {
