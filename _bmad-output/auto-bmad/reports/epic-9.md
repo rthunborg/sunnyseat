@@ -111,3 +111,46 @@ Reconcile marked 0 new resolutions (the one epic-9-landed item — 9.5→9.9 hon
 4. If you want auto-bmad to help finish this, it cannot be done via '/auto-bmad epic 9' (the run is terminal); the CI fix is ordinary dev work on the epic branch.
 
 **Next:** (none — Epic 9 is the last authored epic; Epics 4/5/6 remain deferred)
+
+## Report — 2026-07-02T12:29:41Z (final)
+
+**Epic:** `9` — 11 stories.
+**Branch:** `epic/9-live-app-hardening-clean-up` (HEAD `504fea6`).
+**Pipeline status:** COMPLETE AND MERGED. The CI-red caveat is resolved: PR #15 CI green at aab7cbf, PR un-drafted and MERGED to main via merge commit 504fea6 (branch deleted); all 11 stories batch-flipped review -> done (incl. the stale 9-0 sprint-status entry).
+**Continues:** 2026-07-02T11:20:37Z (halted - epic already done)
+
+**Summary:** Close-out session (2026-07-02, outside the terminal auto-bmad pipeline, human-authorized): (1) landed the in-tree fixes for the two real epic-9 mobile regressions - OnboardingGate inline->portal remount dropping the skip/CTA click (stable first-render portal target + inert SSR inline frame) and the favourites 'Sol HH:MM' sr-only sun-window removed by 9.1's de-bloat (restored, non-compact variant); (2) updated the STALE map-primary.spec.ts:645 planner assertion (the contained desktop planner landed in e371005/PR #14 - the old full-bleed assertion was red on main too); (3) fixed the axe AA color-contrast gate failures that surfaced once E2E went green (text-text-muted 3.18:1 on white -> text-text-body on the 9.5/9.9 honest-distance qualifiers + the PR #14 language-switcher inactive button). Verified locally: tsc, eslint, vitest 953/953, target e2e specs both projects, a11y+a11y-mobile projects green.
+
+**Timing:** started 2026-06-30T14:18:23Z; completed 2026-07-01T18:06:03Z — elapsed 27h 47m (≈1h 47m AI-run, ≈25h 59m human/idle wait); resumed 2×.
+
+**Stories:**
+1. (none this session - all 11 landed by the prior run; this session resolved the epic-level CI caveat and finalized)
+
+**Skipped (already done):** (n/a)
+
+**Integration review:** (prior run - converged clean)
+
+**Epic gate:** (prior run - trace PASS, NFR PASS, test-review 92/100)
+
+**TEA:** (not run this session)
+
+**UAT:**
+1. The prior run's consolidated 89-step checklist stands (epic-9-uat-checklist.md); additionally spot-check: mobile onboarding skip dismisses on FIRST tap; /favoriter announces the sun window to screen readers; desktop planner bar sits BETWEEN the list and detail panels; language switcher inactive label + '≈ från centrum' qualifiers render darker (AA).
+
+**Overrides:** none
+
+**Open questions:**
+1. (none new)
+
+**Deferred work:**
+1. (none new - the prior run's ledger stands; note the mobile onboarding-CTA + map-primary desktop items previously logged as pre-existing e2e reds are now partially superseded: favourites + onboarding-skip + planner-bar are FIXED; the 2 onboarding CTA-geolocation emulation reds remain real-device checks)
+
+**Auto-decided (epic mode):**
+1. (none this session - all decisions were direct fixes verified by the gates)
+
+**Planning drift:** (none new)
+
+**⚠️ Needs human:**
+1. (none) - optional close-out debt unchanged: consolidated reference-PNG rebaseline [A1], live p95 capture in a preview deploy, physical real-device native-share + real-GPS onboarding prompt spot-check.
+
+**Next:** (none - Epic 9 was the last authored epic; Epics 4/5/6 remain deferred)
