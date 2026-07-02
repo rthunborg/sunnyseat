@@ -5,3 +5,5 @@
 
 ## Story 10-1-cloud-gated-sun-state-weather-truth-fixes
 - [Phase 3 â€” create-story] Open question handed to 10.2: SUN_STATUS_ORDER rank for CloudObscured + VenueList.getVenueSunRankForList placeholder ranking â€” 10.2 must keep 'Mest sol' list ranking by geometric sollÃ¤ge.
+- [Phase 4 â€” atdd] tsc gate ignores .skip â€” red scaffolds referencing not-yet-existent exports/union members hard-break tsc; reusable workaround: loosely-typed loadEngine() dynamic-import accessor + cast-through-current-union status helper for union-extension ATDD.
+- [Phase 4 â€” atdd] test/unit/services/sun-engine.test.ts flakily times out under full-suite load (jsdom navigation error), passes in isolation â€” pre-existing; hardening candidate if CI starts failing. Vitest baseline at 10.1 start: 107 files / 953 tests.
