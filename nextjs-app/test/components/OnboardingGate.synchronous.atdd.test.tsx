@@ -72,6 +72,29 @@ function Wrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Run `fn` with the global `document` shadowed to `undefined` so `renderToString`
+ * takes the same "no DOM" branch a real Node SSR render does. The gate renders
+ * the overlay INLINE on the server (`typeof document === 'undefined'`) and
+ * portals it to `document.body` on the client; jsdom leaves `document` defined
+ * during `renderToString`, which would take the client portal path (portals are
+ * not serialised → overlay absent from the string). Restored in `finally`.
+ */
+function withoutDocument<T>(fn: () => T): T {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  Object.defineProperty(globalThis, 'document', {
+    configurable: true,
+    value: undefined,
+  });
+  try {
+    return fn();
+  } finally {
+    if (descriptor) {
+      Object.defineProperty(globalThis, 'document', descriptor);
+    }
+  }
+}
+
 describe('Story 9.5 AC1 — synchronous first-render onboarding gate (RED)', () => {
   let originalLocalStorage: PropertyDescriptor | undefined;
   let store: Map<string, string>;
@@ -136,11 +159,15 @@ describe('Story 9.5 AC1 — synchronous first-render onboarding gate (RED)', () 
 
   it('SSR: server render shows the welcome overlay for a first visit (getServerSnapshot === false)', () => {
     // getServerSnapshot must default to "not onboarded" so the server HTML never
-    // leaks the map under a privacy choice. The render must not throw.
-    const html = renderToString(
-      <Wrapper>
-        <OnboardingGateWithSuspense />
-      </Wrapper>,
+    // leaks the map under a privacy choice. The render must not throw. Shadow
+    // `document` away so `renderToString` exercises the real Node-SSR (inline,
+    // non-portalled) path — see `withoutDocument`.
+    const html = withoutDocument(() =>
+      renderToString(
+        <Wrapper>
+          <OnboardingGateWithSuspense />
+        </Wrapper>,
+      ),
     );
     expect(html).toContain('data-testid="onboarding-screen"');
     // The old non-interactive placeholder div must no longer be the SSR output.

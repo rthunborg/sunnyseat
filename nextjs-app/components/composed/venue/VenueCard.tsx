@@ -213,6 +213,20 @@ export function VenueCard({
                 ))}
               </span>
             )}
+            {/* Sun window ("Sol HH:MM–HH:MM"): a genuinely-real signal (the sunny
+                hours) kept discoverable to screen readers. Story 9.1's de-bloat
+                removed the OLD sr-only block because it DUPLICATED the
+                confidence + distance already in the button's accessible name —
+                but that block also carried the sun window, which is not a
+                duplicate and is the core value the favourites view surfaces per
+                saved venue. Re-added on its own (sr-only, so the visible card
+                stays de-bloated per 9.1) in the NON-COMPACT variant only —
+                matching the pre-9.1 placement so the mobile `/favoriter` card
+                (bottom sheet at 'mid') exposes it while the always-compact
+                desktop-list-panel card does not (keeping a single DOM match). */}
+            <span className="sr-only" data-testid="venue-card-sun-window">
+              {sunTimeRange ?? labels.sunUnavailable}
+            </span>
           </>
         )}
       </span>

@@ -60,6 +60,58 @@ function getServerOnboardedSnapshot(): boolean {
 }
 
 /**
+ * Story 9.5 follow-up (mobile e2e regression fix): resolve a STABLE portal
+ * target on the FIRST client render.
+ *
+ * The overlay must live in `document.body` (outside the `[data-app-shell]`
+ * subtree this gate makes `inert`) so it is interactive rather than inerting
+ * ITSELF. The original 9.5 gate portalled AFTER a mount `useEffect`, so on the
+ * client the screen first rendered INLINE inside the app-shell and only moved
+ * into `document.body` on the next commit. That inline→portal move is a React
+ * REMOUNT: `<OnboardingScreen>` at the return root changed to a `Portal`
+ * element, so React unmounted the inline instance and mounted a fresh one —
+ * resetting `OnboardingScreen`'s `phase` state. A skip/CTA click that landed
+ * during the (visible, clickable) inline window set `phase='exiting'` on the
+ * instance that was then discarded, so the overlay never dismissed. That is the
+ * `onboarding.spec.ts:22` (skip) + `:88` (early CTA) mobile/WebKit regression.
+ *
+ * This hook removes the CLIENT remount: the container is created in a
+ * `useState` initialiser (runs once, on the first client render) and appended
+ * to `document.body` immediately, so the very first client render already
+ * portals into a STABLE node — no post-mount host switch, hence no remount to
+ * race the click once the app has hydrated. On the server
+ * (`typeof document === 'undefined'`) it returns `null` and the gate renders
+ * the screen inline, preserving the `getServerSnapshot=false` "overlay in the
+ * SSR HTML" contract. (The remaining pre-hydration window — where the inline
+ * SSR HTML exists before its handlers hydrate — is neutralised separately by
+ * rendering that inline copy `inert`, so a click waits for the hydrated
+ * portalled copy rather than landing dead on the SSR stand-in.) The container
+ * is removed on unmount.
+ */
+function usePortalTarget(): HTMLElement | null {
+  const [container] = useState<HTMLElement | null>(() => {
+    if (typeof document === 'undefined') return null;
+    const element = document.createElement('div');
+    element.setAttribute('data-onboarding-portal', '');
+    document.body.appendChild(element);
+    return element;
+  });
+
+  useEffect(() => {
+    if (!container) return;
+    // Defensive: the initialiser appends on first render, but React Strict
+    // Mode double-invokes initialisers in dev and may leave a detached node —
+    // re-attach if it was pruned, and always remove on unmount.
+    if (!container.isConnected) document.body.appendChild(container);
+    return () => {
+      container.remove();
+    };
+  }, [container]);
+
+  return container;
+}
+
+/**
  * Subscribe to the onboarded flag with a synchronous client snapshot and a
  * `false` server snapshot. Returning users see at most a single full-screen
  * overlay frame that resolves to `null` on hydration — strictly better than
@@ -129,18 +181,16 @@ function OnboardingGateInner() {
   const wroteFlagThisSessionRef = useRef(false);
   const [dismissed, setDismissed] = useState(false);
   const [pendingFly, setPendingFly] = useState<{ lat: number; lng: number } | null>(null);
-  // Portal-after-mount: the overlay must be portalled to `document.body` so it
+  // Stable portal target resolved on the FIRST client render (see
+  // `usePortalTarget`). The overlay must be portalled to `document.body` so it
   // escapes the `[data-app-shell]` subtree that this gate's blocking effect
   // makes `inert` — otherwise the overlay would inert ITSELF and reintroduce
-  // the dead-click. `createPortal` is browser-only, so on the server frame
-  // (and React's first hydration render) we return the screen inline; the
-  // first effect flips `mounted` and the overlay portals to body. A fixed
-  // full-screen overlay looks identical inline vs portalled, so the one-frame
-  // inline render is invisible.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // the dead-click. Resolving the target during render (not in a mount effect)
+  // means there is NO inline→portal remount to race a skip/CTA click: on the
+  // client the very first render already portals into a stable node. On the
+  // server `portalTarget` is `null` and the screen renders inline (preserving
+  // the SSR "overlay in HTML" contract + hydration match).
+  const portalTarget = usePortalTarget();
 
   // Cross-tab dismissal: if ANOTHER tab marks the user onboarded while this
   // overlay is open (and WE did not write the flag ourselves this session),
@@ -220,16 +270,15 @@ function OnboardingGateInner() {
   // cross-tab onboarding flips `dismissed` through the effect above.
   const shouldShow =
     !bypassForVisualState && !dismissed && (isForced || !initialHasOnboarded);
-  // Gate shell-inerting on `mounted` too. `<OnboardingGateWithSuspense />` is
-  // nested INSIDE the `[data-app-shell]` subtree (rendered by
-  // `app/[locale]/layout.tsx`'s `<ResponsiveLayout>`), so on the first client
-  // commit — while `mounted === false` and the overlay is still rendered inline
-  // inside that subtree — inerting the shell would inert the interactive overlay
-  // ITSELF, reintroducing the dead-click. When `mounted` flips true the same
-  // re-render both portals the overlay to `document.body` (out of the subtree)
-  // and arms this effect, so the shell is never inert while the overlay is
-  // inline. This makes the dead-click escape structural, not effect-order-timed.
-  const shouldBlockAppShell = shouldShow && mounted;
+  // Only inert `[data-app-shell]` once the overlay is portalled OUT of it.
+  // `<OnboardingGateWithSuspense />` is nested INSIDE the `[data-app-shell]`
+  // subtree (rendered by `app/[locale]/layout.tsx`'s `<ResponsiveLayout>`), so
+  // inerting the shell while the overlay is still a descendant would inert the
+  // interactive overlay ITSELF, reintroducing the dead-click. `portalTarget` is
+  // non-null only on the client (where the overlay renders via `createPortal`
+  // into `document.body`, outside the shell), so gating on it keeps the escape
+  // structural — the shell is never inert while the overlay is inline.
+  const shouldBlockAppShell = shouldShow && portalTarget !== null;
 
   useEffect(() => {
     if (!shouldBlockAppShell || typeof document === 'undefined') return;
@@ -268,11 +317,29 @@ function OnboardingGateInner() {
     />
   );
 
-  // Inline on the server frame + the first hydration render; portal to body
-  // only after mount, where `document.body` is guaranteed and the overlay can
-  // escape the inert `[data-app-shell]` subtree.
-  if (!mounted || typeof document === 'undefined') return screen;
-  return createPortal(screen, document.body);
+  // Server / pre-portal-target frame: render the overlay INLINE so it is in the
+  // SSR HTML (covers the map-loading placeholder → no flash; hydration match),
+  // but wrap it `inert` + `aria-hidden`. Story 9.5 made the SSR emit the REAL
+  // testid-bearing screen inline; before the client bundle hydrates its handlers
+  // that inline copy is a DEAD click target that stole (and dropped) the first
+  // skip/CTA click on mobile — the `onboarding.spec.ts:22`/`:88` regression.
+  // Marking the inline copy inert means Playwright's actionability (and a real
+  // user's tap) waits for the interactive PORTALLED copy that hydration commits
+  // into `document.body` — never clicking the un-hydrated stand-in. The wrapper
+  // is `display: contents` so it does not perturb the fixed full-screen layout.
+  if (portalTarget === null) {
+    return (
+      <div
+        data-onboarding-inline-frame=""
+        aria-hidden="true"
+        inert
+        style={{ display: 'contents' }}
+      >
+        {screen}
+      </div>
+    );
+  }
+  return createPortal(screen, portalTarget);
 }
 
 /**

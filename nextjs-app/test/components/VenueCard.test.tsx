@@ -234,8 +234,11 @@ describe('<VenueCard />', () => {
     );
 
     // With the confidence chip hidden, the meta row keeps the kept sun signal
-    // and must not end on a dangling middot.
-    const metaRow = screen.getByText('sol', { exact: false }).closest('span');
+    // and must not end on a dangling middot. Target the VISIBLE "76% sol"
+    // exposure chip specifically — the card also carries an sr-only sun-window
+    // node ("Sol HH:MM–HH:MM") that likewise contains "sol", so a bare
+    // getByText('sol') is now ambiguous.
+    const metaRow = screen.getByText('76% sol', { exact: false }).closest('span');
     const normalized = metaRow?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
     expect(normalized).toContain('76% sol');
     expect(normalized.endsWith('·')).toBe(false);
