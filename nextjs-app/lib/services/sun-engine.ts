@@ -88,10 +88,13 @@ const SUNLIT_THRESHOLD_PERCENT = 30;
 // signal stays honest. The geometric layer (`sunExposurePercent`/`sunWindow`/
 // `peakTime`) is NEVER touched by this gate — it stays clear-sky potential.
 //
-// SEAM for Story 10.3: for 10.1 the gate input is the raw total `cloud_area_fraction`.
-// Story 10.3 replaces that with a layer-weighted "effective cloud cover" (high vs
-// low cloud weighted differently); when it lands, the ONLY change is what value is
-// passed into `applyCloudGate` — the threshold + gate logic stay put.
+// STORY 10.3 (DONE): the gate input is now a layer-weighted "effective cloud
+// cover" (see `effectiveCloudCover` in `lib/solar/effective-cloud-cover.ts`) — high
+// cirrus is weighted only weakly so a thin-haze sky does NOT gate, while a low
+// stratus deck still does. As the 10.1 SEAM promised, the ONLY thing that changed
+// is the value passed into `applyCloudGate`; this threshold + the gate logic stay
+// exactly as ratified. 80 = the effective-cover level at/above which a
+// geometrically-sunlit venue is re-labelled `CloudObscured`.
 export const CLOUD_GATE_THRESHOLD_PERCENT = 80;
 
 // Weather older than this (or any forecast slice) flags a `weather` uncertainty
@@ -408,6 +411,7 @@ async function computeRealSunEngineResult(
     fetchVenueBuildings,
     calculateConfidenceFactors,
     calculateDisplayConfidence,
+    effectiveCloudCover,
     SHADOW_SEARCH_RADIUS_DEG,
   } = await import('@/lib/solar');
   // On the list route the batch passes a deduped fetcher (one Met.no call per
@@ -458,15 +462,20 @@ async function computeRealSunEngineResult(
   const geometricSunStatus: VenueSunStatus = isSunVisible
     ? classifySunStatus(sunExposurePercent)
     : 'NoSun';
-  // STORY 10.1 (AC1): layer the weather cloud gate on top of the geometric status
-  // using the SAME `weather` slice that produces `skyCondition` below (so the cached
-  // outcome stays internally consistent — AC4). A `null` weather slice / unknown
-  // cloud cover never gates (AC2). NoSun/Shaded are untouched; only a geometrically
-  // sunlit venue under (near-)total overcast becomes `CloudObscured`.
+  // STORY 10.1 (AC1) + 10.3 (AC2): layer the weather cloud gate on top of the
+  // geometric status using the SAME `weather` slice that produces `skyCondition`
+  // below (so the cached outcome stays internally consistent — 10.1 AC4). STORY
+  // 10.3: the gate now reads the layer-weighted EFFECTIVE cover (thin cirrus counts
+  // for little; a low deck counts fully) rather than the raw total, so a 100%-cirrus
+  // sky over a sunlit terrace no longer cries "no sun". `effectiveCloudCover`
+  // returns `undefined` for null weather / unknown cloud ⇒ no gate (10.1 AC2,
+  // 10.3 AC3). NoSun/Shaded are untouched; only a geometrically sunlit venue under
+  // effective (near-)total overcast becomes `CloudObscured`.
+  const effectiveCover = effectiveCloudCover(weather);
   const currentSunStatus = applyCloudGate(
     geometricSunStatus,
     isSunVisible,
-    weather?.cloudCover,
+    effectiveCover,
   );
 
   const confidenceFactors = calculateConfidenceFactors(

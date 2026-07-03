@@ -19,3 +19,7 @@
 - [Phase 5 â€” dev-story] sun-engine.test.ts 5s-timeout flake reproduces only under concurrent full-suite load on this Windows host; fine isolated â€” watch CI timeout budget.
 - [Phase 6 â€” automate] VenueQuickInfo still renders the amber confidence chip on an obscured card (~line 278) while VenueCard suppresses it â€” minor amber-chrome inconsistency under the gate, AA-gated by desktop axe; flagged for review/maintainer.
 - [Phase 7 â€” code review] toSunStatusToken was advertised as the single branch predicate but no surface consumes it â€” every surface hardcodes obscured tokens inline, so the never-exhaustive guard is inert (deferred: wire in or remove). Per-surface hand-muting is why the QuickInfo amber chip and non-compact headline were missed â€” centralize via the shared mapper next time.
+
+## Story 10-3-layered-cloud-detail-met-no-complete-endpoint
+- [Phase 5 â€” dev-story] EOL trap in confidence-calculator.ts confirmed real: committed blob is mixed-EOL (230 CRLF + 70 LF) and Read/Edit round-trips pure-CRLF-ify it (~73-line phantom churn) â€” future stories touching it must reconstruct from the parent blob preserving per-line EOLs.
+- [Phase 5 â€” dev-story] Ratified: effective = clamp(1.0*low + 1.0*medium + 0.25*high, 0, 100); helper in lib/solar/effective-cloud-cover.ts; skyCondition stays on RAW total (observable-sky honesty) while gate + confidence read EFFECTIVE cover; live real-engine fetch now uses Met.no complete endpoint (isAvailable probe stays compact).

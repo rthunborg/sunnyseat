@@ -30,20 +30,35 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getForecast } from '@/lib/weather/met-no-service';
 
 /**
- * Minimal Met.no compact response. `omitCloud` drops `cloud_area_fraction` from
- * the instant details entirely (the real-world "field absent" case) while
- * keeping `air_temperature` present.
+ * Minimal Met.no `complete` response. `omitCloud` drops `cloud_area_fraction` from
+ * the instant details entirely (the real-world "field absent" case) while keeping
+ * `air_temperature` present. STORY 10.3: `low`/`medium`/`high` inject the
+ * three-layer `complete` split (`cloud_area_fraction_low/_medium/_high`); each is
+ * omitted from the payload when the corresponding argument is `undefined`, so a
+ * band can be individually absent (the partial-`complete` degradation case).
  */
-function metNoResponse(entries: Array<{ time: string; omitCloud?: boolean; cloud?: number }>) {
+function metNoResponse(
+  entries: Array<{
+    time: string;
+    omitCloud?: boolean;
+    cloud?: number;
+    low?: number;
+    medium?: number;
+    high?: number;
+  }>,
+) {
   return {
     properties: {
-      timeseries: entries.map(({ time, omitCloud, cloud }) => ({
+      timeseries: entries.map(({ time, omitCloud, cloud, low, medium, high }) => ({
         time,
         data: {
           instant: {
             details: {
               air_temperature: 18,
               ...(omitCloud ? {} : { cloud_area_fraction: cloud ?? 40 }),
+              ...(low !== undefined ? { cloud_area_fraction_low: low } : {}),
+              ...(medium !== undefined ? { cloud_area_fraction_medium: medium } : {}),
+              ...(high !== undefined ? { cloud_area_fraction_high: high } : {}),
             },
           },
         },
@@ -122,5 +137,92 @@ describe('[10.1 AC2] met-no-service missing cloud ⇒ weather-unknown', () => {
     expect(slices[0].temperature).toBe(18);
     expect(slices[0].source).toBe('metno');
     expect(slices[0].validAt?.toISOString()).toBe('2026-06-21T12:00:00.000Z');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// STORY 10.3 AC1: `complete` endpoint + three-layer cloud split mapping
+// ---------------------------------------------------------------------------
+describe('[10.3 AC1] met-no-service switches to `complete` + carries the layer split', () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    vi.unstubAllEnvs();
+    fetchMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it('requests the `complete` endpoint path (not `compact`) — the layer split lives there only', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => metNoResponse([{ time: '2026-06-21T12:00:00Z' }]),
+    });
+
+    await getForecast(57.7089, 11.9746);
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    // Mirrors the 4-decimal-truncation URL assertion in met-no-service.test.ts:75.
+    expect(url).toContain('/locationforecast/2.0/complete');
+    expect(url).not.toContain('/compact');
+    // The TOS-mandated 4-decimal truncation still carries over unchanged.
+    expect(url).toContain('lat=57.7089');
+    expect(url).toContain('lon=11.9746');
+  });
+
+  it('maps cloud_area_fraction_low/_medium/_high onto the slice when all three are present', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () =>
+        metNoResponse([
+          { time: '2026-06-21T12:00:00Z', cloud: 90, low: 10, medium: 20, high: 95 },
+        ]),
+    });
+
+    const slices = await getForecast(57.7089, 11.9746);
+
+    expect(slices).toHaveLength(1);
+    expect(slices[0].cloudCover).toBe(90); // total retained
+    expect(slices[0].cloudCoverLow).toBe(10);
+    expect(slices[0].cloudCoverMedium).toBe(20);
+    expect(slices[0].cloudCoverHigh).toBe(95);
+  });
+
+  it('leaves a MISSING layer field undefined (never 0) — the partial-`complete` degradation case (AC3)', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () =>
+        // `low` present, `medium`/`high` absent from the entry entirely.
+        metNoResponse([{ time: '2026-06-21T12:00:00Z', cloud: 50, low: 15 }]),
+    });
+
+    const slices = await getForecast(57.7089, 11.9746);
+
+    expect(slices[0].cloudCoverLow).toBe(15);
+    // Absent bands must read "unknown", never the optimistic clear-sky `0`.
+    expect(slices[0].cloudCoverMedium).toBeUndefined();
+    expect(slices[0].cloudCoverHigh).toBeUndefined();
+    expect(slices[0].cloudCoverMedium).not.toBe(0);
+    expect(slices[0].cloudCoverHigh).not.toBe(0);
+    // The Tier-0 total is still carried for the fallback.
+    expect(slices[0].cloudCover).toBe(50);
+  });
+
+  it('leaves ALL layer fields undefined when the `complete` entry carries only the total (compact-shaped payload)', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => metNoResponse([{ time: '2026-06-21T12:00:00Z', cloud: 70 }]),
+    });
+
+    const slices = await getForecast(57.7089, 11.9746);
+
+    expect(slices[0].cloudCover).toBe(70);
+    expect(slices[0].cloudCoverLow).toBeUndefined();
+    expect(slices[0].cloudCoverMedium).toBeUndefined();
+    expect(slices[0].cloudCoverHigh).toBeUndefined();
   });
 });

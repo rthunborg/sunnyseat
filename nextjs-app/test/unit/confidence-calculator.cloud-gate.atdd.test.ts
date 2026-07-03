@@ -150,3 +150,75 @@ describe('[10.1 AC3] cloud cover lowers displayed confidence (FR12)', () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// STORY 10.3 AC2: the confidence blend reads the layer-weighted EFFECTIVE cover
+// ---------------------------------------------------------------------------
+describe('[10.3 AC2] confidence blend uses effective (layer-weighted) cloud cover', () => {
+  it('100%-HIGH-only cirrus yields HIGHER confidence than a 100%-LOW-only deck (both < clear)', () => {
+    // Identical geometry/solar/shadow/freshness — the ONLY difference is the cloud
+    // SPLIT. Effective cover is far lower for cirrus, so its cloud term (and thus
+    // overall confidence) must be higher than the blocking low deck's.
+    const clear = calculateConfidenceFactors(
+      1,
+      shadowInfo(),
+      baseSolarPosition,
+      weather({ cloudCover: 0, cloudCoverLow: 0, cloudCoverMedium: 0, cloudCoverHigh: 0 }),
+    );
+    const cirrus = calculateConfidenceFactors(
+      1,
+      shadowInfo(),
+      baseSolarPosition,
+      weather({ cloudCover: 100, cloudCoverLow: 0, cloudCoverMedium: 0, cloudCoverHigh: 100 }),
+    );
+    const lowDeck = calculateConfidenceFactors(
+      1,
+      shadowInfo(),
+      baseSolarPosition,
+      weather({ cloudCover: 100, cloudCoverLow: 100, cloudCoverMedium: 0, cloudCoverHigh: 0 }),
+    );
+
+    // RELATIVE ordering only (weights re-tunable): cirrus > low deck.
+    expect(cirrus.overallConfidence).toBeGreaterThan(lowDeck.overallConfidence);
+    // Both cloudy skies are still below a fully clear sky.
+    expect(cirrus.overallConfidence).toBeLessThan(clear.overallConfidence);
+    expect(lowDeck.overallConfidence).toBeLessThan(clear.overallConfidence);
+  });
+
+  it('a partial split (any layer missing) falls back to the raw total — matches Tier-0 confidence', () => {
+    // High layer absent ⇒ effective cover = raw total ⇒ identical to a compact slice
+    // carrying the same total, so confidence is byte-equal to the Tier-0 path.
+    const partial = calculateConfidenceFactors(
+      1,
+      shadowInfo(),
+      baseSolarPosition,
+      weather({ cloudCover: 100, cloudCoverLow: 100, cloudCoverMedium: 0, cloudCoverHigh: undefined }),
+    );
+    const tier0 = calculateConfidenceFactors(
+      1,
+      shadowInfo(),
+      baseSolarPosition,
+      weather({ cloudCover: 100 }),
+    );
+
+    expect(partial.cloudCertainty).toBeCloseTo(tier0.cloudCertainty, 10);
+  });
+
+  it('UNKNOWN cloud with layer fields still absent stays neutral (freshness-only), not penalised', () => {
+    const overcast = calculateConfidenceFactors(
+      1,
+      shadowInfo(),
+      baseSolarPosition,
+      weather({ cloudCover: 100, cloudCoverLow: 100, cloudCoverMedium: 100, cloudCoverHigh: 100 }),
+    );
+    const unknown = calculateConfidenceFactors(
+      1,
+      shadowInfo(),
+      baseSolarPosition,
+      weather({ cloudCover: undefined }),
+    );
+
+    // effectiveCloudCover(undefined-total, no layers) ⇒ undefined ⇒ factor 1.0.
+    expect(unknown.overallConfidence).toBeGreaterThan(overcast.overallConfidence);
+  });
+});

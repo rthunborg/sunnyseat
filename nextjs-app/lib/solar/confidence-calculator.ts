@@ -7,6 +7,7 @@ import type {
 } from './types';
 import { getObstructionRiskConfidenceCap } from './obstruction-risk';
 import { applyShadowDataCoverageCap } from './shadow-data-coverage';
+import { effectiveCloudCover } from './effective-cloud-cover';
 
 /**
  * Two modes:
@@ -160,10 +161,13 @@ function calcCloudCertainty(weather: WeatherSlice): number {
   // confidence must fall as cover rises toward total overcast (per the AC), so we
   // multiply the freshness × forecast × source product by a cloud factor that is
   // 1.0 at clear sky and decays linearly to CLOUD_CONFIDENCE_FLOOR at 100% cover.
-  // UNKNOWN cloud (AC2 / Task 2: `cloudCover` absent) is NEUTRAL — factor 1.0, i.e.
-  // fall back to the pre-change freshness-only behaviour — so a missing-weather
+  // STORY 10.3 (AC2): read the layer-weighted EFFECTIVE cover (via the SAME shared
+  // helper the gate uses) rather than the raw total, so confidence and the gate
+  // agree on one cloud number — a thin-cirrus sky no longer drops confidence as if
+  // it were a blocking deck. UNKNOWN cloud (10.1 AC2 / 10.3 AC3: `effectiveCloudCover`
+  // ⇒ `undefined`) stays NEUTRAL — factor 1.0, freshness-only — so a missing-weather
   // slice is NOT penalised as if it were 100% overcast.
-  const cloudFactor = cloudConfidenceFactor(weather.cloudCover);
+  const cloudFactor = cloudConfidenceFactor(effectiveCloudCover(weather));
   return clamp(forecastFactor * freshness * sourceReliability * cloudFactor, 0, 1);
 }
 

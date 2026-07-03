@@ -193,6 +193,67 @@ describe('[10.1 AC1] cloud gate through computeRealSunEngineResult', () => {
 });
 
 // ---------------------------------------------------------------------------
+// 2b. STORY 10.3: layer-weighted effective cover feeds the gate end-to-end
+// ---------------------------------------------------------------------------
+describe('[10.3 AC2] layered cloud detail through computeRealSunEngineResult', () => {
+  beforeEach(() => {
+    clearSunEngineCachesForTests();
+    mocks.from.mockReset();
+    mocks.rpc.mockReset();
+    mocks.getForecast.mockReset();
+    mocks.getCurrentWeather.mockReset();
+    mocks.rpc.mockResolvedValue({ data: [], error: null }); // no casters → fully sunlit
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.useFakeTimers();
+    vi.setSystemTime(SUMMER_MIDDAY);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('100%-HIGH-only cirrus over a sunlit venue does NOT gate — the cirrus-doesn-not-cry-no-sun case this story exists for', async () => {
+    // Total cloud is 100% but it is all thin high cirrus; the effective cover lands
+    // well below the gate, so the geometric Sunny survives.
+    mocks.getForecast.mockResolvedValue([
+      weatherSlice({ cloudCover: 100, cloudCoverLow: 0, cloudCoverMedium: 0, cloudCoverHigh: 100 }),
+    ]);
+
+    const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
+
+    expect(outcome.venue.currentSunStatus).toBe('Sunny');
+    // The geometric layer is untouched (two-signal guarantee).
+    expect(outcome.venue.sunExposurePercent).toBe(100);
+    // ...but skyCondition still honestly reports the OBSERVABLE overcast sky
+    // (Task 5 decision: skyCondition reads the RAW TOTAL, not the effective cover).
+    expect(outcome.venue.skyCondition).toBe('overcast');
+  });
+
+  it('100%-LOW-only stratus deck over the same venue DOES gate ⇒ CloudObscured', async () => {
+    mocks.getForecast.mockResolvedValue([
+      weatherSlice({ cloudCover: 100, cloudCoverLow: 100, cloudCoverMedium: 0, cloudCoverHigh: 0 }),
+    ]);
+
+    const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
+
+    expect(outcome.venue.currentSunStatus).toBe('CloudObscured');
+    // Geometry preserved even under the gate.
+    expect(outcome.venue.sunExposurePercent).toBe(100);
+  });
+
+  it('a partial split (layer missing) falls back to the raw total for gating (AC3 Tier-0)', async () => {
+    // No layer fields ⇒ the effective cover = the raw total 100 ⇒ gates exactly as
+    // Story 10.1 did (the compact-shaped slice path stays byte-compatible).
+    mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 100 })]);
+
+    const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
+
+    expect(outcome.venue.currentSunStatus).toBe('CloudObscured');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // 3. Cache consistency: gated status + skyCondition cache together (AC4)
 // ---------------------------------------------------------------------------
 describe('[10.1 AC4] gated outcome caches with its weather slice', () => {

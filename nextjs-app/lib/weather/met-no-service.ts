@@ -24,6 +24,14 @@ interface MetNoResponse {
           details?: {
             air_temperature?: number;
             cloud_area_fraction?: number;
+            // STORY 10.3 (AC1): the three-layer cloud split. These exist ONLY in the
+            // Met.no `complete` product (below-2000 m / 2000–5000 m / above-5000 m
+            // cirrus), all in percent 0..100 — which is exactly why Task 1 switches
+            // the fetch below from `compact` to `complete`. Optional: a `complete`
+            // entry that lacks a band leaves that field absent (never `?? 0`).
+            cloud_area_fraction_low?: number;
+            cloud_area_fraction_medium?: number;
+            cloud_area_fraction_high?: number;
             fog_area_fraction?: number;
           };
         };
@@ -50,7 +58,15 @@ export async function getForecast(
   longitude = GOTHENBURG.LONGITUDE
 ): Promise<WeatherSlice[]> {
   try {
-    const url = `${API_BASE}/locationforecast/2.0/compact?lat=${latitude.toFixed(4)}&lon=${longitude.toFixed(4)}`;
+    // STORY 10.3 (AC1): `complete` (not `compact`) so the response carries the
+    // three-layer cloud split (`cloud_area_fraction_low/_medium/_high`) that the
+    // layer-weighted effective-cover gate consumes. Same API, same TOS posture,
+    // same 4-decimal coordinate truncation, same `revalidate: 300` caching — the
+    // ONLY change from Story 8.5 is the endpoint path segment. `complete` payloads
+    // are larger (many more instant variables) but we read only a handful of
+    // `instant.details` fields, so the extra parse cost is negligible and the
+    // 48-entry slice cap already bounds it.
+    const url = `${API_BASE}/locationforecast/2.0/complete?lat=${latitude.toFixed(4)}&lon=${longitude.toFixed(4)}`;
 
     const res = await fetch(url, {
       headers: { 'User-Agent': userAgent() },
@@ -89,6 +105,13 @@ export async function getForecast(
         // (the cloud gate does not fire, skyCondition → 'unavailable', and the
         // confidence blend treats it as neutral rather than 100% overcast).
         cloudCover: instant.cloud_area_fraction,
+        // STORY 10.3 (AC1): the three-layer split from the `complete` product.
+        // Like the total above, leave each `undefined` when the band is absent —
+        // do NOT `?? 0`. A partial `complete` entry (any layer missing) degrades to
+        // the Tier-0 total via `effectiveCloudCover`'s fallback (Story 10.3 AC3).
+        cloudCoverLow: instant.cloud_area_fraction_low,
+        cloudCoverMedium: instant.cloud_area_fraction_medium,
+        cloudCoverHigh: instant.cloud_area_fraction_high,
         temperature: instant.air_temperature ?? 0,
         visibility,
         isForecast,
@@ -112,6 +135,11 @@ export async function getForecast(
 
 export async function isAvailable(): Promise<boolean> {
   try {
+    // STORY 10.3: the liveness probe deliberately stays on `compact`. It is a cheap
+    // ok/not-ok ping (never a data read), so switching it to the heavier `complete`
+    // payload would just cost more bandwidth for no benefit — a conscious choice,
+    // not an oversight. The DATA fetch (`getForecast`) is the one that needs the
+    // three-layer split and uses `complete`.
     const url = `${API_BASE}/locationforecast/2.0/compact?lat=57.7089&lon=11.9746`;
     const res = await fetch(url, {
       headers: { 'User-Agent': userAgent() },
