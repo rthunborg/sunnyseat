@@ -1,14 +1,14 @@
 # auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
 # see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
-story_key: 10-2-sun-behind-clouds-two-signal-ui-state
+story_key: 10-3-layered-cloud-detail-met-no-complete-endpoint
 epic_num: 10
-story_num: 2
+story_num: 3
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
 status: in-progress
-updated_at: "2026-07-03T09:17:11Z"
-started_at: "2026-07-03T06:55:42Z"
+updated_at: "2026-07-03T09:18:13Z"
+started_at: "2026-07-03T09:18:13Z"
 completed_at: null
-active_seconds: 8473
+active_seconds: 0
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -17,10 +17,10 @@ git_mode: remote
 base_branch: main
 tea_risk: med
 tea_selected: [automate]
-tea_rationale: "stateful multi-surface UI flow (fourth visual state across pin/card/quick-info/detail/list) + i18n/a11y, no High trigger (DTO change was 10.1) -> Med"
+tea_rationale: "non-trivial layer-weighting branching feeding sun-engine + confidence-calculator; same Met.no client, no new external surface; test design caps at R-007 score 4 -> Med"
 epic_story_count: 5
-stories_after_in_epic: 3
-completed_phases: [0, 1, 3, 4, 5, 6, 7]
+stories_after_in_epic: 2
+completed_phases: [0, 1]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -51,5 +51,4 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-tier_a_base_sha: 4d42fe39a6f0298baeb8ae4484f8c5bf24c624ee
-tier_a_review: "done â€” Changes Requested; Critical 0 / High 0 / Med 2 / Low 2; both Meds fixed (QuickInfo amber chip suppression + non-compact Sol-bakom-moln headline), 1 Low auto-dismissed, 1 Low deferred; security clean"
+tier_a_base_sha: 098d0508b135f5ff409d29628b4b3003ebfb2575

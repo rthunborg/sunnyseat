@@ -5,10 +5,10 @@ epic_num: 10
 story_num: null
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
 status: in-progress
-updated_at: "2026-07-03T09:15:14Z"
+updated_at: "2026-07-03T09:18:13Z"
 started_at: "2026-07-02T18:18:20Z"
 completed_at: null
-active_seconds: 14768
+active_seconds: 14937
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -51,9 +51,10 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 10-2-sun-behind-clouds-two-signal-ui-state
+active_story: 10-3-layered-cloud-detail-met-no-complete-endpoint
 stories_landed:
   - 10-1-cloud-gated-sun-state-weather-truth-fixes
+  - 10-2-sun-behind-clouds-two-signal-ui-state
 auto_decisions:
   - "Non-compact venue card shows no visible 'Sol bakom moln' headline [Med] â†’ fix: add the muted Sol-bakom-moln headline (Cloud icon + statusObscured, text-obscured-text) to the non-compact obscured branch (Tier A, 10-2-sun-behind-clouds-two-signal-ui-state)"
   - "Amber open-until pill not muted under obscured gate [Low] â†’ dismiss: opening-hours affordance shared across all sun states, not a sun-status badge â€” AC1 targets sun-status surfaces only (Tier A, 10-2-sun-behind-clouds-two-signal-ui-state)"
@@ -68,4 +69,16 @@ uat_items:
   - "[10-1-cloud-gated-sun-state-weather-truth-fixes] Real path with live sky <80% cloud â†’ sunlit venues stay Sunny/Partial, gate never fabricates obscured (AC1 negative; positive overcast case proven by unit suite, not hand-forceable)."
   - "[10-1-cloud-gated-sun-state-weather-truth-fixes] Real path with Met.no weather absent/unreachable for a venue â†’ skyCondition 'unavailable', NOT CloudObscured, not fabricated clear (AC2 end-to-end)."
   - "[10-1-cloud-gated-sun-state-weather-truth-fixes] Repeat the identical real-path GET twice within one 15-min window â†’ currentSunStatus + skyCondition identical across calls (cache consistency, AC4)."
+  - "[10-2-sun-behind-clouds-two-signal-ui-state] Run `npm run dev` in nextjs-app, open http://localhost:3000/?_state=map-with-obscured-venue&_time=14:00 → app loads on map, first venue auto-selected, no console error (dev-only force-state, fixture path, no live Met.no)."
+  - "[10-2-sun-behind-clouds-two-signal-ui-state] On that URL, map pins → obscured venue renders muted slate pill with white cloud icon + 95% (ObscuredPill), distinct from amber sunny and grey shaded, no amber sun glyph (AC1)."
+  - "[10-2-sun-behind-clouds-two-signal-ui-state] Auto-opened quick-info → headline 'Sol bakom moln' (data-testid quick-info-obscured), photo-strip %-SOL badge muted slate with cloud icon, no amber FULL SOL/DELVIS SOL badge (AC1)."
+  - "[10-2-sun-behind-clouds-two-signal-ui-state] Quick-info shows plain-language sky line 'Mulet', no meteorology numbers (AC3)."
+  - "[10-2-sun-behind-clouds-two-signal-ui-state] Quick-info still shows geometric potential reframed as position ('solläge … sol här när det klarnar') and the sun window renders muted, not hidden (AC2)."
+  - "[10-2-sun-behind-clouds-two-signal-ui-state] Open http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail-obscured&_time=14:00 → muted hero: 'Sol bakom moln' headline, slate '95% solläge' badge, cloud icon replaces sun icon (AC1)."
+  - "[10-2-sun-behind-clouds-two-signal-ui-state] Obscured detail shows 'Mulet' under 'Himmel nu' and the sun timeline/forecast bars still render below (AC2/AC3)."
+  - "[10-2-sun-behind-clouds-two-signal-ui-state] Switch to English (/en/ variants of both force-state URLs) → 'Sun behind clouds', 'Overcast', '… sunny here when it clears' (sv/en parity, AC3)."
+  - "[10-2-sun-behind-clouds-two-signal-ui-state] Clear-sky control http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=14:00 → normal amber FULL SOL chrome, no slate cloud state (Behaviour gate: additive)."
+  - "[10-2-sun-behind-clouds-two-signal-ui-state] Reload the obscured map URL a few times → obscured pill appears immediately, no amber-to-slate flash on gate crossing (Animation gate)."
+  - "[10-2-sun-behind-clouds-two-signal-ui-state] DevTools a11y inspector on obscured pin/card button → accessible name contains the obscured phrase exactly once (AC4)."
+  - "[10-2-sun-behind-clouds-two-signal-ui-state] On obscured quick-info + detail (desktop) → no amber Säkerhet/confidence chip visible under the gate (AC1, review-fix verification)."
 epic_slug: honest-sky-weather-gated-two-signal-sun-display
