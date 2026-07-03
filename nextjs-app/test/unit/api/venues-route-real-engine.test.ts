@@ -62,6 +62,26 @@ function computedOutcome(venue: StoredVenue): SunEngineOutcome {
   };
 }
 
+/**
+ * A weather-gated outcome: geometrically sunlit (high solläge, real sun window)
+ * but `applyCloudGate` flipped the headline to `CloudObscured`. This is the LIVE
+ * real-engine shape that the fixture/e2e cases never produce.
+ */
+function cloudObscuredOutcome(venue: StoredVenue): SunEngineOutcome {
+  return {
+    venue: {
+      ...toVenueData(venue),
+      currentSunStatus: 'CloudObscured',
+      confidence: 60,
+      sunExposurePercent: 90,
+      skyCondition: 'overcast',
+      sunWindow: { start: '12:00', end: '16:00' },
+    },
+    freshness: { sunDataSource: 'weather', weatherUpdatedAt: NOW.toISOString() },
+    peakTime: '14:00',
+  };
+}
+
 /** A degraded / weather-unavailable engine outcome. */
 function unavailableOutcome(venue: StoredVenue): SunEngineOutcome {
   return {
@@ -261,5 +281,43 @@ describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
       status: 'Partial',
     });
     expect(body.venue.timeline.peakTime).toBe('14:00');
+  });
+
+  it('remaps a CloudObscured detail timeline window to Partial clear-sky potential (10.2 AC2/AC4, iter-2 Patch[High])', async () => {
+    // Iteration-2 review [Patch][High]: on the LIVE real-engine path
+    // `buildDetailDto` sets the timeline window status from
+    // `adjustedVenue.currentSunStatus`, which after `applyCloudGate` can be
+    // `CloudObscured`. The SERVER-loaded `detail.timeline` is consumed DIRECTLY by
+    // VenueDetailContent — the client `timelineFromListVenue` CloudObscured→Partial
+    // remap only guards the pre-load fallback and never runs on the loaded DTO.
+    // An unremapped `CloudObscured` window is unhandled by SunTimeline (blank bar)
+    // and mislabelled "Shaded" (the exact dishonest label AC4 forbids). The fix
+    // mirrors the client remap in the server buildDetailDto: the sun-window timeline
+    // is geometric clear-sky POTENTIAL, so a weather-gated headline renders as
+    // `Partial`, never `CloudObscured`.
+    adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) =>
+      cloudObscuredOutcome(venue),
+    );
+
+    const res = await DETAIL_GET(detailRequest('test-venue-sunny'), {
+      params: Promise.resolve({ slug: 'test-venue-sunny' }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenueDetailResponse;
+
+    // The venue HEADLINE keeps the honest weather-gated value (two-signal model).
+    expect(body.venue.currentSunStatus).toBe('CloudObscured');
+    // But the TIMELINE window ships the geometric potential, never CloudObscured.
+    expect(body.venue.timeline.windows.length).toBeGreaterThan(0);
+    expect(body.venue.timeline.windows[0]).toEqual({
+      start: '12:00',
+      end: '16:00',
+      status: 'Partial',
+    });
+    // Hard invariant: no detail timeline window is EVER shipped as CloudObscured
+    // (SunTimeline/bestWindowLabel do not handle it).
+    expect(
+      body.venue.timeline.windows.every((w) => w.status !== 'CloudObscured'),
+    ).toBe(true);
   });
 });

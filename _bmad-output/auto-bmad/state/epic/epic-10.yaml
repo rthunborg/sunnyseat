@@ -5,7 +5,7 @@ epic_num: 10
 story_num: null
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
 status: in-progress
-updated_at: "2026-07-03T13:37:22Z"
+updated_at: "2026-07-03T13:59:47Z"
 started_at: "2026-07-02T18:18:20Z"
 completed_at: null
 active_seconds: 29590
@@ -21,7 +21,7 @@ tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
 completed_phases: [0, 1, 2, 5, 81]
-code_review_iterations: 0
+code_review_iterations: 2
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0

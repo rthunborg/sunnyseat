@@ -143,7 +143,17 @@ function buildDetailDto(
   timelineProjection?: DetailTimelineProjection,
   reviewSummary?: VenueDetailDto['reviewSummary'],
 ): VenueDetailDto {
-  const timelineWindowStatus = timelineProjection?.windowStatus ?? venue.currentSunStatus;
+  const rawWindowStatus = timelineProjection?.windowStatus ?? venue.currentSunStatus;
+  // Story 10.2 (AC2) + Iteration-2 review fix: on the LIVE real-engine path this
+  // status can be 'CloudObscured' after applyCloudGate. The sun-window timeline is
+  // the geometric "when it clears" POTENTIAL, not a weather signal, so remap the
+  // obscured value back to the geometric 'Partial' tier here — mirroring the client
+  // `timelineFromListVenue` fallback remap so the server-loaded detail timeline and
+  // the pre-load fallback render identically. Without this the window ships
+  // 'CloudObscured', which SunTimeline/bestWindowLabel do not handle → a blank bar
+  // labelled "Shaded" (the exact dishonest label AC4 exists to prevent).
+  const timelineWindowStatus =
+    rawWindowStatus === 'CloudObscured' ? 'Partial' : rawWindowStatus;
   const peakTime = timelineProjection?.peakTime ?? fixture?.peakTime;
   const sunWindow = venue.sunWindow
     ? [
