@@ -4,12 +4,12 @@ story_key: epic-10
 epic_num: 10
 story_num: null
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
-status: in-progress
-updated_at: "2026-07-03T14:35:03Z"
+status: done
+updated_at: "2026-07-03T14:42:20Z"
 started_at: "2026-07-02T18:18:20Z"
-completed_at: null
-active_seconds: 33839
-timing_anchor: 1783089303
+completed_at: "2026-07-03T14:42:20Z"
+active_seconds: 34275
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 7, 81, 82]
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
 code_review_iterations: 2
 code_review_loop_done: true
 hitl_halt: "auto-continued (epic â€” no halt)"
@@ -39,8 +39,8 @@ phase8_steps:
 gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 0
-pr_url: null
-ci_run_url: null
+pr_url: "https://github.com/rthunborg/sunnyseat/pull/16"
+ci_run_url: "https://github.com/rthunborg/sunnyseat/actions?query=branch%3Aepic%2F10-honest-sky-weather-gated-two-signal-sun-display"
 ci_status: unknown
 pr_merged: false
 merge_method: null
@@ -117,3 +117,5 @@ uat_items:
   - "[10-5-weather-reality-verification-pass-regression-guards] MAINTAINER (AC2 live spot-check): on a real grey-or-clear day open the LIVE site (map + one venue detail), screenshot headline state + sky line; fetch Met.no locationforecast + nowcast complete for 57.7089,11.9746; compute effective ≈ low+medium+0.25*high; verify displayed state agrees with sky + values, fill the comparison table in the story's Dev Agent Record; on mismatch triage root cause before epic close."
   - "[10-5-weather-reality-verification-pass-regression-guards] MAINTAINER: rebaseline the two obscured visual-validation reference PNGs (map-with-obscured-venue, venue-detail-obscured, mobile+desktop) — dev agents are forbidden from self-blessing refs; host /tmp screenshot tooling broken on this Windows machine."
 epic_slug: honest-sky-weather-gated-two-signal-sun-display
+batch_flip_done: false
+integration_review_done: true
