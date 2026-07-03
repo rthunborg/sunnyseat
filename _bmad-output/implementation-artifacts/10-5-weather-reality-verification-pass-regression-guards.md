@@ -572,6 +572,10 @@ AC4 regression net are the behavioural gate; the AC2 live spot-check is the main
   clause re-homed to the calculator layer): AC4 net-new byte-identical-geometry cross-tier guard.
 - `nextjs-app/test/unit/no-live-metno-fetch-guard.atdd.test.ts` — NEW (un-skipped): acceptance test for the
   shared fetch guard.
+- `nextjs-app/test/unit/no-live-metno-fetch-guard.coverage.test.ts` — NEW (test-automation expansion pass,
+  2026-07-03): 9 tests hardening the guard's `isApiMetNoRequest` host-matching — input-shape coverage
+  (URL/Request/case), exact-host discipline (suffix-spoof / prefix / non-api met.no all NOT trapped), and
+  surgical pass-through of other external hosts. Residual gap around net-new Story-10.5 code; not a matrix duplicate.
 - `nextjs-app/test/setup/setup.ts` — EDITED: added the shared no-live-Met.no `beforeEach` fetch guard (scoped to
   `api.met.no`).
 - `_bmad-output/test-artifacts/atdd-checklist-10-5.md` — EDITED: green-phase checkboxes ticked + notes.
