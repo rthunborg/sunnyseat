@@ -174,6 +174,37 @@ describe('VenueDetailContent', () => {
     expect(obscuredBlock).not.toHaveTextContent('Delvis molnigt');
   });
 
+  it('renders the fallback sun-window as clear-sky POTENTIAL for an obscured venue with no loaded detail (Story 10.2 AC2 / Completion Note #3)', () => {
+    // Before the detail payload loads, the timeline is derived from the list
+    // venue via timelineFromListVenue(). For a CloudObscured headline that
+    // helper maps the window status back to the geometric `Partial` tier — so
+    // the "when it clears" potential renders as a Partial (amber) window rather
+    // than vanishing into a transparent shaded bar. Pin that fallback path (the
+    // real-detail obscured test always passes an explicit `detail`, so this
+    // branch was otherwise uncovered).
+    render(
+      <VenueDetailContent
+        fallbackVenue={{
+          ...LIST_VENUE,
+          currentSunStatus: 'CloudObscured',
+          skyCondition: 'overcast',
+          sunWindow: { start: '13:00', end: '18:30' },
+        }}
+        // No `detail` prop → the component falls back to timelineFromListVenue.
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    // The obscured headline still shows...
+    expect(screen.getByTestId('venue-detail-obscured')).toHaveTextContent('Sol bakom moln');
+    // ...and the fallback sun window is present as POTENTIAL, labelled as the
+    // Partial ("Delvis sol") window — NOT the shaded ("Skugga") transparent bar.
+    expect(screen.getByLabelText('Delvis sol 13:00-18:30')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Skugga 13:00-18:30')).not.toBeInTheDocument();
+  });
+
   it('keeps the sunny detail unchanged — no obscured block on a clear-sky venue (Behaviour gate)', () => {
     render(
       <VenueDetailContent

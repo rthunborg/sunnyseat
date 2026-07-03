@@ -161,6 +161,69 @@ describe('<VenueCard />', () => {
     expect(card.querySelector('.text-amber-dark.font-extrabold')).toBeNull();
   });
 
+  it('suppresses the amber confidence chip on an obscured non-compact card (Story 10.2 AC1 — no amber under the gate)', () => {
+    // Completion Note #2 / AC1: the amber `text-amber-text` confidence chip is
+    // hidden for obscured venues so no amber sun chrome survives the gate. A
+    // regression that re-added the amber chip under the gate would slip past the
+    // headline obscured tests (which only assert the status label + position
+    // chip), so pin the suppression directly.
+    render(
+      <VenueCard
+        name="Molnig" sunExposurePercent={92} distanceMeters={100} isSunny={false} isObscured
+        confidencePercent={88}
+        confidenceMeta={{ sunDataSource: 'weather', weatherUpdatedAt: new Date().toISOString() }}
+        thumbnail={{ alt: 'a', initials: 'ML' }}
+        labels={{
+          select: 'Välj Molnig',
+          favourite: 'Spara {name}',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+          statusObscured: 'SOL BAKOM MOLN',
+          obscuredPosition: '{percent} solläge · sol här när det klarnar',
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    const card = screen.getByTestId('venue-card');
+    // No amber confidence chip element under the gate.
+    expect(card.querySelector('.text-amber-text')).toBeNull();
+    // The reframed muted position chip is what carries the geometric signal.
+    expect(card).toHaveTextContent('92% solläge · sol här när det klarnar');
+  });
+
+  it('renders the muted-slate thumbnail badge (cloud icon) on an obscured card, never the amber sun badge (Story 10.2 AC1)', () => {
+    render(
+      <VenueCard
+        name="Molnig" sunExposurePercent={92} distanceMeters={100} isSunny={false} isObscured
+        thumbnail={{ alt: 'a', initials: 'ML' }}
+        labels={{
+          select: 'Välj Molnig',
+          favourite: 'Spara {name}',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+          statusObscured: 'SOL BAKOM MOLN',
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    const thumbnail = screen.getByTestId('venue-card-thumbnail');
+    // The exposure badge uses the muted slate fill (AA white icon), not amber.
+    expect(thumbnail.querySelector('.bg-pin-obscured')).not.toBeNull();
+    expect(thumbnail.querySelector('.bg-amber-primary')).toBeNull();
+  });
+
   it('localizes the visible sun exposure unit from labels', () => {
     render(
       <VenueCard

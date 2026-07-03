@@ -17,3 +17,4 @@
 - [Phase 5 â€” dev-story] Maintainer must rebaseline the two obscured visual-validation reference PNGs (map-with-obscured-venue, venue-detail-obscured) â€” none exist and dev is forbidden from self-blessing refs. Muting is unambiguous in HUE (slate vs amber vs grey).
 - [Phase 5 â€” dev-story] Two mobile obscured axe scans left test.fixme on the pre-existing Story-5.1 amber-label contrast debt (obscured chrome itself AA; desktop scans active) â€” flip to test when 5.1 lands.
 - [Phase 5 â€” dev-story] sun-engine.test.ts 5s-timeout flake reproduces only under concurrent full-suite load on this Windows host; fine isolated â€” watch CI timeout budget.
+- [Phase 6 â€” automate] VenueQuickInfo still renders the amber confidence chip on an obscured card (~line 278) while VenueCard suppresses it â€” minor amber-chrome inconsistency under the gate, AA-gated by desktop axe; flagged for review/maintainer.
