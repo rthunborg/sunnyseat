@@ -2,19 +2,19 @@
 
 > **Purpose:** This file is the BMAD dev agent's injection point for design awareness. BMAD's dev agent (Amelia) loads this as foundational reference in Step 2 of its workflow. It lives at the project root — not inside `_bmad/` — so it survives BMAD reinstalls without being overwritten.
 >
-> Last updated: 2026-07-01 (post Epic 9 — "Live-App Hardening & Clean-Up", stories 9.0–9.10 landed)
+> Last updated: 2026-07-03 (post Epic 10 — "Honest Sky" weather-gated two-signal sun display, stories 10.1–10.5 landed)
 >
 > **MVP scope correction:** planner, future date simulation, and favourites are free MVP functionality. Season Pass / Swish is Future Monetization only.
 >
 > **Shadow data correction:** `building_geodata/byggnad_kn1480.gpkg` is a 2D footprint source only and is not sufficient for shadow modelling by itself. MVP launch geodata is scoped to the central EPSG:3007 bbox `x=140000..150000, y=6390000..6410000` and adopts the combined open-data shadow-caster path documented in `_bmad-output/planning-artifacts/decisions/shadow-data-trust-realignment.md`.
 >
-> **The app is LIVE on the real data path** (production cutover 2026-06-29: `SUNNYSEAT_VENUE_STORE=supabase`, `SUN_ENGINE=real`, feedback/review persistence = Supabase). Epic 9 landed a post-launch hardening pass; the conventions it ratified are captured in "Epic 9 Ratified Conventions" below.
+> **The app is LIVE on the real data path** (production cutover 2026-06-29: `SUNNYSEAT_VENUE_STORE=supabase`, `SUN_ENGINE=real`, feedback/review persistence = Supabase). Epic 9 landed a post-launch hardening pass and Epic 10 layered a weather-truth ("Honest Sky") gate on top of the geometric sun engine; the conventions each ratified are captured in "Epic 9 Ratified Conventions" and "Epic 10 Ratified Conventions" below.
 
 ---
 
 ## What Is SunnySeat?
 
-A live Next.js web/PWA app that helps people in Gothenburg find outdoor venue seating in direct sunlight right now. Combines real-time solar position calculations, 2.5D building shadow modeling, and Met.no weather data into venue-level sunlight predictions with confidence scoring. The MVP is feature-complete and shipped to production; the current focus is post-launch hardening and truthful data.
+A live Next.js web/PWA app that helps people in Gothenburg find outdoor venue seating in direct sunlight right now. It combines two orthogonal signals into a single honest answer: (1) **geometric sun potential** — real-time NREL SPA solar position + 2.5D building/terrain shadow modelling ("where could the sun reach this seating area?"), and (2) **weather truth** — Met.no cloud + radar-rain data that gates that potential ("but is the sun actually getting through the sky right now?"). Venue-level output carries a sun status, a sky-condition line, and confidence scoring. The MVP is feature-complete and shipped to production; the current focus is post-launch hardening and truthful data.
 
 ### Tech Stack
 
@@ -33,8 +33,8 @@ A live Next.js web/PWA app that helps people in Gothenburg find outdoor venue se
 | Search / Command | cmdk `^1.1.1` |
 | PWA | Serwist `^9.5.7` (via `@serwist/turbopack`) |
 | Database | Supabase (`@supabase/supabase-js ^2.103.3`, PostgreSQL 15 + PostGIS) |
-| Sun Engine | TypeScript — NREL SPA + Turf.js (`@turf/turf ^7.3.4`, `nextjs-app/lib/solar/` + `lib/services/sun-engine.ts`) |
-| Weather | Met.no Locationforecast 2.0 (`nextjs-app/lib/weather/`) |
+| Sun Engine | TypeScript — NREL SPA + Turf.js (`@turf/turf ^7.3.4`, `nextjs-app/lib/solar/` + `lib/services/sun-engine.ts`); two-signal geometric-potential + weather-gate (Epic 10) |
+| Weather | Met.no Locationforecast 2.0 `complete` (three-layer cloud split) + Nowcast 2.0 (near-now radar rain) — `nextjs-app/lib/weather/` (`met-no-service.ts`, `nowcast-service.ts`) |
 | Server Infrastructure | Supabase service-role clients for server-only backend jobs |
 | Payments | Swish Merchant API (Season Pass, Future Monetization only) |
 | Validation | Zod `^4.3.6` |
@@ -48,6 +48,7 @@ A live Next.js web/PWA app that helps people in Gothenburg find outdoor venue se
 
 - **MVP is feature-complete and LIVE in production on the real data path** (cutover 2026-06-29). The full stack — frontend, real sun/shadow engine, Met.no weather, Supabase venue store + feedback/review persistence — runs against live data. Epics 1, 2, 3, 7, 8 and 9 are done.
 - **Epic 9 ("Live-App Hardening & Clean-Up", stories 9.0–9.10) has landed.** It was a post-launch remediation of a party-mode live-app triage: prod-gating the dev planner-forcing URL leak, de-bloating fabricated venue metadata, fixing the CTA gradient token, adding server caching + client query hygiene to the time→query path, hardening location/onboarding, consolidating map chrome + removing dead controls, real tag filtering, real venue sharing, and a mobile verification/regression pass. The durable conventions it ratified are in "Epic 9 Ratified Conventions" below.
+- **Epic 10 ("Honest Sky", stories 10.1–10.5) has landed.** It added the weather-truth half of the two-signal model: a cloud gate that flips a geometrically-sunlit venue to a new `CloudObscured` status when the sky is (near-)total overcast or raining, layer-weighted effective cloud cover (thin high cirrus no longer reads as blocking stratus), a Met.no Nowcast 2.0 near-now radar-rain signal, the muted "Sun Behind Clouds" UI treatment, and a reality-verification / regression-guard pass. Its `CloudObscured` / `SkyCondition` union extensions, "undefined never 0" missing-weather discipline, exhaustiveness-forcing allow-lists, and deterministic weather e2e seam are ratified in "Epic 10 Ratified Conventions" below — **binding for any story that reads sun status, sky condition, or weather.**
 - **Admin operations are retired from active scope.** Venue changes and geodata maintenance happen through reviewed direct database/import operations (documented at `nextjs-app/docs/venue-data-load.md`), not an admin UI/API.
 - **Live DB access:** the direct host is IPv6-only; bulk psql/live-data ops go through the **IPv4 session pooler** (`aws-1-eu-west-1`) via Docker psql, creds in the gitignored `.env.local`. `public.venues` currently holds the 7 test/fixture venues (no bulk production venue data yet).
 - **Deferred/future:** Epics 4/5/6 are deferred. Season Pass / Swish / paywall states are Future Monetization only and must not enter MVP stories.
@@ -73,6 +74,8 @@ A live Next.js web/PWA app that helps people in Gothenburg find outdoor venue se
 | Sprint Status | `_bmad-output/implementation-artifacts/sprint-status.yaml` |
 | Deferred-Work Queue | `_bmad-output/implementation-artifacts/deferred-work.md` |
 | Epic-9 Retro Notes | `_bmad-output/auto-bmad/retro-notes/epic-9.md` |
+| Epic-10 Retro Notes | `_bmad-output/auto-bmad/retro-notes/epic-10.md` |
+| Epic-10 Epic Spec ("Honest Sky") | `_bmad-output/planning-artifacts/epics.md` (Epic 10) |
 | Venue Data Load Guide | `nextjs-app/docs/venue-data-load.md` |
 | Local Docker / WSL Guide | `docs/local-docker.md` |
 | Repo Agent Rulebook (canonical) | `AGENTS.md` |
@@ -228,6 +231,48 @@ Durable patterns ratified during Epic 9 ("Live-App Hardening & Clean-Up"). These
 
 ---
 
+## Epic 10 Ratified Conventions
+
+Durable patterns ratified during Epic 10 ("Honest Sky" — weather-gated two-signal sun display, stories 10.1–10.5). These are **binding** for any story that reads or writes venue sun status, sky condition, or weather. Full rationale lives in `_bmad-output/auto-bmad/retro-notes/epic-10.md` and the deferred queue.
+
+### The two-signal honest-sky model (Stories 10.1 / 10.3 / 10.4)
+
+- SunnySeat computes sun in **two orthogonal passes**, and the second must never be discarded:
+  1. **Geometric sun potential** — NREL SPA + shadow/terrain geometry produce a headline (`Sunny` / `Partial` / `Shaded` / `NoSun`) that answers "could the sun reach this seating area?" This is the ONLY thing that ranks the list — **"Mest sol" list ranking stays on geometric sunlight (solläge), never on the weather-gated status.**
+  2. **Weather truth** — Met.no cloud + Nowcast radar-rain gate that geometric potential.
+- **The cloud gate (`applyCloudGate` in `lib/services/sun-engine.ts`):** a geometrically-`Sunny`/`Partial` venue flips to the new **`CloudObscured`** status when `effectiveCloudCover >= CLOUD_GATE_THRESHOLD_PERCENT` (**= 80**, `sun-engine.ts:98`) OR it is raining near-now. The gate is a **one-way, additive** term: it can only turn `Sunny`/`Partial` → `CloudObscured`. Below-horizon `NoSun` and geometric `Shaded` are NEVER gated (they win — over rain too). Re-tuning the 80 threshold or the layer weights must not break this precedence; tests assert boundary *intent*, not the exact number.
+- **Effective vs raw cloud cover (`lib/solar/effective-cloud-cover.ts`):** the gate and the FR12 confidence blend read **layer-weighted `effectiveCloudCover`** = `clamp(1.0*low + 1.0*medium + 0.25*high, 0, 100)` (`CLOUD_WEIGHT_LOW/MEDIUM/HIGH`). Thin high cirrus (weight 0.25) transmits direct sun, so 100%-cirrus-only lands at 25 and does NOT gate, while a 100% low deck lands at 100 and does. **`skyCondition` (the displayed sky line) reads the RAW total `cloud_area_fraction`** via `skyConditionFromCloudCover` (observable-sky honesty), NOT the effective value — do not "simplify" the two into one. Layer weighting applies ONLY when all three low/med/high bands are present; any missing band degrades to the raw total (Tier-0 behaviour).
+- **Rain precedence (Story 10.4):** rain is a near-now Nowcast 2.0 radar signal (`lib/weather/nowcast-service.ts`, `NOWCAST_HORIZON_MS = 90 min`, deduped via `createDedupedNowcastFetcher`). `skyCondition` precedence is **rain > overcast** — the precedence lives at the `sun-engine` call site, not inside `skyConditionFromCloudCover` (which stays pure and rain-unaware). `applyCloudGate`'s 4th param is `isRaining` (landed optional `= false` to keep pre-10.4 3-arg pure-helper assertions byte-identical; 3-arg semantics = no rain).
+
+### `undefined` never `0` — the missing-weather discipline (Stories 10.1 / 10.3 / 10.4)
+
+- **A missing weather field stays `undefined`, never coerced to `0`.** `undefined` cloud cover is BOTH non-gating AND non-clear (it never fabricates a sunny sky and never gates). `undefined` `precipitation_rate` (radar coverage insufficient — Met.no OMITS the field) contributes nothing; only a strictly-positive rate fires the rain gate. **Never `?? 0` a cloud fraction or a rain rate** — `getForecast` missing `cloud_area_fraction` yields `undefined`, not `0`; this is a hard, load-bearing invariant an honesty-first app cannot regress. For a weather-missing venue, `skyCondition` is left ABSENT (never a fabricated `'clear'`).
+
+### Exhaustiveness-forcing union consumers (Stories 10.1 / 10.2, ratified at epic review)
+
+- `VenueSunStatus` now includes `CloudObscured`; `SkyCondition` carries `rain` / `overcast` / `unavailable` etc. **Every consumer that switches on these unions must use a `never`-exhaustive switch** so adding a future member is a compile error, not a silent fall-through.
+- **The sweep must reach the API and DB validation layers, not just render sites.** The epic review found `CloudObscured` was silently rejected by the feedback-API Zod enum AND the live DB `CHECK` because the 10.1 consumer sweep covered render/compile sites only. **`as const satisfies X[]` checks membership, not exhaustiveness** — use an **exhaustiveness-forcing `Record<Union, true>` allow-list** whose keys are the union (e.g. `feedback/route.ts:33` `satisfies Record<VenueSunStatus, true>`, `venue-store.ts:372` `satisfies Record<SkyCondition, true>`) so a new member forces every allow-list to update. When extending either union, grep BOTH render consumers (`currentSunStatus` / `sunStatus` / `predictedState` / `skyCondition`) AND the API-Zod-enum + DB-CHECK validation layers.
+- **Known inert-guard debt:** the shared `toSunStatusToken` mapper (`lib/utils/sun-status-presentation.ts`) was advertised as the single exhaustive DTO→token predicate but no render surface consumes it — every surface branches inline. Its `never`-guard is therefore inert. When next touching an obscured surface, route the token decision through the shared mapper (or delete the dead export) rather than hand-muting per surface.
+
+### No live Met.no in any test — shared setup guard (Story 10.4 / 10.5)
+
+- **A green vitest run cannot detect a masked live call** (the weather client swallows fetch errors to `undefined`). `nextjs-app/test/setup/setup.ts` installs a `beforeEach` fetch guard that **hard-rejects any outbound request whose host is `api.met.no`** with a fix-hint message. Mock `@/lib/weather/met-no-service` / `@/lib/weather/nowcast-service` (or inject an override) — never let a test reach the live host. The guard is surgical (only `api.met.no`; relative/same-origin and other absolute hosts pass through). A new weather-touching test that suddenly fails with the guard message means an un-mocked lazy-import path, not a flake.
+
+### Mixed-EOL blob reconstruction trap (Story 10.3)
+
+- **`nextjs-app/lib/solar/confidence-calculator.ts` is stored mixed-EOL** (~230 CRLF + ~70 LF lines) under `core.autocrlf=true` with no `.gitattributes` normalization rule. A naive Read→Edit round-trip pure-CRLF-ifies the whole file and produces ~73 lines of phantom EOL churn that pollutes the diff and code review. When editing this file (or any similarly mixed-EOL `.ts` blob), **reconstruct touched lines preserving the parent blob's per-line EOLs** — do not let the editor rewrite the whole file's line endings. (Repo-wide `* text=auto` / `*.ts text eol=lf` normalization would kill the class; flagged for a maintainer pass, not yet applied.)
+
+### Deterministic weather e2e seam (Story 10.5)
+
+- **E2E weather-boundary specs mock at the DTO boundary with `page.route`, NOT via `?_state` or `?venue=`.** The 10.2 `?_state` force-visual ids normalize every venue to `Sunny` (clobbering a mocked status/sky), and `?venue=<slug>` opens the detail and suppresses the quick-info card. The working seam (`test/e2e/epic-10-weather-matrix.spec.ts`) is: `page.route` the list route `**/api/venues?**` and the detail route with a hand-built DTO (setting `currentSunStatus` / `skyCondition` / `precipitationRate` per scenario), plus a `page.route('**://api.met.no/**', …)` block so no live weather leaks, then drive UI selection to reach the card. Weather-missing scenarios omit `skyCondition` entirely (never fabricate a clear sky). The pure gate/weight boundary logic is exhaustively unit-tested; e2e mocks only the presentation contract.
+
+### Deferred durable constraints carried forward from Epic 10
+
+- **FR12 "confidence drops with cloud" is not yet user-observable:** `applyShadowDataCoverageCap` (`lib/solar/shadow-data-coverage.ts`) clips the DISPLAYED confidence to 60 for every venue whose cluster ships `status:'unknown'` (all current venues), so both clear-sky and 100%-overcast display 60. The `cloudConfidenceFactor` term fires in `calcCloudCertainty` but is invisible downstream. This reactivates only when a venue cluster ships `status:'eligible'` (or the cap is raised). Do not treat the flat displayed-60 as a bug in new stories.
+- **`applyCloudGate`'s `isRaining = false` default** silently drops the rain signal for any future caller that forgets to thread it (a false "sunny during rain" — the worst outcome for an honesty-first app, with no compile error). Only one caller exists today and it threads correctly. If you add a new `applyCloudGate` caller or refactor `computeRealSunEngineResult`, **explicitly pass `isRaining`** and consider making the param required.
+
+---
+
 ## Screen ID → Route Map
 
 This table is read by `scripts/story-review.sh` and `scripts/visual-validate.sh` to resolve a story's screen ID to a dev-server route. Every screen ID referenced in a story's acceptance criteria must have a row here. Rows with both mobile and desktop variants need one row per viewport — the gate reads the viewport column to pick the reference-PNG subfolder and the Playwright viewport size.
@@ -240,8 +285,12 @@ This table is read by `scripts/story-review.sh` and `scripts/visual-validate.sh`
 | onboarding                 | `/?_state=onboarding`                                       | desktop  | Same forced state on desktop viewport.                                                      |
 | map-panel-venues           | `/?_state=map-panel-venues&_time=14:00`                     | mobile   | Bottom sheet expanded from peek to the partial list/mid snap; `_time` pins the MVP reference time. |
 | map-with-selected-venue    | `/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00` | mobile   | Pin selected state for current MVP reference; composition comes from refreshed PNG.          |
+| map-with-obscured-venue    | `/?_state=map-with-obscured-venue&_time=14:00`             | mobile   | Story 10.2 "Sun Behind Clouds": deterministic weather-gated obscured surface — pins + selected-venue quick-info normalized to `CloudObscured` + `skyCondition: 'overcast'` (muted slate pill/badge, "Sol bakom moln" + sky line, geometric % preserved as position). No live Met.no; reachable on the fixture/CI path. Auto-selects the first venue like `map-with-selected-venue`. |
+| map-with-obscured-venue    | `/?_state=map-with-obscured-venue&_time=14:00`             | desktop  | Same obscured surface on desktop viewport.                                                  |
 | venue-detail               | `/?venue=test-venue-sunny&_state=venue-detail&_time=14:00`  | mobile   | Venue detail state with sun timeline and planner/date sync where active.                    |
 | venue-detail               | `/?venue=test-venue-sunny&_state=venue-detail&_time=16:30`  | desktop  | 390 px right-side overlay panel with close button.                                          |
+| venue-detail-obscured      | `/?venue=test-venue-sunny&_state=venue-detail-obscured&_time=14:00` | mobile   | Story 10.2: the venue-detail surface with the seeded venue in the weather-gated `CloudObscured` + `overcast` state (muted hero badge/headline + sky line; the sun timeline stays as clear-sky potential). No live Met.no. |
+| venue-detail-obscured      | `/?venue=test-venue-sunny&_state=venue-detail-obscured&_time=16:30` | desktop  | Same obscured detail surface on desktop viewport.                                            |
 | feedback                   | `/?venue=test-venue-sunny&_state=feedback`                  | mobile   | Inline feedback prompt within venue-detail.                                                 |
 | review                     | `/?venue=test-venue-sunny&_state=review`                    | mobile   | Inline review form opened via "Lämna ett omdöme" CTA.                                       |
 | premium-upsell             | `/?_state=premium-upsell`                                   | mobile   | Future Monetization only — inactive in MVP; planner/date/favourites are free.               |
@@ -271,4 +320,4 @@ This table is read by `scripts/story-review.sh` and `scripts/visual-validate.sh`
 - **Sun season:** March–October (useful outdoor sun hours)
 - **MVP geodata bbox:** EPSG:3007 `x=140000..150000, y=6390000..6410000`
 - **Building/shadow data:** 2D Lantmäteriet footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation. Current runtime building casters are derived from the first validated Baskarta subset, `byggnad_l` roof/facade/shelter linework; broader Baskarta XYZ layers must be preflighted, classified, and kept inactive or low-confidence until validated. Runtime must use filtered/active shadow-caster records only; review/quarantine records are not runtime-active until spot-checked.
-- **Weather source:** Met.no (primary, free, Norwegian Meteorological Institute)
+- **Weather source:** Met.no (primary, free, Norwegian Meteorological Institute) — Locationforecast 2.0 `complete` for the three-layer cloud split (low/medium/high) + Nowcast 2.0 for the near-now radar-rain signal. No live Met.no fetch is allowed in tests (shared setup guard).

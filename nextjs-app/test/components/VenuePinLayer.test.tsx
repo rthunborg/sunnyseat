@@ -144,6 +144,7 @@ const messages = {
     // next-intl's missing-key fallback instead of the real translation.
     pinPartialAria: 'Delvis solig plats — {percent} procent sol',
     pinShadedAria: 'Skuggad plats — {percent} procent sol',
+    pinObscuredAria: 'Sol bakom moln — {percent} procent solläge',
   },
 };
 
@@ -224,6 +225,29 @@ describe('<VenuePinLayer />', () => {
     unmount();
 
     allMarkers.forEach((m) => expect(m.remove).toHaveBeenCalled());
+  });
+
+  it('announces a CloudObscured pin as "sol bakom moln", not "shaded" (Story 10.2 AC4)', () => {
+    const stubMap = makeStubMap();
+    const handleRef: { current: WrapperHandle | null } = { current: null };
+    const Wrapper = makeWrapper(stubMap, handleRef);
+
+    const obscuredVenue: VenuePinData = {
+      id: 'obscured', slug: 'o', name: 'Obscured', lat: 57.7, lng: 11.97,
+      sunStatus: 'CloudObscured', sunExposurePercent: 88, isPartner: false,
+    };
+
+    render(<VenuePinLayer venues={[obscuredVenue]} />, { wrapper: Wrapper });
+
+    const button = allMarkers[0].__element.querySelector('button');
+    const ariaLabel = button?.getAttribute('aria-label') ?? '';
+    // The obscured aria appears — and the shaded aria does not.
+    expect(ariaLabel).toContain('Sol bakom moln');
+    expect(ariaLabel).not.toContain('Skuggad plats');
+    // The geometric solläge % survives the gate in the aria (AC2).
+    expect(ariaLabel).toContain('88');
+    // Obscured phrase present exactly once (AC4 de-dup discipline).
+    expect(ariaLabel.match(/Sol bakom moln/g)).toHaveLength(1);
   });
 
   it('selectively re-renders the previously- and newly-selected pins on selection change', () => {

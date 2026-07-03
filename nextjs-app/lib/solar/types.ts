@@ -128,7 +128,10 @@ export interface VenueShadowInfo {
   obstructionRisks?: ObstructionRiskClass[];
 }
 
-export type SunState = 'Sunny' | 'Partial' | 'Shaded' | 'NoSun';
+// Mirrors the DTO `VenueSunStatus` (lib/types/api.ts). STORY 10.1 (AC1) added the
+// weather-gated `CloudObscured` value; kept identical here so the two vocabularies
+// do not drift.
+export type SunState = 'Sunny' | 'Partial' | 'Shaded' | 'NoSun' | 'CloudObscured';
 
 export interface ShadowTimelinePoint {
   timestamp: Date;
@@ -148,7 +151,29 @@ export interface ShadowTimeline {
 }
 
 export interface WeatherSlice {
-  cloudCover: number;
+  /**
+   * Total cloud cover 0..100 (`cloud_area_fraction`). STORY 10.1 (AC2): OPTIONAL
+   * so a timeseries entry that lacks cloud data reads "unknown" rather than the
+   * old optimistic `?? 0` (clear-sky) default — absent cloud must NEVER produce a
+   * clear gate input. `undefined` = unknown = NON-gating AND NON-clear: the cloud
+   * gate (sun-engine `applyCloudGate`) does not fire, `skyConditionFromCloudCover`
+   * maps it to `'unavailable'`, and the confidence blend (`calcCloudCertainty`)
+   * treats it as neutral (freshness-only), not as 100% overcast.
+   */
+  cloudCover?: number;
+  /**
+   * Low-cloud cover 0..100 (`cloud_area_fraction_low`, below ~2000 m). STORY 10.3
+   * (AC1): the Met.no `complete` product's three-layer split. OPTIONAL — a partial
+   * `complete` entry, a non-Met.no producer, or a fixture without it stays valid;
+   * `undefined` = this layer unknown ⇒ `effectiveCloudCover` falls back to the raw
+   * total (Story 10.3 AC3). NOT a partition of the total: each band is an
+   * independent cover fraction, so low+medium+high can exceed 100. Do NOT `?? 0`.
+   */
+  cloudCoverLow?: number;
+  /** Medium-cloud cover 0..100 (`cloud_area_fraction_medium`, ~2000–5000 m). See {@link WeatherSlice.cloudCoverLow}. */
+  cloudCoverMedium?: number;
+  /** High-cloud cover 0..100 (`cloud_area_fraction_high`, cirrus above ~5000 m). See {@link WeatherSlice.cloudCoverLow}. */
+  cloudCoverHigh?: number;
   temperature: number;
   visibility?: number;
   isForecast: boolean;

@@ -44,6 +44,12 @@ export {
   isSufficientConfidence,
 } from './confidence-calculator';
 export {
+  effectiveCloudCover,
+  CLOUD_WEIGHT_LOW,
+  CLOUD_WEIGHT_MEDIUM,
+  CLOUD_WEIGHT_HIGH,
+} from './effective-cloud-cover';
+export {
   convertUtcToStockholm,
   convertStockholmToUtc,
   isDaylightSavingTime,

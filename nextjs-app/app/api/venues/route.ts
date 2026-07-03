@@ -31,6 +31,7 @@ import {
   aggregateSunFreshness,
   applyRealSunEngine,
   createDedupedForecastFetcher,
+  createDedupedNowcastFetcher,
   mapWithConcurrency,
   resolveRequestedAt,
   safeSeedOutcome,
@@ -54,12 +55,44 @@ const MAX_IDS_QUERY_LENGTH = MAX_IDS * (MAX_ID_LENGTH + 1) - 1;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/u;
 const DIACRITIC_PATTERN = /[\u0300-\u036f]/gu;
 
-const SUN_STATUS_ORDER: Record<VenueDataDto['currentSunStatus'], number> = {
-  Sunny: 0,
+// STORY 10.1 (AC4, Task 1): this `Record` keyed on the `VenueSunStatus` union is a
+// compile-forcing site — a missing key is a type error, and a missing key at
+// RUNTIME would make `SUN_STATUS_RANK[status]` `undefined`, silently corrupting the
+// list sort.
+//
+// STORY 10.2 review [Patch][Med]: the server sort MUST agree with the client
+// `getVenueSunRankForList` (VenueList.tsx) — otherwise the server ranks
+// `CloudObscured` by a FIXED tier below every `Partial` and `.slice(0, MAX_RESULTS)`
+// truncates a high-solläge obscured venue out of the top-50 BEFORE the client's
+// solläge-aware re-sort can recover it (Story 10.2 AC2: "Mest sol ranks by geometric
+// solläge under overcast"). To keep the pre-slice order identical to the client
+// order, both layers use the SAME "higher is better" [0,2] rank space
+// (Sunny=2, Partial=1, Shaded/NoSun=0) and `CloudObscured` is scaled continuously
+// by its surviving geometric solläge — see `sunListRank` below. This `Record` only
+// supplies the non-obscured tiers.
+const SUN_STATUS_RANK: Record<VenueDataDto['currentSunStatus'], number> = {
+  Sunny: 2,
   Partial: 1,
-  Shaded: 2,
-  NoSun: 3,
+  // `CloudObscured` is NOT a fixed tier — `sunListRank` overrides it with the
+  // solläge-scaled value. This entry is a defensive floor only (unused on the
+  // obscured path).
+  CloudObscured: 0,
+  Shaded: 0,
+  NoSun: 0,
 };
+
+// Server-side mirror of the client `getVenueSunRankForList` (VenueList.tsx). MUST
+// stay in lock-step with it so the pre-slice server order and the client re-sort
+// agree. Higher = better; caller sorts DESCENDING by this, tie-broken by distance.
+function sunListRank(venue: Pick<VenueDataDto, 'currentSunStatus' | 'sunExposurePercent'>): number {
+  if (venue.currentSunStatus === 'CloudObscured') {
+    const percent = Number.isFinite(venue.sunExposurePercent)
+      ? Math.max(0, Math.min(100, venue.sunExposurePercent))
+      : 0;
+    return (percent / 100) * 2;
+  }
+  return SUN_STATUS_RANK[venue.currentSunStatus];
+}
 
 /**
  * Strict numeric parse — `Number(...)` rejects "1.5abc" with NaN, where
@@ -247,12 +280,18 @@ export async function GET(request: NextRequest) {
     // list route can NEVER 500 on the real path (DECISION D / Story 8.5 5.1+5.2).
     const { getForecast } = await import('@/lib/weather/met-no-service');
     const dedupedForecast = createDedupedForecastFetcher(getForecast);
+    // STORY 10.4 (Task 5): batch-scoped per-coordinate dedupe for the Nowcast 2.0
+    // rain signal too — co-located venues share ONE nowcast call, keeping the
+    // Met.no fan-out under the shared TOS rate cap (rain requests count toward the
+    // same budget). The engine consults it only for near-now requests (AC4).
+    const { getNowcastPrecipitationRate } = await import('@/lib/weather/nowcast-service');
+    const dedupedNowcast = createDedupedNowcastFetcher(getNowcastPrecipitationRate);
     const outcomes = await mapWithConcurrency(
       storeVenues,
       SUN_ENGINE_LIST_CONCURRENCY,
       async (v) => {
         try {
-          return await applyRealSunEngine(v, requestedAt, now, dedupedForecast);
+          return await applyRealSunEngine(v, requestedAt, now, dedupedForecast, dedupedNowcast);
         } catch (error) {
           console.error(
             `Sun engine failed for venue ${v.id}; degrading:`,
@@ -293,8 +332,10 @@ export async function GET(request: NextRequest) {
 
   const venues = matchedVenues
     .sort((a, b) => {
-      const status =
-        SUN_STATUS_ORDER[a.currentSunStatus] - SUN_STATUS_ORDER[b.currentSunStatus];
+      // Descending by the shared solläge-aware rank (higher = better), so the
+      // pre-slice order matches the client re-sort and no high-solläge obscured
+      // venue is truncated before the client sees it.
+      const status = sunListRank(b) - sunListRank(a);
       if (status !== 0) return status;
       return a.distanceMeters - b.distanceMeters;
     })

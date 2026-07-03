@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   aggregateSunFreshness,
+  applyCloudGate,
   applyRealSunEngine,
   buildPredictionUncertainty,
   classifySunStatus,
   createDedupedForecastFetcher,
+  createDedupedNowcastFetcher,
   extractSunlitWindow,
   mapWithConcurrency,
   peakTimeFromTimeline,
@@ -551,5 +553,77 @@ describe('mapWithConcurrency + createDedupedForecastFetcher (Story 8.5 5.1/5.2)'
     ]);
 
     expect(underlying).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// COVERAGE EXPANSION (bmad-testarch-automate) — Story 10.4 Task 5:
+// createDedupedNowcastFetcher — the nowcast twin of the forecast fetcher. Task 5
+// mirrors the forecast dedupe pattern for TOS-hygiene (nowcast requests count
+// toward the same Met.no rate budget), but only the forecast fetcher was tested.
+// This pins the nowcast fetcher's own coalescing + no-throw degrade behaviour.
+// ---------------------------------------------------------------------------
+describe('createDedupedNowcastFetcher (Story 10.4 Task 5)', () => {
+  it('coalesces co-located venues to ONE upstream nowcast request per ≤4-decimal key', async () => {
+    const underlying = vi.fn(async () => 0.4);
+    const deduped = createDedupedNowcastFetcher(underlying);
+
+    const rates = await Promise.all([
+      deduped(57.70531, 11.96391), // rounds to 57.7053,11.9639
+      deduped(57.70534, 11.96394), // same rounded key → coalesced
+      deduped(57.71823, 11.98012), // distinct key
+    ]);
+
+    // Two distinct rounded keys → exactly two upstream calls.
+    expect(underlying).toHaveBeenCalledTimes(2);
+    // Coalesced callers share the same resolved rate.
+    expect(rates[0]).toBe(0.4);
+    expect(rates[1]).toBe(0.4);
+  });
+
+  it('propagates the underlying "unknown" (undefined) rate through the coalesced entry', async () => {
+    // The underlying accessor never throws (it catches all errors → undefined);
+    // the deduper must pass that `undefined` through unchanged so a transient
+    // nowcast failure coalesces to the correct per-venue "unknown → non-gating"
+    // degrade for every co-located venue. [8.5-R1 no-eviction property mirrored]
+    const underlying = vi.fn(async () => undefined);
+    const deduped = createDedupedNowcastFetcher(underlying);
+
+    const rates = await Promise.all([
+      deduped(57.7053, 11.9639),
+      deduped(57.7053, 11.9639), // same key → coalesced
+    ]);
+
+    expect(underlying).toHaveBeenCalledTimes(1);
+    expect(rates[0]).toBeUndefined();
+    expect(rates[1]).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// COVERAGE EXPANSION (bmad-testarch-automate) — Story 10.4 Task 3:
+// applyCloudGate's 4th `isRaining` param was made OPTIONAL (default false) so
+// every pre-10.4 3-arg call site stays byte-identical (a 3-arg call = "no
+// rain"). The AC2/AC3 rain suite always passes an explicit boolean; this pins
+// the DEFAULT-param back-compat contract the dev flagged as a deliberate
+// deviation, guarding against a future signature change that would break it.
+// ---------------------------------------------------------------------------
+describe('applyCloudGate — isRaining defaults to false (3-arg back-compat, Story 10.4 Task 3)', () => {
+  it('a 3-arg call behaves exactly like an explicit isRaining=false — cloud alone decides', () => {
+    // Below-threshold cloud, no rain arg ⇒ un-gated, identical to passing false.
+    expect(applyCloudGate('Sunny', true, 10)).toBe(
+      applyCloudGate('Sunny', true, 10, false),
+    );
+    // At/above threshold, no rain arg ⇒ still cloud-gated, identical to false.
+    expect(applyCloudGate('Sunny', true, 100)).toBe(
+      applyCloudGate('Sunny', true, 100, false),
+    );
+  });
+
+  it('a 3-arg call NEVER fabricates a rain gate on a low-cloud sunlit venue', () => {
+    // The default must be "no rain" — a low-cloud sunlit venue stays Sunny with
+    // no isRaining argument, exactly as the pre-10.4 3-arg helper did.
+    expect(applyCloudGate('Sunny', true, 10)).toBe('Sunny');
+    expect(applyCloudGate('Partial', true, 10)).toBe('Partial');
   });
 });

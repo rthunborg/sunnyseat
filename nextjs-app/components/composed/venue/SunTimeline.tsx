@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from 'motion/react';
 import { DURATION_DEFAULT_S, EASE_ENTER } from '@/lib/constants/animation';
 import type { VenueSunTimelineDto, VenueSunTimelineWindowDto } from '@/lib/types/api';
+import { windowLabelTier } from '@/lib/utils/sun-status-presentation';
 import { cn } from '@/lib/utils';
 
 export type SunTimelineLabels = {
@@ -128,23 +129,48 @@ function TimelineWindow({
         'absolute top-0 h-[var(--size-timeline-h)] rounded-pill',
         decorative && 'opacity-100',
         !decorative && 'opacity-25',
-        window.status === 'Sunny' && 'gradient-timeline-bar',
-        window.status === 'Partial' && 'bg-amber-gold/50',
-        window.status === 'Shaded' && 'bg-transparent',
+        windowFillClass(window.status),
       )}
       style={{ left: `${left}%`, width: `${width}%` }}
     />
   );
 }
 
+// Timeline window status → CSS fill class. Routed through the shared
+// `windowLabelTier` helper (Story 10.2) so the weather-only 'CloudObscured'
+// value renders like 'Partial' clear-sky potential and a newly-added
+// VenueSunStatus is a COMPILE error in exactly one place. The server
+// buildDetailDto and client timelineFromListVenue both remap 'CloudObscured'
+// to 'Partial' upstream (10.2 AC2); this stays defensive so a leak degrades
+// to a translucent potential bar rather than a blank bar labelled "Shaded".
+function windowFillClass(status: VenueSunTimelineWindowDto['status']): string {
+  switch (windowLabelTier(status)) {
+    case 'sunny':
+      return 'gradient-timeline-bar';
+    case 'partial':
+      return 'bg-amber-gold/50';
+    case 'shaded':
+      return 'bg-transparent';
+  }
+}
+
 function windowLabel(window: VenueSunTimelineWindowDto, labels: SunTimelineLabels): string {
-  const template =
-    window.status === 'Sunny'
-      ? labels.sunnyWindow
-      : window.status === 'Partial'
-        ? labels.partialWindow
-        : labels.shadedWindow;
+  const template = windowLabelTemplate(window.status, labels);
   return formatLabel(template, { start: window.start, end: window.end });
+}
+
+function windowLabelTemplate(
+  status: VenueSunTimelineWindowDto['status'],
+  labels: SunTimelineLabels,
+): string {
+  switch (windowLabelTier(status)) {
+    case 'sunny':
+      return labels.sunnyWindow;
+    case 'partial':
+      return labels.partialWindow;
+    case 'shaded':
+      return labels.shadedWindow;
+  }
 }
 
 function minutesFromTime(value: string): number {

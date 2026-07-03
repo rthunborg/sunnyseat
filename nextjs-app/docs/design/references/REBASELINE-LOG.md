@@ -43,6 +43,25 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-07-03 — `map-with-obscured-venue` + `venue-detail-obscured` (mobile + desktop) — Story 10.2 (maintainer-authorized rebaseline)
+
+**Trigger:** Story 10.2 ("Sun Behind Clouds") added two dev-only force-states — `map-with-obscured-venue` and `venue-detail-obscured` — and rows for both (mobile + desktop) in `project-context.md`'s Screen ID → Route Map. No reference PNGs existed for these new `(screen-id, viewport)` pairs, so the visual gate had nothing to compare against. These are new obscured-surface states with no Claude Design prototype recipe (the muted "Sol bakom moln" weather-gated treatment is implementation-only), so `capture-claude-design-refs.mjs` cannot generate them.
+
+**Resolution:** First implementation-driven baseline for all four pairs, captured against the running dev app at the canonical routes and each captured surface verified to actually be in the obscured state before blessing (muted slate chrome + "Sol bakom moln"/"SOL BAKOM MOLN · MULET", NOT amber sunny chrome). The dev agent is normally forbidden from self-blessing refs; the maintainer explicitly authorized this rebaseline (delegated blessing).
+
+**Source of new PNG:** One-off Playwright capture (mirrors the `capture-offline-rebaseline.mjs` pattern: `deviceScaleFactor: 2`, `locale: sv-SE`, `sunnyseat_onboarded` seeded, `networkidle` + settle). Routes (from the Screen ID → Route Map):
+- `/?_state=map-with-obscured-venue&_time=14:00` → `{mobile,desktop}/map-with-obscured-venue.png` (390×844 / 1440×900)
+- `/?venue=test-venue-sunny&_state=venue-detail-obscured&_time=14:00` → `mobile/venue-detail-obscured.png` (390×844)
+- `/?venue=test-venue-sunny&_state=venue-detail-obscured&_time=16:30` → `desktop/venue-detail-obscured.png` (1440×900)
+
+**Recipe change:** None. `capture-claude-design-refs.mjs` is unchanged (no prototype recipe exists for these obscured surfaces — they are implementation-driven, like `map-primary-offline`/`not-found`). The one-off capture script was a temporary helper and was not committed.
+
+**Verification:** Obscured state confirmed both visually (all four screenshots eyeballed: muted slate `95%` cloud badge + "SOL BAKOM MOLN · MULET", muted slate pins, amber suppressed) and programmatically (`quick-info-obscured` / `venue-detail-obscured` testids present in the DOM at both viewports; desktop `venue-detail-obscured` carries zero amber `% SOL` badges). Implementation-derived baseline (the reference IS the verified obscured implementation).
+
+**Reason / spec link:** Story 10.2 introduced the `CloudObscured` + `overcast` weather-gated obscured surface; `project-context.md` Screen ID → Route Map rows for `map-with-obscured-venue` and `venue-detail-obscured` (added by 10.2) require reference PNGs for the gate to run. Maintainer explicitly delegated the blessing authority for this rebaseline.
+
+**Re-evaluation trigger:** Re-capture if the obscured chrome (muted slate pill/badge, "Sol bakom moln" copy, sky line), the obscured pin styling, the auto-selection behavior of `map-with-obscured-venue`, or the seeded `test-venue-sunny` fixture geometry changes materially.
+
 ### 2026-06-29 — `onboarding` (desktop only) — post-launch design fix (onboarding desktop layout)
 
 **Trigger:** A post-launch design/UX review of the live site found the onboarding screen had **no desktop layout** — the mobile full-bleed design was scaled to 1440px+, so the primary CTA spanned ~1376px (full width) and the centred copy floated in a large empty band above a bottom-anchored button. The prior `onboarding` desktop reference was a **self-fulfilling baseline** (captured 2026-05-04/05 from the implementation), so it memorialised the mobile-scaled layout and the LLM-eyeball visual gate (which ignores sizing/spacing) never flagged it.

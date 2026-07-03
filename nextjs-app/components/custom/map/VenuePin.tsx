@@ -21,14 +21,21 @@ type VenuePinProps = {
 const MOTION_DURATION = 0.2;
 
 /**
- * Story 1.4 — venue map pin with three visual variants:
- *   sunny | sunny-selected | shaded
+ * Story 1.4 — venue map pin with visual variants:
+ *   sunny | sunny-selected | shaded | obscured
  *
  * Sunny pins cross-fade between a pill-with-pointer and a perfect circle
  * when selected (AC3). Shaded pins keep their pill shape regardless. The
  * morph is implemented as a true cross-fade between two compositions
  * because the pointer tail is a separate DOM element (Critical
  * constraint #4).
+ *
+ * Story 10.2 adds the muted `obscured` variant — the weather-gated "Sol
+ * bakom moln" pill. It is a slate blue-grey pill (distinct from BOTH the
+ * amber sunny pill AND the grey shaded pill) that keeps a Cloud icon (so
+ * the state is not colour-only per NFR27) and keeps the geometric solläge
+ * `%` visible (AC2: position, not weather). Like the shaded pill it has a
+ * single rendered state and does not morph on selection.
  *
  * The pin is rendered as a focusable `<button>` so keyboard users can
  * activate it. Differentiated by icon shape (sun vs. cloud) — colour
@@ -48,12 +55,17 @@ export function VenuePin({ venue, isSelected, onClick, ariaLabel }: VenuePinProp
   // so non-reduced-motion users don't miss the entrance entirely.
   const shouldReduceMotion = useReducedMotion() ?? true;
 
-  const isSunny = venue.sunStatus === 'Sunny' || venue.sunStatus === 'Partial';
+  const isObscured = venue.sunStatus === 'CloudObscured';
+  const isSunny =
+    !isObscured &&
+    (venue.sunStatus === 'Sunny' || venue.sunStatus === 'Partial');
   const state: VenuePinSelection = isSunny
     ? isSelected
       ? 'sunny-selected'
       : 'sunny'
-    : 'shaded';
+    : isObscured
+      ? 'obscured'
+      : 'shaded';
 
   // Clamp + default — the API contract is `0..100`, but defensive
   // rendering means we never display "NaN%" / "undefined%" if the
@@ -68,6 +80,8 @@ export function VenuePin({ venue, isSelected, onClick, ariaLabel }: VenuePinProp
       <SunnyCircle percent={safePercent} />
     ) : state === 'sunny' ? (
       <SunnyPill percent={safePercent} />
+    ) : state === 'obscured' ? (
+      <ObscuredPill percent={safePercent} />
     ) : (
       <ShadedPill percent={safePercent} />
     );
@@ -105,6 +119,14 @@ export function VenuePin({ venue, isSelected, onClick, ariaLabel }: VenuePinProp
               transition={{ duration: MOTION_DURATION, ease: 'easeInOut' }}
             >
               <SunnyPill percent={safePercent} />
+            </motion.div>
+          ) : state === 'obscured' ? (
+            // Mirror the shaded pill's single-state treatment: no
+            // selected-morph variant, no entrance fade (initial={false},
+            // duration 0) so crossing the weather gate on refresh does not
+            // flash (Design Gate "Animation").
+            <motion.div key="obscured-pill" initial={false} transition={{ duration: 0 }}>
+              <ObscuredPill percent={safePercent} />
             </motion.div>
           ) : (
             <motion.div key="shaded-pill" initial={false} transition={{ duration: 0 }}>
@@ -165,6 +187,33 @@ function ShadedPill({ percent }: { percent: number }) {
       <span
         data-pin-tail
         className="block w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-pin-shaded"
+      />
+    </div>
+  );
+}
+
+/**
+ * Story 10.2 — the muted "Sol bakom moln" (CloudObscured) pill. A slate
+ * blue-grey fill (`--color-pin-obscured`) with WHITE text/icon (5.50:1, AA)
+ * that reads unmistakably as "cloudy now" — distinct from the amber sunny
+ * pill and the light-grey shaded pill. Keeps the Cloud icon (not colour-only,
+ * NFR27) and the geometric solläge `%` (AC2 position, not weather).
+ */
+function ObscuredPill({ percent }: { percent: number }) {
+  return (
+    <div className="flex flex-col items-center" data-pin-obscured="true">
+      <div className="bg-pin-obscured border-[2.5px] border-white shadow-card rounded-pill px-5 py-2 flex items-center gap-1">
+        <Cloud
+          aria-hidden="true"
+          data-pin-icon="cloud"
+          className="text-white"
+          style={{ width: '14px', height: '14px' }}
+        />
+        <span className="text-label-md text-white">{percent}%</span>
+      </div>
+      <span
+        data-pin-tail
+        className="block w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-pin-obscured"
       />
     </div>
   );

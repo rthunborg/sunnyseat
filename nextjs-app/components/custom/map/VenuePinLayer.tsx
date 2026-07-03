@@ -69,6 +69,11 @@ export function VenuePinLayer({ venues }: VenuePinLayerProps) {
     const name = venue.name;
     if (venue.sunStatus === 'Sunny') return t('pinSunnyAria', { name, percent });
     if (venue.sunStatus === 'Partial') return t('pinPartialAria', { name, percent });
+    // Story 10.2 (AC4): the obscured pin announces "sol bakom moln", not
+    // "shaded". Placed BEFORE the shaded fallback so a CloudObscured venue
+    // never collapses to the shaded aria. `{percent}` is the geometric
+    // solläge that survives the gate (AC2, position not weather).
+    if (venue.sunStatus === 'CloudObscured') return t('pinObscuredAria', { name, percent });
     return t('pinShadedAria', { name, percent });
   };
 

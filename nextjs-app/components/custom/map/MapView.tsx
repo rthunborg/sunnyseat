@@ -185,10 +185,17 @@ export function MapView() {
   );
   const listMode = isFavouritesRoute ? 'favourites' : desktopListMode;
   const effectiveSortMode = listMode === 'favourites' ? 'sun' : venueSortMode;
+  // Story 10.2 (Task 5): `map-with-obscured-venue` is the deterministic
+  // obscured force-state — a sibling of `map-with-selected-venue` that
+  // normalizes the selected venue + pin to the weather-gated CloudObscured
+  // state (+ `skyCondition: 'overcast'`) so the muted pin/quick-info surface
+  // is reachable on the fixture/CI path WITHOUT live Met.no weather.
+  const isForcedObscuredReference = forcedState === 'map-with-obscured-venue';
   const isForcedVisualReference =
     forcedState === 'map-primary' ||
     forcedState === 'map-panel-venues' ||
-    forcedState === 'map-with-selected-venue';
+    forcedState === 'map-with-selected-venue' ||
+    isForcedObscuredReference;
   // Story 9.4 AC2: gate the FIRST venue fetch until the user's location has
   // resolved to a real value (`success`) or the centrum fallback. While the
   // status is `idle`/`pending` the fallback-centrum key and the eventual
@@ -398,7 +405,8 @@ export function MapView() {
     return activeFavouriteVenueRows.some((venue) => venue.id === selectedVenuePreview.id);
   }, [activeFavouriteVenueRows, rawVenues, selectedVenuePreview]);
   const canRequestVenueDetail = Boolean(venueSlugParam) &&
-    forcedState !== 'map-with-selected-venue';
+    forcedState !== 'map-with-selected-venue' &&
+    forcedState !== 'map-with-obscured-venue';
   const shouldRefreshSelectedPreview = Boolean(
     selectedVenuePreview &&
     selectedVenueId === selectedVenuePreview.id &&
@@ -451,21 +459,25 @@ export function MapView() {
     return venueDtosForMap.flatMap((v) => {
       const pin = mapVenueDtoToPinData(v);
       if (!pin) return [];
+      // Story 10.2 (Task 5): the obscured force-state normalizes every pin to
+      // the muted CloudObscured pill (deterministic obscured surface).
+      if (isForcedObscuredReference) return [normalizeForcedObscuredPin(pin)];
       return forceSunnyVisualPins
         ? [normalizeForcedVisualPin(pin)]
         : [pin];
     });
-  }, [forceSunnyVisualPins, venueDtosForMap]);
+  }, [forceSunnyVisualPins, isForcedObscuredReference, venueDtosForMap]);
   const selectedVenueDto = useMemo(() => {
     if (!selectedVenueId) return null;
     return venueDtosForMap.find((venue) => venue.id === selectedVenueId) ?? null;
   }, [selectedVenueId, venueDtosForMap]);
   const selectedQuickInfoVenue = useMemo(() => {
     if (!selectedVenueDto) return null;
+    if (isForcedObscuredReference) return normalizeForcedObscuredVenue(selectedVenueDto);
     return isForcedVisualReference
       ? normalizeForcedVisualVenue(selectedVenueDto)
       : selectedVenueDto;
-  }, [isForcedVisualReference, selectedVenueDto]);
+  }, [isForcedObscuredReference, isForcedVisualReference, selectedVenueDto]);
   const selectedPinData = useMemo(() => {
     if (!selectedVenueId) return null;
     return venues.find((venue) => venue.id === selectedVenueId) ?? null;
@@ -602,7 +614,13 @@ export function MapView() {
   }, [isFavouritesRoute, selectVenue, selectedVenueId]);
 
   useEffect(() => {
-    if (forcedState !== 'map-with-selected-venue' && !venueSlugParam) return;
+    if (
+      forcedState !== 'map-with-selected-venue' &&
+      forcedState !== 'map-with-obscured-venue' &&
+      !venueSlugParam
+    ) {
+      return;
+    }
     if (!Array.isArray(rawVenues) || rawVenues.length === 0) return;
     const match = venueSlugParam
       ? rawVenues.find((venue) => venueMatchesSlug(venue, venueSlugParam))
@@ -1069,6 +1087,8 @@ export function MapView() {
             confidencePercent={selectedQuickInfoVenue?.confidence}
             confidenceMeta={quickInfoConfidenceMeta}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
+            currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
+            skyCondition={selectedQuickInfoVenue?.skyCondition}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
             distanceIsApproximate={locationIsApproximate}
             thumbnail={selectedQuickInfoVenue?.thumbnail}
@@ -1097,6 +1117,8 @@ export function MapView() {
             confidencePercent={selectedQuickInfoVenue?.confidence}
             confidenceMeta={quickInfoConfidenceMeta}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
+            currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
+            skyCondition={selectedQuickInfoVenue?.skyCondition}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
             distanceIsApproximate={locationIsApproximate}
             thumbnail={selectedQuickInfoVenue?.thumbnail}
@@ -1247,6 +1269,27 @@ function normalizeForcedVisualVenue(venue: VenueDataDto): VenueDataDto {
   };
 }
 
+// Story 10.2 (Task 5): the deterministic obscured normalizers. Mirror the
+// forced-sunny pair but set the weather-gated headline state (CloudObscured +
+// overcast sky) while KEEPING the geometric layer (95% solläge, a sun window)
+// so the "when it clears" potential stays visible — the exact two-signal case
+// the muted UI must render. Dev-only; no live Met.no.
+function normalizeForcedObscuredPin(pin: VenuePinData): VenuePinData {
+  return {
+    ...pin,
+    sunStatus: 'CloudObscured',
+    sunExposurePercent: 95,
+  };
+}
+
+function normalizeForcedObscuredVenue(venue: VenueDataDto): VenueDataDto {
+  return {
+    ...normalizeForcedVisualVenue(venue),
+    currentSunStatus: 'CloudObscured',
+    skyCondition: 'overcast',
+  };
+}
+
 function queryWithout(
   params: Pick<URLSearchParams, 'forEach'>,
   excludedKeys: string[],
@@ -1283,6 +1326,14 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     routeLoading: t('route.loading'),
     favouriteAdd: t('list.favouriteAdd'),
     favouriteRemove: t('list.favouriteRemove'),
+    // Story 10.2: muted "Sol bakom moln" headline + plain-language sky copy.
+    obscuredHeadline: t('quickInfo.obscuredHeadline'),
+    sky: {
+      clear: t('quickInfo.sky.clear'),
+      partlyCloudy: t('quickInfo.sky.partlyCloudy'),
+      overcast: t('quickInfo.sky.overcast'),
+      rain: t('quickInfo.sky.rain'),
+    },
   };
 }
 
@@ -1306,6 +1357,16 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     openingHours: t('detail.openingHours'),
     address: t('detail.address'),
     sunBadge: t('detail.sunBadge', { percent: '{percent}' }),
+    // Story 10.2: muted obscured hero headline/badge + plain-language sky copy.
+    obscuredHeadline: t('detail.obscuredHeadline'),
+    obscuredBadge: t('detail.obscuredBadge', { percent: '{percent}' }),
+    sky: {
+      label: t('detail.sky.label'),
+      clear: t('detail.sky.clear'),
+      partlyCloudy: t('detail.sky.partlyCloudy'),
+      overcast: t('detail.sky.overcast'),
+      rain: t('detail.sky.rain'),
+    },
     confidence: t('detail.confidence'),
     confidenceApproximate: t('detail.confidenceApproximate'),
     confidenceUnavailable: t('detail.confidenceUnavailable'),

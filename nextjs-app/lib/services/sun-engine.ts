@@ -78,6 +78,35 @@ const SUN_WINDOW_SAMPLE_INTERVAL_MIN = 30;
 const SUNNY_THRESHOLD_PERCENT = 70;
 const SUNLIT_THRESHOLD_PERCENT = 30;
 
+// STORY 10.1 (AC1): the single, named, tunable cloud-gate threshold. When the
+// effective cloud cover at the requested instant is KNOWN and meets/exceeds this
+// value, a geometrically-sunlit venue's headline state is overridden to
+// `CloudObscured` — the app must never claim "full sun" while the sky is overcast.
+// 80 is chosen because Met.no `cloud_area_fraction >= 80` is a near-total overcast
+// where direct sun is effectively blocked at ground level; below it (broken/partly
+// cloudy) direct sun still reaches the terrace often enough that the geometric
+// signal stays honest. The geometric layer (`sunExposurePercent`/`sunWindow`/
+// `peakTime`) is NEVER touched by this gate — it stays clear-sky potential.
+//
+// STORY 10.3 (DONE): the gate input is now a layer-weighted "effective cloud
+// cover" (see `effectiveCloudCover` in `lib/solar/effective-cloud-cover.ts`) — high
+// cirrus is weighted only weakly so a thin-haze sky does NOT gate, while a low
+// stratus deck still does. As the 10.1 SEAM promised, the ONLY thing that changed
+// is the value passed into `applyCloudGate`; this threshold + the gate logic stay
+// exactly as ratified. 80 = the effective-cover level at/above which a
+// geometrically-sunlit venue is re-labelled `CloudObscured`.
+export const CLOUD_GATE_THRESHOLD_PERCENT = 80;
+
+// STORY 10.4 (AC4): the near-now horizon for the Nowcast 2.0 radar rain signal.
+// The nowcast is a ~2-hour product (~5-minute steps); we consult it ONLY for a
+// `requestedAt` within [now, now + NOWCAST_HORIZON_MS]. 90 min sits safely inside
+// the ~2 h product horizon, so a future-planner request materially beyond "now"
+// never mixes in a stale "now" radar reading — forecast cloud governs there,
+// exactly as Tiers 0/1 (a past `requestedAt < now` is skipped too: no live radar
+// for the past). Documented, tunable, and asserted RELATIVELY in the AC4 tests
+// (they read this constant, never a hard-coded 90 minutes).
+export const NOWCAST_HORIZON_MS = 90 * 60 * 1000;
+
 // Weather older than this (or any forecast slice) flags a `weather` uncertainty
 // reason, matching the confidence-display "approximate" boundary (Story 2.6).
 const STALE_WEATHER_AGE_MS = 2 * 60 * 60 * 1000;
@@ -104,6 +133,15 @@ type GetForecast = (
   latitude?: number,
   longitude?: number,
 ) => Promise<WeatherSlice[]>;
+
+// STORY 10.4 (Tier 2): the near-now radar rain accessor. Returns the
+// precipitation rate (mm/h) at a coordinate now, or `undefined` when unknown
+// (nowcast down / no coverage / absent field). Injected like `GetForecast` so
+// tests mock it and the default seed path stays offline.
+type GetNowcastRate = (
+  latitude?: number,
+  longitude?: number,
+) => Promise<number | undefined>;
 
 // ---------------------------------------------------------------------------
 // Env gate (DECISION A / Task 1.3)
@@ -159,6 +197,29 @@ export function createDedupedForecastFetcher(getForecast: GetForecast): GetForec
     const existing = inFlight.get(key);
     if (existing) return existing;
     const pending = getForecast(latitude, longitude);
+    inFlight.set(key, pending);
+    return pending;
+  };
+}
+
+/**
+ * STORY 10.4 (Task 5, AC1): the nowcast twin of {@link createDedupedForecastFetcher}.
+ * Co-located venues that round to the same 4-decimal coordinate key share ONE
+ * upstream Nowcast 2.0 request per batch (in-flight coalescing) — a TOS-hygiene
+ * requirement, since nowcast requests count toward the same Met.no rate budget as
+ * the forecast. Create a fresh instance per list request (batch-scoped). It
+ * inherits the same no-eviction property as the forecast fetcher, which is fine
+ * for the same reason: `getNowcastPrecipitationRate` catches all errors and
+ * resolves to `undefined` (never throws), so a transient failure coalesces to the
+ * correct per-venue "unknown → non-gating" degrade. [8.5 R1 defer, mirrored]
+ */
+export function createDedupedNowcastFetcher(getNowcast: GetNowcastRate): GetNowcastRate {
+  const inFlight = new Map<string, Promise<number | undefined>>();
+  return (latitude, longitude) => {
+    const key = forecastCoordKey(latitude, longitude);
+    const existing = inFlight.get(key);
+    if (existing) return existing;
+    const pending = getNowcast(latitude, longitude);
     inFlight.set(key, pending);
     return pending;
   };
@@ -238,9 +299,16 @@ export async function applyRealSunEngine(
   requestedAt: Date,
   now: Date = new Date(),
   getForecastOverride?: GetForecast,
+  getNowcastOverride?: GetNowcastRate,
 ): Promise<SunEngineOutcome> {
   try {
-    return await computeRealSunEngineCached(venue, requestedAt, now, getForecastOverride);
+    return await computeRealSunEngineCached(
+      venue,
+      requestedAt,
+      now,
+      getForecastOverride,
+      getNowcastOverride,
+    );
   } catch (error) {
     console.error(
       `Sun engine failed for venue ${venue.id}; degrading to seed values:`,
@@ -292,6 +360,7 @@ async function computeRealSunEngineCached(
   requestedAt: Date,
   now: Date,
   getForecastOverride?: GetForecast,
+  getNowcastOverride?: GetNowcastRate,
 ): Promise<SunEngineOutcome> {
   const { cache, inFlight } = getSunComputeCache<SunEngineOutcome>();
   const [centroidLng, centroidLat] = polygonCentroid(resolveVenueGeometry(venue));
@@ -310,6 +379,7 @@ async function computeRealSunEngineCached(
       requestedAt,
       now,
       getForecastOverride,
+      getNowcastOverride,
     );
     return { value: outcome, cacheable };
   });
@@ -385,6 +455,7 @@ async function computeRealSunEngineResult(
   requestedAt: Date,
   now: Date,
   getForecastOverride?: GetForecast,
+  getNowcastOverride?: GetNowcastRate,
 ): Promise<ComputeResult> {
   const {
     calculateVenueShadowFromBuildings,
@@ -392,6 +463,7 @@ async function computeRealSunEngineResult(
     fetchVenueBuildings,
     calculateConfidenceFactors,
     calculateDisplayConfidence,
+    effectiveCloudCover,
     SHADOW_SEARCH_RADIUS_DEG,
   } = await import('@/lib/solar');
   // On the list route the batch passes a deduped fetcher (one Met.no call per
@@ -399,6 +471,13 @@ async function computeRealSunEngineResult(
   // fetcher so the default path stays offline. [Story 8.5 Task 5.1]
   const getForecast =
     getForecastOverride ?? (await import('@/lib/weather/met-no-service')).getForecast;
+  // STORY 10.4 (Task 2): the near-now radar rain accessor. Same injection pattern
+  // as the forecast — the list route passes a batch-deduped fetcher; the detail
+  // route / direct callers lazy-import the real one so the default seed path has
+  // ZERO live-Met.no dependency (only resolved when actually consulted below).
+  const getNowcast =
+    getNowcastOverride ??
+    (await import('@/lib/weather/nowcast-service')).getNowcastPrecipitationRate;
 
   const geometry = resolveVenueGeometry(venue);
   // Story 8.6 height gate: how high the seating surface sits above local ground
@@ -434,11 +513,53 @@ async function computeRealSunEngineResult(
   // — not the engine's hardcoded Gothenburg-centre / current-only call.
   const weather = await fetchWeatherForVenue(getForecast, venue.location, requestedAt);
 
+  // STORY 10.4 (AC4 horizon gate): consult the near-now radar nowcast ONLY when the
+  // requested instant is within [now, now + NOWCAST_HORIZON_MS]. Beyond the horizon
+  // (a future-planner time) OR in the past there is no live radar for that instant,
+  // so we do NOT fetch — `precipitationRate` stays `undefined` ⇒ rain contributes
+  // nothing ⇒ behaviour is byte-identical to Tiers 0/1 (forecast cloud governs).
+  // This is the AC4 guarantee: a future-planner request never fires the nowcast.
+  const isNearNow =
+    requestedAt.getTime() >= now.getTime() &&
+    requestedAt.getTime() <= now.getTime() + NOWCAST_HORIZON_MS;
+  const precipitationRate = isNearNow
+    ? await getNowcast(venue.location.lat, venue.location.lng)
+    : undefined;
+  // STORY 10.4 (AC2/AC3): rain is a ONE-WAY additive gate trigger. `undefined`
+  // (unknown / no coverage / beyond horizon) AND `0` (radar says genuinely no rain)
+  // both yield `false` ⇒ rain contributes NOTHING; only a strictly-positive rate
+  // fires the gate. Never `?? 0` the rate — unknown and no-rain stay distinct.
+  const isRaining = precipitationRate !== undefined && precipitationRate > 0;
+
   const isSunVisible = shadowInfo.solarPosition.isSunVisible;
   const sunExposurePercent = Math.round(clampPercent(shadowInfo.sunlitAreaPercent));
-  const currentSunStatus: VenueSunStatus = isSunVisible
+  // Geometry-only headline (below-horizon precedence: NoSun wins when the sun is
+  // down). `sunExposurePercent` KEEPS its geometric clear-sky meaning below — the
+  // gate ONLY rewrites the headline status.
+  const geometricSunStatus: VenueSunStatus = isSunVisible
     ? classifySunStatus(sunExposurePercent)
     : 'NoSun';
+  // STORY 10.1 (AC1) + 10.3 (AC2): layer the weather cloud gate on top of the
+  // geometric status using the SAME `weather` slice that produces `skyCondition`
+  // below (so the cached outcome stays internally consistent — 10.1 AC4). STORY
+  // 10.3: the gate now reads the layer-weighted EFFECTIVE cover (thin cirrus counts
+  // for little; a low deck counts fully) rather than the raw total, so a 100%-cirrus
+  // sky over a sunlit terrace no longer cries "no sun". `effectiveCloudCover`
+  // returns `undefined` for null weather / unknown cloud ⇒ no gate (10.1 AC2,
+  // 10.3 AC3). NoSun/Shaded are untouched; only a geometrically sunlit venue under
+  // effective (near-)total overcast becomes `CloudObscured`.
+  // STORY 10.4 (AC2): rain is OR-ed into the gate FIRE condition alongside the
+  // effective-cover threshold — a geometrically-sunlit venue under active rain
+  // becomes `CloudObscured` even when the cloud fraction is below 80 (or unknown).
+  // The gate's switch (and its below-horizon / geometric-shade precedence) is
+  // unchanged, so rain can NEVER gate a Shaded/NoSun/below-horizon venue (AC3).
+  const effectiveCover = effectiveCloudCover(weather);
+  const currentSunStatus = applyCloudGate(
+    geometricSunStatus,
+    isSunVisible,
+    effectiveCover,
+    isRaining,
+  );
 
   const confidenceFactors = calculateConfidenceFactors(
     1.0,
@@ -448,9 +569,16 @@ async function computeRealSunEngineResult(
   );
   const confidence = Math.round(clampPercent(calculateDisplayConfidence(confidenceFactors)));
 
-  const skyCondition = weather
-    ? skyConditionFromCloudCover(weather.cloudCover)
-    : 'unavailable';
+  // STORY 10.4 (AC2): rain takes PRECEDENCE in the surfaced sky label. When it is
+  // raining near-now, the sky line reads plain-language rain regardless of the
+  // cloud value; otherwise fall back to the cloud-derived descriptor.
+  // `skyConditionFromCloudCover` stays pure (it does not know about rain) — rain
+  // precedence lives here at the call site, mirroring the two-signal concern split.
+  const skyCondition = isRaining
+    ? 'rain'
+    : weather
+      ? skyConditionFromCloudCover(weather.cloudCover)
+      : 'unavailable';
   const predictionUncertainty = buildPredictionUncertainty(
     shadowInfo,
     weather,
@@ -568,8 +696,74 @@ export function classifySunStatus(sunExposurePercent: number): VenueSunStatus {
   return 'Shaded';
 }
 
-/** Map Met.no `cloud_area_fraction` (0..100) to the DTO `skyCondition`. */
-export function skyConditionFromCloudCover(cloudCover: number): string {
+/**
+ * STORY 10.1 (AC1) + STORY 10.4 (AC2): the weather gate. Given the geometry-derived
+ * `currentSunStatus`, whether the sun is geometrically up, the effective cloud
+ * cover, and whether it is raining near-now, return the (possibly gated) headline
+ * status.
+ *
+ * The gate fires ONLY when the venue is geometrically sunlit — i.e. the sun is up
+ * (`isSunVisible`) AND the un-gated status is `Sunny` or `Partial` — AND EITHER
+ * cloud cover is KNOWN and at/above {@link CLOUD_GATE_THRESHOLD_PERCENT} OR it is
+ * raining (`isRaining`). In that case the headline becomes `CloudObscured`.
+ * Otherwise the status passes through unchanged, which preserves:
+ *  - below-horizon precedence: `NoSun` is never gated (it wins — over rain too);
+ *  - geometrically-shaded venues: `Shaded` stays `Shaded` (rain never gates it);
+ *  - unknown/absent cloud (AC2): `undefined` cover never gates (unknown ≠ overcast);
+ *  - `CloudObscured` input (idempotent): already gated stays gated.
+ *
+ * STORY 10.4: rain is a ONE-WAY, ADDITIVE OR-term. It can ONLY turn a
+ * geometrically-sunlit `Sunny`/`Partial` into `CloudObscured` — it can NEVER
+ * un-gate a cloud-gated venue, lift a `Shaded`/`NoSun`, or up-rank a status. A
+ * `false` `isRaining` (rate `undefined` or `0`) leaves the 10.3 cloud-only result
+ * byte-identical. The threshold, the effective-cover input, and the switch are
+ * unchanged — 10.4 only ADDs the rain OR-term to the fire condition.
+ *
+ * The `never`-exhaustive switch makes a future `VenueSunStatus` addition a COMPILE
+ * error here, so a new status can never silently slip through the gate untriaged.
+ * This is a PURE mapper (no I/O) so it is unit-tested directly.
+ */
+export function applyCloudGate(
+  status: VenueSunStatus,
+  isSunVisible: boolean,
+  cloudCover: number | undefined,
+  // STORY 10.4: defaults to `false` so a 3-arg (cloud-only) call — the Story 10.1
+  // pure-helper tests and any pre-10.4 caller — is byte-identical to before.
+  isRaining = false,
+): VenueSunStatus {
+  // Unknown/absent cloud never gates (AC2), and cloud below the threshold leaves
+  // the geometric status intact. Only KNOWN, at/above-threshold cover can gate —
+  // OR active rain (STORY 10.4 AC2: "rain wins" over the cloud fraction).
+  const cloudGates =
+    cloudCover !== undefined && cloudCover >= CLOUD_GATE_THRESHOLD_PERCENT;
+  if (!isSunVisible || !(cloudGates || isRaining)) return status;
+
+  switch (status) {
+    case 'Sunny':
+    case 'Partial':
+      // Geometrically sunlit but the sky is (near-)total overcast → gate it.
+      return 'CloudObscured';
+    case 'Shaded':
+    case 'NoSun':
+    case 'CloudObscured':
+      // Not geometrically sunlit (or already gated) → the gate does not apply.
+      return status;
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
+}
+
+/**
+ * Map Met.no `cloud_area_fraction` (0..100) to the DTO `skyCondition`.
+ * STORY 10.1 (AC2): an UNKNOWN cover (`undefined` — the field was absent from the
+ * timeseries entry) maps to `'unavailable'`, NEVER `'clear'`, mirroring the
+ * existing `weather ? … : 'unavailable'` pattern for a missing weather slice.
+ * Absent cloud data must never fabricate a clear sky.
+ */
+export function skyConditionFromCloudCover(cloudCover: number | undefined): string {
+  if (cloudCover === undefined) return 'unavailable';
   if (cloudCover < 20) return 'clear';
   if (cloudCover <= 60) return 'partly-cloudy';
   return 'overcast';

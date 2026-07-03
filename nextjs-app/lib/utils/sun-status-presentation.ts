@@ -1,0 +1,141 @@
+import type { VenueSunStatus } from '@/lib/types/api';
+import type { SunStatus } from '@/lib/types/design-tokens';
+
+/**
+ * Story 10.2 — shared DTO→UI-token status mapper.
+ *
+ * Maps the DTO-layer {@link VenueSunStatus} (`'Sunny' | 'Partial' | 'Shaded'
+ * | 'NoSun' | 'CloudObscured'`) onto the presentational {@link SunStatus}
+ * vocabulary (`'sunny' | 'partial' | 'shaded' | 'obscured'`). The `switch`
+ * is `never`-exhaustive (epic-10 ratified convention): a future
+ * `VenueSunStatus` member that is not handled here is a COMPILE error, so
+ * no render surface silently falls through to a Shaded-like placeholder
+ * again (the exact 10.1 → 10.2 hand-off failure this story fixes).
+ */
+export function toSunStatusToken(status: VenueSunStatus): SunStatus {
+  switch (status) {
+    case 'Sunny':
+      return 'sunny';
+    case 'Partial':
+      return 'partial';
+    case 'CloudObscured':
+      return 'obscured';
+    case 'Shaded':
+    case 'NoSun':
+      return 'shaded';
+    default: {
+      // Exhaustiveness guard — see doc comment. If this line stops
+      // compiling, a new VenueSunStatus was added; map it above.
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
+}
+
+/**
+ * True when the venue's headline state is the weather-gated obscured state.
+ * The single branch predicate every render surface uses to switch on the
+ * muted "Sol bakom moln" presentation.
+ */
+export function isObscuredSunStatus(
+  status: VenueSunStatus | undefined,
+): boolean {
+  return status === 'CloudObscured';
+}
+
+/**
+ * The three presentational tiers a timeline/forecast window collapses into for
+ * label + fill purposes. This is the geometric-potential vocabulary the
+ * timeline speaks: `CloudObscured` is a WEATHER headline, not a geometric
+ * status, so per Story 10.2 (AC2) it is treated as clear-sky POTENTIAL — i.e.
+ * the same `'partial'` tier as `Partial` — never as `'shaded'`.
+ */
+export type WindowLabelTier = 'sunny' | 'partial' | 'shaded';
+
+/**
+ * Story 10.2 — the single, `never`-exhaustive mapping from a timeline window
+ * status to its presentational tier. Every render surface that labels or fills
+ * a timeline window (the `SunTimeline` desktop bars AND the `SunForecastBars`
+ * mobile sr-only labels) MUST route through this helper so a future
+ * `VenueSunStatus` member becomes a COMPILE error at exactly one place rather
+ * than silently falling through to a Shaded-like label on some surfaces (the
+ * exact 55eacba-was-incomplete leak this de-duplicates away).
+ *
+ * `CloudObscured` maps to `'partial'`: the timeline window is the geometric
+ * "when the sun COULD reach this seat" potential, and the weather gate is
+ * applied separately at the headline — so an obscured window must render as
+ * clear-sky potential, never "Shaded"/"Skugga".
+ */
+export function windowLabelTier(status: VenueSunStatus): WindowLabelTier {
+  switch (status) {
+    case 'Sunny':
+      return 'sunny';
+    case 'Partial':
+    case 'CloudObscured':
+      return 'partial';
+    case 'Shaded':
+    case 'NoSun':
+      return 'shaded';
+    default: {
+      // Exhaustiveness guard — adding a VenueSunStatus without handling it
+      // here is a compile error. See doc comment.
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
+}
+
+/**
+ * True when the window status should be treated as a sun window (geometric
+ * sun potential) for "best window" / peak selection. `Sunny`, `Partial`, and
+ * (per 10.2 AC2) `CloudObscured` all count — the latter is clear-sky potential
+ * masked by weather, not an absence of sun geometry. Backed by
+ * {@link windowLabelTier} so a new `VenueSunStatus` breaks at compile time
+ * instead of silently dropping the window.
+ */
+export function isSunWindowStatus(status: VenueSunStatus): boolean {
+  return windowLabelTier(status) !== 'shaded';
+}
+
+/** Plain-language sky descriptors (no meteorology internals per Story 3.0.6). */
+export type SkyConditionCopy = {
+  clear: string;
+  partlyCloudy: string;
+  overcast: string;
+  /** Story 10.4 (AC2): plain-language copy for the rain-now sky condition. */
+  rain: string;
+};
+
+/**
+ * Story 10.2 (AC3) — maps the serialized `skyCondition` DTO field
+ * (`'clear' | 'partly-cloudy' | 'overcast' | 'rain' | 'unavailable'`) onto
+ * user-facing plain-language copy with NO meteorology internals (no cloud
+ * %, no `cloud_area_fraction`, no rate/radar/mm/h, no geodata).
+ *
+ * Story 10.4 (AC2) realises the `'rain'` case: when the near-now radar reports
+ * active precipitation the engine surfaces `skyCondition === 'rain'`, and this
+ * renders the plain-language rain descriptor.
+ *
+ * Returns `null` for `'unavailable'`, an absent value, or any unrecognised
+ * string — the caller renders NO sky line rather than fabricating one
+ * (10.1's honest "we don't know"; never invent the sky).
+ */
+export function skyConditionCopy(
+  skyCondition: string | undefined,
+  copy: SkyConditionCopy,
+): string | null {
+  switch (skyCondition) {
+    case 'clear':
+      return copy.clear;
+    case 'partly-cloudy':
+      return copy.partlyCloudy;
+    case 'overcast':
+      return copy.overcast;
+    case 'rain':
+      return copy.rain;
+    // 'unavailable', undefined, or any unknown value → render nothing. Never
+    // fabricate a sky descriptor.
+    default:
+      return null;
+  }
+}

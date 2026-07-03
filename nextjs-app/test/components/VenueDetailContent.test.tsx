@@ -53,6 +53,15 @@ const labels = {
   openingHours: 'Öppettider',
   address: 'Adress',
   sunBadge: '{percent}% sol',
+  obscuredHeadline: 'Sol bakom moln',
+  obscuredBadge: '{percent}% solläge',
+  sky: {
+    label: 'Himmel nu',
+    clear: 'Klart',
+    partlyCloudy: 'Delvis molnigt',
+    overcast: 'Mulet',
+    rain: 'Regn',
+  },
   confidence: 'Säkerhet',
   confidenceApproximate: 'cirka',
   confidenceUnavailable: 'Säkerhet saknas',
@@ -111,6 +120,143 @@ describe('VenueDetailContent', () => {
       'noopener noreferrer',
     );
     expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeEnabled();
+  });
+
+  it('renders the muted obscured hero badge + headline + sky line, no amber sun badge (Story 10.2 AC1/AC3)', () => {
+    const obscuredDetail: VenueDetailDto = {
+      ...DETAIL,
+      currentSunStatus: 'CloudObscured',
+      skyCondition: 'overcast',
+      timeline: {
+        ...DETAIL.timeline,
+        windows: [{ start: '13:00', end: '18:30', status: 'Sunny' }],
+      },
+    };
+
+    render(
+      <VenueDetailContent
+        fallbackVenue={{ ...LIST_VENUE, currentSunStatus: 'CloudObscured', skyCondition: 'overcast' }}
+        detail={obscuredDetail}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    // AC1: the hero badge is the muted "% solläge" badge, NOT the amber "% sol" badge.
+    expect(screen.getByLabelText('95% solläge')).toBeInTheDocument();
+    expect(screen.queryByLabelText('95% sol')).not.toBeInTheDocument();
+    // AC1: the muted "Sol bakom moln" headline is present.
+    const obscuredBlock = screen.getByTestId('venue-detail-obscured');
+    expect(obscuredBlock).toHaveTextContent('Sol bakom moln');
+    // AC3: the plain-language sky descriptor (overcast -> "Mulet"), no cloud %.
+    expect(obscuredBlock).toHaveTextContent('Mulet');
+    expect(obscuredBlock.textContent).not.toMatch(/\d+\s*%/);
+    // AC2: the geometric sun timeline STILL renders as clear-sky potential.
+    expect(screen.getByText('Solprognos idag')).toBeInTheDocument();
+  });
+
+  it('renders NO sky line when the obscured venue sky is unavailable (AC3 — never fabricate)', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={{ ...LIST_VENUE, currentSunStatus: 'CloudObscured', skyCondition: 'unavailable' }}
+        detail={{ ...DETAIL, currentSunStatus: 'CloudObscured', skyCondition: 'unavailable' }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    const obscuredBlock = screen.getByTestId('venue-detail-obscured');
+    // The headline still shows, but NO sky descriptor is fabricated.
+    expect(obscuredBlock).toHaveTextContent('Sol bakom moln');
+    expect(obscuredBlock).not.toHaveTextContent('Mulet');
+    expect(obscuredBlock).not.toHaveTextContent('Klart');
+    expect(obscuredBlock).not.toHaveTextContent('Delvis molnigt');
+  });
+
+  it('renders the fallback sun-window as clear-sky POTENTIAL for an obscured venue with no loaded detail (Story 10.2 AC2 / Completion Note #3)', () => {
+    // Before the detail payload loads, the timeline is derived from the list
+    // venue via timelineFromListVenue(). For a CloudObscured headline that
+    // helper maps the window status back to the geometric `Partial` tier — so
+    // the "when it clears" potential renders as a Partial (amber) window rather
+    // than vanishing into a transparent shaded bar. Pin that fallback path (the
+    // real-detail obscured test always passes an explicit `detail`, so this
+    // branch was otherwise uncovered).
+    render(
+      <VenueDetailContent
+        fallbackVenue={{
+          ...LIST_VENUE,
+          currentSunStatus: 'CloudObscured',
+          skyCondition: 'overcast',
+          sunWindow: { start: '13:00', end: '18:30' },
+        }}
+        // No `detail` prop → the component falls back to timelineFromListVenue.
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    // The obscured headline still shows...
+    expect(screen.getByTestId('venue-detail-obscured')).toHaveTextContent('Sol bakom moln');
+    // ...and the fallback sun window is present as POTENTIAL, labelled as the
+    // Partial ("Delvis sol") window — NOT the shaded ("Skugga") transparent bar.
+    expect(screen.getByLabelText('Delvis sol 13:00-18:30')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Skugga 13:00-18:30')).not.toBeInTheDocument();
+  });
+
+  it('never reads a Skugga/Shaded sr-only label for a RAW CloudObscured timeline window in mobile mode (55eacba leak repro)', () => {
+    // Adversarial repro: bypass the producer remaps (buildDetailDto /
+    // timelineFromListVenue both map CloudObscured -> Partial upstream) by
+    // handing the mobile SunForecastBars path a RAW `status: 'CloudObscured'`
+    // window straight in `detail.timeline.windows`. Before the fix the mobile
+    // sr-only aria-label fell through the ternary to the dishonest "Skugga"
+    // (Shaded) copy. It must now render the honest clear-sky potential label.
+    render(
+      <VenueDetailContent
+        // DEFAULT (mobile) mode — omit `mode`, this is the SunForecastBars path.
+        fallbackVenue={LIST_VENUE}
+        detail={{
+          ...DETAIL,
+          currentSunStatus: 'CloudObscured',
+          skyCondition: 'overcast',
+          timeline: {
+            timezone: 'Europe/Stockholm',
+            range: { start: '06:00', end: '21:00' },
+            windows: [{ start: '13:00', end: '18:30', status: 'CloudObscured' }],
+            peakTime: '15:30',
+          },
+        }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    // The sr-only mobile window label must NOT read the dishonest "Skugga" copy.
+    expect(screen.queryByLabelText('Skugga 13:00-18:30')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Skugga/)).not.toBeInTheDocument();
+    // It renders the honest clear-sky POTENTIAL label (CloudObscured -> Partial tier).
+    expect(screen.getByLabelText('Delvis sol 13:00-18:30')).toBeInTheDocument();
+    // And the component did not crash — the venue heading is present.
+    expect(screen.getByRole('heading', { name: 'Kafé Magasinet' })).toBeInTheDocument();
+  });
+
+  it('keeps the sunny detail unchanged — no obscured block on a clear-sky venue (Behaviour gate)', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.queryByTestId('venue-detail-obscured')).not.toBeInTheDocument();
+    // The amber sun badge is intact for the sunny state.
+    expect(screen.getByLabelText('95% sol')).toBeInTheDocument();
   });
 
   it('renders route estimate copy and a scoped loading label on the primary CTA', () => {

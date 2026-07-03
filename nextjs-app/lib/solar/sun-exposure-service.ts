@@ -13,7 +13,10 @@ export interface SunExposureResult {
   solarElevation: number;
   solarAzimuth: number;
   weatherData?: {
-    cloudCover: number;
+    // STORY 10.1 (AC2): optional to carry an absent `cloud_area_fraction` as
+    // "unknown" rather than fabricating clear sky. (This legacy service is not on
+    // the live venues route; the field is kept honest for its own DTO.)
+    cloudCover?: number;
     temperature: number;
     visibility?: number;
     source: string;

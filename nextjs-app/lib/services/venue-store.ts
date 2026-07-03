@@ -21,6 +21,7 @@ import type {
   VenueDetailDto,
   VenueSunStatus,
 } from '@/lib/types/api';
+import type { SkyCondition } from '@/lib/types/design-tokens';
 
 /**
  * Detail attributes served only by `/api/venues/[slug]`. Kept separate from the
@@ -340,18 +341,38 @@ async function readSupabaseVenueBySlug(slug: string): Promise<StoredVenue | null
   return data ? fromVenueRow(data as VenueRow) : null;
 }
 
+// STORY 10.1 (AC4, Task 1): the DB `coerceSunStatus` allow-list, typed
+// `readonly VenueSunStatus[]` so it is a compile-forcing site — a union value
+// missing from this literal is not a type error by itself, but keeping the array
+// aligned with the union means a stored `current_sun_status` of `'CloudObscured'`
+// round-trips instead of collapsing to the `'NoSun'` safe default. (The engine
+// computes `CloudObscured` at request time; it is not persisted today, but the
+// allow-list stays complete so a future persisted value is not silently dropped.)
 const SUN_STATUSES: readonly VenueSunStatus[] = [
   'Sunny',
   'Partial',
   'Shaded',
   'NoSun',
+  'CloudObscured',
 ];
-const SKY_CONDITIONS: readonly string[] = [
-  'clear',
-  'partly-cloudy',
-  'overcast',
-  'unavailable',
-];
+// STORY 10 review [Patch][Low]: this allow-list MUST stay in lock-step with the
+// canonical `SkyCondition` union — 10.4 introduced `'rain'` but this parallel
+// list never gained it, so a persisted+re-read `'rain'` skyCondition would be
+// silently stripped to `undefined` by `coerceSkyCondition` (→ no sky line).
+// Deriving the array from a `Record<SkyCondition, true>` makes it
+// exhaustiveness-forcing: a future member added to the union without listing it
+// here is a compile error (a plain `readonly string[]` literal never caught the
+// `'rain'` drift because membership alone was never type-checked).
+const SKY_CONDITION_MEMBERS = {
+  'clear': true,
+  'partly-cloudy': true,
+  'overcast': true,
+  'rain': true,
+  'unavailable': true,
+} as const satisfies Record<SkyCondition, true>;
+const SKY_CONDITIONS: readonly SkyCondition[] = Object.keys(
+  SKY_CONDITION_MEMBERS,
+) as SkyCondition[];
 
 /**
  * Defensive snake_case row -> StoredVenue mapping. Tolerates null jsonb
@@ -489,8 +510,10 @@ function coerceSunStatus(value: string | null | undefined): VenueSunStatus {
  * value is dropped (mirroring how `normalizeVenueForResponse` drops malformed
  * optional fields) rather than leaking into the DTO. [Story 8.2 review R1-P1]
  */
-function coerceSkyCondition(value: string | null | undefined): string | undefined {
-  return value && SKY_CONDITIONS.includes(value) ? value : undefined;
+function coerceSkyCondition(value: string | null | undefined): SkyCondition | undefined {
+  return value && SKY_CONDITIONS.includes(value as SkyCondition)
+    ? (value as SkyCondition)
+    : undefined;
 }
 
 function isFiniteNumber(value: unknown): value is number {

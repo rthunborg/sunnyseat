@@ -46,6 +46,15 @@ const shadedVenue: VenuePinData = {
   sunExposurePercent: 22,
 };
 
+const obscuredVenue: VenuePinData = {
+  ...sunnyVenue,
+  id: '3',
+  slug: 'test-venue-obscured',
+  name: 'Test Obscured',
+  sunStatus: 'CloudObscured',
+  sunExposurePercent: 88,
+};
+
 describe('<VenuePin />', () => {
   it('renders the sunny pill (default state) with percent text and sun icon', () => {
     renderWithProviders(
@@ -82,6 +91,34 @@ describe('<VenuePin />', () => {
     // the same `shaded` state regardless of `isSelected`.
     expect(button.dataset.pinState).toBe('shaded');
     expect(button.querySelector('[data-pin-icon="cloud"]')).not.toBeNull();
+  });
+
+  it('renders a muted obscured pill distinct from sunny and shaded (Story 10.2 AC1)', () => {
+    renderWithProviders(
+      <VenuePin venue={obscuredVenue} isSelected={false} onClick={() => {}} ariaLabel="Test Obscured — sol bakom moln just nu — 88 procent solläge" />,
+    );
+    const button = screen.getByTestId('venue-pin');
+    // A fourth, distinct pin state — not 'sunny', not 'shaded'.
+    expect(button.dataset.pinState).toBe('obscured');
+    // Cloud icon kept so the state is not colour-only (NFR27).
+    expect(button.querySelector('[data-pin-icon="cloud"]')).not.toBeNull();
+    expect(button.querySelector('[data-pin-icon="sun"]')).toBeNull();
+    // The geometric solläge % survives the gate and stays visible (AC2).
+    expect(button).toHaveTextContent('88%');
+    // Muted slate fill token, distinct from amber sun and shaded grey.
+    expect(button.querySelector('[data-pin-obscured="true"] .bg-pin-obscured')).not.toBeNull();
+  });
+
+  it('does not morph the obscured pill on selection (single obscured variant)', () => {
+    const { rerender } = renderWithProviders(
+      <VenuePin venue={obscuredVenue} isSelected={false} onClick={() => {}} ariaLabel="aria" />,
+    );
+    let button = screen.getByTestId('venue-pin');
+    expect(button.dataset.pinState).toBe('obscured');
+
+    rerender(<VenuePin venue={obscuredVenue} isSelected={true} onClick={() => {}} ariaLabel="aria" />);
+    button = screen.getByTestId('venue-pin');
+    expect(button.dataset.pinState).toBe('obscured');
   });
 
   it('reflects the ariaLabel prop verbatim (resolved upstream by VenuePinLayer)', () => {
