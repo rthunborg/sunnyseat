@@ -11,3 +11,6 @@
 - [Phase 5 â€” dev-story] Unknown cloud = WeatherSlice.cloudCover?: number left undefined (non-gating AND non-clear); getForecast missing cloud_area_fraction now yields undefined not 0 â€” later stories must never reintroduce ??0.
 - [Phase 5 â€” dev-story] Session was interrupted and resumed with two dev agents converging on the same tree â€” outcome coherent and green, but story-file authorship split; flagged for reviewer.
 - [Phase 7 â€” code review] Repo object store is EOL-inconsistent (some .ts stored CRLF, some LF) under core.autocrlf=true with no .gitattributes rule â€” editors rewriting touched blocks produce phantom CRLF/LF churn findings; repo-wide `* text=auto` (or `*.ts text eol=lf`) normalization would kill the class. Raise at epic retro.
+
+## Story 10-2-sun-behind-clouds-two-signal-ui-state
+- [Phase 3 â€” create-story] Determinism gap: no CloudObscured fixture venue exists and ?_state forced-visual normalizes every venue to Sunny â€” obscured UI unreachable on the CI flag-OFF path; 10.2 adds its own deterministic force-state, 10.5's weather-mock (R-005) does NOT cover it. Later stories must not assume the obscured surface is reachable without this scaffolding.
