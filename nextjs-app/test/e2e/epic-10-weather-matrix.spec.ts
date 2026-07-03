@@ -106,6 +106,16 @@ interface ScenarioSpec {
   expectSkyCopy?: 'rain';
   /** True ⇒ NO sky line must render at all (weather-missing). */
   expectNoSkyLine?: boolean;
+  /**
+   * The freshness/uncertainty signal (AC1 #5). For a weather-backed non-obscured
+   * scenario the confidence `%` badge renders on the card; for weather-missing
+   * (`sunDataSource='geometry-only'`, no `weatherUpdatedAt`) `getConfidenceDisplayState`
+   * returns `kind:'hidden'` ⇒ the confidence badge is ABSENT. Only meaningful on
+   * non-obscured cards (the obscured card suppresses the amber confidence chip
+   * regardless), so it is set only for `clear` (present, the control) and
+   * `weather-missing` (absent).
+   */
+  expectConfidenceBadge?: boolean;
 }
 
 // GEOMETRY is byte-identical across every scenario — only the weather-derived
@@ -125,6 +135,8 @@ const SCENARIOS: ScenarioSpec[] = [
     skyCondition: 'clear',
     confidence: 92,
     expectObscured: false,
+    // Control for AC1 #5: weather-backed ⇒ the confidence badge IS present.
+    expectConfidenceBadge: true,
   },
   {
     id: 'high-cirrus-only',
@@ -152,6 +164,9 @@ const SCENARIOS: ScenarioSpec[] = [
     confidence: 55,
     expectObscured: false,
     expectNoSkyLine: true,
+    // AC1 #5: the freshness/uncertainty signal reflects the missing weather —
+    // geometry-only source ⇒ the confidence badge is ABSENT (never fabricated).
+    expectConfidenceBadge: false,
   },
 ];
 
@@ -159,6 +174,11 @@ const SCENARIOS: ScenarioSpec[] = [
 const RAIN_SKY_COPY = /Regn|Rain/;
 // The overcast/obscured sky descriptor — must NOT appear on a non-obscured card.
 const OVERCAST_SKY_COPY = /Mulet|Overcast/;
+// The confidence (freshness/uncertainty) badge label prefix on the card. Present
+// only when `getConfidenceDisplayState` returns a visible `%` (weather-backed);
+// ABSENT for the geometry-only weather-missing scenario. Distinct from the
+// geometric "% SOL" thumbnail badge, which is keyed on the `Säkerhet:` label.
+const CONFIDENCE_BADGE_COPY = /Säkerhet:|Confidence:/;
 
 // --- DTO builders ------------------------------------------------------------
 // Build a valid list/detail response from the seed venue merged with the scenario
@@ -305,6 +325,19 @@ async function assertCardAndPin(
   if (!scenario.expectObscured) {
     // A non-obscured card must NOT carry the overcast/obscured sky descriptor.
     await expect(quickInfo).not.toContainText(OVERCAST_SKY_COPY);
+  }
+
+  // AC1 #5 — the freshness/uncertainty signal (the previously-unverified half of
+  // weather-missing). The confidence `%` badge is HIDDEN for the geometry-only
+  // weather-missing scenario and PRESENT for a weather-backed control (clear), so
+  // the two non-obscured scenarios are distinguished by the presence of the
+  // confidence signal, not just the (identical) geometry. Only asserted where the
+  // scenario opts in (`expectConfidenceBadge` set) — the obscured cards suppress
+  // the amber confidence chip regardless, so it is not meaningful there.
+  if (scenario.expectConfidenceBadge === true) {
+    await expect(quickInfo).toContainText(CONFIDENCE_BADGE_COPY);
+  } else if (scenario.expectConfidenceBadge === false) {
+    await expect(quickInfo).not.toContainText(CONFIDENCE_BADGE_COPY);
   }
 }
 
