@@ -153,8 +153,39 @@ function calcCloudCertainty(weather: WeatherSlice): number {
   const freshness = weatherFreshnessFactor(ageMs);
   const forecastFactor = weather.isForecast ? 0.9 : 0.95;
   const sourceReliability = weatherSourceReliability(weather.source);
-  return clamp(forecastFactor * freshness * sourceReliability, 0, 1);
+  // STORY 10.1 (AC3, FR12): fold the actual cloud amount into the confidence blend.
+  // Until now this function ignored `weather.cloudCover` entirely, so a downpour
+  // with fresh Met.no data still scored ~0.9 "cloud certainty" — FR12's promised
+  // "weather-based cloud cover uncertainty" was never implemented. The DISPLAYED
+  // confidence must fall as cover rises toward total overcast (per the AC), so we
+  // multiply the freshness × forecast × source product by a cloud factor that is
+  // 1.0 at clear sky and decays linearly to CLOUD_CONFIDENCE_FLOOR at 100% cover.
+  // UNKNOWN cloud (AC2 / Task 2: `cloudCover` absent) is NEUTRAL — factor 1.0, i.e.
+  // fall back to the pre-change freshness-only behaviour — so a missing-weather
+  // slice is NOT penalised as if it were 100% overcast.
+  const cloudFactor = cloudConfidenceFactor(weather.cloudCover);
+  return clamp(forecastFactor * freshness * sourceReliability * cloudFactor, 0, 1);
 }
+
+/**
+ * STORY 10.1 (AC3): map cloud cover (0..100, or `undefined` = unknown) to a
+ * confidence multiplier. Clear sky (0%) → 1.0; total overcast (100%) →
+ * {@link CLOUD_CONFIDENCE_FLOOR}; unknown cover → 1.0 (neutral, freshness-only).
+ * Linear so a re-tune of the floor keeps the monotone "more cloud ⇒ less
+ * displayed confidence" property that FR12 requires and the red-first test asserts
+ * (relative: 100% materially lower than 0%).
+ */
+function cloudConfidenceFactor(cloudCover: number | undefined): number {
+  if (cloudCover === undefined) return 1;
+  const cover = clamp(cloudCover, 0, 100) / 100;
+  return CLOUD_CONFIDENCE_FLOOR + (1 - CLOUD_CONFIDENCE_FLOOR) * (1 - cover);
+}
+
+// Lowest cloud multiplier, reached at 100% cover. 0.5 makes total overcast cut the
+// cloud-certainty term in half — a material, tunable drop (cloud-certainty is 40%
+// of the weather-enhanced overall, so a fully-overcast sky pulls overall down by
+// up to ~0.2 versus a clear sky with otherwise-identical geometry/freshness).
+const CLOUD_CONFIDENCE_FLOOR = 0.5;
 
 function weatherFreshnessFactor(ageMs: number): number {
   const mins = ageMs / 60000;

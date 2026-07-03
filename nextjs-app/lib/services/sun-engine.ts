@@ -78,6 +78,22 @@ const SUN_WINDOW_SAMPLE_INTERVAL_MIN = 30;
 const SUNNY_THRESHOLD_PERCENT = 70;
 const SUNLIT_THRESHOLD_PERCENT = 30;
 
+// STORY 10.1 (AC1): the single, named, tunable cloud-gate threshold. When the
+// effective cloud cover at the requested instant is KNOWN and meets/exceeds this
+// value, a geometrically-sunlit venue's headline state is overridden to
+// `CloudObscured` — the app must never claim "full sun" while the sky is overcast.
+// 80 is chosen because Met.no `cloud_area_fraction >= 80` is a near-total overcast
+// where direct sun is effectively blocked at ground level; below it (broken/partly
+// cloudy) direct sun still reaches the terrace often enough that the geometric
+// signal stays honest. The geometric layer (`sunExposurePercent`/`sunWindow`/
+// `peakTime`) is NEVER touched by this gate — it stays clear-sky potential.
+//
+// SEAM for Story 10.3: for 10.1 the gate input is the raw total `cloud_area_fraction`.
+// Story 10.3 replaces that with a layer-weighted "effective cloud cover" (high vs
+// low cloud weighted differently); when it lands, the ONLY change is what value is
+// passed into `applyCloudGate` — the threshold + gate logic stay put.
+export const CLOUD_GATE_THRESHOLD_PERCENT = 80;
+
 // Weather older than this (or any forecast slice) flags a `weather` uncertainty
 // reason, matching the confidence-display "approximate" boundary (Story 2.6).
 const STALE_WEATHER_AGE_MS = 2 * 60 * 60 * 1000;
@@ -436,9 +452,22 @@ async function computeRealSunEngineResult(
 
   const isSunVisible = shadowInfo.solarPosition.isSunVisible;
   const sunExposurePercent = Math.round(clampPercent(shadowInfo.sunlitAreaPercent));
-  const currentSunStatus: VenueSunStatus = isSunVisible
+  // Geometry-only headline (below-horizon precedence: NoSun wins when the sun is
+  // down). `sunExposurePercent` KEEPS its geometric clear-sky meaning below — the
+  // gate ONLY rewrites the headline status.
+  const geometricSunStatus: VenueSunStatus = isSunVisible
     ? classifySunStatus(sunExposurePercent)
     : 'NoSun';
+  // STORY 10.1 (AC1): layer the weather cloud gate on top of the geometric status
+  // using the SAME `weather` slice that produces `skyCondition` below (so the cached
+  // outcome stays internally consistent — AC4). A `null` weather slice / unknown
+  // cloud cover never gates (AC2). NoSun/Shaded are untouched; only a geometrically
+  // sunlit venue under (near-)total overcast becomes `CloudObscured`.
+  const currentSunStatus = applyCloudGate(
+    geometricSunStatus,
+    isSunVisible,
+    weather?.cloudCover,
+  );
 
   const confidenceFactors = calculateConfidenceFactors(
     1.0,
@@ -568,8 +597,63 @@ export function classifySunStatus(sunExposurePercent: number): VenueSunStatus {
   return 'Shaded';
 }
 
-/** Map Met.no `cloud_area_fraction` (0..100) to the DTO `skyCondition`. */
-export function skyConditionFromCloudCover(cloudCover: number): string {
+/**
+ * STORY 10.1 (AC1): the weather cloud gate. Given the geometry-derived
+ * `currentSunStatus`, whether the sun is geometrically up, and the effective
+ * cloud cover at the requested instant, return the (possibly gated) headline
+ * status.
+ *
+ * The gate fires ONLY when the venue is geometrically sunlit — i.e. the sun is up
+ * (`isSunVisible`) AND the un-gated status is `Sunny` or `Partial` — AND cloud
+ * cover is KNOWN and at/above {@link CLOUD_GATE_THRESHOLD_PERCENT}. In that case
+ * the headline becomes `CloudObscured`. Otherwise the status passes through
+ * unchanged, which preserves:
+ *  - below-horizon precedence: `NoSun` is never gated (it wins);
+ *  - geometrically-shaded venues: `Shaded` stays `Shaded`;
+ *  - unknown/absent cloud (AC2): `undefined` cover never gates (unknown ≠ overcast);
+ *  - `CloudObscured` input (idempotent): already gated stays gated.
+ *
+ * The `never`-exhaustive switch makes a future `VenueSunStatus` addition a COMPILE
+ * error here, so a new status can never silently slip through the gate untriaged.
+ * This is a PURE mapper (no I/O) so it is unit-tested directly.
+ */
+export function applyCloudGate(
+  status: VenueSunStatus,
+  isSunVisible: boolean,
+  cloudCover: number | undefined,
+): VenueSunStatus {
+  // Unknown/absent cloud never gates (AC2), and cloud below the threshold leaves
+  // the geometric status intact. Only KNOWN, at/above-threshold cover can gate.
+  const cloudGates =
+    cloudCover !== undefined && cloudCover >= CLOUD_GATE_THRESHOLD_PERCENT;
+  if (!isSunVisible || !cloudGates) return status;
+
+  switch (status) {
+    case 'Sunny':
+    case 'Partial':
+      // Geometrically sunlit but the sky is (near-)total overcast → gate it.
+      return 'CloudObscured';
+    case 'Shaded':
+    case 'NoSun':
+    case 'CloudObscured':
+      // Not geometrically sunlit (or already gated) → the gate does not apply.
+      return status;
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
+}
+
+/**
+ * Map Met.no `cloud_area_fraction` (0..100) to the DTO `skyCondition`.
+ * STORY 10.1 (AC2): an UNKNOWN cover (`undefined` — the field was absent from the
+ * timeseries entry) maps to `'unavailable'`, NEVER `'clear'`, mirroring the
+ * existing `weather ? … : 'unavailable'` pattern for a missing weather slice.
+ * Absent cloud data must never fabricate a clear sky.
+ */
+export function skyConditionFromCloudCover(cloudCover: number | undefined): string {
+  if (cloudCover === undefined) return 'unavailable';
   if (cloudCover < 20) return 'clear';
   if (cloudCover <= 60) return 'partly-cloudy';
   return 'overcast';

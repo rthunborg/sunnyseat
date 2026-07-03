@@ -340,11 +340,19 @@ async function readSupabaseVenueBySlug(slug: string): Promise<StoredVenue | null
   return data ? fromVenueRow(data as VenueRow) : null;
 }
 
+// STORY 10.1 (AC4, Task 1): the DB `coerceSunStatus` allow-list, typed
+// `readonly VenueSunStatus[]` so it is a compile-forcing site — a union value
+// missing from this literal is not a type error by itself, but keeping the array
+// aligned with the union means a stored `current_sun_status` of `'CloudObscured'`
+// round-trips instead of collapsing to the `'NoSun'` safe default. (The engine
+// computes `CloudObscured` at request time; it is not persisted today, but the
+// allow-list stays complete so a future persisted value is not silently dropped.)
 const SUN_STATUSES: readonly VenueSunStatus[] = [
   'Sunny',
   'Partial',
   'Shaded',
   'NoSun',
+  'CloudObscured',
 ];
 const SKY_CONDITIONS: readonly string[] = [
   'clear',

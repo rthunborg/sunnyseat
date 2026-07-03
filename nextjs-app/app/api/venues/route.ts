@@ -54,11 +54,20 @@ const MAX_IDS_QUERY_LENGTH = MAX_IDS * (MAX_ID_LENGTH + 1) - 1;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/u;
 const DIACRITIC_PATTERN = /[\u0300-\u036f]/gu;
 
+// STORY 10.1 (AC4, Task 1): this `Record` keyed on the `VenueSunStatus` union is a
+// compile-forcing site — a missing key is a type error, and a missing key at
+// RUNTIME would make `SUN_STATUS_ORDER[status] - n = NaN`, silently corrupting the
+// list sort. `CloudObscured` is weather-gated but the venue is geometrically
+// sunlit, so it is ranked BETWEEN `Partial` and `Shaded`: it never reorders the
+// clear-sky path (Sunny/Partial stay ahead of it) and it does not sink below a
+// geometrically-shaded venue. Story 10.2 refines list ranking ("Mest sol" ranks by
+// geometric solläge under overcast) — see the Open Question flagged in the story.
 const SUN_STATUS_ORDER: Record<VenueDataDto['currentSunStatus'], number> = {
   Sunny: 0,
   Partial: 1,
-  Shaded: 2,
-  NoSun: 3,
+  CloudObscured: 2,
+  Shaded: 3,
+  NoSun: 4,
 };
 
 /**

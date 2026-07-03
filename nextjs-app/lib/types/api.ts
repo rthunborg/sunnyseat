@@ -4,7 +4,13 @@
 // Venue Types
 // ============================================================================
 
-export type VenueSunStatus = 'Sunny' | 'Partial' | 'Shaded' | 'NoSun';
+// STORY 10.1 (AC1): `CloudObscured` is the weather-gated headline state. It is
+// applied ONLY on the opt-in real-engine path when a venue is geometrically
+// sunlit (`Sunny`/`Partial`) but effective cloud cover meets the gate threshold.
+// The geometric layer (`sunExposurePercent`, `sunWindow`, `peakTime`) keeps its
+// clear-sky meaning; this union value is an ADDITIVE second signal, not a
+// geometric tier. Story 10.2 owns the muted UI rendering of this value.
+export type VenueSunStatus = 'Sunny' | 'Partial' | 'Shaded' | 'NoSun' | 'CloudObscured';
 
 export type SunDataSource = 'weather' | 'geometry-only';
 

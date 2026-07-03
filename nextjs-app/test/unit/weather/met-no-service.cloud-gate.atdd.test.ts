@@ -1,12 +1,10 @@
 /**
- * ATDD RED-PHASE acceptance scaffolds — Story 10.1 AC2
+ * ATDD acceptance tests — Story 10.1 AC2
  * "Missing cloud data ⇒ weather-unknown, never clear"
  *
- * These tests assert the EXPECTED post-implementation behaviour and are
- * intentionally FAILING until Story 10.1 Task 2 lands (TDD red phase). Every
- * block is `describe.skip` so the suite stays green in CI until the dev
- * un-skips them once `met-no-service.ts:85` stops defaulting a missing
- * `cloud_area_fraction` to `0`.
+ * Written red-first (they FAILED until Task 2 made `met-no-service.ts` stop
+ * defaulting a missing `cloud_area_fraction` to `0`). Now that Task 2 is
+ * implemented these are un-skipped and green.
  *
  * WHY THIS SURFACE:
  * `met-no-service.ts:85` is the ONLY place cloud data enters a `WeatherSlice`.
@@ -54,7 +52,7 @@ function metNoResponse(entries: Array<{ time: string; omitCloud?: boolean; cloud
   };
 }
 
-describe.skip('[RED 10.1 AC2] met-no-service missing cloud ⇒ weather-unknown', () => {
+describe('[10.1 AC2] met-no-service missing cloud ⇒ weather-unknown', () => {
   const fetchMock = vi.fn();
 
   beforeEach(() => {

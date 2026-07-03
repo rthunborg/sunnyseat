@@ -2,12 +2,12 @@
  * ATDD RED-PHASE acceptance scaffolds — Story 10.1 AC1 + AC4 (cache consistency)
  * "Cloud-gated headline status (CloudObscured)"
  *
- * These tests assert the EXPECTED post-implementation behaviour and are
- * intentionally FAILING until Story 10.1 Task 1/3/5 land (TDD red phase). Every
- * block is `describe.skip` so the suite stays green in CI until the dev
- * un-skips them.
+ * Written red-first for Story 10.1 Task 1/3/5 — these assertions FAILED before
+ * `applyCloudGate` + the engine wiring + the `CloudObscured` union extension
+ * landed. Now that Task 3/5 are implemented they are un-skipped and green against
+ * the real implementation.
  *
- * TWO LEVELS ASSERTED HERE:
+ * THREE LEVELS ASSERTED HERE:
  *  1. The pure exported helper `applyCloudGate(status, isSunVisible, cloudCover)`
  *     (Task 3) — overcast+sunlit ⇒ CloudObscured; below-threshold ⇒ unchanged;
  *     NoSun/Shaded untouched; unknown/null cloud ⇒ no gate.
@@ -18,16 +18,6 @@
  *  3. Cache consistency (AC4 final clause): a repeat request in the SAME 15-min
  *     bucket returns the SAME gated status + skyCondition (outcome + weather
  *     slice + gate all cache together).
- *
- * IMPORT NOTE (RED-PHASE tsc-safety):
- * `applyCloudGate` and `CLOUD_GATE_THRESHOLD_PERCENT` do NOT exist yet — Task 3
- * creates them as exports from `@/lib/services/sun-engine`. A hard top-level
- * `import { applyCloudGate }` would break the tsc gate (tsc ignores `.skip`), so
- * the not-yet-existent symbols are resolved via a loosely-typed runtime accessor
- * (`loadEngine()`) below — INSIDE the skipped blocks. When Task 3 lands, the dev
- * replaces `loadEngine()` with a normal static import and un-skips. This mirrors
- * the project's red-phase convention (see sun-engine-caching.atdd.test.ts) of
- * never letting a scaffold hard-break the compile.
  *
  * MOCK BOUNDARY (MEMORY: "Vitest dynamic-import mock bypass" + "no live Met.no"):
  * Mock the DEEPEST adapters only — `@/lib/supabase/server` (rpc) and
@@ -42,35 +32,14 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyRealSunEngine } from '@/lib/services/sun-engine';
+import {
+  applyCloudGate,
+  applyRealSunEngine,
+  CLOUD_GATE_THRESHOLD_PERCENT,
+} from '@/lib/services/sun-engine';
 import { clearSunEngineCachesForTests } from '@/lib/services/sun-engine-cache';
 import type { StoredVenue } from '@/lib/services/venue-store';
 import type { WeatherSlice } from '@/lib/solar/types';
-
-/**
- * RED-PHASE accessor for the Task 3 exports that do not exist yet. Typed loosely
- * so tsc stays green until Task 3 adds `applyCloudGate` +
- * `CLOUD_GATE_THRESHOLD_PERCENT`. Post-implementation, delete this and use a
- * static import (see IMPORT NOTE above).
- */
-type CloudGateFn = (
-  status: string,
-  isSunVisible: boolean,
-  cloudCover: number | undefined,
-) => string;
-async function loadEngine(): Promise<{
-  applyCloudGate: CloudGateFn;
-  CLOUD_GATE_THRESHOLD_PERCENT: number;
-}> {
-  const mod = (await import('@/lib/services/sun-engine')) as unknown as {
-    applyCloudGate: CloudGateFn;
-    CLOUD_GATE_THRESHOLD_PERCENT: number;
-  };
-  return {
-    applyCloudGate: mod.applyCloudGate,
-    CLOUD_GATE_THRESHOLD_PERCENT: mod.CLOUD_GATE_THRESHOLD_PERCENT,
-  };
-}
 
 const mocks = vi.hoisted(() => ({
   from: vi.fn(),
@@ -127,46 +96,38 @@ function weatherSlice(overrides: Partial<WeatherSlice> = {}): WeatherSlice {
 // ---------------------------------------------------------------------------
 // 1. Pure helper: applyCloudGate (Task 3)
 // ---------------------------------------------------------------------------
-describe.skip('[RED 10.1 AC1] applyCloudGate pure helper', () => {
-  it('gates a geometrically-sunny + sun-visible venue under overcast ⇒ CloudObscured', async () => {
-    const { applyCloudGate } = await loadEngine();
+describe('[10.1 AC1] applyCloudGate pure helper', () => {
+  it('gates a geometrically-sunny + sun-visible venue under overcast ⇒ CloudObscured', () => {
     expect(applyCloudGate('Sunny', true, 100)).toBe('CloudObscured');
   });
 
-  it('gates a geometrically-partial + sun-visible venue under overcast ⇒ CloudObscured', async () => {
-    const { applyCloudGate } = await loadEngine();
+  it('gates a geometrically-partial + sun-visible venue under overcast ⇒ CloudObscured', () => {
     expect(applyCloudGate('Partial', true, 100)).toBe('CloudObscured');
   });
 
-  it('leaves Sunny unchanged when cloud is below the threshold', async () => {
-    const { applyCloudGate } = await loadEngine();
+  it('leaves Sunny unchanged when cloud is below the threshold', () => {
     expect(applyCloudGate('Sunny', true, 0)).toBe('Sunny');
   });
 
-  it('never gates NoSun (below-horizon precedence wins)', async () => {
-    const { applyCloudGate } = await loadEngine();
+  it('never gates NoSun (below-horizon precedence wins)', () => {
     expect(applyCloudGate('NoSun', false, 100)).toBe('NoSun');
     // Even if isSunVisible were spuriously true, NoSun must not become gated.
     expect(applyCloudGate('NoSun', true, 100)).toBe('NoSun');
   });
 
-  it('never gates Shaded (geometrically shaded venues stay Shaded)', async () => {
-    const { applyCloudGate } = await loadEngine();
+  it('never gates Shaded (geometrically shaded venues stay Shaded)', () => {
     expect(applyCloudGate('Shaded', true, 100)).toBe('Shaded');
   });
 
-  it('does NOT gate when the sun is geometrically down even if cloud is high', async () => {
-    const { applyCloudGate } = await loadEngine();
+  it('does NOT gate when the sun is geometrically down even if cloud is high', () => {
     expect(applyCloudGate('Sunny', false, 100)).toBe('Sunny');
   });
 
-  it('does NOT gate when cloud is UNKNOWN (undefined) — unknown ≠ overcast (AC2 interplay)', async () => {
-    const { applyCloudGate } = await loadEngine();
+  it('does NOT gate when cloud is UNKNOWN (undefined) — unknown ≠ overcast (AC2 interplay)', () => {
     expect(applyCloudGate('Sunny', true, undefined)).toBe('Sunny');
   });
 
-  it('gates at exactly the named threshold (>= boundary, reads the constant so a re-tune is safe)', async () => {
-    const { applyCloudGate, CLOUD_GATE_THRESHOLD_PERCENT } = await loadEngine();
+  it('gates at exactly the named threshold (>= boundary, reads the constant so a re-tune is safe)', () => {
     expect(applyCloudGate('Sunny', true, CLOUD_GATE_THRESHOLD_PERCENT)).toBe('CloudObscured');
     // Just below the threshold stays un-gated.
     expect(applyCloudGate('Sunny', true, CLOUD_GATE_THRESHOLD_PERCENT - 0.1)).toBe('Sunny');
@@ -176,7 +137,7 @@ describe.skip('[RED 10.1 AC1] applyCloudGate pure helper', () => {
 // ---------------------------------------------------------------------------
 // 2. End-to-end gate through the real engine (AC1)
 // ---------------------------------------------------------------------------
-describe.skip('[RED 10.1 AC1] cloud gate through computeRealSunEngineResult', () => {
+describe('[10.1 AC1] cloud gate through computeRealSunEngineResult', () => {
   beforeEach(() => {
     clearSunEngineCachesForTests();
     mocks.from.mockReset();
@@ -234,7 +195,7 @@ describe.skip('[RED 10.1 AC1] cloud gate through computeRealSunEngineResult', ()
 // ---------------------------------------------------------------------------
 // 3. Cache consistency: gated status + skyCondition cache together (AC4)
 // ---------------------------------------------------------------------------
-describe.skip('[RED 10.1 AC4] gated outcome caches with its weather slice', () => {
+describe('[10.1 AC4] gated outcome caches with its weather slice', () => {
   beforeEach(() => {
     clearSunEngineCachesForTests();
     mocks.from.mockReset();

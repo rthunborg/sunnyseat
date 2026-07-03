@@ -1,12 +1,10 @@
 /**
- * ATDD RED-PHASE acceptance scaffolds — Story 10.1 AC3 (FR12)
+ * ATDD acceptance tests — Story 10.1 AC3 (FR12)
  * "Cloud cover genuinely lowers confidence"
  *
- * These tests assert the EXPECTED post-implementation behaviour and are
- * intentionally FAILING until Story 10.1 Task 4 lands (TDD red phase). Every
- * block is `describe.skip` so the suite stays green in CI until the dev
- * un-skips them once `calcCloudCertainty` (confidence-calculator.ts:151-157)
- * actually reads `weather.cloudCover`.
+ * Written red-first (they FAILED until Task 4 made `calcCloudCertainty`
+ * (confidence-calculator.ts) actually read `weather.cloudCover`). Now that Task 4
+ * is implemented these are un-skipped and green.
  *
  * THE GAP (root cause #2):
  * `calcCloudCertainty` today scores freshness × forecast-flag × source-
@@ -87,7 +85,7 @@ function weather(overrides: Partial<WeatherSlice> = {}): WeatherSlice {
   };
 }
 
-describe.skip('[RED 10.1 AC3] cloud cover lowers displayed confidence (FR12)', () => {
+describe('[10.1 AC3] cloud cover lowers displayed confidence (FR12)', () => {
   it('100% cloud cover yields materially lower overallConfidence than 0% (identical geometry/solar/shadow)', () => {
     const clear = calculateConfidenceFactors(
       1,
@@ -125,9 +123,9 @@ describe.skip('[RED 10.1 AC3] cloud cover lowers displayed confidence (FR12)', (
       1,
       shadowInfo(),
       baseSolarPosition,
-      // `as` because the type may still be `number` until Task 2 widens it; the
-      // dev un-skipping this test aligns the fixture with the chosen unknown repr.
-      weather({ cloudCover: undefined as unknown as number }),
+      // Task 2 widened `WeatherSlice.cloudCover` to `number | undefined` — the
+      // unknown representation is a plain `undefined`.
+      weather({ cloudCover: undefined }),
     );
 
     expect(unknown.overallConfidence).toBeGreaterThan(overcast.overallConfidence);

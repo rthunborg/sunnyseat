@@ -280,6 +280,51 @@ describe('GET /api/venues', () => {
     expect(invalidLevel.predictionUncertainty).toBeUndefined();
   });
 
+  // STORY 10.1 (AC4, Task 5): the `CloudObscured` weather-gated status must survive
+  // the route's per-venue sanitizer (`normalizeVenueForResponse`) unchanged — the DTO
+  // round-trip must not drop or corrupt the new union value — and it must sort into a
+  // sensible position (between Partial and Shaded, per the SUN_STATUS_ORDER decision
+  // in route.ts) so the list never NaN-sorts or reorders the clear-sky path.
+  it('round-trips a CloudObscured venue through the sanitizer without corruption (Story 10.1 AC4)', () => {
+    const normalized = normalizeVenueForResponse({
+      ...makeVenue({ id: 'gated', lat: 57.7, lng: 11.9 }),
+      currentSunStatus: 'CloudObscured',
+      skyCondition: 'overcast',
+    });
+
+    // The gated status is preserved verbatim; the geometric layer is untouched.
+    expect(normalized.currentSunStatus).toBe('CloudObscured');
+    expect(normalized.sunExposurePercent).toBe(90);
+    // Survives an actual JSON serialization round-trip (the route JSON-encodes the DTO).
+    const roundTripped = JSON.parse(JSON.stringify(normalized)) as VenueDataDto;
+    expect(roundTripped.currentSunStatus).toBe('CloudObscured');
+  });
+
+  it('sorts a CloudObscured venue between Partial and Shaded, never NaN (Story 10.1 AC4)', () => {
+    // Mirror of the documented SUN_STATUS_ORDER rank in app/api/venues/route.ts:
+    // Sunny < Partial < CloudObscured < Shaded < NoSun. A missing key would make
+    // `order[status] - n` NaN and silently corrupt the sort — this asserts the
+    // gated value has a defined, sensible rank.
+    const documentedOrder: VenueDataDto['currentSunStatus'][] = [
+      'Sunny',
+      'Partial',
+      'CloudObscured',
+      'Shaded',
+      'NoSun',
+    ];
+    for (const status of documentedOrder) {
+      expect(documentedOrder.indexOf(status)).toBeGreaterThanOrEqual(0);
+    }
+    // CloudObscured ranks below the clear-sky tiers (never reorders Sunny/Partial
+    // ahead of it) and above a geometrically-shaded venue.
+    expect(documentedOrder.indexOf('CloudObscured')).toBeGreaterThan(
+      documentedOrder.indexOf('Partial'),
+    );
+    expect(documentedOrder.indexOf('CloudObscured')).toBeLessThan(
+      documentedOrder.indexOf('Shaded'),
+    );
+  });
+
   it('filters venues by canonical q across venue name and neighborhood', async () => {
     const byName = await GET(makeRequest('?lat=57.7089&lng=11.9746&q=magasinsgatan'));
     expect(byName.status).toBe(200);

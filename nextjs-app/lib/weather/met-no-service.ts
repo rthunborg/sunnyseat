@@ -82,7 +82,13 @@ export async function getForecast(
         fogFraction != null ? (100 - fogFraction) / 10.0 : undefined;
 
       slices.push({
-        cloudCover: instant.cloud_area_fraction ?? 0,
+        // STORY 10.1 (AC2): do NOT default a missing `cloud_area_fraction` to `0`
+        // (clear sky) — the old optimistic default was exactly the wrong failure
+        // mode. Leave `cloudCover` undefined when the field is absent so the slice
+        // reads "weather-unknown for gating": non-gating AND non-clear downstream
+        // (the cloud gate does not fire, skyCondition → 'unavailable', and the
+        // confidence blend treats it as neutral rather than 100% overcast).
+        cloudCover: instant.cloud_area_fraction,
         temperature: instant.air_temperature ?? 0,
         visibility,
         isForecast,
