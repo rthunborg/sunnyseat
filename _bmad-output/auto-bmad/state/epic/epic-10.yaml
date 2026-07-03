@@ -5,10 +5,10 @@ epic_num: 10
 story_num: null
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
 status: in-progress
-updated_at: "2026-07-03T11:29:11Z"
+updated_at: "2026-07-03T11:41:08Z"
 started_at: "2026-07-02T18:18:20Z"
 completed_at: null
-active_seconds: 22785
+active_seconds: 23501
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -59,6 +59,7 @@ stories_landed:
 auto_decisions:
   - "Non-compact venue card shows no visible 'Sol bakom moln' headline [Med] â†’ fix: add the muted Sol-bakom-moln headline (Cloud icon + statusObscured, text-obscured-text) to the non-compact obscured branch (Tier A, 10-2-sun-behind-clouds-two-signal-ui-state)"
   - "Amber open-until pill not muted under obscured gate [Low] â†’ dismiss: opening-hours affordance shared across all sun states, not a sun-status badge â€” AC1 targets sun-status surfaces only (Tier A, 10-2-sun-behind-clouds-two-signal-ui-state)"
+  - "skyCondition='rain' on a rainy below-horizon NoSun venue [Low] → dismiss: correct per AC2 verbatim wording and honest (rain copy never implies sun on NoSun); unpinned edge owned by 10.5's e2e matrix (Tier A, 10-4-rain-now-signal-met-no-nowcast)"
 uat_items:
   - "[10-1-cloud-gated-sun-state-weather-truth-fixes] From nextjs-app, run `npx vitest run test/unit/weather/met-no-service.cloud-gate.atdd.test.ts` â†’ PASS: timeseries entry missing cloud_area_fraction yields unknown (undefined) cloud, never 0/clear (AC2)."
   - "[10-1-cloud-gated-sun-state-weather-truth-fixes] Run `npx vitest run test/unit/confidence-calculator.cloud-gate.atdd.test.ts test/unit/confidence-calculator.test.ts` â†’ PASS: 100% cloud gives materially lower overallConfidence than 0%; unknown cloud neutral; no-weather path byte-identical at 0.6 (AC3/FR12)."

@@ -47,6 +47,7 @@ const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   getForecast: vi.fn(),
   getCurrentWeather: vi.fn(),
+  getNowcastPrecipitationRate: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -57,6 +58,21 @@ vi.mock('@/lib/supabase/server', () => ({
 vi.mock('@/lib/weather/met-no-service', () => ({
   getForecast: mocks.getForecast,
   getCurrentWeather: mocks.getCurrentWeather,
+  // The nowcast client imports `userAgent` from this module; keep it a no-op
+  // stub so the mocked module still satisfies that import.
+  userAgent: () => 'sunnyseat-test/1.0 test@example.com',
+}));
+
+// [10.4 Review][Patch] Mock the nowcast adapter boundary so the engine's LAZY
+// import path (`await import('@/lib/weather/nowcast-service')`, used when no
+// `getNowcastOverride` is injected) NEVER issues a live outbound request to
+// api.met.no/nowcast/2.0/complete. The default resolves to `undefined` (rate
+// unknown = non-gating, AC3) — byte-identical to the pre-fix behaviour where the
+// real client's swallowed network error also resolved to `undefined`, but with
+// zero network I/O. Tests that inject an explicit `getNowcastOverride` bypass
+// this module entirely and are unaffected.
+vi.mock('@/lib/weather/nowcast-service', () => ({
+  getNowcastPrecipitationRate: mocks.getNowcastPrecipitationRate,
 }));
 
 const SUMMER_MIDDAY = new Date('2026-06-21T10:30:00.000Z'); // Stockholm 12:30, sun high
@@ -506,6 +522,10 @@ describe("[10.4 AC3] absence of rain changes nothing (\"absence of rain must NEV
     mocks.rpc.mockReset();
     mocks.getForecast.mockReset();
     mocks.getCurrentWeather.mockReset();
+    mocks.getNowcastPrecipitationRate.mockReset();
+    // Lazy-path default: rate unknown ⇒ non-gating (AC3). The lazy-import test
+    // below relies on this mocked accessor instead of a live Met.no fetch.
+    mocks.getNowcastPrecipitationRate.mockResolvedValue(undefined);
     mocks.rpc.mockResolvedValue({ data: [], error: null });
     vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.useFakeTimers();
@@ -573,11 +593,20 @@ describe("[10.4 AC3] absence of rain changes nothing (\"absence of rain must NEV
     // Sanity anchor: with NO nowcast injected, the sunlit + low-cloud venue is
     // Sunny (10.3 behaviour). Rain can only ADD a gate on top of this; it can
     // never be the reason a clear+sunlit venue becomes Sunny.
+    //
+    // [10.4 Review][Patch] This exercises the engine's LAZY import path
+    // (`await import('@/lib/weather/nowcast-service')`). That module is mocked at
+    // the top of this file (default ⇒ `undefined`, non-gating), so the near-now
+    // request resolves the MOCKED accessor and issues NO live outbound Met.no
+    // fetch — the assertion below proves the lazy path went through the mock.
     mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 5 })]);
 
     const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
 
     expect(outcome.venue.currentSunStatus).toBe('Sunny');
+    // Near-now ⇒ the lazy-imported (mocked) nowcast accessor WAS consulted, so no
+    // real network request could have escaped to api.met.no.
+    expect(mocks.getNowcastPrecipitationRate).toHaveBeenCalled();
   });
 });
 
