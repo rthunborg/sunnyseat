@@ -167,9 +167,9 @@ describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
     expect(body.venues.every((v) => v.skyCondition === 'unavailable')).toBe(true);
   });
 
-  it('sorts a CloudObscured venue between Partial and Shaded (AC4 — no NaN from SUN_STATUS_ORDER)', async () => {
+  it('sorts a high-solläge CloudObscured venue by its geometric solläge, agreeing with the client re-sort (10.2 AC2 / review Patch[Med])', async () => {
     // STORY 10.1 (AC4): the weather-gated `CloudObscured` status must round-trip
-    // through the route AND sort sensibly. A missing SUN_STATUS_ORDER key would
+    // through the route AND sort sensibly. A missing rank key would
     // make `rank(CloudObscured) - rank(other) = NaN` and silently corrupt the
     // list order; here we assign a distinct status per venue-id parity and assert
     // the emitted order is Sunny < Partial < CloudObscured < Shaded < NoSun.
@@ -203,31 +203,38 @@ describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as GetVenuesResponse;
 
-    const rank: Record<string, number> = {
-      Sunny: 0,
-      Partial: 1,
-      CloudObscured: 2,
-      Shaded: 3,
-      NoSun: 4,
+    // Story 10.2 review [Patch][Med]: the SERVER sort must use the SAME
+    // solläge-aware CloudObscured rank as the client `getVenueSunRankForList`,
+    // so the pre-slice order (which `.slice(0, 50)` truncates) agrees with the
+    // client re-sort. "Higher is better" [0,2]: Sunny=2, Partial=1, Shaded/NoSun=0,
+    // CloudObscured=(percent/100)*2. Venue '3' is obscured @ 90% → rank 1.8, so it
+    // ranks ABOVE Partial(1) — a high-solläge obscured venue is NOT sunk below a
+    // genuine partial the way the old fixed CloudObscured:2-tier sort did.
+    const rank = (v: { currentSunStatus: string; sunExposurePercent: number }): number => {
+      if (v.currentSunStatus === 'CloudObscured') {
+        return (Math.max(0, Math.min(100, v.sunExposurePercent)) / 100) * 2;
+      }
+      return v.currentSunStatus === 'Sunny' ? 2 : v.currentSunStatus === 'Partial' ? 1 : 0;
     };
-    const ranks = body.venues.map((v) => rank[v.currentSunStatus]);
+    const ranks = body.venues.map((v) => rank(v));
     // Every rank is a finite number (no undefined ⇒ NaN leaked into the sort).
     expect(ranks.every((r) => Number.isFinite(r))).toBe(true);
-    // The emitted order is non-decreasing by status rank.
+    // The emitted order is NON-INCREASING by rank (higher = better, sorted first).
     for (let i = 1; i < ranks.length; i++) {
-      expect(ranks[i - 1]).toBeLessThanOrEqual(ranks[i]);
+      expect(ranks[i - 1]).toBeGreaterThanOrEqual(ranks[i]);
     }
     // The CloudObscured venue is present and preserved (not downgraded).
     const gated = body.venues.find((v) => v.id === '3');
     expect(gated?.currentSunStatus).toBe('CloudObscured');
     // Its geometric clear-sky potential survived the gate + the round-trip.
     expect(gated?.sunExposurePercent).toBe(90);
-    // It sits after every Partial and before every Shaded venue.
+    // 90%-solläge obscured (rank 1.8) sits AFTER the Sunny venue but BEFORE the
+    // Partial one — ranked by its surviving geometric solläge, matching the client.
     const gatedIndex = body.venues.findIndex((v) => v.id === '3');
-    const lastPartial = body.venues.map((v) => v.currentSunStatus).lastIndexOf('Partial');
-    const firstShaded = body.venues.map((v) => v.currentSunStatus).indexOf('Shaded');
-    expect(gatedIndex).toBeGreaterThan(lastPartial);
-    expect(gatedIndex).toBeLessThan(firstShaded);
+    const firstPartial = body.venues.map((v) => v.currentSunStatus).indexOf('Partial');
+    const firstSunny = body.venues.map((v) => v.currentSunStatus).indexOf('Sunny');
+    expect(gatedIndex).toBeGreaterThan(firstSunny);
+    expect(gatedIndex).toBeLessThan(firstPartial);
   });
 
   it('detail route feeds the timeline projection from the engine output', async () => {

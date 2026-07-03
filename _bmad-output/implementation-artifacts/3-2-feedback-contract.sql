@@ -14,7 +14,13 @@ create table if not exists public.feedback (
   venue_id text not null,
   venue_slug text not null,
   user_timestamp timestamptz not null,
-  predicted_state text not null check (predicted_state in ('Sunny', 'Partial', 'Shaded', 'NoSun')),
+  -- Story 10 review [Patch][High]: the CHECK must accept the full VenueSunStatus
+  -- union. On the live real-engine path a detail view's predictedState can be
+  -- 'CloudObscured' (weather-gated), which FeedbackFlow POSTs verbatim; the old
+  -- 4-value list rejected it at the DB layer even after the Zod enum was widened.
+  -- Live DBs already created with the narrower constraint need the ALTER in the
+  -- "Story 10 migration" section below (maintainer apply step).
+  predicted_state text not null check (predicted_state in ('Sunny', 'Partial', 'Shaded', 'NoSun', 'CloudObscured')),
   sun_accuracy text check (
     sun_accuracy is null
     or sun_accuracy in ('sunny', 'not_sunny', 'unsure')

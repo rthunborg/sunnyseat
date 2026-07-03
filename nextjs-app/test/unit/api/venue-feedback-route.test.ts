@@ -65,6 +65,25 @@ describe('POST /api/venues/[slug]/feedback', () => {
     }));
   });
 
+  it('accepts a CloudObscured predictedState (weather-gated real-engine path)', async () => {
+    // Story 10 review [Patch][High] regression guard: on the live real-engine
+    // path a detail view's predictedState can be 'CloudObscured', which
+    // FeedbackFlow POSTs verbatim. The Zod enum must accept the full
+    // VenueSunStatus union or the user sees a feedback-flow validation error.
+    const res = await POST(makeRequest('test-venue-sunny', {
+      ...VALID_BODY,
+      predictedState: 'CloudObscured',
+    }), {
+      params: Promise.resolve({ slug: 'test-venue-sunny' }),
+    });
+
+    expect(res.status).toBe(201);
+    await expect(res.json()).resolves.toMatchObject({ predictedState: 'CloudObscured' });
+    expect(persistenceMock.persistVenueFeedback).toHaveBeenCalledWith(expect.objectContaining({
+      predictedState: 'CloudObscured',
+    }));
+  });
+
   it('accepts venue id as the path identifier', async () => {
     const res = await POST(makeRequest('1', { ...VALID_BODY, venueId: '1' }), {
       params: Promise.resolve({ slug: '1' }),

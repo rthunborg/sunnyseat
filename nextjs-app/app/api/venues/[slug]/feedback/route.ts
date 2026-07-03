@@ -15,7 +15,23 @@ type RouteContext = {
 
 const NOTE_MAX_LENGTH = 500;
 const UNSAFE_CONTROL_CHARACTER_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u;
-const PREDICTED_STATES = ['Sunny', 'Partial', 'Shaded', 'NoSun'] as const satisfies VenueSunStatus[];
+// STORY 10 review [Patch][High]: `predictedState` MUST accept the FULL
+// VenueSunStatus union — on the live real-engine path a detail view's
+// `predictedState` can be `'CloudObscured'` (weather-gated), and that value is
+// POSTed here verbatim by FeedbackFlow. A `satisfies VenueSunStatus[]` check
+// only verifies MEMBERSHIP, not EXHAUSTIVENESS, so a union value missing from the
+// literal array is NOT a type error (that is exactly how `'CloudObscured'` slipped
+// through). Deriving the array from a `Record<VenueSunStatus, true>` makes it
+// exhaustiveness-forcing: adding a member to the union without listing it here is
+// now a compile error, so this boundary can never silently drop a future value.
+const PREDICTED_STATE_MEMBERS = {
+  Sunny: true,
+  Partial: true,
+  Shaded: true,
+  NoSun: true,
+  CloudObscured: true,
+} as const satisfies Record<VenueSunStatus, true>;
+const PREDICTED_STATES = Object.keys(PREDICTED_STATE_MEMBERS) as [VenueSunStatus, ...VenueSunStatus[]];
 const SUN_ACCURACY_VALUES = ['sunny', 'not_sunny', 'unsure'] as const satisfies FeedbackSunAccuracy[];
 
 const feedbackSchema = z.object({

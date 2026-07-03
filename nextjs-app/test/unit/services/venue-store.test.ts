@@ -299,6 +299,20 @@ describe('venue-store (Supabase opt-in)', () => {
     expect(venue).not.toHaveProperty('skyCondition');
   });
 
+  it("round-trips a persisted 'rain' sky_condition instead of stripping it (Story 10 review Patch[Low])", async () => {
+    // 10.4 added 'rain' to the SkyCondition union; the SKY_CONDITIONS allow-list
+    // must include it or a persisted+re-read 'rain' is silently dropped to
+    // undefined (→ no sky line).
+    useSupabaseStore();
+    supabaseMock.state.singleResult = {
+      data: { ...SUPABASE_ROW, sky_condition: 'rain' },
+      error: null,
+    };
+
+    const venue = await getVenueBySlug('supa-venue');
+    expect(venue?.skyCondition).toBe('rain');
+  });
+
   it('keeps a well-formed seating_area polygon as a server-only field (never in the DTO)', async () => {
     useSupabaseStore();
     const seatingArea = {

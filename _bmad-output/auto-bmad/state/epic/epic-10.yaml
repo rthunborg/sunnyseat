@@ -5,11 +5,11 @@ epic_num: 10
 story_num: null
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
 status: in-progress
-updated_at: "2026-07-03T13:23:01Z"
+updated_at: "2026-07-03T13:37:22Z"
 started_at: "2026-07-02T18:18:20Z"
 completed_at: null
 active_seconds: 29590
-timing_anchor: null
+timing_anchor: 1783085053
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -62,6 +62,8 @@ auto_decisions:
   - "Non-compact venue card shows no visible 'Sol bakom moln' headline [Med] â†’ fix: add the muted Sol-bakom-moln headline (Cloud icon + statusObscured, text-obscured-text) to the non-compact obscured branch (Tier A, 10-2-sun-behind-clouds-two-signal-ui-state)"
   - "Amber open-until pill not muted under obscured gate [Low] â†’ dismiss: opening-hours affordance shared across all sun states, not a sun-status badge â€” AC1 targets sun-status surfaces only (Tier A, 10-2-sun-behind-clouds-two-signal-ui-state)"
   - "skyCondition='rain' on a rainy below-horizon NoSun venue [Low] → dismiss: correct per AC2 verbatim wording and honest (rain copy never implies sun on NoSun); unpinned edge owned by 10.5's e2e matrix (Tier A, 10-4-rain-now-signal-met-no-nowcast)"
+  - "Rain-gated outcome cached 15 min despite ~5-min radar cadence [Med] → defer: accept one-bucket staleness consistent with the sun-freshness horizon; revisit only if live spot-checks show a user-visible stale-rain window (E_review, epic-10)"
+  - "Rain gate fires on any positive radar rate, no trace-rain floor [Low] → dismiss: 'rain wins' intent sanctions any positive rate; a light-rain floor is a future tunable, not a defect (E_review, epic-10)"
 uat_items:
   - "[10-1-cloud-gated-sun-state-weather-truth-fixes] From nextjs-app, run `npx vitest run test/unit/weather/met-no-service.cloud-gate.atdd.test.ts` â†’ PASS: timeseries entry missing cloud_area_fraction yields unknown (undefined) cloud, never 0/clear (AC2)."
   - "[10-1-cloud-gated-sun-state-weather-truth-fixes] Run `npx vitest run test/unit/confidence-calculator.cloud-gate.atdd.test.ts test/unit/confidence-calculator.test.ts` â†’ PASS: 100% cloud gives materially lower overallConfidence than 0%; unknown cloud neutral; no-weather path byte-identical at 0.6 (AC3/FR12)."
