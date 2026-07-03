@@ -5,10 +5,10 @@ epic_num: 10
 story_num: null
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
 status: in-progress
-updated_at: "2026-07-03T06:52:02Z"
+updated_at: "2026-07-03T06:55:42Z"
 started_at: "2026-07-02T18:18:20Z"
 completed_at: null
-active_seconds: 6214
+active_seconds: 6410
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -51,8 +51,19 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 10-1-cloud-gated-sun-state-weather-truth-fixes
-stories_landed: []
+active_story: 10-2-sun-behind-clouds-two-signal-ui-state
+stories_landed:
+  - 10-1-cloud-gated-sun-state-weather-truth-fixes
 auto_decisions: []
-uat_items: []
+uat_items:
+  - "[10-1-cloud-gated-sun-state-weather-truth-fixes] From nextjs-app, run `npx vitest run test/unit/weather/met-no-service.cloud-gate.atdd.test.ts` â†’ PASS: timeseries entry missing cloud_area_fraction yields unknown (undefined) cloud, never 0/clear (AC2)."
+  - "[10-1-cloud-gated-sun-state-weather-truth-fixes] Run `npx vitest run test/unit/confidence-calculator.cloud-gate.atdd.test.ts test/unit/confidence-calculator.test.ts` â†’ PASS: 100% cloud gives materially lower overallConfidence than 0%; unknown cloud neutral; no-weather path byte-identical at 0.6 (AC3/FR12)."
+  - "[10-1-cloud-gated-sun-state-weather-truth-fixes] Run `npx vitest run test/unit/services/sun-engine.cloud-gate.atdd.test.ts` â†’ PASS: sunlit+overcast(>=80) â†’ CloudObscured; below-threshold/NoSun/Shaded/unknown/null-weather NOT gated; geometry fields keep geometric values; same 15-min bucket repeats identically (AC1/AC4)."
+  - "[10-1-cloud-gated-sun-state-weather-truth-fixes] Run `npx vitest run test/unit/api/venues-route.cloud-gate.atdd.test.ts test/unit/api/venues-route-real-engine.test.ts test/unit/api/venues-route.test.ts` â†’ PASS: CloudObscured round-trips the API sanitizer and sorts between Partial and Shaded, no NaN (AC4)."
+  - "[10-1-cloud-gated-sun-state-weather-truth-fixes] Run full gate `npx tsc --noEmit && npx eslint . && npx vitest run` â†’ 0/0 errors, ~112 files / ~993 tests green, union extension compiles across all exhaustive consumers."
+  - "[10-1-cloud-gated-sun-state-weather-truth-fixes] With SUNNYSEAT_SUN_ENGINE unset, `npm run dev` then GET http://localhost:3000/api/venues?lat=57.7&lng=11.97&radius=1.5 â†’ every currentSunStatus is Sunny/Partial/Shaded/NoSun, NEVER CloudObscured; seed path unchanged."
+  - "[10-1-cloud-gated-sun-state-weather-truth-fixes] With SUNNYSEAT_SUN_ENGINE=real (needs .env.local Supabase config), GET /api/venues?lat=57.7&lng=11.97&radius=1.5&date=<today>&time=13:00 â†’ 200; any CloudObscured venue also has skyCondition overcast, none CloudObscured while skyCondition clear (AC4)."
+  - "[10-1-cloud-gated-sun-state-weather-truth-fixes] Real path with live sky <80% cloud â†’ sunlit venues stay Sunny/Partial, gate never fabricates obscured (AC1 negative; positive overcast case proven by unit suite, not hand-forceable)."
+  - "[10-1-cloud-gated-sun-state-weather-truth-fixes] Real path with Met.no weather absent/unreachable for a venue â†’ skyCondition 'unavailable', NOT CloudObscured, not fabricated clear (AC2 end-to-end)."
+  - "[10-1-cloud-gated-sun-state-weather-truth-fixes] Repeat the identical real-path GET twice within one 15-min window â†’ currentSunStatus + skyCondition identical across calls (cache consistency, AC4)."
 epic_slug: honest-sky-weather-gated-two-signal-sun-display
