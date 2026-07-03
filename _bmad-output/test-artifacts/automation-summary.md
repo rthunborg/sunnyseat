@@ -8,6 +8,9 @@ stepsCompleted:
 lastStep: 'step-04-validate-and-summarize'
 lastSaved: '2026-07-03'
 inputDocuments:
+  - '_bmad-output/implementation-artifacts/10-4-rain-now-signal-met-no-nowcast.md'
+  - 'nextjs-app/lib/weather/nowcast-service.ts'
+  - 'nextjs-app/test/unit/weather/nowcast-service.cloud-gate.atdd.test.ts'
   - '_bmad-output/implementation-artifacts/10-1-cloud-gated-sun-state-weather-truth-fixes.md'
   - '_bmad-output/implementation-artifacts/10-2-sun-behind-clouds-two-signal-ui-state.md'
   - '_bmad-output/implementation-artifacts/10-3-layered-cloud-detail-met-no-complete-endpoint.md'
@@ -161,3 +164,47 @@ Residual algebraic edges + per-entry-mapping gaps the AC matrix intentionally le
 
 ## Next recommended workflow
 `trace` (traceability matrix / quality-gate decision for Story 10.3) or `test-review` (quality validation of the new + existing layered-cloud suites).
+
+---
+
+# Automation Expansion Summary — Story 10.4 (Rain-Now Signal — Met.no Nowcast 2.0)
+
+## Preflight & Context
+- **Framework:** Vitest 4.1.4 (`nextjs-app/vitest.config.ts`) + Playwright present. Verified — no HALT.
+- **Stack:** fullstack (Next.js) with server-only sun engine. Story 10.4 is **Tier 2** of Epic 10 "Honest Sky" — a backend/data story: adds a Met.no Nowcast 2.0 client (`getNowcastPrecipitationRate`), a one-way additive rain gate (`applyCloudGate` rain OR-term), the `skyCondition='rain'` precedence + copy, an AC4 future-horizon skip, and a list-route nowcast deduper. **NO new screen** (rain reuses the 10.2 obscured chrome). All targets stayed UNIT-level; **e2e intentionally NOT touched** (the deterministic mocked-weather e2e matrix + live spot-check is Story 10.5).
+- **Mode:** BMad-Integrated (story with AC1–AC4 + rich Dev Notes / Test Surfaces). **Sequential** — a narrow, additive top-up on the existing 10.4 unit surfaces; no API/E2E fan-out to farm out.
+
+## Existing coverage reviewed (to avoid duplication)
+The dev-story un-skipped a strong AC-driven matrix — NOT re-created:
+- `nowcast-service.cloud-gate.atdd.test.ts` [AC1, 9] — `/nowcast/2.0/complete` URL + 4-dp coords / shared identifying UA / 0.4⇒0.4 / genuine 0 / absent field⇒undefined / non-`ok` coverage marker⇒undefined / non-OK HTTP / thrown fetch / empty timeseries — all single-entry synthetic responses, no network.
+- `sun-engine.cloud-gate.atdd.test.ts` [10.4 AC2/AC3/AC4 blocks] — rain-forces-gate + `skyCondition='rain'` + geometry preserved / rain over below-horizon stays NoSun / no-rain(0)+overcast still CloudObscured / no-rain(0)+clear+below-horizon stays NoSun / undefined≡0 / no-override lazy path / beyond-`NOWCAST_HORIZON_MS` not called + not gated / inside-horizon called + gates / past `requestedAt` not called. **Assessed comprehensive — not expanded.**
+- `sun-status-presentation.rain.cloud-gate.atdd.test.ts` + `sun-status-presentation.test.ts` — `skyConditionCopy('rain', …)` renders plain-language copy, no meteorology internals, others unchanged, unavailable/undefined/unknown → null.
+- `messages-parity.test.ts` + the two component fixtures — sv/en `rain` sky keys, `sky` shape gains `rain`.
+
+## Gaps Identified & Filled
+Residual branch/edge gaps the AC matrix structurally could not reach (single-entry fixtures, an untested deduper twin, an optional-param back-compat contract). All assert INTENT / relative behaviour (unknown ≠ 0; re-tunable `NOWCAST_HORIZON_MS` never hard-coded):
+
+| # | Gap (previously uncovered) | Level | Priority | Where |
+| - | -------------------------- | ----- | -------- | ----- |
+| 1 | `nearestToNowEntry` **multi-entry** selection — the near-now rate is the entry nearest the real clock, not the first or last; a nearer FUTURE step wins over a farther past one. The AC1 suite used only single-entry responses. | Unit | P1 | `nowcast-service.coverage.test.ts` |
+| 2 | `nearestToNowEntry` **Invalid-Date defensiveness** — an unparseable `entry.time` is SKIPPED (nearest parseable selected, never the NaN slice's rate); all-unparseable falls back to the FIRST entry (never NaN-select / throw). [8.5-R1 folded-in guard] | Unit | P1 | `nowcast-service.coverage.test.ts` |
+| 3 | **Unknown-vs-0 on the SELECTED near-now entry** — the nearest entry's absent `precipitation_rate` returns `undefined` (never a neighbour's 0, never a fabricated 0). Single-entry AC1 tests could not exercise the "which entry's field" question. | Unit | P1 | `nowcast-service.coverage.test.ts` |
+| 4 | **Default-coordinate accessor** — `getNowcastPrecipitationRate()` with no args defaults to Gothenburg (4-dp truncated). The fixed-coordinate AC1 tests never hit the default-param path. | Unit | P2 | `nowcast-service.coverage.test.ts` |
+| 5 | `createDedupedNowcastFetcher` **coalescing** — co-located venues share ONE upstream nowcast request per ≤4-dp key (TOS-hygiene, Task 5); only the forecast twin was tested. | Unit | P1 | `sun-engine.test.ts` |
+| 6 | `createDedupedNowcastFetcher` **undefined pass-through / no-eviction** — a transient `undefined`-resolving underlying coalesces to the correct per-venue "unknown → non-gating" degrade for every co-located caller. | Unit | P1 | `sun-engine.test.ts` |
+| 7 | `applyCloudGate` **3-arg back-compat** — the optional 4th `isRaining` defaults to `false` (dev-flagged deliberate deviation): a 3-arg call is byte-identical to an explicit `false` and never fabricates a rain gate. | Unit | P2 | `sun-engine.test.ts` |
+
+## Files Created / Updated (all test-only, additive)
+- **NEW** `nextjs-app/test/unit/weather/nowcast-service.coverage.test.ts` — 6 tests (gaps #1–#4).
+- **UPDATED** `nextjs-app/test/unit/services/sun-engine.test.ts` — +4 tests (gaps #5–#7); added `applyCloudGate` + `createDedupedNowcastFetcher` imports.
+
+## Validation / Gate
+- `npx tsc --noEmit` → **0 errors**
+- `npx eslint <changed test files>` → **0 errors / 0 warnings**
+- `npx vitest run` → **118 files / 1099 tests, all passing, 0 skipped** (Story 10.4 completion HEAD was 117 files / 1089 tests → net **+1 file / +10 tests**, none dropped, none regressed).
+- Test-only addition — no source, engine, route, store, client, or CI-path change. Default seed path (flag OFF, as CI runs it) untouched.
+- Authoring note: initial "all-unparseable time" fixtures used strings (`garbage-1`) that JS `Date` partially parses to valid 2001 dates; switched to genuinely unparseable strings so gap #2's fallback branch is truly exercised.
+- (`Not implemented: navigation to another Document` in vitest output remains a benign pre-existing jsdom log, not a failure.)
+
+## Next recommended workflow
+`trace` (traceability matrix / quality-gate decision for Story 10.4) or `test-review` (quality validation of the new + existing rain-now suites).
