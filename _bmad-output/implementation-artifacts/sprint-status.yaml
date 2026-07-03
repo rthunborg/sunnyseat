@@ -257,12 +257,12 @@ development_status:
   # Maintainer decisions: two-signal display model; Tiers 0+1+2 in scope (cloud gate + Met.no complete low/mid/high split
   # + Nowcast 2.0 rain signal); HARD CONSTRAINT: absence of rain must NEVER imply sun; Tier 3 satellite irradiance = backlog.
   # All backlog: no story files drafted yet. Listed in execution order: 10.1 -> 10.2 -> 10.3 -> 10.4 -> 10.5.
-  epic-10: in-progress
-  10-1-cloud-gated-sun-state-weather-truth-fixes: review
-  10-2-sun-behind-clouds-two-signal-ui-state: review
-  10-3-layered-cloud-detail-met-no-complete-endpoint: review
-  10-4-rain-now-signal-met-no-nowcast: review
-  10-5-weather-reality-verification-pass-regression-guards: review
+  epic-10: done
+  10-1-cloud-gated-sun-state-weather-truth-fixes: done
+  10-2-sun-behind-clouds-two-signal-ui-state: done
+  10-3-layered-cloud-detail-met-no-complete-endpoint: done
+  10-4-rain-now-signal-met-no-nowcast: done
+  10-5-weather-reality-verification-pass-regression-guards: done
   epic-10-retrospective: done
 
 # Note (2026-07-02, sprint-planning refresh — no status changes): full sprint-planning re-run against epics.md (epics 1-10, 64 stories). Inventory verified 1:1 (every epic/story/retrospective in epics.md present here, no orphan keys, all status values legal, YAML valid). Story-file detection confirmed: no 10-*/4-*/5-*/6-* story files exist, so all Epic 4/5/6/10 entries correctly remain backlog; all done statuses preserved. Totals: 10 epics (6 done / 4 backlog / 0 in-progress), 64 stories (47 done / 17 backlog). Current sprint remains Epic 10 / sprint 12 (planned). Next: bmad-create-story 10-1.

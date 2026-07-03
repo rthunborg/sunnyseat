@@ -1,6 +1,6 @@
 # Story 10.5: Weather-Reality Verification Pass & Regression Guards
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

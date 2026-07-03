@@ -1,6 +1,6 @@
 # Story 10.4: Rain-Now Signal (Met.no Nowcast 2.0)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

@@ -1,6 +1,6 @@
 # Story 10.2: "Sun Behind Clouds" Two-Signal UI State
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

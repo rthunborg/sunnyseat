@@ -1,6 +1,6 @@
 # Story 10.3: Layered Cloud Detail (Met.no `complete` Endpoint + Effective Cover)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

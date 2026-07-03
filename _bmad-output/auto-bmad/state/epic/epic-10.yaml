@@ -5,7 +5,7 @@ epic_num: 10
 story_num: null
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
 status: done
-updated_at: "2026-07-03T14:42:20Z"
+updated_at: "2026-07-03T15:41:21Z"
 started_at: "2026-07-02T18:18:20Z"
 completed_at: "2026-07-03T14:42:20Z"
 active_seconds: 34275
@@ -25,7 +25,7 @@ code_review_iterations: 2
 code_review_loop_done: true
 hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
-convergence_unverified: true
+convergence_unverified: false
 story_trace: null
 commits: []
 phase8_steps:
@@ -41,11 +41,11 @@ gate_iterations: 0
 deferred_work_archived: 0
 pr_url: "https://github.com/rthunborg/sunnyseat/pull/16"
 ci_run_url: "https://github.com/rthunborg/sunnyseat/actions?query=branch%3Aepic%2F10-honest-sky-weather-gated-two-signal-sun-display"
-ci_status: unknown
-pr_merged: false
-merge_method: null
-merge_commit: null
-branch_deleted: false
+ci_status: passed
+pr_merged: true
+merge_method: merge
+merge_commit: "3911539"
+branch_deleted: true
 open_questions: []
 deferred_work: []
 blockers: []
@@ -117,5 +117,5 @@ uat_items:
   - "[10-5-weather-reality-verification-pass-regression-guards] MAINTAINER (AC2 live spot-check): on a real grey-or-clear day open the LIVE site (map + one venue detail), screenshot headline state + sky line; fetch Met.no locationforecast + nowcast complete for 57.7089,11.9746; compute effective ≈ low+medium+0.25*high; verify displayed state agrees with sky + values, fill the comparison table in the story's Dev Agent Record; on mismatch triage root cause before epic close."
   - "[10-5-weather-reality-verification-pass-regression-guards] MAINTAINER: rebaseline the two obscured visual-validation reference PNGs (map-with-obscured-venue, venue-detail-obscured, mobile+desktop) — dev agents are forbidden from self-blessing refs; host /tmp screenshot tooling broken on this Windows machine."
 epic_slug: honest-sky-weather-gated-two-signal-sun-display
-batch_flip_done: false
+batch_flip_done: true
 integration_review_done: true

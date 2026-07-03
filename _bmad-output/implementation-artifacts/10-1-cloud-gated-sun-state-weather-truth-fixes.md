@@ -1,6 +1,6 @@
 # Story 10.1: Cloud-Gated Sun State & Weather-Truth Fixes (Engine)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
