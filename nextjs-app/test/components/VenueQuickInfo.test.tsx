@@ -61,6 +61,12 @@ const labels = {
   routeLoading: 'Öppnar kartor',
   favouriteAdd: 'Spara som favorit',
   favouriteRemove: 'Ta bort favorit',
+  obscuredHeadline: 'Sol bakom moln',
+  sky: {
+    clear: 'Klart',
+    partlyCloudy: 'Delvis molnigt',
+    overcast: 'Mulet',
+  },
 };
 
 describe('<VenueQuickInfo />', () => {
@@ -102,6 +108,89 @@ describe('<VenueQuickInfo />', () => {
     expect(screen.getByText(/95% SOL/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mer Info' })).toBeInTheDocument();
+  });
+
+  it('renders the muted obscured headline + sky line, no amber "% SOL" sun badge (Story 10.2 AC1/AC3)', () => {
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Molnbaren"
+        sunTimeRange="Sol 13:00–18:30"
+        sunExposurePercent={92}
+        distanceMeters={420}
+        currentSunStatus="CloudObscured"
+        skyCondition="overcast"
+        thumbnail={{ alt: 'Uteservering', initials: 'MB' }}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    const obscuredBlock = screen.getByTestId('quick-info-obscured');
+    // AC1: the muted "Sol bakom moln" headline is present.
+    expect(obscuredBlock).toHaveTextContent('Sol bakom moln');
+    // AC3: overcast -> "Mulet" plain-language descriptor, no cloud %.
+    expect(obscuredBlock).toHaveTextContent('Mulet');
+    // AC1: the photo-strip badge shows the geometric % but NOT the amber sun
+    // badge — the "% SOL" pill is muted-slate (bg-pin-obscured), never amber-gold.
+    const badge = screen.getByText(/92% SOL/).closest('div');
+    expect(badge?.className).toContain('bg-pin-obscured');
+    expect(badge?.className).not.toContain('bg-amber-gold');
+    // AC2: the geometric sun window still renders (position, not weather).
+    expect(screen.getByText('Sol 13:00–18:30')).toBeInTheDocument();
+  });
+
+  it('renders NO sky line when an obscured venue sky is unavailable (AC3 — never fabricate)', () => {
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Molnbaren"
+        sunTimeRange="Sol 13:00–18:30"
+        sunExposurePercent={92}
+        distanceMeters={420}
+        currentSunStatus="CloudObscured"
+        skyCondition="unavailable"
+        thumbnail={{ alt: 'Uteservering', initials: 'MB' }}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    const obscuredBlock = screen.getByTestId('quick-info-obscured');
+    expect(obscuredBlock).toHaveTextContent('Sol bakom moln');
+    expect(obscuredBlock).not.toHaveTextContent('Mulet');
+    expect(obscuredBlock).not.toHaveTextContent('Klart');
+  });
+
+  it('keeps the amber sunny quick-info unchanged for a clear-sky venue (Behaviour gate)', () => {
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Solbaren"
+        sunTimeRange="Sol 13:00–18:30"
+        sunExposurePercent={95}
+        distanceMeters={420}
+        currentSunStatus="Sunny"
+        skyCondition="clear"
+        thumbnail={{ alt: 'Uteservering', initials: 'SB' }}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    expect(screen.queryByTestId('quick-info-obscured')).not.toBeInTheDocument();
+    const badge = screen.getByText(/95% SOL/).closest('div');
+    expect(badge?.className).toContain('bg-amber-gold');
+    expect(badge?.className).not.toContain('bg-pin-obscured');
   });
 
   it('renders an approximate route estimate and loading state on the route CTA', () => {

@@ -53,6 +53,14 @@ const labels = {
   openingHours: 'Öppettider',
   address: 'Adress',
   sunBadge: '{percent}% sol',
+  obscuredHeadline: 'Sol bakom moln',
+  obscuredBadge: '{percent}% solläge',
+  sky: {
+    label: 'Himmel nu',
+    clear: 'Klart',
+    partlyCloudy: 'Delvis molnigt',
+    overcast: 'Mulet',
+  },
   confidence: 'Säkerhet',
   confidenceApproximate: 'cirka',
   confidenceUnavailable: 'Säkerhet saknas',
@@ -111,6 +119,75 @@ describe('VenueDetailContent', () => {
       'noopener noreferrer',
     );
     expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeEnabled();
+  });
+
+  it('renders the muted obscured hero badge + headline + sky line, no amber sun badge (Story 10.2 AC1/AC3)', () => {
+    const obscuredDetail: VenueDetailDto = {
+      ...DETAIL,
+      currentSunStatus: 'CloudObscured',
+      skyCondition: 'overcast',
+      timeline: {
+        ...DETAIL.timeline,
+        windows: [{ start: '13:00', end: '18:30', status: 'Sunny' }],
+      },
+    };
+
+    render(
+      <VenueDetailContent
+        fallbackVenue={{ ...LIST_VENUE, currentSunStatus: 'CloudObscured', skyCondition: 'overcast' }}
+        detail={obscuredDetail}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    // AC1: the hero badge is the muted "% solläge" badge, NOT the amber "% sol" badge.
+    expect(screen.getByLabelText('95% solläge')).toBeInTheDocument();
+    expect(screen.queryByLabelText('95% sol')).not.toBeInTheDocument();
+    // AC1: the muted "Sol bakom moln" headline is present.
+    const obscuredBlock = screen.getByTestId('venue-detail-obscured');
+    expect(obscuredBlock).toHaveTextContent('Sol bakom moln');
+    // AC3: the plain-language sky descriptor (overcast -> "Mulet"), no cloud %.
+    expect(obscuredBlock).toHaveTextContent('Mulet');
+    expect(obscuredBlock.textContent).not.toMatch(/\d+\s*%/);
+    // AC2: the geometric sun timeline STILL renders as clear-sky potential.
+    expect(screen.getByText('Solprognos idag')).toBeInTheDocument();
+  });
+
+  it('renders NO sky line when the obscured venue sky is unavailable (AC3 — never fabricate)', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={{ ...LIST_VENUE, currentSunStatus: 'CloudObscured', skyCondition: 'unavailable' }}
+        detail={{ ...DETAIL, currentSunStatus: 'CloudObscured', skyCondition: 'unavailable' }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    const obscuredBlock = screen.getByTestId('venue-detail-obscured');
+    // The headline still shows, but NO sky descriptor is fabricated.
+    expect(obscuredBlock).toHaveTextContent('Sol bakom moln');
+    expect(obscuredBlock).not.toHaveTextContent('Mulet');
+    expect(obscuredBlock).not.toHaveTextContent('Klart');
+    expect(obscuredBlock).not.toHaveTextContent('Delvis molnigt');
+  });
+
+  it('keeps the sunny detail unchanged — no obscured block on a clear-sky venue (Behaviour gate)', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.queryByTestId('venue-detail-obscured')).not.toBeInTheDocument();
+    // The amber sun badge is intact for the sunny state.
+    expect(screen.getByLabelText('95% sol')).toBeInTheDocument();
   });
 
   it('renders route estimate copy and a scoped loading label on the primary CTA', () => {

@@ -1,6 +1,6 @@
 # Story 10.2: "Sun Behind Clouds" Two-Signal UI State
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -60,39 +60,39 @@ Carried verbatim from epics.md:2712-2715:
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Introduce the muted "obscured" design token + the UI-token `SunStatus` value (AC1)**
-  - [ ] Add a muted/cloud palette token to `app/globals.css` `@theme` (near `--color-pin-shaded: #e4e1e5;` at line 50). The obscured state must be distinct from BOTH amber (`--color-amber-*`) AND the existing shaded grey (`--color-pin-shaded`). Choose a muted cloud/slate family (e.g. a desaturated blue-grey pin fill + a readable body text color) that meets **WCAG AA (4.5:1)** against its background for any text/badge — the axe gate WILL fail otherwise (retro/auto-memory: the venue-card amber labels historically measured ≈1.63 and the muted-text family had to be bumped to AA in Epic 9). Add the CSS variable(s) with a comment; do NOT inline raw hexes in components.
-  - [ ] Extend the **UI-token vocabulary** `SunStatus` in `lib/types/design-tokens.ts:1` from `'sunny' | 'partial' | 'shaded' | 'upcoming'` to add `'obscured'`. This is the SEPARATE presentational vocabulary (lowercase) — 10.1 explicitly deferred adding it here. `SkyCondition` (`design-tokens.ts:3`) already carries `'overcast'`/`'partly-cloudy'`/`'clear'`/`'unavailable'` — no change needed there.
-  - [ ] If you add a shared status→visual mapper (recommended, see Task 2), use a `never`-exhaustive `switch` on `VenueSunStatus` so a future missed status is a COMPILE error (epic-wide ratified convention — retro-note epic-10: "use a never-exhaustive switch so a missed consumer is a compile error").
+- [x] **Task 1 — Introduce the muted "obscured" design token + the UI-token `SunStatus` value (AC1)**
+  - [x] Added muted slate cloud tokens to `app/globals.css` `@theme` (below `--color-pin-shaded`): `--color-pin-obscured: #5e6a7a` (fill; white text 5.50:1 AA) + `--color-obscured-text: #41505f` (label; 8.28/7.94/7.29:1 on white/cream/sand). Distinct from amber AND `--color-pin-shaded` grey. Documented in DESIGN.md token table. No inline hexes in components.
+  - [x] Extended UI-token `SunStatus` in `lib/types/design-tokens.ts:1` with `'obscured'`.
+  - [x] Added shared mapper `lib/utils/sun-status-presentation.ts` — `toSunStatusToken` uses a `never`-exhaustive `switch` on `VenueSunStatus` (future missed status = compile error) + `isObscuredSunStatus` + `skyConditionCopy` (AC3). Unit-tested.
 
-- [ ] **Task 2 — Map pin: muted obscured pill (`VenuePin` + `VenuePinLayer`) (AC1, AC4)**
-  - [ ] `VenuePin.tsx:51-56`: today `isSunny = sunStatus === 'Sunny' || 'Partial'` and everything else (incl. `CloudObscured`) collapses to the grey `ShadedPill`. Add a THIRD render branch for `CloudObscured` → a muted "cloud" pill visually distinct from the amber sunny pill AND the grey shaded pill (use the new token; keep the `Cloud` lucide icon so it is not colour-only per NFR27; keep the `%` still shown — it is the geometric solläge, AC2). Preserve the existing morph/`AnimatePresence` machinery and `data-pin-state` contract (extend the `VenuePinSelection` type at `lib/types/map.ts:43` if you add an `obscured` pin state, or keep `state` = a new `'obscured'` value — whichever keeps the morph logic honest; a `CloudObscured` pin does NOT need a selected-morph variant, mirror the shaded pill's single-state treatment).
-  - [ ] `VenuePinLayer.tsx:68-73` `resolveAria`: add a `pinObscuredAria` branch BEFORE the shaded fallback so a `CloudObscured` pin announces the obscured state, not "shaded". Add the `pinObscuredAria` key to BOTH `messages/sv/map.json` and `messages/en/map.json` (parity-guarded). Include the geometric `{percent}` and `{name}` placeholders exactly like the other three aria keys so the ICU parity test passes.
-  - [ ] `VenuePinLayer.venueFingerprint` (`:361-369`) already includes `sunStatus`, so a status flip to/from `CloudObscured` correctly re-renders the pin — no fingerprint change needed. Verify (do not regress the Story-1.4 fingerprint contract).
+- [x] **Task 2 — Map pin: muted obscured pill (`VenuePin` + `VenuePinLayer`) (AC1, AC4)**
+  - [x] `VenuePin.tsx`: added a THIRD `'obscured'` render branch → new `ObscuredPill` (slate `bg-pin-obscured` fill, white Cloud icon + `%`, no selected-morph, no entrance fade → no gate-crossing flash). Extended `VenuePinSelection` (`lib/types/map.ts`) with `'obscured'`.
+  - [x] `VenuePinLayer.resolveAria`: added `pinObscuredAria` branch BEFORE the shaded fallback. Added `pinObscuredAria` (`{name}`+`{percent}`) to BOTH `messages/{sv,en}/map.json` (parity-guarded).
+  - [x] `venueFingerprint` already includes `sunStatus` — verified, no change (status flip re-renders correctly).
 
-- [ ] **Task 3 — Venue card: muted obscured state + fix the `isSunny`-derived label (`VenueCard` + `VenueList`) (AC1, AC2, AC4)**
-  - [ ] `VenueCard.tsx` derives its state from the `isSunny` BOOLEAN prop + `sunExposurePercent`, NOT from `currentSunStatus` directly (`:104-108` `statusLabel`, `:169-176` compact icon/label, `:356-368` thumbnail badge). A `CloudObscured` venue currently arrives as `isSunny=false` (via `isVenueSunnyForList`, which is `getVenueSunRankForList(venue) > 0`) → renders "MEST SKUGGA" + grey cloud badge. That is the placeholder to replace. **Thread the obscured signal into the card** — add an explicit prop (e.g. `sunStatus?: VenueSunStatus` or `isObscured?: boolean`) so the card can render the muted "Sol bakom moln" label + muted badge for `CloudObscured` DISTINCT from both the amber sunny path and the grey shaded path. Do NOT overload `isSunny` (keep it meaning "geometrically sunny amber chrome"); an obscured venue is neither amber-sunny nor plain-shaded.
-  - [ ] Add `statusObscured` (and any obscured helper copy) to `VenueCardLabels` and pass it from `VenueList.tsx:109-130` via the `venue.list.*` namespace. The obscured card MUST NOT show "FULL SOL"/"DELVIS SOL" or the amber `Sun` icon (AC1). Keep the geometric `{percent} sol` visible but reframe/label per AC2 (position-not-weather) — final copy at design discretion, but never an amber "FULL SOL" while obscured.
-  - [ ] **Fix `getVenueSunRankForList` (`VenueList.tsx:163-172`) per AC2 + the 10.1 hand-off:** "Mest sol" must rank by geometric solläge. A `CloudObscured` venue is geometrically `Sunny`/`Partial` underneath — but that geometric tier is NOT recoverable from `currentSunStatus` alone once gated. Rank `CloudObscured` by its **geometric `sunExposurePercent`** (the honest solläge signal that survives the gate — a 95%-solläge obscured venue should still out-rank a 40%-solläge partial one in "Mest sol") rather than `default: return 0` (which sinks every obscured venue below every Partial). Document the chosen rank formula in a code comment. Keep the clear-sky ordering (Sunny > Partial > Shaded) unchanged for non-obscured venues, and keep the secondary distance tiebreak. Add/extend the `VenueList.test.tsx` sort test to prove a high-solläge obscured venue ranks above a low-solläge partial one under "Mest sol".
-  - [ ] `isVenueSunnyForList` (`:159-161`) currently gates the amber vs grey thumbnail/icon via `isSunny`. Decide its behaviour for obscured: an obscured venue is NOT amber-sunny (so `isSunny=false` for the amber-chrome decision is correct), but the card still needs the muted-vs-grey distinction from the new obscured prop. Keep `isVenueSunnyForList` returning false for obscured (no amber), and drive the muted treatment off the separate obscured signal.
+- [x] **Task 3 — Venue card: muted obscured state + fix the `isSunny`-derived label (`VenueCard` + `VenueList`) (AC1, AC2, AC4)**
+  - [x] Threaded a NEW `isObscured?: boolean` prop into `VenueCard` (did NOT overload `isSunny`). Muted status label (`text-obscured-text`, Cloud icon), muted thumbnail badge (`bg-pin-obscured` white icon), muted position chip on the non-compact card. No amber FULL SOL/DELVIS SOL/Sun icon while obscured.
+  - [x] Added `statusObscured` + `obscuredPosition` to `VenueCardLabels`, passed from `VenueList` via `venue.list.*`. Geometric % reframed as "{percent} solläge · sol här när det klarnar" (AC2).
+  - [x] Fixed `getVenueSunRankForList` — CloudObscured ranks by `(sunExposurePercent/100)*2` into the Sunny(2)/Partial(1)/Shaded(0) space (95%-obscured → 1.9 out-ranks Partial; low-solläge sinks). Non-obscured ordering byte-identical; distance tiebreak kept. Sort tests prove RELATIVE ordering both ways.
+  - [x] `isVenueSunnyForList` returns false for obscured (no amber) — muted treatment driven off the separate `isObscured` signal.
 
-- [ ] **Task 4 — Quick-info & detail: muted headline + preserved geometric layer + `skyCondition` copy (AC1, AC2, AC3, AC4)**
-  - [ ] `VenueQuickInfo` does NOT currently receive `currentSunStatus` OR `skyCondition` (MapView passes only name/sunTimeRange/percent/etc at `MapView.tsx:1064-1089` mobile + `:1091-1118` desktop). **Thread both** `currentSunStatus` and `skyCondition` from `selectedQuickInfoVenue` into both `VenueQuickInfo` call sites, and render: (a) the muted obscured headline chrome when `currentSunStatus === 'CloudObscured'` (mute the amber `% SOL` badge in `VenueThumbnail` `:378-394` — no amber sun badge while obscured, AC1); (b) the geometric solläge %/sun-window still visible + labelled as position-not-weather (AC2); (c) the plain-language `skyCondition` copy (AC3).
-  - [ ] `VenueDetailContent` receives the full `VenueDataDto`/`VenueDetailDto` (`venue.currentSunStatus`, `venue.skyCondition` already available — no new prop threading needed). Replace the always-amber `HeroImage` sun badge (`:355-363`) + the always-amber `Sun` section icon (`:189`) with the muted treatment when `venue.currentSunStatus === 'CloudObscured'`. The `SunTimeline`/`SunForecastBars` (`:198-211`) KEEP rendering as clear-sky potential (AC2) — do NOT mute or hide the timeline; it IS the "when it clears" signal. Surface `skyCondition` plain-language copy on the detail surface (AC3).
-  - [ ] **`skyCondition` → plain-language copy (AC3, Story 3.0.6):** `venue.skyCondition` is a string `'clear' | 'partly-cloudy' | 'overcast' | 'unavailable'`. Map it to user-facing copy with NO meteorology internals (no cloud %, no `cloud_area_fraction`, no geodata). Add a `sky.*` (or `detail.sky.*` / `quickInfo.sky.*`) key group to BOTH `messages/sv/venue.json` and `messages/en/venue.json`, parity-guarded. Suggested sv: `clear` → "Klart", `partly-cloudy` → "Delvis molnigt", `overcast` → "Mulet", `unavailable` → (omit / "Väder saknas"). Do NOT render a sky line for `'unavailable'` (10.1's honest "we don't know" — never fabricate). The headline obscured phrase "Sol bakom moln" / "Sun behind clouds" is a SEPARATE key from the skyCondition descriptor.
-  - [ ] **Accessible name — exactly once (AC4, Epic 9 lesson):** wherever you add the obscured phrase to a surface's accessible name, ensure it appears EXACTLY once (no duplicated/orphaned phrase — the Epic 9 de-dup discipline). The card's activation `aria-label` is built in `VenueList.tsx` via `t('cardAria', …)`; if you fold the obscured state into it, do it in ONE place, not both the label and an sr-only repeat.
+- [x] **Task 4 — Quick-info & detail: muted headline + preserved geometric layer + `skyCondition` copy (AC1, AC2, AC3, AC4)**
+  - [x] `VenueQuickInfo`: added `currentSunStatus` + `skyCondition` props, threaded from `selectedQuickInfoVenue` at BOTH MapView call sites. Muted the amber `% SOL` photo-strip badge → `bg-pin-obscured` + Cloud icon; muted the amber sun-time-range; added the "Sol bakom moln" headline + plain-language sky line (`data-testid="quick-info-obscured"`).
+  - [x] `VenueDetailContent`: muted the always-amber HeroImage sun badge (→ `bg-pin-obscured`, "% solläge") + the section Sun icon (→ Cloud), added the obscured hero headline + sky line (`data-testid="venue-detail-obscured"`). SunTimeline/SunForecastBars UNCHANGED (clear-sky potential, AC2). Fixed `timelineFromListVenue` to map a CloudObscured headline back to the geometric `Partial` window so the fallback timeline potential still renders (AC2).
+  - [x] `skyCondition`→copy via `skyConditionCopy` (Story 3.0.6, no meteorology internals). Added `sky.*` groups + obscured phrase to `quickInfo.*`/`detail.*` in BOTH locales (parity-guarded). `'unavailable'`/absent → NO sky line (never fabricate) — unit + component tested.
+  - [x] Accessible name — exactly once: the obscured card uses a dedicated `cardAriaObscured` built in ONE place in `VenueList`; the pin uses the single `pinObscuredAria`. Tests assert the phrase appears exactly once.
 
-- [ ] **Task 5 — Deterministic obscured force-state for the visual/axe/e2e gates (AC1, AC4 — test determinism)**
-  - [ ] **CRITICAL determinism gap:** NO fixture venue has `currentSunStatus: 'CloudObscured'` (all 7 `VENUE_FIXTURE` venues are Sunny/Partial/Shaded; `venues-fixture.ts:45-185`), and CI runs the fixture path (flag OFF) — so the obscured state cannot be reached deterministically today. The `?_state=map-primary|map-panel-venues|map-with-selected-venue` forced-visual path NORMALIZES every venue to `Sunny` (`normalizeForcedVisualVenue`/`normalizeForcedVisualPin`, `MapView.tsx:1225-1248`). You MUST add a deterministic obscured path so the visual-validation gate + axe gate + any component/e2e test can force the obscured surface WITHOUT live Met.no weather (retro-note R-005: no deterministic weather-boundary mock exists — 10.5's e2e matrix is sky-flaky until one lands, so 10.2 owns forcing its OWN obscured surface). Prefer ONE of: (a) a new `_state` screen-id (e.g. `map-with-obscured-venue` and/or `venue-detail-obscured`) whose normalizer sets the selected venue to `currentSunStatus: 'CloudObscured'` + `skyCondition: 'overcast'` (mirror `normalizeForcedVisualVenue`); OR (b) a dedicated obscured fixture venue. If you add a `_state` id, register it in `project-context.md` §"Screen ID → Route Map" and follow `docs/dev/state-forcing.md` (production-DCE-safe; `useForcedState()` already gates NODE_ENV==='production' → null). Keep the seeded slug convention (`test-venue-sunny`).
-  - [ ] Extend `test/e2e/axe.spec.ts` (and `axe-mobile.spec.ts` for the mobile viewport) with a scan of the forced obscured surface (pin + quick-info + detail) so the AA-contrast requirement (AC4) is a CI gate, not a manual claim. The axe gate is currently green at HEAD (Epic 9 landed the CI axe gate active — auto-memory: only the Story-5.1 `test.fixme` about/privacy footer debt remains); do NOT let the muted palette reintroduce a contrast violation.
-  - [ ] Do NOT add live Met.no calls or real-network weather to any test (Met.no TOS + determinism). Construct the obscured state via the forced-state normalizer or a fixture, never a live fetch.
+- [x] **Task 5 — Deterministic obscured force-state for the visual/axe/e2e gates (AC1, AC4 — test determinism)**
+  - [x] Added TWO dev-only `_state` screen-ids: `map-with-obscured-venue` (MapView `normalizeForcedObscuredPin`/`normalizeForcedObscuredVenue` — pins + quick-info normalized to CloudObscured + overcast, geometric layer preserved) + `venue-detail-obscured` (`forced-venue-detail.ts`). Both gated by the existing `useForcedState()` prod-DCE hook; seeded `test-venue-sunny` slug. Registered in `project-context.md` §"Screen ID → Route Map".
+  - [x] Extended `test/e2e/axe.spec.ts` with active desktop obscured scans (quick-info + detail) — BOTH PASS (muted palette is AA). `axe-mobile.spec.ts` obscured scans added as `test.fixme` (they inherit the SAME pre-existing venue-card amber-label contrast debt as every mobile card scan; the obscured chrome itself is AA and gated active on desktop).
+  - [x] No live Met.no / real-network weather in any test — obscured state constructed solely via forced-state normalizers.
 
-- [ ] **Task 6 — Component tests across all four visual states + verify gates (AC1, AC2, AC4)**
-  - [ ] Add component tests (Vitest + Testing Library, mirror `test/components/VenueCard.test.tsx` / `VenuePin.test.tsx` / `VenueQuickInfo.test.tsx` / `VenueDetailContent.test.tsx` / `VenueList.test.tsx` conventions) proving each surface renders all FOUR states distinctly: Sunny / Partial / Shaded / Obscured (AC4 "across all four visual states"). Assert the obscured state: (i) shows NO "FULL SOL"/"DELVIS SOL"/amber-sun-badge (AC1); (ii) still shows the geometric solläge %/window labelled as position (AC2); (iii) renders the plain-language skyCondition copy on quick-info/detail (AC3); (iv) puts the obscured phrase in the accessible name exactly once (AC4).
-  - [ ] Add the `VenueList` sort test from Task 3 (high-solläge obscured out-ranks low-solläge partial under "Mest sol").
-  - [ ] Add a `skyCondition`→copy mapping test incl. the `'unavailable'`-renders-nothing branch (AC3, no fabricated sky).
-  - [ ] Run the standard gate from `nextjs-app/` (AGENTS.md): `npx tsc --noEmit` (0 errors), `npx eslint .` (0 errors), `npx vitest run` (all green), and the Playwright axe project for the new obscured scan. Capture the fresh HEAD vitest baseline BEFORE editing (Story 10.1 finished at **112 files / 993 tests**, 0 skipped — measure it fresh, count expected to INCREASE, none dropped).
-  - [ ] Confirm the **clear-sky path is visually unchanged** (Design Gate "Behaviour": clear-sky venues unchanged) — the existing map-primary / venue-detail / quick-info visual gates and their component tests must stay green for Sunny/Partial/Shaded venues.
+- [x] **Task 6 — Component tests across all four visual states + verify gates (AC1, AC2, AC4)**
+  - [x] Added component tests across surfaces asserting the obscured state: no FULL SOL/DELVIS SOL/amber badge (AC1); geometric %/window preserved as position (AC2); plain-language skyCondition copy (AC3); obscured phrase in the accessible name exactly once (AC4). All four states (Sunny/Partial/Shaded/Obscured) proven distinct on the card + pin.
+  - [x] Added the VenueList sort tests (high-solläge obscured > low-solläge partial; low-solläge obscured < partial).
+  - [x] Added the `skyConditionCopy` mapping test incl. `'unavailable'`/`undefined`/`'rain'`/unknown → null.
+  - [x] Gate: `npx tsc --noEmit` 0 errors; `npx eslint .` 0 errors (13 pre-existing warnings, none new); `npx vitest run` **113 files / 1013 tests, 0 skipped** (fresh HEAD baseline was 112/993 → +1 file, +20 tests, none dropped); Playwright `a11y` obscured scans PASS.
+  - [x] Clear-sky path visually unchanged — all 6 existing clear-sky axe scans PASS; clear-sky component tests green; added explicit "sunny unchanged" behaviour tests to VenueDetailContent + VenueQuickInfo.
 
 ## Dev Notes
 
@@ -185,10 +185,74 @@ Client components must NEVER import `lib/weather` / `lib/solar` / `lib/services/
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Opus 4.8 (claude-opus-4-8[1m])
 
 ### Debug Log References
 
+- Fresh HEAD vitest baseline BEFORE editing: **112 files / 993 tests, 0 skipped, all green** (matches Story 10.1 completion record).
+- Final vitest: **113 files / 1013 tests, 0 skipped, all green** (+1 file, +20 tests, none dropped).
+- `npx tsc --noEmit` → 0 errors. `npx eslint .` → 0 errors (13 pre-existing warnings, none introduced).
+- Playwright `a11y` (desktop) obscured scans PASS: `map obscured venue QuickInfo` + `obscured venue detail`. All 6 pre-existing clear-sky axe scans still PASS (regression clean).
+- Transient note: the compute-heavy `test/unit/services/sun-engine.test.ts` intermittently 5s-timed-out only when the post-edit hook ran the FULL suite concurrently with active editing; it passes cleanly in isolation (29/29) and in the single-threaded full run. `sun-engine.ts` is untouched by this UI-only story.
+
 ### Completion Notes List
 
+**What shipped (the muted two-signal fourth visual state):**
+- New design tokens `--color-pin-obscured: #5e6a7a` (fill, white text 5.50:1 AA) + `--color-obscured-text: #41505f` (label, 7.3–8.3:1 AA) — a slate blue-grey cloud family distinct from amber sun and shaded grey. Contrast verified numerically before use and gated live by the desktop axe scans.
+- `SunStatus` UI-token union extended with `'obscured'`; shared `lib/utils/sun-status-presentation.ts` mapper uses a `never`-exhaustive switch (epic-10 convention).
+- Obscured muted presentation on ALL six surfaces: map pin (`ObscuredPill`), pin aria (`pinObscuredAria`), venue card (label + badge + position chip), list ranking, quick-info (badge + headline + sky), and venue detail (hero badge + headline + sky). No amber FULL SOL / sun badge anywhere while gated.
+- `getVenueSunRankForList` fixed (the 10.1 hand-off): CloudObscured ranks by `(sunExposurePercent/100)*2`, so "Mest sol" still ranks by geometric solläge under overcast. Non-obscured ordering is byte-identical.
+- `skyCondition` surfaced as plain-language copy on quick-info + detail (`clear`/`partly-cloudy`/`overcast`); `'unavailable'`/absent renders NO sky line (never fabricate). AC3 is a pure client render + i18n — engine/route/store untouched.
+- Two deterministic dev-only force-states (`map-with-obscured-venue`, `venue-detail-obscured`) close the R-005 weather-mock determinism gap WITHOUT live Met.no; registered in `project-context.md`.
+
+**Decisions / deviations:**
+1. **Deferred 3.4 (`?? 'MEST SKUGGA'` etc. hardcoded fallbacks) NOT closed** — the story offered making the status labels REQUIRED as a side-effect. Doing so would force churning ~10 existing VenueCard/VenueList test cases that omit those labels, for no functional gain (the fallbacks are non-violating: `VenueList` always passes the labels, now including the obscured ones). Left the `??` fallbacks in place with the obscured label added; 3.4 stays as-is (not made worse). SM may keep the 3.4 deferred entry.
+2. **Confidence chip suppressed on obscured cards** — the amber `text-amber-text` confidence chip is hidden for obscured venues to avoid amber chrome under the gate (AC1). The `·` separator logic was checked for no orphaned middot. Confidence is still available via the accessible name on non-obscured cards.
+3. **`timelineFromListVenue` maps a CloudObscured headline → `Partial` window** so the fallback (pre-detail-load) sun-window potential still renders as "when it clears" rather than a transparent shaded bar (AC2 completeness for the list-fallback timeline path). The real detail timeline (engine geometric windows) is unaffected.
+4. **Mobile obscured axe scans are `test.fixme`** — they render the mobile venue-card-bearing shell underneath, inheriting the SAME pre-existing amber-label contrast debt (Story 5.1) that fixmes every mobile card scan. The obscured chrome itself is AA and gated active on the DESKTOP obscured scans (no venue cards there).
+
+**Maintainer follow-ups (do NOT self-bless):**
+- **Visual-validation reference PNGs for the obscured state must be rebaselined by a maintainer.** There is NO reference PNG for `map-with-obscured-venue` or `venue-detail-obscured` today, and the dev is explicitly forbidden from creating/editing reference PNGs to force a pass (Design-Gate honesty callout + retro 9-2 host `/tmp` bug). The muted state was made unambiguous in HUE (slate vs amber vs grey), per the callout, and its AA contrast is gated by the live desktop axe scans. Confirmed no obscured reference PNG exists.
+- When the venue-card amber-label contrast debt (Story 5.1) lands, flip the two `test.fixme` mobile obscured axe scans in `axe-mobile.spec.ts` back to `test`.
+
+**Breaking changes:** none. All new props are optional (`isObscured?`, `currentSunStatus?`, `skyCondition?`, new optional label keys); new i18n keys added alongside existing ones (no renames/removals); two new dev-only `_state` ids are additive. No public interface/config/schema/CLI/migration change.
+
 ### File List
+
+**Source (12):**
+- `nextjs-app/app/globals.css` — added `--color-pin-obscured` + `--color-obscured-text` tokens.
+- `nextjs-app/lib/types/design-tokens.ts` — added `'obscured'` to `SunStatus`.
+- `nextjs-app/lib/types/map.ts` — added `'obscured'` to `VenuePinSelection`.
+- `nextjs-app/lib/utils/sun-status-presentation.ts` — NEW: `toSunStatusToken` (never-exhaustive), `isObscuredSunStatus`, `skyConditionCopy`.
+- `nextjs-app/components/custom/map/VenuePin.tsx` — obscured branch + `ObscuredPill`.
+- `nextjs-app/components/custom/map/VenuePinLayer.tsx` — `pinObscuredAria` branch.
+- `nextjs-app/components/composed/venue/VenueCard.tsx` — `isObscured` prop + muted label/badge/position chip.
+- `nextjs-app/components/custom/venue/VenueList.tsx` — `getVenueSunRankForList` obscured ranking, `isVenueSunnyForList`, obscured card wiring + `cardAriaObscured`.
+- `nextjs-app/components/composed/venue/VenueQuickInfo.tsx` — `currentSunStatus`/`skyCondition` props, muted badge/headline/sky line.
+- `nextjs-app/components/composed/venue/VenueDetailContent.tsx` — muted hero badge/headline/section icon + sky line + `timelineFromListVenue` obscured→Partial mapping.
+- `nextjs-app/components/custom/map/MapView.tsx` — quick-info prop threading (both call sites), obscured labels in `quickInfoLabels`/`venueDetailLabels`, `map-with-obscured-venue` force-state + `normalizeForcedObscured*`.
+- `nextjs-app/components/custom/venue/forced-venue-detail.ts` — `venue-detail-obscured` force-state.
+
+**i18n (4):**
+- `nextjs-app/messages/sv/map.json`, `nextjs-app/messages/en/map.json` — `pinObscuredAria`.
+- `nextjs-app/messages/sv/venue.json`, `nextjs-app/messages/en/venue.json` — `list.statusObscured`/`obscuredPosition`/`cardAriaObscured`; `quickInfo.obscuredHeadline`/`sky.*`; `detail.obscuredHeadline`/`obscuredBadge`/`sky.*`.
+
+**Docs (2):**
+- `nextjs-app/docs/design/DESIGN.md` — obscured token table rows.
+- `project-context.md` — `map-with-obscured-venue` + `venue-detail-obscured` Screen ID rows.
+
+**Tests (8):**
+- `nextjs-app/test/unit/sun-status-presentation.test.ts` — NEW: mapper + skyCondition tests.
+- `nextjs-app/test/components/VenuePin.test.tsx` — obscured pill + single-state.
+- `nextjs-app/test/components/VenuePinLayer.test.tsx` — obscured aria (exactly once).
+- `nextjs-app/test/components/VenueCard.test.tsx` — four states distinct + position reframe.
+- `nextjs-app/test/components/VenueList.test.tsx` — obscured sort ranking (both ways) + muted label.
+- `nextjs-app/test/components/VenueQuickInfo.test.tsx` — obscured headline/sky + unavailable + sunny-unchanged.
+- `nextjs-app/test/components/VenueDetailContent.test.tsx` — obscured hero/sky + unavailable + sunny-unchanged.
+- `nextjs-app/test/e2e/axe.spec.ts`, `nextjs-app/test/e2e/axe-mobile.spec.ts` — obscured surface axe scans (desktop active, mobile fixme).
+
+### Change Log
+
+| Date | Change |
+|---|---|
+| 2026-07-03 | Story 10.2 implemented — "Sun Behind Clouds" muted two-signal fourth visual state across all six render surfaces (pin/card/list/quick-info/detail), `getVenueSunRankForList` obscured-solläge ranking fix (the 10.1 hand-off), `skyCondition` plain-language copy, two deterministic obscured force-states, obscured axe/component/unit tests. tsc/eslint/vitest all green; desktop obscured axe scans PASS. Status → review. |

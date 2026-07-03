@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Heart, Sun, X } from 'lucide-react';
+import { Cloud, Heart, Sun, X } from 'lucide-react';
 import { RouteButton } from '@/components/composed/routing/RouteButton';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -15,7 +15,11 @@ import {
   getConfidenceDisplayState,
   type ConfidenceDisplayLabels,
 } from '@/lib/utils/confidence-display';
-import type { SunFreshnessMeta } from '@/lib/types/api';
+import {
+  isObscuredSunStatus,
+  skyConditionCopy,
+} from '@/lib/utils/sun-status-presentation';
+import type { SunFreshnessMeta, VenueSunStatus } from '@/lib/types/api';
 import { cn } from '@/lib/utils';
 
 export type VenueQuickInfoMode = 'mobile' | 'desktop';
@@ -28,6 +32,14 @@ export type VenueQuickInfoProps = {
   confidencePercent?: number;
   confidenceMeta?: SunFreshnessMeta;
   sunExposurePercent?: number;
+  /** Story 10.2 (AC1): the venue's weather-gated headline state. When
+   * `'CloudObscured'` the card mutes the amber "% SOL" badge + headline into
+   * the "Sol bakom moln" treatment while keeping the geometric layer (AC2). */
+  currentSunStatus?: VenueSunStatus;
+  /** Story 10.2 (AC3): serialized DTO sky field (`'clear' | 'partly-cloudy' |
+   * 'overcast' | 'unavailable'`) — surfaced as plain-language copy. Absent /
+   * 'unavailable' renders no sky line (never fabricate). */
+  skyCondition?: string;
   distanceMeters?: number;
   /** Story 9.5 AC3 (folded into 9.9): the distance is centrum-relative
    * (Gothenburg fallback), not a real personal fix — annotate it honestly.
@@ -65,6 +77,16 @@ export type VenueQuickInfoProps = {
     routeLoading: string;
     favouriteAdd: string;
     favouriteRemove: string;
+    /** Story 10.2 (AC1): the muted "Sol bakom moln" headline shown when the
+     * venue is CloudObscured. */
+    obscuredHeadline?: string;
+    /** Story 10.2 (AC3): plain-language sky descriptors. When absent, no sky
+     * line renders. */
+    sky?: {
+      clear: string;
+      partlyCloudy: string;
+      overcast: string;
+    };
   };
 };
 
@@ -78,6 +100,8 @@ export function VenueQuickInfo({
   confidencePercent,
   confidenceMeta,
   sunExposurePercent,
+  currentSunStatus,
+  skyCondition,
   distanceMeters,
   distanceIsApproximate = false,
   thumbnail,
@@ -108,6 +132,11 @@ export function VenueQuickInfo({
     distanceIsApproximate && labels.distanceApproximate && Number.isFinite(distanceMeters)
       ? labels.distanceApproximate
       : null;
+  // Story 10.2: the muted "Sol bakom moln" state + the plain-language sky line.
+  const isObscured = isObscuredSunStatus(currentSunStatus);
+  const skyLine = labels.sky
+    ? skyConditionCopy(skyCondition, labels.sky)
+    : null;
   const positionedStyle = position
     ? {
         left: position.x,
@@ -163,6 +192,7 @@ export function VenueQuickInfo({
           label={labels.photoPlaceholder}
           thumbnail={thumbnail}
           sunExposurePercent={sunExposurePercent}
+          isObscured={isObscured}
           compact={isAnchoredMobile}
           forcePlaceholder={isAnchoredMobile}
           isFavourite={isFavourite}
@@ -193,6 +223,33 @@ export function VenueQuickInfo({
               >
                 {name}
               </button>
+              {/* Story 10.2 (AC1/AC3): the muted "Sol bakom moln" headline + the
+                  plain-language sky line, shown ABOVE the preserved geometric
+                  layer. Rendered only for the obscured state so clear-sky cards
+                  are byte-identical. `skyLine` is null when the DTO sky is
+                  unavailable → no sky line (never fabricate). */}
+              {isObscured && !isLoadingSunData && (
+                <div
+                  data-testid="quick-info-obscured"
+                  className={cn(
+                    'mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-obscured-text',
+                    isAnchoredMobile
+                      ? 'justify-center text-center text-label-xs-medium'
+                      : 'text-label-md',
+                  )}
+                >
+                  <Cloud aria-hidden="true" className="size-3.5 shrink-0" />
+                  <span className="font-bold">
+                    {labels.obscuredHeadline ?? 'Sol bakom moln'}
+                  </span>
+                  {skyLine && (
+                    <>
+                      <span aria-hidden="true" className="text-obscured-text/50">·</span>
+                      <span>{skyLine}</span>
+                    </>
+                  )}
+                </div>
+              )}
               <div className={cn('mt-1', isAnchoredMobile ? 'min-h-5' : 'min-h-12')}>
                 {isLoadingSunData ? (
                   <div aria-label={labels.loadingSun} className="space-y-2">
@@ -207,8 +264,11 @@ export function VenueQuickInfo({
                         : 'space-y-1'
                     }
                   >
-                    <p className={isAnchoredMobile ? 'contents' : 'text-label-lg text-amber-dark'}>
-                      <span className="text-amber-dark">
+                    <p className={cn(isAnchoredMobile ? 'contents' : 'text-label-lg', !isAnchoredMobile && (isObscured ? 'text-obscured-text' : 'text-amber-dark'))}>
+                      {/* AC2: the sun window is the "when it clears" potential —
+                          kept visible, but muted (obscured-text, not amber) so it
+                          reads as position/potential, not "sunny now". */}
+                      <span className={isObscured ? 'text-obscured-text' : 'text-amber-dark'}>
                         {sunTimeRange ?? labels.sunUnavailable}
                       </span>
                     </p>
@@ -300,6 +360,7 @@ function VenueThumbnail({
   label,
   thumbnail,
   sunExposurePercent,
+  isObscured = false,
   compact = false,
   forcePlaceholder = false,
   isFavourite = false,
@@ -309,6 +370,7 @@ function VenueThumbnail({
   label: string;
   thumbnail?: { alt: string; initials: string; url?: string };
   sunExposurePercent?: number;
+  isObscured?: boolean;
   compact?: boolean;
   forcePlaceholder?: boolean;
   isFavourite?: boolean;
@@ -378,7 +440,13 @@ function VenueThumbnail({
       {sunExposureText && (
         <div
           className={cn(
-            'absolute rounded-badge bg-amber-gold/90 backdrop-blur-standard text-amber-cta-text shadow-subtle flex items-center',
+            'absolute rounded-badge backdrop-blur-standard shadow-subtle flex items-center',
+            // Story 10.2 (AC1): no amber sun badge while obscured — a muted
+            // slate pill (white text, `bg-pin-obscured` 5.50:1 AA) with a Cloud
+            // icon. The geometric % stays (AC2, position not weather).
+            isObscured
+              ? 'bg-pin-obscured text-white'
+              : 'bg-amber-gold/90 text-amber-cta-text',
             // Story 9.9: on the 72px compact (anchored-mobile) strip, match the
             // reference's small top-left "% Sol" pill (top:8 left:8, tight
             // padding) so it never jams against the favourite heart or the
@@ -388,7 +456,11 @@ function VenueThumbnail({
               : 'left-3 top-3 gap-1.5 px-3 py-1.5 text-display-sm',
           )}
         >
-          <Sun aria-hidden="true" className={compact ? 'size-3' : 'size-4'} />
+          {isObscured ? (
+            <Cloud aria-hidden="true" className={compact ? 'size-3' : 'size-4'} />
+          ) : (
+            <Sun aria-hidden="true" className={compact ? 'size-3' : 'size-4'} />
+          )}
           {sunExposureText} SOL
         </div>
       )}

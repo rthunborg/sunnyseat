@@ -52,6 +52,8 @@ Last audited: 2026-04-06
 | `color-tab-active` | `#b45309` | Active bottom-nav tab label (AA-passing on `surface-cream`; bumped from `#d97706` in Story 1.6 Task 5) |
 | `color-tab-inactive` | `#57534e` | Inactive bottom-nav tab label (AA-passing on `surface-cream`; bumped from `#a8a29e` in Story 1.6 Task 5) |
 | `color-pin-shaded` | `#e4e1e5` | Shaded/low-sun venue pin background |
+| `color-pin-obscured` | `#5e6a7a` | "Sol bakom moln" obscured venue pin/badge fill (Story 10.2) — the muted FOURTH sun state (geometrically sunny but weather-gated). Slate blue-grey, distinct from amber sun and `color-pin-shaded` grey. White text on it = 5.50:1 (AA). |
+| `color-obscured-text` | `#41505f` | Obscured-state label/body text ("Sol bakom moln", muted status labels). AA on white/cream/sand (8.28:1 / 7.94:1 / 7.29:1). |
 | `color-drag-handle` | `#d6d3d1` | Venue detail drag handle pill |
 | `color-drag-handle-map` | `#d0c5af` | Map bottom sheet drag handle (rendered at 40% opacity) |
 | `color-divider` | `#e7e5e4` | Vertical/horizontal dividers |

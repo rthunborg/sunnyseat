@@ -48,6 +48,17 @@
   --color-tab-active: #b45309;
   --color-tab-inactive: #57534e;
   --color-pin-shaded: #e4e1e5;
+  /* ---- Obscured / "Sol bakom moln" (Story 10.2) ----
+     The muted FOURTH sun state: geometrically sunny but weather-gated
+     (VenueSunStatus 'CloudObscured'). A desaturated slate blue-grey cloud
+     family — deliberately distinct from BOTH the warm amber sun palette
+     (`--color-amber-pin` #f1b100) AND the neutral `--color-pin-shaded`
+     (#e4e1e5) grey, so "cloudy now" reads at a glance in HUE, not spacing.
+     `--color-pin-obscured` is a fill: white text on it measures 5.50:1
+     (WCAG AA). `--color-obscured-text` is the readable body/badge label:
+     8.28:1 on white, 7.94:1 on cream, 7.29:1 on surface-sand — all AA. */
+  --color-pin-obscured: #5e6a7a;
+  --color-obscured-text: #41505f;
   --color-drag-handle: #d6d3d1;
   --color-drag-handle-map: #d0c5af;
   --color-divider: #e7e5e4;

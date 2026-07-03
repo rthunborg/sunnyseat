@@ -37,6 +37,14 @@ export type VenueCardLabels = {
   statusMostlyShade?: string;
   statusFullSun?: string;
   statusPartialSun?: string;
+  /** Story 10.2: the muted "Sol bakom moln" headline shown when the venue's
+   * weather-gated state is CloudObscured. Replaces the amber FULL SOL / grey
+   * MEST SKUGGA labels for that state. */
+  statusObscured?: string;
+  /** Story 10.2 (AC2): reframes the geometric % as position-not-weather on an
+   * obscured card, e.g. "{percent} solläge · sol här när det klarnar". The
+   * `{percent}` placeholder is substituted with the formatted solläge value. */
+  obscuredPosition?: string;
 };
 
 export type VenueCardProps = {
@@ -56,6 +64,12 @@ export type VenueCardProps = {
     url?: string;
   };
   isSunny: boolean;
+  /** Story 10.2 (AC1): the weather-gated "Sol bakom moln" state. Rendered as
+   * a muted slate treatment DISTINCT from both the amber sunny path (`isSunny`)
+   * and the grey shaded path. `isSunny` is NOT overloaded — an obscured venue
+   * is neither amber-sunny nor plain-shaded, so it arrives with `isSunny=false`
+   * (no amber chrome) AND `isObscured=true` (muted, not grey-shaded). */
+  isObscured?: boolean;
   visualMetadata?: VenueVisualMetadata;
   labels: VenueCardLabels;
   onSelect: () => void;
@@ -80,6 +94,7 @@ export function VenueCard({
   sunExposurePercent,
   thumbnail,
   isSunny,
+  isObscured = false,
   visualMetadata,
   labels,
   onSelect,
@@ -101,12 +116,25 @@ export function VenueCard({
   // carries name + sun% + Säkerhet (once) + Avstånd, so we no longer append the
   // prediction-uncertainty paragraph to it.
   const selectLabel = labels.select;
-  const statusLabel = !isSunny
-    ? (labels.statusMostlyShade ?? 'MEST SKUGGA')
-    : (sunExposurePercent ?? 0) >= 75
-      ? (labels.statusFullSun ?? 'FULL SOL')
-      : (labels.statusPartialSun ?? 'DELVIS SOL');
+  // Story 10.2 (AC1): the obscured state OVERRIDES both the amber "FULL SOL"/
+  // "DELVIS SOL" path AND the grey "MEST SKUGGA" path with the muted "Sol
+  // bakom moln" headline. An obscured venue never shows amber sun copy.
+  const statusLabel = isObscured
+    ? (labels.statusObscured ?? 'SOL BAKOM MOLN')
+    : !isSunny
+      ? (labels.statusMostlyShade ?? 'MEST SKUGGA')
+      : (sunExposurePercent ?? 0) >= 75
+        ? (labels.statusFullSun ?? 'FULL SOL')
+        : (labels.statusPartialSun ?? 'DELVIS SOL');
   const sunUnitLabel = labels.sun.toLocaleLowerCase();
+  // Story 10.2 (AC2): on an obscured card the geometric % is reframed as
+  // position-not-weather ("{percent} solläge · sol här när det klarnar") — the
+  // value/meaning is unchanged, only the label reframes it. Falls back to the
+  // plain "{percent} sol" chip when no obscured-position copy is provided.
+  const obscuredPositionLabel =
+    isObscured && labels.obscuredPosition
+      ? formatLabel(labels.obscuredPosition, { percent: sunPercent })
+      : null;
   // Story 9.5 AC3: honest centrum-relative annotation. Shown only on the
   // Gothenburg-centrum fallback; the real distance number stays visible —
   // only the label is qualified ("≈ från centrum").
@@ -148,6 +176,7 @@ export function VenueCard({
         fallbackLabel={labels.photoPlaceholder}
         sunExposurePercent={sunExposurePercent}
         isSunny={isSunny}
+        isObscured={isObscured}
         compact={compact}
       />
       <span className="min-w-0 flex-1">
@@ -166,7 +195,12 @@ export function VenueCard({
                 <span className="ml-1 text-label-xs text-text-body">{approximateLabel}</span>
               )}
             </span>
-            <span className="mt-1 flex items-center gap-1 text-label-xs text-amber-dark">
+            <span
+              className={cn(
+                'mt-1 flex items-center gap-1 text-label-xs',
+                isObscured ? 'text-obscured-text' : 'text-amber-dark',
+              )}
+            >
               {isSunny ? (
                 <Sun aria-hidden="true" className="size-3 shrink-0 fill-current" />
               ) : (
@@ -191,8 +225,17 @@ export function VenueCard({
                 </>
               )}
               <span className="text-text-faint">·</span>
-              <span className="font-extrabold text-amber-dark">{sunPercent} {sunUnitLabel}</span>
-              {confidenceDisplay.visibleText && showVisibleConfidence && (
+              {isObscured ? (
+                // AC1/AC2: no amber sun chip while obscured — muted slate, and
+                // the geometric % reframed as position-not-weather.
+                <span className="flex items-center gap-1 font-bold text-obscured-text">
+                  <Cloud aria-hidden="true" className="size-3 shrink-0 fill-current" />
+                  <span>{obscuredPositionLabel ?? `${sunPercent} ${sunUnitLabel}`}</span>
+                </span>
+              ) : (
+                <span className="font-extrabold text-amber-dark">{sunPercent} {sunUnitLabel}</span>
+              )}
+              {!isObscured && confidenceDisplay.visibleText && showVisibleConfidence && (
                 <>
                   <span className="text-text-faint">·</span>
                   <span
@@ -290,12 +333,14 @@ function VenueCardThumbnail({
   fallbackLabel,
   sunExposurePercent,
   isSunny,
+  isObscured = false,
   compact,
 }: {
   thumbnail?: VenueCardProps['thumbnail'];
   fallbackLabel: string;
   sunExposurePercent?: number;
   isSunny: boolean;
+  isObscured?: boolean;
   compact: boolean;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
@@ -357,7 +402,14 @@ function VenueCardThumbnail({
         <span
           className={cn(
             'absolute bottom-1 left-1 flex size-6 items-center justify-center rounded-badge border-2 border-surface-cream shadow-subtle',
-            isSunny ? 'bg-amber-primary text-amber-cta-text' : 'bg-pin-shaded text-text-body',
+            // Story 10.2 (AC1): three distinct badge treatments — amber sunny,
+            // muted-slate obscured (white icon on `bg-pin-obscured`, 5.50:1 AA),
+            // grey shaded. Obscured is never the amber sun badge.
+            isSunny
+              ? 'bg-amber-primary text-amber-cta-text'
+              : isObscured
+                ? 'bg-pin-obscured text-white'
+                : 'bg-pin-shaded text-text-body',
           )}
         >
           {isSunny ? (

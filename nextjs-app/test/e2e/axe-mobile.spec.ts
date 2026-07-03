@@ -66,6 +66,33 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
+  // Story 10.2 (Task 5, AC4) — the muted "Sol bakom moln" obscured surface at
+  // the mobile viewport. These scans render the mobile venue-card-bearing map
+  // shell (bottom-sheet list) UNDERNEATH the forced obscured surface, so they
+  // inherit the SAME PRE-EXISTING venue-card amber-label contrast debt
+  // (`text-amber-text` ~1.63:1, Story 5.1) that fixmes every mobile card scan
+  // above — NOT the new obscured chrome. The obscured slate palette itself is
+  // AA (5.50:1 fill / 8.28:1 text) and is gated active on the DESKTOP obscured
+  // scans in axe.spec.ts (no venue cards there). Flip these back to `test` once
+  // the venue-card contrast meets 4.5:1 (Story 5.1).
+  test.fixme('a11y: mobile obscured quick-info (/?_state=map-with-obscured-venue)', async ({ page }) => {
+    await bypassOnboarding(page);
+    await page.goto('/?_state=map-with-obscured-venue');
+    await page.locator('[data-testid="venue-pin"]').first().waitFor({ state: 'visible' });
+    await page.locator('[data-testid="quick-info-obscured"]:visible').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test.fixme('a11y: mobile obscured venue-detail (/?_state=venue-detail-obscured)', async ({ page }) => {
+    await bypassOnboarding(page);
+    await page.goto('/?venue=test-venue-sunny&_state=venue-detail-obscured');
+    await page.locator('[data-testid="mobile-venue-detail-sheet"]:visible').waitFor({ state: 'visible' });
+    await page.locator('[data-testid="venue-detail-obscured"]:visible').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
   // Story 7.3 Task 9.2 — the offline shell at mobile viewport.
   test('a11y: offline shell mobile (/?_state=map-primary-offline)', async ({ page }) => {
     await bypassOnboarding(page);

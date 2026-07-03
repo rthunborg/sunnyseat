@@ -59,6 +59,108 @@ describe('<VenueCard />', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
+  it('renders the four sun states distinctly on the compact card (Story 10.2 AC1)', () => {
+    const baseLabels = {
+      favourite: 'Spara {name}',
+      sun: 'Sol',
+      photoPlaceholder: 'Platshållarbild',
+      confidence: 'Säkerhet',
+      confidenceApproximate: 'cirka',
+      confidenceUnavailable: 'Säkerhet saknas',
+      distance: 'Avstånd',
+      sunUnavailable: 'Soltid saknas',
+      statusMostlyShade: 'MEST SKUGGA',
+      statusFullSun: 'FULL SOL',
+      statusPartialSun: 'DELVIS SOL',
+      statusObscured: 'SOL BAKOM MOLN',
+    };
+
+    // Sunny (>=75% -> FULL SOL)
+    const { rerender } = render(
+      <VenueCard
+        name="Sol" sunExposurePercent={90} distanceMeters={100} compact isSunny
+        thumbnail={{ alt: 'a', initials: 'SO' }}
+        labels={{ ...baseLabels, select: 'Välj Sol' }}
+        onSelect={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('FULL SOL');
+
+    // Partial (<75% amber -> DELVIS SOL)
+    rerender(
+      <VenueCard
+        name="Delvis" sunExposurePercent={55} distanceMeters={100} compact isSunny
+        thumbnail={{ alt: 'a', initials: 'DE' }}
+        labels={{ ...baseLabels, select: 'Välj Delvis' }}
+        onSelect={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('DELVIS SOL');
+
+    // Shaded (isSunny false, not obscured -> MEST SKUGGA)
+    rerender(
+      <VenueCard
+        name="Skugga" sunExposurePercent={15} distanceMeters={100} compact isSunny={false}
+        thumbnail={{ alt: 'a', initials: 'SK' }}
+        labels={{ ...baseLabels, select: 'Välj Skugga' }}
+        onSelect={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('MEST SKUGGA');
+
+    // Obscured (isObscured -> SOL BAKOM MOLN, muted; NO amber sun copy)
+    rerender(
+      <VenueCard
+        name="Moln" sunExposurePercent={90} distanceMeters={100} compact isSunny={false} isObscured
+        thumbnail={{ alt: 'a', initials: 'MO' }}
+        labels={{ ...baseLabels, select: 'Välj Moln' }}
+        onSelect={vi.fn()}
+      />,
+    );
+    const obscuredCard = screen.getByTestId('venue-card');
+    expect(obscuredCard).toHaveTextContent('SOL BAKOM MOLN');
+    expect(obscuredCard).not.toHaveTextContent('FULL SOL');
+    expect(obscuredCard).not.toHaveTextContent('DELVIS SOL');
+    expect(obscuredCard).not.toHaveTextContent('MEST SKUGGA');
+    // The muted label uses the obscured-text token (not amber-dark) and a cloud icon.
+    const statusRow = screen.getByText('SOL BAKOM MOLN').closest('span.text-obscured-text');
+    expect(statusRow).not.toBeNull();
+    expect(obscuredCard.querySelector('.text-amber-dark [data-lucide]')).toBeNull();
+    expect(statusRow?.querySelector('svg')).not.toBeNull();
+  });
+
+  it('mutes the geometric % as position-not-weather on an obscured non-compact card (Story 10.2 AC2)', () => {
+    render(
+      <VenueCard
+        name="Molnig" sunExposurePercent={92} distanceMeters={100} isSunny={false} isObscured
+        thumbnail={{ alt: 'a', initials: 'ML' }}
+        labels={{
+          select: 'Välj Molnig',
+          favourite: 'Spara {name}',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          confidence: 'Säkerhet',
+          confidenceApproximate: 'cirka',
+          confidenceUnavailable: 'Säkerhet saknas',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+          statusObscured: 'SOL BAKOM MOLN',
+          obscuredPosition: '{percent} solläge · sol här när det klarnar',
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    const card = screen.getByTestId('venue-card');
+    // The geometric % is preserved but reframed as position (AC2), not "92% sol".
+    expect(card).toHaveTextContent('92% solläge · sol här när det klarnar');
+    // The muted position chip uses the obscured-text token, never amber-dark sun copy.
+    const innerChip = screen.getByText(/solläge · sol här när det klarnar/);
+    const chip = innerChip.closest('span.text-obscured-text');
+    expect(chip).not.toBeNull();
+    expect(card.querySelector('.text-amber-dark.font-extrabold')).toBeNull();
+  });
+
   it('localizes the visible sun exposure unit from labels', () => {
     render(
       <VenueCard

@@ -38,6 +38,36 @@ test.describe('axe-core a11y gate', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
+  // Story 10.2 (Task 5, AC4) — the muted "Sol bakom moln" obscured surface.
+  // The forced-state normalizer pins the selected venue to CloudObscured +
+  // overcast sky WITHOUT live Met.no, so the muted slate palette's WCAG AA
+  // contrast is a CI gate rather than a manual claim. Desktop viewport covers
+  // the obscured quick-info + the obscured venue-detail overlay.
+  test('a11y: map obscured venue QuickInfo (/?_state=map-with-obscured-venue)', async ({ page }) => {
+    await page.addInitScript((key: string) => {
+      window.localStorage.setItem(key, '1');
+    }, ONBOARDED_FLAG_KEY);
+
+    await page.goto('/?_state=map-with-obscured-venue');
+    await page.locator('[data-testid="venue-pin"]').first().waitFor({ state: 'visible' });
+    await page.locator('[data-testid="venue-quick-info"]:visible').waitFor({ state: 'visible' });
+    await page.locator('[data-testid="quick-info-obscured"]:visible').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test('a11y: obscured venue detail (/?_state=venue-detail-obscured)', async ({ page }) => {
+    await page.addInitScript((key: string) => {
+      window.localStorage.setItem(key, '1');
+    }, ONBOARDED_FLAG_KEY);
+
+    await page.goto('/?venue=test-venue-sunny&_state=venue-detail-obscured');
+    await page.locator('[data-testid="desktop-venue-detail-panel"]:visible').waitFor({ state: 'visible' });
+    await page.locator('[data-testid="venue-detail-obscured"]:visible').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
   test('a11y: onboarding overlay (/?_state=onboarding)', async ({ page }) => {
     await page.goto('/?_state=onboarding');
     await page.getByTestId('onboarding-screen').waitFor({ state: 'visible' });

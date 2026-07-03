@@ -54,6 +54,75 @@ describe('<VenueList />', () => {
     ]);
   });
 
+  it('ranks a high-solläge obscured venue above a low-solläge partial under "Mest sol" (Story 10.2 AC2)', () => {
+    render(
+      <VenueList
+        venues={[
+          makeVenue({ id: 'partial-low', name: 'Delvis Lågt', status: 'Partial', distanceMeters: 50, sunExposurePercent: 40 }),
+          makeVenue({ id: 'obscured-high', name: 'Moln Högt', status: 'CloudObscured', distanceMeters: 300, sunExposurePercent: 95 }),
+          makeVenue({ id: 'shaded', name: 'Skuggan', status: 'Shaded', distanceMeters: 20, sunExposurePercent: 10 }),
+        ]}
+        mode="mobile"
+        sortMode="sun"
+        onSelectVenue={vi.fn()}
+      />,
+      { wrapper: Wrapper },
+    );
+
+    // The 95%-solläge obscured venue out-ranks the 40%-solläge partial even
+    // though it is further away — "Mest sol" still ranks by geometric solläge
+    // under an overcast sky. RELATIVE ordering only (survives a gate re-tune).
+    expect(screen.getAllByTestId('venue-card').map((card) => card.textContent)).toEqual([
+      expect.stringContaining('Moln Högt'),
+      expect.stringContaining('Delvis Lågt'),
+      expect.stringContaining('Skuggan'),
+    ]);
+  });
+
+  it('ranks a low-solläge obscured venue below a partial (obscured is not a fixed tier)', () => {
+    render(
+      <VenueList
+        venues={[
+          makeVenue({ id: 'obscured-low', name: 'Moln Lågt', status: 'CloudObscured', distanceMeters: 20, sunExposurePercent: 30 }),
+          makeVenue({ id: 'partial-mid', name: 'Delvis Mitten', status: 'Partial', distanceMeters: 300, sunExposurePercent: 60 }),
+        ]}
+        mode="mobile"
+        sortMode="sun"
+        onSelectVenue={vi.fn()}
+      />,
+      { wrapper: Wrapper },
+    );
+
+    // 30%-solläge obscured (rank 0.6) sinks below Partial (rank 1).
+    expect(screen.getAllByTestId('venue-card').map((card) => card.textContent)).toEqual([
+      expect.stringContaining('Delvis Mitten'),
+      expect.stringContaining('Moln Lågt'),
+    ]);
+  });
+
+  it('renders an obscured venue with the muted "Sol bakom moln" label and no amber sun copy (Story 10.2 AC1)', () => {
+    render(
+      <VenueList
+        venues={[
+          makeVenue({ id: 'obscured', name: 'Molnig Bar', status: 'CloudObscured', distanceMeters: 80, sunExposurePercent: 90 }),
+        ]}
+        mode="desktop"
+        onSelectVenue={vi.fn()}
+      />,
+      { wrapper: Wrapper },
+    );
+
+    const card = screen.getByTestId('venue-card');
+    expect(card).toHaveTextContent('SOL BAKOM MOLN');
+    // No amber sun copy on the obscured card (AC1).
+    expect(card).not.toHaveTextContent('FULL SOL');
+    expect(card).not.toHaveTextContent('DELVIS SOL');
+    expect(card).not.toHaveTextContent('MEST SKUGGA');
+    // The obscured phrase appears exactly once in the accessible name (AC4).
+    const selectButton = screen.getByRole('button', { name: /Välj Molnig Bar/ });
+    expect(selectButton.getAttribute('aria-label')?.match(/sol bakom moln/gi)).toHaveLength(1);
+  });
+
   it('sorts closest first when distance sort mode is selected explicitly', () => {
     render(
       <VenueList

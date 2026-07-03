@@ -14,3 +14,6 @@
 
 ## Story 10-2-sun-behind-clouds-two-signal-ui-state
 - [Phase 3 â€” create-story] Determinism gap: no CloudObscured fixture venue exists and ?_state forced-visual normalizes every venue to Sunny â€” obscured UI unreachable on the CI flag-OFF path; 10.2 adds its own deterministic force-state, 10.5's weather-mock (R-005) does NOT cover it. Later stories must not assume the obscured surface is reachable without this scaffolding.
+- [Phase 5 â€” dev-story] Maintainer must rebaseline the two obscured visual-validation reference PNGs (map-with-obscured-venue, venue-detail-obscured) â€” none exist and dev is forbidden from self-blessing refs. Muting is unambiguous in HUE (slate vs amber vs grey).
+- [Phase 5 â€” dev-story] Two mobile obscured axe scans left test.fixme on the pre-existing Story-5.1 amber-label contrast debt (obscured chrome itself AA; desktop scans active) â€” flip to test when 5.1 lands.
+- [Phase 5 â€” dev-story] sun-engine.test.ts 5s-timeout flake reproduces only under concurrent full-suite load on this Windows host; fine isolated â€” watch CI timeout budget.

@@ -21,7 +21,14 @@
     "distanceApproximate": "≈ från centrum",
     "loadingSun": "Laddar soldata",
     "sunUnavailable": "Soltid saknas",
-    "sunWindow": "Sol {start}–{end}"
+    "sunWindow": "Sol {start}–{end}",
+    "obscuredHeadline": "Sol bakom moln",
+    "obscuredPosition": "Solläge {percent} · sol här när det klarnar",
+    "sky": {
+      "clear": "Klart",
+      "partlyCloudy": "Delvis molnigt",
+      "overcast": "Mulet"
+    }
   },
   "route": {
     "overlayTitle": "Rutt till {name}",
@@ -110,10 +117,13 @@
     "statusMostlyShade": "MEST SKUGGA",
     "statusFullSun": "FULL SOL",
     "statusPartialSun": "DELVIS SOL",
+    "statusObscured": "SOL BAKOM MOLN",
+    "obscuredPosition": "{percent} solläge · sol här när det klarnar",
     "favourite": "Spara {name}",
     "favouriteAdd": "Spara som favorit",
     "favouriteRemove": "Ta bort favorit",
     "cardAria": "Välj {name}, {sun}, {confidence}, Avstånd {distance}",
+    "cardAriaObscured": "Välj {name}, sol bakom moln just nu, {sun}, Avstånd {distance}",
     "controls": {
       "nearTab": "Nära mig",
       "favouritesTab": "Favoriter",
@@ -153,6 +163,15 @@
     "openingHours": "Öppettider",
     "address": "Adress",
     "sunBadge": "{percent}% sol",
+    "obscuredHeadline": "Sol bakom moln",
+    "obscuredBadge": "{percent}% solläge",
+    "obscuredPosition": "Solläge · sol här när det klarnar",
+    "sky": {
+      "label": "Himmel nu",
+      "clear": "Klart",
+      "partlyCloudy": "Delvis molnigt",
+      "overcast": "Mulet"
+    },
     "confidence": "Säkerhet",
     "confidenceApproximate": "cirka",
     "confidenceUnavailable": "Säkerhet saknas",

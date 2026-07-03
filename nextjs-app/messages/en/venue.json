@@ -21,7 +21,14 @@
     "distanceApproximate": "≈ from centre",
     "loadingSun": "Loading sun data",
     "sunUnavailable": "Sun time unavailable",
-    "sunWindow": "Sun {start}–{end}"
+    "sunWindow": "Sun {start}–{end}",
+    "obscuredHeadline": "Sun behind clouds",
+    "obscuredPosition": "Sun position {percent} · sunny here when it clears",
+    "sky": {
+      "clear": "Clear",
+      "partlyCloudy": "Partly cloudy",
+      "overcast": "Overcast"
+    }
   },
   "route": {
     "overlayTitle": "Route to {name}",
@@ -110,10 +117,13 @@
     "statusMostlyShade": "MOSTLY SHADE",
     "statusFullSun": "FULL SUN",
     "statusPartialSun": "PARTIAL SUN",
+    "statusObscured": "SUN BEHIND CLOUDS",
+    "obscuredPosition": "{percent} sun position · sunny here when it clears",
     "favourite": "Save {name}",
     "favouriteAdd": "Save as favourite",
     "favouriteRemove": "Remove favourite",
     "cardAria": "Select {name}, {sun}, {confidence}, Distance {distance}",
+    "cardAriaObscured": "Select {name}, sun behind clouds right now, {sun}, Distance {distance}",
     "controls": {
       "nearTab": "Near me",
       "favouritesTab": "Favourites",
@@ -153,6 +163,15 @@
     "openingHours": "Opening hours",
     "address": "Address",
     "sunBadge": "{percent}% sun",
+    "obscuredHeadline": "Sun behind clouds",
+    "obscuredBadge": "{percent}% sun position",
+    "obscuredPosition": "Sun position · sunny here when it clears",
+    "sky": {
+      "label": "Sky now",
+      "clear": "Clear",
+      "partlyCloudy": "Partly cloudy",
+      "overcast": "Overcast"
+    },
     "confidence": "Confidence",
     "confidenceApproximate": "about",
     "confidenceUnavailable": "Confidence unavailable",

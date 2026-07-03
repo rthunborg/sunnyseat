@@ -2,6 +2,7 @@
 
 import {
   Clock,
+  Cloud,
   ExternalLink,
   Footprints,
   ImageIcon,
@@ -24,6 +25,10 @@ import {
   getConfidenceDisplayState,
   type ConfidenceDisplayLabels,
 } from '@/lib/utils/confidence-display';
+import {
+  isObscuredSunStatus,
+  skyConditionCopy,
+} from '@/lib/utils/sun-status-presentation';
 import { formatPlannerTime } from '@/lib/utils/time-planner';
 import { cn } from '@/lib/utils';
 
@@ -40,6 +45,20 @@ export type VenueDetailContentLabels = {
   openingHours: string;
   address: string;
   sunBadge: string;
+  /** Story 10.2 (AC1): the muted "Sol bakom moln" hero headline shown when
+   * the venue is CloudObscured. */
+  obscuredHeadline?: string;
+  /** Story 10.2 (AC1/AC2): the muted hero badge for the obscured state —
+   * "{percent}% solläge" (position, not "% sol"). */
+  obscuredBadge?: string;
+  /** Story 10.2 (AC3): plain-language sky descriptors + a "Himmel nu" label.
+   * When the sky is unavailable, no sky line renders. */
+  sky?: {
+    label: string;
+    clear: string;
+    partlyCloudy: string;
+    overcast: string;
+  };
   confidence: string;
   confidenceApproximate: string;
   confidenceUnavailable: string;
@@ -101,6 +120,15 @@ export function VenueDetailContent({
   const timeline = detail?.timeline ?? timelineFromListVenue(fallbackVenue);
   const metadata = getVenueVisualMetadata(venue, locale);
   const peakHour = formatPeakHour(venue);
+  // Story 10.2: the muted "Sol bakom moln" state + the plain-language sky line.
+  const isObscured = isObscuredSunStatus(venue.currentSunStatus);
+  const skyLine = labels.sky
+    ? skyConditionCopy(venue.skyCondition, {
+        clear: labels.sky.clear,
+        partlyCloudy: labels.sky.partlyCloudy,
+        overcast: labels.sky.overcast,
+      })
+    : null;
   const bestWindow = bestWindowLabel(timeline, labels) ?? formatLabel(labels.peakTime, { time: peakHour });
   const openUntil = detail?.openingHours.closesAt ?? '22:00';
   const isDesktop = mode === 'desktop';
@@ -116,7 +144,14 @@ export function VenueDetailContent({
       aria-label={venue.venueName}
       className={cn('bg-surface-cream text-text-primary', className)}
     >
-      <HeroImage venue={venue} labels={labels} isLoading={loading} isDesktop={isDesktop} />
+      <HeroImage
+        venue={venue}
+        labels={labels}
+        isLoading={loading}
+        isDesktop={isDesktop}
+        isObscured={isObscured}
+        skyLine={skyLine}
+      />
       <div className={cn('px-6 pb-8', isDesktop ? 'space-y-5 pt-6' : 'space-y-4 pt-5')}>
         <header className="space-y-2">
           <div className="flex items-start justify-between gap-3">
@@ -185,9 +220,14 @@ export function VenueDetailContent({
                   : bestWindow}
               </p>
             </div>
-            {!isDesktop && (
-              <Sun aria-hidden="true" className="size-7 fill-amber-gold text-amber-gold" />
-            )}
+            {!isDesktop &&
+              // Story 10.2 (AC1): mute the amber section sun icon to a slate
+              // cloud icon while obscured — no amber sun chrome under the gate.
+              (isObscured ? (
+                <Cloud aria-hidden="true" className="size-7 text-obscured-text" />
+              ) : (
+                <Sun aria-hidden="true" className="size-7 fill-amber-gold text-amber-gold" />
+              ))}
           </div>
           {loading ? (
             <Skeleton
@@ -315,14 +355,19 @@ function HeroImage({
   labels,
   isLoading,
   isDesktop,
+  isObscured,
+  skyLine,
 }: {
   venue: VenueDataDto;
   labels: VenueDetailContentLabels;
   isLoading: boolean;
   isDesktop: boolean;
+  isObscured: boolean;
+  skyLine: string | null;
 }) {
   const thumbnail = venue.thumbnail;
   const alt = thumbnail?.alt?.trim() || labels.photoPlaceholder;
+  const percentText = String(Math.round(venue.sunExposurePercent));
   return (
     <div
       className={cn(
@@ -352,15 +397,51 @@ function HeroImage({
           </span>
         </div>
       )}
+      {/* Story 10.2 (AC1): the always-amber hero sun badge is muted to slate
+          while obscured — white text/cloud icon on `bg-pin-obscured` (5.50:1
+          AA), labelled "% solläge" (position, AC2) so no amber sun badge shows
+          under the gate. The geometric % value is unchanged. */}
       <div
-        aria-label={formatLabel(labels.sunBadge, {
-          percent: String(Math.round(venue.sunExposurePercent)),
-        })}
-        className="absolute left-4 top-4 flex h-10 items-center justify-center gap-2 rounded-pill bg-amber-gold/90 px-4 text-heading-lg text-amber-cta-text backdrop-blur-standard shadow-subtle"
+        aria-label={
+          isObscured && labels.obscuredBadge
+            ? formatLabel(labels.obscuredBadge, { percent: percentText })
+            : formatLabel(labels.sunBadge, { percent: percentText })
+        }
+        className={cn(
+          'absolute left-4 top-4 flex h-10 items-center justify-center gap-2 rounded-pill px-4 text-heading-lg backdrop-blur-standard shadow-subtle',
+          isObscured
+            ? 'bg-pin-obscured text-white'
+            : 'bg-amber-gold/90 text-amber-cta-text',
+        )}
       >
-        <Sun aria-hidden="true" className="size-5 fill-current" />
+        {isObscured ? (
+          <Cloud aria-hidden="true" className="size-5" />
+        ) : (
+          <Sun aria-hidden="true" className="size-5 fill-current" />
+        )}
         {formatVenueSunPercent(venue.sunExposurePercent)}
       </div>
+      {/* AC1/AC3: the muted "Sol bakom moln" headline + the plain-language sky
+          line, only for the obscured state. `skyLine` is null when the DTO sky
+          is unavailable → no sky descriptor (never fabricate). */}
+      {isObscured && (
+        <div
+          data-testid="venue-detail-obscured"
+          className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-card bg-surface-cream/85 px-3 py-2 text-label-md text-obscured-text backdrop-blur-standard shadow-subtle"
+        >
+          <Cloud aria-hidden="true" className="size-4 shrink-0" />
+          <span className="font-bold">{labels.obscuredHeadline ?? 'Sol bakom moln'}</span>
+          {skyLine && labels.sky && (
+            <>
+              <span aria-hidden="true" className="text-obscured-text/50">·</span>
+              <span>
+                <span className="sr-only">{labels.sky.label}: </span>
+                {skyLine}
+              </span>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -519,11 +600,18 @@ function LoadingBlock({ label }: { label: string }) {
 }
 
 function timelineFromListVenue(venue: VenueDataDto): VenueDetailDto['timeline'] {
+  // Story 10.2 (AC2): a CloudObscured headline is a WEATHER signal, not a
+  // geometric timeline status. The fallback timeline window is the "when it
+  // clears" POTENTIAL, so map the obscured headline back to the geometric
+  // `Partial` tier here — otherwise the window would render as a transparent
+  // (shaded-like) bar and the sun-window potential would vanish under the gate.
+  const windowStatus =
+    venue.currentSunStatus === 'CloudObscured' ? 'Partial' : venue.currentSunStatus;
   return {
     timezone: 'Europe/Stockholm',
     range: { start: '06:00', end: '21:00' },
     windows: venue.sunWindow
-      ? [{ ...venue.sunWindow, status: venue.currentSunStatus }]
+      ? [{ ...venue.sunWindow, status: windowStatus }]
       : [],
   };
 }
