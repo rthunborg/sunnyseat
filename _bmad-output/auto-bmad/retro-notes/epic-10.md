@@ -26,3 +26,4 @@
 
 ## Story 10-4-rain-now-signal-met-no-nowcast
 - [Phase 3 â€” create-story] Met.no Nowcast 2.0 precipitation_rate (mm/h) is present ONLY where radar coverage is sufficient (field omitted otherwise) â€” AC1 degradation contract: undefined never 0, extending the ratified never-??0 discipline to the rain rate.
+- [Phase 4 â€” atdd] vite:import-analysis resolves string-literal import() specifiers at transform time even inside describe.skip â€” red scaffolds for not-yet-existent modules hard-fail the whole vitest file; the loose-accessor pattern needs a RUNTIME VARIABLE specifier (const M='...'; await import(M)), not just an as-string cast. 10.5+ scaffolding against future modules will hit this.

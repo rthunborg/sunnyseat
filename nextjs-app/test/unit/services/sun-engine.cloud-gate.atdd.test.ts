@@ -32,6 +32,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as sunEngine from '@/lib/services/sun-engine';
 import {
   applyCloudGate,
   applyRealSunEngine,
@@ -318,5 +319,340 @@ describe('[10.1 AC4] gated outcome caches with its weather slice', () => {
     // The second call must NOT have re-fetched weather (served from the cached
     // 15-min bucket) → getForecast called exactly once.
     expect(mocks.getForecast).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ===========================================================================
+// STORY 10.4 — Tier 2: the rain-now radar signal (AC2 / AC3 / AC4)
+// ===========================================================================
+/**
+ * ATDD RED-PHASE scaffolds for Story 10.4. Written red-first against production
+ * seams that DO NOT EXIST YET on HEAD:
+ *   - `applyRealSunEngine`'s 5th param `getNowcastOverride?: GetNowcastRate`
+ *     (Task 2) — today the signature stops at `getForecastOverride`.
+ *   - `applyCloudGate`'s 4th param `isRaining: boolean` (Task 3) — today it is
+ *     the 3-arg `(status, isSunVisible, cloudCover)`.
+ *   - the exported constant `NOWCAST_HORIZON_MS` (Task 2, AC4) — not exported yet.
+ *   - `skyCondition === 'rain'` on the outcome (Task 4) — not produced yet.
+ * The whole block is `.skip`-gated so `vitest run` is green on HEAD; the dev
+ * un-skips it as each seam lands (it should go RED first, then green).
+ *
+ * =========================================================================
+ * WHY THE CAST-THROUGH-CURRENT-SIGNATURE HELPERS (epic-10 ratified pattern)
+ * =========================================================================
+ * The tsc CI gate compiles `.skip`-ped tests too. Calling `applyRealSunEngine`
+ * with a 5th argument, or `applyCloudGate` with a 4th, or reading a not-yet-
+ * exported `NOWCAST_HORIZON_MS`, all HARD-BREAK `tsc --noEmit` on HEAD (arity /
+ * missing-export errors) — turning CI red before any production code is written.
+ * So we reach those seams through LOOSELY-TYPED accessors that cast the CURRENT
+ * export shape to the FUTURE shape:
+ *   - `applyRealSunEngineWithNowcast` casts `applyRealSunEngine` to a signature
+ *     that accepts the extra `getNowcastOverride`.
+ *   - `applyCloudGateWithRain` casts `applyCloudGate` to accept the extra
+ *     `isRaining`.
+ *   - `nowcastHorizonMs()` reads `NOWCAST_HORIZON_MS` off the module namespace
+ *     loosely (undefined on HEAD, a number once Task 2 exports it).
+ * `tsc` only ever sees the loose cast, so the file compiles green while `.skip`;
+ * once the real seams land the casts resolve to the real, correctly-typed
+ * functions and the assertions run unchanged.
+ *
+ * RELATIVE-BOUNDARY DISCIPLINE (retro-note: NOWCAST_HORIZON_MS is re-tunable):
+ * AC4 boundaries are asserted by READING `NOWCAST_HORIZON_MS`, never by
+ * hard-coding "90 minutes". Rain INTENT (rate>0 gates; rate 0/undefined inert)
+ * is asserted, never an exact rate number.
+ */
+
+// --- Cast-through accessors (loose typing so `.skip` + tsc stay green) ------
+type GetNowcastRateLoose = (lat?: number, lng?: number) => Promise<number | undefined>;
+
+/** `applyRealSunEngine` with the future 5th `getNowcastOverride` param. */
+const applyRealSunEngineWithNowcast = applyRealSunEngine as unknown as (
+  venue: StoredVenue,
+  requestedAt: Date,
+  now: Date,
+  getForecastOverride?: unknown,
+  getNowcastOverride?: GetNowcastRateLoose,
+) => ReturnType<typeof applyRealSunEngine>;
+
+/** `applyCloudGate` with the future 4th `isRaining` param. */
+const applyCloudGateWithRain = applyCloudGate as unknown as (
+  status: string,
+  isSunVisible: boolean,
+  cloudCover: number | undefined,
+  isRaining: boolean,
+) => string;
+
+/** Read the not-yet-exported `NOWCAST_HORIZON_MS` loosely (undefined on HEAD). */
+function nowcastHorizonMs(): number {
+  const v = (sunEngine as unknown as { NOWCAST_HORIZON_MS?: number }).NOWCAST_HORIZON_MS;
+  // The scaffold reads the constant so an AC4 re-tune never breaks it. If the
+  // dev has not exported it yet this returns NaN and the horizon tests fail
+  // loudly (red-first) — exactly the intent.
+  return v as number;
+}
+
+const SUMMER_NIGHT = new Date('2026-06-21T00:00:00.000Z'); // Stockholm 02:00, sun below horizon
+
+// ---------------------------------------------------------------------------
+// 4. Pure helper: applyCloudGate folds in the rain OR-term (AC2 / AC3)
+// ---------------------------------------------------------------------------
+describe.skip('[10.4 AC2] applyCloudGate — rain is a one-way OR-ed gate trigger', () => {
+  it('gates a geometrically-sunlit venue under rain EVEN when cloud is below threshold (rain wins)', () => {
+    // Low cloud (well below the gate) but it is raining → still gate.
+    expect(applyCloudGateWithRain('Sunny', true, 10, true)).toBe('CloudObscured');
+    expect(applyCloudGateWithRain('Partial', true, 10, true)).toBe('CloudObscured');
+  });
+
+  it('gates under rain even when cloud is UNKNOWN (undefined) — rain does not need a cloud reading', () => {
+    expect(applyCloudGateWithRain('Sunny', true, undefined, true)).toBe('CloudObscured');
+  });
+
+  it('NEVER gates a Shaded venue under rain (geometric-shade precedence — AC3b)', () => {
+    expect(applyCloudGateWithRain('Shaded', true, 10, true)).toBe('Shaded');
+  });
+
+  it('NEVER gates NoSun under rain (below-horizon precedence wins over rain too)', () => {
+    expect(applyCloudGateWithRain('NoSun', false, 10, true)).toBe('NoSun');
+    expect(applyCloudGateWithRain('NoSun', true, 10, true)).toBe('NoSun');
+  });
+
+  it('does NOT gate when the sun is geometrically down, even under rain', () => {
+    // isSunVisible false → the fire condition is false regardless of rain.
+    expect(applyCloudGateWithRain('Sunny', false, 10, true)).toBe('Sunny');
+  });
+
+  it('no-rain (isRaining=false) leaves the 10.3 result byte-identical — cloud alone decides', () => {
+    // Below-threshold + no rain ⇒ unchanged.
+    expect(applyCloudGateWithRain('Sunny', true, 10, false)).toBe('Sunny');
+    // At/above-threshold + no rain ⇒ still gated by CLOUD (not rain).
+    expect(applyCloudGateWithRain('Sunny', true, CLOUD_GATE_THRESHOLD_PERCENT, false)).toBe(
+      'CloudObscured',
+    );
+  });
+
+  it('rain never UN-gates a cloud-gated venue (one-way): overcast + no-rain still CloudObscured', () => {
+    expect(applyCloudGateWithRain('Sunny', true, 100, false)).toBe('CloudObscured');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5. End-to-end: rain forces the gate through the real engine (AC2)
+// ---------------------------------------------------------------------------
+describe.skip('[10.4 AC2] rain forces the gate through computeRealSunEngineResult', () => {
+  beforeEach(() => {
+    clearSunEngineCachesForTests();
+    mocks.from.mockReset();
+    mocks.rpc.mockReset();
+    mocks.getForecast.mockReset();
+    mocks.getCurrentWeather.mockReset();
+    mocks.rpc.mockResolvedValue({ data: [], error: null }); // no casters → geometrically sunlit
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.useFakeTimers();
+    vi.setSystemTime(SUMMER_MIDDAY);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('rain (rate>0) over a sunlit venue with LOW cloud ⇒ CloudObscured + skyCondition="rain", geometry preserved', async () => {
+    // Cloud is well below the gate; only rain forces it. Rain must WIN.
+    mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 10 })]);
+    const getNowcast: GetNowcastRateLoose = vi.fn(async () => 0.5); // 0.5 mm/h — raining
+
+    const outcome = await applyRealSunEngineWithNowcast(
+      makeStoredVenue(),
+      SUMMER_MIDDAY,
+      SUMMER_MIDDAY,
+      undefined,
+      getNowcast,
+    );
+
+    expect(outcome.venue.currentSunStatus).toBe('CloudObscured');
+    // Rain takes PRECEDENCE in the surfaced sky label (over the cloud-derived one).
+    expect(outcome.venue.skyCondition).toBe('rain');
+    // Two-signal guarantee: the geometric clear-sky layer is untouched by the gate.
+    expect(outcome.venue.sunExposurePercent).toBe(100);
+    expect(outcome.venue.sunWindow).toBeDefined();
+  });
+
+  it('rain over a NON-sunlit (below-horizon) venue does NOT gate — stays NoSun (rain never gates non-sunlit)', async () => {
+    // Below-horizon ⇒ isSunVisible false ⇒ rain cannot gate. Equivalent to the
+    // AC3b "geometrically-shaded stays Shaded" guarantee (the gate switch treats
+    // Shaded / NoSun identically), asserted here via the deterministic night case.
+    mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 10 })]);
+    const getNowcast: GetNowcastRateLoose = vi.fn(async () => 0.9);
+
+    const outcome = await applyRealSunEngineWithNowcast(
+      makeStoredVenue(),
+      SUMMER_NIGHT,
+      SUMMER_NIGHT,
+      undefined,
+      getNowcast,
+    );
+
+    expect(outcome.venue.currentSunStatus).toBe('NoSun');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 6. Absence of rain contributes NOTHING — the epic's HARD CONSTRAINT (AC3)
+// ---------------------------------------------------------------------------
+describe.skip("[10.4 AC3] absence of rain changes nothing (\"absence of rain must NEVER imply sun\")", () => {
+  beforeEach(() => {
+    clearSunEngineCachesForTests();
+    mocks.from.mockReset();
+    mocks.rpc.mockReset();
+    mocks.getForecast.mockReset();
+    mocks.getCurrentWeather.mockReset();
+    mocks.rpc.mockResolvedValue({ data: [], error: null });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.useFakeTimers();
+    vi.setSystemTime(SUMMER_MIDDAY);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('(a) no-rain (0) + effective-overcast + sunlit ⇒ still CloudObscured (the cloud gate decides, no-rain does not un-gate)', async () => {
+    mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 100 })]);
+    const noRain: GetNowcastRateLoose = vi.fn(async () => 0); // radar says genuinely no rain
+
+    const outcome = await applyRealSunEngineWithNowcast(
+      makeStoredVenue(),
+      SUMMER_MIDDAY,
+      SUMMER_MIDDAY,
+      undefined,
+      noRain,
+    );
+
+    // A `rate === 0` reading must NEVER lift a cloud-gated venue back to Sunny.
+    expect(outcome.venue.currentSunStatus).toBe('CloudObscured');
+    // And the sky label is the cloud-derived one (NOT 'rain') — 0 is not raining.
+    expect(outcome.venue.skyCondition).toBe('overcast');
+  });
+
+  it('(b) no-rain (0) + clear + geometrically-non-sunlit (below horizon) ⇒ stays NoSun (no-rain never lifts to Sunny)', async () => {
+    mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 5 })]);
+    const noRain: GetNowcastRateLoose = vi.fn(async () => 0);
+
+    const outcome = await applyRealSunEngineWithNowcast(
+      makeStoredVenue(),
+      SUMMER_NIGHT,
+      SUMMER_NIGHT,
+      undefined,
+      noRain,
+    );
+
+    expect(outcome.venue.currentSunStatus).toBe('NoSun');
+  });
+
+  it('undefined rate (nowcast down / no coverage) behaves IDENTICALLY to 0 — cloud+geometry alone decide', async () => {
+    // Overcast + sunlit: with an UNKNOWN rate the outcome must be exactly the
+    // cloud-only outcome (CloudObscured), same as the `rate === 0` case above —
+    // unknown is non-gating, and it never un-gates the cloud gate either.
+    mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 100 })]);
+    const unknownRate: GetNowcastRateLoose = vi.fn(async () => undefined);
+
+    const outcome = await applyRealSunEngineWithNowcast(
+      makeStoredVenue(),
+      SUMMER_MIDDAY,
+      SUMMER_MIDDAY,
+      undefined,
+      unknownRate,
+    );
+
+    expect(outcome.venue.currentSunStatus).toBe('CloudObscured');
+    expect(outcome.venue.skyCondition).toBe('overcast'); // never 'rain' — rate unknown
+  });
+
+  it('no nowcast override at all (engine lazy path) matches the pure-cloud outcome — rain is additive-only', async () => {
+    // Sanity anchor: with NO nowcast injected, the sunlit + low-cloud venue is
+    // Sunny (10.3 behaviour). Rain can only ADD a gate on top of this; it can
+    // never be the reason a clear+sunlit venue becomes Sunny.
+    mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 5 })]);
+
+    const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
+
+    expect(outcome.venue.currentSunStatus).toBe('Sunny');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 7. Future planner requests do NOT consult the nowcast (AC4)
+// ---------------------------------------------------------------------------
+describe.skip('[10.4 AC4] future-horizon requests skip the nowcast (no stale "now" radar leak)', () => {
+  beforeEach(() => {
+    clearSunEngineCachesForTests();
+    mocks.from.mockReset();
+    mocks.rpc.mockReset();
+    mocks.getForecast.mockReset();
+    mocks.getCurrentWeather.mockReset();
+    mocks.rpc.mockResolvedValue({ data: [], error: null });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.useFakeTimers();
+    vi.setSystemTime(SUMMER_MIDDAY);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('a requestedAt BEYOND NOWCAST_HORIZON_MS ⇒ nowcast NOT called, and the ignored rain does NOT force-gate', async () => {
+    // Read the constant (re-tune safe): pick a requestedAt comfortably beyond it.
+    const beyond = new Date(SUMMER_MIDDAY.getTime() + nowcastHorizonMs() + 60 * 60 * 1000);
+    mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 10 })]);
+    const rainMock = vi.fn(async () => 0.9); // would gate IF consulted — it must not be
+
+    const outcome = await applyRealSunEngineWithNowcast(
+      makeStoredVenue(),
+      beyond,
+      SUMMER_MIDDAY,
+      undefined,
+      rainMock as GetNowcastRateLoose,
+    );
+
+    // AC4: a future-planner request never fires the nowcast.
+    expect(rainMock).not.toHaveBeenCalled();
+    // Forecast cloud (low) governs; the ignored "now" rain does NOT force a gate.
+    expect(outcome.venue.currentSunStatus).not.toBe('CloudObscured');
+    expect(outcome.venue.skyCondition).not.toBe('rain');
+  });
+
+  it('a requestedAt INSIDE the horizon (now) ⇒ nowcast IS consulted and rain gates', async () => {
+    mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 10 })]);
+    const rainMock = vi.fn(async () => 0.9);
+
+    const outcome = await applyRealSunEngineWithNowcast(
+      makeStoredVenue(),
+      SUMMER_MIDDAY,
+      SUMMER_MIDDAY,
+      undefined,
+      rainMock as GetNowcastRateLoose,
+    );
+
+    expect(rainMock).toHaveBeenCalled();
+    expect(outcome.venue.currentSunStatus).toBe('CloudObscured');
+    expect(outcome.venue.skyCondition).toBe('rain');
+  });
+
+  it('a PAST requestedAt (< now) ⇒ nowcast NOT called (no live radar for the past)', async () => {
+    const past = new Date(SUMMER_MIDDAY.getTime() - 30 * 60 * 1000);
+    mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 10 })]);
+    const rainMock = vi.fn(async () => 0.9);
+
+    await applyRealSunEngineWithNowcast(
+      makeStoredVenue(),
+      past,
+      SUMMER_MIDDAY,
+      undefined,
+      rainMock as GetNowcastRateLoose,
+    );
+
+    expect(rainMock).not.toHaveBeenCalled();
   });
 });
