@@ -16,6 +16,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   effectiveCloudCover,
+  CLOUD_WEIGHT_LOW,
+  CLOUD_WEIGHT_MEDIUM,
   CLOUD_WEIGHT_HIGH,
 } from '@/lib/solar/effective-cloud-cover';
 import { CLOUD_GATE_THRESHOLD_PERCENT } from '@/lib/services/sun-engine';
@@ -138,5 +140,91 @@ describe('[10.3 AC3] effectiveCloudCover fallback (partial split ⇒ total; miss
   it('returns undefined for a null/undefined slice (null weather ⇒ no gate, AC3)', () => {
     expect(effectiveCloudCover(null)).toBeUndefined();
     expect(effectiveCloudCover(undefined)).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// COVERAGE EXPANSION (Story 10.3) — formula algebra hardening.
+//
+// The AC matrix above proves the boundary INTENT. These add the residual
+// algebraic edges the re-tunable formula is most likely to regress on silently:
+// the clamp lower bound, additive two-band weighting, medium≡low symmetry, the
+// strict-undefined vs falsy distinction, and a meta-guard on the weight ordering
+// so a re-tune that inverts cirrus-vs-stratus intent fails at the constant level.
+// All RELATIVE to the constants — never a bare magic number.
+// ---------------------------------------------------------------------------
+describe('[10.3 coverage] effectiveCloudCover clamp + additive algebra', () => {
+  it('clamps a sub-zero glitch to the lower bound 0 (never a negative gate input)', () => {
+    // A sensor/producer glitch could hand back a negative band. The weighted sum
+    // would go negative; the clamp must floor it at 0 so nothing downstream ever
+    // sees a negative cloud cover.
+    const eff = effectiveCloudCover(
+      slice({ cloudCover: 0, cloudCoverLow: -50, cloudCoverMedium: 0, cloudCoverHigh: 0 }),
+    );
+    expect(eff).toBe(0);
+    expect(eff!).toBeGreaterThanOrEqual(0);
+  });
+
+  it('adds two present bands (low + high) rather than taking a max — the weighted SUM governs', () => {
+    // 40% low deck under 100% cirrus. If the formula (wrongly) took a max it would
+    // read 40; the additive form reads LOW*40 + HIGH*100, which is strictly larger.
+    const eff = effectiveCloudCover(
+      slice({ cloudCover: 100, cloudCoverLow: 40, cloudCoverMedium: 0, cloudCoverHigh: 100 }),
+    );
+    const lowOnly = effectiveCloudCover(
+      slice({ cloudCover: 40, cloudCoverLow: 40, cloudCoverMedium: 0, cloudCoverHigh: 0 }),
+    );
+    // The high band lifts the effective cover above the low-only reading (it is
+    // summed in, not discarded), yet cirrus is weak so it need not reach the gate.
+    expect(eff!).toBeGreaterThan(lowOnly!);
+    expect(eff!).toBeCloseTo(
+      Math.min(100, CLOUD_WEIGHT_LOW * 40 + CLOUD_WEIGHT_HIGH * 100),
+      5,
+    );
+  });
+
+  it('treats a MEDIUM band exactly like a LOW band of the same coverage (both blocking, weight parity)', () => {
+    // Design intent: medium (altostratus) blocks like low. Same coverage in either
+    // band must produce the same effective cover — a re-tune that silently diverges
+    // them (e.g. drops medium to 0.5) fails here.
+    const mediumHeavy = effectiveCloudCover(
+      slice({ cloudCover: 60, cloudCoverLow: 0, cloudCoverMedium: 60, cloudCoverHigh: 0 }),
+    );
+    const lowHeavy = effectiveCloudCover(
+      slice({ cloudCover: 60, cloudCoverLow: 60, cloudCoverMedium: 0, cloudCoverHigh: 0 }),
+    );
+    expect(mediumHeavy).toBe(lowHeavy);
+    expect(CLOUD_WEIGHT_MEDIUM).toBe(CLOUD_WEIGHT_LOW);
+  });
+
+  it('applies the weighting (not the fallback) when all three layers are present as 0 — strict-undefined, not falsy', () => {
+    // Guards the `=== undefined` check: all-zero layers are PRESENT (0 ≠ undefined),
+    // so the weighting must run and yield 0 — it must NOT fall back to the total.
+    // Here the total is a non-zero 88; if the check were falsy-based, a 0 layer
+    // would trip the fallback and wrongly return 88 (which would gate).
+    const eff = effectiveCloudCover(
+      slice({ cloudCover: 88, cloudCoverLow: 0, cloudCoverMedium: 0, cloudCoverHigh: 0 }),
+    );
+    expect(eff).toBe(0);
+    expect(eff!).toBeLessThan(CLOUD_GATE_THRESHOLD_PERCENT);
+  });
+});
+
+describe('[10.3 coverage] weight-ordering invariant (meta-guard on re-tune)', () => {
+  it('low and medium weights strictly exceed the high weight — cirrus must always be the weakest band', () => {
+    // The whole point of Tier 1 is that high cloud blocks LESS than low/medium.
+    // This is the invariant that must survive any re-tune; a future edit that
+    // inverts it (e.g. HIGH ≥ LOW) would re-break the "cirrus doesn't cry no sun"
+    // guarantee, and this assertion catches it at the constant level.
+    expect(CLOUD_WEIGHT_HIGH).toBeLessThan(CLOUD_WEIGHT_LOW);
+    expect(CLOUD_WEIGHT_HIGH).toBeLessThan(CLOUD_WEIGHT_MEDIUM);
+    expect(CLOUD_WEIGHT_HIGH).toBeGreaterThan(0); // high still counts, just weakly
+  });
+
+  it('a full high band alone stays below the gate while a full low band alone reaches it — derived from the weights', () => {
+    // Expressed purely through the constants + threshold so a coordinated re-tune
+    // that keeps the intent passes, and one that breaks it fails.
+    expect(CLOUD_WEIGHT_HIGH * 100).toBeLessThan(CLOUD_GATE_THRESHOLD_PERCENT);
+    expect(CLOUD_WEIGHT_LOW * 100).toBeGreaterThanOrEqual(CLOUD_GATE_THRESHOLD_PERCENT);
   });
 });

@@ -225,4 +225,46 @@ describe('[10.3 AC1] met-no-service switches to `complete` + carries the layer s
     expect(slices[0].cloudCoverMedium).toBeUndefined();
     expect(slices[0].cloudCoverHigh).toBeUndefined();
   });
+
+  // COVERAGE EXPANSION: the AC1 mapping tests above are all single-entry. A real
+  // `complete` forecast is a MULTI-entry timeseries where each hour carries its own
+  // independent split (and a later hour may be a partial-`complete` entry). This
+  // pins that the per-entry mapping is independent — one entry's missing band never
+  // bleeds into another's — which the single-entry tests cannot prove.
+  it('maps the three-layer split PER ENTRY across a multi-hour forecast, independently', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () =>
+        metNoResponse([
+          // hour 0: full split
+          { time: '2026-06-21T12:00:00Z', cloud: 90, low: 10, medium: 20, high: 95 },
+          // hour 1: cirrus-only split
+          { time: '2026-06-21T13:00:00Z', cloud: 100, low: 0, medium: 0, high: 100 },
+          // hour 2: partial split (only low present)
+          { time: '2026-06-21T14:00:00Z', cloud: 50, low: 15 },
+          // hour 3: compact-shaped (total only)
+          { time: '2026-06-21T15:00:00Z', cloud: 30 },
+        ]),
+    });
+
+    const slices = await getForecast(57.7089, 11.9746);
+
+    expect(slices).toHaveLength(4);
+
+    // Each entry's bands are its own — no cross-contamination.
+    expect(slices[0].cloudCoverLow).toBe(10);
+    expect(slices[0].cloudCoverHigh).toBe(95);
+
+    expect(slices[1].cloudCoverHigh).toBe(100);
+    expect(slices[1].cloudCoverLow).toBe(0);
+
+    expect(slices[2].cloudCoverLow).toBe(15);
+    expect(slices[2].cloudCoverMedium).toBeUndefined(); // partial ⇒ absent, never 0
+    expect(slices[2].cloudCoverHigh).toBeUndefined();
+
+    expect(slices[3].cloudCover).toBe(30);
+    expect(slices[3].cloudCoverLow).toBeUndefined();
+    expect(slices[3].cloudCoverMedium).toBeUndefined();
+    expect(slices[3].cloudCoverHigh).toBeUndefined();
+  });
 });

@@ -251,6 +251,36 @@ describe('[10.3 AC2] layered cloud detail through computeRealSunEngineResult', (
 
     expect(outcome.venue.currentSunStatus).toBe('CloudObscured');
   });
+
+  // COVERAGE EXPANSION: the AC tests above drive single-band extremes (all-high,
+  // all-low). This exercises the ADDITIVE effective-cover path end-to-end — a full
+  // low deck is enough to gate on its own regardless of the cirrus above it, so a
+  // mixed sky still gates. Complements the helper-level additive test with an
+  // engine-level assertion that the summed effective value flows into the gate.
+  it('a full LOW deck under cirrus (mixed split) still gates — the summed effective cover crosses the gate', async () => {
+    mocks.getForecast.mockResolvedValue([
+      weatherSlice({ cloudCover: 100, cloudCoverLow: 100, cloudCoverMedium: 0, cloudCoverHigh: 100 }),
+    ]);
+
+    const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
+
+    expect(outcome.venue.currentSunStatus).toBe('CloudObscured');
+    // skyCondition still reports the observable overcast total (Task 5 split).
+    expect(outcome.venue.skyCondition).toBe('overcast');
+  });
+
+  it('cirrus over a THIN low haze (well below the gate combined) does NOT gate — the terrace keeps its sun', async () => {
+    // A little low cloud (20%) plus full cirrus: LOW*20 + HIGH*100 stays under the
+    // 80 gate, so the geometric Sunny survives. The additive path does not
+    // over-count cirrus into a false gate.
+    mocks.getForecast.mockResolvedValue([
+      weatherSlice({ cloudCover: 100, cloudCoverLow: 20, cloudCoverMedium: 0, cloudCoverHigh: 100 }),
+    ]);
+
+    const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
+
+    expect(outcome.venue.currentSunStatus).toBe('Sunny');
+  });
 });
 
 // ---------------------------------------------------------------------------

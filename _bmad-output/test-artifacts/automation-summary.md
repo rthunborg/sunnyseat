@@ -10,6 +10,9 @@ lastSaved: '2026-07-03'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/10-1-cloud-gated-sun-state-weather-truth-fixes.md'
   - '_bmad-output/implementation-artifacts/10-2-sun-behind-clouds-two-signal-ui-state.md'
+  - '_bmad-output/implementation-artifacts/10-3-layered-cloud-detail-met-no-complete-endpoint.md'
+  - 'nextjs-app/lib/solar/effective-cloud-cover.ts'
+  - 'nextjs-app/test/unit/solar/effective-cloud-cover.test.ts'
   - 'nextjs-app/lib/services/sun-engine.ts'
   - 'nextjs-app/lib/solar/confidence-calculator.ts'
   - 'nextjs-app/lib/weather/met-no-service.ts'
@@ -114,3 +117,47 @@ All rank assertions are RELATIVE / boundary, never an absolute magic number (epi
 
 ## Next recommended workflow
 `trace` (traceability matrix / quality-gate decision for Story 10.2) or `test-review` (quality validation of the new + existing obscured suites).
+
+---
+
+# Automation Expansion Summary — Story 10.3 (Layered Cloud Detail — Met.no `complete` + Effective Cover)
+
+## Preflight & Context
+- **Framework:** Vitest 4.1.4 (`nextjs-app/vitest.config.ts`) + Playwright present. Verified — no HALT.
+- **Stack:** frontend/Next.js with server-only sun engine. Story 10.3 is **Tier 1** of Epic 10 "Honest Sky" — a backend/data story: switches the Met.no fetch to the `complete` endpoint, carries the three-layer cloud split on `WeatherSlice`, and feeds a layer-weighted **effective cloud cover** into BOTH the Story 10.1 gate and the FR12 confidence blend. **NO UI / i18n / e2e** (the deterministic mocked-weather e2e matrix is Story 10.5). All targets stayed UNIT-level.
+- **Mode:** BMad-Integrated (story with AC1–AC3 + rich Dev Notes / Test Surfaces). **Sequential** — a narrow, additive top-up on the four existing 10.3 unit surfaces; no API/E2E fan-out to farm out.
+
+## Existing coverage reviewed (to avoid duplication)
+The story shipped a strong AC-driven matrix — NOT re-created:
+- `effective-cloud-cover.test.ts` (14) — 100%-high-not-gating / 100%-low-gating / medium-gating / ordering / 100/100/100-clamp / 0-clear / full-vs-partial fallback / total-undefined ⇒ undefined / null slice.
+- `sun-engine.cloud-gate.atdd.test.ts` [10.3 block, 3] — end-to-end cirrus-doesn't-gate (skyCondition still overcast) / low-deck-gates / partial-split Tier-0 fallback.
+- `met-no-service.cloud-gate.atdd.test.ts` [10.3 block, 4] — `complete` URL / full-split mapping / partial-split ⇒ undefined bands / compact-shaped total-only.
+- `confidence-calculator.cloud-gate.atdd.test.ts` [10.3 block, 3] — cirrus > low-deck confidence ordering / partial-split ≡ Tier-0 / unknown stays neutral. **Assessed comprehensive — not expanded.**
+
+## Gaps Identified & Filled
+Residual algebraic edges + per-entry-mapping gaps the AC matrix intentionally left. All RELATIVE to the weight constants / threshold (epic-10 "a re-tune survives" discipline), never a bare magic number:
+
+| # | Gap (previously uncovered) | Level | Priority | Where |
+| - | -------------------------- | ----- | -------- | ----- |
+| 1 | Clamp **lower bound**: a sub-zero band glitch floors at 0 (`Math.max(0,…)` branch was untested) — never a negative gate input. | Unit | P2 | `effective-cloud-cover.test.ts` |
+| 2 | **Additive** two-band weighting (low+high summed, not max'd) — the summed term is strictly > the low-only reading. | Unit | P1 | `effective-cloud-cover.test.ts` |
+| 3 | **Medium ≡ Low** parity (both weight 1.0) — same coverage in either band yields the same effective cover; catches a silent divergence on re-tune. | Unit | P2 | `effective-cloud-cover.test.ts` |
+| 4 | **Strict-undefined vs falsy**: all-three-layers present as `0` runs the weighting (→0), does NOT fall back to a non-zero total — guards the `=== undefined` check against a `0`-trips-fallback bug. | Unit | P1 | `effective-cloud-cover.test.ts` |
+| 5 | **Weight-ordering invariant** meta-guard: `HIGH < LOW` and `HIGH < MEDIUM` (and `HIGH > 0`) — a re-tune inverting cirrus-vs-stratus intent fails at the constant level; plus the gate-vs-weights derivation. | Unit | P1 | `effective-cloud-cover.test.ts` |
+| 6 | **Per-entry** three-layer mapping across a MULTI-hour `complete` forecast (full / cirrus-only / partial / compact-shaped hours) — one entry's missing band never bleeds into another. The AC1 mapping tests were all single-entry. | Unit | P1 | `met-no-service.cloud-gate.atdd.test.ts` |
+| 7 | **Additive effective cover through the engine**: a full low deck under cirrus still gates; cirrus over a thin (20%) low haze stays below the gate (no false gate). Complements the helper-level additive test end-to-end. | Unit | P2 | `sun-engine.cloud-gate.atdd.test.ts` |
+
+## Files Updated (all test-only, additive)
+- **UPDATED** `nextjs-app/test/unit/solar/effective-cloud-cover.test.ts` — +6 tests (gaps #1–#5; imported `CLOUD_WEIGHT_LOW`/`_MEDIUM`).
+- **UPDATED** `nextjs-app/test/unit/weather/met-no-service.cloud-gate.atdd.test.ts` — +1 test (gap #6).
+- **UPDATED** `nextjs-app/test/unit/services/sun-engine.cloud-gate.atdd.test.ts` — +2 tests (gap #7).
+
+## Validation / Gate
+- `npx tsc --noEmit` → **0 errors**
+- `npx eslint <the 3 changed test files>` → **0 errors / 0 warnings**
+- `npx vitest run` → **115 files / 1060 tests, all passing, 0 skipped** (Story 10.3 completion HEAD was 115 files / 1051 tests → net **+9 tests**, none dropped, none regressed).
+- Test-only addition — no source, engine, route, store, i18n, or CI-path change. Default seed path (flag OFF, as CI runs it) untouched.
+- (`Not implemented: navigation to another Document` in vitest output remains a benign pre-existing jsdom log, not a failure.)
+
+## Next recommended workflow
+`trace` (traceability matrix / quality-gate decision for Story 10.3) or `test-review` (quality validation of the new + existing layered-cloud suites).
