@@ -5,10 +5,10 @@ epic_num: 10
 story_num: null
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
 status: in-progress
-updated_at: "2026-07-03T13:02:17Z"
+updated_at: "2026-07-03T13:23:01Z"
 started_at: "2026-07-02T18:18:20Z"
 completed_at: null
-active_seconds: 28358
+active_seconds: 29590
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 5
 stories_after_in_epic: null
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 5, 81]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -29,14 +29,14 @@ convergence_unverified: false
 story_trace: null
 commits: []
 phase8_steps:
-  trace_gate: null
-  nfr: null
-  test_review: null
+  trace_gate: done
+  nfr: done
+  test_review: done
   project_context: null
   reconcile: null
   archive: null
   retro: null
-gate_decision: null
+gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 0
 pr_url: null
@@ -51,12 +51,13 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 10-5-weather-reality-verification-pass-regression-guards
+active_story: null
 stories_landed:
   - 10-1-cloud-gated-sun-state-weather-truth-fixes
   - 10-2-sun-behind-clouds-two-signal-ui-state
   - 10-3-layered-cloud-detail-met-no-complete-endpoint
   - 10-4-rain-now-signal-met-no-nowcast
+  - 10-5-weather-reality-verification-pass-regression-guards
 auto_decisions:
   - "Non-compact venue card shows no visible 'Sol bakom moln' headline [Med] â†’ fix: add the muted Sol-bakom-moln headline (Cloud icon + statusObscured, text-obscured-text) to the non-compact obscured branch (Tier A, 10-2-sun-behind-clouds-two-signal-ui-state)"
   - "Amber open-until pill not muted under obscured gate [Low] â†’ dismiss: opening-hours affordance shared across all sun states, not a sun-status badge â€” AC1 targets sun-status surfaces only (Tier A, 10-2-sun-behind-clouds-two-signal-ui-state)"
@@ -102,4 +103,15 @@ uat_items:
   - "[10-4-rain-now-signal-met-no-nowcast] Run sun-engine ATDD `-t \"AC4\"` (3 tests) → beyond NOWCAST_HORIZON_MS nowcast NOT called; at/inside horizon consulted and gates; past requestedAt NOT called."
   - "[10-4-rain-now-signal-met-no-nowcast] Run `npx vitest run test/unit/api/` → default-seed flag-OFF path byte-identical, never touches nowcast/Met.no."
   - "[10-4-rain-now-signal-met-no-nowcast] Full gate: `npx tsc --noEmit` 0, `npx eslint .` 0 errors, `npx vitest run` all green 0 skipped (~118 files / ~1099 tests)."
+  - "[10-5-weather-reality-verification-pass-regression-guards] From nextjs-app run `npx playwright test --project=desktop --project=mobile test/e2e/epic-10-weather-matrix.spec.ts` on a warm dev server → 10/10 pass, zero outbound api.met.no (cold first run may need one retry for Turbopack compile)."
+  - "[10-5-weather-reality-verification-pass-regression-guards] Run `-g overcast` scenario → card shows muted Sol-bakom-moln chrome AND geometric 95% badge; detail shows venue-detail-obscured."
+  - "[10-5-weather-reality-verification-pass-regression-guards] Run `-g '\"clear\"'` → amber Sunny, no obscured chrome, no Mulet/Overcast copy, confidence badge PRESENT (control)."
+  - "[10-5-weather-reality-verification-pass-regression-guards] Run high-cirrus-only scenario → amber Sunny NOT gated (the 10.3 differentiator) despite high total cloud."
+  - "[10-5-weather-reality-verification-pass-regression-guards] Run active-rain scenario → card + detail obscured chrome with Regn/Rain copy."
+  - "[10-5-weather-reality-verification-pass-regression-guards] Run weather-missing scenario → Sunny (geometry governs), NO sky line, confidence badge ABSENT (geometry-only freshness signal)."
+  - "[10-5-weather-reality-verification-pass-regression-guards] Run `npx vitest run test/unit/services/sun-engine.two-signal-invariants.atdd.test.ts` → geometry byte-identical across all 5 weather variations; FR12 confidence strictly lower at 100% vs 0% cloud (calculator layer); weather-missing never fabricates clear."
+  - "[10-5-weather-reality-verification-pass-regression-guards] Run `npx vitest run test/unit/no-live-metno-fetch-guard.atdd.test.ts` → outbound api.met.no rejected by the shared guard, same-origin /api/venues untouched."
+  - "[10-5-weather-reality-verification-pass-regression-guards] Read About page sv + en → algorithm copy truthfully describes the two-signal blend ('så att en plats som ligger i moln inte räknas som solig' / 'a place under cloud is not counted as sunny'), Met.no cites clouds + precipitation."
+  - "[10-5-weather-reality-verification-pass-regression-guards] MAINTAINER (AC2 live spot-check): on a real grey-or-clear day open the LIVE site (map + one venue detail), screenshot headline state + sky line; fetch Met.no locationforecast + nowcast complete for 57.7089,11.9746; compute effective ≈ low+medium+0.25*high; verify displayed state agrees with sky + values, fill the comparison table in the story's Dev Agent Record; on mismatch triage root cause before epic close."
+  - "[10-5-weather-reality-verification-pass-regression-guards] MAINTAINER: rebaseline the two obscured visual-validation reference PNGs (map-with-obscured-venue, venue-detail-obscured, mobile+desktop) — dev agents are forbidden from self-blessing refs; host /tmp screenshot tooling broken on this Windows machine."
 epic_slug: honest-sky-weather-gated-two-signal-sun-display

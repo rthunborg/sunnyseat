@@ -2,6 +2,9 @@
 - [Phase 2 â€” test-design] E2E has no deterministic weather-boundary mock today â€” specs hit real /api/venues and ?_time= only pins wall clock, not sky; story 10.5's weather matrix will be sky-flaky unless a mock (page.route on /api/venues* or dev-only weather-forcing param) lands FIRST (risk R-005, entry criterion).
 - [Phase 2 â€” test-design] design-tokens.ts SkyCondition already carries 'rain'/'unavailable' but SunStatus has no cloud/obscured value â€” the union extension (R-003) is the real sweep surface (43 files read currentSunStatus/sunStatus/predictedState); use a never-exhaustive switch so a missed consumer is a compile error.
 - [Phase 2 â€” test-design] Four thresholds deliberately UNKNOWN in test design (cloud-gate â‰¥80 proposed, layer weighting, rain-rate, nowcast horizon) â€” resolve during story drafting; tests assert relative boundary behaviour so they survive re-tuning.
+- [Phase 8 â€” trace gate] PASS: P0 100% (8/8), P1 100% (7/7), overall 89% (17/19 FULL); fresh run 1116/1116 vitest + 10/10 e2e + 2/2 desktop obscured axe. Non-FULL: 10.5-AC2 live spot-check (manual-by-design) + 10.5-AC3 About-copy semantic pin (optional P2).
+- [Phase 8 â€” trace gate] Confirm at retro the 2 mobile obscured axe fixmes are genuinely inherited Story-5.1 bottom-sheet contrast debt, not a new-state regression hiding behind the pre-existing label.
+- [Phase 8 â€” nfr/test-review] NFR PASS (reliability concerns informational: no formal burn-in, live spot-check deferred); test review 94/100 A, zero crit/high â€” backlog: retitle the venues-route NaN describe, remove shipped red-phase loose accessors to restore tsc signature coverage, pin one bare new Date().
 
 ## Story 10-1-cloud-gated-sun-state-weather-truth-fixes
 - [Phase 3 â€” create-story] Open question handed to 10.2: SUN_STATUS_ORDER rank for CloudObscured + VenueList.getVenueSunRankForList placeholder ranking â€” 10.2 must keep 'Mest sol' list ranking by geometric sollÃ¤ge.
