@@ -508,6 +508,74 @@ _Steps for the maintainer (run on a real grey-or-clear day):_
 4. If observable sky / displayed state / fetched values disagree, TRIAGE to a root cause before the epic
    closes (may spawn a follow-up story).
 
+---
+
+#### AC2 RESULT — RECORDED 2026-07-03 (verdict: **AGREE**)
+
+**Method — Met.no-as-ground-truth (documented contingency, no physical observer).** No human sky
+eyeball was available, so per the epic's test-design contingency the *physical sky observation is
+replaced by Met.no's own published values as ground truth*: the live displayed state is compared
+against the raw Met.no `locationforecast/2.0/complete` cloud split + `nowcast/2.0/complete`
+precipitation for the same instant, and the derived gate expectation. This is a data-vs-data
+agreement check, not a data-vs-eyeball check — it fully catches the historical failure mode
+("weather fetched but not consumed") since a broken pipeline would diverge from Met.no's own numbers,
+but it cannot catch a case where Met.no itself disagrees with the actual sky (that residual needs the
+maintainer's physical eyeball on a future grey/rain day and stays open below).
+
+**Fetch context (all HTTP 200):**
+- **Live API:** `GET https://sunnyseat.vercel.app/api/venues?lat=57.7089&lng=11.9746&radius=2`
+  fetched `2026-07-03T15:17:03Z`. `meta.sunDataSource='weather'` (real two-signal path ON),
+  `meta.weatherUpdatedAt='2026-07-03T15:00:00Z'` (the 15:00 UTC compute-cache bucket) — so the app's
+  weather corresponds to Met.no's **15:00Z** timestep, which is what is used as ground truth below.
+- **Met.no locationforecast `complete`** (UA `SunnySeat/1.0 rasmus.thunborg@enhancior.se`), 15:00Z
+  timestep: `cloud_area_fraction=38.3` (raw total), `_low=12.3`, `_medium=29.7`, `_high=1.2`
+  (symbol `fair_day`, next_1h precip 0). (16:00Z for reference: raw 16.5 / low 4.8 / med 12.3 / high 0.)
+- **Met.no nowcast `2.0/complete`** (same UA), near-now (15:15–15:30Z): `precipitation_rate = 0` at
+  every step ⇒ **no rain**.
+- **Computed effective cover** = clamp(1.0·12.3 + 1.0·29.7 + 0.25·1.2, 0, 100) = **42.3** (< 80 gate
+  threshold). Raw-total sky label expectation: 20 ≤ 38.3 ≤ 60 ⇒ `partly-cloudy`
+  (`skyConditionFromCloudCover`, sun-engine.ts:767-769).
+- **Expected gating:** effective 42.3 < 80 AND precip 0 ⇒ **NO `CloudObscured` gate on any venue**;
+  `skyCondition` = the raw-total label `partly-cloudy`; no `rain`. (Daylight: ~17:17 local, sun well
+  up — sunWindows span into the evening — so the gate check is NON-vacuous: geometrically-sunlit
+  venues ARE eligible to be gated and correctly are not.)
+
+**Per-venue displayed vs expected (7 of 7 venues in the 2 km fetch — all agree):**
+
+| Venue (slug) | Displayed `currentSunStatus` | Displayed `skyCondition` | `sunExposure%` | Gate-eligible? (isSunVisible) | Expected gate | Displayed gate | Expected `skyCondition` | Verdict |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Skuggans Hus (`skuggans-hus`) | Sunny | partly-cloudy | 100 | yes | none (eff 42.3<80, no rain) | none | partly-cloudy | **AGREE** |
+| Kafé Magasinet (`test-venue-sunny`) | Sunny | partly-cloudy | 82 | yes | none | none | partly-cloudy | **AGREE** |
+| Brygghuset Lerum (`brygghuset-lerum`) | Sunny | partly-cloudy | 100 | yes | none | none | partly-cloudy | **AGREE** |
+| Bryggerietsoltak (`bryggeriet-soltak`) | Sunny | partly-cloudy | 100 | yes | none | none | partly-cloudy | **AGREE** |
+| Bistro Bakgården (`bistro-bakgarden`) | Partial | partly-cloudy | 52 | yes | none | none | partly-cloudy | **AGREE** |
+| Café Halvvägs (`cafe-halvvags`) | Partial | partly-cloudy | 42 | yes | none | none | partly-cloudy | **AGREE** |
+| Solplats Magasinsgatan (`solplats-magasinsgatan`) | Shaded | partly-cloudy | 23 | no (never gated) | none | none | partly-cloudy | **AGREE** |
+
+**Verdict: AGREE (no mismatch).** With effective cover 42.3 % (well below the 80 % gate) and zero
+precipitation at the app's own 15:00Z weather bucket, the two-signal gate must NOT fire — and it does
+not: every geometrically-sunlit venue renders its geometric state (Sunny/Partial) rather than
+`CloudObscured`, and every venue's `skyCondition` is exactly the `partly-cloudy` label the raw 38.3 %
+total maps to. `sunDataSource='weather'` confirms the live production path genuinely blended the
+Met.no signal (not a fixture/geometry-only fallback). No venue is `CloudObscured`, none carries
+`skyCondition='rain'`, consistent with a clear-ish, dry sky. The pipeline is consuming the weather it
+fetches.
+
+**Tolerances applied / caveats:**
+- **Compute-cache bucket:** the app's weather is the 15:00Z bucket (15-min compute cache); ground
+  truth read from the identical 15:00Z Met.no timestep, so no bucket skew. The 16:00Z step (even
+  clearer, raw 16.5) would also be non-gating, so the conclusion is robust to a one-bucket slip.
+- **Weather far below threshold:** this was a fair, dry afternoon (effective 42 « 80) — a benign case
+  that proves the "sunny-when-clear" path but does NOT exercise the OBSCURED/rain gate against a real
+  overcast/rainy sky. The gate *firing* under real ≥80 or real rain is proven only by the AC1 mocked
+  matrix + AC4 unit guards, not yet by a live grey/rain-day observation.
+- **No physical eyeball:** Met.no is treated as ground truth (contingency method). A residual
+  maintainer follow-up remains: repeat this spot-check on a genuinely overcast or rainy Gothenburg
+  day AND confirm against the actual sky, to close the data-vs-reality half AC2's verbatim wording
+  ("match the observable sky") asks for. Recorded as a deferred maintainer item, not a defect.
+
+_Original maintainer eyeball-protocol template (retained for the future grey/rain-day check):_
+
 | Observable sky (eyeball) | Displayed headline state | Displayed sky line | Fetched effective cloud (low+med+0.25·high) | Fetched precip_rate | Match? | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | _(grey/clear/rain)_ | _(Sunny / CloudObscured / …)_ | _(Sol bakom moln / Regn / none)_ | _(value)_ | _(value)_ | _(Y/N)_ | _(triage if N)_ |
