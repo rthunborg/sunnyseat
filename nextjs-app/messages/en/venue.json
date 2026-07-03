@@ -27,7 +27,8 @@
     "sky": {
       "clear": "Clear",
       "partlyCloudy": "Partly cloudy",
-      "overcast": "Overcast"
+      "overcast": "Overcast",
+      "rain": "Rain"
     }
   },
   "route": {
@@ -170,7 +171,8 @@
       "label": "Sky now",
       "clear": "Clear",
       "partlyCloudy": "Partly cloudy",
-      "overcast": "Overcast"
+      "overcast": "Overcast",
+      "rain": "Rain"
     },
     "confidence": "Confidence",
     "confidenceApproximate": "about",

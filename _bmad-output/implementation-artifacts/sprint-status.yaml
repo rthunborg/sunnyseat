@@ -259,7 +259,7 @@ development_status:
   10-1-cloud-gated-sun-state-weather-truth-fixes: review
   10-2-sun-behind-clouds-two-signal-ui-state: review
   10-3-layered-cloud-detail-met-no-complete-endpoint: review
-  10-4-rain-now-signal-met-no-nowcast: ready-for-dev
+  10-4-rain-now-signal-met-no-nowcast: review
   10-5-weather-reality-verification-pass-regression-guards: backlog
   epic-10-retrospective: optional
 

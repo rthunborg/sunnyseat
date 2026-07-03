@@ -48,7 +48,7 @@ const SKY_COPY_WITH_RAIN = {
 // gained the field yet.
 const rainCopy = (SKY_COPY_WITH_RAIN as unknown as { rain: string }).rain;
 
-describe.skip('[10.4 AC2] skyConditionCopy renders plain-language rain copy', () => {
+describe('[10.4 AC2] skyConditionCopy renders plain-language rain copy', () => {
   it("maps 'rain' to the plain-language rain descriptor (no longer null)", () => {
     // Was `toBeNull()` on HEAD (placeholder). Task 4 makes it return copy.rain.
     expect(skyConditionCopy('rain', SKY_COPY_WITH_RAIN)).toBe(rainCopy);

@@ -48,13 +48,19 @@ export type SkyConditionCopy = {
   clear: string;
   partlyCloudy: string;
   overcast: string;
+  /** Story 10.4 (AC2): plain-language copy for the rain-now sky condition. */
+  rain: string;
 };
 
 /**
  * Story 10.2 (AC3) — maps the serialized `skyCondition` DTO field
- * (`'clear' | 'partly-cloudy' | 'overcast' | 'unavailable'`) onto
+ * (`'clear' | 'partly-cloudy' | 'overcast' | 'rain' | 'unavailable'`) onto
  * user-facing plain-language copy with NO meteorology internals (no cloud
- * %, no `cloud_area_fraction`, no geodata).
+ * %, no `cloud_area_fraction`, no rate/radar/mm/h, no geodata).
+ *
+ * Story 10.4 (AC2) realises the `'rain'` case: when the near-now radar reports
+ * active precipitation the engine surfaces `skyCondition === 'rain'`, and this
+ * renders the plain-language rain descriptor.
  *
  * Returns `null` for `'unavailable'`, an absent value, or any unrecognised
  * string — the caller renders NO sky line rather than fabricating one
@@ -71,8 +77,10 @@ export function skyConditionCopy(
       return copy.partlyCloudy;
     case 'overcast':
       return copy.overcast;
-    // 'unavailable', undefined, 'rain' (Story 10.4's, not surfaced here), or
-    // any unknown value → render nothing. Never fabricate a sky descriptor.
+    case 'rain':
+      return copy.rain;
+    // 'unavailable', undefined, or any unknown value → render nothing. Never
+    // fabricate a sky descriptor.
     default:
       return null;
   }

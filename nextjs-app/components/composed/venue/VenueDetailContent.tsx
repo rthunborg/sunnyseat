@@ -52,12 +52,14 @@ export type VenueDetailContentLabels = {
    * "{percent}% solläge" (position, not "% sol"). */
   obscuredBadge?: string;
   /** Story 10.2 (AC3): plain-language sky descriptors + a "Himmel nu" label.
-   * When the sky is unavailable, no sky line renders. */
+   * When the sky is unavailable, no sky line renders. Story 10.4 (AC2): adds the
+   * rain descriptor. */
   sky?: {
     label: string;
     clear: string;
     partlyCloudy: string;
     overcast: string;
+    rain: string;
   };
   confidence: string;
   confidenceApproximate: string;
@@ -127,6 +129,7 @@ export function VenueDetailContent({
         clear: labels.sky.clear,
         partlyCloudy: labels.sky.partlyCloudy,
         overcast: labels.sky.overcast,
+        rain: labels.sky.rain,
       })
     : null;
   const bestWindow = bestWindowLabel(timeline, labels) ?? formatLabel(labels.peakTime, { time: peakHour });

@@ -1332,6 +1332,7 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
       clear: t('quickInfo.sky.clear'),
       partlyCloudy: t('quickInfo.sky.partlyCloudy'),
       overcast: t('quickInfo.sky.overcast'),
+      rain: t('quickInfo.sky.rain'),
     },
   };
 }
@@ -1364,6 +1365,7 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
       clear: t('detail.sky.clear'),
       partlyCloudy: t('detail.sky.partlyCloudy'),
       overcast: t('detail.sky.overcast'),
+      rain: t('detail.sky.rain'),
     },
     confidence: t('detail.confidence'),
     confidenceApproximate: t('detail.confidenceApproximate'),

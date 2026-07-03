@@ -27,7 +27,8 @@
     "sky": {
       "clear": "Klart",
       "partlyCloudy": "Delvis molnigt",
-      "overcast": "Mulet"
+      "overcast": "Mulet",
+      "rain": "Regn"
     }
   },
   "route": {
@@ -170,7 +171,8 @@
       "label": "Himmel nu",
       "clear": "Klart",
       "partlyCloudy": "Delvis molnigt",
-      "overcast": "Mulet"
+      "overcast": "Mulet",
+      "rain": "Regn"
     },
     "confidence": "Säkerhet",
     "confidenceApproximate": "cirka",

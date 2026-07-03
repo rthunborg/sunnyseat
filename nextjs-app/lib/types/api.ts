@@ -65,7 +65,7 @@ export interface VenueDataDto {
   neighborhood: string;
   location: CoordinatesDto;
   currentSunStatus: VenueSunStatus;
-  skyCondition?: string; // 'clear' | 'partly-cloudy' | 'overcast' | 'unavailable'
+  skyCondition?: string; // 'clear' | 'partly-cloudy' | 'overcast' | 'rain' | 'unavailable'
   isPartner: boolean;
   /**
    * Prediction certainty, 0..100. This is not the amount of direct sun.

@@ -60,6 +60,7 @@ const labels = {
     clear: 'Klart',
     partlyCloudy: 'Delvis molnigt',
     overcast: 'Mulet',
+    rain: 'Regn',
   },
   confidence: 'Säkerhet',
   confidenceApproximate: 'cirka',

@@ -81,11 +81,12 @@ export type VenueQuickInfoProps = {
      * venue is CloudObscured. */
     obscuredHeadline?: string;
     /** Story 10.2 (AC3): plain-language sky descriptors. When absent, no sky
-     * line renders. */
+     * line renders. Story 10.4 (AC2): adds the rain descriptor. */
     sky?: {
       clear: string;
       partlyCloudy: string;
       overcast: string;
+      rain: string;
     };
   };
 };

@@ -11,7 +11,12 @@ const API_BASE = 'https://api.met.no/weatherapi';
 // TOS design). [Story 8.5 Task 5.4 / AC#4e]
 const DEFAULT_USER_AGENT = 'SunnySeat/1.0 rasmus.thunborg@enhancior.se';
 
-function userAgent(): string {
+// EXPORTED (Story 10.4 Task 1): the Nowcast 2.0 client (`nowcast-service.ts`)
+// reuses this SAME identifying User-Agent helper so the two Met.no clients cannot
+// drift out of TOS compliance (a second copy-pasted UA constant is exactly what
+// the story forbids). Kept as the single source of truth here — smaller diff than
+// lifting both into a separate `met-no-common.ts`.
+export function userAgent(): string {
   return process.env.MET_NO_USER_AGENT?.trim() || DEFAULT_USER_AGENT;
 }
 

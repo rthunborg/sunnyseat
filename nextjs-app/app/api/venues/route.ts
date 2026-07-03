@@ -31,6 +31,7 @@ import {
   aggregateSunFreshness,
   applyRealSunEngine,
   createDedupedForecastFetcher,
+  createDedupedNowcastFetcher,
   mapWithConcurrency,
   resolveRequestedAt,
   safeSeedOutcome,
@@ -256,12 +257,18 @@ export async function GET(request: NextRequest) {
     // list route can NEVER 500 on the real path (DECISION D / Story 8.5 5.1+5.2).
     const { getForecast } = await import('@/lib/weather/met-no-service');
     const dedupedForecast = createDedupedForecastFetcher(getForecast);
+    // STORY 10.4 (Task 5): batch-scoped per-coordinate dedupe for the Nowcast 2.0
+    // rain signal too — co-located venues share ONE nowcast call, keeping the
+    // Met.no fan-out under the shared TOS rate cap (rain requests count toward the
+    // same budget). The engine consults it only for near-now requests (AC4).
+    const { getNowcastPrecipitationRate } = await import('@/lib/weather/nowcast-service');
+    const dedupedNowcast = createDedupedNowcastFetcher(getNowcastPrecipitationRate);
     const outcomes = await mapWithConcurrency(
       storeVenues,
       SUN_ENGINE_LIST_CONCURRENCY,
       async (v) => {
         try {
-          return await applyRealSunEngine(v, requestedAt, now, dedupedForecast);
+          return await applyRealSunEngine(v, requestedAt, now, dedupedForecast, dedupedNowcast);
         } catch (error) {
           console.error(
             `Sun engine failed for venue ${v.id}; degrading:`,

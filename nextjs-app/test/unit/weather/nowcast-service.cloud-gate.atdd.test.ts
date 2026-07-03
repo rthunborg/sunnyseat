@@ -90,7 +90,7 @@ function nowcastResponse(
   };
 }
 
-describe.skip('[10.4 AC1] nowcast-service — Nowcast 2.0 client + graceful degradation', () => {
+describe('[10.4 AC1] nowcast-service — Nowcast 2.0 client + graceful degradation', () => {
   const fetchMock = vi.fn();
 
   beforeEach(() => {

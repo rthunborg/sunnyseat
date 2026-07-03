@@ -396,7 +396,7 @@ const SUMMER_NIGHT = new Date('2026-06-21T00:00:00.000Z'); // Stockholm 02:00, s
 // ---------------------------------------------------------------------------
 // 4. Pure helper: applyCloudGate folds in the rain OR-term (AC2 / AC3)
 // ---------------------------------------------------------------------------
-describe.skip('[10.4 AC2] applyCloudGate — rain is a one-way OR-ed gate trigger', () => {
+describe('[10.4 AC2] applyCloudGate — rain is a one-way OR-ed gate trigger', () => {
   it('gates a geometrically-sunlit venue under rain EVEN when cloud is below threshold (rain wins)', () => {
     // Low cloud (well below the gate) but it is raining → still gate.
     expect(applyCloudGateWithRain('Sunny', true, 10, true)).toBe('CloudObscured');
@@ -438,7 +438,7 @@ describe.skip('[10.4 AC2] applyCloudGate — rain is a one-way OR-ed gate trigge
 // ---------------------------------------------------------------------------
 // 5. End-to-end: rain forces the gate through the real engine (AC2)
 // ---------------------------------------------------------------------------
-describe.skip('[10.4 AC2] rain forces the gate through computeRealSunEngineResult', () => {
+describe('[10.4 AC2] rain forces the gate through computeRealSunEngineResult', () => {
   beforeEach(() => {
     clearSunEngineCachesForTests();
     mocks.from.mockReset();
@@ -499,7 +499,7 @@ describe.skip('[10.4 AC2] rain forces the gate through computeRealSunEngineResul
 // ---------------------------------------------------------------------------
 // 6. Absence of rain contributes NOTHING — the epic's HARD CONSTRAINT (AC3)
 // ---------------------------------------------------------------------------
-describe.skip("[10.4 AC3] absence of rain changes nothing (\"absence of rain must NEVER imply sun\")", () => {
+describe("[10.4 AC3] absence of rain changes nothing (\"absence of rain must NEVER imply sun\")", () => {
   beforeEach(() => {
     clearSunEngineCachesForTests();
     mocks.from.mockReset();
@@ -584,7 +584,7 @@ describe.skip("[10.4 AC3] absence of rain changes nothing (\"absence of rain mus
 // ---------------------------------------------------------------------------
 // 7. Future planner requests do NOT consult the nowcast (AC4)
 // ---------------------------------------------------------------------------
-describe.skip('[10.4 AC4] future-horizon requests skip the nowcast (no stale "now" radar leak)', () => {
+describe('[10.4 AC4] future-horizon requests skip the nowcast (no stale "now" radar leak)', () => {
   beforeEach(() => {
     clearSunEngineCachesForTests();
     mocks.from.mockReset();
