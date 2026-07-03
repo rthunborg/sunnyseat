@@ -5,10 +5,10 @@ epic_num: 10
 story_num: null
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
 status: in-progress
-updated_at: "2026-07-03T11:41:08Z"
+updated_at: "2026-07-03T11:44:20Z"
 started_at: "2026-07-02T18:18:20Z"
 completed_at: null
-active_seconds: 23501
+active_seconds: 23690
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -51,11 +51,12 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 10-4-rain-now-signal-met-no-nowcast
+active_story: 10-5-weather-reality-verification-pass-regression-guards
 stories_landed:
   - 10-1-cloud-gated-sun-state-weather-truth-fixes
   - 10-2-sun-behind-clouds-two-signal-ui-state
   - 10-3-layered-cloud-detail-met-no-complete-endpoint
+  - 10-4-rain-now-signal-met-no-nowcast
 auto_decisions:
   - "Non-compact venue card shows no visible 'Sol bakom moln' headline [Med] â†’ fix: add the muted Sol-bakom-moln headline (Cloud icon + statusObscured, text-obscured-text) to the non-compact obscured branch (Tier A, 10-2-sun-behind-clouds-two-signal-ui-state)"
   - "Amber open-until pill not muted under obscured gate [Low] â†’ dismiss: opening-hours affordance shared across all sun states, not a sun-status badge â€” AC1 targets sun-status surfaces only (Tier A, 10-2-sun-behind-clouds-two-signal-ui-state)"
@@ -93,4 +94,12 @@ uat_items:
   - "[10-3-layered-cloud-detail-met-no-complete-endpoint] Scratch script: effectiveCloudCover with high-only 100% → returns 25 (< 80, no gate); low-only 100% → 100 (gates); low-heavy > high-heavy for equal coverage."
   - "[10-3-layered-cloud-detail-met-no-complete-endpoint] Scratch script: any layer undefined + cloudCover 100 → returns raw total 100 (fallback); cloudCover undefined + no layers → undefined (never 0/100)."
   - "[10-3-layered-cloud-detail-met-no-complete-endpoint] Source-inspect met-no-service.ts → isAvailable() probe deliberately still /compact (~line 143), getForecast uses /complete (~line 69)."
+  - "[10-4-rain-now-signal-met-no-nowcast] Run `npx vitest run test/unit/weather/nowcast-service.cloud-gate.atdd.test.ts` → 9 tests pass: URL hits /nowcast/2.0/complete, 4-dp coords, SunnySeat User-Agent; degradation cases (absent field/no radar coverage/HTTP 503/network error/empty timeseries → undefined, never 0)."
+  - "[10-4-rain-now-signal-met-no-nowcast] Sanity-check live endpoint: `curl -s -H \"User-Agent: SunnySeat/uat rasmus.thunborg@enhancior.se\" \"https://api.met.no/weatherapi/nowcast/2.0/complete?lat=57.7089&lon=11.9746\" | grep -o precipitation_rate | head -1` → prints precipitation_rate."
+  - "[10-4-rain-now-signal-met-no-nowcast] Run sun-engine ATDD `-t \"rain (rate>0) over a sunlit venue with LOW cloud\"` → CloudObscured + skyCondition rain while geometric fields keep values (AC2); `-t \"rain wins\"` and `-t \"cloud is UNKNOWN\"` → rain gates below-80/unknown cloud."
+  - "[10-4-rain-now-signal-met-no-nowcast] Run `npx vitest run test/unit/sun-status-presentation.rain.cloud-gate.atdd.test.ts` → rain copy plain-language, other skies unregressed; messages-parity passes with sv 'Regn' / en 'Rain' under quickInfo.sky + detail.sky."
+  - "[10-4-rain-now-signal-met-no-nowcast] Run sun-engine ATDD `-t \"AC3\"` (4 tests) → absence of rain contributes NOTHING: no-rain+overcast stays CloudObscured/overcast, no-rain+clear+below-horizon stays NoSun, undefined ≡ 0, rain never un-gates/lifts/up-ranks; `-t \"NEVER gates a Shaded\"` + `-t \"NEVER gates NoSun under rain\"` pass."
+  - "[10-4-rain-now-signal-met-no-nowcast] Run sun-engine ATDD `-t \"AC4\"` (3 tests) → beyond NOWCAST_HORIZON_MS nowcast NOT called; at/inside horizon consulted and gates; past requestedAt NOT called."
+  - "[10-4-rain-now-signal-met-no-nowcast] Run `npx vitest run test/unit/api/` → default-seed flag-OFF path byte-identical, never touches nowcast/Met.no."
+  - "[10-4-rain-now-signal-met-no-nowcast] Full gate: `npx tsc --noEmit` 0, `npx eslint .` 0 errors, `npx vitest run` all green 0 skipped (~118 files / ~1099 tests)."
 epic_slug: honest-sky-weather-gated-two-signal-sun-display
