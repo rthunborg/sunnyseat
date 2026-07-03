@@ -273,7 +273,12 @@ export function VenueQuickInfo({
                       </span>
                     </p>
                     <p className={isAnchoredMobile ? 'contents' : 'text-body-sm text-text-body'}>
-                      {confidenceDisplay.visibleText && (
+                      {/* Story 10.2 (AC1): suppress the amber "Säkerhet" chip
+                          under the obscured gate — no amber sun chrome while the
+                          venue is cloud-obscured (mirrors VenueCard's
+                          `!isObscured` confidence gate). The sr-only accessible
+                          text is preserved so the accessible name is unchanged. */}
+                      {!isObscured && confidenceDisplay.visibleText && (
                         <>
                           <span className="font-bold text-amber-text">
                             {labels.confidence}: {confidenceDisplay.visibleText}
@@ -281,10 +286,10 @@ export function VenueQuickInfo({
                           </span>
                         </>
                       )}
-                      {!confidenceDisplay.visibleText && (
+                      {(isObscured || !confidenceDisplay.visibleText) && (
                         <span className="sr-only">{confidenceDisplay.accessibleText}. </span>
                       )}
-                      {!isAnchoredMobile && confidenceDisplay.visibleText && ' · '}
+                      {!isAnchoredMobile && !isObscured && confidenceDisplay.visibleText && ' · '}
                       <span className="font-bold">
                         {isAnchoredMobile && (
                           <span className="sr-only">

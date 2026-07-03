@@ -152,6 +152,12 @@ describe('<VenueCard />', () => {
     );
 
     const card = screen.getByTestId('venue-card');
+    // AC1: the muted "Sol bakom moln" headline is now visibly rendered on the
+    // non-compact (favourites bottom-sheet) card too, mirroring the compact card
+    // (previously the non-compact variant showed only the reframed position chip).
+    expect(card).toHaveTextContent('SOL BAKOM MOLN');
+    const headline = screen.getByText('SOL BAKOM MOLN');
+    expect(headline.closest('span.text-obscured-text')).not.toBeNull();
     // The geometric % is preserved but reframed as position (AC2), not "92% sol".
     expect(card).toHaveTextContent('92% solläge · sol här när det klarnar');
     // The muted position chip uses the obscured-text token, never amber-dark sun copy.

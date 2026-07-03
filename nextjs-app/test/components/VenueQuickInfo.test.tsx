@@ -168,6 +168,39 @@ describe('<VenueQuickInfo />', () => {
     expect(obscuredBlock).not.toHaveTextContent('Klart');
   });
 
+  it('suppresses the amber "Säkerhet" confidence chip on an obscured quick-info (Story 10.2 AC1)', () => {
+    const { container } = render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Molnbaren"
+        sunTimeRange="Sol 13:00–18:30"
+        sunExposurePercent={92}
+        distanceMeters={420}
+        confidencePercent={92}
+        confidenceMeta={{
+          sunDataSource: 'weather',
+          weatherUpdatedAt: new Date().toISOString(),
+        }}
+        currentSunStatus="CloudObscured"
+        skyCondition="overcast"
+        thumbnail={{ alt: 'Uteservering', initials: 'MB' }}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    // AC1: no amber sun chrome while the gate is active — the visible amber
+    // "Säkerhet: X%" chip is suppressed on the obscured surface (mirrors
+    // VenueCard's `!isObscured` confidence gate).
+    expect(container.querySelector('.text-amber-text')).toBeNull();
+    // The accessible name path is preserved (sr-only accessible text remains),
+    // so the confidence signal is still exposed to assistive tech.
+    expect(screen.getByRole('button', { name: /Molnbaren/ })).toBeInTheDocument();
+  });
+
   it('keeps the amber sunny quick-info unchanged for a clear-sky venue (Behaviour gate)', () => {
     render(
       <VenueQuickInfo

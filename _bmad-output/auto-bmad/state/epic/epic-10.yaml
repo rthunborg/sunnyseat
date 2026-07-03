@@ -5,10 +5,10 @@ epic_num: 10
 story_num: null
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
 status: in-progress
-updated_at: "2026-07-03T08:58:33Z"
+updated_at: "2026-07-03T09:15:14Z"
 started_at: "2026-07-02T18:18:20Z"
 completed_at: null
-active_seconds: 13777
+active_seconds: 14768
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -54,7 +54,9 @@ constraints: []
 active_story: 10-2-sun-behind-clouds-two-signal-ui-state
 stories_landed:
   - 10-1-cloud-gated-sun-state-weather-truth-fixes
-auto_decisions: []
+auto_decisions:
+  - "Non-compact venue card shows no visible 'Sol bakom moln' headline [Med] â†’ fix: add the muted Sol-bakom-moln headline (Cloud icon + statusObscured, text-obscured-text) to the non-compact obscured branch (Tier A, 10-2-sun-behind-clouds-two-signal-ui-state)"
+  - "Amber open-until pill not muted under obscured gate [Low] â†’ dismiss: opening-hours affordance shared across all sun states, not a sun-status badge â€” AC1 targets sun-status surfaces only (Tier A, 10-2-sun-behind-clouds-two-signal-ui-state)"
 uat_items:
   - "[10-1-cloud-gated-sun-state-weather-truth-fixes] From nextjs-app, run `npx vitest run test/unit/weather/met-no-service.cloud-gate.atdd.test.ts` â†’ PASS: timeseries entry missing cloud_area_fraction yields unknown (undefined) cloud, never 0/clear (AC2)."
   - "[10-1-cloud-gated-sun-state-weather-truth-fixes] Run `npx vitest run test/unit/confidence-calculator.cloud-gate.atdd.test.ts test/unit/confidence-calculator.test.ts` â†’ PASS: 100% cloud gives materially lower overallConfidence than 0%; unknown cloud neutral; no-weather path byte-identical at 0.6 (AC3/FR12)."

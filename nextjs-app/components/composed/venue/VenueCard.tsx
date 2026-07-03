@@ -211,6 +211,16 @@ export function VenueCard({
           </>
         ) : (
           <>
+            {/* Story 10.2 (AC1): the non-compact (favourites bottom-sheet) card
+                never carried a visible status headline, so mirror the compact
+                card's muted "Sol bakom moln" line for the obscured state ONLY —
+                additive, no change to the sunny/shaded non-compact layout. */}
+            {isObscured && (
+              <span className="mt-1 flex items-center gap-1 text-label-xs text-obscured-text">
+                <Cloud aria-hidden="true" className="size-3 shrink-0 fill-current" />
+                <span>{statusLabel}</span>
+              </span>
+            )}
             <span className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-1 text-body-sm-medium text-text-body">
               <Footprints aria-hidden="true" className="size-3.5 shrink-0 text-amber-dark" />
               <span>{distance}</span>
