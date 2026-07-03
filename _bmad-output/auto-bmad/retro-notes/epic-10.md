@@ -23,3 +23,6 @@
 ## Story 10-3-layered-cloud-detail-met-no-complete-endpoint
 - [Phase 5 â€” dev-story] EOL trap in confidence-calculator.ts confirmed real: committed blob is mixed-EOL (230 CRLF + 70 LF) and Read/Edit round-trips pure-CRLF-ify it (~73-line phantom churn) â€” future stories touching it must reconstruct from the parent blob preserving per-line EOLs.
 - [Phase 5 â€” dev-story] Ratified: effective = clamp(1.0*low + 1.0*medium + 0.25*high, 0, 100); helper in lib/solar/effective-cloud-cover.ts; skyCondition stays on RAW total (observable-sky honesty) while gate + confidence read EFFECTIVE cover; live real-engine fetch now uses Met.no complete endpoint (isAvailable probe stays compact).
+
+## Story 10-4-rain-now-signal-met-no-nowcast
+- [Phase 3 â€” create-story] Met.no Nowcast 2.0 precipitation_rate (mm/h) is present ONLY where radar coverage is sufficient (field omitted otherwise) â€” AC1 degradation contract: undefined never 0, extending the ratified never-??0 discipline to the rain rate.

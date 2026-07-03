@@ -5,10 +5,10 @@ epic_num: 10
 story_num: 4
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
 status: in-progress
-updated_at: "2026-07-03T10:15:34Z"
+updated_at: "2026-07-03T10:28:02Z"
 started_at: "2026-07-03T10:15:34Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 747
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: [atdd, automate]
 tea_rationale: "implements CRITICAL R-001 (sun-lies-during-rain) via no-rain-never-implies-sun invariant (R-004) + net-new Met.no Nowcast client (R-013) + near-now horizon boundary (R-014) -> High"
 epic_story_count: 5
 stories_after_in_epic: 1
-completed_phases: [0, 1]
+completed_phases: [0, 1, 3]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
