@@ -33,3 +33,6 @@
 ## Story 10-5-weather-reality-verification-pass-regression-guards
 - [Phase 3 â€” create-story] About copy (about.json) already truthfully describes the two-signal blend post-Epic-10 â€” AC3 likely resolves as verified-no-change; confirm at retro.
 - [Phase 3 â€” create-story] AC2 live sky spot-check is scoped as a maintainer needs-human step (dev provides the protocol, never fabricates the observation); the 10.2 obscured reference-PNG rebaseline is consolidated into the same maintainer follow-up list.
+- [Phase 5 â€” dev-story] FR12 cloud-confidence term is invisible in the DISPLAYED engine confidence for all unvalidated venues â€” the shadow-coverage 'unknown' 0.6 cap flattens it (both 0% and 100% cloud display 60). Not an Epic-10 regression; needs a product decision whether the cloud term applies before/independent of the cap.
+- [Phase 5 â€” dev-story] E2E card assertions cannot use ?venue= deep-link (opens detail, suppresses quick-info) nor the 10.2 ?_state force ids (normalizers clobber mocked status/sky) â€” working seam is UI selection + plain page.route DTO mock.
+- [Phase 5 â€” dev-story] story-review.sh visual gate cannot run on this Windows host (broken /tmp screenshot tooling, retro 9-2) â€” deterministic checks passed; visual validation is a maintainer follow-up alongside the obscured reference-PNG rebaseline.

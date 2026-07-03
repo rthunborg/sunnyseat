@@ -5,10 +5,10 @@ epic_num: 10
 story_num: 5
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
 status: in-progress
-updated_at: "2026-07-03T12:06:24Z"
+updated_at: "2026-07-03T12:38:26Z"
 started_at: "2026-07-03T11:44:20Z"
 completed_at: null
-active_seconds: 1321
+active_seconds: 3239
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -20,7 +20,7 @@ tea_selected: [atdd, automate]
 tea_rationale: "builds deterministic weather-boundary e2e mock to kill sky-flakiness (R-005 score 6) + final regression gate for CRITICAL R-001 -> hard-to-reproduce + data-integrity High"
 epic_story_count: 5
 stories_after_in_epic: 0
-completed_phases: [0, 1, 3, 4]
+completed_phases: [0, 1, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null

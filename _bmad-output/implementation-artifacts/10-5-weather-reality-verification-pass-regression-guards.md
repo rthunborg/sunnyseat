@@ -1,6 +1,6 @@
 # Story 10.5: Weather-Reality Verification Pass & Regression Guards
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -140,101 +140,56 @@ Visual/Behaviour/Animation gates for a surface that doesn't exist. Instead:
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Build the deterministic mocked-weather e2e matrix (AC1)**
-  - [ ] Decide the deterministic mechanism (see Dev Notes "How to mock the weather boundary
-        deterministically"). **Default recommendation:** intercept `**/api/venues*` (and
-        `**/api/venues/*` for detail) with Playwright `page.route(...).fulfill(...)`, returning a
-        hand-crafted `VenueDataDto` list/detail response per scenario. This exercises the REAL render
-        surfaces end-to-end (card + pin + detail), needs NO live Met.no, no real-engine flag, and stays
-        green on CI's seed path. The 10.2 `?_state` force-state normalizers are the fallback/complement
-        for the two obscured scenarios they already cover — do NOT rebuild what 10.2 shipped; cover the
-        THREE scenarios 10.2 does not (clear-sunny, high-cirrus-only-sunny, weather-missing-ungated).
-  - [ ] Add a new spec (e.g. `test/e2e/epic-10-weather-matrix.spec.ts`) that runs under BOTH
-        `--project=desktop` and `--project=mobile` (the matrix must hold at both breakpoints — the Design
-        Gate says "both breakpoints"). Force `?_time=13:00` so the sun is deterministically up (retro-note:
-        `?_time=` pins wall clock only, the weather MOCK pins the sky — together they are fully
-        deterministic). Bypass onboarding via the `ONBOARDED_FLAG_KEY` init-script pattern used across the
-        e2e suite.
-  - [ ] Assert the five scenarios on card + pin + detail (per AC1 reading):
-    1. **overcast ≥ threshold** ⇒ muted obscured chrome: `[data-testid="quick-info-obscured"]` /
-       `[data-testid="venue-detail-obscured"]` present, NO amber FULL SOL / sun badge, the obscured pill,
-       and the geometric `%` STILL visible (reframed "solläge"). (Reuse the 10.2 `data-testid`s.)
-    2. **clear** ⇒ amber Sunny: obscured testids ABSENT, FULL SOL / amber badge present, no sky-obscured line.
-    3. **high-cirrus-only** ⇒ Sunny (NOT gated): obscured testids ABSENT (effective cover from high cloud
-       alone stays < 80), amber Sunny — the 10.3 differentiator. If the plain-language sky line renders,
-       assert it is NOT the overcast/obscured copy.
-    4. **active rain** ⇒ obscured chrome + rain sky copy: obscured testids present, the `skyCondition='rain'`
-       plain-language copy ("Regn"/"Rain") on the sky line.
-    5. **weather-missing** ⇒ ungated-with-uncertainty: obscured testids ABSENT (no fabricated clear sky —
-       geometry governs), NO sky line (`skyCondition='unavailable'` ⇒ never rendered, 10.2), and the
-       weather-missing freshness/uncertainty signal present if surfaced.
-  - [ ] **No live Met.no in CI:** if you turn the real engine ON in the spec to exercise the gate, you MUST
-        stub the Met.no fetch (`page.route('**api.met.no/**')` or the injected forecast/nowcast overrides) so
-        no outbound request leaves CI. The `page.route`-fulfill-the-DTO approach avoids this entirely (the
-        engine never runs). State the choice in Completion Notes. Assert RELATIVE presentation, not an
-        absolute cloud % (relative-boundary discipline).
+- [x] **Task 1 — Build the deterministic mocked-weather e2e matrix (AC1)** — DONE
+  - [x] Deterministic mechanism: `page.route` DTO fulfillment (RECOMMENDED default). Intercept the
+        detail route `**/api/venues/<slug>*` FIRST (more specific) then the list route `**/api/venues?**`,
+        `fulfill`ing a hand-crafted `GetVenuesResponse`/`GetVenueDetailResponse` per scenario. The engine +
+        Met.no never run; zero production-code change. Reused the plain `?venue=` deep-link (NOT the 10.2
+        `?_state` normalizers, which would CLOBBER the mocked status/sky). Covered all five scenarios incl.
+        the three 10.2 does not (clear, high-cirrus-only, weather-missing).
+  - [x] New spec `test/e2e/epic-10-weather-matrix.spec.ts` runs under `--project=desktop` + `--project=mobile`.
+        `?_time=13:00` forced (sun up); onboarding bypassed via `ONBOARDED_FLAG_KEY` init script.
+  - [x] Asserted the five scenarios on card + pin + detail. Card selected via UI (desktop pin click / mobile
+        bottom-sheet list card) because `?venue=` opens detail and SUPPRESSES the quick-info card. Detail
+        asserted via `?venue=` deep-link. Relative presentation only (obscured-vs-amber, sky-line present/absent,
+        rain copy, geometric % still visible) — no hardcoded cloud % / threshold.
+  - [x] **No live Met.no:** the route-mock approach means the engine never runs; belt-and-braces
+        `page.route('**://api.met.no/**', abort)` asserts ZERO outbound Met.no hits per scenario. All 10 tests
+        green (warm server); zero met.no hits.
 
-- [ ] **Task 2 — Provide the AC2 live-reality spot-check protocol + hand to maintainer (`needs-human`)**
-  - [ ] Write, in this story's Dev Agent Record, the exact spot-check protocol the maintainer runs: the live
-        URL(s) to open (production map + a venue detail on the current day), the raw Met.no endpoints to fetch
-        for central Gothenburg (`https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=57.7089&lon=11.9746`
-        for cloud split, `https://api.met.no/weatherapi/nowcast/2.0/complete?lat=57.7089&lon=11.9746` for
-        precipitation_rate — with the identifying User-Agent), and the comparison table to fill (observable sky
-        vs displayed state vs fetched cloud/precip values), with slots to paste screenshots + fetched values.
-  - [ ] Mark AC2 as a recorded `needs-human` maintainer step — the dev agent does NOT self-fabricate a live sky
-        observation or a PASS. If any live mismatch is later found, it is triaged to a root cause before the epic
-        closes (that triage may spawn a follow-up story). Record this honestly.
+- [x] **Task 2 — Provide the AC2 live-reality spot-check protocol + hand to maintainer (`needs-human`)** — DONE
+  - [x] Exact spot-check protocol + comparison table written into the Dev Agent Record below (live URLs, raw
+        Met.no endpoints for central Gothenburg 57.7089,11.9746 with identifying User-Agent, comparison table).
+  - [x] AC2 recorded as a `needs-human` maintainer step. NOT self-fabricated.
 
-- [ ] **Task 3 — Verify the About copy is still truthful + `sv`/`en` parity (AC3)**
-  - [ ] Read `messages/{sv,en}/about.json` and the About page component. Confirm every claim is truthful for
-        the shipped two-signal model: the algorithm body describes geometry + weather blend (already does),
-        the Met.no data source cites clouds + precipitation (already does), the accuracy copy is honest
-        ("vägledning, inte garanti"), and NO line (a) implies a geometry-only model, or (b) over-claims
-        per-venue cloud precision (physics guardrail, epics.md:2657).
-  - [ ] If a claim is stale, update it in BOTH locales (parity-guarded). If nothing is stale, record
-        "verified truthful — no copy change needed" in Completion Notes. Either way, confirm
-        `test/unit/messages-parity.test.ts` is green and (if `AboutPage.test.tsx` asserts copy) that it still passes.
+- [x] **Task 3 — Verify the About copy is still truthful + `sv`/`en` parity (AC3)** — DONE
+  - [x] Read `messages/{sv,en}/about.json` + AboutPage. Every claim truthful for the shipped two-signal model
+        (algorithm body = geometry+weather blend; Met.no source = clouds AND precipitation; accuracy honest;
+        no geometry-only implication, no per-venue-precision over-claim).
+  - [x] Nothing stale ⇒ NO copy change. `messages-parity` (18) + `AboutPage.test.tsx` (9) green.
 
-- [ ] **Task 4 — Consolidate + fill the AC4 regression guards**
-  - [ ] VERIFY each ALREADY-covered invariant is present + green (do NOT duplicate/rewrite — reference/extend):
-    - **100% cloud ⇒ CloudObscured (never FULL SOL):** `test/unit/services/sun-engine.cloud-gate.atdd.test.ts`
-      (10.1 gate tests) + the 10.2 component tests asserting no amber under the gate on each surface. Confirm green.
-    - **Missing cloud ⇒ never clear:** 10.1 AC2 test (missing `cloud_area_fraction` ⇒ weather-unknown, no
-      fabricated clear); `skyConditionFromCloudCover(undefined) === 'unavailable'`. Confirm green.
-    - **Confidence 100% cloud < 0% cloud:** 10.1 AC3 red-first confidence test. Confirm green.
-    - **Rain forces obscured / no-rain changes nothing:** the 10.4 `[10.4 AC2]`/`[10.4 AC3]` describes. Confirm green.
-  - [ ] ADD the ONE genuinely-new cross-tier invariant (AC4's byte-identical-geometry clause): a test that runs
-        the engine (or asserts on the DTO) for the SAME venue geometry + instant across the five weather variations
-        and asserts `sunExposurePercent` and `sunWindow` are **byte-identical** while ONLY `currentSunStatus` /
-        `skyCondition` / `confidence` differ. Put it at the engine/unit level (`test/unit/services/`) mirroring the
-        existing `sun-engine.cloud-gate.atdd.test.ts` mock harness (inject forecast + nowcast overrides — NO live
-        network). This is the two-signal guarantee, and no single-tier test pins it today.
-  - [ ] **Fold in the epic-wide no-live-Met.no guard (retro-note 10.4 R1):** a unit test was caught silently
-        issuing a live `api.met.no` fetch via an un-mocked lazy-import path (it passed only because errors swallow
-        to `undefined`). Add a **shared-setup fetch guard** in `test/setup/setup.ts` (there is NO global fetch stub
-        there today — verified): a `beforeEach`/`afterEach` that installs a `vi.stubGlobal('fetch', …)` (or wraps
-        the real fetch) which THROWS if any test attempts an outbound request to an `api.met.no` host, so a masked
-        live call becomes a hard failure instead of a silent pass. Keep it surgical — allow same-origin/relative
-        URLs and MSW-style mocks; ONLY trap real `api.met.no` (and, defensively, any absolute `http(s)://` to an
-        external host if that does not break existing tests — verify against the full suite; if it does, scope to
-        `api.met.no` only and note it). This is the honest way to enforce the "no live Met.no in any test"
-        invariant the epic ratified.
-  - [ ] Run the full gate (Task 5). Every net-new/un-skipped guard is red-first where it exercises new logic.
+- [x] **Task 4 — Consolidate + fill the AC4 regression guards** — DONE
+  - [x] Verified each already-covered invariant green: 100%-cloud⇒obscured/no-amber + missing-cloud⇒never-clear +
+        rain-forces-obscured + no-rain-inert (`sun-engine.cloud-gate.atdd.test.ts`), confidence-100%<0%
+        (`confidence-calculator.cloud-gate.atdd.test.ts`). 41 tests green; 10.2 component no-amber tests green
+        in the full run.
+  - [x] Added the NET-NEW byte-identical-geometry cross-tier guard
+        (`sun-engine.two-signal-invariants.atdd.test.ts`) — `sunExposurePercent`/`sunWindow` byte-identical across
+        all five weather variations for the same geometry+instant, only status/sky/confidence differ. PASS.
+        FINDING (see Completion Notes): the confidence-100%<0% clause was surfaced RED at the *displayed-engine*
+        level (both 60) because the conservative shadow-coverage cap flattens unvalidated fixture venues —
+        re-asserted at the confidence-CALCULATOR layer where the FR12 blend is observable.
+  - [x] Folded in the epic-wide no-live-Met.no shared-setup fetch guard (`test/setup/setup.ts`), scoped to
+        `api.met.no`. Acceptance test `test/unit/no-live-metno-fetch-guard.atdd.test.ts` green (3/3); full suite green.
 
-- [ ] **Task 5 — Verify gates + record decisions**
-  - [ ] Fresh HEAD vitest baseline BEFORE edits: **118 test files** on this branch (10.4 finished 117 vitest
-        files / 1089 tests → +1 from the 10.4 review fetch-mock fix; measure fresh at start). The vitest/e2e count
-        is expected to INCREASE (the new cross-tier byte-identical guard + the shared fetch guard + the new e2e
-        matrix spec); NONE dropped.
-  - [ ] Standard four-command gate from `nextjs-app/`: `npx tsc --noEmit` (0 errors), `npx eslint .` (0 errors;
-        note pre-existing warnings, add none), `npx vitest run` (all green, 0 unexpected skips), and
-        messages-parity green.
-  - [ ] Run the e2e matrix explicitly: `npx playwright test --project=desktop --project=mobile
-        test/e2e/epic-10-weather-matrix.spec.ts` (e2e is NOT part of the vitest gate). Record pass/fail per
-        scenario. Note any PRE-EXISTING e2e reds you observe (e.g. the desktop `map-primary.spec.ts` planner-bar
-        width red is pre-existing on `main`, retro-note 9-0 — do NOT try to fix it here; confirm still-red and
-        report). Confirm NO outbound `api.met.no` request fired during the run.
-  - [ ] Record all decisions in Completion Notes.
+- [x] **Task 5 — Verify gates + record decisions** — DONE
+  - [x] Fresh HEAD baseline: 118 files passed + 2 skipped (the scaffolds) / 1099 passed + 8 skipped. After
+        green-phase: **120 files / 1107 tests, 0 skipped** — net +2 files / +8 tests, NONE dropped.
+  - [x] Four-command gate from `nextjs-app/`: `tsc --noEmit` 0 errors; `eslint .` 0 errors (13 pre-existing
+        warnings in untouched files, none added); `vitest run` all green 0 unexpected skips; messages-parity green.
+  - [x] e2e matrix: `npx playwright test --project=desktop --project=mobile test/e2e/epic-10-weather-matrix.spec.ts`
+        → 10/10 pass (warm server), ZERO `api.met.no` hits. Cold-start first-test flake handled by CI `retries: 2`.
+  - [x] Decisions recorded in Completion Notes.
 
 ## Dev Notes
 
@@ -491,12 +446,144 @@ yourself editing tier logic (`sun-engine.ts`/`met-no-service.ts`/`nowcast-servic
 
 ### Agent Model Used
 
+claude-opus-4-8[1m] (Opus 4.8, 1M context) — auto-bmad dev-story delegate.
+
 ### Debug Log References
+
+- Fresh HEAD vitest baseline (before edits): 118 files passed + 2 skipped (the red-phase scaffolds) /
+  1099 passed + 8 skipped. `tsc --noEmit` 0 errors.
+- Post-green-phase full vitest: **120 files / 1107 tests, 0 skipped.** `tsc --noEmit` 0 errors.
+  `eslint .` 0 errors / 13 pre-existing warnings (untouched files).
+- e2e matrix (`--project=desktop --project=mobile epic-10-weather-matrix.spec.ts`): 10/10 pass on a
+  warm dev server; ZERO `api.met.no` requests observed in any test (belt-and-braces assertion green).
+- Cross-tier confidence RED (investigated, not weakened): `expected 60 to be less than 60`. Root cause
+  traced to `applyShadowDataCoverageCap` → `coverageCapForStatus('unknown') === 0.6` (all launch clusters
+  ship `status:'unknown'` in `CONSERVATIVE_CLUSTER_COVERAGE`, no validation artifact). See Completion Notes.
 
 ### Completion Notes List
 
+**Scope:** verification + regression story. No production runtime code changed. Files touched: two net-new
+test files (un-skipped from the red-phase scaffolds), one shared-test-setup edit, one e2e spec (fleshed out
+from the scaffold). No component, colour, i18n key, route, migration, or reference-PNG created (as designed).
+
+**AC1 — deterministic mocked-weather e2e matrix (DONE, green).**
+- Mechanism: `page.route` DTO fulfillment (the recommended default). Intercept the detail route
+  `**/api/venues/<slug>*` first (specific) then the list route `**/api/venues?**`; `fulfill` a hand-crafted
+  `GetVenuesResponse`/`GetVenueDetailResponse` per scenario. The venues route handler / engine / Met.no never
+  run → fully deterministic, no real-engine flag, no live weather, zero production footprint.
+- Deliberately did NOT reuse the 10.2 `?_state=map-with-obscured-venue` / `map-with-selected-venue` forced
+  states: those apply `normalizeForcedObscuredVenue`/`normalizeForcedVisualVenue`, which OVERRIDE
+  `currentSunStatus`/`skyCondition`/`confidence` and would clobber the mocked scenario. Plain `?venue=<slug>`
+  deep-link (no forced state) drives the detail from the mocked DTO cleanly.
+- Card vs detail seam: `?venue=<slug>` opens the detail overlay AND suppresses the quick-info card
+  (`selectedPinData && !isVenueDetailRequested`, MapView.tsx). So the CARD is asserted by selecting the venue
+  through the UI (desktop: pin click; mobile: the bottom-sheet `Välj Kafé Magasinet` list card — the mid-state
+  sheet covers the projected pin), and the DETAIL by the `?venue=` deep-link.
+- Scaffold correction: the mobile detail panel testid is `mobile-venue-detail-sheet`, not the scaffold's
+  placeholder `venue-detail-panel`. Fixed.
+- Assertions are RELATIVE (obscured-vs-amber via `quick-info-obscured`/`venue-detail-obscured`, geometric `95%`
+  still visible on the obscured card, rain copy `Regn|Rain`, weather-missing ⇒ no sky line, non-obscured ⇒ NOT
+  the overcast copy). No hardcoded cloud % or the 80 threshold → survives a future re-tune.
+- Cold-start note: on a COLD local dev server the very first test can exceed the 30 s budget while Turbopack
+  compiles the route on first hit (identical to every other e2e spec in this suite). CI sets `retries: 2`
+  (documented in `playwright.config.ts`), which absorbs the warmed-second-attempt flake. In isolation and on a
+  warm server all 10 pass cleanly.
+
+**AC2 — live reality spot-check: `needs-human` maintainer step (protocol below, NOT fabricated).**
+The dev agent cannot produce a genuine live sky observation. The exact protocol + comparison table for the
+maintainer follows. AC2 does not "close" until the maintainer records the observation (and triages any
+mismatch to a root cause before the epic closes).
+
+_Steps for the maintainer (run on a real grey-or-clear day):_
+1. Open the LIVE production site (real-engine flag ON): the map (`/`) and one venue detail on the current
+   day. Screenshot each showing the headline sun state + the sky line.
+2. Fetch the raw Met.no responses for central Gothenburg (`57.7089, 11.9746`) with the identifying
+   User-Agent (`sunnyseat/… rasmus.thunborg@enhancior.se`):
+   - Cloud split: `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=57.7089&lon=11.9746`
+     → read `cloud_area_fraction` + `cloud_area_fraction_low` / `_medium` / `_high` for the current timestep.
+   - Precipitation: `https://api.met.no/weatherapi/nowcast/2.0/complete?lat=57.7089&lon=11.9746`
+     → read `precipitation_rate` for the near-now timestep.
+3. Compute effective cover ≈ `low + medium + 0.25·high` (clamped 0..100). Fill the table; paste screenshots
+   + fetched values here.
+4. If observable sky / displayed state / fetched values disagree, TRIAGE to a root cause before the epic
+   closes (may spawn a follow-up story).
+
+| Observable sky (eyeball) | Displayed headline state | Displayed sky line | Fetched effective cloud (low+med+0.25·high) | Fetched precip_rate | Match? | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| _(grey/clear/rain)_ | _(Sunny / CloudObscured / …)_ | _(Sol bakom moln / Regn / none)_ | _(value)_ | _(value)_ | _(Y/N)_ | _(triage if N)_ |
+
+**AC3 — About copy: VERIFIED TRUTHFUL, no change needed.**
+`messages/{sv,en}/about.json` already truthfully describes the shipped two-signal model:
+`algorithmBody` = geometry+weather blend ("så att en plats som ligger i moln inte räknas som solig" / "a place
+under cloud is not counted as sunny"); `sourceMetnoDesc` cites clouds AND precipitation; `accuracyBody` is
+honest ("vägledning, inte som garanti" / "guidance, not a guarantee"). No line implies geometry-only, no line
+over-claims per-venue cloud precision (physics guardrail). No churn. `messages-parity` (18) + `AboutPage.test.tsx`
+(9) green.
+
+**AC4 — regression guards.**
+- NET-NEW #1 (byte-identical geometry): PASS. Across all five weather variations for the same geometry+instant,
+  `sunExposurePercent` and `sunWindow` are byte-identical while only status/sky/confidence vary. Weather-missing
+  never fabricates clear (`skyCondition === 'unavailable'`, not gated). This is the two-signal guarantee no
+  single-tier test pinned before.
+- **FINDING (surfaced by the confidence clause; NOT a two-signal defect):** the AC4 "confidence at 100% cloud <
+  confidence at 0% cloud" clause was RED at the *displayed-engine* level — both returned exactly 60. Root cause:
+  the conservative shadow-data-coverage cap. Every launch cluster ships `status:'unknown'` in
+  `CONSERVATIVE_CLUSTER_COVERAGE` (no validation artifact loaded), `coverageCapForStatus('unknown') === 0.6`, and
+  `applyConfidenceCaps` clips BOTH the clear and overcast outcomes to 0.6 → displayed 60. The FR12 cloud term
+  genuinely fires BELOW that cap, so its effect is clipped from the *displayed number* for any venue the coverage
+  gate has not marked `eligible`. This is a pre-existing intentional cap (Story 3.0.5), not an Epic-10 regression.
+  Resolution: assert the FR12 blend at the confidence-CALCULATOR layer (`calculateConfidenceFactors`, eligible
+  coverage, the SAME cloud slices the engine feeds) where it is observable — matching the already-green 10.1 AC3
+  test `confidence-calculator.cloud-gate.atdd.test.ts`. Documented inline in the test. The assertion was NOT
+  weakened; it was moved to the layer where the property is guaranteed. See Deferred/Follow-ups.
+- NET-NEW #2 (shared no-live-Met.no fetch guard): added to `test/setup/setup.ts`. A `beforeEach` wraps
+  `globalThis.fetch`; any outbound request whose host is `api.met.no` is REJECTED with a clear guard message;
+  relative/same-origin and all other hosts pass through untouched. **Scoped to `api.met.no` only** (deliberately
+  NOT all external hosts — the broad form would trap benign absolute thumbnail URLs some tests construct; verified
+  the surgical scope keeps the full suite green). Acceptance test green (3/3), full suite unchanged (still 120/1107).
+- Already-covered invariants re-verified green: 100%-cloud⇒obscured/no-amber, missing-cloud⇒never-clear,
+  rain-forces-obscured, no-rain-inert (`sun-engine.cloud-gate.atdd.test.ts`), confidence blend
+  (`confidence-calculator.cloud-gate.atdd.test.ts`).
+
+**Design Gate (verification story — no new UI).** No new screenshot target added. The two Story 10.2 obscured
+reference PNGs (`map-with-obscured-venue`, `venue-detail-obscured`, at mobile + desktop) still DO NOT EXIST and
+the host `visual-validate.sh` cannot run on this Windows machine (`/tmp/impl-*.png` unwritable, retro-note 9-2).
+"10.2 references pass at both breakpoints" remains BLOCKED on a MAINTAINER rebaseline (an already-open 10.2
+follow-up). The dev agent is forbidden from creating/editing reference PNGs and did not. The e2e matrix + the
+AC4 regression net are the behavioural gate; the AC2 live spot-check is the maintainer's reality gate.
+
+**Deferred / maintainer follow-ups:**
+1. **[AC2 — live reality spot-check]** `needs-human`: maintainer runs the protocol above on a real day and
+   records the observation (screenshots + fetched values) before the epic closes.
+2. **[Design Gate — 10.2 obscured reference-PNG rebaseline]** maintainer rebaseline of `map-with-obscured-venue`
+   + `venue-detail-obscured` at mobile + desktop (host `/tmp` visual tooling is broken; dev forbidden from
+   editing PNGs). Consolidated single follow-up — an already-open 10.2 item.
+3. **[Displayed-confidence coverage cap flattens the FR12 cloud signal]** (finding, NOT reopened here): for
+   unvalidated venues (all clusters today), the shadow-coverage 0.6 cap clips the displayed confidence so the
+   "more cloud ⇒ lower displayed confidence" property is not visible to users until a cluster is marked
+   `eligible` via a validation artifact. Consider whether this is acceptable product behaviour or whether the
+   cloud term should apply before/independent of the coverage cap. Out of 10.5 scope (engine change).
+
 ### File List
 
+- `nextjs-app/test/e2e/epic-10-weather-matrix.spec.ts` — NEW (fleshed out from red scaffold): AC1 deterministic
+  mocked-weather e2e matrix, 5 scenarios × desktop+mobile, `page.route` DTO fulfillment, no-live-Met.no guard.
+- `nextjs-app/test/unit/services/sun-engine.two-signal-invariants.atdd.test.ts` — NEW (un-skipped + confidence
+  clause re-homed to the calculator layer): AC4 net-new byte-identical-geometry cross-tier guard.
+- `nextjs-app/test/unit/no-live-metno-fetch-guard.atdd.test.ts` — NEW (un-skipped): acceptance test for the
+  shared fetch guard.
+- `nextjs-app/test/setup/setup.ts` — EDITED: added the shared no-live-Met.no `beforeEach` fetch guard (scoped to
+  `api.met.no`).
+- `_bmad-output/test-artifacts/atdd-checklist-10-5.md` — EDITED: green-phase checkboxes ticked + notes.
+
 ### Change Log
+
+- 2026-07-03 — Story 10.5 implemented. Un-skipped the three red-phase ATDD scaffolds and completed them:
+  (1) the AC1 e2e weather matrix (DTO builders, mobile-testid fix, card-via-UI + detail-via-deep-link,
+  sky-line assertions); (2) the AC4 byte-identical-geometry cross-tier guard (green; confidence clause
+  re-homed to the confidence-calculator layer after surfacing the coverage-cap finding); (3) the AC4 shared
+  no-live-Met.no fetch guard (added to `test/setup/setup.ts`, scoped to `api.met.no`). AC3 About copy verified
+  truthful (no change). AC2 live spot-check handed to the maintainer as a recorded `needs-human` step. Full
+  gate green: tsc 0, eslint 0 errors, vitest 120 files / 1107 tests 0 skipped, e2e matrix 10/10 (zero met.no hits).
 
 ### Review Findings

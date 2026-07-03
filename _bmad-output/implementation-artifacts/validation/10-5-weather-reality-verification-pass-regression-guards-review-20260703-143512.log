@@ -1,0 +1,42 @@
+SunnySeat story review gate
+Story: 10-5-weather-reality-verification-pass-regression-guards
+Mode: dry-run
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/10-5-weather-reality-verification-pass-regression-guards-review-20260703-143512.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/10-5-weather-reality-verification-pass-regression-guards.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+Not implemented: navigation to another Document
+
+ Test Files  120 passed (120)
+      Tests  1107 passed (1107)
+   Start at  14:35:30
+   Duration  41.83s (transform 7.39s, setup 63.12s, import 72.94s, tests 67.30s, environment 349.31s)
+
+
+Running visual validation: screen='map-with-obscured-venue' route='/?_state=map-with-obscured-venue&_time=14:00' viewport='mobile'
+--- Visual validation: map-with-obscured-venue ---
+Navigating to http://localhost:3000/?_state=map-with-obscured-venue&_time=14:00
+VISUAL GATE FAILED: Could not screenshot dev server at http://localhost:3000/?_state=map-with-obscured-venue&_time=14:00
+Ensure the dev server is running before visual validation.

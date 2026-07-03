@@ -44,7 +44,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-describe.skip('[10.5 AC4] shared no-live-Met.no fetch guard (installed in test/setup/setup.ts)', () => {
+describe('[10.5 AC4] shared no-live-Met.no fetch guard (installed in test/setup/setup.ts)', () => {
   it('THROWS / rejects when any test attempts an outbound fetch to an api.met.no host', async () => {
     // Once the shared guard is active, this must be trapped — NOT allowed to
     // reach the network. A masked live call becomes a hard failure.

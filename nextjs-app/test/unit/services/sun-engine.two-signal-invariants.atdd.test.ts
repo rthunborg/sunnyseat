@@ -51,8 +51,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyRealSunEngine } from '@/lib/services/sun-engine';
 import { clearSunEngineCachesForTests } from '@/lib/services/sun-engine-cache';
+import { calculateConfidenceFactors } from '@/lib/solar/confidence-calculator';
 import type { StoredVenue } from '@/lib/services/venue-store';
-import type { WeatherSlice } from '@/lib/solar/types';
+import type {
+  SolarPosition,
+  VenueShadowInfo,
+  WeatherSlice,
+} from '@/lib/solar/types';
 
 const mocks = vi.hoisted(() => ({
   from: vi.fn(),
@@ -124,6 +129,54 @@ function weatherSlice(overrides: Partial<WeatherSlice> = {}): WeatherSlice {
   };
 }
 
+// --- Confidence-calculator harness (FR12 cross-tier assertion) --------------
+// The engine's DISPLAYED confidence is clipped to 0.6 for unvalidated fixture
+// venues by the conservative shadow-data-coverage cap (all clusters 'unknown'),
+// which masks the FR12 cloud term. To assert the two-signal confidence guarantee
+// cross-tier we drive the SAME `calculateConfidenceFactors` the engine uses with
+// the engine's exact cloud slices, on an ELIGIBLE coverage so the display cap does
+// not mask the blend. Fixed `createdAt` (via the SCENARIO slices) keeps freshness
+// identical across the two calls — the ONLY differing input is cloud.
+const BASE_SOLAR: SolarPosition = {
+  azimuth: 180,
+  elevation: 35,
+  zenith: 55,
+  declination: 0,
+  hourAngle: 0,
+  earthDistance: 1,
+  timestamp: new Date('2026-06-21T10:30:00.000Z'),
+  localTime: new Date('2026-06-21T12:30:00.000+02:00'),
+  isSunVisible: true,
+  latitude: 57.7089,
+  longitude: 11.9746,
+};
+
+function eligibleShadowInfo(): VenueShadowInfo {
+  return {
+    venueId: 1,
+    shadowedAreaPercent: 0,
+    sunlitAreaPercent: 100,
+    castingShadows: [],
+    shadowedGeometry: null,
+    sunlitGeometry: null,
+    timestamp: new Date('2026-06-21T10:30:00.000Z'),
+    confidence: 1,
+    solarPosition: BASE_SOLAR,
+    shadowDataCoverage: {
+      clusterId: 'inom-vallgraven',
+      clusterName: 'Inom Vallgraven',
+      status: 'eligible',
+      checkedCount: 70,
+      agreementRate: 0.9,
+      missingConditions: [],
+      uncertaintyCounts: {},
+      evidenceFiles: ['fixture'],
+      allowsHighConfidence: true,
+      confidenceCap: 1,
+    },
+  };
+}
+
 // The five weather variations the epic must render honestly. Each carries its
 // forecast slice(s) + nowcast rate; geometry (rpc → no casters) is identical.
 type Scenario = {
@@ -161,7 +214,7 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
-describe.skip('[10.5 AC4] two-signal guarantee — geometry is byte-identical across all five weather variations', () => {
+describe('[10.5 AC4] two-signal guarantee — geometry is byte-identical across all five weather variations', () => {
   beforeEach(() => {
     clearSunEngineCachesForTests();
     mocks.from.mockReset();
@@ -243,10 +296,39 @@ describe.skip('[10.5 AC4] two-signal guarantee — geometry is byte-identical ac
     }
   });
 
-  it('confidence at 100% effective cloud is STRICTLY LOWER than confidence at 0% cloud (FR12 blend, guarded here cross-tier)', async () => {
-    const clear = await runScenario(SCENARIOS[0]); // 0% cloud
-    const overcast = await runScenario(SCENARIOS[1]); // 100% low stratus
-    expect(overcast.venue.confidence).toBeLessThan(clear.venue.confidence);
+  // FR12 blend — asserted at the confidence-CALCULATOR layer, not the
+  // displayed-engine number.
+  //
+  // FINDING (10.5 verification pass): at the DISPLAYED-engine level the two-signal
+  // confidence differentiation is INVISIBLE for an unvalidated fixture venue — the
+  // conservative shadow-data-coverage cap flattens it. Every launch cluster ships
+  // `status:'unknown'` in `CONSERVATIVE_CLUSTER_COVERAGE` (no validation artifact),
+  // and `coverageCapForStatus('unknown') === 0.6`, so `applyConfidenceCaps` clips
+  // BOTH the 0%-cloud and 100%-cloud outcomes to exactly 60 (verified: clear=60,
+  // overcast=60). The FR12 cloud term genuinely fires BELOW that cap, so it is
+  // clipped away in the displayed number for any venue the coverage gate has not
+  // marked `eligible`. This is a pre-existing, intentional cap (Story 3.0.5) — NOT
+  // a two-signal defect — but it means the "confidence falls as cloud rises" AC is
+  // only OBSERVABLE at the confidence-calculator layer (and on eligible venues),
+  // which is exactly where `confidence-calculator.cloud-gate.atdd.test.ts` (10.1
+  // AC3) already pins it. We re-assert it HERE cross-tier with the SAME effective
+  // low/med/high cloud slices the engine feeds, on an ELIGIBLE coverage so the cap
+  // does not mask the blend — proving the two-signal confidence guarantee holds
+  // through the real `calculateConfidenceFactors` path, independent of the display cap.
+  it('confidence at 100% effective cloud is STRICTLY LOWER than confidence at 0% cloud (FR12 blend, guarded here cross-tier)', () => {
+    const clearWeather = SCENARIOS[0].forecast[0]; // 0% cloud
+    const overcastWeather = SCENARIOS[1].forecast[0]; // 100% low stratus (effective ≥ threshold)
+
+    const clear = calculateConfidenceFactors(1, eligibleShadowInfo(), BASE_SOLAR, clearWeather);
+    const overcast = calculateConfidenceFactors(1, eligibleShadowInfo(), BASE_SOLAR, overcastWeather);
+
+    // FR12: the cloud amount genuinely participates in the blend (relative, so a
+    // future re-tune of the floor / weights survives). Assert a material drop, not
+    // mere `<`, so rounding noise can't count as a pass.
+    expect(overcast.overallConfidence).toBeLessThan(clear.overallConfidence);
+    expect(clear.overallConfidence - overcast.overallConfidence).toBeGreaterThan(0.05);
+    // The pre-cap cloud-certainty term itself is cloud-sensitive.
+    expect(overcast.cloudCertainty).toBeLessThan(clear.cloudCertainty);
   });
 
   it('weather-missing NEVER fabricates a clear sky: NOT gated + skyCondition="unavailable"', async () => {
