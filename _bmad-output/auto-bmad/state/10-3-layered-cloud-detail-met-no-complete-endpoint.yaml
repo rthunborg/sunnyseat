@@ -5,10 +5,10 @@ epic_num: 10
 story_num: 3
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
 status: in-progress
-updated_at: "2026-07-03T10:09:23Z"
+updated_at: "2026-07-03T10:12:52Z"
 started_at: "2026-07-03T09:18:13Z"
 completed_at: null
-active_seconds: 3067
+active_seconds: 3274
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: [automate]
 tea_rationale: "non-trivial layer-weighting branching feeding sun-engine + confidence-calculator; same Met.no client, no new external surface; test design caps at R-007 score 4 -> Med"
 epic_story_count: 5
 stories_after_in_epic: 2
-completed_phases: [0, 1, 3, 4, 5, 6]
+completed_phases: [0, 1, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -52,3 +52,4 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: 098d0508b135f5ff409d29628b4b3003ebfb2575
+tier_a_review: "done â€” Approve; Critical 0 / High 0 / Med 0 / Low 0 surviving (3 informational Lows dismissed as story-sanctioned); security clean 0 findings; no fix pass needed"
