@@ -1,26 +1,26 @@
 # auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
 # see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
-story_key: 10-3-layered-cloud-detail-met-no-complete-endpoint
+story_key: 10-4-rain-now-signal-met-no-nowcast
 epic_num: 10
-story_num: 3
+story_num: 4
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
 status: in-progress
-updated_at: "2026-07-03T10:14:33Z"
-started_at: "2026-07-03T09:18:13Z"
+updated_at: "2026-07-03T10:15:34Z"
+started_at: "2026-07-03T10:15:34Z"
 completed_at: null
-active_seconds: 3375
+active_seconds: 0
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
 git_mode: remote
 base_branch: main
-tea_risk: med
-tea_selected: [automate]
-tea_rationale: "non-trivial layer-weighting branching feeding sun-engine + confidence-calculator; same Met.no client, no new external surface; test design caps at R-007 score 4 -> Med"
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "implements CRITICAL R-001 (sun-lies-during-rain) via no-rain-never-implies-sun invariant (R-004) + net-new Met.no Nowcast client (R-013) + near-now horizon boundary (R-014) -> High"
 epic_story_count: 5
-stories_after_in_epic: 2
-completed_phases: [0, 1, 3, 4, 5, 6, 7]
+stories_after_in_epic: 1
+completed_phases: [0, 1]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -51,5 +51,4 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-tier_a_base_sha: 098d0508b135f5ff409d29628b4b3003ebfb2575
-tier_a_review: "done â€” Approve; Critical 0 / High 0 / Med 0 / Low 0 surviving (3 informational Lows dismissed as story-sanctioned); security clean 0 findings; no fix pass needed"
+tier_a_base_sha: cdf89e9ce0f22b2b4e0b8ca3802c967abd4f5570

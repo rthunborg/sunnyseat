@@ -5,10 +5,10 @@ epic_num: 10
 story_num: null
 branch: epic/10-honest-sky-weather-gated-two-signal-sun-display
 status: in-progress
-updated_at: "2026-07-03T10:12:51Z"
+updated_at: "2026-07-03T10:15:34Z"
 started_at: "2026-07-02T18:18:20Z"
 completed_at: null
-active_seconds: 18211
+active_seconds: 18373
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -51,10 +51,11 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-active_story: 10-3-layered-cloud-detail-met-no-complete-endpoint
+active_story: 10-4-rain-now-signal-met-no-nowcast
 stories_landed:
   - 10-1-cloud-gated-sun-state-weather-truth-fixes
   - 10-2-sun-behind-clouds-two-signal-ui-state
+  - 10-3-layered-cloud-detail-met-no-complete-endpoint
 auto_decisions:
   - "Non-compact venue card shows no visible 'Sol bakom moln' headline [Med] â†’ fix: add the muted Sol-bakom-moln headline (Cloud icon + statusObscured, text-obscured-text) to the non-compact obscured branch (Tier A, 10-2-sun-behind-clouds-two-signal-ui-state)"
   - "Amber open-until pill not muted under obscured gate [Low] â†’ dismiss: opening-hours affordance shared across all sun states, not a sun-status badge â€” AC1 targets sun-status surfaces only (Tier A, 10-2-sun-behind-clouds-two-signal-ui-state)"
@@ -81,4 +82,14 @@ uat_items:
   - "[10-2-sun-behind-clouds-two-signal-ui-state] Reload the obscured map URL a few times → obscured pill appears immediately, no amber-to-slate flash on gate crossing (Animation gate)."
   - "[10-2-sun-behind-clouds-two-signal-ui-state] DevTools a11y inspector on obscured pin/card button → accessible name contains the obscured phrase exactly once (AC4)."
   - "[10-2-sun-behind-clouds-two-signal-ui-state] On obscured quick-info + detail (desktop) → no amber Säkerhet/confidence chip visible under the gate (AC1, review-fix verification)."
+  - "[10-3-layered-cloud-detail-met-no-complete-endpoint] Run full unit gate `npx vitest run` in nextjs-app → ~115 files / ~1060 tests, 0 skipped (the story's stated acceptance signal)."
+  - "[10-3-layered-cloud-detail-met-no-complete-endpoint] Run `npx vitest run test/unit/solar/effective-cloud-cover.test.ts` → formula matrix passes (boundaries, fallback, clamp)."
+  - "[10-3-layered-cloud-detail-met-no-complete-endpoint] Run `npx vitest run test/unit/services/sun-engine.cloud-gate.atdd.test.ts` → 100%-high cirrus does NOT gate (Sunny); 100%-low deck DOES gate (CloudObscured)."
+  - "[10-3-layered-cloud-detail-met-no-complete-endpoint] Run `npx vitest run test/unit/weather/met-no-service.cloud-gate.atdd.test.ts` → fetched URL contains /locationforecast/2.0/complete (not /compact) and maps the three layer fields."
+  - "[10-3-layered-cloud-detail-met-no-complete-endpoint] Run `npx vitest run test/unit/confidence-calculator.cloud-gate.atdd.test.ts` → 100%-cirrus confidence > 100%-low-deck confidence, both below clear; no-weather 0.6 pin still green."
+  - "[10-3-layered-cloud-detail-met-no-complete-endpoint] Run `npx vitest run test/unit/api` → default seed path (flag OFF) 94 tests unchanged."
+  - "[10-3-layered-cloud-detail-met-no-complete-endpoint] Run `npx tsc --noEmit` → 0 errors; `npx eslint .` → 0 errors, no new warnings."
+  - "[10-3-layered-cloud-detail-met-no-complete-endpoint] Scratch script: effectiveCloudCover with high-only 100% → returns 25 (< 80, no gate); low-only 100% → 100 (gates); low-heavy > high-heavy for equal coverage."
+  - "[10-3-layered-cloud-detail-met-no-complete-endpoint] Scratch script: any layer undefined + cloudCover 100 → returns raw total 100 (fallback); cloudCover undefined + no layers → undefined (never 0/100)."
+  - "[10-3-layered-cloud-detail-met-no-complete-endpoint] Source-inspect met-no-service.ts → isAvailable() probe deliberately still /compact (~line 143), getForecast uses /complete (~line 69)."
 epic_slug: honest-sky-weather-gated-two-signal-sun-display
