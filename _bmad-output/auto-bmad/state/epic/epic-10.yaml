@@ -9,7 +9,7 @@ updated_at: "2026-07-03T14:35:03Z"
 started_at: "2026-07-02T18:18:20Z"
 completed_at: null
 active_seconds: 33839
-timing_anchor: null
+timing_anchor: 1783089303
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
