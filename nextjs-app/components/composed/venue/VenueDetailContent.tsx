@@ -27,7 +27,9 @@ import {
 } from '@/lib/utils/confidence-display';
 import {
   isObscuredSunStatus,
+  isSunWindowStatus,
   skyConditionCopy,
+  windowLabelTier,
 } from '@/lib/utils/sun-status-presentation';
 import { formatPlannerTime } from '@/lib/utils/time-planner';
 import { cn } from '@/lib/utils';
@@ -555,7 +557,9 @@ function SunForecastBars({
 
 export function peakTimeFromTimeline(timeline: VenueDetailDto['timeline']): string | undefined {
   const sunWindow = timeline.windows.find((window) => window.status === 'Sunny') ??
-    timeline.windows.find((window) => window.status === 'Partial');
+    // CloudObscured counts as sun potential (10.2 AC2) — isSunWindowStatus is
+    // never-exhaustive so a future status can't silently drop out here.
+    timeline.windows.find((window) => isSunWindowStatus(window.status));
   if (!sunWindow) return undefined;
   const start = parseHour(sunWindow.start);
   const end = parseHour(sunWindow.end);
@@ -566,10 +570,15 @@ function timelineWindowLabel(
   window: VenueDetailDto['timeline']['windows'][number],
   labels: SunTimelineLabels,
 ): string {
+  // Route through the shared never-exhaustive tier helper (Story 10.2) so a raw
+  // 'CloudObscured' window renders the clear-sky "Sunny/Partial" label, NEVER
+  // the dishonest "Skugga"/"Shaded" copy — the mobile sr-only-label leak that
+  // 55eacba left unguarded on this surface.
+  const tier = windowLabelTier(window.status);
   const template =
-    window.status === 'Sunny'
+    tier === 'sunny'
       ? labels.sunnyWindow
-      : window.status === 'Partial'
+      : tier === 'partial'
         ? labels.partialWindow
         : labels.shadedWindow;
   return formatLabel(template, { start: window.start, end: window.end });
@@ -579,11 +588,16 @@ function bestWindowLabel(
   timeline: VenueDetailDto['timeline'],
   labels: VenueDetailContentLabels,
 ): string | undefined {
+  // A CloudObscured window is geometric sun potential (10.2 AC2) and must count
+  // as a "best window" like Partial — isSunWindowStatus is never-exhaustive so a
+  // new VenueSunStatus breaks at compile time instead of silently dropping.
   const window = timeline.windows.find((candidate) => candidate.status === 'Sunny') ??
-    timeline.windows.find((candidate) => candidate.status === 'Partial');
+    timeline.windows.find((candidate) => isSunWindowStatus(candidate.status));
   if (!window) return undefined;
   const template = labels.bestWindow ??
-    (window.status === 'Partial' ? labels.timeline.partialWindow : labels.timeline.sunnyWindow);
+    (windowLabelTier(window.status) === 'sunny'
+      ? labels.timeline.sunnyWindow
+      : labels.timeline.partialWindow);
   return formatLabel(template, { start: window.start, end: window.end });
 }
 

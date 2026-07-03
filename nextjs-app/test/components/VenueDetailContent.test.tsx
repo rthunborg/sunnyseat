@@ -206,6 +206,43 @@ describe('VenueDetailContent', () => {
     expect(screen.queryByLabelText('Skugga 13:00-18:30')).not.toBeInTheDocument();
   });
 
+  it('never reads a Skugga/Shaded sr-only label for a RAW CloudObscured timeline window in mobile mode (55eacba leak repro)', () => {
+    // Adversarial repro: bypass the producer remaps (buildDetailDto /
+    // timelineFromListVenue both map CloudObscured -> Partial upstream) by
+    // handing the mobile SunForecastBars path a RAW `status: 'CloudObscured'`
+    // window straight in `detail.timeline.windows`. Before the fix the mobile
+    // sr-only aria-label fell through the ternary to the dishonest "Skugga"
+    // (Shaded) copy. It must now render the honest clear-sky potential label.
+    render(
+      <VenueDetailContent
+        // DEFAULT (mobile) mode — omit `mode`, this is the SunForecastBars path.
+        fallbackVenue={LIST_VENUE}
+        detail={{
+          ...DETAIL,
+          currentSunStatus: 'CloudObscured',
+          skyCondition: 'overcast',
+          timeline: {
+            timezone: 'Europe/Stockholm',
+            range: { start: '06:00', end: '21:00' },
+            windows: [{ start: '13:00', end: '18:30', status: 'CloudObscured' }],
+            peakTime: '15:30',
+          },
+        }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    // The sr-only mobile window label must NOT read the dishonest "Skugga" copy.
+    expect(screen.queryByLabelText('Skugga 13:00-18:30')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Skugga/)).not.toBeInTheDocument();
+    // It renders the honest clear-sky POTENTIAL label (CloudObscured -> Partial tier).
+    expect(screen.getByLabelText('Delvis sol 13:00-18:30')).toBeInTheDocument();
+    // And the component did not crash — the venue heading is present.
+    expect(screen.getByRole('heading', { name: 'Kafé Magasinet' })).toBeInTheDocument();
+  });
+
   it('keeps the sunny detail unchanged — no obscured block on a clear-sky venue (Behaviour gate)', () => {
     render(
       <VenueDetailContent

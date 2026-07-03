@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from 'motion/react';
 import { DURATION_DEFAULT_S, EASE_ENTER } from '@/lib/constants/animation';
 import type { VenueSunTimelineDto, VenueSunTimelineWindowDto } from '@/lib/types/api';
+import { windowLabelTier } from '@/lib/utils/sun-status-presentation';
 import { cn } from '@/lib/utils';
 
 export type SunTimelineLabels = {
@@ -135,26 +136,21 @@ function TimelineWindow({
   );
 }
 
-// Timeline window status is exhaustively handled below. The geometric tiers
-// (Sunny/Partial/Shaded/NoSun) render directly; the weather-only 'CloudObscured'
-// value must NEVER reach here — the server buildDetailDto and the client
-// timelineFromListVenue both remap it to 'Partial' upstream (Story 10.2 AC2).
-// It is still handled explicitly (rendered like 'Partial' clear-sky potential)
-// as a defensive fallback so a leak degrades gracefully instead of a blank bar
-// labelled "Shaded". The `never` default makes ANY newly-added VenueSunStatus a
-// compile error here, forcing a deliberate rendering decision.
+// Timeline window status → CSS fill class. Routed through the shared
+// `windowLabelTier` helper (Story 10.2) so the weather-only 'CloudObscured'
+// value renders like 'Partial' clear-sky potential and a newly-added
+// VenueSunStatus is a COMPILE error in exactly one place. The server
+// buildDetailDto and client timelineFromListVenue both remap 'CloudObscured'
+// to 'Partial' upstream (10.2 AC2); this stays defensive so a leak degrades
+// to a translucent potential bar rather than a blank bar labelled "Shaded".
 function windowFillClass(status: VenueSunTimelineWindowDto['status']): string {
-  switch (status) {
-    case 'Sunny':
+  switch (windowLabelTier(status)) {
+    case 'sunny':
       return 'gradient-timeline-bar';
-    case 'Partial':
-    case 'CloudObscured':
+    case 'partial':
       return 'bg-amber-gold/50';
-    case 'Shaded':
-    case 'NoSun':
+    case 'shaded':
       return 'bg-transparent';
-    default:
-      return assertNeverTimelineStatus(status);
   }
 }
 
@@ -167,24 +163,14 @@ function windowLabelTemplate(
   status: VenueSunTimelineWindowDto['status'],
   labels: SunTimelineLabels,
 ): string {
-  switch (status) {
-    case 'Sunny':
+  switch (windowLabelTier(status)) {
+    case 'sunny':
       return labels.sunnyWindow;
-    case 'Partial':
-    case 'CloudObscured':
+    case 'partial':
       return labels.partialWindow;
-    case 'Shaded':
-    case 'NoSun':
+    case 'shaded':
       return labels.shadedWindow;
-    default:
-      return assertNeverTimelineStatus(status);
   }
-}
-
-// `never`-typed parameter → adding a new VenueSunStatus becomes a compile error
-// at the call sites, forcing a deliberate rendering decision here.
-function assertNeverTimelineStatus(status: never): never {
-  throw new Error(`Unhandled timeline window status: ${String(status)}`);
 }
 
 function minutesFromTime(value: string): number {

@@ -43,6 +43,60 @@ export function isObscuredSunStatus(
   return status === 'CloudObscured';
 }
 
+/**
+ * The three presentational tiers a timeline/forecast window collapses into for
+ * label + fill purposes. This is the geometric-potential vocabulary the
+ * timeline speaks: `CloudObscured` is a WEATHER headline, not a geometric
+ * status, so per Story 10.2 (AC2) it is treated as clear-sky POTENTIAL — i.e.
+ * the same `'partial'` tier as `Partial` — never as `'shaded'`.
+ */
+export type WindowLabelTier = 'sunny' | 'partial' | 'shaded';
+
+/**
+ * Story 10.2 — the single, `never`-exhaustive mapping from a timeline window
+ * status to its presentational tier. Every render surface that labels or fills
+ * a timeline window (the `SunTimeline` desktop bars AND the `SunForecastBars`
+ * mobile sr-only labels) MUST route through this helper so a future
+ * `VenueSunStatus` member becomes a COMPILE error at exactly one place rather
+ * than silently falling through to a Shaded-like label on some surfaces (the
+ * exact 55eacba-was-incomplete leak this de-duplicates away).
+ *
+ * `CloudObscured` maps to `'partial'`: the timeline window is the geometric
+ * "when the sun COULD reach this seat" potential, and the weather gate is
+ * applied separately at the headline — so an obscured window must render as
+ * clear-sky potential, never "Shaded"/"Skugga".
+ */
+export function windowLabelTier(status: VenueSunStatus): WindowLabelTier {
+  switch (status) {
+    case 'Sunny':
+      return 'sunny';
+    case 'Partial':
+    case 'CloudObscured':
+      return 'partial';
+    case 'Shaded':
+    case 'NoSun':
+      return 'shaded';
+    default: {
+      // Exhaustiveness guard — adding a VenueSunStatus without handling it
+      // here is a compile error. See doc comment.
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
+}
+
+/**
+ * True when the window status should be treated as a sun window (geometric
+ * sun potential) for "best window" / peak selection. `Sunny`, `Partial`, and
+ * (per 10.2 AC2) `CloudObscured` all count — the latter is clear-sky potential
+ * masked by weather, not an absence of sun geometry. Backed by
+ * {@link windowLabelTier} so a new `VenueSunStatus` breaks at compile time
+ * instead of silently dropping the window.
+ */
+export function isSunWindowStatus(status: VenueSunStatus): boolean {
+  return windowLabelTier(status) !== 'shaded';
+}
+
 /** Plain-language sky descriptors (no meteorology internals per Story 3.0.6). */
 export type SkyConditionCopy = {
   clear: string;
