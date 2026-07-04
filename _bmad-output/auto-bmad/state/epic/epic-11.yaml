@@ -5,11 +5,11 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-04T19:55:30Z"
+updated_at: "2026-07-04T20:07:56Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
-active_seconds: 15534
-timing_anchor: 1783194623
+active_seconds: 16586
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -53,9 +53,10 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: feels-instant-reads-clear
-active_story: 11-2-time-slider-drag-fix-planner-range-rules
+active_story: 11-3-mobile-tag-filtering-bottom-sheet-overhaul
 stories_landed:
   - 11-1-client-side-day-series-instant-time-scrubbing
+  - 11-2-time-slider-drag-fix-planner-range-rules
 auto_decisions:
   - "AC4 min-clamp enforced only in component, not in state [Med] -> fix: add minMinutes-aware floor inside setSelectedMinutes/snapSelectedMinutes + the missing below-min-commit state test (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
   - "AC1 real-touch e2e never runs in CI [Med] -> fix: add npx playwright test --project=touch step to build-and-test-nextjs.yml so the thumb-drag proof is a live gate (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
@@ -73,3 +74,15 @@ uat_items:
   - "[11-1-client-side-day-series-instant-time-scrubbing] Seed path (engine flag unset): same curl â†’ response byte-compatible with pre-11.1, NO sunDaySeries field on any venue"
   - "[11-1-client-side-day-series-instant-time-scrubbing] Real engine: re-issue the curl with -H 'If-None-Match: <etag from first call>' â†’ 304 Not Modified (ETag holds with the day-series payload)"
   - "[11-1-client-side-day-series-instant-time-scrubbing] OUT OF MANUAL SCOPE at this state: AC4 live date-change p95 (<3s) + live scrub=0 confirmation = maintainer handoff on live Vercel (protocol in the story's Dev Agent Record); overlay reference-PNG blessing = story 11-7 checkpoint"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Desktop viewport, mouse: press and hold directly ON the slider thumb and drag â†’ thumb grabs immediately and follows; time badge updates during drag (not dead on the thumb)"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Mobile viewport (DevTools device toolbar): press-drag starting ON the thumb â†’ grabs and follows; release sets the new time"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Tap the track away from the thumb â†’ thumb jumps there and the time commits once"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] DevTools Network filtered on venues: drag across several positions on the SAME date and release â†’ thumb/fill/badge follow continuously and ZERO /api/venues requests fire (during or on release)"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Click the next-day chevron â†’ exactly ONE /api/venues request (date change is the only fetch)"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Open the calendar â†’ today + next 3 days enabled; day 4+ and past days greyed (opacity-40, not-allowed) and unselectable"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Click a greyed beyond-window date â†’ nothing happens (no selection/date change)"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Inspect a disabled in-season beyond-window date â†’ aria-label 'Datum utanfÃ¶r planeringsfÃ¶nstret' (distinct from past-date 'Datum har passerat')"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Load http://localhost:3000/?_date=2027-01-01&_time=13:00 â†’ planner clamps to today (no 2027 label, no error)"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Plain URL (NO ?_time= â€” forcing disables the today-min), date=today â†’ track before current wall-clock time renders muted/inert grey; thumb cannot be dragged earlier than now"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Keyboard on today: focus slider, press Home / Left repeatedly â†’ value stops at the current-time minimum"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Switch to a future date (e.g. today+2) â†’ full 06:00â€“21:00 range available again (no inert elapsed segment)"
