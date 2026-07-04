@@ -5,11 +5,11 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-04T17:46:29Z"
+updated_at: "2026-07-04T18:00:35Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
-active_seconds: 8145
-timing_anchor: 1783187189
+active_seconds: 8969
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -53,7 +53,21 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: feels-instant-reads-clear
-active_story: 11-1-client-side-day-series-instant-time-scrubbing
-stories_landed: []
+active_story: 11-2-time-slider-drag-fix-planner-range-rules
+stories_landed:
+  - 11-1-client-side-day-series-instant-time-scrubbing
 auto_decisions: []
-uat_items: []
+uat_items:
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Open http://localhost:3000 (cd nextjs-app && npm run dev), DevTools Network filtered on api/venues, wait for initial load â†’ exactly one /api/venues request settles and pins appear"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Same date selected, drag the bottom time slider across several 15-min steps (09:00 â†’ 12:00 â†’ 18:00) â†’ ZERO new /api/venues requests"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Set selected time to live wall-clock now, scrub away and back to now â†’ still zero /api/venues requests (liveâ†”off-live keeps the same query key)"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Click the planner-date-next chevron (right of the calendar button) â†’ exactly ONE new /api/venues request fires"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] During that in-flight date change â†’ map dims under a gray scrim with centered spinner, existing pins stay visible (not blanked); overlay fades and pins update in place on response"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Pick a different valid future date via the calendar â†’ one request + same dim+spinner update-in-place; pick today again â†’ returns to the live path"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Real engine on (SUNNYSEAT_SUN_ENGINE=real, SUNNYSEAT_VENUE_STORE=supabase, service-role key already in .env.local; restart dev): scrub across the day â†’ pin %/state, venue-card figures, and Mest sol ordering change per step with zero requests"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Real engine: scrub a fully-shaded early/late step vs midday for the same venue â†’ card/pin flips sunlit â†” Shaded/NoSun tracking the per-step gated value"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Real engine: open a favourite/out-of-radius venue via /favoriter or deep link, scrub same-date time â†’ that favourite row's figures and Mest sol rank update per step with zero requests"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Real engine: curl 'http://localhost:3000/api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=<YYYY-MM-DD>&time=13:00' â†’ each venues[] entry carries sunDaySeries: 61 {minutes, sunExposurePercent, currentSunStatus} entries (minutes 360â€¦1260)"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Seed path (engine flag unset): same curl â†’ response byte-compatible with pre-11.1, NO sunDaySeries field on any venue"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Real engine: re-issue the curl with -H 'If-None-Match: <etag from first call>' â†’ 304 Not Modified (ETag holds with the day-series payload)"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] OUT OF MANUAL SCOPE at this state: AC4 live date-change p95 (<3s) + live scrub=0 confirmation = maintainer handoff on live Vercel (protocol in the story's Dev Agent Record); overlay reference-PNG blessing = story 11-7 checkpoint"
