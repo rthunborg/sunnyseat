@@ -2787,3 +2787,235 @@ So that "the app said sunny while it rained" can never silently return.
 **Then** they cover at least: 100% cloud can never render FULL SOL on any surface; missing cloud data never renders as clear; confidence at 100% cloud < confidence at 0% cloud; rain forces the obscured state; no-rain changes nothing; and the geometric fields (`sunExposurePercent`, `sunWindow`) remain byte-identical across weather variations for the same geometry and instant
 
 **Design Gate Criteria (verification story):** No new UI of its own; the gate is the mocked-weather e2e matrix green in CI, the recorded live spot-check, and all Story 10.2 visual references passing at both breakpoints.
+
+## Epic 11: "Feels Instant, Reads Clear" — Time-Scrub Performance, Mobile Interaction & Surface Polish
+
+Post-Epic-10 live testing (desktop + real mobile) surfaced a batch of interaction defects, a critical time-change performance gap (~9.6 s per planner change), and surface-polish drift against the design reference. This epic makes the time planner instant, makes mobile a first-class interactive citizen (slider drag, tag filtering, bottom sheet), and aligns the quick-info / detail / map surfaces with the reference — plus finally schedules the three-epics-deferred maintenance debt.
+
+> **Added 2026-07-04 (party-mode UX workshop + code triage).** Source: maintainer live-app field test at sunnyseat.vercel.app with annotated screenshots + a network capture, investigated against the code. Root causes, so stories are drafted against the real cause, not the surface symptom:
+> 1. **The slider's decorative thumb eats pointer events.** `TimeSlider.tsx` renders the visual thumb `div` (and the topPanel time badge) absolutely positioned ON TOP of the invisible `<input type="range">`, without `pointer-events-none`. Dragging from the track hits the input and works; grabbing the thumb itself (the universal instinct, and where a mobile finger always lands) hits the decoration and does nothing. This one omission explains "drag sometimes works", "only tiny drags", and "mobile never drags". (Story 11.2)
+> 2. **Time is still wired into the query key per-step.** Every slider `onChange` feeds `selectedMinutes` → `TimeContext` → the TanStack query key; Story 9.4's `useDeferredValue` only dampens the storm (network capture: dozens of cancelled `venues?lat=…` per drag), and the surviving request costs ~9–14 s because the engine computes per-request per-time. (Stories 11.1, 11.2)
+> 3. **The engine already walks the whole day per venue** (the detail route's `timeline`), but the list route discards everything except the requested instant — so every scrub re-buys the same computation. (Story 11.1)
+> 4. **Map dullness is self-inflicted:** `MapContainer.tsx` layers a `bg-surface-sand/80` div (z-1) plus a `gradient-map-overlay` amber wash (z-2) over the basemap. (Story 11.5)
+> 5. **Mobile has no tag-filter UI at all** — the data-driven chips (Story 9.7) render only in `DesktopNavBar.tsx`, and there they hard-clip when the viewport can't fit the row. (Story 11.3)
+> 6. **The detail view's "malformed first paint"** is the list-DTO fallback venue rendering with detail-only fields missing before the detail DTO streams in — not a missing skeleton, a wrong-data-first render. (Story 11.6)
+>
+> **Maintainer decisions (2026-07-04 workshop):** Mobile tag selection = **scrollable chip row in the bottom-sheet header** under the sort toggles (over a filter-button sheet or top-bar chips). Perf approach = **client-side day-series**: the list API returns each venue's full-day sun series so time-scrubbing is a zero-network client lookup; date/location changes are the only fetches. Map treatment = **light warm tint** (~quarter of today's overlay strength), not raw basemap. Maintenance debt = **fold into one Epic 11 hygiene story** (Epic 8 A2/A3 now three epics deferred; retro A7 said stop re-deferring). Quick-info content: remove the "Säkerhet: NN%" text (accepting that confidence becomes detail-view-only — noting it is a *different* number from the thumbnail's "% SOL") and the "Sol HH:mm–HH:mm" window; show real opening hours instead; VISA RUTT loses the truncated "ca 16…" ETA text. Venue detail: remove the "Soltider idag" section entirely (the time planner is the one way to explore times). Planner rules: dates selectable only today→today+3; on "Idag" the slider cannot go earlier than the current time.
+>
+> **Deferred-item intake from Epic 10 close-out:** the orphaned `toSunStatusToken` mapper (wire in or remove) and Epic 8's A2 (`vercel.json` lightningcss swallow) + A3 (`.gitattributes` EOL normalization) are absorbed into Story 11.7; the consolidated reference-PNG rebaseline rides the same story as a maintainer-blessed checkpoint. The untested cirrus-vs-clear e2e presentation gap stays backlog (engine-guarded).
+
+### Story 11.1: Client-Side Day-Series — Instant Time Scrubbing & Fast Date Switch
+
+As a **user**,
+I want changing the planner time to update the map instantly and changing the date to take a couple of seconds at most,
+So that exploring "when is it sunny where" feels effortless instead of a 10-second stall.
+
+**Acceptance Criteria:**
+
+**Given** `/api/venues` currently returns sun state for a single requested instant
+**When** the list response is extended with a per-venue day-series — one entry per planner step (`PLANNER_STEP_MINUTES`) across the planner range, each carrying at least `sunExposurePercent` and the weather-gated `currentSunStatus` (reusing the engine's existing timeline walk; the Epic 10 cloud/rain gates apply per-step, never only to "now")
+**Then** the client derives marker %, pin state, quick-info figures, list ordering ("Mest sol"), and the obscured presentation for ANY planner time from the cached series — and a settled time change issues **zero** network requests
+
+**Given** the day-series is computed server-side
+**When** caching is added
+**Then** the per-(venue, date, weather-refresh-bucket) series is cached in `sun-engine-cache.ts` alongside the existing weather/building caches so repeat requests within a bucket are near-free, and the response stays CDN/ETag-friendly (measure and record payload size; ~50 venues × ~64 steps must stay reasonable gzipped)
+
+**Given** the user changes the **date** (or the origin location changes materially)
+**When** the single new request is in flight
+**Then** existing venue markers are NOT unmounted/reloaded — the map dims under a subtle gray hue with a clear centered loading spinner overlay until the new series arrives, then markers update in place (keyed by venue id)
+
+**Given** the live production deployment
+**When** a date change is measured end-to-end (p95 over repeated trials)
+**Then** it completes in **< 3 s** (stretch target < 1.5 s warm-cache), with before/after timings recorded in the story record, and time-scrubbing is measured at 0 requests
+
+**Design Gate Criteria:**
+- **Visual:** Gray-hue + spinner overlay matches the design system (token-based scrim, standard spinner); markers visually persist through a date change
+- **Behaviour:** Time scrub updates pins/list/quick-info instantly offline-from-network; date change fires exactly one request
+- **Animation:** Marker % transitions during scrub are smooth (no flash/remount); overlay fades in/out per motion spec
+- **Visual validation:** Screenshot of the date-change loading state (dimmed map + spinner) passes before QA handoff
+
+### Story 11.2: Time-Slider Drag Fix & Planner Range Rules
+
+As a **user**,
+I want to grab the slider thumb and drag it smoothly on both desktop and mobile,
+So that picking a time feels like using a native control instead of fighting one.
+
+**Acceptance Criteria:**
+
+**Given** the decorative thumb `div` and the topPanel value badge in `TimeSlider.tsx` sit above the invisible range input without `pointer-events-none`
+**When** the hit-testing is fixed (decoration made `pointer-events-none`, input remains the sole pointer target with an adequate touch height)
+**Then** drag initiated ON the thumb works reliably with mouse AND touch, on desktop and mobile viewports — verified by touch-gesture e2e, not just click simulation
+
+**Given** every `onChange` currently commits to `TimeContext` (and thus toward the query key)
+**When** drag state is decoupled — the slider tracks a local visual value during drag and commits on release/keyboard-settle/blur (the existing `onSnap` seam)
+**Then** during a drag the thumb, progress fill, and time badge follow the pointer at full frame rate while the app-level time commits at most once per gesture (and with Story 11.1, that commit triggers zero fetches)
+
+**Given** the date picker (`DatePickerDialog`)
+**When** dates render
+**Then** only today through today+3 days are selectable; later (and past) dates are visibly disabled and unpickable, with the constraint enforced in state too (a forced/URL date outside the window clamps)
+
+**Given** the selected date is today
+**When** the slider renders
+**Then** its effective minimum is the current wall-clock time (snapped to the planner step): earlier positions are unreachable by drag, tap, or keyboard, the elapsed track portion reads visually inert, and the minimum advances as the live clock ticks; for future dates the full planner range is available
+
+**Design Gate Criteria:**
+- **Visual:** Slider matches the reference `TopPanel` slider (thumb, badge, track) with the disabled/elapsed segment visually distinct
+- **Behaviour:** Thumb-grab drag works on mobile + desktop; one commit per gesture; date cap + today-minimum enforced
+- **Animation:** Thumb follows the pointer 1:1 during drag (no spring-lag on the grabbed thumb); badge tracks smoothly
+- **Visual validation:** Screenshot of the slider (idle + today-clamped state) passes before QA handoff
+
+### Story 11.3: Mobile Tag Filtering & Bottom-Sheet Overhaul (+ Desktop Chip Overflow)
+
+As a **mobile user**,
+I want to filter venues by tag right where the list lives and tuck the venue list fully away when I want the map,
+So that filtering isn't desktop-only and the sheet never fights me.
+
+**Acceptance Criteria:**
+
+**Given** mobile currently has no tag-filter UI
+**When** a horizontally scrollable tag-chip row is added to the `MobileBottomSheet` header, directly under the "Mest sol / Nära mig" sort toggles
+**Then** the chips are the same data-driven set (`collectTags`, `localizeTag`) sharing the same filter context as desktop — toggling a chip filters the list AND the map pins identically on both breakpoints, with the reference "on" pill style and a clear empty state
+
+**Given** the sheet currently snaps to peek (120px) / mid / full
+**When** a fourth **collapsed** snap is added
+**Then** the sheet can be dragged (or fast-swiped) down to a handle-only state (just the drag pill + safe-area visible), dragged back up through all snaps, and the map remains fully interactive behind it
+
+**Given** the sheet drag feel is reported as janky
+**When** the `@use-gesture` thresholds/rubberband and the snap animation are tuned (and the header chip row is made drag-compatible — horizontal chip scroll must not hijack vertical sheet drags)
+**Then** drags track the finger 1:1, snap decisions respect both distance and velocity, and no gesture dead-zones remain — verified by touch e2e and a real-device pass (Story 11.8)
+
+**Given** the desktop nav chip row currently hard-clips overflowing tags mid-chip
+**When** the row is made horizontally scrollable with left/right arrow buttons and edge-fade affordances
+**Then** all tags are reachable at any viewport width, arrows scroll by a page and disable at the ends, and the row remains keyboard-navigable
+
+**Design Gate Criteria:**
+- **Visual:** Sheet header (toggles + chip row) and desktop scrollable chip strip match the reference chip styling; collapsed sheet shows handle only
+- **Behaviour:** Chips filter list + pins on both breakpoints; all four snaps reachable; horizontal chip scroll never triggers vertical sheet movement
+- **Animation:** Sheet snap transitions stay on the existing spring spec; chip scroll is momentum-smooth
+- **Visual validation:** Screenshots of (a) sheet with active chips, (b) collapsed sheet, (c) desktop chip strip mid-scroll pass before QA handoff
+
+### Story 11.4: Venue Quick-Info Rework — Reference Alignment & Truthful Content
+
+As a **user**,
+I want the venue quick-info card to look polished and show me what I actually need (open now? how far? how sunny?),
+So that the most-used surface earns trust at a glance.
+
+**Acceptance Criteria:**
+
+**Given** the quick-info card (`VenueQuickInfo.tsx`) on mobile and desktop
+**When** the content is reworked
+**Then** the "Säkerhet: NN%" text is removed on both breakpoints (confidence remains available in the detail view; the sr-only accessible confidence text may remain), the "Sol HH:mm–HH:mm" window line is removed, and real opening hours render in their place (e.g. "Öppet till 22:00") — which requires surfacing `openingHours` on the list DTO (`VenueDataDto`) from the existing `venues.opening_hours` column; venues without opening-hours data show nothing (never a fabricated value)
+
+**Given** the route CTA currently squeezes a truncated ETA ("ca 16…") inside the button
+**When** `RouteButton` consumers stop passing `estimateLabel` into the compact/quick-info button (the ETA may live on in the detail/route surface if already present)
+**Then** the button reads only "VISA RUTT" (+ icon) at full legibility on both breakpoints, with no truncated text at any common width
+
+**Given** the mobile card layout drifted from the reference
+**When** it is aligned to the reference `QuickInfo.jsx` (spacing, type hierarchy, badge placement, CTA row) incorporating the removals above
+**Then** the layout holds without overflow across sun states (full sun / partial / shaded / obscured "Sol bakom moln") and common mobile widths, and the obscured two-signal treatment (Story 10.2) is preserved
+
+**Given** the card's accessible name embeds the removed content
+**When** the rework lands
+**Then** aria output is regenerated to essentials (name, sun %, opening hours, distance) with no orphaned separators or duplicated phrases, and unused i18n keys are pruned from `messages/{sv,en}`
+
+**Design Gate Criteria:**
+- **Visual:** Card matches the reference `QuickInfo` on both breakpoints with opening hours in place of the removed lines
+- **Behaviour:** Heart/close/route/details actions work; opening hours reflect real venue data; no fabricated fields
+- **Animation:** Card present/dismiss transitions unchanged
+- **Visual validation:** Screenshot comparison (mobile + desktop, sunny + obscured states) against references passes before QA handoff
+
+### Story 11.5: Map Legibility, Living Location Dot & True Recenter
+
+As a **user**,
+I want to actually read the map, instantly spot where I am, and have "center on me" put me in the visible middle,
+So that the map feels like a navigation tool, not a background texture.
+
+**Acceptance Criteria:**
+
+**Given** `MapContainer.tsx` layers `bg-surface-sand/80` + `gradient-map-overlay` over the basemap
+**When** the treatment is reduced to a light warm tint (~quarter of current strength — exact values via design-gate eyeball against the live map)
+**Then** streets, water, parks, and labels are clearly legible at common zooms while a subtle warm brand tone remains, and pin/label contrast still passes the axe gate
+
+**Given** the user-location dot (`UserPin.tsx`) is a small static marker
+**When** it is upgraded
+**Then** it renders noticeably larger with the design-token amber + white ring and a continuous soft **pulsing halo animation** (respecting `prefers-reduced-motion` with a static halo), clearly distinguishable from venue pins at all zooms
+
+**Given** the recenter button flies to the raw GPS coordinate, which lands off-center of the *visible* map (bottom sheet / panels cover part of the viewport)
+**When** recentering is made viewport-aware
+**Then** `flyTo` applies padding/offset for the currently visible obstructions (bottom-sheet snap state on mobile, side/top panels on desktop) so the dot lands in the visual center of the unobscured map area
+
+**Design Gate Criteria:**
+- **Visual:** Map reads clearly with the light tint; location dot matches the reference `UserPin` scaled up with halo
+- **Behaviour:** Recenter lands the dot centered in the visible map area at every sheet snap state
+- **Animation:** Halo pulse is smooth and subtle (and static under reduced motion); flyTo remains 500 ms spec
+- **Visual validation:** Screenshots of (a) the de-dulled map, (b) the animated dot, (c) post-recenter framing pass before QA handoff
+
+### Story 11.6: Venue Detail — Clean First Paint & Content Polish
+
+As a **user**,
+I want the venue detail to open smoothly into a complete, tidy view,
+So that "Mer info" never flashes a broken-looking half-render.
+
+**Acceptance Criteria:**
+
+**Given** the detail currently renders the list-DTO fallback venue first (detail-only fields missing → malformed layout) before the detail DTO streams in
+**When** the loading strategy is fixed
+**Then** fields present in the fallback render immediately and every detail-only region renders a proper skeleton until real data arrives — at no frame does a malformed/empty-value layout appear, and the fallback→detail swap causes no layout jump
+
+**Given** the "Soltider idag" section (day timeline strip)
+**When** the detail renders
+**Then** the section is removed entirely on both breakpoints (the time planner is the canonical way to explore times), with no orphaned spacing, and the now-unused `VenueTimeline` rendering path + i18n keys are pruned (the engine's timeline computation itself stays — Story 11.1 consumes it)
+
+**Given** the "Omdömen" section
+**When** it renders with and without reviews
+**Then** the section content is centered per the reference, and the empty state shows exactly ONE "Inga omdömen" message (the duplicate is removed)
+
+**Design Gate Criteria:**
+- **Visual:** Detail view matches the reference `VenueDetail` minus the removed section; skeleton states look intentional
+- **Behaviour:** No malformed pre-load frame; reviews empty state single-messaged; all remaining fields real
+- **Animation:** Detail open transition unchanged; skeleton→content swap is flicker-free
+- **Visual validation:** Screenshots of (a) loading skeleton state, (b) loaded detail, (c) empty-reviews state pass before QA handoff
+
+### Story 11.7: Hygiene — Three-Epics-Deferred Debt Finally Scheduled
+
+As a **maintainer**,
+I want the repeatedly-deferred build/config debt closed and dead code resolved,
+So that every future epic stops paying interest on it.
+
+**Acceptance Criteria:**
+
+**Given** Epic 8's A2 (`vercel.json` build command swallows lightningcss failures) and A3 (missing `.gitattributes` EOL normalization — the direct cause of Epic 10's `confidence-calculator.ts` EOL-churn review round)
+**When** they are fixed
+**Then** the build fails loudly on a real lightningcss error, and a `.gitattributes` enforcing LF for source files lands with a one-time renormalization commit (`git add --renormalize`) kept separate from any functional change
+
+**Given** the orphaned `toSunStatusToken` shared mapper (dead code with a misleading "single source of truth" comment; every surface branches inline)
+**When** it is resolved
+**Then** either all sun-status surfaces are refactored to consume it, or it is deleted and the comment corrected — no half-state remains
+
+**Given** the consolidated reference-PNG rebaseline (Epic 9's list + Epic 10's obscured-state screens + every surface Epic 11 touches)
+**When** Epic 11's visual changes have landed
+**Then** the rebaseline set is prepared and presented as a **maintainer-blessed checkpoint** (dev agents remain structurally forbidden from self-blessing references), and the blessed set is committed
+
+**Design Gate Criteria (hygiene — no new screen):** No visual change from A2/A3/mapper work (byte-identical UI); the rebaseline checkpoint is itself the visual gate for this story.
+
+### Story 11.8: Live Verification Pass, Touch-Gesture Coverage & Perf Regression Guards
+
+As a **maintainer**,
+I want every Epic 11 fix verified on the live deployment and on a real device, with the interaction and performance wins locked in by tests,
+So that the "shipped but insufficient" pattern of Epics 9/10 (caching + debounce landed, symptoms persisted) cannot repeat.
+
+**Acceptance Criteria:**
+
+**Given** the historical gap — visual gates ignore sizing/spacing and emulated viewports miss real gesture physics
+**When** the verification pass runs
+**Then** it includes BOTH a Playwright mobile-profile sweep AND a real-device (physical phone) checklist over every Epic 11 surface — slider thumb-drag, sheet 4-snap drag + chip row, quick-info states, map tint/dot/recenter, detail first paint — with results (including screenshots) recorded in the story record and any gap triaged before the epic closes
+
+**Given** the interaction fixes need durable protection
+**When** regression tests are added
+**Then** they cover at least: touch-drag ON the slider thumb changes time (real touch events); a full drag gesture commits time exactly once; time scrub issues zero venue requests and a date change exactly one; markers persist (no unmount) across a date change; the today-minimum and today+3 cap; sheet reaches all four snaps by gesture; chip toggling filters pins + list on mobile; and the quick-info renders no "Säkerhet"/sun-window text
+
+**Given** the performance goal is the epic's headline
+**When** perf is gated
+**Then** a repeatable measurement against the LIVE deployment records date-change p95 < 3 s and time-scrub = 0 network requests, stored in the story record with the methodology, and a CI-runnable variant guards the request-count invariants (wall-clock perf measured live, counts guarded in CI)
+
+**Design Gate Criteria (verification story):** No new UI of its own; the gate is all other Epic 11 stories' visual references passing at both breakpoints, the real-device checklist recorded, and the regression + request-count suites green in CI.
