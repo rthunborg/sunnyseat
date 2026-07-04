@@ -109,6 +109,16 @@ jobs:
       - name: E2E tests
         run: npx playwright test --project=mobile --project=desktop
 
+      # Story 11.2 (AC1): the real-touch thumb-grab drag proof. The `touch`
+      # project (Pixel 5, Chromium + hasTouch) drives a raw CDP
+      # Input.dispatchTouchEvent gesture — Chromium-only, so it lives in its own
+      # project that the four standard projects testIgnore. Run it as a live CI
+      # gate (chromium is already installed above) so a future hit-testing
+      # regression fails the build instead of shipping green. The spec forces
+      # `?_time=` for determinism (sun is server-computed from the wall clock).
+      - name: E2E touch-drag (real touch, AC1)
+        run: npx playwright test --project=touch
+
       - name: A11y tests (axe-core)
         run: npx playwright test --project=a11y
 

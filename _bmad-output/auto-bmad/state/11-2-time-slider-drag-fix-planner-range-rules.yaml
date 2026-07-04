@@ -5,11 +5,11 @@ epic_num: 11
 story_num: 2
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-04T19:50:16Z"
+updated_at: "2026-07-04T20:04:19Z"
 started_at: "2026-07-04T18:01:37Z"
 completed_at: null
 active_seconds: 6514
-timing_anchor: null
+timing_anchor: 1783194623
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -53,3 +53,14 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: 7c2b4827e7221341f165816273a49f2eec4fed20
+tier_a_review:
+  verdict: "Changes Requested -> fixed"
+  critical: 0
+  high: 0
+  medium: 2
+  low: 2
+  open_decisions_auto_resolved: 2
+  dismissed_noise: 1
+  security: clean 0/0/0
+  fixed: 3
+  deferred: 1

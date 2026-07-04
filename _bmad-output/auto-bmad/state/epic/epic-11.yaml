@@ -5,11 +5,11 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-04T19:50:15Z"
+updated_at: "2026-07-04T19:55:30Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
 active_seconds: 15534
-timing_anchor: null
+timing_anchor: 1783194623
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -56,7 +56,9 @@ epic_slug: feels-instant-reads-clear
 active_story: 11-2-time-slider-drag-fix-planner-range-rules
 stories_landed:
   - 11-1-client-side-day-series-instant-time-scrubbing
-auto_decisions: []
+auto_decisions:
+  - "AC4 min-clamp enforced only in component, not in state [Med] -> fix: add minMinutes-aware floor inside setSelectedMinutes/snapSelectedMinutes + the missing below-min-commit state test (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
+  - "AC1 real-touch e2e never runs in CI [Med] -> fix: add npx playwright test --project=touch step to build-and-test-nextjs.yml so the thumb-drag proof is a live gate (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
 uat_items:
   - "[11-1-client-side-day-series-instant-time-scrubbing] Open http://localhost:3000 (cd nextjs-app && npm run dev), DevTools Network filtered on api/venues, wait for initial load â†’ exactly one /api/venues request settles and pins appear"
   - "[11-1-client-side-day-series-instant-time-scrubbing] Same date selected, drag the bottom time slider across several 15-min steps (09:00 â†’ 12:00 â†’ 18:00) â†’ ZERO new /api/venues requests"

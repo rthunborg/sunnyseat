@@ -168,24 +168,36 @@ export function TimeProvider({
   }, []);
 
   const setSelectedMinutes = useCallback((minutes: number) => {
-    const selectedMinutes = snapPlannerMinutes(minutes);
-    setState((previous) => ({
-      ...previous,
-      selectedTime: formatPlannerTime(selectedMinutes),
-      selectedMinutes,
-    }));
-  }, []);
-
-  const snapSelectedMinutes = useCallback((minutes?: number) => {
     setState((previous) => {
-      const selectedMinutes = snapPlannerMinutes(minutes ?? previous.selectedMinutes);
+      // Story 11.2 (AC4): "earlier positions are unreachable … enforced in state
+      // too". The component clamps the UI, but the state layer is the invariant —
+      // a direct `setSelectedMinutes(below-min)` on live-today floors to the
+      // effective min. Forced sessions / future dates leave the floor at the
+      // planner start (a no-op), so a forced time still commits verbatim and the
+      // live "now" moment (which sits at/above the floored min) stays reachable.
+      const selectedMinutes = clampBelowStateMin(snapPlannerMinutes(minutes), previous, forcedTime);
       return {
         ...previous,
         selectedTime: formatPlannerTime(selectedMinutes),
         selectedMinutes,
       };
     });
-  }, []);
+  }, [forcedTime]);
+
+  const snapSelectedMinutes = useCallback((minutes?: number) => {
+    setState((previous) => {
+      const selectedMinutes = clampBelowStateMin(
+        snapPlannerMinutes(minutes ?? previous.selectedMinutes),
+        previous,
+        forcedTime,
+      );
+      return {
+        ...previous,
+        selectedTime: formatPlannerTime(selectedMinutes),
+        selectedMinutes,
+      };
+    });
+  }, [forcedTime]);
 
   const selectDate = useCallback((date: string): boolean => {
     const now = clock();
@@ -349,6 +361,31 @@ function todayMinMinutes(currentTime: Date): number {
   if (liveMinutes === null) return PLANNER_START_MINUTES;
   const floored = Math.floor(liveMinutes / PLANNER_STEP_MINUTES) * PLANNER_STEP_MINUTES;
   return clampPlannerMinutes(floored);
+}
+
+/**
+ * Story 11.2 (AC4): the state-layer floor. The effective slider minimum lives in
+ * the derived `minMinutes` (used by the component to clamp the UI), but AC4 says
+ * earlier positions must be "unreachable … enforced in state too" — so a direct
+ * `setSelectedMinutes`/`snapSelectedMinutes` below the today-min is floored HERE,
+ * making it a real state invariant rather than a component-only guard. The min is
+ * the live today-min ONLY on `today` in a non-forced (live-clock) session — a
+ * forced `?_time=` session or a future date keeps the floor at the planner start
+ * (a no-op), so a forced time still commits verbatim and the reachable "now"
+ * moment (which sits at/above the floored min) is never pushed off.
+ */
+function stateEffectiveMin(state: TimeState, forcedTime: string | undefined): number {
+  if (forcedTime) return PLANNER_START_MINUTES;
+  const onToday = state.selectedDate === stockholmDateKey(state.currentTime);
+  return onToday ? todayMinMinutes(state.currentTime) : PLANNER_START_MINUTES;
+}
+
+function clampBelowStateMin(
+  minutes: number,
+  state: TimeState,
+  forcedTime: string | undefined,
+): number {
+  return Math.max(minutes, stateEffectiveMin(state, forcedTime));
 }
 
 function parseInitialNow(value: string): Date {
