@@ -11,7 +11,7 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import { ChevronLeft, ChevronRight, LocateFixed, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Link } from '@/i18n/navigation';
+import { Link, usePathname } from '@/i18n/navigation';
 import { VenueSearchShell } from '@/components/custom/search/VenueSearchShell';
 import { LanguageSwitcher } from '@/components/custom/layout/LanguageSwitcher';
 import { useVenueSearch } from '@/hooks/queries/useVenueSearch';
@@ -39,6 +39,17 @@ export function DesktopNavBar() {
   const { openSettings } = useSettings();
   const { isActive, toggleTag, retainTags } = useTagFilter();
   const plannerTime = useTimeContext();
+  const pathname = usePathname();
+
+  // Story 11.3 review (AC1 parity): the tag-chip strip scopes to the Närmast
+  // list, so hide it in favourites mode — mirroring the mobile gate in MapView
+  // (`listMode !== 'favourites'`) so both breakpoints treat the favourites
+  // surface as intentionally unfiltered. On desktop `listMode === 'favourites'`
+  // is equivalent to the favourites route (the nearest/favourites toggle pushes
+  // `/favoriter` and MapView syncs `desktopListMode` to `isFavouritesRoute`), so
+  // the pathname is the shared signal this sibling component can read.
+  const isFavouritesRoute =
+    pathname === '/favoriter' || pathname.startsWith('/favoriter/');
 
   // Story 9.7: source the chip row from the SAME venue query MapView issues, so
   // the chips are the real union of the loaded venues' tags (AC2) with ZERO new
@@ -108,8 +119,13 @@ export function DesktopNavBar() {
           left/right arrow buttons + edge-fade affordances (replacing the
           overflow-hidden mid-chip clip) so every tag is reachable at any viewport
           width. These are REAL wired scroll controls — NOT the Story-9.6-removed
-          dead pager chevrons. */}
-      {allTags.length > 0 && (
+          dead pager chevrons.
+          Story 11.3 review: the strip is hidden in favourites mode so both
+          breakpoints scope chips to the Närmast list identically (AC1 parity).
+          The `retainTags` orphan-prune effect above still runs so a residual
+          active tag can never strand the shared surfaces while favourites is
+          open. */}
+      {!isFavouritesRoute && allTags.length > 0 && (
         <TagChipStrip
           tags={allTags}
           isActive={isActive}

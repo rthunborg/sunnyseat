@@ -21,6 +21,10 @@ const mockState = vi.hoisted(() => ({
   useVenueSearch: vi.fn(),
   requestLocation: vi.fn(),
   openSettings: vi.fn(),
+  // Story 11.3 review: the chip strip is hidden in favourites mode, gated on the
+  // favourites route, so the pathname must be drivable per-test. Defaults to the
+  // nearest route ('/') so every existing chip test keeps the strip rendered.
+  pathname: '/',
 }));
 
 vi.mock('@/lib/contexts/SettingsContext', () => ({
@@ -72,7 +76,7 @@ vi.mock('next-intl/navigation', () => ({
         {children}
       </a>
     ),
-    usePathname: () => '/',
+    usePathname: () => mockState.pathname,
     useRouter: () => ({ replace: vi.fn(), push: vi.fn(), prefetch: vi.fn() }),
     redirect: vi.fn(),
     getPathname: vi.fn(),
@@ -133,6 +137,7 @@ describe('DesktopNavBar', () => {
   beforeEach(() => {
     mockState.selectVenue.mockClear();
     mockState.easeTo.mockClear();
+    mockState.pathname = '/';
     mockState.useVenueSearch.mockReset().mockReturnValue({
       data: makeVenueResponse(),
       isFetching: false,
@@ -259,6 +264,31 @@ describe('DesktopNavBar', () => {
     // A tag no venue carries must NOT render (the hardcoded 'Takterrass'
     // placeholder is gone — chips are the real tag union now).
     expect(screen.queryByRole('button', { name: 'Takterrass' })).toBeNull();
+  });
+
+  it('shows the chip strip in nearest mode (non-favourites route) — Story 11.3 review AC1 parity', () => {
+    mockState.pathname = '/';
+    renderDesktopNav();
+
+    // Nearest route → the tag-chip strip renders with the loaded-venue union.
+    expect(screen.getByTestId('desktop-tag-chip-strip')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Innergård' })).toBeInTheDocument();
+  });
+
+  it('hides the chip strip in favourites mode, mirroring the mobile gate — Story 11.3 review AC1 parity', () => {
+    mockState.pathname = '/favoriter';
+    renderDesktopNav();
+
+    // Favourites route → the strip is scoped away on BOTH breakpoints, so a
+    // desktop user can no longer toggle a tag that would filter the shared pins
+    // while the mobile user has no chip affordance (the divergence the review
+    // flagged). The strip and its chips must be entirely absent.
+    expect(screen.queryByTestId('desktop-tag-chip-strip')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Innergård' })).toBeNull();
+    // A nested favourites detail route stays gated too.
+    mockState.pathname = '/favoriter/kafe-magasinet';
+    renderDesktopNav();
+    expect(screen.queryByTestId('desktop-tag-chip-strip')).toBeNull();
   });
 
   it('enables the filter chips (no disabled / cursor-not-allowed) — flips the Story 9.6 marker', () => {

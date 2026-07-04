@@ -5,11 +5,11 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-04T22:04:45Z"
+updated_at: "2026-07-04T22:10:35Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
 active_seconds: 23581
-timing_anchor: null
+timing_anchor: 1783202695
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -60,6 +60,8 @@ stories_landed:
 auto_decisions:
   - "AC4 min-clamp enforced only in component, not in state [Med] -> fix: add minMinutes-aware floor inside setSelectedMinutes/snapSelectedMinutes + the missing below-min-commit state test (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
   - "AC1 real-touch e2e never runs in CI [Med] -> fix: add npx playwright test --project=touch step to build-and-test-nextjs.yml so the thumb-drag proof is a live gate (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
+  - "Mobile chip row hidden in favourites but desktop strip is not â€” AC1 parity [Med] -> fix: gate DesktopNavBar TagChipStrip on listMode==='favourites' (mirror the mobile gate) (Tier A, 11-3-mobile-tag-filtering-bottom-sheet-overhaul)"
+  - "1:1 finger tracking suppressed under prefers-reduced-motion [Med] -> dismiss: jump-on-release is a standard reduced-motion accommodation; AC3's 1:1 describes the default animated path (Tier A, 11-3-mobile-tag-filtering-bottom-sheet-overhaul)"
 uat_items:
   - "[11-1-client-side-day-series-instant-time-scrubbing] Open http://localhost:3000 (cd nextjs-app && npm run dev), DevTools Network filtered on api/venues, wait for initial load â†’ exactly one /api/venues request settles and pins appear"
   - "[11-1-client-side-day-series-instant-time-scrubbing] Same date selected, drag the bottom time slider across several 15-min steps (09:00 â†’ 12:00 â†’ 18:00) â†’ ZERO new /api/venues requests"
