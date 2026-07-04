@@ -1,8 +1,15 @@
 'use client';
 
-import { useDeferredValue, useEffect, useMemo } from 'react';
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { LocateFixed, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LocateFixed, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
 import { VenueSearchShell } from '@/components/custom/search/VenueSearchShell';
@@ -90,39 +97,28 @@ export function DesktopNavBar() {
 
       <VenueSearchShell variant="desktop" />
 
-      {/* Story 9.7: the chip row is now DATA-DRIVEN — the union of the loaded
-          venues' real `tags` (first-seen order), enabled and toggleable via the
-          shared TagFilterContext. Matching is on the canonical (Swedish) tag
-          value; only the DISPLAY label is localized. Active chips render the
-          reference "on" pill (dark #1b1b1e = text-primary bg + white label). The
-          row renders nothing until at least one tag is loaded, so it never
-          flashes a hardcoded placeholder set. Story 9.6 removed the two dead
-          pager chevrons that used to flank this row — do NOT re-add them. */}
+      {/* Story 9.7: the chip row is DATA-DRIVEN — the union of the loaded venues'
+          real `tags` (first-seen order), enabled and toggleable via the shared
+          TagFilterContext. Matching is on the canonical (Swedish) tag value; only
+          the DISPLAY label is localized. Active chips render the reference "on"
+          pill (dark #1b1b1e = text-primary bg + white label). The row renders
+          nothing until at least one tag is loaded, so it never flashes a
+          hardcoded placeholder set.
+          Story 11.3 (AC4): the strip is now horizontally SCROLLABLE with real
+          left/right arrow buttons + edge-fade affordances (replacing the
+          overflow-hidden mid-chip clip) so every tag is reachable at any viewport
+          width. These are REAL wired scroll controls — NOT the Story-9.6-removed
+          dead pager chevrons. */}
       {allTags.length > 0 && (
-        <nav
-          aria-label={t('nav.filter')}
-          className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
-        >
-          {allTags.map((tag) => {
-            const active = isActive(tag);
-            return (
-              <button
-                key={tag}
-                type="button"
-                aria-pressed={active}
-                onClick={() => toggleTag(tag)}
-                className={cn(
-                  'flex h-9 shrink-0 items-center rounded-pill border px-4 text-label-lg shadow-subtle transition-colors duration-fast ease-default outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
-                  active
-                    ? 'border-text-primary bg-text-primary text-white'
-                    : 'border-divider bg-white text-text-body',
-                )}
-              >
-                {localizeTag(tag, locale === 'en' ? 'en' : 'sv')}
-              </button>
-            );
-          })}
-        </nav>
+        <TagChipStrip
+          tags={allTags}
+          isActive={isActive}
+          onToggleTag={toggleTag}
+          locale={locale === 'en' ? 'en' : 'sv'}
+          label={t('nav.filter')}
+          scrollLeftLabel={t('nav.scrollFiltersLeft')}
+          scrollRightLabel={t('nav.scrollFiltersRight')}
+        />
       )}
 
       <div className="flex shrink-0 items-center gap-2">
@@ -148,6 +144,169 @@ export function DesktopNavBar() {
         </HeaderIconButton>
       </div>
     </header>
+  );
+}
+
+/**
+ * Story 11.3 (AC4): the desktop tag-chip strip — horizontally scrollable with
+ * real left/right arrow buttons + edge-fade affordances, keyboard-navigable, all
+ * tags reachable at any viewport width.
+ *
+ * - The chips are a horizontal `overflow-x-auto` scroller; they keep their width
+ *   (`shrink-0`) and overflow rather than squashing or clipping mid-chip.
+ * - Left/right arrow BUTTONS scroll by a page (~the visible width) and DISABLE at
+ *   the respective end (left disabled at scrollLeft 0; right disabled at max
+ *   scroll). Scroll position is tracked via a scroll/resize listener.
+ * - Edge-fade gradient masks (token-based) signal more content, shown only when
+ *   scrollable in that direction.
+ * - Chips stay focusable buttons; a focused off-screen chip scrolls into view
+ *   (native focus + `scrollIntoView`). The arrows are additional Tab stops.
+ */
+function TagChipStrip({
+  tags,
+  isActive,
+  onToggleTag,
+  locale,
+  label,
+  scrollLeftLabel,
+  scrollRightLabel,
+}: {
+  tags: string[];
+  isActive: (tag: string) => boolean;
+  onToggleTag: (tag: string) => void;
+  locale: 'sv' | 'en';
+  label: string;
+  scrollLeftLabel: string;
+  scrollRightLabel: string;
+}) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    // 1px slack absorbs sub-pixel rounding so the right arrow disables cleanly
+    // at the true max scroll instead of hovering one fractional pixel short.
+    const maxScrollLeft = el.scrollWidth - el.clientWidth;
+    setCanScrollLeft(el.scrollLeft > 1);
+    setCanScrollRight(el.scrollLeft < maxScrollLeft - 1);
+  }, []);
+
+  useEffect(() => {
+    updateScrollState();
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', updateScrollState, { passive: true });
+    // Re-evaluate on viewport resize (a wider viewport can reveal all chips).
+    const observer =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateScrollState) : null;
+    observer?.observe(el);
+    window.addEventListener('resize', updateScrollState);
+    return () => {
+      el.removeEventListener('scroll', updateScrollState);
+      observer?.disconnect();
+      window.removeEventListener('resize', updateScrollState);
+    };
+  }, [updateScrollState, tags.length]);
+
+  const scrollByPage = useCallback((direction: -1 | 1) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    // Scroll by ~the visible width (a "page"), less a small overlap for context.
+    const page = Math.max(el.clientWidth - 48, 120);
+    el.scrollBy({ left: direction * page, behavior: 'smooth' });
+  }, []);
+
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-1">
+      <ChipScrollArrow
+        label={scrollLeftLabel}
+        disabled={!canScrollLeft}
+        onClick={() => scrollByPage(-1)}
+        icon={<ChevronLeft aria-hidden="true" className="size-5" />}
+      />
+      <div className="relative min-w-0 flex-1">
+        <nav
+          ref={scrollerRef}
+          aria-label={label}
+          data-testid="desktop-tag-chip-strip"
+          className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={{ scrollBehavior: 'smooth' }}
+        >
+          {tags.map((tag) => {
+            const active = isActive(tag);
+            return (
+              <button
+                key={tag}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onToggleTag(tag)}
+                onFocus={(event) =>
+                  event.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+                }
+                className={cn(
+                  'flex h-9 shrink-0 scroll-mx-2 items-center rounded-pill border px-4 text-label-lg shadow-subtle transition-colors duration-fast ease-default outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
+                  active
+                    ? 'border-text-primary bg-text-primary text-white'
+                    : 'border-divider bg-white text-text-body',
+                )}
+              >
+                {localizeTag(tag, locale)}
+              </button>
+            );
+          })}
+        </nav>
+        {/* Edge-fade masks — token gradients, shown only when scrollable that way. */}
+        {canScrollLeft && (
+          <span
+            aria-hidden="true"
+            data-testid="chip-fade-left"
+            className="pointer-events-none absolute inset-y-0 left-0 w-8 gradient-chip-fade-left"
+          />
+        )}
+        {canScrollRight && (
+          <span
+            aria-hidden="true"
+            data-testid="chip-fade-right"
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 gradient-chip-fade-right"
+          />
+        )}
+      </div>
+      <ChipScrollArrow
+        label={scrollRightLabel}
+        disabled={!canScrollRight}
+        onClick={() => scrollByPage(1)}
+        icon={<ChevronRight aria-hidden="true" className="size-5" />}
+      />
+    </div>
+  );
+}
+
+function ChipScrollArrow({
+  label,
+  disabled,
+  onClick,
+  icon,
+}: {
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+  icon: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        'flex size-9 shrink-0 items-center justify-center rounded-pill text-text-body outline-none transition-colors duration-fast ease-default focus-visible:ring-2 focus-visible:ring-text-primary',
+        disabled ? 'cursor-not-allowed opacity-40' : 'hover:bg-surface-cream/60 hover:text-amber-dark',
+      )}
+    >
+      {icon}
+    </button>
   );
 }
 

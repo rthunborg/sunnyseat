@@ -62,7 +62,8 @@ import { cn } from '@/lib/utils';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
 import { mapVenueDtoToPinData } from '@/lib/utils/venue-pin-mapping';
 import { deriveVenueSunAtMinutes } from '@/lib/utils/venue-day-series';
-import { filterVenuesByTags } from '@/lib/utils/venue-tags';
+import { collectTags, filterVenuesByTags } from '@/lib/utils/venue-tags';
+import { MobileTagChips } from '@/components/composed/venue/MobileTagChips';
 import { OfflineBanner } from '@/components/custom/offline/OfflineBanner';
 import { MapContainer } from './MapContainer';
 import { MapLoadingFallback } from './MapLoadingFallback';
@@ -142,11 +143,12 @@ const TILE_FAILURE_RELEASE_THRESHOLD = 4;
 export function MapView() {
   const tVenue = useTranslations('venue');
   const tVenueList = useTranslations('venue.list');
+  const tCommon = useTranslations('common');
   const locale = useLocale();
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
   const { selectedVenueId, selectedVenuePreview, selectVenue } = useMapSelection();
-  const { activeTags } = useTagFilter();
+  const { activeTags, isActive: isTagActive, toggleTag } = useTagFilter();
   const plannerTime = useTimeContext();
   const favourites = useFavourites();
   const router = useRouter();
@@ -396,6 +398,19 @@ export function MapView() {
     if (!Array.isArray(rawVenues)) return rawVenues;
     return filterVenuesByTags(rawVenues, activeTags);
   }, [activeTags, rawVenues]);
+  // Story 11.3 (AC1): the mobile tag-chip row shares the desktop data source —
+  // the union of the LOADED venues' tags via `collectTags`. Derived from the
+  // SAME `venueQuery.data` the desktop nav reads (no second fetch; TanStack
+  // de-dupes on the identical key). `allTags` is UNFILTERED (from the loaded
+  // set, not `tagFilteredVenues`) so toggling a chip never removes the chips
+  // themselves. The orphaned-tag prune (`retainTags`) still runs from the
+  // always-mounted `DesktopNavBar` (`hidden lg:flex`, effect fires at every
+  // viewport) over the SAME cached union, so a stale mobile filter can never
+  // strand the surfaces — no duplicate prune needed here.
+  const allTags = useMemo(
+    () => collectTags(venueQuery.data?.venues ?? []),
+    [venueQuery.data?.venues],
+  );
   // Confidence meta for the favourites surface: prefer the network favourites
   // query's meta when it ran (out-of-radius / cold deep-link), otherwise fall
   // back to the loaded list meta, since AC1 may source the rows entirely from
@@ -803,6 +818,17 @@ export function MapView() {
   const listConfidenceMeta = isForcedVisualReference
     ? FORCED_VISUAL_CONFIDENCE_META
     : venueQuery.data?.meta;
+  // Story 11.3 (AC1, empty-state fold-in from the 9.7 code review): the Närmast
+  // list shows its loading skeleton ONLY while there is genuinely no underlying
+  // venue data yet — never when a tag filter has legitimately pruned the loaded
+  // set to zero matches. Keying off the PRE-FILTER loaded count (not
+  // `listVenues.length`) means a filtered-to-empty list renders the
+  // `venue.list.empty` copy — not a 3-card skeleton — even during a concurrent
+  // background refetch (e.g. a planner-change). Matches list + pins on both
+  // breakpoints (the same `isNearListLoading` feeds the mobile + desktop
+  // VenueList call sites).
+  const loadedVenueCount = venueQuery.data?.venues?.length ?? 0;
+  const isNearListLoading = venueQuery.isFetching && loadedVenueCount === 0;
   const favouriteIdSet = useMemo(
     () => new Set(favourites.favouriteIds),
     [favourites.favouriteIds],
@@ -1051,6 +1077,22 @@ export function MapView() {
             labels={venueListControlLabels(tVenueList)}
           />
         )}
+        {/* Story 11.3 (AC1): the mobile tag-chip row sits directly UNDER the sort
+            toggles, inside the sheet body, so it scrolls/collapses with the
+            header (not a floating layer). It is a NEW consumer of the SHARED
+            TagFilterContext — a toggle here filters BOTH the mobile list AND the
+            map pins (the venue surfaces already read `activeTags`). It rides the
+            Närmast list only (favourites are intentionally unfiltered, matching
+            the desktop scope). Renders nothing until a tag loads. */}
+        {mobileSheetState !== 'peek' && listMode !== 'favourites' && (
+          <MobileTagChips
+            tags={allTags}
+            isActive={isTagActive}
+            onToggleTag={toggleTag}
+            locale={locale === 'en' ? 'en' : 'sv'}
+            label={tCommon('nav.filter')}
+          />
+        )}
         {listMode === 'favourites' ? (
           <FavouritesList
             favouriteIds={favourites.favouriteIds}
@@ -1076,7 +1118,7 @@ export function MapView() {
             confidenceMeta={listConfidenceMeta}
             showVisibleConfidence={!isForcedVisualReference}
             locationIsApproximate={locationIsApproximate}
-            isLoading={venueQuery.isFetching && listVenues.length === 0}
+            isLoading={isNearListLoading}
             animateCards={mobileSheetState === 'full'}
             compactCards={mobileSheetState === 'peek'}
             onSelectVenue={handleSelectVenueFromList}
@@ -1121,7 +1163,7 @@ export function MapView() {
               confidenceMeta={listConfidenceMeta}
               showVisibleConfidence={!isForcedVisualReference}
               locationIsApproximate={locationIsApproximate}
-              isLoading={venueQuery.isFetching && listVenues.length === 0}
+              isLoading={isNearListLoading}
               onSelectVenue={handleSelectVenueFromList}
               onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
               isFavourite={favourites.isFavourite}

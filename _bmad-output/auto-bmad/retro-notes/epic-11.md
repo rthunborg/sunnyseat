@@ -17,3 +17,10 @@
 - [Phase 5 â€” dev-story] The todayâ†’today+3 window is a CLIENT/state concern: validatePlannerDateTime enforces it by default but the server route opts out (enforceWindow:false) so far-future forecast bookmarks keep serving 200. Do not add server-side window rejection.
 - [Phase 5 â€” dev-story] New Chromium 'touch' Playwright project (Pixel 5) added for CDP raw-touch specs â€” mobile/iPhone-14 is WebKit and cannot drive Input.dispatchTouchEvent; 11-3/11-8 touch specs should use --project=touch.
 - [Phase 7 â€” Tier A review] Pattern to avoid: 'add a Playwright project, forget the CI wiring' â€” the new touch project passed locally but build-and-test-nextjs.yml never invoked it, leaving AC1's only automated proof dormant-green. Fixed in the review pass; check CI wiring whenever a project/profile is added.
+
+## Story 11-3-mobile-tag-filtering-bottom-sheet-overhaul
+- [Phase 5 â€” dev-story] @use-gesture release `direction` is 0 at pointer/touch-up â€” decide snap release from accumulated movement sign (releaseDir), never instantaneous direction. Applies to ANY future @use-gesture snap logic.
+- [Phase 5 â€” dev-story] Do NOT set pointer:{touch:true} on @use-gesture â€” it ignores synthetic PointerEvents (breaks jsdom/pointer tests); default pointer mode + releaseDir handles both synthetic tests and CDP real touch.
+- [Phase 5 â€” dev-story] Turbopack stale-CSS trap: after any globals.css token change, restart next dev with a fresh .next before running touch e2e (token resolved to empty string until restart).
+- [Phase 5 â€” dev-story] PRE-EXISTING failure found at baseline: epic-11-scrub-zero-fetch DESKTOP date-change fails â€” 11-1's planner-date-next testid exists in both TimeSliderPanel variants but is not visible/reachable on desktop. Orchestrator dispatching a targeted fix(story-11-1) pass this run.
+- [Phase 5 â€” dev-story] PRE-EXISTING axe boundary flake: VenueDetailContent amber sun badge color-contrast 4.47:1 vs 4.5 AA â€” same amber-badge class as Story 5.1 debt. 11-6 (venue-detail rework) MUST land the badge at >=4.5:1 so the axe gate stays deterministically green.

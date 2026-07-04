@@ -17,7 +17,9 @@
     "settings": "Settings",
     "language": "Language",
     "switchToSwedish": "Switch to Swedish",
-    "switchToEnglish": "Switch to English"
+    "switchToEnglish": "Switch to English",
+    "scrollFiltersLeft": "Scroll filters left",
+    "scrollFiltersRight": "Scroll filters right"
   },
   "notFound": {
     "heading": "This page could not be found",

@@ -43,17 +43,35 @@ export default defineConfig({
   projects: [
     {
       name: 'mobile',
-      testIgnore: ['**/axe.spec.ts', '**/axe-mobile.spec.ts', '**/epic-11-slider-touch-drag.spec.ts'],
+      testIgnore: [
+        '**/axe.spec.ts',
+        '**/axe-mobile.spec.ts',
+        '**/epic-11-slider-touch-drag.spec.ts',
+        // Story 11.3 (AC2/AC3): the sheet/chip real-touch gesture spec is a
+        // `touch`-project-only CDP raw-touch spec — exclude it here so it does
+        // not double-run/false-fail under the WebKit mobile project.
+        '**/epic-11-sheet-touch-gestures.spec.ts',
+      ],
       use: { ...devices['iPhone 14'] },
     },
     {
       name: 'desktop',
-      testIgnore: ['**/axe.spec.ts', '**/axe-mobile.spec.ts', '**/epic-11-slider-touch-drag.spec.ts'],
+      testIgnore: [
+        '**/axe.spec.ts',
+        '**/axe-mobile.spec.ts',
+        '**/epic-11-slider-touch-drag.spec.ts',
+        '**/epic-11-sheet-touch-gestures.spec.ts',
+      ],
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'touch',
-      testMatch: '**/epic-11-slider-touch-drag.spec.ts',
+      // Story 11.2 slider-drag + Story 11.3 sheet/chip gestures both live under
+      // the Chromium/Pixel-5 real-touch project (CDP `Input.dispatchTouchEvent`).
+      testMatch: [
+        '**/epic-11-slider-touch-drag.spec.ts',
+        '**/epic-11-sheet-touch-gestures.spec.ts',
+      ],
       use: { ...devices['Pixel 5'] },
     },
     {

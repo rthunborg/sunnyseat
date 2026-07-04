@@ -153,6 +153,10 @@ function setActiveTags(...tags: string[]): void {
   activeTagsMock.clear();
   for (const tag of tags) activeTagsMock.add(tag);
 }
+// Story 11.3: the mobile chip row writes to the SAME shared context the desktop
+// nav does. Spy on `toggleTag` so a mobile chip click can be asserted to write
+// the shared context (never a forked local filter state).
+const toggleTagMock = vi.fn();
 let selectedVenuePreviewMock: GetVenuesResponse['venues'][number] | null = null;
 let searchParamsMock = new URLSearchParams();
 let pathnameMock = '/';
@@ -212,9 +216,10 @@ vi.mock('@/lib/contexts/MapSelectionContext', () => ({
 vi.mock('@/lib/contexts/TagFilterContext', () => ({
   useTagFilter: () => ({
     activeTags: activeTagsMock,
-    toggleTag: () => {},
+    toggleTag: (tag: string) => toggleTagMock(tag),
     clearTags: () => {},
     isActive: (tag: string) => activeTagsMock.has(tag),
+    retainTags: () => {},
   }),
 }));
 
@@ -351,6 +356,7 @@ describe('<MapView />', () => {
     selectedVenueIdMock = null;
     selectedVenuePreviewMock = null;
     activeTagsMock.clear();
+    toggleTagMock.mockClear();
     searchParamsMock = new URLSearchParams();
     pathnameMock = '/';
     selectVenueMock.mockClear();
@@ -2074,6 +2080,97 @@ describe('<MapView />', () => {
         ).toHaveLength(0);
         // The existing venue.list.empty copy renders (not gated on isLoading).
         expect(screen.getAllByText('Inga platser hittades i det här området.').length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('Story 11.3 — mobile tag-chip row in the bottom-sheet header (AC1)', () => {
+      const venueA = { ...makeVenue({ id: 'v-a', name: 'Alfa' }), tags: ['Innergård', 'Hund ok'] };
+      const venueB = { ...makeVenue({ id: 'v-b', name: 'Beta' }), tags: ['Kanal'] };
+
+      function mockTwoVenues(isFetching = false) {
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([venueA, venueB]),
+          isFetching,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+      }
+
+      function mobileSheet(): HTMLElement {
+        return screen.getByTestId('mobile-bottom-sheet');
+      }
+
+      it('renders the data-driven chip row inside the mobile sheet, from the loaded venues tag union', () => {
+        mockTwoVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        const chips = within(mobileSheet()).getByTestId('mobile-tag-chips');
+        // Union of the loaded venues' tags, first-seen order: Innergård, Hund ok, Kanal.
+        expect(within(chips).getByRole('button', { name: 'Innergård' })).toBeInTheDocument();
+        expect(within(chips).getByRole('button', { name: 'Hund ok' })).toBeInTheDocument();
+        expect(within(chips).getByRole('button', { name: 'Kanal' })).toBeInTheDocument();
+      });
+
+      it('places the chip row directly UNDER the mobile sort toggles in the sheet header', () => {
+        mockTwoVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        const sheet = mobileSheet();
+        // The sort toggles ("Mest sol") are the first sheet child; the chip row
+        // follows them in DOM order.
+        const sortToggle = within(sheet).getByRole('button', { name: 'Mest sol' });
+        const chips = within(sheet).getByTestId('mobile-tag-chips');
+        const position = sortToggle.compareDocumentPosition(chips);
+        // DOCUMENT_POSITION_FOLLOWING === 4: the chip row comes AFTER the toggle.
+        expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      });
+
+      it('toggling a mobile chip writes the shared TagFilterContext (calls toggleTag)', () => {
+        mockTwoVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        const chips = within(mobileSheet()).getByTestId('mobile-tag-chips');
+        fireEvent.click(within(chips).getByRole('button', { name: 'Innergård' }));
+        expect(toggleTagMock).toHaveBeenCalledWith('Innergård');
+      });
+
+      it('a mobile chip reflects active state (aria-pressed + "on" pill) from the shared context', () => {
+        setActiveTags('Innergård');
+        mockTwoVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        const chips = within(mobileSheet()).getByTestId('mobile-tag-chips');
+        const active = within(chips).getByRole('button', { name: 'Innergård' });
+        expect(active).toHaveAttribute('aria-pressed', 'true');
+        expect(active.className).toContain('bg-text-primary');
+        expect(active.className).toContain('text-white');
+      });
+
+      it('a filtered-to-empty mobile list shows the empty copy — NOT the loading skeleton — during a concurrent background refetch (9.7 fold-in)', () => {
+        // Venues ARE loaded, a tag filter prunes them to zero, AND a background
+        // refetch is in flight (isFetching=true). The mobile list must show the
+        // "nothing matches" copy, not the 3-card skeleton.
+        setActiveTags('NoSuchTag');
+        mockTwoVenues(true);
+        render(<MapView />, { wrapper: Wrapper });
+
+        const sheet = mobileSheet();
+        expect(within(sheet).getByText('Inga platser hittades i det här området.')).toBeInTheDocument();
+        // The loading skeleton (role=status, aria-busy) must NOT be shown.
+        expect(within(sheet).queryByRole('status')).toBeNull();
+      });
+
+      it('still shows the skeleton on a genuine first load (no venues loaded yet, fetching)', () => {
+        useVenueSearchMock.mockReturnValue({
+          data: undefined,
+          isFetching: true,
+          isError: false,
+          dataUpdatedAt: 0,
+        });
+        render(<MapView />, { wrapper: Wrapper });
+
+        // Pre-data: the skeleton is the correct state (nothing loaded to filter).
+        expect(within(mobileSheet()).getByRole('status')).toBeInTheDocument();
       });
     });
 

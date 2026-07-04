@@ -5,10 +5,10 @@ epic_num: 11
 story_num: 3
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-04T20:17:36Z"
+updated_at: "2026-07-04T21:55:32Z"
 started_at: "2026-07-04T20:09:03Z"
 completed_at: null
-active_seconds: 511
+active_seconds: 6387
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: [automate]
 tea_rationale: "stateful cross-breakpoint UI flow (shared tag-filter context + sheet snap/gesture) across multiple modules, but no High signal â€” epic risks R-008/R-009 score 4 (medium tier)"
 epic_story_count: 8
 stories_after_in_epic: 5
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -47,7 +47,8 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work: []
+deferred_work:
+  - "Three NEW visual states (sheet-with-active-chips, collapsed sheet, desktop chip-strip mid-scroll) -> maintainer reference-PNG rebaseline owned by story 11-7; real-device four-snap + chip pass owned by story 11-8"
 blockers: []
 overrides: {}
 constraints: []

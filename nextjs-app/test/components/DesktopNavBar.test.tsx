@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import type { AnchorHTMLAttributes } from 'react';
 import { renderWithProviders } from '@/test/setup/test-utils';
 import { DesktopNavBar } from '@/components/custom/layout/DesktopNavBar';
@@ -101,6 +101,8 @@ const NAV_MESSAGES = {
       language: 'Språk',
       switchToSwedish: 'Byt till svenska',
       switchToEnglish: 'Byt till engelska',
+      scrollFiltersLeft: 'Bläddra filter åt vänster',
+      scrollFiltersRight: 'Bläddra filter åt höger',
       filterChips: {
         courtyard: 'Innergård',
         dogs: 'Hund ok',
@@ -332,6 +334,89 @@ describe('DesktopNavBar', () => {
 
     expect(screen.queryByRole('button', { name: 'Föregående filter' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Nästa filter' })).toBeNull();
+  });
+
+  describe('Story 11.3 (AC4) — scrollable chip strip with arrows + edge-fades', () => {
+    it('makes the chip strip horizontally scrollable (overflow-x-auto), NOT the old mid-chip clip', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      expect(strip.className).toContain('overflow-x-auto');
+      // The hard mid-chip clip is gone.
+      expect(strip.className).not.toContain('overflow-hidden');
+    });
+
+    it('keeps ALL tags in the DOM (none clipped away) and focusable as buttons', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      // Union of the two mock venues' tags: Innergård, Hund ok, Wifi.
+      const chips = ['Innergård', 'Hund ok', 'Wifi'];
+      for (const name of chips) {
+        const chip = within(strip).getByRole('button', { name });
+        expect(chip).toBeEnabled();
+        chip.focus();
+        expect(chip).toHaveFocus();
+      }
+    });
+
+    it('renders real left/right scroll-arrow buttons (labelled, type=button)', () => {
+      renderDesktopNav();
+
+      const left = screen.getByRole('button', { name: 'Bläddra filter åt vänster' });
+      const right = screen.getByRole('button', { name: 'Bläddra filter åt höger' });
+      expect(left).toHaveAttribute('type', 'button');
+      expect(right).toHaveAttribute('type', 'button');
+    });
+
+    it('disables the left arrow at the start (scrollLeft 0)', () => {
+      renderDesktopNav();
+
+      expect(screen.getByRole('button', { name: 'Bläddra filter åt vänster' })).toBeDisabled();
+    });
+
+    it('enables the right arrow when the strip overflows, and scrolls a page on click', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      // Simulate an overflowing strip (jsdom reports 0 for all scroll metrics).
+      Object.defineProperty(strip, 'scrollWidth', { configurable: true, value: 800 });
+      Object.defineProperty(strip, 'clientWidth', { configurable: true, value: 300 });
+      const scrollBy = vi.fn();
+      (strip as unknown as { scrollBy: typeof scrollBy }).scrollBy = scrollBy;
+
+      // Fire a scroll event so the component recomputes canScrollRight.
+      act(() => {
+        strip.dispatchEvent(new Event('scroll'));
+      });
+
+      const right = screen.getByRole('button', { name: 'Bläddra filter åt höger' });
+      expect(right).toBeEnabled();
+      fireEvent.click(right);
+      expect(scrollBy).toHaveBeenCalledWith(
+        expect.objectContaining({ left: expect.any(Number) }),
+      );
+      expect(scrollBy.mock.calls[0][0].left).toBeGreaterThan(0);
+    });
+
+    it('shows the right edge-fade only when there is more content to the right', () => {
+      renderDesktopNav();
+
+      // At rest in jsdom (all metrics 0) neither fade shows.
+      expect(screen.queryByTestId('chip-fade-left')).toBeNull();
+      expect(screen.queryByTestId('chip-fade-right')).toBeNull();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      Object.defineProperty(strip, 'scrollWidth', { configurable: true, value: 800 });
+      Object.defineProperty(strip, 'clientWidth', { configurable: true, value: 300 });
+      act(() => {
+        strip.dispatchEvent(new Event('scroll'));
+      });
+
+      // Overflow to the right → the right edge-fade appears; left stays hidden at start.
+      expect(screen.getByTestId('chip-fade-right')).toBeInTheDocument();
+      expect(screen.queryByTestId('chip-fade-left')).toBeNull();
+    });
   });
 
   it('opens the settings modal from the settings button and no longer renders a standalone About link', () => {
