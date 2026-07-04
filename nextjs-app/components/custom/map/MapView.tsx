@@ -2,7 +2,8 @@
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
+import { LoaderCircle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import {
   VenueQuickInfo,
@@ -55,11 +56,12 @@ import {
   type CardinalDirection,
   type RouteSummary,
 } from '@/lib/services/routing';
-import { DURATION_FLY_MS } from '@/lib/constants/animation';
+import { DURATION_FAST_S, DURATION_FLY_MS, EASE_ENTER } from '@/lib/constants/animation';
 import { useForcedState } from '@/lib/dev/use-forced-state';
 import { cn } from '@/lib/utils';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
 import { mapVenueDtoToPinData } from '@/lib/utils/venue-pin-mapping';
+import { deriveVenueSunAtMinutes } from '@/lib/utils/venue-day-series';
 import { filterVenuesByTags } from '@/lib/utils/venue-tags';
 import { OfflineBanner } from '@/components/custom/offline/OfflineBanner';
 import { MapContainer } from './MapContainer';
@@ -210,16 +212,43 @@ export function MapView() {
   // "≈ från centrum" so the number is honest. Only the LABEL changes; the
   // value (still the centrum-relative distance) is never hidden.
   const locationIsApproximate = geolocation.status === 'fallback';
-  // Story 9.4 AC3: defer the planner key that drives the venue queries so a
-  // rapid drag (each snapped 15-min step flips `plannerTime.plannerQuery`)
-  // enqueues at most ONE fetch after the user settles. The slider thumb +
-  // time badge keep updating live off `selectedMinutes`/`selectedTime`; only
-  // the query-driving copy is deferred. `keepPreviousData` masks the
-  // in-between renders. Deferring the SAME `plannerQuery` the context already
-  // derives from `isLiveNow` preserves the "live now" semantics for free:
-  // settling back to the current wall-clock time defers to `undefined` (the
-  // planner-less live key), settling off it defers to a single planner key.
-  const deferredPlanner = useDeferredValue(plannerTime.plannerQuery);
+  // Story 11.1 (AC1): the query is keyed on the selected DATE (+ coords), never
+  // on the selected TIME — the time dimension is derived client-side from each
+  // venue's `sunDaySeries`. So we pass the selected `date`/`time`/`isLiveNow` to
+  // the query and let the hook (a) always key on `date`, (b) send date/time only
+  // when off-live, (c) poll only when live. A same-date time scrub therefore
+  // keeps the SAME key → zero fetch; a date change flips the key → one fetch.
+  //
+  // Story 9.4 AC3: still DEFER these query-driving args so a rapid drag settles to
+  // at most one recompute; the slider thumb + time badge keep updating live off
+  // `selectedMinutes`/`selectedTime`. Since time is no longer in the key, the
+  // deferral only smooths the request-param/derivation churn — the key itself is
+  // stable across a scrub regardless.
+  const plannerArgs = useMemo(() => {
+    const isLiveNow = plannerTime.isLiveNow;
+    // Off-live selection → the context exposes a concrete plannerQuery; live-now
+    // → send the selected date but flag live so the request omits date/time and
+    // the server computes "now" (keeps freshness honest). An out-of-range/invalid
+    // planner date leaves plannerQuery undefined AND is not live — fall back to
+    // the plain live key (no date) rather than keying on a bad date.
+    if (plannerTime.plannerQuery) {
+      return { ...plannerTime.plannerQuery, isLiveNow: false };
+    }
+    if (isLiveNow) {
+      return {
+        date: plannerTime.selectedDate,
+        time: plannerTime.selectedTime,
+        isLiveNow: true,
+      };
+    }
+    return undefined;
+  }, [
+    plannerTime.isLiveNow,
+    plannerTime.plannerQuery,
+    plannerTime.selectedDate,
+    plannerTime.selectedTime,
+  ]);
+  const deferredPlanner = useDeferredValue(plannerArgs);
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
@@ -336,7 +365,23 @@ export function MapView() {
   // malformed response, and individual entries may lack a `location`
   // (real Supabase rows in 2.x will sometimes have NULL geometry until
   // backfilled). Skip those rather than crash the entire map.
-  const rawVenues = venueQuery.data?.venues;
+  const rawVenuesData = venueQuery.data?.venues;
+  // Story 11.1 (AC1): derive every time-dependent surface CLIENT-SIDE from each
+  // venue's cached `sunDaySeries` at the live `plannerTime.selectedMinutes`, so a
+  // settled time scrub updates pins/lists/quick-info/"Mest sol" ordering WITHOUT
+  // any network request (the R-001 headline — "do not dampen the fetch, REMOVE
+  // it"). For a venue carrying a series we override `currentSunStatus` +
+  // `sunExposurePercent` with the already-gated per-step value (the client NEVER
+  // re-gates — it reads the server-emitted series). A venue WITHOUT a series (the
+  // seed/fixture path, flag OFF) passes through untouched, keeping the server's
+  // single-instant fields. `selectedMinutes` updates live during a drag, so this
+  // memo re-derives per scrub step off already-fetched data.
+  const rawVenues = useMemo(() => {
+    if (!Array.isArray(rawVenuesData)) return rawVenuesData;
+    return rawVenuesData.map((venue) =>
+      applyDaySeriesDerivation(venue, plannerTime.selectedMinutes),
+    );
+  }, [rawVenuesData, plannerTime.selectedMinutes]);
   // Story 9.7: apply the shared tag filter to the loaded Närmast list ONCE, so
   // BOTH the venue lists (desktop + mobile) AND the map pins derive from the same
   // filtered source. Pure client `.filter()` over already-fetched data — issues
@@ -872,6 +917,18 @@ export function MapView() {
   //    the overlay already shows degraded localized content, so only a
   //    retry affordance is added for transient errors; a 404 is suppressed
   //    because contradicting visible venue content would mislead.
+  // Story 11.1 (AC3): a DATE change (or material location change) is the ONE
+  // fetch AC3 permits; while it is in flight the existing markers stay MOUNTED
+  // (keepPreviousData keeps the previous venues rendered → `isPlaceholderData`)
+  // and the map dims under a subtle-gray scrim + centered spinner overlay until
+  // the new series arrives, then updates in place. This is TRUE only when a
+  // previous result already exists (a real key change), never on the very first
+  // load (that gap is covered by the tile-paint cover) — so the overlay is a
+  // clean signal for "swapping to a new day/location". A same-date time scrub
+  // does not change the query key, so it never triggers this state.
+  const isDateChangeLoading =
+    venueQuery.isFetching && venueQuery.isPlaceholderData && !isForcedVisualReference;
+
   const detailErrorNotice = (() => {
     if (!canRequestVenueDetail) return null;
     // A present-but-blank/whitespace `?venue=` slug never triggers a fetch
@@ -907,6 +964,36 @@ export function MapView() {
       {!showOfflineShell && (
         <>
       <VenuePinLayer venues={venues} />
+      {/* Story 11.1 (AC3): the date-change dim + spinner overlay. Rendered as an
+          absolutely-positioned sibling so the pin layer above stays MOUNTED
+          (markers persist keyed by venue id) while the single new-date request
+          is in flight; markers update in place when the new series arrives. The
+          scrim + spinner are design-system tokens (subtle-gray scrim via
+          `bg-text-primary/20`, the standard `LoaderCircle` spinner), and the
+          overlay fades in/out per the motion spec. Reference-PNG rebaseline for
+          this NEW visual state is a maintainer checkpoint owned by Story 11.7 —
+          dev does NOT self-bless a reference PNG here. */}
+      <AnimatePresence>
+        {isDateChangeLoading && (
+          <motion.div
+            key="date-change-overlay"
+            data-testid="date-change-overlay"
+            role="status"
+            aria-live="polite"
+            aria-label={tVenue('planner.loading')}
+            className="absolute inset-0 z-floating-buttons flex items-center justify-center bg-text-primary/20 backdrop-blur-standard"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: DURATION_FAST_S, ease: EASE_ENTER }}
+          >
+            <LoaderCircle
+              aria-hidden="true"
+              className="size-8 text-text-primary motion-safe:animate-spin"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Story 9.5 AC2: the amber user-location dot. Gated on a real GPS fix
           (`status === 'success'`) so it is NOT drawn while sitting on the
           Gothenburg-centrum fallback / idle / pending. Additive only — the
@@ -1199,6 +1286,35 @@ function formatLabel(template: string, values: Record<string, string>): string {
 
 function hasValidVenueLocation(venue: VenueDataDto): boolean {
   return Number.isFinite(venue.location?.lat) && Number.isFinite(venue.location?.lng);
+}
+
+/**
+ * Story 11.1 (AC1): override a venue's headline sun fields with the derived
+ * per-step value from its cached `sunDaySeries` at `selectedMinutes`. A venue
+ * without a series (seed/fixture path) is returned unchanged, so the client keeps
+ * the server's single-instant fields. The derived value is the ALREADY weather-
+ * gated series entry — the client does not re-gate. This feeds pins, both venue
+ * lists, quick-info figures, the obscured presentation, and the "Mest sol"
+ * ordering input (`getVenueSunRankForList` reads `currentSunStatus` +
+ * `sunExposurePercent`) so ordering tracks the scrub.
+ */
+function applyDaySeriesDerivation(
+  venue: VenueDataDto,
+  selectedMinutes: number,
+): VenueDataDto {
+  const derived = deriveVenueSunAtMinutes(venue.sunDaySeries, selectedMinutes);
+  if (!derived) return venue;
+  if (
+    derived.currentSunStatus === venue.currentSunStatus &&
+    derived.sunExposurePercent === venue.sunExposurePercent
+  ) {
+    return venue;
+  }
+  return {
+    ...venue,
+    currentSunStatus: derived.currentSunStatus,
+    sunExposurePercent: derived.sunExposurePercent,
+  };
 }
 
 function isFavouritesPath(pathname: string): boolean {

@@ -127,17 +127,26 @@ function buildVenuesResponse(): GetVenuesResponse {
   };
 }
 
-/** Install the day-series DTO mock + a request counter on the venues matcher. */
+/**
+ * Install the day-series DTO mock + a request counter on the venues matcher. The
+ * FIRST request (initial load) fulfills immediately so the app settles fast; any
+ * SUBSEQUENT request (a date change) is delayed briefly so the in-flight
+ * dim+spinner overlay is observable (a settled state, not a race). The delay does
+ * not affect the request COUNT invariant — a scrub must still add zero requests.
+ */
 async function mockVenuesWithCounter(page: Page): Promise<{ count: () => number }> {
   let count = 0;
   await page.route(VENUES_MATCHER, async (route: Route) => {
     count += 1;
+    if (count > 1) {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    }
     await route.fulfill({ json: buildVenuesResponse() });
   });
   return { count: () => count };
 }
 
-test.describe.skip('[11.1 AC1/AC3] day-series scrub = 0 requests, date change = 1 + markers persist', () => {
+test.describe('[11.1 AC1/AC3] day-series scrub = 0 requests, date change = 1 + markers persist', () => {
   test('a settled same-date time scrub issues ZERO /api/venues requests', async ({ page }) => {
     const metnoHits = await forbidLiveMetno(page);
     await bypassOnboarding(page);
@@ -185,19 +194,19 @@ test.describe.skip('[11.1 AC1/AC3] day-series scrub = 0 requests, date change = 
     const afterLoad = venues.count();
     const pinCountBefore = await page.locator('[data-testid="venue-pin"]').count();
 
-    // Trigger a DATE change (the one fetch AC3 permits). The exact date-picker
-    // interaction is filled in by the dev when un-skipping (open the planner date
-    // control, pick today+1); the invariant is what matters. Placeholder using the
-    // planner date control the dev exposes a testid for in the green phase:
-    //   await page.getByTestId('planner-date-next').click();
-    // For the red-phase contract we assert the invariants the interaction must satisfy:
+    // Trigger a DATE change (the one fetch AC3 permits) via the planner
+    // "next day" control (the `planner-date-next` testid Task 5 exposes on
+    // TimeSliderPanel). This flips the query key to the new date → exactly one
+    // new venue request fires. `.first()` picks the visible variant (the mobile +
+    // desktop panels both render the control).
+    await page.getByTestId('planner-date-next').first().click();
 
     // (a) EXACTLY ONE new venue request fires for the date change.
     // (b) the dim + centered spinner OVERLAY appears while the request is in flight
     //     (a NEW visual state Task 5 adds with this testid).
     const overlay = page.locator('[data-testid="date-change-overlay"]');
-    // The dev un-comments the date-change trigger above; the overlay must show,
-    // then the markers update in place WITHOUT unmounting.
+    // The overlay must show while the single new-date request is in flight, then
+    // the markers update in place WITHOUT unmounting.
     await expect(overlay).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
 
     // Markers must NOT have been unmounted/remounted: the same number of pins is

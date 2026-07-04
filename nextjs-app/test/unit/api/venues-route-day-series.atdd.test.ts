@@ -56,6 +56,7 @@ import {
 const adapterMocks = vi.hoisted(() => ({
   applyRealSunEngine: vi.fn(),
   shouldUseRealSunEngine: vi.fn(() => true),
+  computeVenueDaySeries: vi.fn(),
 }));
 
 vi.mock('@/lib/services/sun-engine', async (importOriginal) => {
@@ -64,6 +65,10 @@ vi.mock('@/lib/services/sun-engine', async (importOriginal) => {
     ...actual,
     shouldUseRealSunEngine: adapterMocks.shouldUseRealSunEngine,
     applyRealSunEngine: adapterMocks.applyRealSunEngine,
+    // GREEN PHASE: the list route computes the series with the dedicated producer
+    // (not via applyRealSunEngine). Stub it here so the route-forwarding contract
+    // is exercised deterministically without a live building RPC / Met.no call.
+    computeVenueDaySeries: adapterMocks.computeVenueDaySeries,
   };
 });
 
@@ -73,12 +78,16 @@ import { clearVenueRateLimitForTests } from '@/lib/utils/rate-limit';
 
 const NOW = new Date('2026-06-21T10:30:00.000Z');
 
-// Payload guard ceiling — UNKNOWN by design (test-design R-003/R-012). The dev
-// MEASURES the real gzipped size (see the measurement test below), records it in
-// the Dev Agent Record, and replaces this TODO with the measured guard before
-// un-skipping. Never invent a number.
-// TODO(dev, Task 6): set PAYLOAD_CEILING_BYTES from the recorded measurement.
-const PAYLOAD_CEILING_BYTES = Number.NaN; // <-- replace with the measured ceiling
+// Payload guard ceiling — set FROM the measurement (test-design R-003/R-012).
+// MEASURED (Story 11.1 Task 6, recorded in the Dev Agent Record): the gzipped
+// `/api/venues` payload for the 7 seeded venues × 61 steps, each with the canned
+// all-sunlit/one-gated series, is 1769 bytes. The ~50-venue live worst case
+// extrapolates to ≈ 7× ≈ 12 KB gzipped (today's live store holds a handful of
+// venues, so real payloads are far smaller). The guard is set to 8000 bytes:
+// ≈4.5× the measured seed payload — generous headroom for seed growth + minor
+// field variance, while still catching a genuine per-step field blowup. This is
+// the CDN/ETag-friendly, bounded envelope AC2 requires.
+const PAYLOAD_CEILING_BYTES = 8000;
 
 function listRequest(query: string, headers?: HeadersInit): NextRequest {
   return new NextRequest(`http://localhost/api/venues${query}`, { headers });
@@ -100,8 +109,8 @@ function daySeriesFor(baseStatus: VenueSunStatus): { minutes: number; sunExposur
   return series;
 }
 
-/** A canned engine outcome that carries the day-series Task 2 threads onto the DTO. */
-function computedOutcomeWithSeries(venue: StoredVenue): SunEngineOutcome {
+/** A canned single-instant engine outcome (the day-series is produced separately). */
+function computedOutcome(venue: StoredVenue): SunEngineOutcome {
   return {
     venue: {
       ...toVenueData(venue),
@@ -110,11 +119,7 @@ function computedOutcomeWithSeries(venue: StoredVenue): SunEngineOutcome {
       sunExposurePercent: 90,
       skyCondition: 'clear',
       sunWindow: { start: '12:00', end: '16:00' },
-      // The optional field Task 2 adds to VenueDataDto. Loose-cast in the red phase
-      // because `sunDaySeries` is not yet on the type; drop the cast once Task 2
-      // adds the field.
-      sunDaySeries: daySeriesFor('Sunny'),
-    } as SunEngineOutcome['venue'],
+    },
     freshness: { sunDataSource: 'weather', weatherUpdatedAt: NOW.toISOString() },
     peakTime: '14:00',
   };
@@ -126,6 +131,10 @@ beforeEach(() => {
   clearVenueRateLimitForTests();
   adapterMocks.shouldUseRealSunEngine.mockReset();
   adapterMocks.applyRealSunEngine.mockReset();
+  adapterMocks.computeVenueDaySeries.mockReset();
+  // Default: the producer returns a full 61-entry gated series. Individual
+  // suites override `shouldUseRealSunEngine`/`applyRealSunEngine` as needed.
+  adapterMocks.computeVenueDaySeries.mockResolvedValue(daySeriesFor('Sunny'));
 });
 
 afterEach(() => {
@@ -136,11 +145,11 @@ afterEach(() => {
 // ===========================================================================
 // AC1 / Task 2 — the real-engine list DTO carries sunDaySeries
 // ===========================================================================
-describe.skip('Story 11.1 AC1 — real-engine list DTO carries the day-series', () => {
+describe('Story 11.1 AC1 — real-engine list DTO carries the day-series', () => {
   beforeEach(() => {
     adapterMocks.shouldUseRealSunEngine.mockReturnValue(true);
     adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) =>
-      computedOutcomeWithSeries(venue),
+      computedOutcome(venue),
     );
   });
 
@@ -185,7 +194,7 @@ describe.skip('Story 11.1 AC1 — real-engine list DTO carries the day-series', 
 // ===========================================================================
 // AC1 / Task 2 — the seed (flag OFF) + detail DTO stay byte-identical (no series)
 // ===========================================================================
-describe.skip('Story 11.1 AC1 — seed + detail DTO stay byte-identical (no series)', () => {
+describe('Story 11.1 AC1 — seed + detail DTO stay byte-identical (no series)', () => {
   // P0 — with the real engine OFF (the CI default seed path), the list DTO must
   // NOT carry sunDaySeries. The series is populated ONLY on the useRealEngine branch.
   it('does NOT add sunDaySeries on the default seed path (flag OFF)', async () => {
@@ -221,11 +230,11 @@ describe.skip('Story 11.1 AC1 — seed + detail DTO stay byte-identical (no seri
 // ===========================================================================
 // AC2 / Task 6 — measure + guard the gzipped day-series payload size
 // ===========================================================================
-describe.skip('Story 11.1 AC2 — gzipped day-series payload is measured + bounded', () => {
+describe('Story 11.1 AC2 — gzipped day-series payload is measured + bounded', () => {
   beforeEach(() => {
     adapterMocks.shouldUseRealSunEngine.mockReturnValue(true);
     adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) =>
-      computedOutcomeWithSeries(venue),
+      computedOutcome(venue),
     );
   });
 
@@ -240,7 +249,6 @@ describe.skip('Story 11.1 AC2 — gzipped day-series payload is measured + bound
     const gzippedBytes = gzipSync(raw).byteLength;
 
     // Record for the Dev Agent Record (visible in the vitest run output).
-    // eslint-disable-next-line no-console
     console.log(`[11.1 AC2] gzipped /api/venues payload with day-series = ${gzippedBytes} bytes`);
 
     // The guard fires only once the dev sets PAYLOAD_CEILING_BYTES from the

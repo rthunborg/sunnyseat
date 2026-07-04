@@ -212,7 +212,13 @@ describe('useVenueSearch', () => {
     expect(parsed.searchParams.get('time')).toBe('14:00');
   });
 
-  it('keeps previous venue data visible while a new planner date/time request is in flight', async () => {
+  // STORY 11.1 (AC3): a DATE change is the one fetch AC3 permits, and
+  // `keepPreviousData` masks the in-flight window (the markers persist under the
+  // overlay). A same-DATE time change is now derived client-side from the
+  // `sunDaySeries` and fires ZERO fetches (asserted in
+  // `venue-day-series-query-key.atdd.test.ts`), so this test drives a DATE change
+  // to exercise the keepPreviousData seam across a real key change.
+  it('keeps previous venue data visible while a new planner DATE request is in flight', async () => {
     const firstResponse: GetVenuesResponse = {
       ...SAMPLE_RESPONSE,
       venues: [
@@ -250,22 +256,22 @@ describe('useVenueSearch', () => {
       );
 
     const { result, rerender } = renderHook(
-      ({ time }: { time: string }) =>
+      ({ date }: { date: string }) =>
         useVenueSearch({
           lat: 57.7089,
           lng: 11.9746,
           radiusKm: 1.5,
-          date: '2026-06-14',
-          time,
+          date,
+          time: '14:00',
         }),
       {
         wrapper: makeWrapper(),
-        initialProps: { time: '14:00' },
+        initialProps: { date: '2026-06-14' },
       },
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    rerender({ time: '15:00' });
+    rerender({ date: '2026-06-15' });
 
     await waitFor(() => expect(result.current.isFetching).toBe(true));
     expect(result.current.data).toEqual(firstResponse);
@@ -524,13 +530,16 @@ describe('useVenueSearch', () => {
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    // STORY 11.1 (AC1): `time` is no longer a query-key input — only `date` (+
+    // coords) key the planner query, so the scrub derives client-side and fires
+    // zero fetches. The refetch-interval-off behaviour for an explicit planner
+    // DATE still holds (a fixed future day should not poll).
     const query = client.getQueryCache().find({
       queryKey: queryKeys.venues.planner({
         lat: 57.7089,
         lng: 11.9746,
         radiusKm: 1.5,
         date: '2026-06-14',
-        time: '14:00',
       }),
     });
     const options = query?.options as { refetchInterval?: unknown } | undefined;

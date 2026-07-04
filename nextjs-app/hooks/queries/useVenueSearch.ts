@@ -22,6 +22,15 @@ type Params = {
   q?: string;
   date?: string;
   time?: string;
+  // Story 11.1 (AC1): whether the selected planner moment is the live wall-clock
+  // "now". When true, the request omits date/time (the server computes for now)
+  // and the query POLLS (`refetchInterval`), while off-live it sends date/time and
+  // does not poll. Critically, the query KEY includes the selected `date` in BOTH
+  // cases, so a live-today ↔ off-live-today scrub keeps the SAME key and fires
+  // ZERO fetches (the R-001 zero-fetch invariant). Defaults to FALSE so a caller
+  // that passes an explicit `date`+`time` keeps the pre-11.1 "send the planner
+  // selection" behaviour; MapView passes `isLiveNow` explicitly.
+  isLiveNow?: boolean;
   // Story 9.4 AC2: lets the caller gate the FIRST fetch until geolocation
   // settles (so the fallback-centrum key and the real-GPS key don't both
   // fire). Defaults to enabled; combined with the internal `inputsValid`
@@ -67,10 +76,27 @@ export function useVenueSearch(
   const lat = inputsValid ? bucket(params.lat) : 0;
   const lng = inputsValid ? bucket(params.lng) : 0;
   const q = normalizeTextQuery(params.q);
+  const isLiveNow = params.isLiveNow === true;
   const planner = normalizePlannerParams(params.date, params.time);
-  const filters = { lat, lng, q, radiusKm, ...planner };
+  // STORY 11.1 (AC1, R-001 headline): the TIME dimension is derived CLIENT-SIDE
+  // from the per-step `sunDaySeries` (see `lib/utils/venue-day-series.ts`), so a
+  // settled same-date time change (scrub) MUST NOT change the query key — that is
+  // the "scrub = 0 requests" invariant. The key therefore includes the selected
+  // `date` (+ coords + q) but NEVER `time`, and it includes `date` in BOTH the
+  // live and off-live cases so a live-today ↔ off-live-today scrub keeps the SAME
+  // key (zero fetch). Only a DATE change or a material LOCATION change flips it
+  // (the single fetch AC3 permits). The REQUEST sends `date` + `time` ONLY when
+  // off-live (the route requires both together and anchors the series to that
+  // day); when live the request omits them so the server computes for "now" and
+  // the freshness stays live. The `time` value only picks the single-instant
+  // fallback fields and never appears in the key, so the live-clock tick that
+  // advances "now" cannot thrash the key either.
+  const keyDate = planner?.date;
+  const sendPlanner = !isLiveNow && planner ? planner : undefined;
+  const keyPlanner = keyDate ? { date: keyDate } : undefined;
+  const filters = { lat, lng, q, radiusKm, ...keyPlanner };
   return useQuery<GetVenuesResponse, Error>({
-    queryKey: planner
+    queryKey: keyPlanner
       ? queryKeys.venues.planner(filters)
       : queryKeys.venues.list(filters),
     queryFn: async ({ signal }) => {
@@ -80,9 +106,9 @@ export function useVenueSearch(
         radiusKm: String(radiusKm),
       });
       if (q) searchParams.set('q', q);
-      if (planner) {
-        searchParams.set('date', planner.date);
-        searchParams.set('time', planner.time);
+      if (sendPlanner) {
+        searchParams.set('date', sendPlanner.date);
+        searchParams.set('time', sendPlanner.time);
       }
       const url = `/api/venues?${searchParams.toString()}`;
       const res = await fetch(url, { signal });
@@ -107,7 +133,11 @@ export function useVenueSearch(
       };
     },
     staleTime: FIVE_MINUTES,
-    refetchInterval: planner ? false : FIVE_MINUTES,
+    // Poll on the live path (no off-live planner selection sent), never off-live.
+    // `sendPlanner` is set ONLY when the selection is off-live; so this keeps the
+    // 5-min live refresh for the live-now key (with or without a date) and stops
+    // polling a fixed off-live planner selection. [Story 11.1]
+    refetchInterval: sendPlanner ? false : FIVE_MINUTES,
     refetchOnWindowFocus: false,
     retry: shouldRetryVenueQuery,
     retryDelay: venueQueryRetryDelay,

@@ -45,17 +45,20 @@ function buildVenueQueryKey(params: {
   date?: string;
   time?: string;
 }): readonly unknown[] {
-  // RED-PHASE placeholder: today time IS in the key (via the planner filter). This
-  // deliberately reproduces the wrong behaviour so the invariant tests below are
-  // RED. Task 4 replaces this body with the decoupled builder.
+  // GREEN PHASE (Story 11.1 Task 4): the DECOUPLED builder — mirrors
+  // `useVenueSearch`'s key construction. A planner selection (date + time) keys
+  // ONLY on `date` (+ coords + radius); `time` is derived client-side from the
+  // `sunDaySeries` and is NEVER a key input, so a same-date time scrub produces
+  // the SAME key (zero fetch) while a date/location change flips it.
   const { lat, lng, radiusKm, date, time } = params;
-  const filters = { lat, lng, radiusKm, ...(date && time ? { date, time } : {}) };
-  return date && time ? queryKeys.venues.planner(filters) : queryKeys.venues.list(filters);
+  const keyPlanner = date && time ? { date } : undefined;
+  const filters = { lat, lng, radiusKm, ...keyPlanner };
+  return keyPlanner ? queryKeys.venues.planner(filters) : queryKeys.venues.list(filters);
 }
 
 const BASE = { lat: 57.7089, lng: 11.9746, radiusKm: 1.5, date: '2026-07-04' };
 
-describe.skip('Story 11.1 AC1 — a same-date time scrub does NOT change the query key', () => {
+describe('Story 11.1 AC1 — a same-date time scrub does NOT change the query key', () => {
   // P0 — the zero-fetch invariant at the key level: two selections that differ
   // ONLY in `time` (same date, same coords) must produce the SAME query key, so
   // TanStack does not refetch. This is the unit proxy for "scrub = 0 requests".
@@ -74,7 +77,7 @@ describe.skip('Story 11.1 AC1 — a same-date time scrub does NOT change the que
   });
 });
 
-describe.skip('Story 11.1 AC3 — the key DOES change on a date or location change', () => {
+describe('Story 11.1 AC3 — the key DOES change on a date or location change', () => {
   // P0 — a DATE change is the one fetch AC3 permits: the key must change so
   // exactly one new request fires (and the markers persist under the overlay).
   it('produces a DIFFERENT key when the date changes', () => {

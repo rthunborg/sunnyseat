@@ -26,7 +26,10 @@ import {
   getOrComputeConditional,
   getOrFetchNonNull,
   getSunComputeCache,
+  getSunDaySeriesCache,
   sunComputeCacheKey,
+  sunDaySeriesCacheKey,
+  weatherRefreshBucketMs,
 } from '@/lib/services/sun-engine-cache';
 import type { Building } from '@/lib/solar/types';
 import type {
@@ -47,6 +50,12 @@ import type {
   VenueShadowInfo,
   WeatherSlice,
 } from '@/lib/solar/types';
+import type { VenueDaySeriesEntry } from '@/lib/types/api';
+import {
+  PLANNER_END_MINUTES,
+  PLANNER_START_MINUTES,
+  PLANNER_STEP_MINUTES,
+} from '@/lib/utils/time-planner';
 
 const STOCKHOLM_TIME_ZONE = 'Europe/Stockholm';
 
@@ -118,6 +127,16 @@ export type SunEngineOutcome = {
   freshness: SunFreshnessMeta;
   /** Engine-derived peak-exposure time (HH:mm Stockholm) for the detail timeline. */
   peakTime?: string;
+  /**
+   * STORY 11.1 (AC1): the per-planner-step gated day-series. Carried SEPARATELY
+   * from `venue` (not merged onto the DTO) so ONLY the LIST route attaches it to
+   * the client DTO (`sunDaySeries`) — the `[slug]` detail route ignores it and
+   * stays byte-identical. `applyRealSunEngine` does NOT populate this (it is the
+   * single-instant path used by BOTH routes); the list route calls the dedicated
+   * {@link computeVenueDaySeries} producer instead, so a series is never
+   * accidentally leaked onto the detail DTO. [Task 2]
+   */
+  daySeries?: VenueDaySeriesEntry[];
 };
 
 type SunEngineFields = Pick<
@@ -398,6 +417,175 @@ export function safeSeedOutcome(venue: StoredVenue): SunEngineOutcome {
 }
 
 // ---------------------------------------------------------------------------
+// STORY 11.1 — per-step day-series producer (AC1/AC2)
+// ---------------------------------------------------------------------------
+
+/**
+ * STORY 11.1 (AC1/Task 1): compute the per-planner-step gated day-series for a
+ * venue — one `{ minutes, sunExposurePercent, currentSunStatus }` entry per
+ * PLANNER_STEP_MINUTES (15 min) step from 06:00 to 21:00 Stockholm (61 steps).
+ *
+ * This is the SINGLE-INSTANT compute (`computeRealSunEngineResult`) sampled per
+ * step, sharing the SAME building set (ONE `get_buildings_near_point` RPC via the
+ * buildings cache) and the SAME forecast/nowcast fetchers — no extra RPC and no
+ * per-step Met.no calls beyond the batch-deduped fetchers. Each step reuses the
+ * shared {@link gatedStepValue} so a series entry is byte-identical to the single
+ * shot at the corresponding instant (the Task-1 parity guardrail).
+ *
+ * The Epic-10 cloud/rain gate is applied PER STEP (never only "now"): each step's
+ * weather is the forecast slice nearest THAT step's instant, and `isRaining` is
+ * threaded EXPLICITLY per step under the AC4 horizon rule — the near-now nowcast
+ * is consulted ONLY for a step within `[now, now + NOWCAST_HORIZON_MS]`; steps in
+ * the past or beyond the horizon get `precipitationRate = undefined ⇒ isRaining =
+ * false ⇒ forecast cloud governs` (byte-identical to Tiers 0/1). We never lean on
+ * `applyCloudGate`'s `isRaining = false` default (the Epic-10 defer this producer
+ * is the exact "new caller" for). A false-negative "sunny during rain" is the
+ * worst outcome for an honesty-first app.
+ *
+ * Cached (AC2) per `(venue id, Stockholm day, weather-refresh bucket, elevation)`
+ * via {@link getSunDaySeriesCache}: the series is a WHOLE-DAY artifact, so one
+ * cached series serves every step of the day (a same-day time scrub is cache-free)
+ * and a new weather-refresh bucket recomputes the whole series with its gating. A
+ * degraded (null-buildings) series is returned but NOT pinned.
+ */
+export async function computeVenueDaySeries(
+  venue: StoredVenue,
+  requestedAt: Date,
+  now: Date = new Date(),
+  getForecastOverride?: GetForecast,
+  getNowcastOverride?: GetNowcastRate,
+): Promise<VenueDaySeriesEntry[]> {
+  const { cache, inFlight } = getSunDaySeriesCache<VenueDaySeriesEntry[]>();
+  const [centroidLng, centroidLat] = polygonCentroid(resolveVenueGeometry(venue));
+  const variantKey =
+    `${centroidLat.toFixed(5)},${centroidLng.toFixed(5)}` +
+    `:${venue.seatingElevationM ?? 0}:${venue.groundElevationM ?? ''}`;
+  const key = sunDaySeriesCacheKey(
+    venue.id,
+    stockholmDateKey(requestedAt),
+    weatherRefreshBucketMs(now),
+    variantKey,
+  );
+  return getOrComputeConditional(cache, inFlight, key, async () => {
+    const { series, cacheable } = await computeVenueDaySeriesResult(
+      venue,
+      requestedAt,
+      now,
+      getForecastOverride,
+      getNowcastOverride,
+    );
+    return { value: series, cacheable };
+  });
+}
+
+type DaySeriesResult = { series: VenueDaySeriesEntry[]; cacheable: boolean };
+
+/**
+ * The uncached per-step compute behind {@link computeVenueDaySeries}. Fetches the
+ * shared building set + forecast ONCE, then samples each 15-min planner step:
+ * shadow at the step instant → geometric headline → gate against the step's
+ * nearest forecast slice + the per-step nowcast rain (horizon rule). A null
+ * building set makes the series degraded (`cacheable: false`), mirroring the
+ * single-shot `buildings !== null` rule.
+ */
+async function computeVenueDaySeriesResult(
+  venue: StoredVenue,
+  requestedAt: Date,
+  now: Date,
+  getForecastOverride?: GetForecast,
+  getNowcastOverride?: GetNowcastRate,
+): Promise<DaySeriesResult> {
+  const {
+    calculateVenueShadowFromBuildings,
+    fetchVenueBuildings,
+    effectiveCloudCover,
+    SHADOW_SEARCH_RADIUS_DEG,
+  } = await import('@/lib/solar');
+  const getForecast =
+    getForecastOverride ?? (await import('@/lib/weather/met-no-service')).getForecast;
+  const getNowcast =
+    getNowcastOverride ??
+    (await import('@/lib/weather/nowcast-service')).getNowcastPrecipitationRate;
+
+  const geometry = resolveVenueGeometry(venue);
+  const seatingElevationM = venue.seatingElevationM ?? 0;
+  const venueGroundZ = venue.groundElevationM;
+
+  // ONE building RPC (shared via the buildings cache) for the whole series.
+  const buildings = await fetchCachedVenueBuildings(
+    geometry,
+    fetchVenueBuildings,
+    SHADOW_SEARCH_RADIUS_DEG,
+  );
+
+  // ONE forecast fetch for the whole series; slice selection is per step.
+  const forecast = await getForecast(venue.location.lat, venue.location.lng);
+
+  const dayKey = stockholmDateKey(requestedAt);
+  const series: VenueDaySeriesEntry[] = [];
+  for (
+    let minutes = PLANNER_START_MINUTES;
+    minutes <= PLANNER_END_MINUTES;
+    minutes += PLANNER_STEP_MINUTES
+  ) {
+    const stepInstant = stepInstantFor(dayKey, minutes);
+    const shadowInfo = calculateVenueShadowFromBuildings(geometry, stepInstant, buildings, {
+      seatingElevationM,
+      venueGroundZ,
+    });
+    const weather = nearestForecastSlice(forecast, stepInstant);
+    const effectiveCover = effectiveCloudCover(weather);
+    // Rain per step: consult the near-now nowcast ONLY inside the horizon
+    // (AC4 rule). Beyond the horizon / in the past → undefined ⇒ isRaining=false
+    // ⇒ forecast cloud governs. `getNowcast` is the batch-deduped fetcher, so a
+    // co-located coord shares one call across all its near-now steps.
+    const isNearNow =
+      stepInstant.getTime() >= now.getTime() &&
+      stepInstant.getTime() <= now.getTime() + NOWCAST_HORIZON_MS;
+    const precipitationRate = isNearNow
+      ? await getNowcast(venue.location.lat, venue.location.lng)
+      : undefined;
+    const isRaining = precipitationRate !== undefined && precipitationRate > 0;
+
+    const { sunExposurePercent, currentSunStatus } = gatedStepValue(
+      shadowInfo,
+      effectiveCover,
+      isRaining,
+    );
+    series.push({ minutes, sunExposurePercent, currentSunStatus });
+  }
+
+  return { series, cacheable: buildings !== null };
+}
+
+/** Convert a planner minutes-of-day on `dayKey` to its UTC instant (Stockholm). */
+function stepInstantFor(dayKey: string, minutes: number): Date {
+  const hh = Math.floor(minutes / 60)
+    .toString()
+    .padStart(2, '0');
+  const mm = (minutes % 60).toString().padStart(2, '0');
+  return fromZonedTime(`${dayKey}T${hh}:${mm}:00`, STOCKHOLM_TIME_ZONE);
+}
+
+/** Nearest-valid-time forecast slice for an instant (matches fetchWeatherForVenue). */
+function nearestForecastSlice(
+  forecast: readonly WeatherSlice[],
+  instant: Date,
+): WeatherSlice | null {
+  if (forecast.length === 0) return null;
+  let best = forecast[0];
+  let bestDelta = Math.abs(weatherValidAt(best).getTime() - instant.getTime());
+  for (const slice of forecast) {
+    const delta = Math.abs(weatherValidAt(slice).getTime() - instant.getTime());
+    if (delta < bestDelta) {
+      best = slice;
+      bestDelta = delta;
+    }
+  }
+  return best;
+}
+
+// ---------------------------------------------------------------------------
 // Buildings cache (Story 9.3 Task 2) — wraps the single shared building fetch
 // ---------------------------------------------------------------------------
 
@@ -531,32 +719,16 @@ async function computeRealSunEngineResult(
   // fires the gate. Never `?? 0` the rate — unknown and no-rain stay distinct.
   const isRaining = precipitationRate !== undefined && precipitationRate > 0;
 
-  const isSunVisible = shadowInfo.solarPosition.isSunVisible;
-  const sunExposurePercent = Math.round(clampPercent(shadowInfo.sunlitAreaPercent));
-  // Geometry-only headline (below-horizon precedence: NoSun wins when the sun is
-  // down). `sunExposurePercent` KEEPS its geometric clear-sky meaning below — the
-  // gate ONLY rewrites the headline status.
-  const geometricSunStatus: VenueSunStatus = isSunVisible
-    ? classifySunStatus(sunExposurePercent)
-    : 'NoSun';
-  // STORY 10.1 (AC1) + 10.3 (AC2): layer the weather cloud gate on top of the
-  // geometric status using the SAME `weather` slice that produces `skyCondition`
-  // below (so the cached outcome stays internally consistent — 10.1 AC4). STORY
-  // 10.3: the gate now reads the layer-weighted EFFECTIVE cover (thin cirrus counts
-  // for little; a low deck counts fully) rather than the raw total, so a 100%-cirrus
-  // sky over a sunlit terrace no longer cries "no sun". `effectiveCloudCover`
-  // returns `undefined` for null weather / unknown cloud ⇒ no gate (10.1 AC2,
-  // 10.3 AC3). NoSun/Shaded are untouched; only a geometrically sunlit venue under
-  // effective (near-)total overcast becomes `CloudObscured`.
-  // STORY 10.4 (AC2): rain is OR-ed into the gate FIRE condition alongside the
-  // effective-cover threshold — a geometrically-sunlit venue under active rain
-  // becomes `CloudObscured` even when the cloud fraction is below 80 (or unknown).
-  // The gate's switch (and its below-horizon / geometric-shade precedence) is
-  // unchanged, so rain can NEVER gate a Shaded/NoSun/below-horizon venue (AC3).
+  // STORY 11.1: the geometric-%, geometric-headline and weather-gate are computed
+  // by the SHARED {@link gatedStepValue} helper so the single-instant compute here
+  // and the per-step day-series producer are BYTE-IDENTICAL at any instant (the
+  // Task-1 parity guardrail — the series is this same computation sampled per step,
+  // never a new formula). `effectiveCover` is derived from the SAME `weather` slice
+  // that produces `skyCondition` below, keeping the cached outcome internally
+  // consistent (10.1 AC4).
   const effectiveCover = effectiveCloudCover(weather);
-  const currentSunStatus = applyCloudGate(
-    geometricSunStatus,
-    isSunVisible,
+  const { sunExposurePercent, currentSunStatus } = gatedStepValue(
+    shadowInfo,
     effectiveCover,
     isRaining,
   );
@@ -688,6 +860,41 @@ async function fetchWeatherForVenue(
 // ---------------------------------------------------------------------------
 // Pure DTO mappers (unit-tested directly)
 // ---------------------------------------------------------------------------
+
+/**
+ * STORY 11.1 (Task 1, parity guardrail): the ONE place the geometric %, the
+ * geometric headline (below-horizon `NoSun` precedence) and the Epic-10 weather
+ * gate are combined into a `{ sunExposurePercent, currentSunStatus }` for a
+ * single instant. BOTH the single-instant compute (`computeRealSunEngineResult`)
+ * and the per-step day-series producer (`computeVenueDaySeries`) call this, so a
+ * series entry is byte-identical to the single-shot compute at the same instant —
+ * the series is this same computation sampled per step, never a new formula.
+ *
+ * `sunExposurePercent` KEEPS its ONE geometric clear-sky meaning; the gate ONLY
+ * rewrites the headline status. STORY 10.1/10.3: the gate reads the layer-weighted
+ * effective cover (`undefined` ⇒ no gate). STORY 10.4: `isRaining` is OR-ed into
+ * the fire condition — a geometrically-sunlit venue under active rain becomes
+ * `CloudObscured` even below the cloud threshold, while NoSun/Shaded/below-horizon
+ * are never gated.
+ */
+export function gatedStepValue(
+  shadowInfo: Pick<VenueShadowInfo, 'sunlitAreaPercent' | 'solarPosition'>,
+  effectiveCover: number | undefined,
+  isRaining: boolean,
+): { sunExposurePercent: number; currentSunStatus: VenueSunStatus } {
+  const isSunVisible = shadowInfo.solarPosition.isSunVisible;
+  const sunExposurePercent = Math.round(clampPercent(shadowInfo.sunlitAreaPercent));
+  const geometricSunStatus: VenueSunStatus = isSunVisible
+    ? classifySunStatus(sunExposurePercent)
+    : 'NoSun';
+  const currentSunStatus = applyCloudGate(
+    geometricSunStatus,
+    isSunVisible,
+    effectiveCover,
+    isRaining,
+  );
+  return { sunExposurePercent, currentSunStatus };
+}
 
 /** Map sunlit% to the public sun-status enum (`NoSun` decided by the caller). */
 export function classifySunStatus(sunExposurePercent: number): VenueSunStatus {

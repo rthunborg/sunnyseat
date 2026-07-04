@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, ChevronRight } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { motion, useReducedMotion } from 'motion/react';
 import { DatePickerDialog } from '@/components/composed/time/DatePickerDialog';
@@ -58,6 +58,7 @@ export function TimeSliderPanel({
               onClick={() => setCalendarOpen(true)}
               layoutPart="date"
             />
+            <NextDayButton label={t('nextDay')} onClick={() => time.shiftSelectedDate(1)} />
             <div className="min-w-0 flex-1" data-planner-layout-part="slider">
               <TimeSlider
                 ariaLabel={t('sliderLabel')}
@@ -95,6 +96,7 @@ export function TimeSliderPanel({
               compact
               showText={showDateLabel}
             />
+            <NextDayButton label={t('nextDay')} onClick={() => time.shiftSelectedDate(1)} />
           </div>
         )}
       </motion.section>
@@ -118,6 +120,27 @@ export function TimeSliderPanel({
         onSelectDate={time.selectDate}
       />
     </>
+  );
+}
+
+/**
+ * Story 11.1: a one-click "next day" control. Advances the planner date by one
+ * day via `shiftSelectedDate(1)` (clamped to the selectable season by the
+ * context), which is exactly the DATE change AC3 permits — it flips the query key
+ * and fires the single new-day request while markers persist under the overlay.
+ * Carries the `planner-date-next` testid the request-count e2e drives.
+ */
+function NextDayButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      data-testid="planner-date-next"
+      onClick={onClick}
+      className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-pill text-amber-dark outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+    >
+      <ChevronRight aria-hidden="true" className="size-4 text-amber-dark" />
+    </button>
   );
 }
 

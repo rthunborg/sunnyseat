@@ -44,31 +44,27 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyRealSunEngine } from '@/lib/services/sun-engine';
+import { applyRealSunEngine, computeVenueDaySeries } from '@/lib/services/sun-engine';
 import { clearSunEngineCachesForTests } from '@/lib/services/sun-engine-cache';
+import { fromZonedTime } from 'date-fns-tz';
 import {
   PLANNER_START_MINUTES,
   PLANNER_END_MINUTES,
   PLANNER_STEP_MINUTES,
+  STOCKHOLM_TIME_ZONE,
+  stockholmDateKey,
 } from '@/lib/utils/time-planner';
 import type { StoredVenue } from '@/lib/services/venue-store';
 import type { WeatherSlice } from '@/lib/solar/types';
-import type { VenueSunStatus } from '@/lib/types/api';
 
-// ---- The Task-1 producer under test (does NOT exist yet — red phase) --------
-// When Task 1 lands, the dev replaces this placeholder with the real export, e.g.
-//   import { computeVenueDaySeries } from '@/lib/services/sun-engine';
-// and un-skips the blocks. The signature is the ATDD contract for the producer:
-// given the same (venue, requestedAt, now) the single-shot engine takes, plus the
-// SAME forecast/nowcast overrides, it returns one gated entry per 15-min step.
-type DaySeriesEntry = { minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus };
-const computeVenueDaySeries = async (
-  _venue: StoredVenue,
-  _requestedAt: Date,
-  _now?: Date,
-): Promise<DaySeriesEntry[]> => {
-  throw new Error('Story 11.1 not implemented: computeVenueDaySeries (lib/services/sun-engine.ts Task 1)');
-};
+// GREEN PHASE (Story 11.1 Task 1): the real per-step producer.
+
+/** The step→UTC-instant conversion the producer uses (Stockholm wall-clock). */
+function stepInstant(dayKey: string, minutes: number): Date {
+  const hh = Math.floor(minutes / 60).toString().padStart(2, '0');
+  const mm = (minutes % 60).toString().padStart(2, '0');
+  return fromZonedTime(`${dayKey}T${hh}:${mm}:00`, STOCKHOLM_TIME_ZONE);
+}
 
 // ---- Adapter-boundary mocks (identical contract to sun-engine-caching.atdd) --
 const mocks = vi.hoisted(() => ({
@@ -76,6 +72,7 @@ const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   getForecast: vi.fn(),
   getCurrentWeather: vi.fn(),
+  getNowcastPrecipitationRate: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -86,6 +83,15 @@ vi.mock('@/lib/supabase/server', () => ({
 vi.mock('@/lib/weather/met-no-service', () => ({
   getForecast: mocks.getForecast,
   getCurrentWeather: mocks.getCurrentWeather,
+}));
+
+// Mock the nowcast adapter boundary so the engine's LAZY import path never issues
+// a live api.met.no request. Because this suite runs with `now = SUMMER_MIDDAY`,
+// the "now" step (12:30) is in-horizon and WOULD consult the nowcast; the default
+// resolves to `undefined` (rate unknown ⇒ non-gating) so the compute stays
+// deterministic + offline. Rain-thread tests below override this per case.
+vi.mock('@/lib/weather/nowcast-service', () => ({
+  getNowcastPrecipitationRate: mocks.getNowcastPrecipitationRate,
 }));
 
 const SUMMER_MIDDAY = new Date('2026-06-21T10:30:00.000Z'); // Stockholm 12:30
@@ -127,8 +133,10 @@ beforeEach(() => {
   mocks.rpc.mockReset();
   mocks.getForecast.mockReset();
   mocks.getCurrentWeather.mockReset();
+  mocks.getNowcastPrecipitationRate.mockReset();
   mocks.rpc.mockResolvedValue({ data: [], error: null }); // no shadow casters
   mocks.getForecast.mockResolvedValue([weatherSlice()]);
+  mocks.getNowcastPrecipitationRate.mockResolvedValue(undefined); // no rain by default
   vi.spyOn(console, 'error').mockImplementation(() => {});
   vi.useFakeTimers();
   vi.setSystemTime(SUMMER_MIDDAY);
@@ -142,7 +150,7 @@ afterEach(() => {
 // ===========================================================================
 // AC1 / Task 1 — the series has one entry per 15-min planner step
 // ===========================================================================
-describe.skip('Story 11.1 AC1 — day-series covers every planner step', () => {
+describe('Story 11.1 AC1 — day-series covers every planner step', () => {
   // P0 — one entry per 15-min step from 06:00 to 21:00 inclusive (61 steps).
   it('emits one entry per 15-min planner step across 06:00–21:00', async () => {
     const series = await computeVenueDaySeries(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
@@ -169,7 +177,7 @@ describe.skip('Story 11.1 AC1 — day-series covers every planner step', () => {
 // ===========================================================================
 // AC1 / Task 1 — PARITY: series entry == single-shot compute at the same instant
 // ===========================================================================
-describe.skip('Story 11.1 AC1 — per-step parity with the single-instant compute', () => {
+describe('Story 11.1 AC1 — per-step parity with the single-instant compute', () => {
   // P0 — the load-bearing guardrail. For the step whose instant equals the
   // single-shot requestedAt, the series entry's %/status equals
   // applyRealSunEngine's byte-for-byte. A diff is a FAIL, never a rebaseline.
@@ -196,29 +204,37 @@ describe.skip('Story 11.1 AC1 — per-step parity with the single-instant comput
   it('matches the single-instant compute at other sampled steps', async () => {
     const venue = makeStoredVenue();
     const series = await computeVenueDaySeries(venue, SUMMER_MIDDAY, SUMMER_MIDDAY);
+    const dayKey = stockholmDateKey(SUMMER_MIDDAY);
 
-    // The dev un-skipping this drives applyRealSunEngine at each step's UTC instant
-    // (Stockholm wall-clock → fromZonedTime, per the story's Task-1 conversion) and
-    // asserts equality. The exact instant construction mirrors the producer's own
-    // sameDayScanRange/resolveRequestedAt reuse — kept as a TODO for the dev so the
-    // instant math is shared with the implementation (never re-derived here).
-    // For the red-phase scaffold we assert the SHAPE that makes parity checkable:
-    // every entry is a plain {%,status} the single-shot compute could produce.
-    for (const entry of series) {
-      expect(entry.sunExposurePercent).toBeGreaterThanOrEqual(0);
-      expect(entry.sunExposurePercent).toBeLessThanOrEqual(100);
-      expect(['Sunny', 'Partial', 'Shaded', 'NoSun', 'CloudObscured']).toContain(entry.currentSunStatus);
+    // GREEN PHASE: the per-step equality loop. For a representative subset of
+    // planner steps (mid-morning, midday, late-afternoon, evening), drive the
+    // single-shot applyRealSunEngine at THAT step's UTC instant and assert the
+    // series entry equals it byte-for-byte. The series is the same computation
+    // sampled per step, so each must agree with the single-shot. `now` stays
+    // fixed at SUMMER_MIDDAY so the nowcast-horizon behaviour matches the
+    // producer's own `now`.
+    const sampledMinutes = [8 * 60, 12 * 60 + 30, 16 * 60, 19 * 60];
+    for (const minutes of sampledMinutes) {
+      const entry = series.find((e) => e.minutes === minutes);
+      expect(entry).toBeDefined();
+      // Cold caches per single-shot so the compute is not short-circuited by a
+      // stale bucket from a previous iteration.
+      clearSunEngineCachesForTests();
+      const single = await applyRealSunEngine(
+        venue,
+        stepInstant(dayKey, minutes),
+        SUMMER_MIDDAY,
+      );
+      expect(entry!.sunExposurePercent).toBe(single.venue.sunExposurePercent);
+      expect(entry!.currentSunStatus).toBe(single.venue.currentSunStatus);
     }
-    // TODO(dev, green phase): replace the shape check above with a per-step
-    // equality loop against applyRealSunEngine(venue, stepInstant, SUMMER_MIDDAY)
-    // once the producer exposes (or shares) its step→instant conversion.
   });
 });
 
 // ===========================================================================
 // AC1 / Task 1 — the Epic-10 gate applies PER STEP (never only "now")
 // ===========================================================================
-describe.skip('Story 11.1 AC1 — Epic-10 cloud/rain gate applies per step', () => {
+describe('Story 11.1 AC1 — Epic-10 cloud/rain gate applies per step', () => {
   // P0 — a HEAVILY-CLOUDED forecast gates a geometrically-sunlit step to
   // CloudObscured — for a MIDDAY step that is NOT "now" (proving the gate is not
   // applied only to the requested instant). effectiveCloudCover uses the raw total
@@ -265,7 +281,7 @@ describe.skip('Story 11.1 AC1 — Epic-10 cloud/rain gate applies per step', () 
 // ===========================================================================
 // AC1 / Task 1 — rain (`isRaining`) threaded EXPLICITLY per step under the horizon
 // ===========================================================================
-describe.skip('Story 11.1 AC1 — rain threaded explicitly per step (horizon rule)', () => {
+describe('Story 11.1 AC1 — rain threaded explicitly per step (horizon rule)', () => {
   // P0 — an in-horizon step with an active nowcast rain rate is gated to
   // CloudObscured (rain governs) — proving `isRaining` is threaded, not left at the
   // `false` default the Epic-10 defer warns about. The honesty-first guardrail:
@@ -273,18 +289,20 @@ describe.skip('Story 11.1 AC1 — rain threaded explicitly per step (horizon rul
   it('gates an in-horizon step when the nowcast reports active rain', async () => {
     // Clear cloud so ONLY rain can gate — isolates the isRaining thread.
     mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 5 })]);
+    // Active rain from the nowcast: a strictly-positive precipitation rate. With
+    // `now = SUMMER_MIDDAY`, the 12:30 step is exactly "now" (in-horizon), so the
+    // producer consults the nowcast for it and threads `isRaining = true`.
+    mocks.getNowcastPrecipitationRate.mockResolvedValue(0.8);
 
-    // The dev wires the nowcast override so the near-"now" step reads an active
-    // precipitation rate (in [now, now+NOWCAST_HORIZON_MS]). Once the producer
-    // accepts/uses a nowcast override, un-skip and assert the near-now step is
-    // CloudObscured despite the clear cloud. Kept as the explicit red contract:
     const series = await computeVenueDaySeries(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
     const nearNow = series.find((e) => e.minutes === 12 * 60 + 30); // the "now" step
     expect(nearNow).toBeDefined();
-    // TODO(dev, green phase): with an active-rain nowcast override in horizon,
-    // this step MUST be CloudObscured (rain gate). The scaffold asserts the step
-    // exists and is a valid gated value so the contract is un-skippable.
-    expect(['Sunny', 'CloudObscured']).toContain(nearNow!.currentSunStatus);
+    // GREEN PHASE: the near-now step is geometrically sunlit under a clear sky,
+    // but the active-rain nowcast gates it to CloudObscured — proving `isRaining`
+    // is threaded EXPLICITLY per step, never left at the `false` default. This is
+    // the honesty-first guardrail: "sunny during rain" must be impossible.
+    expect(nearNow!.sunExposurePercent).toBeGreaterThan(0);
+    expect(nearNow!.currentSunStatus).toBe('CloudObscured');
   });
 
   // P0 — a step BEYOND the nowcast horizon (or in the past) must NOT read the
@@ -293,6 +311,9 @@ describe.skip('Story 11.1 AC1 — rain threaded explicitly per step (horizon rul
   // never "raining now".
   it('does not read near-now rain for a step beyond the nowcast horizon', async () => {
     mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 5 })]);
+    // Even with an active near-now rain nowcast, a step well beyond the 90-min
+    // horizon from 12:30 must NOT read it (forecast cloud governs there).
+    mocks.getNowcastPrecipitationRate.mockResolvedValue(0.8);
 
     const series = await computeVenueDaySeries(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
     // A late-evening step is well beyond the 90-min nowcast horizon from 12:30, so

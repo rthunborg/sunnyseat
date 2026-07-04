@@ -204,13 +204,13 @@ describe('useFavouriteVenues', () => {
       { wrapper: makeWrapper(plannerClient) },
     );
     await waitFor(() => expect(planner.result.current.isSuccess).toBe(true));
+    // Story 11.1: `time` is no longer a favourites query-key input (only `date`).
     const plannerQuery = plannerClient.getQueryCache().find({
       queryKey: queryKeys.venues.favourites({
         ids: ['venue-1'],
         lat: 57.7089,
         lng: 11.9746,
         date: '2026-06-14',
-        time: '14:00',
       }),
     });
     expect((plannerQuery?.options as { refetchInterval?: unknown }).refetchInterval).toBe(false);

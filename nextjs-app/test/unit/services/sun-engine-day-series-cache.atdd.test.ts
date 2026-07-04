@@ -42,21 +42,11 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearSunEngineCachesForTests } from '@/lib/services/sun-engine-cache';
+import { computeVenueDaySeries } from '@/lib/services/sun-engine';
 import type { StoredVenue } from '@/lib/services/venue-store';
 import type { WeatherSlice } from '@/lib/solar/types';
-import type { VenueSunStatus } from '@/lib/types/api';
 
-// ---- The Task-1/3 cached producer under test (does NOT exist yet — red phase) ---
-// When Task 1/3 land, replace with the real cached export, e.g.
-//   import { computeVenueDaySeries } from '@/lib/services/sun-engine';
-type DaySeriesEntry = { minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus };
-const computeVenueDaySeries = async (
-  _venue: StoredVenue,
-  _requestedAt: Date,
-  _now?: Date,
-): Promise<DaySeriesEntry[]> => {
-  throw new Error('Story 11.1 not implemented: computeVenueDaySeries cache (lib/services/sun-engine.ts Task 1/3)');
-};
+// GREEN PHASE (Story 11.1 Task 1/3): the real cached per-step producer.
 
 // ---- Adapter-boundary mocks (identical contract to sun-engine-caching.atdd) --
 const mocks = vi.hoisted(() => ({
@@ -64,6 +54,7 @@ const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   getForecast: vi.fn(),
   getCurrentWeather: vi.fn(),
+  getNowcastPrecipitationRate: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -74,6 +65,10 @@ vi.mock('@/lib/supabase/server', () => ({
 vi.mock('@/lib/weather/met-no-service', () => ({
   getForecast: mocks.getForecast,
   getCurrentWeather: mocks.getCurrentWeather,
+}));
+
+vi.mock('@/lib/weather/nowcast-service', () => ({
+  getNowcastPrecipitationRate: mocks.getNowcastPrecipitationRate,
 }));
 
 const SUMMER_MIDDAY = new Date('2026-06-21T10:30:00.000Z'); // Stockholm 12:30
@@ -113,14 +108,23 @@ function buildingRpcCount(): number {
   return mocks.rpc.mock.calls.filter(([fn]) => fn === 'get_buildings_near_point').length;
 }
 
+// The series producer fetches the forecast ONCE per (uncached) compute, so the
+// forecast-call count is the reliable "the producer ran again" observable even
+// when the 24h buildings cache masks the caster RPC on a recompute.
+function forecastCount(): number {
+  return mocks.getForecast.mock.calls.length;
+}
+
 beforeEach(() => {
   clearSunEngineCachesForTests();
   mocks.from.mockReset();
   mocks.rpc.mockReset();
   mocks.getForecast.mockReset();
   mocks.getCurrentWeather.mockReset();
+  mocks.getNowcastPrecipitationRate.mockReset();
   mocks.rpc.mockResolvedValue({ data: [], error: null }); // no shadow casters
   mocks.getForecast.mockResolvedValue([weatherSlice()]);
+  mocks.getNowcastPrecipitationRate.mockResolvedValue(undefined);
   vi.spyOn(console, 'error').mockImplementation(() => {});
   vi.useFakeTimers();
   vi.setSystemTime(SUMMER_MIDDAY);
@@ -134,7 +138,7 @@ afterEach(() => {
 // ===========================================================================
 // AC2 / Task 3 — same (venue, date, weather-bucket) is served from cache
 // ===========================================================================
-describe.skip('Story 11.1 AC2 — day-series cached per (venue, date, weather-bucket)', () => {
+describe('Story 11.1 AC2 — day-series cached per (venue, date, weather-bucket)', () => {
   // P1 — a 2nd series request for the same day (a different requested INSTANT, same
   // day + weather bucket) is served from the series cache: no re-compute, no extra
   // building RPC. This is the whole point of keying on the DAY, not the instant —
@@ -165,14 +169,15 @@ describe.skip('Story 11.1 AC2 — day-series cached per (venue, date, weather-bu
 // ===========================================================================
 // AC2 / Task 3 — a NEW weather-refresh bucket recomputes the whole series
 // ===========================================================================
-describe.skip('Story 11.1 AC2 — a new weather-refresh bucket recomputes the series', () => {
+describe('Story 11.1 AC2 — a new weather-refresh bucket recomputes the series', () => {
   // P1 — advancing past the weather-refresh bucket TTL must recompute the whole
   // series (a key of only (venue, date) would serve yesterday's weather gating —
-  // the R-012 stale-bucket hazard). To OBSERVE the recompute, clear only the
-  // buildings cache between calls so the recompute's caster fetch is visible.
+  // the R-012 stale-bucket hazard). The 24h buildings cache masks the caster RPC
+  // on a recompute, so we OBSERVE the recompute via the forecast-call count (the
+  // producer fetches the forecast once per uncached compute).
   it('recomputes the series when the weather-refresh bucket rolls over', async () => {
     await computeVenueDaySeries(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
-    const afterFirst = buildingRpcCount();
+    const afterFirst = forecastCount();
     expect(afterFirst).toBeGreaterThanOrEqual(1);
 
     // Advance the clock past the series' weather-refresh TTL. The exact TTL mirrors
@@ -182,7 +187,7 @@ describe.skip('Story 11.1 AC2 — a new weather-refresh bucket recomputes the se
     const later = new Date(SUMMER_MIDDAY.getTime() + 16 * 60 * 1000);
 
     await computeVenueDaySeries(makeStoredVenue(), later, later);
-    const afterSecond = buildingRpcCount();
+    const afterSecond = forecastCount();
 
     // A new weather bucket → the whole series recomputed → the producer ran again.
     expect(afterSecond).toBeGreaterThan(afterFirst);
@@ -192,7 +197,7 @@ describe.skip('Story 11.1 AC2 — a new weather-refresh bucket recomputes the se
 // ===========================================================================
 // AC2 / Task 3 — a degraded (null-buildings) series is NOT cached
 // ===========================================================================
-describe.skip('Story 11.1 AC2 — a degraded series is NOT pinned in the cache', () => {
+describe('Story 11.1 AC2 — a degraded series is NOT pinned in the cache', () => {
   // P1 — a series computed from a FAILED building RPC (degraded) must not be
   // cached: the next same-day request must recompute and recover, never serve the
   // pinned degraded series for the whole TTL window (the `cacheable: buildings !==

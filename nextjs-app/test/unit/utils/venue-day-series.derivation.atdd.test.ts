@@ -43,23 +43,23 @@ import { describe, expect, it, vi } from 'vitest';
 import { PLANNER_START_MINUTES, PLANNER_END_MINUTES, PLANNER_STEP_MINUTES } from '@/lib/utils/time-planner';
 import type { VenueSunStatus } from '@/lib/types/api';
 
-// The helper the dev creates in Task 4 (`lib/utils/venue-day-series.ts`). It does
-// NOT exist yet — so the whole file compiles and LOADS cleanly in the red phase
-// via the local placeholder below, and every reference inside a `.skip` block is
-// deferred. When Task 4 lands, the dev replaces the placeholder with the real
-// import:
-//
-//   import { deriveVenueSunAtMinutes } from '@/lib/utils/venue-day-series';
-//
-// and un-skips the blocks. Until then any accidental un-skip fails LOUDLY with
-// the explicit "not implemented" throw (TDD red), never a false green.
+// GREEN PHASE (Story 11.1 Task 4): the real pure client helper.
+import { deriveVenueSunAtMinutes as deriveOrNull } from '@/lib/utils/venue-day-series';
+
 type DerivedSun = { sunExposurePercent: number; currentSunStatus: VenueSunStatus };
 type DaySeriesEntry = { minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus };
+// The helper returns `null` when the step has no entry (caller falls back to the
+// server single-instant fields). These fixtures always contain the queried step,
+// so wrap to the non-null contract the ATDD assertions expect.
 const deriveVenueSunAtMinutes = (
-  _series: DaySeriesEntry[],
-  _selectedMinutes: number,
+  series: DaySeriesEntry[],
+  selectedMinutes: number,
 ): DerivedSun => {
-  throw new Error('Story 11.1 not implemented: deriveVenueSunAtMinutes (lib/utils/venue-day-series.ts)');
+  const derived = deriveOrNull(series, selectedMinutes);
+  if (!derived) {
+    throw new Error(`No day-series entry for minutes=${selectedMinutes}`);
+  }
+  return derived;
 };
 
 // A fixed, hand-authored gated day-series fixture (one venue, one date, one
@@ -83,7 +83,7 @@ function fixedGatedSeries(): DaySeriesEntry[] {
   return series;
 }
 
-describe.skip('Story 11.1 AC1 — client day-series derivation is a pure exact-step lookup', () => {
+describe('Story 11.1 AC1 — client day-series derivation is a pure exact-step lookup', () => {
   const series = fixedGatedSeries();
 
   // P0 — marker % surface: the derived % is exactly the series entry's % for the
@@ -131,7 +131,7 @@ describe.skip('Story 11.1 AC1 — client day-series derivation is a pure exact-s
   });
 });
 
-describe.skip('Story 11.1 AC1 — derivation is pure / offline (no network in the code path)', () => {
+describe('Story 11.1 AC1 — derivation is pure / offline (no network in the code path)', () => {
   const series = fixedGatedSeries();
 
   // P0 — PURITY: calling the helper does not touch `fetch`. If the derivation
@@ -160,7 +160,7 @@ describe.skip('Story 11.1 AC1 — derivation is pure / offline (no network in th
   });
 });
 
-describe.skip('Story 11.1 — client-derivation helper stays client-safe (API boundary)', () => {
+describe('Story 11.1 — client-derivation helper stays client-safe (API boundary)', () => {
   // P0 — the helper must NOT import a server-only module. A source scan of the
   // built helper file catches a regression where the derivation drags in the
   // engine/cache/met-no adapter (which would break the client bundle + the API

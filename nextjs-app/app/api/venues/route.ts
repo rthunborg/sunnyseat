@@ -30,6 +30,7 @@ import {
 import {
   aggregateSunFreshness,
   applyRealSunEngine,
+  computeVenueDaySeries,
   createDedupedForecastFetcher,
   createDedupedNowcastFetcher,
   mapWithConcurrency,
@@ -291,7 +292,35 @@ export async function GET(request: NextRequest) {
       SUN_ENGINE_LIST_CONCURRENCY,
       async (v) => {
         try {
-          return await applyRealSunEngine(v, requestedAt, now, dedupedForecast, dedupedNowcast);
+          const outcome = await applyRealSunEngine(
+            v,
+            requestedAt,
+            now,
+            dedupedForecast,
+            dedupedNowcast,
+          );
+          // STORY 11.1 (AC1): attach the per-step day-series so the client
+          // derives every time-dependent surface offline-from-network. Computed
+          // with the SAME deduped forecast/nowcast fetchers (no extra Met.no
+          // calls) and cached per (venue, day, weather-bucket) so repeat requests
+          // in a bucket are near-free. A series failure degrades to no series
+          // (never a 500) — the client falls back to the single-instant fields.
+          try {
+            const daySeries = await computeVenueDaySeries(
+              v,
+              requestedAt,
+              now,
+              dedupedForecast,
+              dedupedNowcast,
+            );
+            return { ...outcome, daySeries };
+          } catch (seriesError) {
+            console.error(
+              `Day-series failed for venue ${v.id}; omitting series:`,
+              seriesError instanceof Error ? seriesError.message : String(seriesError),
+            );
+            return outcome;
+          }
         } catch (error) {
           console.error(
             `Sun engine failed for venue ${v.id}; degrading:`,
@@ -303,7 +332,16 @@ export async function GET(request: NextRequest) {
     );
     freshness = aggregateSunFreshness(outcomes.map((o) => o.freshness));
     processedVenues = outcomes
-      .map((o) => normalizeVenueForResponse(o.venue))
+      .map((o) => {
+        const normalized = normalizeVenueForResponse(o.venue);
+        // Attach the series AFTER normalize (which spreads unknown fields
+        // through but does not know about `sunDaySeries`) so it lands on the
+        // list DTO ONLY. The detail route never reads `o.daySeries`, so the
+        // `[slug]` DTO stays byte-identical.
+        return o.daySeries
+          ? { ...normalized, sunDaySeries: o.daySeries }
+          : normalized;
+      })
       .map((v) => ({
         ...v,
         distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),

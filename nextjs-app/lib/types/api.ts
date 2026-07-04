@@ -12,6 +12,21 @@
 // geometric tier. Story 10.2 owns the muted UI rendering of this value.
 export type VenueSunStatus = 'Sunny' | 'Partial' | 'Shaded' | 'NoSun' | 'CloudObscured';
 
+// STORY 11.1 (AC1): one gated per-planner-step entry of the client-side
+// day-series. `minutes` is the planner minutes-of-day (06:00 → 360 … 21:00 →
+// 1260, at PLANNER_STEP_MINUTES resolution). `sunExposurePercent` keeps its ONE
+// geometric clear-sky meaning; `currentSunStatus` is the ALREADY weather-gated
+// (Epic-10 cloud/rain gate applied per step) headline the client renders
+// directly — the client NEVER re-gates. Populated ONLY on the real-engine list
+// path; the client derives marker %, pin state, quick-info, list ordering and
+// the obscured presentation for ANY planner time from this cached series, so a
+// settled time change issues zero network requests.
+export interface VenueDaySeriesEntry {
+  minutes: number;
+  sunExposurePercent: number;
+  currentSunStatus: VenueSunStatus;
+}
+
 export type SunDataSource = 'weather' | 'geometry-only';
 
 export type PredictionUncertaintyLevel = 'low' | 'medium' | 'high';
@@ -98,6 +113,15 @@ export interface VenueDataDto {
     start: string;
     end: string;
   };
+  /**
+   * STORY 11.1 (AC1): the per-planner-step gated day-series, one entry per
+   * PLANNER_STEP_MINUTES across the planner range (06:00–21:00). OPTIONAL and
+   * populated ONLY on the real-engine list path (`/api/venues`, `useRealEngine`
+   * branch) — the default seed/fixture path and the `[slug]` detail DTO stay
+   * byte-identical (no `sunDaySeries`). The client derives all time-dependent UI
+   * from this series so a settled time scrub fetches nothing.
+   */
+  sunDaySeries?: VenueDaySeriesEntry[];
   thumbnail?: {
     alt: string;
     initials: string;

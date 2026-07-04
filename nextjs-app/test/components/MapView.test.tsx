@@ -45,6 +45,7 @@ type VenueSearchParams = {
   q?: string;
   date?: string;
   time?: string;
+  isLiveNow?: boolean;
   enabled?: boolean;
 };
 
@@ -808,22 +809,32 @@ describe('<MapView />', () => {
       render(<MapView />, { wrapper: Wrapper });
 
       expect(screen.getAllByTestId('time-slider-panel').length).toBeGreaterThanOrEqual(2);
+      // Story 11.1: the initial live-today call keys on the selected date but
+      // flags `isLiveNow: true` (so the request omits date/time server-side and
+      // the query polls). The date is in the KEY in both live + off-live cases so
+      // a same-date scrub keeps the same key.
       expectVenueSearchCall({
         lat: 57.7089,
         lng: 11.9746,
         radiusKm: 1.5,
+        date: '2026-05-20',
+        time: '12:15',
+        isLiveNow: true,
       });
 
       fireEvent.click(screen.getAllByRole('button', { name: /Öppna kalender: Idag/ })[0]);
       fireEvent.click(screen.getByRole('button', { name: 'Välj 21 maj 2026' }));
 
       await waitFor(() =>
+        // A committed FUTURE date is off-live → `isLiveNow: false` and the request
+        // sends date/time; the key flips to the new date (the one fetch AC3 allows).
         expectVenueSearchCall({
           lat: 57.7089,
           lng: 11.9746,
           radiusKm: 1.5,
           date: '2026-05-21',
           time: '12:15',
+          isLiveNow: false,
         }),
       );
     });
@@ -2926,7 +2937,7 @@ describe('<MapView />', () => {
     });
 
     describe('AC3 — deferred planner key (live-now semantics preserved)', () => {
-      it('feeds the venue search a planner-less key while live (no date/time on the call)', () => {
+      it('feeds the venue search the live-today date with isLiveNow=true (date in key, request omits it)', () => {
         useVenueSearchMock.mockReturnValue({
           data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
           isFetching: false,
@@ -2936,16 +2947,24 @@ describe('<MapView />', () => {
 
         render(<MapView />, { wrapper: Wrapper });
 
-        // Live now → MapView defers `plannerTime.plannerQuery` which is
-        // `undefined`, so the list search call carries no date/time (the
-        // planner-less live key).
+        // Story 11.1: live now → the list search call carries the selected date
+        // (so the KEY is date-scoped and a same-date scrub keeps the same key) but
+        // flags `isLiveNow: true`, which tells the hook to omit date/time from the
+        // request and keep polling. The date being present is the whole point —
+        // it makes the live-today and off-live-today keys identical (zero fetch).
         const lastCall = lastMapViewSearchCall();
-        expect(lastCall).toMatchObject({ lat: 57.7089, lng: 11.9746, radiusKm: 1.5, enabled: true });
-        expect(lastCall).not.toHaveProperty('date');
-        expect(lastCall).not.toHaveProperty('time');
+        expect(lastCall).toMatchObject({
+          lat: 57.7089,
+          lng: 11.9746,
+          radiusKm: 1.5,
+          enabled: true,
+          date: '2026-05-20',
+          time: '12:15',
+          isLiveNow: true,
+        });
       });
 
-      it('feeds the venue search a single planner key after a future date is committed', async () => {
+      it('feeds the venue search a single off-live planner key after a future date is committed', async () => {
         useVenueSearchMock.mockReturnValue({
           data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
           isFetching: false,
@@ -2965,6 +2984,7 @@ describe('<MapView />', () => {
             radiusKm: 1.5,
             date: '2026-05-21',
             time: '12:15',
+            isLiveNow: false,
           }),
         );
       });
