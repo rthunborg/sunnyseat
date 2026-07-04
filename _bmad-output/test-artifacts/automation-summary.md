@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-03'
+lastSaved: '2026-07-04'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/10-4-rain-now-signal-met-no-nowcast.md'
   - 'nextjs-app/lib/weather/nowcast-service.ts'
@@ -208,3 +208,48 @@ Residual branch/edge gaps the AC matrix structurally could not reach (single-ent
 
 ## Next recommended workflow
 `trace` (traceability matrix / quality-gate decision for Story 10.4) or `test-review` (quality validation of the new + existing rain-now suites).
+
+---
+
+# Automation Expansion Summary — Story 11.1 (Client-Side Day-Series — Instant Time Scrubbing)
+
+## Preflight & Context
+- **Framework:** Vitest 4.1.4 (`nextjs-app/vitest.config.ts`) + Playwright present. Verified — no HALT.
+- **Stack:** fullstack (Next.js frontend + server-only sun engine). Story 11.1 is the Epic-11 FOUNDATION: engine per-step day-series producer + whole-day cache, `sunDaySeries` on the real-engine list DTO, a pure client derivation helper, and a query-key decouple (scrub = 0 fetches; date change = 1). Landed with all 6 ATDD scaffolds green (1150 pass / 0 skip; tsc + eslint clean).
+- **Mode:** BMad-Integrated (story + 6 ATDD scaffolds + Epic-11 test-design). **Sequential** — a tightly-scoped edge/error-path top-up on a small set of pure functions with clear untested branches; no API/E2E fan-out warranting subagents.
+
+## Existing coverage reviewed (to avoid duplication — NOT re-created)
+The 6 landed ATDD suites cover the AC-headline happy paths and are left untouched:
+- `venue-day-series.derivation.atdd.test.ts` — pure exact-step lookup per output surface + purity/no-server-import.
+- `sun-engine.day-series-parity.atdd.test.ts` — per-step byte-parity with the single-shot compute + per-step Epic-10 gate + explicit `isRaining` under the horizon rule.
+- `venues-route-day-series.atdd.test.ts` — real-engine DTO carries the series, seed/detail byte-identical, ETag/304, gzipped payload measured (1769 B) + guard (8000 B).
+- `sun-engine-day-series-cache.atdd.test.ts` — same-bucket hit / new-weather-bucket recompute / degraded-not-pinned (end-to-end through the producer).
+- `venue-day-series-query-key.atdd.test.ts` — same-date scrub keeps the key; date/location flips it.
+- `epic-11-scrub-zero-fetch.spec.ts` (e2e) — request-count invariant (owned/extended by Story 11.8; NOT expanded here per the story).
+
+## Gaps Identified & Filled (edge cases / error paths / boundaries the scaffolds left open)
+
+| # | Gap | Level | Priority | File |
+|---|-----|-------|----------|------|
+| G1 | `deriveVenueSunAtMinutes` **null/fallback branches** — the ATDD wrapper makes a `null` THROW, so the documented fallback (undefined/empty/non-array series, sparse-series missing step → `null` so MapView keeps the server single-instant fields) was never asserted; plus internal snapping of an unsnapped input, exact 06:00/21:00 boundaries, out-of-range clamp, and NaN-safe. | Unit | P1 | `test/unit/utils/venue-day-series.edge.test.ts` (9) |
+| G3 | Cache **key builders** `weatherRefreshBucketMs` / `sunDaySeriesCacheKey` — the R-012 bucket floor at the exact window edge (no off-by-one), epoch-grid alignment, and full disambiguation (venue / day / weather-bucket / elevation variant) + the whole-day "no per-instant component" invariant. Only exercised indirectly before. | Unit | P1 | `test/unit/services/sun-engine-cache.day-series-key.test.ts` (9) |
+| G4 | Route **degrade path** (the whole reason `sunDaySeries` is optional) — a THROWING `computeVenueDaySeries` must NOT 500, must OMIT the series for the affected venue (keeping the single-instant fields), must isolate the failure per-venue (others keep their 61-entry series), and still emit a valid ETag/304. The green DTO ATDD only stubbed the producer to RESOLVE. | API | P0 | `test/unit/api/venues-route-day-series-degrade.test.ts` (3) |
+| G5 | `useVenueSearch` **`isLiveNow` boundary** (the BREAKING-CHANGE headline) — live-now OMITS date/time from the request yet keys on `date` and POLLS; flipping isLiveNow true→false on the SAME date fires ZERO additional fetches; off-live sends date+time and disables polling. The existing suite never passes `isLiveNow`. | Unit (hook) | P0 | `test/unit/queries/useVenueSearch.day-series-key.test.tsx` (6) |
+
+(Deliberately NOT added: a standalone reference re-implementation of `applyDaySeriesDerivation`'s override rule — it is covered end-to-end by `MapView.test.tsx` + G1's derivation edges, and a duplicated reference would risk drift from the source. Engine parity/gate internals already byte-covered. Live p95 (AC4) is a maintainer `needs-human` per the story, not a CI test.)
+
+## Files Created (all test-only, additive)
+- **NEW** `test/unit/utils/venue-day-series.edge.test.ts` — 9 tests (G1).
+- **NEW** `test/unit/services/sun-engine-cache.day-series-key.test.ts` — 9 tests (G3).
+- **NEW** `test/unit/api/venues-route-day-series-degrade.test.ts` — 3 tests (G4).
+- **NEW** `test/unit/queries/useVenueSearch.day-series-key.test.tsx` — 6 tests (G5).
+
+## Validation / Gate
+- `npx tsc --noEmit` → **0 errors**
+- `npx eslint <the 4 new files>` → **0 errors / 0 warnings**
+- `npx vitest run` → **130 files / 1175 tests, all passing, 0 skipped** (Story 11.1 HEAD was 126 files / 1150 tests → net **+4 files / +25 tests**, none dropped, none regressed).
+- Test-only addition — no source, engine, route, store, client, hook, i18n, or CI-path change. Default seed path (flag OFF, as CI runs it) untouched.
+- (`Not implemented: navigation to another Document` in vitest output remains a benign pre-existing jsdom log, not a failure.)
+
+## Next recommended workflow
+`trace` (traceability matrix / quality-gate decision for Story 11.1) or `test-review` (quality validation of the new + existing day-series suites).
