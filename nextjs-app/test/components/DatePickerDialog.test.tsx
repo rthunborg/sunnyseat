@@ -10,6 +10,7 @@ const LABELS = {
   selectedDate: 'Valt datum',
   unavailableDate: 'Datum utanför säsong',
   pastDate: 'Datum har passerat',
+  windowDate: 'Datum utanför planeringsfönstret',
   selectDate: 'Välj {date}',
 };
 
@@ -51,6 +52,29 @@ describe('<DatePickerDialog />', () => {
     expect(screen.getByRole('button', { name: 'Datum utanför säsong 1 november 2026' })).toBeDisabled();
     fireEvent.keyDown(screen.getByRole('dialog', { name: 'Välj datum' }), { key: 'Escape' });
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('marks a future in-season date beyond the today->today+3 window with the window label', () => {
+    render(
+      <DatePickerDialog
+        open
+        selectedDate="2026-05-20"
+        now={new Date('2026-05-20T10:15:00.000Z')}
+        locale="sv"
+        labels={LABELS}
+        onOpenChange={() => {}}
+        onSelectDate={() => {}}
+      />,
+    );
+
+    // 2026-05-23 = today+3 is the last selectable day.
+    expect(screen.getByRole('button', { name: 'Välj 23 maj 2026' })).toBeEnabled();
+    // 2026-05-24 = today+4 is in-season but beyond the window → disabled with the
+    // window-specific copy (NOT "har passerat" and NOT "utanför säsong").
+    const beyondWindow = screen.getByRole('button', {
+      name: 'Datum utanför planeringsfönstret 24 maj 2026',
+    });
+    expect(beyondWindow).toBeDisabled();
   });
 
   it('announces past in-season dates separately from out-of-season dates', () => {

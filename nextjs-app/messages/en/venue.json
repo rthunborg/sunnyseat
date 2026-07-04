@@ -96,6 +96,7 @@
     "sliderLabel": "Select time",
     "unavailableDate": "Date outside season",
     "pastDate": "Date has passed",
+    "windowDate": "Date outside the planning window",
     "selectDate": "Select {date}",
     "loading": "Updating sun forecast",
     "error": "Could not update sun forecast"

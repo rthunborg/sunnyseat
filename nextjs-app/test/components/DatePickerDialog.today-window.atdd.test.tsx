@@ -59,7 +59,7 @@ function renderDialog() {
   );
 }
 
-describe.skip('[11.2 AC3] DatePickerDialog today→today+3 window', () => {
+describe('[11.2 AC3] DatePickerDialog today→today+3 window', () => {
   it('renders today+3 (17 June) as a selectable, pickable button that fires onSelectDate', () => {
     const onSelectDate = vi.fn();
     render(

@@ -96,6 +96,7 @@
     "sliderLabel": "Välj tid",
     "unavailableDate": "Datum utanför säsong",
     "pastDate": "Datum har passerat",
+    "windowDate": "Datum utanför planeringsfönstret",
     "selectDate": "Välj {date}",
     "loading": "Uppdaterar solprognos",
     "error": "Kunde inte uppdatera solprognosen"

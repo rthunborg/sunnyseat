@@ -48,7 +48,16 @@ const NOW = new Date(NOW_ISO);
 function makeWrapper(clock: () => Date, forcedDate?: string) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <TimeProvider initialNowIso={NOW_ISO} clock={clock} forcedDate={forcedDate}>
+      // A `forcedDate` only reaches state through the date-applying forced-planner
+      // path, which requires a `forcedTime` too (a bare `?_date=` is a no-op — see
+      // AppContextProviders.test.tsx). Supply a forcedTime whenever a forcedDate is
+      // under test so the AC3 window clamp is actually exercised.
+      <TimeProvider
+        initialNowIso={NOW_ISO}
+        clock={clock}
+        forcedDate={forcedDate}
+        forcedTime={forcedDate ? '14:00' : undefined}
+      >
         {children}
       </TimeProvider>
     );
@@ -67,7 +76,7 @@ function minutesMin(ctx: Record<string, unknown>): number | undefined {
   return typeof candidate === 'number' ? candidate : undefined;
 }
 
-describe.skip('[11.2 AC3] forced/URL date outside today→today+3 clamps into the window', () => {
+describe('[11.2 AC3] forced/URL date outside today→today+3 clamps into the window', () => {
   afterEach(() => vi.useRealTimers());
 
   it('clamps a forced date beyond today+3 back into the window (falls back to today)', () => {
@@ -94,36 +103,40 @@ describe.skip('[11.2 AC3] forced/URL date outside today→today+3 clamps into th
   });
 });
 
-describe.skip('[11.2 AC4] today-minimum = snapped current wall-clock; advances with the clock; no key thrash', () => {
+describe('[11.2 AC4] today-minimum = snapped current wall-clock; advances with the clock; no key thrash', () => {
   afterEach(() => vi.useRealTimers());
 
-  it('exposes the snapped current wall-clock time as the effective slider min on today', () => {
+  it('exposes the current wall-clock time snapped to the reachable step as the effective slider min on today', () => {
     const { result } = renderHook(() => useTimeContext(), { wrapper: makeWrapper(() => NOW) });
 
     expect(result.current.mode).toBe('today');
-    // 12:15 → snapped up to the 15-min planner step = 12:15 (already on a step).
+    // 12:15 is already on a 15-min planner step, so the reachable minimum = 12:15.
+    // (The min floors to the step at/below now so the live "now" moment stays
+    // reachable and `isLiveNow` never flips on a tick.)
     const expectedMin = snapPlannerMinutes(12 * 60 + 15);
     expect(minutesMin(result.current as unknown as Record<string, unknown>)).toBe(expectedMin);
   });
 
-  it('advances the effective min past a step boundary on a clock tick and pushes a below-min selection up', () => {
+  it('advances the effective min past a step boundary on a clock tick and keeps the selection reachable', () => {
     vi.useFakeTimers();
-    let now = new Date('2026-06-14T10:12:00.000Z'); // 12:12 → snaps up to 12:15
+    let now = new Date('2026-06-14T10:12:00.000Z'); // 12:12 → reachable min step = 12:00
     const clock = () => now;
     const { result } = renderHook(() => useTimeContext(), { wrapper: makeWrapper(clock) });
 
     const minBefore = minutesMin(result.current as unknown as Record<string, unknown>);
-    expect(minBefore).toBe(snapPlannerMinutes(12 * 60 + 12)); // 12:15
+    expect(minBefore).toBe(12 * 60); // 12:12 floors to the 12:00 step
 
-    // Advance the wall clock past the next 15-min boundary (12:12 → 12:16 → min 12:30).
+    // Advance the wall clock across the next 15-min boundary (12:12 → 12:16), so
+    // the reachable minimum advances a step (12:00 → 12:15).
     now = new Date('2026-06-14T10:16:00.000Z');
     act(() => {
       vi.advanceTimersByTime(60 * 1000);
     });
 
     const minAfter = minutesMin(result.current as unknown as Record<string, unknown>);
+    expect(minAfter).toBe(12 * 60 + 15); // 12:16 floors to 12:15
     expect(minAfter).toBeGreaterThan(minBefore ?? 0);
-    // The current live selection is never below the advanced min.
+    // The live selection (the exact current minute) is never below the min.
     expect(result.current.selectedMinutes).toBeGreaterThanOrEqual(minAfter ?? 0);
   });
 

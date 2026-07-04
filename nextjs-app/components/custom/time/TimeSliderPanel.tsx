@@ -63,6 +63,7 @@ export function TimeSliderPanel({
               <TimeSlider
                 ariaLabel={t('sliderLabel')}
                 selectedMinutes={time.selectedMinutes}
+                minMinutes={time.minMinutes}
                 ticks={time.ticks}
                 onMinutesChange={time.setSelectedMinutes}
                 onSnap={time.snapSelectedMinutes}
@@ -82,6 +83,7 @@ export function TimeSliderPanel({
             <TimeSlider
               ariaLabel={t('sliderLabel')}
               selectedMinutes={time.selectedMinutes}
+              minMinutes={time.minMinutes}
               ticks={time.ticks}
               onMinutesChange={time.setSelectedMinutes}
               onSnap={time.snapSelectedMinutes}
@@ -114,6 +116,7 @@ export function TimeSliderPanel({
           selectedDate: t('selectedDate'),
           unavailableDate: t('unavailableDate'),
           pastDate: t('pastDate'),
+          windowDate: t('windowDate'),
           selectDate: t('selectDate', { date: '{date}' }),
         }}
         onOpenChange={setCalendarOpen}

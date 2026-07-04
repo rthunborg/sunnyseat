@@ -5,7 +5,13 @@ import { renderWithProviders } from '@/test/setup/test-utils';
 import { DesktopNavBar } from '@/components/custom/layout/DesktopNavBar';
 import { TimeProvider } from '@/lib/contexts/TimeContext';
 import { TagFilterProvider } from '@/lib/contexts/TagFilterContext';
+import { addDaysToDateKey, stockholmDateKey } from '@/lib/utils/time-planner';
 import type { GetVenuesResponse } from '@/lib/types/api';
+
+// Story 11.2 (AC3): a forced planner date must be inside the today->today+3
+// window or `stateFromForcedPlanner` clamps it to today. Compute an in-window
+// date (today+2) from the live clock so these forcing cases round-trip.
+const IN_WINDOW_DATE = addDaysToDateKey(stockholmDateKey(new Date()), 2);
 
 const SEARCH_DEBOUNCE_MS = 200;
 
@@ -202,10 +208,10 @@ describe('DesktopNavBar', () => {
   });
 
   it('passes planner date and time to search queries', () => {
-    renderDesktopNav({ forcedDate: '2026-06-14', forcedTime: '14:00' });
+    renderDesktopNav({ forcedDate: IN_WINDOW_DATE, forcedTime: '14:00' });
 
     expect(mockState.useVenueSearch).toHaveBeenCalledWith(expect.objectContaining({
-      date: '2026-06-14',
+      date: IN_WINDOW_DATE,
       time: '14:00',
     }));
   });
@@ -220,14 +226,14 @@ describe('DesktopNavBar', () => {
     // mock here is `idle` → coordsSettled === false → the nav must pass
     // `enabled: false` (the missing-gate defect this patch fixes) AND the same
     // radius/coords the deferred planner rides on.
-    renderDesktopNav({ forcedDate: '2026-06-14', forcedTime: '14:00' });
+    renderDesktopNav({ forcedDate: IN_WINDOW_DATE, forcedTime: '14:00' });
 
     expect(mockState.useVenueSearch).toHaveBeenCalledWith({
       lat: 57.7089,
       lng: 11.9746,
       radiusKm: 1.5,
       enabled: false,
-      date: '2026-06-14',
+      date: IN_WINDOW_DATE,
       time: '14:00',
     });
   });

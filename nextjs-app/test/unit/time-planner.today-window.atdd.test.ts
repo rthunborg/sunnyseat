@@ -57,7 +57,7 @@ const PLUS_3 = dayKey(NOW, 3);
 const PLUS_4 = dayKey(NOW, 4);
 const YESTERDAY = dayKey(NOW, -1);
 
-describe.skip('[11.2 AC3] planner date window = today → today+3 (selectability)', () => {
+describe('[11.2 AC3] planner date window = today → today+3 (selectability)', () => {
   it('selects today and each of the next three days', () => {
     for (const date of [TODAY, PLUS_1, PLUS_2, PLUS_3]) {
       expect(isPlannerDateSelectable(date, NOW), `${date} should be selectable`).toBe(true);
@@ -82,7 +82,7 @@ describe.skip('[11.2 AC3] planner date window = today → today+3 (selectability
   });
 });
 
-describe.skip('[11.2 AC3] validatePlannerDateTime stays coherent with the window (reject beyond, accept in-window)', () => {
+describe('[11.2 AC3] validatePlannerDateTime stays coherent with the window (reject beyond, accept in-window)', () => {
   it('accepts an in-window date/time', () => {
     expect(validatePlannerDateTime({ date: PLUS_2, time: '14:00', now: NOW })).toEqual({
       ok: true,

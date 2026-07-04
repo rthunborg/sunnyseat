@@ -36,6 +36,11 @@ export function parseVenuePlannerParams(
     date: dateValues[0],
     time: timeValues[0],
     now,
+    // Story 11.2 (AC3): the today→today+3 window is a client/state concern. The
+    // server route keeps serving far-future forecast dates (up to the season
+    // edge) so a stale bookmark never 400s just for being beyond the picker
+    // window; the client is what clamps into the window.
+    enforceWindow: false,
   });
   if (!validation.ok) {
     if (validation.reason === 'out-of-season') {

@@ -10,15 +10,16 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  clampPlannerMinutes,
   formatPlannerTime,
   formatTimeInStockholm,
   generatePlannerTicks,
   isPlannerDateSelectable,
   isTodayInStockholm,
-  isValidDateKey,
   parsePlannerTime,
   PLANNER_END_MINUTES,
   PLANNER_START_MINUTES,
+  PLANNER_STEP_MINUTES,
   snapPlannerMinutes,
   stockholmDateKey,
   type PlannerTick,
@@ -31,6 +32,14 @@ type TimeContextValue = {
   selectedMinutes: number;
   mode: 'today' | 'future';
   isLiveNow: boolean;
+  /**
+   * Story 11.2 (AC4): the effective slider minimum. On `today` this is the
+   * current wall-clock Stockholm time snapped up to the planner step (clamped to
+   * the planner range); for a future date it is the planner start (full range).
+   * The value advances as the live clock ticks. Derived — never `new Date()` in a
+   * consumer's render.
+   */
+  minMinutes: number;
   plannerQuery: { date: string; time: string } | undefined;
   ticks: PlannerTick[];
   setCurrentTime: (t: Date) => void;
@@ -107,9 +116,29 @@ export function TimeProvider({
           return stateFromNow(currentTime);
         }
         const wasLiveNow = isStateLiveNow(previous);
-        return wasLiveNow
-          ? stateFromNow(currentTime)
-          : { ...previous, currentTime };
+        if (wasLiveNow) {
+          return stateFromNow(currentTime);
+        }
+        // Story 11.2 (AC4): on `today`, the effective slider minimum = the
+        // snapped current wall-clock time and ADVANCES as the clock ticks. If an
+        // explicit (non-live) selection now falls below the advanced minimum,
+        // push it up to the min so earlier positions stay unreachable. On a
+        // future date the full range holds (min = planner start), so the clamp
+        // is a no-op. The tick advances `currentTime`/the min — NEVER the date —
+        // so the date-only query key (Story 11.1) does not thrash.
+        const onToday = previous.selectedDate === stockholmDateKey(currentTime);
+        if (onToday) {
+          const min = todayMinMinutes(currentTime);
+          if (previous.selectedMinutes < min) {
+            return {
+              ...previous,
+              currentTime,
+              selectedMinutes: min,
+              selectedTime: formatPlannerTime(min),
+            };
+          }
+        }
+        return { ...previous, currentTime };
       });
     }, LIVE_CLOCK_TICK_MS);
 
@@ -198,6 +227,15 @@ export function TimeProvider({
         mode === 'today' &&
         isLiveWithinPlannerHours &&
         state.selectedTime === livePlannerTime;
+      // Story 11.2 (AC4): the today-minimum tracks the LIVE wall clock. A forced
+      // planner session (`?_time=`/`?_date=`) pins a deterministic moment and
+      // disables the live clock (the tick effect early-returns), so the "can't
+      // pick earlier than now" affordance does not apply — the full range stays
+      // reachable so a forced time (e.g. `?_time=13:00`) renders verbatim
+      // regardless of the machine wall clock. Live sessions on `today` clamp.
+      const minMinutes = mode === 'today' && !forcedTime
+        ? todayMinMinutes(state.currentTime)
+        : PLANNER_START_MINUTES;
       return {
         currentTime: state.currentTime,
         selectedDate: state.selectedDate,
@@ -205,6 +243,7 @@ export function TimeProvider({
         selectedMinutes: state.selectedMinutes,
         mode,
         isLiveNow,
+        minMinutes,
         plannerQuery: isLiveNow || !isPlannerDateValid
           ? undefined
           : { date: state.selectedDate, time: state.selectedTime },
@@ -219,6 +258,7 @@ export function TimeProvider({
       };
     },
     [
+      forcedTime,
       resetToNow,
       selectDate,
       setCurrentTime,
@@ -261,7 +301,11 @@ function stateFromForcedPlanner(
   const parsed = parsePlannerTime(forcedTime);
   if (parsed === null) return null;
   const selectedMinutes = snapPlannerMinutes(parsed);
-  const selectedDate = forcedDate && isValidDateKey(forcedDate)
+  // Story 11.2 (AC3): a forced/URL date outside the today->today+3 window must
+  // NOT render an out-of-range planner — clamp back to today (the nearest
+  // in-window date), mirroring the live-clock tick's `!isPlannerDateSelectable ->
+  // stateFromNow` reset. Only an in-window forced date is preserved.
+  const selectedDate = forcedDate && isPlannerDateSelectable(forcedDate, currentTime)
     ? forcedDate
     : stockholmDateKey(currentTime);
   return {
@@ -287,6 +331,24 @@ function isStateLiveNow(state: TimeState): boolean {
 function formatLivePlannerTime(currentTime: Date): string {
   const liveMinutes = parsePlannerTime(formatTimeInStockholm(currentTime)) ?? 12 * 60;
   return formatPlannerTime(liveMinutes);
+}
+
+/**
+ * Story 11.2 (AC4): the effective slider minimum on `today` = the current
+ * wall-clock Stockholm time snapped to the step at or just below now (floor),
+ * clamped into the planner range. Floor — not ceiling/nearest — so the live
+ * "now" moment itself is always REACHABLE (it sits between the min step and the
+ * next), which keeps `isLiveNow` intact (the live selection is never pushed below
+ * the min, so the query key never thrashes) while still making every EARLIER
+ * step unreachable. The min advances one step at each step boundary as the clock
+ * ticks. Derived purely from `currentTime` (hydration-safe) — no `new Date()` in
+ * a consumer's render.
+ */
+function todayMinMinutes(currentTime: Date): number {
+  const liveMinutes = parsePlannerTime(formatTimeInStockholm(currentTime));
+  if (liveMinutes === null) return PLANNER_START_MINUTES;
+  const floored = Math.floor(liveMinutes / PLANNER_STEP_MINUTES) * PLANNER_STEP_MINUTES;
+  return clampPlannerMinutes(floored);
 }
 
 function parseInitialNow(value: string): Date {

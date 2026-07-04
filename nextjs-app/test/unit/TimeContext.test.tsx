@@ -161,15 +161,16 @@ describe('TimeContext', () => {
   it('future dates preserve selected time and expose future planner mode', () => {
     const { result } = renderHook(() => useTimeContext(), { wrapper: makeWrapper() });
 
+    // Story 11.2 (AC3): only today->today+3 is selectable; 2026-05-22 is today+2.
     act(() => result.current.setSelectedTime('15:30'));
     act(() => {
-      expect(result.current.selectDate('2026-06-14')).toBe(true);
+      expect(result.current.selectDate('2026-05-22')).toBe(true);
     });
 
     expect(result.current.mode).toBe('future');
-    expect(result.current.selectedDate).toBe('2026-06-14');
+    expect(result.current.selectedDate).toBe('2026-05-22');
     expect(result.current.selectedTime).toBe('15:30');
-    expect(result.current.plannerQuery).toEqual({ date: '2026-06-14', time: '15:30' });
+    expect(result.current.plannerQuery).toEqual({ date: '2026-05-22', time: '15:30' });
   });
 
   it('resets a future planner date when the live clock rolls past it', () => {
@@ -178,18 +179,20 @@ describe('TimeContext', () => {
     const clock = () => now;
     const { result } = renderHook(() => useTimeContext(), { wrapper: makeWrapper(clock) });
 
+    // Story 11.2 (AC3): pick an in-window future date (2026-05-22 = today+2),
+    // then roll the clock past it so the tick effect resets to the new today.
     act(() => result.current.setSelectedTime('15:30'));
     act(() => {
-      expect(result.current.selectDate('2026-06-14')).toBe(true);
+      expect(result.current.selectDate('2026-05-22')).toBe(true);
     });
-    expect(result.current.plannerQuery).toEqual({ date: '2026-06-14', time: '15:30' });
+    expect(result.current.plannerQuery).toEqual({ date: '2026-05-22', time: '15:30' });
 
-    now = new Date('2026-06-15T10:16:00.000Z');
+    now = new Date('2026-05-23T10:16:00.000Z');
     act(() => {
       vi.advanceTimersByTime(60 * 1000);
     });
 
-    expect(result.current.selectedDate).toBe('2026-06-15');
+    expect(result.current.selectedDate).toBe('2026-05-23');
     expect(result.current.selectedTime).toBe('12:16');
     expect(result.current.isLiveNow).toBe(true);
     expect(result.current.plannerQuery).toBeUndefined();

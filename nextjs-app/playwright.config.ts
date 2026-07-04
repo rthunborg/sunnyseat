@@ -33,16 +33,28 @@ export default defineConfig({
   // sheet, mobile review form, mobile feedback prompt) and the offline shell
   // are inside the automated gate — the desktop-only `a11y` project cannot
   // reach those `lg`-breakpoint-hidden surfaces.
+  // Story 11.2 (AC1) real-touch profile: the thumb-grab drag can only be proven
+  // by a REAL touch gesture (test-design R-004 — emulated mouse-drag can pass
+  // while a finger fails). The gesture drives raw CDP `Input.dispatchTouchEvent`,
+  // which is Chromium-only, so it runs under a dedicated `touch` project on a
+  // Chromium mobile device (`Pixel 5`, `hasTouch`) rather than the WebKit-backed
+  // `mobile`/iPhone-14 project (CDP is unavailable there). The four existing
+  // projects exclude the touch-drag spec so it does not double-run/false-fail.
   projects: [
     {
       name: 'mobile',
-      testIgnore: ['**/axe.spec.ts', '**/axe-mobile.spec.ts'],
+      testIgnore: ['**/axe.spec.ts', '**/axe-mobile.spec.ts', '**/epic-11-slider-touch-drag.spec.ts'],
       use: { ...devices['iPhone 14'] },
     },
     {
       name: 'desktop',
-      testIgnore: ['**/axe.spec.ts', '**/axe-mobile.spec.ts'],
+      testIgnore: ['**/axe.spec.ts', '**/axe-mobile.spec.ts', '**/epic-11-slider-touch-drag.spec.ts'],
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'touch',
+      testMatch: '**/epic-11-slider-touch-drag.spec.ts',
+      use: { ...devices['Pixel 5'] },
     },
     {
       name: 'a11y',

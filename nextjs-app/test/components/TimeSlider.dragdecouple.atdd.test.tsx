@@ -60,7 +60,7 @@ const DECORATION_TESTIDS = [
   'time-slider-thumb',
 ] as const;
 
-describe.skip('[11.2 AC1] TimeSlider thumb-grab hit-testing (decorations pointer-events-none, input sole target)', () => {
+describe('[11.2 AC1] TimeSlider thumb-grab hit-testing (decorations pointer-events-none, input sole target)', () => {
   it('makes every decoration pointer-events-none and aria-hidden so the input is the sole pointer target', () => {
     render(
       <TimeSlider
@@ -116,7 +116,7 @@ describe.skip('[11.2 AC1] TimeSlider thumb-grab hit-testing (decorations pointer
   });
 });
 
-describe.skip('[11.2 AC2] drag state decoupled — one app-level commit per gesture, keyboard still per-keypress', () => {
+describe('[11.2 AC2] drag state decoupled — one app-level commit per gesture, keyboard still per-keypress', () => {
   it('during a drag, per-step onChange drives the LOCAL visual value but commits at most once on release', () => {
     const onMinutesChange = vi.fn();
     const onSnap = vi.fn();
@@ -218,7 +218,7 @@ describe.skip('[11.2 AC2] drag state decoupled — one app-level commit per gest
   });
 });
 
-describe.skip('[11.2 AC4] today-minimum clamp — minMinutes makes earlier positions unreachable, elapsed segment inert', () => {
+describe('[11.2 AC4] today-minimum clamp — minMinutes makes earlier positions unreachable, elapsed segment inert', () => {
   // `minMinutes` is a NEW controlled prop (Task 4). It does not exist on
   // `TimeSliderProps` yet, so it is passed via an untyped spread to keep this
   // `.skip`-ed scaffold type-checking green against the current tree; the assertions

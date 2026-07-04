@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import { addDaysToDateKey, stockholmDateKey } from '@/lib/utils/time-planner';
 
 /**
  * Story 9.0 regression guard: `?_time=`/`?_date=` planner-forcing must be
@@ -42,14 +43,16 @@ vi.mock('@/components/custom/settings/SettingsModalRoot', () => ({
   SettingsModalRoot: () => null,
 }));
 
-// Anchored to a far-future year so the live Stockholm date can NEVER equal it.
-// This keeps the production `not.toHaveTextContent(FORCED_DATE)` assertions
-// robust against the wall clock: a literal near-future date (e.g. 2026-07-01)
-// would collide with the live `stockholmDateKey(new Date())` once the clock
-// rolls over, falsely failing the gate test even though production correctly
-// never reads the URL. The load-bearing, time-independent proof remains
+// Story 11.2 (AC3): a forced/URL date outside the today->today+3 window now
+// CLAMPS to today, so a far-future literal (previously 2999-12-31) would no
+// longer round-trip in the dev/preview cases. Anchor the forced date to today+2
+// (in-window) computed from the live clock, so:
+//   - dev/preview: the in-window forced date IS applied and renders verbatim;
+//   - production: the un-forced tree renders live *today* (today+0), which is
+//     never today+2, so `not.toHaveTextContent(FORCED_DATE)` still holds.
+// The load-bearing, time-independent proof remains
 // `expect(useSearchParams).not.toHaveBeenCalled()`.
-const FORCED_DATE = '2999-12-31';
+const FORCED_DATE = addDaysToDateKey(stockholmDateKey(new Date()), 2);
 const FORCED_TIME = '13:00';
 
 async function renderUnderEnv(

@@ -7,6 +7,7 @@ import {
   isDateInCurrentSunSeason,
   isPlannerDateSelectable,
   isValidDateKey,
+  stockholmDateKey,
   sunSeasonBounds,
 } from '@/lib/utils/time-planner';
 import { DURATION_FAST_S, DURATION_SLOW_S, EASE_ENTER, EASE_EXIT } from '@/lib/constants/animation';
@@ -20,6 +21,13 @@ export type DatePickerDialogLabels = {
   selectedDate: string;
   unavailableDate: string;
   pastDate: string;
+  /**
+   * Story 11.2 (AC3): disabled-label copy for a future date beyond the
+   * today->today+3 planning window (in-season, so neither "past" nor
+   * "out-of-season"). Optional so existing callers stay valid; falls back to
+   * `unavailableDate` when absent.
+   */
+  windowDate?: string;
   selectDate: string;
 };
 
@@ -133,7 +141,16 @@ export function DatePickerDialog({
                 const selectable = isPlannerDateSelectable(key, now);
                 const selected = key === selectedDate;
                 const formatted = formatDate(date, localeTag);
-                const disabledLabel = inSeason ? labels.pastDate : labels.unavailableDate;
+                const isPast = key < stockholmDateKey(now);
+                // Story 11.2 (AC3): three disabled buckets — a past date, a
+                // future date beyond the today->today+3 window (in-season), and
+                // an out-of-season date — each get distinct copy so a "beyond
+                // today+3" future date never reads "har passerat"/"out of season".
+                const disabledLabel = isPast
+                  ? labels.pastDate
+                  : inSeason
+                    ? labels.windowDate ?? labels.unavailableDate
+                    : labels.unavailableDate;
                 return (
                   <button
                     key={key}

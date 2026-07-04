@@ -282,7 +282,7 @@ development_status:
   # (11.1 unblocks 11.2's zero-fetch commit + feeds 11.4's list-DTO change; 11.7 rebaseline + 11.8 verification last).
   epic-11: in-progress
   11-1-client-side-day-series-instant-time-scrubbing: review
-  11-2-time-slider-drag-fix-planner-range-rules: ready-for-dev
+  11-2-time-slider-drag-fix-planner-range-rules: review
   11-3-mobile-tag-filtering-bottom-sheet-overhaul: backlog
   11-4-venue-quick-info-rework-reference-alignment: backlog
   11-5-map-legibility-location-dot-recenter: backlog
