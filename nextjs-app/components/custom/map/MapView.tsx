@@ -410,9 +410,22 @@ export function MapView() {
   // favourite is in the list cache the favourites query stays disabled and
   // these rows come straight from `rawVenues`.
   const favouriteIdsForRows = favourites.favouriteIds;
-  const networkFavouriteRows = Array.isArray(favouriteVenueQuery.data?.venues)
-    ? favouriteVenueQuery.data.venues
-    : EMPTY_VENUES;
+  // Story 11.1 AC1 ("both venue lists"): the favourites network payload hits the
+  // same real-engine `/api/venues` path, so its rows carry `sunDaySeries` too.
+  // Derive the per-step value here — mirroring `rawVenues` — so an out-of-radius
+  // favourite or a cold `/favoriter` deep link (present ONLY in the favourites
+  // payload, never in the Närmast list cache) tracks a same-date time scrub for
+  // both its card figures and its "Mest sol" rank. Without this the top-up rows
+  // would render the server's single-instant fields, frozen against the scrub.
+  const networkFavouriteRows = useMemo<VenueDataDto[]>(() => {
+    const rows = Array.isArray(favouriteVenueQuery.data?.venues)
+      ? favouriteVenueQuery.data.venues
+      : EMPTY_VENUES;
+    if (rows.length === 0) return EMPTY_VENUES;
+    return rows.map((venue) =>
+      applyDaySeriesDerivation(venue, plannerTime.selectedMinutes),
+    );
+  }, [favouriteVenueQuery.data?.venues, plannerTime.selectedMinutes]);
   const favouriteVenueRows = useMemo<VenueDataDto[]>(() => {
     const allowed = new Set(favouriteIdsForRows);
     if (allowed.size === 0) return EMPTY_VENUES;
