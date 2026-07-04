@@ -417,6 +417,92 @@ describe('DesktopNavBar', () => {
       expect(screen.getByTestId('chip-fade-right')).toBeInTheDocument();
       expect(screen.queryByTestId('chip-fade-left')).toBeNull();
     });
+
+    // --- Story 11.3 coverage expansion (automate): the mirror-image LEFT-arrow
+    // path + the mid-scroll both-fades state + the scroll-into-view focus + the
+    // page-size floor — the existing suite proves the right/start end only. ---
+
+    /** Simulate an overflowing strip scrolled to a given scrollLeft, then flush. */
+    function overflowAt(strip: HTMLElement, scrollLeft: number) {
+      Object.defineProperty(strip, 'scrollWidth', { configurable: true, value: 800 });
+      Object.defineProperty(strip, 'clientWidth', { configurable: true, value: 300 });
+      Object.defineProperty(strip, 'scrollLeft', { configurable: true, writable: true, value: scrollLeft });
+      act(() => {
+        strip.dispatchEvent(new Event('scroll'));
+      });
+    }
+
+    it('enables the LEFT arrow once scrolled away from the start, and scrolls a NEGATIVE page on click', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      const scrollBy = vi.fn();
+      (strip as unknown as { scrollBy: typeof scrollBy }).scrollBy = scrollBy;
+      // Scrolled to a middle position (max scroll = 800 - 300 = 500).
+      overflowAt(strip, 250);
+
+      const left = screen.getByRole('button', { name: 'Bläddra filter åt vänster' });
+      expect(left).toBeEnabled();
+      fireEvent.click(left);
+      expect(scrollBy).toHaveBeenCalledTimes(1);
+      // Left arrow scrolls in the negative direction.
+      expect(scrollBy.mock.calls[0][0].left).toBeLessThan(0);
+    });
+
+    it('shows BOTH edge-fades when scrolled into the middle (more content on each side)', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      overflowAt(strip, 250); // between 0 and the 500 max → both directions scrollable
+
+      expect(screen.getByTestId('chip-fade-left')).toBeInTheDocument();
+      expect(screen.getByTestId('chip-fade-right')).toBeInTheDocument();
+    });
+
+    it('disables the RIGHT arrow at the true max scroll (end reached, 1px slack absorbed)', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      // scrollLeft at max (800 - 300 = 500) → right arrow disables, right fade hides.
+      overflowAt(strip, 500);
+
+      expect(screen.getByRole('button', { name: 'Bläddra filter åt höger' })).toBeDisabled();
+      expect(screen.queryByTestId('chip-fade-right')).toBeNull();
+      // ...while the left arrow (and fade) are now active.
+      expect(screen.getByRole('button', { name: 'Bläddra filter åt vänster' })).toBeEnabled();
+    });
+
+    it('scrolls an off-screen chip into view when it receives focus (keyboard reachability)', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      const chip = within(strip).getByRole('button', { name: 'Wifi' });
+      const scrollIntoView = vi.fn();
+      (chip as unknown as { scrollIntoView: typeof scrollIntoView }).scrollIntoView = scrollIntoView;
+
+      fireEvent.focus(chip);
+      expect(scrollIntoView).toHaveBeenCalledWith(
+        expect.objectContaining({ block: 'nearest', inline: 'nearest' }),
+      );
+    });
+
+    it('scrolls by at least the 120px page floor even when the visible width is very small', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      const scrollBy = vi.fn();
+      (strip as unknown as { scrollBy: typeof scrollBy }).scrollBy = scrollBy;
+      // clientWidth so small that clientWidth-48 would underflow the floor.
+      Object.defineProperty(strip, 'scrollWidth', { configurable: true, value: 800 });
+      Object.defineProperty(strip, 'clientWidth', { configurable: true, value: 40 });
+      act(() => {
+        strip.dispatchEvent(new Event('scroll'));
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Bläddra filter åt höger' }));
+      // Math.max(clientWidth - 48, 120) → the 120 floor (never 0 or negative).
+      expect(scrollBy.mock.calls[0][0].left).toBe(120);
+    });
   });
 
   it('opens the settings modal from the settings button and no longer renders a standalone About link', () => {

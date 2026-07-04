@@ -235,4 +235,128 @@ describe('<MobileBottomSheet />', () => {
 
     expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-layout-motion', 'false');
   });
+
+  // --- Story 11.3 coverage expansion (automate): the FULL keyboard/click cascade
+  // over the four-snap ladder + the collapsed body a11y facts. The existing suite
+  // covers peek→mid, mid→full, peek→collapsed and the collapsed saturate; these
+  // fill the remaining rungs, the wrap, and the fallback branches so every arm of
+  // clickCycle / expandOneRung / collapseOneRung is pinned. ---
+
+  describe('Story 11.3 — full keyboard rung cascade (ArrowUp/ArrowDown)', () => {
+    function arrow(state: MobileBottomSheetState, key: 'ArrowUp' | 'ArrowDown') {
+      const onStateChange = vi.fn();
+      render(
+        <MobileBottomSheet state={state} onStateChange={onStateChange} handleLabel="H">
+          <p>Listinnehåll</p>
+        </MobileBottomSheet>,
+      );
+      fireEvent.keyDown(screen.getByRole('button', { name: 'H' }), { key });
+      return onStateChange;
+    }
+
+    it('ArrowUp climbs peek → mid (intermediate expand rung)', () => {
+      expect(arrow('peek', 'ArrowUp')).toHaveBeenCalledWith('mid');
+    });
+
+    it('ArrowUp climbs mid → full (intermediate expand rung)', () => {
+      expect(arrow('mid', 'ArrowUp')).toHaveBeenCalledWith('full');
+    });
+
+    it('ArrowUp saturates at full — full stays full (never overshoots the ladder)', () => {
+      expect(arrow('full', 'ArrowUp')).toHaveBeenCalledWith('full');
+    });
+
+    it('ArrowDown collapses full → mid (intermediate collapse rung)', () => {
+      expect(arrow('full', 'ArrowDown')).toHaveBeenCalledWith('mid');
+    });
+
+    it('ArrowDown collapses mid → peek (intermediate collapse rung)', () => {
+      expect(arrow('mid', 'ArrowDown')).toHaveBeenCalledWith('peek');
+    });
+
+    it('ArrowUp from the off-ladder dismissed state falls back to mid (never NaN/undefined)', () => {
+      const onStateChange = arrow('dismissed', 'ArrowUp');
+      // 'dismissed' is not on SNAP_LADDER (index === -1); expandOneRung returns the
+      // safe 'mid' default rather than reading SNAP_LADDER[NaN].
+      expect(onStateChange).toHaveBeenCalledWith('mid');
+      expect(onStateChange).not.toHaveBeenCalledWith('dismissed');
+    });
+
+    it('ArrowDown from the off-ladder dismissed state falls back to peek (never NaN/undefined)', () => {
+      const onStateChange = arrow('dismissed', 'ArrowDown');
+      // collapseOneRung's index === -1 fallback returns 'peek', keeping the handle
+      // on the interactive ladder even from the exit state.
+      expect(onStateChange).toHaveBeenCalledWith('peek');
+      expect(onStateChange).not.toHaveBeenCalledWith('dismissed');
+    });
+  });
+
+  describe('Story 11.3 — click/Enter/Space cycle (clickCycle) over the four snaps', () => {
+    function activate(state: MobileBottomSheetState, via: 'click' | 'Enter' | ' ') {
+      const onStateChange = vi.fn();
+      render(
+        <MobileBottomSheet state={state} onStateChange={onStateChange} handleLabel="H">
+          <p>Listinnehåll</p>
+        </MobileBottomSheet>,
+      );
+      const handle = screen.getByRole('button', { name: 'H' });
+      if (via === 'click') fireEvent.click(handle);
+      else fireEvent.keyDown(handle, { key: via });
+      return onStateChange;
+    }
+
+    it('click on the collapsed handle climbs to peek (the handle-only snap re-opens the list)', () => {
+      expect(activate('collapsed', 'click')).toHaveBeenCalledWith('peek');
+    });
+
+    it('click wraps full → peek (a tap on the full sheet tucks it back to peek, not straight to collapsed)', () => {
+      const onStateChange = activate('full', 'click');
+      expect(onStateChange).toHaveBeenCalledWith('peek');
+      // The wrap deliberately never drops straight to the handle-only collapsed
+      // state — collapsing fully is a deliberate drag/Arrow action.
+      expect(onStateChange).not.toHaveBeenCalledWith('collapsed');
+    });
+
+    it('Space (not just Enter) advances the click cycle collapsed → peek', () => {
+      expect(activate('collapsed', ' ')).toHaveBeenCalledWith('peek');
+    });
+
+    it('Enter on the full handle wraps to peek (keyboard parity with click)', () => {
+      expect(activate('full', 'Enter')).toHaveBeenCalledWith('peek');
+    });
+  });
+
+  describe('Story 11.3 — collapsed snap body is inert but the handle stays reachable (AC2)', () => {
+    it('the collapsed sheet body is aria-hidden and pointer-events-none while the handle is not', () => {
+      render(
+        <MobileBottomSheet state="collapsed" onStateChange={vi.fn()} handleLabel="Visa platslistan">
+          <p>Listinnehåll</p>
+        </MobileBottomSheet>,
+      );
+
+      const body = document.querySelector('[data-bottom-sheet-scroll-body="true"]');
+      expect(body).not.toBeNull();
+      // Body content (sort toggles, chip row, list) is hidden from AT + inert.
+      expect(body).toHaveAttribute('aria-hidden', 'true');
+      expect(body?.className).toContain('pointer-events-none');
+      // ...but the handle itself stays an interactive button so the user can drag
+      // or keyboard the sheet back up (this is what makes 'collapsed' distinct
+      // from the fully-inert 'dismissed').
+      const handle = screen.getByRole('button', { name: 'Visa platslistan' });
+      expect(handle.className).not.toContain('pointer-events-none');
+    });
+
+    it('the peek body is NOT aria-hidden (content stays accessible above the collapsed rung)', () => {
+      render(
+        <MobileBottomSheet state="peek" onStateChange={vi.fn()} handleLabel="Visa platslistan">
+          <p>Listinnehåll</p>
+        </MobileBottomSheet>,
+      );
+
+      const body = document.querySelector('[data-bottom-sheet-scroll-body="true"]');
+      // aria-hidden is only set for collapsed | dismissed; peek/mid/full keep the
+      // body exposed. jsdom drops a `false` boolean-ish attr, so assert it's absent.
+      expect(body?.getAttribute('aria-hidden')).not.toBe('true');
+    });
+  });
 });

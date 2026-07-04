@@ -122,6 +122,106 @@ describe('<MobileTagChips /> — Story 11.3 AC1 (mobile tag-chip row)', () => {
     expect(row.className).toContain('overflow-x-auto');
   });
 
+  // --- Story 11.3 coverage expansion (automate): edge cases the existing
+  // happy-path suite leaves open — the OR-union multi-active case, the unmapped
+  // live-tag fallback ([NOTE] localizeTag drift), and the className/order plumbing. ---
+
+  it('renders MULTIPLE active chips at once (the filter is an OR-union, not single-select)', () => {
+    // filterVenuesByTags unions ≥1 active tag, so several chips can be "on"
+    // simultaneously — each must independently reflect its pressed state.
+    render(
+      <MobileTagChips
+        tags={['Innergård', 'Wifi', 'Hund ok']}
+        isActive={(tag) => tag === 'Innergård' || tag === 'Hund ok'}
+        onToggleTag={vi.fn()}
+        locale="sv"
+        label="Filter"
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Innergård' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Hund ok' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Wifi' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('falls back to the raw canonical (Swedish) value for an EN-unmapped live tag — never a blank/truncated label', () => {
+    // A live tag not in the 16-entry TAG_DISPLAY_EN map (the [NOTE] drift risk).
+    // localizeTag returns the canonical value verbatim, so the chip stays legible
+    // in EN rather than rendering an empty or clipped label.
+    render(
+      <MobileTagChips
+        tags={['Uteservering']}
+        isActive={() => false}
+        onToggleTag={vi.fn()}
+        locale="en"
+        label="Filter"
+      />,
+    );
+    const chip = screen.getByRole('button', { name: 'Uteservering' });
+    expect(chip).toBeInTheDocument();
+    expect(chip).toHaveTextContent('Uteservering');
+  });
+
+  it('toggling an unmapped-in-EN chip still carries the CANONICAL value (matching never diverges by locale)', () => {
+    const onToggleTag = vi.fn();
+    render(
+      <MobileTagChips
+        tags={['Uteservering']}
+        isActive={() => false}
+        onToggleTag={onToggleTag}
+        locale="en"
+        label="Filter"
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Uteservering' }));
+    expect(onToggleTag).toHaveBeenCalledWith('Uteservering');
+  });
+
+  it('preserves the incoming tag ORDER left-to-right (first-seen union order is not re-sorted)', () => {
+    render(
+      <MobileTagChips
+        tags={['Wifi', 'Innergård', 'Kanal', 'Hund ok']}
+        isActive={() => false}
+        onToggleTag={vi.fn()}
+        locale="sv"
+        label="Filter"
+      />,
+    );
+    const labels = screen
+      .getAllByRole('button')
+      .map((b) => b.textContent);
+    expect(labels).toEqual(['Wifi', 'Innergård', 'Kanal', 'Hund ok']);
+  });
+
+  it('applies the caller-supplied className alongside the base row classes (does not clobber the axis guard)', () => {
+    render(
+      <MobileTagChips
+        tags={['Innergård']}
+        isActive={() => false}
+        onToggleTag={vi.fn()}
+        locale="sv"
+        label="Filter"
+        className="mt-2"
+      />,
+    );
+    const row = screen.getByTestId('mobile-tag-chips');
+    expect(row.className).toContain('mt-2');
+    // The base overflow-x-auto (the horizontal scroller / axis guard) survives the merge.
+    expect(row.className).toContain('overflow-x-auto');
+  });
+
+  it('uses the supplied group label as the accessible name of the chip-row nav', () => {
+    render(
+      <MobileTagChips
+        tags={['Innergård']}
+        isActive={() => false}
+        onToggleTag={vi.fn()}
+        locale="sv"
+        label="Filtrera platser"
+      />,
+    );
+    expect(screen.getByRole('navigation', { name: 'Filtrera platser' })).toBeInTheDocument();
+  });
+
   it('reflects live toggle state end-to-end (integration over local state)', () => {
     function Harness() {
       const [active, setActive] = useState<Set<string>>(new Set());
