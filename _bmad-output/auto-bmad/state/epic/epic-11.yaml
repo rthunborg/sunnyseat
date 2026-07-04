@@ -5,10 +5,10 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-04T15:28:53Z"
+updated_at: "2026-07-04T15:40:16Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 659
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 8
 stories_after_in_epic: null
-completed_phases: [0, 1]
+completed_phases: [0, 1, 2]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -46,7 +46,8 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "Test-design left 4 thresholds UNKNOWN for story drafting: light-tint overlay strength (11-5), day-series gzipped payload ceiling (11-1), sheet collapsed-snap height + gesture thresholds (11-3), live date-change p95 (measured in 11-8)"
 deferred_work: []
 blockers: []
 overrides: {}
