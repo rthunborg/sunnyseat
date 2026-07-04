@@ -12,3 +12,4 @@
 ## Story 11-2-time-slider-drag-fix-planner-range-rules
 - [Phase 3 â€” create-story] Current planner-date rule in HEAD is season-based (Mar 1â€“Oct 31 + >= today), NOT todayâ†’today+3 â€” AC3 is a shared-helper change rippling across six isPlannerDateSelectable consumers + validatePlannerDateTime; dev must reconcile all of them.
 - [Phase 3 â€” create-story] No dedicated real-touch Playwright profile exists, but the mobile project (iPhone 14) already has hasTouch:true â€” touch-gesture e2e can run there without a new project.
+- [Phase 4 â€” atdd] Real touch is driven via CDP Input.dispatchTouchEvent on the existing mobile (iPhone 14, Chromium) project â€” no new Playwright project needed; desktop self-skips on !hasTouch. Pattern for 11-3/11-8 touch specs.
