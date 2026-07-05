@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-05'
+lastSaved: '2026-07-05T11-7'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/11-6-venue-detail-clean-first-paint-content-polish.md'
   - 'nextjs-app/components/composed/venue/VenueDetailContent.tsx'
@@ -44,6 +44,11 @@ inputDocuments:
   - 'nextjs-app/test/components/VenueList.test.tsx'
   - 'nextjs-app/test/components/VenueCard.test.tsx'
   - 'nextjs-app/test/components/VenueDetailContent.test.tsx'
+  - '_bmad-output/implementation-artifacts/11-7-hygiene-deferred-debt.md'
+  - 'nextjs-app/vercel.json'
+  - 'nextjs-app/docs/vercel-deployment.md'
+  - '.gitattributes'
+  - 'nextjs-app/test/unit/map-legibility-tokens.automate.test.ts (precedent)'
   - '_bmad/tea/config.yaml'
 ---
 
@@ -309,3 +314,52 @@ Scope discipline: the ENGINE timeline data path (`detail.timeline` DTO, `[slug]`
 
 ## Next recommended workflow
 `trace` (traceability matrix / quality-gate decision for Story 11.6) or `test-review` (quality validation of the new + existing venue-detail suites).
+
+---
+
+# Automation Expansion Summary — Story 11.7 (Hygiene — Three-Epics-Deferred Debt)
+
+## Preflight & Context
+- **Framework:** Vitest 4.1.4 (`nextjs-app/vitest.config.ts`) + Playwright present. Verified — no HALT.
+- **Stack:** fullstack (Next.js). Story 11.7 is a HYGIENE story with three orthogonal fixes that are **byte-identical UI** (nothing renders): (1) `vercel.json` installCommand fail-loud — removed the `|| true` lightningcss error-swallow (AC1); (2) a **scoped** `.gitattributes` EOL policy + one-time renormalization (AC1); (3) deleted the orphaned `toSunStatusToken` mapper, never-guard surviving via `windowLabelTier` (AC2). AC3 (consolidated reference-PNG rebaseline) is a maintainer-blessed VISUAL checkpoint — not unit-automatable.
+- **Mode:** BMad-Integrated (story + Epic-11 test-design R-016/R-017). **Sequential** — three tightly-scoped, jsdom-free STATIC config/source contracts; no runtime behaviour, so no API/E2E fan-out warranted. Authored one guard suite inline (the deterministic sequential path).
+
+## Existing coverage reviewed (to avoid duplication — NOT re-created, NOT weakened)
+- `sun-status-presentation.test.ts` — the surviving mapper exports (`isObscuredSunStatus`, `skyConditionCopy`); the `toSunStatusToken` block was already REMOVED by the dev-story. Left untouched.
+- `map-legibility-tokens.automate.test.ts` — the **precedent** this suite follows: a `.automate.test.ts` that reads a config/source file from disk and asserts its structural contract (never a rendered pixel).
+- **Pre-existing coverage of the three 11.7 contracts: NONE** — a repo-wide `test/` grep for `vercel.json` / `gitattributes` / `installCommand` / `toSunStatusToken` returned nothing. These were entirely uncovered because the changes render nothing (no runtime/e2e/visual guard).
+
+## Gaps Identified & Filled (config/source contract guards — the genuinely automatable 11.7 debt)
+
+| # | Gap (previously uncovered) | Level | Priority | Where |
+|---|-----------------------------|-------|----------|-------|
+| 1 | **AC1 vercel.json fail-loud** — `installCommand` must contain NO error-swallow (`\|\| true` / `; true` / `\|\| :` / `\|\| exit 0`). A re-added swallow silently ships a broken lightningcss build (the exact Epic-8 A2 regression). | Unit (config contract) | P1 | `hygiene-config-contracts.automate.test.ts` |
+| 2 | **AC1 load-bearing fragments preserved** — removing the swallow must not gut the workaround: `--include=dev`, the `(cd .. && …)` root reach, `--no-package-lock`, pinned `lightningcss@1.31.1`, `2>&1`, and the `&&` chain all survive. | Unit (config contract) | P1 | same |
+| 3 | **AC1 buildCommand stays clean** — the swallow was NEVER in `buildCommand`; pin it `npm run build` so nobody "fixes" the wrong line. | Unit | P2 | same |
+| 4 | **AC1 doc↔config mirror** — `docs/vercel-deployment.md` quotes the exact `installCommand`; assert the doc contains the live string AND its mirrored quote carries no swallow (drift guard). | Unit | P1 | same |
+| 5 | **AC1 `.gitattributes` no blanket sweep** — no `* text=auto` (R-016: a blanket rule re-poisons the renormalization diff by sweeping the ~113 `.log` artifacts + binaries). | Unit (config contract) | P1 | same |
+| 6 | **AC1 `.log` stays excluded** — no `*.log` text/EOL rule (the review-capture/console artifacts stay untouched). | Unit | P2 | same |
+| 7 | **AC1 source-extension LF pins** — `text eol=lf` on ts/tsx/js/jsx/json/css/md/yml/yaml/sql/sh (ends the recurring CRLF↔LF review churn). | Unit | P1 | same |
+| 8 | **AC1 binary guards** — `-text` on png/jpg/ico/woff/woff2/ttf so the 12 rebaselined reference PNGs + fonts are NEVER EOL-normalized (a corrupted binary is a silent, invisible regression). | Unit | P1 | same |
+| 9 | **AC2 `toSunStatusToken` stays deleted** (R-017 binary outcome) — source-scan proves the export is absent from `sun-status-presentation.ts` AND from its only former consumer (the unit test); a re-add resurrects the orphan + its misleading "single source of truth" comment. | Unit (source-scan) | P2 | same |
+| 10 | **AC2 never-guard survives** — `windowLabelTier`'s `switch (status)` + `: never = status` default is preserved; this is the compile-time "a new VenueSunStatus breaks the build" property AC2 relies on inheriting from the deleted mapper. | Unit (source-scan) | P2 | same |
+
+The shared `ERROR_SWALLOW` regex was **mutation-checked** against `\|\| true`, `; true`, `\|\| :`, `\|\| exit 0` (all caught) and the live clean commands (no false positives) — an initial `\|\| :` miss (a `\b` after the non-word `:`) was found and fixed. The blanket and `.log` regexes were likewise verified for word-boundary correctness.
+
+## Files Created (test-only, additive)
+- **NEW** `nextjs-app/test/unit/hygiene-config-contracts.automate.test.ts` — 11 tests, 3 describe blocks (vercel.json fail-loud + doc mirror; scoped `.gitattributes`; `toSunStatusToken` delete + never-guard survival).
+
+## Deliberately NOT covered (not worth / not automatable at unit level — no fabricated coverage)
+- Live Vercel deploy fail-loud behaviour → orchestrator/maintainer PR concern; the static installCommand contract is the automatable proxy.
+- The `git add --renormalize` working-tree effect → a git operation owned by the orchestrator, not a code contract.
+- AC3 reference-PNG rebaseline blessing → a maintainer visual checkpoint; dev is structurally forbidden from self-blessing and no unit test can assert a "correct" pixel.
+
+## Validation / Gate
+- `npx tsc --noEmit` → **0 errors** (no error references the new file).
+- `npx eslint <new file>` → **0 errors** (exit 0).
+- `npx vitest run` → **142 files / 1354 tests, all passing, 0 skipped** (Story 11.7 completion HEAD was 141 files / 1343 tests → net **+1 file / +11 tests**, none dropped, none regressed).
+- Test-only addition — no source, config, component, or CI-path change. Byte-identical UI preserved (this suite reads config/source from disk; it renders nothing).
+- (`Not implemented: navigation to another Document` in vitest output remains a benign pre-existing jsdom log, not a failure.)
+
+## Next recommended workflow
+`trace` (traceability matrix / quality-gate decision for Story 11.7) or `test-review` (quality validation of the new config-contract suite).

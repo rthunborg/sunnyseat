@@ -47,3 +47,4 @@
 - [Phase 5 â€” dev-story] Fail-loud proven with a real injected ETARGET (lightningcss@99.99.99-does-not-exist) â€” the vercel installCommand now fails the build on install error; swallow was installCommand, not buildCommand.
 - [Phase 5 â€” dev-story] Renormalization footprint: only 15 files had a genuinely CRLF index (not the ~800 census) â€” the .gitattributes rule mostly locks in future LF-on-commit.
 - [Phase 5 â€” dev-story] 11-6's venue-detail rework silently drifted the epic-10 obscured reference PNGs (still showed the removed Solprognos bars) â€” 'shared-surface refs are byte-stable, skip them' is an unsafe assumption; re-capture whenever a shared surface changes.
+- [Phase 6 â€” automate] Regex-based config guards need adversarial mutation-checking before commit â€” the ERROR_SWALLOW regex initially missed the '|| :' shell no-op form; a too-loose guard passes silently against the current clean file.
