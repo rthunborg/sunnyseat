@@ -256,19 +256,54 @@ test.describe('[11.3 AC2/AC3] four-snap sheet by real touch + chip axis guard', 
     const sheetTop = sheetBox.y;
     const pins = page.locator('[data-testid="venue-pin"]');
     const pinCount = await pins.count();
-    let tapped = false;
+    // Find a pin whose full glyph sits above the collapsed sheet's handle strip.
+    let targetPin: ReturnType<typeof pins.nth> | null = null;
     for (let i = 0; i < pinCount; i++) {
       const box = await pins.nth(i).boundingBox();
       if (box && box.y + box.height < sheetTop - 8) {
-        // Tap the map coordinate directly (stable against the pin re-rendering
-        // once selection raises the sheet).
-        await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-        tapped = true;
+        targetPin = pins.nth(i);
         break;
       }
     }
-    expect(tapped, 'a venue pin above the collapsed strip must exist to tap').toBe(true);
-    // The map tap reached a venue → the sheet auto-rose off the handle-only snap.
+    expect(targetPin, 'a venue pin above the collapsed strip must exist to tap').not.toBeNull();
+
+    // REAL-TOUCH tap the pin (Story 11.8 hardening). A single raw
+    // `page.touchscreen.tap(centerX, centerY)` at the pin's geometric center is
+    // flaky against a MapLibre marker: the pin is a `<button>` nested in a
+    // transformed marker wrapper whose clickable pill occupies only the upper
+    // portion of the button box (a pointer tail + flex gap sit below it), so a
+    // discrete touch at the box center intermittently lands off the interactive
+    // pill and the select handler never fires — the venue stays unselected and the
+    // sheet stays 'collapsed' (observed ~66% first-attempt failure on the `touch`
+    // project; masked in CI only by retries:2). We keep the REAL finger tap (AC3
+    // intent) but re-aim + bounded-retry until the tap registers as a selection
+    // (`data-pin-state` gains the `-selected` suffix). The retry loop dispatches a
+    // genuine touchscreen tap each iteration — NOT a synthetic click — so the
+    // real-touch acceptance signal is preserved. Once the pin reports selected, the
+    // `selectedVenueId` effect raises the sheet from 'collapsed' → 'peek'.
+    // Any pin entering the selected visual state (`data-pin-state` gains a
+    // `-selected` suffix) is the deterministic signal that a tap registered.
+    const anySelectedPin = page.locator('[data-testid="venue-pin"][data-pin-state*="selected"]');
+    let selected = false;
+    for (let attempt = 0; attempt < 4 && !selected; attempt++) {
+      const box = await targetPin!.boundingBox();
+      if (!box) throw new Error('target pin lost its bounding box');
+      // Aim near the top of the button box where the tappable pill actually sits,
+      // not the geometric center (which can fall on the pointer tail / gap).
+      await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height * 0.35);
+      // Poll (not an immediate read) so a tap that DID register has time to flip the
+      // selected state before we decide whether to re-tap. Re-tapping an
+      // already-selected pin would `toggleVenue` it back off (deselect), so we must
+      // wait out the render before concluding the tap missed.
+      selected = await anySelectedPin
+        .first()
+        .waitFor({ state: 'attached', timeout: 1200 })
+        .then(() => true)
+        .catch(() => false);
+    }
+    expect(selected, 'a real-touch tap on the pin must select the venue behind the collapsed sheet').toBe(true);
+    // The map tap reached a venue and selected it → the sheet auto-rose off the
+    // handle-only snap.
     await expect(sheet).toHaveAttribute('data-state', 'peek', { timeout: APP_SETTLE_TIMEOUT_MS });
 
     expect(metnoHits, 'no outbound api.met.no during sheet gestures').toEqual([]);

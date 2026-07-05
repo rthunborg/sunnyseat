@@ -54,3 +54,5 @@
 
 ## Story 11-8-live-verification-pass-touch-gesture-perf-guards
 - [Phase 3 â€” create-story] Seam specs shipped with un-reconciled red-phase headers across the epic (epic-11-scrub-zero-fetch header still says RED PHASE / describe.skip while the body is un-skipped and green) â€” 11-8 reconciles; future ATDD un-skips should update the header in the same change.
+- [Phase 5 â€” dev-story] Cross-epic test drift is caught only by full-suite sweeps: 11-4's removal of the visible SÃ¤kerhet chip left a stale CONFIDENCE_BADGE_COPY regex in the epic-10 weather-matrix e2e that no per-story review caught (they ran vitest only). Verification stories should always run the FULL e2e suite.
+- [Phase 5 â€” dev-story] The sheet 'map interactive behind collapsed' touch test survived CI only via retries:2 (~66% first-attempt flake) â€” exactly the shipped-but-insufficient fragility 11-8 exists to kill; hardened to deterministic re-aim + bounded retry.

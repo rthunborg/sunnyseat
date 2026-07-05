@@ -5,10 +5,10 @@ epic_num: 11
 story_num: 8
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T17:31:11Z"
+updated_at: "2026-07-05T18:10:16Z"
 started_at: "2026-07-05T17:14:13Z"
 completed_at: null
-active_seconds: 1014
+active_seconds: 3357
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -20,7 +20,7 @@ tea_selected: [atdd, automate]
 tea_rationale: "owns the standing CI request-count invariant + real-touch profile guarding hard-to-reproduce interaction physics â€” the epic's R-001 (score 9, CRITICAL) anti-'shipped-but-insufficient' gate"
 epic_story_count: 8
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -47,7 +47,8 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work: []
+deferred_work:
+  - "Post-Merge Verification Protocol (consolidated, maintainer-run): (1) LIVE date-change p95 <3s + scrub=0 against production; (2) physical-device gesture checklist with screenshots; (3) blessing of the 12-pair PNG rebaseline"
 blockers: []
 overrides: {}
 constraints: []

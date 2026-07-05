@@ -1,5 +1,5 @@
 /**
- * ATDD RED-PHASE acceptance scaffolds — Story 11.1 (AC1 + AC3, Task 6)
+ * STANDING Story-11.8 invariant (promoted from the Story 11.1 seam — AC1 + AC3)
  * "Client-Side Day-Series — the request-count invariant + markers-persist e2e"
  *
  * =========================================================================

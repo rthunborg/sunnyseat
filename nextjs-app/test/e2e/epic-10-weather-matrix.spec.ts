@@ -174,11 +174,22 @@ const SCENARIOS: ScenarioSpec[] = [
 const RAIN_SKY_COPY = /Regn|Rain/;
 // The overcast/obscured sky descriptor — must NOT appear on a non-obscured card.
 const OVERCAST_SKY_COPY = /Mulet|Overcast/;
-// The confidence (freshness/uncertainty) badge label prefix on the card. Present
-// only when `getConfidenceDisplayState` returns a visible `%` (weather-backed);
-// ABSENT for the geometry-only weather-missing scenario. Distinct from the
-// geometric "% SOL" thumbnail badge, which is keyed on the `Säkerhet:` label.
-const CONFIDENCE_BADGE_COPY = /Säkerhet:|Confidence:/;
+// The confidence (freshness/uncertainty) signal on the card. Present only when
+// `getConfidenceDisplayState` returns a `%` value (weather-backed, exact OR
+// approximate); ABSENT ("Säkerhet saknas" / "Confidence unavailable", no `%`) for
+// the geometry-only weather-missing scenario.
+//
+// Story 11.4 (AC1/AC4) removed the VISIBLE "Säkerhet: NN%" chip from QuickInfo — the
+// confidence text now lives on ONLY as sr-only accessible text on the card
+// (`VenueQuickInfo.tsx` "removed confidence chip"; the visible chip lives in the
+// detail view). `toContainText` reads that sr-only text, whose format is
+// `"<Säkerhet|Confidence> [cirka|about ]NN%"` (from `getConfidenceDisplayState.
+// accessibleText`) — NO colon. The pre-11.4 `/Säkerhet:|Confidence:/` regex keyed
+// on the old colon-labelled visible chip and no longer matches; match the current
+// label-then-percentage form instead. The `\d+\s*%` anchor keeps this ABSENT for
+// the unavailable ("saknas"/"unavailable") case and distinct from the geometric
+// "NN% SOL" thumbnail badge (which is not preceded by the confidence label).
+const CONFIDENCE_BADGE_COPY = /(Säkerhet|Confidence)\s+(cirka\s+|about\s+)?\d+\s*%/;
 
 // --- DTO builders ------------------------------------------------------------
 // Build a valid list/detail response from the seed venue merged with the scenario

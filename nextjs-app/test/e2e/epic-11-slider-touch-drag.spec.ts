@@ -1,5 +1,5 @@
 /**
- * ATDD RED-PHASE acceptance scaffold — Story 11.2 (AC1, real touch)
+ * STANDING Story-11.8 real-touch invariant (promoted from the Story 11.2 seam — AC1)
  * "Time-slider thumb-grab drag works with a REAL touch gesture, commits once, fetches nothing"
  *
  * =========================================================================
