@@ -149,15 +149,15 @@ async function mockVenuesWithCounter(page: Page): Promise<{ count: () => number 
 
 // Story 11.2 (Tasks 1 + 2 landed): decoration `pointer-events-none` + drag decouple
 // are in place, so the real-touch thumb-drag now changes the committed time. Runs
-// under `--project=mobile` (iPhone 14, `hasTouch: true`); self-skips on a project
+// under `--project=touch` (Pixel 5, `hasTouch: true`); self-skips on a project
 // without a touchscreen. Mirrors the `epic-11-scrub-zero-fetch.spec.ts` convention.
 test.describe('[11.2 AC1] real-touch thumb-drag changes time, commits once, fetches nothing', () => {
-  // Real touch requires a touch-capable context (the `mobile`/iPhone-14 project).
+  // Real touch requires a touch-capable context (the `touch`/Pixel-5 project).
   // Under `desktop` there is no touchscreen → skip rather than false-fail.
   test.beforeEach(({ browserName }, testInfo) => {
     test.skip(
       !testInfo.project.use.hasTouch,
-      'real-touch drag requires a hasTouch project (run under --project=mobile)',
+      'real-touch drag requires a hasTouch project (run under --project=touch)',
     );
     void browserName;
   });
