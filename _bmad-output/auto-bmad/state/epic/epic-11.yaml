@@ -5,11 +5,11 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T18:18:25Z"
+updated_at: "2026-07-05T18:28:06Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
-active_seconds: 96219
-timing_anchor: 1783275505
+active_seconds: 96800
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 8
 stories_after_in_epic: null
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -53,7 +53,7 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: feels-instant-reads-clear
-active_story: 11-8-live-verification-pass-touch-gesture-perf-guards
+active_story: null
 stories_landed:
   - 11-1-client-side-day-series-instant-time-scrubbing
   - 11-2-time-slider-drag-fix-planner-range-rules
@@ -62,6 +62,7 @@ stories_landed:
   - 11-5-map-legibility-location-dot-recenter
   - 11-6-venue-detail-clean-first-paint-content-polish
   - 11-7-hygiene-deferred-debt
+  - 11-8-live-verification-pass-touch-gesture-perf-guards
 auto_decisions:
   - "AC4 min-clamp enforced only in component, not in state [Med] -> fix: add minMinutes-aware floor inside setSelectedMinutes/snapSelectedMinutes + the missing below-min-commit state test (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
   - "AC1 real-touch e2e never runs in CI [Med] -> fix: add npx playwright test --project=touch step to build-and-test-nextjs.yml so the thumb-drag proof is a live gate (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
@@ -162,3 +163,8 @@ uat_items:
   - "[11-7-hygiene-deferred-debt] MAINTAINER BLESSING: run the dev app fresh and eyeball each of the 12 staged rebaseline PNGs (screens/mobile/{map-primary,map-panel-venues,map-with-selected-venue,venue-detail,favourites-tab,map-with-obscured-venue,venue-detail-obscured} + desktop/{map-primary,venue-detail,favourites-tab,map-with-obscured-venue,venue-detail-obscured}) against the live surface → BLESS or reject each (dev is forbidden from self-blessing; this is the visual gate)"
   - "[11-7-hygiene-deferred-debt] Resolved-High spot-check: mobile map-primary.png shows the resting de-dulled map with sheet COLLAPSED (no chips/segmented control) while map-panel-venues.png shows the expanded 11-3 sheet (chips + cards) — genuinely different states (md5 eaadf98… vs 5b24572…)"
   - "[11-7-hygiene-deferred-debt] Obscured re-verify: the 4 obscured references (map-with-obscured-venue + venue-detail-obscured, both breakpoints) still show intact obscured chrome (slate pill, 'SOL BAKOM MOLN · MULET') matching the live obscured surface"
+  - "[11-8-live-verification-pass-touch-gesture-perf-guards] POST-MERGE PROTOCOL 1 (live Vercel Production, real data path): change planner date today→today+1 and time wall-clock to markers-updated; >=10 trials → p95 < 3s recorded (stretch <1.5s warm), warm/cold noted per trial; a miss is triaged, not passed"
+  - "[11-8-live-verification-pass-touch-gesture-perf-guards] POST-MERGE PROTOCOL 1b: on live Production with network panel open, scrub the slider across settled steps → 0 /api/venues requests; capture the gzipped sunDaySeries payload byte size alongside the p95 figures"
+  - "[11-8-live-verification-pass-touch-gesture-perf-guards] POST-MERGE PROTOCOL 2 (real physical phone on live Production): slider thumb drag follows finger 1:1; sheet reaches all four snaps by gesture with chips usable + map interactive behind collapsed; quick-info shows no Säkerhet/sun-window text; map tint/dot/recenter correct; venue detail clean first paint — one screenshot per surface, gaps triaged before epic close"
+  - "[11-8-live-verification-pass-touch-gesture-perf-guards] POST-MERGE PROTOCOL 3 (PR review): inspect + BLESS the 12-pair staged rebaseline under docs/design/references/screens/ incl. the re-captured distinct map-primary/map-panel-venues mobile pair + REBASELINE-LOG entry (dev forbidden from self-blessing)"
+  - "[11-8-live-verification-pass-touch-gesture-perf-guards] Gate spot-check on the branch (not hand-run): mobile+desktop (request-count invariant + chip parity + weather matrix), touch (slider+sheet), a11y (axe AA) all green; a11y-mobile deliberately un-invoked (5.1 fixme debt)"
