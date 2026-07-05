@@ -43,9 +43,29 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-07-05 — `map-primary` + `map-panel-venues` (mobile) byte-identical-pair correction — Story 11.7 code-review [Decision][High] (Amelia / dev-story)
+
+**Trigger:** The 2026-07-05 code review found that the consolidated-rebaseline entry below had staged `mobile/map-primary.png` and `mobile/map-panel-venues.png` **byte-identical** (both shared git-index blob `991df28f…`, md5 `05fcc63b…`, 528936 bytes). Both were captured with the mobile bottom sheet at `data-state="mid"` (the app's default `mobileSheetState`), so `map-primary` was in the WRONG state — its reference must show the resting map with the sheet COLLAPSED (no filter chrome), not the expanded 11-3 sheet. The prior committed pair was ALSO identical (blob `8d80617…` on both, carried forward from the 2026-05-21 MVP refresh), so the duplication was a long-standing pre-existing defect that the consolidated rebaseline propagated rather than corrected. A maintainer would otherwise bless a mislabeled reference at PR.
+
+**Resolution:** Re-captured BOTH mobile references in DISTINCT, DOM-asserted states (one-off `nextjs-app/scripts/capture-1107-mapprimary-panel.mjs`, TEMPORARY — not committed):
+- **`map-primary`** — sheet forced to `peek` (resting map, NO segmented control, NO tag chips). In-DOM assertion before writing: `data-state="peek"`, `mobile-tag-chips` count = 0, no "Mest sol" segmented button. New md5 `eaadf980c78048788a3daf60cf3cf812` (744904 bytes).
+- **`map-panel-venues`** — sheet at `mid` (the 11-3 overhaul: "Mest sol"/"Nära mig" segmented control + active tag chips + venue cards). In-DOM assertion: `data-state="mid"`, `mobile-tag-chips` ≥ 1, "Mest sol" segmented button present, ≥ 1 `venue-card` visible. New md5 `5b2457240dc689adefa740112a2d5f31` (528935 bytes).
+
+**Source of new PNG:** One-off Playwright capture `nextjs-app/scripts/capture-1107-mapprimary-panel.mjs` (TEMPORARY — not committed, same pattern as the consolidated entry / the 10.2 precedent). `deviceScaleFactor: 2`, `locale: 'sv-SE'` + `Accept-Language: sv-SE,sv;q=0.9`, `sunnyseat_onboarded` seeded, `_time=14:00`, `networkidle` + settle, against a fresh `.next`.
+
+**Recipe change:** None to `capture-claude-design-refs.mjs`. One-off helper not committed.
+
+**Verification:** The two staged PNGs are now byte-DISTINCT (md5 `eaadf980…` ≠ `5b245724…`; neither matches the old shared `05fcc63b…`), and each was eyeballed to match its description above (map-primary = resting de-dulled map with a collapsed peek sheet + today-clamped 14:00 slider + pins, no filter chrome; map-panel-venues = expanded sheet with segmented control + "Innergård/Hund ok/Wifi/Bakverk" chips + Skuggans Hus / Kafé Magasinet cards). Capture ABORTS on any wait-selector timeout + asserts the forced DOM state before writing (deferred-work 7.1). Still PREPARED, not dev-blessed — the maintainer blesses at PR.
+
+**Reason / spec link:** Story 11.7 AC3 (the rebaseline pair must each show its distinct Epic-11 state — `map-primary` resting per project-context Screen ID → Route Map, `map-panel-venues` the 11-3 bottom sheet); code-review 2026-07-05 [Decision][High]. `AGENTS.md:177-179` requires the reference change to be logged in the same operation.
+
+**Re-evaluation trigger:** Re-capture `map-primary` when the resting-map chrome / slider / pins change; re-capture `map-panel-venues` when the 11-3 sheet segmented control / tag chips / card layout change.
+
 ### 2026-07-05 — Epic 11 consolidated rebaseline (12 pairs) — Story 11.7 (Amelia / dev-story, epic-mode UNATTENDED)
 
 > **Blessing status: PREPARED — awaiting maintainer blessing at PR review.** Dev agents are structurally forbidden from self-blessing reference PNGs (`AGENTS.md:177-179`). This run is unattended (auto-bmad epic mode), so Story 11.7 CAPTURED + STAGED + DOCUMENTED the consolidated baseline set; the **blessing is deferred to the maintainer at PR review** (the same delegated-blessing authority that approved the 2026-07-03 Story-10.2 obscured rebaseline below). This is NOT a blocker — staging + documenting is the deliverable Story 11.7 owns (per its AC3 and the run instruction). The maintainer blesses (or rejects) each pair at PR.
+>
+> **CORRECTION (2026-07-05, code-review [Decision][High]):** the `mobile/map-primary` + `mobile/map-panel-venues` pair in this entry was staged byte-identical (both at sheet `mid`) — `map-primary` was in the wrong state. Both were re-captured in distinct DOM-asserted states; see the separate correction entry immediately ABOVE. The two mobile PNGs are now byte-distinct.
 
 **Trigger:** Epic 11 ("Feels Instant, Reads Clear") reworked six visual surfaces across Stories 11.1–11.6. Each earlier story was forbidden from blessing its own new visual state, so all the new baselines accumulated and defer to this consolidated rebaseline (Story 11.7 AC3; epics.md:285/288 "11.7 rebaseline AFTER visual changes land"). The prior committed references predate these Epic-11 changes and no longer match the running app.
 

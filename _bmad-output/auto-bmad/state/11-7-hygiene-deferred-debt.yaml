@@ -5,11 +5,11 @@ epic_num: 11
 story_num: 7
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T16:51:15Z"
+updated_at: "2026-07-05T17:10:41Z"
 started_at: "2026-07-05T15:47:58Z"
 completed_at: null
 active_seconds: 3741
-timing_anchor: null
+timing_anchor: 1783270277
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -53,3 +53,15 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: a26346fc336d49f636b0de1dbd22d80399281c66
+tier_a_review:
+  verdict: "Changes Requested -> fixed"
+  critical: 0
+  high: 1
+  medium: 0
+  low: 3
+  open_decisions_auto_resolved: 1
+  dismissed_noise: 0
+  security: clean 0/0/0
+  fixed: 2
+  deferred: 2
+  note: "High Decision auto-resolved (PNG pair re-captured, hashes distinct) -> epic convergence_unverified set; PR ships draft for maintainer blessing"

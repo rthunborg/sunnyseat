@@ -5,11 +5,11 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T16:51:15Z"
+updated_at: "2026-07-05T16:58:31Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
 active_seconds: 91000
-timing_anchor: null
+timing_anchor: 1783270277
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -25,7 +25,7 @@ code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
-convergence_unverified: false
+convergence_unverified: true
 story_trace: null
 commits: []
 phase8_steps:
@@ -66,6 +66,7 @@ auto_decisions:
   - "AC1 real-touch e2e never runs in CI [Med] -> fix: add npx playwright test --project=touch step to build-and-test-nextjs.yml so the thumb-drag proof is a live gate (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
   - "Mobile chip row hidden in favourites but desktop strip is not â€” AC1 parity [Med] -> fix: gate DesktopNavBar TagChipStrip on listMode==='favourites' (mirror the mobile gate) (Tier A, 11-3-mobile-tag-filtering-bottom-sheet-overhaul)"
   - "1:1 finger tracking suppressed under prefers-reduced-motion [Med] -> dismiss: jump-on-release is a standard reduced-motion accommodation; AC3's 1:1 describes the default animated path (Tier A, 11-3-mobile-tag-filtering-bottom-sheet-overhaul)"
+  - "AC3 byte-identical rebaseline PNGs (mobile map-primary == map-panel-venues, carried-forward pre-existing duplication) [High] -> fix: re-capture both with an in-DOM different-state assertion + pairwise-distinct check BEFORE maintainer blessing (Tier A, 11-7-hygiene-deferred-debt) — HIGH auto-decision: epic ships draft for human review"
 uat_items:
   - "[11-1-client-side-day-series-instant-time-scrubbing] Open http://localhost:3000 (cd nextjs-app && npm run dev), DevTools Network filtered on api/venues, wait for initial load â†’ exactly one /api/venues request settles and pins appear"
   - "[11-1-client-side-day-series-instant-time-scrubbing] Same date selected, drag the bottom time slider across several 15-min steps (09:00 â†’ 12:00 â†’ 18:00) â†’ ZERO new /api/venues requests"
