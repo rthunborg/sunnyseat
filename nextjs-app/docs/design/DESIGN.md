@@ -30,7 +30,7 @@ Last audited: 2026-04-06
 | `color-amber-gold` | `#d4af37` | Gradient start on timeline bar, route button gradient |
 | `color-amber-dark` | `#735c00` | Interactive/functional amber text: sun time ranges ("Sol 13:00–18:30"), time indicators, active slider tick, "ÖPPNA I KARTOR" links, back navigation, pricing display. The primary amber for readable functional text. |
 | `color-amber-cta-text` | `#554300` | All amber CTA button labels: "Lämna ett omdöme", "Ge oss feedback", "Visa Säsongskortet", "Skicka", "Använd min plats", "Hitta soliga platser nu". Also the sun badge percentage text ("85%", "95% SOL") and the 6.65px "Säsongskortet" micro-label. Note: Figma uses `#574500` (rgb 87,69,0) on the micro-label vs `#554300` (rgb 85,67,0) on buttons — a 2-unit difference that is a rounding artefact; use `#554300` for all. |
-| `color-amber-badge-text` | `#6d5000` | Badge label text — "SOL NU" badge on venue detail header |
+| `color-amber-badge-text` | `#5c4300` | Badge label text — "ÖPPET · {time}" sun badge on the venue detail header. Darkened from `#6d5000` in Story 11.6: axe read the old value at 4.47:1 on `color-amber-primary` (#ffbf00), a boundary flake below the 4.5:1 AA threshold; `#5c4300` (~5.6:1) clears AA with headroom. |
 | `color-amber-overlay` | `rgba(255, 191, 0, 0.3)` | Amber tint overlay (upsell icon background circle) |
 | `color-amber-location-dot` | `#d97706` | User-location "you-are-here" dot fill (`UserPin`). Tailwind amber-600, the byte-for-byte `Pins.jsx` reference value; tokenized in Story 11.5 (was a raw literal — the Story-9.5 token gap). Decorative non-text mark (`aria-hidden`), so no AA text-contrast bump applies. |
 

@@ -133,9 +133,6 @@
     }
   },
   "detail": {
-    "sectionTitle": "Solprognos idag",
-    "peakTime": "Toppar kl {time}",
-    "bestWindow": "Bäst {start}-{end}",
     "openMaps": "ÖPPNA I KARTOR",
     "route": "Visa Rutt",
     "close": "Stäng platsdetaljer",
@@ -181,13 +178,6 @@
     "facts": {
       "distance": "AVSTÅND",
       "distanceApproximate": "≈ från centrum"
-    },
-    "timeline": {
-      "ariaLabel": "Soltider idag",
-      "currentTime": "Nu {time}",
-      "sunnyWindow": "Sol {start}-{end}",
-      "partialWindow": "Delvis sol {start}-{end}",
-      "shadedWindow": "Skugga {start}-{end}"
     }
   }
 }

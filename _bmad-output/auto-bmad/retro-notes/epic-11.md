@@ -35,3 +35,8 @@
 - [Phase 5 â€” dev-story] PRE-EXISTING red at HEAD: map-primary.spec.ts:353 asserts 'ca N min' in QuickInfo â€” a label 11-4 removed. Stale-spec casualty of a landed story; orchestrator dispatching a targeted test fix. Pattern: when a story removes user-visible text, grep the e2e specs for assertions on it.
 - [Phase 5 â€” dev-story] CI-wiring gap: the a11y-mobile Playwright project is defined but NOT invoked by build-and-test-nextjs.yml (only --project=a11y runs); it also carries a Story-5.1 test.fixme. Do NOT blind-wire it into CI (would red on known debt) â€” epic retro / Story 5.1 decision.
 - [Phase 5 â€” dev-story] OnboardingGate grant flyTo left on default mid-sheet framing (sibling of MapView, no sheet-state access) â€” acceptable; recenter BUTTON is fully viewport-aware via computeRecenterPadding.
+
+## Story 11-6-venue-detail-clean-first-paint-content-polish
+- [Phase 5 â€” dev-story] Amber-badge contrast debt CLOSED: --color-amber-badge-text #6d5000 -> #5c4300 (5.63:1); axe.spec.ts:82 venue-detail scan now deterministically green. The token was self-contained to the badge.
+- [Phase 5 â€” dev-story] Story guidance said KEEP the peak/best-window helpers for 11-1 coupling â€” that was a code-location misread: the subtitle lived inside the removed forecast section, and the ENGINE sun-engine.ts#peakTimeFromTimeline (same name, different function) + detail.timeline DTO are untouched. 11-1's day-series consumption unaffected.
+- [Phase 5 â€” dev-story] Empty-reviews screenshot has no forced-state route â€” maintainer should capture it during the 11-7 rebaseline (behaviourally covered by a component test meanwhile).

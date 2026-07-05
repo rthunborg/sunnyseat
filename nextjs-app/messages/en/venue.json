@@ -133,9 +133,6 @@
     }
   },
   "detail": {
-    "sectionTitle": "Sun forecast today",
-    "peakTime": "Peaks at {time}",
-    "bestWindow": "Best {start}-{end}",
     "openMaps": "OPEN IN MAPS",
     "route": "Show Route",
     "close": "Close venue details",
@@ -181,13 +178,6 @@
     "facts": {
       "distance": "DISTANCE",
       "distanceApproximate": "≈ from centre"
-    },
-    "timeline": {
-      "ariaLabel": "Sun times today",
-      "currentTime": "Now {time}",
-      "sunnyWindow": "Sun {start}-{end}",
-      "partialWindow": "Partial sun {start}-{end}",
-      "shadedWindow": "Shade {start}-{end}"
     }
   }
 }

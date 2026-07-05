@@ -1503,9 +1503,6 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     favouriteRemove: t('detail.favouriteRemove'),
     share: t('detail.share'),
     shareText: t('detail.shareModal.shareText', { name: '{name}' }),
-    sectionTitle: t('detail.sectionTitle'),
-    peakTime: t('detail.peakTime', { time: '{time}' }),
-    bestWindow: t('detail.bestWindow', { start: '{start}', end: '{end}' }),
     openMaps: t('detail.openMaps'),
     route: t('detail.route'),
     routeLoading: t('route.loading'),
@@ -1534,13 +1531,6 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     facts: {
       distance: t('detail.facts.distance'),
       distanceApproximate: t('detail.facts.distanceApproximate'),
-    },
-    timeline: {
-      ariaLabel: t('detail.timeline.ariaLabel'),
-      currentTime: t('detail.timeline.currentTime', { time: '{time}' }),
-      sunnyWindow: t('detail.timeline.sunnyWindow', { start: '{start}', end: '{end}' }),
-      partialWindow: t('detail.timeline.partialWindow', { start: '{start}', end: '{end}' }),
-      shadedWindow: t('detail.timeline.shadedWindow', { start: '{start}', end: '{end}' }),
     },
   };
 }

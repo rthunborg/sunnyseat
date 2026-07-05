@@ -51,8 +51,6 @@ const labels = {
   favouriteRemove: 'Ta bort favorit',
   share: 'Dela plats',
   shareText: 'Kolla in soltiden på {name}',
-  sectionTitle: 'Solprognos idag',
-  peakTime: 'Toppar kl {time}',
   openMaps: 'ÖPPNA I KARTOR',
   route: 'Visa Rutt',
   routeLoading: 'Öppnar kartor',
@@ -61,7 +59,6 @@ const labels = {
   detailsUnavailable: 'Detaljer saknas',
   openingHours: 'Öppettider',
   address: 'Adress',
-  shadowWarning: 'Blir skuggigt om {minutes} min',
   sunBadge: '{percent}% sol',
   confidence: 'Säkerhet',
   confidenceApproximate: 'cirka',
@@ -71,16 +68,6 @@ const labels = {
   placeholderImageShort: 'Platshållarbild',
   facts: {
     distance: 'AVSTÅND',
-    exposure: 'EXPONERING',
-    bestAt: 'BÄST KL.',
-    outdoorSeats: 'PLATSER UTE',
-  },
-  timeline: {
-    ariaLabel: 'Soltider idag',
-    currentTime: 'Nu {time}',
-    sunnyWindow: 'Sol {start}-{end}',
-    partialWindow: 'Delvis sol {start}-{end}',
-    shadedWindow: 'Skugga {start}-{end}',
   },
 };
 

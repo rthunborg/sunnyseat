@@ -39,6 +39,7 @@ export function ReviewFlow({
     ? { duration: 0 }
     : { duration: DURATION_DEFAULT_S, ease: EASE_DEFAULT };
   const reviews = reviewsQuery.data?.reviews ?? [];
+  const reviewCount = reviewsQuery.data?.summary.reviewCount ?? 0;
   const sectionId = instanceId ? `reviews-${venue.id}-${instanceId}` : `reviews-${venue.id}`;
   const flowTestId = instanceId ? `review-flow-${instanceId}` : 'review-flow';
   const formTestId = instanceId ? `review-form-${instanceId}` : 'review-form';
@@ -74,16 +75,22 @@ export function ReviewFlow({
       ref={sectionRef}
       className="space-y-4"
     >
-      <header className="space-y-3">
+      <header className="flex flex-col items-center space-y-3 text-center">
         <div>
           <h2 id={sectionId} className="text-heading-lg text-text-primary">
             {labels.sectionTitle}
           </h2>
-          <p className="text-body-sm text-text-body">
-            {reviewsQuery.data
-              ? t('summary', { count: reviewsQuery.data.summary.reviewCount })
-              : labels.loading}
-          </p>
+          {/* Story 11.6 (AC3): the summary count line renders only when there
+              are reviews (or while loading). At zero reviews the empty body's
+              `labels.empty` is the single canonical "Inga omdömen" message —
+              the `=0` summary branch would otherwise duplicate it. */}
+          {!reviewsQuery.data ? (
+            <p className="text-body-sm text-text-body">{labels.loading}</p>
+          ) : reviewCount > 0 ? (
+            <p className="text-body-sm text-text-body">
+              {t('summary', { count: reviewCount })}
+            </p>
+          ) : null}
         </div>
         {!formOpen && (
           <AmberCTAButton
@@ -156,7 +163,7 @@ export function ReviewFlow({
           ))}
         </div>
       ) : (
-        <p className="rounded-card bg-surface-muted px-4 py-3 text-body-sm text-text-body">
+        <p className="rounded-card bg-surface-muted px-4 py-3 text-center text-body-sm text-text-body">
           {labels.empty}
         </p>
       )}

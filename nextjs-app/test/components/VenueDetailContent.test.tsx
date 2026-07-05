@@ -1,9 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import {
-  VenueDetailContent,
-  peakTimeFromTimeline,
-} from '@/components/composed/venue/VenueDetailContent';
+import { VenueDetailContent } from '@/components/composed/venue/VenueDetailContent';
 import type { VenueDataDto, VenueDetailDto } from '@/lib/types/api';
 
 const LIST_VENUE: VenueDataDto = {
@@ -41,9 +38,6 @@ const DETAIL: VenueDetailDto = {
 };
 
 const labels = {
-  sectionTitle: 'Solprognos idag',
-  peakTime: 'Toppar kl {time}',
-  bestWindow: 'Bäst {start}-{end}',
   openMaps: 'ÖPPNA I KARTOR',
   route: 'Visa Rutt',
   routeLoading: 'Öppnar kartor',
@@ -72,13 +66,6 @@ const labels = {
     distance: 'AVSTÅND',
     distanceApproximate: '≈ från centrum',
   },
-  timeline: {
-    ariaLabel: 'Soltider idag',
-    currentTime: 'Nu {time}',
-    sunnyWindow: 'Sol {start}-{end}',
-    partialWindow: 'Delvis sol {start}-{end}',
-    shadedWindow: 'Skugga {start}-{end}',
-  },
 };
 
 describe('VenueDetailContent', () => {
@@ -99,7 +86,6 @@ describe('VenueDetailContent', () => {
 
     expect(screen.getByRole('heading', { name: 'Kafé Magasinet' })).toHaveClass('text-display-xl');
     expect(screen.getByText('Stor uteservering med eftermiddagssol.')).toHaveClass('text-body-lg');
-    expect(screen.getByText('Solprognos idag')).toHaveClass('text-heading-lg');
     expect(screen.getByText('Innergård')).toBeInTheDocument();
     // De-bloat sweep (Story 9.1): the fabricated fact cards + dead shadow-warning
     // line are gone; only the genuine AVSTÅND fact survives.
@@ -120,6 +106,43 @@ describe('VenueDetailContent', () => {
       'noopener noreferrer',
     );
     expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeEnabled();
+  });
+
+  it('removes the "Soltider idag" sun-forecast section on both breakpoints (Story 11.6 AC2)', () => {
+    const { rerender } = render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    // The removed forecast card heading (mobile) and its ariaLabel (desktop) are
+    // gone, and no timeline window img/label survives on either breakpoint.
+    expect(screen.queryByText('Solprognos idag')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Soltider idag')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /^Sol \d/ })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Sol 13:00-18:30$/)).not.toBeInTheDocument();
+    // The kept genuine surfaces still render (heading, description, route CTA).
+    expect(screen.getByRole('heading', { name: 'Kafé Magasinet' })).toBeInTheDocument();
+    expect(screen.getByText('Stor uteservering med eftermiddagssol.')).toBeInTheDocument();
+
+    rerender(
+      <VenueDetailContent
+        mode="desktop"
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.queryByText('Solprognos idag')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Soltider idag')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /^Sol \d/ })).not.toBeInTheDocument();
   });
 
   it('renders the muted obscured hero badge + headline + sky line, no amber sun badge (Story 10.2 AC1/AC3)', () => {
@@ -152,8 +175,6 @@ describe('VenueDetailContent', () => {
     // AC3: the plain-language sky descriptor (overcast -> "Mulet"), no cloud %.
     expect(obscuredBlock).toHaveTextContent('Mulet');
     expect(obscuredBlock.textContent).not.toMatch(/\d+\s*%/);
-    // AC2: the geometric sun timeline STILL renders as clear-sky potential.
-    expect(screen.getByText('Solprognos idag')).toBeInTheDocument();
   });
 
   it('renders NO sky line when the obscured venue sky is unavailable (AC3 — never fabricate)', () => {
@@ -173,74 +194,6 @@ describe('VenueDetailContent', () => {
     expect(obscuredBlock).not.toHaveTextContent('Mulet');
     expect(obscuredBlock).not.toHaveTextContent('Klart');
     expect(obscuredBlock).not.toHaveTextContent('Delvis molnigt');
-  });
-
-  it('renders the fallback sun-window as clear-sky POTENTIAL for an obscured venue with no loaded detail (Story 10.2 AC2 / Completion Note #3)', () => {
-    // Before the detail payload loads, the timeline is derived from the list
-    // venue via timelineFromListVenue(). For a CloudObscured headline that
-    // helper maps the window status back to the geometric `Partial` tier — so
-    // the "when it clears" potential renders as a Partial (amber) window rather
-    // than vanishing into a transparent shaded bar. Pin that fallback path (the
-    // real-detail obscured test always passes an explicit `detail`, so this
-    // branch was otherwise uncovered).
-    render(
-      <VenueDetailContent
-        fallbackVenue={{
-          ...LIST_VENUE,
-          currentSunStatus: 'CloudObscured',
-          skyCondition: 'overcast',
-          sunWindow: { start: '13:00', end: '18:30' },
-        }}
-        // No `detail` prop → the component falls back to timelineFromListVenue.
-        currentTime="15:30"
-        labels={labels}
-        onRoute={() => undefined}
-      />,
-    );
-
-    // The obscured headline still shows...
-    expect(screen.getByTestId('venue-detail-obscured')).toHaveTextContent('Sol bakom moln');
-    // ...and the fallback sun window is present as POTENTIAL, labelled as the
-    // Partial ("Delvis sol") window — NOT the shaded ("Skugga") transparent bar.
-    expect(screen.getByLabelText('Delvis sol 13:00-18:30')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Skugga 13:00-18:30')).not.toBeInTheDocument();
-  });
-
-  it('never reads a Skugga/Shaded sr-only label for a RAW CloudObscured timeline window in mobile mode (55eacba leak repro)', () => {
-    // Adversarial repro: bypass the producer remaps (buildDetailDto /
-    // timelineFromListVenue both map CloudObscured -> Partial upstream) by
-    // handing the mobile SunForecastBars path a RAW `status: 'CloudObscured'`
-    // window straight in `detail.timeline.windows`. Before the fix the mobile
-    // sr-only aria-label fell through the ternary to the dishonest "Skugga"
-    // (Shaded) copy. It must now render the honest clear-sky potential label.
-    render(
-      <VenueDetailContent
-        // DEFAULT (mobile) mode — omit `mode`, this is the SunForecastBars path.
-        fallbackVenue={LIST_VENUE}
-        detail={{
-          ...DETAIL,
-          currentSunStatus: 'CloudObscured',
-          skyCondition: 'overcast',
-          timeline: {
-            timezone: 'Europe/Stockholm',
-            range: { start: '06:00', end: '21:00' },
-            windows: [{ start: '13:00', end: '18:30', status: 'CloudObscured' }],
-            peakTime: '15:30',
-          },
-        }}
-        currentTime="15:30"
-        labels={labels}
-        onRoute={() => undefined}
-      />,
-    );
-
-    // The sr-only mobile window label must NOT read the dishonest "Skugga" copy.
-    expect(screen.queryByLabelText('Skugga 13:00-18:30')).not.toBeInTheDocument();
-    expect(screen.queryByText(/Skugga/)).not.toBeInTheDocument();
-    // It renders the honest clear-sky POTENTIAL label (CloudObscured -> Partial tier).
-    expect(screen.getByLabelText('Delvis sol 13:00-18:30')).toBeInTheDocument();
-    // And the component did not crash — the venue heading is present.
-    expect(screen.getByRole('heading', { name: 'Kafé Magasinet' })).toBeInTheDocument();
   });
 
   it('keeps the sunny detail unchanged — no obscured block on a clear-sky venue (Behaviour gate)', () => {
@@ -332,14 +285,6 @@ describe('VenueDetailContent', () => {
     expect(desktopHero?.className).not.toMatch(/h-\[/);
   });
 
-  it('carries rounded midpoint minutes into the hour for derived peak labels', () => {
-    expect(peakTimeFromTimeline({
-      timezone: 'Europe/Stockholm',
-      range: { start: '06:00', end: '21:00' },
-      windows: [{ start: '10:29', end: '11:30', status: 'Sunny' }],
-    })).toBe('11:00');
-  });
-
   it('keeps confidence metadata accessible without adding duplicate visible detail text', () => {
     const { rerender } = render(
       <VenueDetailContent
@@ -404,7 +349,7 @@ describe('VenueDetailContent', () => {
     expect(screen.queryByText(/Träd kan påverka platsen/)).not.toBeInTheDocument();
   });
 
-  it('shows the venue name immediately while detail fields are loading', () => {
+  it('shows the venue name + fallback fields immediately and skeletons every detail-only region while loading (Story 11.6 AC1)', () => {
     render(
       <VenueDetailContent
         fallbackVenue={LIST_VENUE}
@@ -416,9 +361,49 @@ describe('VenueDetailContent', () => {
       />,
     );
 
+    // Fallback-present fields render immediately (venue name, type from metadata).
     expect(screen.getByRole('heading', { name: 'Kafé Magasinet' })).toBeInTheDocument();
+    expect(screen.getByText('Innergård')).toBeInTheDocument();
+    // The scoped loading status is announced and skeletons stand in for detail.
     expect(screen.getByLabelText('Laddar platsdetaljer')).toBeInTheDocument();
     expect(screen.getAllByTestId('venue-detail-skeleton').length).toBeGreaterThan(1);
+    // AC1 (load-bearing): the header badge must NOT flash a fabricated "22:00" —
+    // no "ÖPPET · 22:00" while detail is unloaded, and a skeleton stands in.
+    expect(screen.queryByText('ÖPPET · 22:00')).not.toBeInTheDocument();
+    expect(screen.queryByText(/ÖPPET ·/)).not.toBeInTheDocument();
+    // No timeline section appears in the loading frame either.
+    expect(screen.queryByText('Solprognos idag')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Soltider idag')).not.toBeInTheDocument();
+  });
+
+  it('renders the ÖPPET badge only once real detail supplies the closing time (Story 11.6 AC1)', () => {
+    const { rerender } = render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    // With loaded detail carrying closesAt, the honest badge renders.
+    expect(screen.getByText('ÖPPET · 22:00')).toBeInTheDocument();
+
+    // A loaded detail with no closesAt must NOT fabricate a time — the badge is
+    // simply omitted rather than showing a stand-in.
+    rerender(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={{ ...DETAIL, openingHours: { display: 'Öppettider okända' } }}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.queryByText(/ÖPPET ·/)).not.toBeInTheDocument();
+    expect(screen.queryByText('ÖPPET · 22:00')).not.toBeInTheDocument();
   });
 
   it('does not render feedback or review slots unless explicitly provided', () => {
@@ -499,62 +484,6 @@ describe('VenueDetailContent', () => {
     expect(screen.getByText('-')).toBeInTheDocument();
     expect(screen.getByText('(1)')).toBeInTheDocument();
     expect(screen.queryByText('4.7')).toBeNull();
-  });
-
-  it('uses projected sun windows for mobile detail timeline output', () => {
-    render(
-      <VenueDetailContent
-        fallbackVenue={{
-          ...LIST_VENUE,
-          sunWindow: { start: '10:00', end: '11:00' },
-        }}
-        detail={{
-          ...DETAIL,
-          sunWindow: { start: '10:00', end: '11:00' },
-          timeline: {
-            timezone: 'Europe/Stockholm',
-            range: { start: '06:00', end: '21:00' },
-            windows: [{ start: '10:00', end: '11:00', status: 'Sunny' }],
-            peakTime: '10:30',
-          },
-        }}
-        currentTime="10:30"
-        labels={labels}
-        onRoute={() => undefined}
-      />,
-    );
-
-    expect(screen.getByText('Bäst 10:00-11:00')).toBeInTheDocument();
-    expect(screen.queryByText('Bäst mellan 11:00 och 15:00')).toBeNull();
-    expect(screen.getByRole('img', { name: 'Sol 10:00-11:00' })).toBeInTheDocument();
-  });
-
-  it('uses partial-window copy when the generic best-window label is absent', () => {
-    const labelsWithoutBestWindow: Omit<typeof labels, 'bestWindow'> & { bestWindow?: string } = {
-      ...labels,
-    };
-    delete labelsWithoutBestWindow.bestWindow;
-
-    render(
-      <VenueDetailContent
-        fallbackVenue={LIST_VENUE}
-        detail={{
-          ...DETAIL,
-          currentSunStatus: 'Partial',
-          timeline: {
-            timezone: 'Europe/Stockholm',
-            range: { start: '06:00', end: '21:00' },
-            windows: [{ start: '10:00', end: '11:00', status: 'Partial' }],
-          },
-        }}
-        currentTime="10:30"
-        labels={labelsWithoutBestWindow}
-        onRoute={() => undefined}
-      />,
-    );
-
-    expect(screen.getByText('Delvis sol 10:00-11:00')).toBeInTheDocument();
-    expect(screen.queryByText('Sol 10:00-11:00')).not.toBeInTheDocument();
   });
 
   it('keeps the de-bloated mobile fact area to a single full-width AVSTÅND tile with no orphaned cell (Story 9.1 AC #2)', () => {

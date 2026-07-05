@@ -12,11 +12,9 @@ import {
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RouteButton } from '@/components/composed/routing/RouteButton';
-import { SunTimeline, type SunTimelineLabels } from '@/components/composed/venue/SunTimeline';
 import { buildGoogleMapsSearchUrl } from '@/lib/services/routing';
 import type { SunFreshnessMeta, VenueDataDto, VenueDetailDto } from '@/lib/types/api';
 import {
-  formatPeakHour,
   formatVenueDistance,
   formatVenueSunPercent,
   getVenueVisualMetadata,
@@ -27,17 +25,11 @@ import {
 } from '@/lib/utils/confidence-display';
 import {
   isObscuredSunStatus,
-  isSunWindowStatus,
   skyConditionCopy,
-  windowLabelTier,
 } from '@/lib/utils/sun-status-presentation';
-import { formatPlannerTime } from '@/lib/utils/time-planner';
 import { cn } from '@/lib/utils';
 
 export type VenueDetailContentLabels = {
-  sectionTitle: string;
-  peakTime: string;
-  bestWindow?: string;
   openMaps: string;
   route: string;
   routeLoading: string;
@@ -76,7 +68,6 @@ export type VenueDetailContentLabels = {
      * personal fix). Only the label is qualified; the value stays visible. */
     distanceApproximate?: string;
   };
-  timeline: SunTimelineLabels;
 };
 
 export type VenueDetailContentProps = {
@@ -121,9 +112,7 @@ export function VenueDetailContent({
 }: VenueDetailContentProps) {
   const venue = detail ?? fallbackVenue;
   const loading = isLoading && !detail;
-  const timeline = detail?.timeline ?? timelineFromListVenue(fallbackVenue);
   const metadata = getVenueVisualMetadata(venue, locale);
-  const peakHour = formatPeakHour(venue);
   // Story 10.2: the muted "Sol bakom moln" state + the plain-language sky line.
   const isObscured = isObscuredSunStatus(venue.currentSunStatus);
   const skyLine = labels.sky
@@ -134,8 +123,11 @@ export function VenueDetailContent({
         rain: labels.sky.rain,
       })
     : null;
-  const bestWindow = bestWindowLabel(timeline, labels) ?? formatLabel(labels.peakTime, { time: peakHour });
-  const openUntil = detail?.openingHours.closesAt ?? '22:00';
+  // Story 11.6 (AC1): never fabricate a closing time. The "ÖPPET · {time}"
+  // badge only renders once real detail supplies `closesAt`; while loading it
+  // is a same-box skeleton, and if a loaded detail has no `closesAt` the badge
+  // is omitted rather than showing a stand-in "22:00".
+  const closesAt = detail?.openingHours.closesAt;
   const isDesktop = mode === 'desktop';
   const confidenceDisplay = getConfidenceDisplayState({
     confidence: venue.confidence,
@@ -161,14 +153,23 @@ export function VenueDetailContent({
         <header className="space-y-2">
           <div className="flex items-start justify-between gap-3">
             <h1 className="text-display-xl text-text-primary">{venue.venueName}</h1>
-            <span className="mt-1 flex h-8 shrink-0 items-center gap-1 rounded-pill bg-amber-primary px-3 text-label-md text-amber-badge-text">
-              {isDesktop ? (
-                <Sun aria-hidden="true" className="size-3.5 fill-current" />
-              ) : (
-                <span aria-hidden="true" className="size-2 rounded-pill bg-amber-badge-text" />
-              )}
-              {formatLabel(labels.openUntil, { time: openUntil })}
-            </span>
+            {loading ? (
+              // Story 11.6 (AC1): the badge's box occupies the same footprint so
+              // the fallback→detail swap causes no layout jump.
+              <Skeleton
+                data-testid="venue-detail-skeleton"
+                className="mt-1 h-8 w-24 shrink-0 rounded-pill bg-surface-muted"
+              />
+            ) : closesAt ? (
+              <span className="mt-1 flex h-8 shrink-0 items-center gap-1 rounded-pill bg-amber-primary px-3 text-label-md text-amber-badge-text">
+                {isDesktop ? (
+                  <Sun aria-hidden="true" className="size-3.5 fill-current" />
+                ) : (
+                  <span aria-hidden="true" className="size-2 rounded-pill bg-amber-badge-text" />
+                )}
+                {formatLabel(labels.openUntil, { time: closesAt })}
+              </span>
+            ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-body-sm-medium text-text-body">
             <span>{metadata.type}</span>
@@ -196,65 +197,6 @@ export function VenueDetailContent({
             {detail?.description ?? labels.detailsUnavailable}
           </p>
         ) : null}
-
-        <section
-          className={cn(
-            'rounded-card p-4',
-            isDesktop ? 'bg-surface-muted p-5' : 'border border-divider bg-white',
-          )}
-        >
-          <div
-            className={cn(
-              'mb-3 flex gap-3',
-              isDesktop ? 'items-center justify-between' : 'items-start justify-between',
-            )}
-          >
-            <div className={cn(isDesktop && 'contents')}>
-              <h2
-                className={
-                  isDesktop
-                    ? 'text-heading-sm tracking-section-label text-text-body uppercase'
-                    : 'text-heading-lg text-text-primary'
-                }
-              >
-                {isDesktop ? labels.timeline.ariaLabel : labels.sectionTitle}
-              </h2>
-              <p className="text-body-sm-medium text-text-body">
-                {isDesktop
-                  ? formatLabel(labels.peakTime, { time: peakHour })
-                  : bestWindow}
-              </p>
-            </div>
-            {!isDesktop &&
-              // Story 10.2 (AC1): mute the amber section sun icon to a slate
-              // cloud icon while obscured — no amber sun chrome under the gate.
-              (isObscured ? (
-                <Cloud aria-hidden="true" className="size-7 text-obscured-text" />
-              ) : (
-                <Sun aria-hidden="true" className="size-7 fill-amber-gold text-amber-gold" />
-              ))}
-          </div>
-          {loading ? (
-            <Skeleton
-              data-testid="venue-detail-skeleton"
-              className="h-24 w-full rounded-card bg-surface-icon-bg"
-            />
-          ) : (
-            isDesktop ? (
-              <SunTimeline
-                timeline={timeline}
-                currentTime={currentTime}
-                labels={labels.timeline}
-              />
-            ) : (
-              <SunForecastBars
-                currentTime={currentTime}
-                timeline={timeline}
-                labels={labels.timeline}
-              />
-            )
-          )}
-        </section>
 
         {!isDesktop && !loading && (
           <p className="text-body-lg text-text-body">
@@ -502,105 +444,6 @@ function FactCard({
   );
 }
 
-function SunForecastBars({
-  currentTime,
-  timeline,
-  labels,
-}: {
-  currentTime: string;
-  timeline: VenueDetailDto['timeline'];
-  labels: SunTimelineLabels;
-}) {
-  const currentHour = parseHour(currentTime);
-  const peak = parseHour(peakTimeFromTimeline(timeline) ?? timeline.peakTime ?? '13:00');
-  const bars = Array.from({ length: 13 }, (_, index) => {
-    const hour = index + 8;
-    const distanceFromPeak = Math.abs(hour - peak);
-    const value = Math.max(0.22, 1 - distanceFromPeak * 0.11);
-    return { hour, value };
-  });
-
-  return (
-    <div>
-      {timeline.windows.map((window) => (
-        <span
-          key={`${window.start}-${window.end}-${window.status}-mobile-label`}
-          role="img"
-          aria-label={timelineWindowLabel(window, labels)}
-          className="sr-only"
-        />
-      ))}
-      <div className="flex h-20 items-end gap-2">
-        {bars.map(({ hour, value }) => {
-          const isCurrent = Math.abs(hour - currentHour) < 0.75;
-          return (
-            <span
-              key={hour}
-              aria-hidden="true"
-              className={cn(
-                'flex-1 rounded-t-md bg-amber-primary/70',
-                isCurrent && 'bg-amber-primary ring-2 ring-inset ring-text-primary',
-              )}
-              style={{ height: `${Math.max(18, value * 72)}px` }}
-            />
-          );
-        })}
-      </div>
-      <div className="mt-3 flex justify-between text-label-lg text-text-muted">
-        {[8, 10, 12, 14, 16, 18, 20].map((hour) => (
-          <span key={hour}>{hour}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export function peakTimeFromTimeline(timeline: VenueDetailDto['timeline']): string | undefined {
-  const sunWindow = timeline.windows.find((window) => window.status === 'Sunny') ??
-    // CloudObscured counts as sun potential (10.2 AC2) — isSunWindowStatus is
-    // never-exhaustive so a future status can't silently drop out here.
-    timeline.windows.find((window) => isSunWindowStatus(window.status));
-  if (!sunWindow) return undefined;
-  const start = parseHour(sunWindow.start);
-  const end = parseHour(sunWindow.end);
-  return formatPlannerTime(((start + end) / 2) * 60);
-}
-
-function timelineWindowLabel(
-  window: VenueDetailDto['timeline']['windows'][number],
-  labels: SunTimelineLabels,
-): string {
-  // Route through the shared never-exhaustive tier helper (Story 10.2) so a raw
-  // 'CloudObscured' window renders the clear-sky "Sunny/Partial" label, NEVER
-  // the dishonest "Skugga"/"Shaded" copy — the mobile sr-only-label leak that
-  // 55eacba left unguarded on this surface.
-  const tier = windowLabelTier(window.status);
-  const template =
-    tier === 'sunny'
-      ? labels.sunnyWindow
-      : tier === 'partial'
-        ? labels.partialWindow
-        : labels.shadedWindow;
-  return formatLabel(template, { start: window.start, end: window.end });
-}
-
-function bestWindowLabel(
-  timeline: VenueDetailDto['timeline'],
-  labels: VenueDetailContentLabels,
-): string | undefined {
-  // A CloudObscured window is geometric sun potential (10.2 AC2) and must count
-  // as a "best window" like Partial — isSunWindowStatus is never-exhaustive so a
-  // new VenueSunStatus breaks at compile time instead of silently dropping.
-  const window = timeline.windows.find((candidate) => candidate.status === 'Sunny') ??
-    timeline.windows.find((candidate) => isSunWindowStatus(candidate.status));
-  if (!window) return undefined;
-  const template = labels.bestWindow ??
-    (windowLabelTier(window.status) === 'sunny'
-      ? labels.timeline.sunnyWindow
-      : labels.timeline.partialWindow);
-  return formatLabel(template, { start: window.start, end: window.end });
-}
-
 function LoadingBlock({ label }: { label: string }) {
   return (
     <div aria-label={label} className="space-y-2" role="status">
@@ -614,31 +457,6 @@ function LoadingBlock({ label }: { label: string }) {
       />
     </div>
   );
-}
-
-function timelineFromListVenue(venue: VenueDataDto): VenueDetailDto['timeline'] {
-  // Story 10.2 (AC2): a CloudObscured headline is a WEATHER signal, not a
-  // geometric timeline status. The fallback timeline window is the "when it
-  // clears" POTENTIAL, so map the obscured headline back to the geometric
-  // `Partial` tier here — otherwise the window would render as a transparent
-  // (shaded-like) bar and the sun-window potential would vanish under the gate.
-  const windowStatus =
-    venue.currentSunStatus === 'CloudObscured' ? 'Partial' : venue.currentSunStatus;
-  return {
-    timezone: 'Europe/Stockholm',
-    range: { start: '06:00', end: '21:00' },
-    windows: venue.sunWindow
-      ? [{ ...venue.sunWindow, status: windowStatus }]
-      : [],
-  };
-}
-
-function parseHour(time: string): number {
-  const [hour, minute = '0'] = time.split(':');
-  const parsedHour = Number(hour);
-  const parsedMinute = Number(minute);
-  if (!Number.isFinite(parsedHour)) return 13;
-  return parsedHour + (Number.isFinite(parsedMinute) ? parsedMinute / 60 : 0);
 }
 
 function formatLabel(template: string, values: Record<string, string>): string {

@@ -1478,7 +1478,11 @@ describe('<MapView />', () => {
       expect(screen.getAllByText('Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.')).toHaveLength(2);
       expect(screen.queryByText(/Säkerhet:/)).not.toBeInTheDocument();
       expect(screen.getAllByText('Säkerhet 95%')).toHaveLength(2);
-      expect(screen.getAllByText('Bäst 11:00-15:00')).toHaveLength(1);
+      // Story 11.6 (AC2): the "Soltider idag" sun-forecast section is removed on
+      // both breakpoints — no heading, no best-window subtitle, no timeline strip.
+      expect(screen.queryByText('Solprognos idag')).not.toBeInTheDocument();
+      expect(screen.queryByText(/^Bäst \d/)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Soltider idag')).not.toBeInTheDocument();
       expect(screen.queryByText('Laddar platsdetaljer')).not.toBeInTheDocument();
     });
 
