@@ -406,6 +406,78 @@ describe('VenueDetailContent', () => {
     expect(screen.queryByText('ÖPPET · 22:00')).not.toBeInTheDocument();
   });
 
+  it('swaps skeletons for real content in the SAME instance when detail streams in (Story 11.6 AC1 — no layout jump / no stale skeleton)', () => {
+    // Open on the fallback while loading: badge is a skeleton, detail regions
+    // are skeletons, and the article announces aria-busy.
+    const { rerender } = render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={undefined}
+        isLoading
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole('article', { name: 'Kafé Magasinet' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+    expect(screen.getAllByTestId('venue-detail-skeleton').length).toBeGreaterThan(1);
+    // No opening-hours/address content yet, and no fabricated badge.
+    expect(screen.queryByText('Öppet till 22:00')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tredje Långgatan 9, Göteborg')).not.toBeInTheDocument();
+    expect(screen.queryByText(/ÖPPET ·/)).not.toBeInTheDocument();
+
+    // Detail streams in on the SAME mounted component: skeletons are fully
+    // replaced by real content and the badge appears — the fallback→detail swap.
+    rerender(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        isLoading
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    // AC1: once `detail` is present the loading gate closes even while the parent
+    // still reports isLoading (`loading = isLoading && !detail`) — content shows.
+    expect(screen.getByRole('article', { name: 'Kafé Magasinet' })).toHaveAttribute(
+      'aria-busy',
+      'false',
+    );
+    expect(screen.queryByTestId('venue-detail-skeleton')).not.toBeInTheDocument();
+    expect(screen.getByText('Öppet till 22:00')).toBeInTheDocument();
+    expect(screen.getByText('Tredje Långgatan 9, Göteborg')).toBeInTheDocument();
+    expect(screen.getByText('ÖPPET · 22:00')).toBeInTheDocument();
+  });
+
+  it('renders content (never skeletons) when detail is present even if isLoading is still true (Story 11.6 AC1 — loading-gate boundary)', () => {
+    // The gate is `loading = isLoading && !detail`. detail-present + isLoading is
+    // the boundary case: a background refetch must not blank a fully-loaded view.
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        isLoading
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole('article', { name: 'Kafé Magasinet' })).toHaveAttribute(
+      'aria-busy',
+      'false',
+    );
+    expect(screen.queryByTestId('venue-detail-skeleton')).not.toBeInTheDocument();
+    expect(screen.getByText('Öppet till 22:00')).toBeInTheDocument();
+    expect(screen.getByText('ÖPPET · 22:00')).toBeInTheDocument();
+  });
+
   it('does not render feedback or review slots unless explicitly provided', () => {
     render(
       <VenueDetailContent

@@ -6,8 +6,17 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-04'
+lastSaved: '2026-07-05'
 inputDocuments:
+  - '_bmad-output/implementation-artifacts/11-6-venue-detail-clean-first-paint-content-polish.md'
+  - 'nextjs-app/components/composed/venue/VenueDetailContent.tsx'
+  - 'nextjs-app/components/custom/feedback/ReviewFlow.tsx'
+  - 'nextjs-app/components/custom/map/MapView.tsx'
+  - 'nextjs-app/components/custom/venue/ForcedVenueDetailInitialFrame.tsx'
+  - 'nextjs-app/test/components/VenueDetailContent.test.tsx'
+  - 'nextjs-app/test/components/ReviewFlow.test.tsx'
+  - 'nextjs-app/test/unit/removed-i18n-keys.test.ts'
+  - 'nextjs-app/test/unit/venue-detail-label-prune.test.ts'
   - '_bmad-output/implementation-artifacts/10-4-rain-now-signal-met-no-nowcast.md'
   - 'nextjs-app/lib/weather/nowcast-service.ts'
   - 'nextjs-app/test/unit/weather/nowcast-service.cloud-gate.atdd.test.ts'
@@ -253,3 +262,50 @@ The 6 landed ATDD suites cover the AC-headline happy paths and are left untouche
 
 ## Next recommended workflow
 `trace` (traceability matrix / quality-gate decision for Story 11.1) or `test-review` (quality validation of the new + existing day-series suites).
+
+---
+
+# Automation Expansion Summary — Story 11.6 (Venue Detail — Clean First Paint & Content Polish)
+
+## Preflight & Context
+- **Framework:** Vitest 4.1.4 (`nextjs-app/vitest.config.ts`) + Playwright present. Verified — no HALT.
+- **Stack:** frontend (Next.js + React). Story 11.6 is a pure UI-polish story: `VenueDetailContent` clean first paint (no-fabrication "ÖPPET" badge + detail-only skeletons), removal of the "Soltider idag" strip + its dead `SunTimeline`/`SunForecastBars`/`timelineWindowLabel` render path, symmetric i18n prune (venue `detail.timeline`/`sectionTitle`/`peakTime`/`bestWindow` in both locales), `ReviewFlow` centering + single "Inga omdömen", and the amber-badge token darken (`#6d5000`→`#5c4300`) for a deterministic axe green. Landed at `review` with vitest 1331/140 files, axe green.
+- **Mode:** BMad-Integrated (story with AC1–AC3 + Design-Gate + rich Dev Notes). **Sequential** — a narrowly-scoped, purely-additive component/unit coverage top-up; no API/E2E fan-out to farm to subagents.
+
+## Existing coverage reviewed (to avoid duplication — NOT re-created, NOT weakened)
+The story shipped strong AC-headline coverage, left untouched:
+- `VenueDetailContent.test.tsx` — AC1 skeleton-while-loading + no fabricated "ÖPPET · 22:00" + badge omit-when-no-`closesAt`; AC2 "Soltider idag"/"Solprognos idag"/timeline windows absent on BOTH breakpoints.
+- `ReviewFlow.test.tsx` — AC3 single "Inga omdömen" at 0 reviews + centered header/message; `>0` count summary + no empty leak.
+- `messages-parity.test.ts` — sv/en structural + ICU parity across every namespace.
+- `removed-i18n-keys.test.ts` — established pruned-key deletion-pin pattern (Story 9.6 + 11.4 suites).
+- `MapView.test.tsx` — AC2 section-removed assertion through the live overlay.
+- `axe.spec.ts:82` (desktop venue-detail) — the ACTIVE AA gate the badge token keeps green.
+
+## Gaps Identified & Filled (edge / boundary / regression-guard, no duplication)
+
+| # | Gap (previously uncovered) | Level | Priority | Where |
+|---|-----------------------------|-------|----------|-------|
+| 1 | **fallback→detail swap in the SAME instance** (AC1 no-layout-jump): the two AC1 tests were separate renders — none re-rendered one mounted component from `detail=undefined`+loading to `detail` present to prove the badge skeleton → real badge and detail-region skeletons → real content with NO stale skeleton left behind. Also pins `aria-busy` toggling true→false (a Dev-Notes a11y signal previously unasserted anywhere). | Component | P1 | `VenueDetailContent.test.tsx` |
+| 2 | **loading-gate boundary** `loading = isLoading && !detail`: `detail`-present + `isLoading=true` (a background refetch) must render CONTENT not skeletons + `aria-busy=false` — the gate's other side, previously untested. | Component | P1 | `VenueDetailContent.test.tsx` |
+| 3 | **ReviewFlow loading boundary** (AC3): while `reviewsQuery.data` is undefined (pending fetch), NO "Inga omdömen" of either flavour may leak — the empty-state-flash class the AC3 fix closed, but only ever asserted at the resolved-empty state. | Component | P1 | `ReviewFlow.test.tsx` |
+| 4 | **ReviewFlow error boundary** (AC3): a failed fetch shows the load-error alert exactly ONCE with no empty message co-rendering (error and empty are mutually-exclusive branches) + the retry affordance. | Component | P2 | `ReviewFlow.test.tsx` |
+| 5 | **Pruned venue-detail i18n keys stay gone** (AC2): `venue.detail.timeline`/`sectionTitle`/`peakTime`/`bestWindow` deleted in BOTH locales, `openUntil` kept — a deletion-pin `messages-parity` cannot catch (parity passes if a key is re-added to both). Raw-scan scoped to `venue.json` (so `feedback.json#sectionTitle` "Omdömen" is not a false positive). | Unit | P1 | `removed-i18n-keys.test.ts` |
+| 6 | **Label-builder / component prune regression guard** (AC2): a source-scan pin that the three surfaces that BUILD `VenueDetailContentLabels` (`MapView#venueDetailLabels`, `ForcedVenueDetailInitialFrame#venueDetailLabels`, `VenueDetailContent`) never re-introduce a `t('detail.timeline\|sectionTitle\|peakTime\|bestWindow')` read (the runtime-raw-key path the JSON scan can't see), the `VenueDetailContentLabels` type drops those fields + the `SunTimelineLabels` import, and `SunTimeline`/`SunForecastBars`/`timelineWindowLabel` stay fully removed. | Unit (source-scan) | P1 | `venue-detail-label-prune.test.ts` (NEW) |
+
+Scope discipline: the ENGINE timeline data path (`detail.timeline` DTO, `[slug]` route, `sun-engine.ts`, `VenueSunTimelineDto`) is deliberately OUT of scope per AC2 — Story 11.1 consumes it. All new pins target the pruned i18n **presentation** keys + the render/label surfaces only, never the data path.
+
+## Files Created / Updated (all test-only, additive)
+- **UPDATED** `nextjs-app/test/components/VenueDetailContent.test.tsx` — +2 (gaps #1, #2).
+- **UPDATED** `nextjs-app/test/components/ReviewFlow.test.tsx` — +2 (gaps #3, #4).
+- **UPDATED** `nextjs-app/test/unit/removed-i18n-keys.test.ts` — +5 (gap #5: timeline-key deletion sv/en + kept `openUntil` sv/en + raw-scan).
+- **NEW** `nextjs-app/test/unit/venue-detail-label-prune.test.ts` — +5 (gap #6).
+
+## Validation / Gate
+- `npx tsc --noEmit` → **0 errors**
+- `npx eslint <the 3 changed + 1 new test file>` → **0 errors**
+- `npx vitest run` → **141 files / 1345 tests, all passing, 0 skipped** (Story 11.6 completion HEAD was 140 files / 1331 tests → net **+1 file / +14 tests**, none dropped, none regressed).
+- Test-only addition — no source, component, i18n, token, or CI-path change. The axe e2e badge gate is untouched (source unchanged).
+- (`Not implemented: navigation to another Document` in vitest output remains a benign pre-existing jsdom log — it predates this change, emitted by ReviewFlow's `scrollIntoView` under jsdom — not a failure.)
+
+## Next recommended workflow
+`trace` (traceability matrix / quality-gate decision for Story 11.6) or `test-review` (quality validation of the new + existing venue-detail suites).

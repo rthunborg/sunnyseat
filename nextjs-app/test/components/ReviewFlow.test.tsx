@@ -190,6 +190,57 @@ describe('ReviewFlow', () => {
     expect(screen.queryByText(/Inga omdömen/)).toBeNull();
   });
 
+  it('does not leak an "Inga omdömen" message while reviews are still loading (Story 11.6 AC3 — loading boundary)', async () => {
+    // A pending fetch keeps `reviewsQuery.data` undefined: the summary shows the
+    // loading label and the skeletons render. Neither the `=0` summary branch nor
+    // the empty body must appear before the count is known — otherwise the empty
+    // state flashes during load (the pre-fix double-message class of bug).
+    let resolveFetch: ((response: Response) => void) | undefined;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveFetch = resolve;
+          }),
+      ),
+    );
+
+    renderWithProviders(<ReviewFlow venue={VENUE} />, { messages });
+
+    // Loading label present; no empty message of either flavour has leaked in.
+    expect(await screen.findByText('Laddar omdömen')).toBeInTheDocument();
+    expect(screen.queryByText(/Inga omdömen/)).toBeNull();
+    expect(screen.getByRole('status')).toBeInTheDocument();
+
+    // Resolve to the empty response so the pending promise/act warning is flushed.
+    resolveFetch?.(
+      new Response(JSON.stringify(emptyReviewsResponse()), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    await screen.findByText('Inga omdömen än.');
+  });
+
+  it('shows a single load-error message and no empty message when the reviews fetch fails (Story 11.6 AC3 — error boundary)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('boom', { status: 500 })),
+    );
+
+    renderWithProviders(<ReviewFlow venue={VENUE} />, { messages });
+
+    // The error alert renders exactly once; the empty "Inga omdömen" message must
+    // NOT co-render (error and empty are mutually exclusive branches).
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Kunde inte ladda omdömen.');
+    expect(screen.getAllByText('Kunde inte ladda omdömen.')).toHaveLength(1);
+    expect(screen.queryByText(/Inga omdömen/)).toBeNull();
+    // The retry affordance is present (single error surface, actionable).
+    expect(screen.getByRole('button', { name: 'Försök igen' })).toBeInTheDocument();
+  });
+
   it('names repeated review-flow instances uniquely for parallel overlays', () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(reviewsResponse()), {
       status: 200,

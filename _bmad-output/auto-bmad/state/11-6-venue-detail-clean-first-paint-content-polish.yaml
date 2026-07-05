@@ -5,10 +5,10 @@ epic_num: 11
 story_num: 6
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T15:24:15Z"
+updated_at: "2026-07-05T15:38:03Z"
 started_at: "2026-07-05T14:30:57Z"
 completed_at: null
-active_seconds: 3197
+active_seconds: 4024
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: [automate]
 tea_rationale: "fallback-vs-detail DTO render-sequencing fix + VenueTimeline removal + reviews dedup across modules â€” non-trivial branching, no High signal"
 epic_story_count: 8
 stories_after_in_epic: 2
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
