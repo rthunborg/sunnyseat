@@ -1283,7 +1283,13 @@ export function MapView() {
           />
         )}
       </AnimatePresence>
-      <MapControls />
+      {/* Story 11.5 (AC3): thread the live obstruction state so the recenter
+          flyTo lands the user-location dot centred in the UNOBSCURED map area
+          (mobile bottom-sheet snap / desktop detail panel). */}
+      <MapControls
+        mobileSheetState={mobileSheetState}
+        isVenueDetailOpen={isVenueDetailRequested}
+      />
       {!tilesPainted && (
         <div className="absolute inset-0 z-floating-buttons" data-testid="map-tile-paint-cover">
           <MapLoadingFallback />

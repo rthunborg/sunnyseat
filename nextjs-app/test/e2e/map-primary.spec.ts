@@ -779,6 +779,68 @@ test.describe('map-primary', () => {
       .toBeLessThanOrEqual(2);
   });
 
+  test('mobile: user-location dot renders with the pulsing-halo utility (Story 11.5 AC2)', async ({
+    page,
+    context,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'mobile',
+      'User-location dot check runs only in the mobile Playwright project',
+    );
+
+    // A real GPS fix (`status === 'success'`) is the only state that mounts the
+    // dot. Grant permission + a Gothenburg position; on a returning onboarded
+    // user with granted permission the hook auto-runs and the layer mounts the
+    // UserPin into a detached MapLibre marker via createRoot — proving here that
+    // the GLOBAL halo @utility still reaches that detached root in a real
+    // browser (the component test can only assert the class, not the animation).
+    await context.grantPermissions(['geolocation']);
+    await context.setGeolocation({ latitude: 57.7089, longitude: 11.9746 });
+    await bypassOnboarding(page);
+    await page.goto('/');
+    await page.waitForSelector('[data-testid="venue-pin"]', { timeout: APP_SETTLE_TIMEOUT_MS });
+
+    const dot = visibleTestId(page, 'user-location-pin');
+    await expect(dot).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+    const halo = page.locator('[data-testid="user-location-halo"]:visible').first();
+    await expect(halo).toHaveClass(/animate-user-location-halo/);
+    // Under normal motion the pulse keyframes are live (name resolved, not none).
+    const animationName = await halo.evaluate(
+      (el) => window.getComputedStyle(el).animationName,
+    );
+    expect(animationName).toBe('user-location-halo');
+    // The dot is decorative + non-interactive (never intercepts a map drag).
+    await expect(dot).toHaveAttribute('aria-hidden', 'true');
+    const pointerEvents = await dot.evaluate((el) => window.getComputedStyle(el).pointerEvents);
+    expect(pointerEvents).toBe('none');
+  });
+
+  test('mobile: reduced motion pins the location-dot halo to a static state (Story 11.5 AC2)', async ({
+    page,
+    context,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'mobile',
+      'Reduced-motion location-dot check runs only in the mobile Playwright project',
+    );
+
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await context.grantPermissions(['geolocation']);
+    await context.setGeolocation({ latitude: 57.7089, longitude: 11.9746 });
+    await bypassOnboarding(page);
+    await page.goto('/');
+    await page.waitForSelector('[data-testid="venue-pin"]', { timeout: APP_SETTLE_TIMEOUT_MS });
+
+    const halo = page.locator('[data-testid="user-location-halo"]:visible').first();
+    await expect(halo).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+    // The `@media (prefers-reduced-motion: reduce)` override in globals.css pins
+    // the pulse to `animation: none` — a reduced-motion user sees a STATIC halo.
+    const animationName = await halo.evaluate(
+      (el) => window.getComputedStyle(el).animationName,
+    );
+    expect(animationName).toBe('none');
+  });
+
   test('mobile: clicking the map canvas deselects the active pin (Story 1.4 AC4)', async ({
     page,
   }, testInfo) => {

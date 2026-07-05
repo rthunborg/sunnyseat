@@ -290,7 +290,7 @@ development_status:
   11-2-time-slider-drag-fix-planner-range-rules: review
   11-3-mobile-tag-filtering-bottom-sheet-overhaul: review
   11-4-venue-quick-info-rework-reference-alignment: review
-  11-5-map-legibility-location-dot-recenter: ready-for-dev
+  11-5-map-legibility-location-dot-recenter: review
   11-6-venue-detail-clean-first-paint-content-polish: backlog
   11-7-hygiene-deferred-debt: backlog
   11-8-live-verification-pass-touch-gesture-perf-guards: backlog

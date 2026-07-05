@@ -7,6 +7,31 @@ import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
 import { DURATION_FLY_MS } from '@/lib/constants/animation';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { computeRecenterPadding } from '@/lib/utils/recenter-padding';
+import type { MobileBottomSheetState } from '@/components/custom/sheets/MobileBottomSheet';
+
+/**
+ * Media query for the desktop breakpoint (`--breakpoint-desktop`, 1024 px).
+ * Mirrors the `matchMedia('(min-width: 1024px)')` check already used in
+ * `MapView` for the quick-info clamp geometry. Read at fly-time so the
+ * recenter padding reflects the CURRENT viewport (mobile sheet vs desktop
+ * side panels).
+ */
+function isDesktopViewport(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  return window.matchMedia('(min-width: 1024px)').matches;
+}
+
+type MapControlsProps = {
+  /** Current mobile bottom-sheet snap — drives the recenter bottom padding so
+   * the dot lands centred in the unobscured map area (AC3). */
+  mobileSheetState?: MobileBottomSheetState;
+  /** Whether the desktop venue-detail panel is open — drives the recenter
+   * right padding on desktop (AC3). */
+  isVenueDetailOpen?: boolean;
+};
 
 const ZOOM_DURATION_MS = 200;
 const DRAG_FADE_OPACITY = '0.6';
@@ -51,7 +76,10 @@ const DRAG_FADE_OPACITY = '0.6';
  *   • Settings now opens the settings modal (mobile entry point) via
  *     `useSettings()`; it is always enabled (not gated on `mapInstance`).
  */
-export function MapControls() {
+export function MapControls({
+  mobileSheetState = 'mid',
+  isVenueDetailOpen = false,
+}: MapControlsProps = {}) {
   const t = useTranslations('map');
   const { mapInstance } = useMapInstance();
   const geolocation = useGeolocation();
@@ -98,12 +126,29 @@ export function MapControls() {
   useEffect(() => {
     if (!mapInstance) return;
     if (geolocation.status !== 'success') return;
+    // Story 11.5 (AC3): shift the visual centre for the currently-visible
+    // obstructions (mobile sheet snap / desktop side panels) so the dot lands
+    // centred in the UNOBSCURED map area, not under a panel. Padding is derived
+    // from the snap enum + panel flags (R-013 — a fixed offset would land the
+    // dot off-centre across snaps). flyTo stays 500 ms (DURATION_FLY_MS).
+    const padding = computeRecenterPadding({
+      isDesktop: isDesktopViewport(),
+      mobileSheetState,
+      isVenueDetailOpen,
+    });
     mapInstance.flyTo({
       center: [geolocation.coords.lng, geolocation.coords.lat],
       zoom: GOTHENBURG_CENTRE.zoom,
       duration: DURATION_FLY_MS,
+      padding,
     });
-  }, [geolocation.status, geolocation.coords, mapInstance]);
+  }, [
+    geolocation.status,
+    geolocation.coords,
+    mapInstance,
+    mobileSheetState,
+    isVenueDetailOpen,
+  ]);
 
   // Story 1.6 review P14: lg:top-[calc(var(--size-desktop-nav-h)+28px)]
   // derives the desktop top offset from the nav-height token plus 28 px

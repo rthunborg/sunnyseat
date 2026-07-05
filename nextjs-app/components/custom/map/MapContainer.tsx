@@ -166,9 +166,17 @@ export function MapContainer() {
         inert={tilesFailed}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
       />
+      {/* Story 11.5 (AC1): the two decorative tint layers were reduced to
+          ~a quarter of their previous strength so the basemap (streets,
+          water, parks, labels) reads clearly while a subtle warm brand tone
+          remains. The sand wash dropped from /80 → /20 and the
+          `--gradient-map-overlay` alpha stops were thinned to a quarter (see
+          globals.css). The exact strength was set by a design-gate eyeball
+          against the live map; tests assert the OUTCOME (legible basemap +
+          axe AA green), never a specific opacity number. */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 pointer-events-none bg-surface-sand/80"
+        className="absolute inset-0 pointer-events-none bg-surface-sand/20"
         style={{ zIndex: 1 }}
       />
       <div

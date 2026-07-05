@@ -33,6 +33,14 @@
   --color-amber-cta-text: #554300;
   --color-amber-badge-text: #6d5000;
   --color-amber-overlay: rgba(255, 191, 0, 0.3);
+  /* Story 11.5 (AC2 / R-016): the user-location "you-are-here" dot fill.
+     `#d97706` (Tailwind amber-600) is the byte-for-byte reference value from
+     `Pins.jsx` — it had no DESIGN.md token (raw literal in `UserPin.tsx`,
+     the Story-9.5 recorded token gap). Tokenized here so no raw hex remains
+     in the component. Decorative non-text mark (`aria-hidden`), so the AA
+     text-contrast bump that produced `--color-tab-active #b45309` does not
+     apply — the hue is unchanged; AC2 upgrades size + halo, not the colour. */
+  --color-amber-location-dot: #d97706;
 
   /* ---- Text ---- */
   --color-text-primary: #1b1b1e;
@@ -162,7 +170,11 @@
   --gradient-wordmark-sun: radial-gradient(circle, #fff6d6 0%, var(--color-amber-primary) 100%);
   --gradient-route-button: linear-gradient(169deg, var(--color-amber-gold) 0%, var(--color-amber-primary) 100%);
   --gradient-cta-amber: linear-gradient(171deg, var(--color-amber-gold) 0%, var(--color-amber-primary) 100%);
-  --gradient-map-overlay: linear-gradient(66deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0) 50%, rgba(249, 115, 22, 0.1) 100%);
+  /* Story 11.5 (AC1): alpha stops thinned to ~a quarter of the original
+     (0.05 → 0.0125, 0.1 → 0.025) so the basemap stays legible under the
+     warm tint. Kept in sync with the DESIGN.md "Subtle warm map tint
+     overlay" row. Companion sand wash dropped /80 → /20 in MapContainer. */
+  --gradient-map-overlay: linear-gradient(66deg, rgba(245, 158, 11, 0.0125) 0%, rgba(245, 158, 11, 0) 50%, rgba(249, 115, 22, 0.025) 100%);
   --gradient-timeline-bar: linear-gradient(90deg, var(--color-amber-primary) 0%, var(--color-amber-gold) 100%);
   /* Story 11.3 (AC4): edge-fade masks for the desktop scrollable chip strip.
      They sit on the `--color-surface-cream` navbar background and fade from the
@@ -277,6 +289,40 @@
 
 @utility animate-pulse-cta {
   animation: pulse-cta 1s ease-in-out infinite;
+}
+
+/* Story 11.5 (AC2): the "living" user-location halo. A GPU-friendly CSS
+   scale+opacity pulse (transform/opacity only — no layout/paint per frame,
+   test-design R-018), mirroring the `pulse-cta` @keyframes/@utility pattern.
+   The `UserPin` halo layer carries `animate-user-location-halo`; the marker
+   is rendered into a detached MapLibre element via `createRoot`, but these
+   utilities are GLOBAL so they still apply. Under `prefers-reduced-motion:
+   reduce` the pulse is pinned to a STATIC resting halo (AC2 + Design Gate
+   → Animation) via the media-query override below — a reduced-motion user
+   sees a steady halo, not the pulse. */
+@keyframes user-location-halo {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.3;
+  }
+}
+
+@utility animate-user-location-halo {
+  transform-origin: center;
+  animation: user-location-halo 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-user-location-halo {
+    animation: none;
+    transform: scale(1);
+    opacity: 0.55;
+  }
 }
 
 @utility gradient-chip-fade-left {

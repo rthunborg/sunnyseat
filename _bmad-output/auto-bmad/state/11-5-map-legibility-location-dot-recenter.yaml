@@ -5,10 +5,10 @@ epic_num: 11
 story_num: 5
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T13:12:29Z"
+updated_at: "2026-07-05T14:04:48Z"
 started_at: "2026-07-05T13:00:14Z"
 completed_at: null
-active_seconds: 734
+active_seconds: 3865
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: [automate]
 tea_rationale: "non-trivial viewport/snap branching across MapContainer/UserPin/MapView but no High signal; epic risks R-006 (axe-gate regression, score 6) + R-013 (recenter offset math) drive the automate focus"
 epic_story_count: 8
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -47,7 +47,8 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work: []
+deferred_work:
+  - "De-dulled-map / animated-dot / post-recenter reference PNGs -> story 11-7 maintainer rebaseline; real-device pass -> story 11-8"
 blockers: []
 overrides: {}
 constraints: []

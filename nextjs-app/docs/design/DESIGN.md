@@ -32,6 +32,7 @@ Last audited: 2026-04-06
 | `color-amber-cta-text` | `#554300` | All amber CTA button labels: "Lämna ett omdöme", "Ge oss feedback", "Visa Säsongskortet", "Skicka", "Använd min plats", "Hitta soliga platser nu". Also the sun badge percentage text ("85%", "95% SOL") and the 6.65px "Säsongskortet" micro-label. Note: Figma uses `#574500` (rgb 87,69,0) on the micro-label vs `#554300` (rgb 85,67,0) on buttons — a 2-unit difference that is a rounding artefact; use `#554300` for all. |
 | `color-amber-badge-text` | `#6d5000` | Badge label text — "SOL NU" badge on venue detail header |
 | `color-amber-overlay` | `rgba(255, 191, 0, 0.3)` | Amber tint overlay (upsell icon background circle) |
+| `color-amber-location-dot` | `#d97706` | User-location "you-are-here" dot fill (`UserPin`). Tailwind amber-600, the byte-for-byte `Pins.jsx` reference value; tokenized in Story 11.5 (was a raw literal — the Story-9.5 token gap). Decorative non-text mark (`aria-hidden`), so no AA text-contrast bump applies. |
 
 > **Removed:** `color-amber-deeper` (#574500) — consolidated into `color-amber-cta-text` (#554300). The 2-unit RGB difference was a Figma rounding artefact, not an intentional design distinction.
 
@@ -77,7 +78,7 @@ Last audited: 2026-04-06
 | `gradient-route-button` | `linear-gradient(169deg, #d4af37 0%, #ffbf00 100%)` | "Visa Rutt" primary route button |
 | `gradient-cta-amber` | `linear-gradient(171deg, #d4af37 0%, #ffbf00 100%)` | Feedback/validation CTA buttons |
 | `gradient-premium-button` | `linear-gradient(174deg, #d4af37 0%, #ffbf00 100%)` | Premium upsell "Visa Säsongskortet" button |
-| `gradient-map-overlay` | `linear-gradient(66deg, rgba(245,158,11,0.05) 0%, rgba(245,158,11,0) 50%, rgba(249,115,22,0.1) 100%)` | Subtle warm map tint overlay |
+| `gradient-map-overlay` | `linear-gradient(66deg, rgba(245,158,11,0.0125) 0%, rgba(245,158,11,0) 50%, rgba(249,115,22,0.025) 100%)` | Subtle warm map tint overlay (Story 11.5: thinned to ~¼ strength so the basemap reads clearly; the companion `bg-surface-sand` wash also dropped from /80 → /20 in `MapContainer.tsx`) |
 | `gradient-onboarding` | `linear-gradient(180deg, #ffb347 0%, #d4af37 42%, #735c00 100%)` | First-visit onboarding screen full-bleed background |
 | `gradient-timeline-bar` | `linear-gradient(90deg, rgba(115,92,0,0.2), #d4af37 50%, rgba(115,92,0,0.2))` | Sun exposure timeline gradient bar |
 | `gradient-sun-burst-warm` | `radial-gradient(circle, rgba(255,240,180,0.55) 0%, rgba(255,240,180,0) 60%)` | Onboarding decorative top sun burst |

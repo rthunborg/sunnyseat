@@ -30,3 +30,8 @@
 - [Phase 3 â€” create-story] Seed path serves raw VENUE_FIXTURE with NO openingHours (no VENUE_DETAIL_SEED merge) â€” AC1's opening-hours render is unreachable in CI unless fixtures seed both present- and absent-cases. Anti-'shipped-but-insufficient' applied to a data field.
 - [Phase 5 â€” dev-story] Two MapView integration tests that proved per-time preview refresh via the sun-window TEXT now assert the geometric % SOL badge instead (line removed) â€” same behaviour, different surfaced field; not lost coverage.
 - [Phase 5 â€” dev-story] quickInfo.sunUnavailable became fully dead once the sun-window line was removed â€” pruned with the two story-named keys; VenueQuickInfoProps dropped sunTimeRange/routeEstimateLabel/labels.sunUnavailable (MapView was the only consumer).
+
+## Story 11-5-map-legibility-location-dot-recenter
+- [Phase 5 â€” dev-story] PRE-EXISTING red at HEAD: map-primary.spec.ts:353 asserts 'ca N min' in QuickInfo â€” a label 11-4 removed. Stale-spec casualty of a landed story; orchestrator dispatching a targeted test fix. Pattern: when a story removes user-visible text, grep the e2e specs for assertions on it.
+- [Phase 5 â€” dev-story] CI-wiring gap: the a11y-mobile Playwright project is defined but NOT invoked by build-and-test-nextjs.yml (only --project=a11y runs); it also carries a Story-5.1 test.fixme. Do NOT blind-wire it into CI (would red on known debt) â€” epic retro / Story 5.1 decision.
+- [Phase 5 â€” dev-story] OnboardingGate grant flyTo left on default mid-sheet framing (sibling of MapView, no sheet-state access) â€” acceptable; recenter BUTTON is fully viewport-aware via computeRecenterPadding.
