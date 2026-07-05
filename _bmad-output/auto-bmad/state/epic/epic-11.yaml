@@ -5,7 +5,7 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T19:04:45Z"
+updated_at: "2026-07-05T20:08:05Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
 active_seconds: 97643
@@ -20,10 +20,10 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 8
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 81]
-code_review_iterations: 1
-code_review_loop_done: false
-hitl_halt: null
+completed_phases: [0, 1, 2, 5, 7, 81]
+code_review_iterations: 2
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic â€” no halt)"
 external_review_iterations: 0
 convergence_unverified: true
 story_trace: null
