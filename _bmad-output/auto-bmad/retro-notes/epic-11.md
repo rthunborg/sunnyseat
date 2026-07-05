@@ -40,3 +40,7 @@
 - [Phase 5 â€” dev-story] Amber-badge contrast debt CLOSED: --color-amber-badge-text #6d5000 -> #5c4300 (5.63:1); axe.spec.ts:82 venue-detail scan now deterministically green. The token was self-contained to the badge.
 - [Phase 5 â€” dev-story] Story guidance said KEEP the peak/best-window helpers for 11-1 coupling â€” that was a code-location misread: the subtitle lived inside the removed forecast section, and the ENGINE sun-engine.ts#peakTimeFromTimeline (same name, different function) + detail.timeline DTO are untouched. 11-1's day-series consumption unaffected.
 - [Phase 5 â€” dev-story] Empty-reviews screenshot has no forced-state route â€” maintainer should capture it during the 11-7 rebaseline (behaviourally covered by a component test meanwhile).
+
+## Story 11-7-hygiene-deferred-debt
+- [Phase 3 â€” create-story] .gitattributes renormalization footgun fenced: 113 tracked .log artifacts + core.autocrlf=true + ~800 CRLF files mean a blanket '* text=auto' would be unreviewable â€” the story scopes eol=lf to a SOURCE extension set + binary guards, renormalization isolated in its own commit (R-016).
+- [Phase 3 â€” create-story] toSunStatusToken grep-verified orphaned (only its own test imports it) â€” story recommends DELETE over wiring-in (wiring would break the byte-identical design gate); never-exhaustiveness survives via windowLabelTier.

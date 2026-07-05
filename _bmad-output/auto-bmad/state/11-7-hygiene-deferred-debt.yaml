@@ -5,10 +5,10 @@ epic_num: 11
 story_num: 7
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T15:47:58Z"
+updated_at: "2026-07-05T15:59:03Z"
 started_at: "2026-07-05T15:47:58Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 664
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: [automate]
 tea_rationale: "build-config behaviour change (fail-loud install) + dead-code resolution across modules, byte-identical UI required â€” no High signal (R-016/R-017)"
 epic_story_count: 8
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 3, 4]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
