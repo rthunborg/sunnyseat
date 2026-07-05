@@ -229,6 +229,7 @@ Opus 4.8 (1M) — `claude-opus-4-8[1m]` (bmad-dev-story).
 
 - 2026-07-05 — Story 11.4 context file drafted (create-story). FOURTH story of Epic 11 "Feels Instant, Reads Clear" — quick-info reference alignment + truthful content. Status → ready-for-dev.
 - 2026-07-05 — Story 11.4 implemented (dev-story). Surfaced `openingHours` on the list `VenueDataDto` (+ `toVenueData` copy + sunny-fixture data); reworked `VenueQuickInfo` to remove the visible "Säkerhet: NN%" chip + the "Sol HH:mm–HH:mm" window line, render the real opening-hours line, and drop the truncated route ETA; regenerated aria (sr-only confidence kept, no dangling separator); pruned three dead `quickInfo.*` i18n keys in both locales; preserved the Story-10.2 obscured treatment. All ACs satisfied; tsc/eslint/vitest (1300 pass) + axe (a11y/a11y-mobile) green. Status → review.
+- 2026-07-05 — Follow-up spec alignment. `test/e2e/map-primary.spec.ts` ("mobile: QuickInfo route opens maps…") still asserted the removed `ca \d+ min` ETA inside the quick-info card and failed at HEAD; re-anchored the assertion on the "VISA RUTT" CTA + `toHaveCount(0)` for card ETA text (AC2 contract) while preserving the real intent (route click → native handoff + dismissible route overlay). Spec green on desktop+mobile projects; no source changes.
 
 ## Review Findings
 

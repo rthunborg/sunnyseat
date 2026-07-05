@@ -365,8 +365,14 @@ test.describe('map-primary', () => {
 
     const quickInfo = page.getByTestId('venue-quick-info').first();
     await expect(quickInfo).toBeVisible();
-    await expect(quickInfo.getByText(/ca \d+ min/)).toBeVisible();
-    await quickInfo.getByRole('button', { name: /Visa Rutt/ }).click();
+    // Story 11.4 (AC2): the quick-info route CTA reads only "VISA RUTT" — the
+    // ETA was deliberately removed from the card and now lives only on the
+    // route overlay (asserted below). Anchor on the button itself and confirm
+    // the card carries no "ca N min" estimate text.
+    const routeButton = quickInfo.getByRole('button', { name: /Visa Rutt/ });
+    await expect(routeButton).toBeVisible();
+    await expect(quickInfo.getByText(/ca \d+ min/)).toHaveCount(0);
+    await routeButton.click();
 
     const calls = await windowOpenCalls(page);
     expectNativeDirectionsHandoff(calls);

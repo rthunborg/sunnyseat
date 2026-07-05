@@ -5,11 +5,11 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T14:17:17Z"
+updated_at: "2026-07-05T14:29:14Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
-active_seconds: 81838
-timing_anchor: 1783261037
+active_seconds: 82555
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -53,12 +53,13 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: feels-instant-reads-clear
-active_story: 11-5-map-legibility-location-dot-recenter
+active_story: 11-6-venue-detail-clean-first-paint-content-polish
 stories_landed:
   - 11-1-client-side-day-series-instant-time-scrubbing
   - 11-2-time-slider-drag-fix-planner-range-rules
   - 11-3-mobile-tag-filtering-bottom-sheet-overhaul
   - 11-4-venue-quick-info-rework-reference-alignment
+  - 11-5-map-legibility-location-dot-recenter
 auto_decisions:
   - "AC4 min-clamp enforced only in component, not in state [Med] -> fix: add minMinutes-aware floor inside setSelectedMinutes/snapSelectedMinutes + the missing below-min-commit state test (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
   - "AC1 real-touch e2e never runs in CI [Med] -> fix: add npx playwright test --project=touch step to build-and-test-nextjs.yml so the thumb-drag proof is a live gate (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
@@ -130,3 +131,18 @@ uat_items:
   - "[11-4-venue-quick-info-rework-reference-alignment] Click VISA RUTT → route action fires; any 'ca N min promenad' ETA appears on the detail/route surface, NOT inside the quick-info button"
   - "[11-4-venue-quick-info-rework-reference-alignment] Screen reader on the open sunny card → read-out is name → sun % → opening hours → distance (sr-only confidence still spoken), no dangling '·' or duplicate phrase"
   - "[11-4-venue-quick-info-rework-reference-alignment] NOT manually reachable on seed data: the CloudObscured 'Sol bakom moln' two-signal state (weather-gated, real path only) — preserved via component tests"
+  - "[11-5-map-legibility-location-dot-recenter] Desktop city zoom → basemap streets/water/parks/labels clearly legible with only a faint warm tint perceptible"
+  - "[11-5-map-legibility-location-dot-recenter] Zoom in/out + pan central Gothenburg → labels/streets readable at every zoom; tint never obscures"
+  - "[11-5-map-legibility-location-dot-recenter] Mobile viewport → same clear legibility with subtle warm tone"
+  - "[11-5-map-legibility-location-dot-recenter] Compare a venue teardrop's amber label against the map behind → pin/label contrast not degraded by the lighter tint"
+  - "[11-5-map-legibility-location-dot-recenter] Grant geolocation → round amber dot with white ring + soft shadow, noticeably larger (~24px), clearly distinct from venue teardrops/pills"
+  - "[11-5-map-legibility-location-dot-recenter] Watch the dot → soft radial amber halo pulses continuously (~2s gentle grow/fade loop)"
+  - "[11-5-map-legibility-location-dot-recenter] Zoom in/out with the dot visible → stays distinguishable from venue pins at all zooms"
+  - "[11-5-map-legibility-location-dot-recenter] Tap/drag the map on top of the dot → pan still works and underlying venue pins stay tappable (dot never intercepts pointers)"
+  - "[11-5-map-legibility-location-dot-recenter] Emulate prefers-reduced-motion + reload + locate → halo shown but STATIC (no pulsing); dot still full-size with ring"
+  - "[11-5-map-legibility-location-dot-recenter] Mobile, sheet at mid: tap the top-bar locate button → ~500ms fly, dot lands centered in the visible map band ABOVE the sheet"
+  - "[11-5-map-legibility-location-dot-recenter] Sheet at full: locate again → dot lands centered in the smaller unobscured band (higher up)"
+  - "[11-5-map-legibility-location-dot-recenter] Sheet at peek/collapsed: locate → dot lands centered lower in the taller visible area, clear of the top search bar"
+  - "[11-5-map-legibility-location-dot-recenter] Any recenter fly → the top search-bar card never covers the landed dot"
+  - "[11-5-map-legibility-location-dot-recenter] Desktop (>=1024px), list only: locate from the desktop nav → dot centers in the map area RIGHT of the 340px list"
+  - "[11-5-map-legibility-location-dot-recenter] Desktop with venue detail open: locate again → dot centers in the narrower band between list and detail panel (items 10-15 need a granted GPS fix or DevTools Sensors location override; recenter fires from the locate buttons, not the zoom stack)"
