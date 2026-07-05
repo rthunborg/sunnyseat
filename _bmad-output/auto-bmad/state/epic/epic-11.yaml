@@ -5,11 +5,11 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-04T22:10:35Z"
+updated_at: "2026-07-05T11:04:43Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
-active_seconds: 23581
-timing_anchor: 1783202695
+active_seconds: 70333
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -53,10 +53,11 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: feels-instant-reads-clear
-active_story: 11-3-mobile-tag-filtering-bottom-sheet-overhaul
+active_story: 11-4-venue-quick-info-rework-reference-alignment
 stories_landed:
   - 11-1-client-side-day-series-instant-time-scrubbing
   - 11-2-time-slider-drag-fix-planner-range-rules
+  - 11-3-mobile-tag-filtering-bottom-sheet-overhaul
 auto_decisions:
   - "AC4 min-clamp enforced only in component, not in state [Med] -> fix: add minMinutes-aware floor inside setSelectedMinutes/snapSelectedMinutes + the missing below-min-commit state test (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
   - "AC1 real-touch e2e never runs in CI [Med] -> fix: add npx playwright test --project=touch step to build-and-test-nextjs.yml so the thumb-drag proof is a live gate (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
@@ -88,3 +89,30 @@ uat_items:
   - "[11-2-time-slider-drag-fix-planner-range-rules] Plain URL (NO ?_time= â€” forcing disables the today-min), date=today â†’ track before current wall-clock time renders muted/inert grey; thumb cannot be dragged earlier than now"
   - "[11-2-time-slider-drag-fix-planner-range-rules] Keyboard on today: focus slider, press Home / Left repeatedly â†’ value stops at the current-time minimum"
   - "[11-2-time-slider-drag-fix-planner-range-rules] Switch to a future date (e.g. today+2) â†’ full 06:00â€“21:00 range available again (no inert elapsed segment)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Mobile viewport: drag the sheet handle up off peek (mid/full) → horizontally scrollable tag-chip row appears directly UNDER the Mest sol / Nära mig toggles, inside the sheet body"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Mobile, sheet at peek → chip row NOT shown (renders only above peek)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Compare mobile chip set to desktop nav strip → SAME tags, same first-seen order (data-driven, no hardcoded set)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Tap a chip (e.g. Kanal) → flips to dark 'on' pill; venue LIST prunes AND map pins prune to the same set"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Tap the active chip again → inactive style; list and pins restore"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Toggle a chip on mobile, resize to desktop → same tag active on desktop strip, list/pins filtered identically (shared context)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Toggle a zero-match tag combo → list shows 'Inga platser hittades…' empty copy, NOT the loading skeleton"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Mobile: switch list to Favourites → chip row disappears; back to Närmast → returns"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Desktop: open /favoriter → desktop chip strip also hidden (parity gate); back to / → returns"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Fresh load before any tags exist → neither chip row nor strip renders until a tag has loaded"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] From peek, drag handle down firmly (past ~64px) or fast-swipe → sheet snaps to handle-only COLLAPSED (drag pill + safe-area only)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] From collapsed, drag handle up → returns through peek → mid → full"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Sheet collapsed: tap a venue pin above the handle → map fully interactive (pin selects, sheet raises); no dim backdrop"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Sheet collapsed: body is aria-hidden / non-interactive while the handle stays focusable (inspect via DevTools/screen reader)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Focus handle, ArrowDown repeatedly → full → mid → peek → collapsed, STOPS at collapsed (never dismisses)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Focus handle, ArrowUp from collapsed → peek → mid → full, stops at full"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Focus handle, Enter/Space repeatedly → cycles peek → mid → full → peek (never lands on collapsed)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Mobile, motion enabled: slow-drag the handle without releasing → sheet tracks the finger 1:1, settles on release only"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Sheet above peek: fling the chip row horizontally → chips scroll, sheet does NOT move vertically (no axis hijack)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] At full, scroll list to top then keep pulling down → sheet drags toward peek; the drag never fires a spurious chip toggle"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Desktop narrow enough that tags overflow → strip scrolls horizontally (no mid-chip clip), arrows + edge fades appear"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] At far-left → LEFT arrow disabled, only right edge-fade shows"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Click RIGHT arrow → scrolls ~one page smoothly, clipped chips revealed, left arrow enables"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Keep clicking right to the end → RIGHT arrow disables, right fade disappears (all tags reachable)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Widen viewport until all chips fit → both arrows disabled, both fades gone"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Tab into the strip → arrows + every chip are focus stops; tabbing to an off-screen chip auto-scrolls it into view"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Desktop: click or Enter/Space a chip → toggles the pill and filters list + pins (arrows scroll only, never toggle)"

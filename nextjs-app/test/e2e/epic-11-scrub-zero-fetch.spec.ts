@@ -197,9 +197,14 @@ test.describe('[11.1 AC1/AC3] day-series scrub = 0 requests, date change = 1 + m
     // Trigger a DATE change (the one fetch AC3 permits) via the planner
     // "next day" control (the `planner-date-next` testid Task 5 exposes on
     // TimeSliderPanel). This flips the query key to the new date → exactly one
-    // new venue request fires. `.first()` picks the visible variant (the mobile +
-    // desktop panels both render the control).
-    await page.getByTestId('planner-date-next').first().click();
+    // new venue request fires. BOTH the mobile and desktop panels always render
+    // the control in the DOM (only one is un-hidden per breakpoint via CSS), so
+    // we must target the VISIBLE instance, not the DOM-order-first one: on the
+    // desktop viewport the mobile panel (rendered first) is `lg:hidden`, so a
+    // bare `.first()` would resolve the hidden mobile button and never click.
+    // `.filter({ visible: true })` resolves the single visible date-next button
+    // on either project (verified: exactly one visible instance per breakpoint).
+    await page.getByTestId('planner-date-next').filter({ visible: true }).click();
 
     // (a) EXACTLY ONE new venue request fires for the date change.
     // (b) the dim + centered spinner OVERLAY appears while the request is in flight

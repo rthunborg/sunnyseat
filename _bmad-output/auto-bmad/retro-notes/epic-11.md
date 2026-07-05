@@ -8,6 +8,7 @@
 - [Phase 5 â€” dev-story] Query keys for useVenueSearch/useFavouriteVenues no longer include time (date-only + coords + isLiveNow) â€” later stories must not reintroduce time into these keys.
 - [Phase 5 â€” dev-story] Date-change dim+spinner overlay is a NEW visual state with NO reference PNG â€” self-blessing forbidden; 11-7 owns the consolidated maintainer rebaseline.
 - [Phase 7 â€” trace advisory] PASS, 0 uncovered ACs, but AC3 overlay/marker-persistence and the MapView per-step derivation seam (incl. the favourites review fix) are E2E-ONLY guarded (epic-11-scrub-zero-fetch.spec) â€” a jsdom component test would harden the pyramid; location-changeâ†’one-fetch path is unit-only. Epic-end gate should weigh this.
+- [Fix pass â€” desktop e2e] The 'planner-date-next not visible on desktop' failure was a SPEC selector trap, not a product bug: both responsive TimeSliderPanel variants are always mounted (CSS-hidden per breakpoint), so DOM-order .first() binds the hidden mobile instance on desktop. Dual-variant e2e selectors must use .filter({ visible: true }), never positional .first()/.last().
 
 ## Story 11-2-time-slider-drag-fix-planner-range-rules
 - [Phase 3 â€” create-story] Current planner-date rule in HEAD is season-based (Mar 1â€“Oct 31 + >= today), NOT todayâ†’today+3 â€” AC3 is a shared-helper change rippling across six isPlannerDateSelectable consumers + validatePlannerDateTime; dev must reconcile all of them.
