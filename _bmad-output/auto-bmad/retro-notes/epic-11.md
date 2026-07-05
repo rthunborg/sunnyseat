@@ -51,3 +51,6 @@
 - [Phase 7 â€” Tier A review] The byte-identical PNG pair was a CARRIED-FORWARD pre-existing baseline defect (map-primary == map-panel-venues at the prior commit too) â€” the capture recipe's per-screen state assertion can't catch it. Capture harnesses must assert resulting PNGs are PAIRWISE DISTINCT, not just individually in-state.
 - [Phase 7 â€” Tier A review] High auto-decision recorded (epic mode): re-capture before blessing. Epic convergence_unverified set -> PR ships as draft so the maintainer sees the rebaseline before merge.
 - [Phase 7 â€” fix pass] map-primary's route has NO state-forcing to collapse the sheet (default mid), so any naive re-capture silently duplicates map-panel-venues again. Durable fix candidate: make ?_state=map-primary force the sheet to peek in MapView so the resting-map reference is reproducible.
+
+## Story 11-8-live-verification-pass-touch-gesture-perf-guards
+- [Phase 3 â€” create-story] Seam specs shipped with un-reconciled red-phase headers across the epic (epic-11-scrub-zero-fetch header still says RED PHASE / describe.skip while the body is un-skipped and green) â€” 11-8 reconciles; future ATDD un-skips should update the header in the same change.
