@@ -294,7 +294,7 @@ development_status:
   11-4-venue-quick-info-rework-reference-alignment: review
   11-5-map-legibility-location-dot-recenter: review
   11-6-venue-detail-clean-first-paint-content-polish: review
-  11-7-hygiene-deferred-debt: ready-for-dev
+  11-7-hygiene-deferred-debt: review
   11-8-live-verification-pass-touch-gesture-perf-guards: backlog
   epic-11-retrospective: optional
 

@@ -44,3 +44,6 @@
 ## Story 11-7-hygiene-deferred-debt
 - [Phase 3 â€” create-story] .gitattributes renormalization footgun fenced: 113 tracked .log artifacts + core.autocrlf=true + ~800 CRLF files mean a blanket '* text=auto' would be unreviewable â€” the story scopes eol=lf to a SOURCE extension set + binary guards, renormalization isolated in its own commit (R-016).
 - [Phase 3 â€” create-story] toSunStatusToken grep-verified orphaned (only its own test imports it) â€” story recommends DELETE over wiring-in (wiring would break the byte-identical design gate); never-exhaustiveness survives via windowLabelTier.
+- [Phase 5 â€” dev-story] Fail-loud proven with a real injected ETARGET (lightningcss@99.99.99-does-not-exist) â€” the vercel installCommand now fails the build on install error; swallow was installCommand, not buildCommand.
+- [Phase 5 â€” dev-story] Renormalization footprint: only 15 files had a genuinely CRLF index (not the ~800 census) â€” the .gitattributes rule mostly locks in future LF-on-commit.
+- [Phase 5 â€” dev-story] 11-6's venue-detail rework silently drifted the epic-10 obscured reference PNGs (still showed the removed Solprognos bars) â€” 'shared-surface refs are byte-stable, skip them' is an unsafe assumption; re-capture whenever a shared surface changes.

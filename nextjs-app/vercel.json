@@ -2,5 +2,5 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "installCommand": "npm install --include=dev && (cd .. && npm install --no-package-lock lightningcss@1.31.1 2>&1 || true)"
+  "installCommand": "npm install --include=dev && (cd .. && npm install --no-package-lock lightningcss@1.31.1 2>&1)"
 }
