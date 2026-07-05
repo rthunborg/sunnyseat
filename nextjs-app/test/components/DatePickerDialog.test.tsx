@@ -109,6 +109,7 @@ describe('<DatePickerDialog />', () => {
           selectedDate: 'Selected date',
           unavailableDate: 'Date outside season',
           pastDate: 'Date has passed',
+          windowDate: 'Date outside planning window',
           selectDate: 'Select {date}',
         }}
         onOpenChange={() => {}}

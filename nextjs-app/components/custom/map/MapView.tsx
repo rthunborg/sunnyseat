@@ -1340,6 +1340,15 @@ function hasValidVenueLocation(venue: VenueDataDto): boolean {
  * lists, quick-info figures, the obscured presentation, and the "Mest sol"
  * ordering input (`getVenueSunRankForList` reads `currentSunStatus` +
  * `sunExposurePercent`) so ordering tracks the scrub.
+ *
+ * STORY 11 (review): `skyCondition` (the obscured sub-line) is ALSO overridden
+ * from the per-step series entry so the plain-language sky phrase tracks the
+ * scrub. Without it, scrubbing a clear "now" step to a cloud-gated step flips
+ * the muted "Sol bakom moln" chrome while the sky phrase still reads the stale
+ * server "Klart" — a self-contradicting obscured card (the Epic-10 honesty
+ * class). `skyCondition` is only overridden when the series entry carries it
+ * (`!== undefined`), so a legacy series without the field leaves the venue's
+ * server value untouched.
  */
 function applyDaySeriesDerivation(
   venue: VenueDataDto,
@@ -1347,9 +1356,12 @@ function applyDaySeriesDerivation(
 ): VenueDataDto {
   const derived = deriveVenueSunAtMinutes(venue.sunDaySeries, selectedMinutes);
   if (!derived) return venue;
+  const nextSkyCondition =
+    derived.skyCondition !== undefined ? derived.skyCondition : venue.skyCondition;
   if (
     derived.currentSunStatus === venue.currentSunStatus &&
-    derived.sunExposurePercent === venue.sunExposurePercent
+    derived.sunExposurePercent === venue.sunExposurePercent &&
+    nextSkyCondition === venue.skyCondition
   ) {
     return venue;
   }
@@ -1357,6 +1369,7 @@ function applyDaySeriesDerivation(
     ...venue,
     currentSunStatus: derived.currentSunStatus,
     sunExposurePercent: derived.sunExposurePercent,
+    skyCondition: nextSkyCondition,
   };
 }
 

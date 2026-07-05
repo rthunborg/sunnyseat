@@ -47,6 +47,16 @@ const SHEET_COVER_H: Record<MobileBottomSheetState, number> = {
 /** Mobile top search bar cover (the `top-3` card materially covers the top). */
 const MOBILE_TOP_BAR_COVER = 72;
 
+/**
+ * Mobile bottom nav-bar cover, mirroring `--size-mobile-nav-h`. The bottom
+ * sheet is positioned `bottom-[var(--size-mobile-nav-h)]` ABOVE the
+ * `fixed bottom-0` MobileNavBar (`lg:hidden`), so the true obstructed band from
+ * the viewport bottom is `snapHeight + 52`. Added to every non-`dismissed`
+ * mobile snap so the dot lands in the visual centre of the unobscured area
+ * (Story 11.5 AC3) rather than ~52 px low.
+ */
+const MOBILE_NAV_BAR_COVER = 52;
+
 /** Desktop venue-list panel width, mirroring `--size-venue-list-desktop-w`. */
 const DESKTOP_LIST_W = 340;
 
@@ -85,9 +95,12 @@ export function computeRecenterPadding({
     };
   }
 
+  const sheetCover = SHEET_COVER_H[mobileSheetState] ?? 0;
   return {
     top: MOBILE_TOP_BAR_COVER,
-    bottom: SHEET_COVER_H[mobileSheetState] ?? 0,
+    // `dismissed` covers nothing (sheet hidden); every other snap sits above the
+    // 52 px nav bar, so the obstructed band = sheet cover + nav-bar cover.
+    bottom: mobileSheetState === 'dismissed' ? 0 : sheetCover + MOBILE_NAV_BAR_COVER,
     left: 0,
     right: 0,
   };

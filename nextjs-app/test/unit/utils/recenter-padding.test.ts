@@ -20,20 +20,23 @@ const ALL_SNAPS: MobileBottomSheetState[] = [
 
 describe('computeRecenterPadding (Story 11.5 AC3)', () => {
   describe('mobile (bottom sheet)', () => {
-    it('bottom padding tracks the current snap height (per-snap, not fixed)', () => {
+    it('bottom padding tracks the current snap height + nav-bar cover (per-snap, not fixed)', () => {
+      // Each non-dismissed snap adds the 52 px nav-bar cover (--size-mobile-nav-h)
+      // on top of the sheet cover: peek 120+52, mid 320+52, full 560+52.
       const base = { isDesktop: false, isVenueDetailOpen: false } as const;
-      expect(computeRecenterPadding({ ...base, mobileSheetState: 'peek' }).bottom).toBe(120);
-      expect(computeRecenterPadding({ ...base, mobileSheetState: 'mid' }).bottom).toBe(320);
-      expect(computeRecenterPadding({ ...base, mobileSheetState: 'full' }).bottom).toBe(560);
+      expect(computeRecenterPadding({ ...base, mobileSheetState: 'peek' }).bottom).toBe(172);
+      expect(computeRecenterPadding({ ...base, mobileSheetState: 'mid' }).bottom).toBe(372);
+      expect(computeRecenterPadding({ ...base, mobileSheetState: 'full' }).bottom).toBe(612);
     });
 
-    it('collapsed snap uses the 44 px handle strip + a safe-area allowance', () => {
+    it('collapsed snap uses the 44 px handle strip + a safe-area allowance + nav-bar cover', () => {
       const p = computeRecenterPadding({
         isDesktop: false,
         mobileSheetState: 'collapsed',
         isVenueDetailOpen: false,
       });
-      expect(p.bottom).toBe(68);
+      // 44 handle + 24 safe-area + 52 nav-bar cover.
+      expect(p.bottom).toBe(120);
     });
 
     it('dismissed snap covers nothing at the bottom', () => {
@@ -81,7 +84,7 @@ describe('computeRecenterPadding (Story 11.5 AC3)', () => {
           mobileSheetState: 'peek',
           isVenueDetailOpen: false,
         }),
-      ).toEqual({ top: 72, bottom: 120, left: 0, right: 0 });
+      ).toEqual({ top: 72, bottom: 172, left: 0, right: 0 });
     });
 
     it('collapsed cover is strictly less than peek — the snaps stay monotonically ordered', () => {

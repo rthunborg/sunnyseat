@@ -25,6 +25,15 @@ export interface VenueDaySeriesEntry {
   minutes: number;
   sunExposurePercent: number;
   currentSunStatus: VenueSunStatus;
+  /**
+   * STORY 11 (review): the per-step gated sky condition (same values as the
+   * top-level `VenueDataDto.skyCondition`). Carried so a time scrub can override
+   * the obscured sub-line to track the scrubbed step, instead of freezing at the
+   * server single-instant sky phrase (a clear→obscured self-contradiction — the
+   * Epic-10 honesty class). Optional so the DTO stays byte-compatible with
+   * consumers that predate this field.
+   */
+  skyCondition?: string;
 }
 
 export type SunDataSource = 'weather' | 'geometry-only';

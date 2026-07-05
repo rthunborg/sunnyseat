@@ -174,9 +174,9 @@ describe('<MapControls />', () => {
       zoom: GOTHENBURG_CENTRE.zoom,
       duration: 500,
       // Story 11.5 (AC3): default `mid` snap → bottom padding = mid height
-      // (320) + mobile top-bar cover (72). Derived from the snap enum, not a
-      // fixed offset (R-013).
-      padding: { top: 72, bottom: 320, left: 0, right: 0 },
+      // (320) + nav-bar cover (52) = 372; top = mobile top-bar cover (72).
+      // Derived from the snap enum, not a fixed offset (R-013).
+      padding: { top: 72, bottom: 372, left: 0, right: 0 },
     });
   });
 
@@ -199,7 +199,7 @@ describe('<MapControls />', () => {
     expect(midMap.flyTo).toHaveBeenCalledWith(
       expect.objectContaining({
         duration: 500,
-        padding: { top: 72, bottom: 320, left: 0, right: 0 },
+        padding: { top: 72, bottom: 372, left: 0, right: 0 },
       }),
     );
 
@@ -208,7 +208,7 @@ describe('<MapControls />', () => {
     expect(fullMap.flyTo).toHaveBeenCalledWith(
       expect.objectContaining({
         duration: 500,
-        padding: { top: 72, bottom: 560, left: 0, right: 0 },
+        padding: { top: 72, bottom: 612, left: 0, right: 0 },
       }),
     );
 
@@ -218,13 +218,13 @@ describe('<MapControls />', () => {
     expect(midPadding.bottom).not.toBe(fullPadding.bottom);
   });
 
-  it('recenter padding: collapsed snap uses the handle-strip cover (44 + safe-area allowance)', () => {
+  it('recenter padding: collapsed snap uses the handle-strip cover (44 + safe-area allowance + nav-bar cover)', () => {
     geoState.status = 'success';
     geoState.coords = { lat: 57.71, lng: 11.99 };
     render(<MapControls mobileSheetState="collapsed" />, { wrapper: makeWrapper(stubMap) });
     expect(stubMap.flyTo).toHaveBeenCalledWith(
       expect.objectContaining({
-        padding: { top: 72, bottom: 68, left: 0, right: 0 },
+        padding: { top: 72, bottom: 120, left: 0, right: 0 },
       }),
     );
   });
@@ -328,7 +328,7 @@ describe('<MapControls />', () => {
       ).not.toThrow();
       expect(stubMap.flyTo).toHaveBeenCalledWith(
         expect.objectContaining({
-          padding: { top: 72, bottom: 320, left: 0, right: 0 },
+          padding: { top: 72, bottom: 372, left: 0, right: 0 },
         }),
       );
     } finally {

@@ -5,11 +5,11 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T18:42:23Z"
+updated_at: "2026-07-05T19:04:45Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
 active_seconds: 97643
-timing_anchor: null
+timing_anchor: 1783277667
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -21,7 +21,7 @@ tea_rationale: null
 epic_story_count: 8
 stories_after_in_epic: null
 completed_phases: [0, 1, 2, 5, 81]
-code_review_iterations: 0
+code_review_iterations: 1
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
@@ -69,6 +69,11 @@ auto_decisions:
   - "Mobile chip row hidden in favourites but desktop strip is not â€” AC1 parity [Med] -> fix: gate DesktopNavBar TagChipStrip on listMode==='favourites' (mirror the mobile gate) (Tier A, 11-3-mobile-tag-filtering-bottom-sheet-overhaul)"
   - "1:1 finger tracking suppressed under prefers-reduced-motion [Med] -> dismiss: jump-on-release is a standard reduced-motion accommodation; AC3's 1:1 describes the default animated path (Tier A, 11-3-mobile-tag-filtering-bottom-sheet-overhaul)"
   - "AC3 byte-identical rebaseline PNGs (mobile map-primary == map-panel-venues, carried-forward pre-existing duplication) [High] -> fix: re-capture both with an in-DOM different-state assertion + pairwise-distinct check BEFORE maintainer blessing (Tier A, 11-7-hygiene-deferred-debt) — HIGH auto-decision: epic ships draft for human review"
+  - "Recenter omits 52px mobile nav-bar cover [Med] -> fix: add MOBILE_NAV_BAR_COVER=52 to the mobile bottom for non-dismissed snaps (E_review, epic-11)"
+  - "applyDaySeriesDerivation freezes skyCondition on scrub [Med] -> fix: carry skyCondition on VenueDaySeriesEntry and override it in the derivation (E_review, epic-11)"
+  - "TimeSlider isDragging same-tick race [Med] -> fix: back the drag flag with a synchronous isDraggingRef (E_review, epic-11)"
+  - "enforceWindow:false URL-vs-state date divergence [Med] -> defer: accepted 11.2 design; optional URL-replace rides the 11.8 live pass (E_review, epic-11)"
+  - "closesAt ÖPPET badge no is-open guard [Low] -> defer: needs an isOpenNow DTO signal, data-layer change out of epic scope (E_review, epic-11)"
 uat_items:
   - "[11-1-client-side-day-series-instant-time-scrubbing] Open http://localhost:3000 (cd nextjs-app && npm run dev), DevTools Network filtered on api/venues, wait for initial load â†’ exactly one /api/venues request settles and pins appear"
   - "[11-1-client-side-day-series-instant-time-scrubbing] Same date selected, drag the bottom time slider across several 15-min steps (09:00 â†’ 12:00 â†’ 18:00) â†’ ZERO new /api/venues requests"

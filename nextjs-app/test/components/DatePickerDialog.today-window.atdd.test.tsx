@@ -41,6 +41,7 @@ const LABELS = {
   nextMonth: 'Nästa månad',
   selectedDate: 'Valt datum',
   unavailableDate: 'Datum utanför säsong',
+  windowDate: 'Datum utanför planeringsfönstret',
   pastDate: 'Datum har passerat',
   selectDate: 'Välj {date}',
 };

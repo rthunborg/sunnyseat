@@ -67,6 +67,40 @@ describe('Story 11.1 — deriveVenueSunAtMinutes null/fallback branches', () => 
   });
 });
 
+describe('Story 11 (review) — deriveVenueSunAtMinutes carries the per-step skyCondition', () => {
+  it('returns the entry`s skyCondition so a scrub can track the obscured sub-line', () => {
+    // The obscured sky sub-line must follow the scrub, not freeze at the server
+    // single-instant. The derived value carries the per-step gated sky condition.
+    const series: VenueDaySeriesEntry[] = [
+      {
+        minutes: 13 * 60,
+        sunExposurePercent: 80,
+        currentSunStatus: 'Sunny',
+        skyCondition: 'clear',
+      },
+      {
+        minutes: 14 * 60,
+        sunExposurePercent: 10,
+        currentSunStatus: 'CloudObscured',
+        skyCondition: 'overcast',
+      },
+    ];
+    expect(deriveVenueSunAtMinutes(series, 13 * 60)?.skyCondition).toBe('clear');
+    expect(deriveVenueSunAtMinutes(series, 14 * 60)?.skyCondition).toBe('overcast');
+  });
+
+  it('yields skyCondition undefined for a legacy series entry without the field (backward-compatible)', () => {
+    // A series predating the field: derivation still resolves; skyCondition is
+    // undefined so the caller leaves the venue`s server value untouched.
+    const legacy: VenueDaySeriesEntry[] = [
+      { minutes: 13 * 60, sunExposurePercent: 50, currentSunStatus: 'Partial' },
+    ];
+    const derived = deriveVenueSunAtMinutes(legacy, 13 * 60);
+    expect(derived).not.toBeNull();
+    expect(derived?.skyCondition).toBeUndefined();
+  });
+});
+
 describe('Story 11.1 — deriveVenueSunAtMinutes snapping + boundary behaviour', () => {
   const series = fullSeries();
 

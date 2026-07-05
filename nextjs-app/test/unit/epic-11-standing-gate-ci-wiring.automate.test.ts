@@ -77,7 +77,11 @@ describe('Story 11.8 — Epic-11 standing-gate CI-wiring contract (automate)', (
     it('invokes the axe AA gate (--project=a11y)', () => {
       // Desktop axe-core AA contrast gate (11.6 closed the amber-badge debt to
       // ≥4.5:1). Must keep running so a future contrast regression trips CI.
-      expect(ciWorkflow).toMatch(/npx playwright test[^\n]*--project=a11y\b/);
+      // Match --project=a11y as a WHOLE arg value (followed by whitespace or
+      // end-of-arg) — a bare `\b` boundary spuriously matches --project=a11y-mobile
+      // (the `-` is a word boundary), which would let a future a11y→a11y-mobile
+      // swap pass this gate vacuously while dropping the desktop axe run.
+      expect(ciWorkflow).toMatch(/npx playwright test[^\n]*--project=a11y(?=\s|$)/m);
     });
 
     it('does NOT blind-wire a11y-mobile into CI (Story-5.1 test.fixme debt — deliberate omission)', () => {

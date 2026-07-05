@@ -552,7 +552,17 @@ async function computeVenueDaySeriesResult(
       effectiveCover,
       isRaining,
     );
-    series.push({ minutes, sunExposurePercent, currentSunStatus });
+    // STORY 11 (review): carry the per-step gated sky condition so a client time
+    // scrub can override the obscured sub-line to track the step (parity with the
+    // single-instant compute at ~L749 — rain precedence, else cloud descriptor,
+    // else unavailable). Keeps the obscured sky phrase from freezing at the
+    // server single-instant on a scrub (the Epic-10 honesty class).
+    const skyCondition = isRaining
+      ? 'rain'
+      : weather
+        ? skyConditionFromCloudCover(weather.cloudCover)
+        : 'unavailable';
+    series.push({ minutes, sunExposurePercent, currentSunStatus, skyCondition });
   }
 
   return { series, cacheable: buildings !== null };

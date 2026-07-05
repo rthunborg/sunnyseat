@@ -78,6 +78,27 @@ describe('[11.2 automate] TimeSlider — pointer-end without a drag commits noth
   });
 });
 
+describe('[11.2 automate] TimeSlider — drag flag is a synchronous ref (same-turn pointerdown→change robustness)', () => {
+  it('the FIRST change after pointerDown takes the drag branch (no per-step commit) even before a re-render', () => {
+    // Regression guard: the drag flag is backed by a synchronous `isDraggingRef`
+    // set in `onPointerDown`, not read off the rendered `dragValue` state. If a
+    // browser dispatches the range input's first `change` in the SAME event turn
+    // as `pointerdown` (before React commits dragValue null→number), reading the
+    // flag off state would take the discrete-tap commit branch and reintroduce
+    // the per-step commit. The ref makes the very first change non-committing.
+    const { onMinutesChange, slider } = renderSlider({ selectedMinutes: 12 * 60 });
+    fireEvent.pointerDown(slider);
+    // The immediate first change must NOT commit (drag branch, ref-gated).
+    fireEvent.change(slider, { target: { value: String(12 * 60 + 15) } });
+    expect(onMinutesChange).not.toHaveBeenCalled();
+
+    // On settle, exactly one commit to the dragged-to value.
+    fireEvent.pointerUp(slider);
+    expect(onMinutesChange).toHaveBeenCalledTimes(1);
+    expect(onMinutesChange).toHaveBeenCalledWith(12 * 60 + 15);
+  });
+});
+
 describe('[11.2 automate] TimeSlider — effectiveMin clamps an out-of-range minMinutes into the planner range', () => {
   it('clamps an oversized minMinutes down to the planner end (thumb never off-track)', () => {
     const { slider } = renderSlider({ minMinutes: 99 * 60, selectedMinutes: 20 * 60 });

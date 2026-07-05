@@ -195,6 +195,11 @@ describe('Story 11.1 AC1 — per-step parity with the single-instant compute', (
 
     expect(requestedStep!.sunExposurePercent).toBe(single.venue.sunExposurePercent);
     expect(requestedStep!.currentSunStatus).toBe(single.venue.currentSunStatus);
+    // Story 11 (review): the per-step skyCondition also matches the single-instant
+    // compute byte-for-byte (rain precedence → cloud descriptor → unavailable),
+    // so the client obscured sub-line can override to the scrubbed step in parity
+    // with the status it sits beside.
+    expect(requestedStep!.skyCondition).toBe(single.venue.skyCondition);
   });
 
   // P0 — parity holds at OTHER steps too: for any planner step, the series value

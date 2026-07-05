@@ -96,15 +96,27 @@ function detailRequest(slug: string): NextRequest {
   return new NextRequest(`http://localhost/api/venues/${slug}`);
 }
 
+type DaySeriesEntryShape = {
+  minutes: number;
+  sunExposurePercent: number;
+  currentSunStatus: VenueSunStatus;
+  skyCondition: string;
+};
+
 /** Build a full 61-entry gated day-series for a venue (the Task-1 producer shape). */
-function daySeriesFor(baseStatus: VenueSunStatus): { minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus }[] {
-  const series: { minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus }[] = [];
+function daySeriesFor(baseStatus: VenueSunStatus): DaySeriesEntryShape[] {
+  const series: DaySeriesEntryShape[] = [];
   for (let m = PLANNER_START_MINUTES; m <= PLANNER_END_MINUTES; m += PLANNER_STEP_MINUTES) {
     // A plausible arc: shaded early/late, sunlit midday; one midday step gated.
     const sunlit = m >= 11 * 60 && m <= 18 * 60;
     const sunExposurePercent = sunlit ? 90 : 10;
-    const currentSunStatus: VenueSunStatus = sunlit ? (m === 13 * 60 ? 'CloudObscured' : baseStatus) : 'Shaded';
-    series.push({ minutes: m, sunExposurePercent, currentSunStatus });
+    const gated = sunlit && m === 13 * 60;
+    const currentSunStatus: VenueSunStatus = sunlit ? (gated ? 'CloudObscured' : baseStatus) : 'Shaded';
+    // Story 11 (review): each entry carries the per-step gated sky condition so a
+    // client scrub can track the obscured sub-line. The gated midday step reads
+    // 'overcast'; other steps read 'clear'.
+    const skyCondition = gated ? 'overcast' : 'clear';
+    series.push({ minutes: m, sunExposurePercent, currentSunStatus, skyCondition });
   }
   return series;
 }
@@ -167,12 +179,15 @@ describe('Story 11.1 AC1 — real-engine list DTO carries the day-series', () =>
 
     expect(body.venues.length).toBeGreaterThan(0);
     for (const v of body.venues) {
-      const series = (v as unknown as { sunDaySeries?: { minutes: number; sunExposurePercent: number; currentSunStatus: string }[] }).sunDaySeries;
+      const series = (v as unknown as { sunDaySeries?: { minutes: number; sunExposurePercent: number; currentSunStatus: string; skyCondition?: string }[] }).sunDaySeries;
       expect(series).toBeDefined();
       expect(series!.map((e) => e.minutes)).toEqual(expectedMinutes);
       for (const entry of series!) {
         expect(typeof entry.sunExposurePercent).toBe('number');
         expect(entry.currentSunStatus).toBeTruthy();
+        // Story 11 (review): the per-step skyCondition passes through the DTO so
+        // the client obscured sub-line can track a scrub.
+        expect(typeof entry.skyCondition).toBe('string');
       }
     }
   });

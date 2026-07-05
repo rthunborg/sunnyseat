@@ -23,6 +23,13 @@ import type { VenueDaySeriesEntry, VenueSunStatus } from '@/lib/types/api';
 export type DerivedVenueSun = {
   sunExposurePercent: number;
   currentSunStatus: VenueSunStatus;
+  /**
+   * The per-step gated sky condition (obscured sub-line). Carried so a scrub
+   * overrides the obscured sky phrase to track the step instead of freezing at
+   * the server single-instant. `undefined` when the series entry predates the
+   * field (backward-compatible); the caller then leaves the venue value as-is.
+   */
+  skyCondition?: string;
 };
 
 /**
@@ -44,5 +51,6 @@ export function deriveVenueSunAtMinutes(
   return {
     sunExposurePercent: entry.sunExposurePercent,
     currentSunStatus: entry.currentSunStatus,
+    skyCondition: entry.skyCondition,
   };
 }

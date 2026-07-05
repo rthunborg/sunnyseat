@@ -176,6 +176,10 @@ export function validatePlannerDateTime({
 
 /** Shift a `YYYY-MM-DD` Stockholm date key by whole days (UTC-anchored math). */
 export function addDaysToDateKey(date: string, days: number): string {
+  // A malformed key would yield `Number('abc') = NaN` → `Date.UTC(NaN,…)` =
+  // Invalid Date → `.toISOString()` throws. Guard like the sibling validators
+  // so an exported util never throws on bad input; pass the input straight back.
+  if (!isValidDateKey(date)) return date;
   const [yearRaw = '1970', monthRaw = '01', dayRaw = '01'] = date.split('-');
   const shifted = new Date(Date.UTC(Number(yearRaw), Number(monthRaw) - 1, Number(dayRaw)));
   shifted.setUTCDate(shifted.getUTCDate() + days);

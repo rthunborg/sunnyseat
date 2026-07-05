@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   clampPlannerMinutes,
   formatPlannerTime,
@@ -52,6 +52,14 @@ export function TimeSlider({
   // the controlled `selectedMinutes` prop is the source of truth, so a live-clock
   // tick or any external change still moves the thumb (no stuck-thumb bug).
   const [dragValue, setDragValue] = useState<number | null>(null);
+  // Story 11.2 (AC2): the drag flag is backed by a SYNCHRONOUS ref set in
+  // `onPointerDown` and read in `handleChange`. If a browser dispatches the
+  // range input's first `change` in the same event turn as `pointerdown` (before
+  // React commits `dragValue` null→number), reading the flag off rendered state
+  // would take the discrete-tap commit branch and reintroduce a per-step commit.
+  // The ref decouples the flag from the render cycle entirely; `dragValue` state
+  // remains for render (thumb/progress/badge follow).
+  const isDraggingRef = useRef(false);
   const isDragging = dragValue !== null;
   const displayMinutes = isDragging ? dragValue : clampMinutes(selectedMinutes, effectiveMin);
 
@@ -85,7 +93,9 @@ export function TimeSlider({
 
   const handleChange = (next: number) => {
     const value = clampMinutes(snapPlannerMinutes(next), effectiveMin);
-    if (isDragging) {
+    // Read the SYNCHRONOUS ref (not `isDragging` off rendered state) so a
+    // same-turn pointerdown→change ordering still takes the drag branch.
+    if (isDraggingRef.current) {
       // Drag in progress: update only the local visual value; do NOT commit
       // per step (the anti-pattern this story kills).
       setDragValue(value);
@@ -96,13 +106,19 @@ export function TimeSlider({
     onMinutesChange(value);
   };
 
+  const startDrag = () => {
+    isDraggingRef.current = true;
+    setDragValue(clampMinutes(selectedMinutes, effectiveMin));
+  };
+
   const endDrag = () => {
-    if (!isDragging) {
+    if (!isDraggingRef.current) {
       onSnap();
       return;
     }
     // Commit the dragged-to value exactly once, then settle via the existing
     // snap seam. The controlled prop wins on the next render (reconcile).
+    isDraggingRef.current = false;
     onMinutesChange(dragValue ?? clampMinutes(selectedMinutes, effectiveMin));
     setDragValue(null);
     onSnap();
@@ -152,7 +168,7 @@ export function TimeSlider({
           aria-valuemin={effectiveMin}
           aria-valuetext={valueText}
           onChange={(event) => handleChange(Number(event.currentTarget.value))}
-          onPointerDown={() => setDragValue(clampMinutes(selectedMinutes, effectiveMin))}
+          onPointerDown={startDrag}
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
           onKeyDown={(event) => {

@@ -46,6 +46,15 @@ describe('[11.2 automate] addDaysToDateKey — UTC-anchored whole-day math', () 
     // round-trip: +3 then -3 returns the original key
     expect(addDaysToDateKey(addDaysToDateKey('2026-06-14', 3), -3)).toBe('2026-06-14');
   });
+
+  it('returns a malformed key unchanged instead of throwing (isValidDateKey guard)', () => {
+    // Without the guard, `Number('abc') = NaN` → `Date.UTC(NaN,…)` = Invalid Date
+    // → `.toISOString()` throws a RangeError. The guard returns the input as-is.
+    for (const bad of ['abc', '2026-13-01', '2026-5-20', '', '2026/05/20']) {
+      expect(() => addDaysToDateKey(bad, 3)).not.toThrow();
+      expect(addDaysToDateKey(bad, 3)).toBe(bad);
+    }
+  });
 });
 
 describe('[11.2 automate] plannerWindowBounds — [today, today+PLANNER_MAX_FUTURE_DAYS]', () => {

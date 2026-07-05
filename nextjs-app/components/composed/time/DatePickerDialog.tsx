@@ -24,10 +24,11 @@ export type DatePickerDialogLabels = {
   /**
    * Story 11.2 (AC3): disabled-label copy for a future date beyond the
    * today->today+3 planning window (in-season, so neither "past" nor
-   * "out-of-season"). Optional so existing callers stay valid; falls back to
-   * `unavailableDate` when absent.
+   * "out-of-season"). REQUIRED — a beyond-window in-season date must never fall
+   * back to the wrong "Datum utanför säsong" copy, so the type system forces
+   * every caller to wire it (un-regressable AC3 copy fix).
    */
-  windowDate?: string;
+  windowDate: string;
   selectDate: string;
 };
 
@@ -149,7 +150,7 @@ export function DatePickerDialog({
                 const disabledLabel = isPast
                   ? labels.pastDate
                   : inSeason
-                    ? labels.windowDate ?? labels.unavailableDate
+                    ? labels.windowDate
                     : labels.unavailableDate;
                 return (
                   <button
