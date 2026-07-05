@@ -5,11 +5,11 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T12:45:06Z"
+updated_at: "2026-07-05T12:58:17Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
-active_seconds: 76331
-timing_anchor: 1783255506
+active_seconds: 77121
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -53,11 +53,12 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: feels-instant-reads-clear
-active_story: 11-4-venue-quick-info-rework-reference-alignment
+active_story: 11-5-map-legibility-location-dot-recenter
 stories_landed:
   - 11-1-client-side-day-series-instant-time-scrubbing
   - 11-2-time-slider-drag-fix-planner-range-rules
   - 11-3-mobile-tag-filtering-bottom-sheet-overhaul
+  - 11-4-venue-quick-info-rework-reference-alignment
 auto_decisions:
   - "AC4 min-clamp enforced only in component, not in state [Med] -> fix: add minMinutes-aware floor inside setSelectedMinutes/snapSelectedMinutes + the missing below-min-commit state test (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
   - "AC1 real-touch e2e never runs in CI [Med] -> fix: add npx playwright test --project=touch step to build-and-test-nextjs.yml so the thumb-drag proof is a live gate (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
@@ -116,3 +117,16 @@ uat_items:
   - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Widen viewport until all chips fit → both arrows disabled, both fades gone"
   - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Tab into the strip → arrows + every chip are focus stops; tabbing to an off-screen chip auto-scrolls it into view"
   - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Desktop: click or Enter/Space a chip → toggles the pill and filters list + pins (arrows scroll only, never toggle)"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Seed path (npm run dev, no engine flags): select Kafé Magasinet or Bryggerietsoltak → quick-info card shows a single honest opening-hours line ('Öppet till 22:00' / 'Öppet till 23:00') under the name"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Inspect the open card → NO 'Säkerhet: NN%' confidence text anywhere visible (mobile or desktop)"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Inspect the open card → NO 'Sol HH:mm–HH:mm' sun-window line anywhere"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Select a venue WITHOUT hours (Solplats Magasinsgatan, Café Halvvägs, Brygghuset Lerum, Skuggans Hus, Bistro Bakgården) → NO opening-hours line and NO fabricated placeholder — slot simply empty"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Route CTA reads only 'VISA RUTT' (+ nav icon), no truncated ETA appended, at mobile-compact and desktop widths"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Narrow mobile (~360px), open the sunny card → layout (top-left % SOL badge, top-right heart, name, hours, VISA RUTT + MER INFO row) holds without overflow/clipping"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Open a Partial-sun venue (Café Halvvägs / Brygghuset Lerum) → amber % SOL badge + Sun icon on the photo strip, no confidence/sun-window text, layout holds"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Open a Shaded venue (Skuggans Hus / Bistro Bakgården) → low % SOL badge renders, no confidence/sun-window line, no overflow"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Click the venue name or MER INFO → venue detail opens (details action intact after the rework)"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Click the heart → favourite toggles (fills/unfills); click the close X → card dismisses with its transition"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Click VISA RUTT → route action fires; any 'ca N min promenad' ETA appears on the detail/route surface, NOT inside the quick-info button"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Screen reader on the open sunny card → read-out is name → sun % → opening hours → distance (sr-only confidence still spoken), no dangling '·' or duplicate phrase"
+  - "[11-4-venue-quick-info-rework-reference-alignment] NOT manually reachable on seed data: the CloudObscured 'Sol bakom moln' two-signal state (weather-gated, real path only) — preserved via component tests"
