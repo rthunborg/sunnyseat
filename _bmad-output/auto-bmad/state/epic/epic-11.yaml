@@ -5,11 +5,11 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T15:38:04Z"
+updated_at: "2026-07-05T15:46:08Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
-active_seconds: 86667
-timing_anchor: 1783265884
+active_seconds: 87151
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -53,13 +53,14 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: feels-instant-reads-clear
-active_story: 11-6-venue-detail-clean-first-paint-content-polish
+active_story: 11-7-hygiene-deferred-debt
 stories_landed:
   - 11-1-client-side-day-series-instant-time-scrubbing
   - 11-2-time-slider-drag-fix-planner-range-rules
   - 11-3-mobile-tag-filtering-bottom-sheet-overhaul
   - 11-4-venue-quick-info-rework-reference-alignment
   - 11-5-map-legibility-location-dot-recenter
+  - 11-6-venue-detail-clean-first-paint-content-polish
 auto_decisions:
   - "AC4 min-clamp enforced only in component, not in state [Med] -> fix: add minMinutes-aware floor inside setSelectedMinutes/snapSelectedMinutes + the missing below-min-commit state test (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
   - "AC1 real-touch e2e never runs in CI [Med] -> fix: add npx playwright test --project=touch step to build-and-test-nextjs.yml so the thumb-drag proof is a live gate (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
@@ -146,3 +147,13 @@ uat_items:
   - "[11-5-map-legibility-location-dot-recenter] Any recenter fly → the top search-bar card never covers the landed dot"
   - "[11-5-map-legibility-location-dot-recenter] Desktop (>=1024px), list only: locate from the desktop nav → dot centers in the map area RIGHT of the 340px list"
   - "[11-5-map-legibility-location-dot-recenter] Desktop with venue detail open: locate again → dot centers in the narrower band between list and detail panel (items 10-15 need a granted GPS fix or DevTools Sensors location override; recenter fires from the locate buttons, not the zoom stack)"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Mobile: load /?venue=test-venue-sunny&_state=venue-detail&_time=14:00 → detail sheet fully loaded (no skeletons): name, amber 'ÖPPET · 22:00' pill, type/city/rating, description, chips, Avstånd, hours+address, route button, reviews — no half-rendered frame"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Scroll that detail top-to-bottom → NO 'Soltider idag' timeline strip anywhere and no orphaned gap (description and chips cleanly adjacent)"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Desktop (>=1024px): same forced route at _time=16:30 → 390px right panel fully loaded, likewise NO timeline section / orphaned spacing"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Inspect the header ÖPPET badge text color → darkened amber-on-yellow #5c4300 on #ffbf00, clearly legible (not washed-out)"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Scroll to Omdömen on mobile → section heading + content horizontally centered"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Open a real venue with zero reviews → 'Inga omdömen' appears EXACTLY once (no duplicate count line above), centered"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Open a venue WITH reviews → review cards render and NO 'Inga omdömen' appears (count summary instead)"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Slow-3G throttle + click a real pin → while detail streams: badge/hours/address each show same-sized grey skeletons (never a fabricated ÖPPET·22:00 or empty line); name/type/city/rating/distance appear immediately from fallback"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Watch the skeleton→content swap on that throttled load → in place, no layout jump or flicker (badge skeleton footprint == final badge)"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Open a real venue lacking a closing time → NO ÖPPET badge at all after load (omitted, never a stand-in 22:00). Not reproducible via the forced route (fixture always has closesAt)"
