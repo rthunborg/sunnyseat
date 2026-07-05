@@ -269,6 +269,92 @@ describe('<MapControls />', () => {
     }
   });
 
+  it('recenter padding: dismissed snap flies with zero bottom padding (raw-viewport centre)', () => {
+    // Boundary: with the sheet fully dismissed nothing obstructs the bottom, so
+    // only the top search-bar cover remains — the dot centres on the near-raw
+    // viewport. Locks the `dismissed → bottom 0` derivation end-to-end.
+    geoState.status = 'success';
+    geoState.coords = { lat: 57.71, lng: 11.99 };
+    render(<MapControls mobileSheetState="dismissed" />, { wrapper: makeWrapper(stubMap) });
+    expect(stubMap.flyTo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        duration: 500,
+        padding: { top: 72, bottom: 0, left: 0, right: 0 },
+      }),
+    );
+  });
+
+  it('default props on DESKTOP: the default mid snap is ignored, side-panel padding wins', () => {
+    // Prop-default path — MapView passes props, but the defaults ('mid'/false)
+    // must degrade correctly if a future caller omits them at the desktop
+    // breakpoint: no phantom bottom padding from the default mid snap.
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('min-width: 1024px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+      onchange: null,
+    })) as unknown as typeof window.matchMedia;
+    try {
+      geoState.status = 'success';
+      geoState.coords = { lat: 57.71, lng: 11.99 };
+      render(<MapControls />, { wrapper: makeWrapper(stubMap) });
+      expect(stubMap.flyTo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          duration: 500,
+          padding: { top: 0, bottom: 0, left: 340, right: 0 },
+        }),
+      );
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
+  });
+
+  it('treats a missing matchMedia as mobile (SSR/jsdom guard → mobile padding)', () => {
+    // isDesktopViewport() must not throw when window.matchMedia is unavailable
+    // (older jsdom / SSR-ish render) — it falls back to the mobile branch.
+    const originalMatchMedia = window.matchMedia;
+    // @ts-expect-error deliberately removing matchMedia to exercise the guard.
+    delete window.matchMedia;
+    try {
+      geoState.status = 'success';
+      geoState.coords = { lat: 57.71, lng: 11.99 };
+      expect(() =>
+        render(<MapControls mobileSheetState="mid" />, { wrapper: makeWrapper(stubMap) }),
+      ).not.toThrow();
+      expect(stubMap.flyTo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          padding: { top: 72, bottom: 320, left: 0, right: 0 },
+        }),
+      );
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
+  });
+
+  it('does not fly while geolocation is still pending (only success triggers recenter)', () => {
+    // Negative path: the fly-to effect is gated on status === 'success'. A
+    // 'pending'/'idle' status must never move the camera (avoids a mid-request
+    // jump to stale coords).
+    geoState.status = 'pending';
+    geoState.coords = { lat: 57.71, lng: 11.99 };
+    render(<MapControls mobileSheetState="mid" />, { wrapper: makeWrapper(stubMap) });
+    expect(stubMap.flyTo).not.toHaveBeenCalled();
+  });
+
+  it('does not fly when the map is not yet ready even on geolocation success', () => {
+    // Guard: with a null mapInstance the success effect must early-return — no
+    // flyTo against a not-yet-bound canvas.
+    geoState.status = 'success';
+    geoState.coords = { lat: 57.71, lng: 11.99 };
+    render(<MapControls mobileSheetState="mid" />, { wrapper: makeNullMapWrapper() });
+    expect(stubMap.flyTo).not.toHaveBeenCalled();
+  });
+
   it('fades the controls to 60% during a map drag and back to full opacity on dragend', () => {
     const { getByTestId } = render(<MapControls />, { wrapper: makeWrapper(stubMap) });
     const wrapper = getByTestId('map-controls') as HTMLDivElement;
