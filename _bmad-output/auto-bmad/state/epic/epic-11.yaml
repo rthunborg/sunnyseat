@@ -4,10 +4,10 @@ story_key: epic-11
 epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
-status: in-progress
-updated_at: "2026-07-05T20:18:23Z"
+status: done
+updated_at: "2026-07-05T20:26:37Z"
 started_at: "2026-07-04T15:28:43Z"
-completed_at: null
+completed_at: "2026-07-05T20:26:37Z"
 active_seconds: 97643
 timing_anchor: 1783282703
 is_first_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 8
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 7, 81, 82]
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
 code_review_iterations: 2
 code_review_loop_done: true
 hitl_halt: "auto-continued (epic â€” no halt)"
@@ -39,8 +39,8 @@ phase8_steps:
 gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 2
-pr_url: null
-ci_run_url: null
+pr_url: "https://github.com/rthunborg/sunnyseat/pull/17"
+ci_run_url: "https://github.com/rthunborg/sunnyseat/actions/runs/28753805164"
 ci_status: unknown
 pr_merged: false
 merge_method: null
