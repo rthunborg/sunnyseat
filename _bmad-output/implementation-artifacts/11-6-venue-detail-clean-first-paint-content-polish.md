@@ -201,3 +201,9 @@ No reference PNG was edited or regenerated.
 - `nextjs-app/test/components/ReviewFlow.test.tsx` (M — added single-empty-message + centered-layout tests)
 - `nextjs-app/test/components/VenueDetailOverlay.test.tsx` (M — cleaned stale label props off the test `labels` object)
 - `nextjs-app/test/components/MapView.test.tsx` (M — replaced the `'Bäst 11:00-15:00'` subtitle assertion with a section-removed assertion)
+
+### Review Findings
+
+_Triage of the thin (auditor-only) Tier-A code review, 2026-07-05. Verdict: Approve. Security review: 0 findings. Of the 5 raw auditor findings (2 Low, 3 Info), 1 Low survives as a Defer; the other Low and all 3 Info are dismissed as noise (out-of-scope / no-defect confirmation notes). No Decision or Patch findings._
+
+- [x] [Review][Defer][Low] AC3 "centered per the reference" diverges from the literal reference JSX (left-aligned `space-between`) [nextjs-app/components/custom/feedback/ReviewFlow.tsx:75] — deferred, pre-existing. The code centers the reviews header/empty body (`flex flex-col items-center text-center`) per AC3's explicit "centered" prose, but the reference `docs/design/references/claude-design/project/src/VenueDetail.jsx:291-340` renders the reviews preview left-aligned (`justifyContent:'space-between'`). AC3's written text is the maintainer's stated authority and the story's Dev Notes flag exactly this reference/AC tension, so the code satisfies AC3 — no code change. Flagged only so the Story 11.7 visual rebaseline confirms "centered" is the intended look (and the reference file, not the code, is the stale side).
