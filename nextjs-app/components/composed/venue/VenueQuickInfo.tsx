@@ -62,7 +62,6 @@ export type VenueQuickInfoProps = {
   onDismiss: () => void;
   onOpenDetails: () => void;
   onRoute: () => void;
-  routeEstimateLabel?: string;
   isRouteLoading?: boolean;
   onFavouriteToggle?: () => void;
   isFavourite?: boolean;

@@ -232,4 +232,6 @@ Opus 4.8 (1M) — `claude-opus-4-8[1m]` (bmad-dev-story).
 
 ## Review Findings
 
-_TBD by code review._
+_Triage of code review round 1 (auditor-primary + security). Verdict: Approve (all findings Low; 1 Patch, 1 Dismissed noise). No Decisions, no Deferrals._
+
+- [x] [Review][Patch][Low] Dead `routeEstimateLabel?: string;` left in `VenueQuickInfoProps` — the AC2 removal dropped `routeEstimateLabel` from the component destructuring, the internal `<RouteButton>` call, and both MapView call sites, but left the orphaned type member. This contradicts the story's own Completion Notes (AC2) claim "Dropped `routeEstimateLabel` from `VenueQuickInfoProps`" and the Dev Notes anti-"half-state" rule (no "hidden-but-still-plumbed" prop). Functionally harmless (a future call site passing it would be silently ignored — `RouteButton` correctly reads "VISA RUTT" alone). Fix: delete line. [nextjs-app/components/composed/venue/VenueQuickInfo.tsx:65]
