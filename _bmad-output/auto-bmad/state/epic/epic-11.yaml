@@ -5,11 +5,11 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T16:58:31Z"
+updated_at: "2026-07-05T17:12:48Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
-active_seconds: 91000
-timing_anchor: 1783270277
+active_seconds: 92290
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -53,7 +53,7 @@ blockers: []
 overrides: {}
 constraints: []
 epic_slug: feels-instant-reads-clear
-active_story: 11-7-hygiene-deferred-debt
+active_story: 11-8-live-verification-pass-touch-gesture-perf-guards
 stories_landed:
   - 11-1-client-side-day-series-instant-time-scrubbing
   - 11-2-time-slider-drag-fix-planner-range-rules
@@ -61,6 +61,7 @@ stories_landed:
   - 11-4-venue-quick-info-rework-reference-alignment
   - 11-5-map-legibility-location-dot-recenter
   - 11-6-venue-detail-clean-first-paint-content-polish
+  - 11-7-hygiene-deferred-debt
 auto_decisions:
   - "AC4 min-clamp enforced only in component, not in state [Med] -> fix: add minMinutes-aware floor inside setSelectedMinutes/snapSelectedMinutes + the missing below-min-commit state test (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
   - "AC1 real-touch e2e never runs in CI [Med] -> fix: add npx playwright test --project=touch step to build-and-test-nextjs.yml so the thumb-drag proof is a live gate (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
@@ -158,3 +159,6 @@ uat_items:
   - "[11-6-venue-detail-clean-first-paint-content-polish] Slow-3G throttle + click a real pin → while detail streams: badge/hours/address each show same-sized grey skeletons (never a fabricated ÖPPET·22:00 or empty line); name/type/city/rating/distance appear immediately from fallback"
   - "[11-6-venue-detail-clean-first-paint-content-polish] Watch the skeleton→content swap on that throttled load → in place, no layout jump or flicker (badge skeleton footprint == final badge)"
   - "[11-6-venue-detail-clean-first-paint-content-polish] Open a real venue lacking a closing time → NO ÖPPET badge at all after load (omitted, never a stand-in 22:00). Not reproducible via the forced route (fixture always has closesAt)"
+  - "[11-7-hygiene-deferred-debt] MAINTAINER BLESSING: run the dev app fresh and eyeball each of the 12 staged rebaseline PNGs (screens/mobile/{map-primary,map-panel-venues,map-with-selected-venue,venue-detail,favourites-tab,map-with-obscured-venue,venue-detail-obscured} + desktop/{map-primary,venue-detail,favourites-tab,map-with-obscured-venue,venue-detail-obscured}) against the live surface → BLESS or reject each (dev is forbidden from self-blessing; this is the visual gate)"
+  - "[11-7-hygiene-deferred-debt] Resolved-High spot-check: mobile map-primary.png shows the resting de-dulled map with sheet COLLAPSED (no chips/segmented control) while map-panel-venues.png shows the expanded 11-3 sheet (chips + cards) — genuinely different states (md5 eaadf98… vs 5b24572…)"
+  - "[11-7-hygiene-deferred-debt] Obscured re-verify: the 4 obscured references (map-with-obscured-venue + venue-detail-obscured, both breakpoints) still show intact obscured chrome (slate pill, 'SOL BAKOM MOLN · MULET') matching the live obscured surface"
