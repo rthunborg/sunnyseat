@@ -25,3 +25,6 @@
 - [Phase 5 â€” dev-story] Turbopack stale-CSS trap: after any globals.css token change, restart next dev with a fresh .next before running touch e2e (token resolved to empty string until restart).
 - [Phase 5 â€” dev-story] PRE-EXISTING failure found at baseline: epic-11-scrub-zero-fetch DESKTOP date-change fails â€” 11-1's planner-date-next testid exists in both TimeSliderPanel variants but is not visible/reachable on desktop. Orchestrator dispatching a targeted fix(story-11-1) pass this run.
 - [Phase 5 â€” dev-story] PRE-EXISTING axe boundary flake: VenueDetailContent amber sun badge color-contrast 4.47:1 vs 4.5 AA â€” same amber-badge class as Story 5.1 debt. 11-6 (venue-detail rework) MUST land the badge at >=4.5:1 so the axe gate stays deterministically green.
+
+## Story 11-4-venue-quick-info-rework-reference-alignment
+- [Phase 3 â€” create-story] Seed path serves raw VENUE_FIXTURE with NO openingHours (no VENUE_DETAIL_SEED merge) â€” AC1's opening-hours render is unreachable in CI unless fixtures seed both present- and absent-cases. Anti-'shipped-but-insufficient' applied to a data field.
