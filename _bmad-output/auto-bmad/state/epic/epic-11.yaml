@@ -5,11 +5,11 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T14:17:16Z"
+updated_at: "2026-07-05T14:17:17Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
 active_seconds: 81838
-timing_anchor: null
+timing_anchor: 1783261037
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
