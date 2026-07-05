@@ -37,12 +37,20 @@
  * with a mobile-only guard so it does not run (and fail) under `desktop` (no touchscreen).
  *
  * =========================================================================
- * RED PHASE — why the describe is `.skip`-ed
+ * STANDING STORY-11.8 INVARIANT (promoted from the 11.2 seam — no longer red-phase)
  * =========================================================================
- * Against the current tree the touch-drag FAILS to change time because the decorative
- * thumb eats the pointer (Task 1 not yet applied) and the per-step commit is not yet
- * decoupled (Task 2). Un-skip when Tasks 1 + 2 land. The `planner-time-label` /
- * `time-slider-thumb` testids already exist in `TimeSliderPanel`/`TimeSlider`.
+ * Story 11.2 Tasks 1 + 2 have landed: the decorative thumb is `pointer-events-none` and the
+ * per-step commit is decoupled, so the real touch-drag ON the thumb now changes the committed
+ * time and a same-date drag issues ZERO `**​/api/venues*` requests. This is now a durable
+ * Story-11.8 real-touch invariant and MUST stay green.
+ *
+ * The `test.beforeEach` below is a `hasTouch`-PROJECT self-skip (NOT a red-phase skip): real
+ * touch is CDP `Input.dispatchTouchEvent`, so this describe runs under a touch-capable project
+ * (`--project=touch` / Pixel-5 in CI, or the `mobile`/iPhone-14 project) and self-skips off
+ * projects without a touchscreen rather than false-failing. KEEP that guard. The
+ * `planner-time-label` / `time-slider-thumb` testids exist in `TimeSliderPanel`/`TimeSlider`.
+ * If this ever goes RED against HEAD, that is a genuine Epic-11 regression — fix the
+ * implementation, never delete the assertion.
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';

@@ -27,17 +27,21 @@
  * request COUNT and marker-element persistence (both deterministic). Belt-and-
  * braces: FAILS if any outbound `api.met.no` request is observed.
  *
- * NOTE (11.1 ↔ 11.8 boundary): the standing request-count + marker-persistence
- * guards + the real-touch profile are Story 11.8's. This spec leaves the seam
- * testable NOW (scrub=0 / date-change=1 / markers keyed by id / overlay present);
- * 11.8 promotes/extends it. Runs under `--project=desktop` AND `--project=mobile`.
- *
- * =========================================================================
- * RED PHASE
- * =========================================================================
- * `test.describe.skip` — the day-series is not yet on the DTO, the scrub still
- * changes the query key (so it still fetches), and the date-change overlay testid
- * does not exist yet. Un-skip once Tasks 2/4/5 land.
+ * STANDING STORY-11.8 INVARIANT (promoted from the 11.1 seam — no longer red-phase):
+ * This is now the durable epic request-count + marker-persistence gate that Story 11.8
+ * OWNS. The 11.1 day-series has landed (scrub no longer changes the query key), the
+ * `date-change-overlay` testid exists in `MapView.tsx`, and the `.filter({ visible: true })`
+ * dual-variant `planner-date-next` selector binds the visible instance on each breakpoint.
+ * The `test.describe(...)` below is LIVE (not `.skip`) and MUST stay un-skipped, green, and
+ * CI-wired: it runs under `--project=desktop` AND `--project=mobile` (the CI "E2E tests" step).
+ * The two assertions are load-bearing — do NOT weaken them:
+ *   (a) a settled same-date TIME scrub adds ZERO `**​/api/venues*` requests (R-001 headline —
+ *       "REMOVE the fetch, do not dampen it"); and
+ *   (b) a DATE change fires EXACTLY ONE request, markers stay MOUNTED (keyed by venue id) under
+ *       the dim + centered spinner `date-change-overlay`, then update in place.
+ * Belt-and-braces: FAILS if any outbound `api.met.no` request is observed. A settled scrub that
+ * fires even ONE venue request, or a date change that unmounts markers, is a genuine Epic-11
+ * regression — fix the implementation, never the assertion.
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';
