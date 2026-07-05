@@ -92,9 +92,26 @@ describe('venue-store (default in-memory)', () => {
     for (const venue of venues) {
       expect(venue).not.toHaveProperty('description');
       expect(venue).not.toHaveProperty('address');
-      expect(venue).not.toHaveProperty('openingHours');
       expect(venue).not.toHaveProperty('peakTime');
       expect(venue).not.toHaveProperty('shadowWarningMinutes');
+    }
+  });
+
+  it('surfaces openingHours on seeded list venues that carry it, and omits it otherwise (Story 11.4 AC1)', async () => {
+    // Story 11.4 (AC1) CI-determinism: the seed path returns raw VENUE_FIXTURE
+    // (no VENUE_DETAIL_SEED merge), so opening hours reach the list DTO ONLY for
+    // the fixtures that carry them. The two sunny fixtures seed a real value
+    // (present-case); at least one fixture omits it (absent-case) so the
+    // "renders nothing when absent" branch is CI-provable.
+    const venues = await getVenues();
+    const sunny = venues.find((venue) => venue.slug === 'test-venue-sunny');
+    expect(sunny?.openingHours).toEqual({ display: 'Öppet till 22:00', closesAt: '22:00' });
+
+    const withoutHours = venues.filter((venue) => venue.openingHours === undefined);
+    expect(withoutHours.length).toBeGreaterThan(0);
+    // The absent case never carries a fabricated placeholder.
+    for (const venue of withoutHours) {
+      expect(venue).not.toHaveProperty('openingHours');
     }
   });
 
@@ -528,12 +545,27 @@ describe('venue-store projection helpers', () => {
     const base = toVenueData(stored);
     expect(base).not.toHaveProperty('description');
     expect(base).not.toHaveProperty('address');
-    expect(base).not.toHaveProperty('openingHours');
     expect(base).not.toHaveProperty('peakTime');
     expect(base).not.toHaveProperty('shadowWarningMinutes');
     expect(base).toMatchObject({ id: '1', skyCondition: 'clear', sunWindow: { start: '13:00', end: '18:30' } });
     // Story 9.7: `tags` IS a client field — it survives the projection.
     expect(base.tags).toEqual(['Innergård', 'Hund ok', 'Wifi', 'Bakverk']);
+  });
+
+  it('toVenueData surfaces openingHours on the list DTO when the store carries it (Story 11.4 AC1)', () => {
+    // Story 11.4 (AC1): opening hours are the ONE detail-adjacent field carried
+    // through to the list surface so the quick-info can render "Öppet till HH:MM".
+    const base = toVenueData(stored);
+    expect(base.openingHours).toEqual({ display: 'Öppet till 22:00' });
+  });
+
+  it('toVenueData omits openingHours when the store has none (never fabricated — Story 11.4 AC1)', () => {
+    // Absent → absent: a venue without opening hours must NOT gain a fabricated
+    // value on the list DTO (the card renders nothing for it).
+    const { openingHours: _omit, ...withoutHours } = stored;
+    void _omit;
+    const base = toVenueData(withoutHours);
+    expect(base).not.toHaveProperty('openingHours');
   });
 
   it('storedVenueDetail extracts only the detail block', () => {

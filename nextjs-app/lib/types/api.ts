@@ -122,6 +122,21 @@ export interface VenueDataDto {
    * from this series so a settled time scrub fetches nothing.
    */
   sunDaySeries?: VenueDaySeriesEntry[];
+  /**
+   * STORY 11.4 (AC1): the venue's real opening hours, surfaced on the LIST DTO so
+   * the quick-info card can render a single honest "Öppet till HH:MM" line in the
+   * slot vacated by the removed confidence/sun-window lines. OPTIONAL and present
+   * ONLY where the store carries `venues.opening_hours` — venues without opening
+   * hours OMIT this field entirely, and the card renders nothing (NEVER a
+   * fabricated value). Copied from the detail block in `toVenueData` with the
+   * optional-guard pattern; `VenueDetailDto` re-declares it as REQUIRED (a legal
+   * optional→required override). The value is a pre-localized display string from
+   * the store, so no template/i18n key is fabricated for it.
+   */
+  openingHours?: {
+    display: string;
+    closesAt?: string;
+  };
   thumbnail?: {
     alt: string;
     initials: string;

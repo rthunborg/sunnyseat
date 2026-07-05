@@ -892,6 +892,7 @@ describe('<MapView />', () => {
               sunExposurePercent: 95,
               tags: [],
               sunWindow: { start: '13:00', end: '18:30' },
+              openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
               thumbnail: {
                 alt: 'Uteservering hos Testbaren',
                 initials: 'TB',
@@ -911,7 +912,10 @@ describe('<MapView />', () => {
       const { rerender } = render(<MapView />, { wrapper: Wrapper });
       expect(screen.getAllByTestId('venue-quick-info')).toHaveLength(2);
       expect(screen.getAllByRole('button', { name: 'Testbaren' })).toHaveLength(2);
-      expect(screen.getAllByText('Sol 13:00–18:30')).toHaveLength(2);
+      // Story 11.4 (AC1): the quick-info renders real opening hours (both mounted
+      // breakpoint variants) in place of the removed "Sol HH:mm–HH:mm" window.
+      expect(screen.getAllByText('Öppet till 22:00')).toHaveLength(2);
+      expect(screen.queryByText('Sol 13:00–18:30')).not.toBeInTheDocument();
       expect(screen.getAllByRole('img', { name: 'Uteservering hos Testbaren' }).length).toBeGreaterThanOrEqual(2);
       expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
 
@@ -1197,11 +1201,14 @@ describe('<MapView />', () => {
       render(<MapView />, { wrapper: Wrapper });
 
       expect(screen.queryByLabelText('Laddar soldata')).not.toBeInTheDocument();
-      expect(screen.getAllByText('Sol 13:00–18:30')).toHaveLength(2);
+      // Story 11.4 (AC1): the quick-info keeps its content visible during a
+      // background refetch — now proven via the opening-hours line + distance
+      // (the sun-window line was removed).
+      expect(screen.getAllByText('Öppet till 22:00')).toHaveLength(2);
       expect(screen.getAllByText(/180 m/).length).toBeGreaterThanOrEqual(2);
     });
 
-    it('formats QuickInfo sun ranges from the active locale', () => {
+    it('renders the QuickInfo with locale-driven chrome and the honest opening-hours line (Story 11.4 AC1)', () => {
       selectedVenueIdMock = 'venue-1';
       useVenueSearchMock.mockReturnValue({
         data: makeVenueResponse([
@@ -1214,8 +1221,14 @@ describe('<MapView />', () => {
 
       render(<MapView />, { wrapper: EnglishWrapper });
 
-      expect(screen.getAllByText('Sun 13:00–18:30')).toHaveLength(2);
+      // The removed sun-window line no longer localizes; the quick-info chrome
+      // still follows the active locale (English CTA labels) and the raw
+      // opening-hours display string renders in the freed slot.
+      expect(screen.getAllByRole('button', { name: 'Show Route' })).toHaveLength(2);
+      expect(screen.getAllByRole('button', { name: 'More Info' })).toHaveLength(2);
+      expect(screen.getAllByText('Öppet till 22:00')).toHaveLength(2);
       expect(screen.queryByText('Sol 13:00–18:30')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sun 13:00–18:30')).not.toBeInTheDocument();
     });
 
     it('opens details from QuickInfo with the public deep-link URL', () => {
@@ -1251,7 +1264,10 @@ describe('<MapView />', () => {
       });
 
       render(<MapView />, { wrapper: Wrapper });
-      expect(screen.getAllByText('ca 2 min').length).toBeGreaterThanOrEqual(1);
+      // Story 11.4 (AC2): the quick-info route CTA no longer squeezes an ETA
+      // inside the button — it reads only "VISA RUTT". The ETA lives on in the
+      // route overlay below (which is asserted after the handoff opens it).
+      expect(screen.queryByText('ca 2 min')).not.toBeInTheDocument();
       fireEvent.click(screen.getAllByRole('button', { name: /Visa Rutt/ })[0]);
 
       expect(openSpy).toHaveBeenCalledWith(
@@ -2421,7 +2437,10 @@ describe('<MapView />', () => {
       }));
 
       render(<MapView />, { wrapper: Wrapper });
-      expect(screen.getAllByText('Sol 09:00–10:00')).toHaveLength(2);
+      // Story 11.4 (AC1): the quick-info no longer shows a sun-window line, so
+      // the preview-refresh proof reads off the geometric sun badge instead
+      // (12% preview → 88% refreshed) — same behaviour, different surfaced field.
+      expect(screen.getAllByText(/12% SOL/).length).toBeGreaterThanOrEqual(2);
 
       fireEvent.click(screen.getAllByRole('button', { name: /Öppna kalender: Idag/ })[0]);
       fireEvent.click(screen.getByRole('button', { name: 'Välj 21 maj 2026' }));
@@ -2434,7 +2453,7 @@ describe('<MapView />', () => {
           lng: 11.9746,
         }),
       );
-      expect(screen.getAllByText('Sol 13:30–18:00')).toHaveLength(2);
+      expect(screen.getAllByText(/88% SOL/).length).toBeGreaterThanOrEqual(2);
       expect(JSON.parse(screen.getByTestId('venue-pin-layer-stub').dataset.venues ?? '[]')).toEqual([
         expect.objectContaining({
           id: 'outside-search',
@@ -2523,8 +2542,10 @@ describe('<MapView />', () => {
           lng: 11.9746,
         }),
       );
-      expect(screen.getAllByText('Sol 13:15–17:45')).toHaveLength(2);
-      expect(screen.queryByText('Sol 09:30–10:30')).not.toBeInTheDocument();
+      // Story 11.4 (AC1): sun-window line removed — assert the refreshed geometric
+      // sun badge (19% stale → 86% refreshed) as the per-time refresh proof.
+      expect(screen.getAllByText(/86% SOL/).length).toBeGreaterThanOrEqual(2);
+      expect(screen.queryByText(/19% SOL/)).not.toBeInTheDocument();
       expect(JSON.parse(screen.getByTestId('venue-pin-layer-stub').dataset.venues ?? '[]')).toEqual([
         expect.objectContaining({
           id: 'outside-search',
@@ -2740,12 +2761,17 @@ describe('<MapView />', () => {
 
       render(<MapView />, { wrapper: Wrapper });
 
+      // Forced-visual normalization pins the geometric badge to 95% and confidence
+      // to 95 (now surfaced via the sr-only accessible line, not a visible chip)
+      // and keeps the venue's real opening hours (Story 11.4 AC1: no sun-window/
+      // no visible Säkerhet chip). The un-normalized 99% never appears.
       expect(screen.getAllByText(/95% SOL/).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText(/Säkerhet: 95%/).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText(/Sol 13:00–18:30/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Säkerhet 95%/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Öppet till 22:00/).length).toBeGreaterThanOrEqual(1);
       expect(screen.queryByText(/99% SOL/)).not.toBeInTheDocument();
-      expect(screen.queryByText(/Säkerhet: 99%/)).not.toBeInTheDocument();
-      expect(screen.queryByText(/Sol 09:00–10:00/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Säkerhet 99%/)).not.toBeInTheDocument();
+      // No sun-window line renders on the quick-info at all anymore.
+      expect(screen.queryByText(/Sol \d{2}:\d{2}/)).not.toBeInTheDocument();
     });
 
     it('clears an active detail URL after selecting a different venue from search', async () => {
@@ -3129,6 +3155,7 @@ function makeVenue({
   thumbnailUrl,
   confidence = 92,
   sunWindow = { start: '13:00', end: '18:30' },
+  openingHours = { display: 'Öppet till 22:00', closesAt: '22:00' },
 }: {
   id: string;
   name: string;
@@ -3138,6 +3165,10 @@ function makeVenue({
   thumbnailUrl?: string;
   confidence?: number;
   sunWindow?: GetVenuesResponse['venues'][number]['sunWindow'];
+  // Story 11.4 (AC1): opening hours now ride on the list DTO. Default present so
+  // the quick-info renders its honest "Öppet till HH:MM" line in these
+  // integration renders; pass `undefined` to exercise the absent branch.
+  openingHours?: GetVenuesResponse['venues'][number]['openingHours'];
 }): GetVenuesResponse['venues'][number] {
   return {
     id,
@@ -3154,6 +3185,7 @@ function makeVenue({
     sunExposurePercent,
     tags: [],
     sunWindow,
+    ...(openingHours ? { openingHours } : {}),
     thumbnail: {
       alt: `${name} uteservering`,
       initials: name.slice(0, 2),

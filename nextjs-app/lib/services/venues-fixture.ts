@@ -50,6 +50,12 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     sunExposurePercent: 95,
     tags: ['Innergård', 'Hund ok', 'Wifi', 'Bakverk'],
     sunWindow: { start: '13:00', end: '18:30' },
+    // Story 11.4 (AC1) CI-determinism: the seed path returns raw VENUE_FIXTURE
+    // (no VENUE_DETAIL_SEED merge), so opening hours must live on the fixture
+    // itself to reach the list DTO on the flag-OFF path CI runs. Present-case for
+    // the quick-info "renders opening hours" branch; other fixtures omit it to
+    // prove the absent → renders-nothing branch. Mirrors VENUE_DETAIL_SEED.
+    openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
     thumbnail: {
       alt: 'Uteservering hos Kafé Magasinet',
       initials: 'KM',
@@ -72,6 +78,9 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     sunExposurePercent: 89,
     tags: ['Morgonsol', 'Take-away', 'Surdeg'],
     sunWindow: { start: '12:45', end: '18:15' },
+    // Story 11.4 (AC1): second present-case fixture for the opening-hours line
+    // on the seed path. Mirrors VENUE_DETAIL_SEED['bryggeriet-soltak'].
+    openingHours: { display: 'Öppet till 23:00', closesAt: '23:00' },
     thumbnail: {
       alt: 'Uteservering hos Bryggerietsoltak',
       initials: 'BS',

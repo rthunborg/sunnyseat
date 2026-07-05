@@ -848,17 +848,12 @@ export function MapView() {
     : selectedVenueId && activeFavouriteVenueRows.some((venue) => venue.id === selectedVenueId)
     ? (favouriteListConfidenceMeta ?? venueQuery.data?.meta)
     : venueQuery.data?.meta;
-  const quickInfoSunWindowTemplate = tVenue('quickInfo.sunWindow', {
-    start: '{start}',
-    end: '{end}',
-  });
   const routeText = routeLabels(tVenue);
-  const quickInfoRouteSummary = selectedQuickInfoVenue
-    ? getRouteSummary({ venue: selectedQuickInfoVenue, origin: geolocation.coords })
-    : null;
-  const quickInfoRouteEstimateLabel = quickInfoRouteSummary
-    ? routeEstimateLabel(quickInfoRouteSummary.walkMinutes, routeText.walkEstimateCompact)
-    : undefined;
+  // Story 11.4 (AC1/AC2): the quick-info no longer renders a "Sol HH:mm–HH:mm"
+  // window line or a truncated ETA inside its route button, so the
+  // `quickInfoSunWindowTemplate` / `quickInfoRouteSummary` /
+  // `quickInfoRouteEstimateLabel` wiring is gone. The detail/route surface keeps
+  // its own `detailRouteEstimateLabel` below (AC2: the ETA may live on there).
   const detailRouteVenue = detailFallbackVenue
     ? (detailVenue ?? detailFallbackVenue)
     : null;
@@ -1225,10 +1220,10 @@ export function MapView() {
             key="quick-info-mobile"
             mode="mobile"
             name={selectedPinData.name}
-            sunTimeRange={resolveSunTimeRange(selectedQuickInfoVenue, quickInfoSunWindowTemplate)}
             confidencePercent={selectedQuickInfoVenue?.confidence}
             confidenceMeta={quickInfoConfidenceMeta}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
+            openingHours={selectedQuickInfoVenue?.openingHours}
             currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
             skyCondition={selectedQuickInfoVenue?.skyCondition}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
@@ -1239,7 +1234,6 @@ export function MapView() {
             onDismiss={() => selectVenue(null)}
             onOpenDetails={handleOpenDetails}
             onRoute={handleRouteSelectedVenue}
-            routeEstimateLabel={quickInfoRouteEstimateLabel}
             isRouteLoading={routeLoadingVenueId === selectedQuickInfoVenue?.id}
             isFavourite={selectedQuickInfoVenue ? favourites.isFavourite(selectedQuickInfoVenue.id) : false}
             onFavouriteToggle={
@@ -1255,10 +1249,10 @@ export function MapView() {
             key="quick-info-desktop"
             mode="desktop"
             name={selectedPinData.name}
-            sunTimeRange={resolveSunTimeRange(selectedQuickInfoVenue, quickInfoSunWindowTemplate)}
             confidencePercent={selectedQuickInfoVenue?.confidence}
             confidenceMeta={quickInfoConfidenceMeta}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
+            openingHours={selectedQuickInfoVenue?.openingHours}
             currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
             skyCondition={selectedQuickInfoVenue?.skyCondition}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
@@ -1270,7 +1264,6 @@ export function MapView() {
             onDismiss={() => selectVenue(null)}
             onOpenDetails={handleOpenDetails}
             onRoute={handleRouteSelectedVenue}
-            routeEstimateLabel={quickInfoRouteEstimateLabel}
             isRouteLoading={routeLoadingVenueId === selectedQuickInfoVenue?.id}
             isFavourite={selectedQuickInfoVenue ? favourites.isFavourite(selectedQuickInfoVenue.id) : false}
             onFavouriteToggle={
@@ -1319,17 +1312,6 @@ export function MapView() {
       <OfflineBanner visible={showOfflineShell} />
     </div>
   );
-}
-
-function resolveSunTimeRange(
-  venue: VenueDataDto | null,
-  template: string,
-): string | undefined {
-  if (!venue?.sunWindow) return undefined;
-  return formatLabel(template, {
-    start: venue.sunWindow.start,
-    end: venue.sunWindow.end,
-  });
 }
 
 function formatLabel(template: string, values: Record<string, string>): string {
@@ -1493,7 +1475,6 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     distance: t('quickInfo.distance'),
     distanceApproximate: t('quickInfo.distanceApproximate'),
     loadingSun: t('quickInfo.loadingSun'),
-    sunUnavailable: t('quickInfo.sunUnavailable'),
     routeLoading: t('route.loading'),
     favouriteAdd: t('list.favouriteAdd'),
     favouriteRemove: t('list.favouriteRemove'),

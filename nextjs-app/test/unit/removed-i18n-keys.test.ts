@@ -67,3 +67,39 @@ describe('Story 9.6 removed i18n keys have no remaining reader', () => {
     }
   });
 });
+
+/**
+ * Story 11.4 (AC4) — quick-info reference alignment removed-key pin.
+ *
+ * The rework removed the visible "Säkerhet: NN%" chip and the "Sol HH:mm–HH:mm"
+ * window line from the quick-info card, which orphaned three `venue.quickInfo.*`
+ * keys: `sunWindow` (only `quickInfoSunWindowTemplate` used it), `sunUnavailable`
+ * (only the removed window line's fallback used it), and the already-unconsumed
+ * `obscuredPosition` (defined but never wired). All three were deleted from BOTH
+ * locales. This suite pins the DELETION so a reader can never silently render a
+ * raw key, and confirms the KEPT `confidence*` keys stay (the sr-only accessible
+ * confidence line still consumes them).
+ */
+describe('Story 11.4 removed quick-info i18n keys have no remaining reader', () => {
+  function loadQuickInfo(locale: string): Record<string, unknown> {
+    const quickInfo = (loadNamespace(locale, 'venue.json').quickInfo ??
+      {}) as Record<string, unknown>;
+    return quickInfo;
+  }
+
+  for (const locale of LOCALES) {
+    it(`drops sunWindow / sunUnavailable / obscuredPosition from venue.quickInfo in ${locale}`, () => {
+      const quickInfo = loadQuickInfo(locale);
+      expect(quickInfo).not.toHaveProperty('sunWindow');
+      expect(quickInfo).not.toHaveProperty('sunUnavailable');
+      expect(quickInfo).not.toHaveProperty('obscuredPosition');
+    });
+
+    it(`keeps the confidence* keys (still read by the sr-only accessible line) in ${locale}`, () => {
+      const quickInfo = loadQuickInfo(locale);
+      expect(quickInfo).toHaveProperty('confidence');
+      expect(quickInfo).toHaveProperty('confidenceApproximate');
+      expect(quickInfo).toHaveProperty('confidenceUnavailable');
+    });
+  }
+});

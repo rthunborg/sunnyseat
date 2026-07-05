@@ -20,10 +20,7 @@
     "distance": "Distance",
     "distanceApproximate": "≈ from centre",
     "loadingSun": "Loading sun data",
-    "sunUnavailable": "Sun time unavailable",
-    "sunWindow": "Sun {start}–{end}",
     "obscuredHeadline": "Sun behind clouds",
-    "obscuredPosition": "Sun position {percent} · sunny here when it clears",
     "sky": {
       "clear": "Clear",
       "partlyCloudy": "Partly cloudy",

@@ -261,6 +261,15 @@ export function toVenueData(venue: StoredVenue): VenueDataDto {
     base.predictionUncertainty = venue.predictionUncertainty;
   }
   if (venue.sunWindow !== undefined) base.sunWindow = venue.sunWindow;
+  // STORY 11.4 (AC1): surface the venue's real opening hours on the LIST DTO so
+  // the quick-info card can render "Öppet till HH:MM" in place of the removed
+  // confidence/sun-window lines. Copied with the same optional-guard pattern as
+  // the other detail-adjacent fields — present only where the store carries
+  // `venues.opening_hours` (via `detailFromRow`/`VENUE_DETAIL_SEED`/the fixture),
+  // ABSENT otherwise so the card renders nothing (never fabricated). Unlike the
+  // stripped `description`/`peakTime`/`shadowWarningMinutes` detail chrome, this
+  // one field is intentionally carried through to the list surface.
+  if (venue.openingHours !== undefined) base.openingHours = venue.openingHours;
   if (venue.thumbnail !== undefined) base.thumbnail = venue.thumbnail;
   if (venue.reviewSummary !== undefined) base.reviewSummary = venue.reviewSummary;
   return base;

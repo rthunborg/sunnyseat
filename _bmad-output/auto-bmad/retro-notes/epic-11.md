@@ -28,3 +28,5 @@
 
 ## Story 11-4-venue-quick-info-rework-reference-alignment
 - [Phase 3 â€” create-story] Seed path serves raw VENUE_FIXTURE with NO openingHours (no VENUE_DETAIL_SEED merge) â€” AC1's opening-hours render is unreachable in CI unless fixtures seed both present- and absent-cases. Anti-'shipped-but-insufficient' applied to a data field.
+- [Phase 5 â€” dev-story] Two MapView integration tests that proved per-time preview refresh via the sun-window TEXT now assert the geometric % SOL badge instead (line removed) â€” same behaviour, different surfaced field; not lost coverage.
+- [Phase 5 â€” dev-story] quickInfo.sunUnavailable became fully dead once the sun-window line was removed â€” pruned with the two story-named keys; VenueQuickInfoProps dropped sunTimeRange/routeEstimateLabel/labels.sunUnavailable (MapView was the only consumer).

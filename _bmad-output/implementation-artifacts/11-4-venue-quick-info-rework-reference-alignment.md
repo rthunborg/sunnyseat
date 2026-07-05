@@ -1,6 +1,6 @@
 # Story 11.4: Venue Quick-Info Rework — Reference Alignment & Truthful Content
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -55,44 +55,44 @@ _Reading (non-verbatim guidance, not part of the acceptance text):_
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Surface `openingHours` on the list DTO (AC1 data layer)**
-  - [ ] Add `openingHours?: { display: string; closesAt?: string }` to `VenueDataDto` in `lib/types/api.ts` (near the other optional detail-adjacent fields; document it as OPTIONAL — present only where the store has `venues.opening_hours`, absent otherwise; never fabricated). `VenueDetailDto extends VenueDataDto` and re-declares `openingHours` as REQUIRED — confirm the `extends` narrowing still typechecks (a required override of an optional base field is legal in TS; verify `tsc` clean).
-  - [ ] Copy it through `toVenueData` (`venue-store.ts:240-267`) with the optional-guard pattern the other detail-block-adjacent fields use (`if (venue.openingHours !== undefined) base.openingHours = venue.openingHours;`). This lands it on BOTH the seed path (when the fixture carries it) AND the real-engine path (`sun-engine.ts` builds its DTO from `toVenueData(venue)` / `mergeSunFields(toVenueData(venue), …)` at `:414`,`:788`) AND the real Supabase store (`fromVenueRow:531` already populates `detail.openingHours` from `row.opening_hours`).
-  - [ ] Confirm `normalizeVenueForResponse` (`venues-fixture.ts:201-230`) passes the new field through (it spreads `...venueWithoutUncertainty` — a new field is preserved untouched). No edit needed there unless a normalization/validation is desired; if adding one, keep the "absent → absent, never fabricated" rule.
-  - [ ] CI-determinism: add `openingHours: { display: 'Öppet till HH:MM', closesAt: 'HH:MM' }` to at least the two sunny `VENUE_FIXTURE` entries (`test-venue-sunny`, `bryggeriet-soltak`) so the seed-path list DTO carries a real value for e2e/component determinism, and LEAVE at least one fixture without it to prove the absent → renders-nothing branch. (The seed `getVenues()` does NOT merge `VENUE_DETAIL_SEED`, so the fixtures themselves must carry it.)
+- [x] **Task 1 — Surface `openingHours` on the list DTO (AC1 data layer)**
+  - [x] Add `openingHours?: { display: string; closesAt?: string }` to `VenueDataDto` in `lib/types/api.ts` (near the other optional detail-adjacent fields; document it as OPTIONAL — present only where the store has `venues.opening_hours`, absent otherwise; never fabricated). `VenueDetailDto extends VenueDataDto` and re-declares `openingHours` as REQUIRED — confirm the `extends` narrowing still typechecks (a required override of an optional base field is legal in TS; verify `tsc` clean).
+  - [x] Copy it through `toVenueData` (`venue-store.ts:240-267`) with the optional-guard pattern the other detail-block-adjacent fields use (`if (venue.openingHours !== undefined) base.openingHours = venue.openingHours;`). This lands it on BOTH the seed path (when the fixture carries it) AND the real-engine path (`sun-engine.ts` builds its DTO from `toVenueData(venue)` / `mergeSunFields(toVenueData(venue), …)` at `:414`,`:788`) AND the real Supabase store (`fromVenueRow:531` already populates `detail.openingHours` from `row.opening_hours`).
+  - [x] Confirm `normalizeVenueForResponse` (`venues-fixture.ts:201-230`) passes the new field through (it spreads `...venueWithoutUncertainty` — a new field is preserved untouched). No edit needed there unless a normalization/validation is desired; if adding one, keep the "absent → absent, never fabricated" rule.
+  - [x] CI-determinism: add `openingHours: { display: 'Öppet till HH:MM', closesAt: 'HH:MM' }` to at least the two sunny `VENUE_FIXTURE` entries (`test-venue-sunny`, `bryggeriet-soltak`) so the seed-path list DTO carries a real value for e2e/component determinism, and LEAVE at least one fixture without it to prove the absent → renders-nothing branch. (The seed `getVenues()` does NOT merge `VENUE_DETAIL_SEED`, so the fixtures themselves must carry it.)
 
-- [ ] **Task 2 — Remove the confidence + sun-window lines, render opening hours (AC1 render)**
-  - [ ] In `VenueQuickInfo.tsx` REMOVE the visible "Säkerhet: NN%" chrome (`:282-289` the `{labels.confidence}: {confidenceDisplay.visibleText}` span) and the `!isObscured && confidenceDisplay.visibleText && ' · '` separator (`:293`) on BOTH breakpoints. KEEP the sr-only accessible confidence text (`:286`,`:290-292`) so the accessible name is unchanged (AC1: "the sr-only accessible confidence text may remain").
-  - [ ] REMOVE the "Sol HH:mm–HH:mm" window line (`:268-275` — the `sunTimeRange ?? labels.sunUnavailable` paragraph). Drop the `sunTimeRange` prop from `VenueQuickInfoProps` if it becomes unused, and stop passing `sunTimeRange={resolveSunTimeRange(...)}` from the two MapView renders (`:1228`,`:1258`); remove `resolveSunTimeRange`/`quickInfoSunWindowTemplate` if they have no other consumer (verify — `resolveSunTimeRange` is quick-info-only per grep).
-  - [ ] RENDER real opening hours in the vacated slot: show `openingHours.display` (e.g. "Öppet till 22:00") when the venue has it, render NOTHING when absent (`openingHours == null`). Thread a new `openingHours?: { display: string; closesAt?: string }` prop into `VenueQuickInfoProps` and pass `openingHours={selectedQuickInfoVenue?.openingHours}` from both MapView renders. Use the design-system type/colour tokens (frontend-component skill — no ad-hoc hex; a muted body token that passes the axe AA gate on the cream card, mirroring the distance line's `text-text-body` choice).
-  - [ ] Preserve the obscured two-signal block (`:232-253`) and the muted `% SOL` badge (`VenueThumbnail:446-472`) exactly — Story 10.2's treatment stays.
+- [x] **Task 2 — Remove the confidence + sun-window lines, render opening hours (AC1 render)**
+  - [x] In `VenueQuickInfo.tsx` REMOVE the visible "Säkerhet: NN%" chrome (`:282-289` the `{labels.confidence}: {confidenceDisplay.visibleText}` span) and the `!isObscured && confidenceDisplay.visibleText && ' · '` separator (`:293`) on BOTH breakpoints. KEEP the sr-only accessible confidence text (`:286`,`:290-292`) so the accessible name is unchanged (AC1: "the sr-only accessible confidence text may remain").
+  - [x] REMOVE the "Sol HH:mm–HH:mm" window line (`:268-275` — the `sunTimeRange ?? labels.sunUnavailable` paragraph). Drop the `sunTimeRange` prop from `VenueQuickInfoProps` if it becomes unused, and stop passing `sunTimeRange={resolveSunTimeRange(...)}` from the two MapView renders (`:1228`,`:1258`); remove `resolveSunTimeRange`/`quickInfoSunWindowTemplate` if they have no other consumer (verify — `resolveSunTimeRange` is quick-info-only per grep).
+  - [x] RENDER real opening hours in the vacated slot: show `openingHours.display` (e.g. "Öppet till 22:00") when the venue has it, render NOTHING when absent (`openingHours == null`). Thread a new `openingHours?: { display: string; closesAt?: string }` prop into `VenueQuickInfoProps` and pass `openingHours={selectedQuickInfoVenue?.openingHours}` from both MapView renders. Use the design-system type/colour tokens (frontend-component skill — no ad-hoc hex; a muted body token that passes the axe AA gate on the cream card, mirroring the distance line's `text-text-body` choice).
+  - [x] Preserve the obscured two-signal block (`:232-253`) and the muted `% SOL` badge (`VenueThumbnail:446-472`) exactly — Story 10.2's treatment stays.
 
-- [ ] **Task 3 — Drop the truncated ETA from the quick-info route button (AC2)**
-  - [ ] Stop passing an `estimateLabel` into the quick-info's `RouteButton` (`VenueQuickInfo.tsx:327-335`): either remove `routeEstimateLabel` from `VenueQuickInfoProps` (and stop passing it from MapView `:1242`,`:1273`) or hardcode `estimateLabel={undefined}` on the internal `RouteButton`. `RouteButton` already omits the ETA span when `estimateLabel` is falsy (`:63-72`) — NO `RouteButton` component edit.
-  - [ ] Leave the detail/route surfaces' `estimateLabel` intact (`VenueDetailContent` `:1187`, and `detailRouteEstimateLabel` wiring) — AC2 explicitly allows the ETA to live on there.
-  - [ ] Verify the button reads only "VISA RUTT" + nav icon with no truncation at common mobile widths (compact) and desktop; the accessible label falls back to just `label` when `estimateLabel` is undefined (`RouteButton.tsx:27-29`).
+- [x] **Task 3 — Drop the truncated ETA from the quick-info route button (AC2)**
+  - [x] Stop passing an `estimateLabel` into the quick-info's `RouteButton` (`VenueQuickInfo.tsx:327-335`): either remove `routeEstimateLabel` from `VenueQuickInfoProps` (and stop passing it from MapView `:1242`,`:1273`) or hardcode `estimateLabel={undefined}` on the internal `RouteButton`. `RouteButton` already omits the ETA span when `estimateLabel` is falsy (`:63-72`) — NO `RouteButton` component edit.
+  - [x] Leave the detail/route surfaces' `estimateLabel` intact (`VenueDetailContent` `:1187`, and `detailRouteEstimateLabel` wiring) — AC2 explicitly allows the ETA to live on there.
+  - [x] Verify the button reads only "VISA RUTT" + nav icon with no truncation at common mobile widths (compact) and desktop; the accessible label falls back to just `label` when `estimateLabel` is undefined (`RouteButton.tsx:27-29`).
 
-- [ ] **Task 4 — Align the mobile card layout to the reference across four sun states (AC3)**
-  - [ ] Align spacing / type hierarchy / badge placement / CTA row to the reference `QuickInfo.jsx` (`src-free/` mobile) incorporating the removals — centered name row, "% Sol" badge top-left of the photo strip, heart top-right, the single opening-hours line under the name, then the two-button CTA row (Visa rutt + Mer info). Use design tokens only (frontend-component skill).
-  - [ ] Verify no overflow across all four sun states (Sunny / Partial / Shaded / obscured "Sol bakom moln") at common mobile widths — the obscured block adds an extra line, so confirm the `max-h-[calc(100dvh-2rem)]` card + the anchored-mobile width token (`--size-quick-info-mobile-w`) still hold without clipping. The obscured treatment (Story 10.2) is PRESERVED, not reworked.
-  - [ ] Keep the anchored-mobile close-pill position (`-right-3 -top-3`, Story 9.9) and the mobile compact strip heights; this is a content/spacing alignment, not a re-layout of the animation/anchoring.
+- [x] **Task 4 — Align the mobile card layout to the reference across four sun states (AC3)**
+  - [x] Align spacing / type hierarchy / badge placement / CTA row to the reference `QuickInfo.jsx` (`src-free/` mobile) incorporating the removals — centered name row, "% Sol" badge top-left of the photo strip, heart top-right, the single opening-hours line under the name, then the two-button CTA row (Visa rutt + Mer info). Use design tokens only (frontend-component skill).
+  - [x] Verify no overflow across all four sun states (Sunny / Partial / Shaded / obscured "Sol bakom moln") at common mobile widths — the obscured block adds an extra line, so confirm the `max-h-[calc(100dvh-2rem)]` card + the anchored-mobile width token (`--size-quick-info-mobile-w`) still hold without clipping. The obscured treatment (Story 10.2) is PRESERVED, not reworked.
+  - [x] Keep the anchored-mobile close-pill position (`-right-3 -top-3`, Story 9.9) and the mobile compact strip heights; this is a content/spacing alignment, not a re-layout of the animation/anchoring.
 
-- [ ] **Task 5 — Regenerate aria, prune unused i18n keys (AC4)**
-  - [ ] Regenerate the accessible read-out to essentials: name → sun % → opening hours → distance, with NO orphaned "·" separators and no duplicated phrases once the confidence/sun-window lines are removed. Audit every inline separator (`:248`,`:293`) so a removed segment never leaves a dangling "·".
-  - [ ] Prune i18n keys that now have NO consumer after the removals. Strong candidate: `venue.quickInfo.sunWindow` (only `quickInfoSunWindowTemplate` used it). BEFORE deleting `quickInfo.confidence`/`confidenceApproximate`/`confidenceUnavailable`, confirm they are still consumed by the sr-only `confidenceDisplayLabels` (they are, via `getConfidenceDisplayState`) → KEEP those. Delete only genuinely-dead keys, in BOTH `messages/sv` AND `messages/en`; keep `messages-parity` green.
-  - [ ] If a NEW opening-hours label is needed for the quick-info (likely NOT — render the raw `openingHours.display` string, which is already localized copy from the store, matching how the detail hero renders `detail.openingHours.display` directly), do NOT add a template key that would fabricate wording. Only the raw display string is shown.
+- [x] **Task 5 — Regenerate aria, prune unused i18n keys (AC4)**
+  - [x] Regenerate the accessible read-out to essentials: name → sun % → opening hours → distance, with NO orphaned "·" separators and no duplicated phrases once the confidence/sun-window lines are removed. Audit every inline separator (`:248`,`:293`) so a removed segment never leaves a dangling "·".
+  - [x] Prune i18n keys that now have NO consumer after the removals. Strong candidate: `venue.quickInfo.sunWindow` (only `quickInfoSunWindowTemplate` used it). BEFORE deleting `quickInfo.confidence`/`confidenceApproximate`/`confidenceUnavailable`, confirm they are still consumed by the sr-only `confidenceDisplayLabels` (they are, via `getConfidenceDisplayState`) → KEEP those. Delete only genuinely-dead keys, in BOTH `messages/sv` AND `messages/en`; keep `messages-parity` green.
+  - [x] If a NEW opening-hours label is needed for the quick-info (likely NOT — render the raw `openingHours.display` string, which is already localized copy from the store, matching how the detail hero renders `detail.openingHours.display` directly), do NOT add a template key that would fabricate wording. Only the raw display string is shown.
 
-- [ ] **Task 6 — Tests (AC1–AC4)**
-  - [ ] **Component (`VenueQuickInfo.test.tsx`, AC1/AC2/AC4):** assert NO "Säkerhet" visible text node and NO "Sol HH:mm–HH:mm" window text on both `mode="mobile"` and `mode="desktop"`; assert `openingHours.display` renders when the prop is present and renders NOTHING when absent (both branches); assert the route button has NO ETA span (query the compact `RouteButton` for the estimate text and expect absent); assert the sr-only accessible confidence text is still present; assert the regenerated accessible name has no dangling separator / duplicate phrase. Extend the existing `labels` fixture + `expectNoSensitiveSourceTerms` guard.
-  - [ ] **Component/render (AC3):** render all four sun states (Sunny/Partial/Shaded/obscured `currentSunStatus:'CloudObscured'` + `skyCondition`) and assert the obscured block + muted badge still render (Story 10.2 preserved) alongside the new opening-hours line, with no confidence/sun-window text — pinning behaviour, not pixels.
-  - [ ] **DTO/API (AC1 data):** extend the venues-route contract test / venue-store test to assert `openingHours` is present on the list DTO when the store carries `opening_hours` (real-store mapping via `fromVenueRow`) AND absent when the fixture omits it — so the "surfaced on the list DTO, never fabricated" contract is pinned at the boundary. If the seed fixtures gain `openingHours`, assert the seed-path `/api/venues` response carries it for the seeded venues.
-  - [ ] **E2E (optional, over a mocked `/api/venues` DTO):** if an e2e is added, assert the quick-info shows the opening-hours copy and no "Säkerhet"/sun-window text over a mocked DTO at `?_time=13:00` (no live Met.no) at both `--project=mobile` and `--project=desktop`. The request-count/perf gates are Story 11.8's — do NOT add them here.
-  - [ ] **i18n parity:** `messages-parity` test stays green after key pruning.
+- [x] **Task 6 — Tests (AC1–AC4)**
+  - [x] **Component (`VenueQuickInfo.test.tsx`, AC1/AC2/AC4):** assert NO "Säkerhet" visible text node and NO "Sol HH:mm–HH:mm" window text on both `mode="mobile"` and `mode="desktop"`; assert `openingHours.display` renders when the prop is present and renders NOTHING when absent (both branches); assert the route button has NO ETA span (query the compact `RouteButton` for the estimate text and expect absent); assert the sr-only accessible confidence text is still present; assert the regenerated accessible name has no dangling separator / duplicate phrase. Extend the existing `labels` fixture + `expectNoSensitiveSourceTerms` guard.
+  - [x] **Component/render (AC3):** render all four sun states (Sunny/Partial/Shaded/obscured `currentSunStatus:'CloudObscured'` + `skyCondition`) and assert the obscured block + muted badge still render (Story 10.2 preserved) alongside the new opening-hours line, with no confidence/sun-window text — pinning behaviour, not pixels.
+  - [x] **DTO/API (AC1 data):** extend the venues-route contract test / venue-store test to assert `openingHours` is present on the list DTO when the store carries `opening_hours` (real-store mapping via `fromVenueRow`) AND absent when the fixture omits it — so the "surfaced on the list DTO, never fabricated" contract is pinned at the boundary. If the seed fixtures gain `openingHours`, assert the seed-path `/api/venues` response carries it for the seeded venues.
+  - [x] **E2E (optional, over a mocked `/api/venues` DTO):** if an e2e is added, assert the quick-info shows the opening-hours copy and no "Säkerhet"/sun-window text over a mocked DTO at `?_time=13:00` (no live Met.no) at both `--project=mobile` and `--project=desktop`. The request-count/perf gates are Story 11.8's — do NOT add them here.
+  - [x] **i18n parity:** `messages-parity` test stays green after key pruning.
 
-- [ ] **Task 7 — Gates**
-  - [ ] `npx tsc --noEmit` → 0 errors. `npx eslint .` → 0 errors (no NEW warnings in touched files). `npx vitest run` → all pass (measure the baseline fresh from HEAD; the count should INCREASE with the new tests, none dropped).
-  - [ ] Run the axe gate for the quick-info surface (both breakpoints) — the new opening-hours line + the removals must keep `axe`/`axe-mobile` green (no contrast/focus regression; use a body token that clears AA on the cream card, mirroring the distance line's non-muted choice at `:311-313`).
-  - [ ] Do NOT create/edit/self-bless any reference PNG — the reworked card is a NEW visual state; the consolidated rebaseline is Story 11.7's maintainer checkpoint (note it in Completion Notes). Hand the real-device pass to Story 11.8.
+- [x] **Task 7 — Gates**
+  - [x] `npx tsc --noEmit` → 0 errors. `npx eslint .` → 0 errors (no NEW warnings in touched files). `npx vitest run` → all pass (measure the baseline fresh from HEAD; the count should INCREASE with the new tests, none dropped).
+  - [x] Run the axe gate for the quick-info surface (both breakpoints) — the new opening-hours line + the removals must keep `axe`/`axe-mobile` green (no contrast/focus regression; use a body token that clears AA on the cream card, mirroring the distance line's non-muted choice at `:311-313`).
+  - [x] Do NOT create/edit/self-bless any reference PNG — the reworked card is a NEW visual state; the consolidated rebaseline is Story 11.7's maintainer checkpoint (note it in Completion Notes). Hand the real-device pass to Story 11.8.
 
 ## Dev Notes
 
@@ -189,23 +189,46 @@ The card reads inline: name (button) → obscured block (if obscured) → sun-wi
 
 ### Agent Model Used
 
-_TBD by dev agent._
+Opus 4.8 (1M) — `claude-opus-4-8[1m]` (bmad-dev-story).
 
 ### Debug Log References
 
-_TBD by dev agent._
+- `npx vitest run` → 139 files, 1300 passed (baseline at HEAD was 1288; +12 net new — no tests dropped).
+- `npx tsc --noEmit` → 0 errors.
+- `npx eslint .` → 0 errors, 13 warnings (all pre-existing; none introduced by touched code — the `<img>` warning at `VenueQuickInfo.tsx:407` is the pre-existing thumbnail element, unchanged).
+- `npx playwright test --project=a11y --project=a11y-mobile` → 13 passed, 8 skipped (pre-existing `test.fixme` debt). The axe specs select a venue and scan the (reworked) quick-info surface on both breakpoints incl. the obscured variant — the new opening-hours line + the removals keep the AA gate green.
 
 ### Completion Notes List
 
-_TBD by dev agent._
+- **AC1 (data):** Added an additive optional `openingHours?: { display; closesAt? }` to `VenueDataDto` (`lib/types/api.ts`) and copied it through `toVenueData` (`venue-store.ts`) with the optional-guard pattern. This surfaces the value end-to-end on the seed path (fixture-carried), the real-engine path (`sun-engine.ts` builds its DTO from `toVenueData`), and the real Supabase store (`fromVenueRow` already populated `detail.openingHours`). `VenueDetailDto`'s REQUIRED `openingHours` override typechecks. The `[slug]` detail DTO stays byte-identical.
+- **AC1 (render):** Removed the visible "Säkerhet: NN%" chip + its `' · '` separator and the "Sol HH:mm–HH:mm" window line from `VenueQuickInfo.tsx` on both breakpoints. Kept the sr-only accessible confidence text (accessible name unchanged). Render `openingHours.display` when present, NOTHING when absent (no fabricated fallback). Opening-hours line uses `text-text-body` (mirrors the distance line — clears the axe AA gate on the cream card).
+- **AC1 (CI determinism):** Added real `openingHours` to the two sunny `VENUE_FIXTURE` entries (`test-venue-sunny`, `bryggeriet-soltak`); the other five fixtures omit it, so both the present and absent branches are CI-provable on the flag-OFF seed path.
+- **AC2:** The quick-info's internal `RouteButton` no longer receives `estimateLabel` (call-site change; no `RouteButton` edit). Dropped `routeEstimateLabel` from `VenueQuickInfoProps` and stopped passing it (and the now-dead `quickInfoRouteSummary`/`quickInfoRouteEstimateLabel` wiring) from MapView. The detail/route overlay keeps its own ETA (`ca N min promenad`).
+- **AC3:** The mobile card already matched the reference composition (badge top-left, heart top-right, centered name, two-button CTA). The removals move it toward the reference; the opening-hours line fills the vacated slot; the Story-10.2 obscured two-signal block + muted `% SOL` badge are preserved unchanged. Four-sun-state render coverage added.
+- **AC4:** Regenerated aria to name → sun% (badge) → opening hours → distance with the confidence sr-only line kept and NO dangling `·` (asserted). Pruned three now-dead `quickInfo.*` i18n keys from BOTH locales: `sunWindow` (its only consumer, `quickInfoSunWindowTemplate`/`resolveSunTimeRange`, was removed), `sunUnavailable` (only the removed window line used it — also dropped from the `labels` type + `quickInfoLabels`), and `obscuredPosition` (the epic-10 deferred orphan, verified still unconsumed). Kept `confidence*` (sr-only line still reads them). `messages-parity` + a new `removed-i18n-keys` pin stay green.
+- **Maintainer follow-ups:** This is a NEW visual state on both breakpoints across four sun states — the consolidated reference-PNG rebaseline is **Story 11.7's** maintainer checkpoint (dev did not create/edit/self-bless any PNG). The real-device pass over the reworked card is **Story 11.8's**.
+- **Scope discipline:** No new dependency/route/schema; no engine/weather edit. The only data-shape change is the additive optional `VenueDataDto.openingHours` + its `toVenueData` copy. Query keys (date-only + `isLiveNow`) untouched — `openingHours` is a static per-venue attribute and never enters the key.
 
 ### File List
 
-_TBD by dev agent._
+- `nextjs-app/lib/types/api.ts` — added optional `openingHours` to `VenueDataDto` (M)
+- `nextjs-app/lib/services/venue-store.ts` — copy `openingHours` in `toVenueData` (M)
+- `nextjs-app/lib/services/venues-fixture.ts` — added `openingHours` to the two sunny fixtures (M)
+- `nextjs-app/components/composed/venue/VenueQuickInfo.tsx` — removed confidence-visible + sun-window lines, render opening hours, drop the route ETA, drop `sunTimeRange`/`routeEstimateLabel`/`sunUnavailable` props, regenerate aria (M)
+- `nextjs-app/components/custom/map/MapView.tsx` — pass `openingHours`, stop passing `sunTimeRange`/`routeEstimateLabel`, remove `resolveSunTimeRange`/`quickInfoSunWindowTemplate`/`quickInfoRouteSummary`/`quickInfoRouteEstimateLabel`/`sunUnavailable` wiring (M)
+- `nextjs-app/messages/sv/venue.json` — pruned `quickInfo.sunWindow`/`sunUnavailable`/`obscuredPosition` (M)
+- `nextjs-app/messages/en/venue.json` — pruned `quickInfo.sunWindow`/`sunUnavailable`/`obscuredPosition` (M)
+- `nextjs-app/test/components/VenueQuickInfo.test.tsx` — rewrote for the reworked card (no Säkerhet/sun-window, opening-hours present+absent branches, no ETA span, sr-only confidence kept, aria shape, four sun states) (M)
+- `nextjs-app/test/components/VenueQuickInfoApproximateDistance.test.tsx` — dropped removed props from the harness (M)
+- `nextjs-app/test/components/MapView.test.tsx` — updated quick-info integration assertions (opening hours in place of sun-window; sun-badge as the per-time refresh proof; no ETA in the button; `makeVenue` gains an `openingHours` default) (M)
+- `nextjs-app/test/unit/services/venue-store.test.ts` — updated `toVenueData`/seed-list contract tests for the surfaced `openingHours` (present + absent) (M)
+- `nextjs-app/test/unit/api/venues-route.test.ts` — new seed-path `/api/venues` contract assertion for `openingHours` (present + absent) (M)
+- `nextjs-app/test/unit/removed-i18n-keys.test.ts` — new pin for the three pruned `quickInfo.*` keys (+ confidence* kept) (M)
 
 ## Change Log
 
 - 2026-07-05 — Story 11.4 context file drafted (create-story). FOURTH story of Epic 11 "Feels Instant, Reads Clear" — quick-info reference alignment + truthful content. Status → ready-for-dev.
+- 2026-07-05 — Story 11.4 implemented (dev-story). Surfaced `openingHours` on the list `VenueDataDto` (+ `toVenueData` copy + sunny-fixture data); reworked `VenueQuickInfo` to remove the visible "Säkerhet: NN%" chip + the "Sol HH:mm–HH:mm" window line, render the real opening-hours line, and drop the truncated route ETA; regenerated aria (sr-only confidence kept, no dangling separator); pruned three dead `quickInfo.*` i18n keys in both locales; preserved the Story-10.2 obscured treatment. All ACs satisfied; tsc/eslint/vitest (1300 pass) + axe (a11y/a11y-mobile) green. Status → review.
 
 ## Review Findings
 
