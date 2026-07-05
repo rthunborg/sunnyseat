@@ -5,10 +5,10 @@ epic_num: 11
 story_num: 5
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T13:00:14Z"
+updated_at: "2026-07-05T13:12:29Z"
 started_at: "2026-07-05T13:00:14Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 734
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: [automate]
 tea_rationale: "non-trivial viewport/snap branching across MapContainer/UserPin/MapView but no High signal; epic risks R-006 (axe-gate regression, score 6) + R-013 (recenter offset math) drive the automate focus"
 epic_story_count: 8
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 3, 4]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
