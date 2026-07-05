@@ -296,7 +296,29 @@ development_status:
   11-6-venue-detail-clean-first-paint-content-polish: review
   11-7-hygiene-deferred-debt: review
   11-8-live-verification-pass-touch-gesture-perf-guards: review
-  epic-11-retrospective: optional
+  epic-11-retrospective: done
+
+# Note (2026-07-05, retrospective epic-11 — epic-11-retrospective -> done): bmad-retrospective (auto-bmad delegate;
+# solo-participant party mode, Rasmus as sole facilitator+participant) synthesized the full Epic 11 retro from
+# retro-notes/epic-11.md + all 8 story files (11-1..11-8, all Status: review) + this file. Saved
+# _bmad-output/implementation-artifacts/epic-11-retro-2026-07-05.md (9 sections: summary/metrics, what-went-well,
+# what-was-hard, key-insights, Epic-10-retro follow-through, next-epic preview [none authored yet], 8 action items,
+# readiness assessment, next steps). Additional facts folded in per orchestrator: all 8 stories landed on one epic
+# branch (epic/11-feels-instant-reads-clear) in a single unattended auto-bmad epic run; epic trace gate PASS (P0
+# 100%), NFR PASS, test-review 92/A; Tier-B integration review ran 2 iterations (48+7 lens delegates, ~350 raw
+# findings triaged to 14+2 survivors, 6 fixed in-run); the epic PR ships as a DRAFT because the 11-7 High
+# auto-decision (byte-identical map-primary/map-panel-venues PNG pair, re-captured+fixed in-run) requires the
+# maintainer's rebaseline blessing before the PR can go ready-for-review (structural, not a defect). Epic verdict:
+# complete and solid from a story perspective — anti-"shipped-but-insufficient" thesis held under its own scrutiny
+# (twice caught its own testing-infrastructure gaps: dormant CI-wiring, retry-masked flake); 3 epics of deferred
+# hygiene debt (vercel.json swallow + .gitattributes EOL) finally closed by 11.7. Carry-forwards: maintainer PNG
+# blessing (A1, blocking the PR draft->ready transition), live p95 + physical-device sweep (A2/A3, consolidated
+# protocol in 11.8's Dev Agent Record), sun-engine.test.ts concurrency flake now 2 epics old unaddressed (A5), the
+# fully-orphaned windowLabelTier/isSunWindowStatus siblings kept only for their compile-guard (A6). No Epic 12
+# exists in epics.md yet, so next-epic-preview + prep-task steps were skipped per the workflow's own "next epic NOT
+# found" branch. This file edit uncommitted in the working tree (orchestrator owns git/PR). Next: orchestrator
+# epic-boundary flow (open the epic-11 PR as a DRAFT per the 11-7 decision, batch-flip story statuses to done once
+# merged).
 
 # Note (2026-07-04, sprint-planning epic-11 — epic-11 added as backlog): sprint-planning run after the party-mode UX workshop drafted Epic 11 "Feels Instant, Reads Clear" into epics.md (8 stories, Given/When/Then ACs + Design Gate Criteria, root-cause blockquote + maintainer workshop decisions dated 2026-07-04). Source: maintainer live field test at sunnyseat.vercel.app post-Epic-10 (screenshots + network capture) traced to code root causes (TimeSlider decorative-thumb pointer-events; per-step query-key commits; list route discarding the engine's day walk; MapContainer overlay dimming; no mobile tag UI; detail fallback-first render). Inventory verified: epics.md now has 11 epics / 72 stories; every epic/story/retrospective present here 1:1, no orphan keys, all statuses legal, YAML valid. Story-file detection: no 11-* story files exist -> all 8 stories backlog, epic-11 backlog, retro optional. All prior statuses preserved (epics 1-3, 7-10 done; 4-6 backlog). Totals: 11 epics (7 done / 4 backlog), 72 stories (52 done / 20 backlog). Rolled current_sprint: Epic 10 (sprint 12, completed 2026-07-03, PR #16 3911539) moved to completed_sprints; current_sprint = Epic 11 / sprint 13 (planned). Sequencing: 11.1 (day-series foundation) -> 11.2 (slider fix rides the commit seam) -> 11.3/11.4/11.5/11.6 (surface reworks; 11.4 needs 11.1's DTO touch-point) -> 11.7 (hygiene + consolidated maintainer PNG rebaseline AFTER visual changes land) -> 11.8 (live + real-device verification last). Next: bmad-create-story 11-1 (or auto-bmad epic 11).
 # Note (2026-07-02, sprint-planning refresh — no status changes): full sprint-planning re-run against epics.md (epics 1-10, 64 stories). Inventory verified 1:1 (every epic/story/retrospective in epics.md present here, no orphan keys, all status values legal, YAML valid). Story-file detection confirmed: no 10-*/4-*/5-*/6-* story files exist, so all Epic 4/5/6/10 entries correctly remain backlog; all done statuses preserved. Totals: 10 epics (6 done / 4 backlog / 0 in-progress), 64 stories (47 done / 17 backlog). Current sprint remains Epic 10 / sprint 12 (planned). Next: bmad-create-story 10-1.

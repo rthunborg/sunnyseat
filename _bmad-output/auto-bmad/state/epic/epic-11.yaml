@@ -5,7 +5,7 @@ epic_num: 11
 story_num: null
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T20:08:05Z"
+updated_at: "2026-07-05T20:18:06Z"
 started_at: "2026-07-04T15:28:43Z"
 completed_at: null
 active_seconds: 97643
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 8
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 7, 81]
+completed_phases: [0, 1, 2, 5, 7, 81, 82]
 code_review_iterations: 2
 code_review_loop_done: true
 hitl_halt: "auto-continued (epic â€” no halt)"
@@ -32,13 +32,13 @@ phase8_steps:
   trace_gate: done
   nfr: done
   test_review: done
-  project_context: null
-  reconcile: null
-  archive: null
-  retro: null
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
 gate_decision: PASS
 gate_iterations: 0
-deferred_work_archived: 0
+deferred_work_archived: 2
 pr_url: null
 ci_run_url: null
 ci_status: unknown
@@ -173,3 +173,4 @@ uat_items:
   - "[11-8-live-verification-pass-touch-gesture-perf-guards] POST-MERGE PROTOCOL 2 (real physical phone on live Production): slider thumb drag follows finger 1:1; sheet reaches all four snaps by gesture with chips usable + map interactive behind collapsed; quick-info shows no Säkerhet/sun-window text; map tint/dot/recenter correct; venue detail clean first paint — one screenshot per surface, gaps triaged before epic close"
   - "[11-8-live-verification-pass-touch-gesture-perf-guards] POST-MERGE PROTOCOL 3 (PR review): inspect + BLESS the 12-pair staged rebaseline under docs/design/references/screens/ incl. the re-captured distinct map-primary/map-panel-venues mobile pair + REBASELINE-LOG entry (dev forbidden from self-blessing)"
   - "[11-8-live-verification-pass-touch-gesture-perf-guards] Gate spot-check on the branch (not hand-run): mobile+desktop (request-count invariant + chip parity + weather matrix), touch (slider+sheet), a11y (axe AA) all green; a11y-mobile deliberately un-invoked (5.1 fixme debt)"
+planning_drift: "none"
