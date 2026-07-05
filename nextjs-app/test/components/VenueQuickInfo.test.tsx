@@ -190,6 +190,90 @@ describe('<VenueQuickInfo />', () => {
     expect(screen.getByTestId('venue-quick-info')).not.toHaveTextContent('Öppet');
   });
 
+  it('renders NOTHING for a closesAt-only opening-hours object (no fabricated fallback — Story 11.4 AC1)', () => {
+    // The honest rule: the card shows `openingHours.display` when present, NOTHING
+    // otherwise. A store shape that carries only `closesAt` (no `display`) must NOT
+    // be synthesized into an "Öppet till 22:00" — that closesAt-only fallback is
+    // detail-view chrome (VenueDetailContent's `?? '22:00'`), explicitly forbidden
+    // on the quick-info's honest line. The component guards on `openingHours?.display`.
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunExposurePercent={95}
+        // @ts-expect-error — exercising the malformed store shape (closesAt without display).
+        openingHours={{ closesAt: '22:00' }}
+        distanceMeters={420}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    expect(screen.queryByTestId('quick-info-opening-hours')).not.toBeInTheDocument();
+    const card = screen.getByTestId('venue-quick-info');
+    expect(card).not.toHaveTextContent('Öppet');
+    expect(card).not.toHaveTextContent('22:00');
+  });
+
+  it('renders NOTHING for an empty-string display (falsy display → no orphaned line — Story 11.4 AC1)', () => {
+    // `{ display: '' }` is a present object with a falsy display. The `&&` guard on
+    // `openingHours?.display` must treat it as absent — no empty paragraph, no
+    // dangling node in the metadata block.
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Testbaren"
+        sunExposurePercent={95}
+        openingHours={{ display: '', closesAt: '22:00' }}
+        distanceMeters={420}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    expect(screen.queryByTestId('quick-info-opening-hours')).not.toBeInTheDocument();
+  });
+
+  it('keeps the obscured block clean when opening hours are absent (no dangling line — Story 11.4 AC3/AC4)', () => {
+    // Cross-case: an obscured venue WITHOUT opening hours. The Story-10.2 obscured
+    // two-signal block must still render, and the absent opening-hours branch must
+    // leave nothing behind (no empty opening-hours node, no fabricated value).
+    render(
+      <VenueQuickInfo
+        mode="mobile"
+        name="Molnbaren"
+        sunExposurePercent={88}
+        openingHours={undefined}
+        distanceMeters={420}
+        currentSunStatus="CloudObscured"
+        skyCondition="overcast"
+        thumbnail={{ alt: 'Uteservering', initials: 'MB' }}
+        isLoadingSunData={false}
+        onDismiss={() => {}}
+        onOpenDetails={() => {}}
+        onRoute={() => {}}
+        labels={labels}
+      />,
+    );
+
+    // Obscured treatment preserved.
+    expect(screen.getByTestId('quick-info-obscured')).toHaveTextContent('Sol bakom moln');
+    expect(screen.getByTestId('quick-info-obscured')).toHaveTextContent('Mulet');
+    // No opening-hours line, no fabricated "Öppet".
+    expect(screen.queryByTestId('quick-info-opening-hours')).not.toBeInTheDocument();
+    expect(screen.getByTestId('venue-quick-info')).not.toHaveTextContent('Öppet');
+    // The metadata paragraph carrying the sr-only confidence + distance has no
+    // dangling leading/trailing separator even with opening hours gone.
+    const metadata = screen.getByText('88% SOL').closest('[data-testid="venue-quick-info"]');
+    expect(metadata).toBeInTheDocument();
+  });
+
   it('renders opening hours on the desktop breakpoint too (Story 11.4 AC1)', () => {
     render(
       <VenueQuickInfo

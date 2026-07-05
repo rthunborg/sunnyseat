@@ -568,6 +568,19 @@ describe('venue-store projection helpers', () => {
     expect(base).not.toHaveProperty('openingHours');
   });
 
+  it('toVenueData copies a closesAt-absent openingHours shape verbatim (live Supabase rows may omit closesAt — Story 11.4 AC1)', () => {
+    // The store shape is `{ display: string; closesAt?: string }` — a live row can
+    // carry only `display`. The copy must preserve that shape exactly (no dropped
+    // display, no synthesized closesAt). `stored` already uses a closesAt-absent
+    // openingHours (`{ display: 'Öppet till 22:00' }`) — pin that the DTO field is
+    // byte-identical to the store field (faithful copy, not a reshape).
+    const base = toVenueData(stored);
+    expect(base.openingHours).toEqual({ display: 'Öppet till 22:00' });
+    expect(base.openingHours).not.toHaveProperty('closesAt');
+    // The copied value is the same reference the store carried (no clone/mutation).
+    expect(base.openingHours).toBe(stored.openingHours);
+  });
+
   it('storedVenueDetail extracts only the detail block', () => {
     expect(storedVenueDetail(stored)).toEqual({
       description: 'desc',

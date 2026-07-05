@@ -131,6 +131,53 @@ describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
     expect(sunny?.sunWindow).toEqual({ start: '12:00', end: '16:00' });
   });
 
+  it('preserves openingHours end-to-end on the REAL-engine list DTO (Story 11.4 AC1 — live path)', async () => {
+    // Story 11.4 (AC1): opening hours must survive the LIVE production path
+    // (SUN_ENGINE=real), not just the seed path. The engine builds its DTO from
+    // `mergeSunFields(toVenueData(venue), fields)` — it spreads the `toVenueData`
+    // base (which now carries `openingHours`) and only overwrites/deletes the six
+    // sun-output fields. This pins that invariant: a future refactor that stopped
+    // spreading the base, or dropped `openingHours` from `toVenueData`, would
+    // silently blank the live card and must fail here.
+    adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) =>
+      computedOutcome(venue),
+    );
+
+    const res = await LIST_GET(listRequest('?lat=57.7089&lng=11.9746'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+
+    // The two sunny fixtures seed a real value → present after the engine runs.
+    const sunny = body.venues.find((v) => v.slug === 'test-venue-sunny');
+    expect(sunny?.openingHours).toEqual({ display: 'Öppet till 22:00', closesAt: '22:00' });
+
+    // Absent → absent: a fixture without opening hours never gains a fabricated
+    // value through the engine merge either.
+    const withoutHours = body.venues.filter((v) => v.openingHours === undefined);
+    expect(withoutHours.length).toBeGreaterThan(0);
+    for (const venue of withoutHours) {
+      expect(venue).not.toHaveProperty('openingHours');
+    }
+  });
+
+  it('does not fabricate openingHours when the engine geometry-degrades (weather-unavailable path)', async () => {
+    // Even on the degraded (geometry-only, no weather) outcome the merge keeps the
+    // static store-carried openingHours untouched — the engine owns only the sun
+    // fields, never the venue's static attributes.
+    adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) =>
+      unavailableOutcome(venue),
+    );
+
+    const res = await LIST_GET(listRequest('?lat=57.7089&lng=11.9746'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+
+    const sunny = body.venues.find((v) => v.slug === 'test-venue-sunny');
+    // Sun fields degraded, but the static opening hours are still surfaced.
+    expect(sunny?.skyCondition).toBe('unavailable');
+    expect(sunny?.openingHours).toEqual({ display: 'Öppet till 22:00', closesAt: '22:00' });
+  });
+
   it('degrades a single throwing venue to its seed without 500ing the list (allSettled invariant, 5.2)', async () => {
     // Even though applyRealSunEngine degrades internally today, the route fan-out
     // must be STRUCTURALLY resilient: a future adapter throw cannot 500 the list.

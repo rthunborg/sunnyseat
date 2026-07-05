@@ -5,10 +5,10 @@ epic_num: 11
 story_num: 4
 branch: epic/11-feels-instant-reads-clear
 status: in-progress
-updated_at: "2026-07-05T12:32:27Z"
+updated_at: "2026-07-05T12:45:06Z"
 started_at: "2026-07-05T11:07:29Z"
 completed_at: null
-active_seconds: 5094
+active_seconds: 5848
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: [automate]
 tea_rationale: "non-trivial conditional logic (opening-hours-or-nothing, aria regen, i18n pruning) across multiple modules but no High signal â€” epic risk R-010 score 4 (medium)"
 epic_story_count: 8
 stories_after_in_epic: 4
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
