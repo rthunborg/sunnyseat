@@ -5,11 +5,11 @@ epic_num: 11
 story_num: 9
 branch: story/11-9-venue-data-model-cleanup
 status: in-progress
-updated_at: "2026-07-06T18:11:55Z"
+updated_at: "2026-07-06T18:12:05Z"
 started_at: "2026-07-06T14:29:45Z"
 completed_at: null
 active_seconds: 12761
-timing_anchor: null
+timing_anchor: 1783361525
 is_first_in_epic: false
 is_last_in_epic: true
 needs_project_context_bootstrap: false
