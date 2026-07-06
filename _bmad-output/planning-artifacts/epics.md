@@ -3019,3 +3019,109 @@ So that the "shipped but insufficient" pattern of Epics 9/10 (caching + debounce
 **Then** a repeatable measurement against the LIVE deployment records date-change p95 < 3 s and time-scrub = 0 network requests, stored in the story record with the methodology, and a CI-runnable variant guards the request-count invariants (wall-clock perf measured live, counts guarded in CI)
 
 **Design Gate Criteria (verification story):** No new UI of its own; the gate is all other Epic 11 stories' visual references passing at both breakpoints, the real-device checklist recorded, and the regression + request-count suites green in CI.
+
+### Story 11.9: Venue Data Model Cleanup — IDs, Per-Weekday Hours, Dead-Field Removal
+
+_Context (folded from the dissolved single-story Epic 12 draft, 2026-07-06):_
+
+Authoring a real venue currently means hand-picking a text `id`, writing a
+pre-localized `opening_hours.display` string, and filling `peak_time` +
+`shadow_warning_minutes` — three of which are redundant, dishonest, or unused. This
+story simplifies `public.venues` end-to-end (Supabase migration + store adapter + DTO
++ display + i18n + seed + the data-load template) so venue data is easy to author and
+carries only fields the app actually uses truthfully. The app is LIVE on the Supabase
+real-data path; the migration is manual, idempotent, reviewed, and must preserve the
+RLS posture and the `test-venue-sunny` gate venue.
+
+> **Source (2026-07-06):** maintainer review of the `nextjs-app/docs/venue-data-load.md`
+> template against the live schema and code. Findings that ground the story against
+> the real cause:
+> 1. **`id` is a manually-assigned text PRIMARY KEY** (seed rows "1".."7"), and
+>    `reviews.venue_id` / `feedback.venue_id` reference it as free-text while `slug`
+>    is the real URL key — so authors shouldn't have to invent an id, but changing the
+>    PK has cross-table identifier impact. **Maintainer decision (2026-07-06): keep the
+>    `text` PK (no identity/serial migration) and make it auto-assigning.** (Story 11.9, AC1)
+> 2. **`opening_hours` is a single `{display, closesAt}` jsonb** with a pre-localized
+>    `display` string; real hours vary by weekday, and the display line + "ÖPPET"
+>    badge should be *derived* at render time, not stored. (AC2)
+> 3. **`peak_time` is redundant** — the real engine already computes `peakTime` live
+>    from the sun timeline (`sun-engine.ts` `peakTimeFromTimeline`); the stored column
+>    only feeds the legacy fixture path. (AC3)
+> 4. **`shadow_warning_minutes` is dead** — carried store→DTO
+>    (`VenueDetailDto.shadowWarningMinutes`) but rendered nowhere in the UI (tests
+>    only). (AC4)
+>
+> **Scope note:** the server-only `seating_area` / `seating_elevation_m` /
+> `ground_elevation_m` columns are OUT of scope and stay untouched (never serialized).
+
+As a **maintainer adding real venues (and the user reading them)**,
+I want the venue data model to auto-handle ids, carry honest per-weekday opening
+hours, and drop redundant/unused fields,
+So that authoring a venue is simple and the app only ever shows fields it can stand behind.
+
+**Acceptance Criteria:**
+
+**Given** `id` is a manually-assigned text PRIMARY KEY that `reviews.venue_id` and
+`feedback.venue_id` reference as free-text (seed rows "1".."7"), while `slug` is the
+real URL key
+**When** the id strategy is implemented per the MAINTAINER DECISION (2026-07-06):
+**keep the `text` PRIMARY KEY** — do NOT migrate to an identity/serial PK — so the
+existing free-text `reviews.venue_id` / `feedback.venue_id` joins stay compatible; the
+column is made auto-assigning so a data author no longer hand-picks an id (add a DB
+default that generates a `text` id on insert; the story/architect picks the exact
+mechanism — e.g. a sequence-backed `text` default — preserving the seed rows "1".."7")
+**Then** inserting a real venue requires no manually chosen id, the `text` PK and the
+review/feedback joins are preserved, the `test-venue-sunny` gate venue is unchanged,
+and the chosen mechanism is reflected in the migration and the data-load template
+
+**Given** `opening_hours` is a single `{display, closesAt}` jsonb with a pre-localized
+`display` string
+**When** it is replaced with a per-weekday structure carrying opens/closes for all 7
+weekdays (shape proposed in the story context; closed days and past-midnight closing
+handled), and the stored `display` string is removed
+**Then** the "Öppet till HH:MM" quick-info line and the "ÖPPET · {time}" detail badge
+are DERIVED at render time from the structured data + locale + current weekday
+(Europe/Stockholm, sv default) via a new formatter + i18n keys, and a venue with no
+hours for today renders nothing (never a fabricated closing time)
+
+**Given** `peak_time` is stored but the real engine already computes `peakTime` live
+from the sun timeline
+**When** the `peak_time` column and its store→DTO passthrough are removed
+**Then** the real-engine `peakTime` (timeline-derived) path is unchanged and no
+surface loses a real value
+
+**Given** `shadow_warning_minutes` is carried store→DTO but rendered nowhere in the UI
+**When** its original intent is documented and it is dropped end-to-end (column, store
+field, `VenueDetailDto.shadowWarningMinutes`, and the tests that assert it) — unless
+the story surfaces a real consumer
+**Then** no reader of the field remains (verified by grep across
+`opening_hours`/`openingHours`/`peak_time`/`peakTime`/`shadow_warning_minutes`/
+`shadowWarningMinutes` before removal)
+
+**Given** `nextjs-app/docs/venue-data-load.md` is the canonical "add a real venue"
+guide
+**When** the model changes above land
+**Then** the doc is rewritten to match: the `id` row reflects AC1, the `opening_hours`
+row + the "What to send (one venue)" JSON example use the new per-weekday shape, and
+`peak_time` + `shadow_warning_minutes` are removed — leaving a correct,
+copy-pasteable template
+
+**Given** the app is LIVE on the Supabase real-data path
+**When** the migration is authored
+**Then** it is idempotent, keeps RLS enabled + the `venues_service_read` service-role-
+only policy, leaves the server-only `seating_*` / `ground_*` columns untouched,
+updates the 7-venue seed to the new shape (byte-compatible on the values the
+`test-venue-sunny` gate asserts), and is applied to the live DB as a reviewed step
+
+**Design Gate Criteria:**
+- **Visual:** The derived "Öppet till HH:MM" (quick-info) and "ÖPPET · {time}" detail
+  badge match the current visual treatment on mobile + desktop; no closing time is
+  shown when the venue has no hours today
+- **Behaviour:** The opening-hours line reflects the CURRENT weekday; closed-today and
+  past-midnight cases render honestly; venues without opening hours omit the line/badge
+  entirely
+- **Animation:** No regression to the fallback→detail badge swap (same footprint, no
+  layout jump)
+- **Visual validation:** Screenshot comparison of the venue detail (mobile + desktop)
+  and the quick-info card against the current baseline passes before QA handoff — no
+  proportion/centering regression in the opening-hours row or the ÖPPET badge
