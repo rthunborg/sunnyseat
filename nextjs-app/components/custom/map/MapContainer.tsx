@@ -7,6 +7,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
+import { applyBasemapColorOverridesToMap } from '@/lib/utils/apply-basemap-colors';
 
 const TILE_FAILURE_THRESHOLD = 4;
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
@@ -64,6 +65,29 @@ export function MapContainer() {
     });
 
     setMapInstance(map);
+
+    /**
+     * Basemap recolour (maintainer design review, 2026-07-06): the positron
+     * style ships a near-grey water/green palette. We recolour the water and
+     * green layers toward a friendlier blue/green ONCE the style has loaded,
+     * so the map reads pleasant and colourful under the (unchanged) warm brand
+     * overlay. Roads/buildings/labels stay neutral, and every override is
+     * applied only if the layer is present (see `apply-basemap-colors.ts`).
+     *
+     * The style can already be loaded by the time this effect runs (fast
+     * cache) OR load later; cover both. We do NOT re-apply on every
+     * `styledata` — `setPaintProperty` itself emits `styledata`, which would
+     * loop — a single application on load is enough (the overrides are static
+     * and MapLibre persists them for the style's lifetime).
+     */
+    const recolourBasemap = () => {
+      applyBasemapColorOverridesToMap(map);
+    };
+    if (map.isStyleLoaded()) {
+      recolourBasemap();
+    } else {
+      map.once('load', recolourBasemap);
+    }
 
     // Story 1.6 Task 11 removed the dev-only `[MapContainer] Map load
     // took N ms` info log. The metric measured style parse, not tile

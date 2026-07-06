@@ -462,6 +462,15 @@ Decorative lines: color-map-line (#e8e2d5) at 40% opacity
 Warm gradient overlay: gradient-map-overlay
 ```
 
+**Basemap layer recolour (MapLibre paint, not CSS).** The OpenFreeMap "positron" basemap ships a near-grey water/green palette that reads flat and depressing under our tint. A maintainer design review (2026-07-06) asked for bluer water and greener greens while keeping the warm brand overlay. Because the map is a MapLibre canvas (not a DOM surface), these colours cannot live as CSS tokens — they are applied to the loaded style via `map.setPaintProperty` and tokenized as a single named constants block in `lib/constants/map-basemap-colors.ts` (applied by `lib/utils/apply-basemap-colors.ts`, wired in `MapContainer.tsx`). Roads, buildings, boundaries and labels stay at the positron defaults (neutral), so pin/label contrast is unaffected.
+
+| Basemap token (constants) | Value | Usage |
+|---|---|---|
+| `BASEMAP_WATER_BLUE` | `#7cc0e8` | `water` fill (was grey `rgb(194,200,202)`) — friendly clear blue (chosen a touch deeper than the on-screen target so it survives the warm sand/amber overlay) |
+| `BASEMAP_WATERWAY_BLUE` | `#5fb0df` | `waterway` line — slightly stronger blue so thin rivers/canals read through the warm tint |
+| `BASEMAP_PARK_GREEN` | `#b6e0a6` | `park` (+ `grass`/`landcover_grass`) fill (was grey-green `rgb(230,233,229)`) — fresh green |
+| `BASEMAP_WOOD_GREEN` | `#a6d691` | `landcover_wood` (+ `wood`/`forest`) fill (was grey-green `rgb(220,224,220)`) — a touch deeper green so woods stay distinct from parks |
+
 ---
 
 ## Elevation Model
