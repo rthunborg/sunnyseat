@@ -5,10 +5,10 @@ epic_num: 11
 story_num: 9
 branch: story/11-9-venue-data-model-cleanup
 status: in-progress
-updated_at: "2026-07-06T14:29:45Z"
+updated_at: "2026-07-06T14:41:56Z"
 started_at: "2026-07-06T14:29:45Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 691
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -20,7 +20,7 @@ tea_selected: [atdd, automate]
 tea_rationale: "live-DB schema migration (column drop/reshape + PK auto-assign default) on the production Supabase store -> High risk"
 epic_story_count: 9
 stories_after_in_epic: 0
-completed_phases: []
+completed_phases: [0, 1, 2, 3]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -46,7 +46,8 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "Per-weekday jsonb key convention (numeric ISO weekday vs named mon..sun) proposed in story, left for dev to finalize"
 deferred_work: []
 blockers: []
 overrides: {}

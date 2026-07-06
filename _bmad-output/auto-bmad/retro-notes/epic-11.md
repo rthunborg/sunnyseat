@@ -59,3 +59,6 @@
 - [Phase 5 â€” dev-story] Cross-epic test drift is caught only by full-suite sweeps: 11-4's removal of the visible SÃ¤kerhet chip left a stale CONFIDENCE_BADGE_COPY regex in the epic-10 weather-matrix e2e that no per-story review caught (they ran vitest only). Verification stories should always run the FULL e2e suite.
 - [Phase 5 â€” dev-story] The sheet 'map interactive behind collapsed' touch test survived CI only via retries:2 (~66% first-attempt flake) â€” exactly the shipped-but-insufficient fragility 11-8 exists to kill; hardened to deterministic re-aim + bounded retry.
 - [Phase 6 â€” automate] The verification story's own thesis ('the gate must keep running') had zero guard on the gate's WIRING â€” CI project invocations + Playwright testMatch/testIgnore routing are now locked by 7 mutation-checked vitest contract guards (a silent --project drop or vacuous 0-spec green now fails fast).
+
+## Story 11-9-venue-data-model-cleanup
+- [Phase 3 â€” create-story] The closesAt Ã–PPET-badge is-open-guard deferral names Story 11.9 per-weekday data-layer change as its exact trigger â€” close or re-scope that deferred entry once 11.9 lands (queue-not-archive convention).
