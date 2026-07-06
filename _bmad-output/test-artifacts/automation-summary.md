@@ -6,8 +6,11 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-05T11-7'
+lastSaved: '2026-07-06T11-9'
 inputDocuments:
+  - '_bmad-output/implementation-artifacts/11-9-venue-data-model-cleanup.md'
+  - 'nextjs-app/lib/utils/opening-hours.ts'
+  - 'nextjs-app/lib/services/venue-store.ts'
   - '_bmad-output/implementation-artifacts/11-6-venue-detail-clean-first-paint-content-polish.md'
   - 'nextjs-app/components/composed/venue/VenueDetailContent.tsx'
   - 'nextjs-app/components/custom/feedback/ReviewFlow.tsx'
@@ -363,3 +366,47 @@ The shared `ERROR_SWALLOW` regex was **mutation-checked** against `\|\| true`, `
 
 ## Next recommended workflow
 `trace` (traceability matrix / quality-gate decision for Story 11.7) or `test-review` (quality validation of the new config-contract suite).
+
+---
+
+# Automation Expansion Summary — Story 11.9 (Venue Data Model Cleanup — IDs, Per-Weekday Hours, Dead-Field Removal)
+
+## Preflight & Context
+- **Framework:** Vitest 4.1.4 (`nextjs-app/vitest.config.ts`) + Playwright present. Verified — no HALT.
+- **Stack:** fullstack (Next.js + server-only venue store). Story 11.9 is the data-model cleanup: per-weekday `opening_hours` (AC2) with a NEW pure formatter `lib/utils/opening-hours.ts`, a defensive store coercer `coerceOpeningHours` in `lib/services/venue-store.ts`, an auto-assigning text PK (AC1, DB-only), and the removal of `peak_time`/`shadow_warning_minutes` end-to-end (AC3/AC4).
+- **Mode:** BMad-Integrated (story + 4 ATDD scaffolds, all un-skipped and green). **Sequential** — a narrow, purely-additive UNIT top-up on the two new pure-logic surfaces (formatter + coercer); no API/E2E fan-out warranted.
+
+## Existing coverage reviewed (to avoid duplication — NOT re-created, NOT weakened)
+- `opening-hours.atdd.test.ts` — `formatOpeningHours` headline AC2: open/closed/past-midnight/malformed/no-hours + gate-parity "22:00".
+- `venue-store.opening-hours-shape.atdd.test.ts` — `VENUE_SELECT_COLUMNS` drops the dead columns; `coerceOpeningHours` well-formed/null/malformed-scalar; fixture present/absent branches + no `peakTime`/`shadowWarningMinutes`.
+- `venue-detail-route.data-cleanup.atdd.test.ts` — detail DTO: `shadowWarningMinutes` gone, engine `timeline.peakTime` kept, new `openingHours` shape serializes, no fabricated absent-hours display.
+- `VenueDetailContent.opening-hours-derived.atdd.test.tsx` — derived ÖPPET badge + Öppettider row (open/closed/loading same-box swap).
+- E2E already exists (`epic-10-weather-matrix`, `map-primary`); pure weekday/coercion logic at E2E would be duplicate coverage (test-levels anti-pattern) — kept at UNIT.
+
+## Gaps Identified & Filled (branch/boundary, no duplication)
+
+| # | Gap (previously uncovered) | Level | Priority | Where |
+|---|-----------------------------|-------|----------|-------|
+| 1 | `stockholmIsoWeekday` — each of the 7 ISO weekdays asserted DIRECTLY (only indirectly exercised via the formatter before). | Unit | P1 | `opening-hours.coverage.test.ts` |
+| 2 | `stockholmIsoWeekday` **DST correctness** — a WINTER instant (CET=UTC+1) + local-midnight crossing map to the ZONED weekday, not the UTC weekday. The honesty of weekday selection depends on this; scaffold only used summer instants. | Unit | P1 | same |
+| 3 | `formatOpeningHours` **i18n `template` param** — the composition path the real render surfaces use (`labels.openUntilLine`); replaces EVERY `{time}`; default-template fallback. Scaffold only used the default. | Unit | P1 | same |
+| 4 | `formatOpeningHours` edge branches — empty `{}` hours object → nothing; `open===close` derived honestly (no clamp); boundary `00:00`/`23:59` pass, out-of-range `24:00` → nothing (no throw). | Unit | P2 | same |
+| 5 | `coerceOpeningHours` **all-malformed object** → undefined (the `hasEntry` gate — an object with zero recognizable weekday entries is "no hours"); non-weekday-only keys → undefined. The trust-boundary branch that stops a bad prod jsonb reaching render. | Unit | P1 | `venue-store.opening-hours-coerce.test.ts` |
+| 6 | `coerceOpeningHours` **mixed validity** — valid intervals kept, malformed dropped, in one call; an explicit `null` weekday PRESERVED (closed-that-day is honest data); stray legacy keys (`display`/`timezone`) do not leak through. | Unit | P1 | same |
+| 7 | `coerceOpeningHours` **interval time validation** — boundary (`00:00`/`23:59`) + past-midnight (`close<open`) accepted; out-of-range (`24:00`/`12:60`) + non-string times → undefined. | Unit | P2 | same |
+
+All formatter tests inject a fixed `now` (offset-annotated) — wall-clock-deterministic, no `?_time=` flake. Coercer tests are pure structural assertions, no clock, no live Supabase.
+
+## Files Created (test-only, additive)
+- **NEW** `nextjs-app/test/unit/utils/opening-hours.coverage.test.ts` — 13 tests (gaps #1–#4).
+- **NEW** `nextjs-app/test/unit/services/venue-store.opening-hours-coerce.test.ts` — 10 tests (gaps #5–#7).
+
+## Validation / Gate
+- `npx tsc --noEmit` → **0 errors**.
+- `npx eslint <the 2 new files> --quiet` → **0 errors** (exit 0).
+- `npx vitest run` → **152 files / 1439 tests, all passing, 0 skipped** (Story 11.9 handoff HEAD was 150 files / 1416 tests → net **+2 files / +23 tests**, none dropped, none regressed).
+- Test-only addition — no source, store, formatter, DTO, i18n, or CI-path change. Default seed path (flag OFF, as CI runs it) untouched.
+- (`Not implemented: navigation to another Document` in vitest output remains a benign pre-existing jsdom log, not a failure.)
+
+## Next recommended workflow
+`trace` (traceability matrix / quality-gate decision for Story 11.9) or `test-review` (quality validation of the new + existing opening-hours suites).
