@@ -62,3 +62,4 @@
 
 ## Story 11-9-venue-data-model-cleanup
 - [Phase 3 â€” create-story] The closesAt Ã–PPET-badge is-open-guard deferral names Story 11.9 per-weekday data-layer change as its exact trigger â€” close or re-scope that deferred entry once 11.9 lands (queue-not-archive convention).
+- [Phase 4 â€” atdd] AC1 (auto-assign PK) + AC6 (idempotent live migration) have NO runtime test scaffold â€” DB-DDL/RLS criteria proven only by the migration smoke checks; flagged in checklist so *trace reads them as smoke-check-covered, not un-tested.
