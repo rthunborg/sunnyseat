@@ -59,6 +59,23 @@ describe('[11.9 AC2] stockholmIsoWeekday — ISO weekday in Europe/Stockholm', (
     // Summer CEST = UTC+2. 23:30Z Sun 2026-06-21 = 01:30 local Mon 2026-06-22 → ISO 1.
     expect(stockholmIsoWeekday(new Date('2026-06-21T23:30:00.000Z'))).toBe(1);
   });
+
+  it('NEVER-FABRICATE: an unrecognized Intl weekday token degrades to undefined (not Monday)', () => {
+    // Simulate locale-data drift / non-Gregorian / ICU quirk yielding a token
+    // outside Mon..Sun. The derivation MUST return undefined so the caller renders
+    // nothing — defaulting to a concrete weekday would fabricate that day's hours.
+    const RealDateTimeFormat = Intl.DateTimeFormat;
+    // Constructable stub whose instances always yield an out-of-range token.
+    const BogusDateTimeFormat = function BogusDateTimeFormat(this: unknown) {
+      return { format: () => 'Xyz' };
+    } as unknown as typeof Intl.DateTimeFormat;
+    Intl.DateTimeFormat = BogusDateTimeFormat;
+    try {
+      expect(stockholmIsoWeekday(new Date('2026-06-15T10:00:00.000Z'))).toBeUndefined();
+    } finally {
+      Intl.DateTimeFormat = RealDateTimeFormat;
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

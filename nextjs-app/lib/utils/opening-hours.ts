@@ -39,8 +39,16 @@ const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
  */
 const DEFAULT_OPEN_UNTIL_TEMPLATE = 'Öppet till {time}';
 
-/** ISO weekday (1=Mon .. 7=Sun) for `now` in Europe/Stockholm — locale-independent. */
-export function stockholmIsoWeekday(now: Date): number {
+/**
+ * ISO weekday (1=Mon .. 7=Sun) for `now` in Europe/Stockholm — locale-independent.
+ *
+ * NEVER-FABRICATE: if `Intl` ever yields a token outside Mon..Sun (locale-data
+ * drift / non-Gregorian / ICU quirk), return `undefined` — NOT a concrete weekday.
+ * Defaulting to a real day (e.g. Monday) would fabricate that day's open/close
+ * state on the wrong day; `undefined` makes the honest "renders nothing" fallback
+ * fire instead.
+ */
+export function stockholmIsoWeekday(now: Date): number | undefined {
   // `Intl` `weekday: 'short'` in en-US is stable across environments; map to ISO.
   const weekday = new Intl.DateTimeFormat('en-US', {
     timeZone: STOCKHOLM_TIME_ZONE,
@@ -55,7 +63,7 @@ export function stockholmIsoWeekday(now: Date): number {
     Sat: 6,
     Sun: 7,
   };
-  return map[weekday] ?? 1;
+  return map[weekday];
 }
 
 /**
@@ -97,6 +105,7 @@ export function formatOpeningHours(
   void locale; // derived time is locale-independent; kept for API symmetry.
   if (!hours || typeof hours !== 'object') return {};
   const weekday = stockholmIsoWeekday(now);
+  if (weekday === undefined) return {};
   const interval = coerceInterval(hours[String(weekday)]);
   if (!interval) return {};
   const closesAt = interval.close;
