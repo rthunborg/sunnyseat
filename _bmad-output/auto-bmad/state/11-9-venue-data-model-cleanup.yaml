@@ -5,11 +5,11 @@ epic_num: 11
 story_num: 9
 branch: story/11-9-venue-data-model-cleanup
 status: in-progress
-updated_at: "2026-07-06T17:05:21Z"
+updated_at: "2026-07-06T17:47:33Z"
 started_at: "2026-07-06T14:29:45Z"
 completed_at: null
-active_seconds: 8953
-timing_anchor: 1783357521
+active_seconds: 11315
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
 needs_project_context_bootstrap: false
@@ -20,10 +20,10 @@ tea_selected: [atdd, automate]
 tea_rationale: "live-DB schema migration (column drop/reshape + PK auto-assign default) on the production Supabase store -> High risk"
 epic_story_count: 9
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
-code_review_iterations: 0
-code_review_loop_done: false
-hitl_halt: null
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+code_review_iterations: 2
+code_review_loop_done: true
+hitl_halt: "skipped (clean convergence)"
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null

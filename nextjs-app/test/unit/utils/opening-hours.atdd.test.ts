@@ -20,24 +20,19 @@
  * NEVER call `new Date()` internally (Dev Notes "New formatter — keep it PURE").
  *
  * =========================================================================
- * RED PHASE — why every block is `.skip`-ed
+ * STATUS — GREEN (live, un-skipped)
  * =========================================================================
- * Against the current tree these FAIL because `lib/utils/opening-hours.ts` does not
- * exist yet (imported below via an untyped dynamic-import shim so the `.skip`-ed file
- * still type-checks). Un-skip when Task 3.2 lands.
+ * Task 3.2 landed `lib/utils/opening-hours.ts`, so these blocks are un-skipped and
+ * run against the real formatter (imported directly below). They gate CI as ordinary
+ * green tests; this file is no longer a `.skip`-ed red-phase scaffold.
  *
- * NAMING TOLERANCE: the dev has not committed to the exact export name/signature. The
- * scaffold probes `formatOpeningHours` (the name in Dev Notes) and tolerates either a
- * single `{ display?, closesAt? }` return OR two functions — the ACCEPTANCE SIGNAL is
- * the VALUE (derived display string / today's close / undefined-when-closed), not a
- * name the dev has not chosen. If the dev picks a different key convention
- * (`"mon".."sun"` instead of numeric ISO), update `hoursFor()` below; the assertions
- * stand.
+ * KEY CONVENTION: assertions target the shipped `formatOpeningHours` signature and the
+ * numeric-ISO-weekday key shape (`hoursFor()` below). The ACCEPTANCE SIGNAL is the
+ * VALUE — derived display string / today's close / undefined-when-closed.
  */
 
 import { describe, expect, it } from 'vitest';
 
-// GREEN PHASE (Task 3.2): the pure formatter now exists. Import it directly.
 import { formatOpeningHours } from '@/lib/utils/opening-hours';
 
 /**

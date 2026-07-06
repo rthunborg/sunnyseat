@@ -22,14 +22,13 @@
  * Dev Notes 3.3/3.4 keep it prop-fed), so they are deterministic with no clock.
  *
  * =========================================================================
- * RED PHASE — why every block is `.skip`-ed
+ * STATUS — GREEN (live, un-skipped)
  * =========================================================================
- * Against the current tree these FAIL to COMPILE against the post-change prop types:
- * `VenueDetailDto.openingHours` is TODAY `{display, closesAt}` (api.ts:160). The
- * post-change `DETAIL_*` fixtures below carry the NEW per-weekday shape, which the
- * current type rejects — so the scaffold is authored against the FUTURE type via a
- * typed `buildDetail()` shim (spreads an `unknown`-cast hours object) so the `.skip`-ed
- * file type-checks now and asserts the derived render once un-skipped (Task 3.4).
+ * Task 3.4 landed: `VenueDetailDto.openingHours` is now the per-weekday shape and
+ * `VenueDetailContent` derives the badge close + Öppettider line at render time. These
+ * blocks are un-skipped and run against the real component as ordinary green tests that
+ * gate CI; this file is no longer a `.skip`-ed red-phase scaffold. The `DETAIL_*` fixtures
+ * carry the per-weekday shape via the typed `buildDetail()` shim below.
  *
  * NOTE on the badge-open-guard decision (Dev Notes constraint): this story derives the
  * badge from TODAY's close (weekday-correct). A full minute-precise is-open-now guard is

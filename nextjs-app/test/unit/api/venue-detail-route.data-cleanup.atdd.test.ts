@@ -19,20 +19,18 @@
  * clock (as the sibling test), no live weather (the route's own fallbacks apply).
  *
  * =========================================================================
- * RED PHASE — why every block is `.skip`-ed
+ * STATUS — GREEN (live, un-skipped)
  * =========================================================================
- * Against the current tree these FAIL:
- *   - `body.venue.shadowWarningMinutes` is STILL 45 (venue-detail-route.test.ts:41) —
- *     the field is spread in `buildDetailDto` (route.ts:182);
- *   - `body.venue.openingHours` STILL serializes as `{display, closesAt}` with a
- *     `display` STRING (route.ts:175) — the new shape has no `display` key;
- *   - the absent-hours branch STILL emits `{display:'Öppettider saknas'}` rather than
- *     honest absence.
- * `timeline.peakTime` already passes today (engine value) and MUST keep passing — it is
- * asserted here as a regression guard, not a red row.
- * Un-skip when Task 3.1/3.6 land. The sibling `venue-detail-route.test.ts` migrates its
- * OWN `shadowWarningMinutes`/`openingHours.display` assertions in Task 4.2; this scaffold
- * adds the NEW cleanup contract, it does not duplicate the surviving route coverage.
+ * Tasks 3.1/3.6 landed: `buildDetailDto` no longer spreads `shadowWarningMinutes`,
+ * `openingHours` serializes in the new per-weekday shape (no `display` string), and the
+ * absent-hours branch serializes honestly (no fabricated `{display:'Öppettider saknas'}`).
+ * These blocks are un-skipped and run against the real `GET /api/venues/[slug]` route as
+ * ordinary green tests that gate CI; this file is no longer a `.skip`-ed red-phase scaffold.
+ * `timeline.peakTime` (engine value) is asserted here as a regression guard.
+ *
+ * The sibling `venue-detail-route.test.ts` owns its migrated
+ * `shadowWarningMinutes`/`openingHours.display` assertions (Task 4.2); this file adds the
+ * NEW cleanup contract, it does not duplicate the surviving route coverage.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

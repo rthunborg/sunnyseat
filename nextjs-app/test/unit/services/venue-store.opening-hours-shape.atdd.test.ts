@@ -22,20 +22,16 @@
  * mocks the service-role client the same way).
  *
  * =========================================================================
- * RED PHASE — why every block is `.skip`-ed
+ * STATUS — GREEN (live, un-skipped)
  * =========================================================================
- * Against the current tree these FAIL:
- *   - `VENUE_SELECT_COLUMNS` STILL contains `'peak_time'` + `'shadow_warning_minutes'`
- *     (venue-store.ts:145-146);
- *   - `fromVenueRow` maps `row.opening_hours` straight through as `{display, closesAt}`
- *     (venue-store.ts:540) — there is NO `coerceOpeningHours` and the new per-weekday
- *     jsonb would land unshaped;
- *   - `detailFromRow` still assigns `peakTime`/`shadowWarningMinutes` (venue-store.ts:541-543).
- * Un-skip when Tasks 2.1–2.4 land.
+ * Tasks 2.1–2.4 landed: `VENUE_SELECT_COLUMNS` no longer requests
+ * `peak_time`/`shadow_warning_minutes`, `coerceOpeningHours` shapes `row.opening_hours`
+ * into the per-weekday structure, and `detailFromRow` no longer assigns the dropped
+ * fields. These blocks are un-skipped and run against the real store as ordinary green
+ * tests that gate CI; this file is no longer a `.skip`-ed red-phase scaffold.
  *
- * NAMING TOLERANCE: `coerceOpeningHours` is the Dev-Notes name; the assertions here
- * target the OBSERVABLE mapper output (`detail.openingHours` value / absence), not the
- * helper's internal name — the coercer can be inlined or renamed and these still hold.
+ * The assertions target the OBSERVABLE mapper output (`detail.openingHours` value /
+ * absence) plus the exported `coerceOpeningHours` / `VENUE_SELECT_COLUMNS` constants.
  */
 
 import { describe, expect, it } from 'vitest';
