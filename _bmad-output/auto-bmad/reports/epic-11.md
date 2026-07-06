@@ -109,3 +109,52 @@ reconcile marked 2 missed completions (toSunStatusToken deleted in 11-7 — evid
 3. After blessing + merge: flip the 8 story statuses + epic-11 to done (they stay at review because the caveated epic skips the batch flip)
 
 **Next:** No epic-12 planning exists yet — sprint-status shows no actionable story after epic 11; next run would hard-stop pending new planning.
+
+## Report — 2026-07-06T14:04:38Z (final — caveated)
+
+**Epic:** `11` — 8 stories.
+**Branch:** `epic/11-feels-instant-reads-clear` (HEAD `2deb273`).
+**Pipeline status:** Post-run iteration on the open draft PR #17: the maintainer's Codex review (8 findings) verified 8/8 REAL and fixed; maintainer-requested basemap recolor landed (bluer water, greener parks) with 10 map-visible reference PNGs re-captured and re-staged. PR stays a DRAFT pending the refreshed blessing.
+**Continues:** 2026-07-05T20:24:23Z (final — caveated)
+
+**Summary:** (unchanged — see the 2026-07-05 section; this session adds the external-review fixes and the basemap recolor on top of the landed epic)
+
+**Timing:** started 2026-07-04T15:28:43Z; completed 2026-07-05T20:26:37Z — elapsed 28h 57m (≈27h 07m AI-run, ≈1h 50m human/idle wait); resumed 1×.
+
+**Stories:**
+1. (unchanged — all 8 stories as rolled up in the prior section; this session's fixes touch 11-1/11-2/11-3/11-5 surfaces + the venues route, all committed as epic-scoped fixes)
+
+**Skipped (already done):** (none)
+
+**Integration review:** External (Codex) review of PR #17: 8 findings (6 P2, 2 P3) — ALL verified against source and confirmed REAL (0 false positives; notably the slider native-min pointer-geometry mismatch that forced-?_time= e2e structurally masked, and the hidden DesktopNavBar list->planner key flip that broke scrub=0 for the always-mounted nav query). All 8 fixed in commit 224b14c: shared venuePlannerQueryArgs/deriveQueryKeyPlanner (the ledgered shared-helper defer, now materialized), MapControls obstruction refs (no re-fly on snap/panel change), inert collapsed sheet body, day-peak-stable route truncation, 44px chip arrows, reduced-motion chip scrolling, full-span native slider with handler/state clamps, disabled planner-date-next at the window end. Suite 1385/145 after fixes; scrub-zero-fetch, slider-touch, sheet-touch, chip-parity, map-primary e2e all green.
+
+**Epic gate:** (unchanged — trace PASS P0 100%, NFR PASS, test review 92/A; this session added +28 tests: suite now 1393 / 146 files, axe green on both breakpoints after the recolor — R-006 re-verified)
+
+**TEA:** (unchanged; suite total after this session: vitest 1393 / 146 files)
+
+**UAT:**
+1. The blessing set is REFRESHED: 10 map-visible reference PNGs re-captured with the new basemap colors (water #7cc0e8, waterway #5fb0df, park #b6e0a6, wood #a6d691 through the unchanged warm tint); mobile venue-detail + venue-detail-obscured unchanged (sheet covers the map). Re-review via the PR image diff (2-up/swipe/onion) + REBASELINE-LOG's dated entry.
+2. Pairwise-distinctness re-proven: mobile map-primary (sheet at PEEK, md5 4598871...) vs map-panel-venues (sheet at MID, md5 7bc57cd...) — byte-distinct.
+3. Visual spot-check of the recolor: Gota alv / harbour / canals read clearly blue, parks/forests read fresh green, roads/buildings/labels neutral, warm brand tint intact.
+4. All other Section A-G walk-through items from the 2026-07-05 section still apply unchanged; Section H (blessing + post-merge protocols) now targets the refreshed set.
+
+**Overrides:** none
+
+**Open questions:**
+1. The working tree carries the maintainer's own UNCOMMITTED Epic 12 planning edit to _bmad-output/planning-artifacts/epics.md (+106 lines) — deliberately excluded from this PR; it belongs to the future /auto-bmad 12.1 run
+
+**Deferred work:**
+1. Maintainer blessing of the REFRESHED reference set (10 re-captured + 2 unchanged) — still the draft-PR gate
+2. Post-merge protocols 1 & 2 (live p95 + scrub=0 + payload size; physical-device sweep) — unchanged
+3. Ledger untouched this session (all 8 Codex findings were direct fixes; prior defers stand)
+none this session — the reconcile + archive ran in the prior section's session (2 marked, 2 archived)
+
+**Auto-decided (epic mode):** (none)
+
+**Planning drift:** none
+
+**⚠️ Needs human:**
+1. Re-review + bless the refreshed 12-PNG set on PR #17 (10 changed again with the new colors), then mark the PR ready and merge
+2. After merge: flip the 8 stories + epic-11 to done (unchanged from the prior section)
+
+**Next:** Epic 12 'Cleaner Venue Data' planning is drafted in the maintainer's working tree (uncommitted, out of this PR) — next run: /auto-bmad 12.1 once this PR merges and the planning is committed.
