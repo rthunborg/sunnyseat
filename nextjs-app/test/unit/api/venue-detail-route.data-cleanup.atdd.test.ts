@@ -44,7 +44,7 @@ function makeRequest(slug: string, query = ''): NextRequest {
   return new NextRequest(`http://localhost/api/venues/${slug}${query}`);
 }
 
-describe.skip('[11.9 AC2/AC3/AC4] detail DTO after data-model cleanup', () => {
+describe('[11.9 AC2/AC3/AC4] detail DTO after data-model cleanup', () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
     vi.useFakeTimers();
@@ -67,8 +67,12 @@ describe.skip('[11.9 AC2/AC3/AC4] detail DTO after data-model cleanup', () => {
     );
   });
 
-  it('AC3: the engine timeline.peakTime survives (live-computed, NOT the dropped stored value)', async () => {
-    const res = await GET(makeRequest('test-venue-sunny'), {
+  it('AC3: the timeline.peakTime is DERIVED (live-computed, NOT the dropped stored value)', async () => {
+    // Send a planner selection (frozen Tuesday 2026-06-16) so the seed path derives
+    // peakTime from the sun window (`peakTimeFromSunWindow`) rather than echoing the
+    // now-removed stored `peak_time` column. This proves the live-computed peakTime
+    // survives the AC3 stored-column removal.
+    const res = await GET(makeRequest('test-venue-sunny', '?date=2026-06-16&time=14:00'), {
       params: Promise.resolve({ slug: 'test-venue-sunny' }),
     });
     const body = (await res.json()) as GetVenueDetailResponse;

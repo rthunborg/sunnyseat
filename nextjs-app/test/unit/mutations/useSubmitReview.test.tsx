@@ -63,7 +63,7 @@ describe('useSubmitReview', () => {
           reviewSummary: { averageRating: null, reviewCount: 0 },
           description: 'Detalj',
           address: 'Testgatan 1',
-          openingHours: { display: 'Öppet' },
+          openingHours: { '1': { open: '11:00', close: '22:00' } }, // Story 11.9 (AC2)
           timeline: {
             timezone: 'Europe/Stockholm',
             range: { start: '06:00', end: '21:00' },

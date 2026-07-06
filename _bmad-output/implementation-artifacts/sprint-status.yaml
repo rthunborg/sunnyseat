@@ -298,7 +298,7 @@ development_status:
   11-6-venue-detail-clean-first-paint-content-polish: review
   11-7-hygiene-deferred-debt: review
   11-8-live-verification-pass-touch-gesture-perf-guards: review
-  11-9-venue-data-model-cleanup: ready-for-dev
+  11-9-venue-data-model-cleanup: review
   epic-11-retrospective: done
 
 # Note (2026-07-05, retrospective epic-11 — epic-11-retrospective -> done): bmad-retrospective (auto-bmad delegate;

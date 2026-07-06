@@ -154,7 +154,10 @@ function buildDetailDto(
   // labelled "Shaded" (the exact dishonest label AC4 exists to prevent).
   const timelineWindowStatus =
     rawWindowStatus === 'CloudObscured' ? 'Partial' : rawWindowStatus;
-  const peakTime = timelineProjection?.peakTime ?? fixture?.peakTime;
+  // STORY 11.9 (AC3): the stored `peak_time` fixture fallback is gone — peakTime
+  // is now ONLY the live timeline-derived engine/planner value. No surface loses a
+  // real value (the fixture fallback was a stored-column echo, not a computed one).
+  const peakTime = timelineProjection?.peakTime;
   const sunWindow = venue.sunWindow
     ? [
         {
@@ -172,16 +175,17 @@ function buildDetailDto(
       fixture?.description ??
       `${venue.venueName} har uteservering i ${venue.neighborhood}.`,
     address: fixture?.address ?? venue.neighborhood,
-    openingHours: fixture?.openingHours ?? { display: 'Öppettider saknas' },
+    // STORY 11.9 (AC2): the per-weekday structure passes through; an absent-hours
+    // venue serializes an EMPTY object (closed every weekday → the render layer
+    // shows nothing) rather than the fabricated `{ display: 'Öppettider saknas' }`.
+    // The render layer derives the display/closesAt from the current weekday.
+    openingHours: fixture?.openingHours ?? {},
     timeline: {
       timezone: 'Europe/Stockholm',
       range: { start: '06:00', end: '21:00' },
       windows: sunWindow,
       ...(peakTime ? { peakTime } : {}),
     },
-    ...(fixture?.shadowWarningMinutes != null
-      ? { shadowWarningMinutes: fixture.shadowWarningMinutes }
-      : {}),
   };
 }
 

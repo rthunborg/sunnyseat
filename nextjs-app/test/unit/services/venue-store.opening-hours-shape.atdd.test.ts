@@ -39,9 +39,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { VENUE_SELECT_COLUMNS } from '@/lib/services/venue-store';
+import { coerceOpeningHours, VENUE_SELECT_COLUMNS } from '@/lib/services/venue-store';
+import { VENUE_FIXTURE } from '@/lib/services/venues-fixture';
 
-describe.skip('[11.9 AC3/AC4] VENUE_SELECT_COLUMNS drops the dead columns', () => {
+describe('[11.9 AC3/AC4] VENUE_SELECT_COLUMNS drops the dead columns', () => {
   it('no longer requests peak_time', () => {
     expect(VENUE_SELECT_COLUMNS).not.toContain('peak_time');
   });
@@ -61,16 +62,7 @@ describe.skip('[11.9 AC3/AC4] VENUE_SELECT_COLUMNS drops the dead columns', () =
  * `fromVenueRow`/`coerceOpeningHours` may not be exported yet, we probe via a dynamic
  * require and tolerate absence in the red phase.
  */
-describe.skip('[11.9 AC2] coerceOpeningHours — new per-weekday jsonb → structured DTO', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let coerceOpeningHours: any;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
-    coerceOpeningHours = require('@/lib/services/venue-store').coerceOpeningHours;
-  } catch {
-    coerceOpeningHours = () => undefined;
-  }
-
+describe('[11.9 AC2] coerceOpeningHours — new per-weekday jsonb → structured DTO', () => {
   const WEEKLY = {
     '1': { open: '11:00', close: '22:00' },
     '5': { open: '11:00', close: '02:00' },
@@ -104,16 +96,7 @@ describe.skip('[11.9 AC2] coerceOpeningHours — new per-weekday jsonb → struc
  * `openingHours` (present case) and the others stay absent (absent case) so BOTH
  * formatter branches are reachable deterministically without live Supabase.
  */
-describe.skip('[11.9 AC2 / 11.4 seam] fixture openingHours converted to the new shape', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let VENUE_FIXTURE: any;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
-    VENUE_FIXTURE = require('@/lib/services/venues-fixture').VENUE_FIXTURE;
-  } catch {
-    VENUE_FIXTURE = [];
-  }
-
+describe('[11.9 AC2 / 11.4 seam] fixture openingHours converted to the new shape', () => {
   it('at least one fixture venue carries a per-weekday openingHours object (present branch)', () => {
     const present = VENUE_FIXTURE.filter(
       (v: { openingHours?: unknown }) => v.openingHours !== undefined,

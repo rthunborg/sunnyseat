@@ -37,17 +37,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-// Red-phase shim: the module does not exist yet. A dynamic require keeps the
-// `.skip`-ed file type-checking (no unresolved static import) and goes red at runtime
-// only when un-skipped after Task 3.2.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let formatOpeningHours: any;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
-  formatOpeningHours = require('@/lib/utils/opening-hours').formatOpeningHours;
-} catch {
-  formatOpeningHours = () => ({});
-}
+// GREEN PHASE (Task 3.2): the pure formatter now exists. Import it directly.
+import { formatOpeningHours } from '@/lib/utils/opening-hours';
 
 /**
  * Per-weekday opening-hours fixture (Dev Notes "Opening-hours shape"): numeric ISO
@@ -70,7 +61,7 @@ const THU_MIDDAY = new Date('2026-06-18T10:00:00.000Z'); // Thu 2026-06-18 12:00
 const FRI_MIDDAY = new Date('2026-06-19T10:00:00.000Z'); // Fri 2026-06-19 12:00 local
 const SUN_MIDDAY = new Date('2026-06-21T10:00:00.000Z'); // Sun 2026-06-21 12:00 local
 
-describe.skip('[11.9 AC2] formatOpeningHours — derived display + closesAt (pure, injected now)', () => {
+describe('[11.9 AC2] formatOpeningHours — derived display + closesAt (pure, injected now)', () => {
   it('open today → derives "Öppet till HH:MM" + today\'s close as closesAt', () => {
     const result = formatOpeningHours(WEEKLY_HOURS, MON_MIDDAY, 'sv-SE');
     // Monday close is 22:00 — the derived closesAt is today's close.
@@ -109,7 +100,12 @@ describe.skip('[11.9 AC2] formatOpeningHours — derived display + closesAt (pur
 
   it('malformed shape (garbage value for today) → {} : no throw, renders NOTHING', () => {
     // A defensive coercer contract: a bad today-entry must degrade to closed, not crash.
-    const malformed = { ...WEEKLY_HOURS, '1': { open: 'not-a-time' } };
+    // Cast: real callers pass a typed WeeklyOpeningHours; this exercises the malformed
+    // jsonb boundary the coercer must survive.
+    const malformed = {
+      ...WEEKLY_HOURS,
+      '1': { open: 'not-a-time' },
+    } as unknown as Parameters<typeof formatOpeningHours>[0];
     expect(() => formatOpeningHours(malformed, MON_MIDDAY, 'sv-SE')).not.toThrow();
     const result = formatOpeningHours(malformed, MON_MIDDAY, 'sv-SE');
     expect(result.closesAt).toBeUndefined();
@@ -131,7 +127,7 @@ describe.skip('[11.9 AC2] formatOpeningHours — derived display + closesAt (pur
  * new per-weekday shape reproduces the OLD stored `{display:"Öppet till 22:00",
  * closesAt:"22:00"}` for the gate weekday, so the byte-stable gate assertion survives.
  */
-describe.skip('[11.9 AC2] test-venue-sunny gate parity — new shape derives the old value', () => {
+describe('[11.9 AC2] test-venue-sunny gate parity — new shape derives the old value', () => {
   it('derives closesAt "22:00" for the gate weekday (byte-stable on the gate-asserted value)', () => {
     // The gate venue is open till 22:00; whichever weekday the store/detail tests fix,
     // the derived close must be "22:00". Use Monday (a 22:00 day) as the reference.

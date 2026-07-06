@@ -80,8 +80,21 @@ function buildDetail(hours: unknown): VenueDetailDto {
   };
 }
 
-const OPEN_TODAY = { '1': { open: '11:00', close: '22:00' }, '2': { open: '11:00', close: '22:00' } };
-const CLOSED_TODAY = { '1': null, '2': null, '7': null };
+// Full-week fixtures so the derive (which reads the CURRENT Stockholm weekday via
+// `new Date()`) is deterministic regardless of the CI run-day: OPEN_TODAY closes
+// 22:00 every day; CLOSED_TODAY is null every day.
+const OPEN_TODAY = {
+  '1': { open: '11:00', close: '22:00' },
+  '2': { open: '11:00', close: '22:00' },
+  '3': { open: '11:00', close: '22:00' },
+  '4': { open: '11:00', close: '22:00' },
+  '5': { open: '11:00', close: '22:00' },
+  '6': { open: '11:00', close: '22:00' },
+  '7': { open: '11:00', close: '22:00' },
+};
+const CLOSED_TODAY = {
+  '1': null, '2': null, '3': null, '4': null, '5': null, '6': null, '7': null,
+};
 
 const labels = {
   openMaps: 'ÖPPNA I KARTOR',
@@ -107,11 +120,12 @@ const labels = {
   confidenceUnavailable: 'Säkerhet saknas',
   city: 'Göteborg',
   openUntil: 'ÖPPET · {time}',
+  openUntilLine: 'Öppet till {time}',
   placeholderImageShort: 'Platshållarbild',
   facts: { distance: 'AVSTÅND', distanceApproximate: '≈ från centrum' },
 };
 
-describe.skip('[11.9 AC2] VenueDetailContent — derived ÖPPET badge + Öppettider row', () => {
+describe('[11.9 AC2] VenueDetailContent — derived ÖPPET badge + Öppettider row', () => {
   it('open today → badge shows the derived close (ÖPPET · 22:00)', () => {
     render(
       <VenueDetailContent
@@ -126,7 +140,7 @@ describe.skip('[11.9 AC2] VenueDetailContent — derived ÖPPET badge + Öppetti
     expect(screen.getByText(/ÖPPET · 22:00/)).toBeInTheDocument();
   });
 
-  it('open today → the Öppettider row shows a derived "till 22:00" line (not a stored display string)', () => {
+  it('open today → the Öppettider row shows a derived "Öppet till 22:00" line (not a stored display string)', () => {
     render(
       <VenueDetailContent
         fallbackVenue={LIST_VENUE}
@@ -136,7 +150,9 @@ describe.skip('[11.9 AC2] VenueDetailContent — derived ÖPPET badge + Öppetti
         onRoute={() => undefined}
       />,
     );
-    expect(screen.getByText(/22:00/)).toBeInTheDocument();
+    // The row renders the derived localized line, distinct from the badge
+    // ("ÖPPET · 22:00"). Both carry "22:00", so target the full row copy.
+    expect(screen.getByText('Öppet till 22:00')).toBeInTheDocument();
   });
 
   it('closed today → NO ÖPPET badge, NO fabricated closing time', () => {

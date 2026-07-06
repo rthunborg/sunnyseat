@@ -31,14 +31,16 @@ describe('GET /api/venues/[slug]', () => {
     expect(body.venue.slug).toBe('test-venue-sunny');
     expect(body.venue.venueName).toBe('Kafé Magasinet');
     expect(body.venue.description).toMatch(/uteservering/i);
-    expect(body.venue.openingHours.display).toMatch(/\d{2}:\d{2}/);
+    // Story 11.9 (AC2): openingHours is the per-weekday structure (no `display`
+    // string). The gate venue closes 22:00 every weekday.
+    expect(body.venue.openingHours['1']).toEqual({ open: '11:00', close: '22:00' });
     expect(body.venue.timeline.windows.length).toBeGreaterThan(0);
     expect(body.venue.timeline.windows[0]).toMatchObject({
       start: '13:00',
       end: '18:30',
       status: 'Sunny',
     });
-    expect(body.venue.shadowWarningMinutes).toBe(45);
+    // Story 11.9 (AC4): shadowWarningMinutes is dropped end-to-end (no assertion).
     expect(res.headers.get('x-sun-data-source')).toBe('weather');
     expect(res.headers.get('x-weather-updated-at')).toMatch(/T/);
     expect(body.meta).toMatchObject({
@@ -117,15 +119,9 @@ describe('GET /api/venues/[slug]', () => {
     expect(body.detail).toMatch(/invalid venue slug/i);
   });
 
-  it('preserves an immediate zero-minute shadow warning', async () => {
-    const res = await GET(makeRequest('bistro-bakgarden'), {
-      params: Promise.resolve({ slug: 'bistro-bakgarden' }),
-    });
-
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as GetVenueDetailResponse;
-    expect(body.venue.shadowWarningMinutes).toBe(0);
-  });
+  // Story 11.9 (AC4): the `shadow_warning_minutes` column + DTO field are dropped
+  // end-to-end (carried store→DTO but rendered nowhere), so the old
+  // "preserves an immediate zero-minute shadow warning" test is removed.
 
   it('returns sanitized prediction uncertainty metadata for venue detail', async () => {
     const res = await GET(makeRequest('brygghuset-lerum'), {

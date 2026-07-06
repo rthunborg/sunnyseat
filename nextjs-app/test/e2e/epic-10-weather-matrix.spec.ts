@@ -245,7 +245,16 @@ function buildVenueDetailResponse(scenario: ScenarioSpec): GetVenueDetailRespons
     ...base,
     description: 'En trivsam uteservering vid kanalen.',
     address: 'Magasinsgatan 1, Göteborg',
-    openingHours: { display: 'Öppet 09–22', closesAt: '22:00' },
+    // Story 11.9 (AC2): per-weekday opening hours (closes 22:00 every day).
+    openingHours: {
+      '1': { open: '09:00', close: '22:00' },
+      '2': { open: '09:00', close: '22:00' },
+      '3': { open: '09:00', close: '22:00' },
+      '4': { open: '09:00', close: '22:00' },
+      '5': { open: '09:00', close: '22:00' },
+      '6': { open: '09:00', close: '22:00' },
+      '7': { open: '09:00', close: '22:00' },
+    },
     timeline: {
       timezone: 'Europe/Stockholm',
       range: { start: '06:00', end: '21:00' },

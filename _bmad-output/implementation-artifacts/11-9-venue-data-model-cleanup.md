@@ -1,6 +1,6 @@
 # Story 11.9: Venue Data Model Cleanup — IDs, Per-Weekday Hours, Dead-Field Removal
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -67,40 +67,40 @@ This is the 9th and final story of Epic 11 (folded from the dissolved single-sto
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Design + apply the live migration (AC1, AC2, AC3, AC4, AC6)**
-  - [ ] 1.1 Author an idempotent migration SQL file at `_bmad-output/implementation-artifacts/11-9-venue-data-model-cleanup.sql` (mirror the conventions in `8-2-venues-store-contract.sql`: create-if-not-exists / `add column if not exists` / `drop column if exists`, deny-by-default RLS unchanged, idempotent seed, end-of-file smoke checks). This is a MANUAL-RUN handoff artifact AND the exact SQL you apply live.
-  - [ ] 1.2 **AC1 id auto-assign:** keep `id text primary key`. Add a DB default that generates a `text` id on insert — a sequence-backed default is the recommended mechanism: `create sequence if not exists venues_id_seq;` then `alter table public.venues alter column id set default nextval('venues_id_seq')::text;` and advance the sequence past the seed max (`select setval('venues_id_seq', (select max(id::int) from public.venues))`) so the next auto id is `"8"`. Preserve rows `"1"`.."7"`. Verify `reviews.venue_id` / `feedback.venue_id` (both `text not null`) still join. Do NOT change the PK type or add an FK.
-  - [ ] 1.3 **AC2 per-weekday shape:** replace the `opening_hours jsonb` `{display, closesAt}` content with the per-weekday structure (see Dev Notes "Opening-hours shape"). Keep the column name `opening_hours` and type `jsonb` (additive-safe; no rename). Drop the stored `display` string — the render layer derives it. Update the 7-venue seed to the new shape, keeping the values the gate asserts intact.
-  - [ ] 1.4 **AC3 drop peak_time:** `alter table public.venues drop column if exists peak_time;` (after the grep in Task 4 confirms no non-legacy reader).
-  - [ ] 1.5 **AC4 drop shadow_warning_minutes:** `alter table public.venues drop column if exists shadow_warning_minutes;` (also drops its CHECK constraint) after the Task 4 grep.
-  - [ ] 1.6 **AC6:** confirm RLS stays enabled, `venues_service_read` policy intact, `seating_area`/`seating_elevation_m`/`ground_elevation_m` untouched. Run the smoke checks (7 rows, gate venue resolves, deny-by-default grants, single policy).
-  - [ ] 1.7 Apply the migration to the LIVE DB (project `hhnbxrhfhlzxgllxukzj`) via the Supabase MCP (`apply_migration` / `execute_sql`) or the documented IPv4 session-pooler Docker `psql` path (creds in gitignored `.env.local`). Record the applied output + smoke-check results in the Dev Agent Record. Regenerate `nextjs-app/lib/supabase/types.ts` (drop `peak_time`/`shadow_warning_minutes`, update `opening_hours` if the generator surfaces it) so the generated Row/Insert/Update stay truthful.
+- [x] **Task 1 — Design + apply the live migration (AC1, AC2, AC3, AC4, AC6)**
+  - [x] 1.1 Author an idempotent migration SQL file at `_bmad-output/implementation-artifacts/11-9-venue-data-model-cleanup.sql` (mirror the conventions in `8-2-venues-store-contract.sql`: create-if-not-exists / `add column if not exists` / `drop column if exists`, deny-by-default RLS unchanged, idempotent seed, end-of-file smoke checks). This is a MANUAL-RUN handoff artifact AND the exact SQL you apply live.
+  - [x] 1.2 **AC1 id auto-assign:** keep `id text primary key`. Add a DB default that generates a `text` id on insert — a sequence-backed default is the recommended mechanism: `create sequence if not exists venues_id_seq;` then `alter table public.venues alter column id set default nextval('venues_id_seq')::text;` and advance the sequence past the seed max (`select setval('venues_id_seq', (select max(id::int) from public.venues))`) so the next auto id is `"8"`. Preserve rows `"1"`.."7"`. Verify `reviews.venue_id` / `feedback.venue_id` (both `text not null`) still join. Do NOT change the PK type or add an FK.
+  - [x] 1.3 **AC2 per-weekday shape:** replace the `opening_hours jsonb` `{display, closesAt}` content with the per-weekday structure (see Dev Notes "Opening-hours shape"). Keep the column name `opening_hours` and type `jsonb` (additive-safe; no rename). Drop the stored `display` string — the render layer derives it. Update the 7-venue seed to the new shape, keeping the values the gate asserts intact.
+  - [x] 1.4 **AC3 drop peak_time:** `alter table public.venues drop column if exists peak_time;` (after the grep in Task 4 confirms no non-legacy reader).
+  - [x] 1.5 **AC4 drop shadow_warning_minutes:** `alter table public.venues drop column if exists shadow_warning_minutes;` (also drops its CHECK constraint) after the Task 4 grep.
+  - [x] 1.6 **AC6:** confirm RLS stays enabled, `venues_service_read` policy intact, `seating_area`/`seating_elevation_m`/`ground_elevation_m` untouched. Run the smoke checks (7 rows, gate venue resolves, deny-by-default grants, single policy).
+  - [x] 1.7 Apply the migration to the LIVE DB (project `hhnbxrhfhlzxgllxukzj`) via the Supabase MCP (`apply_migration` / `execute_sql`) or the documented IPv4 session-pooler Docker `psql` path (creds in gitignored `.env.local`). Record the applied output + smoke-check results in the Dev Agent Record. Regenerate `nextjs-app/lib/supabase/types.ts` (drop `peak_time`/`shadow_warning_minutes`, update `opening_hours` if the generator surfaces it) so the generated Row/Insert/Update stay truthful.
 
-- [ ] **Task 2 — Store adapter: new hours shape, drop dead fields (AC2, AC3, AC4)**
-  - [ ] 2.1 In `lib/services/venue-store.ts`: replace the `openingHours?: VenueDetailDto['openingHours']` typing with the new per-weekday type (define it in `lib/types/api.ts`, import here). Update `VENUE_SELECT_COLUMNS` — remove `'peak_time'` and `'shadow_warning_minutes'`; keep `'opening_hours'`.
-  - [ ] 2.2 Remove `peakTime?` and `shadowWarningMinutes?` from `StoredVenueDetail` (`:35-36`), the `peak_time`/`shadow_warning_minutes` fields from `VenueRow` (`:179-180`), the assignments in `storedVenueDetail` (`:305-308`) and `detailFromRow` (`:541-544`).
-  - [ ] 2.3 Update `VENUE_DETAIL_SEED` (`:80-131`) and the in-memory seed: remove every `peakTime` / `shadowWarningMinutes`; convert each `openingHours: { display, closesAt }` to the new per-weekday shape. Keep the derived output identical for `test-venue-sunny`.
-  - [ ] 2.4 In `detailFromRow` / `fromVenueRow`: map `row.opening_hours` (new jsonb shape) → `detail.openingHours` with a defensive coercer (`coerceOpeningHours`) mirroring the other `coerce*` helpers — a malformed/null value → `undefined` (renders nothing), never a throw.
-  - [ ] 2.5 `toVenueData` (`:272`): keep surfacing `openingHours` on the list DTO (11.4 behaviour) with the same optional-guard, but now the value is the structured per-weekday object (not a display string).
+- [x] **Task 2 — Store adapter: new hours shape, drop dead fields (AC2, AC3, AC4)**
+  - [x] 2.1 In `lib/services/venue-store.ts`: replace the `openingHours?: VenueDetailDto['openingHours']` typing with the new per-weekday type (define it in `lib/types/api.ts`, import here). Update `VENUE_SELECT_COLUMNS` — remove `'peak_time'` and `'shadow_warning_minutes'`; keep `'opening_hours'`.
+  - [x] 2.2 Remove `peakTime?` and `shadowWarningMinutes?` from `StoredVenueDetail`, the `peak_time`/`shadow_warning_minutes` fields from `VenueRow`, the assignments in `storedVenueDetail` and `detailFromRow`.
+  - [x] 2.3 Update `VENUE_DETAIL_SEED` and the in-memory seed: remove every `peakTime` / `shadowWarningMinutes`; convert each `openingHours: { display, closesAt }` to the new per-weekday shape. Keep the derived output identical for `test-venue-sunny`.
+  - [x] 2.4 In `detailFromRow` / `fromVenueRow`: map `row.opening_hours` (new jsonb shape) → `detail.openingHours` with a defensive coercer (`coerceOpeningHours`) mirroring the other `coerce*` helpers — a malformed/null value → `undefined` (renders nothing), never a throw.
+  - [x] 2.5 `toVenueData`: keep surfacing `openingHours` on the list DTO (11.4 behaviour) with the same optional-guard, but now the value is the structured per-weekday object (not a display string).
 
-- [ ] **Task 3 — DTO + formatter + render + i18n (AC2)**
-  - [ ] 3.1 `lib/types/api.ts`: replace `openingHours?: { display: string; closesAt?: string }` on `VenueDataDto` (`:145-148`) and the REQUIRED `openingHours: { display; closesAt? }` on `VenueDetailDto` (`:160-163`) with the new per-weekday type (see Dev Notes). Keep the list=optional / detail=required override legal.
-  - [ ] 3.2 Create a new formatter `lib/utils/opening-hours.ts` (co-locate with `time-planner.ts`) exporting a pure `formatOpeningHours(hours, now, locale) → { display?: string; closesAt?: string }` (or two functions). It: picks the CURRENT weekday in `Europe/Stockholm` (`Intl.DateTimeFormat(..., { timeZone: STOCKHOLM_TIME_ZONE, weekday })`), returns `{}` (renders nothing) when the venue is closed today or has no hours, and otherwise returns the localized display string + `closesAt` (handling past-midnight closes, e.g. opens 18:00 closes 02:00). Unit-test it directly (see Testing).
-  - [ ] 3.3 `VenueQuickInfo.tsx`: change the `openingHours?` prop type to the structured shape; derive the display via the formatter (or accept a pre-derived `{ display?, closesAt? }` computed by the caller — prefer computing in the caller/`MapView` so the component stays presentational, mirroring how labels are passed). Render nothing when the derived display is absent. Keep the `text-text-body` styling (axe AA) and the `data-testid="quick-info-opening-hours"` node.
-  - [ ] 3.4 `VenueDetailContent.tsx`: the ÖPPET badge (`:130,163-172`) reads `detail?.openingHours.closesAt`; derive `closesAt` via the formatter from the new shape + current weekday. Preserve the `loading ? <Skeleton …> : closesAt ? <badge> : null` same-box swap. The "Öppettider" `DetailRow` (`:244-256`) that currently prints `detail?.openingHours.display` must now print a derived display string (or a multi-line weekly view if the story chooses — but keep the CURRENT single-line treatment to satisfy the byte-identical visual gate unless the maintainer blesses a richer view).
-  - [ ] 3.5 i18n: add any NEW keys (e.g. an "Öppet till {time}" quick-info template if the display is composed via i18n rather than a raw string) to BOTH `messages/sv/venue.json` AND `messages/en/venue.json` (messages-parity test is structural — both locales must match). Reuse `detail.openUntil` ("ÖPPET · {time}" / "OPEN · {time}") for the badge. If a weekday name is needed, derive it via `Intl` (locale-aware) rather than hardcoding.
-  - [ ] 3.6 Update `app/api/venues/[slug]/route.ts` `buildDetailDto` (`:157,175,182-184`): drop the `peakTime = … ?? fixture?.peakTime` fixture fallback (keep `timelineProjection.peakTime`), replace `openingHours: fixture?.openingHours ?? { display: 'Öppettider saknas' }` with the new structured shape (or `undefined` when absent — the detail render must handle absent hours honestly), and remove the `shadowWarningMinutes` spread block. Also update the forced-detail fixtures (`components/custom/venue/forced-venue-detail.ts:55,62`, `ForcedVenueDetailInitialFrame.tsx`).
+- [x] **Task 3 — DTO + formatter + render + i18n (AC2)**
+  - [x] 3.1 `lib/types/api.ts`: replace `openingHours?: { display: string; closesAt?: string }` on `VenueDataDto` and the REQUIRED `openingHours: { display; closesAt? }` on `VenueDetailDto` with the new per-weekday type (see Dev Notes). Keep the list=optional / detail=required override legal.
+  - [x] 3.2 Create a new formatter `lib/utils/opening-hours.ts` (co-locate with `time-planner.ts`) exporting a pure `formatOpeningHours(hours, now, locale) → { display?: string; closesAt?: string }`. It: picks the CURRENT weekday in `Europe/Stockholm`, returns `{}` (renders nothing) when the venue is closed today or has no hours, and otherwise returns the localized display string + `closesAt` (handling past-midnight closes). Unit-tested directly.
+  - [x] 3.3 `VenueQuickInfo.tsx`: stays presentational — accepts a pre-derived `{ display?, closesAt? }` computed by the caller (`MapView` via `formatOpeningHours` from the list-DTO per-weekday hours). Renders nothing when the derived display is absent. Kept the `text-text-body` styling (axe AA) and the `data-testid="quick-info-opening-hours"` node.
+  - [x] 3.4 `VenueDetailContent.tsx`: the ÖPPET badge + Öppettider row derive `closesAt` / display via the formatter from the new shape + current weekday. Preserved the `loading ? <Skeleton …> : closesAt ? <badge> : null` same-box swap. Kept the CURRENT single-line Öppettider treatment.
+  - [x] 3.5 i18n: added `quickInfo.openUntilLine` + `detail.openUntilLine` ("Öppet till {time}" / "Open until {time}") to BOTH `messages/sv/venue.json` AND `messages/en/venue.json` (messages-parity green). Reused `detail.openUntil` for the badge.
+  - [x] 3.6 Updated `app/api/venues/[slug]/route.ts` `buildDetailDto`: dropped the `?? fixture?.peakTime` fixture fallback (kept `timelineProjection.peakTime`), replaced `openingHours: fixture?.openingHours ?? { display: 'Öppettider saknas' }` with `?? {}` (empty per-weekday = renders nothing), removed the `shadowWarningMinutes` spread block. Updated the forced-detail fixtures (`forced-venue-detail.ts`, `ForcedVenueDetailInitialFrame.tsx` label wiring).
 
-- [ ] **Task 4 — Grep-verify no remaining reader before dropping fields (AC4)**
-  - [ ] 4.1 Before dropping columns, grep the whole `nextjs-app` tree (src + tests) for `peak_time`, `peakTime`, `shadow_warning_minutes`, `shadowWarningMinutes`, `opening_hours`, `openingHours`. Confirm: `peakTime` survives ONLY as the ENGINE `sun-engine.ts#peakTimeFromTimeline` + `timeline.peakTime` DTO + `venue-visual-metadata.ts` timeline read (NOT the stored column); `shadowWarningMinutes` has ZERO non-test readers.
-  - [ ] 4.2 Update/remove the tests that assert the dropped fields: `test/unit/api/venue-detail-route.test.ts`, `test/unit/api/venues-route-real-engine.test.ts`, `test/unit/queries/useVenueDetail.test.ts`, `test/unit/services/venue-store.test.ts`, `test/components/VenueDetailContent.test.tsx`, `test/components/VenueDetailOverlay.test.tsx`, `test/e2e/epic-10-weather-matrix.spec.ts`, and the day-series/real-engine specs that carry `peakTime`. Distinguish the ENGINE `peakTime` (keep) from the STORED `peak_time` (remove).
+- [x] **Task 4 — Grep-verify no remaining reader before dropping fields (AC4)**
+  - [x] 4.1 Grepped `peak_time`/`peakTime`/`shadow_warning_minutes`/`shadowWarningMinutes`/`opening_hours`/`openingHours`. Confirmed: `peakTime` survives ONLY as the ENGINE `sun-engine.ts#peakTimeFromTimeline` + `timeline.peakTime` DTO + `venue-visual-metadata.ts:228` timeline read (NOT the stored column); `shadowWarningMinutes` has ZERO non-test readers.
+  - [x] 4.2 Updated/removed the tests asserting the dropped fields: `venue-detail-route.test.ts` (removed the zero-minute-shadow-warning test), `venues-route-real-engine.test.ts`, `useVenueDetail.test.ts`, `venue-store.test.ts`, `VenueDetailContent.test.tsx`, `VenueDetailOverlay.test.tsx`, `venues-route.test.ts`, `MapView.test.tsx`, `FeedbackFlow.test.tsx`, `ReviewFlow.test.tsx`, `useSubmitReview.test.tsx`, `epic-10-weather-matrix.spec.ts`, `VenueQuickInfo.test.tsx`. Kept the ENGINE `timeline.peakTime` assertions. Un-skipped + adjusted the 4 ATDD scaffolds.
 
-- [ ] **Task 5 — Rewrite the data-load doc (AC5)**
-  - [ ] 5.1 Rewrite `nextjs-app/docs/venue-data-load.md`: the `id` row now says auto-assigned (author omits it); the `opening_hours` row + the "What to send (one venue)" JSON example use the new per-weekday shape; remove the `peak_time` + `shadow_warning_minutes` rows. Keep the `seating_area` / `seating_elevation_m` / `ground_elevation_m` guidance verbatim (out of scope, untouched). Ensure the JSON example is copy-pasteable and valid.
+- [x] **Task 5 — Rewrite the data-load doc (AC5)**
+  - [x] 5.1 Rewrote `nextjs-app/docs/venue-data-load.md`: `id` row now says auto-assigned (author omits it); the `opening_hours` row + the "What to send" JSON example use the new per-weekday shape (with a past-midnight + closed-day example); removed the `peak_time` + `shadow_warning_minutes` rows. Kept the `seating_area` / `seating_elevation_m` / `ground_elevation_m` guidance verbatim. JSON example validated.
 
-- [ ] **Task 6 — Verify gates (all AC)**
-  - [ ] 6.1 Run `npm run typecheck` + `npm run lint` + `npm run test` (vitest). The seed path (flag OFF, what CI runs) must stay green with the new shape; the `test-venue-sunny` derived opening-hours output must be unchanged for the reference weekday(s) asserted.
-  - [ ] 6.2 Run the relevant e2e specs (venue-detail, quick-info, weather-matrix) after restarting `next dev` with a fresh `.next` if any globals/token changed.
+- [x] **Task 6 — Verify gates (all AC)**
+  - [x] 6.1 `npx tsc --noEmit` (exit 0) + `npx eslint . --quiet` (exit 0) + `npx vitest run` (150 files / 1416 tests, all pass). The seed path stays green; the `test-venue-sunny` derived opening-hours output is byte-stable ("Öppet till 22:00" / closesAt "22:00" every weekday).
+  - [x] 6.2 Ran the relevant e2e specs against the running dev server: `epic-10-weather-matrix.spec.ts` (10 passed) + `map-primary.spec.ts` (21 passed, quick-info surface). No wiring regression.
 
 ## Dev Notes
 
@@ -202,8 +202,114 @@ Store `opening_hours` as a per-weekday jsonb keyed by ISO weekday (or a 7-slot o
 
 ### Agent Model Used
 
+Opus 4.8 (1M context) — `claude-opus-4-8[1m]` (auto-bmad dev-story delegate).
+
 ### Debug Log References
+
+- Live migration applied via Docker `psql` on the IPv4 session pooler
+  (`aws-1-eu-west-1.pooler.supabase.com:5432`, `SUPABASE_DB_POOLER_URL` in the
+  gitignored root `.env.local`) using the local `public.ecr.aws/supabase/postgres:17.6.1.141`
+  image. The Supabase MCP `apply_migration`/`execute_sql` tools were NOT exposed in
+  this delegate session (OAuth not active), so the documented Docker-`psql` fallback
+  was used. Migration re-run once → idempotent (no errors, still 7 rows, next auto id 8).
+- Applied smoke-check results (all green):
+  - `id` default → `(nextval('venues_id_seq'::regclass))::text`; `nextval` → 8 (reset back to 7).
+  - `peak_time` / `shadow_warning_minutes` columns → 0 rows in `information_schema` (dropped).
+  - Gate venue `test-venue-sunny` (id "1") resolves byte-identical core values; `opening_hours->'1'->>'close'` = `22:00`; no `display` key on any row.
+  - Server-only columns `seating_area` / `seating_elevation_m` / `ground_elevation_m` present + untouched.
+  - RLS enabled (`relrowsecurity = t`); single `venues_service_read` (SELECT, `{service_role}`) policy; deny-by-default grants (only `postgres` + `service_role`).
+- Gates: `npx tsc --noEmit` exit 0; `npx eslint . --quiet` exit 0; `npx vitest run` → 150 files / 1416 tests all pass; e2e `epic-10-weather-matrix` (10) + `map-primary` (21) pass.
 
 ### Completion Notes List
 
+- **AC1 (auto-assign text PK):** kept `id text primary key`; added `venues_id_seq` +
+  `alter column id set default nextval('venues_id_seq')::text` and advanced the sequence
+  past the seed max so the next auto id is `"8"`. No PK-type change, no FK — the free-text
+  `reviews.venue_id` / `feedback.venue_id` joins are preserved. Generated `Insert.id`
+  became optional in `lib/supabase/types.ts` to reflect the default.
+- **AC2 (per-weekday hours):** new `WeeklyOpeningHours` type (`Partial<Record<string, OpeningInterval | null>>`,
+  numeric ISO weekday keys 1=Mon..7=Sun; missing/`null` = closed; `close<open` = past-midnight)
+  in `lib/types/api.ts`, consumed by the store, the DTOs, and the new pure formatter
+  `lib/utils/opening-hours.ts#formatOpeningHours(hours, now, locale, template) → { display?, closesAt? }`.
+  The store `coerceOpeningHours` is a defensive boundary (null/malformed → `undefined`,
+  never a throw). The quick-info derive is computed in `MapView` (component stays
+  presentational); the detail derive is computed inside `VenueDetailContent` (it owns the
+  ÖPPET badge + Öppettider row). Seed venues open 11:00 and close at their previous
+  close-time **every weekday**, so the derived "Öppet till HH:MM" is byte-stable regardless
+  of run-day and the gate venue still reads "22:00".
+- **AC3 (peak_time):** dropped the column + the store→DTO passthrough + the route's
+  `?? fixture?.peakTime` fallback. The ENGINE `timeline.peakTime` (`sun-engine.ts#peakTimeFromTimeline`
+  → `api.ts VenueSunTimelineDto.peakTime` → `venue-visual-metadata.ts:228`) is a DIFFERENT,
+  live-computed value — untouched and asserted as a regression guard.
+- **AC4 (shadow_warning_minutes):** dropped end-to-end — column + CHECK, `StoredVenueDetail`,
+  `VenueRow`, `VenueDetailDto.shadowWarningMinutes`, the route spread, and the asserting tests
+  (grep confirmed ZERO non-test readers). **Original intent (documented):** it was a
+  "minutes-until-shadow" hint captured at venue-load time, but no UI surface ever rendered it
+  (Story 11.6 removed the last subtitle that might have; it was carried store→DTO and read only
+  by tests) — so it is removed rather than surfaced.
+- **AC5:** rewrote `nextjs-app/docs/venue-data-load.md` — `id` auto-assigned (author omits it),
+  the per-weekday `opening_hours` shape (with a worked past-midnight + Sunday-closed example),
+  `peak_time`/`shadow_warning_minutes` rows removed; the `seating_*` guidance is verbatim.
+- **AC6:** the migration is idempotent (`create sequence if not exists`, `drop column if exists`,
+  `on conflict (id) do update` seed), leaves RLS + the single service-role policy + the server-only
+  columns untouched, and was applied live as a reviewed step with recorded smoke checks (above).
+- **Deferred item this story triggers — "`closesAt` ÖPPET badge has no is-open guard":** decided
+  per Dev Notes to derive the badge from **today's** close (weekday-correct, satisfying AC2's
+  "reflects the CURRENT weekday"). A full minute-precise is-open-now guard (hide before `open` /
+  after `close`) was **NOT** added — it is not trivial in the shared formatter and would risk the
+  byte-identical visual gate. The deferred item can therefore be narrowed to "no intra-day open/closed
+  guard" (the weekday-correctness half is now solved) or re-scoped to a follow-up.
+- **Behavioral improvement (not a visual regression):** the quick-info opening-hours line is now
+  DERIVED via a locale-aware template, so under the English locale it reads "Open until 22:00"
+  instead of the old raw stored Swedish string. At the sv-default gate the treatment is byte-identical
+  ("Öppet till 22:00"), so **no reference-PNG rebaseline was triggered** (dev is forbidden from
+  editing references; none needed).
+- **Design Gate — Visual validation:** the derived quick-info line + ÖPPET detail badge match the
+  CURRENT visual treatment byte-for-byte on the gate venue (sv default). No proportion/centering shift.
+  No rebaseline needed; no maintainer follow-up flagged.
+
 ### File List
+
+**New:**
+- `nextjs-app/lib/utils/opening-hours.ts`
+- `_bmad-output/implementation-artifacts/11-9-venue-data-model-cleanup.sql`
+
+**Modified (source):**
+- `nextjs-app/lib/types/api.ts`
+- `nextjs-app/lib/services/venue-store.ts`
+- `nextjs-app/lib/services/venues-fixture.ts`
+- `nextjs-app/lib/supabase/types.ts` (regenerated to match applied schema)
+- `nextjs-app/app/api/venues/[slug]/route.ts`
+- `nextjs-app/components/composed/venue/VenueQuickInfo.tsx`
+- `nextjs-app/components/composed/venue/VenueDetailContent.tsx`
+- `nextjs-app/components/custom/map/MapView.tsx`
+- `nextjs-app/components/custom/venue/forced-venue-detail.ts`
+- `nextjs-app/components/custom/venue/ForcedVenueDetailInitialFrame.tsx`
+- `nextjs-app/messages/sv/venue.json`
+- `nextjs-app/messages/en/venue.json`
+- `nextjs-app/docs/venue-data-load.md`
+
+**Modified (tests):**
+- `nextjs-app/test/unit/utils/opening-hours.atdd.test.ts` (un-skipped + wired to the real formatter)
+- `nextjs-app/test/unit/services/venue-store.opening-hours-shape.atdd.test.ts` (un-skipped)
+- `nextjs-app/test/unit/api/venue-detail-route.data-cleanup.atdd.test.ts` (un-skipped)
+- `nextjs-app/test/components/VenueDetailContent.opening-hours-derived.atdd.test.tsx` (un-skipped)
+- `nextjs-app/test/unit/services/venue-store.test.ts`
+- `nextjs-app/test/unit/api/venue-detail-route.test.ts`
+- `nextjs-app/test/unit/api/venues-route.test.ts`
+- `nextjs-app/test/unit/api/venues-route-real-engine.test.ts`
+- `nextjs-app/test/unit/queries/useVenueDetail.test.ts`
+- `nextjs-app/test/unit/mutations/useSubmitReview.test.tsx`
+- `nextjs-app/test/components/VenueDetailContent.test.tsx`
+- `nextjs-app/test/components/VenueDetailOverlay.test.tsx`
+- `nextjs-app/test/components/VenueQuickInfo.test.tsx`
+- `nextjs-app/test/components/MapView.test.tsx`
+- `nextjs-app/test/components/FeedbackFlow.test.tsx`
+- `nextjs-app/test/components/ReviewFlow.test.tsx`
+- `nextjs-app/test/e2e/epic-10-weather-matrix.spec.ts`
+
+### Change Log
+
+- 2026-07-06 — Story 11.9 implemented: venues auto-assign a text id, opening hours are
+  per-weekday (display derived at render time), `peak_time` + `shadow_warning_minutes`
+  removed end-to-end. Live migration applied + verified. Status → review.

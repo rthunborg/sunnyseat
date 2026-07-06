@@ -32,12 +32,15 @@ export type VenueQuickInfoProps = {
   confidenceMeta?: SunFreshnessMeta;
   sunExposurePercent?: number;
   /**
-   * Story 11.4 (AC1): the venue's real opening hours (pre-localized display
-   * string from the store, e.g. "Öppet till 22:00"). Rendered as a single line
-   * under the name in the slot vacated by the removed confidence/sun-window
-   * lines. ABSENT (`undefined`) → renders NOTHING — never a fabricated value.
+   * Story 11.4 (AC1) / 11.9 (AC2): the venue's DERIVED opening-hours display for
+   * the CURRENT Stockholm weekday, computed by the caller (MapView) from the
+   * list-DTO per-weekday `openingHours` via
+   * `lib/utils/opening-hours.ts#formatOpeningHours`. The component stays
+   * presentational — it renders `display` verbatim as a single line under the
+   * name. ABSENT (`undefined`) or `{ display: undefined }` (closed today / no
+   * hours) → renders NOTHING — never a fabricated value.
    */
-  openingHours?: { display: string; closesAt?: string };
+  openingHours?: { display?: string; closesAt?: string };
   /** Story 10.2 (AC1): the venue's weather-gated headline state. When
    * `'CloudObscured'` the card mutes the amber "% SOL" badge + headline into
    * the "Sol bakom moln" treatment while keeping the geometric layer (AC2). */

@@ -35,7 +35,16 @@ const DETAIL: VenueDetailDto = {
   ...FALLBACK,
   description: 'Stor uteservering med eftermiddagssol.',
   address: 'Tredje Långgatan 9, Göteborg',
-  openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
+  // Story 11.9 (AC2): per-weekday hours (closes 22:00 every day).
+  openingHours: {
+    '1': { open: '11:00', close: '22:00' },
+    '2': { open: '11:00', close: '22:00' },
+    '3': { open: '11:00', close: '22:00' },
+    '4': { open: '11:00', close: '22:00' },
+    '5': { open: '11:00', close: '22:00' },
+    '6': { open: '11:00', close: '22:00' },
+    '7': { open: '11:00', close: '22:00' },
+  },
   timeline: {
     timezone: 'Europe/Stockholm',
     range: { start: '06:00', end: '21:00' },
@@ -65,6 +74,7 @@ const labels = {
   confidenceUnavailable: 'Säkerhet saknas',
   city: 'Göteborg',
   openUntil: 'ÖPPET · {time}',
+  openUntilLine: 'Öppet till {time}',
   placeholderImageShort: 'Platshållarbild',
   facts: {
     distance: 'AVSTÅND',

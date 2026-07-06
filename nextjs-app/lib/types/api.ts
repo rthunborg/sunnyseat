@@ -36,6 +36,22 @@ export interface VenueDaySeriesEntry {
   skyCondition?: string;
 }
 
+// STORY 11.9 (AC2): a single weekday's opening interval. `close < open` ⇒ the
+// venue closes PAST MIDNIGHT (opens 18:00 closes 02:00). Times are HH:MM strings.
+export interface OpeningInterval {
+  open: string;
+  close: string;
+}
+
+// STORY 11.9 (AC2): venue opening hours as a PER-WEEKDAY structure, keyed by
+// numeric ISO weekday as a string (`"1"`=Mon .. `"7"`=Sun). A MISSING key OR a
+// `null` value = CLOSED that day. This is the shape stored in
+// `public.venues.opening_hours` (jsonb) and carried on the list + detail DTOs; the
+// render layer DERIVES the "Öppet till HH:MM" line + the ÖPPET badge's close from
+// it via `lib/utils/opening-hours.ts#formatOpeningHours`. The old pre-localized
+// `{ display, closesAt }` string is GONE (never store a fabricated display).
+export type WeeklyOpeningHours = Partial<Record<string, OpeningInterval | null>>;
+
 export type SunDataSource = 'weather' | 'geometry-only';
 
 export type PredictionUncertaintyLevel = 'low' | 'medium' | 'high';
@@ -132,20 +148,19 @@ export interface VenueDataDto {
    */
   sunDaySeries?: VenueDaySeriesEntry[];
   /**
-   * STORY 11.4 (AC1): the venue's real opening hours, surfaced on the LIST DTO so
-   * the quick-info card can render a single honest "Öppet till HH:MM" line in the
-   * slot vacated by the removed confidence/sun-window lines. OPTIONAL and present
-   * ONLY where the store carries `venues.opening_hours` — venues without opening
-   * hours OMIT this field entirely, and the card renders nothing (NEVER a
-   * fabricated value). Copied from the detail block in `toVenueData` with the
-   * optional-guard pattern; `VenueDetailDto` re-declares it as REQUIRED (a legal
-   * optional→required override). The value is a pre-localized display string from
-   * the store, so no template/i18n key is fabricated for it.
+   * STORY 11.9 (AC2): the venue's real opening hours as a PER-WEEKDAY structure
+   * (numeric ISO weekday keys `"1"`=Mon .. `"7"`=Sun; a missing key or `null`
+   * value = CLOSED that day; `close < open` = a PAST-MIDNIGHT close). Surfaced on
+   * the LIST DTO (Story 11.4) so the quick-info card can DERIVE a single honest
+   * "Öppet till HH:MM" line for the current Stockholm weekday via
+   * `lib/utils/opening-hours.ts#formatOpeningHours`. OPTIONAL + present ONLY where
+   * the store carries `venues.opening_hours` — a venue without opening hours OMITS
+   * this field, and the card renders nothing (NEVER a fabricated value). The
+   * pre-localized `{ display, closesAt }` STRING that used to live here is GONE —
+   * the render layer derives the display + today's close at render time.
+   * `VenueDetailDto` re-declares it as REQUIRED (a legal optional→required override).
    */
-  openingHours?: {
-    display: string;
-    closesAt?: string;
-  };
+  openingHours?: WeeklyOpeningHours;
   thumbnail?: {
     alt: string;
     initials: string;
@@ -157,12 +172,13 @@ export interface VenueDataDto {
 export interface VenueDetailDto extends VenueDataDto {
   description: string;
   address: string;
-  openingHours: {
-    display: string;
-    closesAt?: string;
-  };
+  // STORY 11.9 (AC2): REQUIRED on the detail DTO (a legal optional→required
+  // override of `VenueDataDto.openingHours`). The per-weekday structure; the
+  // detail render derives the ÖPPET badge + Öppettider row from the CURRENT
+  // Stockholm weekday. STORY 11.9 (AC4): `shadowWarningMinutes` is REMOVED — it was
+  // carried store→DTO but rendered nowhere (its only readers were tests).
+  openingHours: WeeklyOpeningHours;
   timeline: VenueSunTimelineDto;
-  shadowWarningMinutes?: number;
 }
 
 export interface VenueSunTimelineDto {
