@@ -201,7 +201,9 @@ describe('<VenueQuickInfo />', () => {
         mode="mobile"
         name="Testbaren"
         sunExposurePercent={95}
-        // @ts-expect-error — exercising the malformed store shape (closesAt without display).
+        // Story 11.9: the derived shape is `{ display?, closesAt? }` — a value with
+        // only `closesAt` (no display) is a legal-but-empty derive; the honest guard
+        // on `openingHours?.display` still renders NOTHING.
         openingHours={{ closesAt: '22:00' }}
         distanceMeters={420}
         isLoadingSunData={false}

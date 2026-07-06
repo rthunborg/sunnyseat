@@ -62,6 +62,7 @@ import { cn } from '@/lib/utils';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
 import { mapVenueDtoToPinData } from '@/lib/utils/venue-pin-mapping';
 import { deriveVenueSunAtMinutes } from '@/lib/utils/venue-day-series';
+import { formatOpeningHours } from '@/lib/utils/opening-hours';
 import { venuePlannerQueryArgs } from '@/lib/utils/venue-query-planner';
 import { collectTags, filterVenuesByTags } from '@/lib/utils/venue-tags';
 import { MobileTagChips } from '@/components/composed/venue/MobileTagChips';
@@ -551,6 +552,22 @@ export function MapView() {
       ? normalizeForcedVisualVenue(selectedVenueDto)
       : selectedVenueDto;
   }, [isForcedObscuredReference, isForcedVisualReference, selectedVenueDto]);
+  // Story 11.9 (AC2): derive the quick-info "Öppet till HH:MM" line for the CURRENT
+  // Stockholm weekday from the list-DTO per-weekday `openingHours`, keeping the
+  // component presentational (it renders the pre-derived `display` verbatim).
+  // Closed today / no hours → `{}` → the card renders nothing (never fabricated).
+  const quickInfoOpeningHours = useMemo(
+    () =>
+      selectedQuickInfoVenue?.openingHours
+        ? formatOpeningHours(
+            selectedQuickInfoVenue.openingHours,
+            new Date(),
+            locale,
+            tVenue('quickInfo.openUntilLine', { time: '{time}' }),
+          )
+        : undefined,
+    [selectedQuickInfoVenue, locale, tVenue],
+  );
   const selectedPinData = useMemo(() => {
     if (!selectedVenueId) return null;
     return venues.find((venue) => venue.id === selectedVenueId) ?? null;
@@ -1223,7 +1240,7 @@ export function MapView() {
             confidencePercent={selectedQuickInfoVenue?.confidence}
             confidenceMeta={quickInfoConfidenceMeta}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
-            openingHours={selectedQuickInfoVenue?.openingHours}
+            openingHours={quickInfoOpeningHours}
             currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
             skyCondition={selectedQuickInfoVenue?.skyCondition}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
@@ -1252,7 +1269,7 @@ export function MapView() {
             confidencePercent={selectedQuickInfoVenue?.confidence}
             confidenceMeta={quickInfoConfidenceMeta}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
-            openingHours={selectedQuickInfoVenue?.openingHours}
+            openingHours={quickInfoOpeningHours}
             currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
             skyCondition={selectedQuickInfoVenue?.skyCondition}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
@@ -1540,6 +1557,7 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     confidenceUnavailable: t('detail.confidenceUnavailable'),
     city: t('detail.city'),
     openUntil: t('detail.openUntil', { time: '{time}' }),
+    openUntilLine: t('detail.openUntilLine', { time: '{time}' }),
     placeholderImageShort: t('detail.placeholderImageShort'),
     facts: {
       distance: t('detail.facts.distance'),

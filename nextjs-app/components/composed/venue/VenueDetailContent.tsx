@@ -27,6 +27,7 @@ import {
   isObscuredSunStatus,
   skyConditionCopy,
 } from '@/lib/utils/sun-status-presentation';
+import { formatOpeningHours } from '@/lib/utils/opening-hours';
 import { cn } from '@/lib/utils';
 
 export type VenueDetailContentLabels = {
@@ -37,6 +38,10 @@ export type VenueDetailContentLabels = {
   loading: string;
   detailsUnavailable: string;
   openingHours: string;
+  /** Story 11.9 (AC2): the derived "Öppet till {time}" line for the Öppettider
+   * row, composed from the current weekday's close. `{time}` is substituted with
+   * today's close (HH:MM). */
+  openUntilLine: string;
   address: string;
   sunBadge: string;
   /** Story 10.2 (AC1): the muted "Sol bakom moln" hero headline shown when
@@ -123,11 +128,22 @@ export function VenueDetailContent({
         rain: labels.sky.rain,
       })
     : null;
-  // Story 11.6 (AC1): never fabricate a closing time. The "ÖPPET · {time}"
-  // badge only renders once real detail supplies `closesAt`; while loading it
-  // is a same-box skeleton, and if a loaded detail has no `closesAt` the badge
-  // is omitted rather than showing a stand-in "22:00".
-  const closesAt = detail?.openingHours.closesAt;
+  // Story 11.6 (AC1) / 11.9 (AC2): never fabricate a closing time. The badge's
+  // close + the Öppettider row's "Öppet till HH:MM" line are DERIVED at render time
+  // from the per-weekday `openingHours` for the CURRENT Stockholm weekday
+  // (`formatOpeningHours` — pure, injected `now`). While loading the badge is a
+  // same-box skeleton; a loaded detail that is closed today (or has no hours)
+  // yields no `closesAt` → the badge is OMITTED and the row falls back to
+  // `detailsUnavailable` rather than a stand-in "22:00".
+  const derivedHours = detail
+    ? formatOpeningHours(
+        detail.openingHours,
+        new Date(),
+        locale,
+        labels.openUntilLine,
+      )
+    : {};
+  const closesAt = derivedHours.closesAt;
   const isDesktop = mode === 'desktop';
   const confidenceDisplay = getConfidenceDisplayState({
     confidence: venue.confidence,
@@ -251,7 +267,10 @@ export function VenueDetailContent({
                 className="h-5 w-44 bg-surface-muted"
               />
             ) : (
-              <p>{detail?.openingHours.display ?? labels.detailsUnavailable}</p>
+              // Story 11.9 (AC2): the "Öppet till HH:MM" line is DERIVED for the
+              // current weekday; closed-today / no-hours → the honest
+              // detailsUnavailable copy (never a fabricated close).
+              <p>{derivedHours.display ?? labels.detailsUnavailable}</p>
             )}
           </DetailRow>
 

@@ -18,8 +18,8 @@ import { VENUE_FIXTURE } from '@/lib/services/venues-fixture';
 import type {
   PredictionUncertaintyDto,
   VenueDataDto,
-  VenueDetailDto,
   VenueSunStatus,
+  WeeklyOpeningHours,
 } from '@/lib/types/api';
 import type { SkyCondition } from '@/lib/types/design-tokens';
 
@@ -31,10 +31,30 @@ import type { SkyCondition } from '@/lib/types/design-tokens';
 export type StoredVenueDetail = {
   description?: string;
   address?: string;
-  openingHours?: VenueDetailDto['openingHours'];
-  peakTime?: string;
-  shadowWarningMinutes?: number;
+  // STORY 11.9 (AC2): per-weekday opening hours. The pre-localized `display`
+  // string is gone — the render layer derives it. STORY 11.9 (AC3/AC4): `peakTime`
+  // (real engine computes it live from the timeline) and `shadowWarningMinutes`
+  // (rendered nowhere) are REMOVED.
+  openingHours?: WeeklyOpeningHours;
 };
+
+/**
+ * STORY 11.9 (AC2): a per-weekday opening-hours object where every ISO weekday
+ * (Mon..Sun) opens at `open` and closes at `close`. Used to seed the launch venues
+ * so the derived "Öppet till HH:MM" line matches the OLD stored display on every
+ * weekday (byte-stable gate parity — `test-venue-sunny` still derives "22:00").
+ */
+function everyDay(open: string, close: string): WeeklyOpeningHours {
+  return {
+    '1': { open, close },
+    '2': { open, close },
+    '3': { open, close },
+    '4': { open, close },
+    '5': { open, close },
+    '6': { open, close },
+    '7': { open, close },
+  };
+}
 
 /**
  * Server-only venue attributes that are NEVER serialized into the client DTO.
@@ -82,51 +102,42 @@ const VENUE_DETAIL_SEED: Record<string, StoredVenueDetail> = {
     description:
       'Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.',
     address: 'Tredje Långgatan 9, 413 03 Göteborg',
-    openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
-    peakTime: '15:30',
-    shadowWarningMinutes: 45,
+    openingHours: everyDay('11:00', '22:00'),
   },
   'bryggeriet-soltak': {
     description:
       'Taknära sittplatser med bred solträff under lunch och eftermiddag.',
     address: 'Linnégatan 21, 413 04 Göteborg',
-    openingHours: { display: 'Öppet till 23:00', closesAt: '23:00' },
-    peakTime: '15:00',
+    openingHours: everyDay('11:00', '23:00'),
   },
   'solplats-magasinsgatan': {
     description:
       'Lugn innerstadsterrass med bäst sol när eftermiddagen vänder mot kväll.',
     address: 'Magasinsgatan 17, 411 18 Göteborg',
-    openingHours: { display: 'Öppet till 21:00', closesAt: '21:00' },
-    peakTime: '15:30',
+    openingHours: everyDay('11:00', '21:00'),
   },
   'cafe-halvvags': {
     description: 'Avslappnat kvarterscafé med delvis sol på de yttre borden.',
     address: 'Vasagatan 32, 411 24 Göteborg',
-    openingHours: { display: 'Öppet till 20:00', closesAt: '20:00' },
-    peakTime: '16:00',
+    openingHours: everyDay('11:00', '20:00'),
   },
   'brygghuset-lerum': {
     description:
       'Skyddad gårdsmiljö med kortare solfönster och gott om sittplatser.',
     address: 'Haga Nygata 8, 413 01 Göteborg',
-    openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
-    peakTime: '14:30',
+    openingHours: everyDay('11:00', '22:00'),
   },
   'skuggans-hus': {
     description:
       'Sval uteservering som bara får korta solglimtar mellan husfasaderna.',
     address: 'Södra Hamngatan 12, 411 14 Göteborg',
-    openingHours: { display: 'Öppet till 19:00', closesAt: '19:00' },
-    peakTime: '16:30',
+    openingHours: everyDay('11:00', '19:00'),
   },
   'bistro-bakgarden': {
     description:
       'Bakgårdsservering med mest skugga, men en kort lunchsol vid klart väder.',
     address: 'Engelbrektsgatan 44, 411 37 Göteborg',
-    openingHours: { display: 'Öppet till 21:00', closesAt: '21:00' },
-    peakTime: '12:00',
-    shadowWarningMinutes: 0,
+    openingHours: everyDay('11:00', '21:00'),
   },
 };
 
@@ -141,9 +152,11 @@ export const VENUE_SELECT_COLUMNS = [
   'thumbnail',
   'description',
   'address',
+  // STORY 11.9 (AC2): the column stays, but its jsonb shape is now per-weekday.
+  // STORY 11.9 (AC3/AC4): `peak_time` + `shadow_warning_minutes` are DROPPED — the
+  // real engine computes `peakTime` live from the timeline, and
+  // `shadow_warning_minutes` was carried store→DTO but rendered nowhere.
   'opening_hours',
-  'peak_time',
-  'shadow_warning_minutes',
   'current_sun_status',
   'sky_condition',
   'confidence',
@@ -175,9 +188,10 @@ type VenueRow = {
   thumbnail?: VenueDataDto['thumbnail'] | null;
   description?: string | null;
   address?: string | null;
-  opening_hours?: VenueDetailDto['openingHours'] | null;
-  peak_time?: string | null;
-  shadow_warning_minutes?: number | null;
+  // STORY 11.9 (AC2): the raw jsonb opening_hours (per-weekday shape, or a
+  // legacy/garbage value from a bad row → coerced to undefined). `peak_time` +
+  // `shadow_warning_minutes` are DROPPED from the row shape (AC3/AC4).
+  opening_hours?: unknown;
   current_sun_status?: string | null;
   sky_condition?: string | null;
   confidence?: number | null;
@@ -261,14 +275,14 @@ export function toVenueData(venue: StoredVenue): VenueDataDto {
     base.predictionUncertainty = venue.predictionUncertainty;
   }
   if (venue.sunWindow !== undefined) base.sunWindow = venue.sunWindow;
-  // STORY 11.4 (AC1): surface the venue's real opening hours on the LIST DTO so
-  // the quick-info card can render "Öppet till HH:MM" in place of the removed
-  // confidence/sun-window lines. Copied with the same optional-guard pattern as
-  // the other detail-adjacent fields — present only where the store carries
+  // STORY 11.4 (AC1) / 11.9 (AC2): surface the venue's real opening hours on the
+  // LIST DTO so the quick-info caller can DERIVE "Öppet till HH:MM" for the current
+  // weekday. Copied with the same optional-guard pattern as the other
+  // detail-adjacent fields — present only where the store carries
   // `venues.opening_hours` (via `detailFromRow`/`VENUE_DETAIL_SEED`/the fixture),
   // ABSENT otherwise so the card renders nothing (never fabricated). Unlike the
-  // stripped `description`/`peakTime`/`shadowWarningMinutes` detail chrome, this
-  // one field is intentionally carried through to the list surface.
+  // stripped `description` detail chrome, this one field is intentionally carried
+  // through to the list surface (now the per-weekday structure, not a display string).
   if (venue.openingHours !== undefined) base.openingHours = venue.openingHours;
   if (venue.thumbnail !== undefined) base.thumbnail = venue.thumbnail;
   if (venue.reviewSummary !== undefined) base.reviewSummary = venue.reviewSummary;
@@ -302,10 +316,6 @@ export function storedVenueDetail(venue: StoredVenue): StoredVenueDetail {
   if (venue.description !== undefined) detail.description = venue.description;
   if (venue.address !== undefined) detail.address = venue.address;
   if (venue.openingHours !== undefined) detail.openingHours = venue.openingHours;
-  if (venue.peakTime !== undefined) detail.peakTime = venue.peakTime;
-  if (venue.shadowWarningMinutes !== undefined) {
-    detail.shadowWarningMinutes = venue.shadowWarningMinutes;
-  }
   return detail;
 }
 
@@ -537,13 +547,53 @@ function detailFromRow(row: VenueRow): StoredVenueDetail {
   const detail: StoredVenueDetail = {};
   if (row.description != null) detail.description = row.description;
   if (row.address != null) detail.address = row.address;
-  if (row.opening_hours) detail.openingHours = row.opening_hours;
-  if (row.peak_time != null) detail.peakTime = row.peak_time;
-  if (row.shadow_warning_minutes != null) {
-    detail.shadowWarningMinutes = row.shadow_warning_minutes;
-  }
+  const openingHours = coerceOpeningHours(row.opening_hours);
+  if (openingHours !== undefined) detail.openingHours = openingHours;
   return detail;
 }
+
+/**
+ * STORY 11.9 (AC2): coerce a DB `opening_hours` jsonb value to a clean per-weekday
+ * {@link WeeklyOpeningHours}, or `undefined` when it is null/malformed (a bad row →
+ * the venue renders NOTHING, never a throw — mirroring the other defensive
+ * `coerce*` helpers). A well-formed weekday entry is `{ open, close }` with HH:MM
+ * strings; a `null` weekday entry (closed that day) is PRESERVED so the formatter
+ * derives "closed today" honestly. The result is kept only when it has at least one
+ * usable weekday key — an object with zero recognizable weekday entries → undefined.
+ */
+export function coerceOpeningHours(value: unknown): WeeklyOpeningHours | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const source = value as Record<string, unknown>;
+  const result: WeeklyOpeningHours = {};
+  let hasEntry = false;
+  for (const weekday of ['1', '2', '3', '4', '5', '6', '7'] as const) {
+    if (!(weekday in source)) continue;
+    const entry = source[weekday];
+    if (entry === null) {
+      result[weekday] = null; // explicitly closed that day
+      hasEntry = true;
+      continue;
+    }
+    const interval = coerceOpeningInterval(entry);
+    if (interval) {
+      result[weekday] = interval;
+      hasEntry = true;
+    }
+  }
+  return hasEntry ? result : undefined;
+}
+
+function coerceOpeningInterval(value: unknown): { open: string; close: string } | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const { open, close } = value as { open?: unknown; close?: unknown };
+  if (typeof open !== 'string' || typeof close !== 'string') return undefined;
+  if (!OPENING_TIME_PATTERN.test(open) || !OPENING_TIME_PATTERN.test(close)) {
+    return undefined;
+  }
+  return { open, close };
+}
+
+const OPENING_TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 function numberOr(value: number | null | undefined, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;

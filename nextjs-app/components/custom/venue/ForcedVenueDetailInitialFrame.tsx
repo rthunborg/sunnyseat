@@ -165,6 +165,7 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     confidenceUnavailable: t('detail.confidenceUnavailable'),
     city: t('detail.city'),
     openUntil: t('detail.openUntil', { time: '{time}' }),
+    openUntilLine: t('detail.openUntilLine', { time: '{time}' }),
     placeholderImageShort: t('detail.placeholderImageShort'),
     facts: {
       distance: t('detail.facts.distance'),

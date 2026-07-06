@@ -55,7 +55,10 @@ describe('GET /api/venues', () => {
     const body = (await res.json()) as GetVenuesResponse;
 
     const gate = body.venues.find((v) => v.slug === 'test-venue-sunny');
-    expect(gate?.openingHours).toEqual({ display: 'Öppet till 22:00', closesAt: '22:00' });
+    // Story 11.9 (AC2): the per-weekday structure (closes 22:00 every day). The
+    // render layer derives "Öppet till 22:00" for the current weekday.
+    expect(gate?.openingHours?.['1']).toEqual({ open: '11:00', close: '22:00' });
+    expect(gate?.openingHours?.['7']).toEqual({ open: '11:00', close: '22:00' });
 
     const withoutHours = body.venues.filter((v) => v.openingHours === undefined);
     expect(withoutHours.length).toBeGreaterThan(0);

@@ -20,6 +20,7 @@
     "distance": "Distance",
     "distanceApproximate": "≈ from centre",
     "loadingSun": "Loading sun data",
+    "openUntilLine": "Open until {time}",
     "obscuredHeadline": "Sun behind clouds",
     "sky": {
       "clear": "Clear",
@@ -174,6 +175,7 @@
     "confidenceUnavailable": "Confidence unavailable",
     "city": "Gothenburg",
     "openUntil": "OPEN · {time}",
+    "openUntilLine": "Open until {time}",
     "placeholderImageShort": "Placeholder image",
     "facts": {
       "distance": "DISTANCE",

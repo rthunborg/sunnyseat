@@ -892,7 +892,15 @@ describe('<MapView />', () => {
               sunExposurePercent: 95,
               tags: [],
               sunWindow: { start: '13:00', end: '18:30' },
-              openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
+              openingHours: {
+                '1': { open: '11:00', close: '22:00' },
+                '2': { open: '11:00', close: '22:00' },
+                '3': { open: '11:00', close: '22:00' },
+                '4': { open: '11:00', close: '22:00' },
+                '5': { open: '11:00', close: '22:00' },
+                '6': { open: '11:00', close: '22:00' },
+                '7': { open: '11:00', close: '22:00' },
+              }, // Story 11.9 (AC2): per-weekday hours (closes 22:00 every day)
               thumbnail: {
                 alt: 'Uteservering hos Testbaren',
                 initials: 'TB',
@@ -1221,12 +1229,13 @@ describe('<MapView />', () => {
 
       render(<MapView />, { wrapper: EnglishWrapper });
 
-      // The removed sun-window line no longer localizes; the quick-info chrome
-      // still follows the active locale (English CTA labels) and the raw
-      // opening-hours display string renders in the freed slot.
+      // The quick-info chrome follows the active locale (English CTA labels).
+      // Story 11.9 (AC2): the opening-hours line is now DERIVED via a locale-aware
+      // template, so under the English wrapper it reads "Open until 22:00" (the old
+      // raw stored Swedish string no longer renders verbatim).
       expect(screen.getAllByRole('button', { name: 'Show Route' })).toHaveLength(2);
       expect(screen.getAllByRole('button', { name: 'More Info' })).toHaveLength(2);
-      expect(screen.getAllByText('Öppet till 22:00')).toHaveLength(2);
+      expect(screen.getAllByText('Open until 22:00')).toHaveLength(2);
       expect(screen.queryByText('Sol 13:00–18:30')).not.toBeInTheDocument();
       expect(screen.queryByText('Sun 13:00–18:30')).not.toBeInTheDocument();
     });
@@ -1557,7 +1566,15 @@ describe('<MapView />', () => {
             ...urlVenue,
             description: 'URL-owned detail',
             address: 'URLgatan 1',
-            openingHours: { display: 'Öppet till 22:00' },
+            openingHours: {
+              '1': { open: '11:00', close: '22:00' },
+              '2': { open: '11:00', close: '22:00' },
+              '3': { open: '11:00', close: '22:00' },
+              '4': { open: '11:00', close: '22:00' },
+              '5': { open: '11:00', close: '22:00' },
+              '6': { open: '11:00', close: '22:00' },
+              '7': { open: '11:00', close: '22:00' },
+            }, // Story 11.9 (AC2): per-weekday hours (closes 22:00 every day)
             timeline: {
               timezone: 'Europe/Stockholm',
               range: { start: '06:00', end: '21:00' },
@@ -1882,7 +1899,15 @@ describe('<MapView />', () => {
             ...aliasVenue,
             description: 'Alias-owned detail',
             address: 'Aliasgatan 1',
-            openingHours: { display: 'Öppet till 22:00' },
+            openingHours: {
+              '1': { open: '11:00', close: '22:00' },
+              '2': { open: '11:00', close: '22:00' },
+              '3': { open: '11:00', close: '22:00' },
+              '4': { open: '11:00', close: '22:00' },
+              '5': { open: '11:00', close: '22:00' },
+              '6': { open: '11:00', close: '22:00' },
+              '7': { open: '11:00', close: '22:00' },
+            }, // Story 11.9 (AC2): per-weekday hours (closes 22:00 every day)
             timeline: {
               timezone: 'Europe/Stockholm',
               range: { start: '06:00', end: '21:00' },
@@ -3135,7 +3160,15 @@ function makeVenueDetail(
     ...makeVenue(venue),
     description: 'Detaljerad platsbeskrivning',
     address: 'Testgatan 1',
-    openingHours: { display: 'Öppet till 22:00' },
+    openingHours: {
+      '1': { open: '11:00', close: '22:00' },
+      '2': { open: '11:00', close: '22:00' },
+      '3': { open: '11:00', close: '22:00' },
+      '4': { open: '11:00', close: '22:00' },
+      '5': { open: '11:00', close: '22:00' },
+      '6': { open: '11:00', close: '22:00' },
+      '7': { open: '11:00', close: '22:00' },
+    }, // Story 11.9 (AC2)
     timeline: {
       timezone: 'Europe/Stockholm',
       range: { start: '06:00', end: '21:00' },
@@ -3159,7 +3192,17 @@ function makeVenue({
   thumbnailUrl,
   confidence = 92,
   sunWindow = { start: '13:00', end: '18:30' },
-  openingHours = { display: 'Öppet till 22:00', closesAt: '22:00' },
+  // Story 11.9 (AC2): per-weekday hours (closes 22:00 every day) so the derived
+  // quick-info line is a stable "Öppet till 22:00" regardless of the CI run-day.
+  openingHours = {
+    '1': { open: '11:00', close: '22:00' },
+    '2': { open: '11:00', close: '22:00' },
+    '3': { open: '11:00', close: '22:00' },
+    '4': { open: '11:00', close: '22:00' },
+    '5': { open: '11:00', close: '22:00' },
+    '6': { open: '11:00', close: '22:00' },
+    '7': { open: '11:00', close: '22:00' },
+  },
 }: {
   id: string;
   name: string;

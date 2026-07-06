@@ -316,11 +316,9 @@ export type Database = {
           lng: number
           neighborhood: string
           opening_hours: Json | null
-          peak_time: string | null
           prediction_uncertainty: Json | null
           seating_area: Json | null
           seating_elevation_m: number | null
-          shadow_warning_minutes: number | null
           sky_condition: string | null
           slug: string
           sun_exposure_percent: number
@@ -337,17 +335,15 @@ export type Database = {
           current_sun_status: string
           description?: string | null
           ground_elevation_m?: number | null
-          id: string
+          id?: string
           is_partner?: boolean
           lat: number
           lng: number
           neighborhood: string
           opening_hours?: Json | null
-          peak_time?: string | null
           prediction_uncertainty?: Json | null
           seating_area?: Json | null
           seating_elevation_m?: number | null
-          shadow_warning_minutes?: number | null
           sky_condition?: string | null
           slug: string
           sun_exposure_percent: number
@@ -370,11 +366,9 @@ export type Database = {
           lng?: number
           neighborhood?: string
           opening_hours?: Json | null
-          peak_time?: string | null
           prediction_uncertainty?: Json | null
           seating_area?: Json | null
           seating_elevation_m?: number | null
-          shadow_warning_minutes?: number | null
           sky_condition?: string | null
           slug?: string
           sun_exposure_percent?: number

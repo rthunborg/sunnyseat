@@ -28,7 +28,17 @@ const DETAIL: VenueDetailDto = {
   ...LIST_VENUE,
   description: 'Stor uteservering med eftermiddagssol.',
   address: 'Tredje Långgatan 9, Göteborg',
-  openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
+  // Story 11.9 (AC2): per-weekday hours (closes 22:00 every day) so the derived
+  // "Öppet till 22:00" / "ÖPPET · 22:00" renders on any run-day.
+  openingHours: {
+    '1': { open: '11:00', close: '22:00' },
+    '2': { open: '11:00', close: '22:00' },
+    '3': { open: '11:00', close: '22:00' },
+    '4': { open: '11:00', close: '22:00' },
+    '5': { open: '11:00', close: '22:00' },
+    '6': { open: '11:00', close: '22:00' },
+    '7': { open: '11:00', close: '22:00' },
+  },
   timeline: {
     timezone: 'Europe/Stockholm',
     range: { start: '06:00', end: '21:00' },
@@ -61,6 +71,7 @@ const labels = {
   confidenceUnavailable: 'Säkerhet saknas',
   city: 'Göteborg',
   openUntil: 'ÖPPET · {time}',
+  openUntilLine: 'Öppet till {time}',
   placeholderImageShort: 'Platshållarbild',
   facts: {
     distance: 'AVSTÅND',
@@ -390,12 +401,12 @@ describe('VenueDetailContent', () => {
     // With loaded detail carrying closesAt, the honest badge renders.
     expect(screen.getByText('ÖPPET · 22:00')).toBeInTheDocument();
 
-    // A loaded detail with no closesAt must NOT fabricate a time — the badge is
-    // simply omitted rather than showing a stand-in.
+    // Story 11.9 (AC2): a loaded detail with NO hours today must NOT fabricate a
+    // time — the badge is omitted. An empty per-weekday object = closed every day.
     rerender(
       <VenueDetailContent
         fallbackVenue={LIST_VENUE}
-        detail={{ ...DETAIL, openingHours: { display: 'Öppettider okända' } }}
+        detail={{ ...DETAIL, openingHours: {} }}
         currentTime="15:30"
         labels={labels}
         onRoute={() => undefined}
