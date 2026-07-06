@@ -1,28 +1,39 @@
 ---
 stepsCompleted: ['step-01-load-context', 'step-02-discover-tests', 'step-03-map-criteria', 'step-04-analyze-gaps', 'step-05-gate-decision']
 lastStep: 'step-05-gate-decision'
-lastSaved: '2026-07-05'
+lastSaved: '2026-07-06'
 workflowType: 'testarch-trace'
 gateType: 'epic'
 decisionMode: 'deterministic'
+regate: true
+regateReason: 'Story 11.9 (venue-data-model-cleanup) adopted into Epic 11 after the 2026-07-05 epic-end trace; re-gate incorporates 11.9 ACs + checks its data-model change for regression against 11.1/11.4/11.6 coverage.'
 inputDocuments:
-  - '_bmad-output/planning-artifacts/epics.md (§Epic 11, lines 2791-3021)'
+  - '_bmad-output/planning-artifacts/epics.md (§Epic 11, Story 11.9 lines 3023-3128)'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-11.md'
-  - '_bmad-output/implementation-artifacts/11-1..11-8-*.md'
+  - '_bmad-output/implementation-artifacts/11-1..11-9-*.md'
+  - '_bmad-output/implementation-artifacts/11-9-venue-data-model-cleanup.sql (live migration + smoke checks)'
+  - '_bmad-output/test-artifacts/atdd-checklist-11-9.md'
   - '_bmad-output/test-artifacts/traceability/traceability-report-11-1.md'
   - '_bmad-output/test-artifacts/traceability/traceability-report-11-2.md'
 ---
 
-# Traceability Matrix & Gate Decision — Epic 11
+# Traceability Matrix & Gate Decision — Epic 11 (RE-GATE incl. Story 11.9)
 
-**Epic:** "Feels Instant, Reads Clear" — Time-Scrub Performance, Mobile Interaction & Surface Polish (stories 11.1–11.8)
-**Date:** 2026-07-05
+**Epic:** "Feels Instant, Reads Clear" — Time-Scrub Performance, Mobile Interaction & Surface Polish + Venue Data-Model Cleanup (stories 11.1–11.9)
+**Date:** 2026-07-06 (re-gate; supersedes the 2026-07-05 8-story gate)
 **Evaluator:** TEA Agent (Master Test Architect)
 **Gate Type:** epic
 **Decision Mode:** deterministic
-**Story status at trace time:** all 8 stories (11.1–11.8) at `review` on the epic branch.
+**Story status at trace time:** all 9 stories (11.1–11.9) at `review` on the epic branch `epic/11-feels-instant-reads-clear`.
 
 ---
+
+> **Re-gate scope.** Story 11.9 (venue-data-model cleanup) was adopted into Epic 11 AFTER the 2026-07-05
+> epic-end trace (which covered 11.1–11.8 and passed). This re-gate: (a) traces 11.9's six ACs, and (b)
+> re-verifies that 11.9's data-model change (per-weekday `opening_hours`, dropped `peak_time` +
+> `shadow_warning_minutes`, auto-assign text PK) did **not** regress the earlier-story coverage it shares
+> surfaces with (11.1 list DTO, 11.4 quick-info opening-hours line, 11.6 detail ÖPPET badge). The 11.1–11.8
+> conclusions from the prior gate are re-verified green against the current tree and folded in unchanged.
 
 Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*automate` to create coverage.
 
@@ -30,361 +41,185 @@ Note: This workflow does not generate tests. If gaps exist, run `*atdd` or `*aut
 
 ### Coverage Summary
 
-The epic decomposes into **28 acceptance criteria** (Given/When/Then blocks) across 8 stories
-(11.1: 4, 11.2: 4, 11.3: 4, 11.4: 4, 11.5: 3, 11.6: 3, 11.7: 3, 11.8: 3). Priority is inherited
-from `test-design-epic-11.md`: the instant-feel + working-touch + honest-content guards map to the
-P0 rows (R-001/002/003/004/005/006/007/009/010 + the DTO contract); important interaction/polish
-behaviour maps to P1 (R-008/011/012/013/018 + regression); dead-code/i18n/EOL hygiene + drag-feel
-edges map to P2 (R-016/017); and the live wall-clock p95 + physical-device sweep + maintainer PNG
-blessing are the P3 manual-by-design rows (R-014/015).
+Epic 11 now decomposes into **34 acceptance criteria** across 9 stories (11.1: 4, 11.2: 4, 11.3: 4,
+11.4: 4, 11.5: 3, 11.6: 3, 11.7: 3, 11.8: 3, **11.9: 6**). Priority for 11.1–11.8 is inherited from
+`test-design-epic-11.md` (unchanged). Story 11.9's priorities are inherited from its ATDD checklist
+(`atdd-checklist-11-9.md`): the honest-render + data-integrity ACs (AC2 per-weekday hours derived,
+AC3 drop `peak_time` w/ engine `peakTime` kept, AC4 drop `shadow_warning_minutes` end-to-end) are **P0**;
+the live idempotent migration (AC1 auto-assign PK, AC6 RLS/gate-preserving migration) are **P0 by risk**
+proven by the migration's own smoke checks (DB-DDL, no runtime seam — per the ATDD coverage note); the
+data-load doc rewrite (AC5) is a **P2** doc deliverable (review-verified, no scaffold).
 
 | Priority  | Total Criteria | FULL Coverage | Coverage % | Status  |
 | --------- | -------------- | ------------- | ---------- | ------- |
-| P0        | 14             | 14            | 100%       | ✅ PASS |
+| P0        | 18             | 18            | 100%       | ✅ PASS |
 | P1        | 8              | 8             | 100%       | ✅ PASS |
-| P2        | 3              | 3             | 100%       | ✅ PASS |
+| P2        | 4              | 4             | 100%       | ✅ PASS |
 | P3        | 3              | 0             | 0%         | ℹ️ INFO (manual by design — R-014/015 + PNG blessing) |
-| **Total** | **28**         | **25**        | **89%**    | ✅ PASS |
+| **Total** | **34**         | **30**        | **88%**    | ✅ PASS |
 
-**Legend:**
+**Legend:** ✅ PASS · ⚠️ WARN · ❌ FAIL
 
-- ✅ PASS - Coverage meets quality gate threshold
-- ⚠️ WARN - Coverage below threshold but not critical
-- ❌ FAIL - Coverage below minimum threshold (blocker)
-
-> Overall = FULL / total = 25/28 = **89%** (well above the ≥80% minimum). **P0 = 100%**, **P1 = 100%**.
-> The three non-FULL items are all in the P3 manual-by-design tier — the live date-change p95 wall-clock
-> number (11.1 AC4 / 11.8 AC3 live half), the physical-device gesture sweep (11.8 AC1 device half), and
-> the maintainer reference-PNG blessing (11.7 AC3 blessing half). Each is the CI-un-automatable portion of
-> an AC whose CI-provable half is FULLY covered and green, and each is correctly recorded as a `needs-human`
-> post-merge handoff (consolidated in the Story-11.8 Post-Merge Verification Protocol) — NOT fabricated,
-> NOT a coverage gap. These are the documented handoffs the run context flagged as "intentional non-CI
-> items, NOT coverage gaps." No P0 or P1 gap exists.
+> Overall = FULL / total = 30/34 = **88%** (≥80% minimum). **P0 = 100%** (18/18), **P1 = 100%** (8/8).
+> The three non-FULL items are unchanged from the prior gate — all in the P3 manual-by-design tier (live
+> date-change p95 wall-clock; physical-device gesture sweep; maintainer reference-PNG blessing). No P0 or
+> P1 gap exists. **11.9 added 5 P0 criteria + 1 P2, all FULL** (AC1/AC6 via migration smoke checks recorded
+> in the Dev Agent Record; AC2/AC3/AC4 via un-skipped ATDD scaffolds + regression-adjusted sibling suites;
+> AC5 via review-verified doc rewrite).
 
 ---
 
-### Detailed Mapping
+### Story 11.9 — Detailed Mapping (NEW)
 
-> The two per-story advisory reports (`traceability-report-11-1.md`, `traceability-report-11-2.md`)
-> already trace 11.1 + 11.2 at FULL. Their conclusions are folded in below and re-verified against the
-> current tree; this epic pass extends the same discipline to 11.3–11.8 and rolls up the gate.
+> **Independently re-verified this re-gate:** full `npx vitest run` = **152 files / 1440 tests, 0 fail**
+> (up from the story-recorded 1416 — the tree grew and stays fully green); `npx tsc --noEmit` exit 0.
+> A repo-wide grep confirms `shadow_warning_minutes` / `shadowWarningMinutes` now appear ONLY in
+> removal-comments and **negative test assertions** (`not.toContain` / `not.toHaveProperty` / `not present`)
+> — i.e. proven-gone, zero live readers (AC4 grep condition satisfied). The engine `peakTime`
+> (`sun-engine.ts#peakTimeFromTimeline` + `timeline.peakTime`) is untouched (AC3 keep-guard). Both the 11.4
+> quick-info line (`MapView`→`formatOpeningHours`→`VenueQuickInfo`) and the 11.6 detail badge
+> (`VenueDetailContent`→`formatOpeningHours`, same-box swap preserved) consume the new per-weekday shape —
+> the cross-story render seams are re-wired, not regressed.
 
-#### 11.1-AC1: Day-series in list DTO; client derives all time-dependent UI; a settled time change fetches ZERO requests (P0, R-001/R-003)
+#### 11.9-AC1: Auto-assigning `text` PK (keep text PK, no serial/identity migration); review/feedback joins + gate venue preserved (P0, DB-DDL)
 
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `test/unit/services/sun-engine.day-series-parity.atdd.test.ts` — 61-step **byte-parity** vs single-instant compute at requestedAt + sampled steps; Epic-10 cloud/rain gate applied **per step** (never only "now"); rain threaded under nowcast horizon.
-  - `test/unit/utils/venue-day-series.derivation.atdd.test.ts` + `...edge.test.ts` — client derivation of all 5 output surfaces (marker %, pin, quick-info figure, ordering input, obscured presentation); purity/offline; null/sparse/NaN clamp branches.
-  - `test/e2e/epic-11-scrub-zero-fetch.spec.ts` — settled same-date scrub = **0** `/api/venues` requests (the R-001 headline); no live api.met.no.
-  - `test/unit/utils/venue-day-series-query-key.atdd.test.ts` — same-date scrub = same key (pure query-key builder, deliberate defence-in-depth with the e2e).
-- **Recommendation:** None. Parity guard makes a divergence a FAIL not a rebaseline; zero-fetch guarded at unit + e2e (the one sanctioned R-001 double-cover).
+- **Coverage:** FULL ✅ (via live-migration smoke checks recorded in the Dev Agent Record — no runtime seam to red-phase; per the ATDD coverage note)
+- **Evidence:**
+  - `11-9-venue-data-model-cleanup.sql` §Section 6 smoke checks (applied live, output recorded in the story Dev Agent Record): `id` default → `(nextval('venues_id_seq'::regclass))::text`; `select nextval` → **8** (next auto id; reset back to 7); `count(*)` = 7 rows; rows `"1".."7"` preserved; `reviews.venue_id`/`feedback.venue_id` free-text joins intact (no PK-type change, no FK added).
+  - Store-side proof that the new insert path is legal: `lib/supabase/types.ts` regenerated so `Insert.id` became optional (reflects the DB default). `venue-store.test.ts` green on the new column set.
+- **Recommendation:** None. AC1 is a DB-DDL criterion; the migration's own smoke checks (recorded) are the correct proof — a Vitest/Playwright scaffold cannot exercise a Supabase `sequence`+`default` DDL, and the store is mocked in unit tests. **Not an un-tested AC.**
 
-#### 11.1-AC2: Series cached per (venue, date, weather-bucket); payload measured + CDN/ETag-friendly (P0/P1, R-012)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `test/unit/services/sun-engine-day-series-cache.atdd.test.ts` — same bucket served from cache; new weather bucket recomputes; degraded (null-buildings) not pinned; cached == uncached.
-  - `test/unit/services/sun-engine-cache.day-series-key.test.ts` — `weatherRefreshBucketMs` floor/boundary; key NOT keyed on the requested instant.
-  - `test/unit/api/venues-route-day-series.atdd.test.ts` — real-engine list DTO carries `sunDaySeries` (61 steps); seed/`[slug]` byte-identical; **gzipped payload measured (1769 B) + guard (8000 B)**; ETag/304.
-- **Recommendation:** None. The currently-`UNKNOWN` payload ceiling was measured and a guard set at the API level.
-
-#### 11.1-AC3: Date/location change keeps markers mounted under dim + spinner; exactly one request (P0, R-005)
-
-- **Coverage:** FULL ✅ (Design-Gate screenshot deferred by design → 11.7)
-- **Tests:**
-  - `test/e2e/epic-11-scrub-zero-fetch.spec.ts` — date change = **1** request; markers persist (keyed by id, no remount); `date-change-overlay` dim+spinner visible in-flight.
-  - `test/unit/queries/useVenueSearch.day-series-key.test.tsx` + `test/components/MapView.test.tsx` — `isLiveNow` wiring; key flips only on date/location change.
-- **Gaps:** (advisory, non-blocking) The date-change overlay + marker-persistence + the MapView per-step derivation seam are asserted only at e2e (per the 11.1 advisory report gap #1). The screenshot of the dim+spinner state is a prescribed 11.7 rebaseline deferral (dev forbidden from self-blessing PNGs), not a coverage gap.
-- **Recommendation:** LOW (advisory) — a jsdom component test for the overlay-on-placeholder-data state would harden the pyramid. Does not reduce AC below FULL.
-
-#### 11.1-AC4: Live date-change p95 < 3 s; time-scrub = 0 requests (P0 request-count half / P3 live half)
-
-- **Coverage:** FULL (CI-enforceable half) ✅ / PARTIAL (live wall-clock half — P3 manual-by-design)
-- **Tests:**
-  - Request-count invariant (scrub=0, date-change=1) → `epic-11-scrub-zero-fetch.spec.ts` + the query-key/hook units (the CI half — FULL).
-  - Live wall-clock p95 → recorded as `needs-human` #1 in the 11.8 Post-Merge Verification Protocol with a ≥10-trial warm/cold method. Correctly NOT fabricated (see P3 table below).
-- **Recommendation:** None beyond the recorded live-perf handoff (owner: maintainer, post-merge).
-
-#### 11.2-AC1: Thumb-grab hit-testing fixed; drag works mouse AND touch, verified by real-touch e2e (P0, R-004)
+#### 11.9-AC2: Per-weekday `opening_hours`; "Öppet till HH:MM" line + "ÖPPET · {time}" badge DERIVED at render; no-hours-today renders NOTHING (P0)
 
 - **Coverage:** FULL ✅
 - **Tests:**
-  - `test/components/TimeSlider.dragdecouple.atdd.test.tsx` — all 3 decorations `pointer-events-none` + `aria-hidden`; input sole pointer target (`h-11`, ≥44px), not `pointer-events-none`.
-  - `test/e2e/epic-11-slider-touch-drag.spec.ts` (`--project=touch`, CDP `Input.dispatchTouchEvent`) — a real finger sweep ON the thumb changes the committed time (genuine touch, not `click()`/`fill()`).
-- **Recommendation:** None. Real-touch proof runs in CI on Chromium/Pixel-5; cross-engine device pass is the recorded 11.8 handoff.
+  - `test/unit/utils/opening-hours.atdd.test.ts` (8 tests, live/un-skipped) — pure `formatOpeningHours(hours, now, locale)`: open-today display+`closesAt`, current-Stockholm-weekday selection, past-midnight (18→02 → "till 02:00"), closed-today (`null`) → `{}`, no-hours → `{}`, malformed → `{}` no-throw, locale-aware, and the **test-venue-sunny gate parity** ("Öppet till 22:00" / `closesAt "22:00"`, byte-stable every weekday).
+  - `test/unit/utils/opening-hours.coverage.test.ts` — **NEVER-FABRICATE hardening (Round-1 Patch resolved):** `stockholmIsoWeekday` returns `number | undefined` (dropped the `?? 1` Monday default); an out-of-range `Intl` token → `undefined` → formatter short-circuits to `{}` (renders nothing) instead of fabricating Monday's hours.
+  - `test/unit/services/venue-store.opening-hours-shape.atdd.test.ts` (live) — `coerceOpeningHours` maps the new per-weekday jsonb through (no `display` key); `null`/malformed → `undefined` never a throw; converted `VENUE_FIXTURE` keeps ≥1 present + ≥1 absent so BOTH formatter branches are reachable on the SEED path (flag OFF, what CI runs).
+  - `test/unit/api/venue-detail-route.data-cleanup.atdd.test.ts` (live) — serialized `openingHours` is the per-weekday shape (`'display' in hours === false`; ≥1 numeric-weekday key present); absent-hours serializes honestly (no `"Öppettider saknas"` fabrication).
+  - `test/components/VenueDetailContent.opening-hours-derived.atdd.test.tsx` (live) — open-today → ÖPPET·{derived close} badge + derived "till HH:MM" row; closed-today → NO badge / no fabricated time; loading → the 11.6 same-box `Skeleton`→badge swap preserved.
+- **Recommendation:** None. The quick-info line derivation (computed in `MapView`, `VenueQuickInfo` stays presentational) is proven by the exhaustive formatter unit (#1) + the detail render proof (#4) — the same formatter feeds both surfaces (dedup discipline, per the ATDD checklist). The never-fabricate rule (11.4/11.6 constraint) is preserved and unit-guarded.
 
-#### 11.2-AC2: Drag decoupled; one app-level commit per gesture; that commit fetches nothing (P0, R-002)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `TimeSlider.dragdecouple.atdd.test.tsx` — multi-step drag commits `onMinutesChange` ≤1×; `onSnap` once on settle; keyboard commits per keypress; blur snaps.
-  - `TimeSlider.edge-cases.automate.test.tsx` — no-`pointerDown` pointer-up → no phantom commit; `pointerCancel` parity.
-  - `epic-11-slider-touch-drag.spec.ts` + `epic-11-scrub-zero-fetch.spec.ts` — a same-date settled drag issues 0 `/api/venues` (the seam; standing guard 11.8-owned).
-- **Recommendation:** None.
-
-#### 11.2-AC3: Date picker — only today→today+3 selectable; out-of-window forced/URL dates clamp in STATE (P0, R-007)
+#### 11.9-AC3: Remove stored `peak_time`; engine `peakTime` (timeline-derived) unchanged — no surface loses a real value (P0)
 
 - **Coverage:** FULL ✅
 - **Tests:**
-  - `test/unit/time-planner.today-window.atdd.test.ts` — `isPlannerDateSelectable`/`PLANNER_MAX_FUTURE_DAYS===3`; `validatePlannerDateTime` rejects beyond-window coherently (no throw/500).
-  - `test/components/DatePickerDialog.today-window.atdd.test.tsx` — today+3 enabled+pickable; today+4/past disabled+unpickable.
-  - `test/unit/TimeContext.today-window-min.atdd.test.tsx` — forced date beyond window OR past clamps to today; in-window preserved.
-  - `test/unit/time-planner.window-boundaries.automate.test.ts` — rollover/leap; reason precedence; `enforceWindow` route opt-out.
-- **Recommendation:** None.
+  - `venue-store.opening-hours-shape.atdd.test.ts` — `VENUE_SELECT_COLUMNS` drops `'peak_time'` (asserted absent); no fixture carries `peakTime`.
+  - `venue-detail-route.data-cleanup.atdd.test.ts` — the ENGINE `timeline.peakTime` keep-guard: with a planner selection the derived `timeline.peakTime` still serializes as `HH:MM`.
+  - `venues-route-real-engine.test.ts` / `venue-store.test.ts` / `useVenueDetail.test.ts` re-anchored to the post-removal shape (green).
+- **Gaps:** (advisory, review-recorded — Round-1 `[Defer][Low]`) The AC3 `timeline.peakTime` keep-guard is wrapped in `if (body.venue.timeline.windows.length > 0)`, so an empty-window response would pass with zero assertions. Recorded as a deferred test-adequacy item (not a runtime defect this diff introduced). Does NOT reduce the AC below FULL — the column-drop + engine-untouched facts are independently pinned (grep + `sun-engine.ts` 5 refs intact).
+- **Recommendation:** LOW (advisory) — pin the peakTime keep-guard against a fixed known-windowed date so the `if` cannot no-op. Backlog.
 
-#### 11.2-AC4: On today, slider min = snapped current wall-clock; min advances as the clock ticks (P0, R-007 + P1 visual)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `TimeSlider.dragdecouple.atdd.test.tsx` — `minMinutes` in native `min` + `aria-valuemin`; below-min/ArrowLeft/Home clamp UP; inert `time-slider-elapsed` segment distinct non-amber token.
-  - `TimeContext.today-window-min.atdd.test.tsx` — today min = floored wall-clock; advances on a tick; does NOT thrash the date-only key on a minute tick (the 11.1 seam).
-  - `TimeContext.min-edge-cases.automate.test.tsx` — direct `setSelectedMinutes`/`snapSelectedMinutes` below-min floored IN STATE (closes the review finding); pre-06:00 clamp; tick-out-of-window reset.
-- **Recommendation:** None.
-
-#### 11.3-AC1: Mobile tag-chip row in the sheet header; same data set + shared filter context; filters list AND pins identically on both breakpoints; empty state (P0, R-009)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `test/components/MobileTagChips.test.tsx` (8 tests) — data-driven set; en-label with canonical toggle; "on" pill + `aria-pressed`; 44px target; `pan-x` axis guard; live toggle.
-  - `test/e2e/epic-11-chip-filter-parity.spec.ts` (BOTH `--project=mobile` + `--project=desktop`) — toggling the unique 'Kanal' chip prunes the visible list AND the pins to the one matching venue; toggle-off restores both.
-  - `test/components/MapView.test.tsx` — chip row under the toggles; filtered-to-empty shows empty copy NOT skeleton (9.7 fold-in).
-- **Recommendation:** None. The shared `TagFilterContext` reuse (R-009 mitigation) is proven at both breakpoints. The favourites-mode chip asymmetry surfaced in review was RESOLVED (desktop strip now gated on `!isFavouritesRoute`).
-
-#### 11.3-AC2: Fourth handle-only collapsed snap; map interactive behind it (P1, R-008)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `test/components/MobileBottomSheet.test.tsx` (extended) — ArrowDown peek→collapsed (never dismissed); ArrowUp collapsed→peek; saturates; collapsed renders handle-only with the collapsed-h token + no backdrop.
-  - `test/e2e/epic-11-sheet-touch-gestures.spec.ts` (`--project=touch`) — all FOUR snaps by real finger; map interactive behind collapsed (map tap above the strip selects a venue + raises the sheet).
-- **Recommendation:** None. The collapsed-snap height (epic-`UNKNOWN`) was SET from the rendered handle strip; tests assert behaviour, not the px.
-
-#### 11.3-AC3: Retuned gesture feel — 1:1 tracking, distance+velocity snaps, no dead-zones, chip row drag-compatible (P1/P2, R-008)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `epic-11-sheet-touch-gestures.spec.ts` — four snaps reachable by gesture (the `releaseDir` accumulated-movement fix); horizontal chip fling leaves `data-state` unchanged (axis guard).
-- **Gaps:** (advisory) No unit assertion that `dragY` tracks `my` 1:1 on the default animated path (the e2e asserts terminal `data-state`, not intermediate position); the reduced-motion jump-on-release path is a standard accommodation (review-dismissed). Neither reduces the AC below FULL.
-- **Recommendation:** LOW (advisory) — optional `dragY`-follows-`my` unit assertion.
-
-#### 11.3-AC4: Desktop chip row scrollable with arrows + edge-fades; keyboard-navigable; all tags reachable (P1, R-008)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `test/components/DesktopNavBar.test.tsx` (extended) — strip `overflow-x-auto` not `overflow-hidden`; all tags in DOM + focusable; arrows labelled/`type=button`; left disabled at start; right enables + `scrollBy` on overflow; right edge-fade only when overflowing.
-- **Gaps:** (advisory, review-deferred) AC4 arrow/overflow reachability is proven with jsdom-mocked scroll metrics (jsdom reports 0 for scroll geometry); no real-browser overflow e2e. Implementation is correct + unit-covered; deferred as test-hardening, not a code defect.
-- **Recommendation:** LOW (advisory) — a real-browser overflow e2e would close the jsdom limitation. Does not reduce the AC below FULL.
-
-#### 11.4-AC1: Remove "Säkerhet"/sun-window text; render real opening hours (requires `openingHours` on the list DTO); never fabricated (P0, R-010)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `test/components/VenueQuickInfo.test.tsx` (rewritten) — NO visible "Säkerhet" text node; NO "Sol HH:mm–HH:mm" line on mobile+desktop; `openingHours.display` renders when present, NOTHING when absent (both branches); sr-only accessible confidence kept.
-  - `test/unit/services/venue-store.test.ts` — `toVenueData`/seed-list contract carries `openingHours` (present + absent).
-  - `test/unit/api/venues-route.test.ts` — seed-path `/api/venues` DTO carries `openingHours` (present + absent).
-- **Recommendation:** None. The additive optional `VenueDataDto.openingHours` is pinned at the DTO boundary; the honest "absent → nothing" rule is covered.
-
-#### 11.4-AC2: Route CTA reads only "VISA RUTT" (drop the truncated ETA) (P0, R-010)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `VenueQuickInfo.test.tsx` — the compact `RouteButton` has NO ETA span.
-  - `test/e2e/map-primary.spec.ts` (re-anchored) — the quick-info card shows "VISA RUTT" + `toHaveCount(0)` for card ETA text.
-- **Recommendation:** None. (Review [Patch][Low]: the orphaned `routeEstimateLabel?` type member left after the removal — cosmetic type-only, resolved.)
-
-#### 11.4-AC3: Mobile card re-aligned to the reference across all four sun states; obscured two-signal preserved (P1, R-010)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `VenueQuickInfo.test.tsx` — all four sun states (Sunny/Partial/Shaded/obscured `CloudObscured`) render; obscured block + muted badge preserved (Story 10.2) alongside the opening-hours line; no confidence/sun-window text.
-- **Recommendation:** None. Reference-alignment (spacing/hierarchy) visual gate is the 11.7 rebaseline (maintainer); the code-level facts are asserted.
-
-#### 11.4-AC4: Regenerated aria + pruned unused i18n keys (P0/P2, R-010)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `VenueQuickInfo.test.tsx` — accessible name = name → sun% → opening hours → distance with no dangling `·` / duplicate phrase.
-  - `test/unit/removed-i18n-keys.test.ts` — pins the three pruned `quickInfo.*` keys (`sunWindow`/`sunUnavailable`/`obscuredPosition`) + `confidence*` kept.
-  - `test/unit/messages-parity.test.ts` — sv/en parity stays green.
-- **Recommendation:** None.
-
-#### 11.5-AC1: De-dull the map to a light warm tint; basemap legible; pin/label contrast still passes axe (P0, R-006)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `test/e2e/axe.spec.ts` (desktop `a11y`, 12 pass) + `axe-mobile` active scan — axe AA GREEN on both breakpoints AFTER the tint change; the de-dull adds ZERO new serious/critical violations (the sole mobile-map violation is the pre-existing Story-5.1 venue-card debt, unchanged).
-  - The tint reduction is a token change (`bg-surface-sand/80→/20` + `--gradient-map-overlay` ¼ alpha), no ad-hoc hex.
-- **Recommendation:** None. The exact tint value (epic-`UNKNOWN`) was SET by a design-gate eyeball; tests assert the OUTCOME (legible + axe AA), never an opacity number — survives a value re-tune.
-
-#### 11.5-AC2: Living location dot — larger, tokenized amber + white ring, pulsing halo (static under reduced-motion) (P1, R-018 + R-006 token)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `test/components/UserPin.test.tsx` — 24px; tokenized fill `var(--color-amber-location-dot)` (resolves the Story-9.5 `#d97706` gap, R-016); `animate-user-location-halo` class; `pointer-events:none`; `aria-hidden`; raw-`#d97706` source-guard.
-  - `test/e2e/map-primary.spec.ts` — live pulsing halo (`animationName==='user-location-halo'`); under `emulateMedia({reducedMotion:'reduce'})` the halo is static (`animationName==='none'`).
-- **Recommendation:** None.
-
-#### 11.5-AC3: Viewport-aware true recenter — flyTo padding per snap/panel; dot lands in the visible center (P1, R-013)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `test/unit/utils/recenter-padding.test.ts` — pure `computeRecenterPadding` per-snap (mid 320 ≠ full 560) + per-panel (detail-open ≠ closed) derivation.
-  - `test/components/MapControls.test.tsx` — `flyTo` called with padding varying per snap + desktop left/right, `duration:500` (flyTo stays 500 ms).
-- **Gaps:** (advisory, review-deferred) The OnboardingGate grant-flyTo secondary recenter site is not made viewport-aware (sibling of MapView, no sheet-state access; dismisses to `mid` where raw-coord is acceptable). AC3's literal target (the recenter button) is fully handled → AC FULL. `MOBILE_TOP_BAR_COVER=72` is a hand-picked constant with no mirrored token (deferred, maintainability).
-- **Recommendation:** LOW (advisory) — track the grant-flyTo + the `72` token for a follow-up. Neither reduces the AC below FULL.
-
-#### 11.6-AC1: Clean first paint — skeleton every detail-only region; never fabricate a value; no layout jump (P1, R-011)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `test/components/VenueDetailContent.test.tsx` (rewritten) — no fabricated "ÖPPET · 22:00" pre-load (skeleton present); opening-hours/address skeletons; name + fallback fields render immediately; a dedicated test pins the badge omit-when-no-`closesAt` path.
-- **Recommendation:** None. The wrong-data-first render (the actual bug) is closed by removing the `?? '22:00'` fabrication + skeletoning detail-only regions.
-
-#### 11.6-AC2: Remove "Soltider idag" + prune the dead `VenueTimeline` render path (engine timeline stays) (P1, R-011)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `VenueDetailContent.test.tsx` — "Solprognos idag"/"Soltider idag" + timeline windows ABSENT on both modes.
-  - `test/components/MapView.test.tsx` — the `'Bäst 11:00-15:00'` subtitle assertion replaced with a section-removed assertion.
-  - `test/unit/messages-parity.test.ts` — symmetric i18n prune (timeline block + `sectionTitle`/`peakTime`/`bestWindow`) stays parity-green.
-  - `SunTimeline.tsx` + `SunTimeline.test.tsx` deleted; the ENGINE `detail.timeline`/`[slug]` route/`sun-engine.ts` timeline UNTOUCHED (11.1 still consumes the day-series).
-- **Recommendation:** None. DEVIATION (peak/best-window subtitle removed with the section, being structurally inside it and absent from the reference) is documented + test-pinned.
-
-#### 11.6-AC3: "Omdömen" centered + single "Inga omdömen" empty message (P1, R-011)
-
-- **Coverage:** FULL ✅
-- **Tests:**
-  - `test/components/ReviewFlow.test.tsx` — with 0 reviews "Inga omdömen" occurs EXACTLY once; empty message + header carry the centering classes; a second test pins the `>0` count summary + no empty-message leak.
-- **Gaps:** (advisory, review-deferred) "Centered per reference" diverges from the literal left-aligned reference JSX; AC3's written text is the maintainer's authority (code satisfies AC3), and the 11.7 rebaseline confirms the intended look. Not a code defect.
-- **Recommendation:** None.
-
-#### 11.6-supporting: amber sun badge ≥4.5:1 (deterministic axe green)
-
-- **Coverage:** FULL ✅ (folded into the 11.6 axe evidence; closes the boundary flake surfaced at 11.3)
-- **Tests:** `axe.spec.ts:82` (desktop venue-detail) + obscured venue-detail scan green with `--color-amber-badge-text #6d5000 → #5c4300` (5.63:1). Not a distinct AC — a hard epic constraint the story landed.
-
-#### 11.7-AC1: Build fails loudly on lightningcss + `.gitattributes` LF normalization (isolated renormalization) (P2, R-016)
+#### 11.9-AC4: Remove `shadow_warning_minutes` end-to-end (column, store field, `VenueDetailDto.shadowWarningMinutes`, asserting tests); no reader remains (P0)
 
 - **Coverage:** FULL ✅
 - **Tests / evidence:**
-  - `test/unit/hygiene-config-contracts.automate.test.ts` (11 tests) — guards the removed `vercel.json` `|| true` swallow; the no-blanket `.gitattributes` (source `text eol=lf` + binary `-text`, NO `.log`).
-  - AC1 fail-loud proven statically + via an injected `lightningcss@99.99.99` ETARGET (OLD `|| true`→exit 0; NEW→exit 1). `.gitattributes` verified on disk (source LF rules present, `.log` excluded).
-  - Renormalization kept SEPARATE (orchestrator owns the isolated `git add --renormalize` commit; dev did not run git).
-- **Recommendation:** None. (Live Vercel deploy is the maintainer/orchestrator PR concern, not CI-provable — the static contract guard is the durable CI proxy.)
+  - `venue-store.opening-hours-shape.atdd.test.ts` — `VENUE_SELECT_COLUMNS` `.not.toContain('shadow_warning_minutes')`; no fixture carries `shadowWarningMinutes`.
+  - `venue-detail-route.data-cleanup.atdd.test.ts` — `'shadowWarningMinutes' in body.venue === false` (serialized DTO absence).
+  - `venue-store.test.ts` — column count 23 − peak_time − shadow_warning_minutes = **21**; `not.toHaveProperty('shadowWarningMinutes')` at every DTO seam.
+  - Migration §Section 6: `information_schema` shows 0 rows for both dropped columns (recorded).
+  - **AC4 grep condition (re-verified this re-gate):** every `shadow_warning_minutes`/`shadowWarningMinutes` hit is a removal-comment or a negative assertion — **zero live readers**.
+  - Original intent documented in Completion Notes ("minutes-until-shadow" hint, never rendered → removed not surfaced).
+- **Recommendation:** None.
 
-#### 11.7-AC2: Orphaned `toSunStatusToken` mapper resolved — no half-state (P2, R-017)
+#### 11.9-AC5: Rewrite `nextjs-app/docs/venue-data-load.md` to the new model (P2, doc deliverable)
 
-- **Coverage:** FULL ✅
-- **Tests / evidence:**
-  - `test/unit/sun-status-presentation.test.ts` — the `toSunStatusToken` import + describe block removed (its only consumer); all OTHER exports (`windowLabelTier`/`isObscuredSunStatus`/`skyConditionCopy`) kept + green.
-  - `hygiene-config-contracts.automate.test.ts` — guards the deleted orphan.
-  - R-017 binary outcome: a repo-wide grep proves ZERO references remain (only gitignored stale `.next` artifacts); the `never`-exhaustiveness guard survives via the sibling `windowLabelTier`.
-- **Recommendation:** None. Chose DELETE (recommended, keeps the story byte-identical). DEVIATION: the now-fully-orphaned `windowLabelTier`/`isSunWindowStatus` siblings (their 11.6 callers gone) were comment-tightened + KEPT to preserve the `never`-guard; flagged as a follow-up dead-export cleanup.
+- **Coverage:** FULL ✅ (review-verified doc deliverable — no runtime scaffold, per the ATDD coverage note)
+- **Evidence:** `id` row now auto-assigned (author omits it); the `opening_hours` row + the "What to send (one venue)" JSON example use the new per-weekday shape (with a worked past-midnight + Sunday-closed example); `peak_time`/`shadow_warning_minutes` rows removed; the `seating_*`/`ground_*` guidance kept verbatim; JSON validated copy-pasteable.
+- **Gaps:** (advisory, review-recorded — Round-2 `[Defer][Low]`) The closed-day (`null`) + past-midnight shapes the doc demonstrates are exercised only in unit tests + the doc example, never against a live/seeded row (all 7 seed rows open 11:00 / close ≥19:00 every weekday, no `null`, no past-midnight). Not an AC violation — the seed's job is byte-identical gate-parity; the edge shapes are unit-covered. Does NOT reduce the AC below FULL.
+- **Recommendation:** None (doc). Optional backlog: seed one demo venue with a closed-day/past-midnight row to exercise the edge shapes against a live render.
 
-#### 11.7-AC3: Consolidated reference-PNG rebaseline — maintainer-blessed checkpoint (P3, R-006/R-011 — blessing manual-by-design)
+#### 11.9-AC6: Idempotent live migration preserving RLS + server-only columns + gate venue (P0, DB-DDL)
 
-- **Coverage:** FULL (dev deliverable: capture + stage + document) ✅ / **blessing = P3 needs-human**
-- **Tests / evidence:**
-  - 12 pairs (re)captured + staged under `nextjs-app/docs/design/references/screens/{mobile,desktop}/` with a consolidated `REBASELINE-LOG.md` entry; each verified in-state (in-DOM assertion + eyeball) before staging; the capture helper aborts on wait-timeout (never screenshots a half-loaded page).
-  - Review [Decision][High] (byte-identical `map-primary`/`map-panel-venues` mobile pair) was RESOLVED — re-captured into distinct DOM-asserted states (`peek` vs `mid`); byte-distinctness proven (differing md5s).
-- **Gaps:** Maintainer blessing is DEFERRED to PR review (dev structurally forbidden from self-blessing — `AGENTS.md:177-179`). This is the prescribed handoff, not a coverage gap. Recorded as `needs-human` #3 in the 11.8 protocol.
-- **Recommendation:** None. Staging + documenting IS the dev deliverable; the blessing is the maintainer's PR checkpoint.
+- **Coverage:** FULL ✅ (via live-migration smoke checks recorded in the Dev Agent Record)
+- **Evidence:** `11-9-...sql` is idempotent (`create sequence if not exists`, `drop column if exists`, `add column if not exists`, `on conflict (id) do update` seed — re-run once, still 7 rows, next auto id 8, no error). §Section 6 smoke checks (applied live, recorded): RLS enabled (`relrowsecurity = t`); single `venues_service_read` (SELECT, `{service_role}`) policy; deny-by-default grants (only `postgres` + `service_role`); server-only `seating_area`/`seating_elevation_m`/`ground_elevation_m` present + untouched; gate venue `test-venue-sunny` byte-compatible on gate-asserted values (`opening_hours->'1'->>'close'` = `22:00`, no `display` key on any row).
+- **Recommendation:** None. AC6 is a DB-DDL criterion proven by the migration's own smoke checks (the correct proof — no runtime seam).
 
-#### 11.8-AC1: Live + real-device verification pass over every Epic 11 surface (P1 mobile sweep / P3 device half)
+---
 
-- **Coverage:** FULL (mobile-profile sweep) ✅ / PARTIAL (physical-device half — P3 manual-by-design)
-- **Tests / evidence:**
-  - Full e2e sweep green: `--project=mobile` 52 pass / 12 skip, `--project=desktop` 35 pass / 29 skip, `--project=touch` 3 pass, `--project=a11y` 12 pass / 2 skip — each Epic-11 surface exercised by the mobile-project specs (scrub-zero-fetch, slider-touch-drag, sheet-touch-gestures, chip-filter-parity, weather-matrix, map-primary dot).
-  - Physical-device sweep → `needs-human` #2 (Playwright iPhone-14 + Pixel-5 profiles serve as the automated proxy; no "physical device passed" claim fabricated).
-- **Recommendation:** None beyond the recorded device handoff.
+### 11.1–11.8 — folded in unchanged (re-verified green)
 
-#### 11.8-AC2: Standing regression guards for the Epic 11 interaction fixes (the CI net) (P0, R-001/002/004/005/007/009/010)
+The 8-story detailed mapping from the 2026-07-05 gate stands unchanged and is re-verified against the
+current tree (all 28 earlier ACs FULL / 3 P3 manual-by-design). The full mapping is preserved in the git
+history of this file (prior revision) and in `traceability-report-11-1.md` / `-11-2.md`. The headline
+earlier-story guards remain green in the 1440-test run: 11.1 scrub=0/date-change=1 + client day-series
+byte-parity; 11.2 real-touch thumb-drag + planner range rules; 11.3 mobile/desktop chip parity + four
+sheet snaps; **11.4 quick-info honest opening-hours line** (now fed by 11.9's per-weekday shape via the
+formatter — re-verified, not regressed); 11.5 de-dulled map axe-AA + living dot; **11.6 detail clean
+first-paint + ÖPPET badge same-box swap** (now derived from 11.9's structured hours — re-verified, swap
+preserved); 11.7 build-fail/EOL hygiene + mapper resolution; 11.8 standing regression net + CI-wiring
+contract guard.
 
-- **Coverage:** FULL ✅
-- **Tests / evidence:**
-  - All 11 enumerated AC2 regression files present + green (211 tests as a targeted group): touch-drag-on-thumb + one-commit (`epic-11-slider-touch-drag` + `TimeSlider.dragdecouple`); scrub=0/date-change=1/markers persist (`epic-11-scrub-zero-fetch` + `venue-day-series-query-key`); today-min + today+3 (`time-planner.today-window` + `TimeContext.today-window-min` + `DatePickerDialog.today-window` + 3 automate); four sheet snaps (`epic-11-sheet-touch-gestures`); mobile chip filter parity (`epic-11-chip-filter-parity`); quick-info no "Säkerhet"/sun-window (`VenueQuickInfo` + `MapView` + `removed-i18n-keys`).
-  - `test/unit/epic-11-standing-gate-ci-wiring.automate.test.ts` (7 config-contract guards, verified non-vacuous) — locks that CI keeps invoking mobile/desktop/touch/a11y and that `playwright.config.ts` keeps its `testMatch`/`testIgnore` routing (blocks silent gate-degradation — a dropped `--project=touch` or emptied `testMatch`).
-- **Recommendation:** None. Two in-scope test-only defects the sweep surfaced (a ~66% real-touch map-tap flake; a stale `CONFIDENCE_BADGE_COPY` regex left by 11.4) were fixed preserving the asserted fact — exactly the "shipped-but-insufficient" fragility this story exists to eliminate.
-
-#### 11.8-AC3: Live perf gated + request-count invariant guarded in CI (P0 CI half / P3 live half)
-
-- **Coverage:** FULL (request-count CI half) ✅ / PARTIAL (live wall-clock half — P3 manual-by-design)
-- **Tests / evidence:**
-  - Request-count invariant (scrub=0, date-change=1) is a live CI gate: `epic-11-scrub-zero-fetch.spec.ts` under `--project=mobile --project=desktop` (workflow L110), plus the CI-wiring contract guard.
-  - Live date-change p95 < 3 s → `needs-human` #1 (≥10-trial warm/cold method against production; a miss is a triage item, not a fabricated pass).
-- **Recommendation:** None. The "wall-clock measured live, counts guarded in CI" split (AC-load-bearing) is honoured exactly.
+**Cross-story regression check (11.9 → 11.1/11.4/11.6) — result: NO regression.**
+- 11.1 list DTO: `openingHours` still surfaced on `VenueDataDto` (now structured per-weekday, not a display string); the `sunDaySeries` day-series and scrub-zero-fetch guards are untouched and green.
+- 11.4 quick-info: the "Öppet till HH:MM" line is now DERIVED (locale-aware) instead of reading a stored string — behaviourally identical at the sv-default gate ("Öppet till 22:00"), byte-stable, no reference-PNG rebaseline triggered. `VenueQuickInfo.test.tsx` re-anchored + green.
+- 11.6 detail: the ÖPPET badge + Öppettider row derive via the formatter; the `loading ? <Skeleton> : closesAt ? <badge> : null` same-box swap is preserved and asserted. `VenueDetailContent.test.tsx` re-anchored + green.
 
 ---
 
 ### Gap Analysis
 
 #### Critical Gaps (BLOCKER) ❌
-
-**0 gaps.** All 14 P0 acceptance criteria are FULL. No release blocker.
+**0 gaps.** All 18 P0 acceptance criteria are FULL (14 earlier + 4 new 11.9 P0: AC1/AC2/AC3/AC4; AC6 folds into the P0-by-risk migration set). No release blocker.
 
 #### High Priority Gaps (PR BLOCKER) ⚠️
-
 **0 gaps.** All 8 P1 acceptance criteria are FULL.
 
 #### Medium Priority Gaps (Nightly) ⚠️
-
-**0 gaps.** All 3 P2 acceptance criteria (11.7 AC1 build-fail/EOL, 11.7 AC2 mapper, plus the 11.4-AC4 i18n-prune P2 facet) are FULL.
+**0 gaps.** All 4 P2 acceptance criteria (11.7 AC1 build-fail/EOL, 11.7 AC2 mapper, the 11.4-AC4 i18n-prune facet, **11.9 AC5 data-load doc rewrite**) are FULL.
 
 #### Low Priority Gaps (Optional) ℹ️
-
-**3 P3 manual-by-design items — NOT coverage gaps** (each is the CI-un-automatable half of an AC whose CI half is FULL + green, correctly recorded as a `needs-human` post-merge handoff in the Story-11.8 Post-Merge Verification Protocol):
-
-1. **Live date-change p95 < 3 s wall-clock** (11.1 AC4 / 11.8 AC3 live half, R-014) — needs the live Vercel Production deployment; ≥10-trial warm/cold method documented. The CI request-count invariant (scrub=0, date-change=1) is the durable gate and is FULL + green.
-2. **Physical-device (real phone) gesture sweep** (11.8 AC1 device half, R-015) — a real phone cannot run headless in CI; the Playwright iPhone-14 + Pixel-5 profiles are the automated proxy and are green.
-3. **Maintainer blessing of the 11.7-staged consolidated reference-PNG rebaseline** (11.7 AC3 blessing half) — dev is structurally forbidden from self-blessing; the set is captured + staged + documented; the maintainer blesses at PR review.
+**3 P3 manual-by-design items — NOT coverage gaps** (unchanged from the prior gate; each is the CI-un-automatable half of an AC whose CI half is FULL + green, recorded as `needs-human` in the Story-11.8 Post-Merge Verification Protocol):
+1. **Live date-change p95 < 3 s wall-clock** (11.1 AC4 / 11.8 AC3 live half, R-014).
+2. **Physical-device (real phone) gesture sweep** (11.8 AC1 device half, R-015).
+3. **Maintainer blessing of the 11.7-staged consolidated reference-PNG rebaseline** (11.7 AC3 blessing half). *(11.9 triggered NO new rebaseline — the derived opening-hours treatment is byte-identical at the sv-default gate, so no new PNG enters the blessing set.)*
 
 #### Advisory (non-blocking test-hardening — surfaced, none reduce an AC below FULL)
-
-- 11.1 AC3 / 11.3 AC3 / 11.3 AC4: e2e-only or jsdom-mocked coverage for the date-change overlay seam, the sheet 1:1-track path, and the desktop chip real-overflow — all FULL at the AC level; component/real-browser hardening is optional.
-- 11.5 AC3: OnboardingGate grant-flyTo not viewport-aware + `MOBILE_TOP_BAR_COVER=72` untokened — review-deferred maintainability; the recenter-button target (the AC's literal scope) is FULL.
+- **11.9 AC3** (`[Defer][Low]`): the `timeline.peakTime` keep-guard is `if (windows.length>0)`-wrapped (no-op risk on an empty window array) — pin against a fixed known-windowed date. Backlog.
+- **11.9 AC2/badge** (`[Defer][Med]`, pre-existing deferred item): the ÖPPET badge/line has no is-open-now guard (renders "ÖPPET·22:00" at 09:00 for an 18:00-open venue; a past-midnight session reads today's row) — the story solved the weekday-correctness half by design; the intra-day/past-midnight open-guard is explicitly out of scope and recorded. Narrow or re-scope the deferred item.
+- **11.9 AC2** (`[Defer][Low]`): `MapView` `quickInfoOpeningHours` memo can go stale across a local-midnight boundary on a quick-info card held open uninteracted — value stays honest for the weekday it computed on; negligible trigger.
+- 11.1/11.3/11.5 advisory items from the prior gate (date-change overlay component test; desktop-chip real-overflow e2e; grant-flyTo viewport-awareness) — unchanged, all FULL at the AC level.
 
 ---
 
 ### Coverage Heuristics Findings
 
 #### Endpoint Coverage Gaps
-
-- Endpoints without direct API tests: **0.** The only endpoint change in the epic is the additive `/api/venues` list DTO (`sunDaySeries` from 11.1, `openingHours` from 11.4). Both are pinned at API/contract level (`venues-route-day-series.atdd.test.ts`, `venues-route.test.ts`, `venue-store.test.ts`) on the real-engine + seed paths, with the `[slug]` detail DTO asserted byte-identical and ETag/304 covered. The scrub zero-fetch is asserted as an intended NEGATIVE endpoint signal (0 `/api/venues` on a settled scrub).
+- **0.** The only endpoint changes are the additive `/api/venues` list DTO (`sunDaySeries` 11.1, `openingHours` 11.4/reshaped 11.9) and the `[slug]` detail DTO (11.9 dropped `shadowWarningMinutes`, reshaped `openingHours`, kept engine `timeline.peakTime`). Both list + detail are pinned at the API/route level (`venue-detail-route.data-cleanup.atdd.test.ts`, `venues-route-real-engine.test.ts`, `venue-store.opening-hours-shape.atdd.test.ts`) on the real-engine + seed paths.
 
 #### Auth/Authz Negative-Path Gaps
-
-- Criteria missing denied/invalid-path tests: **0 (N/A).** Epic 11 touches no auth/session/permission surface — it is interaction, performance, and surface-polish over the already-authenticated public read path.
+- **0 (N/A for the app surface).** The 11.9 migration DOES touch the auth-adjacent RLS posture — but AC6's smoke checks explicitly re-assert RLS-enabled + the single service-role-only `venues_service_read` policy + deny-by-default grants survived the DDL (recorded). No anon/authenticated read path was opened.
 
 #### Happy-Path-Only Criteria
-
-- Criteria missing error/edge scenarios: **0.** Error/edge paths are strong across the epic: day-series degrade (producer throw → no 500, series omitted, per-venue isolation), null/sparse/NaN series clamp, out-of-window/past/forced-date clamps, pre-06:00 clamp, no-`pointerDown` pointer-up, `pointerCancel` parity, filtered-to-empty empty-copy, `openingHours` absent → nothing, badge omit-when-no-`closesAt`, weather-missing confidence-absent, reduced-motion static halo, degraded-cache-not-pinned.
-
----
-
-### Coverage by Test Level
-
-| Test Level | Role in this epic | Coverage |
-| ---------- | ----------------- | -------- |
-| E2E (Playwright) | request-count invariant (scrub=0/date=1), real-touch thumb-drag + four sheet snaps (`--project=touch`), chip filter parity (both breakpoints), axe AA gate, mobile surface sweep | FULL for the whole-app interaction promises |
-| API / Contract | `/api/venues` list DTO carries `sunDaySeries` (61 steps, %+status) + `openingHours`; payload measured + bounded; seed/`[slug]` byte-identical; ETag/304 | FULL |
-| Component | slider decouple + range rules, mobile/desktop chips, quick-info removals + opening hours + aria, detail first-paint + skeleton + reviews, UserPin dot, recenter padding, sheet snaps | FULL |
-| Unit | client day-series derivation + parity + purity, cache bucket/key, today-window state + tick-advance, i18n prune, config-contract + CI-wiring guards | FULL |
-| Manual (live/device/bless) | live p95 wall-clock, physical-device sweep, maintainer PNG blessing | P3 — recorded needs-human handoffs (by design) |
+- **0.** 11.9's error/edge paths are strong: closed-today (`null`) → `{}`, no-hours → `{}`, malformed/garbage jsonb → `undefined` no-throw (`coerceOpeningHours` defensive boundary), past-midnight close, out-of-range `Intl` weekday token → undefined/renders-nothing (never-fabricate hardening), absent-hours serializes honestly. Plus the epic-wide error paths from the prior gate.
 
 ---
 
-### Test Execution Evidence (from the story records — current tree)
+### Coverage by Test Level (with 11.9)
 
-- **Vitest:** 1361 tests / 143 files, ALL PASS (final count after the 11.8 automate expansion: baseline 1354 → +7 CI-wiring guards).
-- **Playwright:** `mobile` 52 pass / 12 skip, `desktop` 35 pass / 29 skip, `touch` 3 pass, `a11y` (desktop axe) 12 pass / 2 skip — all green; 0 fail.
-- **Gates:** `typecheck` 0 errors, `eslint` 0 errors (13 pre-existing warnings, none new) across all 8 story gate runs.
-- **CI wiring confirmed:** `build-and-test-nextjs.yml` invokes `--project=mobile --project=desktop` (L110), `--project=touch` (L120), `--project=a11y` (L123); `a11y-mobile` deliberately NOT invoked (Story-5.1 `test.fixme` debt — guarded as a deliberate-omission by the CI-wiring contract test).
+| Test Level | 11.9 role | Coverage |
+| ---------- | --------- | -------- |
+| E2E (Playwright) | `epic-10-weather-matrix` (10) + `map-primary` (21) re-run green post data-model change (no wiring regression); the epic-wide interaction sweep unchanged | FULL |
+| API / Contract | detail DTO: `openingHours` per-weekday shape, no `display`, engine `peakTime` kept, `shadowWarningMinutes` gone; absent-hours honest | FULL |
+| Component | detail derived badge + row + closed-today omission + 11.6 same-box swap; quick-info line via formatter (proven at formatter+detail level) | FULL |
+| Unit | `formatOpeningHours` weekday/closed/past-midnight/malformed/locale/gate-parity + never-fabricate token hardening; `coerceOpeningHours` defensive shape; `VENUE_SELECT_COLUMNS` drop; fixture-shape both-branches | FULL |
+| Manual (DB-DDL / doc) | AC1 auto-assign PK + AC6 idempotent RLS/gate-preserving migration → live smoke checks recorded in the Dev Agent Record; AC5 doc rewrite review-verified | FULL (correct-by-design proof) |
+
+---
+
+### Test Execution Evidence (independently re-run this re-gate — current tree)
+
+- **Vitest:** **152 files / 1440 tests, ALL PASS, 0 fail** (independently re-run 2026-07-06; up from the story-recorded 1416 baseline — none dropped, tree grew and stays green). The stderr `MISSING_MESSAGE` lines are the pre-existing intentional epic-10 `obscuredPosition`/`statusObscured` dead-key fallback tests (explicitly out of 11.9 scope) + benign jsdom unmount-race warnings — NOT failures.
+- **Typecheck:** `npx tsc --noEmit` exit **0**.
+- **Playwright (story-recorded, prior gate re-verified):** `mobile` 52 / `desktop` 35 / `touch` 3 / `a11y` 12 — all green; 0 fail. 11.9 additionally re-ran `epic-10-weather-matrix` (10) + `map-primary` (21) green.
+- **11.9 live migration:** applied to project `hhnbxrhfhlzxgllxukzj` via Docker `psql` on the IPv4 session pooler; re-run idempotent; §Section 6 smoke checks all green (recorded in the story Dev Agent Record).
+- **AC4 grep re-verified:** zero live `shadow_warning_minutes`/`shadowWarningMinutes` readers (removal-comments + negative assertions only).
 
 ---
 
 ## PHASE 2: QUALITY GATE DECISION
 
-**Gate Type:** epic
-**Decision Mode:** deterministic
+**Gate Type:** epic · **Decision Mode:** deterministic
 
 ### Decision Criteria Evaluation
 
@@ -392,11 +227,11 @@ blessing are the P3 manual-by-design rows (R-014/015).
 
 | Criterion | Threshold | Actual | Status |
 | --------- | --------- | ------ | ------ |
-| P0 Coverage | 100% | 14/14 = 100% | ✅ PASS |
-| P0 Test Pass Rate | 100% | 100% (vitest 1361/1361; Playwright mobile/desktop/touch/a11y all green) | ✅ PASS |
-| Security Issues | 0 | 0 (per-story dedicated security passes: 0 findings) | ✅ PASS |
-| Critical NFR Failures | 0 | 0 (axe AA green post map de-dull; request-count invariant green) | ✅ PASS |
-| Flaky Tests (unmitigated) | 0 | 0 (the one real-touch map-tap flake was hardened to deterministic aim; 6/6 with retries=0) | ✅ PASS |
+| P0 Coverage | 100% | 18/18 = 100% | ✅ PASS |
+| P0 Test Pass Rate | 100% | 100% (vitest 1440/1440; Playwright mobile/desktop/touch/a11y all green) | ✅ PASS |
+| Security Issues | 0 | 0 (11.9 migration re-asserts RLS + service-role-only policy + deny-by-default grants preserved) | ✅ PASS |
+| Critical NFR Failures | 0 | 0 (axe AA green; request-count invariant green; day-series payload measured 1955 B bounded) | ✅ PASS |
+| Flaky Tests (unmitigated) | 0 | 0 | ✅ PASS |
 
 **P0 Evaluation:** ✅ ALL PASS
 
@@ -405,7 +240,7 @@ blessing are the P3 manual-by-design rows (R-014/015).
 | Criterion | Threshold | Actual | Status |
 | --------- | --------- | ------ | ------ |
 | P1 Coverage | ≥90% (PASS) / ≥80% (min) | 8/8 = 100% | ✅ PASS |
-| Overall Coverage | ≥80% | 25/28 = 89% | ✅ PASS |
+| Overall Coverage | ≥80% | 30/34 = 88% | ✅ PASS |
 | Overall Test Pass Rate | ≥95% | 100% | ✅ PASS |
 
 **P1 Evaluation:** ✅ ALL PASS
@@ -414,8 +249,8 @@ blessing are the P3 manual-by-design rows (R-014/015).
 
 | Criterion | Actual | Notes |
 | --------- | ------ | ----- |
-| P2 Coverage | 3/3 = 100% | Hygiene (build-fail/EOL, mapper resolution, i18n prune) all FULL |
-| P3 Coverage | 0/3 = 0% | Manual-by-design (live p95, physical-device, PNG blessing) — recorded needs-human handoffs, do NOT block |
+| P2 Coverage | 4/4 = 100% | Hygiene (build-fail/EOL, mapper, i18n prune) + **11.9 AC5 doc rewrite** all FULL |
+| P3 Coverage | 0/3 = 0% | Manual-by-design (live p95, physical-device, PNG blessing) — recorded needs-human, do NOT block. 11.9 triggered NO new PNG. |
 
 ---
 
@@ -425,39 +260,41 @@ blessing are the P3 manual-by-design rows (R-014/015).
 
 ### Rationale
 
-**Deterministic rule outcome:** P0 coverage 100% (Rule 1 satisfied) → overall coverage 89% ≥ 80% (Rule 2
+**Deterministic rule outcome:** P0 coverage 100% (Rule 1 satisfied) → overall coverage 88% ≥ 80% (Rule 2
 satisfied) → P1 coverage 100% ≥ 90% (Rule 4 satisfied) ⇒ **PASS**.
 
-All 14 P0 acceptance criteria — the instant-feel guards (scrub = 0 fetches at unit + e2e; client
-day-series byte-parity with the server single-instant; date change = exactly 1 request with markers
-persisting), working real touch (thumb-grab drag verified by CDP `Input.dispatchTouchEvent`, not
-click-sim; one commit per gesture), the planner range rules enforced in state (today→today+3 cap +
-today-minimum + tick-advance), the mobile filter parity over the shared `TagFilterContext`, the honest
-quick-info content (no "Säkerhet"/sun-window; opening-hours-or-nothing), the de-dulled map keeping the
-axe AA gate green, and the standing anti-"shipped-but-insufficient" CI net (AC2 regression suite +
-CI-wiring contract guard) — are FULL and green. All 8 P1 criteria (cache bucket, desktop chip scroll,
-viewport-aware recenter, living location dot with reduced-motion, detail clean first-paint + content
-polish, four sheet snaps, reference-aligned card, mobile sweep) are FULL. All 3 P2 hygiene criteria are
-FULL. Security = 0 findings; no unmitigated flake.
+The re-gate confirms Story 11.9 lands cleanly on top of the already-passing 11.1–11.8 epic. All 6 of 11.9's
+ACs are FULL: the honest-render + data-integrity trio (AC2 per-weekday hours derived at render with the
+never-fabricate rule preserved and unit-hardened against an out-of-range weekday token; AC3 stored
+`peak_time` dropped while the engine-computed `timeline.peakTime` is untouched and keep-guarded; AC4
+`shadow_warning_minutes` removed end-to-end with a re-verified zero-live-reader grep) are covered by the
+four un-skipped ATDD scaffolds plus the regression-adjusted sibling suites, all green in a 1440-test run.
+The two DB-DDL criteria (AC1 auto-assign text PK preserving the free-text review/feedback joins + gate
+venue; AC6 idempotent RLS/server-column/gate-preserving live migration) are proven — correctly by design —
+by the migration's own end-of-file smoke checks, applied live and recorded in the Dev Agent Record; there
+is no runtime seam a Vitest/Playwright test could exercise, so these are smoke-check-covered, NOT un-tested.
+AC5 (the data-load doc rewrite) is a review-verified doc deliverable.
 
-The 3 non-FULL items are entirely in the P3 manual-by-design tier and are **not coverage gaps**: they are
-the CI-un-automatable halves of ACs whose CI-provable halves are FULL + green — the live wall-clock
-date-change p95 (a wall-clock number cannot prove the fetch was *removed*; the request-count invariant,
-which can, is the durable gate and is green), the physical-device gesture sweep (no phone runs headless;
-the iPhone-14 + Pixel-5 profiles are the green automated proxy), and the maintainer reference-PNG blessing
-(dev is structurally forbidden from self-blessing; the set is captured + staged + documented). All three
-are correctly recorded as `needs-human` items in the Story-11.8 consolidated Post-Merge Verification
-Protocol — exactly the documented handoffs the run context flagged as intentional non-CI items.
+**No regression to earlier-story coverage.** 11.9's data-model change re-wires — rather than breaks — the
+shared surfaces: the 11.1 list DTO still carries `openingHours` (now structured), the 11.4 quick-info line
+and the 11.6 detail ÖPPET badge now derive their display from the per-weekday shape via a single pure
+formatter, with the 11.6 loading same-box swap preserved and byte-identical output at the sv-default gate
+("Öppet till 22:00") — so no reference-PNG rebaseline was triggered and no earlier guard went red. Security
+posture is intact: the migration explicitly re-asserted RLS-enabled + the single service-role-only policy +
+deny-by-default grants survived the DDL.
+
+The 3 non-FULL items are unchanged from the prior gate and remain the P3 manual-by-design halves (live
+wall-clock p95, physical-device sweep, maintainer PNG blessing) — recorded `needs-human` post-merge
+handoffs, not coverage gaps.
 
 **Caveats (do not affect the gate):**
-- The live p95 number and physical-device sweep are the maintainer's post-merge actions; a p95 miss is a
-  triage item, not a fabricated pass. The CI request-count invariant durably guards that the ~9.6 s stall
-  cannot silently recur.
-- The 11.7 reference-PNG rebaseline (incl. the review-corrected distinct `map-primary`/`map-panel-venues`
-  pair) awaits maintainer blessing at PR — the epic's only remaining human visual checkpoint.
-- Advisory test-hardening (component-level date-change overlay assertion; real-browser desktop-chip
-  overflow e2e; grant-flyTo viewport-awareness; `72`/token) is optional backlog — none reduces any AC
-  below FULL.
+- 11.9 AC3's `timeline.peakTime` keep-guard is `if (windows.length>0)`-wrapped (no-op risk) — a recorded
+  `[Defer][Low]` test-adequacy item; the column-drop + engine-untouched facts are independently pinned.
+- The ÖPPET badge has no intra-day/past-midnight is-open-now guard — an explicitly-scoped-out, recorded
+  deferred item; the weekday-correctness half AC2 requires IS solved and the never-fabricate rule holds.
+- The seed rows exercise neither the closed-day nor the past-midnight shape live (unit + doc only) — a
+  recorded `[Defer][Low]` verification-coverage note, not an AC violation.
+- The prior gate's caveats (live p95 + device sweep are maintainer post-merge; PNG blessing at PR) stand.
 
 ---
 
@@ -465,9 +302,11 @@ Protocol — exactly the documented handoffs the run context flagged as intentio
 
 | Risk | Priority | Prob | Impact | Score | Mitigation / Remediation |
 | ---- | -------- | ---- | ------ | ----- | ------------------------ |
-| Live date-change p95 misses < 3 s on a slow-network day | P3 | Low | Med | 2 | CI request-count invariant is the durable gate; p95 recorded warm/cold ≥10 trials, any miss triaged before close (R-014). |
-| Physical-device gesture differs from the emulated profile | P3 | Low | Med | 2 | Real-touch CDP profile (Pixel-5) covers the automatable half; device checklist recorded, any gap triaged (R-015). |
-| Maintainer blesses a mislabeled reference PNG | P3 | Low | Low | 1 | The one byte-identical mobile pair was re-captured into distinct DOM-asserted states pre-blessing (11.7 review [Decision][High] resolved). |
+| Live date-change p95 misses < 3 s | P3 | Low | Med | 2 | CI request-count invariant is the durable gate; p95 recorded warm/cold ≥10 trials (R-014). |
+| Physical-device gesture differs from emulated | P3 | Low | Med | 2 | Real-touch CDP Pixel-5 profile covers the automatable half; device checklist recorded (R-015). |
+| Maintainer blesses a mislabeled reference PNG | P3 | Low | Low | 1 | Byte-identical mobile pair re-captured to distinct DOM-asserted states (11.7 review resolved); 11.9 added no new PNG. |
+| AC3 peakTime keep-guard no-ops on empty windows | Advisory | Low | Low | 1 | Recorded `[Defer][Low]`; column-drop + engine grep independently prove the fact. |
+| ÖPPET badge shows before open / after close intra-day | Advisory | Low | Low | 1 | Explicitly-scoped-out deferred item; weekday-correct + never-fabricate; narrow/re-scope the deferred entry. |
 
 **Overall Residual Risk:** LOW.
 
@@ -475,18 +314,18 @@ Protocol — exactly the documented handoffs the run context flagged as intentio
 
 ### Next Steps
 
-**Immediate (before/at PR merge):** none blocking. The regression + request-count suites are green in CI;
-P0/P1 at 100%.
+**Immediate (before/at PR merge):** none blocking. P0/P1 at 100%; vitest 1440/1440 green; tsc clean;
+11.9 live migration applied + smoke-checked.
 
-**Post-merge (maintainer, consolidated in the Story-11.8 Post-Merge Verification Protocol):**
-1. Run the LIVE date-change p95 (≥10 trials, warm/cold) + confirm time-scrub = 0 requests + record the gzipped `sunDaySeries` payload size; triage any p95 miss.
-2. Physical-device checklist over every Epic 11 surface (screenshots per surface); triage any device-only gap before epic close.
-3. Bless the 11.7-staged consolidated reference-PNG rebaseline (12 pairs) at PR review.
+**Post-merge (maintainer, consolidated in the Story-11.8 Post-Merge Verification Protocol — unchanged):**
+1. LIVE date-change p95 (≥10 trials, warm/cold) + confirm time-scrub = 0 requests + record gzipped `sunDaySeries` payload; triage any p95 miss.
+2. Physical-device checklist over every Epic 11 surface; triage any device-only gap before epic close.
+3. Bless the 11.7-staged consolidated reference-PNG rebaseline (12 pairs) at PR review. *(11.9 adds nothing to this set.)*
 
-**Backlog (advisory test-hardening):** component-level date-change overlay assertion (11.1); real-browser
-desktop chip-overflow e2e (11.3); `dragY`-follows-`my` 1:1 unit assertion (11.3); grant-flyTo
-viewport-awareness + `MOBILE_TOP_BAR_COVER` token (11.5); the fully-orphaned `windowLabelTier`/`isSunWindowStatus`
-dead-export cleanup with a re-homed `never`-guard (11.7).
+**Backlog (advisory test-hardening):** 11.9 — pin the AC3 `timeline.peakTime` keep-guard against a fixed
+windowed date; narrow/re-scope the ÖPPET is-open-now deferred item; optional live closed-day/past-midnight
+demo-seed row. Plus the prior gate's advisory backlog (date-change overlay component test; desktop-chip
+real-overflow e2e; grant-flyTo viewport-awareness; dead-export cleanup).
 
 ---
 
@@ -496,11 +335,13 @@ dead-export cleanup with a re-homed `never`-guard (11.7).
 traceability_and_gate:
   traceability:
     epic_id: "11"
-    date: "2026-07-05"
-    stories: ["11.1","11.2","11.3","11.4","11.5","11.6","11.7","11.8"]
-    total_criteria: 28
+    date: "2026-07-06"
+    regate: true
+    regate_reason: "Story 11.9 adopted post-2026-07-05 gate; re-gate incl. 11.9 + regression check on 11.1/11.4/11.6"
+    stories: ["11.1","11.2","11.3","11.4","11.5","11.6","11.7","11.8","11.9"]
+    total_criteria: 34
     coverage:
-      overall: 89
+      overall: 88
       p0: 100
       p1: 100
       p2: 100
@@ -509,10 +350,18 @@ traceability_and_gate:
       critical: 0
       high: 0
       medium: 0
-      low: 3   # all P3 manual-by-design needs-human handoffs
+      low: 3   # all P3 manual-by-design needs-human handoffs (unchanged)
+    story_11_9:
+      ac1_autoassign_pk: "FULL (migration smoke check: nextval->8, joins+gate preserved)"
+      ac2_per_weekday_hours: "FULL (formatter+coercer+DTO+render, never-fabricate hardened)"
+      ac3_drop_peak_time: "FULL (column dropped; engine timeline.peakTime kept + keep-guard)"
+      ac4_drop_shadow_warning_minutes: "FULL (end-to-end; zero live readers grep-verified)"
+      ac5_doc_rewrite: "FULL (review-verified doc deliverable)"
+      ac6_idempotent_migration: "FULL (migration smoke check: RLS+policy+seating cols+gate preserved)"
     quality:
-      vitest_tests: 1361
-      vitest_files: 143
+      vitest_tests: 1440
+      vitest_files: 152
+      tsc: 0
       playwright: "mobile 52 / desktop 35 / touch 3 / a11y 12 — all green"
       security_findings: 0
       unmitigated_flaky: 0
@@ -524,7 +373,7 @@ traceability_and_gate:
       p0_coverage: 100
       p0_pass_rate: 100
       p1_coverage: 100
-      overall_coverage: 89
+      overall_coverage: 88
       overall_pass_rate: 100
       security_issues: 0
       critical_nfrs_fail: 0
@@ -538,7 +387,7 @@ traceability_and_gate:
     needs_human_post_merge:
       - "LIVE date-change p95 < 3 s + time-scrub = 0 requests (R-014)"
       - "physical-device gesture sweep over every Epic 11 surface (R-015)"
-      - "maintainer blessing of the 11.7-staged consolidated reference-PNG rebaseline"
+      - "maintainer blessing of the 11.7-staged consolidated reference-PNG rebaseline (11.9 adds none)"
     next_steps: "PASS — merge unblocked; run the 3 consolidated post-merge needs-human items; triage any p95 miss before epic close."
 ```
 
@@ -546,12 +395,12 @@ traceability_and_gate:
 
 ## Related Artifacts
 
-- **Epic:** `_bmad-output/planning-artifacts/epics.md` §"Epic 11" (lines 2791–3021)
+- **Epic:** `_bmad-output/planning-artifacts/epics.md` §"Epic 11" (11.9 lines 3023–3128)
 - **Test Design:** `_bmad-output/test-artifacts/test-design/test-design-epic-11.md`
-- **Story files:** `_bmad-output/implementation-artifacts/11-1..11-8-*.md`
+- **Story files:** `_bmad-output/implementation-artifacts/11-1..11-9-*.md`
+- **11.9 ATDD checklist:** `_bmad-output/test-artifacts/atdd-checklist-11-9.md`
+- **11.9 live migration + smoke checks:** `_bmad-output/implementation-artifacts/11-9-venue-data-model-cleanup.sql`
 - **Per-story traceability (folded in):** `traceability-report-11-1.md`, `traceability-report-11-2.md`
-- **Live-perf method:** `_bmad-output/test-artifacts/atdd-checklist-11-1.md` §"Live-Perf Handoff (AC4)"
-- **Automation summary:** `_bmad-output/test-artifacts/automation-summary-11-8.md`
 - **CI:** `nextjs-app/.github/workflows/build-and-test-nextjs.yml` (L110 mobile+desktop, L120 touch, L123 a11y)
 
 ---
@@ -559,24 +408,22 @@ traceability_and_gate:
 ## Sign-Off
 
 **Phase 1 — Traceability Assessment:**
-
-- Overall Coverage: 89% (25/28 FULL)
-- P0 Coverage: 100% (14/14) ✅
+- Overall Coverage: 88% (30/34 FULL)
+- P0 Coverage: 100% (18/18) ✅
 - P1 Coverage: 100% (8/8) ✅
-- Critical Gaps: 0
-- High Priority Gaps: 0
+- Critical Gaps: 0 · High Priority Gaps: 0
 
 **Phase 2 — Gate Decision:**
-
 - **Decision:** PASS ✅
-- **P0 Evaluation:** ✅ ALL PASS
-- **P1 Evaluation:** ✅ ALL PASS
+- **P0 Evaluation:** ✅ ALL PASS · **P1 Evaluation:** ✅ ALL PASS
 
-**Overall Status:** PASS ✅ — Epic 11 release approved; coverage meets standards. The 3 P3
-manual-by-design items (live p95, physical-device, PNG blessing) are recorded post-merge needs-human
-handoffs, not coverage gaps.
+**Overall Status:** PASS ✅ — Epic 11 (incl. Story 11.9) release approved; coverage meets standards. Story
+11.9's six ACs are FULL (AC1/AC6 via recorded live-migration smoke checks; AC2/AC3/AC4 via un-skipped ATDD
++ regression-adjusted suites; AC5 via review-verified doc) and its data-model change caused NO regression
+to earlier-story coverage. The 3 P3 manual-by-design items (live p95, physical-device, PNG blessing) remain
+recorded post-merge needs-human handoffs, not coverage gaps.
 
-**Generated:** 2026-07-05
+**Generated:** 2026-07-06 (re-gate)
 **Workflow:** testarch-trace v4.0 (Enhanced with Gate Decision) — Epic-Level mode
 
 ---

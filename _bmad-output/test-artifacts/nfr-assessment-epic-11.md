@@ -6,26 +6,92 @@ stepsCompleted:
   - 'step-04-evaluate-and-score'
   - 'step-04e-aggregate-nfr'
   - 'step-05-generate-report'
-lastStep: 'step-05-generate-report'
-lastSaved: '2026-07-05'
+  - 'step-11-9-delta-audit'
+lastStep: 'step-11-9-delta-audit'
+lastSaved: '2026-07-06'
 workflowType: 'testarch-nfr-assess'
 inputDocuments:
   - '_bmad-output/test-artifacts/test-design/test-design-epic-11.md'
   - '_bmad-output/test-artifacts/traceability/traceability-report-epic-11.md'
   - '_bmad-output/planning-artifacts/epics.md (§Epic 11, lines 2791-3021)'
   - '_bmad-output/implementation-artifacts/11-1..11-8-*.md'
+  - '_bmad-output/implementation-artifacts/11-9-venue-data-model-cleanup.md (+ .sql migration)'
   - 'nextjs-app/test/unit/api/venues-route-day-series.atdd.test.ts (payload guard)'
   - 'nextjs-app/test/unit/epic-11-standing-gate-ci-wiring.automate.test.ts'
+  - 'nextjs-app/lib/utils/opening-hours.ts (11.9 formatter, re-verified this audit)'
   - 'nextjs-app/.github/workflows/build-and-test-nextjs.yml (project wiring)'
   - 'nextjs-app/vercel.json + root .gitattributes (hygiene)'
+  - 'LIVE Supabase public.venues (project hhnbxrhfhlzxgllxukzj) — schema/RLS re-verified this audit'
 ---
 
 # NFR Assessment - Epic 11 "Feels Instant, Reads Clear" (Time-Scrub Performance, Mobile Interaction & Surface Polish)
 
-**Date:** 2026-07-05
-**Story:** Epic 11 (stories 11.1–11.8)
+**Date:** 2026-07-06 (11.9 delta) · 2026-07-05 (original 11.1–11.8 audit)
+**Story:** Epic 11 (stories 11.1–11.9 — 11.9 added 2026-07-06)
 **Branch:** `epic/11-feels-instant-reads-clear`
-**Overall Status:** PASS ✅ (with 3 tracked, non-blocking CONCERNS — all P3 manual-by-design)
+**Overall Status:** PASS ✅ (with 3 tracked, non-blocking CONCERNS — all P3 manual-by-design; **11.9 adds 0 new CONCERNS**)
+
+---
+
+## Story 11.9 Delta Addendum (2026-07-06) — Venue Data-Model Cleanup
+
+> **This addendum is the answer to the audit's central question: "did 11.9 change the NFR picture?"**
+> **Verdict: NO change to the overall verdict — still PASS — but 11.9 MATERIALLY EXPANDS two NFR surfaces the
+> 2026-07-05 audit scored N/A, and both now PASS on evidence re-verified against the live tree AND the live
+> production DB.** The original 11.1–11.8 body below is unchanged and remains valid.
+
+**What 11.9 shipped (NFR-relevant):** a per-weekday `opening_hours` jsonb (drops the stored pre-localized
+`display` string → derived at render time), a new pure render-time formatter (`lib/utils/opening-hours.ts`),
+dropped `peak_time` + `shadow_warning_minutes` columns/DTO fields end-to-end, an auto-assigning sequence-backed
+`text` PK, and — the biggest new NFR surface — an **idempotent migration applied LIVE to the production Supabase
+DB** (`public.venues`, project `hhnbxrhfhlzxgllxukzj`).
+
+**Delta verdict by category:**
+
+| NFR Category | 11.1–11.8 (2026-07-05) | 11.9 delta (2026-07-06) | Net |
+| ------------ | ---------------------- | ----------------------- | --- |
+| **Performance** | PASS | No new perf surface. Formatter is a pure `Intl` lookup (O(1) per render); the additive per-weekday `opening_hours` value is a handful of bytes and stays inside the existing 8000-byte day-series payload guard (measured seed 1769 B — the tiny per-weekday object does not move it). Zero new fetch. | **PASS (unchanged)** |
+| **Security** | PASS (auth/authz N/A; no new dep) | **NEW surface: a live prod-DB migration.** Re-verified on the LIVE DB: RLS still `enabled=true`, single `venues_service_read`/SELECT/`service_role` policy, deny-by-default grants (only `postgres`+`service_role`; **no anon/authenticated read path opened**). Two dropped columns confirmed gone; server-only `seating_*` untouched. `package.json` diff still empty (no new runtime dep). Additive per-weekday hours carry no PII (public metadata). | **PASS (surface grew, held)** |
+| **Reliability** | PASS | **NEW surface: prod-DB migration + a new boundary formatter.** Migration is idempotent (`create sequence if not exists` / `drop column if exists` / `on conflict do update`; re-run clean — 7 rows, next auto id 8), reversible (documented rollback), applied as a reviewed step with recorded smoke checks; the `test-venue-sunny` gate venue stays byte-parity (Monday close `22:00`, no `display` key). NEVER-FABRICATE preserved at BOTH new boundaries (`coerceOpeningHours` malformed→`undefined`; formatter undefined-weekday/no-interval→`{}` renders nothing — the Round-1 `?? 1` Monday-fabrication fix is in the tree). `reviews/feedback.venue_id` joins stay `text`. | **PASS (surface grew, held)** |
+| **Maintainability** | PASS | New PURE formatter (unit-tested, no wall-clock read), regenerated `lib/supabase/types.ts`, symmetric i18n prune+parity, rewritten `venue-data-load.md`, dead columns removed end-to-end (grep-verified zero non-engine readers). Full vitest gate green (152 files / 1440 tests re-run this audit). 3 low-priority test-adequacy DEFERS carried (below). | **PASS (unchanged verdict; +1 doc, +1 formatter)** |
+| **Accessibility** | PASS | Quick-info kept `text-text-body` (axe AA); byte-identical visual on the sv-default gate (no rebaseline triggered). | **PASS (unchanged)** |
+| **Usability / Interaction** | PASS | No gesture/touch surface touched. Behavioural improvement: hours are now locale-derived (EN reads "Open until 22:00" vs the old raw Swedish string). | **PASS (unchanged)** |
+
+**Live-DB re-verification (this audit, via the documented IPv4 pooler `psql`):**
+- `cols_present` = `id, opening_hours, seating_area, seating_elevation_m, ground_elevation_m` — `peak_time` +
+  `shadow_warning_minutes` **absent** (AC3/AC4 dropped live).
+- `id` default = `(nextval('venues_id_seq'::regclass))::text` (AC1 auto-id live).
+- `rls_enabled = true`; single policy `venues_service_read / SELECT / service_role`; grants only `postgres` +
+  `service_role` (AC6 deny-by-default RLS preserved).
+- `venue_count = 7`; gate venue Monday `close = 22:00`; `has_display_key = false` (AC2 shape live + gate parity).
+- `reviews.venue_id` / `feedback.venue_id` both `text` (AC1 free-text join compatibility preserved).
+
+**Delta CONCERNS: 0.** The 3 pre-existing epic CONCERNS (live p95, physical-device sweep, reference-PNG blessing)
+are **unchanged** by 11.9 — it triggers no new one. 11.9's own design gate was byte-identical on the sv-default
+gate, so it did NOT re-trigger the reference-PNG blessing.
+
+**Delta DEFERS carried from 11.9 code review (all LOW, all non-blocking, none is a runtime defect):**
+1. ÖPPET badge / "Öppet till HH:MM" line have **no is-open-now guard** (intra-day + past-midnight) — the formatter
+   derives from today's weekday entry without checking `now ∈ [open, close]`. Explicitly deferred and pre-existing
+   (the "`closesAt` badge has no is-open guard" item); the weekday-correctness half is now solved. Not a
+   fabrication (never a fake time). **Owner:** backlog.
+2. `MapView` `quickInfoOpeningHours` memo can go stale across a local-midnight boundary (card held open,
+   uninteracted) — value stays honest for the day it was computed. **Owner:** backlog.
+3. AC3 `peakTime` route test + the "no-hours serializes honestly" test are partially no-op guards (window-length
+   conditional / no hours-less seed slug exercises the absent branch). Test-adequacy, not a runtime defect.
+   **Owner:** backlog. (Two Round-1/Round-2 `Decision` findings were DISMISSED as human calls — engine-derived
+   peakTime by design; the "Detaljer saknas" detail-row fallback is the honest pre-existing 11.6 treatment, not a
+   fabricated time.)
+
+**One advisory note (audit observation, not a blocker):** the closed-day (`null`) and past-midnight
+(`close < open`) opening-hours shapes are exercised only in unit tests + the data-load doc — no live/seeded row
+uses them (all 7 seed rows open 11:00 / close ≥19:00 every weekday). This is by design (the seed's job is
+byte-identical gate parity) and the formatter branches ARE unit-covered, but the two spec-emphasised edge shapes
+never render against a live row. Non-blocking; recorded as a verification-coverage observation.
+
+**Bottom line:** Epic 11 (now 11.1–11.9) remains **PASS**. 11.9 introduced the epic's first live prod-DB
+migration and its first render-time hours formatter; both were audited against source AND the live DB and both
+PASS with the never-fabricate invariant intact. No new blocker, no new CONCERN, no verdict change.
 
 ---
 
@@ -533,29 +599,34 @@ category failure — the CI-provable half of each is PASS.)
 
 ```yaml
 nfr_assessment:
-  date: '2026-07-05'
-  story_id: 'epic-11'
-  feature_name: "Feels Instant, Reads Clear — Time-Scrub Performance, Mobile Interaction & Surface Polish"
+  date: '2026-07-06'          # 11.9 delta (original 11.1–11.8 audit: 2026-07-05)
+  story_id: 'epic-11'          # stories 11.1–11.9
+  feature_name: "Feels Instant, Reads Clear — Time-Scrub Performance, Mobile Interaction, Surface Polish & Venue Data-Model Cleanup"
   categories:
-    performance: 'PASS'      # scrub=0/date=1 provably removed; payload measured+guarded; live p95 = P3 handoff
-    security: 'PASS'         # no auth/secrets/new-dependency surface; additive DTO fields public-only
-    reliability: 'PASS'      # markers persist; Epic-10 gate per-step; producer-fault isolated; ordering stable
-    maintainability: 'PASS'  # orphan resolved, build fails loudly, LF renorm isolated, dot tokenized
-    accessibility: 'PASS'    # axe AA green BOTH breakpoints after de-dull; reduced-motion halo; badge 5.63:1
-    usability: 'PASS'        # real-touch thumb-drag + four sheet snaps (CDP touch, not click-sim); recenter per-snap
+    performance: 'PASS'      # scrub=0/date=1 provably removed; payload measured+guarded; 11.9 formatter is a pure O(1) Intl lookup
+    security: 'PASS'         # no auth/secrets/new-dependency surface; 11.9 live migration RE-VERIFIED: RLS enabled, deny-by-default, no anon path
+    reliability: 'PASS'      # markers persist; Epic-10 gate per-step; 11.9 migration idempotent+reversible+gate-parity; never-fabricate at both new boundaries
+    maintainability: 'PASS'  # orphan resolved, build fails loudly, dot tokenized; 11.9 pure formatter + dead-column removal + doc rewrite
+    accessibility: 'PASS'    # axe AA green BOTH breakpoints; 11.9 quick-info keeps text-text-body AA, byte-identical gate visual
+    usability: 'PASS'        # real-touch thumb-drag + four sheet snaps; 11.9 hours now locale-derived (no gesture surface touched)
   overall_status: 'PASS'
   advisory: true
   critical_issues: 0
   high_priority_issues: 0
-  medium_priority_issues: 3   # all P3 manual-by-design post-merge handoffs
-  concerns: 3                 # live p95 (deferred); physical-device sweep (deferred); PNG blessing (deferred)
+  medium_priority_issues: 3   # all P3 manual-by-design post-merge handoffs (unchanged by 11.9)
+  concerns: 3                 # live p95; physical-device sweep; PNG blessing — 11.9 adds 0 new CONCERNS
   blockers: false
   quick_wins: 3
   evidence_gaps: 3            # all P3 manual-by-design needs-human (not coverage gaps)
+  delta_11_9:                 # story 11.9 (venue data-model cleanup) delta
+    verdict: 'PASS — no verdict change; 2 previously-N/A surfaces (live prod-DB migration, render-time formatter) now PASS'
+    new_concerns: 0
+    live_db_reverified: true  # RLS/policy/grants/dropped-columns/gate-parity checked on project hhnbxrhfhlzxgllxukzj
+    new_defers: 3             # all LOW: is-open-now guard; midnight-boundary memo staleness; AC3 no-op test guards
   recommendations:
-    - 'PASS (advisory) — no NFR blocker; merge on green CI'
+    - 'PASS (advisory) — no NFR blocker; 11.9 changes no verdict; merge on green CI'
     - 'Maintainer post-merge: live p95 (≥10 warm/cold trials) + physical-device sweep + reference-PNG blessing'
-    - 'Backlog: date-change overlay component test; real-browser chip-overflow e2e; dead-export cleanup; grant-flyTo/72 token'
+    - 'Backlog: date-change overlay component test; chip-overflow e2e; dead-export cleanup; 11.9 is-open-now guard + midnight memo + AC3 test hardening'
 ```
 
 ---
@@ -613,8 +684,14 @@ across all six assessed categories. Track the 3 P3 manual-by-design handoffs to 
   physical-device sweep, reference-PNG blessing) before formally closing the epic; optionally clear the 4 backlog
   test-hardening items.
 
-**Generated:** 2026-07-05
+**Generated:** 2026-07-05 (11.1–11.8) · **11.9 delta appended:** 2026-07-06
 **Workflow:** testarch-nfr v4.0
+
+> **11.9 delta sign-off (2026-07-06):** Overall status UNCHANGED at PASS ✅. Story 11.9 (venue data-model cleanup)
+> introduced the epic's first live production-DB migration and its first render-time hours formatter. Both were
+> audited against source AND the live Supabase DB (RLS/policy/grants/dropped-columns/gate-parity all re-verified);
+> both PASS with the never-fabricate invariant intact. 0 new blockers, 0 new CONCERNS, 3 new LOW-priority backlog
+> defers. See the "Story 11.9 Delta Addendum" at the top of this document.
 
 ---
 

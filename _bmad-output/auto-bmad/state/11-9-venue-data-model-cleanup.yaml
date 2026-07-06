@@ -5,10 +5,10 @@ epic_num: 11
 story_num: 9
 branch: story/11-9-venue-data-model-cleanup
 status: in-progress
-updated_at: "2026-07-06T17:47:33Z"
+updated_at: "2026-07-06T18:11:55Z"
 started_at: "2026-07-06T14:29:45Z"
 completed_at: null
-active_seconds: 11315
+active_seconds: 12761
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -20,7 +20,7 @@ tea_selected: [atdd, automate]
 tea_rationale: "live-DB schema migration (column drop/reshape + PK auto-assign default) on the production Supabase store -> High risk"
 epic_story_count: 9
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8]
 code_review_iterations: 2
 code_review_loop_done: true
 hitl_halt: "skipped (clean convergence)"
@@ -29,14 +29,14 @@ convergence_unverified: false
 story_trace: null
 commits: []
 phase8_steps:
-  trace_gate: null
-  nfr: null
-  test_review: null
-  project_context: null
-  reconcile: null
-  archive: null
-  retro: null
-gate_decision: null
+  trace_gate: done
+  nfr: done
+  test_review: done
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: PASS
 gate_iterations: 0
 deferred_work_archived: 0
 pr_url: null
@@ -54,3 +54,4 @@ blockers: []
 overrides: {}
 constraints:
   - "Effective base branch is epic/11-feels-instant-reads-clear (epic 11 unmerged, draft PR #17; main lacks the 11.9 definition). Story PR stacks onto PR #17; config base_branch main deliberately overridden for this run."
+planning_drift: "epics.md structural: Epic 12 drafted then dissolved into Epic 11 as Story 11.9 (deliberate maintainer decision, scope-location not scope-content); story 11.9 detail-level: AC2 'renders NOTHING' strictly not honored for the detail Ã–ppettider row (honest 'Detaljer saknas' fallback kept, human-adjudicated won't-fix). No PRD/architecture drift."
