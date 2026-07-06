@@ -86,6 +86,22 @@ export function MapControls({
   const controlsRef = useRef<HTMLDivElement | null>(null);
   const isMapReady = mapInstance !== null;
 
+  // External-review fix: the recenter-fly effect must trigger ONLY on a
+  // geolocation transition / explicit locate — NEVER on a sheet-snap change or a
+  // detail-panel open. Previously `mobileSheetState`/`isVenueDetailOpen` were
+  // effect DEPENDENCIES, so after a geolocation success ANY later snap change or
+  // detail-panel open re-ran `flyTo` and yanked the map back to the user location
+  // with no locate action. Hold the obstruction state in refs, read at fly time,
+  // and keep them OUT of the fly effect's deps. The refs are synced in a
+  // dedicated effect (never written during render) so the fly effect reads the
+  // LATEST obstruction state without depending on it.
+  const mobileSheetStateRef = useRef(mobileSheetState);
+  const isVenueDetailOpenRef = useRef(isVenueDetailOpen);
+  useEffect(() => {
+    mobileSheetStateRef.current = mobileSheetState;
+    isVenueDetailOpenRef.current = isVenueDetailOpen;
+  }, [mobileSheetState, isVenueDetailOpen]);
+
   useEffect(() => {
     const node = controlsRef.current;
     if (!mapInstance || !node) return;
@@ -131,10 +147,14 @@ export function MapControls({
     // centred in the UNOBSCURED map area, not under a panel. Padding is derived
     // from the snap enum + panel flags (R-013 — a fixed offset would land the
     // dot off-centre across snaps). flyTo stays 500 ms (DURATION_FLY_MS).
+    // Read the obstruction state from refs at fly time (not from the effect's
+    // closure) so a later snap/panel change does NOT re-trigger this effect but
+    // the CURRENT obstruction still shapes the padding when a real geolocation
+    // transition fires.
     const padding = computeRecenterPadding({
       isDesktop: isDesktopViewport(),
-      mobileSheetState,
-      isVenueDetailOpen,
+      mobileSheetState: mobileSheetStateRef.current,
+      isVenueDetailOpen: isVenueDetailOpenRef.current,
     });
     mapInstance.flyTo({
       center: [geolocation.coords.lng, geolocation.coords.lat],
@@ -142,13 +162,9 @@ export function MapControls({
       duration: DURATION_FLY_MS,
       padding,
     });
-  }, [
-    geolocation.status,
-    geolocation.coords,
-    mapInstance,
-    mobileSheetState,
-    isVenueDetailOpen,
-  ]);
+    // Obstruction state is intentionally OMITTED from the deps (read via refs) so
+    // a snap/panel change never re-flies the camera to the user location.
+  }, [geolocation.status, geolocation.coords, mapInstance]);
 
   // Story 1.6 review P14: lg:top-[calc(var(--size-desktop-nav-h)+28px)]
   // derives the desktop top offset from the nav-height token plus 28 px

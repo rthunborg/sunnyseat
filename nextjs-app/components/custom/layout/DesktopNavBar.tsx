@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useReducedMotion } from 'motion/react';
 import { ChevronLeft, ChevronRight, LocateFixed, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link, usePathname } from '@/i18n/navigation';
@@ -20,6 +21,7 @@ import { useSettings } from '@/lib/contexts/SettingsContext';
 import { useTagFilter } from '@/lib/contexts/TagFilterContext';
 import { useTimeContext } from '@/lib/contexts/TimeContext';
 import { collectTags, localizeTag } from '@/lib/utils/venue-tags';
+import { venuePlannerQueryArgs } from '@/lib/utils/venue-query-planner';
 import { cn } from '@/lib/utils';
 
 const SEARCH_RADIUS_KM = 1.5;
@@ -64,7 +66,28 @@ export function DesktopNavBar() {
   // an extra ungated fetch) and neither fires before geolocation settles.
   const coordsSettled =
     geolocation.status === 'success' || geolocation.status === 'fallback';
-  const deferredPlanner = useDeferredValue(plannerTime.plannerQuery);
+  // External-review fix (R-001): use the SHARED `venuePlannerQueryArgs` — the
+  // IDENTICAL derivation MapView uses — so the nav's key stays byte-identical to
+  // MapView's in BOTH the live and off-live cases. Previously this spread the raw
+  // `plannerTime.plannerQuery` (undefined on live-today → the `list` key, diverging
+  // from MapView's `planner` key) and flipped `list`→`planner` on the first scrub
+  // away from live, firing a hidden second /api/venues request mid-scrub.
+  const plannerArgs = useMemo(
+    () =>
+      venuePlannerQueryArgs({
+        isLiveNow: plannerTime.isLiveNow,
+        plannerQuery: plannerTime.plannerQuery,
+        selectedDate: plannerTime.selectedDate,
+        selectedTime: plannerTime.selectedTime,
+      }),
+    [
+      plannerTime.isLiveNow,
+      plannerTime.plannerQuery,
+      plannerTime.selectedDate,
+      plannerTime.selectedTime,
+    ],
+  );
+  const deferredPlanner = useDeferredValue(plannerArgs);
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
@@ -198,6 +221,14 @@ function TagChipStrip({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  // External-review fix: the arrow scroll + the scroller's CSS scroll-behavior
+  // were unconditionally `smooth`, so prefers-reduced-motion users still got an
+  // animated scroll. Gate both on reduced motion → `auto`/instant, matching the
+  // app's motion policy. `?? false` keeps SSR/jsdom (no matchMedia) on the
+  // animated default. `motion-reduce:scroll-auto` is the CSS backstop so a user
+  // who toggles the OS setting after mount still gets an instant native scroll.
+  const reducedMotion = useReducedMotion() ?? false;
+  const scrollBehavior: ScrollBehavior = reducedMotion ? 'auto' : 'smooth';
 
   const updateScrollState = useCallback(() => {
     const el = scrollerRef.current;
@@ -231,8 +262,9 @@ function TagChipStrip({
     if (!el) return;
     // Scroll by ~the visible width (a "page"), less a small overlap for context.
     const page = Math.max(el.clientWidth - 48, 120);
-    el.scrollBy({ left: direction * page, behavior: 'smooth' });
-  }, []);
+    // Reduced-motion users get an instant (`auto`) jump instead of an animation.
+    el.scrollBy({ left: direction * page, behavior: scrollBehavior });
+  }, [scrollBehavior]);
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1">
@@ -247,8 +279,8 @@ function TagChipStrip({
           ref={scrollerRef}
           aria-label={label}
           data-testid="desktop-tag-chip-strip"
-          className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          style={{ scrollBehavior: 'smooth' }}
+          className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden motion-reduce:scroll-auto"
+          style={{ scrollBehavior }}
         >
           {tags.map((tag) => {
             const active = isActive(tag);
@@ -317,7 +349,9 @@ function ChipScrollArrow({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        'flex size-9 shrink-0 items-center justify-center rounded-pill text-text-body outline-none transition-colors duration-fast ease-default focus-visible:ring-2 focus-visible:ring-text-primary',
+        // External-review fix: 44px min interactive target (size-11) — was size-9
+        // (36px), below the repo's 44px minimum. Icon size is unchanged.
+        'flex size-11 shrink-0 items-center justify-center rounded-pill text-text-body outline-none transition-colors duration-fast ease-default focus-visible:ring-2 focus-visible:ring-text-primary',
         disabled ? 'cursor-not-allowed opacity-40' : 'hover:bg-surface-cream/60 hover:text-amber-dark',
       )}
     >

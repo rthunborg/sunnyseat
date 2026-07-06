@@ -102,18 +102,60 @@ describe('[11.2 automate] TimeSlider — drag flag is a synchronous ref (same-tu
 describe('[11.2 automate] TimeSlider — effectiveMin clamps an out-of-range minMinutes into the planner range', () => {
   it('clamps an oversized minMinutes down to the planner end (thumb never off-track)', () => {
     const { slider } = renderSlider({ minMinutes: 99 * 60, selectedMinutes: 20 * 60 });
-    // A min beyond PLANNER_END must not exceed the max; it clamps to PLANNER_END.
-    expect(slider).toHaveAttribute('min', String(PLANNER_END_MINUTES));
+    // External-review fix: the NATIVE `min` is the FULL planner span (so the
+    // pointer→value geometry matches the visuals); the EFFECTIVE floor is carried
+    // by `aria-valuemin` (clamped to PLANNER_END here) and enforced by the clamp
+    // in the handlers + state layer.
+    expect(slider).toHaveAttribute('min', String(PLANNER_START_MINUTES));
     expect(slider).toHaveAttribute('aria-valuemin', String(PLANNER_END_MINUTES));
-    // The displayed value is clamped into [min, max] too — never below the effective min.
+    // The displayed value is still clamped up to the effective min — never below it.
     expect(Number((slider as HTMLInputElement).value)).toBe(PLANNER_END_MINUTES);
   });
 
   it('clamps a sub-start minMinutes up to the planner start (keeps the full range)', () => {
     const { slider } = renderSlider({ minMinutes: 2 * 60, selectedMinutes: 10 * 60 });
+    // Native span is always the full planner range; the effective min collapses to
+    // the planner start here, so aria-valuemin equals the native min.
     expect(slider).toHaveAttribute('min', String(PLANNER_START_MINUTES));
+    expect(slider).toHaveAttribute('aria-valuemin', String(PLANNER_START_MINUTES));
     // No inert elapsed segment when the effective min collapses to the planner start.
     expect(screen.queryByTestId('time-slider-elapsed')).toBeNull();
+  });
+});
+
+describe('[external-review] TimeSlider — native track spans the FULL planner range so pointer geometry matches the visuals', () => {
+  it('with an active today-min the native input min is PLANNER_START (not the effective min) so the visible thumb maps to the correct time', () => {
+    const MIN = 13 * 60; // simulated snapped current wall-clock on `today`
+    renderSlider({ minMinutes: MIN, selectedMinutes: 15 * 60 });
+    const slider = screen.getByRole('slider', { name: 'Välj tid' });
+
+    // THE FIX: the native <input min> is the FULL planner span. Before, it was the
+    // effective min (780), which mapped the pointer x-coordinate against
+    // [780, 1260] while the visual thumb/progress render against [360, 1260] — so
+    // grabbing the visible thumb selected the wrong time.
+    expect(slider).toHaveAttribute('min', String(PLANNER_START_MINUTES));
+    expect(slider).toHaveAttribute('max', String(PLANNER_END_MINUTES));
+
+    // The visual thumb position uses the FULL-track formula; for 15:00 that is
+    // (900 - 360) / (1260 - 360) = 60%. The native track now shares those bounds,
+    // so the pointer coordinate at 60% of the track resolves to 15:00 too.
+    const thumb = screen.getByTestId('time-slider-thumb');
+    expect(thumb.getAttribute('style')).toContain('left: 60%');
+    // aria-valuemin still advertises the reachable floor to AT.
+    expect(slider).toHaveAttribute('aria-valuemin', String(MIN));
+  });
+
+  it('a drag/tap BELOW the active min still snaps UP to the min (floor preserved despite the full-span native track)', () => {
+    const MIN = 13 * 60;
+    const { onMinutesChange } = renderSlider({ minMinutes: MIN, selectedMinutes: MIN });
+    const slider = screen.getByRole('slider', { name: 'Välj tid' });
+
+    // The native track now reaches down to 06:00, but a below-min change is clamped
+    // up to the effective min in the handler (and floored again in the state layer).
+    fireEvent.pointerDown(slider);
+    fireEvent.change(slider, { target: { value: String(9 * 60) } });
+    fireEvent.pointerUp(slider);
+    expect(onMinutesChange.mock.calls.every(([m]) => m >= MIN)).toBe(true);
   });
 });
 

@@ -5,6 +5,7 @@ import { queryKeys } from '@/lib/query-keys';
 import { sanitizeFavouriteIds } from '@/lib/services/favourites-storage';
 import type { GetVenuesResponse } from '@/lib/types/api';
 import { readSunFreshnessHeaders } from '@/lib/utils/sun-freshness';
+import { deriveQueryKeyPlanner } from '@/lib/utils/venue-query-planner';
 import {
   HttpError,
   shouldRetryVenueQuery,
@@ -38,7 +39,10 @@ export function useFavouriteVenues(
   const ids = normalizeIds(params.ids);
   const isLiveNow = params.isLiveNow === true;
   const planner = normalizePlannerParams(params.date, params.time);
-  const keyPlanner = planner ? { date: planner.date } : undefined;
+  // Shared date-only key fragment — identical to `useVenueSearch` (external-review
+  // fix): both hooks key on `date` (never `time`) so the R-001 zero-fetch invariant
+  // cannot drift between them.
+  const keyPlanner = deriveQueryKeyPlanner(planner?.date);
   const sendPlanner = !isLiveNow && planner ? planner : undefined;
   const filters = { ids, lat, lng, ...keyPlanner };
 

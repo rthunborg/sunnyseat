@@ -62,6 +62,7 @@ import { cn } from '@/lib/utils';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
 import { mapVenueDtoToPinData } from '@/lib/utils/venue-pin-mapping';
 import { deriveVenueSunAtMinutes } from '@/lib/utils/venue-day-series';
+import { venuePlannerQueryArgs } from '@/lib/utils/venue-query-planner';
 import { collectTags, filterVenuesByTags } from '@/lib/utils/venue-tags';
 import { MobileTagChips } from '@/components/composed/venue/MobileTagChips';
 import { OfflineBanner } from '@/components/custom/offline/OfflineBanner';
@@ -226,30 +227,29 @@ export function MapView() {
   // `selectedMinutes`/`selectedTime`. Since time is no longer in the key, the
   // deferral only smooths the request-param/derivation churn — the key itself is
   // stable across a scrub regardless.
-  const plannerArgs = useMemo(() => {
-    const isLiveNow = plannerTime.isLiveNow;
-    // Off-live selection → the context exposes a concrete plannerQuery; live-now
-    // → send the selected date but flag live so the request omits date/time and
-    // the server computes "now" (keeps freshness honest). An out-of-range/invalid
-    // planner date leaves plannerQuery undefined AND is not live — fall back to
-    // the plain live key (no date) rather than keying on a bad date.
-    if (plannerTime.plannerQuery) {
-      return { ...plannerTime.plannerQuery, isLiveNow: false };
-    }
-    if (isLiveNow) {
-      return {
-        date: plannerTime.selectedDate,
-        time: plannerTime.selectedTime,
-        isLiveNow: true,
-      };
-    }
-    return undefined;
-  }, [
-    plannerTime.isLiveNow,
-    plannerTime.plannerQuery,
-    plannerTime.selectedDate,
-    plannerTime.selectedTime,
-  ]);
+  // External-review fix (R-001): the venue-query args are derived by the SHARED
+  // `venuePlannerQueryArgs` so MapView, DesktopNavBar, and VenueSearchShell all
+  // feed the hooks the IDENTICAL `{ date, time, isLiveNow }` shape. Before, only
+  // MapView passed `isLiveNow` (+ date on live-today → the `planner` key) while
+  // the nav/search callers spread the raw `plannerQuery` (undefined on live-today
+  // → the `list` key) and flipped `list`→`planner` on the first scrub away from
+  // live — a hidden fetch during a same-day scrub. One shared derivation makes
+  // the three callers un-divergeable.
+  const plannerArgs = useMemo(
+    () =>
+      venuePlannerQueryArgs({
+        isLiveNow: plannerTime.isLiveNow,
+        plannerQuery: plannerTime.plannerQuery,
+        selectedDate: plannerTime.selectedDate,
+        selectedTime: plannerTime.selectedTime,
+      }),
+    [
+      plannerTime.isLiveNow,
+      plannerTime.plannerQuery,
+      plannerTime.selectedDate,
+      plannerTime.selectedTime,
+    ],
+  );
   const deferredPlanner = useDeferredValue(plannerArgs);
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,

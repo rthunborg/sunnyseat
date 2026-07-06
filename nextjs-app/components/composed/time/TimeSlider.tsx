@@ -160,7 +160,19 @@ export function TimeSlider({
         </div>
         <input
           type="range"
-          min={effectiveMin}
+          // External-review fix: the native range input maps the pointer
+          // x-coordinate against [min, max]. Keeping `min={effectiveMin}` while the
+          // custom thumb/progress render against the FULL 06:00–21:00 track (see
+          // `progressPercent`, anchored at PLANNER_START_MINUTES) made the native
+          // coordinate mapping disagree with the visuals whenever a today-minimum
+          // was active — grabbing the visible thumb selected the WRONG time. Put
+          // the native input back on the FULL planner span so its geometry matches
+          // the visuals; the below-min FLOOR is enforced by `handleChange`/`commit`
+          // (which clamp to `effectiveMin`) AND by the state layer (TimeContext
+          // `clampBelowStateMin` in setSelectedMinutes/snapSelectedMinutes), so a
+          // below-min selection is still impossible. `aria-valuemin` keeps the
+          // effective min so AT reports the true reachable floor.
+          min={PLANNER_START_MINUTES}
           max={PLANNER_END_MINUTES}
           step={PLANNER_STEP_MINUTES}
           value={displayMinutes}

@@ -229,6 +229,14 @@ export function MobileBottomSheet({
           // the drag pill + safe-area show. Distinct from 'dismissed' (which
           // hides the whole sheet); here the handle above stays interactive.
           aria-hidden={isDismissed || isCollapsed}
+          // External-review fix: `aria-hidden` + `pointer-events-none` hid the
+          // collapsed body from AT and the mouse, but its focusable children
+          // stayed in the TAB ORDER — a keyboard user could tab into visually
+          // clipped controls. `inert` (React 19 boolean prop) removes the whole
+          // subtree from tab order AND the a11y tree; `aria-hidden` is kept for AT
+          // parity across engines. The handle above is OUTSIDE this body, so it
+          // stays focusable (what makes 'collapsed' distinct from 'dismissed').
+          inert={isDismissed || isCollapsed}
           className={cn(
             'min-h-0 flex-1 px-4 pb-4',
             isScrollable ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',

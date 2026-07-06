@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery, type UseQueryResult } from '@tanstack/react
 import { queryKeys } from '@/lib/query-keys';
 import type { GetVenuesResponse } from '@/lib/types/api';
 import { readSunFreshnessHeaders } from '@/lib/utils/sun-freshness';
+import { deriveQueryKeyPlanner } from '@/lib/utils/venue-query-planner';
 import {
   HttpError,
   shouldRetryVenueQuery,
@@ -91,9 +92,11 @@ export function useVenueSearch(
   // the freshness stays live. The `time` value only picks the single-instant
   // fallback fields and never appears in the key, so the live-clock tick that
   // advances "now" cannot thrash the key either.
-  const keyDate = planner?.date;
   const sendPlanner = !isLiveNow && planner ? planner : undefined;
-  const keyPlanner = keyDate ? { date: keyDate } : undefined;
+  // Story 11.1 / external-review fix: the date-only key fragment is derived by the
+  // SHARED `deriveQueryKeyPlanner` (used identically by `useFavouriteVenues`) so a
+  // future edit cannot reintroduce a `time`-keyed fetch in only one hook.
+  const keyPlanner = deriveQueryKeyPlanner(planner?.date);
   const filters = { lat, lng, q, radiusKm, ...keyPlanner };
   return useQuery<GetVenuesResponse, Error>({
     queryKey: keyPlanner

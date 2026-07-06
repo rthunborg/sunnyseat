@@ -358,5 +358,40 @@ describe('<MobileBottomSheet />', () => {
       // body exposed. jsdom drops a `false` boolean-ish attr, so assert it's absent.
       expect(body?.getAttribute('aria-hidden')).not.toBe('true');
     });
+
+    it('the collapsed body is INERT so its focusable children leave the tab order, while the handle stays focusable (external-review fix)', () => {
+      render(
+        <MobileBottomSheet state="collapsed" onStateChange={vi.fn()} handleLabel="Visa platslistan">
+          <button type="button">Sortera</button>
+        </MobileBottomSheet>,
+      );
+
+      const body = document.querySelector('[data-bottom-sheet-scroll-body="true"]') as HTMLElement;
+      // `inert` removes the whole body subtree from tab order + the a11y tree —
+      // aria-hidden + pointer-events-none alone left the child button TABBABLE.
+      // React renders the boolean `inert` prop as the `inert` ATTRIBUTE (jsdom
+      // does not reflect the DOM `.inert` property, so assert the attribute).
+      expect(body.hasAttribute('inert')).toBe(true);
+      // The inner control lives inside the inert subtree (so it is not tabbable).
+      const innerButton = body.querySelector('button');
+      expect(innerButton).not.toBeNull();
+      // The handle sits OUTSIDE the inert body, so it stays an interactive,
+      // focusable button (drag/keyboard the sheet back up).
+      const handle = screen.getByRole('button', { name: 'Visa platslistan' });
+      handle.focus();
+      expect(handle).toHaveFocus();
+    });
+
+    it('the peek body is NOT inert (content remains interactive above the collapsed rung)', () => {
+      render(
+        <MobileBottomSheet state="peek" onStateChange={vi.fn()} handleLabel="Visa platslistan">
+          <button type="button">Sortera</button>
+        </MobileBottomSheet>,
+      );
+
+      const body = document.querySelector('[data-bottom-sheet-scroll-body="true"]') as HTMLElement;
+      // `inert={false}` → React omits the attribute entirely (interactive body).
+      expect(body.hasAttribute('inert')).toBe(false);
+    });
   });
 });

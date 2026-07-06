@@ -227,7 +227,7 @@ describe('[11.2 AC4] today-minimum clamp — minMinutes makes earlier positions 
   const MIN = 13 * 60; // simulated snapped current wall-clock time on `today`
   const withMin = (minMinutes: number) => ({ minMinutes } as Record<string, unknown>);
 
-  it('reflects the effective minimum in the native input min and aria-valuemin', () => {
+  it('reflects the effective minimum in aria-valuemin while the native input spans the FULL planner range (external-review geometry fix)', () => {
     render(
       <TimeSlider
         ariaLabel="Välj tid"
@@ -239,7 +239,12 @@ describe('[11.2 AC4] today-minimum clamp — minMinutes makes earlier positions 
       />,
     );
     const slider = screen.getByRole('slider', { name: 'Välj tid' });
-    expect(slider).toHaveAttribute('min', String(MIN));
+    // External-review fix: the NATIVE `min` is the full planner span so the
+    // pointer→value geometry matches the visual thumb/progress (which render
+    // against 06:00–21:00). The EFFECTIVE floor is exposed via `aria-valuemin` and
+    // enforced by the below-min clamp (handlers + state layer), NOT by shrinking
+    // the native track (which mis-mapped the pointer coordinate).
+    expect(slider).toHaveAttribute('min', String(6 * 60));
     expect(slider).toHaveAttribute('aria-valuemin', String(MIN));
   });
 

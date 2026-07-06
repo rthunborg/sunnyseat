@@ -25,7 +25,19 @@ const mockState = vi.hoisted(() => ({
   // favourites route, so the pathname must be drivable per-test. Defaults to the
   // nearest route ('/') so every existing chip test keeps the strip rendered.
   pathname: '/',
+  // External-review reduced-motion fix: drive `useReducedMotion` per-test. motion
+  // /react caches its matchMedia read, so mock the hook directly (as
+  // MobileBottomSheet.test.tsx does) rather than swapping window.matchMedia.
+  reducedMotion: false,
 }));
+
+vi.mock('motion/react', async () => {
+  const actual = await vi.importActual<typeof import('motion/react')>('motion/react');
+  return {
+    ...actual,
+    useReducedMotion: () => mockState.reducedMotion,
+  };
+});
 
 vi.mock('@/lib/contexts/SettingsContext', () => ({
   useSettings: () => ({
@@ -138,6 +150,7 @@ describe('DesktopNavBar', () => {
     mockState.selectVenue.mockClear();
     mockState.easeTo.mockClear();
     mockState.pathname = '/';
+    mockState.reducedMotion = false;
     mockState.useVenueSearch.mockReset().mockReturnValue({
       data: makeVenueResponse(),
       isFetching: false,
@@ -223,16 +236,20 @@ describe('DesktopNavBar', () => {
     }));
   });
 
-  it('feeds useVenueSearch the SAME deferred-planner key + coordsSettled gate as MapView (Story 9.4 de-dupe invariant) — Story 9.7 review patch', () => {
+  it('feeds useVenueSearch the SAME deferred-planner args + coordsSettled gate as MapView (Story 9.4 / R-001 de-dupe invariant) — external-review shared-args fix', () => {
     // The nav's chip-driving venue query MUST be byte-identical to MapView's so
     // TanStack collapses them into ONE request during a slider drag / before
-    // geolocation settles. MapView issues:
+    // geolocation settles. Both callers now derive the args via the SHARED
+    // `venuePlannerQueryArgs`, which on an OFF-LIVE selection emits
+    // `{ date, time, isLiveNow: false }` (the `isLiveNow` flag is part of the
+    // shared shape — its absence was the pre-fix divergence that flipped the nav's
+    // key `list`→`planner` on the first scrub away from live). MapView issues:
     //   useVenueSearch({ lat, lng, radiusKm: 1.5, enabled: coordsSettled,
-    //                    ...useDeferredValue(plannerTime.plannerQuery) })
+    //                    ...useDeferredValue(venuePlannerQueryArgs(plannerTime)) })
     // with coordsSettled = status === 'success' || 'fallback'. The geolocation
     // mock here is `idle` → coordsSettled === false → the nav must pass
-    // `enabled: false` (the missing-gate defect this patch fixes) AND the same
-    // radius/coords the deferred planner rides on.
+    // `enabled: false` (the missing-gate defect) AND the same radius/coords the
+    // deferred planner rides on.
     renderDesktopNav({ forcedDate: IN_WINDOW_DATE, forcedTime: '14:00' });
 
     expect(mockState.useVenueSearch).toHaveBeenCalledWith({
@@ -242,6 +259,7 @@ describe('DesktopNavBar', () => {
       enabled: false,
       date: IN_WINDOW_DATE,
       time: '14:00',
+      isLiveNow: false,
     });
   });
 
@@ -399,6 +417,17 @@ describe('DesktopNavBar', () => {
       expect(right).toHaveAttribute('type', 'button');
     });
 
+    it('sizes the scroll-arrow buttons to the 44px minimum interactive target (size-11, not size-9) — external-review fix', () => {
+      renderDesktopNav();
+
+      for (const name of ['Bläddra filter åt vänster', 'Bläddra filter åt höger']) {
+        const arrow = screen.getByRole('button', { name });
+        // 44px min target; the icon (size-5) is unchanged.
+        expect(arrow).toHaveClass('size-11');
+        expect(arrow).not.toHaveClass('size-9');
+      }
+    });
+
     it('disables the left arrow at the start (scrollLeft 0)', () => {
       renderDesktopNav();
 
@@ -427,6 +456,49 @@ describe('DesktopNavBar', () => {
         expect.objectContaining({ left: expect.any(Number) }),
       );
       expect(scrollBy.mock.calls[0][0].left).toBeGreaterThan(0);
+    });
+
+    it('arrow scroll uses SMOOTH behavior when motion is allowed (default) — external-review reduced-motion fix', () => {
+      // No reduced-motion preference (jsdom matchMedia defaults matches:false) →
+      // the animated `smooth` scroll is used.
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      Object.defineProperty(strip, 'scrollWidth', { configurable: true, value: 800 });
+      Object.defineProperty(strip, 'clientWidth', { configurable: true, value: 300 });
+      const scrollBy = vi.fn();
+      (strip as unknown as { scrollBy: typeof scrollBy }).scrollBy = scrollBy;
+      act(() => {
+        strip.dispatchEvent(new Event('scroll'));
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Bläddra filter åt höger' }));
+      expect(scrollBy.mock.calls[0][0].behavior).toBe('smooth');
+      // The scroller's CSS scroll-behavior matches the animated default.
+      expect((strip as HTMLElement).style.scrollBehavior).toBe('smooth');
+    });
+
+    it('arrow scroll uses AUTO (instant) behavior for prefers-reduced-motion users — external-review reduced-motion fix', () => {
+      mockState.reducedMotion = true;
+      try {
+        renderDesktopNav();
+
+        const strip = screen.getByTestId('desktop-tag-chip-strip');
+        Object.defineProperty(strip, 'scrollWidth', { configurable: true, value: 800 });
+        Object.defineProperty(strip, 'clientWidth', { configurable: true, value: 300 });
+        const scrollBy = vi.fn();
+        (strip as unknown as { scrollBy: typeof scrollBy }).scrollBy = scrollBy;
+        act(() => {
+          strip.dispatchEvent(new Event('scroll'));
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Bläddra filter åt höger' }));
+        // Reduced motion → instant jump, no animation.
+        expect(scrollBy.mock.calls[0][0].behavior).toBe('auto');
+        expect((strip as HTMLElement).style.scrollBehavior).toBe('auto');
+      } finally {
+        mockState.reducedMotion = false;
+      }
     });
 
     it('shows the right edge-fade only when there is more content to the right', () => {

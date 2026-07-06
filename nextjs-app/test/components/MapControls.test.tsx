@@ -336,6 +336,39 @@ describe('<MapControls />', () => {
     }
   });
 
+  it('does NOT re-fly when only the sheet snap changes after a geolocation success (external-review fix)', () => {
+    // Regression: `mobileSheetState`/`isVenueDetailOpen` used to be effect deps,
+    // so after a success ANY later snap change re-ran flyTo and yanked the map
+    // back to the user location with no locate action. The effect now triggers
+    // ONLY on geolocation transitions (obstruction state is read from refs).
+    geoState.status = 'success';
+    geoState.coords = { lat: 57.71, lng: 11.99 };
+    const { rerender } = render(<MapControls mobileSheetState="mid" />, {
+      wrapper: makeWrapper(stubMap),
+    });
+    // One fly on the initial success.
+    expect(stubMap.flyTo).toHaveBeenCalledTimes(1);
+
+    // The user drags the sheet to a new snap (geolocation UNCHANGED). No re-fly.
+    rerender(<MapControls mobileSheetState="full" />);
+    rerender(<MapControls mobileSheetState="collapsed" />);
+    expect(stubMap.flyTo).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT re-fly when only the detail panel opens after a geolocation success (external-review fix)', () => {
+    geoState.status = 'success';
+    geoState.coords = { lat: 57.71, lng: 11.99 };
+    const { rerender } = render(<MapControls isVenueDetailOpen={false} />, {
+      wrapper: makeWrapper(stubMap),
+    });
+    expect(stubMap.flyTo).toHaveBeenCalledTimes(1);
+
+    // Opening/closing the venue-detail panel must not re-center the map.
+    rerender(<MapControls isVenueDetailOpen />);
+    rerender(<MapControls isVenueDetailOpen={false} />);
+    expect(stubMap.flyTo).toHaveBeenCalledTimes(1);
+  });
+
   it('does not fly while geolocation is still pending (only success triggers recenter)', () => {
     // Negative path: the fly-to effect is gated on status === 'success'. A
     // 'pending'/'idle' status must never move the camera (avoids a mid-request
