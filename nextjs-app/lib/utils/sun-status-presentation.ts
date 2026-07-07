@@ -1,36 +1,4 @@
 import type { VenueSunStatus } from '@/lib/types/api';
-import type { SunStatus } from '@/lib/types/design-tokens';
-
-/**
- * Story 10.2 — shared DTO→UI-token status mapper.
- *
- * Maps the DTO-layer {@link VenueSunStatus} (`'Sunny' | 'Partial' | 'Shaded'
- * | 'NoSun' | 'CloudObscured'`) onto the presentational {@link SunStatus}
- * vocabulary (`'sunny' | 'partial' | 'shaded' | 'obscured'`). The `switch`
- * is `never`-exhaustive (epic-10 ratified convention): a future
- * `VenueSunStatus` member that is not handled here is a COMPILE error, so
- * no render surface silently falls through to a Shaded-like placeholder
- * again (the exact 10.1 → 10.2 hand-off failure this story fixes).
- */
-export function toSunStatusToken(status: VenueSunStatus): SunStatus {
-  switch (status) {
-    case 'Sunny':
-      return 'sunny';
-    case 'Partial':
-      return 'partial';
-    case 'CloudObscured':
-      return 'obscured';
-    case 'Shaded':
-    case 'NoSun':
-      return 'shaded';
-    default: {
-      // Exhaustiveness guard — see doc comment. If this line stops
-      // compiling, a new VenueSunStatus was added; map it above.
-      const _exhaustive: never = status;
-      return _exhaustive;
-    }
-  }
-}
 
 /**
  * True when the venue's headline state is the weather-gated obscured state.
@@ -44,27 +12,29 @@ export function isObscuredSunStatus(
 }
 
 /**
- * The three presentational tiers a timeline/forecast window collapses into for
- * label + fill purposes. This is the geometric-potential vocabulary the
- * timeline speaks: `CloudObscured` is a WEATHER headline, not a geometric
- * status, so per Story 10.2 (AC2) it is treated as clear-sky POTENTIAL — i.e.
- * the same `'partial'` tier as `Partial` — never as `'shaded'`.
+ * The three presentational tiers a sun window collapses into for label + fill
+ * purposes. This is the geometric-potential vocabulary: `CloudObscured` is a
+ * WEATHER headline, not a geometric status, so per Story 10.2 (AC2) it is
+ * treated as clear-sky POTENTIAL — i.e. the same `'partial'` tier as `Partial`
+ * — never as `'shaded'`.
  */
 export type WindowLabelTier = 'sunny' | 'partial' | 'shaded';
 
 /**
- * Story 10.2 — the single, `never`-exhaustive mapping from a timeline window
- * status to its presentational tier. Every render surface that labels or fills
- * a timeline window (the `SunTimeline` desktop bars AND the `SunForecastBars`
- * mobile sr-only labels) MUST route through this helper so a future
- * `VenueSunStatus` member becomes a COMPILE error at exactly one place rather
- * than silently falling through to a Shaded-like label on some surfaces (the
- * exact 55eacba-was-incomplete leak this de-duplicates away).
+ * Story 10.2 — the single, `never`-exhaustive mapping from a sun-window status
+ * to its presentational tier. This is the sole `never`-exhaustive `switch` over
+ * the `VenueSunStatus` union in this module, so a future `VenueSunStatus` member
+ * that is not handled here is a COMPILE error at exactly one place — preserving
+ * the epic-10 convention that no new status silently falls through to a
+ * Shaded-like default. Currently backs {@link isSunWindowStatus}; its former
+ * timeline-window consumers (`SunTimeline` desktop bars and `SunForecastBars`
+ * mobile sr-only labels) were removed with the venue-detail timeline in
+ * Story 11.6.
  *
- * `CloudObscured` maps to `'partial'`: the timeline window is the geometric
- * "when the sun COULD reach this seat" potential, and the weather gate is
- * applied separately at the headline — so an obscured window must render as
- * clear-sky potential, never "Shaded"/"Skugga".
+ * `CloudObscured` maps to `'partial'`: a sun window is the geometric "when the
+ * sun COULD reach this seat" potential, and the weather gate is applied
+ * separately at the headline — so an obscured window must count as clear-sky
+ * potential, never "Shaded"/"Skugga".
  */
 export function windowLabelTier(status: VenueSunStatus): WindowLabelTier {
   switch (status) {

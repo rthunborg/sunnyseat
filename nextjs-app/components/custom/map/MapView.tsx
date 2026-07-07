@@ -2,7 +2,8 @@
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
+import { LoaderCircle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import {
   VenueQuickInfo,
@@ -55,12 +56,16 @@ import {
   type CardinalDirection,
   type RouteSummary,
 } from '@/lib/services/routing';
-import { DURATION_FLY_MS } from '@/lib/constants/animation';
+import { DURATION_FAST_S, DURATION_FLY_MS, EASE_ENTER } from '@/lib/constants/animation';
 import { useForcedState } from '@/lib/dev/use-forced-state';
 import { cn } from '@/lib/utils';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
 import { mapVenueDtoToPinData } from '@/lib/utils/venue-pin-mapping';
-import { filterVenuesByTags } from '@/lib/utils/venue-tags';
+import { deriveVenueSunAtMinutes } from '@/lib/utils/venue-day-series';
+import { formatOpeningHours } from '@/lib/utils/opening-hours';
+import { venuePlannerQueryArgs } from '@/lib/utils/venue-query-planner';
+import { collectTags, filterVenuesByTags } from '@/lib/utils/venue-tags';
+import { MobileTagChips } from '@/components/composed/venue/MobileTagChips';
 import { OfflineBanner } from '@/components/custom/offline/OfflineBanner';
 import { MapContainer } from './MapContainer';
 import { MapLoadingFallback } from './MapLoadingFallback';
@@ -140,11 +145,12 @@ const TILE_FAILURE_RELEASE_THRESHOLD = 4;
 export function MapView() {
   const tVenue = useTranslations('venue');
   const tVenueList = useTranslations('venue.list');
+  const tCommon = useTranslations('common');
   const locale = useLocale();
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
   const { selectedVenueId, selectedVenuePreview, selectVenue } = useMapSelection();
-  const { activeTags } = useTagFilter();
+  const { activeTags, isActive: isTagActive, toggleTag } = useTagFilter();
   const plannerTime = useTimeContext();
   const favourites = useFavourites();
   const router = useRouter();
@@ -210,16 +216,42 @@ export function MapView() {
   // "≈ från centrum" so the number is honest. Only the LABEL changes; the
   // value (still the centrum-relative distance) is never hidden.
   const locationIsApproximate = geolocation.status === 'fallback';
-  // Story 9.4 AC3: defer the planner key that drives the venue queries so a
-  // rapid drag (each snapped 15-min step flips `plannerTime.plannerQuery`)
-  // enqueues at most ONE fetch after the user settles. The slider thumb +
-  // time badge keep updating live off `selectedMinutes`/`selectedTime`; only
-  // the query-driving copy is deferred. `keepPreviousData` masks the
-  // in-between renders. Deferring the SAME `plannerQuery` the context already
-  // derives from `isLiveNow` preserves the "live now" semantics for free:
-  // settling back to the current wall-clock time defers to `undefined` (the
-  // planner-less live key), settling off it defers to a single planner key.
-  const deferredPlanner = useDeferredValue(plannerTime.plannerQuery);
+  // Story 11.1 (AC1): the query is keyed on the selected DATE (+ coords), never
+  // on the selected TIME — the time dimension is derived client-side from each
+  // venue's `sunDaySeries`. So we pass the selected `date`/`time`/`isLiveNow` to
+  // the query and let the hook (a) always key on `date`, (b) send date/time only
+  // when off-live, (c) poll only when live. A same-date time scrub therefore
+  // keeps the SAME key → zero fetch; a date change flips the key → one fetch.
+  //
+  // Story 9.4 AC3: still DEFER these query-driving args so a rapid drag settles to
+  // at most one recompute; the slider thumb + time badge keep updating live off
+  // `selectedMinutes`/`selectedTime`. Since time is no longer in the key, the
+  // deferral only smooths the request-param/derivation churn — the key itself is
+  // stable across a scrub regardless.
+  // External-review fix (R-001): the venue-query args are derived by the SHARED
+  // `venuePlannerQueryArgs` so MapView, DesktopNavBar, and VenueSearchShell all
+  // feed the hooks the IDENTICAL `{ date, time, isLiveNow }` shape. Before, only
+  // MapView passed `isLiveNow` (+ date on live-today → the `planner` key) while
+  // the nav/search callers spread the raw `plannerQuery` (undefined on live-today
+  // → the `list` key) and flipped `list`→`planner` on the first scrub away from
+  // live — a hidden fetch during a same-day scrub. One shared derivation makes
+  // the three callers un-divergeable.
+  const plannerArgs = useMemo(
+    () =>
+      venuePlannerQueryArgs({
+        isLiveNow: plannerTime.isLiveNow,
+        plannerQuery: plannerTime.plannerQuery,
+        selectedDate: plannerTime.selectedDate,
+        selectedTime: plannerTime.selectedTime,
+      }),
+    [
+      plannerTime.isLiveNow,
+      plannerTime.plannerQuery,
+      plannerTime.selectedDate,
+      plannerTime.selectedTime,
+    ],
+  );
+  const deferredPlanner = useDeferredValue(plannerArgs);
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
@@ -336,7 +368,23 @@ export function MapView() {
   // malformed response, and individual entries may lack a `location`
   // (real Supabase rows in 2.x will sometimes have NULL geometry until
   // backfilled). Skip those rather than crash the entire map.
-  const rawVenues = venueQuery.data?.venues;
+  const rawVenuesData = venueQuery.data?.venues;
+  // Story 11.1 (AC1): derive every time-dependent surface CLIENT-SIDE from each
+  // venue's cached `sunDaySeries` at the live `plannerTime.selectedMinutes`, so a
+  // settled time scrub updates pins/lists/quick-info/"Mest sol" ordering WITHOUT
+  // any network request (the R-001 headline — "do not dampen the fetch, REMOVE
+  // it"). For a venue carrying a series we override `currentSunStatus` +
+  // `sunExposurePercent` with the already-gated per-step value (the client NEVER
+  // re-gates — it reads the server-emitted series). A venue WITHOUT a series (the
+  // seed/fixture path, flag OFF) passes through untouched, keeping the server's
+  // single-instant fields. `selectedMinutes` updates live during a drag, so this
+  // memo re-derives per scrub step off already-fetched data.
+  const rawVenues = useMemo(() => {
+    if (!Array.isArray(rawVenuesData)) return rawVenuesData;
+    return rawVenuesData.map((venue) =>
+      applyDaySeriesDerivation(venue, plannerTime.selectedMinutes),
+    );
+  }, [rawVenuesData, plannerTime.selectedMinutes]);
   // Story 9.7: apply the shared tag filter to the loaded Närmast list ONCE, so
   // BOTH the venue lists (desktop + mobile) AND the map pins derive from the same
   // filtered source. Pure client `.filter()` over already-fetched data — issues
@@ -351,6 +399,19 @@ export function MapView() {
     if (!Array.isArray(rawVenues)) return rawVenues;
     return filterVenuesByTags(rawVenues, activeTags);
   }, [activeTags, rawVenues]);
+  // Story 11.3 (AC1): the mobile tag-chip row shares the desktop data source —
+  // the union of the LOADED venues' tags via `collectTags`. Derived from the
+  // SAME `venueQuery.data` the desktop nav reads (no second fetch; TanStack
+  // de-dupes on the identical key). `allTags` is UNFILTERED (from the loaded
+  // set, not `tagFilteredVenues`) so toggling a chip never removes the chips
+  // themselves. The orphaned-tag prune (`retainTags`) still runs from the
+  // always-mounted `DesktopNavBar` (`hidden lg:flex`, effect fires at every
+  // viewport) over the SAME cached union, so a stale mobile filter can never
+  // strand the surfaces — no duplicate prune needed here.
+  const allTags = useMemo(
+    () => collectTags(venueQuery.data?.venues ?? []),
+    [venueQuery.data?.venues],
+  );
   // Confidence meta for the favourites surface: prefer the network favourites
   // query's meta when it ran (out-of-radius / cold deep-link), otherwise fall
   // back to the loaded list meta, since AC1 may source the rows entirely from
@@ -365,9 +426,22 @@ export function MapView() {
   // favourite is in the list cache the favourites query stays disabled and
   // these rows come straight from `rawVenues`.
   const favouriteIdsForRows = favourites.favouriteIds;
-  const networkFavouriteRows = Array.isArray(favouriteVenueQuery.data?.venues)
-    ? favouriteVenueQuery.data.venues
-    : EMPTY_VENUES;
+  // Story 11.1 AC1 ("both venue lists"): the favourites network payload hits the
+  // same real-engine `/api/venues` path, so its rows carry `sunDaySeries` too.
+  // Derive the per-step value here — mirroring `rawVenues` — so an out-of-radius
+  // favourite or a cold `/favoriter` deep link (present ONLY in the favourites
+  // payload, never in the Närmast list cache) tracks a same-date time scrub for
+  // both its card figures and its "Mest sol" rank. Without this the top-up rows
+  // would render the server's single-instant fields, frozen against the scrub.
+  const networkFavouriteRows = useMemo<VenueDataDto[]>(() => {
+    const rows = Array.isArray(favouriteVenueQuery.data?.venues)
+      ? favouriteVenueQuery.data.venues
+      : EMPTY_VENUES;
+    if (rows.length === 0) return EMPTY_VENUES;
+    return rows.map((venue) =>
+      applyDaySeriesDerivation(venue, plannerTime.selectedMinutes),
+    );
+  }, [favouriteVenueQuery.data?.venues, plannerTime.selectedMinutes]);
   const favouriteVenueRows = useMemo<VenueDataDto[]>(() => {
     const allowed = new Set(favouriteIdsForRows);
     if (allowed.size === 0) return EMPTY_VENUES;
@@ -478,6 +552,22 @@ export function MapView() {
       ? normalizeForcedVisualVenue(selectedVenueDto)
       : selectedVenueDto;
   }, [isForcedObscuredReference, isForcedVisualReference, selectedVenueDto]);
+  // Story 11.9 (AC2): derive the quick-info "Öppet till HH:MM" line for the CURRENT
+  // Stockholm weekday from the list-DTO per-weekday `openingHours`, keeping the
+  // component presentational (it renders the pre-derived `display` verbatim).
+  // Closed today / no hours → `{}` → the card renders nothing (never fabricated).
+  const quickInfoOpeningHours = useMemo(
+    () =>
+      selectedQuickInfoVenue?.openingHours
+        ? formatOpeningHours(
+            selectedQuickInfoVenue.openingHours,
+            new Date(),
+            locale,
+            tVenue('quickInfo.openUntilLine', { time: '{time}' }),
+          )
+        : undefined,
+    [selectedQuickInfoVenue, locale, tVenue],
+  );
   const selectedPinData = useMemo(() => {
     if (!selectedVenueId) return null;
     return venues.find((venue) => venue.id === selectedVenueId) ?? null;
@@ -745,6 +835,17 @@ export function MapView() {
   const listConfidenceMeta = isForcedVisualReference
     ? FORCED_VISUAL_CONFIDENCE_META
     : venueQuery.data?.meta;
+  // Story 11.3 (AC1, empty-state fold-in from the 9.7 code review): the Närmast
+  // list shows its loading skeleton ONLY while there is genuinely no underlying
+  // venue data yet — never when a tag filter has legitimately pruned the loaded
+  // set to zero matches. Keying off the PRE-FILTER loaded count (not
+  // `listVenues.length`) means a filtered-to-empty list renders the
+  // `venue.list.empty` copy — not a 3-card skeleton — even during a concurrent
+  // background refetch (e.g. a planner-change). Matches list + pins on both
+  // breakpoints (the same `isNearListLoading` feeds the mobile + desktop
+  // VenueList call sites).
+  const loadedVenueCount = venueQuery.data?.venues?.length ?? 0;
+  const isNearListLoading = venueQuery.isFetching && loadedVenueCount === 0;
   const favouriteIdSet = useMemo(
     () => new Set(favourites.favouriteIds),
     [favourites.favouriteIds],
@@ -764,17 +865,12 @@ export function MapView() {
     : selectedVenueId && activeFavouriteVenueRows.some((venue) => venue.id === selectedVenueId)
     ? (favouriteListConfidenceMeta ?? venueQuery.data?.meta)
     : venueQuery.data?.meta;
-  const quickInfoSunWindowTemplate = tVenue('quickInfo.sunWindow', {
-    start: '{start}',
-    end: '{end}',
-  });
   const routeText = routeLabels(tVenue);
-  const quickInfoRouteSummary = selectedQuickInfoVenue
-    ? getRouteSummary({ venue: selectedQuickInfoVenue, origin: geolocation.coords })
-    : null;
-  const quickInfoRouteEstimateLabel = quickInfoRouteSummary
-    ? routeEstimateLabel(quickInfoRouteSummary.walkMinutes, routeText.walkEstimateCompact)
-    : undefined;
+  // Story 11.4 (AC1/AC2): the quick-info no longer renders a "Sol HH:mm–HH:mm"
+  // window line or a truncated ETA inside its route button, so the
+  // `quickInfoSunWindowTemplate` / `quickInfoRouteSummary` /
+  // `quickInfoRouteEstimateLabel` wiring is gone. The detail/route surface keeps
+  // its own `detailRouteEstimateLabel` below (AC2: the ETA may live on there).
   const detailRouteVenue = detailFallbackVenue
     ? (detailVenue ?? detailFallbackVenue)
     : null;
@@ -872,6 +968,18 @@ export function MapView() {
   //    the overlay already shows degraded localized content, so only a
   //    retry affordance is added for transient errors; a 404 is suppressed
   //    because contradicting visible venue content would mislead.
+  // Story 11.1 (AC3): a DATE change (or material location change) is the ONE
+  // fetch AC3 permits; while it is in flight the existing markers stay MOUNTED
+  // (keepPreviousData keeps the previous venues rendered → `isPlaceholderData`)
+  // and the map dims under a subtle-gray scrim + centered spinner overlay until
+  // the new series arrives, then updates in place. This is TRUE only when a
+  // previous result already exists (a real key change), never on the very first
+  // load (that gap is covered by the tile-paint cover) — so the overlay is a
+  // clean signal for "swapping to a new day/location". A same-date time scrub
+  // does not change the query key, so it never triggers this state.
+  const isDateChangeLoading =
+    venueQuery.isFetching && venueQuery.isPlaceholderData && !isForcedVisualReference;
+
   const detailErrorNotice = (() => {
     if (!canRequestVenueDetail) return null;
     // A present-but-blank/whitespace `?venue=` slug never triggers a fetch
@@ -907,6 +1015,36 @@ export function MapView() {
       {!showOfflineShell && (
         <>
       <VenuePinLayer venues={venues} />
+      {/* Story 11.1 (AC3): the date-change dim + spinner overlay. Rendered as an
+          absolutely-positioned sibling so the pin layer above stays MOUNTED
+          (markers persist keyed by venue id) while the single new-date request
+          is in flight; markers update in place when the new series arrives. The
+          scrim + spinner are design-system tokens (subtle-gray scrim via
+          `bg-text-primary/20`, the standard `LoaderCircle` spinner), and the
+          overlay fades in/out per the motion spec. Reference-PNG rebaseline for
+          this NEW visual state is a maintainer checkpoint owned by Story 11.7 —
+          dev does NOT self-bless a reference PNG here. */}
+      <AnimatePresence>
+        {isDateChangeLoading && (
+          <motion.div
+            key="date-change-overlay"
+            data-testid="date-change-overlay"
+            role="status"
+            aria-live="polite"
+            aria-label={tVenue('planner.loading')}
+            className="absolute inset-0 z-floating-buttons flex items-center justify-center bg-text-primary/20 backdrop-blur-standard"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: DURATION_FAST_S, ease: EASE_ENTER }}
+          >
+            <LoaderCircle
+              aria-hidden="true"
+              className="size-8 text-text-primary motion-safe:animate-spin"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Story 9.5 AC2: the amber user-location dot. Gated on a real GPS fix
           (`status === 'success'`) so it is NOT drawn while sitting on the
           Gothenburg-centrum fallback / idle / pending. Additive only — the
@@ -951,6 +1089,22 @@ export function MapView() {
             labels={venueListControlLabels(tVenueList)}
           />
         )}
+        {/* Story 11.3 (AC1): the mobile tag-chip row sits directly UNDER the sort
+            toggles, inside the sheet body, so it scrolls/collapses with the
+            header (not a floating layer). It is a NEW consumer of the SHARED
+            TagFilterContext — a toggle here filters BOTH the mobile list AND the
+            map pins (the venue surfaces already read `activeTags`). It rides the
+            Närmast list only (favourites are intentionally unfiltered, matching
+            the desktop scope). Renders nothing until a tag loads. */}
+        {mobileSheetState !== 'peek' && listMode !== 'favourites' && (
+          <MobileTagChips
+            tags={allTags}
+            isActive={isTagActive}
+            onToggleTag={toggleTag}
+            locale={locale === 'en' ? 'en' : 'sv'}
+            label={tCommon('nav.filter')}
+          />
+        )}
         {listMode === 'favourites' ? (
           <FavouritesList
             favouriteIds={favourites.favouriteIds}
@@ -976,7 +1130,7 @@ export function MapView() {
             confidenceMeta={listConfidenceMeta}
             showVisibleConfidence={!isForcedVisualReference}
             locationIsApproximate={locationIsApproximate}
-            isLoading={venueQuery.isFetching && listVenues.length === 0}
+            isLoading={isNearListLoading}
             animateCards={mobileSheetState === 'full'}
             compactCards={mobileSheetState === 'peek'}
             onSelectVenue={handleSelectVenueFromList}
@@ -1021,7 +1175,7 @@ export function MapView() {
               confidenceMeta={listConfidenceMeta}
               showVisibleConfidence={!isForcedVisualReference}
               locationIsApproximate={locationIsApproximate}
-              isLoading={venueQuery.isFetching && listVenues.length === 0}
+              isLoading={isNearListLoading}
               onSelectVenue={handleSelectVenueFromList}
               onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
               isFavourite={favourites.isFavourite}
@@ -1083,10 +1237,10 @@ export function MapView() {
             key="quick-info-mobile"
             mode="mobile"
             name={selectedPinData.name}
-            sunTimeRange={resolveSunTimeRange(selectedQuickInfoVenue, quickInfoSunWindowTemplate)}
             confidencePercent={selectedQuickInfoVenue?.confidence}
             confidenceMeta={quickInfoConfidenceMeta}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
+            openingHours={quickInfoOpeningHours}
             currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
             skyCondition={selectedQuickInfoVenue?.skyCondition}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
@@ -1097,7 +1251,6 @@ export function MapView() {
             onDismiss={() => selectVenue(null)}
             onOpenDetails={handleOpenDetails}
             onRoute={handleRouteSelectedVenue}
-            routeEstimateLabel={quickInfoRouteEstimateLabel}
             isRouteLoading={routeLoadingVenueId === selectedQuickInfoVenue?.id}
             isFavourite={selectedQuickInfoVenue ? favourites.isFavourite(selectedQuickInfoVenue.id) : false}
             onFavouriteToggle={
@@ -1113,10 +1266,10 @@ export function MapView() {
             key="quick-info-desktop"
             mode="desktop"
             name={selectedPinData.name}
-            sunTimeRange={resolveSunTimeRange(selectedQuickInfoVenue, quickInfoSunWindowTemplate)}
             confidencePercent={selectedQuickInfoVenue?.confidence}
             confidenceMeta={quickInfoConfidenceMeta}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
+            openingHours={quickInfoOpeningHours}
             currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
             skyCondition={selectedQuickInfoVenue?.skyCondition}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
@@ -1128,7 +1281,6 @@ export function MapView() {
             onDismiss={() => selectVenue(null)}
             onOpenDetails={handleOpenDetails}
             onRoute={handleRouteSelectedVenue}
-            routeEstimateLabel={quickInfoRouteEstimateLabel}
             isRouteLoading={routeLoadingVenueId === selectedQuickInfoVenue?.id}
             isFavourite={selectedQuickInfoVenue ? favourites.isFavourite(selectedQuickInfoVenue.id) : false}
             onFavouriteToggle={
@@ -1148,7 +1300,13 @@ export function MapView() {
           />
         )}
       </AnimatePresence>
-      <MapControls />
+      {/* Story 11.5 (AC3): thread the live obstruction state so the recenter
+          flyTo lands the user-location dot centred in the UNOBSCURED map area
+          (mobile bottom-sheet snap / desktop detail panel). */}
+      <MapControls
+        mobileSheetState={mobileSheetState}
+        isVenueDetailOpen={isVenueDetailRequested}
+      />
       {!tilesPainted && (
         <div className="absolute inset-0 z-floating-buttons" data-testid="map-tile-paint-cover">
           <MapLoadingFallback />
@@ -1179,17 +1337,6 @@ export function MapView() {
   );
 }
 
-function resolveSunTimeRange(
-  venue: VenueDataDto | null,
-  template: string,
-): string | undefined {
-  if (!venue?.sunWindow) return undefined;
-  return formatLabel(template, {
-    start: venue.sunWindow.start,
-    end: venue.sunWindow.end,
-  });
-}
-
 function formatLabel(template: string, values: Record<string, string>): string {
   return Object.entries(values).reduce(
     (label, [key, value]) => label.replaceAll(`{${key}}`, value),
@@ -1199,6 +1346,48 @@ function formatLabel(template: string, values: Record<string, string>): string {
 
 function hasValidVenueLocation(venue: VenueDataDto): boolean {
   return Number.isFinite(venue.location?.lat) && Number.isFinite(venue.location?.lng);
+}
+
+/**
+ * Story 11.1 (AC1): override a venue's headline sun fields with the derived
+ * per-step value from its cached `sunDaySeries` at `selectedMinutes`. A venue
+ * without a series (seed/fixture path) is returned unchanged, so the client keeps
+ * the server's single-instant fields. The derived value is the ALREADY weather-
+ * gated series entry — the client does not re-gate. This feeds pins, both venue
+ * lists, quick-info figures, the obscured presentation, and the "Mest sol"
+ * ordering input (`getVenueSunRankForList` reads `currentSunStatus` +
+ * `sunExposurePercent`) so ordering tracks the scrub.
+ *
+ * STORY 11 (review): `skyCondition` (the obscured sub-line) is ALSO overridden
+ * from the per-step series entry so the plain-language sky phrase tracks the
+ * scrub. Without it, scrubbing a clear "now" step to a cloud-gated step flips
+ * the muted "Sol bakom moln" chrome while the sky phrase still reads the stale
+ * server "Klart" — a self-contradicting obscured card (the Epic-10 honesty
+ * class). `skyCondition` is only overridden when the series entry carries it
+ * (`!== undefined`), so a legacy series without the field leaves the venue's
+ * server value untouched.
+ */
+function applyDaySeriesDerivation(
+  venue: VenueDataDto,
+  selectedMinutes: number,
+): VenueDataDto {
+  const derived = deriveVenueSunAtMinutes(venue.sunDaySeries, selectedMinutes);
+  if (!derived) return venue;
+  const nextSkyCondition =
+    derived.skyCondition !== undefined ? derived.skyCondition : venue.skyCondition;
+  if (
+    derived.currentSunStatus === venue.currentSunStatus &&
+    derived.sunExposurePercent === venue.sunExposurePercent &&
+    nextSkyCondition === venue.skyCondition
+  ) {
+    return venue;
+  }
+  return {
+    ...venue,
+    currentSunStatus: derived.currentSunStatus,
+    sunExposurePercent: derived.sunExposurePercent,
+    skyCondition: nextSkyCondition,
+  };
 }
 
 function isFavouritesPath(pathname: string): boolean {
@@ -1322,7 +1511,6 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     distance: t('quickInfo.distance'),
     distanceApproximate: t('quickInfo.distanceApproximate'),
     loadingSun: t('quickInfo.loadingSun'),
-    sunUnavailable: t('quickInfo.sunUnavailable'),
     routeLoading: t('route.loading'),
     favouriteAdd: t('list.favouriteAdd'),
     favouriteRemove: t('list.favouriteRemove'),
@@ -1345,9 +1533,6 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     favouriteRemove: t('detail.favouriteRemove'),
     share: t('detail.share'),
     shareText: t('detail.shareModal.shareText', { name: '{name}' }),
-    sectionTitle: t('detail.sectionTitle'),
-    peakTime: t('detail.peakTime', { time: '{time}' }),
-    bestWindow: t('detail.bestWindow', { start: '{start}', end: '{end}' }),
     openMaps: t('detail.openMaps'),
     route: t('detail.route'),
     routeLoading: t('route.loading'),
@@ -1372,17 +1557,11 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     confidenceUnavailable: t('detail.confidenceUnavailable'),
     city: t('detail.city'),
     openUntil: t('detail.openUntil', { time: '{time}' }),
+    openUntilLine: t('detail.openUntilLine', { time: '{time}' }),
     placeholderImageShort: t('detail.placeholderImageShort'),
     facts: {
       distance: t('detail.facts.distance'),
       distanceApproximate: t('detail.facts.distanceApproximate'),
-    },
-    timeline: {
-      ariaLabel: t('detail.timeline.ariaLabel'),
-      currentTime: t('detail.timeline.currentTime', { time: '{time}' }),
-      sunnyWindow: t('detail.timeline.sunnyWindow', { start: '{start}', end: '{end}' }),
-      partialWindow: t('detail.timeline.partialWindow', { start: '{start}', end: '{end}' }),
-      shadedWindow: t('detail.timeline.shadedWindow', { start: '{start}', end: '{end}' }),
     },
   };
 }

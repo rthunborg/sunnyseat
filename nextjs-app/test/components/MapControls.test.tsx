@@ -161,10 +161,11 @@ describe('<MapControls />', () => {
     expect(stubMap.zoomOut).toHaveBeenCalled();
   });
 
-  it('shared success-fly-to: flies to the resolved coords when geolocation resolves to success', () => {
+  it('shared success-fly-to: flies to the resolved coords when geolocation resolves to success (mobile, default mid snap)', () => {
     // The success fly-to still lives in MapControls (shared for both the mobile
     // top-bar locate and the desktop-nav locate, which drive the same
     // useGeolocation context). Here we drive the hook state directly.
+    // jsdom has no matchMedia → isDesktopViewport() is false → mobile padding.
     geoState.status = 'success';
     geoState.coords = { lat: 57.71, lng: 11.99 };
     render(<MapControls />, { wrapper: makeWrapper(stubMap) });
@@ -172,12 +173,218 @@ describe('<MapControls />', () => {
       center: [11.99, 57.71],
       zoom: GOTHENBURG_CENTRE.zoom,
       duration: 500,
+      // Story 11.5 (AC3): default `mid` snap → bottom padding = mid height
+      // (320) + nav-bar cover (52) = 372; top = mobile top-bar cover (72).
+      // Derived from the snap enum, not a fixed offset (R-013).
+      padding: { top: 72, bottom: 372, left: 0, right: 0 },
     });
   });
 
   it('shared success-fly-to: keeps the current map centre on fallback (no fly)', () => {
     geoState.status = 'fallback';
     render(<MapControls />, { wrapper: makeWrapper(stubMap) });
+    expect(stubMap.flyTo).not.toHaveBeenCalled();
+  });
+
+  // Story 11.5 (AC3 / Task 5, test-design R-013): the recenter padding must be
+  // DERIVED from the current obstruction state, not a fixed offset. These
+  // assertions prove the landed centre changes per snap/panel so a fixed-offset
+  // regression fails, and that flyTo stays 500 ms.
+  it('recenter padding VARIES per mobile snap (mid → 320 vs full → 560 bottom)', () => {
+    geoState.status = 'success';
+    geoState.coords = { lat: 57.71, lng: 11.99 };
+
+    const midMap = makeStubMap();
+    render(<MapControls mobileSheetState="mid" />, { wrapper: makeWrapper(midMap) });
+    expect(midMap.flyTo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        duration: 500,
+        padding: { top: 72, bottom: 372, left: 0, right: 0 },
+      }),
+    );
+
+    const fullMap = makeStubMap();
+    render(<MapControls mobileSheetState="full" />, { wrapper: makeWrapper(fullMap) });
+    expect(fullMap.flyTo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        duration: 500,
+        padding: { top: 72, bottom: 612, left: 0, right: 0 },
+      }),
+    );
+
+    // The two bottom paddings must differ — a fixed offset would make them equal.
+    const midPadding = (midMap.flyTo.mock.calls[0][0] as { padding: { bottom: number } }).padding;
+    const fullPadding = (fullMap.flyTo.mock.calls[0][0] as { padding: { bottom: number } }).padding;
+    expect(midPadding.bottom).not.toBe(fullPadding.bottom);
+  });
+
+  it('recenter padding: collapsed snap uses the handle-strip cover (44 + safe-area allowance + nav-bar cover)', () => {
+    geoState.status = 'success';
+    geoState.coords = { lat: 57.71, lng: 11.99 };
+    render(<MapControls mobileSheetState="collapsed" />, { wrapper: makeWrapper(stubMap) });
+    expect(stubMap.flyTo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        padding: { top: 72, bottom: 120, left: 0, right: 0 },
+      }),
+    );
+  });
+
+  it('recenter padding on desktop: left = venue-list width (340); no right until detail opens', () => {
+    // Desktop breakpoint: mock matchMedia so isDesktopViewport() is true.
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('min-width: 1024px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+      onchange: null,
+    })) as unknown as typeof window.matchMedia;
+
+    try {
+      geoState.status = 'success';
+      geoState.coords = { lat: 57.71, lng: 11.99 };
+
+      const closedMap = makeStubMap();
+      render(<MapControls isVenueDetailOpen={false} />, { wrapper: makeWrapper(closedMap) });
+      expect(closedMap.flyTo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          duration: 500,
+          padding: { top: 0, bottom: 0, left: 340, right: 0 },
+        }),
+      );
+
+      const openMap = makeStubMap();
+      render(<MapControls isVenueDetailOpen />, { wrapper: makeWrapper(openMap) });
+      expect(openMap.flyTo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          duration: 500,
+          padding: { top: 0, bottom: 0, left: 340, right: 390 },
+        }),
+      );
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
+  });
+
+  it('recenter padding: dismissed snap flies with zero bottom padding (raw-viewport centre)', () => {
+    // Boundary: with the sheet fully dismissed nothing obstructs the bottom, so
+    // only the top search-bar cover remains — the dot centres on the near-raw
+    // viewport. Locks the `dismissed → bottom 0` derivation end-to-end.
+    geoState.status = 'success';
+    geoState.coords = { lat: 57.71, lng: 11.99 };
+    render(<MapControls mobileSheetState="dismissed" />, { wrapper: makeWrapper(stubMap) });
+    expect(stubMap.flyTo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        duration: 500,
+        padding: { top: 72, bottom: 0, left: 0, right: 0 },
+      }),
+    );
+  });
+
+  it('default props on DESKTOP: the default mid snap is ignored, side-panel padding wins', () => {
+    // Prop-default path — MapView passes props, but the defaults ('mid'/false)
+    // must degrade correctly if a future caller omits them at the desktop
+    // breakpoint: no phantom bottom padding from the default mid snap.
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('min-width: 1024px'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+      onchange: null,
+    })) as unknown as typeof window.matchMedia;
+    try {
+      geoState.status = 'success';
+      geoState.coords = { lat: 57.71, lng: 11.99 };
+      render(<MapControls />, { wrapper: makeWrapper(stubMap) });
+      expect(stubMap.flyTo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          duration: 500,
+          padding: { top: 0, bottom: 0, left: 340, right: 0 },
+        }),
+      );
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
+  });
+
+  it('treats a missing matchMedia as mobile (SSR/jsdom guard → mobile padding)', () => {
+    // isDesktopViewport() must not throw when window.matchMedia is unavailable
+    // (older jsdom / SSR-ish render) — it falls back to the mobile branch.
+    const originalMatchMedia = window.matchMedia;
+    // @ts-expect-error deliberately removing matchMedia to exercise the guard.
+    delete window.matchMedia;
+    try {
+      geoState.status = 'success';
+      geoState.coords = { lat: 57.71, lng: 11.99 };
+      expect(() =>
+        render(<MapControls mobileSheetState="mid" />, { wrapper: makeWrapper(stubMap) }),
+      ).not.toThrow();
+      expect(stubMap.flyTo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          padding: { top: 72, bottom: 372, left: 0, right: 0 },
+        }),
+      );
+    } finally {
+      window.matchMedia = originalMatchMedia;
+    }
+  });
+
+  it('does NOT re-fly when only the sheet snap changes after a geolocation success (external-review fix)', () => {
+    // Regression: `mobileSheetState`/`isVenueDetailOpen` used to be effect deps,
+    // so after a success ANY later snap change re-ran flyTo and yanked the map
+    // back to the user location with no locate action. The effect now triggers
+    // ONLY on geolocation transitions (obstruction state is read from refs).
+    geoState.status = 'success';
+    geoState.coords = { lat: 57.71, lng: 11.99 };
+    const { rerender } = render(<MapControls mobileSheetState="mid" />, {
+      wrapper: makeWrapper(stubMap),
+    });
+    // One fly on the initial success.
+    expect(stubMap.flyTo).toHaveBeenCalledTimes(1);
+
+    // The user drags the sheet to a new snap (geolocation UNCHANGED). No re-fly.
+    rerender(<MapControls mobileSheetState="full" />);
+    rerender(<MapControls mobileSheetState="collapsed" />);
+    expect(stubMap.flyTo).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT re-fly when only the detail panel opens after a geolocation success (external-review fix)', () => {
+    geoState.status = 'success';
+    geoState.coords = { lat: 57.71, lng: 11.99 };
+    const { rerender } = render(<MapControls isVenueDetailOpen={false} />, {
+      wrapper: makeWrapper(stubMap),
+    });
+    expect(stubMap.flyTo).toHaveBeenCalledTimes(1);
+
+    // Opening/closing the venue-detail panel must not re-center the map.
+    rerender(<MapControls isVenueDetailOpen />);
+    rerender(<MapControls isVenueDetailOpen={false} />);
+    expect(stubMap.flyTo).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not fly while geolocation is still pending (only success triggers recenter)', () => {
+    // Negative path: the fly-to effect is gated on status === 'success'. A
+    // 'pending'/'idle' status must never move the camera (avoids a mid-request
+    // jump to stale coords).
+    geoState.status = 'pending';
+    geoState.coords = { lat: 57.71, lng: 11.99 };
+    render(<MapControls mobileSheetState="mid" />, { wrapper: makeWrapper(stubMap) });
+    expect(stubMap.flyTo).not.toHaveBeenCalled();
+  });
+
+  it('does not fly when the map is not yet ready even on geolocation success', () => {
+    // Guard: with a null mapInstance the success effect must early-return — no
+    // flyTo against a not-yet-bound canvas.
+    geoState.status = 'success';
+    geoState.coords = { lat: 57.71, lng: 11.99 };
+    render(<MapControls mobileSheetState="mid" />, { wrapper: makeNullMapWrapper() });
     expect(stubMap.flyTo).not.toHaveBeenCalled();
   });
 

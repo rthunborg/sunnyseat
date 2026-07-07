@@ -52,7 +52,17 @@ const FORCED_VISUAL_VENUE_DETAIL: VenueDetailDto = {
   description:
     'Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.',
   address: 'Tredje Långgatan 9, 413 03 Göteborg',
-  openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
+  // Story 11.9 (AC2): per-weekday shape (closes 22:00 every day) so the visual gate
+  // derives the byte-identical "Öppet till 22:00" / "ÖPPET · 22:00" on any run-day.
+  openingHours: {
+    '1': { open: '11:00', close: '22:00' },
+    '2': { open: '11:00', close: '22:00' },
+    '3': { open: '11:00', close: '22:00' },
+    '4': { open: '11:00', close: '22:00' },
+    '5': { open: '11:00', close: '22:00' },
+    '6': { open: '11:00', close: '22:00' },
+    '7': { open: '11:00', close: '22:00' },
+  },
   timeline: {
     timezone: 'Europe/Stockholm',
     range: { start: '06:00', end: '21:00' },

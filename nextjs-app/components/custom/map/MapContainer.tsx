@@ -7,6 +7,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
+import { applyBasemapColorOverridesToMap } from '@/lib/utils/apply-basemap-colors';
 
 const TILE_FAILURE_THRESHOLD = 4;
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
@@ -64,6 +65,29 @@ export function MapContainer() {
     });
 
     setMapInstance(map);
+
+    /**
+     * Basemap recolour (maintainer design review, 2026-07-06): the positron
+     * style ships a near-grey water/green palette. We recolour the water and
+     * green layers toward a friendlier blue/green ONCE the style has loaded,
+     * so the map reads pleasant and colourful under the (unchanged) warm brand
+     * overlay. Roads/buildings/labels stay neutral, and every override is
+     * applied only if the layer is present (see `apply-basemap-colors.ts`).
+     *
+     * The style can already be loaded by the time this effect runs (fast
+     * cache) OR load later; cover both. We do NOT re-apply on every
+     * `styledata` — `setPaintProperty` itself emits `styledata`, which would
+     * loop — a single application on load is enough (the overrides are static
+     * and MapLibre persists them for the style's lifetime).
+     */
+    const recolourBasemap = () => {
+      applyBasemapColorOverridesToMap(map);
+    };
+    if (map.isStyleLoaded()) {
+      recolourBasemap();
+    } else {
+      map.once('load', recolourBasemap);
+    }
 
     // Story 1.6 Task 11 removed the dev-only `[MapContainer] Map load
     // took N ms` info log. The metric measured style parse, not tile
@@ -166,9 +190,17 @@ export function MapContainer() {
         inert={tilesFailed}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
       />
+      {/* Story 11.5 (AC1): the two decorative tint layers were reduced to
+          ~a quarter of their previous strength so the basemap (streets,
+          water, parks, labels) reads clearly while a subtle warm brand tone
+          remains. The sand wash dropped from /80 → /20 and the
+          `--gradient-map-overlay` alpha stops were thinned to a quarter (see
+          globals.css). The exact strength was set by a design-gate eyeball
+          against the live map; tests assert the OUTCOME (legible basemap +
+          axe AA green), never a specific opacity number. */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 pointer-events-none bg-surface-sand/80"
+        className="absolute inset-0 pointer-events-none bg-surface-sand/20"
         style={{ zIndex: 1 }}
       />
       <div

@@ -3,6 +3,13 @@ export const PLANNER_START_MINUTES = 6 * 60;
 export const PLANNER_END_MINUTES = 21 * 60;
 export const PLANNER_STEP_MINUTES = 15;
 export const PLANNER_TICK_INTERVAL_MINUTES = 3 * 60;
+/**
+ * Story 11.2 (AC3): the planner date picker exposes a fixed today → today+3
+ * window (4 selectable days). Maintainer decision (2026-07-04 workshop): "dates
+ * selectable only today→today+3". This bound dominates the sun-season concept for
+ * any near-term "today" — the season only matters within 3 days of a season edge.
+ */
+export const PLANNER_MAX_FUTURE_DAYS = 3;
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -17,7 +24,7 @@ export type PlannerValidationResult =
   | { ok: true; date: string; time: string }
   | {
       ok: false;
-      reason: 'invalid-date' | 'invalid-time' | 'out-of-season' | 'past-date';
+      reason: 'invalid-date' | 'invalid-time' | 'out-of-season' | 'past-date' | 'out-of-window';
     };
 
 export function stockholmDateKey(date: Date): string {
@@ -100,18 +107,49 @@ export function isDateInCurrentSunSeason(date: string, now = new Date()): boolea
   return date >= bounds.start && date <= bounds.end;
 }
 
+/**
+ * Story 11.2 (AC3): the today → today+PLANNER_MAX_FUTURE_DAYS window, as
+ * Stockholm date keys. The picker/state selectability rule keys off this window,
+ * not the sun season — the season only matters within `PLANNER_MAX_FUTURE_DAYS`
+ * of a season edge.
+ */
+export function plannerWindowBounds(now = new Date()): { start: string; end: string } {
+  const start = stockholmDateKey(now);
+  return { start, end: addDaysToDateKey(start, PLANNER_MAX_FUTURE_DAYS) };
+}
+
 export function isPlannerDateSelectable(date: string, now = new Date()): boolean {
-  return isDateInCurrentSunSeason(date, now) && date >= stockholmDateKey(now);
+  if (!isValidDateKey(date)) return false;
+  const window = plannerWindowBounds(now);
+  // Story 11.2 (AC3): the today->today+3 window REPLACES the season UPPER bound.
+  // The season floor survives so an out-of-season "today" (e.g. deep winter) is
+  // still unplannable — for any in-season near-term today the 3-day cap dominates
+  // and the season is a no-op. (For any summer today, in-window ⟹ in-season.)
+  return (
+    date >= window.start &&
+    date <= window.end &&
+    isDateInCurrentSunSeason(date, now)
+  );
 }
 
 export function validatePlannerDateTime({
   date,
   time,
   now = new Date(),
+  enforceWindow = true,
 }: {
   date: string | null | undefined;
   time: string | null | undefined;
   now?: Date;
+  /**
+   * Story 11.2 (AC3): by default the validator enforces the today → today+3
+   * client planner window (a beyond-window date is rejected `out-of-window`).
+   * The server route opts OUT (`enforceWindow: false`) so it keeps serving
+   * far-future forecast bookmarks up to the season edge — the window is a
+   * client/state concern, and the route must never 500/400 a stale bookmark for
+   * being merely "beyond today+3". Season + past-date checks still apply.
+   */
+  enforceWindow?: boolean;
 }): PlannerValidationResult {
   const normalizedDate = date?.trim() ?? '';
   const normalizedTime = time?.trim() ?? '';
@@ -126,11 +164,26 @@ export function validatePlannerDateTime({
   if (normalizedDate < stockholmDateKey(now)) {
     return { ok: false, reason: 'past-date' };
   }
+  if (enforceWindow && normalizedDate > plannerWindowBounds(now).end) {
+    return { ok: false, reason: 'out-of-window' };
+  }
   return {
     ok: true,
     date: normalizedDate,
     time: formatPlannerTime(minutes),
   };
+}
+
+/** Shift a `YYYY-MM-DD` Stockholm date key by whole days (UTC-anchored math). */
+export function addDaysToDateKey(date: string, days: number): string {
+  // A malformed key would yield `Number('abc') = NaN` → `Date.UTC(NaN,…)` =
+  // Invalid Date → `.toISOString()` throws. Guard like the sibling validators
+  // so an exported util never throws on bad input; pass the input straight back.
+  if (!isValidDateKey(date)) return date;
+  const [yearRaw = '1970', monthRaw = '01', dayRaw = '01'] = date.split('-');
+  const shifted = new Date(Date.UTC(Number(yearRaw), Number(monthRaw) - 1, Number(dayRaw)));
+  shifted.setUTCDate(shifted.getUTCDate() + days);
+  return shifted.toISOString().slice(0, 10);
 }
 
 export function isValidDateKey(value: string): boolean {

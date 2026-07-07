@@ -67,3 +67,92 @@ describe('Story 9.6 removed i18n keys have no remaining reader', () => {
     }
   });
 });
+
+/**
+ * Story 11.4 (AC4) — quick-info reference alignment removed-key pin.
+ *
+ * The rework removed the visible "Säkerhet: NN%" chip and the "Sol HH:mm–HH:mm"
+ * window line from the quick-info card, which orphaned three `venue.quickInfo.*`
+ * keys: `sunWindow` (only `quickInfoSunWindowTemplate` used it), `sunUnavailable`
+ * (only the removed window line's fallback used it), and the already-unconsumed
+ * `obscuredPosition` (defined but never wired). All three were deleted from BOTH
+ * locales. This suite pins the DELETION so a reader can never silently render a
+ * raw key, and confirms the KEPT `confidence*` keys stay (the sr-only accessible
+ * confidence line still consumes them).
+ */
+describe('Story 11.4 removed quick-info i18n keys have no remaining reader', () => {
+  function loadQuickInfo(locale: string): Record<string, unknown> {
+    const quickInfo = (loadNamespace(locale, 'venue.json').quickInfo ??
+      {}) as Record<string, unknown>;
+    return quickInfo;
+  }
+
+  for (const locale of LOCALES) {
+    it(`drops sunWindow / sunUnavailable / obscuredPosition from venue.quickInfo in ${locale}`, () => {
+      const quickInfo = loadQuickInfo(locale);
+      expect(quickInfo).not.toHaveProperty('sunWindow');
+      expect(quickInfo).not.toHaveProperty('sunUnavailable');
+      expect(quickInfo).not.toHaveProperty('obscuredPosition');
+    });
+
+    it(`keeps the confidence* keys (still read by the sr-only accessible line) in ${locale}`, () => {
+      const quickInfo = loadQuickInfo(locale);
+      expect(quickInfo).toHaveProperty('confidence');
+      expect(quickInfo).toHaveProperty('confidenceApproximate');
+      expect(quickInfo).toHaveProperty('confidenceUnavailable');
+    });
+  }
+});
+
+/**
+ * Story 11.6 (AC2) — "Soltider idag" removal removed-key pin.
+ *
+ * AC2 removed the venue-detail day-timeline strip (`VenueTimeline`/`SunTimeline`
+ * render path) and its peak/best-window subtitle. That orphaned four
+ * `venue.detail.*` keys: the whole `timeline` block, the strip's `sectionTitle`,
+ * and the subtitle's `peakTime` / `bestWindow`. All four were deleted from BOTH
+ * locales. `messages-parity.test.ts` only guarantees sv/en stay identical — it
+ * would pass if any of these were re-added to both locales. This suite pins the
+ * DELETION so a reader can never render a raw key, and confirms the KEPT
+ * `detail.openUntil` stays (the honest "ÖPPET · {time}" badge still consumes it).
+ *
+ * NOTE: the engine timeline computation (the `detail.timeline` DTO, the `[slug]`
+ * route, `VenueSunTimelineDto`) is deliberately untouched — Story 11.1 consumes
+ * the day-series. This pin is scoped to the venue-detail i18n presentation keys
+ * that AC2 pruned, not the data path.
+ */
+describe('Story 11.6 removed venue-detail timeline i18n keys have no remaining reader', () => {
+  function loadDetail(locale: string): Record<string, unknown> {
+    const detail = (loadNamespace(locale, 'venue.json').detail ?? {}) as Record<string, unknown>;
+    return detail;
+  }
+
+  for (const locale of LOCALES) {
+    it(`drops the timeline block + sectionTitle/peakTime/bestWindow from venue.detail in ${locale}`, () => {
+      const detail = loadDetail(locale);
+      expect(detail).not.toHaveProperty('timeline');
+      expect(detail).not.toHaveProperty('sectionTitle');
+      expect(detail).not.toHaveProperty('peakTime');
+      expect(detail).not.toHaveProperty('bestWindow');
+    });
+
+    it(`keeps venue.detail.openUntil (still read by the honest ÖPPET badge) in ${locale}`, () => {
+      const detail = loadDetail(locale);
+      expect(detail).toHaveProperty('openUntil');
+      expect(typeof detail.openUntil).toBe('string');
+    });
+  }
+
+  it('leaves no reader for the removed timeline keys anywhere in venue.json (both locales)', () => {
+    // Belt-and-braces raw scan: guards against the keys reappearing under a
+    // different parent path. Scoped to venue.json — `feedback.json` legitimately
+    // has its own `sectionTitle` ("Omdömen"), which this story keeps.
+    for (const locale of LOCALES) {
+      const raw = readFileSync(path.join(MESSAGES_DIR, locale, 'venue.json'), 'utf8');
+      expect(raw).not.toContain('"timeline"');
+      expect(raw).not.toContain('"sectionTitle"');
+      expect(raw).not.toContain('"peakTime"');
+      expect(raw).not.toContain('"bestWindow"');
+    }
+  });
+});

@@ -50,9 +50,17 @@ const SUPABASE_ROW = {
   thumbnail: { alt: 'Supa', initials: 'SV', url: 'https://example.com/x.jpg' },
   description: 'En riktig uteservering.',
   address: 'Storgatan 1, Göteborg',
-  opening_hours: { display: 'Öppet till 22:00', closesAt: '22:00' },
-  peak_time: '15:00',
-  shadow_warning_minutes: 30,
+  // Story 11.9 (AC2): per-weekday opening_hours jsonb (closes 22:00 every day).
+  // Story 11.9 (AC3/AC4): peak_time + shadow_warning_minutes columns are gone.
+  opening_hours: {
+    '1': { open: '09:00', close: '22:00' },
+    '2': { open: '09:00', close: '22:00' },
+    '3': { open: '09:00', close: '22:00' },
+    '4': { open: '09:00', close: '22:00' },
+    '5': { open: '09:00', close: '22:00' },
+    '6': { open: '09:00', close: '22:00' },
+    '7': { open: '09:00', close: '22:00' },
+  },
   current_sun_status: 'Sunny',
   sky_condition: 'clear',
   confidence: 84,
@@ -92,9 +100,29 @@ describe('venue-store (default in-memory)', () => {
     for (const venue of venues) {
       expect(venue).not.toHaveProperty('description');
       expect(venue).not.toHaveProperty('address');
-      expect(venue).not.toHaveProperty('openingHours');
       expect(venue).not.toHaveProperty('peakTime');
       expect(venue).not.toHaveProperty('shadowWarningMinutes');
+    }
+  });
+
+  it('surfaces openingHours on seeded list venues that carry it, and omits it otherwise (Story 11.4 AC1)', async () => {
+    // Story 11.4 (AC1) CI-determinism: the seed path returns raw VENUE_FIXTURE
+    // (no VENUE_DETAIL_SEED merge), so opening hours reach the list DTO ONLY for
+    // the fixtures that carry them. The two sunny fixtures seed a real value
+    // (present-case); at least one fixture omits it (absent-case) so the
+    // "renders nothing when absent" branch is CI-provable.
+    const venues = await getVenues();
+    const sunny = venues.find((venue) => venue.slug === 'test-venue-sunny');
+    // Story 11.9 (AC2): the per-weekday structure (closes 22:00 every day). The
+    // render layer derives "Öppet till 22:00" for the current weekday.
+    expect(sunny?.openingHours?.['1']).toEqual({ open: '11:00', close: '22:00' });
+    expect(sunny?.openingHours?.['7']).toEqual({ open: '11:00', close: '22:00' });
+
+    const withoutHours = venues.filter((venue) => venue.openingHours === undefined);
+    expect(withoutHours.length).toBeGreaterThan(0);
+    // The absent case never carries a fabricated placeholder.
+    for (const venue of withoutHours) {
+      expect(venue).not.toHaveProperty('openingHours');
     }
   });
 
@@ -106,10 +134,15 @@ describe('venue-store (default in-memory)', () => {
       description:
         'Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.',
       address: 'Tredje Långgatan 9, 413 03 Göteborg',
-      openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
-      peakTime: '15:30',
-      shadowWarningMinutes: 45,
+      // Story 11.9 (AC2): per-weekday hours (closes 22:00 every day). No stored
+      // peakTime / shadowWarningMinutes any more (AC3/AC4).
+      openingHours: {
+        '1': { open: '11:00', close: '22:00' },
+        '7': { open: '11:00', close: '22:00' },
+      },
     });
+    expect(venue).not.toHaveProperty('peakTime');
+    expect(venue).not.toHaveProperty('shadowWarningMinutes');
   });
 
   it('resolves by venueSlug as well and trims the input', async () => {
@@ -152,14 +185,19 @@ describe('venue-store (Supabase opt-in)', () => {
     // seating_area, seating_elevation_m, and ground_elevation_m). A dropped/renamed
     // column would fail here.
     const columns = VENUE_SELECT_COLUMNS.split(', ');
+    // Story 11.9 (AC3/AC4): peak_time + shadow_warning_minutes are DROPPED; the
+    // opening_hours column stays (its jsonb shape changed, not the column list).
     expect(columns).toEqual([
       'id', 'slug', 'venue_name', 'neighborhood', 'lat', 'lng', 'is_partner',
-      'thumbnail', 'description', 'address', 'opening_hours', 'peak_time',
-      'shadow_warning_minutes', 'current_sun_status', 'sky_condition', 'confidence',
+      'thumbnail', 'description', 'address', 'opening_hours',
+      'current_sun_status', 'sky_condition', 'confidence',
       'sun_exposure_percent', 'sun_window', 'prediction_uncertainty', 'tags',
       'seating_area', 'seating_elevation_m', 'ground_elevation_m',
     ]);
-    expect(columns).toHaveLength(23);
+    expect(columns).not.toContain('peak_time');
+    expect(columns).not.toContain('shadow_warning_minutes');
+    // Story 11.9 (AC3/AC4): 23 − peak_time − shadow_warning_minutes = 21 columns.
+    expect(columns).toHaveLength(21);
     // Story 9.7: `tags` IS a client field (mapped into the DTO), unlike the
     // server-only seating_* columns.
     expect(columns).toContain('tags');
@@ -223,10 +261,15 @@ describe('venue-store (Supabase opt-in)', () => {
       id: '9',
       description: 'En riktig uteservering.',
       address: 'Storgatan 1, Göteborg',
-      openingHours: { display: 'Öppet till 22:00', closesAt: '22:00' },
-      peakTime: '15:00',
-      shadowWarningMinutes: 30,
+      // Story 11.9 (AC2): coerceOpeningHours maps the per-weekday jsonb through.
+      openingHours: {
+        '1': { open: '09:00', close: '22:00' },
+        '7': { open: '09:00', close: '22:00' },
+      },
     });
+    // Story 11.9 (AC3/AC4): the dropped columns never map onto the DTO.
+    expect(venue).not.toHaveProperty('peakTime');
+    expect(venue).not.toHaveProperty('shadowWarningMinutes');
   });
 
   it('tolerates null jsonb sub-fields without crashing', async () => {
@@ -243,8 +286,6 @@ describe('venue-store (Supabase opt-in)', () => {
       description: null,
       address: null,
       opening_hours: null,
-      peak_time: null,
-      shadow_warning_minutes: null,
       current_sun_status: 'Shaded',
       sky_condition: null,
       confidence: 50,
@@ -519,16 +560,23 @@ describe('venue-store projection helpers', () => {
     sunWindow: { start: '13:00', end: '18:30' },
     description: 'desc',
     address: 'addr',
-    openingHours: { display: 'Öppet till 22:00' },
-    peakTime: '15:30',
-    shadowWarningMinutes: 45,
+    // Story 11.9 (AC2): per-weekday opening hours (closes 22:00 every day). No
+    // stored peakTime / shadowWarningMinutes any more (AC3/AC4).
+    openingHours: {
+      '1': { open: '11:00', close: '22:00' },
+      '2': { open: '11:00', close: '22:00' },
+      '3': { open: '11:00', close: '22:00' },
+      '4': { open: '11:00', close: '22:00' },
+      '5': { open: '11:00', close: '22:00' },
+      '6': { open: '11:00', close: '22:00' },
+      '7': { open: '11:00', close: '22:00' },
+    },
   };
 
   it('toVenueData strips the detail block but keeps base fields', () => {
     const base = toVenueData(stored);
     expect(base).not.toHaveProperty('description');
     expect(base).not.toHaveProperty('address');
-    expect(base).not.toHaveProperty('openingHours');
     expect(base).not.toHaveProperty('peakTime');
     expect(base).not.toHaveProperty('shadowWarningMinutes');
     expect(base).toMatchObject({ id: '1', skyCondition: 'clear', sunWindow: { start: '13:00', end: '18:30' } });
@@ -536,13 +584,38 @@ describe('venue-store projection helpers', () => {
     expect(base.tags).toEqual(['Innergård', 'Hund ok', 'Wifi', 'Bakverk']);
   });
 
+  it('toVenueData surfaces openingHours on the list DTO when the store carries it (Story 11.4 AC1 / 11.9 AC2)', () => {
+    // Opening hours are the ONE detail-adjacent field carried through to the list
+    // surface so the quick-info caller can DERIVE "Öppet till HH:MM". Now the
+    // per-weekday structure passes through verbatim (same reference).
+    const base = toVenueData(stored);
+    expect(base.openingHours).toBe(stored.openingHours);
+    expect(base.openingHours?.['1']).toEqual({ open: '11:00', close: '22:00' });
+  });
+
+  it('toVenueData omits openingHours when the store has none (never fabricated — Story 11.4 AC1)', () => {
+    // Absent → absent: a venue without opening hours must NOT gain a fabricated
+    // value on the list DTO (the card renders nothing for it).
+    const { openingHours: _omit, ...withoutHours } = stored;
+    void _omit;
+    const base = toVenueData(withoutHours);
+    expect(base).not.toHaveProperty('openingHours');
+  });
+
   it('storedVenueDetail extracts only the detail block', () => {
+    // Story 11.9 (AC3/AC4): the block no longer carries peakTime/shadowWarningMinutes.
     expect(storedVenueDetail(stored)).toEqual({
       description: 'desc',
       address: 'addr',
-      openingHours: { display: 'Öppet till 22:00' },
-      peakTime: '15:30',
-      shadowWarningMinutes: 45,
+      openingHours: {
+        '1': { open: '11:00', close: '22:00' },
+        '2': { open: '11:00', close: '22:00' },
+        '3': { open: '11:00', close: '22:00' },
+        '4': { open: '11:00', close: '22:00' },
+        '5': { open: '11:00', close: '22:00' },
+        '6': { open: '11:00', close: '22:00' },
+        '7': { open: '11:00', close: '22:00' },
+      },
     });
   });
 });

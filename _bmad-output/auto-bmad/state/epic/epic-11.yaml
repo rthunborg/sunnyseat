@@ -1,0 +1,176 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: epic-11
+epic_num: 11
+story_num: null
+branch: epic/11-feels-instant-reads-clear
+status: done
+updated_at: "2026-07-05T20:26:37Z"
+started_at: "2026-07-04T15:28:43Z"
+completed_at: "2026-07-05T20:26:37Z"
+active_seconds: 97643
+timing_anchor: 1783282703
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: null
+tea_selected: []
+tea_rationale: null
+epic_story_count: 8
+stories_after_in_epic: null
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
+code_review_iterations: 2
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic â€” no halt)"
+external_review_iterations: 0
+convergence_unverified: true
+story_trace: null
+commits: []
+phase8_steps:
+  trace_gate: done
+  nfr: done
+  test_review: done
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: PASS
+gate_iterations: 0
+deferred_work_archived: 2
+pr_url: "https://github.com/rthunborg/sunnyseat/pull/17"
+ci_run_url: "https://github.com/rthunborg/sunnyseat/actions/runs/28753805164"
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "Test-design left 4 thresholds UNKNOWN for story drafting: light-tint overlay strength (11-5), day-series gzipped payload ceiling (11-1), sheet collapsed-snap height + gesture thresholds (11-3), live date-change p95 (measured in 11-8)"
+deferred_work: []
+blockers: []
+overrides: {}
+constraints: []
+epic_slug: feels-instant-reads-clear
+active_story: null
+stories_landed:
+  - 11-1-client-side-day-series-instant-time-scrubbing
+  - 11-2-time-slider-drag-fix-planner-range-rules
+  - 11-3-mobile-tag-filtering-bottom-sheet-overhaul
+  - 11-4-venue-quick-info-rework-reference-alignment
+  - 11-5-map-legibility-location-dot-recenter
+  - 11-6-venue-detail-clean-first-paint-content-polish
+  - 11-7-hygiene-deferred-debt
+  - 11-8-live-verification-pass-touch-gesture-perf-guards
+auto_decisions:
+  - "AC4 min-clamp enforced only in component, not in state [Med] -> fix: add minMinutes-aware floor inside setSelectedMinutes/snapSelectedMinutes + the missing below-min-commit state test (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
+  - "AC1 real-touch e2e never runs in CI [Med] -> fix: add npx playwright test --project=touch step to build-and-test-nextjs.yml so the thumb-drag proof is a live gate (Tier A, 11-2-time-slider-drag-fix-planner-range-rules)"
+  - "Mobile chip row hidden in favourites but desktop strip is not â€” AC1 parity [Med] -> fix: gate DesktopNavBar TagChipStrip on listMode==='favourites' (mirror the mobile gate) (Tier A, 11-3-mobile-tag-filtering-bottom-sheet-overhaul)"
+  - "1:1 finger tracking suppressed under prefers-reduced-motion [Med] -> dismiss: jump-on-release is a standard reduced-motion accommodation; AC3's 1:1 describes the default animated path (Tier A, 11-3-mobile-tag-filtering-bottom-sheet-overhaul)"
+  - "AC3 byte-identical rebaseline PNGs (mobile map-primary == map-panel-venues, carried-forward pre-existing duplication) [High] -> fix: re-capture both with an in-DOM different-state assertion + pairwise-distinct check BEFORE maintainer blessing (Tier A, 11-7-hygiene-deferred-debt) — HIGH auto-decision: epic ships draft for human review"
+  - "Recenter omits 52px mobile nav-bar cover [Med] -> fix: add MOBILE_NAV_BAR_COVER=52 to the mobile bottom for non-dismissed snaps (E_review, epic-11)"
+  - "applyDaySeriesDerivation freezes skyCondition on scrub [Med] -> fix: carry skyCondition on VenueDaySeriesEntry and override it in the derivation (E_review, epic-11)"
+  - "TimeSlider isDragging same-tick race [Med] -> fix: back the drag flag with a synchronous isDraggingRef (E_review, epic-11)"
+  - "enforceWindow:false URL-vs-state date divergence [Med] -> defer: accepted 11.2 design; optional URL-replace rides the 11.8 live pass (E_review, epic-11)"
+  - "closesAt ÖPPET badge no is-open guard [Low] -> defer: needs an isOpenNow DTO signal, data-layer change out of epic scope (E_review, epic-11)"
+uat_items:
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Open http://localhost:3000 (cd nextjs-app && npm run dev), DevTools Network filtered on api/venues, wait for initial load â†’ exactly one /api/venues request settles and pins appear"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Same date selected, drag the bottom time slider across several 15-min steps (09:00 â†’ 12:00 â†’ 18:00) â†’ ZERO new /api/venues requests"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Set selected time to live wall-clock now, scrub away and back to now â†’ still zero /api/venues requests (liveâ†”off-live keeps the same query key)"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Click the planner-date-next chevron (right of the calendar button) â†’ exactly ONE new /api/venues request fires"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] During that in-flight date change â†’ map dims under a gray scrim with centered spinner, existing pins stay visible (not blanked); overlay fades and pins update in place on response"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Pick a different valid future date via the calendar â†’ one request + same dim+spinner update-in-place; pick today again â†’ returns to the live path"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Real engine on (SUNNYSEAT_SUN_ENGINE=real, SUNNYSEAT_VENUE_STORE=supabase, service-role key already in .env.local; restart dev): scrub across the day â†’ pin %/state, venue-card figures, and Mest sol ordering change per step with zero requests"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Real engine: scrub a fully-shaded early/late step vs midday for the same venue â†’ card/pin flips sunlit â†” Shaded/NoSun tracking the per-step gated value"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Real engine: open a favourite/out-of-radius venue via /favoriter or deep link, scrub same-date time â†’ that favourite row's figures and Mest sol rank update per step with zero requests"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Real engine: curl 'http://localhost:3000/api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=<YYYY-MM-DD>&time=13:00' â†’ each venues[] entry carries sunDaySeries: 61 {minutes, sunExposurePercent, currentSunStatus} entries (minutes 360â€¦1260)"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Seed path (engine flag unset): same curl â†’ response byte-compatible with pre-11.1, NO sunDaySeries field on any venue"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] Real engine: re-issue the curl with -H 'If-None-Match: <etag from first call>' â†’ 304 Not Modified (ETag holds with the day-series payload)"
+  - "[11-1-client-side-day-series-instant-time-scrubbing] OUT OF MANUAL SCOPE at this state: AC4 live date-change p95 (<3s) + live scrub=0 confirmation = maintainer handoff on live Vercel (protocol in the story's Dev Agent Record); overlay reference-PNG blessing = story 11-7 checkpoint"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Desktop viewport, mouse: press and hold directly ON the slider thumb and drag â†’ thumb grabs immediately and follows; time badge updates during drag (not dead on the thumb)"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Mobile viewport (DevTools device toolbar): press-drag starting ON the thumb â†’ grabs and follows; release sets the new time"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Tap the track away from the thumb â†’ thumb jumps there and the time commits once"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] DevTools Network filtered on venues: drag across several positions on the SAME date and release â†’ thumb/fill/badge follow continuously and ZERO /api/venues requests fire (during or on release)"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Click the next-day chevron â†’ exactly ONE /api/venues request (date change is the only fetch)"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Open the calendar â†’ today + next 3 days enabled; day 4+ and past days greyed (opacity-40, not-allowed) and unselectable"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Click a greyed beyond-window date â†’ nothing happens (no selection/date change)"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Inspect a disabled in-season beyond-window date â†’ aria-label 'Datum utanfÃ¶r planeringsfÃ¶nstret' (distinct from past-date 'Datum har passerat')"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Load http://localhost:3000/?_date=2027-01-01&_time=13:00 â†’ planner clamps to today (no 2027 label, no error)"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Plain URL (NO ?_time= â€” forcing disables the today-min), date=today â†’ track before current wall-clock time renders muted/inert grey; thumb cannot be dragged earlier than now"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Keyboard on today: focus slider, press Home / Left repeatedly â†’ value stops at the current-time minimum"
+  - "[11-2-time-slider-drag-fix-planner-range-rules] Switch to a future date (e.g. today+2) â†’ full 06:00â€“21:00 range available again (no inert elapsed segment)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Mobile viewport: drag the sheet handle up off peek (mid/full) → horizontally scrollable tag-chip row appears directly UNDER the Mest sol / Nära mig toggles, inside the sheet body"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Mobile, sheet at peek → chip row NOT shown (renders only above peek)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Compare mobile chip set to desktop nav strip → SAME tags, same first-seen order (data-driven, no hardcoded set)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Tap a chip (e.g. Kanal) → flips to dark 'on' pill; venue LIST prunes AND map pins prune to the same set"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Tap the active chip again → inactive style; list and pins restore"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Toggle a chip on mobile, resize to desktop → same tag active on desktop strip, list/pins filtered identically (shared context)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Toggle a zero-match tag combo → list shows 'Inga platser hittades…' empty copy, NOT the loading skeleton"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Mobile: switch list to Favourites → chip row disappears; back to Närmast → returns"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Desktop: open /favoriter → desktop chip strip also hidden (parity gate); back to / → returns"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Fresh load before any tags exist → neither chip row nor strip renders until a tag has loaded"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] From peek, drag handle down firmly (past ~64px) or fast-swipe → sheet snaps to handle-only COLLAPSED (drag pill + safe-area only)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] From collapsed, drag handle up → returns through peek → mid → full"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Sheet collapsed: tap a venue pin above the handle → map fully interactive (pin selects, sheet raises); no dim backdrop"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Sheet collapsed: body is aria-hidden / non-interactive while the handle stays focusable (inspect via DevTools/screen reader)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Focus handle, ArrowDown repeatedly → full → mid → peek → collapsed, STOPS at collapsed (never dismisses)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Focus handle, ArrowUp from collapsed → peek → mid → full, stops at full"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Focus handle, Enter/Space repeatedly → cycles peek → mid → full → peek (never lands on collapsed)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Mobile, motion enabled: slow-drag the handle without releasing → sheet tracks the finger 1:1, settles on release only"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Sheet above peek: fling the chip row horizontally → chips scroll, sheet does NOT move vertically (no axis hijack)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] At full, scroll list to top then keep pulling down → sheet drags toward peek; the drag never fires a spurious chip toggle"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Desktop narrow enough that tags overflow → strip scrolls horizontally (no mid-chip clip), arrows + edge fades appear"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] At far-left → LEFT arrow disabled, only right edge-fade shows"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Click RIGHT arrow → scrolls ~one page smoothly, clipped chips revealed, left arrow enables"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Keep clicking right to the end → RIGHT arrow disables, right fade disappears (all tags reachable)"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Widen viewport until all chips fit → both arrows disabled, both fades gone"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Tab into the strip → arrows + every chip are focus stops; tabbing to an off-screen chip auto-scrolls it into view"
+  - "[11-3-mobile-tag-filtering-bottom-sheet-overhaul] Desktop: click or Enter/Space a chip → toggles the pill and filters list + pins (arrows scroll only, never toggle)"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Seed path (npm run dev, no engine flags): select Kafé Magasinet or Bryggerietsoltak → quick-info card shows a single honest opening-hours line ('Öppet till 22:00' / 'Öppet till 23:00') under the name"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Inspect the open card → NO 'Säkerhet: NN%' confidence text anywhere visible (mobile or desktop)"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Inspect the open card → NO 'Sol HH:mm–HH:mm' sun-window line anywhere"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Select a venue WITHOUT hours (Solplats Magasinsgatan, Café Halvvägs, Brygghuset Lerum, Skuggans Hus, Bistro Bakgården) → NO opening-hours line and NO fabricated placeholder — slot simply empty"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Route CTA reads only 'VISA RUTT' (+ nav icon), no truncated ETA appended, at mobile-compact and desktop widths"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Narrow mobile (~360px), open the sunny card → layout (top-left % SOL badge, top-right heart, name, hours, VISA RUTT + MER INFO row) holds without overflow/clipping"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Open a Partial-sun venue (Café Halvvägs / Brygghuset Lerum) → amber % SOL badge + Sun icon on the photo strip, no confidence/sun-window text, layout holds"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Open a Shaded venue (Skuggans Hus / Bistro Bakgården) → low % SOL badge renders, no confidence/sun-window line, no overflow"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Click the venue name or MER INFO → venue detail opens (details action intact after the rework)"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Click the heart → favourite toggles (fills/unfills); click the close X → card dismisses with its transition"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Click VISA RUTT → route action fires; any 'ca N min promenad' ETA appears on the detail/route surface, NOT inside the quick-info button"
+  - "[11-4-venue-quick-info-rework-reference-alignment] Screen reader on the open sunny card → read-out is name → sun % → opening hours → distance (sr-only confidence still spoken), no dangling '·' or duplicate phrase"
+  - "[11-4-venue-quick-info-rework-reference-alignment] NOT manually reachable on seed data: the CloudObscured 'Sol bakom moln' two-signal state (weather-gated, real path only) — preserved via component tests"
+  - "[11-5-map-legibility-location-dot-recenter] Desktop city zoom → basemap streets/water/parks/labels clearly legible with only a faint warm tint perceptible"
+  - "[11-5-map-legibility-location-dot-recenter] Zoom in/out + pan central Gothenburg → labels/streets readable at every zoom; tint never obscures"
+  - "[11-5-map-legibility-location-dot-recenter] Mobile viewport → same clear legibility with subtle warm tone"
+  - "[11-5-map-legibility-location-dot-recenter] Compare a venue teardrop's amber label against the map behind → pin/label contrast not degraded by the lighter tint"
+  - "[11-5-map-legibility-location-dot-recenter] Grant geolocation → round amber dot with white ring + soft shadow, noticeably larger (~24px), clearly distinct from venue teardrops/pills"
+  - "[11-5-map-legibility-location-dot-recenter] Watch the dot → soft radial amber halo pulses continuously (~2s gentle grow/fade loop)"
+  - "[11-5-map-legibility-location-dot-recenter] Zoom in/out with the dot visible → stays distinguishable from venue pins at all zooms"
+  - "[11-5-map-legibility-location-dot-recenter] Tap/drag the map on top of the dot → pan still works and underlying venue pins stay tappable (dot never intercepts pointers)"
+  - "[11-5-map-legibility-location-dot-recenter] Emulate prefers-reduced-motion + reload + locate → halo shown but STATIC (no pulsing); dot still full-size with ring"
+  - "[11-5-map-legibility-location-dot-recenter] Mobile, sheet at mid: tap the top-bar locate button → ~500ms fly, dot lands centered in the visible map band ABOVE the sheet"
+  - "[11-5-map-legibility-location-dot-recenter] Sheet at full: locate again → dot lands centered in the smaller unobscured band (higher up)"
+  - "[11-5-map-legibility-location-dot-recenter] Sheet at peek/collapsed: locate → dot lands centered lower in the taller visible area, clear of the top search bar"
+  - "[11-5-map-legibility-location-dot-recenter] Any recenter fly → the top search-bar card never covers the landed dot"
+  - "[11-5-map-legibility-location-dot-recenter] Desktop (>=1024px), list only: locate from the desktop nav → dot centers in the map area RIGHT of the 340px list"
+  - "[11-5-map-legibility-location-dot-recenter] Desktop with venue detail open: locate again → dot centers in the narrower band between list and detail panel (items 10-15 need a granted GPS fix or DevTools Sensors location override; recenter fires from the locate buttons, not the zoom stack)"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Mobile: load /?venue=test-venue-sunny&_state=venue-detail&_time=14:00 → detail sheet fully loaded (no skeletons): name, amber 'ÖPPET · 22:00' pill, type/city/rating, description, chips, Avstånd, hours+address, route button, reviews — no half-rendered frame"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Scroll that detail top-to-bottom → NO 'Soltider idag' timeline strip anywhere and no orphaned gap (description and chips cleanly adjacent)"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Desktop (>=1024px): same forced route at _time=16:30 → 390px right panel fully loaded, likewise NO timeline section / orphaned spacing"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Inspect the header ÖPPET badge text color → darkened amber-on-yellow #5c4300 on #ffbf00, clearly legible (not washed-out)"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Scroll to Omdömen on mobile → section heading + content horizontally centered"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Open a real venue with zero reviews → 'Inga omdömen' appears EXACTLY once (no duplicate count line above), centered"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Open a venue WITH reviews → review cards render and NO 'Inga omdömen' appears (count summary instead)"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Slow-3G throttle + click a real pin → while detail streams: badge/hours/address each show same-sized grey skeletons (never a fabricated ÖPPET·22:00 or empty line); name/type/city/rating/distance appear immediately from fallback"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Watch the skeleton→content swap on that throttled load → in place, no layout jump or flicker (badge skeleton footprint == final badge)"
+  - "[11-6-venue-detail-clean-first-paint-content-polish] Open a real venue lacking a closing time → NO ÖPPET badge at all after load (omitted, never a stand-in 22:00). Not reproducible via the forced route (fixture always has closesAt)"
+  - "[11-7-hygiene-deferred-debt] MAINTAINER BLESSING: run the dev app fresh and eyeball each of the 12 staged rebaseline PNGs (screens/mobile/{map-primary,map-panel-venues,map-with-selected-venue,venue-detail,favourites-tab,map-with-obscured-venue,venue-detail-obscured} + desktop/{map-primary,venue-detail,favourites-tab,map-with-obscured-venue,venue-detail-obscured}) against the live surface → BLESS or reject each (dev is forbidden from self-blessing; this is the visual gate)"
+  - "[11-7-hygiene-deferred-debt] Resolved-High spot-check: mobile map-primary.png shows the resting de-dulled map with sheet COLLAPSED (no chips/segmented control) while map-panel-venues.png shows the expanded 11-3 sheet (chips + cards) — genuinely different states (md5 eaadf98… vs 5b24572…)"
+  - "[11-7-hygiene-deferred-debt] Obscured re-verify: the 4 obscured references (map-with-obscured-venue + venue-detail-obscured, both breakpoints) still show intact obscured chrome (slate pill, 'SOL BAKOM MOLN · MULET') matching the live obscured surface"
+  - "[11-8-live-verification-pass-touch-gesture-perf-guards] POST-MERGE PROTOCOL 1 (live Vercel Production, real data path): change planner date today→today+1 and time wall-clock to markers-updated; >=10 trials → p95 < 3s recorded (stretch <1.5s warm), warm/cold noted per trial; a miss is triaged, not passed"
+  - "[11-8-live-verification-pass-touch-gesture-perf-guards] POST-MERGE PROTOCOL 1b: on live Production with network panel open, scrub the slider across settled steps → 0 /api/venues requests; capture the gzipped sunDaySeries payload byte size alongside the p95 figures"
+  - "[11-8-live-verification-pass-touch-gesture-perf-guards] POST-MERGE PROTOCOL 2 (real physical phone on live Production): slider thumb drag follows finger 1:1; sheet reaches all four snaps by gesture with chips usable + map interactive behind collapsed; quick-info shows no Säkerhet/sun-window text; map tint/dot/recenter correct; venue detail clean first paint — one screenshot per surface, gaps triaged before epic close"
+  - "[11-8-live-verification-pass-touch-gesture-perf-guards] POST-MERGE PROTOCOL 3 (PR review): inspect + BLESS the 12-pair staged rebaseline under docs/design/references/screens/ incl. the re-captured distinct map-primary/map-panel-venues mobile pair + REBASELINE-LOG entry (dev forbidden from self-blessing)"
+  - "[11-8-live-verification-pass-touch-gesture-perf-guards] Gate spot-check on the branch (not hand-run): mobile+desktop (request-count invariant + chip parity + weather matrix), touch (slider+sheet), a11y (axe AA) all green; a11y-mobile deliberately un-invoked (5.1 fixme debt)"
+planning_drift: "none"

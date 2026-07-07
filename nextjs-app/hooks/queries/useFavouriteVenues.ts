@@ -5,6 +5,7 @@ import { queryKeys } from '@/lib/query-keys';
 import { sanitizeFavouriteIds } from '@/lib/services/favourites-storage';
 import type { GetVenuesResponse } from '@/lib/types/api';
 import { readSunFreshnessHeaders } from '@/lib/utils/sun-freshness';
+import { deriveQueryKeyPlanner } from '@/lib/utils/venue-query-planner';
 import {
   HttpError,
   shouldRetryVenueQuery,
@@ -21,6 +22,11 @@ type Params = {
   lng: number;
   date?: string;
   time?: string;
+  // Story 11.1 (AC1): mirrors `useVenueSearch` — key on the selected `date` in
+  // both live and off-live cases, send date/time to the server only off-live,
+  // and never put `time` in the key. Defaults false (send the provided planner
+  // selection, the pre-11.1 behaviour).
+  isLiveNow?: boolean;
   enabled?: boolean;
 };
 
@@ -31,8 +37,14 @@ export function useFavouriteVenues(
   const lat = inputsValid ? bucket(params.lat) : 0;
   const lng = inputsValid ? bucket(params.lng) : 0;
   const ids = normalizeIds(params.ids);
+  const isLiveNow = params.isLiveNow === true;
   const planner = normalizePlannerParams(params.date, params.time);
-  const filters = { ids, lat, lng, ...planner };
+  // Shared date-only key fragment — identical to `useVenueSearch` (external-review
+  // fix): both hooks key on `date` (never `time`) so the R-001 zero-fetch invariant
+  // cannot drift between them.
+  const keyPlanner = deriveQueryKeyPlanner(planner?.date);
+  const sendPlanner = !isLiveNow && planner ? planner : undefined;
+  const filters = { ids, lat, lng, ...keyPlanner };
 
   return useQuery<GetVenuesResponse, Error>({
     queryKey: queryKeys.venues.favourites(filters),
@@ -42,9 +54,9 @@ export function useFavouriteVenues(
         lat: String(lat),
         lng: String(lng),
       });
-      if (planner) {
-        searchParams.set('date', planner.date);
-        searchParams.set('time', planner.time);
+      if (sendPlanner) {
+        searchParams.set('date', sendPlanner.date);
+        searchParams.set('time', sendPlanner.time);
       }
       const res = await fetch(`/api/venues?${searchParams.toString()}`, { signal });
       if (!res.ok) {
@@ -64,7 +76,8 @@ export function useFavouriteVenues(
       };
     },
     staleTime: FIVE_MINUTES,
-    refetchInterval: planner ? false : FIVE_MINUTES,
+    // Poll on the live path (no off-live selection sent), never off-live. [11.1]
+    refetchInterval: sendPlanner ? false : FIVE_MINUTES,
     refetchOnWindowFocus: false,
     retry: shouldRetryVenueQuery,
     retryDelay: venueQueryRetryDelay,

@@ -1,11 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import type { AnchorHTMLAttributes } from 'react';
 import { renderWithProviders } from '@/test/setup/test-utils';
 import { DesktopNavBar } from '@/components/custom/layout/DesktopNavBar';
 import { TimeProvider } from '@/lib/contexts/TimeContext';
 import { TagFilterProvider } from '@/lib/contexts/TagFilterContext';
+import { addDaysToDateKey, stockholmDateKey } from '@/lib/utils/time-planner';
 import type { GetVenuesResponse } from '@/lib/types/api';
+
+// Story 11.2 (AC3): a forced planner date must be inside the today->today+3
+// window or `stateFromForcedPlanner` clamps it to today. Compute an in-window
+// date (today+2) from the live clock so these forcing cases round-trip.
+const IN_WINDOW_DATE = addDaysToDateKey(stockholmDateKey(new Date()), 2);
 
 const SEARCH_DEBOUNCE_MS = 200;
 
@@ -15,7 +21,23 @@ const mockState = vi.hoisted(() => ({
   useVenueSearch: vi.fn(),
   requestLocation: vi.fn(),
   openSettings: vi.fn(),
+  // Story 11.3 review: the chip strip is hidden in favourites mode, gated on the
+  // favourites route, so the pathname must be drivable per-test. Defaults to the
+  // nearest route ('/') so every existing chip test keeps the strip rendered.
+  pathname: '/',
+  // External-review reduced-motion fix: drive `useReducedMotion` per-test. motion
+  // /react caches its matchMedia read, so mock the hook directly (as
+  // MobileBottomSheet.test.tsx does) rather than swapping window.matchMedia.
+  reducedMotion: false,
 }));
+
+vi.mock('motion/react', async () => {
+  const actual = await vi.importActual<typeof import('motion/react')>('motion/react');
+  return {
+    ...actual,
+    useReducedMotion: () => mockState.reducedMotion,
+  };
+});
 
 vi.mock('@/lib/contexts/SettingsContext', () => ({
   useSettings: () => ({
@@ -66,7 +88,7 @@ vi.mock('next-intl/navigation', () => ({
         {children}
       </a>
     ),
-    usePathname: () => '/',
+    usePathname: () => mockState.pathname,
     useRouter: () => ({ replace: vi.fn(), push: vi.fn(), prefetch: vi.fn() }),
     redirect: vi.fn(),
     getPathname: vi.fn(),
@@ -95,6 +117,8 @@ const NAV_MESSAGES = {
       language: 'Språk',
       switchToSwedish: 'Byt till svenska',
       switchToEnglish: 'Byt till engelska',
+      scrollFiltersLeft: 'Bläddra filter åt vänster',
+      scrollFiltersRight: 'Bläddra filter åt höger',
       filterChips: {
         courtyard: 'Innergård',
         dogs: 'Hund ok',
@@ -125,6 +149,8 @@ describe('DesktopNavBar', () => {
   beforeEach(() => {
     mockState.selectVenue.mockClear();
     mockState.easeTo.mockClear();
+    mockState.pathname = '/';
+    mockState.reducedMotion = false;
     mockState.useVenueSearch.mockReset().mockReturnValue({
       data: makeVenueResponse(),
       isFetching: false,
@@ -202,33 +228,38 @@ describe('DesktopNavBar', () => {
   });
 
   it('passes planner date and time to search queries', () => {
-    renderDesktopNav({ forcedDate: '2026-06-14', forcedTime: '14:00' });
+    renderDesktopNav({ forcedDate: IN_WINDOW_DATE, forcedTime: '14:00' });
 
     expect(mockState.useVenueSearch).toHaveBeenCalledWith(expect.objectContaining({
-      date: '2026-06-14',
+      date: IN_WINDOW_DATE,
       time: '14:00',
     }));
   });
 
-  it('feeds useVenueSearch the SAME deferred-planner key + coordsSettled gate as MapView (Story 9.4 de-dupe invariant) — Story 9.7 review patch', () => {
+  it('feeds useVenueSearch the SAME deferred-planner args + coordsSettled gate as MapView (Story 9.4 / R-001 de-dupe invariant) — external-review shared-args fix', () => {
     // The nav's chip-driving venue query MUST be byte-identical to MapView's so
     // TanStack collapses them into ONE request during a slider drag / before
-    // geolocation settles. MapView issues:
+    // geolocation settles. Both callers now derive the args via the SHARED
+    // `venuePlannerQueryArgs`, which on an OFF-LIVE selection emits
+    // `{ date, time, isLiveNow: false }` (the `isLiveNow` flag is part of the
+    // shared shape — its absence was the pre-fix divergence that flipped the nav's
+    // key `list`→`planner` on the first scrub away from live). MapView issues:
     //   useVenueSearch({ lat, lng, radiusKm: 1.5, enabled: coordsSettled,
-    //                    ...useDeferredValue(plannerTime.plannerQuery) })
+    //                    ...useDeferredValue(venuePlannerQueryArgs(plannerTime)) })
     // with coordsSettled = status === 'success' || 'fallback'. The geolocation
     // mock here is `idle` → coordsSettled === false → the nav must pass
-    // `enabled: false` (the missing-gate defect this patch fixes) AND the same
-    // radius/coords the deferred planner rides on.
-    renderDesktopNav({ forcedDate: '2026-06-14', forcedTime: '14:00' });
+    // `enabled: false` (the missing-gate defect) AND the same radius/coords the
+    // deferred planner rides on.
+    renderDesktopNav({ forcedDate: IN_WINDOW_DATE, forcedTime: '14:00' });
 
     expect(mockState.useVenueSearch).toHaveBeenCalledWith({
       lat: 57.7089,
       lng: 11.9746,
       radiusKm: 1.5,
       enabled: false,
-      date: '2026-06-14',
+      date: IN_WINDOW_DATE,
       time: '14:00',
+      isLiveNow: false,
     });
   });
 
@@ -251,6 +282,31 @@ describe('DesktopNavBar', () => {
     // A tag no venue carries must NOT render (the hardcoded 'Takterrass'
     // placeholder is gone — chips are the real tag union now).
     expect(screen.queryByRole('button', { name: 'Takterrass' })).toBeNull();
+  });
+
+  it('shows the chip strip in nearest mode (non-favourites route) — Story 11.3 review AC1 parity', () => {
+    mockState.pathname = '/';
+    renderDesktopNav();
+
+    // Nearest route → the tag-chip strip renders with the loaded-venue union.
+    expect(screen.getByTestId('desktop-tag-chip-strip')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Innergård' })).toBeInTheDocument();
+  });
+
+  it('hides the chip strip in favourites mode, mirroring the mobile gate — Story 11.3 review AC1 parity', () => {
+    mockState.pathname = '/favoriter';
+    renderDesktopNav();
+
+    // Favourites route → the strip is scoped away on BOTH breakpoints, so a
+    // desktop user can no longer toggle a tag that would filter the shared pins
+    // while the mobile user has no chip affordance (the divergence the review
+    // flagged). The strip and its chips must be entirely absent.
+    expect(screen.queryByTestId('desktop-tag-chip-strip')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Innergård' })).toBeNull();
+    // A nested favourites detail route stays gated too.
+    mockState.pathname = '/favoriter/kafe-magasinet';
+    renderDesktopNav();
+    expect(screen.queryByTestId('desktop-tag-chip-strip')).toBeNull();
   });
 
   it('enables the filter chips (no disabled / cursor-not-allowed) — flips the Story 9.6 marker', () => {
@@ -326,6 +382,229 @@ describe('DesktopNavBar', () => {
 
     expect(screen.queryByRole('button', { name: 'Föregående filter' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Nästa filter' })).toBeNull();
+  });
+
+  describe('Story 11.3 (AC4) — scrollable chip strip with arrows + edge-fades', () => {
+    it('makes the chip strip horizontally scrollable (overflow-x-auto), NOT the old mid-chip clip', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      expect(strip.className).toContain('overflow-x-auto');
+      // The hard mid-chip clip is gone.
+      expect(strip.className).not.toContain('overflow-hidden');
+    });
+
+    it('keeps ALL tags in the DOM (none clipped away) and focusable as buttons', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      // Union of the two mock venues' tags: Innergård, Hund ok, Wifi.
+      const chips = ['Innergård', 'Hund ok', 'Wifi'];
+      for (const name of chips) {
+        const chip = within(strip).getByRole('button', { name });
+        expect(chip).toBeEnabled();
+        chip.focus();
+        expect(chip).toHaveFocus();
+      }
+    });
+
+    it('renders real left/right scroll-arrow buttons (labelled, type=button)', () => {
+      renderDesktopNav();
+
+      const left = screen.getByRole('button', { name: 'Bläddra filter åt vänster' });
+      const right = screen.getByRole('button', { name: 'Bläddra filter åt höger' });
+      expect(left).toHaveAttribute('type', 'button');
+      expect(right).toHaveAttribute('type', 'button');
+    });
+
+    it('sizes the scroll-arrow buttons to the 44px minimum interactive target (size-11, not size-9) — external-review fix', () => {
+      renderDesktopNav();
+
+      for (const name of ['Bläddra filter åt vänster', 'Bläddra filter åt höger']) {
+        const arrow = screen.getByRole('button', { name });
+        // 44px min target; the icon (size-5) is unchanged.
+        expect(arrow).toHaveClass('size-11');
+        expect(arrow).not.toHaveClass('size-9');
+      }
+    });
+
+    it('disables the left arrow at the start (scrollLeft 0)', () => {
+      renderDesktopNav();
+
+      expect(screen.getByRole('button', { name: 'Bläddra filter åt vänster' })).toBeDisabled();
+    });
+
+    it('enables the right arrow when the strip overflows, and scrolls a page on click', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      // Simulate an overflowing strip (jsdom reports 0 for all scroll metrics).
+      Object.defineProperty(strip, 'scrollWidth', { configurable: true, value: 800 });
+      Object.defineProperty(strip, 'clientWidth', { configurable: true, value: 300 });
+      const scrollBy = vi.fn();
+      (strip as unknown as { scrollBy: typeof scrollBy }).scrollBy = scrollBy;
+
+      // Fire a scroll event so the component recomputes canScrollRight.
+      act(() => {
+        strip.dispatchEvent(new Event('scroll'));
+      });
+
+      const right = screen.getByRole('button', { name: 'Bläddra filter åt höger' });
+      expect(right).toBeEnabled();
+      fireEvent.click(right);
+      expect(scrollBy).toHaveBeenCalledWith(
+        expect.objectContaining({ left: expect.any(Number) }),
+      );
+      expect(scrollBy.mock.calls[0][0].left).toBeGreaterThan(0);
+    });
+
+    it('arrow scroll uses SMOOTH behavior when motion is allowed (default) — external-review reduced-motion fix', () => {
+      // No reduced-motion preference (jsdom matchMedia defaults matches:false) →
+      // the animated `smooth` scroll is used.
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      Object.defineProperty(strip, 'scrollWidth', { configurable: true, value: 800 });
+      Object.defineProperty(strip, 'clientWidth', { configurable: true, value: 300 });
+      const scrollBy = vi.fn();
+      (strip as unknown as { scrollBy: typeof scrollBy }).scrollBy = scrollBy;
+      act(() => {
+        strip.dispatchEvent(new Event('scroll'));
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Bläddra filter åt höger' }));
+      expect(scrollBy.mock.calls[0][0].behavior).toBe('smooth');
+      // The scroller's CSS scroll-behavior matches the animated default.
+      expect((strip as HTMLElement).style.scrollBehavior).toBe('smooth');
+    });
+
+    it('arrow scroll uses AUTO (instant) behavior for prefers-reduced-motion users — external-review reduced-motion fix', () => {
+      mockState.reducedMotion = true;
+      try {
+        renderDesktopNav();
+
+        const strip = screen.getByTestId('desktop-tag-chip-strip');
+        Object.defineProperty(strip, 'scrollWidth', { configurable: true, value: 800 });
+        Object.defineProperty(strip, 'clientWidth', { configurable: true, value: 300 });
+        const scrollBy = vi.fn();
+        (strip as unknown as { scrollBy: typeof scrollBy }).scrollBy = scrollBy;
+        act(() => {
+          strip.dispatchEvent(new Event('scroll'));
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Bläddra filter åt höger' }));
+        // Reduced motion → instant jump, no animation.
+        expect(scrollBy.mock.calls[0][0].behavior).toBe('auto');
+        expect((strip as HTMLElement).style.scrollBehavior).toBe('auto');
+      } finally {
+        mockState.reducedMotion = false;
+      }
+    });
+
+    it('shows the right edge-fade only when there is more content to the right', () => {
+      renderDesktopNav();
+
+      // At rest in jsdom (all metrics 0) neither fade shows.
+      expect(screen.queryByTestId('chip-fade-left')).toBeNull();
+      expect(screen.queryByTestId('chip-fade-right')).toBeNull();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      Object.defineProperty(strip, 'scrollWidth', { configurable: true, value: 800 });
+      Object.defineProperty(strip, 'clientWidth', { configurable: true, value: 300 });
+      act(() => {
+        strip.dispatchEvent(new Event('scroll'));
+      });
+
+      // Overflow to the right → the right edge-fade appears; left stays hidden at start.
+      expect(screen.getByTestId('chip-fade-right')).toBeInTheDocument();
+      expect(screen.queryByTestId('chip-fade-left')).toBeNull();
+    });
+
+    // --- Story 11.3 coverage expansion (automate): the mirror-image LEFT-arrow
+    // path + the mid-scroll both-fades state + the scroll-into-view focus + the
+    // page-size floor — the existing suite proves the right/start end only. ---
+
+    /** Simulate an overflowing strip scrolled to a given scrollLeft, then flush. */
+    function overflowAt(strip: HTMLElement, scrollLeft: number) {
+      Object.defineProperty(strip, 'scrollWidth', { configurable: true, value: 800 });
+      Object.defineProperty(strip, 'clientWidth', { configurable: true, value: 300 });
+      Object.defineProperty(strip, 'scrollLeft', { configurable: true, writable: true, value: scrollLeft });
+      act(() => {
+        strip.dispatchEvent(new Event('scroll'));
+      });
+    }
+
+    it('enables the LEFT arrow once scrolled away from the start, and scrolls a NEGATIVE page on click', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      const scrollBy = vi.fn();
+      (strip as unknown as { scrollBy: typeof scrollBy }).scrollBy = scrollBy;
+      // Scrolled to a middle position (max scroll = 800 - 300 = 500).
+      overflowAt(strip, 250);
+
+      const left = screen.getByRole('button', { name: 'Bläddra filter åt vänster' });
+      expect(left).toBeEnabled();
+      fireEvent.click(left);
+      expect(scrollBy).toHaveBeenCalledTimes(1);
+      // Left arrow scrolls in the negative direction.
+      expect(scrollBy.mock.calls[0][0].left).toBeLessThan(0);
+    });
+
+    it('shows BOTH edge-fades when scrolled into the middle (more content on each side)', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      overflowAt(strip, 250); // between 0 and the 500 max → both directions scrollable
+
+      expect(screen.getByTestId('chip-fade-left')).toBeInTheDocument();
+      expect(screen.getByTestId('chip-fade-right')).toBeInTheDocument();
+    });
+
+    it('disables the RIGHT arrow at the true max scroll (end reached, 1px slack absorbed)', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      // scrollLeft at max (800 - 300 = 500) → right arrow disables, right fade hides.
+      overflowAt(strip, 500);
+
+      expect(screen.getByRole('button', { name: 'Bläddra filter åt höger' })).toBeDisabled();
+      expect(screen.queryByTestId('chip-fade-right')).toBeNull();
+      // ...while the left arrow (and fade) are now active.
+      expect(screen.getByRole('button', { name: 'Bläddra filter åt vänster' })).toBeEnabled();
+    });
+
+    it('scrolls an off-screen chip into view when it receives focus (keyboard reachability)', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      const chip = within(strip).getByRole('button', { name: 'Wifi' });
+      const scrollIntoView = vi.fn();
+      (chip as unknown as { scrollIntoView: typeof scrollIntoView }).scrollIntoView = scrollIntoView;
+
+      fireEvent.focus(chip);
+      expect(scrollIntoView).toHaveBeenCalledWith(
+        expect.objectContaining({ block: 'nearest', inline: 'nearest' }),
+      );
+    });
+
+    it('scrolls by at least the 120px page floor even when the visible width is very small', () => {
+      renderDesktopNav();
+
+      const strip = screen.getByTestId('desktop-tag-chip-strip');
+      const scrollBy = vi.fn();
+      (strip as unknown as { scrollBy: typeof scrollBy }).scrollBy = scrollBy;
+      // clientWidth so small that clientWidth-48 would underflow the floor.
+      Object.defineProperty(strip, 'scrollWidth', { configurable: true, value: 800 });
+      Object.defineProperty(strip, 'clientWidth', { configurable: true, value: 40 });
+      act(() => {
+        strip.dispatchEvent(new Event('scroll'));
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Bläddra filter åt höger' }));
+      // Math.max(clientWidth - 48, 120) → the 120 floor (never 0 or negative).
+      expect(scrollBy.mock.calls[0][0].left).toBe(120);
+    });
   });
 
   it('opens the settings modal from the settings button and no longer renders a standalone About link', () => {

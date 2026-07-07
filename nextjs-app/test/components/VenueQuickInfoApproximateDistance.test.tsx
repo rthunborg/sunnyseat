@@ -51,7 +51,6 @@ function labels(
     distance: 'Avstånd',
     distanceApproximate: APPROXIMATE,
     loadingSun: 'Laddar soldata',
-    sunUnavailable: 'Soltid saknas',
     routeLoading: 'Öppnar kartor',
     favouriteAdd: 'Spara som favorit',
     favouriteRemove: 'Ta bort favorit',
@@ -69,7 +68,6 @@ function renderQuickInfo(props: {
     <VenueQuickInfo
       mode="mobile"
       name="Solterrassen"
-      sunTimeRange="Sol 13:00–18:30"
       confidencePercent={92}
       confidenceMeta={{ sunDataSource: 'weather', weatherUpdatedAt: new Date().toISOString() }}
       sunExposurePercent={80}

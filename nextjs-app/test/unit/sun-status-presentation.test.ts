@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   isObscuredSunStatus,
   skyConditionCopy,
-  toSunStatusToken,
 } from '@/lib/utils/sun-status-presentation';
 import type { VenueSunStatus } from '@/lib/types/api';
 
@@ -14,25 +13,6 @@ const SKY_COPY = {
 };
 
 describe('sun-status-presentation', () => {
-  describe('toSunStatusToken', () => {
-    it('maps each DTO status onto its presentational UI token', () => {
-      expect(toSunStatusToken('Sunny')).toBe('sunny');
-      expect(toSunStatusToken('Partial')).toBe('partial');
-      expect(toSunStatusToken('CloudObscured')).toBe('obscured');
-      expect(toSunStatusToken('Shaded')).toBe('shaded');
-      expect(toSunStatusToken('NoSun')).toBe('shaded');
-    });
-
-    it('gives the obscured state a token distinct from sunny AND shaded', () => {
-      // AC1: the fourth visual state must be unmistakable from both the amber
-      // sunny path and the grey shaded path.
-      const obscured = toSunStatusToken('CloudObscured');
-      expect(obscured).not.toBe(toSunStatusToken('Sunny'));
-      expect(obscured).not.toBe(toSunStatusToken('Partial'));
-      expect(obscured).not.toBe(toSunStatusToken('Shaded'));
-    });
-  });
-
   describe('isObscuredSunStatus', () => {
     it('is true only for CloudObscured', () => {
       expect(isObscuredSunStatus('CloudObscured')).toBe(true);

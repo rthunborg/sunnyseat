@@ -4,8 +4,10 @@ import {
   formatDateForUrl,
   formatPlannerTime,
   generatePlannerTicks,
+  isPlannerDateSelectable,
   isTodayInStockholm,
   parsePlannerTime,
+  PLANNER_MAX_FUTURE_DAYS,
   snapPlannerMinutes,
   stockholmDateKey,
   sunSeasonBounds,
@@ -52,12 +54,14 @@ describe('time planner helpers', () => {
     expect(isTodayInStockholm('2026-05-21', now)).toBe(false);
   });
 
-  it('validates URL-safe planner date/time values and rejects out-of-season dates', () => {
-    expect(validatePlannerDateTime({ date: '2026-06-14', time: '14:00', now })).toEqual({
+  it('validates URL-safe planner date/time values within the today->today+3 window', () => {
+    // Story 11.2 (AC3): an in-window date/time is accepted (today+3 = 2026-05-23).
+    expect(validatePlannerDateTime({ date: '2026-05-23', time: '14:00', now })).toEqual({
       ok: true,
-      date: '2026-06-14',
+      date: '2026-05-23',
       time: '14:00',
     });
+    // Out-of-season stays rejected regardless of the window.
     expect(validatePlannerDateTime({ date: '2026-11-01', time: '14:00', now })).toEqual({
       ok: false,
       reason: 'out-of-season',
@@ -72,7 +76,7 @@ describe('time planner helpers', () => {
     });
   });
 
-  it('rejects past in-season dates while still allowing today', () => {
+  it('rejects past dates while still allowing today', () => {
     expect(validatePlannerDateTime({ date: '2026-05-19', time: '14:00', now })).toEqual({
       ok: false,
       reason: 'past-date',
@@ -82,5 +86,23 @@ describe('time planner helpers', () => {
       date: '2026-05-20',
       time: '14:00',
     });
+  });
+
+  it('enforces the today->today+3 window (PLANNER_MAX_FUTURE_DAYS boundary)', () => {
+    expect(PLANNER_MAX_FUTURE_DAYS).toBe(3);
+    // today, +1, +2, +3 are selectable; +4 is beyond the window; yesterday is past.
+    expect(isPlannerDateSelectable('2026-05-20', now)).toBe(true);
+    expect(isPlannerDateSelectable('2026-05-23', now)).toBe(true);
+    expect(isPlannerDateSelectable('2026-05-24', now)).toBe(false);
+    expect(isPlannerDateSelectable('2026-05-19', now)).toBe(false);
+    // The validator rejects a beyond-window (but in-season, in-future) date by
+    // default, and accepts it when the server opts out of window enforcement.
+    expect(validatePlannerDateTime({ date: '2026-05-24', time: '14:00', now })).toEqual({
+      ok: false,
+      reason: 'out-of-window',
+    });
+    expect(
+      validatePlannerDateTime({ date: '2026-05-24', time: '14:00', now, enforceWindow: false }),
+    ).toEqual({ ok: true, date: '2026-05-24', time: '14:00' });
   });
 });

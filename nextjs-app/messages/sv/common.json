@@ -17,7 +17,9 @@
     "settings": "Inställningar",
     "language": "Språk",
     "switchToSwedish": "Byt till svenska",
-    "switchToEnglish": "Byt till engelska"
+    "switchToEnglish": "Byt till engelska",
+    "scrollFiltersLeft": "Bläddra filter åt vänster",
+    "scrollFiltersRight": "Bläddra filter åt höger"
   },
   "notFound": {
     "heading": "Den här platsen hittades inte",

@@ -31,8 +31,21 @@
   --color-amber-gold: #d4af37;
   --color-amber-dark: #735c00;
   --color-amber-cta-text: #554300;
-  --color-amber-badge-text: #6d5000;
+  /* Story 11.6 (Task 4): darkened from #6d5000 (axe read 4.47:1 on
+     `--color-amber-primary #ffbf00`, a boundary flake below the 4.5:1 AA
+     threshold) to #5c4300 (~5.6:1) so the venue-detail "ÖPPET · {time}" sun
+     badge clears AA with headroom and the axe color-contrast gate is
+     deterministically green. Token used ONLY on that badge. */
+  --color-amber-badge-text: #5c4300;
   --color-amber-overlay: rgba(255, 191, 0, 0.3);
+  /* Story 11.5 (AC2 / R-016): the user-location "you-are-here" dot fill.
+     `#d97706` (Tailwind amber-600) is the byte-for-byte reference value from
+     `Pins.jsx` — it had no DESIGN.md token (raw literal in `UserPin.tsx`,
+     the Story-9.5 recorded token gap). Tokenized here so no raw hex remains
+     in the component. Decorative non-text mark (`aria-hidden`), so the AA
+     text-contrast bump that produced `--color-tab-active #b45309` does not
+     apply — the hue is unchanged; AC2 upgrades size + halo, not the colour. */
+  --color-amber-location-dot: #d97706;
 
   /* ---- Text ---- */
   --color-text-primary: #1b1b1e;
@@ -162,8 +175,19 @@
   --gradient-wordmark-sun: radial-gradient(circle, #fff6d6 0%, var(--color-amber-primary) 100%);
   --gradient-route-button: linear-gradient(169deg, var(--color-amber-gold) 0%, var(--color-amber-primary) 100%);
   --gradient-cta-amber: linear-gradient(171deg, var(--color-amber-gold) 0%, var(--color-amber-primary) 100%);
-  --gradient-map-overlay: linear-gradient(66deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0) 50%, rgba(249, 115, 22, 0.1) 100%);
+  /* Story 11.5 (AC1): alpha stops thinned to ~a quarter of the original
+     (0.05 → 0.0125, 0.1 → 0.025) so the basemap stays legible under the
+     warm tint. Kept in sync with the DESIGN.md "Subtle warm map tint
+     overlay" row. Companion sand wash dropped /80 → /20 in MapContainer. */
+  --gradient-map-overlay: linear-gradient(66deg, rgba(245, 158, 11, 0.0125) 0%, rgba(245, 158, 11, 0) 50%, rgba(249, 115, 22, 0.025) 100%);
   --gradient-timeline-bar: linear-gradient(90deg, var(--color-amber-primary) 0%, var(--color-amber-gold) 100%);
+  /* Story 11.3 (AC4): edge-fade masks for the desktop scrollable chip strip.
+     They sit on the `--color-surface-cream` navbar background and fade from the
+     opaque cream edge inward to transparent, signalling "more chips this way".
+     Rendered only when the strip is scrollable in that direction (hidden at the
+     respective end). Token form — no ad-hoc hex/rgba in the component. */
+  --gradient-chip-fade-left: linear-gradient(90deg, var(--color-surface-cream) 0%, color-mix(in srgb, var(--color-surface-cream) 0%, transparent) 100%);
+  --gradient-chip-fade-right: linear-gradient(270deg, var(--color-surface-cream) 0%, color-mix(in srgb, var(--color-surface-cream) 0%, transparent) 100%);
 
   /* ---- Brand-decorative shadows ---- */
   --shadow-wordmark-sun: 0 0 16px rgba(255, 240, 180, 0.7);
@@ -174,6 +198,13 @@
   /* ---- Component sizes (Tailwind v4 namespace) ---- */
   --size-mobile-nav-h: 52px;
   --size-desktop-nav-h: 84px;
+  /* Story 11.3 (AC2): the fourth "collapsed" snap is handle-only — just the
+     44 px drag-handle touch target (the `min-h-11` handle button that wraps the
+     6 px drag pill) plus the device safe-area inset. It is the smallest snap; a
+     downward drag/fast-swipe from peek reaches it and the map stays fully
+     interactive behind it (no backdrop). SET from the rendered handle strip
+     (the handle is `min-h-11`), NOT a magic px in the TSX. */
+  --size-bottom-sheet-collapsed-h: calc(44px + env(safe-area-inset-bottom));
   --size-bottom-sheet-peek-h: 120px;
   --size-bottom-sheet-mid-h: 320px;
   --size-bottom-sheet-full-h: 560px;
@@ -263,6 +294,48 @@
 
 @utility animate-pulse-cta {
   animation: pulse-cta 1s ease-in-out infinite;
+}
+
+/* Story 11.5 (AC2): the "living" user-location halo. A GPU-friendly CSS
+   scale+opacity pulse (transform/opacity only — no layout/paint per frame,
+   test-design R-018), mirroring the `pulse-cta` @keyframes/@utility pattern.
+   The `UserPin` halo layer carries `animate-user-location-halo`; the marker
+   is rendered into a detached MapLibre element via `createRoot`, but these
+   utilities are GLOBAL so they still apply. Under `prefers-reduced-motion:
+   reduce` the pulse is pinned to a STATIC resting halo (AC2 + Design Gate
+   → Animation) via the media-query override below — a reduced-motion user
+   sees a steady halo, not the pulse. */
+@keyframes user-location-halo {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.3;
+  }
+}
+
+@utility animate-user-location-halo {
+  transform-origin: center;
+  animation: user-location-halo 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-user-location-halo {
+    animation: none;
+    transform: scale(1);
+    opacity: 0.55;
+  }
+}
+
+@utility gradient-chip-fade-left {
+  background: var(--gradient-chip-fade-left);
+}
+
+@utility gradient-chip-fade-right {
+  background: var(--gradient-chip-fade-right);
 }
 
 @utility gradient-timeline-bar {

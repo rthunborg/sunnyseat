@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, ChevronRight } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { motion, useReducedMotion } from 'motion/react';
 import { DatePickerDialog } from '@/components/composed/time/DatePickerDialog';
 import { TimeSlider } from '@/components/composed/time/TimeSlider';
 import { DURATION_SLOW_S, EASE_ENTER } from '@/lib/constants/animation';
 import { useTimeContext } from '@/lib/contexts/TimeContext';
-import { isTodayInStockholm } from '@/lib/utils/time-planner';
+import { addDaysToDateKey, isPlannerDateSelectable, isTodayInStockholm } from '@/lib/utils/time-planner';
 import { cn } from '@/lib/utils';
 
 export type TimeSliderPanelProps = {
@@ -32,6 +32,16 @@ export function TimeSliderPanel({
   const [calendarOpen, setCalendarOpen] = useState(false);
   const dateLabel = formatPanelDate(time.selectedDate, time.currentTime, locale, t('today'));
   const desktop = variant === 'desktop';
+  // External-review fix: at the today+3 window end `shiftSelectedDate(1)` is a
+  // silent no-op (the context clamps to the selectable window), leaving the
+  // "next day" control a dead button for keyboard/SR users. Disable it when the
+  // next date is not selectable so its state is honest. From today (and today+1,
+  // +2) the next date is in-window → the control stays enabled, so the
+  // epic-11-scrub-zero-fetch e2e (which clicks it from today) is unaffected.
+  const canGoNextDay = isPlannerDateSelectable(
+    addDaysToDateKey(time.selectedDate, 1),
+    time.currentTime,
+  );
 
   return (
     <>
@@ -58,10 +68,16 @@ export function TimeSliderPanel({
               onClick={() => setCalendarOpen(true)}
               layoutPart="date"
             />
+            <NextDayButton
+              label={t('nextDay')}
+              onClick={() => time.shiftSelectedDate(1)}
+              disabled={!canGoNextDay}
+            />
             <div className="min-w-0 flex-1" data-planner-layout-part="slider">
               <TimeSlider
                 ariaLabel={t('sliderLabel')}
                 selectedMinutes={time.selectedMinutes}
+                minMinutes={time.minMinutes}
                 ticks={time.ticks}
                 onMinutesChange={time.setSelectedMinutes}
                 onSnap={time.snapSelectedMinutes}
@@ -81,6 +97,7 @@ export function TimeSliderPanel({
             <TimeSlider
               ariaLabel={t('sliderLabel')}
               selectedMinutes={time.selectedMinutes}
+              minMinutes={time.minMinutes}
               ticks={time.ticks}
               onMinutesChange={time.setSelectedMinutes}
               onSnap={time.snapSelectedMinutes}
@@ -94,6 +111,11 @@ export function TimeSliderPanel({
               onClick={() => setCalendarOpen(true)}
               compact
               showText={showDateLabel}
+            />
+            <NextDayButton
+              label={t('nextDay')}
+              onClick={() => time.shiftSelectedDate(1)}
+              disabled={!canGoNextDay}
             />
           </div>
         )}
@@ -112,12 +134,53 @@ export function TimeSliderPanel({
           selectedDate: t('selectedDate'),
           unavailableDate: t('unavailableDate'),
           pastDate: t('pastDate'),
+          windowDate: t('windowDate'),
           selectDate: t('selectDate', { date: '{date}' }),
         }}
         onOpenChange={setCalendarOpen}
         onSelectDate={time.selectDate}
       />
     </>
+  );
+}
+
+/**
+ * Story 11.1: a one-click "next day" control. Advances the planner date by one
+ * day via `shiftSelectedDate(1)` (clamped to the selectable season by the
+ * context), which is exactly the DATE change AC3 permits — it flips the query key
+ * and fires the single new-day request while markers persist under the overlay.
+ * Carries the `planner-date-next` testid the request-count e2e drives.
+ *
+ * External-review fix: `disabled` when the next date is beyond the today+3 window
+ * (`shiftSelectedDate(1)` would silently no-op). Native `disabled` removes it from
+ * the tab order + announces the state to AT; `aria-disabled` is added for parity
+ * with engines that under-announce native `disabled` on non-form controls, and the
+ * dimmed style makes the dead state visible.
+ */
+function NextDayButton({
+  label,
+  onClick,
+  disabled = false,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      data-testid="planner-date-next"
+      onClick={onClick}
+      disabled={disabled}
+      aria-disabled={disabled || undefined}
+      className={cn(
+        'flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-pill text-amber-dark outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
+        disabled && 'cursor-not-allowed opacity-40',
+      )}
+    >
+      <ChevronRight aria-hidden="true" className="size-4 text-amber-dark" />
+    </button>
   );
 }
 

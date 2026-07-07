@@ -45,6 +45,7 @@ type VenueSearchParams = {
   q?: string;
   date?: string;
   time?: string;
+  isLiveNow?: boolean;
   enabled?: boolean;
 };
 
@@ -152,6 +153,10 @@ function setActiveTags(...tags: string[]): void {
   activeTagsMock.clear();
   for (const tag of tags) activeTagsMock.add(tag);
 }
+// Story 11.3: the mobile chip row writes to the SAME shared context the desktop
+// nav does. Spy on `toggleTag` so a mobile chip click can be asserted to write
+// the shared context (never a forked local filter state).
+const toggleTagMock = vi.fn();
 let selectedVenuePreviewMock: GetVenuesResponse['venues'][number] | null = null;
 let searchParamsMock = new URLSearchParams();
 let pathnameMock = '/';
@@ -211,9 +216,10 @@ vi.mock('@/lib/contexts/MapSelectionContext', () => ({
 vi.mock('@/lib/contexts/TagFilterContext', () => ({
   useTagFilter: () => ({
     activeTags: activeTagsMock,
-    toggleTag: () => {},
+    toggleTag: (tag: string) => toggleTagMock(tag),
     clearTags: () => {},
     isActive: (tag: string) => activeTagsMock.has(tag),
+    retainTags: () => {},
   }),
 }));
 
@@ -350,6 +356,7 @@ describe('<MapView />', () => {
     selectedVenueIdMock = null;
     selectedVenuePreviewMock = null;
     activeTagsMock.clear();
+    toggleTagMock.mockClear();
     searchParamsMock = new URLSearchParams();
     pathnameMock = '/';
     selectVenueMock.mockClear();
@@ -808,22 +815,32 @@ describe('<MapView />', () => {
       render(<MapView />, { wrapper: Wrapper });
 
       expect(screen.getAllByTestId('time-slider-panel').length).toBeGreaterThanOrEqual(2);
+      // Story 11.1: the initial live-today call keys on the selected date but
+      // flags `isLiveNow: true` (so the request omits date/time server-side and
+      // the query polls). The date is in the KEY in both live + off-live cases so
+      // a same-date scrub keeps the same key.
       expectVenueSearchCall({
         lat: 57.7089,
         lng: 11.9746,
         radiusKm: 1.5,
+        date: '2026-05-20',
+        time: '12:15',
+        isLiveNow: true,
       });
 
       fireEvent.click(screen.getAllByRole('button', { name: /Öppna kalender: Idag/ })[0]);
       fireEvent.click(screen.getByRole('button', { name: 'Välj 21 maj 2026' }));
 
       await waitFor(() =>
+        // A committed FUTURE date is off-live → `isLiveNow: false` and the request
+        // sends date/time; the key flips to the new date (the one fetch AC3 allows).
         expectVenueSearchCall({
           lat: 57.7089,
           lng: 11.9746,
           radiusKm: 1.5,
           date: '2026-05-21',
           time: '12:15',
+          isLiveNow: false,
         }),
       );
     });
@@ -875,6 +892,15 @@ describe('<MapView />', () => {
               sunExposurePercent: 95,
               tags: [],
               sunWindow: { start: '13:00', end: '18:30' },
+              openingHours: {
+                '1': { open: '11:00', close: '22:00' },
+                '2': { open: '11:00', close: '22:00' },
+                '3': { open: '11:00', close: '22:00' },
+                '4': { open: '11:00', close: '22:00' },
+                '5': { open: '11:00', close: '22:00' },
+                '6': { open: '11:00', close: '22:00' },
+                '7': { open: '11:00', close: '22:00' },
+              }, // Story 11.9 (AC2): per-weekday hours (closes 22:00 every day)
               thumbnail: {
                 alt: 'Uteservering hos Testbaren',
                 initials: 'TB',
@@ -894,7 +920,10 @@ describe('<MapView />', () => {
       const { rerender } = render(<MapView />, { wrapper: Wrapper });
       expect(screen.getAllByTestId('venue-quick-info')).toHaveLength(2);
       expect(screen.getAllByRole('button', { name: 'Testbaren' })).toHaveLength(2);
-      expect(screen.getAllByText('Sol 13:00–18:30')).toHaveLength(2);
+      // Story 11.4 (AC1): the quick-info renders real opening hours (both mounted
+      // breakpoint variants) in place of the removed "Sol HH:mm–HH:mm" window.
+      expect(screen.getAllByText('Öppet till 22:00')).toHaveLength(2);
+      expect(screen.queryByText('Sol 13:00–18:30')).not.toBeInTheDocument();
       expect(screen.getAllByRole('img', { name: 'Uteservering hos Testbaren' }).length).toBeGreaterThanOrEqual(2);
       expect(screen.getByTestId('map-container-stub')).toBeInTheDocument();
 
@@ -1180,11 +1209,14 @@ describe('<MapView />', () => {
       render(<MapView />, { wrapper: Wrapper });
 
       expect(screen.queryByLabelText('Laddar soldata')).not.toBeInTheDocument();
-      expect(screen.getAllByText('Sol 13:00–18:30')).toHaveLength(2);
+      // Story 11.4 (AC1): the quick-info keeps its content visible during a
+      // background refetch — now proven via the opening-hours line + distance
+      // (the sun-window line was removed).
+      expect(screen.getAllByText('Öppet till 22:00')).toHaveLength(2);
       expect(screen.getAllByText(/180 m/).length).toBeGreaterThanOrEqual(2);
     });
 
-    it('formats QuickInfo sun ranges from the active locale', () => {
+    it('renders the QuickInfo with locale-driven chrome and the honest opening-hours line (Story 11.4 AC1)', () => {
       selectedVenueIdMock = 'venue-1';
       useVenueSearchMock.mockReturnValue({
         data: makeVenueResponse([
@@ -1197,8 +1229,15 @@ describe('<MapView />', () => {
 
       render(<MapView />, { wrapper: EnglishWrapper });
 
-      expect(screen.getAllByText('Sun 13:00–18:30')).toHaveLength(2);
+      // The quick-info chrome follows the active locale (English CTA labels).
+      // Story 11.9 (AC2): the opening-hours line is now DERIVED via a locale-aware
+      // template, so under the English wrapper it reads "Open until 22:00" (the old
+      // raw stored Swedish string no longer renders verbatim).
+      expect(screen.getAllByRole('button', { name: 'Show Route' })).toHaveLength(2);
+      expect(screen.getAllByRole('button', { name: 'More Info' })).toHaveLength(2);
+      expect(screen.getAllByText('Open until 22:00')).toHaveLength(2);
       expect(screen.queryByText('Sol 13:00–18:30')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sun 13:00–18:30')).not.toBeInTheDocument();
     });
 
     it('opens details from QuickInfo with the public deep-link URL', () => {
@@ -1234,7 +1273,10 @@ describe('<MapView />', () => {
       });
 
       render(<MapView />, { wrapper: Wrapper });
-      expect(screen.getAllByText('ca 2 min').length).toBeGreaterThanOrEqual(1);
+      // Story 11.4 (AC2): the quick-info route CTA no longer squeezes an ETA
+      // inside the button — it reads only "VISA RUTT". The ETA lives on in the
+      // route overlay below (which is asserted after the handoff opens it).
+      expect(screen.queryByText('ca 2 min')).not.toBeInTheDocument();
       fireEvent.click(screen.getAllByRole('button', { name: /Visa Rutt/ })[0]);
 
       expect(openSpy).toHaveBeenCalledWith(
@@ -1445,7 +1487,11 @@ describe('<MapView />', () => {
       expect(screen.getAllByText('Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.')).toHaveLength(2);
       expect(screen.queryByText(/Säkerhet:/)).not.toBeInTheDocument();
       expect(screen.getAllByText('Säkerhet 95%')).toHaveLength(2);
-      expect(screen.getAllByText('Bäst 11:00-15:00')).toHaveLength(1);
+      // Story 11.6 (AC2): the "Soltider idag" sun-forecast section is removed on
+      // both breakpoints — no heading, no best-window subtitle, no timeline strip.
+      expect(screen.queryByText('Solprognos idag')).not.toBeInTheDocument();
+      expect(screen.queryByText(/^Bäst \d/)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Soltider idag')).not.toBeInTheDocument();
       expect(screen.queryByText('Laddar platsdetaljer')).not.toBeInTheDocument();
     });
 
@@ -1520,7 +1566,15 @@ describe('<MapView />', () => {
             ...urlVenue,
             description: 'URL-owned detail',
             address: 'URLgatan 1',
-            openingHours: { display: 'Öppet till 22:00' },
+            openingHours: {
+              '1': { open: '11:00', close: '22:00' },
+              '2': { open: '11:00', close: '22:00' },
+              '3': { open: '11:00', close: '22:00' },
+              '4': { open: '11:00', close: '22:00' },
+              '5': { open: '11:00', close: '22:00' },
+              '6': { open: '11:00', close: '22:00' },
+              '7': { open: '11:00', close: '22:00' },
+            }, // Story 11.9 (AC2): per-weekday hours (closes 22:00 every day)
             timeline: {
               timezone: 'Europe/Stockholm',
               range: { start: '06:00', end: '21:00' },
@@ -1845,7 +1899,15 @@ describe('<MapView />', () => {
             ...aliasVenue,
             description: 'Alias-owned detail',
             address: 'Aliasgatan 1',
-            openingHours: { display: 'Öppet till 22:00' },
+            openingHours: {
+              '1': { open: '11:00', close: '22:00' },
+              '2': { open: '11:00', close: '22:00' },
+              '3': { open: '11:00', close: '22:00' },
+              '4': { open: '11:00', close: '22:00' },
+              '5': { open: '11:00', close: '22:00' },
+              '6': { open: '11:00', close: '22:00' },
+              '7': { open: '11:00', close: '22:00' },
+            }, // Story 11.9 (AC2): per-weekday hours (closes 22:00 every day)
             timeline: {
               timezone: 'Europe/Stockholm',
               range: { start: '06:00', end: '21:00' },
@@ -2063,6 +2125,97 @@ describe('<MapView />', () => {
         ).toHaveLength(0);
         // The existing venue.list.empty copy renders (not gated on isLoading).
         expect(screen.getAllByText('Inga platser hittades i det här området.').length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('Story 11.3 — mobile tag-chip row in the bottom-sheet header (AC1)', () => {
+      const venueA = { ...makeVenue({ id: 'v-a', name: 'Alfa' }), tags: ['Innergård', 'Hund ok'] };
+      const venueB = { ...makeVenue({ id: 'v-b', name: 'Beta' }), tags: ['Kanal'] };
+
+      function mockTwoVenues(isFetching = false) {
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([venueA, venueB]),
+          isFetching,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+      }
+
+      function mobileSheet(): HTMLElement {
+        return screen.getByTestId('mobile-bottom-sheet');
+      }
+
+      it('renders the data-driven chip row inside the mobile sheet, from the loaded venues tag union', () => {
+        mockTwoVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        const chips = within(mobileSheet()).getByTestId('mobile-tag-chips');
+        // Union of the loaded venues' tags, first-seen order: Innergård, Hund ok, Kanal.
+        expect(within(chips).getByRole('button', { name: 'Innergård' })).toBeInTheDocument();
+        expect(within(chips).getByRole('button', { name: 'Hund ok' })).toBeInTheDocument();
+        expect(within(chips).getByRole('button', { name: 'Kanal' })).toBeInTheDocument();
+      });
+
+      it('places the chip row directly UNDER the mobile sort toggles in the sheet header', () => {
+        mockTwoVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        const sheet = mobileSheet();
+        // The sort toggles ("Mest sol") are the first sheet child; the chip row
+        // follows them in DOM order.
+        const sortToggle = within(sheet).getByRole('button', { name: 'Mest sol' });
+        const chips = within(sheet).getByTestId('mobile-tag-chips');
+        const position = sortToggle.compareDocumentPosition(chips);
+        // DOCUMENT_POSITION_FOLLOWING === 4: the chip row comes AFTER the toggle.
+        expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      });
+
+      it('toggling a mobile chip writes the shared TagFilterContext (calls toggleTag)', () => {
+        mockTwoVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        const chips = within(mobileSheet()).getByTestId('mobile-tag-chips');
+        fireEvent.click(within(chips).getByRole('button', { name: 'Innergård' }));
+        expect(toggleTagMock).toHaveBeenCalledWith('Innergård');
+      });
+
+      it('a mobile chip reflects active state (aria-pressed + "on" pill) from the shared context', () => {
+        setActiveTags('Innergård');
+        mockTwoVenues();
+        render(<MapView />, { wrapper: Wrapper });
+
+        const chips = within(mobileSheet()).getByTestId('mobile-tag-chips');
+        const active = within(chips).getByRole('button', { name: 'Innergård' });
+        expect(active).toHaveAttribute('aria-pressed', 'true');
+        expect(active.className).toContain('bg-text-primary');
+        expect(active.className).toContain('text-white');
+      });
+
+      it('a filtered-to-empty mobile list shows the empty copy — NOT the loading skeleton — during a concurrent background refetch (9.7 fold-in)', () => {
+        // Venues ARE loaded, a tag filter prunes them to zero, AND a background
+        // refetch is in flight (isFetching=true). The mobile list must show the
+        // "nothing matches" copy, not the 3-card skeleton.
+        setActiveTags('NoSuchTag');
+        mockTwoVenues(true);
+        render(<MapView />, { wrapper: Wrapper });
+
+        const sheet = mobileSheet();
+        expect(within(sheet).getByText('Inga platser hittades i det här området.')).toBeInTheDocument();
+        // The loading skeleton (role=status, aria-busy) must NOT be shown.
+        expect(within(sheet).queryByRole('status')).toBeNull();
+      });
+
+      it('still shows the skeleton on a genuine first load (no venues loaded yet, fetching)', () => {
+        useVenueSearchMock.mockReturnValue({
+          data: undefined,
+          isFetching: true,
+          isError: false,
+          dataUpdatedAt: 0,
+        });
+        render(<MapView />, { wrapper: Wrapper });
+
+        // Pre-data: the skeleton is the correct state (nothing loaded to filter).
+        expect(within(mobileSheet()).getByRole('status')).toBeInTheDocument();
       });
     });
 
@@ -2313,7 +2466,10 @@ describe('<MapView />', () => {
       }));
 
       render(<MapView />, { wrapper: Wrapper });
-      expect(screen.getAllByText('Sol 09:00–10:00')).toHaveLength(2);
+      // Story 11.4 (AC1): the quick-info no longer shows a sun-window line, so
+      // the preview-refresh proof reads off the geometric sun badge instead
+      // (12% preview → 88% refreshed) — same behaviour, different surfaced field.
+      expect(screen.getAllByText(/12% SOL/).length).toBeGreaterThanOrEqual(2);
 
       fireEvent.click(screen.getAllByRole('button', { name: /Öppna kalender: Idag/ })[0]);
       fireEvent.click(screen.getByRole('button', { name: 'Välj 21 maj 2026' }));
@@ -2326,7 +2482,7 @@ describe('<MapView />', () => {
           lng: 11.9746,
         }),
       );
-      expect(screen.getAllByText('Sol 13:30–18:00')).toHaveLength(2);
+      expect(screen.getAllByText(/88% SOL/).length).toBeGreaterThanOrEqual(2);
       expect(JSON.parse(screen.getByTestId('venue-pin-layer-stub').dataset.venues ?? '[]')).toEqual([
         expect.objectContaining({
           id: 'outside-search',
@@ -2415,8 +2571,10 @@ describe('<MapView />', () => {
           lng: 11.9746,
         }),
       );
-      expect(screen.getAllByText('Sol 13:15–17:45')).toHaveLength(2);
-      expect(screen.queryByText('Sol 09:30–10:30')).not.toBeInTheDocument();
+      // Story 11.4 (AC1): sun-window line removed — assert the refreshed geometric
+      // sun badge (19% stale → 86% refreshed) as the per-time refresh proof.
+      expect(screen.getAllByText(/86% SOL/).length).toBeGreaterThanOrEqual(2);
+      expect(screen.queryByText(/19% SOL/)).not.toBeInTheDocument();
       expect(JSON.parse(screen.getByTestId('venue-pin-layer-stub').dataset.venues ?? '[]')).toEqual([
         expect.objectContaining({
           id: 'outside-search',
@@ -2632,12 +2790,17 @@ describe('<MapView />', () => {
 
       render(<MapView />, { wrapper: Wrapper });
 
+      // Forced-visual normalization pins the geometric badge to 95% and confidence
+      // to 95 (now surfaced via the sr-only accessible line, not a visible chip)
+      // and keeps the venue's real opening hours (Story 11.4 AC1: no sun-window/
+      // no visible Säkerhet chip). The un-normalized 99% never appears.
       expect(screen.getAllByText(/95% SOL/).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText(/Säkerhet: 95%/).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText(/Sol 13:00–18:30/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Säkerhet 95%/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Öppet till 22:00/).length).toBeGreaterThanOrEqual(1);
       expect(screen.queryByText(/99% SOL/)).not.toBeInTheDocument();
-      expect(screen.queryByText(/Säkerhet: 99%/)).not.toBeInTheDocument();
-      expect(screen.queryByText(/Sol 09:00–10:00/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Säkerhet 99%/)).not.toBeInTheDocument();
+      // No sun-window line renders on the quick-info at all anymore.
+      expect(screen.queryByText(/Sol \d{2}:\d{2}/)).not.toBeInTheDocument();
     });
 
     it('clears an active detail URL after selecting a different venue from search', async () => {
@@ -2926,7 +3089,7 @@ describe('<MapView />', () => {
     });
 
     describe('AC3 — deferred planner key (live-now semantics preserved)', () => {
-      it('feeds the venue search a planner-less key while live (no date/time on the call)', () => {
+      it('feeds the venue search the live-today date with isLiveNow=true (date in key, request omits it)', () => {
         useVenueSearchMock.mockReturnValue({
           data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
           isFetching: false,
@@ -2936,16 +3099,24 @@ describe('<MapView />', () => {
 
         render(<MapView />, { wrapper: Wrapper });
 
-        // Live now → MapView defers `plannerTime.plannerQuery` which is
-        // `undefined`, so the list search call carries no date/time (the
-        // planner-less live key).
+        // Story 11.1: live now → the list search call carries the selected date
+        // (so the KEY is date-scoped and a same-date scrub keeps the same key) but
+        // flags `isLiveNow: true`, which tells the hook to omit date/time from the
+        // request and keep polling. The date being present is the whole point —
+        // it makes the live-today and off-live-today keys identical (zero fetch).
         const lastCall = lastMapViewSearchCall();
-        expect(lastCall).toMatchObject({ lat: 57.7089, lng: 11.9746, radiusKm: 1.5, enabled: true });
-        expect(lastCall).not.toHaveProperty('date');
-        expect(lastCall).not.toHaveProperty('time');
+        expect(lastCall).toMatchObject({
+          lat: 57.7089,
+          lng: 11.9746,
+          radiusKm: 1.5,
+          enabled: true,
+          date: '2026-05-20',
+          time: '12:15',
+          isLiveNow: true,
+        });
       });
 
-      it('feeds the venue search a single planner key after a future date is committed', async () => {
+      it('feeds the venue search a single off-live planner key after a future date is committed', async () => {
         useVenueSearchMock.mockReturnValue({
           data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
           isFetching: false,
@@ -2965,6 +3136,7 @@ describe('<MapView />', () => {
             radiusKm: 1.5,
             date: '2026-05-21',
             time: '12:15',
+            isLiveNow: false,
           }),
         );
       });
@@ -2988,7 +3160,15 @@ function makeVenueDetail(
     ...makeVenue(venue),
     description: 'Detaljerad platsbeskrivning',
     address: 'Testgatan 1',
-    openingHours: { display: 'Öppet till 22:00' },
+    openingHours: {
+      '1': { open: '11:00', close: '22:00' },
+      '2': { open: '11:00', close: '22:00' },
+      '3': { open: '11:00', close: '22:00' },
+      '4': { open: '11:00', close: '22:00' },
+      '5': { open: '11:00', close: '22:00' },
+      '6': { open: '11:00', close: '22:00' },
+      '7': { open: '11:00', close: '22:00' },
+    }, // Story 11.9 (AC2)
     timeline: {
       timezone: 'Europe/Stockholm',
       range: { start: '06:00', end: '21:00' },
@@ -3012,6 +3192,17 @@ function makeVenue({
   thumbnailUrl,
   confidence = 92,
   sunWindow = { start: '13:00', end: '18:30' },
+  // Story 11.9 (AC2): per-weekday hours (closes 22:00 every day) so the derived
+  // quick-info line is a stable "Öppet till 22:00" regardless of the CI run-day.
+  openingHours = {
+    '1': { open: '11:00', close: '22:00' },
+    '2': { open: '11:00', close: '22:00' },
+    '3': { open: '11:00', close: '22:00' },
+    '4': { open: '11:00', close: '22:00' },
+    '5': { open: '11:00', close: '22:00' },
+    '6': { open: '11:00', close: '22:00' },
+    '7': { open: '11:00', close: '22:00' },
+  },
 }: {
   id: string;
   name: string;
@@ -3021,6 +3212,10 @@ function makeVenue({
   thumbnailUrl?: string;
   confidence?: number;
   sunWindow?: GetVenuesResponse['venues'][number]['sunWindow'];
+  // Story 11.4 (AC1): opening hours now ride on the list DTO. Default present so
+  // the quick-info renders its honest "Öppet till HH:MM" line in these
+  // integration renders; pass `undefined` to exercise the absent branch.
+  openingHours?: GetVenuesResponse['venues'][number]['openingHours'];
 }): GetVenuesResponse['venues'][number] {
   return {
     id,
@@ -3037,6 +3232,7 @@ function makeVenue({
     sunExposurePercent,
     tags: [],
     sunWindow,
+    ...(openingHours ? { openingHours } : {}),
     thumbnail: {
       alt: `${name} uteservering`,
       initials: name.slice(0, 2),

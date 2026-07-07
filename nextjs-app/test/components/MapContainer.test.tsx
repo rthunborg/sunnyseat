@@ -25,13 +25,25 @@ function makeListeners(): Listeners {
 }
 
 let activeListeners: Listeners = makeListeners();
+// Records every basemap-recolour call (layerId, paintProperty, value) so the
+// recolour test can assert the water/green layers were retinted on load.
+let paintPropertyCalls: Array<{ layerId: string; name: string; value: unknown }> = [];
+// Layer ids the mocked style "has" — MapContainer only recolours layers that
+// exist (resilient skip). Includes the real positron water/green ids.
+const MOCK_STYLE_LAYER_IDS = new Set(['water', 'waterway', 'park', 'landcover_wood']);
 
 vi.mock('maplibre-gl', () => {
   class MockMap {
     constructor() {
       activeListeners = makeListeners();
+      paintPropertyCalls = [];
     }
     on(event: keyof Listeners, handler: () => void) {
+      activeListeners[event].push(handler as never);
+    }
+    // The basemap recolour binds `map.once('load', …)` when the style is not
+    // yet loaded; mirror `on` so the test can fire it via `activeListeners`.
+    once(event: keyof Listeners, handler: () => void) {
       activeListeners[event].push(handler as never);
     }
     off() {}
@@ -44,6 +56,17 @@ vi.mock('maplibre-gl', () => {
     // a load listener (MapView.tsx) needs the method present on the mock.
     areTilesLoaded() {
       return false;
+    }
+    // Basemap recolour (2026-07-06): the style is not yet loaded at mount, so
+    // MapContainer binds `once('load', …)` and recolours when it fires.
+    isStyleLoaded() {
+      return false;
+    }
+    getLayer(id: string) {
+      return MOCK_STYLE_LAYER_IDS.has(id) ? { id } : undefined;
+    }
+    setPaintProperty(layerId: string, name: string, value: unknown) {
+      paintPropertyCalls.push({ layerId, name, value });
     }
   }
   return {
@@ -67,6 +90,10 @@ function makeWrapper() {
       </NextIntlClientProvider>
     );
   };
+}
+
+function fireLoad(): void {
+  activeListeners.load.forEach((h) => h());
 }
 
 function fireTileError(): void {
@@ -127,6 +154,35 @@ describe('<MapContainer />', () => {
   it('does not render the live-region status fallback while tiles are loading', () => {
     const { queryByRole } = render(<MapContainer />, { wrapper: makeWrapper() });
     expect(queryByRole('status')).toBeNull();
+  });
+
+  it('recolours the water and green basemap layers on style load (blue water, green parks/woods)', () => {
+    // Maintainer design review (2026-07-06): the positron basemap is too grey,
+    // so MapContainer overrides the water/green style layers toward a friendly
+    // blue/green once the style loads. Assert the recolour reaches the present
+    // water/green layers (skipping absent ones) and does NOT touch neutral
+    // road/building/label layers.
+    render(<MapContainer />, { wrapper: makeWrapper() });
+    expect(paintPropertyCalls).toHaveLength(0); // nothing before load
+
+    act(() => {
+      fireLoad();
+    });
+
+    const byLayer = new Map(paintPropertyCalls.map((c) => [c.layerId, c]));
+    // Water fill → clearly-blue blue.
+    expect(byLayer.get('water')).toMatchObject({ name: 'fill-color' });
+    expect(String(byLayer.get('water')?.value)).toMatch(/^#/);
+    // Waterway line → blue.
+    expect(byLayer.get('waterway')).toMatchObject({ name: 'line-color' });
+    // Parks + woods → green fills.
+    expect(byLayer.get('park')).toMatchObject({ name: 'fill-color' });
+    expect(byLayer.get('landcover_wood')).toMatchObject({ name: 'fill-color' });
+    // Only the four present layers were recoloured (absent variants skipped).
+    expect(paintPropertyCalls).toHaveLength(4);
+    // Neutral surfaces are never recoloured.
+    expect(byLayer.has('building')).toBe(false);
+    expect(byLayer.has('background')).toBe(false);
   });
 
   it('shows the live-region fallback after 4 tile errors', () => {

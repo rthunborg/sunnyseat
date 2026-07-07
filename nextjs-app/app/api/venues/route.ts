@@ -30,6 +30,7 @@ import {
 import {
   aggregateSunFreshness,
   applyRealSunEngine,
+  computeVenueDaySeries,
   createDedupedForecastFetcher,
   createDedupedNowcastFetcher,
   mapWithConcurrency,
@@ -41,6 +42,7 @@ import {
 import type {
   GetVenuesResponse,
   SunFreshnessMeta,
+  VenueDaySeriesEntry,
   VenueDataDto,
 } from '@/lib/types/api';
 import { sunFreshnessHeaders } from '@/lib/utils/sun-freshness';
@@ -92,6 +94,35 @@ function sunListRank(venue: Pick<VenueDataDto, 'currentSunStatus' | 'sunExposure
     return (percent / 100) * 2;
   }
   return SUN_STATUS_RANK[venue.currentSunStatus];
+}
+
+// External-review fix (finding 4): the DAY-STABLE peak rank used for the top-N
+// TRUNCATION. The single-instant `sunListRank` is correct for the response ORDER
+// (the client re-sorts per scrubbed step anyway), but truncating by it drops a
+// venue that is outside the instant top-N yet becomes the SUNNIEST at some other
+// planner time — so its pin + "Mest sol" row vanish for that scrubbed time even
+// though the client has the whole day's series for the venues it DID receive.
+// Truncating by the venue's PEAK exposure across its `sunDaySeries` keeps every
+// "could be #1 at some point today" venue in the cached client set, with no
+// payload growth (the series already ships). Falls back to the single-instant
+// rank when no series is attached (the seed / fixture path — which has no series
+// and therefore keeps its exact pre-fix ordering + truncation: byte-parity held).
+function venuePeakSunRank(
+  venue: Pick<VenueDataDto, 'currentSunStatus' | 'sunExposurePercent'> & {
+    sunDaySeries?: readonly VenueDaySeriesEntry[];
+  },
+): number {
+  const series = venue.sunDaySeries;
+  if (!Array.isArray(series) || series.length === 0) {
+    return sunListRank(venue);
+  }
+  let peak = -Infinity;
+  for (const entry of series) {
+    const rank = sunListRank(entry);
+    if (rank > peak) peak = rank;
+  }
+  // Defensive: an all-empty/degenerate series falls back to the instant rank.
+  return Number.isFinite(peak) ? peak : sunListRank(venue);
 }
 
 /**
@@ -291,7 +322,35 @@ export async function GET(request: NextRequest) {
       SUN_ENGINE_LIST_CONCURRENCY,
       async (v) => {
         try {
-          return await applyRealSunEngine(v, requestedAt, now, dedupedForecast, dedupedNowcast);
+          const outcome = await applyRealSunEngine(
+            v,
+            requestedAt,
+            now,
+            dedupedForecast,
+            dedupedNowcast,
+          );
+          // STORY 11.1 (AC1): attach the per-step day-series so the client
+          // derives every time-dependent surface offline-from-network. Computed
+          // with the SAME deduped forecast/nowcast fetchers (no extra Met.no
+          // calls) and cached per (venue, day, weather-bucket) so repeat requests
+          // in a bucket are near-free. A series failure degrades to no series
+          // (never a 500) — the client falls back to the single-instant fields.
+          try {
+            const daySeries = await computeVenueDaySeries(
+              v,
+              requestedAt,
+              now,
+              dedupedForecast,
+              dedupedNowcast,
+            );
+            return { ...outcome, daySeries };
+          } catch (seriesError) {
+            console.error(
+              `Day-series failed for venue ${v.id}; omitting series:`,
+              seriesError instanceof Error ? seriesError.message : String(seriesError),
+            );
+            return outcome;
+          }
         } catch (error) {
           console.error(
             `Sun engine failed for venue ${v.id}; degrading:`,
@@ -303,7 +362,16 @@ export async function GET(request: NextRequest) {
     );
     freshness = aggregateSunFreshness(outcomes.map((o) => o.freshness));
     processedVenues = outcomes
-      .map((o) => normalizeVenueForResponse(o.venue))
+      .map((o) => {
+        const normalized = normalizeVenueForResponse(o.venue);
+        // Attach the series AFTER normalize (which spreads unknown fields
+        // through but does not know about `sunDaySeries`) so it lands on the
+        // list DTO ONLY. The detail route never reads `o.daySeries`, so the
+        // `[slug]` DTO stays byte-identical.
+        return o.daySeries
+          ? { ...normalized, sunDaySeries: o.daySeries }
+          : normalized;
+      })
       .map((v) => ({
         ...v,
         distanceMeters: greatCircleMeters(lat.value, lng.value, v.location.lat, v.location.lng),
@@ -330,16 +398,38 @@ export async function GET(request: NextRequest) {
 
   const totalCount = matchedVenues.length;
 
-  const venues = matchedVenues
-    .sort((a, b) => {
-      // Descending by the shared solläge-aware rank (higher = better), so the
-      // pre-slice order matches the client re-sort and no high-solläge obscured
-      // venue is truncated before the client sees it.
-      const status = sunListRank(b) - sunListRank(a);
-      if (status !== 0) return status;
-      return a.distanceMeters - b.distanceMeters;
-    })
-    .slice(0, MAX_RESULTS);
+  // External-review fix (finding 4): TWO-STAGE selection so the top-N TRUNCATION
+  // is DATE-STABLE while the response ORDER stays the single-instant order the
+  // client re-sort expects.
+  //   (1) TRUNCATE by the venue's DAY-PEAK rank (`venuePeakSunRank`) so a venue
+  //       that is outside the instant top-N but becomes the sunniest at some other
+  //       planner time is NOT dropped from the cached client set — its pin +
+  //       "Mest sol" row survive a scrub to that time. On the seed/fixture path
+  //       (no series) the peak == the instant rank, so the kept SET and its order
+  //       are byte-identical to the pre-fix behaviour (invariant held).
+  //   (2) ORDER the kept set by the single-instant `sunListRank` (tie → distance),
+  //       matching the client `getVenueSunRankForList` re-sort for the current
+  //       moment. The client re-derives per scrubbed step anyway, so the response
+  //       order only needs to be correct for "now".
+  const instantOrder = (a: VenueDataDto, b: VenueDataDto) => {
+    const status = sunListRank(b) - sunListRank(a);
+    if (status !== 0) return status;
+    return a.distanceMeters - b.distanceMeters;
+  };
+  const keptByPeak =
+    matchedVenues.length > MAX_RESULTS
+      ? [...matchedVenues]
+          .sort((a, b) => {
+            const peak = venuePeakSunRank(b) - venuePeakSunRank(a);
+            if (peak !== 0) return peak;
+            // Break ties by the instant rank, then distance, so the truncation
+            // boundary is deterministic and still favours the currently-sunnier
+            // venue among equal-peak neighbours.
+            return instantOrder(a, b);
+          })
+          .slice(0, MAX_RESULTS)
+      : matchedVenues;
+  const venues = [...keptByPeak].sort(instantOrder);
 
   // `count` reflects what was returned; `totalCount` reflects the
   // pre-slice match count so the client can surface "showing top 50 of N"

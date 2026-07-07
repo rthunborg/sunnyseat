@@ -45,6 +45,29 @@ describe('GET /api/venues', () => {
     expect(withTagBody.venues.length).toBe(body.venues.length);
   });
 
+  it('surfaces real openingHours on the seed-path list DTO, and omits it where the fixture has none (Story 11.4 AC1)', async () => {
+    // Story 11.4 (AC1): the seed path (flag OFF — what CI runs) must carry real
+    // opening hours end-to-end so the quick-info renders "Öppet till HH:MM". The
+    // two sunny fixtures seed a value (present-case); at least one venue omits it
+    // (absent-case) so the "renders nothing when absent" contract is CI-provable.
+    const res = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+
+    const gate = body.venues.find((v) => v.slug === 'test-venue-sunny');
+    // Story 11.9 (AC2): the per-weekday structure (closes 22:00 every day). The
+    // render layer derives "Öppet till 22:00" for the current weekday.
+    expect(gate?.openingHours?.['1']).toEqual({ open: '11:00', close: '22:00' });
+    expect(gate?.openingHours?.['7']).toEqual({ open: '11:00', close: '22:00' });
+
+    const withoutHours = body.venues.filter((v) => v.openingHours === undefined);
+    expect(withoutHours.length).toBeGreaterThan(0);
+    // Absent → absent: never a fabricated placeholder on the list DTO.
+    for (const venue of withoutHours) {
+      expect(venue).not.toHaveProperty('openingHours');
+    }
+  });
+
   it('returns 200 with sun-status-sorted venues for a valid lat/lng', async () => {
     const res = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
     expect(res.status).toBe(200);

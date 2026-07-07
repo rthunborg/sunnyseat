@@ -9,90 +9,73 @@ stepsCompleted:
   - 'step-05-generate-output'
 lastStep: 'step-05-generate-output'
 nextStep: ''
-lastSaved: '2026-07-02'
+lastSaved: '2026-07-04'
 inputDocuments:
-  - '_bmad-output/planning-artifacts/epics.md (## Epic 10 section, lines 2645-2790)'
-  - '_bmad/tea/config.yaml'
-  - 'nextjs-app/lib/services/sun-engine.ts (status derivation, skyCondition, weather adapter)'
-  - 'nextjs-app/lib/weather/met-no-service.ts (cloud_area_fraction ?? 0 default, compact endpoint)'
-  - 'nextjs-app/lib/solar/confidence-calculator.ts (calcCloudCertainty ignores cloudCover)'
-  - 'nextjs-app/lib/types/api.ts (VenueSunStatus union, skyCondition DTO field)'
-  - 'nextjs-app/lib/types/design-tokens.ts (SunStatus / SkyCondition token unions)'
-  - 'nextjs-app/lib/types/map.ts (sunStatus pin type)'
-  - 'nextjs-app/lib/utils/venue-pin-mapping.ts'
-  - 'nextjs-app/components (VenuePin, VenueCard, VenueQuickInfo, VenueDetailContent, VenueList, FeedbackFlow)'
-  - 'nextjs-app/test/e2e/map-primary.spec.ts (?_time forcing, no weather-boundary mock today)'
-  - 'project-context.md (Epic 9 ratified conventions, caching windows, prod-gate)'
-  - 'resources/knowledge/risk-governance.md'
-  - 'resources/knowledge/probability-impact.md'
-  - 'resources/knowledge/test-levels-framework.md'
-  - 'resources/knowledge/test-priorities-matrix.md'
+  - '_bmad-output/planning-artifacts/epics.md (## Epic 11 section, lines ~2791-3021)'
+  - '_bmad-output/implementation-artifacts/sprint-status.yaml (8 Epic-11 stories registered)'
+  - '_bmad-output/test-artifacts/test-design/test-design-epic-10.md (house style + regression-guard pattern)'
+  - 'nextjs-app/components/composed/time/TimeSlider.tsx (11.2 pointer-events + per-step commit root cause verified)'
+  - 'nextjs-app/components/custom/map/MapContainer.tsx (11.5 sand+gradient overlay root cause verified)'
+  - 'nextjs-app/components/custom/map/UserPin.tsx (11.5 static dot / raw hex verified)'
+  - 'nextjs-app/app/api/venues/route.ts (11.1 single-instant compute; no day-series; sunListRank verified)'
+  - 'nextjs-app/components/composed/venue/VenueQuickInfo.tsx (11.4 Säkerhet/sunTimeRange/estimateLabel content verified)'
+  - 'nextjs-app/components/custom/layout/DesktopNavBar.tsx (11.3 desktop-only chip row, overflow-hidden clip verified)'
+  - 'nextjs-app/components/custom/sheets/MobileBottomSheet.tsx (11.3 peek/mid/full/dismissed snap machine verified)'
+  - 'nextjs-app/lib/utils/sun-status-presentation.ts (11.7 orphaned toSunStatusToken verified)'
+  - 'nextjs-app/vercel.json (11.7 A2 lightningcss || true swallow verified) + .gitattributes (11.7 A3 EOL gap verified)'
+  - 'nextjs-app/test/e2e/* (epic-10-weather-matrix, axe, axe-mobile, map-primary, responsive-layout, epic-9-mobile-regression)'
+  - 'resources/knowledge/{risk-governance,probability-impact,test-levels-framework,test-priorities-matrix}.md'
 ---
 
-# Test Design Progress — Epic 10 "Honest Sky" (Weather-Gated Two-Signal Sun Display)
+# Test Design Progress — Epic 11 "Feels Instant, Reads Clear"
 
 ## Step 1 — Mode Detection
-
-- Mode: **Epic-Level** (user-requested EPIC-LEVEL mode for epic 10 AND
-  `_bmad-output/implementation-artifacts/sprint-status.yaml` present → file-based detection also
-  resolves Epic-Level).
-- Epic: 10 — "Honest Sky", 5 stories (10.1–10.5).
-- Prerequisite check PASS: epic + per-story acceptance criteria present in epics.md (lines 2645-2790);
-  architecture context available via the live source tree. No per-story story-context files exist yet
-  (they are created later in the pipeline); plan is grounded on epics.md AC + read of the live codebase
-  that the epic targets.
+- Mode: **Epic-Level** (user-requested EPIC-LEVEL for epic 11 AND `sprint-status.yaml` present → file-based
+  detection also resolves Epic-Level). Epic 11 = 8 stories (11.1–11.8). Prereq PASS: per-story ACs + Design
+  Gate Criteria present in epics.md; the app is LIVE in prod so the target surfaces are real, readable source.
 
 ## Step 2 — Context Loaded
-
-- Stack detected: **frontend/fullstack** — Next.js 16 + React 19, Vitest (`test`) + Playwright (`test:e2e`),
-  `@axe-core/playwright` a11y gate (ACTIVE and green as of Epic 9).
-- Existing tests confirmed: vitest unit/component suites under `nextjs-app/test/{unit,components}`
-  (incl. `sun-engine.test.ts`, `confidence-calculator.test.ts`, `met-no-service.test.ts`, `venues-route*.test.ts`,
-  `venue-pin-mapping.test.ts`, and the four venue-surface component tests); 12 Playwright e2e specs under
-  `nextjs-app/test/e2e` (smoke, map-primary, onboarding, favourites, feedback, review, visit-loop,
-  responsive-layout, axe, axe-mobile, epic-9-mobile-regression).
-- **Critical finding for determinism:** e2e specs today hit the REAL dev-server `/api/venues` (server computes
-  state from the live Met.no fetch); there is NO deterministic weather-boundary mock in the e2e layer. `?_time=`
-  forcing exists but only pins wall clock, not sky. Weather-state e2e (Story 10.5) MUST add a new deterministic
-  weather mock (network `page.route` on `/api/venues`, or a dev-only weather-forcing param) or it will be sky-flaky.
-- **Root causes independently confirmed in source** (all four cited by the epic): `met-no-service.ts:85`
-  `cloud_area_fraction ?? 0`; `confidence-calculator.ts:151-157` `calcCloudCertainty` reads only
-  freshness/forecast-flag/source; `sun-engine.ts:439-441` derives `currentSunStatus` from geometry (isSunVisible)
-  only; `sun-engine.ts:451-453` computes `skyCondition` but no component consumes it. `VenueSunStatus` =
-  `'Sunny' | 'Partial' | 'Shaded' | 'NoSun'` (api.ts:7). `design-tokens.ts` `SkyCondition` ALREADY carries `'rain'`;
-  `SunStatus` has no cloud/obscured value yet.
-- Config flags: `tea_use_playwright_utils=true`, `tea_pact_mcp=mcp`, `tea_browser_automation=auto`,
-  `risk_threshold=p2`, `tea_execution_mode=auto`. Browser exploration skipped: this host cannot screenshot the dev
-  server via the automated gate (ratified HOST TOOLING BUG), and the epic is predominantly engine/data — grounded
-  on code + docs instead.
-- Knowledge fragments loaded: risk-governance, probability-impact, test-levels-framework, test-priorities-matrix
-  (Epic-Level required set). NFR loading triggered (reliability of external weather deps, performance of the
-  cache/gate, maintainability of the tunable constants). Pact fragments N/A (no consumer/provider contract surface;
-  Met.no/Nowcast are external third-party HTTP the app degrades from, not contract-tested partners).
+- Stack: **fullstack** — Next.js 16 / React 19, Vitest + Playwright, `@axe-core/playwright` AA gate ACTIVE/green.
+- **All six named root causes + hygiene targets independently confirmed in HEAD source** (not taken on faith):
+  1. `TimeSlider.tsx` — value badge (:52-61) + thumb `div` (:104-118) absolutely positioned OVER the invisible
+     `<input type=range>` (:73-103) with NO `pointer-events-none`; `onChange`→`adjust`→`onMinutesChange` commits
+     PER STEP (settle on onPointerUp/onBlur via `onSnap`); no today-min clamp, no date-range rule here.
+  2. `app/api/venues/route.ts` — computes ONE `requestedAt` per request (`resolveRequestedAt`); no day-series
+     field in `GetVenuesResponse`; every scrub re-buys the whole per-venue engine walk. `sunListRank` (client+server
+     mirror) exists and must stay in lock-step (Epic-10 carry-in).
+  3. `MapContainer.tsx` — `bg-surface-sand/80` div (zIndex:1, :169-173) + `gradient-map-overlay` (zIndex:2, :174-178)
+     wash over the basemap.
+  4. `DesktopNavBar.tsx` — data-driven chip row (`collectTags`/`localizeTag` + `TagFilterContext`) renders ONLY here,
+     inside an `overflow-hidden` flex row (:104) → hard mid-chip clip; mobile has NO chip UI.
+  5. `VenueQuickInfo.tsx` — "Säkerhet: NN%" (:285), "Sol HH:mm–HH:mm" via `sunTimeRange` (:273), `estimateLabel`
+     into RouteButton (:330); NO `openingHours` prop today (must be surfaced on the list DTO).
+  6. `MobileBottomSheet.tsx` — snap machine is peek/mid/full/dismissed; `dismissed` is pointer-events-none (NOT a
+     handle-only interactive collapsed snap); no chip row in the header (children only).
+  Hygiene: `UserPin.tsx` static 18px dot, STATIC halo, raw `#d97706` (no token); `toSunStatusToken`
+  (sun-status-presentation.ts:15) orphaned — only its own unit test consumes it; `vercel.json` installCommand
+  ends `... || true` (swallows lightningcss failure); root `.gitattributes` covers only `/.gitattributes` + `*.sh`
+  — no LF normalization for `.ts/.tsx/.json/.css`; nextjs-app has none (Epic-10 confidence-calculator.ts EOL churn).
+- Knowledge fragments loaded: risk-governance, probability-impact, test-levels-framework, test-priorities-matrix.
+  Pact fragments N/A (no consumer/provider contract surface). Browser-exploration skipped (test PLAN, live prod app,
+  ratified host screenshot-tooling bug).
 
 ## Step 3 — Risk & Testability
-
-- 17 risks identified, classified TECH/SEC/PERF/DATA/BUS/OPS, scored P×I (1–9). See final doc.
-- 6 high-priority risks (≥6): **R-001** the core failure returns — 100% cloud / rain renders FULL SOL on any
-  surface (DATA/BUS 9, CRITICAL); **R-002** missing-cloud defaults to clear-sky (the wrong failure mode) (DATA 6);
-  **R-003** incomplete `VenueSunStatus` union sweep → an unhandled 5th state crashes or silently mis-renders a
-  consumer (TECH 6); **R-004** absence-of-rain leaks a positive sun signal, violating the hard constraint (BUS/DATA 6);
-  **R-005** weather-state e2e is sky-flaky because no deterministic weather-boundary mock exists yet (TECH/OPS 6);
-  **R-006** the gate mutates cached engine output but the 15-min cache pins an inconsistent status/weather pair (PERF/DATA 6).
-- NFR planning captured for Reliability (Nowcast/complete-endpoint outage → silent Tier-0 degrade, never a throw/500),
-  Performance (extra Nowcast fetch inside the request must respect dedupe/cache and not blow the sun-compute budget),
-  Maintainability (single named tunable threshold + documented cloud-layer weighting formula), and a11y (the new muted
-  Obscured state must keep the axe AA gate green). Unknown thresholds flagged, not invented.
+- 18 risks, TECH/SEC/PERF/DATA/BUS/OPS, scored P×I (1–9). 6 high (≥6) incl. one CRITICAL:
+  **R-001** the ~9.6 s time-change stall persists / "shipped-but-insufficient" repeats (PERF/BUS 9);
+  **R-002** per-step commit still floods requests during drag (PERF 6);
+  **R-003** day-series payload/geometry drift — client-derived values disagree with the old server-per-instant truth,
+  or the gzipped payload bloats (DATA/PERF 6);
+  **R-004** thumb-grab drag still dead on real touch — emulated e2e passes, physical finger fails (BUS/TECH 6);
+  **R-005** date-change unmounts/reloads markers or Epic-10 weather-gating regresses in the client-derived path (BUS/DATA 6);
+  **R-006** map de-dull drops pin/label contrast below the axe AA gate (SEC/BUS 6, a11y).
 
 ## Step 4 — Coverage Plan
-
-- P0/P1/P2/P3 scenarios mapped to Unit / Component / API / E2E levels with risk linkage, dedup-checked against the
-  existing unit + e2e files. Red-first unit matrix is the acceptance signal for the engine stories (10.1/10.3/10.4);
-  the two-signal UI (10.2) adds component tests across four visual states + a11y; 10.5 owns the deterministic mocked-
-  weather e2e matrix + regression guards + the recorded live spot-check. Estimates as ranges. Quality gates defined.
+- P0/P1/P2/P3 matrices with risk linkage + dedup discipline (client series math = UNIT; DTO series contract = API;
+  slider/sheet/chip/quick-info/detail render + a11y = COMPONENT; instant-scrub / date-change / touch-drag = E2E incl.
+  a REAL-touch profile + a request-count guard). Estimates as ranges; quality gates defined. The live-perf number
+  (date-change p95 < 3 s) is wall-clock-measured (Story 11.8) and CANNOT be a CI gate — the CI gate is the
+  request-count invariant (scrub = 0 fetches, date change = 1).
 
 ## Step 5 — Output Generated
-
-- Output: `_bmad-output/test-artifacts/test-design/test-design-epic-10.md` (epic-level single doc).
-- Validated against `checklist.md` (Epic-Level path). Sequential execution mode (single artifact). No CLI browser
-  sessions opened (none required); no temp artifacts outside `{test_artifacts}`.
+- `_bmad-output/test-artifacts/test-design/test-design-epic-11.md` (epic-level single doc). Validated against
+  `checklist.md`. Sequential mode (single artifact). No CLI browser sessions opened; all artifacts under test-artifacts/.

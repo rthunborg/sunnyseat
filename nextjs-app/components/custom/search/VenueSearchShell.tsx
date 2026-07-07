@@ -15,6 +15,7 @@ import { useSettings } from '@/lib/contexts/SettingsContext';
 import { useTimeContext } from '@/lib/contexts/TimeContext';
 import { DURATION_FLY_MS } from '@/lib/constants/animation';
 import type { VenueDataDto } from '@/lib/types/api';
+import { venuePlannerQueryArgs } from '@/lib/utils/venue-query-planner';
 import { cn } from '@/lib/utils';
 
 const SEARCH_RADIUS_KM = 1.5;
@@ -52,12 +53,23 @@ export function VenueSearchShell({
     return () => window.clearTimeout(handle);
   }, [trimmedQuery]);
 
+  // External-review fix (R-001): derive the planner args via the SHARED
+  // `venuePlannerQueryArgs` (same shape MapView + DesktopNavBar pass) so this
+  // search query keys IDENTICALLY on live-today and never flips `list`→`planner`
+  // on the first scrub away from live (which would fire a hidden /api/venues
+  // request mid-scrub). The raw `plannerQuery` is undefined on live-today.
+  const plannerArgs = venuePlannerQueryArgs({
+    isLiveNow: plannerTime.isLiveNow,
+    plannerQuery: plannerTime.plannerQuery,
+    selectedDate: plannerTime.selectedDate,
+    selectedTime: plannerTime.selectedTime,
+  });
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
     radiusKm: SEARCH_RADIUS_KM,
     q: debouncedQuery || undefined,
-    ...plannerTime.plannerQuery,
+    ...plannerArgs,
   });
   const isDebouncingSearch = trimmedQuery.length > 0 && trimmedQuery !== debouncedQuery;
   const venues = !isDebouncingSearch && Array.isArray(venueQuery.data?.venues)

@@ -39,6 +39,19 @@ export const BUILDINGS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
  */
 export const SUN_COMPUTE_CACHE_TTL_MS = 15 * 60 * 1000;
 
+/**
+ * STORY 11.1 (AC2): day-series cache TTL + the weather-refresh bucket size. The
+ * day-series is a WHOLE-DAY artifact keyed on the DAY + a weather-refresh bucket
+ * (NOT the per-instant 15-min requestedAt bucket), so ONE cached series serves
+ * every planner step of that day and a same-day time scrub is cache-free. The
+ * bucket + TTL mirror the sun-compute freshness window (15 min = the sun-
+ * freshness bucket per architecture.md Caching Strategy): a new weather-refresh
+ * bucket recomputes the WHOLE series so a cache hit never re-gates against stale
+ * weather (the Epic-10 gated-outcome-with-weather rule, R-012).
+ */
+export const SUN_DAY_SERIES_CACHE_TTL_MS = SUN_COMPUTE_CACHE_TTL_MS;
+export const SUN_DAY_SERIES_WEATHER_BUCKET_MS = SUN_COMPUTE_CACHE_TTL_MS;
+
 /** The slider snaps time to 15-minute steps; the sun-compute cache mirrors it. */
 export const SUN_TIME_BUCKET_MINUTES = 15;
 
@@ -229,12 +242,47 @@ export function sunComputeCacheKey(
   return `${venueId}|${timeBucketMs(requestedAt)}|${stockholmDayKey}|${elevationKey}`;
 }
 
+/**
+ * STORY 11.1 (AC2): floor `now` (the wall-clock fetch instant) to its weather-
+ * refresh bucket, expressed in epoch-ms. The day-series key folds this bucket in
+ * so a new weather-refresh window recomputes the WHOLE series — a key of only
+ * (venue, day) would serve yesterday's weather gating (the R-012 stale-bucket
+ * hazard). Distinct from {@link timeBucketMs}, which buckets the REQUESTED
+ * instant for the per-instant sun-compute cache; here we bucket the FETCH
+ * instant, because the series' freshness tracks when the weather was fetched.
+ */
+export function weatherRefreshBucketMs(now: Date): number {
+  const bucketMs = SUN_DAY_SERIES_WEATHER_BUCKET_MS;
+  return Math.floor(now.getTime() / bucketMs) * bucketMs;
+}
+
+/**
+ * STORY 11.1 (AC2): stable day-series cache key — `(venue id, Stockholm day,
+ * weather-refresh bucket, elevation inputs)`. Deliberately NOT keyed on the
+ * per-instant requestedAt bucket: the series spans the whole day, so one series
+ * serves every step. The weather-refresh bucket forces a recompute when a new
+ * weather window opens (the series + its gating are cached together). The
+ * elevation suffix mirrors {@link sunComputeCacheKey} for the same defensive
+ * reason (a raised/hilltop recompute must never be shadowed by a flat-terrain
+ * cache entry for the "same" id).
+ */
+export function sunDaySeriesCacheKey(
+  venueId: string,
+  stockholmDayKey: string,
+  weatherBucketMs: number,
+  elevationKey = '',
+): string {
+  return `${venueId}|${stockholmDayKey}|${weatherBucketMs}|${elevationKey}`;
+}
+
 // --- Singleton caches + in-flight maps (process-scoped, server-only) ---------
 
 let _buildingsCache: TtlCache<unknown> | null = null;
 let _buildingsInFlight: Map<string, Promise<unknown>> | null = null;
 let _sunComputeCache: TtlCache<unknown> | null = null;
 let _sunComputeInFlight: Map<string, Promise<unknown>> | null = null;
+let _sunDaySeriesCache: TtlCache<unknown> | null = null;
+let _sunDaySeriesInFlight: Map<string, Promise<unknown>> | null = null;
 
 export function getBuildingsCache<V>(): {
   cache: TtlCache<V>;
@@ -260,10 +308,30 @@ export function getSunComputeCache<V>(): {
   };
 }
 
-/** Test-only: reset both caches so each test starts cold. */
+/**
+ * STORY 11.1 (AC2): the day-series cache — the whole-day gated series keyed on
+ * `(venue id, Stockholm day, weather-refresh bucket, elevation)`. Mirrors the
+ * sun-compute singleton pattern; a degraded (null-buildings) series is returned
+ * but NOT stored via {@link getOrComputeConditional}.
+ */
+export function getSunDaySeriesCache<V>(): {
+  cache: TtlCache<V>;
+  inFlight: Map<string, Promise<V>>;
+} {
+  _sunDaySeriesCache ??= new TtlCache<unknown>(SUN_DAY_SERIES_CACHE_TTL_MS);
+  _sunDaySeriesInFlight ??= new Map<string, Promise<unknown>>();
+  return {
+    cache: _sunDaySeriesCache as TtlCache<V>,
+    inFlight: _sunDaySeriesInFlight as Map<string, Promise<V>>,
+  };
+}
+
+/** Test-only: reset all engine caches so each test starts cold. */
 export function clearSunEngineCachesForTests(): void {
   _buildingsCache?.clear();
   _buildingsInFlight?.clear();
   _sunComputeCache?.clear();
   _sunComputeInFlight?.clear();
+  _sunDaySeriesCache?.clear();
+  _sunDaySeriesInFlight?.clear();
 }

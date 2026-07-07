@@ -50,6 +50,22 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     sunExposurePercent: 95,
     tags: ['Innergård', 'Hund ok', 'Wifi', 'Bakverk'],
     sunWindow: { start: '13:00', end: '18:30' },
+    // Story 11.4 (AC1) CI-determinism / 11.9 (AC2): the seed path returns raw
+    // VENUE_FIXTURE (no VENUE_DETAIL_SEED merge), so opening hours must live on the
+    // fixture itself to reach the list DTO on the flag-OFF path CI runs. Now the
+    // per-weekday structure — every weekday closes 22:00 so the derived "Öppet till
+    // 22:00" is byte-stable regardless of the CI run-day. Present-case for the
+    // "renders opening hours" branch; other fixtures omit it to prove the absent →
+    // renders-nothing branch. Mirrors VENUE_DETAIL_SEED['test-venue-sunny'].
+    openingHours: {
+      '1': { open: '11:00', close: '22:00' },
+      '2': { open: '11:00', close: '22:00' },
+      '3': { open: '11:00', close: '22:00' },
+      '4': { open: '11:00', close: '22:00' },
+      '5': { open: '11:00', close: '22:00' },
+      '6': { open: '11:00', close: '22:00' },
+      '7': { open: '11:00', close: '22:00' },
+    },
     thumbnail: {
       alt: 'Uteservering hos Kafé Magasinet',
       initials: 'KM',
@@ -72,6 +88,18 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     sunExposurePercent: 89,
     tags: ['Morgonsol', 'Take-away', 'Surdeg'],
     sunWindow: { start: '12:45', end: '18:15' },
+    // Story 11.4 (AC1) / 11.9 (AC2): second present-case fixture for the
+    // opening-hours line on the seed path (per-weekday shape, closes 23:00 every
+    // day). Mirrors VENUE_DETAIL_SEED['bryggeriet-soltak'].
+    openingHours: {
+      '1': { open: '11:00', close: '23:00' },
+      '2': { open: '11:00', close: '23:00' },
+      '3': { open: '11:00', close: '23:00' },
+      '4': { open: '11:00', close: '23:00' },
+      '5': { open: '11:00', close: '23:00' },
+      '6': { open: '11:00', close: '23:00' },
+      '7': { open: '11:00', close: '23:00' },
+    },
     thumbnail: {
       alt: 'Uteservering hos Bryggerietsoltak',
       initials: 'BS',

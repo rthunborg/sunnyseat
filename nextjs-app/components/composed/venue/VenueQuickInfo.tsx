@@ -28,10 +28,19 @@ export type VenueQuickInfoDesktopPlacement = 'above' | 'pinned';
 export type VenueQuickInfoProps = {
   mode: VenueQuickInfoMode;
   name: string;
-  sunTimeRange?: string;
   confidencePercent?: number;
   confidenceMeta?: SunFreshnessMeta;
   sunExposurePercent?: number;
+  /**
+   * Story 11.4 (AC1) / 11.9 (AC2): the venue's DERIVED opening-hours display for
+   * the CURRENT Stockholm weekday, computed by the caller (MapView) from the
+   * list-DTO per-weekday `openingHours` via
+   * `lib/utils/opening-hours.ts#formatOpeningHours`. The component stays
+   * presentational — it renders `display` verbatim as a single line under the
+   * name. ABSENT (`undefined`) or `{ display: undefined }` (closed today / no
+   * hours) → renders NOTHING — never a fabricated value.
+   */
+  openingHours?: { display?: string; closesAt?: string };
   /** Story 10.2 (AC1): the venue's weather-gated headline state. When
    * `'CloudObscured'` the card mutes the amber "% SOL" badge + headline into
    * the "Sol bakom moln" treatment while keeping the geometric layer (AC2). */
@@ -56,7 +65,6 @@ export type VenueQuickInfoProps = {
   onDismiss: () => void;
   onOpenDetails: () => void;
   onRoute: () => void;
-  routeEstimateLabel?: string;
   isRouteLoading?: boolean;
   onFavouriteToggle?: () => void;
   isFavourite?: boolean;
@@ -73,7 +81,6 @@ export type VenueQuickInfoProps = {
      * shown alongside the distance value on the Gothenburg-centrum fallback. */
     distanceApproximate?: string;
     loadingSun: string;
-    sunUnavailable: string;
     routeLoading: string;
     favouriteAdd: string;
     favouriteRemove: string;
@@ -97,10 +104,10 @@ const THUMBNAIL_MAX_ALT = 120;
 export function VenueQuickInfo({
   mode,
   name,
-  sunTimeRange,
   confidencePercent,
   confidenceMeta,
   sunExposurePercent,
+  openingHours,
   currentSunStatus,
   skyCondition,
   distanceMeters,
@@ -112,7 +119,6 @@ export function VenueQuickInfo({
   onDismiss,
   onOpenDetails,
   onRoute,
-  routeEstimateLabel,
   isRouteLoading = false,
   onFavouriteToggle,
   isFavourite = false,
@@ -265,32 +271,32 @@ export function VenueQuickInfo({
                         : 'space-y-1'
                     }
                   >
-                    <p className={cn(isAnchoredMobile ? 'contents' : 'text-label-lg', !isAnchoredMobile && (isObscured ? 'text-obscured-text' : 'text-amber-dark'))}>
-                      {/* AC2: the sun window is the "when it clears" potential —
-                          kept visible, but muted (obscured-text, not amber) so it
-                          reads as position/potential, not "sunny now". */}
-                      <span className={isObscured ? 'text-obscured-text' : 'text-amber-dark'}>
-                        {sunTimeRange ?? labels.sunUnavailable}
-                      </span>
-                    </p>
+                    {/* Story 11.4 (AC1): the single honest opening-hours line, in
+                        the slot vacated by the removed "Säkerhet: NN%" chip and the
+                        "Sol HH:mm–HH:mm" window line. Rendered ONLY when the store
+                        carries opening hours; ABSENT → nothing (never fabricated,
+                        never a closesAt-only fallback). Uses `text-text-body` (not
+                        the 60%-alpha `text-muted`) so it clears the axe AA gate on
+                        the cream card, mirroring the distance line. */}
+                    {openingHours?.display && (
+                      <p
+                        data-testid="quick-info-opening-hours"
+                        className={cn(
+                          isAnchoredMobile ? 'contents' : 'text-label-lg',
+                          'font-bold text-text-body',
+                        )}
+                      >
+                        <span>{openingHours.display}</span>
+                      </p>
+                    )}
                     <p className={isAnchoredMobile ? 'contents' : 'text-body-sm text-text-body'}>
-                      {/* Story 10.2 (AC1): suppress the amber "Säkerhet" chip
-                          under the obscured gate — no amber sun chrome while the
-                          venue is cloud-obscured (mirrors VenueCard's
-                          `!isObscured` confidence gate). The sr-only accessible
-                          text is preserved so the accessible name is unchanged. */}
-                      {!isObscured && confidenceDisplay.visibleText && (
-                        <>
-                          <span className="font-bold text-amber-text">
-                            {labels.confidence}: {confidenceDisplay.visibleText}
-                            <span className="sr-only"> {confidenceDisplay.accessibleText}</span>
-                          </span>
-                        </>
-                      )}
-                      {(isObscured || !confidenceDisplay.visibleText) && (
-                        <span className="sr-only">{confidenceDisplay.accessibleText}. </span>
-                      )}
-                      {!isAnchoredMobile && !isObscured && confidenceDisplay.visibleText && ' · '}
+                      {/* Story 11.4 (AC1/AC4): the VISIBLE "Säkerhet: NN%" chrome is
+                          removed on both breakpoints (confidence lives on in the
+                          detail view). The sr-only accessible confidence text is
+                          PRESERVED so the accessible name (name → sun % → opening
+                          hours → distance → confidence) does not regress. No
+                          visible separator remains, so no dangling "·". */}
+                      <span className="sr-only">{confidenceDisplay.accessibleText}. </span>
                       <span className="font-bold">
                         {isAnchoredMobile && (
                           <span className="sr-only">
@@ -324,10 +330,15 @@ export function VenueQuickInfo({
             </motion.div>
           </AnimatePresence>
           <div className={cn('flex gap-2', isAnchoredMobile ? 'mt-2' : 'mt-3')}>
+            {/* Story 11.4 (AC2): the quick-info route CTA reads only "VISA RUTT"
+                (+ icon) at full legibility — NO truncated ETA. The ETA lives on
+                only in the detail/route surface. `RouteButton` already omits the
+                estimate span (and falls back to just `label` for its accessible
+                name) when `estimateLabel` is undefined, so no component edit is
+                needed — the call site simply stops passing one. */}
             <RouteButton
               label={labels.route}
               loadingLabel={labels.routeLoading}
-              estimateLabel={routeEstimateLabel}
               isLoading={isRouteLoading}
               compact={isAnchoredMobile}
               onClick={onRoute}

@@ -49,7 +49,7 @@ const VENUE: VenueDetailDto = {
   sunWindow: { start: '13:00', end: '18:30' },
   description: 'Stor uteservering med eftermiddagssol.',
   address: 'Tredje Långgatan 9, Göteborg',
-  openingHours: { display: 'Öppet till 22:00' },
+  openingHours: { '1': { open: '11:00', close: '22:00' } }, // Story 11.9 (AC2)
   timeline: {
     timezone: 'Europe/Stockholm',
     range: { start: '06:00', end: '21:00' },

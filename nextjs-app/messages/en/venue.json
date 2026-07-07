@@ -20,10 +20,8 @@
     "distance": "Distance",
     "distanceApproximate": "≈ from centre",
     "loadingSun": "Loading sun data",
-    "sunUnavailable": "Sun time unavailable",
-    "sunWindow": "Sun {start}–{end}",
+    "openUntilLine": "Open until {time}",
     "obscuredHeadline": "Sun behind clouds",
-    "obscuredPosition": "Sun position {percent} · sunny here when it clears",
     "sky": {
       "clear": "Clear",
       "partlyCloudy": "Partly cloudy",
@@ -96,6 +94,7 @@
     "sliderLabel": "Select time",
     "unavailableDate": "Date outside season",
     "pastDate": "Date has passed",
+    "windowDate": "Date outside the planning window",
     "selectDate": "Select {date}",
     "loading": "Updating sun forecast",
     "error": "Could not update sun forecast"
@@ -135,9 +134,6 @@
     }
   },
   "detail": {
-    "sectionTitle": "Sun forecast today",
-    "peakTime": "Peaks at {time}",
-    "bestWindow": "Best {start}-{end}",
     "openMaps": "OPEN IN MAPS",
     "route": "Show Route",
     "close": "Close venue details",
@@ -179,17 +175,11 @@
     "confidenceUnavailable": "Confidence unavailable",
     "city": "Gothenburg",
     "openUntil": "OPEN · {time}",
+    "openUntilLine": "Open until {time}",
     "placeholderImageShort": "Placeholder image",
     "facts": {
       "distance": "DISTANCE",
       "distanceApproximate": "≈ from centre"
-    },
-    "timeline": {
-      "ariaLabel": "Sun times today",
-      "currentTime": "Now {time}",
-      "sunnyWindow": "Sun {start}-{end}",
-      "partialWindow": "Partial sun {start}-{end}",
-      "shadedWindow": "Shade {start}-{end}"
     }
   }
 }

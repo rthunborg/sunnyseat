@@ -1,2 +1,69 @@
+# Line-ending normalization (Story 11.7 / Epic 8 A3).
+#
+# Scope: SOURCE + config/script/data text files only. This is deliberately NOT
+# a blanket `* text=auto` — a blanket rule would sweep the ~113 tracked `*.log`
+# BMAD review-capture / Playwright console artifacts and every binary into one
+# unreviewable renormalization diff (test-design-epic-11 R-016). The `.log`
+# artifacts are intentionally left untouched. `core.autocrlf` is set locally, so
+# these `text eol=lf` rules give the repo a single, deterministic source EOL and
+# end the recurring CRLF<->LF review churn (e.g. Epic 10's confidence-calculator.ts).
+
+# --- config meta (kept from prior .gitattributes) ---
 /.gitattributes text eol=lf
-*.sh text eol=lf
+
+# --- TypeScript / JavaScript ---
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.js   text eol=lf
+*.jsx  text eol=lf
+*.mjs  text eol=lf
+*.cjs  text eol=lf
+
+# --- Data / config (JSON family) ---
+*.json  text eol=lf
+*.jsonc text eol=lf
+*.jsonl text eol=lf
+*.geojsonl text eol=lf
+*.toml  text eol=lf
+
+# --- Styles ---
+*.css  text eol=lf
+*.scss text eol=lf
+
+# --- Markup / docs ---
+*.md   text eol=lf
+*.mdx  text eol=lf
+*.html text eol=lf
+
+# --- YAML ---
+*.yml  text eol=lf
+*.yaml text eol=lf
+
+# --- SQL ---
+*.sql  text eol=lf
+
+# --- Scripts ---
+*.sh   text eol=lf
+*.ps1  text eol=lf
+*.cmd  text eol=lf
+*.py   text eol=lf
+
+# --- Plain-text config ---
+*.txt      text eol=lf
+*.example  text eol=lf
+
+# --- Binary guards (never treated as text, never EOL-touched) ---
+# Protects the reference PNGs, fonts, and other binaries from any normalization.
+*.png   -text
+*.jpg   -text
+*.jpeg  -text
+*.ico   -text
+*.gif   -text
+*.webp  -text
+*.woff  -text
+*.woff2 -text
+*.ttf   -text
+*.otf   -text
+*.eot   -text
+*.pdf   -text
+*.zip   -text
