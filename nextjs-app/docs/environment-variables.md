@@ -30,6 +30,7 @@ using the service-role client — there is **no anon/browser Supabase client**, 
 | `SUNNYSEAT_SUN_ENGINE` | `real` computes live sun/shadow/weather (else seed) | No | Production only |
 | `SUNNYSEAT_FEEDBACK_PERSISTENCE` | `supabase` writes `public.feedback` | No | Production only |
 | `SUNNYSEAT_REVIEW_PERSISTENCE` | `supabase` reads/writes `public.reviews` | No | Production only |
+| `SUNNYSEAT_COVERAGE_CAP` | `off` lifts the shadow-data coverage confidence clamp so the RAW engine confidence displays (maintainer field-verification only; every other honesty cap still applies) | No | **TEMPORARY** — pre-launch verification; remove at launch (Story 12.2) |
 
 Unset = the in-memory fixture/seed default, so CI and local dev have **zero
 live-Supabase dependency** and the output is byte-identical to the fixture era.

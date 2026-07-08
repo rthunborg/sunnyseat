@@ -3125,3 +3125,139 @@ updates the 7-venue seed to the new shape (byte-compatible on the values the
 - **Visual validation:** Screenshot comparison of the venue detail (mobile + desktop)
   and the quick-info card against the current baseline passes before QA handoff — no
   proportion/centering regression in the opening-hours row or the ÖPPET badge
+
+---
+
+## Epic 12 (Backlog): "Hours You Can Trust" — Google Places Opening-Hours Sync
+
+**Status: backlog — not scheduled.** Created 2026-07-07 at maintainer request during
+the real-venue data load, as the future consumer of the `place_id` /
+`places_api_url` columns added by that load (live migration
+`venues_add_google_places_columns`). Activate via sprint-planning when prioritized.
+(Note: this is a NEW Epic 12 — the earlier single-story Epic 12 draft was dissolved
+into Story 11.9 on 2026-07-06 and no longer exists.)
+
+The 2026-07-07 load replaced the 7 fixture venues with 42 real Göteborg venues whose
+`opening_hours` were hand-collected — they will silently drift as venues change
+their hours. The same load captured a Google Places **place ID** for every venue
+(41 in the source JSON; `cielo`'s backfilled the same day), which exposes the
+authoritative `regularOpeningHours` resource via the Places API v1. This epic replaces hand-maintained hours with a periodic sync from
+Places while keeping the Story 11.9 render-time derivation contract byte-compatible.
+
+### Story 12.1: Google Places Opening-Hours Sync (Replace Hand-Maintained Hours)
+
+As a **maintainer (and a user reading venue hours)**,
+I want `venues.opening_hours` refreshed automatically from each venue's Google
+Places `regularOpeningHours`,
+So that the ÖPPET badge and the derived "Öppet till HH:MM" line reflect the venue's
+real, current hours instead of hand-collected values that drift.
+
+**Acceptance Criteria:**
+
+**Given** venues carry optional `place_id` / `places_api_url` (2026-07-07: all 42
+set; `brasserie-voyage` + `voyage-vasaplatsen` deliberately share one place because
+they are two seating areas of the same establishment)
+**When** a sync mechanism (the story/architect picks the vehicle — e.g. a scheduled
+GitHub Action per `nextjs-app/docs/github-actions-scheduled-jobs.md`, a Vercel cron
+route, or an on-demand maintainer script) fetches Place Details with a field mask
+restricted to `regularOpeningHours`, authenticated by a server-only Google Maps
+Platform API key (deployment env var; never `NEXT_PUBLIC_*`, never committed)
+**Then** each fetched venue's `opening_hours` jsonb is rewritten in the Story 11.9
+per-weekday shape — ISO keys `"1"` (Mon) … `"7"` (Sun) mapped from Places
+`periods[]` (Places `day` is 0=Sunday…6=Saturday), `"HH:MM"` 24h times, a weekday
+with no period stored as `null` (closed), a past-midnight period collapsing to
+`close < open` on the OPENING weekday — and venues without a `place_id` are skipped,
+keeping their hand-authored hours untouched
+
+**Given** the Places API has quota and per-field-mask billing
+**When** the sync runs
+**Then** it requests ONLY the opening-hours field (field mask keeps the billed SKU
+minimal), runs at a low cadence (hours change rarely — weekly-order, not per-request),
+handles per-venue fetch failures without aborting the batch (the venue keeps its
+last-known hours; never a partial or fabricated write), validates every write
+against the same weekday/`HH:MM` contract the store's `coerceOpeningHours` enforces,
+and produces a per-venue outcome summary the maintainer can inspect
+
+**Given** the app derives the ÖPPET badge + "Öppet till HH:MM" line at render time
+from `venues.opening_hours` (Story 11.9) and never stores display strings
+**When** the sync lands
+**Then** there is NO DTO, formatter, or UI change: the per-weekday contract (missing
+key/`null` = closed; `close < open` = past-midnight) is unchanged, and Places
+`specialHours` / holiday exceptions are explicitly OUT of scope (documented in the
+story file; weekly `regularOpeningHours` remain the only synced source)
+
+**Given** `nextjs-app/docs/venue-data-load.md` is the canonical venue-authoring guide
+**When** the sync ships
+**Then** the doc's `opening_hours` + `place_id` rows are updated to state that hours
+auto-sync for venues with a `place_id` (hand-authored hours remain the
+fallback/override for venues without one), including how to run and inspect the sync
+
+**Design Gate Criteria:**
+- **Visual:** No visual change — the ÖPPET badge and "Öppet till HH:MM" line keep
+  their current treatment; only the underlying data freshens
+- **Behaviour:** Synced closed-today (`null`) and past-midnight (`close < open`)
+  shapes render exactly as their hand-authored equivalents do today
+- **Animation:** None (no UI surface change)
+- **Visual validation:** Screenshot comparison of venue detail + quick-info against
+  the current baseline passes — a data-only story must not move pixels
+
+### Story 12.2: Coverage Validation Verdicts — Wire the Artifact, Re-cap Honestly, Cloud-After-Cap
+
+_Context (2026-07-08, pre-launch verification phase):_ the app has no public users
+yet, and the maintainer is field-verifying predictions by walking the 42 live
+venues. To make the RAW engine confidence observable during that phase,
+`SUNNYSEAT_COVERAGE_CAP=off` was added (env-gated bypass inside
+`applyShadowDataCoverageCap`, `nextjs-app/lib/solar/shadow-data-coverage.ts` —
+fail-closed: any other value keeps the clamp) and set in Vercel Production. Ground
+truth accumulates in the live `feedback` table (`predicted_state`, `sun_accuracy`,
+`confidence_at_prediction`, `note`, timestamp) via the in-app accuracy widget.
+This story closes the loop and is a **LAUNCH GATE**: the app does not launch
+publicly with the bypass still set.
+
+As a **maintainer preparing public launch**,
+I want per-cluster verification verdicts computed from the walking-phase evidence,
+wired into the engine, and the coverage cap re-enabled,
+So that launch-day confidence figures are simultaneously honest and evidence-backed.
+
+**Acceptance Criteria:**
+
+**Given** accumulated walking-phase evidence (live `feedback` rows and/or manual
+spot-check notes with photos)
+**When** per-cluster agreement is computed against the Story 3.0.5 eligibility bar
+(≥10 checks, ≥85% agreement between `predicted_state` and observed `sun_accuracy`,
+checks spread across conditions, evidence files recorded)
+**Then** a validation artifact is produced in the `buildCoverageMapFromValidationArtifact`
+shape (`scope: full_launch_clusters`, `status: pass`, ALL 8 clusters each carrying
+status/checkedCount/agreementRate/missingConditions/evidenceFiles) with per-cluster
+verdicts: verified → `eligible` (cap lifts to 100), systematic disagreement →
+`blocked` (55), thin evidence → `insufficient_evidence` (65)
+
+**Given** the adapter `buildCoverageMapFromValidationArtifact` exists but nothing
+feeds it
+**When** the artifact is wired in (loaded server-side and passed as the
+`coverageMap` into the engine's coverage resolution)
+**Then** eligible clusters display uncapped confidence, non-eligible clusters keep
+their status caps, and a malformed/partial artifact fails closed to the all-unknown
+conservative map (existing behavior, now regression-tested end-to-end)
+
+**Given** the Epic-10 maintainer follow-up #3 (FR12 "confidence drops with cloud"
+is invisible while the cap clips everything to 60)
+**When** any cluster can display above 60
+**Then** the cloud factor applies AFTER the coverage cap (multiplicative — it can
+only lower the displayed value, never raise it), so cloud cover visibly moves
+confidence without overclaiming
+
+**Given** the temporary `SUNNYSEAT_COVERAGE_CAP=off` bypass in Vercel Production
+**When** this story ships
+**Then** the env var is REMOVED from Vercel (verified: prod confidence is capped
+per cluster verdict again), and a regression test pins the default path (flag
+unset → capped) so the bypass can never silently become the launch posture
+
+**Design Gate Criteria:**
+- **Visual:** Confidence chip/labels keep their existing visual treatment — only
+  the values change (eligible clusters may now read above 60)
+- **Behaviour:** Capped vs uncapped is driven solely by the per-cluster verdict;
+  cloud cover lowers displayed confidence on eligible clusters
+- **Animation:** None (no UI surface change)
+- **Visual validation:** Screenshot comparison of venue card/quick-info/detail
+  against the current baseline passes — value-only changes must not move layout

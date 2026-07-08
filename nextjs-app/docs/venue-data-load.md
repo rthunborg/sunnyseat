@@ -3,8 +3,9 @@
 Canonical reference for adding real venues to `public.venues` (the live store
 behind `/api/venues` when `SUNNYSEAT_VENUE_STORE=supabase`). The schema is defined
 by `_bmad-output/implementation-artifacts/8-2-venues-store-contract.sql` +
-`11-9-venue-data-model-cleanup.sql`; this doc is the human/agent-facing "what to
-collect and in what shape" guide.
+`11-9-venue-data-model-cleanup.sql` + the `venues_add_google_places_columns` live
+migration (2026-07-07: optional `place_id` / `places_api_url`); this doc is the
+human/agent-facing "what to collect and in what shape" guide.
 
 > **Quick ask for an agent:** "add a real venue" → collect the **durable fields**
 > below (+ a `seating_area` polygon, optionally `seating_elevation_m`) and generate
@@ -30,7 +31,10 @@ collect and in what shape" guide.
 | `opening_hours` | jsonb | — | **Per-weekday** hours (Story 11.9), keyed by numeric ISO weekday (`"1"`=Mon … `"7"`=Sun): `{ "1": { "open": "11:00", "close": "22:00" }, … }`. A **missing key or `null`** value = **closed that day**. `close < open` = a **past-midnight** close (opens 18:00 closes 02:00 → open until 02:00). Times are `"HH:MM"` (24h). Omit the column entirely for a venue with no known hours — the app renders **nothing** for it (never a fabricated time). The "Öppet till HH:MM" line + the ÖPPET badge are **derived at render time** for the current Stockholm weekday; do NOT store a display string. |
 | **`seating_area`** | jsonb (GeoJSON Polygon) | — but **important** | The outdoor seating footprint the sun engine casts shadows onto. WGS84, `[lng, lat]` order, closed ring. Null → engine uses a ~10 m square around `lat/lng` (less precise). |
 | **`seating_elevation_m`** | double precision ≥ 0 | optional | Estimated metres of the **seating surface above local ground/street**. Null/0 = street level. Rooftop bars / raised terraces / balconies use the approx floor height (4th floor ≈ 12 m). **Consumed by the engine as of Story 8.6** (Tier-1 rooftop/raised height gate — see "Elevation" below). Set it for rooftop / raised venues so they are predicted from their seating height; leave it null for street-level venues (byte-identical to the pre-8.6 ground-level path). |
-| **`ground_elevation_m`** | double precision | optional | The venue's **RH2000 absolute ground elevation** (Z, metres) at its point — the height of the *ground the venue stands on*, NOT a height above ground. **May be negative.** For a **hilltop** venue this lets the engine compare each caster's roof against the venue's own ground, so a building standing downhill stops shadowing a venue uphill from it. **Consumed by the engine as of Story 8.7** (Tier-2 terrain gate — see "Elevation" below). Null → engine falls back to the Story 8.6 relative gate (byte-identical). Derive it the same way casters get `ground_z_rh2000`: sample the Göteborg **Höjdmodell 2022 DTM** at the venue's `lat`/`lng`. Leave it null unless the venue sits on a meaningful rise. |
+| **`ground_elevation_m`** | double precision | optional | The venue's **RH2000 absolute ground elevation** (Z, metres) at its point — the height of the *ground the venue stands on*, NOT a height above ground. **May be negative.** For a **hilltop** venue this lets the engine compare each caster's roof against the venue's own ground, so a building standing downhill stops shadowing a venue uphill from it. **Consumed by the engine as of Story 8.7** (Tier-2 terrain gate — see "Elevation" below). Null → engine falls back to the Story 8.6 relative gate (byte-identical). Derive it the same way casters get `ground_z_rh2000`: sample the Göteborg **Höjdmodell 2022 DTM** at the venue's `lat`/`lng` (or, pragmatically, take `ground_z_rh2000` of the `shadow_casters` rows nearest the seating polygon). Leave it null unless the venue sits on a meaningful rise. |
+| `tags` | text[] | — | Canonical **Swedish** tag values for the chip filter (Story 9.7), e.g. `'{Takterrass,Skaldjur}'`. Defaults `'{}'` = no tags: the venue always shows normally and is only hidden while a chip it lacks is active. Chips are **derived from the union of tags across venues** — a tag no venue carries never renders a chip. Keep values inside the known vocabulary in `lib/utils/venue-tags.ts` (`TAG_DISPLAY_EN`); when introducing a new tag, add its English display mapping there in the same change. |
+| `place_id` | text | optional | Google Places **place ID** (Places API v1 resource `places/{place_id}`). Captured at venue load; **not consumed by the app yet** — reserved for the backlog Google Places opening-hours sync (Epic 12 / Story 12.1). CHECK-enforced: non-empty, no whitespace. Two venue rows MAY share a place (two seating areas of one establishment). |
+| `places_api_url` | text | optional | Fully-qualified Places API v1 endpoint for the venue: `https://places.googleapis.com/v1/places/{place_id}` (CHECK-enforced prefix). Convenience companion to `place_id` — set both or neither. |
 
 ### 2. Engine-managed columns — placeholders only
 
@@ -76,7 +80,10 @@ Note there is **no `id`** — it auto-assigns. Send it only to overwrite an exis
   },
   "seating_area": { "type": "Polygon", "coordinates": [[[11.9560,57.6995], "…", [11.9560,57.6995]]] },
   "seating_elevation_m": null,
-  "ground_elevation_m": null
+  "ground_elevation_m": null,
+  "tags": ["Innergård"],
+  "place_id": "ChIJ…",
+  "places_api_url": "https://places.googleapis.com/v1/places/ChIJ…"
 }
 ```
 
@@ -137,13 +144,16 @@ raised venues so they are predicted from their seating height.
 
 ## Notes
 
-- The `venues` table currently holds the 7 fixture rows (`id` `1`–`7`, byte-identical
-  to `lib/services/venues-fixture.ts`). Decide per data-load whether to keep them
-  (add real venues — the auto-assigned `id` continues at `"8"`) or replace them
-  (`delete from public.venues where id in ('1'..'7')`). `test-venue-sunny` (`id` `1`)
-  is the dev visual-gate slug; production data never uses it. The `id` sequence
-  (`venues_id_seq`) is advanced past the seed max, so a plain insert without an `id`
-  gets the next free text id.
+- The `venues` table holds the **real Göteborg venue set** as of 2026-07-07: 42 rows,
+  ids `"8"`–`"49"`, loaded from the maintainer's `goteborg-venues` JSON. The 7
+  fixture/test rows (`"1"`–`"7"`) were **cleared** in the same operation; a plain
+  insert without an `id` now gets `"50"` onward. `test-venue-sunny` lives on **only in
+  the fixture store** (`lib/services/venues-fixture.ts`) — dev/CI and the visual gate
+  run the fixture path (`SUNNYSEAT_VENUE_STORE` unset), so live data loads never
+  affect them. Rooftop/hilltop examples in the live set: `cielo`
+  (`seating_elevation_m` 23.5 — surveyed height of its own building) and `skanshof`
+  (`ground_elevation_m` 18.3 — DTM ground Z of the structures beside its uphill
+  seating polygon).
 - The runtime reads via the service-role client (bypasses RLS). `seating_area` /
   `seating_elevation_m` / `ground_elevation_m` are **server-only** — never serialized
   into `VenueDataDto`.

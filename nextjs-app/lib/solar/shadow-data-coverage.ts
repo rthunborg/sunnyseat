@@ -111,8 +111,28 @@ export function applyShadowDataCoverageCap(
   confidence: number,
   coverage: ShadowDataCoverage | undefined
 ): number {
+  if (isCoverageCapDisabled()) return confidence;
   if (!coverage) return Math.min(confidence, 0.6);
   return Math.min(confidence, coverage.confidenceCap);
+}
+
+/**
+ * Pre-launch verification escape hatch: `SUNNYSEAT_COVERAGE_CAP=off` lifts ONLY
+ * this coverage clamp so the maintainer can field-verify the RAW engine
+ * confidence against reality (the walking spot-check phase that will produce the
+ * validation artifact — Story 12.2). Everything else stays honest: the other
+ * confidence caps (no-weather, forecast, low-sun-elevation, obstruction risk) in
+ * `applyConfidenceCaps` still apply, and the coverage RECORD (status/uncertainty
+ * surfaces) keeps flowing — only the numeric clamp lifts. Fail-closed: any value
+ * other than the exact string `off` (or unset) keeps the capped path, so CI/dev
+ * and a forgotten-flag deploy stay conservative. Read per call (not at module
+ * load) so tests can stub the env; this module sits behind the lib/solar API
+ * boundary, so the read is server-only and never reaches a client bundle.
+ * LAUNCH CHECKLIST (Story 12.2): remove `SUNNYSEAT_COVERAGE_CAP` from Vercel
+ * Production when the validation artifact is wired in.
+ */
+function isCoverageCapDisabled(): boolean {
+  return process.env.SUNNYSEAT_COVERAGE_CAP === 'off';
 }
 
 export function createUnknownCoverage(
