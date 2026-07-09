@@ -3484,14 +3484,19 @@ console-error CI guard.
    server-rendered HTML ≠ first client render). Almost certainly a wall-clock/`new
    Date()`-derived value rendered during SSR that differs by the time the client
    hydrates: candidates carry `new Date()`/`toLocale`/`Intl` in render —
-   `components/custom/time/TimeSliderPanel.tsx`, `components/composed/time/TimeSlider.tsx`,
+   `components/custom/time/TimeSliderPanel.tsx`,
    `components/composed/venue/VenueDetailContent.tsx`, `components/custom/map/MapView.tsx`
    (`quickInfoOpeningHours` derives "Öppet till HH:MM" from `new Date()`). This is the
    same class as the pre-existing `TimeProvider` initial-`new Date()` hydration note.
+   (NOT `TimeSlider.tsx` — it documents "never reads `new Date()`", `TimeSlider.tsx:26`,
+   so it is the deliberately-clean controlled child, not a suspect.)
 2. **`Expected value to be of type number, but found null` ×3** (MapLibre style
-   validation). A paint/layout expression is evaluating to `null` where a number is
-   required — likely a pin/layer paint expression or the basemap recolour touching a
-   layer whose expected value is numeric. Cosmetic (map renders), but noisy.
+   validation). NOTE — the app authors NO numeric MapLibre style expression: pins are DOM
+   `maplibregl.Marker`s (`VenuePinLayer.tsx:199`, not style layers), and the only app paint
+   mutation, the recolour, sets exclusively `fill-color`/`line-color` COLOR STRINGS
+   (`apply-basemap-colors.ts:53`, `map-basemap-colors.ts:58`) — grep finds zero
+   app-authored `addLayer`/`addSource`. So the null almost certainly originates in the
+   **upstream positron style**, not our code. Cosmetic (map renders), but noisy.
 
 As a **maintainer verifying the live app**,
 I want the production console free of app-originated errors,
@@ -3509,22 +3514,28 @@ errors in the console, and the fix names the offending component + value in the
 story record
 
 **Given** the MapLibre `Expected value to be of type number, but found null` warning
-fires ×3 at style/recolour time
-**When** the offending layer + paint/layout property is identified (log the layer id
-in the recolour/pin path, or diff the style before/after our `setPaintProperty`
-pass) and the null-producing input is corrected or guarded
-**Then** the warning no longer fires on a cold map load, and any deliberately-skipped
-layer is documented (the recolour already skips absent layers silently — extend that
-posture if the null is an absent/typed property)
+fires ×3 at style/recolour time — and (per the context) the app authors no numeric style
+expression, so the null likely comes from the UPSTREAM positron style, which "guard our
+input" cannot reach
+**When** the offending layer + property is identified (diff the style before/after our
+`setPaintProperty` pass; confirm whether the null pre-exists in the fetched positron style)
+**Then** it is resolved by the appropriate lever for its SOURCE: if it IS our input, guard
+it; if it is the **upstream positron style**, either fork/patch that layer OR — per AC3's
+own third-party carve-out — **document it as a known third-party positron warning** and
+allow-list it in the console guard (do NOT assume an app-authored numeric expression exists
+to "correct")
 
 **Given** there is currently NO automated console-error guard (grep of `test/e2e`
 finds no `console`/`pageerror` listener)
 **When** the two errors are fixed
 **Then** a Playwright spec (via `page.on('console')` + `pageerror`) asserts a cold map
 load and a venue-detail open emit no app-origin console messages at level **error OR
-warning** — this MUST catch the MapLibre "Expected value…" message even if it surfaces
-as a `console.warn` (not only `console.error`), plus React `pageerror`s; an allowlist may
-exclude known third-party/extension noise, but NOT React or MapLibre app-origin
+warning** — catching the MapLibre "Expected value…" message even if it surfaces as a
+`console.warn` (not only `console.error`), UNLESS Story-12.4 AC2 has confirmed it is an
+upstream positron-style warning, in which case it is an EXPLICITLY-documented third-party
+allow-list entry (a named, justified exception — never a silent blanket skip), plus React
+`pageerror`s; an allowlist may exclude known third-party/extension noise, but NOT React or
+our-own-code MapLibre app-origin
 errors/warnings — so a future regression re-breaks the build
 
 **Design Gate Criteria:**
@@ -3683,14 +3694,19 @@ that says "sunny"/highlights the sun figure tracks the SAME 50% line so a grey-p
 venue is never described as sunny (reconcile the pin, the card "% sol" emphasis, and
 any "soligt" wording to one 50% boundary)
 
-**Given** the list/favourites "Mest sol" ordering ranks sunny-first via
-`SUN_STATUS_ORDER` (`route.ts:77` — `Sunny=2, Partial=1, Shaded/NoSun=0`) plus the
-day-peak rank, so a `Partial` venue at 40% currently sorts ABOVE not-sunny ones
+**Given** "Mest sol" ordering ranks sunny-first on BOTH sides: the SERVER `SUN_STATUS_RANK`
+(`route.ts:75-84`; `Sunny=2, Partial=1, Shaded/NoSun=0`) via `sunListRank`/`venuePeakSunRank`
+(`route.ts:89,110`), AND a co-equal CLIENT mirror `getVenueSunRankForList` +
+`isVenueSunnyForList` (`VenueList.tsx:174-199`) that drives the VISIBLE `sortVenuesForList`
+order and the card's `isSunny` — so a `Partial` venue at 40% currently sorts ABOVE not-sunny
+ones on the rendered list
 **When** the 50% cut lands
-**Then** the ORDERING predicates are updated to the same boundary — a venue that is grey
-(≤50% sunlit OR weather-gated) must NOT be promoted into the sunny-first / "Mest sol" band
-above genuinely sunny (>50%, not-gated) venues — so the sort, the pin, and the card copy
-all agree on one line (covered by a route/ordering test)
+**Then** the ORDERING predicates are updated to the same boundary on BOTH sides — the server
+rank AND the client `getVenueSunRankForList`/`isVenueSunnyForList` (they are required to stay
+in lock-step) — so a grey venue (≤50% sunlit OR weather-gated) is never promoted into the
+sunny-first / "Mest sol" band above genuinely sunny (>50%, not-gated) venues; the sort, the
+pin, and the card copy all agree on one line (covered by a server test AND a client
+list-order test)
 
 **Given** there are two grey pin visuals (light-grey shaded + slate-grey obscured)
 **When** they are merged into ONE grey "not sunny" pin (cloud icon)
@@ -4257,11 +4273,16 @@ once a city exceeds the cap: if the server returns the top-50 BEFORE the client 
 closed venues, an open venue just outside the slice can never appear; if the server filters
 by the selected time FIRST, scrubbing is no longer purely client-side
 **When** the data set is a single city (~50–100 venues — small and bounded)
-**Then** the intended fix is stated: **return the FULL city candidate set** (raise/remove
-`MAX_RESULTS` for this small set) so the client holds every venue and can filter by the
-selected time locally without ever dropping an open one — preserving the zero-fetch scrub.
-(The top-N cap was written for a scale this MVP isn't at; a future multi-city scale would
-revisit it, e.g. viewport-bounded candidate sets)
+**Then** the intended fix is stated: **return the FULL city candidate set** so the client
+holds every venue and can filter by the selected time locally without ever dropping an open
+one — preserving the zero-fetch scrub. CRITICAL: do NOT literally "raise/remove `MAX_RESULTS`"
+— it is ALIASED to the favourites-by-id cap (`const MAX_IDS = MAX_RESULTS`, `route.ts:55`,
+which also drives `MAX_IDS_QUERY_LENGTH` arithmetic at `route.ts:56/174` and the id-count
+break at `route.ts:183`); touching `MAX_RESULTS` would silently uncap/break the
+favourites-by-ids endpoint. Instead **introduce a separate list-cap constant** (or raise
+only the `matchedVenues` slice at `route.ts:419-431`), leaving `MAX_IDS` /
+`MAX_IDS_QUERY_LENGTH` untouched. (The cap was written for a scale this MVP isn't at; a
+future multi-city scale would revisit it, e.g. viewport-bounded candidate sets)
 
 **Design Gate Criteria:**
 - **Visual:** Closed venues have no pin/list row at the selected time; the map declutters
