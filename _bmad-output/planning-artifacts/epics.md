@@ -3299,6 +3299,17 @@ condition, NOT "any Partial"), compared against `sun_accuracy` sunny/not_sunny; 
 feedback is handled by a stated policy (excluded from the rate, or reported separately) —
 so 35–50% and Partial/cloudy cases don't silently skew the ranked list
 
+**Given** that >50% mapping is NOT recoverable from what feedback stores today — the
+contract persists only `predicted_state` (Sunny/Partial/…) + `sun_accuracy` + `confidence`
+(`api.ts:255-264`, `venue-feedback-persistence.ts:72-88`), so a `Partial` row can't be told
+apart as a 40% grey verdict vs a 60% amber verdict (and 12.6 keeps the `predicted_state`
+vocabulary)
+**When** feedback is submitted (this touches the same POST flow as Story 12.7)
+**Then** the feedback contract also persists the **sun-exposure percent + the amber/grey
+verdict + the weather-gated flag at prediction time** (plus, per the reset AC, the
+geometry-input hash), so the agreement rate can actually apply the >50% mapping — otherwise
+this rate is uncomputable from stored data
+
 **Then** the maintainer gets a ranked "these venues look wrong" list to drive corrective
 data edits (seating polygon, `seating_elevation_m` / `ground_elevation_m`, or individual
 `shadow_casters` heights — via direct DB edits / the Story-12.5 dev tool)
@@ -3419,6 +3430,15 @@ slice, so a day+3 selection would gate with the ~48h-out slice, not that day's f
 fetch enough slices), OR gating for an instant outside the retained forecast horizon
 **explicitly degrades to unknown** (non-gating) rather than trusting a far-off slice —
 covered by a test at the day+3 boundary
+
+**Given** the planner window ROLLS at Stockholm midnight — if the last scheduled run was
+before midnight, at 00:00 the selectable window gains a new `+PLANNER_MAX_FUTURE_DAYS` day
+the job hasn't persisted yet, re-opening the cold-fallback hole this story closes
+**When** the schedule is defined
+**Then** coverage is CONTINUOUS across the midnight roll — either an **immediate
+post-midnight run** (Stockholm) or a **one-day lookahead buffer** (precompute
+`today + PLANNER_MAX_FUTURE_DAYS + 1`) — so the newly-selectable date is always already
+persisted, never cold
 
 **Given** the per-step shadow math is CPU-bound
 **When** it is profiled at real-venue scale
@@ -3594,6 +3614,17 @@ list: `/api/venues` (map + list) omits it AND the slug detail `/api/venues/[slug
 `getVenueBySlug` returns 404 for a hidden venue (so a stale link / cached UI / direct URL
 can't reach it), and dependent review + detail-prefetch lookups reject it too; showing it
 again restores all paths — verified by route tests for both list and by-slug
+
+**Given** the public reads are CACHED — `/api/venues` + `/api/venues/[slug]` send
+`Cache-Control: public, max-age=30, s-maxage=30` (CDN) and detail stays fresh in the client
+TanStack cache for 5 min — so a hidden venue can still be served from cache for that window,
+contradicting "can't reach it"
+**When** a venue is hidden (or unhidden)
+**Then** the toggle also busts the relevant caches — an explicit CDN/edge invalidation (or
+an accepted, documented bounded staleness ≤ the 30 s edge TTL) AND client-query
+invalidation — so hide takes effect promptly, not only after the cache window lapses
+(state the chosen guarantee; for a dev-tool toggle a ≤30 s bound may be acceptable IF
+documented)
 
 **Given** hidden venues are gone from every PUBLIC path, but the maintainer must still see
 them in the editor to toggle them back on (else unhiding needs raw SQL, contradicting
@@ -4058,6 +4089,16 @@ original phone/camera photo would download full-size on the list card + detail h
 a small card thumbnail + a larger hero rendition, WebP/JPEG, capped px + KB), NOT raw
 uploads — so no surface ever downloads a multi-megabyte original; the doc records the exact
 limits/rendition sizes to produce before uploading
+
+**Given** the thumbnail contract is a single `{ alt, initials, url }` and VenueCard,
+VenueQuickInfo, AND the detail hero all read that ONE `url` — so "a card thumbnail AND a
+hero rendition" can't be selected without a contract to carry both
+**When** renditions are introduced
+**Then** the story defines HOW each surface picks its rendition — either add explicit fields
+(e.g. `thumbnail.cardUrl` / `thumbnail.heroUrl`, back-compat with the single `url`), OR a
+**deterministic URL convention** (e.g. `<slug>-card.webp` / `<slug>-hero.webp`) the surfaces
+derive — with tests — so cards load the small file and the hero the large one (never a card
+downloading the hero, nor a blurry hero from the card file)
 
 **Given** the detail hero ignores `thumbnail.url` today
 **When** `VenueDetailContent` HeroImage is wired to render `thumbnail.url` (object-cover)
