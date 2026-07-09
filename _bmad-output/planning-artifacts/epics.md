@@ -3138,13 +3138,16 @@ single-story Epic 12 draft was dissolved into Story 11.9 on 2026-07-06 and no lo
 exists.)
 
 Recommended sequence (most-blocking first): **12.3** (cold-start perf freeze — the
-app is unusable cold at 42-venue scale) → **12.2** (coverage-validation verdicts +
-re-cap — the launch gate that removes the `SUNNYSEAT_COVERAGE_CAP=off` bypass) →
-**12.4** (console hygiene) → **12.1** (Places hours-sync — a quality-of-life
-follow-up, least urgent). Stories:
+app is unusable cold at 42-venue scale) → **12.13 + 12.6** (drop the confidence number
+and simplify pins — they change what 12.2/12.8 need to say) → **12.7** (reviews-404) →
+**12.4** (console hygiene) → **12.2** (feedback-driven accuracy loop + retire the now-
+pointless `SUNNYSEAT_COVERAGE_CAP` flag — NO longer a display re-cap or a hard launch
+gate; see the reframed story) → **12.1** (Places hours-sync). Stories:
 - **12.1** — Google Places opening-hours sync, **weekly scheduled** (consumer of the
   `place_id` / `places_api_url` columns; migration `venues_add_google_places_columns`).
-- **12.2** — coverage-validation verdicts, cloud-after-cap, remove the cap bypass.
+- **12.2** — *reframed:* feedback→accuracy loop (find & fix wrong sun-% venues) + remove
+  the coverage-cap bypass flag (confidence is internal-only after 12.13, so nothing
+  user-facing depends on it).
 - **12.3** — day-series compute at real-venue scale (kill the cold-start freeze).
 - **12.4** — production console hygiene (React #418 hydration + MapLibre null warning).
 - **12.5** — dev/localhost-only venue editor (drag pin = display-only lat/lng, paste
@@ -3188,11 +3191,12 @@ real, current hours instead of hand-collected values that drift.
 **Given** venues carry optional `place_id` / `places_api_url` (2026-07-07: all 42
 set; `brasserie-voyage` + `voyage-vasaplatsen` deliberately share one place because
 they are two seating areas of the same establishment)
-**When** a sync mechanism (the story/architect picks the vehicle — e.g. a scheduled
-GitHub Action per `nextjs-app/docs/github-actions-scheduled-jobs.md`, a Vercel cron
-route, or an on-demand maintainer script) fetches Place Details with a field mask
-restricted to `regularOpeningHours`, authenticated by a server-only Google Maps
-Platform API key (deployment env var; never `NEXT_PUBLIC_*`, never committed)
+**When** a **scheduled** sync (the PRIMARY deliverable — a weekly automatic job, e.g. a
+GitHub Action per `nextjs-app/docs/github-actions-scheduled-jobs.md` or a Vercel cron
+route; an on-demand maintainer trigger is an OPTIONAL extra, never the only vehicle —
+hours must refresh without anyone remembering to run it) fetches Place Details with a
+field mask restricted to `regularOpeningHours`, authenticated by a server-only Google
+Maps Platform API key (deployment env var; never `NEXT_PUBLIC_*`, never committed)
 **Then** each fetched venue's `opening_hours` jsonb is rewritten in the Story 11.9
 per-weekday shape — ISO keys `"1"` (Mon) … `"7"` (Sun) mapped from Places
 `periods[]` (Places `day` is 0=Sunday…6=Saturday), `"HH:MM"` 24h times, a weekday
@@ -3331,16 +3335,18 @@ is explicitly revised to precompute-and-persist at real-venue scale
 **Given** the maintainer wants caches that are **never empty after the first load**, and
 that future dates need not be minute-fresh (MAINTAINER DECISION 2026-07-08)
 **When** a **scheduled job** (a GitHub Action → Supabase, NOT a short Vercel cron —
-the batch exceeds a serverless timeout) precomputes+persists the day-series for ALL
-venues across **today + the next N planner days**, at TIERED cadences: **future days a
-few times/day** (their shadow geometry is deterministic and their weather forecast
-barely moves — up to a few hours stale is fine), and **today more often** (weather
-changes faster)
-**Then** picking any future date is served from the persisted store (≈instant, never a
-cold compute), same-day-later is warm, and only the **near-now rain radar** (nowcast,
-next ~90 min) stays live/on-request — it can't be precomputed and is the ONE thing that
-must not be served stale. The job records per-run coverage (venues × days written) so a
-gap is visible
+the batch exceeds a serverless timeout) precomputes+persists the **ungated GEOMETRY
+series** (per the split above — NOT a weather-gated series) for ALL venues across
+**today + the next N planner days**, refreshed at TIERED cadences (future days a few
+times/day — deterministic geometry, so this is really just keeping the store populated;
+today refreshed alongside the geometry that rarely changes)
+**Then** picking any date reads the persisted GEOMETRY (≈instant, never a cold
+shadow-compute) and the **gating is still applied at read** with that request's weather
+(consistent with the split AC — no gated series is ever persisted, so no stale-gating
+contradiction). For a FUTURE day the read-time gate may use a forecast up to a few hours
+old (fine — multi-day forecasts barely move); for **today**, R-012 near-now freshness is
+preserved and the **rain radar** (nowcast, next ~90 min) stays live/on-request. The job
+records per-run coverage (venues × days written) so a gap is visible
 
 **Given** the per-step shadow math is CPU-bound
 **When** it is profiled at real-venue scale
@@ -3422,10 +3428,12 @@ posture if the null is an absent/typed property)
 **Given** there is currently NO automated console-error guard (grep of `test/e2e`
 finds no `console`/`pageerror` listener)
 **When** the two errors are fixed
-**Then** a Playwright spec asserts a cold map load (and a venue-detail open) emits no
-`console.error` / `pageerror` from app origins — an allowlist may exclude known
-third-party/extension noise, but NOT React or MapLibre app-origin errors — so a
-future regression re-breaks the build
+**Then** a Playwright spec (via `page.on('console')` + `pageerror`) asserts a cold map
+load and a venue-detail open emit no app-origin console messages at level **error OR
+warning** — this MUST catch the MapLibre "Expected value…" message even if it surfaces
+as a `console.warn` (not only `console.error`), plus React `pageerror`s; an allowlist may
+exclude known third-party/extension noise, but NOT React or MapLibre app-origin
+errors/warnings — so a future regression re-breaks the build
 
 **Design Gate Criteria:**
 - **Visual:** None — console/correctness only; the map + venues render identically
@@ -3499,8 +3507,11 @@ write occurs
 **Given** a new persisted `hidden` column (migration: `boolean not null default
 false`, idempotent, RLS posture preserved)
 **When** the maintainer hides a venue
-**Then** `/api/venues` omits `hidden = true` venues for ALL users (public map + list),
-and showing it again restores it — verified by a route test
+**Then** a hidden venue disappears for ALL users on EVERY public path — not just the
+list: `/api/venues` (map + list) omits it AND the slug detail `/api/venues/[slug]` /
+`getVenueBySlug` returns 404 for a hidden venue (so a stale link / cached UI / direct URL
+can't reach it), and dependent review + detail-prefetch lookups reject it too; showing it
+again restores all paths — verified by route tests for both list and by-slug
 
 **Given** the inline field editors (tags / description / thumbnail-URL)
 **When** a field is saved
@@ -3604,8 +3615,11 @@ So that a live venue with no reviews shows an empty reviews section (not a 404 e
 **Given** the review route resolves venue identity against the fixture-only
 `resolveReviewVenueIdentifier`, while `/api/venues/[slug]` resolves via
 `getVenueBySlug` (the live store, gated on `SUNNYSEAT_VENUE_STORE=supabase`)
-**When** the review route (GET + POST) is switched to the SAME live venue-identity
-source (`getVenueBySlug`, falling back to the fixture only in fixture mode)
+**When** the review route (GET + POST) is switched to a live venue-identity resolver
+that accepts **id OR slug** (in supabase mode, look the venue up in the live store by
+EITHER) — this is REQUIRED because POST resolves `body.venueId ?? body.venueSlug`, so a
+live venue's numeric id (`"8"`–`"49"`) is tried FIRST and a slug-only lookup would still
+404 on submit; fall back to the fixture only in fixture mode
 **Then** a live venue with zero reviews resolves and returns **200** with
 `reviews: []` / `reviewCount: 0` (the empty-list path at `route.ts:96-100` already
 does this once resolution succeeds), and a genuinely unknown identifier still 404s
@@ -3787,11 +3801,17 @@ visible wait, and a non-prefetched venue still works (falls back to the live fet
 **Then** subsequent real detail loads for those venues are warm too, and the prefetch
 respects the same 15-min bucket / 30 s Edge cache (no extra Met.no load beyond the dedupe)
 
-**Given** Story 12.3 persists day-series geometry across instances
-**When** both ship
-**Then** detail benefits automatically (it shares `buildingsCache`; a persisted geometry
-store removes the cold RPC), and the preload + 12.3 together make cold detail fast — the
-story records the before/after "mer info" open time against prod
+**Given** the detail route uses the single-instant engine path
+(`applyRealSunEngine` → `fetchCachedVenueBuildings`) and does NOT read the list
+day-series artifact — so 12.3's persisted day-SERIES does not, by itself, warm a cold
+detail's `get_buildings_near_point` RPC
+**When** detail warmth is made explicit
+**Then** the PRIMARY warmth is this story's own prefetch (it populates the client cache
+AND the server `buildingsCache` / `sunComputeCache` for the prefetched venues); AND for
+12.3 to also help cold detail, 12.3 must persist/reuse the **building set** (or wire the
+detail route to read the persisted geometry store) — called out as a cross-story
+dependency here, not assumed. The story records the before/after "mer info" open time
+against prod
 
 **Design Gate Criteria:**
 - **Visual:** None — latency only; the detail overlay is unchanged
@@ -3922,12 +3942,15 @@ So that the app is simple to read and I trust the sun figure at face value.
 
 **Acceptance Criteria:**
 
-**Given** the confidence chip renders on the card / quick-info / detail
-(`confidenceDisplay.visibleText`, e.g. "~84%" / "84%")
+**Given** confidence renders BOTH as the visible chip (`confidenceDisplay.visibleText`,
+e.g. "~84%") AND inside the accessible name — the card's `aria-label` "carries name +
+sun% + Säkerhet (once) + Avstånd" (`VenueCard.tsx:116`), mirrored on quick-info/detail
 **When** the confidence indicator is removed from ALL user-facing surfaces (card,
 quick-info, detail) — the bold sun-exposure "N% sol" is untouched
-**Then** no confidence percentage appears anywhere in the user UI, and the layouts
-reflow cleanly without it (no empty slot / stray separator)
+**Then** no confidence percentage appears anywhere in the user UI — **visible OR
+screen-reader**: the visible chip is gone AND the `aria-label`/sr-only accessible names
+are updated to drop "Säkerhet" (so SR users don't still hear it), layouts reflow cleanly
+(no empty slot / stray separator), and the affected accessible-name tests are updated
 
 **Given** confidence is still valuable internally
 **When** the display is removed
