@@ -3204,6 +3204,16 @@ with no period stored as `null` (closed), a past-midnight period collapsing to
 `close < open` on the OPENING weekday — and venues without a `place_id` are skipped,
 keeping their hand-authored hours untouched
 
+**Given** Places can return MULTIPLE `periods[]` for one weekday (e.g. lunch 11–14 +
+dinner 17–23), but the Story 11.9 `WeeklyOpeningHours` / `coerceOpeningHours` contract
+accepts only ONE `{ open, close }` per weekday key
+**When** a weekday has split periods
+**Then** the sync applies a DETERMINISTIC policy — default: collapse to the day's outer
+envelope (earliest `open`, latest `close`) so the derived "Öppet till HH:MM" stays
+correct at the end of day — AND reports/logs which venue-days were split so the maintainer
+can review them; extending the stored shape to carry multiple intervals is the fuller fix
+and is called out as optional follow-up (do NOT silently overwrite/drop one interval)
+
 **Given** the Places API has quota and per-field-mask billing
 **When** the sync runs
 **Then** it requests ONLY the opening-hours field (field mask keeps the billed SKU
@@ -3261,11 +3271,28 @@ verification-era flag lying around.
 
 **Acceptance Criteria:**
 
+**Given** the accuracy loop needs live `feedback` rows for the 42 real venues, but the
+`/api/venues/[slug]/feedback` POST route resolves the path slug against `VENUE_FIXTURE`
+(the SAME fixture-only bug as reviews — it imports `VENUE_FIXTURE`, no `getVenueBySlug`)
+**When** this story is scheduled
+**Then** it DEPENDS ON the Story-12.7 live id/slug resolver being applied to the feedback
+POST route too (otherwise real-venue feedback 404s and the aggregation has zero evidence)
+— this dependency is called out explicitly so 12.2 is not started before feedback can be
+submitted for live venues
+
 **Given** the live `feedback` table accumulates `predicted_state` vs observed
-`sun_accuracy` (+ `note`) per venue over the walking phase
-**When** an aggregation is built (a SQL view / script the maintainer runs) that reports
-per-venue and per-area **agreement rate** and flags the venues where predictions and
-reality disagree most
+`sun_accuracy` (+ `note`) per venue, but the two use DIFFERENT vocabularies
+(`predicted_state` ∈ Sunny/Partial/Shaded/NoSun/CloudObscured vs `sun_accuracy` ∈
+sunny/not_sunny/unsure), and Story 12.6 moves "sunny" to the >50%-sunlit &
+not-weather-gated boundary
+**When** the aggregation (a SQL view / script) computes per-venue and per-area
+**agreement rate**
+**Then** it uses an EXPLICIT mapping, not a raw string compare: a prediction counts as
+"sunny" iff it matches the 12.6 rule (>50% sunlit AND not gated — i.e. the amber-pin
+condition, NOT "any Partial"), compared against `sun_accuracy` sunny/not_sunny; `unsure`
+feedback is handled by a stated policy (excluded from the rate, or reported separately) —
+so 35–50% and Partial/cloudy cases don't silently skew the ranked list
+
 **Then** the maintainer gets a ranked "these venues look wrong" list to drive corrective
 data edits (seating polygon, `seating_elevation_m` / `ground_elevation_m`, or individual
 `shadow_casters` heights — via direct DB edits / the Story-12.5 dev tool), and re-checking
@@ -3318,8 +3345,13 @@ So that the app is usable at real-venue scale before (and after) launch.
 **Given** the day series marries deterministic per-day shadow GEOMETRY (valid all
 day) with 15-min weather GATING in one cached artifact keyed on the weather bucket
 **When** the two are split — a geometry series keyed `(venue, Stockholm day,
-elevation inputs)` computed once per day, and a cheap per-bucket gating pass
-(weather fetches are already deduped/batched) applied on read
+elevation inputs, AND a hash/version of the geometry inputs)` computed once per day, and
+a cheap per-bucket gating pass (weather fetches are already deduped/batched) applied on
+read. The key MUST include the editable shadow inputs (the `seating_area` polygon + the
+relevant `shadow_casters` heights/`filter_decision`), because Stories 12.2/12.5 edit
+exactly those to fix bad predictions — so a data fix changes the hash and invalidates the
+stale persisted geometry (or an explicit recompute/invalidation path is triggered on such
+edits); otherwise a corrected venue keeps serving pre-fix geometry
 **Then** a weather-bucket roll re-gates in O(steps) without re-running shadow math,
 outputs stay value-identical to today's path, and the R-012 rule is preserved
 (gating always uses the CURRENT bucket's weather — never a stale-gated series)
@@ -3456,12 +3488,19 @@ walk (Story 12.2 evidence gathering): spot a mis-placed pin on-site, fix it loca
 later.
 
 **Scope (maintainer-narrowed 2026-07-08):**
-- **Pin drag → `lat`/`lng`, DISPLAY ONLY.** Dragging the pin updates the venue point
-  used for the marker + "distance from centrum" ONLY. It deliberately does NOT move
-  the sun/shadow calc: the engine is polygon-first (`resolveVenueGeometry` →
-  `seating_area`), and all 42 live venues have a polygon, so `lat`/`lng` never feeds
-  the prediction for them. (Caveat to document, not build around: for a venue with a
-  `null` `seating_area` the point IS the footprint fallback — none today.)
+- **Pin drag → display coordinate, DISPLAY ONLY.** Dragging the pin updates the venue
+  point used for the marker + "distance from centrum" ONLY. The shadow GEOMETRY is
+  polygon-first (`resolveVenueGeometry` → `seating_area`; all 42 live venues have a
+  polygon), so the drag never moves the shadow calc. **BUT the engine still reads
+  `venue.location` for the per-venue WEATHER (forecast + nowcast) gating**
+  (`sun-engine.ts:522/546/712/724`), so writing a dragged point into `lat`/`lng` WOULD
+  shift the cloud/rain gate and could flip the predicted state. Therefore the drag must
+  NOT feed the engine's weather coordinate: either (a) persist the dragged point in a
+  SEPARATE display-only column (leave `lat`/`lng` as the engine coordinate), or (b) make
+  the engine derive its weather location from the seating-polygon centroid so `lat`/`lng`
+  is truly display-only first. Pick one in the story — do not assume "polygon-first" alone
+  makes the drag safe. (Caveat: a `null`-`seating_area` venue uses the point as the shadow
+  footprint too — none today.)
 - **`seating_area` editing = paste a coordinate array only.** No interactive polygon
   drawing. A textarea takes a `[[lng,lat],…]` ring (or full GeoJSON Polygon);
   server-side validation reuses the seed-load rules (Polygon, closed ring, ≥4
@@ -3561,6 +3600,15 @@ that says "sunny"/highlights the sun figure tracks the SAME 50% line so a grey-p
 venue is never described as sunny (reconcile the pin, the card "% sol" emphasis, and
 any "soligt" wording to one 50% boundary)
 
+**Given** the list/favourites "Mest sol" ordering ranks sunny-first via
+`SUN_STATUS_ORDER` (`route.ts:77` — `Sunny=2, Partial=1, Shaded/NoSun=0`) plus the
+day-peak rank, so a `Partial` venue at 40% currently sorts ABOVE not-sunny ones
+**When** the 50% cut lands
+**Then** the ORDERING predicates are updated to the same boundary — a venue that is grey
+(≤50% sunlit OR weather-gated) must NOT be promoted into the sunny-first / "Mest sol" band
+above genuinely sunny (>50%, not-gated) venues — so the sort, the pin, and the card copy
+all agree on one line (covered by a route/ordering test)
+
 **Given** there are two grey pin visuals (light-grey shaded + slate-grey obscured)
 **When** they are merged into ONE grey "not sunny" pin (cloud icon)
 **Then** `Shaded`, `NoSun`, AND `CloudObscured` all render the SAME single grey pin;
@@ -3637,7 +3685,15 @@ query), and posting a review for a live venue also resolves (POST path at
 **Then** a regression test seeds/mocks a live venue absent from the fixture and asserts
 `GET /api/reviews` returns 200 empty (not 404), plus a fixture-mode test still passes
 
-_(Backend-only; no design gate. Effort: small.)_
+**Given** the **`/api/venues/[slug]/feedback` POST route has the IDENTICAL bug** — it
+imports `VENUE_FIXTURE` and resolves the path slug against the fixture, so real-venue
+feedback submissions 404 (this blocks the Story-12.2 accuracy loop, which needs those rows)
+**When** this story ships
+**Then** the feedback POST route is switched to the SAME live id/slug resolver, so
+submitting feedback for a live venue (ids `"8"`–`"49"`) succeeds — covered by a route test
+
+_(Backend-only; no design gate. Effort: small. Scope now = reviews GET/POST **and** the
+feedback POST route — one shared live resolver for all three.)_
 
 ### Story 12.8: About Page — Pin Legend + "So Reads the Sun Figure"
 
@@ -3792,9 +3848,13 @@ and cold-computes server-side
 **When** the client PREFETCHES detail (TanStack `prefetchQuery`) in the background for
 venues within ~10 km of the user (or the centrum default when geolocation is off), after
 the list settles and on idle — capped/prioritized by distance so it stays cheap at
-50–100 venues
-**Then** tapping "mer info" for a prefetched venue renders from the client cache with no
-visible wait, and a non-prefetched venue still works (falls back to the live fetch)
+50–100 venues — using the **EXACT `queryKeys.venues.detailAt` parameters that
+`useVenueDetail` will mount with on the click** (slug + the current planner date/time +
+the rounded user lat/lng), NOT a slug-only or mismatched-planner key
+**Then** tapping "mer info" for a prefetched venue **hits the client cache** (the prefetch
+key matches the mounted key exactly — a slug-only/wrong-location prefetch would warm the
+server but still refetch on open, defeating the story) and renders with no visible wait;
+a non-prefetched venue still works (falls back to the live fetch)
 
 **Given** each prefetch also warms the server's `sunComputeCache`/`buildingsCache`
 **When** prefetch requests hit `/api/venues/[slug]`
@@ -3944,13 +4004,18 @@ So that the app is simple to read and I trust the sun figure at face value.
 
 **Given** confidence renders BOTH as the visible chip (`confidenceDisplay.visibleText`,
 e.g. "~84%") AND inside the accessible name — the card's `aria-label` "carries name +
-sun% + Säkerhet (once) + Avstånd" (`VenueCard.tsx:116`), mirrored on quick-info/detail
-**When** the confidence indicator is removed from ALL user-facing surfaces (card,
-quick-info, detail) — the bold sun-exposure "N% sol" is untouched
+sun% + Säkerhet (once) + Avstånd" (`VenueCard.tsx:116`), mirrored on quick-info/detail —
+AND the **directions handoff shows a second confidence** via the route overlay
+(`components/custom/routing/RouteOverlay.tsx` `routeConfidenceLabel`, visible + sr-only
+"Säkerhet …")
+**When** the confidence indicator is removed from ALL user-facing surfaces — card,
+quick-info, detail, **and the route overlay** — the bold sun-exposure "N% sol" is untouched
 **Then** no confidence percentage appears anywhere in the user UI — **visible OR
-screen-reader**: the visible chip is gone AND the `aria-label`/sr-only accessible names
-are updated to drop "Säkerhet" (so SR users don't still hear it), layouts reflow cleanly
-(no empty slot / stray separator), and the affected accessible-name tests are updated
+screen-reader**, on the venue surfaces AND when opening directions: the visible chips are
+gone AND the `aria-label`/sr-only accessible names (incl. `routeConfidenceLabel`) are
+updated to drop "Säkerhet" (so SR users don't still hear it), layouts reflow cleanly
+(no empty slot / stray separator), and the affected accessible-name + RouteOverlay tests
+are updated
 
 **Given** confidence is still valuable internally
 **When** the display is removed
