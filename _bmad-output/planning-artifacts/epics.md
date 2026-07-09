@@ -3208,11 +3208,14 @@ keeping their hand-authored hours untouched
 dinner 17–23), but the Story 11.9 `WeeklyOpeningHours` / `coerceOpeningHours` contract
 accepts only ONE `{ open, close }` per weekday key
 **When** a weekday has split periods
-**Then** the sync applies a DETERMINISTIC policy — default: collapse to the day's outer
-envelope (earliest `open`, latest `close`) so the derived "Öppet till HH:MM" stays
-correct at the end of day — AND reports/logs which venue-days were split so the maintainer
-can review them; extending the stored shape to carry multiple intervals is the fuller fix
-and is called out as optional follow-up (do NOT silently overwrite/drop one interval)
+**Then** the sync must NOT fabricate availability — default policy: **skip that
+venue-day** (keep its hand-authored hours) and **report it** for maintainer review;
+collapsing to an outer envelope is explicitly REJECTED because 11–14 + 17–23 → 11–23
+would render the venue as open through the 14–17 closure gap (dishonest — the opposite of
+this app's posture). Extending `WeeklyOpeningHours` to carry multiple intervals per day is
+the fuller fix and is the sanctioned way to actually sync split-hours venues (optional
+follow-up); until then, split days keep honest hand-authored hours rather than a synthesized
+open window
 
 **Given** the Places API has quota and per-field-mask billing
 **When** the sync runs
@@ -3530,11 +3533,14 @@ convention), and a test proves a prod-config request to the route is rejected
 
 **Given** the maintainer drags a venue pin on the dev map
 **When** the new position is saved
-**Then** the venue's `lat`/`lng` is persisted via a service-role write route (mirroring
-the existing `feedback`/`reviews` POST pattern; client never touches Supabase
-directly — API boundary), the marker + distance update, and the story record states
-explicitly that this is display-only (sun prediction unchanged for polygon-backed
-venues)
+**Then** the dragged point is persisted as a **display-only coordinate** — NOT written
+into the engine's `lat`/`lng` (which feeds forecast/nowcast weather gating, per the Scope
+note), via a service-role write route (mirroring the `feedback`/`reviews` POST pattern;
+client never touches Supabase directly — API boundary). The concrete mechanism is one of
+the two Scope options (a new `display_lat`/`display_lng` column that the marker + distance
+read, OR first switching the engine's weather location to the seating-polygon centroid so
+`lat`/`lng` becomes display-only). The marker + distance update; the sun prediction is
+provably unchanged (a route test asserts the engine's weather coordinate did not move)
 
 **Given** the maintainer pastes a coordinate array into the polygon field
 **When** it is saved
@@ -3823,9 +3829,18 @@ mobile with no desktop change
 - **Visual validation:** Mobile sheet at several row counts (0 / 1 / a few / max) + a
   mid-drag frame, and the slim slider, vs a rebaselined reference pass
 
+**Given** the current sheet has keyboard ArrowUp/ArrowDown control across the snap ladder
+(WCAG 2.1 AA), which the snap enum removal would break
+**When** the row-quantized model lands
+**Then** keyboard control is PRESERVED, mapped to the new model: ArrowUp/ArrowDown expand/
+collapse **one row at a time**, reaching the **0-row handle-only** state and the max, with
+a visible focus state and an accessible announcement of the change — no keyboard regression
+for the row model
+
 > **Note:** this replaces the four-snap sheet from Story 11.3. Its touch-gesture e2e
 > (`epic-11-sheet-touch-gestures.spec.ts`) must be updated from snap-name assertions to
-> row-count assertions, and a spec must drag starting on a venue ROW (not the handle).
+> row-count assertions (incl. a spec that drags starting on a venue ROW, not the handle,
+> AND a keyboard spec that walks the row ladder to 0-row and back).
 
 ### Story 12.10: Venue Detail Preload — Instant "Mer info"
 
@@ -3855,6 +3870,16 @@ the rounded user lat/lng), NOT a slug-only or mismatched-planner key
 key matches the mounted key exactly — a slug-only/wrong-location prefetch would warm the
 server but still refetch on open, defeating the story) and renders with no visible wait;
 a non-prefetched venue still works (falls back to the live fetch)
+
+**Given** each detail prefetch is a single-venue engine call, so prefetching every venue
+within ~10 km (especially from the centrum fallback, which covers most live venues) could
+fire 50–100 background `/api/venues/[slug]` requests right after the list settles
+**When** the prefetch runs
+**Then** it is BOUNDED, not just distance-prioritized — an explicit **total budget** (top-N
+nearest, not "all within 10 km") + a **concurrency cap** (a few in flight at once) + it
+**yields to interaction** (cancel/pause in-flight prefetches when the user acts, backoff on
+error) — so the prefetch never turns the cold-start cost into an idle burst that competes
+with the user's own actions
 
 **Given** each prefetch also warms the server's `sunComputeCache`/`buildingsCache`
 **When** prefetch requests hit `/api/venues/[slug]`
