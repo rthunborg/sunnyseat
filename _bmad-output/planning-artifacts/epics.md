@@ -4164,20 +4164,39 @@ So that the app is simple to read and I trust the sun figure at face value.
 
 **Acceptance Criteria:**
 
-**Given** confidence renders BOTH as the visible chip (`confidenceDisplay.visibleText`,
-e.g. "~84%") AND inside the accessible name — the card's `aria-label` "carries name +
-sun% + Säkerhet (once) + Avstånd" (`VenueCard.tsx:116`), mirrored on quick-info/detail —
-AND the **directions handoff shows a second confidence** via the route overlay
-(`components/custom/routing/RouteOverlay.tsx` `routeConfidenceLabel`, visible + sr-only
-"Säkerhet …")
-**When** the confidence indicator is removed from ALL user-facing surfaces — card,
-quick-info, detail, **and the route overlay** — the bold sun-exposure "N% sol" is untouched
+**Given** confidence reaches the user through MORE sites than a naive scope names
+(grounding pass 2026-07-08): the visible chip `confidenceDisplay.visibleText`
+(`VenueCard.tsx:255`; quick-info/detail visible chips were already removed in Story 11.4);
+the card's SCREEN-READER name — which is built in **`VenueList.tsx:102-107`** via
+`t('cardAria', { confidence: confidenceDisplay.accessibleText })` against the template at
+**`messages/sv/venue.json:125`** (+ en), NOT in `VenueCard.tsx` (which only renders
+`labels.select`); the quick-info/detail sr-only lines (`VenueQuickInfo.tsx:299`,
+`VenueDetailContent.tsx:202`); and the directions handoff's `routeConfidenceLabel`, which is
+BUILT in **`MapView.tsx:1624`** (via `routeOverlayLabels`) and merely RENDERED by
+`RouteOverlay.tsx:132-135` (+ its `confidence` prop)
+**When** the confidence indicator is removed from ALL those surfaces — the bold
+sun-exposure "N% sol" is untouched
 **Then** no confidence percentage appears anywhere in the user UI — **visible OR
-screen-reader**, on the venue surfaces AND when opening directions: the visible chips are
-gone AND the `aria-label`/sr-only accessible names (incl. `routeConfidenceLabel`) are
-updated to drop "Säkerhet" (so SR users don't still hear it), layouts reflow cleanly
-(no empty slot / stray separator), and the affected accessible-name + RouteOverlay tests
-are updated
+screen-reader**: the visible chip is gone; the `cardAria` template drops its `{confidence}`
+segment in BOTH locales (and `VenueList.tsx` drops the `confidence` arg +
+`getConfidenceDisplayState` call/import) — `cardAriaObscured` already omits it; the
+quick-info/detail sr-only lines drop it; and `routeConfidenceLabel` is removed at its
+MapView builder AND the RouteOverlay render block + prop. Layouts reflow cleanly (no empty
+slot / stray separator)
+
+**Given** removing the confidence display leaves dead plumbing + tests that CURRENTLY PIN
+the old behaviour (so the story is incomplete without naming them)
+**When** the removal lands
+**Then** the story also: (a) **flips the guard test** `removed-i18n-keys.test.ts:98-103`,
+which today ASSERTS the `confidence`/`confidenceApproximate`/`confidenceUnavailable` keys
+STAY — move them from "kept" to "removed" (or the dead keys are deleted and this guard is
+updated in lock-step, per that file's own no-orphan-keys convention); (b) removes the now-dead
+`showVisibleConfidence` prop chain (`VenueCard.tsx:79,104`, `VenueList.tsx:23,45,124`,
+`MapView.tsx:1131,1176` + `VenueCard.test.tsx:391`); (c) states the disposition of the
+display-only `lib/utils/confidence-display.ts` (all five UI readers removed → delete it, as
+it is PRESENTATION not the internal model) and updates its callers' tests incl. the
+`e2e/epic-10-weather-matrix.spec.ts:112-186` assertions that check the visible "Säkerhet …"
+text (else that e2e breaks) — so no orphaned util / dead prop / red test survives
 
 **Given** confidence is still valuable internally
 **When** the display is removed
