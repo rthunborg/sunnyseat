@@ -3211,22 +3211,17 @@ keeping their hand-authored hours untouched
 dinner 17–23), but the Story 11.9 `WeeklyOpeningHours` / `coerceOpeningHours` contract
 accepts only ONE `{ open, close }` per weekday key
 **When** a weekday has split periods
-**Then** the sync must NOT fabricate availability, AND must not leave STALE synced hours:
-"skip the day" is only honest on the FIRST sync — after a prior successful sync the stored
-value is already machine-synced, so if Places LATER changes that day to split periods,
-merely skipping would leave the old single synced interval in place (still fabricating the
-closure gap). CRITICAL: the day must NOT be written as `null` (nor left as a missing key) — the
-`WeeklyOpeningHours` contract makes BOTH mean **closed**, and Story 12.14 then HIDES that
-weekday, so a genuinely-open split venue would vanish all day (the opposite failure).
-The contract has NO per-day "unknown" today, so the story must pick a representation the
-public readers (the formatter AND the 12.14 filter) can tell apart from closed — either
-(a) land the multi-interval extension so split hours sync TRUTHFULLY (the real fix), or
-(b) add an explicit per-day "uncertain" sentinel that the formatter + filter treat as
-"show, no fabricated close" — and until one exists, a split day is **left to its existing
-hand-authored value with a per-day source flag (synced vs hand-authored) and REPORTED**,
-never overwritten to null and never left as a stale single synced interval presented as
-authoritative. Collapsing to an outer envelope stays REJECTED (11–14 + 17–23 → 11–23
-fabricates the 14–17 gap). The multi-interval extension is the sanctioned end state
+**Then** 12.1 makes **NO contract change** — split-hours venues are simply **OUT OF SCOPE
+for auto-sync**. A venue with ANY split weekday is **SKIPPED WHOLESALE** for the sync and
+REPORTED for manual handling (kept on its existing hand-authored hours), never written as
+`null`/missing (both = closed in the contract → Story 12.14 would then HIDE a genuinely-open
+venue all day) and never collapsed to an outer envelope (11–14 + 17–23 → 11–23 fabricates the
+14–17 gap). To avoid a venue that was previously synced CLEANLY later going stale when a day
+splits, the sync tracks per-venue sync provenance and FLAGS such a venue for manual review
+rather than trusting the old single interval. Truthfully auto-syncing split venues REQUIRES
+the multi-interval `WeeklyOpeningHours` extension — a real DTO/formatter/filter **contract
+change that is a SEPARATE prerequisite story, explicitly NOT part of 12.1** (which is exactly
+why 12.1 can claim "no contract change" below)
 
 **Given** the Places API has quota and per-field-mask billing
 **When** the sync runs
@@ -3242,8 +3237,10 @@ can inspect (42 venues × 1 field, once a week ≈ negligible quota)
 from `venues.opening_hours` (Story 11.9) and never stores display strings
 **When** the sync lands
 **Then** there is NO DTO, formatter, or UI change: the per-weekday contract (missing
-key/`null` = closed; `close < open` = past-midnight) is unchanged, and Places
-`specialHours` / holiday exceptions are explicitly OUT of scope (documented in the
+key/`null` = closed; `close < open` = past-midnight) is unchanged — this holds precisely
+BECAUSE split-hours venues are skipped wholesale (above), not represented via a new sentinel
+or multi-interval shape (that contract-changing extension is a separate prerequisite story);
+and Places `specialHours` / holiday exceptions are explicitly OUT of scope (documented in the
 story file; weekly `regularOpeningHours` remain the only synced source)
 
 **Given** `nextjs-app/docs/venue-data-load.md` is the canonical venue-authoring guide
@@ -3390,11 +3387,15 @@ day) with 15-min weather GATING in one cached artifact keyed on the weather buck
 **When** the two are split — a geometry series keyed `(venue, Stockholm day,
 elevation inputs, AND a hash/version of the geometry inputs)` computed once per day, and
 a cheap per-bucket gating pass (weather fetches are already deduped/batched) applied on
-read. The key MUST include the editable shadow inputs (the `seating_area` polygon + the
-relevant `shadow_casters` heights/`filter_decision`), because Stories 12.2/12.5 edit
-exactly those to fix bad predictions — so a data fix changes the hash and invalidates the
-stale persisted geometry (or an explicit recompute/invalidation path is triggered on such
-edits); otherwise a corrected venue keeps serving pre-fix geometry
+read. The key MUST hash the FULL shadow-projection input — not only the `seating_area`
+polygon + the named `shadow_casters` `height`/`filter_decision`, but the actual
+`get_buildings_near_point` **caster SET**: building geometries/ids AND the RH2000
+ground/roof z-values. A correction to a building footprint, an import batch, or a caster
+z-value (with no change to `seating_area` or the named fields) MUST still invalidate the
+persisted day-series — via a caster-set version/hash OR an explicit invalidation path fired
+on any building/caster import — because Stories 12.2/12.5 (and geodata re-imports) edit
+exactly these to fix bad predictions; otherwise a corrected venue keeps serving pre-fix
+geometry
 **Then** a weather-bucket roll re-gates in O(steps) without re-running shadow math,
 outputs stay value-identical to today's path, and the R-012 rule is preserved
 (gating always uses the CURRENT bucket's weather — never a stale-gated series)
@@ -3994,10 +3995,15 @@ bounded top-N of the candidate venues — which MUST include the **favourite-que
 (`useFavouriteVenues`), not only the main nearby list: on `/favoriter` a saved venue
 outside the ~1.5 km set (or a cold favourites deep link) comes from that separate query
 (`MapView.tsx:445,470`), so limiting candidates to "the list query" leaves those cards on
-the COLD detail path and "Mer info" stays slow there — after the list settles, on idle,
-using the **EXACT `queryKeys.venues.detailAt` parameters that `useVenueDetail` will mount
-with on the click** (slug + the current planner date/time + the rounded user lat/lng), NOT
-a slug-only or mismatched-planner key
+the COLD detail path and "Mer info" stays slow there — using the **EXACT
+`queryKeys.venues.detailAt` parameters that `useVenueDetail` will mount with on the click**
+(slug + the current planner date/time + the rounded user lat/lng), NOT a slug-only or
+mismatched-planner key. CRITICAL: because that key includes `{date, time, lat, lng}`, the
+prefetch must re-run not only after the list settles but **after the planner date/time OR the
+rounded location SETTLES** (debounced) — else a detail prefetched for the live key is stale
+the moment the user scrubs time / picks a date, and even a top visible card falls back to the
+cold fetch. (Or explicitly exempt immediate post-scrub opens from the instant guarantee —
+name which.)
 **Then** tapping "mer info" for a prefetched venue **hits the client cache** (the prefetch
 key matches the mounted key exactly — a slug-only/wrong-location prefetch would warm the
 server but still refetch on open, defeating the story) and renders with no visible wait;
@@ -4292,8 +4298,15 @@ what's open then.
 **Acceptance Criteria:**
 
 **Given** each venue carries per-weekday `opening_hours` on the list DTO, and the app has
-a selected instant (now by default, or the planner's date+time), in Europe/Stockholm
+a selected instant (now by default, or the planner's date+time), in Europe/Stockholm — but
+today the quick-info/detail chrome formats hours with the CURRENT wall-clock `new Date()`
+passed into `formatOpeningHours`, NOT the selected instant
 **When** the map + list render (and on every time-scrub / date-change)
+**And** to stay consistent, the "Öppet till HH:MM" line / ÖPPET badge must be DERIVED from
+the SAME selected instant as the filter (or suppressed in planned-time mode) — otherwise a
+venue that correctly reappears for Saturday 18:00 would still show today's close time (the
+filter and the copy disagreeing); this closes the deferred `quickInfoOpeningHours` /
+`new Date()` weekday-roll item from the 11.9 review
 **Then** venues that are **CLOSED at the selected instant** are hidden from **every pin +
 list source, not just the main nearby list** — MapView builds pins from the filtered list
 PLUS `activeFavouriteVenueRows` PLUS `selectedVenuePreviewForMap` (`MapView.tsx:516-530`),
