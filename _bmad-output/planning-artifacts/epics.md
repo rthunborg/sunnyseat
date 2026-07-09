@@ -3154,14 +3154,17 @@ gate; see the reframed story) → **12.1** (Places hours-sync). Stories:
   polygon, persisted hide/show, inline tags/description/thumbnail-URL).
 - **12.6** — simplify map pins: one grey "not sunny" pin, no number, amber >50% sunlit.
 - **12.7** — reviews-404 fix (reviews route resolves live venues, not fixture-only).
-- **12.8** — About page: pin legend + "Sol vs Säkerhet" explainer.
+- **12.8** — About page: pin legend + "how the sun figure works / feedback loop" (NO
+  per-venue Säkerhet number — reframed for 12.13).
 - **12.9** — mobile bottom-sheet & time-slider polish (drag-gap, collapse, slim slider).
 - **12.10** — venue detail preload (instant "mer info" via ~10 km prefetch).
 - **12.11** — first-run coach-mark guide (map legend + feature tour, re-open from Settings).
 - **12.12** — venue photos: Supabase Storage hosting + render/fallback fixes.
 - **12.13** — remove the user-facing confidence indicator (keep confidence internal-only).
+- **12.14** — hide closed venues from map/list at the selected time (future planner time
+  when they're open re-shows them).
 
-**Epic 12 stays ONE epic (13 stories) — maintainer confirmed 2026-07-08.** It bundles
+**Epic 12 stays ONE epic (14 stories) — maintainer confirmed 2026-07-08.** It bundles
 launch-critical work (12.3 perf, 12.7 reviews-404, 12.2 verification) and UX polish; the
 maintainer explicitly wants it kept together, not split.
 
@@ -3298,8 +3301,17 @@ so 35–50% and Partial/cloudy cases don't silently skew the ranked list
 
 **Then** the maintainer gets a ranked "these venues look wrong" list to drive corrective
 data edits (seating polygon, `seating_elevation_m` / `ground_elevation_m`, or individual
-`shadow_casters` heights — via direct DB edits / the Story-12.5 dev tool), and re-checking
-a fixed venue shows improved agreement
+`shadow_casters` heights — via direct DB edits / the Story-12.5 dev tool)
+
+**Given** the aggregation accumulates ALL historical feedback for a venue, but a data fix
+changes the model
+**When** a venue's geometry inputs are corrected
+**Then** the loop measures the CORRECTED model separately so old pre-fix mismatch rows
+don't keep it ranked wrong forever — via a post-edit window / per-venue reset-acknowledge,
+or (cleanest, and it reuses the Story-12.3 geometry-input hash) **stamp each `feedback` row
+with the geometry-input hash at prediction time** so agreement can be computed over only
+the rows matching the CURRENT hash. So "re-checking a fixed venue shows improved agreement"
+is actually achievable (new checks aren't drowned by stale ones)
 
 **Given** confidence is no longer shown to users (Story 12.13), so
 `SUNNYSEAT_COVERAGE_CAP` clamps a value nobody sees
@@ -3307,8 +3319,17 @@ a fixed venue shows improved agreement
 **Then** the `SUNNYSEAT_COVERAGE_CAP` env var is REMOVED from Vercel and the env-gated
 bypass code (+ its test) is deleted from `shadow-data-coverage.ts`; the internal
 confidence model and the coverage cap MAY stay as an internal signal (for logs / the
-accuracy loop) or be simplified — the story decides — but no user-facing behaviour
-changes either way
+accuracy loop) or be simplified — the story decides
+
+**Given** the cap is NOT purely internal even after the confidence chip is gone: numeric
+confidence feeds `uncertaintyLevelFromConfidence` (`sun-engine.ts:1122`, `<50 high / <75
+medium`) which renders the user-visible "Låg osäkerhet / Osäker prognos" labels — so
+changing/removing the cap moves confidence (e.g. 90 vs a capped 60) and can flip that copy
+**When** the cap is removed/simplified
+**Then** this user-visible knock-on is handled deliberately — DECOUPLE the uncertainty tier
+from the capped value (base it on the honesty signals directly), OR intentionally
+re-baseline the uncertainty copy + its tests — so "no user-facing change" is actually TRUE
+(the uncertainty labels don't silently shift)
 
 **Given** the internal confidence / coverage machinery might still inform the accuracy
 loop
@@ -3371,8 +3392,12 @@ is explicitly revised to precompute-and-persist at real-venue scale
 that future dates need not be minute-fresh (MAINTAINER DECISION 2026-07-08)
 **When** a **scheduled job** (a GitHub Action → Supabase, NOT a short Vercel cron —
 the batch exceeds a serverless timeout) precomputes+persists the **ungated GEOMETRY
-series** (per the split above — NOT a weather-gated series) for ALL venues across
-**today + the next N planner days**, refreshed at TIERED cadences (future days a few
+series** (per the split above — NOT a weather-gated series) for ALL venues across the
+**entire selectable planner window — `today + PLANNER_MAX_FUTURE_DAYS`**
+(`time-planner.ts`, currently 3), NOT an arbitrary N: the precompute horizon MUST equal
+the dates the planner lets a user pick (a shared constant, tested), or an uncovered future
+date falls back to the exact cold shadow-compute freeze this story exists to kill;
+refreshed at TIERED cadences (future days a few
 times/day — deterministic geometry, so this is really just keeping the store populated;
 today refreshed alongside the geometry that rarely changes)
 **Then** picking any date reads the persisted GEOMETRY (≈instant, never a cold
@@ -3558,6 +3583,15 @@ list: `/api/venues` (map + list) omits it AND the slug detail `/api/venues/[slug
 can't reach it), and dependent review + detail-prefetch lookups reject it too; showing it
 again restores all paths — verified by route tests for both list and by-slug
 
+**Given** hidden venues are gone from every PUBLIC path, but the maintainer must still see
+them in the editor to toggle them back on (else unhiding needs raw SQL, contradicting
+"showing it again restores all paths")
+**When** the editor loads
+**Then** a **dev-only include-hidden** read path (list + detail) surfaces hidden venues IN
+THE EDITOR ONLY — gated by the same dev-only guard as the rest of Story 12.5 and
+**fail-closed in production** (a prod request can never include-hidden) — so hide/show is a
+round-trip entirely within the editor
+
 **Given** the inline field editors (tags / description / thumbnail-URL)
 **When** a field is saved
 **Then** it is written through the same validated dev-only route (tags coerced to a
@@ -3729,11 +3763,19 @@ chans att det är soligt"
 
 **Given** confidence is no longer a user-facing number (Story 12.13)
 **When** a short **"Hur säkra är vi?"** paragraph is added (in/after TRÄFFSÄKERHET)
-**Then** it explains, honestly and simply, that the app aims to get the sun figure right,
-that accuracy improves as users send feedback ("stämmer det?"), and it disambiguates the
-page's own site-wide TRÄFFSÄKERHET stat as an overall historical hit-rate — WITHOUT
-introducing a per-venue "Säkerhet" number (there isn't one in the UI anymore). It may
-note that the app tracks its own confidence internally to prioritise improvements
+**Then** it explains, honestly and simply, that the app aims to get the sun figure right
+and that accuracy improves as users send feedback ("stämmer det?"), WITHOUT introducing a
+per-venue "Säkerhet" number (there isn't one in the UI anymore). It may note that the app
+tracks its own confidence internally to prioritise improvements
+
+**Given** the TRÄFFSÄKERHET stat is still the hard-coded `ABOUT_ACCURACY_PLACEHOLDER = 85`
+(its own comment says illustrative-until-validated), and after the 12.2 reframe there is no
+required source producing a measured hit-rate
+**When** 12.8 ships
+**Then** the page must NOT present the placeholder AS IF it were a real measured hit-rate
+(that would be dishonest, on the very page that promises honesty) — either source the
+number from the Story-12.2 feedback/accuracy aggregation, OR remove / clearly label it as
+an estimate ("preliminär" / not-yet-measured) until a real rate exists
 
 **Given** Swedish is the default and copy lives in `messages/`
 **When** the sections ship
@@ -4068,9 +4110,75 @@ improves from feedback, rather than teaching a "Säkerhet" number users will nev
 - **Visual validation:** Card / quick-info / detail vs a rebaselined reference — the
   confidence chip is absent, nothing else moved
 
-> **Knock-on effects (both handled):** (1) With confidence not displayed, the
+> **Knock-on effects (all handled):** (1) With confidence not displayed, the
 > `SUNNYSEAT_COVERAGE_CAP` cap (which clamps the DISPLAYED confidence) no longer has any
 > user-facing effect — see the reframed Story 12.2, which drops the flag as cleanup and
 > repurposes the walk/feedback verification toward finding and fixing wrong sun-%
 > predictions rather than gating a shown confidence. (2) Story 12.8's confidence section
-> is reframed accordingly.
+> is reframed accordingly. (3) **The confidence number is NOT the only cap-driven user
+> surface:** `buildPredictionUncertainty` derives the public uncertainty TIER from numeric
+> confidence (`uncertaintyLevelFromConfidence`, `sun-engine.ts:1122` — `<50 high, <75
+> medium`), rendered as "Låg osäkerhet / Osäker prognos" copy. So the cap still moves
+> user-visible uncertainty LABELS after the chip is gone — handled in Story 12.2 (decouple
+> or intentionally re-baseline that copy when the cap is removed/simplified).
+
+### Story 12.14: Hide Closed Venues (Open-at-Selected-Time Filter)
+
+_Context (2026-07-08, maintainer decision):_ a venue that isn't open right now is noise
+on the map — you can't go sit there. So a venue that is **closed at the currently
+selected time is hidden** from the map (and list). Crucially this keys off the
+**selected** instant, not just "now": with the time/date planner set to a future moment
+when the venue IS open, it reappears — so the planner naturally answers "where can I sit
+in the sun at 18:00 on Saturday?" only among places actually open then. This builds on the
+per-weekday `opening_hours` already on the DTO (Story 11.9) and the deferred is-open-now
+guard (11.9 review) — the same `isWithin(now, interval)` logic, now load-bearing.
+
+As a **user browsing the map**,
+I want to see only venues that are open at the time I'm looking at,
+So that every pin is somewhere I could actually go — and when I plan a future time, I see
+what's open then.
+
+**Acceptance Criteria:**
+
+**Given** each venue carries per-weekday `opening_hours` on the list DTO, and the app has
+a selected instant (now by default, or the planner's date+time), in Europe/Stockholm
+**When** the map + list render (and on every time-scrub / date-change)
+**Then** venues that are **CLOSED at the selected instant** are hidden from BOTH the map
+pins and the list, and re-appear when the selected time falls inside their hours —
+computed **client-side** from `opening_hours` + the selected weekday/time (zero extra
+fetch; the hours are already loaded, consistent with the scrub=0 invariant)
+
+**Given** past-midnight sessions (a venue open 18:00→02:00 is open at 01:00 as part of the
+PRIOR day's session)
+**When** the open/closed test runs
+**Then** it handles the past-midnight case correctly (consult the prior weekday's interval
+when `close < open`), reusing/extending the shared `opening-hours.ts` formatter's
+is-open logic — a venue genuinely open after midnight is NOT wrongly hidden
+
+**Given** a venue with **unknown/absent** `opening_hours`
+**When** the filter runs
+**Then** it is **NOT hidden** (we never assert "closed" without data — honesty-first);
+unknown-hours venues always show, matching the "never fabricate hours" posture
+
+**Given** filtering changes the visible set
+**When** venues are hidden
+**Then** the empty state and any "N platser" counts reflect the FILTERED set, this filter
+stacks (AND) with tag filtering and the Story-12.6 sunny/grey pin logic (only open venues
+get pins, then amber/grey applies), and the server truncation (`MAX_RESULTS`) must not let
+closed venues consume result slots that hide open ones (apply the open filter before/within
+the top-N cut, or account for it — an implementation note, since at 42 venues the cap isn't
+hit but it matters at 50–100)
+
+**Design Gate Criteria:**
+- **Visual:** Closed venues have no pin/list row at the selected time; the map declutters
+  outside opening hours
+- **Behaviour:** Re-filters live on time-scrub + date-change (zero fetch); past-midnight
+  correct; unknown-hours venues always shown; stacks with tags + 12.6 pins
+- **Animation:** Pins entering/leaving on a time change use the existing pin fade — no jarring
+  flash or layout jump when the set changes
+- **Visual validation:** Map + list at a time when some venues are closed vs a time when
+  they're open (mobile + desktop) vs a new reference passes
+
+> **Open question for planning:** does "hide closed" apply to **search** too, or should a
+> by-name search still surface a closed venue (marked closed)? Default here is hide
+> everywhere for map/list; search behaviour is a maintainer call at story creation.
