@@ -3873,6 +3873,14 @@ snap enum
 **Then** ~16px is reclaimed, the value badge still clears, and the panel reads slimmer on
 mobile with no desktop change
 
+**Given** the current sheet has keyboard ArrowUp/ArrowDown control across the snap ladder
+(WCAG 2.1 AA), which the snap enum removal would break
+**When** the row-quantized model lands
+**Then** keyboard control is PRESERVED, mapped to the new model: ArrowUp/ArrowDown expand/
+collapse **one row at a time**, reaching the **0-row handle-only** state and the max, with
+a visible focus state and an accessible announcement of the change — no keyboard regression
+for the row model
+
 **Design Gate Criteria:**
 - **Visual:** No bare-map gap at any drag position; rows are never half-clipped at a
   rest snap; slimmer mobile slider; desktop unchanged
@@ -3882,14 +3890,6 @@ mobile with no desktop change
   `prefers-reduced-motion`; no entrance flash
 - **Visual validation:** Mobile sheet at several row counts (0 / 1 / a few / max) + a
   mid-drag frame, and the slim slider, vs a rebaselined reference pass
-
-**Given** the current sheet has keyboard ArrowUp/ArrowDown control across the snap ladder
-(WCAG 2.1 AA), which the snap enum removal would break
-**When** the row-quantized model lands
-**Then** keyboard control is PRESERVED, mapped to the new model: ArrowUp/ArrowDown expand/
-collapse **one row at a time**, reaching the **0-row handle-only** state and the max, with
-a visible focus state and an accessible announcement of the change — no keyboard regression
-for the row model
 
 > **Note:** this replaces the four-snap sheet from Story 11.3. Its touch-gesture e2e
 > (`epic-11-sheet-touch-gestures.spec.ts`) must be updated from snap-name assertions to
@@ -3915,10 +3915,14 @@ So that browsing venues feels immediate.
 **Given** detail is fetched on-click via `useVenueDetail` (`queryKeys.venues.detailAt`)
 and cold-computes server-side
 **When** the client PREFETCHES detail (TanStack `prefetchQuery`) in the background for a
-bounded top-N of the venues **already returned by the list query** (after it settles, on
-idle), using the **EXACT `queryKeys.venues.detailAt` parameters that `useVenueDetail`
-will mount with on the click** (slug + the current planner date/time + the rounded user
-lat/lng), NOT a slug-only or mismatched-planner key
+bounded top-N of the candidate venues — which MUST include the **favourite-query rows**
+(`useFavouriteVenues`), not only the main nearby list: on `/favoriter` a saved venue
+outside the ~1.5 km set (or a cold favourites deep link) comes from that separate query
+(`MapView.tsx:445,470`), so limiting candidates to "the list query" leaves those cards on
+the COLD detail path and "Mer info" stays slow there — after the list settles, on idle,
+using the **EXACT `queryKeys.venues.detailAt` parameters that `useVenueDetail` will mount
+with on the click** (slug + the current planner date/time + the rounded user lat/lng), NOT
+a slug-only or mismatched-planner key
 **Then** tapping "mer info" for a prefetched venue **hits the client cache** (the prefetch
 key matches the mounted key exactly — a slug-only/wrong-location prefetch would warm the
 server but still refetch on open, defeating the story) and renders with no visible wait;
@@ -3985,8 +3989,13 @@ So that I understand the app immediately (and can revisit it later).
 **Given** a user reaches the map for the first time (after onboarding/geolocation)
 **When** a coach-mark guide appears highlighting, in a few steps: the sunny (amber) vs
 not-sunny (grey/cloud) pin meaning, the time slider, the date planner, the tag chips,
-the venue list/sheet, favourites, and the "stämmer det?" feedback — each step a short
-caption anchored to the real element
+the venue list/sheet, and favourites — each step a short caption anchored to a real element
+**that is actually present on the initial map screen**. The "stämmer det?" feedback control
+is NOT — `FeedbackFlow` only mounts inside the detail overlay (`MapView.tsx:601`, gated on
+an open venue), so a feedback step must NOT anchor to a non-existent target on first entry:
+either drop it from the first-run tour (mention feedback in copy only), or have the guide
+deterministically open a venue's detail before any feedback-specific step (no step ever
+points at a hidden/unmounted element)
 **Then** it can be dismissed at ANY step via an always-visible "Hoppa över"/close (one
 tap exits the whole guide), and it never auto-shows again (a persisted `localStorage`
 seen-flag, cross-tab safe like the onboarding flag)
@@ -4040,6 +4049,15 @@ hotlink/licensing risk) and each venue's `thumbnail.url` is set to its public UR
 `initials` populated as the fallback)
 **Then** the sanitizer accepts the URL unchanged (http/https allowed) and no
 `next.config`/CSP change is required (plain `<img>`)
+
+**Given** the app renders thumbnails via plain `<img>` (no `next/image` auto-resize), so an
+original phone/camera photo would download full-size on the list card + detail hero across
+50–100 venues — a real bandwidth + LCP regression against the perf budget
+**When** the storage convention is defined
+**Then** it MANDATES optimized renditions — explicit max dimension/byte/format limits (e.g.
+a small card thumbnail + a larger hero rendition, WebP/JPEG, capped px + KB), NOT raw
+uploads — so no surface ever downloads a multi-megabyte original; the doc records the exact
+limits/rendition sizes to produce before uploading
 
 **Given** the detail hero ignores `thumbnail.url` today
 **When** `VenueDetailContent` HeroImage is wired to render `thumbnail.url` (object-cover)
@@ -4163,9 +4181,12 @@ what's open then.
 **Given** each venue carries per-weekday `opening_hours` on the list DTO, and the app has
 a selected instant (now by default, or the planner's date+time), in Europe/Stockholm
 **When** the map + list render (and on every time-scrub / date-change)
-**Then** venues that are **CLOSED at the selected instant** are hidden from BOTH the map
-pins and the list, and re-appear when the selected time falls inside their hours —
-computed **client-side** from `opening_hours` + the selected weekday/time (zero extra
+**Then** venues that are **CLOSED at the selected instant** are hidden from **every pin +
+list source, not just the main nearby list** — MapView builds pins from the filtered list
+PLUS `activeFavouriteVenueRows` PLUS `selectedVenuePreviewForMap` (`MapView.tsx:516-530`),
+and `/favoriter` renders its own `favouriteVenueRows` list — so the open-at filter (and the
+counts) must apply to ALL of them, and re-appear when the selected time falls inside their
+hours — computed **client-side** from `opening_hours` + the selected weekday/time (zero extra
 fetch; the hours are already loaded, consistent with the scrub=0 invariant)
 
 **Given** past-midnight sessions (a venue open 18:00→02:00 is open at 01:00 as part of the
@@ -4211,6 +4232,8 @@ revisit it, e.g. viewport-bounded candidate sets)
 - **Visual validation:** Map + list at a time when some venues are closed vs a time when
   they're open (mobile + desktop) vs a new reference passes
 
-> **Open question for planning:** does "hide closed" apply to **search** too, or should a
-> by-name search still surface a closed venue (marked closed)? Default here is hide
-> everywhere for map/list; search behaviour is a maintainer call at story creation.
+> **Open questions for planning:** (1) does "hide closed" apply to **search** too, or should
+> a by-name search still surface a closed venue (marked closed)? (2) should a **saved
+> favourite** that's closed be hidden like the rest, or always shown with a "stängt" marker
+> (a user deliberately saved it)? Default here is hide everywhere for map/list; both search
+> and the favourites-when-closed treatment are maintainer calls at story creation.
