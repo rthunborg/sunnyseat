@@ -3211,14 +3211,16 @@ keeping their hand-authored hours untouched
 dinner 17–23), but the Story 11.9 `WeeklyOpeningHours` / `coerceOpeningHours` contract
 accepts only ONE `{ open, close }` per weekday key
 **When** a weekday has split periods
-**Then** the sync must NOT fabricate availability — default policy: **skip that
-venue-day** (keep its hand-authored hours) and **report it** for maintainer review;
-collapsing to an outer envelope is explicitly REJECTED because 11–14 + 17–23 → 11–23
-would render the venue as open through the 14–17 closure gap (dishonest — the opposite of
-this app's posture). Extending `WeeklyOpeningHours` to carry multiple intervals per day is
-the fuller fix and is the sanctioned way to actually sync split-hours venues (optional
-follow-up); until then, split days keep honest hand-authored hours rather than a synthesized
-open window
+**Then** the sync must NOT fabricate availability, AND must not leave STALE synced hours:
+"skip the day" is only honest on the FIRST sync — after a prior successful sync the stored
+value is already machine-synced, so if Places LATER changes that day to split periods,
+merely skipping would leave the old single synced interval in place (still fabricating the
+closure gap). So the policy is: mark that weekday **`null`/unknown (report-only)** rather
+than leaving a stale synced interval — and track a **per-day source flag** (synced vs
+hand-authored) so a hand-authored value is preserved but a stale synced one is cleared.
+Collapsing to an outer envelope stays REJECTED (11–14 + 17–23 → 11–23 fabricates the 14–17
+gap). Extending `WeeklyOpeningHours` to carry multiple intervals per day is the fuller fix
+and the sanctioned way to actually sync split-hours venues (optional follow-up)
 
 **Given** the Places API has quota and per-field-mask billing
 **When** the sync runs
@@ -3623,8 +3625,11 @@ false`, idempotent, RLS posture preserved)
 **Then** a hidden venue disappears for ALL users on EVERY public path — not just the
 list: `/api/venues` (map + list) omits it AND the slug detail `/api/venues/[slug]` /
 `getVenueBySlug` returns 404 for a hidden venue (so a stale link / cached UI / direct URL
-can't reach it), and dependent review + detail-prefetch lookups reject it too; showing it
-again restores all paths — verified by route tests for both list and by-slug
+can't reach it), and dependent review, detail-prefetch, AND the **feedback POST**
+(`/api/venues/[slug]/feedback` — a public WRITE path that Story 12.7 moves to the live
+resolver) all reject a hidden venue too, so a stale open detail can't write feedback for an
+unreachable venue and pollute the accuracy loop; showing it again restores all paths —
+verified by route tests for list, by-slug, and the feedback POST
 
 **Given** the public reads are CACHED — `/api/venues` + `/api/venues/[slug]` send
 `Cache-Control: public, max-age=30, s-maxage=30` (CDN) and detail stays fresh in the client
@@ -3720,8 +3725,12 @@ geometrically-sunny venue stays grey (never falsely amber)
 **When** the grey pin is finalized
 **Then** the **grey pin shows the cloud icon and NO number**; the **amber pin keeps
 the sun icon + the sun-exposure %**. Colour is never the only signal (sun vs cloud
-icon still differentiates — NFR27), and the aria-label is updated so a grey pin
-announces "inte soligt" (not a percentage)
+icon still differentiates — NFR27), and the accessible name drops the percentage — which
+requires flipping the i18n keys + tests, NOT just the visual + screenshots: `pinShadedAria`
+/ `pinObscuredAria` still interpolate `{percent}` (both locales) and `VenuePinLayer.test.tsx`
+asserts the obscured aria contains the number (e.g. "88"), so the grey-pin variants are
+updated to a percent-free "inte soligt" contract and those pin-aria tests are flipped (else
+SR users still hear the old percentage)
 
 **Given** this changes the shipped pin treatment (supersedes Story 10.2's three-way
 pins at the PIN level only)
@@ -3890,8 +3899,11 @@ finger continuously during a drag
 or velocity (incl. notched safe-area devices) — the gap defect is gone
 
 **Given** the maintainer wants one-row-at-a-time control
-**When** the sheet snaps to **whole venue-row increments**: height = handle +
-`N × rowHeight`, `N` from **0 (handle only)** up to `maxRows`
+**When** the sheet snaps to **whole venue-row increments**: height = handle **+ the
+persistent chrome above the list (VenueListControls + MobileTagChips, shown once `N ≥ 1`)**
++ `N × rowHeight`, `N` from **0 (handle only)** up to `maxRows` — the header/chrome height
+is a SEPARATE term in the formula (or those controls sit outside the measured row area), so
+a snap that promises N rows actually shows N un-clipped rows, not chrome eating a row's space
 **Then** a downward drag that crosses a row boundary settles showing one FEWER row, and
 an upward drag settles showing one MORE row; a slow drag can walk the list open/closed a
 row at a time, and a fling honours velocity by snapping to the nearest row boundary in
@@ -3978,10 +3990,14 @@ a non-prefetched venue still works (falls back to the live fetch)
 **Given** each detail prefetch is a single-venue engine call, so an unbounded prefetch
 could fire 50–100 background `/api/venues/[slug]` requests right after the list settles
 **When** the prefetch runs
-**Then** it is BOUNDED — an explicit **total budget** (top-N nearest of the candidate set)
-+ a **concurrency cap** (a few in flight at once) + it **yields to interaction**
-(cancel/pause in-flight prefetches when the user acts, backoff on error) — so the prefetch
-never turns the cold-start cost into an idle burst that competes with the user's actions
+**Then** it is BOUNDED — an explicit **total budget** + a **concurrency cap** (a few in
+flight at once) + it **yields to interaction** (cancel/pause in-flight prefetches when the
+user acts, backoff on error). The budget is seeded in **the current VISIBLE order** — the
+list defaults to `venueSortMode = 'sun'` ("Mest sol", `sortVenuesForList`), so the top
+tappable cards are sun-ranked, NOT nearest-distance; prefetch the top of the visible
+list/favourites order FIRST (what the user is most likely to tap), then fall back to nearest
+— else a user taps a top sunny card outside a distance-only budget and its detail is still
+cold. So the prefetch never turns cold-start into an idle burst that competes with the user
 
 **Given** the maintainer's stated goal was "preload venues within ~10 km" (future-proofing
 for more cities), but the current API can't return that set — the list requests
@@ -4194,9 +4210,11 @@ updated in lock-step, per that file's own no-orphan-keys convention); (b) remove
 `showVisibleConfidence` prop chain (`VenueCard.tsx:79,104`, `VenueList.tsx:23,45,124`,
 `MapView.tsx:1131,1176` + `VenueCard.test.tsx:391`); (c) states the disposition of the
 display-only `lib/utils/confidence-display.ts` (all five UI readers removed → delete it, as
-it is PRESENTATION not the internal model) and updates its callers' tests incl. the
-`e2e/epic-10-weather-matrix.spec.ts:112-186` assertions that check the visible "Säkerhet …"
-text (else that e2e breaks) — so no orphaned util / dead prop / red test survives
+it is PRESENTATION not the internal model) and updates ALL its tests — both its direct unit
+spec `test/unit/confidence-display.test.ts` (delete/reframe it, else the unit suite goes red
+the moment the util is deleted) AND the `e2e/epic-10-weather-matrix.spec.ts:112-186`
+assertions that check the visible "Säkerhet …" text — so no orphaned util / dead prop / red
+test survives
 
 **Given** confidence is still valuable internally
 **When** the display is removed
@@ -4276,10 +4294,15 @@ interval AND, when `close < open`, the PRIOR weekday's interval (so a venue open
 shows at 01:00), with unit tests for both — reused everywhere the filter runs so before-open
 / after-close and the 01:00 case are correct
 
-**Given** a venue with **unknown/absent** `opening_hours`
+**Given** a precise distinction the contract already encodes (`coerceOpeningHours`,
+`venue-store.ts:569-573`): the **entire `opening_hours` field absent/undefined** = hours
+UNKNOWN, but a **missing weekday key or `null` entry** = explicitly CLOSED that day
 **When** the filter runs
-**Then** it is **NOT hidden** (we never assert "closed" without data — honesty-first);
-unknown-hours venues always show, matching the "never fabricate hours" posture
+**Then** only the truly-unknown case shows: `openingHours === undefined` → **NOT hidden**
+(we never assert "closed" without data — honesty-first); but `hours[selectedWeekday]`
+missing/`null` → **HIDDEN** (that day IS closed). Tested both ways — a hours-less venue
+stays visible, a venue closed on the selected weekday is hidden (don't over-broaden
+"unknown" to swallow the closed-weekday case)
 
 **Given** filtering changes the visible set
 **When** venues are hidden
