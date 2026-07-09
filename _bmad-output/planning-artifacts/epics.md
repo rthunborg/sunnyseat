@@ -3146,8 +3146,9 @@ gate; see the reframed story) → **12.1** (Places hours-sync). Stories:
 - **12.1** — Google Places opening-hours sync, **weekly scheduled** (consumer of the
   `place_id` / `places_api_url` columns; migration `venues_add_google_places_columns`).
 - **12.2** — *reframed:* feedback→accuracy loop (find & fix wrong sun-% venues) + remove
-  the coverage-cap bypass flag (confidence is internal-only after 12.13, so nothing
-  user-facing depends on it).
+  the coverage-cap bypass flag (the confidence NUMBER is gone after 12.13; the one
+  user-visible knock-on — the uncertainty labels driven by capped confidence — is handled
+  in-story).
 - **12.3** — day-series compute at real-venue scale (kill the cold-start freeze).
 - **12.4** — production console hygiene (React #418 hydration + MapLibre null warning).
 - **12.5** — dev/localhost-only venue editor (drag pin = display-only lat/lng, paste
@@ -3167,6 +3168,36 @@ gate; see the reframed story) → **12.1** (Places hours-sync). Stories:
 **Epic 12 stays ONE epic (14 stories) — maintainer confirmed 2026-07-08.** It bundles
 launch-critical work (12.3 perf, 12.7 reviews-404, 12.2 verification) and UX polish; the
 maintainer explicitly wants it kept together, not split.
+
+**Cross-cutting decisions — resolve each ONCE at sprint planning; multiple stories bind
+to each, and most review churn in this epic traced back to these five:**
+
+1. **Opening-hours representation.** The per-weekday contract carries single intervals
+   only and has NO per-day "unknown" (missing key/`null` = closed; only the whole field
+   absent = unknown). Decide whether/when to land the multi-interval + per-day-unknown
+   extension as its own prerequisite story. Until it lands: 12.1 skips split-hours venues
+   wholesale; 12.14 shows field-absent venues and hides `null`/missing weekdays.
+   *(Binds 12.1 ↔ 12.14 + the shared formatter.)*
+2. **One "publicly visible venue" guard.** Hidden venues must be rejected by EVERY public
+   route — list, by-slug detail, reviews GET+POST, feedback POST, detail-prefetch — plus
+   CDN/client cache-busting on toggle. Implement as ONE shared resolver/guard (Story 12.7's
+   live id/slug resolver is the natural home), never per-route ad-hoc checks.
+   *(Binds 12.5, 12.7, 12.10, 12.14.)*
+3. **One geometry-inputs version/hash.** The persisted day-series key (12.3), the feedback
+   rows' prediction-time stamp (12.2), and edit/import invalidation (12.5, geodata imports)
+   all need the SAME "shadow inputs changed" signal — seating polygon + elevations + the
+   FULL caster set (geometries/ids + RH2000 z). Define the hash/version once; every
+   consumer reads it. *(Binds 12.3, 12.2, 12.5.)*
+4. **The Epic-11 request-count gates (scrub=0 / date-change=1) are a named invariant.**
+   Any story adding background traffic or client-side filtering either keeps them green
+   as-written or re-scopes the gate SPECS deliberately in the same change — never a
+   silently-red gate. Corollary: ONE selected-instant source drives both the 12.14 filter
+   and any hours copy. *(Binds 12.10, 12.14, 12.3.)*
+5. **One "sunny" boundary.** ">50% of seating sunlit AND not weather-gated" lives in ONE
+   shared predicate consumed by: pin colour, card copy/emphasis, server rank AND the client
+   sort mirror (12.6), the feedback agreement mapping (12.2), and the About legend (12.8).
+   Decide the predicate's home once so the boundary can never drift per-surface.
+   *(Binds 12.6, 12.2, 12.8.)*
 
 The 2026-07-07 load replaced the 7 fixture venues with 42 real Göteborg venues whose
 `opening_hours` were hand-collected — they will silently drift as venues change
@@ -3264,9 +3295,11 @@ _Context (2026-07-08, REFRAMED after the Story-12.13 decision to remove the
 user-facing confidence indicator):_ this story was originally "verify predictions →
 show earned high confidence to users, then re-enable the cap." **Story 12.13 removes
 the confidence number from the user UI entirely**, which changes 12.2's premise:
-there is no longer a displayed confidence to gate, so the whole
-`SUNNYSEAT_COVERAGE_CAP` machinery has **no user-facing effect** and the "re-cap for
-display" goal is moot. What REMAINS valuable is the field-verification itself — the
+there is no longer a displayed confidence NUMBER to gate, so the "re-cap for display"
+goal is moot — with ONE user-facing exception this story owns: numeric confidence still
+drives the public uncertainty LABELS ("Låg osäkerhet"/"Osäker prognos") via
+`buildPredictionUncertainty`, so cap changes CAN move user-visible copy (handled by a
+dedicated AC below — do not read this story as purely internal). What REMAINS valuable is the field-verification itself — the
 maintainer walking the venues and the live `feedback` table (`predicted_state`,
 `sun_accuracy`, `note`, timestamp) — but repurposed toward its real payoff: **finding
 and fixing wrong sun-% predictions**, and cleaning up the temporary flag. This is no
@@ -3353,8 +3386,10 @@ loop
 **Then** any remaining internal use of confidence is documented (what reads it and why),
 so a future maintainer knows it is internal-only by design — not a dropped feature
 
-_(Mostly backend/ops + a data-analysis deliverable; no user-facing design gate — the
-confidence UI is already gone via 12.13. The FR12 "confidence drops with cloud" concern
+_(Mostly backend/ops + a data-analysis deliverable — with ONE user-facing carve-out: if
+retiring/simplifying the cap shifts the uncertainty LABELS (per the AC above), that copy
+change IS user-visible and gets the normal copy/test/visual-validation treatment; only the
+rest of the story is design-gate-free. The FR12 "confidence drops with cloud" concern
 is retired: weather truth is carried by the grey pin, not a number.)_
 
 ### Story 12.3: Day-Series Compute at Real-Venue Scale — Kill the Cold-Start Freeze
@@ -3500,12 +3535,15 @@ console-error CI guard.
    (NOT `TimeSlider.tsx` — it documents "never reads `new Date()`", `TimeSlider.tsx:26`,
    so it is the deliberately-clean controlled child, not a suspect.)
 2. **`Expected value to be of type number, but found null` ×3** (MapLibre style
-   validation). NOTE — the app authors NO numeric MapLibre style expression: pins are DOM
-   `maplibregl.Marker`s (`VenuePinLayer.tsx:199`, not style layers), and the only app paint
-   mutation, the recolour, sets exclusively `fill-color`/`line-color` COLOR STRINGS
-   (`apply-basemap-colors.ts:53`, `map-basemap-colors.ts:58`) — grep finds zero
-   app-authored `addLayer`/`addSource`. So the null almost certainly originates in the
-   **upstream positron style**, not our code. Cosmetic (map renders), but noisy.
+   validation). PRIME SUSPECT IS APP-ORIGIN: `MapView.tsx:723-729` documents this EXACT
+   warning text — `mapInstance.project([null, null])` when a selected venue carries
+   null/non-finite coordinates (the `?venue=` deep-link selects without a location check),
+   firing once on the effect run + again on every move/zoom, matching the observed ×3.
+   Story 9.10 added a guard for precisely this, so a live recurrence means the guard
+   REGRESSED or another projection/easeTo path is unguarded. Secondary hypothesis only:
+   the upstream positron style (the app authors no numeric style expression — pins are DOM
+   `maplibregl.Marker`s, the recolour sets only color strings). Cosmetic (map renders),
+   but noisy.
 
 As a **maintainer verifying the live app**,
 I want the production console free of app-originated errors,
@@ -3523,16 +3561,20 @@ errors in the console, and the fix names the offending component + value in the
 story record
 
 **Given** the MapLibre `Expected value to be of type number, but found null` warning
-fires ×3 at style/recolour time — and (per the context) the app authors no numeric style
-expression, so the null likely comes from the UPSTREAM positron style, which "guard our
-input" cannot reach
-**When** the offending layer + property is identified (diff the style before/after our
-`setPaintProperty` pass; confirm whether the null pre-exists in the fetched positron style)
-**Then** it is resolved by the appropriate lever for its SOURCE: if it IS our input, guard
-it; if it is the **upstream positron style**, either fork/patch that layer OR — per AC3's
-own third-party carve-out — **document it as a known third-party positron warning** and
-allow-list it in the console guard (do NOT assume an app-authored numeric expression exists
-to "correct")
+fires ×3 — and the repo DOCUMENTS this exact warning as app-origin
+(`mapInstance.project([null, null])` on a null-coordinate selected venue,
+`MapView.tsx:723-729`, guarded by Story 9.10)
+**When** the source is identified — inspecting the APP paths FIRST: has the 9.10 guard
+regressed, is another selected-venue projection/`easeTo`/anchor path unguarded, and does a
+live venue row actually carry null/non-finite coordinates (that would be a DATA bug worth
+fixing at the source too)? Only if the warning still reproduces with verified-finite
+coordinates and no app projection in the stack may it be attributed to the upstream
+positron style (diff the style before/after our `setPaintProperty` pass to confirm)
+**Then** it is resolved by the lever matching its PROVEN source: fix/guard the app
+projection path (and any null-coordinate data), or — only with the upstream attribution
+evidenced — fork/patch the style layer or document it as the explicitly-named third-party
+allow-list entry per AC3. Never allow-list first and investigate later (that would bless
+our own bug as third-party noise)
 
 **Given** there is currently NO automated console-error guard (grep of `test/e2e`
 finds no `console`/`pageerror` listener)
@@ -3967,10 +4009,16 @@ for the row model
 - **Visual validation:** Mobile sheet at several row counts (0 / 1 / a few / max) + a
   mid-drag frame, and the slim slider, vs a rebaselined reference pass
 
-> **Note:** this replaces the four-snap sheet from Story 11.3. Its touch-gesture e2e
-> (`epic-11-sheet-touch-gestures.spec.ts`) must be updated from snap-name assertions to
-> row-count assertions (incl. a spec that drags starting on a venue ROW, not the handle,
-> AND a keyboard spec that walks the row ladder to 0-row and back).
+> **Note:** this replaces the four-snap sheet from Story 11.3, and the snap names are
+> load-bearing beyond one spec — the migration scope includes ALL of: (1) the touch-gesture
+> e2e (`epic-11-sheet-touch-gestures.spec.ts`) from snap-name to row-count assertions
+> (incl. a spec that drags starting on a venue ROW, not the handle, AND a keyboard spec
+> that walks the row ladder to 0-row and back); (2) `test/e2e/map-primary.spec.ts`, which
+> asserts `data-state` peek/mid/full throughout (e.g. :153-157, :497-506, :540, :561-585);
+> (3) the `?_state=map-panel-venues` forced state, which is DEFINED as the mid snap — remap
+> it (and the Screen ID → Route Map / `use-forced-state`) to a row-count equivalent so the
+> state-forcing convention and visual-gate captures don't go stale; and (4)
+> `computeRecenterPadding` per the AC above.
 
 ### Story 12.10: Venue Detail Preload — Instant "Mer info"
 
@@ -3998,12 +4046,17 @@ outside the ~1.5 km set (or a cold favourites deep link) comes from that separat
 the COLD detail path and "Mer info" stays slow there — using the **EXACT
 `queryKeys.venues.detailAt` parameters that `useVenueDetail` will mount with on the click**
 (slug + the current planner date/time + the rounded user lat/lng), NOT a slug-only or
-mismatched-planner key. CRITICAL: because that key includes `{date, time, lat, lng}`, the
-prefetch must re-run not only after the list settles but **after the planner date/time OR the
-rounded location SETTLES** (debounced) — else a detail prefetched for the live key is stale
-the moment the user scrubs time / picks a date, and even a top visible card falls back to the
-cold fetch. (Or explicitly exempt immediate post-scrub opens from the instant guarantee —
-name which.)
+mismatched-planner key. CRITICAL — and this is a genuine TENSION to resolve, not a free
+add-on: because the key includes `{date, time, lat, lng}`, a prefetch warmed for the live
+key stops matching the moment the user scrubs time or picks a date; but RE-RUNNING the
+prefetch after every settled scrub fires background `/api/venues/[slug]` requests during a
+time-scrub, colliding with the Epic-11 **scrub=0 request-count gate** this very story
+promises to keep green. The story must PICK ONE, explicitly: (a) re-scope the request-count
+gate SPECS to the LIST endpoint only (a deliberate, documented gate change shipped in the
+same PR), making post-settle detail prefetch sanctioned background traffic; or (b) keep the
+gates as-written and EXEMPT post-scrub/post-date-change opens from the instant guarantee
+(prefetch fires only on initial list settle + location settle). Either is acceptable; a
+silently-red CI gate is not
 **Then** tapping "mer info" for a prefetched venue **hits the client cache** (the prefetch
 key matches the mounted key exactly — a slug-only/wrong-location prefetch would warm the
 server but still refetch on open, defeating the story) and renders with no visible wait;
@@ -4051,8 +4104,9 @@ against prod
 
 **Design Gate Criteria:**
 - **Visual:** None — latency only; the detail overlay is unchanged
-- **Behaviour:** Prefetched detail opens instantly; the time-scrub zero-fetch invariant
-  and the list request-count gates stay green (prefetch is idle/background, not on scrub)
+- **Behaviour:** Prefetched detail opens instantly; the Epic-11 request-count gates stay
+  green — either as-written (option b: no prefetch on scrub) or deliberately re-scoped to
+  the list endpoint (option a), per the AC's named choice; never silently red
 - **Animation:** The existing detail open/close transition is unchanged
 - **Visual validation:** N/A (no pixel change); request-count + open-time metrics stand in
 
@@ -4218,8 +4272,13 @@ sun-exposure "N% sol" is untouched
 screen-reader**: the visible chip is gone; the `cardAria` template drops its `{confidence}`
 segment in BOTH locales (and `VenueList.tsx` drops the `confidence` arg +
 `getConfidenceDisplayState` call/import) — `cardAriaObscured` already omits it; the
-quick-info/detail sr-only lines drop it; and `routeConfidenceLabel` is removed at its
-MapView builder AND the RouteOverlay render block + prop. Layouts reflow cleanly (no empty
+quick-info/detail sr-only lines drop it; and the route overlay's CONFIDENCE segment is
+removed — but NOT the whole row: `routeConfidenceLabel` (MapView.tsx:1638-1648) joins the
+confidence text AND the prediction-UNCERTAINTY label (`getPredictionUncertaintyDisplay`)
+into one " · " row, and the uncertainty copy is an honesty signal this story explicitly
+PRESERVES — so the builder/prop is reduced/renamed to an **uncertainty-only** row (rendered
+when an uncertainty label exists, omitted otherwise), with RouteOverlay tests covering both
+the with-uncertainty and without cases. Layouts reflow cleanly (no empty
 slot / stray separator)
 
 **Given** removing the confidence display leaves dead plumbing + tests that CURRENTLY PIN
@@ -4236,9 +4295,9 @@ it is PRESENTATION not the internal model) and updates ALL its tests — both it
 spec `test/unit/confidence-display.test.ts` (delete/reframe it, else the unit suite goes red
 the moment the util is deleted) AND the confidence assertions across the suite — the
 `e2e/epic-10-weather-matrix.spec.ts:112-186` visible "Säkerhet …" checks, PLUS (since this
-story also removes `routeConfidenceLabel` + the RouteOverlay confidence prop)
+story reduces `routeConfidenceLabel` + the RouteOverlay row to uncertainty-only)
 `test/e2e/visit-loop.spec.ts` (`/Säkerhet \d+%/`) and `test/components/RouteOverlay.test.tsx`
-(the confidence-row rendered/omitted assertions) — so no orphaned util / dead prop / red
+(flip the confidence-row assertions to the uncertainty-only contract) — so no orphaned util / dead prop / red
 test survives anywhere in the suite
 
 **Given** confidence is still valuable internally
