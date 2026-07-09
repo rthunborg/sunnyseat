@@ -3215,12 +3215,18 @@ accepts only ONE `{ open, close }` per weekday key
 "skip the day" is only honest on the FIRST sync — after a prior successful sync the stored
 value is already machine-synced, so if Places LATER changes that day to split periods,
 merely skipping would leave the old single synced interval in place (still fabricating the
-closure gap). So the policy is: mark that weekday **`null`/unknown (report-only)** rather
-than leaving a stale synced interval — and track a **per-day source flag** (synced vs
-hand-authored) so a hand-authored value is preserved but a stale synced one is cleared.
-Collapsing to an outer envelope stays REJECTED (11–14 + 17–23 → 11–23 fabricates the 14–17
-gap). Extending `WeeklyOpeningHours` to carry multiple intervals per day is the fuller fix
-and the sanctioned way to actually sync split-hours venues (optional follow-up)
+closure gap). CRITICAL: the day must NOT be written as `null` (nor left as a missing key) — the
+`WeeklyOpeningHours` contract makes BOTH mean **closed**, and Story 12.14 then HIDES that
+weekday, so a genuinely-open split venue would vanish all day (the opposite failure).
+The contract has NO per-day "unknown" today, so the story must pick a representation the
+public readers (the formatter AND the 12.14 filter) can tell apart from closed — either
+(a) land the multi-interval extension so split hours sync TRUTHFULLY (the real fix), or
+(b) add an explicit per-day "uncertain" sentinel that the formatter + filter treat as
+"show, no fabricated close" — and until one exists, a split day is **left to its existing
+hand-authored value with a per-day source flag (synced vs hand-authored) and REPORTED**,
+never overwritten to null and never left as a stale single synced interval presented as
+authoritative. Collapsing to an outer envelope stays REJECTED (11–14 + 17–23 → 11–23
+fabricates the 14–17 gap). The multi-interval extension is the sanctioned end state
 
 **Given** the Places API has quota and per-field-mask billing
 **When** the sync runs
@@ -3625,11 +3631,13 @@ false`, idempotent, RLS posture preserved)
 **Then** a hidden venue disappears for ALL users on EVERY public path — not just the
 list: `/api/venues` (map + list) omits it AND the slug detail `/api/venues/[slug]` /
 `getVenueBySlug` returns 404 for a hidden venue (so a stale link / cached UI / direct URL
-can't reach it), and dependent review, detail-prefetch, AND the **feedback POST**
-(`/api/venues/[slug]/feedback` — a public WRITE path that Story 12.7 moves to the live
-resolver) all reject a hidden venue too, so a stale open detail can't write feedback for an
-unreachable venue and pollute the accuracy loop; showing it again restores all paths —
-verified by route tests for list, by-slug, and the feedback POST
+can't reach it), and the **reviews route** (`/api/reviews` GET+POST — a public read/write
+path that resolves venue identity independently of detail), detail-prefetch, AND the
+**feedback POST** (`/api/venues/[slug]/feedback` — a public WRITE path that Story 12.7 moves
+to the live resolver) all reject a hidden venue too, so a stale open detail can't read or
+write reviews/feedback for an unreachable venue and pollute the accuracy loop; showing it
+again restores all paths — verified by route tests for list, by-slug, **the reviews GET+POST**,
+and the feedback POST
 
 **Given** the public reads are CACHED — `/api/venues` + `/api/venues/[slug]` send
 `Cache-Control: public, max-age=30, s-maxage=30` (CDN) and detail stays fresh in the client
@@ -3907,8 +3915,13 @@ a snap that promises N rows actually shows N un-clipped rows, not chrome eating 
 **Then** a downward drag that crosses a row boundary settles showing one FEWER row, and
 an upward drag settles showing one MORE row; a slow drag can walk the list open/closed a
 row at a time, and a fling honours velocity by snapping to the nearest row boundary in
-the flung direction. `rowHeight` is derived from the real compact venue-card height (one
-source of truth, not a magic number), so a row is never half-clipped at a resting snap
+the flung direction. `rowHeight` is derived from the **actual rendered row variant** (one
+source of truth, not a magic number) — NOTE the current sheet uses compact cards only in
+peek (`compactCards={mobileSheetState === 'peek'}`) and taller non-compact `VenueCard`s
+(extra metadata/tags) once expanded, so the row model must EITHER use compact cards
+consistently in the row-count sheet OR measure the real variant that renders at N rows;
+deriving from the compact height while rendering non-compact rows would under-size the snap
+and still clip. So a row is never half-clipped at a resting snap
 
 **Given** `N = 0` must be reachable by dragging the visible list, not just the handle
 **When** the user drags down on a venue ROW (or the handle) past the last row
@@ -3924,7 +3937,10 @@ area)
 that the list **scrolls internally** (the sheet doesn't grow further), and the tag
 chips / list controls that were gated on the discrete `'peek'` state are re-gated on the
 new row-count/height model (e.g. shown once `N ≥ 1`) so nothing depends on the removed
-snap enum
+snap enum — INCLUDING `computeRecenterPadding` (+ its tests), which today keys off
+`MobileBottomSheetState` and the hard-coded snap heights to keep the locate/recenter fly-to
+centered in the unobscured map; it must migrate to the row-count height or the user dot
+lands behind/away from the visible map center
 
 **Given** the mobile slider panel stacks 20px + 16px of top padding above a 6px track
 **When** `TimeSliderPanel.tsx:56` `pt-5`→`pt-3` and `TimeSlider.tsx:129` `min-h-12 pt-4`
@@ -4212,9 +4228,12 @@ updated in lock-step, per that file's own no-orphan-keys convention); (b) remove
 display-only `lib/utils/confidence-display.ts` (all five UI readers removed → delete it, as
 it is PRESENTATION not the internal model) and updates ALL its tests — both its direct unit
 spec `test/unit/confidence-display.test.ts` (delete/reframe it, else the unit suite goes red
-the moment the util is deleted) AND the `e2e/epic-10-weather-matrix.spec.ts:112-186`
-assertions that check the visible "Säkerhet …" text — so no orphaned util / dead prop / red
-test survives
+the moment the util is deleted) AND the confidence assertions across the suite — the
+`e2e/epic-10-weather-matrix.spec.ts:112-186` visible "Säkerhet …" checks, PLUS (since this
+story also removes `routeConfidenceLabel` + the RouteOverlay confidence prop)
+`test/e2e/visit-loop.spec.ts` (`/Säkerhet \d+%/`) and `test/components/RouteOverlay.test.tsx`
+(the confidence-row rendered/omitted assertions) — so no orphaned util / dead prop / red
+test survives anywhere in the suite
 
 **Given** confidence is still valuable internally
 **When** the display is removed
