@@ -3408,6 +3408,18 @@ old (fine — multi-day forecasts barely move); for **today**, R-012 near-now fr
 preserved and the **rain radar** (nowcast, next ~90 min) stays live/on-request. The job
 records per-run coverage (venues × days written) so a gap is visible
 
+**Given** extending the GEOMETRY horizon to `PLANNER_MAX_FUTURE_DAYS` is NOT enough on its
+own — the weather side truncates: `getForecast` keeps only `timeseries.slice(0, 48)`
+(`met-no-service.ts:93`, ~2 days) and `nearestForecastSlice` picks the closest RETAINED
+slice, so a day+3 selection would gate with the ~48h-out slice, not that day's forecast
+(silently breaking the "few hours old" claim)
+**When** the read-time gate serves any selectable planner date
+**Then** the retained/fetched Met.no window is extended to cover the SAME
+`today + PLANNER_MAX_FUTURE_DAYS` horizon as the geometry (raise the `slice(0, 48)` cap or
+fetch enough slices), OR gating for an instant outside the retained forecast horizon
+**explicitly degrades to unknown** (non-gating) rather than trusting a far-off slice —
+covered by a test at the day+3 boundary
+
 **Given** the per-step shadow math is CPU-bound
 **When** it is profiled at real-venue scale
 **Then** cheap wins are taken or explicitly rejected with numbers (memoize per-step sun
@@ -3902,26 +3914,34 @@ So that browsing venues feels immediate.
 
 **Given** detail is fetched on-click via `useVenueDetail` (`queryKeys.venues.detailAt`)
 and cold-computes server-side
-**When** the client PREFETCHES detail (TanStack `prefetchQuery`) in the background for
-venues within ~10 km of the user (or the centrum default when geolocation is off), after
-the list settles and on idle — capped/prioritized by distance so it stays cheap at
-50–100 venues — using the **EXACT `queryKeys.venues.detailAt` parameters that
-`useVenueDetail` will mount with on the click** (slug + the current planner date/time +
-the rounded user lat/lng), NOT a slug-only or mismatched-planner key
+**When** the client PREFETCHES detail (TanStack `prefetchQuery`) in the background for a
+bounded top-N of the venues **already returned by the list query** (after it settles, on
+idle), using the **EXACT `queryKeys.venues.detailAt` parameters that `useVenueDetail`
+will mount with on the click** (slug + the current planner date/time + the rounded user
+lat/lng), NOT a slug-only or mismatched-planner key
 **Then** tapping "mer info" for a prefetched venue **hits the client cache** (the prefetch
 key matches the mounted key exactly — a slug-only/wrong-location prefetch would warm the
 server but still refetch on open, defeating the story) and renders with no visible wait;
 a non-prefetched venue still works (falls back to the live fetch)
 
-**Given** each detail prefetch is a single-venue engine call, so prefetching every venue
-within ~10 km (especially from the centrum fallback, which covers most live venues) could
-fire 50–100 background `/api/venues/[slug]` requests right after the list settles
+**Given** each detail prefetch is a single-venue engine call, so an unbounded prefetch
+could fire 50–100 background `/api/venues/[slug]` requests right after the list settles
 **When** the prefetch runs
-**Then** it is BOUNDED, not just distance-prioritized — an explicit **total budget** (top-N
-nearest, not "all within 10 km") + a **concurrency cap** (a few in flight at once) + it
-**yields to interaction** (cancel/pause in-flight prefetches when the user acts, backoff on
-error) — so the prefetch never turns the cold-start cost into an idle burst that competes
-with the user's own actions
+**Then** it is BOUNDED — an explicit **total budget** (top-N nearest of the candidate set)
++ a **concurrency cap** (a few in flight at once) + it **yields to interaction**
+(cancel/pause in-flight prefetches when the user acts, backoff on error) — so the prefetch
+never turns the cold-start cost into an idle burst that competes with the user's actions
+
+**Given** the maintainer's stated goal was "preload venues within ~10 km" (future-proofing
+for more cities), but the current API can't return that set — the list requests
+`SEARCH_RADIUS_KM = 1.5` and `/api/venues` REJECTS radius `> MAX_RADIUS_KM = 3.0`, so there
+is no 10 km candidate list to prefetch from today
+**When** the data source is chosen
+**Then** the story picks explicitly: (a) INTERIM — scope the prefetch to the top-N of the
+already-returned (~1.5 km) list, which works now with zero new endpoints; or (b) to truly
+reach ~10 km, raise `MAX_RADIUS_KM` / add a lightweight discovery endpoint returning the
+wider candidate set. Do NOT write an AC that prefetches "within 10 km" against an API that
+400s above 3 km — name which option, and note (a) only covers the near set until (b) lands
 
 **Given** each prefetch also warms the server's `sunComputeCache`/`buildingsCache`
 **When** prefetch requests hit `/api/venues/[slug]`
@@ -4151,9 +4171,13 @@ fetch; the hours are already loaded, consistent with the scrub=0 invariant)
 **Given** past-midnight sessions (a venue open 18:00→02:00 is open at 01:00 as part of the
 PRIOR day's session)
 **When** the open/closed test runs
-**Then** it handles the past-midnight case correctly (consult the prior weekday's interval
-when `close < open`), reusing/extending the shared `opening-hours.ts` formatter's
-is-open logic — a venue genuinely open after midnight is NOT wrongly hidden
+**Then** it uses a NEW dedicated **`isVenueOpenAt(hours, instant)`** predicate — there is
+NO is-open helper today: `opening-hours.ts` only has `coerceInterval` + `formatOpeningHours`
+(which formats the current day's close, with NO `open ≤ t < close` / prior-day check — this
+IS the deferred is-open-now guard, never built). The helper checks the current weekday's
+interval AND, when `close < open`, the PRIOR weekday's interval (so a venue open 18:00→02:00
+shows at 01:00), with unit tests for both — reused everywhere the filter runs so before-open
+/ after-close and the 01:00 case are correct
 
 **Given** a venue with **unknown/absent** `opening_hours`
 **When** the filter runs
@@ -4162,12 +4186,20 @@ unknown-hours venues always show, matching the "never fabricate hours" posture
 
 **Given** filtering changes the visible set
 **When** venues are hidden
-**Then** the empty state and any "N platser" counts reflect the FILTERED set, this filter
-stacks (AND) with tag filtering and the Story-12.6 sunny/grey pin logic (only open venues
-get pins, then amber/grey applies), and the server truncation (`MAX_RESULTS`) must not let
-closed venues consume result slots that hide open ones (apply the open filter before/within
-the top-N cut, or account for it — an implementation note, since at 42 venues the cap isn't
-hit but it matters at 50–100)
+**Then** the empty state and any "N platser" counts reflect the FILTERED set, and this
+filter stacks (AND) with tag filtering and the Story-12.6 sunny/grey pin logic (only open
+venues get pins, then amber/grey applies)
+
+**Given** a client-side time filter and the server's `MAX_RESULTS = 50` truncation conflict
+once a city exceeds the cap: if the server returns the top-50 BEFORE the client hides
+closed venues, an open venue just outside the slice can never appear; if the server filters
+by the selected time FIRST, scrubbing is no longer purely client-side
+**When** the data set is a single city (~50–100 venues — small and bounded)
+**Then** the intended fix is stated: **return the FULL city candidate set** (raise/remove
+`MAX_RESULTS` for this small set) so the client holds every venue and can filter by the
+selected time locally without ever dropping an open one — preserving the zero-fetch scrub.
+(The top-N cap was written for a scale this MVP isn't at; a future multi-city scale would
+revisit it, e.g. viewport-bounded candidate sets)
 
 **Design Gate Criteria:**
 - **Visual:** Closed venues have no pin/list row at the selected time; the map declutters
