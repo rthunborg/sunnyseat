@@ -3194,10 +3194,14 @@ to each, and most review churn in this epic traced back to these five:**
    silently-red gate. Corollary: ONE selected-instant source drives both the 12.14 filter
    and any hours copy. *(Binds 12.10, 12.14, 12.3.)*
 5. **One "sunny" boundary.** ">50% of seating sunlit AND not weather-gated" lives in ONE
-   shared predicate consumed by: pin colour, card copy/emphasis, server rank AND the client
-   sort mirror (12.6), the feedback agreement mapping (12.2), and the About legend (12.8).
-   Decide the predicate's home once so the boundary can never drift per-surface.
-   *(Binds 12.6, 12.2, 12.8.)*
+   shared predicate consumed by: pin colour AND the pin presentation/aria resolver (incl.
+   the 35–50% low-`Partial` case), card copy/emphasis, server rank AND the client sort
+   mirror (12.6), the feedback agreement mapping (12.2), the About legend (12.8) — and the
+   **sun-window/peak labels**: `extractSunlitWindow` / `peakTimeFromTimeline` still use the
+   old ≥30% threshold and feed the "Sol HH:MM–HH:MM" line in card accessible names, so
+   either align them to the shared predicate or deliberately relabel them as "some sun" —
+   a grey venue must never announce an unqualified sunny window. Decide the predicate's
+   home once so the boundary can never drift per-surface. *(Binds 12.6, 12.2, 12.8.)*
 
 The 2026-07-07 load replaced the 7 fixture venues with 42 real Göteborg venues whose
 `opening_hours` were hand-collected — they will silently drift as venues change
@@ -3243,6 +3247,21 @@ per-weekday shape — ISO keys `"1"` (Mon) … `"7"` (Sun) mapped from Places
 with no period stored as `null` (closed), a past-midnight period collapsing to
 `close < open` on the OPENING weekday — and venues without a `place_id` are skipped,
 keeping their hand-authored hours untouched
+
+**Given** storing and re-serving Google Places content is bound by the **Places API
+policies** — as of this review: `place_id` is the explicit caching EXCEPTION (storable
+indefinitely), while other Places content (incl. opening hours) carries storage/refresh
+restrictions, attribution requirements, and display constraints on non-Google maps — and
+SunnySeat renders on **MapLibre**, not a Google map
+**When** the story is implemented (this is a GATING precondition, resolved FIRST)
+**Then** the CURRENT policy text is verified and the implementation made compliant —
+permitted retention window/refresh cadence, required Google attribution wherever synced
+hours render, and the non-Google-map display constraint explicitly resolved — OR, if
+compliant storage/display cannot be achieved for a MapLibre app, the story PIVOTS ITS
+SOURCE (venue-provided/manual hours stay canonical, or an alternative provider whose terms
+permit storage) rather than shipping a terms-violating weekly cache; the chosen compliance
+posture is recorded in the story file. (The `place_id`/`places_api_url` columns are safe
+either way — ids are the caching exception)
 
 **Given** Places can return MULTIPLE `periods[]` for one weekday (e.g. lunch 11–14 +
 dinner 17–23), but the Story 11.9 `WeeklyOpeningHours` / `coerceOpeningHours` contract
@@ -3443,7 +3462,10 @@ outputs stay value-identical to today's path, and the R-012 rule is preserved
 
 **Given** process-scoped caches die with every deployment and idle lambda recycle
 **When** the geometry series is **persisted across instances** in a Supabase table (via
-the existing service-role path) — so a cold `/api/venues` READS pre-computed geometry
+the existing service-role path) — created with the repo's standard posture: **RLS ENABLED +
+a service-role-only policy, NO anon/authenticated grants** (advisors clean, verified by a
+test), so the precomputed geometry can't be read or POISONED via public Supabase REST and
+then served to every cold list read — so a cold `/api/venues` READS pre-computed geometry
 instead of running 42×61 shadow projections
 **Then** a fully cold instance serves the central viewport in ≤ ~5 s p95 (persisted
 geometry + live gating), measured against prod; DECISION D's compute-on-request stance
@@ -3669,9 +3691,14 @@ the two Scope options — and under option (a) (`display_lat`/`display_lng` colu
 public discovery geometry reads the display coordinate**, not just the marker: the list
 route's radius filter, distance sort, and displayed distance all use `v.location` today
 (`route.ts:375-395`), so a corrected pin must also be included/excluded/ordered by its
-corrected position (only the weather/shadow ENGINE keeps the separate engine coordinate);
-option (b) (engine weather from the seating-polygon centroid, `lat`/`lng` becomes
-display-only) resolves this naturally. The marker + all discovery surfaces update; the sun
+corrected position — AND the ROUTING/handoff surfaces move with it: `getRouteSummary`, the
+Google/Apple directions URLs, and the detail distance fallback all read `venue.location`
+today, so "Visa Rutt"/open-in-maps must send users to the CORRECTED position (the point the
+maintainer deliberately dragged to), not the old engine coordinate. Cleanest shape: the
+public DTO's `location` BECOMES the display coordinate for every client surface, while the
+engine coordinate stays server-only (like `seating_area`); only the weather/shadow ENGINE
+keeps the separate engine coordinate. Option (b) (engine weather from the seating-polygon
+centroid, `lat`/`lng` becomes display-only) resolves all of this naturally. The marker + all discovery surfaces update; the sun
 prediction is provably unchanged (a route test asserts the engine's weather coordinate did
 not move)
 
@@ -3799,7 +3826,12 @@ requires flipping the i18n keys + tests, NOT just the visual + screenshots: `pin
 / `pinObscuredAria` still interpolate `{percent}` (both locales) and `VenuePinLayer.test.tsx`
 asserts the obscured aria contains the number (e.g. "88"), so the grey-pin variants are
 updated to a percent-free "inte soligt" contract and those pin-aria tests are flipped (else
-SR users still hear the old percentage)
+SR users still hear the old percentage). CRITICALLY, the presentation/aria RESOLVER keys on
+the shared **>50% predicate, not raw status**: a 35–50% venue keeps
+`currentSunStatus='Partial'`, and `VenuePin`/`VenuePinLayer` branch on STATUS today — so
+without this, a grey 40% venue would still get the sunny presentation + `pinPartialAria`
+with `{percent}`. The low-Partial case explicitly gets the grey percent-free contract,
+covered by a test at e.g. 40% Partial
 
 **Given** this changes the shipped pin treatment (supersedes Story 10.2's three-way
 pins at the PIN level only)
