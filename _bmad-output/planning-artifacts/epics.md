@@ -3230,7 +3230,13 @@ GitHub Action per `nextjs-app/docs/github-actions-scheduled-jobs.md` or a Vercel
 route; an on-demand maintainer trigger is an OPTIONAL extra, never the only vehicle —
 hours must refresh without anyone remembering to run it) fetches Place Details with a
 field mask restricted to `regularOpeningHours`, authenticated by a server-only Google
-Maps Platform API key (deployment env var; never `NEXT_PUBLIC_*`, never committed)
+Maps Platform API key (deployment env var; never `NEXT_PUBLIC_*`, never committed) —
+AND the sync TRIGGER itself is authenticated: if the vehicle is HTTP-triggered (a Vercel
+cron route, or an Action hitting an endpoint), the endpoint requires the existing
+`CRON_SECRET` pattern (`github-actions-scheduled-jobs.md:17-20`) with an
+unauthorized-request test + env-var docs updated — an unauthenticated public endpoint that
+burns Places quota and rewrites `opening_hours` is not acceptable; a pure-script vehicle
+(Action → Supabase directly, no HTTP endpoint) needs no route auth beyond the keys
 **Then** each fetched venue's `opening_hours` jsonb is rewritten in the Story 11.9
 per-weekday shape — ISO keys `"1"` (Mon) … `"7"` (Sun) mapped from Places
 `periods[]` (Places `day` is 0=Sunday…6=Saturday), `"HH:MM"` 24h times, a weekday
@@ -3644,9 +3650,12 @@ production ships no admin surface.
 
 **Given** the retired-admin decision (no prod admin surface, no admin auth)
 **When** the editor + its write route are built
-**Then** both are **dev/localhost-only and fail-closed**: the write route hard-refuses
-unless an explicit non-production gate is set (e.g. `NODE_ENV !== 'production'` AND/OR
-a `SUNNYSEAT_ADMIN=dev` env flag that is NEVER set in Vercel), the editor UI never
+**Then** both are **dev/localhost-only and fail-closed**, with an UNCONDITIONAL production
+hard-deny FIRST: `NODE_ENV === 'production'` → the write route rejects, **even if a dev
+flag is (mis)set in Vercel** — the `SUNNYSEAT_ADMIN=dev` env flag is an ADDITIONAL gate
+layered after the production check, never an alternative to it (no "AND/OR": a
+flag-misconfigured production request is covered by an explicit test asserting rejection),
+the editor UI never
 renders in the prod bundle (mirroring the `?_state=` / `use-forced-state.ts` dev-only
 convention), and a test proves a prod-config request to the route is rejected
 
@@ -3656,10 +3665,15 @@ convention), and a test proves a prod-config request to the route is rejected
 into the engine's `lat`/`lng` (which feeds forecast/nowcast weather gating, per the Scope
 note), via a service-role write route (mirroring the `feedback`/`reviews` POST pattern;
 client never touches Supabase directly — API boundary). The concrete mechanism is one of
-the two Scope options (a new `display_lat`/`display_lng` column that the marker + distance
-read, OR first switching the engine's weather location to the seating-polygon centroid so
-`lat`/`lng` becomes display-only). The marker + distance update; the sun prediction is
-provably unchanged (a route test asserts the engine's weather coordinate did not move)
+the two Scope options — and under option (a) (`display_lat`/`display_lng` column), **ALL
+public discovery geometry reads the display coordinate**, not just the marker: the list
+route's radius filter, distance sort, and displayed distance all use `v.location` today
+(`route.ts:375-395`), so a corrected pin must also be included/excluded/ordered by its
+corrected position (only the weather/shadow ENGINE keeps the separate engine coordinate);
+option (b) (engine weather from the seating-polygon centroid, `lat`/`lng` becomes
+display-only) resolves this naturally. The marker + all discovery surfaces update; the sun
+prediction is provably unchanged (a route test asserts the engine's weather coordinate did
+not move)
 
 **Given** the maintainer pastes a coordinate array into the polygon field
 **When** it is saved
@@ -3705,7 +3719,11 @@ round-trip entirely within the editor
 **Given** the inline field editors (tags / description / thumbnail-URL)
 **When** a field is saved
 **Then** it is written through the same validated dev-only route (tags coerced to a
-clean `text[]`, thumbnail as `{alt,initials,url}` jsonb with a URL — no file upload),
+clean `text[]`; thumbnail edits conform to **whatever thumbnail contract Story 12.12
+lands** — the single `{alt,initials,url}` shape today, but if 12.12 ships explicit
+`cardUrl`/`heroUrl` fields or a deterministic rendition-URL convention, the editor edits
+THAT shape (cross-story dependency; do not hard-code the single-URL contract and let a
+later editor save silently drop the card/hero renditions) — no file upload),
 and the public DTO reflects the change on next load
 
 **Given** `nextjs-app/docs/venue-data-load.md` documents venue authoring
@@ -3875,10 +3893,13 @@ So that I read the pins and the number correctly.
 **Given** the About page has no pin legend and never defines the pin number
 **When** a section **"Så läser du kartan"** is added (before ALGORITMEN) with two inline
 pin swatches (amber sun + grey cloud)
-**Then** it states in plain Swedish that an amber pin = direct sun now, a grey cloud pin =
-not sunny (shade OR clouds), and that the pin number is **the share of the seating area
-currently in sun** — "70% betyder att ~70% av sittytan är solig, inte att det är 70%
-chans att det är soligt"
+**Then** it states in plain Swedish that pins reflect the **selected time — "just nu" by
+default, or the planner's chosen date/time** (after the planner stories + 12.14, pin state
+and visibility follow the selected instant, so "amber = sun NOW" would be wrong for a user
+planning Saturday 18:00): an amber pin = direct sun at the selected time, a grey cloud pin
+= not sunny then (shade OR clouds), and the pin number is **the share of the seating area
+in sun at that time** — "70% betyder att ~70% av sittytan är solig vid vald tid, inte att
+det är 70% chans att det är soligt"
 
 **Given** confidence is no longer a user-facing number (Story 12.13)
 **When** a short **"Hur säkra är vi?"** paragraph is added (in/after TRÄFFSÄKERHET)
@@ -4299,6 +4320,19 @@ story reduces `routeConfidenceLabel` + the RouteOverlay row to uncertainty-only)
 `test/e2e/visit-loop.spec.ts` (`/Säkerhet \d+%/`) and `test/components/RouteOverlay.test.tsx`
 (flip the confidence-row assertions to the uncertainty-only contract) — so no orphaned util / dead prop / red
 test survives anywhere in the suite
+
+**Given** this document's own canonical Requirements Inventory still PROMISES user-facing
+confidence — FR2 ("…confidence score…", :49), FR7 ("…confidence percentage for any
+venue", :54), FR12 ("The system displays confidence scores…", :59), the FR Coverage Map
+rows (:205, :210), and the UX rows UX-DR5 / UX-DR11 / UX-DR23 (confidence in quick-info,
+tilde-on-stale, list cards; :170/:176/:188) — and future story generation / audits read
+those lines as authoritative, so left unchanged they could legitimately REINTRODUCE the
+deleted chip
+**When** 12.13 lands
+**Then** those FR/UX inventory + coverage-map lines are amended in the SAME change with an
+explicit supersession note ("superseded 2026-07-08 — confidence is computed internally but
+not displayed; Story 12.13"), so the forward-looking requirements match the shipped product;
+historical epic/story sections stay untouched (they are records of what was built)
 
 **Given** confidence is still valuable internally
 **When** the display is removed
