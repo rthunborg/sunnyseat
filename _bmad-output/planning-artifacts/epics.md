@@ -4486,8 +4486,13 @@ future multi-city scale would revisit it, e.g. viewport-bounded candidate sets)
 **Design Gate Criteria:**
 - **Visual:** Closed venues have no pin/list row at the selected time; the map declutters
   outside opening hours
-- **Behaviour:** Re-filters live on time-scrub + date-change (zero fetch); past-midnight
-  correct; unknown-hours venues always shown; stacks with tags + 12.6 pins
+- **Behaviour:** The open-at filter itself adds ZERO fetches — a time-scrub re-filters
+  entirely client-side (scrub stays 0 requests total), while a date-change KEEPS its
+  existing exactly-ONE list fetch (that fetch brings the new day's `sunDaySeries`; the
+  hours re-filter rides on the already-loaded data — do NOT make date-change zero-fetch,
+  that would leave the previous date's sun predictions stale while hours update); matches
+  the preamble scrub=0 / date-change=1 invariant; past-midnight correct; unknown-hours
+  venues always shown; stacks with tags + 12.6 pins
 - **Animation:** Pins entering/leaving on a time change use the existing pin fade — no jarring
   flash or layout jump when the set changes
 - **Visual validation:** Map + list at a time when some venues are closed vs a time when
