@@ -3128,23 +3128,95 @@ updates the 7-venue seed to the new shape (byte-compatible on the values the
 
 ---
 
-## Epic 12 (Backlog): "Hours You Can Trust" — Google Places Opening-Hours Sync
+## Epic 12 (Backlog): "Real-Venue Launch Readiness" — Perf, Trust, Hours & Console Hygiene
 
-**Status: backlog — not scheduled.** Created 2026-07-07 at maintainer request during
-the real-venue data load, as the future consumer of the `place_id` /
-`places_api_url` columns added by that load (live migration
-`venues_add_google_places_columns`). Activate via sprint-planning when prioritized.
-(Note: this is a NEW Epic 12 — the earlier single-story Epic 12 draft was dissolved
-into Story 11.9 on 2026-07-06 and no longer exists.)
+**Status: backlog — not scheduled.** Opened 2026-07-07 during the real-venue data
+load and grown 2026-07-08 as first production contact with the 42-venue set surfaced
+the work that stands between "data is live" and "ready to launch publicly". Activate
+via sprint-planning when prioritized. (Note: this is a NEW Epic 12 — the earlier
+single-story Epic 12 draft was dissolved into Story 11.9 on 2026-07-06 and no longer
+exists.)
+
+Recommended sequence (most-blocking first): **12.3** (cold-start perf freeze — the
+app is unusable cold at 42-venue scale) → **12.13 + 12.6** (drop the confidence number
+and simplify pins — they change what 12.2/12.8 need to say) → **12.7** (reviews-404) →
+**12.4** (console hygiene) → **12.2** (feedback-driven accuracy loop + retire the now-
+pointless `SUNNYSEAT_COVERAGE_CAP` flag — NO longer a display re-cap or a hard launch
+gate; see the reframed story) → **12.1** (Places hours-sync). Stories:
+- **12.1** — Google Places opening-hours sync, **weekly scheduled** (consumer of the
+  `place_id` / `places_api_url` columns; migration `venues_add_google_places_columns`).
+- **12.2** — *reframed:* feedback→accuracy loop (find & fix wrong sun-% venues) + remove
+  the coverage-cap bypass flag (the confidence NUMBER is gone after 12.13; the one
+  user-visible knock-on — the uncertainty labels driven by capped confidence — is handled
+  in-story).
+- **12.3** — day-series compute at real-venue scale (kill the cold-start freeze).
+- **12.4** — production console hygiene (React #418 hydration + MapLibre null warning).
+- **12.5** — dev/localhost-only venue editor (drag pin = display-only lat/lng, paste
+  polygon, persisted hide/show, inline tags/description/thumbnail-URL).
+- **12.6** — simplify map pins: one grey "not sunny" pin, no number, amber >50% sunlit.
+- **12.7** — reviews-404 fix (reviews route resolves live venues, not fixture-only).
+- **12.8** — About page: pin legend + "how the sun figure works / feedback loop" (NO
+  per-venue Säkerhet number — reframed for 12.13).
+- **12.9** — mobile bottom-sheet & time-slider polish (drag-gap, collapse, slim slider).
+- **12.10** — venue detail preload (instant "mer info" via ~10 km prefetch).
+- **12.11** — first-run coach-mark guide (map legend + feature tour, re-open from Settings).
+- **12.12** — venue photos: Supabase Storage hosting + render/fallback fixes.
+- **12.13** — remove the user-facing confidence indicator (keep confidence internal-only).
+- **12.14** — hide closed venues from map/list at the selected time (future planner time
+  when they're open re-shows them).
+
+**Epic 12 stays ONE epic (14 stories) — maintainer confirmed 2026-07-08.** It bundles
+launch-critical work (12.3 perf, 12.7 reviews-404, 12.2 verification) and UX polish; the
+maintainer explicitly wants it kept together, not split.
+
+**Cross-cutting decisions — resolve each ONCE at sprint planning; multiple stories bind
+to each, and most review churn in this epic traced back to these five:**
+
+1. **Opening-hours representation.** The per-weekday contract carries single intervals
+   only and has NO per-day "unknown" (missing key/`null` = closed; only the whole field
+   absent = unknown). Decide whether/when to land the multi-interval + per-day-unknown
+   extension as its own prerequisite story. Until it lands: 12.1 skips split-hours venues
+   wholesale; 12.14 shows field-absent venues and hides `null`/missing weekdays.
+   *(Binds 12.1 ↔ 12.14 + the shared formatter.)*
+2. **One "publicly visible venue" guard.** Hidden venues must be rejected by EVERY public
+   route — list, by-slug detail, reviews GET+POST, feedback POST, detail-prefetch — plus
+   CDN/client cache-busting on toggle. Implement as ONE shared resolver/guard (Story 12.7's
+   live id/slug resolver is the natural home), never per-route ad-hoc checks.
+   *(Binds 12.5, 12.7, 12.10, 12.14.)*
+3. **One geometry-inputs version/hash.** The persisted day-series key (12.3), the feedback
+   rows' prediction-time stamp (12.2), and edit/import invalidation (12.5, geodata imports)
+   all need the SAME "shadow inputs changed" signal — seating polygon + elevations + the
+   FULL caster set (geometries/ids + RH2000 z). Define the hash/version once; every
+   consumer reads it. *(Binds 12.3, 12.2, 12.5.)*
+4. **The Epic-11 request-count gates (scrub=0 / date-change=1) are a named invariant.**
+   Any story adding background traffic or client-side filtering either keeps them green
+   as-written or re-scopes the gate SPECS deliberately in the same change — never a
+   silently-red gate. Corollary: ONE selected-instant source drives both the 12.14 filter
+   and any hours copy. *(Binds 12.10, 12.14, 12.3.)*
+5. **One "sunny" boundary.** ">50% of seating sunlit AND not weather-gated" lives in ONE
+   shared predicate consumed by: pin colour AND the pin presentation/aria resolver (incl.
+   the 35–50% low-`Partial` case), card copy/emphasis, server rank AND the client sort
+   mirror (12.6), the feedback agreement mapping (12.2), the About legend (12.8) — and the
+   **sun-window/peak labels**: `extractSunlitWindow` / `peakTimeFromTimeline` still use the
+   old ≥30% threshold and feed the "Sol HH:MM–HH:MM" line in card accessible names, so
+   either align them to the shared predicate or deliberately relabel them as "some sun" —
+   a grey venue must never announce an unqualified sunny window. Decide the predicate's
+   home once so the boundary can never drift per-surface. *(Binds 12.6, 12.2, 12.8.)*
 
 The 2026-07-07 load replaced the 7 fixture venues with 42 real Göteborg venues whose
 `opening_hours` were hand-collected — they will silently drift as venues change
 their hours. The same load captured a Google Places **place ID** for every venue
 (41 in the source JSON; `cielo`'s backfilled the same day), which exposes the
-authoritative `regularOpeningHours` resource via the Places API v1. This epic replaces hand-maintained hours with a periodic sync from
+authoritative `regularOpeningHours` resource via the Places API v1. Story 12.1 replaces hand-maintained hours with a periodic sync from
 Places while keeping the Story 11.9 render-time derivation contract byte-compatible.
 
-### Story 12.1: Google Places Opening-Hours Sync (Replace Hand-Maintained Hours)
+### Story 12.1: Google Places Opening-Hours Sync (Weekly Scheduled — Replace Hand-Maintained Hours)
+
+> **Maintainer decision (2026-07-08):** this runs as a **weekly scheduled job**, NOT
+> a runtime lookup. The request path (`/api/venues`) makes **zero** Google Places
+> calls — it only ever reads the already-synced `venues.opening_hours` column, so the
+> sync never adds latency to a user request (it is orthogonal to the Story-12.3 cold
+> start; it only touches Places once a week, offline).
 
 As a **maintainer (and a user reading venue hours)**,
 I want `venues.opening_hours` refreshed automatically from each venue's Google
@@ -3157,11 +3229,18 @@ real, current hours instead of hand-collected values that drift.
 **Given** venues carry optional `place_id` / `places_api_url` (2026-07-07: all 42
 set; `brasserie-voyage` + `voyage-vasaplatsen` deliberately share one place because
 they are two seating areas of the same establishment)
-**When** a sync mechanism (the story/architect picks the vehicle — e.g. a scheduled
-GitHub Action per `nextjs-app/docs/github-actions-scheduled-jobs.md`, a Vercel cron
-route, or an on-demand maintainer script) fetches Place Details with a field mask
-restricted to `regularOpeningHours`, authenticated by a server-only Google Maps
-Platform API key (deployment env var; never `NEXT_PUBLIC_*`, never committed)
+**When** a **scheduled** sync (the PRIMARY deliverable — a weekly automatic job, e.g. a
+GitHub Action per `nextjs-app/docs/github-actions-scheduled-jobs.md` or a Vercel cron
+route; an on-demand maintainer trigger is an OPTIONAL extra, never the only vehicle —
+hours must refresh without anyone remembering to run it) fetches Place Details with a
+field mask restricted to `regularOpeningHours`, authenticated by a server-only Google
+Maps Platform API key (deployment env var; never `NEXT_PUBLIC_*`, never committed) —
+AND the sync TRIGGER itself is authenticated: if the vehicle is HTTP-triggered (a Vercel
+cron route, or an Action hitting an endpoint), the endpoint requires the existing
+`CRON_SECRET` pattern (`github-actions-scheduled-jobs.md:17-20`) with an
+unauthorized-request test + env-var docs updated — an unauthenticated public endpoint that
+burns Places quota and rewrites `opening_hours` is not acceptable; a pure-script vehicle
+(Action → Supabase directly, no HTTP endpoint) needs no route auth beyond the keys
 **Then** each fetched venue's `opening_hours` jsonb is rewritten in the Story 11.9
 per-weekday shape — ISO keys `"1"` (Mon) … `"7"` (Sun) mapped from Places
 `periods[]` (Places `day` is 0=Sunday…6=Saturday), `"HH:MM"` 24h times, a weekday
@@ -3169,21 +3248,55 @@ with no period stored as `null` (closed), a past-midnight period collapsing to
 `close < open` on the OPENING weekday — and venues without a `place_id` are skipped,
 keeping their hand-authored hours untouched
 
+**Given** storing and re-serving Google Places content is bound by the **Places API
+policies** — as of this review: `place_id` is the explicit caching EXCEPTION (storable
+indefinitely), while other Places content (incl. opening hours) carries storage/refresh
+restrictions, attribution requirements, and display constraints on non-Google maps — and
+SunnySeat renders on **MapLibre**, not a Google map
+**When** the story is implemented (this is a GATING precondition, resolved FIRST)
+**Then** the CURRENT policy text is verified and the implementation made compliant —
+permitted retention window/refresh cadence, required Google attribution wherever synced
+hours render, and the non-Google-map display constraint explicitly resolved — OR, if
+compliant storage/display cannot be achieved for a MapLibre app, the story PIVOTS ITS
+SOURCE (venue-provided/manual hours stay canonical, or an alternative provider whose terms
+permit storage) rather than shipping a terms-violating weekly cache; the chosen compliance
+posture is recorded in the story file. (The `place_id`/`places_api_url` columns are safe
+either way — ids are the caching exception)
+
+**Given** Places can return MULTIPLE `periods[]` for one weekday (e.g. lunch 11–14 +
+dinner 17–23), but the Story 11.9 `WeeklyOpeningHours` / `coerceOpeningHours` contract
+accepts only ONE `{ open, close }` per weekday key
+**When** a weekday has split periods
+**Then** 12.1 makes **NO contract change** — split-hours venues are simply **OUT OF SCOPE
+for auto-sync**. A venue with ANY split weekday is **SKIPPED WHOLESALE** for the sync and
+REPORTED for manual handling (kept on its existing hand-authored hours), never written as
+`null`/missing (both = closed in the contract → Story 12.14 would then HIDE a genuinely-open
+venue all day) and never collapsed to an outer envelope (11–14 + 17–23 → 11–23 fabricates the
+14–17 gap). To avoid a venue that was previously synced CLEANLY later going stale when a day
+splits, the sync tracks per-venue sync provenance and FLAGS such a venue for manual review
+rather than trusting the old single interval. Truthfully auto-syncing split venues REQUIRES
+the multi-interval `WeeklyOpeningHours` extension — a real DTO/formatter/filter **contract
+change that is a SEPARATE prerequisite story, explicitly NOT part of 12.1** (which is exactly
+why 12.1 can claim "no contract change" below)
+
 **Given** the Places API has quota and per-field-mask billing
 **When** the sync runs
 **Then** it requests ONLY the opening-hours field (field mask keeps the billed SKU
-minimal), runs at a low cadence (hours change rarely — weekly-order, not per-request),
-handles per-venue fetch failures without aborting the batch (the venue keeps its
-last-known hours; never a partial or fabricated write), validates every write
-against the same weekday/`HH:MM` contract the store's `coerceOpeningHours` enforces,
-and produces a per-venue outcome summary the maintainer can inspect
+minimal), runs on a **weekly** schedule (a cron/GitHub Action — hours change rarely;
+NEVER on the user request path), handles per-venue fetch failures without aborting
+the batch (the venue keeps its last-known hours; never a partial or fabricated write),
+validates every write against the same weekday/`HH:MM` contract the store's
+`coerceOpeningHours` enforces, and produces a per-venue outcome summary the maintainer
+can inspect (42 venues × 1 field, once a week ≈ negligible quota)
 
 **Given** the app derives the ÖPPET badge + "Öppet till HH:MM" line at render time
 from `venues.opening_hours` (Story 11.9) and never stores display strings
 **When** the sync lands
 **Then** there is NO DTO, formatter, or UI change: the per-weekday contract (missing
-key/`null` = closed; `close < open` = past-midnight) is unchanged, and Places
-`specialHours` / holiday exceptions are explicitly OUT of scope (documented in the
+key/`null` = closed; `close < open` = past-midnight) is unchanged — this holds precisely
+BECAUSE split-hours venues are skipped wholesale (above), not represented via a new sentinel
+or multi-interval shape (that contract-changing extension is a separate prerequisite story);
+and Places `specialHours` / holiday exceptions are explicitly OUT of scope (documented in the
 story file; weekly `regularOpeningHours` remain the only synced source)
 
 **Given** `nextjs-app/docs/venue-data-load.md` is the canonical venue-authoring guide
@@ -3201,63 +3314,1192 @@ fallback/override for venues without one), including how to run and inspect the 
 - **Visual validation:** Screenshot comparison of venue detail + quick-info against
   the current baseline passes — a data-only story must not move pixels
 
-### Story 12.2: Coverage Validation Verdicts — Wire the Artifact, Re-cap Honestly, Cloud-After-Cap
+### Story 12.2: Feedback-Driven Accuracy Loop + Retire the Coverage-Cap Bypass
 
-_Context (2026-07-08, pre-launch verification phase):_ the app has no public users
-yet, and the maintainer is field-verifying predictions by walking the 42 live
-venues. To make the RAW engine confidence observable during that phase,
-`SUNNYSEAT_COVERAGE_CAP=off` was added (env-gated bypass inside
-`applyShadowDataCoverageCap`, `nextjs-app/lib/solar/shadow-data-coverage.ts` —
-fail-closed: any other value keeps the clamp) and set in Vercel Production. Ground
-truth accumulates in the live `feedback` table (`predicted_state`, `sun_accuracy`,
-`confidence_at_prediction`, `note`, timestamp) via the in-app accuracy widget.
-This story closes the loop and is a **LAUNCH GATE**: the app does not launch
-publicly with the bypass still set.
+_Context (2026-07-08, REFRAMED after the Story-12.13 decision to remove the
+user-facing confidence indicator):_ this story was originally "verify predictions →
+show earned high confidence to users, then re-enable the cap." **Story 12.13 removes
+the confidence number from the user UI entirely**, which changes 12.2's premise:
+there is no longer a displayed confidence NUMBER to gate, so the "re-cap for display"
+goal is moot — with ONE user-facing exception this story owns: numeric confidence still
+drives the public uncertainty LABELS ("Låg osäkerhet"/"Osäker prognos") via
+`buildPredictionUncertainty`, so cap changes CAN move user-visible copy (handled by a
+dedicated AC below — do not read this story as purely internal). What REMAINS valuable is the field-verification itself — the
+maintainer walking the venues and the live `feedback` table (`predicted_state`,
+`sun_accuracy`, `note`, timestamp) — but repurposed toward its real payoff: **finding
+and fixing wrong sun-% predictions**, and cleaning up the temporary flag. This is no
+longer a hard launch gate (nothing user-facing depends on it), but it's the mechanism
+that makes the sun figure trustworthy over time.
 
-As a **maintainer preparing public launch**,
-I want per-cluster verification verdicts computed from the walking-phase evidence,
-wired into the engine, and the coverage cap re-enabled,
-So that launch-day confidence figures are simultaneously honest and evidence-backed.
+As a **maintainer improving prediction accuracy**,
+I want the walk/feedback evidence aggregated into per-venue/per-area accuracy so I can
+find and fix the venues whose sun figure is wrong, and I want the now-pointless cap
+bypass removed,
+So that the sun percentage users see keeps getting more correct, and there's no dead
+verification-era flag lying around.
 
 **Acceptance Criteria:**
 
-**Given** accumulated walking-phase evidence (live `feedback` rows and/or manual
-spot-check notes with photos)
-**When** per-cluster agreement is computed against the Story 3.0.5 eligibility bar
-(≥10 checks, ≥85% agreement between `predicted_state` and observed `sun_accuracy`,
-checks spread across conditions, evidence files recorded)
-**Then** a validation artifact is produced in the `buildCoverageMapFromValidationArtifact`
-shape (`scope: full_launch_clusters`, `status: pass`, ALL 8 clusters each carrying
-status/checkedCount/agreementRate/missingConditions/evidenceFiles) with per-cluster
-verdicts: verified → `eligible` (cap lifts to 100), systematic disagreement →
-`blocked` (55), thin evidence → `insufficient_evidence` (65)
+**Given** the accuracy loop needs live `feedback` rows for the 42 real venues, but the
+`/api/venues/[slug]/feedback` POST route resolves the path slug against `VENUE_FIXTURE`
+(the SAME fixture-only bug as reviews — it imports `VENUE_FIXTURE`, no `getVenueBySlug`)
+**When** this story is scheduled
+**Then** it DEPENDS ON the Story-12.7 live id/slug resolver being applied to the feedback
+POST route too (otherwise real-venue feedback 404s and the aggregation has zero evidence)
+— this dependency is called out explicitly so 12.2 is not started before feedback can be
+submitted for live venues
 
-**Given** the adapter `buildCoverageMapFromValidationArtifact` exists but nothing
-feeds it
-**When** the artifact is wired in (loaded server-side and passed as the
-`coverageMap` into the engine's coverage resolution)
-**Then** eligible clusters display uncapped confidence, non-eligible clusters keep
-their status caps, and a malformed/partial artifact fails closed to the all-unknown
-conservative map (existing behavior, now regression-tested end-to-end)
+**Given** the live `feedback` table accumulates `predicted_state` vs observed
+`sun_accuracy` (+ `note`) per venue, but the two use DIFFERENT vocabularies
+(`predicted_state` ∈ Sunny/Partial/Shaded/NoSun/CloudObscured vs `sun_accuracy` ∈
+sunny/not_sunny/unsure), and Story 12.6 moves "sunny" to the >50%-sunlit &
+not-weather-gated boundary
+**When** the aggregation (a SQL view / script) computes per-venue and per-area
+**agreement rate**
+**Then** it uses an EXPLICIT mapping, not a raw string compare: a prediction counts as
+"sunny" iff it matches the 12.6 rule (>50% sunlit AND not gated — i.e. the amber-pin
+condition, NOT "any Partial"), compared against `sun_accuracy` sunny/not_sunny; `unsure`
+feedback is handled by a stated policy (excluded from the rate, or reported separately) —
+so 35–50% and Partial/cloudy cases don't silently skew the ranked list
 
-**Given** the Epic-10 maintainer follow-up #3 (FR12 "confidence drops with cloud"
-is invisible while the cap clips everything to 60)
-**When** any cluster can display above 60
-**Then** the cloud factor applies AFTER the coverage cap (multiplicative — it can
-only lower the displayed value, never raise it), so cloud cover visibly moves
-confidence without overclaiming
+**Given** that >50% mapping is NOT recoverable from what feedback stores today — the
+contract persists only `predicted_state` (Sunny/Partial/…) + `sun_accuracy` + `confidence`
+(`api.ts:255-264`, `venue-feedback-persistence.ts:72-88`), so a `Partial` row can't be told
+apart as a 40% grey verdict vs a 60% amber verdict (and 12.6 keeps the `predicted_state`
+vocabulary)
+**When** feedback is submitted (this touches the same POST flow as Story 12.7)
+**Then** the feedback contract also persists the **sun-exposure percent + the amber/grey
+verdict + the weather-gated flag at prediction time** (plus, per the reset AC, the
+geometry-input hash), so the agreement rate can actually apply the >50% mapping — otherwise
+this rate is uncomputable from stored data
 
-**Given** the temporary `SUNNYSEAT_COVERAGE_CAP=off` bypass in Vercel Production
+**Then** the maintainer gets a ranked "these venues look wrong" list to drive corrective
+data edits (seating polygon, `seating_elevation_m` / `ground_elevation_m`, or individual
+`shadow_casters` heights — via direct DB edits / the Story-12.5 dev tool)
+
+**Given** the aggregation accumulates ALL historical feedback for a venue, but a data fix
+changes the model
+**When** a venue's geometry inputs are corrected
+**Then** the loop measures the CORRECTED model separately so old pre-fix mismatch rows
+don't keep it ranked wrong forever — via a post-edit window / per-venue reset-acknowledge,
+or (cleanest, and it reuses the Story-12.3 geometry-input hash) **stamp each `feedback` row
+with the geometry-input hash at prediction time** so agreement can be computed over only
+the rows matching the CURRENT hash. So "re-checking a fixed venue shows improved agreement"
+is actually achievable (new checks aren't drowned by stale ones)
+
+**Given** confidence is no longer shown to users (Story 12.13), so
+`SUNNYSEAT_COVERAGE_CAP` clamps a value nobody sees
+**When** the flag is retired
+**Then** the `SUNNYSEAT_COVERAGE_CAP` env var is REMOVED from Vercel and the env-gated
+bypass code (+ its test) is deleted from `shadow-data-coverage.ts`; the internal
+confidence model and the coverage cap MAY stay as an internal signal (for logs / the
+accuracy loop) or be simplified — the story decides
+
+**Given** the cap is NOT purely internal even after the confidence chip is gone: numeric
+confidence feeds `uncertaintyLevelFromConfidence` (`sun-engine.ts:1122`, `<50 high / <75
+medium`) which renders the user-visible "Låg osäkerhet / Osäker prognos" labels — so
+changing/removing the cap moves confidence (e.g. 90 vs a capped 60) and can flip that copy
+**When** the cap is removed/simplified
+**Then** this user-visible knock-on is handled deliberately — DECOUPLE the uncertainty tier
+from the capped value (base it on the honesty signals directly), OR intentionally
+re-baseline the uncertainty copy + its tests — so "no user-facing change" is actually TRUE
+(the uncertainty labels don't silently shift)
+
+**Given** the internal confidence / coverage machinery might still inform the accuracy
+loop
+**When** the cleanup lands
+**Then** any remaining internal use of confidence is documented (what reads it and why),
+so a future maintainer knows it is internal-only by design — not a dropped feature
+
+_(Mostly backend/ops + a data-analysis deliverable — with ONE user-facing carve-out: if
+retiring/simplifying the cap shifts the uncertainty LABELS (per the AC above), that copy
+change IS user-visible and gets the normal copy/test/visual-validation treatment; only the
+rest of the story is design-gate-free. The FR12 "confidence drops with cloud" concern
+is retired: weather truth is carried by the grey pin, not a number.)_
+
+### Story 12.3: Day-Series Compute at Real-Venue Scale — Kill the Cold-Start Freeze
+
+_Context (2026-07-08):_ first production contact of the Epic-11 day-series with the
+42-venue real set froze the app: a cold `/api/venues` computes 42 venues × 61 steps
+of CPU-bound shadow math (turf boolean ops per step) and takes **minutes** to first
+byte (observed: client timeout at 120 s; the map shows "Laddar platser…" forever).
+Three compounding causes, all in `lib/services/sun-engine-cache.ts` +
+`sun-engine.ts` (`computeVenueDaySeries`): (1) the caches are **process-scoped**
+maps — they die on every deploy AND every idle-recycled lambda, and at
+zero-traffic/pre-launch scale nearly every visit hits a cold instance; (2) the
+day-series cache key folds in the **15-min weather bucket**, so the whole
+deterministic-per-day geometry series recomputes 4×/hour even on a warm instance;
+(3) the design envelope was written for the fixture era — the cache module's own
+comment says "acceptable at MVP scale (≤10K MAU, **7 venues**)" — and the real set
+is 6× that. `SUN_ENGINE_LIST_CONCURRENCY=6` only helps I/O; the shadow math shares
+one lambda vCPU. Verification-phase stopgap in use: an external quarter-hour
+cache-warmer ping (local, uncommitted — retire it here).
+
+As a **user opening SunnySeat (and the maintainer field-verifying it)**,
+I want `/api/venues` to answer in seconds even on a cold instance or a fresh
+weather bucket,
+So that the app is usable at real-venue scale before (and after) launch.
+
+**Acceptance Criteria:**
+
+**Given** the day series marries deterministic per-day shadow GEOMETRY (valid all
+day) with 15-min weather GATING in one cached artifact keyed on the weather bucket
+**When** the two are split — a geometry series keyed `(venue, Stockholm day,
+elevation inputs, AND a hash/version of the geometry inputs)` computed once per day, and
+a cheap per-bucket gating pass (weather fetches are already deduped/batched) applied on
+read. The key MUST hash the FULL shadow-projection input — not only the `seating_area`
+polygon + the named `shadow_casters` `height`/`filter_decision`, but the actual
+`get_buildings_near_point` **caster SET**: building geometries/ids AND the RH2000
+ground/roof z-values. A correction to a building footprint, an import batch, or a caster
+z-value (with no change to `seating_area` or the named fields) MUST still invalidate the
+persisted day-series — via a caster-set version/hash OR an explicit invalidation path fired
+on any building/caster import — because Stories 12.2/12.5 (and geodata re-imports) edit
+exactly these to fix bad predictions; otherwise a corrected venue keeps serving pre-fix
+geometry
+**Then** a weather-bucket roll re-gates in O(steps) without re-running shadow math,
+outputs stay value-identical to today's path, and the R-012 rule is preserved
+(gating always uses the CURRENT bucket's weather — never a stale-gated series)
+
+**Given** process-scoped caches die with every deployment and idle lambda recycle
+**When** the geometry series is **persisted across instances** in a Supabase table (via
+the existing service-role path) — created with the repo's standard posture: **RLS ENABLED +
+a service-role-only policy, NO anon/authenticated grants** (advisors clean, verified by a
+test), so the precomputed geometry can't be read or POISONED via public Supabase REST and
+then served to every cold list read — so a cold `/api/venues` READS pre-computed geometry
+instead of running 42×61 shadow projections
+**Then** a fully cold instance serves the central viewport in ≤ ~5 s p95 (persisted
+geometry + live gating), measured against prod; DECISION D's compute-on-request stance
+is explicitly revised to precompute-and-persist at real-venue scale
+
+**Given** the maintainer wants caches that are **never empty after the first load**, and
+that future dates need not be minute-fresh (MAINTAINER DECISION 2026-07-08)
+**When** a **scheduled job** (a GitHub Action → Supabase, NOT a short Vercel cron —
+the batch exceeds a serverless timeout) precomputes+persists the **ungated GEOMETRY
+series** (per the split above — NOT a weather-gated series) for ALL venues across the
+**entire selectable planner window — `today + PLANNER_MAX_FUTURE_DAYS`**
+(`time-planner.ts`, currently 3), NOT an arbitrary N: the precompute horizon MUST equal
+the dates the planner lets a user pick (a shared constant, tested), or an uncovered future
+date falls back to the exact cold shadow-compute freeze this story exists to kill;
+refreshed at TIERED cadences (future days a few
+times/day — deterministic geometry, so this is really just keeping the store populated;
+today refreshed alongside the geometry that rarely changes)
+**Then** picking any date reads the persisted GEOMETRY (≈instant, never a cold
+shadow-compute) and the **gating is still applied at read** with that request's weather
+(consistent with the split AC — no gated series is ever persisted, so no stale-gating
+contradiction). For a FUTURE day the read-time gate may use a forecast up to a few hours
+old (fine — multi-day forecasts barely move); for **today**, R-012 near-now freshness is
+preserved and the **rain radar** (nowcast, next ~90 min) stays live/on-request. The job
+records per-run coverage (venues × days written) so a gap is visible
+
+**Given** extending the GEOMETRY horizon to `PLANNER_MAX_FUTURE_DAYS` is NOT enough on its
+own — the weather side truncates: `getForecast` keeps only `timeseries.slice(0, 48)`
+(`met-no-service.ts:93`, ~2 days) and `nearestForecastSlice` picks the closest RETAINED
+slice, so a day+3 selection would gate with the ~48h-out slice, not that day's forecast
+(silently breaking the "few hours old" claim)
+**When** the read-time gate serves any selectable planner date
+**Then** the retained/fetched Met.no window is extended to cover the SAME
+`today + PLANNER_MAX_FUTURE_DAYS` horizon as the geometry (raise the `slice(0, 48)` cap or
+fetch enough slices), OR gating for an instant outside the retained forecast horizon
+**explicitly degrades to unknown** (non-gating) rather than trusting a far-off slice —
+covered by a test at the day+3 boundary
+
+**Given** the planner window ROLLS at Stockholm midnight — if the last scheduled run was
+before midnight, at 00:00 the selectable window gains a new `+PLANNER_MAX_FUTURE_DAYS` day
+the job hasn't persisted yet, re-opening the cold-fallback hole this story closes
+**When** the schedule is defined
+**Then** coverage is CONTINUOUS across the midnight roll — either an **immediate
+post-midnight run** (Stockholm) or a **one-day lookahead buffer** (precompute
+`today + PLANNER_MAX_FUTURE_DAYS + 1`) — so the newly-selectable date is always already
+persisted, never cold
+
+**Given** the per-step shadow math is CPU-bound
+**When** it is profiled at real-venue scale
+**Then** cheap wins are taken or explicitly rejected with numbers (memoize per-step sun
+positions across venues; early-exit fully-shaded / below-horizon steps) — this also
+bounds the scheduled precompute's cost — and before/after cold + bucket-roll + precompute
+timings are recorded
+
+> **Cost note (maintainer question 2026-07-08):** the precompute is cheap on the axes
+> you'd worry about and expensive only on one. Weather API: Met.no `locationforecast`
+> returns a MULTI-DAY forecast in ONE call per location, and co-located venues dedupe by
+> 4-decimal coords, so "all future days for all venues" is ~one call per distinct
+> location per refresh — a few times/day is far under Met.no's ~20 req/s TOS (near-zero
+> cost). Storage: N days × ~100 venues × 61 tiny JSON steps = kilobytes (negligible).
+> The real cost is **offline CPU time**: N days × venues × 61 shadow projections per
+> refresh — which is exactly why it runs on a GitHub Action (no serverless timeout) on a
+> schedule, off the user request path, so users never pay it. Net: many fewer moving
+> parts than it sounds, and no per-user API cost.
+
+**Given** the external quarter-hour warmer is an uncommitted verification stopgap
 **When** this story ships
-**Then** the env var is REMOVED from Vercel (verified: prod confidence is capped
-per cluster verdict again), and a regression test pins the default path (flag
-unset → capped) so the bypass can never silently become the launch posture
+**Then** the warmer is retired and no external keep-alive is required for normal
+latency
 
 **Design Gate Criteria:**
-- **Visual:** Confidence chip/labels keep their existing visual treatment — only
-  the values change (eligible clusters may now read above 60)
-- **Behaviour:** Capped vs uncapped is driven solely by the per-cluster verdict;
-  cloud cover lowers displayed confidence on eligible clusters
-- **Animation:** None (no UI surface change)
-- **Visual validation:** Screenshot comparison of venue card/quick-info/detail
-  against the current baseline passes — value-only changes must not move layout
+- **Visual:** None — latency/values only; no UI change
+- **Behaviour:** Time scrub stays zero-fetch (Epic 11 request-count gates scrub=0 /
+  date-change=1 remain green)
+- **Animation:** None
+- **Visual validation:** Not applicable (no pixel change); the Epic-11 CI gates
+  stand in as the regression net
+
+### Story 12.4: Production Console Hygiene — Hydration Error + MapLibre Null Warning
+
+_Context (2026-07-08, first real-venue prod session):_ the live app's console shows
+two app-originated errors (separate from the extension noise —
+`contentscript.js`/MaxListeners/ObjectMultiplex are the user's browser extensions,
+NOT ours, and are out of scope). Both are non-blocking (the map + venues render),
+but an error-free console is the baseline for trusting the prod session and for a
+console-error CI guard.
+
+1. **`Uncaught Error: Minified React error #418`** (hydration text mismatch —
+   server-rendered HTML ≠ first client render). Almost certainly a wall-clock/`new
+   Date()`-derived value rendered during SSR that differs by the time the client
+   hydrates: candidates carry `new Date()`/`toLocale`/`Intl` in render —
+   `components/custom/time/TimeSliderPanel.tsx`,
+   `components/composed/venue/VenueDetailContent.tsx`, `components/custom/map/MapView.tsx`
+   (`quickInfoOpeningHours` derives "Öppet till HH:MM" from `new Date()`). This is the
+   same class as the pre-existing `TimeProvider` initial-`new Date()` hydration note.
+   (NOT `TimeSlider.tsx` — it documents "never reads `new Date()`", `TimeSlider.tsx:26`,
+   so it is the deliberately-clean controlled child, not a suspect.)
+2. **`Expected value to be of type number, but found null` ×3** (MapLibre style
+   validation). PRIME SUSPECT IS APP-ORIGIN: `MapView.tsx:723-729` documents this EXACT
+   warning text — `mapInstance.project([null, null])` when a selected venue carries
+   null/non-finite coordinates (the `?venue=` deep-link selects without a location check),
+   firing once on the effect run + again on every move/zoom, matching the observed ×3.
+   Story 9.10 added a guard for precisely this, so a live recurrence means the guard
+   REGRESSED or another projection/easeTo path is unguarded. Secondary hypothesis only:
+   the upstream positron style (the app authors no numeric style expression — pins are DOM
+   `maplibregl.Marker`s, the recolour sets only color strings). Cosmetic (map renders),
+   but noisy.
+
+As a **maintainer verifying the live app**,
+I want the production console free of app-originated errors,
+So that a genuine runtime error is never buried and the prod session is trustworthy.
+
+**Acceptance Criteria:**
+
+**Given** React error #418 (hydration mismatch) fires on load of the live map
+**When** the mismatching node is found (reproduce with a NON-minified/dev build to
+get the readable message + component stack, then fix the root cause — render the
+time-derived value only after mount, or seed server + client from one stable value,
+NOT by blanket `suppressHydrationWarning`)
+**Then** a cold load of `/` (map) and a venue detail produce ZERO React hydration
+errors in the console, and the fix names the offending component + value in the
+story record
+
+**Given** the MapLibre `Expected value to be of type number, but found null` warning
+fires ×3 — and the repo DOCUMENTS this exact warning as app-origin
+(`mapInstance.project([null, null])` on a null-coordinate selected venue,
+`MapView.tsx:723-729`, guarded by Story 9.10)
+**When** the source is identified — inspecting the APP paths FIRST: has the 9.10 guard
+regressed, is another selected-venue projection/`easeTo`/anchor path unguarded, and does a
+live venue row actually carry null/non-finite coordinates (that would be a DATA bug worth
+fixing at the source too)? Only if the warning still reproduces with verified-finite
+coordinates and no app projection in the stack may it be attributed to the upstream
+positron style (diff the style before/after our `setPaintProperty` pass to confirm)
+**Then** it is resolved by the lever matching its PROVEN source: fix/guard the app
+projection path (and any null-coordinate data), or — only with the upstream attribution
+evidenced — fork/patch the style layer or document it as the explicitly-named third-party
+allow-list entry per AC3. Never allow-list first and investigate later (that would bless
+our own bug as third-party noise)
+
+**Given** there is currently NO automated console-error guard (grep of `test/e2e`
+finds no `console`/`pageerror` listener)
+**When** the two errors are fixed
+**Then** a Playwright spec (via `page.on('console')` + `pageerror`) asserts a cold map
+load and a venue-detail open emit no app-origin console messages at level **error OR
+warning** — catching the MapLibre "Expected value…" message even if it surfaces as a
+`console.warn` (not only `console.error`), UNLESS Story-12.4 AC2 has confirmed it is an
+upstream positron-style warning, in which case it is an EXPLICITLY-documented third-party
+allow-list entry (a named, justified exception — never a silent blanket skip), plus React
+`pageerror`s; an allowlist may exclude known third-party/extension noise, but NOT React or
+our-own-code MapLibre app-origin
+errors/warnings — so a future regression re-breaks the build
+
+**Design Gate Criteria:**
+- **Visual:** None — console/correctness only; the map + venues render identically
+- **Behaviour:** No hydration-driven remount/flicker on first paint; time-derived
+  labels ("Öppet till HH:MM") still render correctly for the current Stockholm weekday
+- **Animation:** None
+- **Visual validation:** Screenshot comparison of the map + venue detail against the
+  current baseline passes — a console-only fix must not move pixels
+
+### Story 12.5: Dev-Only Venue Editor — Drag Pin, Paste Polygon, Persisted Hide/Show, Inline Fields
+
+_Context (2026-07-08, maintainer request):_ venue data edits are done today by
+direct DB queries (the 2026-05-30 decision retired the in-app admin surface —
+FR36/39/43/44). That stays true for USERS; this story adds a **dev/localhost-only**
+convenience layer on the SAME map so the maintainer can fix a venue's display
+position and a few fields visually instead of hand-writing SQL. It does NOT
+reintroduce a production admin surface or admin auth — it is gated off entirely in
+the prod bundle/runtime and is fail-closed. It pairs with the field-verification
+walk (Story 12.2 evidence gathering): spot a mis-placed pin on-site, fix it locally
+later.
+
+**Scope (maintainer-narrowed 2026-07-08):**
+- **Pin drag → display coordinate, DISPLAY ONLY.** Dragging the pin updates the venue
+  point used for the marker + "distance from centrum" ONLY. The shadow GEOMETRY is
+  polygon-first (`resolveVenueGeometry` → `seating_area`; all 42 live venues have a
+  polygon), so the drag never moves the shadow calc. **BUT the engine still reads
+  `venue.location` for the per-venue WEATHER (forecast + nowcast) gating**
+  (`sun-engine.ts:522/546/712/724`), so writing a dragged point into `lat`/`lng` WOULD
+  shift the cloud/rain gate and could flip the predicted state. Therefore the drag must
+  NOT feed the engine's weather coordinate: either (a) persist the dragged point in a
+  SEPARATE display-only column (leave `lat`/`lng` as the engine coordinate), or (b) make
+  the engine derive its weather location from the seating-polygon centroid so `lat`/`lng`
+  is truly display-only first. Pick one in the story — do not assume "polygon-first" alone
+  makes the drag safe. (Caveat: a `null`-`seating_area` venue uses the point as the shadow
+  footprint too — none today.)
+- **`seating_area` editing = paste a coordinate array only.** No interactive polygon
+  drawing. A textarea takes a `[[lng,lat],…]` ring (or full GeoJSON Polygon);
+  server-side validation reuses the seed-load rules (Polygon, closed ring, ≥4
+  positions, `[lng,lat]` in Gothenburg bounds) and rejects with a clear message.
+- **Hide/show = PERSISTED for all users.** A new `hidden boolean not null default
+  false` column; the `/api/venues` list route filters `hidden = false` so a hidden
+  venue disappears from the public map/list; the dev editor toggles it.
+- **Inline edits:** `tags` (text[]), `description`, `thumbnail` (jsonb — URL paste,
+  NOT image upload; upload/hosting is explicitly out of scope).
+
+As a **maintainer**,
+I want a localhost-only editing layer on the real map to reposition a pin, replace a
+polygon by pasting coordinates, hide/show venues for everyone, and edit tags/
+description/thumbnail-URL,
+So that routine venue fixes are visual and fast without hand-writing SQL — while
+production ships no admin surface.
+
+**Acceptance Criteria:**
+
+**Given** the retired-admin decision (no prod admin surface, no admin auth)
+**When** the editor + its write route are built
+**Then** both are **dev/localhost-only and fail-closed**, with an UNCONDITIONAL production
+hard-deny FIRST: `NODE_ENV === 'production'` → the write route rejects, **even if a dev
+flag is (mis)set in Vercel** — the `SUNNYSEAT_ADMIN=dev` env flag is an ADDITIONAL gate
+layered after the production check, never an alternative to it (no "AND/OR": a
+flag-misconfigured production request is covered by an explicit test asserting rejection),
+the editor UI never
+renders in the prod bundle (mirroring the `?_state=` / `use-forced-state.ts` dev-only
+convention), and a test proves a prod-config request to the route is rejected
+
+**Given** the maintainer drags a venue pin on the dev map
+**When** the new position is saved
+**Then** the dragged point is persisted as a **display-only coordinate** — NOT written
+into the engine's `lat`/`lng` (which feeds forecast/nowcast weather gating, per the Scope
+note), via a service-role write route (mirroring the `feedback`/`reviews` POST pattern;
+client never touches Supabase directly — API boundary). The concrete mechanism is one of
+the two Scope options — and under option (a) (`display_lat`/`display_lng` column), **ALL
+public discovery geometry reads the display coordinate**, not just the marker: the list
+route's radius filter, distance sort, and displayed distance all use `v.location` today
+(`route.ts:375-395`), so a corrected pin must also be included/excluded/ordered by its
+corrected position — AND the ROUTING/handoff surfaces move with it: `getRouteSummary`, the
+Google/Apple directions URLs, and the detail distance fallback all read `venue.location`
+today, so "Visa Rutt"/open-in-maps must send users to the CORRECTED position (the point the
+maintainer deliberately dragged to), not the old engine coordinate. Cleanest shape: the
+public DTO's `location` BECOMES the display coordinate for every client surface, while the
+engine coordinate stays server-only (like `seating_area`); only the weather/shadow ENGINE
+keeps the separate engine coordinate. Option (b) (engine weather from the seating-polygon
+centroid, `lat`/`lng` becomes display-only) resolves all of this naturally. The marker + all discovery surfaces update; the sun
+prediction is provably unchanged (a route test asserts the engine's weather coordinate did
+not move)
+
+**Given** the maintainer pastes a coordinate array into the polygon field
+**When** it is saved
+**Then** it is validated server-side (Polygon / closed ring / ≥4 positions /
+`[lng,lat]` Gothenburg bounds — the seed-load ruleset) and only a valid ring is
+written to `seating_area`; an invalid paste is rejected with a specific error and no
+write occurs
+
+**Given** a new persisted `hidden` column (migration: `boolean not null default
+false`, idempotent, RLS posture preserved)
+**When** the maintainer hides a venue
+**Then** a hidden venue disappears for ALL users on EVERY public path — not just the
+list: `/api/venues` (map + list) omits it AND the slug detail `/api/venues/[slug]` /
+`getVenueBySlug` returns 404 for a hidden venue (so a stale link / cached UI / direct URL
+can't reach it), and the **reviews route** (`/api/reviews` GET+POST — a public read/write
+path that resolves venue identity independently of detail), detail-prefetch, AND the
+**feedback POST** (`/api/venues/[slug]/feedback` — a public WRITE path that Story 12.7 moves
+to the live resolver) all reject a hidden venue too, so a stale open detail can't read or
+write reviews/feedback for an unreachable venue and pollute the accuracy loop; showing it
+again restores all paths — verified by route tests for list, by-slug, **the reviews GET+POST**,
+and the feedback POST
+
+**Given** the public reads are CACHED — `/api/venues` + `/api/venues/[slug]` send
+`Cache-Control: public, max-age=30, s-maxage=30` (CDN) and detail stays fresh in the client
+TanStack cache for 5 min — so a hidden venue can still be served from cache for that window,
+contradicting "can't reach it"
+**When** a venue is hidden (or unhidden)
+**Then** the toggle also busts the relevant caches — an explicit CDN/edge invalidation (or
+an accepted, documented bounded staleness ≤ the 30 s edge TTL) AND client-query
+invalidation — so hide takes effect promptly, not only after the cache window lapses
+(state the chosen guarantee; for a dev-tool toggle a ≤30 s bound may be acceptable IF
+documented)
+
+**Given** hidden venues are gone from every PUBLIC path, but the maintainer must still see
+them in the editor to toggle them back on (else unhiding needs raw SQL, contradicting
+"showing it again restores all paths")
+**When** the editor loads
+**Then** a **dev-only include-hidden** read path (list + detail) surfaces hidden venues IN
+THE EDITOR ONLY — gated by the same dev-only guard as the rest of Story 12.5 and
+**fail-closed in production** (a prod request can never include-hidden) — so hide/show is a
+round-trip entirely within the editor
+
+**Given** the inline field editors (tags / description / thumbnail-URL)
+**When** a field is saved
+**Then** it is written through the same validated dev-only route (tags coerced to a
+clean `text[]`; thumbnail edits conform to **whatever thumbnail contract Story 12.12
+lands** — the single `{alt,initials,url}` shape today, but if 12.12 ships explicit
+`cardUrl`/`heroUrl` fields or a deterministic rendition-URL convention, the editor edits
+THAT shape (cross-story dependency; do not hard-code the single-URL contract and let a
+later editor save silently drop the card/hero renditions) — no file upload),
+and the public DTO reflects the change on next load
+
+**Given** `nextjs-app/docs/venue-data-load.md` documents venue authoring
+**When** the editor ships
+**Then** the doc notes the dev editor as an alternative to raw SQL for these fields
+(and that it is localhost-only), and the new `hidden` column is added to the field
+table
+
+**Design Gate Criteria:**
+- **Visual:** The dev editor chrome appears ONLY under the dev gate; the normal user
+  map is pixel-unchanged when the gate is off
+- **Behaviour:** Pin drag moves marker/distance only (not the prediction); hidden
+  venues vanish for everyone; invalid polygon paste is rejected without a write
+- **Animation:** None required beyond the existing pin/marker behaviour
+- **Visual validation:** With the dev gate OFF, the map + venue detail match the
+  current baseline (the editor must not leak into the default render)
+
+### Story 12.6: Simplify Map Pins — One Grey "Not Sunny" Pin, No Number
+
+_Context (2026-07-08, maintainer decision):_ today the map has THREE pin visuals
+(`VenuePin.tsx`): amber (Sunny/Partial), light-grey shaded (Shaded/NoSun), and a
+slate-grey "sol bakom moln" obscured pill (CloudObscured, Story 10.2) — and every
+pin shows a number. The number is **sun-exposure %** (share of seating in sun), NOT
+confidence. Two greys + a number on the not-sunny pins confuse users, who read the
+number as a probability. Simplify to a binary the map can answer at a glance: **can I
+sit in the sun here right now — yes (amber) or no (grey)?**
+
+As a **user scanning the map**,
+I want one obvious "sunny" pin and one obvious "not sunny" pin, without a confusing
+number on the not-sunny ones,
+So that I instantly see where the sun is without misreading the percentage.
+
+**Acceptance Criteria:**
+
+**Given** the amber-vs-grey decision today keys off the Sunny/Partial/Shaded
+thresholds (amber at ≥30% sunlit)
+**When** the pin colour rule is changed per the MAINTAINER DECISION (2026-07-08) to a
+**50% cut**: a pin is **amber (sunny)** only when **more than 50%** of the seating is
+in sun AND it is not weather-gated; **grey (not sunny)** when **50% or less** is sunlit
+**Then** a venue at e.g. 40% sunlit (amber today) shows GREY, and the card/label copy
+that says "sunny"/highlights the sun figure tracks the SAME 50% line so a grey-pinned
+venue is never described as sunny (reconcile the pin, the card "% sol" emphasis, and
+any "soligt" wording to one 50% boundary)
+
+**Given** "Mest sol" ordering ranks sunny-first on BOTH sides: the SERVER `SUN_STATUS_RANK`
+(`route.ts:75-84`; `Sunny=2, Partial=1, Shaded/NoSun=0`) via `sunListRank`/`venuePeakSunRank`
+(`route.ts:89,110`), AND a co-equal CLIENT mirror `getVenueSunRankForList` +
+`isVenueSunnyForList` (`VenueList.tsx:174-199`) that drives the VISIBLE `sortVenuesForList`
+order and the card's `isSunny` — so a `Partial` venue at 40% currently sorts ABOVE not-sunny
+ones on the rendered list
+**When** the 50% cut lands
+**Then** the ORDERING predicates are updated to the same boundary on BOTH sides — the server
+rank AND the client `getVenueSunRankForList`/`isVenueSunnyForList` (they are required to stay
+in lock-step) — so a grey venue (≤50% sunlit OR weather-gated) is never promoted into the
+sunny-first / "Mest sol" band above genuinely sunny (>50%, not-gated) venues; the sort, the
+pin, and the card copy all agree on one line (covered by a server test AND a client
+list-order test)
+
+**Given** there are two grey pin visuals (light-grey shaded + slate-grey obscured)
+**When** they are merged into ONE grey "not sunny" pin (cloud icon)
+**Then** `Shaded`, `NoSun`, AND `CloudObscured` all render the SAME single grey pin;
+the underlying `CloudObscured` STATUS is preserved (so the card can still explain
+"sol bakom moln" vs shade, feedback `predicted_state` and the DB CHECK are untouched)
+— only the PIN PRESENTATION merges. The Epic-10 honesty is preserved: a cloudy-but-
+geometrically-sunny venue stays grey (never falsely amber)
+
+**Given** every pin shows a number today
+**When** the grey pin is finalized
+**Then** the **grey pin shows the cloud icon and NO number**; the **amber pin keeps
+the sun icon + the sun-exposure %**. Colour is never the only signal (sun vs cloud
+icon still differentiates — NFR27), and the accessible name drops the percentage — which
+requires flipping the i18n keys + tests, NOT just the visual + screenshots: `pinShadedAria`
+/ `pinObscuredAria` still interpolate `{percent}` (both locales) and `VenuePinLayer.test.tsx`
+asserts the obscured aria contains the number (e.g. "88"), so the grey-pin variants are
+updated to a percent-free "inte soligt" contract and those pin-aria tests are flipped (else
+SR users still hear the old percentage). CRITICALLY, the presentation/aria RESOLVER keys on
+the shared **>50% predicate, not raw status**: a 35–50% venue keeps
+`currentSunStatus='Partial'`, and `VenuePin`/`VenuePinLayer` branch on STATUS today — so
+without this, a grey 40% venue would still get the sunny presentation + `pinPartialAria`
+with `{percent}`. The low-Partial case explicitly gets the grey percent-free contract,
+covered by a test at e.g. 40% Partial
+
+**Given** this changes the shipped pin treatment (supersedes Story 10.2's three-way
+pins at the PIN level only)
+**When** it lands
+**Then** the reference PNGs for the map (mobile + desktop, sunny + not-sunny states)
+are rebaselined and `REBASELINE-LOG.md` updated in the same operation
+
+**Design Gate Criteria:**
+- **Visual:** Two pin states only — amber sun pill with % (sunny), grey cloud pill
+  with no number (not sunny); matches the design-token palette (`--color-amber-pin`,
+  `--color-pin-*`)
+- **Behaviour:** amber ⟺ >50% sunlit and not weather-gated; grey otherwise (incl.
+  cloudy/rain-gated); the card never labels a grey-pinned venue "sunny"
+- **Animation:** No entrance flash when a venue crosses the gate on refresh (keep the
+  existing `initial={false}` / duration-0 treatment on the grey pill)
+- **Visual validation:** Screenshot comparison of the map (mobile + desktop) against
+  the rebaselined reference passes — one grey pin, no number, correct 50% split
+
+### Story 12.7: Reviews Route Resolves Live Venues (Fix the 404 on Real Venues)
+
+_Context (2026-07-08, confirmed bug — adversarially verified):_ opening a
+newly-seeded venue's detail logs a 404 fetching reviews. **Root cause is NOT "zero
+reviews" — it is a venue-identity source mismatch.** `resolveReviewVenueIdentifier`
+(`nextjs-app/lib/services/venue-reviews-persistence.ts:113-122`) resolves the venue
+ONLY against the hardcoded 7-row `VENUE_FIXTURE`; a live venue (ids "8"–"49") is
+absent, so `/api/reviews` returns `404 Venue not found` at
+`app/api/reviews/route.ts:87-88` BEFORE the (correct, empty-list-returning) review
+lookup is reached. The detail route (`/api/venues/[slug]`) resolves the same venue
+fine because it uses `getVenueBySlug` → the live Supabase store. Both the GET and
+POST review paths gate on the fixture resolver.
+
+As a **user (and the maintainer)**,
+I want reviews to load for the real venues,
+So that a live venue with no reviews shows an empty reviews section (not a 404 error).
+
+**Acceptance Criteria:**
+
+**Given** the review route resolves venue identity against the fixture-only
+`resolveReviewVenueIdentifier`, while `/api/venues/[slug]` resolves via
+`getVenueBySlug` (the live store, gated on `SUNNYSEAT_VENUE_STORE=supabase`)
+**When** the review route (GET + POST) is switched to a live venue-identity resolver
+that accepts **id OR slug** (in supabase mode, look the venue up in the live store by
+EITHER) — this is REQUIRED because POST resolves `body.venueId ?? body.venueSlug`, so a
+live venue's numeric id (`"8"`–`"49"`) is tried FIRST and a slug-only lookup would still
+404 on submit; fall back to the fixture only in fixture mode
+**Then** a live venue with zero reviews resolves and returns **200** with
+`reviews: []` / `reviewCount: 0` (the empty-list path at `route.ts:96-100` already
+does this once resolution succeeds), and a genuinely unknown identifier still 404s
+
+**Given** the client requests `GET /api/reviews?venueId=<slug>` (`useVenueReviews.ts`,
+identifier = `venue.slug`)
+**When** the fix lands
+**Then** the two endpoints share ONE venue-identity source (no duplicated Supabase
+query), and posting a review for a live venue also resolves (POST path at
+`route.ts:153-154`)
+
+**Given** the app is LIVE on `SUNNYSEAT_VENUE_STORE=supabase` +
+`SUNNYSEAT_REVIEW_PERSISTENCE=supabase`
+**When** the resolver change ships
+**Then** a regression test seeds/mocks a live venue absent from the fixture and asserts
+`GET /api/reviews` returns 200 empty (not 404), plus a fixture-mode test still passes
+
+**Given** the **`/api/venues/[slug]/feedback` POST route has the IDENTICAL bug** — it
+imports `VENUE_FIXTURE` and resolves the path slug against the fixture, so real-venue
+feedback submissions 404 (this blocks the Story-12.2 accuracy loop, which needs those rows)
+**When** this story ships
+**Then** the feedback POST route is switched to the SAME live id/slug resolver, so
+submitting feedback for a live venue (ids `"8"`–`"49"`) succeeds — covered by a route test
+
+_(Backend-only; no design gate. Effort: small. Scope now = reviews GET/POST **and** the
+feedback POST route — one shared live resolver for all three.)_
+
+### Story 12.8: About Page — Pin Legend + "So Reads the Sun Figure"
+
+_Context (2026-07-08, aligned with Story 12.13 — no user-facing confidence number):_
+the About page (`app/[locale]/about/page.tsx` → `AboutPage.tsx`, copy in
+`messages/sv/about.json`) explains the engine + honesty posture well (ALGORITMEN /
+DATAKÄLLOR / TRÄFFSÄKERHET / Kontakt), but never explains what users actually see on the
+map: (1) amber vs grey pin, (2) that the pin number is the **share of seating in sun**
+(not a probability). Since confidence is no longer shown to users (12.13), the earlier
+"Sol vs Säkerhet" section is **reframed** to focus on the sun figure + the honesty/
+feedback loop instead of teaching a "Säkerhet" number users will never see.
+
+As a **new user**,
+I want the About page to explain the map legend and what the sun number means in plain
+Swedish,
+So that I read the pins and the number correctly.
+
+**Acceptance Criteria:**
+
+**Given** the About page has no pin legend and never defines the pin number
+**When** a section **"Så läser du kartan"** is added (before ALGORITMEN) with two inline
+pin swatches (amber sun + grey cloud)
+**Then** it states in plain Swedish that pins reflect the **selected time — "just nu" by
+default, or the planner's chosen date/time** (after the planner stories + 12.14, pin state
+and visibility follow the selected instant, so "amber = sun NOW" would be wrong for a user
+planning Saturday 18:00): an amber pin = direct sun at the selected time, a grey cloud pin
+= not sunny then (shade OR clouds), and the pin number is **the share of the seating area
+in sun at that time** — "70% betyder att ~70% av sittytan är solig vid vald tid, inte att
+det är 70% chans att det är soligt"
+
+**Given** confidence is no longer a user-facing number (Story 12.13)
+**When** a short **"Hur säkra är vi?"** paragraph is added (in/after TRÄFFSÄKERHET)
+**Then** it explains, honestly and simply, that the app aims to get the sun figure right
+and that accuracy improves as users send feedback ("stämmer det?"), WITHOUT introducing a
+per-venue "Säkerhet" number (there isn't one in the UI anymore). It may note that the app
+tracks its own confidence internally to prioritise improvements
+
+**Given** the TRÄFFSÄKERHET stat is still the hard-coded `ABOUT_ACCURACY_PLACEHOLDER = 85`
+(its own comment says illustrative-until-validated), and after the 12.2 reframe there is no
+required source producing a measured hit-rate
+**When** 12.8 ships
+**Then** the page must NOT present the placeholder AS IF it were a real measured hit-rate
+(that would be dishonest, on the very page that promises honesty) — either source the
+number from the Story-12.2 feedback/accuracy aggregation, OR remove / clearly label it as
+an estimate ("preliminär" / not-yet-measured) until a real rate exists
+
+**Given** Swedish is the default and copy lives in `messages/`
+**When** the sections ship
+**Then** the keys are added to `messages/sv/about.json` (+ en mirror), rendered via the
+existing section pattern in `AboutPage.tsx`, and `AboutPage.test.tsx` asserts the new keys
+render
+
+**Design Gate Criteria:**
+- **Visual:** New sections match the existing About typography/section treatment; the two
+  pin swatches match the real map pin styles (amber sun, grey cloud — per Story 12.6)
+- **Behaviour:** Static content; no interaction beyond existing About scroll
+- **Animation:** None
+- **Visual validation:** About page (mobile + desktop) screenshot vs a rebaselined
+  reference passes (new sections added)
+
+### Story 12.9: Mobile Bottom-Sheet Row-Quantized Drag + Slim Time-Slider
+
+_Context (2026-07-08, root-caused + maintainer redesign):_ two mobile issues on the
+same surface, plus a redesign of the sheet's drag behaviour.
+
+1. **Drag gap (VERIFIED).** `MobileBottomSheet.tsx` is a fixed-height, bottom-anchored
+   panel moved mid-drag by a CSS **transform** (`animate y: dragY`, :181/:303). A
+   transform doesn't re-anchor the box, so a drag lifts its bottom edge off the 52px
+   nav anchor and a strip of bare map shows through (`bg-surface-cream` paints only
+   inside the box; the sheet's sibling is `<MapContainer/>`). This is fixed for free by
+   the redesign below (height-driven drag pins the box bottom to the anchor).
+2. **Snap model → ROW-QUANTIZED (MAINTAINER DECISION 2026-07-08).** Replace the four
+   fixed snaps (collapsed/peek/mid/full, `globals.css:207-210`) with a continuous,
+   **one-row-at-a-time** model: the sheet height = the handle + **N visible venue
+   rows**, and it snaps to whole-row increments. Dragging DOWN reveals one fewer row per
+   interval, all the way to **0 rows (handle only)**; dragging UP reveals one more row
+   per interval, up to a max. This makes the collapse-to-handle reachable by dragging
+   the list itself (the current defect — collapse only fired from the 44px handle) AND
+   gives granular expansion. It also inherently fixes the gap, because the box is driven
+   by height from the pinned bottom anchor, never translated off it.
+3. **Time-slider padding too tall.** Two top insets stack on mobile: the panel's
+   `pt-5` (20px, `TimeSliderPanel.tsx:56`) + the slider row's `min-h-12 pt-4`
+   (`TimeSlider.tsx:129`, 16px badge-reserve). Desktop is a separate branch, so mobile-only.
+
+As a **mobile user**,
+I want to drag the venue sheet up and down and have it settle one venue row at a time —
+all the way down to just the handle — with no map gap, and a slimmer time slider,
+So that I control exactly how much of the list I see and the mobile map feels tight.
+
+**Acceptance Criteria:**
+
+**Given** the sheet uses four fixed-height snaps and is translated by a CSS transform
+(exposing bare map mid-drag)
+**When** it is re-driven by **height** (or a `max-height`/`bottom` offset) so the box
+bottom stays pinned to the 52px nav anchor at all times, and the height follows the
+finger continuously during a drag
+**Then** NO bare map ever shows between the sheet and the nav bar at any drag position
+or velocity (incl. notched safe-area devices) — the gap defect is gone
+
+**Given** the maintainer wants one-row-at-a-time control
+**When** the sheet snaps to **whole venue-row increments**: height = handle **+ the
+persistent chrome above the list (VenueListControls + MobileTagChips, shown once `N ≥ 1`)**
++ `N × rowHeight`, `N` from **0 (handle only)** up to `maxRows` — the header/chrome height
+is a SEPARATE term in the formula (or those controls sit outside the measured row area), so
+a snap that promises N rows actually shows N un-clipped rows, not chrome eating a row's space
+**Then** a downward drag that crosses a row boundary settles showing one FEWER row, and
+an upward drag settles showing one MORE row; a slow drag can walk the list open/closed a
+row at a time, and a fling honours velocity by snapping to the nearest row boundary in
+the flung direction. `rowHeight` is derived from the **actual rendered row variant** (one
+source of truth, not a magic number) — NOTE the current sheet uses compact cards only in
+peek (`compactCards={mobileSheetState === 'peek'}`) and taller non-compact `VenueCard`s
+(extra metadata/tags) once expanded, so the row model must EITHER use compact cards
+consistently in the row-count sheet OR measure the real variant that renders at N rows;
+deriving from the compact height while rendering non-compact rows would under-size the snap
+and still clip. So a row is never half-clipped at a resting snap
+
+**Given** `N = 0` must be reachable by dragging the visible list, not just the handle
+**When** the user drags down on a venue ROW (or the handle) past the last row
+**Then** the sheet collapses to **handle-only (0 rows)** and stays put; dragging up from
+there reveals rows one at a time again. (The old `bodyBind` `if (!isFull) return` no-op
+is removed; the scroll-vs-drag rule becomes: drag moves the sheet while the list is at
+`scrollTop === 0`, otherwise the list scrolls — standard bottom-sheet behaviour)
+
+**Given** `maxRows` must not overflow the screen
+**When** the content needs more rows than fit under the top framing (search bar / safe
+area)
+**Then** `maxRows` caps at the tallest height that still clears the top chrome; beyond
+that the list **scrolls internally** (the sheet doesn't grow further), and the tag
+chips / list controls that were gated on the discrete `'peek'` state are re-gated on the
+new row-count/height model (e.g. shown once `N ≥ 1`) so nothing depends on the removed
+snap enum — INCLUDING `computeRecenterPadding` (+ its tests), which today keys off
+`MobileBottomSheetState` and the hard-coded snap heights to keep the locate/recenter fly-to
+centered in the unobscured map; it must migrate to the row-count height or the user dot
+lands behind/away from the visible map center
+
+**Given** the mobile slider panel stacks 20px + 16px of top padding above a 6px track
+**When** `TimeSliderPanel.tsx:56` `pt-5`→`pt-3` and `TimeSlider.tsx:129` `min-h-12 pt-4`
+→`min-h-11 pt-3` (mobile-only branches; desktop `px-6 py-3` untouched)
+**Then** ~16px is reclaimed, the value badge still clears, and the panel reads slimmer on
+mobile with no desktop change
+
+**Given** the current sheet has keyboard ArrowUp/ArrowDown control across the snap ladder
+(WCAG 2.1 AA), which the snap enum removal would break
+**When** the row-quantized model lands
+**Then** keyboard control is PRESERVED, mapped to the new model: ArrowUp/ArrowDown expand/
+collapse **one row at a time**, reaching the **0-row handle-only** state and the max, with
+a visible focus state and an accessible announcement of the change — no keyboard regression
+for the row model
+
+**Design Gate Criteria:**
+- **Visual:** No bare-map gap at any drag position; rows are never half-clipped at a
+  rest snap; slimmer mobile slider; desktop unchanged
+- **Behaviour:** Sheet settles one row at a time from 0 (handle-only) to max; drag from a
+  list row works (not just the handle); internal scroll past max; drag follows the finger
+- **Animation:** Drag tracks 1:1; the row-snap settle uses a gentle spring honoring
+  `prefers-reduced-motion`; no entrance flash
+- **Visual validation:** Mobile sheet at several row counts (0 / 1 / a few / max) + a
+  mid-drag frame, and the slim slider, vs a rebaselined reference pass
+
+> **Note:** this replaces the four-snap sheet from Story 11.3, and the snap names are
+> load-bearing beyond one spec — the migration scope includes ALL of: (1) the touch-gesture
+> e2e (`epic-11-sheet-touch-gestures.spec.ts`) from snap-name to row-count assertions
+> (incl. a spec that drags starting on a venue ROW, not the handle, AND a keyboard spec
+> that walks the row ladder to 0-row and back); (2) `test/e2e/map-primary.spec.ts`, which
+> asserts `data-state` peek/mid/full throughout (e.g. :153-157, :497-506, :540, :561-585);
+> (3) the `?_state=map-panel-venues` forced state, which is DEFINED as the mid snap — remap
+> it (and the Screen ID → Route Map / `use-forced-state`) to a row-count equivalent so the
+> state-forcing convention and visual-gate captures don't go stale; and (4)
+> `computeRecenterPadding` per the AC above.
+
+### Story 12.10: Venue Detail Preload — Instant "Mer info"
+
+_Context (2026-07-08, grounded in the caching-architecture map):_ opening "mer info"
+is slow because the detail route (`/api/venues/[slug]`) computes the single-instant sun
+engine on request; on a cold instance (dead process caches — the pre-launch norm) that
+means a `get_buildings_near_point` RPC + shadow math + a Met.no fetch before first byte.
+Detail is cheaper than list (one venue, one instant, NO 61-step day series) and shares
+the same two server caches — but cold is still seconds. With only ~50–100 venues per
+city, the list already fetches everything nearby, so we can warm detail ahead of the click.
+
+As a **user**,
+I want a venue's detail to appear instantly when I tap "mer info",
+So that browsing venues feels immediate.
+
+**Acceptance Criteria:**
+
+**Given** detail is fetched on-click via `useVenueDetail` (`queryKeys.venues.detailAt`)
+and cold-computes server-side
+**When** the client PREFETCHES detail (TanStack `prefetchQuery`) in the background for a
+bounded top-N of the candidate venues — which MUST include the **favourite-query rows**
+(`useFavouriteVenues`), not only the main nearby list: on `/favoriter` a saved venue
+outside the ~1.5 km set (or a cold favourites deep link) comes from that separate query
+(`MapView.tsx:445,470`), so limiting candidates to "the list query" leaves those cards on
+the COLD detail path and "Mer info" stays slow there — using the **EXACT
+`queryKeys.venues.detailAt` parameters that `useVenueDetail` will mount with on the click**
+(slug + the current planner date/time + the rounded user lat/lng), NOT a slug-only or
+mismatched-planner key. CRITICAL — and this is a genuine TENSION to resolve, not a free
+add-on: because the key includes `{date, time, lat, lng}`, a prefetch warmed for the live
+key stops matching the moment the user scrubs time or picks a date; but RE-RUNNING the
+prefetch after every settled scrub fires background `/api/venues/[slug]` requests during a
+time-scrub, colliding with the Epic-11 **scrub=0 request-count gate** this very story
+promises to keep green. The story must PICK ONE, explicitly: (a) re-scope the request-count
+gate SPECS to the LIST endpoint only (a deliberate, documented gate change shipped in the
+same PR), making post-settle detail prefetch sanctioned background traffic; or (b) keep the
+gates as-written and EXEMPT post-scrub/post-date-change opens from the instant guarantee
+(prefetch fires only on initial list settle + location settle). Either is acceptable; a
+silently-red CI gate is not
+**Then** tapping "mer info" for a prefetched venue **hits the client cache** (the prefetch
+key matches the mounted key exactly — a slug-only/wrong-location prefetch would warm the
+server but still refetch on open, defeating the story) and renders with no visible wait;
+a non-prefetched venue still works (falls back to the live fetch)
+
+**Given** each detail prefetch is a single-venue engine call, so an unbounded prefetch
+could fire 50–100 background `/api/venues/[slug]` requests right after the list settles
+**When** the prefetch runs
+**Then** it is BOUNDED — an explicit **total budget** + a **concurrency cap** (a few in
+flight at once) + it **yields to interaction** (cancel/pause in-flight prefetches when the
+user acts, backoff on error). The budget is seeded in **the current VISIBLE order** — the
+list defaults to `venueSortMode = 'sun'` ("Mest sol", `sortVenuesForList`), so the top
+tappable cards are sun-ranked, NOT nearest-distance; prefetch the top of the visible
+list/favourites order FIRST (what the user is most likely to tap), then fall back to nearest
+— else a user taps a top sunny card outside a distance-only budget and its detail is still
+cold. So the prefetch never turns cold-start into an idle burst that competes with the user
+
+**Given** the maintainer's stated goal was "preload venues within ~10 km" (future-proofing
+for more cities), but the current API can't return that set — the list requests
+`SEARCH_RADIUS_KM = 1.5` and `/api/venues` REJECTS radius `> MAX_RADIUS_KM = 3.0`, so there
+is no 10 km candidate list to prefetch from today
+**When** the data source is chosen
+**Then** the story picks explicitly: (a) INTERIM — scope the prefetch to the top-N of the
+already-returned (~1.5 km) list, which works now with zero new endpoints; or (b) to truly
+reach ~10 km, raise `MAX_RADIUS_KM` / add a lightweight discovery endpoint returning the
+wider candidate set. Do NOT write an AC that prefetches "within 10 km" against an API that
+400s above 3 km — name which option, and note (a) only covers the near set until (b) lands
+
+**Given** each prefetch also warms the server's `sunComputeCache`/`buildingsCache`
+**When** prefetch requests hit `/api/venues/[slug]`
+**Then** subsequent real detail loads for those venues are warm too, and the prefetch
+respects the same 15-min bucket / 30 s Edge cache (no extra Met.no load beyond the dedupe)
+
+**Given** the detail route uses the single-instant engine path
+(`applyRealSunEngine` → `fetchCachedVenueBuildings`) and does NOT read the list
+day-series artifact — so 12.3's persisted day-SERIES does not, by itself, warm a cold
+detail's `get_buildings_near_point` RPC
+**When** detail warmth is made explicit
+**Then** the PRIMARY warmth is this story's own prefetch (it populates the client cache
+AND the server `buildingsCache` / `sunComputeCache` for the prefetched venues); AND for
+12.3 to also help cold detail, 12.3 must persist/reuse the **building set** (or wire the
+detail route to read the persisted geometry store) — called out as a cross-story
+dependency here, not assumed. The story records the before/after "mer info" open time
+against prod
+
+**Design Gate Criteria:**
+- **Visual:** None — latency only; the detail overlay is unchanged
+- **Behaviour:** Prefetched detail opens instantly; the Epic-11 request-count gates stay
+  green — either as-written (option b: no prefetch on scrub) or deliberately re-scoped to
+  the list endpoint (option a), per the AC's named choice; never silently red
+- **Animation:** The existing detail open/close transition is unchanged
+- **Visual validation:** N/A (no pixel change); request-count + open-time metrics stand in
+
+### Story 12.11: First-Run Coach-Mark Guide (Map Legend + Feature Tour)
+
+_Context (2026-07-08, maintainer request):_ first-time users don't know what the pins
+mean or how the planner/tags/list/feedback work. A brief, skippable coach-mark guide on
+first map entry teaches the essentials. Distinct from the existing `OnboardingGate`
+(geolocation permission) — this is a post-onboarding feature tour, re-openable from
+Settings.
+
+As a **first-time user**,
+I want a short, skippable guide that shows what a sunny vs grey pin means and how the
+main features work,
+So that I understand the app immediately (and can revisit it later).
+
+**Acceptance Criteria:**
+
+**Given** a user reaches the map for the first time (after onboarding/geolocation)
+**When** a coach-mark guide appears highlighting, in a few steps: the sunny (amber) vs
+not-sunny (grey/cloud) pin meaning, the time slider, the date planner, the tag chips,
+the venue list/sheet, and favourites — each step a short caption anchored to a real element
+**that is actually present on the initial map screen**. The "stämmer det?" feedback control
+is NOT — `FeedbackFlow` only mounts inside the detail overlay (`MapView.tsx:601`, gated on
+an open venue), so a feedback step must NOT anchor to a non-existent target on first entry:
+either drop it from the first-run tour (mention feedback in copy only), or have the guide
+deterministically open a venue's detail before any feedback-specific step (no step ever
+points at a hidden/unmounted element)
+**Then** it can be dismissed at ANY step via an always-visible "Hoppa över"/close (one
+tap exits the whole guide), and it never auto-shows again (a persisted `localStorage`
+seen-flag, cross-tab safe like the onboarding flag)
+
+**Given** a returning user wants to see it again
+**When** they open Settings
+**Then** a "Visa guide igen" entry re-launches the guide on demand
+
+**Given** the app is mobile + desktop with very different layouts
+**When** the guide renders
+**Then** each step's anchor/caption is positioned correctly for the current breakpoint
+(mobile bottom-sheet + top slider vs desktop side panel + chip strip) — the guide is
+responsive, not a fixed-coordinate overlay
+
+**Given** WCAG 2.1 AA
+**When** the guide is open
+**Then** focus is trapped in the current step, ESC exits, the highlighted element has an
+accessible description, copy is Swedish-first (`next-intl`), and it respects
+`prefers-reduced-motion`
+
+**Design Gate Criteria:**
+- **Visual:** Coach-mark styling matches the design tokens (no raw colours/shadows);
+  amber-pin and grey-pin swatches match the real pins
+- **Behaviour:** Skippable at any step (one tap); shows once; re-openable from Settings;
+  correct anchoring on mobile AND desktop
+- **Animation:** Gentle step transitions honoring `prefers-reduced-motion`
+- **Visual validation:** First-run guide (mobile + desktop, first + a middle step) vs a
+  new reference passes
+
+### Story 12.12: Venue Photos — Supabase Storage Hosting + Render/Fallback Fixes
+
+_Context (2026-07-08, grounded):_ thumbnails are a `{ alt, initials, url? }` jsonb
+rendered by plain `<img>` (not `next/image`, so no `next.config` change needed). Today:
+the **list card** already degrades a broken URL to initials (`VenueCard` has an
+`onError` guard); the **desktop quick-info** card does NOT (`VenueQuickInfo` has no
+`onError` → a 404 shows a broken image); and the **detail hero never renders the photo
+at all** — it reads `thumbnail` only for alt text and always shows the placeholder. The
+fixture currently hotlinks `images.unsplash.com` (fragile, unlicensed for product use).
+
+As a **maintainer adding real venue photos**,
+I want a stable place to host them and every surface to render them (and degrade
+gracefully),
+So that photos actually show and never break to a broken-image icon.
+
+**Acceptance Criteria:**
+
+**Given** photos need hosting for ~50–100 venues
+**When** they are stored in a **public Supabase Storage bucket** (the app already runs on
+Supabase; stable public URLs `…/storage/v1/object/public/<bucket>/<slug>.jpg`, no
+hotlink/licensing risk) and each venue's `thumbnail.url` is set to its public URL (keep
+`initials` populated as the fallback)
+**Then** the sanitizer accepts the URL unchanged (http/https allowed) and no
+`next.config`/CSP change is required (plain `<img>`)
+
+**Given** the app renders thumbnails via plain `<img>` (no `next/image` auto-resize), so an
+original phone/camera photo would download full-size on the list card + detail hero across
+50–100 venues — a real bandwidth + LCP regression against the perf budget
+**When** the storage convention is defined
+**Then** it MANDATES optimized renditions — explicit max dimension/byte/format limits (e.g.
+a small card thumbnail + a larger hero rendition, WebP/JPEG, capped px + KB), NOT raw
+uploads — so no surface ever downloads a multi-megabyte original; the doc records the exact
+limits/rendition sizes to produce before uploading
+
+**Given** the thumbnail contract is a single `{ alt, initials, url }` and VenueCard,
+VenueQuickInfo, AND the detail hero all read that ONE `url` — so "a card thumbnail AND a
+hero rendition" can't be selected without a contract to carry both
+**When** renditions are introduced
+**Then** the story defines HOW each surface picks its rendition — either add explicit fields
+(e.g. `thumbnail.cardUrl` / `thumbnail.heroUrl`, back-compat with the single `url`), OR a
+**deterministic URL convention** (e.g. `<slug>-card.webp` / `<slug>-hero.webp`) the surfaces
+derive — with tests — so cards load the small file and the hero the large one (never a card
+downloading the hero, nor a blurry hero from the card file)
+
+**Given** the detail hero ignores `thumbnail.url` today
+**When** `VenueDetailContent` HeroImage is wired to render `thumbnail.url` (object-cover)
+with its OWN `onError`→placeholder
+**Then** the real photo shows on the detail overlay, and a broken/missing URL degrades to
+the branded placeholder (never a broken image)
+
+**Given** `VenueQuickInfo` has no `onError`
+**When** the same `onError`→initials fallback that `VenueCard` already uses is added to
+`VenueQuickInfo`'s thumbnail
+**Then** a 404/stale URL on the desktop quick-info card degrades to initials, not a broken
+image (the list card needs no change; the mobile anchored quick-info already forces the
+placeholder)
+
+**Given** `docs/venue-data-load.md` documents the thumbnail field
+**When** hosting lands
+**Then** the doc explains the Supabase Storage bucket convention (upload keyed by slug,
+set `thumbnail.url`, keep `initials`) as the recommended path over external hotlinks
+
+**Design Gate Criteria:**
+- **Visual:** Photos render on list card, desktop quick-info, and detail hero; broken
+  URLs show initials/placeholder (never a broken-image icon)
+- **Behaviour:** Missing `url` → initials everywhere; the mobile anchored quick-info is
+  unchanged (still placeholder by design)
+- **Animation:** None
+- **Visual validation:** Card + quick-info + detail hero with a real photo AND with a
+  deliberately-broken URL vs a new reference passes
+
+### Story 12.13: Remove the User-Facing Confidence Indicator (Keep It Internal)
+
+_Context (2026-07-08, maintainer decision):_ the per-venue confidence figure (the faded
+"~84%" chip on the card, and its quick-info/detail equivalents) makes users do
+unwanted meta-reasoning ("how sure are they about THIS one vs that one?"). The product
+promise is simpler: **we show how much of the seating is in sun; we aim for it to be
+right; where it's off, user feedback drives corrections.** So confidence is **removed
+from all user-facing surfaces**, kept **internally** (still computed, still in
+logs/uncertainty reasons, available to the dev tools and the maintainer), and explained
+lightly on the About page. Confirmed wiring (2026-07-08 investigation): the visible chip
+is `confidenceDisplay.visibleText` on `VenueCard.tsx:248-258`, mirrored on
+`VenueQuickInfo` and `VenueDetailContent`; the bold "N% sol" (sun-exposure) is a
+SEPARATE value and STAYS.
+
+As a **user**,
+I want the map and cards to show just how sunny a place is (and whether it's sunny at
+all), without a second "confidence" number to interpret,
+So that the app is simple to read and I trust the sun figure at face value.
+
+**Acceptance Criteria:**
+
+**Given** confidence reaches the user through MORE sites than a naive scope names
+(grounding pass 2026-07-08): the visible chip `confidenceDisplay.visibleText`
+(`VenueCard.tsx:255`; quick-info/detail visible chips were already removed in Story 11.4);
+the card's SCREEN-READER name — which is built in **`VenueList.tsx:102-107`** via
+`t('cardAria', { confidence: confidenceDisplay.accessibleText })` against the template at
+**`messages/sv/venue.json:125`** (+ en), NOT in `VenueCard.tsx` (which only renders
+`labels.select`); the quick-info/detail sr-only lines (`VenueQuickInfo.tsx:299`,
+`VenueDetailContent.tsx:202`); and the directions handoff's `routeConfidenceLabel`, which is
+BUILT in **`MapView.tsx:1624`** (via `routeOverlayLabels`) and merely RENDERED by
+`RouteOverlay.tsx:132-135` (+ its `confidence` prop)
+**When** the confidence indicator is removed from ALL those surfaces — the bold
+sun-exposure "N% sol" is untouched
+**Then** no confidence percentage appears anywhere in the user UI — **visible OR
+screen-reader**: the visible chip is gone; the `cardAria` template drops its `{confidence}`
+segment in BOTH locales (and `VenueList.tsx` drops the `confidence` arg +
+`getConfidenceDisplayState` call/import) — `cardAriaObscured` already omits it; the
+quick-info/detail sr-only lines drop it; and the route overlay's CONFIDENCE segment is
+removed — but NOT the whole row: `routeConfidenceLabel` (MapView.tsx:1638-1648) joins the
+confidence text AND the prediction-UNCERTAINTY label (`getPredictionUncertaintyDisplay`)
+into one " · " row, and the uncertainty copy is an honesty signal this story explicitly
+PRESERVES — so the builder/prop is reduced/renamed to an **uncertainty-only** row (rendered
+when an uncertainty label exists, omitted otherwise), with RouteOverlay tests covering both
+the with-uncertainty and without cases. Layouts reflow cleanly (no empty
+slot / stray separator)
+
+**Given** removing the confidence display leaves dead plumbing + tests that CURRENTLY PIN
+the old behaviour (so the story is incomplete without naming them)
+**When** the removal lands
+**Then** the story also: (a) **flips the guard test** `removed-i18n-keys.test.ts:98-103`,
+which today ASSERTS the `confidence`/`confidenceApproximate`/`confidenceUnavailable` keys
+STAY — move them from "kept" to "removed" (or the dead keys are deleted and this guard is
+updated in lock-step, per that file's own no-orphan-keys convention); (b) removes the now-dead
+`showVisibleConfidence` prop chain (`VenueCard.tsx:79,104`, `VenueList.tsx:23,45,124`,
+`MapView.tsx:1131,1176` + `VenueCard.test.tsx:391`); (c) states the disposition of the
+display-only `lib/utils/confidence-display.ts` (all five UI readers removed → delete it, as
+it is PRESENTATION not the internal model) and updates ALL its tests — both its direct unit
+spec `test/unit/confidence-display.test.ts` (delete/reframe it, else the unit suite goes red
+the moment the util is deleted) AND the confidence assertions across the suite — the
+`e2e/epic-10-weather-matrix.spec.ts:112-186` visible "Säkerhet …" checks, PLUS (since this
+story reduces `routeConfidenceLabel` + the RouteOverlay row to uncertainty-only)
+`test/e2e/visit-loop.spec.ts` (`/Säkerhet \d+%/`) and `test/components/RouteOverlay.test.tsx`
+(flip the confidence-row assertions to the uncertainty-only contract) — so no orphaned util / dead prop / red
+test survives anywhere in the suite
+
+**Given** this document's own canonical Requirements Inventory still PROMISES user-facing
+confidence — FR2 ("…confidence score…", :49), FR7 ("…confidence percentage for any
+venue", :54), FR12 ("The system displays confidence scores…", :59), the FR Coverage Map
+rows (:205, :210), and the UX rows UX-DR5 / UX-DR11 / UX-DR23 (confidence in quick-info,
+tilde-on-stale, list cards; :170/:176/:188) — and future story generation / audits read
+those lines as authoritative, so left unchanged they could legitimately REINTRODUCE the
+deleted chip
+**When** 12.13 lands
+**Then** those FR/UX inventory + coverage-map lines are amended in the SAME change with an
+explicit supersession note ("superseded 2026-07-08 — confidence is computed internally but
+not displayed; Story 12.13"), so the forward-looking requirements match the shipped product;
+historical epic/story sections stay untouched (they are records of what was built)
+
+**Given** confidence is still valuable internally
+**When** the display is removed
+**Then** confidence is STILL computed and available server-side (logs, the coverage
+pipeline, `prediction_uncertainty` reasons, and any dev/maintainer tooling) — this story
+removes only the user-facing NUMBER, not the internal model
+
+**Given** the weather-honesty signal must survive
+**When** confidence is gone from the UI
+**Then** "it's cloudy / sun is blocked" is still communicated by the **grey pin** and
+the venue-detail sky/uncertainty copy (the weather truth is carried by pin STATE, not by
+a confidence number) — no honesty regression
+
+**Given** the About page (Story 12.8) planned a "Sol vs Säkerhet" section
+**When** confidence is no longer shown
+**Then** that section is reframed (see 12.8) to explain the sun % + that accuracy
+improves from feedback, rather than teaching a "Säkerhet" number users will never see
+
+**Design Gate Criteria:**
+- **Visual:** No confidence chip on card / quick-info / detail; the sun figure and all
+  other chrome are unchanged; clean reflow
+- **Behaviour:** Sun %, sunny/grey verdict, and the grey-pin weather signal are all
+  unchanged; only the confidence number is gone
+- **Animation:** None
+- **Visual validation:** Card / quick-info / detail vs a rebaselined reference — the
+  confidence chip is absent, nothing else moved
+
+> **Knock-on effects (all handled):** (1) With confidence not displayed, the
+> `SUNNYSEAT_COVERAGE_CAP` cap (which clamps the DISPLAYED confidence) no longer has any
+> user-facing effect — see the reframed Story 12.2, which drops the flag as cleanup and
+> repurposes the walk/feedback verification toward finding and fixing wrong sun-%
+> predictions rather than gating a shown confidence. (2) Story 12.8's confidence section
+> is reframed accordingly. (3) **The confidence number is NOT the only cap-driven user
+> surface:** `buildPredictionUncertainty` derives the public uncertainty TIER from numeric
+> confidence (`uncertaintyLevelFromConfidence`, `sun-engine.ts:1122` — `<50 high, <75
+> medium`), rendered as "Låg osäkerhet / Osäker prognos" copy. So the cap still moves
+> user-visible uncertainty LABELS after the chip is gone — handled in Story 12.2 (decouple
+> or intentionally re-baseline that copy when the cap is removed/simplified).
+
+### Story 12.14: Hide Closed Venues (Open-at-Selected-Time Filter)
+
+_Context (2026-07-08, maintainer decision):_ a venue that isn't open right now is noise
+on the map — you can't go sit there. So a venue that is **closed at the currently
+selected time is hidden** from the map (and list). Crucially this keys off the
+**selected** instant, not just "now": with the time/date planner set to a future moment
+when the venue IS open, it reappears — so the planner naturally answers "where can I sit
+in the sun at 18:00 on Saturday?" only among places actually open then. This builds on the
+per-weekday `opening_hours` already on the DTO (Story 11.9) and the deferred is-open-now
+guard (11.9 review) — the same `isWithin(now, interval)` logic, now load-bearing.
+
+As a **user browsing the map**,
+I want to see only venues that are open at the time I'm looking at,
+So that every pin is somewhere I could actually go — and when I plan a future time, I see
+what's open then.
+
+**Acceptance Criteria:**
+
+**Given** each venue carries per-weekday `opening_hours` on the list DTO, and the app has
+a selected instant (now by default, or the planner's date+time), in Europe/Stockholm — but
+today the quick-info/detail chrome formats hours with the CURRENT wall-clock `new Date()`
+passed into `formatOpeningHours`, NOT the selected instant
+**When** the map + list render (and on every time-scrub / date-change)
+**And** to stay consistent, the "Öppet till HH:MM" line / ÖPPET badge must be DERIVED from
+the SAME selected instant as the filter (or suppressed in planned-time mode) — otherwise a
+venue that correctly reappears for Saturday 18:00 would still show today's close time (the
+filter and the copy disagreeing); this closes the deferred `quickInfoOpeningHours` /
+`new Date()` weekday-roll item from the 11.9 review
+**Then** venues that are **CLOSED at the selected instant** are hidden from **every pin +
+list source, not just the main nearby list** — MapView builds pins from the filtered list
+PLUS `activeFavouriteVenueRows` PLUS `selectedVenuePreviewForMap` (`MapView.tsx:516-530`),
+and `/favoriter` renders its own `favouriteVenueRows` list — so the open-at filter (and the
+counts) must apply to ALL of them, and re-appear when the selected time falls inside their
+hours — computed **client-side** from `opening_hours` + the selected weekday/time (zero extra
+fetch; the hours are already loaded, consistent with the scrub=0 invariant)
+
+**Given** past-midnight sessions (a venue open 18:00→02:00 is open at 01:00 as part of the
+PRIOR day's session)
+**When** the open/closed test runs
+**Then** it uses a NEW dedicated **`isVenueOpenAt(hours, instant)`** predicate — there is
+NO is-open helper today: `opening-hours.ts` only has `coerceInterval` + `formatOpeningHours`
+(which formats the current day's close, with NO `open ≤ t < close` / prior-day check — this
+IS the deferred is-open-now guard, never built). The helper checks the current weekday's
+interval AND, when `close < open`, the PRIOR weekday's interval (so a venue open 18:00→02:00
+shows at 01:00), with unit tests for both — reused everywhere the filter runs so before-open
+/ after-close and the 01:00 case are correct
+
+**Given** a precise distinction the contract already encodes (`coerceOpeningHours`,
+`venue-store.ts:569-573`): the **entire `opening_hours` field absent/undefined** = hours
+UNKNOWN, but a **missing weekday key or `null` entry** = explicitly CLOSED that day
+**When** the filter runs
+**Then** only the truly-unknown case shows: `openingHours === undefined` → **NOT hidden**
+(we never assert "closed" without data — honesty-first); but `hours[selectedWeekday]`
+missing/`null` → **HIDDEN** (that day IS closed). Tested both ways — a hours-less venue
+stays visible, a venue closed on the selected weekday is hidden (don't over-broaden
+"unknown" to swallow the closed-weekday case)
+
+**Given** filtering changes the visible set
+**When** venues are hidden
+**Then** the empty state and any "N platser" counts reflect the FILTERED set, and this
+filter stacks (AND) with tag filtering and the Story-12.6 sunny/grey pin logic (only open
+venues get pins, then amber/grey applies)
+
+**Given** a client-side time filter and the server's `MAX_RESULTS = 50` truncation conflict
+once a city exceeds the cap: if the server returns the top-50 BEFORE the client hides
+closed venues, an open venue just outside the slice can never appear; if the server filters
+by the selected time FIRST, scrubbing is no longer purely client-side
+**When** the data set is a single city (~50–100 venues — small and bounded)
+**Then** the intended fix is stated: **return the FULL city candidate set** so the client
+holds every venue and can filter by the selected time locally without ever dropping an open
+one — preserving the zero-fetch scrub. CRITICAL: do NOT literally "raise/remove `MAX_RESULTS`"
+— it is ALIASED to the favourites-by-id cap (`const MAX_IDS = MAX_RESULTS`, `route.ts:55`,
+which also drives `MAX_IDS_QUERY_LENGTH` arithmetic at `route.ts:56/174` and the id-count
+break at `route.ts:183`); touching `MAX_RESULTS` would silently uncap/break the
+favourites-by-ids endpoint. Instead **introduce a separate list-cap constant** (or raise
+only the `matchedVenues` slice at `route.ts:419-431`), leaving `MAX_IDS` /
+`MAX_IDS_QUERY_LENGTH` untouched. (The cap was written for a scale this MVP isn't at; a
+future multi-city scale would revisit it, e.g. viewport-bounded candidate sets)
+
+**Design Gate Criteria:**
+- **Visual:** Closed venues have no pin/list row at the selected time; the map declutters
+  outside opening hours
+- **Behaviour:** The open-at filter itself adds ZERO fetches — a time-scrub re-filters
+  entirely client-side (scrub stays 0 requests total), while a date-change KEEPS its
+  existing exactly-ONE list fetch (that fetch brings the new day's `sunDaySeries`; the
+  hours re-filter rides on the already-loaded data — do NOT make date-change zero-fetch,
+  that would leave the previous date's sun predictions stale while hours update); matches
+  the preamble scrub=0 / date-change=1 invariant; past-midnight correct; unknown-hours
+  venues always shown; stacks with tags + 12.6 pins
+- **Animation:** Pins entering/leaving on a time change use the existing pin fade — no jarring
+  flash or layout jump when the set changes
+- **Visual validation:** Map + list at a time when some venues are closed vs a time when
+  they're open (mobile + desktop) vs a new reference passes
+
+> **Open questions for planning:** (1) does "hide closed" apply to **search** too, or should
+> a by-name search still surface a closed venue (marked closed)? (2) should a **saved
+> favourite** that's closed be hidden like the rest, or always shown with a "stängt" marker
+> (a user deliberately saved it)? Default here is hide everywhere for map/list; both search
+> and the favourites-when-closed treatment are maintainer calls at story creation.
