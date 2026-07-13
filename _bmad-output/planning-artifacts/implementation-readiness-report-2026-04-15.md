@@ -4,6 +4,7 @@
 **Project:** SunnySeat
 
 > **Superseded scope note (2026-05-19):** This readiness report is a historical snapshot from before the MVP scope correction. Do not use it as the current source for premium/payment/planner/favourites scope. Current canonical sources are PRD v3.1, `epics.md` v3.1, `architecture.md`, `ux-design-specification.md`, `sprint-change-proposal-2026-05-19.md`, and `future-monetization-season-pass.md`. Planner, future date simulation, and favourites are free MVP scope; Season Pass, Swish, paywalls, premium activation/recovery/failure are Future Monetization only.
+> **Current Epic 12 planning (2026-07-12):** This April analysis remains historical; use [the Epic 12 delta](implementation-readiness-report-2026-07-12-epic-12.md) for current implementation planning and public-launch readiness.
 
 ---
 

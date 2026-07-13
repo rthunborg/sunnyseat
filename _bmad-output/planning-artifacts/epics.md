@@ -46,17 +46,17 @@ This document provides the complete epic and story breakdown for SunnySeat, deco
 ### Functional Requirements
 
 FR1: Users can view venues with outdoor seating on an interactive map, visually distinguished by current sun exposure state (sunny vs. shaded).
-FR2: Users can view a list of nearby venues ranked by sun exposure relevance, showing name, sun time range, confidence score, and distance.
+FR2: Users can view a list of nearby venues ranked by sun exposure relevance, showing venue name, selected-instant sun information, distance, and availability; the list does not show a user-facing or screen-reader confidence number.
 FR3: Users can search for venues by name or area within Gothenburg.
 FR4: Users can see their current location on the map and discover venues relative to their position.
 FR5: Users can view venue locations and quickly compare multiple nearby sunny venues to find alternatives.
 FR6: The system requests geolocation permission on first visit and offers a default location fallback (Gothenburg centrum) if denied.
-FR7: Users can view the current sun exposure state and confidence percentage for any venue.
+FR7: Users can view the selected-instant sun state and, where the venue is sunny, the percentage of its seating in direct sun. Internal model confidence is not displayed visually or to screen readers.
 FR8: Users can view a sun timeline for a venue showing when sun exposure starts, peaks, and ends for today.
 FR9: Users can scrub through time to see how venue sun states change throughout the current day.
 FR10: Users can select a future date and simulate sun exposure states for all venues on that date.
 FR11: Users can scrub through time on a selected future date to see predicted sun states.
-FR12: The system displays confidence scores that blend geometric sun certainty with weather-based cloud cover uncertainty.
+FR12: The system computes confidence internally for diagnostics, coverage assessment, uncertainty reasons, and maintainer prioritization. The public UI communicates weather obstruction and prediction uncertainty without a confidence percentage; missing weather remains unknown and is never fabricated as clear.
 FR13: The system auto-refreshes venue sun states periodically while the app is active, without requiring manual reload.
 FR14: Users can view detailed venue information including photos, description, opening hours, and address.
 FR15: Users can navigate to a venue using in-app routing with estimated walk/bike time.
@@ -84,8 +84,8 @@ FR36: Retired. New venue ingestion is handled outside the app through direct dat
 FR37: Users can verify or flag outdoor seating status for existing venues through a consumer confirmation flow.
 FR38: Retired. SunnySeat does not maintain a venue candidate approval queue.
 FR39: Retired. SunnySeat does not provide admin authentication.
-FR40: Retired. SunnySeat does not provide venue CRUD/configuration APIs.
-FR41: Retired. Patio polygon edits are direct database maintenance work, not an app geometry editor.
+FR40: Retired for production. SunnySeat does not provide a production venue CRUD/configuration API; a localhost/dev-only maintenance route may exist only behind an unconditional production deny and does not restore a production admin surface.
+FR41: Retired for production. Patio polygon edits remain reviewed maintenance work; a localhost/dev-only editor may support them only behind an unconditional production deny and does not restore a production admin surface.
 FR42: Retired. Building geometry file changes are direct database/backend maintenance work, not an app upload surface.
 FR43: Retired. SunnySeat does not provide an admin accuracy dashboard.
 FR44: Retired. SunnySeat does not provide venue candidate review/approval tooling.
@@ -131,8 +131,8 @@ NFR30: MapLibre GL JS: Vector tile source must support Gothenburg coverage at zo
 NFR31: Web Push API: Push subscription management handles browser permission revocation gracefully.
 NFR32: OpenStreetMap data ingestion: Overpass API queries respect rate limits.
 NFR33: 99.5% uptime measured monthly.
-NFR34: Weather data staleness: if Met.no data is older than 2 hours, confidence scores are capped and a freshness indicator is shown.
-NFR35: Precomputed sun exposure data regenerated daily. If precomputation fails, previous day's data served with reduced confidence.
+NFR34: Stale or missing Met.no data affects the public weather/uncertainty state rather than a visible confidence number. Missing weather remains unknown and is never fabricated as clear; any freshness or uncertainty communication must be accessible without exposing internal confidence.
+NFR35: Persisted geometry is day-specific and another day's geometry is never substituted. Missing venue × date coverage is an observable operational failure. Current weather gating is applied at read time, and scheduled coverage reporting exposes completeness for every venue and date across the selectable window, including continuous midnight rollover.
 NFR36: Future Swish payment status polling times out after 5 minutes with a clear "payment not confirmed" message and retry option.
 NFR37: Service worker caches app shell for offline display. Cache invalidation on new deployment.
 
@@ -167,13 +167,13 @@ UX-DR1: Design token-to-Tailwind CSS @theme mapping — all DESIGN.md colour, ty
 UX-DR2: Warm amber/sand/cream palette implementation — the colour system is emotional infrastructure ("it feels sunny"), not decoration. Amber pin (#f1b100), cream surfaces (#fdfaf4), sand map background (#f5f0e6), frosted glass overlays.
 UX-DR3: VenuePin component with 4 states — sunny (pill with pointer, amber), sunny+selected (perfect circle, amber), shaded (pill with pointer, grey at 0.8 opacity), partner sunny (larger pill with warm glow). Shape transition animated at 200ms.
 UX-DR4: BottomSheet component with drag physics — snap points at peek (~100px above nav), full (full screen minus status bar), and dismissed. Spring easing (cubic-bezier(0.22,1,0.36,1)). Drag handle pill (40px peek / 48px full). Map visible and interactive behind peek, dimmed behind full.
-UX-DR5: VenueQuickInfo quick-info card — slides up on pin tap (200ms easing-enter), dismisses on tap-away (150ms easing-exit), swaps content on new pin tap (crossfade 150ms). Shows venue name, sun window, confidence %, distance, "Visa Rutt" CTA. Desktop: floating popover near pin instead of bottom card.
+UX-DR5: VenueQuickInfo quick-info card — slides up on pin tap (200ms easing-enter), dismisses on tap-away (150ms easing-exit), swaps content on new pin tap (crossfade 150ms). Shows venue name, selected-instant sun window/verdict, distance, selected-instant availability/hours when known, and "Visa Rutt" CTA. Amber surfaces may show seating-share percentage; grey surfaces are percentage-free. No visible or screen-reader confidence content. Desktop: floating popover near pin instead of bottom card.
 UX-DR6: TimeSliderPanel with frosted glass effect — color-glass-slider (rgba(255,255,255,0.9)), blur-heavy (12px), radius-panel (32px). Contains free time scrubber + free date picker. Date/time changes update map pins, QuickInfo, venue list, and venue detail without premium gates.
 UX-DR7: SunTimeline horizontal gradient bar — gradient-timeline-bar, 12px height, time markers at sunrise/current/sunset. Gradient fill animates from left to current-time on first render (400ms). Current time indicated with text-time styling.
 UX-DR8: Three-tier button hierarchy — Primary: RouteButton (gradient-route-button, gold-to-dark, one per screen). Secondary: AmberCTAButton (gradient-cta-amber, multiple per screen). Tertiary: GlassButton (frosted white 80%, circular/pill). All radius-pill. Disabled = 40% opacity. Min 44x44px touch target.
 UX-DR9: Sheet & overlay stacking rules — only one sheet visible at a time (except QuickInfo + peek coexist). Dismiss patterns: drag down, tap outside (QuickInfo), swipe down, back gesture. Transition timings: peek-to-full 300ms spring, full-to-dismissed 250ms ease-in, QuickInfo appear 200ms, dismiss 150ms.
 UX-DR10: Loading & empty states — map renders immediately with sand background, pins fade in individually (150ms each) as data arrives. Slow connection (>3s): "Laddar platser..." pill. Venue detail: sheet opens with shimmer skeleton. No full-page spinners ever.
-UX-DR11: Error & degradation patterns — silent degrade by default. Weather stale >2h: tilde prefix on confidence ("~85%"). Weather API down: hide confidence. Venue API failure: inline map message + retry. Network offline: app shell + "Ingen anslutning" banner. Error tone: matter-of-fact Swedish, no exclamation marks or emoji.
+UX-DR11: Error & degradation patterns — silent degrade by default. Stale weather keeps accessible freshness/uncertainty copy without exposing confidence. Missing weather remains explicitly unknown and is never fabricated as clear. Venue API failure: inline map message + retry. Network offline: app shell + "Ingen anslutning" banner. Error tone: matter-of-fact Swedish, no exclamation marks or emoji.
 UX-DR12: Feedback prompt ("Var det soligt?") — inline card in venue detail (not modal), contextually triggered after likely visit. Binary first (Ja/Nej), optional outdoor seating follow-up. Dismissible. Success: inline "Tack for din feedback" replacing form, fades after 3s.
 UX-DR13: Review submission form — intentional user-initiated action via "Lamna ett omdome" CTA. Text area + optional photo. Submit: inline confirmation replacing form. Failure: inline error + retry. Text area focus: border transitions to amber-dark.
 UX-DR14: Map interaction conventions — tap pin: select + QuickInfo. Tap selected pin: deselect. Tap map: deselect + dismiss QuickInfo. Tap different pin: swap (crossfade content). Map controls fade to 60% opacity during drag. My-location: smooth pan (500ms). After panning: no auto-recentre, preserve spatial context.
@@ -185,7 +185,7 @@ UX-DR19: Future Monetization paywall — preserved post-MVP reference only; not 
 UX-DR20: Future Monetization payment processing state — preserved post-MVP reference only; not active in MVP.
 UX-DR21: Future Monetization payment failed screen — preserved post-MVP reference only; not active in MVP.
 UX-DR22: Venue detail — mobile: full bottom sheet with drag handle, hero image + sun badge overlay, venue name, description, "SOLTIDER IDAG" InfoCard with SunTimeline, opening hours with shadow warning (color-error), address with "OPPNA I KARTOR" link, full-width RouteButton. Desktop: 390px right panel with close button, map interactive behind.
-UX-DR23: Venue list — mobile: bottom sheet expandable from peek, "Hitta solen nu" header, venue cards (87x72px thumbnail, sun badge, name, sun range, confidence, distance), sorted sunny-first then closest-first. Desktop: 190px left side panel overlaying map, "TOPPVAL NARA DIG" header, compact scrollable cards.
+UX-DR23: Venue list — mobile: bottom sheet expandable from peek, "Hitta solen nu" header, venue cards (87x72px thumbnail, sun badge, name, selected-instant sun information, availability, distance), sorted sunny-first then closest-first. Amber rows may show seating-share percentage; grey rows are percentage-free. No visible or screen-reader confidence content. Desktop: 190px left side panel overlaying map, "TOPPVAL NARA DIG" header, compact scrollable cards.
 UX-DR24: About page — scrollable, sections: "Hur fungerar SunnySeat?", "ALGORITMEN", "DATAKALLOR" (Lantmateriet, Met.no, OSM), "TRAFFSAKERHET" with 85% stat count-up animation (800ms on scroll-into-view), contact section. Desktop: max-width 720px centred, two-column data sources.
 UX-DR25: 404 page — amber pin icon with "?" inside, "Den har platsen hittades inte" heading, "Hitta soliga platser nu" RouteButton CTA. Icon float animation (translateY +/-4px, 2s loop). Desktop: DesktopNavBar visible.
 UX-DR26: prefers-reduced-motion respect — all Motion animations wrapped in motion-safe check. CSS transitions simplified to instant. Sheet transitions: opacity only. No stagger animations. No pin fade. No timeline gradient animation. No count-up animation. No icon bounce or float.
@@ -197,17 +197,17 @@ UX-DR30: Animation strategy split — Motion (successor to framer-motion, motion
 ### FR Coverage Map
 
 FR1: Epic 1 — View venues on interactive map with sun-state pins
-FR2: Epic 2 — View ranked venue list with sun info and distance
+FR2: Epic 2 — View ranked venue list with selected-instant sun information, distance, and availability, without a public confidence number
 FR3: Epic 2 — Search venues by name or area
 FR4: Epic 1 — See current location on map, discover nearby venues
 FR5: Epic 1 — Compare multiple nearby sunny venues visually
 FR6: Epic 1 — Geolocation permission with Gothenburg centrum fallback
-FR7: Epic 2 — View current sun exposure state and confidence %
+FR7: Epic 2 — View selected-instant sun state and seating exposure percentage where sunny; internal confidence is not displayed
 FR8: Epic 2 — View sun timeline (start, peak, end) for today
 FR9: Epic 2 — Scrub through time for today's sun states
 FR10: Epic 2 — Free future date selection for sun simulation
 FR11: Epic 2 — Free time scrubbing on selected future date
-FR12: Epic 2 — Confidence scores blending geometry + weather
+FR12: Epic 2 — Compute confidence internally; communicate public weather obstruction and uncertainty without a confidence percentage
 FR13: Epic 2 — Auto-refresh venue sun states (5-min interval)
 FR14: Epic 2 — View venue detail (photos, description, hours, address)
 FR15: Epic 3 — Navigate to venue with walk/bike routing + ETA
@@ -235,8 +235,8 @@ FR36: Retired — direct database insert/update queries outside the app
 FR37: Epic 3 — Consumer outdoor seating verification for existing venues
 FR38: Retired — no venue candidate approval queue
 FR39: Retired — no admin authentication surface
-FR40: Retired — no venue CRUD/configuration API
-FR41: Retired — no app geometry editor
+FR40: Retired for production — no production venue CRUD/configuration API; localhost/dev-only maintenance route allowed only behind an unconditional production deny
+FR41: Retired for production — no production geometry editor; localhost/dev-only maintenance editor allowed only behind an unconditional production deny
 FR42: Retired — no app building upload surface
 FR43: Retired — no admin accuracy dashboard
 FR44: Retired — no venue candidate review queue
@@ -254,7 +254,7 @@ Users open SunnySeat, grant location, and see a warm sand map with amber/grey ve
 **FRs covered:** FR1, FR4, FR5, FR6, FR46
 
 ### Epic 2: "Explore & Compare" — Venue List, Detail, Planner & Favourites
-Users can browse a ranked venue list, search by name/area, view rich venue detail (photo, hours, address, sun timeline), see confidence percentages, scrub through time, select future dates for planning, save favourite venues, and have data auto-refresh in the background.
+Users can browse a ranked venue list, search by name/area, view rich venue detail (photo, hours, address, sun timeline), see selected-instant sun information and seating exposure where sunny without a public confidence number, scrub through time, select future dates for planning, save favourite venues, and have data auto-refresh in the background.
 **FRs covered:** FR2, FR3, FR7, FR8, FR9, FR10, FR11, FR12, FR13, FR14, FR31
 
 ### Epic 3 Prelude: "Shadow Data Trust Realignment"

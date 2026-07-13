@@ -8,6 +8,8 @@
 
 Planner, future date selection, future sun simulation, confidence display, auto-refresh, and favourites are free MVP functionality. No active MVP test should require a Season Pass, premium flag, Swish flow, payment route, premium recovery, or lock badge.
 
+> **Forward-work supersession (2026-07-12):** Story 12.13 supersedes this addendum's user-facing confidence-display clauses. Confidence remains computed internally, but forward work expects no visible or screen-reader confidence number. Weather and prediction-uncertainty honesty remain required. See the [Epic 12 test-design delta](epic-12-test-design-2026-07-12.md).
+
 Future Monetization remains preserved in `_bmad-output/planning-artifacts/future-monetization-season-pass.md`.
 
 ## Story-Level QA Requirements

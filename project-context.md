@@ -2,19 +2,19 @@
 
 > **Purpose:** This file is the BMAD dev agent's injection point for design awareness. BMAD's dev agent (Amelia) loads this as foundational reference in Step 2 of its workflow. It lives at the project root — not inside `_bmad/` — so it survives BMAD reinstalls without being overwritten.
 >
-> Last updated: 2026-07-06 (post Epic 11 — "Feels Instant, Reads Clear": time-scrub performance, mobile interaction & surface polish, stories 11.1–11.8 + the folded-in Story 11.9 venue-data-model cleanup landed)
+> Last updated: 2026-07-13 (Epic 12 planning alignment plus resolved closed-venue search/favourites policy; Epic 9–11 ratified conventions remain unchanged)
 >
 > **MVP scope correction:** planner, future date simulation, and favourites are free MVP functionality. Season Pass / Swish is Future Monetization only.
 >
 > **Shadow data correction:** `building_geodata/byggnad_kn1480.gpkg` is a 2D footprint source only and is not sufficient for shadow modelling by itself. MVP launch geodata is scoped to the central EPSG:3007 bbox `x=140000..150000, y=6390000..6410000` and adopts the combined open-data shadow-caster path documented in `_bmad-output/planning-artifacts/decisions/shadow-data-trust-realignment.md`.
 >
-> **The app is LIVE on the real data path** (production cutover 2026-06-29: `SUNNYSEAT_VENUE_STORE=supabase`, `SUN_ENGINE=real`, feedback/review persistence = Supabase). Epic 9 landed a post-launch hardening pass, Epic 10 layered a weather-truth ("Honest Sky") gate on top of the geometric sun engine, and Epic 11 made time-scrubbing feel instant (client-side day-series derivation, zero fetch on scrub), reworked the mobile bottom-sheet / slider touch interaction and venue surfaces, and — in the folded-in Story 11.9 — cleaned up the venue data model (per-weekday `opening_hours` jsonb replacing the pre-localized display string, dropped `peak_time` + `shadow_warning_minutes`, sequence-backed text-PK auto-assign); the conventions each ratified are captured in "Epic 9 Ratified Conventions", "Epic 10 Ratified Conventions", and "Epic 11 Ratified Conventions" below.
+> **The app is LIVE on the real data path** (production cutover 2026-06-29: `SUNNYSEAT_VENUE_STORE=supabase`, `SUN_ENGINE=real`, feedback/review persistence = Supabase), and `public.venues` holds the 42-real-venue Göteborg set loaded 2026-07-07. This does **not** mean the app is ready for public launch: first real-scale contact exposed the active Epic 12 backlog, led by cold-start performance and live identity defects. Epic 9–11 shipped conventions remain ratified below; Epic 12 decisions are separately marked planned/not yet ratified until their owning stories land.
 
 ---
 
 ## What Is SunnySeat?
 
-A live Next.js web/PWA app that helps people in Gothenburg find outdoor venue seating in direct sunlight right now. It combines two orthogonal signals into a single honest answer: (1) **geometric sun potential** — real-time NREL SPA solar position + 2.5D building/terrain shadow modelling ("where could the sun reach this seating area?"), and (2) **weather truth** — Met.no cloud + radar-rain data that gates that potential ("but is the sun actually getting through the sky right now?"). Venue-level output carries a sun status, a sky-condition line, and confidence scoring. The server returns a whole-day gated **sun day-series** so the client can scrub the planner time instantly with zero network requests. The MVP is feature-complete and shipped to production; the current focus is post-launch hardening, truthful data, and interaction/perceived-performance polish.
+A live Next.js web/PWA app that helps people in Gothenburg find outdoor venue seating in direct sunlight right now. It combines two orthogonal signals into a single honest answer: (1) **geometric sun potential** — real-time NREL SPA solar position + 2.5D building/terrain shadow modelling ("where could the sun reach this seating area?"), and (2) **weather truth** — Met.no cloud + radar-rain data that gates that potential ("but is the sun actually getting through the sky right now?"). Venue-level output carries a sun status, a sky-condition line, and confidence scoring. The server returns a whole-day gated **sun day-series** so the client can scrub the planner time instantly with zero network requests. The real production data path is live with 42 real Göteborg venues, but public-launch readiness is incomplete; Epic 12 owns the scale, identity, hours, presentation, media, and operational gaps exposed by first real-scale use.
 
 ### Tech Stack
 
@@ -46,12 +46,13 @@ A live Next.js web/PWA app that helps people in Gothenburg find outdoor venue se
 
 ### Current State
 
-- **MVP is feature-complete and LIVE in production on the real data path** (cutover 2026-06-29). The full stack — frontend, real sun/shadow engine, Met.no weather, Supabase venue store + feedback/review persistence — runs against live data. Epics 1, 2, 3, 7, 8 and 9 are done.
+- **The real data path is LIVE in production** (cutover 2026-06-29). The full stack — frontend, real sun/shadow engine, Met.no weather, Supabase venue store + feedback/review persistence — runs against live data. Epics 1, 2, 3, and 7–11 are shipped history. Public-launch readiness is still incomplete.
 - **Epic 9 ("Live-App Hardening & Clean-Up", stories 9.0–9.10) has landed.** It was a post-launch remediation of a party-mode live-app triage: prod-gating the dev planner-forcing URL leak, de-bloating fabricated venue metadata, fixing the CTA gradient token, adding server caching + client query hygiene to the time→query path, hardening location/onboarding, consolidating map chrome + removing dead controls, real tag filtering, real venue sharing, and a mobile verification/regression pass. The durable conventions it ratified are in "Epic 9 Ratified Conventions" below.
 - **Epic 10 ("Honest Sky", stories 10.1–10.5) has landed.** It added the weather-truth half of the two-signal model: a cloud gate that flips a geometrically-sunlit venue to a new `CloudObscured` status when the sky is (near-)total overcast or raining, layer-weighted effective cloud cover (thin high cirrus no longer reads as blocking stratus), a Met.no Nowcast 2.0 near-now radar-rain signal, the muted "Sun Behind Clouds" UI treatment, and a reality-verification / regression-guard pass. Its `CloudObscured` / `SkyCondition` union extensions, "undefined never 0" missing-weather discipline, exhaustiveness-forcing allow-lists, and deterministic weather e2e seam are ratified in "Epic 10 Ratified Conventions" below — **binding for any story that reads sun status, sky condition, or weather.**
 - **Epic 11 ("Feels Instant, Reads Clear", stories 11.1–11.9) has landed.** An anti-"shipped-but-insufficient" pass that killed the user-visible time-scrub stall that survived epics 9/10: the server now emits a whole-day gated **sun day-series** and the client derives every time-dependent surface (marker %, pin state, quick-info, "Mest sol" ordering, obscured sky line) from that cached series, so a settled same-date scrub issues **zero** venue requests and only a date change fetches. Query keys went **date-only** (time never in the key, gated by a new `isLiveNow` flag); the planner date picker moved to a fixed **today→today+3** window (client/state-enforced, server opted out); the mobile bottom sheet + tag-chip filtering + time-slider drag were reworked for real touch (`@use-gesture` release-direction snapping, a CDP real-touch Playwright project); and a hygiene pass finally scheduled three-epics-deferred debt (`.gitattributes` LF normalization, Vercel install fail-loud, the amber-badge contrast token, orphaned-mapper deletion). **Story 11.9 (a venue-data-model cleanup folded in from the dissolved Epic 12, landed after the original 11.1–11.8 epic-end)** replaced the venue store's pre-localized `{ display, closesAt }` opening-hours STRING with a per-weekday `opening_hours` jsonb (numeric ISO-weekday keys `"1"`..`"7"`, derived+localized at render time via `lib/utils/opening-hours.ts`), dropped the unused `venues.peak_time` + `shadow_warning_minutes` columns, and made the text PK auto-assign from a sequence (inserts omit `id`) — applied as a live prod-DB migration. Its conventions are ratified in "Epic 11 Ratified Conventions" below — **binding for any story touching the planner time/date, venue query keys, the mobile bottom sheet / slider / chip strip, the venue `opening_hours` data, or the standing perf/touch CI gates.**
-- **Admin operations are retired from active scope.** Venue changes and geodata maintenance happen through reviewed direct database/import operations (documented at `nextjs-app/docs/venue-data-load.md`), not an admin UI/API.
-- **Live DB access:** the direct host is IPv6-only; bulk psql/live-data ops go through the **IPv4 session pooler** (`aws-1-eu-west-1`) via Docker psql, creds in the gitignored `.env.local`. `public.venues` currently holds the 7 test/fixture venues (no bulk production venue data yet).
+- **Epic 12 ("Real-Venue Launch Readiness", stories 12.1–12.14) is the active backlog and has not landed.** The real 42-venue load exposed launch-blocking cold-start performance and live identity defects plus hours, presentation, media, and operational gaps. The approved 2026-07-12 proposal, revised PRD v3.2/UX/architecture, completed provider-policy research, and Epic 12 prose govern story creation. Its planned decisions are captured separately below and must not be described as current behavior before implementation.
+- **Production admin operations remain retired.** Current venue and geodata maintenance uses reviewed, fail-closed direct database/import operations (documented at `nextjs-app/docs/venue-data-load.md`). Story 12.5 may add a narrowly scoped **localhost/dev-only** maintenance editor, but it is an exception to hand-written maintenance—not a production admin product. Its UI/read/write seams must have an unconditional production hard deny even if a dev flag is misconfigured.
+- **Live DB access:** the direct host is IPv6-only; bulk psql/live-data ops go through the **IPv4 session pooler** (`aws-1-eu-west-1`) via Docker psql, creds in the gitignored `.env.local`. `public.venues` holds the 42-real-venue Göteborg set loaded 2026-07-07. Fixture mode and its seeded venues remain valid deterministic test infrastructure; they are not the live dataset.
 - **Deferred/future:** Epics 4/5/6 are deferred. Season Pass / Swish / paywall states are Future Monetization only and must not enter MVP stories.
 
 ---
@@ -61,17 +62,21 @@ A live Next.js web/PWA app that helps people in Gothenburg find outdoor venue se
 | Document | Path |
 |----------|------|
 | Project Context (this file) | `project-context.md` |
-| PRD (v3.1) | `_bmad-output/planning-artifacts/prd.md` |
+| PRD (v3.2) | `_bmad-output/planning-artifacts/prd.md` |
 | Project Brief | `_bmad-output/planning-artifacts/brief/project-brief.md` |
-| Architecture | `_bmad-output/planning-artifacts/architecture.md` |
+| Architecture (Epic 12 delta: `E12-AD-01`…`E12-AD-13`) | `_bmad-output/planning-artifacts/architecture.md` |
 | UX Design Specification | `_bmad-output/planning-artifacts/ux-design-specification.md` |
-| Epics & Stories (v3.1) | `_bmad-output/planning-artifacts/epics.md` |
+| Epics & Stories (Epic 12 aligned 2026-07-12) | `_bmad-output/planning-artifacts/epics.md` |
+| Epic 12 Approved Sprint Change Proposal | `_bmad-output/planning-artifacts/sprint-change-proposal-2026-07-12.md` |
+| Epic 12 Provider-Policy Technical Research | `_bmad-output/planning-artifacts/research/technical-google-places-api-policy-epic-12-research-2026-07-12.md` |
 | MVP QA Addendum | `_bmad-output/qa/mvp-test-design-scope-correction-2026-05-19.md` |
+| Epic 12 QA Test Design (active delta) | `_bmad-output/qa/epic-12-test-design-2026-07-12.md` |
 | Future Monetization Archive | `_bmad-output/planning-artifacts/future-monetization-season-pass.md` |
 | Design Decisions | `_bmad-output/planning-artifacts/decisions/` |
 | Shadow Data ADR | `_bmad-output/planning-artifacts/decisions/shadow-data-trust-realignment.md` |
 | Shadow Data Sprint Change Proposal | `_bmad-output/planning-artifacts/sprint-change-proposal-2026-06-02-shadow-data-trust-realignment.md` |
-| Implementation Readiness Report | `_bmad-output/planning-artifacts/implementation-readiness-report-2026-04-15.md` |
+| Epic 12 Implementation Readiness (active delta) | `_bmad-output/planning-artifacts/implementation-readiness-report-2026-07-12-epic-12.md` |
+| Historical April Implementation Readiness Snapshot | `_bmad-output/planning-artifacts/implementation-readiness-report-2026-04-15.md` |
 | Sprint Status | `_bmad-output/implementation-artifacts/sprint-status.yaml` |
 | Deferred-Work Queue | `_bmad-output/implementation-artifacts/deferred-work.md` |
 | Epic-9 Retro Notes | `_bmad-output/auto-bmad/retro-notes/epic-9.md` |
@@ -79,6 +84,7 @@ A live Next.js web/PWA app that helps people in Gothenburg find outdoor venue se
 | Epic-11 Retro Notes | `_bmad-output/auto-bmad/retro-notes/epic-11.md` |
 | Epic-10 Epic Spec ("Honest Sky") | `_bmad-output/planning-artifacts/epics.md` (Epic 10) |
 | Epic-11 Epic Spec ("Feels Instant, Reads Clear") | `_bmad-output/planning-artifacts/epics.md` (Epic 11) |
+| Epic-12 Epic Spec ("Real-Venue Launch Readiness") | `_bmad-output/planning-artifacts/epics.md` (Epic 12) |
 | Venue Data Load Guide | `nextjs-app/docs/venue-data-load.md` |
 | Local Docker / WSL Guide | `docs/local-docker.md` |
 | Repo Agent Rulebook (canonical) | `AGENTS.md` |
@@ -326,6 +332,37 @@ Durable patterns ratified during Epic 11 ("Feels Instant, Reads Clear" — time-
 - **Dropped columns — `venues.peak_time` + `venues.shadow_warning_minutes` are REMOVED** (both were store→DTO-carried but rendered nowhere; their only readers were tests). Do not reintroduce them. Note the ENGINE's `sun-engine.ts#peakTimeFromTimeline` (same "peak" name, different function) + `detail.timeline` DTO are UNTOUCHED — the day-series consumption path is unaffected.
 - **The text PK auto-assigns from a sequence — inserts OMIT `id`.** `public.venues.id` stays a `text` PK (so reviews/feedback keep referencing it as free-text `venue_id`) but now has a sequence-backed default; a real-venue `INSERT … ON CONFLICT (id) DO UPDATE` must **NOT pick an `id`** (next is `"8"`), sending one only to intentionally overwrite an existing `"1"`–`"7"` row. The canonical data-load shapes (per-weekday hours, closed day, past-midnight, no-id insert) live in the rewritten `nextjs-app/docs/venue-data-load.md`.
 - **Live migration applied via the Docker-psql fallback, not Supabase MCP.** In delegate sessions the Supabase MCP `apply_migration`/`execute_sql` are unavailable (OAuth not active); the 11.9 migration (`_bmad-output/implementation-artifacts/11-9-venue-data-model-cleanup.sql`) was applied to the live prod DB via the local `supabase/postgres` Docker image + `SUPABASE_DB_POOLER_URL` from the gitignored `.env.local` (the IPv4 session pooler). Future live-DB migration steps: confirm MCP auth up front or expect this Docker-psql fallback. A post-epic-end NFR delta was re-run rather than trusting the frozen epic-end PASS — live-DB RLS/deny-by-default posture is only verifiable against the running DB, not source.
+
+---
+
+## Epic 12 Pending Decisions and Invariants — PLANNED / NOT YET RATIFIED
+
+> **Status boundary:** This section records the approved Epic 12 planning/build substrate, not shipped implementation. `E12-AD-01`…`E12-AD-13` are adopted architecture decisions, but no Epic 12 implementation convention becomes ratified here until its owning story lands and proves it. Until then, the existing Epic 9–11 conventions and current runtime behavior remain authoritative. As stories land, move only the proven convention into a ratified Epic 12 section and remove or supersede conflicting current-behavior notes.
+
+### Five cross-story invariants (planned implementation)
+
+1. **One opening-hours representation and surface policy.** Keep the current single-interval-per-weekday `WeeklyOpeningHours` launch contract: numeric ISO weekday keys; at most one `{ open, close }` interval; missing/`null` weekday = explicitly closed; whole field absent = unknown; `close < open` = prior-day past-midnight spillover. Unsupported split, 24/7, seasonal, and holiday-specific schedules route the whole venue to manual review rather than being flattened or guessed. One selected-instant predicate feeds every surface: map/ranked discovery hides explicitly closed venues, exact by-name search returns them labelled `Stängt vid vald tid`, and favourites retain saved closed venues as greyed, accessible, inspectable rows. Stories 12.1 and 12.14 share this contract and the selected-instant formatter/filter. See `E12-AD-01` and `E12-AD-07`.
+2. **One public-visible-venue guard.** Every public list, ID/slug detail, reviews GET/POST, feedback POST, favourites-by-ID, and detail-prefetch path must resolve live identity through one shared server-only guard and reject unknown or hidden venues identically; fixture fallback remains fixture-mode-only. Story 12.7 owns the resolver, with Stories 12.5/12.10/12.14 bound to it. See `E12-AD-05`.
+3. **One geometry-input hash/version.** Persisted day-series reads, feedback prediction stamps, seating/elevation edits, and caster imports must use the same Story 12.3-owned `geometry_input_hash` (`g1:<lowercase SHA-256>`) over the full canonical shadow-input set. No consumer constructs a local approximation. See `E12-AD-03` (with persisted coverage in `E12-AD-02`/`E12-AD-04`).
+4. **Scrub = 0 requests; date change = exactly 1 request.** The Epic 11 request-count gates remain binding. New prefetch, availability filtering, or background work must not silently change them; one selected instant drives both hours eligibility and hours copy. Stories 12.3/12.10/12.14 own the planned additions. See `E12-AD-07` and `E12-AD-09`.
+5. **One public “sunny” predicate.** Public sunny means **`sunExposurePercent > 50 && weatherGateState !== 'gated'`** through one shared predicate used by pin/ARIA presentation, card emphasis, server ranking and client sort parity, feedback agreement, About copy, and unqualified sun-window/peak labels. Raw internal `VenueSunStatus` does not independently decide public colour. Stories 12.2/12.6/12.8 share ownership. See `E12-AD-08`.
+
+### Adopted provider pivot and architecture pointers
+
+- **Provider pivot adopted; implementation pending (Story 12.1):** do not implement weekly Google Places `regularOpeningHours` synchronization. Under the completed 2026 EEA/MapLibre policy research, Google hours and Google-returned/provider URLs must not enter Supabase, durable queues, logs, fixtures, DTOs, or public UI. Only Google Place IDs may be retained. Canonical hours come from independently permitted evidence; weekly automation is a staleness/manual-review workflow. OSM is a non-writing supplemental pilot until its 42-venue coverage and ODbL attribution/derivative/share-alike gates are approved. Controlling sources: the completed technical research and `architecture.md` `E12-AD-01`/`E12-AD-13`.
+- **Technical decision spine:** `E12-AD-01` provider-neutral hours; `02`–`04` persisted ungated geometry, shared hash, scheduled complete/fail-closed coverage; `05`–`06` public identity/visibility and coordinate separation; `07` selected-instant availability; `08` public sunny predicate; `09` bounded detail prefetch; `10` optimized media renditions; `11` production-impossible maintainer editor; `12` controlled contract migration; `13` console/provider/policy gates. These IDs govern story implementation ownership; they do not describe current runtime behavior before those stories land.
+
+### Current behavior that remains until its owning story lands
+
+- Story 9.3's process-local cache implementation remains current until Story 12.3 replaces it with persisted deterministic geometry and scheduled coverage.
+- Visible confidence surfaces and the current pin/status presentation remain current until Stories 12.13 and 12.6 land; the planned removal and `>50%` public predicate must not be claimed as shipped early.
+- The current fixed mobile bottom-sheet snap behavior remains current until Story 12.9.
+- Story 11.9's current-weekday formatter and not-yet-minute-precise hours badge remain current until Story 12.14 installs the selected-instant availability predicate.
+- Current direct database/import maintenance remains current. Story 12.5's editor does not exist yet; if implemented, it is localhost/dev-only with the unconditional production hard deny in `E12-AD-11`, never a production admin surface.
+
+### Resolved Epic 12 product policy (planned implementation)
+
+**Rasmus/Product resolved the final gate on 2026-07-13.** An exact by-name search match closed at the selected instant remains discoverable, is labelled `Stängt vid vald tid`, and can open venue details. A saved closed venue remains in favourites with an accessible grey overlay/treatment, the same visible and programmatic label, and enabled detail navigation; it does not regain a map pin. Map pins, ranked/area/partial discovery, and availability counts still hide explicitly closed venues. Unknown-hours venues remain visible without an open/closed claim. Story 12.14's retained all-source `/favoriter` filtering wording and open-questions paragraph are superseded, and its story brief must record this decision explicitly.
 
 ---
 
