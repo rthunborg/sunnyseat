@@ -9,22 +9,21 @@ stepsCompleted:
   - 'step-05-generate-output'
 lastStep: 'step-05-generate-output'
 nextStep: ''
-lastSaved: '2026-07-04'
+lastSaved: '2026-07-13T19:10:00+02:00'
 inputDocuments:
-  - '_bmad-output/planning-artifacts/epics.md (## Epic 11 section, lines ~2791-3021)'
-  - '_bmad-output/implementation-artifacts/sprint-status.yaml (8 Epic-11 stories registered)'
-  - '_bmad-output/test-artifacts/test-design/test-design-epic-10.md (house style + regression-guard pattern)'
-  - 'nextjs-app/components/composed/time/TimeSlider.tsx (11.2 pointer-events + per-step commit root cause verified)'
-  - 'nextjs-app/components/custom/map/MapContainer.tsx (11.5 sand+gradient overlay root cause verified)'
-  - 'nextjs-app/components/custom/map/UserPin.tsx (11.5 static dot / raw hex verified)'
-  - 'nextjs-app/app/api/venues/route.ts (11.1 single-instant compute; no day-series; sunListRank verified)'
-  - 'nextjs-app/components/composed/venue/VenueQuickInfo.tsx (11.4 Säkerhet/sunTimeRange/estimateLabel content verified)'
-  - 'nextjs-app/components/custom/layout/DesktopNavBar.tsx (11.3 desktop-only chip row, overflow-hidden clip verified)'
-  - 'nextjs-app/components/custom/sheets/MobileBottomSheet.tsx (11.3 peek/mid/full/dismissed snap machine verified)'
-  - 'nextjs-app/lib/utils/sun-status-presentation.ts (11.7 orphaned toSunStatusToken verified)'
-  - 'nextjs-app/vercel.json (11.7 A2 lightningcss || true swallow verified) + .gitattributes (11.7 A3 EOL gap verified)'
-  - 'nextjs-app/test/e2e/* (epic-10-weather-matrix, axe, axe-mobile, map-primary, responsive-layout, epic-9-mobile-regression)'
-  - 'resources/knowledge/{risk-governance,probability-impact,test-levels-framework,test-priorities-matrix}.md'
+  - 'project-context.md'
+  - '_bmad/tea/config.yaml'
+  - '_bmad-output/planning-artifacts/epics.md (Epic 12, Stories 12.1-12.14)'
+  - '_bmad-output/planning-artifacts/prd.md (FR/LR/NFR Epic 12 delta)'
+  - '_bmad-output/planning-artifacts/architecture.md (E12-AD-01 through E12-AD-13)'
+  - '_bmad-output/planning-artifacts/ux-design-specification.md (Epic 12 shared contracts and forced states)'
+  - '_bmad-output/planning-artifacts/sprint-change-proposal-2026-07-12.md'
+  - '_bmad-output/planning-artifacts/research/technical-google-places-api-policy-epic-12-research-2026-07-12.md'
+  - '_bmad-output/qa/epic-12-test-design-2026-07-12.md (existing approved system-delta QA input)'
+  - 'nextjs-app/package.json and playwright.config.ts'
+  - '.github/workflows/build-and-test-nextjs.yml'
+  - 'nextjs-app/test/**/* (coverage and skip/fixme scan)'
+  - 'resources/knowledge/{risk-governance,probability-impact,test-levels-framework,test-priorities-matrix,nfr-criteria,playwright-cli}.md'
 ---
 
 # Test Design Progress — Epic 11 "Feels Instant, Reads Clear"
@@ -79,3 +78,83 @@ inputDocuments:
 ## Step 5 — Output Generated
 - `_bmad-output/test-artifacts/test-design/test-design-epic-11.md` (epic-level single doc). Validated against
   `checklist.md`. Sequential mode (single artifact). No CLI browser sessions opened; all artifacts under test-artifacts/.
+
+---
+
+# Test Design Progress — Epic 12 "Real-Venue Launch Readiness"
+
+## Step 1 — Mode Detection
+- Mode: **Epic-Level**. The delegated request explicitly requires Epic 12 plus its stories, and
+  `_bmad-output/planning-artifacts/epics.md` contains Story 12.1 through Story 12.14 with acceptance criteria.
+- Prerequisites: **PASS**. Epic/story requirements are available, with architecture context in
+  `_bmad-output/planning-artifacts/architecture.md` and the active project invariants in `project-context.md`.
+
+## Step 2 — Context Loaded
+- Configuration: Playwright utilities enabled, Pact utilities enabled, browser mode `auto`, stack detected as
+  **fullstack Next.js** (React UI plus App Router API routes/Supabase), artifacts under
+  `_bmad-output/test-artifacts`. Pact CDC patterns are not selected because SunnySeat is one deployable and has
+  no independently versioned consumer/provider contract; route/DB contracts use Vitest, SQL, and Playwright.
+- Controlling inputs loaded: Epic 12 stories, PRD LR/NFR delta, UX shared contracts, architecture
+  `E12-AD-01`…`E12-AD-13`, approved sprint-change proposal, provider-policy research, project context, and the
+  existing dated Epic 12 QA system-delta plan.
+- Existing strengths: broad Vitest unit/component coverage, deterministic Epic 10 weather/no-live-Met.no guards,
+  Epic 11 scrub=0/date-change=1 request-count E2E, dedicated Chromium real-touch specs, desktop axe coverage,
+  query-key tests, and pure opening-hours formatting coverage.
+- Existing gaps: no Epic 12 persisted-geometry/hash/coverage/RLS tests; no live id/slug+visibility route matrix;
+  no selected-instant availability predicate; no Google-content policy guard; no console/pageerror gate; no
+  bounded detail-prefetch tests; no row-quantized sheet, coach-mark, media-rendition, or confidence-removal suite.
+  Existing route tests are largely fixture/mock based and there is no current Compose-backed SQL/RLS gate.
+- Accessibility warning: `a11y-mobile` is defined but deliberately absent from CI, and all of its current scenarios
+  are `test.fixme`; a green run is vacuous until Epic 12 adds live mobile axe coverage and CI wiring.
+- Browser exploration skipped: `playwright-cli` is not installed on this host, and no running target was needed;
+  source, test, and canonical-design artifacts provide the required testability evidence.
+
+## Step 3 — Risk & Testability
+- Risk scale: probability 1–3 × impact 1–3. Score 9 blocks release; scores 6–8 require completed
+  mitigation or an explicit owner/expiry waiver. The Epic 12 register contains **23 risks**, including **11 high
+  risks (score >=6)**.
+- Critical score-9 risks: cold 42+ venue request freeze/request-path fallback (`R-001`), public access or poisoning
+  of service-only artifacts (`R-002`), hidden/live identity drift (`R-003`), selected-instant hours policy drift
+  across surfaces (`R-004`), scrub/date request-count regression (`R-005`), and public-sunny predicate/comparator
+  drift (`R-006`).
+- High score-6 risks: non-production editor guard failure (`R-007`), hash/invalidation/atomic-promotion drift
+  (`R-008`), weather snapshot budget/freshness/unknown errors (`R-009`), schema/type/DTO drift (`R-010`), and
+  **vacuous mobile accessibility coverage (`R-023`)** because `a11y-mobile` is not invoked by CI and all current
+  cases are `test.fixme`. `R-023` is mitigated only by live Epic 12 mobile axe scenarios plus non-vacuous CI wiring
+  before affected UI stories can pass review.
+- NFRs in scope: performance (cold p95 approximately <=5 s; warm/edge p95 <200 ms; 50-pin render <=100 ms),
+  security (service-only RLS/role denial; editor production hard deny; Storage write denial), reliability (100%
+  exact current-hash coverage across today..planner horizon+1; typed 503 on missing geometry; explicit weather
+  unknown), scalability (coordinate-deduped weather snapshots, concurrency 4, 2 s timeout, <=2 transient retries),
+  accessibility (WCAG 2.1 AA, 44x44 targets, keyboard/reduced-motion), compliance (zero Google hours/content path),
+  maintainability (one shared resolver/hash/predicate/availability seam and empty post-apply schema diff), and
+  visual governance (human-approved rebaseline with log update).
+- Thresholds intentionally left **UNKNOWN**: numeric detail-preload latency, coach-mark transition timing beyond
+  design tokens, and a numeric screenshot-diff tolerance. These remain qualitative evidence gates and are not
+  assigned invented numbers.
+
+## Step 4 — Coverage Plan
+- P0 covers persisted geometry/hash/coverage/security, scheduled-run completeness, weather snapshot degradation,
+  public identity/visibility, selected-instant availability, request-count/prefetch invariants, the shared sunny
+  predicate/comparator, and the editor production deny. Pure rules stay at unit level; SQL/route boundaries use
+  integration/API tests; only user-visible cross-surface behavior is repeated at component/E2E level.
+- P1 covers confidence removal, provider-neutral hours/provenance and Google-policy guards, row-quantized touch,
+  console hygiene, media rendition/security/fallback, coach marks, About/feedback contracts, migrations/schema drift,
+  visual rebaselines, story supersession guards, and **non-vacuous mobile accessibility CI coverage**.
+- P2/P3 cover synthetic 100-venue headroom, timezone/DST fuzzing, scheduled-run burn-in, repeated cold p95,
+  physical devices, and exploratory recovery paths.
+- Execution: deterministic functional, SQL/security, policy/static, and applicable Playwright coverage in PRs when
+  under ~15 minutes; larger fixture/burn-in/fault-injection jobs nightly; production-like p95, physical-device,
+  operational, and rebaseline sign-off weekly or at release candidate. Tests never call live providers.
+- Estimate: P0 ~55–90 h; P1 ~50–85 h; P2 ~12–24 h; P3 ~8–16 h; total ~125–215 h (roughly 3–6 engineer-weeks,
+  excluding implementation and human approval time).
+- Gates: P0 100%; P1 >=95%; security/policy 100%; every score>=6 mitigation complete before launch; >=80% atomic
+  scenario automation; every invoked Playwright project must collect at least one real test (zero/fixme-only is a
+  failure); full NFR verdict deferred to post-implementation `nfr-assess`.
+
+## Step 5 — Output Generated
+- Execution mode: **sequential** (Epic-level single artifact; delegate nesting was explicitly disallowed).
+- Output: `_bmad-output/test-artifacts/test-design/test-design-epic-12.md`.
+- Validation: checklist structure reviewed; 23 unique risk IDs and all probability×impact scores verified; 11
+  high risks confirmed; local markdown links resolve; no template placeholders remain; `git diff --check` passes.
+- No browser session or temporary exploration artifact was created.
