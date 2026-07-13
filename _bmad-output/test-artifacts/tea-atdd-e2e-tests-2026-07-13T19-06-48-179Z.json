@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "subagent": "atdd-e2e-tests",
+  "tests": [],
+  "fixture_needs": [],
+  "knowledge_fragments_used": [
+    "selector-resilience",
+    "timing-debugging",
+    "network-recorder"
+  ],
+  "test_count": 0,
+  "tdd_phase": "RED",
+  "summary": "No new E2E scaffold generated: Story 12.1 creates no UI flow, AC6 requires pixel stability, and existing visual/detail regression lanes remain the correct browser evidence.",
+  "no_test_rationale": "Adding a browser journey would duplicate the API unknown-hours contract and conflict with the no-visual-change scope."
+}

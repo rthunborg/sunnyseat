@@ -223,6 +223,12 @@ fallback/override for venues without one), including how to run and inspect the 
 
 ## Dev Notes
 
+### ATDD Artifacts
+
+- Checklist: `_bmad-output/test-artifacts/atdd-checklist-12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md`
+- Red-phase Vitest scaffolds: `nextjs-app/test/unit/story-12-1-hours-policy-and-operations.atdd.test.ts`, `nextjs-app/test/unit/story-12-1-hours-governance-migrations.atdd.test.ts`, `nextjs-app/test/unit/services/opening-hours-governance.atdd.test.ts`, `nextjs-app/test/unit/services/opening-hours-audit.atdd.test.ts`, and `nextjs-app/test/unit/api/venue-detail-hours-unknown.atdd.test.ts`
+- E2E scaffold: none; this story adds no UI flow, and existing visual comparisons remain the no-change evidence lane.
+
 ### Story Context and Non-Negotiable Constraints
 
 - **The title is historical.** There is no remaining implementation choice between Google and the pivot. The provider pivot is already adopted; re-opening it requires a new dated decision from Rasmus, not developer discretion.
