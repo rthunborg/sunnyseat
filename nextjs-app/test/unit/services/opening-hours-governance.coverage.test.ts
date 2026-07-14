@@ -67,7 +67,6 @@ describe('[12.1 AC3/AC4] governance validation boundaries', () => {
   });
 
   test.each([
-    ['empty schedule', {}],
     [
       'weekday outside ISO range',
       { '8': { open: '11:00', close: '22:00' } },
@@ -191,7 +190,7 @@ describe('[12.1 AC3/AC4] canonical update and remediation edges', () => {
     expect(result.outcomes).toEqual([
       expect.objectContaining({ venueId: 'manual', outcome: 'manual_review' }),
       expect.objectContaining({ venueId: 'failed', outcome: 'failed' }),
-      expect.objectContaining({ venueId: 'unknown', outcome: 'retained' }),
+      expect.objectContaining({ venueId: 'unknown', outcome: 'unknown' }),
     ]);
   });
 });

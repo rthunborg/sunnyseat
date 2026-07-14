@@ -15,11 +15,11 @@ begin
     select 1 from public.venues
     where id = 'legacy-1'
       and place_id = 'legacy-place-id'
-      and opening_hours = '{"1":{"open":"11:00","close":"22:00"}}'::jsonb
+      and opening_hours is null
       and hours_source_type is null
-      and hours_review_status is null
+      and hours_review_status = 'unknown'
   ) then
-    raise exception 'old-row compatibility failed';
+    raise exception 'old unprovenanced row did not converge fail-closed';
   end if;
 
   if has_table_privilege('anon', 'public.hours_review_runs', 'select')
@@ -186,11 +186,28 @@ begin
   ) then
     raise exception 'inconsistent run-2 summary unexpectedly finished';
   end if;
-  if not public.finish_hours_review_run(
+  if public.finish_hours_review_run(
     'run-2', 'completed', '2026-07-13T10:07:00Z',
     1, 1, 0, 0, 0, 0, 0, 0, 0
   ) then
-    raise exception 'consistent run-2 summary must finish';
+    raise exception 'caller-summed but childless run-2 unexpectedly finished';
+  end if;
+end
+$$;
+
+insert into public.hours_review_outcomes (
+  run_id, venue_id, venue_slug, outcome, reason
+) values (
+  'run-2', 'legacy-1', 'legacy-hours', 'current', 'review_current'
+);
+
+do $$
+begin
+  if not public.finish_hours_review_run(
+    'run-2', 'completed', '2026-07-13T10:08:00Z',
+    1, 1, 0, 0, 0, 0, 0, 0, 0
+  ) then
+    raise exception 'child-derived run-2 summary must finish';
   end if;
 end
 $$;
@@ -243,10 +260,170 @@ begin
 end
 $$;
 
+update public.venues
+set opening_hours = '{"1":{"open":"11:00","close":"22:00"}}'::jsonb,
+    hours_source_type = 'venue_website',
+    hours_source_reference = 'owner-attested:fixture-original',
+    hours_review_status = 'verified',
+    hours_reviewed_at = now() - interval '1 day',
+    hours_next_review_at = now() + interval '89 days',
+    hours_review_reason = null,
+    hours_last_error_class = null
+where id = 'legacy-1';
+
+do $$
+declare
+  remediation_run text := 'run-remediation-' || txid_current()::text;
+  expired_run text := 'run-expired-remediation-' || txid_current()::text;
+begin
+  if not public.claim_hours_review_run(remediation_run, 'remediation', now()) then
+    raise exception 'remediation test claim must succeed';
+  end if;
+  if not public.renew_hours_review_run_lease(remediation_run) then
+    raise exception 'active remediation lease must renew';
+  end if;
+
+  if not public.apply_hours_remediation_outcome(
+    remediation_run,
+    'legacy-1',
+    'legacy-hours',
+    null,
+    'venue_website',
+    'owner-attested:replacement-must-not-win',
+    'manual_review',
+    now(),
+    now() + interval '90 days',
+    null,
+    'unsupported_24_7',
+    null,
+    'failed',
+    'unsupported_24_7',
+    'validation_failed'
+  ) then
+    raise exception 'active remediation write must succeed';
+  end if;
+
+  if not public.apply_hours_remediation_outcome(
+    remediation_run,
+    'legacy-1',
+    'legacy-hours',
+    null,
+    'venue_website',
+    'owner-attested:retry-must-not-win',
+    'manual_review',
+    now(),
+    now() + interval '90 days',
+    null,
+    'unsupported_24_7',
+    null,
+    'failed',
+    'unsupported_24_7',
+    'validation_failed'
+  ) then
+    raise exception 'idempotent remediation retry must succeed';
+  end if;
+
+  if not exists (
+    select 1 from public.venues
+    where id = 'legacy-1'
+      and opening_hours = '{"1":{"open":"11:00","close":"22:00"}}'::jsonb
+      and hours_source_reference = 'owner-attested:fixture-original'
+      and hours_review_status = 'manual_review'
+      and hours_review_reason = 'unsupported_24_7'
+  ) then
+    raise exception 'prior verified schedule/provenance was not preserved';
+  end if;
+  if not exists (
+    select 1 from public.hours_review_outcomes
+    where run_id = remediation_run
+      and venue_id = 'legacy-1'
+      and prior_review_status = 'verified'
+      and resulting_review_status = 'manual_review'
+  ) then
+    raise exception 'remediation retry destroyed the true prior review status';
+  end if;
+
+  if not public.finish_hours_review_run(
+    remediation_run, 'completed_with_failures', now(),
+    1, 0, 0, 0, 0, 0, 0, 1, 0
+  ) then
+    raise exception 'remediation run with derived failed outcome must finish';
+  end if;
+  if public.apply_hours_remediation_outcome(
+    remediation_run,
+    'legacy-1',
+    'legacy-hours',
+    null,
+    null,
+    null,
+    'unknown',
+    null,
+    null,
+    null,
+    null,
+    null,
+    'unknown',
+    'hours_unknown',
+    null
+  ) then
+    raise exception 'completed remediation run unexpectedly accepted a write';
+  end if;
+
+  if not public.claim_hours_review_run(expired_run, 'remediation', now()) then
+    raise exception 'expired-remediation test claim must succeed';
+  end if;
+  update public.hours_review_runs
+  set lease_expires_at = clock_timestamp() - interval '1 second'
+  where id = expired_run;
+  if public.renew_hours_review_run_lease(expired_run) then
+    raise exception 'expired remediation lease unexpectedly renewed';
+  end if;
+  if public.apply_hours_remediation_outcome(
+    expired_run,
+    'legacy-1',
+    'legacy-hours',
+    null,
+    null,
+    null,
+    'unknown',
+    null,
+    null,
+    null,
+    null,
+    null,
+    'unknown',
+    'hours_unknown',
+    null
+  ) then
+    raise exception 'expired remediation lease unexpectedly accepted a write';
+  end if;
+  if not public.fail_hours_review_run(expired_run, now()) then
+    raise exception 'expired remediation test run must finalize failed';
+  end if;
+end
+$$;
+
 reset role;
 
 do $$
 begin
+  if exists (
+    select 1 from pg_constraint
+    where conrelid in (
+      'public.venues'::regclass,
+      'public.hours_review_runs'::regclass,
+      'public.hours_review_outcomes'::regclass
+    )
+      and conname in (
+        'venues_hours_state_coherence_check',
+        'hours_review_runs_counter_sum_check',
+        'hours_review_outcomes_coherence_check'
+      )
+      and not convalidated
+  ) then
+    raise exception 'coherence constraints must be validated';
+  end if;
+
   begin
     update public.venues set hours_source_type = 'google' where id = 'legacy-1';
     raise exception 'invalid source type unexpectedly accepted';
@@ -273,9 +450,22 @@ begin
   begin
     update public.venues
     set opening_hours = '{"1":{"open":"09:00","close":"17:00"}}'::jsonb,
-        hours_review_status = 'unknown'
+        hours_review_status = null,
+        hours_source_type = 'venue_website',
+        hours_source_reference = 'owner-attested:fixture',
+        hours_reviewed_at = now(),
+        hours_next_review_at = now() + interval '90 days'
     where id = 'legacy-1';
-    raise exception 'public schedule without verified provenance unexpectedly accepted';
+    raise exception 'null-status coherence bypass unexpectedly accepted';
+  exception
+    when check_violation then null;
+  end;
+
+  begin
+    update public.venues
+    set hours_source_reference = '   '
+    where id = 'legacy-1';
+    raise exception 'whitespace-only source reference unexpectedly accepted';
   exception
     when check_violation then null;
   end;

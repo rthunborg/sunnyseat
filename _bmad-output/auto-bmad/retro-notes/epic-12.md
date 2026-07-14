@@ -6,3 +6,4 @@
 - [Phase 5 â€” dev-story] The story audit caught that nextjs-app/scripts/* initially ignored the hours audit runner; the runner is now explicitly allow-listed.
 - [Phase 6 â€” test automation] Keep live provenance remediation out of repeatable CI; cover governance idempotency, audit boundaries, failure isolation, and redaction deterministically.
 - [Phase 7 â€” code review] A remediation CLI under scripts/ required an explicit .gitignore allow-list entry because the repository ignores scripts/* by default.
+- [Phase 7 â€” code review] Supabase CLI db push was blocked by local Profile.DashboardURL validation; the authorized protected-pooler psql path applied the verified migration transactionally and linked history remained aligned.

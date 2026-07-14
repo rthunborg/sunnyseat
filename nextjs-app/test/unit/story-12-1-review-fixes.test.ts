@@ -118,7 +118,6 @@ describe('[12.1 review] weekly audit cannot silently report false health', () =>
   });
 
   test.each([
-    {},
     { '1': { open: '11', close: '22:00' } },
     { '1': { open: '11:00', close: '11:00' } },
   ])('rejects malformed persisted schedules during audit', (openingHours) => {
@@ -210,7 +209,7 @@ describe('[12.1 review] governance writes only coherent, policy-safe state', () 
   test.each([
     { '1': { open: '11:00', close: '11:00' } },
     { '1': undefined },
-  ])('rejects zero-length or effectively empty schedules', (schedule) => {
+  ])('rejects zero-length or explicitly undefined schedules', (schedule) => {
     expect(
       classifyHoursEvidence({ ...ELIGIBLE_EVIDENCE, schedule }),
     ).toMatchObject({ kind: 'failed', errorClass: 'malformed_schedule' });
@@ -330,7 +329,7 @@ describe('[12.1 review] deployment contracts are explicit and recoverable', () =
   });
 
   test('runner paginates, separates machine state from notes, and checks overlap lookup errors', () => {
-    expect(runner).toMatch(/\.range\(/);
+    expect(runner).toMatch(/\.gt\(\s*['"]id['"]/);
     expect(runner).toMatch(/activeError|active.*error/i);
     expect(runner).not.toMatch(/reviewFlags\(row\.hours_notes\)|hours_notes[\s\S]{0,100}review-error:/i);
     expect(runner).toMatch(/hours_review_reason/);

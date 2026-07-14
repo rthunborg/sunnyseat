@@ -51,6 +51,9 @@ export type HoursAuditClassification = {
     | 'hours_unknown'
     | 'provenance_conflict'
     | 'unsupported_split'
+    | 'unsupported_24_7'
+    | 'unsupported_seasonal'
+    | 'unsupported_holiday_specific'
     | 'prior_failure'
     | 'review_stale'
     | 'classification_failed';
@@ -105,6 +108,17 @@ export function classifyHoursAuditVenue(input: {
     }
     if (provenance.reviewReason === 'provenance_conflict') {
       return { outcome: 'conflicting', reason: 'provenance_conflict' };
+    }
+    if (
+      provenance.reviewReason === 'unsupported_24_7' ||
+      provenance.reviewReason === 'unsupported_seasonal' ||
+      provenance.reviewReason === 'unsupported_holiday_specific'
+    ) {
+      return {
+        outcome: 'failed',
+        reason: provenance.reviewReason,
+        errorClass: 'validation_failed',
+      };
     }
     return {
       outcome: 'failed',
@@ -203,6 +217,7 @@ export async function runOpeningHoursAudit(input: {
   const counts = emptyCounts();
   const clock = input.clock ?? (() => new Date());
   let finalized = false;
+  let outcomePersistenceFailed = false;
   try {
     const venues = await input.repositories.listVenues();
     for (const venue of venues) {
@@ -239,19 +254,42 @@ export async function runOpeningHoursAudit(input: {
         await input.repositories.recordOutcome(record);
         counts[outcome] += 1;
       } catch {
-        await input.repositories.recordOutcome({
-          ...record,
-          outcome: 'failed',
-          reason: 'classification_failed',
-          errorClass: 'database_error',
-        });
-        counts.failed += 1;
+        try {
+          await input.repositories.recordOutcome({
+            ...record,
+            outcome: 'failed',
+            reason: 'classification_failed',
+            errorClass: 'database_error',
+          });
+          counts.failed += 1;
+        } catch {
+          // Continue classifying later venues even when both bounded writes
+          // fail. The run is finalized failed after retention maintenance so
+          // it can never advertise an incomplete child trail as healthy.
+          outcomePersistenceFailed = true;
+        }
       }
     }
 
     const status =
       counts.failed > 0 ? 'completed_with_failures' : 'completed';
     const finishedAt = clock();
+    await input.repositories.pruneBefore(
+      new Date(finishedAt.getTime() - RETENTION_DAYS * DAY_MS),
+    );
+
+    if (outcomePersistenceFailed) {
+      await input.repositories.failRun({
+        runId: claim.runId,
+        status: 'failed',
+        totalCount: sumCounts(counts),
+        counts,
+        finishedAt,
+      });
+      finalized = true;
+      throw new Error('One or more audit outcome persistence attempts failed');
+    }
+
     await input.repositories.finishRun({
       runId: claim.runId,
       status,
@@ -260,9 +298,6 @@ export async function runOpeningHoursAudit(input: {
       finishedAt,
     });
     finalized = true;
-    await input.repositories.pruneBefore(
-      new Date(finishedAt.getTime() - RETENTION_DAYS * DAY_MS),
-    );
 
     return { status, runId: claim.runId, counts };
   } catch (error) {

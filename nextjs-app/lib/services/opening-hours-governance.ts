@@ -30,13 +30,17 @@ export const weeklyOpeningHoursSchema = z
     '7': openingIntervalSchema.nullable().optional(),
   })
   .strict()
-  .refine(
-    (schedule) =>
-      Object.values(schedule).some((weekday) => weekday !== undefined),
-    {
-    message: 'A schedule object must contain at least one ISO weekday',
-    },
-  );
+  .superRefine((schedule, context) => {
+    for (const [weekday, interval] of Object.entries(schedule)) {
+      if (interval === undefined) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Explicitly undefined weekdays are not canonical JSON',
+          path: [weekday],
+        });
+      }
+    }
+  });
 
 export const hoursSourceTypeSchema = z.enum([
   'venue_confirmed',
@@ -71,6 +75,9 @@ export const hoursAuditReasonSchema = z.enum([
   'hours_unknown',
   'provenance_conflict',
   'unsupported_split',
+  'unsupported_24_7',
+  'unsupported_seasonal',
+  'unsupported_holiday_specific',
   'prior_failure',
   'review_stale',
   'classification_failed',
@@ -102,6 +109,21 @@ const safeSourceReferenceSchema = z
     },
   );
 
+const safeNotesSchema = z
+  .string()
+  .trim()
+  .max(1000)
+  .refine(
+    (value) =>
+      !/(?:https?:\/\/|www\.|provider[\s_-]*payload|regular[\s_-]*opening[\s_-]*hours|(?:^|[?&;:\s_-])(?:api[_-]?key|key|token|secret)\s*=)/i.test(
+        value,
+      ),
+    {
+      message:
+        'Notes must not contain provider payloads, URLs, or credentials',
+    },
+  );
+
 export const hoursProvenanceSchema = z
   .object({
     sourceType: hoursSourceTypeSchema,
@@ -111,17 +133,58 @@ export const hoursProvenanceSchema = z
     reviewStatus: hoursReviewStatusSchema.optional().default('verified'),
     reviewReason: hoursAuditReasonSchema.optional(),
     lastErrorClass: hoursAuditErrorClassSchema.optional(),
-    notes: z.string().trim().max(1000).optional(),
+    notes: safeNotesSchema.optional(),
   })
   .strict()
-  .refine(
-    ({ reviewedAt, nextReviewAt }) =>
-      new Date(nextReviewAt).getTime() >= new Date(reviewedAt).getTime(),
-    {
-      message: 'nextReviewAt must be on or after reviewedAt',
-      path: ['nextReviewAt'],
-    },
-  );
+  .superRefine((provenance, context) => {
+    const reviewedAt = new Date(provenance.reviewedAt).getTime();
+    const nextReviewAt = new Date(provenance.nextReviewAt).getTime();
+    if (nextReviewAt < reviewedAt) {
+      context.addIssue({
+        code: 'custom',
+        message: 'nextReviewAt must be on or after reviewedAt',
+        path: ['nextReviewAt'],
+      });
+    }
+    if (reviewedAt > Date.now()) {
+      context.addIssue({
+        code: 'custom',
+        message: 'reviewedAt must not be future-dated',
+        path: ['reviewedAt'],
+      });
+    }
+    if (
+      provenance.reviewStatus === 'verified' &&
+      (provenance.reviewReason !== undefined ||
+        provenance.lastErrorClass !== undefined)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Verified evidence cannot carry a review reason or error',
+        path: ['reviewStatus'],
+      });
+    }
+    if (
+      provenance.reviewStatus === 'manual_review' &&
+      provenance.reviewReason === undefined
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Manual-review evidence requires a review reason',
+        path: ['reviewReason'],
+      });
+    }
+    if (
+      provenance.reviewStatus === 'failed' &&
+      provenance.lastErrorClass === undefined
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Failed evidence requires an error class',
+        path: ['lastErrorClass'],
+      });
+    }
+  });
 
 export type HoursProvenance = z.infer<typeof hoursProvenanceSchema>;
 
@@ -170,7 +233,10 @@ export function classifyHoursEvidence(input: EvidenceInput): HoursEvidenceResult
     sourceReference: input.sourceReference,
     reviewedAt: input.reviewedAt,
     nextReviewAt: input.nextReviewAt,
-    reviewStatus: input.reviewStatus,
+    reviewStatus:
+      input.schedule == null && input.reviewStatus === undefined
+        ? 'unknown'
+        : input.reviewStatus,
     reviewReason: input.reviewReason,
     lastErrorClass: input.lastErrorClass,
     notes: input.notes,
@@ -189,10 +255,18 @@ export function classifyHoursEvidence(input: EvidenceInput): HoursEvidenceResult
   }
 
   if (input.schedule == null) {
+    if (provenance.data.reviewStatus !== 'unknown') {
+      return { kind: 'failed', errorClass: 'invalid_provenance' };
+    }
     return {
       kind: 'accepted',
       schedule: null,
-      provenance: { ...provenance.data, reviewStatus: 'unknown' },
+      provenance: {
+        ...provenance.data,
+        reviewStatus: 'unknown',
+        reviewReason: undefined,
+        lastErrorClass: undefined,
+      },
     };
   }
 
@@ -298,6 +372,7 @@ export type RemediationUpdate = {
   reviewStatus: HoursProvenance['reviewStatus'] | 'unknown';
   reviewReason?: z.infer<typeof hoursAuditReasonSchema> | null;
   lastErrorClass?: z.infer<typeof hoursAuditErrorClassSchema> | null;
+  preservesPriorSchedule?: boolean;
 };
 
 export type RemediationOutcome = {
@@ -306,6 +381,61 @@ export type RemediationOutcome = {
   outcome: 'retained' | 'unknown' | 'manual_review' | 'failed';
   reason: string;
 };
+
+const remediationEvidenceInputSchema = z
+  .object({
+    sourceType: z.string(),
+    sourceReference: z.string(),
+    reviewedAt: z.string(),
+    nextReviewAt: z.string(),
+    reviewStatus: z.string().optional(),
+    reviewReason: z.string().optional(),
+    lastErrorClass: z.string().optional(),
+    notes: z.string().optional(),
+  })
+  .strict();
+
+const remediationRowSchema = z
+  .object({
+    id: z.string().trim().min(1).max(200),
+    slug: z.string().trim().min(1).max(200),
+    placeId: z.string().trim().min(1).max(500).nullable().optional(),
+    openingHours: z.union([z.record(z.string(), z.unknown()), z.null()]),
+    evidence: remediationEvidenceInputSchema.nullable().optional(),
+  })
+  .strict();
+
+const remediationRowsSchema = z
+  .array(remediationRowSchema)
+  .min(1, 'Remediation input must contain at least one venue')
+  .superRefine((rows, context) => {
+    const seen = new Set<string>();
+    for (const [index, row] of rows.entries()) {
+      if (seen.has(row.id)) {
+        context.addIssue({
+          code: 'custom',
+          message: `Duplicate remediation venue id: ${row.id}`,
+          path: [index, 'id'],
+        });
+      }
+      seen.add(row.id);
+    }
+  });
+
+export function parseRemediationRows(value: string): RemediationRow[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error('Invalid remediation input: expected valid JSON');
+  }
+  const result = remediationRowsSchema.safeParse(parsed);
+  if (!result.success) {
+    const detail = result.error.issues.map((issue) => issue.message).join('; ');
+    throw new Error(`Invalid remediation input: ${detail}`);
+  }
+  return result.data;
+}
 
 /**
  * Deterministic one-time remediation planner. Database callers apply each
@@ -356,14 +486,16 @@ export async function remediateOpeningHoursRows(input: {
       outcomes.push({
         venueId: row.id,
         venueSlug: row.slug,
-        outcome: 'retained',
+        outcome: classified.schedule === null ? 'unknown' : 'retained',
         reason: classified.schedule === null ? 'hours_unknown' : 'verified_evidence',
       });
     } else if (classified.kind === 'manual_review') {
-      const reviewReason =
-        classified.reason === 'split'
-          ? 'unsupported_split'
-          : 'classification_failed';
+      const reviewReason = {
+        split: 'unsupported_split',
+        unsupported_24_7: 'unsupported_24_7',
+        seasonal: 'unsupported_seasonal',
+        holiday_specific: 'unsupported_holiday_specific',
+      }[classified.reason] as z.infer<typeof hoursAuditReasonSchema>;
       updates.push({
         id: row.id,
         openingHours: null,
@@ -375,6 +507,7 @@ export async function remediateOpeningHoursRows(input: {
         reviewStatus: 'manual_review',
         reviewReason,
         lastErrorClass: null,
+        preservesPriorSchedule: true,
       });
       outcomes.push({
         venueId: row.id,
@@ -400,6 +533,7 @@ export async function remediateOpeningHoursRows(input: {
         reviewStatus: 'failed',
         reviewReason: 'classification_failed',
         lastErrorClass: 'validation_failed',
+        preservesPriorSchedule: true,
       });
       outcomes.push({
         venueId: row.id,

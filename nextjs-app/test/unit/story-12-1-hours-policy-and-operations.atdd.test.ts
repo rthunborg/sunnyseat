@@ -45,6 +45,7 @@ const persistenceFiles = [
     (file) =>
       !file.endsWith('story-12-1-hours-policy-and-operations.atdd.test.ts') &&
       !file.endsWith('story-12-1-review-fixes.test.ts') &&
+      !file.endsWith('story-12-1-review-fixes-iteration-2.test.ts') &&
       !file.endsWith(join('test', 'setup', 'setup.ts')),
   ),
 ];
@@ -75,28 +76,47 @@ const hoursWorkflow = readOptional(
 const legacyWorkflow = readOptional(
   join(repoRoot, '.github', 'workflows', 'scheduled-cron-jobs.yml'),
 );
+const googleHoursFieldPattern =
+  /regular(?:OpeningHours|[\s_-]+opening[\s_-]*hours)/i;
+const providerCredentialPattern =
+  /\b(?:(?:GOOGLE|PLACES|MAPS|GMAPS|GMP|GCP_MAPS)[A-Z0-9_]*(?:API_KEY|CREDENTIALS?|SECRET|TOKEN))\b/;
 
 describe('[12.1 AC1/AC8] Google-hours path stays prohibited', () => {
   test('[P1] production and scheduled code has no Google hours/content/credential path', () => {
-    expect(productionSource).not.toMatch(/regularOpeningHours/i);
+    expect(productionSource).not.toMatch(googleHoursFieldPattern);
     expect(productionSource).not.toMatch(/X-Goog-FieldMask[^\n]*opening/i);
     expect(productionSource).not.toMatch(/places\.googleapis\.com/i);
     expect(productionSource).not.toMatch(/places_api_url/i);
-    expect(productionSource).not.toMatch(
-      /\b(?:GOOGLE|PLACES)[A-Z0-9_]*(?:API_KEY|CREDENTIAL|SECRET)\b/,
-    );
+    expect(productionSource).not.toMatch(providerCredentialPattern);
   });
 
   test('[P1] migrations, SQL fixtures, and tests persist no provider content or credentials', () => {
-    expect(persistenceSource).not.toMatch(/regularOpeningHours/i);
+    expect(persistenceSource).not.toMatch(googleHoursFieldPattern);
     expect(persistenceSource).not.toMatch(/X-Goog-FieldMask[^\n]*opening/i);
     expect(persistenceSource).not.toMatch(/(?:places|maps)\.googleapis\.com/i);
-    expect(persistenceSource).not.toMatch(
-      /\b(?:GOOGLE|PLACES)[A-Z0-9_]*(?:API_KEY|CREDENTIAL|SECRET)\b/,
-    );
+    expect(persistenceSource).not.toMatch(providerCredentialPattern);
     expect(persistenceSource).not.toMatch(
       /places_api_url[\s\S]{0,200}https?:\/\//i,
     );
+  });
+
+  test('[P1] normalized Google-hours fields and non-GOOGLE credential aliases are detected', () => {
+    for (const field of [
+      'regularOpeningHours',
+      'regular_opening_hours',
+      'regular-opening-hours',
+      'regular opening hours',
+    ]) {
+      expect(field).toMatch(googleHoursFieldPattern);
+    }
+    for (const credential of [
+      'MAPS_API_KEY',
+      'GMAPS_CREDENTIAL',
+      'GMP_SECRET',
+      'GCP_MAPS_TOKEN',
+    ]) {
+      expect(credential).toMatch(providerCredentialPattern);
+    }
   });
 
   test('[P1] public code has no hours-provider route or request-path integration', () => {

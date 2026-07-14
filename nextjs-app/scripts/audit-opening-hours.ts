@@ -76,18 +76,27 @@ const result = await runOpeningHoursAudit({
     },
     listVenues: async () => {
       const rows: AuditVenueRow[] = [];
-      for (let from = 0; ; from += VENUE_PAGE_SIZE) {
-        const { data, error } = await supabase
+      let lastId: string | undefined;
+      for (;;) {
+        let query = supabase
           .from('venues')
           .select(
             'id, slug, opening_hours, hours_review_status, hours_reviewed_at, hours_next_review_at, hours_source_type, hours_source_reference, hours_review_reason, hours_last_error_class',
           )
           .order('id')
-          .range(from, from + VENUE_PAGE_SIZE - 1);
+          .limit(VENUE_PAGE_SIZE);
+        if (lastId !== undefined) {
+          query = query.gt('id', lastId);
+        }
+        const { data, error } = await query;
         if (error) throw new Error('Venue read failed: ' + error.message);
         const page = data ?? [];
         rows.push(...page);
         if (page.length < VENUE_PAGE_SIZE) break;
+        lastId = page.at(-1)?.id;
+        if (lastId === undefined) {
+          throw new Error('Venue keyset pagination returned an invalid page');
+        }
       }
       return rows.map((row) => ({
         id: row.id,
@@ -165,11 +174,16 @@ const result = await runOpeningHoursAudit({
 });
 
 const counts: Record<string, number> = result.counts ?? {};
+const displayedRunId = result.runId ?? result.activeRunId ?? 'none';
+const githubRunUrl = currentGitHubRunUrl();
 await writeSummary([
   '## SunnySeat hours review audit',
   '',
   '- Status: ' + result.status,
-  '- Run: ' + (result.runId ?? result.activeRunId ?? 'none'),
+  '- Run: ' +
+    (githubRunUrl
+      ? `[${displayedRunId}](${githubRunUrl})`
+      : displayedRunId),
   '- Total: ' + sumCounts(counts),
   '- Current: ' + (counts.current ?? 0),
   '- Missing provenance: ' + (counts.missing_provenance ?? 0),
@@ -196,6 +210,14 @@ function requiredEnv(name: string): string {
 
 function sumCounts(counts: Record<string, number>): number {
   return Object.values(counts).reduce((total, value) => total + value, 0);
+}
+
+function currentGitHubRunUrl(): string | undefined {
+  const server = process.env.GITHUB_SERVER_URL?.replace(/\/$/, '');
+  const repository = process.env.GITHUB_REPOSITORY?.trim();
+  const githubRunId = process.env.GITHUB_RUN_ID?.trim();
+  if (!server || !repository || !githubRunId) return undefined;
+  return `${server}/${repository}/actions/runs/${githubRunId}`;
 }
 
 async function writeSummary(lines: string[]): Promise<void> {

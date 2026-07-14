@@ -945,6 +945,10 @@ export type Database = {
         Args: { p_cutoff?: string }
         Returns: number
       }
+      renew_hours_review_run_lease: {
+        Args: { p_run_id: string }
+        Returns: boolean
+      }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown
