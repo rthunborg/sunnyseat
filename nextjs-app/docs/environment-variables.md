@@ -10,6 +10,7 @@ This document lists all environment variables required for the SunnySeat Next.js
 |----------|-------------|----------|---------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Yes | No (public) | All |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-only) | Yes (live path) | **Yes** | All |
+| `SUPABASE_URL` | Protected project URL for the direct hours-audit runner | Hours audit only | Treat as protected config | GitHub `production` |
 
 **How to get:**
 1. Go to Supabase Dashboard → Project Settings → API
@@ -50,11 +51,21 @@ Met.no Locationforecast is a free public API needing no key — only an identify
 code falls back to a non-secret default that still identifies the app. (There is
 no OpenWeatherMap dependency.)
 
-### Cron Jobs
+### Weekly hours review
 
-There are **no `/api/cron` endpoints** in the MVP (compute-on-request, DECISION D
-— no precompute/Cron pipeline), so **no `CRON_SECRET` is required**. Reintroduce
-one here only if a cron endpoint is added.
+The Story 12.1 workflow runs `scripts/audit-opening-hours.ts` directly against
+Supabase and bundles it to `audit-opening-hours.mjs` in GitHub Actions. It has
+no `/api/cron` endpoint and does not use `CRON_SECRET`.
+
+| Variable | Description | Required | Environment |
+|---|---|---|---|
+| `SUPABASE_URL` | Project URL used by the direct runner | Yes when enabled | GitHub protected `production` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only audit credentials | Yes when enabled | GitHub protected `production` secret |
+| `SUN_HOURS_AUDIT_ENABLED` | Independent emergency stop; only `true` enables | Yes | GitHub protected `production` variable |
+
+Leave `SUN_HOURS_AUDIT_ENABLED=false` until migrations and one-time provenance
+remediation pass. Use `workflow_dispatch` for a controlled manual run. Bounded
+run/outcome history is retained for 180 days.
 
 ### Application Configuration
 
@@ -79,6 +90,8 @@ Create `.env.local` file in `nextjs-app/` directory:
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://[project-ref].supabase.co
 SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
+SUPABASE_URL=https://[project-ref].supabase.co
+SUN_HOURS_AUDIT_ENABLED=false
 
 # Data-source adapters (omit to use the in-memory seed default)
 # SUNNYSEAT_VENUE_STORE=supabase
@@ -135,7 +148,6 @@ No secret carries a `NEXT_PUBLIC_` prefix.
    - Never log or expose secrets in code
 
 2. **Use strong secrets**:
-   - Minimum 32 characters for CRON_SECRET
    - Use cryptographically secure random generators
    - Rotate secrets periodically
 
@@ -150,7 +162,7 @@ No secret carries a `NEXT_PUBLIC_` prefix.
 
 5. **Monitoring**:
    - Monitor for exposed secrets in logs
-   - Set up alerts for cron authentication failures
+   - Review protected Actions failures and database audit outcomes
    - Review access logs regularly
 
 ## Troubleshooting
@@ -165,15 +177,13 @@ No secret carries a `NEXT_PUBLIC_` prefix.
 3. Ensure variable names match exactly (case-sensitive)
 4. Restart development server after adding variables
 
-### Cron Job Authentication Failures
+### Hours audit does not run
 
-**Error**: `Unauthorized` responses from cron endpoints
-
-**Solution**:
-1. Verify `CRON_SECRET` matches Vercel configuration
-2. Check Vercel Cron settings in dashboard
-3. Ensure secret is set for correct environment
-4. Verify Authorization header format
+1. Verify the dispatch uses `main` and the protected `production` environment.
+2. Set `SUN_HOURS_AUDIT_ENABLED=true`; every other value disables the job.
+3. Verify `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are configured as
+   protected GitHub environment secrets without printing them.
+4. Inspect the bounded GitHub step summary and the run ID.
 
 ## Testing Environment Variables
 
@@ -182,9 +192,9 @@ No secret carries a `NEXT_PUBLIC_` prefix.
 ```bash
 # Set variables
 export NEXT_PUBLIC_SUPABASE_URL="https://test.supabase.co"
-export NEXT_PUBLIC_SUPABASE_ANON_KEY="test-key"
 export SUPABASE_SERVICE_ROLE_KEY="test-service-key"
-export CRON_SECRET="test-cron-secret-min-32-characters-long"
+export SUPABASE_URL="https://test.supabase.co"
+export SUN_HOURS_AUDIT_ENABLED="false"
 
 # Run application
 npm run dev

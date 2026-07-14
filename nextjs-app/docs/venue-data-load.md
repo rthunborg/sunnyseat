@@ -1,11 +1,10 @@
 # Venue data load — structure & how to add a real venue
 
 Canonical reference for adding real venues to `public.venues` (the live store
-behind `/api/venues` when `SUNNYSEAT_VENUE_STORE=supabase`). The schema is defined
-by `_bmad-output/implementation-artifacts/8-2-venues-store-contract.sql` +
-`11-9-venue-data-model-cleanup.sql` + the `venues_add_google_places_columns` live
-migration (2026-07-07: optional `place_id` / `places_api_url`); this doc is the
-human/agent-facing "what to collect and in what shape" guide.
+behind `/api/venues` when `SUNNYSEAT_VENUE_STORE=supabase`). Deployable schema
+authority is the versioned chain under the repository-root
+`supabase/migrations/`; this document is the human/agent-facing “what to
+collect and in what shape” guide.
 
 > **Quick ask for an agent:** "add a real venue" → collect the **durable fields**
 > below (+ a `seating_area` polygon, optionally `seating_elevation_m`) and generate
@@ -28,13 +27,17 @@ human/agent-facing "what to collect and in what shape" guide.
 | `thumbnail` | jsonb | — | `{ "alt": "...", "initials": "KK", "url": "https://..." }`. |
 | `description` | text | — | Short Swedish blurb. |
 | `address` | text | — | Street address. |
-| `opening_hours` | jsonb | — | **Per-weekday** hours (Story 11.9), keyed by numeric ISO weekday (`"1"`=Mon … `"7"`=Sun): `{ "1": { "open": "11:00", "close": "22:00" }, … }`. A **missing key or `null`** value = **closed that day**. `close < open` = a **past-midnight** close (opens 18:00 closes 02:00 → open until 02:00). Times are `"HH:MM"` (24h). Omit the column entirely for a venue with no known hours — the app renders **nothing** for it (never a fabricated time). The "Öppet till HH:MM" line + the ÖPPET badge are **derived at render time** for the current Stockholm weekday; do NOT store a display string. |
+| `opening_hours` | jsonb | — | **Per-weekday** hours (Story 11.9), keyed by numeric ISO weekday (`"1"`=Mon … `"7"`=Sun): `{ "1": { "open": "11:00", "close": "22:00" }, … }`. A **missing key or `null`** value = **closed that day**. Whole-field SQL `null` = **unknown hours** and produces no public open/closed claim. `close < open` = a **past-midnight** close. Times are `"HH:MM"` (24h). The render layer derives localized display text; never store it. |
+| `hours_source_type` | text | with reviewed hours | One of `venue_confirmed`, `venue_website`, `licensed_provider`, or approved `manual` evidence. It describes eligible provenance, not display attribution. |
+| `hours_source_reference` | text | with reviewed hours | Inspectable source reference. Use the official venue page when retained, a licence-controlled internal reference, or a dated owner-attestation reference. Never invent a URL or persist provider payloads. |
+| `hours_review_status` | text | with reviewed hours | `verified`, `due`, `manual_review`, `unknown`, or `failed`. |
+| `hours_reviewed_at` / `hours_next_review_at` | timestamptz | with reviewed hours | Review timestamps; next review cannot precede the completed review. |
+| `hours_notes` | text | optional | Bounded maintainer note only. Do not paste source/provider content. Reserved machine values `review-reason:split`, `review-reason:conflict`, and `review-error:<class>` feed the weekly classifier. |
 | **`seating_area`** | jsonb (GeoJSON Polygon) | — but **important** | The outdoor seating footprint the sun engine casts shadows onto. WGS84, `[lng, lat]` order, closed ring. Null → engine uses a ~10 m square around `lat/lng` (less precise). |
 | **`seating_elevation_m`** | double precision ≥ 0 | optional | Estimated metres of the **seating surface above local ground/street**. Null/0 = street level. Rooftop bars / raised terraces / balconies use the approx floor height (4th floor ≈ 12 m). **Consumed by the engine as of Story 8.6** (Tier-1 rooftop/raised height gate — see "Elevation" below). Set it for rooftop / raised venues so they are predicted from their seating height; leave it null for street-level venues (byte-identical to the pre-8.6 ground-level path). |
 | **`ground_elevation_m`** | double precision | optional | The venue's **RH2000 absolute ground elevation** (Z, metres) at its point — the height of the *ground the venue stands on*, NOT a height above ground. **May be negative.** For a **hilltop** venue this lets the engine compare each caster's roof against the venue's own ground, so a building standing downhill stops shadowing a venue uphill from it. **Consumed by the engine as of Story 8.7** (Tier-2 terrain gate — see "Elevation" below). Null → engine falls back to the Story 8.6 relative gate (byte-identical). Derive it the same way casters get `ground_z_rh2000`: sample the Göteborg **Höjdmodell 2022 DTM** at the venue's `lat`/`lng` (or, pragmatically, take `ground_z_rh2000` of the `shadow_casters` rows nearest the seating polygon). Leave it null unless the venue sits on a meaningful rise. |
 | `tags` | text[] | — | Canonical **Swedish** tag values for the chip filter (Story 9.7), e.g. `'{Takterrass,Skaldjur}'`. Defaults `'{}'` = no tags: the venue always shows normally and is only hidden while a chip it lacks is active. Chips are **derived from the union of tags across venues** — a tag no venue carries never renders a chip. Keep values inside the known vocabulary in `lib/utils/venue-tags.ts` (`TAG_DISPLAY_EN`); when introducing a new tag, add its English display mapping there in the same change. |
-| `place_id` | text | optional | Google Places **place ID** (Places API v1 resource `places/{place_id}`). Captured at venue load; **not consumed by the app yet** — reserved for the backlog Google Places opening-hours sync (Epic 12 / Story 12.1). CHECK-enforced: non-empty, no whitespace. Two venue rows MAY share a place (two seating areas of one establishment). |
-| `places_api_url` | text | optional | Fully-qualified Places API v1 endpoint for the venue: `https://places.googleapis.com/v1/places/{place_id}` (CHECK-enforced prefix). Convenience companion to `place_id` — set both or neither. |
+| `place_id` | text | optional | **Place-ID-only** server-side identity/reference metadata. It is never a source of canonical hours and is not projected into public DTOs. Two venue rows may share an ID when they represent distinct seating areas; never merge those rows. Do not store a companion provider URL or returned content. |
 
 ### 2. Engine-managed columns — placeholders only
 
@@ -82,14 +85,47 @@ Note there is **no `id`** — it auto-assigns. Send it only to overwrite an exis
   "seating_elevation_m": null,
   "ground_elevation_m": null,
   "tags": ["Innergård"],
-  "place_id": "ChIJ…",
-  "places_api_url": "https://places.googleapis.com/v1/places/ChIJ…"
+  "place_id": "[optional-place-id]",
+  "hours_source_type": "venue_website",
+  "hours_source_reference": "https://venue.example/oppettider",
+  "hours_review_status": "verified",
+  "hours_reviewed_at": "2026-07-14T08:00:00Z",
+  "hours_next_review_at": "2026-10-12T08:00:00Z",
+  "hours_notes": null
 }
 ```
 
 The example above shows Mon–Thu closing 22:00/23:00, Fri/Sat open **past midnight**
 (closes 02:00), and **Sunday closed** (`null`). Adjust per venue; omit the whole
 `opening_hours` column if hours are unknown.
+
+## Opening-hours review workflow
+
+Canonical hours are provider-neutral. Retain a schedule only when its source is
+independently eligible and the provenance fields are written in the same
+reviewed operation. An unverified schedule becomes whole-field SQL `null`; do
+not translate unknown into seven closed weekdays.
+
+The launch contract permits one interval per ISO weekday. Closed days and
+past-midnight intervals are supported. Split service (for example 11–14 and
+17–23), 24/7, seasonal, or holiday-specific evidence must route the entire
+venue to `manual_review`; never flatten the gap or partially write weekdays.
+Failed evidence preserves any prior independently verified schedule.
+
+The protected weekly workflow `.github/workflows/hours-review-audit.yml` runs
+`scripts/audit-opening-hours.ts` directly against Supabase. It never fetches
+an hours provider and never changes `opening_hours`; it records bounded
+staleness/review outcomes only. Inspect a run in GitHub Actions or query
+`hours_review_runs` and `hours_review_outcomes` with the service role. See
+`docs/github-actions-scheduled-jobs.md` for manual dispatch and troubleshooting.
+
+Provider policy was rechecked on 2026-07-13 against the official
+[EEA terms](https://cloud.google.com/terms/maps-platform/eea),
+[EEA service terms](https://cloud.google.com/terms/maps-platform/eea/maps-service-terms),
+and [Place ID policy](https://developers.google.com/maps/documentation/places/web-service/place-id).
+Only the ID caching exception is used. A later terms change requires a new
+dated architecture/product decision; it does not authorize an opportunistic
+hours-provider path in maintenance code.
 
 ## Painting the `seating_area` polygon
 

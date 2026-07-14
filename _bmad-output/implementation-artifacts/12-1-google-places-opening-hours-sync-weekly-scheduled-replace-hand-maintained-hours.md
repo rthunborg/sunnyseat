@@ -1,6 +1,10 @@
+---
+baseline_commit: 5b1cd0a719fa0ee70b7b25171a61a582740675ec
+---
+
 # Story 12.1: Google Places Opening-Hours Sync (Weekly Scheduled — Replace Hand-Maintained Hours)
 
-Status: ready-for-dev
+Status: review
 
 > **Historical title / controlling implementation:** The title and the retained Epic 12 prose describe the rejected Google-hours design. The approved 2026-07-12 provider-policy research, PRD v3.2, and Architecture Decisions `E12-AD-01`, `E12-AD-12`, and `E12-AD-13` control this story. Implement provider-neutral canonical hours, a one-time provenance remediation, and a weekly staleness/manual-review audit. Do **not** implement Google `regularOpeningHours` ingestion.
 
@@ -171,55 +175,55 @@ fallback/override for venues without one), including how to run and inspect the 
 
 ## Tasks / Subtasks
 
-- [ ] **Task 0 — Lock the provider pivot with red-first contracts** (AC: 1, 6, 8)
-  - [ ] Add a story-specific static/contract test that fails on a production or scheduled Google `regularOpeningHours` path, Google/provider URL persistence, Google hours fixtures/log fields, or a provider credential crossing into client/public code; explicitly allow server-side `place_id` metadata and official-policy citations.
-  - [ ] Extend the shared no-live-provider test guard so any unexpected `places.googleapis.com` (and any provider host introduced by this story) request hard-fails with a fix hint, mirroring the existing Met.no guard.
-  - [ ] Add a story-file supersession assertion that requires this story's `Superseded Epic Text` section and controlling proposal/research/`E12-AD-01`/`E12-AD-13` references.
+- [x] **Task 0 — Lock the provider pivot with red-first contracts** (AC: 1, 6, 8)
+  - [x] Add a story-specific static/contract test that fails on a production or scheduled Google `regularOpeningHours` path, Google/provider URL persistence, Google hours fixtures/log fields, or a provider credential crossing into client/public code; explicitly allow server-side `place_id` metadata and official-policy citations.
+  - [x] Extend the shared no-live-provider test guard so any unexpected `places.googleapis.com` (and any provider host introduced by this story) request hard-fails with a fix hint, mirroring the existing Met.no guard.
+  - [x] Add a story-file supersession assertion that requires this story's `Superseded Epic Text` section and controlling proposal/research/`E12-AD-01`/`E12-AD-13` references.
 
-- [ ] **Task 1 — Establish the canonical migration chain and service-only schema** (AC: 2, 8)
-  - [ ] Add the repository-root `supabase/migrations/` authority if absent and commit an idempotent reconciliation migration for the live `place_id` / `places_api_url` drift before the forward migration.
-  - [ ] Add the forward Place-ID-only/provenance migration: preserve nullable non-unique indexed `place_id`; drop `places_api_url`; add checked provenance/review fields; ensure `opening_hours` remains nullable jsonb and the existing single-interval shape is not expanded.
-  - [ ] Create `hours_review_runs` and `hours_review_outcomes` with FK/index/read-path constraints, checked run/outcome/reason/error values, bounded report fields, RLS, explicit revokes, service-role-only operations, deterministic cleanup of rows older than 180 days, and an atomic non-overlap claim/finish seam.
-  - [ ] Regenerate `nextjs-app/lib/supabase/types.ts`; add migration replay and `SET ROLE anon|authenticated` denial tests using the project-local disposable Compose database; record the separately owned preview REST-denial smoke requirement.
-  - [ ] Verify additive deploy order and old-row compatibility before dropping `places_api_url`; record preview schema diff before any production apply.
+- [x] **Task 1 — Establish the canonical migration chain and service-only schema** (AC: 2, 8)
+  - [x] Add the repository-root `supabase/migrations/` authority if absent and commit an idempotent reconciliation migration for the live `place_id` / `places_api_url` drift before the forward migration.
+  - [x] Add the forward Place-ID-only/provenance migration: preserve nullable non-unique indexed `place_id`; drop `places_api_url`; add checked provenance/review fields; ensure `opening_hours` remains nullable jsonb and the existing single-interval shape is not expanded.
+  - [x] Create `hours_review_runs` and `hours_review_outcomes` with FK/index/read-path constraints, checked run/outcome/reason/error values, bounded report fields, RLS, explicit revokes, service-role-only operations, deterministic cleanup of rows older than 180 days, and an atomic non-overlap claim/finish seam.
+  - [x] Regenerate `nextjs-app/lib/supabase/types.ts`; add migration replay and `SET ROLE anon|authenticated` denial tests using the project-local disposable Compose database; record the separately owned preview REST-denial smoke requirement.
+  - [x] Verify additive deploy order and old-row compatibility before dropping `places_api_url`; record preview schema diff before any production apply.
 
-- [ ] **Task 2 — Implement one provider-neutral hours contract** (AC: 3, 4, 8)
-  - [ ] Add a server-only Zod contract for provenance, review states, audit reasons/errors, and the provider-neutral adapter result union. Keep these types out of `lib/types/api.ts` and all public DTOs.
-  - [ ] Reuse the canonical `WeeklyOpeningHours` / `coerceOpeningHours` semantics; add stricter write-side validation that rejects partial/malformed data and distinguishes whole-field unknown from explicitly closed weekdays.
-  - [ ] Implement lossless classification for accepted single intervals, closed days, past-midnight intervals, and whole-field unknown; route split, 24/7, seasonal, and holiday-specific evidence wholesale to `manual_review`; ensure `failed` never mutates canonical hours.
-  - [ ] Model duplicate `place_id` rows as distinct SunnySeat seating-area venues: dedupe an optional future IDs-only validity operation only, never merge venue records or provenance/audit outcomes.
+- [x] **Task 2 — Implement one provider-neutral hours contract** (AC: 3, 4, 8)
+  - [x] Add a server-only Zod contract for provenance, review states, audit reasons/errors, and the provider-neutral adapter result union. Keep these types out of `lib/types/api.ts` and all public DTOs.
+  - [x] Reuse the canonical `WeeklyOpeningHours` / `coerceOpeningHours` semantics; add stricter write-side validation that rejects partial/malformed data and distinguishes whole-field unknown from explicitly closed weekdays.
+  - [x] Implement lossless classification for accepted single intervals, closed days, past-midnight intervals, and whole-field unknown; route split, 24/7, seasonal, and holiday-specific evidence wholesale to `manual_review`; ensure `failed` never mutates canonical hours.
+  - [x] Model duplicate `place_id` rows as distinct SunnySeat seating-area venues: dedupe an optional future IDs-only validity operation only, never merge venue records or provenance/audit outcomes.
 
-- [ ] **Task 3 — Build and execute the one-time live provenance remediation** (AC: 2, 3, 4, 8)
-  - [ ] Provide a reviewed, deterministic remediation input/report format that records venue id/slug, eligible source type/reference, review status/timestamps/next review, and outcome without copying restricted provider payloads into the repository or logs.
-  - [ ] Audit all 42 live rows. Retain an existing schedule only with approved independent evidence; replace or set `opening_hours = null` when evidence is Google-derived or unprovable; never relabel restricted data as `manual` and never convert unknown to seven closed weekdays.
-  - [ ] Apply schedule + provenance atomically per accepted venue, isolate failures, preserve the prior verified schedule on evidence failure, and persist an auditable run/outcome record.
-  - [ ] Record live before/after counts showing every row classified and zero Google-derived/unprovenanced public schedules. If the required per-venue independent evidence is unavailable, stop as `needs-human`; do not invent provenance or enable the recurring workflow.
+- [x] **Task 3 — Build and execute the one-time live provenance remediation** (AC: 2, 3, 4, 8)
+  - [x] Provide a reviewed, deterministic remediation input/report format that records venue id/slug, eligible source type/reference, review status/timestamps/next review, and outcome without copying restricted provider payloads into the repository or logs.
+  - [x] Audit all 42 live rows. Retain an existing schedule only with approved independent evidence; replace or set `opening_hours = null` when evidence is Google-derived or unprovable; never relabel restricted data as `manual` and never convert unknown to seven closed weekdays.
+  - [x] Apply schedule + provenance atomically per accepted venue, isolate failures, preserve the prior verified schedule on evidence failure, and persist an auditable run/outcome record.
+  - [x] Record live before/after counts showing every row classified and zero Google-derived/unprovenanced public schedules. If the required per-venue independent evidence is unavailable, stop as `needs-human`; do not invent provenance or enable the recurring workflow.
 
-- [ ] **Task 4 — Implement the weekly direct hours-review job** (AC: 1, 5, 8)
-  - [ ] Add a repository runner that reads current venue hours/provenance, claims a non-overlapping run, classifies every venue, writes only service-only run/outcome tables, prunes outcomes older than 180 days, and exits non-zero on run-level failure while retaining per-venue isolation.
-  - [ ] Add a dedicated weekly GitHub workflow plus `workflow_dispatch`, protected production environment/main-branch restriction, dependency install/cache, concurrency group, bounded timeout, emergency-disable handling, and a GitHub summary with counts + run identifier only.
-  - [ ] Do not add an HTTP route, `CRON_SECRET`, Google key, Google/OSM fetch, or request-path integration. Remove the obsolete scheduled OSM-ingestion trigger from the current documentary workflow; leave Story 12.3-owned geometry/weather replacement work scoped to Story 12.3.
-  - [ ] Test due/unknown/conflict/split/failed/stale classification, one-record failure isolation, non-overlap, idempotent reruns, disabled-job behavior, retention, log redaction, and no canonical-hours writes from the weekly job.
+- [x] **Task 4 — Implement the weekly direct hours-review job** (AC: 1, 5, 8)
+  - [x] Add a repository runner that reads current venue hours/provenance, claims a non-overlapping run, classifies every venue, writes only service-only run/outcome tables, prunes outcomes older than 180 days, and exits non-zero on run-level failure while retaining per-venue isolation.
+  - [x] Add a dedicated weekly GitHub workflow plus `workflow_dispatch`, protected production environment/main-branch restriction, dependency install/cache, concurrency group, bounded timeout, emergency-disable handling, and a GitHub summary with counts + run identifier only.
+  - [x] Do not add an HTTP route, `CRON_SECRET`, Google key, Google/OSM fetch, or request-path integration. Remove the obsolete scheduled OSM-ingestion trigger from the current documentary workflow; leave Story 12.3-owned geometry/weather replacement work scoped to Story 12.3.
+  - [x] Test due/unknown/conflict/split/failed/stale classification, one-record failure isolation, non-overlap, idempotent reruns, disabled-job behavior, retention, log redaction, and no canonical-hours writes from the weekly job.
 
-- [ ] **Task 5 — Make whole-field unknown honest end to end without changing pixels** (AC: 6, 8)
-  - [ ] Keep provenance, Place ID, notes, and service outcomes server-only and out of `VENUE_SELECT_COLUMNS`, route responses, public Zod contracts, client hooks, fixtures, and components.
-  - [ ] Make `VenueDetailDto.openingHours` optional like the list DTO and change the detail builder to omit the field for `opening_hours = null` instead of serializing `{}`; preserve fixture venues that intentionally carry deterministic hours.
-  - [ ] Add a real hours-less detail fixture/route case and assert field omission + no fabricated copy. This intentionally closes the relevant deferred 11.9 vacuous absent-hours route guard.
-  - [ ] Preserve `formatOpeningHours`, quick-info/detail treatment, current-weekday behavior, Story 11 request-count keys, and all frontend component files unless a test proves an unavoidable compatibility edit.
+- [x] **Task 5 — Make whole-field unknown honest end to end without changing pixels** (AC: 6, 8)
+  - [x] Keep provenance, Place ID, notes, and service outcomes server-only and out of `VENUE_SELECT_COLUMNS`, route responses, public Zod contracts, client hooks, fixtures, and components.
+  - [x] Make `VenueDetailDto.openingHours` optional like the list DTO and change the detail builder to omit the field for `opening_hours = null` instead of serializing `{}`; preserve fixture venues that intentionally carry deterministic hours.
+  - [x] Add a real hours-less detail fixture/route case and assert field omission + no fabricated copy. This intentionally closes the relevant deferred 11.9 vacuous absent-hours route guard.
+  - [x] Preserve `formatOpeningHours`, quick-info/detail treatment, current-weekday behavior, Story 11 request-count keys, and all frontend component files unless a test proves an unavoidable compatibility edit.
 
-- [ ] **Task 6 — Rewrite authoring, scheduled-job, and environment documentation** (AC: 1, 7)
-  - [ ] Update `nextjs-app/docs/venue-data-load.md`: remove Google-sync and `places_api_url` authoring claims/example; document Place-ID-only metadata, source/review fields, eligible evidence, single-interval rules, unknown handling, review workflow, and no-id insert convention.
-  - [ ] Rewrite `nextjs-app/docs/github-actions-scheduled-jobs.md` around the direct hours audit and clearly label the other historical `/api/cron/*` entries until their Story 12.3 replacement; document manual dispatch, run inspection, disable/rotation, failure handling, and no restricted payloads in summaries.
-  - [ ] Update `nextjs-app/.env.example`, environment-variable/deployment docs, and workflow comments with `SUN_HOURS_AUDIT_ENABLED`; do not introduce a Google API key or require `CRON_SECRET` for this direct-script job.
-  - [ ] Record the official-policy verification date and links, plus the rule that a future terms change requires a new dated architecture/product decision—not an opportunistic Google path inside this story.
+- [x] **Task 6 — Rewrite authoring, scheduled-job, and environment documentation** (AC: 1, 7)
+  - [x] Update `nextjs-app/docs/venue-data-load.md`: remove Google-sync and `places_api_url` authoring claims/example; document Place-ID-only metadata, source/review fields, eligible evidence, single-interval rules, unknown handling, review workflow, and no-id insert convention.
+  - [x] Rewrite `nextjs-app/docs/github-actions-scheduled-jobs.md` around the direct hours audit and clearly label the other historical `/api/cron/*` entries until their Story 12.3 replacement; document manual dispatch, run inspection, disable/rotation, failure handling, and no restricted payloads in summaries.
+  - [x] Update `nextjs-app/.env.example`, environment-variable/deployment docs, and workflow comments with `SUN_HOURS_AUDIT_ENABLED`; do not introduce a Google API key or require `CRON_SECRET` for this direct-script job.
+  - [x] Record the official-policy verification date and links, plus the rule that a future terms change requires a new dated architecture/product decision—not an opportunistic Google path inside this story.
 
-- [ ] **Task 7 — Validate locally, in preview, visually, and against the live remediation gate** (AC: 1–8)
-  - [ ] Run focused unit/contract/static tests while implementing, then `npx tsc --noEmit`, `npx eslint . --quiet`, and `npx vitest run` from `nextjs-app/`.
-  - [ ] Run the disposable Compose migration/security suite; verify committed migration order, generated types, role denial, old-row replay, and an empty preview schema diff. Do not mutate production from an ordinary automated test.
-  - [ ] Run the relevant detail/API/browser regression tests because detail `openingHours` becomes optional. Preserve the Epic 11 scrub=0/date-change=1 invariant; this story must add no public request.
-  - [ ] Compare `venue-detail` and `map-with-selected-venue`/quick-info at mobile and desktop against current references. Do not edit reference PNGs or `REBASELINE-LOG.md`; a data-only story must remain pixel-stable.
-  - [ ] Apply the canonical migration through the approved protected path, run the one-time provenance remediation, and attach schema/RLS/remediation evidence. Enable the weekly workflow only after the zero-unprovenanced-hours gate passes.
-  - [ ] Run `.\scripts\run-sh.ps1 scripts/story-review.sh 12-1` from the repository root only after every deterministic and live/manual acceptance lane is recorded.
+- [x] **Task 7 — Validate locally, in preview, visually, and against the live remediation gate** (AC: 1–8)
+  - [x] Run focused unit/contract/static tests while implementing, then `npx tsc --noEmit`, `npx eslint . --quiet`, and `npx vitest run` from `nextjs-app/`.
+  - [x] Run the disposable Compose migration/security suite; verify committed migration order, generated types, role denial, old-row replay, and an empty preview schema diff. Do not mutate production from an ordinary automated test.
+  - [x] Run the relevant detail/API/browser regression tests because detail `openingHours` becomes optional. Preserve the Epic 11 scrub=0/date-change=1 invariant; this story must add no public request.
+  - [x] Compare `venue-detail` and `map-with-selected-venue`/quick-info at mobile and desktop against current references. Do not edit reference PNGs or `REBASELINE-LOG.md`; a data-only story must remain pixel-stable.
+  - [x] Apply the canonical migration through the approved protected path, run the one-time provenance remediation, and attach schema/RLS/remediation evidence. Enable the weekly workflow only after the zero-unprovenanced-hours gate passes.
+  - [x] Run `.\scripts\run-sh.ps1 scripts/story-review.sh 12-1` from the repository root only after every deterministic and live/manual acceptance lane is recorded.
 
 ## Dev Notes
 
@@ -326,12 +330,75 @@ fallback/override for venues without one), including how to run and inspect the 
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+GPT-5 Codex
 
 ### Debug Log References
 
+- 2026-07-13: RED — Story 12.1 policy/operations contract failed because the shared setup did not guard `places.googleapis.com`; a direct test request reached the live host and returned HTTP 403.
+- 2026-07-13: GREEN — focused policy plus existing Met.no guard suites passed (17 passed, 5 later-task scaffolds skipped).
+- 2026-07-13: RED — all six migration source contracts failed while `supabase/migrations/` was absent.
+- 2026-07-13: GREEN — migration source contracts passed (6/6); disposable Compose replay also passed twice with old-row compatibility, real `SET ROLE anon|authenticated` denials, service-only non-overlap/finish operations, and 180-day pruning.
+- 2026-07-13: HALT — no preview database/config is available for the required preview schema diff/type regeneration lane, and no independently verified 42-venue provenance evidence is available for the mandatory live remediation. Production credentials were not used and recurring automation was not enabled.
+- 2026-07-14: RESUME — Rasmus authorized the unlaunched live project `hhnbxrhfhlzxgllxukzj` as the protected Epic 12 database lane and attested that every existing schedule was manually collected from its venue's official website. No source URL was invented or inferred.
+- 2026-07-14: LIVE SCHEMA — applied `20260714073820_reconcile_venue_place_identity`, `20260714073831_provider_neutral_hours_governance`, and `20260714075456_tighten_hours_review_service_grants`; generated `lib/supabase/types.ts` from the migrated live schema. The authenticated pooler migration list aligns for all three Story 12.1 migrations and direct catalog checks found the expected columns, checks, functions, RLS, force-RLS, and grants.
+- 2026-07-14: LIVE SECURITY — `anon` and `authenticated` have no table DML or execute privileges and real `SET ROLE` probes fail with `42501`; `service_role` has only the required table/function operations. `public.spatial_ref_sys` and its accepted PostGIS advisory were deliberately left unchanged.
+- 2026-07-14: LIVE REMEDIATION — before: 42/42 venues had schedules, Place IDs, and provider URLs. Run `remediation-owner-attestation-2026-07-14` retained 42/42 as `venue_website`, with per-venue owner-attestation references and 90-day reviews; 42 current outcomes persisted, with zero failed, unknown, Google-derived, or unprovenanced public schedules. `places_api_url` is absent after migration.
+- 2026-07-14: LIVE AUDIT — direct runner completed `hours-review-live-manual-20260714-1`: 42 current, all other classifications zero, 42 bounded outcomes persisted, no canonical-hours writes.
+- 2026-07-14: RED/GREEN — governance began 12/12 RED then 12/12 GREEN; audit began 11/11 RED then 11/11 GREEN; the real hours-less detail assertion began 1/3 RED then the focused API/store lane passed 52/52. Policy/operations and migration contracts pass 17/17 after the runner allow-list audit.
+- 2026-07-14: ENVIRONMENT DEVIATION — the separately authorized pre-launch live lane replaced a separate preview project. Supabase linked-history OAuth returned 403, so the protected pooler and direct catalog/RLS probes supplied the post-apply contract evidence. Docker Desktop was unavailable for a fresh replay, while the earlier disposable Compose replay had passed twice; no Docker Desktop, WSL, or global infrastructure setting was changed.
+- 2026-07-14: VISUAL/BROWSER — local comparison against mobile `map-with-selected-venue`, mobile `venue-detail`, and desktop `venue-detail` references found no app-chrome/layout regression; references and `REBASELINE-LOG.md` were untouched. Playwright passed 12/12 detail/navigation plus scrub=0/date-change=1 tests and 5/5 targeted quick-info/detail layout tests (5 correct viewport skips).
+- 2026-07-14: FINAL LOCAL GATES — `npx tsc --noEmit`, `npx eslint . --quiet`, and the full Vitest suite pass (158 files, 1487 tests). `git diff --check` passes after removing trailing blank lines.
+- 2026-07-14: REVIEW GATE — the abbreviated `12-1` invocation stopped before checks because the script's sprint lookup requires the full key; rerunning the canonical wrapper with `12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours` passed lint, typecheck, and 158-file/1487-test Vitest, then transitioned sprint status to `review`. Validation artifact: `_bmad-output/implementation-artifacts/validation/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours-review-20260714-101706.log`.
+
+### Implementation Plan
+
+- Activate each ATDD scaffold in task order, prove RED, implement the minimum provider-neutral contract, and keep protected live/preview evidence separate from deterministic CI evidence.
+- Establish the migration/schema and pure governance seams before the direct audit runner; preserve public DTO and UI behavior except honest omission of whole-field unknown hours.
+- Stop at the explicit live-provenance gate if independently verified evidence for all 42 venues is unavailable.
+
 ### Completion Notes List
 
-- Ultimate context engine analysis completed — comprehensive provider-pivot, schema, operations, policy, and evidence guide created.
+- Implemented and regression-guarded the provider-neutral pivot: no Google opening-hours, provider URL/content, provider credential, public trigger, or request-path provider call was added; server-side Place IDs remain identity metadata only.
+- Established the canonical migration chain, least-privilege service-only review schema, checked audit contracts, non-overlap/retention functions, and live-generated Supabase types. The breaking database change removes `public.venues.places_api_url` and adds provenance/review columns plus `hours_review_runs` and `hours_review_outcomes`.
+- Converted Rasmus's official-venue-website evidence into auditable per-venue provenance without fabricating URLs, remediated all 42 live schedules, and proved zero Google-derived or unprovenanced public schedules before exercising the recurring audit.
+- Added the weekly fail-closed direct GitHub audit, provider-neutral schedule/governance logic, bounded run/outcome reporting, and operations/authoring/environment documentation. The emergency-stop variable remains independently configurable; the runner never changes canonical hours.
+- Made whole-field unknown hours honest by omitting `openingHours` from list/detail DTOs when absent, backed by a real hours-less fixture, with no formatter/component/reference changes.
+- Completed deterministic, browser, visual, and protected live evidence. No unresolved acceptance-criteria blocker remains; the accepted PostGIS `spatial_ref_sys` advisory is outside this story and unchanged.
 
 ### File List
+
+- `.github/workflows/hours-review-audit.yml`
+- `.github/workflows/scheduled-cron-jobs.yml`
+- `.gitignore`
+- `_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/validation/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours-review-20260714-101706.log`
+- `nextjs-app/.env.example`
+- `nextjs-app/.gitignore`
+- `nextjs-app/app/api/venues/[slug]/route.ts`
+- `nextjs-app/docs/environment-variables.md`
+- `nextjs-app/docs/github-actions-scheduled-jobs.md`
+- `nextjs-app/docs/venue-data-load.md`
+- `nextjs-app/docs/vercel-deployment.md`
+- `nextjs-app/lib/services/opening-hours-audit.ts`
+- `nextjs-app/lib/services/opening-hours-governance.ts`
+- `nextjs-app/lib/services/venue-store.ts`
+- `nextjs-app/lib/supabase/types.ts`
+- `nextjs-app/lib/types/api.ts`
+- `nextjs-app/scripts/audit-opening-hours.ts`
+- `nextjs-app/test/setup/setup.ts`
+- `nextjs-app/test/sql/story-12-1-hours-governance.assertions.sql`
+- `nextjs-app/test/sql/story-12-1-hours-governance-fixture.sql`
+- `nextjs-app/test/unit/api/venue-detail-hours-unknown.atdd.test.ts`
+- `nextjs-app/test/unit/api/venue-detail-route.test.ts`
+- `nextjs-app/test/unit/services/opening-hours-audit.atdd.test.ts`
+- `nextjs-app/test/unit/services/opening-hours-governance.atdd.test.ts`
+- `nextjs-app/test/unit/story-12-1-hours-policy-and-operations.atdd.test.ts`
+- `nextjs-app/test/unit/story-12-1-hours-governance-migrations.atdd.test.ts`
+- `supabase/migrations/20260714073820_reconcile_venue_place_identity.sql`
+- `supabase/migrations/20260714073831_provider_neutral_hours_governance.sql`
+- `supabase/migrations/20260714075456_tighten_hours_review_service_grants.sql`
+
+### Change Log
+
+- 2026-07-14 — Implemented provider-neutral hours governance, live provenance remediation, weekly direct audit, honest unknown-hours DTO behavior, full evidence, and operational documentation for Story 12.1.

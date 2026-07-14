@@ -10,8 +10,6 @@ on:
     - cron: '0 3 * * *'
     # Accuracy metrics — daily at 04:00 UTC
     - cron: '0 4 * * *'
-    # OSM ingestion — weekly Monday at 05:00 UTC
-    - cron: '0 5 * * 1'
     # Cleanup old data — weekly Sunday at 01:00 UTC
     - cron: '0 1 * * 0'
   workflow_dispatch:
@@ -25,7 +23,6 @@ on:
           - precomputation-schedule
           - cache-warmup
           - accuracy-metrics
-          - osm-ingestion
           - cleanup-old-data
 
 env:
@@ -102,24 +99,6 @@ jobs:
           echo "Response: $response"
           if [ "$response" != "200" ]; then
             echo "::error::Accuracy metrics failed with status $response"
-            exit 1
-          fi
-
-  osm-ingestion:
-    if: >-
-      (github.event_name == 'schedule' && github.event.schedule == '0 5 * * 1') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'osm-ingestion')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger OSM ingestion
-        run: |
-          response=$(curl -s -L -o /dev/null -w "%{http_code}" -X POST \
-            "$PRODUCTION_URL/api/cron/osm-ingestion" \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            -H "Content-Type: application/json")
-          echo "Response: $response"
-          if [ "$response" != "200" ]; then
-            echo "::error::OSM ingestion failed with status $response"
             exit 1
           fi
 

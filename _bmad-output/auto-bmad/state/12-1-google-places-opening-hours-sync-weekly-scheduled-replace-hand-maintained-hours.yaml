@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 1
 branch: story/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
 status: in-progress
-updated_at: "2026-07-13T17:18:24Z"
+updated_at: "2026-07-14T08:20:45Z"
 started_at: "2026-07-13T16:21:11Z"
 completed_at: null
-active_seconds: 3394
+active_seconds: 7035
 timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "Scheduled database mutations, schema/provenance migrations, atomic bulk outcomes, and concurrency-sensitive weekly automation make this high risk; the long-epic advisory gates also pass."
 epic_story_count: 14
 stories_after_in_epic: 13
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [09821bb, 6d0d0a0, 628c278]
+commits: [09821bb, 6d0d0a0, 628c278, 5b1cd0a]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -47,7 +47,11 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work: []
+deferred_work:
+  - "After the branch is merged, set SUN_HOURS_AUDIT_ENABLED=true in the protected production environment to enable the fail-closed weekly audit workflow."
 blockers: []
 overrides: {}
-constraints: []
+constraints:
+  - "The pre-launch SunnySeat Supabase project hhnbxrhfhlzxgllxukzj is the authorized protected database lane for all Epic 12 stories; schema and data changes are allowed."
+  - "Rasmus attested on 2026-07-14 that all 42 existing opening_hours schedules were manually fetched from each venue official website. Retain them as approved manual evidence sourced from official venue websites; record the attestation without inventing unretained URLs."
+  - "Do not modify public.spatial_ref_sys or attempt to clear its known Supabase advisory; it is an acknowledged PostGIS extension-table exception."

@@ -1,0 +1,50 @@
+name: Hours Review Audit
+
+on:
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sunnyseat-hours-review-production
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    defaults:
+      run:
+        working-directory: nextjs-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: nextjs-app/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Build service-only audit runner
+        run: >-
+          npx esbuild scripts/audit-opening-hours.ts
+          --bundle
+          --platform=node
+          --format=esm
+          --outfile="$RUNNER_TEMP/audit-opening-hours.mjs"
+
+      - name: Audit opening-hours freshness
+        # The runner writes bounded counts plus the run ID to GITHUB_STEP_SUMMARY.
+        run: node "$RUNNER_TEMP/audit-opening-hours.mjs"
+        env:
+          SUN_HOURS_AUDIT_ENABLED: ${{ vars.SUN_HOURS_AUDIT_ENABLED || 'false' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

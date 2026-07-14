@@ -41,7 +41,7 @@ const eligibleEvidence = {
 };
 
 describe('[12.1 AC4] provider-neutral adapter outcome union', () => {
-  test.skip('[P1] accepts one interval, explicit closed days, and past-midnight without changing shape', async () => {
+  test('[P1] accepts one interval, explicit closed days, and past-midnight without changing shape', async () => {
     const { classifyHoursEvidence } = await loadGovernance();
     const schedule = {
       '1': { open: '11:00', close: '22:00' },
@@ -55,7 +55,7 @@ describe('[12.1 AC4] provider-neutral adapter outcome union', () => {
     });
   });
 
-  test.skip('[P1] preserves whole-field unknown as null rather than seven closed weekdays', async () => {
+  test('[P1] preserves whole-field unknown as null rather than seven closed weekdays', async () => {
     const { classifyHoursEvidence } = await loadGovernance();
     const result = classifyHoursEvidence({ ...eligibleEvidence, schedule: null });
     expect(result).toMatchObject({ kind: 'accepted', schedule: null });
@@ -70,7 +70,7 @@ describe('[12.1 AC4] provider-neutral adapter outcome union', () => {
     });
   });
 
-  test.skip.each([
+  test.each([
     ['split', { '1': [{ open: '11:00', close: '14:00' }, { open: '17:00', close: '23:00' }] }],
     ['unsupported_24_7', { mode: '24/7' }],
     ['seasonal', { seasonal: true, schedule: { '1': { open: '11:00', close: '22:00' } } }],
@@ -83,7 +83,7 @@ describe('[12.1 AC4] provider-neutral adapter outcome union', () => {
     expect(result.schedule).toBeUndefined();
   });
 
-  test.skip('[P1] malformed evidence fails with a bounded error class', async () => {
+  test('[P1] malformed evidence fails with a bounded error class', async () => {
     const { classifyHoursEvidence } = await loadGovernance();
     expect(
       classifyHoursEvidence({ ...eligibleEvidence, schedule: { '1': { open: '11', close: 'tomorrow' } } }),
@@ -92,7 +92,7 @@ describe('[12.1 AC4] provider-neutral adapter outcome union', () => {
 });
 
 describe('[12.1 AC3/AC4] canonical update and remediation behavior', () => {
-  test.skip('[P1] only accepted outcomes write atomically and an identical rerun is idempotent', async () => {
+  test('[P1] only accepted outcomes write atomically and an identical rerun is idempotent', async () => {
     const { planCanonicalHoursUpdate } = await loadGovernance();
     const schedule = { '1': { open: '11:00', close: '22:00' } };
     const accepted = { kind: 'accepted', schedule, provenance: eligibleEvidence };
@@ -108,7 +108,7 @@ describe('[12.1 AC3/AC4] canonical update and remediation behavior', () => {
     ).toMatchObject({ shouldWrite: false, idempotent: true });
   });
 
-  test.skip.each(['manual_review', 'failed'])(
+  test.each(['manual_review', 'failed'])(
     '[P1] %s never overwrites the prior independently verified schedule',
     async (kind) => {
       const { planCanonicalHoursUpdate } = await loadGovernance();
@@ -127,7 +127,7 @@ describe('[12.1 AC3/AC4] canonical update and remediation behavior', () => {
     },
   );
 
-  test.skip('[P1] remediation classifies every row and deletes unproven/restricted schedules to whole-field unknown', async () => {
+  test('[P1] remediation classifies every row and deletes unproven/restricted schedules to whole-field unknown', async () => {
     const { remediateOpeningHoursRows } = await loadGovernance();
     const result = await remediateOpeningHoursRows({
       rows: [
@@ -146,7 +146,7 @@ describe('[12.1 AC3/AC4] canonical update and remediation behavior', () => {
     expect(JSON.stringify(result)).not.toMatch(/seven closed|relabelled.*manual/i);
   });
 
-  test.skip('[P1] duplicate Place IDs remain distinct venue outcomes', async () => {
+  test('[P1] duplicate Place IDs remain distinct venue outcomes', async () => {
     const { remediateOpeningHoursRows } = await loadGovernance();
     const result = await remediateOpeningHoursRows({
       rows: [
@@ -157,4 +157,3 @@ describe('[12.1 AC3/AC4] canonical update and remediation behavior', () => {
     expect(result.outcomes.map((outcome) => outcome.venueId)).toEqual(['10', '11']);
   });
 });
-

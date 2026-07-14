@@ -1,22 +1,3 @@
-// Supabase database types — generated from the live `public` schema.
-//
-// Story 8.5: regenerated from the live schema (Supabase project, central MVP)
-// via the Supabase types generator — equivalent to
-//   npx supabase gen types typescript --project-id <ref> --schema public
-// — replacing the `export type Database = Record<string, never>` placeholder and
-// the stale "Story 6.2" TODO.
-//
-// Notes:
-// - PostGIS `geometry` columns generate as `unknown`; JSONB columns generate as
-//   the `Json` helper. The server adapters narrow what they actually read via
-//   their own local Row types (e.g. venue-store's
-//   `seating_area?: GeoJSON.Polygon | null`), so no query site consumes a raw
-//   `unknown`. `lib/supabase/server.ts` stays un-parameterized (the adapters
-//   cast their own Row/Insert types), so this file is the schema source-of-truth
-//   without forcing end-to-end client typing.
-// - To regenerate after a schema change, re-run the Supabase types generator
-//   against the live `public` schema and overwrite this file.
-
 export type Json =
   | string
   | number
@@ -33,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          locale: string | null
+          rating: number
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          locale?: string | null
+          rating: number
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          locale?: string | null
+          rating?: number
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           confidence_at_prediction: number | null
@@ -72,6 +77,105 @@ export type Database = {
           venue_id?: string
           venue_slug?: string
           was_sunny?: boolean | null
+        }
+        Relationships: []
+      }
+      hours_review_outcomes: {
+        Row: {
+          created_at: string
+          error_class: string | null
+          id: number
+          outcome: string
+          reason: string
+          run_id: string
+          venue_id: string
+          venue_slug: string
+        }
+        Insert: {
+          created_at?: string
+          error_class?: string | null
+          id?: number
+          outcome: string
+          reason: string
+          run_id: string
+          venue_id: string
+          venue_slug: string
+        }
+        Update: {
+          created_at?: string
+          error_class?: string | null
+          id?: number
+          outcome?: string
+          reason?: string
+          run_id?: string
+          venue_id?: string
+          venue_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hours_review_outcomes_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "hours_review_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hours_review_outcomes_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hours_review_runs: {
+        Row: {
+          conflicting_count: number
+          current_count: number
+          due_count: number
+          failed_count: number
+          finished_at: string | null
+          id: string
+          missing_provenance_count: number
+          split_count: number
+          stale_count: number
+          started_at: string
+          status: string
+          total_count: number
+          trigger_type: string
+          unknown_count: number
+        }
+        Insert: {
+          conflicting_count?: number
+          current_count?: number
+          due_count?: number
+          failed_count?: number
+          finished_at?: string | null
+          id: string
+          missing_provenance_count?: number
+          split_count?: number
+          stale_count?: number
+          started_at?: string
+          status?: string
+          total_count?: number
+          trigger_type: string
+          unknown_count?: number
+        }
+        Update: {
+          conflicting_count?: number
+          current_count?: number
+          due_count?: number
+          failed_count?: number
+          finished_at?: string | null
+          id?: string
+          missing_provenance_count?: number
+          split_count?: number
+          stale_count?: number
+          started_at?: string
+          status?: string
+          total_count?: number
+          trigger_type?: string
+          unknown_count?: number
         }
         Relationships: []
       }
@@ -310,12 +414,19 @@ export type Database = {
           current_sun_status: string
           description: string | null
           ground_elevation_m: number | null
+          hours_next_review_at: string | null
+          hours_notes: string | null
+          hours_review_status: string | null
+          hours_reviewed_at: string | null
+          hours_source_reference: string | null
+          hours_source_type: string | null
           id: string
           is_partner: boolean
           lat: number
           lng: number
           neighborhood: string
           opening_hours: Json | null
+          place_id: string | null
           prediction_uncertainty: Json | null
           seating_area: Json | null
           seating_elevation_m: number | null
@@ -335,12 +446,19 @@ export type Database = {
           current_sun_status: string
           description?: string | null
           ground_elevation_m?: number | null
+          hours_next_review_at?: string | null
+          hours_notes?: string | null
+          hours_review_status?: string | null
+          hours_reviewed_at?: string | null
+          hours_source_reference?: string | null
+          hours_source_type?: string | null
           id?: string
           is_partner?: boolean
           lat: number
           lng: number
           neighborhood: string
           opening_hours?: Json | null
+          place_id?: string | null
           prediction_uncertainty?: Json | null
           seating_area?: Json | null
           seating_elevation_m?: number | null
@@ -360,12 +478,19 @@ export type Database = {
           current_sun_status?: string
           description?: string | null
           ground_elevation_m?: number | null
+          hours_next_review_at?: string | null
+          hours_notes?: string | null
+          hours_review_status?: string | null
+          hours_reviewed_at?: string | null
+          hours_source_reference?: string | null
+          hours_source_type?: string | null
           id?: string
           is_partner?: boolean
           lat?: number
           lng?: number
           neighborhood?: string
           opening_hours?: Json | null
+          place_id?: string | null
           prediction_uncertainty?: Json | null
           seating_area?: Json | null
           seating_elevation_m?: number | null
@@ -553,6 +678,14 @@ export type Database = {
             }
             Returns: string
           }
+      claim_hours_review_run: {
+        Args: {
+          p_run_id: string
+          p_started_at?: string
+          p_trigger_type: string
+        }
+        Returns: boolean
+      }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
         | {
@@ -586,6 +719,23 @@ export type Database = {
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      finish_hours_review_run: {
+        Args: {
+          p_conflicting_count: number
+          p_current_count: number
+          p_due_count: number
+          p_failed_count: number
+          p_finished_at: string
+          p_missing_provenance_count: number
+          p_run_id: string
+          p_split_count: number
+          p_stale_count: number
+          p_status: string
+          p_total_count: number
+          p_unknown_count: number
+        }
+        Returns: boolean
+      }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
         Args: { geom1: unknown; geom2: unknown }
@@ -752,6 +902,10 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      prune_hours_review_history: {
+        Args: { p_cutoff?: string }
+        Returns: number
+      }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown

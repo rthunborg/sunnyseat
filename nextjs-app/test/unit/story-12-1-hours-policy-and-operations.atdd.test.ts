@@ -65,7 +65,7 @@ const legacyWorkflow = readOptional(
 );
 
 describe('[12.1 AC1/AC8] Google-hours path stays prohibited', () => {
-  test.skip('[P1] production and scheduled code has no Google hours/content/credential path', () => {
+  test('[P1] production and scheduled code has no Google hours/content/credential path', () => {
     expect(productionSource).not.toMatch(/regularOpeningHours/i);
     expect(productionSource).not.toMatch(/X-Goog-FieldMask[^\n]*opening/i);
     expect(productionSource).not.toMatch(/places\.googleapis\.com/i);
@@ -75,18 +75,24 @@ describe('[12.1 AC1/AC8] Google-hours path stays prohibited', () => {
     );
   });
 
-  test.skip('[P1] public code has no hours-provider route or request-path integration', () => {
+  test('[P1] public code has no hours-provider route or request-path integration', () => {
     expect(productionFiles.some((file) => /app[\\/]api[\\/]cron/i.test(file))).toBe(false);
     expect(productionSource).not.toMatch(/fetch\([^\n]*(?:google|places|nominatim)/i);
   });
 
-  test.skip('[P1] shared test setup hard-blocks Google/provider hosts with a fix hint', () => {
+  test('[P1] shared test setup hard-blocks Google/provider hosts with a fix hint', () => {
     expect(setupSource).toMatch(/places\.googleapis\.com/i);
     expect(setupSource).toMatch(/no live|forbidden|fetch guard/i);
     expect(setupSource).toMatch(/mock|inject/i);
   });
 
-  test.skip('[P1] story brief preserves the explicit supersession and controlling decisions', () => {
+  test('[P1] shared fetch guard rejects a live Google Places request', async () => {
+    await expect(
+      fetch('https://places.googleapis.com/v1/places/example'),
+    ).rejects.toThrow(/No live.*provider|places\.googleapis\.com fetch guard/i);
+  });
+
+  test('[P1] story brief preserves the explicit supersession and controlling decisions', () => {
     expect(storySource).toContain('## Superseded Epic Text');
     expect(storySource).toContain('sprint-change-proposal-2026-07-12.md');
     expect(storySource).toContain('technical-google-places-api-policy-epic-12-research-2026-07-12.md');
@@ -96,7 +102,7 @@ describe('[12.1 AC1/AC8] Google-hours path stays prohibited', () => {
 });
 
 describe('[12.1 AC5/AC7] direct weekly audit workflow and operations docs', () => {
-  test.skip('[P1] dedicated workflow is weekly, manually dispatchable, non-overlapping, and direct-script only', () => {
+  test('[P1] dedicated workflow is weekly, manually dispatchable, non-overlapping, and direct-script only', () => {
     expect(hoursWorkflow).toMatch(/schedule:/);
     expect(hoursWorkflow).toMatch(/cron:/);
     expect(hoursWorkflow).toMatch(/workflow_dispatch:/);
@@ -109,19 +115,19 @@ describe('[12.1 AC5/AC7] direct weekly audit workflow and operations docs', () =
     expect(hoursWorkflow).not.toMatch(/GOOGLE|PLACES_API_KEY/i);
   });
 
-  test.skip('[P1] workflow is main-branch/protected-environment scoped with bounded execution and summary output', () => {
+  test('[P1] workflow is main-branch/protected-environment scoped with bounded execution and summary output', () => {
     expect(hoursWorkflow).toMatch(/refs\/heads\/main|branches:\s*\[?main/i);
     expect(hoursWorkflow).toMatch(/timeout-minutes:/);
     expect(hoursWorkflow).toMatch(/GITHUB_STEP_SUMMARY/);
     expect(hoursWorkflow).toMatch(/run[_ -]?id/i);
   });
 
-  test.skip('[P1] legacy scheduled workflow no longer offers or invokes OSM ingestion', () => {
+  test('[P1] legacy scheduled workflow no longer offers or invokes OSM ingestion', () => {
     expect(legacyWorkflow).not.toMatch(/osm-ingestion/i);
     expect(legacyWorkflow).not.toMatch(/\/api\/cron\/osm/i);
   });
 
-  test.skip('[P1] authoring docs remove provider URL examples and explain provider-neutral evidence', () => {
+  test('[P1] authoring docs remove provider URL examples and explain provider-neutral evidence', () => {
     expect(authoringDoc).not.toMatch(/places_api_url/i);
     expect(authoringDoc).not.toMatch(/places\.googleapis\.com\/v1\/places/i);
     expect(authoringDoc).toMatch(/Place ID[- ]only|Place-ID-only/i);
@@ -130,7 +136,7 @@ describe('[12.1 AC5/AC7] direct weekly audit workflow and operations docs', () =
     expect(authoringDoc).toMatch(/split|24\/7|seasonal|holiday/i);
   });
 
-  test.skip('[P1] scheduled-job and environment docs describe the direct audit and emergency stop', () => {
+  test('[P1] scheduled-job and environment docs describe the direct audit and emergency stop', () => {
     const operationsText = scheduledDoc + '\n' + environmentDoc + '\n' + envExample;
     expect(operationsText).toMatch(/audit-opening-hours\.mjs/);
     expect(operationsText).toMatch(/workflow_dispatch/);
@@ -139,4 +145,3 @@ describe('[12.1 AC5/AC7] direct weekly audit workflow and operations docs', () =
     expect(operationsText).not.toMatch(/GOOGLE_MAPS|PLACES_API_KEY/i);
   });
 });
-

@@ -28,7 +28,7 @@ async function loadAudit(): Promise<AuditModule> {
 const NOW = new Date('2026-07-13T10:00:00.000Z');
 
 describe('[12.1 AC5] weekly audit classification', () => {
-  test.skip.each([
+  test.each([
     ['missing_provenance', { openingHours: { '1': { open: '11:00', close: '22:00' } }, provenance: null }],
     ['due', { openingHours: { '1': { open: '11:00', close: '22:00' } }, provenance: { nextReviewAt: '2026-07-12T00:00:00.000Z' } }],
     ['unknown', { openingHours: null, provenance: { reviewStatus: 'unknown' } }],
@@ -46,7 +46,7 @@ describe('[12.1 AC5] weekly audit classification', () => {
 });
 
 describe('[12.1 AC5] audit runner isolation, overlap, retention, and idempotency', () => {
-  test.skip('[P1] emergency stop is fail-closed and claims no run', async () => {
+  test('[P1] emergency stop is fail-closed and claims no run', async () => {
     const { runOpeningHoursAudit } = await loadAudit();
     const claimRun = vi.fn();
     await expect(
@@ -55,7 +55,7 @@ describe('[12.1 AC5] audit runner isolation, overlap, retention, and idempotency
     expect(claimRun).not.toHaveBeenCalled();
   });
 
-  test.skip('[P1] a non-overlap claim prevents a second active run', async () => {
+  test('[P1] a non-overlap claim prevents a second active run', async () => {
     const { runOpeningHoursAudit } = await loadAudit();
     const recordOutcome = vi.fn();
     const result = await runOpeningHoursAudit({
@@ -71,7 +71,7 @@ describe('[12.1 AC5] audit runner isolation, overlap, retention, and idempotency
     expect(recordOutcome).not.toHaveBeenCalled();
   });
 
-  test.skip('[P1] one venue failure is isolated and canonical hours are never written', async () => {
+  test('[P1] one venue failure is isolated and canonical hours are never written', async () => {
     const { runOpeningHoursAudit } = await loadAudit();
     const writeCanonicalHours = vi.fn();
     const recordOutcome = vi.fn().mockResolvedValue(undefined);
@@ -96,7 +96,7 @@ describe('[12.1 AC5] audit runner isolation, overlap, retention, and idempotency
     expect(writeCanonicalHours).not.toHaveBeenCalled();
   });
 
-  test.skip('[P1] repeated input produces stable counts and a 180-day retention cutoff', async () => {
+  test('[P1] repeated input produces stable counts and a 180-day retention cutoff', async () => {
     const { runOpeningHoursAudit } = await loadAudit();
     const pruneBefore = vi.fn().mockResolvedValue(undefined);
     const base = {
@@ -125,4 +125,3 @@ describe('[12.1 AC5] audit runner isolation, overlap, retention, and idempotency
     );
   });
 });
-

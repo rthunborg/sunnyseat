@@ -125,7 +125,8 @@ const VENUE_DETAIL_SEED: Record<string, StoredVenueDetail> = {
     description:
       'Skyddad gårdsmiljö med kortare solfönster och gott om sittplatser.',
     address: 'Haga Nygata 8, 413 01 Göteborg',
-    openingHours: everyDay('11:00', '22:00'),
+    // Story 12.1: deterministic whole-field-unknown fixture. The detail/list
+    // routes must omit openingHours rather than fabricate a closed schedule.
   },
   'skuggans-hus': {
     description:

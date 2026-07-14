@@ -175,11 +175,12 @@ function buildDetailDto(
       fixture?.description ??
       `${venue.venueName} har uteservering i ${venue.neighborhood}.`,
     address: fixture?.address ?? venue.neighborhood,
-    // STORY 11.9 (AC2): the per-weekday structure passes through; an absent-hours
-    // venue serializes an EMPTY object (closed every weekday → the render layer
-    // shows nothing) rather than the fabricated `{ display: 'Öppettider saknas' }`.
-    // The render layer derives the display/closesAt from the current weekday.
-    openingHours: fixture?.openingHours ?? {},
+    // STORY 12.1 (AC6): whole-field unknown stays absent. An empty object would
+    // collapse unknown into "closed every weekday"; known schedules retain the
+    // Story 11.9 per-weekday shape unchanged.
+    ...(fixture?.openingHours !== undefined
+      ? { openingHours: fixture.openingHours }
+      : {}),
     timeline: {
       timezone: 'Europe/Stockholm',
       range: { start: '06:00', end: '21:00' },

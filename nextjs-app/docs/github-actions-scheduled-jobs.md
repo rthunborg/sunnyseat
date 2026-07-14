@@ -1,113 +1,80 @@
-# GitHub Actions Scheduled Jobs Setup
+# GitHub Actions scheduled jobs
 
-This guide explains how to set up GitHub Actions workflows to trigger scheduled background jobs, replacing Vercel cron jobs to avoid Hobby account limitations.
+SunnySeat opening-hours review runs as a protected, direct GitHub Action. It
+does not call a public cron endpoint and does not fetch an hours provider.
 
-## Overview
+## Hours review audit
 
-Instead of using Vercel cron jobs (limited to 2 total on Hobby accounts), we use GitHub Actions scheduled workflows to call our API endpoints at specified times.
+Workflow: `.github/workflows/hours-review-audit.yml`
 
-## Required GitHub Secrets
+- Schedule: weekly, Monday at 05:17 UTC.
+- Manual run: GitHub Actions → **Hours Review Audit** → `workflow_dispatch`.
+- Branch: `main` only.
+- Protected environment: `production`.
+- Concurrency: one production hours-review run at a time.
+- Timeout: 10 minutes.
+- Runner: `nextjs-app/scripts/audit-opening-hours.ts`, bundled to the
+  service-only `audit-opening-hours.mjs` executable during the Action.
+- Public HTTP route: none. `CRON_SECRET` is not used by this direct job.
 
-Configure these secrets in your GitHub repository:
+The runner reads canonical hours and provider-neutral provenance through the
+Supabase service role. It writes only bounded rows to `hours_review_runs` and
+`hours_review_outcomes`; it never writes `venues.opening_hours`. A single
+venue classification failure is recorded and the remaining venues continue.
+Run-level database/configuration failures fail the Action.
 
-1. Go to **Repository Settings** → **Secrets and variables** → **Actions**
-2. Click **"New repository secret"**
-3. Add the following secrets:
+### Protected configuration
 
-### `CRON_SECRET`
-- **Value:** Same as your `CRON_SECRET` environment variable in Vercel
-- **Purpose:** Authenticates requests to cron endpoints
-- **Example:** `your-secure-random-secret-key-min-32-chars`
+Configure these in the GitHub `production` environment:
 
-### `VERCEL_APP_URL`
-- **Value:** Your Vercel deployment URL
-- **Purpose:** Base URL for API endpoint calls
-- **Examples:**
-  - Production: `https://sunnyseat.se` (if using custom domain)
-  - Production: `https://your-app.vercel.app` (default Vercel domain)
-  - **Note:** Use your production URL, not preview URLs
+| Name | Kind | Purpose |
+|---|---|---|
+| `SUPABASE_URL` | Secret | Protected project URL used only by the runner. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Secret | Server-only key; never expose it to a client or log it. |
+| `SUN_HOURS_AUDIT_ENABLED` | Variable | Set exactly `true` to enable. Any other value is a fail-closed emergency stop. |
 
-## Workflow Files
+Keep `SUN_HOURS_AUDIT_ENABLED=false` until the schema migration and one-time
+provenance remediation show zero unprovenanced public schedules.
 
-The following workflow files are in `.github/workflows/`:
+### Inspecting a run
 
-- `scheduled-jobs-precomputation.yml` - Daily at midnight UTC
-- `scheduled-jobs-weather.yml` - Daily at 2 AM UTC
-- `scheduled-jobs-cache.yml` - Daily at 3 AM UTC
-- `scheduled-jobs-accuracy.yml` - Daily at 4 AM UTC
-- `scheduled-jobs-cleanup.yml` - Weekly on Sundays at 1 AM UTC
+The GitHub step summary contains only status, bounded category counts, and the
+run ID. It contains no source reference, provider payload, venue note, or
+credential. Use the run ID to inspect service-only rows with a reviewed
+service-role query:
 
-## Verification
+```sql
+select *
+from public.hours_review_runs
+where id = '[run-id]';
 
-### 1. Check Workflow Files
-Verify all workflow files exist in `.github/workflows/`:
-```bash
-ls .github/workflows/scheduled-jobs-*.yml
+select venue_id, venue_slug, outcome, reason, error_class, created_at
+from public.hours_review_outcomes
+where run_id = '[run-id]'
+order by venue_id;
 ```
 
-### 2. Test Manual Execution
-1. Go to **GitHub** → **Actions** tab
-2. Select any scheduled job workflow (e.g., "Weather Ingestion Job")
-3. Click **"Run workflow"** → **"Run workflow"**
-4. Check the workflow run logs for success
+Completed history older than 180 days is pruned after each successful audit.
+Active runs are never pruned.
 
-### 3. Verify API Endpoints
-After a workflow runs, check Vercel logs:
-1. Go to **Vercel Dashboard** → Your project → **Logs**
-2. Filter by the endpoint name (e.g., "weather-ingestion")
-3. Verify successful execution
+### Troubleshooting
 
-## Troubleshooting
+- **Disabled:** set the protected environment variable
+  `SUN_HOURS_AUDIT_ENABLED=true` and dispatch again.
+- **Missing configuration:** verify both protected Supabase secrets exist in the
+  `production` environment; do not print their values.
+- **Already running:** inspect the active `hours_review_runs` row. The database
+  claim and GitHub concurrency group both prevent overlap.
+- **Completed with failures:** use the run ID and bounded outcome rows to locate
+  failed venues. Canonical hours were not changed.
+- **Schedule delay:** GitHub schedules are approximate. Use
+  `workflow_dispatch` for a controlled manual run on `main`.
 
-### Workflow Fails with 401 Unauthorized
-- **Issue:** `CRON_SECRET` mismatch
-- **Solution:** Ensure GitHub secret `CRON_SECRET` matches Vercel environment variable `CRON_SECRET`
+## Historical scheduled workflow
 
-### Workflow Fails with Connection Error
-- **Issue:** `VERCEL_APP_URL` is incorrect
-- **Solution:** Verify the URL is correct and accessible. Use production URL, not preview.
-
-### Workflow Not Running on Schedule
-- **Issue:** GitHub Actions schedules can have delays (up to 15 minutes)
-- **Solution:** This is normal. Schedules are approximate, not exact.
-
-### Need to Change Schedule
-- Edit the `cron` expression in the workflow file
-- Push changes to trigger workflow updates
-- GitHub Actions will use the new schedule
-
-## Manual Triggering
-
-All workflows support manual triggering:
-
-1. Go to **GitHub** → **Actions**
-2. Select the workflow you want to run
-3. Click **"Run workflow"** → Select branch → **"Run workflow"**
-
-This is useful for testing or running jobs outside the schedule.
-
-## Monitoring
-
-### GitHub Actions
-- View workflow runs: **GitHub** → **Actions** → Workflow name
-- See execution history, logs, and success/failure rates
-
-### Vercel Logs
-- View API endpoint logs: **Vercel Dashboard** → **Logs**
-- Filter by endpoint path to see execution details
-
-## Benefits of This Approach
-
-✅ **No Vercel Cron Limits** - Avoids Hobby account 2-cron-job limit  
-✅ **Free** - GitHub Actions provides 2,000 minutes/month free  
-✅ **Reliable** - GitHub Actions has excellent uptime  
-✅ **Flexible** - Easy to modify schedules or add new jobs  
-✅ **Transparent** - Full execution history in GitHub  
-✅ **Manual Trigger** - Can run jobs on-demand for testing
-
-## Migration Notes
-
-- **Removed:** All cron jobs from `vercel.json`
-- **Added:** GitHub Actions workflow files
-- **Unchanged:** API endpoints remain the same, still require `CRON_SECRET`
-- **Compatible:** Existing endpoints work with both approaches
+`.github/workflows/scheduled-cron-jobs.yml` still documents weather,
+precomputation, cache, accuracy, and cleanup endpoint jobs. Those endpoint
+assumptions are historical and are owned by Story 12.3 for replacement or
+removal. The obsolete scheduled OSM ingestion entry has been removed by Story
+12.1. Do not copy that workflow's `CRON_SECRET` pattern into the direct hours
+audit.

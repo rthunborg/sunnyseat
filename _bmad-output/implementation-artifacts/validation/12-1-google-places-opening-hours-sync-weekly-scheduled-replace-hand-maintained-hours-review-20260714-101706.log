@@ -1,0 +1,41 @@
+SunnySeat story review gate
+Story: 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours-review-20260714-101706.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+Not implemented: navigation to another Document
+
+ Test Files  158 passed (158)
+      Tests  1487 passed (1487)
+   Start at  10:17:26
+   Duration  55.82s (transform 8.31s, setup 98.27s, import 105.05s, tests 78.96s, environment 465.45s)
+
+Skipping visual validation: no mapped screen ID found in story file
+Updated sprint status: 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours-review-20260714-101706.log

@@ -23,10 +23,11 @@ function readMigration(namePart: string): string {
 
 const reconciliation = readMigration('reconcile_venue_place_identity');
 const governance = readMigration('provider_neutral_hours_governance');
-const allSql = reconciliation + '\n' + governance;
+const grantHardening = readMigration('tighten_hours_review_service_grants');
+const allSql = reconciliation + '\n' + governance + '\n' + grantHardening;
 
 describe('[12.1 AC2] canonical migration chain', () => {
-  test.skip('[P0] reconciliation precedes the forward provider-neutral migration', () => {
+  test('[P0] reconciliation precedes the forward provider-neutral migration', () => {
     const files = migrationFiles();
     const reconcileIndex = files.findIndex((file) =>
       file.includes('reconcile_venue_place_identity'),
@@ -38,7 +39,7 @@ describe('[12.1 AC2] canonical migration chain', () => {
     expect(governanceIndex).toBeGreaterThan(reconcileIndex);
   });
 
-  test.skip('[P0] migration is idempotent and keeps nullable indexed non-unique place_id only', () => {
+  test('[P0] migration is idempotent and keeps nullable indexed non-unique place_id only', () => {
     expect(allSql).toMatch(/IF\s+(?:NOT\s+)?EXISTS/i);
     expect(allSql).toMatch(/\bplace_id\b/i);
     expect(governance).toMatch(/DROP\s+COLUMN\s+(?:IF\s+EXISTS\s+)?places_api_url/i);
@@ -46,7 +47,7 @@ describe('[12.1 AC2] canonical migration chain', () => {
     expect(governance).not.toMatch(/UNIQUE[\s\S]{0,80}place_id/i);
   });
 
-  test.skip('[P0] venues gains checked provider-neutral provenance and review fields', () => {
+  test('[P0] venues gains checked provider-neutral provenance and review fields', () => {
     for (const field of [
       'hours_source_type',
       'hours_source_reference',
@@ -66,7 +67,7 @@ describe('[12.1 AC2] canonical migration chain', () => {
     expect(governance).toMatch(/unknown/i);
   });
 
-  test.skip('[P0] service-only run/outcome tables use checked statuses and bounded fields', () => {
+  test('[P0] service-only run/outcome tables use checked statuses and bounded fields', () => {
     expect(governance).toMatch(/CREATE\s+TABLE[\s\S]*hours_review_runs/i);
     expect(governance).toMatch(/CREATE\s+TABLE[\s\S]*hours_review_outcomes/i);
     for (const outcome of ['due', 'unknown', 'conflict', 'split', 'failed', 'stale']) {
@@ -76,7 +77,7 @@ describe('[12.1 AC2] canonical migration chain', () => {
     expect(governance).toMatch(/PRIMARY\s+KEY[\s\S]*(?:run_id|venue_id)/i);
   });
 
-  test.skip('[P0] both service tables enable RLS and deny public roles', () => {
+  test('[P0] both service tables enable RLS and deny public roles', () => {
     expect(governance).toMatch(
       /ALTER\s+TABLE[\s\S]*hours_review_runs[\s\S]*ENABLE\s+ROW\s+LEVEL\s+SECURITY/i,
     );
@@ -88,10 +89,25 @@ describe('[12.1 AC2] canonical migration chain', () => {
     expect(governance).not.toMatch(/CREATE\s+POLICY[\s\S]*TO\s+(?:anon|authenticated)/i);
   });
 
-  test.skip('[P0] schema provides atomic non-overlap and deterministic 180-day cleanup seams', () => {
+  test('[P0] service role receives explicit least-privilege grants separately from RLS', () => {
+    expect(grantHardening).toMatch(/ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+    expect(grantHardening).toMatch(
+      /REVOKE\s+ALL[\s\S]*FROM\s+public,\s*anon,\s*authenticated,\s*service_role/i,
+    );
+    expect(grantHardening).toMatch(
+      /GRANT\s+select,\s*insert,\s*update,\s*delete[\s\S]*hours_review_runs\s+TO\s+service_role/i,
+    );
+    expect(grantHardening).toMatch(
+      /GRANT\s+select,\s*insert,\s*update[\s\S]*hours_review_outcomes\s+TO\s+service_role/i,
+    );
+    expect(grantHardening).not.toMatch(
+      /GRANT[\s\S]{0,80}delete[\s\S]{0,80}hours_review_outcomes/i,
+    );
+  });
+
+  test('[P0] schema provides atomic non-overlap and deterministic 180-day cleanup seams', () => {
     expect(governance).toMatch(/advisory|non.?overlap|active_run|lease/i);
     expect(governance).toMatch(/180\s*(?:days?|day)/i);
     expect(governance).toMatch(/DELETE\s+FROM[\s\S]*hours_review_(?:runs|outcomes)/i);
   });
 });
-

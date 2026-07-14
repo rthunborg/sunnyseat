@@ -29,8 +29,11 @@ afterEach(() => {
 const MET_NO_FETCH_GUARD_MESSAGE =
   'No live Met.no fetch allowed in tests (api.met.no fetch guard, Story 10.5 AC4). ' +
   'Mock @/lib/weather/met-no-service / @/lib/weather/nowcast-service (or inject an override) instead.';
+const GOOGLE_PLACES_FETCH_GUARD_MESSAGE =
+  'No live hours-provider fetch allowed in tests (places.googleapis.com fetch guard, Story 12.1 AC1). ' +
+  'Mock or inject the provider adapter instead; Google opening-hours content is prohibited.';
 
-function isApiMetNoRequest(input: RequestInfo | URL): boolean {
+function requestHost(input: RequestInfo | URL): string | undefined {
   let raw: string;
   if (typeof input === 'string') {
     raw = input;
@@ -47,9 +50,17 @@ function isApiMetNoRequest(input: RequestInfo | URL): boolean {
   try {
     host = new URL(raw, 'http://localhost').hostname.toLowerCase();
   } catch {
-    return false;
+    return undefined;
   }
-  return host === 'api.met.no';
+  return host;
+}
+
+function isApiMetNoRequest(input: RequestInfo | URL): boolean {
+  return requestHost(input) === 'api.met.no';
+}
+
+function isGooglePlacesRequest(input: RequestInfo | URL): boolean {
+  return requestHost(input) === 'places.googleapis.com';
 }
 
 beforeEach(() => {
@@ -57,6 +68,9 @@ beforeEach(() => {
   const guardedFetch: typeof fetch = (input, init) => {
     if (isApiMetNoRequest(input as RequestInfo | URL)) {
       return Promise.reject(new Error(MET_NO_FETCH_GUARD_MESSAGE));
+    }
+    if (isGooglePlacesRequest(input as RequestInfo | URL)) {
+      return Promise.reject(new Error(GOOGLE_PLACES_FETCH_GUARD_MESSAGE));
     }
     if (typeof realFetch === 'function') {
       return realFetch(input as RequestInfo | URL, init);
