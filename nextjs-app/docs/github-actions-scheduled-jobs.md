@@ -34,7 +34,11 @@ Configure these in the GitHub `production` environment:
 | `SUN_HOURS_AUDIT_ENABLED` | Variable | Set exactly `true` to enable. Any other value is a fail-closed emergency stop. |
 
 Keep `SUN_HOURS_AUDIT_ENABLED=false` until the schema migration and one-time
-provenance remediation show zero unprovenanced public schedules.
+provenance remediation show zero unprovenanced public schedules. That gate
+passed for all 42 venues, and on 2026-07-14 the production environment was
+configured with both secrets, `SUN_HOURS_AUDIT_ENABLED=true`, and a main-only
+deployment-branch policy. The workflow itself keeps an absent variable
+fail-closed.
 
 ### Inspecting a run
 
@@ -59,8 +63,8 @@ Active runs are never pruned.
 
 ### Troubleshooting
 
-- **Disabled:** set the protected environment variable
-  `SUN_HOURS_AUDIT_ENABLED=true` and dispatch again.
+- **Disabled:** remove an emergency-stop override or set the protected
+  environment variable `SUN_HOURS_AUDIT_ENABLED=true`, then dispatch again.
 - **Missing configuration:** verify both protected Supabase secrets exist in the
   `production` environment; do not print their values.
 - **Already running:** inspect the active `hours_review_runs` row. The database
@@ -73,8 +77,8 @@ Active runs are never pruned.
 ## Historical scheduled workflow
 
 `.github/workflows/scheduled-cron-jobs.yml` still documents weather,
-precomputation, cache, accuracy, and cleanup endpoint jobs. Those endpoint
-assumptions are historical and are owned by Story 12.3 for replacement or
-removal. The obsolete scheduled OSM ingestion entry has been removed by Story
-12.1. Do not copy that workflow's `CRON_SECRET` pattern into the direct hours
-audit.
+precomputation, cache, accuracy, OSM-ingestion, and cleanup endpoint jobs. Those
+endpoint assumptions are historical and are owned by Story 12.3 for replacement
+or removal. Story 12.1 leaves that unrelated workflow intact rather than
+silently disabling an existing maintenance path. Do not copy its `CRON_SECRET`
+pattern into the direct hours audit.

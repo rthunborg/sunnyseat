@@ -62,6 +62,11 @@ begin
        'service_role',
        'public.hours_review_outcomes',
        'delete'
+     )
+     or not has_function_privilege(
+       'service_role',
+       'public.persist_hours_review_outcome(text,text,text,text,text,text,text,text)',
+       'execute'
      ) then
     raise exception 'service role grants are not least-privilege';
   end if;
@@ -134,8 +139,16 @@ set role service_role;
 
 do $$
 begin
-  if not public.claim_hours_review_run('run-1', 'manual', '2026-07-13T10:00:00Z') then
+  if not public.claim_hours_review_run('run-1', 'manual', '1900-01-01T00:00:00Z') then
     raise exception 'first run claim must succeed';
+  end if;
+  if not exists (
+    select 1 from public.hours_review_runs
+    where id = 'run-1'
+      and started_at > clock_timestamp() - interval '1 minute'
+      and lease_expires_at > clock_timestamp() + interval '14 minutes'
+  ) then
+    raise exception 'claim timestamps must come from database time';
   end if;
   if public.claim_hours_review_run('run-overlap', 'scheduled', '2026-07-13T10:01:00Z') then
     raise exception 'overlapping run claim must fail';
@@ -143,21 +156,19 @@ begin
 end
 $$;
 
-insert into public.hours_review_outcomes (
-  run_id,
-  venue_id,
-  venue_slug,
-  outcome,
-  reason
-) values (
-  'run-1',
-  'legacy-1',
-  'legacy-hours',
-  'missing_provenance',
-  'missing_provenance'
-) on conflict (run_id, venue_id) do update
-set outcome = excluded.outcome,
-    reason = excluded.reason;
+do $$
+begin
+  if not public.persist_hours_review_outcome(
+    'run-1',
+    'legacy-1',
+    'legacy-hours',
+    'missing_provenance',
+    'missing_provenance'
+  ) then
+    raise exception 'active parent must accept a serialized outcome';
+  end if;
+end
+$$;
 
 do $$
 begin
@@ -166,6 +177,11 @@ begin
     1, 0, 1, 0, 0, 0, 0, 0, 0
   ) then
     raise exception 'consistent run-1 summary must finish';
+  end if;
+  if public.persist_hours_review_outcome(
+    'run-1', 'legacy-1', 'legacy-hours', 'current', 'review_current'
+  ) then
+    raise exception 'terminal parent unexpectedly accepted a late outcome';
   end if;
 end
 $$;
@@ -195,11 +211,15 @@ begin
 end
 $$;
 
-insert into public.hours_review_outcomes (
-  run_id, venue_id, venue_slug, outcome, reason
-) values (
-  'run-2', 'legacy-1', 'legacy-hours', 'current', 'review_current'
-);
+do $$
+begin
+  if not public.persist_hours_review_outcome(
+    'run-2', 'legacy-1', 'legacy-hours', 'current', 'review_current'
+  ) then
+    raise exception 'run-2 serialized outcome must persist';
+  end if;
+end
+$$;
 
 do $$
 begin
@@ -217,7 +237,10 @@ begin
   if not public.claim_hours_review_run('run-stale', 'scheduled', '2026-07-13T11:00:00Z') then
     raise exception 'stale-run test claim must succeed';
   end if;
-  if not public.claim_hours_review_run('run-after-stale', 'scheduled', '2026-07-13T11:16:00Z') then
+  update public.hours_review_runs
+  set lease_expires_at = clock_timestamp() - interval '1 second'
+  where id = 'run-stale';
+  if not public.claim_hours_review_run('run-after-stale', 'scheduled', '2999-01-01T00:00:00Z') then
     raise exception 'expired lease must be recovered for the next claimant';
   end if;
   if not public.fail_hours_review_run('run-after-stale', '2026-07-13T11:17:00Z') then
@@ -243,19 +266,31 @@ insert into public.hours_review_runs (
   'run-expired',
   'manual',
   'completed',
-  '2025-12-01T10:00:00Z',
-  '2025-12-01T10:01:00Z',
-  '2025-12-01T10:01:00Z'
+  clock_timestamp() - interval '181 days',
+  clock_timestamp() - interval '181 days',
+  clock_timestamp() - interval '181 days'
+), (
+  'run-young',
+  'manual',
+  'completed',
+  clock_timestamp() - interval '1 day',
+  clock_timestamp() - interval '1 day',
+  clock_timestamp() - interval '1 day'
 );
 
 do $$
 declare
   pruned integer;
 begin
-  select public.prune_hours_review_history('2026-07-13T10:00:00Z'::timestamptz - interval '180 days')
+  select public.prune_hours_review_history('2999-01-01T00:00:00Z'::timestamptz)
   into pruned;
   if pruned <> 1 then
     raise exception 'expected one expired run to be pruned, got %', pruned;
+  end if;
+  if not exists (
+    select 1 from public.hours_review_runs where id = 'run-young'
+  ) then
+    raise exception 'worker cutoff pruned history younger than 180 days';
   end if;
 end
 $$;
@@ -275,7 +310,11 @@ do $$
 declare
   remediation_run text := 'run-remediation-' || txid_current()::text;
   expired_run text := 'run-expired-remediation-' || txid_current()::text;
+  expected_updated_at timestamptz;
 begin
+  select updated_at into expected_updated_at
+  from public.venues where id = 'legacy-1';
+
   if not public.claim_hours_review_run(remediation_run, 'remediation', now()) then
     raise exception 'remediation test claim must succeed';
   end if;
@@ -298,7 +337,8 @@ begin
     null,
     'failed',
     'unsupported_24_7',
-    'validation_failed'
+    'validation_failed',
+    expected_updated_at
   ) then
     raise exception 'active remediation write must succeed';
   end if;
@@ -309,7 +349,7 @@ begin
     'legacy-hours',
     null,
     'venue_website',
-    'owner-attested:retry-must-not-win',
+    'owner-attested:replacement-must-not-win',
     'manual_review',
     now(),
     now() + interval '90 days',
@@ -318,9 +358,31 @@ begin
     null,
     'failed',
     'unsupported_24_7',
-    'validation_failed'
+    'validation_failed',
+    expected_updated_at
   ) then
     raise exception 'idempotent remediation retry must succeed';
+  end if;
+
+  if public.apply_hours_remediation_outcome(
+    remediation_run,
+    'legacy-1',
+    'legacy-hours',
+    null,
+    'venue_website',
+    'owner-attested:changed-stale-request',
+    'manual_review',
+    now(),
+    now() + interval '90 days',
+    null,
+    'unsupported_24_7',
+    null,
+    'failed',
+    'unsupported_24_7',
+    'validation_failed',
+    expected_updated_at
+  ) then
+    raise exception 'changed stale request was misreported as idempotent success';
   end if;
 
   if not exists (
@@ -341,6 +403,30 @@ begin
       and resulting_review_status = 'manual_review'
   ) then
     raise exception 'remediation retry destroyed the true prior review status';
+  end if;
+
+  update public.venues
+  set hours_notes = 'newer legitimate hours edit'
+  where id = 'legacy-1';
+  if public.apply_hours_remediation_outcome(
+    remediation_run,
+    'legacy-1',
+    'legacy-hours',
+    null,
+    'venue_website',
+    'owner-attested:replacement-must-not-win',
+    'manual_review',
+    now(),
+    now() + interval '90 days',
+    null,
+    'unsupported_24_7',
+    null,
+    'failed',
+    'unsupported_24_7',
+    'validation_failed',
+    expected_updated_at
+  ) then
+    raise exception 'stale remediation snapshot overwrote a newer venue edit';
   end if;
 
   if not public.finish_hours_review_run(
@@ -364,7 +450,8 @@ begin
     null,
     'unknown',
     'hours_unknown',
-    null
+    null,
+    expected_updated_at
   ) then
     raise exception 'completed remediation run unexpectedly accepted a write';
   end if;
@@ -393,7 +480,8 @@ begin
     null,
     'unknown',
     'hours_unknown',
-    null
+    null,
+    expected_updated_at
   ) then
     raise exception 'expired remediation lease unexpectedly accepted a write';
   end if;
@@ -416,6 +504,7 @@ begin
     )
       and conname in (
         'venues_hours_state_coherence_check',
+        'venues_opening_hours_shape_check',
         'hours_review_runs_counter_sum_check',
         'hours_review_outcomes_coherence_check'
       )
@@ -423,6 +512,33 @@ begin
   ) then
     raise exception 'coherence constraints must be validated';
   end if;
+
+  begin
+    update public.venues
+    set opening_hours = '{"8":{"open":"09:00","close":"17:00"}}'::jsonb
+    where id = 'legacy-1';
+    raise exception 'out-of-range weekday unexpectedly accepted';
+  exception
+    when check_violation then null;
+  end;
+
+  begin
+    update public.venues
+    set opening_hours = '{"1":{"open":"09:00","close":"09:00"}}'::jsonb
+    where id = 'legacy-1';
+    raise exception 'zero-length interval unexpectedly accepted';
+  exception
+    when check_violation then null;
+  end;
+
+  begin
+    update public.venues
+    set opening_hours = '{}'::jsonb
+    where id = 'legacy-1';
+  exception
+    when check_violation then
+      raise exception 'all-closed canonical schedule was rejected';
+  end;
 
   begin
     update public.venues set hours_source_type = 'google' where id = 'legacy-1';
@@ -470,15 +586,27 @@ begin
     when check_violation then null;
   end;
 
+  if not public.claim_hours_review_run(
+    'run-invalid-outcome', 'manual', clock_timestamp()
+  ) then
+    raise exception 'invalid-outcome constraint test could not claim a run';
+  end if;
   begin
-    insert into public.hours_review_outcomes (
-      run_id, venue_id, venue_slug, outcome, reason
-    ) values (
-      'run-2', 'legacy-1', 'legacy-hours', 'current', 'classification_failed'
+    perform public.persist_hours_review_outcome(
+      'run-invalid-outcome',
+      'legacy-1',
+      'legacy-hours',
+      'current',
+      'classification_failed'
     );
     raise exception 'contradictory audit outcome unexpectedly accepted';
   exception
     when check_violation then null;
   end;
+  if not public.fail_hours_review_run(
+    'run-invalid-outcome', clock_timestamp()
+  ) then
+    raise exception 'invalid-outcome constraint test did not release its run';
+  end if;
 end
 $$;

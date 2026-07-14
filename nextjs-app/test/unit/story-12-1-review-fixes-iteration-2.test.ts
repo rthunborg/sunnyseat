@@ -19,7 +19,14 @@ const EVIDENCE = {
 function repositories(overrides: Record<string, unknown> = {}) {
   return {
     claimRun: vi.fn().mockResolvedValue({ claimed: true, runId: 'run-1' }),
-    listVenues: vi.fn().mockResolvedValue([]),
+    listVenues: vi.fn().mockResolvedValue([
+      {
+        id: 'venue-default',
+        slug: 'venue-default',
+        openingHours: null,
+        provenance: { reviewStatus: 'unknown' },
+      },
+    ]),
     recordOutcome: vi.fn().mockResolvedValue(undefined),
     finishRun: vi.fn().mockResolvedValue(undefined),
     failRun: vi.fn().mockResolvedValue(undefined),
@@ -144,8 +151,20 @@ describe('[12.1 review iteration 2] remediation file validation', () => {
     expect(() =>
       parseRemediationRows(
         JSON.stringify([
-          { id: 'same', slug: 'one', openingHours: null, evidence: null },
-          { id: 'same', slug: 'two', openingHours: null, evidence: null },
+          {
+            id: 'same',
+            slug: 'one',
+            updatedAt: NOW.toISOString(),
+            openingHours: null,
+            evidence: null,
+          },
+          {
+            id: 'same',
+            slug: 'two',
+            updatedAt: NOW.toISOString(),
+            openingHours: null,
+            evidence: null,
+          },
         ]),
       ),
     ).toThrow(/duplicate/i);
@@ -235,11 +254,11 @@ describe('[12.1 review iteration 2] deployment source contracts', () => {
 
   test('remediation runner renews leases, isolates RPC errors, and writes report before finish', () => {
     expect(remediationRunner).toMatch(/renew_hours_review_run_lease/i);
-    expect(remediationRunner).toMatch(/hours_review_outcomes[\s\S]*upsert/i);
+    expect(remediationRunner).toMatch(/persist_hours_review_outcome/i);
     expect(remediationRunner).toMatch(/continue;/i);
-    expect(remediationRunner.indexOf('writeFile(')).toBeGreaterThanOrEqual(0);
+    expect(remediationRunner.indexOf("status: 'provisional'")).toBeGreaterThanOrEqual(0);
     expect(remediationRunner.indexOf('finish_hours_review_run')).toBeGreaterThan(
-      remediationRunner.indexOf('writeFile('),
+      remediationRunner.indexOf("status: 'provisional'"),
     );
   });
 

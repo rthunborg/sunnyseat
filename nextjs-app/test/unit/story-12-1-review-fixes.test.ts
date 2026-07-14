@@ -27,7 +27,14 @@ const ELIGIBLE_EVIDENCE = {
 function repositories(overrides: Record<string, unknown> = {}) {
   return {
     claimRun: vi.fn().mockResolvedValue({ claimed: true, runId: 'run-1' }),
-    listVenues: vi.fn().mockResolvedValue([]),
+    listVenues: vi.fn().mockResolvedValue([
+      {
+        id: 'venue-default',
+        slug: 'venue-default',
+        openingHours: null,
+        provenance: { reviewStatus: 'unknown' },
+      },
+    ]),
     recordOutcome: vi.fn().mockResolvedValue(undefined),
     finishRun: vi.fn().mockResolvedValue(undefined),
     failRun: vi.fn().mockResolvedValue(undefined),

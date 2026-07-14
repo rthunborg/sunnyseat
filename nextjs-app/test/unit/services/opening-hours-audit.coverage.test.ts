@@ -258,7 +258,9 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
     expect(listVenues).not.toHaveBeenCalled();
   });
 
-  test('[P2] an empty run succeeds with stable zero counts through the required repositories', async () => {
+  test('[P1] an empty venue population fails closed and cannot report healthy zero counts', async () => {
+    const finishRun = vi.fn();
+    const failRun = vi.fn().mockResolvedValue(undefined);
     await expect(
       runOpeningHoursAudit({
         enabled: true,
@@ -270,24 +272,13 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
           }),
           listVenues: vi.fn().mockResolvedValue([]),
           recordOutcome: vi.fn(),
-          finishRun: vi.fn().mockResolvedValue(undefined),
-          failRun: vi.fn(),
+          finishRun,
+          failRun,
           pruneBefore: vi.fn().mockResolvedValue(undefined),
         },
       }),
-    ).resolves.toEqual({
-      status: 'completed',
-      runId: 'run-empty',
-      counts: {
-        current: 0,
-        missing_provenance: 0,
-        due: 0,
-        unknown: 0,
-        conflicting: 0,
-        split: 0,
-        failed: 0,
-        stale: 0,
-      },
-    });
+    ).rejects.toThrow(/population.*empty/i);
+    expect(finishRun).not.toHaveBeenCalled();
+    expect(failRun).toHaveBeenCalledTimes(1);
   });
 });

@@ -66,20 +66,64 @@ function isGooglePlacesRequest(input: RequestInfo | URL): boolean {
 
 beforeEach(() => {
   const realFetch = globalThis.fetch;
-  const guardedFetch: typeof fetch = (input, init) => {
+  const guardedFetch: typeof fetch = async (input, init) => {
     if (isApiMetNoRequest(input as RequestInfo | URL)) {
-      return Promise.reject(new Error(MET_NO_FETCH_GUARD_MESSAGE));
+      throw new Error(MET_NO_FETCH_GUARD_MESSAGE);
     }
     if (isGooglePlacesRequest(input as RequestInfo | URL)) {
-      return Promise.reject(new Error(GOOGLE_PLACES_FETCH_GUARD_MESSAGE));
+      throw new Error(GOOGLE_PLACES_FETCH_GUARD_MESSAGE);
     }
     if (typeof realFetch === 'function') {
-      return realFetch(input as RequestInfo | URL, init);
+      // Force native fetch to expose redirects before following them. Otherwise
+      // a harmless-looking URL can redirect to a live provider below this guard.
+      // Follow allowed redirects explicitly, preserving the platform hop limit.
+      let currentInput: RequestInfo | URL = input as RequestInfo | URL;
+      let currentInit = init;
+      for (let redirects = 0; redirects <= 10; redirects += 1) {
+        const response = await realFetch(currentInput, {
+          ...currentInit,
+          redirect: 'manual',
+        });
+        if (response.status < 300 || response.status >= 400) return response;
+
+        const location = response.headers.get('location');
+        if (!location || currentInit?.redirect === 'manual') return response;
+        if (currentInit?.redirect === 'error') {
+          throw new TypeError('fetch redirect rejected by redirect:error');
+        }
+        if (redirects === 10) throw new TypeError('fetch redirect limit exceeded');
+
+        const base =
+          typeof currentInput === 'string'
+            ? currentInput
+            : currentInput instanceof URL
+              ? currentInput.href
+              : currentInput.url;
+        const nextUrl = new URL(location, base);
+        if (isApiMetNoRequest(nextUrl)) throw new Error(MET_NO_FETCH_GUARD_MESSAGE);
+        if (isGooglePlacesRequest(nextUrl)) {
+          throw new Error(GOOGLE_PLACES_FETCH_GUARD_MESSAGE);
+        }
+
+        const method = (
+          currentInit?.method ??
+          (typeof Request !== 'undefined' && currentInput instanceof Request
+            ? currentInput.method
+            : 'GET')
+        ).toUpperCase();
+        const switchToGet =
+          response.status === 303 ||
+          ((response.status === 301 || response.status === 302) && method === 'POST');
+        currentInput = nextUrl;
+        currentInit = switchToGet
+          ? { ...currentInit, method: 'GET', body: undefined }
+          : currentInit;
+      }
     }
     // jsdom/node has no live server for same-origin/relative URLs; surface a
     // NETWORK-style failure (NOT the guard's message) so a surgical guard is
     // provable and legitimate mocks can still intercept before reaching here.
-    return Promise.reject(new TypeError('fetch failed: no fetch implementation available in test env'));
+    throw new TypeError('fetch failed: no fetch implementation available in test env');
   };
   Object.defineProperty(globalThis, 'fetch', {
     configurable: true,

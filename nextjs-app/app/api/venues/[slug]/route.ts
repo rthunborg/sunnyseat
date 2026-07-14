@@ -179,7 +179,7 @@ function buildDetailDto(
     // STORY 12.1 (AC6): whole-field unknown stays absent. An empty object would
     // collapse unknown into "closed every weekday"; known schedules retain the
     // Story 11.9 per-weekday shape unchanged.
-    ...(openingHours !== undefined
+    ...(openingHours != null
       ? { openingHours }
       : {}),
     timeline: {

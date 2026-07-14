@@ -33,7 +33,9 @@ create table public.venues (
   prediction_uncertainty jsonb,
   tags text[] not null default '{}',
   place_id text,
-  places_api_url text
+  places_api_url text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 insert into public.venues (id, slug, opening_hours, place_id, places_api_url)

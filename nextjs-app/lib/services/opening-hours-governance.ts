@@ -124,7 +124,7 @@ const safeNotesSchema = z
     },
   );
 
-export const hoursProvenanceSchema = z
+const hoursProvenanceBaseSchema = z
   .object({
     sourceType: hoursSourceTypeSchema,
     sourceReference: safeSourceReferenceSchema,
@@ -144,13 +144,6 @@ export const hoursProvenanceSchema = z
         code: 'custom',
         message: 'nextReviewAt must be on or after reviewedAt',
         path: ['nextReviewAt'],
-      });
-    }
-    if (reviewedAt > Date.now()) {
-      context.addIssue({
-        code: 'custom',
-        message: 'reviewedAt must not be future-dated',
-        path: ['reviewedAt'],
       });
     }
     if (
@@ -186,7 +179,19 @@ export const hoursProvenanceSchema = z
     }
   });
 
-export type HoursProvenance = z.infer<typeof hoursProvenanceSchema>;
+export function createHoursProvenanceSchema(now: Date) {
+  return hoursProvenanceBaseSchema.superRefine((provenance, context) => {
+    if (new Date(provenance.reviewedAt).getTime() > now.getTime()) {
+      context.addIssue({
+        code: 'custom',
+        message: 'reviewedAt must not be future-dated',
+        path: ['reviewedAt'],
+      });
+    }
+  });
+}
+
+export type HoursProvenance = z.infer<typeof hoursProvenanceBaseSchema>;
 
 export type AcceptedHoursEvidence = {
   kind: 'accepted';
@@ -227,20 +232,26 @@ type EvidenceInput = {
  * Unsupported shapes route the entire venue to review; malformed canonical
  * data fails rather than dropping a weekday or fabricating a closed day.
  */
-export function classifyHoursEvidence(input: EvidenceInput): HoursEvidenceResult {
-  const provenance = hoursProvenanceSchema.safeParse({
-    sourceType: input.sourceType,
-    sourceReference: input.sourceReference,
-    reviewedAt: input.reviewedAt,
-    nextReviewAt: input.nextReviewAt,
-    reviewStatus:
-      input.schedule == null && input.reviewStatus === undefined
-        ? 'unknown'
-        : input.reviewStatus,
-    reviewReason: input.reviewReason,
-    lastErrorClass: input.lastErrorClass,
-    notes: input.notes,
-  });
+export function classifyHoursEvidence(
+  input: EvidenceInput,
+  now: Date = new Date(),
+): HoursEvidenceResult {
+  const provenance = safeParseHoursProvenance(
+    {
+      sourceType: input.sourceType,
+      sourceReference: input.sourceReference,
+      reviewedAt: input.reviewedAt,
+      nextReviewAt: input.nextReviewAt,
+      reviewStatus:
+        input.schedule == null && input.reviewStatus === undefined
+          ? 'unknown'
+          : input.reviewStatus,
+      reviewReason: input.reviewReason,
+      lastErrorClass: input.lastErrorClass,
+      notes: input.notes,
+    },
+    now,
+  );
   if (!provenance.success) {
     return { kind: 'failed', errorClass: 'invalid_provenance' };
   }
@@ -360,6 +371,8 @@ function stableJson(value: unknown): string {
 export type RemediationRow = {
   id: string;
   slug: string;
+  /** Required for file-based remediation; optional for direct planner callers. */
+  updatedAt?: string;
   placeId?: string | null;
   openingHours: unknown;
   evidence?: EvidenceInput | null;
@@ -367,6 +380,7 @@ export type RemediationRow = {
 
 export type RemediationUpdate = {
   id: string;
+  expectedUpdatedAt?: string;
   openingHours: WeeklyOpeningHours | null;
   provenance: HoursProvenance | null;
   reviewStatus: HoursProvenance['reviewStatus'] | 'unknown';
@@ -399,6 +413,7 @@ const remediationRowSchema = z
   .object({
     id: z.string().trim().min(1).max(200),
     slug: z.string().trim().min(1).max(200),
+    updatedAt: z.iso.datetime({ offset: true }),
     placeId: z.string().trim().min(1).max(500).nullable().optional(),
     openingHours: z.union([z.record(z.string(), z.unknown()), z.null()]),
     evidence: remediationEvidenceInputSchema.nullable().optional(),
@@ -431,10 +446,38 @@ export function parseRemediationRows(value: string): RemediationRow[] {
   }
   const result = remediationRowsSchema.safeParse(parsed);
   if (!result.success) {
-    const detail = result.error.issues.map((issue) => issue.message).join('; ');
+    const detail = result.error.issues
+      .map((issue) => {
+        const path = issue.path.join('.');
+        return path ? `${path}: ${issue.message}` : issue.message;
+      })
+      .join('; ');
     throw new Error(`Invalid remediation input: ${detail}`);
   }
   return result.data;
+}
+
+export function assertCompleteRemediationPopulation(input: {
+  rows: RemediationRow[];
+  liveVenueIds: string[];
+}): void {
+  if (input.liveVenueIds.length === 0) {
+    throw new Error('Live venue population is empty');
+  }
+
+  const inputIds = new Set(input.rows.map((row) => row.id));
+  const liveIds = new Set(input.liveVenueIds);
+  const isExactPopulation =
+    inputIds.size === input.rows.length &&
+    liveIds.size === input.liveVenueIds.length &&
+    inputIds.size === liveIds.size &&
+    [...inputIds].every((id) => liveIds.has(id));
+
+  if (!isExactPopulation) {
+    throw new Error(
+      `Remediation population mismatch: input=${inputIds.size}, live=${liveIds.size}`,
+    );
+  }
 }
 
 /**
@@ -444,17 +487,23 @@ export function parseRemediationRows(value: string): RemediationRow[] {
  */
 export async function remediateOpeningHoursRows(input: {
   rows: RemediationRow[];
+  now?: Date;
 }): Promise<{
   updates: RemediationUpdate[];
   outcomes: RemediationOutcome[];
 }> {
   const updates: RemediationUpdate[] = [];
   const outcomes: RemediationOutcome[] = [];
+  const now = input.now ?? new Date();
 
   for (const row of input.rows) {
-    if (!row.evidence || !hoursSourceTypeSchema.safeParse(row.evidence.sourceType).success) {
+    if (
+      !row.evidence ||
+      !hoursSourceTypeSchema.safeParse(row.evidence.sourceType).success
+    ) {
       updates.push({
         id: row.id,
+        expectedUpdatedAt: row.updatedAt,
         openingHours: null,
         provenance: null,
         reviewStatus: 'unknown',
@@ -470,13 +519,17 @@ export async function remediateOpeningHoursRows(input: {
       continue;
     }
 
-    const classified = classifyHoursEvidence({
-      ...row.evidence,
-      schedule: row.openingHours,
-    });
+    const classified = classifyHoursEvidence(
+      {
+        ...row.evidence,
+        schedule: row.openingHours,
+      },
+      now,
+    );
     if (classified.kind === 'accepted') {
       updates.push({
         id: row.id,
+        expectedUpdatedAt: row.updatedAt,
         openingHours: classified.schedule,
         provenance: classified.provenance,
         reviewStatus: classified.provenance.reviewStatus,
@@ -498,6 +551,7 @@ export async function remediateOpeningHoursRows(input: {
       }[classified.reason] as z.infer<typeof hoursAuditReasonSchema>;
       updates.push({
         id: row.id,
+        expectedUpdatedAt: row.updatedAt,
         openingHours: null,
         provenance: {
           ...classified.provenance,
@@ -516,18 +570,22 @@ export async function remediateOpeningHoursRows(input: {
         reason: classified.reason,
       });
     } else {
-      const parsedProvenance = hoursProvenanceSchema.safeParse({
-        sourceType: row.evidence.sourceType,
-        sourceReference: row.evidence.sourceReference,
-        reviewedAt: row.evidence.reviewedAt,
-        nextReviewAt: row.evidence.nextReviewAt,
-        reviewStatus: 'failed',
-        reviewReason: 'classification_failed',
-        lastErrorClass: 'validation_failed',
-        notes: row.evidence.notes,
-      });
+      const parsedProvenance = safeParseHoursProvenance(
+        {
+          sourceType: row.evidence.sourceType,
+          sourceReference: row.evidence.sourceReference,
+          reviewedAt: row.evidence.reviewedAt,
+          nextReviewAt: row.evidence.nextReviewAt,
+          reviewStatus: 'failed',
+          reviewReason: 'classification_failed',
+          lastErrorClass: 'validation_failed',
+          notes: row.evidence.notes,
+        },
+        now,
+      );
       updates.push({
         id: row.id,
+        expectedUpdatedAt: row.updatedAt,
         openingHours: null,
         provenance: parsedProvenance.success ? parsedProvenance.data : null,
         reviewStatus: 'failed',
@@ -545,4 +603,13 @@ export async function remediateOpeningHoursRows(input: {
   }
 
   return { updates, outcomes };
+}
+
+function safeParseHoursProvenance(
+  value: unknown,
+  now: Date,
+):
+  | { success: true; data: HoursProvenance }
+  | { success: false } {
+  return createHoursProvenanceSchema(now).safeParse(value);
 }

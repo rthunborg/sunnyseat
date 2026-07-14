@@ -220,6 +220,9 @@ export async function runOpeningHoursAudit(input: {
   let outcomePersistenceFailed = false;
   try {
     const venues = await input.repositories.listVenues();
+    if (venues.length === 0) {
+      throw new Error('Audit venue population is empty');
+    }
     for (const venue of venues) {
       let classification: HoursAuditClassification;
       try {
@@ -279,14 +282,6 @@ export async function runOpeningHoursAudit(input: {
     );
 
     if (outcomePersistenceFailed) {
-      await input.repositories.failRun({
-        runId: claim.runId,
-        status: 'failed',
-        totalCount: sumCounts(counts),
-        counts,
-        finishedAt,
-      });
-      finalized = true;
       throw new Error('One or more audit outcome persistence attempts failed');
     }
 
@@ -302,16 +297,27 @@ export async function runOpeningHoursAudit(input: {
     return { status, runId: claim.runId, counts };
   } catch (error) {
     if (!finalized) {
-      await input.repositories.failRun({
-        runId: claim.runId,
-        status: 'failed',
-        totalCount: sumCounts(counts),
-        counts,
-        finishedAt: clock(),
-      });
+      try {
+        await input.repositories.failRun({
+          runId: claim.runId,
+          status: 'failed',
+          totalCount: sumCounts(counts),
+          counts,
+          finishedAt: clock(),
+        });
+      } catch (finalizationError) {
+        throw new AggregateError(
+          [error, finalizationError],
+          `Opening-hours audit failed: ${errorMessage(error)}; failure finalization also failed: ${errorMessage(finalizationError)}`,
+        );
+      }
     }
     throw error;
   }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function boundedReviewStatus(value: string | undefined): string | undefined {

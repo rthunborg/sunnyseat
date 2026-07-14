@@ -32,23 +32,25 @@ if (!enabled) {
   process.exit(0);
 }
 
-const url = requiredEnv('SUPABASE_URL');
-const serviceRoleKey = requiredEnv('SUPABASE_SERVICE_ROLE_KEY');
-const supabase = createClient<Database>(url, serviceRoleKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
-const triggerType =
-  process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' ? 'manual' : 'scheduled';
 const runId = [
   'hours-review',
   process.env.GITHUB_RUN_ID ?? randomUUID(),
   process.env.GITHUB_RUN_ATTEMPT ?? '1',
 ].join('-');
+const triggerType =
+  process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' ? 'manual' : 'scheduled';
 
-const result = await runOpeningHoursAudit({
-  enabled: true,
-  now,
-  repositories: {
+let result: Awaited<ReturnType<typeof runOpeningHoursAudit>>;
+try {
+  const supabase = createClient<Database>(
+    requiredEnv('SUPABASE_URL'),
+    requiredEnv('SUPABASE_SERVICE_ROLE_KEY'),
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+  result = await runOpeningHoursAudit({
+    enabled: true,
+    now,
+    repositories: {
     claimRun: async () => {
       const { data, error } = await supabase.rpc('claim_hours_review_run', {
         p_run_id: runId,
@@ -98,44 +100,53 @@ const result = await runOpeningHoursAudit({
           throw new Error('Venue keyset pagination returned an invalid page');
         }
       }
-      return rows.map((row) => ({
-        id: row.id,
-        slug: row.slug,
-        openingHours: row.opening_hours,
-        provenance:
-          row.hours_source_type && row.hours_source_reference
-            ? {
-                reviewStatus: row.hours_review_status ?? undefined,
-                reviewedAt: row.hours_reviewed_at ?? undefined,
-                nextReviewAt: row.hours_next_review_at ?? undefined,
-                reviewReason: row.hours_review_reason ?? undefined,
-                lastErrorClass: row.hours_last_error_class ?? undefined,
-              }
-            : null,
-      }));
+      return rows.map((row) => {
+        const hasExplicitSource = Boolean(
+          row.hours_source_type && row.hours_source_reference,
+        );
+        const preservesExplicitReviewState =
+          row.hours_review_status === 'unknown' ||
+          row.hours_review_status === 'failed';
+        return {
+          id: row.id,
+          slug: row.slug,
+          openingHours: row.opening_hours,
+          provenance:
+            hasExplicitSource || preservesExplicitReviewState
+              ? {
+                  reviewStatus: row.hours_review_status ?? undefined,
+                  reviewedAt: row.hours_reviewed_at ?? undefined,
+                  nextReviewAt: row.hours_next_review_at ?? undefined,
+                  reviewReason: row.hours_review_reason ?? undefined,
+                  lastErrorClass: row.hours_last_error_class ?? undefined,
+                }
+              : null,
+        };
+      });
     },
     recordOutcome: async (outcome) => {
-      const { error } = await supabase.from('hours_review_outcomes').upsert(
+      const { data, error } = (await supabase.rpc(
+        'persist_hours_review_outcome' as never,
         {
-          run_id: String(outcome.runId),
-          venue_id: String(outcome.venueId),
-          venue_slug: String(outcome.venueSlug),
-          outcome: String(outcome.outcome),
-          reason: String(outcome.reason),
-          error_class:
+          p_run_id: String(outcome.runId),
+          p_venue_id: String(outcome.venueId),
+          p_venue_slug: String(outcome.venueSlug),
+          p_outcome: String(outcome.outcome),
+          p_reason: String(outcome.reason),
+          p_error_class:
             typeof outcome.errorClass === 'string' ? outcome.errorClass : null,
-          prior_review_status:
+          p_prior_review_status:
             typeof outcome.priorReviewStatus === 'string'
               ? outcome.priorReviewStatus
               : null,
-          resulting_review_status:
+          p_resulting_review_status:
             typeof outcome.resultingReviewStatus === 'string'
               ? outcome.resultingReviewStatus
               : null,
-        },
-        { onConflict: 'run_id,venue_id' },
-      );
+        } as never,
+      )) as { data: boolean | null; error: { message: string } | null };
       if (error) throw new Error('Outcome write failed: ' + error.message);
+      if (!data) throw new Error('Outcome write rejected inactive audit run');
     },
     finishRun: async (summary) => {
       const counts = summary.counts as Record<string, number>;
@@ -170,20 +181,32 @@ const result = await runOpeningHoursAudit({
       });
       if (error) throw new Error('History pruning failed: ' + error.message);
     },
-  },
-});
+    },
+  });
+} catch (error) {
+  await writeSummary([
+    '## SunnySeat hours review audit',
+    '',
+    '- Status: failed',
+    '- Audit run: ' + runId,
+    ...workflowSummaryLine(),
+    '- Error class: audit_failed',
+  ]).catch((summaryError: unknown) => {
+    console.error('Failed to write bounded audit failure summary', summaryError);
+  });
+  throw error;
+}
 
 const counts: Record<string, number> = result.counts ?? {};
-const displayedRunId = result.runId ?? result.activeRunId ?? 'none';
-const githubRunUrl = currentGitHubRunUrl();
 await writeSummary([
   '## SunnySeat hours review audit',
   '',
   '- Status: ' + result.status,
-  '- Run: ' +
-    (githubRunUrl
-      ? `[${displayedRunId}](${githubRunUrl})`
-      : displayedRunId),
+  '- Audit run: ' + runId,
+  ...(result.activeRunId
+    ? ['- Active audit run: ' + result.activeRunId]
+    : []),
+  ...workflowSummaryLine(),
   '- Total: ' + sumCounts(counts),
   '- Current: ' + (counts.current ?? 0),
   '- Missing provenance: ' + (counts.missing_provenance ?? 0),
@@ -197,7 +220,8 @@ await writeSummary([
 console.log(
   JSON.stringify({
     status: result.status,
-    runId: result.runId ?? result.activeRunId,
+    runId,
+    activeRunId: result.activeRunId,
     counts,
   }),
 );
@@ -218,6 +242,13 @@ function currentGitHubRunUrl(): string | undefined {
   const githubRunId = process.env.GITHUB_RUN_ID?.trim();
   if (!server || !repository || !githubRunId) return undefined;
   return `${server}/${repository}/actions/runs/${githubRunId}`;
+}
+
+function workflowSummaryLine(): string[] {
+  const githubRunUrl = currentGitHubRunUrl();
+  if (!githubRunUrl) return [];
+  const githubRunId = process.env.GITHUB_RUN_ID?.trim() ?? 'current';
+  return [`- Workflow run: [${githubRunId}](${githubRunUrl})`];
 }
 
 async function writeSummary(lines: string[]): Promise<void> {

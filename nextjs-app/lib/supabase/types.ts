@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.4"
-  }
   public: {
     Tables: {
       app_feedback: {
@@ -87,8 +82,11 @@ export type Database = {
           id: number
           outcome: string
           prior_review_status: string | null
+          prior_venue_updated_at: string | null
           reason: string
+          remediation_request_fingerprint: string | null
           resulting_review_status: string | null
+          resulting_venue_updated_at: string | null
           run_id: string
           venue_id: string
           venue_slug: string
@@ -99,8 +97,11 @@ export type Database = {
           id?: number
           outcome: string
           prior_review_status?: string | null
+          prior_venue_updated_at?: string | null
           reason: string
+          remediation_request_fingerprint?: string | null
           resulting_review_status?: string | null
+          resulting_venue_updated_at?: string | null
           run_id: string
           venue_id: string
           venue_slug: string
@@ -111,8 +112,11 @@ export type Database = {
           id?: number
           outcome?: string
           prior_review_status?: string | null
+          prior_venue_updated_at?: string | null
           reason?: string
+          remediation_request_fingerprint?: string | null
           resulting_review_status?: string | null
+          resulting_venue_updated_at?: string | null
           run_id?: string
           venue_id?: string
           venue_slug?: string
@@ -696,6 +700,7 @@ export type Database = {
       apply_hours_remediation_outcome: {
         Args: {
           p_error_class: string
+          p_expected_updated_at: string
           p_last_error_class: string
           p_next_review_at: string
           p_notes: string
@@ -900,7 +905,24 @@ export type Database = {
         }[]
       }
       gettransactionid: { Args: never; Returns: unknown }
+      is_canonical_weekly_opening_hours: {
+        Args: { p_hours: Json }
+        Returns: boolean
+      }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      persist_hours_review_outcome: {
+        Args: {
+          p_error_class?: string
+          p_outcome: string
+          p_prior_review_status?: string
+          p_reason: string
+          p_resulting_review_status?: string
+          p_run_id: string
+          p_venue_id: string
+          p_venue_slug: string
+        }
+        Returns: boolean
+      }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }

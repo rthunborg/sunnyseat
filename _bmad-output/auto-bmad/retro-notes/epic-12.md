@@ -7,3 +7,4 @@
 - [Phase 6 â€” test automation] Keep live provenance remediation out of repeatable CI; cover governance idempotency, audit boundaries, failure isolation, and redaction deterministically.
 - [Phase 7 â€” code review] A remediation CLI under scripts/ required an explicit .gitignore allow-list entry because the repository ignores scripts/* by default.
 - [Phase 7 â€” code review] Supabase CLI db push was blocked by local Profile.DashboardURL validation; the authorized protected-pooler psql path applied the verified migration transactionally and linked history remained aligned.
+- [Phase 7 â€” code review] GitHub Production is main-only with required Supabase secrets and SUN_HOURS_AUDIT_ENABLED=true; the first scheduled/manual workflow execution awaits the workflow reaching the default branch.

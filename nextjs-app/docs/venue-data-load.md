@@ -8,7 +8,9 @@ collect and in what shape” guide.
 
 > **Quick ask for an agent:** "add a real venue" → collect the **durable fields**
 > below (+ a `seating_area` polygon, optionally `seating_elevation_m`) and generate
-> an idempotent `INSERT … ON CONFLICT (id) DO UPDATE`. **Do NOT pick an `id`** — the
+> an idempotent `INSERT … ON CONFLICT (id) DO UPDATE`. The database constraint
+> validates the same weekday/time shape as the canonical Zod write contract.
+> **Do NOT pick an `id`** — the
 > column auto-assigns a text id (Story 11.9); simply omit it from the insert. The
 > **engine-managed** columns get safe placeholders — the real sun values are computed live.
 
@@ -96,8 +98,11 @@ Note there is **no `id`** — it auto-assigns. Send it only to overwrite an exis
 ```
 
 The example above shows Mon–Thu closing 22:00/23:00, Fri/Sat open **past midnight**
-(closes 02:00), and **Sunday closed** (`null`). Adjust per venue; omit the whole
-`opening_hours` column if hours are unknown.
+(closes 02:00), and **Sunday closed** (`null`). Adjust per venue. On an INSERT,
+omitting `opening_hours` creates unknown hours. On an UPDATE/UPSERT of an existing
+venue, omission preserves the old value, so clearing stale or unverified hours
+must explicitly write `opening_hours = null`. Never use `{}` for unknown: `{}`
+is a known schedule with all seven missing weekdays explicitly closed.
 
 ## Opening-hours review workflow
 
@@ -131,14 +136,18 @@ hours-provider path in maintenance code.
 
 Prepare an uncommitted JSON array matching the `RemediationRow` contract in
 `lib/services/opening-hours-governance.ts`; use opaque evidence references and
-do not include fetched provider payloads. Set `SUN_HOURS_REMEDIATION_INPUT` to
-that file and `SUN_HOURS_REMEDIATION_REPORT` to a local output path, then bundle
-and run `scripts/remediate-opening-hours.ts` with the same pinned local esbuild
-dependency used by the audit workflow (`npx --no-install esbuild ...`). The
-script claims a bounded run, applies each venue update and audit outcome through
-one atomic database function, and writes a bounded report containing only the
-run ID, counts, venue identity, outcome, and reason. If the process fails, it
-finalizes the run as failed; stale claims are recovered after their lease.
+do not include fetched provider payloads. Every row must include the venue's
+exact `updatedAt` snapshot, and the array must cover the complete current live
+venue-ID set; the runner compares both before claiming a successful remediation
+so a partial or stale offline file cannot overwrite newer work. Set
+`SUN_HOURS_REMEDIATION_INPUT` to that file and `SUN_HOURS_REMEDIATION_REPORT` to
+a local output path, then bundle and run `scripts/remediate-opening-hours.ts`
+with the same pinned local esbuild dependency used by the audit workflow
+(`npx --no-install esbuild ...`). The script claims a bounded run, applies each
+venue update and audit outcome through one atomic database function, and writes
+a bounded report containing only the run ID, counts, venue identity, outcome,
+and reason. If the process fails, it finalizes the run as failed; stale claims
+are recovered after their lease.
 
 ## Painting the `seating_area` polygon
 

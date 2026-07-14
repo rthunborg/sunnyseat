@@ -26,6 +26,12 @@ const governance = readMigration('provider_neutral_hours_governance');
 const grantHardening = readMigration('tighten_hours_review_service_grants');
 const reviewHardening = readMigration('harden_hours_governance_review_fixes');
 const verifiedState = readMigration('enforce_verified_public_hours_state');
+const terminalHardening = readMigration(
+  'complete_hours_governance_review_hardening',
+);
+const serializedPersistence = readMigration(
+  'serialize_hours_review_persistence',
+);
 const allSql =
   reconciliation +
   '\n' +
@@ -35,7 +41,11 @@ const allSql =
   '\n' +
   reviewHardening +
   '\n' +
-  verifiedState;
+  verifiedState +
+  '\n' +
+  terminalHardening +
+  '\n' +
+  serializedPersistence;
 
 describe('[12.1 AC2] canonical migration chain', () => {
   test('[P0] reconciliation precedes the forward provider-neutral migration', () => {
@@ -130,9 +140,82 @@ describe('[12.1 AC2] canonical migration chain', () => {
     expect(reviewHardening).toMatch(/GRANT\s+SELECT\s+ON\s+TABLE\s+public\.venues\s+TO\s+service_role/i);
   });
 
-  test('[P0] canonical public schedules require verified provenance state', () => {
-    expect(verifiedState).toMatch(/opening_hours\s+is\s+null[\s\S]*hours_review_status\s*=\s*'verified'/i);
-    expect(verifiedState).toMatch(/hours_review_status\s*<>\s*'manual_review'[\s\S]*opening_hours\s+is\s+null/i);
-    expect(verifiedState).toMatch(/hours_review_status\s*<>\s*'failed'[\s\S]*opening_hours\s+is\s+null/i);
+  test('[P0] terminal migrations retain evidenced schedules while enforcing coherent review state', () => {
+    expect(terminalHardening).toMatch(
+      /hours_review_status\s+in\s*\(\s*'verified',\s*'due',\s*'manual_review',\s*'failed'/i,
+    );
+    expect(terminalHardening).toMatch(
+      /hours_review_status\s+is\s+distinct\s+from\s+'unknown'[\s\S]*opening_hours\s+is\s+null/i,
+    );
+    expect(terminalHardening).toMatch(
+      /hours_review_status\s+is\s+distinct\s+from\s+'manual_review'[\s\S]*hours_review_reason\s+is\s+not\s+null/i,
+    );
+    expect(terminalHardening).toMatch(
+      /hours_review_status\s+is\s+distinct\s+from\s+'failed'[\s\S]*hours_last_error_class\s+is\s+not\s+null/i,
+    );
+  });
+
+  test('[P0] database serializes outcome persistence with terminal transitions', () => {
+    expect(serializedPersistence).toMatch(
+      /enforce_active_hours_review_outcome_parent[\s\S]*for\s+update/i,
+    );
+    expect(serializedPersistence).toMatch(
+      /before\s+insert\s+or\s+update[\s\S]*hours_review_outcomes/i,
+    );
+    expect(serializedPersistence).toMatch(
+      /persist_hours_review_outcome[\s\S]*status\s*<>\s*'running'[\s\S]*lease_expires_at\s*<=\s*database_now/i,
+    );
+    expect(serializedPersistence).toMatch(
+      /finish_hours_review_run[\s\S]*for\s+update[\s\S]*from\s+public\.hours_review_outcomes/i,
+    );
+  });
+
+  test('[P0] leases, terminal status, and retention are database-time owned', () => {
+    expect(serializedPersistence).toMatch(
+      /claim_hours_review_run[\s\S]*database_now\s+timestamptz\s*:=\s*clock_timestamp\(\)/i,
+    );
+    expect(serializedPersistence).toMatch(
+      /database_now\s*\+\s*interval\s+'15 minutes'/i,
+    );
+    expect(serializedPersistence).toMatch(
+      /c\.failed_count\s*=\s*0[\s\S]*p_status\s*<>\s*'completed'[\s\S]*c\.failed_count\s*>\s*0[\s\S]*p_status\s*<>\s*'completed_with_failures'/i,
+    );
+    expect(serializedPersistence).toMatch(
+      /database_cutoff\s+timestamptz\s*:=\s*clock_timestamp\(\)\s*-\s*interval\s+'180 days'/i,
+    );
+    expect(serializedPersistence).not.toMatch(
+      /coalesce\(finished_at,\s*started_at\)\s*<\s*p_cutoff/i,
+    );
+  });
+
+  test('[P0] remediation validates identity and an optimistic venue version', () => {
+    expect(serializedPersistence).toMatch(/p_expected_updated_at\s+timestamptz/i);
+    expect(serializedPersistence).toMatch(
+      /canonical_slug\s+is\s+distinct\s+from\s+p_venue_slug/i,
+    );
+    expect(serializedPersistence).toMatch(
+      /prior_updated_at\s+is\s+distinct\s+from\s+p_expected_updated_at/i,
+    );
+    expect(serializedPersistence).toMatch(
+      /p_review_status\s*=\s*'verified'[\s\S]*p_outcome\s*=\s*'current'[\s\S]*p_reason\s*=\s*'review_current'/i,
+    );
+  });
+
+  test('[P0] SQL authoring enforces canonical weekly hours after precise convergence', () => {
+    expect(serializedPersistence).toMatch(
+      /is_canonical_weekly_opening_hours[\s\S]*weekday\s*!~\s*'\^\[1-7\]\$'/i,
+    );
+    expect(serializedPersistence).toMatch(
+      /jsonb_typeof\(interval_value\s*->\s*'open'\)\s*<>\s*'string'/i,
+    );
+    expect(serializedPersistence).toMatch(
+      /interval_value\s*->>\s*'open'\)\s*=\s*\(interval_value\s*->>\s*'close'/i,
+    );
+    expect(serializedPersistence).toMatch(
+      /story_12_1_convergence_inventory[\s\S]*diagnostic_codes[\s\S]*raise notice/i,
+    );
+    expect(serializedPersistence).toMatch(
+      /validate\s+constraint\s+venues_opening_hours_shape_check/i,
+    );
   });
 });

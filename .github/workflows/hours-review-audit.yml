@@ -45,6 +45,9 @@ jobs:
         # The runner writes bounded counts plus the run ID to GITHUB_STEP_SUMMARY.
         run: node "$RUNNER_TEMP/audit-opening-hours.mjs"
         env:
+          # The protected environment is explicitly enabled after the 42-venue
+          # remediation gate; absence remains fail-closed and `false` is the
+          # independent emergency stop.
           SUN_HOURS_AUDIT_ENABLED: ${{ vars.SUN_HOURS_AUDIT_ENABLED || 'false' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 1
 branch: story/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
 status: in-progress
-updated_at: "2026-07-14T13:49:13Z"
+updated_at: "2026-07-14T19:06:51Z"
 started_at: "2026-07-13T16:21:11Z"
 completed_at: null
-active_seconds: 16959
+active_seconds: 21128
 timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
@@ -21,13 +21,13 @@ tea_rationale: "Scheduled database mutations, schema/provenance migrations, atom
 epic_story_count: 14
 stories_after_in_epic: 13
 completed_phases: [0, 1, 2, 3, 4, 5, 6]
-code_review_iterations: 2
+code_review_iterations: 3
 code_review_loop_done: true
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: true
 story_trace: null
-commits: [09821bb, 6d0d0a0, 628c278, 5b1cd0a, 02b990d, "1071590", 63b76b2]
+commits: [09821bb, 6d0d0a0, 628c278, 5b1cd0a, 02b990d, "1071590", 63b76b2, f06616d]
 phase8_steps:
   trace_gate: null
   nfr: null

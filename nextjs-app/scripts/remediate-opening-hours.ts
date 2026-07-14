@@ -2,11 +2,14 @@ import { randomUUID } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createClient } from '@supabase/supabase-js';
 import {
+  assertCompleteRemediationPopulation,
   parseRemediationRows,
   remediateOpeningHoursRows,
   type RemediationOutcome,
 } from '../lib/services/opening-hours-governance';
 import type { Database, Json } from '../lib/supabase/types';
+
+const VENUE_PAGE_SIZE = 500;
 
 const inputPath = requiredEnv('SUN_HOURS_REMEDIATION_INPUT');
 const reportPath = requiredEnv('SUN_HOURS_REMEDIATION_REPORT');
@@ -30,16 +33,21 @@ const { data: claimed, error: claimError } = await supabase.rpc(
     p_started_at: startedAt.toISOString(),
   },
 );
-if (claimError) throw new Error('Remediation claim failed: ' + claimError.message);
+if (claimError) {
+  throw new Error('Remediation claim failed: ' + claimError.message);
+}
 if (!claimed) throw new Error('Another hours review run is already active');
 
+const counts = emptyCounts();
+const reportOutcomes: RemediationOutcome[] = [];
 try {
-  const plan = await remediateOpeningHoursRows({ rows });
+  const liveVenueIds = await listLiveVenueIds();
+  assertCompleteRemediationPopulation({ rows, liveVenueIds });
+
+  const plan = await remediateOpeningHoursRows({ rows, now: startedAt });
   const outcomesByVenue = new Map(
     plan.outcomes.map((outcome) => [outcome.venueId, outcome]),
   );
-  const counts = emptyCounts();
-  const reportOutcomes: RemediationOutcome[] = [];
   let outcomePersistenceFailed = false;
 
   for (const update of plan.updates) {
@@ -49,6 +57,11 @@ try {
     }
     const bounded = boundedAuditOutcome(outcome);
     const provenance = update.provenance;
+    if (!update.expectedUpdatedAt) {
+      throw new Error(
+        'Remediation plan omitted expected updatedAt for venue ' + update.id,
+      );
+    }
     let applyFailed = false;
     try {
       await renewRemediationLease();
@@ -70,7 +83,8 @@ try {
           p_outcome: bounded.outcome,
           p_reason: bounded.reason,
           p_error_class: bounded.errorClass as never,
-        },
+          p_expected_updated_at: update.expectedUpdatedAt,
+        } as never,
       );
       applyFailed = Boolean(error) || !data;
     } catch {
@@ -78,23 +92,25 @@ try {
     }
 
     if (applyFailed) {
-      const { error: fallbackError } = await supabase
-        .from('hours_review_outcomes')
-        .upsert(
+      const { data: fallbackPersisted, error: fallbackError } =
+        (await supabase.rpc(
+          'persist_hours_review_outcome' as never,
           {
-            run_id: runId,
-            venue_id: update.id,
-            venue_slug: outcome.venueSlug,
-            outcome: 'failed',
-            reason: 'classification_failed',
-            error_class: 'database_error',
-            prior_review_status: null,
-            resulting_review_status: null,
-          },
-          { onConflict: 'run_id,venue_id' },
-        );
-      if (fallbackError) outcomePersistenceFailed = true;
-      else counts.failed += 1;
+            p_run_id: runId,
+            p_venue_id: update.id,
+            p_venue_slug: outcome.venueSlug,
+            p_outcome: 'failed',
+            p_reason: 'classification_failed',
+            p_error_class: 'database_error',
+            p_prior_review_status: null,
+            p_resulting_review_status: null,
+          } as never,
+        )) as { data: boolean | null; error: { message: string } | null };
+      if (fallbackError || !fallbackPersisted) {
+        outcomePersistenceFailed = true;
+      } else {
+        counts.failed += 1;
+      }
       reportOutcomes.push({
         venueId: update.id,
         venueSlug: outcome.venueSlug,
@@ -108,27 +124,11 @@ try {
     reportOutcomes.push(outcome);
   }
 
-  // The report is deliberately bounded: no source references, schedules,
-  // provider content, notes, or credentials are copied from the input.
-  await writeFile(
-    reportPath,
-    JSON.stringify(
-      {
-        runId,
-        total: reportOutcomes.length,
-        counts,
-        outcomes: reportOutcomes.map(({ venueId, venueSlug, outcome, reason }) => ({
-          venueId,
-          venueSlug,
-          outcome,
-          reason,
-        })),
-      },
-      null,
-      2,
-    ) + '\n',
-    'utf8',
-  );
+  await writeRemediationReport({
+    status: 'provisional',
+    counts,
+    reportOutcomes,
+  });
 
   if (outcomePersistenceFailed) {
     throw new Error('Remediation outcome persistence failed for one or more venues');
@@ -136,11 +136,13 @@ try {
 
   await renewRemediationLease();
   const finishedAt = new Date();
+  const terminalStatus =
+    counts.failed > 0 ? 'completed_with_failures' : 'completed';
   const { data: finished, error: finishError } = await supabase.rpc(
     'finish_hours_review_run',
     {
       p_run_id: runId,
-      p_status: counts.failed > 0 ? 'completed_with_failures' : 'completed',
+      p_status: terminalStatus,
       p_finished_at: finishedAt.toISOString(),
       p_total_count: reportOutcomes.length,
       p_current_count: counts.current,
@@ -153,14 +155,88 @@ try {
       p_stale_count: counts.stale,
     },
   );
-  if (finishError) throw new Error('Remediation finish failed: ' + finishError.message);
-  if (!finished) throw new Error('Remediation finish rejected inconsistent counts');
-} catch (error) {
-  await supabase.rpc('fail_hours_review_run', {
-    p_run_id: runId,
-    p_finished_at: new Date().toISOString(),
+  if (finishError) {
+    throw new Error('Remediation finish failed: ' + finishError.message);
+  }
+  if (!finished) {
+    throw new Error('Remediation finish rejected inconsistent counts');
+  }
+  await writeRemediationReport({
+    status: terminalStatus,
+    counts,
+    reportOutcomes,
+    finishedAt,
   });
+} catch (error) {
+  const failedAt = new Date();
+  const { data: failed, error: failureError } = await supabase.rpc(
+    'fail_hours_review_run',
+    {
+      p_run_id: runId,
+      p_finished_at: failedAt.toISOString(),
+    },
+  );
+  if (failureError || !failed) {
+    const finalizerError = new Error(
+      failureError
+        ? 'Remediation failure finalizer rejected: ' + failureError.message
+        : 'Remediation failure finalizer rejected the active run',
+    );
+    throw new AggregateError(
+      [error, finalizerError],
+      `Remediation failed: ${errorMessage(error)}; failure finalizer rejected: ${finalizerError.message}`,
+    );
+  }
+
+  try {
+    await writeRemediationReport({
+      status: 'failed',
+      counts,
+      reportOutcomes,
+      finishedAt: failedAt,
+    });
+  } catch (reportError) {
+    throw new AggregateError(
+      [error, reportError],
+      `Remediation failed: ${errorMessage(error)}; terminal report write also failed: ${errorMessage(reportError)}`,
+    );
+  }
   throw error;
+}
+
+async function writeRemediationReport(input: {
+  status: 'provisional' | 'completed' | 'completed_with_failures' | 'failed';
+  counts: ReturnType<typeof emptyCounts>;
+  reportOutcomes: RemediationOutcome[];
+  finishedAt?: Date;
+}): Promise<void> {
+  // Deliberately bounded: no source references, schedules, provider content,
+  // notes, or credentials are copied from the input.
+  await writeFile(
+    reportPath,
+    JSON.stringify(
+      {
+        runId,
+        status: input.status,
+        ...(input.finishedAt
+          ? { finishedAt: input.finishedAt.toISOString() }
+          : {}),
+        total: input.reportOutcomes.length,
+        counts: input.counts,
+        outcomes: input.reportOutcomes.map(
+          ({ venueId, venueSlug, outcome, reason }) => ({
+            venueId,
+            venueSlug,
+            outcome,
+            reason,
+          }),
+        ),
+      },
+      null,
+      2,
+    ) + '\n',
+    'utf8',
+  );
 }
 
 function boundedAuditOutcome(outcome: RemediationOutcome): {
@@ -225,6 +301,39 @@ function requiredEnv(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) throw new Error('Missing required environment variable: ' + name);
   return value;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+async function listLiveVenueIds(): Promise<string[]> {
+  const ids: string[] = [];
+  let lastId: string | undefined;
+  for (;;) {
+    let query = supabase
+      .from('venues')
+      .select('id')
+      .order('id')
+      .limit(VENUE_PAGE_SIZE);
+    if (lastId !== undefined) {
+      query = query.gt('id', lastId);
+    }
+    const { data, error } = await query;
+    if (error) {
+      throw new Error(
+        'Remediation venue population read failed: ' + error.message,
+      );
+    }
+    const page = data ?? [];
+    ids.push(...page.map((row) => row.id));
+    if (page.length < VENUE_PAGE_SIZE) break;
+    lastId = page.at(-1)?.id;
+    if (lastId === undefined) {
+      throw new Error('Remediation venue pagination returned an invalid page');
+    }
+  }
+  return ids;
 }
 
 async function renewRemediationLease(): Promise<void> {
