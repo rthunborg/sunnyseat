@@ -22,9 +22,9 @@ jobs:
       run:
         working-directory: nextjs-app
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@1e60f620b9541dca151540d0c40b6562abb7fc3f # v4.0.3
         with:
           node-version: '22'
           cache: npm
@@ -35,7 +35,7 @@ jobs:
 
       - name: Build service-only audit runner
         run: >-
-          npx esbuild scripts/audit-opening-hours.ts
+          npx --no-install esbuild scripts/audit-opening-hours.ts
           --bundle
           --platform=node
           --format=esm

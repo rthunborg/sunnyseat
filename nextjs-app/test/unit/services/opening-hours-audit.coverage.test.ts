@@ -70,6 +70,7 @@ describe('[12.1 AC5] audit classification boundaries', () => {
           provenance: {
             reviewStatus: 'verified',
             reviewedAt: boundary.toISOString(),
+            nextReviewAt: '2026-12-01T00:00:00.000Z',
           },
         },
         now: NOW,
@@ -83,6 +84,7 @@ describe('[12.1 AC5] audit classification boundaries', () => {
           provenance: {
             reviewStatus: 'verified',
             reviewedAt: new Date(boundary.getTime() + 1).toISOString(),
+            nextReviewAt: '2026-12-01T00:00:00.000Z',
           },
         },
         now: NOW,
@@ -96,9 +98,8 @@ describe('[12.1 AC5] audit classification boundaries', () => {
       {
         openingHours: null,
         provenance: {
+          reviewStatus: 'failed',
           lastErrorClass: 'unbounded-provider-error',
-          reason: 'split',
-          conflict: true,
         },
       },
       {
@@ -111,7 +112,10 @@ describe('[12.1 AC5] audit classification boundaries', () => {
       'split before conflict and unknown',
       {
         openingHours: null,
-        provenance: { reason: 'split', conflict: true },
+        provenance: {
+          reviewStatus: 'manual_review',
+          reviewReason: 'unsupported_split',
+        },
       },
       { outcome: 'split', reason: 'unsupported_split' },
     ],
@@ -119,7 +123,10 @@ describe('[12.1 AC5] audit classification boundaries', () => {
       'conflict before unknown',
       {
         openingHours: null,
-        provenance: { conflict: true },
+        provenance: {
+          reviewStatus: 'manual_review',
+          reviewReason: 'provenance_conflict',
+        },
       },
       { outcome: 'conflicting', reason: 'provenance_conflict' },
     ],
@@ -152,6 +159,7 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
     const result = await runOpeningHoursAudit({
       enabled: true,
       now: NOW,
+      clock: () => NOW,
       repositories: {
         claimRun: vi.fn().mockResolvedValue({
           claimed: true,
@@ -172,11 +180,12 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
             id: '2',
             slug: 'due',
             openingHours: HOURS,
-            provenance: { nextReviewAt: NOW.toISOString() },
+            provenance: { reviewStatus: 'due' },
           },
         ]),
         recordOutcome,
         finishRun,
+        failRun: vi.fn().mockResolvedValue(undefined),
         pruneBefore,
       },
     });
@@ -185,7 +194,7 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
       status: 'completed_with_failures',
       counts: { current: 0, due: 1, failed: 1 },
     });
-    expect(recordOutcome).toHaveBeenCalledTimes(2);
+    expect(recordOutcome).toHaveBeenCalledTimes(3);
     expect(JSON.stringify(recordOutcome.mock.calls)).not.toMatch(
       /openingHours|provenance|sourceReference/,
     );
@@ -204,6 +213,7 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
 
   test('[P1] a run-level venue read failure rejects without a false completion', async () => {
     const finishRun = vi.fn();
+    const failRun = vi.fn().mockResolvedValue(undefined);
     const pruneBefore = vi.fn();
 
     await expect(
@@ -216,12 +226,15 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
             runId: 'run-read-failure',
           }),
           listVenues: vi.fn().mockRejectedValue(new Error('venue read failed')),
+          recordOutcome: vi.fn(),
           finishRun,
+          failRun,
           pruneBefore,
         },
       }),
     ).rejects.toThrow('venue read failed');
     expect(finishRun).not.toHaveBeenCalled();
+    expect(failRun).toHaveBeenCalledTimes(1);
     expect(pruneBefore).not.toHaveBeenCalled();
   });
 
@@ -235,13 +248,17 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
         repositories: {
           claimRun: vi.fn().mockResolvedValue({ claimed: false }),
           listVenues,
+          recordOutcome: vi.fn(),
+          finishRun: vi.fn(),
+          failRun: vi.fn(),
+          pruneBefore: vi.fn(),
         },
       }),
     ).resolves.toEqual({ status: 'already_running' });
     expect(listVenues).not.toHaveBeenCalled();
   });
 
-  test('[P2] an empty run succeeds with stable zero counts and optional repositories', async () => {
+  test('[P2] an empty run succeeds with stable zero counts through the required repositories', async () => {
     await expect(
       runOpeningHoursAudit({
         enabled: true,
@@ -251,6 +268,11 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
             claimed: true,
             runId: 'run-empty',
           }),
+          listVenues: vi.fn().mockResolvedValue([]),
+          recordOutcome: vi.fn(),
+          finishRun: vi.fn().mockResolvedValue(undefined),
+          failRun: vi.fn(),
+          pruneBefore: vi.fn().mockResolvedValue(undefined),
         },
       }),
     ).resolves.toEqual({

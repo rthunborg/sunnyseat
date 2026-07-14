@@ -14,9 +14,12 @@ const openingIntervalSchema = z
     open: hhmmSchema,
     close: hhmmSchema,
   })
-  .strict();
+  .strict()
+  .refine(({ open, close }) => open !== close, {
+    message: 'Opening and closing times must differ',
+  });
 
-const weeklyOpeningHoursSchema = z
+export const weeklyOpeningHoursSchema = z
   .object({
     '1': openingIntervalSchema.nullable().optional(),
     '2': openingIntervalSchema.nullable().optional(),
@@ -27,9 +30,13 @@ const weeklyOpeningHoursSchema = z
     '7': openingIntervalSchema.nullable().optional(),
   })
   .strict()
-  .refine((schedule) => Object.keys(schedule).length > 0, {
+  .refine(
+    (schedule) =>
+      Object.values(schedule).some((weekday) => weekday !== undefined),
+    {
     message: 'A schedule object must contain at least one ISO weekday',
-  });
+    },
+  );
 
 export const hoursSourceTypeSchema = z.enum([
   'venue_confirmed',
@@ -76,13 +83,34 @@ export const hoursAuditErrorClassSchema = z.enum([
   'unexpected',
 ]);
 
+const safeSourceReferenceSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(500)
+  .refine((value) => !/[\r\n]/.test(value), {
+    message: 'Source references must be a single bounded identifier',
+  })
+  .refine(
+    (value) =>
+      !/(?:https?:\/\/|www\.|provider-payload|regular.?opening.?hours|(?:^|[?&;:_-])(?:api[_-]?key|key|token|secret)=)/i.test(
+        value,
+      ),
+    {
+      message:
+        'Source references must be opaque evidence identifiers, not URLs, payloads, or credentials',
+    },
+  );
+
 export const hoursProvenanceSchema = z
   .object({
     sourceType: hoursSourceTypeSchema,
-    sourceReference: z.string().trim().min(1).max(500),
+    sourceReference: safeSourceReferenceSchema,
     reviewedAt: z.iso.datetime({ offset: true }),
     nextReviewAt: z.iso.datetime({ offset: true }),
     reviewStatus: hoursReviewStatusSchema.optional().default('verified'),
+    reviewReason: hoursAuditReasonSchema.optional(),
+    lastErrorClass: hoursAuditErrorClassSchema.optional(),
     notes: z.string().trim().max(1000).optional(),
   })
   .strict()
@@ -126,6 +154,8 @@ type EvidenceInput = {
   reviewedAt?: unknown;
   nextReviewAt?: unknown;
   reviewStatus?: unknown;
+  reviewReason?: unknown;
+  lastErrorClass?: unknown;
   notes?: unknown;
 };
 
@@ -141,6 +171,8 @@ export function classifyHoursEvidence(input: EvidenceInput): HoursEvidenceResult
     reviewedAt: input.reviewedAt,
     nextReviewAt: input.nextReviewAt,
     reviewStatus: input.reviewStatus,
+    reviewReason: input.reviewReason,
+    lastErrorClass: input.lastErrorClass,
     notes: input.notes,
   });
   if (!provenance.success) {
@@ -156,17 +188,21 @@ export function classifyHoursEvidence(input: EvidenceInput): HoursEvidenceResult
     };
   }
 
-  if (input.schedule === null) {
+  if (input.schedule == null) {
     return {
       kind: 'accepted',
       schedule: null,
-      provenance: provenance.data,
+      provenance: { ...provenance.data, reviewStatus: 'unknown' },
     };
   }
 
   const schedule = weeklyOpeningHoursSchema.safeParse(input.schedule);
   if (!schedule.success) {
     return { kind: 'failed', errorClass: 'malformed_schedule' };
+  }
+
+  if (provenance.data.reviewStatus !== 'verified') {
+    return { kind: 'failed', errorClass: 'invalid_provenance' };
   }
 
   return {
@@ -247,7 +283,7 @@ function stableJson(value: unknown): string {
   });
 }
 
-type RemediationRow = {
+export type RemediationRow = {
   id: string;
   slug: string;
   placeId?: string | null;
@@ -255,14 +291,16 @@ type RemediationRow = {
   evidence?: EvidenceInput | null;
 };
 
-type RemediationUpdate = {
+export type RemediationUpdate = {
   id: string;
   openingHours: WeeklyOpeningHours | null;
   provenance: HoursProvenance | null;
   reviewStatus: HoursProvenance['reviewStatus'] | 'unknown';
+  reviewReason?: z.infer<typeof hoursAuditReasonSchema> | null;
+  lastErrorClass?: z.infer<typeof hoursAuditErrorClassSchema> | null;
 };
 
-type RemediationOutcome = {
+export type RemediationOutcome = {
   venueId: string;
   venueSlug: string;
   outcome: 'retained' | 'unknown' | 'manual_review' | 'failed';
@@ -290,6 +328,8 @@ export async function remediateOpeningHoursRows(input: {
         openingHours: null,
         provenance: null,
         reviewStatus: 'unknown',
+        reviewReason: null,
+        lastErrorClass: null,
       });
       outcomes.push({
         venueId: row.id,
@@ -310,6 +350,8 @@ export async function remediateOpeningHoursRows(input: {
         openingHours: classified.schedule,
         provenance: classified.provenance,
         reviewStatus: classified.provenance.reviewStatus,
+        reviewReason: classified.provenance.reviewReason ?? null,
+        lastErrorClass: classified.provenance.lastErrorClass ?? null,
       });
       outcomes.push({
         venueId: row.id,
@@ -318,6 +360,22 @@ export async function remediateOpeningHoursRows(input: {
         reason: classified.schedule === null ? 'hours_unknown' : 'verified_evidence',
       });
     } else if (classified.kind === 'manual_review') {
+      const reviewReason =
+        classified.reason === 'split'
+          ? 'unsupported_split'
+          : 'classification_failed';
+      updates.push({
+        id: row.id,
+        openingHours: null,
+        provenance: {
+          ...classified.provenance,
+          reviewStatus: 'manual_review',
+          reviewReason,
+        },
+        reviewStatus: 'manual_review',
+        reviewReason,
+        lastErrorClass: null,
+      });
       outcomes.push({
         venueId: row.id,
         venueSlug: row.slug,
@@ -325,6 +383,24 @@ export async function remediateOpeningHoursRows(input: {
         reason: classified.reason,
       });
     } else {
+      const parsedProvenance = hoursProvenanceSchema.safeParse({
+        sourceType: row.evidence.sourceType,
+        sourceReference: row.evidence.sourceReference,
+        reviewedAt: row.evidence.reviewedAt,
+        nextReviewAt: row.evidence.nextReviewAt,
+        reviewStatus: 'failed',
+        reviewReason: 'classification_failed',
+        lastErrorClass: 'validation_failed',
+        notes: row.evidence.notes,
+      });
+      updates.push({
+        id: row.id,
+        openingHours: null,
+        provenance: parsedProvenance.success ? parsedProvenance.data : null,
+        reviewStatus: 'failed',
+        reviewReason: 'classification_failed',
+        lastErrorClass: 'validation_failed',
+      });
       outcomes.push({
         venueId: row.id,
         venueSlug: row.slug,

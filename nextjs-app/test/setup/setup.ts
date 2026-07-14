@@ -30,7 +30,7 @@ const MET_NO_FETCH_GUARD_MESSAGE =
   'No live Met.no fetch allowed in tests (api.met.no fetch guard, Story 10.5 AC4). ' +
   'Mock @/lib/weather/met-no-service / @/lib/weather/nowcast-service (or inject an override) instead.';
 const GOOGLE_PLACES_FETCH_GUARD_MESSAGE =
-  'No live hours-provider fetch allowed in tests (places.googleapis.com fetch guard, Story 12.1 AC1). ' +
+  'No live hours-provider fetch allowed in tests (Google Maps/Places host fetch guard, Story 12.1 AC1). ' +
   'Mock or inject the provider adapter instead; Google opening-hours content is prohibited.';
 
 function requestHost(input: RequestInfo | URL): string | undefined {
@@ -52,7 +52,7 @@ function requestHost(input: RequestInfo | URL): string | undefined {
   } catch {
     return undefined;
   }
-  return host;
+  return host.replace(/\.+$/, '');
 }
 
 function isApiMetNoRequest(input: RequestInfo | URL): boolean {
@@ -60,7 +60,8 @@ function isApiMetNoRequest(input: RequestInfo | URL): boolean {
 }
 
 function isGooglePlacesRequest(input: RequestInfo | URL): boolean {
-  return requestHost(input) === 'places.googleapis.com';
+  const host = requestHost(input);
+  return host === 'places.googleapis.com' || host === 'maps.googleapis.com';
 }
 
 beforeEach(() => {

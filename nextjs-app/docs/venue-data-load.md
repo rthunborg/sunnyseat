@@ -29,10 +29,10 @@ collect and in what shape” guide.
 | `address` | text | — | Street address. |
 | `opening_hours` | jsonb | — | **Per-weekday** hours (Story 11.9), keyed by numeric ISO weekday (`"1"`=Mon … `"7"`=Sun): `{ "1": { "open": "11:00", "close": "22:00" }, … }`. A **missing key or `null`** value = **closed that day**. Whole-field SQL `null` = **unknown hours** and produces no public open/closed claim. `close < open` = a **past-midnight** close. Times are `"HH:MM"` (24h). The render layer derives localized display text; never store it. |
 | `hours_source_type` | text | with reviewed hours | One of `venue_confirmed`, `venue_website`, `licensed_provider`, or approved `manual` evidence. It describes eligible provenance, not display attribution. |
-| `hours_source_reference` | text | with reviewed hours | Inspectable source reference. Use the official venue page when retained, a licence-controlled internal reference, or a dated owner-attestation reference. Never invent a URL or persist provider payloads. |
+| `hours_source_reference` | text | with reviewed hours | Inspectable, opaque evidence reference, such as `venue-site:slug:2026-07-14` or a licence-controlled internal reference. Keep the URL outside this field; never persist a provider payload, URL, query string, token, or credential. |
 | `hours_review_status` | text | with reviewed hours | `verified`, `due`, `manual_review`, `unknown`, or `failed`. |
 | `hours_reviewed_at` / `hours_next_review_at` | timestamptz | with reviewed hours | Review timestamps; next review cannot precede the completed review. |
-| `hours_notes` | text | optional | Bounded maintainer note only. Do not paste source/provider content. Reserved machine values `review-reason:split`, `review-reason:conflict`, and `review-error:<class>` feed the weekly classifier. |
+| `hours_notes` | text | optional | Bounded maintainer prose only. Do not paste source/provider content. Machine state belongs in the service-only structured review-reason and error-class fields. |
 | **`seating_area`** | jsonb (GeoJSON Polygon) | — but **important** | The outdoor seating footprint the sun engine casts shadows onto. WGS84, `[lng, lat]` order, closed ring. Null → engine uses a ~10 m square around `lat/lng` (less precise). |
 | **`seating_elevation_m`** | double precision ≥ 0 | optional | Estimated metres of the **seating surface above local ground/street**. Null/0 = street level. Rooftop bars / raised terraces / balconies use the approx floor height (4th floor ≈ 12 m). **Consumed by the engine as of Story 8.6** (Tier-1 rooftop/raised height gate — see "Elevation" below). Set it for rooftop / raised venues so they are predicted from their seating height; leave it null for street-level venues (byte-identical to the pre-8.6 ground-level path). |
 | **`ground_elevation_m`** | double precision | optional | The venue's **RH2000 absolute ground elevation** (Z, metres) at its point — the height of the *ground the venue stands on*, NOT a height above ground. **May be negative.** For a **hilltop** venue this lets the engine compare each caster's roof against the venue's own ground, so a building standing downhill stops shadowing a venue uphill from it. **Consumed by the engine as of Story 8.7** (Tier-2 terrain gate — see "Elevation" below). Null → engine falls back to the Story 8.6 relative gate (byte-identical). Derive it the same way casters get `ground_z_rh2000`: sample the Göteborg **Höjdmodell 2022 DTM** at the venue's `lat`/`lng` (or, pragmatically, take `ground_z_rh2000` of the `shadow_casters` rows nearest the seating polygon). Leave it null unless the venue sits on a meaningful rise. |
@@ -87,7 +87,7 @@ Note there is **no `id`** — it auto-assigns. Send it only to overwrite an exis
   "tags": ["Innergård"],
   "place_id": "[optional-place-id]",
   "hours_source_type": "venue_website",
-  "hours_source_reference": "https://venue.example/oppettider",
+  "hours_source_reference": "venue-site:kafe-kringlan:2026-07-14",
   "hours_review_status": "verified",
   "hours_reviewed_at": "2026-07-14T08:00:00Z",
   "hours_next_review_at": "2026-10-12T08:00:00Z",
@@ -126,6 +126,19 @@ and [Place ID policy](https://developers.google.com/maps/documentation/places/we
 Only the ID caching exception is used. A later terms change requires a new
 dated architecture/product decision; it does not authorize an opportunistic
 hours-provider path in maintenance code.
+
+### Reproducible one-time remediation
+
+Prepare an uncommitted JSON array matching the `RemediationRow` contract in
+`lib/services/opening-hours-governance.ts`; use opaque evidence references and
+do not include fetched provider payloads. Set `SUN_HOURS_REMEDIATION_INPUT` to
+that file and `SUN_HOURS_REMEDIATION_REPORT` to a local output path, then bundle
+and run `scripts/remediate-opening-hours.ts` with the same pinned local esbuild
+dependency used by the audit workflow (`npx --no-install esbuild ...`). The
+script claims a bounded run, applies each venue update and audit outcome through
+one atomic database function, and writes a bounded report containing only the
+run ID, counts, venue identity, outcome, and reason. If the process fails, it
+finalizes the run as failed; stale claims are recovered after their lease.
 
 ## Painting the `seating_area` polygon
 

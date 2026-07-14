@@ -10,6 +10,8 @@ import {
   hoursAuditErrorClassSchema,
   hoursAuditOutcomeSchema,
   hoursAuditReasonSchema,
+  hoursReviewStatusSchema,
+  weeklyOpeningHoursSchema,
 } from '@/lib/services/opening-hours-governance';
 
 const RETENTION_DAYS = 180;
@@ -20,8 +22,7 @@ type AuditProvenance = {
   reviewStatus?: string;
   reviewedAt?: string;
   nextReviewAt?: string;
-  conflict?: boolean;
-  reason?: string;
+  reviewReason?: string;
   lastErrorClass?: string;
   throwForTest?: boolean;
 } | null;
@@ -29,7 +30,7 @@ type AuditProvenance = {
 export type HoursAuditVenue = {
   id?: string;
   slug?: string;
-  openingHours?: WeeklyOpeningHours | null;
+  openingHours?: WeeklyOpeningHours | null | unknown;
   provenance?: AuditProvenance;
 };
 
@@ -68,34 +69,75 @@ export function classifyHoursAuditVenue(input: {
   if (!provenance) {
     return { outcome: 'missing_provenance', reason: 'missing_provenance' };
   }
-  if (provenance.lastErrorClass) {
+
+  if (venue.openingHours != null) {
+    const schedule = weeklyOpeningHoursSchema.safeParse(venue.openingHours);
+    if (!schedule.success) {
+      return {
+        outcome: 'failed',
+        reason: 'classification_failed',
+        errorClass: 'validation_failed',
+      };
+    }
+  }
+
+  const reviewStatus = hoursReviewStatusSchema.safeParse(
+    provenance.reviewStatus,
+  );
+  if (!reviewStatus.success) {
+    return {
+      outcome: 'failed',
+      reason: 'classification_failed',
+      errorClass: 'validation_failed',
+    };
+  }
+
+  if (reviewStatus.data === 'failed') {
     return {
       outcome: 'failed',
       reason: 'prior_failure',
-      errorClass: boundedErrorClass(provenance.lastErrorClass),
+      errorClass: boundedErrorClass(provenance.lastErrorClass ?? 'unexpected'),
     };
   }
-  if (provenance.reason === 'split') {
-    return { outcome: 'split', reason: 'unsupported_split' };
+  if (reviewStatus.data === 'manual_review') {
+    if (provenance.reviewReason === 'unsupported_split') {
+      return { outcome: 'split', reason: 'unsupported_split' };
+    }
+    if (provenance.reviewReason === 'provenance_conflict') {
+      return { outcome: 'conflicting', reason: 'provenance_conflict' };
+    }
+    return {
+      outcome: 'failed',
+      reason: 'classification_failed',
+      errorClass: 'validation_failed',
+    };
   }
-  if (provenance.conflict) {
-    return { outcome: 'conflicting', reason: 'provenance_conflict' };
-  }
-  if (venue.openingHours == null || provenance.reviewStatus === 'unknown') {
+  if (reviewStatus.data === 'unknown' || venue.openingHours == null) {
     return { outcome: 'unknown', reason: 'hours_unknown' };
+  }
+  if (reviewStatus.data === 'due') {
+    return { outcome: 'due', reason: 'review_due' };
   }
 
   const reviewedAt = parseTimestamp(provenance.reviewedAt);
+  const nextReviewAt = parseTimestamp(provenance.nextReviewAt);
   if (
-    provenance.reviewStatus === 'verified' &&
-    reviewedAt !== undefined &&
-    now.getTime() - reviewedAt >= STALE_AFTER_DAYS * DAY_MS
+    reviewedAt === undefined ||
+    nextReviewAt === undefined ||
+    reviewedAt > now.getTime() ||
+    nextReviewAt < reviewedAt
   ) {
+    return {
+      outcome: 'failed',
+      reason: 'classification_failed',
+      errorClass: 'validation_failed',
+    };
+  }
+  if (now.getTime() - reviewedAt >= STALE_AFTER_DAYS * DAY_MS) {
     return { outcome: 'stale', reason: 'review_stale' };
   }
 
-  const nextReviewAt = parseTimestamp(provenance.nextReviewAt);
-  if (nextReviewAt !== undefined && nextReviewAt <= now.getTime()) {
+  if (nextReviewAt <= now.getTime()) {
     return { outcome: 'due', reason: 'review_due' };
   }
 
@@ -121,10 +163,11 @@ type ClaimedRun =
 
 type AuditRepositories = {
   claimRun: (input?: Record<string, unknown>) => Promise<ClaimedRun>;
-  listVenues?: () => Promise<HoursAuditVenue[]>;
-  recordOutcome?: (input: Record<string, unknown>) => Promise<unknown>;
-  finishRun?: (input: Record<string, unknown>) => Promise<unknown>;
-  pruneBefore?: (cutoff: Date) => Promise<unknown>;
+  listVenues: () => Promise<HoursAuditVenue[]>;
+  recordOutcome: (input: Record<string, unknown>) => Promise<unknown>;
+  finishRun: (input: Record<string, unknown>) => Promise<unknown>;
+  failRun: (input: Record<string, unknown>) => Promise<unknown>;
+  pruneBefore: (cutoff: Date) => Promise<unknown>;
 };
 
 type AuditCounts = Record<
@@ -135,6 +178,7 @@ type AuditCounts = Record<
 export async function runOpeningHoursAudit(input: {
   enabled: boolean;
   now: Date;
+  clock?: () => Date;
   repositories: AuditRepositories;
 }): Promise<{
   status:
@@ -157,56 +201,91 @@ export async function runOpeningHoursAudit(input: {
   }
 
   const counts = emptyCounts();
-  const venues = await input.repositories.listVenues?.() ?? [];
-  for (const venue of venues) {
-    let classification: HoursAuditClassification;
-    try {
-      classification = classifyHoursAuditVenue({ venue, now: input.now });
-    } catch {
-      classification = {
-        outcome: 'failed',
-        reason: 'classification_failed',
-        errorClass: 'unexpected',
-      };
-    }
+  const clock = input.clock ?? (() => new Date());
+  let finalized = false;
+  try {
+    const venues = await input.repositories.listVenues();
+    for (const venue of venues) {
+      let classification: HoursAuditClassification;
+      try {
+        classification = classifyHoursAuditVenue({ venue, now: input.now });
+      } catch {
+        classification = {
+          outcome: 'failed',
+          reason: 'classification_failed',
+          errorClass: 'unexpected',
+        };
+      }
 
-    // Schema parsing keeps run summaries bounded even if a caller supplies a
-    // malformed classifier or repository test double.
-    const outcome = hoursAuditOutcomeSchema.parse(classification.outcome);
-    const reason = hoursAuditReasonSchema.parse(classification.reason);
-    counts[outcome] += 1;
-
-    try {
-      await input.repositories.recordOutcome?.({
+      // Schema parsing keeps run summaries bounded even if a caller supplies a
+      // malformed classifier or repository test double.
+      const outcome = hoursAuditOutcomeSchema.parse(classification.outcome);
+      const reason = hoursAuditReasonSchema.parse(classification.reason);
+      const priorReviewStatus = boundedReviewStatus(
+        venue.provenance?.reviewStatus,
+      );
+      const record = {
         runId: claim.runId,
         venueId: venue.id,
         venueSlug: venue.slug,
         outcome,
         reason,
         errorClass: classification.errorClass,
-      });
-    } catch {
-      if (outcome !== 'failed') {
-        counts[outcome] -= 1;
+        priorReviewStatus,
+        resultingReviewStatus: priorReviewStatus,
+      };
+
+      try {
+        await input.repositories.recordOutcome(record);
+        counts[outcome] += 1;
+      } catch {
+        await input.repositories.recordOutcome({
+          ...record,
+          outcome: 'failed',
+          reason: 'classification_failed',
+          errorClass: 'database_error',
+        });
         counts.failed += 1;
       }
     }
+
+    const status =
+      counts.failed > 0 ? 'completed_with_failures' : 'completed';
+    const finishedAt = clock();
+    await input.repositories.finishRun({
+      runId: claim.runId,
+      status,
+      totalCount: venues.length,
+      counts,
+      finishedAt,
+    });
+    finalized = true;
+    await input.repositories.pruneBefore(
+      new Date(finishedAt.getTime() - RETENTION_DAYS * DAY_MS),
+    );
+
+    return { status, runId: claim.runId, counts };
+  } catch (error) {
+    if (!finalized) {
+      await input.repositories.failRun({
+        runId: claim.runId,
+        status: 'failed',
+        totalCount: sumCounts(counts),
+        counts,
+        finishedAt: clock(),
+      });
+    }
+    throw error;
   }
+}
 
-  const status =
-    counts.failed > 0 ? 'completed_with_failures' : 'completed';
-  await input.repositories.finishRun?.({
-    runId: claim.runId,
-    status,
-    totalCount: venues.length,
-    counts,
-    finishedAt: input.now,
-  });
-  await input.repositories.pruneBefore?.(
-    new Date(input.now.getTime() - RETENTION_DAYS * DAY_MS),
-  );
+function boundedReviewStatus(value: string | undefined): string | undefined {
+  const parsed = hoursReviewStatusSchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
+}
 
-  return { status, runId: claim.runId, counts };
+function sumCounts(counts: AuditCounts): number {
+  return Object.values(counts).reduce((total, count) => total + count, 0);
 }
 
 function emptyCounts(): AuditCounts {

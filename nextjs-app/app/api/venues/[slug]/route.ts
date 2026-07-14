@@ -143,6 +143,7 @@ function buildDetailDto(
   timelineProjection?: DetailTimelineProjection,
   reviewSummary?: VenueDetailDto['reviewSummary'],
 ): VenueDetailDto {
+  const openingHours = fixture?.openingHours ?? venue.openingHours;
   const rawWindowStatus = timelineProjection?.windowStatus ?? venue.currentSunStatus;
   // Story 10.2 (AC2) + Iteration-2 review fix: on the LIVE real-engine path this
   // status can be 'CloudObscured' after applyCloudGate. The sun-window timeline is
@@ -178,8 +179,8 @@ function buildDetailDto(
     // STORY 12.1 (AC6): whole-field unknown stays absent. An empty object would
     // collapse unknown into "closed every weekday"; known schedules retain the
     // Story 11.9 per-weekday shape unchanged.
-    ...(fixture?.openingHours !== undefined
-      ? { openingHours: fixture.openingHours }
+    ...(openingHours !== undefined
+      ? { openingHours }
       : {}),
     timeline: {
       timezone: 'Europe/Stockholm',

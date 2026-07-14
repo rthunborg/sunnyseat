@@ -23,7 +23,7 @@ function collectTextFiles(root: string): string[] {
     const full = join(root, entry);
     if (statSync(full).isDirectory()) {
       result.push(...collectTextFiles(full));
-    } else if (/\.(?:ts|tsx|js|mjs|cjs|json|ya?ml)$/i.test(entry)) {
+    } else if (/\.(?:ts|tsx|js|mjs|cjs|json|ya?ml|sql)$/i.test(entry)) {
       result.push(full);
     }
   }
@@ -37,6 +37,18 @@ const productionFiles = [
   ...collectTextFiles(join(repoRoot, '.github', 'workflows')),
 ];
 const productionSource = productionFiles
+  .map((file) => '\nFILE: ' + file + '\n' + readOptional(file))
+  .join('\n');
+const persistenceFiles = [
+  ...collectTextFiles(join(repoRoot, 'supabase', 'migrations')),
+  ...collectTextFiles(join(projectRoot, 'test')).filter(
+    (file) =>
+      !file.endsWith('story-12-1-hours-policy-and-operations.atdd.test.ts') &&
+      !file.endsWith('story-12-1-review-fixes.test.ts') &&
+      !file.endsWith(join('test', 'setup', 'setup.ts')),
+  ),
+];
+const persistenceSource = persistenceFiles
   .map((file) => '\nFILE: ' + file + '\n' + readOptional(file))
   .join('\n');
 
@@ -75,8 +87,25 @@ describe('[12.1 AC1/AC8] Google-hours path stays prohibited', () => {
     );
   });
 
+  test('[P1] migrations, SQL fixtures, and tests persist no provider content or credentials', () => {
+    expect(persistenceSource).not.toMatch(/regularOpeningHours/i);
+    expect(persistenceSource).not.toMatch(/X-Goog-FieldMask[^\n]*opening/i);
+    expect(persistenceSource).not.toMatch(/(?:places|maps)\.googleapis\.com/i);
+    expect(persistenceSource).not.toMatch(
+      /\b(?:GOOGLE|PLACES)[A-Z0-9_]*(?:API_KEY|CREDENTIAL|SECRET)\b/,
+    );
+    expect(persistenceSource).not.toMatch(
+      /places_api_url[\s\S]{0,200}https?:\/\//i,
+    );
+  });
+
   test('[P1] public code has no hours-provider route or request-path integration', () => {
-    expect(productionFiles.some((file) => /app[\\/]api[\\/]cron/i.test(file))).toBe(false);
+    const hoursCronFiles = productionFiles.filter(
+      (file) =>
+        /app[\\/]api[\\/]cron/i.test(file) &&
+        /(?:opening[-_]?hours|hours[-_]?review|places?)/i.test(file),
+    );
+    expect(hoursCronFiles).toEqual([]);
     expect(productionSource).not.toMatch(/fetch\([^\n]*(?:google|places|nominatim)/i);
   });
 
@@ -90,6 +119,15 @@ describe('[12.1 AC1/AC8] Google-hours path stays prohibited', () => {
     await expect(
       fetch('https://places.googleapis.com/v1/places/example'),
     ).rejects.toThrow(/No live.*provider|places\.googleapis\.com fetch guard/i);
+  });
+
+  test('[P1] shared fetch guard also rejects legacy and trailing-dot Google hosts', async () => {
+    await expect(
+      fetch('https://maps.googleapis.com/maps/api/place/details/json'),
+    ).rejects.toThrow(/No live.*provider|Google Maps\/Places host fetch guard/i);
+    await expect(
+      fetch('https://places.googleapis.com./v1/places/example'),
+    ).rejects.toThrow(/No live.*provider|Google Maps\/Places host fetch guard/i);
   });
 
   test('[P1] story brief preserves the explicit supersession and controlling decisions', () => {

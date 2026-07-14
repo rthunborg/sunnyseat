@@ -9,7 +9,7 @@ const REVIEWED_AT = '2026-07-13T10:00:00.000Z';
 const NEXT_REVIEW_AT = '2026-10-13T10:00:00.000Z';
 const eligibleEvidence = {
   sourceType: 'venue_website',
-  sourceReference: 'https://venue.example/oppettider',
+  sourceReference: 'venue-site:example:2026-07-13',
   reviewedAt: REVIEWED_AT,
   nextReviewAt: NEXT_REVIEW_AT,
 };
@@ -18,7 +18,7 @@ describe('[12.1 AC3/AC4] governance validation boundaries', () => {
   test('[P1] eligible provenance is normalized and receives the verified default', () => {
     const result = classifyHoursEvidence({
       ...eligibleEvidence,
-      sourceReference: '  https://venue.example/oppettider  ',
+      sourceReference: '  venue-site:example:2026-07-13  ',
       notes: '  owner attestation  ',
       schedule: { '1': { open: '00:00', close: '23:59' } },
     });
@@ -27,7 +27,7 @@ describe('[12.1 AC3/AC4] governance validation boundaries', () => {
       kind: 'accepted',
       provenance: {
         sourceType: 'venue_website',
-        sourceReference: 'https://venue.example/oppettider',
+        sourceReference: 'venue-site:example:2026-07-13',
         reviewStatus: 'verified',
         notes: 'owner attestation',
       },
@@ -139,7 +139,7 @@ describe('[12.1 AC3/AC4] canonical update and remediation edges', () => {
     });
   });
 
-  test('[P1] remediation preserves manual-review and failed schedules while updating accepted unknown', async () => {
+  test('[P1] remediation clears unverified schedules and persists every discovered review state', async () => {
     const result = await remediateOpeningHoursRows({
       rows: [
         {
@@ -169,6 +169,19 @@ describe('[12.1 AC3/AC4] canonical update and remediation edges', () => {
     });
 
     expect(result.updates).toEqual([
+      expect.objectContaining({
+        id: 'manual',
+        openingHours: null,
+        reviewStatus: 'manual_review',
+        reviewReason: 'unsupported_split',
+      }),
+      expect.objectContaining({
+        id: 'failed',
+        openingHours: null,
+        reviewStatus: 'failed',
+        reviewReason: 'classification_failed',
+        lastErrorClass: 'validation_failed',
+      }),
       expect.objectContaining({
         id: 'unknown',
         openingHours: null,

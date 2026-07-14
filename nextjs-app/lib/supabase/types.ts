@@ -86,7 +86,9 @@ export type Database = {
           error_class: string | null
           id: number
           outcome: string
+          prior_review_status: string | null
           reason: string
+          resulting_review_status: string | null
           run_id: string
           venue_id: string
           venue_slug: string
@@ -96,7 +98,9 @@ export type Database = {
           error_class?: string | null
           id?: number
           outcome: string
+          prior_review_status?: string | null
           reason: string
+          resulting_review_status?: string | null
           run_id: string
           venue_id: string
           venue_slug: string
@@ -106,7 +110,9 @@ export type Database = {
           error_class?: string | null
           id?: number
           outcome?: string
+          prior_review_status?: string | null
           reason?: string
+          resulting_review_status?: string | null
           run_id?: string
           venue_id?: string
           venue_slug?: string
@@ -136,6 +142,7 @@ export type Database = {
           failed_count: number
           finished_at: string | null
           id: string
+          lease_expires_at: string
           missing_provenance_count: number
           split_count: number
           stale_count: number
@@ -152,6 +159,7 @@ export type Database = {
           failed_count?: number
           finished_at?: string | null
           id: string
+          lease_expires_at: string
           missing_provenance_count?: number
           split_count?: number
           stale_count?: number
@@ -168,6 +176,7 @@ export type Database = {
           failed_count?: number
           finished_at?: string | null
           id?: string
+          lease_expires_at?: string
           missing_provenance_count?: number
           split_count?: number
           stale_count?: number
@@ -414,8 +423,10 @@ export type Database = {
           current_sun_status: string
           description: string | null
           ground_elevation_m: number | null
+          hours_last_error_class: string | null
           hours_next_review_at: string | null
           hours_notes: string | null
+          hours_review_reason: string | null
           hours_review_status: string | null
           hours_reviewed_at: string | null
           hours_source_reference: string | null
@@ -446,8 +457,10 @@ export type Database = {
           current_sun_status: string
           description?: string | null
           ground_elevation_m?: number | null
+          hours_last_error_class?: string | null
           hours_next_review_at?: string | null
           hours_notes?: string | null
+          hours_review_reason?: string | null
           hours_review_status?: string | null
           hours_reviewed_at?: string | null
           hours_source_reference?: string | null
@@ -478,8 +491,10 @@ export type Database = {
           current_sun_status?: string
           description?: string | null
           ground_elevation_m?: number | null
+          hours_last_error_class?: string | null
           hours_next_review_at?: string | null
           hours_notes?: string | null
+          hours_review_reason?: string | null
           hours_review_status?: string | null
           hours_reviewed_at?: string | null
           hours_source_reference?: string | null
@@ -678,6 +693,26 @@ export type Database = {
             }
             Returns: string
           }
+      apply_hours_remediation_outcome: {
+        Args: {
+          p_error_class: string
+          p_last_error_class: string
+          p_next_review_at: string
+          p_notes: string
+          p_opening_hours: Json
+          p_outcome: string
+          p_reason: string
+          p_review_reason: string
+          p_review_status: string
+          p_reviewed_at: string
+          p_run_id: string
+          p_source_reference: string
+          p_source_type: string
+          p_venue_id: string
+          p_venue_slug: string
+        }
+        Returns: boolean
+      }
       claim_hours_review_run: {
         Args: {
           p_run_id: string
@@ -719,6 +754,10 @@ export type Database = {
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      fail_hours_review_run: {
+        Args: { p_finished_at: string; p_run_id: string }
+        Returns: boolean
+      }
       finish_hours_review_run: {
         Args: {
           p_conflicting_count: number

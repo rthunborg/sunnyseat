@@ -35,7 +35,7 @@ async function loadGovernance(): Promise<GovernanceModule> {
 
 const eligibleEvidence = {
   sourceType: 'venue_website',
-  sourceReference: 'https://venue.example/oppettider',
+  sourceReference: 'owner-attested:2026-07-13:test-venue',
   reviewedAt: '2026-07-13T10:00:00.000Z',
   nextReviewAt: '2026-10-13T10:00:00.000Z',
 };

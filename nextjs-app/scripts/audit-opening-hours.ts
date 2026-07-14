@@ -2,8 +2,22 @@ import { appendFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { runOpeningHoursAudit } from '../lib/services/opening-hours-audit';
-import type { Database, Json } from '../lib/supabase/types';
-import type { WeeklyOpeningHours } from '../lib/types/api';
+import type { Database } from '../lib/supabase/types';
+
+const VENUE_PAGE_SIZE = 500;
+type AuditVenueRow = Pick<
+  Database['public']['Tables']['venues']['Row'],
+  | 'id'
+  | 'slug'
+  | 'opening_hours'
+  | 'hours_review_status'
+  | 'hours_reviewed_at'
+  | 'hours_next_review_at'
+  | 'hours_source_type'
+  | 'hours_source_reference'
+  | 'hours_review_reason'
+  | 'hours_last_error_class'
+>;
 
 const enabled = process.env.SUN_HOURS_AUDIT_ENABLED === 'true';
 const now = new Date();
@@ -43,35 +57,50 @@ const result = await runOpeningHoursAudit({
       });
       if (error) throw new Error('Run claim failed: ' + error.message);
       if (data) return { claimed: true as const, runId };
-      const { data: active } = await supabase
+      const { data: active, error: activeError } = await supabase
         .from('hours_review_runs')
         .select('id')
         .eq('status', 'running')
+        .limit(1)
         .maybeSingle();
+      if (activeError) {
+        throw new Error('Active run lookup failed: ' + activeError.message);
+      }
+      if (!active?.id) {
+        throw new Error('Run claim was rejected but no active run was found');
+      }
       return {
         claimed: false as const,
-        ...(active?.id ? { activeRunId: active.id } : {}),
+        activeRunId: active.id,
       };
     },
     listVenues: async () => {
-      const { data, error } = await supabase
-        .from('venues')
-        .select(
-          'id, slug, opening_hours, hours_review_status, hours_reviewed_at, hours_next_review_at, hours_source_type, hours_source_reference, hours_notes',
-        )
-        .order('id');
-      if (error) throw new Error('Venue read failed: ' + error.message);
-      return (data ?? []).map((row) => ({
+      const rows: AuditVenueRow[] = [];
+      for (let from = 0; ; from += VENUE_PAGE_SIZE) {
+        const { data, error } = await supabase
+          .from('venues')
+          .select(
+            'id, slug, opening_hours, hours_review_status, hours_reviewed_at, hours_next_review_at, hours_source_type, hours_source_reference, hours_review_reason, hours_last_error_class',
+          )
+          .order('id')
+          .range(from, from + VENUE_PAGE_SIZE - 1);
+        if (error) throw new Error('Venue read failed: ' + error.message);
+        const page = data ?? [];
+        rows.push(...page);
+        if (page.length < VENUE_PAGE_SIZE) break;
+      }
+      return rows.map((row) => ({
         id: row.id,
         slug: row.slug,
-        openingHours: asOpeningHours(row.opening_hours),
+        openingHours: row.opening_hours,
         provenance:
           row.hours_source_type && row.hours_source_reference
             ? {
                 reviewStatus: row.hours_review_status ?? undefined,
                 reviewedAt: row.hours_reviewed_at ?? undefined,
                 nextReviewAt: row.hours_next_review_at ?? undefined,
-                ...reviewFlags(row.hours_notes),
+                reviewReason: row.hours_review_reason ?? undefined,
+                lastErrorClass: row.hours_last_error_class ?? undefined,
               }
             : null,
       }));
@@ -86,6 +115,14 @@ const result = await runOpeningHoursAudit({
           reason: String(outcome.reason),
           error_class:
             typeof outcome.errorClass === 'string' ? outcome.errorClass : null,
+          prior_review_status:
+            typeof outcome.priorReviewStatus === 'string'
+              ? outcome.priorReviewStatus
+              : null,
+          resulting_review_status:
+            typeof outcome.resultingReviewStatus === 'string'
+              ? outcome.resultingReviewStatus
+              : null,
         },
         { onConflict: 'run_id,venue_id' },
       );
@@ -96,7 +133,7 @@ const result = await runOpeningHoursAudit({
       const { data, error } = await supabase.rpc('finish_hours_review_run', {
         p_run_id: runId,
         p_status: String(summary.status),
-        p_finished_at: now.toISOString(),
+        p_finished_at: (summary.finishedAt as Date).toISOString(),
         p_total_count: Number(summary.totalCount),
         p_current_count: counts.current ?? 0,
         p_missing_provenance_count: counts.missing_provenance ?? 0,
@@ -109,6 +146,14 @@ const result = await runOpeningHoursAudit({
       });
       if (error) throw new Error('Run finish failed: ' + error.message);
       if (!data) throw new Error('Run finish did not update the active run');
+    },
+    failRun: async (summary) => {
+      const { data, error } = await supabase.rpc('fail_hours_review_run', {
+        p_run_id: runId,
+        p_finished_at: (summary.finishedAt as Date).toISOString(),
+      });
+      if (error) throw new Error('Run failure finalization failed: ' + error.message);
+      if (!data) throw new Error('Run failure finalizer did not update the active run');
     },
     pruneBefore: async (cutoff) => {
       const { error } = await supabase.rpc('prune_hours_review_history', {
@@ -147,24 +192,6 @@ function requiredEnv(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) throw new Error('Missing required environment variable: ' + name);
   return value;
-}
-
-function asOpeningHours(value: Json | null): WeeklyOpeningHours | null {
-  return value === null ? null : (value as WeeklyOpeningHours);
-}
-
-function reviewFlags(notes: string | null): {
-  conflict?: boolean;
-  reason?: string;
-  lastErrorClass?: string;
-} {
-  if (!notes) return {};
-  if (notes === 'review-reason:split') return { reason: 'split' };
-  if (notes === 'review-reason:conflict') return { conflict: true };
-  if (notes.startsWith('review-error:')) {
-    return { lastErrorClass: notes.slice('review-error:'.length) };
-  }
-  return {};
 }
 
 function sumCounts(counts: Record<string, number>): number {

@@ -24,7 +24,18 @@ function readMigration(namePart: string): string {
 const reconciliation = readMigration('reconcile_venue_place_identity');
 const governance = readMigration('provider_neutral_hours_governance');
 const grantHardening = readMigration('tighten_hours_review_service_grants');
-const allSql = reconciliation + '\n' + governance + '\n' + grantHardening;
+const reviewHardening = readMigration('harden_hours_governance_review_fixes');
+const verifiedState = readMigration('enforce_verified_public_hours_state');
+const allSql =
+  reconciliation +
+  '\n' +
+  governance +
+  '\n' +
+  grantHardening +
+  '\n' +
+  reviewHardening +
+  '\n' +
+  verifiedState;
 
 describe('[12.1 AC2] canonical migration chain', () => {
   test('[P0] reconciliation precedes the forward provider-neutral migration', () => {
@@ -45,6 +56,8 @@ describe('[12.1 AC2] canonical migration chain', () => {
     expect(governance).toMatch(/DROP\s+COLUMN\s+(?:IF\s+EXISTS\s+)?places_api_url/i);
     expect(governance).toMatch(/CREATE\s+INDEX[\s\S]*place_id/i);
     expect(governance).not.toMatch(/UNIQUE[\s\S]{0,80}place_id/i);
+    expect(reviewHardening).toMatch(/ALTER\s+COLUMN\s+place_id\s+DROP\s+NOT\s+NULL/i);
+    expect(reviewHardening).toMatch(/btrim\(place_id\)\s*<>\s*''/i);
   });
 
   test('[P0] venues gains checked provider-neutral provenance and review fields', () => {
@@ -106,8 +119,20 @@ describe('[12.1 AC2] canonical migration chain', () => {
   });
 
   test('[P0] schema provides atomic non-overlap and deterministic 180-day cleanup seams', () => {
-    expect(governance).toMatch(/advisory|non.?overlap|active_run|lease/i);
+    expect(allSql).toMatch(/advisory|non.?overlap|active_run|lease/i);
     expect(governance).toMatch(/180\s*(?:days?|day)/i);
     expect(governance).toMatch(/DELETE\s+FROM[\s\S]*hours_review_(?:runs|outcomes)/i);
+  });
+
+  test('[P0] public venue reads use explicit safe columns while service metadata stays protected', () => {
+    expect(reviewHardening).toMatch(/REVOKE\s+SELECT\s+ON\s+TABLE\s+public\.venues/i);
+    expect(reviewHardening).toMatch(/GRANT\s+SELECT\s*\([\s\S]*opening_hours[\s\S]*\)[\s\S]*TO\s+anon,\s*authenticated/i);
+    expect(reviewHardening).toMatch(/GRANT\s+SELECT\s+ON\s+TABLE\s+public\.venues\s+TO\s+service_role/i);
+  });
+
+  test('[P0] canonical public schedules require verified provenance state', () => {
+    expect(verifiedState).toMatch(/opening_hours\s+is\s+null[\s\S]*hours_review_status\s*=\s*'verified'/i);
+    expect(verifiedState).toMatch(/hours_review_status\s*<>\s*'manual_review'[\s\S]*opening_hours\s+is\s+null/i);
+    expect(verifiedState).toMatch(/hours_review_status\s*<>\s*'failed'[\s\S]*opening_hours\s+is\s+null/i);
   });
 });

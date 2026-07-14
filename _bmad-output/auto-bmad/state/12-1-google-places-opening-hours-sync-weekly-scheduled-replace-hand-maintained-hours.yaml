@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 1
 branch: story/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
 status: in-progress
-updated_at: "2026-07-14T08:40:05Z"
+updated_at: "2026-07-14T12:38:32Z"
 started_at: "2026-07-13T16:21:11Z"
 completed_at: null
-active_seconds: 8169
+active_seconds: 12772
 timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
@@ -21,13 +21,13 @@ tea_rationale: "Scheduled database mutations, schema/provenance migrations, atom
 epic_story_count: 14
 stories_after_in_epic: 13
 completed_phases: [0, 1, 2, 3, 4, 5, 6]
-code_review_iterations: 0
+code_review_iterations: 2
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [09821bb, 6d0d0a0, 628c278, 5b1cd0a, 02b990d]
+commits: [09821bb, 6d0d0a0, 628c278, 5b1cd0a, 02b990d, "1071590"]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -55,3 +55,5 @@ constraints:
   - "The pre-launch SunnySeat Supabase project hhnbxrhfhlzxgllxukzj is the authorized protected database lane for all Epic 12 stories; schema and data changes are allowed."
   - "Rasmus attested on 2026-07-14 that all 42 existing opening_hours schedules were manually fetched from each venue official website. Retain them as approved manual evidence sourced from official venue websites; record the attestation without inventing unretained URLs."
   - "Do not modify public.spatial_ref_sys or attempt to clear its known Supabase advisory; it is an acknowledged PostGIS extension-table exception."
+  - "Decision 1 accepted on 2026-07-14: keep the service-only provenance and Place ID fields on public.venues and replace broad role SELECT with an explicit safe-column read boundary."
+  - "Decision 2 accepted on 2026-07-14: keep hours_review_outcomes.venue_id ON DELETE CASCADE; the 180-day window is rolling operational history while a venue exists, not compliance retention that should block venue deletion."
