@@ -175,11 +175,11 @@ describe('[12.1 review iteration 2] remediation file validation', () => {
 });
 
 describe('[12.1 review iteration 2] audit terminal ordering and isolation', () => {
-  test('a fallback write failure does not skip later venues and fails the run after pruning', async () => {
+  test('an identical retry failure does not skip later venues and fails the run after pruning', async () => {
     const recordOutcome = vi
       .fn()
       .mockRejectedValueOnce(new Error('primary write failed'))
-      .mockRejectedValueOnce(new Error('fallback write failed'))
+      .mockRejectedValueOnce(new Error('retry write failed'))
       .mockResolvedValueOnce(undefined);
     const repos = repositories({
       listVenues: vi.fn().mockResolvedValue([
@@ -254,8 +254,9 @@ describe('[12.1 review iteration 2] deployment source contracts', () => {
 
   test('remediation runner renews leases, isolates RPC errors, and writes report before finish', () => {
     expect(remediationRunner).toMatch(/renew_hours_review_run_lease/i);
-    expect(remediationRunner).toMatch(/persist_hours_review_outcome/i);
-    expect(remediationRunner).toMatch(/continue;/i);
+    expect(remediationRunner).toMatch(/apply_hours_remediation_batch/i);
+    expect(remediationRunner).not.toMatch(/persist_hours_review_outcome/i);
+    expect(remediationRunner).toMatch(/rename\(/i);
     expect(remediationRunner.indexOf("status: 'provisional'")).toBeGreaterThanOrEqual(0);
     expect(remediationRunner.indexOf('finish_hours_review_run')).toBeGreaterThan(
       remediationRunner.indexOf("status: 'provisional'"),

@@ -148,62 +148,67 @@ describe('[12.1 AC5] audit classification boundaries', () => {
 });
 
 describe('[12.1 AC5] audit repository failure behavior', () => {
-  test('[P1] an outcome-write failure is isolated, counted, and redacted from later summaries', async () => {
+  test('[P1] an indeterminate outcome write is isolated, redacted, and fails the run after later venues', async () => {
     const recordOutcome = vi
       .fn()
       .mockRejectedValueOnce(new Error('database unavailable'))
+      .mockRejectedValueOnce(new Error('database still unavailable'))
       .mockResolvedValueOnce(undefined);
     const finishRun = vi.fn().mockResolvedValue(undefined);
+    const failRun = vi.fn().mockResolvedValue(undefined);
     const pruneBefore = vi.fn().mockResolvedValue(undefined);
 
-    const result = await runOpeningHoursAudit({
-      enabled: true,
-      now: NOW,
-      clock: () => NOW,
-      repositories: {
-        claimRun: vi.fn().mockResolvedValue({
-          claimed: true,
-          runId: 'run-write-failure',
-        }),
-        listVenues: vi.fn().mockResolvedValue([
-          {
-            id: '1',
-            slug: 'current',
-            openingHours: HOURS,
-            provenance: {
-              reviewStatus: 'verified',
-              reviewedAt: '2026-07-12T10:00:00.000Z',
-              nextReviewAt: '2026-07-14T10:00:00.000Z',
+    await expect(
+      runOpeningHoursAudit({
+        enabled: true,
+        now: NOW,
+        clock: () => NOW,
+        repositories: {
+          claimRun: vi.fn().mockResolvedValue({
+            claimed: true,
+            runId: 'run-write-failure',
+          }),
+          listVenues: vi.fn().mockResolvedValue([
+            {
+              id: '1',
+              slug: 'current',
+              openingHours: HOURS,
+              provenance: {
+                reviewStatus: 'verified',
+                reviewedAt: '2026-07-12T10:00:00.000Z',
+                nextReviewAt: '2026-07-14T10:00:00.000Z',
+              },
             },
-          },
-          {
-            id: '2',
-            slug: 'due',
-            openingHours: HOURS,
-            provenance: { reviewStatus: 'due' },
-          },
-        ]),
-        recordOutcome,
-        finishRun,
-        failRun: vi.fn().mockResolvedValue(undefined),
-        pruneBefore,
-      },
-    });
+            {
+              id: '2',
+              slug: 'due',
+              openingHours: HOURS,
+              provenance: {
+                reviewStatus: 'due',
+                reviewedAt: '2026-07-12T10:00:00.000Z',
+                nextReviewAt: '2026-07-13T09:00:00.000Z',
+              },
+            },
+          ]),
+          recordOutcome,
+          finishRun,
+          failRun,
+          pruneBefore,
+        },
+      }),
+    ).rejects.toThrow(/outcome persistence attempts failed/i);
 
-    expect(result).toMatchObject({
-      status: 'completed_with_failures',
-      counts: { current: 0, due: 1, failed: 1 },
-    });
     expect(recordOutcome).toHaveBeenCalledTimes(3);
     expect(JSON.stringify(recordOutcome.mock.calls)).not.toMatch(
       /openingHours|provenance|sourceReference/,
     );
-    expect(finishRun).toHaveBeenCalledWith(
+    expect(finishRun).not.toHaveBeenCalled();
+    expect(failRun).toHaveBeenCalledWith(
       expect.objectContaining({
         runId: 'run-write-failure',
-        status: 'completed_with_failures',
-        totalCount: 2,
-        counts: expect.objectContaining({ due: 1, failed: 1 }),
+        status: 'failed',
+        totalCount: 1,
+        counts: expect.objectContaining({ current: 0, due: 1, failed: 0 }),
       }),
     );
     expect(pruneBefore).toHaveBeenCalledWith(

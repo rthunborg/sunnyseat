@@ -36,7 +36,7 @@ describe('[12.1 AC6] honest whole-field unknown at the detail route', () => {
   test('[P0] public JSON exposes no Place ID, provenance, notes, or audit outcome fields', async () => {
     const body = await detail('test-venue-sunny');
     expect(JSON.stringify(body)).not.toMatch(
-      /placeId|place_id|placesApiUrl|places_api_url|hoursSource|hours_source|hoursReview|hours_review|hoursNotes|hours_notes|reviewOutcome|review_outcome/,
+      /placeId|place_id|placesApiUrl|places_api_url|hoursSource|hours_source|sourceType|sourceReference|hoursReview|hours_review|reviewStatus|reviewedAt|nextReviewAt|reviewReason|lastErrorClass|hoursNotes|hours_notes|reviewOutcome|review_outcome|reviewOutcomes|auditOutcome/,
     );
   });
 });

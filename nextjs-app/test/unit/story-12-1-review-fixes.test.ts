@@ -153,7 +153,7 @@ describe('[12.1 review] weekly audit cannot silently report false health', () =>
     );
   });
 
-  test('persists a bounded failed replacement when an outcome write fails once', async () => {
+  test('retries the identical idempotent outcome when an RPC response is lost', async () => {
     const recordOutcome = vi
       .fn()
       .mockRejectedValueOnce(new Error('write failed'))
@@ -176,15 +176,10 @@ describe('[12.1 review] weekly audit cannot silently report false health', () =>
       repositories: repos,
     });
     expect(recordOutcome).toHaveBeenCalledTimes(2);
-    expect(recordOutcome).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        venueId: 'venue-1',
-        outcome: 'failed',
-        reason: 'classification_failed',
-        errorClass: 'database_error',
-      }),
+    expect(recordOutcome.mock.calls[1]?.[0]).toEqual(
+      recordOutcome.mock.calls[0]?.[0],
     );
-    expect(result.counts).toMatchObject({ current: 0, failed: 1 });
+    expect(result.counts).toMatchObject({ current: 1, failed: 0 });
   });
 
   test('uses completion time for finish and retention boundaries', async () => {
@@ -344,8 +339,12 @@ describe('[12.1 review] deployment contracts are explicit and recoverable', () =
   });
 
   test('production workflow pins actions and forbids npx network fallback', () => {
-    expect(workflow).toMatch(/actions\/checkout@[0-9a-f]{40}/);
-    expect(workflow).toMatch(/actions\/setup-node@[0-9a-f]{40}/);
+    expect(workflow).toContain(
+      'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2',
+    );
+    expect(workflow).toContain(
+      'actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3',
+    );
     expect(workflow).toMatch(/npx\s+--no-install\s+esbuild/);
   });
 

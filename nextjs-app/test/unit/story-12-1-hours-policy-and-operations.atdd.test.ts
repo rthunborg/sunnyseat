@@ -56,8 +56,10 @@ const persistenceSource = persistenceFiles
 
 const setupSource = readOptional(join(projectRoot, 'test', 'setup', 'setup.ts'));
 // `_bmad-output` is intentionally local/gitignored, so executable CI evidence
-// must come from the committed project contract rather than the BMAD story file.
-const projectContextSource = readOptional(join(repoRoot, 'project-context.md'));
+// comes from a tracked contract that mirrors the story's supersession boundary.
+const providerPivotContract = readOptional(
+  join(projectRoot, 'docs', 'story-12-1-provider-pivot-contract.md'),
+);
 const authoringDoc = readOptional(join(projectRoot, 'docs', 'venue-data-load.md'));
 const scheduledDoc = readOptional(
   join(projectRoot, 'docs', 'github-actions-scheduled-jobs.md'),
@@ -75,7 +77,9 @@ const legacyWorkflow = readOptional(
 const googleHoursFieldPattern =
   /regular(?:OpeningHours|[\s_-]+opening[\s_-]*hours)/i;
 const providerCredentialPattern =
-  /\b(?:(?:GOOGLE|PLACES|MAPS|GMAPS|GMP|GCP_MAPS)[A-Z0-9_]*(?:API_KEY|CREDENTIALS?|SECRET|TOKEN))\b/;
+  /\b(?:(?:GOOGLE|PLACES|MAPS|GMAPS|GMP|GCP_MAPS|HOURS_PROVIDER|OPENING_HOURS_PROVIDER|VENUE_HOURS_PROVIDER)[A-Z0-9_]*(?:API_KEY|CREDENTIALS?|SECRET|TOKEN)|(?:PROVIDER|HOURS_PROVIDER)_(?:AUTHORIZATION|BEARER|JWT))\b/;
+const providerUrlFieldPattern =
+  /\b(?:provider|places?|opening_hours_provider|hours_provider)_(?:api_)?url\b/i;
 
 describe('[12.1 AC1/AC8] Google-hours path stays prohibited', () => {
   test('[P1] production and scheduled code has no Google hours/content/credential path', () => {
@@ -83,6 +87,7 @@ describe('[12.1 AC1/AC8] Google-hours path stays prohibited', () => {
     expect(productionSource).not.toMatch(/X-Goog-FieldMask[^\n]*opening/i);
     expect(productionSource).not.toMatch(/places\.googleapis\.com/i);
     expect(productionSource).not.toMatch(/places_api_url/i);
+    expect(productionSource).not.toMatch(providerUrlFieldPattern);
     expect(productionSource).not.toMatch(providerCredentialPattern);
   });
 
@@ -93,6 +98,9 @@ describe('[12.1 AC1/AC8] Google-hours path stays prohibited', () => {
     expect(persistenceSource).not.toMatch(providerCredentialPattern);
     expect(persistenceSource).not.toMatch(
       /places_api_url[\s\S]{0,200}https?:\/\//i,
+    );
+    expect(persistenceSource).not.toMatch(
+      /(?:provider|hours_provider)_(?:api_)?url[\s\S]{0,200}(?:https?:|\/\/|%2f)/i,
     );
   });
 
@@ -110,8 +118,18 @@ describe('[12.1 AC1/AC8] Google-hours path stays prohibited', () => {
       'GMAPS_CREDENTIAL',
       'GMP_SECRET',
       'GCP_MAPS_TOKEN',
+      'HOURS_PROVIDER_API_KEY',
+      'OPENING_HOURS_PROVIDER_SECRET',
+      'PROVIDER_BEARER',
     ]) {
       expect(credential).toMatch(providerCredentialPattern);
+    }
+    for (const field of [
+      'provider_url',
+      'places_api_url',
+      'hours_provider_api_url',
+    ]) {
+      expect(field).toMatch(providerUrlFieldPattern);
     }
   });
 
@@ -170,12 +188,140 @@ describe('[12.1 AC1/AC8] Google-hours path stays prohibited', () => {
     }
   });
 
-  test('[P1] committed project contract preserves the provider pivot and controlling decisions', () => {
-    expect(projectContextSource).toContain('sprint-change-proposal-2026-07-12.md');
-    expect(projectContextSource).toContain('technical-google-places-api-policy-epic-12-research-2026-07-12.md');
-    expect(projectContextSource).toContain('Provider pivot adopted');
-    expect(projectContextSource).toContain('E12-AD-01');
-    expect(projectContextSource).toContain('E12-AD-13');
+  test('[P1] shared fetch guard preserves Request method/body semantics for 307 redirects', async () => {
+    let received = '';
+    const server = createServer(async (request, response) => {
+      if (request.url === '/start') {
+        response.statusCode = 307;
+        response.setHeader('location', '/target');
+        response.end();
+        return;
+      }
+      const chunks: Buffer[] = [];
+      for await (const chunk of request) chunks.push(Buffer.from(chunk));
+      received = [
+        request.method,
+        request.headers['content-type'],
+        Buffer.concat(chunks).toString('utf8'),
+      ].join('|');
+      response.statusCode = 200;
+      response.end('ok');
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    if (!address || typeof address === 'string') throw new Error('Missing test port');
+    try {
+      const response = await fetch(`http://127.0.0.1:${address.port}/start`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{"hours":"opaque"}',
+      });
+      expect(response.status).toBe(200);
+      expect(received).toBe('POST|application/json|{"hours":"opaque"}');
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  test('[P1] shared fetch guard applies POST-to-GET rewrites and honors manual/error modes', async () => {
+    const requests: string[] = [];
+    const server = createServer(async (request, response) => {
+      requests.push(`${request.url}|${request.method}|${request.headers['content-type'] ?? ''}`);
+      if (request.url === '/start') {
+        response.statusCode = 302;
+        response.setHeader('location', '/target');
+        response.end();
+        return;
+      }
+      response.statusCode = 200;
+      response.end('ok');
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    if (!address || typeof address === 'string') throw new Error('Missing test port');
+    const url = `http://127.0.0.1:${address.port}/start`;
+    try {
+      const followed = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'text/plain' },
+        body: 'discard-me',
+      });
+      expect(followed.status).toBe(200);
+      expect(requests.slice(0, 2)).toEqual([
+        '/start|POST|text/plain',
+        '/target|GET|',
+      ]);
+
+      const manual = await fetch(new Request(url, { redirect: 'manual' }));
+      expect(manual.status).toBe(302);
+      await expect(
+        fetch(new Request(url, { redirect: 'error' })),
+      ).rejects.toThrow(/redirect:error/i);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  test('[P1] shared fetch guard strips cross-origin authorization and ignores non-redirect 3xx', async () => {
+    let receivedAuthorization: string | undefined;
+    const target = createServer((request, response) => {
+      receivedAuthorization = request.headers.authorization;
+      response.statusCode = 200;
+      response.end('ok');
+    });
+    await new Promise<void>((resolve) => target.listen(0, '127.0.0.1', resolve));
+    const targetAddress = target.address();
+    if (!targetAddress || typeof targetAddress === 'string') {
+      throw new Error('Missing target port');
+    }
+    const source = createServer((request, response) => {
+      response.statusCode = request.url === '/not-modified' ? 304 : 302;
+      response.setHeader(
+        'location',
+        `http://127.0.0.1:${targetAddress.port}/target`,
+      );
+      response.end();
+    });
+    await new Promise<void>((resolve) => source.listen(0, '127.0.0.1', resolve));
+    const sourceAddress = source.address();
+    if (!sourceAddress || typeof sourceAddress === 'string') {
+      throw new Error('Missing source port');
+    }
+    try {
+      await fetch(`http://127.0.0.1:${sourceAddress.port}/redirect`, {
+        headers: { authorization: 'Bearer test-only' },
+      });
+      expect(receivedAuthorization).toBeUndefined();
+      const notModified = await fetch(
+        `http://127.0.0.1:${sourceAddress.port}/not-modified`,
+      );
+      expect(notModified.status).toBe(304);
+    } finally {
+      await Promise.all([
+        new Promise<void>((resolve, reject) =>
+          source.close((error) => (error ? reject(error) : resolve())),
+        ),
+        new Promise<void>((resolve, reject) =>
+          target.close((error) => (error ? reject(error) : resolve())),
+        ),
+      ]);
+    }
+  });
+
+  test('[P1] tracked contract preserves the exact story supersession boundary', () => {
+    expect(providerPivotContract).toContain('Superseded Epic Text');
+    expect(providerPivotContract).toContain(
+      'sprint-change-proposal-2026-07-12.md',
+    );
+    expect(providerPivotContract).toContain(
+      'technical-google-places-api-policy-epic-12-research-2026-07-12.md',
+    );
+    expect(providerPivotContract).toContain('E12-AD-01');
+    expect(providerPivotContract).toContain('E12-AD-13');
   });
 });
 
@@ -185,12 +331,12 @@ describe('[12.1 AC5/AC7] direct weekly audit workflow and operations docs', () =
     expect(hoursWorkflow).toMatch(/cron:/);
     expect(hoursWorkflow).toMatch(/workflow_dispatch:/);
     expect(hoursWorkflow).toMatch(/concurrency:/);
-    expect(hoursWorkflow).toMatch(/environment:\s*production/);
+    expect(hoursWorkflow).toMatch(/environment:\s*Production/);
     expect(hoursWorkflow).toMatch(/audit-opening-hours\.mjs/);
     expect(hoursWorkflow).toMatch(/SUN_HOURS_AUDIT_ENABLED/);
     expect(hoursWorkflow).not.toMatch(/\/api\/cron\//);
     expect(hoursWorkflow).not.toMatch(/CRON_SECRET/);
-    expect(hoursWorkflow).not.toMatch(/GOOGLE|PLACES_API_KEY/i);
+    expect(hoursWorkflow).not.toMatch(providerCredentialPattern);
   });
 
   test('[P1] workflow is main-branch/protected-environment scoped with bounded execution and summary output', () => {
@@ -200,10 +346,10 @@ describe('[12.1 AC5/AC7] direct weekly audit workflow and operations docs', () =
     expect(hoursWorkflow).toMatch(/run[_ -]?id/i);
   });
 
-  test('[P1] unrelated legacy OSM maintenance remains owned by its existing workflow', () => {
-    expect(legacyWorkflow).toMatch(/cron:\s*'0 5 \* \* 1'/i);
-    expect(legacyWorkflow).toMatch(/osm-ingestion/i);
-    expect(legacyWorkflow).toMatch(/\/api\/cron\/osm-ingestion/i);
+  test('[P1] obsolete OSM schedule, dispatch option, and job are removed', () => {
+    expect(legacyWorkflow).not.toMatch(/cron:\s*'0 5 \* \* 1'/i);
+    expect(legacyWorkflow).not.toMatch(/osm-ingestion/i);
+    expect(legacyWorkflow).not.toMatch(/\/api\/cron\/osm-ingestion/i);
   });
 
   test('[P1] authoring docs remove provider URL examples and explain provider-neutral evidence', () => {

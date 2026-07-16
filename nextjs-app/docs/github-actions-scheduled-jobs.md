@@ -10,7 +10,7 @@ Workflow: `.github/workflows/hours-review-audit.yml`
 - Schedule: weekly, Monday at 05:17 UTC.
 - Manual run: GitHub Actions → **Hours Review Audit** → `workflow_dispatch`.
 - Branch: `main` only.
-- Protected environment: `production`.
+- Protected environment: `Production`.
 - Concurrency: one production hours-review run at a time.
 - Timeout: 10 minutes.
 - Runner: `nextjs-app/scripts/audit-opening-hours.ts`, bundled to the
@@ -66,7 +66,7 @@ Active runs are never pruned.
 - **Disabled:** remove an emergency-stop override or set the protected
   environment variable `SUN_HOURS_AUDIT_ENABLED=true`, then dispatch again.
 - **Missing configuration:** verify both protected Supabase secrets exist in the
-  `production` environment; do not print their values.
+  `Production` environment; do not print their values.
 - **Already running:** inspect the active `hours_review_runs` row. The database
   claim and GitHub concurrency group both prevent overlap.
 - **Completed with failures:** use the run ID and bounded outcome rows to locate
@@ -77,8 +77,16 @@ Active runs are never pruned.
 ## Historical scheduled workflow
 
 `.github/workflows/scheduled-cron-jobs.yml` still documents weather,
-precomputation, cache, accuracy, OSM-ingestion, and cleanup endpoint jobs. Those
-endpoint assumptions are historical and are owned by Story 12.3 for replacement
-or removal. Story 12.1 leaves that unrelated workflow intact rather than
-silently disabling an existing maintenance path. Do not copy its `CRON_SECRET`
-pattern into the direct hours audit.
+precomputation, cache, accuracy, and cleanup endpoint jobs. Story 12.1 removes
+the obsolete OSM-ingestion schedule, manual-dispatch option, and job as required
+by AC7; the remaining endpoint jobs keep their existing ownership. Do not copy
+their `CRON_SECRET` pattern into the direct hours audit.
+
+### Controlled pre-merge validation
+
+The workflow condition also recognizes the exact Story 12.1 branch for one
+controlled `workflow_dispatch` before merge. The `Production` environment
+normally remains main-only. For that validation only, temporarily allowlist the
+exact story branch in the environment deployment policy, run the protected
+workflow, and restore the main-only policy immediately afterwards. No wildcard
+or arbitrary ref is eligible.

@@ -155,6 +155,9 @@ export type Database = {
           total_count: number
           trigger_type: string
           unknown_count: number
+          venue_population_count: number | null
+          venue_population_identity_fingerprint: string | null
+          venue_population_state_fingerprint: string | null
         }
         Insert: {
           conflicting_count?: number
@@ -172,6 +175,9 @@ export type Database = {
           total_count?: number
           trigger_type: string
           unknown_count?: number
+          venue_population_count?: number | null
+          venue_population_identity_fingerprint?: string | null
+          venue_population_state_fingerprint?: string | null
         }
         Update: {
           conflicting_count?: number
@@ -189,6 +195,9 @@ export type Database = {
           total_count?: number
           trigger_type?: string
           unknown_count?: number
+          venue_population_count?: number | null
+          venue_population_identity_fingerprint?: string | null
+          venue_population_state_fingerprint?: string | null
         }
         Relationships: []
       }
@@ -697,6 +706,10 @@ export type Database = {
             }
             Returns: string
           }
+      apply_hours_remediation_batch: {
+        Args: { p_requests: Json; p_run_id: string }
+        Returns: boolean
+      }
       apply_hours_remediation_outcome: {
         Args: {
           p_error_class: string
@@ -907,6 +920,19 @@ export type Database = {
       gettransactionid: { Args: never; Returns: unknown }
       is_canonical_weekly_opening_hours: {
         Args: { p_hours: Json }
+        Returns: boolean
+      }
+      hours_venue_population_snapshot: {
+        Args: never
+        Returns: {
+          identity_fingerprint: string
+          state_fingerprint: string
+          venue_count: number
+        }[]
+      }
+      is_safe_hours_note: { Args: { p_note: string }; Returns: boolean }
+      is_safe_hours_source_reference: {
+        Args: { p_reference: string }
         Returns: boolean
       }
       longtransactionsenabled: { Args: never; Returns: boolean }

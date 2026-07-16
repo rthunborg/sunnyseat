@@ -31,7 +31,7 @@ collect and in what shape” guide.
 | `address` | text | — | Street address. |
 | `opening_hours` | jsonb | — | **Per-weekday** hours (Story 11.9), keyed by numeric ISO weekday (`"1"`=Mon … `"7"`=Sun): `{ "1": { "open": "11:00", "close": "22:00" }, … }`. A **missing key or `null`** value = **closed that day**. Whole-field SQL `null` = **unknown hours** and produces no public open/closed claim. `close < open` = a **past-midnight** close. Times are `"HH:MM"` (24h). The render layer derives localized display text; never store it. |
 | `hours_source_type` | text | with reviewed hours | One of `venue_confirmed`, `venue_website`, `licensed_provider`, or approved `manual` evidence. It describes eligible provenance, not display attribution. |
-| `hours_source_reference` | text | with reviewed hours | Inspectable, opaque evidence reference, such as `venue-site:slug:2026-07-14` or a licence-controlled internal reference. Keep the URL outside this field; never persist a provider payload, URL, query string, token, or credential. |
+| `hours_source_reference` | text | with reviewed hours | Inspectable, opaque evidence reference using colon-separated identifier tokens, such as `venue-site:slug:2026-07-14`. The accepted form is `^[a-z][a-z0-9_-]{1,31}:[A-Za-z0-9][A-Za-z0-9._-]{0,199}(?::[A-Za-z0-9][A-Za-z0-9._-]{0,199}){0,3}$`. Keep URLs, paths, query strings, payloads, tokens, and credentials outside this field. |
 | `hours_review_status` | text | with reviewed hours | `verified`, `due`, `manual_review`, `unknown`, or `failed`. |
 | `hours_reviewed_at` / `hours_next_review_at` | timestamptz | with reviewed hours | Review timestamps; next review cannot precede the completed review. |
 | `hours_notes` | text | optional | Bounded maintainer prose only. Do not paste source/provider content. Machine state belongs in the service-only structured review-reason and error-class fields. |
@@ -143,11 +143,18 @@ so a partial or stale offline file cannot overwrite newer work. Set
 `SUN_HOURS_REMEDIATION_INPUT` to that file and `SUN_HOURS_REMEDIATION_REPORT` to
 a local output path, then bundle and run `scripts/remediate-opening-hours.ts`
 with the same pinned local esbuild dependency used by the audit workflow
-(`npx --no-install esbuild ...`). The script claims a bounded run, applies each
-venue update and audit outcome through one atomic database function, and writes
-a bounded report containing only the run ID, counts, venue identity, outcome,
-and reason. If the process fails, it finalizes the run as failed; stale claims
-are recovered after their lease.
+(`npx --no-install esbuild ...`). Before claiming a run, the script validates
+that the input and report paths are distinct and writable. It writes a
+provisional report atomically, then applies the complete venue population
+through one transactional batch RPC: one stale or incoherent row rolls back the
+entire batch. Identical accepted requests can be resumed safely after a lost
+response or process restart. After the database run reaches a terminal state,
+the final bounded report is atomically replaced and contains only the run ID,
+input fingerprint, counts, venue identity, outcome, and reason. A report-write
+failure after database completion leaves the provisional recovery report in
+place and does not mislabel the completed database run as failed. Pre-terminal
+failures finalize the run as failed; stale claims are recovered after their
+lease.
 
 ## Painting the `seating_area` polygon
 

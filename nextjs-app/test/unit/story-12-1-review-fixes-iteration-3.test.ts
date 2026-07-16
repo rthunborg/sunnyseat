@@ -134,22 +134,25 @@ describe('[12.1 review iteration 3] runner source contracts', () => {
     'utf8',
   );
 
-  test('uses serialized outcome persistence and preserves explicit unknown/failed state', () => {
+  test('uses serialized outcome persistence and preserves source-less explicit review states', () => {
     expect(auditRunner).toMatch(/persist_hours_review_outcome/);
     expect(auditRunner).toMatch(/hours_review_status\s*===\s*['"]unknown['"]/);
     expect(auditRunner).toMatch(/hours_review_status\s*===\s*['"]failed['"]/);
+    expect(auditRunner).toMatch(
+      /hours_review_status\s*===\s*['"]manual_review['"]/,
+    );
   });
 
   test('writes bounded failure summaries with its own run id and labels overlaps separately', () => {
     expect(auditRunner).toMatch(/Status:\s*failed/);
     expect(auditRunner).toMatch(/Audit run:\s*['"]?\s*\+\s*runId/);
-    expect(auditRunner).toMatch(/Active audit run/);
+    expect(auditRunner).toMatch(/Attempted audit run/);
     expect(auditRunner).toMatch(/Workflow run/);
   });
 
   test('checks the exact live population and optimistic-concurrency timestamp', () => {
     expect(remediationRunner).toMatch(/assertCompleteRemediationPopulation/);
-    expect(remediationRunner).toMatch(/p_expected_updated_at/);
+    expect(remediationRunner).toMatch(/expected_updated_at/);
     expect(remediationRunner).toMatch(/\.gt\(\s*['"]id['"]/);
   });
 

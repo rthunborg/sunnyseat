@@ -73,6 +73,7 @@ export const hoursAuditReasonSchema = z.enum([
   'missing_provenance',
   'review_due',
   'hours_unknown',
+  'provenance_removed',
   'provenance_conflict',
   'unsupported_split',
   'unsupported_24_7',
@@ -90,39 +91,28 @@ export const hoursAuditErrorClassSchema = z.enum([
   'unexpected',
 ]);
 
+const SAFE_SOURCE_REFERENCE_PATTERN =
+  /^[a-z][a-z0-9_-]{1,31}:[A-Za-z0-9][A-Za-z0-9._-]{0,199}(?::[A-Za-z0-9][A-Za-z0-9._-]{0,199}){0,3}$/;
+const UNSAFE_FREEFORM_EVIDENCE_PATTERN =
+  /(?:(?:[a-z][a-z0-9+.-]*:)?\/\/|www\.|[a-z0-9.-]+\.[a-z]{2,}\/|%(?:2f|3a)|provider[\s_-]*payload|regular[\s_-]*opening[\s_-]*hours|authorization\s*:?\s*bearer|bearer\s+[A-Za-z0-9._~-]+|(?:api[\s_-]*key|token|secret|credential)\s*[:=]|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/i;
+
 const safeSourceReferenceSchema = z
   .string()
   .trim()
   .min(1)
   .max(500)
-  .refine((value) => !/[\r\n]/.test(value), {
-    message: 'Source references must be a single bounded identifier',
-  })
-  .refine(
-    (value) =>
-      !/(?:https?:\/\/|www\.|provider-payload|regular.?opening.?hours|(?:^|[?&;:_-])(?:api[_-]?key|key|token|secret)=)/i.test(
-        value,
-      ),
-    {
-      message:
-        'Source references must be opaque evidence identifiers, not URLs, payloads, or credentials',
-    },
-  );
+  .regex(SAFE_SOURCE_REFERENCE_PATTERN, {
+    message:
+      'Source references must be colon-delimited opaque identifiers using letters, digits, dots, underscores, and hyphens only',
+  });
 
 const safeNotesSchema = z
   .string()
   .trim()
   .max(1000)
-  .refine(
-    (value) =>
-      !/(?:https?:\/\/|www\.|provider[\s_-]*payload|regular[\s_-]*opening[\s_-]*hours|(?:^|[?&;:\s_-])(?:api[_-]?key|key|token|secret)\s*=)/i.test(
-        value,
-      ),
-    {
-      message:
-        'Notes must not contain provider payloads, URLs, or credentials',
-    },
-  );
+  .refine((value) => !UNSAFE_FREEFORM_EVIDENCE_PATTERN.test(value), {
+    message: 'Notes must not contain provider payloads, URLs, or credentials',
+  });
 
 const hoursProvenanceBaseSchema = z
   .object({
@@ -305,12 +295,18 @@ function unsupportedScheduleReason(
   if (record.mode === '24/7') return 'unsupported_24_7';
   if (record.seasonal === true) return 'seasonal';
   if (record.holidaySpecific === true) return 'holiday_specific';
-  if (
-    Object.values(record).some(
-      (value) => Array.isArray(value) && value.length > 1,
-    )
-  ) {
-    return 'split';
+  for (const [weekday, value] of Object.entries(record)) {
+    if (!/^[1-7]$/.test(weekday)) continue;
+    if (Array.isArray(value)) return 'split';
+    if (
+      value &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      (value as Record<string, unknown>).open === '00:00' &&
+      (value as Record<string, unknown>).close === '00:00'
+    ) {
+      return 'unsupported_24_7';
+    }
   }
   return undefined;
 }
@@ -514,7 +510,7 @@ export async function remediateOpeningHoursRows(input: {
         venueId: row.id,
         venueSlug: row.slug,
         outcome: 'unknown',
-        reason: 'missing_or_ineligible_provenance',
+        reason: 'provenance_removed',
       });
       continue;
     }

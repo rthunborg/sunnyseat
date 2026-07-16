@@ -10,7 +10,7 @@ This document lists all environment variables required for the SunnySeat Next.js
 |----------|-------------|----------|---------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Yes | No (public) | All |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-only) | Yes (live path) | **Yes** | All |
-| `SUPABASE_URL` | Protected project URL for the direct hours-audit runner | Hours audit only | Treat as protected config | GitHub `production` |
+| `SUPABASE_URL` | Protected project URL for the direct hours-audit runner | Hours audit only | Treat as protected config | GitHub `Production` |
 
 **How to get:**
 1. Go to Supabase Dashboard → Project Settings → API
@@ -59,9 +59,9 @@ no `/api/cron` endpoint and does not use `CRON_SECRET`.
 
 | Variable | Description | Required | Environment |
 |---|---|---|---|
-| `SUPABASE_URL` | Project URL used by the direct runner | Yes when enabled | GitHub protected `production` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only audit credentials | Yes when enabled | GitHub protected `production` secret |
-| `SUN_HOURS_AUDIT_ENABLED` | Independent emergency stop; only `true` enables | Yes | GitHub protected `production` variable |
+| `SUPABASE_URL` | Project URL used by the direct runner | Yes when enabled | GitHub protected `Production` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only audit credentials | Yes when enabled | GitHub protected `Production` secret |
+| `SUN_HOURS_AUDIT_ENABLED` | Independent emergency stop; only `true` enables | Yes | GitHub protected `Production` variable |
 
 Leave `SUN_HOURS_AUDIT_ENABLED=false` until migrations and one-time provenance
 remediation pass. Use `workflow_dispatch` for a controlled manual run. Bounded
@@ -179,7 +179,7 @@ No secret carries a `NEXT_PUBLIC_` prefix.
 
 ### Hours audit does not run
 
-1. Verify the dispatch uses `main` and the protected `production` environment.
+1. Verify the dispatch uses `main` and the protected `Production` environment.
 2. Set `SUN_HOURS_AUDIT_ENABLED=true`; every other value disables the job.
 3. Verify `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are configured as
    protected GitHub environment secrets without printing them.

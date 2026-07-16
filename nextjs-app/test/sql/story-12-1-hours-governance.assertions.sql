@@ -73,6 +73,390 @@ begin
 end
 $$;
 
+do $$
+declare
+  definition text;
+begin
+  if not public.is_safe_hours_source_reference(
+    'venue-site:legacy-hours:2026-07-16'
+  )
+     or public.is_safe_hours_source_reference(
+       'https://venue.example/opening-hours'
+     )
+     or public.is_safe_hours_source_reference(
+       'venue-site:%2fprivate'
+     ) then
+    raise exception 'opaque source-reference allowlist is incorrect';
+  end if;
+
+  if not public.is_safe_hours_note('Manually checked by the venue owner.')
+     or public.is_safe_hours_note('See venue.example/opening-hours')
+     or public.is_safe_hours_note('Authorization: Bearer secret-value') then
+    raise exception 'bounded note policy is incorrect';
+  end if;
+
+  select pg_get_constraintdef(oid)
+  into definition
+  from pg_constraint
+  where conrelid = 'public.hours_review_outcomes'::regclass
+    and conname = 'hours_review_outcomes_run_venue_key';
+  if definition <> 'UNIQUE (run_id, venue_id)' then
+    raise exception 'run/venue uniqueness definition drifted: %', definition;
+  end if;
+
+  select pg_get_constraintdef(oid)
+  into definition
+  from pg_constraint
+  where conrelid = 'public.hours_review_outcomes'::regclass
+    and conname = 'hours_review_outcomes_run_id_fkey';
+  if definition !~* '^FOREIGN KEY \(run_id\) REFERENCES hours_review_runs\(id\) ON DELETE CASCADE$' then
+    raise exception 'run FK definition drifted: %', definition;
+  end if;
+
+  select pg_get_constraintdef(oid)
+  into definition
+  from pg_constraint
+  where conrelid = 'public.hours_review_outcomes'::regclass
+    and conname = 'hours_review_outcomes_venue_id_fkey';
+  if definition !~* '^FOREIGN KEY \(venue_id\) REFERENCES venues\(id\) ON DELETE CASCADE$' then
+    raise exception 'venue FK definition drifted: %', definition;
+  end if;
+
+  select pg_get_indexdef('public.hours_review_runs_one_active_run_idx'::regclass)
+  into definition;
+  if definition !~* '^CREATE UNIQUE INDEX hours_review_runs_one_active_run_idx ON public\.hours_review_runs USING btree \(status\) WHERE \(status = ''running''::text\)$' then
+    raise exception 'one-active-run index definition drifted: %', definition;
+  end if;
+end
+$$;
+
+set role service_role;
+
+do $$
+begin
+  if not public.claim_hours_review_run(
+    'run-lifecycle-loss', 'manual', clock_timestamp()
+  )
+     or not public.claim_hours_review_run(
+       'run-lifecycle-loss', 'manual', clock_timestamp()
+     ) then
+    raise exception 'same-ID claim retry must reconcile as success';
+  end if;
+  if not public.persist_hours_review_outcome(
+    'run-lifecycle-loss',
+    'legacy-1',
+    'legacy-hours',
+    'current',
+    'review_current'
+  ) then
+    raise exception 'lifecycle retry run could not persist its outcome';
+  end if;
+  if not public.finish_hours_review_run(
+    'run-lifecycle-loss', 'completed', clock_timestamp(),
+    1, 1, 0, 0, 0, 0, 0, 0, 0
+  )
+     or not public.finish_hours_review_run(
+       'run-lifecycle-loss', 'completed', clock_timestamp(),
+       1, 1, 0, 0, 0, 0, 0, 0, 0
+     ) then
+    raise exception 'terminal finish retry must reconcile as success';
+  end if;
+  if public.fail_hours_review_run(
+    'run-lifecycle-loss', clock_timestamp()
+  ) then
+    raise exception 'completed run was incorrectly reclassified as failed';
+  end if;
+
+  if not public.claim_hours_review_run(
+    'run-failure-loss', 'manual', clock_timestamp()
+  )
+     or not public.fail_hours_review_run(
+       'run-failure-loss', clock_timestamp()
+     )
+     or not public.fail_hours_review_run(
+       'run-failure-loss', clock_timestamp()
+     ) then
+    raise exception 'failed lifecycle retry must reconcile as success';
+  end if;
+end
+$$;
+
+reset role;
+
+insert into public.venues (id, slug, opening_hours)
+values ('population-drift', 'population-drift', null);
+
+set role service_role;
+
+do $$
+begin
+  if not public.claim_hours_review_run(
+    'run-population-drift', 'scheduled', clock_timestamp()
+  ) then
+    raise exception 'population drift run could not claim';
+  end if;
+end
+$$;
+
+reset role;
+
+insert into public.venues (id, slug, opening_hours)
+values ('population-drift-late', 'population-drift-late', null);
+
+set role service_role;
+
+do $$
+begin
+  if public.finish_hours_review_run(
+    'run-population-drift', 'completed', clock_timestamp(),
+    0, 0, 0, 0, 0, 0, 0, 0, 0
+  ) then
+    raise exception 'run finished after its venue population changed';
+  end if;
+  if not public.fail_hours_review_run(
+    'run-population-drift', clock_timestamp()
+  ) then
+    raise exception 'population drift run did not release its claim';
+  end if;
+end
+$$;
+
+reset role;
+
+delete from public.venues
+where id in ('population-drift', 'population-drift-late');
+
+update public.venues
+set opening_hours = '{"1":{"open":"11:00","close":"22:00"}}'::jsonb,
+    hours_source_type = 'venue_website',
+    hours_source_reference = 'venue-site:legacy-hours:2026-07-16',
+    hours_review_status = 'verified',
+    hours_reviewed_at = clock_timestamp() - interval '1 day',
+    hours_next_review_at = clock_timestamp() + interval '89 days',
+    hours_notes = 'Manually checked by the venue owner.',
+    hours_review_reason = null,
+    hours_last_error_class = null
+where id = 'legacy-1';
+
+do $$
+declare
+  schedule_before jsonb;
+  reference_before text;
+begin
+  select opening_hours, hours_source_reference
+  into schedule_before, reference_before
+  from public.venues
+  where id = 'legacy-1';
+
+  begin
+    update public.venues
+    set hours_notes = 'See venue.example/opening-hours'
+    where id = 'legacy-1';
+    raise exception 'unsafe note unexpectedly accepted';
+  exception
+    when check_violation then null;
+  end;
+
+  if not exists (
+    select 1
+    from public.venues
+    where id = 'legacy-1'
+      and opening_hours = schedule_before
+      and hours_source_reference = reference_before
+      and hours_notes = 'Manually checked by the venue owner.'
+  ) then
+    raise exception 'unsafe note handling erased valid schedule provenance';
+  end if;
+
+  begin
+    update public.venues
+    set hours_reviewed_at = clock_timestamp() + interval '1 day',
+        hours_next_review_at = clock_timestamp() + interval '91 days'
+    where id = 'legacy-1';
+    raise exception 'future review timestamp unexpectedly accepted';
+  exception
+    when check_violation then null;
+  end;
+
+  begin
+    update public.venues
+    set hours_source_reference = null
+    where id = 'legacy-1';
+    raise exception 'partial null provenance unexpectedly accepted';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
+
+set role service_role;
+
+do $$
+declare
+  expected_updated_at timestamptz;
+  reviewed_at timestamptz := clock_timestamp() - interval '1 minute';
+  next_review_at timestamptz := clock_timestamp() + interval '90 days';
+  request jsonb;
+begin
+  select updated_at
+  into expected_updated_at
+  from public.venues
+  where id = 'legacy-1';
+
+  request := jsonb_build_object(
+    'venue_id', 'legacy-1',
+    'venue_slug', 'legacy-hours',
+    'opening_hours', '{"1":{"open":"10:00","close":"21:00"}}'::jsonb,
+    'source_type', 'venue_website',
+    'source_reference', 'venue-site:legacy-hours:2026-07-16',
+    'review_status', 'verified',
+    'reviewed_at', reviewed_at,
+    'next_review_at', next_review_at,
+    'notes', null,
+    'review_reason', null,
+    'last_error_class', null,
+    'outcome', 'current',
+    'reason', 'review_current',
+    'error_class', null,
+    'expected_updated_at', expected_updated_at
+  );
+
+  if not public.claim_hours_review_run(
+    'run-batch-first', 'remediation', clock_timestamp()
+  )
+     or not public.apply_hours_remediation_batch(
+       'run-batch-first', jsonb_build_array(request)
+     )
+     or not public.apply_hours_remediation_batch(
+       'run-batch-first', jsonb_build_array(request)
+     ) then
+    raise exception 'same-run transactional batch retry failed';
+  end if;
+  if not public.finish_hours_review_run(
+    'run-batch-first', 'completed', clock_timestamp(),
+    1, 1, 0, 0, 0, 0, 0, 0, 0
+  ) then
+    raise exception 'first transactional batch did not finish';
+  end if;
+
+  if not public.claim_hours_review_run(
+    'run-batch-resume', 'remediation', clock_timestamp()
+  )
+     or not public.apply_hours_remediation_batch(
+       'run-batch-resume', jsonb_build_array(request)
+     )
+     or not public.finish_hours_review_run(
+       'run-batch-resume', 'completed', clock_timestamp(),
+       1, 1, 0, 0, 0, 0, 0, 0, 0
+     ) then
+    raise exception 'cross-process accepted-input resume failed';
+  end if;
+end
+$$;
+
+reset role;
+
+insert into public.venues (id, slug, opening_hours)
+values ('atomic-second', 'atomic-second', null);
+
+set role service_role;
+
+do $$
+declare
+  first_updated_at timestamptz;
+  second_updated_at timestamptz;
+  first_schedule jsonb;
+  requests jsonb;
+begin
+  select updated_at, opening_hours
+  into first_updated_at, first_schedule
+  from public.venues
+  where id = 'legacy-1';
+  select updated_at
+  into second_updated_at
+  from public.venues
+  where id = 'atomic-second';
+
+  requests := jsonb_build_array(
+    jsonb_build_object(
+      'venue_id', 'legacy-1',
+      'venue_slug', 'legacy-hours',
+      'opening_hours', '{"1":{"open":"09:00","close":"20:00"}}'::jsonb,
+      'source_type', 'venue_website',
+      'source_reference', 'venue-site:legacy-hours:atomic',
+      'review_status', 'verified',
+      'reviewed_at', clock_timestamp() - interval '1 minute',
+      'next_review_at', clock_timestamp() + interval '90 days',
+      'notes', null,
+      'review_reason', null,
+      'last_error_class', null,
+      'outcome', 'current',
+      'reason', 'review_current',
+      'error_class', null,
+      'expected_updated_at', first_updated_at
+    ),
+    jsonb_build_object(
+      'venue_id', 'atomic-second',
+      'venue_slug', 'atomic-second',
+      'opening_hours', null,
+      'source_type', null,
+      'source_reference', null,
+      'review_status', 'unknown',
+      'reviewed_at', null,
+      'next_review_at', null,
+      'notes', null,
+      'review_reason', null,
+      'last_error_class', null,
+      'outcome', 'unknown',
+      'reason', 'hours_unknown',
+      'error_class', null,
+      'expected_updated_at', second_updated_at - interval '1 second'
+    )
+  );
+
+  if not public.claim_hours_review_run(
+    'run-batch-rollback', 'remediation', clock_timestamp()
+  ) then
+    raise exception 'atomic rollback run could not claim';
+  end if;
+
+  begin
+    perform public.apply_hours_remediation_batch(
+      'run-batch-rollback', requests
+    );
+    raise exception 'stale batch unexpectedly succeeded';
+  exception
+    when serialization_failure then null;
+  end;
+
+  if not exists (
+    select 1
+    from public.venues
+    where id = 'legacy-1'
+      and updated_at = first_updated_at
+      and opening_hours = first_schedule
+  )
+     or exists (
+       select 1
+       from public.hours_review_outcomes
+       where run_id = 'run-batch-rollback'
+     ) then
+    raise exception 'stale batch did not roll back all venue/outcome writes';
+  end if;
+
+  if not public.fail_hours_review_run(
+    'run-batch-rollback', clock_timestamp()
+  ) then
+    raise exception 'atomic rollback run did not release its claim';
+  end if;
+end
+$$;
+
+reset role;
+
+delete from public.venues
+where id = 'atomic-second';
+
 -- The public projection is selectable, while service metadata remains denied.
 set role anon;
 select id, slug, opening_hours from public.venues limit 1;

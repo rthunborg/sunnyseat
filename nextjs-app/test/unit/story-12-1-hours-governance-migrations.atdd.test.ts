@@ -32,6 +32,9 @@ const terminalHardening = readMigration(
 const serializedPersistence = readMigration(
   'serialize_hours_review_persistence',
 );
+const finalSafety = readMigration(
+  'finalize_hours_governance_review_safety',
+);
 const allSql =
   reconciliation +
   '\n' +
@@ -45,7 +48,9 @@ const allSql =
   '\n' +
   terminalHardening +
   '\n' +
-  serializedPersistence;
+  serializedPersistence +
+  '\n' +
+  finalSafety;
 
 describe('[12.1 AC2] canonical migration chain', () => {
   test('[P0] reconciliation precedes the forward provider-neutral migration', () => {
@@ -189,16 +194,28 @@ describe('[12.1 AC2] canonical migration chain', () => {
   });
 
   test('[P0] remediation validates identity and an optimistic venue version', () => {
-    expect(serializedPersistence).toMatch(/p_expected_updated_at\s+timestamptz/i);
-    expect(serializedPersistence).toMatch(
+    expect(finalSafety).toMatch(/p_expected_updated_at\s+timestamptz/i);
+    expect(finalSafety).toMatch(
       /canonical_slug\s+is\s+distinct\s+from\s+p_venue_slug/i,
     );
-    expect(serializedPersistence).toMatch(
+    expect(finalSafety).toMatch(
       /prior_updated_at\s+is\s+distinct\s+from\s+p_expected_updated_at/i,
     );
-    expect(serializedPersistence).toMatch(
+    expect(finalSafety).toMatch(
       /p_review_status\s*=\s*'verified'[\s\S]*p_outcome\s*=\s*'current'[\s\S]*p_reason\s*=\s*'review_current'/i,
     );
+  });
+
+  test('[P0] final migration makes remediation transactional and lifecycle response-loss safe', () => {
+    expect(finalSafety).toMatch(/apply_hours_remediation_batch/i);
+    expect(finalSafety).toMatch(/raise\s+serialization_failure/i);
+    expect(finalSafety).toMatch(/venue_population_count/i);
+    expect(finalSafety).toMatch(/venue_population_identity_fingerprint/i);
+    expect(finalSafety).toMatch(
+      /parent_status\s+in\s*\(\s*'completed',\s*'completed_with_failures'/i,
+    );
+    expect(finalSafety).toMatch(/pg_get_constraintdef/i);
+    expect(finalSafety).toMatch(/pg_get_indexdef/i);
   });
 
   test('[P0] SQL authoring enforces canonical weekly hours after precise convergence', () => {

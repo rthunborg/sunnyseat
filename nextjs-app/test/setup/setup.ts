@@ -64,8 +64,64 @@ function isGooglePlacesRequest(input: RequestInfo | URL): boolean {
   return host === 'places.googleapis.com' || host === 'maps.googleapis.com';
 }
 
+const nativeFetch = globalThis.fetch;
+const redirectStatuses = new Set([301, 302, 303, 307, 308]);
+const crossOriginSensitiveHeaders = [
+  'authorization',
+  'proxy-authorization',
+  'cookie',
+  'cookie2',
+];
+const bodyHeaders = [
+  'content-encoding',
+  'content-language',
+  'content-length',
+  'content-location',
+  'content-type',
+  'transfer-encoding',
+];
+
+async function redirectedRequest(
+  current: Request,
+  status: number,
+  nextUrl: URL,
+): Promise<Request> {
+  const method = current.method.toUpperCase();
+  const switchToGet =
+    (status === 303 && method !== 'GET' && method !== 'HEAD') ||
+    ((status === 301 || status === 302) && method === 'POST');
+  const nextMethod = switchToGet ? 'GET' : method;
+  const headers = new Headers(current.headers);
+  if (new URL(current.url).origin !== nextUrl.origin) {
+    for (const name of crossOriginSensitiveHeaders) headers.delete(name);
+  }
+  if (switchToGet) {
+    for (const name of bodyHeaders) headers.delete(name);
+  }
+
+  const body =
+    nextMethod === 'GET' || nextMethod === 'HEAD'
+      ? undefined
+      : await current.clone().arrayBuffer();
+  const requestInit: RequestInit & { duplex?: 'half' } = {
+    method: nextMethod,
+    headers,
+    body,
+    cache: current.cache,
+    credentials: current.credentials,
+    integrity: current.integrity,
+    keepalive: current.keepalive,
+    mode: current.mode,
+    redirect: current.redirect,
+    referrer: current.referrer,
+    referrerPolicy: current.referrerPolicy,
+    signal: current.signal,
+  };
+  if (body !== undefined) requestInit.duplex = 'half';
+  return new Request(nextUrl, requestInit);
+}
+
 beforeEach(() => {
-  const realFetch = globalThis.fetch;
   const guardedFetch: typeof fetch = async (input, init) => {
     if (isApiMetNoRequest(input as RequestInfo | URL)) {
       throw new Error(MET_NO_FETCH_GUARD_MESSAGE);
@@ -73,51 +129,36 @@ beforeEach(() => {
     if (isGooglePlacesRequest(input as RequestInfo | URL)) {
       throw new Error(GOOGLE_PLACES_FETCH_GUARD_MESSAGE);
     }
-    if (typeof realFetch === 'function') {
+    if (typeof nativeFetch === 'function') {
       // Force native fetch to expose redirects before following them. Otherwise
       // a harmless-looking URL can redirect to a live provider below this guard.
-      // Follow allowed redirects explicitly, preserving the platform hop limit.
-      let currentInput: RequestInfo | URL = input as RequestInfo | URL;
-      let currentInit = init;
-      for (let redirects = 0; redirects <= 10; redirects += 1) {
-        const response = await realFetch(currentInput, {
-          ...currentInit,
+      // Follow only Fetch-standard redirect statuses and rebuild every hop from
+      // a normalized Request so method/body/header/redirect semantics survive.
+      let current = new Request(input, init);
+      for (let redirects = 0; redirects <= 20; redirects += 1) {
+        if (isApiMetNoRequest(current)) {
+          throw new Error(MET_NO_FETCH_GUARD_MESSAGE);
+        }
+        if (isGooglePlacesRequest(current)) {
+          throw new Error(GOOGLE_PLACES_FETCH_GUARD_MESSAGE);
+        }
+        const response = await nativeFetch(current.clone(), {
           redirect: 'manual',
         });
-        if (response.status < 300 || response.status >= 400) return response;
-
-        const location = response.headers.get('location');
-        if (!location || currentInit?.redirect === 'manual') return response;
-        if (currentInit?.redirect === 'error') {
+        if (!redirectStatuses.has(response.status)) return response;
+        if (current.redirect === 'manual') return response;
+        if (current.redirect === 'error') {
           throw new TypeError('fetch redirect rejected by redirect:error');
         }
-        if (redirects === 10) throw new TypeError('fetch redirect limit exceeded');
-
-        const base =
-          typeof currentInput === 'string'
-            ? currentInput
-            : currentInput instanceof URL
-              ? currentInput.href
-              : currentInput.url;
-        const nextUrl = new URL(location, base);
+        const location = response.headers.get('location');
+        if (!location) return response;
+        if (redirects === 20) throw new TypeError('fetch redirect limit exceeded');
+        const nextUrl = new URL(location, current.url);
         if (isApiMetNoRequest(nextUrl)) throw new Error(MET_NO_FETCH_GUARD_MESSAGE);
         if (isGooglePlacesRequest(nextUrl)) {
           throw new Error(GOOGLE_PLACES_FETCH_GUARD_MESSAGE);
         }
-
-        const method = (
-          currentInit?.method ??
-          (typeof Request !== 'undefined' && currentInput instanceof Request
-            ? currentInput.method
-            : 'GET')
-        ).toUpperCase();
-        const switchToGet =
-          response.status === 303 ||
-          ((response.status === 301 || response.status === 302) && method === 'POST');
-        currentInput = nextUrl;
-        currentInit = switchToGet
-          ? { ...currentInit, method: 'GET', body: undefined }
-          : currentInit;
+        current = await redirectedRequest(current, response.status, nextUrl);
       }
     }
     // jsdom/node has no live server for same-origin/relative URLs; surface a

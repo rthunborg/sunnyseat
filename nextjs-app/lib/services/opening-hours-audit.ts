@@ -49,6 +49,7 @@ export type HoursAuditClassification = {
     | 'missing_provenance'
     | 'review_due'
     | 'hours_unknown'
+    | 'provenance_removed'
     | 'provenance_conflict'
     | 'unsupported_split'
     | 'unsupported_24_7'
@@ -95,6 +96,27 @@ export function classifyHoursAuditVenue(input: {
     };
   }
 
+  const hasAnyReviewDate =
+    provenance.reviewedAt !== undefined ||
+    provenance.nextReviewAt !== undefined;
+  const reviewedAt = parseTimestamp(provenance.reviewedAt);
+  const nextReviewAt = parseTimestamp(provenance.nextReviewAt);
+  if (
+    (hasAnyReviewDate &&
+      (reviewedAt === undefined ||
+        nextReviewAt === undefined ||
+        reviewedAt > now.getTime() ||
+        nextReviewAt < reviewedAt)) ||
+    ((reviewStatus.data === 'verified' || reviewStatus.data === 'due') &&
+      (reviewedAt === undefined || nextReviewAt === undefined))
+  ) {
+    return {
+      outcome: 'failed',
+      reason: 'classification_failed',
+      errorClass: 'validation_failed',
+    };
+  }
+
   if (reviewStatus.data === 'failed') {
     return {
       outcome: 'failed',
@@ -133,14 +155,7 @@ export function classifyHoursAuditVenue(input: {
     return { outcome: 'due', reason: 'review_due' };
   }
 
-  const reviewedAt = parseTimestamp(provenance.reviewedAt);
-  const nextReviewAt = parseTimestamp(provenance.nextReviewAt);
-  if (
-    reviewedAt === undefined ||
-    nextReviewAt === undefined ||
-    reviewedAt > now.getTime() ||
-    nextReviewAt < reviewedAt
-  ) {
+  if (reviewedAt === undefined || nextReviewAt === undefined) {
     return {
       outcome: 'failed',
       reason: 'classification_failed',
@@ -177,6 +192,7 @@ type ClaimedRun =
 
 type AuditRepositories = {
   claimRun: (input?: Record<string, unknown>) => Promise<ClaimedRun>;
+  renewLease?: () => Promise<unknown>;
   listVenues: () => Promise<HoursAuditVenue[]>;
   recordOutcome: (input: Record<string, unknown>) => Promise<unknown>;
   finishRun: (input: Record<string, unknown>) => Promise<unknown>;
@@ -219,11 +235,13 @@ export async function runOpeningHoursAudit(input: {
   let finalized = false;
   let outcomePersistenceFailed = false;
   try {
+    await input.repositories.renewLease?.();
     const venues = await input.repositories.listVenues();
     if (venues.length === 0) {
       throw new Error('Audit venue population is empty');
     }
     for (const venue of venues) {
+      await input.repositories.renewLease?.();
       let classification: HoursAuditClassification;
       try {
         classification = classifyHoursAuditVenue({ venue, now: input.now });
@@ -258,17 +276,15 @@ export async function runOpeningHoursAudit(input: {
         counts[outcome] += 1;
       } catch {
         try {
-          await input.repositories.recordOutcome({
-            ...record,
-            outcome: 'failed',
-            reason: 'classification_failed',
-            errorClass: 'database_error',
-          });
-          counts.failed += 1;
+          // The first RPC may have committed and only lost its response.
+          // Repeating the identical idempotent request lets the database
+          // confirm that fact without replacing it with a fabricated failure.
+          await input.repositories.recordOutcome(record);
+          counts[outcome] += 1;
         } catch {
-          // Continue classifying later venues even when both bounded writes
-          // fail. The run is finalized failed after retention maintenance so
-          // it can never advertise an incomplete child trail as healthy.
+          // Continue classifying later venues even when the identical retry
+          // remains indeterminate. The run is finalized failed after
+          // retention maintenance and cannot advertise incomplete evidence.
           outcomePersistenceFailed = true;
         }
       }
