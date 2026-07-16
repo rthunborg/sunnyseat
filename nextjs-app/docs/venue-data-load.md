@@ -8,7 +8,7 @@ collect and in what shape” guide.
 
 > **Quick ask for an agent:** "add a real venue" → collect the **durable fields**
 > below (+ a `seating_area` polygon, optionally `seating_elevation_m`) and generate
-> an idempotent `INSERT … ON CONFLICT (id) DO UPDATE`. The database constraint
+> an idempotent `INSERT … ON CONFLICT (slug) DO UPDATE`. The database constraint
 > validates the same weekday/time shape as the canonical Zod write contract.
 > **Do NOT pick an `id`** — the
 > column auto-assigns a text id (Story 11.9); simply omit it from the insert. The
@@ -34,7 +34,7 @@ collect and in what shape” guide.
 | `hours_source_reference` | text | with reviewed hours | Inspectable, opaque evidence reference using colon-separated identifier tokens, such as `venue-site:slug:2026-07-14`. The accepted form is `^[a-z][a-z0-9_-]{1,31}:[A-Za-z0-9][A-Za-z0-9._-]{0,199}(?::[A-Za-z0-9][A-Za-z0-9._-]{0,199}){0,3}$`. Keep URLs, paths, query strings, payloads, tokens, and credentials outside this field. |
 | `hours_review_status` | text | with reviewed hours | `verified`, `due`, `manual_review`, `unknown`, or `failed`. |
 | `hours_reviewed_at` / `hours_next_review_at` | timestamptz | with reviewed hours | Review timestamps; next review cannot precede the completed review. |
-| `hours_notes` | text | optional | Bounded maintainer prose only. Do not paste source/provider content. Machine state belongs in the service-only structured review-reason and error-class fields. |
+| `hours_notes` | text | optional | `null` or an opaque `note:` identifier only, for example `note:owner-confirmation-2026-07-16`. Do not persist free-form prose, URLs, payloads, or credentials. Machine state belongs in the service-only structured review-reason and error-class fields. |
 | **`seating_area`** | jsonb (GeoJSON Polygon) | — but **important** | The outdoor seating footprint the sun engine casts shadows onto. WGS84, `[lng, lat]` order, closed ring. Null → engine uses a ~10 m square around `lat/lng` (less precise). |
 | **`seating_elevation_m`** | double precision ≥ 0 | optional | Estimated metres of the **seating surface above local ground/street**. Null/0 = street level. Rooftop bars / raised terraces / balconies use the approx floor height (4th floor ≈ 12 m). **Consumed by the engine as of Story 8.6** (Tier-1 rooftop/raised height gate — see "Elevation" below). Set it for rooftop / raised venues so they are predicted from their seating height; leave it null for street-level venues (byte-identical to the pre-8.6 ground-level path). |
 | **`ground_elevation_m`** | double precision | optional | The venue's **RH2000 absolute ground elevation** (Z, metres) at its point — the height of the *ground the venue stands on*, NOT a height above ground. **May be negative.** For a **hilltop** venue this lets the engine compare each caster's roof against the venue's own ground, so a building standing downhill stops shadowing a venue uphill from it. **Consumed by the engine as of Story 8.7** (Tier-2 terrain gate — see "Elevation" below). Null → engine falls back to the Story 8.6 relative gate (byte-identical). Derive it the same way casters get `ground_z_rh2000`: sample the Göteborg **Höjdmodell 2022 DTM** at the venue's `lat`/`lng` (or, pragmatically, take `ground_z_rh2000` of the `shadow_casters` rows nearest the seating polygon). Leave it null unless the venue sits on a meaningful rise. |
@@ -117,6 +117,22 @@ past-midnight intervals are supported. Split service (for example 11–14 and
 venue to `manual_review`; never flatten the gap or partially write weekdays.
 Failed evidence preserves any prior independently verified schedule.
 
+The valid governed state combinations are:
+
+| `hours_review_status` | Schedule/provenance | Required structured fields |
+|---|---|---|
+| `verified` | Canonical schedule plus all four provenance fields | `hours_review_reason = null`, `hours_last_error_class = null` |
+| `due` | Previously verified canonical schedule plus all four provenance fields | `hours_review_reason = null`, `hours_last_error_class = null` |
+| `manual_review` | New unaccepted schedule is not written; a prior `verified`/`due` schedule may be preserved | `hours_review_reason` is one of `provenance_conflict`, `unsupported_split`, `unsupported_24_7`, `unsupported_seasonal`, `unsupported_holiday_specific`; `hours_last_error_class = null` |
+| `failed` | New failed evidence is not written; a prior `verified`/`due` schedule may be preserved | `hours_review_reason = classification_failed`; `hours_last_error_class` is a bounded audit error class |
+| `unknown` | `opening_hours = null`; provenance is either absent or a complete reviewed bundle | `hours_review_reason = null`, `hours_last_error_class = null` |
+
+Do not make literal direct updates to only some of these columns. Reviewed
+changes use the guarded service-role `apply_hours_remediation_batch` RPC (which
+calls the per-venue `apply_hours_remediation_outcome` seam). It validates the
+complete state combination, source-reference policy, database timestamps,
+population binding, and stale-write snapshot before mutating canonical hours.
+
 The protected weekly workflow `.github/workflows/hours-review-audit.yml` runs
 `scripts/audit-opening-hours.ts` directly against Supabase. It never fetches
 an hours provider and never changes `opening_hours`; it records bounded
@@ -144,17 +160,16 @@ so a partial or stale offline file cannot overwrite newer work. Set
 a local output path, then bundle and run `scripts/remediate-opening-hours.ts`
 with the same pinned local esbuild dependency used by the audit workflow
 (`npx --no-install esbuild ...`). Before claiming a run, the script validates
-that the input and report paths are distinct and writable. It writes a
-provisional report atomically, then applies the complete venue population
-through one transactional batch RPC: one stale or incoherent row rolls back the
-entire batch. Identical accepted requests can be resumed safely after a lost
-response or process restart. After the database run reaches a terminal state,
-the final bounded report is atomically replaced and contains only the run ID,
-input fingerprint, counts, venue identity, outcome, and reason. A report-write
-failure after database completion leaves the provisional recovery report in
-place and does not mislabel the completed database run as failed. Pre-terminal
-failures finalize the run as failed; stale claims are recovered after their
-lease.
+that the input and report paths are distinct and atomically replaceable. It
+writes a provisional plan report, then submits the complete venue population
+through one batch RPC. Each venue is atomic: a stale or incoherent venue
+receives a bounded failed outcome while other venues continue. The run-level
+input fingerprint, claim identity, and per-request fingerprints make identical
+accepted input resumable after response loss or process restart without
+certifying a different document. Terminal reports are rebuilt from durable
+`hours_review_outcomes`, so planned values are never presented as persisted
+evidence. A report-write failure after database completion does not mislabel the
+completed database run as failed.
 
 ## Painting the `seating_area` polygon
 

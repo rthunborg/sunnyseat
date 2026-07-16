@@ -66,6 +66,7 @@ function isGooglePlacesRequest(input: RequestInfo | URL): boolean {
 
 const nativeFetch = globalThis.fetch;
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
+const MAX_REDIRECT_BODY_BYTES = 1024 * 1024;
 const crossOriginSensitiveHeaders = [
   'authorization',
   'proxy-authorization',
@@ -99,10 +100,24 @@ async function redirectedRequest(
     for (const name of bodyHeaders) headers.delete(name);
   }
 
-  const body =
-    nextMethod === 'GET' || nextMethod === 'HEAD'
-      ? undefined
-      : await current.clone().arrayBuffer();
+  let body: ArrayBuffer | undefined;
+  if (nextMethod !== 'GET' && nextMethod !== 'HEAD') {
+    const declaredLength = Number(current.headers.get('content-length'));
+    if (
+      Number.isFinite(declaredLength) &&
+      declaredLength > MAX_REDIRECT_BODY_BYTES
+    ) {
+      throw new TypeError('fetch redirect body exceeds replay limit');
+    }
+    try {
+      body = await current.clone().arrayBuffer();
+    } catch {
+      throw new TypeError('fetch redirect body is not replayable');
+    }
+    if (body.byteLength > MAX_REDIRECT_BODY_BYTES) {
+      throw new TypeError('fetch redirect body exceeds replay limit');
+    }
+  }
   const requestInit: RequestInit & { duplex?: 'half' } = {
     method: nextMethod,
     headers,
@@ -134,7 +149,11 @@ beforeEach(() => {
       // a harmless-looking URL can redirect to a live provider below this guard.
       // Follow only Fetch-standard redirect statuses and rebuild every hop from
       // a normalized Request so method/body/header/redirect semantics survive.
-      let current = new Request(input, init);
+      const normalizedInput =
+        input instanceof Request
+          ? input
+          : new URL(String(input), window.location.href);
+      let current = new Request(normalizedInput, init);
       for (let redirects = 0; redirects <= 20; redirects += 1) {
         if (isApiMetNoRequest(current)) {
           throw new Error(MET_NO_FETCH_GUARD_MESSAGE);
@@ -148,16 +167,25 @@ beforeEach(() => {
         if (!redirectStatuses.has(response.status)) return response;
         if (current.redirect === 'manual') return response;
         if (current.redirect === 'error') {
+          await response.body?.cancel().catch(() => undefined);
           throw new TypeError('fetch redirect rejected by redirect:error');
         }
         const location = response.headers.get('location');
         if (!location) return response;
-        if (redirects === 20) throw new TypeError('fetch redirect limit exceeded');
+        if (redirects === 20) {
+          await response.body?.cancel().catch(() => undefined);
+          throw new TypeError('fetch redirect limit exceeded');
+        }
         const nextUrl = new URL(location, current.url);
-        if (isApiMetNoRequest(nextUrl)) throw new Error(MET_NO_FETCH_GUARD_MESSAGE);
+        if (isApiMetNoRequest(nextUrl)) {
+          await response.body?.cancel().catch(() => undefined);
+          throw new Error(MET_NO_FETCH_GUARD_MESSAGE);
+        }
         if (isGooglePlacesRequest(nextUrl)) {
+          await response.body?.cancel().catch(() => undefined);
           throw new Error(GOOGLE_PLACES_FETCH_GUARD_MESSAGE);
         }
+        await response.body?.cancel().catch(() => undefined);
         current = await redirectedRequest(current, response.status, nextUrl);
       }
     }

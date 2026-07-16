@@ -321,6 +321,7 @@ describe('[12.1 AC1/AC8] Google-hours path stays prohibited', () => {
       'technical-google-places-api-policy-epic-12-research-2026-07-12.md',
     );
     expect(providerPivotContract).toContain('E12-AD-01');
+    expect(providerPivotContract).toContain('E12-AD-12');
     expect(providerPivotContract).toContain('E12-AD-13');
   });
 });
@@ -340,7 +341,8 @@ describe('[12.1 AC5/AC7] direct weekly audit workflow and operations docs', () =
   });
 
   test('[P1] workflow is main-branch/protected-environment scoped with bounded execution and summary output', () => {
-    expect(hoursWorkflow).toMatch(/refs\/heads\/main|branches:\s*\[?main/i);
+    expect(hoursWorkflow).toContain("github.ref == 'refs/heads/main'");
+    expect(hoursWorkflow).not.toMatch(/refs\/heads\/story\//i);
     expect(hoursWorkflow).toMatch(/timeout-minutes:/);
     expect(hoursWorkflow).toMatch(/GITHUB_STEP_SUMMARY/);
     expect(hoursWorkflow).toMatch(/run[_ -]?id/i);

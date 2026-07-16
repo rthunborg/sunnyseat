@@ -83,6 +83,7 @@ export type Database = {
           outcome: string
           prior_review_status: string | null
           prior_venue_updated_at: string | null
+          remediation_input_fingerprint: string | null
           reason: string
           remediation_request_fingerprint: string | null
           resulting_review_status: string | null
@@ -98,6 +99,7 @@ export type Database = {
           outcome: string
           prior_review_status?: string | null
           prior_venue_updated_at?: string | null
+          remediation_input_fingerprint?: string | null
           reason: string
           remediation_request_fingerprint?: string | null
           resulting_review_status?: string | null
@@ -113,6 +115,7 @@ export type Database = {
           outcome?: string
           prior_review_status?: string | null
           prior_venue_updated_at?: string | null
+          remediation_input_fingerprint?: string | null
           reason?: string
           remediation_request_fingerprint?: string | null
           resulting_review_status?: string | null
@@ -148,6 +151,10 @@ export type Database = {
           id: string
           lease_expires_at: string
           missing_provenance_count: number
+          outcome_persistence_failure_count: number
+          outcome_persistence_failures: Json
+          remediation_claim_identity: string | null
+          remediation_input_fingerprint: string | null
           split_count: number
           stale_count: number
           started_at: string
@@ -168,6 +175,10 @@ export type Database = {
           id: string
           lease_expires_at: string
           missing_provenance_count?: number
+          outcome_persistence_failure_count?: number
+          outcome_persistence_failures?: Json
+          remediation_claim_identity?: string | null
+          remediation_input_fingerprint?: string | null
           split_count?: number
           stale_count?: number
           started_at?: string
@@ -188,6 +199,10 @@ export type Database = {
           id?: string
           lease_expires_at?: string
           missing_provenance_count?: number
+          outcome_persistence_failure_count?: number
+          outcome_persistence_failures?: Json
+          remediation_claim_identity?: string | null
+          remediation_input_fingerprint?: string | null
           split_count?: number
           stale_count?: number
           started_at?: string
@@ -707,7 +722,14 @@ export type Database = {
             Returns: string
           }
       apply_hours_remediation_batch: {
-        Args: { p_requests: Json; p_run_id: string }
+        Args:
+          | { p_requests: Json; p_run_id: string }
+          | {
+              p_remediation_claim_identity: string
+              p_remediation_input_fingerprint: string
+              p_requests: Json
+              p_run_id: string
+            }
         Returns: boolean
       }
       apply_hours_remediation_outcome: {
@@ -732,11 +754,19 @@ export type Database = {
         Returns: boolean
       }
       claim_hours_review_run: {
-        Args: {
-          p_run_id: string
-          p_started_at?: string
-          p_trigger_type: string
-        }
+        Args:
+          | {
+              p_run_id: string
+              p_started_at?: string
+              p_trigger_type: string
+            }
+          | {
+              p_remediation_claim_identity: string
+              p_remediation_input_fingerprint: string
+              p_run_id: string
+              p_started_at: string
+              p_trigger_type: string
+            }
         Returns: boolean
       }
       disablelongtransactions: { Args: never; Returns: string }
@@ -931,6 +961,15 @@ export type Database = {
         }[]
       }
       is_safe_hours_note: { Args: { p_note: string }; Returns: boolean }
+      is_hours_review_run_active: {
+        Args: {
+          p_expected_trigger_type: string
+          p_remediation_claim_identity: string
+          p_remediation_input_fingerprint: string
+          p_run_id: string
+        }
+        Returns: boolean
+      }
       is_safe_hours_source_reference: {
         Args: { p_reference: string }
         Returns: boolean
@@ -993,8 +1032,22 @@ export type Database = {
         Args: { p_cutoff?: string }
         Returns: number
       }
+      record_hours_review_persistence_failure: {
+        Args: {
+          p_run_id: string
+          p_venue_id: string
+          p_venue_slug: string
+        }
+        Returns: boolean
+      }
       renew_hours_review_run_lease: {
-        Args: { p_run_id: string }
+        Args:
+          | { p_run_id: string }
+          | {
+              p_remediation_claim_identity: string
+              p_remediation_input_fingerprint: string
+              p_run_id: string
+            }
         Returns: boolean
       }
       st_3dclosestpoint: {

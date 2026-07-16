@@ -58,29 +58,25 @@ try {
         p_trigger_type: triggerType,
         p_started_at: now.toISOString(),
       };
-      const claim = await callBooleanRpcTwice(
+      const claim = await callBooleanRpcWithRetry(
         supabase,
         'claim_hours_review_run',
         claimArgs,
       );
       if (claim.data) return { claimed: true as const, runId };
 
-      const { data: matchingRun, error: matchingError } = await supabase
-        .from('hours_review_runs')
-        .select('id, status')
-        .eq('id', runId)
-        .maybeSingle();
-      if (matchingError) {
-        throw new Error('Run claim reconciliation failed: ' + matchingError.message);
-      }
-      if (matchingRun?.status === 'running') {
+      const sameRunActive = await isHoursReviewRunActive(supabase, {
+        runId,
+        triggerType,
+      });
+      if (sameRunActive) {
         return { claimed: true as const, runId };
       }
       if (claim.error) {
         throw new Error('Run claim failed: ' + claim.error.message);
       }
 
-      const { data: active, error: activeError } = await supabase
+      const { data: activeRun, error: activeError } = await supabase
         .from('hours_review_runs')
         .select('id')
         .eq('status', 'running')
@@ -89,12 +85,12 @@ try {
       if (activeError) {
         throw new Error('Active run lookup failed: ' + activeError.message);
       }
-      if (!active?.id) {
+      if (!activeRun?.id) {
         throw new Error('Run claim was rejected but no active run was found');
       }
       return {
         claimed: false as const,
-        activeRunId: active.id,
+        activeRunId: activeRun.id,
       };
     },
     renewLease: async () => {
@@ -168,7 +164,7 @@ try {
             ? outcome.resultingReviewStatus
             : null,
       };
-      const persisted = await callBooleanRpcTwice(
+      const persisted = await callBooleanRpcWithRetry(
         supabase,
         'persist_hours_review_outcome',
         record,
@@ -202,6 +198,29 @@ try {
       }
       throw new Error('Outcome write rejected inactive audit run');
     },
+    recordPersistenceFailure: async (failure) => {
+      const recorded = await callBooleanRpcWithRetry(
+        supabase,
+        'record_hours_review_persistence_failure',
+        {
+          p_run_id: String(failure.runId),
+          p_venue_id:
+            typeof failure.venueId === 'string' ? failure.venueId : null,
+          p_venue_slug:
+            typeof failure.venueSlug === 'string' ? failure.venueSlug : null,
+        },
+      );
+      if (recorded.data) return;
+      if (recorded.error) {
+        throw new Error(
+          'Outcome persistence-failure marker rejected: ' +
+            recorded.error.message,
+        );
+      }
+      throw new Error(
+        'Outcome persistence-failure marker rejected inactive audit run',
+      );
+    },
     finishRun: async (summary) => {
       const counts = summary.counts as Record<string, number>;
       const finishArgs = {
@@ -218,7 +237,7 @@ try {
         p_failed_count: counts.failed ?? 0,
         p_stale_count: counts.stale ?? 0,
       };
-      const finished = await callBooleanRpcTwice(
+      const finished = await callBooleanRpcWithRetry(
         supabase,
         'finish_hours_review_run',
         finishArgs,
@@ -255,7 +274,7 @@ try {
       throw new Error('Run finish did not update the active run');
     },
     failRun: async (summary) => {
-      const failed = await callBooleanRpcTwice(
+      const failed = await callBooleanRpcWithRetry(
         supabase,
         'fail_hours_review_run',
         {
@@ -307,25 +326,32 @@ try {
 const counts: Record<string, number> = result.counts ?? {};
 const inspectableRunId =
   result.status === 'already_running' ? result.activeRunId : result.runId;
-await writeSummary([
-  '## SunnySeat hours review audit',
-  '',
-  '- Status: ' + result.status,
-  ...(inspectableRunId ? ['- Audit run: ' + inspectableRunId] : []),
-  ...(result.status === 'already_running'
-    ? ['- Attempted audit run: ' + runId]
-    : []),
-  ...workflowSummaryLine(),
-  '- Total: ' + sumCounts(counts),
-  '- Current: ' + (counts.current ?? 0),
-  '- Missing provenance: ' + (counts.missing_provenance ?? 0),
-  '- Due: ' + (counts.due ?? 0),
-  '- Unknown: ' + (counts.unknown ?? 0),
-  '- Conflicting: ' + (counts.conflicting ?? 0),
-  '- Split: ' + (counts.split ?? 0),
-  '- Failed: ' + (counts.failed ?? 0),
-  '- Stale: ' + (counts.stale ?? 0),
-]);
+try {
+  await writeSummary([
+    '## SunnySeat hours review audit',
+    '',
+    '- Status: ' + result.status,
+    ...(inspectableRunId ? ['- Audit run: ' + inspectableRunId] : []),
+    ...(result.status === 'already_running'
+      ? ['- Attempted audit run: ' + runId]
+      : []),
+    ...workflowSummaryLine(),
+    '- Total: ' + sumCounts(counts),
+    '- Current: ' + (counts.current ?? 0),
+    '- Missing provenance: ' + (counts.missing_provenance ?? 0),
+    '- Due: ' + (counts.due ?? 0),
+    '- Unknown: ' + (counts.unknown ?? 0),
+    '- Conflicting: ' + (counts.conflicting ?? 0),
+    '- Split: ' + (counts.split ?? 0),
+    '- Failed: ' + (counts.failed ?? 0),
+    '- Stale: ' + (counts.stale ?? 0),
+  ]);
+} catch (summaryError) {
+  console.error(
+    'Database audit completed, but the bounded GitHub summary could not be published',
+    errorMessage(summaryError),
+  );
+}
 console.log(
   JSON.stringify({
     status: result.status,
@@ -367,50 +393,101 @@ async function writeSummary(lines: string[]): Promise<void> {
   await appendFile(target, lines.join('\n') + '\n', 'utf8');
 }
 
-async function callBooleanRpcTwice(
+type RpcError = {
+  message: string;
+  code?: string;
+};
+
+async function callBooleanRpcWithRetry(
   client: HoursClient,
   functionName: string,
   args: Record<string, unknown>,
-): Promise<{ data: boolean | null; error: { message: string } | null }> {
-  let last: { data: boolean | null; error: { message: string } | null } = {
+): Promise<{ data: boolean | null; error: RpcError | null }> {
+  let last: { data: boolean | null; error: RpcError | null } = {
     data: null,
     error: null,
   };
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    last = (await client.rpc(
-      functionName as never,
-      args as never,
-    )) as typeof last;
+    try {
+      last = (await client.rpc(
+        functionName as never,
+        args as never,
+      )) as typeof last;
+    } catch (error) {
+      if (attempt === 0 && isRetryableRpcError(error)) {
+        await retryBackoff();
+        continue;
+      }
+      throw error;
+    }
     if (last.data) return last;
     if (!last.error) return last;
+    if (attempt === 0 && isRetryableRpcError(last.error)) {
+      await retryBackoff();
+      continue;
+    }
+    return last;
   }
   return last;
 }
 
 async function renewAuditLease(client: HoursClient): Promise<void> {
-  const renewed = await callBooleanRpcTwice(
+  const renewed = await callBooleanRpcWithRetry(
     client,
     'renew_hours_review_run_lease',
     { p_run_id: runId },
   );
   if (renewed.data) return;
-  const { data: stored, error } = await client
-    .from('hours_review_runs')
-    .select('status, lease_expires_at')
-    .eq('id', runId)
-    .maybeSingle();
-  if (error) {
-    throw new Error('Audit lease reconciliation failed: ' + error.message);
-  }
-  if (
-    stored?.status === 'running' &&
-    stored.lease_expires_at &&
-    Date.parse(stored.lease_expires_at) > Date.now()
-  ) {
-    return;
-  }
+  if (await isHoursReviewRunActive(client, { runId, triggerType })) return;
   if (renewed.error) {
     throw new Error('Audit lease renewal failed: ' + renewed.error.message);
   }
   throw new Error('Audit run lease is no longer active');
+}
+
+async function isHoursReviewRunActive(
+  client: HoursClient,
+  input: { runId: string; triggerType: string },
+): Promise<boolean> {
+  const result = await callBooleanRpcWithRetry(
+    client,
+    'is_hours_review_run_active',
+    {
+      p_run_id: input.runId,
+      p_expected_trigger_type: input.triggerType,
+      p_remediation_input_fingerprint: null,
+      p_remediation_claim_identity: null,
+    },
+  );
+  if (result.error) {
+    throw new Error(
+      'Audit active-state reconciliation failed: ' + result.error.message,
+    );
+  }
+  return result.data === true;
+}
+
+function isRetryableRpcError(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String(error.code)
+      : '';
+  return new Set([
+    '08000',
+    '08003',
+    '08006',
+    '40001',
+    '40P01',
+    '55P03',
+    '57014',
+  ]).has(code);
+}
+
+async function retryBackoff(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 50));
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

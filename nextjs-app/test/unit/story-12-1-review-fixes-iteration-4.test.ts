@@ -222,11 +222,9 @@ describe('[12.1 review iteration 4] final migration and runner contracts', () =>
     expect(auditRunner).toMatch(/result\.activeRunId/);
   });
 
-  test('the pre-merge manual seam is exact-branch only and scheduled runs stay main-only', () => {
+  test('scheduled and manual production runs are main-only', () => {
     expect(workflow).toMatch(/github\.event_name\s*==\s*'schedule'[\s\S]*refs\/heads\/main/i);
-    expect(workflow).toContain(
-      'refs/heads/story/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours',
-    );
+    expect(workflow).not.toMatch(/refs\/heads\/story\//i);
     expect(workflow).toMatch(/environment:\s*Production/);
   });
 

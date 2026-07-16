@@ -195,6 +195,9 @@ type AuditRepositories = {
   renewLease?: () => Promise<unknown>;
   listVenues: () => Promise<HoursAuditVenue[]>;
   recordOutcome: (input: Record<string, unknown>) => Promise<unknown>;
+  recordPersistenceFailure?: (
+    input: Record<string, unknown>,
+  ) => Promise<unknown>;
   finishRun: (input: Record<string, unknown>) => Promise<unknown>;
   failRun: (input: Record<string, unknown>) => Promise<unknown>;
   pruneBefore: (cutoff: Date) => Promise<unknown>;
@@ -283,24 +286,27 @@ export async function runOpeningHoursAudit(input: {
           counts[outcome] += 1;
         } catch {
           // Continue classifying later venues even when the identical retry
-          // remains indeterminate. The run is finalized failed after
-          // retention maintenance and cannot advertise incomplete evidence.
+          // remains indeterminate. Persist a separate bounded run-level marker
+          // so operators can identify the population member with no durable
+          // outcome row without fabricating a replacement classification.
           outcomePersistenceFailed = true;
+          await input.repositories.recordPersistenceFailure?.({
+            runId: claim.runId,
+            venueId: venue.id,
+            venueSlug: venue.slug,
+          });
         }
       }
     }
-
-    const status =
-      counts.failed > 0 ? 'completed_with_failures' : 'completed';
-    const finishedAt = clock();
-    await input.repositories.pruneBefore(
-      new Date(finishedAt.getTime() - RETENTION_DAYS * DAY_MS),
-    );
 
     if (outcomePersistenceFailed) {
       throw new Error('One or more audit outcome persistence attempts failed');
     }
 
+    const status =
+      counts.failed > 0 ? 'completed_with_failures' : 'completed';
+    const finishedAt = clock();
+    await input.repositories.renewLease?.();
     await input.repositories.finishRun({
       runId: claim.runId,
       status,
@@ -309,6 +315,9 @@ export async function runOpeningHoursAudit(input: {
       finishedAt,
     });
     finalized = true;
+    await input.repositories.pruneBefore(
+      new Date(finishedAt.getTime() - RETENTION_DAYS * DAY_MS),
+    );
 
     return { status, runId: claim.runId, counts };
   } catch (error) {

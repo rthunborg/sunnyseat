@@ -89,7 +89,8 @@ begin
     raise exception 'opaque source-reference allowlist is incorrect';
   end if;
 
-  if not public.is_safe_hours_note('Manually checked by the venue owner.')
+  if not public.is_safe_hours_note('note:venue-owner-check')
+     or public.is_safe_hours_note('Manually checked by the venue owner.')
      or public.is_safe_hours_note('See venue.example/opening-hours')
      or public.is_safe_hours_note('Authorization: Bearer secret-value') then
     raise exception 'bounded note policy is incorrect';
@@ -233,7 +234,7 @@ set opening_hours = '{"1":{"open":"11:00","close":"22:00"}}'::jsonb,
     hours_review_status = 'verified',
     hours_reviewed_at = clock_timestamp() - interval '1 day',
     hours_next_review_at = clock_timestamp() + interval '89 days',
-    hours_notes = 'Manually checked by the venue owner.',
+    hours_notes = 'note:venue-owner-check',
     hours_review_reason = null,
     hours_last_error_class = null
 where id = 'legacy-1';
@@ -263,7 +264,7 @@ begin
     where id = 'legacy-1'
       and opening_hours = schedule_before
       and hours_source_reference = reference_before
-      and hours_notes = 'Manually checked by the venue owner.'
+      and hours_notes = 'note:venue-owner-check'
   ) then
     raise exception 'unsafe note handling erased valid schedule provenance';
   end if;
@@ -296,6 +297,9 @@ declare
   expected_updated_at timestamptz;
   reviewed_at timestamptz := clock_timestamp() - interval '1 minute';
   next_review_at timestamptz := clock_timestamp() + interval '90 days';
+  input_fingerprint text := repeat('1', 64);
+  claim_identity text := repeat('2', 64);
+  request_fingerprint text := repeat('3', 64);
   request jsonb;
 begin
   select updated_at
@@ -318,17 +322,21 @@ begin
     'outcome', 'current',
     'reason', 'review_current',
     'error_class', null,
-    'expected_updated_at', expected_updated_at
+    'expected_updated_at', expected_updated_at,
+    'request_fingerprint', request_fingerprint
   );
 
   if not public.claim_hours_review_run(
-    'run-batch-first', 'remediation', clock_timestamp()
+    'run-batch-first', 'remediation', clock_timestamp(),
+    input_fingerprint, claim_identity
   )
      or not public.apply_hours_remediation_batch(
-       'run-batch-first', jsonb_build_array(request)
+       'run-batch-first', input_fingerprint, claim_identity,
+       jsonb_build_array(request)
      )
      or not public.apply_hours_remediation_batch(
-       'run-batch-first', jsonb_build_array(request)
+       'run-batch-first', input_fingerprint, claim_identity,
+       jsonb_build_array(request)
      ) then
     raise exception 'same-run transactional batch retry failed';
   end if;
@@ -340,10 +348,12 @@ begin
   end if;
 
   if not public.claim_hours_review_run(
-    'run-batch-resume', 'remediation', clock_timestamp()
+    'run-batch-resume', 'remediation', clock_timestamp(),
+    input_fingerprint, claim_identity
   )
      or not public.apply_hours_remediation_batch(
-       'run-batch-resume', jsonb_build_array(request)
+       'run-batch-resume', input_fingerprint, claim_identity,
+       jsonb_build_array(request)
      )
      or not public.finish_hours_review_run(
        'run-batch-resume', 'completed', clock_timestamp(),
@@ -366,6 +376,8 @@ declare
   first_updated_at timestamptz;
   second_updated_at timestamptz;
   first_schedule jsonb;
+  input_fingerprint text := repeat('4', 64);
+  claim_identity text := repeat('5', 64);
   requests jsonb;
 begin
   select updated_at, opening_hours
@@ -393,7 +405,8 @@ begin
       'outcome', 'current',
       'reason', 'review_current',
       'error_class', null,
-      'expected_updated_at', first_updated_at
+      'expected_updated_at', first_updated_at,
+      'request_fingerprint', repeat('6', 64)
     ),
     jsonb_build_object(
       'venue_id', 'atomic-second',
@@ -410,44 +423,47 @@ begin
       'outcome', 'unknown',
       'reason', 'hours_unknown',
       'error_class', null,
-      'expected_updated_at', second_updated_at - interval '1 second'
+      'expected_updated_at', second_updated_at - interval '1 second',
+      'request_fingerprint', repeat('7', 64)
     )
   );
 
   if not public.claim_hours_review_run(
-    'run-batch-rollback', 'remediation', clock_timestamp()
+    'run-batch-isolation', 'remediation', clock_timestamp(),
+    input_fingerprint, claim_identity
   ) then
-    raise exception 'atomic rollback run could not claim';
+    raise exception 'per-venue isolation run could not claim';
   end if;
 
-  begin
-    perform public.apply_hours_remediation_batch(
-      'run-batch-rollback', requests
-    );
-    raise exception 'stale batch unexpectedly succeeded';
-  exception
-    when serialization_failure then null;
-  end;
+  if not public.apply_hours_remediation_batch(
+    'run-batch-isolation', input_fingerprint, claim_identity, requests
+  ) then
+    raise exception 'per-venue isolation batch was rejected';
+  end if;
 
   if not exists (
     select 1
     from public.venues
     where id = 'legacy-1'
-      and updated_at = first_updated_at
-      and opening_hours = first_schedule
+      and updated_at <> first_updated_at
+      and opening_hours = '{"1":{"open":"09:00","close":"20:00"}}'::jsonb
   )
-     or exists (
+     or not exists (
        select 1
        from public.hours_review_outcomes
-       where run_id = 'run-batch-rollback'
+       where run_id = 'run-batch-isolation'
+         and venue_id = 'atomic-second'
+         and outcome = 'failed'
+         and reason = 'classification_failed'
      ) then
-    raise exception 'stale batch did not roll back all venue/outcome writes';
+    raise exception 'stale venue was not isolated from the valid venue write';
   end if;
 
-  if not public.fail_hours_review_run(
-    'run-batch-rollback', clock_timestamp()
+  if not public.finish_hours_review_run(
+    'run-batch-isolation', 'completed_with_failures', clock_timestamp(),
+    2, 1, 0, 0, 0, 0, 0, 1, 0
   ) then
-    raise exception 'atomic rollback run did not release its claim';
+    raise exception 'per-venue isolation run did not finish coherently';
   end if;
 end
 $$;
@@ -694,20 +710,31 @@ do $$
 declare
   remediation_run text := 'run-remediation-' || txid_current()::text;
   expired_run text := 'run-expired-remediation-' || txid_current()::text;
+  input_fingerprint text := repeat('a', 64);
+  claim_identity text := repeat('b', 64);
+  request_fingerprint text := repeat('c', 64);
   expected_updated_at timestamptz;
 begin
   select updated_at into expected_updated_at
   from public.venues where id = 'legacy-1';
 
-  if not public.claim_hours_review_run(remediation_run, 'remediation', now()) then
+  if not public.claim_hours_review_run(
+    remediation_run, 'remediation', now(),
+    input_fingerprint, claim_identity
+  ) then
     raise exception 'remediation test claim must succeed';
   end if;
-  if not public.renew_hours_review_run_lease(remediation_run) then
+  if not public.renew_hours_review_run_lease(
+    remediation_run, input_fingerprint, claim_identity
+  ) then
     raise exception 'active remediation lease must renew';
   end if;
 
   if not public.apply_hours_remediation_outcome(
     remediation_run,
+    input_fingerprint,
+    claim_identity,
+    request_fingerprint,
     'legacy-1',
     'legacy-hours',
     null,
@@ -729,6 +756,9 @@ begin
 
   if not public.apply_hours_remediation_outcome(
     remediation_run,
+    input_fingerprint,
+    claim_identity,
+    request_fingerprint,
     'legacy-1',
     'legacy-hours',
     null,
@@ -750,6 +780,9 @@ begin
 
   if public.apply_hours_remediation_outcome(
     remediation_run,
+    input_fingerprint,
+    claim_identity,
+    repeat('d', 64),
     'legacy-1',
     'legacy-hours',
     null,
@@ -790,10 +823,13 @@ begin
   end if;
 
   update public.venues
-  set hours_notes = 'newer legitimate hours edit'
+  set hours_notes = 'note:newer-legitimate-hours-edit'
   where id = 'legacy-1';
   if public.apply_hours_remediation_outcome(
     remediation_run,
+    input_fingerprint,
+    claim_identity,
+    request_fingerprint,
     'legacy-1',
     'legacy-hours',
     null,
@@ -821,6 +857,9 @@ begin
   end if;
   if public.apply_hours_remediation_outcome(
     remediation_run,
+    input_fingerprint,
+    claim_identity,
+    repeat('e', 64),
     'legacy-1',
     'legacy-hours',
     null,
@@ -840,17 +879,25 @@ begin
     raise exception 'completed remediation run unexpectedly accepted a write';
   end if;
 
-  if not public.claim_hours_review_run(expired_run, 'remediation', now()) then
+  if not public.claim_hours_review_run(
+    expired_run, 'remediation', now(),
+    repeat('f', 64), repeat('0', 64)
+  ) then
     raise exception 'expired-remediation test claim must succeed';
   end if;
   update public.hours_review_runs
   set lease_expires_at = clock_timestamp() - interval '1 second'
   where id = expired_run;
-  if public.renew_hours_review_run_lease(expired_run) then
+  if public.renew_hours_review_run_lease(
+    expired_run, repeat('f', 64), repeat('0', 64)
+  ) then
     raise exception 'expired remediation lease unexpectedly renewed';
   end if;
   if public.apply_hours_remediation_outcome(
     expired_run,
+    repeat('f', 64),
+    repeat('0', 64),
+    repeat('9', 64),
     'legacy-1',
     'legacy-hours',
     null,

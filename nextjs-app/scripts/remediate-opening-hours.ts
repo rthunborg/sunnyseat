@@ -26,6 +26,12 @@ import type { Database, Json } from '../lib/supabase/types';
 const VENUE_PAGE_SIZE = 500;
 type HoursClient = SupabaseClient<Database>;
 type Counts = ReturnType<typeof emptyCounts>;
+type ReportOutcome = {
+  venueId: string;
+  venueSlug: string;
+  outcome: keyof Counts;
+  reason: string;
+};
 type ReportStatus =
   | 'provisional'
   | 'completed'
@@ -39,9 +45,16 @@ await preflightRemediationPaths(inputPath, reportPath);
 const inputText = await readFile(inputPath, 'utf8');
 const rows = parseRemediationRows(inputText);
 const inputFingerprint = createHash('sha256').update(inputText).digest('hex');
-const runId =
+const runId = validateRunId(
   process.env.SUN_HOURS_REMEDIATION_RUN_ID?.trim() ||
-  `hours-remediation-${inputFingerprint.slice(0, 16)}-${randomUUID()}`;
+    `hours-remediation-${inputFingerprint.slice(0, 32)}`,
+);
+const claimIdentity = createHash('sha256')
+  .update(
+    process.env.SUN_HOURS_REMEDIATION_CLAIM_TOKEN?.trim() ||
+      `${runId}\0${inputFingerprint}`,
+  )
+  .digest('hex');
 const startedAt = new Date();
 
 const supabase = createClient<Database>(
@@ -52,8 +65,8 @@ const supabase = createClient<Database>(
 
 await claimRemediationRun(supabase);
 
-const counts = emptyCounts();
-const reportOutcomes: RemediationOutcome[] = [];
+let counts = emptyCounts();
+let reportOutcomes: ReportOutcome[] = [];
 let databaseTerminal = false;
 let terminalStatus: 'completed' | 'completed_with_failures' | undefined;
 let terminalFinishedAt: Date | undefined;
@@ -84,8 +97,13 @@ try {
     const bounded = boundedAuditOutcome(outcome);
     const provenance = update.provenance;
     counts[bounded.outcome] += 1;
-    reportOutcomes.push(outcome);
-    requests.push({
+    reportOutcomes.push({
+      venueId: outcome.venueId,
+      venueSlug: outcome.venueSlug,
+      outcome: bounded.outcome,
+      reason: bounded.reason,
+    });
+    const request: Record<string, Json | string | null> = {
       venue_id: update.id,
       venue_slug: outcome.venueSlug,
       opening_hours: update.openingHours as Json,
@@ -94,25 +112,31 @@ try {
       review_status: update.reviewStatus,
       reviewed_at: provenance?.reviewedAt ?? null,
       next_review_at: provenance?.nextReviewAt ?? null,
-      notes: provenance?.notes ?? null,
+      notes: opaqueHoursNote(provenance?.notes),
       review_reason: update.reviewReason ?? null,
       last_error_class: update.lastErrorClass ?? null,
       outcome: bounded.outcome,
       reason: bounded.reason,
       error_class: bounded.errorClass,
       expected_updated_at: update.expectedUpdatedAt,
-    });
+    };
+    request.request_fingerprint = fingerprintRequest(request);
+    requests.push(request);
   }
 
   await writeRemediationReport({
     status: 'provisional',
     counts,
     reportOutcomes,
+    evidence: 'planned',
   });
 
   await renewRunLease(supabase);
   await applyRemediationBatch(supabase, requests);
   await renewRunLease(supabase);
+  const persistedReport = await persistedRemediationReport(supabase);
+  counts = persistedReport.counts;
+  reportOutcomes = persistedReport.outcomes;
 
   terminalStatus =
     counts.failed > 0 ? 'completed_with_failures' : 'completed';
@@ -137,10 +161,14 @@ try {
     }
 
     try {
+      const persistedReport = await persistedRemediationReport(supabase).catch(
+        () => ({ counts: emptyCounts(), outcomes: [] }),
+      );
       await writeRemediationReport({
         status: 'failed',
-        counts,
-        reportOutcomes,
+        counts: persistedReport.counts,
+        reportOutcomes: persistedReport.outcomes,
+        evidence: 'persisted',
         finishedAt: failedAt,
       });
     } catch (reportError) {
@@ -162,6 +190,7 @@ try {
     status: terminalStatus,
     counts,
     reportOutcomes,
+    evidence: 'persisted',
     finishedAt: terminalFinishedAt,
   });
 } catch (reportError) {
@@ -172,30 +201,20 @@ try {
 }
 
 async function claimRemediationRun(client: HoursClient): Promise<void> {
-  const claim = await callBooleanRpcTwice(
+  const claim = await callBooleanRpcWithRetry(
     client,
     'claim_hours_review_run',
     {
       p_run_id: runId,
       p_trigger_type: 'remediation',
       p_started_at: startedAt.toISOString(),
+      p_remediation_input_fingerprint: inputFingerprint,
+      p_remediation_claim_identity: claimIdentity,
     },
   );
   if (claim.data) return;
 
-  const { data: matching, error: matchingError } = await client
-    .from('hours_review_runs')
-    .select('status, trigger_type')
-    .eq('id', runId)
-    .maybeSingle();
-  if (matchingError) {
-    throw new Error(
-      'Remediation claim reconciliation failed: ' + matchingError.message,
-    );
-  }
-  if (matching?.status === 'running' && matching.trigger_type === 'remediation') {
-    return;
-  }
+  if (await isRemediationRunActive(client)) return;
   if (claim.error) {
     throw new Error('Remediation claim failed: ' + claim.error.message);
   }
@@ -206,11 +225,13 @@ async function applyRemediationBatch(
   client: HoursClient,
   requests: Record<string, Json | string | null>[],
 ): Promise<void> {
-  const applied = await callBooleanRpcTwice(
+  const applied = await callBooleanRpcWithRetry(
     client,
     'apply_hours_remediation_batch',
     {
       p_run_id: runId,
+      p_remediation_input_fingerprint: inputFingerprint,
+      p_remediation_claim_identity: claimIdentity,
       p_requests: requests as Json,
     },
   );
@@ -219,7 +240,7 @@ async function applyRemediationBatch(
   const { data: stored, error } = await client
     .from('hours_review_outcomes')
     .select(
-      'venue_id, venue_slug, outcome, reason, error_class, resulting_review_status',
+      'venue_id, venue_slug, outcome, reason, error_class, resulting_review_status, remediation_input_fingerprint, remediation_request_fingerprint',
     )
     .eq('run_id', runId);
   if (error) {
@@ -232,10 +253,8 @@ async function applyRemediationBatch(
     const row = byVenue.get(String(request.venue_id));
     return (
       row?.venue_slug === request.venue_slug &&
-      row.outcome === request.outcome &&
-      row.reason === request.reason &&
-      row.error_class === request.error_class &&
-      row.resulting_review_status === request.review_status
+      row.remediation_input_fingerprint === inputFingerprint &&
+      row.remediation_request_fingerprint === request.request_fingerprint
     );
   });
   if (reconciled && byVenue.size === requests.length) return;
@@ -268,7 +287,7 @@ async function finishRemediationRun(
     p_failed_count: input.counts.failed,
     p_stale_count: input.counts.stale,
   };
-  const finished = await callBooleanRpcTwice(
+  const finished = await callBooleanRpcWithRetry(
     client,
     'finish_hours_review_run',
     args,
@@ -311,7 +330,7 @@ async function failRemediationRun(
   client: HoursClient,
   failedAt: Date,
 ): Promise<void> {
-  const failed = await callBooleanRpcTwice(client, 'fail_hours_review_run', {
+  const failed = await callBooleanRpcWithRetry(client, 'fail_hours_review_run', {
     p_run_id: runId,
     p_finished_at: failedAt.toISOString(),
   });
@@ -336,29 +355,17 @@ async function failRemediationRun(
 }
 
 async function renewRunLease(client: HoursClient): Promise<void> {
-  const renewed = await callBooleanRpcTwice(
+  const renewed = await callBooleanRpcWithRetry(
     client,
     'renew_hours_review_run_lease',
-    { p_run_id: runId },
+    {
+      p_run_id: runId,
+      p_remediation_input_fingerprint: inputFingerprint,
+      p_remediation_claim_identity: claimIdentity,
+    },
   );
   if (renewed.data) return;
-  const { data: stored, error } = await client
-    .from('hours_review_runs')
-    .select('status, lease_expires_at')
-    .eq('id', runId)
-    .maybeSingle();
-  if (error) {
-    throw new Error(
-      'Remediation lease reconciliation failed: ' + error.message,
-    );
-  }
-  if (
-    stored?.status === 'running' &&
-    stored.lease_expires_at &&
-    Date.parse(stored.lease_expires_at) > Date.now()
-  ) {
-    return;
-  }
+  if (await isRemediationRunActive(client)) return;
   if (renewed.error) {
     throw new Error(
       'Remediation lease renewal failed: ' + renewed.error.message,
@@ -367,22 +374,40 @@ async function renewRunLease(client: HoursClient): Promise<void> {
   throw new Error('Remediation run lease is no longer active');
 }
 
-async function callBooleanRpcTwice(
+type RpcError = {
+  message: string;
+  code?: string;
+};
+
+async function callBooleanRpcWithRetry(
   client: HoursClient,
   functionName: string,
   args: Record<string, unknown>,
-): Promise<{ data: boolean | null; error: { message: string } | null }> {
-  let last: { data: boolean | null; error: { message: string } | null } = {
+): Promise<{ data: boolean | null; error: RpcError | null }> {
+  let last: { data: boolean | null; error: RpcError | null } = {
     data: null,
     error: null,
   };
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    last = (await client.rpc(
-      functionName as never,
-      args as never,
-    )) as typeof last;
+    try {
+      last = (await client.rpc(
+        functionName as never,
+        args as never,
+      )) as typeof last;
+    } catch (error) {
+      if (attempt === 0 && isRetryableRpcError(error)) {
+        await retryBackoff();
+        continue;
+      }
+      throw error;
+    }
     if (last.data) return last;
     if (!last.error) return last;
+    if (attempt === 0 && isRetryableRpcError(last.error)) {
+      await retryBackoff();
+      continue;
+    }
+    return last;
   }
   return last;
 }
@@ -390,7 +415,8 @@ async function callBooleanRpcTwice(
 async function writeRemediationReport(input: {
   status: ReportStatus;
   counts: Counts;
-  reportOutcomes: RemediationOutcome[];
+  reportOutcomes: ReportOutcome[];
+  evidence: 'planned' | 'persisted';
   finishedAt?: Date;
 }): Promise<void> {
   const contents =
@@ -399,26 +425,24 @@ async function writeRemediationReport(input: {
         runId,
         inputFingerprint,
         status: input.status,
+        evidence: input.evidence,
         ...(input.finishedAt
           ? { finishedAt: input.finishedAt.toISOString() }
           : {}),
         total: input.reportOutcomes.length,
         counts: input.counts,
-        outcomes: input.reportOutcomes.map(
-          ({ venueId, venueSlug, outcome, reason }) => ({
-            venueId,
-            venueSlug,
-            outcome,
-            reason,
-          }),
-        ),
+        outcomes: input.reportOutcomes,
       },
       null,
       2,
     ) + '\n';
+  const temporaryNameHash = createHash('sha256')
+    .update(runId)
+    .digest('hex')
+    .slice(0, 24);
   const temporaryPath = join(
     dirname(reportPath),
-    `.${runId}.${process.pid}.${randomUUID()}.tmp`,
+    `.hours-remediation-${temporaryNameHash}.${process.pid}.${randomUUID()}.tmp`,
   );
   try {
     await writeFile(temporaryPath, contents, { encoding: 'utf8', flag: 'wx' });
@@ -427,6 +451,39 @@ async function writeRemediationReport(input: {
     await unlink(temporaryPath).catch(() => undefined);
     throw error;
   }
+}
+
+async function persistedRemediationReport(
+  client: HoursClient,
+): Promise<{ counts: Counts; outcomes: ReportOutcome[] }> {
+  const { data, error } = await client
+    .from('hours_review_outcomes')
+    .select('venue_id, venue_slug, outcome, reason')
+    .eq('run_id', runId)
+    .order('venue_id');
+  if (error) {
+    throw new Error(
+      'Persisted remediation report read failed: ' + error.message,
+    );
+  }
+  const counts = emptyCounts();
+  const outcomes: ReportOutcome[] = [];
+  for (const row of data ?? []) {
+    if (!(row.outcome in counts)) {
+      throw new Error(
+        'Persisted remediation report contains an unbounded outcome',
+      );
+    }
+    const outcome = row.outcome as keyof Counts;
+    counts[outcome] += 1;
+    outcomes.push({
+      venueId: row.venue_id,
+      venueSlug: row.venue_slug,
+      outcome,
+      reason: row.reason,
+    });
+  }
+  return { counts, outcomes };
 }
 
 async function preflightRemediationPaths(
@@ -454,18 +511,115 @@ async function preflightRemediationPaths(
       throw error;
     }
   }
-  if (inputRealPath === reportComparisonPath) {
+  if (
+    normalizePathIdentity(inputRealPath) ===
+    normalizePathIdentity(reportComparisonPath)
+  ) {
     throw new Error('Remediation input and report paths must be distinct');
   }
 
   await access(reportDirectoryRealPath, constants.W_OK);
-  const probePath = join(
+  if (await pathExists(report)) {
+    await access(report, constants.W_OK);
+  }
+  const replacementProbeSource = join(
     reportDirectoryRealPath,
-    `.hours-remediation-write-probe-${process.pid}-${randomUUID()}`,
+    `.hours-remediation-replacement-probe-source-${process.pid}-${randomUUID()}`,
   );
-  const probe = await open(probePath, 'wx');
-  await probe.close();
-  await unlink(probePath);
+  const replacementProbeTarget = join(
+    reportDirectoryRealPath,
+    `.hours-remediation-replacement-probe-target-${process.pid}-${randomUUID()}`,
+  );
+  try {
+    const sourceProbe = await open(replacementProbeSource, 'wx');
+    await sourceProbe.close();
+    const targetProbe = await open(replacementProbeTarget, 'wx');
+    await targetProbe.close();
+    await rename(replacementProbeSource, replacementProbeTarget);
+  } finally {
+    await unlink(replacementProbeSource).catch(() => undefined);
+    await unlink(replacementProbeTarget).catch(() => undefined);
+  }
+}
+
+async function isRemediationRunActive(client: HoursClient): Promise<boolean> {
+  const active = await callBooleanRpcWithRetry(
+    client,
+    'is_hours_review_run_active',
+    {
+      p_run_id: runId,
+      p_expected_trigger_type: 'remediation',
+      p_remediation_input_fingerprint: inputFingerprint,
+      p_remediation_claim_identity: claimIdentity,
+    },
+  );
+  if (active.error) {
+    throw new Error(
+      'Remediation active-state reconciliation failed: ' +
+        active.error.message,
+    );
+  }
+  return active.data === true;
+}
+
+function fingerprintRequest(
+  request: Record<string, Json | string | null>,
+): string {
+  return createHash('sha256').update(JSON.stringify(request)).digest('hex');
+}
+
+function opaqueHoursNote(value: string | null | undefined): string | null {
+  const note = value?.trim();
+  return note && /^note:[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/.test(note)
+    ? note
+    : null;
+}
+
+function validateRunId(value: string): string {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/.test(value)) {
+    throw new Error(
+      'SUN_HOURS_REMEDIATION_RUN_ID must be 1-120 safe identifier characters',
+    );
+  }
+  return value;
+}
+
+function normalizePathIdentity(value: string): string {
+  const normalized = resolve(value).replace(/[\\/]+$/, '');
+  return process.platform === 'win32' ? normalized.toLocaleLowerCase('en-US') : normalized;
+}
+
+async function pathExists(value: string): Promise<boolean> {
+  try {
+    await stat(value);
+    return true;
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      return false;
+    }
+    throw error;
+  }
+}
+
+function isRetryableRpcError(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String(error.code)
+      : '';
+  return new Set([
+    '08000',
+    '08003',
+    '08006',
+    '40001',
+    '40P01',
+    '55P03',
+    '57014',
+  ]).has(code);
+}
+
+async function retryBackoff(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 50));
 }
 
 function boundedAuditOutcome(outcome: RemediationOutcome): {

@@ -175,7 +175,7 @@ describe('[12.1 review iteration 2] remediation file validation', () => {
 });
 
 describe('[12.1 review iteration 2] audit terminal ordering and isolation', () => {
-  test('an identical retry failure does not skip later venues and fails the run after pruning', async () => {
+  test('an identical retry failure does not skip later venues and fails without pruning', async () => {
     const recordOutcome = vi
       .fn()
       .mockRejectedValueOnce(new Error('primary write failed'))
@@ -197,19 +197,16 @@ describe('[12.1 review iteration 2] audit terminal ordering and isolation', () =
     expect(recordOutcome).toHaveBeenLastCalledWith(
       expect.objectContaining({ venueId: '2', outcome: 'unknown' }),
     );
-    expect(repos.pruneBefore).toHaveBeenCalledTimes(1);
+    expect(repos.pruneBefore).not.toHaveBeenCalled();
     expect(repos.failRun).toHaveBeenCalledTimes(1);
     expect(repos.finishRun).not.toHaveBeenCalled();
-    expect(repos.pruneBefore.mock.invocationCallOrder[0]).toBeLessThan(
-      repos.failRun.mock.invocationCallOrder[0],
-    );
   });
 
-  test('prunes retention history before marking a successful run completed', async () => {
+  test('prunes retention history after marking a successful run completed', async () => {
     const repos = repositories();
     await runOpeningHoursAudit({ enabled: true, now: NOW, clock: () => NOW, repositories: repos });
-    expect(repos.pruneBefore.mock.invocationCallOrder[0]).toBeLessThan(
-      repos.finishRun.mock.invocationCallOrder[0],
+    expect(repos.finishRun.mock.invocationCallOrder[0]).toBeLessThan(
+      repos.pruneBefore.mock.invocationCallOrder[0],
     );
   });
 });

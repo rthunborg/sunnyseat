@@ -35,6 +35,9 @@ const serializedPersistence = readMigration(
 const finalSafety = readMigration(
   'finalize_hours_governance_review_safety',
 );
+const iterationFiveClosure = readMigration(
+  'close_hours_review_iteration_5',
+);
 const allSql =
   reconciliation +
   '\n' +
@@ -50,7 +53,9 @@ const allSql =
   '\n' +
   serializedPersistence +
   '\n' +
-  finalSafety;
+  finalSafety +
+  '\n' +
+  iterationFiveClosure;
 
 describe('[12.1 AC2] canonical migration chain', () => {
   test('[P0] reconciliation precedes the forward provider-neutral migration', () => {

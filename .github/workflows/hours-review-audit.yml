@@ -15,14 +15,8 @@ concurrency:
 jobs:
   audit:
     if: >-
-      (github.event_name == 'schedule' && github.ref == 'refs/heads/main') ||
-      (
-        github.event_name == 'workflow_dispatch' &&
-        (
-          github.ref == 'refs/heads/main' ||
-          github.ref == 'refs/heads/story/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours'
-        )
-      )
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: Production

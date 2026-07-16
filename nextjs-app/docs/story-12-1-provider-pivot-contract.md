@@ -13,6 +13,7 @@ Controlling sources:
 - `_bmad-output/planning-artifacts/sprint-change-proposal-2026-07-12.md`
 - `_bmad-output/planning-artifacts/research/technical-google-places-api-policy-epic-12-research-2026-07-12.md`
 - Architecture Decision `E12-AD-01`
+- Architecture Decision `E12-AD-12`
 - Architecture Decision `E12-AD-13`
 
 Only Google Place IDs may remain as server-side identity/reference metadata.

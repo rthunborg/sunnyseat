@@ -211,9 +211,7 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
         counts: expect.objectContaining({ current: 0, due: 1, failed: 0 }),
       }),
     );
-    expect(pruneBefore).toHaveBeenCalledWith(
-      new Date('2026-01-14T10:00:00.000Z'),
-    );
+    expect(pruneBefore).not.toHaveBeenCalled();
   });
 
   test('[P1] a run-level venue read failure rejects without a false completion', async () => {

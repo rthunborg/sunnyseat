@@ -58,8 +58,8 @@ where run_id = '[run-id]'
 order by venue_id;
 ```
 
-Completed history older than 180 days is pruned after each successful audit.
-Active runs are never pruned.
+After a coherent run is finalized successfully, completed history older than
+180 days is pruned. Active and ultimately failed runs never initiate pruning.
 
 ### Troubleshooting
 
@@ -81,12 +81,3 @@ precomputation, cache, accuracy, and cleanup endpoint jobs. Story 12.1 removes
 the obsolete OSM-ingestion schedule, manual-dispatch option, and job as required
 by AC7; the remaining endpoint jobs keep their existing ownership. Do not copy
 their `CRON_SECRET` pattern into the direct hours audit.
-
-### Controlled pre-merge validation
-
-The workflow condition also recognizes the exact Story 12.1 branch for one
-controlled `workflow_dispatch` before merge. The `Production` environment
-normally remains main-only. For that validation only, temporarily allowlist the
-exact story branch in the environment deployment policy, run the protected
-workflow, and restore the main-only policy immediately afterwards. No wildcard
-or arbitrary ref is eligible.
