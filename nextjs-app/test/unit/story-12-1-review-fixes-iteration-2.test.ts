@@ -19,6 +19,7 @@ const EVIDENCE = {
 function repositories(overrides: Record<string, unknown> = {}) {
   return {
     claimRun: vi.fn().mockResolvedValue({ claimed: true, runId: 'run-1' }),
+    renewLease: vi.fn().mockResolvedValue(undefined),
     listVenues: vi.fn().mockResolvedValue([
       {
         id: 'venue-default',
@@ -28,6 +29,7 @@ function repositories(overrides: Record<string, unknown> = {}) {
       },
     ]),
     recordOutcome: vi.fn().mockResolvedValue(undefined),
+    recordPersistenceFailure: vi.fn().mockResolvedValue(undefined),
     finishRun: vi.fn().mockResolvedValue(undefined),
     failRun: vi.fn().mockResolvedValue(undefined),
     pruneBefore: vi.fn().mockResolvedValue(undefined),

@@ -10,3 +10,4 @@
 - [Phase 7 â€” code review] GitHub Production is main-only with required Supabase secrets and SUN_HOURS_AUDIT_ENABLED=true; the first scheduled/manual workflow execution awaits the workflow reaching the default branch.
 - [Phase 7 â€” code review] Iteration 5 explicitly overrode the three-round review cap. Future persistence stories should specify run ownership/input binding and per-venue isolation versus whole-population atomicity before implementation.
 - [Phase 7 â€” code review] Supabase CLI profile validation can prevent otherwise valid database pushes. Keep the protected pooler plus explicit migration-history transaction documented as the fallback.
+- [Phase 7 â€” code review] Iterative database hardening needs executable state-transition tests alongside each new overload and replay path; text-presence assertions did not protect the ownership/idempotence invariants.

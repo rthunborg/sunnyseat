@@ -91,12 +91,13 @@ export const hoursAuditErrorClassSchema = z.enum([
   'unexpected',
 ]);
 
+export const offsetDateTimeSchema = z.iso.datetime({ offset: true });
+
 const SAFE_SOURCE_REFERENCE_PATTERN =
   /^[a-z][a-z0-9_-]{1,31}:[A-Za-z0-9][A-Za-z0-9._-]{0,199}(?::[A-Za-z0-9][A-Za-z0-9._-]{0,199}){0,3}$/;
-const UNSAFE_FREEFORM_EVIDENCE_PATTERN =
-  /(?:(?:[a-z][a-z0-9+.-]*:)?\/\/|www\.|[a-z0-9.-]+\.[a-z]{2,}\/|%(?:2f|3a)|provider[\s_-]*payload|regular[\s_-]*opening[\s_-]*hours|authorization\s*:?\s*bearer|bearer\s+[A-Za-z0-9._~-]+|(?:api[\s_-]*key|token|secret|credential)\s*[:=]|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/i;
+const SAFE_NOTE_PATTERN = /^note:[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/;
 
-const safeSourceReferenceSchema = z
+export const hoursSourceReferenceSchema = z
   .string()
   .trim()
   .min(1)
@@ -106,24 +107,25 @@ const safeSourceReferenceSchema = z
       'Source references must be colon-delimited opaque identifiers using letters, digits, dots, underscores, and hyphens only',
   });
 
-const safeNotesSchema = z
+export const hoursNoteSchema = z
   .string()
   .trim()
-  .max(1000)
-  .refine((value) => !UNSAFE_FREEFORM_EVIDENCE_PATTERN.test(value), {
-    message: 'Notes must not contain provider payloads, URLs, or credentials',
+  .min(6)
+  .max(205)
+  .regex(SAFE_NOTE_PATTERN, {
+    message: 'Notes must be bounded opaque note: identifiers',
   });
 
 const hoursProvenanceBaseSchema = z
   .object({
     sourceType: hoursSourceTypeSchema,
-    sourceReference: safeSourceReferenceSchema,
-    reviewedAt: z.iso.datetime({ offset: true }),
-    nextReviewAt: z.iso.datetime({ offset: true }),
+    sourceReference: hoursSourceReferenceSchema,
+    reviewedAt: offsetDateTimeSchema,
+    nextReviewAt: offsetDateTimeSchema,
     reviewStatus: hoursReviewStatusSchema.optional().default('verified'),
     reviewReason: hoursAuditReasonSchema.optional(),
     lastErrorClass: hoursAuditErrorClassSchema.optional(),
-    notes: safeNotesSchema.optional(),
+    notes: hoursNoteSchema.optional(),
   })
   .strict()
   .superRefine((provenance, context) => {
@@ -290,24 +292,98 @@ export function classifyHoursEvidence(
 function unsupportedScheduleReason(
   schedule: unknown,
 ): ManualReviewHoursEvidence['reason'] | undefined {
-  if (!schedule || typeof schedule !== 'object') return undefined;
-  const record = schedule as Record<string, unknown>;
-  if (record.mode === '24/7') return 'unsupported_24_7';
-  if (record.seasonal === true) return 'seasonal';
-  if (record.holidaySpecific === true) return 'holiday_specific';
-  for (const [weekday, value] of Object.entries(record)) {
-    if (!/^[1-7]$/.test(weekday)) continue;
-    if (Array.isArray(value)) return 'split';
+  const flags = {
+    split: false,
+    fullDay: false,
+    seasonal: false,
+    holiday: false,
+  };
+  const seen = new Set<object>();
+
+  function inspect(value: unknown, parentKey = ''): void {
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase().replace(/[\s_-]+/g, '');
+      if (
+        normalized === '24/7' ||
+        normalized === '24x7' ||
+        normalized === '24hours' ||
+        normalized === 'open24hours'
+      ) {
+        flags.fullDay = true;
+      }
+      return;
+    }
+    if (!value || typeof value !== 'object') return;
+    if (seen.has(value)) return;
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+      const key = parentKey.toLowerCase();
+      if (
+        /^[1-7]$/.test(parentKey) ||
+        /period|interval|openinghour|servicehour/.test(key) ||
+        value.some(
+          (item) =>
+            item !== null &&
+            typeof item === 'object' &&
+            !Array.isArray(item) &&
+            ('open' in item || 'close' in item),
+        )
+      ) {
+        flags.split = true;
+      }
+      for (const item of value) inspect(item, parentKey);
+      return;
+    }
+
+    const record = value as Record<string, unknown>;
+    const open = record.open;
+    const close = record.close;
     if (
-      value &&
-      typeof value === 'object' &&
-      !Array.isArray(value) &&
-      (value as Record<string, unknown>).open === '00:00' &&
-      (value as Record<string, unknown>).close === '00:00'
+      open === '00:00' &&
+      (close === '00:00' || close === '24:00')
     ) {
-      return 'unsupported_24_7';
+      flags.fullDay = true;
+    }
+
+    for (const [key, nested] of Object.entries(record)) {
+      const normalizedKey = key.toLowerCase().replace(/[\s_-]+/g, '');
+      if (
+        (normalizedKey.includes('season') ||
+          normalizedKey === 'summer' ||
+          normalizedKey === 'winter') &&
+        nested !== false &&
+        nested != null
+      ) {
+        flags.seasonal = true;
+      }
+      if (
+        (normalizedKey.includes('holiday') ||
+          normalizedKey.includes('specialdate') ||
+          normalizedKey.includes('exceptiondate')) &&
+        nested !== false &&
+        nested != null
+      ) {
+        flags.holiday = true;
+      }
+      if (
+        (normalizedKey.includes('24hour') ||
+          normalizedKey.includes('twentyfourseven') ||
+          normalizedKey === 'alwaysopen') &&
+        nested !== false &&
+        nested != null
+      ) {
+        flags.fullDay = true;
+      }
+      inspect(nested, key);
     }
   }
+
+  inspect(schedule);
+  if (flags.split) return 'split';
+  if (flags.fullDay) return 'unsupported_24_7';
+  if (flags.seasonal) return 'seasonal';
+  if (flags.holiday) return 'holiday_specific';
   return undefined;
 }
 

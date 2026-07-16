@@ -13,6 +13,8 @@ import {
 const NOW = new Date('2026-07-14T10:00:00.000Z');
 const FINISHED_AT = new Date('2026-07-14T10:05:00.000Z');
 const VERIFIED_PROVENANCE = {
+  sourceType: 'venue_website',
+  sourceReference: 'venue-site:test-venue:2026-07-14',
   reviewStatus: 'verified',
   reviewedAt: '2026-07-13T10:00:00.000Z',
   nextReviewAt: '2026-10-13T10:00:00.000Z',
@@ -27,6 +29,7 @@ const ELIGIBLE_EVIDENCE = {
 function repositories(overrides: Record<string, unknown> = {}) {
   return {
     claimRun: vi.fn().mockResolvedValue({ claimed: true, runId: 'run-1' }),
+    renewLease: vi.fn().mockResolvedValue(undefined),
     listVenues: vi.fn().mockResolvedValue([
       {
         id: 'venue-default',
@@ -36,6 +39,7 @@ function repositories(overrides: Record<string, unknown> = {}) {
       },
     ]),
     recordOutcome: vi.fn().mockResolvedValue(undefined),
+    recordPersistenceFailure: vi.fn().mockResolvedValue(undefined),
     finishRun: vi.fn().mockResolvedValue(undefined),
     failRun: vi.fn().mockResolvedValue(undefined),
     pruneBefore: vi.fn().mockResolvedValue(undefined),

@@ -26,16 +26,20 @@ async function loadAudit(): Promise<AuditModule> {
 }
 
 const NOW = new Date('2026-07-13T10:00:00.000Z');
+const SOURCE = {
+  sourceType: 'venue_website',
+  sourceReference: 'venue-site:test-venue:2026-07-13',
+};
 
 describe('[12.1 AC5] weekly audit classification', () => {
   test.each([
     ['missing_provenance', { openingHours: { '1': { open: '11:00', close: '22:00' } }, provenance: null }],
-    ['due', { openingHours: { '1': { open: '11:00', close: '22:00' } }, provenance: { reviewStatus: 'due', reviewedAt: '2026-07-12T10:00:00.000Z', nextReviewAt: '2026-07-13T09:00:00.000Z' } }],
+    ['due', { openingHours: { '1': { open: '11:00', close: '22:00' } }, provenance: { ...SOURCE, reviewStatus: 'due', reviewedAt: '2026-07-12T10:00:00.000Z', nextReviewAt: '2026-07-13T09:00:00.000Z' } }],
     ['unknown', { openingHours: null, provenance: { reviewStatus: 'unknown' } }],
-    ['conflicting', { openingHours: { '1': { open: '11:00', close: '22:00' } }, provenance: { reviewStatus: 'manual_review', reviewReason: 'provenance_conflict' } }],
-    ['split', { openingHours: { '1': { open: '11:00', close: '22:00' } }, provenance: { reviewStatus: 'manual_review', reviewReason: 'unsupported_split' } }],
-    ['failed', { openingHours: { '1': { open: '11:00', close: '22:00' } }, provenance: { reviewStatus: 'failed', lastErrorClass: 'read_failed' } }],
-    ['stale', { openingHours: { '1': { open: '11:00', close: '22:00' } }, provenance: { reviewStatus: 'verified', reviewedAt: '2025-01-01T00:00:00.000Z', nextReviewAt: '2026-10-01T00:00:00.000Z' } }],
+    ['conflicting', { openingHours: { '1': { open: '11:00', close: '22:00' } }, provenance: { ...SOURCE, reviewStatus: 'manual_review', reviewedAt: '2026-07-12T10:00:00.000Z', nextReviewAt: '2026-10-01T00:00:00.000Z', reviewReason: 'provenance_conflict' } }],
+    ['split', { openingHours: { '1': { open: '11:00', close: '22:00' } }, provenance: { ...SOURCE, reviewStatus: 'manual_review', reviewedAt: '2026-07-12T10:00:00.000Z', nextReviewAt: '2026-10-01T00:00:00.000Z', reviewReason: 'unsupported_split' } }],
+    ['failed', { openingHours: { '1': { open: '11:00', close: '22:00' } }, provenance: { ...SOURCE, reviewStatus: 'failed', reviewedAt: '2026-07-12T10:00:00.000Z', nextReviewAt: '2026-10-01T00:00:00.000Z', reviewReason: 'classification_failed', lastErrorClass: 'read_failed' } }],
+    ['stale', { openingHours: { '1': { open: '11:00', close: '22:00' } }, provenance: { ...SOURCE, reviewStatus: 'verified', reviewedAt: '2025-01-01T00:00:00.000Z', nextReviewAt: '2026-10-01T00:00:00.000Z' } }],
   ])('[P1] classifies %s without changing canonical hours', async (expected, venue) => {
     const { classifyHoursAuditVenue } = await loadAudit();
     expect(classifyHoursAuditVenue({ venue, now: NOW })).toMatchObject({
@@ -65,6 +69,11 @@ describe('[12.1 AC5] audit runner isolation, overlap, retention, and idempotency
         claimRun: vi.fn().mockResolvedValue({ claimed: false, activeRunId: 'run-active' }),
         listVenues: vi.fn(),
         recordOutcome,
+        renewLease: vi.fn(),
+        recordPersistenceFailure: vi.fn(),
+        finishRun: vi.fn(),
+        failRun: vi.fn(),
+        pruneBefore: vi.fn(),
       },
     });
     expect(result).toMatchObject({ status: 'already_running' });
@@ -80,13 +89,16 @@ describe('[12.1 AC5] audit runner isolation, overlap, retention, and idempotency
       now: NOW,
       repositories: {
         claimRun: vi.fn().mockResolvedValue({ claimed: true, runId: 'run-1' }),
+        renewLease: vi.fn().mockResolvedValue(undefined),
         listVenues: vi.fn().mockResolvedValue([
           { id: '1', slug: 'ok', openingHours: null, provenance: { reviewStatus: 'unknown' } },
           { id: '2', slug: 'broken', openingHours: null, provenance: { throwForTest: true } },
-          { id: '3', slug: 'due', openingHours: { '1': { open: '11:00', close: '22:00' } }, provenance: { reviewStatus: 'due', reviewedAt: '2026-07-12T10:00:00.000Z', nextReviewAt: '2026-07-13T09:00:00.000Z' } },
+          { id: '3', slug: 'due', openingHours: { '1': { open: '11:00', close: '22:00' } }, provenance: { ...SOURCE, reviewStatus: 'due', reviewedAt: '2026-07-12T10:00:00.000Z', nextReviewAt: '2026-07-13T09:00:00.000Z' } },
         ]),
         recordOutcome,
+        recordPersistenceFailure: vi.fn().mockResolvedValue(undefined),
         finishRun: vi.fn().mockResolvedValue(undefined),
+        failRun: vi.fn().mockResolvedValue(undefined),
         pruneBefore: vi.fn().mockResolvedValue(undefined),
         writeCanonicalHours,
       },
@@ -110,11 +122,14 @@ describe('[12.1 AC5] audit runner isolation, overlap, retention, and idempotency
         claimRun: vi.fn()
           .mockResolvedValueOnce({ claimed: true, runId: 'run-1' })
           .mockResolvedValueOnce({ claimed: true, runId: 'run-2' }),
+        renewLease: vi.fn().mockResolvedValue(undefined),
         listVenues: vi.fn().mockResolvedValue([
-          { id: '1', openingHours: null, provenance: { reviewStatus: 'unknown' } },
+          { id: '1', slug: 'one', openingHours: null, provenance: { reviewStatus: 'unknown' } },
         ]),
         recordOutcome: vi.fn().mockResolvedValue(undefined),
+        recordPersistenceFailure: vi.fn().mockResolvedValue(undefined),
         finishRun: vi.fn().mockResolvedValue(undefined),
+        failRun: vi.fn().mockResolvedValue(undefined),
         pruneBefore,
       },
     };

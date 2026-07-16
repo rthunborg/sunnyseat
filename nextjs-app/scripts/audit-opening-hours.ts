@@ -136,6 +136,8 @@ try {
           provenance:
             hasExplicitSource || preservesExplicitReviewState
               ? {
+                  sourceType: row.hours_source_type ?? undefined,
+                  sourceReference: row.hours_source_reference ?? undefined,
                   reviewStatus: row.hours_review_status ?? undefined,
                   reviewedAt: row.hours_reviewed_at ?? undefined,
                   nextReviewAt: row.hours_next_review_at ?? undefined,
@@ -323,9 +325,22 @@ try {
   throw error;
 }
 
-const counts: Record<string, number> = result.counts ?? {};
+const counts = result.counts;
 const inspectableRunId =
   result.status === 'already_running' ? result.activeRunId : result.runId;
+const countSummaryLines = result.counts
+  ? [
+      '- Total: ' + sumCounts(result.counts),
+      '- Current: ' + result.counts.current,
+      '- Missing provenance: ' + result.counts.missing_provenance,
+      '- Due: ' + result.counts.due,
+      '- Unknown: ' + result.counts.unknown,
+      '- Conflicting: ' + result.counts.conflicting,
+      '- Split: ' + result.counts.split,
+      '- Failed: ' + result.counts.failed,
+      '- Stale: ' + result.counts.stale,
+    ]
+  : [];
 try {
   await writeSummary([
     '## SunnySeat hours review audit',
@@ -336,15 +351,10 @@ try {
       ? ['- Attempted audit run: ' + runId]
       : []),
     ...workflowSummaryLine(),
-    '- Total: ' + sumCounts(counts),
-    '- Current: ' + (counts.current ?? 0),
-    '- Missing provenance: ' + (counts.missing_provenance ?? 0),
-    '- Due: ' + (counts.due ?? 0),
-    '- Unknown: ' + (counts.unknown ?? 0),
-    '- Conflicting: ' + (counts.conflicting ?? 0),
-    '- Split: ' + (counts.split ?? 0),
-    '- Failed: ' + (counts.failed ?? 0),
-    '- Stale: ' + (counts.stale ?? 0),
+    ...countSummaryLines,
+    ...(result.maintenanceWarning
+      ? ['- Maintenance warning: ' + result.maintenanceWarning]
+      : []),
   ]);
 } catch (summaryError) {
   console.error(

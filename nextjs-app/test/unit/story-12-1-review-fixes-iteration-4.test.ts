@@ -31,6 +31,7 @@ function auditRepositories(overrides: Record<string, unknown> = {}) {
       },
     ]),
     recordOutcome: vi.fn().mockResolvedValue(undefined),
+    recordPersistenceFailure: vi.fn().mockResolvedValue(undefined),
     finishRun: vi.fn().mockResolvedValue(undefined),
     failRun: vi.fn().mockResolvedValue(undefined),
     pruneBefore: vi.fn().mockResolvedValue(undefined),

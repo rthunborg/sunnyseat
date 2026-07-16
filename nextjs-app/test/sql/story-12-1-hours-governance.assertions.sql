@@ -51,21 +51,31 @@ begin
   if not has_table_privilege(
        'service_role',
        'public.hours_review_runs',
-       'select,insert,update,delete'
+       'select'
      )
      or not has_table_privilege(
        'service_role',
        'public.hours_review_outcomes',
-       'select,insert,update'
+       'select'
+     )
+     or has_table_privilege(
+       'service_role',
+       'public.hours_review_runs',
+       'insert,update,delete'
      )
      or has_table_privilege(
        'service_role',
        'public.hours_review_outcomes',
-       'delete'
+       'insert,update,delete'
      )
      or not has_function_privilege(
        'service_role',
        'public.persist_hours_review_outcome(text,text,text,text,text,text,text,text)',
+       'execute'
+     )
+     or has_function_privilege(
+       'service_role',
+       'public.apply_hours_remediation_outcome(text,text,text,text,text,text,jsonb,text,text,text,timestamptz,timestamptz,text,text,text,text,text,text,timestamptz)',
        'execute'
      ) then
     raise exception 'service role grants are not least-privilege';
@@ -132,6 +142,19 @@ end
 $$;
 
 set role service_role;
+
+\set ON_ERROR_STOP off
+update public.hours_review_runs
+set lease_expires_at = clock_timestamp()
+where false;
+\set service_review_dml_sqlstate :SQLSTATE
+\set ON_ERROR_STOP on
+select :'service_review_dml_sqlstate' = '42501' as service_review_dml_denied \gset
+\if :service_review_dml_denied
+\else
+  \echo 'service review-table DML denial failed with SQLSTATE' :service_review_dml_sqlstate
+  \quit 1
+\endif
 
 do $$
 begin
@@ -299,7 +322,6 @@ declare
   next_review_at timestamptz := clock_timestamp() + interval '90 days';
   input_fingerprint text := repeat('1', 64);
   claim_identity text := repeat('2', 64);
-  request_fingerprint text := repeat('3', 64);
   request jsonb;
 begin
   select updated_at
@@ -322,8 +344,11 @@ begin
     'outcome', 'current',
     'reason', 'review_current',
     'error_class', null,
-    'expected_updated_at', expected_updated_at,
-    'request_fingerprint', request_fingerprint
+    'expected_updated_at', expected_updated_at
+  );
+  request := request || jsonb_build_object(
+    'request_fingerprint',
+    public.hours_remediation_request_fingerprint(request)
   );
 
   if not public.claim_hours_review_run(
@@ -378,6 +403,8 @@ declare
   first_schedule jsonb;
   input_fingerprint text := repeat('4', 64);
   claim_identity text := repeat('5', 64);
+  first_request jsonb;
+  second_request jsonb;
   requests jsonb;
 begin
   select updated_at, opening_hours
@@ -389,8 +416,7 @@ begin
   from public.venues
   where id = 'atomic-second';
 
-  requests := jsonb_build_array(
-    jsonb_build_object(
+  first_request := jsonb_build_object(
       'venue_id', 'legacy-1',
       'venue_slug', 'legacy-hours',
       'opening_hours', '{"1":{"open":"09:00","close":"20:00"}}'::jsonb,
@@ -405,10 +431,13 @@ begin
       'outcome', 'current',
       'reason', 'review_current',
       'error_class', null,
-      'expected_updated_at', first_updated_at,
-      'request_fingerprint', repeat('6', 64)
-    ),
-    jsonb_build_object(
+      'expected_updated_at', first_updated_at
+    );
+  first_request := first_request || jsonb_build_object(
+    'request_fingerprint',
+    public.hours_remediation_request_fingerprint(first_request)
+  );
+  second_request := jsonb_build_object(
       'venue_id', 'atomic-second',
       'venue_slug', 'atomic-second',
       'opening_hours', null,
@@ -423,10 +452,13 @@ begin
       'outcome', 'unknown',
       'reason', 'hours_unknown',
       'error_class', null,
-      'expected_updated_at', second_updated_at - interval '1 second',
-      'request_fingerprint', repeat('7', 64)
-    )
+      'expected_updated_at', second_updated_at - interval '1 second'
+    );
+  second_request := second_request || jsonb_build_object(
+    'request_fingerprint',
+    public.hours_remediation_request_fingerprint(second_request)
   );
+  requests := jsonb_build_array(first_request, second_request);
 
   if not public.claim_hours_review_run(
     'run-batch-isolation', 'remediation', clock_timestamp(),
@@ -637,9 +669,19 @@ begin
   if not public.claim_hours_review_run('run-stale', 'scheduled', '2026-07-13T11:00:00Z') then
     raise exception 'stale-run test claim must succeed';
   end if;
-  update public.hours_review_runs
-  set lease_expires_at = clock_timestamp() - interval '1 second'
-  where id = 'run-stale';
+end
+$$;
+
+reset role;
+
+update public.hours_review_runs
+set lease_expires_at = clock_timestamp() - interval '1 second'
+where id = 'run-stale';
+
+set role service_role;
+
+do $$
+begin
   if not public.claim_hours_review_run('run-after-stale', 'scheduled', '2999-01-01T00:00:00Z') then
     raise exception 'expired lease must be recovered for the next claimant';
   end if;
@@ -654,6 +696,8 @@ begin
   end if;
 end
 $$;
+
+reset role;
 
 insert into public.hours_review_runs (
   id,
@@ -677,6 +721,8 @@ insert into public.hours_review_runs (
   clock_timestamp() - interval '1 day',
   clock_timestamp() - interval '1 day'
 );
+
+set role service_role;
 
 do $$
 declare
@@ -712,11 +758,26 @@ declare
   expired_run text := 'run-expired-remediation-' || txid_current()::text;
   input_fingerprint text := repeat('a', 64);
   claim_identity text := repeat('b', 64);
-  request_fingerprint text := repeat('c', 64);
   expected_updated_at timestamptz;
+  request jsonb;
+  changed_request jsonb;
 begin
   select updated_at into expected_updated_at
   from public.venues where id = 'legacy-1';
+
+  if public.claim_hours_review_run(
+    'unbound-remediation', 'remediation', now()
+  ) then
+    raise exception 'legacy claim created an unbound remediation run';
+  end if;
+  if public.claim_hours_review_run(
+    remediation_run, 'remediation', now(), null, claim_identity
+  )
+     or public.claim_hours_review_run(
+       remediation_run, 'remediation', now(), input_fingerprint, null
+     ) then
+    raise exception 'nullable remediation ownership was accepted';
+  end if;
 
   if not public.claim_hours_review_run(
     remediation_run, 'remediation', now(),
@@ -729,77 +790,47 @@ begin
   ) then
     raise exception 'active remediation lease must renew';
   end if;
-
-  if not public.apply_hours_remediation_outcome(
-    remediation_run,
-    input_fingerprint,
-    claim_identity,
-    request_fingerprint,
-    'legacy-1',
-    'legacy-hours',
-    null,
-    'venue_website',
-    'owner-attested:replacement-must-not-win',
-    'manual_review',
-    now(),
-    now() + interval '90 days',
-    null,
-    'unsupported_24_7',
-    null,
-    'failed',
-    'unsupported_24_7',
-    'validation_failed',
-    expected_updated_at
+  if public.is_hours_review_run_active(
+    remediation_run, 'remediation', null, null
   ) then
-    raise exception 'active remediation write must succeed';
+    raise exception 'nullable active-state arguments behaved as wildcards';
   end if;
 
-  if not public.apply_hours_remediation_outcome(
-    remediation_run,
-    input_fingerprint,
-    claim_identity,
-    request_fingerprint,
-    'legacy-1',
-    'legacy-hours',
-    null,
-    'venue_website',
-    'owner-attested:replacement-must-not-win',
-    'manual_review',
-    now(),
-    now() + interval '90 days',
-    null,
-    'unsupported_24_7',
-    null,
-    'failed',
-    'unsupported_24_7',
-    'validation_failed',
-    expected_updated_at
-  ) then
-    raise exception 'idempotent remediation retry must succeed';
-  end if;
+  request := jsonb_build_object(
+    'venue_id', 'legacy-1',
+    'venue_slug', 'legacy-hours',
+    'opening_hours', null,
+    'source_type', 'venue_website',
+    'source_reference', 'owner-attested:replacement-must-not-win',
+    'review_status', 'manual_review',
+    'reviewed_at', clock_timestamp() - interval '1 minute',
+    'next_review_at', clock_timestamp() + interval '90 days',
+    'notes', null,
+    'review_reason', 'unsupported_24_7',
+    'last_error_class', null,
+    'outcome', 'failed',
+    'reason', 'unsupported_24_7',
+    'error_class', 'validation_failed',
+    'expected_updated_at', expected_updated_at
+  );
+  request := request || jsonb_build_object(
+    'request_fingerprint',
+    public.hours_remediation_request_fingerprint(request)
+  );
 
-  if public.apply_hours_remediation_outcome(
+  if not public.apply_hours_remediation_batch(
     remediation_run,
     input_fingerprint,
     claim_identity,
-    repeat('d', 64),
-    'legacy-1',
-    'legacy-hours',
-    null,
-    'venue_website',
-    'owner-attested:changed-stale-request',
-    'manual_review',
-    now(),
-    now() + interval '90 days',
-    null,
-    'unsupported_24_7',
-    null,
-    'failed',
-    'unsupported_24_7',
-    'validation_failed',
-    expected_updated_at
-  ) then
-    raise exception 'changed stale request was misreported as idempotent success';
+    jsonb_build_array(request)
+  )
+     or not public.apply_hours_remediation_batch(
+       remediation_run,
+       input_fingerprint,
+       claim_identity,
+       jsonb_build_array(request)
+     ) then
+    raise exception 'exact remediation request and retry must succeed';
   end if;
 
   if not exists (
@@ -822,31 +853,32 @@ begin
     raise exception 'remediation retry destroyed the true prior review status';
   end if;
 
-  update public.venues
-  set hours_notes = 'note:newer-legitimate-hours-edit'
-  where id = 'legacy-1';
-  if public.apply_hours_remediation_outcome(
+  changed_request := jsonb_set(
+    request,
+    '{source_reference}',
+    to_jsonb('owner-attested:changed-stale-request'::text)
+  );
+  if not public.apply_hours_remediation_batch(
     remediation_run,
     input_fingerprint,
     claim_identity,
-    request_fingerprint,
-    'legacy-1',
-    'legacy-hours',
-    null,
-    'venue_website',
-    'owner-attested:replacement-must-not-win',
-    'manual_review',
-    now(),
-    now() + interval '90 days',
-    null,
-    'unsupported_24_7',
-    null,
-    'failed',
-    'unsupported_24_7',
-    'validation_failed',
-    expected_updated_at
+    jsonb_build_array(changed_request)
   ) then
-    raise exception 'stale remediation snapshot overwrote a newer venue edit';
+    raise exception 'fingerprint mismatch was not isolated as a failed venue';
+  end if;
+  if not exists (
+    select 1
+    from public.hours_review_outcomes
+    where run_id = remediation_run
+      and venue_id = 'legacy-1'
+      and outcome = 'failed'
+      and reason = 'classification_failed'
+      and remediation_request_fingerprint =
+        public.hours_remediation_request_fingerprint(changed_request)
+      and remediation_request_fingerprint <>
+        request ->> 'request_fingerprint'
+  ) then
+    raise exception 'database did not replace stale caller-fingerprint evidence';
   end if;
 
   if not public.finish_hours_review_run(
@@ -855,28 +887,14 @@ begin
   ) then
     raise exception 'remediation run with derived failed outcome must finish';
   end if;
-  if public.apply_hours_remediation_outcome(
+  if public.claim_hours_review_run(
     remediation_run,
+    'remediation',
+    now(),
     input_fingerprint,
-    claim_identity,
-    repeat('e', 64),
-    'legacy-1',
-    'legacy-hours',
-    null,
-    null,
-    null,
-    'unknown',
-    null,
-    null,
-    null,
-    null,
-    null,
-    'unknown',
-    'hours_unknown',
-    null,
-    expected_updated_at
+    claim_identity
   ) then
-    raise exception 'completed remediation run unexpectedly accepted a write';
+    raise exception 'terminal remediation run was reopened';
   end if;
 
   if not public.claim_hours_review_run(
@@ -885,36 +903,38 @@ begin
   ) then
     raise exception 'expired-remediation test claim must succeed';
   end if;
-  update public.hours_review_runs
-  set lease_expires_at = clock_timestamp() - interval '1 second'
-  where id = expired_run;
+end
+$$;
+
+reset role;
+
+update public.hours_review_runs
+set lease_expires_at = clock_timestamp() - interval '1 second'
+where id like 'run-expired-remediation-%'
+  and status = 'running';
+
+set role service_role;
+
+do $$
+declare
+  expired_run text;
+begin
+  select id
+  into expired_run
+  from public.hours_review_runs
+  where id like 'run-expired-remediation-%'
+  order by started_at desc
+  limit 1;
   if public.renew_hours_review_run_lease(
     expired_run, repeat('f', 64), repeat('0', 64)
   ) then
     raise exception 'expired remediation lease unexpectedly renewed';
   end if;
-  if public.apply_hours_remediation_outcome(
-    expired_run,
-    repeat('f', 64),
-    repeat('0', 64),
-    repeat('9', 64),
-    'legacy-1',
-    'legacy-hours',
-    null,
-    null,
-    null,
-    'unknown',
-    null,
-    null,
-    null,
-    null,
-    null,
-    'unknown',
-    'hours_unknown',
-    null,
-    expected_updated_at
+  if public.claim_hours_review_run(
+    expired_run, 'remediation', now(),
+    repeat('f', 64), repeat('0', 64)
   ) then
-    raise exception 'expired remediation lease unexpectedly accepted a write';
+    raise exception 'expired same-ID remediation run was reopened';
   end if;
   if not public.fail_hours_review_run(expired_run, now()) then
     raise exception 'expired remediation test run must finalize failed';
@@ -922,7 +942,53 @@ begin
 end
 $$;
 
+do $$
+begin
+  if not public.claim_hours_review_run(
+    'run-persistence-marker', 'manual', clock_timestamp()
+  )
+     or not public.record_hours_review_persistence_failure(
+       'run-persistence-marker', 'legacy-1', 'legacy-hours'
+     )
+     or not public.record_hours_review_persistence_failure(
+       'run-persistence-marker', 'legacy-1', 'legacy-hours'
+     ) then
+    raise exception 'bounded persistence marker seam failed';
+  end if;
+  if not exists (
+    select 1
+    from public.hours_review_runs
+    where id = 'run-persistence-marker'
+      and outcome_persistence_failure_count = 1
+      and outcome_persistence_failures =
+        '[{"venueId":"legacy-1","venueSlug":"legacy-hours"}]'::jsonb
+  ) then
+    raise exception 'persistence marker shape/count is incoherent';
+  end if;
+  if not public.fail_hours_review_run(
+    'run-persistence-marker', clock_timestamp()
+  ) then
+    raise exception 'persistence marker run did not finalize';
+  end if;
+end
+$$;
+
 reset role;
+
+do $$
+begin
+  begin
+    update public.hours_review_runs
+    set outcome_persistence_failure_count = 1,
+        outcome_persistence_failures =
+          '[{"venueId":"legacy-1","extra":"forbidden"}]'::jsonb
+    where id = 'run-persistence-marker';
+    raise exception 'invalid persistence marker shape unexpectedly accepted';
+  exception
+    when check_violation then null;
+  end;
+end
+$$;
 
 do $$
 begin

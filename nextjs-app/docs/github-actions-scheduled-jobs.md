@@ -60,6 +60,8 @@ order by venue_id;
 
 After a coherent run is finalized successfully, completed history older than
 180 days is pruned. Active and ultimately failed runs never initiate pruning.
+If this post-finalization maintenance step fails, the durable audit status stays
+completed and the step summary reports `retention_prune_failed` separately.
 
 ### Troubleshooting
 
@@ -71,6 +73,9 @@ After a coherent run is finalized successfully, completed history older than
   claim and GitHub concurrency group both prevent overlap.
 - **Completed with failures:** use the run ID and bounded outcome rows to locate
   failed venues. Canonical hours were not changed.
+- **Retention maintenance warning:** the audit itself is already terminal and
+  must not be retried as failed; inspect the bounded warning and rerun the
+  maintenance path in a controlled dispatch.
 - **Schedule delay:** GitHub schedules are approximate. Use
   `workflow_dispatch` for a controlled manual run on `main`.
 

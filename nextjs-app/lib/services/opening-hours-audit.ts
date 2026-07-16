@@ -11,6 +11,9 @@ import {
   hoursAuditOutcomeSchema,
   hoursAuditReasonSchema,
   hoursReviewStatusSchema,
+  hoursSourceReferenceSchema,
+  hoursSourceTypeSchema,
+  offsetDateTimeSchema,
   weeklyOpeningHoursSchema,
 } from '@/lib/services/opening-hours-governance';
 
@@ -19,6 +22,8 @@ const STALE_AFTER_DAYS = 180;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 type AuditProvenance = {
+  sourceType?: string;
+  sourceReference?: string;
   reviewStatus?: string;
   reviewedAt?: string;
   nextReviewAt?: string;
@@ -28,11 +33,14 @@ type AuditProvenance = {
 } | null;
 
 export type HoursAuditVenue = {
-  id?: string;
-  slug?: string;
+  id: string;
+  slug: string;
   openingHours?: WeeklyOpeningHours | null | unknown;
   provenance?: AuditProvenance;
 };
+
+type HoursAuditClassificationVenue = Omit<HoursAuditVenue, 'id' | 'slug'> &
+  Partial<Pick<HoursAuditVenue, 'id' | 'slug'>>;
 
 export type HoursAuditClassification = {
   outcome:
@@ -62,10 +70,13 @@ export type HoursAuditClassification = {
 };
 
 export function classifyHoursAuditVenue(input: {
-  venue: HoursAuditVenue;
+  venue: HoursAuditClassificationVenue;
   now: Date;
 }): HoursAuditClassification {
   const { venue, now } = input;
+  if (!Number.isFinite(now.getTime())) {
+    throw new Error('Invalid audit clock');
+  }
   const provenance = venue.provenance;
   if (provenance?.throwForTest) {
     throw new Error('Deterministic classification failure');
@@ -96,35 +107,56 @@ export function classifyHoursAuditVenue(input: {
     };
   }
 
-  const hasAnyReviewDate =
-    provenance.reviewedAt !== undefined ||
-    provenance.nextReviewAt !== undefined;
+  const sourceType = hoursSourceTypeSchema.safeParse(provenance.sourceType);
+  const sourceReference = hoursSourceReferenceSchema.safeParse(
+    provenance.sourceReference,
+  );
   const reviewedAt = parseTimestamp(provenance.reviewedAt);
   const nextReviewAt = parseTimestamp(provenance.nextReviewAt);
+  const sourceFieldCount = [
+    provenance.sourceType,
+    provenance.sourceReference,
+    provenance.reviewedAt,
+    provenance.nextReviewAt,
+  ].filter((value) => value !== undefined).length;
+  const hasCompleteSourceBundle =
+    sourceFieldCount === 4 &&
+    sourceType.success &&
+    sourceReference.success &&
+    reviewedAt !== undefined &&
+    nextReviewAt !== undefined;
   if (
-    (hasAnyReviewDate &&
-      (reviewedAt === undefined ||
-        nextReviewAt === undefined ||
-        reviewedAt > now.getTime() ||
-        nextReviewAt < reviewedAt)) ||
-    ((reviewStatus.data === 'verified' || reviewStatus.data === 'due') &&
-      (reviewedAt === undefined || nextReviewAt === undefined))
+    (sourceFieldCount !== 0 && !hasCompleteSourceBundle) ||
+    (hasCompleteSourceBundle &&
+      (reviewedAt > now.getTime() || nextReviewAt < reviewedAt))
   ) {
-    return {
-      outcome: 'failed',
-      reason: 'classification_failed',
-      errorClass: 'validation_failed',
-    };
+    return integrityFailure();
   }
 
   if (reviewStatus.data === 'failed') {
+    const errorClass = hoursAuditErrorClassSchema.safeParse(
+      provenance.lastErrorClass,
+    );
+    if (
+      provenance.reviewReason !== 'classification_failed' ||
+      !errorClass.success ||
+      (venue.openingHours != null && !hasCompleteSourceBundle)
+    ) {
+      return integrityFailure();
+    }
     return {
       outcome: 'failed',
       reason: 'prior_failure',
-      errorClass: boundedErrorClass(provenance.lastErrorClass ?? 'unexpected'),
+      errorClass: errorClass.data,
     };
   }
   if (reviewStatus.data === 'manual_review') {
+    if (
+      provenance.lastErrorClass !== undefined ||
+      (venue.openingHours != null && !hasCompleteSourceBundle)
+    ) {
+      return integrityFailure();
+    }
     if (provenance.reviewReason === 'unsupported_split') {
       return { outcome: 'split', reason: 'unsupported_split' };
     }
@@ -142,31 +174,38 @@ export function classifyHoursAuditVenue(input: {
         errorClass: 'validation_failed',
       };
     }
-    return {
-      outcome: 'failed',
-      reason: 'classification_failed',
-      errorClass: 'validation_failed',
-    };
+    return integrityFailure();
   }
-  if (reviewStatus.data === 'unknown' || venue.openingHours == null) {
+  if (reviewStatus.data === 'unknown') {
+    if (
+      venue.openingHours != null ||
+      provenance.reviewReason !== undefined ||
+      provenance.lastErrorClass !== undefined
+    ) {
+      return integrityFailure();
+    }
     return { outcome: 'unknown', reason: 'hours_unknown' };
+  }
+  if (
+    venue.openingHours == null ||
+    !hasCompleteSourceBundle ||
+    provenance.reviewReason !== undefined ||
+    provenance.lastErrorClass !== undefined
+  ) {
+    return integrityFailure();
   }
   if (reviewStatus.data === 'due') {
     return { outcome: 'due', reason: 'review_due' };
   }
 
-  if (reviewedAt === undefined || nextReviewAt === undefined) {
-    return {
-      outcome: 'failed',
-      reason: 'classification_failed',
-      errorClass: 'validation_failed',
-    };
-  }
-  if (now.getTime() - reviewedAt >= STALE_AFTER_DAYS * DAY_MS) {
+  // Verified/due states above require a complete source bundle.
+  const verifiedReviewedAt = reviewedAt as number;
+  const verifiedNextReviewAt = nextReviewAt as number;
+  if (now.getTime() - verifiedReviewedAt >= STALE_AFTER_DAYS * DAY_MS) {
     return { outcome: 'stale', reason: 'review_stale' };
   }
 
-  if (nextReviewAt <= now.getTime()) {
+  if (verifiedNextReviewAt <= now.getTime()) {
     return { outcome: 'due', reason: 'review_due' };
   }
 
@@ -175,27 +214,30 @@ export function classifyHoursAuditVenue(input: {
 
 function parseTimestamp(value: string | undefined): number | undefined {
   if (!value) return undefined;
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
+  const parsed = offsetDateTimeSchema.safeParse(value);
+  if (!parsed.success) return undefined;
+  const timestamp = new Date(parsed.data).getTime();
+  return Number.isFinite(timestamp) ? timestamp : undefined;
 }
 
-function boundedErrorClass(
-  value: string,
-): HoursAuditClassification['errorClass'] {
-  const parsed = hoursAuditErrorClassSchema.safeParse(value);
-  return parsed.success ? parsed.data : 'unexpected';
+function integrityFailure(): HoursAuditClassification {
+  return {
+    outcome: 'failed',
+    reason: 'classification_failed',
+    errorClass: 'validation_failed',
+  };
 }
 
 type ClaimedRun =
   | { claimed: true; runId: string }
   | { claimed: false; activeRunId?: string };
 
-type AuditRepositories = {
+export type AuditRepositories = {
   claimRun: (input?: Record<string, unknown>) => Promise<ClaimedRun>;
-  renewLease?: () => Promise<unknown>;
+  renewLease: () => Promise<unknown>;
   listVenues: () => Promise<HoursAuditVenue[]>;
   recordOutcome: (input: Record<string, unknown>) => Promise<unknown>;
-  recordPersistenceFailure?: (
+  recordPersistenceFailure: (
     input: Record<string, unknown>,
   ) => Promise<unknown>;
   finishRun: (input: Record<string, unknown>) => Promise<unknown>;
@@ -222,8 +264,13 @@ export async function runOpeningHoursAudit(input: {
   runId?: string;
   activeRunId?: string;
   counts?: AuditCounts;
+  maintenanceWarning?: 'retention_prune_failed';
 }> {
   if (!input.enabled) return { status: 'disabled' };
+  if (!Number.isFinite(input.now.getTime())) {
+    throw new Error('Invalid audit clock');
+  }
+  assertAuditRepositoryContract(input.repositories);
 
   const claim = await input.repositories.claimRun({ now: input.now });
   if (!claim.claimed) {
@@ -238,13 +285,25 @@ export async function runOpeningHoursAudit(input: {
   let finalized = false;
   let outcomePersistenceFailed = false;
   try {
-    await input.repositories.renewLease?.();
+    await input.repositories.renewLease();
     const venues = await input.repositories.listVenues();
     if (venues.length === 0) {
       throw new Error('Audit venue population is empty');
     }
     for (const venue of venues) {
-      await input.repositories.renewLease?.();
+      if (
+        typeof venue.id !== 'string' ||
+        venue.id.trim().length === 0 ||
+        venue.id.length > 200 ||
+        typeof venue.slug !== 'string' ||
+        venue.slug.trim().length === 0 ||
+        venue.slug.length > 200
+      ) {
+        throw new Error('Audit venue identity is invalid');
+      }
+    }
+    for (const venue of venues) {
+      await input.repositories.renewLease();
       let classification: HoursAuditClassification;
       try {
         classification = classifyHoursAuditVenue({ venue, now: input.now });
@@ -290,7 +349,7 @@ export async function runOpeningHoursAudit(input: {
           // so operators can identify the population member with no durable
           // outcome row without fabricating a replacement classification.
           outcomePersistenceFailed = true;
-          await input.repositories.recordPersistenceFailure?.({
+          await input.repositories.recordPersistenceFailure({
             runId: claim.runId,
             venueId: venue.id,
             venueSlug: venue.slug,
@@ -306,7 +365,10 @@ export async function runOpeningHoursAudit(input: {
     const status =
       counts.failed > 0 ? 'completed_with_failures' : 'completed';
     const finishedAt = clock();
-    await input.repositories.renewLease?.();
+    if (!Number.isFinite(finishedAt.getTime())) {
+      throw new Error('Invalid audit completion clock');
+    }
+    await input.repositories.renewLease();
     await input.repositories.finishRun({
       runId: claim.runId,
       status,
@@ -315,11 +377,21 @@ export async function runOpeningHoursAudit(input: {
       finishedAt,
     });
     finalized = true;
-    await input.repositories.pruneBefore(
-      new Date(finishedAt.getTime() - RETENTION_DAYS * DAY_MS),
-    );
+    let maintenanceWarning: 'retention_prune_failed' | undefined;
+    try {
+      await input.repositories.pruneBefore(
+        new Date(finishedAt.getTime() - RETENTION_DAYS * DAY_MS),
+      );
+    } catch {
+      maintenanceWarning = 'retention_prune_failed';
+    }
 
-    return { status, runId: claim.runId, counts };
+    return {
+      status,
+      runId: claim.runId,
+      counts,
+      ...(maintenanceWarning ? { maintenanceWarning } : {}),
+    };
   } catch (error) {
     if (!finalized) {
       try {
@@ -338,6 +410,28 @@ export async function runOpeningHoursAudit(input: {
       }
     }
     throw error;
+  }
+}
+
+function assertAuditRepositoryContract(
+  repositories: AuditRepositories,
+): void {
+  const requiredOperations: Array<keyof AuditRepositories> = [
+    'claimRun',
+    'renewLease',
+    'listVenues',
+    'recordOutcome',
+    'recordPersistenceFailure',
+    'finishRun',
+    'failRun',
+    'pruneBefore',
+  ];
+  if (
+    requiredOperations.some(
+      (operation) => typeof repositories?.[operation] !== 'function',
+    )
+  ) {
+    throw new Error('Incomplete audit repository contract');
   }
 }
 

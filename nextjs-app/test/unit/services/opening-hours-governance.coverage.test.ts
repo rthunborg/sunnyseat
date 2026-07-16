@@ -19,7 +19,7 @@ describe('[12.1 AC3/AC4] governance validation boundaries', () => {
     const result = classifyHoursEvidence({
       ...eligibleEvidence,
       sourceReference: '  venue-site:example:2026-07-13  ',
-      notes: '  owner attestation  ',
+      notes: '  note:owner-attestation  ',
       schedule: { '1': { open: '00:00', close: '23:59' } },
     });
 
@@ -29,7 +29,7 @@ describe('[12.1 AC3/AC4] governance validation boundaries', () => {
         sourceType: 'venue_website',
         sourceReference: 'venue-site:example:2026-07-13',
         reviewStatus: 'verified',
-        notes: 'owner attestation',
+        notes: 'note:owner-attestation',
       },
     });
   });

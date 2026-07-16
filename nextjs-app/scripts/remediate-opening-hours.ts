@@ -10,7 +10,7 @@ import {
   unlink,
   writeFile,
 } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import {
   createClient,
   type SupabaseClient,
@@ -112,7 +112,7 @@ try {
       review_status: update.reviewStatus,
       reviewed_at: provenance?.reviewedAt ?? null,
       next_review_at: provenance?.nextReviewAt ?? null,
-      notes: opaqueHoursNote(provenance?.notes),
+      notes: provenance?.notes ?? null,
       review_reason: update.reviewReason ?? null,
       last_error_class: update.lastErrorClass ?? null,
       outcome: bounded.outcome,
@@ -161,14 +161,25 @@ try {
     }
 
     try {
-      const persistedReport = await persistedRemediationReport(supabase).catch(
-        () => ({ counts: emptyCounts(), outcomes: [] }),
-      );
+      let persistedReport: Awaited<
+        ReturnType<typeof persistedRemediationReport>
+      >;
+      let evidence: 'persisted' | 'unavailable';
+      let evidenceErrorClass: 'persisted_outcomes_unreadable' | undefined;
+      try {
+        persistedReport = await persistedRemediationReport(supabase);
+        evidence = 'persisted';
+      } catch {
+        persistedReport = { counts: emptyCounts(), outcomes: [] };
+        evidence = 'unavailable';
+        evidenceErrorClass = 'persisted_outcomes_unreadable';
+      }
       await writeRemediationReport({
         status: 'failed',
         counts: persistedReport.counts,
         reportOutcomes: persistedReport.outcomes,
-        evidence: 'persisted',
+        evidence,
+        evidenceErrorClass,
         finishedAt: failedAt,
       });
     } catch (reportError) {
@@ -253,6 +264,10 @@ async function applyRemediationBatch(
     const row = byVenue.get(String(request.venue_id));
     return (
       row?.venue_slug === request.venue_slug &&
+      row.outcome === request.outcome &&
+      row.reason === request.reason &&
+      row.error_class === request.error_class &&
+      row.resulting_review_status === request.review_status &&
       row.remediation_input_fingerprint === inputFingerprint &&
       row.remediation_request_fingerprint === request.request_fingerprint
     );
@@ -416,7 +431,8 @@ async function writeRemediationReport(input: {
   status: ReportStatus;
   counts: Counts;
   reportOutcomes: ReportOutcome[];
-  evidence: 'planned' | 'persisted';
+  evidence: 'planned' | 'persisted' | 'unavailable';
+  evidenceErrorClass?: 'persisted_outcomes_unreadable';
   finishedAt?: Date;
 }): Promise<void> {
   const contents =
@@ -426,6 +442,9 @@ async function writeRemediationReport(input: {
         inputFingerprint,
         status: input.status,
         evidence: input.evidence,
+        ...(input.evidenceErrorClass
+          ? { evidenceErrorClass: input.evidenceErrorClass }
+          : {}),
         ...(input.finishedAt
           ? { finishedAt: input.finishedAt.toISOString() }
           : {}),
@@ -495,7 +514,7 @@ async function preflightRemediationPaths(
   const reportDirectoryRealPath = await realpath(reportDirectory);
   let reportComparisonPath = join(
     reportDirectoryRealPath,
-    report.slice(reportDirectory.length + 1),
+    basename(report),
   );
   try {
     const reportStats = await stat(report);
@@ -565,14 +584,68 @@ async function isRemediationRunActive(client: HoursClient): Promise<boolean> {
 function fingerprintRequest(
   request: Record<string, Json | string | null>,
 ): string {
-  return createHash('sha256').update(JSON.stringify(request)).digest('hex');
+  const fields = [
+    request.venue_id,
+    request.venue_slug,
+    canonicalOpeningHours(request.opening_hours),
+    request.source_type,
+    request.source_reference,
+    request.review_status,
+    request.reviewed_at,
+    request.next_review_at,
+    request.notes,
+    request.review_reason,
+    request.last_error_class,
+    request.outcome,
+    request.reason,
+    request.error_class,
+    request.expected_updated_at,
+  ];
+  const canonical = fields
+    .map((value) => {
+      if (value === null) return '-1:';
+      if (typeof value !== 'string') {
+        throw new Error('Remediation fingerprint field is not canonical text');
+      }
+      return `${Buffer.byteLength(value, 'utf8')}:${value}`;
+    })
+    .join('\u001f');
+  return createHash('sha256').update(canonical, 'utf8').digest('hex');
 }
 
-function opaqueHoursNote(value: string | null | undefined): string | null {
-  const note = value?.trim();
-  return note && /^note:[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/.test(note)
-    ? note
-    : null;
+function canonicalOpeningHours(value: Json | string | null): string | null {
+  if (value === null) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Remediation opening hours are not canonical');
+  }
+  const input = value as Record<string, Json | undefined>;
+  const normalized: Record<
+    string,
+    { open: string; close: string } | null
+  > = {};
+  for (let weekday = 1; weekday <= 7; weekday += 1) {
+    const key = String(weekday);
+    if (!(key in input)) continue;
+    const interval = input[key];
+    if (interval === null) {
+      normalized[key] = null;
+      continue;
+    }
+    if (
+      !interval ||
+      typeof interval !== 'object' ||
+      Array.isArray(interval) ||
+      typeof interval.open !== 'string' ||
+      typeof interval.close !== 'string'
+    ) {
+      throw new Error('Remediation opening hours are not canonical');
+    }
+    normalized[key] = {
+      open: interval.open,
+      close: interval.close,
+    };
+  }
+  return JSON.stringify(normalized);
 }
 
 function validateRunId(value: string): string {

@@ -753,6 +753,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      apply_hours_remediation_request: {
+        Args: {
+          p_remediation_claim_identity: string
+          p_remediation_input_fingerprint: string
+          p_request: Json
+          p_run_id: string
+        }
+        Returns: boolean
+      }
       claim_hours_review_run: {
         Args:
           | {
@@ -960,6 +969,14 @@ export type Database = {
           venue_count: number
         }[]
       }
+      hours_remediation_fingerprint_part: {
+        Args: { p_value: string }
+        Returns: string
+      }
+      hours_remediation_request_fingerprint: {
+        Args: { p_request: Json }
+        Returns: string
+      }
       is_safe_hours_note: { Args: { p_note: string }; Returns: boolean }
       is_hours_review_run_active: {
         Args: {
@@ -968,6 +985,10 @@ export type Database = {
           p_remediation_input_fingerprint: string
           p_run_id: string
         }
+        Returns: boolean
+      }
+      is_valid_hours_review_persistence_failures: {
+        Args: { p_failures: Json }
         Returns: boolean
       }
       is_safe_hours_source_reference: {

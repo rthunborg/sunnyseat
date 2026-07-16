@@ -6,6 +6,10 @@ import {
 
 const NOW = new Date('2026-07-13T10:00:00.000Z');
 const HOURS = { '1': { open: '11:00', close: '22:00' } };
+const SOURCE = {
+  sourceType: 'venue_website',
+  sourceReference: 'venue-site:test-venue:2026-07-13',
+};
 
 describe('[12.1 AC5] audit classification boundaries', () => {
   test('[P1] a verified row before both cutoffs is current', () => {
@@ -14,6 +18,7 @@ describe('[12.1 AC5] audit classification boundaries', () => {
         venue: {
           openingHours: HOURS,
           provenance: {
+            ...SOURCE,
             reviewStatus: 'verified',
             reviewedAt: '2026-07-12T10:00:00.000Z',
             nextReviewAt: '2026-07-14T10:00:00.000Z',
@@ -28,6 +33,7 @@ describe('[12.1 AC5] audit classification boundaries', () => {
     const venue = {
       openingHours: HOURS,
       provenance: {
+        ...SOURCE,
         reviewStatus: 'verified',
         reviewedAt: '2026-07-12T10:00:00.000Z',
       },
@@ -68,6 +74,7 @@ describe('[12.1 AC5] audit classification boundaries', () => {
         venue: {
           openingHours: HOURS,
           provenance: {
+            ...SOURCE,
             reviewStatus: 'verified',
             reviewedAt: boundary.toISOString(),
             nextReviewAt: '2026-12-01T00:00:00.000Z',
@@ -82,6 +89,7 @@ describe('[12.1 AC5] audit classification boundaries', () => {
         venue: {
           openingHours: HOURS,
           provenance: {
+            ...SOURCE,
             reviewStatus: 'verified',
             reviewedAt: new Date(boundary.getTime() + 1).toISOString(),
             nextReviewAt: '2026-12-01T00:00:00.000Z',
@@ -104,8 +112,8 @@ describe('[12.1 AC5] audit classification boundaries', () => {
       },
       {
         outcome: 'failed',
-        reason: 'prior_failure',
-        errorClass: 'unexpected',
+        reason: 'classification_failed',
+        errorClass: 'validation_failed',
       },
     ],
     [
@@ -135,6 +143,7 @@ describe('[12.1 AC5] audit classification boundaries', () => {
       {
         openingHours: HOURS,
         provenance: {
+          ...SOURCE,
           reviewStatus: 'verified',
           reviewedAt: '2025-01-01T00:00:00.000Z',
           nextReviewAt: '2026-07-12T00:00:00.000Z',
@@ -168,12 +177,14 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
             claimed: true,
             runId: 'run-write-failure',
           }),
+          renewLease: vi.fn().mockResolvedValue(undefined),
           listVenues: vi.fn().mockResolvedValue([
             {
               id: '1',
               slug: 'current',
               openingHours: HOURS,
               provenance: {
+                ...SOURCE,
                 reviewStatus: 'verified',
                 reviewedAt: '2026-07-12T10:00:00.000Z',
                 nextReviewAt: '2026-07-14T10:00:00.000Z',
@@ -184,6 +195,7 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
               slug: 'due',
               openingHours: HOURS,
               provenance: {
+                ...SOURCE,
                 reviewStatus: 'due',
                 reviewedAt: '2026-07-12T10:00:00.000Z',
                 nextReviewAt: '2026-07-13T09:00:00.000Z',
@@ -191,6 +203,7 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
             },
           ]),
           recordOutcome,
+          recordPersistenceFailure: vi.fn().mockResolvedValue(undefined),
           finishRun,
           failRun,
           pruneBefore,
@@ -228,8 +241,10 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
             claimed: true,
             runId: 'run-read-failure',
           }),
+          renewLease: vi.fn().mockResolvedValue(undefined),
           listVenues: vi.fn().mockRejectedValue(new Error('venue read failed')),
           recordOutcome: vi.fn(),
+          recordPersistenceFailure: vi.fn().mockResolvedValue(undefined),
           finishRun,
           failRun,
           pruneBefore,
@@ -250,8 +265,10 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
         now: NOW,
         repositories: {
           claimRun: vi.fn().mockResolvedValue({ claimed: false }),
+          renewLease: vi.fn().mockResolvedValue(undefined),
           listVenues,
           recordOutcome: vi.fn(),
+          recordPersistenceFailure: vi.fn().mockResolvedValue(undefined),
           finishRun: vi.fn(),
           failRun: vi.fn(),
           pruneBefore: vi.fn(),
@@ -273,8 +290,10 @@ describe('[12.1 AC5] audit repository failure behavior', () => {
             claimed: true,
             runId: 'run-empty',
           }),
+          renewLease: vi.fn().mockResolvedValue(undefined),
           listVenues: vi.fn().mockResolvedValue([]),
           recordOutcome: vi.fn(),
+          recordPersistenceFailure: vi.fn().mockResolvedValue(undefined),
           finishRun,
           failRun,
           pruneBefore: vi.fn().mockResolvedValue(undefined),

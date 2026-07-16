@@ -34,7 +34,7 @@ collect and in what shape” guide.
 | `hours_source_reference` | text | with reviewed hours | Inspectable, opaque evidence reference using colon-separated identifier tokens, such as `venue-site:slug:2026-07-14`. The accepted form is `^[a-z][a-z0-9_-]{1,31}:[A-Za-z0-9][A-Za-z0-9._-]{0,199}(?::[A-Za-z0-9][A-Za-z0-9._-]{0,199}){0,3}$`. Keep URLs, paths, query strings, payloads, tokens, and credentials outside this field. |
 | `hours_review_status` | text | with reviewed hours | `verified`, `due`, `manual_review`, `unknown`, or `failed`. |
 | `hours_reviewed_at` / `hours_next_review_at` | timestamptz | with reviewed hours | Review timestamps; next review cannot precede the completed review. |
-| `hours_notes` | text | optional | `null` or an opaque `note:` identifier only, for example `note:owner-confirmation-2026-07-16`. Do not persist free-form prose, URLs, payloads, or credentials. Machine state belongs in the service-only structured review-reason and error-class fields. |
+| `hours_notes` | text | optional | `null` or an opaque `note:` identifier matching `^note:[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$` (6–205 characters total), for example `note:owner-confirmation-2026-07-16`. Free-form prose is not accepted or silently discarded. Do not persist URLs, payloads, or credentials. Machine state belongs in the service-only structured review-reason and error-class fields. |
 | **`seating_area`** | jsonb (GeoJSON Polygon) | — but **important** | The outdoor seating footprint the sun engine casts shadows onto. WGS84, `[lng, lat]` order, closed ring. Null → engine uses a ~10 m square around `lat/lng` (less precise). |
 | **`seating_elevation_m`** | double precision ≥ 0 | optional | Estimated metres of the **seating surface above local ground/street**. Null/0 = street level. Rooftop bars / raised terraces / balconies use the approx floor height (4th floor ≈ 12 m). **Consumed by the engine as of Story 8.6** (Tier-1 rooftop/raised height gate — see "Elevation" below). Set it for rooftop / raised venues so they are predicted from their seating height; leave it null for street-level venues (byte-identical to the pre-8.6 ground-level path). |
 | **`ground_elevation_m`** | double precision | optional | The venue's **RH2000 absolute ground elevation** (Z, metres) at its point — the height of the *ground the venue stands on*, NOT a height above ground. **May be negative.** For a **hilltop** venue this lets the engine compare each caster's roof against the venue's own ground, so a building standing downhill stops shadowing a venue uphill from it. **Consumed by the engine as of Story 8.7** (Tier-2 terrain gate — see "Elevation" below). Null → engine falls back to the Story 8.6 relative gate (byte-identical). Derive it the same way casters get `ground_z_rh2000`: sample the Göteborg **Höjdmodell 2022 DTM** at the venue's `lat`/`lng` (or, pragmatically, take `ground_z_rh2000` of the `shadow_casters` rows nearest the seating polygon). Leave it null unless the venue sits on a meaningful rise. |
@@ -132,6 +132,9 @@ changes use the guarded service-role `apply_hours_remediation_batch` RPC (which
 calls the per-venue `apply_hours_remediation_outcome` seam). It validates the
 complete state combination, source-reference policy, database timestamps,
 population binding, and stale-write snapshot before mutating canonical hours.
+The service role has read-only access to the bounded review tables; claims,
+outcomes, finalization, failure markers, and pruning must use their guarded
+RPCs.
 
 The protected weekly workflow `.github/workflows/hours-review-audit.yml` runs
 `scripts/audit-opening-hours.ts` directly against Supabase. It never fetches
@@ -165,11 +168,15 @@ writes a provisional plan report, then submits the complete venue population
 through one batch RPC. Each venue is atomic: a stale or incoherent venue
 receives a bounded failed outcome while other venues continue. The run-level
 input fingerprint, claim identity, and per-request fingerprints make identical
-accepted input resumable after response loss or process restart without
-certifying a different document. Terminal reports are rebuilt from durable
+accepted input reconcilable while the same bound run remains active without
+certifying a different document. A terminal or lease-expired remediation run ID
+is never reopened with its old outcome set; use an explicit new safe run ID for
+a deliberate operator rerun. Terminal reports are rebuilt from durable
 `hours_review_outcomes`, so planned values are never presented as persisted
-evidence. A report-write failure after database completion does not mislabel the
-completed database run as failed.
+evidence. If those rows cannot be read during failure reporting, the report
+labels the evidence `unavailable` rather than `persisted`. A report-write
+failure after database completion does not mislabel the completed database run
+as failed.
 
 ## Painting the `seating_area` polygon
 
