@@ -1,0 +1,27 @@
+name: Hours Review Audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  registration-placeholder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Report registration placeholder
+        shell: bash
+        run: |
+          echo "::notice title=Registration placeholder::No opening-hours audit was run."
+          {
+            echo "## Hours Review Audit registration placeholder"
+            echo
+            echo "This default-branch workflow only registers the workflow path for manual dispatch."
+            echo "It does not access Supabase or run the opening-hours audit."
+            echo
+            echo "Dispatch the actual audit workflow with a non-main ref:"
+            echo
+            echo '`gh workflow run .github/workflows/hours-review-audit.yml --ref <story-branch>`'
+          } >> "$GITHUB_STEP_SUMMARY"
