@@ -318,7 +318,7 @@ development_status:
   # - 12.14: Apply the resolved closed-venue search/favourites policy, including openable greyed closed
   #   favourites and exact by-name closed search results. Include the mandatory `Superseded Epic Text` section.
   epic-12: in-progress
-  12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours: review
+  12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours: done
   12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass: backlog
   12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze: backlog
   12-4-production-console-hygiene-hydration-error-maplibre-null-warning: backlog

@@ -4,7 +4,7 @@ baseline_commit: 5b1cd0a719fa0ee70b7b25171a61a582740675ec
 
 # Story 12.1: Google Places Opening-Hours Sync (Weekly Scheduled — Replace Hand-Maintained Hours)
 
-Status: review
+Status: done
 
 > **Historical title / controlling implementation:** The title and the retained Epic 12 prose describe the rejected Google-hours design. The approved 2026-07-12 provider-policy research, PRD v3.2, and Architecture Decisions `E12-AD-01`, `E12-AD-12`, and `E12-AD-13` control this story. Implement provider-neutral canonical hours, a one-time provenance remediation, and a weekly staleness/manual-review audit. Do **not** implement Google `regularOpeningHours` ingestion.
 
