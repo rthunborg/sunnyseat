@@ -127,20 +127,33 @@ describe('[12.1 AC3/AC4] canonical update and remediation behavior', () => {
     },
   );
 
-  test('[P1] remediation classifies every row and deletes unproven/restricted schedules to whole-field unknown', async () => {
+  test('[P1] remediation classifies every row and preserves verified hours on invalid source metadata', async () => {
     const { remediateOpeningHoursRows } = await loadGovernance();
     const result = await remediateOpeningHoursRows({
       rows: [
         { id: '1', slug: 'verified', openingHours: { '1': { open: '11:00', close: '22:00' } }, evidence: eligibleEvidence },
         { id: '2', slug: 'unproven', openingHours: { '1': { open: '11:00', close: '22:00' } }, evidence: null },
-        { id: '3', slug: 'restricted', openingHours: { '1': { open: '11:00', close: '22:00' } }, evidence: { sourceType: 'google' } },
+        { id: '3', slug: 'invalid-source', openingHours: { '1': { open: '11:00', close: '22:00' } }, evidence: { ...eligibleEvidence, sourceType: 'venue_webiste' } },
       ],
     });
     expect(result.outcomes).toHaveLength(3);
     expect(result.updates).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: '2', openingHours: null }),
-        expect.objectContaining({ id: '3', openingHours: null }),
+        expect.objectContaining({ id: '2', openingHours: null, reviewStatus: 'unknown' }),
+        expect.objectContaining({
+          id: '3',
+          openingHours: null,
+          reviewStatus: 'failed',
+          reviewReason: 'classification_failed',
+          lastErrorClass: 'validation_failed',
+          preservesPriorSchedule: true,
+        }),
+      ]),
+    );
+    expect(result.outcomes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ venueId: '2', outcome: 'unknown', reason: 'provenance_removed' }),
+        expect.objectContaining({ venueId: '3', outcome: 'failed', reason: 'invalid_provenance' }),
       ]),
     );
     expect(JSON.stringify(result)).not.toMatch(/seven closed|relabelled.*manual/i);

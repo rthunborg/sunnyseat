@@ -569,10 +569,7 @@ export async function remediateOpeningHoursRows(input: {
   const now = input.now ?? new Date();
 
   for (const row of input.rows) {
-    if (
-      !row.evidence ||
-      !hoursSourceTypeSchema.safeParse(row.evidence.sourceType).success
-    ) {
+    if (!row.evidence) {
       updates.push({
         id: row.id,
         expectedUpdatedAt: row.updatedAt,
