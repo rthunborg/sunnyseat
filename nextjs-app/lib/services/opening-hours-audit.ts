@@ -81,9 +81,6 @@ export function classifyHoursAuditVenue(input: {
   if (provenance?.throwForTest) {
     throw new Error('Deterministic classification failure');
   }
-  if (!provenance) {
-    return { outcome: 'missing_provenance', reason: 'missing_provenance' };
-  }
 
   if (venue.openingHours != null) {
     const schedule = weeklyOpeningHoursSchema.safeParse(venue.openingHours);
@@ -94,6 +91,10 @@ export function classifyHoursAuditVenue(input: {
         errorClass: 'validation_failed',
       };
     }
+  }
+
+  if (!provenance) {
+    return { outcome: 'missing_provenance', reason: 'missing_provenance' };
   }
 
   const reviewStatus = hoursReviewStatusSchema.safeParse(
