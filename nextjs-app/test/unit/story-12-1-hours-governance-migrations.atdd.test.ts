@@ -38,6 +38,12 @@ const finalSafety = readMigration(
 const iterationFiveClosure = readMigration(
   'close_hours_review_iteration_5',
 );
+const iterationEightClosure = readMigration(
+  'close_hours_review_iteration_8',
+);
+const iterationNineClosure = readMigration(
+  'close_hours_review_iteration_9',
+);
 const allSql =
   reconciliation +
   '\n' +
@@ -55,7 +61,11 @@ const allSql =
   '\n' +
   finalSafety +
   '\n' +
-  iterationFiveClosure;
+  iterationFiveClosure +
+  '\n' +
+  iterationEightClosure +
+  '\n' +
+  iterationNineClosure;
 
 describe('[12.1 AC2] canonical migration chain', () => {
   test('[P0] reconciliation precedes the forward provider-neutral migration', () => {
@@ -199,23 +209,32 @@ describe('[12.1 AC2] canonical migration chain', () => {
   });
 
   test('[P0] remediation validates identity and an optimistic venue version', () => {
-    expect(finalSafety).toMatch(/p_expected_updated_at\s+timestamptz/i);
-    expect(finalSafety).toMatch(
+    const remediationSql = finalSafety + '\n' + iterationNineClosure;
+    expect(remediationSql).toMatch(/p_expected_updated_at\s+timestamptz/i);
+    expect(remediationSql).toMatch(
       /canonical_slug\s+is\s+distinct\s+from\s+p_venue_slug/i,
     );
-    expect(finalSafety).toMatch(
+    expect(remediationSql).toMatch(
       /prior_updated_at\s+is\s+distinct\s+from\s+p_expected_updated_at/i,
     );
-    expect(finalSafety).toMatch(
+    expect(remediationSql).toMatch(
       /p_review_status\s*=\s*'verified'[\s\S]*p_outcome\s*=\s*'current'[\s\S]*p_reason\s*=\s*'review_current'/i,
+    );
+    expect(iterationNineClosure).toMatch(
+      /prior_match\.resulting_venue_updated_at\s+is\s+distinct\s+from\s+prior_updated_at/i,
+    );
+    expect(iterationNineClosure).toMatch(
+      /p_review_reason\s*=\s*'provenance_conflict'[\s\S]*p_outcome\s*=\s*'conflicting'[\s\S]*p_reason\s*=\s*'provenance_conflict'/i,
     );
   });
 
   test('[P0] final migration makes remediation transactional and lifecycle response-loss safe', () => {
-    expect(finalSafety).toMatch(/apply_hours_remediation_batch/i);
+    const remediationSql =
+      finalSafety + '\n' + iterationEightClosure + '\n' + iterationNineClosure;
+    expect(remediationSql).toMatch(/apply_hours_remediation_batch/i);
     expect(finalSafety).toMatch(/raise\s+serialization_failure/i);
-    expect(finalSafety).toMatch(/venue_population_count/i);
-    expect(finalSafety).toMatch(/venue_population_identity_fingerprint/i);
+    expect(remediationSql).toMatch(/venue_population_count/i);
+    expect(remediationSql).toMatch(/venue_population_identity_fingerprint/i);
     expect(finalSafety).toMatch(
       /parent_status\s+in\s*\(\s*'completed',\s*'completed_with_failures'/i,
     );

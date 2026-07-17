@@ -383,8 +383,122 @@ begin
      or not public.finish_hours_review_run(
        'run-batch-resume', 'completed', clock_timestamp(),
        1, 1, 0, 0, 0, 0, 0, 0, 0
-     ) then
+  ) then
     raise exception 'cross-process accepted-input resume failed';
+  end if;
+
+  update public.venues
+  set opening_hours = '{"1":{"open":"12:00","close":"23:00"}}'::jsonb,
+      hours_source_type = 'venue_website',
+      hours_source_reference = 'venue-site:legacy-hours:changed',
+      hours_review_status = 'verified',
+      hours_reviewed_at = clock_timestamp() - interval '1 minute',
+      hours_next_review_at = clock_timestamp() + interval '90 days',
+      hours_notes = null,
+      hours_review_reason = null,
+      hours_last_error_class = null
+  where id = 'legacy-1';
+
+  if not public.claim_hours_review_run(
+    'run-stale-historical-replay', 'remediation', clock_timestamp(),
+    input_fingerprint, claim_identity
+  )
+     or not public.apply_hours_remediation_batch(
+       'run-stale-historical-replay', input_fingerprint, claim_identity,
+       jsonb_build_array(request)
+     ) then
+    raise exception 'stale historical remediation replay was not isolated';
+  end if;
+  if not exists (
+    select 1
+    from public.hours_review_outcomes
+    where run_id = 'run-stale-historical-replay'
+      and venue_id = 'legacy-1'
+      and outcome = 'failed'
+      and reason = 'classification_failed'
+      and remediation_request_fingerprint =
+        public.hours_remediation_request_fingerprint(request)
+  )
+     or not exists (
+       select 1
+       from public.venues
+       where id = 'legacy-1'
+         and opening_hours = '{"1":{"open":"12:00","close":"23:00"}}'::jsonb
+         and hours_source_reference = 'venue-site:legacy-hours:changed'
+         and hours_review_status = 'verified'
+     ) then
+    raise exception 'stale historical replay certified or rewrote changed governed state';
+  end if;
+  if not public.finish_hours_review_run(
+    'run-stale-historical-replay', 'completed_with_failures',
+    clock_timestamp(), 1, 0, 0, 0, 0, 0, 0, 1, 0
+  ) then
+    raise exception 'stale historical replay run did not finish coherently';
+  end if;
+
+  select updated_at
+  into expected_updated_at
+  from public.venues
+  where id = 'legacy-1';
+
+  request := jsonb_build_object(
+    'venue_id', 'legacy-1',
+    'venue_slug', 'legacy-hours',
+    'opening_hours', null,
+    'source_type', 'venue_website',
+    'source_reference', 'venue-site:legacy-hours:conflict',
+    'review_status', 'manual_review',
+    'reviewed_at', reviewed_at,
+    'next_review_at', next_review_at,
+    'notes', null,
+    'review_reason', 'provenance_conflict',
+    'last_error_class', null,
+    'outcome', 'conflicting',
+    'reason', 'provenance_conflict',
+    'error_class', null,
+    'expected_updated_at', expected_updated_at
+  );
+  request := request || jsonb_build_object(
+    'request_fingerprint',
+    public.hours_remediation_request_fingerprint(request)
+  );
+
+  if not public.claim_hours_review_run(
+    'run-provenance-conflict', 'remediation', clock_timestamp(),
+    input_fingerprint, claim_identity
+  )
+     or not public.apply_hours_remediation_batch(
+       'run-provenance-conflict', input_fingerprint, claim_identity,
+       jsonb_build_array(request)
+     ) then
+    raise exception 'manual_review/provenance_conflict remediation was rejected';
+  end if;
+  if not exists (
+    select 1
+    from public.venues
+    where id = 'legacy-1'
+      and opening_hours = '{"1":{"open":"12:00","close":"23:00"}}'::jsonb
+      and hours_source_reference = 'venue-site:legacy-hours:changed'
+      and hours_review_status = 'manual_review'
+      and hours_review_reason = 'provenance_conflict'
+      and hours_last_error_class is null
+  )
+     or not exists (
+       select 1
+       from public.hours_review_outcomes
+       where run_id = 'run-provenance-conflict'
+         and venue_id = 'legacy-1'
+         and outcome = 'conflicting'
+         and reason = 'provenance_conflict'
+         and error_class is null
+     ) then
+    raise exception 'provenance-conflict remediation did not preserve and classify state';
+  end if;
+  if not public.finish_hours_review_run(
+    'run-provenance-conflict', 'completed', clock_timestamp(),
+    1, 0, 0, 0, 0, 1, 0, 0, 0
+  ) then
+    raise exception 'provenance-conflict remediation did not finish coherently';
   end if;
 end
 $$;
