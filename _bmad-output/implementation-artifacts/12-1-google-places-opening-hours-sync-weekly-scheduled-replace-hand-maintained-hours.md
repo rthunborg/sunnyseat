@@ -405,6 +405,8 @@ GPT-5 Codex
 - 2026-07-17: RED/GREEN — focused remediation regression first failed, then passed after invalid present source metadata was routed through failed validation with prior-schedule preservation instead of the missing-evidence provenance-removal path.
 - 2026-07-17: Resolved all 5 iteration-8 patches: exact remediation retries now reconcile by canonical request/outcome identity without depending on unrelated venue `updated_at`; repeat manual-review/failed remediation preserves an approved schedule only from current verified/due state or durable verified/due transition evidence; missing venues and fallback conflicts abort the batch statement instead of leaving partial committed evidence; infrastructure exceptions are no longer swallowed as venue validation failures; and malformed non-null hours are classified as bounded validation failures before missing-provenance handling.
 - 2026-07-17: Resolved all 3 iteration-9 patches: historical remediation replay now requires the current venue status/update evidence to match the prior committed outcome before copying it; the guarded batch seam accepts documented `manual_review/provenance_conflict` requests while preserving prior verified schedules; and iteration 8 plus iteration 9 were applied and verified on the protected prelaunch database with REST denial, RLS/grant, rollback-only remediation, and empty affected-schema-diff evidence.
+- 2026-07-17: REVIEW-FIX ITERATION 10 LOCAL — focused iteration-10 regression passed, typecheck and quiet lint passed, full Vitest passed (168 files / 1645 tests), and a fresh disposable Compose/PostGIS replay of the fixture, full migration chain, and executable SQL assertions passed after proving exact same-run invalid fallback retries are idempotent.
+- 2026-07-17: REVIEW-FIX ITERATION 10 LIVE SCHEMA — applied and recorded `20260717161000_close_hours_review_iteration_10` through the authorized protected Supabase project `hhnbxrhfhlzxgllxukzj`; migration history now includes `close_hours_review_iteration_10` at `20260717190030`. Postflight verified service-role-only batch execution, anon/auth denial, installed retry reconciliation, the fingerprint-bound outcome overload, retention prune function presence, and 42/42 verified `venue_website` schedules with zero non-accepted public schedules.
 
 ### File List
 
@@ -450,6 +452,7 @@ GPT-5 Codex
 - `nextjs-app/test/unit/story-12-1-review-fixes-iteration-5.test.ts`
 - `nextjs-app/test/unit/story-12-1-review-fixes-iteration-6.test.ts`
 - `nextjs-app/test/unit/story-12-1-review-fixes-iteration-8.test.ts`
+- `nextjs-app/test/unit/story-12-1-review-fixes-iteration-10.test.ts`
 - `supabase/migrations/20260714073820_reconcile_venue_place_identity.sql`
 - `supabase/migrations/20260714073831_provider_neutral_hours_governance.sql`
 - `supabase/migrations/20260714075456_tighten_hours_review_service_grants.sql`
@@ -462,6 +465,7 @@ GPT-5 Codex
 - `supabase/migrations/20260716185235_close_hours_review_iteration_6.sql`
 - `supabase/migrations/20260717120000_close_hours_review_iteration_8.sql`
 - `supabase/migrations/20260717143000_close_hours_review_iteration_9.sql`
+- `supabase/migrations/20260717161000_close_hours_review_iteration_10.sql`
 
 ### Change Log
 
@@ -476,6 +480,7 @@ GPT-5 Codex
 - 2026-07-17 — Resolved iteration-7 remediation metadata preservation finding: invalid present `sourceType` now records bounded failed validation while preserving the prior independently verified schedule; missing evidence still records provenance removal.
 - 2026-07-17 — Resolved all 5 iteration-8 findings with a forward remediation RPC migration and audit classifier precedence fix; local typecheck, lint, focused regression, and full Vitest passed.
 - 2026-07-17 — Resolved all 3 iteration-9 findings with a forward remediation RPC migration, SQL/static regression coverage, protected live apply of iteration 8 plus iteration 9, REST denial smoke, empty affected-schema diff, and rollback-only 42-venue remediation verification.
+- 2026-07-17 — Resolved both iteration-10 medium findings: exact same-run invalid fallback retries now reconcile by canonical request/input identity plus unchanged resulting state, and generated Supabase types include the fingerprint-bound `apply_hours_remediation_outcome` overload with a focused signature assertion; applied and postflight-verified the forward live migration without altering the 42 verified website schedules.
 
 ### Review Findings
 
@@ -626,3 +631,5 @@ GPT-5 Codex
 - [x] [Review][Patch][High] Historical remediation replay can certify stale governed state [supabase/migrations/20260717120000_close_hours_review_iteration_8.sql:107] — a new run copies a matching terminal outcome after `expected_updated_at` drifts without proving the venue's current governed hours/provenance still match that outcome, and remediation finalization skips the state-fingerprint comparison, so a stale input can complete successfully after the governed state changed. Require the current governed state to match the prior outcome's resulting state before reconciliation, and reject the stale request otherwise. [`supabase/migrations/20260716104129_finalize_hours_governance_review_safety.sql:772`]
 - [x] [Review][Patch][High] The supported remediation RPC rejects the documented `manual_review/provenance_conflict` state [supabase/migrations/20260717120000_close_hours_review_iteration_8.sql:208] — the authoring contract and weekly classifier treat this as a valid conflicting outcome, but the guarded write allowlist accepts only unsupported-schedule reasons, so the only supported write seam converts a valid conflict request into `failed/classification_failed`. Add the conflict combination to the RPC's coherent-state validation and cover it through the batch seam. [`nextjs-app/docs/venue-data-load.md:126`]
 - [x] [Review][Patch][High] The final iteration-8 migration lacks its required protected apply and verification evidence [supabase/migrations/20260717120000_close_hours_review_iteration_8.sql:1] — the reviewed diff changes the live remediation boundary after the last recorded protected schema/action evidence, while the Dev Agent Record explicitly says no live database action occurred in this fix pass. Apply the final migration through the authorized protected path and record the post-apply schema/RLS/remediation evidence required by AC2, AC3, AC8, and Task 7.
+- [x] [Review][Patch][Med] An exact retry of a same-run invalid remediation request is not idempotent: the identical fallback fingerprint makes the `ON CONFLICT` update affect zero rows, after which the batch raises `remediation fallback outcome conflict` instead of accepting the already-persisted bounded failure. Treat an existing fallback with the same canonical request/input identity as a successful retry while continuing to reject mismatched stale evidence. Sources: blind@primary, edge@primary, auditor@primary. [`supabase/migrations/20260717143000_close_hours_review_iteration_9.sql:513`]
+- [x] [Review][Patch][Med] The checked-in generated database types omit the final fingerprint-bound `apply_hours_remediation_outcome` overload defined by the authoritative migration, so `Database['public']['Functions']` does not fully represent the final schema contract claimed by AC2. Regenerate or reconcile the function overloads against the final schema and add a focused signature assertion for the supported remediation boundary. Sources: blind@secondary, auditor@secondary. [`nextjs-app/lib/supabase/types.ts:724`] [`supabase/migrations/20260717143000_close_hours_review_iteration_9.sql:6`]

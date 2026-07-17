@@ -977,8 +977,14 @@ begin
     input_fingerprint,
     claim_identity,
     jsonb_build_array(changed_request)
+  )
+     or not public.apply_hours_remediation_batch(
+       remediation_run,
+       input_fingerprint,
+       claim_identity,
+       jsonb_build_array(changed_request)
   ) then
-    raise exception 'fingerprint mismatch was not isolated as a failed venue';
+    raise exception 'fingerprint mismatch retry was not isolated as a failed venue';
   end if;
   if not exists (
     select 1

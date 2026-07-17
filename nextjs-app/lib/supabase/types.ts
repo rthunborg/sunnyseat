@@ -733,24 +733,46 @@ export type Database = {
         Returns: boolean
       }
       apply_hours_remediation_outcome: {
-        Args: {
-          p_error_class: string
-          p_expected_updated_at: string
-          p_last_error_class: string
-          p_next_review_at: string
-          p_notes: string
-          p_opening_hours: Json
-          p_outcome: string
-          p_reason: string
-          p_review_reason: string
-          p_review_status: string
-          p_reviewed_at: string
-          p_run_id: string
-          p_source_reference: string
-          p_source_type: string
-          p_venue_id: string
-          p_venue_slug: string
-        }
+        Args:
+          | {
+              p_error_class: string
+              p_expected_updated_at: string
+              p_last_error_class: string
+              p_next_review_at: string
+              p_notes: string
+              p_opening_hours: Json
+              p_outcome: string
+              p_reason: string
+              p_review_reason: string
+              p_review_status: string
+              p_reviewed_at: string
+              p_run_id: string
+              p_source_reference: string
+              p_source_type: string
+              p_venue_id: string
+              p_venue_slug: string
+            }
+          | {
+              p_error_class: string
+              p_expected_updated_at: string
+              p_last_error_class: string
+              p_next_review_at: string
+              p_notes: string
+              p_opening_hours: Json
+              p_outcome: string
+              p_reason: string
+              p_remediation_claim_identity: string
+              p_remediation_input_fingerprint: string
+              p_request_fingerprint: string
+              p_review_reason: string
+              p_review_status: string
+              p_reviewed_at: string
+              p_run_id: string
+              p_source_reference: string
+              p_source_type: string
+              p_venue_id: string
+              p_venue_slug: string
+            }
         Returns: boolean
       }
       apply_hours_remediation_request: {
