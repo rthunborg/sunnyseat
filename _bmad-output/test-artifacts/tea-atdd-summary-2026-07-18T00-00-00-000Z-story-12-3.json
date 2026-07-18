@@ -1,0 +1,20 @@
+{
+  "storyId": "12.3",
+  "generatedAt": "2026-07-18T00:00:00.000Z",
+  "mode": "create",
+  "checklist": "_bmad-output/test-artifacts/atdd-checklist-12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md",
+  "generatedFiles": [
+    "nextjs-app/test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts",
+    "nextjs-app/test/unit/services/sun-geometry-hash.atdd.test.ts",
+    "nextjs-app/test/unit/services/sun-geometry-precompute.atdd.test.ts",
+    "nextjs-app/test/unit/services/weather-snapshots.atdd.test.ts",
+    "nextjs-app/test/unit/story-12-3-geometry-migrations-and-leases.atdd.test.ts",
+    "nextjs-app/test/e2e/story-12-3-persisted-geometry-request-count.atdd.spec.ts"
+  ],
+  "totalSkippedScaffolds": 30,
+  "redPhase": true,
+  "notes": [
+    "No browser recording or visual validation required; Story 12.3 is non-visual.",
+    "Future implementation modules are dynamically imported only inside skipped bodies."
+  ]
+}

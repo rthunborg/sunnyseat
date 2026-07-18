@@ -1,0 +1,15 @@
+{
+  "storyId": "12.3",
+  "generatedAt": "2026-07-18T00:00:00.000Z",
+  "mode": "create",
+  "testType": "api-unit-sql",
+  "files": [
+    "nextjs-app/test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts",
+    "nextjs-app/test/unit/services/sun-geometry-hash.atdd.test.ts",
+    "nextjs-app/test/unit/services/sun-geometry-precompute.atdd.test.ts",
+    "nextjs-app/test/unit/services/weather-snapshots.atdd.test.ts",
+    "nextjs-app/test/unit/story-12-3-geometry-migrations-and-leases.atdd.test.ts"
+  ],
+  "skippedScaffolds": 28,
+  "redPhase": true
+}

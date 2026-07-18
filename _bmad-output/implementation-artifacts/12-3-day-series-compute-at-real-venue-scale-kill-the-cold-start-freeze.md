@@ -190,10 +190,12 @@ latency
 
 ### ATDD Artifacts
 
-- Suggested checklist: `_bmad-output/test-artifacts/atdd-checklist-12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md`
-- Suggested API/unit tests: `nextjs-app/test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts`, `nextjs-app/test/unit/services/sun-geometry-hash.atdd.test.ts`, `nextjs-app/test/unit/services/sun-geometry-precompute.atdd.test.ts`, `nextjs-app/test/unit/services/weather-snapshots.atdd.test.ts`
-- Suggested SQL/ops tests: `nextjs-app/test/unit/story-12-3-geometry-migrations-and-leases.atdd.test.ts`
-- Existing regression nets to update: `nextjs-app/test/unit/api/venues-route-day-series.atdd.test.ts`, `nextjs-app/test/unit/api/venues-route-day-series-degrade.test.ts`, `nextjs-app/test/unit/services/sun-engine.day-series-parity.atdd.test.ts`, `nextjs-app/test/unit/services/sun-engine-day-series-cache.atdd.test.ts`, and `nextjs-app/test/e2e/epic-11-scrub-zero-fetch.spec.ts`
+- Checklist: `_bmad-output/test-artifacts/atdd-checklist-12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md`
+- API/route tests: `nextjs-app/test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts`
+- Hash/precompute/weather unit tests: `nextjs-app/test/unit/services/sun-geometry-hash.atdd.test.ts`, `nextjs-app/test/unit/services/sun-geometry-precompute.atdd.test.ts`, `nextjs-app/test/unit/services/weather-snapshots.atdd.test.ts`
+- SQL/ops tests: `nextjs-app/test/unit/story-12-3-geometry-migrations-and-leases.atdd.test.ts`
+- E2E request-count tests: `nextjs-app/test/e2e/story-12-3-persisted-geometry-request-count.atdd.spec.ts`
+- Existing regression nets to update during green: `nextjs-app/test/unit/api/venues-route-day-series.atdd.test.ts`, `nextjs-app/test/unit/api/venues-route-day-series-degrade.test.ts`, `nextjs-app/test/unit/services/sun-engine.day-series-parity.atdd.test.ts`, `nextjs-app/test/unit/services/sun-engine-day-series-cache.atdd.test.ts`, and `nextjs-app/test/e2e/epic-11-scrub-zero-fetch.spec.ts`
 
 ### Current Implementation Facts
 

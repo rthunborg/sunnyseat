@@ -1,0 +1,11 @@
+{
+  "storyId": "12.3",
+  "generatedAt": "2026-07-18T00:00:00.000Z",
+  "mode": "create",
+  "testType": "e2e",
+  "files": [
+    "nextjs-app/test/e2e/story-12-3-persisted-geometry-request-count.atdd.spec.ts"
+  ],
+  "skippedScaffolds": 2,
+  "redPhase": true
+}
