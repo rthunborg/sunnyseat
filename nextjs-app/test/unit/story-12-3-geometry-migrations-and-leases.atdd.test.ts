@@ -195,6 +195,26 @@ describe('Story 12.3 AC2/AC3/AC5/AC7 - persisted geometry SQL and scheduled oper
     expect(sql).toMatch(/(?:primary key|unique)[^;]+venue_id[^;]+stockholm_date[^;]+geometry_input_hash/i);
   });
 
+  test('publish RPC rejects partial planner-window coverage before promoting a hash to ready', () => {
+    const sql = migrationSource();
+
+    expect(sql).toMatch(/jsonb_object_keys\(p_series_by_date\)/);
+    expect(sql).toMatch(/generate_series\(parent\.window_start,\s*parent\.window_end/i);
+    expect(sql).toMatch(/Missing geometry series for/i);
+    expect(sql).toMatch(/outside run window/i);
+    expect(sql).toMatch(/Geometry publish date count does not match run window/i);
+  });
+
+  test('caster hash records are canonicalized with normalized 2D XDR EWKB in the database RPC', () => {
+    const sql = migrationSource();
+
+    expect(sql).toMatch(/create or replace function public\.get_shadow_caster_hash_records/i);
+    expect(sql).toMatch(/st_asewkb\(\s*st_normalize\(\s*st_force2d\(\s*st_transform\(sc\.geometry,\s*4326\)\s*\)\s*\),\s*'XDR'\s*\)/i);
+    expect(sql).toMatch(/upper\(encode\(/i);
+    expect(sql).toMatch(/grant execute on function public\.get_shadow_caster_hash_records/i);
+    expect(sql).not.toMatch(/grant execute on function public\.get_shadow_caster_hash_records[^;]+to\s+(anon|authenticated)/i);
+  });
+
   test('GitHub Actions run direct Supabase jobs for geometry and weather, not a Vercel HTTP warmer', () => {
     const workflows = workflowSource();
 
@@ -223,6 +243,14 @@ describe('Story 12.3 AC2/AC3/AC5/AC7 - persisted geometry SQL and scheduled oper
     expect(envExample).toMatch(/SUN_WEATHER_REFRESH_ENABLED/);
     expect(docs).toMatch(/SUN_GEOMETRY_PRECOMPUTE_ENABLED/);
     expect(docs).toMatch(/geometry_input_hash/);
+  });
+
+  test('weather snapshot refresh buckets use the shared venue engine coordinate helper', () => {
+    const source = readOptional('nextjs-app/scripts/refresh-weather-snapshots.ts');
+
+    expect(source).toContain('venueEngineCoordinate');
+    expect(source).toContain('const coordinate = venueEngineCoordinate(target.venue)');
+    expect(source).not.toContain('coordinateBucket(target.venue.location)');
   });
 
   test('external request warmer and keep-alive contract are retired from docs and workflows', () => {

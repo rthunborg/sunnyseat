@@ -1203,6 +1203,28 @@ export type Database = {
           SourcePriority: number
         }[]
       }
+      get_shadow_caster_hash_records: {
+        Args: {
+          p_latitude: number
+          p_longitude: number
+          p_radius_meters?: number
+        }
+        Returns: {
+          caster_class: string | null
+          filter_decision: string | null
+          footprint_ewkb_hex: string
+          ground_z_rh2000: number | null
+          height_m: number
+          id: number
+          import_generation: string | null
+          provenance_metadata: Json | null
+          roof_z_rh2000: number | null
+          shadow_caster_tier: string | null
+          source_flags: string[]
+          source_object_metadata: Json | null
+          source_priority: number | null
+        }[]
+      }
       gettransactionid: { Args: never; Returns: unknown }
       is_canonical_weekly_opening_hours: {
         Args: { p_hours: Json }

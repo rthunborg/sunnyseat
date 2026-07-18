@@ -6,6 +6,7 @@ import {
   type WeatherSnapshotSlice,
 } from '../lib/services/weather-snapshots';
 import { collectSunGeometryPrecomputeTargets } from '../lib/services/sun-geometry-precompute';
+import { venueEngineCoordinate } from '../lib/services/sun-geometry-coordinates';
 import { mapWithConcurrency } from '../lib/services/sun-engine';
 import { stockholmDateKey } from '../lib/utils/time-planner';
 import { getForecast } from '../lib/weather/met-no-service';
@@ -47,12 +48,13 @@ const targets = await collectSunGeometryPrecomputeTargets({ includeHidden: true 
 const buckets = new Map<string, { lat: number; lng: number; venueCount: number }>();
 for (const target of targets) {
   if (!target.venue) continue;
-  const key = coordinateBucket(target.venue.location);
+  const coordinate = venueEngineCoordinate(target.venue);
+  const key = coordinateBucket(coordinate);
   const existing = buckets.get(key);
   if (existing) {
     existing.venueCount += 1;
   } else {
-    buckets.set(key, { ...target.venue.location, venueCount: 1 });
+    buckets.set(key, { ...coordinate, venueCount: 1 });
   }
 }
 

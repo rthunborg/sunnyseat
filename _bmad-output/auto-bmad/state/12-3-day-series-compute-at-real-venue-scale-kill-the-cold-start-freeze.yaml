@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 3
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-18T18:09:00Z"
+updated_at: "2026-07-18T18:34:11Z"
 started_at: "2026-07-18T16:50:01Z"
 completed_at: null
-active_seconds: 4621
+active_seconds: 5967
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -21,13 +21,13 @@ tea_rationale: "Introduces persisted cross-instance cache data, scheduled precom
 epic_story_count: 14
 stories_after_in_epic: 12
 completed_phases: [0, 1, 2, 3, 4, 5, 6]
-code_review_iterations: 0
-code_review_loop_done: false
+code_review_iterations: 1
+code_review_loop_done: true
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [4aa9759, b78f21e, c4b82dc, d11423f]
+commits: [4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -53,3 +53,14 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: a0e943590554e34d416b42bc245fe4637e055897
+tier_a_review:
+  verdict: "Changes Requested -> fixed"
+  critical: 0
+  high: 4
+  medium: 3
+  low: 1
+  open_decisions_auto_resolved: 0
+  dismissed_noise: 0
+  security: "LOW 1; no HIGH/MEDIUM"
+  fixed: 8
+  deferred: 0

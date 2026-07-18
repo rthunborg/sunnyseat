@@ -331,6 +331,13 @@ Codex GPT-5
 - 2026-07-18: Baseline gate before production edits passed: `cd nextjs-app && npx.cmd tsc --noEmit`; `cd nextjs-app && npx.cmd eslint . --quiet`.
 - 2026-07-18: Disposable local PostGIS migration replay passed via `COMPOSE_PROJECT_NAME=sunnyseat-story-12-3 TEST_POSTGRES_PORT=15443 docker compose -f compose.test.yaml up -d postgres`, minimal `public.venues` dependency, migration apply, service-role state-machine exercise, `SET ROLE anon|authenticated` denial probes, then `docker compose -f compose.test.yaml down -v`.
 - 2026-07-18: Story review gate artifact: `_bmad-output/implementation-artifacts/validation/12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze-review-20260718-195557.log`.
+- 2026-07-18: Review-fix pass baseline gate passed: `cd nextjs-app && npx tsc --noEmit`; `cd nextjs-app && npx eslint . --quiet`.
+- 2026-07-18: Review-fix focused Story 12.3 Vitest suite passed: 6 files / 38 tests.
+- 2026-07-18: Review-fix full Vitest passed: 177 files passed, 2 skipped; 1698 tests passed, 15 skipped.
+- 2026-07-18: Review-fix Story 12.3 Playwright request-count gate passed under `CI=1`: 4 tests passed.
+- 2026-07-18: Review-fix scheduled-runner bundles passed for `scripts/precompute-sun-geometry.ts` and `scripts/refresh-weather-snapshots.ts`.
+- 2026-07-18: Review-fix disposable local PostGIS migration replay passed via `COMPOSE_PROJECT_NAME=sunnyseat-story-12-3-review TEST_POSTGRES_PORT=15444 docker compose -f compose.test.yaml up -d postgres`, minimal `public.venues`/`public.shadow_casters` dependency, migration apply, then `docker compose -f compose.test.yaml down -v`.
+- 2026-07-18: Review-fix disposable local PostGIS partial-publish smoke passed via `COMPOSE_PROJECT_NAME=sunnyseat-story-12-3-review-publish TEST_POSTGRES_PORT=15445`; a partial planner-window publish raised and did not promote `venue_geometry_inputs.status` to `ready`.
 
 ### Completion Notes List
 
@@ -352,6 +359,15 @@ Codex GPT-5
 - Validation run: disabled-mode script smoke checks passed for both scheduled runners.
 - Validation run: focused Story 12.3 Playwright request-count gate passed under `CI=1`: 4 tests passed.
 - Validation run: full Playwright suite passed under `CI=1`: 160 tests completed with exit code 0; unrelated flaky tests retried successfully. A local non-CI run first reused an unrelated server on `localhost:3000`, so `CI=1` was used to force Playwright-owned server startup.
+- Review-fix pass resolved all 8 unresolved `[Review][Patch]` findings: public reads now use the published current hash; persisted gating preserves below-horizon `NoSun`; weather snapshots use shared engine coordinates; publish rejects partial planner windows; caster hash records come from canonical PostGIS EWKB; empty ready snapshots degrade to geometry-only freshness; profile timings are measured; detail 503 responses no longer leak internal diagnostics.
+- Review-fix validation run: `npx tsc --noEmit` passed.
+- Review-fix validation run: `npx eslint . --quiet` passed.
+- Review-fix validation run: focused Story 12.3 Vitest suite passed: 6 files / 38 tests.
+- Review-fix validation run: full Vitest passed: 177 files passed, 2 skipped; 1698 tests passed, 15 skipped.
+- Review-fix validation run: `npx esbuild scripts/precompute-sun-geometry.ts --bundle --platform=node --format=esm` passed.
+- Review-fix validation run: `npx esbuild scripts/refresh-weather-snapshots.ts --bundle --platform=node --format=esm` passed.
+- Review-fix validation run: focused Story 12.3 Playwright request-count gate passed under `CI=1`: 4 tests passed.
+- Review-fix validation run: disposable local PostGIS migration replay and partial-publish smoke check both passed.
 
 ### File List
 
@@ -382,8 +398,26 @@ Codex GPT-5
 - `nextjs-app/scripts/refresh-weather-snapshots.ts`
 - `nextjs-app/test/e2e/story-12-3-persisted-geometry-request-count.atdd.spec.ts`
 - `nextjs-app/test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts`
+- `nextjs-app/test/unit/services/sun-geometry-persisted-outcome.automate.test.ts`
 - `nextjs-app/test/unit/services/sun-geometry-hash.atdd.test.ts`
 - `nextjs-app/test/unit/services/sun-geometry-precompute.atdd.test.ts`
+- `nextjs-app/test/unit/services/sun-geometry-precompute.automate.test.ts`
 - `nextjs-app/test/unit/services/weather-snapshots.atdd.test.ts`
+- `nextjs-app/test/unit/services/weather-snapshots.automate.test.ts`
 - `nextjs-app/test/unit/story-12-3-geometry-migrations-and-leases.atdd.test.ts`
 - `supabase/migrations/20260718193000_persist_sun_geometry_series_and_weather_snapshots.sql`
+
+### Change Log
+
+- 2026-07-18: Addressed code review findings - 8 patch items resolved.
+
+### Review Findings
+
+- [x] [Review][Patch][High] Public reads recompute the live geometry hash instead of using the published current hash [nextjs-app/lib/services/sun-geometry-repository.ts:117]
+- [x] [Review][Patch][High] Persisted read-time gating loses below-horizon `NoSun` parity [nextjs-app/lib/services/weather-snapshots.ts:109]
+- [x] [Review][Patch][Med] Weather snapshots use venue point coordinates instead of the shared seating centroid [nextjs-app/scripts/refresh-weather-snapshots.ts:50]
+- [x] [Review][Patch][High] The publish RPC can promote partial planner-window coverage to `ready` [supabase/migrations/20260718193000_persist_sun_geometry_series_and_weather_snapshots.sql:387]
+- [x] [Review][Patch][High] Caster geometry is not canonicalized through the required PostGIS EWKB contract [nextjs-app/lib/services/sun-geometry-repository.ts:335]
+- [x] [Review][Patch][Med] Empty out-of-horizon weather snapshots are advertised as fresh weather [nextjs-app/lib/services/sun-geometry-repository.ts:183]
+- [x] [Review][Patch][Med] The profiling implementation records placeholder zeros while the tests only assert numbers [nextjs-app/lib/services/sun-geometry-precompute.ts:240]
+- [x] [Review][Patch][Low] Detail coverage-missing response exposes internal geometry diagnostics [nextjs-app/app/api/venues/\[slug\]/route.ts:107]

@@ -102,9 +102,9 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       if (error instanceof SunGeometryCoverageMissingError) {
         return NextResponse.json(
           {
-            error: error.code,
-            code: error.code,
-            detail: error.detail,
+            error: 'Sun geometry coverage missing',
+            code: 'SUN_GEOMETRY_COVERAGE_MISSING',
+            detail: 'Missing current geometry coverage for the requested venue/date/hash.',
             statusCode: 503,
           },
           {

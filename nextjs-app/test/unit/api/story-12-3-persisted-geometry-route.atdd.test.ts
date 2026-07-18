@@ -50,6 +50,32 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
     expect(source).not.toContain("import('@/lib/weather/nowcast-service')");
   });
 
+  test('public persisted reads use the published current hash instead of recomputing live geometry input', () => {
+    const source = appSource('lib/services/sun-geometry-repository.ts');
+    const defaultRepository = source.slice(source.indexOf('const defaultSunGeometryRepository'));
+
+    expect(defaultRepository).toContain('readCurrentGeometryInput');
+    expect(defaultRepository).toContain("select('status, current_geometry_input_hash')");
+    expect(defaultRepository).not.toContain('buildGeometryInputPayloadForVenue(venue, stockholmDate)');
+    expect(defaultRepository).not.toContain('computeGeometryInputHash(input)');
+  });
+
+  test('detail coverage-missing response does not leak venue/date/hash diagnostics', () => {
+    const source = appSource('app/api/venues/[slug]/route.ts');
+
+    expect(source).toContain('SUN_GEOMETRY_COVERAGE_MISSING');
+    expect(source).toContain('Missing current geometry coverage for the requested venue/date/hash.');
+    expect(source).not.toContain('detail: error.detail');
+  });
+
+  test('geometry input construction reads canonical shadow-caster hash records', () => {
+    const source = appSource('lib/services/sun-geometry-repository.ts');
+
+    expect(source).toContain("rpc('get_shadow_caster_hash_records'");
+    expect(source).not.toContain("rpc('get_buildings_near_point'");
+    expect(source).toContain('footprint_ewkb_hex');
+  });
+
   test('missing exact current geometry hash returns typed 503 instead of omitting the series or recomputing', async () => {
     const routePath = '@/app/api/venues/route';
     const route = (await import(routePath)) as RouteTestHook;

@@ -10,7 +10,6 @@ import { SUN_DATA_SOURCE_GEOMETRY_ONLY, SUN_DATA_SOURCE_WEATHER } from '@/lib/ut
 import { seatingCentroidWgs84 } from '@/lib/services/sun-geometry-coordinates';
 import {
   buildPlannerHashContract,
-  computeGeometryInputHash,
 } from '@/lib/services/sun-geometry-hash';
 import {
   gateGeometrySeriesWithWeatherSnapshots,
@@ -39,8 +38,18 @@ export type PersistedSunGeometryCoverage = {
   series: PersistedGeometrySeriesEntry[];
 };
 
+export type CurrentGeometryInputState = {
+  geometryInputHash: string | null;
+  status?: 'ready' | 'building' | 'dirty';
+};
+
 export interface SunGeometryRepository {
-  computeCurrentGeometryInputHash(venue: StoredVenue, stockholmDate: string): Promise<string>;
+  readCurrentGeometryInput?(
+    venueId: string,
+    stockholmDate: string,
+    venue: StoredVenue,
+  ): Promise<CurrentGeometryInputState | null>;
+  computeCurrentGeometryInputHash?(venue: StoredVenue, stockholmDate: string): Promise<string>;
   readCurrentCoverageForVenueDay(
     venueId: string,
     stockholmDate: string,
@@ -114,7 +123,9 @@ export async function buildPersistedSunOutcome(
   const geometryRepository = options.repositories?.sunGeometryRepository ?? getSunGeometryRepositoryForRoute();
   const weatherRepository =
     options.repositories?.weatherSnapshotRepository ?? getWeatherSnapshotRepositoryForRoute();
-  const geometryInputHash = await geometryRepository.computeCurrentGeometryInputHash(venue, stockholmDate);
+  const currentInput = await resolveCurrentGeometryInput(geometryRepository, venue, stockholmDate);
+  assertCurrentGeometryInput(venue.id, stockholmDate, currentInput);
+  const geometryInputHash = currentInput.geometryInputHash;
   const coverage = await geometryRepository.readCurrentCoverageForVenueDay(
     venue.id,
     stockholmDate,
@@ -131,6 +142,8 @@ export async function buildPersistedSunOutcome(
   const gatedSeries = gateGeometrySeriesWithWeatherSnapshots({
     geometrySeries: coverage.series,
     weatherSlices: snapshot?.slices ?? [],
+    venue,
+    stockholmDate,
   });
   const selectedStep = nearestStep(gatedSeries, stockholmMinutes(requestedAt));
   const freshness = freshnessFromSnapshot(snapshot);
@@ -150,6 +163,46 @@ export async function buildPersistedSunOutcome(
     peakTime: peakTimeFromSeries(gatedSeries),
     daySeries: gatedSeries,
   };
+}
+
+async function resolveCurrentGeometryInput(
+  repository: SunGeometryRepository,
+  venue: StoredVenue,
+  stockholmDate: string,
+): Promise<CurrentGeometryInputState | null> {
+  if (repository.readCurrentGeometryInput) {
+    return repository.readCurrentGeometryInput(venue.id, stockholmDate, venue);
+  }
+  if (repository.computeCurrentGeometryInputHash) {
+    return {
+      status: 'ready',
+      geometryInputHash: await repository.computeCurrentGeometryInputHash(venue, stockholmDate),
+    };
+  }
+  return null;
+}
+
+function assertCurrentGeometryInput(
+  venueId: string,
+  stockholmDate: string,
+  state: CurrentGeometryInputState | null,
+): asserts state is CurrentGeometryInputState & { geometryInputHash: string } {
+  const reason =
+    state === null
+      ? 'missing-current-input'
+      : state.status && state.status !== 'ready'
+        ? state.status
+        : !state.geometryInputHash
+          ? 'missing-current-hash'
+          : undefined;
+  if (reason) {
+    throw new SunGeometryCoverageMissingError({
+      venueId,
+      stockholmDate,
+      geometryInputHash: state?.geometryInputHash ?? ZERO_GEOMETRY_INPUT_HASH,
+      reason,
+    });
+  }
 }
 
 function assertCurrentCoverage(
@@ -181,7 +234,7 @@ function assertCurrentCoverage(
 }
 
 function freshnessFromSnapshot(snapshot: Awaited<ReturnType<WeatherSnapshotRepository['readSnapshotForVenueDay']>>): SunFreshnessMeta {
-  if (snapshot?.status === 'ready' && snapshot.weatherUpdatedAt) {
+  if (snapshot?.status === 'ready' && snapshot.weatherUpdatedAt && snapshot.slices.length > 0) {
     return { sunDataSource: SUN_DATA_SOURCE_WEATHER, weatherUpdatedAt: snapshot.weatherUpdatedAt };
   }
   return { sunDataSource: SUN_DATA_SOURCE_GEOMETRY_ONLY };
@@ -236,10 +289,22 @@ async function buildLegacyEngineOutcomeForTests(
   }
 }
 
+const ZERO_GEOMETRY_INPUT_HASH = 'g1:0000000000000000000000000000000000000000000000000000000000000000';
+
 const defaultSunGeometryRepository: SunGeometryRepository = {
-  async computeCurrentGeometryInputHash(venue, stockholmDate) {
-    const input = await buildGeometryInputPayloadForVenue(venue, stockholmDate);
-    return computeGeometryInputHash(input);
+  async readCurrentGeometryInput(venueId) {
+    const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
+    const { data, error } = await getSupabaseServiceRole()
+      .from('venue_geometry_inputs')
+      .select('status, current_geometry_input_hash')
+      .eq('venue_id', venueId)
+      .maybeSingle();
+    if (error) throw new Error(`Geometry input read failed: ${error.message}`);
+    if (!data) return null;
+    return {
+      status: data.status as CurrentGeometryInputState['status'],
+      geometryInputHash: data.current_geometry_input_hash,
+    };
   },
 
   async readCurrentCoverageForVenueDay(venueId, stockholmDate, geometryInputHash) {
@@ -324,7 +389,7 @@ export async function buildGeometryInputPayloadForVenue(
 
 async function readRuntimeCasterHashRecords(centroid: { lat: number; lng: number }): Promise<unknown[]> {
   const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
-  const { data, error } = await getSupabaseServiceRole().rpc('get_buildings_near_point', {
+  const { data, error } = await getSupabaseServiceRole().rpc('get_shadow_caster_hash_records', {
     p_latitude: centroid.lat,
     p_longitude: centroid.lng,
     p_radius_meters: 1500,
@@ -332,18 +397,18 @@ async function readRuntimeCasterHashRecords(centroid: { lat: number; lng: number
   if (error) throw new Error(error.message);
   return (data ?? []).map((row: Record<string, unknown>) => ({
     id: row.Id ?? row.id ?? null,
-    footprintEwkbHex: String(row.Ewkb ?? row.ewkb ?? row.Geometry ?? row.geometry ?? '').toUpperCase(),
-    heightM: row.Height ?? row.height ?? null,
-    groundZRh2000: row.GroundZRh2000 ?? row.ground_z_rh2000 ?? null,
-    roofZRh2000: row.RoofZRh2000 ?? row.roof_z_rh2000 ?? null,
-    sourcePriority: row.SourcePriority ?? row.source_priority ?? null,
-    shadowCasterTier: row.ShadowCasterTier ?? row.shadow_caster_tier ?? null,
-    filterDecision: row.FilterDecision ?? row.filter_decision ?? null,
-    casterClass: row.CasterClass ?? row.caster_class ?? row.BuildingType ?? row.building_type ?? null,
-    sourceFlags: row.SourceFlags ?? row.source_flags ?? [],
-    sourceObjectMetadata: row.SourceObjectMetadata ?? row.source_object_metadata ?? null,
-    provenanceMetadata: row.ProvenanceMetadata ?? row.provenance_metadata ?? null,
-    importGeneration: row.ImportGeneration ?? row.import_generation ?? null,
+    footprintEwkbHex: String(row.footprint_ewkb_hex ?? '').toUpperCase(),
+    heightM: row.height_m ?? null,
+    groundZRh2000: row.ground_z_rh2000 ?? null,
+    roofZRh2000: row.roof_z_rh2000 ?? null,
+    sourcePriority: row.source_priority ?? null,
+    shadowCasterTier: row.shadow_caster_tier ?? null,
+    filterDecision: row.filter_decision ?? null,
+    casterClass: row.caster_class ?? null,
+    sourceFlags: row.source_flags ?? [],
+    sourceObjectMetadata: row.source_object_metadata ?? null,
+    provenanceMetadata: row.provenance_metadata ?? null,
+    importGeneration: row.import_generation ?? null,
   }));
 }
 

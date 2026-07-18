@@ -184,6 +184,55 @@ create table if not exists public.weather_bucket_snapshots (
     check (expires_at > refreshed_at)
 );
 
+create or replace function public.get_shadow_caster_hash_records(
+  p_latitude double precision,
+  p_longitude double precision,
+  p_radius_meters double precision default 1500
+)
+returns table (
+  id integer,
+  footprint_ewkb_hex text,
+  height_m numeric,
+  ground_z_rh2000 numeric,
+  roof_z_rh2000 numeric,
+  source_priority integer,
+  shadow_caster_tier text,
+  filter_decision text,
+  caster_class text,
+  source_flags text[],
+  source_object_metadata jsonb,
+  provenance_metadata jsonb,
+  import_generation text
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    sc.id,
+    upper(encode(st_asewkb(st_normalize(st_force2d(st_transform(sc.geometry, 4326))), 'XDR'), 'hex')) as footprint_ewkb_hex,
+    sc.height_m,
+    sc.ground_z_rh2000,
+    sc.roof_z_rh2000,
+    sc.source_priority,
+    sc.shadow_caster_tier,
+    sc.filter_decision,
+    sc.caster_class,
+    coalesce(sc.source_flags, array[]::text[]) as source_flags,
+    sc.source_object_metadata,
+    sc.provenance_metadata,
+    coalesce(sc.import_batch_id, sc.updated_at::text, sc.imported_at::text) as import_generation
+  from public.shadow_casters sc
+  where sc.active = true
+    and st_dwithin(
+      st_transform(sc.geometry, 4326)::geography,
+      st_setsrid(st_makepoint(p_longitude, p_latitude), 4326)::geography,
+      greatest(0, p_radius_meters)
+    )
+  order by sc.id, footprint_ewkb_hex;
+$$;
+
 alter table public.venue_geometry_inputs enable row level security;
 alter table public.venue_geometry_inputs force row level security;
 alter table public.venue_sun_geometry_series enable row level security;
@@ -341,6 +390,9 @@ set search_path = public
 as $$
 declare
   database_now timestamptz := clock_timestamp();
+  parent public.geometry_precompute_runs%rowtype;
+  expected_date date;
+  expected_date_count integer;
   date_key text;
   series_value jsonb;
 begin
@@ -348,16 +400,35 @@ begin
     raise exception 'Invalid geometry input hash';
   end if;
 
-  if not exists (
-    select 1
-      from public.geometry_precompute_runs
-     where id = p_run_id
-       and status = 'running'
-       and lease_expires_at > database_now
-     for update
-  ) then
+  select *
+    into parent
+    from public.geometry_precompute_runs
+   where id = p_run_id
+     and status = 'running'
+     and lease_expires_at > database_now
+   for update;
+
+  if not found then
     return false;
   end if;
+
+  if jsonb_typeof(p_series_by_date) <> 'object' then
+    raise exception 'Geometry publish requires an object keyed by Stockholm date';
+  end if;
+
+  expected_date_count := parent.window_end - parent.window_start + 1;
+  if (select count(*) from jsonb_object_keys(p_series_by_date)) <> expected_date_count then
+    raise exception 'Geometry publish date count does not match run window';
+  end if;
+
+  for expected_date in
+    select day::date
+      from generate_series(parent.window_start, parent.window_end, interval '1 day') as day
+  loop
+    if not p_series_by_date ? expected_date::text then
+      raise exception 'Missing geometry series for %', expected_date;
+    end if;
+  end loop;
 
   -- Atomic promotion: the input row enters building state, all date artifacts are
   -- upserted, then current hash flips to ready inside this single transaction.
@@ -388,6 +459,9 @@ begin
     select key, value
       from jsonb_each(p_series_by_date)
   loop
+    if date_key::date < parent.window_start or date_key::date > parent.window_end then
+      raise exception 'Geometry series date % is outside run window', date_key;
+    end if;
     if not public.is_valid_sun_geometry_series(series_value) then
       raise exception 'Invalid geometry series for %', date_key;
     end if;
@@ -518,6 +592,7 @@ $$;
 
 alter function public.is_valid_geometry_input_hash(text) security definer;
 alter function public.is_valid_sun_geometry_series(jsonb) security definer;
+alter function public.get_shadow_caster_hash_records(double precision, double precision, double precision) security definer;
 alter function public.claim_geometry_precompute_run(text, text, date, date, text, integer, integer) security definer;
 alter function public.heartbeat_geometry_precompute_run(text, integer) security definer;
 alter function public.mark_venue_geometry_dirty(text, text) security definer;
@@ -528,6 +603,8 @@ alter function public.fail_geometry_precompute_run(text, jsonb) security definer
 revoke all on function public.is_valid_geometry_input_hash(text)
   from public, anon, authenticated, service_role;
 revoke all on function public.is_valid_sun_geometry_series(jsonb)
+  from public, anon, authenticated, service_role;
+revoke all on function public.get_shadow_caster_hash_records(double precision, double precision, double precision)
   from public, anon, authenticated, service_role;
 revoke all on function public.claim_geometry_precompute_run(text, text, date, date, text, integer, integer)
   from public, anon, authenticated, service_role;
@@ -544,6 +621,7 @@ revoke all on function public.fail_geometry_precompute_run(text, jsonb)
 
 grant execute on function public.is_valid_geometry_input_hash(text) to service_role;
 grant execute on function public.is_valid_sun_geometry_series(jsonb) to service_role;
+grant execute on function public.get_shadow_caster_hash_records(double precision, double precision, double precision) to service_role;
 grant execute on function public.claim_geometry_precompute_run(text, text, date, date, text, integer, integer) to service_role;
 grant execute on function public.heartbeat_geometry_precompute_run(text, integer) to service_role;
 grant execute on function public.mark_venue_geometry_dirty(text, text) to service_role;
@@ -555,5 +633,7 @@ comment on table public.venue_sun_geometry_series is
   'Story 12.3 service-only persisted ungated planner-step geometry, keyed by venue/date/geometry_input_hash.';
 comment on table public.weather_bucket_snapshots is
   'Story 12.3 service-only weather snapshots for cheap read-time gating; public requests never fan out to Met.no.';
+comment on function public.get_shadow_caster_hash_records(double precision, double precision, double precision) is
+  'Returns the canonical runtime shadow-caster hash input: 2D normalized SRID 4326 XDR EWKB plus z/import/filter fields.';
 comment on function public.publish_venue_geometry_generation(text, text, text, jsonb, jsonb) is
   'Atomically stages artifacts and promotes the ready current geometry hash only after every supplied date series is valid.';

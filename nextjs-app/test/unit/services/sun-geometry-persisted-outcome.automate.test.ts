@@ -39,9 +39,9 @@ function makeGeometryRepository(
   calls: Array<Record<string, unknown>>,
 ): SunGeometryRepository {
   return {
-    async computeCurrentGeometryInputHash(venue, stockholmDate) {
-      calls.push({ method: 'computeCurrentGeometryInputHash', venueId: venue.id, stockholmDate });
-      return GEOMETRY_HASH;
+    async readCurrentGeometryInput(venueId, stockholmDate) {
+      calls.push({ method: 'readCurrentGeometryInput', venueId, stockholmDate });
+      return { status: 'ready', geometryInputHash: GEOMETRY_HASH };
     },
     async readCurrentCoverageForVenueDay(venueId, stockholmDate, geometryInputHash) {
       calls.push({
@@ -111,7 +111,7 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
 
     expect(repositoryCalls).toEqual([
       {
-        method: 'computeCurrentGeometryInputHash',
+        method: 'readCurrentGeometryInput',
         venueId: venue.id,
         stockholmDate: '2026-07-18',
       },
@@ -179,6 +179,77 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
       confidence: 40,
       sunExposurePercent: 85,
     });
+  });
+
+  test('falls back to geometry-only freshness when a ready snapshot has no retained slices', async () => {
+    const venue = makeVenue({ confidence: 73 });
+    const coverage: PersistedSunGeometryCoverage = {
+      venueId: venue.id,
+      stockholmDate: '2026-07-18',
+      geometryInputHash: GEOMETRY_HASH,
+      status: 'ready',
+      series: [{ minutes: 720, sunExposurePercent: 85 }],
+    };
+
+    const outcome = await buildPersistedSunOutcome(
+      venue,
+      new Date('2026-07-18T10:00:00.000Z'),
+      new Date('2026-07-18T10:00:00.000Z'),
+      {
+        repositories: {
+          sunGeometryRepository: makeGeometryRepository(coverage, []),
+          weatherSnapshotRepository: makeWeatherRepository(
+            {
+              status: 'ready',
+              weatherUpdatedAt: '2026-07-18T08:00:00.000Z',
+              slices: [],
+            },
+            [],
+          ),
+        },
+      },
+    );
+
+    expect(outcome.freshness).toEqual({ sunDataSource: 'geometry-only' });
+    expect(outcome.venue).toMatchObject({
+      confidence: 40,
+      skyCondition: 'unavailable',
+    });
+  });
+
+  test('fails closed on dirty current input without reading stale coverage', async () => {
+    const venue = makeVenue();
+    const calls: Array<Record<string, unknown>> = [];
+    const sunGeometryRepository: SunGeometryRepository = {
+      async readCurrentGeometryInput(venueId, stockholmDate) {
+        calls.push({ method: 'readCurrentGeometryInput', venueId, stockholmDate });
+        return { status: 'dirty', geometryInputHash: GEOMETRY_HASH };
+      },
+      async readCurrentCoverageForVenueDay() {
+        calls.push({ method: 'readCurrentCoverageForVenueDay' });
+        return null;
+      },
+    };
+
+    await expect(
+      buildPersistedSunOutcome(
+        venue,
+        new Date('2026-07-18T10:00:00.000Z'),
+        new Date('2026-07-18T10:00:00.000Z'),
+        {
+          repositories: {
+            sunGeometryRepository,
+            weatherSnapshotRepository: makeWeatherRepository(null, []),
+          },
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'SUN_GEOMETRY_COVERAGE_MISSING',
+      detail: { reason: 'dirty', geometryInputHash: GEOMETRY_HASH },
+    });
+    expect(calls).toEqual([
+      { method: 'readCurrentGeometryInput', venueId: venue.id, stockholmDate: '2026-07-18' },
+    ]);
   });
 
   test.each([

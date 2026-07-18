@@ -134,4 +134,27 @@ describe('Story 12.3 automated coverage - precompute run publication semantics',
     expect(publishGeometryGeneration).not.toHaveBeenCalled();
     expect(writeGeometrySeries).not.toHaveBeenCalled();
   });
+
+  test('records measured profiling timings instead of placeholder zeros', async () => {
+    const result = await runSunGeometryPrecompute({
+      now: new Date('2026-07-18T00:30:00+02:00'),
+      profile: true,
+      targets: [{ id: 'venue-1', slug: 'venue-1' }],
+    });
+    const timings = result.timingsMs as Record<string, number>;
+
+    expect(timings).toEqual(
+      expect.objectContaining({
+        coldRouteBefore: expect.any(Number),
+        coldRouteAfter: expect.any(Number),
+        bucketRollAfter: expect.any(Number),
+        precomputeRun: expect.any(Number),
+      }),
+    );
+    expect(timings.coldRouteAfter).toBeGreaterThanOrEqual(timings.coldRouteBefore);
+    expect(timings.bucketRollAfter).toBeGreaterThanOrEqual(timings.coldRouteAfter);
+    expect(
+      timings.coldRouteBefore + timings.coldRouteAfter + timings.bucketRollAfter,
+    ).toBeGreaterThan(0);
+  });
 });

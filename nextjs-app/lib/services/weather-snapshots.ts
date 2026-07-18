@@ -1,10 +1,14 @@
 import {
   addDaysToDateKey,
   PLANNER_MAX_FUTURE_DAYS,
+  STOCKHOLM_TIME_ZONE,
   stockholmDateKey,
 } from '@/lib/utils/time-planner';
-import type { VenueDaySeriesEntry, VenueSunStatus } from '@/lib/types/api';
+import { fromZonedTime } from 'date-fns-tz';
+import type { VenueDaySeriesEntry } from '@/lib/types/api';
 import { applyCloudGate, classifySunStatus, CLOUD_GATE_THRESHOLD_PERCENT } from '@/lib/services/sun-engine';
+import { venueEngineCoordinate } from '@/lib/services/sun-geometry-coordinates';
+import { calculateSolarPosition } from '@/lib/solar/solar-calculation-service';
 
 export type WeatherSnapshotSlice = {
   minutes?: number;
@@ -26,11 +30,17 @@ export type WeatherSnapshotRecord = {
 
 export interface WeatherSnapshotRepository {
   readSnapshotForVenueDay(
-    venue: { id: string; location: { lat: number; lng: number } },
+    venue: WeatherSnapshotVenue,
     bucket: string | undefined,
     stockholmDate: string,
   ): Promise<WeatherSnapshotRecord | null>;
 }
+
+type WeatherSnapshotVenue = {
+  id: string;
+  location: { lat: number; lng: number };
+  seatingArea?: GeoJSON.Polygon;
+};
 
 let weatherSnapshotRepositoryForTests: WeatherSnapshotRepository | undefined;
 
@@ -95,6 +105,8 @@ export function selectSnapshotSliceForStep(input: {
 export function gateGeometrySeriesWithWeatherSnapshots(input: {
   geometrySeries: Array<{ minutes: number; sunExposurePercent: number }>;
   weatherSlices?: WeatherSnapshotSlice[];
+  venue?: WeatherSnapshotVenue;
+  stockholmDate?: string;
 }): VenueDaySeriesEntry[] {
   const weatherByMinutes = new Map<number, WeatherSnapshotSlice>();
   for (const slice of input.weatherSlices ?? []) {
@@ -103,10 +115,13 @@ export function gateGeometrySeriesWithWeatherSnapshots(input: {
 
   return input.geometrySeries.map((entry) => {
     const weather = weatherByMinutes.get(entry.minutes) ?? { weatherUnknown: true };
-    const geometricStatus = classifySunStatus(entry.sunExposurePercent);
+    const isSunVisible = isSunVisibleAtStep(input.venue, input.stockholmDate, entry.minutes);
+    const geometricStatus = isSunVisible
+      ? classifySunStatus(entry.sunExposurePercent)
+      : 'NoSun';
     const isRaining = weather.isRaining === true;
     const cloudCover = weather.weatherUnknown ? undefined : effectiveSnapshotCloudCover(weather);
-    const currentSunStatus = applyCloudGate(geometricStatus, true, cloudCover, isRaining);
+    const currentSunStatus = applyCloudGate(geometricStatus, isSunVisible, cloudCover, isRaining);
     const skyCondition = weather.weatherUnknown
       ? 'unavailable'
       : isRaining
@@ -119,6 +134,26 @@ export function gateGeometrySeriesWithWeatherSnapshots(input: {
       skyCondition,
     };
   });
+}
+
+function isSunVisibleAtStep(
+  venue: WeatherSnapshotVenue | undefined,
+  stockholmDate: string | undefined,
+  minutes: number,
+): boolean {
+  if (!venue || !stockholmDate) return true;
+  const coordinate = venueEngineCoordinate(venue);
+  return calculateSolarPosition(
+    stepInstantFor(stockholmDate, minutes),
+    coordinate.lat,
+    coordinate.lng,
+  ).isSunVisible;
+}
+
+function stepInstantFor(stockholmDate: string, minutes: number): Date {
+  const hh = Math.floor(minutes / 60).toString().padStart(2, '0');
+  const mm = (minutes % 60).toString().padStart(2, '0');
+  return fromZonedTime(`${stockholmDate}T${hh}:${mm}:00`, STOCKHOLM_TIME_ZONE);
 }
 
 function effectiveSnapshotCloudCover(slice: WeatherSnapshotSlice): number | undefined {
@@ -143,7 +178,8 @@ function skyConditionFromSnapshotCloudCover(cloudCover: number | undefined): str
 const defaultWeatherSnapshotRepository: WeatherSnapshotRepository = {
   async readSnapshotForVenueDay(venue, bucket, stockholmDate) {
     const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
-    const coordinateBucket = `${venue.location.lat.toFixed(4)},${venue.location.lng.toFixed(4)}`;
+    const coordinate = venueEngineCoordinate(venue);
+    const coordinateBucket = `${coordinate.lat.toFixed(4)},${coordinate.lng.toFixed(4)}`;
     const { data, error } = await getSupabaseServiceRole()
       .from('weather_bucket_snapshots')
       .select('bucket_key, stockholm_date, slices, weather_updated_at, expires_at')

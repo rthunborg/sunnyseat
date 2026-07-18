@@ -5,6 +5,27 @@ import {
 } from '@/lib/services/weather-snapshots';
 
 describe('Story 12.3 automated coverage - weather snapshot read-time gates', () => {
+  test('preserves below-horizon NoSun parity when persisted geometry is zero at night', () => {
+    const gated = gateGeometrySeriesWithWeatherSnapshots({
+      geometrySeries: [{ minutes: 1260, sunExposurePercent: 0 }],
+      stockholmDate: '2026-12-18',
+      venue: {
+        id: 'venue-1',
+        location: { lat: 57.705, lng: 11.97 },
+      },
+      weatherSlices: [{ minutes: 1260, cloudCover: 100, isRaining: true }],
+    });
+
+    expect(gated).toEqual([
+      expect.objectContaining({
+        minutes: 1260,
+        sunExposurePercent: 0,
+        currentSunStatus: 'NoSun',
+        skyCondition: 'rain',
+      }),
+    ]);
+  });
+
   test('uses layer-weighted effective cloud cover for gating while preserving geometry percentage', () => {
     const gated = gateGeometrySeriesWithWeatherSnapshots({
       geometrySeries: [{ minutes: 720, sunExposurePercent: 82 }],

@@ -155,6 +155,7 @@ export async function runSunGeometryPrecompute(options: {
   const now = options.now ?? new Date();
   const window = buildSunGeometryPrecomputeWindow(now);
   const targets = options.targets ?? (await collectSunGeometryPrecomputeTargets({ includeHidden: true }));
+  const targetsResolvedAt = performance.now();
   const failVenueIds = new Set(options.failVenueIds ?? []);
   const missingInjectedTargetCount = [...failVenueIds].filter(
     (venueId) => !targets.some((target) => target.id === venueId),
@@ -162,6 +163,8 @@ export async function runSunGeometryPrecompute(options: {
   const totalVenueDays = (targets.length + missingInjectedTargetCount) * window.length;
   let completedVenueDays = 0;
   let failedVenueDays = 0;
+  let firstVenueCompletedAt: number | undefined;
+  let lastPublishCompletedAt: number | undefined;
   const failures: Array<{ venueId: string; stockholmDate: string; reason: string }> = [];
   for (const injectedMissing of failVenueIds) {
     if (!targets.some((target) => target.id === injectedMissing)) {
@@ -214,6 +217,8 @@ export async function runSunGeometryPrecompute(options: {
           seriesByDate,
         );
       }
+      firstVenueCompletedAt ??= performance.now();
+      lastPublishCompletedAt = performance.now();
       completedVenueDays += window.length;
     } catch (error) {
       failedVenueDays += window.length;
@@ -239,9 +244,9 @@ export async function runSunGeometryPrecompute(options: {
   };
   if (options.profile) {
     result.timingsMs = {
-      coldRouteBefore: 0,
-      coldRouteAfter: 0,
-      bucketRollAfter: 0,
+      coldRouteBefore: Math.max(0, targetsResolvedAt - started),
+      coldRouteAfter: Math.max(0, (firstVenueCompletedAt ?? targetsResolvedAt) - started),
+      bucketRollAfter: Math.max(0, (lastPublishCompletedAt ?? targetsResolvedAt) - started),
       precomputeRun,
     };
   }
