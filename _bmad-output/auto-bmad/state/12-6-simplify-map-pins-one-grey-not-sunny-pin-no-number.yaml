@@ -5,11 +5,11 @@ epic_num: 12
 story_num: 6
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-18T20:23:40Z"
+updated_at: "2026-07-18T20:47:41Z"
 started_at: "2026-07-18T20:23:39Z"
 completed_at: null
-active_seconds: 0
-timing_anchor: 1784406220
+active_seconds: 1440
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "Changes the public /api/venues ordering semantics and the shared sunny/not-sunny contract across server ranking, client sorting, pins, cards, ARIA, and labels, carrying score-9 API/UI truth risk."
 epic_story_count: 14
 stories_after_in_epic: 10
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 3]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: []
+commits: [8f17d33]
 phase8_steps:
   trace_gate: null
   nfr: null
