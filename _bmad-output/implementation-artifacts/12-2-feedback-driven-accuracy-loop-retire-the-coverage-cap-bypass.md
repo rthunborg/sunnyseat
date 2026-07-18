@@ -84,6 +84,13 @@ Design gate: this is primarily backend/ops/data-analysis work. No visual gate is
 
 ## Dev Notes
 
+### ATDD Artifacts
+
+- Checklist: `_bmad-output/test-artifacts/atdd-checklist-12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.md`
+- API/unit tests: `nextjs-app/test/unit/api/story-12-2-feedback-accuracy-loop.atdd.test.ts`
+- SQL/ops/source-contract tests: `nextjs-app/test/unit/story-12-2-accuracy-ops-and-cap-cleanup.atdd.test.ts`
+- E2E tests: `nextjs-app/test/e2e/story-12-2-feedback-evidence.atdd.spec.ts`
+
 ### Current Implementation Facts
 
 - `nextjs-app/app/api/venues/[slug]/feedback/route.ts` currently imports `VENUE_FIXTURE`, resolves only fixture venues by id/slug, and therefore cannot submit real live venue feedback. This is the direct AC1 bug.

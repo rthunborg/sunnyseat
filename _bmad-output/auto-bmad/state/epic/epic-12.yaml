@@ -5,10 +5,10 @@ epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-18T11:56:48Z"
+updated_at: "2026-07-18T12:05:19Z"
 started_at: "2026-07-18T11:27:25Z"
 completed_at: null
-active_seconds: 1626
+active_seconds: 2126
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [9d89d47, "0748044", 64bc456]
+commits: [9d89d47, "0748044", 64bc456, b578b18]
 phase8_steps:
   trace_gate: null
   nfr: null
