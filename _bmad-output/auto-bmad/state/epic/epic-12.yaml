@@ -5,10 +5,10 @@ epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-18T20:00:54Z"
+updated_at: "2026-07-18T20:19:14Z"
 started_at: "2026-07-18T11:27:25Z"
 completed_at: null
-active_seconds: 13402
+active_seconds: 14438
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: true
 story_trace: null
-commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc]
+commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -55,9 +55,10 @@ overrides: {}
 constraints:
   - "Execute Epic 12 in the user-confirmed dependency order: 12-1, 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, 12-10, 12-5, 12-8, 12-11, 12-2, 12-14."
 epic_slug: real-venue-launch-readiness-perf-trust-hours-console-hygiene
-active_story: 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
+active_story: 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number
 stories_landed:
   - 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
+  - 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
 auto_decisions:
   - "[12-7] Adopted the architecture-backed canonical `hidden boolean not null default false` migration/type contract after live/schema probes proved all previously referenced visibility columns absent; no protected database mutation was performed."
 uat_items:
@@ -73,6 +74,17 @@ uat_items:
   - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify the external quarter-hour warmer path is absent and normal latency does not depend on it."
   - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify protected GitHub Production secrets/variables exist for geometry precompute and weather refresh without committed secrets."
   - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify typecheck, lint, full Vitest, focused request-count Playwright, and scheduled-runner bundles remain green."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED DISPOSABLE/PREVIEW SUPABASE REQUIRED] Apply the visibility migration and verify venues.hidden is boolean NOT NULL DEFAULT false, existing/defaulted rows read false, and no query returns 42703."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED LIVE-MODE SUPABASE REQUIRED] A public non-fixture venue resolves by slug and ID on reviews GET with 200, empty reviews, and reviewCount 0."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED LIVE-MODE SUPABASE REQUIRED] Reviews POST by live ID and slug both return 201 and persist the same canonical venue identity."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED LIVE-MODE SUPABASE REQUIRED] Feedback POST by live ID and slug both return 201 and persist the same canonical venue identity."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED DISPOSABLE SUPABASE REQUIRED] Hidden, unknown, and hard-deleted identifiers return non-leaking 404s across reviews/feedback with no persistence writes."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [LOCAL FAULT-INJECTION] Unsafe control-character identifiers return validation 400 before resolver or persistence access."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [LOCAL FIXTURE + MIGRATED DISPOSABLE] A fixture-only slug resolves only in fixture mode and returns 404 in live mode without fallback."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [LOCAL FAULT-INJECTION] Safe identifiers against an unavailable venue store map consistently to 503 on reviews GET/POST and feedback POST."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED DISPOSABLE SUPABASE REQUIRED] ID/slug collisions fail closed with 404 across all three routes and produce no write."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED DISPOSABLE SUPABASE REQUIRED] Sequential absent/public/hidden/public transitions produce 404/200/404/200 without restart, and successful reviews GET remains no-store."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED DISPOSABLE SUPABASE REQUIRED] Precompute target collection projects hidden without 42703 and returns correct isHidden values."
 preexisting_done_stories:
   - 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
 adopt_verdicts:
@@ -93,5 +105,5 @@ story_execution_order:
   - 12-11-first-run-coach-mark-guide-map-legend-feature-tour
   - 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
   - 12-14-hide-closed-venues-open-at-selected-time-filter
-story_order_cursor: 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
+story_order_cursor: 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number
 order_override_reason: User-confirmed dependency order keeps prerequisite contracts ahead of their consumers while preserving Story 12-14 as the epic-end story.

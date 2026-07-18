@@ -1,0 +1,147 @@
+{
+  "schema_version": "0.1.0",
+  "snapshot_at": "2026-07-18T22:08:03+02:00",
+  "repo": "sunnyseat",
+  "collection_mode": "advisory_story_scope",
+  "collection_status": "COLLECTED",
+  "inventory_basis": "acceptance_criteria",
+  "gate_basis": "none",
+  "source_sha": "",
+  "target": {
+    "type": "story",
+    "id": "12.7",
+    "label": "Reviews Route Resolves Live Venues - Fix the 404 on Real Venues"
+  },
+  "decision_mode": "advisory",
+  "evaluator": "Rasmus",
+  "confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/implementation-artifacts/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md",
+      "_bmad-output/test-artifacts/atdd-checklist-12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md",
+      "_bmad-output/test-artifacts/test-design/test-design-epic-12.md",
+      "_bmad-output/planning-artifacts/architecture.md",
+      "project-context.md"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "advisory_status": "CONCERNS",
+  "coverage": {
+    "inventory": {
+      "fully_covered": 8,
+      "partially_covered": 2,
+      "uncovered": 0,
+      "total": 10,
+      "full_pct": 80,
+      "covered_or_partial_pct": 100
+    },
+    "priority_breakdown": {
+      "P0": {
+        "total": 8,
+        "fully_covered": 7,
+        "partially_covered": 1,
+        "uncovered": 0,
+        "full_pct": 87.5,
+        "covered_or_partial_pct": 100
+      },
+      "P1": {
+        "total": 2,
+        "fully_covered": 1,
+        "partially_covered": 1,
+        "uncovered": 0,
+        "full_pct": 50,
+        "covered_or_partial_pct": 100
+      },
+      "P2": {
+        "total": 0,
+        "fully_covered": 0,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "full_pct": 100,
+        "covered_or_partial_pct": 100
+      },
+      "P3": {
+        "total": 0,
+        "fully_covered": 0,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "full_pct": 100,
+        "covered_or_partial_pct": 100
+      }
+    },
+    "by_level": {
+      "e2e": { "tests": 0, "criteria_covered": 0 },
+      "api": { "tests": 15, "criteria_covered": 7 },
+      "component": { "tests": 0, "criteria_covered": 0 },
+      "unit": { "tests": 14, "criteria_covered": 8 },
+      "other": { "tests": 0, "criteria_covered": 0 }
+    }
+  },
+  "tests": {
+    "primary_story_files": 5,
+    "primary_story_cases": 29,
+    "supporting_files_reviewed": 4,
+    "supporting_cases_reviewed": 37,
+    "skipped_cases": 0,
+    "fixme_cases": 0,
+    "pending_cases": 0
+  },
+  "risk_summary": {
+    "critical_open": 0,
+    "high_open": 0,
+    "partial_p0": 1,
+    "partial_p1": 1
+  },
+  "heuristics": {
+    "endpoint_gaps": 0,
+    "auth_negative_path_status": "not_applicable",
+    "error_path_status": "partial",
+    "ui_journey_status": "not_applicable",
+    "ui_state_status": "not_applicable"
+  },
+  "material_gaps": [
+    {
+      "id": "OPS-1",
+      "priority": "P0",
+      "status": "PARTIAL_SOURCE_ONLY",
+      "reason": "Migration SQL and local types are asserted, but no migrated database or post-migration live query has been verified. The execution-only subrequirement is uncovered."
+    },
+    {
+      "id": "INV-1",
+      "priority": "P1",
+      "status": "PARTIAL_SEQUENTIAL_ONLY",
+      "reason": "Sequential miss-to-visible behavior is covered; concurrent in-flight visibility changes are not."
+    }
+  ],
+  "blockers": [],
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "action": "Apply the hidden migration before application deployment, verify the live schema and queries, regenerate types, and smoke-test live id/slug plus hidden rejection.",
+      "requirements": ["OPS-1"]
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Add a disposable migrated-Postgres/PostgREST contract test covering resolver and precompute projections.",
+      "requirements": ["RF-MED-SCHEMA", "OPS-1"]
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Add concurrent resolver evidence or narrow the race-consistency claim.",
+      "requirements": ["INV-1"]
+    },
+    {
+      "priority": "LOW",
+      "action": "Add direct route tests for resolver-read failure to 503 mapping.",
+      "requirements": ["AC2", "AC4"]
+    }
+  ],
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-report-12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md",
+    "trace_report_url": "",
+    "artifact_url": ""
+  }
+}
