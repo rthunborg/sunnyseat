@@ -9,37 +9,43 @@ stepsCompleted:
   - 'step-05-generate-output'
 lastStep: 'step-05-generate-output'
 nextStep: ''
-lastSaved: '2026-07-13'
+lastSaved: '2026-07-18'
 inputDocuments:
   - '_bmad-output/planning-artifacts/sprint-change-proposal-2026-07-12.md'
   - '_bmad-output/planning-artifacts/prd.md'
   - '_bmad-output/planning-artifacts/ux-design-specification.md'
   - '_bmad-output/planning-artifacts/architecture.md'
   - '_bmad-output/planning-artifacts/epics.md'
+  - '_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
   - '_bmad-output/planning-artifacts/research/technical-google-places-api-policy-epic-12-research-2026-07-12.md'
   - 'project-context.md'
   - '_bmad-output/qa/mvp-test-design-scope-correction-2026-05-19.md'
+  - '_bmad-output/qa/epic-12-test-design-2026-07-12.md'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-11.md'
   - '_bmad-output/test-artifacts/nfr-assessment-epic-11.md'
   - '_bmad-output/test-artifacts/traceability/traceability-report-epic-11.md'
   - 'nextjs-app/playwright.config.ts'
   - '.github/workflows/build-and-test-nextjs.yml'
+  - 'nextjs-app/test/e2e/axe-mobile.spec.ts'
+  - 'nextjs-app/test/unit/epic-11-standing-gate-ci-wiring.automate.test.ts'
   - 'nextjs-app/test/**/* (coverage and skip/fixme scan)'
 ---
 
 # Test Design: Epic 12 — Real-Venue Launch Readiness
 
-**Date:** 2026-07-13
+**Date:** 2026-07-18
 
 **Author:** Rasmus
 
-**Status:** Draft — canonical epic-level pre-implementation evidence plan
+**Status:** Current epic-level evidence plan — Story 12.1 complete; Stories 12.2–12.14 pending
 
 **Design level:** Epic-level with a system-delta lens; Stories 12.1–12.14
 
 ## Executive Summary
 
 This document is the canonical Epic 12 test plan. It does not rewrite the historical April test designs or the completed Epic 11 evidence. The [MVP scope correction](../../qa/mvp-test-design-scope-correction-2026-05-19.md) remains active except that Story 12.13 supersedes its user-facing confidence-display clauses.
+
+This 2026-07-18 refresh incorporates the Story 12.1 done record, the older 2026-07-12 QA delta, current Playwright/CI wiring, and a direct scan of existing coverage. Story 12.1 now contributes regression evidence for provider-neutral hours policy; it does not reduce the remaining launch blockers for persisted geometry, live venue identity, selected-time availability, mobile accessibility, or visual/device gates.
 
 Epic 12 touches the production request path, service-only persisted geometry, opening-hours provenance, every public venue identity seam, selected-instant filtering, shared ranking/presentation semantics, touch interaction, accessibility, media security, and scheduled operations. The test posture therefore combines deterministic CI with evidence that cannot be honestly produced in ordinary PR CI.
 
@@ -58,7 +64,7 @@ Priority denotes risk and business criticality, not execution timing. Determinis
 
 The adopted architecture, completed provider-policy research, and revised PRD/UX control when retained Epic 12 prose conflicts with them.
 
-1. Story 12.1's retained “Google Places weekly sync” wording is superseded. Its story brief must include a **Superseded Epic Text** section naming the dated proposal/research and `E12-AD-01`/`E12-AD-13`. Implementing or testing Google `regularOpeningHours` ingestion is prohibited.
+1. Story 12.1's retained “Google Places weekly sync” wording is superseded. Its completed story record resolves this as provider-neutral opening-hours governance and keeps the **Superseded Epic Text** contract alive as a regression guard. Implementing or testing Google `regularOpeningHours` ingestion remains prohibited.
 2. Story 12.10's retained wider-discovery and post-scrub options are superseded by `E12-AD-09`: initial-settle-only, already-returned list/favourite candidates, budget 6, concurrency 2, and no restart after scrub or date change. Its story brief needs the same explicit supersession section.
 3. Story 12.14's retained acceptance-criterion wording that filters `/favoriter` rows, plus its search/favourites “Open questions for planning” paragraph, is superseded by the 2026-07-13 Product decision and `E12-AD-07`. Its story brief must name both conflicting passages rather than hiding a saved closed venue or treating either behavior as open.
 4. Opening hours remain single-interval per ISO weekday. Whole field absent means unknown; missing/null weekday means closed; `close < open` is prior-day spillover. Split, 24/7, seasonal, and holiday-specific schedules route the whole venue to manual review.
@@ -104,7 +110,7 @@ Probability and impact use the BMad 1–3 scale; score is probability × impact.
 | ID | Category | Risk | P | I | Score | Mitigation / required evidence | Owner |
 |---|---|---|---:|---:|---:|---|---|
 | R-011 | BUS/TECH | Confidence disappears visually but remains in accessible names, route handoff, stale copy/tests, or uncertainty disappears with it. | 2 | 2 | 4 | Visible + accessibility source scan, component/E2E matrix, retained uncertainty assertions. | Dev + QA + UX |
-| R-012 | DATA/OPS | Hours audit overwrites valid schedules, stores ineligible provider content, loses provenance, or one venue aborts the batch. | 2 | 2 | 4 | Provider-neutral adapter/outcome, atomic/idempotent write, provenance and per-venue isolation tests. | Dev + QA + Data |
+| R-012 | DATA/OPS | Hours audit overwrites valid schedules, stores ineligible provider content, loses provenance, or one venue aborts the batch. | 2 | 2 | 4 | Story 12.1 regression suite, provider-neutral adapter/outcome, atomic/idempotent write, provenance and per-venue isolation tests. | Dev + QA + Data |
 | R-013 | BUS/TECH | Row-quantized sheet clips rows, exposes a drag gap, breaks real touch/keyboard/internal scroll/recenter/reduced motion. | 2 | 2 | 4 | Real-touch row ladder, keyboard 0..max, scroll-vs-drag and visual states. | Dev + QA + UX |
 | R-014 | TECH/OPS | Hydration or MapLibre app-origin warnings return and become allow-listed as noise. | 2 | 2 | 4 | Cold map/detail `console` and `pageerror` fail-on-warning/error guard. | Dev + QA |
 | R-015 | PERF/SEC | Media serves mutable/raw/oversized bytes, leaks write access, selects the wrong rendition, or shows broken-image UI. | 2 | 2 | 4 | Storage policy/security checks, create-only/versioning, size/key/origin tests, all-surface fallback. | Dev + QA + Platform |
@@ -141,14 +147,16 @@ Probability and impact use the BMad 1–3 scale; score is probability × impact.
 ## Existing Testability Baseline
 
 - Strong foundations already exist: deterministic Epic 10 weather/no-live-Met.no guards, Epic 11 scrub=0/date-change=1 request-count E2E, a dedicated Chromium real-touch project, query-key tests, and pure opening-hours formatter coverage.
+- Story 12.1 is complete and adds Epic 12-specific coverage for provider-neutral hours policy, governance migrations, scheduled audit behavior, provenance, policy scanning, and protected production remediation evidence. Treat this as a regression baseline; do not re-open Google-hours ingestion as an implementation option.
 - Epic 12 has no current persisted-geometry/hash/coverage/RLS suite, public live-id/visibility route matrix, selected-instant availability predicate, provider-content policy guard, console/pageerror gate, bounded-prefetch suite, row-quantized sheet tests, coach-mark tests, media-rendition contract tests, or confidence-removal regression suite.
+- The review and feedback routes still show fixture-only identity seams in the current code scan (`VENUE_FIXTURE`-based resolution for reviews and feedback), so Story 12.7 remains a concrete launch blocker rather than a theoretical risk.
 - Database-sensitive tests are currently mostly mocked route/service tests. The planned RLS, lease, atomic-promotion, and schema-diff evidence therefore requires the project-scoped Compose test PostGIS or an isolated preview Supabase lane.
 - `a11y-mobile` is defined in Playwright but deliberately not invoked by CI, and all of its current scenarios are `test.fixme`. Epic 12 must replace this vacuous state with executed mobile axe scenarios and update the standing CI-wiring contract before an affected mobile UI story can claim automated WCAG evidence.
 
 ## Entry Criteria
 
 - The Epic 12 story brief being implemented cites the 2026-07-12 proposal, PRD v3.2, UX revision, and its controlling `E12-AD` decisions.
-- Story 12.1, 12.10, and 12.14 briefs contain the mandatory **Superseded Epic Text** section before implementation begins.
+- Story 12.1's completed provider-neutral contract remains preserved; Story 12.10 and Story 12.14 briefs contain the mandatory **Superseded Epic Text** section before implementation begins.
 - Story 12.14 tests encode the adopted labelled exact-search and retained closed-favourite behavior; no alternative parameter remains active.
 - Baseline typecheck and lint pass before each story, per `AGENTS.md`.
 - Deterministic fixtures exist for 42+ venues, hidden/unknown identity, all hours states, geometry generations, weather buckets, media failures, and Google-policy-negative cases.
@@ -170,7 +178,7 @@ P0/P1/P2/P3 are priority and risk classes, not execution timing. Counts below ar
 | Scheduled geometry completeness and lease | Integration/SQL | R-001/R-008/R-009 | 8–12 | All visible+hidden venues; expected/written/reused/missing/stale/failed counts; 100% or failed run; DB lease + workflow concurrency; heartbeat expiry; idempotent rerun; emergency stop. |
 | Weather snapshot budget and degradation | Unit/integration/API | R-001/R-009 | 10–16 | Deduped buckets; concurrency 4; 2-second deadline; ≤2 transient retries; no permanent retry; current/future coverage; expiry→unknown; day+3 outside horizon→unknown; zero request-path provider fan-out; server/list parity. |
 | Public venue identity/visibility matrix | API/integration/E2E | R-003/R-007 | 16–28 | ID and slug across list, detail, reviews GET/POST, feedback POST, favourites-by-ID, and prefetch; visible/hidden/unknown; fixture fallback only in fixture mode; public `includeHidden` denied; show restores; cache race and ≤30-second bound. |
-| Selected-instant availability across every source | Unit/component/E2E | R-004/R-005/R-020 | 18–28 | U…477 tokens truncated…ternal confidence remains; uncertainty/weather row remains with clean separators. |
+| Selected-instant availability across every source | Unit/component/E2E | R-004/R-005/R-020 | 18–28 | Unknown hours remain visible; explicitly closed venues are excluded from map, ranked/area/partial discovery, counts, and unqualified sunny claims; exact by-name closed search returns `Stängt vid vald tid`; saved closed favourites remain visible, greyed, accessible, and inspectable; past-midnight boundaries, scrub=0/date-change=1 counts, and non-colour status are asserted. |
 | Provider-neutral hours audit and provenance | Unit/integration/SQL/static | R-012/R-018 | 14–22 | `accepted/manual_review/failed`; split/24-7/seasonal/holiday whole-venue manual review; no partial write; failure retains prior verified schedule and marks stale; provenance atomic/idempotent; per-venue isolation; 180-day outcome retention; no public trigger. |
 | Google-content and no-live-provider policy guard | Static/contract | R-012/R-018 | 8–12 | No `regularOpeningHours` request, raw/normalized Google hours, returned/provider/API-key URL, credential, fixture, queue, log, DTO, or UI path; Place ID-only allowance; zero user-path calls; Story 12.1 supersession audit. |
 | Row-quantized sheet, touch, and accessibility | Unit/component/E2E touch+a11y | R-013/R-019 | 12–20 | Height formula includes chrome + actual row; 0/1/few/max/mid-drag; no gap/safe area; body drag; scrollTop rule/internal scroll; keyboard one row to 0/max; announcement/focus; recenter padding; reduced-motion; desktop unchanged. |
@@ -182,7 +190,7 @@ P0/P1/P2/P3 are priority and risk classes, not execution timing. Counts below ar
 | Migration and schema-drift gate | SQL/type/contract | R-010 | 8–14 | Versioned idempotent repo migration; live-only reconciliation; additive→dual-read→backfill→consumer→remove sequence; old rows; generated type/Zod/DTO/fixture parity; preview apply; post-apply diff empty. |
 | Visual rebaseline set | Visual + human review | R-019 | 7 story sets | Stories 12.6, 12.8, 12.9, 12.11, 12.12, 12.13, and 12.14 provide affected mobile/desktop state evidence and update `REBASELINE-LOG.md` in the same operation. |
 | Non-vacuous mobile accessibility gate | Component/E2E/a11y/CI-static | R-023 | 5–8 | Epic 12 mobile axe scenarios execute (not `fixme`), CI invokes the intended project, the standing wiring guard is updated, and zero matched tests fail rather than pass. |
-| Story-brief supersession guard | Static/review | R-018 | 3–5 | Story 12.1, 12.10, and 12.14 briefs name superseded intent/questions and controlling decisions before their review gate. |
+| Story-brief supersession guard | Static/review | R-018 | 3–5 | Story 12.1's completed supersession record remains preserved; Story 12.10 and 12.14 briefs name superseded intent/questions and controlling decisions before their review gate. |
 
 **P1 estimate:** ~50–85 hours.
 
@@ -204,7 +212,7 @@ Every story has planned coverage; shared contracts are verified at their owning 
 
 | Story | Primary risks | Required test levels and evidence |
 |---|---|---|
-| 12.1 | R-012, R-018, R-010 | Static policy, adapter unit/contract, scheduled-audit integration/SQL, provenance live-data audit, schema drift, superseded-text brief audit. No Google calls. |
+| 12.1 | R-012, R-018, R-010 | Done: provider-neutral hours policy/governance, migration, scheduled-audit, provenance, policy-scan, and protected production remediation evidence are the baseline. Keep these regression tests and no-live-Google guards active. |
 | 12.2 | R-006, R-008, R-003, R-010, R-011 | Shared predicate unit parity, feedback API/SQL/version aggregation, real resolver, uncertainty component regression, full Vitest and cross-project Playwright where public assertions change. |
 | 12.3 | R-001, R-002, R-005, R-008, R-009, R-010 | Hash/series unit golden vectors, SQL/RLS/atomicity, scheduled integration, API degradation/request counts, live cold p95, full Vitest + Playwright request-count regression. |
 | 12.4 | R-014, R-019 | Cold map/detail console/pageerror E2E on mobile+desktop; visual no-change evidence; full relevant Playwright sweep. |
@@ -347,6 +355,7 @@ Philosophy: run everything in PRs unless infrastructure or duration makes it gen
 5. Rasmus/Product resolved the closed-search/favourite policy on 2026-07-13; changing it requires a new dated product decision and corresponding canonical/test updates.
 6. Story ordering honors shared ownership: 12.3 owns hash/geometry; 12.7 owns resolver; 12.6/shared domain owns sunny; 12.14 owns availability; consumers do not invent local variants.
 7. Current `a11y-mobile` fixmes are pre-existing debt, not evidence. The first affected Epic 12 mobile UI story must add executable axe coverage and update the CI-wiring guard rather than preserving the deliberate omission indefinitely.
+8. Story 12.1 was complete when this plan was refreshed on 2026-07-18; its evidence is a baseline for future stories, not a public-launch waiver for the remaining Epic 12 gates.
 
 ## Appendix: Source and Knowledge References
 
@@ -355,8 +364,10 @@ Philosophy: run everything in PRs unless infrastructure or duration makes it gen
 - [UX design specification](../../planning-artifacts/ux-design-specification.md).
 - [Architecture Epic 12 delta](../../planning-artifacts/architecture.md), `E12-AD-01`–`E12-AD-13`.
 - [Epic 12 stories](../../planning-artifacts/epics.md), Stories 12.1–12.14; retained superseded wording is historical input only.
+- [Story 12.1 implementation record](../../implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md), status done.
 - [Google Places policy research](../../planning-artifacts/research/technical-google-places-api-policy-epic-12-research-2026-07-12.md).
 - [Project context](../../../project-context.md), including planned Epic 12 invariants and the resolved closed-search/favourite policy.
+- [Older Epic 12 QA delta](../../qa/epic-12-test-design-2026-07-12.md), superseded where this 2026-07-18 plan is stricter.
 - [Epic 11 test design](test-design-epic-11.md), [NFR assessment](../nfr-assessment-epic-11.md), and [traceability report](../traceability/traceability-report-epic-11.md).
 - BMad knowledge: `risk-governance.md`, `probability-impact.md`, `test-levels-framework.md`, `test-priorities-matrix.md`, and `nfr-criteria.md`.
 
@@ -366,4 +377,4 @@ Philosophy: run everything in PRs unless infrastructure or duration makes it gen
 
 **Workflow mode:** Epic-Level / system delta
 
-**Version:** 2026-07-13
+**Version:** 2026-07-18
