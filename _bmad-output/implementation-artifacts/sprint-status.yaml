@@ -324,7 +324,7 @@ development_status:
   12-4-production-console-hygiene-hydration-error-maplibre-null-warning: backlog
   12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields: backlog
   12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number: backlog
-  12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues: ready-for-dev
+  12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues: review
   12-8-about-page-pin-legend-so-reads-the-sun-figure: backlog
   12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider: backlog
   12-10-venue-detail-preload-instant-mer-info: backlog

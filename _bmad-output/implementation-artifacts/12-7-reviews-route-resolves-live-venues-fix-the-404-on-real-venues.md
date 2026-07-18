@@ -1,6 +1,10 @@
+---
+baseline_commit: NO_VCS
+---
+
 # Story 12.7: Reviews Route Resolves Live Venues (Fix the 404 on Real Venues)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -62,58 +66,58 @@ feedback POST route — one shared live resolver for all three.)_
 
 ## Tasks / Subtasks
 
-- [ ] **Task 0 - Preflight the current branch before coding** (AC: 1, 2, 4)
-  - [ ] Run from `nextjs-app/`: `npx tsc --noEmit` and `npx eslint . --quiet`. If failures are outside this story's scope, stop and report them before editing.
-  - [ ] Confirm the starting bug seams still exist: `nextjs-app/lib/services/venue-reviews-persistence.ts` exports fixture-only `resolveReviewVenueIdentifier`, `nextjs-app/app/api/reviews/route.ts` calls it for GET and POST, and `nextjs-app/app/api/venues/[slug]/feedback/route.ts` imports `VENUE_FIXTURE`.
-  - [ ] Inspect the live venue visibility schema/types before changing the resolver. Architecture names the public guard as visible-only (`hidden = false`), while current precompute code already reads `is_hidden`, `visibility`, and `deleted_at`. Reconcile to the actual project schema in this branch; do not implement a public resolver that treats an unmodeled hidden/deleted row as visible.
+- [x] **Task 0 - Preflight the current branch before coding** (AC: 1, 2, 4)
+  - [x] Run from `nextjs-app/`: `npx tsc --noEmit` and `npx eslint . --quiet`. If failures are outside this story's scope, stop and report them before editing.
+  - [x] Confirm the starting bug seams still exist: `nextjs-app/lib/services/venue-reviews-persistence.ts` exports fixture-only `resolveReviewVenueIdentifier`, `nextjs-app/app/api/reviews/route.ts` calls it for GET and POST, and `nextjs-app/app/api/venues/[slug]/feedback/route.ts` imports `VENUE_FIXTURE`.
+  - [x] Inspect the live venue visibility schema/types before changing the resolver. Architecture names the public guard as visible-only (`hidden = false`), while current precompute code already reads `is_hidden`, `visibility`, and `deleted_at`. Reconcile to the actual project schema in this branch; do not implement a public resolver that treats an unmodeled hidden/deleted row as visible.
 
-- [ ] **Task 1 - Add one shared server-only public venue identity resolver** (AC: 1, 2, 3, 4)
-  - [ ] Prefer `nextjs-app/lib/services/venue-store.ts` unless a small adjacent server-only module better fits the existing dependency direction. The resolver must be the single identity source used by reviews GET, reviews POST, and feedback POST.
-  - [ ] Export an async helper with a narrow public contract, for example `resolvePublicVenueIdentifier(identifier: string): Promise<StoredVenue | null>`. Keep it server-only and do not expose visibility/admin fields in public DTOs.
-  - [ ] In fixture mode, resolve against the existing fixture/in-memory seed by `id`, `venueId`, `slug`, or `venueSlug`; this is the only mode where fixture fallback is allowed.
-  - [ ] In Supabase mode, resolve live venues by **id OR slug** against the live venue store. Reject blank identifiers, unknown venues, hidden venues, and deleted venues by returning `null` so public routes produce the same 404 class.
-  - [ ] Apply the public visibility guard in the resolver, not in each route. Public route handlers must not accept `includeHidden`.
-  - [ ] Avoid ad hoc duplicated Supabase queries in route handlers. If the Supabase filter uses `.or(...)`, centralize safe filter-value escaping instead of interpolating raw identifiers.
-  - [ ] Fail closed on corrupt identity collisions rather than choosing an arbitrary row. The expected healthy case is a single row because `id` and `slug` are unique.
-  - [ ] Preserve the existing `getVenues()` / `getVenueBySlug()` behavior unless the resolver needs a shared internal helper. Do not implement Story 12.5 editor/admin visibility flows here.
+- [x] **Task 1 - Add one shared server-only public venue identity resolver** (AC: 1, 2, 3, 4)
+  - [x] Prefer `nextjs-app/lib/services/venue-store.ts` unless a small adjacent server-only module better fits the existing dependency direction. The resolver must be the single identity source used by reviews GET, reviews POST, and feedback POST.
+  - [x] Export an async helper with a narrow public contract, for example `resolvePublicVenueIdentifier(identifier: string): Promise<StoredVenue | null>`. Keep it server-only and do not expose visibility/admin fields in public DTOs.
+  - [x] In fixture mode, resolve against the existing fixture/in-memory seed by `id`, `venueId`, `slug`, or `venueSlug`; this is the only mode where fixture fallback is allowed.
+  - [x] In Supabase mode, resolve live venues by **id OR slug** against the live venue store. Reject blank identifiers, unknown venues, hidden venues, and deleted venues by returning `null` so public routes produce the same 404 class.
+  - [x] Apply the public visibility guard in the resolver, not in each route. Public route handlers must not accept `includeHidden`.
+  - [x] Avoid ad hoc duplicated Supabase queries in route handlers. If the Supabase filter uses `.or(...)`, centralize safe filter-value escaping instead of interpolating raw identifiers.
+  - [x] Fail closed on corrupt identity collisions rather than choosing an arbitrary row. The expected healthy case is a single row because `id` and `slug` are unique.
+  - [x] Preserve the existing `getVenues()` / `getVenueBySlug()` behavior unless the resolver needs a shared internal helper. Do not implement Story 12.5 editor/admin visibility flows here.
 
-- [ ] **Task 2 - Rewire reviews GET and POST to the shared resolver** (AC: 1, 2, 3)
-  - [ ] Replace `resolveReviewVenueIdentifier` usage in `nextjs-app/app/api/reviews/route.ts` with the shared async resolver. Make both GET and POST await it.
-  - [ ] Keep current request validation, JSON/content-size checks, per-IP rate limiting, mismatch `409` handling, and `Cache-Control: no-store`.
-  - [ ] For GET, a live venue with no persisted reviews must return `200` with `reviews: []` and summary `reviewCount: 0`, not `404`.
-  - [ ] For POST, keep `primaryIdentifier = body.venueId ?? body.venueSlug` so numeric live IDs are tried before slug. Then keep the existing body id/slug mismatch checks against the resolved venue.
-  - [ ] Unknown, hidden, deleted, and malformed identifiers must not hit review persistence. They should return the same public not-found behavior.
-  - [ ] Remove or demote the old fixture-only review resolver from `nextjs-app/lib/services/venue-reviews-persistence.ts`; that file should remain focused on review persistence after this change.
+- [x] **Task 2 - Rewire reviews GET and POST to the shared resolver** (AC: 1, 2, 3)
+  - [x] Replace `resolveReviewVenueIdentifier` usage in `nextjs-app/app/api/reviews/route.ts` with the shared async resolver. Make both GET and POST await it.
+  - [x] Keep current request validation, JSON/content-size checks, per-IP rate limiting, mismatch `409` handling, and `Cache-Control: no-store`.
+  - [x] For GET, a live venue with no persisted reviews must return `200` with `reviews: []` and summary `reviewCount: 0`, not `404`.
+  - [x] For POST, keep `primaryIdentifier = body.venueId ?? body.venueSlug` so numeric live IDs are tried before slug. Then keep the existing body id/slug mismatch checks against the resolved venue.
+  - [x] Unknown, hidden, deleted, and malformed identifiers must not hit review persistence. They should return the same public not-found behavior.
+  - [x] Remove or demote the old fixture-only review resolver from `nextjs-app/lib/services/venue-reviews-persistence.ts`; that file should remain focused on review persistence after this change.
 
-- [ ] **Task 3 - Rewire feedback POST to the same resolver** (AC: 4)
-  - [ ] Replace the route-local `VENUE_FIXTURE` import/find in `nextjs-app/app/api/venues/[slug]/feedback/route.ts` with the shared resolver.
-  - [ ] Resolve the decoded path identifier by id or slug in live mode and by fixture identity only in fixture mode.
-  - [ ] Keep the existing body `venueId`/`venueSlug` mismatch checks, Zod validation, feedback persistence error mapping, and public response shape.
-  - [ ] Hidden, deleted, and unknown venues must return the same 404 class before `persistVenueFeedback` is called.
-  - [ ] Do not implement Story 12.2 prediction-evidence fields, accuracy aggregation, or coverage-cap cleanup in this story. This story only unblocks Story 12.2 by fixing live venue identity for feedback POST.
+- [x] **Task 3 - Rewire feedback POST to the same resolver** (AC: 4)
+  - [x] Replace the route-local `VENUE_FIXTURE` import/find in `nextjs-app/app/api/venues/[slug]/feedback/route.ts` with the shared resolver.
+  - [x] Resolve the decoded path identifier by id or slug in live mode and by fixture identity only in fixture mode.
+  - [x] Keep the existing body `venueId`/`venueSlug` mismatch checks, Zod validation, feedback persistence error mapping, and public response shape.
+  - [x] Hidden, deleted, and unknown venues must return the same 404 class before `persistVenueFeedback` is called.
+  - [x] Do not implement Story 12.2 prediction-evidence fields, accuracy aggregation, or coverage-cap cleanup in this story. This story only unblocks Story 12.2 by fixing live venue identity for feedback POST.
 
-- [ ] **Task 4 - Add route and resolver regression coverage** (AC: 1, 2, 3, 4)
-  - [ ] Add focused resolver tests in `nextjs-app/test/unit/services/venue-store.test.ts` or a new adjacent resolver test. Cover fixture mode, Supabase live id, Supabase live slug, unknown, hidden, deleted, blank identifier, and any safe `.or(...)` escaping helper.
-  - [ ] Update `nextjs-app/test/unit/api/reviews-route.test.ts` so a Supabase-mode venue absent from `VENUE_FIXTURE` returns `200` empty on GET and can resolve on POST. Include id-first and slug-based cases.
-  - [ ] Keep or update fixture-mode review tests to prove local fixture fallback still works outside Supabase venue-store mode.
-  - [ ] Update `nextjs-app/test/unit/api/venue-feedback-route.test.ts` so a Supabase-mode venue absent from `VENUE_FIXTURE` can submit feedback by id or slug and hidden/unknown live venues 404 before persistence.
-  - [ ] Update `nextjs-app/test/unit/services/venue-reviews-persistence.test.ts` if the old resolver export is removed or replaced.
-  - [ ] If useful, unskip or replace only the Story 12.2 ATDD checks that assert feedback no longer imports/uses `VENUE_FIXTURE`; leave non-12.7 feedback-evidence tests scoped to Story 12.2.
-  - [ ] Tests must mock Supabase/service-role behavior deterministically. Do not call live Supabase or external providers.
+- [x] **Task 4 - Add route and resolver regression coverage** (AC: 1, 2, 3, 4)
+  - [x] Add focused resolver tests in `nextjs-app/test/unit/services/venue-store.test.ts` or a new adjacent resolver test. Cover fixture mode, Supabase live id, Supabase live slug, unknown, hidden, deleted, blank identifier, and any safe `.or(...)` escaping helper.
+  - [x] Update `nextjs-app/test/unit/api/reviews-route.test.ts` so a Supabase-mode venue absent from `VENUE_FIXTURE` returns `200` empty on GET and can resolve on POST. Include id-first and slug-based cases.
+  - [x] Keep or update fixture-mode review tests to prove local fixture fallback still works outside Supabase venue-store mode.
+  - [x] Update `nextjs-app/test/unit/api/venue-feedback-route.test.ts` so a Supabase-mode venue absent from `VENUE_FIXTURE` can submit feedback by id or slug and hidden/unknown live venues 404 before persistence.
+  - [x] Update `nextjs-app/test/unit/services/venue-reviews-persistence.test.ts` if the old resolver export is removed or replaced.
+  - [x] If useful, unskip or replace only the Story 12.2 ATDD checks that assert feedback no longer imports/uses `VENUE_FIXTURE`; leave non-12.7 feedback-evidence tests scoped to Story 12.2.
+  - [x] Tests must mock Supabase/service-role behavior deterministically. Do not call live Supabase or external providers.
 
-- [ ] **Task 5 - Check the Epic 12 identity/visibility matrix without widening story scope** (AC: 1, 2, 4)
-  - [ ] Confirm reviews GET, reviews POST, and feedback POST all consume the same shared resolver and have no route-local `VENUE_FIXTURE.find` or duplicated Supabase venue lookup.
-  - [ ] Confirm hidden and unknown live identifiers are indistinguishable from the public API perspective.
-  - [ ] Confirm no public endpoint in this story accepts or forwards `includeHidden`.
-  - [ ] Record in the Dev Agent Record that downstream Story 12.5, 12.10, and 12.14 consumers still need to adopt the shared guard where their routes are touched. Do not implement those downstream stories here unless their code must be minimally adjusted to keep this story compiling.
-  - [ ] Preserve review cache behavior (`no-store`) and do not add wider route caching around identity resolution.
+- [x] **Task 5 - Check the Epic 12 identity/visibility matrix without widening story scope** (AC: 1, 2, 4)
+  - [x] Confirm reviews GET, reviews POST, and feedback POST all consume the same shared resolver and have no route-local `VENUE_FIXTURE.find` or duplicated Supabase venue lookup.
+  - [x] Confirm hidden and unknown live identifiers are indistinguishable from the public API perspective.
+  - [x] Confirm no public endpoint in this story accepts or forwards `includeHidden`.
+  - [x] Record in the Dev Agent Record that downstream Story 12.5, 12.10, and 12.14 consumers still need to adopt the shared guard where their routes are touched. Do not implement those downstream stories here unless their code must be minimally adjusted to keep this story compiling.
+  - [x] Preserve review cache behavior (`no-store`) and do not add wider route caching around identity resolution.
 
-- [ ] **Task 6 - Run required checks and transition through the story review gate** (AC: all)
-  - [ ] Run from `nextjs-app/`: `npx tsc --noEmit`, `npx eslint . --quiet`, and `npx vitest run`.
-  - [ ] Run focused tests while developing, at minimum the review route, feedback route, resolver/store, and review persistence test files touched by this story.
-  - [ ] Run `npx playwright test` only if implementation changes client-visible behavior, shared DTOs used by browser flows, route status handling that existing browser tests cover, or if the story review gate requires it.
-  - [ ] No visual validation is required for the intended backend-only fix. If UI/copy changes become necessary, stop and add normal design-token, Swedish copy, accessibility, and visual validation evidence for affected screens.
-  - [ ] Move the story to review only through `.\scripts\run-sh.ps1 scripts/story-review.sh 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues` from repository root.
+- [x] **Task 6 - Run required checks and transition through the story review gate** (AC: all)
+  - [x] Run from `nextjs-app/`: `npx tsc --noEmit`, `npx eslint . --quiet`, and `npx vitest run`.
+  - [x] Run focused tests while developing, at minimum the review route, feedback route, resolver/store, and review persistence test files touched by this story.
+  - [x] Run `npx playwright test` only if implementation changes client-visible behavior, shared DTOs used by browser flows, route status handling that existing browser tests cover, or if the story review gate requires it.
+  - [x] No visual validation is required for the intended backend-only fix. If UI/copy changes become necessary, stop and add normal design-token, Swedish copy, accessibility, and visual validation evidence for affected screens.
+  - [x] Move the story to review only through `.\scripts\run-sh.ps1 scripts/story-review.sh 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues` from repository root.
 
 ## Dev Notes
 
@@ -214,20 +218,51 @@ feedback POST route — one shared live resolver for all three.)_
 
 ### Agent Model Used
 
-_To be filled by dev agent._
+Codex GPT-5
+
+### Implementation Plan
+
+- Keep the shared resolver in `nextjs-app/lib/services/venue-store.ts` so it can reuse the existing fixture/live store seam without exporting Supabase internals.
+- Use the branch's current visibility seam (`is_hidden`, `visibility`, `deleted_at`) for the public guard. `nextjs-app/lib/supabase/types.ts` does not contain the planned `hidden` column, and `nextjs-app/lib/services/sun-geometry-precompute.ts` already selects these runtime fields.
+- Do not widen `VENUE_SELECT_COLUMNS`; use a resolver-only Supabase projection that adds server-only visibility fields, then map through the existing `fromVenueRow` DTO coercion.
+- Keep resolver calls uncached so a prior miss cannot mask a later visible row; preserve review route `Cache-Control: no-store`.
+- Leave Story 12.2 feedback-evidence fields and downstream Story 12.5/12.10/12.14 consumers out of scope.
 
 ### Debug Log References
 
-_To be filled by dev agent._
+- 2026-07-18: Baseline `npx tsc --noEmit` passed from `nextjs-app/`.
+- 2026-07-18: Baseline `npx eslint . --quiet` passed from `nextjs-app/`.
+- 2026-07-18: Red phase `npx vitest run test/unit/services/story-12-7-public-venue-resolver.atdd.test.ts test/unit/api/story-12-7-reviews-route-live-venues.atdd.test.ts test/unit/api/story-12-7-feedback-route-live-venues.atdd.test.ts` failed 14/14 as expected against the missing shared resolver and fixture-only routes.
+- 2026-07-18: Focused green run `npx vitest run test/unit/services/story-12-7-public-venue-resolver.atdd.test.ts test/unit/api/story-12-7-reviews-route-live-venues.atdd.test.ts test/unit/api/story-12-7-feedback-route-live-venues.atdd.test.ts test/unit/services/venue-reviews-persistence.test.ts test/unit/api/reviews-route.test.ts test/unit/api/venue-feedback-route.test.ts test/unit/services/venue-store.test.ts` passed: 7 files / 82 tests.
+- 2026-07-18: Post-change `npx tsc --noEmit` passed from `nextjs-app/`.
+- 2026-07-18: Post-change `npx eslint . --quiet` passed from `nextjs-app/`.
+- 2026-07-18: Full `npx vitest run` passed: 180 files passed, 2 skipped; 1714 tests passed, 15 skipped.
+- 2026-07-18: Canonical review gate `.\scripts\run-sh.ps1 scripts/story-review.sh 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues` passed; it ran npm `lint`, `typecheck`, and `test`, skipped visual validation because no mapped screen ID was found, and confirmed sprint status `review`.
+- 2026-07-18: Review validation artifact: `_bmad-output/implementation-artifacts/validation/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues-review-20260718-211450.log`.
+- 2026-07-18: Playwright was not run separately because the story remained backend-only, did not change public DTOs or UI/copy, and the canonical story-review gate did not require E2E for this unmapped story.
 
 ### Completion Notes List
 
-_To be filled by dev agent._
+- Added `resolvePublicVenueIdentifier()` to the server-only venue store. Fixture mode resolves `id`/`venueId`/`slug`/`venueSlug`; Supabase mode resolves live `id OR slug` with quoted PostgREST operands and returns `null` for blank, unknown, hidden, deleted, or collision cases.
+- Rewired `/api/reviews` GET and POST to await the shared resolver before review persistence. Live zero-review venues now reach the empty-review path and return `200` with `reviews: []` and summary `reviewCount: 0`.
+- Rewired `/api/venues/[slug]/feedback` POST to use the same resolver before feedback persistence, preserving request validation, mismatch checks, and persistence error mapping.
+- Removed the fixture-only review identifier resolver from `venue-reviews-persistence.ts`; review persistence now stays focused on reads/writes/summaries.
+- Existing active Story 12.7 ATDD tests now pass without weakening or deleting their contract. Existing fixture-mode review and feedback tests remain green.
+- Downstream Story 12.5, 12.10, and 12.14 consumers still need to adopt the shared public guard when their routes are implemented/touched.
 
 ### File List
 
-_To be filled by dev agent._
+- `_bmad-output/implementation-artifacts/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/validation/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues-review-20260718-211450.log`
+- `nextjs-app/app/api/reviews/route.ts`
+- `nextjs-app/app/api/venues/[slug]/feedback/route.ts`
+- `nextjs-app/lib/services/venue-store.ts`
+- `nextjs-app/lib/services/venue-reviews-persistence.ts`
+- `nextjs-app/test/unit/api/reviews-route.test.ts`
+- `nextjs-app/test/unit/api/venue-feedback-route.test.ts`
+- `nextjs-app/test/unit/services/venue-reviews-persistence.test.ts`
 
 ### Change Log
 
-_To be filled by dev agent._
+- 2026-07-18: Implemented Story 12.7 shared live public venue resolver, rewired reviews/feedback routes, removed review-local fixture identity resolution, updated tests, and passed the canonical review gate.

@@ -20,3 +20,6 @@
 - [Phase 5 â€” dev-story] Local Playwright can reuse an unrelated localhost:3000 process; run with CI=1 for the repo-owned server during validation.
 - [Phase 6 â€” test automation] Automation ran sequentially because nested worker fan-out is unavailable inside the delegate runtime; coverage results were unaffected.
 - [Phase 7 â€” story trace] Protected-production evidence remains a release lane: collect 42+ venue cold-p95 with date/hash/run metadata, persisted-read proof, zero provider/shadow recompute proof, protected GitHub Production configuration, and live protected Supabase advisor evidence.
+
+## Story 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
+- [Phase 5 â€” dev-story] Visibility schema drift remains: the runtime seam uses is_hidden / visibility / deleted_at, while the planned hidden column is absent from generated types on this branch; downstream consumers must use the shared resolver rather than re-inventing visibility checks.

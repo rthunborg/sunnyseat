@@ -1,0 +1,41 @@
+SunnySeat story review gate
+Story: 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues-review-20260718-211450.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md
+Current sprint status: review
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+Not implemented: navigation to another Document
+
+ Test Files  180 passed | 2 skipped (182)
+      Tests  1714 passed | 15 skipped (1729)
+   Start at  21:15:16
+   Duration  76.67s (transform 9.78s, setup 135.48s, import 118.76s, tests 93.83s, environment 677.50s)
+
+Skipping visual validation: no mapped screen ID found in story file
+Story '12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues' is already marked review. No sprint-status update needed.
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues-review-20260718-211450.log

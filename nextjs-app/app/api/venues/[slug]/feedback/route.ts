@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { persistVenueFeedback } from '@/lib/services/venue-feedback-persistence';
-import { VENUE_FIXTURE } from '@/lib/services/venues-fixture';
+import { resolvePublicVenueIdentifier } from '@/lib/services/venue-store';
 import type {
   FeedbackResponse,
   FeedbackSunAccuracy,
@@ -88,12 +88,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return jsonError('Invalid venue identifier', 400);
   }
 
-  const venue = VENUE_FIXTURE.find((candidate) =>
-    candidate.id === identifier ||
-    candidate.venueId === identifier ||
-    candidate.slug === identifier ||
-    candidate.venueSlug === identifier,
-  );
+  let venue;
+  try {
+    venue = await resolvePublicVenueIdentifier(identifier);
+  } catch {
+    return jsonError('Venue store unavailable', 503);
+  }
   if (!venue) return jsonError(`Venue not found: ${identifier}`, 404);
 
   let rawBody: unknown;

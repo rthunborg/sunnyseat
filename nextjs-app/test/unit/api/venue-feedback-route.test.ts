@@ -7,8 +7,28 @@ const persistenceMock = vi.hoisted(() => ({
   persistVenueFeedback: vi.fn(async (feedback: FeedbackResponse) => feedback),
 }));
 
+const supabaseMocks = vi.hoisted(() => {
+  const state = {
+    venueRow: null as Record<string, unknown> | null,
+  };
+  const maybeSingle = vi.fn(async () => ({ data: state.venueRow, error: null }));
+  const or = vi.fn(() => ({ maybeSingle }));
+  const select = vi.fn(() => ({ or }));
+  const from = vi.fn((table: string) => {
+    if (table !== 'venues') throw new Error(`unexpected table ${table}`);
+    return { select };
+  });
+  return { state, from, select, or, maybeSingle };
+});
+
 vi.mock('@/lib/services/venue-feedback-persistence', () => ({
   persistVenueFeedback: persistenceMock.persistVenueFeedback,
+}));
+
+vi.mock('@/lib/supabase/server', () => ({
+  getSupabaseServiceRole: () => ({
+    from: supabaseMocks.from,
+  }),
 }));
 
 function makeRequest(slug: string, body: unknown): NextRequest {
@@ -28,16 +48,46 @@ const VALID_BODY = {
   note: 'Solen stämde.',
 };
 
+const LIVE_VENUE_ROW = {
+  id: '8',
+  slug: 'live-zero-review',
+  venue_name: 'Live Zero Review',
+  neighborhood: 'Centrum',
+  lat: 57.706,
+  lng: 11.971,
+  is_partner: false,
+  is_hidden: false,
+  visibility: 'public',
+  deleted_at: null,
+  current_sun_status: 'Sunny',
+  confidence: 82,
+  sun_exposure_percent: 71,
+  tags: [],
+};
+
+function useSupabaseVenueStore() {
+  vi.stubEnv('SUNNYSEAT_VENUE_STORE', 'supabase');
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
+  vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key');
+}
+
 describe('POST /api/venues/[slug]/feedback', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-07T12:05:00.000Z'));
+    vi.unstubAllEnvs();
     persistenceMock.persistVenueFeedback.mockClear();
     persistenceMock.persistVenueFeedback.mockImplementation(async (feedback) => feedback);
+    supabaseMocks.state.venueRow = null;
+    supabaseMocks.from.mockClear();
+    supabaseMocks.select.mockClear();
+    supabaseMocks.or.mockClear();
+    supabaseMocks.maybeSingle.mockClear();
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
 
   it('persists a valid fixture-backed feedback payload through the adapter', async () => {
@@ -92,6 +142,38 @@ describe('POST /api/venues/[slug]/feedback', () => {
     expect(res.status).toBe(201);
     const body = (await res.json()) as FeedbackResponse;
     expect(body.venueSlug).toBe('test-venue-sunny');
+  });
+
+  it('resolves live Supabase venue slugs and ids absent from fixtures before persistence', async () => {
+    useSupabaseVenueStore();
+    supabaseMocks.state.venueRow = LIVE_VENUE_ROW;
+
+    const bySlug = await POST(makeRequest('live-zero-review', VALID_BODY), {
+      params: Promise.resolve({ slug: 'live-zero-review' }),
+    });
+    expect(bySlug.status).toBe(201);
+    await expect(bySlug.json()).resolves.toMatchObject({
+      venueId: '8',
+      venueSlug: 'live-zero-review',
+    });
+
+    persistenceMock.persistVenueFeedback.mockClear();
+    const byId = await POST(makeRequest('8', {
+      ...VALID_BODY,
+      venueId: '8',
+      venueSlug: 'live-zero-review',
+    }), {
+      params: Promise.resolve({ slug: '8' }),
+    });
+    expect(byId.status).toBe(201);
+    await expect(byId.json()).resolves.toMatchObject({
+      venueId: '8',
+      venueSlug: 'live-zero-review',
+    });
+    expect(persistenceMock.persistVenueFeedback).toHaveBeenCalledWith(expect.objectContaining({
+      venueId: '8',
+      venueSlug: 'live-zero-review',
+    }));
   });
 
   it('rejects unknown venues with stable 404', async () => {

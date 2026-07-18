@@ -5,9 +5,9 @@ import { z } from 'zod';
 import {
   getVenueReviewsFromPersistence,
   persistVenueReview,
-  resolveReviewVenueIdentifier,
   summarizeReviews,
 } from '@/lib/services/venue-reviews-persistence';
+import { resolvePublicVenueIdentifier } from '@/lib/services/venue-store';
 import type {
   GetReviewsResponse,
   ReviewDto,
@@ -84,7 +84,12 @@ export async function GET(request: NextRequest) {
     return jsonError('venueId contains invalid control characters', 400);
   }
 
-  const venue = resolveReviewVenueIdentifier(identifier);
+  let venue;
+  try {
+    venue = await resolvePublicVenueIdentifier(identifier);
+  } catch {
+    return jsonError('Venue store unavailable', 503);
+  }
   if (!venue) return jsonError(`Venue not found: ${identifier}`, 404);
 
   let reviews: ReviewDto[];
@@ -150,7 +155,12 @@ export async function POST(request: NextRequest) {
 
   const body = parsed.data satisfies SubmitReviewRequest;
   const primaryIdentifier = body.venueId ?? body.venueSlug ?? '';
-  const venue = resolveReviewVenueIdentifier(primaryIdentifier);
+  let venue;
+  try {
+    venue = await resolvePublicVenueIdentifier(primaryIdentifier);
+  } catch {
+    return jsonError('Venue store unavailable', 503);
+  }
   if (!venue) return jsonError(`Venue not found: ${primaryIdentifier}`, 404);
   if (body.venueId && !identifierMatchesVenue(body.venueId, venue)) {
     return jsonError('Body venueId does not match venueSlug', 409);
