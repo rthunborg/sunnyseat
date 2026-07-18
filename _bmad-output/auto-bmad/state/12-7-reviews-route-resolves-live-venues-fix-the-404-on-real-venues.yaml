@@ -5,7 +5,7 @@ epic_num: 12
 story_num: 7
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: done
-updated_at: "2026-07-18T20:18:21Z"
+updated_at: "2026-07-18T20:23:39Z"
 started_at: "2026-07-18T18:43:57Z"
 completed_at: "2026-07-18T20:18:21Z"
 active_seconds: 5573
@@ -32,7 +32,7 @@ story_trace:
   coverage: "{\"traced\": 10, \"full\": 8, \"partial\": 2, \"uncovered\": 0}"
   uncovered: []
   material_gaps: ["OPS-1: apply the hidden migration, verify boolean NOT NULL DEFAULT false on a migrated database, regenerate types, and smoke-test live ID/slug plus hidden rejection", "INV-1: concurrent in-flight visibility changes are not directly exercised", No direct production-query test covers the precompute hidden projection, No route test forces resolver failure and verifies stable 503 mapping before persistence]
-commits: [3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d]
+commits: [3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc]
 phase8_steps:
   trace_gate: null
   nfr: null
