@@ -365,12 +365,31 @@ Codex GPT-5
 - 2026-07-18: Create-story baseline `cd nextjs-app && npx tsc --noEmit` passed.
 - 2026-07-18: Create-story baseline `cd nextjs-app && npx eslint . --quiet` passed.
 - 2026-07-18: Confirmed Story 12.3 persisted geometry/read-time weather code and Story 12.7 shared visible-only resolver are present in the current workspace; Story 12.7 migrated-database/live verification remains a separate deployment evidence lane.
+- 2026-07-18: ATDD RED scaffolds generated for Story 12.6; focused activation/run evidence is recorded in `_bmad-output/test-artifacts/atdd-checklist-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md`.
+- 2026-07-18: Focused RED verification executed 24 Vitest cases (22 failed, 2 existing controls passed) and 5 Playwright cases (5 failed at the new Swedish pin-name contract across mobile/desktop/a11y-mobile).
+
+### ATDD Artifacts
+
+- Checklist: `_bmad-output/test-artifacts/atdd-checklist-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md`
+- API/domain tests: `nextjs-app/test/unit/api/story-12-6-public-sun-ordering.atdd.test.ts`, `nextjs-app/test/unit/utils/public-sun.atdd.test.ts`, `nextjs-app/test/unit/services/story-12-6-weather-gate-state.atdd.test.ts`
+- Component/i18n tests: `nextjs-app/test/components/VenuePin.public-sun.atdd.test.tsx`, `nextjs-app/test/unit/story-12-6-i18n-a11y-ci.atdd.test.ts`
+- E2E/a11y tests: `nextjs-app/test/e2e/story-12-6-public-sun-pins.atdd.spec.ts`, `nextjs-app/test/e2e/story-12-6/axe-mobile.spec.ts`
 
 ### Completion Notes List
 
 - Ultimate context engine analysis completed - comprehensive developer guide created.
 - No implementation code, tests, reference images, capture recipes, or auto-bmad state were changed during story creation.
+- ATDD acceptance scaffolds now define the pre-implementation RED contract; production implementation, sprint status, visual references, and rebaseline history remain unchanged.
+- Active RED failures are implementation-facing: missing shared public-sun module/tri-state propagation, legacy pin variants/motion, stale localized ARIA, and absent `a11y-mobile` CI invocation.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md`
+- `_bmad-output/test-artifacts/atdd-checklist-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md`
+- `nextjs-app/test/unit/utils/public-sun.atdd.test.ts`
+- `nextjs-app/test/unit/services/story-12-6-weather-gate-state.atdd.test.ts`
+- `nextjs-app/test/unit/api/story-12-6-public-sun-ordering.atdd.test.ts`
+- `nextjs-app/test/components/VenuePin.public-sun.atdd.test.tsx`
+- `nextjs-app/test/unit/story-12-6-i18n-a11y-ci.atdd.test.ts`
+- `nextjs-app/test/e2e/story-12-6-public-sun-pins.atdd.spec.ts`
+- `nextjs-app/test/e2e/story-12-6/axe-mobile.spec.ts`
