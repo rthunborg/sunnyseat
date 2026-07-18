@@ -324,7 +324,7 @@ development_status:
   12-4-production-console-hygiene-hydration-error-maplibre-null-warning: backlog
   12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields: backlog
   12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number: backlog
-  12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues: backlog
+  12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues: ready-for-dev
   12-8-about-page-pin-legend-so-reads-the-sun-figure: backlog
   12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider: backlog
   12-10-venue-detail-preload-instant-mer-info: backlog
@@ -365,6 +365,14 @@ development_status:
 # script allow-lists, Supabase CLI fallback) plus overlapping deferred weather/hash/centroid/test concerns.
 # Story-file-audit passed all 7 checks after adding verbatim source ACs/design gate and expected file impact;
 # draft baseline `npx tsc --noEmit` and `npx eslint . --quiet` both passed from nextjs-app.
+
+# Note (2026-07-18, create-story 12.7 — backlog -> ready-for-dev): authored the shared live venue
+# resolver story context at _bmad-output/implementation-artifacts/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md.
+# The brief preserves the Epic 12.7 bug context, user story, acceptance criteria, and backend-only/no-design-gate
+# scope verbatim, then binds implementation to E12-AD-05: one server-only public id-or-slug resolver for reviews
+# GET, reviews POST, and feedback POST; fixture fallback only in fixture mode; hidden/deleted/unknown live venues
+# resolve to the same public 404. Story-file-audit passed all 7 checks; draft baseline `npx tsc --noEmit`
+# and `npx eslint . --quiet` both passed from nextjs-app.
 
 # Note (2026-07-12, sprint-planning epic-12 — Epic 12 registered as backlog): full sprint-planning refresh against epics.md recognized the flexible `## Epic 12 (Backlog):` header and added all 14 title-derived story keys plus the retrospective in source order. No 12-* story files exist, so Epic 12 and Stories 12.1-12.14 remain backlog and the retrospective remains optional. All prior advanced statuses and retrospective action items were preserved. Inventory: 12 epics / 87 stories; status totals: 7 done, 1 in-progress, 4 backlog epics; 53 done, 8 review, 26 backlog stories. Epic 12 is explicitly not scheduled; epics.md recommends Story 12.3 first when prioritized.
 
