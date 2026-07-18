@@ -1,25 +1,25 @@
 # auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
 # see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
-story_key: epic-12
+story_key: 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
 epic_num: 12
-story_num: null
+story_num: 2
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-18T11:42:17Z"
-started_at: "2026-07-18T11:27:25Z"
+updated_at: "2026-07-18T11:42:18Z"
+started_at: "2026-07-18T11:42:18Z"
 completed_at: null
-active_seconds: 785
+active_seconds: 0
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
 git_mode: remote
 base_branch: main
-tea_risk: null
-tea_selected: []
-tea_rationale: null
+tea_risk: high
+tea_selected: [atdd, automate, trace-advisory]
+tea_rationale: "Changes the live feedback POST contract/persistence and adds DB-backed aggregation/reset semantics, creating data-integrity and public API contract risk."
 epic_story_count: 14
-stories_after_in_epic: null
+stories_after_in_epic: 12
 completed_phases: [0, 1, 2]
 code_review_iterations: 0
 code_review_loop_done: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [9d89d47, "0748044"]
+commits: []
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -51,13 +51,4 @@ deferred_work: []
 blockers: []
 overrides: {}
 constraints: []
-epic_slug: real-venue-launch-readiness-perf-trust-hours-console-hygiene
-active_story: 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
-stories_landed: []
-auto_decisions: []
-uat_items: []
-preexisting_done_stories:
-  - 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
-adopt_verdicts:
-  - "12-1 skipped: already done"
-  - 12-2 through 12-14 queued fresh from backlog
+tier_a_base_sha: 0748044e3743a9fe2b64e674d22b7e8074d7b9d9
