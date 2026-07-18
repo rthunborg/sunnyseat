@@ -117,6 +117,13 @@ feedback POST route — one shared live resolver for all three.)_
 
 ## Dev Notes
 
+### ATDD Artifacts
+
+- Checklist: `_bmad-output/test-artifacts/atdd-checklist-12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md`
+- Resolver tests: `nextjs-app/test/unit/services/story-12-7-public-venue-resolver.atdd.test.ts`
+- Reviews route tests: `nextjs-app/test/unit/api/story-12-7-reviews-route-live-venues.atdd.test.ts`
+- Feedback route tests: `nextjs-app/test/unit/api/story-12-7-feedback-route-live-venues.atdd.test.ts`
+
 ### Current Implementation Facts
 
 - `nextjs-app/lib/services/venue-reviews-persistence.ts` currently imports `VENUE_FIXTURE` and exports `resolveReviewVenueIdentifier(identifier)`, which trims an identifier and matches only fixture `id`, `venueId`, `slug`, or `venueSlug`.
