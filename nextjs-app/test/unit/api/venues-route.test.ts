@@ -312,6 +312,7 @@ describe('GET /api/venues', () => {
     const normalized = normalizeVenueForResponse({
       ...makeVenue({ id: 'gated', lat: 57.7, lng: 11.9 }),
       currentSunStatus: 'CloudObscured',
+      weatherGateState: 'unknown',
       skyCondition: 'overcast',
     });
 
@@ -430,6 +431,7 @@ describe('GET /api/venues', () => {
     const venue = body.venues.find((candidate) => candidate.slug === 'test-venue-sunny');
     expect(venue).toMatchObject({
       currentSunStatus: 'Shaded',
+      weatherGateState: 'not_gated',
       sunExposurePercent: expect.any(Number),
     });
     expect(venue?.confidence).toBeLessThan(92);
@@ -445,6 +447,7 @@ describe('GET /api/venues', () => {
     expect(body.venues.every((venue) => Number.isFinite(venue.distanceMeters))).toBe(true);
     expect(body.venues[0]).toEqual(expect.objectContaining({
       currentSunStatus: expect.any(String),
+      weatherGateState: 'not_gated',
       confidence: expect.any(Number),
     }));
     expect(body.meta.count).toBe(2);
@@ -530,6 +533,7 @@ describe('GET /api/venues', () => {
     expect(geometryOnlyVenue).toMatchObject({
       skyCondition: 'unavailable',
       currentSunStatus: 'Sunny',
+      weatherGateState: 'unknown',
     });
     expect(geometryOnlyVenue?.sunExposurePercent).toBe(weatherVenue?.sunExposurePercent);
     expect(geometryOnlyVenue?.confidence).toBe(weatherVenue?.confidence);
@@ -610,6 +614,7 @@ function makeVenue({
     neighborhood: 'Centrum',
     location: { lat, lng },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     isPartner: false,
     confidence: 90,
     distanceMeters: 0,

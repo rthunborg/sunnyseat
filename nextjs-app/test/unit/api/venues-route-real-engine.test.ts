@@ -52,6 +52,7 @@ function computedOutcome(venue: StoredVenue): SunEngineOutcome {
     venue: {
       ...toVenueData(venue),
       currentSunStatus: 'Partial',
+      weatherGateState: 'not_gated',
       confidence: 55,
       sunExposurePercent: 60,
       skyCondition: 'clear',
@@ -72,6 +73,7 @@ function cloudObscuredOutcome(venue: StoredVenue): SunEngineOutcome {
     venue: {
       ...toVenueData(venue),
       currentSunStatus: 'CloudObscured',
+      weatherGateState: 'not_gated',
       confidence: 60,
       sunExposurePercent: 90,
       skyCondition: 'overcast',
@@ -88,6 +90,7 @@ function unavailableOutcome(venue: StoredVenue): SunEngineOutcome {
     venue: {
       ...toVenueData(venue),
       currentSunStatus: 'NoSun',
+      weatherGateState: 'not_gated',
       confidence: 20,
       sunExposurePercent: 0,
       skyCondition: 'unavailable',
@@ -258,6 +261,7 @@ describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
         venue: {
           ...toVenueData(venue),
           currentSunStatus: fields.currentSunStatus,
+          weatherGateState: 'not_gated',
           confidence: 60,
           sunExposurePercent: fields.sunExposurePercent,
           skyCondition: fields.currentSunStatus === 'CloudObscured' ? 'overcast' : 'clear',

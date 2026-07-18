@@ -886,6 +886,7 @@ describe('<MapView />', () => {
               neighborhood: 'Centrum',
               location: { lat: 57.7, lng: 11.97 },
               currentSunStatus: 'Sunny',
+              weatherGateState: 'not_gated',
               isPartner: false,
               confidence: 92,
               distanceMeters: 420,
@@ -953,6 +954,7 @@ describe('<MapView />', () => {
               // Real data can deliver a null location; the DTO types it non-null.
               location: null as unknown as { lat: number; lng: number },
               currentSunStatus: 'Sunny',
+              weatherGateState: 'not_gated',
               isPartner: false,
               confidence: 90,
               distanceMeters: 300,
@@ -998,6 +1000,7 @@ describe('<MapView />', () => {
                 lng: null as unknown as number,
               },
               currentSunStatus: 'Sunny',
+              weatherGateState: 'not_gated',
               isPartner: false,
               confidence: 90,
               distanceMeters: 300,
@@ -1063,6 +1066,7 @@ describe('<MapView />', () => {
               neighborhood: 'Centrum',
               location: null as unknown as { lat: number; lng: number },
               currentSunStatus: 'Sunny',
+              weatherGateState: 'not_gated',
               isPartner: false,
               confidence: 90,
               distanceMeters: 300,
@@ -2003,6 +2007,7 @@ describe('<MapView />', () => {
       expect(pins[0]).toMatchObject({
         id: 'venue-1',
         sunStatus: 'Partial',
+        weatherGateState: 'not_gated',
         sunExposurePercent: 61,
       });
       expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('61% sol');
@@ -2031,6 +2036,7 @@ describe('<MapView />', () => {
       expect(pins[0]).toMatchObject({
         id: 'venue-1',
         sunStatus: 'Sunny',
+        weatherGateState: 'not_gated',
         sunExposurePercent: 95,
       });
       expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('95% sol');
@@ -2421,6 +2427,7 @@ describe('<MapView />', () => {
         expect.objectContaining({
           id: 'outside-favourite',
           sunStatus: 'Sunny',
+          weatherGateState: 'not_gated',
           sunExposurePercent: 91,
         }),
       ]);
@@ -2466,10 +2473,14 @@ describe('<MapView />', () => {
       }));
 
       render(<MapView />, { wrapper: Wrapper });
-      // Story 11.4 (AC1): the quick-info no longer shows a sun-window line, so
-      // the preview-refresh proof reads off the geometric sun badge instead
-      // (12% preview → 88% refreshed) — same behaviour, different surfaced field.
-      expect(screen.getAllByText(/12% SOL/).length).toBeGreaterThanOrEqual(2);
+      expect(screen.queryByText(/12% SOL/)).not.toBeInTheDocument();
+      expect(JSON.parse(screen.getByTestId('venue-pin-layer-stub').dataset.venues ?? '[]')).toEqual([
+        expect.objectContaining({
+          id: 'outside-search',
+          sunStatus: 'Shaded',
+          sunExposurePercent: 12,
+        }),
+      ]);
 
       fireEvent.click(screen.getAllByRole('button', { name: /Öppna kalender: Idag/ })[0]);
       fireEvent.click(screen.getByRole('button', { name: 'Välj 21 maj 2026' }));
@@ -2487,6 +2498,7 @@ describe('<MapView />', () => {
         expect.objectContaining({
           id: 'outside-search',
           sunStatus: 'Sunny',
+          weatherGateState: 'not_gated',
           sunExposurePercent: 88,
         }),
       ]);
@@ -2579,6 +2591,7 @@ describe('<MapView />', () => {
         expect.objectContaining({
           id: 'outside-search',
           sunStatus: 'Sunny',
+          weatherGateState: 'not_gated',
           sunExposurePercent: 86,
         }),
       ]);
@@ -2766,6 +2779,7 @@ describe('<MapView />', () => {
         expect.objectContaining({
           id: 'venue-shaded',
           sunStatus: 'Sunny',
+          weatherGateState: 'not_gated',
           sunExposurePercent: 95,
         }),
       ]);
@@ -3226,6 +3240,7 @@ function makeVenue({
     neighborhood: 'Centrum',
     location: { lat: 57.7, lng: 11.97 },
     currentSunStatus: status,
+    weatherGateState: 'not_gated',
     isPartner: false,
     confidence,
     distanceMeters: 180,

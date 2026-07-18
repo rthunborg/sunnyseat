@@ -33,6 +33,7 @@ const sunnyVenue: VenuePinData = {
   lat: 57.7089,
   lng: 11.9746,
   sunStatus: 'Sunny',
+  weatherGateState: 'not_gated',
   sunExposurePercent: 95,
   isPartner: false,
 };
@@ -43,6 +44,7 @@ const shadedVenue: VenuePinData = {
   slug: 'test-venue-shaded',
   name: 'Test Shaded',
   sunStatus: 'Shaded',
+  weatherGateState: 'not_gated',
   sunExposurePercent: 22,
 };
 
@@ -52,6 +54,7 @@ const obscuredVenue: VenuePinData = {
   slug: 'test-venue-obscured',
   name: 'Test Obscured',
   sunStatus: 'CloudObscured',
+  weatherGateState: 'gated',
   sunExposurePercent: 88,
 };
 
@@ -66,13 +69,14 @@ describe('<VenuePin />', () => {
     expect(button.querySelector('[data-pin-icon="sun"]')).not.toBeNull();
   });
 
-  it('renders the sunny circle (no tail) when selected', () => {
+  it('keeps the sunny pill shape when selected', () => {
     renderWithProviders(
       <VenuePin venue={sunnyVenue} isSelected={true} onClick={() => {}} ariaLabel="Test Sunny — solig plats — 95 procent sol" />,
     );
     const button = screen.getByTestId('venue-pin');
-    expect(button.dataset.pinState).toBe('sunny-selected');
-    expect(button.querySelector('[data-pin-tail]')).toBeNull();
+    expect(button.dataset.pinState).toBe('sunny');
+    expect(button.dataset.selected).toBe('true');
+    expect(button.querySelector('[data-pin-tail]')).not.toBeNull();
     expect(button.querySelector('span')).toHaveClass('text-amber-cta-text');
     expect(button.querySelector('[data-pin-icon="sun"]')).toHaveClass('text-amber-cta-text');
   });
@@ -93,32 +97,30 @@ describe('<VenuePin />', () => {
     expect(button.querySelector('[data-pin-icon="cloud"]')).not.toBeNull();
   });
 
-  it('renders a muted obscured pill distinct from sunny and shaded (Story 10.2 AC1)', () => {
+  it('renders gated CloudObscured as the single grey not-sunny shape', () => {
     renderWithProviders(
       <VenuePin venue={obscuredVenue} isSelected={false} onClick={() => {}} ariaLabel="Test Obscured — sol bakom moln just nu — 88 procent solläge" />,
     );
     const button = screen.getByTestId('venue-pin');
-    // A fourth, distinct pin state — not 'sunny', not 'shaded'.
-    expect(button.dataset.pinState).toBe('obscured');
+    expect(button.dataset.pinState).toBe('shaded');
     // Cloud icon kept so the state is not colour-only (NFR27).
     expect(button.querySelector('[data-pin-icon="cloud"]')).not.toBeNull();
     expect(button.querySelector('[data-pin-icon="sun"]')).toBeNull();
-    // The geometric solläge % survives the gate and stays visible (AC2).
-    expect(button).toHaveTextContent('88%');
-    // Muted slate fill token, distinct from amber sun and shaded grey.
-    expect(button.querySelector('[data-pin-obscured="true"] .bg-pin-obscured')).not.toBeNull();
+    expect(button).not.toHaveTextContent('88%');
+    expect(button.querySelector('.bg-pin-shaded')).not.toBeNull();
   });
 
-  it('does not morph the obscured pill on selection (single obscured variant)', () => {
+  it('does not morph a gated CloudObscured pin on selection', () => {
     const { rerender } = renderWithProviders(
       <VenuePin venue={obscuredVenue} isSelected={false} onClick={() => {}} ariaLabel="aria" />,
     );
     let button = screen.getByTestId('venue-pin');
-    expect(button.dataset.pinState).toBe('obscured');
+    expect(button.dataset.pinState).toBe('shaded');
 
     rerender(<VenuePin venue={obscuredVenue} isSelected={true} onClick={() => {}} ariaLabel="aria" />);
     button = screen.getByTestId('venue-pin');
-    expect(button.dataset.pinState).toBe('obscured');
+    expect(button.dataset.pinState).toBe('shaded');
+    expect(button.dataset.selected).toBe('true');
   });
 
   it('reflects the ariaLabel prop verbatim (resolved upstream by VenuePinLayer)', () => {

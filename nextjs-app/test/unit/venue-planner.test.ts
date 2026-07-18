@@ -11,6 +11,7 @@ const BASE_VENUE: VenueDataDto = {
   neighborhood: 'Inom Vallgraven',
   location: { lat: 57.705, lng: 11.97 },
   currentSunStatus: 'Sunny',
+  weatherGateState: 'not_gated',
   skyCondition: 'clear',
   isPartner: true,
   confidence: 92,

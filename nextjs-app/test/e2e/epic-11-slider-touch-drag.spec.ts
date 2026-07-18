@@ -55,7 +55,7 @@
 
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
-import type { GetVenuesResponse, VenueDataDto, VenueSunStatus } from '@/lib/types/api';
+import type { GetVenuesResponse, VenueDataDto, VenueDaySeriesEntry } from '@/lib/types/api';
 import {
   PLANNER_START_MINUTES,
   PLANNER_END_MINUTES,
@@ -91,14 +91,15 @@ async function forbidLiveMetno(page: Page): Promise<string[]> {
   return hits;
 }
 
-function daySeries(): { minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus }[] {
-  const series: { minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus }[] = [];
+function daySeries(): VenueDaySeriesEntry[] {
+  const series: VenueDaySeriesEntry[] = [];
   for (let m = PLANNER_START_MINUTES; m <= PLANNER_END_MINUTES; m += PLANNER_STEP_MINUTES) {
     const sunlit = m >= 11 * 60 && m <= 18 * 60;
     series.push({
       minutes: m,
       sunExposurePercent: sunlit ? 90 : 10,
       currentSunStatus: sunlit ? 'Sunny' : 'Shaded',
+      weatherGateState: 'not_gated',
     });
   }
   return series;
@@ -114,6 +115,7 @@ function buildVenue(id: string, name: string, lat: number, lng: number): VenueDa
     neighborhood: 'Inom Vallgraven',
     location: { lat, lng },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     isPartner: true,
     confidence: 90,
     distanceMeters: 0,

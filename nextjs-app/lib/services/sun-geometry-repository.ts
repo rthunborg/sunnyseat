@@ -1,5 +1,5 @@
 import type { StoredVenue } from '@/lib/services/venue-store';
-import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
+import type { SunFreshnessMeta, VenueDataDto, VenueDaySeriesEntry } from '@/lib/types/api';
 import {
   PLANNER_END_MINUTES,
   PLANNER_START_MINUTES,
@@ -24,6 +24,7 @@ import {
   type SunEngineOutcome,
 } from '@/lib/services/sun-engine';
 import { toVenueData } from '@/lib/services/venue-store';
+import { extractPublicSunPeak, extractPublicSunWindow } from '@/lib/utils/public-sun';
 
 export type PersistedGeometrySeriesEntry = {
   minutes: number;
@@ -146,13 +147,23 @@ export async function buildPersistedSunOutcome(
     stockholmDate,
   });
   const selectedStep = nearestStep(gatedSeries, stockholmMinutes(requestedAt));
+  const publicSunWindow = extractPublicSunWindow(gatedSeries, {
+    stepMinutes: PLANNER_STEP_MINUTES,
+  });
   const freshness = freshnessFromSnapshot(snapshot);
   const venueDto = normalizeVenueForResponse({
     ...toVenueData(venue),
     currentSunStatus: selectedStep.currentSunStatus,
+    weatherGateState: selectedStep.weatherGateState,
     sunExposurePercent: selectedStep.sunExposurePercent,
     confidence: freshness.sunDataSource === SUN_DATA_SOURCE_WEATHER ? venue.confidence : Math.min(venue.confidence, 40),
     skyCondition: selectedStep.skyCondition,
+    sunWindow: publicSunWindow
+      ? {
+          start: formatPlannerMinute(publicSunWindow.startMinutes),
+          end: formatPlannerMinute(publicSunWindow.endMinutes),
+        }
+      : undefined,
     sunDaySeries: gatedSeries,
     predictionEvidence: { geometryInputHash },
   } as VenueDataDto);
@@ -261,13 +272,14 @@ function stockholmMinutes(date: Date): number {
   return hour * 60 + minute;
 }
 
-function peakTimeFromSeries(series: readonly { minutes: number; sunExposurePercent: number }[]): string | undefined {
-  if (series.length === 0) return undefined;
-  const peak = series.reduce((best, candidate) =>
-    candidate.sunExposurePercent > best.sunExposurePercent ? candidate : best,
-  );
-  const hours = Math.floor(peak.minutes / 60).toString().padStart(2, '0');
-  const minutes = (peak.minutes % 60).toString().padStart(2, '0');
+function peakTimeFromSeries(series: readonly VenueDaySeriesEntry[]): string | undefined {
+  const peak = extractPublicSunPeak(series);
+  return peak ? formatPlannerMinute(peak.minutes) : undefined;
+}
+
+function formatPlannerMinute(minutesOfDay: number): string {
+  const hours = Math.floor(minutesOfDay / 60).toString().padStart(2, '0');
+  const minutes = (minutesOfDay % 60).toString().padStart(2, '0');
   return `${hours}:${minutes}`;
 }
 

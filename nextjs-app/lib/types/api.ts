@@ -12,6 +12,8 @@
 // geometric tier. Story 10.2 owns the muted UI rendering of this value.
 export type VenueSunStatus = 'Sunny' | 'Partial' | 'Shaded' | 'NoSun' | 'CloudObscured';
 
+export type WeatherGateState = 'gated' | 'not_gated' | 'unknown';
+
 // STORY 11.1 (AC1): one gated per-planner-step entry of the client-side
 // day-series. `minutes` is the planner minutes-of-day (06:00 → 360 … 21:00 →
 // 1260, at PLANNER_STEP_MINUTES resolution). `sunExposurePercent` keeps its ONE
@@ -25,6 +27,7 @@ export interface VenueDaySeriesEntry {
   minutes: number;
   sunExposurePercent: number;
   currentSunStatus: VenueSunStatus;
+  weatherGateState: WeatherGateState;
   /**
    * STORY 11 (review): the per-step gated sky condition (same values as the
    * top-level `VenueDataDto.skyCondition`). Carried so a time scrub can override
@@ -114,6 +117,7 @@ export interface VenueDataDto {
   neighborhood: string;
   location: CoordinatesDto;
   currentSunStatus: VenueSunStatus;
+  weatherGateState: WeatherGateState;
   skyCondition?: string; // 'clear' | 'partly-cloudy' | 'overcast' | 'rain' | 'unavailable'
   isPartner: boolean;
   /**

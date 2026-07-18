@@ -52,8 +52,8 @@ Last audited: 2026-04-06
 |---|---|---|
 | `color-tab-active` | `#b45309` | Active bottom-nav tab label (AA-passing on `surface-cream`; bumped from `#d97706` in Story 1.6 Task 5) |
 | `color-tab-inactive` | `#57534e` | Inactive bottom-nav tab label (AA-passing on `surface-cream`; bumped from `#a8a29e` in Story 1.6 Task 5) |
-| `color-pin-shaded` | `#e4e1e5` | Shaded/low-sun venue pin background |
-| `color-pin-obscured` | `#5e6a7a` | "Sol bakom moln" obscured venue pin/badge fill (Story 10.2) — the muted FOURTH sun state (geometrically sunny but weather-gated). Slate blue-grey, distinct from amber sun and `color-pin-shaded` grey. White text on it = 5.50:1 (AA). |
+| `color-pin-shaded` | `#e4e1e5` | Single not-sunny map pin background for <=50% sunlit seating and weather-gated venues |
+| `color-pin-obscured` | `#5e6a7a` | "Sol bakom moln" obscured venue badge/fill for non-pin explanatory surfaces. Story 12.6 removed the separate obscured map-pin state; weather-gated map pins use `color-pin-shaded`. White text on it = 5.50:1 (AA). |
 | `color-obscured-text` | `#41505f` | Obscured-state label/body text ("Sol bakom moln", muted status labels). AA on white/cream/sand (8.28:1 / 7.94:1 / 7.29:1). |
 | `color-drag-handle` | `#d6d3d1` | Venue detail drag handle pill |
 | `color-drag-handle-map` | `#d0c5af` | Map bottom sheet drag handle (rendered at 40% opacity) |
@@ -307,17 +307,25 @@ Layering is significant in SunnySeat — map pins, bottom sheets, glass overlays
 
 ### Map Venue Pin — Sunny
 
+Public sunny is exactly `sunExposurePercent > 50 && weatherGateState !== 'gated'`.
+Selection, hover, partner, and focus treatments may add emphasis, but must not create
+another data shape.
+
 ```
 Background: color-amber-pin (#f1b100)
 Border: 2px solid color-white (#ffffff)
 Border-radius: radius-pill (9999px)
 Shadow: shadow-card
 Padding: space-5 (10px) vertical, space-4 (8px) horizontal
-Text: text-label-xs / color-white (#ffffff)
-Icon: 16.5px sun SVG
+Text: text-label-xs / color-amber-cta-text (#554300) seating-share percentage
+Icon: decorative sun
 ```
 
-### Map Venue Pin — Shaded
+### Map Venue Pin — Not Sunny
+
+Not-sunny pins are the only grey map-pin presentation. They cover `Shaded`, `NoSun`,
+low `Partial`, exactly 50%, and weather-gated `CloudObscured` venues. The pin exposes
+the cloud icon and no visible percentage or text.
 
 ```
 Background: color-pin-shaded (#e4e1e5)
@@ -326,7 +334,7 @@ Border-radius: radius-pill
 Shadow: shadow-subtle
 Opacity: 0.8 on the wrapper
 Padding: space-2 (4px) vertical, space-6 (12px) horizontal + space-1 (2px) icon gap
-Text: text-label-md / color-text-body (#4d4635)
+Icon: decorative cloud / color-text-body (#4d4635)
 ```
 
 ### Floating Glass Button (48px)

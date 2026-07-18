@@ -55,6 +55,7 @@ describe('Story 12.3 AC1/AC4 - weather snapshots cover the planner horizon witho
         minutes: 720,
         sunExposurePercent: 90,
         currentSunStatus: 'Sunny',
+        weatherGateState: 'unknown',
         skyCondition: 'unavailable',
       }),
     ]);

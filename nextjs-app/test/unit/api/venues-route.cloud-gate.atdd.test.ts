@@ -28,6 +28,7 @@ function makeCloudObscuredVenue(overrides: Partial<VenueDataDto> = {}): VenueDat
     location: { lat: 57.7089, lng: 11.9746 },
     // Weather-gated headline, but geometrically sunlit — the two-signal model.
     currentSunStatus: 'CloudObscured',
+    weatherGateState: 'not_gated',
     skyCondition: 'overcast',
     isPartner: false,
     confidence: 60,

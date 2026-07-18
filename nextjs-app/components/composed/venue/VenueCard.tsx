@@ -127,14 +127,6 @@ export function VenueCard({
         ? (labels.statusFullSun ?? 'FULL SOL')
         : (labels.statusPartialSun ?? 'DELVIS SOL');
   const sunUnitLabel = labels.sun.toLocaleLowerCase();
-  // Story 10.2 (AC2): on an obscured card the geometric % is reframed as
-  // position-not-weather ("{percent} solläge · sol här när det klarnar") — the
-  // value/meaning is unchanged, only the label reframes it. Falls back to the
-  // plain "{percent} sol" chip when no obscured-position copy is provided.
-  const obscuredPositionLabel =
-    isObscured && labels.obscuredPosition
-      ? formatLabel(labels.obscuredPosition, { percent: sunPercent })
-      : null;
   // Story 9.5 AC3: honest centrum-relative annotation. Shown only on the
   // Gothenburg-centrum fallback; the real distance number stays visible —
   // only the label is qualified ("≈ från centrum").
@@ -235,17 +227,20 @@ export function VenueCard({
                 </>
               )}
               <span className="text-text-faint">·</span>
-              {isObscured ? (
-                // AC1/AC2: no amber sun chip while obscured — muted slate, and
-                // the geometric % reframed as position-not-weather.
-                <span className="flex items-center gap-1 font-bold text-obscured-text">
-                  <Cloud aria-hidden="true" className="size-3 shrink-0 fill-current" />
-                  <span>{obscuredPositionLabel ?? `${sunPercent} ${sunUnitLabel}`}</span>
-                </span>
-              ) : (
+              {isSunny ? (
                 <span className="font-extrabold text-amber-dark">{sunPercent} {sunUnitLabel}</span>
+              ) : (
+                <span
+                  className={cn(
+                    'flex items-center gap-1 font-bold',
+                    isObscured ? 'text-obscured-text' : 'text-text-body',
+                  )}
+                >
+                  <Cloud aria-hidden="true" className="size-3 shrink-0 fill-current" />
+                  <span>{statusLabel}</span>
+                </span>
               )}
-              {!isObscured && confidenceDisplay.visibleText && showVisibleConfidence && (
+              {isSunny && confidenceDisplay.visibleText && showVisibleConfidence && (
                 <>
                   <span className="text-text-faint">·</span>
                   <span

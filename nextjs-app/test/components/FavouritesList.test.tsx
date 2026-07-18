@@ -12,6 +12,7 @@ const venue: VenueDataDto = {
   neighborhood: 'Centrum',
   location: { lat: 57.705, lng: 11.97 },
   currentSunStatus: 'Sunny',
+  weatherGateState: 'not_gated',
   skyCondition: 'clear',
   isPartner: false,
   confidence: 92,
@@ -28,6 +29,7 @@ const shadedVenue: VenueDataDto = {
   venueId: '2',
   venueName: 'Skuggbaren',
   currentSunStatus: 'Shaded',
+  weatherGateState: 'not_gated',
   distanceMeters: 20,
   sunExposurePercent: 10,
 };

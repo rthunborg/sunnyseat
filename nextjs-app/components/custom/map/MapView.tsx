@@ -1242,6 +1242,7 @@ export function MapView() {
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
             openingHours={quickInfoOpeningHours}
             currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
+            weatherGateState={selectedQuickInfoVenue?.weatherGateState}
             skyCondition={selectedQuickInfoVenue?.skyCondition}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
             distanceIsApproximate={locationIsApproximate}
@@ -1271,6 +1272,7 @@ export function MapView() {
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
             openingHours={quickInfoOpeningHours}
             currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
+            weatherGateState={selectedQuickInfoVenue?.weatherGateState}
             skyCondition={selectedQuickInfoVenue?.skyCondition}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
             distanceIsApproximate={locationIsApproximate}
@@ -1355,7 +1357,7 @@ function hasValidVenueLocation(venue: VenueDataDto): boolean {
  * the server's single-instant fields. The derived value is the ALREADY weather-
  * gated series entry — the client does not re-gate. This feeds pins, both venue
  * lists, quick-info figures, the obscured presentation, and the "Mest sol"
- * ordering input (`getVenueSunRankForList` reads `currentSunStatus` +
+ * ordering input (the shared public-sun comparator reads `weatherGateState` +
  * `sunExposurePercent`) so ordering tracks the scrub.
  *
  * STORY 11 (review): `skyCondition` (the obscured sub-line) is ALSO overridden
@@ -1378,6 +1380,7 @@ function applyDaySeriesDerivation(
   if (
     derived.currentSunStatus === venue.currentSunStatus &&
     derived.sunExposurePercent === venue.sunExposurePercent &&
+    derived.weatherGateState === venue.weatherGateState &&
     nextSkyCondition === venue.skyCondition
   ) {
     return venue;
@@ -1385,6 +1388,7 @@ function applyDaySeriesDerivation(
   return {
     ...venue,
     currentSunStatus: derived.currentSunStatus,
+    weatherGateState: derived.weatherGateState,
     sunExposurePercent: derived.sunExposurePercent,
     skyCondition: nextSkyCondition,
   };
@@ -1418,6 +1422,7 @@ function fallbackVenueFromSlug(slug: string): VenueDataDto {
     neighborhood: '',
     location: { lat: Number.NaN, lng: Number.NaN },
     currentSunStatus: 'Shaded',
+    weatherGateState: 'unknown',
     isPartner: false,
     confidence: 0,
     distanceMeters: Number.NaN,
@@ -1438,6 +1443,7 @@ function normalizeForcedVisualPin(pin: VenuePinData): VenuePinData {
     ...pin,
     sunStatus: 'Sunny',
     sunExposurePercent: 95,
+    weatherGateState: 'not_gated',
   };
 }
 
@@ -1445,6 +1451,7 @@ function normalizeForcedVisualVenue(venue: VenueDataDto): VenueDataDto {
   return {
     ...venue,
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     skyCondition: 'clear',
     confidence: 95,
     sunExposurePercent: 95,
@@ -1468,6 +1475,7 @@ function normalizeForcedObscuredPin(pin: VenuePinData): VenuePinData {
     ...pin,
     sunStatus: 'CloudObscured',
     sunExposurePercent: 95,
+    weatherGateState: 'gated',
   };
 }
 
@@ -1475,6 +1483,7 @@ function normalizeForcedObscuredVenue(venue: VenueDataDto): VenueDataDto {
   return {
     ...normalizeForcedVisualVenue(venue),
     currentSunStatus: 'CloudObscured',
+    weatherGateState: 'gated',
     skyCondition: 'overcast',
   };
 }
@@ -1879,4 +1888,3 @@ function MapVenueError({ onRetry }: { onRetry: () => unknown }) {
     </div>
   );
 }
-

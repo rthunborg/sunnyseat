@@ -98,6 +98,7 @@ interface ScenarioSpec {
   id: ScenarioId;
   /** Card/pin + detail DTO override (weather-derived fields only). */
   currentSunStatus: VenueDataDto['currentSunStatus'];
+  weatherGateState: VenueDataDto['weatherGateState'];
   /** Serialized sky field; `undefined` ⇒ no sky line ('unavailable' semantics). */
   skyCondition?: string;
   confidence: number;
@@ -125,6 +126,7 @@ const SCENARIOS: ScenarioSpec[] = [
   {
     id: 'overcast',
     currentSunStatus: 'CloudObscured',
+    weatherGateState: 'gated',
     skyCondition: 'overcast',
     confidence: 40,
     expectObscured: true,
@@ -132,6 +134,7 @@ const SCENARIOS: ScenarioSpec[] = [
   {
     id: 'clear',
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     skyCondition: 'clear',
     confidence: 92,
     expectObscured: false,
@@ -143,6 +146,7 @@ const SCENARIOS: ScenarioSpec[] = [
     // Total cloud can be near-100 but effective (0.25·high) stays < threshold ⇒
     // NOT gated. skyCondition reads the RAW total ⇒ NOT 'overcast', NOT obscured.
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     skyCondition: 'partly-cloudy',
     confidence: 78,
     expectObscured: false,
@@ -150,6 +154,7 @@ const SCENARIOS: ScenarioSpec[] = [
   {
     id: 'active-rain',
     currentSunStatus: 'CloudObscured',
+    weatherGateState: 'gated',
     skyCondition: 'rain',
     confidence: 35,
     expectObscured: true,
@@ -160,6 +165,7 @@ const SCENARIOS: ScenarioSpec[] = [
     // No fabricated clear sky: geometry governs (Sunny), skyCondition ABSENT
     // ('unavailable' ⇒ never rendered) ⇒ NO sky line.
     currentSunStatus: 'Sunny',
+    weatherGateState: 'unknown',
     skyCondition: undefined,
     confidence: 55,
     expectObscured: false,
@@ -207,6 +213,7 @@ function baseVenue(scenario: ScenarioSpec): VenueDataDto {
     neighborhood: 'Inom Vallgraven',
     location: { lat: 57.705, lng: 11.97 },
     currentSunStatus: scenario.currentSunStatus,
+    weatherGateState: scenario.weatherGateState,
     isPartner: true,
     confidence: scenario.confidence,
     distanceMeters: 0,
@@ -328,10 +335,10 @@ async function assertCardAndPin(
 
   const obscured = quickInfo.locator('[data-testid="quick-info-obscured"]');
   if (scenario.expectObscured) {
-    // Muted "Sol bakom moln" chrome present; the geometric % is still visible
-    // (reframed as clear-sky potential) — the obscured card keeps the % badge.
+    // Story 12.6: muted "Sol bakom moln" diagnostics remain, but the public
+    // quick-info badge is not sunny when the weather gate is closed.
     await expect(obscured).toBeVisible();
-    await expect(quickInfo).toContainText('95%');
+    await expect(quickInfo).not.toContainText('95%');
   } else {
     await expect(obscured).toHaveCount(0);
     // Amber Sunny: the % SOL badge renders (geometry visible), no obscured chrome.

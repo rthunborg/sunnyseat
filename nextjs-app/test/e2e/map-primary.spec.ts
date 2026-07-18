@@ -5,7 +5,6 @@ import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 // The morph animation is 200 ms, but CI WebKit can keep the exiting pill
 // in the DOM longer under load. Poll for the visual condition instead of
 // sleeping a fixed duration.
-const PIN_MORPH_SETTLE_TIMEOUT_MS = 2000;
 const APP_SETTLE_TIMEOUT_MS = 15_000;
 
 type WindowOpenCall = {
@@ -294,7 +293,7 @@ test.describe('map-primary', () => {
     expect(pointerEvents).toBe('none');
   });
 
-  test('mobile: clicking a pin selects it (sunny-selected state)', async ({
+  test('mobile: clicking a pin selects it without changing public-sun state', async ({
     page,
   }, testInfo) => {
     test.skip(
@@ -312,9 +311,9 @@ test.describe('map-primary', () => {
     const sunnyPin = await firstUncoveredSunnyPin(page);
     await sunnyPin.click();
 
-    await expect(
-      page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]'),
-    ).toHaveCount(1);
+    const selectedPin = page.locator('[data-testid="venue-pin"][data-selected="true"]');
+    await expect(selectedPin).toHaveCount(1);
+    await expect(selectedPin).toHaveAttribute('data-pin-state', 'sunny');
     await expect(page.getByTestId('venue-quick-info').first()).toBeVisible();
   });
 
@@ -347,7 +346,7 @@ test.describe('map-primary', () => {
     );
     await page.getByTestId('mobile-venue-detail-handle').press('ArrowDown');
     await expect(page).toHaveURL(/\/(\?.*)?$/); // map root; tolerate the forced dev `?_time=` query
-    await expect(page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]')).toHaveCount(1);
+    await expect(page.locator('[data-testid="venue-pin"][data-selected="true"]')).toHaveCount(1);
   });
 
   test('mobile: QuickInfo route opens maps and keeps route overlay dismissible', async ({
@@ -386,7 +385,7 @@ test.describe('map-primary', () => {
     );
     await overlay.getByRole('button', { name: 'Stäng rutt' }).click();
     await expect(overlay).toBeHidden();
-    await expect(page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]')).toHaveCount(1);
+    await expect(page.locator('[data-testid="venue-pin"][data-selected="true"]')).toHaveCount(1);
   });
 
   test('mobile: venue detail route and open-map link share the maps handoff contract', async ({
@@ -735,12 +734,12 @@ test.describe('map-primary', () => {
     await expect(page.getByTestId('venue-quick-info').last()).toBeVisible();
   });
 
-  test('mobile: pin morphs from pill to circle when selected (Story 1.4 AC3)', async ({
+  test('mobile: selecting a pin preserves its public-sun shape (Story 12.6)', async ({
     page,
   }, testInfo) => {
     test.skip(
       testInfo.project.name !== 'mobile',
-      'Pin morph mechanics check runs only in the mobile Playwright project',
+      'Pin selection shape check runs only in the mobile Playwright project',
     );
 
     await bypassOnboarding(page);
@@ -761,28 +760,16 @@ test.describe('map-primary', () => {
     await expect(sunnyPin.locator('[data-pin-tail]')).toHaveCount(1);
 
     await sunnyPin.click();
-    await expect(
-      page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]'),
-    ).toHaveCount(1);
-    await expect(
-      page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"] [data-pin-tail]'),
-    ).toHaveCount(0);
+    const selectedPin = page.locator('[data-testid="venue-pin"][data-selected="true"]');
+    await expect(selectedPin).toHaveCount(1);
+    await expect(selectedPin).toHaveAttribute('data-pin-state', 'sunny');
+    await expect(selectedPin.locator('[data-pin-tail]')).toHaveCount(1);
 
-    const innerCircle = page
-      .locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"] .rounded-pill')
-      .first();
-    // Selected sunny circle: inner element is 44×44 (size-11). Equal width
-    // and height within rounding tolerance.
-    await expect
-      .poll(
-        async () => {
-          const afterBox = await innerCircle.boundingBox();
-          if (!afterBox) return Number.POSITIVE_INFINITY;
-          return Math.abs(afterBox.width - afterBox.height);
-        },
-        { timeout: PIN_MORPH_SETTLE_TIMEOUT_MS },
-      )
-      .toBeLessThanOrEqual(2);
+    const afterBox = await selectedPin.boundingBox();
+    expect(afterBox).not.toBeNull();
+    if (!afterBox) return;
+    const afterAspect = afterBox.width / Math.max(afterBox.height, 1);
+    expect(afterAspect).toBeLessThan(1.1);
   });
 
   test('mobile: user-location dot renders with the pulsing-halo utility (Story 11.5 AC2)', async ({
@@ -865,7 +852,7 @@ test.describe('map-primary', () => {
     const sunnyPin = await firstUncoveredSunnyPin(page);
     await sunnyPin.click();
     await expect(
-      page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]'),
+      page.locator('[data-testid="venue-pin"][data-selected="true"]'),
     ).toHaveCount(1);
 
     // Click in the top-left of the canvas where pins are unlikely to sit.
@@ -878,7 +865,7 @@ test.describe('map-primary', () => {
     });
 
     await expect(
-      page.locator('[data-testid="venue-pin"][data-pin-state="sunny-selected"]'),
+      page.locator('[data-testid="venue-pin"][data-selected="true"]'),
     ).toHaveCount(0);
     await expect(page.getByTestId('venue-quick-info')).toHaveCount(0);
   });

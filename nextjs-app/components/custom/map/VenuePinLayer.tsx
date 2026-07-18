@@ -9,6 +9,7 @@ import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
 import { VenuePin } from './VenuePin';
 import type { VenuePinData } from '@/lib/types/map';
+import { isVenuePubliclySunny, isWeatherGateUnknown } from '@/lib/utils/public-sun';
 
 type AriaResolver = (venue: VenuePinData, percent: number) => string;
 
@@ -60,21 +61,17 @@ export function VenuePinLayer({ venues }: VenuePinLayerProps) {
   const shouldReduceMotion = useReducedMotion() ?? true;
   const t = useTranslations('map');
 
-  // Resolve the three pin aria variants once per render rather than once
+  // Resolve the public pin aria variants once per render rather than once
   // per pin — wrapping each `createRoot` subtree with its own
   // `<NextIntlClientProvider>` so a deeply-nested `useTranslations()`
   // would work shipped 50 copies of the entire messages object on every
   // marker-render pass (Story 1.4 R2 deferred-work).
   const resolveAria: AriaResolver = (venue, percent) => {
     const name = venue.name;
-    if (venue.sunStatus === 'Sunny') return t('pinSunnyAria', { name, percent });
-    if (venue.sunStatus === 'Partial') return t('pinPartialAria', { name, percent });
-    // Story 10.2 (AC4): the obscured pin announces "sol bakom moln", not
-    // "shaded". Placed BEFORE the shaded fallback so a CloudObscured venue
-    // never collapses to the shaded aria. `{percent}` is the geometric
-    // solläge that survives the gate (AC2, position not weather).
-    if (venue.sunStatus === 'CloudObscured') return t('pinObscuredAria', { name, percent });
-    return t('pinShadedAria', { name, percent });
+    if (!isVenuePubliclySunny(venue)) return t('pinNotSunnyAria', { name });
+    return isWeatherGateUnknown(venue)
+      ? t('pinSunnyWeatherUnknownAria', { name, percent })
+      : t('pinSunnyAria', { name, percent });
   };
 
   const markersRef = useRef<Map<string, MarkerEntry>>(new Map());
@@ -370,5 +367,5 @@ function venueFingerprint(v: VenuePinData): string {
   // *(Target: Story 5.1)*  ← BMAD-grep tag: `rg "\*\(Target: 5"` will
   // surface this when 5.1 starts so the rollout doesn't silently miss
   // the fingerprint update.
-  return `${v.id}|${v.name}|${v.sunStatus}|${v.sunExposurePercent}|${v.lat}|${v.lng}`;
+  return `${v.id}|${v.name}|${v.sunStatus}|${v.sunExposurePercent}|${v.weatherGateState}|${v.lat}|${v.lng}`;
 }

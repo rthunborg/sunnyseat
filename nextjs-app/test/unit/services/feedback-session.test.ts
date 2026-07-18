@@ -13,13 +13,14 @@ import type { VenueDataDto } from '@/lib/types/api';
 
 const VENUE: Pick<
   VenueDataDto,
-  'id' | 'slug' | 'venueSlug' | 'location' | 'currentSunStatus' | 'confidence'
+  'id' | 'slug' | 'venueSlug' | 'location' | 'currentSunStatus' | 'weatherGateState' | 'confidence'
 > = {
   id: '1',
   slug: 'test-venue-sunny',
   venueSlug: 'test-venue-sunny',
   location: { lat: 57.705, lng: 11.97 },
   currentSunStatus: 'Sunny',
+  weatherGateState: 'not_gated',
   confidence: 92,
 };
 

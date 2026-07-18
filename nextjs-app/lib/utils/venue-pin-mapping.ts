@@ -13,6 +13,7 @@ export function mapVenueDtoToPinData(v: VenueDataDto): VenuePinData | null {
     lng: v.location.lng,
     sunStatus: v.currentSunStatus,
     sunExposurePercent: v.sunExposurePercent,
+    weatherGateState: v.weatherGateState,
     isPartner: v.isPartner,
   };
 }

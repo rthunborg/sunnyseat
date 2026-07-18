@@ -52,6 +52,7 @@ const LIVE_VENUE: VenueDataDto = {
   neighborhood: 'Centrum',
   location: { lat: 57.706, lng: 11.971 },
   currentSunStatus: 'NoSun',
+  weatherGateState: 'not_gated',
   isPartner: false,
   confidence: 76,
   distanceMeters: 0,

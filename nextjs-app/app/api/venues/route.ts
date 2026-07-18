@@ -48,10 +48,10 @@ import {
 import type {
   GetVenuesResponse,
   SunFreshnessMeta,
-  VenueDaySeriesEntry,
   VenueDataDto,
 } from '@/lib/types/api';
 import { sunFreshnessHeaders } from '@/lib/utils/sun-freshness';
+import { compareVenuesByPublicSun, extractPublicSunPeak } from '@/lib/utils/public-sun';
 
 const DEFAULT_RADIUS_KM = 1.5;
 const MAX_RADIUS_KM = 3.0;
@@ -71,72 +71,29 @@ export function __setWeatherSnapshotRepositoryForTests(repo: WeatherSnapshotRepo
   setWeatherSnapshotRepositoryForTests(repo);
 }
 
-// STORY 10.1 (AC4, Task 1): this `Record` keyed on the `VenueSunStatus` union is a
-// compile-forcing site — a missing key is a type error, and a missing key at
-// RUNTIME would make `SUN_STATUS_RANK[status]` `undefined`, silently corrupting the
-// list sort.
-//
-// STORY 10.2 review [Patch][Med]: the server sort MUST agree with the client
-// `getVenueSunRankForList` (VenueList.tsx) — otherwise the server ranks
-// `CloudObscured` by a FIXED tier below every `Partial` and `.slice(0, MAX_RESULTS)`
-// truncates a high-solläge obscured venue out of the top-50 BEFORE the client's
-// solläge-aware re-sort can recover it (Story 10.2 AC2: "Mest sol ranks by geometric
-// solläge under overcast"). To keep the pre-slice order identical to the client
-// order, both layers use the SAME "higher is better" [0,2] rank space
-// (Sunny=2, Partial=1, Shaded/NoSun=0) and `CloudObscured` is scaled continuously
-// by its surviving geometric solläge — see `sunListRank` below. This `Record` only
-// supplies the non-obscured tiers.
-const SUN_STATUS_RANK: Record<VenueDataDto['currentSunStatus'], number> = {
-  Sunny: 2,
-  Partial: 1,
-  // `CloudObscured` is NOT a fixed tier — `sunListRank` overrides it with the
-  // solläge-scaled value. This entry is a defensive floor only (unused on the
-  // obscured path).
-  CloudObscured: 0,
-  Shaded: 0,
-  NoSun: 0,
-};
-
-// Server-side mirror of the client `getVenueSunRankForList` (VenueList.tsx). MUST
-// stay in lock-step with it so the pre-slice server order and the client re-sort
-// agree. Higher = better; caller sorts DESCENDING by this, tie-broken by distance.
-function sunListRank(venue: Pick<VenueDataDto, 'currentSunStatus' | 'sunExposurePercent'>): number {
-  if (venue.currentSunStatus === 'CloudObscured') {
-    const percent = Number.isFinite(venue.sunExposurePercent)
-      ? Math.max(0, Math.min(100, venue.sunExposurePercent))
-      : 0;
-    return (percent / 100) * 2;
-  }
-  return SUN_STATUS_RANK[venue.currentSunStatus];
+function compareVenuesByPublicSunPeak(left: VenueDataDto, right: VenueDataDto): number {
+  const peakOrder = compareVenuesByPublicSun(
+    publicSunPeakCandidate(left),
+    publicSunPeakCandidate(right),
+  );
+  if (peakOrder !== 0) return peakOrder;
+  return compareVenuesByPublicSun(left, right);
 }
 
-// External-review fix (finding 4): the DAY-STABLE peak rank used for the top-N
-// TRUNCATION. The single-instant `sunListRank` is correct for the response ORDER
-// (the client re-sorts per scrubbed step anyway), but truncating by it drops a
-// venue that is outside the instant top-N yet becomes the SUNNIEST at some other
-// planner time — so its pin + "Mest sol" row vanish for that scrubbed time even
-// though the client has the whole day's series for the venues it DID receive.
-// Truncating by the venue's PEAK exposure across its `sunDaySeries` keeps every
-// "could be #1 at some point today" venue in the cached client set, with no
-// payload growth (the series already ships). Falls back to the single-instant
-// rank when no series is attached (the seed / fixture path — which has no series
-// and therefore keeps its exact pre-fix ordering + truncation: byte-parity held).
-function venuePeakSunRank(
-  venue: Pick<VenueDataDto, 'currentSunStatus' | 'sunExposurePercent'> & {
-    sunDaySeries?: readonly VenueDaySeriesEntry[];
-  },
-): number {
-  const series = venue.sunDaySeries;
-  if (!Array.isArray(series) || series.length === 0) {
-    return sunListRank(venue);
-  }
-  let peak = -Infinity;
-  for (const entry of series) {
-    const rank = sunListRank(entry);
-    if (rank > peak) peak = rank;
-  }
-  // Defensive: an all-empty/degenerate series falls back to the instant rank.
-  return Number.isFinite(peak) ? peak : sunListRank(venue);
+function publicSunPeakCandidate(venue: VenueDataDto) {
+  const peak = Array.isArray(venue.sunDaySeries)
+    ? extractPublicSunPeak(venue.sunDaySeries)
+    : null;
+  return {
+    id: venue.id,
+    venueId: venue.venueId,
+    slug: venue.slug,
+    venueSlug: venue.venueSlug,
+    venueName: venue.venueName,
+    distanceMeters: venue.distanceMeters,
+    sunExposurePercent: peak?.sunExposurePercent ?? venue.sunExposurePercent,
+    weatherGateState: peak?.weatherGateState ?? venue.weatherGateState,
+  };
 }
 
 /**
@@ -388,35 +345,14 @@ export async function GET(request: NextRequest) {
 
   const totalCount = matchedVenues.length;
 
-  // External-review fix (finding 4): TWO-STAGE selection so the top-N TRUNCATION
-  // is DATE-STABLE while the response ORDER stays the single-instant order the
-  // client re-sort expects.
-  //   (1) TRUNCATE by the venue's DAY-PEAK rank (`venuePeakSunRank`) so a venue
-  //       that is outside the instant top-N but becomes the sunniest at some other
-  //       planner time is NOT dropped from the cached client set — its pin +
-  //       "Mest sol" row survive a scrub to that time. On the seed/fixture path
-  //       (no series) the peak == the instant rank, so the kept SET and its order
-  //       are byte-identical to the pre-fix behaviour (invariant held).
-  //   (2) ORDER the kept set by the single-instant `sunListRank` (tie → distance),
-  //       matching the client `getVenueSunRankForList` re-sort for the current
-  //       moment. The client re-derives per scrubbed step anyway, so the response
-  //       order only needs to be correct for "now".
-  const instantOrder = (a: VenueDataDto, b: VenueDataDto) => {
-    const status = sunListRank(b) - sunListRank(a);
-    if (status !== 0) return status;
-    return a.distanceMeters - b.distanceMeters;
-  };
+  // TWO-STAGE selection: truncate by public day-peak so a venue that can become
+  // the public sunniest venue later in the day is kept in the client cache; order
+  // the kept set by the selected instant so the server and client lists agree.
+  const instantOrder = compareVenuesByPublicSun;
   const keptByPeak =
     matchedVenues.length > MAX_RESULTS
       ? [...matchedVenues]
-          .sort((a, b) => {
-            const peak = venuePeakSunRank(b) - venuePeakSunRank(a);
-            if (peak !== 0) return peak;
-            // Break ties by the instant rank, then distance, so the truncation
-            // boundary is deterministic and still favours the currently-sunnier
-            // venue among equal-peak neighbours.
-            return instantOrder(a, b);
-          })
+          .sort(compareVenuesByPublicSunPeak)
           .slice(0, MAX_RESULTS)
       : matchedVenues;
   const venues = [...keptByPeak].sort(instantOrder);

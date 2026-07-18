@@ -39,6 +39,7 @@ import type {
   PredictionUncertaintyReason,
   SunFreshnessMeta,
   VenueDataDto,
+  WeatherGateState,
   VenueSunStatus,
 } from '@/lib/types/api';
 import {
@@ -142,7 +143,7 @@ export type SunEngineOutcome = {
 
 type SunEngineFields = Pick<
   VenueDataDto,
-  'currentSunStatus' | 'confidence' | 'sunExposurePercent'
+  'currentSunStatus' | 'confidence' | 'sunExposurePercent' | 'weatherGateState'
 > & {
   skyCondition?: string;
   sunWindow?: { start: string; end: string };
@@ -564,7 +565,13 @@ async function computeVenueDaySeriesResult(
       : weather
         ? skyConditionFromCloudCover(weather.cloudCover)
         : 'unavailable';
-    series.push({ minutes, sunExposurePercent, currentSunStatus, skyCondition });
+    series.push({
+      minutes,
+      sunExposurePercent,
+      currentSunStatus,
+      weatherGateState: weatherGateStateFor(weather, currentSunStatus),
+      skyCondition,
+    });
   }
 
   return { series, cacheable: buildings !== null };
@@ -727,6 +734,7 @@ async function computeRealSunEngineResult(
     effectiveCover,
     isRaining,
   );
+  const weatherGateState = weatherGateStateFor(weather, currentSunStatus);
 
   const confidenceFactors = calculateConfidenceFactors(
     1.0,
@@ -772,6 +780,7 @@ async function computeRealSunEngineResult(
 
   const fields: SunEngineFields = {
     currentSunStatus,
+    weatherGateState,
     confidence,
     sunExposurePercent,
     skyCondition,
@@ -971,6 +980,14 @@ export function skyConditionFromCloudCover(cloudCover: number | undefined): stri
   return 'overcast';
 }
 
+function weatherGateStateFor(
+  weather: WeatherSlice | null,
+  currentSunStatus: VenueSunStatus,
+): WeatherGateState {
+  if (!weather) return 'unknown';
+  return currentSunStatus === 'CloudObscured' ? 'gated' : 'not_gated';
+}
+
 /**
  * Build `predictionUncertainty` from coverage + obstruction risk + weather,
  * mapped onto the existing {@link PredictionUncertaintyReason} union so the
@@ -1063,6 +1080,7 @@ function mergeSunFields(base: VenueDataDto, fields: SunEngineFields): VenueDataD
   const merged: VenueDataDto = {
     ...base,
     currentSunStatus: fields.currentSunStatus,
+    weatherGateState: fields.weatherGateState,
     confidence: fields.confidence,
     sunExposurePercent: fields.sunExposurePercent,
   };

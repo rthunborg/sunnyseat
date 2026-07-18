@@ -129,7 +129,7 @@ describe('<VenueCard />', () => {
     expect(statusRow?.querySelector('svg')).not.toBeNull();
   });
 
-  it('mutes the geometric % as position-not-weather on an obscured non-compact card (Story 10.2 AC2)', () => {
+  it('renders an obscured non-compact card as percentage-free not-sunny chrome', () => {
     render(
       <VenueCard
         name="Molnig" sunExposurePercent={92} distanceMeters={100} isSunny={false} isObscured
@@ -156,14 +156,13 @@ describe('<VenueCard />', () => {
     // non-compact (favourites bottom-sheet) card too, mirroring the compact card
     // (previously the non-compact variant showed only the reframed position chip).
     expect(card).toHaveTextContent('SOL BAKOM MOLN');
-    const headline = screen.getByText('SOL BAKOM MOLN');
-    expect(headline.closest('span.text-obscured-text')).not.toBeNull();
-    // The geometric % is preserved but reframed as position (AC2), not "92% sol".
-    expect(card).toHaveTextContent('92% solläge · sol här när det klarnar');
-    // The muted position chip uses the obscured-text token, never amber-dark sun copy.
-    const innerChip = screen.getByText(/solläge · sol här när det klarnar/);
-    const chip = innerChip.closest('span.text-obscured-text');
-    expect(chip).not.toBeNull();
+    expect(
+      screen.getAllByText('SOL BAKOM MOLN').some((node) =>
+        node.closest('span.text-obscured-text'),
+      ),
+    ).toBe(true);
+    expect(card).not.toHaveTextContent('92%');
+    expect(card).not.toHaveTextContent('solläge');
     expect(card.querySelector('.text-amber-dark.font-extrabold')).toBeNull();
   });
 
@@ -199,8 +198,7 @@ describe('<VenueCard />', () => {
     const card = screen.getByTestId('venue-card');
     // No amber confidence chip element under the gate.
     expect(card.querySelector('.text-amber-text')).toBeNull();
-    // The reframed muted position chip is what carries the geometric signal.
-    expect(card).toHaveTextContent('92% solläge · sol här när det klarnar');
+    expect(card).not.toHaveTextContent('92%');
   });
 
   it('renders the muted-slate thumbnail badge (cloud icon) on an obscured card, never the amber sun badge (Story 10.2 AC1)', () => {

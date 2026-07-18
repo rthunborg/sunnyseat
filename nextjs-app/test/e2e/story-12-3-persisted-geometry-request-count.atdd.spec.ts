@@ -5,7 +5,7 @@
 
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
-import type { GetVenuesResponse, VenueDataDto, VenueSunStatus } from '@/lib/types/api';
+import type { GetVenuesResponse, VenueDataDto, VenueDaySeriesEntry } from '@/lib/types/api';
 import {
   PLANNER_END_MINUTES,
   PLANNER_START_MINUTES,
@@ -44,14 +44,15 @@ async function forbidProviderFanout(page: Page): Promise<string[]> {
   return hits;
 }
 
-function daySeries(): Array<{ minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus }> {
-  const series: Array<{ minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus }> = [];
+function daySeries(): VenueDaySeriesEntry[] {
+  const series: VenueDaySeriesEntry[] = [];
   for (let minutes = PLANNER_START_MINUTES; minutes <= PLANNER_END_MINUTES; minutes += PLANNER_STEP_MINUTES) {
     const sunlit = minutes >= 11 * 60 && minutes <= 18 * 60;
     series.push({
       minutes,
       sunExposurePercent: sunlit ? 90 : 10,
       currentSunStatus: sunlit ? 'Sunny' : 'Shaded',
+      weatherGateState: 'not_gated',
     });
   }
   return series;
@@ -67,6 +68,7 @@ function buildVenue(id: string, name: string): VenueDataDto {
     neighborhood: 'Inom Vallgraven',
     location: { lat: 57.705, lng: 11.97 },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     isPartner: true,
     confidence: 90,
     distanceMeters: 0,

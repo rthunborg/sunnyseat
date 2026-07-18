@@ -21,6 +21,7 @@ describe('Story 12.3 automated coverage - weather snapshot read-time gates', () 
         minutes: 1260,
         sunExposurePercent: 0,
         currentSunStatus: 'NoSun',
+        weatherGateState: 'not_gated',
         skyCondition: 'rain',
       }),
     ]);
@@ -46,6 +47,7 @@ describe('Story 12.3 automated coverage - weather snapshot read-time gates', () 
         minutes: 720,
         sunExposurePercent: 82,
         currentSunStatus: 'CloudObscured',
+        weatherGateState: 'gated',
       }),
     ]);
   });
@@ -65,12 +67,14 @@ describe('Story 12.3 automated coverage - weather snapshot read-time gates', () 
     expect(dryStep).toEqual(
       expect.objectContaining({
         currentSunStatus: 'Sunny',
+        weatherGateState: 'not_gated',
         skyCondition: 'clear',
       }),
     );
     expect(rainyStep).toEqual(
       expect.objectContaining({
         currentSunStatus: 'CloudObscured',
+        weatherGateState: 'gated',
         skyCondition: 'rain',
       }),
     );

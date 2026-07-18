@@ -268,6 +268,7 @@ function makeVenue({
     neighborhood,
     location: { lat: 57.7, lng: 11.97 },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     isPartner: false,
     confidence: 92,
     distanceMeters: 180,

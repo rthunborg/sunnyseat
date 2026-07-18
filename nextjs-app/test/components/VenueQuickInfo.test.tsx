@@ -254,6 +254,7 @@ describe('<VenueQuickInfo />', () => {
         openingHours={undefined}
         distanceMeters={420}
         currentSunStatus="CloudObscured"
+        weatherGateState="gated"
         skyCondition="overcast"
         thumbnail={{ alt: 'Uteservering', initials: 'MB' }}
         isLoadingSunData={false}
@@ -272,7 +273,7 @@ describe('<VenueQuickInfo />', () => {
     expect(screen.getByTestId('venue-quick-info')).not.toHaveTextContent('Öppet');
     // The metadata paragraph carrying the sr-only confidence + distance has no
     // dangling leading/trailing separator even with opening hours gone.
-    const metadata = screen.getByText('88% SOL').closest('[data-testid="venue-quick-info"]');
+    const metadata = screen.getByTestId('quick-info-obscured').closest('[data-testid="venue-quick-info"]');
     expect(metadata).toBeInTheDocument();
   });
 
@@ -466,6 +467,7 @@ describe('<VenueQuickInfo />', () => {
         openingHours={OPENING_HOURS}
         distanceMeters={420}
         currentSunStatus="CloudObscured"
+        weatherGateState="gated"
         skyCondition="overcast"
         thumbnail={{ alt: 'Uteservering', initials: 'MB' }}
         isLoadingSunData={false}
@@ -481,10 +483,8 @@ describe('<VenueQuickInfo />', () => {
     expect(obscuredBlock).toHaveTextContent('Sol bakom moln');
     // AC3: overcast -> "Mulet" plain-language descriptor.
     expect(obscuredBlock).toHaveTextContent('Mulet');
-    // The photo-strip badge shows the geometric % as a muted-slate pill, never amber.
-    const badge = screen.getByText(/92% SOL/).closest('div');
-    expect(badge?.className).toContain('bg-pin-obscured');
-    expect(badge?.className).not.toContain('bg-amber-gold');
+    // The photo-strip badge is grey and percentage-free under the public gate.
+    expect(screen.queryByText(/92% SOL/)).not.toBeInTheDocument();
     // The opening-hours line still renders alongside the obscured treatment.
     expect(screen.getByTestId('quick-info-opening-hours')).toHaveTextContent('Öppet till 22:00');
   });
@@ -497,6 +497,7 @@ describe('<VenueQuickInfo />', () => {
         sunExposurePercent={92}
         distanceMeters={420}
         currentSunStatus="CloudObscured"
+        weatherGateState="gated"
         skyCondition="unavailable"
         thumbnail={{ alt: 'Uteservering', initials: 'MB' }}
         isLoadingSunData={false}
@@ -563,6 +564,7 @@ describe('<VenueQuickInfo />', () => {
           openingHours={OPENING_HOURS}
           distanceMeters={420}
           currentSunStatus={status}
+          weatherGateState={status === 'CloudObscured' ? 'gated' : 'not_gated'}
           skyCondition={sky}
           position={{ x: 180, y: 260 }}
           isLoadingSunData={false}
@@ -923,7 +925,7 @@ describe('<VenueQuickInfo />', () => {
         labels={labels}
       />,
     );
-    expect(screen.getByText(/SOL/)).toHaveTextContent('0% SOL');
+    expect(screen.queryByText(/SOL/)).not.toBeInTheDocument();
   });
 
   it('hides the sun-exposure badge entirely when the exposure value is absent', () => {

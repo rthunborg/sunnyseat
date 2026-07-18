@@ -19,6 +19,7 @@ import type {
   PredictionUncertaintyDto,
   VenueDataDto,
   VenueSunStatus,
+  WeatherGateState,
   WeeklyOpeningHours,
 } from '@/lib/types/api';
 import type { SkyCondition } from '@/lib/types/design-tokens';
@@ -302,6 +303,7 @@ export function toVenueData(venue: StoredVenue): VenueDataDto {
     neighborhood: venue.neighborhood,
     location: venue.location,
     currentSunStatus: venue.currentSunStatus,
+    weatherGateState: venue.weatherGateState,
     isPartner: venue.isPartner,
     confidence: venue.confidence,
     distanceMeters: venue.distanceMeters,
@@ -502,6 +504,7 @@ function fromVenueRow(row: VenueRow): StoredVenue {
     );
   }
   const skyCondition = coerceSkyCondition(row.sky_condition);
+  const currentSunStatus = coerceSunStatus(row.current_sun_status);
   const seatingArea = coerceSeatingArea(row.seating_area);
   const seatingElevationM = coerceSeatingElevation(row.seating_elevation_m);
   const groundElevationM = coerceGroundElevation(row.ground_elevation_m);
@@ -513,7 +516,8 @@ function fromVenueRow(row: VenueRow): StoredVenue {
     slug,
     neighborhood: row.neighborhood ?? '',
     location: { lat, lng },
-    currentSunStatus: coerceSunStatus(row.current_sun_status),
+    currentSunStatus,
+    weatherGateState: weatherGateStateFromStored(skyCondition, currentSunStatus),
     isPartner: Boolean(row.is_partner),
     confidence: numberOr(row.confidence, 0),
     distanceMeters: 0,
@@ -616,6 +620,14 @@ function coerceSkyCondition(value: string | null | undefined): SkyCondition | un
   return value && SKY_CONDITIONS.includes(value as SkyCondition)
     ? (value as SkyCondition)
     : undefined;
+}
+
+function weatherGateStateFromStored(
+  skyCondition: SkyCondition | undefined,
+  currentSunStatus: VenueSunStatus,
+): WeatherGateState {
+  if (skyCondition === 'unavailable') return 'unknown';
+  return currentSunStatus === 'CloudObscured' ? 'gated' : 'not_gated';
 }
 
 function isFiniteNumber(value: unknown): value is number {

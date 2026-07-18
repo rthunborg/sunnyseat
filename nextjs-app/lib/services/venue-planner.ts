@@ -104,9 +104,11 @@ export function applyPlannerSelectionToVenue(
   const currentSunStatus = inSunWindow
     ? sunStatusFromExposure(sunExposurePercent, venue.currentSunStatus)
     : 'Shaded';
+  const weatherGateState = weatherGateStateFromSelection(venue.skyCondition, currentSunStatus);
   return {
     ...venue,
     currentSunStatus,
+    weatherGateState,
     confidence: Math.max(35, Math.round(venue.confidence - forecastPenalty - weatherPenalty)),
     sunExposurePercent,
     sunWindow: adjustedWindow
@@ -116,6 +118,14 @@ export function applyPlannerSelectionToVenue(
         }
       : venue.sunWindow,
   };
+}
+
+function weatherGateStateFromSelection(
+  skyCondition: string | undefined,
+  currentSunStatus: VenueDataDto['currentSunStatus'],
+): VenueDataDto['weatherGateState'] {
+  if (skyCondition === 'unavailable') return 'unknown';
+  return currentSunStatus === 'CloudObscured' ? 'gated' : 'not_gated';
 }
 
 function selectedWindowExposure(

@@ -11,6 +11,7 @@ describe('mapVenueDtoToPinData', () => {
       lat: 57.7,
       lng: 11.97,
       sunStatus: 'Sunny',
+      weatherGateState: 'not_gated',
       sunExposurePercent: 82,
       isPartner: false,
     });
@@ -28,6 +29,7 @@ describe('mapVenueDtoToPinData', () => {
       ),
     ).toMatchObject({
       sunStatus: 'NoSun',
+      weatherGateState: 'not_gated',
       sunExposurePercent: 0,
     });
   });
@@ -51,6 +53,7 @@ function makeVenue({
     neighborhood: 'Centrum',
     location: { lat, lng },
     currentSunStatus,
+    weatherGateState: 'not_gated',
     isPartner: false,
     confidence: 91,
     distanceMeters: 320,

@@ -74,6 +74,7 @@ function buildVenue(
     neighborhood: 'Inom Vallgraven',
     location: { lat, lng },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     isPartner: true,
     confidence: 90,
     distanceMeters: 120,

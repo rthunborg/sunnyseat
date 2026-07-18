@@ -11,6 +11,8 @@ import type {
   PredictionUncertaintyLevel,
   PredictionUncertaintyReason,
   VenueDataDto,
+  VenueSunStatus,
+  WeatherGateState,
 } from '@/lib/types/api';
 
 const TIME_WINDOW_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -43,6 +45,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     neighborhood: 'Inom Vallgraven',
     location: { lat: 57.7050, lng: 11.9700 },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     skyCondition: 'clear',
     isPartner: true,
     confidence: 92,
@@ -81,6 +84,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     neighborhood: 'Linnéstaden',
     location: { lat: 57.7035, lng: 11.9520 },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     skyCondition: 'clear',
     isPartner: false,
     confidence: 88,
@@ -115,6 +119,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     neighborhood: 'Inom Vallgraven',
     location: { lat: 57.7080, lng: 11.9655 },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     skyCondition: 'partly-cloudy',
     isPartner: false,
     confidence: 78,
@@ -137,6 +142,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     neighborhood: 'Vasastaden',
     location: { lat: 57.7000, lng: 11.9710 },
     currentSunStatus: 'Partial',
+    weatherGateState: 'not_gated',
     skyCondition: 'partly-cloudy',
     isPartner: false,
     confidence: 70,
@@ -163,6 +169,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     neighborhood: 'Haga',
     location: { lat: 57.7115, lng: 11.9605 },
     currentSunStatus: 'Partial',
+    weatherGateState: 'not_gated',
     skyCondition: 'partly-cloudy',
     isPartner: false,
     confidence: 66,
@@ -189,6 +196,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     neighborhood: 'Inom Vallgraven',
     location: { lat: 57.7095, lng: 11.9785 },
     currentSunStatus: 'Shaded',
+    weatherGateState: 'not_gated',
     skyCondition: 'overcast',
     isPartner: false,
     confidence: 80,
@@ -211,6 +219,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     neighborhood: 'Vasastaden',
     location: { lat: 57.7060, lng: 11.9820 },
     currentSunStatus: 'Shaded',
+    weatherGateState: 'not_gated',
     skyCondition: 'overcast',
     isPartner: false,
     confidence: 75,
@@ -244,6 +253,11 @@ export function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
 
   return {
     ...venueWithoutUncertainty,
+    weatherGateState: normalizeWeatherGateState(
+      (venue as VenueDataDto & { weatherGateState?: unknown }).weatherGateState,
+      venue.skyCondition,
+      venue.currentSunStatus,
+    ),
     sunWindow,
     thumbnail:
       alt || initials || url
@@ -255,6 +269,18 @@ export function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
         : undefined,
     ...(predictionUncertainty ? { predictionUncertainty } : {}),
   };
+}
+
+function normalizeWeatherGateState(
+  value: unknown,
+  skyCondition: string | undefined,
+  currentSunStatus: VenueSunStatus,
+): WeatherGateState {
+  if (value === 'gated' || value === 'not_gated' || value === 'unknown') {
+    return value;
+  }
+  if (skyCondition === 'unavailable') return 'unknown';
+  return currentSunStatus === 'CloudObscured' ? 'gated' : 'not_gated';
 }
 
 function normalizePredictionUncertainty(value: unknown): PredictionUncertaintyDto | undefined {

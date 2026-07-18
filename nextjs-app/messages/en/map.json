@@ -7,8 +7,7 @@
   "zoomOut": "Zoom out",
   "myLocation": "My location",
   "settings": "Settings",
-  "pinSunnyAria": "{name} — sunny venue — {percent} percent sun",
-  "pinPartialAria": "{name} — partially sunny venue — {percent} percent sun",
-  "pinShadedAria": "{name} — shaded venue — {percent} percent sun",
-  "pinObscuredAria": "{name} — sun behind clouds right now — {percent} percent sun position"
+  "pinSunnyAria": "{name} — sunny at selected time — {percent} percent sun",
+  "pinSunnyWeatherUnknownAria": "{name} — sunny at selected time — {percent} percent sun. Weather unavailable at selected time.",
+  "pinNotSunnyAria": "{name} — not sunny at selected time"
 }

@@ -4,7 +4,7 @@ baseline_commit: NO_VCS
 
 # Story 12.6: Simplify Map Pins — One Grey "Not Sunny" Pin, No Number
 
-Status: ready-for-dev
+Status: in-progress
 
 ## Story
 
@@ -117,57 +117,57 @@ the missing prerequisite. Do not recreate them locally inside map components.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 0 - Reconfirm the implementation baseline and binding sources** (AC: all)
-  - [ ] From `nextjs-app/`, run `npx tsc --noEmit` and `npx eslint . --quiet` before editing. Stop and report unrelated failures; do not suppress them.
-  - [ ] Confirm the current branch contains Story 12.3's persisted geometry/read-time weather path and Story 12.7's canonical visible-only venue store/resolver. Record any missing deployment-only Story 12.7 migration evidence without reimplementing the resolver.
-  - [ ] Read `AGENTS.md`, `project-context.md`, `nextjs-app/docs/design/DESIGN.md`, the Claude Design bundle README/`STATE-MAPPING.md`/active `Pins.jsx`, the current map PNGs, `REBASELINE-LOG.md`, UX `VenuePin`/`VenueQuickInfo`/`SunTimeline`/accessibility/motion sections, Architecture `E12-AD-08`, and the Epic 12 test design before changing frontend code.
-  - [ ] Confirm no new package is needed. Keep MapLibre dynamically loaded and preserve the existing marker-reconciliation/performance boundary.
+- [x] **Task 0 - Reconfirm the implementation baseline and binding sources** (AC: all)
+  - [x] From `nextjs-app/`, run `npx tsc --noEmit` and `npx eslint . --quiet` before editing. Stop and report unrelated failures; do not suppress them.
+  - [x] Confirm the current branch contains Story 12.3's persisted geometry/read-time weather path and Story 12.7's canonical visible-only venue store/resolver. Record any missing deployment-only Story 12.7 migration evidence without reimplementing the resolver.
+  - [x] Read `AGENTS.md`, `project-context.md`, `nextjs-app/docs/design/DESIGN.md`, the Claude Design bundle README/`STATE-MAPPING.md`/active `Pins.jsx`, the current map PNGs, `REBASELINE-LOG.md`, UX `VenuePin`/`VenueQuickInfo`/`SunTimeline`/accessibility/motion sections, Architecture `E12-AD-08`, and the Epic 12 test design before changing frontend code.
+  - [x] Confirm no new package is needed. Keep MapLibre dynamically loaded and preserve the existing marker-reconciliation/performance boundary.
 
-- [ ] **Task 1 - Establish one pure public-sun domain contract** (AC: 1, 2, 3, 4)
-  - [ ] Add `WeatherGateState = 'gated' | 'not_gated' | 'unknown'` to the public API type contract and one client/server-safe pure public-sun module, preferably `nextjs-app/lib/utils/public-sun.ts`. It must not import server-only solar, weather, Supabase, middleware, or building modules.
-  - [ ] Implement the single predicate exactly as `sunExposurePercent > 50 && weatherGateState !== 'gated'`. Exactly `50` is false/grey; `unknown` is not silently rewritten to `not_gated`.
-  - [ ] Keep the helper's inputs limited to exposure and gate state. `confidence`, `VenueSunStatus`, partner state, selected state, and sky-condition strings must not affect the verdict. Preserve the raw 30%/70% `VenueSunStatus` classifier as diagnostic engine data; do not retune `classifySunStatus`, change the status union, or change feedback's `predicted_state` DB CHECK.
-  - [ ] Provide one shared total `Mest sol` comparator: public-sunny first, `sunExposurePercent` descending, distance ascending, then stable venue ID ascending. Prefer importing the same pure helper on server and client; if a mirror is unavoidable, add parity golden vectors that make drift fail.
-  - [ ] Centralize public window/peak extraction in this pure domain layer or a small adjacent pure module rather than leaving another raw-status/30% predicate. Its contract is detailed in Task 3.
+- [x] **Task 1 - Establish one pure public-sun domain contract** (AC: 1, 2, 3, 4)
+  - [x] Add `WeatherGateState = 'gated' | 'not_gated' | 'unknown'` to the public API type contract and one client/server-safe pure public-sun module, preferably `nextjs-app/lib/utils/public-sun.ts`. It must not import server-only solar, weather, Supabase, middleware, or building modules.
+  - [x] Implement the single predicate exactly as `sunExposurePercent > 50 && weatherGateState !== 'gated'`. Exactly `50` is false/grey; `unknown` is not silently rewritten to `not_gated`.
+  - [x] Keep the helper's inputs limited to exposure and gate state. `confidence`, `VenueSunStatus`, partner state, selected state, and sky-condition strings must not affect the verdict. Preserve the raw 30%/70% `VenueSunStatus` classifier as diagnostic engine data; do not retune `classifySunStatus`, change the status union, or change feedback's `predicted_state` DB CHECK.
+  - [x] Provide one shared total `Mest sol` comparator: public-sunny first, `sunExposurePercent` descending, distance ascending, then stable venue ID ascending. Prefer importing the same pure helper on server and client; if a mirror is unavoidable, add parity golden vectors that make drift fail.
+  - [x] Centralize public window/peak extraction in this pure domain layer or a small adjacent pure module rather than leaving another raw-status/30% predicate. Its contract is detailed in Task 3.
 
-- [ ] **Task 2 - Emit and propagate explicit weather-gate state** (AC: 1, 2, 3, 4)
-  - [ ] Add required `weatherGateState` fields to every public selected-instant `VenueDataDto` and every `VenueDaySeriesEntry`; add it to `VenuePinData` and any narrow ranking/window input types. Missing/malformed weather at a normalization boundary maps to `unknown`, never known-clear.
-  - [ ] In `gateGeometrySeriesWithWeatherSnapshots`, emit `unknown` for missing/expired/unavailable weather, `gated` when the known cloud/rain gate applies, and `not_gated` when weather is known and the gate does not apply. Copy the selected step's value to the top-level DTO in `buildPersistedSunOutcome`.
-  - [ ] Preserve `sunExposurePercent` as ungated geometric seating share and preserve `CloudObscured` as the diagnostic headline status when the gate applies. Do not persist gate state into `venue_sun_geometry_series` and do not reconstruct it downstream from `CloudObscured` strings.
-  - [ ] Thread the field through `deriveVenueSunAtMinutes`, `MapView.applyDaySeriesDerivation`, `mapVenueDtoToPinData`, list/favourite top-up rows, fixtures/store normalization, planner/fixture weather adapters, fallback DTOs, and forced visual normalizers. Forced sunny states are `not_gated`; forced obscured states are `gated`; weather-unavailable fixtures are `unknown`.
-  - [ ] Retain explicit unknown-weather honesty (`skyCondition: 'unavailable'`, geometry-only freshness, and localized weather/uncertainty copy). An `unknown` step above 50 may use the amber geometric-potential presentation under `E12-AD-08`, but the same visible/accessible surface must not imply known-clear weather.
+- [x] **Task 2 - Emit and propagate explicit weather-gate state** (AC: 1, 2, 3, 4)
+  - [x] Add required `weatherGateState` fields to every public selected-instant `VenueDataDto` and every `VenueDaySeriesEntry`; add it to `VenuePinData` and any narrow ranking/window input types. Missing/malformed weather at a normalization boundary maps to `unknown`, never known-clear.
+  - [x] In `gateGeometrySeriesWithWeatherSnapshots`, emit `unknown` for missing/expired/unavailable weather, `gated` when the known cloud/rain gate applies, and `not_gated` when weather is known and the gate does not apply. Copy the selected step's value to the top-level DTO in `buildPersistedSunOutcome`.
+  - [x] Preserve `sunExposurePercent` as ungated geometric seating share and preserve `CloudObscured` as the diagnostic headline status when the gate applies. Do not persist gate state into `venue_sun_geometry_series` and do not reconstruct it downstream from `CloudObscured` strings.
+  - [x] Thread the field through `deriveVenueSunAtMinutes`, `MapView.applyDaySeriesDerivation`, `mapVenueDtoToPinData`, list/favourite top-up rows, fixtures/store normalization, planner/fixture weather adapters, fallback DTOs, and forced visual normalizers. Forced sunny states are `not_gated`; forced obscured states are `gated`; weather-unavailable fixtures are `unknown`.
+  - [x] Retain explicit unknown-weather honesty (`skyCondition: 'unavailable'`, geometry-only freshness, and localized weather/uncertainty copy). An `unknown` step above 50 may use the amber geometric-potential presentation under `E12-AD-08`, but the same visible/accessible surface must not imply known-clear weather.
 
-- [ ] **Task 3 - Make ordering, cards, windows, and peaks consume the same contract** (AC: 1, 2, 3, 4)
-  - [ ] Replace server `SUN_STATUS_RANK`/`sunListRank` and client `getVenueSunRankForList`/`isVenueSunnyForList` decisions with the shared predicate/comparator. The response sort, client `Mest sol` sort, card `isSunny`, and server pre-slice behavior must agree.
-  - [ ] Preserve day-stable top-50 selection: update `venuePeakSunRank` (or replace it with a typed peak comparison) so the best per-series public verdict/exposure drives truncation, then use distance and stable ID for deterministic ties. A high-exposure weather-gated venue remains in the grey band but its geometric exposure orders it deterministically within that band. `Nära mig` and other explicit sort modes may keep their own primary order but may not redefine sunny.
-  - [ ] Extract an unqualified sun window only from contiguous day-series steps satisfying the shared predicate. Choose the longest run; equal-length runs choose the earlier one; gaps in planner minutes break a run; display the first and last qualifying sample minutes, not the next interval boundary.
-  - [ ] Extract peak only from qualifying steps. Highest exposure wins and equal exposure chooses the earlier minute. A series with only `<=50%` or gated steps has no unqualified window/peak.
-  - [ ] Update `sun-engine`/persisted outcome/detail-route/list-card consumers and `sun-status-presentation` helpers so a grey venue never exposes an unqualified `Sol HH:MM–HH:MM`, peak, or "soligt" label. Lower/gated geometry may remain only as localized `viss sol`/potential copy; unknown-weather windows/peaks retain an explicit unknown qualifier.
-  - [ ] Do not mutate Story 12.3's persisted geometry, add a provider fetch, or break the Epic 11 same-date scrub=0/date-change=1 request gates.
+- [x] **Task 3 - Make ordering, cards, windows, and peaks consume the same contract** (AC: 1, 2, 3, 4)
+  - [x] Replace server `SUN_STATUS_RANK`/`sunListRank` and client `getVenueSunRankForList`/`isVenueSunnyForList` decisions with the shared predicate/comparator. The response sort, client `Mest sol` sort, card `isSunny`, and server pre-slice behavior must agree.
+  - [x] Preserve day-stable top-50 selection: update `venuePeakSunRank` (or replace it with a typed peak comparison) so the best per-series public verdict/exposure drives truncation, then use distance and stable ID for deterministic ties. A high-exposure weather-gated venue remains in the grey band but its geometric exposure orders it deterministically within that band. `Nära mig` and other explicit sort modes may keep their own primary order but may not redefine sunny.
+  - [x] Extract an unqualified sun window only from contiguous day-series steps satisfying the shared predicate. Choose the longest run; equal-length runs choose the earlier one; gaps in planner minutes break a run; display the first and last qualifying sample minutes, not the next interval boundary.
+  - [x] Extract peak only from qualifying steps. Highest exposure wins and equal exposure chooses the earlier minute. A series with only `<=50%` or gated steps has no unqualified window/peak.
+  - [x] Update `sun-engine`/persisted outcome/detail-route/list-card consumers and `sun-status-presentation` helpers so a grey venue never exposes an unqualified `Sol HH:MM–HH:MM`, peak, or "soligt" label. Lower/gated geometry may remain only as localized `viss sol`/potential copy; unknown-weather windows/peaks retain an explicit unknown qualifier.
+  - [x] Do not mutate Story 12.3's persisted geometry, add a provider fetch, or break the Epic 11 same-date scrub=0/date-change=1 request gates.
 
-- [ ] **Task 4 - Collapse map and map-adjacent presentation to two honest states** (AC: 1, 3, 4)
-  - [ ] Make `VenuePin` and `VenuePinLayer` resolve presentation and ARIA through the shared predicate, never raw `sunStatus`. Cover contradictory/low diagnostic statuses explicitly: a `Partial` 40% pin is the grey branch.
-  - [ ] Keep the existing amber pointer/pill treatment for sunny: `color-amber-pin`, sun icon, rounded seating-share percentage. This story is not an unrelated amber border/text restyle.
-  - [ ] Use the canonical `color-pin-shaded` treatment for the one not-sunny map pin: cloud icon and no visible percentage/text node. `Shaded`, `NoSun`, low `Partial`, and gated `CloudObscured` render the same subtree. Retain `color-pin-obscured` for non-pin weather explanation where still used; do not delete it blindly.
-  - [ ] Selection, hover, focus, partner decoration, and clustering may add only non-semantic emphasis. A selected amber remains the same amber pointer/pill and a selected grey remains the same grey cloud; remove the current selected-circle third data shape/morph.
-  - [ ] Make grey list cards and QuickInfo selected-instant verdicts percentage-free and not-sunny. Preserve a localized `Sol bakom moln` explanation for underlying `CloudObscured` without restoring the number; shade and low exposure use the localized not-sunny contract. Amber cards may show the seating-share percentage.
-  - [ ] Keep confidence completely outside the verdict, comparator, pin content, and pin accessible name. Do not implement Story 12.13's repository-wide confidence removal here, but do not add or relabel confidence as sun exposure.
+- [x] **Task 4 - Collapse map and map-adjacent presentation to two honest states** (AC: 1, 3, 4)
+  - [x] Make `VenuePin` and `VenuePinLayer` resolve presentation and ARIA through the shared predicate, never raw `sunStatus`. Cover contradictory/low diagnostic statuses explicitly: a `Partial` 40% pin is the grey branch.
+  - [x] Keep the existing amber pointer/pill treatment for sunny: `color-amber-pin`, sun icon, rounded seating-share percentage. This story is not an unrelated amber border/text restyle.
+  - [x] Use the canonical `color-pin-shaded` treatment for the one not-sunny map pin: cloud icon and no visible percentage/text node. `Shaded`, `NoSun`, low `Partial`, and gated `CloudObscured` render the same subtree. Retain `color-pin-obscured` for non-pin weather explanation where still used; do not delete it blindly.
+  - [x] Selection, hover, focus, partner decoration, and clustering may add only non-semantic emphasis. A selected amber remains the same amber pointer/pill and a selected grey remains the same grey cloud; remove the current selected-circle third data shape/morph.
+  - [x] Make grey list cards and QuickInfo selected-instant verdicts percentage-free and not-sunny. Preserve a localized `Sol bakom moln` explanation for underlying `CloudObscured` without restoring the number; shade and low exposure use the localized not-sunny contract. Amber cards may show the seating-share percentage.
+  - [x] Keep confidence completely outside the verdict, comparator, pin content, and pin accessible name. Do not implement Story 12.13's repository-wide confidence removal here, but do not add or relabel confidence as sun exposure.
 
-- [ ] **Task 5 - Complete i18n, accessibility, focus, and motion behavior** (AC: 4; Design Gate)
-  - [ ] Replace the raw-status pin ARIA split with two localized outcomes in both `messages/sv/map.json` and `messages/en/map.json`: amber names the venue, "soligt vid vald tid", and seating-share percentage; grey names the venue and "inte soligt vid vald tid" with no percent interpolation. Remove stale `pinPartialAria`/`pinShadedAria`/`pinObscuredAria` readers only after a repo-wide source/test/mock scan.
-  - [ ] When amber is backed by `weatherGateState='unknown'`, append or associate localized weather-unavailable/uncertainty text so assistive users do not hear it as known-clear. Do not expose a confidence number.
-  - [ ] Keep Sun/Cloud icons decorative to assistive technology while the pin button has the complete accessible name. Preserve semantic button behavior, visible focus, keyboard activation, and an actual minimum 44x44 mobile hit target after the grey label is removed.
-  - [ ] Existing-marker updates that cross 50% or change gate state must update in place without an entrance/remount flash. Add gate state to the marker render fingerprint, retain `initial={false}`/duration 0 for data-state replacement, and keep any initial-arrival fade separate from refresh transitions.
-  - [ ] Under `prefers-reduced-motion`, initial pin fades, selection motion, and data-state transitions are instant. Preserve the current fail-safe treatment of an unresolved motion preference.
+- [x] **Task 5 - Complete i18n, accessibility, focus, and motion behavior** (AC: 4; Design Gate)
+  - [x] Replace the raw-status pin ARIA split with two localized outcomes in both `messages/sv/map.json` and `messages/en/map.json`: amber names the venue, "soligt vid vald tid", and seating-share percentage; grey names the venue and "inte soligt vid vald tid" with no percent interpolation. Remove stale `pinPartialAria`/`pinShadedAria`/`pinObscuredAria` readers only after a repo-wide source/test/mock scan.
+  - [x] When amber is backed by `weatherGateState='unknown'`, append or associate localized weather-unavailable/uncertainty text so assistive users do not hear it as known-clear. Do not expose a confidence number.
+  - [x] Keep Sun/Cloud icons decorative to assistive technology while the pin button has the complete accessible name. Preserve semantic button behavior, visible focus, keyboard activation, and an actual minimum 44x44 mobile hit target after the grey label is removed.
+  - [x] Existing-marker updates that cross 50% or change gate state must update in place without an entrance/remount flash. Add gate state to the marker render fingerprint, retain `initial={false}`/duration 0 for data-state replacement, and keep any initial-arrival fade separate from refresh transitions.
+  - [x] Under `prefers-reduced-motion`, initial pin fades, selection motion, and data-state transitions are instant. Preserve the current fail-safe treatment of an unresolved motion preference.
 
-- [ ] **Task 6 - Add deterministic boundary, parity, browser, and non-vacuous mobile-a11y evidence** (AC: 1, 2, 3, 4; Design Gate)
-  - [ ] Add pure golden vectors for exactly 50, just above 50, 40% `Partial`, >50 not-gated, >50 gated/`CloudObscured`, and >50 unknown. Prove confidence changes do not change verdict/rank and unknown never loses its explicit signal.
-  - [ ] Add server and client comparator tests for the complete tuple, including equal-exposure distance and stable-ID ties, weather-gated ordering inside the grey band, and top-50 day-peak truncation parity.
-  - [ ] Add window/peak tests for qualifying/non-qualifying samples, missing-minute gaps, longest-run selection, equal-length earliest-run tie, first/last sample endpoints, equal-peak earliest-minute tie, gated high exposure, exactly 50, and unknown-weather qualification.
-  - [ ] Update `VenuePin.test.tsx`, `VenuePinLayer.test.tsx`, `VenueList`/`VenueCard`/`VenueQuickInfo` tests, MapView/day-series tests, API route tests, and Epic 10 weather tests. Assert exact localized ARIA for a 40% `Partial` and a 95% gated venue, no grey percentage, amber percentage retained, selected shape unchanged, 44x44 hit target, no refresh flash, and reduced-motion parity.
-  - [ ] Add mobile and desktop E2E coverage with deterministic API/fixture vectors; do not rely on `map-primary` screenshots alone to prove the 50% boundary because its forced visual normalization is not a boundary harness. Automated tests must not call live Met.no or production Supabase.
-  - [ ] Turn at least one pin-relevant `a11y-mobile` scenario into an executed `test` (or add a focused executed scenario), wire `--project=a11y-mobile` into `.github/workflows/build-and-test-nextjs.yml`, and update `epic-11-standing-gate-ci-wiring.automate.test.ts` so CI invocation, `testMatch`, and a non-zero/non-fixme executable scenario are guarded. Remove the obsolete assertion that CI must omit the project.
-  - [ ] Run full cross-epic regression from `nextjs-app/`: `npx tsc --noEmit`, `npx eslint . --quiet`, `npx vitest run`, and `npx playwright test --project=mobile --project=desktop --project=touch --project=a11y --project=a11y-mobile`, recording executed/pass/fixme counts. In PowerShell, set `$env:CI='1'` for the Playwright run when an unrelated port-3000 server could otherwise be reused, then restore/unset it.
+- [x] **Task 6 - Add deterministic boundary, parity, browser, and non-vacuous mobile-a11y evidence** (AC: 1, 2, 3, 4; Design Gate)
+  - [x] Add pure golden vectors for exactly 50, just above 50, 40% `Partial`, >50 not-gated, >50 gated/`CloudObscured`, and >50 unknown. Prove confidence changes do not change verdict/rank and unknown never loses its explicit signal.
+  - [x] Add server and client comparator tests for the complete tuple, including equal-exposure distance and stable-ID ties, weather-gated ordering inside the grey band, and top-50 day-peak truncation parity.
+  - [x] Add window/peak tests for qualifying/non-qualifying samples, missing-minute gaps, longest-run selection, equal-length earliest-run tie, first/last sample endpoints, equal-peak earliest-minute tie, gated high exposure, exactly 50, and unknown-weather qualification.
+  - [x] Update `VenuePin.test.tsx`, `VenuePinLayer.test.tsx`, `VenueList`/`VenueCard`/`VenueQuickInfo` tests, MapView/day-series tests, API route tests, and Epic 10 weather tests. Assert exact localized ARIA for a 40% `Partial` and a 95% gated venue, no grey percentage, amber percentage retained, selected shape unchanged, 44x44 hit target, no refresh flash, and reduced-motion parity.
+  - [x] Add mobile and desktop E2E coverage with deterministic API/fixture vectors; do not rely on `map-primary` screenshots alone to prove the 50% boundary because its forced visual normalization is not a boundary harness. Automated tests must not call live Met.no or production Supabase.
+  - [x] Turn at least one pin-relevant `a11y-mobile` scenario into an executed `test` (or add a focused executed scenario), wire `--project=a11y-mobile` into `.github/workflows/build-and-test-nextjs.yml`, and update `epic-11-standing-gate-ci-wiring.automate.test.ts` so CI invocation, `testMatch`, and a non-zero/non-fixme executable scenario are guarded. Remove the obsolete assertion that CI must omit the project.
+  - [x] Run full cross-epic regression from `nextjs-app/`: `npx tsc --noEmit`, `npx eslint . --quiet`, `npx vitest run`, and `npx playwright test --project=mobile --project=desktop --project=touch --project=a11y --project=a11y-mobile`, recording executed/pass/fixme counts. In PowerShell, set `$env:CI='1'` for the Playwright run when an unrelated port-3000 server could otherwise be reused, then restore/unset it.
 
 - [ ] **Task 7 - Reconcile design docs, capture the implementation, and pass the visual gate** (AC: 5; Design Gate)
   - [ ] Update `DESIGN.md` to describe exactly two map-pin data presentations and the canonical `color-pin-shaded` map use while retaining `color-pin-obscured` for honest non-pin weather surfaces. Preserve the accepted production amber chrome; do not copy stale prototype pixels or add raw colors/arbitrary spacing/shadows.
@@ -367,6 +367,15 @@ Codex GPT-5
 - 2026-07-18: Confirmed Story 12.3 persisted geometry/read-time weather code and Story 12.7 shared visible-only resolver are present in the current workspace; Story 12.7 migrated-database/live verification remains a separate deployment evidence lane.
 - 2026-07-18: ATDD RED scaffolds generated for Story 12.6; focused activation/run evidence is recorded in `_bmad-output/test-artifacts/atdd-checklist-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md`.
 - 2026-07-18: Focused RED verification executed 24 Vitest cases (22 failed, 2 existing controls passed) and 5 Playwright cases (5 failed at the new Swedish pin-name contract across mobile/desktop/a11y-mobile).
+- 2026-07-18: Dev-story baseline `cd nextjs-app && npx tsc --noEmit` passed before production edits.
+- 2026-07-18: Dev-story baseline `cd nextjs-app && npx eslint . --quiet` passed before production edits.
+- 2026-07-18: Focused Story 12.6 Vitest/Playwright ATDD suite passed after implementation: 24 focused Vitest tests and 5 focused Playwright tests.
+- 2026-07-18: Full `cd nextjs-app && npx tsc --noEmit` passed after implementation.
+- 2026-07-18: Full `cd nextjs-app && npx eslint . --quiet` passed after implementation.
+- 2026-07-18: Full `cd nextjs-app && npx vitest run` passed: 187 files passed, 2 skipped; 1747 tests passed, 15 skipped.
+- 2026-07-18: Full `$env:CI='1'; npx playwright test --project=mobile --project=desktop --project=touch --project=a11y --project=a11y-mobile` passed: 112 passed, 53 skipped. Existing Next workspace-root and onboarding hydration warnings were non-fatal.
+- 2026-07-18: `npx playwright test --project=a11y-mobile --list` confirmed 8 executable mobile a11y tests across 2 files, including the Story 12.6 pin-bearing gate.
+- 2026-07-18: Canonical visual wrapper `.\scripts\run-sh.ps1 scripts/visual-validate.sh map-primary '/?_state=map-primary&_time=14:00' mobile` failed before comparison because `ANTHROPIC_API_KEY` is not set. Story-review transition was not run because visual validation has not passed.
 
 ### ATDD Artifacts
 
@@ -377,19 +386,62 @@ Codex GPT-5
 
 ### Completion Notes List
 
-- Ultimate context engine analysis completed - comprehensive developer guide created.
-- No implementation code, tests, reference images, capture recipes, or auto-bmad state were changed during story creation.
-- ATDD acceptance scaffolds now define the pre-implementation RED contract; production implementation, sprint status, visual references, and rebaseline history remain unchanged.
-- Active RED failures are implementation-facing: missing shared public-sun module/tri-state propagation, legacy pin variants/motion, stale localized ARIA, and absent `a11y-mobile` CI invocation.
+- Implemented the shared public-sun contract as `sunExposurePercent > 50 && weatherGateState !== 'gated'`, plus server/client ordering, peak, and window helpers with stable tie-breaks.
+- Added explicit `weatherGateState` propagation through API DTOs, day-series derivation, persisted outcome reads, fixture/store normalization, forced states, planner/weather adapters, and map pin DTOs.
+- Collapsed map pins to two data shapes: amber sun plus seating-share percentage for public sunny, grey cloud with no number for not-sunny. Selection now remains separate from `data-pin-state`.
+- Reconciled map-adjacent surfaces so grey/not-sunny list cards and QuickInfo do not expose the public percentage while preserving `CloudObscured` diagnostic copy outside pin semantics.
+- Replaced pin ARIA/i18n with percent-bearing sunny labels, percent-free not-sunny labels, and explicit unknown-weather sunny labels in Swedish and English.
+- Wired a non-vacuous `a11y-mobile` CI invocation and updated standing CI tests to require the project.
+- Updated `DESIGN.md` and `project-context.md` for the Story 12.6 two-pin contract. Reference PNGs, capture recipes, and `REBASELINE-LOG.md` were intentionally not edited.
+- Blocked from story-review transition by missing `ANTHROPIC_API_KEY` for the legacy visual validation provider; no sprint status transition was attempted.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md`
-- `_bmad-output/test-artifacts/atdd-checklist-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md`
-- `nextjs-app/test/unit/utils/public-sun.atdd.test.ts`
-- `nextjs-app/test/unit/services/story-12-6-weather-gate-state.atdd.test.ts`
-- `nextjs-app/test/unit/api/story-12-6-public-sun-ordering.atdd.test.ts`
+- `.github/workflows/build-and-test-nextjs.yml`
+- `project-context.md`
+- `nextjs-app/app/api/venues/route.ts`
+- `nextjs-app/components/composed/venue/VenueCard.tsx`
+- `nextjs-app/components/composed/venue/VenueQuickInfo.tsx`
+- `nextjs-app/components/custom/map/MapView.tsx`
+- `nextjs-app/components/custom/map/VenuePin.tsx`
+- `nextjs-app/components/custom/map/VenuePinLayer.tsx`
+- `nextjs-app/components/custom/venue/VenueList.tsx`
+- `nextjs-app/components/custom/venue/forced-venue-detail.ts`
+- `nextjs-app/docs/design/DESIGN.md`
+- `nextjs-app/lib/services/sun-engine.ts`
+- `nextjs-app/lib/services/sun-geometry-precompute.ts`
+- `nextjs-app/lib/services/sun-geometry-repository.ts`
+- `nextjs-app/lib/services/venue-planner.ts`
+- `nextjs-app/lib/services/venue-store.ts`
+- `nextjs-app/lib/services/venues-fixture.ts`
+- `nextjs-app/lib/services/weather-freshness-fixture.ts`
+- `nextjs-app/lib/services/weather-snapshots.ts`
+- `nextjs-app/lib/types/api.ts`
+- `nextjs-app/lib/types/map.ts`
+- `nextjs-app/lib/utils/public-sun.ts`
+- `nextjs-app/lib/utils/venue-day-series.ts`
+- `nextjs-app/lib/utils/venue-pin-mapping.ts`
+- `nextjs-app/messages/en/map.json`
+- `nextjs-app/messages/sv/map.json`
+- `nextjs-app/test/components/VenueCard.test.tsx`
+- `nextjs-app/test/components/VenueList.rank.test.ts`
 - `nextjs-app/test/components/VenuePin.public-sun.atdd.test.tsx`
-- `nextjs-app/test/unit/story-12-6-i18n-a11y-ci.atdd.test.ts`
+- `nextjs-app/test/components/VenuePin.test.tsx`
+- `nextjs-app/test/components/VenuePinLayer.test.tsx`
+- `nextjs-app/test/components/VenueQuickInfo.test.tsx`
+- `nextjs-app/test/e2e/epic-10-weather-matrix.spec.ts`
+- `nextjs-app/test/e2e/epic-11-sheet-touch-gestures.spec.ts`
 - `nextjs-app/test/e2e/story-12-6-public-sun-pins.atdd.spec.ts`
 - `nextjs-app/test/e2e/story-12-6/axe-mobile.spec.ts`
+- `nextjs-app/test/e2e/map-primary.spec.ts`
+- `nextjs-app/test/unit/api/story-12-6-public-sun-ordering.atdd.test.ts`
+- `nextjs-app/test/unit/epic-11-standing-gate-ci-wiring.automate.test.ts`
+- `nextjs-app/test/unit/services/story-12-6-weather-gate-state.atdd.test.ts`
+- `nextjs-app/test/unit/services/sun-engine-caching.atdd.test.ts`
+- `nextjs-app/test/unit/services/sun-engine.test.ts`
+- `nextjs-app/test/unit/utils/public-sun.atdd.test.ts`
+- `nextjs-app/test/unit/utils/venue-day-series.test.ts`
+- `nextjs-app/test/unit/utils/venue-pin-mapping.test.ts`
+- `nextjs-app/test/unit/venue-detail/route-cache.test.ts`
+- `nextjs-app/test/unit/story-12-6-i18n-a11y-ci.atdd.test.ts`

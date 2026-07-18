@@ -58,7 +58,12 @@ function listRequest(query: string): NextRequest {
 function fullSeries(baseStatus: VenueSunStatus = 'Sunny'): VenueDaySeriesEntry[] {
   const series: VenueDaySeriesEntry[] = [];
   for (let m = PLANNER_START_MINUTES; m <= PLANNER_END_MINUTES; m += PLANNER_STEP_MINUTES) {
-    series.push({ minutes: m, sunExposurePercent: 80, currentSunStatus: baseStatus });
+    series.push({
+      minutes: m,
+      sunExposurePercent: 80,
+      currentSunStatus: baseStatus,
+      weatherGateState: baseStatus === 'CloudObscured' ? 'gated' : 'not_gated',
+    });
   }
   return series;
 }
@@ -68,6 +73,7 @@ function computedOutcome(venue: StoredVenue): SunEngineOutcome {
     venue: {
       ...toVenueData(venue),
       currentSunStatus: 'Partial',
+      weatherGateState: 'not_gated',
       confidence: 55,
       sunExposurePercent: 60,
       skyCondition: 'clear',

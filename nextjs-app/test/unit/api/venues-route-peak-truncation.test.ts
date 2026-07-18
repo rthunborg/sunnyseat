@@ -70,6 +70,7 @@ function storedVenue(index: number): StoredVenue {
     neighborhood: 'Test',
     location: { lat: CENTRE.lat, lng: CENTRE.lng },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     skyCondition: 'clear',
     isPartner: false,
     confidence: 90,
@@ -83,13 +84,27 @@ function seriesFor(peak: VenueSunStatus): VenueDaySeriesEntry[] {
   // A two-entry series: a low mid-day step and the venue's PEAK step. Only the
   // MAX matters for the truncation rank.
   return [
-    { minutes: 6 * 60, sunExposurePercent: 0, currentSunStatus: 'NoSun' },
+    {
+      minutes: 6 * 60,
+      sunExposurePercent: 0,
+      currentSunStatus: 'NoSun',
+      weatherGateState: 'not_gated',
+    },
     {
       minutes: 15 * 60,
-      sunExposurePercent: peak === 'CloudObscured' ? 100 : 90,
+      sunExposurePercent: exposureForStatus(peak, 'peak'),
       currentSunStatus: peak,
+      weatherGateState: peak === 'CloudObscured' ? 'gated' : 'not_gated',
     },
   ];
+}
+
+function exposureForStatus(status: VenueSunStatus, phase: 'instant' | 'peak'): number {
+  if (status === 'Sunny') return phase === 'peak' ? 100 : 90;
+  if (status === 'Partial') return 60;
+  if (status === 'CloudObscured') return 100;
+  if (status === 'Shaded') return 20;
+  return 0;
 }
 
 function listRequest(query: string): NextRequest {
@@ -110,8 +125,9 @@ describe('venues route — date-stable peak-rank truncation (external-review fix
         venue: {
           ...toVenueData(venue),
           currentSunStatus: profile.instant as VenueSunStatus,
+          weatherGateState: profile.instant === 'CloudObscured' ? 'gated' : 'not_gated',
           confidence: 60,
-          sunExposurePercent: profile.instant === 'CloudObscured' ? 100 : 90,
+          sunExposurePercent: exposureForStatus(profile.instant as VenueSunStatus, 'instant'),
           skyCondition: 'clear',
         },
         freshness: { sunDataSource: 'weather', weatherUpdatedAt: NOW.toISOString() },

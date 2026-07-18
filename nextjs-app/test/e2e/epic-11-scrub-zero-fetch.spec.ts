@@ -46,7 +46,7 @@
 
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
-import type { GetVenuesResponse, VenueDataDto, VenueSunStatus } from '@/lib/types/api';
+import type { GetVenuesResponse, VenueDataDto, VenueDaySeriesEntry } from '@/lib/types/api';
 import {
   PLANNER_START_MINUTES,
   PLANNER_END_MINUTES,
@@ -83,14 +83,15 @@ async function forbidLiveMetno(page: Page): Promise<string[]> {
 }
 
 /** One gated day-series (61 entries) — midday sunlit, one gated step. */
-function daySeries(): { minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus }[] {
-  const series: { minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus }[] = [];
+function daySeries(): VenueDaySeriesEntry[] {
+  const series: VenueDaySeriesEntry[] = [];
   for (let m = PLANNER_START_MINUTES; m <= PLANNER_END_MINUTES; m += PLANNER_STEP_MINUTES) {
     const sunlit = m >= 11 * 60 && m <= 18 * 60;
     series.push({
       minutes: m,
       sunExposurePercent: sunlit ? 90 : 10,
       currentSunStatus: sunlit ? (m === 13 * 60 ? 'CloudObscured' : 'Sunny') : 'Shaded',
+      weatherGateState: sunlit && m === 13 * 60 ? 'gated' : 'not_gated',
     });
   }
   return series;
@@ -106,6 +107,7 @@ function buildVenue(id: string, name: string, lat: number, lng: number): VenueDa
     neighborhood: 'Inom Vallgraven',
     location: { lat, lng },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     isPartner: true,
     confidence: 90,
     distanceMeters: 0,

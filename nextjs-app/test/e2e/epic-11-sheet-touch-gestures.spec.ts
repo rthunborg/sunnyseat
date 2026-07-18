@@ -85,6 +85,7 @@ function buildVenue(
     neighborhood: 'Inom Vallgraven',
     location: { lat, lng },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     isPartner: true,
     confidence: 90,
     distanceMeters: 120,
@@ -231,7 +232,7 @@ test.describe('[11.3 AC2/AC3] four-snap sheet by real touch + chip axis guard', 
     // ---- MAP INTERACTIVE BEHIND COLLAPSED ----
     // Descend all the way back to collapsed, then prove a venue-pin tap reaches
     // the map through the handle-only sheet (no backdrop covers the map). The
-    // pin's onClick fires → it becomes selected (`data-pin-state` → `*-selected`),
+    // pin's onClick fires -> it becomes selected (`data-selected` -> `true`),
     // proving the tap landed on the map canvas. (Selecting a venue then
     // legitimately raises the sheet to peek to surface its quick-info — existing
     // UX — so we assert the SELECTION, not that the sheet stays collapsed.)
@@ -277,13 +278,13 @@ test.describe('[11.3 AC2/AC3] four-snap sheet by real touch + chip axis guard', 
     // sheet stays 'collapsed' (observed ~66% first-attempt failure on the `touch`
     // project; masked in CI only by retries:2). We keep the REAL finger tap (AC3
     // intent) but re-aim + bounded-retry until the tap registers as a selection
-    // (`data-pin-state` gains the `-selected` suffix). The retry loop dispatches a
+    // (`data-selected` flips to `true`). The retry loop dispatches a
     // genuine touchscreen tap each iteration — NOT a synthetic click — so the
     // real-touch acceptance signal is preserved. Once the pin reports selected, the
     // `selectedVenueId` effect raises the sheet from 'collapsed' → 'peek'.
-    // Any pin entering the selected visual state (`data-pin-state` gains a
-    // `-selected` suffix) is the deterministic signal that a tap registered.
-    const anySelectedPin = page.locator('[data-testid="venue-pin"][data-pin-state*="selected"]');
+    // Any pin entering the selected state is the deterministic signal that a tap
+    // registered; Story 12.6 keeps pin shape/state separate from selection.
+    const anySelectedPin = page.locator('[data-testid="venue-pin"][data-selected="true"]');
     let selected = false;
     for (let attempt = 0; attempt < 4 && !selected; attempt++) {
       const box = await targetPin!.boundingBox();

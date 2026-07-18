@@ -138,13 +138,9 @@ function makeStubMap(): StubMap {
 
 const messages = {
   map: {
-    pinSunnyAria: 'Solig plats — {percent} procent sol',
-    // Story 1.6 review (P34): mock previously omitted `pinPartialAria`,
-    // so any test that ran a `Partial` venue would resolve through
-    // next-intl's missing-key fallback instead of the real translation.
-    pinPartialAria: 'Delvis solig plats — {percent} procent sol',
-    pinShadedAria: 'Skuggad plats — {percent} procent sol',
-    pinObscuredAria: 'Sol bakom moln — {percent} procent solläge',
+    pinSunnyAria: 'Soligt vid vald tid — {percent} procent sol',
+    pinSunnyWeatherUnknownAria: 'Soligt vid vald tid — {percent} procent sol. Väder saknas vid vald tid.',
+    pinNotSunnyAria: 'Inte soligt vid vald tid',
   },
 };
 
@@ -191,14 +187,17 @@ const baseVenues: VenuePinData[] = [
   {
     id: '1', slug: 'a', name: 'A', lat: 57.7, lng: 11.97,
     sunStatus: 'Sunny', sunExposurePercent: 95, isPartner: false,
+    weatherGateState: 'not_gated',
   },
   {
     id: '2', slug: 'b', name: 'B', lat: 57.7, lng: 11.97,
     sunStatus: 'Sunny', sunExposurePercent: 80, isPartner: false,
+    weatherGateState: 'not_gated',
   },
   {
     id: '3', slug: 'c', name: 'C', lat: 57.7, lng: 11.97,
     sunStatus: 'Shaded', sunExposurePercent: 20, isPartner: false,
+    weatherGateState: 'not_gated',
   },
 ];
 
@@ -227,7 +226,7 @@ describe('<VenuePinLayer />', () => {
     allMarkers.forEach((m) => expect(m.remove).toHaveBeenCalled());
   });
 
-  it('announces a CloudObscured pin as "sol bakom moln", not "shaded" (Story 10.2 AC4)', () => {
+  it('announces a gated CloudObscured pin as not sunny without a percent', () => {
     const stubMap = makeStubMap();
     const handleRef: { current: WrapperHandle | null } = { current: null };
     const Wrapper = makeWrapper(stubMap, handleRef);
@@ -235,19 +234,15 @@ describe('<VenuePinLayer />', () => {
     const obscuredVenue: VenuePinData = {
       id: 'obscured', slug: 'o', name: 'Obscured', lat: 57.7, lng: 11.97,
       sunStatus: 'CloudObscured', sunExposurePercent: 88, isPartner: false,
+      weatherGateState: 'gated',
     };
 
     render(<VenuePinLayer venues={[obscuredVenue]} />, { wrapper: Wrapper });
 
     const button = allMarkers[0].__element.querySelector('button');
     const ariaLabel = button?.getAttribute('aria-label') ?? '';
-    // The obscured aria appears — and the shaded aria does not.
-    expect(ariaLabel).toContain('Sol bakom moln');
-    expect(ariaLabel).not.toContain('Skuggad plats');
-    // The geometric solläge % survives the gate in the aria (AC2).
-    expect(ariaLabel).toContain('88');
-    // Obscured phrase present exactly once (AC4 de-dup discipline).
-    expect(ariaLabel.match(/Sol bakom moln/g)).toHaveLength(1);
+    expect(ariaLabel).toContain('Inte soligt vid vald tid');
+    expect(ariaLabel).not.toContain('88');
   });
 
   it('selectively re-renders the previously- and newly-selected pins on selection change', () => {

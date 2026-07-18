@@ -138,6 +138,7 @@ function makeVenueResponse(): GetVenuesResponse {
   const base = {
     neighborhood: 'Inom Vallgraven',
     currentSunStatus: 'Sunny' as const,
+    weatherGateState: 'not_gated',
     isPartner: false,
     confidence: 90,
     distanceMeters: 100,

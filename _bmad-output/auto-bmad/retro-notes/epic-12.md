@@ -26,3 +26,8 @@
 - [Phase 7 â€” code review] Live/schema probes proved hidden, is_hidden, visibility, and deleted_at were all absent; the review fix adopted the architecture-backed canonical hidden boolean not null default false migration and removed invented visibility vocabularies.
 - [Phase 7 â€” code review] Mocks had concealed a nonexistent live projection. Future schema-backed stories should validate canonical migrations/generated types or exercise disposable migrated Postgres before relying on mocked rows.
 - [Phase 7 â€” story trace] Traceability is CONCERNS with 8/10 full and 2/10 partial: migrated-database/live resolver-precompute verification and concurrent in-flight visibility changes remain deployment/edge evidence lanes; no composite criterion is uncovered.
+
+## Story 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number
+- Story 12.6's tri-state public-sun contract required explicit weatherGateState propagation across API DTOs, fixtures, persisted outcomes, and client derivation; one client/server-safe pure module prevented comparator, card, pin, and ARIA drift.
+- The existing a11y-mobile Playwright project was effectively vacuous because CI omitted it and a legacy unit guard enforced that omission; invoking it alongside a11y plus an active pin-bearing axe scenario closes the gap.
+- The legacy visual validator remains credential-gated on this host: a missing ANTHROPIC_API_KEY blocks comparison but does not authorize reference replacement, manual-pass claims, or a sprint-status transition.

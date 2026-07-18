@@ -6,6 +6,7 @@ import { VenueCard, VenueCardSkeleton } from '@/components/composed/venue/VenueC
 import type { VenueListSortMode } from '@/components/composed/venue/VenueListControls';
 import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
 import { getConfidenceDisplayState } from '@/lib/utils/confidence-display';
+import { compareVenuesByPublicSun, isVenuePubliclySunny } from '@/lib/utils/public-sun';
 import { getVenueVisualMetadata } from '@/lib/utils/venue-visual-metadata';
 import { cn } from '@/lib/utils';
 
@@ -165,51 +166,16 @@ export function sortVenuesForList(
     if (sortMode === 'distance') {
       return sortableDistance(a.distanceMeters) - sortableDistance(b.distanceMeters);
     }
-    const sunDelta = getVenueSunRankForList(b) - getVenueSunRankForList(a);
-    if (sunDelta !== 0) return sunDelta;
-    return sortableDistance(a.distanceMeters) - sortableDistance(b.distanceMeters);
+    return compareVenuesByPublicSun(a, b);
   });
 }
 
 export function isVenueSunnyForList(venue: VenueDataDto): boolean {
-  // Story 10.2: "amber-sunny" is the geometric sunny/partial tier ONLY. A
-  // CloudObscured venue is NOT amber (its rank is derived from solläge below,
-  // not the fixed Sunny/Partial rungs), so this stays false for obscured and
-  // the card's amber-vs-muted decision is driven off the separate obscured
-  // signal, not this predicate.
-  if (venue.currentSunStatus === 'CloudObscured') return false;
-  return getVenueSunRankForList(venue) > 0;
-}
-
-export function getVenueSunRankForList(venue: VenueDataDto): number {
-  switch (venue.currentSunStatus) {
-    case 'Sunny':
-      return 2;
-    case 'Partial':
-      return 1;
-    // Story 10.2 (AC2 + the 10.1 hand-off): a weather-gated CloudObscured
-    // venue is geometrically Sunny/Partial underneath, but that tier is not
-    // recoverable from `currentSunStatus` once gated. Rank it by the honest
-    // geometric solläge (`sunExposurePercent`) that survives the gate, mapped
-    // into the same [0, 2] ordering space as Sunny(2)/Partial(1)/Shaded(0):
-    // rank = (sunExposurePercent / 100) * 2. So a 95%-solläge obscured venue
-    // (→ 1.9) out-ranks a Partial (1) — "Mest sol" still ranks by solläge
-    // under an overcast sky — while a low-solläge obscured venue sinks toward
-    // Shaded. Non-obscured ordering is unchanged (byte-identical clear-sky
-    // list). Assert RELATIVE ordering only (epic-10 re-tune-survives convention).
-    case 'CloudObscured': {
-      const percent = Number.isFinite(venue.sunExposurePercent)
-        ? Math.max(0, Math.min(100, venue.sunExposurePercent))
-        : 0;
-      return (percent / 100) * 2;
-    }
-    default:
-      return 0;
-  }
+  return isVenuePubliclySunny(venue);
 }
 
 function resolveSunTimeRange(venue: VenueDataDto, sunLabel: string): string | undefined {
-  if (!venue.sunWindow) return undefined;
+  if (!isVenuePubliclySunny(venue) || !venue.sunWindow) return undefined;
   return `${sunLabel} ${venue.sunWindow.start}-${venue.sunWindow.end}`;
 }
 

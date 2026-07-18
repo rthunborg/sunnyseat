@@ -15,7 +15,12 @@ export function resolveForcedVisualVenueDetail(
   // timeline, sunExposurePercent) is UNCHANGED — it is the "when it clears"
   // potential the two-signal model preserves (AC2).
   if (forcedState === 'venue-detail-obscured') {
-    return { ...FORCED_VISUAL_VENUE_DETAIL, currentSunStatus: 'CloudObscured', skyCondition: 'overcast' };
+    return {
+      ...FORCED_VISUAL_VENUE_DETAIL,
+      currentSunStatus: 'CloudObscured',
+      weatherGateState: 'gated',
+      skyCondition: 'overcast',
+    };
   }
 
   if (forcedState !== 'venue-detail' && forcedState !== 'feedback' && forcedState !== 'review') {
@@ -34,6 +39,7 @@ const FORCED_VISUAL_VENUE_DETAIL: VenueDetailDto = {
   neighborhood: 'Linné',
   location: { lat: 57.6986, lng: 11.9467 },
   currentSunStatus: 'Sunny',
+  weatherGateState: 'not_gated',
   skyCondition: 'clear',
   isPartner: false,
   confidence: 95,

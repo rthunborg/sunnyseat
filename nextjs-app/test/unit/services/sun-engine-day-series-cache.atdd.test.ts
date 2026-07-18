@@ -94,6 +94,7 @@ function makeStoredVenue(overrides: Partial<StoredVenue> = {}): StoredVenue {
     neighborhood: 'Inom Vallgraven',
     location: { lat: 57.7053, lng: 11.9639 },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     skyCondition: 'clear',
     isPartner: true,
     confidence: 92,

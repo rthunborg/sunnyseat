@@ -23,6 +23,7 @@ function makeVenue(overrides: Partial<StoredVenue> = {}): StoredVenue {
     neighborhood: 'Centrum',
     location: { lat: 57.705, lng: 11.97 },
     currentSunStatus: 'Shaded',
+    weatherGateState: 'not_gated',
     isPartner: false,
     confidence: 88,
     distanceMeters: 0,
@@ -134,13 +135,14 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
     });
     expect(outcome.venue).toMatchObject({
       currentSunStatus: 'CloudObscured',
+      weatherGateState: 'gated',
       sunExposurePercent: 91,
       skyCondition: 'overcast',
       confidence: 88,
       predictionEvidence: { geometryInputHash: GEOMETRY_HASH },
     });
     expect(outcome.daySeries).toEqual(outcome.venue.sunDaySeries);
-    expect(outcome.peakTime).toBe('12:00');
+    expect(outcome.peakTime).toBeUndefined();
   });
 
   test('falls back to geometry-only confidence when the weather snapshot is expired', async () => {
@@ -175,6 +177,7 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
     expect(outcome.freshness).toEqual({ sunDataSource: 'geometry-only' });
     expect(outcome.venue).toMatchObject({
       currentSunStatus: 'Sunny',
+      weatherGateState: 'unknown',
       skyCondition: 'unavailable',
       confidence: 40,
       sunExposurePercent: 85,

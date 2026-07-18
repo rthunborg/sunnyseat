@@ -299,6 +299,7 @@ describe('venue-store (Supabase opt-in)', () => {
     expect(venue).toMatchObject({
       id: '10',
       currentSunStatus: 'Shaded',
+      weatherGateState: 'not_gated',
       confidence: 50,
       sunExposurePercent: 10,
       isPartner: false,
@@ -564,6 +565,7 @@ describe('venue-store projection helpers', () => {
     neighborhood: 'Inom Vallgraven',
     location: { lat: 57.705, lng: 11.97 },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     skyCondition: 'clear',
     isPartner: true,
     confidence: 92,

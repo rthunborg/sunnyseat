@@ -7,8 +7,7 @@
   "zoomOut": "Zooma ut",
   "myLocation": "Min plats",
   "settings": "Inställningar",
-  "pinSunnyAria": "{name} — solig plats — {percent} procent sol",
-  "pinPartialAria": "{name} — delvis solig plats — {percent} procent sol",
-  "pinShadedAria": "{name} — skuggad plats — {percent} procent sol",
-  "pinObscuredAria": "{name} — sol bakom moln just nu — {percent} procent solläge"
+  "pinSunnyAria": "{name} — soligt vid vald tid — {percent} procent sol",
+  "pinSunnyWeatherUnknownAria": "{name} — soligt vid vald tid — {percent} procent sol. Väder saknas vid vald tid.",
+  "pinNotSunnyAria": "{name} — inte soligt vid vald tid"
 }

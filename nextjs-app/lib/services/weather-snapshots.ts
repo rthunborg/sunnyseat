@@ -5,7 +5,7 @@ import {
   stockholmDateKey,
 } from '@/lib/utils/time-planner';
 import { fromZonedTime } from 'date-fns-tz';
-import type { VenueDaySeriesEntry } from '@/lib/types/api';
+import type { VenueDaySeriesEntry, VenueSunStatus, WeatherGateState } from '@/lib/types/api';
 import { applyCloudGate, classifySunStatus, CLOUD_GATE_THRESHOLD_PERCENT } from '@/lib/services/sun-engine';
 import { venueEngineCoordinate } from '@/lib/services/sun-geometry-coordinates';
 import { calculateSolarPosition } from '@/lib/solar/solar-calculation-service';
@@ -131,9 +131,18 @@ export function gateGeometrySeriesWithWeatherSnapshots(input: {
       minutes: entry.minutes,
       sunExposurePercent: entry.sunExposurePercent,
       currentSunStatus,
+      weatherGateState: weatherGateStateFromSnapshot(weather, currentSunStatus),
       skyCondition,
     };
   });
+}
+
+function weatherGateStateFromSnapshot(
+  weather: WeatherSnapshotSlice,
+  currentSunStatus: VenueSunStatus,
+): WeatherGateState {
+  if (weather.weatherUnknown) return 'unknown';
+  return currentSunStatus === 'CloudObscured' ? 'gated' : 'not_gated';
 }
 
 function isSunVisibleAtStep(
