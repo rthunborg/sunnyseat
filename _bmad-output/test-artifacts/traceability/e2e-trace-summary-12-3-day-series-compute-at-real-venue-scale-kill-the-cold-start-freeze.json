@@ -1,0 +1,123 @@
+{
+  "schema_version": "0.1.0",
+  "snapshot_at": "2026-07-18T00:00:00+02:00",
+  "repo": "sunnyseat",
+  "collection_mode": "advisory_story_scope",
+  "collection_status": "COLLECTED",
+  "inventory_basis": "acceptance_criteria",
+  "gate_basis": "none",
+  "target": {
+    "type": "story",
+    "id": "12.3",
+    "label": "Day-Series Compute at Real-Venue Scale - Kill the Cold-Start Freeze"
+  },
+  "decision_mode": "advisory",
+  "evaluator": "Rasmus",
+  "confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/implementation-artifacts/12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md",
+      "_bmad-output/test-artifacts/atdd-checklist-12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md",
+      "project-context.md"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "advisory_status": "CONCERNS",
+  "coverage": {
+    "inventory": {
+      "fully_covered": 6,
+      "partially_covered": 2,
+      "uncovered": 0,
+      "total": 8,
+      "full_pct": 75,
+      "covered_or_partial_pct": 100
+    },
+    "priority_breakdown": {
+      "P0": {
+        "total": 2,
+        "fully_covered": 1,
+        "partially_covered": 1,
+        "uncovered": 0,
+        "full_pct": 50,
+        "covered_or_partial_pct": 100
+      },
+      "P1": {
+        "total": 5,
+        "fully_covered": 4,
+        "partially_covered": 1,
+        "uncovered": 0,
+        "full_pct": 80,
+        "covered_or_partial_pct": 100
+      },
+      "P2": {
+        "total": 1,
+        "fully_covered": 1,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "full_pct": 100,
+        "covered_or_partial_pct": 100
+      },
+      "P3": {
+        "total": 0,
+        "fully_covered": 0,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "full_pct": 100,
+        "covered_or_partial_pct": 100
+      }
+    }
+  },
+  "tests": {
+    "primary_story_files": 10,
+    "primary_source_cases": 51,
+    "recorded_focused_playwright_runtime_cases": 4,
+    "skipped_cases_in_primary_story_suites": 0,
+    "fixme_cases_in_primary_story_suites": 0,
+    "pending_cases_in_primary_story_suites": 0
+  },
+  "risk_summary": {
+    "critical_open": 0,
+    "high_open": 2,
+    "medium_open": 0,
+    "low_open": 0
+  },
+  "heuristics": {
+    "endpoint_gaps": 0,
+    "auth_negative_path_status": "partial",
+    "error_path_status": "present",
+    "ui_journey_status": "not_applicable",
+    "ui_state_status": "not_applicable"
+  },
+  "uncovered_requirements": [],
+  "material_gaps": [
+    {
+      "id": "AC2-PROD-P95",
+      "requirements": [
+        "AC2",
+        "AC6"
+      ],
+      "severity": "high",
+      "reason": "Protected production 42+ venue cold-p95 evidence was deferred due missing local token/protected-environment access."
+    },
+    {
+      "id": "AC2-PROTECTED-ENV",
+      "requirements": [
+        "AC2"
+      ],
+      "severity": "medium",
+      "reason": "Protected GitHub Production secrets/variables and live protected Supabase advisor evidence were not collected locally."
+    }
+  ],
+  "blockers": [],
+  "recommendations": [
+    "Collect the protected production evidence lane before final release approval: 42+ venue cold p95, route/date/hash/run metadata, edge/warm/cold classification, logs proving persisted geometry reads, and zero provider/shadow recompute on request path.",
+    "Keep Story 12.3 request-count and route/source contract tests in the standing regression set."
+  ],
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-report-12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md",
+    "trace_summary_path": "_bmad-output/test-artifacts/traceability/e2e-trace-summary-12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.json"
+  }
+}

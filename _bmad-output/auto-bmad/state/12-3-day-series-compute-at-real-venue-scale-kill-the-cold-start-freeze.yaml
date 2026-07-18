@@ -4,11 +4,11 @@ story_key: 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freez
 epic_num: 12
 story_num: 3
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
-status: in-progress
-updated_at: "2026-07-18T18:34:11Z"
+status: done
+updated_at: "2026-07-18T18:40:52Z"
 started_at: "2026-07-18T16:50:01Z"
-completed_at: null
-active_seconds: 5967
+completed_at: "2026-07-18T18:40:52Z"
+active_seconds: 6340
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,19 @@ tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "Introduces persisted cross-instance cache data, scheduled precompute/invalidation, and read-time gating for /api/venues, creating data-integrity, public API, and scheduling/cache risk."
 epic_story_count: 14
 stories_after_in_epic: 12
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 1
 code_review_loop_done: true
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
-story_trace: null
-commits: [4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0]
+story_trace:
+  verdict: CONCERNS
+  ran: true
+  coverage: "{\"traced\": 8, \"full\": 6, \"partial\": 2, \"uncovered\": 0}"
+  uncovered: []
+  material_gaps: ["AC2/AC6: protected-production 42+ venue cold-p95 evidence remains deferred", "AC2: protected GitHub Production configuration and live protected Supabase advisor evidence were not available locally", "Full Playwright predates review fixes; focused Story 12.3 Playwright passed after fixes"]
+commits: [4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93]
 phase8_steps:
   trace_gate: null
   nfr: null

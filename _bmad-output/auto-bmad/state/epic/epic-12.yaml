@@ -5,10 +5,10 @@ epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-18T18:34:11Z"
+updated_at: "2026-07-18T18:40:52Z"
 started_at: "2026-07-18T11:27:25Z"
 completed_at: null
-active_seconds: 8316
+active_seconds: 8689
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: true
 story_trace: null
-commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0]
+commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -54,10 +54,23 @@ overrides: {}
 constraints:
   - "Execute Epic 12 in the user-confirmed dependency order: 12-1, 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, 12-10, 12-5, 12-8, 12-11, 12-2, 12-14."
 epic_slug: real-venue-launch-readiness-perf-trust-hours-console-hygiene
-active_story: 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
-stories_landed: []
+active_story: 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
+stories_landed:
+  - 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
 auto_decisions: []
-uat_items: []
+uat_items:
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify a cold protected-production /api/venues central-viewport request for the 42+ venue dataset returns p95 <= ~5s with logs proving persisted geometry reads and zero request-path shadow/provider recompute."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify missing current geometry_input_hash coverage returns machine-readable 503 SUN_GEOMETRY_COVERAGE_MISSING instead of omitting sunDaySeries or recomputing shadows."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify same-date time scrub makes zero /api/venues requests after initial load."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify changing planner date makes exactly one /api/venues request and does not trigger browser-path provider bursts."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify a weather-bucket change re-gates the same persisted geometry series without changing sunExposurePercent."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify day+3 weather uses retained in-horizon forecast data or explicitly degrades to unknown, never a stale nearest ~48h slice."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify the scheduled action precomputes every live venue for today through today + PLANNER_MAX_FUTURE_DAYS + 1 and records complete run coverage."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify the midnight-roll buffer keeps the newly selectable Stockholm date persisted immediately after local midnight."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify persisted geometry/weather tables and RPCs are service-role-only with no anon or authenticated grants."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify the external quarter-hour warmer path is absent and normal latency does not depend on it."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify protected GitHub Production secrets/variables exist for geometry precompute and weather refresh without committed secrets."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify typecheck, lint, full Vitest, focused request-count Playwright, and scheduled-runner bundles remain green."
 preexisting_done_stories:
   - 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
 adopt_verdicts:
@@ -78,5 +91,5 @@ story_execution_order:
   - 12-11-first-run-coach-mark-guide-map-legend-feature-tour
   - 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
   - 12-14-hide-closed-venues-open-at-selected-time-filter
-story_order_cursor: 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
+story_order_cursor: 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
 order_override_reason: User-confirmed dependency order keeps prerequisite contracts ahead of their consumers while preserving Story 12-14 as the epic-end story.

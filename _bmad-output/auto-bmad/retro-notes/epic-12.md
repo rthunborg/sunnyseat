@@ -19,3 +19,4 @@
 - [Phase 5 â€” dev-story] Keep geometry_input_hash date-independent; stockholm_date is the separate persisted-coverage key.
 - [Phase 5 â€” dev-story] Local Playwright can reuse an unrelated localhost:3000 process; run with CI=1 for the repo-owned server during validation.
 - [Phase 6 â€” test automation] Automation ran sequentially because nested worker fan-out is unavailable inside the delegate runtime; coverage results were unaffected.
+- [Phase 7 â€” story trace] Protected-production evidence remains a release lane: collect 42+ venue cold-p95 with date/hash/run metadata, persisted-read proof, zero provider/shadow recompute proof, protected GitHub Production configuration, and live protected Supabase advisor evidence.
