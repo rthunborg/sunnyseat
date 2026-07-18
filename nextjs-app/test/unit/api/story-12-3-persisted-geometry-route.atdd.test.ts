@@ -11,7 +11,7 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
 function appSource(path: string): string {
@@ -31,10 +31,16 @@ type RouteTestHook = {
   GET: (request: NextRequest) => Promise<Response>;
 };
 
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2026-07-18T10:00:00.000Z'));
+});
+
 afterEach(async () => {
   const route = (await import('@/app/api/venues/route')) as RouteTestHook;
   route.__setSunGeometryRepositoryForTests?.(undefined);
   route.__setWeatherSnapshotRepositoryForTests?.(undefined);
+  vi.useRealTimers();
 });
 
 describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-path projection', () => {
@@ -139,7 +145,9 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
 
     route.__setWeatherSnapshotRepositoryForTests?.({
       readSnapshotForVenueDay: async (_venue: unknown, bucket: string) => ({
+        status: 'ready',
         bucket,
+        weatherUpdatedAt: '2026-07-18T10:00:00.000Z',
         slices: [{ minutes: 720, cloudCover: bucket === 'overcast' ? 95 : 10, isRaining: false }],
       }),
     });

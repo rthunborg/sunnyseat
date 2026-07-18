@@ -20,7 +20,7 @@ import {
   skyConditionCopy,
 } from '@/lib/utils/sun-status-presentation';
 import type { SunFreshnessMeta, VenueSunStatus, WeatherGateState } from '@/lib/types/api';
-import { isVenuePubliclySunny } from '@/lib/utils/public-sun';
+import { isVenuePubliclySunny, normalizeWeatherGateState } from '@/lib/utils/public-sun';
 import { cn } from '@/lib/utils';
 
 export type VenueQuickInfoMode = 'mobile' | 'desktop';
@@ -89,6 +89,8 @@ export type VenueQuickInfoProps = {
     /** Story 10.2 (AC1): the muted "Sol bakom moln" headline shown when the
      * venue is CloudObscured. */
     obscuredHeadline?: string;
+    weatherUnavailable?: string;
+    notSunnyVerdict?: string;
     /** Story 10.2 (AC3): plain-language sky descriptors. When absent, no sky
      * line renders. Story 10.4 (AC2): adds the rain descriptor. */
     sky?: {
@@ -144,10 +146,16 @@ export function VenueQuickInfo({
       : null;
   // Story 10.2: the muted "Sol bakom moln" state + the plain-language sky line.
   const isObscured = isObscuredSunStatus(currentSunStatus);
+  const normalizedWeatherGateState = normalizeWeatherGateState(weatherGateState);
   const isPublicSunny = isVenuePubliclySunny({
     sunExposurePercent: sunExposurePercent ?? 0,
-    weatherGateState: weatherGateState ?? 'unknown',
+    weatherGateState: normalizedWeatherGateState,
   });
+  const publicVerdictQualification = isPublicSunny
+    ? normalizedWeatherGateState === 'unknown'
+      ? labels.weatherUnavailable
+      : undefined
+    : labels.notSunnyVerdict;
   const skyLine = labels.sky
     ? skyConditionCopy(skyCondition, labels.sky)
     : null;
@@ -278,6 +286,19 @@ export function VenueQuickInfo({
                         : 'space-y-1'
                     }
                   >
+                    {publicVerdictQualification && (
+                      <p
+                        data-testid="quick-info-public-verdict"
+                        className={cn(
+                          'text-text-body',
+                          isAnchoredMobile
+                            ? 'basis-full text-label-xs-medium'
+                            : 'text-body-sm',
+                        )}
+                      >
+                        {publicVerdictQualification}
+                      </p>
+                    )}
                     {/* Story 11.4 (AC1): the single honest opening-hours line, in
                         the slot vacated by the removed "Säkerhet: NN%" chip and the
                         "Sol HH:mm–HH:mm" window line. Rendered ONLY when the store

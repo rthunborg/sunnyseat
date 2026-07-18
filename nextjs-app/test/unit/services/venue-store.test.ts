@@ -299,7 +299,7 @@ describe('venue-store (Supabase opt-in)', () => {
     expect(venue).toMatchObject({
       id: '10',
       currentSunStatus: 'Shaded',
-      weatherGateState: 'not_gated',
+      weatherGateState: 'unknown',
       confidence: 50,
       sunExposurePercent: 10,
       isPartner: false,

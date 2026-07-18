@@ -37,6 +37,7 @@ import type {
   PredictionUncertaintyDto,
   PredictionUncertaintyLevel,
   PredictionUncertaintyReason,
+  PublicSunWeatherGateState,
   SunFreshnessMeta,
   VenueDataDto,
   WeatherGateState,
@@ -129,6 +130,8 @@ export type SunEngineOutcome = {
   freshness: SunFreshnessMeta;
   /** Engine-derived peak-exposure time (HH:mm Stockholm) for the detail timeline. */
   peakTime?: string;
+  /** Weather certainty attached to a public-sunny peak. */
+  peakWeatherGateState?: PublicSunWeatherGateState;
   /**
    * STORY 11.1 (AC1): the per-planner-step gated day-series. Carried SEPARATELY
    * from `venue` (not merged onto the DTO) so ONLY the LIST route attaches it to
@@ -146,7 +149,7 @@ type SunEngineFields = Pick<
   'currentSunStatus' | 'confidence' | 'sunExposurePercent' | 'weatherGateState'
 > & {
   skyCondition?: string;
-  sunWindow?: { start: string; end: string };
+  sunWindow?: VenueDataDto['sunWindow'];
   predictionUncertainty?: PredictionUncertaintyDto;
 };
 
@@ -569,7 +572,13 @@ async function computeVenueDaySeriesResult(
       minutes,
       sunExposurePercent,
       currentSunStatus,
-      weatherGateState: weatherGateStateFor(weather, currentSunStatus),
+      weatherGateState: weatherGateStateFor(
+        weather,
+        shadowInfo.solarPosition.isSunVisible,
+        sunExposurePercent,
+        isRaining,
+        effectiveCover,
+      ),
       skyCondition,
     });
   }
@@ -734,7 +743,13 @@ async function computeRealSunEngineResult(
     effectiveCover,
     isRaining,
   );
-  const weatherGateState = weatherGateStateFor(weather, currentSunStatus);
+  const weatherGateState = weatherGateStateFor(
+    weather,
+    shadowInfo.solarPosition.isSunVisible,
+    sunExposurePercent,
+    isRaining,
+    effectiveCover,
+  );
 
   const confidenceFactors = calculateConfidenceFactors(
     1.0,
@@ -974,7 +989,7 @@ export function applyCloudGate(
  * Absent cloud data must never fabricate a clear sky.
  */
 export function skyConditionFromCloudCover(cloudCover: number | undefined): string {
-  if (cloudCover === undefined) return 'unavailable';
+  if (typeof cloudCover !== 'number' || !Number.isFinite(cloudCover)) return 'unavailable';
   if (cloudCover < 20) return 'clear';
   if (cloudCover <= 60) return 'partly-cloudy';
   return 'overcast';
@@ -982,10 +997,23 @@ export function skyConditionFromCloudCover(cloudCover: number | undefined): stri
 
 function weatherGateStateFor(
   weather: WeatherSlice | null,
-  currentSunStatus: VenueSunStatus,
+  isSunVisible: boolean,
+  sunExposurePercent: number,
+  isRaining: boolean,
+  effectiveCover: number | undefined,
 ): WeatherGateState {
-  if (!weather) return 'unknown';
-  return currentSunStatus === 'CloudObscured' ? 'gated' : 'not_gated';
+  if (!weather || (!Number.isFinite(effectiveCover) && !isRaining)) {
+    return 'unknown';
+  }
+  const cloudGates =
+    typeof effectiveCover === 'number' &&
+    Number.isFinite(effectiveCover) &&
+    effectiveCover >= CLOUD_GATE_THRESHOLD_PERCENT;
+  return isSunVisible &&
+    sunExposurePercent >= SUNLIT_THRESHOLD_PERCENT &&
+    (cloudGates || isRaining)
+    ? 'gated'
+    : 'not_gated';
 }
 
 /**

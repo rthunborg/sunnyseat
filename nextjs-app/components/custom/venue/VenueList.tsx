@@ -119,6 +119,7 @@ export function VenueList({
             sunExposurePercent={venue.sunExposurePercent}
             thumbnail={venue.thumbnail}
             isSunny={isVenueSunnyForList(venue)}
+            weatherGateState={venue.weatherGateState}
             isObscured={isObscured}
             visualMetadata={getVenueVisualMetadata(venue, locale)}
             compact={compact}
@@ -138,6 +139,7 @@ export function VenueList({
               distance: t('distance'),
               distanceApproximate: t('distanceApproximate'),
               sunUnavailable: t('sunUnavailable'),
+              weatherUnavailable: t('weatherUnavailable'),
               statusMostlyShade: t('statusMostlyShade'),
               statusFullSun: t('statusFullSun'),
               statusPartialSun: t('statusPartialSun'),

@@ -16,7 +16,8 @@ import {
   getConfidenceDisplayState,
   type ConfidenceDisplayLabels,
 } from '@/lib/utils/confidence-display';
-import type { SunFreshnessMeta } from '@/lib/types/api';
+import type { SunFreshnessMeta, WeatherGateState } from '@/lib/types/api';
+import { normalizeWeatherGateState } from '@/lib/utils/public-sun';
 import { cn } from '@/lib/utils';
 
 export type VenueCardLabels = {
@@ -34,6 +35,7 @@ export type VenueCardLabels = {
    * distance when the origin is the Gothenburg-centrum fallback. */
   distanceApproximate?: string;
   sunUnavailable: string;
+  weatherUnavailable?: string;
   statusMostlyShade?: string;
   statusFullSun?: string;
   statusPartialSun?: string;
@@ -64,6 +66,7 @@ export type VenueCardProps = {
     url?: string;
   };
   isSunny: boolean;
+  weatherGateState?: WeatherGateState;
   /** Story 10.2 (AC1): the weather-gated "Sol bakom moln" state. Rendered as
    * a muted slate treatment DISTINCT from both the amber sunny path (`isSunny`)
    * and the grey shaded path. `isSunny` is NOT overloaded — an obscured venue
@@ -94,6 +97,7 @@ export function VenueCard({
   sunExposurePercent,
   thumbnail,
   isSunny,
+  weatherGateState,
   isObscured = false,
   visualMetadata,
   labels,
@@ -115,7 +119,13 @@ export function VenueCard({
   // Story 9.1 de-bloat: the button's accessible name (labels.select) already
   // carries name + sun% + Säkerhet (once) + Avstånd, so we no longer append the
   // prediction-uncertainty paragraph to it.
-  const selectLabel = labels.select;
+  const weatherUnavailableLabel =
+    isSunny && normalizeWeatherGateState(weatherGateState) === 'unknown'
+      ? labels.weatherUnavailable
+      : undefined;
+  const selectLabel = weatherUnavailableLabel
+    ? `${labels.select}. ${weatherUnavailableLabel}`
+    : labels.select;
   // Story 10.2 (AC1): the obscured state OVERRIDES both the amber "FULL SOL"/
   // "DELVIS SOL" path AND the grey "MEST SKUGGA" path with the muted "Sol
   // bakom moln" headline. An obscured venue never shows amber sun copy.
@@ -279,6 +289,11 @@ export function VenueCard({
               {sunTimeRange ?? labels.sunUnavailable}
             </span>
           </>
+        )}
+        {weatherUnavailableLabel && (
+          <span className="mt-1 block text-label-xs text-text-body">
+            {weatherUnavailableLabel}
+          </span>
         )}
       </span>
       </button>

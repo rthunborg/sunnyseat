@@ -33,3 +33,6 @@
 - The legacy visual validator remains credential-gated on this host: a missing ANTHROPIC_API_KEY blocks comparison but does not authorize reference replacement, manual-pass claims, or a sprint-status transition.
 - The independent TEA automate pass caught seven contract defects that the initial green suite missed: reverse-order peak ties, all-grey top-50 truncation, fail-closed weather normalization, and missing unknown/not-sunny card/QuickInfo honesty copy.
 - Keeping the automation additions test-only and committing them red preserves an auditable red-to-green handoff before production fixes.
+- Fail-closed weather provenance must be carried directly as tri-state data; deriving it later from CloudObscured or sky strings creates silent known-clear promotions.
+- Public window/peak DTOs need their own gate-state provenance so unknown-weather qualification survives persistence and serialization.
+- Final Story 12.6 functional evidence after the automate fix pass: 1,758 Vitest tests passed; the five-project Playwright matrix passed with two retry-classified flakes; typecheck and lint passed.

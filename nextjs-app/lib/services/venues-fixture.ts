@@ -11,9 +11,9 @@ import type {
   PredictionUncertaintyLevel,
   PredictionUncertaintyReason,
   VenueDataDto,
-  VenueSunStatus,
-  WeatherGateState,
+  VenueDaySeriesEntry,
 } from '@/lib/types/api';
+import { normalizeWeatherGateState } from '@/lib/utils/public-sun';
 
 const TIME_WINDOW_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MAX_THUMBNAIL_ALT_LENGTH = 120;
@@ -238,27 +238,39 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
 export function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
   const {
     predictionUncertainty: rawPredictionUncertainty,
+    sunDaySeries: rawSunDaySeries,
     ...venueWithoutUncertainty
-  } = venue as VenueDataDto & { predictionUncertainty?: unknown };
+  } = venue as VenueDataDto & {
+    predictionUncertainty?: unknown;
+    sunDaySeries?: unknown;
+  };
+  const rawWindowGate = (venue.sunWindow as { weatherGateState?: unknown } | undefined)
+    ?.weatherGateState;
   const sunWindow =
     venue.sunWindow &&
     TIME_WINDOW_PATTERN.test(venue.sunWindow.start) &&
     TIME_WINDOW_PATTERN.test(venue.sunWindow.end)
-      ? venue.sunWindow
+      ? {
+          start: venue.sunWindow.start,
+          end: venue.sunWindow.end,
+          ...(rawWindowGate !== undefined
+            ? { weatherGateState: normalizePublicPotentialGateState(rawWindowGate) }
+            : {}),
+        }
       : undefined;
   const alt = normalizeShortText(venue.thumbnail?.alt, MAX_THUMBNAIL_ALT_LENGTH);
   const initials = normalizeInitials(venue.thumbnail?.initials);
   const url = normalizeThumbnailUrl(venue.thumbnail?.url);
   const predictionUncertainty = normalizePredictionUncertainty(rawPredictionUncertainty);
+  const sunDaySeries = normalizeSunDaySeries(rawSunDaySeries);
 
   return {
     ...venueWithoutUncertainty,
     weatherGateState: normalizeWeatherGateState(
       (venue as VenueDataDto & { weatherGateState?: unknown }).weatherGateState,
-      venue.skyCondition,
-      venue.currentSunStatus,
     ),
     sunWindow,
+    ...(sunDaySeries ? { sunDaySeries } : {}),
     thumbnail:
       alt || initials || url
         ? {
@@ -271,16 +283,20 @@ export function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
   };
 }
 
-function normalizeWeatherGateState(
-  value: unknown,
-  skyCondition: string | undefined,
-  currentSunStatus: VenueSunStatus,
-): WeatherGateState {
-  if (value === 'gated' || value === 'not_gated' || value === 'unknown') {
-    return value;
-  }
-  if (skyCondition === 'unavailable') return 'unknown';
-  return currentSunStatus === 'CloudObscured' ? 'gated' : 'not_gated';
+function normalizePublicPotentialGateState(value: unknown): 'not_gated' | 'unknown' {
+  return normalizeWeatherGateState(value) === 'not_gated' ? 'not_gated' : 'unknown';
+}
+
+function normalizeSunDaySeries(value: unknown): VenueDaySeriesEntry[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value
+    .filter((entry): entry is VenueDaySeriesEntry => Boolean(entry) && typeof entry === 'object')
+    .map((entry) => ({
+      ...entry,
+      weatherGateState: normalizeWeatherGateState(
+        (entry as VenueDaySeriesEntry & { weatherGateState?: unknown }).weatherGateState,
+      ),
+    }));
 }
 
 function normalizePredictionUncertainty(value: unknown): PredictionUncertaintyDto | undefined {

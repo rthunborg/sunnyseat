@@ -379,6 +379,13 @@ Codex GPT-5
 - 2026-07-19: TEA `testarch-automate` added 8 deterministic P0 contract regressions across 2 new test files and 1 augmented route test; no production, CI, visual/reference, sprint-status, Auto-BMAD-state, or git changes were made.
 - 2026-07-19: Focused RED verification executed 3 files / 10 tests: 7 failed and 3 passed. The failures expose equal-peak ordering, fail-closed weather/DTO normalization, all-grey peak truncation, and localized card/QuickInfo honesty defects; none were skipped, weakened, or marked `fixme`.
 - 2026-07-19: TEA verification passed TypeScript, focused lint, 6 existing Story 12.6 Vitest files / 35 tests, and 5 focused Playwright cases across mobile, desktop, and genuinely executed `a11y-mobile`. The local Playwright server exited cleanly.
+- 2026-07-19: Production defect pass reproduced the complete TEA baseline across 3 files / 10 tests: 7 failed and 3 passed before edits. After the fix, the focused defect/adjacent-seam run passed 4 files / 20 tests.
+- 2026-07-19: Post-fix `npx tsc --noEmit` and `npx eslint . --quiet` passed. The complete Story 12.6 focused Vitest set passed 10 files / 47 tests.
+- 2026-07-19: Final weather-gate provenance audit passed 5 focused files / 53 tests after removing the remaining status-string-derived gate helpers. Final TypeScript, lint, and `git diff --check` passed; the diff check reported only existing CRLF-to-LF notices, with no whitespace errors.
+- 2026-07-19: Focused Story 12.6 Playwright passed all 5 cases; 4 passed first try and 1 mobile case passed on retry after the existing Next dev-server JSON/onboarding hydration startup race.
+- 2026-07-19: Full `npx vitest run` passed: 189 files passed, 2 skipped; 1758 tests passed, 15 skipped. The Story 12.3 persisted-route clock was pinned to its fixture date and its valid rollover snapshot now declares `status: 'ready'`.
+- 2026-07-19: Full `$env:CI='1'; npx playwright test --project=mobile --project=desktop --project=touch --project=a11y --project=a11y-mobile` exited 0: 110 passed, 2 passed on retry, 53 skipped. Both retries were the existing Next dev-server JSON/onboarding hydration startup race; no Story 12.6 assertion remained failing.
+- 2026-07-19: Visual validation was not rerun in this defect pass per orchestration scope; the previously recorded missing `ANTHROPIC_API_KEY` blocker remains and Task 7 stays open.
 
 ### ATDD Artifacts
 
@@ -392,7 +399,7 @@ Codex GPT-5
 - Automation record: `_bmad-output/test-artifacts/automation-summary.md`
 - New contract regressions: `nextjs-app/test/unit/story-12-6-contract-defects.automation.test.ts`, `nextjs-app/test/components/story-12-6-honesty.automation.test.tsx`
 - Augmented route regression: `nextjs-app/test/unit/api/venues-route-peak-truncation.test.ts`
-- Current gate: 7 intentional RED production-contract failures remain. Story 12.6 stays `in-progress`; Task 7 and the canonical visual gate remain open because `ANTHROPIC_API_KEY` is unavailable.
+- Current gate: all 7 TEA production-contract failures are green. Story 12.6 stays `in-progress`; Task 7 and the canonical visual gate remain open because `ANTHROPIC_API_KEY` is unavailable.
 
 ### Completion Notes List
 
@@ -405,6 +412,9 @@ Codex GPT-5
 - Updated `DESIGN.md` and `project-context.md` for the Story 12.6 two-pin contract. Reference PNGs, capture recipes, and `REBASELINE-LOG.md` were intentionally not edited.
 - Blocked from story-review transition by missing `ANTHROPIC_API_KEY` for the legacy visual validation provider; no sprint status transition was attempted.
 - TEA automate added the minimum durable regression coverage for seven confirmed contract defects and intentionally left the defect suite RED for the production fix pass; this evidence does not mark the story review-ready.
+- Fixed the seven TEA defects: equal peaks now choose the earlier minute, day-stable truncation retains the strongest grey-band series step, malformed/absent weather and gate fields fail to `unknown`, and card/QuickInfo verdicts carry localized weather-unavailable or not-sunny copy.
+- Expired/missing snapshots ignore retained slices for gating, and persisted public windows/peaks now preserve `weatherGateState='unknown'` through list/detail serialization. Added focused coverage for both snapshot states and the exact-50 top-50 cutoff.
+- Weather gate qualifiers are now computed directly from valid weather inputs plus geometric exposure/visibility; public and engine paths no longer reconstruct them from `CloudObscured` or sky-condition strings.
 
 ### File List
 
@@ -413,6 +423,7 @@ Codex GPT-5
 - `.github/workflows/build-and-test-nextjs.yml`
 - `project-context.md`
 - `nextjs-app/app/api/venues/route.ts`
+- `nextjs-app/app/api/venues/[slug]/route.ts`
 - `nextjs-app/components/composed/venue/VenueCard.tsx`
 - `nextjs-app/components/composed/venue/VenueQuickInfo.tsx`
 - `nextjs-app/components/custom/map/MapView.tsx`
@@ -429,6 +440,7 @@ Codex GPT-5
 - `nextjs-app/lib/services/venues-fixture.ts`
 - `nextjs-app/lib/services/weather-freshness-fixture.ts`
 - `nextjs-app/lib/services/weather-snapshots.ts`
+- `nextjs-app/lib/solar/effective-cloud-cover.ts`
 - `nextjs-app/lib/types/api.ts`
 - `nextjs-app/lib/types/map.ts`
 - `nextjs-app/lib/utils/public-sun.ts`
@@ -436,6 +448,8 @@ Codex GPT-5
 - `nextjs-app/lib/utils/venue-pin-mapping.ts`
 - `nextjs-app/messages/en/map.json`
 - `nextjs-app/messages/sv/map.json`
+- `nextjs-app/messages/en/venue.json`
+- `nextjs-app/messages/sv/venue.json`
 - `nextjs-app/test/components/VenueCard.test.tsx`
 - `nextjs-app/test/components/VenueList.rank.test.ts`
 - `nextjs-app/test/components/VenuePin.public-sun.atdd.test.tsx`
@@ -449,14 +463,17 @@ Codex GPT-5
 - `nextjs-app/test/e2e/story-12-6/axe-mobile.spec.ts`
 - `nextjs-app/test/e2e/map-primary.spec.ts`
 - `nextjs-app/test/unit/api/story-12-6-public-sun-ordering.atdd.test.ts`
+- `nextjs-app/test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts`
 - `nextjs-app/test/unit/api/venues-route-peak-truncation.test.ts`
 - `nextjs-app/test/unit/epic-11-standing-gate-ci-wiring.automate.test.ts`
 - `nextjs-app/test/unit/services/story-12-6-weather-gate-state.atdd.test.ts`
+- `nextjs-app/test/unit/services/sun-geometry-persisted-outcome.automate.test.ts`
 - `nextjs-app/test/unit/services/sun-engine-caching.atdd.test.ts`
 - `nextjs-app/test/unit/services/sun-engine.test.ts`
 - `nextjs-app/test/unit/story-12-6-contract-defects.automation.test.ts`
 - `nextjs-app/test/unit/utils/public-sun.atdd.test.ts`
 - `nextjs-app/test/unit/utils/venue-day-series.test.ts`
 - `nextjs-app/test/unit/utils/venue-pin-mapping.test.ts`
+- `nextjs-app/test/unit/services/venue-store.test.ts`
 - `nextjs-app/test/unit/venue-detail/route-cache.test.ts`
 - `nextjs-app/test/unit/story-12-6-i18n-a11y-ci.atdd.test.ts`

@@ -41,6 +41,8 @@ const quickInfoLabels = {
   favouriteAdd: 'Spara som favorit',
   favouriteRemove: 'Ta bort favorit',
   obscuredHeadline: 'Sol bakom moln',
+  weatherUnavailable: 'Väder saknas vid vald tid',
+  notSunnyVerdict: 'Inte soligt vid vald tid',
   sky: {
     clear: 'Klart',
     partlyCloudy: 'Delvis molnigt',

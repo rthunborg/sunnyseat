@@ -19,7 +19,6 @@ import type {
   PredictionUncertaintyDto,
   VenueDataDto,
   VenueSunStatus,
-  WeatherGateState,
   WeeklyOpeningHours,
 } from '@/lib/types/api';
 import type { SkyCondition } from '@/lib/types/design-tokens';
@@ -517,7 +516,9 @@ function fromVenueRow(row: VenueRow): StoredVenue {
     neighborhood: row.neighborhood ?? '',
     location: { lat, lng },
     currentSunStatus,
-    weatherGateState: weatherGateStateFromStored(skyCondition, currentSunStatus),
+    // Stored seed-era sky/status fields are not an authoritative weather-gate
+    // contract. The real engine replaces this value; until then, fail closed.
+    weatherGateState: 'unknown',
     isPartner: Boolean(row.is_partner),
     confidence: numberOr(row.confidence, 0),
     distanceMeters: 0,
@@ -620,14 +621,6 @@ function coerceSkyCondition(value: string | null | undefined): SkyCondition | un
   return value && SKY_CONDITIONS.includes(value as SkyCondition)
     ? (value as SkyCondition)
     : undefined;
-}
-
-function weatherGateStateFromStored(
-  skyCondition: SkyCondition | undefined,
-  currentSunStatus: VenueSunStatus,
-): WeatherGateState {
-  if (skyCondition === 'unavailable') return 'unknown';
-  return currentSunStatus === 'CloudObscured' ? 'gated' : 'not_gated';
 }
 
 function isFiniteNumber(value: unknown): value is number {

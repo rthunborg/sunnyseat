@@ -19,6 +19,7 @@
  */
 import { snapPlannerMinutes } from '@/lib/utils/time-planner';
 import type { VenueDaySeriesEntry, VenueSunStatus, WeatherGateState } from '@/lib/types/api';
+import { normalizeWeatherGateState } from '@/lib/utils/public-sun';
 
 export type DerivedVenueSun = {
   sunExposurePercent: number;
@@ -52,7 +53,7 @@ export function deriveVenueSunAtMinutes(
   return {
     sunExposurePercent: entry.sunExposurePercent,
     currentSunStatus: entry.currentSunStatus,
-    weatherGateState: entry.weatherGateState,
+    weatherGateState: normalizeWeatherGateState(entry.weatherGateState),
     skyCondition: entry.skyCondition,
   };
 }

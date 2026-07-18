@@ -1,5 +1,6 @@
 import type { VenueDataDto } from '@/lib/types/api';
 import type { VenuePinData } from '@/lib/types/map';
+import { normalizeWeatherGateState } from '@/lib/utils/public-sun';
 
 export function mapVenueDtoToPinData(v: VenueDataDto): VenuePinData | null {
   if (!v.location || !Number.isFinite(v.location.lat) || !Number.isFinite(v.location.lng)) {
@@ -13,7 +14,7 @@ export function mapVenueDtoToPinData(v: VenueDataDto): VenuePinData | null {
     lng: v.location.lng,
     sunStatus: v.currentSunStatus,
     sunExposurePercent: v.sunExposurePercent,
-    weatherGateState: v.weatherGateState,
+    weatherGateState: normalizeWeatherGateState(v.weatherGateState),
     isPartner: v.isPartner,
   };
 }

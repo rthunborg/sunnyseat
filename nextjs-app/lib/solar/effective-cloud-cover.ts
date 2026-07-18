@@ -63,7 +63,15 @@ export function effectiveCloudCover(slice: WeatherSlice | null | undefined): num
   // AC3: only the FULL three-layer split enables the layer weighting. Any missing
   // band ⇒ degrade to the Tier-0 raw total (itself possibly `undefined`).
   if (low === undefined || medium === undefined || high === undefined) {
-    return slice.cloudCover;
+    return typeof slice.cloudCover === 'number' && Number.isFinite(slice.cloudCover)
+      ? slice.cloudCover
+      : undefined;
+  }
+
+  if (![low, medium, high].every(Number.isFinite)) {
+    return typeof slice.cloudCover === 'number' && Number.isFinite(slice.cloudCover)
+      ? slice.cloudCover
+      : undefined;
   }
 
   const weighted =

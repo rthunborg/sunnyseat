@@ -1,5 +1,5 @@
 import type { StoredVenue } from '@/lib/services/venue-store';
-import type { SunFreshnessMeta, VenueDataDto, VenueDaySeriesEntry } from '@/lib/types/api';
+import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
 import {
   PLANNER_END_MINUTES,
   PLANNER_START_MINUTES,
@@ -140,9 +140,10 @@ export async function buildPersistedSunOutcome(
     options.weatherBucket,
     stockholmDate,
   );
+  const weatherSlices = snapshot?.status === 'ready' ? snapshot.slices : [];
   const gatedSeries = gateGeometrySeriesWithWeatherSnapshots({
     geometrySeries: coverage.series,
-    weatherSlices: snapshot?.slices ?? [],
+    weatherSlices,
     venue,
     stockholmDate,
   });
@@ -150,6 +151,7 @@ export async function buildPersistedSunOutcome(
   const publicSunWindow = extractPublicSunWindow(gatedSeries, {
     stepMinutes: PLANNER_STEP_MINUTES,
   });
+  const publicSunPeak = extractPublicSunPeak(gatedSeries);
   const freshness = freshnessFromSnapshot(snapshot);
   const venueDto = normalizeVenueForResponse({
     ...toVenueData(venue),
@@ -162,6 +164,7 @@ export async function buildPersistedSunOutcome(
       ? {
           start: formatPlannerMinute(publicSunWindow.startMinutes),
           end: formatPlannerMinute(publicSunWindow.endMinutes),
+          weatherGateState: publicSunWindow.weatherGateState,
         }
       : undefined,
     sunDaySeries: gatedSeries,
@@ -171,7 +174,15 @@ export async function buildPersistedSunOutcome(
   return {
     venue: venueDto,
     freshness,
-    peakTime: peakTimeFromSeries(gatedSeries),
+    ...(publicSunPeak
+      ? {
+          peakTime: formatPlannerMinute(publicSunPeak.minutes),
+          peakWeatherGateState:
+            publicSunPeak.weatherGateState === 'not_gated'
+              ? 'not_gated' as const
+              : 'unknown' as const,
+        }
+      : {}),
     daySeries: gatedSeries,
   };
 }
@@ -270,11 +281,6 @@ function stockholmMinutes(date: Date): number {
   const hour = Number(parts.find((part) => part.type === 'hour')?.value ?? '0');
   const minute = Number(parts.find((part) => part.type === 'minute')?.value ?? '0');
   return hour * 60 + minute;
-}
-
-function peakTimeFromSeries(series: readonly VenueDaySeriesEntry[]): string | undefined {
-  const peak = extractPublicSunPeak(series);
-  return peak ? formatPlannerMinute(peak.minutes) : undefined;
 }
 
 function formatPlannerMinute(minutesOfDay: number): string {

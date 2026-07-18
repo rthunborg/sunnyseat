@@ -16,16 +16,25 @@ export type PublicSunStep = Pick<
   'minutes' | 'sunExposurePercent' | 'weatherGateState'
 >;
 
+export function normalizeWeatherGateState(value: unknown): WeatherGateState {
+  return value === 'gated' || value === 'not_gated' || value === 'unknown'
+    ? value
+    : 'unknown';
+}
+
 export function isVenuePubliclySunny(
   venue: Pick<PublicSunVenue, 'sunExposurePercent' | 'weatherGateState'>,
 ): boolean {
-  return normalizedPercent(venue.sunExposurePercent) > 50 && venue.weatherGateState !== 'gated';
+  return (
+    normalizedPercent(venue.sunExposurePercent) > 50 &&
+    normalizeWeatherGateState(venue.weatherGateState) !== 'gated'
+  );
 }
 
 export function isWeatherGateUnknown(
   venue: Pick<PublicSunVenue, 'weatherGateState'>,
 ): boolean {
-  return venue.weatherGateState === 'unknown';
+  return normalizeWeatherGateState(venue.weatherGateState) === 'unknown';
 }
 
 export function compareVenuesByPublicSun<T extends PublicSunVenue>(
@@ -69,12 +78,12 @@ export function extractPublicSunWindow(
     if (runStart !== null && entry.minutes === runEnd + stepMinutes) {
       runEnd = entry.minutes;
       runLength += 1;
-      runUnknown = runUnknown || entry.weatherGateState === 'unknown';
+      runUnknown = runUnknown || normalizeWeatherGateState(entry.weatherGateState) === 'unknown';
     } else {
       runStart = entry.minutes;
       runEnd = entry.minutes;
       runLength = 1;
-      runUnknown = entry.weatherGateState === 'unknown';
+      runUnknown = normalizeWeatherGateState(entry.weatherGateState) === 'unknown';
     }
 
     const current: WindowRun = {
@@ -104,7 +113,35 @@ export function extractPublicSunPeak<T extends PublicSunStep>(series: readonly T
   let best: T | null = null;
   for (const entry of series) {
     if (!isVenuePubliclySunny(entry)) continue;
-    if (!best || normalizedPercent(entry.sunExposurePercent) > normalizedPercent(best.sunExposurePercent)) {
+    if (
+      !best ||
+      normalizedPercent(entry.sunExposurePercent) > normalizedPercent(best.sunExposurePercent) ||
+      (normalizedPercent(entry.sunExposurePercent) === normalizedPercent(best.sunExposurePercent) &&
+        entry.minutes < best.minutes)
+    ) {
+      best = entry;
+    }
+  }
+  return best;
+}
+
+/**
+ * Best all-day step for server truncation: public-sunny beats grey, then the
+ * geometric exposure orders each band. This deliberately retains a gated 95%
+ * or an ungated exact-50% grey peak instead of falling back to the selected
+ * instant when a series has no public-sunny entry.
+ */
+export function extractBestPublicSunStep<T extends PublicSunStep>(
+  series: readonly T[],
+): T | null {
+  let best: T | null = null;
+  for (const entry of series) {
+    if (!best) {
+      best = entry;
+      continue;
+    }
+    const order = compareVenuesByPublicSun(entry, best);
+    if (order < 0 || (order === 0 && entry.minutes < best.minutes)) {
       best = entry;
     }
   }

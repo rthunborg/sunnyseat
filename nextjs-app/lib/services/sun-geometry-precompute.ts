@@ -333,7 +333,8 @@ function venueFromPrecomputeRow(row: PrecomputeVenueRow): StoredVenue {
     neighborhood: row.neighborhood ?? '',
     location: { lat, lng },
     currentSunStatus: 'NoSun',
-    weatherGateState: row.sky_condition === 'unavailable' ? 'unknown' : 'not_gated',
+    // Precompute persists geometry only; seed-era sky text is not a gate signal.
+    weatherGateState: 'unknown',
     isPartner: Boolean(row.is_partner),
     confidence: typeof row.confidence === 'number' ? row.confidence : 0,
     distanceMeters: 0,

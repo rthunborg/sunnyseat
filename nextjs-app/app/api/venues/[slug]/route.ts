@@ -44,6 +44,7 @@ type RouteContext = {
 
 type DetailTimelineProjection = {
   peakTime?: string;
+  peakWeatherGateState?: 'not_gated' | 'unknown';
   windowStatus?: VenueDataDto['currentSunStatus'];
 };
 
@@ -124,6 +125,9 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     adjustedVenue = normalizeVenueForResponse(base);
     timelineProjection = {
       ...(outcome.peakTime ? { peakTime: outcome.peakTime } : {}),
+      ...(outcome.peakWeatherGateState
+        ? { peakWeatherGateState: outcome.peakWeatherGateState }
+        : {}),
       windowStatus: adjustedVenue.currentSunStatus,
     };
   } else {
@@ -187,12 +191,16 @@ function buildDetailDto(
   // is now ONLY the live timeline-derived engine/planner value. No surface loses a
   // real value (the fixture fallback was a stored-column echo, not a computed one).
   const peakTime = timelineProjection?.peakTime;
+  const peakWeatherGateState = timelineProjection?.peakWeatherGateState;
   const sunWindow = venue.sunWindow
     ? [
         {
           start: venue.sunWindow.start,
           end: venue.sunWindow.end,
           status: timelineWindowStatus,
+          ...(venue.sunWindow.weatherGateState
+            ? { weatherGateState: venue.sunWindow.weatherGateState }
+            : {}),
         },
       ]
     : [];
@@ -215,6 +223,7 @@ function buildDetailDto(
       range: { start: '06:00', end: '21:00' },
       windows: sunWindow,
       ...(peakTime ? { peakTime } : {}),
+      ...(peakWeatherGateState ? { peakWeatherGateState } : {}),
     },
   };
 }
@@ -271,6 +280,9 @@ function timelineProjectionFromAdjustedVenue(
 ): DetailTimelineProjection {
   return {
     peakTime: peakTimeFromSunWindow(venue.sunWindow),
+    ...(venue.sunWindow?.weatherGateState
+      ? { peakWeatherGateState: venue.sunWindow.weatherGateState }
+      : {}),
     windowStatus: venue.currentSunStatus,
   };
 }

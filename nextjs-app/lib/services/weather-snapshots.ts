@@ -5,7 +5,7 @@ import {
   stockholmDateKey,
 } from '@/lib/utils/time-planner';
 import { fromZonedTime } from 'date-fns-tz';
-import type { VenueDaySeriesEntry, VenueSunStatus, WeatherGateState } from '@/lib/types/api';
+import type { VenueDaySeriesEntry, WeatherGateState } from '@/lib/types/api';
 import { applyCloudGate, classifySunStatus, CLOUD_GATE_THRESHOLD_PERCENT } from '@/lib/services/sun-engine';
 import { venueEngineCoordinate } from '@/lib/services/sun-geometry-coordinates';
 import { calculateSolarPosition } from '@/lib/solar/solar-calculation-service';
@@ -114,7 +114,10 @@ export function gateGeometrySeriesWithWeatherSnapshots(input: {
   }
 
   return input.geometrySeries.map((entry) => {
-    const weather = weatherByMinutes.get(entry.minutes) ?? { weatherUnknown: true };
+    const matchedWeather = weatherByMinutes.get(entry.minutes);
+    const weather: WeatherSnapshotSlice = isUsableSnapshotWeather(matchedWeather)
+      ? matchedWeather
+      : { weatherUnknown: true };
     const isSunVisible = isSunVisibleAtStep(input.venue, input.stockholmDate, entry.minutes);
     const geometricStatus = isSunVisible
       ? classifySunStatus(entry.sunExposurePercent)
@@ -126,23 +129,50 @@ export function gateGeometrySeriesWithWeatherSnapshots(input: {
       ? 'unavailable'
       : isRaining
         ? 'rain'
-        : skyConditionFromSnapshotCloudCover(weather.cloudCover);
+        : skyConditionFromSnapshotCloudCover(cloudCover);
     return {
       minutes: entry.minutes,
       sunExposurePercent: entry.sunExposurePercent,
       currentSunStatus,
-      weatherGateState: weatherGateStateFromSnapshot(weather, currentSunStatus),
+      weatherGateState: weatherGateStateFromSnapshot(
+        weather,
+        isSunVisible,
+        entry.sunExposurePercent,
+        cloudCover,
+        isRaining,
+      ),
       skyCondition,
     };
   });
 }
 
+function isUsableSnapshotWeather(
+  weather: WeatherSnapshotSlice | undefined,
+): weather is WeatherSnapshotSlice {
+  if (!weather || weather.weatherUnknown === true) return false;
+  if (weather.isRaining === true) return true;
+  return effectiveSnapshotCloudCover(weather) !== undefined;
+}
+
 function weatherGateStateFromSnapshot(
   weather: WeatherSnapshotSlice,
-  currentSunStatus: VenueSunStatus,
+  isSunVisible: boolean,
+  sunExposurePercent: number,
+  cloudCover: number | undefined,
+  isRaining: boolean,
 ): WeatherGateState {
-  if (weather.weatherUnknown) return 'unknown';
-  return currentSunStatus === 'CloudObscured' ? 'gated' : 'not_gated';
+  if (weather.weatherUnknown || (!Number.isFinite(cloudCover) && !isRaining)) {
+    return 'unknown';
+  }
+  const cloudGates =
+    typeof cloudCover === 'number' &&
+    Number.isFinite(cloudCover) &&
+    cloudCover >= CLOUD_GATE_THRESHOLD_PERCENT;
+  return isSunVisible &&
+    classifySunStatus(sunExposurePercent) !== 'Shaded' &&
+    (cloudGates || isRaining)
+    ? 'gated'
+    : 'not_gated';
 }
 
 function isSunVisibleAtStep(

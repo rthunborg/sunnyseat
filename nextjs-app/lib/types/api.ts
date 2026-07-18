@@ -13,6 +13,7 @@
 export type VenueSunStatus = 'Sunny' | 'Partial' | 'Shaded' | 'NoSun' | 'CloudObscured';
 
 export type WeatherGateState = 'gated' | 'not_gated' | 'unknown';
+export type PublicSunWeatherGateState = Exclude<WeatherGateState, 'gated'>;
 
 // STORY 11.1 (AC1): one gated per-planner-step entry of the client-side
 // day-series. `minutes` is the planner minutes-of-day (06:00 → 360 … 21:00 →
@@ -151,6 +152,8 @@ export interface VenueDataDto {
   sunWindow?: {
     start: string;
     end: string;
+    /** Weather certainty across this public-sunny window. */
+    weatherGateState?: PublicSunWeatherGateState;
   };
   /**
    * STORY 11.1 (AC1): the per-planner-step gated day-series, one entry per
@@ -204,12 +207,14 @@ export interface VenueSunTimelineDto {
   };
   windows: VenueSunTimelineWindowDto[];
   peakTime?: string;
+  peakWeatherGateState?: PublicSunWeatherGateState;
 }
 
 export interface VenueSunTimelineWindowDto {
   start: string;
   end: string;
   status: VenueDataDto['currentSunStatus'];
+  weatherGateState?: PublicSunWeatherGateState;
 }
 
 export interface CoordinatesDto {

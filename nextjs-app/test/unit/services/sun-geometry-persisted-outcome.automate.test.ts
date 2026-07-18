@@ -184,6 +184,54 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
     });
   });
 
+  test.each(['expired', 'missing'] as const)(
+    '%s snapshots with retained slices keep public window and peak weather-qualified as unknown',
+    async (status) => {
+      const venue = makeVenue({ confidence: 73 });
+      const coverage: PersistedSunGeometryCoverage = {
+        venueId: venue.id,
+        stockholmDate: '2026-07-18',
+        geometryInputHash: GEOMETRY_HASH,
+        status: 'ready',
+        series: [{ minutes: 720, sunExposurePercent: 85 }],
+      };
+
+      const outcome = await buildPersistedSunOutcome(
+        venue,
+        new Date('2026-07-18T10:00:00.000Z'),
+        new Date('2026-07-18T10:00:00.000Z'),
+        {
+          repositories: {
+            sunGeometryRepository: makeGeometryRepository(coverage, []),
+            weatherSnapshotRepository: makeWeatherRepository(
+              {
+                status,
+                weatherUpdatedAt: '2026-07-18T08:00:00.000Z',
+                slices: [{ minutes: 720, cloudCover: 5, isRaining: false }],
+              },
+              [],
+            ),
+          },
+        },
+      );
+
+      expect(outcome.freshness).toEqual({ sunDataSource: 'geometry-only' });
+      expect(outcome.daySeries?.[0]).toMatchObject({
+        weatherGateState: 'unknown',
+        skyCondition: 'unavailable',
+      });
+      expect(outcome.venue.sunWindow).toEqual({
+        start: '12:00',
+        end: '12:00',
+        weatherGateState: 'unknown',
+      });
+      expect(outcome).toMatchObject({
+        peakTime: '12:00',
+        peakWeatherGateState: 'unknown',
+      });
+    },
+  );
+
   test('falls back to geometry-only freshness when a ready snapshot has no retained slices', async () => {
     const venue = makeVenue({ confidence: 73 });
     const coverage: PersistedSunGeometryCoverage = {

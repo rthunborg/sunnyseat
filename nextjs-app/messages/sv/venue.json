@@ -22,6 +22,8 @@
     "loadingSun": "Laddar soldata",
     "openUntilLine": "Öppet till {time}",
     "obscuredHeadline": "Sol bakom moln",
+    "weatherUnavailable": "Väder saknas vid vald tid",
+    "notSunnyVerdict": "Inte soligt vid vald tid",
     "sky": {
       "clear": "Klart",
       "partlyCloudy": "Delvis molnigt",
@@ -114,6 +116,7 @@
     "distance": "Avstånd",
     "distanceApproximate": "≈ från centrum",
     "sunUnavailable": "Soltid saknas",
+    "weatherUnavailable": "Väder saknas vid vald tid",
     "statusMostlyShade": "MEST SKUGGA",
     "statusFullSun": "FULL SOL",
     "statusPartialSun": "DELVIS SOL",

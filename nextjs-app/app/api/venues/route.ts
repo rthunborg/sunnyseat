@@ -51,7 +51,11 @@ import type {
   VenueDataDto,
 } from '@/lib/types/api';
 import { sunFreshnessHeaders } from '@/lib/utils/sun-freshness';
-import { compareVenuesByPublicSun, extractPublicSunPeak } from '@/lib/utils/public-sun';
+import {
+  compareVenuesByPublicSun,
+  extractBestPublicSunStep,
+  extractPublicSunPeak,
+} from '@/lib/utils/public-sun';
 
 const DEFAULT_RADIUS_KM = 1.5;
 const MAX_RADIUS_KM = 3.0;
@@ -81,9 +85,8 @@ function compareVenuesByPublicSunPeak(left: VenueDataDto, right: VenueDataDto): 
 }
 
 function publicSunPeakCandidate(venue: VenueDataDto) {
-  const peak = Array.isArray(venue.sunDaySeries)
-    ? extractPublicSunPeak(venue.sunDaySeries)
-    : null;
+  const series = Array.isArray(venue.sunDaySeries) ? venue.sunDaySeries : [];
+  const peak = extractPublicSunPeak(series) ?? extractBestPublicSunStep(series);
   return {
     id: venue.id,
     venueId: venue.venueId,
@@ -310,14 +313,12 @@ export async function GET(request: NextRequest) {
     freshness = aggregateSunFreshness(outcomes.map((o) => o.freshness));
     processedVenues = outcomes
       .map((o) => {
-        const normalized = normalizeVenueForResponse(o.venue);
-        // Attach the series AFTER normalize (which spreads unknown fields
-        // through but does not know about `sunDaySeries`) so it lands on the
-        // list DTO ONLY. The detail route never reads `o.daySeries`, so the
-        // `[slug]` DTO stays byte-identical.
-        return o.daySeries
-          ? { ...normalized, sunDaySeries: o.daySeries }
-          : normalized;
+        // The list route alone attaches the day series. Normalize after the
+        // attachment so malformed persisted gate values fail closed before the
+        // public DTO is serialized; the detail route still ignores daySeries.
+        return normalizeVenueForResponse(
+          o.daySeries ? { ...o.venue, sunDaySeries: o.daySeries } : o.venue,
+        );
       })
       .map((v) => ({
         ...v,

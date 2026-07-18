@@ -1525,6 +1525,8 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     favouriteRemove: t('list.favouriteRemove'),
     // Story 10.2: muted "Sol bakom moln" headline + plain-language sky copy.
     obscuredHeadline: t('quickInfo.obscuredHeadline'),
+    weatherUnavailable: t('quickInfo.weatherUnavailable'),
+    notSunnyVerdict: t('quickInfo.notSunnyVerdict'),
     sky: {
       clear: t('quickInfo.sky.clear'),
       partlyCloudy: t('quickInfo.sky.partlyCloudy'),

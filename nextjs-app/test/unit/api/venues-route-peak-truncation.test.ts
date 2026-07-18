@@ -21,6 +21,7 @@ import type {
   GetVenuesResponse,
   VenueDaySeriesEntry,
   VenueSunStatus,
+  WeatherGateState,
 } from '@/lib/types/api';
 
 const NOW = new Date('2026-06-21T10:30:00.000Z');
@@ -29,9 +30,21 @@ const CENTRE = { lat: 57.7089, lng: 11.9746 };
 // Per-venue controlled sun profile: the INSTANT status (what the single-shot sort
 // sees "now") and the day-series PEAK status (the best the venue reaches at some
 // other planner time).
-type Profile = { instant: VenueSunStatus; peak: VenueSunStatus };
+type Profile = {
+  instant: VenueSunStatus;
+  peak: VenueSunStatus;
+  peakExposure?: number;
+  peakGate?: WeatherGateState;
+};
 
-const profiles = vi.hoisted(() => ({ map: new Map<string, { instant: string; peak: string }>() }));
+const profiles = vi.hoisted(() => ({
+  map: new Map<string, {
+    instant: string;
+    peak: string;
+    peakExposure?: number;
+    peakGate?: string;
+  }>(),
+}));
 
 const adapterMocks = vi.hoisted(() => ({
   applyRealSunEngine: vi.fn(),
@@ -80,7 +93,11 @@ function storedVenue(index: number): StoredVenue {
   } as unknown as StoredVenue;
 }
 
-function seriesFor(peak: VenueSunStatus): VenueDaySeriesEntry[] {
+function seriesFor(
+  peak: VenueSunStatus,
+  peakExposure = exposureForStatus(peak, 'peak'),
+  peakGate: WeatherGateState = peak === 'CloudObscured' ? 'gated' : 'not_gated',
+): VenueDaySeriesEntry[] {
   // A two-entry series: a low mid-day step and the venue's PEAK step. Only the
   // MAX matters for the truncation rank.
   return [
@@ -92,9 +109,9 @@ function seriesFor(peak: VenueSunStatus): VenueDaySeriesEntry[] {
     },
     {
       minutes: 15 * 60,
-      sunExposurePercent: exposureForStatus(peak, 'peak'),
+      sunExposurePercent: peakExposure,
       currentSunStatus: peak,
-      weatherGateState: peak === 'CloudObscured' ? 'gated' : 'not_gated',
+      weatherGateState: peakGate,
     },
   ];
 }
@@ -136,7 +153,11 @@ describe('venues route — date-stable peak-rank truncation (external-review fix
 
     adapterMocks.computeVenueDaySeries.mockReset().mockImplementation(async (venue: StoredVenue) => {
       const profile = profiles.map.get(venue.id) ?? { instant: 'Sunny', peak: 'Sunny' };
-      return seriesFor(profile.peak as VenueSunStatus);
+      return seriesFor(
+        profile.peak as VenueSunStatus,
+        profile.peakExposure,
+        profile.peakGate as WeatherGateState | undefined,
+      );
     });
   });
 
@@ -223,6 +244,43 @@ describe('venues route — date-stable peak-rank truncation (external-review fix
         }),
       ]),
     );
+  });
+
+  it('[P0] keeps an exact-50 future peak ahead of a weaker grey peak at the top-50 cutoff', async () => {
+    const publiclySunnyFillers = Array.from({ length: 49 }, (_, i) => storedVenue(i));
+    for (const venue of publiclySunnyFillers) {
+      profiles.map.set(venue.id, { instant: 'NoSun', peak: 'Partial' } satisfies Profile);
+    }
+
+    const weakerGreyPeak = storedVenue(50);
+    profiles.map.set(weakerGreyPeak.id, {
+      instant: 'NoSun',
+      peak: 'Shaded',
+      peakExposure: 20,
+    } satisfies Profile);
+
+    const exactFiftyPeak = storedVenue(999);
+    profiles.map.set(exactFiftyPeak.id, {
+      instant: 'NoSun',
+      peak: 'Partial',
+      peakExposure: 50,
+      peakGate: 'not_gated',
+    } satisfies Profile);
+
+    storeMocks.getVenues.mockResolvedValue([
+      ...publiclySunnyFillers,
+      weakerGreyPeak,
+      exactFiftyPeak,
+    ]);
+
+    const res = await LIST_GET(listRequest(`?lat=${CENTRE.lat}&lng=${CENTRE.lng}&radiusKm=3`));
+    const body = (await res.json()) as GetVenuesResponse;
+    const keptIds = body.venues.map((venue) => venue.id);
+
+    expect(body.venues).toHaveLength(50);
+    expect(body.totalCount).toBe(51);
+    expect(keptIds).toContain(exactFiftyPeak.id);
+    expect(keptIds).not.toContain(weakerGreyPeak.id);
   });
 
   it('response ORDER is by the single-instant rank (client re-sort contract) even though truncation is peak-based', async () => {

@@ -22,6 +22,8 @@
     "loadingSun": "Loading sun data",
     "openUntilLine": "Open until {time}",
     "obscuredHeadline": "Sun behind clouds",
+    "weatherUnavailable": "Weather unavailable at the selected time",
+    "notSunnyVerdict": "Not sunny at the selected time",
     "sky": {
       "clear": "Clear",
       "partlyCloudy": "Partly cloudy",
@@ -114,6 +116,7 @@
     "distance": "Distance",
     "distanceApproximate": "≈ from centre",
     "sunUnavailable": "Sun time unavailable",
+    "weatherUnavailable": "Weather unavailable at the selected time",
     "statusMostlyShade": "MOSTLY SHADE",
     "statusFullSun": "FULL SUN",
     "statusPartialSun": "PARTIAL SUN",
