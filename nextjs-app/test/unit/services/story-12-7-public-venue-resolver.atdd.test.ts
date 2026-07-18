@@ -20,10 +20,7 @@ type VenueRow = {
   lat: number;
   lng: number;
   is_partner: boolean;
-  is_hidden?: boolean | null;
   hidden?: boolean | null;
-  visibility?: string | null;
-  deleted_at?: string | null;
   current_sun_status?: string | null;
   confidence?: number | null;
   sun_exposure_percent?: number | null;
@@ -46,28 +43,21 @@ const supabaseMocks = vi.hoisted(() => {
       .filter(Boolean);
   }
 
-  function visibleRowsForFilter(): VenueRow[] {
+  function candidateRowsForFilter(): VenueRow[] {
     const identifiers = new Set(identifiersFromFilter(state.lastVenueFilter));
-    return state.venueRows.filter((row) =>
-      (identifiers.has(row.id) || identifiers.has(row.slug)) &&
-      row.is_hidden !== true &&
-      row.hidden !== true &&
-      row.visibility !== 'hidden' &&
-      row.deleted_at == null
+    return state.venueRows.filter(
+      (row) => identifiers.has(row.id) || identifiers.has(row.slug),
     );
   }
 
-  const maybeSingle = vi.fn(async () => {
-    const rows = visibleRowsForFilter();
-    if (rows.length > 1) {
-      return { data: null, error: { message: 'multiple rows returned' } };
-    }
-    return { data: rows[0] ?? null, error: null };
-  });
+  const limit = vi.fn(async (count: number) => ({
+    data: candidateRowsForFilter().slice(0, count),
+    error: null,
+  }));
 
   const or = vi.fn((filter: string) => {
     state.lastVenueFilter = filter;
-    return { maybeSingle };
+    return { limit };
   });
 
   const select = vi.fn(() => ({ or }));
@@ -76,7 +66,7 @@ const supabaseMocks = vi.hoisted(() => {
     return { select };
   });
 
-  return { state, from, select, or, maybeSingle };
+  return { state, from, select, or, limit };
 });
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -93,9 +83,7 @@ const liveVenueRow: VenueRow = {
   lat: 57.706,
   lng: 11.971,
   is_partner: false,
-  is_hidden: false,
-  visibility: 'public',
-  deleted_at: null,
+  hidden: false,
   current_sun_status: 'NoSun',
   confidence: 76,
   sun_exposure_percent: 0,
@@ -126,7 +114,7 @@ describe('Story 12.7 AC1/AC2/AC3 - shared public venue resolver', () => {
     supabaseMocks.from.mockClear();
     supabaseMocks.select.mockClear();
     supabaseMocks.or.mockClear();
-    supabaseMocks.maybeSingle.mockClear();
+    supabaseMocks.limit.mockClear();
   });
 
   afterEach(() => {
@@ -146,16 +134,16 @@ describe('Story 12.7 AC1/AC2/AC3 - shared public venue resolver', () => {
     expect(supabaseMocks.from).toHaveBeenCalledWith('venues');
   });
 
-  test('[P0] supabase mode treats hidden, deleted, blank, and unknown identifiers as the same public miss', async () => {
+  test('[P0] supabase mode treats hidden, malformed visibility, blank, and unknown identifiers as the same public miss', async () => {
     useSupabaseVenueStore();
     supabaseMocks.state.venueRows = [
-      { ...liveVenueRow, id: '9', slug: 'hidden-live', is_hidden: true },
-      { ...liveVenueRow, id: '10', slug: 'deleted-live', deleted_at: '2026-07-18T00:00:00.000Z' },
+      { ...liveVenueRow, id: '9', slug: 'hidden-live', hidden: true },
+      { ...liveVenueRow, id: '10', slug: 'malformed-live', hidden: null },
     ];
     const resolvePublicVenueIdentifier = await loadPublicResolver();
 
     await expect(resolvePublicVenueIdentifier('hidden-live')).resolves.toBeNull();
-    await expect(resolvePublicVenueIdentifier('deleted-live')).resolves.toBeNull();
+    await expect(resolvePublicVenueIdentifier('malformed-live')).resolves.toBeNull();
     await expect(resolvePublicVenueIdentifier('missing-live')).resolves.toBeNull();
     await expect(resolvePublicVenueIdentifier('   ')).resolves.toBeNull();
   });

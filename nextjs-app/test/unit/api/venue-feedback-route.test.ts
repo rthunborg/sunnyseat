@@ -11,14 +11,17 @@ const supabaseMocks = vi.hoisted(() => {
   const state = {
     venueRow: null as Record<string, unknown> | null,
   };
-  const maybeSingle = vi.fn(async () => ({ data: state.venueRow, error: null }));
-  const or = vi.fn(() => ({ maybeSingle }));
+  const limit = vi.fn(async () => ({
+    data: state.venueRow === null ? [] : [state.venueRow],
+    error: null,
+  }));
+  const or = vi.fn(() => ({ limit }));
   const select = vi.fn(() => ({ or }));
   const from = vi.fn((table: string) => {
     if (table !== 'venues') throw new Error(`unexpected table ${table}`);
     return { select };
   });
-  return { state, from, select, or, maybeSingle };
+  return { state, from, select, or, limit };
 });
 
 vi.mock('@/lib/services/venue-feedback-persistence', () => ({
@@ -56,9 +59,7 @@ const LIVE_VENUE_ROW = {
   lat: 57.706,
   lng: 11.971,
   is_partner: false,
-  is_hidden: false,
-  visibility: 'public',
-  deleted_at: null,
+  hidden: false,
   current_sun_status: 'Sunny',
   confidence: 82,
   sun_exposure_percent: 71,
@@ -82,7 +83,7 @@ describe('POST /api/venues/[slug]/feedback', () => {
     supabaseMocks.from.mockClear();
     supabaseMocks.select.mockClear();
     supabaseMocks.or.mockClear();
-    supabaseMocks.maybeSingle.mockClear();
+    supabaseMocks.limit.mockClear();
   });
 
   afterEach(() => {

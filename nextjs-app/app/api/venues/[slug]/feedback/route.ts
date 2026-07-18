@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { persistVenueFeedback } from '@/lib/services/venue-feedback-persistence';
-import { resolvePublicVenueIdentifier } from '@/lib/services/venue-store';
+import {
+  isSafePublicVenueIdentifier,
+  resolvePublicVenueIdentifier,
+} from '@/lib/services/venue-store';
 import type {
   FeedbackResponse,
   FeedbackSunAccuracy,
@@ -14,7 +17,9 @@ type RouteContext = {
 };
 
 const NOTE_MAX_LENGTH = 500;
-const UNSAFE_CONTROL_CHARACTER_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u;
+const VENUE_IDENTIFIER_MAX_LENGTH = 120;
+const UNSAFE_NOTE_CONTROL_CHARACTER_PATTERN =
+  /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u;
 // STORY 10 review [Patch][High]: `predictedState` MUST accept the FULL
 // VenueSunStatus union — on the live real-engine path a detail view's
 // `predictedState` can be `'CloudObscured'` (weather-gated), and that value is
@@ -35,8 +40,12 @@ const PREDICTED_STATES = Object.keys(PREDICTED_STATE_MEMBERS) as [VenueSunStatus
 const SUN_ACCURACY_VALUES = ['sunny', 'not_sunny', 'unsure'] as const satisfies FeedbackSunAccuracy[];
 
 const feedbackSchema = z.object({
-  venueId: z.string().trim().min(1).max(80).optional(),
-  venueSlug: z.string().trim().min(1).max(120).optional(),
+  venueId: z.string().trim().min(1).max(80)
+    .refine(isSafePublicVenueIdentifier, 'venueId contains invalid control characters')
+    .optional(),
+  venueSlug: z.string().trim().min(1).max(120)
+    .refine(isSafePublicVenueIdentifier, 'venueSlug contains invalid control characters')
+    .optional(),
   userTimestamp: z.iso.datetime({ offset: true }),
   predictedState: z.enum(PREDICTED_STATES),
   confidenceAtPrediction: z.number().min(0).max(100).optional(),
@@ -60,7 +69,7 @@ const feedbackSchema = z.object({
       message: 'At least one feedback answer or note is required',
     });
   }
-  if (value.note && UNSAFE_CONTROL_CHARACTER_PATTERN.test(value.note)) {
+  if (value.note && UNSAFE_NOTE_CONTROL_CHARACTER_PATTERN.test(value.note)) {
     ctx.addIssue({
       code: 'custom',
       path: ['note'],
@@ -85,6 +94,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     identifier = decodeURIComponent((await context.params).slug);
   } catch {
+    return jsonError('Invalid venue identifier', 400);
+  }
+  if (
+    identifier.length > VENUE_IDENTIFIER_MAX_LENGTH ||
+    !isSafePublicVenueIdentifier(identifier)
+  ) {
     return jsonError('Invalid venue identifier', 400);
   }
 

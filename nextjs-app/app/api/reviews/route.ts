@@ -7,7 +7,10 @@ import {
   persistVenueReview,
   summarizeReviews,
 } from '@/lib/services/venue-reviews-persistence';
-import { resolvePublicVenueIdentifier } from '@/lib/services/venue-store';
+import {
+  isSafePublicVenueIdentifier,
+  resolvePublicVenueIdentifier,
+} from '@/lib/services/venue-store';
 import type {
   GetReviewsResponse,
   ReviewDto,
@@ -19,7 +22,8 @@ const REVIEW_TEXT_MAX_LENGTH = 1000;
 const PHOTO_NAME_MAX_LENGTH = 120;
 const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 const REVIEW_JSON_MAX_BYTES = 16 * 1024;
-const UNSAFE_CONTROL_CHARACTER_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u;
+const UNSAFE_REVIEW_TEXT_CONTROL_CHARACTER_PATTERN =
+  /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 30;
 const RATE_LIMIT_SWEEP_INTERVAL_MS = RATE_LIMIT_WINDOW_MS;
@@ -34,8 +38,12 @@ type RateLimitBucket = {
 const rateLimitBuckets = new Map<string, RateLimitBucket>();
 
 const reviewSchema = z.object({
-  venueId: z.string().trim().min(1).max(80).optional(),
-  venueSlug: z.string().trim().min(1).max(120).optional(),
+  venueId: z.string().trim().min(1).max(80)
+    .refine(isSafePublicVenueIdentifier, 'venueId contains invalid control characters')
+    .optional(),
+  venueSlug: z.string().trim().min(1).max(120)
+    .refine(isSafePublicVenueIdentifier, 'venueSlug contains invalid control characters')
+    .optional(),
   text: z.string()
     .max(REVIEW_TEXT_MAX_LENGTH)
     .transform((value) => value.replace(/\r\n?/g, '\n').trim()),
@@ -61,7 +69,7 @@ const reviewSchema = z.object({
       message: 'text is required',
     });
   }
-  if (UNSAFE_CONTROL_CHARACTER_PATTERN.test(value.text)) {
+  if (UNSAFE_REVIEW_TEXT_CONTROL_CHARACTER_PATTERN.test(value.text)) {
     ctx.addIssue({
       code: 'custom',
       path: ['text'],
@@ -80,7 +88,7 @@ const reviewSchema = z.object({
 export async function GET(request: NextRequest) {
   const identifier = request.nextUrl.searchParams.get('venueId')?.trim();
   if (!identifier) return jsonError('venueId query parameter is required', 400);
-  if (UNSAFE_CONTROL_CHARACTER_PATTERN.test(identifier)) {
+  if (!isSafePublicVenueIdentifier(identifier)) {
     return jsonError('venueId contains invalid control characters', 400);
   }
 

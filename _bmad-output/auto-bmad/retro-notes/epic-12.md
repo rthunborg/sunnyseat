@@ -23,3 +23,5 @@
 
 ## Story 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
 - [Phase 5 â€” dev-story] Visibility schema drift remains: the runtime seam uses is_hidden / visibility / deleted_at, while the planned hidden column is absent from generated types on this branch; downstream consumers must use the shared resolver rather than re-inventing visibility checks.
+- [Phase 7 â€” code review] Live/schema probes proved hidden, is_hidden, visibility, and deleted_at were all absent; the review fix adopted the architecture-backed canonical hidden boolean not null default false migration and removed invented visibility vocabularies.
+- [Phase 7 â€” code review] Mocks had concealed a nonexistent live projection. Future schema-backed stories should validate canonical migrations/generated types or exercise disposable migrated Postgres before relying on mocked rows.

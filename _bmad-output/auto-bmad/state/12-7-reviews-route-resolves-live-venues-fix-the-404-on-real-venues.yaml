@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 7
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-18T19:25:30Z"
+updated_at: "2026-07-18T20:00:54Z"
 started_at: "2026-07-18T18:43:57Z"
 completed_at: null
-active_seconds: 2427
+active_seconds: 4539
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -21,13 +21,13 @@ tea_rationale: "Changes the public reviews and feedback identity-resolution cont
 epic_story_count: 14
 stories_after_in_epic: 11
 completed_phases: [0, 1, 2, 3, 4, 5, 6]
-code_review_iterations: 0
-code_review_loop_done: false
+code_review_iterations: 1
+code_review_loop_done: true
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [3f104fa, 9c329d1, 7e41ef2, 0dbcd95]
+commits: [3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -47,8 +47,20 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work: []
+deferred_work:
+  - "Apply `20260718214954_add_public_venue_visibility.sql` before deploying Story 12.7 code, then regenerate Supabase types and verify no contract diff."
 blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: f5e9d83b46f75e77e3e42b184f1ebc5006d78772
+tier_a_review:
+  verdict: "Changes Requested -> fixed"
+  critical: 0
+  high: 1
+  medium: 2
+  low: 1
+  open_decisions_auto_resolved: 0
+  dismissed_noise: 3
+  security: "No findings; HIGH 0 / MEDIUM 0 / LOW 0"
+  fixed: 4
+  deferred: 0

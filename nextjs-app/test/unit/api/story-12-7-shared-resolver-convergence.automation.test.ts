@@ -25,9 +25,13 @@ const feedbackPersistenceMock = vi.hoisted(() => ({
   persistVenueFeedback: vi.fn(async (feedback: FeedbackResponse) => feedback),
 }));
 
-vi.mock('@/lib/services/venue-store', () => ({
-  resolvePublicVenueIdentifier: venueStoreMock.resolvePublicVenueIdentifier,
-}));
+vi.mock('@/lib/services/venue-store', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/services/venue-store')>();
+  return {
+    ...actual,
+    resolvePublicVenueIdentifier: venueStoreMock.resolvePublicVenueIdentifier,
+  };
+});
 
 vi.mock('@/lib/services/venue-reviews-persistence', () => ({
   getVenueReviewsFromPersistence: reviewPersistenceMock.getVenueReviewsFromPersistence,
@@ -195,6 +199,36 @@ describe('Story 12.7 automated route convergence coverage', () => {
         venueSlug: 'live-zero-review',
       }),
     );
+  });
+
+  it('[P0] rejects malformed review body identifiers before resolver or persistence access', async () => {
+    const res = await reviewsPOST(makeReviewPost({
+      venueId: 'live\u0000id',
+      text: 'Should not reach the store.',
+    }));
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({
+      title: 'Invalid review payload',
+      status: 400,
+    });
+    expect(venueStoreMock.resolvePublicVenueIdentifier).not.toHaveBeenCalled();
+    expect(reviewPersistenceMock.persistVenueReview).not.toHaveBeenCalled();
+  });
+
+  it('[P0] rejects malformed feedback path identifiers before resolver or persistence access', async () => {
+    const res = await feedbackPOST(
+      makeFeedbackPost('live\u0000id', VALID_FEEDBACK_BODY),
+      { params: Promise.resolve({ slug: 'live%00id' }) },
+    );
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toMatchObject({
+      detail: 'Invalid venue identifier',
+      status: 400,
+    });
+    expect(venueStoreMock.resolvePublicVenueIdentifier).not.toHaveBeenCalled();
+    expect(feedbackPersistenceMock.persistVenueFeedback).not.toHaveBeenCalled();
   });
 
   it('[P0] reviews and feedback share the same non-leaking not-found boundary before persistence', async () => {

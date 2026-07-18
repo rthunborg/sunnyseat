@@ -5,10 +5,10 @@ epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-18T19:25:30Z"
+updated_at: "2026-07-18T20:00:54Z"
 started_at: "2026-07-18T11:27:25Z"
 completed_at: null
-active_seconds: 11289
+active_seconds: 13402
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: true
 story_trace: null
-commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95]
+commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -49,6 +49,7 @@ branch_deleted: false
 open_questions: []
 deferred_work:
   - "[12-3] Protected Story 12.3 production evidence remains: capture the 42+ venue cold-p95 dataset and verify the protected GitHub Production environment when protected access is available."
+  - "[12-7] Apply `20260718214954_add_public_venue_visibility.sql` before deploying Story 12.7 code, then regenerate Supabase types and verify no contract diff."
 blockers: []
 overrides: {}
 constraints:
@@ -57,7 +58,8 @@ epic_slug: real-venue-launch-readiness-perf-trust-hours-console-hygiene
 active_story: 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
 stories_landed:
   - 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
-auto_decisions: []
+auto_decisions:
+  - "[12-7] Adopted the architecture-backed canonical `hidden boolean not null default false` migration/type contract after live/schema probes proved all previously referenced visibility columns absent; no protected database mutation was performed."
 uat_items:
   - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify a cold protected-production /api/venues central-viewport request for the 42+ venue dataset returns p95 <= ~5s with logs proving persisted geometry reads and zero request-path shadow/provider recompute."
   - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify missing current geometry_input_hash coverage returns machine-readable 503 SUN_GEOMETRY_COVERAGE_MISSING instead of omitting sunDaySeries or recomputing shadows."

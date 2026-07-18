@@ -50,9 +50,7 @@ type PrecomputeVenueRow = {
   seating_area?: GeoJSON.Polygon | null;
   seating_elevation_m?: number | null;
   ground_elevation_m?: number | null;
-  is_hidden?: boolean | null;
-  visibility?: string | null;
-  deleted_at?: string | null;
+  hidden?: boolean | null;
 };
 
 type GeometryInputBuildResult = {
@@ -106,8 +104,7 @@ export async function collectSunGeometryPrecomputeTargets(options: {
   const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
   const { data, error } = await getSupabaseServiceRole()
     .from('venues')
-    .select(`${VENUE_SELECT_COLUMNS}, is_hidden, visibility, deleted_at`)
-    .is('deleted_at', null)
+    .select(`${VENUE_SELECT_COLUMNS}, hidden`)
     .order('id');
   if (error) throw new Error(`Precompute target read failed: ${error.message}`);
   return ((data ?? []) as PrecomputeVenueRow[]).map((row, index) => {
@@ -117,14 +114,14 @@ export async function collectSunGeometryPrecomputeTargets(options: {
       return {
         id: venue.id,
         slug: venue.slug,
-        isHidden: Boolean(row.is_hidden) || row.visibility === 'hidden',
+        isHidden: row.hidden !== false,
         venue,
       };
     } catch (error) {
       return {
         id: rowId,
         slug: row.slug ?? undefined,
-        isHidden: Boolean(row.is_hidden) || row.visibility === 'hidden',
+        isHidden: row.hidden !== false,
         invalidReason: error instanceof Error ? error.message : String(error),
       };
     }

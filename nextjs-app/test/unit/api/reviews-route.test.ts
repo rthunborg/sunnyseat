@@ -53,9 +53,7 @@ const LIVE_VENUE_ROW = {
   lat: 57.706,
   lng: 11.971,
   is_partner: false,
-  is_hidden: false,
-  visibility: 'public',
-  deleted_at: null,
+  hidden: false,
   current_sun_status: 'NoSun',
   confidence: 76,
   sun_exposure_percent: 0,
@@ -200,7 +198,7 @@ describe('/api/reviews', () => {
         return {
           select: () => ({
             or: () => ({
-              maybeSingle: async () => ({ data: LIVE_VENUE_ROW, error: null }),
+              limit: async () => ({ data: [LIVE_VENUE_ROW], error: null }),
             }),
           }),
         };

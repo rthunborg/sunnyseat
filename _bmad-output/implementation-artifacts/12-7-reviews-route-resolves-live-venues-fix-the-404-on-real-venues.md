@@ -119,6 +119,13 @@ feedback POST route — one shared live resolver for all three.)_
   - [x] No visual validation is required for the intended backend-only fix. If UI/copy changes become necessary, stop and add normal design-token, Swedish copy, accessibility, and visual validation evidence for affected screens.
   - [x] Move the story to review only through `.\scripts\run-sh.ps1 scripts/story-review.sh 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues` from repository root.
 
+### Review Findings
+
+- [x] [Review][Patch][High] Public visibility guard is fail-open for non-`hidden` visibility values [`nextjs-app/lib/services/venue-store.ts:431`] — Evidence: `isPublicVenueRow()` rejects `deleted_at`, `hidden`, and `is_hidden`, then returns true for every `visibility` string except normalized `hidden`; the automation's `private-visibility` case only uses `visibility: ' hidden '`, so `private`, `draft`, `internal`, or malformed non-empty values remain public. Impact: a non-public live row with any visibility state other than exactly `hidden` can resolve through `/api/reviews` and `/api/venues/[slug]/feedback`, allowing public reads/writes on a venue this shared guard is meant to hide. Recommended resolution: define the accepted live visibility vocabulary in one helper, fail closed for unrecognized/non-public values while preserving only confirmed legacy-public null/empty behavior, and add resolver tests for `public`, `hidden`, `private`, `draft`, unknown/malformed, and the confirmed null/empty case.
+- [x] [Review][Patch][Med] Review POST and feedback POST pass malformed identifiers into the live Supabase resolver [`nextjs-app/app/api/reviews/route.ts:157`] — Evidence: review POST validates `venueId`/`venueSlug` only with trim/min/max before passing `primaryIdentifier` to `resolvePublicVenueIdentifier()`, feedback POST decodes the path and calls the same resolver at `nextjs-app/app/api/venues/[slug]/feedback/route.ts:86-93`, while review GET explicitly rejects unsafe identifier control characters at `nextjs-app/app/api/reviews/route.ts:83-84`; the resolver's PostgREST operand helper only escapes backslash and double quote at `nextjs-app/lib/services/venue-store.ts:443-444`. Impact: a body identifier such as `live\u0000id` or an encoded-control feedback path can reach the live `.or(...)` filter and return `503 Venue store unavailable` instead of the story's public malformed/not-found behavior. Recommended resolution: centralize identifier safety before the resolver, or make `resolvePublicVenueIdentifier()` return `null` for unsafe control characters; add Zod refinements/path validation and tests proving malformed POST identifiers do not call persistence and do not surface as 503.
+- [x] [Review][Patch][Med] The guard/tests claim `hidden` support, but the Supabase projection cannot read `hidden` [`nextjs-app/lib/services/venue-store.ts:181`] — Evidence: `VenueRow` includes `hidden?: boolean | null` at `nextjs-app/lib/services/venue-store.ts:223` and `isPublicVenueRow()` rejects `row.hidden === true` at `nextjs-app/lib/services/venue-store.ts:430`, but `PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS` selects only `is_hidden`, `visibility`, and `deleted_at` in addition to `VENUE_SELECT_COLUMNS`; the automation injects `{ hidden: true }` directly at `nextjs-app/test/unit/services/story-12-7-public-venue-resolver.automation.test.ts:132`, which is not a live response shape under the current projection. Impact: the test suite gives false confidence that canonical/planned `hidden=true` rows are protected, and a future `venues.hidden` column can leak through reviews/feedback unless this resolver is revisited. Recommended resolution: pick one schema truth now; if Story 12.7 only supports the current `is_hidden`/`visibility`/`deleted_at` seam, remove the dead `hidden` branch/test, otherwise add `hidden` to the projection with generated type/schema evidence and a test that fails when the projection omits it.
+- [x] [Review][Patch][Low] Collision handling depends on an error-message substring [`nextjs-app/lib/services/venue-store.ts:411`] — Evidence: multi-row id/slug collisions are converted to a public miss only when `isMultipleRowsError()` matches `/multiple/i` against `error.message` at `nextjs-app/lib/services/venue-store.ts:434-435`, and the automation mocks the exact friendly wording `multiple rows returned`. Impact: the resolver remains fail-closed, but a real PostgREST wording/code change can turn the intentional collision miss into `503 Venue store unavailable`, drifting from Story 12.7's standardized public not-found behavior. Recommended resolution: fetch up to two candidate rows and handle `0`, `1`, and `>1` explicitly, or inspect a stable PostgREST error code/details field and test that stable mechanism instead of English text.
+
 ## Dev Notes
 
 ### ATDD Artifacts
@@ -229,8 +236,9 @@ Codex GPT-5
 ### Implementation Plan
 
 - Keep the shared resolver in `nextjs-app/lib/services/venue-store.ts` so it can reuse the existing fixture/live store seam without exporting Supabase internals.
-- Use the branch's current visibility seam (`is_hidden`, `visibility`, `deleted_at`) for the public guard. `nextjs-app/lib/supabase/types.ts` does not contain the planned `hidden` column, and `nextjs-app/lib/services/sun-geometry-precompute.ts` already selects these runtime fields.
-- Do not widen `VENUE_SELECT_COLUMNS`; use a resolver-only Supabase projection that adds server-only visibility fields, then map through the existing `fromVenueRow` DTO coercion.
+- Review-fix discovery: read-only live schema probes returned PostgreSQL `42703` for `hidden`, `is_hidden`, `visibility`, and `deleted_at`; the migration set and generated types also contained none of them. Adopt the planned E12-AD-05 canonical `hidden boolean not null default false` contract instead of retaining speculative runtime fields.
+- Add the canonical migration and synchronize the generated Supabase type contract without mutating the protected live database. Keep `hidden` server-only in a resolver/precompute projection and fail closed unless its value is exactly `false`.
+- Validate route/body identifiers before data access and retain the same guard inside the shared resolver. Replace message-text collision detection with an explicit up-to-two-row cardinality query.
 - Keep resolver calls uncached so a prior miss cannot mask a later visible row; preserve review route `Cache-Control: no-store`.
 - Leave Story 12.2 feedback-evidence fields and downstream Story 12.5/12.10/12.14 consumers out of scope.
 
@@ -248,6 +256,13 @@ Codex GPT-5
 - 2026-07-18: Playwright was not run separately because the story remained backend-only, did not change public DTOs or UI/copy, and the canonical story-review gate did not require E2E for this unmapped story.
 - 2026-07-18: Phase 6 automation focused run `npx vitest run test/unit/services/story-12-7-public-venue-resolver.automation.test.ts test/unit/api/story-12-7-shared-resolver-convergence.automation.test.ts test/unit/services/story-12-7-public-venue-resolver.atdd.test.ts test/unit/api/story-12-7-reviews-route-live-venues.atdd.test.ts test/unit/api/story-12-7-feedback-route-live-venues.atdd.test.ts test/unit/services/venue-store.test.ts test/unit/api/reviews-route.test.ts test/unit/api/venue-feedback-route.test.ts test/unit/services/venue-reviews-persistence.test.ts` passed: 9 files / 92 tests.
 - 2026-07-18: Phase 6 automation full `npx vitest run` passed: 182 files passed, 2 skipped; 1724 tests passed, 15 skipped. Vitest printed the existing jsdom navigation warning after the green summary.
+- 2026-07-18: Review-fix read-only live schema probes confirmed that `hidden`, `is_hidden`, `visibility`, and `deleted_at` are absent from `public.venues` (`42703` for each projected column). No database mutation was performed; E12-AD-05/E12-AD-12 establish `hidden boolean not null default false` as the repository contract.
+- 2026-07-18: Review-fix red run `npx vitest run test/unit/services/story-12-7-public-venue-resolver.automation.test.ts test/unit/api/story-12-7-shared-resolver-convergence.automation.test.ts` failed as expected: 2 files failed; 11 tests failed and 4 passed.
+- 2026-07-18: Review-fix focused run covering resolver, reviews/feedback routes, persistence, store, and precompute passed: 9 files / 97 tests.
+- 2026-07-18: Review-fix post-change `npx tsc --noEmit` and `npx eslint . --quiet` both passed from `nextjs-app/`.
+- 2026-07-18: Review-fix full `npx vitest run` passed: 182 files passed, 2 skipped; 1729 tests passed, 15 skipped. Vitest printed the existing jsdom navigation warning after the green summary.
+- 2026-07-18: Canonical dry-run gate `.\scripts\run-sh.ps1 scripts/story-review.sh --dry-run 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues` passed npm `lint`, `typecheck`, and `test`, skipped visual validation because the backend story has no mapped screen ID, and did not update sprint status. Artifact: `_bmad-output/implementation-artifacts/validation/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues-review-20260718-215644.log`.
+- 2026-07-18: Playwright was not rerun because this fix changes no client DTO, UI, or mapped browser flow; the canonical gate did not require E2E or visual validation.
 
 ### Completion Notes List
 
@@ -258,20 +273,29 @@ Codex GPT-5
 - Existing active Story 12.7 ATDD tests now pass without weakening or deleting their contract. Existing fixture-mode review and feedback tests remain green.
 - Added durable Phase 6 automation for resolver PostgREST quoting, visibility/deletion fail-closed handling, DTO non-leakage, miss invalidation/no shared in-flight state, collision/error behavior, and mocked route convergence through the same resolver for reviews GET/POST and feedback POST.
 - Downstream Story 12.5, 12.10, and 12.14 consumers still need to adopt the shared public guard when their routes are implemented/touched.
+- Resolved all four review findings: public resolution now requires canonical `hidden === false`; control-character identifiers are rejected before data access; the migration, resolver projection, precompute query, generated types, and tests share the same schema contract; and collisions use explicit `limit(2)` cardinality rather than error-message text.
+- Deployment prerequisite: apply `supabase/migrations/20260718214954_add_public_venue_visibility.sql` before deploying the resolver/precompute code. After applying it, regenerate Supabase types and verify that `nextjs-app/lib/supabase/types.ts` has no diff from the synchronized contract committed with this fix.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `_bmad-output/implementation-artifacts/validation/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues-review-20260718-211450.log`
+- `_bmad-output/implementation-artifacts/validation/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues-review-20260718-215644.log`
+- `supabase/migrations/20260718214954_add_public_venue_visibility.sql`
 - `nextjs-app/app/api/reviews/route.ts`
 - `nextjs-app/app/api/venues/[slug]/feedback/route.ts`
 - `nextjs-app/lib/services/venue-store.ts`
+- `nextjs-app/lib/services/sun-geometry-precompute.ts`
+- `nextjs-app/lib/supabase/types.ts`
 - `nextjs-app/lib/services/venue-reviews-persistence.ts`
 - `nextjs-app/test/unit/api/reviews-route.test.ts`
 - `nextjs-app/test/unit/api/venue-feedback-route.test.ts`
 - `nextjs-app/test/unit/api/story-12-7-shared-resolver-convergence.automation.test.ts`
+- `nextjs-app/test/unit/api/story-12-7-reviews-route-live-venues.atdd.test.ts`
+- `nextjs-app/test/unit/api/story-12-7-feedback-route-live-venues.atdd.test.ts`
 - `nextjs-app/test/unit/services/story-12-7-public-venue-resolver.automation.test.ts`
+- `nextjs-app/test/unit/services/story-12-7-public-venue-resolver.atdd.test.ts`
 - `nextjs-app/test/unit/services/venue-reviews-persistence.test.ts`
 - `_bmad-output/test-artifacts/automation-summary.md`
 
@@ -279,3 +303,4 @@ Codex GPT-5
 
 - 2026-07-18: Implemented Story 12.7 shared live public venue resolver, rewired reviews/feedback routes, removed review-local fixture identity resolution, updated tests, and passed the canonical review gate.
 - 2026-07-18: Expanded Phase 6 durable automation coverage for Story 12.7 resolver semantics and route convergence; focused and full Vitest suites passed.
+- 2026-07-18: Resolved the Tier-A review findings with canonical fail-closed `hidden` schema support, pre-data-access identifier validation, explicit collision cardinality, aligned tests/types/precompute, and a green dry-run story gate.

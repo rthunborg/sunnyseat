@@ -23,10 +23,7 @@ type VenueRow = {
   lat: number;
   lng: number;
   is_partner: boolean;
-  is_hidden?: boolean | null;
   hidden?: boolean | null;
-  visibility?: string | null;
-  deleted_at?: string | null;
   current_sun_status?: string | null;
   confidence?: number | null;
   sun_exposure_percent?: number | null;
@@ -59,27 +56,20 @@ const supabaseMocks = vi.hoisted(() => {
       .filter(Boolean);
   }
 
-  function visibleVenueRows(): VenueRow[] {
+  function candidateVenueRows(): VenueRow[] {
     const identifiers = new Set(identifiersFromFilter(state.lastVenueFilter));
-    return state.venueRows.filter((row) =>
-      (identifiers.has(row.id) || identifiers.has(row.slug)) &&
-      row.is_hidden !== true &&
-      row.hidden !== true &&
-      row.visibility !== 'hidden' &&
-      row.deleted_at == null
+    return state.venueRows.filter(
+      (row) => identifiers.has(row.id) || identifiers.has(row.slug),
     );
   }
 
-  const venueMaybeSingle = vi.fn(async () => {
-    const rows = visibleVenueRows();
-    if (rows.length > 1) {
-      return { data: null, error: { message: 'multiple rows returned' } };
-    }
-    return { data: rows[0] ?? null, error: null };
-  });
+  const venueLimit = vi.fn(async (count: number) => ({
+    data: candidateVenueRows().slice(0, count),
+    error: null,
+  }));
   const venueOr = vi.fn((filter: string) => {
     state.lastVenueFilter = filter;
-    return { maybeSingle: venueMaybeSingle };
+    return { limit: venueLimit };
   });
   const venueSelect = vi.fn(() => ({ or: venueOr }));
 
@@ -107,7 +97,7 @@ const supabaseMocks = vi.hoisted(() => {
     from,
     venueSelect,
     venueOr,
-    venueMaybeSingle,
+    venueLimit,
     reviewSelect,
     reviewOr,
     reviewOrder,
@@ -135,9 +125,7 @@ const liveVenueRow: VenueRow = {
   lat: 57.706,
   lng: 11.971,
   is_partner: false,
-  is_hidden: false,
-  visibility: 'public',
-  deleted_at: null,
+  hidden: false,
   current_sun_status: 'NoSun',
   confidence: 76,
   sun_exposure_percent: 0,
@@ -185,7 +173,7 @@ describe('Story 12.7 AC1/AC2/AC3 - /api/reviews live venue resolution', () => {
     supabaseMocks.from.mockClear();
     supabaseMocks.venueSelect.mockClear();
     supabaseMocks.venueOr.mockClear();
-    supabaseMocks.venueMaybeSingle.mockClear();
+    supabaseMocks.venueLimit.mockClear();
     supabaseMocks.reviewSelect.mockClear();
     supabaseMocks.reviewOr.mockClear();
     supabaseMocks.reviewOrder.mockClear();
@@ -256,7 +244,7 @@ describe('Story 12.7 AC1/AC2/AC3 - /api/reviews live venue resolution', () => {
   test('[P0] hidden and unknown live identifiers share the same 404 class and do not hit review persistence', async () => {
     useLiveSupabaseMode();
     supabaseMocks.state.venueRows = [
-      { ...liveVenueRow, id: '9', slug: 'private-live', is_hidden: true },
+      { ...liveVenueRow, id: '9', slug: 'private-live', hidden: true },
     ];
 
     for (const identifier of ['private-live', 'missing-live']) {

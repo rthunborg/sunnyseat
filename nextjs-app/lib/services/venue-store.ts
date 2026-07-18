@@ -23,6 +23,9 @@ import type {
 } from '@/lib/types/api';
 import type { SkyCondition } from '@/lib/types/design-tokens';
 
+const UNSAFE_PUBLIC_VENUE_IDENTIFIER_PATTERN =
+  /[\u0000-\u001F\u007F-\u009F]/u;
+
 /**
  * Detail attributes served only by `/api/venues/[slug]`. Kept separate from the
  * list DTO: the route pipeline spreads `...venue`, so folding these into the
@@ -180,10 +183,8 @@ export const VENUE_SELECT_COLUMNS = [
 
 const PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS = [
   VENUE_SELECT_COLUMNS,
-  // Story 12.7 public guard: current runtime visibility seam, server-only.
-  'is_hidden',
-  'visibility',
-  'deleted_at',
+  // Story 12.7 canonical public guard, server-only and never mapped to the DTO.
+  'hidden',
 ].join(', ');
 
 type VenueRow = {
@@ -217,12 +218,9 @@ type VenueRow = {
   // Server-only RH2000 absolute ground Z at the venue point (Story 8.7); may be
   // negative; never in the DTO.
   ground_elevation_m?: number | null;
-  // Story 12.7 public resolver visibility seam. These fields are server-only and
-  // intentionally not part of VENUE_SELECT_COLUMNS / public DTO projection.
-  is_hidden?: boolean | null;
+  // Story 12.7 canonical public visibility field. Server-only and intentionally
+  // excluded from VENUE_SELECT_COLUMNS / public DTO projection.
   hidden?: boolean | null;
-  visibility?: string | null;
-  deleted_at?: string | null;
 };
 
 /**
@@ -274,8 +272,8 @@ export async function getVenueBySlug(slug: string): Promise<StoredVenue | null> 
 export async function resolvePublicVenueIdentifier(
   identifier: string,
 ): Promise<StoredVenue | null> {
+  if (!isSafePublicVenueIdentifier(identifier)) return null;
   const normalized = identifier.trim();
-  if (!normalized) return null;
   if (!usesSupabaseVenueStore()) {
     return buildInMemorySeed().find(matchesPublicVenueIdentifier(normalized)) ?? null;
   }
@@ -285,6 +283,12 @@ export async function resolvePublicVenueIdentifier(
     );
   }
   return readSupabasePublicVenueByIdentifier(normalized);
+}
+
+/** Shared route/store guard for identifiers before they reach PostgREST. */
+export function isSafePublicVenueIdentifier(identifier: string): boolean {
+  return identifier.trim().length > 0 &&
+    !UNSAFE_PUBLIC_VENUE_IDENTIFIER_PATTERN.test(identifier);
 }
 
 /** Strip the detail block, yielding the base list DTO shape. */
@@ -406,14 +410,15 @@ async function readSupabasePublicVenueByIdentifier(
     .from('venues')
     .select(PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS)
     .or(`id.eq.${operand},slug.eq.${operand}`)
-    .maybeSingle();
+    .limit(2);
   if (error) {
-    if (isMultipleRowsError(error)) return null;
     throw new Error(`Venue store failed: ${error.message}`);
   }
 
-  const row = data as VenueRow | null;
-  if (!row || !isPublicVenueRow(row)) return null;
+  const rows = (data ?? []) as VenueRow[];
+  if (rows.length !== 1) return null;
+  const row = rows[0];
+  if (!isPublicVenueRow(row)) return null;
   return fromVenueRow(row);
 }
 
@@ -426,13 +431,7 @@ function matchesPublicVenueIdentifier(identifier: string) {
 }
 
 function isPublicVenueRow(row: VenueRow): boolean {
-  if (row.deleted_at != null) return false;
-  if (row.hidden === true || row.is_hidden === true) return false;
-  return row.visibility?.trim().toLowerCase() !== 'hidden';
-}
-
-function isMultipleRowsError(error: { message?: string | null }): boolean {
-  return /multiple/i.test(error.message ?? '');
+  return row.hidden === false;
 }
 
 /**

@@ -619,6 +619,7 @@ export type Database = {
           current_sun_status: string
           description: string | null
           ground_elevation_m: number | null
+          hidden: boolean
           hours_last_error_class: string | null
           hours_next_review_at: string | null
           hours_notes: string | null
@@ -653,6 +654,7 @@ export type Database = {
           current_sun_status: string
           description?: string | null
           ground_elevation_m?: number | null
+          hidden?: boolean
           hours_last_error_class?: string | null
           hours_next_review_at?: string | null
           hours_notes?: string | null
@@ -687,6 +689,7 @@ export type Database = {
           current_sun_status?: string
           description?: string | null
           ground_elevation_m?: number | null
+          hidden?: boolean
           hours_last_error_class?: string | null
           hours_next_review_at?: string | null
           hours_notes?: string | null
