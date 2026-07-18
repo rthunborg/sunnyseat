@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 3
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-18T17:58:24Z"
+updated_at: "2026-07-18T18:09:00Z"
 started_at: "2026-07-18T16:50:01Z"
 completed_at: null
-active_seconds: 3993
+active_seconds: 4621
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "Introduces persisted cross-instance cache data, scheduled precompute/invalidation, and read-time gating for /api/venues, creating data-integrity, public API, and scheduling/cache risk."
 epic_story_count: 14
 stories_after_in_epic: 12
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [4aa9759, b78f21e, c4b82dc]
+commits: [4aa9759, b78f21e, c4b82dc, d11423f]
 phase8_steps:
   trace_gate: null
   nfr: null

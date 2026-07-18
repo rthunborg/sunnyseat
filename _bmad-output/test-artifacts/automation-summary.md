@@ -483,3 +483,55 @@ All formatter tests inject a fixed `now` (offset-annotated) — wall-clock-deter
 ## Next Recommended Workflow
 
 Run `test-review` for quality scoring of the combined Story 12.1 suites, then `trace` for the acceptance-criteria traceability and quality-gate decision.
+
+---
+
+# Automation Expansion Summary — Story 12.3 (Day-Series Compute at Real-Venue Scale / Cold-Start Freeze)
+
+## Preflight & Context
+
+- **Framework:** Vitest 4.1.4 (`nextjs-app/vitest.config.ts`) and Playwright are configured; baseline typecheck and lint passed before edits.
+- **Stack:** fullstack/server-side Next.js services with Supabase-backed persisted sun geometry, weather snapshots, and scheduled precompute workflows.
+- **Mode:** BMad-integrated from the Story 12.3 file and TEA automation workflow. Execution was sequential because this delegate session is under a no-subagent runtime constraint.
+- **Scope:** expand deterministic automated coverage for the Story 12.3 implementation without live Supabase, Docker, Met.no, GitHub, or browser automation. Existing migration replay, full Playwright, and story-review-gate evidence in the story file were accepted and not replayed.
+
+## Coverage Plan
+
+- **Persisted outcome assembly:** verify exact geometry-input hash lookup, current coverage read, weather-bucket snapshot read, nearest-step selection, freshness metadata, confidence fallback, public prediction evidence, and coverage-missing failures.
+- **Precompute publication semantics:** verify a repository with `publishGeometryGeneration` receives a complete planner-window batch and does not write per-day partial rows; invalid targets fail every date and publish nothing.
+- **Weather snapshot gating:** verify layer-weighted effective cloud cover gates read-time status while preserving geometry percentages; verify explicit rain true/false handling; verify nearest fresh slice selection and stale-slice unknown fallback.
+- **Coordinate normalization:** verify shared seating centroid behavior ignores duplicated closing coordinates, prefers seating polygon centroids over venue points, and rejects non-finite polygon coordinates.
+- **No E2E/Pact additions:** this expansion targets deterministic service contracts; no public UI or consumer contract changed.
+
+## Generated Coverage
+
+- **NEW** `nextjs-app/test/unit/services/sun-geometry-persisted-outcome.automate.test.ts` — 5 tests covering persisted route outcome composition and failure classification.
+- **NEW** `nextjs-app/test/unit/services/sun-geometry-coordinates.automate.test.ts` — 3 tests covering shared engine coordinate derivation.
+- **NEW** `nextjs-app/test/unit/services/sun-geometry-precompute.automate.test.ts` — 2 tests covering complete generation publish behavior and invalid-target failure accounting.
+- **NEW** `nextjs-app/test/unit/services/weather-snapshots.automate.test.ts` — 3 tests covering read-time weather gating and freshness-window selection.
+- **Aggregate:** 13 tests across 4 new files; all are deterministic unit-level coverage with injected repositories or local pure inputs.
+
+## Validation / Gate
+
+- Baseline before edits: `npx tsc --noEmit` → **0 errors**; `npx eslint . --quiet` → **0 errors**.
+- Focused generated suite: `npx vitest run test/unit/services/sun-geometry-persisted-outcome.automate.test.ts test/unit/services/sun-geometry-coordinates.automate.test.ts test/unit/services/sun-geometry-precompute.automate.test.ts test/unit/services/weather-snapshots.automate.test.ts` → **4 files / 13 tests passed**.
+- Project validation after edits: `npx tsc --noEmit` → **0 errors**; `npx eslint . --quiet` → **0 errors**.
+- Full unit/component suite: `npx vitest run` → **177 passed / 2 skipped files; 1,688 passed / 15 skipped tests**.
+- Playwright was not rerun in this automate pass because no browser/UI/E2E coverage was added; the story file already records a passing full Playwright run under `CI=1`.
+
+## Assumptions, Risks, and Deferred Coverage
+
+- Production scheduler, protected production evidence, and GitHub environment proof remain operational evidence, not local unit coverage, and still require the external access already noted in the Story 12.3 Dev Agent Record.
+- Migration replay was not rerun; the story file already records passing Compose test PostGIS replay evidence.
+- No application source code, migrations, CI, route behavior, or sprint status was changed by this automation pass.
+
+## Definition of Done
+
+- Story and TEA context reviewed; existing Story 12.3 ATDD coverage mapped to avoid duplicating headline contracts.
+- 13 deterministic service-layer tests added for previously uncovered branch/edge contracts.
+- Focused tests, full Vitest, typecheck, and lint passed.
+- Durable automation result written here under the configured BMAD test-artifact directory.
+
+## Next Recommended Workflow
+
+Run `test-review` or `trace` for Story 12.3 if a quality-gate update is needed after this coverage expansion.
