@@ -388,6 +388,7 @@ Codex GPT-5
 - 2026-07-19: Visual validation was not rerun in this defect pass per orchestration scope; the previously recorded missing `ANTHROPIC_API_KEY` blocker remains and Task 7 stays open.
 - 2026-07-19: S12.6-R1 fixed at the public DTO sanitizer: top-level and day-series `CloudObscured` values now fail closed to `weatherGateState: 'gated'`, while the shared strict `>50 && gate !== 'gated'` predicate remains unchanged. The route fixture now carries coherent gate provenance and the high-exposure obscured venue remains in the grey band after genuine public-sunny venues.
 - 2026-07-19: S12.6-R1 focused sanitizer/route verification passed 3 files / 55 tests; adjacent cloud-gate, shared-predicate, pin, list-rank, and card verification passed 6 files / 48 tests. `npx tsc --noEmit`, full `npx eslint . --quiet`, and final `git diff --check` passed. Full suites were not rerun for this thin patch because the immediately preceding full Vitest and Playwright gates above were green.
+- 2026-07-19: Advisory `testarch-trace` at source SHA `ff05021` traced 13 items: 12 FULL, 1 PARTIAL, 0 NONE; all 9 P0 items are FULL. AC5 is the sole partial item because maintainer-approved rebaseline artifacts, the required `REBASELINE-LOG.md` update, and passing mobile/desktop visual comparisons remain unresolved. No implementation tests were rerun by the trace pass.
 
 ### ATDD Artifacts
 
@@ -402,6 +403,13 @@ Codex GPT-5
 - New contract regressions: `nextjs-app/test/unit/story-12-6-contract-defects.automation.test.ts`, `nextjs-app/test/components/story-12-6-honesty.automation.test.tsx`
 - Augmented route regression: `nextjs-app/test/unit/api/venues-route-peak-truncation.test.ts`
 - Current gate: all 7 TEA production-contract failures are green. Story 12.6 stays `in-progress`; Task 7 and the canonical visual gate remain open because `ANTHROPIC_API_KEY` is unavailable.
+
+### Traceability Artifacts
+
+- Progress matrix: `_bmad-output/test-artifacts/traceability-matrix.md`
+- Advisory report: `_bmad-output/test-artifacts/traceability/traceability-report-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md`
+- Machine-readable summary: `_bmad-output/test-artifacts/traceability/e2e-trace-summary-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.json`
+- Advisory verdict: `CONCERNS` with 12 FULL / 1 PARTIAL / 0 NONE. AC5 visual/rebaseline is the sole partial item; this trace does not close Task 7 or move the story from `in-progress`.
 
 ### Completion Notes List
 
@@ -418,11 +426,15 @@ Codex GPT-5
 - Expired/missing snapshots ignore retained slices for gating, and persisted public windows/peaks now preserve `weatherGateState='unknown'` through list/detail serialization. Added focused coverage for both snapshot states and the exact-50 top-50 cutoff.
 - Weather gate qualifiers are now computed directly from valid weather inputs plus geometric exposure/visibility; public and engine paths no longer reconstruct them from `CloudObscured` or sky-condition strings.
 - Closed S12.6-R1 by relationally normalizing the explicit `CloudObscured` diagnostic to a gated public verdict at the DTO boundary, including attached day-series ranking input; geometric exposure and diagnostic status remain intact.
+- Completed the Story 12.6 advisory trace: all functional P0 contracts are fully covered; the required visual/rebaseline evidence remains explicit and open.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md`
 - `_bmad-output/test-artifacts/automation-summary.md`
+- `_bmad-output/test-artifacts/traceability-matrix.md`
+- `_bmad-output/test-artifacts/traceability/traceability-report-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md`
+- `_bmad-output/test-artifacts/traceability/e2e-trace-summary-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.json`
 - `.github/workflows/build-and-test-nextjs.yml`
 - `project-context.md`
 - `nextjs-app/app/api/venues/route.ts`

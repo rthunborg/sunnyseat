@@ -1553,6 +1553,49 @@ describe('<MapView />', () => {
       expect(selectVenueMock).not.toHaveBeenCalledWith(null);
     });
 
+    it('keeps the deep-linked venue-detail-obscured pin weather-gated without rewriting unrelated pins', () => {
+      selectedVenueIdMock = 'venue-1';
+      searchParamsMock = new URLSearchParams(
+        'venue=test-venue-sunny&_state=venue-detail-obscured',
+      );
+      const selectedVenue = makeVenue({
+        id: 'venue-1',
+        name: 'Kafé Magasinet',
+        slug: 'test-venue-sunny',
+        status: 'Sunny',
+        sunExposurePercent: 92,
+      });
+      const unrelatedVenue = makeVenue({
+        id: 'venue-2',
+        name: 'Södra Solen',
+        slug: 'sodra-solen',
+        status: 'Sunny',
+        sunExposurePercent: 88,
+      });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([selectedVenue, unrelatedVenue]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const pins = JSON.parse(
+        screen.getByTestId('venue-pin-layer-stub').dataset.venues ?? '[]',
+      ) as VenuePinData[];
+      expect(pins.find((pin) => pin.id === 'venue-1')).toMatchObject({
+        sunStatus: 'CloudObscured',
+        weatherGateState: 'gated',
+        sunExposurePercent: 95,
+      });
+      expect(pins.find((pin) => pin.id === 'venue-2')).toMatchObject({
+        sunStatus: 'Sunny',
+        weatherGateState: 'not_gated',
+        sunExposurePercent: 88,
+      });
+    });
+
     it('uses URL detail data instead of stale selected venue fallback', () => {
       selectedVenueIdMock = 'venue-1';
       searchParamsMock = new URLSearchParams('venue=venue-b');

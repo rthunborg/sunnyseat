@@ -197,6 +197,7 @@ export function MapView() {
   // state (+ `skyCondition: 'overcast'`) so the muted pin/quick-info surface
   // is reachable on the fixture/CI path WITHOUT live Met.no weather.
   const isForcedObscuredReference = forcedState === 'map-with-obscured-venue';
+  const isForcedObscuredDetailReference = forcedState === 'venue-detail-obscured';
   const isForcedVisualReference =
     forcedState === 'map-primary' ||
     forcedState === 'map-panel-venues' ||
@@ -536,11 +537,24 @@ export function MapView() {
       // Story 10.2 (Task 5): the obscured force-state normalizes every pin to
       // the muted CloudObscured pill (deterministic obscured surface).
       if (isForcedObscuredReference) return [normalizeForcedObscuredPin(pin)];
+      // Story 12.6 visual-defect pass: `venue-detail-obscured` forces the
+      // detail DTO for the deep-linked seeded venue into the weather-gated
+      // CloudObscured state. Keep that selected map pin coherent with the
+      // detail surface without rewriting unrelated background pins.
+      if (isForcedObscuredDetailReference && venueMatchesSlug(v, venueSlugParam)) {
+        return [normalizeForcedObscuredPin(pin)];
+      }
       return forceSunnyVisualPins
         ? [normalizeForcedVisualPin(pin)]
         : [pin];
     });
-  }, [forceSunnyVisualPins, isForcedObscuredReference, venueDtosForMap]);
+  }, [
+    forceSunnyVisualPins,
+    isForcedObscuredDetailReference,
+    isForcedObscuredReference,
+    venueDtosForMap,
+    venueSlugParam,
+  ]);
   const selectedVenueDto = useMemo(() => {
     if (!selectedVenueId) return null;
     return venueDtosForMap.find((venue) => venue.id === selectedVenueId) ?? null;

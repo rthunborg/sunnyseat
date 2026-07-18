@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 6
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-18T23:22:07Z"
+updated_at: "2026-07-18T23:48:37Z"
 started_at: "2026-07-18T20:23:39Z"
 completed_at: null
-active_seconds: 9998
+active_seconds: 11437
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -21,13 +21,18 @@ tea_rationale: "Changes the public /api/venues ordering semantics and the shared
 epic_story_count: 14
 stories_after_in_epic: 10
 completed_phases: [0, 1, 2, 3, 4, 5, 6]
-code_review_iterations: 0
-code_review_loop_done: false
+code_review_iterations: 1
+code_review_loop_done: true
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
-story_trace: null
-commits: [8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c]
+story_trace:
+  coverage: "{\"traced\": 13, \"full\": 12, \"partial\": 1, \"uncovered\": 0}"
+  ran: true
+  verdict: CONCERNS
+  uncovered: []
+  material_gaps: ["AC5 visual/rebaseline: ten candidate captures exist, but maintainer authorization, authoritative reference replacement, REBASELINE-LOG update, and passing mobile/desktop comparisons remain open; ANTHROPIC_API_KEY is unavailable."]
+commits: [8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021]
 phase8_steps:
   trace_gate: null
   nfr: null
