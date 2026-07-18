@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-14T10:38:51+02:00'
+lastSaved: '2026-07-18T21:23:51+02:00'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-12.md'
@@ -62,6 +62,21 @@ inputDocuments:
   - '.gitattributes'
   - 'nextjs-app/test/unit/map-legibility-tokens.automate.test.ts (precedent)'
   - '_bmad/tea/config.yaml'
+  - '_bmad-output/implementation-artifacts/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md'
+  - '_bmad-output/test-artifacts/atdd-checklist-12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md'
+  - 'nextjs-app/lib/services/venue-store.ts'
+  - 'nextjs-app/app/api/reviews/route.ts'
+  - 'nextjs-app/app/api/venues/[slug]/feedback/route.ts'
+  - 'nextjs-app/lib/services/venue-reviews-persistence.ts'
+  - 'nextjs-app/test/unit/services/story-12-7-public-venue-resolver.atdd.test.ts'
+  - 'nextjs-app/test/unit/api/story-12-7-reviews-route-live-venues.atdd.test.ts'
+  - 'nextjs-app/test/unit/api/story-12-7-feedback-route-live-venues.atdd.test.ts'
+  - 'nextjs-app/test/unit/services/venue-store.test.ts'
+  - 'nextjs-app/test/unit/api/reviews-route.test.ts'
+  - 'nextjs-app/test/unit/api/venue-feedback-route.test.ts'
+  - 'nextjs-app/test/unit/services/venue-reviews-persistence.test.ts'
+  - 'nextjs-app/test/unit/services/story-12-7-public-venue-resolver.automation.test.ts'
+  - 'nextjs-app/test/unit/api/story-12-7-shared-resolver-convergence.automation.test.ts'
 ---
 
 # Automation Expansion Summary — Story 10.1 (Cloud-Gated Sun State & Weather-Truth Fixes)
@@ -535,3 +550,50 @@ Run `test-review` for quality scoring of the combined Story 12.1 suites, then `t
 ## Next Recommended Workflow
 
 Run `test-review` or `trace` for Story 12.3 if a quality-gate update is needed after this coverage expansion.
+
+---
+
+# Automation Expansion Summary — Story 12.7 (Reviews Route Resolves Live Venues)
+
+## Preflight & Context
+
+- **Framework:** Vitest 4.1.4 (`nextjs-app/vitest.config.ts`) and Playwright are configured; framework readiness passed.
+- **Stack:** fullstack/server-side Next.js API routes and services. Story 12.7 is backend/API identity resolution work; no UI/browser flow was changed.
+- **Mode:** BMad-integrated from the Story 12.7 file and existing ATDD checklist. Execution was sequential in this delegate session; no subagents were launched.
+- **Scope:** expand deterministic automated coverage for the implemented shared live venue identity/visibility resolver and its reviews/feedback route consumers. No production code, sprint status, auto-bmad state, or git operation was touched.
+
+## Coverage Plan
+
+- **Service-level resolver P0/P1:** quote/escape id-or-slug PostgREST filters, require visibility/deletion fields in the projection, reject hidden/deleted/private rows returned directly from Supabase, prevent visibility-column leakage into public DTOs, avoid miss/in-flight caching, fail closed on identity collisions, and propagate real store errors.
+- **API route convergence P0:** mock the shared resolver seam and prove reviews GET, reviews POST, and feedback POST all call it with the expected identifier before persistence.
+- **Regression preservation:** keep existing ATDD and fixture-mode route/persistence suites in the focused run so the durable automation does not weaken the story contract.
+- **No E2E/Pact additions:** this story has no new browser UI and the provider is an internal Next.js route/service boundary, so focused Vitest unit/integration tests are the appropriate level.
+
+## Generated Coverage
+
+- **NEW** `nextjs-app/test/unit/services/story-12-7-public-venue-resolver.automation.test.ts` — 6 tests covering resolver filter escaping, live id/slug parity, visibility/deletion fail-closed behavior, DTO non-leakage, cache/race consistency, collision handling, and store error propagation.
+- **NEW** `nextjs-app/test/unit/api/story-12-7-shared-resolver-convergence.automation.test.ts` — 4 tests covering shared resolver use by reviews GET/POST and feedback POST, zero-review `no-store` response, id-first review POST, decoded feedback path identifiers, and non-leaking not-found behavior before persistence.
+- **Aggregate:** 10 tests across 2 new files; P0: 6, P1: 4, P2/P3: 0.
+
+## Validation / Gate
+
+- Focused automation + regression suite: `npx vitest run test/unit/services/story-12-7-public-venue-resolver.automation.test.ts test/unit/api/story-12-7-shared-resolver-convergence.automation.test.ts test/unit/services/story-12-7-public-venue-resolver.atdd.test.ts test/unit/api/story-12-7-reviews-route-live-venues.atdd.test.ts test/unit/api/story-12-7-feedback-route-live-venues.atdd.test.ts test/unit/services/venue-store.test.ts test/unit/api/reviews-route.test.ts test/unit/api/venue-feedback-route.test.ts test/unit/services/venue-reviews-persistence.test.ts` → **9 files / 92 tests passed**.
+- Full unit/component suite: `npx vitest run` → **182 passed / 2 skipped files; 1,724 passed / 15 skipped tests**.
+- Vitest printed the existing jsdom `Not implemented: navigation to another Document` warning after the green full-suite summary; exit code was 0.
+
+## Assumptions, Risks, and Deferred Coverage
+
+- The previously implemented resolver contract is accepted as story-scope production behavior; this pass only added durable tests around remaining branch/race/convergence gaps.
+- Playwright was not run because no browser-visible behavior or UI was added in this automation pass.
+- Downstream Story 12.5, 12.10, and 12.14 consumers still need to adopt the shared public guard when their routes are implemented or touched.
+
+## Definition of Done
+
+- Existing Story 12.7 ATDD and regression coverage reviewed to avoid duplicate tests.
+- 10 deterministic Vitest tests added at service/API levels.
+- Focused and full Vitest runs passed.
+- Story file and TEA automation summary were updated.
+
+## Next Recommended Workflow
+
+Run `test-review` or `trace` for Story 12.7 if a quality-gate update is needed after this automation expansion.

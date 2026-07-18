@@ -128,6 +128,12 @@ feedback POST route — one shared live resolver for all three.)_
 - Reviews route tests: `nextjs-app/test/unit/api/story-12-7-reviews-route-live-venues.atdd.test.ts`
 - Feedback route tests: `nextjs-app/test/unit/api/story-12-7-feedback-route-live-venues.atdd.test.ts`
 
+### Automation Artifacts
+
+- Automation summary: `_bmad-output/test-artifacts/automation-summary.md`
+- Resolver coverage: `nextjs-app/test/unit/services/story-12-7-public-venue-resolver.automation.test.ts`
+- Shared route convergence coverage: `nextjs-app/test/unit/api/story-12-7-shared-resolver-convergence.automation.test.ts`
+
 ### Current Implementation Facts
 
 - `nextjs-app/lib/services/venue-reviews-persistence.ts` currently imports `VENUE_FIXTURE` and exports `resolveReviewVenueIdentifier(identifier)`, which trims an identifier and matches only fixture `id`, `venueId`, `slug`, or `venueSlug`.
@@ -240,6 +246,8 @@ Codex GPT-5
 - 2026-07-18: Canonical review gate `.\scripts\run-sh.ps1 scripts/story-review.sh 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues` passed; it ran npm `lint`, `typecheck`, and `test`, skipped visual validation because no mapped screen ID was found, and confirmed sprint status `review`.
 - 2026-07-18: Review validation artifact: `_bmad-output/implementation-artifacts/validation/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues-review-20260718-211450.log`.
 - 2026-07-18: Playwright was not run separately because the story remained backend-only, did not change public DTOs or UI/copy, and the canonical story-review gate did not require E2E for this unmapped story.
+- 2026-07-18: Phase 6 automation focused run `npx vitest run test/unit/services/story-12-7-public-venue-resolver.automation.test.ts test/unit/api/story-12-7-shared-resolver-convergence.automation.test.ts test/unit/services/story-12-7-public-venue-resolver.atdd.test.ts test/unit/api/story-12-7-reviews-route-live-venues.atdd.test.ts test/unit/api/story-12-7-feedback-route-live-venues.atdd.test.ts test/unit/services/venue-store.test.ts test/unit/api/reviews-route.test.ts test/unit/api/venue-feedback-route.test.ts test/unit/services/venue-reviews-persistence.test.ts` passed: 9 files / 92 tests.
+- 2026-07-18: Phase 6 automation full `npx vitest run` passed: 182 files passed, 2 skipped; 1724 tests passed, 15 skipped. Vitest printed the existing jsdom navigation warning after the green summary.
 
 ### Completion Notes List
 
@@ -248,6 +256,7 @@ Codex GPT-5
 - Rewired `/api/venues/[slug]/feedback` POST to use the same resolver before feedback persistence, preserving request validation, mismatch checks, and persistence error mapping.
 - Removed the fixture-only review identifier resolver from `venue-reviews-persistence.ts`; review persistence now stays focused on reads/writes/summaries.
 - Existing active Story 12.7 ATDD tests now pass without weakening or deleting their contract. Existing fixture-mode review and feedback tests remain green.
+- Added durable Phase 6 automation for resolver PostgREST quoting, visibility/deletion fail-closed handling, DTO non-leakage, miss invalidation/no shared in-flight state, collision/error behavior, and mocked route convergence through the same resolver for reviews GET/POST and feedback POST.
 - Downstream Story 12.5, 12.10, and 12.14 consumers still need to adopt the shared public guard when their routes are implemented/touched.
 
 ### File List
@@ -261,8 +270,12 @@ Codex GPT-5
 - `nextjs-app/lib/services/venue-reviews-persistence.ts`
 - `nextjs-app/test/unit/api/reviews-route.test.ts`
 - `nextjs-app/test/unit/api/venue-feedback-route.test.ts`
+- `nextjs-app/test/unit/api/story-12-7-shared-resolver-convergence.automation.test.ts`
+- `nextjs-app/test/unit/services/story-12-7-public-venue-resolver.automation.test.ts`
 - `nextjs-app/test/unit/services/venue-reviews-persistence.test.ts`
+- `_bmad-output/test-artifacts/automation-summary.md`
 
 ### Change Log
 
 - 2026-07-18: Implemented Story 12.7 shared live public venue resolver, rewired reviews/feedback routes, removed review-local fixture identity resolution, updated tests, and passed the canonical review gate.
+- 2026-07-18: Expanded Phase 6 durable automation coverage for Story 12.7 resolver semantics and route convergence; focused and full Vitest suites passed.
