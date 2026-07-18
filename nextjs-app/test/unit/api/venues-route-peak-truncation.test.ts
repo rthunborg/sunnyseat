@@ -185,6 +185,46 @@ describe('venues route — date-stable peak-rank truncation (external-review fix
     expect(body.venues.length).toBe(50);
   });
 
+  it('[P0] keeps an all-grey gated future peak ahead of a weaker grey peak at the top-50 cutoff', async () => {
+    const publiclySunnyFillers = Array.from({ length: 49 }, (_, i) => storedVenue(i));
+    for (const venue of publiclySunnyFillers) {
+      profiles.map.set(venue.id, { instant: 'NoSun', peak: 'Partial' } satisfies Profile);
+    }
+
+    const weakerGreyPeak = storedVenue(50);
+    profiles.map.set(weakerGreyPeak.id, { instant: 'NoSun', peak: 'Shaded' } satisfies Profile);
+
+    const gatedHighPeak = storedVenue(999);
+    profiles.map.set(gatedHighPeak.id, { instant: 'NoSun', peak: 'CloudObscured' } satisfies Profile);
+
+    // Both grey candidates tie at the selected instant. The cutoff must retain
+    // their day-peak exposure before distance/ID tie-breaks are considered.
+    storeMocks.getVenues.mockResolvedValue([
+      ...publiclySunnyFillers,
+      weakerGreyPeak,
+      gatedHighPeak,
+    ]);
+
+    const res = await LIST_GET(listRequest(`?lat=${CENTRE.lat}&lng=${CENTRE.lng}&radiusKm=3`));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenuesResponse;
+
+    expect(body.venues).toHaveLength(50);
+    expect(body.totalCount).toBe(51);
+
+    const keptIds = body.venues.map((venue) => venue.id);
+    expect(keptIds).toContain(gatedHighPeak.id);
+    expect(keptIds).not.toContain(weakerGreyPeak.id);
+    expect(body.venues.find((venue) => venue.id === gatedHighPeak.id)?.sunDaySeries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sunExposurePercent: 100,
+          weatherGateState: 'gated',
+        }),
+      ]),
+    );
+  });
+
   it('response ORDER is by the single-instant rank (client re-sort contract) even though truncation is peak-based', async () => {
     // Two obviously-ordered instant tiers among a small in-range set (no truncation
     // here — proves the ORDER stage is instant-based regardless of peak).

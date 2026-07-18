@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-18T21:23:51+02:00'
+lastSaved: '2026-07-19T00:29:24+02:00'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-12.md'
@@ -77,6 +77,16 @@ inputDocuments:
   - 'nextjs-app/test/unit/services/venue-reviews-persistence.test.ts'
   - 'nextjs-app/test/unit/services/story-12-7-public-venue-resolver.automation.test.ts'
   - 'nextjs-app/test/unit/api/story-12-7-shared-resolver-convergence.automation.test.ts'
+  - '_bmad-output/implementation-artifacts/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md'
+  - '_bmad-output/test-artifacts/atdd-checklist-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md'
+  - 'nextjs-app/lib/utils/public-sun.ts'
+  - 'nextjs-app/test/unit/utils/public-sun.atdd.test.ts'
+  - 'nextjs-app/test/unit/services/story-12-6-weather-gate-state.atdd.test.ts'
+  - 'nextjs-app/test/unit/api/story-12-6-public-sun-ordering.atdd.test.ts'
+  - 'nextjs-app/test/components/VenuePin.public-sun.atdd.test.tsx'
+  - 'nextjs-app/test/unit/story-12-6-i18n-a11y-ci.atdd.test.ts'
+  - 'nextjs-app/test/e2e/story-12-6-public-sun-pins.atdd.spec.ts'
+  - 'nextjs-app/test/e2e/story-12-6/axe-mobile.spec.ts'
 ---
 
 # Automation Expansion Summary — Story 10.1 (Cloud-Gated Sun State & Weather-Truth Fixes)
@@ -597,3 +607,77 @@ Run `test-review` or `trace` for Story 12.3 if a quality-gate update is needed a
 ## Next Recommended Workflow
 
 Run `test-review` or `trace` for Story 12.7 if a quality-gate update is needed after this automation expansion.
+
+---
+
+# Automation Expansion Summary - Story 12.6 (Simplify Map Pins)
+
+## Preflight And Context
+
+- **Framework:** Vitest 4.1.4 and Playwright are configured in `nextjs-app`; framework readiness passed.
+- **Stack:** frontend (`Next.js`/React with colocated API routes). Browser and API-contract tests are both present.
+- **Mode:** BMad-integrated from the Story 12.6 file, Epic 12 test design, and completed ATDD checklist.
+- **Scope:** assess the implemented public-sun predicate/comparator, tri-state weather propagation, two-state pin/card/quick-info semantics, ARIA/reduced-motion behavior, and genuinely executed mobile accessibility coverage. Production code, sprint status, Auto-BMAD state, git state, visual references, and capture recipes remain outside this delegate's ownership.
+- **Knowledge loaded:** test levels, risk priorities, deterministic data factories, selective execution, test quality, Playwright utilities, burn-in guidance, resilient selectors, timing, and healing constraints.
+- **Known external gate:** Story Task 7 remains open because the canonical visual wrapper cannot run without `ANTHROPIC_API_KEY`; no visual substitute or bypass is accepted.
+
+## Coverage Plan
+
+| Priority | Level | Target | Decision |
+| --- | --- | --- | --- |
+| P0 | Unit/domain | Strict `>50 && gate !== 'gated'` verdict, raw-status/confidence independence | Existing ATDD is exhaustive for the signed boundary; no duplicate test. |
+| P0 | Unit/domain + API | Equal-peak earliest-minute tie independent of input order; server top-50 all-grey peak selection; explicit distance/ID comparator tie | Add focused guards. The reverse peak tie and all-grey cutoff are expected to expose implementation defects. |
+| P0 | Service/unit | Matched but malformed weather and missing/malformed serialized gate values must resolve to `unknown` | Add fail-closed tests. Current code is expected to fail these honesty cases; expired snapshots retaining slices remain a separately documented gap. |
+| P0 | Component | Low/exact-50 and gated list-card/QuickInfo remain percentage-free; unknown-high retains an explicit localized unavailable-weather qualifier | Add rendered-surface tests. Existing pin coverage is sufficient; current card/QuickInfo unknown qualification is expected to fail. |
+| P0 | Component | Same marker ID with a gate-only refresh reuses marker/root, updates ARIA/state, and does not restart entrance opacity | Existing layer reconciliation and pin-state coverage make another passing test low-value in this defect-focused pass; retain as a documented direct-coverage gap. |
+| P1 | Component/i18n | Exact Swedish low-Partial/gated ARIA excludes percentage and confidence; unknown ARIA includes weather-unavailable meaning | Existing pin and i18n coverage already proves the signed contract; add no duplicate test. |
+| P1 | Browser/CI | Pin-bearing `a11y-mobile` scenario and CI project wiring | Coverage is already active and non-vacuous. Re-execute the project and record counts; add no duplicate axe scenario. |
+
+Coverage remains selective: pure logic at unit level, route cutoff at API level, rendered semantics at component level, and one existing axe browser scenario for mobile accessibility. No Pact target exists because the feature has no consumer-driven external service contract.
+
+## Generated Coverage
+
+- **NEW** `nextjs-app/test/unit/story-12-6-contract-defects.automation.test.ts` - 3 P0 tests for reverse-ordered equal-peak ties, matched malformed weather fail-closed behavior, and missing/malformed DTO gate normalization.
+- **NEW** `nextjs-app/test/components/story-12-6-honesty.automation.test.tsx` - 4 P0 rendered-surface tests for percentage-free grey list cards, unknown-weather card qualification, low/exact-50 QuickInfo not-sunny meaning, and unknown-weather QuickInfo qualification.
+- **EXPANDED** `nextjs-app/test/unit/api/venues-route-peak-truncation.test.ts` - 1 P0 route regression proving the top-50 cutoff retains a stronger all-grey gated future peak rather than falling back to selected-instant ID order.
+- **No new E2E or fixtures:** the existing five-state mobile/desktop pin journey and pin-bearing `a11y-mobile` axe scenario already cover the browser responsibility without duplication.
+- **Aggregate:** 8 P0 tests across 2 new files and 1 augmented file; 0 P1/P2/P3 tests; 0 fixtures.
+
+The new tests intentionally encode the signed Story 12.6 contract even where current production is expected to fail. Production fixes remain outside this test-only automate phase.
+
+## Validation And Gate
+
+- **Focused RED contract suite:** `npx vitest run test/unit/story-12-6-contract-defects.automation.test.ts test/unit/api/venues-route-peak-truncation.test.ts test/components/story-12-6-honesty.automation.test.tsx --reporter=verbose` executed **3 files / 10 tests: 7 failed, 3 passed** in 3.61s. No failure was skipped, marked `fixme`, or weakened.
+- **TypeScript:** `npx tsc --noEmit` passed with 0 errors.
+- **Focused lint:** `npx eslint test/unit/story-12-6-contract-defects.automation.test.ts test/unit/api/venues-route-peak-truncation.test.ts test/components/story-12-6-honesty.automation.test.tsx --quiet` passed with 0 errors.
+- **Existing Story 12.6 Vitest regression:** six predicate, gate, pin, layer, rank, and CI-wiring files passed **35/35 tests** in 3.70s. The existing synchronous React root-unmount warnings remained non-fatal.
+- **Focused browser/a11y regression:** under `CI=1`, the Story 12.6 public-pin and axe specs passed **5/5 tests** across `mobile`, `desktop`, and genuinely executed `a11y-mobile`, with one worker and zero retries, in 19.6s. The existing Next workspace-root and onboarding hydration warnings remained non-fatal. The Playwright web server exited; no listener remained on port 3000.
+- The prior implementation record remains the latest all-suite evidence: **187 passed / 2 skipped Vitest files; 1,747 passed / 15 skipped tests; 112 passed / 53 skipped Playwright tests**. A new full run was not presented as green because the newly added contract regressions intentionally expose production defects.
+
+## Confirmed Production Contract Gaps
+
+The seven focused RED failures are durable P0 regressions for current production behavior:
+
+1. Reverse-ordered equal exposure peaks choose the first array entry (minute 645) instead of the earlier minute (630).
+2. Matched malformed weather slices resolve to `not_gated`, and non-finite cloud data can resolve to `clear`, rather than failing closed to `unknown`.
+3. Missing or malformed DTO `weatherGateState` values are inferred as `not_gated` instead of normalized to `unknown`.
+4. Route top-50 peak truncation drops a stronger all-grey gated future peak behind weaker grey ID ordering.
+5. An unknown-weather sunny venue card omits the localized weather-unavailable qualifier.
+6. Low and exact-50 QuickInfo states omit a localized, percentage-free not-sunny verdict.
+7. Unknown-weather sunny QuickInfo omits the localized weather-unavailable qualifier.
+
+Remaining non-automated risks are explicitly deferred rather than padded with speculative tests: expired/missing snapshot metadata retaining otherwise valid slices, preservation of an `unknown` qualifier in serialized `sunWindow`/`peakTime`, direct same-ID gate-only `VenuePinLayer` refresh behavior, and remote GitHub Actions artifact evidence. Local CI wiring and an actual `a11y-mobile` execution are proven, but remote CI execution is not claimed.
+
+## Definition Of Done
+
+- Existing ATDD, implementation, and full-suite evidence was reviewed before adding coverage; exhaustive predicate, two-state pin, ARIA, reduced-motion, and axe cases were not duplicated.
+- Eight deterministic P0 tests were added across two new files and one existing route test file. No fixtures, hard waits, live providers, application source, CI workflow, visual/reference artifact, sprint status, Auto-BMAD state, or git state was changed.
+- Focused lint, typecheck, existing Story 12.6 regression, and focused Playwright/a11y regression passed.
+- The new defect suite was deliberately left RED at seven failures so production contract defects stay visible. This completes test generation and evidence capture, not story acceptance or review readiness.
+- Story 12.6 remains `in-progress`; Task 7 remains open because `ANTHROPIC_API_KEY` is unavailable for the canonical visual gate.
+
+## Next Recommended Workflow
+
+Run the production fix/code-review pass for the seven RED contracts, rerun this focused suite until it is green, then rerun the required full Vitest/Playwright gates. Run canonical visual validation after `ANTHROPIC_API_KEY` is available before attempting the story-review transition.
+
+---

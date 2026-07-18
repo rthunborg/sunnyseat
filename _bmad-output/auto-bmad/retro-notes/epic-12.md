@@ -31,3 +31,5 @@
 - Story 12.6's tri-state public-sun contract required explicit weatherGateState propagation across API DTOs, fixtures, persisted outcomes, and client derivation; one client/server-safe pure module prevented comparator, card, pin, and ARIA drift.
 - The existing a11y-mobile Playwright project was effectively vacuous because CI omitted it and a legacy unit guard enforced that omission; invoking it alongside a11y plus an active pin-bearing axe scenario closes the gap.
 - The legacy visual validator remains credential-gated on this host: a missing ANTHROPIC_API_KEY blocks comparison but does not authorize reference replacement, manual-pass claims, or a sprint-status transition.
+- The independent TEA automate pass caught seven contract defects that the initial green suite missed: reverse-order peak ties, all-grey top-50 truncation, fail-closed weather normalization, and missing unknown/not-sunny card/QuickInfo honesty copy.
+- Keeping the automation additions test-only and committing them red preserves an auditable red-to-green handoff before production fixes.

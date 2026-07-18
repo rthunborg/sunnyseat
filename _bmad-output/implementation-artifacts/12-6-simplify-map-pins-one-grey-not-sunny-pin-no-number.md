@@ -376,6 +376,9 @@ Codex GPT-5
 - 2026-07-18: Full `$env:CI='1'; npx playwright test --project=mobile --project=desktop --project=touch --project=a11y --project=a11y-mobile` passed: 112 passed, 53 skipped. Existing Next workspace-root and onboarding hydration warnings were non-fatal.
 - 2026-07-18: `npx playwright test --project=a11y-mobile --list` confirmed 8 executable mobile a11y tests across 2 files, including the Story 12.6 pin-bearing gate.
 - 2026-07-18: Canonical visual wrapper `.\scripts\run-sh.ps1 scripts/visual-validate.sh map-primary '/?_state=map-primary&_time=14:00' mobile` failed before comparison because `ANTHROPIC_API_KEY` is not set. Story-review transition was not run because visual validation has not passed.
+- 2026-07-19: TEA `testarch-automate` added 8 deterministic P0 contract regressions across 2 new test files and 1 augmented route test; no production, CI, visual/reference, sprint-status, Auto-BMAD-state, or git changes were made.
+- 2026-07-19: Focused RED verification executed 3 files / 10 tests: 7 failed and 3 passed. The failures expose equal-peak ordering, fail-closed weather/DTO normalization, all-grey peak truncation, and localized card/QuickInfo honesty defects; none were skipped, weakened, or marked `fixme`.
+- 2026-07-19: TEA verification passed TypeScript, focused lint, 6 existing Story 12.6 Vitest files / 35 tests, and 5 focused Playwright cases across mobile, desktop, and genuinely executed `a11y-mobile`. The local Playwright server exited cleanly.
 
 ### ATDD Artifacts
 
@@ -383,6 +386,13 @@ Codex GPT-5
 - API/domain tests: `nextjs-app/test/unit/api/story-12-6-public-sun-ordering.atdd.test.ts`, `nextjs-app/test/unit/utils/public-sun.atdd.test.ts`, `nextjs-app/test/unit/services/story-12-6-weather-gate-state.atdd.test.ts`
 - Component/i18n tests: `nextjs-app/test/components/VenuePin.public-sun.atdd.test.tsx`, `nextjs-app/test/unit/story-12-6-i18n-a11y-ci.atdd.test.ts`
 - E2E/a11y tests: `nextjs-app/test/e2e/story-12-6-public-sun-pins.atdd.spec.ts`, `nextjs-app/test/e2e/story-12-6/axe-mobile.spec.ts`
+
+### TEA Automate Artifacts
+
+- Automation record: `_bmad-output/test-artifacts/automation-summary.md`
+- New contract regressions: `nextjs-app/test/unit/story-12-6-contract-defects.automation.test.ts`, `nextjs-app/test/components/story-12-6-honesty.automation.test.tsx`
+- Augmented route regression: `nextjs-app/test/unit/api/venues-route-peak-truncation.test.ts`
+- Current gate: 7 intentional RED production-contract failures remain. Story 12.6 stays `in-progress`; Task 7 and the canonical visual gate remain open because `ANTHROPIC_API_KEY` is unavailable.
 
 ### Completion Notes List
 
@@ -394,10 +404,12 @@ Codex GPT-5
 - Wired a non-vacuous `a11y-mobile` CI invocation and updated standing CI tests to require the project.
 - Updated `DESIGN.md` and `project-context.md` for the Story 12.6 two-pin contract. Reference PNGs, capture recipes, and `REBASELINE-LOG.md` were intentionally not edited.
 - Blocked from story-review transition by missing `ANTHROPIC_API_KEY` for the legacy visual validation provider; no sprint status transition was attempted.
+- TEA automate added the minimum durable regression coverage for seven confirmed contract defects and intentionally left the defect suite RED for the production fix pass; this evidence does not mark the story review-ready.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md`
+- `_bmad-output/test-artifacts/automation-summary.md`
 - `.github/workflows/build-and-test-nextjs.yml`
 - `project-context.md`
 - `nextjs-app/app/api/venues/route.ts`
@@ -430,16 +442,19 @@ Codex GPT-5
 - `nextjs-app/test/components/VenuePin.test.tsx`
 - `nextjs-app/test/components/VenuePinLayer.test.tsx`
 - `nextjs-app/test/components/VenueQuickInfo.test.tsx`
+- `nextjs-app/test/components/story-12-6-honesty.automation.test.tsx`
 - `nextjs-app/test/e2e/epic-10-weather-matrix.spec.ts`
 - `nextjs-app/test/e2e/epic-11-sheet-touch-gestures.spec.ts`
 - `nextjs-app/test/e2e/story-12-6-public-sun-pins.atdd.spec.ts`
 - `nextjs-app/test/e2e/story-12-6/axe-mobile.spec.ts`
 - `nextjs-app/test/e2e/map-primary.spec.ts`
 - `nextjs-app/test/unit/api/story-12-6-public-sun-ordering.atdd.test.ts`
+- `nextjs-app/test/unit/api/venues-route-peak-truncation.test.ts`
 - `nextjs-app/test/unit/epic-11-standing-gate-ci-wiring.automate.test.ts`
 - `nextjs-app/test/unit/services/story-12-6-weather-gate-state.atdd.test.ts`
 - `nextjs-app/test/unit/services/sun-engine-caching.atdd.test.ts`
 - `nextjs-app/test/unit/services/sun-engine.test.ts`
+- `nextjs-app/test/unit/story-12-6-contract-defects.automation.test.ts`
 - `nextjs-app/test/unit/utils/public-sun.atdd.test.ts`
 - `nextjs-app/test/unit/utils/venue-day-series.test.ts`
 - `nextjs-app/test/unit/utils/venue-pin-mapping.test.ts`
