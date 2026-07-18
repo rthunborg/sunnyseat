@@ -5,10 +5,10 @@ epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-18T12:05:19Z"
+updated_at: "2026-07-18T16:48:28Z"
 started_at: "2026-07-18T11:27:25Z"
 completed_at: null
-active_seconds: 2126
+active_seconds: 2311
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [9d89d47, "0748044", 64bc456, b578b18]
+commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -50,9 +50,10 @@ open_questions: []
 deferred_work: []
 blockers: []
 overrides: {}
-constraints: []
+constraints:
+  - "Execute Epic 12 in the user-confirmed dependency order: 12-1, 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, 12-10, 12-5, 12-8, 12-11, 12-2, 12-14."
 epic_slug: real-venue-launch-readiness-perf-trust-hours-console-hygiene
-active_story: 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
+active_story: null
 stories_landed: []
 auto_decisions: []
 uat_items: []
@@ -61,3 +62,20 @@ preexisting_done_stories:
 adopt_verdicts:
   - "12-1 skipped: already done"
   - 12-2 through 12-14 queued fresh from backlog
+story_execution_order:
+  - 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
+  - 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
+  - 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
+  - 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number
+  - 12-13-remove-the-user-facing-confidence-indicator-keep-it-internal
+  - 12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes
+  - 12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider
+  - 12-4-production-console-hygiene-hydration-error-maplibre-null-warning
+  - 12-10-venue-detail-preload-instant-mer-info
+  - 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields
+  - 12-8-about-page-pin-legend-so-reads-the-sun-figure
+  - 12-11-first-run-coach-mark-guide-map-legend-feature-tour
+  - 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
+  - 12-14-hide-closed-venues-open-at-selected-time-filter
+story_order_cursor: 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
+order_override_reason: User-confirmed dependency order keeps prerequisite contracts ahead of their consumers while preserving Story 12-14 as the epic-end story.

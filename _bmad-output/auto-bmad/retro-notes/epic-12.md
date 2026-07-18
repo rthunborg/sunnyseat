@@ -11,3 +11,6 @@
 - [Phase 7 â€” code review] Iteration 5 explicitly overrode the three-round review cap. Future persistence stories should specify run ownership/input binding and per-venue isolation versus whole-population atomicity before implementation.
 - [Phase 7 â€” code review] Supabase CLI profile validation can prevent otherwise valid database pushes. Keep the protected pooler plus explicit migration-history transaction documented as the fallback.
 - [Phase 7 â€” code review] Iterative database hardening needs executable state-transition tests alongside each new overload and replay path; text-presence assertions did not protect the ownership/idempotence invariants.
+
+## Story 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
+- [Phase 5 â€” dev-story] Story 12.2 correctly stopped at its mandatory Task 0 because Stories 12.3, 12.6, 12.7, and 12.13 own prerequisite shared contracts that are not yet on the branch.

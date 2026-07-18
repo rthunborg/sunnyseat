@@ -177,16 +177,24 @@ Design gate: this is primarily backend/ops/data-analysis work. No visual gate is
 
 ### Agent Model Used
 
-To be completed by the dev-story agent.
+Codex GPT-5
 
 ### Debug Log References
 
-To be completed by the dev-story agent.
+- 2026-07-18: Baseline `cd nextjs-app && npx tsc --noEmit` passed.
+- 2026-07-18: Baseline `cd nextjs-app && npx eslint . --quiet` passed.
+- 2026-07-18: Task 0 prerequisite scan failed:
+  - `rg "geometry_input_hash|geometryInputHash|venue_geometry_inputs|computeGeometryInputHash|g1:" nextjs-app supabase` found no implementation outside this story file.
+  - `rg "weatherGateState|publicSunVerdict|isPublicSunny|sunExposurePercent > 50|weather_gated|weather_unknown" nextjs-app supabase` found no shared public-sunny predicate or weather-gate tri-state.
+  - `nextjs-app/app/api/venues/[slug]/feedback/route.ts` still imports `VENUE_FIXTURE`, and `nextjs-app/lib/services/venue-reviews-persistence.ts` still exposes the fixture-only review resolver seam.
+  - Visible/screen-reader confidence paths remain active in venue cards, detail, route overlay, messages, and tests; Story 12.13 has not landed on this branch.
 
 ### Completion Notes List
 
-To be completed by the dev-story agent.
+- Blocked at Task 0 by the story's mandatory prerequisite gate. No production code, schema, tests, or UI were changed.
+- Missing prerequisites: Story 12.3 canonical `geometry_input_hash`; Story 12.6 shared public-sunny predicate and `weatherGateState`; Story 12.7 shared live public venue resolver for feedback POST; Story 12.13 confidence-removal premise.
+- Per the story brief, implementation must not proceed by creating local one-off substitutes for those shared contracts.
 
 ### File List
 
-To be completed by the dev-story agent.
+- _bmad-output/implementation-artifacts/12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.md
