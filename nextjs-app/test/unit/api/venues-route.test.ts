@@ -312,12 +312,13 @@ describe('GET /api/venues', () => {
     const normalized = normalizeVenueForResponse({
       ...makeVenue({ id: 'gated', lat: 57.7, lng: 11.9 }),
       currentSunStatus: 'CloudObscured',
-      weatherGateState: 'unknown',
+      weatherGateState: 'gated',
       skyCondition: 'overcast',
     });
 
     // The gated status is preserved verbatim; the geometric layer is untouched.
     expect(normalized.currentSunStatus).toBe('CloudObscured');
+    expect(normalized.weatherGateState).toBe('gated');
     expect(normalized.sunExposurePercent).toBe(90);
     // Survives an actual JSON serialization round-trip (the route JSON-encodes the DTO).
     const roundTripped = JSON.parse(JSON.stringify(normalized)) as VenueDataDto;

@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 6
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-18T22:58:20Z"
+updated_at: "2026-07-18T23:22:07Z"
 started_at: "2026-07-18T20:23:39Z"
 completed_at: null
-active_seconds: 8621
+active_seconds: 9998
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "Changes the public /api/venues ordering semantics and the shared sunny/not-sunny contract across server ranking, client sorting, pins, cards, ARIA, and labels, carrying score-9 API/UI truth risk."
 epic_story_count: 14
 stories_after_in_epic: 10
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [8f17d33, 72b3d7c, ec167e7, c92242d, "9898151"]
+commits: [8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -53,3 +53,14 @@ blockers:
 overrides: {}
 constraints: []
 tier_a_base_sha: 4102afccbcefc3ea5c07b6deafbb0f771f5a8b1c
+tier_a_review:
+  verdict: "Changes Requested -> fixed"
+  critical: 0
+  high: 0
+  medium: 1
+  low: 0
+  open_decisions_auto_resolved: 0
+  dismissed_noise: 0
+  security: "No findings; HIGH 0 / MEDIUM 0 / LOW 0"
+  fixed: 1
+  deferred: 0

@@ -36,3 +36,6 @@
 - Fail-closed weather provenance must be carried directly as tri-state data; deriving it later from CloudObscured or sky strings creates silent known-clear promotions.
 - Public window/peak DTOs need their own gate-state provenance so unknown-weather qualification survives persistence and serialization.
 - Final Story 12.6 functional evidence after the automate fix pass: 1,758 Vitest tests passed; the five-project Playwright matrix passed with two retry-classified flakes; typecheck and lint passed.
+- Tier-A found one Medium invariant gap after the broader green fix: syntactically valid but semantically contradictory CloudObscured + not_gated tuples could still enter the public-sunny band.
+- The thin-review fix keeps the shared status-agnostic predicate unchanged and enforces the relational invariant at the public DTO sanitizer for both top-level and day-series entries; 103 focused tests plus typecheck/lint passed.
+- Dedicated Tier-A security review reported no exploitable findings.

@@ -386,6 +386,8 @@ Codex GPT-5
 - 2026-07-19: Full `npx vitest run` passed: 189 files passed, 2 skipped; 1758 tests passed, 15 skipped. The Story 12.3 persisted-route clock was pinned to its fixture date and its valid rollover snapshot now declares `status: 'ready'`.
 - 2026-07-19: Full `$env:CI='1'; npx playwright test --project=mobile --project=desktop --project=touch --project=a11y --project=a11y-mobile` exited 0: 110 passed, 2 passed on retry, 53 skipped. Both retries were the existing Next dev-server JSON/onboarding hydration startup race; no Story 12.6 assertion remained failing.
 - 2026-07-19: Visual validation was not rerun in this defect pass per orchestration scope; the previously recorded missing `ANTHROPIC_API_KEY` blocker remains and Task 7 stays open.
+- 2026-07-19: S12.6-R1 fixed at the public DTO sanitizer: top-level and day-series `CloudObscured` values now fail closed to `weatherGateState: 'gated'`, while the shared strict `>50 && gate !== 'gated'` predicate remains unchanged. The route fixture now carries coherent gate provenance and the high-exposure obscured venue remains in the grey band after genuine public-sunny venues.
+- 2026-07-19: S12.6-R1 focused sanitizer/route verification passed 3 files / 55 tests; adjacent cloud-gate, shared-predicate, pin, list-rank, and card verification passed 6 files / 48 tests. `npx tsc --noEmit`, full `npx eslint . --quiet`, and final `git diff --check` passed. Full suites were not rerun for this thin patch because the immediately preceding full Vitest and Playwright gates above were green.
 
 ### ATDD Artifacts
 
@@ -415,6 +417,7 @@ Codex GPT-5
 - Fixed the seven TEA defects: equal peaks now choose the earlier minute, day-stable truncation retains the strongest grey-band series step, malformed/absent weather and gate fields fail to `unknown`, and card/QuickInfo verdicts carry localized weather-unavailable or not-sunny copy.
 - Expired/missing snapshots ignore retained slices for gating, and persisted public windows/peaks now preserve `weatherGateState='unknown'` through list/detail serialization. Added focused coverage for both snapshot states and the exact-50 top-50 cutoff.
 - Weather gate qualifiers are now computed directly from valid weather inputs plus geometric exposure/visibility; public and engine paths no longer reconstruct them from `CloudObscured` or sky-condition strings.
+- Closed S12.6-R1 by relationally normalizing the explicit `CloudObscured` diagnostic to a gated public verdict at the DTO boundary, including attached day-series ranking input; geometric exposure and diagnostic status remain intact.
 
 ### File List
 
@@ -464,6 +467,9 @@ Codex GPT-5
 - `nextjs-app/test/e2e/map-primary.spec.ts`
 - `nextjs-app/test/unit/api/story-12-6-public-sun-ordering.atdd.test.ts`
 - `nextjs-app/test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts`
+- `nextjs-app/test/unit/api/venues-route.cloud-gate.atdd.test.ts`
+- `nextjs-app/test/unit/api/venues-route-real-engine.test.ts`
+- `nextjs-app/test/unit/api/venues-route.test.ts`
 - `nextjs-app/test/unit/api/venues-route-peak-truncation.test.ts`
 - `nextjs-app/test/unit/epic-11-standing-gate-ci-wiring.automate.test.ts`
 - `nextjs-app/test/unit/services/story-12-6-weather-gate-state.atdd.test.ts`
@@ -477,3 +483,7 @@ Codex GPT-5
 - `nextjs-app/test/unit/services/venue-store.test.ts`
 - `nextjs-app/test/unit/venue-detail/route-cache.test.ts`
 - `nextjs-app/test/unit/story-12-6-i18n-a11y-ci.atdd.test.ts`
+
+### Review Findings
+
+- [x] [Review][Patch][Med] S12.6-R1: Normalize or prevent `CloudObscured` plus `weatherGateState: 'not_gated'` before public DTO/ranking consumers. Evidence: `normalizeVenueForResponse` preserves a syntactically valid `not_gated` independently of `currentSunStatus` at `nextjs-app/lib/services/venues-fixture.ts:267-271`, while `isVenuePubliclySunny` marks any `sunExposurePercent > 50` venue public-sunny unless the gate is exactly `gated` at `nextjs-app/lib/utils/public-sun.ts:25-31`. Current tests still construct the contradictory shape at `nextjs-app/test/unit/api/venues-route-real-engine.test.ts:71-79` and `nextjs-app/test/unit/api/venues-route.cloud-gate.atdd.test.ts:20-37`, then `nextjs-app/test/unit/api/venues-route-real-engine.test.ts:241-309` expects high-exposure `CloudObscured` to rank above a genuine `Partial` venue. Impact: an explicitly weather-obscured high-exposure venue can enter the public sunny band for pins/order/copy, contradicting Story 12.6's weather-gated grey/no-percent contract. Fix: make the contradictory producer/test fixture impossible or fail closed to `weatherGateState: 'gated'` before public-sun consumers see it; update the stale route/API sanitizer tests and add a regression that high-exposure `CloudObscured` is not public sunny.

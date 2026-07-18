@@ -266,7 +266,8 @@ export function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
 
   return {
     ...venueWithoutUncertainty,
-    weatherGateState: normalizeWeatherGateState(
+    weatherGateState: normalizeWeatherGateStateForStatus(
+      venue.currentSunStatus,
       (venue as VenueDataDto & { weatherGateState?: unknown }).weatherGateState,
     ),
     sunWindow,
@@ -283,6 +284,16 @@ export function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
   };
 }
 
+function normalizeWeatherGateStateForStatus(
+  currentSunStatus: VenueDataDto['currentSunStatus'],
+  value: unknown,
+): VenueDataDto['weatherGateState'] {
+  // CloudObscured is itself the output of the Epic 10 cloud/rain gate. A stale
+  // producer must not pair it with a public-sunny gate value at the DTO boundary.
+  // Normal producers still derive both fields directly from weather inputs.
+  return currentSunStatus === 'CloudObscured' ? 'gated' : normalizeWeatherGateState(value);
+}
+
 function normalizePublicPotentialGateState(value: unknown): 'not_gated' | 'unknown' {
   return normalizeWeatherGateState(value) === 'not_gated' ? 'not_gated' : 'unknown';
 }
@@ -293,7 +304,8 @@ function normalizeSunDaySeries(value: unknown): VenueDaySeriesEntry[] | undefine
     .filter((entry): entry is VenueDaySeriesEntry => Boolean(entry) && typeof entry === 'object')
     .map((entry) => ({
       ...entry,
-      weatherGateState: normalizeWeatherGateState(
+      weatherGateState: normalizeWeatherGateStateForStatus(
+        entry.currentSunStatus,
         (entry as VenueDaySeriesEntry & { weatherGateState?: unknown }).weatherGateState,
       ),
     }));
