@@ -2,7 +2,7 @@
 # Used by BMAD workflows: create-story, dev-story, sprint-planning, sprint-status
 #
 # generated: 2026-06-02
-# last_updated: 2026-07-18T13:54:45+02:00
+# last_updated: 2026-07-18T18:57:10+02:00
 # project: sunnyseat
 # project_key: NOKEY
 # tracking_system: file-system
@@ -320,7 +320,7 @@ development_status:
   epic-12: in-progress
   12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours: done
   12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass: ready-for-dev
-  12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze: backlog
+  12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze: ready-for-dev
   12-4-production-console-hygiene-hydration-error-maplibre-null-warning: backlog
   12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields: backlog
   12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number: backlog
@@ -355,6 +355,16 @@ development_status:
 # and explicitly gates implementation on the shared 12.3 geometry_input_hash, 12.6 public-sunny predicate,
 # 12.7 live resolver, and 12.13 confidence-removal premise. It keeps Story 12.2 backend/ops scoped unless
 # uncertainty labels or feedback UI change, in which case normal copy/a11y/visual validation applies.
+
+# Note (2026-07-18, create-story 12.3 — backlog -> ready-for-dev): authored the persisted day-series
+# story context at _bmad-output/implementation-artifacts/12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md.
+# The brief makes 12.3 the canonical owner of `geometry_input_hash`, shared seating centroid, service-only
+# persisted ungated geometry, scheduled full-window+buffer coverage, weather snapshots, fail-closed
+# `SUN_GEOMETRY_COVERAGE_MISSING`, and the prediction-evidence hash seam consumed by 12.2. It folds in
+# Story 12.1 retro constraints (run ownership/input binding, executable DB state tests, protected live evidence,
+# script allow-lists, Supabase CLI fallback) plus overlapping deferred weather/hash/centroid/test concerns.
+# Story-file-audit passed all 7 checks after adding verbatim source ACs/design gate and expected file impact;
+# draft baseline `npx tsc --noEmit` and `npx eslint . --quiet` both passed from nextjs-app.
 
 # Note (2026-07-12, sprint-planning epic-12 — Epic 12 registered as backlog): full sprint-planning refresh against epics.md recognized the flexible `## Epic 12 (Backlog):` header and added all 14 title-derived story keys plus the retrospective in source order. No 12-* story files exist, so Epic 12 and Stories 12.1-12.14 remain backlog and the retrospective remains optional. All prior advanced statuses and retrospective action items were preserved. Inventory: 12 epics / 87 stories; status totals: 7 done, 1 in-progress, 4 backlog epics; 53 done, 8 review, 26 backlog stories. Epic 12 is explicitly not scheduled; epics.md recommends Story 12.3 first when prioritized.
 
