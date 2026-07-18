@@ -335,10 +335,11 @@ vercel promote [deployment-url] --prod
 
 ### Cron Job Issues
 
-1. **CRON_SECRET**: Verify `CRON_SECRET` is set correctly
-2. **Schedule**: Check cron schedule in `vercel.json`
-3. **Execution Logs**: Review logs for cron job execution
-4. **Timeout**: Ensure jobs complete within Vercel's timeout limits
+Opening-hours review is not a Vercel cron. Inspect the protected GitHub
+`Hours Review Audit` workflow, its bounded step summary/run ID, and
+`SUN_HOURS_AUDIT_ENABLED`. The direct runner has no public trigger and its
+`SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` configuration belongs to the
+GitHub `production` environment.
 
 ### Performance Issues
 

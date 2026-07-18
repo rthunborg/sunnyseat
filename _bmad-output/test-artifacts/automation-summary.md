@@ -6,8 +6,17 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-06T11-9'
+lastSaved: '2026-07-14T10:38:51+02:00'
 inputDocuments:
+  - '_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
+  - '_bmad-output/test-artifacts/test-design/test-design-epic-12.md'
+  - '_bmad-output/test-artifacts/atdd-checklist-12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
+  - 'project-context.md'
+  - 'nextjs-app/package.json'
+  - 'nextjs-app/vitest.config.ts'
+  - 'nextjs-app/playwright.config.ts'
+  - '_bmad/tea/config.yaml'
+  - '.agents/skills/bmad-testarch-automate/resources/tea-index.csv'
   - '_bmad-output/implementation-artifacts/11-9-venue-data-model-cleanup.md'
   - 'nextjs-app/lib/utils/opening-hours.ts'
   - 'nextjs-app/lib/services/venue-store.ts'
@@ -410,3 +419,67 @@ All formatter tests inject a fixed `now` (offset-annotated) — wall-clock-deter
 
 ## Next recommended workflow
 `trace` (traceability matrix / quality-gate decision for Story 11.9) or `test-review` (quality validation of the new + existing opening-hours suites).
+
+---
+
+# Automation Expansion Summary — Story 12.1 (Provider-Neutral Opening-Hours Governance)
+
+## Preflight & Context
+
+- **Framework:** Vitest 4.1.4 (`nextjs-app/vitest.config.ts`) and Playwright 1.59.1 (`nextjs-app/playwright.config.ts`) are configured; framework readiness passed.
+- **Stack:** fullstack by TEA manifest and target analysis (Next.js/React application with server-only governance/audit services in the same app).
+- **Mode:** BMad-integrated from the Story 12.1 brief, Epic 12 test design, and ATDD checklist.
+- **Scope:** expand deterministic automated coverage for the completed provider-neutral governance, direct weekly audit, migration/security contracts, and honest unknown-hours DTO boundary. Existing live migration/remediation evidence is accepted and not replayed; `public.spatial_ref_sys` remains an acknowledged PostGIS exception and is untouched.
+- **Knowledge loaded:** test levels, priorities, factories, selective execution, burn-in, test quality, Playwright Utils UI/API profile, Pact MCP guidance, and Playwright CLI guidance.
+
+## Coverage Plan
+
+- **Browser exploration:** skipped after the configured CLI probe returned `NOT_INSTALLED`; this data/operations story has no new UI flow, and the existing API/browser/visual evidence already proves the no-pixel-change boundary.
+- **Existing coverage retained:** 41 Story 12.1 ATDD contracts cover the headline provider-policy, migration, governance, audit, workflow/docs, and detail-DTO requirements. Existing list/store suites already cover list omission of unknown hours, so that route is not duplicated.
+- **Unit P1 — governance boundary expansion:** strict provenance/date/reference validation, valid/invalid HH:MM and weekday boundaries, canonical update idempotency under object-key reordering, and remediation no-write behavior for manual-review/failed rows.
+- **Unit P1 — audit boundary expansion:** exact due/stale cutoffs, classification precedence, bounded error classes, repository outcome-write failure isolation, redacted outcome payloads, and run-level read failure propagation.
+- **P2 selective additions:** empty-run/optional repository behavior only where it covers an unexecuted branch without duplicating AC headline tests.
+- **No E2E/component/Pact additions:** pure service/data contracts are most stable at unit level; UI pixels and external-provider interactions are explicitly unchanged/prohibited.
+
+## Generated Coverage
+
+- **NEW** `nextjs-app/test/unit/services/opening-hours-governance.coverage.test.ts` — 14 deterministic P1 tests covering provenance normalization/rejection, schedule boundaries, idempotent canonical planning, whole-field unknown writes, and remediation preservation.
+- **NEW** `nextjs-app/test/unit/services/opening-hours-audit.coverage.test.ts` — 11 deterministic tests (9 P1, 2 P2) covering due/stale cutoffs, classification precedence, bounded error classes, outcome-write isolation/redaction, run-level read failure, concurrency bounding, and empty runs.
+- **Fixtures/helpers:** none required; tests use local fixed inputs and Vitest spies only.
+- **Execution mode:** sequential, consistent with the phase constraint against further delegation.
+- **Aggregate:** 25 tests across 2 files; P1: 23, P2: 2, P0/P3: 0.
+
+## Files Updated
+
+- `nextjs-app/test/unit/services/opening-hours-governance.coverage.test.ts` — created.
+- `nextjs-app/test/unit/services/opening-hours-audit.coverage.test.ts` — created.
+- `_bmad-output/test-artifacts/automation-summary.md` — this coverage and validation record.
+
+## Validation / Gate
+
+- Focused generated suite: `npx vitest run test/unit/services/opening-hours-governance.coverage.test.ts test/unit/services/opening-hours-audit.coverage.test.ts` → **2 files / 25 tests passed**.
+- Targeted lint: `npx eslint test/unit/services/opening-hours-governance.coverage.test.ts test/unit/services/opening-hours-audit.coverage.test.ts --quiet` → **0 errors**.
+- TypeScript: `npx tsc --noEmit` → **0 errors**.
+- Full unit/component suite: `npx vitest run` → **160 files / 1,512 tests passed, 0 failed**. This is the pre-expansion 158 files / 1,487 tests plus exactly 2 files / 25 tests.
+- `git diff --check` → **passed**; the command emitted only the existing line-ending advisory for the orchestrator-owned Story 12.1 state YAML.
+- Playwright CLI sessions: none opened, so no browser process cleanup was required. Temporary worker JSON files were deleted after aggregation; the durable result is stored here under the configured test-artifact directory.
+
+## Assumptions, Risks, and Deferred Coverage
+
+- The manually collected venue-website opening-hours provenance is authoritative input for this pre-launch story; these tests validate its governance and audit handling without replaying the live remediation.
+- `public.spatial_ref_sys` is an acknowledged PostGIS-managed advisory exception. It was not altered, queried, or brought into the test scope.
+- No UI, scheduled-provider call, live Supabase write, or Pact interaction was added. Existing migration/remediation evidence and the 41 headline ATDD contracts remain the integration proof; the new coverage targets deterministic service boundaries only.
+- The remaining risk is operational rather than unit-level: future production audit execution still depends on deployment credentials and scheduler health already covered by the story's workflow/operations contracts.
+
+## Definition of Done
+
+- Framework, story, Epic 12 test design, and ATDD context reviewed.
+- Existing coverage mapped and duplicate list/detail/UI coverage avoided.
+- 25 priority-tagged deterministic unit tests created in the established test tree.
+- No fixtures, factories, or helpers were introduced because the tests are pure/local and require no cleanup.
+- Focused and full validation gates passed with no healing iteration or `fixme` needed.
+- No application, database, migration, provider, UI, or sprint-status files changed by this workflow.
+
+## Next Recommended Workflow
+
+Run `test-review` for quality scoring of the combined Story 12.1 suites, then `trace` for the acceptance-criteria traceability and quality-gate decision.

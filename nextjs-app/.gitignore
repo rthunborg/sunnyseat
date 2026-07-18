@@ -46,6 +46,8 @@ scripts/*
 !scripts/capture-navbar-ripple-rebaseline.mjs
 !scripts/capture-not-found-rebaseline.mjs
 !scripts/verify-maplibre-async.mjs
+!scripts/audit-opening-hours.ts
+!scripts/remediate-opening-hours.ts
 
 # vercel
 .vercel

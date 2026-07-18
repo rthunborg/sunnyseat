@@ -1,27 +1,55 @@
 name: Hours Review Audit
 
 on:
+  schedule:
+    - cron: '17 5 * * 1'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: sunnyseat-hours-review-production
+  cancel-in-progress: false
+
 jobs:
-  registration-placeholder:
+  audit:
+    if: >-
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 1
+    timeout-minutes: 10
+    environment: Production
+    defaults:
+      run:
+        working-directory: nextjs-app
     steps:
-      - name: Report registration placeholder
-        shell: bash
-        run: |
-          echo "::notice title=Registration placeholder::No opening-hours audit was run."
-          {
-            echo "## Hours Review Audit registration placeholder"
-            echo
-            echo "This default-branch workflow only registers the workflow path for manual dispatch."
-            echo "It does not access Supabase or run the opening-hours audit."
-            echo
-            echo "Dispatch the actual audit workflow with a non-main ref:"
-            echo
-            echo '`gh workflow run .github/workflows/hours-review-audit.yml --ref <story-branch>`'
-          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: nextjs-app/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Build service-only audit runner
+        run: >-
+          npx --no-install esbuild scripts/audit-opening-hours.ts
+          --bundle
+          --platform=node
+          --format=esm
+          --outfile="$RUNNER_TEMP/audit-opening-hours.mjs"
+
+      - name: Audit opening-hours freshness
+        # The runner writes bounded counts plus the run ID to GITHUB_STEP_SUMMARY.
+        run: node "$RUNNER_TEMP/audit-opening-hours.mjs"
+        env:
+          # The protected environment is explicitly enabled after the 42-venue
+          # remediation gate; absence remains fail-closed and `false` is the
+          # independent emergency stop.
+          SUN_HOURS_AUDIT_ENABLED: ${{ vars.SUN_HOURS_AUDIT_ENABLED || 'false' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

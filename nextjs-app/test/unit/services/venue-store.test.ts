@@ -308,6 +308,19 @@ describe('venue-store (Supabase opt-in)', () => {
     expect(venue).not.toHaveProperty('predictionUncertainty');
     expect(venue).not.toHaveProperty('skyCondition');
     expect(venue).not.toHaveProperty('description');
+    expect(venue).not.toHaveProperty('openingHours');
+  });
+
+  it('preserves an empty object as a known all-closed weekly schedule', async () => {
+    useSupabaseStore();
+    supabaseMock.state.singleResult = {
+      data: { ...SUPABASE_ROW, id: '11', slug: 'all-closed', opening_hours: {} },
+      error: null,
+    };
+
+    const venue = await getVenueBySlug('all-closed');
+    expect(venue).toHaveProperty('openingHours');
+    expect(venue?.openingHours).toEqual({});
   });
 
   it('returns null when no row matches the slug', async () => {

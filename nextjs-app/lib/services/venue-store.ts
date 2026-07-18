@@ -125,7 +125,8 @@ const VENUE_DETAIL_SEED: Record<string, StoredVenueDetail> = {
     description:
       'Skyddad gårdsmiljö med kortare solfönster och gott om sittplatser.',
     address: 'Haga Nygata 8, 413 01 Göteborg',
-    openingHours: everyDay('11:00', '22:00'),
+    // Story 12.1: deterministic whole-field-unknown fixture. The detail/list
+    // routes must omit openingHours rather than fabricate a closed schedule.
   },
   'skuggans-hus': {
     description:
@@ -558,8 +559,9 @@ function detailFromRow(row: VenueRow): StoredVenueDetail {
  * the venue renders NOTHING, never a throw — mirroring the other defensive
  * `coerce*` helpers). A well-formed weekday entry is `{ open, close }` with HH:MM
  * strings; a `null` weekday entry (closed that day) is PRESERVED so the formatter
- * derives "closed today" honestly. The result is kept only when it has at least one
- * usable weekday key — an object with zero recognizable weekday entries → undefined.
+ * derives "closed today" honestly. The empty object is also valid and means all
+ * seven missing weekdays are explicitly closed. Only SQL/JSON null or a malformed
+ * non-object represents whole-field unknown.
  */
 export function coerceOpeningHours(value: unknown): WeeklyOpeningHours | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
@@ -580,7 +582,7 @@ export function coerceOpeningHours(value: unknown): WeeklyOpeningHours | undefin
       hasEntry = true;
     }
   }
-  return hasEntry ? result : undefined;
+  return hasEntry || Object.keys(source).length === 0 ? result : undefined;
 }
 
 function coerceOpeningInterval(value: unknown): { open: string; close: string } | undefined {

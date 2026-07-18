@@ -33,7 +33,7 @@ describe('GET /api/venues/[slug]', () => {
     expect(body.venue.description).toMatch(/uteservering/i);
     // Story 11.9 (AC2): openingHours is the per-weekday structure (no `display`
     // string). The gate venue closes 22:00 every weekday.
-    expect(body.venue.openingHours['1']).toEqual({ open: '11:00', close: '22:00' });
+    expect(body.venue.openingHours?.['1']).toEqual({ open: '11:00', close: '22:00' });
     expect(body.venue.timeline.windows.length).toBeGreaterThan(0);
     expect(body.venue.timeline.windows[0]).toMatchObject({
       start: '13:00',

@@ -1,0 +1,85 @@
+{
+  "schema_version": "0.1.0",
+  "snapshot_at": "2026-07-17T00:00:00+02:00",
+  "repo": "sunnyseat",
+  "collection_mode": "advisory_story_scope",
+  "collection_status": "COLLECTED",
+  "inventory_basis": "acceptance_criteria",
+  "gate_basis": "none",
+  "target": {
+    "type": "story",
+    "id": "12.1",
+    "label": "Google Places Opening-Hours Sync (Provider Pivot)"
+  },
+  "decision_mode": "advisory",
+  "evaluator": "Rasmus",
+  "confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md",
+      "_bmad-output/qa/epic-12-test-design-2026-07-12.md",
+      "project-context.md"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "advisory_status": "PASS",
+  "coverage": {
+    "inventory": {
+      "covered": 8,
+      "total": 8,
+      "pct": 100
+    },
+    "priority_breakdown": {
+      "P0": {
+        "total": 4,
+        "covered": 4,
+        "pct": 100
+      },
+      "P1": {
+        "total": 4,
+        "covered": 4,
+        "pct": 100
+      },
+      "P2": {
+        "total": 0,
+        "covered": 0,
+        "pct": 100
+      },
+      "P3": {
+        "total": 0,
+        "covered": 0,
+        "pct": 100
+      }
+    }
+  },
+  "tests": {
+    "files": 16,
+    "cases": 126,
+    "skipped_cases": 0,
+    "fixme_cases": 0,
+    "pending_cases": 0
+  },
+  "risk_summary": {
+    "critical_open": 0,
+    "high_open": 0,
+    "medium_open": 0,
+    "low_open": 0
+  },
+  "heuristics": {
+    "endpoint_gaps": 0,
+    "auth_negative_path_status": "present",
+    "error_path_status": "present",
+    "ui_journey_status": "not_applicable",
+    "ui_state_status": "not_applicable"
+  },
+  "uncovered_requirements": [],
+  "blockers": [],
+  "recommendations": [],
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-report-12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md",
+    "trace_matrix_path": "_bmad-output/test-artifacts/traceability-matrix.md"
+  }
+}

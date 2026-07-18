@@ -158,7 +158,8 @@ export interface VenueDataDto {
    * this field, and the card renders nothing (NEVER a fabricated value). The
    * pre-localized `{ display, closesAt }` STRING that used to live here is GONE —
    * the render layer derives the display + today's close at render time.
-   * `VenueDetailDto` re-declares it as REQUIRED (a legal optional→required override).
+   * Detail uses the same optional contract so whole-field unknown remains
+   * distinguishable from seven explicitly closed weekdays.
    */
   openingHours?: WeeklyOpeningHours;
   thumbnail?: {
@@ -172,12 +173,12 @@ export interface VenueDataDto {
 export interface VenueDetailDto extends VenueDataDto {
   description: string;
   address: string;
-  // STORY 11.9 (AC2): REQUIRED on the detail DTO (a legal optional→required
-  // override of `VenueDataDto.openingHours`). The per-weekday structure; the
+  // STORY 12.1 (AC6): optional on detail as well as list. Whole-field unknown
+  // omits the field; a present per-weekday structure remains unchanged. The
   // detail render derives the ÖPPET badge + Öppettider row from the CURRENT
   // Stockholm weekday. STORY 11.9 (AC4): `shadowWarningMinutes` is REMOVED — it was
   // carried store→DTO but rendered nowhere (its only readers were tests).
-  openingHours: WeeklyOpeningHours;
+  openingHours?: WeeklyOpeningHours;
   timeline: VenueSunTimelineDto;
 }
 

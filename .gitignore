@@ -83,4 +83,7 @@ building_geodata/
 
 # Local agent/tooling config (machine-specific; may carry tokens/link state)
 .mcp.json
-supabase/
+# Supabase CLI state remains local; versioned SQL migrations are repository authority.
+supabase/*
+!supabase/migrations/
+!supabase/migrations/*.sql
