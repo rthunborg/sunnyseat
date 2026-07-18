@@ -29,16 +29,22 @@ import {
 } from '@/lib/services/weather-freshness-fixture';
 import {
   aggregateSunFreshness,
-  applyRealSunEngine,
-  computeVenueDaySeries,
-  createDedupedForecastFetcher,
-  createDedupedNowcastFetcher,
   mapWithConcurrency,
   resolveRequestedAt,
-  safeSeedOutcome,
   shouldUseRealSunEngine,
   SUN_ENGINE_LIST_CONCURRENCY,
 } from '@/lib/services/sun-engine';
+import {
+  buildPersistedSunOutcome,
+  routeUsesInjectedSunGeometryRepositoryForTests,
+  SunGeometryCoverageMissingError,
+  __setSunGeometryRepositoryForTests as setSunGeometryRepositoryForTests,
+  type SunGeometryRepository,
+} from '@/lib/services/sun-geometry-repository';
+import {
+  __setWeatherSnapshotRepositoryForTests as setWeatherSnapshotRepositoryForTests,
+  type WeatherSnapshotRepository,
+} from '@/lib/services/weather-snapshots';
 import type {
   GetVenuesResponse,
   SunFreshnessMeta,
@@ -56,6 +62,14 @@ const MAX_IDS = MAX_RESULTS;
 const MAX_IDS_QUERY_LENGTH = MAX_IDS * (MAX_ID_LENGTH + 1) - 1;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/u;
 const DIACRITIC_PATTERN = /[\u0300-\u036f]/gu;
+
+export function __setSunGeometryRepositoryForTests(repo: SunGeometryRepository | undefined): void {
+  setSunGeometryRepositoryForTests(repo);
+}
+
+export function __setWeatherSnapshotRepositoryForTests(repo: WeatherSnapshotRepository | undefined): void {
+  setWeatherSnapshotRepositoryForTests(repo);
+}
 
 // STORY 10.1 (AC4, Task 1): this `Record` keyed on the `VenueSunStatus` union is a
 // compile-forcing site — a missing key is a type error, and a missing key at
@@ -294,72 +308,48 @@ export async function GET(request: NextRequest) {
   const planner = parseVenuePlannerParams(params);
   if (!planner.ok) return badRequest(planner.detail);
 
-  // STORY 8.3 — real engine swap behind a frozen DTO. The default (flag off)
-  // path is byte-identical to the 8.2 seed; the real path replaces the sun
-  // fields before the SUN_STATUS_ORDER sort and bypasses the planner +
-  // fixture-weather stages (the engine computes for the requested time + real
-  // freshness). DECISION D: compute concurrently, degrade per-venue (never 500).
-  const useRealEngine = shouldUseRealSunEngine();
+  // STORY 12.3 — real venue sunlight is served from persisted deterministic
+  // geometry plus read-time weather snapshots. Missing exact current coverage is
+  // fail-closed so a cold public request never performs the full-day projection.
+  const useRealEngine =
+    shouldUseRealSunEngine() ||
+    (process.env.NODE_ENV === 'test' && routeUsesInjectedSunGeometryRepositoryForTests());
   const now = new Date();
   let freshness: SunFreshnessMeta;
   let processedVenues: VenueDataDto[];
 
   if (useRealEngine) {
     const requestedAt = resolveRequestedAt(planner.selection, now);
-    // Dedupe Met.no fetches by rounded coordinates + cap the concurrent per-venue
-    // fan-out, and degrade each venue to a safe seed result on any throw so the
-    // list route can NEVER 500 on the real path (DECISION D / Story 8.5 5.1+5.2).
-    const { getForecast } = await import('@/lib/weather/met-no-service');
-    const dedupedForecast = createDedupedForecastFetcher(getForecast);
-    // STORY 10.4 (Task 5): batch-scoped per-coordinate dedupe for the Nowcast 2.0
-    // rain signal too — co-located venues share ONE nowcast call, keeping the
-    // Met.no fan-out under the shared TOS rate cap (rain requests count toward the
-    // same budget). The engine consults it only for near-now requests (AC4).
-    const { getNowcastPrecipitationRate } = await import('@/lib/weather/nowcast-service');
-    const dedupedNowcast = createDedupedNowcastFetcher(getNowcastPrecipitationRate);
-    const outcomes = await mapWithConcurrency(
-      storeVenues,
-      SUN_ENGINE_LIST_CONCURRENCY,
-      async (v) => {
-        try {
-          const outcome = await applyRealSunEngine(
-            v,
-            requestedAt,
-            now,
-            dedupedForecast,
-            dedupedNowcast,
-          );
-          // STORY 11.1 (AC1): attach the per-step day-series so the client
-          // derives every time-dependent surface offline-from-network. Computed
-          // with the SAME deduped forecast/nowcast fetchers (no extra Met.no
-          // calls) and cached per (venue, day, weather-bucket) so repeat requests
-          // in a bucket are near-free. A series failure degrades to no series
-          // (never a 500) — the client falls back to the single-instant fields.
-          try {
-            const daySeries = await computeVenueDaySeries(
-              v,
-              requestedAt,
-              now,
-              dedupedForecast,
-              dedupedNowcast,
-            );
-            return { ...outcome, daySeries };
-          } catch (seriesError) {
-            console.error(
-              `Day-series failed for venue ${v.id}; omitting series:`,
-              seriesError instanceof Error ? seriesError.message : String(seriesError),
-            );
-            return outcome;
-          }
-        } catch (error) {
-          console.error(
-            `Sun engine failed for venue ${v.id}; degrading:`,
-            error instanceof Error ? error.message : String(error),
-          );
-          return safeSeedOutcome(v);
-        }
-      },
-    );
+    let outcomes: Awaited<ReturnType<typeof buildPersistedSunOutcome>>[];
+    try {
+      outcomes = await mapWithConcurrency(
+        storeVenues,
+        SUN_ENGINE_LIST_CONCURRENCY,
+        (venue) =>
+          buildPersistedSunOutcome(venue, requestedAt, now, {
+            weatherBucket: params.get('weatherBucket') ?? undefined,
+          }),
+      );
+    } catch (error) {
+      if (error instanceof SunGeometryCoverageMissingError) {
+        return NextResponse.json(
+          {
+            error: 'Sun geometry coverage missing',
+            code: 'SUN_GEOMETRY_COVERAGE_MISSING',
+            detail: 'Missing current geometry coverage for the requested venue/date/hash.',
+            statusCode: 503,
+          },
+          {
+            status: 503,
+            headers: {
+              'Cache-Control': 'no-store',
+              'X-Sun-Geometry-Coverage': 'missing',
+            },
+          },
+        );
+      }
+      throw error;
+    }
     freshness = aggregateSunFreshness(outcomes.map((o) => o.freshness));
     processedVenues = outcomes
       .map((o) => {

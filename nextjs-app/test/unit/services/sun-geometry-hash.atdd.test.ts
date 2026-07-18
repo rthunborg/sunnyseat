@@ -55,7 +55,7 @@ const baseInput = {
 };
 
 describe('Story 12.3 AC1 - canonical sun geometry input hash', () => {
-  test.skip('emits exactly g1:<lowercase sha-256> for the canonical golden vector', async () => {
+  test('emits exactly g1:<lowercase sha-256> for the canonical golden vector', async () => {
     const { computeGeometryInputHash, GEOMETRY_INPUT_HASH_GOLDEN_VECTORS } = await loadHashModule();
     const hash = await computeGeometryInputHash(baseInput);
 
@@ -65,7 +65,7 @@ describe('Story 12.3 AC1 - canonical sun geometry input hash', () => {
     expect(hash).toBe(GEOMETRY_INPUT_HASH_GOLDEN_VECTORS?.story123RealVenueScaleBase);
   });
 
-  test.skip('is invariant to polygon ring rotation and orientation', async () => {
+  test('is invariant to polygon ring rotation and orientation', async () => {
     const { computeGeometryInputHash } = await loadHashModule();
     const clockwise = await computeGeometryInputHash(baseInput);
     const rotatedAndReversed = structuredClone(baseInput);
@@ -80,7 +80,7 @@ describe('Story 12.3 AC1 - canonical sun geometry input hash', () => {
     await expect(computeGeometryInputHash(rotatedAndReversed)).resolves.toBe(clockwise);
   });
 
-  test.skip('is invariant to caster row order while preserving each caster identity', async () => {
+  test('is invariant to caster row order while preserving each caster identity', async () => {
     const { computeGeometryInputHash } = await loadHashModule();
     const first = await computeGeometryInputHash(baseInput);
     const reordered = { ...baseInput, casters: [...baseInput.casters].reverse() };
@@ -88,7 +88,7 @@ describe('Story 12.3 AC1 - canonical sun geometry input hash', () => {
     await expect(computeGeometryInputHash(reordered)).resolves.toBe(first);
   });
 
-  test.skip('normalizes -0 and 0 to the same canonical numeric representation', async () => {
+  test('normalizes -0 and 0 to the same canonical numeric representation', async () => {
     const { computeGeometryInputHash } = await loadHashModule();
     const positiveZero = structuredClone(baseInput);
     const negativeZero = structuredClone(baseInput);
@@ -100,7 +100,7 @@ describe('Story 12.3 AC1 - canonical sun geometry input hash', () => {
     );
   });
 
-  test.skip('rejects non-finite numeric inputs instead of silently canonicalizing them', async () => {
+  test('rejects non-finite numeric inputs instead of silently canonicalizing them', async () => {
     const { computeGeometryInputHash } = await loadHashModule();
     const bad = structuredClone(baseInput) as typeof baseInput & { venue: { seatingElevationM: number } };
     bad.venue.seatingElevationM = Number.POSITIVE_INFINITY;
@@ -108,7 +108,7 @@ describe('Story 12.3 AC1 - canonical sun geometry input hash', () => {
     await expect(computeGeometryInputHash(bad)).rejects.toThrow(/finite|non-finite/i);
   });
 
-  test.skip('changes when planner step version, caster EWKB, or import generation changes', async () => {
+  test('changes when planner step version, caster EWKB, or import generation changes', async () => {
     const { computeGeometryInputHash } = await loadHashModule();
     const base = await computeGeometryInputHash(baseInput);
 
@@ -123,7 +123,7 @@ describe('Story 12.3 AC1 - canonical sun geometry input hash', () => {
     await expect(computeGeometryInputHash(generationChanged)).resolves.not.toBe(base);
   });
 
-  test.skip('includes actual get_buildings_near_point caster z-values in the hash input', async () => {
+  test('includes actual get_buildings_near_point caster z-values in the hash input', async () => {
     const { computeGeometryInputHash } = await loadHashModule();
     const base = await computeGeometryInputHash(baseInput);
     const roofChanged = structuredClone(baseInput);

@@ -14,6 +14,12 @@ collect and in what shape” guide.
 > column auto-assigns a text id (Story 11.9); simply omit it from the insert. The
 > **engine-managed** columns get safe placeholders — the real sun values are computed live.
 
+Story 12.3 persists ungated day-series geometry by `geometry_input_hash`. Any
+change to seating geometry, seating/ground elevation, or shadow-caster import
+inputs must mark the affected venue geometry dirty and let the protected
+precompute job publish a new ready hash before public reads use the change.
+Public reads must not fill gaps by doing the full-day shadow projection.
+
 ## Field groups
 
 ### 1. Durable fields — YOU provide these

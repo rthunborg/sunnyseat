@@ -1,5 +1,6 @@
 import { GOTHENBURG } from '@/lib/solar/constants';
 import type { WeatherSlice } from '@/lib/solar/types';
+import { PLANNER_MAX_FUTURE_DAYS } from '@/lib/utils/time-planner';
 
 const API_BASE = 'https://api.met.no/weatherapi';
 
@@ -10,6 +11,7 @@ const API_BASE = 'https://api.met.no/weatherapi';
 // NEXT_PUBLIC_, but it carries no credential (the contact address is public by
 // TOS design). [Story 8.5 Task 5.4 / AC#4e]
 const DEFAULT_USER_AGENT = 'SunnySeat/1.0 rasmus.thunborg@enhancior.se';
+const FORECAST_HORIZON_MS = (PLANNER_MAX_FUTURE_DAYS + 1) * 24 * 60 * 60 * 1000;
 
 // EXPORTED (Story 10.4 Task 1): the Nowcast 2.0 client (`nowcast-service.ts`)
 // reuses this SAME identifying User-Agent helper so the two Met.no clients cannot
@@ -90,12 +92,14 @@ export async function getForecast(
     const now = Date.now();
     const slices: WeatherSlice[] = [];
 
-    for (const entry of timeseries.slice(0, 48)) {
+    const forecastHorizon = now + FORECAST_HORIZON_MS;
+    for (const entry of timeseries) {
       const instant = entry.data?.instant?.details;
       if (!instant) continue;
 
       const validAt = new Date(entry.time);
       const entryTime = validAt.getTime();
+      if (entryTime > forecastHorizon) continue;
       const isForecast = entryTime > now + 30 * 60000;
 
       const fogFraction = instant.fog_area_fraction;

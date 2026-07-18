@@ -72,6 +72,15 @@ export interface PredictionUncertaintyDto {
   reasons: PredictionUncertaintyReason[];
 }
 
+export interface PredictionEvidenceDto {
+  /**
+   * Opaque server-computed geometry generation marker used by the feedback
+   * accuracy loop. It is evidence, not display copy; clients must not derive
+   * engine internals from it.
+   */
+  geometryInputHash?: string;
+}
+
 export interface SunFreshnessMeta {
   weatherUpdatedAt?: string;
   sunDataSource?: SunDataSource;
@@ -134,6 +143,7 @@ export interface VenueDataDto {
    * user-facing uncertainty causes and must not expose source/geodata internals.
    */
   predictionUncertainty?: PredictionUncertaintyDto;
+  predictionEvidence?: PredictionEvidenceDto;
   sunWindow?: {
     start: string;
     end: string;

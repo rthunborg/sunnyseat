@@ -105,7 +105,7 @@ async function mockVenues(page: Page): Promise<{ count: () => number; urls: () =
   return { count: () => count, urls: () => urls };
 }
 
-test.describe.skip('Story 12.3 persisted geometry request-count invariants', () => {
+test.describe('Story 12.3 persisted geometry request-count invariants', () => {
   test('same-date time scrub remains zero /api/venues requests with persisted day series', async ({ page }) => {
     const providerHits = await forbidProviderFanout(page);
     await bypassOnboarding(page);

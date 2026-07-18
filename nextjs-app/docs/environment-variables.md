@@ -67,6 +67,20 @@ Leave `SUN_HOURS_AUDIT_ENABLED=false` until migrations and one-time provenance
 remediation pass. Use `workflow_dispatch` for a controlled manual run. Bounded
 run/outcome history is retained for 180 days.
 
+### Sun geometry and weather jobs
+
+Story 12.3 adds direct GitHub Actions runners for persisted ungated
+`geometry_input_hash` day-series coverage and weather snapshots. These are
+separate from the hours audit and use independent emergency stops.
+
+| Variable | Description | Required | Environment |
+|---|---|---|---|
+| `SUPABASE_URL` | Project URL used by the direct runners | Yes when enabled | GitHub protected `Production` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only table/RPC credentials | Yes when enabled | GitHub protected `Production` secret |
+| `SUN_GEOMETRY_PRECOMPUTE_ENABLED` | Enables persisted geometry precompute when exactly `true` | Yes | GitHub protected `Production` variable |
+| `SUN_WEATHER_REFRESH_ENABLED` | Enables weather snapshot refresh when exactly `true` | Yes | GitHub protected `Production` variable |
+| `MET_NO_USER_AGENT` | Public Met.no contact identifier for snapshot refresh | Yes when weather enabled | GitHub protected `Production` variable |
+
 ### Application Configuration
 
 | Variable | Description | Required | Default | Environment |
@@ -92,6 +106,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://[project-ref].supabase.co
 SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
 SUPABASE_URL=https://[project-ref].supabase.co
 SUN_HOURS_AUDIT_ENABLED=false
+SUN_GEOMETRY_PRECOMPUTE_ENABLED=false
+SUN_WEATHER_REFRESH_ENABLED=false
 
 # Data-source adapters (omit to use the in-memory seed default)
 # SUNNYSEAT_VENUE_STORE=supabase

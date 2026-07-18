@@ -33,7 +33,7 @@ function expectedPlannerMinutes(): number[] {
 }
 
 describe('Story 12.3 AC1/AC3/AC6 - geometry-only precompute', () => {
-  test.skip('computes deterministic ungated geometry-only entries for every planner step', async () => {
+  test('computes deterministic ungated geometry-only entries for every planner step', async () => {
     const { computeUngatedGeometryDaySeries } = await loadPrecomputeModule();
     const series = await computeUngatedGeometryDaySeries({
       venueId: 'venue-1',
@@ -48,7 +48,7 @@ describe('Story 12.3 AC1/AC3/AC6 - geometry-only precompute', () => {
     }
   });
 
-  test.skip('precompute window covers today through today + PLANNER_MAX_FUTURE_DAYS + 1', async () => {
+  test('precompute window covers today through today + PLANNER_MAX_FUTURE_DAYS + 1', async () => {
     const { buildSunGeometryPrecomputeWindow } = await loadPrecomputeModule();
     const window = buildSunGeometryPrecomputeWindow(new Date('2026-07-18T00:30:00+02:00'));
 
@@ -57,7 +57,7 @@ describe('Story 12.3 AC1/AC3/AC6 - geometry-only precompute', () => {
     expect(window.at(-1)).toBe('2026-07-22');
   });
 
-  test.skip('targets every persisted venue, including hidden and resolver-excluded venues', async () => {
+  test('targets every persisted venue, including hidden and resolver-excluded venues', async () => {
     const { collectSunGeometryPrecomputeTargets } = await loadPrecomputeModule();
     const targets = await collectSunGeometryPrecomputeTargets({ includeHidden: true });
 
@@ -70,7 +70,7 @@ describe('Story 12.3 AC1/AC3/AC6 - geometry-only precompute', () => {
     );
   });
 
-  test.skip('publishes a run only after every venue/date/hash cell is complete', async () => {
+  test('publishes a run only after every venue/date/hash cell is complete', async () => {
     const { runSunGeometryPrecompute } = await loadPrecomputeModule();
     const result = await runSunGeometryPrecompute({
       now: new Date('2026-07-18T00:30:00+02:00'),
@@ -86,7 +86,7 @@ describe('Story 12.3 AC1/AC3/AC6 - geometry-only precompute', () => {
     expect(result.completedVenueDays).not.toBe(result.totalVenueDays);
   });
 
-  test.skip('records cold, bucket-roll, and precompute timing evidence for CPU profiling', async () => {
+  test('records cold, bucket-roll, and precompute timing evidence for CPU profiling', async () => {
     const { runSunGeometryPrecompute } = await loadPrecomputeModule();
     const result = await runSunGeometryPrecompute({
       now: new Date('2026-07-18T00:30:00+02:00'),

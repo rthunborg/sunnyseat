@@ -1,0 +1,109 @@
+name: Sun Geometry And Weather Snapshots
+
+on:
+  schedule:
+    - cron: '7 22 * * *'
+    - cron: '17 23 * * *'
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Job mode'
+        required: true
+        default: both
+        type: choice
+        options:
+          - both
+          - geometry
+          - weather
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sunnyseat-sun-geometry-weather-production
+  cancel-in-progress: false
+
+jobs:
+  geometry:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (
+        github.event_name == 'schedule' ||
+        github.event.inputs.mode == 'both' ||
+        github.event.inputs.mode == 'geometry'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: Production
+    defaults:
+      run:
+        working-directory: nextjs-app
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: nextjs-app/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Build service-only geometry runner
+        run: >-
+          npx --no-install esbuild scripts/precompute-sun-geometry.ts
+          --bundle
+          --platform=node
+          --format=esm
+          --outfile="$RUNNER_TEMP/precompute-sun-geometry.mjs"
+
+      - name: Precompute sun geometry
+        run: node "$RUNNER_TEMP/precompute-sun-geometry.mjs"
+        env:
+          SUN_GEOMETRY_PRECOMPUTE_ENABLED: ${{ vars.SUN_GEOMETRY_PRECOMPUTE_ENABLED || 'false' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+  weather:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (
+        github.event_name == 'schedule' ||
+        github.event.inputs.mode == 'both' ||
+        github.event.inputs.mode == 'weather'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: Production
+    defaults:
+      run:
+        working-directory: nextjs-app
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: nextjs-app/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Build service-only weather runner
+        run: >-
+          npx --no-install esbuild scripts/refresh-weather-snapshots.ts
+          --bundle
+          --platform=node
+          --format=esm
+          --outfile="$RUNNER_TEMP/refresh-weather-snapshots.mjs"
+
+      - name: Refresh weather snapshots
+        run: node "$RUNNER_TEMP/refresh-weather-snapshots.mjs"
+        env:
+          SUN_WEATHER_REFRESH_ENABLED: ${{ vars.SUN_WEATHER_REFRESH_ENABLED || 'false' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MET_NO_USER_AGENT: ${{ vars.MET_NO_USER_AGENT }}

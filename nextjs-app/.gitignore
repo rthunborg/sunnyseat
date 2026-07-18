@@ -48,6 +48,8 @@ scripts/*
 !scripts/verify-maplibre-async.mjs
 !scripts/audit-opening-hours.ts
 !scripts/remediate-opening-hours.ts
+!scripts/precompute-sun-geometry.ts
+!scripts/refresh-weather-snapshots.ts
 
 # vercel
 .vercel

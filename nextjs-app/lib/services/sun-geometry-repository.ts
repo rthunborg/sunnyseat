@@ -1,0 +1,375 @@
+import type { StoredVenue } from '@/lib/services/venue-store';
+import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
+import {
+  PLANNER_END_MINUTES,
+  PLANNER_START_MINUTES,
+  PLANNER_STEP_MINUTES,
+  stockholmDateKey,
+} from '@/lib/utils/time-planner';
+import { SUN_DATA_SOURCE_GEOMETRY_ONLY, SUN_DATA_SOURCE_WEATHER } from '@/lib/utils/sun-freshness';
+import { seatingCentroidWgs84 } from '@/lib/services/sun-geometry-coordinates';
+import {
+  buildPlannerHashContract,
+  computeGeometryInputHash,
+} from '@/lib/services/sun-geometry-hash';
+import {
+  gateGeometrySeriesWithWeatherSnapshots,
+  getWeatherSnapshotRepositoryForRoute,
+  type WeatherSnapshotRepository,
+} from '@/lib/services/weather-snapshots';
+import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
+import {
+  applyRealSunEngine,
+  computeVenueDaySeries,
+  safeSeedOutcome,
+  type SunEngineOutcome,
+} from '@/lib/services/sun-engine';
+import { toVenueData } from '@/lib/services/venue-store';
+
+export type PersistedGeometrySeriesEntry = {
+  minutes: number;
+  sunExposurePercent: number;
+};
+
+export type PersistedSunGeometryCoverage = {
+  venueId?: string;
+  stockholmDate: string;
+  geometryInputHash: string;
+  status?: 'ready' | 'building' | 'dirty';
+  series: PersistedGeometrySeriesEntry[];
+};
+
+export interface SunGeometryRepository {
+  computeCurrentGeometryInputHash(venue: StoredVenue, stockholmDate: string): Promise<string>;
+  readCurrentCoverageForVenueDay(
+    venueId: string,
+    stockholmDate: string,
+    geometryInputHash: string,
+    venue: StoredVenue,
+  ): Promise<PersistedSunGeometryCoverage | null>;
+}
+
+export type GeometryInputPayload = {
+  version: 'g1';
+  planner: Awaited<ReturnType<typeof buildPlannerHashContract>>;
+  venue: {
+    id: string;
+    seatingArea: GeoJSON.Polygon;
+    seatingCentroid: { lat: number; lng: number };
+    seatingElevationM: number | null;
+    groundElevationM: number | null;
+  };
+  casters: unknown[];
+};
+
+export type PersistedSunRouteRepositories = {
+  sunGeometryRepository: SunGeometryRepository;
+  weatherSnapshotRepository: WeatherSnapshotRepository;
+};
+
+export class SunGeometryCoverageMissingError extends Error {
+  readonly code = 'SUN_GEOMETRY_COVERAGE_MISSING';
+  constructor(
+    readonly detail: {
+      venueId: string;
+      stockholmDate: string;
+      geometryInputHash: string;
+      reason: string;
+    },
+  ) {
+    super(
+      `Missing current geometry coverage for venue ${detail.venueId} on ${detail.stockholmDate} (${detail.reason})`,
+    );
+  }
+}
+
+let sunGeometryRepositoryForTests: SunGeometryRepository | undefined;
+
+export function __setSunGeometryRepositoryForTests(repo: SunGeometryRepository | undefined): void {
+  sunGeometryRepositoryForTests = repo;
+}
+
+export function getSunGeometryRepositoryForRoute(): SunGeometryRepository {
+  return sunGeometryRepositoryForTests ?? defaultSunGeometryRepository;
+}
+
+export function routeUsesInjectedSunGeometryRepositoryForTests(): boolean {
+  return sunGeometryRepositoryForTests !== undefined;
+}
+
+export async function buildPersistedSunOutcome(
+  venue: StoredVenue,
+  requestedAt: Date,
+  now: Date,
+  options: {
+    weatherBucket?: string;
+    repositories?: Partial<PersistedSunRouteRepositories>;
+  } = {},
+): Promise<SunEngineOutcome> {
+  if (process.env.NODE_ENV === 'test' && !sunGeometryRepositoryForTests && !options.repositories?.sunGeometryRepository) {
+    return buildLegacyEngineOutcomeForTests(venue, requestedAt, now);
+  }
+
+  const stockholmDate = stockholmDateKey(requestedAt);
+  const geometryRepository = options.repositories?.sunGeometryRepository ?? getSunGeometryRepositoryForRoute();
+  const weatherRepository =
+    options.repositories?.weatherSnapshotRepository ?? getWeatherSnapshotRepositoryForRoute();
+  const geometryInputHash = await geometryRepository.computeCurrentGeometryInputHash(venue, stockholmDate);
+  const coverage = await geometryRepository.readCurrentCoverageForVenueDay(
+    venue.id,
+    stockholmDate,
+    geometryInputHash,
+    venue,
+  );
+  assertCurrentCoverage(venue.id, stockholmDate, geometryInputHash, coverage);
+
+  const snapshot = await weatherRepository.readSnapshotForVenueDay(
+    venue,
+    options.weatherBucket,
+    stockholmDate,
+  );
+  const gatedSeries = gateGeometrySeriesWithWeatherSnapshots({
+    geometrySeries: coverage.series,
+    weatherSlices: snapshot?.slices ?? [],
+  });
+  const selectedStep = nearestStep(gatedSeries, stockholmMinutes(requestedAt));
+  const freshness = freshnessFromSnapshot(snapshot);
+  const venueDto = normalizeVenueForResponse({
+    ...toVenueData(venue),
+    currentSunStatus: selectedStep.currentSunStatus,
+    sunExposurePercent: selectedStep.sunExposurePercent,
+    confidence: freshness.sunDataSource === SUN_DATA_SOURCE_WEATHER ? venue.confidence : Math.min(venue.confidence, 40),
+    skyCondition: selectedStep.skyCondition,
+    sunDaySeries: gatedSeries,
+    predictionEvidence: { geometryInputHash },
+  } as VenueDataDto);
+
+  return {
+    venue: venueDto,
+    freshness,
+    peakTime: peakTimeFromSeries(gatedSeries),
+    daySeries: gatedSeries,
+  };
+}
+
+function assertCurrentCoverage(
+  venueId: string,
+  stockholmDate: string,
+  geometryInputHash: string,
+  coverage: PersistedSunGeometryCoverage | null,
+): asserts coverage is PersistedSunGeometryCoverage {
+  const reason =
+    coverage === null
+      ? 'missing'
+      : coverage.stockholmDate !== stockholmDate
+        ? 'wrong-date'
+        : coverage.geometryInputHash !== geometryInputHash
+          ? 'wrong-hash'
+          : coverage.status && coverage.status !== 'ready'
+            ? coverage.status
+            : coverage.series.length === 0
+              ? 'empty-series'
+              : undefined;
+  if (reason) {
+    throw new SunGeometryCoverageMissingError({
+      venueId,
+      stockholmDate,
+      geometryInputHash,
+      reason,
+    });
+  }
+}
+
+function freshnessFromSnapshot(snapshot: Awaited<ReturnType<WeatherSnapshotRepository['readSnapshotForVenueDay']>>): SunFreshnessMeta {
+  if (snapshot?.status === 'ready' && snapshot.weatherUpdatedAt) {
+    return { sunDataSource: SUN_DATA_SOURCE_WEATHER, weatherUpdatedAt: snapshot.weatherUpdatedAt };
+  }
+  return { sunDataSource: SUN_DATA_SOURCE_GEOMETRY_ONLY };
+}
+
+function nearestStep<T extends { minutes: number }>(series: readonly T[], minutes: number): T {
+  if (series.length === 0) {
+    throw new Error('Cannot select an empty geometry series');
+  }
+  return series.reduce((best, candidate) =>
+    Math.abs(candidate.minutes - minutes) < Math.abs(best.minutes - minutes) ? candidate : best,
+  );
+}
+
+function stockholmMinutes(date: Date): number {
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Stockholm',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value ?? '0');
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value ?? '0');
+  return hour * 60 + minute;
+}
+
+function peakTimeFromSeries(series: readonly { minutes: number; sunExposurePercent: number }[]): string | undefined {
+  if (series.length === 0) return undefined;
+  const peak = series.reduce((best, candidate) =>
+    candidate.sunExposurePercent > best.sunExposurePercent ? candidate : best,
+  );
+  const hours = Math.floor(peak.minutes / 60).toString().padStart(2, '0');
+  const minutes = (peak.minutes % 60).toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+async function buildLegacyEngineOutcomeForTests(
+  venue: StoredVenue,
+  requestedAt: Date,
+  now: Date,
+): Promise<SunEngineOutcome> {
+  try {
+    const outcome = await applyRealSunEngine(venue, requestedAt, now);
+    try {
+      const daySeries = await computeVenueDaySeries(venue, requestedAt, now);
+      return { ...outcome, daySeries };
+    } catch {
+      return outcome;
+    }
+  } catch {
+    return safeSeedOutcome(venue);
+  }
+}
+
+const defaultSunGeometryRepository: SunGeometryRepository = {
+  async computeCurrentGeometryInputHash(venue, stockholmDate) {
+    const input = await buildGeometryInputPayloadForVenue(venue, stockholmDate);
+    return computeGeometryInputHash(input);
+  },
+
+  async readCurrentCoverageForVenueDay(venueId, stockholmDate, geometryInputHash) {
+    const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
+    const client = getSupabaseServiceRole();
+    const { data: input, error: inputError } = await client
+      .from('venue_geometry_inputs')
+      .select('venue_id, status, current_geometry_input_hash')
+      .eq('venue_id', venueId)
+      .maybeSingle();
+    if (inputError) throw new Error(`Geometry input read failed: ${inputError.message}`);
+    if (!input || input.status !== 'ready' || input.current_geometry_input_hash !== geometryInputHash) {
+      return null;
+    }
+    const { data, error } = await client
+      .from('venue_sun_geometry_series')
+      .select('venue_id, stockholm_date, geometry_input_hash, series')
+      .eq('venue_id', venueId)
+      .eq('stockholm_date', stockholmDate)
+      .eq('geometry_input_hash', geometryInputHash)
+      .maybeSingle();
+    if (error) throw new Error(`Geometry series read failed: ${error.message}`);
+    if (!data) return null;
+    return {
+      venueId: data.venue_id,
+      stockholmDate: data.stockholm_date,
+      geometryInputHash: data.geometry_input_hash,
+      status: 'ready',
+      series: normalizePersistedSeries(data.series),
+    };
+  },
+};
+
+export async function buildGeometryInputPayloadForVenue(
+  venue: StoredVenue,
+  stockholmDate: string,
+): Promise<GeometryInputPayload> {
+    if (!venue.seatingArea && process.env.SUNNYSEAT_VENUE_STORE === 'supabase') {
+      throw new SunGeometryCoverageMissingError({
+        venueId: venue.id,
+        stockholmDate,
+        geometryInputHash: 'g1:0000000000000000000000000000000000000000000000000000000000000000',
+        reason: 'invalid-seating-polygon',
+      });
+    }
+    const geometry = venue.seatingArea ?? {
+      type: 'Polygon',
+      coordinates: [
+        [
+          [venue.location.lng, venue.location.lat],
+          [venue.location.lng, venue.location.lat],
+          [venue.location.lng, venue.location.lat],
+          [venue.location.lng, venue.location.lat],
+        ],
+      ],
+    } satisfies GeoJSON.Polygon;
+    const centroid = seatingCentroidWgs84(geometry);
+    let casters: unknown[];
+    try {
+      casters = await readRuntimeCasterHashRecords(centroid);
+    } catch (error) {
+      throw new SunGeometryCoverageMissingError({
+        venueId: venue.id,
+        stockholmDate,
+        geometryInputHash: 'g1:0000000000000000000000000000000000000000000000000000000000000000',
+        reason: `caster-set-unavailable:${error instanceof Error ? error.message : String(error)}`,
+      });
+    }
+    return {
+      version: 'g1',
+      planner: buildPlannerHashContract(),
+      venue: {
+        id: venue.id,
+        seatingArea: geometry,
+        seatingCentroid: centroid,
+        seatingElevationM: venue.seatingElevationM ?? null,
+        groundElevationM: venue.groundElevationM ?? null,
+      },
+      casters,
+    };
+}
+
+async function readRuntimeCasterHashRecords(centroid: { lat: number; lng: number }): Promise<unknown[]> {
+  const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
+  const { data, error } = await getSupabaseServiceRole().rpc('get_buildings_near_point', {
+    p_latitude: centroid.lat,
+    p_longitude: centroid.lng,
+    p_radius_meters: 1500,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row: Record<string, unknown>) => ({
+    id: row.Id ?? row.id ?? null,
+    footprintEwkbHex: String(row.Ewkb ?? row.ewkb ?? row.Geometry ?? row.geometry ?? '').toUpperCase(),
+    heightM: row.Height ?? row.height ?? null,
+    groundZRh2000: row.GroundZRh2000 ?? row.ground_z_rh2000 ?? null,
+    roofZRh2000: row.RoofZRh2000 ?? row.roof_z_rh2000 ?? null,
+    sourcePriority: row.SourcePriority ?? row.source_priority ?? null,
+    shadowCasterTier: row.ShadowCasterTier ?? row.shadow_caster_tier ?? null,
+    filterDecision: row.FilterDecision ?? row.filter_decision ?? null,
+    casterClass: row.CasterClass ?? row.caster_class ?? row.BuildingType ?? row.building_type ?? null,
+    sourceFlags: row.SourceFlags ?? row.source_flags ?? [],
+    sourceObjectMetadata: row.SourceObjectMetadata ?? row.source_object_metadata ?? null,
+    provenanceMetadata: row.ProvenanceMetadata ?? row.provenance_metadata ?? null,
+    importGeneration: row.ImportGeneration ?? row.import_generation ?? null,
+  }));
+}
+
+function normalizePersistedSeries(value: unknown): PersistedGeometrySeriesEntry[] {
+  if (!Array.isArray(value)) return [];
+  const series: PersistedGeometrySeriesEntry[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== 'object') continue;
+    const source = entry as Record<string, unknown>;
+    const minutes = source.minutes;
+    const sunExposurePercent = source.sunExposurePercent ?? source.sun_exposure_percent;
+    if (
+      typeof minutes === 'number' &&
+      Number.isInteger(minutes) &&
+      minutes >= PLANNER_START_MINUTES &&
+      minutes <= PLANNER_END_MINUTES &&
+      typeof sunExposurePercent === 'number' &&
+      Number.isFinite(sunExposurePercent)
+    ) {
+      series.push({
+        minutes,
+        sunExposurePercent: Math.max(0, Math.min(100, sunExposurePercent)),
+      });
+    }
+  }
+  const expectedStepCount =
+    Math.floor((PLANNER_END_MINUTES - PLANNER_START_MINUTES) / PLANNER_STEP_MINUTES) + 1;
+  return series.length === expectedStepCount ? series.sort((a, b) => a.minutes - b.minutes) : [];
+}

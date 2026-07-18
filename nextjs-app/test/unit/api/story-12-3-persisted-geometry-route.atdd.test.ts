@@ -11,7 +11,7 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from 'vitest';
 import { NextRequest } from 'next/server';
 
 function appSource(path: string): string {
@@ -31,8 +31,14 @@ type RouteTestHook = {
   GET: (request: NextRequest) => Promise<Response>;
 };
 
+afterEach(async () => {
+  const route = (await import('@/app/api/venues/route')) as RouteTestHook;
+  route.__setSunGeometryRepositoryForTests?.(undefined);
+  route.__setWeatherSnapshotRepositoryForTests?.(undefined);
+});
+
 describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-path projection', () => {
-  test.skip('source contract removes 61-step shadow projection and live weather fan-out from the list route', () => {
+  test('source contract removes 61-step shadow projection and live weather fan-out from the list route', () => {
     const source = appSource('app/api/venues/route.ts');
 
     expect(source).toContain('SUN_GEOMETRY_COVERAGE_MISSING');
@@ -44,7 +50,7 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
     expect(source).not.toContain("import('@/lib/weather/nowcast-service')");
   });
 
-  test.skip('missing exact current geometry hash returns typed 503 instead of omitting the series or recomputing', async () => {
+  test('missing exact current geometry hash returns typed 503 instead of omitting the series or recomputing', async () => {
     const routePath = '@/app/api/venues/route';
     const route = (await import(routePath)) as RouteTestHook;
     expect(route.__setSunGeometryRepositoryForTests).toBeTypeOf('function');
@@ -65,7 +71,7 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
     expect(body.detail).toMatch(/current geometry coverage/i);
   });
 
-  test.skip('old-hash or wrong-day coverage cannot satisfy a public list read', async () => {
+  test('old-hash or wrong-day coverage cannot satisfy a public list read', async () => {
     const routePath = '@/app/api/venues/route';
     const route = (await import(routePath)) as RouteTestHook;
 
@@ -86,7 +92,7 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
     expect(body.code).toBe('SUN_GEOMETRY_COVERAGE_MISSING');
   });
 
-  test.skip('weather-bucket rollover re-gates O(steps) from the same persisted geometry values', async () => {
+  test('weather-bucket rollover re-gates O(steps) from the same persisted geometry values', async () => {
     const routePath = '@/app/api/venues/route';
     const route = (await import(routePath)) as RouteTestHook;
     const persistedSeries = [
@@ -127,7 +133,7 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
     );
   });
 
-  test.skip('coverage gaps fail closed for the whole response and are surfaced in freshness headers', async () => {
+  test('coverage gaps fail closed for the whole response and are surfaced in freshness headers', async () => {
     const routePath = '@/app/api/venues/route';
     const route = (await import(routePath)) as RouteTestHook;
 

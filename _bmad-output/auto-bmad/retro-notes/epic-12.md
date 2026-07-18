@@ -14,3 +14,7 @@
 
 ## Story 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
 - [Phase 5 â€” dev-story] Story 12.2 correctly stopped at its mandatory Task 0 because Stories 12.3, 12.6, 12.7, and 12.13 own prerequisite shared contracts that are not yet on the branch.
+
+## Story 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
+- [Phase 5 â€” dev-story] Keep geometry_input_hash date-independent; stockholm_date is the separate persisted-coverage key.
+- [Phase 5 â€” dev-story] Local Playwright can reuse an unrelated localhost:3000 process; run with CI=1 for the repo-owned server during validation.

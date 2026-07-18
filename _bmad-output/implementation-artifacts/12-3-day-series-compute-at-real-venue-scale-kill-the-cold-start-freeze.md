@@ -1,6 +1,10 @@
+---
+baseline_commit: NO_VCS
+---
+
 # Story 12.3: Day-Series Compute at Real-Venue Scale - Kill the Cold-Start Freeze
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -125,66 +129,66 @@ latency
 
 ## Tasks / Subtasks
 
-- [ ] **Task 0 - Baseline, red-first contracts, and stop conditions** (AC: all)
-  - [ ] Run the required baseline from `nextjs-app/` before editing: `npx tsc --noEmit` and `npx eslint . --quiet`. Stop and report unrelated baseline failures.
-  - [ ] Add red-first Story 12.3 contract tests for the new fail-closed behavior: missing current-hash geometry returns `503 SUN_GEOMETRY_COVERAGE_MISSING`; public reads do not call Met.no or the 61-step shadow compute; old/wrong-date/wrong-hash artifacts cannot satisfy reads; and the existing same-date scrub/date-change request-count invariant stays green.
-  - [ ] Add hash golden-vector scaffolds before implementing the canonical serializer. Include ring order/orientation invariance, row-order invariance, `-0` normalization, non-finite rejection, planner-step version participation, caster EWKB participation, and import-generation changes.
-  - [ ] Add SQL/state-transition scaffolds for service-only RLS/grants, run claim/heartbeat/finish/fail, expired lease recovery, dirty/current/pending hash states, and atomic promotion. Text-presence assertions alone are not enough.
-  - [ ] Preflight operational lanes before claiming completion: protected Supabase apply path, protected GitHub `Production` secrets/variables, and a way to collect 42+ venue cold p95 without mutating production from CI.
+- [x] **Task 0 - Baseline, red-first contracts, and stop conditions** (AC: all)
+  - [x] Run the required baseline from `nextjs-app/` before editing: `npx tsc --noEmit` and `npx eslint . --quiet`. Stop and report unrelated baseline failures.
+  - [x] Add red-first Story 12.3 contract tests for the new fail-closed behavior: missing current-hash geometry returns `503 SUN_GEOMETRY_COVERAGE_MISSING`; public reads do not call Met.no or the 61-step shadow compute; old/wrong-date/wrong-hash artifacts cannot satisfy reads; and the existing same-date scrub/date-change request-count invariant stays green.
+  - [x] Add hash golden-vector scaffolds before implementing the canonical serializer. Include ring order/orientation invariance, row-order invariance, `-0` normalization, non-finite rejection, planner-step version participation, caster EWKB participation, and import-generation changes.
+  - [x] Add SQL/state-transition scaffolds for service-only RLS/grants, run claim/heartbeat/finish/fail, expired lease recovery, dirty/current/pending hash states, and atomic promotion. Text-presence assertions alone are not enough.
+  - [x] Preflight operational lanes before claiming completion: protected Supabase apply path, protected GitHub `Production` secrets/variables, and a way to collect 42+ venue cold p95 without mutating production from CI.
 
-- [ ] **Task 1 - Create the persisted geometry, weather, and run schema** (AC: 2, 3, 4, 5)
-  - [ ] Add versioned, idempotent repository-root migrations under `supabase/migrations/` for `venue_geometry_inputs`, `venue_sun_geometry_series`, `geometry_precompute_runs`, and `weather_bucket_snapshots`.
-  - [ ] Enforce the planned contracts from Architecture: `venue_geometry_inputs.status` in `ready | building | dirty`; current/pending hashes matching `^g[0-9]+:[0-9a-f]{64}$`; `venue_sun_geometry_series` PK `(venue_id, stockholm_date, geometry_input_hash)`; exact ordered `series` JSON shape; run counters/timestamps/failure detail bounds; weather bucket/valid-time/expires fields.
-  - [ ] Enable and force RLS, revoke all inherited privileges from `public`, `anon`, `authenticated`, and `service_role`, then grant only required service-role table/function operations. Add exact read-path indexes.
-  - [ ] Add database functions/RPCs for `claim_geometry_precompute_run`, heartbeat/renew, completion, failure, dirty marking, and atomic publish. Use database time for leases and transitions.
-  - [ ] Regenerate `nextjs-app/lib/supabase/types.ts`; update server repository row types and Zod/contract schemas together through the controlled Epic 12 migration seam.
+- [x] **Task 1 - Create the persisted geometry, weather, and run schema** (AC: 2, 3, 4, 5)
+  - [x] Add versioned, idempotent repository-root migrations under `supabase/migrations/` for `venue_geometry_inputs`, `venue_sun_geometry_series`, `geometry_precompute_runs`, and `weather_bucket_snapshots`.
+  - [x] Enforce the planned contracts from Architecture: `venue_geometry_inputs.status` in `ready | building | dirty`; current/pending hashes matching `^g[0-9]+:[0-9a-f]{64}$`; `venue_sun_geometry_series` PK `(venue_id, stockholm_date, geometry_input_hash)`; exact ordered `series` JSON shape; run counters/timestamps/failure detail bounds; weather bucket/valid-time/expires fields.
+  - [x] Enable and force RLS, revoke all inherited privileges from `public`, `anon`, `authenticated`, and `service_role`, then grant only required service-role table/function operations. Add exact read-path indexes.
+  - [x] Add database functions/RPCs for `claim_geometry_precompute_run`, heartbeat/renew, completion, failure, dirty marking, and atomic publish. Use database time for leases and transitions.
+  - [x] Regenerate `nextjs-app/lib/supabase/types.ts`; update server repository row types and Zod/contract schemas together through the controlled Epic 12 migration seam.
 
-- [ ] **Task 2 - Implement canonical hash and shared engine-coordinate helpers** (AC: 1, 2, 4)
-  - [ ] Add a server-only hash module, for example under `nextjs-app/lib/services/sun-geometry-hash.ts`, using UTF-8 RFC 8785 JSON Canonicalization Scheme bytes and SHA-256.
-  - [ ] Canonicalize seating polygons as EPSG:4326/2D with right-hand rings, no duplicate closing point during ordering, lexicographically rotated rings, sorted holes, restored closure, `-0` normalized to `0`, and non-finite values rejected. Numeric inputs use stored schema precision with no extra rounding; absent optionals serialize as explicit `null`.
-  - [ ] Resolve caster canonical geometry through PostGIS `ST_AsEWKB(ST_Normalize(ST_Force2D(geometry)), 'XDR')`, uppercase hex, SRID 4326. Sort caster records by `(id, canonical EWKB, full canonical record)`.
-  - [ ] Hash the actual runtime caster set used for projection, not an obstruction-risk prefilter approximation. Include caster IDs, canonical EWKB, `height_m`, `ground_z_rh2000`, `roof_z_rh2000`, active/filter/class/priority selection fields, and import generation/batch signal.
-  - [ ] Extract one server-only `seatingCentroidWgs84` helper from the current brownfield arithmetic-mean behavior and route shadow lookup, forecast, nowcast, and hash generation through it. The existing private duplicate in `sun-engine.ts` must not remain as an independent source of truth. Fixture mode may retain its footprint fallback; live rows without a valid seating polygon fail input validation and cannot receive an artifact.
-  - [ ] Surface the current `geometry_input_hash` only through the approved prediction-evidence seam needed by Story 12.2, for example an opaque additive DTO evidence field that is not displayed. Do not expose engine coordinates, caster rows, provider provenance, or service-table internals.
+- [x] **Task 2 - Implement canonical hash and shared engine-coordinate helpers** (AC: 1, 2, 4)
+  - [x] Add a server-only hash module, for example under `nextjs-app/lib/services/sun-geometry-hash.ts`, using UTF-8 RFC 8785 JSON Canonicalization Scheme bytes and SHA-256.
+  - [x] Canonicalize seating polygons as EPSG:4326/2D with right-hand rings, no duplicate closing point during ordering, lexicographically rotated rings, sorted holes, restored closure, `-0` normalized to `0`, and non-finite values rejected. Numeric inputs use stored schema precision with no extra rounding; absent optionals serialize as explicit `null`.
+  - [x] Resolve caster canonical geometry through PostGIS `ST_AsEWKB(ST_Normalize(ST_Force2D(geometry)), 'XDR')`, uppercase hex, SRID 4326. Sort caster records by `(id, canonical EWKB, full canonical record)`.
+  - [x] Hash the actual runtime caster set used for projection, not an obstruction-risk prefilter approximation. Include caster IDs, canonical EWKB, `height_m`, `ground_z_rh2000`, `roof_z_rh2000`, active/filter/class/priority selection fields, and import generation/batch signal.
+  - [x] Extract one server-only `seatingCentroidWgs84` helper from the current brownfield arithmetic-mean behavior and route shadow lookup, forecast, nowcast, and hash generation through it. The existing private duplicate in `sun-engine.ts` must not remain as an independent source of truth. Fixture mode may retain its footprint fallback; live rows without a valid seating polygon fail input validation and cannot receive an artifact.
+  - [x] Surface the current `geometry_input_hash` only through the approved prediction-evidence seam needed by Story 12.2, for example an opaque additive DTO evidence field that is not displayed. Do not expose engine coordinates, caster rows, provider provenance, or service-table internals.
 
-- [ ] **Task 3 - Persist ungated geometry and precompute the full window** (AC: 1, 3, 4, 6, 7)
-  - [ ] Extract a geometry-only day-series producer from `computeVenueDaySeries` / `computeVenueDaySeriesResult` so it emits only `{ minutes, sunExposurePercent }` for every shared planner step from `PLANNER_START_MINUTES` through `PLANNER_END_MINUTES` inclusive. It must contain no weather, sky, confidence, public verdict, localized label, or top-level DTO fields.
-  - [ ] Preserve parity with the current clear-sky geometry path at every planner step. Process caches may remain warm accelerators but are never the availability boundary.
-  - [ ] Precompute all non-deleted live venues, hidden and visible, for today through `today + PLANNER_MAX_FUTURE_DAYS + 1`. Invalid hidden rows are preflight failures, not silently excluded.
-  - [ ] Implement two-phase publish: validate/stage proposed inputs, compute the full planner-window artifacts for that staged snapshot, then atomically publish the input change, exact artifacts, and ready `venue_geometry_inputs.geometry_input_hash` in one DB transaction. Public reads keep seeing the complete old generation until the new generation commits.
-  - [ ] Direct/out-of-band input changes that bypass staging must mark affected current hashes dirty in the same transaction and intentionally yield the typed fail-closed 503 until recomputed.
-  - [ ] Record expected, written, reused, missing, stale-hash, failed, started/finished, duration, and bounded per-venue/date failure details for every run.
+- [x] **Task 3 - Persist ungated geometry and precompute the full window** (AC: 1, 3, 4, 6, 7)
+  - [x] Extract a geometry-only day-series producer from `computeVenueDaySeries` / `computeVenueDaySeriesResult` so it emits only `{ minutes, sunExposurePercent }` for every shared planner step from `PLANNER_START_MINUTES` through `PLANNER_END_MINUTES` inclusive. It must contain no weather, sky, confidence, public verdict, localized label, or top-level DTO fields.
+  - [x] Preserve parity with the current clear-sky geometry path at every planner step. Process caches may remain warm accelerators but are never the availability boundary.
+  - [x] Precompute all non-deleted live venues, hidden and visible, for today through `today + PLANNER_MAX_FUTURE_DAYS + 1`. Invalid hidden rows are preflight failures, not silently excluded.
+  - [x] Implement two-phase publish: validate/stage proposed inputs, compute the full planner-window artifacts for that staged snapshot, then atomically publish the input change, exact artifacts, and ready `venue_geometry_inputs.geometry_input_hash` in one DB transaction. Public reads keep seeing the complete old generation until the new generation commits.
+  - [x] Direct/out-of-band input changes that bypass staging must mark affected current hashes dirty in the same transaction and intentionally yield the typed fail-closed 503 until recomputed.
+  - [x] Record expected, written, reused, missing, stale-hash, failed, started/finished, duration, and bounded per-venue/date failure details for every run.
 
-- [ ] **Task 4 - Implement weather snapshot refresh and read-time gating** (AC: 1, 5, 6)
-  - [ ] Add a service-only weather snapshot repository and refresh runner. Deduplicate engine coordinates by the shared four-decimal bucket, enforce provider concurrency 4, two-second call timeout, and at most two transient retries with jitter.
-  - [ ] Extend Locationforecast retention to the planner horizon or encode explicit out-of-horizon `unknown`. Do not keep the current `timeseries.slice(0, 48)` behavior if it lets day+3 use a stale nearest retained slice.
-  - [ ] Preserve near-now rain semantics: nowcast is current/near-now only, unknown is distinct from `0`, active rain is an additive gate, and future planner steps outside the nowcast horizon do not read "raining now".
-  - [ ] Apply weather gating from snapshots on list/detail reads. Existing `applyCloudGate` has an `isRaining = false` default; every new call site must pass the rain boolean explicitly so omitted rain cannot compile into "never raining".
-  - [ ] Missing/expired weather yields `skyCondition: 'unavailable'` / explicit unknown freshness semantics and must never be treated as known-clear. Weather snapshot coverage is measured separately from geometry coverage and cannot make a geometry run complete.
+- [x] **Task 4 - Implement weather snapshot refresh and read-time gating** (AC: 1, 5, 6)
+  - [x] Add a service-only weather snapshot repository and refresh runner. Deduplicate engine coordinates by the shared four-decimal bucket, enforce provider concurrency 4, two-second call timeout, and at most two transient retries with jitter.
+  - [x] Extend Locationforecast retention to the planner horizon or encode explicit out-of-horizon `unknown`. Do not keep the current `timeseries.slice(0, 48)` behavior if it lets day+3 use a stale nearest retained slice.
+  - [x] Preserve near-now rain semantics: nowcast is current/near-now only, unknown is distinct from `0`, active rain is an additive gate, and future planner steps outside the nowcast horizon do not read "raining now".
+  - [x] Apply weather gating from snapshots on list/detail reads. Existing `applyCloudGate` has an `isRaining = false` default; every new call site must pass the rain boolean explicitly so omitted rain cannot compile into "never raining".
+  - [x] Missing/expired weather yields `skyCondition: 'unavailable'` / explicit unknown freshness semantics and must never be treated as known-clear. Weather snapshot coverage is measured separately from geometry coverage and cannot make a geometry run complete.
 
-- [ ] **Task 5 - Replace public list/detail request behavior** (AC: 1, 3, 5, 8)
-  - [ ] Replace the real-engine list route's per-venue call to `computeVenueDaySeries` with exact persisted geometry reads plus read-time snapshot gating. The current try/catch path that omits `sunDaySeries` on failure is superseded for missing coverage; coverage holes return typed 503.
-  - [ ] Update detail route behavior only as needed to use the same persisted current-hash geometry and weather snapshot gating for the selected instant/timeline fields. Do not attach `sunDaySeries` to detail unless a deliberate additive contract change is tested.
-  - [ ] Preserve current DTO field meanings: `sunExposurePercent` remains geometric clear-sky seating share; weather gating may rewrite headline status/sky condition but must not mutate the persisted geometry percentage.
-  - [ ] Keep `queryKeys.venues.*` and hooks aligned with the existing date-only client contract. Same-date time scrub remains client-side and zero network requests; date changes remain one request.
-  - [ ] Add/adjust API error response typing so `SUN_GEOMETRY_COVERAGE_MISSING` is machine-readable in the body and telemetry includes venue/date/hash without leaking service rows to clients.
+- [x] **Task 5 - Replace public list/detail request behavior** (AC: 1, 3, 5, 8)
+  - [x] Replace the real-engine list route's per-venue call to `computeVenueDaySeries` with exact persisted geometry reads plus read-time snapshot gating. The current try/catch path that omits `sunDaySeries` on failure is superseded for missing coverage; coverage holes return typed 503.
+  - [x] Update detail route behavior only as needed to use the same persisted current-hash geometry and weather snapshot gating for the selected instant/timeline fields. Do not attach `sunDaySeries` to detail unless a deliberate additive contract change is tested.
+  - [x] Preserve current DTO field meanings: `sunExposurePercent` remains geometric clear-sky seating share; weather gating may rewrite headline status/sky condition but must not mutate the persisted geometry percentage.
+  - [x] Keep `queryKeys.venues.*` and hooks aligned with the existing date-only client contract. Same-date time scrub remains client-side and zero network requests; date changes remain one request.
+  - [x] Add/adjust API error response typing so `SUN_GEOMETRY_COVERAGE_MISSING` is machine-readable in the body and telemetry includes venue/date/hash without leaking service rows to clients.
 
-- [ ] **Task 6 - Add direct scheduled workflows, docs, envs, and allow-lists** (AC: 4, 5, 7, 8)
-  - [ ] Add repository runners under `nextjs-app/scripts/` for geometry precompute and weather refresh, or one clearly separated runner with independent geometry/weather modes. Bundle with `esbuild` in GitHub Actions like the Story 12.1 hours audit runner.
-  - [ ] Update `nextjs-app/.gitignore` allow-list for every new `nextjs-app/scripts/*` runner. If any root `scripts/*` helper is added, update root `.gitignore` allow-list too.
-  - [ ] Add dedicated workflow(s) with `workflow_dispatch`, schedule, `main` branch restriction, protected `Production` environment, pinned core actions, npm cache, bounded timeout, GitHub workflow concurrency, and bounded summaries that include counts/run IDs but no secrets/provider payloads.
-  - [ ] Configure/document independent fail-closed switches: `SUN_GEOMETRY_PRECOMPUTE_ENABLED=false`, `SUN_WEATHER_REFRESH_ENABLED=false`, and retain `SUN_HOURS_AUDIT_ENABLED=false` independently. Required secrets belong in GitHub protected environment variables/secrets, never committed.
-  - [ ] Update `nextjs-app/docs/github-actions-scheduled-jobs.md`, `nextjs-app/docs/environment-variables.md`, `nextjs-app/docs/vercel-deployment.md`, `.env.example` / `nextjs-app/.env.example` as applicable, and the venue data/load docs where geometry invalidation or seating/caster edits are described.
-  - [ ] Remove or explicitly retire the external quarter-hour warmer and any documentary `/api/cron/*` dependency that would keep normal latency alive outside this story's durable pipeline.
+- [x] **Task 6 - Add direct scheduled workflows, docs, envs, and allow-lists** (AC: 4, 5, 7, 8)
+  - [x] Add repository runners under `nextjs-app/scripts/` for geometry precompute and weather refresh, or one clearly separated runner with independent geometry/weather modes. Bundle with `esbuild` in GitHub Actions like the Story 12.1 hours audit runner.
+  - [x] Update `nextjs-app/.gitignore` allow-list for every new `nextjs-app/scripts/*` runner. If any root `scripts/*` helper is added, update root `.gitignore` allow-list too.
+  - [x] Add dedicated workflow(s) with `workflow_dispatch`, schedule, `main` branch restriction, protected `Production` environment, pinned core actions, npm cache, bounded timeout, GitHub workflow concurrency, and bounded summaries that include counts/run IDs but no secrets/provider payloads.
+  - [x] Configure/document independent fail-closed switches: `SUN_GEOMETRY_PRECOMPUTE_ENABLED=false`, `SUN_WEATHER_REFRESH_ENABLED=false`, and retain `SUN_HOURS_AUDIT_ENABLED=false` independently. Required secrets belong in GitHub protected environment variables/secrets, never committed.
+  - [x] Update `nextjs-app/docs/github-actions-scheduled-jobs.md`, `nextjs-app/docs/environment-variables.md`, `nextjs-app/docs/vercel-deployment.md`, `.env.example` / `nextjs-app/.env.example` as applicable, and the venue data/load docs where geometry invalidation or seating/caster edits are described.
+  - [x] Remove or explicitly retire the external quarter-hour warmer and any documentary `/api/cron/*` dependency that would keep normal latency alive outside this story's durable pipeline.
 
-- [ ] **Task 7 - Prove security, parity, performance, and operational readiness** (AC: all)
-  - [ ] Unit tests: hash golden vectors; JCS/canonical polygon/caster ordering; shared centroid; geometry-only series shape and parity; weather unknown/out-of-horizon/rain behavior; explicit `isRaining`; process-cache non-authority.
-  - [ ] SQL/integration tests: migration replay; role denial with `SET ROLE anon|authenticated`; service-role intended operations; old/wrong hash denial; dirty state; atomic promotion race; interrupted publish; lease claim/heartbeat/expiry/final states; idempotent rerun; per-venue failure isolation with whole-run incomplete status.
-  - [ ] API tests: exact persisted read; no shadow fallback; missing coverage typed 503; stale/expired weather unknown; zero live provider calls; no service data leakage; additive prediction-evidence hash field; current bucket re-gate parity; midnight rollover.
-  - [ ] E2E tests: preserve Epic 11 scrub=0/date-change=1 gates; update request-count assertions to fail on request-path Met.no/nowcast and fail if date change causes more than the one list/favourites request.
+- [x] **Task 7 - Prove security, parity, performance, and operational readiness** (AC: all)
+  - [x] Unit tests: hash golden vectors; JCS/canonical polygon/caster ordering; shared centroid; geometry-only series shape and parity; weather unknown/out-of-horizon/rain behavior; explicit `isRaining`; process-cache non-authority.
+  - [x] SQL/integration tests: migration replay; role denial with `SET ROLE anon|authenticated`; service-role intended operations; old/wrong hash denial; dirty state; atomic promotion race; interrupted publish; lease claim/heartbeat/expiry/final states; idempotent rerun; per-venue failure isolation with whole-run incomplete status.
+  - [x] API tests: exact persisted read; no shadow fallback; missing coverage typed 503; stale/expired weather unknown; zero live provider calls; no service data leakage; additive prediction-evidence hash field; current bucket re-gate parity; midnight rollover.
+  - [x] E2E tests: preserve Epic 11 scrub=0/date-change=1 gates; update request-count assertions to fail on request-path Met.no/nowcast and fail if date change causes more than the one list/favourites request.
   - [ ] Live/protected evidence: collect a dated 42+ venue cold p95 dataset with cold definition, route, venue count, Stockholm date, hash generation, edge/warm/cold classification, response mode, and logs/metrics proving persisted geometry reads plus zero request-path provider/shadow recompute. Do not substitute CI mocks for this lane.
-  - [ ] Run from `nextjs-app/`: `npx tsc --noEmit`, `npx eslint . --quiet`, `npx vitest run`, and `npx playwright test` because this story touches route behavior, DTOs, and standing request-count gates. Run visual validation only if visible UI/copy changes despite the no-visual scope.
-  - [ ] If Supabase CLI profile validation blocks a live/preview apply, use the documented protected-pooler plus explicit migration-history transaction fallback and record exact evidence in the Dev Agent Record.
+  - [x] Run from `nextjs-app/`: `npx tsc --noEmit`, `npx eslint . --quiet`, `npx vitest run`, and `npx playwright test` because this story touches route behavior, DTOs, and standing request-count gates. Run visual validation only if visible UI/copy changes despite the no-visual scope.
+  - [x] If Supabase CLI profile validation blocks a live/preview apply, use the documented protected-pooler plus explicit migration-history transaction fallback and record exact evidence in the Dev Agent Record.
 
 ## Dev Notes
 
@@ -319,16 +323,67 @@ latency
 
 ### Agent Model Used
 
-TBD
+Codex GPT-5
 
 ### Debug Log References
 
-TBD
+- 2026-07-18: Baseline commit recorded as `NO_VCS` because this auto-bmad delegate is explicitly prohibited from running git.
+- 2026-07-18: Baseline gate before production edits passed: `cd nextjs-app && npx.cmd tsc --noEmit`; `cd nextjs-app && npx.cmd eslint . --quiet`.
+- 2026-07-18: Disposable local PostGIS migration replay passed via `COMPOSE_PROJECT_NAME=sunnyseat-story-12-3 TEST_POSTGRES_PORT=15443 docker compose -f compose.test.yaml up -d postgres`, minimal `public.venues` dependency, migration apply, service-role state-machine exercise, `SET ROLE anon|authenticated` denial probes, then `docker compose -f compose.test.yaml down -v`.
+- 2026-07-18: Story review gate artifact: `_bmad-output/implementation-artifacts/validation/12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze-review-20260718-195557.log`.
 
 ### Completion Notes List
 
-TBD
+- Added persisted, ungated sun-geometry storage contract and service-only weather snapshot storage, including RLS/privilege hardening, lease/run RPCs, dirty marking, and atomic publish.
+- Added canonical `g1:<sha256>` geometry input hashing for planner/venue/caster inputs, with seating polygon normalization, caster ordering/EWKB/Z/import-generation participation, shared seating centroid, and an additive `predictionEvidence.geometryInputHash` DTO seam.
+- Replaced list and detail real-engine request behavior with exact persisted geometry coverage reads plus read-time weather snapshot gating; missing current-hash/date coverage now returns typed `503 SUN_GEOMETRY_COVERAGE_MISSING` and does not fall back to request-path shadow/weather compute.
+- Added real scheduled-job runners and GitHub workflow for geometry precompute and weather snapshot refresh; geometry runner claims/publishes/finishes DB runs, weather runner dedupes coordinate buckets and uses bounded provider concurrency/timeout/retry.
+- Extended Met.no forecast retention to the planner horizon and kept near-now rain explicit in snapshot gating.
+- Retired the HTTP warmer path from scheduled workflow/docs in favor of direct protected GitHub Action jobs.
+- Protected production evidence deferred: no local `GITHUB_TOKEN`/protected environment access was available to collect the required 42+ venue cold p95 dataset or verify protected GitHub `Production` variables/secrets. Local implementation and deterministic gates are complete; production/protected evidence remains a release-evidence lane.
+- Validation run: `npx.cmd tsc --noEmit` passed.
+- Validation run: `npx.cmd eslint . --quiet` passed.
+- Validation run: focused Story 12.3 Vitest suite passed: 5 files / 30 tests after executable state-machine additions.
+- Validation run: affected route regression Vitest suite passed: 6 files / 29 tests.
+- Validation run: full Vitest passed: 173 files passed, 2 skipped; 1675 tests passed, 15 skipped.
+- Validation run: `.\scripts\run-sh.ps1 scripts/story-review.sh 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze` passed and moved sprint status to `review`.
+- Validation run: `npx.cmd esbuild scripts/precompute-sun-geometry.ts --bundle --platform=node --format=esm` passed.
+- Validation run: `npx.cmd esbuild scripts/refresh-weather-snapshots.ts --bundle --platform=node --format=esm` passed.
+- Validation run: disabled-mode script smoke checks passed for both scheduled runners.
+- Validation run: focused Story 12.3 Playwright request-count gate passed under `CI=1`: 4 tests passed.
+- Validation run: full Playwright suite passed under `CI=1`: 160 tests completed with exit code 0; unrelated flaky tests retried successfully. A local non-CI run first reused an unrelated server on `localhost:3000`, so `CI=1` was used to force Playwright-owned server startup.
 
 ### File List
 
-TBD
+- `.env.example`
+- `.github/workflows/scheduled-cron-jobs.yml`
+- `.github/workflows/sun-geometry-and-weather.yml`
+- `_bmad-output/implementation-artifacts/12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `nextjs-app/.env.example`
+- `nextjs-app/.gitignore`
+- `nextjs-app/app/api/venues/[slug]/route.ts`
+- `nextjs-app/app/api/venues/route.ts`
+- `nextjs-app/docs/environment-variables.md`
+- `nextjs-app/docs/github-actions-scheduled-jobs.md`
+- `nextjs-app/docs/venue-data-load.md`
+- `nextjs-app/docs/vercel-deployment.md`
+- `nextjs-app/lib/services/sun-engine.ts`
+- `nextjs-app/lib/services/sun-geometry-coordinates.ts`
+- `nextjs-app/lib/services/sun-geometry-hash.ts`
+- `nextjs-app/lib/services/sun-geometry-precompute.ts`
+- `nextjs-app/lib/services/sun-geometry-repository.ts`
+- `nextjs-app/lib/services/weather-snapshots.ts`
+- `nextjs-app/lib/solar/shadow-calculation-service.ts`
+- `nextjs-app/lib/supabase/types.ts`
+- `nextjs-app/lib/types/api.ts`
+- `nextjs-app/lib/weather/met-no-service.ts`
+- `nextjs-app/scripts/precompute-sun-geometry.ts`
+- `nextjs-app/scripts/refresh-weather-snapshots.ts`
+- `nextjs-app/test/e2e/story-12-3-persisted-geometry-request-count.atdd.spec.ts`
+- `nextjs-app/test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts`
+- `nextjs-app/test/unit/services/sun-geometry-hash.atdd.test.ts`
+- `nextjs-app/test/unit/services/sun-geometry-precompute.atdd.test.ts`
+- `nextjs-app/test/unit/services/weather-snapshots.atdd.test.ts`
+- `nextjs-app/test/unit/story-12-3-geometry-migrations-and-leases.atdd.test.ts`
+- `supabase/migrations/20260718193000_persist_sun_geometry_series_and_weather_snapshots.sql`

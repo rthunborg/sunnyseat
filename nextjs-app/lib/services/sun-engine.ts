@@ -20,6 +20,7 @@
 import { fromZonedTime } from 'date-fns-tz';
 import { toVenueData, type StoredVenue } from '@/lib/services/venue-store';
 import type { VenuePlannerSelection } from '@/lib/services/venue-planner';
+import { seatingCentroidWgs84 } from '@/lib/services/sun-geometry-coordinates';
 import {
   buildingsCacheKey,
   getBuildingsCache,
@@ -382,9 +383,9 @@ async function computeRealSunEngineCached(
   getNowcastOverride?: GetNowcastRate,
 ): Promise<SunEngineOutcome> {
   const { cache, inFlight } = getSunComputeCache<SunEngineOutcome>();
-  const [centroidLng, centroidLat] = polygonCentroid(resolveVenueGeometry(venue));
+  const centroid = seatingCentroidWgs84(resolveVenueGeometry(venue));
   const variantKey =
-    `${centroidLat.toFixed(5)},${centroidLng.toFixed(5)}` +
+    `${centroid.lat.toFixed(5)},${centroid.lng.toFixed(5)}` +
     `:${venue.seatingElevationM ?? 0}:${venue.groundElevationM ?? ''}`;
   const key = sunComputeCacheKey(
     venue.id,
@@ -456,9 +457,9 @@ export async function computeVenueDaySeries(
   getNowcastOverride?: GetNowcastRate,
 ): Promise<VenueDaySeriesEntry[]> {
   const { cache, inFlight } = getSunDaySeriesCache<VenueDaySeriesEntry[]>();
-  const [centroidLng, centroidLat] = polygonCentroid(resolveVenueGeometry(venue));
+  const centroid = seatingCentroidWgs84(resolveVenueGeometry(venue));
   const variantKey =
-    `${centroidLat.toFixed(5)},${centroidLng.toFixed(5)}` +
+    `${centroid.lat.toFixed(5)},${centroid.lng.toFixed(5)}` +
     `:${venue.seatingElevationM ?? 0}:${venue.groundElevationM ?? ''}`;
   const key = sunDaySeriesCacheKey(
     venue.id,
@@ -508,6 +509,7 @@ async function computeVenueDaySeriesResult(
     (await import('@/lib/weather/nowcast-service')).getNowcastPrecipitationRate;
 
   const geometry = resolveVenueGeometry(venue);
+  const engineCoordinate = seatingCentroidWgs84(geometry);
   const seatingElevationM = venue.seatingElevationM ?? 0;
   const venueGroundZ = venue.groundElevationM;
 
@@ -519,7 +521,7 @@ async function computeVenueDaySeriesResult(
   );
 
   // ONE forecast fetch for the whole series; slice selection is per step.
-  const forecast = await getForecast(venue.location.lat, venue.location.lng);
+  const forecast = await getForecast(engineCoordinate.lat, engineCoordinate.lng);
 
   const dayKey = stockholmDateKey(requestedAt);
   const series: VenueDaySeriesEntry[] = [];
@@ -543,7 +545,7 @@ async function computeVenueDaySeriesResult(
       stepInstant.getTime() >= now.getTime() &&
       stepInstant.getTime() <= now.getTime() + NOWCAST_HORIZON_MS;
     const precipitationRate = isNearNow
-      ? await getNowcast(venue.location.lat, venue.location.lng)
+      ? await getNowcast(engineCoordinate.lat, engineCoordinate.lng)
       : undefined;
     const isRaining = precipitationRate !== undefined && precipitationRate > 0;
 
@@ -600,24 +602,6 @@ function nearestForecastSlice(
 // ---------------------------------------------------------------------------
 
 /**
- * Centroid (lng, lat) of a polygon's outer ring — mirrors the engine-internal
- * `getCentroid` in shadow-calculation-service so the buildings cache key matches
- * the centroid the RPC is actually issued at. [Story 9.3 Task 2]
- */
-function polygonCentroid(polygon: GeoJSON.Polygon): [number, number] {
-  const ring = polygon.coordinates[0];
-  const n = ring.length - 1;
-  if (n <= 0) return [0, 0];
-  let cx = 0;
-  let cy = 0;
-  for (let i = 0; i < n; i++) {
-    cx += ring[i][0];
-    cy += ring[i][1];
-  }
-  return [cx / n, cy / n];
-}
-
-/**
  * Fetch the venue's shadow casters through the buildings cache (rounded centroid
  * @4dp + radius-in-metres key, 24h TTL). Co-located venues that round to the same
  * key share ONE RPC; a repeat request within the window is RPC-free. A `null` (RPC
@@ -629,8 +613,8 @@ async function fetchCachedVenueBuildings(
   searchRadiusDeg: number,
 ): Promise<Building[] | null> {
   const { cache, inFlight } = getBuildingsCache<Building[]>();
-  const [centroidLng, centroidLat] = polygonCentroid(geometry);
-  const key = buildingsCacheKey(centroidLng, centroidLat, searchRadiusDeg * 111300);
+  const centroid = seatingCentroidWgs84(geometry);
+  const key = buildingsCacheKey(centroid.lng, centroid.lat, searchRadiusDeg * 111300);
   return getOrFetchNonNull(cache, inFlight, key, () => fetchVenueBuildings(geometry));
 }
 
@@ -678,6 +662,7 @@ async function computeRealSunEngineResult(
     (await import('@/lib/weather/nowcast-service')).getNowcastPrecipitationRate;
 
   const geometry = resolveVenueGeometry(venue);
+  const engineCoordinate = seatingCentroidWgs84(geometry);
   // Story 8.6 height gate: how high the seating surface sits above local ground
   // (rooftop / raised terrace). Default 0 → ground level → byte-identical math.
   // Threaded into BOTH the single-shot and the timeline shadow computations so
@@ -709,7 +694,7 @@ async function computeRealSunEngineResult(
   });
   // Per-venue weather at the venue's OWN location for the requested time (Task 3.2)
   // — not the engine's hardcoded Gothenburg-centre / current-only call.
-  const weather = await fetchWeatherForVenue(getForecast, venue.location, requestedAt);
+  const weather = await fetchWeatherForVenue(getForecast, engineCoordinate, requestedAt);
 
   // STORY 10.4 (AC4 horizon gate): consult the near-now radar nowcast ONLY when the
   // requested instant is within [now, now + NOWCAST_HORIZON_MS]. Beyond the horizon
@@ -721,7 +706,7 @@ async function computeRealSunEngineResult(
     requestedAt.getTime() >= now.getTime() &&
     requestedAt.getTime() <= now.getTime() + NOWCAST_HORIZON_MS;
   const precipitationRate = isNearNow
-    ? await getNowcast(venue.location.lat, venue.location.lng)
+    ? await getNowcast(engineCoordinate.lat, engineCoordinate.lng)
     : undefined;
   // STORY 10.4 (AC2/AC3): rain is a ONE-WAY additive gate trigger. `undefined`
   // (unknown / no coverage / beyond horizon) AND `0` (radar says genuinely no rain)

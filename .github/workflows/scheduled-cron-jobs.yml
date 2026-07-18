@@ -6,8 +6,6 @@ on:
     - cron: '0 2 * * *'
     # Precomputation scheduling — daily at 00:00 UTC
     - cron: '0 0 * * *'
-    # Cache warmup — daily at 03:00 UTC
-    - cron: '0 3 * * *'
     # Accuracy metrics — daily at 04:00 UTC
     - cron: '0 4 * * *'
     # Cleanup old data — weekly Sunday at 01:00 UTC
@@ -21,7 +19,6 @@ on:
         options:
           - weather-ingestion
           - precomputation-schedule
-          - cache-warmup
           - accuracy-metrics
           - cleanup-old-data
 
@@ -63,24 +60,6 @@ jobs:
           echo "Response: $response"
           if [ "$response" != "200" ]; then
             echo "::error::Precomputation scheduling failed with status $response"
-            exit 1
-          fi
-
-  cache-warmup:
-    if: >-
-      (github.event_name == 'schedule' && github.event.schedule == '0 3 * * *') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.job == 'cache-warmup')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger cache warmup
-        run: |
-          response=$(curl -s -L -o /dev/null -w "%{http_code}" -X POST \
-            "$PRODUCTION_URL/api/cron/cache-warmup" \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            -H "Content-Type: application/json")
-          echo "Response: $response"
-          if [ "$response" != "200" ]; then
-            echo "::error::Cache warmup failed with status $response"
             exit 1
           fi
 
