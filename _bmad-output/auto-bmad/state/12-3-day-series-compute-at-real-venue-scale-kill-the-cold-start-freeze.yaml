@@ -5,7 +5,7 @@ epic_num: 12
 story_num: 3
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: done
-updated_at: "2026-07-18T18:40:52Z"
+updated_at: "2026-07-18T18:43:56Z"
 started_at: "2026-07-18T16:50:01Z"
 completed_at: "2026-07-18T18:40:52Z"
 active_seconds: 6340
@@ -32,7 +32,7 @@ story_trace:
   coverage: "{\"traced\": 8, \"full\": 6, \"partial\": 2, \"uncovered\": 0}"
   uncovered: []
   material_gaps: ["AC2/AC6: protected-production 42+ venue cold-p95 evidence remains deferred", "AC2: protected GitHub Production configuration and live protected Supabase advisor evidence were not available locally", "Full Playwright predates review fixes; focused Story 12.3 Playwright passed after fixes"]
-commits: [4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93]
+commits: [4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83]
 phase8_steps:
   trace_gate: null
   nfr: null
