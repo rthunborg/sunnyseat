@@ -32,9 +32,6 @@ const quickInfoLabels = {
   moreInfo: 'Mer Info',
   close: 'Stäng platskort',
   photoPlaceholder: 'Platshållarbild',
-  confidence: 'Säkerhet',
-  confidenceApproximate: 'cirka',
-  confidenceUnavailable: 'Säkerhet saknas',
   distance: 'Avstånd',
   loadingSun: 'Laddar soldata',
   routeLoading: 'Öppnar kartor',
@@ -90,8 +87,6 @@ function renderQuickInfo(props: {
     <VenueQuickInfo
       mode="mobile"
       name={props.name}
-      confidencePercent={40}
-      confidenceMeta={{ sunDataSource: props.gate === 'unknown' ? 'geometry-only' : 'weather' }}
       sunExposurePercent={props.exposure}
       currentSunStatus={props.status}
       weatherGateState={props.gate}
@@ -122,7 +117,6 @@ describe('Story 12.6 automation - map-adjacent public verdict honesty', () => {
           }),
         ]}
         mode="desktop"
-        confidenceMeta={{ sunDataSource: 'weather' }}
         onSelectVenue={() => {}}
       />,
       { wrapper: VenueListProvider },
@@ -147,7 +141,6 @@ describe('Story 12.6 automation - map-adjacent public verdict honesty', () => {
           }),
         ]}
         mode="desktop"
-        confidenceMeta={{ sunDataSource: 'geometry-only' }}
         onSelectVenue={() => {}}
       />,
       { wrapper: VenueListProvider },
@@ -175,8 +168,6 @@ describe('Story 12.6 automation - map-adjacent public verdict honesty', () => {
         <VenueQuickInfo
           mode="mobile"
           name={scenario.name}
-          confidencePercent={40}
-          confidenceMeta={{ sunDataSource: 'weather' }}
           sunExposurePercent={scenario.exposure}
           currentSunStatus="Partial"
           weatherGateState="not_gated"

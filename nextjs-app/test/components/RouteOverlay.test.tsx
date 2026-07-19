@@ -58,14 +58,14 @@ describe('<RouteOverlay />', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
-  it('renders the public confidence context row when the orchestrator provides one (Story 3.4 AC #3)', () => {
+  it('renders the public uncertainty row when provided, without confidence text (Story 12.13)', () => {
     render(
       <RouteOverlay
         labels={{
           ...labels,
-          confidence: {
-            visible: 'Säkerhet ~88% · Osäker prognos',
-            accessible: 'Säkerhet cirka 88% · Osäker prognos',
+          uncertainty: {
+            visible: 'Osäker prognos',
+            accessible: 'Osäker prognos. Lokala hinder kan påverka platsen.',
           },
         }}
         fallbackHref="https://www.google.com/maps/dir/?api=1&destination=57.705%2C11.97&travelmode=walking&dir_action=navigate"
@@ -74,20 +74,19 @@ describe('<RouteOverlay />', () => {
     );
 
     const dialog = screen.getByRole('dialog', { name: 'Rutt till Kafé Magasinet' });
-    expect(dialog).toHaveTextContent('Säkerhet ~88% · Osäker prognos');
-    // The approximate qualifier the "~" glyph cannot convey is exposed to
-    // assistive technology through the screen-reader-only variant.
-    expect(screen.getByText('Säkerhet ~88% · Osäker prognos')).toHaveAttribute(
+    expect(dialog).toHaveTextContent('Osäker prognos');
+    expect(dialog).not.toHaveTextContent('Säkerhet');
+    expect(screen.getByText('Osäker prognos')).toHaveAttribute(
       'aria-hidden',
       'true',
     );
-    expect(screen.getByText('Säkerhet cirka 88% · Osäker prognos')).toHaveClass('sr-only');
+    expect(screen.getByText('Osäker prognos. Lokala hinder kan påverka platsen.')).toHaveClass('sr-only');
   });
 
-  it('omits the confidence row entirely when the public confidence display is unavailable', () => {
+  it('omits the uncertainty row entirely when uncertainty is unavailable', () => {
     render(
       <RouteOverlay
-        labels={{ ...labels, confidence: null }}
+        labels={{ ...labels, uncertainty: null }}
         fallbackHref="https://www.google.com/maps/dir/?api=1&destination=57.705%2C11.97&travelmode=walking&dir_action=navigate"
         onDismiss={() => undefined}
       />,

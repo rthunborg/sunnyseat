@@ -51,9 +51,6 @@ const messages = {
       empty: 'Inga platser hittades i det här området.',
       sun: 'Sol',
       photoPlaceholder: 'Platshållarbild för platsen',
-      confidence: 'Säkerhet',
-      confidenceApproximate: 'cirka',
-      confidenceUnavailable: 'Säkerhet saknas',
       distance: 'Avstånd',
       distanceApproximate: '≈ från centrum',
       sunUnavailable: 'Soltid saknas',
@@ -63,7 +60,7 @@ const messages = {
       favourite: 'Spara {name}',
       favouriteAdd: 'Spara som favorit',
       favouriteRemove: 'Ta bort favorit',
-      cardAria: 'Välj {name}, {sun}, {confidence}, Avstånd {distance}',
+      cardAria: 'Välj {name}, {sun}, Avstånd {distance}',
     },
   },
 };

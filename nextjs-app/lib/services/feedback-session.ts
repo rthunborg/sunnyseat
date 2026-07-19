@@ -39,6 +39,9 @@ export function recordVenueDetailView(
     viewedAt: now,
     plannerTimestamp,
     predictedState: venue.currentSunStatus,
+    // Story 12.13 transition: the public UI no longer renders confidence, but
+    // feedback still needs the model's internal value until Story 12.2 replaces
+    // this client-side evidence stamp.
     confidenceAtPrediction: venue.confidence,
   } satisfies FeedbackDetailViewRecord;
   safeSessionSet(detailKey(venue.id), JSON.stringify(record));

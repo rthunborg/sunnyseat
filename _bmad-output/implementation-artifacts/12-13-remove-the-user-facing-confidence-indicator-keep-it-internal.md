@@ -1,6 +1,10 @@
+---
+baseline_commit: e442fedc27f4250f83dcf3a1df126de00a4ed75b
+---
+
 # Story 12.13: Remove the User-Facing Confidence Indicator (Keep It Internal)
 
-Status: ready-for-dev
+Status: in-progress
 
 ## Story
 

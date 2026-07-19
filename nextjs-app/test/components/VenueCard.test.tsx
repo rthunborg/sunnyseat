@@ -7,30 +7,22 @@ import {
 } from '@/lib/constants/animation';
 
 describe('<VenueCard />', () => {
-  it('renders venue sunlight, confidence, distance, and an accessible activation label', () => {
+  it('renders venue sunlight, distance, and an accessible activation label', () => {
     const onSelect = vi.fn();
 
     render(
       <VenueCard
         name="Kafé Magasinet"
         sunTimeRange="Sol 13:00-18:30"
-        confidencePercent={92}
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: new Date().toISOString(),
-        }}
         distanceMeters={180}
         sunExposurePercent={92}
         thumbnail={{ alt: 'Uteservering', initials: 'KM' }}
         isSunny
         labels={{
-          select: 'Välj Kafé Magasinet, Sol 13:00-18:30, Säkerhet 92%, Avstånd 180 m',
+          select: 'Välj Kafé Magasinet, Sol 13:00-18:30, Avstånd 180 m',
           favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
         }}
@@ -38,19 +30,16 @@ describe('<VenueCard />', () => {
       />,
     );
 
-    // Story 9.1: the accessible name carries name + sun + Säkerhet (once) +
-    // Avstånd via labels.select — the in-card sr-only repeats are gone.
+    // Story 12.13: the accessible name carries name + sun + distance only.
     const selectButton = screen.getByRole('button', {
-      name: 'Välj Kafé Magasinet, Sol 13:00-18:30, Säkerhet 92%, Avstånd 180 m',
+      name: 'Välj Kafé Magasinet, Sol 13:00-18:30, Avstånd 180 m',
     });
     expect(selectButton).toBeInTheDocument();
-    // "Säkerhet" appears exactly once in the accessible name (AC #3 de-dup).
-    expect(selectButton.getAttribute('aria-label')?.match(/Säkerhet/g)).toHaveLength(1);
+    expect(selectButton).not.toHaveAccessibleName(/Säkerhet/);
     expect(screen.getByRole('button', { name: 'Spara Kafé Magasinet' })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Uteservering' })).toBeInTheDocument();
     expect(screen.getByText('Kafé Magasinet')).toBeInTheDocument();
-    // No duplicated "Säkerhet: 92% Säkerhet 92%" sr-only repeat remains in the card body.
-    expect(screen.getByTestId('venue-card')).not.toHaveTextContent('Säkerhet: 92%');
+    expect(screen.getByTestId('venue-card')).not.toHaveTextContent('Säkerhet');
     // The kept visible signals still render.
     expect(screen.getByTestId('venue-card')).toHaveTextContent('92% sol');
     expect(screen.getByTestId('venue-card')).toHaveTextContent('92%');
@@ -64,9 +53,6 @@ describe('<VenueCard />', () => {
       favourite: 'Spara {name}',
       sun: 'Sol',
       photoPlaceholder: 'Platshållarbild',
-      confidence: 'Säkerhet',
-      confidenceApproximate: 'cirka',
-      confidenceUnavailable: 'Säkerhet saknas',
       distance: 'Avstånd',
       sunUnavailable: 'Soltid saknas',
       statusMostlyShade: 'MEST SKUGGA',
@@ -139,9 +125,6 @@ describe('<VenueCard />', () => {
           favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
           statusObscured: 'SOL BAKOM MOLN',
@@ -166,26 +149,19 @@ describe('<VenueCard />', () => {
     expect(card.querySelector('.text-amber-dark.font-extrabold')).toBeNull();
   });
 
-  it('suppresses the amber confidence chip on an obscured non-compact card (Story 10.2 AC1 — no amber under the gate)', () => {
-    // Completion Note #2 / AC1: the amber `text-amber-text` confidence chip is
-    // hidden for obscured venues so no amber sun chrome survives the gate. A
-    // regression that re-added the amber chip under the gate would slip past the
-    // headline obscured tests (which only assert the status label + position
-    // chip), so pin the suppression directly.
+  it('suppresses amber sun chrome on an obscured non-compact card (Story 10.2 AC1 — no amber under the gate)', () => {
+    // Completion Note #2 / AC1: amber sun chrome is hidden for obscured venues.
+    // A regression that re-added amber treatment under the gate would slip past
+    // headline obscured tests, so pin the suppression directly.
     render(
       <VenueCard
         name="Molnig" sunExposurePercent={92} distanceMeters={100} isSunny={false} isObscured
-        confidencePercent={88}
-        confidenceMeta={{ sunDataSource: 'weather', weatherUpdatedAt: new Date().toISOString() }}
         thumbnail={{ alt: 'a', initials: 'ML' }}
         labels={{
           select: 'Välj Molnig',
           favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
           statusObscured: 'SOL BAKOM MOLN',
@@ -196,7 +172,7 @@ describe('<VenueCard />', () => {
     );
 
     const card = screen.getByTestId('venue-card');
-    // No amber confidence chip element under the gate.
+    // No amber sun text element under the gate.
     expect(card.querySelector('.text-amber-text')).toBeNull();
     expect(card).not.toHaveTextContent('92%');
   });
@@ -211,9 +187,6 @@ describe('<VenueCard />', () => {
           favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
           statusObscured: 'SOL BAKOM MOLN',
@@ -233,7 +206,6 @@ describe('<VenueCard />', () => {
       <VenueCard
         name="Bellora"
         sunTimeRange="Sun 13:00-18:30"
-        confidencePercent={80}
         distanceMeters={100}
         sunExposurePercent={76}
         thumbnail={{ alt: 'Patio', initials: 'BE' }}
@@ -243,9 +215,6 @@ describe('<VenueCard />', () => {
           favourite: 'Save {name}',
           sun: 'Sun',
           photoPlaceholder: 'Placeholder image',
-          confidence: 'Confidence',
-          confidenceApproximate: 'about',
-          confidenceUnavailable: 'Confidence unavailable',
           distance: 'Distance',
           sunUnavailable: 'Sun time unavailable',
         }}
@@ -257,16 +226,11 @@ describe('<VenueCard />', () => {
     expect(screen.getByTestId('venue-card')).not.toHaveTextContent('76% sol');
   });
 
-  it('uses approximate confidence copy when weather freshness is stale', () => {
+  it('does not render stale-weather confidence copy on the card', () => {
     render(
       <VenueCard
         name="Bellora"
         sunTimeRange="Sol 13:00-18:30"
-        confidencePercent={80}
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: '2026-05-22T09:00:00.000Z',
-        }}
         distanceMeters={100}
         sunExposurePercent={76}
         thumbnail={{ alt: 'Uteservering', initials: 'BE' }}
@@ -276,9 +240,6 @@ describe('<VenueCard />', () => {
           favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
         }}
@@ -286,11 +247,9 @@ describe('<VenueCard />', () => {
       />,
     );
 
-    // Story 9.1: the approximate value renders as the visible "~80%" chip; the
-    // duplicated "Säkerhet:" sr-only repeat is gone (the accessible value lives
-    // once in the button aria-label, which here is the plain 'Välj Bellora').
-    expect(screen.getByTestId('venue-card')).toHaveTextContent('~80%');
-    expect(screen.getByTestId('venue-card')).not.toHaveTextContent('Säkerhet:');
+    // Story 12.13: model confidence is not rendered, visibly or sr-only.
+    expect(screen.getByTestId('venue-card')).not.toHaveTextContent('~80%');
+    expect(screen.getByTestId('venue-card')).not.toHaveTextContent('Säkerhet');
   });
 
   it('does not surface prediction-uncertainty copy on the card (Story 9.1 de-bloat)', () => {
@@ -298,23 +257,15 @@ describe('<VenueCard />', () => {
       <VenueCard
         name="Café Halvvägs"
         sunTimeRange="Sol 15:10-17:20"
-        confidencePercent={70}
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: new Date().toISOString(),
-        }}
         distanceMeters={100}
         sunExposurePercent={65}
         thumbnail={{ alt: 'Uteservering', initials: 'CH' }}
         isSunny
         labels={{
-          select: 'Välj Café Halvvägs, Sol 15:10-17:20, Säkerhet 70%, Avstånd 100 m',
+          select: 'Välj Café Halvvägs, Sol 15:10-17:20, Avstånd 100 m',
           favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
         }}
@@ -328,9 +279,9 @@ describe('<VenueCard />', () => {
     expect(
       screen.queryByText(/Byggnadsskuggorna är beräknade/),
     ).not.toBeInTheDocument();
-    // Confidence still appears exactly once, in the accessible name.
+    // Confidence is not part of the card accessible name.
     const selectButton = screen.getByRole('button', { name: /Välj Café Halvvägs/ });
-    expect(selectButton.getAttribute('aria-label')?.match(/Säkerhet/g)).toHaveLength(1);
+    expect(selectButton).not.toHaveAccessibleName(/Säkerhet/);
   });
 
   it('does not surface prediction-uncertainty copy in compact mode either (Story 9.1 de-bloat)', () => {
@@ -338,24 +289,16 @@ describe('<VenueCard />', () => {
       <VenueCard
         name="Café Halvvägs"
         sunTimeRange="Sol 15:10-17:20"
-        confidencePercent={70}
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: new Date().toISOString(),
-        }}
         distanceMeters={100}
         sunExposurePercent={65}
         thumbnail={{ alt: 'Uteservering', initials: 'CH' }}
         isSunny
         compact
         labels={{
-          select: 'Välj Café Halvvägs, Sol 15:10-17:20, Säkerhet 70%, Avstånd 100 m',
+          select: 'Välj Café Halvvägs, Sol 15:10-17:20, Avstånd 100 m',
           favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
         }}
@@ -367,34 +310,25 @@ describe('<VenueCard />', () => {
     expect(card).not.toHaveTextContent('Osäker prognos');
     expect(card).not.toHaveTextContent('Byggnadsskuggor mer osäkra');
     expect(screen.queryByText(/Byggnadsskuggorna är beräknade/)).not.toBeInTheDocument();
-    // Confidence still appears exactly once, in the accessible name.
+    // Confidence is not part of the compact card accessible name.
     const selectButton = screen.getByRole('button', { name: /Välj Café Halvvägs/ });
-    expect(selectButton.getAttribute('aria-label')?.match(/Säkerhet/g)).toHaveLength(1);
+    expect(selectButton).not.toHaveAccessibleName(/Säkerhet/);
   });
 
-  it('leaves no orphaned trailing separator when the visible confidence chip is suppressed (Story 9.1 AC #2)', () => {
+  it('leaves no orphaned trailing separator after public confidence removal', () => {
     render(
       <VenueCard
         name="Bellora"
         sunTimeRange="Sol 13:00-18:30"
-        confidencePercent={80}
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: new Date().toISOString(),
-        }}
         distanceMeters={180}
         sunExposurePercent={76}
         thumbnail={{ alt: 'Uteservering', initials: 'BE' }}
         isSunny
-        showVisibleConfidence={false}
         labels={{
           select: 'Välj Bellora',
           favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
         }}
@@ -402,8 +336,8 @@ describe('<VenueCard />', () => {
       />,
     );
 
-    // With the confidence chip hidden, the meta row keeps the kept sun signal
-    // and must not end on a dangling middot. Target the VISIBLE "76% sol"
+    // The meta row keeps the public sun signal and must not end on a dangling
+    // middot. Target the VISIBLE "76% sol"
     // exposure chip specifically — the card also carries an sr-only sun-window
     // node ("Sol HH:MM–HH:MM") that likewise contains "sol", so a bare
     // getByText('sol') is now ambiguous.
@@ -411,7 +345,7 @@ describe('<VenueCard />', () => {
     const normalized = metaRow?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
     expect(normalized).toContain('76% sol');
     expect(normalized.endsWith('·')).toBe(false);
-    // The hidden chip is not rendered as visible text.
+    // No public confidence percentage remains on the card.
     expect(screen.getByTestId('venue-card')).not.toHaveTextContent('80%');
   });
 
@@ -420,7 +354,6 @@ describe('<VenueCard />', () => {
       <VenueCard
         name="Bellora"
         sunTimeRange="Sol 13:00-18:30"
-        confidencePercent={80}
         distanceMeters={100}
         sunExposurePercent={76}
         thumbnail={{
@@ -434,9 +367,6 @@ describe('<VenueCard />', () => {
           favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
         }}
@@ -455,7 +385,6 @@ describe('<VenueCard />', () => {
       <VenueCard
         name="Bellora"
         sunTimeRange="Sol 13:00-18:30"
-        confidencePercent={80}
         distanceMeters={100}
         sunExposurePercent={76}
         thumbnail={{
@@ -469,9 +398,6 @@ describe('<VenueCard />', () => {
           favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
         }}
@@ -497,7 +423,6 @@ describe('<VenueCard />', () => {
       <VenueCard
         name="Bellora"
         sunTimeRange="Sol 13:00-18:30"
-        confidencePercent={80}
         distanceMeters={100}
         sunExposurePercent={76}
         thumbnail={{
@@ -511,9 +436,6 @@ describe('<VenueCard />', () => {
           favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
         }}
@@ -533,7 +455,6 @@ describe('<VenueCard />', () => {
       <VenueCard
         name="Bellora"
         sunTimeRange="Sol 13:00-18:30"
-        confidencePercent={80}
         distanceMeters={100}
         thumbnail={{ alt: 'Uteservering', initials: 'BE' }}
         isSunny
@@ -543,9 +464,6 @@ describe('<VenueCard />', () => {
           favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
         }}
@@ -565,7 +483,6 @@ describe('<VenueCard />', () => {
       <VenueCard
         name="Bellora"
         sunTimeRange="Sol 13:00-18:30"
-        confidencePercent={80}
         distanceMeters={100}
         thumbnail={{ alt: 'Uteservering', initials: 'BE' }}
         isSunny
@@ -576,9 +493,6 @@ describe('<VenueCard />', () => {
           favouriteRemove: 'Ta bort favorit',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
         }}
@@ -599,7 +513,6 @@ describe('<VenueCard />', () => {
       <VenueCard
         name="Bellora"
         sunTimeRange="Sol 13:00-18:30"
-        confidencePercent={80}
         distanceMeters={100}
         thumbnail={{ alt: 'Uteservering', initials: 'BE' }}
         isSunny
@@ -611,9 +524,6 @@ describe('<VenueCard />', () => {
           favouriteRemove: 'Ta bort favorit',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
         }}
@@ -632,7 +542,6 @@ describe('<VenueCard />', () => {
       <VenueCard
         name="Bellora"
         sunTimeRange="Sol 13:00-18:30"
-        confidencePercent={80}
         distanceMeters={100}
         thumbnail={{ alt: 'Uteservering', initials: 'BE' }}
         isSunny
@@ -641,9 +550,6 @@ describe('<VenueCard />', () => {
           favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
         }}
@@ -661,7 +567,6 @@ describe('<VenueCard />', () => {
       <VenueCard
         name="Bellora"
         sunTimeRange="Sol 13:00-18:30"
-        confidencePercent={80}
         distanceMeters={100}
         thumbnail={{ alt: 'Uteservering', initials: 'BE' }}
         isSunny
@@ -672,9 +577,6 @@ describe('<VenueCard />', () => {
           favourite: 'Spara {name}',
           sun: 'Sol',
           photoPlaceholder: 'Platshållarbild',
-          confidence: 'Säkerhet',
-          confidenceApproximate: 'cirka',
-          confidenceUnavailable: 'Säkerhet saknas',
           distance: 'Avstånd',
           sunUnavailable: 'Soltid saknas',
         }}

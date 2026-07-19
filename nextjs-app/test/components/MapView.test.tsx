@@ -1326,18 +1326,21 @@ describe('<MapView />', () => {
       );
     });
 
-    it('shows confidence context in the route overlay before the native-map handoff (Story 3.4 AC #3)', () => {
+    it('shows uncertainty context in the route overlay before the native-map handoff (Story 12.13 AC4)', () => {
       vi.spyOn(window, 'open').mockImplementation(() => null);
       selectedVenueIdMock = 'venue-1';
       useVenueSearchMock.mockReturnValue({
         data: {
           ...makeVenueResponse([
-            makeVenue({
-              id: 'venue-1',
-              name: 'Kafé Magasinet',
-              slug: 'test-venue-sunny',
-              confidence: 88,
-            }),
+            {
+              ...makeVenue({
+                id: 'venue-1',
+                name: 'Kafé Magasinet',
+                slug: 'test-venue-sunny',
+                confidence: 88,
+              }),
+              predictionUncertainty: { level: 'medium', reasons: ['weather'] },
+            },
           ]),
           meta: {
             count: 1,
@@ -1355,11 +1358,12 @@ describe('<MapView />', () => {
       fireEvent.click(screen.getAllByRole('button', { name: /Visa Rutt/ })[0]);
 
       const overlay = screen.getByRole('dialog', { name: 'Rutt till Kafé Magasinet' });
-      expect(overlay).toHaveTextContent('Säkerhet 88%');
+      expect(overlay).not.toHaveTextContent('Säkerhet');
+      expect(overlay).toHaveTextContent('Osäker prognos');
       expect(overlay).toHaveTextContent('ca 2 min promenad');
     });
 
-    it('keeps confidence hidden in the route overlay when the public confidence display is unavailable', () => {
+    it('keeps confidence hidden in the route overlay when no public uncertainty is available', () => {
       vi.spyOn(window, 'open').mockImplementation(() => null);
       selectedVenueIdMock = 'venue-1';
       useVenueSearchMock.mockReturnValue({
@@ -1378,7 +1382,7 @@ describe('<MapView />', () => {
       expect(overlay).not.toHaveTextContent('Säkerhet');
     });
 
-    it('announces "confidence unavailable" to screen readers when only uncertainty renders in the route overlay (review R2-P2)', () => {
+    it('renders uncertainty without a confidence-unavailable screen reader fallback in the route overlay', () => {
       vi.spyOn(window, 'open').mockImplementation(() => null);
       selectedVenueIdMock = 'venue-1';
       useVenueSearchMock.mockReturnValue({
@@ -1397,11 +1401,10 @@ describe('<MapView />', () => {
       fireEvent.click(screen.getAllByRole('button', { name: /Visa Rutt/ })[0]);
 
       const overlay = screen.getByRole('dialog', { name: 'Rutt till Kafé Magasinet' });
-      // Confidence is hidden (no fresh weather meta) so no visible percentage,
-      // but the uncertainty row renders and the sr-only accessible text must
-      // still state confidence is unavailable, matching VenueQuickInfo.
+      // Confidence is gone from the public route overlay; the uncertainty row is
+      // the only model-context row when meaningful uncertainty exists.
       expect(overlay).not.toHaveTextContent(/Säkerhet \d/);
-      expect(overlay).toHaveTextContent('Säkerhet saknas');
+      expect(overlay).not.toHaveTextContent('Säkerhet saknas');
       expect(overlay).toHaveTextContent('Osäker prognos');
     });
 
@@ -1489,8 +1492,12 @@ describe('<MapView />', () => {
       expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
       expect(screen.getAllByRole('heading', { name: 'Kafé Magasinet' })).toHaveLength(2);
       expect(screen.getAllByText('Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.')).toHaveLength(2);
-      expect(screen.queryByText(/Säkerhet:/)).not.toBeInTheDocument();
-      expect(screen.getAllByText('Säkerhet 95%')).toHaveLength(2);
+      expect(screen.getAllByLabelText('95% sol')).toHaveLength(2);
+      for (const detailSunBadge of screen.getAllByLabelText('95% sol')) {
+        expect(detailSunBadge).toHaveTextContent('95%');
+      }
+      expect(screen.queryByText('95% SOL')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Säkerhet/)).not.toBeInTheDocument();
       // Story 11.6 (AC2): the "Soltider idag" sun-forecast section is removed on
       // both breakpoints — no heading, no best-window subtitle, no timeline strip.
       expect(screen.queryByText('Solprognos idag')).not.toBeInTheDocument();
@@ -2017,10 +2024,9 @@ describe('<MapView />', () => {
       expect(screen.queryByTestId('mobile-bottom-sheet-backdrop')).not.toBeInTheDocument();
       expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('Bellora');
       expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('95% sol');
-      // Story 9.1: the visible confidence chip remains; the duplicated
-      // "Säkerhet: 95%" sr-only repeat was removed.
-      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('95%');
-      expect(screen.getAllByTestId('venue-card')[0]).not.toHaveTextContent('Säkerhet: 95%');
+      // Story 12.13: the only remaining percentage on the card is public sun
+      // exposure, never confidence.
+      expect(screen.getAllByTestId('venue-card')[0]).not.toHaveTextContent('Säkerhet');
       expect(container.querySelector('img[src="https://example.com/bellora.jpg"]')).toBeNull();
     });
 
@@ -2847,17 +2853,52 @@ describe('<MapView />', () => {
 
       render(<MapView />, { wrapper: Wrapper });
 
-      // Forced-visual normalization pins the geometric badge to 95% and confidence
-      // to 95 (now surfaced via the sr-only accessible line, not a visible chip)
-      // and keeps the venue's real opening hours (Story 11.4 AC1: no sun-window/
-      // no visible Säkerhet chip). The un-normalized 99% never appears.
+      // Forced-visual normalization pins the geometric badge to 95% and keeps
+      // the venue's real opening hours. Public confidence is not rendered; the
+      // un-normalized 99% never appears.
       expect(screen.getAllByText(/95% SOL/).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText(/Säkerhet 95%/).length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText(/Öppet till 22:00/).length).toBeGreaterThanOrEqual(1);
       expect(screen.queryByText(/99% SOL/)).not.toBeInTheDocument();
-      expect(screen.queryByText(/Säkerhet 99%/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Säkerhet/)).not.toBeInTheDocument();
       // No sun-window line renders on the quick-info at all anymore.
       expect(screen.queryByText(/Sol \d{2}:\d{2}/)).not.toBeInTheDocument();
+    });
+
+    it('keeps the amber sun-exposure badge on the route-mapped selected-venue QuickInfo', () => {
+      searchParamsMock = new URLSearchParams(
+        'venue=test-venue-sunny&_state=map-with-selected-venue',
+      );
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({
+            id: 'venue-shaded',
+            name: 'Skuggad referenspin',
+            slug: 'test-venue-sunny',
+            status: 'Shaded',
+            confidence: 12,
+            sunExposurePercent: 99,
+          }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      const { rerender } = render(<MapView />, { wrapper: Wrapper });
+      expect(selectVenueMock).toHaveBeenCalledWith(
+        'venue-shaded',
+        expect.objectContaining({ slug: 'test-venue-sunny' }),
+      );
+      rerender(<MapView />);
+
+      const quickInfos = screen.getAllByTestId('venue-quick-info');
+      expect(screen.queryByTestId('mobile-venue-detail-sheet')).not.toBeInTheDocument();
+      expect(quickInfos).toHaveLength(2);
+      for (const quickInfo of quickInfos) {
+        expect(quickInfo).toHaveTextContent('95% SOL');
+        expect(quickInfo).not.toHaveTextContent('99% SOL');
+        expect(quickInfo).not.toHaveTextContent(/Säkerhet|Confidence/);
+      }
     });
 
     it('clears an active detail URL after selecting a different venue from search', async () => {

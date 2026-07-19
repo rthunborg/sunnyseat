@@ -13,16 +13,11 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { RouteButton } from '@/components/composed/routing/RouteButton';
 import { buildGoogleMapsSearchUrl } from '@/lib/services/routing';
-import type { SunFreshnessMeta, VenueDataDto, VenueDetailDto } from '@/lib/types/api';
+import type { VenueDataDto, VenueDetailDto } from '@/lib/types/api';
 import {
   formatVenueDistance,
-  formatVenueSunPercent,
   getVenueVisualMetadata,
 } from '@/lib/utils/venue-visual-metadata';
-import {
-  getConfidenceDisplayState,
-  type ConfidenceDisplayLabels,
-} from '@/lib/utils/confidence-display';
 import {
   isObscuredSunStatus,
   skyConditionCopy,
@@ -47,9 +42,6 @@ export type VenueDetailContentLabels = {
   /** Story 10.2 (AC1): the muted "Sol bakom moln" hero headline shown when
    * the venue is CloudObscured. */
   obscuredHeadline?: string;
-  /** Story 10.2 (AC1/AC2): the muted hero badge for the obscured state —
-   * "{percent}% solläge" (position, not "% sol"). */
-  obscuredBadge?: string;
   /** Story 10.2 (AC3): plain-language sky descriptors + a "Himmel nu" label.
    * When the sky is unavailable, no sky line renders. Story 10.4 (AC2): adds the
    * rain descriptor. */
@@ -60,9 +52,6 @@ export type VenueDetailContentLabels = {
     overcast: string;
     rain: string;
   };
-  confidence: string;
-  confidenceApproximate: string;
-  confidenceUnavailable: string;
   city: string;
   openUntil: string;
   placeholderImageShort: string;
@@ -78,7 +67,6 @@ export type VenueDetailContentLabels = {
 export type VenueDetailContentProps = {
   fallbackVenue: VenueDataDto;
   detail?: VenueDetailDto;
-  confidenceMeta?: SunFreshnessMeta;
   currentTime: string;
   labels: VenueDetailContentLabels;
   /** Story 9.5 AC3 (folded into 9.9): the distance is centrum-relative (the
@@ -100,7 +88,6 @@ export type VenueDetailContentProps = {
 export function VenueDetailContent({
   fallbackVenue,
   detail,
-  confidenceMeta,
   currentTime,
   labels,
   distanceIsApproximate = false,
@@ -145,11 +132,6 @@ export function VenueDetailContent({
     : {};
   const closesAt = derivedHours.closesAt;
   const isDesktop = mode === 'desktop';
-  const confidenceDisplay = getConfidenceDisplayState({
-    confidence: venue.confidence,
-    meta: confidenceMeta,
-    labels: confidenceDisplayLabels(labels),
-  });
 
   return (
     <article
@@ -199,7 +181,6 @@ export function VenueDetailContent({
             </span>
             <span className="hidden text-text-faint lg:inline">·</span>
             <span className="hidden lg:inline">{metadata.price}</span>
-            <span className="sr-only">{confidenceDisplay.accessibleText}</span>
           </div>
           {loading ? (
             <LoadingBlock label={labels.loading} />
@@ -334,6 +315,8 @@ function HeroImage({
   const thumbnail = venue.thumbnail;
   const alt = thumbnail?.alt?.trim() || labels.photoPlaceholder;
   const percentText = String(Math.round(venue.sunExposurePercent));
+  const sunnyBadgeLabel = formatLabel(labels.sunBadge, { percent: percentText });
+  const sunnyBadgeVisibleText = `${percentText}%`;
   return (
     <div
       className={cn(
@@ -368,11 +351,7 @@ function HeroImage({
           AA), labelled "% solläge" (position, AC2) so no amber sun badge shows
           under the gate. The geometric % value is unchanged. */}
       <div
-        aria-label={
-          isObscured && labels.obscuredBadge
-            ? formatLabel(labels.obscuredBadge, { percent: percentText })
-            : formatLabel(labels.sunBadge, { percent: percentText })
-        }
+        aria-label={isObscured ? (labels.obscuredHeadline ?? 'Sol bakom moln') : sunnyBadgeLabel}
         className={cn(
           'absolute left-4 top-4 flex h-10 items-center justify-center gap-2 rounded-pill px-4 text-heading-lg backdrop-blur-standard shadow-subtle',
           isObscured
@@ -385,7 +364,7 @@ function HeroImage({
         ) : (
           <Sun aria-hidden="true" className="size-5 fill-current" />
         )}
-        {formatVenueSunPercent(venue.sunExposurePercent)}
+        {!isObscured && sunnyBadgeVisibleText}
       </div>
       {/* AC1/AC3: the muted "Sol bakom moln" headline + the plain-language sky
           line, only for the obscured state. `skyLine` is null when the DTO sky
@@ -483,14 +462,4 @@ function formatLabel(template: string, values: Record<string, string>): string {
     (label, [key, value]) => label.replaceAll(`{${key}}`, value),
     template,
   );
-}
-
-function confidenceDisplayLabels(
-  labels: VenueDetailContentLabels,
-): ConfidenceDisplayLabels {
-  return {
-    confidence: labels.confidence,
-    approximate: labels.confidenceApproximate,
-    unavailable: labels.confidenceUnavailable,
-  };
 }

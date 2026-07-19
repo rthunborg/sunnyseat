@@ -41,6 +41,7 @@ describe('feedback-session', () => {
     expect(readVenueDetailView(VENUE.id)).toMatchObject({
       venueId: '1',
       plannerTimestamp: '2026-06-07T12:00:00.000Z',
+      confidenceAtPrediction: 92,
     });
 
     expect(hasSubmittedVenueFeedback(VENUE.id)).toBe(false);

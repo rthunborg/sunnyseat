@@ -42,3 +42,5 @@
 
 ## Story 12-13-remove-the-user-facing-confidence-indicator-keep-it-internal
 - [Phase 3 â€” create-story] Story 12.13 source citations contain stale PRD/UX line claims; implementation should use a surgical current-contract audit instead of broad documentation rewrites.
+- [Phase 5 â€” dev-story] Positive visual assertions must distinguish amber sun-exposure figures from confidence; candidate review caught and corrected two over-removals before rebaseline.
+- [Phase 5 â€” dev-story] On this Windows host the canonical full-suite gate required VITEST_MAX_WORKERS=4 to avoid CPU-contention timeouts; test timeouts and code remained unchanged.

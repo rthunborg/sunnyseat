@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { VenueList } from '@/components/custom/venue/VenueList';
 import type { VenueListSortMode } from '@/components/composed/venue/VenueListControls';
-import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
+import type { VenueDataDto } from '@/lib/types/api';
 
 type FavouritesListProps = {
   favouriteIds: readonly string[];
@@ -13,7 +13,6 @@ type FavouritesListProps = {
   onFavouriteToggle: (venue: VenueDataDto) => void;
   isFavourite: (id: string) => boolean;
   sortMode: VenueListSortMode;
-  confidenceMeta?: SunFreshnessMeta;
   /** Story 9.5 AC3: the distances are centrum-relative (Gothenburg-centrum
    * geolocation fallback), not a real personal fix — thread through so the
    * favourite cards qualify each distance "≈ från centrum" honestly. Mirrors
@@ -34,7 +33,6 @@ export function FavouritesList({
   onSelectVenue,
   onFavouriteToggle,
   isFavourite,
-  confidenceMeta,
   locationIsApproximate = false,
   isLoading = false,
   isError = false,
@@ -89,7 +87,6 @@ export function FavouritesList({
       venues={visibleVenues}
       mode={mode}
       sortMode="sun"
-      confidenceMeta={confidenceMeta}
       locationIsApproximate={locationIsApproximate}
       isLoading={isLoading}
       animateCards={animateCards}

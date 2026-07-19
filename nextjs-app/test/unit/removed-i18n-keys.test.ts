@@ -71,14 +71,13 @@ describe('Story 9.6 removed i18n keys have no remaining reader', () => {
 /**
  * Story 11.4 (AC4) — quick-info reference alignment removed-key pin.
  *
- * The rework removed the visible "Säkerhet: NN%" chip and the "Sol HH:mm–HH:mm"
+ * The rework removed the visible confidence chip and the "Sol HH:mm–HH:mm"
  * window line from the quick-info card, which orphaned three `venue.quickInfo.*`
  * keys: `sunWindow` (only `quickInfoSunWindowTemplate` used it), `sunUnavailable`
  * (only the removed window line's fallback used it), and the already-unconsumed
  * `obscuredPosition` (defined but never wired). All three were deleted from BOTH
  * locales. This suite pins the DELETION so a reader can never silently render a
- * raw key, and confirms the KEPT `confidence*` keys stay (the sr-only accessible
- * confidence line still consumes them).
+ * raw key. Story 12.13 supersedes the former sr-only confidence exception below.
  */
 describe('Story 11.4 removed quick-info i18n keys have no remaining reader', () => {
   function loadQuickInfo(locale: string): Record<string, unknown> {
@@ -95,13 +94,78 @@ describe('Story 11.4 removed quick-info i18n keys have no remaining reader', () 
       expect(quickInfo).not.toHaveProperty('obscuredPosition');
     });
 
-    it(`keeps the confidence* keys (still read by the sr-only accessible line) in ${locale}`, () => {
+    it(`drops the superseded confidence* keys from venue.quickInfo in ${locale}`, () => {
       const quickInfo = loadQuickInfo(locale);
-      expect(quickInfo).toHaveProperty('confidence');
-      expect(quickInfo).toHaveProperty('confidenceApproximate');
-      expect(quickInfo).toHaveProperty('confidenceUnavailable');
+      expect(quickInfo).not.toHaveProperty('confidence');
+      expect(quickInfo).not.toHaveProperty('confidenceApproximate');
+      expect(quickInfo).not.toHaveProperty('confidenceUnavailable');
     });
   }
+});
+
+/**
+ * Story 12.13 — user-facing confidence display removal.
+ *
+ * The public model confidence number remains internal/diagnostic and may still
+ * exist in engine, feedback evidence, SQL, and maintainer-only code. These pins
+ * are scoped to i18n namespaces and UI source files that can render to users.
+ */
+describe('Story 12.13 removed confidence display keys have no public reader', () => {
+  function loadVenueNamespace(locale: string): Record<string, unknown> {
+    return loadNamespace(locale, 'venue.json');
+  }
+
+  for (const locale of LOCALES) {
+    it(`drops confidence keys from public venue namespaces in ${locale}`, () => {
+      const venue = loadVenueNamespace(locale);
+      const quickInfo = (venue.quickInfo ?? {}) as Record<string, unknown>;
+      const route = (venue.route ?? {}) as Record<string, unknown>;
+      const list = (venue.list ?? {}) as Record<string, unknown>;
+      const detail = (venue.detail ?? {}) as Record<string, unknown>;
+
+      for (const namespace of [quickInfo, route, list, detail]) {
+        expect(namespace).not.toHaveProperty('confidence');
+        expect(namespace).not.toHaveProperty('confidenceApproximate');
+        expect(namespace).not.toHaveProperty('confidenceUnavailable');
+      }
+      expect(String(list.cardAria)).not.toContain('{confidence}');
+    });
+  }
+
+  it('keeps no public confidence display helper or translation keys', () => {
+    for (const locale of LOCALES) {
+      const raw = readFileSync(path.join(MESSAGES_DIR, locale, 'venue.json'), 'utf8');
+      expect(raw).not.toContain('"confidence"');
+      expect(raw).not.toContain('"confidenceApproximate"');
+      expect(raw).not.toContain('"confidenceUnavailable"');
+      expect(raw).not.toContain('{confidence}');
+      expect(raw).not.toContain('Säkerhet');
+      expect(raw).not.toContain('Confidence');
+    }
+  });
+
+  it('does not let public UI source re-import confidence display plumbing', () => {
+    const publicUiFiles = [
+      'components/composed/venue/VenueCard.tsx',
+      'components/custom/venue/VenueList.tsx',
+      'components/composed/venue/VenueQuickInfo.tsx',
+      'components/composed/venue/VenueDetailContent.tsx',
+      'components/custom/map/MapView.tsx',
+      'components/custom/routing/RouteOverlay.tsx',
+      'components/custom/favourites/FavouritesList.tsx',
+      'components/custom/venue/VenueDetailOverlay.tsx',
+      'components/custom/venue/ForcedVenueDetailInitialFrame.tsx',
+    ];
+
+    for (const relativePath of publicUiFiles) {
+      const source = readFileSync(path.resolve(process.cwd(), relativePath), 'utf8');
+      expect(source).not.toContain('getConfidenceDisplayState');
+      expect(source).not.toContain('confidencePercent');
+      expect(source).not.toContain('confidenceMeta');
+      expect(source).not.toContain('showVisibleConfidence');
+      expect(source).not.toContain('routeConfidenceLabel');
+    }
+  });
 });
 
 /**

@@ -13,7 +13,7 @@ import {
   EASE_EXIT,
   EASE_SPRING,
 } from '@/lib/constants/animation';
-import type { SunFreshnessMeta, VenueDataDto, VenueDetailDto } from '@/lib/types/api';
+import type { VenueDataDto, VenueDetailDto } from '@/lib/types/api';
 import { cn } from '@/lib/utils';
 import { currentVenueShareUrl, shareVenueNatively } from '@/lib/utils/share';
 
@@ -29,7 +29,6 @@ export type VenueDetailOverlayLabels = VenueDetailContentLabels & {
 export type VenueDetailOverlayProps = {
   fallbackVenue: VenueDataDto;
   detail?: VenueDetailDto;
-  confidenceMeta?: SunFreshnessMeta;
   currentTime: string;
   labels: VenueDetailOverlayLabels;
   isLoading?: boolean;
@@ -57,7 +56,6 @@ const FAST_SWIPE_VELOCITY = 0.55;
 export function VenueDetailOverlay({
   fallbackVenue,
   detail,
-  confidenceMeta,
   currentTime,
   labels,
   isLoading = false,
@@ -180,7 +178,6 @@ export function VenueDetailOverlay({
           <VenueDetailContent
             fallbackVenue={fallbackVenue}
             detail={detail}
-            confidenceMeta={confidenceMeta}
             currentTime={currentTime}
             labels={labels}
             distanceIsApproximate={distanceIsApproximate}
@@ -272,7 +269,6 @@ export function VenueDetailOverlay({
         <VenueDetailContent
           fallbackVenue={fallbackVenue}
           detail={detail}
-          confidenceMeta={confidenceMeta}
           currentTime={currentTime}
           labels={labels}
           distanceIsApproximate={distanceIsApproximate}

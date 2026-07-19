@@ -43,6 +43,32 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-07-19 — Story 12.13 confidence-removal reference cleanup (3 references, mobile + desktop) — human-approved rebaseline
+
+**Trigger:** Story 12.13 removes user-facing confidence numbers while keeping the public sun-exposure presentation and weather honesty signals. The current references were stale on three surfaces: saved favourites still showed the secondary confidence percentages beside primary `N% sol`, and obscured detail still showed a grey percentage chip even though weather-gated/obscured detail must be percentage-free.
+
+**Resolution:** Rasmus explicitly approved the Story 12.13 rebaseline on 2026-07-19 after human review (`Approved: rebaseline Story 12.13`). Exactly three final candidates were promoted. No hash-noise-only captures were promoted: `mobile/map-with-selected-venue` and `mobile/venue-detail` differed by hash only but matched the current user-visible contract, and desktop `map-primary`, `favourites-tab`, and sunny `venue-detail` already matched their authoritative references.
+
+**Changed PNGs (3):**
+- `nextjs-app/docs/design/references/screens/mobile/favourites-tab.png`
+- `nextjs-app/docs/design/references/screens/mobile/venue-detail-obscured.png`
+- `nextjs-app/docs/design/references/screens/desktop/venue-detail-obscured.png`
+
+**Source of new PNG:** Human-reviewed implementation candidates from `_bmad-output/implementation-artifacts/validation/story-12-13-candidates/20260719-163445/`.
+
+**Old → new SHA-256:**
+- `mobile/favourites-tab`: `1d12b31c8fcb4a2f116f2341c008d66896ff48760bb5f5597e5c1d8019b74c92` → `eee2df4ddc89948bcedcf8f82d8aaa8481e0081b339d84411b137a1582425ba4`
+- `mobile/venue-detail-obscured`: `ac25a55c467977207bf2420ef15af37ae3866bbef3ce5fc92f4cd2c2378a1a50` → `58a62f69a652991b70ab40a71f1fd94f742cae56c336bae042200404f1eee028`
+- `desktop/venue-detail-obscured`: `7c510fb51fa542c4e57ad12630ac739e60f5408680503b5c0d5ed1ca6b18f802` → `f17a896333dd594099f9053179cf7e4884371bb60bfe72dc0a54a1b844c2895b`
+
+**Recipe change:** None to `nextjs-app/scripts/capture-claude-design-refs.mjs`, `project-context.md`, or visual-validation route mappings. This was an implementation-state rebaseline from reviewed Story 12.13 candidates.
+
+**Verification:** The final candidate evidence captured 9/9 Story 12.13 visual targets with no assertion failures. It asserted that selected sunny QuickInfo retains `95% SOL`, sunny detail retains sun icon + visible `95%`, obscured detail is percentage-free while preserving `SOL BAKOM MOLN · MULET`, favourites retain primary sun-exposure values while losing secondary confidence, and no visible/sr-only/ARIA/title confidence leaks exist. After promotion, the three authoritative references were SHA-verified to match the approved candidates exactly, and no other reference PNG was changed.
+
+**Reason / spec link:** Story 12.13 acceptance criteria remove user-facing confidence indicators but keep internal confidence, primary sun-exposure values, and the Story 12.6 grey/not-sunny weather-honesty model. The promoted references encode the final public contract: favourites show only primary sun exposure, and obscured detail uses cloud/sky copy without a percentage chip.
+
+**Re-evaluation trigger:** Re-capture these references if public confidence display is reintroduced, favourites card metadata changes, the public sun-exposure chip wording changes, obscured/weather-gated detail presentation changes, or Story 12.2 changes uncertainty/weather honesty copy in a way that affects these surfaces.
+
 ### 2026-07-19 — Story 12.6 public two-state pin semantics (10 map-visible references, mobile + desktop) — human-approved rebaseline
 
 **Trigger:** Story 12.6 replaced the prior public map-pin presentation with a shared two-state public predicate. The pre-12.6 references were stale for the new contract because grey/not-sunny or cloud-obscured pins could still show seating-sun percentages, which now misrepresents the user-facing sunny/not-sunny model.

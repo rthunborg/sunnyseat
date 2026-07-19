@@ -4,8 +4,7 @@ import { useMemo } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { VenueCard, VenueCardSkeleton } from '@/components/composed/venue/VenueCard';
 import type { VenueListSortMode } from '@/components/composed/venue/VenueListControls';
-import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
-import { getConfidenceDisplayState } from '@/lib/utils/confidence-display';
+import type { VenueDataDto } from '@/lib/types/api';
 import { compareVenuesByPublicSun, isVenuePubliclySunny } from '@/lib/utils/public-sun';
 import { getVenueVisualMetadata } from '@/lib/utils/venue-visual-metadata';
 import { cn } from '@/lib/utils';
@@ -20,8 +19,6 @@ export type VenueListProps = {
   animateCards?: boolean;
   sortMode?: VenueListSortMode;
   compactCards?: boolean;
-  confidenceMeta?: SunFreshnessMeta;
-  showVisibleConfidence?: boolean;
   /**
    * Story 9.5 AC3: when the origin is the Gothenburg-centrum fallback (no real
    * personal fix), the distances are centrum-relative, not from the user. The
@@ -42,8 +39,6 @@ export function VenueList({
   animateCards = false,
   sortMode = 'sun',
   compactCards,
-  confidenceMeta,
-  showVisibleConfidence = true,
   locationIsApproximate = false,
   onFavouriteToggle,
   isFavourite,
@@ -81,15 +76,6 @@ export function VenueList({
       {sortedVenues.map((venue, index) => {
         const sunTimeRange = resolveSunTimeRange(venue, t('sun'));
         const isObscured = venue.currentSunStatus === 'CloudObscured';
-        const confidenceDisplay = getConfidenceDisplayState({
-          confidence: venue.confidence,
-          meta: confidenceMeta,
-          labels: {
-            confidence: t('confidence'),
-            approximate: t('confidenceApproximate'),
-            unavailable: t('confidenceUnavailable'),
-          },
-        });
         // Story 10.2 (AC4 — obscured phrase EXACTLY once): the obscured card's
         // accessible name is built HERE in ONE place via `cardAriaObscured`
         // (which folds in "sol bakom moln just nu") rather than the plain
@@ -103,7 +89,6 @@ export function VenueList({
           : t('cardAria', {
               name: venue.venueName,
               sun: sunTimeRange ?? t('sunUnavailable'),
-              confidence: confidenceDisplay.accessibleText,
               distance: formatDistance(venue.distanceMeters),
             });
         return (
@@ -112,8 +97,6 @@ export function VenueList({
             name={venue.venueName}
             neighborhood={venue.neighborhood}
             sunTimeRange={sunTimeRange}
-            confidencePercent={venue.confidence}
-            confidenceMeta={confidenceMeta}
             distanceMeters={venue.distanceMeters}
             distanceIsApproximate={locationIsApproximate}
             sunExposurePercent={venue.sunExposurePercent}
@@ -123,7 +106,6 @@ export function VenueList({
             isObscured={isObscured}
             visualMetadata={getVenueVisualMetadata(venue, locale)}
             compact={compact}
-            showVisibleConfidence={showVisibleConfidence}
             staggerIndex={index}
             animateIn={animateCards}
             labels={{
@@ -133,9 +115,6 @@ export function VenueList({
               favouriteRemove: t('favouriteRemove'),
               sun: t('sun'),
               photoPlaceholder: t('photoPlaceholder'),
-              confidence: t('confidence'),
-              confidenceApproximate: t('confidenceApproximate'),
-              confidenceUnavailable: t('confidenceUnavailable'),
               distance: t('distance'),
               distanceApproximate: t('distanceApproximate'),
               sunUnavailable: t('sunUnavailable'),

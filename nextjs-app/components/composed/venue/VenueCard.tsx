@@ -12,11 +12,7 @@ import {
   formatVenueSunPercent,
   type VenueVisualMetadata,
 } from '@/lib/utils/venue-visual-metadata';
-import {
-  getConfidenceDisplayState,
-  type ConfidenceDisplayLabels,
-} from '@/lib/utils/confidence-display';
-import type { SunFreshnessMeta, WeatherGateState } from '@/lib/types/api';
+import type { WeatherGateState } from '@/lib/types/api';
 import { normalizeWeatherGateState } from '@/lib/utils/public-sun';
 import { cn } from '@/lib/utils';
 
@@ -27,9 +23,6 @@ export type VenueCardLabels = {
   favouriteRemove?: string;
   sun: string;
   photoPlaceholder: string;
-  confidence: string;
-  confidenceApproximate: string;
-  confidenceUnavailable: string;
   distance: string;
   /** Story 9.5 AC3: honest "≈ från centrum" annotation shown alongside the
    * distance when the origin is the Gothenburg-centrum fallback. */
@@ -53,8 +46,6 @@ export type VenueCardProps = {
   name: string;
   neighborhood?: string;
   sunTimeRange?: string;
-  confidencePercent?: number;
-  confidenceMeta?: SunFreshnessMeta;
   distanceMeters?: number;
   /** Story 9.5 AC3: the distance is centrum-relative (Gothenburg fallback),
    * not a real personal fix — annotate it honestly. */
@@ -79,7 +70,6 @@ export type VenueCardProps = {
   onFavouriteToggle?: () => void;
   isFavourite?: boolean;
   compact?: boolean;
-  showVisibleConfidence?: boolean;
   staggerIndex?: number;
   animateIn?: boolean;
 };
@@ -90,8 +80,6 @@ export function VenueCard({
   name,
   neighborhood,
   sunTimeRange,
-  confidencePercent,
-  confidenceMeta,
   distanceMeters,
   distanceIsApproximate = false,
   sunExposurePercent,
@@ -105,20 +93,14 @@ export function VenueCard({
   onFavouriteToggle,
   isFavourite = false,
   compact = false,
-  showVisibleConfidence = true,
   staggerIndex = 0,
   animateIn = false,
 }: VenueCardProps) {
   const sunPercent = formatVenueSunPercent(sunExposurePercent);
   const distance = formatVenueDistance(distanceMeters);
-  const confidenceDisplay = getConfidenceDisplayState({
-    confidence: confidencePercent,
-    meta: confidenceMeta,
-    labels: confidenceDisplayLabels(labels),
-  });
-  // Story 9.1 de-bloat: the button's accessible name (labels.select) already
-  // carries name + sun% + Säkerhet (once) + Avstånd, so we no longer append the
-  // prediction-uncertainty paragraph to it.
+  // Story 12.13: the button's accessible name carries name + sun + distance
+  // only. Model confidence remains internal/feedback evidence and must not be
+  // rendered visibly or to assistive technology.
   const weatherUnavailableLabel =
     isSunny && normalizeWeatherGateState(weatherGateState) === 'unknown'
       ? labels.weatherUnavailable
@@ -250,17 +232,6 @@ export function VenueCard({
                   <span>{statusLabel}</span>
                 </span>
               )}
-              {isSunny && confidenceDisplay.visibleText && showVisibleConfidence && (
-                <>
-                  <span className="text-text-faint">·</span>
-                  <span
-                    aria-hidden="true"
-                    className="font-extrabold text-label-xs text-amber-text"
-                  >
-                    {confidenceDisplay.visibleText}
-                  </span>
-                </>
-              )}
             </span>
             {visualMetadata && (
               <span className="mt-2 flex flex-wrap gap-1">
@@ -277,11 +248,11 @@ export function VenueCard({
             {/* Sun window ("Sol HH:MM–HH:MM"): a genuinely-real signal (the sunny
                 hours) kept discoverable to screen readers. Story 9.1's de-bloat
                 removed the OLD sr-only block because it DUPLICATED the
-                confidence + distance already in the button's accessible name —
-                but that block also carried the sun window, which is not a
-                duplicate and is the core value the favourites view surfaces per
-                saved venue. Re-added on its own (sr-only, so the visible card
-                stays de-bloated per 9.1) in the NON-COMPACT variant only —
+                distance already in the button's accessible name — but that
+                block also carried the sun window, which is not a duplicate and
+                is the core value the favourites view surfaces per saved venue.
+                Re-added on its own (sr-only, so the visible card stays
+                de-bloated per 9.1) in the NON-COMPACT variant only —
                 matching the pre-9.1 placement so the mobile `/favoriter` card
                 (bottom sheet at 'mid') exposes it while the always-compact
                 desktop-list-panel card does not (keeping a single DOM match). */}
@@ -446,14 +417,6 @@ function VenueCardThumbnail({
 function normalizeInitials(value: string | undefined): string {
   const trimmed = value?.trim() || 'SS';
   return Array.from(trimmed).slice(0, THUMBNAIL_MAX_INITIALS).join('').toUpperCase();
-}
-
-function confidenceDisplayLabels(labels: VenueCardLabels): ConfidenceDisplayLabels {
-  return {
-    confidence: labels.confidence,
-    approximate: labels.confidenceApproximate,
-    unavailable: labels.confidenceUnavailable,
-  };
 }
 
 function formatLabel(template: string, values: Record<string, string>): string {

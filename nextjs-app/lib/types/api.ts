@@ -122,9 +122,10 @@ export interface VenueDataDto {
   skyCondition?: string; // 'clear' | 'partly-cloudy' | 'overcast' | 'rain' | 'unavailable'
   isPartner: boolean;
   /**
-   * Prediction certainty, 0..100. This is not the amount of direct sun.
-   * Weather freshness/source metadata decides whether the value is exact,
-   * approximate, or hidden in the UI.
+   * Internal prediction certainty, 0..100. Story 12.13 removed every public
+   * visible and assistive rendering of this number. It remains on the DTO as
+   * short-lived non-rendering transition evidence for feedback-session stamping
+   * until Story 12.2 replaces that evidence contract server-side.
    */
   confidence: number;
   distanceMeters: number;

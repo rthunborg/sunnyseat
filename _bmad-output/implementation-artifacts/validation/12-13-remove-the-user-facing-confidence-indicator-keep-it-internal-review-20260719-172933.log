@@ -1,0 +1,229 @@
+SunnySeat story review gate
+Story: 12-13-remove-the-user-facing-confidence-indicator-keep-it-internal
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-13-remove-the-user-facing-confidence-indicator-keep-it-internal-review-20260719-172933.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/12-13-remove-the-user-facing-confidence-indicator-keep-it-internal.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+ ❯ test/unit/services/weather-snapshots.atdd.test.ts (5 tests | 1 failed) 7317ms
+     × snapshot refresh covers the selectable planner horizon or marks out-of-horizon as unknown 7192ms
+ ❯ test/unit/services/sun-geometry-precompute.atdd.test.ts (5 tests | 1 failed) 5182ms
+     × computes deterministic ungated geometry-only entries for every planner step 5102ms
+ ❯ test/unit/services/sun-engine-caching.atdd.test.ts (14 tests | 2 failed) 5849ms
+     × fetches get_buildings_near_point ONCE per venue, not twice 5517ms
+     × produces a SunEngineOutcome deep-equal to the pre-dedupe baseline 144ms
+ ❯ test/unit/services/sun-engine.day-series-parity.atdd.test.ts (9 tests | 1 failed) 6807ms
+     × emits one entry per 15-min planner step across 06:00–21:00 6480ms
+ ❯ test/unit/services/sun-engine.cloud-gate.coverage.test.ts (9 tests | 1 failed) 6676ms
+     × an overcast slice flagged isForecast:true gates to CloudObscured (no special-casing of forecasts) 6627ms
+ ❯ test/unit/services/sun-engine.cloud-gate.atdd.test.ts (34 tests | 1 failed) 7428ms
+     × overcast weather over a geometrically-sunlit venue ⇒ CloudObscured headline 7012ms
+ ❯ test/unit/api/venues-route-real-engine.test.ts (9 tests | 1 failed) 8387ms
+     × list route replaces sun fields from the engine and emits aggregated weather freshness 5988ms
+ ❯ test/unit/services/sun-engine.test.ts (33 tests | 1 failed) 8536ms
+     × produces engine sun fields through the unchanged DTO (AC #1) 7306ms
+ ❯ test/unit/services/sun-engine-day-series-cache.atdd.test.ts (4 tests | 1 failed) 5909ms
+     × serves a 2nd same-day request from cache (no additional building RPC) 5795ms
+Not implemented: navigation to another Document
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/unit/api/venues-route-real-engine.test.ts > venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring) > list route replaces sun fields from the engine and emits aggregated weather freshness
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/unit/api/venues-route-real-engine.test.ts:117:3
+    115|   });
+    116|
+    117|   it('list route replaces sun fields from the engine and emits aggrega…
+       |   ^
+    118|     adapterMocks.applyRealSunEngine.mockImplementation(async (venue: S…
+    119|       computedOutcome(venue),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  test/unit/services/sun-engine-caching.atdd.test.ts > Story 9.3 AC1 — single shared building fetch > fetches get_buildings_near_point ONCE per venue, not twice
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/unit/services/sun-engine-caching.atdd.test.ts:119:3
+    117| describe('Story 9.3 AC1 — single shared building fetch', () => {
+    118|   // P0 — the load-bearing call-count assertion.
+    119|   it('fetches get_buildings_near_point ONCE per venue, not twice', asy…
+       |   ^
+    120|     await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_…
+    121|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  test/unit/services/sun-engine-caching.atdd.test.ts > Story 9.3 AC1 — single shared building fetch > produces a SunEngineOutcome deep-equal to the pre-dedupe baseline
+Error: Snapshot `Story 9.3 AC1 — single shared building fetch > produces a SunEngineOutcome deep-equal to the pre-dedupe baseline 1` mismatched
+
+- Expected
++ Received
+
+@@ -1,9 +1,8 @@
+  {
+    "freshness": {
+-     "sunDataSource": "weather",
+-     "weatherUpdatedAt": "2026-06-21T10:30:00.000Z",
++     "sunDataSource": "geometry-only",
+    },
+    "peakTime": "05:30",
+    "venue": {
+      "confidence": 60,
+      "currentSunStatus": "Sunny",
+@@ -17,21 +16,22 @@
+      "neighborhood": "Inom Vallgraven",
+      "predictionUncertainty": {
+        "level": "medium",
+        "reasons": [
+          "building_shadow_coverage",
++         "weather",
+        ],
+      },
+-     "skyCondition": "clear",
++     "skyCondition": "unavailable",
+      "slug": "test-venue-sunny",
+      "sunExposurePercent": 100,
+      "sunWindow": {
+        "end": "21:00",
+        "start": "05:30",
+      },
+      "tags": [],
+      "venueId": "1",
+      "venueName": "Kafé Magasinet",
+      "venueSlug": "test-venue-sunny",
+-     "weatherGateState": "not_gated",
++     "weatherGateState": "unknown",
+    },
+  }
+
+ ❯ test/unit/services/sun-engine-caching.atdd.test.ts:140:21
+    138|     const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER…
+    139|
+    140|     expect(outcome).toMatchInlineSnapshot(`
+       |                     ^
+    141|       {
+    142|         "freshness": {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  test/unit/services/sun-engine-day-series-cache.atdd.test.ts > Story 11.1 AC2 — day-series cached per (venue, date, weather-bucket) > serves a 2nd same-day request from cache (no additional building RPC)
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/unit/services/sun-engine-day-series-cache.atdd.test.ts:147:3
+    145|   // building RPC. This is the whole point of keying on the DAY, not t…
+    146|   // one series serves every step, so a same-day time change is cache-…
+    147|   it('serves a 2nd same-day request from cache (no additional building…
+       |   ^
+    148|     const morning = new Date('2026-06-21T05:00:00.000Z'); // Stockholm…
+    149|     const evening = new Date('2026-06-21T17:00:00.000Z'); // Stockholm…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  test/unit/services/sun-engine.cloud-gate.atdd.test.ts > [10.1 AC1] cloud gate through computeRealSunEngineResult > overcast weather over a geometrically-sunlit venue ⇒ CloudObscured headline
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/unit/services/sun-engine.cloud-gate.atdd.test.ts:176:3
+    174|   });
+    175|
+    176|   it('overcast weather over a geometrically-sunlit venue ⇒ CloudObscur…
+       |   ^
+    177|     mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 10…
+    178|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  test/unit/services/sun-engine.cloud-gate.coverage.test.ts > [10.1 AC1] overcast FORECAST slice still gates the headline (10.4 seam) > an overcast slice flagged isForecast:true gates to CloudObscured (no special-casing of forecasts)
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/unit/services/sun-engine.cloud-gate.coverage.test.ts:178:3
+    176|   });
+    177|
+    178|   it('an overcast slice flagged isForecast:true gates to CloudObscured…
+       |   ^
+    179|     // Story 10.1 explicitly does NOT special-case forecast cloud — ga…
+    180|     // forecast slice is correct and intended; Story 10.4 owns the fut…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  test/unit/services/sun-engine.day-series-parity.atdd.test.ts > Story 11.1 AC1 — day-series covers every planner step > emits one entry per 15-min planner step across 06:00–21:00
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/unit/services/sun-engine.day-series-parity.atdd.test.ts:156:3
+    154| describe('Story 11.1 AC1 — day-series covers every planner step', () =…
+    155|   // P0 — one entry per 15-min step from 06:00 to 21:00 inclusive (61 …
+    156|   it('emits one entry per 15-min planner step across 06:00–21:00', asy…
+       |   ^
+    157|     const series = await computeVenueDaySeries(makeStoredVenue(), SUMM…
+    158|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  test/unit/services/sun-engine.test.ts > applyRealSunEngine integration (mocked RPC + weather) > produces engine sun fields through the unchanged DTO (AC #1)
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/unit/services/sun-engine.test.ts:333:3
+    331|   });
+    332|
+    333|   it('produces engine sun fields through the unchanged DTO (AC #1)', a…
+       |   ^
+    334|     const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER…
+    335|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  test/unit/services/sun-geometry-precompute.atdd.test.ts > Story 12.3 AC1/AC3/AC6 - geometry-only precompute > computes deterministic ungated geometry-only entries for every planner step
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/unit/services/sun-geometry-precompute.atdd.test.ts:36:3
+     34|
+     35| describe('Story 12.3 AC1/AC3/AC6 - geometry-only precompute', () => {
+     36|   test('computes deterministic ungated geometry-only entries for every…
+       |   ^
+     37|     const { computeUngatedGeometryDaySeries } = await loadPrecomputeMo…
+     38|     const series = await computeUngatedGeometryDaySeries({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  test/unit/services/weather-snapshots.atdd.test.ts > Story 12.3 AC1/AC4 - weather snapshots cover the planner horizon without stale nearest-slice reuse > snapshot refresh covers the selectable planner horizon or marks out-of-horizon as unknown
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/unit/services/weather-snapshots.atdd.test.ts:25:3
+     23|
+     24| describe('Story 12.3 AC1/AC4 - weather snapshots cover the planner hor…
+     25|   test('snapshot refresh covers the selectable planner horizon or mark…
+       |   ^
+     26|     const { buildWeatherSnapshotWindow } = await loadWeatherSnapshotsM…
+     27|     const window = buildWeatherSnapshotWindow(new Date('2026-07-18T09:…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+  Snapshots  1 failed
+ Test Files  9 failed | 179 passed | 2 skipped (190)
+      Tests  10 failed | 1750 passed | 15 skipped (1775)
+   Start at  17:31:32
+   Duration  208.15s (transform 13.12s, setup 424.46s, import 341.50s, tests 196.61s, environment 1889.08s)
+

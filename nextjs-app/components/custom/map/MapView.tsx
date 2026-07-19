@@ -40,13 +40,12 @@ import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
 import { useTagFilter } from '@/lib/contexts/TagFilterContext';
 import { useTimeContext } from '@/lib/contexts/TimeContext';
 import { type VenuePinData } from '@/lib/types/map';
-import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
-import { getConfidenceDisplayState } from '@/lib/utils/confidence-display';
+import type { VenueDataDto } from '@/lib/types/api';
 import {
   getPredictionUncertaintyDisplay,
   type PredictionUncertaintyDisplayLabels,
 } from '@/lib/utils/prediction-uncertainty-display';
-import type { RouteOverlayConfidence } from '@/components/custom/routing/RouteOverlay';
+import type { RouteOverlayUncertainty } from '@/components/custom/routing/RouteOverlay';
 import {
   buildGoogleMapsDirectionsUrl,
   buildGoogleMapsSearchUrl,
@@ -107,10 +106,6 @@ const QUICK_INFO_MOBILE_PLANNER_BOTTOM_PX =
   MOBILE_SAFE_AREA_MAX_PX + MOBILE_PLANNER_TOP_OFFSET_PX + MOBILE_PLANNER_HEIGHT_PX;
 const MOBILE_NAV_HEIGHT_PX = 52;
 const MOBILE_SHEET_MID_HEIGHT_PX = 320;
-const FORCED_VISUAL_CONFIDENCE_META: SunFreshnessMeta = {
-  sunDataSource: 'weather',
-  weatherUpdatedAt: '2999-01-01T00:00:00.000Z',
-};
 const EMPTY_VENUES: VenueDataDto[] = [];
 // Round 2 R2-P4: Round 1 P31 released the loading cover on the very first
 // tile error, but MapContainer only latches the sand fallback after
@@ -413,12 +408,6 @@ export function MapView() {
     () => collectTags(venueQuery.data?.venues ?? []),
     [venueQuery.data?.venues],
   );
-  // Confidence meta for the favourites surface: prefer the network favourites
-  // query's meta when it ran (out-of-radius / cold deep-link), otherwise fall
-  // back to the loaded list meta, since AC1 may source the rows entirely from
-  // the Närmast list cache without a favourites fetch.
-  const favouriteListConfidenceMeta =
-    favouriteVenueQuery.data?.meta ?? venueQuery.data?.meta;
   // Story 9.4 AC1: build the favourites rows by preferring the loaded Närmast
   // list (no extra fetch when the favourites are already loaded — the common
   // case) and only topping up with the network favourites query for ids the
@@ -601,11 +590,6 @@ export function MapView() {
   const queriedDetailVenue = venueDetailQuery.data?.venue;
   const queriedDetailMatchesUrl = venueMatchesSlug(queriedDetailVenue, venueSlugParam);
   const detailVenue = forcedVisualVenueDetail ?? (queriedDetailMatchesUrl ? queriedDetailVenue : null);
-  const detailConfidenceMeta = forcedVisualVenueDetail
-    ? FORCED_VISUAL_CONFIDENCE_META
-    : queriedDetailMatchesUrl
-    ? (venueDetailQuery.data?.meta ?? venueQuery.data?.meta)
-    : venueQuery.data?.meta;
   const feedbackVenue = (forcedVisualVenueDetail || !venueDetailQuery.isPlaceholderData)
     ? detailVenue
     : null;
@@ -652,7 +636,6 @@ export function MapView() {
     venueSlugParam,
   ]);
   const detailFallbackVenue = detailFallback?.venue ?? null;
-  const isSyntheticDetailFallback = detailFallback?.isSynthetic ?? false;
   const reviewVenue = (forcedVisualVenueDetail || !venueDetailQuery.isPlaceholderData)
     ? (detailVenue ?? detailFallbackVenue)
     : detailFallbackVenue;
@@ -846,9 +829,6 @@ export function MapView() {
     },
     [isForcedVisualReference, tagFilteredVenues],
   );
-  const listConfidenceMeta = isForcedVisualReference
-    ? FORCED_VISUAL_CONFIDENCE_META
-    : venueQuery.data?.meta;
   // Story 11.3 (AC1, empty-state fold-in from the 9.7 code review): the Närmast
   // list shows its loading skeleton ONLY while there is genuinely no underlying
   // venue data yet — never when a tag filter has legitimately pruned the loaded
@@ -872,13 +852,6 @@ export function MapView() {
       favourites.favouriteIds.length > 0 &&
       visibleFavouriteVenueCount === 0
     );
-  const quickInfoConfidenceMeta = isForcedVisualReference
-    ? FORCED_VISUAL_CONFIDENCE_META
-    : selectedVenueId && refreshedSelectedVenuePreview?.id === selectedVenueId
-    ? (selectedPreviewDetailQuery.data?.meta ?? venueQuery.data?.meta)
-    : selectedVenueId && activeFavouriteVenueRows.some((venue) => venue.id === selectedVenueId)
-    ? (favouriteListConfidenceMeta ?? venueQuery.data?.meta)
-    : venueQuery.data?.meta;
   const routeText = routeLabels(tVenue);
   // Story 11.4 (AC1/AC2): the quick-info no longer renders a "Sol HH:mm–HH:mm"
   // window line or a truncated ETA inside its route button, so the
@@ -931,21 +904,15 @@ export function MapView() {
   const handleRouteSelectedVenue = () => {
     const venue = selectedQuickInfoVenue ?? selectedVenueDto;
     if (!venue) return;
-    handleRouteVenue(venue, quickInfoConfidenceMeta);
+    handleRouteVenue(venue);
   };
 
   const handleRouteDetailVenue = () => {
     if (!detailRouteVenue) return;
-    // The synthetic loading-fallback venue hardcodes placeholder fields
-    // (confidence: 0); withholding the freshness meta keeps the confidence
-    // display hidden instead of inventing "0%" for an unfetched venue.
-    handleRouteVenue(
-      detailRouteVenue,
-      isSyntheticDetailFallback ? undefined : detailConfidenceMeta,
-    );
+    handleRouteVenue(detailRouteVenue);
   };
 
-  const handleRouteVenue = (venue: VenueDataDto, confidenceMeta?: SunFreshnessMeta) => {
+  const handleRouteVenue = (venue: VenueDataDto) => {
     const summary = getRouteSummary({ venue, origin: geolocation.coords });
     const platform = typeof navigator === 'undefined'
       ? 'google'
@@ -956,7 +923,7 @@ export function MapView() {
     const directionsUrl = buildNativeDirectionsUrl(venue, platform);
     setRouteOverlay({
       venueId: venue.id,
-      labels: routeOverlayLabels(venue, summary, routeText, confidenceMeta),
+      labels: routeOverlayLabels(venue, summary, routeText),
       fallbackHref: buildGoogleMapsDirectionsUrl(venue),
     });
     setRouteLoadingVenueId(venue.id);
@@ -1125,7 +1092,6 @@ export function MapView() {
             venues={favouriteVenueRows}
             mode="mobile"
             sortMode={effectiveSortMode}
-            confidenceMeta={favouriteListConfidenceMeta}
             locationIsApproximate={locationIsApproximate}
             isLoading={isFavouriteListLoading}
             isError={favouriteVenueQuery.isError}
@@ -1141,8 +1107,6 @@ export function MapView() {
             venues={listVenues}
             mode="mobile"
             sortMode={effectiveSortMode}
-            confidenceMeta={listConfidenceMeta}
-            showVisibleConfidence={!isForcedVisualReference}
             locationIsApproximate={locationIsApproximate}
             isLoading={isNearListLoading}
             animateCards={mobileSheetState === 'full'}
@@ -1172,7 +1136,6 @@ export function MapView() {
               venues={favouriteVenueRows}
               mode="desktop"
               sortMode={effectiveSortMode}
-              confidenceMeta={favouriteListConfidenceMeta}
               locationIsApproximate={locationIsApproximate}
               isLoading={isFavouriteListLoading}
               isError={favouriteVenueQuery.isError}
@@ -1186,8 +1149,6 @@ export function MapView() {
               venues={listVenues}
               mode="desktop"
               sortMode={effectiveSortMode}
-              confidenceMeta={listConfidenceMeta}
-              showVisibleConfidence={!isForcedVisualReference}
               locationIsApproximate={locationIsApproximate}
               isLoading={isNearListLoading}
               onSelectVenue={handleSelectVenueFromList}
@@ -1204,7 +1165,6 @@ export function MapView() {
             mode="mobile"
             fallbackVenue={detailFallbackVenue}
             detail={detailVenue ?? undefined}
-            confidenceMeta={detailConfidenceMeta}
             isLoading={venueDetailQuery.isFetching && !detailVenue}
             currentTime={plannerTime.selectedTime}
             labels={venueDetailLabels(tVenue)}
@@ -1228,7 +1188,6 @@ export function MapView() {
             mode="desktop"
             fallbackVenue={detailFallbackVenue}
             detail={detailVenue ?? undefined}
-            confidenceMeta={detailConfidenceMeta}
             isLoading={venueDetailQuery.isFetching && !detailVenue}
             currentTime={plannerTime.selectedTime}
             labels={venueDetailLabels(tVenue)}
@@ -1251,8 +1210,6 @@ export function MapView() {
             key="quick-info-mobile"
             mode="mobile"
             name={selectedPinData.name}
-            confidencePercent={selectedQuickInfoVenue?.confidence}
-            confidenceMeta={quickInfoConfidenceMeta}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
             openingHours={quickInfoOpeningHours}
             currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
@@ -1281,8 +1238,6 @@ export function MapView() {
             key="quick-info-desktop"
             mode="desktop"
             name={selectedPinData.name}
-            confidencePercent={selectedQuickInfoVenue?.confidence}
-            confidenceMeta={quickInfoConfidenceMeta}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
             openingHours={quickInfoOpeningHours}
             currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
@@ -1481,9 +1436,9 @@ function normalizeForcedVisualVenue(venue: VenueDataDto): VenueDataDto {
 
 // Story 10.2 (Task 5): the deterministic obscured normalizers. Mirror the
 // forced-sunny pair but set the weather-gated headline state (CloudObscured +
-// overcast sky) while KEEPING the geometric layer (95% solläge, a sun window)
-// so the "when it clears" potential stays visible — the exact two-signal case
-// the muted UI must render. Dev-only; no live Met.no.
+// overcast sky) while KEEPING the internal geometric layer and sun window so the
+// "when it clears" potential stays available without rendering a grey-surface
+// percentage. Dev-only; no live Met.no.
 function normalizeForcedObscuredPin(pin: VenuePinData): VenuePinData {
   return {
     ...pin,
@@ -1528,9 +1483,6 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     moreInfo: t('quickInfo.moreInfo'),
     close: t('quickInfo.close'),
     photoPlaceholder: t('quickInfo.photoPlaceholder'),
-    confidence: t('quickInfo.confidence'),
-    confidenceApproximate: t('quickInfo.confidenceApproximate'),
-    confidenceUnavailable: t('quickInfo.confidenceUnavailable'),
     distance: t('quickInfo.distance'),
     distanceApproximate: t('quickInfo.distanceApproximate'),
     loadingSun: t('quickInfo.loadingSun'),
@@ -1567,9 +1519,9 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     openingHours: t('detail.openingHours'),
     address: t('detail.address'),
     sunBadge: t('detail.sunBadge', { percent: '{percent}' }),
-    // Story 10.2: muted obscured hero headline/badge + plain-language sky copy.
+    // Story 10.2 / 12.13: muted obscured hero headline + plain-language sky copy.
+    // The obscured hero badge is deliberately percentage-free.
     obscuredHeadline: t('detail.obscuredHeadline'),
-    obscuredBadge: t('detail.obscuredBadge', { percent: '{percent}' }),
     sky: {
       label: t('detail.sky.label'),
       clear: t('detail.sky.clear'),
@@ -1577,9 +1529,6 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
       overcast: t('detail.sky.overcast'),
       rain: t('detail.sky.rain'),
     },
-    confidence: t('detail.confidence'),
-    confidenceApproximate: t('detail.confidenceApproximate'),
-    confidenceUnavailable: t('detail.confidenceUnavailable'),
     city: t('detail.city'),
     openUntil: t('detail.openUntil', { time: '{time}' }),
     openUntilLine: t('detail.openUntilLine', { time: '{time}' }),
@@ -1601,9 +1550,6 @@ function routeLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     unavailable: t('route.unavailable'),
     openMaps: t('route.openMaps'),
     close: t('route.close'),
-    confidence: t('route.confidence'),
-    confidenceApproximate: t('route.confidenceApproximate'),
-    confidenceUnavailable: t('route.confidenceUnavailable'),
     uncertainty: predictionUncertaintyLabels(t),
     directionFallback: t('route.directionFallback', { neighborhood: '{neighborhood}' }),
     directions: {
@@ -1623,67 +1569,31 @@ function routeOverlayLabels(
   venue: VenueDataDto,
   summary: RouteSummary,
   labels: ReturnType<typeof routeLabels>,
-  confidenceMeta?: SunFreshnessMeta,
 ): RouteOverlayLabels {
   return {
     title: formatLabel(labels.overlayTitle, { name: venue.venueName }),
     walk: routeEstimateLabel(summary.walkMinutes, labels.walkEstimate) ?? null,
     bike: routeEstimateLabel(summary.bikeMinutes, labels.bikeEstimate) ?? null,
     direction: routeDirectionLabel(summary.direction, venue.neighborhood, labels),
-    confidence: routeConfidenceLabel(venue, labels, confidenceMeta),
+    uncertainty: routeUncertaintyLabel(venue, labels),
     close: labels.close,
     fallback: labels.openMaps,
     unavailable: labels.unavailable,
   };
 }
 
-/**
- * The route overlay's "confidence context" reuses the exact public
- * confidence/uncertainty presentation already shown on venue surfaces
- * (Story 3.0.6 contract). When the public display is hidden (no fresh
- * weather metadata, geometry-only source) the overlay shows nothing
- * rather than inventing a number. The accessible variant spells out the
- * approximate qualifier ("Säkerhet cirka 88%") that the visible "~" glyph
- * does not convey to screen readers.
- */
-function routeConfidenceLabel(
+function routeUncertaintyLabel(
   venue: VenueDataDto,
   labels: ReturnType<typeof routeLabels>,
-  confidenceMeta?: SunFreshnessMeta,
-): RouteOverlayConfidence | null {
-  const confidenceDisplay = getConfidenceDisplayState({
-    confidence: venue.confidence,
-    meta: confidenceMeta,
-    labels: {
-      confidence: labels.confidence,
-      approximate: labels.confidenceApproximate,
-      unavailable: labels.confidenceUnavailable,
-    },
-  });
+): RouteOverlayUncertainty | null {
   const uncertaintyDisplay = getPredictionUncertaintyDisplay({
     predictionUncertainty: venue.predictionUncertainty,
     labels: labels.uncertainty,
   });
-  const uncertaintyLabel = uncertaintyDisplay?.visibleLabel ?? null;
-  const visibleParts = [
-    confidenceDisplay.visibleText
-      ? `${labels.confidence} ${confidenceDisplay.visibleText}`
-      : null,
-    uncertaintyLabel,
-  ].filter(Boolean);
-  if (visibleParts.length === 0) return null;
-  // `accessibleText` is always populated (the confidence value for the
-  // exact/approximate kinds, the "unavailable" label for the hidden kind).
-  // Include it unconditionally so a hidden-confidence-with-uncertainty row
-  // still announces "Säkerhet saknas" to screen readers, matching the
-  // VenueQuickInfo surface that shares this Story 3.0.6 helper.
-  const accessibleParts = [
-    confidenceDisplay.accessibleText,
-    uncertaintyLabel,
-  ].filter(Boolean);
+  if (!uncertaintyDisplay) return null;
   return {
-    visible: visibleParts.join(' · '),
-    accessible: accessibleParts.join(' · '),
+    visible: uncertaintyDisplay.visibleLabel,
+    accessible: uncertaintyDisplay.accessibleText,
   };
 }
 

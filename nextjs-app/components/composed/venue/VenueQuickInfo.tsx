@@ -12,14 +12,10 @@ import {
   EASE_EXIT,
 } from '@/lib/constants/animation';
 import {
-  getConfidenceDisplayState,
-  type ConfidenceDisplayLabels,
-} from '@/lib/utils/confidence-display';
-import {
   isObscuredSunStatus,
   skyConditionCopy,
 } from '@/lib/utils/sun-status-presentation';
-import type { SunFreshnessMeta, VenueSunStatus, WeatherGateState } from '@/lib/types/api';
+import type { VenueSunStatus, WeatherGateState } from '@/lib/types/api';
 import { isVenuePubliclySunny, normalizeWeatherGateState } from '@/lib/utils/public-sun';
 import { cn } from '@/lib/utils';
 
@@ -29,8 +25,6 @@ export type VenueQuickInfoDesktopPlacement = 'above' | 'pinned';
 export type VenueQuickInfoProps = {
   mode: VenueQuickInfoMode;
   name: string;
-  confidencePercent?: number;
-  confidenceMeta?: SunFreshnessMeta;
   sunExposurePercent?: number;
   /**
    * Story 11.4 (AC1) / 11.9 (AC2): the venue's DERIVED opening-hours display for
@@ -75,9 +69,6 @@ export type VenueQuickInfoProps = {
     moreInfo: string;
     close: string;
     photoPlaceholder: string;
-    confidence: string;
-    confidenceApproximate: string;
-    confidenceUnavailable: string;
     distance: string;
     /** Story 9.5 AC3 (folded into 9.9): honest "≈ från centrum" annotation
      * shown alongside the distance value on the Gothenburg-centrum fallback. */
@@ -108,8 +99,6 @@ const THUMBNAIL_MAX_ALT = 120;
 export function VenueQuickInfo({
   mode,
   name,
-  confidencePercent,
-  confidenceMeta,
   sunExposurePercent,
   openingHours,
   currentSunStatus,
@@ -132,11 +121,6 @@ export function VenueQuickInfo({
   const shouldReduceMotion = useReducedMotion() ?? false;
   const isDesktop = mode === 'desktop';
   const isAnchoredMobile = !isDesktop && Boolean(position);
-  const confidenceDisplay = getConfidenceDisplayState({
-    confidence: confidencePercent,
-    meta: confidenceMeta,
-    labels: confidenceDisplayLabels(labels),
-  });
   // Story 9.5 AC3 (folded into 9.9): the honest centrum-relative annotation.
   // Shown only on the Gothenburg-centrum fallback AND when a label is provided;
   // the real distance number always stays visible — only the label is qualified.
@@ -300,7 +284,7 @@ export function VenueQuickInfo({
                       </p>
                     )}
                     {/* Story 11.4 (AC1): the single honest opening-hours line, in
-                        the slot vacated by the removed "Säkerhet: NN%" chip and the
+                        the slot vacated by the removed confidence chip and the
                         "Sol HH:mm–HH:mm" window line. Rendered ONLY when the store
                         carries opening hours; ABSENT → nothing (never fabricated,
                         never a closesAt-only fallback). Uses `text-text-body` (not
@@ -318,13 +302,8 @@ export function VenueQuickInfo({
                       </p>
                     )}
                     <p className={isAnchoredMobile ? 'contents' : 'text-body-sm text-text-body'}>
-                      {/* Story 11.4 (AC1/AC4): the VISIBLE "Säkerhet: NN%" chrome is
-                          removed on both breakpoints (confidence lives on in the
-                          detail view). The sr-only accessible confidence text is
-                          PRESERVED so the accessible name (name → sun % → opening
-                          hours → distance → confidence) does not regress. No
-                          visible separator remains, so no dangling "·". */}
-                      <span className="sr-only">{confidenceDisplay.accessibleText}. </span>
+                      {/* Story 12.13: no visible or sr-only confidence number is
+                          emitted here. Distance/opening hours/weather remain. */}
                       <span className="font-bold">
                         {isAnchoredMobile && (
                           <span className="sr-only">
@@ -620,14 +599,4 @@ function formatDistance(meters?: number): string {
 function formatPercent(value: number | undefined): string | null {
   if (!Number.isFinite(value)) return null;
   return `${Math.max(0, Math.min(100, Math.round(value ?? 0)))}%`;
-}
-
-function confidenceDisplayLabels(
-  labels: VenueQuickInfoProps['labels'],
-): ConfidenceDisplayLabels {
-  return {
-    confidence: labels.confidence,
-    approximate: labels.confidenceApproximate,
-    unavailable: labels.confidenceUnavailable,
-  };
 }

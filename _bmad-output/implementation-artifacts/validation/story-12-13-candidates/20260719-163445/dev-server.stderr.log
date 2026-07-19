@@ -1,0 +1,109 @@
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\Rasmus\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\Rasmus\sunnyseat\nextjs-app\package-lock.json
+
+[browser] You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled (file://C:/Users/Rasmus/sunnyseat/nextjs-app/.next/dev/static/chunks/sunnyseat_nextjs-app_05~6t2p._.js:2504:291)
+[browser] You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled (file://C:/Users/Rasmus/sunnyseat/nextjs-app/.next/dev/static/chunks/sunnyseat_nextjs-app_05~6t2p._.js:2504:291)
+[browser] You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled (file://C:/Users/Rasmus/sunnyseat/nextjs-app/.next/dev/static/chunks/sunnyseat_nextjs-app_05~6t2p._.js:2504:291)
+[browser] You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled (file://C:/Users/Rasmus/sunnyseat/nextjs-app/.next/dev/static/chunks/sunnyseat_nextjs-app_05~6t2p._.js:2504:291)
+[browser] You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled (file://C:/Users/Rasmus/sunnyseat/nextjs-app/.next/dev/static/chunks/sunnyseat_nextjs-app_05~6t2p._.js:2504:291)
+[browser] You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled (file://C:/Users/Rasmus/sunnyseat/nextjs-app/.next/dev/static/chunks/sunnyseat_nextjs-app_05~6t2p._.js:2504:291)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <RedirectBoundary>
+      <RedirectErrorBoundary router={{...}}>
+        <InnerLayoutRouter url="/?_time=16:30" tree={[...]} params={{locale:"sv"}} cacheNode={{rsc:{...}, ...}} ...>
+          <SegmentViewNode type="page" pagePath="[locale]/p...">
+            <SegmentTrieNode>
+            <Home>
+              <MapViewDynamic>
+              <OnboardingGateWithSuspense>
+                <Suspense fallback={null}>
+                  <OnboardingGateInner>
+                    <OnboardingScreen onDismiss={function OnboardingGateInner[handleDismiss]} ...>
+                      <motion.div role="dialog" aria-modal="true" aria-labelledby="onboarding..." ...>
+                        <div
++                         role="dialog"
+-                         role={null}
++                         aria-modal="true"
+-                         aria-modal={null}
++                         aria-labelledby="onboarding-headline"
+-                         aria-labelledby={null}
++                         data-testid="onboarding-screen"
+-                         data-testid={null}
++                         data-phase="visible"
+-                         data-phase={null}
++                         className="fixed inset-0 z-toast gradient-onboarding text-white flex flex-col px-8 py-16 ove..."
+-                         className={null}
++                         style={{opacity:0}}
+-                         style={{display:"contents"}}
+                          ref={function useMotionRef.useCallback}
+-                         data-onboarding-inline-frame=""
+-                         aria-hidden="true"
+-                         inert=""
+                        >
+                          <div
++                           aria-hidden="true"
+-                           aria-hidden={null}
++                           className="absolute left-1/2 -top-10 w-[340px] h-[340px] -translate-x-1/2 rounded-full opa..."
+-                           className="fixed inset-0 z-toast gradient-onboarding text-white flex flex-col px-8 py-16 o..."
+-                           role="dialog"
+-                           aria-modal="true"
+-                           aria-labelledby="onboarding-headline"
+-                           data-testid="onboarding-screen"
+-                           data-phase="visible"
+-                           style={{opacity:"0"}}
+                          >
+-                           <div
+-                             aria-hidden="true"
+-                             className="absolute left-1/2 -top-10 w-[340px] h-[340px] -translate-x-1/2 rounded-full o..."
+-                           >
+-                           <div
+-                             aria-hidden="true"
+-                             className="absolute -left-32 -bottom-32 w-[480px] h-[480px] rounded-full pointer-events-..."
+-                           >
+-                           <div
+-                             className="mt-5 lg:mt-0 flex justify-center items-center gap-2 font-display font-extrabo..."
+-                           >
+-                           <div
+-                             className="flex-1 lg:flex-none flex flex-col justify-center items-center relative z-10 t..."
+-                             style={{opacity:"0",transform:"translateY..."}}
+-                           >
+-                           <div
+-                             className="relative z-10 lg:w-full lg:max-w-md"
+-                             style={{opacity:"0",transform:"translateY..."}}
+-                           >
+                          ...
+          ...
+        ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at div (<anonymous>)
+    at OnboardingScreen (file://C:/Users/Rasmus/sunnyseat/nextjs-app/.next/dev/static/chunks/sunnyseat_nextjs-app_02vxeu~._.js:600:245)
+    at OnboardingGateInner (file://C:/Users/Rasmus/sunnyseat/nextjs-app/.next/dev/static/chunks/sunnyseat_nextjs-app_02vxeu~._.js:1170:247)
+    at OnboardingGateWithSuspense (file://C:/Users/Rasmus/sunnyseat/nextjs-app/.next/dev/static/chunks/sunnyseat_nextjs-app_02vxeu~._.js:1248:255)
+    at Home (app\[locale]\page.tsx:8:7)
+   6 |     <>
+   7 |       <MapViewDynamic />
+>  8 |       <OnboardingGateWithSuspense />
+     |       ^
+   9 |     </>
+  10 |   );
+  11 | }
+[browser] You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled (file://C:/Users/Rasmus/sunnyseat/nextjs-app/.next/dev/static/chunks/sunnyseat_nextjs-app_05~6t2p._.js:2504:291)
+[browser] You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled (file://C:/Users/Rasmus/sunnyseat/nextjs-app/.next/dev/static/chunks/sunnyseat_nextjs-app_05~6t2p._.js:2504:291)
+[browser] You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled (file://C:/Users/Rasmus/sunnyseat/nextjs-app/.next/dev/static/chunks/sunnyseat_nextjs-app_05~6t2p._.js:2504:291)
