@@ -39,3 +39,6 @@
 - Tier-A found one Medium invariant gap after the broader green fix: syntactically valid but semantically contradictory CloudObscured + not_gated tuples could still enter the public-sunny band.
 - The thin-review fix keeps the shared status-agnostic predicate unchanged and enforces the relational invariant at the public DTO sanitizer for both top-level and day-series entries; 103 focused tests plus typecheck/lint passed.
 - Dedicated Tier-A security review reported no exploitable findings.
+
+## Story 12-13-remove-the-user-facing-confidence-indicator-keep-it-internal
+- [Phase 3 â€” create-story] Story 12.13 source citations contain stale PRD/UX line claims; implementation should use a surgical current-contract audit instead of broad documentation rewrites.
