@@ -7,6 +7,8 @@ stepsCompleted:
   - step-05-gate-decision
 lastStep: step-05-gate-decision
 lastSaved: '2026-07-19'
+refreshedAt: '2026-07-19T14:46:26+02:00'
+advisoryVerdict: PASS
 scope: story-only
 story: 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number
 advisory: true
@@ -20,29 +22,29 @@ externalPointerStatus: not_used
 
 **Scope:** Story 12.6 acceptance criteria plus the public-sun parity, honesty, accessibility, motion, and Story 12.3 prerequisite contracts.
 **Mode:** Advisory. This report does not update sprint status, Auto-BMAD state, visual references, or an enforced quality gate.
-**Story status at trace time:** `in-progress`; Task 7 remains open.
+**Story status at refresh time:** `review`; Task 7 is complete.
 
 ## What Was Run
 
-This trace pass read the story, ATDD checklist, Epic 12 test design, architecture/UX/PRD context, implementation tests, and recorded verification evidence. Test discovery used Vitest and Playwright list mode only; implementation tests were not rerun by this advisory pass.
+This trace refresh read the story, ATDD checklist, Epic 12 test design, architecture/UX/PRD context, implementation tests, approved candidate evidence, authoritative reference hashes, rebaseline audit entry, and canonical review-gate artifact. Implementation tests were not rerun by this trace refresh.
 
-Recorded implementation evidence used by the trace includes green typecheck/lint, 1,758 passed Vitest tests with 15 skipped, 110 passed Playwright tests with 53 skipped, and the focused Tier-A sanitizer/route and adjacent public-sun suites. Two Playwright cases passed on retry due the recorded Next startup/hydration race.
+Recorded implementation evidence includes green typecheck/lint, 110 passed Playwright tests with 53 skipped, the focused Tier-A sanitizer/route and adjacent public-sun suites, and the canonical review gate's 1,760 passed Vitest tests with 15 skipped. The visual closure evidence includes ten human-approved candidate captures, 10/10 promoted reference SHA-256 matches, the same-operation `REBASELINE-LOG.md` entry, and 12 story-extracted mapped visual validations exiting 0 in explicitly authorized manual mode.
 
-## Advisory Verdict: CONCERNS
+## Advisory Verdict: PASS
 
-Functional, API, accessibility, and prerequisite coverage is strong: all 9 P0 items are fully covered and no item is uncovered. The verdict is `CONCERNS` because AC5 is still partial. The ten affected map-visible references have not received maintainer-approved rebaseline treatment, `REBASELINE-LOG.md` has not been updated for the change, and no passing mobile/desktop visual comparison exists. The recorded blockers are missing `ANTHROPIC_API_KEY` and unresolved maintainer approval.
+All 13 traced items are fully covered. AC5 is now `FULL`: Rasmus explicitly approved the ten-reference mobile/desktop rebaseline, the authoritative PNG hashes match the reviewed candidates, the audit entry is present, and the canonical story-review gate passed all mapped manual visual validations. The unavailable legacy Anthropic provider is an operational note, not a residual coverage gap, because manual validation and rebaseline were explicitly authorized and recorded.
 
 ## Coverage Summary
 
 | Metric | Value |
 |---|---:|
 | Total traced items | 13 |
-| Fully covered | 12 (92%) |
-| Partially covered | 1 (8%) |
+| Fully covered | 13 (100%) |
+| Partially covered | 0 (0%) |
 | Uncovered / `NONE` | 0 |
 | Covered or partial | 13 (100%) |
 | P0 full coverage | 9/9 (100%) |
-| P1 full coverage | 3/4 (75%) |
+| P1 full coverage | 4/4 (100%) |
 
 ## Test Inventory
 
@@ -64,7 +66,7 @@ Twelve supporting Vitest files were inspected; their complete files contain 119 
 | AC2 | P0 | FULL | Server/client comparator, visible order, top-50/window/peak parity | ordering ATDD `:8`; public-sun comparator `:75`; peak truncation `:170`; list-rank regression |
 | AC3 | P0 | FULL | One grey pin while CloudObscured diagnostic survives and gated high exposure remains grey | cloud-gate API `:48/:57/:88`; pin component `:66`; pin E2E `:97` |
 | AC4 | P0 | FULL | Grey cloud/no number, amber sun/percent, non-colour signal, exact accessible outcome | pin component `:66/:85`; i18n/a11y `:10`; pin E2E `:97`; axe `:52` |
-| AC5 | P1 | PARTIAL | Approved reference rebaseline, log update, and mobile/desktop visual comparison | Functional visual semantics are automated; required visual artifacts and comparison pass are absent |
+| AC5 | P1 | FULL | Approved reference rebaseline, log update, and mobile/desktop visual comparison | Candidate evidence `evidence.md:1`; human-approved rebaseline `REBASELINE-LOG.md:46`; canonical manual gate log `:171`; 10/10 promoted hashes verified and 12 mapped validations exited 0 |
 | K1 | P0 | FULL | Explicit tri-state gate and honest unknown/malformed/contradictory handling | gate-state `:5`; contract defects `:44/:68`; cloud-gate `:57`; honesty component `:138/:205` |
 | K2 | P0 | FULL | Total comparator, top-50, window, peak, tie, cutoff, and unknown qualification parity | public-sun `:75/:91/:109`; reverse peak `:29`; truncation `:170/:209/:249/:286` |
 | K3 | P0 | FULL | Card and QuickInfo not-sunny/unknown honesty with no grey percentage | honesty component `:110/:138/:161/:205` |
@@ -90,16 +92,16 @@ The localized contract is explicitly traced: Swedish sunny `"{name} - soligt vid
 
 ## Partial And Uncovered
 
-- **Partial:** AC5 only. Visual/rebaseline evidence is mandatory and cannot be inferred from functional tests.
+- **Partial:** none.
 - **Uncovered:** none.
 - The older Story 12.3 protected-production cold-p95 evidence remains an upstream Story 12.3 residual. It does not reduce Story 12.6's local persisted/zero-fetch contract coverage.
 
 ## Manual / UAT Recommendations
 
-1. Obtain maintainer approval for the ten affected reference targets; rebaseline mobile and desktop references and update `REBASELINE-LOG.md` in the same operation; run the canonical visual wrapper after the approved provider credential is available.
-2. Inspect 40/50/51/gated/unknown pins on mobile and desktop, including selected and refreshed states, card/QuickInfo verdicts, and the 44px target.
-3. Spot-check the exact Swedish accessible names with a screen reader and verify same-date scrub=0/date-change=1 in the browser network log.
+1. Preserve the approved candidate evidence, promoted SHA-256 set, rebaseline audit entry, and canonical review log together for release traceability.
+2. Retain the Story 12.3 request-count journey and Story 12.6 strict-boundary, honesty, motion, and accessibility suites in standing CI.
+3. Re-run capture and visual review only when a re-evaluation trigger recorded in `REBASELINE-LOG.md` changes these map-visible surfaces.
 
 ## Advisory Decision
 
-**CONCERNS**. No enforced gate was opened (`allow_gate=false`). All P0 requirements are fully covered, but the story remains `in-progress` until the AC5 visual/rebaseline lane is completed; Task 7 must not be marked complete from this trace.
+**PASS**. No separate enforced trace gate was opened (`allow_gate=false`), but the advisory result meets full coverage: 13/13 items `FULL`, P0 9/9, P1 4/4, and no partial or uncovered requirements. Story status is `review`, and AC5/Task 7 are closed.

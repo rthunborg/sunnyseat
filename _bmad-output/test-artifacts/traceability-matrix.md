@@ -7,6 +7,8 @@ stepsCompleted:
   - step-05-gate-decision
 lastStep: step-05-gate-decision
 lastSaved: '2026-07-19'
+refreshedAt: '2026-07-19T14:46:26+02:00'
+advisoryVerdict: PASS
 workflowType: testarch-trace
 scope: story-only
 story: 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number
@@ -62,8 +64,8 @@ Twelve supporting Vitest files expose 119 active cases in their complete files. 
 - **Endpoint coverage:** `/api/venues` public DTO normalization, instant ordering, day-peak top-50 truncation, malformed/contradictory gate values, and persisted route behavior have direct API tests. Detail window/peak serialization is covered by persisted-outcome/detail regression tests.
 - **Auth/authz:** no authentication flow is introduced by Story 12.6. Story 12.7 retains the public visibility boundary; no client component imports a server data module.
 - **Error/edge coverage:** exact 50, 40 Partial, 51, gated high exposure, unknown high exposure, malformed/missing gate data, malformed weather, expired/missing snapshots, reverse-order peak ties, grey cutoff ties, and contradictory `CloudObscured + not_gated` are covered.
-- **UI journey coverage:** deterministic mobile and desktop map journeys cover 40/50/51/gated/unknown pins and selection stability. The executed mobile axe journey is non-vacuous. Functional E2E does not substitute for the missing screenshot/rebaseline lane.
-- **UI state coverage:** two pin states, percentage/no-percentage content, exact localized accessible outcomes, unknown-weather qualification, selected shape, in-place refresh, reduced/unresolved motion, card verdicts, and QuickInfo verdicts are automated. Visual token fidelity and approved before/after composition remain manual/visual evidence gaps.
+- **UI journey coverage:** deterministic mobile and desktop map journeys cover 40/50/51/gated/unknown pins and selection stability. The executed mobile axe journey is non-vacuous. The separate visual lane is now covered by the human-approved ten-reference rebaseline and canonical manual visual gate.
+- **UI state coverage:** two pin states, percentage/no-percentage content, exact localized accessible outcomes, unknown-weather qualification, selected shape, in-place refresh, reduced/unresolved motion, card verdicts, and QuickInfo verdicts are automated. Approved mobile/desktop composition is recorded in the candidate evidence, promoted references, rebaseline log, and review-gate artifact.
 
 ## Requirement-to-Test Matrix
 
@@ -75,7 +77,7 @@ The five acceptance criteria are traced separately from eight key design, honest
 | AC2 | Server and client ordering share the same total comparator and never promote a grey venue into the sunny band | P0 | FULL | Unit/static, API, component | T-U02, T-U04, T-A01, T-A02, S-C01 | Endpoint and visible-list coverage present; stable tie-breaks and top-50 behavior covered |
 | AC3 | Shaded, NoSun, and CloudObscured share one grey pin while CloudObscured remains diagnostic and gated high exposure never appears amber | P0 | FULL | Unit, API, component, E2E | T-U01, T-U03, T-A03, T-C01, T-E01 | Diagnostic preservation, contradiction fail-closed, and public presentation covered |
 | AC4 | Grey uses a cloud icon and no number; amber uses sun icon plus exposure; exact localized accessible names are percent-free for grey | P0 | FULL | Component, static/i18n, E2E | T-C01, T-C02, T-U05, T-E01, T-E03 | Color-independent icon signal, exact names, 44px target, and non-vacuous mobile axe coverage present |
-| AC5 | Rebaseline mobile/desktop sunny/not-sunny references, update `REBASELINE-LOG.md`, and pass screenshot comparison | P1 | PARTIAL | Component/E2E semantics only | T-C01, T-E01 | Functional visual semantics are covered; approved reference images, log entry, and screenshot-comparison pass are absent |
+| AC5 | Rebaseline mobile/desktop sunny/not-sunny references, update `REBASELINE-LOG.md`, and pass screenshot comparison | P1 | FULL | Component, E2E, human visual review, canonical manual gate | T-C01, T-E01, V-01, V-02, V-03 | Ten approved candidates were promoted and hash-verified, the same-operation log entry is present, and all 12 story-extracted mapped validations exited 0 under explicit manual authorization |
 | K1 | Gate state is explicit tri-state; unknown retains geometric potential; malformed/missing/contradictory producer data fails closed without false certainty | P0 | FULL | Unit, API, component | T-U01, T-U03, T-U06, T-A03, T-C04 | Positive, alternate, and malformed/error paths present; no auth path is applicable |
 | K2 | Instant comparator, peak extraction, window extraction, top-50 truncation, ties, endpoints, and unknown qualification stay in parity | P0 | FULL | Unit, API | T-U02, T-A01, T-A02 | Endpoint coverage present; reverse-order ties, exact-50 cutoff, all-grey cutoff, and peak-vs-instant order covered |
 | K3 | Card and QuickInfo distinguish not-sunny from unknown-weather sunny potential without showing a percentage for grey states | P0 | FULL | Component | T-C03, T-C04, S-C02 | Low, exact-50, gated, and unknown-weather states covered with localized assertions |
@@ -112,11 +114,14 @@ The five acceptance criteria are traced separately from eight key design, honest
 | S-A02 | persisted outcome hash/weather/nearest evidence and geometry-only degradation; `nextjs-app/test/unit/services/persisted-sun-outcome.test.ts:77` | Unit/service | active, supporting |
 | S-E01 | same-date zero-request and date-change exactly-one request contracts; `nextjs-app/test/e2e/story-12-3-persisted-geometry-request-count.atdd.spec.ts:111` | E2E | active, supporting, 4 runtime cases |
 | G-01 | Story 12.6 final verification record in the story file | Static/full-suite gate | recorded pass; not rerun by this advisory trace |
+| V-01 | Human-reviewed candidate inventory and DOM-state assertions; `_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/evidence.md:1` | Visual/manual | accepted, 10 affected pairs |
+| V-02 | Rasmus-approved rebaseline with candidate/reference SHA-256 set; `nextjs-app/docs/design/references/REBASELINE-LOG.md:46` | Visual/reference | accepted, 10/10 promoted hashes verified |
+| V-03 | Canonical story-review gate; `_bmad-output/implementation-artifacts/validation/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number-review-20260719-143731.log:171` | Visual/manual + static/full-suite | passed, 12 mapped validations exited 0 under explicit manual authorization |
 
 ## Coverage Logic Validation
 
 - All nine P0 items are `FULL`. The strict 50 boundary, gate alternates, malformed inputs, comparator ties, endpoint behavior, card/QuickInfo honesty, and Story 12.3 request counts are not happy-path-only.
-- Three of four P1 items are `FULL`; AC5 is `PARTIAL` because visual validation evidence is mandatory and cannot be substituted by component or browser semantic assertions.
+- All four P1 items are `FULL`. AC5 is supported by independently recorded human approval, candidate/reference hash verification, and the canonical manual-mode visual gate rather than inferred from functional automation.
 - API-impacting items have endpoint-level route tests. Authentication is not introduced or changed, so denied-path auth coverage is not applicable to this story.
 - Repeated unit/component/E2E evidence is intentional: predicate algebra is proved at unit level, presentation is proved at component level, and the critical mobile/desktop map journey is proved at E2E level.
 - No synthetic UI journey is marked `FULL` on static evidence alone. The map matrix, selection behavior, and non-vacuous accessibility path each have executed browser cases in the recorded verification evidence.
@@ -130,12 +135,12 @@ The five acceptance criteria are traced separately from eight key design, honest
 | Metric | Result |
 |---|---:|
 | Total traced items | 13 |
-| Fully covered | 12 (92%) |
-| Partially covered | 1 (8%) |
+| Fully covered | 13 (100%) |
+| Partially covered | 0 (0%) |
 | Uncovered | 0 |
 | Covered or partial | 13 (100%) |
 | P0 full coverage | 9/9 (100%) |
-| P1 full coverage | 3/4 (75%) |
+| P1 full coverage | 4/4 (100%) |
 | P2 full coverage | 0/0 (100% by convention) |
 | P3 full coverage | 0/0 (100% by convention) |
 
@@ -143,7 +148,7 @@ The five acceptance criteria are traced separately from eight key design, honest
 
 - **Critical P0 gaps:** none.
 - **Uncovered P1/P2/P3 gaps:** none.
-- **Partial:** AC5 only. The functional two-state presentation is automated, but the ten affected map-visible reference captures have not been maintainer-approved/rebaselined, `REBASELINE-LOG.md` has not been updated for this change, and no passing mobile/desktop screenshot comparison exists. The story records missing `ANTHROPIC_API_KEY` plus the maintainer-approval requirement as the unresolved conditions.
+- **Partial items:** none. AC5 closed through Rasmus's explicit approval, 10/10 candidate-to-reference SHA-256 verification, the same-operation `REBASELINE-LOG.md` entry, and the canonical manual-mode visual gate.
 - **Unit-only items:** none. Every UI-critical contract has component or browser coverage; route-impacting contracts have endpoint tests.
 
 ### Heuristic Gap Counts
@@ -158,12 +163,12 @@ The five acceptance criteria are traced separately from eight key design, honest
 
 ### Recommendations
 
-1. **MEDIUM / required before story review:** obtain maintainer approval for the ten affected map reference targets, configure the approved visual provider credential, rebaseline mobile and desktop references with the same-operation `REBASELINE-LOG.md` update, and run the canonical visual-validation wrapper until the comparisons pass.
-2. **MEDIUM / UAT:** manually inspect the 40/50/51/gated/unknown matrix on mobile and desktop, including selected pins, card/QuickInfo verdicts, the 44px target, and a screen-reader spot check of the exact percent-free grey and qualified unknown-weather names.
-3. **LOW / regression observation:** retain the Story 12.3 network-count journey and watch the recorded Next startup/hydration retries; the two retried Playwright cases passed and do not currently represent a coverage gap.
+1. **LOW / retention:** preserve the approved candidate evidence, promoted reference hashes, rebaseline audit entry, and canonical review-gate log together for release traceability.
+2. **LOW / regression:** retain the Story 12.3 request-count journey and Story 12.6 boundary/a11y suites in standing CI.
+3. **LOW / re-evaluation:** recapture only when a trigger documented in the Story 12.6 rebaseline entry changes these map-visible surfaces.
 
 The complete Phase 1 JSON is saved at `C:/tmp/tea-trace-coverage-matrix-2026-07-18T23-32-25-884Z.json` for the advisory gate decision.
 
 ## Advisory Decision
 
-**CONCERNS** (advisory; no enforced gate was opened). Thirteen items were traced: 12 `FULL`, 1 `PARTIAL`, and 0 `NONE`. All 9 P0 items are `FULL`. AC5 is the sole partial item because the maintainer-approved visual rebaseline, same-operation `REBASELINE-LOG.md` update, and passing mobile/desktop screenshot comparisons remain unresolved. The story stays `in-progress` and Task 7 remains open.
+**PASS** (advisory; no separate enforced trace gate was opened). Thirteen items were traced: 13 `FULL`, 0 `PARTIAL`, and 0 `NONE`. P0 coverage is 9/9 and P1 coverage is 4/4. The story is in `review`; Task 7 and AC5 are closed by the approved rebaseline and canonical manual visual gate.

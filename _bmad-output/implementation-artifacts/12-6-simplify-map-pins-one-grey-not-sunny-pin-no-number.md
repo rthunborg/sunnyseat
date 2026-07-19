@@ -1,10 +1,10 @@
 ---
-baseline_commit: NO_VCS
+baseline_commit: 4102afccbcefc3ea5c07b6deafbb0f771f5a8b1c
 ---
 
 # Story 12.6: Simplify Map Pins — One Grey "Not Sunny" Pin, No Number
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -169,14 +169,14 @@ the missing prerequisite. Do not recreate them locally inside map components.
   - [x] Turn at least one pin-relevant `a11y-mobile` scenario into an executed `test` (or add a focused executed scenario), wire `--project=a11y-mobile` into `.github/workflows/build-and-test-nextjs.yml`, and update `epic-11-standing-gate-ci-wiring.automate.test.ts` so CI invocation, `testMatch`, and a non-zero/non-fixme executable scenario are guarded. Remove the obsolete assertion that CI must omit the project.
   - [x] Run full cross-epic regression from `nextjs-app/`: `npx tsc --noEmit`, `npx eslint . --quiet`, `npx vitest run`, and `npx playwright test --project=mobile --project=desktop --project=touch --project=a11y --project=a11y-mobile`, recording executed/pass/fixme counts. In PowerShell, set `$env:CI='1'` for the Playwright run when an unrelated port-3000 server could otherwise be reused, then restore/unset it.
 
-- [ ] **Task 7 - Reconcile design docs, capture the implementation, and pass the visual gate** (AC: 5; Design Gate)
-  - [ ] Update `DESIGN.md` to describe exactly two map-pin data presentations and the canonical `color-pin-shaded` map use while retaining `color-pin-obscured` for honest non-pin weather surfaces. Preserve the accepted production amber chrome; do not copy stale prototype pixels or add raw colors/arbitrary spacing/shadows.
-  - [ ] Prepare the `project-context.md` forced-state description and Claude `STATE-MAPPING.md`/capture-tooling corrections needed so the old prototype `>=35%`/numbered-grey recipe cannot overwrite implementation-driven map references. Apply any route/capture-recipe change together with the explicitly authorized reference update and same-operation rebaseline log entry.
-  - [ ] Assert each forced DOM state before capture. Minimum semantic visual gates are `map-primary` mobile resting `peek`, `map-primary` desktop, `map-with-obscured-venue` mobile+desktop, `map-with-selected-venue` mobile, and `map-panel-venues` mobile `mid`. Cover desktop selection through component/E2E interaction; no mapped desktop selected reference exists.
-  - [ ] Produce deterministic candidate captures for all ten map-visible references named by the current `REBASELINE-LOG.md` trigger: mobile `map-primary`, `map-panel-venues`, `map-with-selected-venue`, `map-with-obscured-venue`, `favourites-tab`; desktop `map-primary`, `map-with-obscured-venue`, `favourites-tab`, `venue-detail`, `venue-detail-obscured`. Keep implementing-agent candidates outside the authoritative reference paths and present the before/after set to Rasmus.
-  - [ ] Per `project-context.md`, the implementing agent must not replace or self-bless reference PNGs. Rasmus, or an explicitly authorized reference-update operation, replaces the approved PNGs and updates `nextjs-app/docs/design/references/REBASELINE-LOG.md` in the same operation with source, routes, viewports, DOM-state assertions, reason, and blessing status. Never replace a reference merely to make a wrong implementation pass.
-  - [ ] After the prepared references are approved, run the provider-neutral visual wrapper for all affected mapped pairs from the repository root, for example `.\scripts\run-sh.ps1 scripts/visual-validate.sh map-primary '/?_state=map-primary&_time=14:00' mobile`, using each route/viewport in the table below. A mismatch caused by implementation is fixed in code; a mismatch caused by out-of-scope reference content requires Rasmus's explicit accept-with-rationale.
-  - [ ] When every functional, browser, accessibility, visual, and maintainer-approval gate is satisfied, transition through `.\scripts\run-sh.ps1 scripts/story-review.sh 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number`. Do not edit `sprint-status.yaml` directly to mark implementation review.
+- [x] **Task 7 - Reconcile design docs, capture the implementation, and pass the visual gate** (AC: 5; Design Gate)
+  - [x] Update `DESIGN.md` to describe exactly two map-pin data presentations and the canonical `color-pin-shaded` map use while retaining `color-pin-obscured` for honest non-pin weather surfaces. Preserve the accepted production amber chrome; do not copy stale prototype pixels or add raw colors/arbitrary spacing/shadows.
+  - [x] Prepare the `project-context.md` forced-state description and Claude `STATE-MAPPING.md`/capture-tooling corrections needed so the old prototype `>=35%`/numbered-grey recipe cannot overwrite implementation-driven map references. Apply any route/capture-recipe change together with the explicitly authorized reference update and same-operation rebaseline log entry.
+  - [x] Assert each forced DOM state before capture. Minimum semantic visual gates are `map-primary` mobile resting `peek`, `map-primary` desktop, `map-with-obscured-venue` mobile+desktop, `map-with-selected-venue` mobile, and `map-panel-venues` mobile `mid`. Cover desktop selection through component/E2E interaction; no mapped desktop selected reference exists.
+  - [x] Produce deterministic candidate captures for all ten map-visible references named by the current `REBASELINE-LOG.md` trigger: mobile `map-primary`, `map-panel-venues`, `map-with-selected-venue`, `map-with-obscured-venue`, `favourites-tab`; desktop `map-primary`, `map-with-obscured-venue`, `favourites-tab`, `venue-detail`, `venue-detail-obscured`. Keep implementing-agent candidates outside the authoritative reference paths and present the before/after set to Rasmus.
+  - [x] Per `project-context.md`, the implementing agent must not replace or self-bless reference PNGs. Rasmus, or an explicitly authorized reference-update operation, replaces the approved PNGs and updates `nextjs-app/docs/design/references/REBASELINE-LOG.md` in the same operation with source, routes, viewports, DOM-state assertions, reason, and blessing status. Never replace a reference merely to make a wrong implementation pass.
+  - [x] After the prepared references are approved, run the provider-neutral visual wrapper for all affected mapped pairs from the repository root, for example `.\scripts\run-sh.ps1 scripts/visual-validate.sh map-primary '/?_state=map-primary&_time=14:00' mobile`, using each route/viewport in the table below. A mismatch caused by implementation is fixed in code; a mismatch caused by out-of-scope reference content requires Rasmus's explicit accept-with-rationale.
+  - [x] When every functional, browser, accessibility, visual, and maintainer-approval gate is satisfied, transition through `.\scripts\run-sh.ps1 scripts/story-review.sh 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number`. Do not edit `sprint-status.yaml` directly to mark implementation review.
 
 ## Dev Notes
 
@@ -389,6 +389,10 @@ Codex GPT-5
 - 2026-07-19: S12.6-R1 fixed at the public DTO sanitizer: top-level and day-series `CloudObscured` values now fail closed to `weatherGateState: 'gated'`, while the shared strict `>50 && gate !== 'gated'` predicate remains unchanged. The route fixture now carries coherent gate provenance and the high-exposure obscured venue remains in the grey band after genuine public-sunny venues.
 - 2026-07-19: S12.6-R1 focused sanitizer/route verification passed 3 files / 55 tests; adjacent cloud-gate, shared-predicate, pin, list-rank, and card verification passed 6 files / 48 tests. `npx tsc --noEmit`, full `npx eslint . --quiet`, and final `git diff --check` passed. Full suites were not rerun for this thin patch because the immediately preceding full Vitest and Playwright gates above were green.
 - 2026-07-19: Advisory `testarch-trace` at source SHA `ff05021` traced 13 items: 12 FULL, 1 PARTIAL, 0 NONE; all 9 P0 items are FULL. AC5 is the sole partial item because maintainer-approved rebaseline artifacts, the required `REBASELINE-LOG.md` update, and passing mobile/desktop visual comparisons remain unresolved. No implementation tests were rerun by the trace pass.
+- 2026-07-19: Rasmus explicitly approved the Story 12.6 human rebaseline. The ten promoted reference PNGs match the reviewed candidate SHA-256 values recorded in `REBASELINE-LOG.md`.
+- 2026-07-19: Provider-neutral visual wrapper passed in explicitly authorized manual mode (`VISUAL_VALIDATE_PROVIDER=none`, `ALLOW_MANUAL_VISUAL_VALIDATION=1`) for all ten affected Story 12.6 mapped pairs: mobile `map-primary`, `map-panel-venues`, `map-with-selected-venue`, `map-with-obscured-venue`, `favourites-tab`; desktop `map-primary`, `map-with-obscured-venue`, `favourites-tab`, `venue-detail`, `venue-detail-obscured`.
+- 2026-07-19: Canonical review gate `.\scripts\run-sh.ps1 scripts/story-review.sh 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number` passed with `VISUAL_VALIDATE_PROVIDER=none` and `ALLOW_MANUAL_VISUAL_VALIDATION=1`: lint passed, typecheck passed, Vitest passed (189 files passed, 2 skipped; 1760 tests passed, 15 skipped), and 12 story-extracted mapped visual validations exited 0 in manual mode. Sprint status moved to `review` only through the canonical gate. Artifact: `_bmad-output/implementation-artifacts/validation/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number-review-20260719-143731.log`.
+- 2026-07-19: Refreshed the advisory `testarch-trace` after visual closure: 13 FULL / 0 PARTIAL / 0 NONE, P0 9/9 and P1 4/4, advisory verdict `PASS`. AC5 is fully supported by explicit human approval, 10/10 promoted-reference hash verification, the rebaseline log entry, and the canonical manual visual gate. No implementation tests were rerun by the trace refresh.
 
 ### ATDD Artifacts
 
@@ -403,13 +407,14 @@ Codex GPT-5
 - New contract regressions: `nextjs-app/test/unit/story-12-6-contract-defects.automation.test.ts`, `nextjs-app/test/components/story-12-6-honesty.automation.test.tsx`
 - Augmented route regression: `nextjs-app/test/unit/api/venues-route-peak-truncation.test.ts`
 - Current gate: all 7 TEA production-contract failures are green. Story 12.6 stays `in-progress`; Task 7 and the canonical visual gate remain open because `ANTHROPIC_API_KEY` is unavailable.
+- Closure update: the missing-provider blocker was resolved by explicit Rasmus approval for manual visual validation and rebaseline on 2026-07-19. The canonical story-review gate passed in manual visual mode and moved sprint status to `review`.
 
 ### Traceability Artifacts
 
 - Progress matrix: `_bmad-output/test-artifacts/traceability-matrix.md`
 - Advisory report: `_bmad-output/test-artifacts/traceability/traceability-report-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md`
 - Machine-readable summary: `_bmad-output/test-artifacts/traceability/e2e-trace-summary-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.json`
-- Advisory verdict: `CONCERNS` with 12 FULL / 1 PARTIAL / 0 NONE. AC5 visual/rebaseline is the sole partial item; this trace does not close Task 7 or move the story from `in-progress`.
+- Refreshed advisory verdict: `PASS` with 13 FULL / 0 PARTIAL / 0 NONE; P0 9/9 and P1 4/4. AC5 is fully covered by the human-approved rebaseline, candidate/reference hash verification, same-operation audit log, and canonical manual visual gate. The story remains in `review`.
 
 ### Completion Notes List
 
@@ -419,18 +424,33 @@ Codex GPT-5
 - Reconciled map-adjacent surfaces so grey/not-sunny list cards and QuickInfo do not expose the public percentage while preserving `CloudObscured` diagnostic copy outside pin semantics.
 - Replaced pin ARIA/i18n with percent-bearing sunny labels, percent-free not-sunny labels, and explicit unknown-weather sunny labels in Swedish and English.
 - Wired a non-vacuous `a11y-mobile` CI invocation and updated standing CI tests to require the project.
-- Updated `DESIGN.md` and `project-context.md` for the Story 12.6 two-pin contract. Reference PNGs, capture recipes, and `REBASELINE-LOG.md` were intentionally not edited.
-- Blocked from story-review transition by missing `ANTHROPIC_API_KEY` for the legacy visual validation provider; no sprint status transition was attempted.
+- Updated `DESIGN.md` and `project-context.md` for the Story 12.6 two-pin contract. No capture-recipe changes were needed; the stale prototype recipes remain documented as non-authoritative for this implementation-state rebaseline.
+- Rasmus approved the Story 12.6 human visual rebaseline on 2026-07-19. The ten reviewed candidates were promoted to authoritative references and logged in `REBASELINE-LOG.md`; all promoted hashes match the candidate evidence.
+- Closed the visual gate through the provider-neutral wrapper in explicitly authorized manual mode for all ten affected screen/viewport pairs because the legacy Claude/Anthropic provider still lacks `ANTHROPIC_API_KEY`.
+- Passed the canonical story-review gate from the repository root. The gate ran lint, typecheck, unit/component tests, manual-mode visual validations for all extracted mapped screen IDs, and performed the only sprint-status transition to `review`.
 - TEA automate added the minimum durable regression coverage for seven confirmed contract defects and intentionally left the defect suite RED for the production fix pass; this evidence does not mark the story review-ready.
 - Fixed the seven TEA defects: equal peaks now choose the earlier minute, day-stable truncation retains the strongest grey-band series step, malformed/absent weather and gate fields fail to `unknown`, and card/QuickInfo verdicts carry localized weather-unavailable or not-sunny copy.
 - Expired/missing snapshots ignore retained slices for gating, and persisted public windows/peaks now preserve `weatherGateState='unknown'` through list/detail serialization. Added focused coverage for both snapshot states and the exact-50 top-50 cutoff.
 - Weather gate qualifiers are now computed directly from valid weather inputs plus geometric exposure/visibility; public and engine paths no longer reconstruct them from `CloudObscured` or sky-condition strings.
 - Closed S12.6-R1 by relationally normalizing the explicit `CloudObscured` diagnostic to a gated public verdict at the DTO boundary, including attached day-series ranking input; geometric exposure and diagnostic status remain intact.
-- Completed the Story 12.6 advisory trace: all functional P0 contracts are fully covered; the required visual/rebaseline evidence remains explicit and open.
+- Refreshed the Story 12.6 advisory trace after visual closure: all 13 traced contracts are fully covered and the advisory verdict is `PASS`.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/evidence.md`
+- `_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/desktop-favourites-tab.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/desktop-map-primary.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/desktop-map-with-obscured-venue.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/desktop-venue-detail-obscured.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/desktop-venue-detail.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/mobile-favourites-tab.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/mobile-map-panel-venues.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/mobile-map-primary.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/mobile-map-with-obscured-venue.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/mobile-map-with-selected-venue.png`
+- `_bmad-output/implementation-artifacts/validation/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number-review-20260719-143731.log`
 - `_bmad-output/test-artifacts/automation-summary.md`
 - `_bmad-output/test-artifacts/traceability-matrix.md`
 - `_bmad-output/test-artifacts/traceability/traceability-report-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md`
@@ -447,6 +467,17 @@ Codex GPT-5
 - `nextjs-app/components/custom/venue/VenueList.tsx`
 - `nextjs-app/components/custom/venue/forced-venue-detail.ts`
 - `nextjs-app/docs/design/DESIGN.md`
+- `nextjs-app/docs/design/references/REBASELINE-LOG.md`
+- `nextjs-app/docs/design/references/screens/desktop/favourites-tab.png`
+- `nextjs-app/docs/design/references/screens/desktop/map-primary.png`
+- `nextjs-app/docs/design/references/screens/desktop/map-with-obscured-venue.png`
+- `nextjs-app/docs/design/references/screens/desktop/venue-detail-obscured.png`
+- `nextjs-app/docs/design/references/screens/desktop/venue-detail.png`
+- `nextjs-app/docs/design/references/screens/mobile/favourites-tab.png`
+- `nextjs-app/docs/design/references/screens/mobile/map-panel-venues.png`
+- `nextjs-app/docs/design/references/screens/mobile/map-primary.png`
+- `nextjs-app/docs/design/references/screens/mobile/map-with-obscured-venue.png`
+- `nextjs-app/docs/design/references/screens/mobile/map-with-selected-venue.png`
 - `nextjs-app/lib/services/sun-engine.ts`
 - `nextjs-app/lib/services/sun-geometry-precompute.ts`
 - `nextjs-app/lib/services/sun-geometry-repository.ts`
@@ -495,6 +526,10 @@ Codex GPT-5
 - `nextjs-app/test/unit/services/venue-store.test.ts`
 - `nextjs-app/test/unit/venue-detail/route-cache.test.ts`
 - `nextjs-app/test/unit/story-12-6-i18n-a11y-ci.atdd.test.ts`
+
+### Change Log
+
+- 2026-07-19: Completed Story 12.6 visual/rebaseline closure after explicit Rasmus approval; reconciled sprint status to `in-progress` for the canonical gate; verified candidate-to-reference hashes and manual visual-wrapper acceptance for all ten affected pairs.
 
 ### Review Findings
 

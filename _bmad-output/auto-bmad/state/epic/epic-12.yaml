@@ -5,10 +5,10 @@ epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-18T23:47:59Z"
+updated_at: "2026-07-19T12:52:10Z"
 started_at: "2026-07-18T11:27:25Z"
 completed_at: null
-active_seconds: 26069
+active_seconds: 27341
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: true
 story_trace: null
-commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc, 8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021]
+commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc, 8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021, 66eb5d7]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -50,16 +50,16 @@ open_questions: []
 deferred_work:
   - "[12-3] Protected Story 12.3 production evidence remains: capture the 42+ venue cold-p95 dataset and verify the protected GitHub Production environment when protected access is available."
   - "[12-7] Apply `20260718214954_add_public_venue_visibility.sql` before deploying Story 12.7 code, then regenerate Supabase types and verify no contract diff."
-blockers:
-  - "[12-6] Visual validation is pending because the configured legacy provider requires ANTHROPIC_API_KEY; do not transition the story to review or alter references without the required validation/maintainer approval."
+blockers: []
 overrides: {}
 constraints:
   - "Execute Epic 12 in the user-confirmed dependency order: 12-1, 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, 12-10, 12-5, 12-8, 12-11, 12-2, 12-14."
 epic_slug: real-venue-launch-readiness-perf-trust-hours-console-hygiene
-active_story: 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number
+active_story: 12-13-remove-the-user-facing-confidence-indicator-keep-it-internal
 stories_landed:
   - 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
   - 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
+  - 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number
 auto_decisions:
   - "[12-7] Adopted the architecture-backed canonical `hidden boolean not null default false` migration/type contract after live/schema probes proved all previously referenced visibility columns absent; no protected database mutation was performed."
 uat_items:
@@ -86,6 +86,18 @@ uat_items:
   - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED DISPOSABLE SUPABASE REQUIRED] ID/slug collisions fail closed with 404 across all three routes and produce no write."
   - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED DISPOSABLE SUPABASE REQUIRED] Sequential absent/public/hidden/public transitions produce 404/200/404/200 without restart, and successful reviews GET remains no-store."
   - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED DISPOSABLE SUPABASE REQUIRED] Precompute target collection projects hidden without 42703 and returns correct isHidden values."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] Start the nextjs-app dev server, use a mobile viewport, complete onboarding if shown, and open /?_state=map-primary&_time=14:00 -> the map shows only amber sun pins with % and grey cloud pins with no number."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On /?_state=map-primary&_time=14:00, inspect a grey cloud pin visually and in the browser accessibility tree -> its name says the venue is \"inte soligt vid vald tid\" and contains no percentage or confidence."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On /?_state=map-primary&_time=14:00, inspect an amber sun pin visually and in the browser accessibility tree -> it keeps the sun icon, seating-sun percentage, and \"soligt vid vald tid\", with no confidence wording."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On mobile, open /?_state=map-with-obscured-venue&_time=14:00 -> cloud-obscured venues use the same grey cloud no-number pin as other not-sunny venues."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On /?_state=map-with-obscured-venue&_time=14:00, inspect the selected venue quick-info card -> it explains \"Sol bakom moln\" while also showing \"Inte soligt vid vald tid\", not amber sunny copy."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On /?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00, compare selected and unselected pins -> selection only emphasizes the pin and does not change sunny/not-sunny meaning."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On /?_state=map-panel-venues&_time=14:00, review the mobile list sorted by \"Mest sol\" -> genuinely sunny venues precede grey/not-sunny venues, and grey cards are not described as sunny."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On /favoriter?_state=favourites-tab&_time=14:00, review saved cards -> sunny cards may show % sol, while grey/not-sunny cards use cloud/not-sunny wording instead of a visible sun percentage."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On desktop, open /?_time=16:30 -> map/list presentation follows the same two-pin rule: amber sun with %, grey cloud with no number."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On desktop, open /?_state=map-with-obscured-venue&_time=14:00 -> obscured venues remain grey cloud no-number pins and selected/adjacent copy does not call them sunny."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On desktop, open /?venue=test-venue-sunny&_state=venue-detail-obscured&_time=16:30 -> detail copy preserves \"Sol bakom moln\" without turning the map/public verdict into sunny."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] Navigate reachable pins with the keyboard -> each pin has a visible focus ring, remains activatable as a button, and has at least a 44x44 px target."
 preexisting_done_stories:
   - 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
 adopt_verdicts:
@@ -106,5 +118,5 @@ story_execution_order:
   - 12-11-first-run-coach-mark-guide-map-legend-feature-tour
   - 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
   - 12-14-hide-closed-venues-open-at-selected-time-filter
-story_order_cursor: 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number
+story_order_cursor: 12-13-remove-the-user-facing-confidence-indicator-keep-it-internal
 order_override_reason: User-confirmed dependency order keeps prerequisite contracts ahead of their consumers while preserving Story 12-14 as the epic-end story.

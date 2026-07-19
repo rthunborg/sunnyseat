@@ -1,12 +1,12 @@
 {
   "schema_version": "0.1.0",
-  "snapshot_at": "2026-07-19T01:45:00+02:00",
+  "snapshot_at": "2026-07-19T14:46:26+02:00",
   "repo": "sunnyseat",
   "collection_mode": "advisory_story_scope",
   "collection_status": "COLLECTED",
   "inventory_basis": "acceptance_criteria",
   "gate_basis": "none",
-  "source_sha": "ff05021",
+  "source_sha": "",
   "target": {
     "type": "story",
     "id": "12.6",
@@ -15,19 +15,19 @@
   "decision_mode": "advisory",
   "evaluator": "Rasmus",
   "confidence": "high",
-  "advisory_status": "CONCERNS",
+  "advisory_status": "PASS",
   "coverage": {
     "inventory": {
-      "fully_covered": 12,
-      "partially_covered": 1,
+      "fully_covered": 13,
+      "partially_covered": 0,
       "uncovered": 0,
       "total": 13,
-      "full_pct": 92,
+      "full_pct": 100,
       "covered_or_partial_pct": 100
     },
     "priority_breakdown": {
       "P0": { "total": 9, "fully_covered": 9, "partially_covered": 0, "uncovered": 0, "full_pct": 100 },
-      "P1": { "total": 4, "fully_covered": 3, "partially_covered": 1, "uncovered": 0, "full_pct": 75 },
+      "P1": { "total": 4, "fully_covered": 4, "partially_covered": 0, "uncovered": 0, "full_pct": 100 },
       "P2": { "total": 0, "fully_covered": 0, "partially_covered": 0, "uncovered": 0, "full_pct": 100 },
       "P3": { "total": 0, "fully_covered": 0, "partially_covered": 0, "uncovered": 0, "full_pct": 100 }
     }
@@ -42,7 +42,7 @@
     "fixme_cases_in_primary_story_suites": 0,
     "pending_cases_in_primary_story_suites": 0
   },
-  "risk_summary": { "critical_open": 0, "high_open": 0, "medium_open": 1, "low_open": 0 },
+  "risk_summary": { "critical_open": 0, "high_open": 0, "medium_open": 0, "low_open": 0 },
   "heuristics": {
     "endpoint_gaps": 0,
     "auth_negative_path_status": "not_applicable",
@@ -51,19 +51,23 @@
     "ui_state_status": "present"
   },
   "uncovered_requirements": [],
-  "material_gaps": [
-    {
-      "id": "AC5-VISUAL-REBASELINE",
-      "requirements": ["AC5"],
-      "severity": "medium",
-      "reason": "Maintainer-approved reference rebaseline, same-operation REBASELINE-LOG update, and passing mobile/desktop comparisons are absent; ANTHROPIC_API_KEY and approval remain unresolved."
-    }
-  ],
+  "material_gaps": [],
+  "visual_evidence": {
+    "approval": "Rasmus explicitly approved the Story 12.6 rebaseline on 2026-07-19",
+    "affected_reference_pairs": 10,
+    "candidate_reference_sha256_matches": "10/10",
+    "rebaseline_log": "nextjs-app/docs/design/references/REBASELINE-LOG.md:46",
+    "candidate_evidence": "_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/evidence.md",
+    "canonical_gate": "_bmad-output/implementation-artifacts/validation/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number-review-20260719-143731.log",
+    "mapped_manual_validations": 12,
+    "gate_result": "PASS",
+    "mode": "explicitly_authorized_manual"
+  },
   "blockers": [],
   "recommendations": [
-    "Complete the maintainer-approved ten-target rebaseline and canonical mobile/desktop visual validation before story review.",
-    "Perform mobile/desktop and screen-reader UAT for the boundary matrix, selected state, card/QuickInfo honesty, 44px target, and exact accessible names.",
-    "Retain the Story 12.3 request-count regression for same-date scrub and date changes."
+    "Preserve the approved candidates, promoted hashes, rebaseline audit entry, and canonical review log together for release traceability.",
+    "Retain the Story 12.3 request-count and Story 12.6 boundary, honesty, motion, and accessibility regressions.",
+    "Recapture only when a documented Story 12.6 re-evaluation trigger changes a map-visible surface."
   ],
   "links": {
     "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-report-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md",

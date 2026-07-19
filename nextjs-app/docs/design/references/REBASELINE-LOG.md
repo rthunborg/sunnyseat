@@ -43,6 +43,27 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-07-19 — Story 12.6 public two-state pin semantics (10 map-visible references, mobile + desktop) — human-approved rebaseline
+
+**Trigger:** Story 12.6 replaced the prior public map-pin presentation with a shared two-state public predicate. The pre-12.6 references were stale for the new contract because grey/not-sunny or cloud-obscured pins could still show seating-sun percentages, which now misrepresents the user-facing sunny/not-sunny model.
+
+**Resolution:** Rasmus explicitly approved the Story 12.6 rebaseline on 2026-07-19 after human visual review. The ten reviewed candidate screenshots were promoted to the authoritative reference PNGs. The intended public semantics are: amber sun pin plus seating-share percentage only when the shared predicate is sunny; grey cloud pin with no number when not sunny or weather-gated; selected pin emphasis must not change that sunny/not-sunny meaning. The promoted references also preserve selected-pin/detail consistency for `map-with-selected-venue`, `map-with-obscured-venue`, `venue-detail`, and `venue-detail-obscured`.
+
+**Changed PNGs (10):**
+- **mobile:** `map-primary`, `map-panel-venues`, `map-with-selected-venue`, `map-with-obscured-venue`, `favourites-tab` at 390×844 viewport / 780×1688 PNG dimensions.
+- **desktop:** `map-primary`, `map-with-obscured-venue`, `favourites-tab`, `venue-detail`, `venue-detail-obscured` at 1440×900 viewport / 2880×1800 PNG dimensions.
+
+**Source of new PNG:** Human-reviewed implementation candidates from `_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/`. Candidate SHA-256 values were verified before promotion and the promoted authoritative PNGs now match those hashes:
+`mobile/map-primary` `74b6685f267b9d4e578b99be7dfded6d3973d9bbf071fc7beeb54c2fdaca6c97`; `mobile/map-panel-venues` `5b168fac021deb8e0b3e9567fa9fa8d4adf4837fee772cceb1f26ade3e98d3c6`; `mobile/map-with-selected-venue` `d3f65d7ed9fa76267d481799bce725f5d8f0ab8fc0ef8e77066a8115c92144ba`; `mobile/map-with-obscured-venue` `b5ed4b6061fbfef167c29ea76db70d85ff640169f1e892cf1503aad1929f219a`; `mobile/favourites-tab` `1d12b31c8fcb4a2f116f2341c008d66896ff48760bb5f5597e5c1d8019b74c92`; `desktop/map-primary` `073294af904d6f65163eceeefd6be492b5308333bf874f86f0cef7d0a1b36ec4`; `desktop/map-with-obscured-venue` `6b1e14731a7729472f89752b011cf52c4fc3aab9b6401759b7523df64d293049`; `desktop/favourites-tab` `4f98f31c4ef9e178b0364dbbaeae8fa0c4443680f204d81698b5cbbc3554aac2`; `desktop/venue-detail` `05f3321ce879b0b52710dc2b6b973a21f3270bea16b3640653e96fde830f723e`; `desktop/venue-detail-obscured` `7c510fb51fa542c4e57ad12630ac739e60f5408680503b5c0d5ed1ca6b18f802`.
+
+**Recipe change:** None to `nextjs-app/scripts/capture-claude-design-refs.mjs`, `project-context.md`, or visual-validation route mappings. This was an implementation-state rebaseline from reviewed Story 12.6 candidates.
+
+**Verification:** Manual visual review accepted by Rasmus because the legacy automated Claude/Anthropic visual provider could not run without `ANTHROPIC_API_KEY`. Candidate capture evidence asserted Swedish locale, forced screen states, visible map/pins/panels, and Story 12.6 pin semantics before screenshot write. The promoted files were post-copy SHA-verified against the approved candidates.
+
+**Reason / spec link:** Story 12.6 acceptance criteria require the public UI to use one grey not-sunny/cloud-obscured pin without a percentage and one amber sunny pin with percentage, backed by the shared public predicate. Story 12.13 will remove remaining user-facing confidence displays outside this pin contract.
+
+**Re-evaluation trigger:** Re-capture these references if the shared public sunny predicate, venue pin chrome, selected-pin treatment, QuickInfo/detail sunny/not-sunny copy, mobile bottom-sheet map layout, desktop side-panel layout, or Story 12.13 confidence-removal UI changes these surfaces.
+
 ### 2026-07-06 — basemap colour re-tune (10 map-visible references, mobile + desktop) — maintainer design review (Amelia / dev-story, STAGED — awaiting maintainer blessing)
 
 > **Blessing status: STAGED — awaiting maintainer blessing.** Dev agents are structurally forbidden from self-blessing reference PNGs (`AGENTS.md:177-179`). This run captured + staged + documented the recolour baseline; the maintainer blesses (or rejects) each pair at PR review. This is NOT a blocker — staging + documenting is the deliverable.
