@@ -329,7 +329,7 @@ development_status:
   12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider: backlog
   12-10-venue-detail-preload-instant-mer-info: backlog
   12-11-first-run-coach-mark-guide-map-legend-feature-tour: backlog
-  12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes: backlog
+  12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes: ready-for-dev
   12-13-remove-the-user-facing-confidence-indicator-keep-it-internal: review
   12-14-hide-closed-venues-open-at-selected-time-filter: backlog
   epic-12-retrospective: optional
@@ -341,6 +341,14 @@ development_status:
 # Story 12.1/12.10/12.14 supersession controls are recorded immediately above the Epic 12 tracker entries.
 # Inventory remains 12 epics / 87 stories; status totals are 8 done / 1 in-progress / 3 backlog epics and
 # 61 done / 26 backlog stories, with no story currently ready-for-dev, in-progress, or review.
+
+# Note (2026-07-19, create-story 12.12 — backlog -> ready-for-dev): authored the Story 12.12 context file
+# at _bmad-output/implementation-artifacts/12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes.md.
+# The brief preserves all 6 Epic 12.12 ACs and 4 Design Gate Criteria, resolves the rendition-selection option via
+# E12-AD-10 (`thumbnail.cardUrl`/`thumbnail.heroUrl` plus legacy `url` fallback), and scopes the implementation to
+# the `venue-media` Supabase Storage bucket/policies, immutable optimized WebP renditions, sanitizer/DTO updates,
+# card/desktop-quick-info/detail fallback behavior, venue-data docs, and the four required `venue-photo-*`
+# visual references. Baseline typecheck and lint passed before drafting; create-story self-validation passed.
 
 # Note (2026-07-13, create-story 12.1 — backlog -> ready-for-dev): authored the provider-neutral Story 12.1
 # brief at _bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md.
