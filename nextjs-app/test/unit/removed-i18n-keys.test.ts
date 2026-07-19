@@ -166,7 +166,62 @@ describe('Story 12.13 removed confidence display keys have no public reader', ()
       expect(source).not.toContain('routeConfidenceLabel');
     }
   });
+
+  it('keeps the no-public-confidence boundary explicit while preserving internal evidence paths', () => {
+    const publicUiFiles = [
+      'components/composed/venue/VenueCard.tsx',
+      'components/custom/venue/VenueList.tsx',
+      'components/composed/venue/VenueQuickInfo.tsx',
+      'components/composed/venue/VenueDetailContent.tsx',
+      'components/custom/map/MapView.tsx',
+      'components/custom/routing/RouteOverlay.tsx',
+      'components/custom/favourites/FavouritesList.tsx',
+      'components/custom/venue/VenueDetailOverlay.tsx',
+      'components/custom/venue/ForcedVenueDetailInitialFrame.tsx',
+    ];
+
+    for (const relativePath of publicUiFiles) {
+      const sourceWithoutComments = stripTypeScriptComments(
+        readFileSync(path.resolve(process.cwd(), relativePath), 'utf8'),
+      );
+      expect(sourceWithoutComments).not.toMatch(
+        /\b(?:Säkerhet|Confidence)\b\s*[:·-]?\s*(?:\{percent\}|\{confidence\}|\d+\s*%)/i,
+      );
+      expect(sourceWithoutComments).not.toMatch(
+        /\bconfidence(?:Display|Meta|Percent|Label|Approximate|Unavailable)\b/i,
+      );
+    }
+
+    const apiTypes = readFileSync(path.resolve(process.cwd(), 'lib/types/api.ts'), 'utf8');
+    expect(apiTypes).toMatch(/confidence:\s*number/);
+    expect(apiTypes).toMatch(/Story 12\.13 removed every public[\s\S]*?surfaces/i);
+
+    const feedbackSession = readFileSync(
+      path.resolve(process.cwd(), 'lib/services/feedback-session.ts'),
+      'utf8',
+    );
+    expect(feedbackSession).toMatch(/confidenceAtPrediction:\s*venue\.confidence/);
+
+    const feedbackRoute = readFileSync(
+      path.resolve(process.cwd(), 'app/api/venues/[slug]/feedback/route.ts'),
+      'utf8',
+    );
+    expect(feedbackRoute).toMatch(/confidenceAtPrediction:\s*z\.number\(\)\.min\(0\)\.max\(100\)\.optional\(\)/);
+
+    const confidenceCalculator = readFileSync(
+      path.resolve(process.cwd(), 'lib/solar/confidence-calculator.ts'),
+      'utf8',
+    );
+    expect(confidenceCalculator).toMatch(/export function calculateConfidenceFactors/);
+    expect(confidenceCalculator).toMatch(/export function calculateDisplayConfidence/);
+  });
 });
+
+function stripTypeScriptComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
 
 /**
  * Story 11.6 (AC2) — "Soltider idag" removal removed-key pin.

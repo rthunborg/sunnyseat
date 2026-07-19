@@ -394,6 +394,18 @@ Codex GPT-5
 
 ### Debug Log References
 
+- 2026-07-19 Story 12.13 automate pass:
+  - `npx vitest run test/unit/removed-i18n-keys.test.ts test/components/VenueCard.test.tsx test/components/VenueList.test.tsx test/components/VenueQuickInfo.test.tsx test/components/VenueDetailContent.test.tsx test/components/RouteOverlay.test.tsx test/unit/services/feedback-session.test.ts test/components/FeedbackFlow.test.tsx` → 8 files / 129 tests passed.
+  - `npx tsc --noEmit` → passed.
+  - `npx eslint . --quiet` → passed.
+  - `$env:VITEST_MAX_WORKERS='4'; npx vitest run` → 188 passed / 2 skipped files; 1,761 passed / 15 skipped tests.
+
 ### Completion Notes List
 
+- Story 12.13 automate pass added a focused source-boundary guard proving public UI/message files cannot reintroduce numeric confidence display plumbing while internal DTO, feedback evidence, route schema, and server confidence calculator paths remain intentionally retained.
+- No new E2E was added in the automate pass because existing MapView/component/a11y/visual coverage already exercises the public surfaces; the added value is a cheap broad regression guard.
+
 ### File List
+
+- `nextjs-app/test/unit/removed-i18n-keys.test.ts`
+- `_bmad-output/test-artifacts/automation-summary.md`

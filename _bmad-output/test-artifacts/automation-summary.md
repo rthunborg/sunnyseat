@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-19T00:29:24+02:00'
+lastSaved: '2026-07-19T17:53:23+02:00'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-12.md'
@@ -88,6 +88,62 @@ inputDocuments:
   - 'nextjs-app/test/e2e/story-12-6-public-sun-pins.atdd.spec.ts'
   - 'nextjs-app/test/e2e/story-12-6/axe-mobile.spec.ts'
 ---
+
+# Automation Expansion Summary - Story 12.13 (Remove User-Facing Confidence Indicator)
+
+## Preflight And Context
+
+- **Framework:** Vitest 4.1.4 and Playwright are configured in `nextjs-app`; framework readiness passed.
+- **Stack:** frontend/public presentation boundary with retained internal API/service confidence evidence.
+- **Mode:** BMad-integrated from the Story 12.13 file. Execution was sequential to avoid concurrent edits in the shared worktree.
+- **Scope:** expand automated coverage after the implementation removed public confidence from visible, accessible-name, sr-only, route-overlay, card/list, QuickInfo, detail, and i18n surfaces. Production code, sprint status, Auto-BMAD state, visual references, and git state remained outside this delegate's ownership.
+- **Knowledge loaded:** test levels, risk priorities, deterministic data factories, selective execution, CI burn-in guidance, test quality, fixture architecture, network-first guidance, and selector-resilience guidance.
+
+## Coverage Plan
+
+| Priority | Level | Target | Decision |
+| --- | --- | --- | --- |
+| P0 | Component | Card/list, QuickInfo, detail, and route overlay expose no visible or sr-only confidence while preserving amber `N% sol`, weather, distance, sky, and uncertainty copy. | Existing implementation tests are already direct and broad; rerun targeted regression set rather than duplicate browser coverage. |
+| P0 | Unit/source guard | Public UI and message namespaces must not reintroduce confidence display copy, helper imports, or confidence-specific props. | Add a narrow source/i18n boundary guard. |
+| P0 | Unit/source guard | Internal confidence must remain available for API DTO transition data, feedback evidence, route schema compatibility, and server-side model computation. | Add positive retention assertions in the same boundary guard so a future cleanup cannot delete internal evidence by overfitting the no-public-confidence rule. |
+| P1 | E2E/browser | Map/list/favourites/route/visual surfaces. | No new E2E added: existing MapView/component tests and the completed visual candidate/rebaseline workflow cover browser-facing behavior; adding another Playwright path would duplicate the visual gate. |
+
+## Generated Coverage
+
+- **UPDATED** `nextjs-app/test/unit/removed-i18n-keys.test.ts` with one additional Story 12.13 guard:
+  - scans public UI source after stripping comments for numeric confidence display copy and removed display plumbing,
+  - verifies `VenueDataDto.confidence` remains documented as non-rendering transition data,
+  - verifies feedback-session still stamps `confidenceAtPrediction` from internal confidence,
+  - verifies feedback route schema still accepts bounded `confidenceAtPrediction`,
+  - verifies server-side confidence calculator exports remain intact.
+- **Aggregate:** +1 P0 source-boundary test. No fixtures, factories, helpers, API mocks, browser sessions, live Met.no calls, or production Supabase calls were introduced.
+
+## Validation And Gate
+
+- **Targeted regression suite:** `npx vitest run test/unit/removed-i18n-keys.test.ts test/components/VenueCard.test.tsx test/components/VenueList.test.tsx test/components/VenueQuickInfo.test.tsx test/components/VenueDetailContent.test.tsx test/components/RouteOverlay.test.tsx test/unit/services/feedback-session.test.ts test/components/FeedbackFlow.test.tsx` → **8 files / 129 tests passed**.
+- **TypeScript:** `npx tsc --noEmit` → **0 errors**.
+- **Lint:** `npx eslint . --quiet` → **0 errors**.
+- **Full unit/component suite:** `$env:VITEST_MAX_WORKERS='4'; npx vitest run` → **188 passed / 2 skipped files; 1,761 passed / 15 skipped tests**.
+- Vitest emitted the existing jsdom `Not implemented: navigation to another Document` warning after the green summary; exit code was 0.
+- No Playwright CLI sessions or browser exploration were opened, so no session cleanup was required.
+
+## Assumptions, Risks, and Deferred Coverage
+
+- The user-approved Story 12.13 visual rebaseline/candidate evidence is handled by the orchestrator; this automation pass did not copy reference PNGs or update visual artifacts.
+- Public `confidence` remains in the DTO as explicitly documented non-rendering transition data for feedback evidence. Retiring the field is deferred until Story 12.2 feedback/evidence fields can replace it safely.
+- No additional E2E was added because existing MapView, component, a11y, and visual evidence already cover the public surfaces; the new value is the cheap boundary guard against broad reintroduction.
+
+## Definition Of Done
+
+- Existing Story 12.13 coverage was reviewed to avoid duplicate tests.
+- One deterministic P0 source-boundary guard was added.
+- Focused tests, typecheck, lint, and full Vitest passed.
+- Durable automation result written here under the configured BMAD test-artifact directory.
+
+## Next Recommended Workflow
+
+Run `test-review` or continue the orchestrator's Tier A review/landing flow for Story 12.13.
+
 
 # Automation Expansion Summary — Story 10.1 (Cloud-Gated Sun State & Weather-Truth Fixes)
 
