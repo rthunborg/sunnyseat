@@ -1,4 +1,10 @@
-import type { VenueDetailDto } from '@/lib/types/api';
+import type { VenueDataDto, VenueDetailDto, VenueThumbnailDto } from '@/lib/types/api';
+
+const PHOTO_LOADED_VERSION = 'v2026-07';
+const PHOTO_FALLBACK_VERSION = 'v2026-07-missing';
+const FALLBACK_SUPABASE_ORIGIN = 'https://sunnyseat.supabase.co';
+
+export type ForcedVenuePhotoState = 'venue-photo-loaded' | 'venue-photo-fallback';
 
 export function resolveForcedVisualVenueDetail(
   slug: string | null,
@@ -23,11 +29,49 @@ export function resolveForcedVisualVenueDetail(
     };
   }
 
+  if (isForcedVenuePhotoState(forcedState)) {
+    return withForcedVenuePhotoThumbnail(FORCED_VISUAL_VENUE_DETAIL, forcedState);
+  }
+
   if (forcedState !== 'venue-detail' && forcedState !== 'feedback' && forcedState !== 'review') {
     return null;
   }
 
   return FORCED_VISUAL_VENUE_DETAIL;
+}
+
+export function isForcedVenuePhotoState(
+  forcedState: string | null,
+): forcedState is ForcedVenuePhotoState {
+  return forcedState === 'venue-photo-loaded' || forcedState === 'venue-photo-fallback';
+}
+
+export function withForcedVenuePhotoThumbnail<T extends VenueDataDto>(
+  venue: T,
+  forcedState: ForcedVenuePhotoState,
+): T {
+  const thumbnail: VenueThumbnailDto = {
+    alt: venue.thumbnail?.alt?.trim() || `Uteservering hos ${venue.venueName}`,
+    initials: venue.thumbnail?.initials?.trim() || venue.venueName.slice(0, 2).toUpperCase(),
+    cardUrl: forcedVenueMediaUrl(forcedState, 'card'),
+    heroUrl: forcedVenueMediaUrl(forcedState, 'hero'),
+  };
+  return {
+    ...venue,
+    thumbnail,
+  };
+}
+
+function forcedVenueMediaUrl(
+  forcedState: ForcedVenuePhotoState,
+  rendition: 'card' | 'hero',
+): string {
+  const configuredOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || FALLBACK_SUPABASE_ORIGIN;
+  const origin = configuredOrigin.replace(/\/+$/, '');
+  const version = forcedState === 'venue-photo-loaded'
+    ? PHOTO_LOADED_VERSION
+    : PHOTO_FALLBACK_VERSION;
+  return `${origin}/storage/v1/object/public/venue-media/test-venue-sunny/${version}/${rendition}.webp`;
 }
 
 const FORCED_VISUAL_VENUE_DETAIL: VenueDetailDto = {

@@ -128,6 +128,20 @@ const RECIPES = [
       { wait: 600 },
     ],
   },
+  {
+    screenId: 'venue-photo-loaded',
+    viewport: 'mobile',
+    prototype: PROTO.mvpMobile,
+    skip:
+      'Story 12.12 photo references are approved implementation-derived Supabase media baselines, not Claude prototype captures. Use /?venue=test-venue-sunny&_state=venue-photo-loaded&_time=14:00 only for an explicitly approved rebaseline.',
+  },
+  {
+    screenId: 'venue-photo-fallback',
+    viewport: 'mobile',
+    prototype: PROTO.mvpMobile,
+    skip:
+      'Story 12.12 fallback references are approved implementation-derived broken-media baselines, not Claude prototype captures. Use /?venue=test-venue-sunny&_state=venue-photo-fallback&_time=14:00 only for an explicitly approved rebaseline.',
+  },
 
   // ─── MVP Mobile · modal flows (Tweaks/direct UI driven) ────────────────────
   {
@@ -192,6 +206,20 @@ const RECIPES = [
       { clickText: 'Mer info' },
       { wait: 600 },
     ],
+  },
+  {
+    screenId: 'venue-photo-loaded',
+    viewport: 'desktop',
+    prototype: PROTO.mvpDesktop,
+    skip:
+      'Story 12.12 photo references are approved implementation-derived Supabase media baselines, not Claude prototype captures. Use /?venue=test-venue-sunny&_state=venue-photo-loaded&_time=16:30 only for an explicitly approved rebaseline.',
+  },
+  {
+    screenId: 'venue-photo-fallback',
+    viewport: 'desktop',
+    prototype: PROTO.mvpDesktop,
+    skip:
+      'Story 12.12 fallback references are approved implementation-derived broken-media baselines, not Claude prototype captures. Use /?venue=test-venue-sunny&_state=venue-photo-fallback&_time=16:30 only for an explicitly approved rebaseline.',
   },
   {
     screenId: 'about',

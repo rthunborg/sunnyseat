@@ -44,8 +44,8 @@ function venueWithThumbnail(thumbnail: unknown): VenueDataDto {
   };
 }
 
-describe('Story 12.12 ATDD - venue media DTO and sanitizer contract (RED scaffolds)', () => {
-  it.skip('[P0] normalizes valid Supabase cardUrl and heroUrl without mutating public object URLs', () => {
+describe('Story 12.12 ATDD - venue media DTO and sanitizer contract', () => {
+  it('[P0] normalizes valid Supabase cardUrl and heroUrl without mutating public object URLs', () => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', SUPABASE_ORIGIN);
 
     const normalized = normalizeVenueForResponse(baseVenue);
@@ -59,7 +59,7 @@ describe('Story 12.12 ATDD - venue media DTO and sanitizer contract (RED scaffol
     });
   });
 
-  it.skip('[P0] preserves legacy url-only rows as the read fallback during rollout', () => {
+  it('[P0] preserves legacy url-only rows as the read fallback during rollout', () => {
     const normalized = normalizeVenueForResponse(
       venueWithThumbnail({
         alt: 'Legacy patio',
@@ -75,7 +75,7 @@ describe('Story 12.12 ATDD - venue media DTO and sanitizer contract (RED scaffol
     });
   });
 
-  it.skip('[P0] drops malformed optional media URL fields while retaining alt and initials fallback data', () => {
+  it('[P0] drops malformed optional media URL fields while retaining alt and initials fallback data', () => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', SUPABASE_ORIGIN);
 
     const normalized = normalizeVenueForResponse(
@@ -94,7 +94,7 @@ describe('Story 12.12 ATDD - venue media DTO and sanitizer contract (RED scaffol
     });
   });
 
-  it.skip('[P0] rejects new cardUrl and heroUrl values outside the configured Supabase venue-media convention', () => {
+  it('[P0] rejects new cardUrl and heroUrl values outside the configured Supabase venue-media convention', () => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', SUPABASE_ORIGIN);
 
     const wrongOrigin = `${SUPABASE_ORIGIN.replace('sunnyseat', 'other')}/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07/card.webp`;
@@ -120,7 +120,7 @@ describe('Story 12.12 ATDD - venue media DTO and sanitizer contract (RED scaffol
     expect(normalized.thumbnail).not.toHaveProperty('heroUrl');
   });
 
-  it.skip('[P0] toVenueData preserves the additive media contract and leaks no storage metadata', () => {
+  it('[P0] toVenueData preserves the additive media contract and leaks no storage metadata', () => {
     const stored = {
       ...baseVenue,
       thumbnail: thumbnailWithRenditions,
@@ -137,7 +137,7 @@ describe('Story 12.12 ATDD - venue media DTO and sanitizer contract (RED scaffol
     expect(dto).not.toHaveProperty('address');
   });
 
-  it.skip('[P0] shared client-safe selection helpers prevent VenueCard, VenueQuickInfo, and detail hero drift', async () => {
+  it('[P0] shared client-safe selection helpers prevent VenueCard, VenueQuickInfo, and detail hero drift', async () => {
     const mediaModulePath = '@/lib/utils/venue-media';
     const media = await import(mediaModulePath);
 

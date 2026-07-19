@@ -12,8 +12,10 @@ import type {
   PredictionUncertaintyReason,
   VenueDataDto,
   VenueDaySeriesEntry,
+  VenueThumbnailDto,
 } from '@/lib/types/api';
 import { normalizeWeatherGateState } from '@/lib/utils/public-sun';
+import { normalizeVenueMediaRenditionUrl } from '@/lib/utils/venue-media';
 
 const TIME_WINDOW_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MAX_THUMBNAIL_ALT_LENGTH = 120;
@@ -72,7 +74,6 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     thumbnail: {
       alt: 'Uteservering hos Kafé Magasinet',
       initials: 'KM',
-      url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=560&q=80',
     },
   },
   {
@@ -107,7 +108,6 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     thumbnail: {
       alt: 'Uteservering hos Bryggerietsoltak',
       initials: 'BS',
-      url: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=560&q=80',
     },
   },
   {
@@ -130,7 +130,6 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     thumbnail: {
       alt: 'Uteservering på Solplats Magasinsgatan',
       initials: 'SM',
-      url: 'https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=560&q=80',
     },
   },
   {
@@ -157,7 +156,6 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     thumbnail: {
       alt: 'Uteservering hos Café Halvvägs',
       initials: 'CH',
-      url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=560&q=80',
     },
   },
   {
@@ -184,7 +182,6 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     thumbnail: {
       alt: 'Uteservering hos Brygghuset Lerum',
       initials: 'BL',
-      url: 'https://images.unsplash.com/photo-1508424757105-b6d5ad9329d0?auto=format&fit=crop&w=560&q=80',
     },
   },
   {
@@ -207,7 +204,6 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     thumbnail: {
       alt: 'Uteservering hos Skuggans Hus',
       initials: 'SH',
-      url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=560&q=80',
     },
   },
   {
@@ -230,7 +226,6 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     thumbnail: {
       alt: 'Uteservering hos Bistro Bakgården',
       initials: 'BB',
-      url: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=560&q=80',
     },
   },
 ];
@@ -258,9 +253,20 @@ export function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
             : {}),
         }
       : undefined;
-  const alt = normalizeShortText(venue.thumbnail?.alt, MAX_THUMBNAIL_ALT_LENGTH);
-  const initials = normalizeInitials(venue.thumbnail?.initials);
-  const url = normalizeThumbnailUrl(venue.thumbnail?.url);
+  const rawThumbnail = venue.thumbnail as
+    | (VenueThumbnailDto & { cardUrl?: unknown; heroUrl?: unknown; url?: unknown })
+    | undefined;
+  const alt = normalizeShortText(rawThumbnail?.alt, MAX_THUMBNAIL_ALT_LENGTH);
+  const initials = normalizeInitials(rawThumbnail?.initials);
+  const cardUrl = normalizeVenueMediaRenditionUrl(rawThumbnail?.cardUrl, {
+    slug: venue.slug,
+    rendition: 'card',
+  });
+  const heroUrl = normalizeVenueMediaRenditionUrl(rawThumbnail?.heroUrl, {
+    slug: venue.slug,
+    rendition: 'hero',
+  });
+  const url = normalizeThumbnailUrl(rawThumbnail?.url);
   const predictionUncertainty = normalizePredictionUncertainty(rawPredictionUncertainty);
   const sunDaySeries = normalizeSunDaySeries(rawSunDaySeries);
 
@@ -273,10 +279,12 @@ export function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
     sunWindow,
     ...(sunDaySeries ? { sunDaySeries } : {}),
     thumbnail:
-      alt || initials || url
+      alt || initials || cardUrl || heroUrl || url
         ? {
             alt: alt ?? venue.venueName,
             initials: initials ?? venue.venueName.slice(0, 2).toUpperCase(),
+            ...(cardUrl ? { cardUrl } : {}),
+            ...(heroUrl ? { heroUrl } : {}),
             ...(url ? { url } : {}),
           }
         : undefined,
@@ -373,8 +381,9 @@ function normalizeInitials(value: string | undefined): string | undefined {
   return trimmed?.toUpperCase();
 }
 
-function normalizeThumbnailUrl(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
+function normalizeThumbnailUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
   if (!trimmed) return undefined;
   if (trimmed.startsWith('/')) return trimmed;
   try {

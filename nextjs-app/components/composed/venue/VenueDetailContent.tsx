@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import {
   Clock,
   Cloud,
@@ -23,6 +24,7 @@ import {
   skyConditionCopy,
 } from '@/lib/utils/sun-status-presentation';
 import { formatOpeningHours } from '@/lib/utils/opening-hours';
+import { selectVenueHeroImageUrl } from '@/lib/utils/venue-media';
 import { cn } from '@/lib/utils';
 
 export type VenueDetailContentLabels = {
@@ -314,9 +316,30 @@ function HeroImage({
 }) {
   const thumbnail = venue.thumbnail;
   const alt = thumbnail?.alt?.trim() || labels.photoPlaceholder;
+  const imageUrl = selectVenueHeroImageUrl(thumbnail);
+  const [imageFailed, setImageFailed] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const shouldRenderImage = Boolean(imageUrl) && !imageFailed && !isLoading;
   const percentText = String(Math.round(venue.sunExposurePercent));
   const sunnyBadgeLabel = formatLabel(labels.sunBadge, { percent: percentText });
   const sunnyBadgeVisibleText = `${percentText}%`;
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageUrl]);
+
+  useEffect(() => {
+    const image = imageRef.current;
+    if (!image || !shouldRenderImage) return undefined;
+    const handleError = () => setImageFailed(true);
+    if (image.complete && image.naturalWidth === 0) {
+      handleError();
+      return undefined;
+    }
+    image.addEventListener('error', handleError);
+    return () => image.removeEventListener('error', handleError);
+  }, [imageUrl, shouldRenderImage]);
+
   return (
     <div
       className={cn(
@@ -329,8 +352,19 @@ function HeroImage({
           data-testid="venue-detail-skeleton"
           className="size-full rounded-none bg-surface-muted"
         />
+      ) : shouldRenderImage ? (
+        <img
+          data-testid="venue-detail-hero-photo"
+          ref={imageRef}
+          src={imageUrl}
+          alt={alt}
+          className="absolute inset-0 size-full object-cover"
+          loading={isDesktop ? 'eager' : 'lazy'}
+          decoding="async"
+        />
       ) : (
         <div
+          data-testid="venue-detail-hero-fallback"
           aria-label={alt}
           className="flex size-full flex-col items-center justify-center gap-3"
           role="img"

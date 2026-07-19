@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Cloud, Heart, Sun, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { RouteButton } from '@/components/composed/routing/RouteButton';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -15,8 +16,9 @@ import {
   isObscuredSunStatus,
   skyConditionCopy,
 } from '@/lib/utils/sun-status-presentation';
-import type { VenueSunStatus, WeatherGateState } from '@/lib/types/api';
+import type { VenueSunStatus, VenueThumbnailDto, WeatherGateState } from '@/lib/types/api';
 import { isVenuePubliclySunny, normalizeWeatherGateState } from '@/lib/utils/public-sun';
+import { selectVenueCardImageUrl } from '@/lib/utils/venue-media';
 import { cn } from '@/lib/utils';
 
 export type VenueQuickInfoMode = 'mobile' | 'desktop';
@@ -50,11 +52,7 @@ export type VenueQuickInfoProps = {
    * (Gothenburg fallback), not a real personal fix — annotate it honestly.
    * Mirrors `VenueCard.distanceIsApproximate`. */
   distanceIsApproximate?: boolean;
-  thumbnail?: {
-    alt: string;
-    initials: string;
-    url?: string;
-  };
+  thumbnail?: VenueThumbnailDto;
   isLoadingSunData: boolean;
   position?: { x: number; y: number };
   desktopPlacement?: VenueQuickInfoDesktopPlacement;
@@ -392,7 +390,7 @@ function VenueThumbnail({
   onFavouriteToggle,
 }: {
   label: string;
-  thumbnail?: { alt: string; initials: string; url?: string };
+  thumbnail?: VenueThumbnailDto;
   sunExposurePercent?: number;
   isPublicSunny: boolean;
   compact?: boolean;
@@ -404,6 +402,27 @@ function VenueThumbnail({
   const accessibleLabel = normalizeAlt(thumbnail?.alt, label);
   const initials = normalizeInitials(thumbnail?.initials);
   const sunExposureText = formatPercent(sunExposurePercent);
+  const [imageFailed, setImageFailed] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const imageUrl = forcePlaceholder ? undefined : selectVenueCardImageUrl(thumbnail);
+  const shouldRenderImage = Boolean(imageUrl) && !imageFailed;
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [forcePlaceholder, imageUrl]);
+
+  useEffect(() => {
+    const image = imageRef.current;
+    if (!image || !shouldRenderImage) return undefined;
+    const handleError = () => setImageFailed(true);
+    if (image.complete && image.naturalWidth === 0) {
+      handleError();
+      return undefined;
+    }
+    image.addEventListener('error', handleError);
+    return () => image.removeEventListener('error', handleError);
+  }, [imageUrl, shouldRenderImage]);
+
   return (
     <div
       className={cn(
@@ -412,9 +431,11 @@ function VenueThumbnail({
         compact ? 'h-18' : 'h-24',
       )}
     >
-      {thumbnail?.url && !forcePlaceholder ? (
+      {shouldRenderImage ? (
         <img
-          src={thumbnail.url}
+          data-testid="venue-quick-info-photo"
+          ref={imageRef}
+          src={imageUrl}
           alt={accessibleLabel}
           className="absolute inset-0 size-full object-cover"
           loading="lazy"
@@ -422,6 +443,7 @@ function VenueThumbnail({
         />
       ) : (
         <div
+          data-testid="venue-quick-info-photo-fallback"
           role="img"
           aria-label={accessibleLabel}
           className="absolute inset-0 flex items-center justify-center"

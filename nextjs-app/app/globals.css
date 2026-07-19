@@ -390,6 +390,14 @@
   width: var(--size-venue-detail-panel-w);
 }
 
+@utility h-venue-detail-hero-mobile {
+  height: var(--size-venue-detail-hero-mobile);
+}
+
+@utility h-venue-detail-hero-desktop {
+  height: var(--size-venue-detail-hero-desktop);
+}
+
 @utility tracking-section-label {
   letter-spacing: var(--tracking-section-label);
 }

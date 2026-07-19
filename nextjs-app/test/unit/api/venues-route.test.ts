@@ -247,7 +247,9 @@ describe('GET /api/venues', () => {
     expect(venue.sunWindow).toEqual({ start: '13:00', end: '18:30' });
     expect(venue.thumbnail?.alt.length).toBeLessThanOrEqual(120);
     expect(venue.thumbnail?.initials.length).toBeLessThanOrEqual(3);
-    expect(venue.thumbnail?.url).toMatch(/^https:\/\//);
+    expect(venue.thumbnail?.url).toBeUndefined();
+    expect(venue.thumbnail?.cardUrl).toBeUndefined();
+    expect(venue.thumbnail?.heroUrl).toBeUndefined();
   });
 
   it('returns sanitized prediction uncertainty metadata for seeded venues', async () => {

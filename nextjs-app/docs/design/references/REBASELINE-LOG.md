@@ -532,3 +532,32 @@ The actual cause was a post-Story-1.5 prototype-state baseline carry-forward: pr
 **Reason / spec link:** `AGENTS.md` requires reference/capture recipe changes to be logged, and `docs/dev/state-forcing.md` reserves `_state` for dev-only visual-state forcing.
 
 **Re-evaluation trigger:** Revisit this route if the visual gate stops using `project-context.md`, if `_state` is removed from dev URLs, or if the `map-primary` mobile reference PNG is re-baselined to real fixture data instead of normalized visual data.
+
+### 2026-07-19 — `venue-photo-loaded` + `venue-photo-fallback` (mobile + desktop) — Story 12.12 approved implementation baselines (Codex / dev-story)
+
+**Trigger:** Story 12.12 adds real Supabase Storage photo rendering and explicit broken-media fallback states. The Claude Design prototype only contains designed placeholders, so the four active references had to come from deterministic implementation captures. Rasmus explicitly approved this promotion with `Approved: rebaseline Story 12.12`.
+
+**Resolution:** Promote the approved candidate PNG set from `_bmad-output/implementation-artifacts/validation/story-12-12-venue-photo-candidates/20260719T195547/` into active references:
+`nextjs-app/docs/design/references/screens/mobile/venue-photo-loaded.png`,
+`nextjs-app/docs/design/references/screens/mobile/venue-photo-fallback.png`,
+`nextjs-app/docs/design/references/screens/desktop/venue-photo-loaded.png`, and
+`nextjs-app/docs/design/references/screens/desktop/venue-photo-fallback.png`.
+
+**Source of new PNG:** Playwright captures of the running implementation using the canonical `project-context.md` routes:
+`/?venue=test-venue-sunny&_state=venue-photo-loaded&_time=14:00` (mobile),
+`/?venue=test-venue-sunny&_state=venue-photo-fallback&_time=14:00` (mobile),
+`/?venue=test-venue-sunny&_state=venue-photo-loaded&_time=16:30` (desktop), and
+`/?venue=test-venue-sunny&_state=venue-photo-fallback&_time=16:30` (desktop). The candidate capture step asserted the detail image/fallback state before each screenshot.
+
+**Recipe change:** `project-context.md` keeps both screen IDs mapped for mobile and desktop. `STATE-MAPPING.md` and `capture-claude-design-refs.mjs` document that these states are approved implementation-derived baselines and must not be regenerated from the Claude prototype.
+
+**Verification:** The promoted active PNGs byte-match the approved candidate set:
+mobile `venue-photo-loaded.png` 1170×1992 SHA-256 `ad7a30a8464e81da38d91758968edac06b78d8262f3f5fb6caa5154bb51551d6`;
+mobile `venue-photo-fallback.png` 1170×1992 SHA-256 `35aafba29cbd19250cab405dcb97216000490fc18fd702486f32a19befc9b0e5`;
+desktop `venue-photo-loaded.png` 1280×720 SHA-256 `1b1c1a7bedb2190d25e990fd2f50c621ec5022415a0043ef3885c989bdbfbcda`;
+desktop `venue-photo-fallback.png` 1280×720 SHA-256 `09c40fb73dbeeecb1879aeda222efb1ef66d05c854e25d2d9a26f8efcfff25e3`.
+Story 12.12 also records DOM/E2E coverage for card-vs-hero URL selection and fallback rendering that a single visual screenshot cannot prove.
+
+**Reason / spec link:** Story 12.12 Design Gate requires deterministic photo-loaded and fallback visual states; `AGENTS.md` requires any reference PNG promotion to update this log in the same operation and forbids self-blessing without maintainer approval.
+
+**Re-evaluation trigger:** Mandatory rebaseline if the `venue-media` rendition naming contract changes, the forced-state photo/fallback fixtures change, the venue detail/list/quick-info photo layout changes, the approved candidate hashes no longer match active references, or a future visual provider replaces the manual-approved promotion flow.

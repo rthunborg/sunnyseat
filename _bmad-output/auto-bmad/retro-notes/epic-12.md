@@ -46,3 +46,7 @@
 - [Phase 5 â€” dev-story] On this Windows host the canonical full-suite gate required VITEST_MAX_WORKERS=4 to avoid CPU-contention timeouts; test timeouts and code remained unchanged.
 - [Phase 7 â€” thin review] The explicit desktop/mobile axe matrix caught an aria-label on the detail hero badge without a legal semantic role; role=img fixed it.
 - [Phase 7 â€” thin review] Local port 3000 can be occupied by a WSL relay; Playwright env overrides plus an isolated port and one worker produced reliable a11y evidence.
+
+## Story 12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes
+- [Phase 5 â€” dev-story] Canonical story visual pickup requires explicit `screen_id:` markers; prose or brace-expanded reference paths do not register with `story-review.sh`.
+- [Phase 5 â€” dev-story] Human-style candidate review caught a mobile loaded-state capture that did not visibly show the photo; pair loaded/fallback on the same surface and assert media completion before capture.

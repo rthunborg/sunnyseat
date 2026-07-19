@@ -8,8 +8,8 @@ const migrationPath = path.join(repoRoot, 'supabase', 'migrations', '20260719000
 const uploadScriptPath = path.join(process.cwd(), 'scripts', 'upload-venue-media.mjs');
 const venueDocsPath = path.join(process.cwd(), 'docs', 'venue-data-load.md');
 
-describe('Story 12.12 ATDD - Supabase Storage migration, upload tooling, and docs (RED scaffolds)', () => {
-  it.skip('[P0] defines an idempotent public-read venue-media bucket migration with no anon write policies', async () => {
+describe('Story 12.12 ATDD - Supabase Storage migration, upload tooling, and docs', () => {
+  it('[P0] defines an idempotent public-read venue-media bucket migration with no anon write policies', async () => {
     const sql = await readFile(migrationPath, 'utf8');
 
     expect(sql).toMatch(/venue-media/);
@@ -24,7 +24,7 @@ describe('Story 12.12 ATDD - Supabase Storage migration, upload tooling, and doc
     expect(sql).not.toMatch(/for\s+(insert|update|delete)\s+to\s+(anon|authenticated)/i);
   });
 
-  it.skip('[P0] documents protected-policy evidence gaps instead of faking live Supabase verification', async () => {
+  it('[P0] documents protected-policy evidence gaps instead of faking live Supabase verification', async () => {
     const sql = await readFile(migrationPath, 'utf8');
 
     expect(sql).toMatch(/public read/i);
@@ -32,7 +32,7 @@ describe('Story 12.12 ATDD - Supabase Storage migration, upload tooling, and doc
     expect(sql).toMatch(/service.?role/i);
   });
 
-  it.skip('[P0] maintainer upload validation enforces slug, mediaVersion, mime, dimensions, byte caps, and create-only keys', async () => {
+  it('[P0] maintainer upload validation enforces slug, mediaVersion, mime, dimensions, byte caps, and create-only keys', async () => {
     const script = await import(pathToFileURL(uploadScriptPath).href);
 
     await expect(
@@ -63,7 +63,7 @@ describe('Story 12.12 ATDD - Supabase Storage migration, upload tooling, and doc
     ).rejects.toThrow(/webp|content.?type/i);
   });
 
-  it.skip('[P0] upload tooling refuses missing service-role configuration without leaking secrets', async () => {
+  it('[P0] upload tooling refuses missing service-role configuration without leaking secrets', async () => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://sunnyseat.supabase.co');
     vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '');
     const script = await import(pathToFileURL(uploadScriptPath).href);
@@ -78,7 +78,7 @@ describe('Story 12.12 ATDD - Supabase Storage migration, upload tooling, and doc
     ).rejects.toThrow(/SUPABASE_SERVICE_ROLE_KEY/i);
   });
 
-  it.skip('[P1] venue data docs record the bucket, immutable key convention, rendition limits, initials fallback, and no-hotlink rule', async () => {
+  it('[P1] venue data docs record the bucket, immutable key convention, rendition limits, initials fallback, and no-hotlink rule', async () => {
     const docs = await readFile(venueDocsPath, 'utf8');
 
     expect(docs).toMatch(/venue-media/);

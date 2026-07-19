@@ -11,6 +11,7 @@
 import { expect, test } from '@playwright/test';
 import { runAxe, formatViolations } from './helpers/axe';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { arrangeVenuePhotoMedia } from './helpers/venue-photo-media';
 
 async function bypassOnboarding(page: import('@playwright/test').Page) {
   await page.addInitScript((key: string) => {
@@ -89,6 +90,31 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
     await page.goto('/?venue=test-venue-sunny&_state=venue-detail-obscured');
     await page.locator('[data-testid="mobile-venue-detail-sheet"]:visible').waitFor({ state: 'visible' });
     await page.locator('[data-testid="venue-detail-obscured"]:visible').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  // Story 12.12: the photo states open the mobile detail sheet directly, but
+  // active axe scans still inherit pre-existing mobile detail contrast debt on
+  // the `AVSTAND` metadata label (#949086 on white, 3.18:1). Keep explicit
+  // coverage intent here while desktop photo surfaces are active-gated in
+  // axe.spec.ts.
+  test.fixme('a11y: mobile venue photo loaded (/?_state=venue-photo-loaded)', async ({ page }) => {
+    await bypassOnboarding(page);
+    await arrangeVenuePhotoMedia(page, 'venue-photo-loaded');
+    await page.goto('/?venue=test-venue-sunny&_state=venue-photo-loaded&_time=14:00');
+    await page.locator('[data-testid="mobile-venue-detail-sheet"]:visible').waitFor({ state: 'visible' });
+    await page.locator('[data-testid="venue-detail-hero-photo"]:visible').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test.fixme('a11y: mobile venue photo fallback (/?_state=venue-photo-fallback)', async ({ page }) => {
+    await bypassOnboarding(page);
+    await arrangeVenuePhotoMedia(page, 'venue-photo-fallback');
+    await page.goto('/?venue=test-venue-sunny&_state=venue-photo-fallback&_time=14:00');
+    await page.locator('[data-testid="mobile-venue-detail-sheet"]:visible').waitFor({ state: 'visible' });
+    await page.locator('[data-testid="venue-detail-hero-fallback"]:visible').waitFor({ state: 'visible' });
     const violations = await runAxe(page);
     expect(violations, formatViolations(violations)).toEqual([]);
   });

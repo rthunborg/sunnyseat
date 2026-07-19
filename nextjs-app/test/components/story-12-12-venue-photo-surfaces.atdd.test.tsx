@@ -10,8 +10,10 @@ const CARD_URL =
 const HERO_URL =
   'https://sunnyseat.supabase.co/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07/hero.webp';
 const LEGACY_URL = 'https://example.com/legacy.jpg';
-const BROKEN_CARD_URL = 'https://sunnyseat.supabase.co/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07/broken-card.webp';
-const BROKEN_HERO_URL = 'https://sunnyseat.supabase.co/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07/broken-hero.webp';
+const BROKEN_CARD_URL =
+  'https://sunnyseat.supabase.co/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07-missing/card.webp';
+const BROKEN_HERO_URL =
+  'https://sunnyseat.supabase.co/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07-missing/hero.webp';
 const PHOTO_ALT = 'Uteservering hos Kafe Magasinet';
 
 const cardLabels = {
@@ -162,8 +164,8 @@ function renderDetail(thumbnail: StoryThumbnail = mediaThumbnail) {
   );
 }
 
-describe('Story 12.12 ATDD - venue photo surfaces (RED scaffolds)', () => {
-  it.skip('[P0] VenueCard selects thumbnail.cardUrl over legacy thumbnail.url', () => {
+describe('Story 12.12 ATDD - venue photo surfaces', () => {
+  it('[P0] VenueCard selects thumbnail.cardUrl over legacy thumbnail.url', () => {
     renderCard();
 
     const image = screen.getByRole('img', { name: PHOTO_ALT });
@@ -171,7 +173,7 @@ describe('Story 12.12 ATDD - venue photo surfaces (RED scaffolds)', () => {
     expect(image).not.toHaveAttribute('src', LEGACY_URL);
   });
 
-  it.skip('[P0] VenueCard keeps the legacy thumbnail.url read fallback', () => {
+  it('[P0] VenueCard keeps the legacy thumbnail.url read fallback', () => {
     renderCard({ alt: PHOTO_ALT, initials: 'KM', url: LEGACY_URL });
 
     expect(screen.getByRole('img', { name: PHOTO_ALT })).toHaveAttribute(
@@ -180,7 +182,7 @@ describe('Story 12.12 ATDD - venue photo surfaces (RED scaffolds)', () => {
     );
   });
 
-  it.skip('[P0] VenueCard falls back to accessible initials on an actual image error event', () => {
+  it('[P0] VenueCard falls back to accessible initials on an actual image error event', () => {
     const { container } = renderCard({
       ...mediaThumbnail,
       cardUrl: BROKEN_CARD_URL,
@@ -192,7 +194,7 @@ describe('Story 12.12 ATDD - venue photo surfaces (RED scaffolds)', () => {
     expect(screen.getByRole('img', { name: PHOTO_ALT })).toHaveTextContent('K');
   });
 
-  it.skip('[P0] desktop VenueQuickInfo selects thumbnail.cardUrl over legacy thumbnail.url', () => {
+  it('[P0] desktop VenueQuickInfo selects thumbnail.cardUrl over legacy thumbnail.url', () => {
     renderQuickInfo('desktop');
 
     const image = screen.getByRole('img', { name: PHOTO_ALT });
@@ -200,7 +202,7 @@ describe('Story 12.12 ATDD - venue photo surfaces (RED scaffolds)', () => {
     expect(image).not.toHaveAttribute('src', LEGACY_URL);
   });
 
-  it.skip('[P0] desktop VenueQuickInfo falls back to initials and removes the failed image from the accessibility tree', () => {
+  it('[P0] desktop VenueQuickInfo falls back to initials and removes the failed image from the accessibility tree', () => {
     const { container } = renderQuickInfo('desktop', {
       ...mediaThumbnail,
       cardUrl: BROKEN_CARD_URL,
@@ -212,7 +214,7 @@ describe('Story 12.12 ATDD - venue photo surfaces (RED scaffolds)', () => {
     expect(screen.getByRole('img', { name: PHOTO_ALT })).toHaveTextContent('KM');
   });
 
-  it.skip('[P1] desktop VenueQuickInfo resets the failed-image state when the selected URL changes', () => {
+  it('[P1] desktop VenueQuickInfo resets the failed-image state when the selected URL changes', () => {
     const first = { ...mediaThumbnail, cardUrl: BROKEN_CARD_URL };
     const second = {
       ...mediaThumbnail,
@@ -244,7 +246,7 @@ describe('Story 12.12 ATDD - venue photo surfaces (RED scaffolds)', () => {
     );
   });
 
-  it.skip('[P1] anchored mobile VenueQuickInfo keeps its placeholder treatment even when cardUrl and heroUrl exist', () => {
+  it('[P1] anchored mobile VenueQuickInfo keeps its placeholder treatment even when cardUrl and heroUrl exist', () => {
     const { container } = renderQuickInfo('mobile', mediaThumbnail, { x: 180, y: 260 });
 
     expect(container.querySelector('img')).toBeNull();
@@ -252,7 +254,7 @@ describe('Story 12.12 ATDD - venue photo surfaces (RED scaffolds)', () => {
     expect(screen.getByTestId('venue-quick-info')).not.toHaveTextContent(CARD_URL);
   });
 
-  it.skip('[P0] VenueDetailContent renders thumbnail.heroUrl as an object-cover hero image', () => {
+  it('[P0] VenueDetailContent renders thumbnail.heroUrl as an object-cover hero image', () => {
     renderDetail();
 
     const image = screen.getByRole('img', { name: PHOTO_ALT });
@@ -262,7 +264,7 @@ describe('Story 12.12 ATDD - venue photo surfaces (RED scaffolds)', () => {
     expect(image).not.toHaveAttribute('src', CARD_URL);
   });
 
-  it.skip('[P0] VenueDetailContent falls back to the branded placeholder when the hero image errors', () => {
+  it('[P0] VenueDetailContent falls back to the branded placeholder when the hero image errors', () => {
     const { container } = renderDetail({
       ...mediaThumbnail,
       heroUrl: BROKEN_HERO_URL,
@@ -276,7 +278,7 @@ describe('Story 12.12 ATDD - venue photo surfaces (RED scaffolds)', () => {
     );
   });
 
-  it.skip('[P1] VenueDetailContent treats a decoded zero-width hero image as failed without duplicate announcements', () => {
+  it('[P1] VenueDetailContent treats a decoded zero-width hero image as failed without duplicate announcements', () => {
     const complete = vi.spyOn(HTMLImageElement.prototype, 'complete', 'get').mockReturnValue(true);
     const naturalWidth = vi.spyOn(HTMLImageElement.prototype, 'naturalWidth', 'get').mockReturnValue(0);
 

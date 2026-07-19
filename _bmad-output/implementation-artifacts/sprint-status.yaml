@@ -329,7 +329,7 @@ development_status:
   12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider: backlog
   12-10-venue-detail-preload-instant-mer-info: backlog
   12-11-first-run-coach-mark-guide-map-legend-feature-tour: backlog
-  12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes: ready-for-dev
+  12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes: review
   12-13-remove-the-user-facing-confidence-indicator-keep-it-internal: review
   12-14-hide-closed-venues-open-at-selected-time-filter: backlog
   epic-12-retrospective: optional

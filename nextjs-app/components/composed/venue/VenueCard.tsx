@@ -12,8 +12,9 @@ import {
   formatVenueSunPercent,
   type VenueVisualMetadata,
 } from '@/lib/utils/venue-visual-metadata';
-import type { WeatherGateState } from '@/lib/types/api';
+import type { VenueThumbnailDto, WeatherGateState } from '@/lib/types/api';
 import { normalizeWeatherGateState } from '@/lib/utils/public-sun';
+import { selectVenueCardImageUrl } from '@/lib/utils/venue-media';
 import { cn } from '@/lib/utils';
 
 export type VenueCardLabels = {
@@ -51,11 +52,7 @@ export type VenueCardProps = {
    * not a real personal fix — annotate it honestly. */
   distanceIsApproximate?: boolean;
   sunExposurePercent?: number;
-  thumbnail?: {
-    alt: string;
-    initials: string;
-    url?: string;
-  };
+  thumbnail?: VenueThumbnailDto;
   isSunny: boolean;
   weatherGateState?: WeatherGateState;
   /** Story 10.2 (AC1): the weather-gated "Sol bakom moln" state. Rendered as
@@ -338,7 +335,7 @@ function VenueCardThumbnail({
   const imageRef = useRef<HTMLImageElement>(null);
   const initials = normalizeInitials(thumbnail?.initials);
   const label = thumbnail?.alt?.trim() || fallbackLabel;
-  const imageUrl = thumbnail?.url;
+  const imageUrl = selectVenueCardImageUrl(thumbnail);
   const shouldRenderImage = Boolean(imageUrl) && !imageFailed;
 
   useEffect(() => {
@@ -368,6 +365,7 @@ function VenueCardThumbnail({
     >
       {shouldRenderImage ? (
         <img
+          data-testid="venue-card-photo"
           ref={imageRef}
           src={imageUrl}
           alt={label}
@@ -378,6 +376,7 @@ function VenueCardThumbnail({
       ) : (
         <>
           <span
+            data-testid="venue-card-photo-fallback"
             role="img"
             aria-label={label}
             className="flex size-full items-center justify-center text-display-lg text-amber-dark/55"

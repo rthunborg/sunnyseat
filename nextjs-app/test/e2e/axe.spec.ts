@@ -7,9 +7,17 @@
 // "every route" but only 2 of 26+ Screen IDs are reachable today.
 // Rationale for the impact filter is documented in `helpers/axe.ts`.
 
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { runAxe, formatViolations } from './helpers/axe';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { arrangeVenuePhotoMedia } from './helpers/venue-photo-media';
+
+async function bypassOnboarding(page: Page) {
+  await page.addInitScript((key: string) => {
+    window.localStorage.clear();
+    window.localStorage.setItem(key, '1');
+  }, ONBOARDED_FLAG_KEY);
+}
 
 test.describe('axe-core a11y gate', () => {
   test('a11y: map-primary (/)', async ({ page }) => {
@@ -65,6 +73,65 @@ test.describe('axe-core a11y gate', () => {
     await page.locator('[data-testid="desktop-venue-detail-panel"]:visible').waitFor({ state: 'visible' });
     await page.locator('[data-testid="venue-detail-obscured"]:visible').waitFor({ state: 'visible' });
     const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test('a11y: venue photo loaded card, desktop QuickInfo, and detail', async ({ page }) => {
+    await bypassOnboarding(page);
+    await arrangeVenuePhotoMedia(page, 'venue-photo-loaded');
+
+    await page.goto('/?_state=venue-photo-loaded&_time=16:30');
+    const targetCard = page.locator('[data-testid="venue-card"]:visible', {
+      hasText: /Kaf[eé] Magasinet/i,
+    }).first();
+    await targetCard.waitFor({ state: 'visible' });
+    await expect(targetCard.getByTestId('venue-card-photo')).toHaveAttribute(
+      'src',
+      /\/venue-media\/test-venue-sunny\/[^/]+\/card\.webp$/,
+    );
+    await targetCard.click();
+    const quickInfo = page.locator('[data-testid="venue-quick-info"]:visible').first();
+    await quickInfo.waitFor({ state: 'visible' });
+    await expect(quickInfo.getByTestId('venue-quick-info-photo')).toHaveAttribute(
+      'src',
+      /\/venue-media\/test-venue-sunny\/[^/]+\/card\.webp$/,
+    );
+    let violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+
+    await page.goto('/?venue=test-venue-sunny&_state=venue-photo-loaded&_time=16:30');
+    const detailPanel = page.getByTestId('desktop-venue-detail-panel');
+    await detailPanel.waitFor({ state: 'visible' });
+    await expect(detailPanel.getByTestId('venue-detail-hero-photo')).toHaveAttribute(
+      'src',
+      /\/venue-media\/test-venue-sunny\/[^/]+\/hero\.webp$/,
+    );
+    violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test('a11y: venue photo fallback card, desktop QuickInfo, and detail', async ({ page }) => {
+    await bypassOnboarding(page);
+    await arrangeVenuePhotoMedia(page, 'venue-photo-fallback');
+
+    await page.goto('/?_state=venue-photo-fallback&_time=16:30');
+    const targetCard = page.locator('[data-testid="venue-card"]:visible', {
+      hasText: /Kaf[eé] Magasinet/i,
+    }).first();
+    await targetCard.waitFor({ state: 'visible' });
+    await expect(targetCard.getByTestId('venue-card-photo-fallback')).toHaveCount(1);
+    await targetCard.click();
+    const quickInfo = page.locator('[data-testid="venue-quick-info"]:visible').first();
+    await quickInfo.waitFor({ state: 'visible' });
+    await expect(quickInfo.getByTestId('venue-quick-info-photo-fallback')).toHaveCount(1);
+    let violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+
+    await page.goto('/?venue=test-venue-sunny&_state=venue-photo-fallback&_time=16:30');
+    const detailPanel = page.getByTestId('desktop-venue-detail-panel');
+    await detailPanel.waitFor({ state: 'visible' });
+    await detailPanel.getByTestId('venue-detail-hero-fallback').waitFor({ state: 'visible' });
+    violations = await runAxe(page);
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 

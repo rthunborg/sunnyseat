@@ -24,7 +24,11 @@ import { FavouritesList } from '@/components/custom/favourites/FavouritesList';
 import { FeedbackFlow } from '@/components/custom/feedback/FeedbackFlow';
 import { ReviewFlow } from '@/components/custom/feedback/ReviewFlow';
 import { VenueSearchShell } from '@/components/custom/search/VenueSearchShell';
-import { resolveForcedVisualVenueDetail } from '@/components/custom/venue/forced-venue-detail';
+import {
+  isForcedVenuePhotoState,
+  resolveForcedVisualVenueDetail,
+  withForcedVenuePhotoThumbnail,
+} from '@/components/custom/venue/forced-venue-detail';
 import { TimeSliderPanel } from '@/components/custom/time/TimeSliderPanel';
 import { isVenueSunnyForList, VenueList } from '@/components/custom/venue/VenueList';
 import { useVenueDetail } from '@/hooks/queries/useVenueDetail';
@@ -193,11 +197,13 @@ export function MapView() {
   // is reachable on the fixture/CI path WITHOUT live Met.no weather.
   const isForcedObscuredReference = forcedState === 'map-with-obscured-venue';
   const isForcedObscuredDetailReference = forcedState === 'venue-detail-obscured';
+  const isForcedPhotoReference = isForcedVenuePhotoState(forcedState);
   const isForcedVisualReference =
     forcedState === 'map-primary' ||
     forcedState === 'map-panel-venues' ||
     forcedState === 'map-with-selected-venue' ||
-    isForcedObscuredReference;
+    isForcedObscuredReference ||
+    isForcedPhotoReference;
   // Story 9.4 AC2: gate the FIRST venue fetch until the user's location has
   // resolved to a real value (`success`) or the centrum fallback. While the
   // status is `idle`/`pending` the fallback-centrum key and the eventual
@@ -551,10 +557,17 @@ export function MapView() {
   const selectedQuickInfoVenue = useMemo(() => {
     if (!selectedVenueDto) return null;
     if (isForcedObscuredReference) return normalizeForcedObscuredVenue(selectedVenueDto);
+    if (isForcedPhotoReference) return normalizeForcedPhotoVenue(selectedVenueDto, forcedState);
     return isForcedVisualReference
       ? normalizeForcedVisualVenue(selectedVenueDto)
       : selectedVenueDto;
-  }, [isForcedObscuredReference, isForcedVisualReference, selectedVenueDto]);
+  }, [
+    forcedState,
+    isForcedObscuredReference,
+    isForcedPhotoReference,
+    isForcedVisualReference,
+    selectedVenueDto,
+  ]);
   // Story 11.9 (AC2): derive the quick-info "Öppet till HH:MM" line for the CURRENT
   // Stockholm weekday from the list-DTO per-weekday `openingHours`, keeping the
   // component presentational (it renders the pre-derived `display` verbatim).
@@ -823,11 +836,14 @@ export function MapView() {
       const validVenues = Array.isArray(tagFilteredVenues)
         ? tagFilteredVenues.filter(hasValidVenueLocation)
         : [];
+      if (isForcedPhotoReference) {
+        return validVenues.map((venue) => normalizeForcedPhotoVenue(venue, forcedState));
+      }
       return isForcedVisualReference
         ? validVenues.map(normalizeForcedVisualVenue)
         : validVenues;
     },
-    [isForcedVisualReference, tagFilteredVenues],
+    [forcedState, isForcedPhotoReference, isForcedVisualReference, tagFilteredVenues],
   );
   // Story 11.3 (AC1, empty-state fold-in from the 9.7 code review): the Närmast
   // list shows its loading skeleton ONLY while there is genuinely no underlying
@@ -1404,7 +1420,8 @@ function fallbackVenueFromSlug(slug: string): VenueDataDto {
 function shouldUseForcedSunnyMapPins(forcedState: string | null): boolean {
   return forcedState === 'map-primary' ||
     forcedState === 'map-panel-venues' ||
-    forcedState === 'map-with-selected-venue';
+    forcedState === 'map-with-selected-venue' ||
+    isForcedVenuePhotoState(forcedState);
 }
 
 function normalizeForcedVisualPin(pin: VenuePinData): VenuePinData {
@@ -1432,6 +1449,16 @@ function normalizeForcedVisualVenue(venue: VenueDataDto): VenueDataDto {
         }
       : venue.thumbnail,
   };
+}
+
+function normalizeForcedPhotoVenue(
+  venue: VenueDataDto,
+  forcedState: string | null,
+): VenueDataDto {
+  const visuallyStableVenue = normalizeForcedVisualVenue(venue);
+  return isForcedVenuePhotoState(forcedState) && venueMatchesSlug(venue, 'test-venue-sunny')
+    ? withForcedVenuePhotoThumbnail(visuallyStableVenue, forcedState)
+    : visuallyStableVenue;
 }
 
 // Story 10.2 (Task 5): the deterministic obscured normalizers. Mirror the

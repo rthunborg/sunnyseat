@@ -90,6 +90,25 @@ export interface SunFreshnessMeta {
   sunDataSource?: SunDataSource;
 }
 
+export interface VenueThumbnailDto {
+  alt: string;
+  initials: string;
+  /**
+   * Card/list/QuickInfo rendition hosted from Supabase Storage.
+   * New rows should use `venue-media/{slug}/{mediaVersion}/card.webp`.
+   */
+  cardUrl?: string;
+  /**
+   * Venue-detail hero rendition hosted from Supabase Storage.
+   * New rows should use `venue-media/{slug}/{mediaVersion}/hero.webp`.
+   */
+  heroUrl?: string;
+  /**
+   * Legacy single-image field retained as a read fallback during rollout.
+   */
+  url?: string;
+}
+
 export interface VenuesMeta extends SunFreshnessMeta {
   count: number;
   radiusKm: number;
@@ -180,11 +199,7 @@ export interface VenueDataDto {
    * distinguishable from seven explicitly closed weekdays.
    */
   openingHours?: WeeklyOpeningHours;
-  thumbnail?: {
-    alt: string;
-    initials: string;
-    url?: string;
-  };
+  thumbnail?: VenueThumbnailDto;
   reviewSummary?: ReviewSummaryDto;
 }
 

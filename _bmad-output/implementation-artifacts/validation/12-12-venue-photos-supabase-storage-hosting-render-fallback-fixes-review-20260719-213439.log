@@ -1,4 +1,46 @@
-# Claude Design — State Mapping
+SunnySeat story review gate
+Story: 12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes-review-20260719-213439.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+Not implemented: navigation to another Document
+ ❯ test/unit/story-12-12-visual-state-contract.atdd.test.ts (3 tests | 1 failed) 14ms
+     × [P0] active reference promotion remains explicitly approval-gated until maintainer rebaseline 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/unit/story-12-12-visual-state-contract.atdd.test.ts > Story 12.12 ATDD - deterministic venue photo visual states > [P0] active reference promotion remains explicitly approval-gated until maintainer rebaseline
+AssertionError: expected '# Claude Design — State Mapping\r\n\r…' to match /promote active PNGs only after expli…/i
+
+- Expected:
+/promote active PNGs only after explicit maintainer approval/i
+
++ Received:
+"# Claude Design — State Mapping
 
 This file maps SunnySeat **Screen IDs** to the state-forcing recipe used to
 capture the active visual-validation PNGs.
@@ -98,3 +140,21 @@ as a prototype artifact, not an implementation requirement.
 4. Inspect the PNG.
 5. Update `nextjs-app/docs/design/references/REBASELINE-LOG.md` in the same
    operation.
+"
+
+ ❯ test/unit/story-12-12-visual-state-contract.atdd.test.ts:60:26
+     58|     );
+     59|
+     60|     expect(stateMapping).toMatch(/promote active PNGs only after expli…
+       |                          ^
+     61|     expect(captureScript).toMatch(/promote only with maintainer approv…
+     62|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 191 passed | 2 skipped (194)
+      Tests  1 failed | 1784 passed | 15 skipped (1800)
+   Start at  21:35:02
+   Duration  145.98s (transform 4.94s, setup 65.51s, import 65.07s, tests 57.68s, environment 344.90s)
+

@@ -32,7 +32,7 @@ Public reads must not fill gaps by doing the full-day shadow projection.
 | `neighborhood` | text | ✅ | e.g. `"Haga"`, `"Inom Vallgraven"`. |
 | `lat` / `lng` | double precision | ✅ | Venue point, WGS84 (decimal degrees). |
 | `is_partner` | boolean | — | Defaults false. |
-| `thumbnail` | jsonb | — | `{ "alt": "...", "initials": "KK", "url": "https://..." }`. |
+| `thumbnail` | jsonb | — | `{ "alt": "...", "initials": "KK", "cardUrl": "https://<supabase>/storage/v1/object/public/venue-media/{slug}/{mediaVersion}/card.webp", "heroUrl": "https://<supabase>/storage/v1/object/public/venue-media/{slug}/{mediaVersion}/hero.webp" }`. `url` is legacy read fallback only. |
 | `description` | text | — | Short Swedish blurb. |
 | `address` | text | — | Street address. |
 | `opening_hours` | jsonb | — | **Per-weekday** hours (Story 11.9), keyed by numeric ISO weekday (`"1"`=Mon … `"7"`=Sun): `{ "1": { "open": "11:00", "close": "22:00" }, … }`. A **missing key or `null`** value = **closed that day**. Whole-field SQL `null` = **unknown hours** and produces no public open/closed claim. `close < open` = a **past-midnight** close. Times are `"HH:MM"` (24h). The render layer derives localized display text; never store it. |
@@ -77,7 +77,12 @@ Note there is **no `id`** — it auto-assigns. Send it only to overwrite an exis
   "lat": 57.6995,
   "lng": 11.9560,
   "is_partner": false,
-  "thumbnail": { "alt": "Uteservering hos Kafé Kringlan", "initials": "KK", "url": "https://…" },
+  "thumbnail": {
+    "alt": "Uteservering hos Kafé Kringlan",
+    "initials": "KK",
+    "cardUrl": "https://<supabase>/storage/v1/object/public/venue-media/kafe-kringlan/v2026-07/card.webp",
+    "heroUrl": "https://<supabase>/storage/v1/object/public/venue-media/kafe-kringlan/v2026-07/hero.webp"
+  },
   "description": "Kort beskrivning på svenska …",
   "address": "Haga Nygata 12, 413 01 Göteborg",
   "opening_hours": {
@@ -109,6 +114,36 @@ omitting `opening_hours` creates unknown hours. On an UPDATE/UPSERT of an existi
 venue, omission preserves the old value, so clearing stale or unverified hours
 must explicitly write `opening_hours = null`. Never use `{}` for unknown: `{}`
 is a known schedule with all seven missing weekdays explicitly closed.
+
+## Venue media
+
+Venue photos live in the Supabase Storage bucket `venue-media`. Do not hotlink
+external images from venue rows, and do not store raw originals in the public
+bucket. Keep source/original files outside the app repository and upload only
+the two immutable WebP renditions:
+
+| Rendition | Public key | Limit |
+|---|---|---|
+| Card/list/QuickInfo | `{slug}/{mediaVersion}/card.webp` | max 640x400, 120 KiB |
+| Detail hero | `{slug}/{mediaVersion}/hero.webp` | max 1600x900, 350 KiB |
+
+`mediaVersion` is an immutable token such as `v2026-07`. Replacing a photo means
+uploading a new versioned key and updating the venue JSON; existing keys are not
+overwritten. The render layer uses `cardUrl` for cards and desktop QuickInfo,
+`heroUrl` for detail, and falls back to the venue `initials`/branded placeholder
+when media is missing or fails to decode.
+
+Maintainer upload tooling:
+
+```bash
+SUPABASE_URL=https://<project>.supabase.co \
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key> \
+node scripts/upload-venue-media.mjs kafe-kringlan v2026-07 ./card.webp ./hero.webp
+```
+
+The script validates slug, mediaVersion, WebP content type, dimensions, byte
+caps, and create-only object keys before upload. Never commit service-role
+credentials or generated raw originals.
 
 ## Opening-hours review workflow
 
