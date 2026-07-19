@@ -4,7 +4,7 @@ baseline_commit: e442fedc27f4250f83dcf3a1df126de00a4ed75b
 
 # Story 12.13: Remove the User-Facing Confidence Indicator (Keep It Internal)
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -392,6 +392,10 @@ than implementing a local one-off confidence/display policy.
 
 Codex GPT-5
 
+### Change Log
+
+- 2026-07-19: Addressed review finding for missing Playwright a11y evidence; added isolated-port Playwright config overrides and fixed the obscured hero badge's invalid ARIA semantics.
+
 ### Debug Log References
 
 - 2026-07-19 Story 12.13 automate pass:
@@ -399,13 +403,28 @@ Codex GPT-5
   - `npx tsc --noEmit` → passed.
   - `npx eslint . --quiet` → passed.
   - `$env:VITEST_MAX_WORKERS='4'; npx vitest run` → 188 passed / 2 skipped files; 1,761 passed / 15 skipped tests.
+- 2026-07-19 Story 12.13 review-fix pass:
+  - `npx playwright test --project=a11y --project=a11y-mobile` at default `localhost:3000` → failed before app assertions because an existing WSL relay listener on port 3000 timed out during navigation.
+  - `$env:PLAYWRIGHT_BASE_URL='http://localhost:3100'; $env:PLAYWRIGHT_PORT='3100'; $env:PLAYWRIGHT_WEB_SERVER_COMMAND='npm run dev -- --port 3100'; npx playwright test --project=a11y --project=a11y-mobile` → executed both projects; found one axe violation on desktop `venue-detail-obscured`: `aria-prohibited-attr` for `aria-label` on a role-less obscured hero badge.
+  - Added valid `role="img"` semantics to the venue detail hero badge so the existing accessible label remains legal for sunny and obscured states.
+  - `$env:PLAYWRIGHT_BASE_URL='http://localhost:3100'; $env:PLAYWRIGHT_PORT='3100'; $env:PLAYWRIGHT_WEB_SERVER_COMMAND='npm run dev -- --port 3100'; npx playwright test --project=a11y --project=a11y-mobile --workers=1` → passed: 22 discovered, 14 passed, 8 skipped.
+  - `npx tsc --noEmit` → passed.
+  - `npx eslint . --quiet` → passed.
+  - `npx vitest run test/components/VenueDetailContent.test.tsx` → passed: 1 file / 22 tests.
 
 ### Completion Notes List
 
 - Story 12.13 automate pass added a focused source-boundary guard proving public UI/message files cannot reintroduce numeric confidence display plumbing while internal DTO, feedback evidence, route schema, and server confidence calculator paths remain intentionally retained.
 - No new E2E was added in the automate pass because existing MapView/component/a11y/visual coverage already exercises the public surfaces; the added value is a cheap broad regression guard.
+- Resolved review finding by running the required `a11y` plus `a11y-mobile` Playwright matrix, fixing the one surfaced ARIA semantics defect, and preserving legal accessible names for the hero sun/obscured badge.
+
+### Review Findings
+
+- [x] [Review][Patch][Med] Missing required Playwright/a11y gate evidence: Story 12.13 Task 7 / Testing Requirements require `npx playwright test` or the relevant project matrix including `--project=a11y` and `--project=a11y-mobile` evidence when public UI, route handoff, a11y, or E2E assertions change; the diff updates browser/E2E confidence-removal assertions and public accessibility-bearing UI surfaces, but the Debug Log records only focused Vitest, typecheck, lint, and full Vitest. [`_bmad-output/implementation-artifacts/12-13-remove-the-user-facing-confidence-indicator-keep-it-internal.md:203`]
 
 ### File List
 
+- `nextjs-app/playwright.config.ts`
+- `nextjs-app/components/composed/venue/VenueDetailContent.tsx`
 - `nextjs-app/test/unit/removed-i18n-keys.test.ts`
 - `_bmad-output/test-artifacts/automation-summary.md`

@@ -44,3 +44,5 @@
 - [Phase 3 â€” create-story] Story 12.13 source citations contain stale PRD/UX line claims; implementation should use a surgical current-contract audit instead of broad documentation rewrites.
 - [Phase 5 â€” dev-story] Positive visual assertions must distinguish amber sun-exposure figures from confidence; candidate review caught and corrected two over-removals before rebaseline.
 - [Phase 5 â€” dev-story] On this Windows host the canonical full-suite gate required VITEST_MAX_WORKERS=4 to avoid CPU-contention timeouts; test timeouts and code remained unchanged.
+- [Phase 7 â€” thin review] The explicit desktop/mobile axe matrix caught an aria-label on the detail hero badge without a legal semantic role; role=img fixed it.
+- [Phase 7 â€” thin review] Local port 3000 can be occupied by a WSL relay; Playwright env overrides plus an isolated port and one worker produced reliable a11y evidence.

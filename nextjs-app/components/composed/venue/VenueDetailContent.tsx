@@ -358,6 +358,7 @@ function HeroImage({
             ? 'bg-pin-obscured text-white'
             : 'bg-amber-gold/90 text-amber-cta-text',
         )}
+        role="img"
       >
         {isObscured ? (
           <Cloud aria-hidden="true" className="size-5" />
