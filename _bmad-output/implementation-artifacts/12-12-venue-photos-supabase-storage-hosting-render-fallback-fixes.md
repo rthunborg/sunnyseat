@@ -286,6 +286,17 @@ Start with these checks before editing:
 
 ## Dev Notes
 
+### ATDD Artifacts
+
+- Checklist: `_bmad-output/test-artifacts/atdd-checklist-12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes.md`
+- Service/media contract tests: `nextjs-app/test/unit/services/story-12-12-venue-media-contract.atdd.test.ts`
+- Storage/upload/docs tests: `nextjs-app/test/unit/story-12-12-storage-upload-and-policy.atdd.test.ts`
+- Visual-state contract tests: `nextjs-app/test/unit/story-12-12-visual-state-contract.atdd.test.ts`
+- Component photo-surface tests: `nextjs-app/test/components/story-12-12-venue-photo-surfaces.atdd.test.tsx`
+- E2E forced-state tests: `nextjs-app/test/e2e/story-12-12-venue-photo-states.atdd.spec.ts`
+
+All scaffolds are red-phase acceptance tests and remain skipped until the implementing dev activates one scenario at a time.
+
 ### Current Implementation Facts
 
 - `nextjs-app/lib/types/api.ts` currently defines `VenueDataDto.thumbnail` as
