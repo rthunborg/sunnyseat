@@ -34,6 +34,20 @@ async function withTempMediaFiles(
 }
 
 function makeWebpWithDimensions(width: number, height: number): Buffer {
+  const vp8Chunk = makeTinyVp8Chunk();
+  const buffer = Buffer.alloc(30 + vp8Chunk.length);
+  buffer.write('RIFF', 0, 'ascii');
+  buffer.writeUInt32LE(buffer.byteLength - 8, 4);
+  buffer.write('WEBP', 8, 'ascii');
+  buffer.write('VP8X', 12, 'ascii');
+  buffer.writeUInt32LE(10, 16);
+  writeUInt24LE(buffer, 24, width - 1);
+  writeUInt24LE(buffer, 27, height - 1);
+  vp8Chunk.copy(buffer, 30);
+  return buffer;
+}
+
+function makeVp8xOnlyWebp(width: number, height: number): Buffer {
   const buffer = Buffer.alloc(30);
   buffer.write('RIFF', 0, 'ascii');
   buffer.writeUInt32LE(buffer.byteLength - 8, 4);
@@ -43,6 +57,24 @@ function makeWebpWithDimensions(width: number, height: number): Buffer {
   writeUInt24LE(buffer, 24, width - 1);
   writeUInt24LE(buffer, 27, height - 1);
   return buffer;
+}
+
+function makeTinyVp8Chunk(): Buffer {
+  return Buffer.from(
+    '56503820160000003001009d012a010001000ec0fe25a400037000000000',
+    'hex',
+  );
+}
+
+function withMetadataChunk(buffer: Buffer, chunkType: 'EXIF' | 'XMP ' | 'ICCP'): Buffer {
+  const chunk = Buffer.alloc(10);
+  chunk.write(chunkType, 0, 'ascii');
+  chunk.writeUInt32LE(2, 4);
+  chunk.writeUInt16LE(0, 8);
+  const riffSize = buffer.readUInt32LE(4) + chunk.length;
+  const output = Buffer.concat([buffer, chunk]);
+  output.writeUInt32LE(riffSize, 4);
+  return output;
 }
 
 function writeUInt24LE(buffer: Buffer, offset: number, value: number) {
@@ -135,19 +167,69 @@ describe('Story 12.12 ATDD - Supabase Storage migration, upload tooling, and doc
         expect(plan.cardObjectKey).toBe('test-venue-sunny/v2026-07/card.webp');
         expect(plan.heroObjectKey).toBe('test-venue-sunny/v2026-07/hero.webp');
         expect(plan.renditions.card).toMatchObject({
-          bytes: 30,
           width: 640,
           height: 400,
           contentType: 'image/webp',
         });
         expect(plan.renditions.hero).toMatchObject({
-          bytes: 30,
           width: 1600,
           height: 900,
           contentType: 'image/webp',
         });
       },
     );
+  });
+
+  it('[P0] upload validation rejects header-only, malformed, and metadata-bearing WebP files', async () => {
+    const script = await import(pathToFileURL(uploadScriptPath).href);
+    const validCard = makeWebpWithDimensions(640, 400);
+    const validHero = makeWebpWithDimensions(1600, 900);
+
+    await withTempMediaFiles(
+      { card: makeVp8xOnlyWebp(640, 400), hero: validHero },
+      async ({ cardPath, heroPath }) => {
+        await expect(
+          script.validateVenueMediaUploadPlan({
+            slug: 'test-venue-sunny',
+            mediaVersion: 'v2026-07',
+            cardPath,
+            heroPath,
+          }),
+        ).rejects.toThrow(/image payload|decodable/i);
+      },
+    );
+
+    const badRiffSize = Buffer.from(validCard);
+    badRiffSize.writeUInt32LE(badRiffSize.byteLength, 4);
+    await withTempMediaFiles(
+      { card: badRiffSize, hero: validHero },
+      async ({ cardPath, heroPath }) => {
+        await expect(
+          script.validateVenueMediaUploadPlan({
+            slug: 'test-venue-sunny',
+            mediaVersion: 'v2026-07',
+            cardPath,
+            heroPath,
+          }),
+        ).rejects.toThrow(/dimensions|WebP/i);
+      },
+    );
+
+    for (const chunkType of ['EXIF', 'XMP ', 'ICCP'] as const) {
+      await withTempMediaFiles(
+        { card: withMetadataChunk(validCard, chunkType), hero: validHero },
+        async ({ cardPath, heroPath }) => {
+          await expect(
+            script.validateVenueMediaUploadPlan({
+              slug: 'test-venue-sunny',
+              mediaVersion: 'v2026-07',
+              cardPath,
+              heroPath,
+            }),
+          ).rejects.toThrow(/metadata|EXIF|XMP|ICC/i);
+        },
+      );
+    }
   });
 
   it('[P0] upload validation rejects over-size and over-dimension card and hero renditions before upload', async () => {

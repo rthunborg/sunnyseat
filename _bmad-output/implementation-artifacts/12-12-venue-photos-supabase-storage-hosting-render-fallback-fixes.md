@@ -542,6 +542,11 @@ Codex GPT-5 auto-bmad dev-story delegate
 - 2026-07-19 - Story created by BMAD create-story workflow; baseline typecheck and lint
   passed before drafting; status set to ready-for-dev.
 
+### Review Findings
+
+- [x] [Review][Patch][High] Photo-loaded visual state is only made deterministic by Playwright-only route interception - Acceptance Auditor: Task 5 and the Design Gate require `venue-photo-loaded` visual routes to prove real photo rendering, but forced state data points at Supabase public URLs from `NEXT_PUBLIC_SUPABASE_URL` or the fallback origin while the canonical visual wrapper screenshots the route without the E2E `venue-media/**/*.webp` interception or an image-state wait, so visual validation can capture fallback/broken media while the intercepted E2E still passes. [nextjs-app/components/custom/venue/forced-venue-detail.ts:53; nextjs-app/test/e2e/helpers/venue-photo-media.ts:27; scripts/visual-validate.sh:37; .claude/scripts/visual-validate.sh:85]
+- [x] [Review][Patch][High] Upload validation accepts invalid/non-decodable or metadata-bearing WebP files as optimized renditions - Acceptance Auditor: AC2 and `E12-AD-10` require optimized sRGB WebP renditions with metadata stripped and raw/invalid originals rejected, but `validateRendition` only checks byte caps, a shallow `RIFF`/`WEBP` signature, and parsed dimensions before uploading the original buffer; the positive test accepts a synthetic 30-byte `VP8X` header and no coverage rejects EXIF/XMP/ICCP chunks or non-sRGB content. [nextjs-app/scripts/upload-venue-media.mjs:74; nextjs-app/scripts/upload-venue-media.mjs:124; nextjs-app/test/unit/story-12-12-storage-upload-and-policy.atdd.test.ts:36]
+
 ## Create-Story Self-Validation
 
 - Acceptance criteria preserved verbatim from the epic source.

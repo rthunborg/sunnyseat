@@ -66,7 +66,7 @@ test.describe('Story 12.12 - deterministic venue photo forced states', () => {
         if (scenario.state === 'venue-photo-loaded') {
           await expect(targetCard.getByTestId('venue-card-photo')).toHaveAttribute(
             'src',
-            /\/venue-media\/test-venue-sunny\/[^/]+\/card\.webp$/,
+            /^data:image\/webp;base64,/,
           );
           await expect(targetCard.getByTestId('venue-card-photo')).toHaveAccessibleName(
             /uteservering/i,
@@ -87,7 +87,7 @@ test.describe('Story 12.12 - deterministic venue photo forced states', () => {
         if (scenario.state === 'venue-photo-loaded' && scenario.viewport === 'desktop') {
           await expect(quickInfo.getByTestId('venue-quick-info-photo')).toHaveAttribute(
             'src',
-            /\/venue-media\/test-venue-sunny\/[^/]+\/card\.webp$/,
+            /^data:image\/webp;base64,/,
           );
           await expect(quickInfo.getByTestId('venue-quick-info-photo')).toHaveJSProperty(
             'naturalWidth',
@@ -107,7 +107,7 @@ test.describe('Story 12.12 - deterministic venue photo forced states', () => {
         if (scenario.state === 'venue-photo-loaded') {
           await expect(detailSurface.getByTestId('venue-detail-hero-photo')).toHaveAttribute(
             'src',
-            /\/venue-media\/test-venue-sunny\/[^/]+\/hero\.webp$/,
+            /^data:image\/webp;base64,/,
           );
           await expect(detailSurface.getByTestId('venue-detail-hero-photo')).toHaveAccessibleName(
             /uteservering/i,
