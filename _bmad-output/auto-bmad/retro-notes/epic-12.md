@@ -50,3 +50,4 @@
 ## Story 12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes
 - [Phase 5 â€” dev-story] Canonical story visual pickup requires explicit `screen_id:` markers; prose or brace-expanded reference paths do not register with `story-review.sh`.
 - [Phase 5 â€” dev-story] Human-style candidate review caught a mobile loaded-state capture that did not visibly show the photo; pair loaded/fallback on the same surface and assert media completion before capture.
+- [Phase 6 â€” testarch-automate] Exact public-object URL matching previously accepted doubled or trailing path separators because empty segments were filtered before validation; test malformed path structure before normalization.

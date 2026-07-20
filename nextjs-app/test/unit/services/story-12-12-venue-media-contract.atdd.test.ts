@@ -1,7 +1,13 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
 import { toVenueData, type StoredVenue } from '@/lib/services/venue-store';
 import type { VenueDataDto } from '@/lib/types/api';
+import {
+  buildVenueMediaPublicUrl,
+  normalizeVenueMediaRenditionUrl,
+} from '@/lib/utils/venue-media';
 
 const SUPABASE_ORIGIN = 'https://sunnyseat.supabase.co';
 const CARD_URL =
@@ -120,6 +126,35 @@ describe('Story 12.12 ATDD - venue media DTO and sanitizer contract', () => {
     expect(normalized.thumbnail).not.toHaveProperty('heroUrl');
   });
 
+  it('[P0] enforces exact public object paths without query, hash, empty segments, or rendition drift', () => {
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', SUPABASE_ORIGIN);
+
+    expect(
+      buildVenueMediaPublicUrl({
+        origin: SUPABASE_ORIGIN,
+        slug: 'test-venue-sunny',
+        mediaVersion: 'v2026-07',
+        rendition: 'card',
+      }),
+    ).toBe(CARD_URL);
+
+    for (const value of [
+      `${CARD_URL}?download=1`,
+      `${CARD_URL}#preview`,
+      `${SUPABASE_ORIGIN}/storage/v1/object/public/venue-media//test-venue-sunny/v2026-07/card.webp`,
+      `${SUPABASE_ORIGIN}/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07/hero.webp`,
+      `${SUPABASE_ORIGIN}/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07/card.webp/`,
+    ]) {
+      expect(
+        normalizeVenueMediaRenditionUrl(value, {
+          slug: 'test-venue-sunny',
+          rendition: 'card',
+          supabaseUrl: SUPABASE_ORIGIN,
+        }),
+      ).toBeUndefined();
+    }
+  });
+
   it('[P0] toVenueData preserves the additive media contract and leaks no storage metadata', () => {
     const stored = {
       ...baseVenue,
@@ -145,5 +180,24 @@ describe('Story 12.12 ATDD - venue media DTO and sanitizer contract', () => {
     expect(media.selectVenueHeroImageUrl(thumbnailWithRenditions)).toBe(HERO_URL);
     expect(media.selectVenueCardImageUrl({ ...thumbnailWithRenditions, cardUrl: undefined })).toBe(LEGACY_URL);
     expect(media.selectVenueHeroImageUrl({ ...thumbnailWithRenditions, heroUrl: undefined })).toBe(LEGACY_URL);
+  });
+
+  it('[P0] active runtime sources do not reintroduce external legacy photo hosts', async () => {
+    const runtimeSources = [
+      'lib/services/venues-fixture.ts',
+      'components/custom/venue/forced-venue-detail.ts',
+      'components/composed/venue/VenueCard.tsx',
+      'components/composed/venue/VenueQuickInfo.tsx',
+      'components/composed/venue/VenueDetailContent.tsx',
+    ];
+    const disallowedLegacyHosts =
+      /images\.unsplash|unsplash\.com|googleusercontent|maps\.google|place-photo|pexels|pixabay/i;
+
+    for (const source of runtimeSources) {
+      const content = await readFile(path.join(process.cwd(), source), 'utf8');
+      expect(content, `${source} must not hotlink legacy venue photos`).not.toMatch(
+        disallowedLegacyHosts,
+      );
+    }
   });
 });

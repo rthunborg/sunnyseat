@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-19T17:53:23+02:00'
+lastSaved: '2026-07-19T21:58:45+02:00'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-12.md'
@@ -87,6 +87,13 @@ inputDocuments:
   - 'nextjs-app/test/unit/story-12-6-i18n-a11y-ci.atdd.test.ts'
   - 'nextjs-app/test/e2e/story-12-6-public-sun-pins.atdd.spec.ts'
   - 'nextjs-app/test/e2e/story-12-6/axe-mobile.spec.ts'
+  - '_bmad-output/implementation-artifacts/12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes.md'
+  - 'nextjs-app/lib/utils/venue-media.ts'
+  - 'nextjs-app/scripts/upload-venue-media.mjs'
+  - 'nextjs-app/test/unit/services/story-12-12-venue-media-contract.atdd.test.ts'
+  - 'nextjs-app/test/unit/story-12-12-storage-upload-and-policy.atdd.test.ts'
+  - 'nextjs-app/test/unit/story-12-12-visual-state-contract.atdd.test.ts'
+  - 'nextjs-app/test/components/story-12-12-venue-photo-surfaces.atdd.test.tsx'
 ---
 
 # Automation Expansion Summary - Story 12.13 (Remove User-Facing Confidence Indicator)
@@ -178,6 +185,67 @@ Mock boundary mirrors the ATDD scaffold (deepest adapters only). Threshold asser
 - `npx vitest run` → **112 files / 993 tests, all passing, 0 skipped** (story HEAD was 111 files / 984 tests → net **+1 file / +9 tests**, none dropped, none regressed).
 - Default seed path (flag OFF, as CI runs it) untouched — no CI-path change; test-only addition.
 - (`Not implemented: navigation to another Document` in vitest output is a benign pre-existing jsdom log, not a failure.)
+
+---
+
+# Automation Expansion Summary - Story 12.12 (Venue Photos Supabase Storage Hosting + Render/Fallback Fixes)
+
+## Preflight And Context
+
+- **Framework:** Vitest 4.1.4 and Playwright are configured in `nextjs-app`; framework readiness passed.
+- **Stack:** fullstack Next.js with server DTO/sanitizer, Supabase Storage migration/tooling, React photo surfaces, forced visual states, and Playwright E2E/a11y coverage.
+- **Mode:** BMad-integrated from the Story 12.12 file. Execution was sequential because the active delegate instructions constrain subagent use and the remaining gaps were tightly scoped.
+- **Scope:** expand automated coverage for Story 12.12 without changing sprint status, visual references, or unrelated production behavior. One narrow production sanitizer correction was made because the new exact-path test exposed an acceptance-contract defect.
+- **Knowledge loaded:** test levels, risk priorities, deterministic data factories, selective execution, CI/burn-in, test quality, fixture architecture, network-first safeguards, Playwright utility guidance, Pact guidance (not applicable), and project context.
+
+## Coverage Plan
+
+| Priority | Level | Target | Decision |
+| --- | --- | --- | --- |
+| P0 | Unit/service | Venue-media public URL convention must be exact: configured origin, bucket, slug, version, rendition filename, no query/hash, and no empty/trailing path segments. | Added direct sanitizer/build assertions and fixed the empty-segment acceptance defect. |
+| P0 | Unit/source guard | Runtime venue photo sources must not reintroduce external legacy photo hosts such as Unsplash/Google/Pexels/Pixabay. | Added a focused source guard over runtime fixture/forced-state/render files. |
+| P0 | Unit/tooling | Maintainer upload validation must prove real byte/dimension caps, optimized WebP metadata handling, raw-original path rejection, immutable object keys, and create-only duplicate-key refusal. | Added temp-file WebP metadata tests plus a mocked Supabase Storage duplicate-key test. |
+| P1 | Browser/E2E | Loaded/fallback state journeys and desktop axe. | No new Playwright added: existing Story 12.12 E2E, desktop axe, and intentional mobile `fixme` coverage already cover browser behavior; this pass did not edit browser specs. |
+
+## Generated Coverage
+
+- **UPDATED** `nextjs-app/test/unit/services/story-12-12-venue-media-contract.atdd.test.ts` with 2 P0 tests:
+  - exact Supabase public object URL build/sanitize contract, including query/hash, rendition drift, double slash, and trailing slash rejection,
+  - runtime-source guard against external legacy photo hosts.
+- **UPDATED** `nextjs-app/test/unit/story-12-12-storage-upload-and-policy.atdd.test.ts` with 4 P0 tests:
+  - raw/original path rejection,
+  - valid optimized card/hero rendition plan and immutable object key metadata,
+  - over-size and over-dimension card/hero rejection,
+  - create-only duplicate-key refusal before upload with mocked Supabase Storage.
+- **UPDATED** `nextjs-app/lib/utils/venue-media.ts` to reject empty path segments in new Supabase `cardUrl`/`heroUrl` values; this closes the exact-key convention defect surfaced by the new test.
+- **Aggregate:** +6 tests, bringing the focused Story 12.12 Vitest suite from 24 to 29 tests and the full suite from 1,785 to 1,790 tests.
+
+## Validation And Gate
+
+- Focused Story 12.12 suite: `npx vitest run test/unit/services/story-12-12-venue-media-contract.atdd.test.ts test/unit/story-12-12-storage-upload-and-policy.atdd.test.ts test/unit/story-12-12-visual-state-contract.atdd.test.ts test/components/story-12-12-venue-photo-surfaces.atdd.test.tsx` -> **4 files / 29 tests passed**.
+- TypeScript: `npx tsc --noEmit` -> **0 errors**.
+- Lint: `npx eslint . --quiet` -> **0 errors**.
+- Full unit/component suite: `$env:VITEST_MAX_WORKERS='4'; npx vitest run` -> **192 passed / 2 skipped files; 1,790 passed / 15 skipped tests**.
+- Vitest emitted the existing jsdom `Not implemented: navigation to another Document` warning after the green summary; exit code was 0.
+- No Playwright CLI/browser sessions were opened because `playwright-cli` was not installed and no browser specs changed.
+
+## Assumptions, Risks, And Deferred Coverage
+
+- Protected Supabase live policy verification remains unavailable without credentials; local SQL/text tests and mocked Storage API coverage were expanded, but no live read/write proof is newly claimed.
+- Existing Story 12.12 Playwright forced-state and desktop axe evidence remains the browser-layer signal; mobile photo axe scans intentionally remain `fixme` for inherited contrast debt and were not weakened.
+- No sprint-status or visual-reference files were changed in this automation pass.
+
+## Definition Of Done
+
+- Existing ATDD, E2E, and a11y coverage was reviewed to avoid duplicate/no-value browser tests.
+- Six deterministic P0 tests were added across existing Story 12.12 ATDD files.
+- The single production change was the minimal sanitizer correction required by the accepted media URL convention.
+- Focused tests, typecheck, lint, and full Vitest passed.
+- Durable automation result written here under the configured BMAD test-artifact directory.
+
+## Next Recommended Workflow
+
+Run `test-review` or continue the orchestrator's post-review landing flow for Story 12.12.
 
 ---
 

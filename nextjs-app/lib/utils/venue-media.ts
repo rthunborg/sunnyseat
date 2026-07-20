@@ -80,7 +80,11 @@ export function normalizeVenueMediaRenditionUrl(
     if (url.origin !== configuredOrigin) return undefined;
     if (url.search || url.hash) return undefined;
 
-    const segments = url.pathname.split('/').filter(Boolean).map(decodePathSegment);
+    const rawSegments = url.pathname.split('/');
+    if (rawSegments[0] !== '' || rawSegments.slice(1).some((segment) => segment.length === 0)) {
+      return undefined;
+    }
+    const segments = rawSegments.slice(1).map(decodePathSegment);
     if (segments.some((segment) => segment === null)) return undefined;
     const decodedSegments = segments as string[];
     if (decodedSegments.length !== PUBLIC_OBJECT_PATH_PREFIX.length + 3) return undefined;

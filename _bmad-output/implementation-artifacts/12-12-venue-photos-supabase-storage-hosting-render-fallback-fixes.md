@@ -415,14 +415,17 @@ Codex GPT-5 auto-bmad dev-story delegate
 
 - Baseline pre-edit checks: `cd nextjs-app && npx tsc --noEmit` pass;
   `cd nextjs-app && npx eslint . --quiet` pass.
-- Focused Story 12.12 Vitest: `npx vitest run
+- Focused Story 12.12 Vitest after post-dev automation: `npx vitest run
   test/unit/services/story-12-12-venue-media-contract.atdd.test.ts
   test/unit/story-12-12-storage-upload-and-policy.atdd.test.ts
   test/unit/story-12-12-visual-state-contract.atdd.test.ts
   test/components/story-12-12-venue-photo-surfaces.atdd.test.tsx` pass
-  (4 files, 24 tests).
+  (4 files, 29 tests). This includes the added exact public-object path guard,
+  external legacy host guard, and upload file/duplicate-key validation.
+- Post-dev automation validation: `npx tsc --noEmit` pass; `npx eslint . --quiet`
+  pass.
 - Full Vitest after fixes: `VITEST_MAX_WORKERS=4 npx vitest run` pass
-  (192 files passed, 2 skipped; 1785 tests passed, 15 skipped).
+  (192 files passed, 2 skipped; 1790 tests passed, 15 skipped).
 - Story 12.12 E2E: `PLAYWRIGHT_PORT=3218 PLAYWRIGHT_BASE_URL=http://localhost:3218
   npx playwright test test/e2e/story-12-12-venue-photo-states.atdd.spec.ts --workers=1`
   pass (4 passed, 4 skipped).
@@ -458,6 +461,9 @@ Codex GPT-5 auto-bmad dev-story delegate
 - Implemented additive thumbnail contract `{ alt, initials, cardUrl?, heroUrl?, url? }`
   with client-safe card/hero selection helpers and Supabase Storage URL convention
   validation for new media fields.
+- Post-dev automation tightened that URL convention so `cardUrl`/`heroUrl` reject
+  empty/trailing path segments, query strings, hash fragments, and rendition drift
+  instead of accepting malformed-but-parseable Supabase public object paths.
 - Removed external fixture hotlinks; default seeded thumbnails now retain accessible alt and
   initials fallback without fragile external `url` values.
 - Added deployable Supabase Storage migration for public-read `venue-media`, WebP-only
@@ -483,6 +489,7 @@ Codex GPT-5 auto-bmad dev-story delegate
 ### File List
 
 - `_bmad-output/implementation-artifacts/12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes.md`
+- `_bmad-output/test-artifacts/automation-summary.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `_bmad-output/implementation-artifacts/validation/story-12-12-venue-photo-candidates/20260719T195547/README.md`
 - `_bmad-output/implementation-artifacts/validation/story-12-12-venue-photo-candidates/20260719T195547/mobile/venue-photo-loaded.png`
@@ -524,6 +531,9 @@ Codex GPT-5 auto-bmad dev-story delegate
 
 ### Change Log
 
+- 2026-07-19 - Expanded post-dev test automation for exact media URL
+  sanitization, external legacy host protection, and upload rendition/create-only
+  validation; fixed the exact-path sanitizer defect found by the new tests.
 - 2026-07-19 - Promoted the maintainer-approved Story 12.12 reference PNGs, updated
   rebaseline documentation, reran the canonical review gate with mapped manual-authorized
   visual checks, and moved story/sprint status to review.
