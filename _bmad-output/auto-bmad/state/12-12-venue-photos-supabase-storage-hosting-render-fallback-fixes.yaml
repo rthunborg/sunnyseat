@@ -4,10 +4,10 @@ story_key: 12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes
 epic_num: 12
 story_num: 12
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
-status: in-progress
-updated_at: "2026-07-20T12:00:45Z"
+status: done
+updated_at: "2026-07-20T12:05:31Z"
 started_at: "2026-07-19T16:39:48Z"
-completed_at: null
+completed_at: "2026-07-20T12:05:31Z"
 active_seconds: 9703
 timing_anchor: null
 is_first_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: true
 story_trace: null
-commits: [9549c7e, bc7b65b, "9346726", 2a21274, b4427d4]
+commits: [9549c7e, bc7b65b, "9346726", 2a21274, b4427d4, d5fd2f3]
 phase8_steps:
   trace_gate: null
   nfr: null

@@ -5,7 +5,7 @@ epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-20T12:00:45Z"
+updated_at: "2026-07-20T12:05:31Z"
 started_at: "2026-07-18T11:27:25Z"
 completed_at: null
 active_seconds: 46803
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: true
 story_trace: null
-commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc, 8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021, 66eb5d7, 7f5c709, 55bffea, e442fed, ef47622, 6483f7e, "7592112", c3673e1, 9549c7e, bc7b65b, "9346726", 2a21274, b4427d4]
+commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc, 8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021, 66eb5d7, 7f5c709, 55bffea, e442fed, ef47622, 6483f7e, "7592112", c3673e1, 9549c7e, bc7b65b, "9346726", 2a21274, b4427d4, d5fd2f3]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -50,17 +50,19 @@ open_questions: []
 deferred_work:
   - "[12-3] Protected Story 12.3 production evidence remains: capture the 42+ venue cold-p95 dataset and verify the protected GitHub Production environment when protected access is available."
   - "[12-7] Apply `20260718214954_add_public_venue_visibility.sql` before deploying Story 12.7 code, then regenerate Supabase types and verify no contract diff."
+  - "[12-12] Apply `20260719000000_venue_media_storage.sql` before hosted venue media is used, then verify protected Supabase Storage bucket/RLS policy behavior with service-role upload and public rendition reads."
 blockers: []
 overrides: {}
 constraints:
   - "Execute Epic 12 in the user-confirmed dependency order: 12-1, 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, 12-10, 12-5, 12-8, 12-11, 12-2, 12-14."
 epic_slug: real-venue-launch-readiness-perf-trust-hours-console-hygiene
-active_story: 12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes
+active_story: 12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider
 stories_landed:
   - 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
   - 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
   - 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number
   - 12-13-remove-the-user-facing-confidence-indicator-keep-it-internal
+  - 12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes
 auto_decisions:
   - "[12-7] Adopted the architecture-backed canonical `hidden boolean not null default false` migration/type contract after live/schema probes proved all previously referenced visibility columns absent; no protected database mutation was performed."
 uat_items:
@@ -114,6 +116,16 @@ uat_items:
   - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Open http://localhost:3000/?venue=cafe-halvvags&_time=14:00, click Visa Rutt -> route overlay may show uncertainty copy such as Osäker prognos; that row is uncertainty-only and does not include Säkerhet, Confidence, ~NN%, or a confidence number."
   - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Open http://localhost:3000/?venue=test-venue-sunny&_state=feedback&_time=14:00 -> feedback prompt renders normally with Var det soligt när du kom?, answer buttons, note field, and submit action; no confidence copy is shown to the user."
   - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] With DevTools Network open on http://localhost:3000/?venue=test-venue-sunny&_state=feedback&_time=14:00, submit feedback in local/test dev only -> POST to /api/venues/test-venue-sunny/feedback still includes prediction evidence such as predictedState and hidden confidenceAtPrediction, while the page UI never displays that confidence value."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] With dev server running from nextjs-app, open mobile /?_state=venue-photo-loaded&_time=14:00 -> Kafé Magasinet's list card shows a real venue photo, not initials or a broken-image icon."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] On mobile /?_state=venue-photo-loaded&_time=14:00, tap Kafé Magasinet -> anchored QuickInfo still uses the designed placeholder by design, not the real photo."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] Open mobile /?venue=test-venue-sunny&_state=venue-photo-loaded&_time=14:00 -> venue detail hero shows the real photo with normal object-cover framing."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] With dev server running from nextjs-app, open desktop /?_state=venue-photo-loaded&_time=16:30, select Kafé Magasinet -> desktop QuickInfo shows the real card rendition photo."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] On desktop /?venue=test-venue-sunny&_state=venue-photo-loaded&_time=16:30 -> venue detail panel shows the real hero rendition photo."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] Open mobile /?venue=test-venue-sunny&_state=venue-photo-fallback&_time=14:00 -> detail hero degrades to the branded placeholder; no broken-image icon is visible."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] Open desktop /?_state=venue-photo-fallback&_time=16:30, select Kafé Magasinet -> list card and desktop QuickInfo degrade to initials/fallback UI; no broken-image icon is visible."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] With protected Supabase env set in nextjs-app and optimized files available, run node scripts/upload-venue-media.mjs test-venue-sunny v2026-07 ./card.webp ./hero.webp -> script returns JSON with venue-media/test-venue-sunny/v2026-07/card.webp and hero.webp public URLs and does not print the service-role key."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] Re-run the same upload command with the same slug and mediaVersion -> script fails create-only with 'Venue media version already exists' and requires a new mediaVersion."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] Run the upload command with a non-WebP/wrongly named/raw-original file such as ./original.jpg or oversized card.webp/hero.webp -> script rejects before upload with a validation error."
 preexisting_done_stories:
   - 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
 adopt_verdicts:
@@ -134,5 +146,5 @@ story_execution_order:
   - 12-11-first-run-coach-mark-guide-map-legend-feature-tour
   - 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
   - 12-14-hide-closed-venues-open-at-selected-time-filter
-story_order_cursor: 12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes
+story_order_cursor: 12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider
 order_override_reason: User-confirmed dependency order keeps prerequisite contracts ahead of their consumers while preserving Story 12-14 as the epic-end story.
