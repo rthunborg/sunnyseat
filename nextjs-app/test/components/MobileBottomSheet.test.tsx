@@ -134,6 +134,16 @@ describe('<MobileBottomSheet /> row-count contract', () => {
     ).toBe(2);
   });
 
+  it('clamps an out-of-range parent row count back to the computed maxRows', () => {
+    const onVisibleRowsChange = renderSheet({ visibleRows: 9, rowCount: 5 });
+
+    const sheet = screen.getByTestId('mobile-bottom-sheet');
+    expect(sheet).toHaveAttribute('data-max-rows', '3');
+    expect(sheet).toHaveAttribute('data-visible-rows', '3');
+    expect(sheet).toHaveAttribute('data-sheet-height', '428');
+    expect(onVisibleRowsChange).toHaveBeenCalledWith(3);
+  });
+
   it('makes N=0 handle-only and keeps body content inert while chrome remains measurable', () => {
     renderSheet({ visibleRows: 0, rowCount: 5 });
 

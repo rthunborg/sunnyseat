@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-19T21:58:45+02:00'
+lastSaved: '2026-07-24T20:20:09+02:00'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-12.md'
@@ -94,7 +94,62 @@ inputDocuments:
   - 'nextjs-app/test/unit/story-12-12-storage-upload-and-policy.atdd.test.ts'
   - 'nextjs-app/test/unit/story-12-12-visual-state-contract.atdd.test.ts'
   - 'nextjs-app/test/components/story-12-12-venue-photo-surfaces.atdd.test.tsx'
+  - '_bmad-output/implementation-artifacts/12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider.md'
+  - 'nextjs-app/components/custom/sheets/MobileBottomSheet.tsx'
+  - 'nextjs-app/test/components/MobileBottomSheet.test.tsx'
 ---
+
+# Automation Expansion Summary - Story 12.9 (Mobile Bottom-Sheet Row-Quantized Drag + Slim Time-Slider)
+
+## Preflight And Context
+
+- **Framework:** Vitest 4.1.4 and Playwright are configured in `nextjs-app`; framework readiness passed.
+- **Stack:** frontend interaction and presentation work on the mobile row-count bottom sheet and mobile planner chrome.
+- **Mode:** BMad-integrated from the Story 12.9 file. Execution was sequential because the active runtime instruction forbids proactive subagent delegation.
+- **Scope:** add only meaningful, non-duplicative automated coverage for the already-reviewed Story 12.9 implementation. Story status, sprint status, auto-bmad state/report files, visual references, dev-server artifacts, and `nextjs-app/components/custom/onboarding/OnboardingGate.tsx` were not touched.
+- **Knowledge loaded:** test levels, priorities, deterministic data/testing quality, selective execution, CI/burn-in guidance, fixture architecture, network-first guidance, and existing Story 12.9 component/E2E/recenter/slider-date coverage.
+
+## Coverage Plan
+
+| Priority | Level | Target | Decision |
+| --- | --- | --- | --- |
+| P0 | Component | Row-count bottom sheet must clamp caller state into `0..maxRows`, keep data hooks truthful, and notify the parent when the computed viewport cap is lower than requested rows. | Add one focused component boundary test. |
+| P0 | E2E/touch | Real-touch row walking, row-origin drag, scroll ownership, fling, reduced motion, keyboard ladder, and map interactivity behind `N=0`. | Already covered by `epic-11-sheet-touch-gestures.spec.ts`; no duplicate browser test added. |
+| P0 | Unit/component | Recenter padding, forced state handling, slider/date semantics, mobile panel geometry, and production-inert `_sheetRows`/`_sheetDrag` params. | Existing focused tests cover these surfaces; rerun full Vitest rather than manufacture overlap. |
+
+## Generated Coverage
+
+- **UPDATED** `nextjs-app/test/components/MobileBottomSheet.test.tsx` with one P0 test:
+  - renders an intentionally out-of-range `visibleRows=9` against a computed `maxRows=3`,
+  - asserts `data-max-rows`, `data-visible-rows`, and `data-sheet-height` reflect the capped row model,
+  - asserts `onVisibleRowsChange(3)` is emitted so the parent state is corrected.
+- **Aggregate:** +1 deterministic component test. No fixtures, helpers, browser sessions, API mocks, visual artifacts, or production source changes were introduced.
+
+## Validation And Gate
+
+- Baseline before edits: `npx tsc --noEmit` -> **0 errors**; `npx eslint . --quiet` -> **0 errors**.
+- Focused suite: `npx vitest run test/components/MobileBottomSheet.test.tsx` -> **1 file / 14 tests passed**.
+- TypeScript after edits: `npx tsc --noEmit` -> **0 errors**.
+- Lint after edits: `npx eslint . --quiet` -> **0 errors**.
+- Full unit/component suite: `$env:VITEST_MAX_WORKERS='4'; npx vitest run` -> **194 passed / 2 skipped files; 1,777 passed / 15 skipped tests**.
+- Vitest emitted the existing jsdom `Not implemented: navigation to another Document` warning after the green summary; exit code was 0.
+
+## Assumptions, Risks, And Deferred Coverage
+
+- No missing Story 12.9 browser coverage was identified beyond the existing touch, map-primary, axe-mobile, MapView, recenter, and slider/date suites.
+- Playwright was not rerun because this pass added a component-level boundary assertion only and the story file already records passing Story 12.9 browser gates.
+- No deferred Story 12.9 automation work remains from this pass.
+
+## Definition Of Done
+
+- Existing Story 12.9 automated coverage was reviewed for duplication risk.
+- One focused max-row cap boundary test was added.
+- Focused test, typecheck, lint, and full Vitest passed.
+- Durable automation result written here under the configured BMAD test-artifact directory.
+
+## Next Recommended Workflow
+
+Continue the orchestrator's review flow for Story 12.9.
 
 # Automation Expansion Summary - Story 12.13 (Remove User-Facing Confidence Indicator)
 
