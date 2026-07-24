@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useRef, useState, type Ref } from 'react';
 import { Calendar, ChevronRight } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { motion, useReducedMotion } from 'motion/react';
@@ -14,15 +14,15 @@ import { cn } from '@/lib/utils';
 export type TimeSliderPanelProps = {
   variant: 'mobile' | 'desktop';
   reducedMotion?: boolean;
-  showDateLabel?: boolean;
   className?: string;
+  panelRef?: Ref<HTMLElement>;
 };
 
 export function TimeSliderPanel({
   variant,
   reducedMotion,
-  showDateLabel = true,
   className,
+  panelRef,
 }: TimeSliderPanelProps) {
   const t = useTranslations('venue.planner');
   const locale = useLocale();
@@ -30,6 +30,15 @@ export function TimeSliderPanel({
   const prefersReducedMotion = useReducedMotion() ?? false;
   const shouldReduceMotion = reducedMotion ?? prefersReducedMotion;
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const calendarTriggerRef = useRef<HTMLButtonElement>(null);
+  const handleCalendarOpenChange = useCallback((open: boolean) => {
+    setCalendarOpen(open);
+    if (!open) {
+      window.requestAnimationFrame(() => {
+        calendarTriggerRef.current?.focus();
+      });
+    }
+  }, []);
   const dateLabel = formatPanelDate(time.selectedDate, time.currentTime, locale, t('today'));
   const desktop = variant === 'desktop';
   // External-review fix: at the today+3 window end `shiftSelectedDate(1)` is a
@@ -46,6 +55,7 @@ export function TimeSliderPanel({
   return (
     <>
       <motion.section
+        ref={panelRef}
         data-testid="time-slider-panel"
         data-reduced-motion={String(shouldReduceMotion)}
         aria-label={t('panelLabel')}
@@ -53,7 +63,7 @@ export function TimeSliderPanel({
           'z-glass-panel bg-glass-slider text-text-primary backdrop-blur-heavy',
           desktop
             ? 'hidden rounded-panel px-6 py-3 shadow-card-up lg:flex lg:items-center lg:gap-5'
-            : 'rounded-panel px-4 pt-5 pb-2 shadow-card-up lg:hidden',
+            : 'rounded-panel px-4 py-3 shadow-card-up lg:hidden',
           className,
         )}
         initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
@@ -63,10 +73,12 @@ export function TimeSliderPanel({
         {desktop ? (
           <>
             <CalendarButton
+              ref={calendarTriggerRef}
               label={t('openCalendar')}
               dateLabel={dateLabel}
               onClick={() => setCalendarOpen(true)}
               layoutPart="date"
+              open={calendarOpen}
             />
             <NextDayButton
               label={t('nextDay')}
@@ -93,7 +105,7 @@ export function TimeSliderPanel({
             </div>
           </>
         ) : (
-          <div className="flex items-start gap-2">
+          <div className="flex items-center gap-2">
             <TimeSlider
               ariaLabel={t('sliderLabel')}
               selectedMinutes={time.selectedMinutes}
@@ -106,16 +118,12 @@ export function TimeSliderPanel({
               className="min-w-0 flex-1"
             />
             <CalendarButton
+              ref={calendarTriggerRef}
               label={t('openCalendar')}
               dateLabel={dateLabel}
               onClick={() => setCalendarOpen(true)}
               compact
-              showText={showDateLabel}
-            />
-            <NextDayButton
-              label={t('nextDay')}
-              onClick={() => time.shiftSelectedDate(1)}
-              disabled={!canGoNextDay}
+              open={calendarOpen}
             />
           </div>
         )}
@@ -137,7 +145,7 @@ export function TimeSliderPanel({
           windowDate: t('windowDate'),
           selectDate: t('selectDate', { date: '{date}' }),
         }}
-        onOpenChange={setCalendarOpen}
+        onOpenChange={handleCalendarOpenChange}
         onSelectDate={time.selectDate}
       />
     </>
@@ -185,43 +193,46 @@ function NextDayButton({
 }
 
 function CalendarButton({
+  ref,
   label,
   dateLabel,
   onClick,
   layoutPart,
   compact = false,
-  showText = true,
+  open = false,
 }: {
+  ref?: Ref<HTMLButtonElement>;
   label: string;
   dateLabel: string;
   onClick: () => void;
   layoutPart?: string;
   compact?: boolean;
-  showText?: boolean;
+  open?: boolean;
 }) {
   return (
     <button
+      ref={ref}
       type="button"
       aria-label={`${label}: ${dateLabel}`}
+      aria-haspopup="dialog"
+      aria-expanded={open}
       onClick={onClick}
+      data-testid="planner-date-trigger"
       data-planner-layout-part={layoutPart}
       className={cn(
-        'flex min-h-11 items-center justify-center rounded-pill text-amber-dark outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
-        compact ? 'min-w-11 shrink-0 px-2' : 'min-w-32 gap-2 bg-surface-cream/70 px-3 shadow-subtle',
+        'flex min-h-11 items-center justify-center rounded-pill text-amber-dark outline-none transition-colors duration-fast ease-default focus-visible:ring-2 focus-visible:ring-text-primary',
+        compact
+          ? 'min-w-11 shrink-0 gap-1.5 border border-divider bg-surface-cream/70 px-3 shadow-subtle hover:bg-surface-sand active:bg-amber-pale/40'
+          : 'min-w-32 gap-2 bg-surface-cream/70 px-3 shadow-subtle hover:bg-surface-sand active:bg-amber-pale/40',
       )}
     >
-      <Calendar aria-hidden="true" className={cn('shrink-0 text-amber-dark', compact ? 'size-4' : 'size-4')} />
-      {showText && (
-        <span
-          data-testid="planner-date-label"
-          className={cn(
-            'max-w-28 truncate text-date text-text-body',
-            compact && 'max-w-16',
-          )}
-        >
-          {dateLabel}
-        </span>
-      )}
+      <Calendar aria-hidden="true" className="size-4 shrink-0 text-amber-dark" />
+      <span
+        data-testid="planner-date-label"
+        className={cn('max-w-28 truncate text-date text-text-body', compact && 'max-w-20')}
+      >
+        {dateLabel}
+      </span>
     </button>
   );
 }

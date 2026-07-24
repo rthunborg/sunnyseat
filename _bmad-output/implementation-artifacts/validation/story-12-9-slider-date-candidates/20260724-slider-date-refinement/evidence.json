@@ -1,0 +1,1680 @@
+{
+  "capturedAt": "2026-07-24T13:56:24.412Z",
+  "baseUrl": "http://localhost:3000",
+  "serverInfo": {
+    "started": true,
+    "stdoutPath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-9-slider-date-candidates\\20260724-slider-date-refinement\\dev-server.stdout.log",
+    "stderrPath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-9-slider-date-candidates\\20260724-slider-date-refinement\\dev-server.stderr.log",
+    "pid": 23708
+  },
+  "results": [
+    {
+      "viewport": "mobile",
+      "screenId": "map-primary",
+      "variant": "slim-slider-date-pill",
+      "route": "/?_state=map-primary&_time=14:00",
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\mobile\\map-primary.png",
+        "exists": true,
+        "bytes": 754264,
+        "sha256": "74b6685f267b9d4e578b99be7dfded6d3973d9bbf071fc7beeb54c2fdaca6c97",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        },
+        "sameSha256": false
+      },
+      "expectedRows": 0,
+      "expectedDragging": false,
+      "assertions": {
+        "details": {
+          "map visible": true,
+          "visible pin count": 7,
+          "planner visible and sized": {
+            "box": {
+              "x": 16,
+              "y": 72,
+              "width": 358,
+              "height": 68
+            },
+            "className": "z-glass-panel bg-glass-slider text-text-primary backdrop-blur-heavy rounded-panel px-4 py-3 shadow-card-up lg:hidden absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*18)]"
+          },
+          "mobile date trigger": {
+            "box": {
+              "x": 284.109375,
+              "y": 84,
+              "width": 73.890625,
+              "height": 44
+            },
+            "svgCount": 1,
+            "nextVisible": 0,
+            "dateText": "Idag",
+            "ariaHaspopup": "dialog",
+            "ariaExpanded": "false"
+          },
+          "mobile slider geometry": {
+            "track": {
+              "x": 32,
+              "y": 113,
+              "width": 244.109375,
+              "height": 6
+            },
+            "thumb": {
+              "x": 155.140625,
+              "y": 108.953125,
+              "width": 14.09375,
+              "height": 14.09375
+            },
+            "badge": {
+              "x": 138.1875,
+              "y": 84,
+              "width": 48,
+              "height": 19
+            },
+            "hit": {
+              "x": 32,
+              "y": 84,
+              "width": 244.109375,
+              "height": 44
+            },
+            "clearance": 5.953125
+          },
+          "mobile row sheet state": {
+            "visibleRows": 0,
+            "maxRows": 4,
+            "rowHeight": 96,
+            "sheetHeight": 44,
+            "attrs": {
+              "state": "rows-0",
+              "visibleRows": "0",
+              "maxRows": "4",
+              "rowHeight": "96",
+              "sheetHeight": "44",
+              "dragging": "false",
+              "className": "absolute inset-x-0 bottom-[calc(var(--size-mobile-nav-h)+env(safe-area-inset-bottom))] z-bottom-sheet-peek flex flex-col overflow-hidden rounded-t-panel bg-surface-cream text-text-primary shadow-sheet-peek-up lg:hidden touch-pan-y",
+              "style": "height: 44px; max-height: 554px; opacity: 1;"
+            },
+            "bodyAttrs": {
+              "ariaHidden": "true",
+              "inert": true,
+              "className": "min-h-0 flex-1 px-4 pb-4 pointer-events-none",
+              "rect": {
+                "width": 390,
+                "height": 16
+              }
+            },
+            "chromeBox": {
+              "x": 16,
+              "y": 792,
+              "width": 358,
+              "height": 112
+            },
+            "scrollBodyBox": {
+              "x": 16,
+              "y": 904,
+              "width": 358,
+              "height": 0
+            },
+            "sheetBox": {
+              "x": 0,
+              "y": 748,
+              "width": 390,
+              "height": 44
+            },
+            "navBox": {
+              "x": 0,
+              "y": 792,
+              "width": 390,
+              "height": 52
+            }
+          },
+          "map controls sheet-overlap state": {
+            "overlap": "false",
+            "ariaHidden": null,
+            "inert": false,
+            "opacity": "1",
+            "pointerEvents": "auto",
+            "rect": {
+              "top": 200,
+              "bottom": 308,
+              "height": 108
+            },
+            "measuredCovered": false
+          }
+        },
+        "failures": []
+      },
+      "url": "http://localhost:3000/?_state=map-primary&_time=14:00",
+      "fileName": "mobile-map-primary-slim-slider-date-pill.png",
+      "outPath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-9-slider-date-candidates\\20260724-slider-date-refinement\\mobile-map-primary-slim-slider-date-pill.png",
+      "htmlLang": "sv",
+      "status": "captured",
+      "events": {
+        "console": [
+          {
+            "type": "warning",
+            "text": "You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled"
+          },
+          {
+            "type": "warning",
+            "text": "[.WebGL-0x2c02833600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+          },
+          {
+            "type": "warning",
+            "text": "[.WebGL-0x2c02833600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+          },
+          {
+            "type": "warning",
+            "text": "[.WebGL-0x2c02833600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+          },
+          {
+            "type": "warning",
+            "text": "[.WebGL-0x2c02833600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          }
+        ],
+        "pageErrors": [],
+        "requestFailed": [],
+        "httpErrors": []
+      },
+      "candidate": {
+        "bytes": 838414,
+        "sha256": "3a3beb45f26229c87cf4106e775748a30cf24d3644ee604024e12acd2161392a",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        }
+      }
+    },
+    {
+      "viewport": "mobile",
+      "screenId": "map-panel-venues",
+      "variant": "rows-3",
+      "route": "/?_state=map-panel-venues&_time=14:00&_sheetRows=3",
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\mobile\\map-panel-venues.png",
+        "exists": true,
+        "bytes": 535299,
+        "sha256": "5b168fac021deb8e0b3e9567fa9fa8d4adf4837fee772cceb1f26ade3e98d3c6",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        },
+        "sameSha256": false
+      },
+      "expectedRows": 3,
+      "expectedDragging": false,
+      "assertions": {
+        "details": {
+          "map visible": true,
+          "visible pin count": 7,
+          "planner visible and sized": {
+            "box": {
+              "x": 16,
+              "y": 72,
+              "width": 358,
+              "height": 68
+            },
+            "className": "z-glass-panel bg-glass-slider text-text-primary backdrop-blur-heavy rounded-panel px-4 py-3 shadow-card-up lg:hidden absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*18)]"
+          },
+          "mobile date trigger": {
+            "box": {
+              "x": 284.109375,
+              "y": 84,
+              "width": 73.890625,
+              "height": 44
+            },
+            "svgCount": 1,
+            "nextVisible": 0,
+            "dateText": "Idag",
+            "ariaHaspopup": "dialog",
+            "ariaExpanded": "false"
+          },
+          "mobile slider geometry": {
+            "track": {
+              "x": 32,
+              "y": 113,
+              "width": 244.109375,
+              "height": 6
+            },
+            "thumb": {
+              "x": 155.140625,
+              "y": 108.953125,
+              "width": 14.09375,
+              "height": 14.09375
+            },
+            "badge": {
+              "x": 138.1875,
+              "y": 84,
+              "width": 48,
+              "height": 19
+            },
+            "hit": {
+              "x": 32,
+              "y": 84,
+              "width": 244.109375,
+              "height": 44
+            },
+            "clearance": 5.953125
+          },
+          "mobile row sheet state": {
+            "visibleRows": 3,
+            "maxRows": 4,
+            "rowHeight": 96,
+            "sheetHeight": 459,
+            "rowVisibility": {
+              "fullyVisible": 3,
+              "partiallyVisible": 3,
+              "rows": [
+                {
+                  "index": 0,
+                  "visible": true,
+                  "overlaps": true,
+                  "fullyVisible": true,
+                  "rect": {
+                    "top": 489.5,
+                    "bottom": 573,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 1,
+                  "visible": true,
+                  "overlaps": true,
+                  "fullyVisible": true,
+                  "rect": {
+                    "top": 585,
+                    "bottom": 668.5,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 2,
+                  "visible": true,
+                  "overlaps": true,
+                  "fullyVisible": true,
+                  "rect": {
+                    "top": 680.5,
+                    "bottom": 764,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 3,
+                  "visible": true,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 776,
+                    "bottom": 859.5,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 4,
+                  "visible": true,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 871.5,
+                    "bottom": 955,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 5,
+                  "visible": true,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 967,
+                    "bottom": 1050.5,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 6,
+                  "visible": true,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 1062.5,
+                    "bottom": 1146,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 7,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 8,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 9,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 10,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 11,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 12,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 13,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                }
+              ]
+            },
+            "attrs": {
+              "state": "rows-3",
+              "visibleRows": "3",
+              "maxRows": "4",
+              "rowHeight": "96",
+              "sheetHeight": "459",
+              "dragging": "false",
+              "className": "absolute inset-x-0 bottom-[calc(var(--size-mobile-nav-h)+env(safe-area-inset-bottom))] z-bottom-sheet-peek flex flex-col overflow-hidden rounded-t-panel bg-surface-cream text-text-primary shadow-sheet-peek-up lg:hidden touch-pan-y",
+              "style": "height: 458.5px; max-height: 554px; opacity: 1;"
+            },
+            "bodyAttrs": {
+              "ariaHidden": "false",
+              "inert": false,
+              "className": "min-h-0 flex-1 px-4 pb-4",
+              "rect": {
+                "width": 390,
+                "height": 414.5
+              }
+            },
+            "chromeBox": {
+              "x": 16,
+              "y": 377.5,
+              "width": 358,
+              "height": 112
+            },
+            "scrollBodyBox": {
+              "x": 16,
+              "y": 489.5,
+              "width": 358,
+              "height": 286.5
+            },
+            "sheetBox": {
+              "x": 0,
+              "y": 333.5,
+              "width": 390,
+              "height": 458.5
+            },
+            "navBox": {
+              "x": 0,
+              "y": 792,
+              "width": 390,
+              "height": 52
+            }
+          },
+          "map controls sheet-overlap state": {
+            "overlap": "false",
+            "ariaHidden": null,
+            "inert": false,
+            "opacity": "1",
+            "pointerEvents": "auto",
+            "rect": {
+              "top": 200,
+              "bottom": 308,
+              "height": 108
+            },
+            "measuredCovered": false
+          },
+          "venue row visibility geometry": {
+            "fullyVisible": 3,
+            "partiallyVisible": 3,
+            "rows": [
+              {
+                "index": 0,
+                "visible": true,
+                "overlaps": true,
+                "fullyVisible": true,
+                "rect": {
+                  "top": 489.5,
+                  "bottom": 573,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 1,
+                "visible": true,
+                "overlaps": true,
+                "fullyVisible": true,
+                "rect": {
+                  "top": 585,
+                  "bottom": 668.5,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 2,
+                "visible": true,
+                "overlaps": true,
+                "fullyVisible": true,
+                "rect": {
+                  "top": 680.5,
+                  "bottom": 764,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 3,
+                "visible": true,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 776,
+                  "bottom": 859.5,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 4,
+                "visible": true,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 871.5,
+                  "bottom": 955,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 5,
+                "visible": true,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 967,
+                  "bottom": 1050.5,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 6,
+                "visible": true,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 1062.5,
+                  "bottom": 1146,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 7,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 8,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 9,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 10,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 11,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 12,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 13,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              }
+            ]
+          }
+        },
+        "failures": []
+      },
+      "url": "http://localhost:3000/?_state=map-panel-venues&_time=14:00&_sheetRows=3",
+      "fileName": "mobile-map-panel-venues-rows-3.png",
+      "outPath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-9-slider-date-candidates\\20260724-slider-date-refinement\\mobile-map-panel-venues-rows-3.png",
+      "htmlLang": "sv",
+      "status": "captured",
+      "events": {
+        "console": [
+          {
+            "type": "warning",
+            "text": "You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled"
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          }
+        ],
+        "pageErrors": [],
+        "requestFailed": [],
+        "httpErrors": []
+      },
+      "candidate": {
+        "bytes": 450154,
+        "sha256": "ea182e52412071c0588d78952e168206c0060b689fdcab8a42ecae78829cd1d3",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        }
+      }
+    },
+    {
+      "viewport": "mobile",
+      "screenId": "map-panel-venues",
+      "variant": "rows-max",
+      "route": "/?_state=map-panel-venues&_time=14:00&_sheetRows=max",
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\mobile\\map-panel-venues.png",
+        "exists": true,
+        "bytes": 535299,
+        "sha256": "5b168fac021deb8e0b3e9567fa9fa8d4adf4837fee772cceb1f26ade3e98d3c6",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        },
+        "sameSha256": false
+      },
+      "expectedRows": "max",
+      "expectedDragging": false,
+      "assertions": {
+        "details": {
+          "map visible": true,
+          "visible pin count": 7,
+          "planner visible and sized": {
+            "box": {
+              "x": 16,
+              "y": 72,
+              "width": 358,
+              "height": 68
+            },
+            "className": "z-glass-panel bg-glass-slider text-text-primary backdrop-blur-heavy rounded-panel px-4 py-3 shadow-card-up lg:hidden absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*18)]"
+          },
+          "mobile date trigger": {
+            "box": {
+              "x": 284.109375,
+              "y": 84,
+              "width": 73.890625,
+              "height": 44
+            },
+            "svgCount": 1,
+            "nextVisible": 0,
+            "dateText": "Idag",
+            "ariaHaspopup": "dialog",
+            "ariaExpanded": "false"
+          },
+          "mobile slider geometry": {
+            "track": {
+              "x": 32,
+              "y": 113,
+              "width": 244.109375,
+              "height": 6
+            },
+            "thumb": {
+              "x": 155.140625,
+              "y": 108.953125,
+              "width": 14.09375,
+              "height": 14.09375
+            },
+            "badge": {
+              "x": 138.1875,
+              "y": 84,
+              "width": 48,
+              "height": 19
+            },
+            "hit": {
+              "x": 32,
+              "y": 84,
+              "width": 244.109375,
+              "height": 44
+            },
+            "clearance": 5.953125
+          },
+          "mobile row sheet state": {
+            "visibleRows": 4,
+            "maxRows": 4,
+            "rowHeight": 96,
+            "sheetHeight": 554,
+            "rowVisibility": {
+              "fullyVisible": 4,
+              "partiallyVisible": 4,
+              "rows": [
+                {
+                  "index": 0,
+                  "visible": true,
+                  "overlaps": true,
+                  "fullyVisible": true,
+                  "rect": {
+                    "top": 394,
+                    "bottom": 477.5,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 1,
+                  "visible": true,
+                  "overlaps": true,
+                  "fullyVisible": true,
+                  "rect": {
+                    "top": 489.5,
+                    "bottom": 573,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 2,
+                  "visible": true,
+                  "overlaps": true,
+                  "fullyVisible": true,
+                  "rect": {
+                    "top": 585,
+                    "bottom": 668.5,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 3,
+                  "visible": true,
+                  "overlaps": true,
+                  "fullyVisible": true,
+                  "rect": {
+                    "top": 680.5,
+                    "bottom": 764,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 4,
+                  "visible": true,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 776,
+                    "bottom": 859.5,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 5,
+                  "visible": true,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 871.5,
+                    "bottom": 955,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 6,
+                  "visible": true,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 967,
+                    "bottom": 1050.5,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 7,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 8,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 9,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 10,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 11,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 12,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 13,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                }
+              ]
+            },
+            "attrs": {
+              "state": "rows-4",
+              "visibleRows": "4",
+              "maxRows": "4",
+              "rowHeight": "96",
+              "sheetHeight": "554",
+              "dragging": "false",
+              "className": "absolute inset-x-0 bottom-[calc(var(--size-mobile-nav-h)+env(safe-area-inset-bottom))] z-bottom-sheet-peek flex flex-col overflow-hidden rounded-t-panel bg-surface-cream text-text-primary shadow-sheet-peek-up lg:hidden touch-pan-y",
+              "style": "height: 554px; max-height: 554px; opacity: 1;"
+            },
+            "bodyAttrs": {
+              "ariaHidden": "false",
+              "inert": false,
+              "className": "min-h-0 flex-1 px-4 pb-4",
+              "rect": {
+                "width": 390,
+                "height": 510
+              }
+            },
+            "chromeBox": {
+              "x": 16,
+              "y": 282,
+              "width": 358,
+              "height": 112
+            },
+            "scrollBodyBox": {
+              "x": 16,
+              "y": 394,
+              "width": 358,
+              "height": 382
+            },
+            "sheetBox": {
+              "x": 0,
+              "y": 238,
+              "width": 390,
+              "height": 554
+            },
+            "navBox": {
+              "x": 0,
+              "y": 792,
+              "width": 390,
+              "height": 52
+            }
+          },
+          "map controls sheet-overlap state": {
+            "overlap": "true",
+            "ariaHidden": "true",
+            "inert": true,
+            "opacity": "0",
+            "pointerEvents": "auto",
+            "rect": {
+              "top": 200,
+              "bottom": 308,
+              "height": 108
+            },
+            "measuredCovered": true
+          },
+          "venue row visibility geometry": {
+            "fullyVisible": 4,
+            "partiallyVisible": 4,
+            "rows": [
+              {
+                "index": 0,
+                "visible": true,
+                "overlaps": true,
+                "fullyVisible": true,
+                "rect": {
+                  "top": 394,
+                  "bottom": 477.5,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 1,
+                "visible": true,
+                "overlaps": true,
+                "fullyVisible": true,
+                "rect": {
+                  "top": 489.5,
+                  "bottom": 573,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 2,
+                "visible": true,
+                "overlaps": true,
+                "fullyVisible": true,
+                "rect": {
+                  "top": 585,
+                  "bottom": 668.5,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 3,
+                "visible": true,
+                "overlaps": true,
+                "fullyVisible": true,
+                "rect": {
+                  "top": 680.5,
+                  "bottom": 764,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 4,
+                "visible": true,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 776,
+                  "bottom": 859.5,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 5,
+                "visible": true,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 871.5,
+                  "bottom": 955,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 6,
+                "visible": true,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 967,
+                  "bottom": 1050.5,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 7,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 8,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 9,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 10,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 11,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 12,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 13,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              }
+            ]
+          }
+        },
+        "failures": []
+      },
+      "url": "http://localhost:3000/?_state=map-panel-venues&_time=14:00&_sheetRows=max",
+      "fileName": "mobile-map-panel-venues-rows-max.png",
+      "outPath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-9-slider-date-candidates\\20260724-slider-date-refinement\\mobile-map-panel-venues-rows-max.png",
+      "htmlLang": "sv",
+      "status": "captured",
+      "events": {
+        "console": [
+          {
+            "type": "warning",
+            "text": "You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled"
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          }
+        ],
+        "pageErrors": [],
+        "requestFailed": [],
+        "httpErrors": []
+      },
+      "candidate": {
+        "bytes": 393802,
+        "sha256": "cb91ee8fde17c16151623911fe362a55ba5f2ba3ef0d61d6e425b730bbf819f6",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        }
+      }
+    },
+    {
+      "viewport": "mobile",
+      "screenId": "map-panel-venues",
+      "variant": "mid-drag",
+      "route": "/?_state=map-panel-venues&_time=14:00&_sheetDrag=mid",
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\mobile\\map-panel-venues.png",
+        "exists": true,
+        "bytes": 535299,
+        "sha256": "5b168fac021deb8e0b3e9567fa9fa8d4adf4837fee772cceb1f26ade3e98d3c6",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        },
+        "sameSha256": false
+      },
+      "expectedRows": 3,
+      "expectedDragging": true,
+      "assertions": {
+        "details": {
+          "map visible": true,
+          "visible pin count": 7,
+          "planner visible and sized": {
+            "box": {
+              "x": 16,
+              "y": 72,
+              "width": 358,
+              "height": 68
+            },
+            "className": "z-glass-panel bg-glass-slider text-text-primary backdrop-blur-heavy rounded-panel px-4 py-3 shadow-card-up lg:hidden absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*18)]"
+          },
+          "mobile date trigger": {
+            "box": {
+              "x": 284.109375,
+              "y": 84,
+              "width": 73.890625,
+              "height": 44
+            },
+            "svgCount": 1,
+            "nextVisible": 0,
+            "dateText": "Idag",
+            "ariaHaspopup": "dialog",
+            "ariaExpanded": "false"
+          },
+          "mobile slider geometry": {
+            "track": {
+              "x": 32,
+              "y": 113,
+              "width": 244.109375,
+              "height": 6
+            },
+            "thumb": {
+              "x": 155.140625,
+              "y": 108.953125,
+              "width": 14.09375,
+              "height": 14.09375
+            },
+            "badge": {
+              "x": 138.1875,
+              "y": 84,
+              "width": 48,
+              "height": 19
+            },
+            "hit": {
+              "x": 32,
+              "y": 84,
+              "width": 244.109375,
+              "height": 44
+            },
+            "clearance": 5.953125
+          },
+          "mobile row sheet state": {
+            "visibleRows": 3,
+            "maxRows": 4,
+            "rowHeight": 96,
+            "sheetHeight": 507,
+            "rowVisibility": {
+              "fullyVisible": 3,
+              "partiallyVisible": 4,
+              "rows": [
+                {
+                  "index": 0,
+                  "visible": true,
+                  "overlaps": true,
+                  "fullyVisible": true,
+                  "rect": {
+                    "top": 441.5,
+                    "bottom": 525,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 1,
+                  "visible": true,
+                  "overlaps": true,
+                  "fullyVisible": true,
+                  "rect": {
+                    "top": 537,
+                    "bottom": 620.5,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 2,
+                  "visible": true,
+                  "overlaps": true,
+                  "fullyVisible": true,
+                  "rect": {
+                    "top": 632.5,
+                    "bottom": 716,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 3,
+                  "visible": true,
+                  "overlaps": true,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 728,
+                    "bottom": 811.5,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 4,
+                  "visible": true,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 823.5,
+                    "bottom": 907,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 5,
+                  "visible": true,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 919,
+                    "bottom": 1002.5,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 6,
+                  "visible": true,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 1014.5,
+                    "bottom": 1098,
+                    "height": 83.5
+                  }
+                },
+                {
+                  "index": 7,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 8,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 9,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 10,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 11,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 12,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                },
+                {
+                  "index": 13,
+                  "visible": false,
+                  "overlaps": false,
+                  "fullyVisible": false,
+                  "rect": {
+                    "top": 0,
+                    "bottom": 0,
+                    "height": 0
+                  }
+                }
+              ]
+            },
+            "attrs": {
+              "state": "rows-3",
+              "visibleRows": "3",
+              "maxRows": "4",
+              "rowHeight": "96",
+              "sheetHeight": "507",
+              "dragging": "true",
+              "className": "absolute inset-x-0 bottom-[calc(var(--size-mobile-nav-h)+env(safe-area-inset-bottom))] z-bottom-sheet-peek flex flex-col overflow-hidden rounded-t-panel bg-surface-cream text-text-primary shadow-sheet-peek-up lg:hidden touch-pan-y",
+              "style": "height: 506.5px; max-height: 554px; opacity: 1;"
+            },
+            "bodyAttrs": {
+              "ariaHidden": "false",
+              "inert": false,
+              "className": "min-h-0 flex-1 px-4 pb-4",
+              "rect": {
+                "width": 390,
+                "height": 462.5
+              }
+            },
+            "chromeBox": {
+              "x": 16,
+              "y": 329.5,
+              "width": 358,
+              "height": 112
+            },
+            "scrollBodyBox": {
+              "x": 16,
+              "y": 441.5,
+              "width": 358,
+              "height": 334.5
+            },
+            "sheetBox": {
+              "x": 0,
+              "y": 285.5,
+              "width": 390,
+              "height": 506.5
+            },
+            "navBox": {
+              "x": 0,
+              "y": 792,
+              "width": 390,
+              "height": 52
+            }
+          },
+          "map controls sheet-overlap state": {
+            "overlap": "true",
+            "ariaHidden": "true",
+            "inert": true,
+            "opacity": "0",
+            "pointerEvents": "auto",
+            "rect": {
+              "top": 200,
+              "bottom": 308,
+              "height": 108
+            },
+            "measuredCovered": true
+          },
+          "venue row visibility geometry": {
+            "fullyVisible": 3,
+            "partiallyVisible": 4,
+            "rows": [
+              {
+                "index": 0,
+                "visible": true,
+                "overlaps": true,
+                "fullyVisible": true,
+                "rect": {
+                  "top": 441.5,
+                  "bottom": 525,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 1,
+                "visible": true,
+                "overlaps": true,
+                "fullyVisible": true,
+                "rect": {
+                  "top": 537,
+                  "bottom": 620.5,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 2,
+                "visible": true,
+                "overlaps": true,
+                "fullyVisible": true,
+                "rect": {
+                  "top": 632.5,
+                  "bottom": 716,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 3,
+                "visible": true,
+                "overlaps": true,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 728,
+                  "bottom": 811.5,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 4,
+                "visible": true,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 823.5,
+                  "bottom": 907,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 5,
+                "visible": true,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 919,
+                  "bottom": 1002.5,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 6,
+                "visible": true,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 1014.5,
+                  "bottom": 1098,
+                  "height": 83.5
+                }
+              },
+              {
+                "index": 7,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 8,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 9,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 10,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 11,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 12,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              },
+              {
+                "index": 13,
+                "visible": false,
+                "overlaps": false,
+                "fullyVisible": false,
+                "rect": {
+                  "top": 0,
+                  "bottom": 0,
+                  "height": 0
+                }
+              }
+            ]
+          }
+        },
+        "failures": []
+      },
+      "url": "http://localhost:3000/?_state=map-panel-venues&_time=14:00&_sheetDrag=mid",
+      "fileName": "mobile-map-panel-venues-mid-drag.png",
+      "outPath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-9-slider-date-candidates\\20260724-slider-date-refinement\\mobile-map-panel-venues-mid-drag.png",
+      "htmlLang": "sv",
+      "status": "captured",
+      "events": {
+        "console": [
+          {
+            "type": "warning",
+            "text": "You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled"
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          }
+        ],
+        "pageErrors": [],
+        "requestFailed": [],
+        "httpErrors": []
+      },
+      "candidate": {
+        "bytes": 425126,
+        "sha256": "68fdb158f749a1da6cacc5df36f805d45e6f0e3c8446f6fa21019da94e0700ad",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        }
+      }
+    }
+  ]
+}

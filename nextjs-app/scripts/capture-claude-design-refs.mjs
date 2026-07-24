@@ -90,17 +90,8 @@ const RECIPES = [
     screenId: 'map-panel-venues',
     viewport: 'mobile',
     prototype: PROTO.mvpMobile,
-    localStorage: { sunny_screen: 'map' },
-    // BottomSheet starts in 'mid' state. The drag handle is a 26-tall div at the
-    // top of the sheet with `onClick={cycle}`. For a 390x844 viewport, mid sheet
-    // height = 320 + footer 52, so the handle sits ~y=485 (vertical centre).
-    // We click it twice to advance peek -> mid -> full. (Already at mid by default,
-    // so one click goes mid -> full.)
-    steps: [
-      { wait: 600 },
-      { clickXY: [195, 485] },
-      { wait: 500 },
-    ],
+    skip:
+      'Story 12.9 redefines this state as an approved implementation-derived row-count sheet. The Claude prototype still uses fixed peek/mid/full snaps, so do not regenerate the active PNG from it. Reproduce the approved ordinary reference with /?_state=map-panel-venues&_time=14:00; _sheetRows=max and _sheetDrag=mid are supporting proof only.',
   },
   {
     screenId: 'map-with-selected-venue',

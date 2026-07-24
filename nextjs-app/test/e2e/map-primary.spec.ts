@@ -115,45 +115,146 @@ async function expectFreePlannerChrome(page: Page): Promise<Locator> {
   return planner;
 }
 
-async function firstUncoveredSunnyPin(page: Page): Promise<Locator> {
-  const pins = page.locator('[data-testid="venue-pin"][data-pin-state="sunny"]');
+async function firstUncoveredPin(page: Page, selector = '[data-testid="venue-pin"]'): Promise<Locator> {
+  const pins = page.locator(selector);
   await expect(pins.first()).toBeVisible();
   const plannerBox = await visiblePlanner(page).boundingBox().catch(() => null);
   const sheetBox = await page.getByTestId('mobile-bottom-sheet').boundingBox().catch(() => null);
   const viewport = page.viewportSize();
   const count = await pins.count();
-  let firstInViewport: Locator | null = null;
+  let targetPin: Locator | null = null;
 
   for (let index = 0; index < count; index += 1) {
     const pin = pins.nth(index);
     const box = await pin.boundingBox();
-    if (!box || !plannerBox) return pin;
+    if (!box) continue;
     const centerX = box.x + box.width / 2;
     const centerY = box.y + box.height / 2;
     const outsideViewport = viewport
-      ? centerX < 0 || centerX > viewport.width || centerY < 0 || centerY > viewport.height
+      ? box.x < 0 ||
+        box.y < 0 ||
+        box.x + box.width > viewport.width ||
+        box.y + box.height > viewport.height
       : false;
     if (outsideViewport) continue;
-    firstInViewport ??= pin;
     const coveredByPlanner = plannerBox
       ? isPointInsideBox(centerX, centerY, plannerBox)
       : false;
     const coveredBySheet = sheetBox
-      ? isPointInsideBox(centerX, centerY, sheetBox)
+      ? box.y + box.height >= sheetBox.y - 8
       : false;
-    if (!coveredByPlanner && !coveredBySheet) return pin;
+    if (!coveredByPlanner && !coveredBySheet) {
+      targetPin = pin;
+      break;
+    }
   }
 
-  return firstInViewport ?? pins.first();
+  expect(targetPin, `Expected an uncovered map pin matching ${selector}`).not.toBeNull();
+  return targetPin!;
 }
 
-async function collapseVenueSheetToPeek(page: Page): Promise<void> {
+async function firstUncoveredSunnyPin(page: Page): Promise<Locator> {
+  return firstUncoveredPin(page, '[data-testid="venue-pin"][data-pin-state="sunny"]');
+}
+
+async function setVenueSheetRows(page: Page, targetRows: number): Promise<void> {
   const sheet = page.getByTestId('mobile-bottom-sheet');
-  const state = await sheet.getAttribute('data-state');
-  if (state !== 'peek') {
-    await page.getByTestId('mobile-bottom-sheet-handle').press('ArrowDown');
+  const handle = page.getByTestId('mobile-bottom-sheet-handle');
+  await expect(sheet).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const maxRowsAttribute = await sheet.getAttribute('data-max-rows');
+    const maxRows = Number(maxRowsAttribute);
+    const clampedTargetRows = Number.isFinite(maxRows)
+      ? Math.min(targetRows, maxRows)
+      : targetRows;
+    const currentRowsAttribute = await sheet.getAttribute('data-visible-rows');
+    const currentRows = Number(currentRowsAttribute);
+    if (!Number.isFinite(currentRows)) {
+      await expect(sheet).toHaveAttribute('data-visible-rows', /^\d+$/);
+      continue;
+    }
+    if (currentRows === clampedTargetRows) {
+      await expect(sheet).toHaveAttribute('data-state', `rows-${clampedTargetRows}`);
+      return;
+    }
+    await handle.press(currentRows > clampedTargetRows ? 'ArrowDown' : 'ArrowUp');
   }
-  await expect(sheet).toHaveAttribute('data-state', 'peek');
+
+  const finalMaxRows = await getSheetMaxRows(page);
+  const finalTargetRows = Math.min(targetRows, finalMaxRows);
+  await expectSheetRowsClamped(page, finalTargetRows);
+}
+
+async function getSheetRows(page: Page): Promise<number> {
+  const sheet = page.getByTestId('mobile-bottom-sheet');
+  await expect(sheet).toHaveAttribute('data-visible-rows', /^\d+$/, {
+    timeout: APP_SETTLE_TIMEOUT_MS,
+  });
+  const value = await sheet.getAttribute('data-visible-rows');
+  return Number(value);
+}
+
+async function getSheetMaxRows(page: Page): Promise<number> {
+  const sheet = page.getByTestId('mobile-bottom-sheet');
+  await expect(sheet).toHaveAttribute('data-max-rows', /^\d+$/, {
+    timeout: APP_SETTLE_TIMEOUT_MS,
+  });
+  const value = await sheet.getAttribute('data-max-rows');
+  return Number(value);
+}
+
+async function expectSheetRowsClamped(page: Page, requestedRows: number): Promise<number> {
+  const sheet = page.getByTestId('mobile-bottom-sheet');
+  let resolvedRows = 0;
+  await expect(async () => {
+    const [rowsAttribute, maxRowsAttribute, stateAttribute] = await Promise.all([
+      sheet.getAttribute('data-visible-rows'),
+      sheet.getAttribute('data-max-rows'),
+      sheet.getAttribute('data-state'),
+    ]);
+    const currentRows = Number(rowsAttribute);
+    const maxRows = Number(maxRowsAttribute);
+    expect(Number.isFinite(currentRows)).toBe(true);
+    expect(Number.isFinite(maxRows)).toBe(true);
+    const expectedRows = Math.min(requestedRows, maxRows);
+    expect(currentRows).toBe(expectedRows);
+    expect(stateAttribute).toBe(`rows-${expectedRows}`);
+    resolvedRows = expectedRows;
+  }).toPass({ timeout: APP_SETTLE_TIMEOUT_MS });
+  return resolvedRows;
+}
+
+async function visibleVenueRowCounts(page: Page): Promise<{
+  fullyVisible: number;
+  partiallyVisible: number;
+}> {
+  const scrollBody = page.locator('[data-bottom-sheet-scroll-body="true"]').first();
+  const bodyBox = await scrollBody.boundingBox();
+  expect(bodyBox).not.toBeNull();
+  if (!bodyBox) return { fullyVisible: 0, partiallyVisible: 0 };
+
+  return page.locator('[data-testid="venue-card"]').evaluateAll((nodes, box) => {
+    const bodyTop = box.y;
+    const bodyBottom = box.y + box.height;
+    let fullyVisible = 0;
+    let partiallyVisible = 0;
+    for (const node of nodes) {
+      const element = node as HTMLElement;
+      const style = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      const visible =
+        style.visibility !== 'hidden' &&
+        style.display !== 'none' &&
+        rect.width > 0 &&
+        rect.height > 0;
+      const overlaps = visible && rect.bottom > bodyTop + 1 && rect.top < bodyBottom - 1;
+      const fully = visible && rect.top >= bodyTop - 1 && rect.bottom <= bodyBottom + 1;
+      if (overlaps) partiallyVisible += 1;
+      if (fully) fullyVisible += 1;
+    }
+    return { fullyVisible, partiallyVisible };
+  }, bodyBox);
 }
 
 function isPointInsideBox(
@@ -303,17 +404,19 @@ test.describe('map-primary', () => {
 
     await bypassOnboarding(page);
     await page.goto('/');
-    await page.waitForSelector('[data-testid="venue-pin"][data-pin-state="sunny"]', {
+    await page.waitForSelector('[data-testid="venue-pin"]', {
       timeout: 15000,
     });
-    await collapseVenueSheetToPeek(page);
+    await setVenueSheetRows(page, 0);
 
-    const sunnyPin = await firstUncoveredSunnyPin(page);
-    await sunnyPin.click();
+    const pin = await firstUncoveredPin(page);
+    const stateBefore = await pin.getAttribute('data-pin-state');
+    expect(stateBefore).toBeTruthy();
+    await pin.click();
 
     const selectedPin = page.locator('[data-testid="venue-pin"][data-selected="true"]');
     await expect(selectedPin).toHaveCount(1);
-    await expect(selectedPin).toHaveAttribute('data-pin-state', 'sunny');
+    await expect(selectedPin).toHaveAttribute('data-pin-state', stateBefore!);
     await expect(page.getByTestId('venue-quick-info').first()).toBeVisible();
   });
 
@@ -453,6 +556,54 @@ test.describe('map-primary', () => {
     }
   });
 
+  test('mobile: planner chrome meets the 12.9 slider/date geometry contract at 390x844', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'mobile',
+      'Mobile planner geometry runs only in the mobile Playwright project',
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await bypassOnboarding(page);
+    await page.goto('/?_state=map-primary&_time=14:00');
+    await page.waitForSelector('[data-testid="venue-pin"]', { timeout: APP_SETTLE_TIMEOUT_MS });
+
+    const planner = await expectFreePlannerChrome(page);
+    const panelBox = await planner.boundingBox();
+    expect(panelBox).not.toBeNull();
+    if (!panelBox) return;
+    expect(panelBox.height).toBeGreaterThanOrEqual(68);
+    expect(panelBox.height).toBeLessThanOrEqual(72);
+
+    const trackBox = await planner.getByTestId('time-slider-track').boundingBox();
+    const thumbBox = await planner.getByTestId('time-slider-thumb').boundingBox();
+    const badgeBox = await planner.getByTestId('time-slider-value-badge').boundingBox();
+    const hitBox = await planner.getByRole('slider', { name: 'Välj tid' }).boundingBox();
+    const trigger = planner.getByTestId('planner-date-trigger');
+    const triggerBox = await trigger.boundingBox();
+    expect(trackBox).not.toBeNull();
+    expect(thumbBox).not.toBeNull();
+    expect(badgeBox).not.toBeNull();
+    expect(hitBox).not.toBeNull();
+    expect(triggerBox).not.toBeNull();
+    if (!trackBox || !thumbBox || !badgeBox || !hitBox || !triggerBox) return;
+
+    expect(trackBox.height).toBeCloseTo(6, 0);
+    expect(thumbBox.width).toBeCloseTo(14.1, 0);
+    expect(thumbBox.height).toBeCloseTo(14.1, 0);
+    expect(hitBox.width).toBeGreaterThanOrEqual(44);
+    expect(hitBox.height).toBeGreaterThanOrEqual(44);
+    expect(badgeBox.y + badgeBox.height).toBeLessThan(thumbBox.y);
+    expect(thumbBox.y - (badgeBox.y + badgeBox.height)).toBeGreaterThanOrEqual(4);
+    expect(triggerBox.width).toBeGreaterThanOrEqual(44);
+    expect(triggerBox.height).toBeGreaterThanOrEqual(44);
+    await expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(await trigger.locator('svg').count()).toBe(1);
+    await expect(planner.getByTestId('planner-date-next')).toHaveCount(0);
+  });
+
   test('mobile: selecting a future date sends planner params to the venues API', async ({
     page,
   }, testInfo) => {
@@ -497,46 +648,11 @@ test.describe('map-primary', () => {
 
     const sheet = page.getByTestId('mobile-bottom-sheet');
     const nav = page.getByTestId('mobile-nav-bar');
-    await expect(sheet).toHaveAttribute('data-state', 'mid');
+    await expectSheetRowsClamped(page, 3);
     await expect(page.getByTestId('venue-card').first()).toBeVisible();
 
-    const handle = page.getByTestId('mobile-bottom-sheet-handle');
-    await handle.press('Enter');
-    await expect(sheet).toHaveAttribute('data-state', 'full');
-
-    const handleBox = await handle.boundingBox();
-    expect(handleBox).not.toBeNull();
-    await handle.evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      const x = rect.left + rect.width / 2;
-      const y = rect.top + rect.height / 2;
-      const pointer = {
-        pointerId: 1,
-        pointerType: 'touch',
-        isPrimary: true,
-        bubbles: true,
-        cancelable: true,
-      } as const;
-      element.dispatchEvent(new PointerEvent('pointerdown', {
-        ...pointer,
-        clientX: x,
-        clientY: y,
-        buttons: 1,
-      }));
-      element.dispatchEvent(new PointerEvent('pointermove', {
-        ...pointer,
-        clientX: x,
-        clientY: y + 260,
-        buttons: 1,
-      }));
-      element.dispatchEvent(new PointerEvent('pointerup', {
-        ...pointer,
-        clientX: x,
-        clientY: y + 260,
-        buttons: 0,
-      }));
-    });
-    await expect(sheet).toHaveAttribute('data-state', 'peek');
+    await setVenueSheetRows(page, 4);
+    await setVenueSheetRows(page, 0);
     await expect(nav).toBeVisible();
 
     const sheetBox = await sheet.boundingBox();
@@ -559,14 +675,12 @@ test.describe('map-primary', () => {
     await bypassOnboarding(page);
     await page.goto('/?_state=map-panel-venues');
 
-    const sheet = page.getByTestId('mobile-bottom-sheet');
-    await expect(sheet).toHaveAttribute('data-state', 'mid');
-    await page.getByTestId('mobile-bottom-sheet-handle').press('Enter');
-    await expect(sheet).toHaveAttribute('data-state', 'full');
+    await expectSheetRowsClamped(page, 3);
+    await setVenueSheetRows(page, 4);
     await expectFreePlannerChrome(page);
   });
 
-  test('mobile: selecting a venue from the full panel returns to peek and opens QuickInfo', async ({
+  test('mobile: selecting a venue from the max-row panel preserves rows and opens QuickInfo', async ({
     page,
   }, testInfo) => {
     test.skip(
@@ -575,14 +689,81 @@ test.describe('map-primary', () => {
     );
 
     await bypassOnboarding(page);
-    await page.goto('/?_state=map-panel-venues');
+    await page.goto('/?_state=map-panel-venues&_sheetRows=max');
+    const sheet = page.getByTestId('mobile-bottom-sheet');
+    await expect(async () => {
+      const rows = await getSheetRows(page);
+      const maxRows = await getSheetMaxRows(page);
+      expect(rows).toBe(maxRows);
+      expect(rows).toBeGreaterThan(0);
+    }).toPass({ timeout: APP_SETTLE_TIMEOUT_MS });
+    const rowsBefore = await getSheetRows(page);
 
     const firstCard = page.getByTestId('venue-card').first();
     await expect(firstCard).toBeVisible();
     await firstCard.click();
 
-    await expect(page.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'peek');
+    await expect(sheet).toHaveAttribute('data-visible-rows', String(rowsBefore));
     await expect(page.getByTestId('venue-quick-info').first()).toBeVisible();
+  });
+
+  test('mobile: max-row venue panel removes sheet-covered zoom controls from interaction', async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name !== 'mobile',
+      'Max-row zoom-control overlap check runs only in the mobile Playwright project',
+    );
+
+    await bypassOnboarding(page);
+    await page.goto('/?_state=map-panel-venues&_sheetRows=max');
+    await expect(async () => {
+      const rows = await getSheetRows(page);
+      const maxRows = await getSheetMaxRows(page);
+      expect(rows).toBe(maxRows);
+      expect(rows).toBeGreaterThan(0);
+    }).toPass({ timeout: APP_SETTLE_TIMEOUT_MS });
+
+    const controls = page.getByTestId('map-controls');
+    await expect(controls).toHaveAttribute('data-mobile-sheet-overlap', 'true');
+    await expect(controls).toHaveAttribute('aria-hidden', 'true');
+    await expect(controls).toHaveAttribute('inert');
+    await expect(controls).toHaveCSS('opacity', '0');
+  });
+
+  test('mobile: forced N=3 venue panel shows exactly three complete rows at rest', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'Row-sheet geometry runs only on mobile');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await bypassOnboarding(page);
+    await page.goto('/?_state=map-panel-venues&_time=14:00&_sheetRows=3');
+    const resolvedRows = await expectSheetRowsClamped(page, 3);
+    expect(resolvedRows).toBe(3);
+
+    const counts = await visibleVenueRowCounts(page);
+    expect(counts.fullyVisible).toBe(3);
+    expect(counts.partiallyVisible).toBe(3);
+  });
+
+  test('mobile: forced mid-drag venue panel keeps three full rows plus a partial next row', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'Mid-drag geometry runs only on mobile');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await bypassOnboarding(page);
+    await page.goto('/?_state=map-panel-venues&_time=14:00&_sheetDrag=mid');
+    const sheet = page.getByTestId('mobile-bottom-sheet');
+    await expect(sheet).toHaveAttribute('data-visible-rows', '3', {
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
+    await expect(sheet).toHaveAttribute('data-dragging', 'true');
+
+    const counts = await visibleVenueRowCounts(page);
+    expect(counts.fullyVisible).toBeGreaterThanOrEqual(3);
+    expect(counts.partiallyVisible).toBeGreaterThan(3);
   });
 
   test('mobile: reduced motion disables venue-card stagger and sheet transform animation', async ({
@@ -606,11 +787,11 @@ test.describe('map-primary', () => {
 
     const sheet = page.getByTestId('mobile-bottom-sheet');
     const handle = page.getByTestId('mobile-bottom-sheet-handle');
-    await expect(sheet).toHaveAttribute('data-state', 'mid');
+    await setVenueSheetRows(page, 1);
     await handle.press('ArrowUp');
-    await expect(sheet).toHaveAttribute('data-state', 'full');
+    await expect(sheet).toHaveAttribute('data-visible-rows', '2');
     await handle.press('ArrowDown');
-    await expect(page.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'mid');
+    await expect(sheet).toHaveAttribute('data-visible-rows', '1');
     const sheetTransform = await page.getByTestId('mobile-bottom-sheet').evaluate(
       (el) => window.getComputedStyle(el).transform,
     );
@@ -744,11 +925,11 @@ test.describe('map-primary', () => {
 
     await bypassOnboarding(page);
     // (Story 1.6 review P24: removed duplicate `await bypassOnboarding(page)`.)
-    await page.goto('/');
+    await page.goto('/?_state=map-primary');
     await page.waitForSelector('[data-testid="venue-pin"][data-pin-state="sunny"]', {
       timeout: 15000,
     });
-    await collapseVenueSheetToPeek(page);
+    await setVenueSheetRows(page, 0);
 
     const sunnyPin = await firstUncoveredSunnyPin(page);
     const beforeBox = await sunnyPin.boundingBox();
@@ -844,13 +1025,13 @@ test.describe('map-primary', () => {
 
     await bypassOnboarding(page);
     await page.goto('/');
-    await page.waitForSelector('[data-testid="venue-pin"][data-pin-state="sunny"]', {
+    await page.waitForSelector('[data-testid="venue-pin"]', {
       timeout: 15000,
     });
-    await collapseVenueSheetToPeek(page);
+    await setVenueSheetRows(page, 0);
 
-    const sunnyPin = await firstUncoveredSunnyPin(page);
-    await sunnyPin.click();
+    const pin = await firstUncoveredPin(page);
+    await pin.click();
     await expect(
       page.locator('[data-testid="venue-pin"][data-selected="true"]'),
     ).toHaveCount(1);

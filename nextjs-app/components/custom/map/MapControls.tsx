@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Minus, Plus } from 'lucide-react';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
@@ -8,7 +8,6 @@ import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
 import { DURATION_FLY_MS } from '@/lib/constants/animation';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { computeRecenterPadding } from '@/lib/utils/recenter-padding';
-import type { MobileBottomSheetState } from '@/components/custom/sheets/MobileBottomSheet';
 
 /**
  * Media query for the desktop breakpoint (`--breakpoint-desktop`, 1024 px).
@@ -25,9 +24,9 @@ function isDesktopViewport(): boolean {
 }
 
 type MapControlsProps = {
-  /** Current mobile bottom-sheet snap — drives the recenter bottom padding so
-   * the dot lands centred in the unobscured map area (AC3). */
-  mobileSheetState?: MobileBottomSheetState;
+  /** Current measured mobile row-sheet height above the nav bar. Read only at
+   * fly time so row changes never trigger a refly by themselves. */
+  mobileSheetHeightPx?: number;
   /** Whether the desktop venue-detail panel is open — drives the recenter
    * right padding on desktop (AC3). */
   isVenueDetailOpen?: boolean;
@@ -35,6 +34,8 @@ type MapControlsProps = {
 
 const ZOOM_DURATION_MS = 200;
 const DRAG_FADE_OPACITY = '0.6';
+const MOBILE_NAV_BAR_COVER_PX = 52;
+const MOBILE_CONTROLS_SHEET_GAP_PX = 8;
 
 /**
  * Floating glass map control stack (zoom +/-, my location).
@@ -77,40 +78,91 @@ const DRAG_FADE_OPACITY = '0.6';
  *     `useSettings()`; it is always enabled (not gated on `mapInstance`).
  */
 export function MapControls({
-  mobileSheetState = 'mid',
+  mobileSheetHeightPx = 0,
   isVenueDetailOpen = false,
 }: MapControlsProps = {}) {
   const t = useTranslations('map');
   const { mapInstance } = useMapInstance();
   const geolocation = useGeolocation();
   const controlsRef = useRef<HTMLDivElement | null>(null);
+  const controlsHiddenBySheetRef = useRef(false);
+  const [mobileSheetOverlapsControls, setMobileSheetOverlapsControls] = useState(false);
   const isMapReady = mapInstance !== null;
 
   // External-review fix: the recenter-fly effect must trigger ONLY on a
-  // geolocation transition / explicit locate — NEVER on a sheet-snap change or a
-  // detail-panel open. Previously `mobileSheetState`/`isVenueDetailOpen` were
+  // geolocation transition / explicit locate — NEVER on a sheet-height change or a
+  // detail-panel open. Previously obstruction props were
   // effect DEPENDENCIES, so after a geolocation success ANY later snap change or
   // detail-panel open re-ran `flyTo` and yanked the map back to the user location
   // with no locate action. Hold the obstruction state in refs, read at fly time,
   // and keep them OUT of the fly effect's deps. The refs are synced in a
   // dedicated effect (never written during render) so the fly effect reads the
   // LATEST obstruction state without depending on it.
-  const mobileSheetStateRef = useRef(mobileSheetState);
+  const mobileSheetHeightPxRef = useRef(mobileSheetHeightPx);
   const isVenueDetailOpenRef = useRef(isVenueDetailOpen);
   useEffect(() => {
-    mobileSheetStateRef.current = mobileSheetState;
+    mobileSheetHeightPxRef.current = mobileSheetHeightPx;
     isVenueDetailOpenRef.current = isVenueDetailOpen;
-  }, [mobileSheetState, isVenueDetailOpen]);
+  }, [mobileSheetHeightPx, isVenueDetailOpen]);
+
+  const updateMobileSheetOverlap = useCallback(() => {
+    const node = controlsRef.current;
+    if (!node || typeof window === 'undefined' || isDesktopViewport()) {
+      setMobileSheetOverlapsControls(false);
+      return;
+    }
+
+    const viewportHeightPx = window.innerHeight || 0;
+    const controlsBottomPx = node.getBoundingClientRect().bottom;
+    const sheetTopPx =
+      viewportHeightPx -
+      MOBILE_NAV_BAR_COVER_PX -
+      Math.max(0, mobileSheetHeightPx);
+    const nextOverlaps =
+      Number.isFinite(viewportHeightPx) &&
+      viewportHeightPx > 0 &&
+      Number.isFinite(controlsBottomPx) &&
+      Number.isFinite(sheetTopPx) &&
+      sheetTopPx <= controlsBottomPx + MOBILE_CONTROLS_SHEET_GAP_PX;
+
+    setMobileSheetOverlapsControls((previous) =>
+      previous === nextOverlaps ? previous : nextOverlaps,
+    );
+  }, [mobileSheetHeightPx]);
+
+  useLayoutEffect(() => {
+    updateMobileSheetOverlap();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const node = controlsRef.current;
+    if (!node) return undefined;
+    const observer = new ResizeObserver(updateMobileSheetOverlap);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [updateMobileSheetOverlap]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    window.addEventListener('resize', updateMobileSheetOverlap);
+    return () => window.removeEventListener('resize', updateMobileSheetOverlap);
+  }, [updateMobileSheetOverlap]);
+
+  useEffect(() => {
+    controlsHiddenBySheetRef.current = mobileSheetOverlapsControls;
+    const node = controlsRef.current;
+    if (!node) return;
+    node.style.opacity = mobileSheetOverlapsControls ? '0' : '1';
+  }, [mobileSheetOverlapsControls]);
 
   useEffect(() => {
     const node = controlsRef.current;
     if (!mapInstance || !node) return;
 
     const handleDragStart = () => {
+      if (controlsHiddenBySheetRef.current) return;
       node.style.opacity = DRAG_FADE_OPACITY;
     };
     const handleDragEnd = () => {
-      node.style.opacity = '1';
+      node.style.opacity = controlsHiddenBySheetRef.current ? '0' : '1';
     };
 
     mapInstance.on('dragstart', handleDragStart);
@@ -153,8 +205,9 @@ export function MapControls({
     // transition fires.
     const padding = computeRecenterPadding({
       isDesktop: isDesktopViewport(),
-      mobileSheetState: mobileSheetStateRef.current,
+      mobileSheetHeightPx: mobileSheetHeightPxRef.current,
       isVenueDetailOpen: isVenueDetailOpenRef.current,
+      viewportHeightPx: mapInstance.getCanvas?.().clientHeight,
     });
     mapInstance.flyTo({
       center: [geolocation.coords.lng, geolocation.coords.lat],
@@ -173,6 +226,9 @@ export function MapControls({
     <div
       ref={controlsRef}
       data-testid="map-controls"
+      data-mobile-sheet-overlap={String(mobileSheetOverlapsControls)}
+      aria-hidden={mobileSheetOverlapsControls || undefined}
+      inert={mobileSheetOverlapsControls}
       className="absolute right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*50)] z-floating-buttons flex flex-col gap-3 opacity-100 transition-opacity duration-200 ease-default motion-reduce:transition-none lg:top-[calc(var(--size-desktop-nav-h)+var(--spacing)*7)]"
     >
       {/* Story 9.6: the floating locate + settings buttons were removed from

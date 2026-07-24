@@ -61,7 +61,7 @@ regenerates the MVP-covered active references below.
 |---|---|---|
 | `onboarding` | MVP Mobile Unlocked, no localStorage seed | Preserved curated implementation-derived baseline; not recaptured from MVP desktop by default |
 | `map-primary` | MVP Mobile Unlocked, `sunny_screen=map` | MVP Desktop Unlocked default |
-| `map-panel-venues` | MVP Mobile Unlocked, `sunny_screen=map`, click sheet handle to full state | n/a |
+| `map-panel-venues` | Approved Story 12.9 implementation-derived reference from `/?_state=map-panel-venues&_time=14:00` with a row-count sheet (`N=3` normally). Prototype recipe remains retired; `_sheetRows=max` and `_sheetDrag=mid` are retained as supporting proof only. | n/a |
 | `map-with-selected-venue` | MVP Mobile Unlocked, `sunny_screen=map`, click first `[data-pin]` | n/a |
 | `venue-detail` | MVP Mobile Unlocked, `sunny_screen=map`, click first pin, click `Mer info` | MVP Desktop Unlocked, click first pin, click `Mer info` |
 | `venue-photo-loaded` | Approved implementation-derived reference from `/?venue=test-venue-sunny&_state=venue-photo-loaded&_time=14:00`; not captured from the Claude prototype because the handoff bundle has placeholder media only | Approved implementation-derived reference from `/?venue=test-venue-sunny&_state=venue-photo-loaded&_time=16:30`; not captured from the Claude prototype because the handoff bundle has placeholder media only |
@@ -79,6 +79,7 @@ regenerates the MVP-covered active references below.
 | `not-found` | The MVP prototypes do not contain the routed app 404 page. | Keep legacy/active routed reference until a design exists. |
 | `map-primary-offline` | Offline shell has no Claude Design state yet. | First implementation-driven reference belongs to the offline story. |
 | `venue-photo-loaded`, `venue-photo-fallback` | The MVP prototypes intentionally render designed placeholders, not production Supabase Storage photos or broken-object fallback. | Use the approved Story 12.12 implementation-derived active PNGs; regenerate only with explicit maintainer approval plus a new `REBASELINE-LOG.md` entry. |
+| `map-panel-venues` | Story 12.9 replaced the fixed prototype sheet snaps with a row-quantized implementation contract. | Use the approved Story 12.9 implementation-derived active PNG from `/?_state=map-panel-venues&_time=14:00`; keep the prototype recipe skipped and regenerate/promote only with explicit maintainer approval plus a new `REBASELINE-LOG.md` entry. |
 | `premium-upsell`, `premium-paywall`, `premium-paywall-processing`, `payment-failed`, `premium-recovery` | Season Pass, Swish, payment, locked, and recovery flows are Post-MVP only. | Retain existing/future references as archived future assets. Do not use for MVP review gates. |
 
 ## Known Limitation — Prototype Chrome

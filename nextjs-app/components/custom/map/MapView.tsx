@@ -1,6 +1,6 @@
 'use client';
 
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { AnimatePresence, motion } from 'motion/react';
 import { LoaderCircle } from 'lucide-react';
@@ -11,7 +11,7 @@ import {
 } from '@/components/composed/venue/VenueQuickInfo';
 import {
   MobileBottomSheet,
-  type MobileBottomSheetState,
+  type MobileBottomSheetMetrics,
 } from '@/components/custom/sheets/MobileBottomSheet';
 import { VenueDetailOverlay } from '@/components/custom/venue/VenueDetailOverlay';
 import { RouteOverlay, type RouteOverlayLabels } from '@/components/custom/routing/RouteOverlay';
@@ -99,18 +99,24 @@ const QUICK_INFO_MOBILE_VIEWPORT_GUTTER = 16;
 // one gutter BELOW the planner bottom at common mobile heights.
 //   planner bottom ≈ SAFE_AREA_MAX + PLANNER_TOP_OFFSET + PLANNER_HEIGHT
 // SAFE_AREA_MAX covers the tallest common notch inset (~59px); PLANNER_TOP_OFFSET
-// mirrors `var(--spacing)*18 = 72px`; PLANNER_HEIGHT is the mobile panel's own
-// rendered height (`pt-5 pb-2` + a 44px slider/calendar row ≈ 80px). Keep these
-// in sync with TimeSliderPanel's mobile offset (MapView.tsx ~line 872) — if that
-// `top-[…*18]` offset or the panel padding changes, update these.
+// mirrors `var(--spacing)*18 = 72px`. The planner height itself is measured from
+// the rendered mobile TimeSliderPanel during layout, because font metrics,
+// compact date text, and safe-area/browser chrome can change the actual panel
+// box. Keep the offset in sync with TimeSliderPanel's mobile `top-[…*18]`.
 const MOBILE_SAFE_AREA_MAX_PX = 59;
 const MOBILE_PLANNER_TOP_OFFSET_PX = 72;
-const MOBILE_PLANNER_HEIGHT_PX = 80;
-const QUICK_INFO_MOBILE_PLANNER_BOTTOM_PX =
-  MOBILE_SAFE_AREA_MAX_PX + MOBILE_PLANNER_TOP_OFFSET_PX + MOBILE_PLANNER_HEIGHT_PX;
 const MOBILE_NAV_HEIGHT_PX = 52;
-const MOBILE_SHEET_MID_HEIGHT_PX = 320;
 const EMPTY_VENUES: VenueDataDto[] = [];
+const DEFAULT_MOBILE_SHEET_METRICS: MobileBottomSheetMetrics = {
+  visibleRows: 3,
+  maxRows: 3,
+  rowCount: 3,
+  rowHeightPx: 88,
+  chromeHeightPx: 104,
+  handleHeightPx: 44,
+  sheetHeightPx: 416,
+  maxSheetHeightPx: 416,
+};
 // Round 2 R2-P4: Round 1 P31 released the loading cover on the very first
 // tile error, but MapContainer only latches the sand fallback after
 // TILE_FAILURE_THRESHOLD = 4 errors. A single transient blip (CORS retry,
@@ -170,8 +176,11 @@ export function MapView() {
   const [quickInfoPosition, setQuickInfoPosition] = useState<{ x: number; y: number } | undefined>();
   const [quickInfoDesktopPlacement, setQuickInfoDesktopPlacement] =
     useState<VenueQuickInfoDesktopPlacement>('above');
-  const [mobileSheetState, setMobileSheetState] =
-    useState<MobileBottomSheetState>('mid');
+  const mobilePlannerPanelRef = useRef<HTMLElement | null>(null);
+  const [mobilePlannerHeightPx, setMobilePlannerHeightPx] = useState(0);
+  const [mobileSheetVisibleRows, setMobileSheetVisibleRows] = useState(3);
+  const [mobileSheetMetrics, setMobileSheetMetrics] =
+    useState<MobileBottomSheetMetrics>(DEFAULT_MOBILE_SHEET_METRICS);
   const [venueSortMode, setVenueSortMode] = useState<VenueListSortMode>('sun');
   const [routeOverlay, setRouteOverlay] = useState<{
     venueId: string;
@@ -190,6 +199,30 @@ export function MapView() {
   );
   const listMode = isFavouritesRoute ? 'favourites' : desktopListMode;
   const effectiveSortMode = listMode === 'favourites' ? 'sun' : venueSortMode;
+  const measureMobilePlannerHeight = useCallback(() => {
+    const nextHeight = measuredElementHeight(mobilePlannerPanelRef.current);
+    if (nextHeight <= 0) return;
+    setMobilePlannerHeightPx((previous) =>
+      previous === nextHeight ? previous : nextHeight,
+    );
+  }, []);
+
+  useLayoutEffect(() => {
+    measureMobilePlannerHeight();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const node = mobilePlannerPanelRef.current;
+    if (!node) return undefined;
+    const observer = new ResizeObserver(() => measureMobilePlannerHeight());
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [measureMobilePlannerHeight]);
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handleResize = () => measureMobilePlannerHeight();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [measureMobilePlannerHeight]);
   // Story 10.2 (Task 5): `map-with-obscured-venue` is the deterministic
   // obscured force-state — a sibling of `map-with-selected-venue` that
   // normalizes the selected venue + pin to the weather-gated CloudObscured
@@ -687,21 +720,32 @@ export function MapView() {
     router.replace(Object.keys(query).length > 0 ? { pathname, query } : pathname);
   }, [pathname, router, searchParams, selectedVenuePreview, venueSlugParam]);
 
-  useEffect(() => {
-    if (forcedState === 'map-panel-venues') {
-      setMobileSheetState('mid');
-    }
-  }, [forcedState]);
+  const isForcedRowSheetReference =
+    forcedState === 'map-primary' || forcedState === 'map-panel-venues';
+  const forcedSheetRows = resolveForcedSheetRows({
+    forcedState: isForcedRowSheetReference ? forcedState : null,
+    maxRows: mobileSheetMetrics.maxRows,
+    rowsParam: isForcedRowSheetReference ? searchParams.get('_sheetRows') : null,
+  });
+  const forcedSheetDragOffsetPx =
+    isForcedRowSheetReference && searchParams.get('_sheetDrag') === 'mid'
+      ? Math.round(mobileSheetMetrics.rowHeightPx / 2)
+      : 0;
 
   useEffect(() => {
-    if (selectedVenueId && !isVenueDetailRequested) {
-      setMobileSheetState('peek');
-      return;
+    if (forcedSheetRows === null) return;
+    setMobileSheetVisibleRows(forcedSheetRows);
+  }, [forcedSheetRows]);
+
+  useEffect(() => {
+    if (forcedSheetRows !== null) return;
+    if (listMode === 'favourites' && mobileSheetVisibleRows === 0) {
+      const reopenRows = Math.min(3, Math.max(0, mobileSheetMetrics.maxRows));
+      if (reopenRows > 0) {
+        setMobileSheetVisibleRows(reopenRows);
+      }
     }
-    if (listMode === 'favourites') {
-      setMobileSheetState('mid');
-    }
-  }, [isVenueDetailRequested, listMode, selectedVenueId]);
+  }, [forcedSheetRows, listMode, mobileSheetMetrics.maxRows, mobileSheetVisibleRows]);
 
   useEffect(() => {
     if (!isFavouritesRoute) {
@@ -729,7 +773,7 @@ export function MapView() {
     selectVenue(match.id, match);
   }, [forcedState, rawVenues, selectVenue, selectedVenuePreview, venueSlugParam]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Story 9.10 Task 3: guard against a selected venue whose coordinates are
     // null / non-finite (the `?venue=<slug>` deep-link at :604 selects a match
     // WITHOUT a location check, and real venue rows can carry a null lat/lng
@@ -768,7 +812,9 @@ export function MapView() {
           // Require that top to sit a gutter BELOW the planner-panel bottom, so
           // `minY = plannerBottom + gutter + cardHeight + anchorGap`. This keeps
           // the sun-% badge (top-left of the card) clear of the slider above it.
-          QUICK_INFO_MOBILE_PLANNER_BOTTOM_PX +
+          MOBILE_SAFE_AREA_MAX_PX +
+          MOBILE_PLANNER_TOP_OFFSET_PX +
+          mobilePlannerHeightPx +
           QUICK_INFO_MOBILE_VIEWPORT_GUTTER +
           QUICK_INFO_MOBILE_HEIGHT_ESTIMATE +
           QUICK_INFO_MOBILE_ANCHOR_GAP;
@@ -778,7 +824,7 @@ export function MapView() {
             minY,
             height -
               MOBILE_NAV_HEIGHT_PX -
-              MOBILE_SHEET_MID_HEIGHT_PX -
+              mobileSheetMetrics.sheetHeightPx -
               QUICK_INFO_MOBILE_VIEWPORT_GUTTER,
           );
       const canFitAbove = maxY >= minY;
@@ -798,7 +844,7 @@ export function MapView() {
       mapInstance.off('move', updatePosition);
       mapInstance.off('zoom', updatePosition);
     };
-  }, [mapInstance, selectedVenueDto]);
+  }, [mapInstance, mobilePlannerHeightPx, mobileSheetMetrics.sheetHeightPx, selectedVenueDto]);
 
   const handleOpenDetails = () => {
     const slug = selectedVenueDto?.slug ?? selectedPinData?.slug;
@@ -819,7 +865,6 @@ export function MapView() {
 
   const handleSelectVenueFromList = (venue: VenueDataDto) => {
     selectVenue(venue.id, venue);
-    setMobileSheetState('peek');
     if (mapInstance && hasValidVenueLocation(venue)) {
       mapInstance.easeTo({
         center: [venue.location.lng, venue.location.lat],
@@ -868,6 +913,9 @@ export function MapView() {
       favourites.favouriteIds.length > 0 &&
       visibleFavouriteVenueCount === 0
     );
+  const mobileSheetRowCount = listMode === 'favourites'
+    ? (isFavouriteListLoading ? 3 : Math.max(visibleFavouriteVenueCount, 0))
+    : (isNearListLoading ? 3 : Math.max(listVenues.length, 0));
   const routeText = routeLabels(tVenue);
   // Story 11.4 (AC1/AC2): the quick-info no longer renders a "Sol HH:mm–HH:mm"
   // window line or a truncated ETA inside its route button, so the
@@ -1051,11 +1099,12 @@ export function MapView() {
         <VenueSearchShell
           variant="mobile"
           className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*3)] z-bottom-sheet-full"
-          onVenueSelected={() => setMobileSheetState('peek')}
+          onVenueSelected={() => undefined}
         />
       )}
       <TimeSliderPanel
         variant="mobile"
+        panelRef={mobilePlannerPanelRef}
         className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*18)]"
       />
       {/* Desktop planner mirrors the Claude Design reference (src-desktop/
@@ -1073,35 +1122,43 @@ export function MapView() {
         )}
       />
       <MobileBottomSheet
-        state={mobileSheetState}
-        onStateChange={setMobileSheetState}
+        visibleRows={mobileSheetVisibleRows}
+        onVisibleRowsChange={setMobileSheetVisibleRows}
+        rowCount={mobileSheetRowCount}
+        forcedDragOffsetPx={forcedSheetDragOffsetPx}
+        onMetricsChange={setMobileSheetMetrics}
         handleLabel={tVenueList('handle')}
+        rowStatusLabel={(visibleRows, maxRows) =>
+          tVenueList('rowStatus', { visibleRows, maxRows })
+        }
+        chrome={(
+          <>
+            <VenueListControls
+              mode="mobile"
+              sortMode={effectiveSortMode}
+              onSortModeChange={handleSortModeChange}
+              listMode={listMode}
+              labels={venueListControlLabels(tVenueList)}
+            />
+            {/* Story 11.3 (AC1): the mobile tag-chip row sits directly UNDER the sort
+                toggles, inside the sheet body, so it scrolls/collapses with the
+                header (not a floating layer). It is a NEW consumer of the SHARED
+                TagFilterContext — a toggle here filters BOTH the mobile list AND the
+                map pins (the venue surfaces already read `activeTags`). It rides the
+                Närmast list only (favourites are intentionally unfiltered, matching
+                the desktop scope). Renders nothing until a tag loads. */}
+            {listMode !== 'favourites' && (
+              <MobileTagChips
+                tags={allTags}
+                isActive={isTagActive}
+                onToggleTag={toggleTag}
+                locale={locale === 'en' ? 'en' : 'sv'}
+                label={tCommon('nav.filter')}
+              />
+            )}
+          </>
+        )}
       >
-        {mobileSheetState !== 'peek' && (
-          <VenueListControls
-            mode="mobile"
-            sortMode={effectiveSortMode}
-            onSortModeChange={handleSortModeChange}
-            listMode={listMode}
-            labels={venueListControlLabels(tVenueList)}
-          />
-        )}
-        {/* Story 11.3 (AC1): the mobile tag-chip row sits directly UNDER the sort
-            toggles, inside the sheet body, so it scrolls/collapses with the
-            header (not a floating layer). It is a NEW consumer of the SHARED
-            TagFilterContext — a toggle here filters BOTH the mobile list AND the
-            map pins (the venue surfaces already read `activeTags`). It rides the
-            Närmast list only (favourites are intentionally unfiltered, matching
-            the desktop scope). Renders nothing until a tag loads. */}
-        {mobileSheetState !== 'peek' && listMode !== 'favourites' && (
-          <MobileTagChips
-            tags={allTags}
-            isActive={isTagActive}
-            onToggleTag={toggleTag}
-            locale={locale === 'en' ? 'en' : 'sv'}
-            label={tCommon('nav.filter')}
-          />
-        )}
         {listMode === 'favourites' ? (
           <FavouritesList
             favouriteIds={favourites.favouriteIds}
@@ -1112,8 +1169,7 @@ export function MapView() {
             isLoading={isFavouriteListLoading}
             isError={favouriteVenueQuery.isError}
             onRetry={() => favouriteVenueQuery.refetch()}
-            animateCards={mobileSheetState === 'full'}
-            compactCards={mobileSheetState === 'peek'}
+            compactCards
             onSelectVenue={handleSelectVenueFromList}
             onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
             isFavourite={favourites.isFavourite}
@@ -1125,8 +1181,7 @@ export function MapView() {
             sortMode={effectiveSortMode}
             locationIsApproximate={locationIsApproximate}
             isLoading={isNearListLoading}
-            animateCards={mobileSheetState === 'full'}
-            compactCards={mobileSheetState === 'peek'}
+            compactCards
             onSelectVenue={handleSelectVenueFromList}
             onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
             isFavourite={favourites.isFavourite}
@@ -1291,7 +1346,7 @@ export function MapView() {
           flyTo lands the user-location dot centred in the UNOBSCURED map area
           (mobile bottom-sheet snap / desktop detail panel). */}
       <MapControls
-        mobileSheetState={mobileSheetState}
+        mobileSheetHeightPx={mobileSheetMetrics.sheetHeightPx}
         isVenueDetailOpen={isVenueDetailRequested}
       />
       {!tilesPainted && (
@@ -1422,6 +1477,31 @@ function shouldUseForcedSunnyMapPins(forcedState: string | null): boolean {
     forcedState === 'map-panel-venues' ||
     forcedState === 'map-with-selected-venue' ||
     isForcedVenuePhotoState(forcedState);
+}
+
+function measuredElementHeight(node: HTMLElement | null): number {
+  if (!node) return 0;
+  const height = node.getBoundingClientRect().height || node.offsetHeight;
+  return Number.isFinite(height) && height > 0 ? Math.round(height) : 0;
+}
+
+function resolveForcedSheetRows({
+  forcedState,
+  rowsParam,
+  maxRows,
+}: {
+  forcedState: string | null;
+  rowsParam: string | null;
+  maxRows: number;
+}): number | null {
+  if (rowsParam) {
+    if (rowsParam === 'max') return Math.max(0, maxRows);
+    const parsed = Number(rowsParam);
+    return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : null;
+  }
+  if (forcedState === 'map-primary') return 0;
+  if (forcedState === 'map-panel-venues') return 3;
+  return null;
 }
 
 function normalizeForcedVisualPin(pin: VenuePinData): VenuePinData {

@@ -350,6 +350,29 @@ function waitMs(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+function mockMobilePlannerPanelHeight(height: number): void {
+  const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function getBoundingClientRect(this: HTMLElement) {
+    if (
+      this.getAttribute('data-testid') === 'time-slider-panel' &&
+      this.className.includes('lg:hidden')
+    ) {
+      return {
+        x: 0,
+        y: 0,
+        width: 358,
+        height,
+        top: 0,
+        left: 0,
+        right: 358,
+        bottom: height,
+        toJSON: () => ({}),
+      } as DOMRect;
+    }
+    return originalGetBoundingClientRect.call(this);
+  });
+}
+
 describe('<MapView />', () => {
   beforeEach(() => {
     stubMap = makeStubMap();
@@ -608,7 +631,12 @@ describe('<MapView />', () => {
     it('forced map-primary-offline renders the cached map + banner and hides all venue data (AC3/AC7)', () => {
       searchParamsMock = new URLSearchParams('_state=map-primary-offline');
       useVenueSearchMock.mockReturnValue({
-        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Bellora' }),
+          makeVenue({ id: 'venue-2', name: 'Da Matteo' }),
+          makeVenue({ id: 'venue-3', name: 'Bar Centro' }),
+          makeVenue({ id: 'venue-4', name: 'A43' }),
+        ]),
         isFetching: false,
         isError: false,
         dataUpdatedAt: 1,
@@ -641,7 +669,12 @@ describe('<MapView />', () => {
     it('shows the offline shell when the device goes offline and reloads venue data on reconnect (AC3/AC4)', async () => {
       setOnLine(true);
       useVenueSearchMock.mockReturnValue({
-        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Bellora' }),
+          makeVenue({ id: 'venue-2', name: 'Da Matteo' }),
+          makeVenue({ id: 'venue-3', name: 'Bar Centro' }),
+          makeVenue({ id: 'venue-4', name: 'A43' }),
+        ]),
         isFetching: false,
         isError: false,
         dataUpdatedAt: 1,
@@ -739,7 +772,12 @@ describe('<MapView />', () => {
     it('does not show the loading pill during a background refetch when previous venue data is displayed', () => {
       vi.useFakeTimers();
       useVenueSearchMock.mockReturnValue({
-        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Bellora' }),
+          makeVenue({ id: 'venue-2', name: 'Avenybaren' }),
+          makeVenue({ id: 'venue-3', name: 'Solgården' }),
+          makeVenue({ id: 'venue-4', name: 'Kvällsljus' }),
+        ]),
         isFetching: true,
         isError: false,
         dataUpdatedAt: 1000,
@@ -1121,9 +1159,10 @@ describe('<MapView />', () => {
       // rendered top edge (`top - cardHeight - 40`) sits clear of the planner.
       //
       // Derived floor (must stay in sync with MapView's mobile constants):
-      //   plannerBottom = SAFE_AREA(59) + PLANNER_OFFSET(72) + PLANNER_HEIGHT(80) = 211
-      //   minY = plannerBottom + gutter(16) + cardHeight(170) + anchorGap(40) = 437
-      const EXPECTED_MOBILE_MIN_Y = 437;
+      //   plannerBottom = SAFE_AREA(59) + PLANNER_OFFSET(72) + measured PLANNER_HEIGHT(83) = 214
+      //   minY = plannerBottom + gutter(16) + cardHeight(170) + anchorGap(40) = 440
+      const EXPECTED_MOBILE_MIN_Y = 440;
+      mockMobilePlannerPanelHeight(83);
       selectedVenueIdMock = 'venue-1';
       useVenueSearchMock.mockReturnValue({
         data: makeVenueResponse([
@@ -1147,8 +1186,36 @@ describe('<MapView />', () => {
       // exactly the planner-clearing minimum.
       expect(top).toBe(EXPECTED_MOBILE_MIN_Y);
       // Card top edge = top - cardHeight(170) - anchorGap(40) must clear the
-      // planner bottom (211) by at least a gutter (16).
-      expect(top - 170 - 40).toBeGreaterThanOrEqual(211 + 16);
+      // planner bottom (214) by at least a gutter (16).
+      expect(top - 170 - 40).toBeGreaterThanOrEqual(214 + 16);
+    });
+
+    it('derives the mobile QuickInfo clamp from the measured planner height, not a fixed capture value', () => {
+      // Same geometry as the clamp test, but with a taller measured planner.
+      // If MapView uses a hard-coded 83px capture value, this incorrectly stays
+      // at 440 instead of moving down to 469.
+      const EXPECTED_MOBILE_MIN_Y = 469;
+      mockMobilePlannerPanelHeight(112);
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Testbaren', slug: 'test-venue-sunny' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const mobileCard = screen
+        .getAllByTestId('venue-quick-info')
+        .find((el) => el.className.includes('w-[var(--size-quick-info-mobile-w)]'));
+      expect(mobileCard).toBeDefined();
+      const top = Number.parseFloat(
+        (mobileCard as HTMLElement).style.top.replace('px', ''),
+      );
+      expect(top).toBe(EXPECTED_MOBILE_MIN_Y);
     });
 
     it('threads the honest approximate-distance label into the mobile QuickInfo on the centrum fallback (Story 9.9 Task 3)', () => {
@@ -1987,9 +2054,14 @@ describe('<MapView />', () => {
   });
 
   describe('venue list orchestration', () => {
-    it('renders the mobile venue list sheet in mid state by default', () => {
+    it('renders the mobile venue list sheet with three visible rows by default', () => {
       useVenueSearchMock.mockReturnValue({
-        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Bellora' }),
+          makeVenue({ id: 'venue-2', name: 'Avenybaren' }),
+          makeVenue({ id: 'venue-3', name: 'Solgården' }),
+          makeVenue({ id: 'venue-4', name: 'Kvällsljus' }),
+        ]),
         isFetching: false,
         isError: false,
         dataUpdatedAt: 1,
@@ -1997,8 +2069,30 @@ describe('<MapView />', () => {
 
       render(<MapView />, { wrapper: Wrapper });
 
-      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'mid');
+      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'rows-3');
+      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-visible-rows', '3');
       expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('Bellora');
+    });
+
+    it('ignores row-sheet capture params on production URLs without an explicit forced state', () => {
+      searchParamsMock = new URLSearchParams('_sheetRows=0&_sheetDrag=mid');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Bellora' }),
+          makeVenue({ id: 'venue-2', name: 'Avenybaren' }),
+          makeVenue({ id: 'venue-3', name: 'Solgården' }),
+          makeVenue({ id: 'venue-4', name: 'Kvällsljus' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      const sheet = screen.getByTestId('mobile-bottom-sheet');
+      expect(sheet).toHaveAttribute('data-visible-rows', '3');
+      expect(sheet).toHaveAttribute('data-dragging', 'false');
     });
 
     it('uses reference-safe mobile list chrome for forced visual validation', () => {
@@ -2019,13 +2113,16 @@ describe('<MapView />', () => {
 
       const { container } = render(<MapView />, { wrapper: Wrapper });
 
-      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'mid');
+      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'rows-1');
+      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-visible-rows', '1');
+      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-max-rows', '1');
       expect(screen.queryByRole('search', { name: 'Sök plats' })).not.toBeInTheDocument();
       expect(screen.queryByTestId('mobile-bottom-sheet-backdrop')).not.toBeInTheDocument();
       expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('Bellora');
-      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('95% sol');
-      // Story 12.13: the only remaining percentage on the card is public sun
-      // exposure, never confidence.
+      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('FULL SOL');
+      // Story 12.13: row cards must not expose model confidence while the
+      // Story 12.9 compact mobile row uses public status copy instead of the
+      // taller card's visible percentage line.
       expect(screen.getAllByTestId('venue-card')[0]).not.toHaveTextContent('Säkerhet');
       expect(container.querySelector('img[src="https://example.com/bellora.jpg"]')).toBeNull();
     });
@@ -2059,7 +2156,7 @@ describe('<MapView />', () => {
         weatherGateState: 'not_gated',
         sunExposurePercent: 61,
       });
-      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('61% sol');
+      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('DELVIS SOL');
     });
 
     it('applies map-primary visual normalization only behind explicit _state', () => {
@@ -2088,7 +2185,7 @@ describe('<MapView />', () => {
         weatherGateState: 'not_gated',
         sunExposurePercent: 95,
       });
-      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('95% sol');
+      expect(screen.getAllByTestId('venue-card')[0]).toHaveTextContent('FULL SOL');
       expect(container.querySelector('img[src="https://example.com/bellora.jpg"]')).toBeNull();
     });
 
@@ -2389,7 +2486,7 @@ describe('<MapView />', () => {
       expect(selectVenueMock).not.toHaveBeenCalledWith(null);
     });
 
-    it('keeps the mobile favourites sheet peeked after selecting a saved venue', async () => {
+    it('preserves the mobile favourites sheet row count after selecting a saved venue', async () => {
       pathnameMock = '/favoriter';
       const favouriteVenue = makeVenue({ id: 'outside-favourite', name: 'Utflyktsplats' });
       useVenueSearchMock.mockReturnValue({
@@ -2418,9 +2515,10 @@ describe('<MapView />', () => {
       fireEvent.click(screen.getAllByRole('button', { name: /Välj Utflyktsplats/ })[0]);
 
       await waitFor(() => {
-        expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'peek');
+        expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'rows-1');
+        expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-visible-rows', '1');
       });
-      expect(screen.getAllByTestId('venue-quick-info').length).toBeGreaterThan(0);
+      expect(selectVenueMock).toHaveBeenCalledWith('outside-favourite', favouriteVenue);
     });
 
     it('refreshes a selected out-of-radius favourite from the favourite query rows', () => {
@@ -2670,6 +2768,40 @@ describe('<MapView />', () => {
       expect(screen.getAllByTestId('venue-card-skeleton').length).toBeGreaterThan(0);
     });
 
+    it('leaves an empty favourites sheet at zero rows instead of force-reopening it', async () => {
+      pathnameMock = '/favoriter';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useFavouriteVenuesMock.mockReturnValue({
+        data: makeVenueResponse([]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+        refetch: vi.fn(),
+      });
+      useFavouritesMock.mockReturnValue({
+        favouriteIds: [],
+        isHydrated: true,
+        isFavourite: () => false,
+        toggleFavourite: vi.fn(),
+        addFavourite: vi.fn(),
+        removeFavourite: vi.fn(),
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      await waitFor(() => {
+        const sheet = screen.getByTestId('mobile-bottom-sheet');
+        expect(sheet).toHaveAttribute('data-max-rows', '0');
+        expect(sheet).toHaveAttribute('data-visible-rows', '0');
+      });
+      expect(screen.getAllByText('Du har inga sparade platser än.').length).toBeGreaterThan(0);
+    });
+
     it('keeps favourite venue polling disabled until the favourites section is visible', () => {
       useFavouritesMock.mockReturnValue({
         favouriteIds: ['venue-1'],
@@ -2764,7 +2896,7 @@ describe('<MapView />', () => {
       expect(selectVenueMock).toHaveBeenCalledWith(null);
       view.rerender(<MapView />);
 
-      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'mid');
+      expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute('data-state', 'rows-1');
       await waitFor(() => expect(screen.queryAllByTestId('venue-quick-info')).toHaveLength(0));
       expect(screen.getAllByRole('button', { name: /Välj Bellora/ }).length).toBeGreaterThan(0);
     });

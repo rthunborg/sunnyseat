@@ -102,6 +102,7 @@
     "empty": "Inga platser hittades i det här området.",
     "loading": "Laddar platser",
     "handle": "Visa platslistan",
+    "rowStatus": "{visibleRows, plural, =0 {Platslistan är infälld} one {Visar # rad av {maxRows}} other {Visar # rader av {maxRows}}}",
     "sun": "Sol",
     "photoPlaceholder": "Platshållarbild för platsen",
     "distance": "Avstånd",

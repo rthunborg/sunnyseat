@@ -1,24 +1,11 @@
 /**
- * Story 11.5 (AC3) — viewport-aware recenter padding.
+ * Story 12.9 — viewport-aware recenter padding for the row-count mobile sheet.
  *
  * The "center on me" recenter `flyTo` must land the user-location dot in the
- * visual centre of the UNOBSCURED map area, not the raw viewport centre — the
- * mobile bottom sheet (at its current snap) and the desktop side panels cover
- * part of the map. MapLibre's `flyTo({ padding })` shifts the visual centre so
- * the target sits centred inside the padded (unobscured) rectangle.
- *
- * The padding is DERIVED from the CURRENT obstruction state (test-design
- * R-013 — a FIXED offset lands the dot off-centre at the collapsed vs full
- * sheet), computed from the snap-state enum + the height/width tokens rather
- * than an imperative DOM read (deterministic + unit-testable per snap).
- *
- * These pixel constants MIRROR the CSS tokens in `app/globals.css`
- * (`--size-bottom-sheet-*-h`, `--size-venue-list-desktop-w`,
- * `--size-venue-detail-panel-w`); keep the two in sync (same convention as
- * `DURATION_FLY_MS` mirroring `--duration-fly`).
+ * visual centre of the unobscured map area. Mobile now passes the measured
+ * bottom-sheet obstruction height instead of the old collapsed/peek/mid/full
+ * enum, while desktop keeps its exact side-panel constants.
  */
-
-import type { MobileBottomSheetState } from '@/components/custom/sheets/MobileBottomSheet';
 
 /** MapLibre `CameraOptions.padding` shape. */
 export type RecenterPadding = {
@@ -28,34 +15,15 @@ export type RecenterPadding = {
   right: number;
 };
 
-/**
- * Mobile bottom-sheet cover height per snap, mirroring
- * `--size-bottom-sheet-*-h`. `collapsed` mirrors the 44 px handle strip; its
- * token also adds `env(safe-area-inset-bottom)`, so we add a small safe-area
- * allowance here (the exact inset is device-only and not resolvable in JS —
- * a modest constant keeps the dot clear of the handle on notched devices).
- * `dismissed` covers nothing.
- */
-const SHEET_COVER_H: Record<MobileBottomSheetState, number> = {
-  collapsed: 44 + 24,
-  peek: 120,
-  mid: 320,
-  full: 560,
-  dismissed: 0,
-};
-
 /** Mobile top search bar cover (the `top-3` card materially covers the top). */
 const MOBILE_TOP_BAR_COVER = 72;
 
-/**
- * Mobile bottom nav-bar cover, mirroring `--size-mobile-nav-h`. The bottom
- * sheet is positioned `bottom-[var(--size-mobile-nav-h)]` ABOVE the
- * `fixed bottom-0` MobileNavBar (`lg:hidden`), so the true obstructed band from
- * the viewport bottom is `snapHeight + 52`. Added to every non-`dismissed`
- * mobile snap so the dot lands in the visual centre of the unobscured area
- * (Story 11.5 AC3) rather than ~52 px low.
- */
+/** Mobile bottom nav-bar cover, mirroring `--size-mobile-nav-h`. */
 const MOBILE_NAV_BAR_COVER = 52;
+
+/** JS cannot resolve `env(safe-area-inset-bottom)`; keep the notched-device
+ * allowance explicit for the same bottom band the CSS anchor uses. */
+const MOBILE_SAFE_AREA_BOTTOM_ALLOWANCE = 24;
 
 /** Desktop venue-list panel width, mirroring `--size-venue-list-desktop-w`. */
 const DESKTOP_LIST_W = 340;
@@ -63,28 +31,33 @@ const DESKTOP_LIST_W = 340;
 /** Desktop venue-detail panel width, mirroring `--size-venue-detail-panel-w`. */
 const DESKTOP_DETAIL_W = 390;
 
+/** Keep a usable centre region when a very small canvas reports dimensions. */
+const MIN_UNOBSCURED_CANVAS_PX = 96;
+
 export type RecenterPaddingInput = {
-  /** True at the desktop breakpoint (`min-width: 1024px`) where the side
-   *  panels are visible and the mobile sheet/top-bar are hidden. */
+  /** True at the desktop breakpoint (`min-width: 1024px`). */
   isDesktop: boolean;
-  /** Current mobile bottom-sheet snap (only consulted when `!isDesktop`). */
-  mobileSheetState: MobileBottomSheetState;
+  /** Current measured mobile row-sheet height above the 52 px nav bar. */
+  mobileSheetHeightPx?: number;
   /** Whether the desktop venue-detail panel is open (only when `isDesktop`). */
   isVenueDetailOpen: boolean;
+  /** Optional live canvas height for finite mobile top/bottom clamping. */
+  viewportHeightPx?: number;
 };
 
 /**
  * Compute the `flyTo` padding for the currently-visible obstructions.
  *
- * - Desktop: `left` = the always-present 340 px venue list; `right` = the
- *   390 px detail panel WHEN open. No bottom (no mobile sheet on desktop).
- * - Mobile: `bottom` = the current snap's cover height (per-snap, NOT fixed);
- *   `top` = the top search bar cover.
+ * - Desktop: exact left/right side-panel offsets; no mobile top/bottom padding.
+ * - Mobile: top search cover + measured row-sheet height + bottom nav cover,
+ *   clamped to finite non-negative values and, when canvas height is known, to
+ *   leave a useful central viewport.
  */
 export function computeRecenterPadding({
   isDesktop,
-  mobileSheetState,
+  mobileSheetHeightPx = 0,
   isVenueDetailOpen,
+  viewportHeightPx,
 }: RecenterPaddingInput): RecenterPadding {
   if (isDesktop) {
     return {
@@ -95,13 +68,33 @@ export function computeRecenterPadding({
     };
   }
 
-  const sheetCover = SHEET_COVER_H[mobileSheetState] ?? 0;
+  const top = MOBILE_TOP_BAR_COVER;
+  const unclampedBottom =
+    nonNegative(mobileSheetHeightPx) +
+    MOBILE_NAV_BAR_COVER +
+    MOBILE_SAFE_AREA_BOTTOM_ALLOWANCE;
+  const bottom = clampMobileBottomPadding(top, unclampedBottom, viewportHeightPx);
+
   return {
-    top: MOBILE_TOP_BAR_COVER,
-    // `dismissed` covers nothing (sheet hidden); every other snap sits above the
-    // 52 px nav bar, so the obstructed band = sheet cover + nav-bar cover.
-    bottom: mobileSheetState === 'dismissed' ? 0 : sheetCover + MOBILE_NAV_BAR_COVER,
+    top,
+    bottom,
     left: 0,
     right: 0,
   };
+}
+
+function clampMobileBottomPadding(
+  top: number,
+  bottom: number,
+  viewportHeightPx: number | undefined,
+): number {
+  if (!Number.isFinite(viewportHeightPx)) return nonNegative(bottom);
+  const maxCombined = Math.max(0, nonNegative(viewportHeightPx) - MIN_UNOBSCURED_CANVAS_PX);
+  return Math.min(nonNegative(bottom), Math.max(0, maxCombined - top));
+}
+
+function nonNegative(value: number | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.max(0, value)
+    : 0;
 }

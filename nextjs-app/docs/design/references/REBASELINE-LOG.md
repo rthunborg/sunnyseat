@@ -43,6 +43,52 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-07-24 — `map-primary` + `map-panel-venues` (mobile) — Story 12.9 human-approved rebaseline
+
+**Trigger:** Rasmus approved the Story 12.9 slider/date refinement rebaseline on 2026-07-24 (`Approved: rebaseline Story 12.9`). The current mobile references still reflected the older, taller planner chrome and pre-refinement row-sheet ordinary view.
+
+**Resolution:** Promoted exactly the two approved ordinary mobile candidates. `rows-max` and `mid-drag` remain supporting evidence only and were not copied over any canonical reference.
+
+**Changed PNGs (2):**
+- `nextjs-app/docs/design/references/screens/mobile/map-primary.png`
+- `nextjs-app/docs/design/references/screens/mobile/map-panel-venues.png`
+
+**Source of new PNG:** Human-reviewed implementation candidates from `_bmad-output/implementation-artifacts/validation/story-12-9-slider-date-candidates/20260724-slider-date-refinement/`:
+- `mobile-map-primary-slim-slider-date-pill.png` -> `mobile/map-primary.png`
+- `mobile-map-panel-venues-rows-3.png` -> `mobile/map-panel-venues.png`
+
+**Old -> new SHA-256:**
+- `mobile/map-primary`: `74b6685f267b9d4e578b99be7dfded6d3973d9bbf071fc7beeb54c2fdaca6c97` -> `3a3beb45f26229c87cf4106e775748a30cf24d3644ee604024e12acd2161392a`
+- `mobile/map-panel-venues`: `5b168fac021deb8e0b3e9567fa9fa8d4adf4837fee772cceb1f26ade3e98d3c6` -> `ea182e52412071c0588d78952e168206c0060b689fdcab8a42ecae78829cd1d3`
+
+**Supporting evidence retained, not promoted:**
+- `mobile-map-panel-venues-rows-max.png` SHA-256 `cb91ee8fde17c16151623911fe362a55ba5f2ba3ef0d61d6e425b730bbf819f6`
+- `mobile-map-panel-venues-mid-drag.png` SHA-256 `68fdb158f749a1da6cacc5df36f805d45e6f0e3c8446f6fa21019da94e0700ad`
+
+**Recipe change (if any):** `project-context.md` already contained the approved ordinary routes, so it was unchanged. `nextjs-app/docs/design/references/claude-design/STATE-MAPPING.md` and `nextjs-app/scripts/capture-claude-design-refs.mjs` were updated only to replace stale "pending approval" wording with the approved implementation-derived Story 12.9 baseline and to keep the Claude prototype recipe skipped for `map-panel-venues`.
+
+**Verification:** Candidate capture evidence asserted the mobile planner/date geometry, row-sheet states, and supporting max/mid-drag proof before screenshot write: 4 captured, 0 failed, 0 product errors. After promotion, `mobile/map-primary.png` and `mobile/map-panel-venues.png` were SHA-verified to byte-match the approved candidates exactly. Final story-review gate results are recorded in the Story 12.9 Dev Agent Record.
+
+**Reason / spec link:** Story 12.9 acceptance criteria require a slimmer mobile planner/time-slider surface, calendar/date trigger consolidation, row-quantized venue sheet at `N=3` for the ordinary `map-panel-venues` reference, and retained max/mid-drag proof. Human approval on 2026-07-24 authorizes replacing the stale active PNGs with the implementation-derived ordinary views.
+
+**Re-evaluation trigger:** Re-capture these references if mobile planner height/date-trigger chrome, top-panel slider geometry, row-sheet `N=3` ordinary state, row-height/max-row computation, map-control obstruction behavior, or the implementation-derived capture route changes.
+
+### 2026-07-20 — `map-panel-venues` (mobile) recipe retirement — Story 12.9 row-count sheet
+
+**Trigger:** Story 12.9 replaces the fixed mobile bottom-sheet snap model with a row-quantized venue-list sheet (`N=0..maxRows`). The existing Claude prototype/capture recipe still drives fixed `peek`/`mid`/`full` behavior and would regenerate a stale reference for `map-panel-venues`.
+
+**Resolution:** The prototype recipe is retired/skipped until implementation-derived row-count candidates are human-reviewed and explicitly approved for promotion. No active reference PNG is replaced in this operation.
+
+**Source of new PNG (if any):** n/a — no canonical reference promoted.
+
+**Recipe change (if any):** Edited `nextjs-app/scripts/capture-claude-design-refs.mjs` so the `map-panel-venues` mobile recipe is skipped and points reviewers to `/?_state=map-panel-venues&_time=14:00` with `_sheetRows=0|1|3|max` and `_sheetDrag=mid` candidate variants.
+
+**Verification:** No visual gate pass is claimed. Story 12.9 candidates must be captured from the running app with DOM assertions and approved by Rasmus before replacing `nextjs-app/docs/design/references/screens/mobile/map-panel-venues.png`.
+
+**Reason / spec link:** Story 12.9 acceptance criteria and UX spec redefine the mobile venue-list sheet as a bottom-anchored, measured row-count component; the old prototype remains useful for visual tone but is no longer authoritative for this interaction model.
+
+**Re-evaluation trigger:** Revisit if the Claude Design bundle gains a row-count sheet matching Story 12.9 or after Story 12.9 implementation candidates are approved/promoted.
+
 ### 2026-07-19 — Story 12.13 confidence-removal reference cleanup (3 references, mobile + desktop) — human-approved rebaseline
 
 **Trigger:** Story 12.13 removes user-facing confidence numbers while keeping the public sun-exposure presentation and weather honesty signals. The current references were stale on three surfaces: saved favourites still showed the secondary confidence percentages beside primary `N% sol`, and obscured detail still showed a grey percentage chip even though weather-gated/obscured detail must be percentage-free.

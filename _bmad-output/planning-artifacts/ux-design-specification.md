@@ -842,7 +842,7 @@ This section maps every Figma screen frame to its specific interactions, states,
 
 ### Screen: map-primary (mobile)
 
-**Reference:** `design/references/screens/mobile/map-primary-mobile.png`
+**Reference:** `design/references/screens/mobile/map-primary.png`
 **Route:** `/` (returning users) or post-onboarding
 **Purpose:** The core screen. Map with sun-state venue pins. Everything layers on top of this.
 
@@ -851,7 +851,7 @@ This section maps every Figma screen frame to its specific interactions, states,
 - Map canvas (MapLibre GL JS): `color-surface-sand` base, decorative road lines, `gradient-map-overlay`. Fills entire viewport behind all other elements.
 - Venue pins: exactly two presentations — amber sun + seating-share percentage for `>50% sunlit && !weatherGated`, grey cloud without percentage otherwise. Explicitly closed venues are filtered out; unknown-hours venues remain. See **VenuePin**.
 - Map control buttons (right edge): zoom +/− stack + my-location button. GlassButton 48×48px, `shadow-button-float`.
-- Time slider panel (bottom, above nav): `color-glass-slider`, `blur-heavy`, `radius-panel`. The mobile-only vertical padding/min-height uses the slimmer existing token utilities while preserving value-badge clearance and touch targets; desktop spacing is unchanged. Contains time scrubber track + current time indicator. See **TimeSliderPanel**.
+- Time slider panel (bottom, above nav): `color-glass-slider`, `blur-heavy`, `radius-panel`. The mobile-only vertical padding/min-height uses the slimmer existing token utilities while preserving value-badge clearance and 44x44 touch targets; desktop spacing is unchanged. Contains the time scrubber track, current time indicator, and Calendar + selected-date trigger. See **TimeSliderPanel**.
 - Quick-info card (when pin selected): slides up from bottom above the time slider. See **VenueQuickInfo** component spec.
 - Bottom nav bar (fixed, 40px): Karta / Favoriter / Om tabs. See **Navigation Patterns**.
 
@@ -925,19 +925,19 @@ The desktop list, pins, QuickInfo, counts, selected-instant availability, photo 
 
 ### Screen: map-panel-venues (mobile)
 
-**Reference:** `design/references/screens/mobile/map-panel-venues-mobile.png`
+**Reference:** `design/references/screens/mobile/map-panel-venues.png`
 **Route:** `/` (row-quantized bottom sheet)
 **Purpose:** Venue list as a bottom sheet that exposes a deterministic count of complete rows. Alternative to pin-by-pin browsing.
 
 **Layout:**
-- Bottom sheet height: handle + persistent list chrome + `N` complete venue rows, `N=0..maxRows`; bottom anchored above navigation/safe area.
+- Bottom sheet height: handle + persistent list chrome + `N` complete venue rows, `N=0..maxRows`; bottom anchored above navigation/safe area and height-driven rather than translated by fixed snaps.
 - Drag handle: 48px wide, `color-drag-handle`.
 - Header: "Hitta solen nu" headline (`text-heading-xl`), subtitle with location context.
 - Venue cards list: each row has the card rendition or initials fallback, venue name, selected-instant sun information, distance, and availability where known. Amber rows may show seating-share percentage; grey rows and all accessible grey labels are percentage-free. No confidence content.
 - Map remains visible behind the sheet; no bare-map gap can open between sheet and navigation during drag.
 
 **Interactions:**
-- Drag handle or a row while list scroll is at top → height follows the finger and settles one complete row lower/higher. `N=0` is handle-only.
+- Drag handle or a row while list scroll is at top → height follows the finger and settles one complete row lower/higher. `N=0` is handle-only; resting states never show half-clipped venue rows.
 - ArrowUp/ArrowDown on the sheet handle → exactly one more/fewer row, with an accessible announcement.
 - Tap venue card → map centres on venue, pin selects, QuickInfo appears; the sheet retains a deterministic row count rather than mapping to an old named snap.
 - At `maxRows`, scroll venue list normally inside the sheet; dragging at `scrollTop===0` transfers control back to sheet resize.
@@ -967,10 +967,10 @@ The desktop list, pins, QuickInfo, counts, selected-instant availability, photo 
 **Purpose:** Map with a venue selected, showing QuickInfo card and expanded pin.
 
 **Layout:**
-- Same as map-primary-mobile, plus:
+- Same as the mobile `map-primary` reference, plus:
 - Selected pin: retains its amber-sun or grey-cloud data presentation and gains selection emphasis only. See **VenuePin**.
 - QuickInfo card above time slider: shipped mobile placeholder treatment, venue name, selected-instant sun window/verdict, selected-instant hours when known, distance, "Visa Rutt" (RouteButton) + "Mer Info" button. Amber may show seating-share percentage; grey never does. No confidence.
-- Time slider visible below QuickInfo, showing date navigation arrows + date label + time scrubber.
+- Time slider visible below QuickInfo, showing the Calendar date trigger + date label + time scrubber on mobile.
 
 **Interactions:**
 - Tap "Visa Rutt" → opens native maps app or in-app route overlay with walk/bike ETA. See **Journey 1: Lina** completion step.

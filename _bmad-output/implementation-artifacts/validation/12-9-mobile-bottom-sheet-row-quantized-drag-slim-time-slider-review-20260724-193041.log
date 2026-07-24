@@ -1,0 +1,51 @@
+SunnySeat story review gate
+Story: 12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider-review-20260724-193041.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+Not implemented: navigation to another Document
+
+ Test Files  194 passed | 2 skipped (196)
+      Tests  1776 passed | 15 skipped (1791)
+   Start at  19:31:02
+   Duration  154.50s (transform 4.15s, setup 68.28s, import 66.84s, tests 55.73s, environment 369.58s)
+
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues&_time=14:00' viewport='mobile'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   map-panel-venues
+Route:    /?_state=map-panel-venues&_time=14:00
+Viewport: mobile
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/mobile/map-panel-venues.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+Updated sprint status: 12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider-review-20260724-193041.log

@@ -4,6 +4,22 @@ import { TimeSlider } from '@/components/composed/time/TimeSlider';
 import { generatePlannerTicks } from '@/lib/utils/time-planner';
 
 describe('<TimeSlider />', () => {
+  function withElementRects(rectFor: (element: HTMLElement) => DOMRectInit, run: () => void) {
+    const original = HTMLElement.prototype.getBoundingClientRect;
+    HTMLElement.prototype.getBoundingClientRect = function getBoundingClientRect() {
+      const rect = rectFor(this as HTMLElement);
+      if (rect.width !== undefined || rect.height !== undefined) {
+        return DOMRect.fromRect(rect);
+      }
+      return original.call(this);
+    };
+    try {
+      run();
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = original;
+    }
+  }
+
   it('renders token-backed track, thumb, tick labels, and active tick', () => {
     render(
       <TimeSlider
@@ -63,21 +79,49 @@ describe('<TimeSlider />', () => {
     expect(screen.getByTestId('time-slider-thumb')).toHaveAttribute('data-reduced-motion', 'true');
   });
 
-  it('supports the compact top-panel visual variant', () => {
-    render(
-      <TimeSlider
-        ariaLabel="Välj tid"
-        selectedMinutes={14 * 60}
-        ticks={generatePlannerTicks()}
-        variant="topPanel"
-        onMinutesChange={() => {}}
-        onSnap={() => {}}
-      />,
-    );
+  it('renders the compact top-panel slider with token geometry and separate badge/thumb lanes', () => {
+    withElementRects((element) => {
+      const testId = element.getAttribute('data-testid');
+      if (testId === 'time-slider-value-badge') return { x: 132, y: 0, width: 48, height: 18 };
+      if (testId === 'time-slider-thumb') return { x: 149, y: 26, width: 14.1, height: 14.1 };
+      if (testId === 'time-slider-track') return { x: 0, y: 32, width: 300, height: 6 };
+      if (element instanceof HTMLInputElement && element.type === 'range') {
+        return { x: 0, y: 0, width: 300, height: 44 };
+      }
+      return {};
+    }, () => {
+      render(
+        <TimeSlider
+          ariaLabel="Välj tid"
+          selectedMinutes={14 * 60}
+          ticks={generatePlannerTicks()}
+          variant="topPanel"
+          onMinutesChange={() => {}}
+          onSnap={() => {}}
+        />,
+      );
 
-    expect(screen.getByTestId('time-slider-value-badge')).toHaveTextContent('14:00');
-    expect(screen.getByTestId('time-slider-thumb')).toHaveClass('size-6', 'bg-white', 'border-amber-primary');
-    expect(screen.getByText('06')).toBeInTheDocument();
-    expect(screen.queryByText('09:00')).not.toBeInTheDocument();
+      const slider = screen.getByRole('slider', { name: 'Välj tid' });
+      const badge = screen.getByTestId('time-slider-value-badge');
+      const track = screen.getByTestId('time-slider-track');
+      const thumb = screen.getByTestId('time-slider-thumb');
+      const badgeBox = badge.getBoundingClientRect();
+      const thumbBox = thumb.getBoundingClientRect();
+      const trackBox = track.getBoundingClientRect();
+      const inputBox = slider.getBoundingClientRect();
+
+      expect(badge).toHaveTextContent('14:00');
+      expect(track).toHaveClass('h-slider-track-h', 'h-[var(--size-slider-track-h)]');
+      expect(trackBox.height).toBe(6);
+      expect(thumb).toHaveClass('size-slider-thumb', 'bg-white', 'border-amber-primary');
+      expect(thumb).not.toHaveClass('size-6');
+      expect(thumbBox.width).toBeCloseTo(14.1, 1);
+      expect(thumbBox.height).toBeCloseTo(14.1, 1);
+      expect(inputBox.width).toBeGreaterThanOrEqual(44);
+      expect(inputBox.height).toBeGreaterThanOrEqual(44);
+      expect(badgeBox.bottom).toBeLessThan(thumbBox.top);
+      expect(thumbBox.top - badgeBox.bottom).toBeGreaterThanOrEqual(4);
+      expect(screen.queryByText('06')).not.toBeInTheDocument();
+    });
   });
 });

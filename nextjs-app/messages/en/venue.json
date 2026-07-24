@@ -102,6 +102,7 @@
     "empty": "No places found in this area.",
     "loading": "Loading places",
     "handle": "Show venue list",
+    "rowStatus": "{visibleRows, plural, =0 {Venue list collapsed} one {Showing # row of {maxRows}} other {Showing # rows of {maxRows}}}",
     "sun": "Sun",
     "photoPlaceholder": "Venue placeholder image",
     "distance": "Distance",

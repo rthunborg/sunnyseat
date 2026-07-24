@@ -107,6 +107,49 @@ async function mockVenues(page: Page): Promise<{ count: () => number; urls: () =
   return { count: () => count, urls: () => urls };
 }
 
+function stockholmDateKey(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Stockholm',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((entry) => entry.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+function addDaysToDateKey(dateKey: string, days: number): string {
+  const [year = '1970', month = '01', day = '01'] = dateKey.split('-');
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function swedishSelectDateLabel(dateKey: string): string {
+  const [year = '1970', month = '01', day = '01'] = dateKey.split('-');
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  const label = new Intl.DateTimeFormat('sv-SE', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+  return `Välj ${label}`;
+}
+
+async function selectDifferentDateFromCalendar(page: Page): Promise<string> {
+  const targetDate = addDaysToDateKey(stockholmDateKey(), 1);
+  const planner = page.locator('[data-testid="time-slider-panel"]:visible').first();
+  const trigger = planner.getByTestId('planner-date-trigger');
+  await expect(trigger).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+  await expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+  await trigger.click();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  await page.getByRole('button', { name: swedishSelectDateLabel(targetDate) }).click();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  return targetDate;
+}
+
 test.describe('Story 12.3 persisted geometry request-count invariants', () => {
   test('same-date time scrub remains zero /api/venues requests with persisted day series', async ({ page }) => {
     const providerHits = await forbidProviderFanout(page);
@@ -143,7 +186,8 @@ test.describe('Story 12.3 persisted geometry request-count invariants', () => {
     });
     const afterLoad = venues.count();
 
-    await page.getByTestId('planner-date-next').filter({ visible: true }).click();
+    const expectedDate = await selectDifferentDateFromCalendar(page);
+    expect(expectedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     await expect(page.locator('[data-testid="date-change-overlay"]')).toBeVisible({
       timeout: APP_SETTLE_TIMEOUT_MS,
     });

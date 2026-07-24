@@ -92,3 +92,99 @@
 1. Approve or reject candidate set 20260719T195547 for venue-photo-loaded and venue-photo-fallback on mobile and desktop.
 
 **Next:** After approval, resume this task with “Approved: rebaseline Story 12.12”; Auto-BMAD will promote/log the references, complete the story gate and Tier A review, then continue to Story 12.9.
+
+## Report — 2026-07-20T14:29:50Z (halted â€” needs-human)
+
+**Epic:** `12` — 14 stories.
+**Branch:** `epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene` (HEAD `e0bc76b`).
+**Pipeline status:** â›” Epic 12 halted during Story 12.9 visual/rebaseline gate; implementation and dev verification are complete, but canonical-reference promotion and inherited desktop hydration rationale require human approval.
+**Continues:** 2026-07-19T18:30:07Z (halted â€” needs-human)
+
+**Summary:** Story 12.12 was reviewed, repaired, UAT-recorded, and landed in the epic anchor. Story 12.9 now has the row-count sheet/slim-slider implementation and automated dev gates complete, but is not yet landed.
+
+**Timing:** started 2026-07-18T11:27:25Z; completed in progress — elapsed 51h 02m (≈15h 17m AI-run, ≈35h 44m human/idle wait); resumed 2×.
+
+**Stories:**
+1. [12-12] landed; Tier A Changes Requested -> fixed (2 High); story remains BMAD review for human approval.
+2. [12-9] in progress; implementation/dev checks complete; mobile visual candidates await rebaseline approval and desktop hydration accept-with-rationale.
+
+**Skipped (already done):** 12-1 already done
+
+**Integration review:** not run â€” remaining stories and epic-end review pending
+
+**Epic gate:** not run â€” epic-end gates pending
+
+**TEA:** Story 12.9 classified medium; post-dev automate remains after visual approval/feature commit.
+
+**UAT:** (none)
+
+**Overrides:** User-confirmed dependency order; human/manual visual review allowed, explicit rebaseline approval still required.
+
+**Open questions:**
+1. Approve Story 12.9 mobile map-primary and map-panel-venues rebaseline candidates?
+2. Accept the inherited canonical desktop OnboardingGate hydration warning as deferred to Story 12.4?
+
+**Deferred work:**
+1. [12-3] Protected production cold-p95/GitHub Production evidence remains.
+2. [12-7] Apply 20260718214954_add_public_venue_visibility.sql before deploy.
+3. [12-12] Apply 20260719000000_venue_media_storage.sql and verify protected Storage policies before hosted venue media.
+
+**Auto-decided (epic mode):** (none)
+
+**Planning drift:** No dependency-order drift. Story 12.9 required implementation-derived references because the old fixed-snap prototype is stale; no canonical PNG has been promoted.
+
+**⚠️ Needs human:**
+1. Review `_bmad-output/implementation-artifacts/validation/story-12-9-row-sheet-candidates/20260720-161700/`.
+2. Approve promotion of `mobile-map-primary-slim-slider-rows-0.png` to mobile/map-primary.png and `mobile-map-panel-venues-rows-3.png` to mobile/map-panel-venues.png; accept rows 0/1/max/mid-drag as auxiliary behavior evidence.
+3. Explicitly accept that the desktop canonical capture failure is the inherited OnboardingGate hydration issue owned by Story 12.4, so Story 12.9 may proceed before Story 12.4.
+
+**Next:** On approval, promote the two mobile references, update the rebaseline audit, rerun visual/story-review gates, commit Story 12.9, run post-dev automate/Tier A/UAT, then advance to Story 12.4.
+
+## Report — 2026-07-24T14:03:20Z (halted â€” needs-human)
+
+**Epic:** `12` — 14 stories.
+**Branch:** `epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene` (HEAD `645a2c0`).
+**Pipeline status:** Paused in Epic 12 E5 / Story 12.9 Phase 5 at the required human visual-candidate approval gate; Story 12.9 remains in-progress and no canonical reference was promoted.
+**Continues:** Resumed after the human approved the compact slider/date-pill design and its written implementation plan.
+
+**Summary:** Stories 12.3, 12.7, 12.6, 12.13, and 12.12 are landed on the epic anchor; Story 12.9 implementation and focused verification are complete pending visual approval.
+
+**Timing:** started 2026-07-18T11:27:25Z; completed in progress — elapsed 146h 35m (≈15h 54m AI-run, ≈130h 41m human/idle wait); resumed 3×.
+
+**Stories:**
+1. 12-3 landed
+2. 12-7 landed
+3. 12-6 landed
+4. 12-13 landed
+5. 12-12 landed
+6. 12-9 needs-human: approve or reject fresh slider/date candidates
+
+**Skipped (already done):** 12-1 was already done before this epic run.
+
+**Integration review:** Not yet run; Story 12.9 has not landed.
+
+**Epic gate:** Not yet run.
+
+**TEA:** Story 12.9 risk med; automate selected. Typecheck, lint, focused Vitest/real-engine rerun, and relevant Playwright suites passed; full parallel Vitest retained three existing real-engine timeouts and desktop axe retained an unrelated Story 12.12 forced-photo failure.
+
+**UAT:** (none)
+
+**Overrides:** User-confirmed dependency order; human visual validation/rebaseline approvals enabled.
+
+**Open questions:**
+1. Approve or reject `_bmad-output/implementation-artifacts/validation/story-12-9-slider-date-candidates/20260724-slider-date-refinement/`.
+
+**Deferred work:**
+1. Apply Story 12.7 visibility migration before deployment.
+2. Apply Story 12.12 venue-media storage migration before hosted media use.
+3. Protected Story 12.3 production latency/coverage evidence remains unavailable locally.
+
+**Auto-decided (epic mode):**
+1. Story 12.7 canonical hidden boolean contract was adopted after schema probes.
+
+**Planning drift:** none
+
+**⚠️ Needs human:**
+1. Review the four fresh Story 12.9 mobile candidates: slim slider/date pill, ordinary N=3, N=max with zoom controls hidden/inert, and mid-drag with three full rows plus a partial fourth.
+
+**Next:** On approval, promote/rebaseline the accepted references with an audit-log update, complete deterministic gates, run the canonical Story 12.9 review transition, and resume Epic 12 with Story 12.4.

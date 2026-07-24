@@ -41,6 +41,20 @@ Any page rendering a component that uses `useForcedState` must wrap that subtree
 
 The canonical list of screen IDs and their routes lives in `project-context.md` under **"Screen ID → Route Map"** at the project root. Do not duplicate that table here — point at it. `_state` values must equal a Screen ID from that map exactly; no aliases, no abbreviations.
 
+### Mobile venue-sheet capture variants
+
+Story 12.9 adds dev/test-only row-state parameters for the mobile `map-panel-venues`
+screen:
+
+- `_sheetRows=0|1|3|max` forces the row-quantized venue sheet to a visible-row
+  count. `max` resolves to the measured maximum for the current viewport and
+  venue count.
+- `_sheetDrag=mid` captures a deterministic in-between drag frame for the
+  row-height sheet.
+
+These parameters are capture/test helpers only. They are production-gated with
+the same dev-only state-forcing path as `_state`, `_time`, and `_date`.
+
 ## Seeded venue slug
 
 Screens that require a venue (`map-with-selected-venue`, `venue-detail`, `feedback`, `review`) use the fixed dev-seeded slug `test-venue-sunny`. The slug exists in the development Supabase database and is never used in production data. See `project-context.md` §"Seeded development slug" for the full contract.

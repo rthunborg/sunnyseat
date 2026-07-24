@@ -167,10 +167,10 @@ The design uses an 8px base grid with 4px half-steps for tight compositions.
 | `size-drag-pill-w` | 40px | Drag handle pill width (map bottom sheet) |
 | `size-drag-pill-w-lg` | 48px | Drag handle pill width (venue detail sheet) |
 | `size-drag-pill-h` | 6px | Drag handle pill height |
-| `size-bottom-sheet-peek-h` | 120px | Venue-list mobile peek sheet height |
-| `size-bottom-sheet-mid-h` | 320px | Venue-list mobile default/mid sheet height |
-| `size-bottom-sheet-full-h` | 560px | Venue-list mobile full snap height; capped by viewport in CSS so it remains distinct from the 320px mid snap |
-| `size-bottom-sheet-full-top` | 22dvh | Legacy full-sheet top offset retained only for migration notes; active mobile venue list uses `size-bottom-sheet-full-h` |
+| `size-bottom-sheet-peek-h` | 120px | Legacy fixed-snap compatibility token; superseded for the active mobile venue-list sheet by the row-quantized `handle + chrome + N rows` model |
+| `size-bottom-sheet-mid-h` | 320px | Legacy fixed-snap compatibility token; no longer defines `map-panel-venues`, which uses a row count |
+| `size-bottom-sheet-full-h` | 560px | Legacy fixed-snap compatibility token; retained for migration/detail compatibility while active venue-list max height is measured from viewport/chrome/row height |
+| `size-bottom-sheet-full-top` | 22dvh | Legacy full-sheet top offset retained only for migration/detail compatibility; active mobile venue list uses measured row-quantized height |
 | `size-quick-info-mobile-w` | 230px | Mobile selected-venue map callout width |
 | `size-venue-list-desktop-w` | 340px | Desktop venue-list overlay width in refreshed MVP references |
 | `size-venue-detail-panel-w` | 390px | Desktop venue-detail overlay width |
@@ -276,7 +276,7 @@ The Figma file contains both mobile (390px) and desktop (1280px) frame variants.
 | Bottom navigation | Fixed 52px bar with `Nära mig` + `Favoriter` | Not present — replaced by top navbar |
 | Top navbar | Top floating glass time/date chrome | Fixed top bar with logo + search (84px) |
 | Time slider panel | Top overlay within page padding | Bottom overlay above map canvas |
-| Venue list | Bottom sheet (peek/mid/full) | Overlay side panel — **340px wide** in the refreshed MVP Desktop Unlocked reference; the panel overlays the map canvas, it is not a sidebar that reduces canvas width |
+| Venue list | Row-quantized bottom sheet (`N=0..maxRows`) | Overlay side panel — **340px wide** in the refreshed MVP Desktop Unlocked reference; the panel overlays the map canvas, it is not a sidebar that reduces canvas width |
 | Venue detail | Full-screen bottom sheet | Desktop overlay component — 390px wide (`venue-detail-component-desktop` frame) |
 | Search bar width | Full width minus `space-8` margins | Fixed 384px |
 
@@ -377,7 +377,7 @@ Background: color-glass-slider (rgba(255,255,255,0.9))
 Backdrop-blur: blur-heavy (12px)
 Border-radius: radius-panel (32px)
 Shadow: shadow-card-up
-Padding: space-10 (20px) vertical, space-12 (24px) horizontal
+Padding: mobile top planner uses slimmer existing token utilities per the row-quantized Story 12.9 refinement; desktop/header variants retain `space-10` (20px) vertical and `space-12` (24px) horizontal compatibility
 Track height: size-slider-track-h (6px), background: color-surface-slider-track (#f0edf1), radius-pill
 Thumb: size-slider-thumb (14.1px), background: color-amber-dark (#735c00), border: 2.35px color-white, radius-pill
 ```

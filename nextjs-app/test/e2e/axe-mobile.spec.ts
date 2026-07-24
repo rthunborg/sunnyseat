@@ -34,6 +34,54 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
   // debt. Flip them back to `test` once the venue-card contrast meets 4.5:1.
   // The offline shell (Story 7.3's own surface — no venue cards) is the one
   // mobile surface asserted clean here, and it passes.
+  test('a11y: mobile row-count sheet handle-only state (/?_state=map-primary)', async ({ page }) => {
+    await bypassOnboarding(page);
+    await page.route('**://api.met.no/**', (route) => route.abort());
+    await page.route('**/api/venues?**', async (route) => {
+      await route.fulfill({
+        json: {
+          venues: [
+            {
+              id: 'venue-1',
+              venueId: 'venue-1',
+              venueName: 'Kafé Magasinet',
+              venueSlug: 'test-venue-sunny',
+              slug: 'test-venue-sunny',
+              neighborhood: 'Inom Vallgraven',
+              location: { lat: 57.705, lng: 11.97 },
+              currentSunStatus: 'Sunny',
+              weatherGateState: 'not_gated',
+              isPartner: true,
+              confidence: 90,
+              distanceMeters: 120,
+              sunExposurePercent: 90,
+              tags: [],
+              sunWindow: { start: '11:00', end: '18:00' },
+              thumbnail: { alt: 'Kafé Magasinet', initials: 'K' },
+            },
+          ],
+          meta: { count: 1, radiusKm: 2 },
+          timestamp: '2026-07-20T12:00:00.000Z',
+          totalCount: 1,
+        },
+      });
+    });
+
+    await page.goto('/?_state=map-primary&_time=14:00');
+    const sheet = page.getByTestId('mobile-bottom-sheet');
+    await expect(sheet).toHaveAttribute('data-visible-rows', '0');
+    await expect(sheet).toHaveAttribute('data-dragging', 'false');
+    const handle = page.getByTestId('mobile-bottom-sheet-handle');
+    await expect(handle).toHaveAttribute('aria-describedby', 'mobile-bottom-sheet-row-status');
+    const handleBox = await handle.boundingBox();
+    expect(handleBox).not.toBeNull();
+    expect(handleBox!.height).toBeGreaterThanOrEqual(44);
+    await expect(page.locator('[data-bottom-sheet-body="true"]')).toHaveAttribute('aria-hidden', 'true');
+
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
   test.fixme('a11y: map-primary mobile (/)', async ({ page }) => {
     await bypassOnboarding(page);
     await page.goto('/');
