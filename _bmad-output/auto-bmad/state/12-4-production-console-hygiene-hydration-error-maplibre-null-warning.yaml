@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 4
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-24T18:46:29Z"
+updated_at: "2026-07-24T19:08:52Z"
 started_at: "2026-07-24T18:46:29Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 1277
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "Medium by TEA policy because Story 12.4 fixes app-origin console defects across multiple frontend modules and adds a Playwright console/pageerror guard, while introducing no high-risk API, database, security, irreversible-side-effect, or concurrency signal."
 epic_story_count: 14
 stories_after_in_epic: 6
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 3]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: []
+commits: [2f3749f]
 phase8_steps:
   trace_gate: null
   nfr: null
