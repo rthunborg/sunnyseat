@@ -3,14 +3,15 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const appRoot = process.cwd();
-const repoRoot = join(appRoot, '..');
 
 function readApp(relativePath: string): string {
   return readFileSync(join(appRoot, relativePath), 'utf8');
 }
 
-function readRepo(relativePath: string): string {
-  return readFileSync(join(repoRoot, relativePath), 'utf8');
+function codeWithoutComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '');
 }
 
 describe('Story 12.9 slider/date refinement source contract', () => {
@@ -27,7 +28,15 @@ describe('Story 12.9 slider/date refinement source contract', () => {
   });
 
   it('does not absorb the inherited Story 12.4 OnboardingGate hydration work', () => {
-    const story = readRepo('_bmad-output/implementation-artifacts/12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider.md');
-    expect(story).toContain('OnboardingGate hydration pageError remains deferred to Story 12.4');
+    for (const file of [
+      'components/custom/map/MapView.tsx',
+      'components/custom/sheets/MobileBottomSheet.tsx',
+      'components/custom/time/TimeSliderPanel.tsx',
+      'components/composed/time/TimeSlider.tsx',
+    ]) {
+      const code = codeWithoutComments(readApp(file));
+      expect(code, file).not.toContain('OnboardingGate');
+      expect(code, file).not.toContain('components/custom/onboarding');
+    }
   });
 });

@@ -21,6 +21,7 @@ export type MobileBottomSheetMetrics = {
   rowHeightPx: number;
   chromeHeightPx: number;
   handleHeightPx: number;
+  safeAreaInsetBottomPx: number;
   sheetHeightPx: number;
   maxSheetHeightPx: number;
 };
@@ -62,6 +63,7 @@ export type ComputeMaxVisibleRowsInput = {
   chromeHeightPx?: number;
   navHeightPx?: number;
   topChromeClearancePx?: number;
+  safeAreaInsetBottomPx?: number;
   bodyBottomPaddingPx?: number;
 };
 
@@ -73,6 +75,7 @@ export function computeMaxVisibleRows({
   chromeHeightPx = CHROME_HEIGHT_FALLBACK_PX,
   navHeightPx = MOBILE_NAV_HEIGHT_PX,
   topChromeClearancePx = MOBILE_TOP_CHROME_CLEARANCE_PX,
+  safeAreaInsetBottomPx = 0,
   bodyBottomPaddingPx = BODY_BOTTOM_PADDING_PX,
 }: ComputeMaxVisibleRowsInput): number {
   const finiteRows = Math.max(0, Math.floor(finiteOr(rowCount, 0)));
@@ -80,9 +83,10 @@ export function computeMaxVisibleRows({
 
   const viewport = Math.max(0, finiteOr(viewportHeightPx, 0));
   const rowHeight = Math.max(1, finiteOr(rowHeightPx, ROW_HEIGHT_FALLBACK_PX));
+  const safeAreaInsetBottom = Math.max(0, finiteOr(safeAreaInsetBottomPx, 0));
   const availableSheetHeight = Math.max(
     handleHeightPx,
-    viewport - navHeightPx - topChromeClearancePx,
+    viewport - navHeightPx - safeAreaInsetBottom - topChromeClearancePx,
   );
   const rowBudget =
     availableSheetHeight - handleHeightPx - chromeHeightPx - bodyBottomPaddingPx;
@@ -135,10 +139,10 @@ export function resolveVisibleRowsAfterDrag({
   if (releaseDir === 0) return currentRows;
 
   const rowHeight = Math.max(1, rowHeightPx);
-  const crossedRows = Math.floor((Math.abs(movementY) + rowHeight * 0.35) / rowHeight);
-  const distanceRows = Math.max(1, crossedRows);
-  const velocityRows = velocityY >= FAST_SWIPE_VELOCITY ? FLING_ROW_SKIP : 1;
+  const distanceRows = Math.round(Math.abs(movementY) / rowHeight);
+  const velocityRows = velocityY >= FAST_SWIPE_VELOCITY ? FLING_ROW_SKIP : 0;
   const deltaRows = releaseDir * Math.max(distanceRows, velocityRows);
+  if (deltaRows === 0) return currentRows;
 
   return clampInteger(currentRows + deltaRows, 0, maxRows);
 }
@@ -168,6 +172,7 @@ export function MobileBottomSheet({
     handleHeightPx: HANDLE_HEIGHT_FALLBACK_PX,
     rowHeightPx: ROW_HEIGHT_FALLBACK_PX,
     chromeHeightPx: CHROME_HEIGHT_FALLBACK_PX,
+    safeAreaInsetBottomPx: 0,
     rowCount: Math.max(0, rowCount),
     viewportHeightPx: 844,
   });
@@ -184,12 +189,14 @@ export function MobileBottomSheet({
     const rowHeightPx = measureRowHeight(rowNodes, ROW_HEIGHT_FALLBACK_PX);
     const viewportHeightPx =
       typeof window === 'undefined' ? 844 : window.innerHeight || 844;
+    const safeAreaInsetBottomPx = measureSafeAreaInsetBottomPx();
 
     setMeasured((previous) => {
       const next = {
         handleHeightPx,
         rowHeightPx,
         chromeHeightPx,
+        safeAreaInsetBottomPx,
         rowCount: measuredRowCount,
         viewportHeightPx,
       };
@@ -229,6 +236,7 @@ export function MobileBottomSheet({
         rowHeightPx: measured.rowHeightPx,
         handleHeightPx: measured.handleHeightPx,
         chromeHeightPx: measured.chromeHeightPx,
+        safeAreaInsetBottomPx: measured.safeAreaInsetBottomPx,
       }),
     [measured],
   );
@@ -262,6 +270,7 @@ export function MobileBottomSheet({
       rowHeightPx: measured.rowHeightPx,
       chromeHeightPx: measured.chromeHeightPx,
       handleHeightPx: measured.handleHeightPx,
+      safeAreaInsetBottomPx: measured.safeAreaInsetBottomPx,
       sheetHeightPx: renderedHeightPx,
       maxSheetHeightPx,
     }),
@@ -273,6 +282,7 @@ export function MobileBottomSheet({
       measured.handleHeightPx,
       measured.rowCount,
       measured.rowHeightPx,
+      measured.safeAreaInsetBottomPx,
       renderedHeightPx,
     ],
   );
@@ -501,6 +511,19 @@ function elementHeight(node: HTMLElement | null, fallback: number): number {
   return Math.max(1, positiveOr(node.getBoundingClientRect().height || node.offsetHeight, fallback));
 }
 
+function measureSafeAreaInsetBottomPx(): number {
+  if (typeof document === 'undefined' || typeof window === 'undefined') return 0;
+  const probe = document.createElement('div');
+  probe.style.position = 'fixed';
+  probe.style.visibility = 'hidden';
+  probe.style.pointerEvents = 'none';
+  probe.style.paddingBottom = 'env(safe-area-inset-bottom)';
+  document.body.appendChild(probe);
+  const computed = window.getComputedStyle(probe).paddingBottom;
+  probe.remove();
+  return Math.max(0, Number.parseFloat(computed) || 0);
+}
+
 function finiteOr(value: number, fallback: number): number {
   return Number.isFinite(value) ? value : fallback;
 }
@@ -524,6 +547,7 @@ function measurementsEqual(
     handleHeightPx: number;
     rowHeightPx: number;
     chromeHeightPx: number;
+    safeAreaInsetBottomPx: number;
     rowCount: number;
     viewportHeightPx: number;
   },
@@ -531,6 +555,7 @@ function measurementsEqual(
     handleHeightPx: number;
     rowHeightPx: number;
     chromeHeightPx: number;
+    safeAreaInsetBottomPx: number;
     rowCount: number;
     viewportHeightPx: number;
   },
@@ -538,6 +563,7 @@ function measurementsEqual(
   return left.handleHeightPx === right.handleHeightPx &&
     left.rowHeightPx === right.rowHeightPx &&
     left.chromeHeightPx === right.chromeHeightPx &&
+    left.safeAreaInsetBottomPx === right.safeAreaInsetBottomPx &&
     left.rowCount === right.rowCount &&
     left.viewportHeightPx === right.viewportHeightPx;
 }

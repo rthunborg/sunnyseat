@@ -134,6 +134,29 @@ describe('<MobileBottomSheet /> row-count contract', () => {
     ).toBe(2);
   });
 
+  it('subtracts bottom safe-area inset from the maxRows height budget', () => {
+    expect(
+      computeMaxVisibleRows({
+        viewportHeightPx: 680,
+        rowCount: 10,
+        rowHeightPx: 88,
+        handleHeightPx: 44,
+        chromeHeightPx: 104,
+        safeAreaInsetBottomPx: 0,
+      }),
+    ).toBe(2);
+    expect(
+      computeMaxVisibleRows({
+        viewportHeightPx: 680,
+        rowCount: 10,
+        rowHeightPx: 88,
+        handleHeightPx: 44,
+        chromeHeightPx: 104,
+        safeAreaInsetBottomPx: 80,
+      }),
+    ).toBe(1);
+  });
+
   it('clamps an out-of-range parent row count back to the computed maxRows', () => {
     const onVisibleRowsChange = renderSheet({ visibleRows: 9, rowCount: 5 });
 
@@ -229,7 +252,7 @@ describe('<MobileBottomSheet /> row-count contract', () => {
     expect(scrollBody.style.height).toBe('220px');
   });
 
-  it('drag release helper walks slow drags by rows and lets clear flings skip rows', () => {
+  it('drag release helper settles slow drags to the nearest row boundary and lets clear flings skip rows', () => {
     expect(
       resolveVisibleRowsAfterDrag({
         visibleRows: 2,
@@ -238,13 +261,22 @@ describe('<MobileBottomSheet /> row-count contract', () => {
         movementY: 40,
         velocityY: 0.1,
       }),
+    ).toBe(2);
+    expect(
+      resolveVisibleRowsAfterDrag({
+        visibleRows: 2,
+        maxRows: 5,
+        rowHeightPx: 88,
+        movementY: 50,
+        velocityY: 0.1,
+      }),
     ).toBe(1);
     expect(
       resolveVisibleRowsAfterDrag({
         visibleRows: 2,
         maxRows: 5,
         rowHeightPx: 88,
-        movementY: -40,
+        movementY: -50,
         velocityY: 0.1,
       }),
     ).toBe(3);

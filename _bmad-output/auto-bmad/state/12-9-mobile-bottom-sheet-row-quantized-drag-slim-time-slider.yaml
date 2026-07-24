@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 9
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-24T18:20:52Z"
+updated_at: "2026-07-24T18:38:51Z"
 started_at: "2026-07-20T12:10:53Z"
 completed_at: null
-active_seconds: 13667
+active_seconds: 14696
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "Medium by TEA policy because Story 12.9 is a stateful mobile interaction flow with non-trivial bottom-sheet, quantized drag, and time-slider logic across multiple modules, without a high-risk API, database, security, upload, or concurrency signal."
 epic_story_count: 14
 stories_after_in_epic: 5
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
-convergence_unverified: false
+convergence_unverified: true
 story_trace: null
-commits: [5fe8bec, e0bc76b, 31d0062, 645a2c0, "3586481"]
+commits: [5fe8bec, e0bc76b, 31d0062, 645a2c0, "3586481", 4d0a2d5]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -53,3 +53,14 @@ overrides: {}
 constraints:
   - Implement the human-approved slider/date refinement in docs/superpowers/specs/2026-07-24-story-12-9-slider-date-refinement-design.md using docs/superpowers/plans/2026-07-24-story-12-9-slider-date-refinement.md.
 tier_a_base_sha: 5dbaee54c8ea2f50fed267d3b88e5fef6fc43088
+tier_a_review:
+  critical: 0
+  high: 2
+  medium: 1
+  low: 0
+  verdict: "Changes Requested -> fixed"
+  fixed: 3
+  deferred: 0
+  dismissed_noise: 0
+  open_decisions_auto_resolved: 0
+  security: "No findings; HIGH 0 / MEDIUM 0 / LOW 0"

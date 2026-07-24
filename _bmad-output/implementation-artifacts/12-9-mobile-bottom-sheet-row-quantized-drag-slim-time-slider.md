@@ -747,6 +747,10 @@ All seven checks pass, story record ready for review.
   slider/date and row-sheet code path.
 - `npx tsc --noEmit` — passed.
 - `npx eslint . --quiet` — passed.
+- Review fix verification: `npx vitest run test/components/MobileBottomSheet.test.tsx test/unit/story-12-9-slider-date-refinement-source-contract.test.ts`
+  — 2 files passed, 17 tests passed.
+- Review fix touched-file lint: `npx eslint components/custom/sheets/MobileBottomSheet.tsx components/custom/map/MapView.tsx test/components/MobileBottomSheet.test.tsx test/unit/story-12-9-slider-date-refinement-source-contract.test.ts --quiet`
+  — passed.
 - Final explicit gate run: `npx tsc --noEmit` — PASS, exit 0, no diagnostics.
 - Final explicit gate run: `npx eslint . --quiet` — PASS, exit 0, no diagnostics.
 - Final explicit gate run: `$env:VITEST_MAX_WORKERS='4'; npx vitest run` —
@@ -834,3 +838,9 @@ All seven checks pass, story record ready for review.
   returned where the test expects `/venue-media/.../card.webp`). It was not
   changed in this Story 12.9 refinement and was intentionally outside the
   bounded Story 12.9 gate set; it remains Story 12.12-scoped deferred work.
+
+### Review Findings
+
+- [x] [Review][Patch][High] Sub-row slow drags change the row count before the nearest row boundary - `resolveVisibleRowsAfterDrag` forces any drag beyond the 8 px click slop to move at least one row because `distanceRows = Math.max(1, crossedRows)`, so a 40 px slow drag on an 88 px row changes rows even though the nearest resting boundary is still the current row. Source: Acceptance Auditor/primary. [nextjs-app/components/custom/sheets/MobileBottomSheet.tsx:138]
+- [x] [Review][Patch][High] Max-row height budget ignores the bottom safe-area inset used by the sheet anchor - the sheet is anchored above `env(safe-area-inset-bottom)`, but `computeMaxVisibleRows` budgets only `viewport - navHeightPx - topChromeClearancePx`, so notched devices can render the capped sheet `safe-area-inset-bottom` pixels above the intended top clearance. Source: Acceptance Auditor/primary. [nextjs-app/components/custom/sheets/MobileBottomSheet.tsx:83]
+- [x] [Review][Patch][Med] Vitest source-contract test depends on mutable BMAD story artifacts - `readRepo()` loads `_bmad-output/implementation-artifacts/12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider.md` and asserts story prose contains the OnboardingGate deferral, so a fresh/non-BMAD checkout or routine story-record edit can fail while product behavior is unchanged. Source: Acceptance Auditor/primary. [nextjs-app/test/unit/story-12-9-slider-date-refinement-source-contract.test.ts:30]

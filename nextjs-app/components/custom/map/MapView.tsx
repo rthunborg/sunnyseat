@@ -114,6 +114,7 @@ const DEFAULT_MOBILE_SHEET_METRICS: MobileBottomSheetMetrics = {
   rowHeightPx: 88,
   chromeHeightPx: 104,
   handleHeightPx: 44,
+  safeAreaInsetBottomPx: 0,
   sheetHeightPx: 416,
   maxSheetHeightPx: 416,
 };
