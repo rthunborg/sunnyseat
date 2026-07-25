@@ -188,3 +188,49 @@
 1. Review the four fresh Story 12.9 mobile candidates: slim slider/date pill, ordinary N=3, N=max with zoom controls hidden/inert, and mid-drag with three full rows plus a partial fourth.
 
 **Next:** On approval, promote/rebaseline the accepted references with an audit-log update, complete deterministic gates, run the canonical Story 12.9 review transition, and resume Epic 12 with Story 12.4.
+
+## Report — 2026-07-25T13:16:56Z (halted â€” needs-human)
+
+**Epic:** `12` — 14 stories.
+**Branch:** `epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene` (HEAD `272b46d`).
+**Pipeline status:** Epic 12 paused in Story 12.4 Phase 5 after repeated portal lifecycle fixes failed the full onboarding interaction matrix; human architecture approval is required before a structural refactor.
+**Continues:** 2026-07-24T14:03:20Z (halted â€” needs-human)
+
+**Summary:** Stories 12.3, 12.7, 12.6, 12.13, 12.12, and 12.9 are landed. Story 12.4 has proven the React and Positron sources and has green static/console gates, but the inline-to-body portal architecture remains interaction-racy and is not committed.
+
+**Timing:** started 2026-07-18T11:27:25Z; completed in progress — elapsed 169h 49m (≈35h 37m AI-run, ≈134h 11m human/idle wait); resumed 4×.
+
+**Stories:**
+1. 12-3, 12-7, 12-6, 12-13, 12-12, and 12-9 landed
+2. 12-4 in progress; portal-free stable-sibling architecture decision required before another implementation attempt
+
+**Skipped (already done):** 12-1 was already done before this epic run.
+
+**Integration review:** Not run; Story 12.4 has not landed.
+
+**Epic gate:** Not run.
+
+**TEA:** Story 12.4 risk med; automate selected. Current final-diff typecheck/lint/full Vitest pass (194 files, 1784 tests), console hygiene passes 8/8, visibility stress passes 30/30, but full onboarding interaction verification fails 3/14.
+
+**UAT:** (none)
+
+**Overrides:** User-confirmed dependency order; human/manual visual review allowed.
+
+**Open questions:**
+1. Approve Option A: eliminate the onboarding body portal and render the overlay as a stable sibling outside data-app-shell?
+
+**Deferred work:**
+1. Apply Story 12.7 visibility migration before deployment.
+2. Apply Story 12.12 venue-media storage migration before hosted media use.
+3. Protected Story 12.3 production latency/coverage evidence remains unavailable locally.
+4. Rerun Story 12.4 manual visual capture after the structural fix; the current manual package is invalid because its fallback dev server hit an unprefixed-route redirect loop.
+
+**Auto-decided (epic mode):** (none)
+
+**Planning drift:** No epic dependency-order drift. Story 12.4 escalated from local portal fixes to an architecture decision after three-plus failed lifecycle iterations, as required by the systematic-debugging gate.
+
+**⚠️ Needs human:**
+1. Approve or reject the recommended portal-free stable-sibling onboarding architecture.
+2. If rejected, choose whether to retain a layout-owned portal provider despite the remaining lifecycle risk.
+
+**Next:** On approval, replace the portal with a stable sibling overlay outside the inert app shell, stress both skip and geolocation CTA flows on mobile and desktop, rerun static/console/visual gates, and continue Story 12.4.
