@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-24T20:20:09+02:00'
+lastSaved: '2026-07-25T22:10:47+02:00'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-12.md'
@@ -858,5 +858,62 @@ Remaining non-automated risks are explicitly deferred rather than padded with sp
 ## Next Recommended Workflow
 
 Run the production fix/code-review pass for the seven RED contracts, rerun this focused suite until it is green, then rerun the required full Vitest/Playwright gates. Run canonical visual validation after `ANTHROPIC_API_KEY` is available before attempting the story-review transition.
+
+---
+
+# Automation Expansion Summary - Story 12.4 (Production Console Hygiene)
+
+## Preflight And Context
+
+- **Framework:** Vitest 4.1.4, Playwright, strict TypeScript, and ESLint are configured under `nextjs-app`; framework readiness passed.
+- **Stack:** Next.js frontend with App Router and API routes. Story 12.4 changes are client/runtime hygiene and browser-console behavior, not an external API contract change.
+- **Mode:** BMad-integrated Create mode against `_bmad-output/implementation-artifacts/12-4-production-console-hygiene-hydration-error-maplibre-null-warning.md`, using implementation commit `fa612a7` as the provided reference. The commit was not inspected with git because this delegate is not allowed to run git.
+- **Scope:** post-dev TEA audit only. No app production code, story state, sprint status, Auto-BMAD state, visual references, or visual evidence was changed.
+- **Browser exploration:** `playwright-cli --help` timed out after 10s before any browser session was opened; selector and route validation used source/test inspection plus the focused Playwright run.
+- **Knowledge loaded:** project context, Story 12.4 file, TEA config, test levels, risk priorities, deterministic data guidance, selective execution, CI/burn-in guidance, Playwright utility references, test-quality rules, selector resilience, fixture architecture, and network-first guidance.
+
+## Acceptance Coverage Map
+
+| Story Contract | Priority | Existing Automated Coverage | TEA Decision |
+| --- | --- | --- | --- |
+| AC1: hydration error #418 cannot recur on first visit | P0 | `test/components/OnboardingGate.test.tsx` hydrates first-visit SSR output with `onRecoverableError`, verifies no portal topology, AppRouteFrame sibling placement, StrictMode stability, and app shell `inert`/`aria-hidden` behavior. `test/components/OnboardingGate.synchronous.atdd.test.tsx` covers first-frame real screen behavior, no placeholder, early CTA reachability, and forced-state behavior. `test/e2e/story-12-4-console-hygiene.spec.ts` covers cold first-user root navigation with the guard attached before `goto`. `test/e2e/onboarding.spec.ts` covers unblocking and route scope. | Adequately automated; no duplicate test added. |
+| AC2: MapLibre `ref_length` warning is isolated to upstream Positron style data and not app null-coordinate handling | P0 | `test/components/MapView.test.tsx` covers null and non-finite selected venue coordinates, proves `map.project` is not called, and proves move/zoom listeners are not registered for invalid coordinates, with finite positive controls. `test/e2e/story-12-4-console-hygiene.spec.ts` allows only the exact Positron warning text from a page-origin worker blob, caps allowed warnings per worker, and treats the same text on the main thread as a failure through the synthetic self-test. | Adequately automated; no duplicate test added. |
+| AC3: production console guard fails on app warnings/errors and page errors across core routes | P0 | `test/e2e/story-12-4-console-hygiene.spec.ts` attaches listeners before navigation, watches warnings/errors/page errors, includes a non-vacuous synthetic guard self-test, and runs cold first-user root, forced-time root, and venue-detail cold-entry routes across mobile and desktop projects. | Adequately automated; no duplicate test added. |
+| Post-dev addendum: forced `_time` route must not emit stale planner request dates before client clock resolution | P0 | `test/unit/TimeContext.test.tsx` proves forced planner query params are suppressed during SSR/first client pass when seeded with stale 2026-05-20 and emitted from the resolved 2026-07-25 client clock after mount. `test/components/AppContextProviders.test.tsx` proves forcing sync keeps the child tree mounted once. | Adequately automated; no duplicate test added. |
+
+## Generated Coverage
+
+- **API worker result:** 0 API/contract tests. Story 12.4 has no changed API contract and no Pact/provider target.
+- **E2E worker result:** 0 new E2E tests. The existing Story 12.4 console spec already covers the risk routes, listener timing, non-vacuous failure path, and exact third-party allowlist.
+- **Unit/component result:** 0 new tests. Existing hydration, route-scope, first-frame, MapView null-coordinate, provider mount identity, and TimeContext request-hygiene tests cover the signed contract without padding.
+- **Fixtures/helpers:** none required.
+- **Provider calls:** no live Met.no or Supabase tests were added. Targeted inspection found no Story 12.4 test calls to live providers; shared setup blocks live `api.met.no` and Google provider calls.
+
+## Validation And Gate
+
+- `npx tsc --noEmit` from `nextjs-app` passed with 0 errors.
+- `npx eslint . --quiet` from `nextjs-app` passed with 0 errors.
+- `npx vitest run test/components/OnboardingGate.test.tsx test/components/OnboardingGate.synchronous.atdd.test.tsx test/components/OnboardingGateSessionLatch.test.tsx test/components/OnboardingScreen.test.tsx test/components/AppContextProviders.test.tsx test/unit/TimeContext.test.tsx` passed **6 files / 64 tests** in 3.09s.
+- `npx playwright test test/e2e/story-12-4-console-hygiene.spec.ts --project=mobile --project=desktop --retries=0` passed **8/8 tests** in 15.8s.
+- The Playwright web server emitted the known non-test-failing Next workspace-root warning about multiple lockfiles. No Story 12.4 console-hygiene failures occurred.
+- The story file's existing evidence remains the latest full-suite evidence: console E2E **8/8**, final onboarding E2E **18/18**, 120/120 onboarding stress, and full Vitest **1790 tests** passed. A new full Vitest run was not repeated because no tests or production code were changed in this TEA pass.
+
+## Residual Risks And Deferred Work
+
+- Visual validation remains outside this delegate's ownership and was not self-approved.
+- Story review transition was not run; sprint status was not edited.
+- The implementation commit `fa612a7` was accepted as supplied context rather than verified with git.
+- Browser CLI exploration was unavailable because the capability probe timed out; source inspection and focused Playwright execution provided the validation path.
+
+## Definition Of Done
+
+- The TEA workflow reviewed the Story 12.4 acceptance criteria, mapped the existing automated tests to each risk, and avoided adding low-value duplicate coverage.
+- Focused typecheck, lint, unit/component, and Playwright validation passed.
+- No app source, production behavior, visual artifacts, story status, or sprint state was changed.
+- This automation summary was refreshed with the Story 12.4 coverage conclusion.
+
+## Next Recommended Workflow
+
+Continue with visual evidence/test-review/trace as required by the orchestrator; Story 12.4 does not need additional TEA-generated automated tests.
 
 ---
