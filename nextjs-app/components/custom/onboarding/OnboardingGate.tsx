@@ -8,7 +8,8 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { createPortal } from 'react-dom';
+import { useLocale } from 'next-intl';
+import { usePathname } from 'next/navigation';
 import { useForcedState } from '@/lib/dev/use-forced-state';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
@@ -34,7 +35,7 @@ function readFlag(): boolean {
 // Story 9.5 AC1 — synchronous first-render onboarding state via
 // `useSyncExternalStore`. `getSnapshot` reads the localStorage flag
 // SYNCHRONOUSLY during the first client render, so the gate knows
-// `hasOnboarded` on frame #1 — eliminating the placeholder-then-portal
+// `hasOnboarded` on frame #1 — eliminating the placeholder-then-mount
 // window that caused BOTH the "map flashes before the welcome overlay"
 // symptom AND the "Use my location did nothing" dead-click. `subscribe`
 // wires the existing cross-tab `storage` listener (Story 7.3 Task 8.2)
@@ -60,62 +61,10 @@ function getServerOnboardedSnapshot(): boolean {
 }
 
 /**
- * Story 9.5 follow-up (mobile e2e regression fix): resolve a STABLE portal
- * target on the FIRST client render.
- *
- * The overlay must live in `document.body` (outside the `[data-app-shell]`
- * subtree this gate makes `inert`) so it is interactive rather than inerting
- * ITSELF. The original 9.5 gate portalled AFTER a mount `useEffect`, so on the
- * client the screen first rendered INLINE inside the app-shell and only moved
- * into `document.body` on the next commit. That inline→portal move is a React
- * REMOUNT: `<OnboardingScreen>` at the return root changed to a `Portal`
- * element, so React unmounted the inline instance and mounted a fresh one —
- * resetting `OnboardingScreen`'s `phase` state. A skip/CTA click that landed
- * during the (visible, clickable) inline window set `phase='exiting'` on the
- * instance that was then discarded, so the overlay never dismissed. That is the
- * `onboarding.spec.ts:22` (skip) + `:88` (early CTA) mobile/WebKit regression.
- *
- * This hook removes the CLIENT remount: the container is created in a
- * `useState` initialiser (runs once, on the first client render) and appended
- * to `document.body` immediately, so the very first client render already
- * portals into a STABLE node — no post-mount host switch, hence no remount to
- * race the click once the app has hydrated. On the server
- * (`typeof document === 'undefined'`) it returns `null` and the gate renders
- * the screen inline, preserving the `getServerSnapshot=false` "overlay in the
- * SSR HTML" contract. (The remaining pre-hydration window — where the inline
- * SSR HTML exists before its handlers hydrate — is neutralised separately by
- * rendering that inline copy `inert`, so a click waits for the hydrated
- * portalled copy rather than landing dead on the SSR stand-in.) The container
- * is removed on unmount.
- */
-function usePortalTarget(): HTMLElement | null {
-  const [container] = useState<HTMLElement | null>(() => {
-    if (typeof document === 'undefined') return null;
-    const element = document.createElement('div');
-    element.setAttribute('data-onboarding-portal', '');
-    document.body.appendChild(element);
-    return element;
-  });
-
-  useEffect(() => {
-    if (!container) return;
-    // Defensive: the initialiser appends on first render, but React Strict
-    // Mode double-invokes initialisers in dev and may leave a detached node —
-    // re-attach if it was pruned, and always remove on unmount.
-    if (!container.isConnected) document.body.appendChild(container);
-    return () => {
-      container.remove();
-    };
-  }, [container]);
-
-  return container;
-}
-
-/**
  * Subscribe to the onboarded flag with a synchronous client snapshot and a
  * `false` server snapshot. Returning users see at most a single full-screen
  * overlay frame that resolves to `null` on hydration — strictly better than
- * the prior placeholder-then-portal flash.
+ * the prior placeholder-then-mount flash.
  */
 function useHasOnboarded(): boolean {
   return useSyncExternalStore(
@@ -163,7 +112,7 @@ function OnboardingGateInner() {
   // Story 9.5 AC1: resolve the onboarded state SYNCHRONOUSLY on the first
   // render via `useSyncExternalStore`. On the client `readFlag()` runs during
   // render #1, so the gate knows the answer on the first frame — no
-  // placeholder-then-portal window, no map-flash, no dead-click. The store's
+  // placeholder-then-mount window, no map-flash, no dead-click. The store's
   // `subscribe` carries the cross-tab `storage` listener (Story 7.3 Task 8.2),
   // so completing onboarding in another tab still dismisses an open overlay.
   const liveHasOnboarded = useHasOnboarded();
@@ -181,17 +130,6 @@ function OnboardingGateInner() {
   const wroteFlagThisSessionRef = useRef(false);
   const [dismissed, setDismissed] = useState(false);
   const [pendingFly, setPendingFly] = useState<{ lat: number; lng: number } | null>(null);
-  // Stable portal target resolved on the FIRST client render (see
-  // `usePortalTarget`). The overlay must be portalled to `document.body` so it
-  // escapes the `[data-app-shell]` subtree that this gate's blocking effect
-  // makes `inert` — otherwise the overlay would inert ITSELF and reintroduce
-  // the dead-click. Resolving the target during render (not in a mount effect)
-  // means there is NO inline→portal remount to race a skip/CTA click: on the
-  // client the very first render already portals into a stable node. On the
-  // server `portalTarget` is `null` and the screen renders inline (preserving
-  // the SSR "overlay in HTML" contract + hydration match).
-  const portalTarget = usePortalTarget();
-
   // Cross-tab dismissal: if ANOTHER tab marks the user onboarded while this
   // overlay is open (and WE did not write the flag ourselves this session),
   // dismiss so the two tabs stay in sync — matching the original Story 7.3
@@ -270,15 +208,9 @@ function OnboardingGateInner() {
   // cross-tab onboarding flips `dismissed` through the effect above.
   const shouldShow =
     !bypassForVisualState && !dismissed && (isForced || !initialHasOnboarded);
-  // Only inert `[data-app-shell]` once the overlay is portalled OUT of it.
-  // `<OnboardingGateWithSuspense />` is nested INSIDE the `[data-app-shell]`
-  // subtree (rendered by `app/[locale]/layout.tsx`'s `<ResponsiveLayout>`), so
-  // inerting the shell while the overlay is still a descendant would inert the
-  // interactive overlay ITSELF, reintroducing the dead-click. `portalTarget` is
-  // non-null only on the client (where the overlay renders via `createPortal`
-  // into `document.body`, outside the shell), so gating on it keeps the escape
-  // structural — the shell is never inert while the overlay is inline.
-  const shouldBlockAppShell = shouldShow && portalTarget !== null;
+  // The layout renders this gate as a stable sibling after `[data-app-shell]`,
+  // so the shell can be inert while the onboarding dialog remains interactive.
+  const shouldBlockAppShell = shouldShow;
 
   useEffect(() => {
     if (!shouldBlockAppShell || typeof document === 'undefined') return;
@@ -309,37 +241,31 @@ function OnboardingGateInner() {
 
   if (!shouldShow) return null;
 
-  const screen = (
+  return (
     <OnboardingScreen
       onDismiss={handleDismiss}
       onLocationGranted={handleLocationGranted}
       onLocationDenied={handleLocationDenied}
     />
   );
+}
 
-  // Server / pre-portal-target frame: render the overlay INLINE so it is in the
-  // SSR HTML (covers the map-loading placeholder → no flash; hydration match),
-  // but wrap it `inert` + `aria-hidden`. Story 9.5 made the SSR emit the REAL
-  // testid-bearing screen inline; before the client bundle hydrates its handlers
-  // that inline copy is a DEAD click target that stole (and dropped) the first
-  // skip/CTA click on mobile — the `onboarding.spec.ts:22`/`:88` regression.
-  // Marking the inline copy inert means Playwright's actionability (and a real
-  // user's tap) waits for the interactive PORTALLED copy that hydration commits
-  // into `document.body` — never clicking the un-hydrated stand-in. The wrapper
-  // is `display: contents` so it does not perturb the fixed full-screen layout.
-  if (portalTarget === null) {
-    return (
-      <div
-        data-onboarding-inline-frame=""
-        aria-hidden="true"
-        inert
-        style={{ display: 'contents' }}
-      >
-        {screen}
-      </div>
-    );
-  }
-  return createPortal(screen, portalTarget);
+function normalizedPathname(pathname: string, locale: string): string {
+  const localePrefix = new RegExp(`^/${locale}(?=/|$)`);
+  return pathname.replace(localePrefix, '') || '/';
+}
+
+function isOnboardingRoute(pathname: string, locale: string): boolean {
+  const normalizedPath = normalizedPathname(pathname, locale);
+  return normalizedPath === '/' || normalizedPath === '/favoriter';
+}
+
+function AppRouteOnboardingGateInner() {
+  const pathname = usePathname();
+  const locale = useLocale();
+
+  if (!isOnboardingRoute(pathname, locale)) return null;
+  return <OnboardingGateInner />;
 }
 
 /**
@@ -351,6 +277,14 @@ export function OnboardingGateWithSuspense() {
   return (
     <Suspense fallback={null}>
       <OnboardingGateInner />
+    </Suspense>
+  );
+}
+
+export function AppRouteOnboardingGate() {
+  return (
+    <Suspense fallback={null}>
+      <AppRouteOnboardingGateInner />
     </Suspense>
   );
 }

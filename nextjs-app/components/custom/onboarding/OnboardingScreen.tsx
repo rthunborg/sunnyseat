@@ -142,7 +142,7 @@ export function OnboardingScreen({
 
       {/* Hero copy */}
       <motion.div
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{
           duration: reduceMotion ? 0 : ENTRANCE_DURATION_S,
@@ -164,7 +164,7 @@ export function OnboardingScreen({
 
       {/* CTA stack */}
       <motion.div
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{
           duration: reduceMotion ? 0 : ENTRANCE_DURATION_S,

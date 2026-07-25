@@ -139,6 +139,51 @@ describe('TimeContext', () => {
     expect(result.current.plannerQuery).toEqual({ date: '2026-05-20', time: '14:00' });
   });
 
+  it('does not emit stale forced planner query params before the client clock resolves', () => {
+    function Probe() {
+      const time = useTimeContext();
+      return (
+        <span>
+          {time.plannerQuery
+            ? `${time.plannerQuery.date} ${time.plannerQuery.time}`
+            : 'no-planner-query'}
+        </span>
+      );
+    }
+
+    expect(
+      renderToString(
+        <TimeProvider
+          initialNowIso="2026-05-20T06:00:00.000Z"
+          clock={() => new Date('2026-07-25T10:00:00.000Z')}
+          forcedTime="14:00"
+        >
+          <Probe />
+        </TimeProvider>,
+      ),
+    ).toContain('no-planner-query');
+  });
+
+  it('emits forced planner query params from the client clock after mount', () => {
+    const { result } = renderHook(() => useTimeContext(), {
+      wrapper: function Wrapper({ children }: { children: ReactNode }) {
+        return (
+          <TimeProvider
+            initialNowIso="2026-05-20T06:00:00.000Z"
+            clock={() => new Date('2026-07-25T10:00:00.000Z')}
+            forcedTime="14:00"
+          >
+            {children}
+          </TimeProvider>
+        );
+      },
+    });
+
+    expect(result.current.selectedDate).toBe('2026-07-25');
+    expect(result.current.selectedTime).toBe('14:00');
+    expect(result.current.plannerQuery).toEqual({ date: '2026-07-25', time: '14:00' });
+  });
+
   it('clamps live clock values before and after planner hours into explicit planner queries', () => {
     const early = renderHook(() => useTimeContext(), {
       wrapper: makeWrapper(() => new Date('2026-05-20T01:30:00.000Z')),

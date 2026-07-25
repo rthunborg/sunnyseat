@@ -3,7 +3,7 @@
  * Synchronous first-render onboarding-state strategy (no map-flash, no dead-click).
  *
  * STATUS: describe.skip — these tests assert the POST-implementation behaviour and
- * WILL FAIL against today's placeholder-then-portal gate. They are skipped so CI
+ * WILL FAIL against the old placeholder-then-mount gate. They are skipped so CI
  * stays green. The dev un-skips this block while implementing Task 1.
  *
  * What this proves (deterministic jsdom / RTL — no wall-clock, no flaky timing):
@@ -32,10 +32,12 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { NextIntlClientProvider } from 'next-intl';
 import { OnboardingGateWithSuspense } from '@/components/custom/onboarding/OnboardingGate';
+import { AppRouteFrame } from '@/components/custom/layout/AppRouteFrame';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import onboardingMessages from '@/messages/sv/onboarding.json';
 
 const useForcedStateMock = vi.fn<() => string | null>(() => null);
+const usePathnameMock = vi.fn<() => string>(() => '/');
 const useMapInstanceMock = vi.fn<() => { mapRef: { current: unknown }; mapInstance: unknown }>(
   () => ({ mapRef: { current: null }, mapInstance: null }),
 );
@@ -50,6 +52,18 @@ vi.mock('@/lib/dev/use-forced-state', () => ({
 
 vi.mock('@/lib/contexts/MapInstanceContext', () => ({
   useMapInstance: () => useMapInstanceMock(),
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => usePathnameMock(),
+}));
+
+vi.mock('@/components/custom/layout/DesktopNavBar', () => ({
+  DesktopNavBar: () => <header data-testid="desktop-nav-bar" />,
+}));
+
+vi.mock('@/components/custom/layout/MobileNavBar', () => ({
+  MobileNavBar: () => <nav data-testid="mobile-nav-bar" />,
 }));
 
 vi.mock('@/hooks/useGeolocation', () => ({
@@ -74,11 +88,8 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 
 /**
  * Run `fn` with the global `document` shadowed to `undefined` so `renderToString`
- * takes the same "no DOM" branch a real Node SSR render does. The gate renders
- * the overlay INLINE on the server (`typeof document === 'undefined'`) and
- * portals it to `document.body` on the client; jsdom leaves `document` defined
- * during `renderToString`, which would take the client portal path (portals are
- * not serialised → overlay absent from the string). Restored in `finally`.
+ * takes the same "no DOM" branch a real Node SSR render does. Restored in
+ * `finally`.
  */
 function withoutDocument<T>(fn: () => T): T {
   const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'document');
@@ -101,6 +112,7 @@ describe('Story 9.5 AC1 — synchronous first-render onboarding gate (RED)', () 
 
   beforeEach(() => {
     useForcedStateMock.mockReset().mockReturnValue(null);
+    usePathnameMock.mockReset().mockReturnValue('/');
     useMapInstanceMock.mockReset().mockReturnValue({
       mapRef: { current: null },
       mapInstance: null,
@@ -131,7 +143,7 @@ describe('Story 9.5 AC1 — synchronous first-render onboarding gate (RED)', () 
 
   it('first visit (empty localStorage) renders the REAL OnboardingScreen on the FIRST render — no placeholder', () => {
     // No `await findBy` — this is a synchronous first-render assertion. The real
-    // wired screen must be present on render #1, not portalled in after an effect.
+    // wired screen must be present on render #1.
     render(<OnboardingGateWithSuspense />, { wrapper: Wrapper });
 
     expect(screen.getByTestId('onboarding-screen')).toBeInTheDocument();
@@ -160,8 +172,7 @@ describe('Story 9.5 AC1 — synchronous first-render onboarding gate (RED)', () 
   it('SSR: server render shows the welcome overlay for a first visit (getServerSnapshot === false)', () => {
     // getServerSnapshot must default to "not onboarded" so the server HTML never
     // leaks the map under a privacy choice. The render must not throw. Shadow
-    // `document` away so `renderToString` exercises the real Node-SSR (inline,
-    // non-portalled) path — see `withoutDocument`.
+    // `document` away so `renderToString` exercises the real Node-SSR path.
     const html = withoutDocument(() =>
       renderToString(
         <Wrapper>
@@ -193,44 +204,40 @@ describe('Story 9.5 AC1 — synchronous first-render onboarding gate (RED)', () 
   });
 
   it('preserves the dual inert + aria-hidden app-shell isolation while the overlay is up', async () => {
-    const shell = document.createElement('div');
-    shell.setAttribute('data-app-shell', '');
-    document.body.appendChild(shell);
+    const { container } = render(
+      <AppRouteFrame>
+        <div data-testid="app-content">map content</div>
+      </AppRouteFrame>,
+      { wrapper: Wrapper },
+    );
+    const shell = container.querySelector<HTMLElement>('[data-app-shell]');
 
-    render(<OnboardingGateWithSuspense />, { wrapper: Wrapper, container: shell });
-
+    expect(shell).not.toBeNull();
+    if (!shell) throw new Error('Expected app shell to render');
     await waitFor(() => expect(shell).toHaveAttribute('aria-hidden', 'true'));
     expect(shell).toHaveAttribute('inert');
-
-    shell.remove();
+    expect(shell.contains(screen.getByTestId('onboarding-screen'))).toBe(false);
   });
 
-  it('portals the interactive overlay OUT of the inert `[data-app-shell]` subtree (structural dead-click fix, MED-1)', async () => {
-    // The gate is mounted INSIDE the `[data-app-shell]` subtree (as it is in the
-    // real `[locale]/layout.tsx` → <ResponsiveLayout>). The MED-1 fix gates
-    // `shouldBlockAppShell` on `mounted`, so the shell is only ever inert once the
-    // `mounted` re-render has portalled the overlay OUT to document.body. This
-    // asserts the resulting invariant: whenever the shell carries `inert`, the
-    // interactive onboarding overlay is NOT a descendant of it — so the wired CTA
-    // never sits under an inert ancestor. (The transient same-commit inline frame
-    // the fix removes is a browser paint concern that jsdom flushes away inside
-    // `act()`; the clean-context e2e onboarding spec is the behavioural guard for
-    // the dead-click. This unit test locks the portal-out / inert end-state.)
-    const shell = document.createElement('div');
-    shell.setAttribute('data-app-shell', '');
-    document.body.appendChild(shell);
+  it('renders the interactive overlay as a sibling outside the inert `[data-app-shell]` subtree', async () => {
+    const { container } = render(
+      <AppRouteFrame>
+        <div data-testid="app-content">map content</div>
+      </AppRouteFrame>,
+      { wrapper: Wrapper },
+    );
+    const shell = container.querySelector<HTMLElement>('[data-app-shell]');
 
-    render(<OnboardingGateWithSuspense />, { wrapper: Wrapper, container: shell });
+    expect(shell).not.toBeNull();
+    if (!shell) throw new Error('Expected app shell to render');
 
     await waitFor(() => expect(shell).toHaveAttribute('inert'));
 
-    // Overlay is present and interactive on-screen …
     const overlay = screen.getByTestId('onboarding-screen');
     expect(overlay).toBeInTheDocument();
     expect(screen.getByTestId('onboarding-cta-primary')).toBeInTheDocument();
-    // … but portalled OUT of the inert shell (lives under <body>, not the shell).
     expect(shell.contains(overlay)).toBe(false);
-
-    shell.remove();
+    expect(overlay.parentElement).toBe(shell.parentElement);
+    expect(shell.nextElementSibling).toBe(overlay);
   });
 });

@@ -93,18 +93,21 @@ export function TimeProvider({
     [forcedInitialState, initialNowIso],
   );
   const [state, setState] = useState<TimeState>(initialState);
+  const [hasResolvedInitialClock, setHasResolvedInitialClock] = useState(false);
 
   useEffect(() => {
     if (forcedTime) {
       const forcedState = stateFromForcedPlanner(clock(), forcedDate, forcedTime);
       if (forcedState) {
         setState(forcedState);
+        setHasResolvedInitialClock(true);
         return;
       }
     }
     setState((previous) => (
       isSameTimeState(previous, initialState) ? stateFromNow(clock()) : previous
     ));
+    setHasResolvedInitialClock(true);
   }, [clock, forcedDate, forcedTime, initialState]);
 
   useEffect(() => {
@@ -248,6 +251,10 @@ export function TimeProvider({
       const minMinutes = mode === 'today' && !forcedTime
         ? todayMinMinutes(state.currentTime)
         : PLANNER_START_MINUTES;
+      // Dev/preview `?_time=` routes render from a stable server seed before the
+      // client clock resolves. Suppress that seed's query so data hooks do not
+      // briefly fetch a stale planner date from the hydration-safe ISO.
+      const suppressForcedSeedPlannerQuery = Boolean(forcedTime && !hasResolvedInitialClock);
       return {
         currentTime: state.currentTime,
         selectedDate: state.selectedDate,
@@ -256,7 +263,7 @@ export function TimeProvider({
         mode,
         isLiveNow,
         minMinutes,
-        plannerQuery: isLiveNow || !isPlannerDateValid
+        plannerQuery: suppressForcedSeedPlannerQuery || isLiveNow || !isPlannerDateValid
           ? undefined
           : { date: state.selectedDate, time: state.selectedTime },
         ticks: generatePlannerTicks(),
@@ -271,6 +278,7 @@ export function TimeProvider({
     },
     [
       forcedTime,
+      hasResolvedInitialClock,
       resetToNow,
       selectDate,
       setCurrentTime,

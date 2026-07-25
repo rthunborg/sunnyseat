@@ -234,3 +234,46 @@
 2. If rejected, choose whether to retain a layout-owned portal provider despite the remaining lifecycle risk.
 
 **Next:** On approval, replace the portal with a stable sibling overlay outside the inert app shell, stress both skip and geolocation CTA flows on mobile and desktop, rerun static/console/visual gates, and continue Story 12.4.
+
+## Report — 2026-07-25T19:27:28Z (resumed â€” in-progress)
+
+**Epic:** `12` — 14 stories.
+**Branch:** `epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene` (HEAD `26a1f1e`).
+**Pipeline status:** Epic 12 resumed in Story 12.4 Phase 5 after human approval of Option A; the portal-free stable-sibling onboarding refactor is being implemented.
+**Continues:** 2026-07-25T13:16:56Z (halted â€” needs-human)
+
+**Summary:** Stories 12.3, 12.7, 12.6, 12.13, 12.12, and 12.9 are landed. Story 12.4 architecture approval is resolved and implementation has resumed.
+
+**Timing:** started 2026-07-18T11:27:25Z; completed in progress — elapsed 176h 00m (≈35h 37m AI-run, ≈140h 22m human/idle wait); resumed 5×.
+
+**Stories:**
+1. 12-3, 12-7, 12-6, 12-13, 12-12, and 12-9 landed
+2. 12-4 in progress; Option A approved: stable sibling onboarding outside data-app-shell
+
+**Skipped (already done):** 12-1 was already done before this epic run.
+
+**Integration review:** Not run; Story 12.4 has not landed.
+
+**Epic gate:** Not run.
+
+**TEA:** Story 12.4 risk med; automate selected. Final gates will be rerun after the approved structural refactor.
+
+**UAT:** (none)
+
+**Overrides:** User-confirmed dependency order; human/manual visual review allowed; Option A explicitly approved.
+
+**Open questions:** (none)
+
+**Deferred work:**
+1. Apply Story 12.7 visibility migration before deployment.
+2. Apply Story 12.12 venue-media storage migration before hosted media use.
+3. Protected Story 12.3 production latency/coverage evidence remains unavailable locally.
+4. Rerun Story 12.4 manual visual capture after the structural fix; the prior package is invalid because it contains redirect-error pages.
+
+**Auto-decided (epic mode):** (none)
+
+**Planning drift:** No epic dependency-order drift. The approved structural refactor remains within Story 12.4 scope.
+
+**⚠️ Needs human:** (none)
+
+**Next:** Implement Option A with RED-first structural/hydration coverage, stress both dismissal flows on mobile and desktop, then rerun static, console, visual, review, and UAT gates.

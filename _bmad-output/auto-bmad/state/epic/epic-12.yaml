@@ -5,11 +5,11 @@ epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-25T13:18:11Z"
+updated_at: "2026-07-25T19:26:08Z"
 started_at: "2026-07-18T11:27:25Z"
 completed_at: null
 active_seconds: 128264
-timing_anchor: null
+timing_anchor: 1785007568
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -23,7 +23,7 @@ stories_after_in_epic: null
 completed_phases: [0, 1, 2]
 code_review_iterations: 0
 code_review_loop_done: false
-hitl_halt: "needs-human: approve Story 12.4 portal-free stable-sibling onboarding architecture"
+hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: true
 story_trace: null
@@ -51,8 +51,7 @@ deferred_work:
   - "[12-3] Protected Story 12.3 production evidence remains: capture the 42+ venue cold-p95 dataset and verify the protected GitHub Production environment when protected access is available."
   - "[12-7] Apply `20260718214954_add_public_venue_visibility.sql` before deploying Story 12.7 code, then regenerate Supabase types and verify no contract diff."
   - "[12-12] Apply `20260719000000_venue_media_storage.sql` before hosted venue media is used, then verify protected Supabase Storage bucket/RLS policy behavior with service-role upload and public rendition reads."
-blockers:
-  - "[12-4] Human architecture approval required before the portal-free stable-sibling onboarding refactor."
+blockers: []
 overrides: {}
 constraints:
   - "Execute Epic 12 in the user-confirmed dependency order: 12-1, 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, 12-10, 12-5, 12-8, 12-11, 12-2, 12-14."
