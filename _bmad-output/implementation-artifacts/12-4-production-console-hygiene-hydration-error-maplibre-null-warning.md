@@ -511,6 +511,10 @@ GPT-5.5 (auto-bmad dev-story delegate)
 - Added a focused console/pageerror Playwright guard with listeners installed before
   navigation. It fails same-text Positron warnings on the main thread and app/browser errors,
   but permits the proven Positron worker-blob warning exactly and caps it per worker.
+- ✅ Resolved review finding [Med]: narrowed the Positron warning exception so same-text
+  worker warnings are allowed only after the page has loaded OpenFreeMap Positron and the
+  exact `highway-shield-non-us`, `highway-shield-us-interstate`, and `road_shield_us`
+  `ref_length` comparison layers are present.
 - Added TimeContext forced-route regressions so canonical `_time` routes do not fire stale
   hydration-seed planner API requests, while mounted forced sessions still emit the current
   Stockholm client-clock date/time.
@@ -566,6 +570,14 @@ GPT-5.5 (auto-bmad dev-story delegate)
   multiple-lockfile warning, Motion reduced-motion warnings, and existing
   `VenuePinLayer` synchronous-unmount React warnings outside the Story 12.4 console-hygiene
   guarded routes.
+- Review patch baseline: `npx tsc --noEmit` passed and `npx eslint . --quiet` passed from
+  `nextjs-app/` before editing.
+- Review patch focused console-hygiene E2E:
+  `PLAYWRIGHT_BASE_URL=http://localhost:43220 PLAYWRIGHT_PORT=43220 npx playwright test test/e2e/story-12-4-console-hygiene.spec.ts --project=mobile --project=desktop --retries=0`
+  passed 10/10. The first default-port attempt failed because an existing Next dev server
+  already owned `.next` on port `43220`; no app assertions failed in that attempt.
+- Review patch post-edit static gates: `npx tsc --noEmit` passed and
+  `npx eslint . --quiet` passed from `nextjs-app/`.
 
 ### Change Log
 
@@ -580,3 +592,10 @@ GPT-5.5 (auto-bmad dev-story delegate)
   desktop.
 - 2026-07-25: Suppressed stale forced-time planner query params until the client clock
   resolves, with unit coverage for pre-mount and mounted forced sessions.
+- 2026-07-25: Addressed code review finding - narrowed the Positron worker warning exception
+  to require loaded-style evidence for the documented `ref_length` layers and added a
+  same-origin blob-worker regression.
+
+### Review Findings
+
+- [x] [Review][Patch][Med] Console guard allow-list is broader than the proven Positron source: `isAllowedThirdPartyWarning()` allows the exact `Expected value to be of type number, but found null instead.` warning from any same-origin blob worker, capped per worker, without checking the proven OpenFreeMap Positron layers (`highway-shield-non-us`, `highway-shield-us-interstate`, `road_shield_us`) or `ref_length` expression source. Source: Acceptance Auditor primary. [nextjs-app/test/e2e/story-12-4-console-hygiene.spec.ts:40]
