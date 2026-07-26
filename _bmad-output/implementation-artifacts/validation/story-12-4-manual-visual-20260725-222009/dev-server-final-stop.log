@@ -1,0 +1,38 @@
+{
+  "stoppedTargets": [
+    {
+      "pid": 28284,
+      "parent": 15812,
+      "commandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c next dev --turbopack --hostname localhost --port 43220"
+    },
+    {
+      "pid": 41832,
+      "parent": 28284,
+      "commandLine": "\"node\"   \"C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\node_modules\\.bin\\\\..\\next\\dist\\bin\\next\" dev --turbopack --hostname localhost --port 43220"
+    },
+    {
+      "pid": 7664,
+      "parent": 41832,
+      "commandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\node_modules\\next\\dist\\server\\lib\\start-server.js"
+    },
+    {
+      "pid": 45884,
+      "parent": 12624,
+      "commandLine": "C:\\WINDOWS\\system32\\cmd.exe /c \"\"C:\\Program Files\\nodejs\\npm.cmd\" run dev -- --hostname localhost --port 43220\""
+    }
+  ],
+  "remainingPort43220": null,
+  "captureFailureExists": false,
+  "screenshots": [
+    "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\screenshots\\map-primary-desktop-candidate.png",
+    "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\screenshots\\map-primary-mobile-candidate.png",
+    "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\screenshots\\venue-detail-desktop-candidate.png",
+    "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\screenshots\\venue-detail-mobile-candidate.png"
+  ],
+  "comparisons": [
+    "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\comparisons\\map-primary-desktop-comparison.png",
+    "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\comparisons\\map-primary-mobile-comparison.png",
+    "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\comparisons\\venue-detail-desktop-comparison.png",
+    "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\comparisons\\venue-detail-mobile-comparison.png"
+  ]
+}

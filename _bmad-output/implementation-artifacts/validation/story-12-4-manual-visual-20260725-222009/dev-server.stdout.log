@@ -1,0 +1,49 @@
+
+> sunnyseat@0.1.0 dev
+> next dev --turbopack --hostname localhost --port 43220
+
+▲ Next.js 16.2.2 (Turbopack)
+- Local:         http://localhost:43220
+- Network:       http://localhost:43220
+- Environments: .env.local, .env
+✓ Ready in 504ms
+
+ GET / 200 in 1664ms (next.js: 1131ms, proxy.ts: 165ms, generate-params: 744ms, application-code: 368ms)
+ GET / 200 in 89ms (next.js: 14ms, proxy.ts: 5ms, generate-params: 6ms, application-code: 70ms)
+○ Compiling /[locale]/about ...
+ GET /about 200 in 4.4s (next.js: 4.2s, proxy.ts: 6ms, generate-params: 434ms, application-code: 217ms)
+ GET /about 200 in 4.2s (next.js: 4.0s, proxy.ts: 5ms, generate-params: 471ms, application-code: 175ms)
+ GET /manifest.webmanifest 200 in 75ms (next.js: 55ms, application-code: 19ms)
+ GET / 200 in 124ms (next.js: 19ms, proxy.ts: 5ms, generate-params: 9ms, application-code: 100ms)
+ GET / 200 in 82ms (next.js: 8ms, proxy.ts: 7ms, generate-params: 32µs, application-code: 66ms)
+ GET /manifest.webmanifest 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5 200 in 64ms (next.js: 50ms, proxy.ts: 4ms, application-code: 10ms)
+ GET /api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-07-25&time=21%3A00 200 in 22ms (next.js: 7ms, proxy.ts: 7ms, application-code: 8ms)
+ GET /api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5 200 in 12ms (next.js: 3ms, proxy.ts: 4ms, application-code: 5ms)
+ GET /api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-07-25&time=21%3A00 200 in 13ms (next.js: 4ms, proxy.ts: 4ms, application-code: 6ms)
+ GET /?_time=14:00 200 in 92ms (next.js: 10ms, proxy.ts: 3ms, generate-params: 5ms, application-code: 78ms)
+ GET /manifest.webmanifest 200 in 11ms (next.js: 4ms, application-code: 7ms)
+ GET /api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5 200 in 10ms (next.js: 3ms, proxy.ts: 3ms, application-code: 5ms)
+ GET /api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-07-25&time=21%3A00 200 in 11ms (next.js: 3ms, proxy.ts: 3ms, application-code: 5ms)
+ GET /?venue=test-venue-sunny&_state=venue-detail&_time=14:00 200 in 155ms (next.js: 10ms, proxy.ts: 3ms, generate-params: 5ms, application-code: 142ms)
+ GET /?_time=16:30 200 in 131ms (next.js: 8ms, proxy.ts: 26ms, generate-params: 33µs, application-code: 97ms)
+ GET /manifest.webmanifest 200 in 8ms (next.js: 3ms, application-code: 5ms)
+ GET /api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5 200 in 11ms (next.js: 3ms, proxy.ts: 4ms, application-code: 5ms)
+ GET /api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-07-25&time=21%3A00 200 in 13ms (next.js: 3ms, proxy.ts: 5ms, application-code: 5ms)
+ GET /api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5 200 in 12ms (next.js: 3ms, proxy.ts: 3ms, application-code: 6ms)
+ GET /api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-07-25&time=21%3A00 200 in 15ms (next.js: 4ms, proxy.ts: 5ms, application-code: 6ms)
+ GET /?venue=test-venue-sunny&_state=venue-detail&_time=16:30 200 in 89ms (next.js: 11ms, proxy.ts: 3ms, generate-params: 5ms, application-code: 75ms)
+ GET /api/reviews?venueId=test-venue-sunny 200 in 73ms (next.js: 67ms, application-code: 6ms)
+ GET /api/reviews?venueId=test-venue-sunny 200 in 14ms (next.js: 8ms, application-code: 6ms)
+ GET /api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5 200 in 14ms (next.js: 4ms, proxy.ts: 4ms, application-code: 6ms)
+ GET /api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-07-25&time=21%3A00 200 in 18ms (next.js: 4ms, proxy.ts: 7ms, application-code: 8ms)
+ GET /api/venues/test-venue-sunny?date=2026-07-25&time=21%3A00&lat=57.7089&lng=11.9746 200 in 235ms (proxy.ts: 18ms)
+ GET /api/reviews?venueId=test-venue-sunny 200 in 7ms (next.js: 3ms, application-code: 4ms)
+ GET /api/reviews?venueId=test-venue-sunny 200 in 6ms (next.js: 2ms, application-code: 4ms)
+ GET /api/venues/test-venue-sunny?date=2026-07-25&time=21%3A00&lat=57.7089&lng=11.9746 200 in 74ms (proxy.ts: 3ms)
+ GET /api/venues/test-venue-sunny?date=2026-07-25&time=21%3A00&lat=57.7089&lng=11.9746 200 in 104ms (proxy.ts: 4ms)
+ GET /api/venues/test-venue-sunny?date=2026-07-25&time=16%3A30&lat=57.7089&lng=11.9746 200 in 113ms (next.js: 90ms, proxy.ts: 4ms, application-code: 20ms)
+ GET / 200 in 95ms (next.js: 12ms, proxy.ts: 5ms, generate-params: 6ms, application-code: 78ms)
+ GET /?_state=map-primary&_time=14:00 200 in 68ms (next.js: 10ms, proxy.ts: 3ms, generate-params: 5ms, application-code: 55ms)
+ GET /api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5 200 in 14ms (next.js: 3ms, proxy.ts: 4ms, application-code: 7ms)
+ GET /api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-07-25&time=21%3A00 200 in 15ms (next.js: 4ms, proxy.ts: 6ms, application-code: 5ms)

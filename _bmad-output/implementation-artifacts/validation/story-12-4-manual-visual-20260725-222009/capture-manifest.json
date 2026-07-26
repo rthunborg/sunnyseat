@@ -1,0 +1,466 @@
+{
+  "story": "12.4",
+  "packageType": "manual visual-review evidence package",
+  "status": "human-accepted-manual-visual",
+  "generatedAtUtc": "2026-07-25T20:32:57.477Z",
+  "generatedAtEuropeStockholm": "2026-07-25T22:32:57.477+02:00",
+  "packageDirectoryTimestampEuropeStockholm": "2026-07-25T22:20:09+02:00",
+  "finalFixCommitProvidedByParent": "b64da80",
+  "packagePath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009",
+  "baseUrl": "http://localhost:43220",
+  "captureHostAlignment": "server bound to localhost and browser/wrapper surfaces used http://localhost:43220",
+  "provider": "none",
+  "manualAcceptanceRequired": false,
+  "passFailDecisionMade": false,
+  "humanVisualDecision": {
+    "decision": "accepted",
+    "visualAccepted": true,
+    "approvalText": "Approve Story 12.4 visual acceptance",
+    "approvalDateEuropeStockholm": "2026-07-26",
+    "approvalTimezone": "Europe/Stockholm",
+    "timestampPrecision": "date",
+    "rationale": "Human manual approval accepted the four post-b64da80 comparison PNGs. The approved reference PNGs remain unchanged; no visual rebaseline was performed or required.",
+    "automatedProviderPassFail": "not-run-provider-none"
+  },
+  "screenshotsArePostFixOnly": true,
+  "emptyNextDevToolsPortalFalsePositive": {
+    "selector": "nextjs-portal",
+    "observedMarkup": "<nextjs-portal style=\"--nextjs-dev-tools-scale: 1;\"></nextjs-portal>",
+    "interpretation": "The earlier capture guard treated the empty Next.js dev-tools portal as a browser/server error. Read-only audit confirmed this was a false positive, not app/runtime error UI.",
+    "evidence": "All four final post-b64da80 captures have HTTP 200, zero redirects, title SunnySeat, hasErrorText:false, onboardingVisibleCount:0, appShellCount:1, mapCanvasCount:1, and visible SunnySeat UI selectors."
+  },
+  "cases": [
+    {
+      "key": "map-primary-mobile",
+      "screenId": "map-primary",
+      "viewport": "mobile",
+      "route": "/?_state=map-primary&_time=14:00",
+      "url": "http://localhost:43220/?_state=map-primary&_time=14:00",
+      "finalUrl": "http://localhost:43220/?_state=map-primary&_time=14:00",
+      "status": 200,
+      "ok": true,
+      "redirectCount": 0,
+      "redirectEvents": [],
+      "cssViewport": "390x844",
+      "deviceScaleFactor": 2,
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\mobile\\map-primary.png",
+        "width": 780,
+        "height": 1688,
+        "sha256": "3a3beb45f26229c87cf4106e775748a30cf24d3644ee604024e12acd2161392a"
+      },
+      "candidate": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\screenshots\\map-primary-mobile-candidate.png",
+        "width": 780,
+        "height": 1688,
+        "sha256": "217918b1cd3f3e63f505dcc474a54186fc3126a73e4049a7ef7b649244bebc46"
+      },
+      "comparison": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\comparisons\\map-primary-mobile-comparison.png",
+        "width": 1560,
+        "height": 1744,
+        "sha256": "ccb38e56d0fdf05365f2191d26540613e54284271d800debe9a08bac22dc3a9d"
+      },
+      "validation": {
+        "title": "SunnySeat",
+        "bodyTextSample": "95%\n95%\n95%\n95%\n95%\n95%\n95%\nOpenFreeMap © OpenMapTiles Data from OpenStreetMap\n14:00\nIdag\nMest sol\nNära mig\nInnergård\nHund ok\nWifi\nBakverk\nMorgonsol\nTake-away\nSurdeg\nKanal\nSkaldjur\nParasoller\nSpecialkaffe\nSvalt\nLunch\nBakgård\nKväll\nS\nSkuggans Hus\nInom Vallgraven · 241 m\nFULL SOL\nK\nKafé Magasinet\nInom Vallgraven · 513 m\nFULL SOL\nB\nBistro Bakgården\nVasastaden · 545 m\nFULL SOL\nS\nSolplats Magasinsgatan\nInom Vallgraven · 550 m\nFULL SOL\nB\nBrygghuset Lerum\nHaga · 886 m\nFULL SOL\nC\nCafé Halvvägs\nVasastaden · 1.0 km\nFULL SOL\nB\nBryggerietsoltak\nLinnéstaden · 1.5 km\nFULL SOL\n\nPlatslistan är infälld\n\nNÄRA MIG\nFAVORITER",
+        "appShellCount": 1,
+        "onboardingVisibleCount": 0,
+        "mapCanvasCount": 1,
+        "venuePinCount": 7,
+        "mobileBottomSheetVisibleCount": 1,
+        "desktopPanelVisibleCount": 0,
+        "mobileDetailVisibleCount": 0,
+        "desktopDetailVisibleCount": 0,
+        "emptyNextDevPortalCount": 1,
+        "hasErrorText": false
+      },
+      "consoleIssues": [
+        {
+          "type": "warning",
+          "text": "[.WebGL-0x6a3c001abe00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+          "location": {
+            "url": "http://localhost:43220/?_state=map-primary&_time=14:00",
+            "lineNumber": 0,
+            "columnNumber": 0
+          },
+          "worker": null,
+          "classification": "allowed-browser-webgl-readpixels-warning"
+        },
+        {
+          "type": "warning",
+          "text": "[.WebGL-0x6a3c001abe00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+          "location": {
+            "url": "http://localhost:43220/?_state=map-primary&_time=14:00",
+            "lineNumber": 0,
+            "columnNumber": 0
+          },
+          "worker": null,
+          "classification": "allowed-browser-webgl-readpixels-warning"
+        },
+        {
+          "type": "warning",
+          "text": "[.WebGL-0x6a3c001abe00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+          "location": {
+            "url": "http://localhost:43220/?_state=map-primary&_time=14:00",
+            "lineNumber": 0,
+            "columnNumber": 0
+          },
+          "worker": null,
+          "classification": "allowed-browser-webgl-readpixels-warning"
+        },
+        {
+          "type": "warning",
+          "text": "[.WebGL-0x6a3c001abe00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+          "location": {
+            "url": "http://localhost:43220/?_state=map-primary&_time=14:00",
+            "lineNumber": 0,
+            "columnNumber": 0
+          },
+          "worker": null,
+          "classification": "allowed-browser-webgl-readpixels-warning"
+        },
+        {
+          "type": "warning",
+          "text": "Expected value to be of type number, but found null instead.",
+          "location": {
+            "url": "blob:http://localhost:43220/b136d8a0-39ac-40b9-a72c-b5f843dd4567",
+            "lineNumber": 8091,
+            "columnNumber": 142
+          },
+          "worker": "blob:http://localhost:43220/b136d8a0-39ac-40b9-a72c-b5f843dd4567",
+          "classification": "allowed-openfreemap-positron-style-worker-warning"
+        },
+        {
+          "type": "warning",
+          "text": "Expected value to be of type number, but found null instead.",
+          "location": {
+            "url": "blob:http://localhost:43220/b136d8a0-39ac-40b9-a72c-b5f843dd4567",
+            "lineNumber": 8091,
+            "columnNumber": 142
+          },
+          "worker": "blob:http://localhost:43220/b136d8a0-39ac-40b9-a72c-b5f843dd4567",
+          "classification": "allowed-openfreemap-positron-style-worker-warning"
+        },
+        {
+          "type": "warning",
+          "text": "Expected value to be of type number, but found null instead.",
+          "location": {
+            "url": "blob:http://localhost:43220/b136d8a0-39ac-40b9-a72c-b5f843dd4567",
+            "lineNumber": 8091,
+            "columnNumber": 142
+          },
+          "worker": "blob:http://localhost:43220/b136d8a0-39ac-40b9-a72c-b5f843dd4567",
+          "classification": "allowed-openfreemap-positron-style-worker-warning"
+        }
+      ],
+      "consoleIssueCount": 7,
+      "unclassifiedConsoleIssueCount": 0,
+      "events": [
+        {
+          "type": "request",
+          "method": "GET",
+          "url": "http://localhost:43220/?_state=map-primary&_time=14:00"
+        },
+        {
+          "type": "response",
+          "status": 200,
+          "url": "http://localhost:43220/?_state=map-primary&_time=14:00",
+          "location": null,
+          "rewrite": "/sv?_state=map-primary&_time=14%3A00"
+        }
+      ]
+    },
+    {
+      "key": "map-primary-desktop",
+      "screenId": "map-primary",
+      "viewport": "desktop",
+      "route": "/?_time=16:30",
+      "url": "http://localhost:43220/?_time=16:30",
+      "finalUrl": "http://localhost:43220/?_time=16:30",
+      "status": 200,
+      "ok": true,
+      "redirectCount": 0,
+      "redirectEvents": [],
+      "cssViewport": "1440x900",
+      "deviceScaleFactor": 2,
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\desktop\\map-primary.png",
+        "width": 2880,
+        "height": 1800,
+        "sha256": "073294af904d6f65163eceeefd6be492b5308333bf874f86f0cef7d0a1b36ec4"
+      },
+      "candidate": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\screenshots\\map-primary-desktop-candidate.png",
+        "width": 2880,
+        "height": 1800,
+        "sha256": "a9ef49022b2009680a56a934e402b76c29b7708b39c46857f9ac1fc8e16e3027"
+      },
+      "comparison": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\comparisons\\map-primary-desktop-comparison.png",
+        "width": 5760,
+        "height": 1856,
+        "sha256": "4bc5159c33920ac1171a3fbba4c398fb42b3182db9b9d9a39507e145bc48f58d"
+      },
+      "validation": {
+        "title": "SunnySeat",
+        "bodyTextSample": "SunnySeat\nSök plats\nInnergård\nHund ok\nWifi\nBakverk\nMorgonsol\nTake-away\nSurdeg\nKanal\nSkaldjur\nParasoller\nSpecialkaffe\nSvalt\nLunch\nBakgård\nKväll\nSV\nEN\nOpenFreeMap © OpenMapTiles Data from OpenStreetMap\nIdag\n06:00\n09:00\n12:00\n15:00\n18:00\n21:00\n16:30\nNära mig\nFavoriter\nMEST SOL\nNÄRMAST\nK\nKafé Magasinet\nInom Vallgraven · 513 m\nMEST SKUGGA\nB\nBryggerietsoltak\nLinnéstaden · 1.5 km\nMEST SKUGGA\nS\nSolplats Magasinsgatan\nInom Vallgraven · 550 m\nMEST SKUGGA\nC\nCafé Halvvägs\nVasastaden · 1.0 km\nMEST SKUGGA\nB\nBrygghuset Lerum\nHaga · 886 m\nMEST SKUGGA\nS\nSkuggans Hus\nInom Vallgraven · 241 m\nMEST SKUGGA\nB\nBistro Bakgården\nVasastaden · 545 m\nMEST SKUGGA",
+        "appShellCount": 1,
+        "onboardingVisibleCount": 0,
+        "mapCanvasCount": 1,
+        "venuePinCount": 7,
+        "mobileBottomSheetVisibleCount": 0,
+        "desktopPanelVisibleCount": 1,
+        "mobileDetailVisibleCount": 0,
+        "desktopDetailVisibleCount": 0,
+        "emptyNextDevPortalCount": 1,
+        "hasErrorText": false
+      },
+      "consoleIssues": [
+        {
+          "type": "warning",
+          "text": "Expected value to be of type number, but found null instead.",
+          "location": {
+            "url": "blob:http://localhost:43220/1806f856-2fa7-494b-b610-ed5d32c86c3e",
+            "lineNumber": 8091,
+            "columnNumber": 142
+          },
+          "worker": "blob:http://localhost:43220/1806f856-2fa7-494b-b610-ed5d32c86c3e",
+          "classification": "allowed-openfreemap-positron-style-worker-warning"
+        },
+        {
+          "type": "warning",
+          "text": "Expected value to be of type number, but found null instead.",
+          "location": {
+            "url": "blob:http://localhost:43220/1806f856-2fa7-494b-b610-ed5d32c86c3e",
+            "lineNumber": 8091,
+            "columnNumber": 142
+          },
+          "worker": "blob:http://localhost:43220/1806f856-2fa7-494b-b610-ed5d32c86c3e",
+          "classification": "allowed-openfreemap-positron-style-worker-warning"
+        },
+        {
+          "type": "warning",
+          "text": "Expected value to be of type number, but found null instead.",
+          "location": {
+            "url": "blob:http://localhost:43220/1806f856-2fa7-494b-b610-ed5d32c86c3e",
+            "lineNumber": 8091,
+            "columnNumber": 142
+          },
+          "worker": "blob:http://localhost:43220/1806f856-2fa7-494b-b610-ed5d32c86c3e",
+          "classification": "allowed-openfreemap-positron-style-worker-warning"
+        }
+      ],
+      "consoleIssueCount": 3,
+      "unclassifiedConsoleIssueCount": 0,
+      "events": [
+        {
+          "type": "request",
+          "method": "GET",
+          "url": "http://localhost:43220/?_time=16:30"
+        },
+        {
+          "type": "response",
+          "status": 200,
+          "url": "http://localhost:43220/?_time=16:30",
+          "location": null,
+          "rewrite": "/sv?_time=16%3A30"
+        }
+      ]
+    },
+    {
+      "key": "venue-detail-mobile",
+      "screenId": "venue-detail",
+      "viewport": "mobile",
+      "route": "/?venue=test-venue-sunny&_state=venue-detail&_time=14:00",
+      "url": "http://localhost:43220/?venue=test-venue-sunny&_state=venue-detail&_time=14:00",
+      "finalUrl": "http://localhost:43220/?venue=test-venue-sunny&_state=venue-detail&_time=14:00",
+      "status": 200,
+      "ok": true,
+      "redirectCount": 0,
+      "redirectEvents": [],
+      "cssViewport": "390x844",
+      "deviceScaleFactor": 2,
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\mobile\\venue-detail.png",
+        "width": 780,
+        "height": 1688,
+        "sha256": "5ba211f13af3e4e5927f4b0cc5100be36fd8210d7a1e30e034f600314c08cc42"
+      },
+      "candidate": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\screenshots\\venue-detail-mobile-candidate.png",
+        "width": 780,
+        "height": 1688,
+        "sha256": "7a0b900638f6d28acdb59966cca1470e86af0697d9ddea7bf0a9de7156bd1a80"
+      },
+      "comparison": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\comparisons\\venue-detail-mobile-comparison.png",
+        "width": 1560,
+        "height": 1744,
+        "sha256": "95f37dad71a30ba57aa90d693d0a5e69dde4751f3a3346e8663b8146ba2ea562"
+      },
+      "validation": {
+        "title": "SunnySeat",
+        "bodyTextSample": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap\nSök plats\n14:00\nIdag\nMest sol\nNära mig\nInnergård\nHund ok\nWifi\nBakverk\nMorgonsol\nTake-away\nSurdeg\nKanal\nSkaldjur\nParasoller\nSpecialkaffe\nSvalt\nLunch\nBakgård\nKväll\nK\nKafé Magasinet\nInom Vallgraven · 513 m\nMEST SKUGGA\nB\nBryggerietsoltak\nLinnéstaden · 1.5 km\nMEST SKUGGA\nS\nSolplats Magasinsgatan\nInom Vallgraven · 550 m\nMEST SKUGGA\nC\nCafé Halvvägs\nVasastaden · 1.0 km\nMEST SKUGGA\nB\nBrygghuset Lerum\nHaga · 886 m\nMEST SKUGGA\nS\nSkuggans Hus\nInom Vallgraven · 241 m\nMEST SKUGGA\nB\nBistro Bakgården\nVasastaden · 545 m\nMEST SKUGGA\n\nVisar 3 rader av 4\n\nPLATSHÅLLARBILD\nKafé Magasinet\n95%\nKafé Magasinet\nÖPPET · 22:00\nKafé\n·\nGöteborg\n·\n4.5\n(2)\n\nStor uteserverin",
+        "appShellCount": 1,
+        "onboardingVisibleCount": 0,
+        "mapCanvasCount": 1,
+        "venuePinCount": 7,
+        "mobileBottomSheetVisibleCount": 1,
+        "desktopPanelVisibleCount": 0,
+        "mobileDetailVisibleCount": 1,
+        "desktopDetailVisibleCount": 0,
+        "emptyNextDevPortalCount": 1,
+        "hasErrorText": false
+      },
+      "consoleIssues": [
+        {
+          "type": "warning",
+          "text": "Expected value to be of type number, but found null instead.",
+          "location": {
+            "url": "blob:http://localhost:43220/70c74ba2-7bcd-49cd-aaf3-2a3197c82836",
+            "lineNumber": 8091,
+            "columnNumber": 142
+          },
+          "worker": "blob:http://localhost:43220/70c74ba2-7bcd-49cd-aaf3-2a3197c82836",
+          "classification": "allowed-openfreemap-positron-style-worker-warning"
+        },
+        {
+          "type": "warning",
+          "text": "Expected value to be of type number, but found null instead.",
+          "location": {
+            "url": "blob:http://localhost:43220/70c74ba2-7bcd-49cd-aaf3-2a3197c82836",
+            "lineNumber": 8091,
+            "columnNumber": 142
+          },
+          "worker": "blob:http://localhost:43220/70c74ba2-7bcd-49cd-aaf3-2a3197c82836",
+          "classification": "allowed-openfreemap-positron-style-worker-warning"
+        },
+        {
+          "type": "warning",
+          "text": "Expected value to be of type number, but found null instead.",
+          "location": {
+            "url": "blob:http://localhost:43220/70c74ba2-7bcd-49cd-aaf3-2a3197c82836",
+            "lineNumber": 8091,
+            "columnNumber": 142
+          },
+          "worker": "blob:http://localhost:43220/70c74ba2-7bcd-49cd-aaf3-2a3197c82836",
+          "classification": "allowed-openfreemap-positron-style-worker-warning"
+        }
+      ],
+      "consoleIssueCount": 3,
+      "unclassifiedConsoleIssueCount": 0,
+      "events": [
+        {
+          "type": "request",
+          "method": "GET",
+          "url": "http://localhost:43220/?venue=test-venue-sunny&_state=venue-detail&_time=14:00"
+        },
+        {
+          "type": "response",
+          "status": 200,
+          "url": "http://localhost:43220/?venue=test-venue-sunny&_state=venue-detail&_time=14:00",
+          "location": null,
+          "rewrite": "/sv?venue=test-venue-sunny&_state=venue-detail&_time=14%3A00"
+        }
+      ]
+    },
+    {
+      "key": "venue-detail-desktop",
+      "screenId": "venue-detail",
+      "viewport": "desktop",
+      "route": "/?venue=test-venue-sunny&_state=venue-detail&_time=16:30",
+      "url": "http://localhost:43220/?venue=test-venue-sunny&_state=venue-detail&_time=16:30",
+      "finalUrl": "http://localhost:43220/?venue=test-venue-sunny&_state=venue-detail&_time=16:30",
+      "status": 200,
+      "ok": true,
+      "redirectCount": 0,
+      "redirectEvents": [],
+      "cssViewport": "1440x900",
+      "deviceScaleFactor": 2,
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\desktop\\venue-detail.png",
+        "width": 2880,
+        "height": 1800,
+        "sha256": "05f3321ce879b0b52710dc2b6b973a21f3270bea16b3640653e96fde830f723e"
+      },
+      "candidate": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\screenshots\\venue-detail-desktop-candidate.png",
+        "width": 2880,
+        "height": 1800,
+        "sha256": "66712e1f9dbda70cc156e0393db6e77c321282991c5f4195137f3639bed81305"
+      },
+      "comparison": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009\\comparisons\\venue-detail-desktop-comparison.png",
+        "width": 5760,
+        "height": 1856,
+        "sha256": "dc893850e8b448c7caf287235bf35e7ab50479708f65f52a3640ea9dc59816e4"
+      },
+      "validation": {
+        "title": "SunnySeat",
+        "bodyTextSample": "SunnySeat\nSök plats\nInnergård\nHund ok\nWifi\nBakverk\nMorgonsol\nTake-away\nSurdeg\nKanal\nSkaldjur\nParasoller\nSpecialkaffe\nSvalt\nLunch\nBakgård\nKväll\nSV\nEN\nOpenFreeMap © OpenMapTiles Data from OpenStreetMap\nIdag\n06:00\n09:00\n12:00\n15:00\n18:00\n21:00\n16:30\nNära mig\nFavoriter\nMEST SOL\nNÄRMAST\nK\nKafé Magasinet\nInom Vallgraven · 513 m\nMEST SKUGGA\nB\nBryggerietsoltak\nLinnéstaden · 1.5 km\nMEST SKUGGA\nS\nSolplats Magasinsgatan\nInom Vallgraven · 550 m\nMEST SKUGGA\nC\nCafé Halvvägs\nVasastaden · 1.0 km\nMEST SKUGGA\nB\nBrygghuset Lerum\nHaga · 886 m\nMEST SKUGGA\nS\nSkuggans Hus\nInom Vallgraven · 241 m\nMEST SKUGGA\nB\nBistro Bakgården\nVasastaden · 545 m\nMEST SKUGGA\nPLATSHÅLLARBILD\nKafé Magasinet\n95%\nKafé Magasinet\nÖPPET · ",
+        "appShellCount": 1,
+        "onboardingVisibleCount": 0,
+        "mapCanvasCount": 1,
+        "venuePinCount": 7,
+        "mobileBottomSheetVisibleCount": 0,
+        "desktopPanelVisibleCount": 1,
+        "mobileDetailVisibleCount": 0,
+        "desktopDetailVisibleCount": 1,
+        "emptyNextDevPortalCount": 1,
+        "hasErrorText": false
+      },
+      "consoleIssues": [
+        {
+          "type": "warning",
+          "text": "Expected value to be of type number, but found null instead.",
+          "location": {
+            "url": "blob:http://localhost:43220/ef091efd-6bd8-442d-8cde-73150e29c484",
+            "lineNumber": 8091,
+            "columnNumber": 142
+          },
+          "worker": "blob:http://localhost:43220/ef091efd-6bd8-442d-8cde-73150e29c484",
+          "classification": "allowed-openfreemap-positron-style-worker-warning"
+        },
+        {
+          "type": "warning",
+          "text": "Expected value to be of type number, but found null instead.",
+          "location": {
+            "url": "blob:http://localhost:43220/ef091efd-6bd8-442d-8cde-73150e29c484",
+            "lineNumber": 8091,
+            "columnNumber": 142
+          },
+          "worker": "blob:http://localhost:43220/ef091efd-6bd8-442d-8cde-73150e29c484",
+          "classification": "allowed-openfreemap-positron-style-worker-warning"
+        },
+        {
+          "type": "warning",
+          "text": "Expected value to be of type number, but found null instead.",
+          "location": {
+            "url": "blob:http://localhost:43220/ef091efd-6bd8-442d-8cde-73150e29c484",
+            "lineNumber": 8091,
+            "columnNumber": 142
+          },
+          "worker": "blob:http://localhost:43220/ef091efd-6bd8-442d-8cde-73150e29c484",
+          "classification": "allowed-openfreemap-positron-style-worker-warning"
+        }
+      ],
+      "consoleIssueCount": 3,
+      "unclassifiedConsoleIssueCount": 0,
+      "events": [
+        {
+          "type": "request",
+          "method": "GET",
+          "url": "http://localhost:43220/?venue=test-venue-sunny&_state=venue-detail&_time=16:30"
+        },
+        {
+          "type": "response",
+          "status": 200,
+          "url": "http://localhost:43220/?venue=test-venue-sunny&_state=venue-detail&_time=16:30",
+          "location": null,
+          "rewrite": "/sv?venue=test-venue-sunny&_state=venue-detail&_time=16%3A30"
+        }
+      ]
+    }
+  ]
+}

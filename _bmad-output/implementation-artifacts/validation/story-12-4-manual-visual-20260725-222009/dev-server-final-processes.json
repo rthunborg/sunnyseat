@@ -1,0 +1,22 @@
+[
+  {
+    "ProcessId": 12624,
+    "ParentProcessId": 4972,
+    "CommandLine": "\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -Command \"try { [Console]::OutputEncoding=[System.Text.Encoding]::UTF8 } catch {}\n$ErrorActionPreference='Stop'\n$pkg = Resolve-Path '_bmad-output\\implementation-artifacts\\validation\\story-12-4-manual-visual-20260725-222009'\nfunction Test-PortFree($port) {\n  foreach ($addr in @([System.Net.IPAddress]::Parse('127.0.0.1'), [System.Net.IPAddress]::Parse('::1'))) {\n    $listener = [System.Net.Sockets.TcpListener]::new($addr, $port)\n    try { $listener.Start(); $listener.Stop() } catch { return $false }\n  }\n  return $true\n}\n$port = if (Test-PortFree 43220) { 43220 } else { $null }\nif (-not $port) { foreach ($candidate in 43221..43280) { if (Test-PortFree $candidate) { $port = $candidate; break } } }\nif (-not $port) { throw 'No free localhost port found in 43220..43280' }\n$url = \\\"http://localhost:$port\\\"\nSet-Content -LiteralPath (Join-Path $pkg 'dev-server-final.url') -Value $url -Encoding utf8\n$stdout = Join-Path $pkg 'dev-server-final.stdout.log'\n$stderr = Join-Path $pkg 'dev-server-final.stderr.log'\n$p = Start-Process -FilePath 'npm.cmd' -ArgumentList @('run','dev','--','--hostname','localhost','--port',\\\"$port\\\") -WorkingDirectory (Resolve-Path 'nextjs-app') -RedirectStandardOutput $stdout -RedirectStandardError $stderr -WindowStyle Hidden -PassThru\nSet-Content -LiteralPath (Join-Path $pkg 'dev-server-final.pid') -Value $p.Id -Encoding utf8\n$ready = $false\n$lastErr = $null\nfor ($i = 0; $i -lt 60; $i++) {\n  Start-Sleep -Milliseconds 1000\n  if ($p.HasExited) { throw \\\"Final dev server launcher exited early with code $($p.ExitCode). See $stdout and $stderr\\\" }\n  try {\n    $r = Invoke-WebRequest -Uri \\\"$url/\\\" -MaximumRedirection 0 -TimeoutSec 5 -ErrorAction Stop\n    if ($r.StatusCode -eq 200) { $ready = $true; break }\n  } catch { $lastErr = $_.Exception.Message }\n}\nif (-not $ready) { throw \\\"Final dev server did not become ready: $lastErr\\\" }\n$children = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like \\\"*next*dev*--hostname localhost*--port $port*\\\" -or $_.CommandLine -like \\\"*start-server.js*\\\" } | Select-Object ProcessId,ParentProcessId,CommandLine\n$children | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $pkg 'dev-server-final-processes.json') -Encoding utf8\n[pscustomobject]@{ package=$pkg.Path; url=$url; launcherPid=$p.Id; ready=$true; processes=$children } | ConvertTo-Json -Depth 4\""
+  },
+  {
+    "ProcessId": 28284,
+    "ParentProcessId": 15812,
+    "CommandLine": "C:\\WINDOWS\\system32\\cmd.exe /d /s /c next dev --turbopack --hostname localhost --port 43220"
+  },
+  {
+    "ProcessId": 41832,
+    "ParentProcessId": 28284,
+    "CommandLine": "\"node\"   \"C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\node_modules\\.bin\\\\..\\next\\dist\\bin\\next\" dev --turbopack --hostname localhost --port 43220"
+  },
+  {
+    "ProcessId": 7664,
+    "ParentProcessId": 41832,
+    "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\node_modules\\next\\dist\\server\\lib\\start-server.js"
+  }
+]

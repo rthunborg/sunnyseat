@@ -4,7 +4,7 @@ baseline_commit: 1882e290a573f054028dd84ec201bbbe675542de
 
 # Story 12.4: Production Console Hygiene - Hydration Error + MapLibre Null Warning
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -233,13 +233,20 @@ start from these completed probes rather than reopening broad speculation.
         onboarding stress coverage.
   - [x] If MapLibre import boundaries change, run the async-boundary verifier before review
         and keep the MapLibre dynamic chunk discipline intact.
-  - [ ] If rendered UI changes, run the visual validation wrapper from the repo root:
+  - [x] If rendered UI changes, run the visual validation wrapper from the repo root:
         `.\scripts\run-sh.ps1 scripts/visual-validate.sh map-primary / mobile`,
         `.\scripts\run-sh.ps1 scripts/visual-validate.sh map-primary / desktop`,
         `.\scripts\run-sh.ps1 scripts/visual-validate.sh venue-detail /?venue=test-venue-sunny mobile`,
         and the corresponding desktop detail route with the canonical `_time` query. Record
         exact results and do not self-approve any rebaseline.
-        Post-dev audit status: pending; not waived and no rebaseline claimed.
+        Post-approval status: accepted by human manual review on 2026-07-26
+        Europe/Stockholm with verbatim approval text `Approve Story 12.4 visual
+        acceptance`. Evidence package:
+        `_bmad-output/implementation-artifacts/validation/story-12-4-manual-visual-20260725-222009/`.
+        The four post-`b64da80` manual wrapper runs used `VISUAL_VALIDATE_PROVIDER=none`
+        and exited 0 with `ALLOW_MANUAL_VISUAL_VALIDATION=1`; screenshots/comparisons
+        resolved HTTP 200 with zero redirects and `hasErrorText:false`. No reference PNGs
+        were changed and no rebaseline was performed.
   - [ ] Move the story to review only through the canonical story-review gate. Do not edit
         `_bmad-output/implementation-artifacts/sprint-status.yaml` directly.
         Delegate note: story-review gate intentionally not run by orchestrator instruction;
@@ -519,8 +526,10 @@ GPT-5.5 (auto-bmad dev-story delegate)
   hydration-seed planner API requests, while mounted forced sessions still emit the current
   Stockholm client-clock date/time.
 - No MapView, coordinate guard, MapLibre import-boundary, design-token, reference-PNG, or
-  sprint-status changes were made. Visual validation remains pending and was not waived; no
-  rebaseline was attempted.
+  sprint-status changes were made. Visual validation is accepted by human manual review as
+  recorded in
+  `_bmad-output/implementation-artifacts/validation/story-12-4-manual-visual-20260725-222009/`;
+  no reference PNGs were changed and no rebaseline was attempted.
 - Story-review gate was not run by orchestrator instruction, and
   `_bmad-output/implementation-artifacts/sprint-status.yaml` was not edited.
 
@@ -542,6 +551,8 @@ GPT-5.5 (auto-bmad dev-story delegate)
 - `nextjs-app/test/e2e/story-12-4-console-hygiene.spec.ts`
 - `nextjs-app/test/e2e/onboarding.spec.ts`
 - `_bmad-output/implementation-artifacts/12-4-production-console-hygiene-hydration-error-maplibre-null-warning.md`
+- `_bmad-output/implementation-artifacts/validation/story-12-4-manual-visual-20260725-222009/EVIDENCE.md`
+- `_bmad-output/implementation-artifacts/validation/story-12-4-manual-visual-20260725-222009/capture-manifest.json`
 
 ### Test Results
 
@@ -578,6 +589,17 @@ GPT-5.5 (auto-bmad dev-story delegate)
   already owned `.next` on port `43220`; no app assertions failed in that attempt.
 - Review patch post-edit static gates: `npx tsc --noEmit` passed and
   `npx eslint . --quiet` passed from `nextjs-app/`.
+- Manual visual validation package:
+  `_bmad-output/implementation-artifacts/validation/story-12-4-manual-visual-20260725-222009/`.
+  Four post-`b64da80` cases were captured against `http://localhost:43220`:
+  mobile `map-primary` `/?_state=map-primary&_time=14:00`, desktop `map-primary`
+  `/?_time=16:30`, mobile `venue-detail`
+  `/?venue=test-venue-sunny&_state=venue-detail&_time=14:00`, and desktop
+  `venue-detail` `/?venue=test-venue-sunny&_state=venue-detail&_time=16:30`.
+  All resolved HTTP 200 with zero redirects, `hasErrorText:false`, no onboarding overlay,
+  visible SunnySeat UI selectors, and zero unclassified console issues. Human approval was
+  received on 2026-07-26 Europe/Stockholm: `Approve Story 12.4 visual acceptance`. No
+  reference PNGs changed and no rebaseline was performed.
 
 ### Change Log
 
@@ -595,6 +617,9 @@ GPT-5.5 (auto-bmad dev-story delegate)
 - 2026-07-25: Addressed code review finding - narrowed the Positron worker warning exception
   to require loaded-style evidence for the documented `ref_length` layers and added a
   same-origin blob-worker regression.
+- 2026-07-26: Recorded human visual acceptance for the post-`b64da80` manual evidence
+  package with approval text `Approve Story 12.4 visual acceptance`; no reference PNGs were
+  changed and no rebaseline was performed.
 
 ### Review Findings
 
