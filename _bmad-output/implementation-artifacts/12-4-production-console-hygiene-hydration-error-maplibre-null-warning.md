@@ -4,7 +4,7 @@ baseline_commit: 1882e290a573f054028dd84ec201bbbe675542de
 
 # Story 12.4: Production Console Hygiene - Hydration Error + MapLibre Null Warning
 
-Status: review
+Status: done
 
 ## Story
 

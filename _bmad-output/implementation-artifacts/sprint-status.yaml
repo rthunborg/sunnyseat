@@ -322,7 +322,7 @@ development_status:
   12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours: done
   12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass: ready-for-dev
   12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze: review
-  12-4-production-console-hygiene-hydration-error-maplibre-null-warning: review
+  12-4-production-console-hygiene-hydration-error-maplibre-null-warning: done
   12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields: backlog
   12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number: review
   12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues: review

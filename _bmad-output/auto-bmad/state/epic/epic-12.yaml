@@ -5,11 +5,11 @@ epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-25T19:26:08Z"
+updated_at: "2026-07-26T15:38:01Z"
 started_at: "2026-07-18T11:27:25Z"
 completed_at: null
-active_seconds: 128264
-timing_anchor: 1785007568
+active_seconds: 133567
+timing_anchor: 1785079994
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: true
 story_trace: null
-commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc, 8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021, 66eb5d7, 7f5c709, 55bffea, e442fed, ef47622, 6483f7e, "7592112", c3673e1, 9549c7e, bc7b65b, "9346726", 2a21274, b4427d4, d5fd2f3, 5fe8bec, e0bc76b, 31d0062, 645a2c0, "3586481", 4d0a2d5, 3df41ff, 1882e29, 2f3749f, 272b46d]
+commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc, 8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021, 66eb5d7, 7f5c709, 55bffea, e442fed, ef47622, 6483f7e, "7592112", c3673e1, 9549c7e, bc7b65b, "9346726", 2a21274, b4427d4, d5fd2f3, 5fe8bec, e0bc76b, 31d0062, 645a2c0, "3586481", 4d0a2d5, 3df41ff, 1882e29, 2f3749f, 272b46d, 26a1f1e, fa612a7, a5f6eb9, b64da80, 3432eca]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -56,7 +56,7 @@ overrides: {}
 constraints:
   - "Execute Epic 12 in the user-confirmed dependency order: 12-1, 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, 12-10, 12-5, 12-8, 12-11, 12-2, 12-14."
 epic_slug: real-venue-launch-readiness-perf-trust-hours-console-hygiene
-active_story: 12-4-production-console-hygiene-hydration-error-maplibre-null-warning
+active_story: 12-10-venue-detail-preload-instant-mer-info
 stories_landed:
   - 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
   - 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
@@ -64,6 +64,7 @@ stories_landed:
   - 12-13-remove-the-user-facing-confidence-indicator-keep-it-internal
   - 12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes
   - 12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider
+  - 12-4-production-console-hygiene-hydration-error-maplibre-null-warning
 auto_decisions:
   - "[12-7] Adopted the architecture-backed canonical `hidden boolean not null default false` migration/type contract after live/schema probes proved all previously referenced visibility columns absent; no protected database mutation was performed."
 uat_items:
@@ -143,6 +144,14 @@ uat_items:
   - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] On mobile `/?_state=map-panel-venues&_sheetRows=1`, focus the sheet handle and press ArrowUp/ArrowDown â†’ the sheet expands/collapses exactly one row per keypress, with a visible focus ring, reaching both max rows and handle-only."
   - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] With browser/OS reduced motion enabled, open mobile `/?_state=map-panel-venues&_sheetRows=2` and drag or use ArrowUp/ArrowDown â†’ row changes still work and no transform-style sheet animation or entrance flash is visible."
   - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] On a notched mobile device/simulator, repeat a slow sheet drag from `/?_state=map-panel-venues&_sheetRows=3` â†’ the sheet remains anchored above the safe-area bottom/nav with no exposed map gap."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] Clear `localStorage.sunnyseat_onboarded`, open `/` with DevTools Console open → onboarding appears once, map is visible behind it, and there are no React hydration errors or app-origin console warnings/errors."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] On `/`, click `Hoppa till Göteborgs centrum` → onboarding dismisses, map pins and venue list become usable, and no new app-origin console warning/error appears."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] Set `localStorage.sunnyseat_onboarded=1`, cold-load `/?_time=16:30` on desktop → no onboarding overlay appears, map/list render, and no `/api/venues` request uses stale date `2026-05-20`."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] On mobile viewport, cold-load `/?_state=map-primary&_time=14:00` → map canvas, venue pins, bottom sheet, and Swedish venue list render with no app-origin console warnings/errors."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] On desktop viewport, cold-load `/?_time=16:30` → map canvas, venue pins, desktop venue panel, and time slider render with no app-origin console warnings/errors."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] On mobile viewport, cold-load `/?venue=test-venue-sunny&_state=venue-detail&_time=14:00` → Kafé Magasinet detail sheet opens over the map and no React hydration/page error appears."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] On desktop viewport, cold-load `/?venue=test-venue-sunny&_state=venue-detail&_time=16:30` → Kafé Magasinet right-side detail panel opens over the map and no React hydration/page error appears."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] During the map/detail checks, the only acceptable console noise is the exact OpenFreeMap Positron worker warning `Expected value to be of type number, but found null instead.` or browser WebGL ReadPixels noise; any React, SunnySeat, or main-thread MapLibre warning/error fails UAT."
 preexisting_done_stories:
   - 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
 adopt_verdicts:
@@ -163,5 +172,5 @@ story_execution_order:
   - 12-11-first-run-coach-mark-guide-map-legend-feature-tour
   - 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
   - 12-14-hide-closed-venues-open-at-selected-time-filter
-story_order_cursor: 12-4-production-console-hygiene-hydration-error-maplibre-null-warning
+story_order_cursor: 12-10-venue-detail-preload-instant-mer-info
 order_override_reason: User-confirmed dependency order keeps prerequisite contracts ahead of their consumers while preserving Story 12-14 as the epic-end story.

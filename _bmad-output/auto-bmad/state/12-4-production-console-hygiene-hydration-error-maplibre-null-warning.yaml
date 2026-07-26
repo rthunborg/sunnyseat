@@ -4,11 +4,11 @@ story_key: 12-4-production-console-hygiene-hydration-error-maplibre-null-warning
 epic_num: 12
 story_num: 4
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
-status: in-progress
-updated_at: "2026-07-25T20:26:33Z"
+status: done
+updated_at: "2026-07-26T15:36:04Z"
 started_at: "2026-07-24T18:46:29Z"
-completed_at: null
-active_seconds: 69976
+completed_at: "2026-07-26T15:36:04Z"
+active_seconds: 71804
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [2f3749f, 272b46d, 26a1f1e, fa612a7, a5f6eb9]
+commits: [2f3749f, 272b46d, 26a1f1e, fa612a7, a5f6eb9, b64da80, 3432eca]
 phase8_steps:
   trace_gate: null
   nfr: null
