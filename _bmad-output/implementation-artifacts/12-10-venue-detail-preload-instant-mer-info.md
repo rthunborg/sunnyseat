@@ -447,6 +447,10 @@ Codex GPT-5 auto-bmad delegate
 - Final serialized Full Playwright gate:
   `PLAYWRIGHT_PORT=3225 PLAYWRIGHT_BASE_URL=http://localhost:3225 npx playwright test --workers=1`
   -> 150 passed, 63 skipped.
+- Post-dev automate focused guard:
+  `npx vitest run test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts`
+  -> 1 file / 10 tests passed. `npx eslint test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts --quiet`
+  -> 0 errors.
 
 ### Completion Notes List
 
@@ -462,6 +466,8 @@ Codex GPT-5 auto-bmad delegate
 - Updated `/api/venues/[slug]` live detail lookup to use the Story 12.7 public resolver while preserving fixture mode,
   persisted sun/detail behavior, public 404/400 behavior, distance, freshness headers, and 503 missing-geometry handling.
 - Preserved the cache-miss detail shell and aligned the Swedish loading announcement to `Laddar platsinformation`.
+- Added a post-dev automate unit guard proving fresh exact `detailAt` cache entries are skipped without changing the
+  remaining prefetch candidate order.
 - Corrected the stale mobile map-primary E2E assertion for the approved Story 12.9 slider/date UI: date selection is the
   `/api/venues` request boundary, while same-date `Home` movement is asserted only as local UI state.
 - Local timing evidence: `_bmad-output/implementation-artifacts/validation/story-12-10-mer-info-timing/20260726-local/evidence.json`

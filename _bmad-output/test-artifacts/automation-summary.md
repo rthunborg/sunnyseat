@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-25T22:10:47+02:00'
+lastSaved: '2026-07-26T20:30:00+02:00'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-12.md'
@@ -915,5 +915,61 @@ Run the production fix/code-review pass for the seven RED contracts, rerun this 
 ## Next Recommended Workflow
 
 Continue with visual evidence/test-review/trace as required by the orchestrator; Story 12.4 does not need additional TEA-generated automated tests.
+
+---
+
+# Automation Expansion Summary - Story 12.10 (Venue Detail Preload - Instant Mer info)
+
+## Preflight And Context
+
+- **Framework:** Vitest 4.1.4 and Playwright are configured in `nextjs-app`; framework readiness passed.
+- **Stack:** frontend query/cache scheduling with one internal Next.js detail route contract.
+- **Mode:** BMad-integrated from `_bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md`. Execution was sequential because the active runtime instruction disallowed additional subagents unless strictly required.
+- **Scope:** post-dev coverage expansion only. Production code, sprint status, Auto-BMAD state, visual references, and git state were not changed.
+- **Knowledge loaded:** project context, TEA config, story/checklist artifacts, test levels, risk priorities, deterministic data guidance, selective execution, CI/burn-in, fixture architecture, network-first guidance, Playwright utility references, selector resilience, timing guidance, and test-quality rules.
+
+## Coverage Plan
+
+| Priority | Level | Target | Decision |
+| --- | --- | --- | --- |
+| P0 | Unit/API/component/E2E | Exact shared detail key, public resolver, one-shot prefetch, max six, concurrency two, cancellation, direct-link guardrails, no scrub/date restart, cache-miss shell, warmed/cold browser behavior. | Already covered by the active Story 12.10 ATDD files and final implementation gates; no duplicate E2E added. |
+| P1 | Unit | Fresh exact-key cache skip should be proven behaviorally, not only by source inspection. | Add one focused scheduler test. |
+| P1 | E2E | Favourites-mode candidate source. | Existing deterministic unit coverage is sufficient because the legacy `/favoriter` browser route remains unstable outside this story scope. |
+
+## Generated Coverage
+
+- **UPDATED** `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts` with one P1 behavioral scheduler test:
+  - seeds a fresh exact `queryKeys.venues.detailAt()` entry for the first candidate,
+  - runs the real prefetch scheduler test seam,
+  - asserts no network request is made for the fresh candidate,
+  - asserts the remaining candidates are fetched in preserved order with the normalized planner/date/location URL,
+  - asserts the fresh cache entry remains intact and the background path stays console-silent.
+- **UPDATED** `_bmad-output/test-artifacts/atdd-checklist-12-10-venue-detail-preload-instant-mer-info.md` to record 15 local ATDD scenarios and the focused post-dev validation.
+- **UPDATED** `_bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md` with the automate debug note and completion note.
+- **Aggregate:** +1 deterministic unit test. No fixtures, helpers, API mocks, browser sessions, E2E tests, production source edits, or live-provider calls were added.
+
+## Validation And Gate
+
+- First focused run exposed a test bug from reusing one mocked `Response` object for multiple fetches; the mock now returns a fresh `Response` per call.
+- Focused unit: `npx vitest run test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts` -> **1 file / 10 tests passed**.
+- Focused lint: `npx eslint test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts --quiet` -> **0 errors**.
+- Full Vitest and Playwright were not rerun in this delegate because the existing story record already has green full gates and this pass added one isolated unit assertion only.
+
+## Assumptions, Risks, And Deferred Coverage
+
+- The prior final full gates remain the release-confidence baseline: full Vitest 197 files / 1804 tests passed / 15 skipped; final serialized Playwright 150 passed / 63 skipped.
+- No visual validation is needed because no visible UI or layout changed.
+- Protected preview/live Mer info timing remains deferred to release-lane verification because no credentials were provided.
+
+## Definition Of Done
+
+- Existing Story 12.10 ATDD coverage was reviewed for duplication risk.
+- One fresh-cache scheduler edge was added at the lowest reliable test level.
+- Focused unit and focused lint checks passed.
+- Story and test artifacts were updated while leaving Story 12.10 `in-progress`.
+
+## Next Recommended Workflow
+
+Continue the orchestrator-controlled Tier A review, trace-advisory, UAT, and canonical story-review transition for Story 12.10.
 
 ---

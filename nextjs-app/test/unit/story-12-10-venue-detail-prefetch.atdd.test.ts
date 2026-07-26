@@ -125,6 +125,50 @@ describe('Story 12.10 ATDD - venue detail prefetch query contract', () => {
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
+  test('[P1] scheduler skips fresh exact detail keys without changing the remaining candidate order', async () => {
+    const detailParams = {
+      date: '2026-07-27',
+      time: '14:00',
+      lat: 57.70894,
+      lng: 11.97464,
+    };
+    const freshKey = queryKeys.venues.detailAt('venue-1', {
+      date: '2026-07-27',
+      time: '14:00',
+      lat: 57.7089,
+      lng: 11.9746,
+    });
+    fetchSpy.mockImplementation(() => Promise.resolve(
+      new Response(JSON.stringify({ venue: { slug: 'prefetched' } }), {
+        status: 200,
+        statusText: 'OK',
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ));
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    });
+    client.setQueryData(freshKey, { venue: { slug: 'venue-1' } });
+    const run = __createVenueDetailPrefetchRunForTests(
+      [
+        candidate('venue-1', 'venue-1', 1),
+        candidate('venue-2', 'venue-2', 2),
+        candidate('venue-3', 'venue-3', 3),
+      ],
+      detailParams,
+    );
+
+    await __runVenueDetailPrefetchForTests(client, run);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy.mock.calls.map((call: [RequestInfo | URL, RequestInit?]) => call[0])).toEqual([
+      '/api/venues/venue-2?date=2026-07-27&time=14%3A00&lat=57.7089&lng=11.9746',
+      '/api/venues/venue-3?date=2026-07-27&time=14%3A00&lat=57.7089&lng=11.9746',
+    ]);
+    expect(client.getQueryData(freshKey)).toEqual({ venue: { slug: 'venue-1' } });
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
   test('[P0] prefetch error cooldown lasts for the venue read rate-limit window', () => {
     const now = Date.UTC(2026, 6, 27, 12, 0, 0);
 

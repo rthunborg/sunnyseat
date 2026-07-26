@@ -32,12 +32,12 @@ Red-phase scaffolds were activated during implementation. The Story 12.10 local 
 
 | Level | File | Active scenarios | Acceptance criteria |
 | --- | --- | ---: | --- |
-| Unit | `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts` | 9 | AC1, AC2, AC3, AC4, AC6 |
+| Unit | `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts` | 10 | AC1, AC2, AC3, AC4, AC6 |
 | Unit/API | `nextjs-app/test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts` | 3 | AC5 |
 | Component | `nextjs-app/test/components/story-12-10-venue-detail-cache-miss-shell.atdd.test.tsx` | 2 | AC6 |
 | E2E | `nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts` | 4 scenarios x desktop/mobile | AC1, AC2, AC3, AC6, AC7 |
 
-Total: 14 local ATDD scenarios plus 8 browser executions.
+Total: 15 local ATDD scenarios plus 8 browser executions.
 
 ## Acceptance Criteria Coverage
 
@@ -47,6 +47,7 @@ Total: 14 local ATDD scenarios plus 8 browser executions.
 - AC4 Interaction yield, cancellation, and error backoff: unit scheduler contract asserts idle/yield, exact-key cancellation seams, the special case that opening **Mer info** preserves/promotes the opened in-flight detail key instead of aborting the observer's own query, and the 429 regression where prefetch stops after the current concurrency pair, clears failed background query state, enters a 60s cooldown, and emits no app console error.
 - AC5 Public resolver convergence and hidden guard: API/source scaffold asserts `resolvePublicVenueIdentifier` adoption and public error behavior.
 - AC6 Instant open and cache-miss shell: component scaffold asserts exact Swedish loading copy, `aria-busy`, one status region, stable skeletons, and route chrome; unit and E2E scaffolds assert warmed/in-flight opens keep the opened exact key alive while other queued candidates can be canceled.
+- AC1/AC2 fresh-cache skip: post-dev automate adds a behavioral unit guard that seeds a fresh exact `detailAt` key and proves the scheduler skips it while preserving request order for the remaining candidates.
 - AC7 Measurement and release evidence: E2E writes deterministic local fixture timing evidence to `_bmad-output/implementation-artifacts/validation/story-12-10-mer-info-timing/20260726-local/evidence.json`.
 
 ## Chosen Mode And Levels
@@ -74,6 +75,8 @@ All Story 12.10 ATDD clusters are active. Story 12.10 E2E routes use `?_prefetch
 ## Validation
 
 - Story 12.10 focused unit/API/component tests pass in full Vitest.
+- Post-dev automate focused unit: `npx vitest run test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts` -> 1 file / 10 tests passed.
+- Post-dev automate focused lint: `npx eslint test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts --quiet` -> 0 errors.
 - Story 12.10 E2E passes on desktop and mobile with local route fixtures and no live Met.no dependency.
 - Full Vitest passes with `VITEST_MAX_WORKERS=4`.
 - Full serialized Playwright passed after final triage: `PLAYWRIGHT_PORT=3225 PLAYWRIGHT_BASE_URL=http://localhost:3225 npx playwright test --workers=1` -> 150 passed, 63 skipped.
