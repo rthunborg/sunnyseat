@@ -1,0 +1,41 @@
+SunnySeat story review gate
+Story: 12-10-venue-detail-preload-instant-mer-info
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-10-venue-detail-preload-instant-mer-info-review-20260726-211112.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+Not implemented: navigation to another Document
+
+ Test Files  197 passed | 2 skipped (199)
+      Tests  1808 passed | 15 skipped (1823)
+   Start at  21:11:39
+   Duration  85.85s (transform 9.89s, setup 162.39s, import 137.67s, tests 100.52s, environment 750.11s)
+
+Skipping visual validation: no mapped screen ID found in story file
+Updated sprint status: 12-10-venue-detail-preload-instant-mer-info -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-10-venue-detail-preload-instant-mer-info-review-20260726-211112.log

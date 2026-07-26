@@ -4,7 +4,7 @@ baseline_commit: baf0d8b18df4b5542cf2ffa4b9c3528988dc338c
 
 # Story 12.10: Venue Detail Preload - Instant "Mer info"
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -237,7 +237,7 @@ Start here before editing:
         main nearby list. Covered by deterministic scheduler unit coverage because the legacy `/favoriter` E2E remains
         unstable outside this story scope.
 
-- [ ] **Task 7 - Final gates and story review transition** (AC: all)
+- [x] **Task 7 - Final gates and story review transition** (AC: all)
   - [x] Run from `nextjs-app/`: `npx tsc --noEmit`.
   - [x] Run from `nextjs-app/`: `npx eslint . --quiet`.
   - [x] Run from `nextjs-app/`: `npx vitest run`. If Windows full Vitest times out from worker pressure, rerun with
@@ -252,7 +252,7 @@ Start here before editing:
         change was introduced, so visual validation was not required.
   - [x] Record before/after **Mer info** open timing evidence in completion notes. If protected preview credentials are
         unavailable, state that live evidence is deferred to release-lane verification.
-  - [ ] Move to `review` only through
+  - [x] Move to `review` only through
         `.\scripts\run-sh.ps1 scripts/story-review.sh 12-10-venue-detail-preload-instant-mer-info`.
 
 ## Current Implementation Facts
@@ -497,6 +497,11 @@ Codex GPT-5 auto-bmad delegate
 - Thin review fix Story 12.10 Playwright check:
   `PLAYWRIGHT_PORT=3230 PLAYWRIGHT_BASE_URL=http://localhost:3230 npx playwright test test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts --project=desktop --project=mobile --workers=1`
   -> 8 passed.
+- Canonical story review gate:
+  `.\scripts\run-sh.ps1 scripts/story-review.sh 12-10-venue-detail-preload-instant-mer-info`
+  -> lint PASS, typecheck PASS, Vitest 197 passed/2 skipped, 1808 tests passed/15 skipped; visual validation skipped
+  because no mapped screen ID; sprint status moved to `review`; validation artifact:
+  `_bmad-output/implementation-artifacts/validation/12-10-venue-detail-preload-instant-mer-info-review-20260726-211112.log`.
 
 ### Completion Notes List
 
@@ -529,8 +534,8 @@ Codex GPT-5 auto-bmad delegate
 - Advisory traceability completed for Story 12.10: 10/10 traced items `FULL`, P0 6/6, P1 4/4, no endpoint/auth/error/UI-state gaps, and machine summary written without `gate_status` because this trace is advisory-only.
 - Protected preview/live evidence was not run in this delegate because no credentials were provided; defer to the
   release lane.
-- Task 7 remains open under orchestrator control. Story stays `in-progress`; this delegate did not run the
-  story-review wrapper or edit sprint status to `review`.
+- Canonical story-review wrapper completed and moved sprint status to `review`; validation artifact:
+  `_bmad-output/implementation-artifacts/validation/12-10-venue-detail-preload-instant-mer-info-review-20260726-211112.log`.
 
 ### File List
 
