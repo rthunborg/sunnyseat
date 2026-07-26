@@ -388,6 +388,16 @@ Explicitly out of scope:
 - PASS - Prior story, retro, and deferred-work notes are folded in without reopening unrelated work.
 - PASS - Test plan covers unit, component, E2E request-count, hidden route matrix, and final gates.
 
+## Dev Notes
+
+### ATDD Artifacts
+
+- Checklist: `_bmad-output/test-artifacts/atdd-checklist-12-10-venue-detail-preload-instant-mer-info.md`
+- Unit tests: `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts`
+- API tests: `nextjs-app/test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts`
+- Component tests: `nextjs-app/test/components/story-12-10-venue-detail-cache-miss-shell.atdd.test.tsx`
+- E2E tests: `nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts`
+
 ## Dev Agent Record
 
 ### Agent Model Used

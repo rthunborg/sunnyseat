@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 10
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-26T15:57:58Z"
+updated_at: "2026-07-26T16:09:59Z"
 started_at: "2026-07-26T15:43:49Z"
 completed_at: null
-active_seconds: 833
+active_seconds: 1531
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "High because Story 12.10 defines an asynchronous prefetch/scheduling contract with exact cache-key matching, initial-settle-only timing, and bounded concurrency/request-count behavior across list, favourites, and detail flows."
 epic_story_count: 14
 stories_after_in_epic: 5
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [e1194b0]
+commits: [e1194b0, a76905f]
 phase8_steps:
   trace_gate: null
   nfr: null
