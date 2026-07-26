@@ -410,6 +410,29 @@ Explicitly out of scope:
 
 Codex GPT-5 auto-bmad delegate
 
+### Review Findings
+
+- **HIGH - Map interactions bypass prefetch cancellation**
+  - Triage: accepted.
+  - Resolution: routed map-pin selection, map-canvas deselect, and QuickInfo dismiss through MapView-owned interaction callbacks so they bump the existing prefetch interaction token and cancel candidate work. `Mer info` still preserves the opened exact detail slug/key.
+  - Files: `nextjs-app/components/custom/map/MapView.tsx`, `nextjs-app/components/custom/map/VenuePinLayer.tsx`, `nextjs-app/test/components/MapView.test.tsx`.
+  - Tests: focused MapView regression tests for map-pin cancellation and QuickInfo-dismiss cancellation; full MapView component suite; full Vitest; Story 12.10 Playwright smoke/regression.
+
+- **HIGH - Candidate order can differ from visible list**
+  - Triage: accepted.
+  - Resolution: MapView now derives prefetch rows from the same exported `sortVenuesForList` helper used by the rendered venue list and passes the sorted displayed near/favourite rows into the prefetch hook. The prefetch hook preserves caller order for the primary displayed surface and only applies the existing nearest fallback rule.
+  - Files: `nextjs-app/components/custom/map/MapView.tsx`, `nextjs-app/test/components/MapView.test.tsx`.
+  - Tests: MapView regression where API order differs from visible distance order and the user selects distance before the surface settles; full Vitest; Story 12.10 Playwright request-count/order spec.
+
+- **MEDIUM - Route 400/404 response body lost existing `status`**
+  - Triage: accepted.
+  - Resolution: restored generic non-leaking malformed-slug and not-found bodies to `{ detail, status: 400|404 }`.
+  - Files: `nextjs-app/app/api/venues/[slug]/route.ts`, `nextjs-app/test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts`.
+  - Tests: focused Story 12.10 route ATDD plus full Vitest.
+
+- **Security review**
+  - Result: PASS, 0 findings.
+
 ### Debug Log References
 
 - Baseline before edits: `npx tsc --noEmit`; `npx eslint . --quiet`.
@@ -451,6 +474,21 @@ Codex GPT-5 auto-bmad delegate
   `npx vitest run test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts`
   -> 1 file / 10 tests passed. `npx eslint test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts --quiet`
   -> 0 errors.
+- Thin review fix focused guard:
+  `npx vitest run test/components/MapView.test.tsx -t "detail prefetch|QuickInfo is dismissed|map pin selects|distance is selected"`
+  -> 1 file / 3 tests passed, 108 skipped.
+- Thin review fix route/scheduler guard:
+  `npx vitest run test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts`
+  -> 2 files / 13 tests passed.
+- Thin review fix focused aggregate:
+  `npx vitest run test/components/MapView.test.tsx test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts`
+  -> 3 files / 124 tests passed.
+- Thin review fix gates:
+  `npx tsc --noEmit` -> passed. `npx eslint . --quiet` -> passed.
+  `$env:VITEST_MAX_WORKERS='4'; npx vitest run` -> 197 files passed, 2 skipped; 1808 tests passed, 15 skipped.
+- Thin review fix Story 12.10 Playwright check:
+  `PLAYWRIGHT_PORT=3230 PLAYWRIGHT_BASE_URL=http://localhost:3230 npx playwright test test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts --project=desktop --project=mobile --workers=1`
+  -> 8 passed.
 
 ### Completion Notes List
 
@@ -470,6 +508,12 @@ Codex GPT-5 auto-bmad delegate
   remaining prefetch candidate order.
 - Corrected the stale mobile map-primary E2E assertion for the approved Story 12.9 slider/date UI: date selection is the
   `/api/venues` request boundary, while same-date `Home` movement is asserted only as local UI state.
+- Review fix: map-pin selection, map-canvas deselect, and QuickInfo dismiss now all pass through MapView's prefetch
+  cancellation boundary instead of bypassing it inside `VenuePinLayer`/inline QuickInfo handlers.
+- Review fix: detail prefetch candidates now receive the same near/favourite visible ordering that the list renders,
+  including distance sort selected before initial settlement, without restarting after the first prefetch pass.
+- Review fix: malformed detail slug and public not-found responses again include the generic `status` field in their
+  JSON body while preserving non-leaking public error text.
 - Local timing evidence: `_bmad-output/implementation-artifacts/validation/story-12-10-mer-info-timing/20260726-local/evidence.json`
   with 1500 ms injected cold-detail delay. Desktop warmed open: 0 new detail requests, 749 ms; desktop cold open:
   1 new detail request, 2812.5 ms. Mobile warmed open: 0 new detail requests, 1667 ms; mobile cold open:
@@ -485,6 +529,7 @@ Codex GPT-5 auto-bmad delegate
 - `nextjs-app/hooks/queries/useVenueDetail.ts`
 - `nextjs-app/hooks/queries/useVenueDetailPrefetch.ts`
 - `nextjs-app/components/custom/map/MapView.tsx`
+- `nextjs-app/components/custom/map/VenuePinLayer.tsx`
 - `nextjs-app/components/custom/sheets/MobileBottomSheet.tsx`
 - `nextjs-app/app/api/venues/[slug]/route.ts`
 - `nextjs-app/messages/sv/venue.json`

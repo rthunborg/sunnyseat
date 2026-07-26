@@ -30,7 +30,7 @@ import {
   withForcedVenuePhotoThumbnail,
 } from '@/components/custom/venue/forced-venue-detail';
 import { TimeSliderPanel } from '@/components/custom/time/TimeSliderPanel';
-import { isVenueSunnyForList, VenueList } from '@/components/custom/venue/VenueList';
+import { isVenueSunnyForList, sortVenuesForList, VenueList } from '@/components/custom/venue/VenueList';
 import { useVenueDetail } from '@/hooks/queries/useVenueDetail';
 import { useVenueDetailPrefetch } from '@/hooks/queries/useVenueDetailPrefetch';
 import { isVenueNotFoundError } from '@/hooks/queries/venue-query-options';
@@ -156,7 +156,7 @@ export function MapView() {
   const locale = useLocale();
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
-  const { selectedVenueId, selectedVenuePreview, selectVenue } = useMapSelection();
+  const { selectedVenueId, selectedVenuePreview, selectVenue, toggleVenue } = useMapSelection();
   const { activeTags, isActive: isTagActive, toggleTag } = useTagFilter();
   const plannerTime = useTimeContext();
   const favourites = useFavourites();
@@ -211,6 +211,14 @@ export function MapView() {
       preserveSlug: preserveSlug ?? null,
     }));
   }, []);
+  const handleMapPinToggle = useCallback((venueId: string) => {
+    cancelVenueDetailPrefetchCandidates(null);
+    toggleVenue(venueId);
+  }, [cancelVenueDetailPrefetchCandidates, toggleVenue]);
+  const handleMapCanvasDeselect = useCallback(() => {
+    cancelVenueDetailPrefetchCandidates(null);
+    selectVenue(null);
+  }, [cancelVenueDetailPrefetchCandidates, selectVenue]);
   const measureMobilePlannerHeight = useCallback(() => {
     const nextHeight = measuredElementHeight(mobilePlannerPanelRef.current);
     if (nextHeight <= 0) return;
@@ -925,6 +933,17 @@ export function MapView() {
     () => new Set(favourites.favouriteIds),
     [favourites.favouriteIds],
   );
+  const displayedListVenues = useMemo(
+    () => sortVenuesForList(listVenues, effectiveSortMode),
+    [effectiveSortMode, listVenues],
+  );
+  const displayedFavouriteVenueRows = useMemo(
+    () => sortVenuesForList(
+      favouriteVenueRows.filter((venue) => favouriteIdSet.has(venue.id)),
+      'sun',
+    ),
+    [favouriteIdSet, favouriteVenueRows],
+  );
   const visibleFavouriteVenueCount = favouriteVenueRows
     .filter((venue) => favouriteIdSet.has(venue.id)).length;
   const isFavouriteListLoading = !favourites.isHydrated ||
@@ -954,8 +973,8 @@ export function MapView() {
       !showOfflineShell &&
       !isForcedVisualReference,
     listMode,
-    listVenues,
-    favouriteVenueRows,
+    listVenues: displayedListVenues,
+    favouriteVenueRows: displayedFavouriteVenueRows,
     listSettled: nearVenueSurfaceSettled,
     favouritesSettled: favouriteVenueSurfaceSettled,
     detailParams: {
@@ -1125,7 +1144,11 @@ export function MapView() {
           controls, errors) so only the map + "Ingen anslutning" banner show. */}
       {!showOfflineShell && (
         <>
-      <VenuePinLayer venues={venues} />
+      <VenuePinLayer
+        venues={venues}
+        onToggleVenue={handleMapPinToggle}
+        onCanvasDeselect={handleMapCanvasDeselect}
+      />
       {/* Story 11.1 (AC3): the date-change dim + spinner overlay. Rendered as an
           absolutely-positioned sibling so the pin layer above stays MOUNTED
           (markers persist keyed by venue id) while the single new-date request
@@ -1357,7 +1380,7 @@ export function MapView() {
             thumbnail={selectedQuickInfoVenue?.thumbnail}
             isLoadingSunData={!selectedQuickInfoVenue}
             position={quickInfoPosition}
-            onDismiss={() => selectVenue(null)}
+            onDismiss={handleMapCanvasDeselect}
             onOpenDetails={handleOpenDetails}
             onRoute={handleRouteSelectedVenue}
             isRouteLoading={routeLoadingVenueId === selectedQuickInfoVenue?.id}
@@ -1386,7 +1409,7 @@ export function MapView() {
             isLoadingSunData={!selectedQuickInfoVenue}
             position={quickInfoPosition}
             desktopPlacement={quickInfoDesktopPlacement}
-            onDismiss={() => selectVenue(null)}
+            onDismiss={handleMapCanvasDeselect}
             onOpenDetails={handleOpenDetails}
             onRoute={handleRouteSelectedVenue}
             isRouteLoading={routeLoadingVenueId === selectedQuickInfoVenue?.id}

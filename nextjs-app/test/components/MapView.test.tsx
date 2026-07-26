@@ -95,6 +95,7 @@ const useFavouriteVenuesMock = vi.fn<(params?: FavouriteVenuesParams) => VenueQu
   isError: false,
   dataUpdatedAt: 0,
 }));
+const useVenueDetailPrefetchMock = vi.fn();
 const useFavouritesMock = vi.fn<() => FavouritesShape>(() => ({
   favouriteIds: [],
   isHydrated: true,
@@ -194,6 +195,10 @@ vi.mock('@/hooks/queries/useFavouriteVenues', () => ({
   useFavouriteVenues: (params?: FavouriteVenuesParams) => useFavouriteVenuesMock(params),
 }));
 
+vi.mock('@/hooks/queries/useVenueDetailPrefetch', () => ({
+  useVenueDetailPrefetch: (params: unknown) => useVenueDetailPrefetchMock(params),
+}));
+
 vi.mock('@/hooks/useFavourites', () => ({
   useFavourites: () => useFavouritesMock(),
 }));
@@ -242,8 +247,34 @@ vi.mock('@/components/custom/map/MapControls', () => ({
   MapControls: () => <div data-testid="map-controls-stub" />,
 }));
 vi.mock('@/components/custom/map/VenuePinLayer', () => ({
-  VenuePinLayer: ({ venues }: { venues: VenuePinData[] }) => (
-    <div data-testid="venue-pin-layer-stub" data-venues={JSON.stringify(venues)} />
+  VenuePinLayer: ({
+    venues,
+    onToggleVenue,
+    onCanvasDeselect,
+  }: {
+    venues: VenuePinData[];
+    onToggleVenue?: (venueId: string) => void;
+    onCanvasDeselect?: () => void;
+  }) => (
+    <div data-testid="venue-pin-layer-stub" data-venues={JSON.stringify(venues)}>
+      {venues.map((venue) => (
+        <button
+          type="button"
+          hidden
+          key={venue.id}
+          aria-label={`Select map pin ${venue.name}`}
+          data-testid={`pin-select-${venue.id}`}
+          onClick={() => onToggleVenue?.(venue.id)}
+        />
+      ))}
+      <button
+        type="button"
+        hidden
+        aria-label="Deselect map canvas"
+        data-testid="map-canvas-deselect"
+        onClick={() => onCanvasDeselect?.()}
+      />
+    </div>
   ),
 }));
 // Story 9.5 AC2: stub the user-location layer (it mounts a real MapLibre
@@ -429,6 +460,7 @@ describe('<MapView />', () => {
       isError: false,
       dataUpdatedAt: 0,
     });
+    useVenueDetailPrefetchMock.mockClear();
     useFavouritesMock.mockReset().mockReturnValue({
       favouriteIds: [],
       isHydrated: true,
@@ -1205,6 +1237,83 @@ describe('<MapView />', () => {
       // Card top edge = top - cardHeight(170) - anchorGap(40) must clear the
       // planner bottom (214) by at least a gutter (16).
       expect(top - 170 - 40).toBeGreaterThanOrEqual(214 + 16);
+    });
+
+    it('cancels delayed detail prefetch when a map pin selects a venue', async () => {
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Bellora', slug: 'bellora' }),
+          makeVenue({ id: 'venue-2', name: 'Avenybaren', slug: 'avenybaren' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+      expect(lastVenueDetailPrefetchParams()?.interactionToken).toBe(0);
+
+      fireEvent.click(screen.getByTestId('pin-select-venue-2'));
+
+      await waitFor(() =>
+        expect(lastVenueDetailPrefetchParams()?.interactionToken).toBeGreaterThan(0),
+      );
+      expect(lastVenueDetailPrefetchParams()?.preserveVenueSlug).toBeNull();
+      expect(selectedVenueIdMock).toBe('venue-2');
+    });
+
+    it('cancels delayed detail prefetch when QuickInfo is dismissed', async () => {
+      selectedVenueIdMock = 'venue-1';
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Bellora', slug: 'bellora' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Stäng platskort' })[0]);
+
+      await waitFor(() =>
+        expect(lastVenueDetailPrefetchParams()?.interactionToken).toBeGreaterThan(0),
+      );
+      expect(lastVenueDetailPrefetchParams()?.preserveVenueSlug).toBeNull();
+      expect(selectedVenueIdMock).toBeNull();
+    });
+
+    it('passes the exact displayed distance order into initial detail prefetch when distance is selected before settle', async () => {
+      useVenueSearchMock.mockReturnValue({
+        data: undefined,
+        isFetching: true,
+        isError: false,
+        dataUpdatedAt: 0,
+      });
+      const view = render(<MapView />, { wrapper: Wrapper });
+
+      fireEvent.click(screen.getAllByRole('button', { name: 'Närmast' })[0]);
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          { ...makeVenue({ id: 'far', name: 'Far', slug: 'far' }), distanceMeters: 300 },
+          { ...makeVenue({ id: 'near', name: 'Near', slug: 'near' }), distanceMeters: 100 },
+          { ...makeVenue({ id: 'mid', name: 'Mid', slug: 'mid' }), distanceMeters: 200 },
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      view.rerender(<MapView />);
+
+      await waitFor(() =>
+        expect(lastVenueDetailPrefetchParams()?.listVenues.map((venue) => venue.id)).toEqual([
+          'near',
+          'mid',
+          'far',
+        ]),
+      );
+      expect(lastVenueDetailPrefetchParams()?.interactionToken).toBe(1);
     });
 
     it('derives the mobile QuickInfo clamp from the measured planner height, not a fixed capture value', () => {
@@ -3398,6 +3507,16 @@ function makeVenueResponse(venues: GetVenuesResponse['venues']): GetVenuesRespon
     timestamp: 'now',
     totalCount: venues.length,
   };
+}
+
+function lastVenueDetailPrefetchParams(): {
+  listVenues: GetVenuesResponse['venues'];
+  favouriteVenueRows: GetVenuesResponse['venues'];
+  interactionToken: number;
+  preserveVenueSlug?: string | null;
+} | undefined {
+  const lastCall = useVenueDetailPrefetchMock.mock.calls.at(-1);
+  return lastCall?.[0] as ReturnType<typeof lastVenueDetailPrefetchParams>;
 }
 
 function makeVenueDetail(

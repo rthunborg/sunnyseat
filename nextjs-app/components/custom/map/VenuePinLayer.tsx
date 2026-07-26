@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -15,6 +15,8 @@ type AriaResolver = (venue: VenuePinData, percent: number) => string;
 
 type VenuePinLayerProps = {
   venues: VenuePinData[];
+  onToggleVenue?: (venueId: string) => void;
+  onCanvasDeselect?: () => void;
 };
 
 type MarkerEntry = {
@@ -49,7 +51,7 @@ const STAGGER_MAX_INDEX = 30;
  * background (AC4). Clicks on overlay DOM (controls, pills, future
  * sheets) are ignored via a target-canvas check.
  */
-export function VenuePinLayer({ venues }: VenuePinLayerProps) {
+export function VenuePinLayer({ venues, onToggleVenue, onCanvasDeselect }: VenuePinLayerProps) {
   const { mapInstance } = useMapInstance();
   const { selectedVenueId, selectVenue, toggleVenue } = useMapSelection();
   // Story 1.6 review (P36): null (matchMedia not yet resolved) treated
@@ -60,6 +62,9 @@ export function VenuePinLayer({ venues }: VenuePinLayerProps) {
   // tuned to its different baseline).
   const shouldReduceMotion = useReducedMotion() ?? true;
   const t = useTranslations('map');
+  const fallbackCanvasDeselect = useCallback(() => selectVenue(null), [selectVenue]);
+  const handleToggleVenue = onToggleVenue ?? toggleVenue;
+  const handleCanvasDeselect = onCanvasDeselect ?? fallbackCanvasDeselect;
 
   // Resolve the public pin aria variants once per render rather than once
   // per pin — wrapping each `createRoot` subtree with its own
@@ -81,7 +86,7 @@ export function VenuePinLayer({ venues }: VenuePinLayerProps) {
   // window — Round 2 R1-P3 follow-up).
   const prevSelectedRef = useRef<string | null>(selectedVenueId);
   const selectedRef = useRef<string | null>(selectedVenueId);
-  const toggleRef = useRef(toggleVenue);
+  const toggleRef = useRef(handleToggleVenue);
   const resolveAriaRef = useRef<AriaResolver>(resolveAria);
   const venueIdsRef = useRef<Set<string>>(new Set(venues.map((venue) => venue.id)));
   // Story 1.6 review (P32): the entrance stagger is now per-batch — every
@@ -99,7 +104,7 @@ export function VenuePinLayer({ venues }: VenuePinLayerProps) {
   // up-to-date values regardless of declaration order.
   useLayoutEffect(() => {
     selectedRef.current = selectedVenueId;
-    toggleRef.current = toggleVenue;
+    toggleRef.current = handleToggleVenue;
     resolveAriaRef.current = resolveAria;
     venueIdsRef.current = new Set(venues.map((venue) => venue.id));
   });
@@ -297,14 +302,14 @@ export function VenuePinLayer({ venues }: VenuePinLayerProps) {
       // — those should never deselect even if the click bubbles to the
       // canvas (e.g. transparent edge of attribution control).
       if (target instanceof Element && target.closest('.maplibregl-ctrl')) return;
-      selectVenue(null);
+      handleCanvasDeselect();
     };
 
     map.on('click', handleMapClick);
     return () => {
       map.off('click', handleMapClick);
     };
-  }, [mapInstance, selectVenue]);
+  }, [handleCanvasDeselect, mapInstance]);
 
   useEffect(() => {
     const markers = markersRef.current;

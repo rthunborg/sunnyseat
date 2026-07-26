@@ -47,9 +47,9 @@ describe('Story 12.10 ATDD - detail route public resolver convergence', () => {
     });
 
     expect(unknown.status).toBe(404);
-    expect(await unknown.json()).toEqual({ detail: 'Venue not found' });
+    expect(await unknown.json()).toEqual({ detail: 'Venue not found', status: 404 });
     expect(malformed.status).toBe(400);
-    expect(await malformed.json()).toEqual({ detail: 'Invalid venue slug' });
+    expect(await malformed.json()).toEqual({ detail: 'Invalid venue slug', status: 400 });
 
     const source = readRouteSource();
     expect(source).not.toMatch(/hidden.*detail|ambiguous.*detail|duplicate.*detail/i);

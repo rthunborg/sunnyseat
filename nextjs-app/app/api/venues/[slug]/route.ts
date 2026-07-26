@@ -69,7 +69,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     decodedSlug = decodeURIComponent(slug);
   } catch {
     return NextResponse.json(
-      { detail: 'Invalid venue slug' },
+      { detail: 'Invalid venue slug', status: 400 },
       { status: 400 },
     );
   }
@@ -77,7 +77,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
   if (!stored) {
     return NextResponse.json(
-      { detail: 'Venue not found' },
+      { detail: 'Venue not found', status: 404 },
       { status: 404 },
     );
   }
