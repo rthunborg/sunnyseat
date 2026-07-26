@@ -146,7 +146,7 @@
       "target": "Share to {target}"
     },
     "photoPlaceholder": "Venue placeholder image",
-    "loading": "Loading venue details",
+    "loading": "Loading venue information",
     "detailsUnavailable": "Details unavailable",
     "notFound": "Venue not found.",
     "loadFailed": "Could not load the venue.",

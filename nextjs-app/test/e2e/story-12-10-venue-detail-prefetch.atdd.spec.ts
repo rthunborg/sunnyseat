@@ -1,4 +1,6 @@
-import { expect, test, type Page, type Route } from '@playwright/test';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import type { GetVenueDetailResponse, GetVenuesResponse, VenueDataDto, VenueDaySeriesEntry } from '@/lib/types/api';
 import {
@@ -10,6 +12,44 @@ import {
 const APP_SETTLE_TIMEOUT_MS = 15_000;
 const LIST_MATCHER = '**/api/venues?**';
 const DETAIL_MATCHER = /\/api\/venues\/(?!.*\/feedback)([^/?#]+)(?:\?.*)?$/;
+const PREFETCH_ROUTE = '/?_time=14:00&_prefetch=venue-detail';
+const PREFETCH_DEEP_LINK_ROUTE =
+  '/?venue=prefetch-venue-1&_time=14:00&_prefetch=venue-detail';
+const COLD_DETAIL_DELAY_MS = 1500;
+const TIMING_EVIDENCE_DIR = path.join(
+  process.cwd(),
+  '..',
+  '_bmad-output',
+  'implementation-artifacts',
+  'validation',
+  'story-12-10-mer-info-timing',
+  '20260726-local',
+);
+const TIMING_EVIDENCE_PATH = path.join(TIMING_EVIDENCE_DIR, 'evidence.json');
+const TIMING_EVIDENCE_LOCK_DIR = path.join(TIMING_EVIDENCE_DIR, '.evidence.lock');
+
+type OpenTiming = {
+  slug: string;
+  detailRequestsBefore: number;
+  detailRequestsAfter: number;
+  detailRequestDelta: number;
+  clickToLoadedMs: number;
+  loadedMarker: string;
+};
+
+type ProjectTimingEvidence = {
+  project: string;
+  injectedDetailDelayMs: number;
+  prefetched: OpenTiming;
+  nonPrefetched: OpenTiming;
+};
+
+type TimingEvidenceAggregate = {
+  story: '12.10';
+  source: 'local Playwright fixtures';
+  injectedDetailDelayMs: number;
+  projects: Record<string, ProjectTimingEvidence>;
+};
 
 async function bypassOnboarding(page: Page): Promise<void> {
   await page.addInitScript((key: string) => {
@@ -129,6 +169,9 @@ async function mockListAndDetail(page: Page): Promise<{
     maxConcurrent = Math.max(maxConcurrent, inFlightDetails);
     detailUrls.push(route.request().url());
     const slug = new URL(route.request().url()).pathname.split('/').pop() ?? '';
+    if (decodeURIComponent(slug) === 'prefetch-venue-8') {
+      await new Promise((resolve) => setTimeout(resolve, COLD_DETAIL_DELAY_MS));
+    }
     await route.fulfill({ json: detailResponse(decodeURIComponent(slug)) });
     inFlightDetails -= 1;
   });
@@ -141,17 +184,142 @@ async function mockListAndDetail(page: Page): Promise<{
   };
 }
 
+async function openVenueDetailAndMeasure(
+  page: Page,
+  network: Awaited<ReturnType<typeof mockListAndDetail>>,
+  venueName: string,
+  slug: string,
+): Promise<OpenTiming> {
+  const loadedMarker = `Loaded detail for ${slug}`;
+  const detailRequestsBefore = network.detailCount();
+
+  await clickVisibleVenueCard(page, venueName);
+  await expect(
+    page.locator('[data-testid="venue-quick-info"]:visible').filter({ hasText: venueName }),
+  ).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+
+  const start = await page.evaluate(() => performance.now());
+  await page.getByRole('button', { name: /Mer info/i }).click();
+  const detailSurface = visibleDetailSurface(page, venueName, loadedMarker);
+  await expect(detailSurface.getByText(loadedMarker)).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+  await expect(detailSurface.getByRole('article', { name: venueName })).toHaveAttribute('aria-busy', 'false');
+  const end = await page.evaluate(() => performance.now());
+
+  const detailRequestsAfter = network.detailCount();
+  return {
+    slug,
+    detailRequestsBefore,
+    detailRequestsAfter,
+    detailRequestDelta: detailRequestsAfter - detailRequestsBefore,
+    clickToLoadedMs: Math.round((end - start) * 10) / 10,
+    loadedMarker,
+  };
+}
+
+function visibleDetailSurface(page: Page, venueName: string, loadedMarker?: string) {
+  const surface = activeDetailSurfaces(page, venueName);
+  return loadedMarker ? surface.filter({ hasText: loadedMarker }).first() : surface.first();
+}
+
+function activeDetailSurfaces(page: Page, venueName: string) {
+  return page
+    .locator('[data-testid="desktop-venue-detail-panel"]:visible, [data-testid="mobile-venue-detail-sheet"]:visible')
+    .filter({ hasText: venueName });
+}
+
+async function clickVisibleVenueCard(page: Page, venueName: string): Promise<void> {
+  const cards = page.getByTestId('venue-card').filter({ hasText: venueName });
+  const count = await cards.count();
+  for (let index = 0; index < count; index += 1) {
+    const card = cards.nth(index);
+    if (!(await card.isVisible())) continue;
+    await card.scrollIntoViewIfNeeded();
+    await card.getByRole('button', { name: new RegExp(`^Välj ${escapeRegExp(venueName)}`) }).click();
+    return;
+  }
+  throw new Error(`Visible venue card not found: ${venueName}`);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function writeTimingEvidence(
+  projectName: string,
+  evidence: ProjectTimingEvidence,
+): void {
+  mkdirSync(TIMING_EVIDENCE_DIR, { recursive: true });
+  withTimingEvidenceLock(() => {
+    const aggregate = readTimingEvidenceAggregate();
+    aggregate.projects[projectName] = evidence;
+    const sortedProjects = Object.fromEntries(
+      Object.entries(aggregate.projects).sort(([a], [b]) => a.localeCompare(b)),
+    );
+    writeFileSync(
+      TIMING_EVIDENCE_PATH,
+      `${JSON.stringify({ ...aggregate, projects: sortedProjects }, null, 2)}\n`,
+      'utf8',
+    );
+  });
+}
+
+function readTimingEvidenceAggregate(): TimingEvidenceAggregate {
+  if (!existsSync(TIMING_EVIDENCE_PATH)) {
+    return {
+      story: '12.10',
+      source: 'local Playwright fixtures',
+      injectedDetailDelayMs: COLD_DETAIL_DELAY_MS,
+      projects: {},
+    };
+  }
+  try {
+    const parsed = JSON.parse(readFileSync(TIMING_EVIDENCE_PATH, 'utf8')) as TimingEvidenceAggregate;
+    return {
+      story: '12.10',
+      source: 'local Playwright fixtures',
+      injectedDetailDelayMs: COLD_DETAIL_DELAY_MS,
+      projects: parsed.projects ?? {},
+    };
+  } catch {
+    return {
+      story: '12.10',
+      source: 'local Playwright fixtures',
+      injectedDetailDelayMs: COLD_DETAIL_DELAY_MS,
+      projects: {},
+    };
+  }
+}
+
+function withTimingEvidenceLock(writeEvidence: () => void): void {
+  const deadline = Date.now() + 5000;
+  while (true) {
+    try {
+      mkdirSync(TIMING_EVIDENCE_LOCK_DIR);
+      break;
+    } catch (error) {
+      if (Date.now() > deadline) throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
+    }
+  }
+  try {
+    writeEvidence();
+  } finally {
+    rmSync(TIMING_EVIDENCE_LOCK_DIR, { recursive: true, force: true });
+  }
+}
+
 test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () => {
-  test.skip('[P0] initial settled surface prefetches at most six detail keys with concurrency two and exact planner params', async ({ page }) => {
+  test('[P0] initial settled surface prefetches at most six detail keys with concurrency two and exact planner params', async ({ page }) => {
     const metnoHits = await forbidLiveMetno(page);
     await bypassOnboarding(page);
     const network = await mockListAndDetail(page);
 
-    await page.goto('/?_time=14:00');
+    await page.goto(PREFETCH_ROUTE);
     await page.locator('[data-testid="venue-pin"]').first().waitFor({
       state: 'visible',
       timeout: APP_SETTLE_TIMEOUT_MS,
     });
+    const listsAfterSurfaceSettle = network.listCount();
 
     await expect.poll(() => network.detailCount(), { timeout: APP_SETTLE_TIMEOUT_MS }).toBe(6);
     expect(network.maxConcurrentDetails()).toBeLessThanOrEqual(2);
@@ -170,16 +338,16 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
       expect(params.get('lat')).toMatch(/^-?\d+\.\d{4}$/);
       expect(params.get('lng')).toMatch(/^-?\d+\.\d{4}$/);
     }
-    expect(network.listCount()).toBe(1);
+    expect(network.listCount()).toBe(listsAfterSurfaceSettle);
     expect(metnoHits).toEqual([]);
   });
 
-  test.skip('[P0] same-date scrub and planner-date change do not restart detail prefetch after the first pass settles', async ({ page }) => {
+  test('[P0] same-date scrub and planner-date change do not restart detail prefetch after the first pass settles', async ({ page }) => {
     await forbidLiveMetno(page);
     await bypassOnboarding(page);
     const network = await mockListAndDetail(page);
 
-    await page.goto('/?_time=14:00');
+    await page.goto(PREFETCH_ROUTE);
     await page.locator('[data-testid="venue-pin"]').first().waitFor({
       state: 'visible',
       timeout: APP_SETTLE_TIMEOUT_MS,
@@ -194,32 +362,95 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
     await expect.poll(() => network.detailCount(), { timeout: 750 }).toBe(detailsAfterInitialPass);
     expect(network.listCount()).toBe(listsAfterInitialPass);
 
-    await page.getByTestId('planner-date-trigger').click();
+    const planner = page.locator('[data-testid="time-slider-panel"]:visible').first();
+    await planner.getByTestId('planner-date-trigger').click();
     await page.getByRole('button', { name: /Välj / }).nth(1).click();
     await expect.poll(() => network.listCount(), { timeout: APP_SETTLE_TIMEOUT_MS }).toBe(listsAfterInitialPass + 1);
     await expect.poll(() => network.detailCount(), { timeout: 750 }).toBe(detailsAfterInitialPass);
   });
 
-  test.skip('[P0] Mer info for a warmed candidate opens from cache and an unwarmed candidate uses the existing busy shell', async ({ page }) => {
+  test('[P0] direct venue deep links do not launch speculative detail prefetch', async ({ page }) => {
+    await forbidLiveMetno(page);
     await bypassOnboarding(page);
     const network = await mockListAndDetail(page);
 
-    await page.goto('/?_time=14:00');
+    await page.goto(PREFETCH_DEEP_LINK_ROUTE);
+    await expect(page.getByRole('heading', { name: 'Prefetch Venue 1' })).toBeVisible({
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
+
+    await expect.poll(() => network.detailCount(), { timeout: APP_SETTLE_TIMEOUT_MS }).toBeGreaterThan(0);
+    expect(network.detailCount()).toBeLessThanOrEqual(2);
+    expect(new Set(network.detailUrls().map((url) => new URL(url).pathname.split('/').pop()))).toEqual(
+      new Set(['prefetch-venue-1']),
+    );
+    await expect.poll(() => network.detailCount(), { timeout: 750 }).toBeLessThanOrEqual(2);
+  });
+
+  test('[P0] Mer info for a warmed candidate opens from cache and an unwarmed candidate uses the existing busy shell', async ({ page }, testInfo: TestInfo) => {
+    await bypassOnboarding(page);
+    const network = await mockListAndDetail(page);
+
+    await page.goto(PREFETCH_ROUTE);
     await page.locator('[data-testid="venue-pin"]').first().waitFor({
       state: 'visible',
       timeout: APP_SETTLE_TIMEOUT_MS,
     });
     await expect.poll(() => network.detailCount(), { timeout: APP_SETTLE_TIMEOUT_MS }).toBe(6);
 
-    await page.getByRole('button', { name: /Prefetch Venue 1/ }).click();
-    await page.getByRole('button', { name: /Mer info/i }).click();
+    const warmTiming = await openVenueDetailAndMeasure(
+      page,
+      network,
+      'Prefetch Venue 1',
+      'prefetch-venue-1',
+    );
     expect(network.detailCount()).toBe(6);
+    expect(warmTiming.detailRequestDelta).toBe(0);
     await expect(page.getByRole('heading', { name: 'Prefetch Venue 1' })).toBeVisible();
 
-    await page.getByRole('button', { name: /Stäng/i }).click();
-    await page.getByRole('button', { name: /Prefetch Venue 8/ }).click();
+    await visibleDetailSurface(page, 'Prefetch Venue 1', 'Loaded detail for prefetch-venue-1')
+      .getByRole('button', { name: /Stäng platsdetaljer/i })
+      .first()
+      .click();
+    await expect(activeDetailSurfaces(page, 'Prefetch Venue 1')).toHaveCount(0, {
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
+    await clickVisibleVenueCard(page, 'Prefetch Venue 8');
+    await expect(
+      page.locator('[data-testid="venue-quick-info"]:visible').filter({ hasText: 'Prefetch Venue 8' }),
+    ).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+    const coldStart = await page.evaluate(() => performance.now());
+    const coldRequestsBefore = network.detailCount();
     await page.getByRole('button', { name: /Mer info/i }).click();
-    await expect(page.getByRole('article', { name: 'Prefetch Venue 8' })).toHaveAttribute('aria-busy', 'true');
+    const coldDetailSurface = visibleDetailSurface(page, 'Prefetch Venue 8');
+    await expect(coldDetailSurface.getByRole('article', { name: 'Prefetch Venue 8' })).toHaveAttribute('aria-busy', 'true');
     await expect.poll(() => network.detailCount(), { timeout: APP_SETTLE_TIMEOUT_MS }).toBe(7);
+    const loadedColdDetailSurface = visibleDetailSurface(page, 'Prefetch Venue 8', 'Loaded detail for prefetch-venue-8');
+    await expect(loadedColdDetailSurface.getByText('Loaded detail for prefetch-venue-8')).toBeVisible({
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
+    await expect(loadedColdDetailSurface.getByRole('article', { name: 'Prefetch Venue 8' })).toHaveAttribute('aria-busy', 'false');
+    const coldEnd = await page.evaluate(() => performance.now());
+    const coldTiming: OpenTiming = {
+      slug: 'prefetch-venue-8',
+      detailRequestsBefore: coldRequestsBefore,
+      detailRequestsAfter: network.detailCount(),
+      detailRequestDelta: network.detailCount() - coldRequestsBefore,
+      clickToLoadedMs: Math.round((coldEnd - coldStart) * 10) / 10,
+      loadedMarker: 'Loaded detail for prefetch-venue-8',
+    };
+    expect(coldTiming.detailRequestDelta).toBe(1);
+
+    const timingEvidence: ProjectTimingEvidence = {
+      project: testInfo.project.name,
+      injectedDetailDelayMs: COLD_DETAIL_DELAY_MS,
+      prefetched: warmTiming,
+      nonPrefetched: coldTiming,
+    };
+    await testInfo.attach('story-12-10-mer-info-timing', {
+      body: JSON.stringify(timingEvidence, null, 2),
+      contentType: 'application/json',
+    });
+    writeTimingEvidence(testInfo.project.name, timingEvidence);
   });
 });

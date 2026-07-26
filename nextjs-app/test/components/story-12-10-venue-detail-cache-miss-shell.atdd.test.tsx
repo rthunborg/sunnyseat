@@ -57,7 +57,7 @@ function readJson(relativePath: string): unknown {
 }
 
 describe('Story 12.10 ATDD - cache-miss detail shell', () => {
-  test.skip('[P1] Swedish venue-detail loading announcement is exactly "Laddar platsinformation"', () => {
+  test('[P1] Swedish venue-detail loading announcement is exactly "Laddar platsinformation"', () => {
     const svVenue = readJson('messages/sv/venue.json') as {
       detail?: { loading?: string };
     };
@@ -69,7 +69,7 @@ describe('Story 12.10 ATDD - cache-miss detail shell', () => {
     expect(enVenue.detail?.loading).toBeTruthy();
   });
 
-  test.skip('[P1] cache-miss shell keeps identity, aria-busy, one visible polite status, stable skeletons, and retry-capable chrome', () => {
+  test('[P1] cache-miss shell keeps identity, aria-busy, one visible polite status, stable skeletons, and retry-capable chrome', () => {
     render(
       <VenueDetailContent
         fallbackVenue={FALLBACK_VENUE}

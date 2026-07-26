@@ -58,7 +58,11 @@ test.describe('favourites', () => {
     await expect(page.getByRole('button', { name: new RegExp(`Välj ${escapeRegex(venueName)}`) })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByText(/Sol \d{1,2}:\d{2}/)).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.getByRole('button', {
+        name: new RegExp(`^Välj ${escapeRegex(venueName)}, Sol \\d{1,2}:\\d{2}-\\d{1,2}:\\d{2},`),
+      }),
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test('mobile: saved venue persists, appears in /favoriter, and can be removed', async ({ page }, testInfo) => {
@@ -72,7 +76,9 @@ test.describe('favourites', () => {
     await expect(page.getByRole('button', { name: /Välj Kafé Magasinet/ })).toBeVisible({
       timeout: APP_SETTLE_TIMEOUT_MS,
     });
-    await expect(page.getByText(/Sol \d{1,2}:\d{2}/)).toBeVisible({
+    await expect(page.getByRole('button', {
+      name: /^Välj Kafé Magasinet, Sol \d{1,2}:\d{2}-\d{1,2}:\d{2},/,
+    })).toBeVisible({
       timeout: APP_SETTLE_TIMEOUT_MS,
     });
 

@@ -28,7 +28,7 @@ export type MobileBottomSheetMetrics = {
 
 export type MobileBottomSheetProps = {
   visibleRows: number;
-  onVisibleRowsChange: (visibleRows: number) => void;
+  onVisibleRowsChange: (visibleRows: number, reason?: 'layout' | 'interaction') => void;
   handleLabel: string;
   rowStatusLabel: (visibleRows: number, maxRows: number) => string;
   children: ReactNode;
@@ -293,7 +293,7 @@ export function MobileBottomSheet({
 
   useEffect(() => {
     if (visibleRows !== clampedVisibleRows) {
-      onVisibleRowsChange(clampedVisibleRows);
+      onVisibleRowsChange(clampedVisibleRows, 'layout');
     }
   }, [clampedVisibleRows, onVisibleRowsChange, visibleRows]);
 
@@ -307,7 +307,7 @@ export function MobileBottomSheet({
         velocityY,
         directionY,
       });
-      onVisibleRowsChange(nextRows);
+      onVisibleRowsChange(nextRows, 'interaction');
     },
     [clampedVisibleRows, maxRows, measured.rowHeightPx, onVisibleRowsChange],
   );
@@ -364,7 +364,7 @@ export function MobileBottomSheet({
       axis: 'y',
       bounds: { top: -maxSheetHeightPx, bottom: maxSheetHeightPx },
       rubberband: 0.12,
-      pointer: { capture: false },
+      pointer: { capture: false, touch: true },
     },
   );
 
@@ -425,20 +425,20 @@ export function MobileBottomSheet({
             event.preventDefault();
             return;
           }
-          onVisibleRowsChange(clickCycleRows(clampedVisibleRows, maxRows));
+          onVisibleRowsChange(clickCycleRows(clampedVisibleRows, maxRows), 'interaction');
         }}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
-            onVisibleRowsChange(clickCycleRows(clampedVisibleRows, maxRows));
+            onVisibleRowsChange(clickCycleRows(clampedVisibleRows, maxRows), 'interaction');
           }
           if (event.key === 'ArrowUp') {
             event.preventDefault();
-            onVisibleRowsChange(clampInteger(clampedVisibleRows + 1, 0, maxRows));
+            onVisibleRowsChange(clampInteger(clampedVisibleRows + 1, 0, maxRows), 'interaction');
           }
           if (event.key === 'ArrowDown') {
             event.preventDefault();
-            onVisibleRowsChange(clampInteger(clampedVisibleRows - 1, 0, maxRows));
+            onVisibleRowsChange(clampInteger(clampedVisibleRows - 1, 0, maxRows), 'interaction');
           }
         }}
         className="flex min-h-11 shrink-0 items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-text-primary"

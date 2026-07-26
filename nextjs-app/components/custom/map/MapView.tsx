@@ -32,6 +32,7 @@ import {
 import { TimeSliderPanel } from '@/components/custom/time/TimeSliderPanel';
 import { isVenueSunnyForList, VenueList } from '@/components/custom/venue/VenueList';
 import { useVenueDetail } from '@/hooks/queries/useVenueDetail';
+import { useVenueDetailPrefetch } from '@/hooks/queries/useVenueDetailPrefetch';
 import { isVenueNotFoundError } from '@/hooks/queries/venue-query-options';
 import { useFavouriteVenues } from '@/hooks/queries/useFavouriteVenues';
 import { useVenueSearch } from '@/hooks/queries/useVenueSearch';
@@ -189,6 +190,10 @@ export function MapView() {
     fallbackHref: string;
   } | null>(null);
   const [routeLoadingVenueId, setRouteLoadingVenueId] = useState<string | null>(null);
+  const [venueDetailPrefetchInteraction, setVenueDetailPrefetchInteraction] = useState<{
+    token: number;
+    preserveSlug: string | null;
+  }>({ token: 0, preserveSlug: null });
   const hasHandledFavouritesRouteEntryRef = useRef(false);
   const routeLoadingTimerRef = useRef<number | null>(null);
   const isFavouritesRoute = isFavouritesPath(pathname);
@@ -200,6 +205,12 @@ export function MapView() {
   );
   const listMode = isFavouritesRoute ? 'favourites' : desktopListMode;
   const effectiveSortMode = listMode === 'favourites' ? 'sun' : venueSortMode;
+  const cancelVenueDetailPrefetchCandidates = useCallback((preserveSlug?: string | null) => {
+    setVenueDetailPrefetchInteraction((current) => ({
+      token: current.token + 1,
+      preserveSlug: preserveSlug ?? null,
+    }));
+  }, []);
   const measureMobilePlannerHeight = useCallback(() => {
     const nextHeight = measuredElementHeight(mobilePlannerPanelRef.current);
     if (nextHeight <= 0) return;
@@ -288,6 +299,11 @@ export function MapView() {
     ],
   );
   const deferredPlanner = useDeferredValue(plannerArgs);
+  const hasForcedPlannerSearchParam = searchParams.has('_date') || searchParams.has('_time');
+  const detailPrefetchPlannerReady = !hasForcedPlannerSearchParam || Boolean(plannerTime.plannerQuery);
+  const hasDevForcingSearchParam = searchParams.has('_state') || hasForcedPlannerSearchParam;
+  const routeAllowsVenueDetailPrefetch =
+    !hasDevForcingSearchParam || searchParams.get('_prefetch') === 'venue-detail';
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
@@ -519,7 +535,7 @@ export function MapView() {
     !canRequestVenueDetail,
   );
   const selectedPreviewDetailQuery = useVenueDetail(
-    shouldRefreshSelectedPreview ? selectedPreviewSlug : null,
+    shouldRefreshSelectedPreview && detailPrefetchPlannerReady ? selectedPreviewSlug : null,
     {
       ...plannerTime.plannerQuery,
       lat: geolocation.coords.lat,
@@ -623,7 +639,7 @@ export function MapView() {
     return venues.find((venue) => venue.id === selectedVenueId) ?? null;
   }, [selectedVenueId, venues]);
   const venueDetailQuery = useVenueDetail(
-    canRequestVenueDetail ? venueSlugParam : null,
+    canRequestVenueDetail && detailPrefetchPlannerReady ? venueSlugParam : null,
     {
       ...plannerTime.plannerQuery,
       lat: geolocation.coords.lat,
@@ -850,6 +866,7 @@ export function MapView() {
   const handleOpenDetails = () => {
     const slug = selectedVenueDto?.slug ?? selectedPinData?.slug;
     if (!slug) return;
+    cancelVenueDetailPrefetchCandidates(slug);
     router.push({
       pathname,
       query: {
@@ -860,11 +877,13 @@ export function MapView() {
   };
 
   const handleDismissDetails = () => {
+    cancelVenueDetailPrefetchCandidates(null);
     const query = queryWithout(searchParams, ['venue', '_state']);
     router.replace(Object.keys(query).length > 0 ? { pathname, query } : pathname);
   };
 
   const handleSelectVenueFromList = (venue: VenueDataDto) => {
+    cancelVenueDetailPrefetchCandidates(null);
     selectVenue(venue.id, venue);
     if (mapInstance && hasValidVenueLocation(venue)) {
       mapInstance.easeTo({
@@ -914,6 +933,49 @@ export function MapView() {
       favourites.favouriteIds.length > 0 &&
       visibleFavouriteVenueCount === 0
     );
+  const nearVenueSurfaceSettled =
+    coordsSettled &&
+    venueQuery.isSuccess &&
+    !venueQuery.isFetching &&
+    !venueQuery.isPlaceholderData &&
+    Array.isArray(venueQuery.data?.venues);
+  const favouriteVenueSurfaceSettled =
+    favourites.isHydrated &&
+    !isFavouriteListLoading &&
+    !favouriteVenueQuery.isFetching &&
+    !favouriteVenueQuery.isPlaceholderData;
+  useVenueDetailPrefetch({
+    enabled:
+      coordsSettled &&
+      detailPrefetchPlannerReady &&
+      routeAllowsVenueDetailPrefetch &&
+      !venueSlugParam &&
+      isOnline &&
+      !showOfflineShell &&
+      !isForcedVisualReference,
+    listMode,
+    listVenues,
+    favouriteVenueRows,
+    listSettled: nearVenueSurfaceSettled,
+    favouritesSettled: favouriteVenueSurfaceSettled,
+    detailParams: {
+      ...plannerTime.plannerQuery,
+      lat: geolocation.coords.lat,
+      lng: geolocation.coords.lng,
+    },
+    interactionToken: venueDetailPrefetchInteraction.token,
+    preserveVenueSlug: venueDetailPrefetchInteraction.preserveSlug,
+  });
+  const handleMobileSheetVisibleRowsChange = useCallback((visibleRows: number, reason?: 'layout' | 'interaction') => {
+    if (reason !== 'layout') {
+      cancelVenueDetailPrefetchCandidates(null);
+    }
+    setMobileSheetVisibleRows(visibleRows);
+  }, [cancelVenueDetailPrefetchCandidates]);
+  const handleToggleTag = useCallback((tag: string) => {
+    cancelVenueDetailPrefetchCandidates(null);
+    toggleTag(tag);
+  }, [cancelVenueDetailPrefetchCandidates, toggleTag]);
   const mobileSheetRowCount = listMode === 'favourites'
     ? (isFavouriteListLoading ? 3 : Math.max(visibleFavouriteVenueCount, 0))
     : (isNearListLoading ? 3 : Math.max(listVenues.length, 0));
@@ -956,6 +1018,7 @@ export function MapView() {
   }, [activeRouteVenueId]);
 
   const handleDesktopListModeChange = (mode: VenueListModeSelection) => {
+    cancelVenueDetailPrefetchCandidates(null);
     setDesktopListMode(mode);
     const query = queryWithout(searchParams, ['venue', '_state']);
     if (mode === 'favourites' && !isFavouritesRoute) {
@@ -978,6 +1041,7 @@ export function MapView() {
   };
 
   const handleRouteVenue = (venue: VenueDataDto) => {
+    cancelVenueDetailPrefetchCandidates(null);
     const summary = getRouteSummary({ venue, origin: geolocation.coords });
     const platform = typeof navigator === 'undefined'
       ? 'google'
@@ -1003,6 +1067,7 @@ export function MapView() {
   };
   const handleSortModeChange = (mode: VenueListSortMode) => {
     if (listMode === 'favourites') return;
+    cancelVenueDetailPrefetchCandidates(null);
     setVenueSortMode(mode);
   };
 
@@ -1124,7 +1189,7 @@ export function MapView() {
       />
       <MobileBottomSheet
         visibleRows={mobileSheetVisibleRows}
-        onVisibleRowsChange={setMobileSheetVisibleRows}
+        onVisibleRowsChange={handleMobileSheetVisibleRowsChange}
         rowCount={mobileSheetRowCount}
         forcedDragOffsetPx={forcedSheetDragOffsetPx}
         onMetricsChange={setMobileSheetMetrics}
@@ -1152,7 +1217,7 @@ export function MapView() {
               <MobileTagChips
                 tags={allTags}
                 isActive={isTagActive}
-                onToggleTag={toggleTag}
+                onToggleTag={handleToggleTag}
                 locale={locale === 'en' ? 'en' : 'sv'}
                 label={tCommon('nav.filter')}
               />

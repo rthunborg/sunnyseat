@@ -1,0 +1,47 @@
+{
+  "story": "12.10",
+  "source": "local Playwright fixtures",
+  "injectedDetailDelayMs": 1500,
+  "projects": {
+    "desktop": {
+      "project": "desktop",
+      "injectedDetailDelayMs": 1500,
+      "prefetched": {
+        "slug": "prefetch-venue-1",
+        "detailRequestsBefore": 6,
+        "detailRequestsAfter": 6,
+        "detailRequestDelta": 0,
+        "clickToLoadedMs": 901,
+        "loadedMarker": "Loaded detail for prefetch-venue-1"
+      },
+      "nonPrefetched": {
+        "slug": "prefetch-venue-8",
+        "detailRequestsBefore": 6,
+        "detailRequestsAfter": 7,
+        "detailRequestDelta": 1,
+        "clickToLoadedMs": 2476,
+        "loadedMarker": "Loaded detail for prefetch-venue-8"
+      }
+    },
+    "mobile": {
+      "project": "mobile",
+      "injectedDetailDelayMs": 1500,
+      "prefetched": {
+        "slug": "prefetch-venue-1",
+        "detailRequestsBefore": 6,
+        "detailRequestsAfter": 6,
+        "detailRequestDelta": 0,
+        "clickToLoadedMs": 1466,
+        "loadedMarker": "Loaded detail for prefetch-venue-1"
+      },
+      "nonPrefetched": {
+        "slug": "prefetch-venue-8",
+        "detailRequestsBefore": 6,
+        "detailRequestsAfter": 7,
+        "detailRequestDelta": 1,
+        "clickToLoadedMs": 3279,
+        "loadedMarker": "Loaded detail for prefetch-venue-8"
+      }
+    }
+  }
+}

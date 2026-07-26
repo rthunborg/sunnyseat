@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type maplibregl from 'maplibre-gl';
 import { NextIntlClientProvider } from 'next-intl';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import commonMessages from '@/messages/sv/common.json';
 import favouritesMessages from '@/messages/sv/favourites.json';
 import mapMessages from '@/messages/sv/map.json';
@@ -278,45 +279,61 @@ vi.mock('@/components/custom/feedback/ReviewFlow', () => ({
 
 import { MapView } from '@/components/custom/map/MapView';
 
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+}
+
 function Wrapper({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(createTestQueryClient);
   return (
-    <NextIntlClientProvider
-      locale="sv"
-      messages={{
-        common: commonMessages,
-        favourites: favouritesMessages,
-        map: mapMessages,
-        venue: venueMessages,
-      }}
-    >
-      <TimeProvider
-        initialNowIso="2026-05-20T10:15:00.000Z"
-        clock={() => new Date('2026-05-20T10:15:00.000Z')}
+    <QueryClientProvider client={queryClient}>
+      <NextIntlClientProvider
+        locale="sv"
+        messages={{
+          common: commonMessages,
+          favourites: favouritesMessages,
+          map: mapMessages,
+          venue: venueMessages,
+        }}
       >
-        {children}
-      </TimeProvider>
-    </NextIntlClientProvider>
+        <TimeProvider
+          initialNowIso="2026-05-20T10:15:00.000Z"
+          clock={() => new Date('2026-05-20T10:15:00.000Z')}
+        >
+          {children}
+        </TimeProvider>
+      </NextIntlClientProvider>
+    </QueryClientProvider>
   );
 }
 
 function EnglishWrapper({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(createTestQueryClient);
   return (
-    <NextIntlClientProvider
-      locale="en"
-      messages={{
-        common: commonMessagesEn,
-        favourites: favouritesMessagesEn,
-        map: mapMessagesEn,
-        venue: venueMessagesEn,
-      }}
-    >
-      <TimeProvider
-        initialNowIso="2026-05-20T10:15:00.000Z"
-        clock={() => new Date('2026-05-20T10:15:00.000Z')}
+    <QueryClientProvider client={queryClient}>
+      <NextIntlClientProvider
+        locale="en"
+        messages={{
+          common: commonMessagesEn,
+          favourites: favouritesMessagesEn,
+          map: mapMessagesEn,
+          venue: venueMessagesEn,
+        }}
       >
-        {children}
-      </TimeProvider>
-    </NextIntlClientProvider>
+        <TimeProvider
+          initialNowIso="2026-05-20T10:15:00.000Z"
+          clock={() => new Date('2026-05-20T10:15:00.000Z')}
+        >
+          {children}
+        </TimeProvider>
+      </NextIntlClientProvider>
+    </QueryClientProvider>
   );
 }
 

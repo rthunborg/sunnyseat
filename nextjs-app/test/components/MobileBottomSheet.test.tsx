@@ -45,10 +45,11 @@ function renderSheet({
 }: {
   visibleRows?: number;
   rowCount?: number;
-  onVisibleRowsChange?: (visibleRows: number) => void;
+  onVisibleRowsChange?: (visibleRows: number, reason?: 'layout' | 'interaction') => void;
   forcedDragOffsetPx?: number;
 } = {}) {
-  const handleRowsChange = onVisibleRowsChange ?? vi.fn<(visibleRows: number) => void>();
+  const handleRowsChange = onVisibleRowsChange ??
+    vi.fn<(visibleRows: number, reason?: 'layout' | 'interaction') => void>();
   render(
     <MobileBottomSheet
       visibleRows={visibleRows}
@@ -164,7 +165,7 @@ describe('<MobileBottomSheet /> row-count contract', () => {
     expect(sheet).toHaveAttribute('data-max-rows', '3');
     expect(sheet).toHaveAttribute('data-visible-rows', '3');
     expect(sheet).toHaveAttribute('data-sheet-height', '428');
-    expect(onVisibleRowsChange).toHaveBeenCalledWith(3);
+    expect(onVisibleRowsChange).toHaveBeenLastCalledWith(3, 'layout');
   });
 
   it('makes N=0 handle-only and keeps body content inert while chrome remains measurable', () => {
@@ -188,33 +189,33 @@ describe('<MobileBottomSheet /> row-count contract', () => {
     const handle = screen.getByRole('button', { name: 'Visa platslistan' });
 
     fireEvent.keyDown(handle, { key: 'ArrowUp' });
-    expect(onVisibleRowsChange).toHaveBeenCalledWith(2);
+    expect(onVisibleRowsChange).toHaveBeenCalledWith(2, 'interaction');
 
     fireEvent.keyDown(handle, { key: 'ArrowDown' });
-    expect(onVisibleRowsChange).toHaveBeenCalledWith(0);
+    expect(onVisibleRowsChange).toHaveBeenCalledWith(0, 'interaction');
   });
 
   it('keyboard saturates at max and handle-only without leaving the row model', () => {
     const maxChange = renderSheet({ visibleRows: 3, rowCount: 5 });
     fireEvent.keyDown(screen.getByRole('button', { name: 'Visa platslistan' }), { key: 'ArrowUp' });
-    expect(maxChange).toHaveBeenCalledWith(3);
+    expect(maxChange).toHaveBeenCalledWith(3, 'interaction');
 
     cleanup();
     const minChange = renderSheet({ visibleRows: 0, rowCount: 5 });
     fireEvent.keyDown(screen.getByRole('button', { name: 'Visa platslistan' }), { key: 'ArrowDown' });
-    expect(minChange).toHaveBeenCalledWith(0);
+    expect(minChange).toHaveBeenCalledWith(0, 'interaction');
   });
 
   it('click/Enter cycles rows upward and wraps maxRows to handle-only', () => {
     const increment = renderSheet({ visibleRows: 1, rowCount: 5 });
     const handle = screen.getByRole('button', { name: 'Visa platslistan' });
     fireEvent.click(handle);
-    expect(increment).toHaveBeenCalledWith(2);
+    expect(increment).toHaveBeenCalledWith(2, 'interaction');
 
     cleanup();
     const wrap = renderSheet({ visibleRows: 3, rowCount: 5 });
     fireEvent.keyDown(screen.getByRole('button', { name: 'Visa platslistan' }), { key: 'Enter' });
-    expect(wrap).toHaveBeenCalledWith(0);
+    expect(wrap).toHaveBeenCalledWith(0, 'interaction');
   });
 
   it('announces the current visible-row count without moving focus', () => {

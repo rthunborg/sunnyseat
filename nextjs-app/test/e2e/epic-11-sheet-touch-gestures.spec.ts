@@ -299,9 +299,9 @@ async function waitForStableSheetHeight(page: Page): Promise<void> {
   const sheet = page.getByTestId('mobile-bottom-sheet');
   await expect.poll(
     async () => {
-      const firstHeight = Number(await sheet.getAttribute('data-sheet-height'));
+      const firstHeight = await sheet.evaluate((element) => element.getBoundingClientRect().height);
       await page.waitForTimeout(80);
-      const secondHeight = Number(await sheet.getAttribute('data-sheet-height'));
+      const secondHeight = await sheet.evaluate((element) => element.getBoundingClientRect().height);
       if (!Number.isFinite(firstHeight) || !Number.isFinite(secondHeight)) return Number.POSITIVE_INFINITY;
       return Math.abs(secondHeight - firstHeight);
     },
@@ -488,11 +488,15 @@ test.describe('[11.3 AC2/AC3 + 12.9] row-count sheet by real touch + chip axis g
     const maxRows = await getSheetMaxRows(page);
     expect(maxRows).toBeGreaterThan(1);
     await expectSheetRows(page, maxRows);
+    await waitForStableSheetHeight(page);
 
     const scrollBody = page.locator('[data-bottom-sheet-scroll-body="true"]');
     await scrollBody.evaluate((el) => {
       el.scrollTop = 0;
     });
+    await expect.poll(() => scrollBody.evaluate((el) => el.scrollTop), {
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    }).toBe(0);
     await dragLocatorBy(page, page.getByTestId('venue-card').first(), 70);
 
     await expectSheetRows(page, maxRows - 1);

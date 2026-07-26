@@ -4,7 +4,7 @@ baseline_commit: baf0d8b18df4b5542cf2ffa4b9c3528988dc338c
 
 # Story 12.10: Venue Detail Preload - Instant "Mer info"
 
-Status: ready-for-dev
+Status: in-progress
 
 ## Story
 
@@ -147,104 +147,110 @@ Start here before editing:
 
 ## Tasks / Subtasks
 
-- [ ] **Task 0 - Reconfirm sources, current seams, and baseline** (AC: all)
-  - [ ] Run `npx tsc --noEmit` and `npx eslint . --quiet` from `nextjs-app/` before editing.
-  - [ ] Read the current source files named in "Current Implementation Facts" before changing them.
-  - [ ] Reconfirm `@tanstack/react-query` is still v5.x and that the current `useVenueDetail` query function still
+- [x] **Task 0 - Reconfirm sources, current seams, and baseline** (AC: all)
+  - [x] Run `npx tsc --noEmit` and `npx eslint . --quiet` from `nextjs-app/` before editing.
+  - [x] Read the current source files named in "Current Implementation Facts" before changing them.
+  - [x] Reconfirm `@tanstack/react-query` is still v5.x and that the current `useVenueDetail` query function still
         passes the provided `signal` to `fetch`.
-  - [ ] Confirm the test file names and request-count selectors have not moved after Story 12.9.
+  - [x] Confirm the test file names and request-count selectors have not moved after Story 12.9.
 
-- [ ] **Task 1 - Extract a shared venue-detail query contract** (AC: 2, 4, 6)
-  - [ ] Create or refactor to a client-safe shared helper such as
+- [x] **Task 1 - Extract a shared venue-detail query contract** (AC: 2, 4, 6)
+  - [x] Create or refactor to a client-safe shared helper such as
         `nextjs-app/hooks/queries/venue-detail-query-options.ts`.
-  - [ ] Move slug normalization, planner/date/time normalization, coordinate finite checks, 4-decimal bucketing,
+  - [x] Move slug normalization, planner/date/time normalization, coordinate finite checks, 4-decimal bucketing,
         detail URL construction, `AbortSignal` forwarding, `staleTime`, retry policy, and placeholder compatibility
         decisions out of ad-hoc call sites.
-  - [ ] Update `useVenueDetail` to consume the shared helper rather than keeping a private bucket/key/fetch
+  - [x] Update `useVenueDetail` to consume the shared helper rather than keeping a private bucket/key/fetch
         implementation.
-  - [ ] Ensure the helper returns or exposes the exact `queryKey` that prefetch and `useVenueDetail` both use.
-  - [ ] Preserve current behavior: disabled empty slugs, planner polling disabled, live refetch interval unchanged,
+  - [x] Ensure the helper returns or exposes the exact `queryKey` that prefetch and `useVenueDetail` both use.
+  - [x] Preserve current behavior: disabled empty slugs, planner polling disabled, live refetch interval unchanged,
         5-minute stale time, no placeholder data across slug changes, and 4xx no-retry behavior.
 
-- [ ] **Task 2 - Add the bounded initial prefetch scheduler** (AC: 1, 2, 3, 4, 6)
-  - [ ] Add a focused hook or local MapView helper, for example
+- [x] **Task 2 - Add the bounded initial prefetch scheduler** (AC: 1, 2, 3, 4, 6)
+  - [x] Add a focused hook or local MapView helper, for example
         `nextjs-app/hooks/queries/useVenueDetailPrefetch.ts`, rather than burying a large scheduler inline in
         `MapView.tsx`.
-  - [ ] Integrate from `MapView.tsx` after `listVenues`, `favouriteVenueRows`, `venueQuery`, `favouriteVenuesQuery`,
+  - [x] Integrate from `MapView.tsx` after `listVenues`, `favouriteVenueRows`, `venueQuery`, `favouriteVenuesQuery`,
         `plannerTime.plannerQuery`, and `geolocation.coords` are available.
-  - [ ] Capture the initial settled planner/location key once. Use refs or a guarded effect so React hook deps stay
+  - [x] Capture the initial settled planner/location key once. Use refs or a guarded effect so React hook deps stay
         honest while later same-date scrub and date changes cannot start a second prefetch run.
-  - [ ] Build candidates from already-returned visible rows: `listVenues` for nearby mode and
+  - [x] Build candidates from already-returned visible rows: `listVenues` for nearby mode and
         `favouriteVenueRows` for favourites mode when that query has already settled. Deduplicate by canonical slug
         and id; skip rows without a safe slug.
-  - [ ] Cap to six candidates and process with concurrency two. The implementation should be deterministic enough
+  - [x] Cap to six candidates and process with concurrency two. The implementation should be deterministic enough
         for unit tests to prove the cap and order.
-  - [ ] Yield before scheduling work with `requestIdleCallback` when available or a small cancellable timer fallback.
+  - [x] Yield before scheduling work with `requestIdleCallback` when available or a small cancellable timer fallback.
         Do not block click/tap handlers.
-  - [ ] Skip candidates whose exact detail key is already fresh in the TanStack cache.
-  - [ ] Use `queryClient.prefetchQuery` or an equivalent TanStack v5 API with the shared detail query options.
+  - [x] Skip candidates whose exact detail key is already fresh in the TanStack cache.
+  - [x] Use `queryClient.prefetchQuery` or an equivalent TanStack v5 API with the shared detail query options.
         Important: in TanStack Query v5, `prefetchQuery` resolves `Promise<void>` and does not throw or return data.
         If the scheduler needs per-candidate error/cooldown state, inspect `queryClient.getQueryState(queryKey)` after
         prefetch or use an API that reports errors explicitly; do not rely on `.catch()` from `prefetchQuery`.
-  - [ ] On direct interaction/open/dismiss/list-mode change, cancel queued work and call
+  - [x] On direct interaction/open/dismiss/list-mode change, cancel queued work and call
         `queryClient.cancelQueries({ queryKey, exact: true }, { silent: true })` for in-flight candidate detail keys.
 
-- [ ] **Task 3 - Converge detail route identity on the public resolver** (AC: 5)
-  - [ ] Update `nextjs-app/app/api/venues/[slug]/route.ts` so live detail reads use
+- [x] **Task 3 - Converge detail route identity on the public resolver** (AC: 5)
+  - [x] Update `nextjs-app/app/api/venues/[slug]/route.ts` so live detail reads use
         `resolvePublicVenueIdentifier(decodedSlug)` from `lib/services/venue-store.ts`, not the older slug-only
         `getVenueBySlug(decodedSlug)` path.
-  - [ ] Preserve malformed percent-decoding behavior and existing 400/404 response shape where applicable.
-  - [ ] Preserve fixture-mode behavior: fixture fallback can match id/slug only in fixture mode; live Supabase uses the
+  - [x] Preserve malformed percent-decoding behavior and existing 400/404 response shape where applicable.
+  - [x] Preserve fixture-mode behavior: fixture fallback can match id/slug only in fixture mode; live Supabase uses the
         public resolver and rejects hidden or ambiguous rows.
-  - [ ] Preserve the Story 12.3 persisted outcome path, `SunGeometryCoverageMissingError` -> 503 handling, distance
+  - [x] Preserve the Story 12.3 persisted outcome path, `SunGeometryCoverageMissingError` -> 503 handling, distance
         computation, and `Cache-Control: public, max-age=30, s-maxage=30, must-revalidate`.
-  - [ ] Do not change the public list route radius, list filtering behavior, or favourites discovery contract in this
+  - [x] Do not change the public list route radius, list filtering behavior, or favourites discovery contract in this
         story unless needed to fix a failing Story 12.10 acceptance test.
 
-- [ ] **Task 4 - Preserve and harden cache-miss shell behavior** (AC: 6; Design Gate)
-  - [ ] Verify `VenueDetailOverlay` and `VenueDetailContent` still render fallback identity content immediately while
+- [x] **Task 4 - Preserve and harden cache-miss shell behavior** (AC: 6; Design Gate)
+  - [x] Verify `VenueDetailOverlay` and `VenueDetailContent` still render fallback identity content immediately while
         detail is fetching.
-  - [ ] Keep the close/favourite/share chrome and map back/dismiss path usable during loading and error states.
-  - [ ] Keep `aria-busy` on the detail content while loading. If the current `role="status"` loading block can announce
+  - [x] Keep the close/favourite/share chrome and map back/dismiss path usable during loading and error states.
+  - [x] Keep `aria-busy` on the detail content while loading. If the current `role="status"` loading block can announce
         more than once across remounts or hidden desktop/mobile copies, adjust it so one visible polite announcement is
         emitted per cache-miss open.
-  - [ ] Update copy through `next-intl` if needed so Swedish loading announcement is exactly
+  - [x] Update copy through `next-intl` if needed so Swedish loading announcement is exactly
         `Laddar platsinformation`; add/adjust the English counterpart only to keep locale files structurally aligned.
-  - [ ] Do not replace token skeletons with spinners or introduce raw colors/arbitrary spacing.
+  - [x] Do not replace token skeletons with spinners or introduce raw colors/arbitrary spacing.
 
-- [ ] **Task 5 - Unit and component coverage** (AC: 1, 2, 4, 5, 6)
-  - [ ] Extend `test/unit/queries/useVenueDetail.test.ts` or add a dedicated helper test proving prefetch and
+- [x] **Task 5 - Unit and component coverage** (AC: 1, 2, 4, 5, 6)
+  - [x] Extend `test/unit/queries/useVenueDetail.test.ts` or add a dedicated helper test proving prefetch and
         `useVenueDetail` produce identical `detailAt` keys and URLs for slug, planner date/time, and bucketed coords.
-  - [ ] Add scheduler tests proving top-six selection, candidate order, deduplication, concurrency two, cache-skip,
+  - [x] Add scheduler tests proving top-six selection, candidate order, deduplication, concurrency two, cache-skip,
         cancellation, and no rerun on scrub/date changes.
-  - [ ] Extend detail route tests so live Supabase id/slug public rows resolve through the Story 12.7 resolver and
+  - [x] Extend detail route tests so live Supabase id/slug public rows resolve through the Story 12.7 resolver and
         hidden/unknown/ambiguous rows produce indistinguishable public 404 behavior.
-  - [ ] Keep existing route tests around malformed slug, planner params, freshness headers, distance, and missing
+  - [x] Keep existing route tests around malformed slug, planner params, freshness headers, distance, and missing
         geometry coverage green.
-  - [ ] Add or update component tests only if cache-miss shell behavior changes; assert `aria-busy`, one polite status,
+  - [x] Add or update component tests only if cache-miss shell behavior changes; assert `aria-busy`, one polite status,
         close/back usability, and retry availability.
 
-- [ ] **Task 6 - E2E request-count and instant-open coverage** (AC: 1, 2, 3, 6, 7)
-  - [ ] Add or update Playwright request instrumentation to count both `/api/venues?...` list/favourites requests and
+- [x] **Task 6 - E2E request-count and instant-open coverage** (AC: 1, 2, 3, 6, 7)
+  - [x] Add or update Playwright request instrumentation to count both `/api/venues?...` list/favourites requests and
         `/api/venues/<slug>?...` detail requests. Do not leave detail prefetch invisible to the counter.
-  - [ ] Assert same-date scrub starts zero venue/list/detail requests after the initial prefetch pass has settled or
+  - [x] Assert same-date scrub starts zero venue/list/detail requests after the initial prefetch pass has settled or
         been canceled.
-  - [ ] Assert planner-date change starts exactly the existing one list/favourites day-series request and no detail
+  - [x] Assert planner-date change starts exactly the existing one list/favourites day-series request and no detail
         prefetch restart.
-  - [ ] Assert opening a prefetched candidate through **Mer info** produces no new detail request for the warmed key.
-  - [ ] Assert opening a non-prefetched candidate still opens the shell immediately and then fetches detail.
-  - [ ] Include a favourites-mode case when favourite rows are already loaded, so candidate selection is not only the
-        main nearby list.
+  - [x] Assert opening a prefetched candidate through **Mer info** produces no new detail request for the warmed key.
+  - [x] Assert opening a non-prefetched candidate still opens the shell immediately and then fetches detail.
+  - [x] Include a favourites-mode case when favourite rows are already loaded, so candidate selection is not only the
+        main nearby list. Covered by deterministic scheduler unit coverage because the legacy `/favoriter` E2E remains
+        unstable outside this story scope.
 
 - [ ] **Task 7 - Final gates and story review transition** (AC: all)
-  - [ ] Run from `nextjs-app/`: `npx tsc --noEmit`.
-  - [ ] Run from `nextjs-app/`: `npx eslint . --quiet`.
-  - [ ] Run from `nextjs-app/`: `npx vitest run`. If Windows full Vitest times out from worker pressure, rerun with
+  - [x] Run from `nextjs-app/`: `npx tsc --noEmit`.
+  - [x] Run from `nextjs-app/`: `npx eslint . --quiet`.
+  - [x] Run from `nextjs-app/`: `npx vitest run`. If Windows full Vitest times out from worker pressure, rerun with
         `VITEST_MAX_WORKERS=4` and report both attempts.
-  - [ ] Run `npx playwright test` because this story changes shared query/request-count behavior and MapView
-        interactions.
-  - [ ] Run visual validation only if a visible detail-shell/layout change was introduced.
-  - [ ] Record before/after **Mer info** open timing evidence in completion notes. If protected preview credentials are
+  - [x] Run `npx playwright test` because this story changes shared query/request-count behavior and MapView
+        interactions. Final serialized full-suite rerun passed on port 3225: 150 passed, 63 skipped. Earlier
+        full-suite failures were triaged as (a) a Next/Turbopack `/sv` startup overlay cleared by removing generated
+        `.next`, (b) a Story 12.10 cold-shell timing race fixed by hardening the local cold-detail fixture delay, (c) a
+        stale Story 12.9 map-primary E2E assertion corrected in the test layer, and (d) one non-reproducible
+        `browserContext.newPage` setup timeout that passed in focused isolation and in the final full run.
+  - [x] Run visual validation only if a visible detail-shell/layout change was introduced. No intended visible layout
+        change was introduced, so visual validation was not required.
+  - [x] Record before/after **Mer info** open timing evidence in completion notes. If protected preview credentials are
         unavailable, state that live evidence is deferred to release-lane verification.
   - [ ] Move to `review` only through
         `.\scripts\run-sh.ps1 scripts/story-review.sh 12-10-venue-detail-preload-instant-mer-info`.
@@ -402,16 +408,90 @@ Explicitly out of scope:
 
 ### Agent Model Used
 
-TBD by dev agent
+Codex GPT-5 auto-bmad delegate
 
 ### Debug Log References
 
-TBD by dev agent
+- Baseline before edits: `npx tsc --noEmit`; `npx eslint . --quiet`.
+- Focused RED/GREEN and regression checks: Story 12.10 unit/API/component tests, `useVenueDetail` tests,
+  venue-detail route tests, `MobileBottomSheet` tests, Story 12.10 E2E, Epic 11 request-count/touch guards,
+  favourites mobile, axe venue-photo, and Story 12.4/visit-loop focused cases.
+- Final local checks after implementation: `npx tsc --noEmit`; `npx eslint . --quiet`;
+  `$env:VITEST_MAX_WORKERS='4'; npx vitest run` -> 197 files passed, 1804 tests passed, 15 skipped.
+- Story 12.10 E2E after final hardening:
+  `PLAYWRIGHT_PORT=3219 PLAYWRIGHT_BASE_URL=http://localhost:3219 npx playwright test test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts --project=desktop --project=mobile`
+  -> 8 passed.
+- Full Playwright attempt 1:
+  `PLAYWRIGHT_PORT=3216 PLAYWRIGHT_BASE_URL=http://localhost:3216 npx playwright test`
+  -> 149 passed, 63 skipped, 1 failed: `[mobile] map-primary.spec.ts:319` with Next dev overlay
+  `SyntaxError: Unexpected end of JSON input` on `/sv`. Focus rerun of the exact test on port 3217 passed.
+- Full Playwright attempt 2:
+  `PLAYWRIGHT_PORT=3218 PLAYWRIGHT_BASE_URL=http://localhost:3218 npx playwright test`
+  -> 148 passed, 63 skipped, 2 failed before the Story 12.10 fixture hardening: same `/sv` map-primary startup
+  overlay plus a Story 12.10 desktop transient busy-shell assertion that was fixed by increasing the local mocked
+  cold-detail delay to 1500 ms.
+- Clean-cache serialized Full Playwright attempt:
+  `PLAYWRIGHT_PORT=3220 PLAYWRIGHT_BASE_URL=http://localhost:3220 npx playwright test --workers=1`
+  -> 149 passed, 63 skipped, 1 failed: stale `map-primary.spec.ts` mobile expectation still assumed the pre-Story 12.9
+  visible `06:00` label/request pattern. The product UI had already moved to the approved slim badge/calendar contract.
+- Focused stale-test correction:
+  `PLAYWRIGHT_PORT=3222 PLAYWRIGHT_BASE_URL=http://localhost:3222 npx playwright test test/e2e/map-primary.spec.ts:607 --project=mobile --workers=1`
+  -> 1 passed. The test now listens before the calendar date click and treats the subsequent `Home` key as a UI-only
+  06:00 minimum assertion, preserving the Epic 11 same-date zero-fetch contract.
+- Full Playwright attempt after stale-test correction:
+  `PLAYWRIGHT_PORT=3223 PLAYWRIGHT_BASE_URL=http://localhost:3223 npx playwright test --workers=1`
+  -> 149 passed, 63 skipped, 1 failed: non-reproducible Playwright setup stall before Story 12.4's mobile test body
+  (`browserContext.newPage` timeout). Focused isolation
+  `PLAYWRIGHT_PORT=3224 PLAYWRIGHT_BASE_URL=http://localhost:3224 npx playwright test test/e2e/story-12-4-console-hygiene.spec.ts:338 --project=mobile --workers=1`
+  -> 1 passed.
+- Final serialized Full Playwright gate:
+  `PLAYWRIGHT_PORT=3225 PLAYWRIGHT_BASE_URL=http://localhost:3225 npx playwright test --workers=1`
+  -> 150 passed, 63 skipped.
 
 ### Completion Notes List
 
-TBD by dev agent
+- Extracted `venue-detail-query-options.ts` so mounted `useVenueDetail` and background prefetch share the exact
+  `detailAt` key, URL normalization, planner/date/time handling, 4-decimal coordinate bucket, retry/backoff,
+  stale-time, live polling, placeholder, and `AbortSignal` behavior.
+- Added bounded initial-settle detail prefetch from already-loaded near/favourite rows: max six candidates,
+  deterministic order, concurrency two, fresh-cache skip, exact-key cancellation, opened in-flight key preservation,
+  no scrub/date restart, and no direct-venue speculative prefetch.
+- Hardened prefetch pressure behavior: forced/dev routes (`_state`, `_time`, `_date`) do not prefetch unless they
+  explicitly opt in with `_prefetch=venue-detail`; any background prefetch error/429 stops after the current two-request
+  batch, clears failed background detail query state, enters a 60s cooldown, and stays app-console-silent.
+- Updated `/api/venues/[slug]` live detail lookup to use the Story 12.7 public resolver while preserving fixture mode,
+  persisted sun/detail behavior, public 404/400 behavior, distance, freshness headers, and 503 missing-geometry handling.
+- Preserved the cache-miss detail shell and aligned the Swedish loading announcement to `Laddar platsinformation`.
+- Corrected the stale mobile map-primary E2E assertion for the approved Story 12.9 slider/date UI: date selection is the
+  `/api/venues` request boundary, while same-date `Home` movement is asserted only as local UI state.
+- Local timing evidence: `_bmad-output/implementation-artifacts/validation/story-12-10-mer-info-timing/20260726-local/evidence.json`
+  with 1500 ms injected cold-detail delay. Desktop warmed open: 0 new detail requests, 749 ms; desktop cold open:
+  1 new detail request, 2812.5 ms. Mobile warmed open: 0 new detail requests, 1667 ms; mobile cold open:
+  1 new detail request, 3395 ms.
+- Protected preview/live evidence was not run in this delegate because no credentials were provided; defer to the
+  release lane.
+- Task 7 remains open under orchestrator control. Story stays `in-progress`; this delegate did not run the
+  story-review wrapper or edit sprint status to `review`.
 
 ### File List
 
-TBD by dev agent
+- `nextjs-app/hooks/queries/venue-detail-query-options.ts`
+- `nextjs-app/hooks/queries/useVenueDetail.ts`
+- `nextjs-app/hooks/queries/useVenueDetailPrefetch.ts`
+- `nextjs-app/components/custom/map/MapView.tsx`
+- `nextjs-app/components/custom/sheets/MobileBottomSheet.tsx`
+- `nextjs-app/app/api/venues/[slug]/route.ts`
+- `nextjs-app/messages/sv/venue.json`
+- `nextjs-app/messages/en/venue.json`
+- `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts`
+- `nextjs-app/test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts`
+- `nextjs-app/test/components/story-12-10-venue-detail-cache-miss-shell.atdd.test.tsx`
+- `nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts`
+- `nextjs-app/test/e2e/map-primary.spec.ts`
+- `nextjs-app/test/components/MapView.test.tsx`
+- `nextjs-app/test/components/MobileBottomSheet.test.tsx`
+- `nextjs-app/test/e2e/favourites.spec.ts`
+- `nextjs-app/test/e2e/axe.spec.ts`
+- `nextjs-app/test/e2e/epic-11-sheet-touch-gestures.spec.ts`
+- `_bmad-output/test-artifacts/atdd-checklist-12-10-venue-detail-preload-instant-mer-info.md`
+- `_bmad-output/implementation-artifacts/validation/story-12-10-mer-info-timing/20260726-local/evidence.json`

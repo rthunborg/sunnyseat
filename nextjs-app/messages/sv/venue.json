@@ -146,7 +146,7 @@
       "target": "Dela till {target}"
     },
     "photoPlaceholder": "Platshållarbild för platsen",
-    "loading": "Laddar platsdetaljer",
+    "loading": "Laddar platsinformation",
     "detailsUnavailable": "Detaljer saknas",
     "notFound": "Platsen hittades inte.",
     "loadFailed": "Kunde inte ladda platsen.",

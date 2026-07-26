@@ -13,7 +13,7 @@ function readRouteSource(): string {
 }
 
 describe('Story 12.10 ATDD - detail route public resolver convergence', () => {
-  test.skip('[P0] live detail route consumes resolvePublicVenueIdentifier instead of the stale slug-only store lookup', () => {
+  test('[P0] live detail route consumes resolvePublicVenueIdentifier instead of the stale slug-only store lookup', () => {
     const source = readRouteSource();
 
     expect(source).toMatch(/resolvePublicVenueIdentifier\(/);
@@ -22,7 +22,7 @@ describe('Story 12.10 ATDD - detail route public resolver convergence', () => {
     expect(source).not.toMatch(/includeHidden/);
   });
 
-  test.skip('[P0] public id and slug identifiers resolve through the same detail route behavior', async () => {
+  test('[P0] public id and slug identifiers resolve through the same detail route behavior', async () => {
     vi.stubEnv('SUNNYSEAT_VENUE_STORE', 'fixture');
 
     const bySlug = await GET(routeRequest('test-venue-sunny'), {
@@ -38,7 +38,7 @@ describe('Story 12.10 ATDD - detail route public resolver convergence', () => {
     expect(await byId.json()).toMatchObject({ venue: { slug: 'test-venue-sunny' } });
   });
 
-  test.skip('[P0] unknown, blank, malformed, hidden, and ambiguous live identifiers keep indistinguishable public errors', async () => {
+  test('[P0] unknown, blank, malformed, hidden, and ambiguous live identifiers keep indistinguishable public errors', async () => {
     const unknown = await GET(routeRequest('missing-venue'), {
       params: Promise.resolve({ slug: 'missing-venue' }),
     });

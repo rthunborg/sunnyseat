@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
 import {
-  getVenueBySlug,
+  resolvePublicVenueIdentifier,
   storedVenueDetail,
   toVenueData,
   type StoredVenueDetail,
@@ -69,15 +69,15 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     decodedSlug = decodeURIComponent(slug);
   } catch {
     return NextResponse.json(
-      { detail: 'Invalid venue slug', status: 400 },
+      { detail: 'Invalid venue slug' },
       { status: 400 },
     );
   }
-  const stored = await getVenueBySlug(decodedSlug);
+  const stored = await resolvePublicVenueIdentifier(decodedSlug);
 
   if (!stored) {
     return NextResponse.json(
-      { detail: `Venue not found: ${decodedSlug}`, status: 404 },
+      { detail: 'Venue not found' },
       { status: 404 },
     );
   }

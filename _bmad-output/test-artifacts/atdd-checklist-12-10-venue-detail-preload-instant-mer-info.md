@@ -26,28 +26,28 @@ inputDocuments:
 
 # ATDD Checklist: Story 12.10 Venue Detail Preload - Instant "Mer info"
 
-## TDD Red Phase
+## Green Execution
 
-Red-phase scaffolds generated. All executable scenarios are intentionally skipped with `test.skip()` until the implementation agent activates the current task.
+Red-phase scaffolds were activated during implementation. The Story 12.10 local ATDD suite now runs as executable green coverage.
 
-| Level | File | Skipped scenarios | Acceptance criteria |
+| Level | File | Active scenarios | Acceptance criteria |
 | --- | --- | ---: | --- |
-| Unit | `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts` | 5 | AC1, AC2, AC3, AC4, AC6 |
+| Unit | `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts` | 9 | AC1, AC2, AC3, AC4, AC6 |
 | Unit/API | `nextjs-app/test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts` | 3 | AC5 |
 | Component | `nextjs-app/test/components/story-12-10-venue-detail-cache-miss-shell.atdd.test.tsx` | 2 | AC6 |
-| E2E | `nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts` | 3 | AC1, AC2, AC3, AC6, AC7 |
+| E2E | `nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts` | 4 scenarios x desktop/mobile | AC1, AC2, AC3, AC6, AC7 |
 
-Total: 13 skipped RED scenarios.
+Total: 14 local ATDD scenarios plus 8 browser executions.
 
 ## Acceptance Criteria Coverage
 
 - AC1 Initial-settle-only candidate prefetch: unit scheduler source contract plus E2E top-six/order/concurrency request counter.
 - AC2 Exact mounted detail key: unit shared query-options contract and E2E detail URL planner/date/location assertions.
 - AC3 Epic 11 request-count invariants: unit first-run guard and E2E no detail restart on same-date scrub or planner-date change.
-- AC4 Interaction yield, cancellation, and error backoff: unit scheduler contract asserts idle/yield, exact-key cancellation seams, and the special case that opening **Mer info** preserves/promotes the opened in-flight detail key instead of aborting the observer's own query.
+- AC4 Interaction yield, cancellation, and error backoff: unit scheduler contract asserts idle/yield, exact-key cancellation seams, the special case that opening **Mer info** preserves/promotes the opened in-flight detail key instead of aborting the observer's own query, and the 429 regression where prefetch stops after the current concurrency pair, clears failed background query state, enters a 60s cooldown, and emits no app console error.
 - AC5 Public resolver convergence and hidden guard: API/source scaffold asserts `resolvePublicVenueIdentifier` adoption and public error behavior.
 - AC6 Instant open and cache-miss shell: component scaffold asserts exact Swedish loading copy, `aria-busy`, one status region, stable skeletons, and route chrome; unit and E2E scaffolds assert warmed/in-flight opens keep the opened exact key alive while other queued candidates can be canceled.
-- AC7 Measurement and release evidence: E2E scaffold creates deterministic request-count evidence for prefetched vs non-prefetched opens; actual before/after timing evidence remains a green/release-lane task.
+- AC7 Measurement and release evidence: E2E writes deterministic local fixture timing evidence to `_bmad-output/implementation-artifacts/validation/story-12-10-mer-info-timing/20260726-local/evidence.json`.
 
 ## Chosen Mode And Levels
 
@@ -61,18 +61,9 @@ Primary levels:
 - Component for cache-miss shell accessibility/copy.
 - E2E for request-count, instant-open, warmed/unwarmed distinction, and initial-pass concurrency evidence.
 
-## Activation Guidance
+## Activation Status
 
-Activate one cluster at a time by replacing `test.skip(` with `test(` only for the task currently being implemented.
-
-Recommended order:
-
-1. Activate the shared query-options scenarios, implement `hooks/queries/venue-detail-query-options.ts`, and refactor `useVenueDetail`.
-2. Activate scheduler unit scenarios, implement `hooks/queries/useVenueDetailPrefetch.ts`, and integrate it in `MapView.tsx`.
-3. Before wiring interaction cancellation, activate the in-flight **Mer info** preservation scenario and prove the opened exact key is not canceled after the observer mounts.
-4. Activate API resolver scenarios, update `app/api/venues/[slug]/route.ts` to use Story 12.7 public resolution.
-5. Activate component cache-miss scenarios only if the implementation touches the shell/copy; update locale files to `Laddar platsinformation`.
-6. Activate E2E scenarios after unit coverage is green, then record prefetched and non-prefetched **Mer info** timing in story completion notes.
+All Story 12.10 ATDD clusters are active. Story 12.10 E2E routes use `?_prefetch=venue-detail` to opt into background prefetch on forced-time test URLs; ordinary `_state`, `_time`, and `_date` validation routes keep the no-prefetch boundary so they do not consume the shared venue read limiter.
 
 ## Mock And Fixture Notes
 
@@ -82,12 +73,12 @@ Recommended order:
 
 ## Validation
 
-- Scaffold files are present.
-- All executable scenarios use `test.skip()`.
-- No `expect(true).toBe(true)` placeholder assertions were emitted.
-- No `page.waitForTimeout()` or `networkidle` waits were emitted.
-- Future helper imports that do not exist yet were intentionally avoided so skipped scaffolds can still typecheck.
+- Story 12.10 focused unit/API/component tests pass in full Vitest.
+- Story 12.10 E2E passes on desktop and mobile with local route fixtures and no live Met.no dependency.
+- Full Vitest passes with `VITEST_MAX_WORKERS=4`.
+- Full serialized Playwright passed after final triage: `PLAYWRIGHT_PORT=3225 PLAYWRIGHT_BASE_URL=http://localhost:3225 npx playwright test --workers=1` -> 150 passed, 63 skipped.
+- Earlier full-suite failures were resolved or non-reproducible: the Next/Turbopack `/sv` startup overlay cleared after removing generated `.next`; the Story 12.10 cold-shell race was fixed with a 1500 ms local fixture delay; the stale Story 12.9 map-primary E2E assertion was corrected; one Story 12.4 `browserContext.newPage` setup timeout passed in focused isolation and in the final full run.
 
 ## Next Workflow
 
-Proceed to `dev-story`. The implementation agent should activate the relevant skipped scenario before each implementation slice, confirm RED, implement, then keep the activated tests green.
+Keep Story 12.10 in `in-progress` until the orchestrator-controlled review transition finishes.

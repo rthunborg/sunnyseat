@@ -87,14 +87,14 @@ test.describe('axe-core a11y gate', () => {
     await targetCard.waitFor({ state: 'visible' });
     await expect(targetCard.getByTestId('venue-card-photo')).toHaveAttribute(
       'src',
-      /\/venue-media\/test-venue-sunny\/[^/]+\/card\.webp$/,
+      /^data:image\/webp;base64,/,
     );
     await targetCard.click();
     const quickInfo = page.locator('[data-testid="venue-quick-info"]:visible').first();
     await quickInfo.waitFor({ state: 'visible' });
     await expect(quickInfo.getByTestId('venue-quick-info-photo')).toHaveAttribute(
       'src',
-      /\/venue-media\/test-venue-sunny\/[^/]+\/card\.webp$/,
+      /^data:image\/webp;base64,/,
     );
     let violations = await runAxe(page);
     expect(violations, formatViolations(violations)).toEqual([]);
@@ -104,7 +104,7 @@ test.describe('axe-core a11y gate', () => {
     await detailPanel.waitFor({ state: 'visible' });
     await expect(detailPanel.getByTestId('venue-detail-hero-photo')).toHaveAttribute(
       'src',
-      /\/venue-media\/test-venue-sunny\/[^/]+\/hero\.webp$/,
+      /^data:image\/webp;base64,/,
     );
     violations = await runAxe(page);
     expect(violations, formatViolations(violations)).toEqual([]);

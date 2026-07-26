@@ -617,22 +617,28 @@ test.describe('map-primary', () => {
     await page.waitForSelector('[data-testid="venue-pin"]', { timeout: 15000 });
 
     const planner = await expectFreePlannerChrome(page);
-    await planner.getByRole('slider', { name: 'Välj tid' }).press('Home');
-    await expect(planner.getByText('06:00')).toBeVisible();
+    const slider = planner.getByRole('slider', { name: 'Välj tid' });
     const expectedDate = addDaysToDateKey(stockholmDateKey(), 1);
+    const selectedTime = await slider.getAttribute('aria-valuetext');
+    expect(selectedTime).toMatch(/^\d{2}:\d{2}$/);
+
     const plannedResponse = page.waitForResponse((response) => {
       const url = new URL(response.url());
       return url.pathname.endsWith('/api/venues') &&
         url.searchParams.get('date') === expectedDate &&
-        url.searchParams.get('time') === '06:00';
+        url.searchParams.get('time') === selectedTime;
     });
     await planner.getByRole('button', { name: 'Öppna kalender' }).click();
     await page.getByRole('button', { name: swedishSelectDateLabel(expectedDate) }).click();
-
     const response = await plannedResponse;
     expect(response.ok()).toBe(true);
     const params = new URL(response.url()).searchParams;
-    expect(params.get('time')).toMatch(/^\d{2}:\d{2}$/);
+    expect(params.get('time')).toBe(selectedTime);
+
+    await expect(slider).toHaveAttribute('aria-valuemin', '360');
+    await slider.press('Home');
+    await expect(slider).toHaveValue('360');
+    await expect(planner.getByTestId('time-slider-value-badge')).toHaveText('06:00');
   });
 
   test('mobile: forced venue panel expands and collapses without covering bottom nav', async ({
