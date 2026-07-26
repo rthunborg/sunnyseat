@@ -6,140 +6,129 @@ stepsCompleted:
   - step-04-analyze-gaps
   - step-05-gate-decision
 lastStep: step-05-gate-decision
-lastSaved: '2026-07-19'
-refreshedAt: '2026-07-19T14:46:26+02:00'
+lastSaved: '2026-07-26'
+refreshedAt: '2026-07-26T21:01:02+02:00'
 advisoryVerdict: PASS
 workflowType: testarch-trace
 scope: story-only
-story: 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number
+story: 12-10-venue-detail-preload-instant-mer-info
 advisory: true
+allowGate: false
 coverageBasis: acceptance_criteria
 oracleResolutionMode: formal_requirements
 oracleConfidence: high
 oracleSources:
-  - _bmad-output/implementation-artifacts/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md
-  - _bmad-output/test-artifacts/atdd-checklist-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md
-  - _bmad-output/test-artifacts/test-design/test-design-epic-12.md
+  - _bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md
+  - _bmad-output/test-artifacts/atdd-checklist-12-10-venue-detail-preload-instant-mer-info.md
+  - _bmad-output/qa/epic-12-test-design-2026-07-12.md
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/planning-artifacts/ux-design-specification.md
-  - _bmad-output/planning-artifacts/prd.md
   - project-context.md
 externalPointerStatus: not_used
-traceReportPath: _bmad-output/test-artifacts/traceability/traceability-report-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md
-tempCoverageMatrixPath: 'C:/tmp/tea-trace-coverage-matrix-2026-07-18T23-32-25-884Z.json'
+traceReportPath: _bmad-output/test-artifacts/traceability/traceability-report-12-10-venue-detail-preload-instant-mer-info.md
+traceSummaryPath: _bmad-output/test-artifacts/traceability/e2e-trace-summary-12-10-venue-detail-preload-instant-mer-info.json
+tempCoverageMatrixPath: 'C:/Users/Rasmus/sunnyseat/_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-12-10-2026-07-26T21-01-02+02-00.json'
 ---
 
-# Traceability Matrix - Story 12.6
+# Traceability Matrix - Story 12.10
 
-This is the BMAD trace workflow progress file for the Story 12.6 advisory pass.
+This is the BMAD trace workflow progress file for the Story 12.10 advisory pass.
 
 ## Coverage Oracle
 
-The formal Story 12.6 acceptance criteria are the primary oracle. They are augmented by the completed ATDD checklist, Epic 12 test design risks R-006/R-019/R-011/R-023, architecture decision E12-AD-08, the UX accessibility/motion contracts, and the Story 12.3 persisted-series prerequisite. Confidence is high because these sources agree on the strict public-sun predicate, server/client parity, two-state presentation, accessible naming, zero-fetch day-series use, and mandatory visual rebaseline.
+The formal Story 12.10 acceptance criteria are the primary oracle. They are augmented by the mandatory superseded-text controls, Epic 12 architecture decision `E12-AD-09`, the UX `VenueDetailPreload` section, and Epic 12 QA risks R-016, R-005, R-003, and R-018. Confidence is high because these sources agree on the same implementation contract: initial-settle-only prefetch, already-returned candidates only, max six candidates, concurrency two, exact mounted detail keys, cancellation/backoff, no scrub/date restart, Story 12.7 public resolver convergence, and a stable cache-miss shell.
 
-No external requirements pointer is needed. The visual/rebaseline requirement remains part of the formal oracle and must not be inferred from functional automation.
+No external requirements pointer was needed. This is advisory and story-only; no enforced release gate or `gate-decision.json` is emitted from this trace.
 
 ## Test Inventory
 
-### Primary Story 12.6 Evidence
+### Primary Story 12.10 Evidence
 
-| Level | Files | Active cases |
-|---|---:|---:|
-| Unit / service / static contract | 4 | 15 |
-| API / route contract | 3 | 11 |
-| Component | 2 | 13 |
-| E2E | 2 | 5 runtime cases |
-| **Total** | **11** | **44** |
+| Level | File | Active cases |
+|---|---|---:|
+| Unit / scheduler and query contract | `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts` | 10 |
+| API / detail route resolver | `nextjs-app/test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts` | 3 |
+| Component / cache-miss shell | `nextjs-app/test/components/story-12-10-venue-detail-cache-miss-shell.atdd.test.tsx` | 2 |
+| E2E / request-count and timing | `nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts` | 4 scenario identities, 8 browser executions |
+| **Total** | **4 files** | **19 direct test identities plus 8 browser executions** |
 
-Primary Vitest files: `public-sun.atdd.test.ts`, `story-12-6-weather-gate-state.atdd.test.ts`, `story-12-6-public-sun-ordering.atdd.test.ts`, `VenuePin.public-sun.atdd.test.tsx`, `story-12-6-i18n-a11y-ci.atdd.test.ts`, `story-12-6-contract-defects.automation.test.ts`, `story-12-6-honesty.automation.test.tsx`, `venues-route-peak-truncation.test.ts`, and `venues-route.cloud-gate.atdd.test.ts`.
-
-Primary browser files: `story-12-6-public-sun-pins.atdd.spec.ts` contributes four runtime cases across mobile and desktop; `story-12-6/axe-mobile.spec.ts` contributes one executed `a11y-mobile` case. No primary suite contains `skip`, `fixme`, `todo`, or `only` markers.
+No active `test.skip`, `test.todo`, `test.fixme`, `test.only`, `describe.skip`, or `describe.only` markers were found in the direct Story 12.10 suites. No hard waits were found in the direct traced files.
 
 ### Supporting Regression Evidence
 
-Twelve supporting Vitest files expose 119 active cases in their complete files. The directly relevant cases cover `VenuePin`, marker reconciliation/ARIA/reduced motion, list ranking, cards, QuickInfo, Story 12.3 persisted route/outcome/weather snapshots, day-series derivation/query keys, and standing CI wiring. Four additional runtime Playwright cases in `story-12-3-persisted-geometry-request-count.atdd.spec.ts` cover same-date scrub=0 and date-change=1 on mobile and desktop.
+- `nextjs-app/test/components/MapView.test.tsx:1242`, `:1265`, and `:1286` cover the post-review fixes for map-pin cancellation, QuickInfo-dismiss cancellation, and visible-distance-order handoff into prefetch.
+- Story 12.7 resolver suites cover the full hidden/unknown/unsafe/collision public-identity matrix that Story 12.10 consumes through `/api/venues/[slug]`.
+- Epic 11 / Story 12.3 request-count E2E suites remain supporting standing evidence for same-date scrub and date-change request-count behavior.
+- Security review recorded PASS with 0 findings; primary adversarial review found 2 High and 1 Medium, all fixed and post-fix verified PASS.
 
 ## Coverage Heuristics
 
-- **Endpoint coverage:** `/api/venues` public DTO normalization, instant ordering, day-peak top-50 truncation, malformed/contradictory gate values, and persisted route behavior have direct API tests. Detail window/peak serialization is covered by persisted-outcome/detail regression tests.
-- **Auth/authz:** no authentication flow is introduced by Story 12.6. Story 12.7 retains the public visibility boundary; no client component imports a server data module.
-- **Error/edge coverage:** exact 50, 40 Partial, 51, gated high exposure, unknown high exposure, malformed/missing gate data, malformed weather, expired/missing snapshots, reverse-order peak ties, grey cutoff ties, and contradictory `CloudObscured + not_gated` are covered.
-- **UI journey coverage:** deterministic mobile and desktop map journeys cover 40/50/51/gated/unknown pins and selection stability. The executed mobile axe journey is non-vacuous. The separate visual lane is now covered by the human-approved ten-reference rebaseline and canonical manual visual gate.
-- **UI state coverage:** two pin states, percentage/no-percentage content, exact localized accessible outcomes, unknown-weather qualification, selected shape, in-place refresh, reduced/unresolved motion, card verdicts, and QuickInfo verdicts are automated. Approved mobile/desktop composition is recorded in the candidate evidence, promoted references, rebaseline log, and review-gate artifact.
+- **Endpoint coverage:** `/api/venues/[slug]` has direct API-route tests for shared resolver adoption, id/slug behavior, malformed input, and generic public 404/400 bodies.
+- **Auth/authz:** not applicable to Story 12.10. The public detail route is anonymous, and the story adds no authenticated role path or editor/admin operation.
+- **Error/edge coverage:** 429/backoff/cooldown, malformed slug, unknown route miss, direct deep-link no speculative prefetch, fresh-cache skip, exact-key cancellation, and no console-error prefetch path are covered.
+- **UI journey coverage:** desktop and mobile E2E cover bounded prefetch, no scrub/date restart, direct deep link, warmed Mer info open, and cold cache-miss shell.
+- **UI state coverage:** component and E2E tests cover `aria-busy`, one visible polite status, Swedish loading copy, stable skeletons, route chrome, warmed loaded content, and unwarmed busy shell.
+- **Live/provider coverage:** local deterministic fixtures forbid live Met.no. Protected preview/live timing is release-lane evidence and is not a local coverage defect.
 
 ## Requirement-to-Test Matrix
 
-The five acceptance criteria are traced separately from eight key design, honesty, parity, accessibility, and prerequisite contracts. `FULL` means the requirement has direct evidence at the level implied by its oracle; `PARTIAL` means some required evidence is absent even when adjacent functional behavior is automated.
-
 | ID | Oracle item | Priority | Coverage | Test levels | Stable evidence IDs | Heuristic result |
 |---|---|---:|---|---|---|---|
-| AC1 | Amber iff exposure is strictly `> 50` and not gated; exact 50/low Partial/gated states and card wording use the same boundary | P0 | FULL | Unit, component, E2E | T-U01, T-C01, T-C03, T-E01 | Boundary and alternate-state coverage present; mobile and desktop journey present |
-| AC2 | Server and client ordering share the same total comparator and never promote a grey venue into the sunny band | P0 | FULL | Unit/static, API, component | T-U02, T-U04, T-A01, T-A02, S-C01 | Endpoint and visible-list coverage present; stable tie-breaks and top-50 behavior covered |
-| AC3 | Shaded, NoSun, and CloudObscured share one grey pin while CloudObscured remains diagnostic and gated high exposure never appears amber | P0 | FULL | Unit, API, component, E2E | T-U01, T-U03, T-A03, T-C01, T-E01 | Diagnostic preservation, contradiction fail-closed, and public presentation covered |
-| AC4 | Grey uses a cloud icon and no number; amber uses sun icon plus exposure; exact localized accessible names are percent-free for grey | P0 | FULL | Component, static/i18n, E2E | T-C01, T-C02, T-U05, T-E01, T-E03 | Color-independent icon signal, exact names, 44px target, and non-vacuous mobile axe coverage present |
-| AC5 | Rebaseline mobile/desktop sunny/not-sunny references, update `REBASELINE-LOG.md`, and pass screenshot comparison | P1 | FULL | Component, E2E, human visual review, canonical manual gate | T-C01, T-E01, V-01, V-02, V-03 | Ten approved candidates were promoted and hash-verified, the same-operation log entry is present, and all 12 story-extracted mapped validations exited 0 under explicit manual authorization |
-| K1 | Gate state is explicit tri-state; unknown retains geometric potential; malformed/missing/contradictory producer data fails closed without false certainty | P0 | FULL | Unit, API, component | T-U01, T-U03, T-U06, T-A03, T-C04 | Positive, alternate, and malformed/error paths present; no auth path is applicable |
-| K2 | Instant comparator, peak extraction, window extraction, top-50 truncation, ties, endpoints, and unknown qualification stay in parity | P0 | FULL | Unit, API | T-U02, T-A01, T-A02 | Endpoint coverage present; reverse-order ties, exact-50 cutoff, all-grey cutoff, and peak-vs-instant order covered |
-| K3 | Card and QuickInfo distinguish not-sunny from unknown-weather sunny potential without showing a percentage for grey states | P0 | FULL | Component | T-C03, T-C04, S-C02 | Low, exact-50, gated, and unknown-weather states covered with localized assertions |
-| K4 | Selection keeps semantic shape; grey-to-amber refresh is in place with no entrance flash; reduced/unresolved motion is instant; touch target is 44px | P1 | FULL | Component, E2E | T-C01, T-E01, T-E02 | Selected and refresh states covered at component and browser levels; motion alternates covered |
-| K5 | Accessibility mobile CI is executable and non-vacuous, with a pin-bearing scenario and the expected CI invocation | P1 | FULL | Static/CI, E2E | T-U05, T-E03, S-U03 | Runtime assertion prevents a vacuous axe pass; CI wiring is statically asserted |
-| K6 | Story 12.3 persisted geometry remains the source; read-time weather re-gates without live geometry/provider work or the legacy 61-step path | P0 | FULL | Unit/API, E2E regression | S-A01, S-A02, S-E01 | Local route/source and persisted-outcome evidence is complete; upstream protected-production cold-p95 evidence remains an external Story 12.3 residual |
-| K7 | Same-date scrub emits zero `/api/venues` requests; a date change emits exactly one list request and no provider burst | P0 | FULL | E2E | S-E01 | Executed on mobile and desktop; explicit request counting covers both sides of the invariant |
-| K8 | Required static gates and full regression suites remain green without live weather providers | P1 | FULL | Typecheck, lint, Vitest, Playwright | G-01 | Recorded final evidence: typecheck/lint green, 1,758 Vitest passed with 15 skipped, and 110 Playwright passed with 53 skipped; two cases passed on retry |
+| AC1 | Initial-settle-only candidate prefetch uses already-settled visible list/favourite rows, max six unique candidates, concurrency two, visible order, and no extra discovery request | P0 | FULL | Unit, E2E, component support | T-U03, T-U10, T-E01, S-C03 | Budget, order, favourites-first/fallback, concurrency, and no extra list request covered |
+| AC2 | Prefetch and mounted `useVenueDetail` share the exact `queryKeys.venues.detailAt(slug, { date, time, lat, lng })` contract with date/time normalization and 4-decimal buckets | P0 | FULL | Unit, E2E | T-U01, T-U02, T-E01 | Endpoint URL and query key are tested; no slug-only/ad-hoc key evidence found |
+| AC3 | Epic 11 request-count invariants are preserved: same-date scrub starts zero venue/detail requests and planner-date change does not restart detail prefetch | P0 | FULL | Unit, E2E, supporting E2E | T-U07, T-E02, S-E01 | Direct Story 12.10 request counting includes detail requests; standing Epic 11 evidence remains supporting |
+| AC4 | Prefetch yields/cancels on interaction, consumes exact AbortSignal-backed detail queries, preserves the opened in-flight key, and backs off silently on failures | P0 | FULL | Unit, component support | T-U03, T-U04, T-U06, T-U08, S-C01, S-C02 | Cancellation, opened-key preservation, exact query cancellation, 429 cooldown, and silent error path covered |
+| AC5 | `/api/venues/[slug]` converges on Story 12.7 public resolver and hidden/unknown/unsafe/ambiguous identifiers do not leak existence | P0 | FULL | API, supporting unit/API | T-A01, T-A02, T-A03, S-R01 | Story 12.10 proves detail-route adoption and response shape; Story 12.7 resolver matrix supplies hidden/unsafe/collision depth |
+| AC6 | Prefetched Mer info opens from cache with no new detail request; cache-miss opens the existing identity shell with `aria-busy`, one Swedish loading announcement, stable skeletons, usable chrome, and inline retry path preserved | P0 | FULL | Component, E2E, unit | T-C01, T-C02, T-E04, T-U05, T-U08 | Warmed open request delta is zero; unwarmed open request delta is one and busy shell appears immediately |
+| AC7 | Measurement and release evidence records local prefetched/non-prefetched Mer info timing while deterministic CI stays provider-isolated | P1 | FULL | E2E evidence, story record | T-E04, G-01 | Local timing evidence recorded for desktop and mobile; protected preview/live timing correctly deferred to release lane |
+| K1 | Superseded Epic text is enforced: no post-scrub/date restart option, no 10 km expansion, no server cache-warming scope creep, mandatory supersession documented | P1 | FULL | Story/static/unit/E2E | T-U03, T-U07, T-E02, G-02 | Story has mandatory section; tests/source assertions reject 10 km/radius expansion and prove no restart |
+| K2 | Forced dev routes and direct venue deep links avoid accidental speculative prefetch unless explicitly opted in | P1 | FULL | Unit/static, E2E | T-U09, T-E03 | `_prefetch=venue-detail` opt-in is asserted; direct deep links only fetch the requested slug |
+| K3 | Review-fix regressions remain closed: map-pin and QuickInfo interactions cancel pending work, displayed list order feeds prefetch, and 400/404 route bodies retain status | P1 | FULL | Component, API, gates | S-C01, S-C02, S-C03, T-A03, G-01 | All primary review findings were fixed and post-fix verified; focused/full gates are recorded green |
 
-### Stable Evidence Catalog
+## Stable Evidence Catalog
 
 | Evidence ID | Test identity (`title`; `file:line`) | Level | Status flags |
 |---|---|---|---|
-| T-U01 | `[P0]` public-sun predicate vectors plus confidence/status invariant; `nextjs-app/test/unit/utils/public-sun.atdd.test.ts:41` | Unit | active, direct, parameterized (6 cases) |
-| T-U02 | total comparator, longest qualifying window, and qualifying peak tests; `nextjs-app/test/unit/utils/public-sun.atdd.test.ts:75` | Unit | active, direct (3 cases) |
-| T-U03 | `[P0] emits not_gated, gated, and unknown without mutating geometric exposure`; `nextjs-app/test/unit/services/story-12-6-weather-gate-state.atdd.test.ts:5` | Unit/service | active, direct |
-| T-U04 | shared comparator import, client/server safety, and explicit tri-state DTO tests; `nextjs-app/test/unit/api/story-12-6-public-sun-ordering.atdd.test.ts:8` | Unit/static | active, direct (3 cases) |
-| T-U05 | exact Swedish/English outcome keys and active a11y-mobile CI contract; `nextjs-app/test/unit/story-12-6-i18n-a11y-ci.atdd.test.ts:10` | Unit/static | active, direct (2 cases) |
-| T-U06 | reverse-order peak tie plus malformed weather/DTO fail-closed tests; `nextjs-app/test/unit/story-12-6-contract-defects.automation.test.ts:29` | Unit | active, direct (3 cases) |
-| T-A01 | peak-based top-50 truncation and final instant-order response tests; `nextjs-app/test/unit/api/venues-route-peak-truncation.test.ts:170` | API/route | active, direct (4 cases) |
-| T-A02 | CloudObscured preservation, contradictory-producer rejection, and grey ordering tests; `nextjs-app/test/unit/api/venues-route.cloud-gate.atdd.test.ts:48` | API/route | active, direct (4 cases) |
-| T-A03 | Public tri-state DTO contract in route/list consumers; `nextjs-app/test/unit/api/story-12-6-public-sun-ordering.atdd.test.ts:29` and `nextjs-app/test/unit/api/venues-route.cloud-gate.atdd.test.ts:57` | API/route | active, direct |
-| T-C01 | canonical grey/amber vectors, selected shape, no-flash refresh, and reduced/unresolved motion; `nextjs-app/test/components/VenuePin.public-sun.atdd.test.tsx:66` | Component | active, direct, parameterized (9 cases) |
-| T-C02 | localized pin names exercised through the two pin presentations; `nextjs-app/test/components/VenuePin.public-sun.atdd.test.tsx:66` and `nextjs-app/test/unit/story-12-6-i18n-a11y-ci.atdd.test.ts:10` | Component/static | active, direct |
-| T-C03 | percentage-free low/exact-50/gated cards and unknown-weather card qualifier; `nextjs-app/test/components/story-12-6-honesty.automation.test.tsx:110` | Component | active, direct (2 cases) |
-| T-C04 | percentage-free low/exact-50 QuickInfo and unknown-weather qualifier; `nextjs-app/test/components/story-12-6-honesty.automation.test.tsx:161` | Component | active, direct (2 cases) |
-| T-E01 | `[P0] renders the 40/50/51/gated/unknown matrix honestly on mobile and desktop`; `nextjs-app/test/e2e/story-12-6-public-sun-pins.atdd.spec.ts:97` | E2E | active, direct, 2 runtime cases |
-| T-E02 | `[P0] selection preserves the same amber semantic shape and marker root`; `nextjs-app/test/e2e/story-12-6-public-sun-pins.atdd.spec.ts:125` | E2E | active, direct, 2 runtime cases |
-| T-E03 | `[P1] pin-bearing a11y-mobile coverage is executable and non-vacuous`; `nextjs-app/test/e2e/story-12-6/axe-mobile.spec.ts:52` | E2E/accessibility | active, direct, 1 runtime case |
-| S-C01 | visible-list rank and stable tie regressions; `nextjs-app/test/components/VenueList.rank.test.tsx:29` | Component | active, supporting |
-| S-C02 | existing card/QuickInfo diagnostic and reduced-motion regressions; `nextjs-app/test/components/VenueCard.test.tsx:132` and `nextjs-app/test/components/VenueQuickInfo.test.tsx:517` | Component | active, supporting |
-| S-U03 | standing CI command and suite wiring assertions; `nextjs-app/test/unit/epic-11-standing-ci.test.ts:57` | Unit/static | active, supporting |
-| S-A01 | persisted-route source invariants, canonical caster, exact-hash failure, and read-time weather re-gating; `nextjs-app/test/unit/api/venues-route.persisted-series.test.ts:47` | API/route | active, supporting |
-| S-A02 | persisted outcome hash/weather/nearest evidence and geometry-only degradation; `nextjs-app/test/unit/services/persisted-sun-outcome.test.ts:77` | Unit/service | active, supporting |
-| S-E01 | same-date zero-request and date-change exactly-one request contracts; `nextjs-app/test/e2e/story-12-3-persisted-geometry-request-count.atdd.spec.ts:111` | E2E | active, supporting, 4 runtime cases |
-| G-01 | Story 12.6 final verification record in the story file | Static/full-suite gate | recorded pass; not rerun by this advisory trace |
-| V-01 | Human-reviewed candidate inventory and DOM-state assertions; `_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/evidence.md:1` | Visual/manual | accepted, 10 affected pairs |
-| V-02 | Rasmus-approved rebaseline with candidate/reference SHA-256 set; `nextjs-app/docs/design/references/REBASELINE-LOG.md:46` | Visual/reference | accepted, 10/10 promoted hashes verified |
-| V-03 | Canonical story-review gate; `_bmad-output/implementation-artifacts/validation/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number-review-20260719-143731.log:171` | Visual/manual + static/full-suite | passed, 12 mapped validations exited 0 under explicit manual authorization |
-
-## Coverage Logic Validation
-
-- All nine P0 items are `FULL`. The strict 50 boundary, gate alternates, malformed inputs, comparator ties, endpoint behavior, card/QuickInfo honesty, and Story 12.3 request counts are not happy-path-only.
-- All four P1 items are `FULL`. AC5 is supported by independently recorded human approval, candidate/reference hash verification, and the canonical manual-mode visual gate rather than inferred from functional automation.
-- API-impacting items have endpoint-level route tests. Authentication is not introduced or changed, so denied-path auth coverage is not applicable to this story.
-- Repeated unit/component/E2E evidence is intentional: predicate algebra is proved at unit level, presentation is proved at component level, and the critical mobile/desktop map journey is proved at E2E level.
-- No synthetic UI journey is marked `FULL` on static evidence alone. The map matrix, selection behavior, and non-vacuous accessibility path each have executed browser cases in the recorded verification evidence.
+| T-U01 | `[P0] prefetch and mounted detail share one client-safe query-options builder`; `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts:41` | Unit/static | active, direct |
+| T-U02 | `[P0] shared detail params normalize date, time, and 4-decimal coordinate buckets identically to the mounted key`; `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts:57` | Unit | active, direct |
+| T-U03 | `[P0] initial-settle scheduler limits candidates to six and concurrent prefetches to two`; `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts:84` | Unit/static | active, direct |
+| T-U04 | `[P0] a 429 prefetch stops after the current concurrency pair, enters cooldown, and stays console-silent`; `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts:98` | Unit | active, direct |
+| T-U05 | `[P1] scheduler skips fresh exact detail keys without changing the remaining candidate order`; `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts:128` | Unit | active, direct |
+| T-U06 | `[P0] prefetch error cooldown lasts for the venue read rate-limit window`; `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts:172` | Unit | active, direct |
+| T-U07 | `[P0] scheduler captures the first settled planner/location key and never restarts on scrub or planner-date changes`; `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts:181` | Unit/static | active, direct |
+| T-U08 | `[P0] opening Mer info preserves the opened in-flight detail key while cancelling other queued candidates`; `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts:191` | Unit/static | active, direct |
+| T-U09 | `[P0] forced dev routes require an explicit venue-detail prefetch opt-in`; `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts:202` | Unit/static | active, direct |
+| T-U10 | `[P0] favourites mode selects loaded favourite rows first, then nearest already-loaded list fallback`; `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts:210` | Unit | active, direct |
+| T-A01 | `[P0] live detail route consumes resolvePublicVenueIdentifier instead of the stale slug-only store lookup`; `nextjs-app/test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts:16` | API/static | active, direct |
+| T-A02 | `[P0] public id and slug identifiers resolve through the same detail route behavior`; `nextjs-app/test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts:25` | API | active, direct |
+| T-A03 | `[P0] unknown, blank, malformed, hidden, and ambiguous live identifiers keep indistinguishable public errors`; `nextjs-app/test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts:41` | API | active, direct plus source assertion |
+| T-C01 | `[P1] Swedish venue-detail loading announcement is exactly "Laddar platsinformation"`; `nextjs-app/test/components/story-12-10-venue-detail-cache-miss-shell.atdd.test.tsx:60` | Component/static | active, direct |
+| T-C02 | `[P1] cache-miss shell keeps identity, aria-busy, one visible polite status, stable skeletons, and retry-capable chrome`; `nextjs-app/test/components/story-12-10-venue-detail-cache-miss-shell.atdd.test.tsx:72` | Component | active, direct |
+| T-E01 | `[P0] initial settled surface prefetches at most six detail keys with concurrency two and exact planner params`; `nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts:312` | E2E | active, direct, desktop+mobile |
+| T-E02 | `[P0] same-date scrub and planner-date change do not restart detail prefetch after the first pass settles`; `nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts:345` | E2E | active, direct, desktop+mobile |
+| T-E03 | `[P0] direct venue deep links do not launch speculative detail prefetch`; `nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts:372` | E2E | active, direct, desktop+mobile |
+| T-E04 | `[P0] Mer info for a warmed candidate opens from cache and an unwarmed candidate uses the existing busy shell`; `nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts:390` | E2E | active, direct, desktop+mobile, writes timing evidence |
+| S-C01 | Map pin selection cancels delayed detail prefetch; `nextjs-app/test/components/MapView.test.tsx:1242` | Component | active, supporting review-fix |
+| S-C02 | QuickInfo dismiss cancels delayed detail prefetch; `nextjs-app/test/components/MapView.test.tsx:1265` | Component | active, supporting review-fix |
+| S-C03 | Displayed distance order is passed into initial detail prefetch; `nextjs-app/test/components/MapView.test.tsx:1286` | Component | active, supporting review-fix |
+| S-R01 | Story 12.7 public resolver hidden/unsafe/collision matrix; `nextjs-app/test/unit/services/story-12-7-public-venue-resolver.atdd.test.ts:137`, `nextjs-app/test/unit/services/story-12-7-public-venue-resolver.automation.test.ts:131`, `:153`, `:186` | Unit/API | active, supporting |
+| S-E01 | Standing Epic 11/Story 12.3 request-count evidence; `nextjs-app/test/e2e/epic-11-scrub-zero-fetch.spec.ts:199`, `nextjs-app/test/e2e/story-12-3-persisted-geometry-request-count.atdd.spec.ts:154` | E2E | active, supporting |
+| G-01 | Story file final gate/debug-log record for typecheck, lint, full Vitest, Story 12.10 Playwright, full serialized Playwright, primary review fixes, and security review | Static/full-suite gate | recorded pass |
+| G-02 | Mandatory `Superseded Epic Text` section in the Story 12.10 story file | Static/story | present, direct |
 
 ## Phase 1 Gap Analysis
 
-**Execution mode:** configuration requested `auto`; runtime agent-team capability was available, so heuristic extraction was delegated read-only and merged deterministically with the local matrix.
+**Execution mode:** sequential in this delegate. The surrounding instructions forbade new sub-agent launches unless explicitly requested; no parallel worker was needed to complete the advisory trace.
 
 ### Statistics
 
 | Metric | Result |
 |---|---:|
-| Total traced items | 13 |
-| Fully covered | 13 (100%) |
-| Partially covered | 0 (0%) |
+| Total traced items | 10 |
+| Fully covered | 10 (100%) |
+| Partially covered | 0 |
 | Uncovered | 0 |
-| Covered or partial | 13 (100%) |
-| P0 full coverage | 9/9 (100%) |
+| P0 full coverage | 6/6 (100%) |
 | P1 full coverage | 4/4 (100%) |
 | P2 full coverage | 0/0 (100% by convention) |
 | P3 full coverage | 0/0 (100% by convention) |
@@ -148,27 +137,27 @@ The five acceptance criteria are traced separately from eight key design, honest
 
 - **Critical P0 gaps:** none.
 - **Uncovered P1/P2/P3 gaps:** none.
-- **Partial items:** none. AC5 closed through Rasmus's explicit approval, 10/10 candidate-to-reference SHA-256 verification, the same-operation `REBASELINE-LOG.md` entry, and the canonical manual-mode visual gate.
-- **Unit-only items:** none. Every UI-critical contract has component or browser coverage; route-impacting contracts have endpoint tests.
+- **Partial items:** none.
+- **Unit-only items:** none requiring escalation. Query/scheduler internals are correctly unit-level; every user-visible Mer info/cache-miss/request-count path has component or E2E evidence.
 
 ### Heuristic Gap Counts
 
-| Heuristic | Count |
-|---|---:|
+| Heuristic | Count / status |
+|---|---|
 | Endpoints without tests | 0 |
-| Missing auth negative paths | 0 (not applicable) |
+| Missing auth negative paths | not applicable |
 | Happy-path-only criteria | 0 |
 | UI journeys without E2E | 0 |
-| Functional UI states missing coverage | 0 |
+| UI states missing coverage | 0 |
 
 ### Recommendations
 
-1. **LOW / retention:** preserve the approved candidate evidence, promoted reference hashes, rebaseline audit entry, and canonical review-gate log together for release traceability.
-2. **LOW / regression:** retain the Story 12.3 request-count journey and Story 12.6 boundary/a11y suites in standing CI.
-3. **LOW / re-evaluation:** recapture only when a trigger documented in the Story 12.6 rebaseline entry changes these map-visible surfaces.
+1. **LOW / release evidence:** collect protected preview/live Mer info timing in the release lane if credentials are available; do not treat missing protected credentials as a Story 12.10 CI defect.
+2. **LOW / regression:** retain the Story 12.10 request-count E2E, the MapView review-fix regressions, and the Story 12.7 resolver matrix in standing suites.
+3. **LOW / operations:** keep the `_prefetch=venue-detail` forced-route opt-in so visual/reference and unrelated request-count suites do not consume the shared local venue-read limiter.
 
-The complete Phase 1 JSON is saved at `C:/tmp/tea-trace-coverage-matrix-2026-07-18T23-32-25-884Z.json` for the advisory gate decision.
+The complete Phase 1 JSON is saved at `C:/Users/Rasmus/sunnyseat/_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-12-10-2026-07-26T21-01-02+02-00.json`.
 
 ## Advisory Decision
 
-**PASS** (advisory; no separate enforced trace gate was opened). Thirteen items were traced: 13 `FULL`, 0 `PARTIAL`, and 0 `NONE`. P0 coverage is 9/9 and P1 coverage is 4/4. The story is in `review`; Task 7 and AC5 are closed by the approved rebaseline and canonical manual visual gate.
+**PASS** (advisory; no separate enforced trace gate was opened). Ten items were traced: 10 `FULL`, 0 `PARTIAL`, and 0 `NONE`. P0 coverage is 6/6 and P1 coverage is 4/4. The story remains `in-progress`; Task 7 remains under orchestrator control and this trace did not run the story-review wrapper or edit sprint status.

@@ -1,0 +1,165 @@
+{
+  "schema_version": "0.1.0",
+  "snapshot_at": "2026-07-26T21:01:02+02:00",
+  "repo": "sunnyseat",
+  "collection_mode": "advisory_story_scope",
+  "collection_status": "COLLECTED",
+  "inventory_basis": "acceptance_criteria",
+  "gate_basis": "none",
+  "source_sha": "",
+  "target": {
+    "type": "story",
+    "id": "12-10-venue-detail-preload-instant-mer-info",
+    "label": "Story 12.10: Venue Detail Preload - Instant Mer info"
+  },
+  "decision_mode": "advisory",
+  "evaluator": "Rasmus",
+  "confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md",
+      "_bmad-output/test-artifacts/atdd-checklist-12-10-venue-detail-preload-instant-mer-info.md",
+      "_bmad-output/qa/epic-12-test-design-2026-07-12.md",
+      "_bmad-output/planning-artifacts/architecture.md",
+      "_bmad-output/planning-artifacts/ux-design-specification.md",
+      "project-context.md"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "advisory_status": "PASS",
+  "coverage": {
+    "inventory": {
+      "covered": 10,
+      "fully_covered": 10,
+      "partially_covered": 0,
+      "uncovered": 0,
+      "total": 10,
+      "pct": 100,
+      "full_pct": 100,
+      "covered_or_partial_pct": 100
+    },
+    "priority_breakdown": {
+      "P0": {
+        "total": 6,
+        "covered": 6,
+        "fully_covered": 6,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "pct": 100,
+        "full_pct": 100
+      },
+      "P1": {
+        "total": 4,
+        "covered": 4,
+        "fully_covered": 4,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "pct": 100,
+        "full_pct": 100
+      },
+      "P2": {
+        "total": 0,
+        "covered": 0,
+        "fully_covered": 0,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "pct": 100,
+        "full_pct": 100
+      },
+      "P3": {
+        "total": 0,
+        "covered": 0,
+        "fully_covered": 0,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "pct": 100,
+        "full_pct": 100
+      }
+    },
+    "by_level": {
+      "e2e": { "tests": 4, "runtime_runs": 8, "criteria_covered": 6 },
+      "api": { "tests": 3, "criteria_covered": 3 },
+      "component": { "tests": 5, "criteria_covered": 4 },
+      "unit": { "tests": 11, "criteria_covered": 8 },
+      "other": { "tests": 1, "criteria_covered": 3 }
+    }
+  },
+  "tests": {
+    "files": 8,
+    "cases": 24,
+    "direct_story_files": 4,
+    "direct_story_test_identities": 19,
+    "direct_story_vitest_cases": 15,
+    "direct_story_e2e_scenario_identities": 4,
+    "direct_story_e2e_browser_executions": 8,
+    "supporting_files_reviewed": 4,
+    "supporting_cases_reviewed": 5,
+    "skipped_cases": 0,
+    "fixme_cases": 0,
+    "pending_cases": 0
+  },
+  "risk_summary": {
+    "critical_open": 0,
+    "high_open": 0,
+    "medium_open": 0,
+    "low_open": 0,
+    "partial_p0": 0,
+    "partial_p1": 0
+  },
+  "heuristics": {
+    "endpoint_gaps": 0,
+    "auth_negative_path_status": "not_applicable",
+    "error_path_status": "present",
+    "ui_journey_status": "present",
+    "ui_state_status": "present"
+  },
+  "uncovered_requirements": [],
+  "material_gaps": [],
+  "timing_evidence": {
+    "source": "_bmad-output/implementation-artifacts/validation/story-12-10-mer-info-timing/20260726-local/evidence.json",
+    "mode": "local Playwright fixtures",
+    "injected_detail_delay_ms": 1500,
+    "desktop": {
+      "prefetched_detail_request_delta": 0,
+      "prefetched_click_to_loaded_ms": 564.3,
+      "non_prefetched_detail_request_delta": 1,
+      "non_prefetched_click_to_loaded_ms": 2522.9
+    },
+    "mobile": {
+      "prefetched_detail_request_delta": 0,
+      "prefetched_click_to_loaded_ms": 1897,
+      "non_prefetched_detail_request_delta": 1,
+      "non_prefetched_click_to_loaded_ms": 3565
+    },
+    "protected_preview_live_status": "deferred_to_release_lane_no_credentials"
+  },
+  "blockers": [],
+  "recommendations": [
+    {
+      "priority": "LOW",
+      "action": "Collect protected preview/live Mer info timing in the release lane if credentials are available; do not treat missing protected credentials as a Story 12.10 CI defect.",
+      "requirements": ["AC7"]
+    },
+    {
+      "priority": "LOW",
+      "action": "Retain Story 12.10 request-count E2E, MapView review-fix regressions, and Story 12.7 resolver matrix in standing suites.",
+      "requirements": ["AC1", "AC3", "AC4", "AC5", "AC6", "K3"]
+    },
+    {
+      "priority": "LOW",
+      "action": "Keep the forced-route _prefetch=venue-detail opt-in to avoid unrelated visual/request-count suites consuming the local venue-read limiter.",
+      "requirements": ["K2"]
+    }
+  ],
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-report-12-10-venue-detail-preload-instant-mer-info.md",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": "_bmad-output/implementation-artifacts/validation/story-12-10-mer-info-timing/20260726-local/evidence.json",
+    "trace_summary_path": "_bmad-output/test-artifacts/traceability/e2e-trace-summary-12-10-venue-detail-preload-instant-mer-info.json",
+    "phase1_matrix_path": "_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-12-10-2026-07-26T21-01-02+02-00.json"
+  }
+}

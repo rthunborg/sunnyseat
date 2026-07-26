@@ -1,0 +1,219 @@
+{
+  "phase": "PHASE_1_COMPLETE",
+  "generated_at": "2026-07-26T21:01:02+02:00",
+  "trace_target": {
+    "type": "story",
+    "id": "12-10-venue-detail-preload-instant-mer-info",
+    "label": "Story 12.10: Venue Detail Preload - Instant Mer info"
+  },
+  "collection_mode": "advisory_story_scope",
+  "collection_status": "COLLECTED",
+  "allow_gate": false,
+  "coverage_basis": "acceptance_criteria",
+  "summary_confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md",
+      "_bmad-output/test-artifacts/atdd-checklist-12-10-venue-detail-preload-instant-mer-info.md",
+      "_bmad-output/qa/epic-12-test-design-2026-07-12.md",
+      "_bmad-output/planning-artifacts/architecture.md",
+      "_bmad-output/planning-artifacts/ux-design-specification.md",
+      "project-context.md"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "requirements": [
+    {
+      "id": "AC1",
+      "description": "Initial-settle-only candidate prefetch uses already-settled visible list/favourite rows, max six unique candidates, concurrency two, visible order, and no extra discovery request.",
+      "priority": "P0",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "T-U03", "title": "Initial-settle scheduler limits candidates to six and concurrent prefetches to two", "file": "nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts", "line": 84, "level": "unit", "status": "active" },
+        { "id": "T-U10", "title": "Favourites mode selects loaded favourite rows first, then nearest already-loaded list fallback", "file": "nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts", "line": 210, "level": "unit", "status": "active" },
+        { "id": "T-E01", "title": "Initial settled surface prefetches at most six detail keys with concurrency two and exact planner params", "file": "nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts", "line": 312, "level": "e2e", "status": "active" },
+        { "id": "S-C03", "title": "Displayed distance order is passed into initial detail prefetch", "file": "nextjs-app/test/components/MapView.test.tsx", "line": 1286, "level": "component", "status": "active" }
+      ]
+    },
+    {
+      "id": "AC2",
+      "description": "Prefetch and mounted useVenueDetail share the exact detailAt query contract with date/time normalization and 4-decimal coordinate buckets.",
+      "priority": "P0",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "T-U01", "title": "Prefetch and mounted detail share one client-safe query-options builder", "file": "nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts", "line": 41, "level": "unit", "status": "active" },
+        { "id": "T-U02", "title": "Shared detail params normalize date, time, and 4-decimal coordinate buckets identically to the mounted key", "file": "nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts", "line": 57, "level": "unit", "status": "active" },
+        { "id": "T-E01", "title": "Initial settled surface prefetches at most six detail keys with concurrency two and exact planner params", "file": "nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts", "line": 312, "level": "e2e", "status": "active" }
+      ]
+    },
+    {
+      "id": "AC3",
+      "description": "Epic 11 request-count invariants are preserved after the initial prefetch pass.",
+      "priority": "P0",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "T-U07", "title": "Scheduler captures the first settled planner/location key and never restarts on scrub or planner-date changes", "file": "nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts", "line": 181, "level": "unit", "status": "active" },
+        { "id": "T-E02", "title": "Same-date scrub and planner-date change do not restart detail prefetch after the first pass settles", "file": "nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts", "line": 345, "level": "e2e", "status": "active" },
+        { "id": "S-E01", "title": "Standing Epic 11 and Story 12.3 request-count evidence", "file": "nextjs-app/test/e2e/epic-11-scrub-zero-fetch.spec.ts", "line": 199, "level": "e2e", "status": "active" }
+      ]
+    },
+    {
+      "id": "AC4",
+      "description": "Prefetch yields/cancels on interaction, preserves the opened in-flight key, and backs off silently on failures.",
+      "priority": "P0",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "T-U04", "title": "A 429 prefetch stops after the current concurrency pair, enters cooldown, and stays console-silent", "file": "nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts", "line": 98, "level": "unit", "status": "active" },
+        { "id": "T-U06", "title": "Prefetch error cooldown lasts for the venue read rate-limit window", "file": "nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts", "line": 172, "level": "unit", "status": "active" },
+        { "id": "T-U08", "title": "Opening Mer info preserves the opened in-flight detail key while cancelling other queued candidates", "file": "nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts", "line": 191, "level": "unit", "status": "active" },
+        { "id": "S-C01", "title": "Map pin selection cancels delayed detail prefetch", "file": "nextjs-app/test/components/MapView.test.tsx", "line": 1242, "level": "component", "status": "active" },
+        { "id": "S-C02", "title": "QuickInfo dismiss cancels delayed detail prefetch", "file": "nextjs-app/test/components/MapView.test.tsx", "line": 1265, "level": "component", "status": "active" }
+      ]
+    },
+    {
+      "id": "AC5",
+      "description": "Detail route uses the Story 12.7 public resolver and hidden/unknown/unsafe/ambiguous identifiers do not leak existence.",
+      "priority": "P0",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "T-A01", "title": "Live detail route consumes resolvePublicVenueIdentifier instead of the stale slug-only store lookup", "file": "nextjs-app/test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts", "line": 16, "level": "api", "status": "active" },
+        { "id": "T-A02", "title": "Public id and slug identifiers resolve through the same detail route behavior", "file": "nextjs-app/test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts", "line": 25, "level": "api", "status": "active" },
+        { "id": "T-A03", "title": "Unknown, blank, malformed, hidden, and ambiguous live identifiers keep indistinguishable public errors", "file": "nextjs-app/test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts", "line": 41, "level": "api", "status": "active" },
+        { "id": "S-R01", "title": "Story 12.7 public resolver hidden/unsafe/collision matrix", "file": "nextjs-app/test/unit/services/story-12-7-public-venue-resolver.atdd.test.ts", "line": 137, "level": "unit", "status": "active" }
+      ]
+    },
+    {
+      "id": "AC6",
+      "description": "Warm Mer info opens from cache with no new detail request, while cold miss opens the stable busy shell and then fetches detail.",
+      "priority": "P0",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "T-C01", "title": "Swedish venue-detail loading announcement is exactly Laddar platsinformation", "file": "nextjs-app/test/components/story-12-10-venue-detail-cache-miss-shell.atdd.test.tsx", "line": 60, "level": "component", "status": "active" },
+        { "id": "T-C02", "title": "Cache-miss shell keeps identity, aria-busy, one visible polite status, stable skeletons, and retry-capable chrome", "file": "nextjs-app/test/components/story-12-10-venue-detail-cache-miss-shell.atdd.test.tsx", "line": 72, "level": "component", "status": "active" },
+        { "id": "T-E04", "title": "Mer info for a warmed candidate opens from cache and an unwarmed candidate uses the existing busy shell", "file": "nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts", "line": 390, "level": "e2e", "status": "active" },
+        { "id": "T-U05", "title": "Scheduler skips fresh exact detail keys without changing remaining candidate order", "file": "nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts", "line": 128, "level": "unit", "status": "active" }
+      ]
+    },
+    {
+      "id": "AC7",
+      "description": "Local Mer info timing evidence is recorded and deterministic CI stays provider-isolated; protected preview/live evidence is release-lane evidence.",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "T-E04", "title": "Mer info for a warmed candidate opens from cache and an unwarmed candidate uses the existing busy shell", "file": "nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts", "line": 390, "level": "e2e", "status": "active" },
+        { "id": "G-01", "title": "Story file final gate/debug-log record", "file": "_bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md", "line": 292, "level": "other", "status": "active" }
+      ]
+    },
+    {
+      "id": "K1",
+      "description": "Superseded Epic text is enforced: no post-scrub/date restart option, no 10 km expansion, no server cache-warming scope creep.",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "T-U03", "title": "Initial-settle scheduler limits candidates to six and concurrent prefetches to two", "file": "nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts", "line": 84, "level": "unit", "status": "active" },
+        { "id": "T-U07", "title": "Scheduler captures the first settled planner/location key and never restarts on scrub or planner-date changes", "file": "nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts", "line": 181, "level": "unit", "status": "active" },
+        { "id": "T-E02", "title": "Same-date scrub and planner-date change do not restart detail prefetch after the first pass settles", "file": "nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts", "line": 345, "level": "e2e", "status": "active" },
+        { "id": "G-02", "title": "Mandatory Superseded Epic Text section", "file": "_bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md", "line": 26, "level": "other", "status": "active" }
+      ]
+    },
+    {
+      "id": "K2",
+      "description": "Forced dev routes and direct venue deep links avoid accidental speculative prefetch unless explicitly opted in.",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "T-U09", "title": "Forced dev routes require an explicit venue-detail prefetch opt-in", "file": "nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts", "line": 202, "level": "unit", "status": "active" },
+        { "id": "T-E03", "title": "Direct venue deep links do not launch speculative detail prefetch", "file": "nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts", "line": 372, "level": "e2e", "status": "active" }
+      ]
+    },
+    {
+      "id": "K3",
+      "description": "Review-fix regressions remain closed: interaction cancellation, displayed ordering, and route status bodies.",
+      "priority": "P1",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "S-C01", "title": "Map pin selection cancels delayed detail prefetch", "file": "nextjs-app/test/components/MapView.test.tsx", "line": 1242, "level": "component", "status": "active" },
+        { "id": "S-C02", "title": "QuickInfo dismiss cancels delayed detail prefetch", "file": "nextjs-app/test/components/MapView.test.tsx", "line": 1265, "level": "component", "status": "active" },
+        { "id": "S-C03", "title": "Displayed distance order is passed into initial detail prefetch", "file": "nextjs-app/test/components/MapView.test.tsx", "line": 1286, "level": "component", "status": "active" },
+        { "id": "T-A03", "title": "Unknown, blank, malformed, hidden, and ambiguous live identifiers keep indistinguishable public errors", "file": "nextjs-app/test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts", "line": 41, "level": "api", "status": "active" },
+        { "id": "G-01", "title": "Story file final gate/debug-log record", "file": "_bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md", "line": 292, "level": "other", "status": "active" }
+      ]
+    }
+  ],
+  "coverage_statistics": {
+    "total_requirements": 10,
+    "fully_covered": 10,
+    "partially_covered": 0,
+    "uncovered": 0,
+    "overall_coverage_percentage": 100,
+    "priority_breakdown": {
+      "P0": { "total": 6, "covered": 6, "percentage": 100 },
+      "P1": { "total": 4, "covered": 4, "percentage": 100 },
+      "P2": { "total": 0, "covered": 0, "percentage": 100 },
+      "P3": { "total": 0, "covered": 0, "percentage": 100 }
+    }
+  },
+  "gap_analysis": {
+    "critical_gaps": [],
+    "high_gaps": [],
+    "medium_gaps": [],
+    "low_gaps": [],
+    "partial_coverage_items": [],
+    "unit_only_items": []
+  },
+  "coverage_heuristics": {
+    "endpoint_gaps": [],
+    "auth_negative_path_gaps": [],
+    "happy_path_only_gaps": [],
+    "ui_journey_gaps": [],
+    "ui_state_gaps": [],
+    "counts": {
+      "endpoints_without_tests": 0,
+      "auth_missing_negative_paths": 0,
+      "happy_path_only_criteria": 0,
+      "ui_journeys_without_e2e": 0,
+      "ui_states_missing_coverage": 0
+    }
+  },
+  "test_inventory": {
+    "summary": {
+      "files": 8,
+      "cases": 24,
+      "direct_story_files": 4,
+      "direct_story_test_identities": 19,
+      "direct_story_browser_executions": 8,
+      "skipped_cases": 0,
+      "fixme_cases": 0,
+      "pending_cases": 0,
+      "by_level": {
+        "e2e": { "tests": 4, "runtime_runs": 8, "criteria_covered": 6 },
+        "api": { "tests": 3, "criteria_covered": 3 },
+        "component": { "tests": 5, "criteria_covered": 4 },
+        "unit": { "tests": 11, "criteria_covered": 8 },
+        "other": { "tests": 1, "criteria_covered": 3 }
+      }
+    },
+    "tests": []
+  },
+  "blockers": [],
+  "recommendations": [
+    {
+      "priority": "LOW",
+      "action": "Collect protected preview/live Mer info timing in the release lane if credentials are available; do not treat missing protected credentials as a Story 12.10 CI defect.",
+      "requirements": ["AC7"]
+    },
+    {
+      "priority": "LOW",
+      "action": "Retain Story 12.10 request-count E2E, MapView review-fix regressions, and Story 12.7 resolver matrix in standing suites.",
+      "requirements": ["AC1", "AC3", "AC4", "AC5", "AC6", "K3"]
+    },
+    {
+      "priority": "LOW",
+      "action": "Keep the forced-route _prefetch=venue-detail opt-in to avoid unrelated visual/request-count suites consuming the local venue-read limiter.",
+      "requirements": ["K2"]
+    }
+  ]
+}

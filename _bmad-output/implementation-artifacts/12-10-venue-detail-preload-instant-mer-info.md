@@ -404,6 +404,14 @@ Explicitly out of scope:
 - Component tests: `nextjs-app/test/components/story-12-10-venue-detail-cache-miss-shell.atdd.test.tsx`
 - E2E tests: `nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts`
 
+### Traceability Artifacts
+
+- Progress matrix: `_bmad-output/test-artifacts/traceability-matrix.md`
+- Story report: `_bmad-output/test-artifacts/traceability/traceability-report-12-10-venue-detail-preload-instant-mer-info.md`
+- Machine summary: `_bmad-output/test-artifacts/traceability/e2e-trace-summary-12-10-venue-detail-preload-instant-mer-info.json`
+- Phase 1 matrix JSON: `_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-12-10-2026-07-26T21-01-02+02-00.json`
+- Advisory verdict: PASS. Ten traced items are `FULL`, with 6/6 P0 and 4/4 P1 full coverage. This advisory trace did not emit an enforced release gate or modify sprint status.
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -518,6 +526,7 @@ Codex GPT-5 auto-bmad delegate
   with 1500 ms injected cold-detail delay. Desktop warmed open: 0 new detail requests, 749 ms; desktop cold open:
   1 new detail request, 2812.5 ms. Mobile warmed open: 0 new detail requests, 1667 ms; mobile cold open:
   1 new detail request, 3395 ms.
+- Advisory traceability completed for Story 12.10: 10/10 traced items `FULL`, P0 6/6, P1 4/4, no endpoint/auth/error/UI-state gaps, and machine summary written without `gate_status` because this trace is advisory-only.
 - Protected preview/live evidence was not run in this delegate because no credentials were provided; defer to the
   release lane.
 - Task 7 remains open under orchestrator control. Story stays `in-progress`; this delegate did not run the
@@ -545,4 +554,8 @@ Codex GPT-5 auto-bmad delegate
 - `nextjs-app/test/e2e/axe.spec.ts`
 - `nextjs-app/test/e2e/epic-11-sheet-touch-gestures.spec.ts`
 - `_bmad-output/test-artifacts/atdd-checklist-12-10-venue-detail-preload-instant-mer-info.md`
+- `_bmad-output/test-artifacts/traceability-matrix.md`
+- `_bmad-output/test-artifacts/traceability/traceability-report-12-10-venue-detail-preload-instant-mer-info.md`
+- `_bmad-output/test-artifacts/traceability/e2e-trace-summary-12-10-venue-detail-preload-instant-mer-info.json`
+- `_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-12-10-2026-07-26T21-01-02+02-00.json`
 - `_bmad-output/implementation-artifacts/validation/story-12-10-mer-info-timing/20260726-local/evidence.json`
