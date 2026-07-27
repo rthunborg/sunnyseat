@@ -155,6 +155,7 @@
     "openingHours": "Opening hours",
     "address": "Address",
     "sunBadge": "{percent}% sun",
+    "notSunnyVerdict": "Not sunny at the selected time",
     "obscuredHeadline": "Sun behind clouds",
     "obscuredPosition": "Sun position · sunny here when it clears",
     "sky": {

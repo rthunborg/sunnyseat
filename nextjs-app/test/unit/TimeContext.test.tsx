@@ -184,7 +184,7 @@ describe('TimeContext', () => {
     expect(result.current.plannerQuery).toEqual({ date: '2026-07-25', time: '14:00' });
   });
 
-  it('clamps live clock values before and after planner hours into explicit planner queries', () => {
+  it('clamps live clock values before planner hours into an explicit planner query, but keeps after-hours live wall-clock', () => {
     const early = renderHook(() => useTimeContext(), {
       wrapper: makeWrapper(() => new Date('2026-05-20T01:30:00.000Z')),
     });
@@ -195,12 +195,38 @@ describe('TimeContext', () => {
     early.unmount();
 
     const late = renderHook(() => useTimeContext(), {
-      wrapper: makeWrapper(() => new Date('2026-05-20T21:45:00.000Z')),
+      // 19:45Z = 21:45 Stockholm. This is after the visible planner range, but
+      // it is still the user's live "now", not an explicit 21:00 planner pick.
+      wrapper: makeWrapper(() => new Date('2026-05-20T19:45:00.000Z')),
     });
-    expect(late.result.current.selectedTime).toBe('21:00');
-    expect(late.result.current.selectedMinutes).toBe(21 * 60);
-    expect(late.result.current.isLiveNow).toBe(false);
-    expect(late.result.current.plannerQuery).toEqual({ date: '2026-05-20', time: '21:00' });
+    expect(late.result.current.selectedTime).toBe('21:45');
+    expect(late.result.current.selectedMinutes).toBe(21 * 60 + 45);
+    expect(late.result.current.minMinutes).toBe(21 * 60);
+    expect(late.result.current.isLiveNow).toBe(true);
+    expect(late.result.current.plannerQuery).toBeUndefined();
+  });
+
+  it('keeps after-21 live-today selected time aligned with the clock tick', () => {
+    vi.useFakeTimers();
+    const clock = vi.fn()
+      .mockReturnValueOnce(new Date('2026-05-20T19:45:00.000Z'))
+      .mockReturnValueOnce(new Date('2026-05-20T19:46:00.000Z'));
+
+    const { result } = renderHook(() => useTimeContext(), {
+      wrapper: makeWrapper(clock),
+    });
+
+    expect(result.current.selectedTime).toBe('21:45');
+    expect(result.current.isLiveNow).toBe(true);
+
+    act(() => {
+      vi.advanceTimersByTime(60 * 1000);
+    });
+
+    expect(result.current.selectedTime).toBe('21:46');
+    expect(result.current.selectedMinutes).toBe(21 * 60 + 46);
+    expect(result.current.isLiveNow).toBe(true);
+    expect(result.current.plannerQuery).toBeUndefined();
   });
 
   it('future dates preserve selected time and expose future planner mode', () => {
@@ -249,8 +275,8 @@ describe('TimeContext', () => {
     });
 
     expect(result.current.selectedDate).toBe('2026-11-15');
-    expect(result.current.selectedTime).toBe('21:00');
-    expect(result.current.isLiveNow).toBe(false);
+    expect(result.current.selectedTime).toBe('21:30');
+    expect(result.current.isLiveNow).toBe(true);
     expect(result.current.plannerQuery).toBeUndefined();
   });
 

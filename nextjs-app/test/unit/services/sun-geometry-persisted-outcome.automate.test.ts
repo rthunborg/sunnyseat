@@ -184,6 +184,77 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
     });
   });
 
+  test('uses the true selected instant after planner end to return below-horizon NoSun/0 without mutating the persisted day series', async () => {
+    const venue = makeVenue();
+    const coverage: PersistedSunGeometryCoverage = {
+      venueId: venue.id,
+      stockholmDate: '2026-07-18',
+      geometryInputHash: GEOMETRY_HASH,
+      status: 'ready',
+      series: [
+        // 21:00 Stockholm is still visible on this summer date at the venue, so
+        // the persisted planner-edge geometry legitimately carries 25%.
+        { minutes: 21 * 60, sunExposurePercent: 25 },
+      ],
+    };
+
+    const outcome = await buildPersistedSunOutcome(
+      venue,
+      new Date('2026-07-18T20:30:00.000Z'), // 22:30 Stockholm: actual sun below horizon.
+      new Date('2026-07-18T20:30:00.000Z'),
+      {
+        repositories: {
+          sunGeometryRepository: makeGeometryRepository(coverage, []),
+          weatherSnapshotRepository: makeWeatherRepository(null, []),
+        },
+      },
+    );
+
+    expect(outcome.venue).toMatchObject({
+      currentSunStatus: 'NoSun',
+      weatherGateState: 'not_gated',
+      sunExposurePercent: 0,
+    });
+    expect(outcome.daySeries).toEqual([
+      expect.objectContaining({
+        minutes: 21 * 60,
+        currentSunStatus: 'Shaded',
+        sunExposurePercent: 25,
+      }),
+    ]);
+  });
+
+  test('preserves genuine low-angle daylight after 21:00 instead of zeroing the nearest persisted planner step', async () => {
+    const venue = makeVenue();
+    const coverage: PersistedSunGeometryCoverage = {
+      venueId: venue.id,
+      stockholmDate: '2026-07-18',
+      geometryInputHash: GEOMETRY_HASH,
+      status: 'ready',
+      series: [
+        { minutes: 21 * 60, sunExposurePercent: 25 },
+      ],
+    };
+
+    const outcome = await buildPersistedSunOutcome(
+      venue,
+      new Date('2026-07-18T19:30:00.000Z'), // 21:30 Stockholm: low, but still above horizon.
+      new Date('2026-07-18T19:30:00.000Z'),
+      {
+        repositories: {
+          sunGeometryRepository: makeGeometryRepository(coverage, []),
+          weatherSnapshotRepository: makeWeatherRepository(null, []),
+        },
+      },
+    );
+
+    expect(outcome.venue).toMatchObject({
+      currentSunStatus: 'Shaded',
+      sunExposurePercent: 25,
+    });
+    expect(outcome.venue.currentSunStatus).not.toBe('NoSun');
+  });
+
   test.each(['expired', 'missing'] as const)(
     '%s snapshots with retained slices keep public window and peak weather-qualified as unknown',
     async (status) => {

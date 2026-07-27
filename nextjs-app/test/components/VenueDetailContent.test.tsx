@@ -53,11 +53,12 @@ const labels = {
   route: 'Visa Rutt',
   routeLoading: 'Öppnar kartor',
   photoPlaceholder: 'Platshållarbild för platsen',
-  loading: 'Laddar platsdetaljer',
+  loading: 'Laddar platsinformation',
   detailsUnavailable: 'Detaljer saknas',
   openingHours: 'Öppettider',
   address: 'Adress',
   sunBadge: '{percent}% sol',
+  notSunnyVerdict: 'Inte soligt vid vald tid',
   obscuredHeadline: 'Sol bakom moln',
   sky: {
     label: 'Himmel nu',
@@ -222,6 +223,32 @@ describe('VenueDetailContent', () => {
     expect(screen.queryByText('95% SOL')).not.toBeInTheDocument();
   });
 
+  it.each([
+    ['NoSun', { currentSunStatus: 'NoSun' as const, sunExposurePercent: 25 }],
+    ['Shaded', { currentSunStatus: 'Shaded' as const, sunExposurePercent: 25 }],
+    ['low Partial', { currentSunStatus: 'Partial' as const, sunExposurePercent: 25 }],
+  ])(
+    'renders %s as a percentage-free grey cloud verdict in the hero',
+    (_label, overrides) => {
+      render(
+        <VenueDetailContent
+          fallbackVenue={{ ...LIST_VENUE, ...overrides }}
+          detail={{ ...DETAIL, ...overrides }}
+          currentTime="15:30"
+          labels={labels}
+          onRoute={() => undefined}
+        />,
+      );
+
+      const badge = screen.getByRole('img', { name: 'Inte soligt vid vald tid' });
+      expect(badge).toHaveClass('bg-pin-shaded', 'text-text-body');
+      expect(badge.querySelector('svg')).not.toBeNull();
+      expect(badge).not.toHaveTextContent(/\d+%/);
+      expect(screen.queryByLabelText('25% sol')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('venue-detail-obscured')).not.toBeInTheDocument();
+    },
+  );
+
   it('renders route estimate copy and a scoped loading label on the primary CTA', () => {
     const { rerender } = render(
       <VenueDetailContent
@@ -360,7 +387,7 @@ describe('VenueDetailContent', () => {
     expect(screen.getByRole('heading', { name: 'Kafé Magasinet' })).toBeInTheDocument();
     expect(screen.getByText('Innergård')).toBeInTheDocument();
     // The scoped loading status is announced and skeletons stand in for detail.
-    expect(screen.getByLabelText('Laddar platsdetaljer')).toBeInTheDocument();
+    expect(screen.getAllByRole('status', { name: 'Laddar platsinformation' })).toHaveLength(1);
     expect(screen.getAllByTestId('venue-detail-skeleton').length).toBeGreaterThan(1);
     // AC1 (load-bearing): the header badge must NOT flash a fabricated "22:00" —
     // no "ÖPPET · 22:00" while detail is unloaded, and a skeleton stands in.

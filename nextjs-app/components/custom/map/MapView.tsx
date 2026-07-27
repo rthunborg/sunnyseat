@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
 import { AnimatePresence, motion } from 'motion/react';
 import { LoaderCircle } from 'lucide-react';
@@ -32,7 +33,10 @@ import {
 import { TimeSliderPanel } from '@/components/custom/time/TimeSliderPanel';
 import { isVenueSunnyForList, sortVenuesForList, VenueList } from '@/components/custom/venue/VenueList';
 import { useVenueDetail } from '@/hooks/queries/useVenueDetail';
-import { useVenueDetailPrefetch } from '@/hooks/queries/useVenueDetailPrefetch';
+import {
+  prefetchSelectedVenueDetail,
+  useVenueDetailPrefetch,
+} from '@/hooks/queries/useVenueDetailPrefetch';
 import { isVenueNotFoundError } from '@/hooks/queries/venue-query-options';
 import { useFavouriteVenues } from '@/hooks/queries/useFavouriteVenues';
 import { useVenueSearch } from '@/hooks/queries/useVenueSearch';
@@ -161,6 +165,7 @@ export function MapView() {
   const plannerTime = useTimeContext();
   const favourites = useFavourites();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const forcedState = useForcedState();
@@ -211,14 +216,6 @@ export function MapView() {
       preserveSlug: preserveSlug ?? null,
     }));
   }, []);
-  const handleMapPinToggle = useCallback((venueId: string) => {
-    cancelVenueDetailPrefetchCandidates(null);
-    toggleVenue(venueId);
-  }, [cancelVenueDetailPrefetchCandidates, toggleVenue]);
-  const handleMapCanvasDeselect = useCallback(() => {
-    cancelVenueDetailPrefetchCandidates(null);
-    selectVenue(null);
-  }, [cancelVenueDetailPrefetchCandidates, selectVenue]);
   const measureMobilePlannerHeight = useCallback(() => {
     const nextHeight = measuredElementHeight(mobilePlannerPanelRef.current);
     if (nextHeight <= 0) return;
@@ -309,6 +306,18 @@ export function MapView() {
   const deferredPlanner = useDeferredValue(plannerArgs);
   const hasForcedPlannerSearchParam = searchParams.has('_date') || searchParams.has('_time');
   const detailPrefetchPlannerReady = !hasForcedPlannerSearchParam || Boolean(plannerTime.plannerQuery);
+  const venueDetailParams = useMemo(
+    () => ({
+      ...plannerTime.plannerQuery,
+      lat: geolocation.coords.lat,
+      lng: geolocation.coords.lng,
+    }),
+    [
+      geolocation.coords.lat,
+      geolocation.coords.lng,
+      plannerTime.plannerQuery,
+    ],
+  );
   const hasDevForcingSearchParam = searchParams.has('_state') || hasForcedPlannerSearchParam;
   const routeAllowsVenueDetailPrefetch =
     !hasDevForcingSearchParam || searchParams.get('_prefetch') === 'venue-detail';
@@ -544,11 +553,7 @@ export function MapView() {
   );
   const selectedPreviewDetailQuery = useVenueDetail(
     shouldRefreshSelectedPreview && detailPrefetchPlannerReady ? selectedPreviewSlug : null,
-    {
-      ...plannerTime.plannerQuery,
-      lat: geolocation.coords.lat,
-      lng: geolocation.coords.lng,
-    },
+    venueDetailParams,
   );
   const refreshedSelectedVenuePreview = useMemo(() => {
     const detailVenue = selectedPreviewDetailQuery.data?.venue;
@@ -648,11 +653,7 @@ export function MapView() {
   }, [selectedVenueId, venues]);
   const venueDetailQuery = useVenueDetail(
     canRequestVenueDetail && detailPrefetchPlannerReady ? venueSlugParam : null,
-    {
-      ...plannerTime.plannerQuery,
-      lat: geolocation.coords.lat,
-      lng: geolocation.coords.lng,
-    },
+    venueDetailParams,
   );
   const forcedVisualVenueDetail = useMemo(
     () => resolveForcedVisualVenueDetail(venueSlugParam, forcedState),
@@ -790,13 +791,14 @@ export function MapView() {
     ) {
       return;
     }
-    if (!Array.isArray(rawVenues) || rawVenues.length === 0) return;
+    if (!Array.isArray(venueDtosForMap) || venueDtosForMap.length === 0) return;
     const match = venueSlugParam
-      ? rawVenues.find((venue) => venueMatchesSlug(venue, venueSlugParam))
-      : rawVenues[0];
+      ? venueDtosForMap.find((venue) => venueMatchesSlug(venue, venueSlugParam))
+      : venueDtosForMap[0];
     if (!match) return;
+    if (selectedVenueId === match.id) return;
     selectVenue(match.id, match);
-  }, [forcedState, rawVenues, selectVenue, selectedVenuePreview, venueSlugParam]);
+  }, [forcedState, selectVenue, selectedVenueId, selectedVenuePreview, venueDtosForMap, venueSlugParam]);
 
   useLayoutEffect(() => {
     // Story 9.10 Task 3: guard against a selected venue whose coordinates are
@@ -871,6 +873,27 @@ export function MapView() {
     };
   }, [mapInstance, mobilePlannerHeightPx, mobileSheetMetrics.sheetHeightPx, selectedVenueDto]);
 
+  const prioritizeVenueDetailQuery = useCallback((venue: VenueDataDto) => {
+    const slug = venueDetailSlug(venue);
+    if (!slug) {
+      cancelVenueDetailPrefetchCandidates(null);
+      return;
+    }
+    cancelVenueDetailPrefetchCandidates(slug);
+    if (!coordsSettled || !detailPrefetchPlannerReady || !isOnline || showOfflineShell) {
+      return;
+    }
+    void prefetchSelectedVenueDetail(queryClient, slug, venueDetailParams);
+  }, [
+    cancelVenueDetailPrefetchCandidates,
+    coordsSettled,
+    detailPrefetchPlannerReady,
+    isOnline,
+    queryClient,
+    showOfflineShell,
+    venueDetailParams,
+  ]);
+
   const handleOpenDetails = () => {
     const slug = selectedVenueDto?.slug ?? selectedPinData?.slug;
     if (!slug) return;
@@ -884,14 +907,67 @@ export function MapView() {
     });
   };
 
-  const handleDismissDetails = () => {
+  const handleDismissDetails = useCallback(() => {
     cancelVenueDetailPrefetchCandidates(null);
     const query = queryWithout(searchParams, ['venue', '_state']);
     router.replace(Object.keys(query).length > 0 ? { pathname, query } : pathname);
-  };
+  }, [cancelVenueDetailPrefetchCandidates, pathname, router, searchParams]);
+
+  const handleMapPinToggle = useCallback((venueId: string) => {
+    const venue = venueDtosForMap.find((candidate) => candidate.id === venueId);
+    const detailIsUrlOwned = canRequestVenueDetail && Boolean(venueSlugParam);
+
+    if (detailIsUrlOwned) {
+      if (!venue) return;
+      const slug = venueDetailSlug(venue);
+      if (!slug) return;
+      prioritizeVenueDetailQuery(venue);
+      router.replace({
+        pathname,
+        query: {
+          ...queryWithout(searchParams, ['_state']),
+          venue: slug,
+        },
+      });
+      return;
+    }
+
+    if (!venue || selectedVenueId === venueId) {
+      cancelVenueDetailPrefetchCandidates(null);
+    } else {
+      prioritizeVenueDetailQuery(venue);
+    }
+    toggleVenue(venueId);
+  }, [
+    canRequestVenueDetail,
+    cancelVenueDetailPrefetchCandidates,
+    pathname,
+    prioritizeVenueDetailQuery,
+    router,
+    searchParams,
+    selectedVenueId,
+    toggleVenue,
+    venueDtosForMap,
+    venueSlugParam,
+  ]);
+
+  const handleMapCanvasDeselect = useCallback(() => {
+    if (canRequestVenueDetail && venueSlugParam) {
+      handleDismissDetails();
+      return;
+    }
+    cancelVenueDetailPrefetchCandidates(null);
+    selectVenue(null);
+  }, [
+    canRequestVenueDetail,
+    cancelVenueDetailPrefetchCandidates,
+    handleDismissDetails,
+    selectVenue,
+    venueSlugParam,
+  ]);
 
   const handleSelectVenueFromList = (venue: VenueDataDto) => {
-    cancelVenueDetailPrefetchCandidates(null);
+    prioritizeVenueDetailQuery(venue);
     selectVenue(venue.id, venue);
     if (mapInstance && hasValidVenueLocation(venue)) {
       mapInstance.easeTo({
@@ -978,9 +1054,7 @@ export function MapView() {
     listSettled: nearVenueSurfaceSettled,
     favouritesSettled: favouriteVenueSurfaceSettled,
     detailParams: {
-      ...plannerTime.plannerQuery,
-      lat: geolocation.coords.lat,
-      lng: geolocation.coords.lng,
+      ...venueDetailParams,
     },
     interactionToken: venueDetailPrefetchInteraction.token,
     preserveVenueSlug: venueDetailPrefetchInteraction.preserveSlug,
@@ -1535,6 +1609,14 @@ function venueMatchesSlug(
   return venue.slug === slug || venue.venueSlug === slug;
 }
 
+function venueDetailSlug(
+  venue: Pick<VenueDataDto, 'slug' | 'venueSlug'> | null | undefined,
+): string | null {
+  const slug = (venue?.slug || venue?.venueSlug || '').trim();
+  if (!slug || /[\u0000-\u001F\u007F-\u009F]/u.test(slug)) return null;
+  return slug;
+}
+
 function fallbackVenueFromSlug(slug: string): VenueDataDto {
   const name = slug
     .split('-')
@@ -1715,6 +1797,7 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     openingHours: t('detail.openingHours'),
     address: t('detail.address'),
     sunBadge: t('detail.sunBadge', { percent: '{percent}' }),
+    notSunnyVerdict: t('detail.notSunnyVerdict'),
     // Story 10.2 / 12.13: muted obscured hero headline + plain-language sky copy.
     // The obscured hero badge is deliberately percentage-free.
     obscuredHeadline: t('detail.obscuredHeadline'),

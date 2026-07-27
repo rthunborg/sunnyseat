@@ -155,6 +155,7 @@
     "openingHours": "Öppettider",
     "address": "Adress",
     "sunBadge": "{percent}% sol",
+    "notSunnyVerdict": "Inte soligt vid vald tid",
     "obscuredHeadline": "Sol bakom moln",
     "obscuredPosition": "Solläge · sol här när det klarnar",
     "sky": {

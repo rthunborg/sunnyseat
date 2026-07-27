@@ -96,6 +96,9 @@ const useFavouriteVenuesMock = vi.fn<(params?: FavouriteVenuesParams) => VenueQu
   dataUpdatedAt: 0,
 }));
 const useVenueDetailPrefetchMock = vi.fn();
+const prefetchSelectedVenueDetailMock = vi.fn<(...args: unknown[]) => Promise<void>>(
+  async () => undefined,
+);
 const useFavouritesMock = vi.fn<() => FavouritesShape>(() => ({
   favouriteIds: [],
   isHydrated: true,
@@ -197,6 +200,7 @@ vi.mock('@/hooks/queries/useFavouriteVenues', () => ({
 
 vi.mock('@/hooks/queries/useVenueDetailPrefetch', () => ({
   useVenueDetailPrefetch: (params: unknown) => useVenueDetailPrefetchMock(params),
+  prefetchSelectedVenueDetail: (...args: unknown[]) => prefetchSelectedVenueDetailMock(...args),
 }));
 
 vi.mock('@/hooks/useFavourites', () => ({
@@ -461,6 +465,7 @@ describe('<MapView />', () => {
       dataUpdatedAt: 0,
     });
     useVenueDetailPrefetchMock.mockClear();
+    prefetchSelectedVenueDetailMock.mockReset().mockResolvedValue(undefined);
     useFavouritesMock.mockReset().mockReturnValue({
       favouriteIds: [],
       isHydrated: true,
@@ -1239,7 +1244,7 @@ describe('<MapView />', () => {
       expect(top - 170 - 40).toBeGreaterThanOrEqual(214 + 16);
     });
 
-    it('cancels delayed detail prefetch when a map pin selects a venue', async () => {
+    it('prioritizes the exact selected detail query when a map pin selects a venue', async () => {
       useVenueSearchMock.mockReturnValue({
         data: makeVenueResponse([
           makeVenue({ id: 'venue-1', name: 'Bellora', slug: 'bellora' }),
@@ -1258,7 +1263,14 @@ describe('<MapView />', () => {
       await waitFor(() =>
         expect(lastVenueDetailPrefetchParams()?.interactionToken).toBeGreaterThan(0),
       );
-      expect(lastVenueDetailPrefetchParams()?.preserveVenueSlug).toBeNull();
+      expect(lastVenueDetailPrefetchParams()?.preserveVenueSlug).toBe('avenybaren');
+      await waitFor(() =>
+        expect(prefetchSelectedVenueDetailMock).toHaveBeenCalledWith(
+          expect.any(Object),
+          'avenybaren',
+          expect.objectContaining({ lat: 57.7089, lng: 11.9746 }),
+        ),
+      );
       expect(selectedVenueIdMock).toBe('venue-2');
     });
 
@@ -1281,6 +1293,37 @@ describe('<MapView />', () => {
       );
       expect(lastVenueDetailPrefetchParams()?.preserveVenueSlug).toBeNull();
       expect(selectedVenueIdMock).toBeNull();
+    });
+
+    it('prioritizes the exact selected detail query when a list row selects a venue', async () => {
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Bellora', slug: 'bellora' }),
+          makeVenue({ id: 'venue-2', name: 'Avenybaren', slug: 'avenybaren' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+      fireEvent.click(screen.getAllByRole('button', { name: /Välj Avenybaren/ })[0]);
+
+      await waitFor(() =>
+        expect(lastVenueDetailPrefetchParams()?.interactionToken).toBeGreaterThan(0),
+      );
+      expect(lastVenueDetailPrefetchParams()?.preserveVenueSlug).toBe('avenybaren');
+      await waitFor(() =>
+        expect(prefetchSelectedVenueDetailMock).toHaveBeenCalledWith(
+          expect.any(Object),
+          'avenybaren',
+          expect.objectContaining({ lat: 57.7089, lng: 11.9746 }),
+        ),
+      );
+      expect(selectVenueMock).toHaveBeenCalledWith(
+        'venue-2',
+        expect.objectContaining({ slug: 'avenybaren' }),
+      );
     });
 
     it('passes the exact displayed distance order into initial detail prefetch when distance is selected before settle', async () => {
@@ -1751,6 +1794,86 @@ describe('<MapView />', () => {
 
       expect(routerReplaceMock).toHaveBeenCalledWith('/');
       expect(selectVenueMock).not.toHaveBeenCalledWith(null);
+    });
+
+    it('switches an open detail to a clicked favourite/out-of-radius pin via URL replace before local selection', async () => {
+      pathnameMock = '/favoriter';
+      searchParamsMock = new URLSearchParams('venue=venue-a&_state=venue-detail&foo=bar');
+      const venueA = makeVenue({ id: 'venue-a', name: 'Aktiv plats', slug: 'venue-a' });
+      const favouriteVenue = makeVenue({ id: 'venue-b', name: 'Favoritplats', slug: 'venue-b' });
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([venueA]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+      useFavouriteVenuesMock.mockReturnValue({
+        data: makeVenueResponse([favouriteVenue]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+        refetch: vi.fn(),
+      });
+      useFavouritesMock.mockReturnValue({
+        favouriteIds: ['venue-b'],
+        isHydrated: true,
+        isFavourite: (id: string) => id === 'venue-b',
+        toggleFavourite: vi.fn(),
+        addFavourite: vi.fn(),
+        removeFavourite: vi.fn(),
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+      selectVenueMock.mockClear();
+      fireEvent.click(screen.getByTestId('pin-select-venue-b'));
+
+      expect(routerReplaceMock).toHaveBeenCalledWith({
+        pathname: '/favoriter',
+        query: {
+          foo: 'bar',
+          venue: 'venue-b',
+        },
+      });
+      expect(selectVenueMock).not.toHaveBeenCalledWith(
+        'venue-b',
+        expect.anything(),
+      );
+      await waitFor(() =>
+        expect(lastVenueDetailPrefetchParams()?.preserveVenueSlug).toBe('venue-b'),
+      );
+      await waitFor(() =>
+        expect(prefetchSelectedVenueDetailMock).toHaveBeenCalledWith(
+          expect.any(Object),
+          'venue-b',
+          expect.objectContaining({ lat: 57.7089, lng: 11.9746 }),
+        ),
+      );
+    });
+
+    it('dismisses an open detail from a bare canvas click without clearing the selected pin', async () => {
+      selectedVenueIdMock = 'venue-a';
+      selectedVenuePreviewMock = makeVenue({ id: 'venue-a', name: 'Aktiv plats', slug: 'venue-a' });
+      searchParamsMock = new URLSearchParams('venue=venue-a&_state=venue-detail&foo=bar');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([selectedVenuePreviewMock]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+      selectVenueMock.mockClear();
+      fireEvent.click(screen.getByTestId('map-canvas-deselect'));
+
+      expect(routerReplaceMock).toHaveBeenCalledWith({
+        pathname: '/',
+        query: { foo: 'bar' },
+      });
+      await waitFor(() =>
+        expect(lastVenueDetailPrefetchParams()?.preserveVenueSlug).toBeNull(),
+      );
+      expect(selectVenueMock).not.toHaveBeenCalledWith(null);
+      expect(selectedVenueIdMock).toBe('venue-a');
     });
 
     it('keeps the deep-linked venue-detail-obscured pin weather-gated without rewriting unrelated pins', () => {

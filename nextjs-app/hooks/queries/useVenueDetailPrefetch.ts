@@ -149,6 +149,23 @@ export function useVenueDetailPrefetch({
   ]);
 }
 
+export async function prefetchSelectedVenueDetail(
+  queryClient: QueryClient,
+  slug: string | null | undefined,
+  detailParams: VenueDetailParams,
+): Promise<void> {
+  const selectedSlug = safeVenueSlugFromValue(slug);
+  if (!selectedSlug) return;
+  try {
+    await queryClient.prefetchQuery(
+      venueDetailQueryOptions(selectedSlug, detailParams),
+    );
+  } catch {
+    // Selected prefetch is an optimization only. The mounted detail query owns
+    // user-facing retry/error UI if this speculative request fails.
+  }
+}
+
 export function selectVenueDetailPrefetchCandidates({
   listMode,
   listVenues,
@@ -345,7 +362,11 @@ function detailParamsFromQueryKey(queryKey: QueryKey): VenueDetailParams {
 function safeVenueSlug(
   venue: VenueDetailPrefetchVenue,
 ): string | null {
-  const slug = (venue.slug || venue.venueSlug || '').trim();
+  return safeVenueSlugFromValue(venue.slug || venue.venueSlug);
+}
+
+function safeVenueSlugFromValue(value: string | null | undefined): string | null {
+  const slug = (value ?? '').trim();
   if (!slug || /[\u0000-\u001F\u007F-\u009F]/u.test(slug)) return null;
   return slug;
 }

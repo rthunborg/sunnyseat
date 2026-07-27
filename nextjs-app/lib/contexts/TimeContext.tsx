@@ -231,16 +231,15 @@ export function TimeProvider({
       const liveTime = formatTimeInStockholm(state.currentTime);
       const livePlannerTime = formatLivePlannerTime(state.currentTime);
       const liveMinutes = parsePlannerTime(liveTime);
-      const isLiveWithinPlannerHours =
+      const isLiveClockEligibleForLiveQuery =
         liveMinutes !== null &&
-        liveMinutes >= PLANNER_START_MINUTES &&
-        liveMinutes <= PLANNER_END_MINUTES;
+        liveMinutes >= PLANNER_START_MINUTES;
       const today = stockholmDateKey(state.currentTime);
       const mode = state.selectedDate === today ? 'today' : 'future';
       const isPlannerDateValid = isPlannerDateSelectable(state.selectedDate, state.currentTime);
       const isLiveNow =
         mode === 'today' &&
-        isLiveWithinPlannerHours &&
+        isLiveClockEligibleForLiveQuery &&
         state.selectedTime === livePlannerTime;
       // Story 11.2 (AC4): the today-minimum tracks the LIVE wall clock. A forced
       // planner session (`?_time=`/`?_date=`) pins a deterministic moment and
@@ -344,12 +343,17 @@ function isSameTimeState(a: TimeState, b: TimeState): boolean {
 }
 
 function isStateLiveNow(state: TimeState): boolean {
+  const liveMinutes = parsePlannerTime(formatTimeInStockholm(state.currentTime));
   return state.selectedDate === stockholmDateKey(state.currentTime) &&
+    liveMinutes !== null &&
+    liveMinutes >= PLANNER_START_MINUTES &&
     state.selectedTime === formatLivePlannerTime(state.currentTime);
 }
 
 function formatLivePlannerTime(currentTime: Date): string {
-  const liveMinutes = parsePlannerTime(formatTimeInStockholm(currentTime)) ?? 12 * 60;
+  const liveTime = formatTimeInStockholm(currentTime);
+  const liveMinutes = parsePlannerTime(liveTime) ?? 12 * 60;
+  if (liveMinutes > PLANNER_END_MINUTES) return liveTime;
   return formatPlannerTime(liveMinutes);
 }
 

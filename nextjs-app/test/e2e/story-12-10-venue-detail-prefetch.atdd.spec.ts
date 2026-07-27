@@ -12,6 +12,7 @@ import {
 const APP_SETTLE_TIMEOUT_MS = 15_000;
 const LIST_MATCHER = '**/api/venues?**';
 const DETAIL_MATCHER = /\/api\/venues\/(?!.*\/feedback)([^/?#]+)(?:\?.*)?$/;
+const BASE_ROUTE = '/?_time=14:00';
 const PREFETCH_ROUTE = '/?_time=14:00&_prefetch=venue-detail';
 const PREFETCH_DEEP_LINK_ROUTE =
   '/?venue=prefetch-venue-1&_time=14:00&_prefetch=venue-detail';
@@ -82,6 +83,9 @@ function daySeries(): VenueDaySeriesEntry[] {
 }
 
 function venue(id: number): VenueDataDto {
+  const index = id - 1;
+  const column = index % 4;
+  const row = Math.floor(index / 4);
   const data: VenueDataDto = {
     id: String(id),
     venueId: String(id),
@@ -89,7 +93,11 @@ function venue(id: number): VenueDataDto {
     venueSlug: `prefetch-venue-${id}`,
     slug: `prefetch-venue-${id}`,
     neighborhood: 'Inom Vallgraven',
-    location: { lat: 57.705 + id / 10_000, lng: 11.97 + id / 10_000 },
+    // Keep fixture pins separated enough for real browser clicks. The
+    // production marker layer intentionally preserves map-native hit-testing,
+    // so a test fixture with near-identical coordinates can click the wrong
+    // overlapping marker while the accessible button names still look unique.
+    location: { lat: 57.7075 - row * 0.003, lng: 11.9685 + column * 0.003 },
     currentSunStatus: 'Sunny',
     weatherGateState: 'not_gated',
     isPartner: false,
@@ -146,7 +154,9 @@ function detailResponse(slug: string): GetVenueDetailResponse {
   };
 }
 
-async function mockListAndDetail(page: Page): Promise<{
+async function mockListAndDetail(page: Page, options: {
+  delayAllDetailsMs?: number;
+} = {}): Promise<{
   listCount: () => number;
   detailCount: () => number;
   detailUrls: () => string[];
@@ -169,7 +179,9 @@ async function mockListAndDetail(page: Page): Promise<{
     maxConcurrent = Math.max(maxConcurrent, inFlightDetails);
     detailUrls.push(route.request().url());
     const slug = new URL(route.request().url()).pathname.split('/').pop() ?? '';
-    if (decodeURIComponent(slug) === 'prefetch-venue-8') {
+    if (options.delayAllDetailsMs) {
+      await new Promise((resolve) => setTimeout(resolve, options.delayAllDetailsMs));
+    } else if (decodeURIComponent(slug) === 'prefetch-venue-8') {
       await new Promise((resolve) => setTimeout(resolve, COLD_DETAIL_DELAY_MS));
     }
     await route.fulfill({ json: detailResponse(decodeURIComponent(slug)) });
@@ -308,6 +320,10 @@ function withTimingEvidenceLock(writeEvidence: () => void): void {
   }
 }
 
+function detailSlugCount(urls: string[], slug: string): number {
+  return urls.filter((url) => decodeURIComponent(new URL(url).pathname.split('/').pop() ?? '') === slug).length;
+}
+
 test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () => {
   test('[P0] initial settled surface prefetches at most six detail keys with concurrency two and exact planner params', async ({ page }) => {
     const metnoHits = await forbidLiveMetno(page);
@@ -415,10 +431,16 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
     await expect(activeDetailSurfaces(page, 'Prefetch Venue 1')).toHaveCount(0, {
       timeout: APP_SETTLE_TIMEOUT_MS,
     });
+    const coldIntentRequestsBefore = network.detailCount();
     await clickVisibleVenueCard(page, 'Prefetch Venue 8');
     await expect(
       page.locator('[data-testid="venue-quick-info"]:visible').filter({ hasText: 'Prefetch Venue 8' }),
     ).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+    await expect
+      .poll(() => detailSlugCount(network.detailUrls(), 'prefetch-venue-8'), {
+        timeout: APP_SETTLE_TIMEOUT_MS,
+      })
+      .toBe(1);
     const coldStart = await page.evaluate(() => performance.now());
     const coldRequestsBefore = network.detailCount();
     await page.getByRole('button', { name: /Mer info/i }).click();
@@ -439,7 +461,8 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
       clickToLoadedMs: Math.round((coldEnd - coldStart) * 10) / 10,
       loadedMarker: 'Loaded detail for prefetch-venue-8',
     };
-    expect(coldTiming.detailRequestDelta).toBe(1);
+    expect(coldTiming.detailRequestDelta).toBe(0);
+    expect(coldTiming.detailRequestsAfter - coldIntentRequestsBefore).toBe(1);
 
     const timingEvidence: ProjectTimingEvidence = {
       project: testInfo.project.name,
@@ -452,5 +475,84 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
       contentType: 'application/json',
     });
     writeTimingEvidence(testInfo.project.name, timingEvidence);
+  });
+
+  test('[P0] desktop A-to-B pin switch replaces the venue URL so Back returns to the map', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'desktop-specific URL/history regression');
+    await forbidLiveMetno(page);
+    await bypassOnboarding(page);
+    const network = await mockListAndDetail(page);
+
+    await page.goto(BASE_ROUTE);
+    await page.locator('[data-testid="venue-pin"]').first().waitFor({
+      state: 'visible',
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
+
+    await openVenueDetailAndMeasure(page, network, 'Prefetch Venue 1', 'prefetch-venue-1');
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get('venue'), { timeout: APP_SETTLE_TIMEOUT_MS })
+      .toBe('prefetch-venue-1');
+
+    await page.getByRole('button', { name: /Prefetch Venue 2 .*soligt vid vald tid/i }).click();
+
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get('venue'), { timeout: APP_SETTLE_TIMEOUT_MS })
+      .toBe('prefetch-venue-2');
+    await expect(page.locator('[data-testid="desktop-venue-detail-panel"]:visible')).toContainText(
+      'Prefetch Venue 2',
+      { timeout: APP_SETTLE_TIMEOUT_MS },
+    );
+
+    await page.goBack();
+
+    await expect(page.locator('[data-testid="desktop-venue-detail-panel"]:visible')).toHaveCount(0, {
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get('venue'))
+      .toBeNull();
+    await expect(page.locator('[data-testid="venue-pin"]').first()).toBeVisible();
+  });
+
+  test('[P0] desktop early selected venue detail request is adopted by Mer info without duplicate fetch', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'desktop-specific early-click race');
+    await forbidLiveMetno(page);
+    await bypassOnboarding(page);
+    const network = await mockListAndDetail(page, { delayAllDetailsMs: COLD_DETAIL_DELAY_MS });
+
+    await page.goto(PREFETCH_ROUTE);
+    await page.locator('[data-testid="venue-pin"]').first().waitFor({
+      state: 'visible',
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
+
+    await clickVisibleVenueCard(page, 'Prefetch Venue 8');
+    await expect(
+      page.locator('[data-testid="venue-quick-info"]:visible').filter({ hasText: 'Prefetch Venue 8' }),
+    ).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+    await expect
+      .poll(() => detailSlugCount(network.detailUrls(), 'prefetch-venue-8'), {
+        timeout: APP_SETTLE_TIMEOUT_MS,
+      })
+      .toBe(1);
+
+    const detailRequestsBeforeOpen = network.detailCount();
+    await page.getByRole('button', { name: /Mer info/i }).click();
+
+    const detailSurface = visibleDetailSurface(page, 'Prefetch Venue 8');
+    await expect(detailSurface.getByRole('article', { name: 'Prefetch Venue 8' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+      { timeout: APP_SETTLE_TIMEOUT_MS },
+    );
+    await expect(
+      visibleDetailSurface(page, 'Prefetch Venue 8', 'Loaded detail for prefetch-venue-8')
+        .getByText('Loaded detail for prefetch-venue-8'),
+    ).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+
+    expect(detailSlugCount(network.detailUrls(), 'prefetch-venue-8')).toBe(1);
+    expect(network.detailCount()).toBeLessThanOrEqual(Math.max(detailRequestsBeforeOpen, 3));
+    expect(network.detailCount()).toBeLessThan(8);
   });
 });

@@ -65,11 +65,12 @@ const labels = {
   route: 'Visa Rutt',
   routeLoading: 'Öppnar kartor',
   photoPlaceholder: 'Platshållarbild för platsen',
-  loading: 'Laddar platsdetaljer',
+  loading: 'Laddar platsinformation',
   detailsUnavailable: 'Detaljer saknas',
   openingHours: 'Öppettider',
   address: 'Adress',
   sunBadge: '{percent}% sol',
+  notSunnyVerdict: 'Inte soligt vid vald tid',
   city: 'Göteborg',
   openUntil: 'ÖPPET · {time}',
   openUntilLine: 'Öppet till {time}',
@@ -112,7 +113,26 @@ describe('VenueDetailOverlay mobile', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Kafé Magasinet' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Laddar platsdetaljer')).toBeInTheDocument();
+    expect(screen.getAllByRole('status', { name: 'Laddar platsinformation' })).toHaveLength(1);
+  });
+
+  it('keeps mobile close chrome usable while the detail content scrim is active', () => {
+    const onDismiss = vi.fn();
+    render(
+      <VenueDetailOverlay
+        fallbackVenue={FALLBACK}
+        detail={undefined}
+        isLoading
+        currentTime="15:30"
+        labels={labels}
+        onDismiss={onDismiss}
+        onRoute={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('venue-detail-loading-scrim')).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Stäng platsdetaljer' })[1]);
+    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
   it('dismisses from the keyboard-operable drag handle', () => {

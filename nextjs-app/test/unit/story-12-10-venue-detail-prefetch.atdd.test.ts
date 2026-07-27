@@ -10,6 +10,7 @@ import {
   DETAIL_PREFETCH_ERROR_COOLDOWN_MS,
   MAX_DETAIL_PREFETCH_CANDIDATES,
   isVenueDetailPrefetchInCooldown,
+  prefetchSelectedVenueDetail,
   selectVenueDetailPrefetchCandidates,
 } from '@/hooks/queries/useVenueDetailPrefetch';
 import { queryKeys } from '@/lib/query-keys';
@@ -197,6 +198,37 @@ describe('Story 12.10 ATDD - venue detail prefetch query contract', () => {
     expect(schedulerSource).toMatch(/queryKey.*exact:\s*true/);
     expect(mapSource).toMatch(/isVenueDetailRequested|selected.*venue/i);
     expect(mapSource).toMatch(/useVenueDetailPrefetch\(/);
+  });
+
+  test('[P0] selected venue intent prefetch starts exactly the selected detail key and nothing else', async () => {
+    fetchSpy.mockResolvedValue(
+      new Response(JSON.stringify({ venue: { slug: 'venue-8' }, timestamp: 'now' }), {
+        status: 200,
+        statusText: 'OK',
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    });
+
+    await prefetchSelectedVenueDetail(client, ' venue-8 ', {
+      date: '2026-07-27',
+      time: '14:00',
+      lat: 57.70894,
+      lng: 11.97464,
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy.mock.calls[0][0]).toBe(
+      '/api/venues/venue-8?date=2026-07-27&time=14%3A00&lat=57.7089&lng=11.9746',
+    );
+    expect(client.getQueryData(queryKeys.venues.detailAt('venue-8', {
+      date: '2026-07-27',
+      time: '14:00',
+      lat: 57.7089,
+      lng: 11.9746,
+    }))).toEqual({ venue: { slug: 'venue-8' }, timestamp: 'now' });
   });
 
   test('[P0] forced dev routes require an explicit venue-detail prefetch opt-in', () => {

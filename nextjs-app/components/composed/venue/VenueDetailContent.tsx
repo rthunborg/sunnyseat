@@ -7,6 +7,7 @@ import {
   ExternalLink,
   Footprints,
   ImageIcon,
+  LoaderCircle,
   MapPin,
   Star,
   Sun,
@@ -23,6 +24,7 @@ import {
   isObscuredSunStatus,
   skyConditionCopy,
 } from '@/lib/utils/sun-status-presentation';
+import { isVenuePubliclySunny } from '@/lib/utils/public-sun';
 import { formatOpeningHours } from '@/lib/utils/opening-hours';
 import { selectVenueHeroImageUrl } from '@/lib/utils/venue-media';
 import { cn } from '@/lib/utils';
@@ -41,6 +43,9 @@ export type VenueDetailContentLabels = {
   openUntilLine: string;
   address: string;
   sunBadge: string;
+  /** Story 12.10: percentage-free grey hero badge copy for all public non-sunny
+   * states except CloudObscured, which keeps the explicit obscured treatment. */
+  notSunnyVerdict?: string;
   /** Story 10.2 (AC1): the muted "Sol bakom moln" hero headline shown when
    * the venue is CloudObscured. */
   obscuredHeadline?: string;
@@ -139,7 +144,7 @@ export function VenueDetailContent({
     <article
       aria-busy={loading}
       aria-label={venue.venueName}
-      className={cn('bg-surface-cream text-text-primary', className)}
+      className={cn('relative bg-surface-cream text-text-primary', className)}
     >
       <HeroImage
         venue={venue}
@@ -148,6 +153,7 @@ export function VenueDetailContent({
         isDesktop={isDesktop}
         isObscured={isObscured}
         skyLine={skyLine}
+        locale={locale}
       />
       <div className={cn('px-6 pb-8', isDesktop ? 'space-y-5 pt-6' : 'space-y-4 pt-5')}>
         <header className="space-y-2">
@@ -185,7 +191,7 @@ export function VenueDetailContent({
             <span className="hidden lg:inline">{metadata.price}</span>
           </div>
           {loading ? (
-            <LoadingBlock label={labels.loading} />
+            <LoadingBlock />
           ) : null}
         </header>
 
@@ -295,6 +301,7 @@ export function VenueDetailContent({
 
         {reviewSlot}
       </div>
+      {loading ? <LoadingScrim label={labels.loading} /> : null}
     </article>
   );
 }
@@ -306,6 +313,7 @@ function HeroImage({
   isDesktop,
   isObscured,
   skyLine,
+  locale,
 }: {
   venue: VenueDataDto;
   labels: VenueDetailContentLabels;
@@ -313,6 +321,7 @@ function HeroImage({
   isDesktop: boolean;
   isObscured: boolean;
   skyLine: string | null;
+  locale: string;
 }) {
   const thumbnail = venue.thumbnail;
   const alt = thumbnail?.alt?.trim() || labels.photoPlaceholder;
@@ -320,9 +329,11 @@ function HeroImage({
   const [imageFailed, setImageFailed] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
   const shouldRenderImage = Boolean(imageUrl) && !imageFailed && !isLoading;
+  const isPubliclySunny = isVenuePubliclySunny(venue);
   const percentText = String(Math.round(venue.sunExposurePercent));
   const sunnyBadgeLabel = formatLabel(labels.sunBadge, { percent: percentText });
   const sunnyBadgeVisibleText = `${percentText}%`;
+  const notSunnyLabel = defaultNotSunnyVerdict(labels, locale);
 
   useEffect(() => {
     setImageFailed(false);
@@ -385,21 +396,29 @@ function HeroImage({
           AA), labelled "% solläge" (position, AC2) so no amber sun badge shows
           under the gate. The geometric % value is unchanged. */}
       <div
-        aria-label={isObscured ? (labels.obscuredHeadline ?? 'Sol bakom moln') : sunnyBadgeLabel}
+        aria-label={
+          isObscured
+            ? (labels.obscuredHeadline ?? 'Sol bakom moln')
+            : isPubliclySunny
+              ? sunnyBadgeLabel
+              : notSunnyLabel
+        }
         className={cn(
           'absolute left-4 top-4 flex h-10 items-center justify-center gap-2 rounded-pill px-4 text-heading-lg backdrop-blur-standard shadow-subtle',
           isObscured
             ? 'bg-pin-obscured text-white'
-            : 'bg-amber-gold/90 text-amber-cta-text',
+            : isPubliclySunny
+              ? 'bg-amber-gold/90 text-amber-cta-text'
+              : 'bg-pin-shaded text-text-body',
         )}
         role="img"
       >
-        {isObscured ? (
+        {isObscured || !isPubliclySunny ? (
           <Cloud aria-hidden="true" className="size-5" />
         ) : (
           <Sun aria-hidden="true" className="size-5 fill-current" />
         )}
-        {!isObscured && sunnyBadgeVisibleText}
+        {isPubliclySunny && !isObscured ? sunnyBadgeVisibleText : null}
       </div>
       {/* AC1/AC3: the muted "Sol bakom moln" headline + the plain-language sky
           line, only for the obscured state. `skyLine` is null when the DTO sky
@@ -477,9 +496,9 @@ function FactCard({
   );
 }
 
-function LoadingBlock({ label }: { label: string }) {
+function LoadingBlock() {
   return (
-    <div aria-label={label} className="space-y-2" role="status">
+    <div aria-hidden="true" className="space-y-2">
       <Skeleton
         data-testid="venue-detail-skeleton"
         className="h-5 w-full bg-surface-muted"
@@ -490,6 +509,28 @@ function LoadingBlock({ label }: { label: string }) {
       />
     </div>
   );
+}
+
+function LoadingScrim({ label }: { label: string }) {
+  return (
+    <div
+      aria-label={label}
+      aria-live="polite"
+      className="absolute inset-0 z-pin flex items-center justify-center bg-text-primary/20 backdrop-blur-standard"
+      data-testid="venue-detail-loading-scrim"
+      role="status"
+    >
+      <LoaderCircle
+        aria-hidden="true"
+        className="size-8 text-text-primary motion-safe:animate-spin"
+      />
+    </div>
+  );
+}
+
+function defaultNotSunnyVerdict(labels: VenueDetailContentLabels, locale: string): string {
+  if (labels.notSunnyVerdict) return labels.notSunnyVerdict;
+  return locale.startsWith('en') ? 'Not sunny at the selected time' : 'Inte soligt vid vald tid';
 }
 
 function formatLabel(template: string, values: Record<string, string>): string {

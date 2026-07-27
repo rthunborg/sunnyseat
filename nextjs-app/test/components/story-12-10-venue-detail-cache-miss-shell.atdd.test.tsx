@@ -34,6 +34,7 @@ const labels = {
   openingHours: 'Öppettider',
   address: 'Adress',
   sunBadge: '{percent}% sol',
+  notSunnyVerdict: 'Inte soligt vid vald tid',
   obscuredHeadline: 'Sol bakom moln',
   sky: {
     label: 'Himmel nu',
@@ -87,6 +88,17 @@ describe('Story 12.10 ATDD - cache-miss detail shell', () => {
     );
     expect(screen.getByRole('heading', { name: 'Kafé Magasinet' })).toBeVisible();
     expect(screen.getAllByRole('status', { name: 'Laddar platsinformation' })).toHaveLength(1);
+    expect(screen.getByRole('status', { name: 'Laddar platsinformation' })).toHaveAttribute(
+      'aria-live',
+      'polite',
+    );
+    expect(screen.getByTestId('venue-detail-loading-scrim')).toHaveClass(
+      'bg-text-primary/20',
+      'backdrop-blur-standard',
+    );
+    expect(
+      screen.getByTestId('venue-detail-loading-scrim').querySelector('svg'),
+    ).toHaveClass('size-8', 'text-text-primary', 'motion-safe:animate-spin');
     expect(screen.getAllByTestId('venue-detail-skeleton').length).toBeGreaterThan(2);
     expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeEnabled();
   });

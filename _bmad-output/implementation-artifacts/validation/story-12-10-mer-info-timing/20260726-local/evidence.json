@@ -11,15 +11,15 @@
         "detailRequestsBefore": 6,
         "detailRequestsAfter": 6,
         "detailRequestDelta": 0,
-        "clickToLoadedMs": 564.3,
+        "clickToLoadedMs": 818.8,
         "loadedMarker": "Loaded detail for prefetch-venue-1"
       },
       "nonPrefetched": {
         "slug": "prefetch-venue-8",
-        "detailRequestsBefore": 6,
+        "detailRequestsBefore": 7,
         "detailRequestsAfter": 7,
-        "detailRequestDelta": 1,
-        "clickToLoadedMs": 2522.9,
+        "detailRequestDelta": 0,
+        "clickToLoadedMs": 1505,
         "loadedMarker": "Loaded detail for prefetch-venue-8"
       }
     },

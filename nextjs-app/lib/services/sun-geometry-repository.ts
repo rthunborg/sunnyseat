@@ -1,5 +1,5 @@
 import type { StoredVenue } from '@/lib/services/venue-store';
-import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
+import type { SunFreshnessMeta, VenueDataDto, VenueDaySeriesEntry } from '@/lib/types/api';
 import {
   PLANNER_END_MINUTES,
   PLANNER_START_MINUTES,
@@ -7,7 +7,11 @@ import {
   stockholmDateKey,
 } from '@/lib/utils/time-planner';
 import { SUN_DATA_SOURCE_GEOMETRY_ONLY, SUN_DATA_SOURCE_WEATHER } from '@/lib/utils/sun-freshness';
-import { seatingCentroidWgs84 } from '@/lib/services/sun-geometry-coordinates';
+import {
+  seatingCentroidWgs84,
+  venueEngineCoordinate,
+} from '@/lib/services/sun-geometry-coordinates';
+import { calculateSolarPosition } from '@/lib/solar/solar-calculation-service';
 import {
   buildPlannerHashContract,
 } from '@/lib/services/sun-geometry-hash';
@@ -147,7 +151,7 @@ export async function buildPersistedSunOutcome(
     venue,
     stockholmDate,
   });
-  const selectedStep = nearestStep(gatedSeries, stockholmMinutes(requestedAt));
+  const selectedStep = selectedStepForRequestedInstant(gatedSeries, venue, requestedAt);
   const publicSunWindow = extractPublicSunWindow(gatedSeries, {
     stepMinutes: PLANNER_STEP_MINUTES,
   });
@@ -269,6 +273,28 @@ function nearestStep<T extends { minutes: number }>(series: readonly T[], minute
   return series.reduce((best, candidate) =>
     Math.abs(candidate.minutes - minutes) < Math.abs(best.minutes - minutes) ? candidate : best,
   );
+}
+
+function selectedStepForRequestedInstant(
+  series: readonly VenueDaySeriesEntry[],
+  venue: StoredVenue,
+  requestedAt: Date,
+): VenueDaySeriesEntry {
+  const selectedStep = nearestStep(series, stockholmMinutes(requestedAt));
+  if (isSunBelowHorizonAtInstant(venue, requestedAt)) {
+    return {
+      ...selectedStep,
+      sunExposurePercent: 0,
+      currentSunStatus: 'NoSun',
+      weatherGateState: 'not_gated',
+    };
+  }
+  return selectedStep;
+}
+
+function isSunBelowHorizonAtInstant(venue: StoredVenue, requestedAt: Date): boolean {
+  const coordinate = venueEngineCoordinate(venue);
+  return !calculateSolarPosition(requestedAt, coordinate.lat, coordinate.lng).isSunVisible;
 }
 
 function stockholmMinutes(date: Date): number {

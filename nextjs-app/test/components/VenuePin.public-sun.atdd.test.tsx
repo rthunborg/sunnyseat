@@ -64,6 +64,7 @@ describe('Story 12.6 - exactly two honest pin presentations', () => {
   });
 
   test.each([
+    ['25% NoSun', venue({ sunExposurePercent: 25, sunStatus: 'NoSun' })],
     ['exactly 50', venue({ sunExposurePercent: 50, sunStatus: 'Sunny' })],
     ['low Partial', venue({ sunExposurePercent: 40, sunStatus: 'Partial' })],
     [

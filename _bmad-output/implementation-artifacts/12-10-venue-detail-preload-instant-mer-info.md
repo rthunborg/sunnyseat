@@ -4,7 +4,7 @@ baseline_commit: baf0d8b18df4b5542cf2ffa4b9c3528988dc338c
 
 # Story 12.10: Venue Detail Preload - Instant "Mer info"
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -502,6 +502,9 @@ Codex GPT-5 auto-bmad delegate
   -> lint PASS, typecheck PASS, Vitest 197 passed/2 skipped, 1808 tests passed/15 skipped; visual validation skipped
   because no mapped screen ID; sprint status moved to `review`; validation artifact:
   `_bmad-output/implementation-artifacts/validation/12-10-venue-detail-preload-instant-mer-info-review-20260726-211112.log`.
+- Human remediation - night/live-time focused guard:
+  `npx vitest run test/unit/TimeContext.test.tsx test/unit/services/sun-geometry-persisted-outcome.automate.test.ts`
+  -> 2 files / 26 tests passed. `npx tsc --noEmit` -> passed. `npx eslint . --quiet` -> passed.
 
 ### Completion Notes List
 
@@ -536,9 +539,15 @@ Codex GPT-5 auto-bmad delegate
   release lane.
 - Canonical story-review wrapper completed and moved sprint status to `review`; validation artifact:
   `_bmad-output/implementation-artifacts/validation/12-10-venue-detail-preload-instant-mer-info-review-20260726-211112.log`.
+- Human remediation addendum - night/live-time correctness only: after-21:00 Stockholm live sessions now keep the true
+  wall-clock selected time and omit planner query params instead of aliasing to 21:00; persisted selected-instant
+  outcomes now return public `NoSun`/0 when the requested instant is actually below horizon, while preserving a genuine
+  low-angle daylight 25% nearest planner step. This addendum did not move story or sprint status.
 
 ### File List
 
+- `nextjs-app/lib/contexts/TimeContext.tsx`
+- `nextjs-app/lib/services/sun-geometry-repository.ts`
 - `nextjs-app/hooks/queries/venue-detail-query-options.ts`
 - `nextjs-app/hooks/queries/useVenueDetail.ts`
 - `nextjs-app/hooks/queries/useVenueDetailPrefetch.ts`
@@ -549,6 +558,8 @@ Codex GPT-5 auto-bmad delegate
 - `nextjs-app/messages/sv/venue.json`
 - `nextjs-app/messages/en/venue.json`
 - `nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts`
+- `nextjs-app/test/unit/TimeContext.test.tsx`
+- `nextjs-app/test/unit/services/sun-geometry-persisted-outcome.automate.test.ts`
 - `nextjs-app/test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts`
 - `nextjs-app/test/components/story-12-10-venue-detail-cache-miss-shell.atdd.test.tsx`
 - `nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts`
