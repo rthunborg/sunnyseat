@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 8
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-27T18:57:11Z"
+updated_at: "2026-07-27T19:06:42Z"
 started_at: "2026-07-27T18:12:39Z"
 completed_at: null
-active_seconds: 2575
+active_seconds: 3092
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [6d0d44d, a5f51cc, 439cafe]
+commits: [6d0d44d, a5f51cc, 439cafe, 32b146e]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -46,9 +46,11 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions: []
+open_questions:
+  - "Approve or reject Story 12.8 mobile and desktop About-page visual candidates, including the focused mobile legend viewport."
 deferred_work: []
-blockers: []
+blockers:
+  - "Story 12.8 Tier-A acceptance review is paused on explicit human visual acceptance; implementation, automation, accessibility, and security review are complete."
 overrides: {}
 constraints:
   - "Reuse the Story 12.6 shared public-sunny predicate and exact amber-sun versus grey-not-sunny semantics; do not create an About-only threshold or branch."
@@ -56,3 +58,4 @@ constraints:
   - "Remove the hard-coded ABOUT_ACCURACY_PLACEHOLDER=85 claim unless Story 12.2 supplies a measured source; Story 12.8 must not present preliminary accuracy as a fact."
   - "Capture mobile and desktop About visual evidence plus accessibility evidence; any reference change must update REBASELINE-LOG.md in the same operation."
 tier_a_base_sha: 2a9da16
+tier_a_review: "pending human visual acceptance â€” Changes Requested; Critical 0 / High 1 / Med 0 / Low 0; the sole High Decision is the explicit candidate approval gate; dedicated security review clean"

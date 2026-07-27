@@ -395,6 +395,7 @@ Codex GPT-5 auto-bmad delegate
 - Broad browser sweep: `npx playwright test --project=mobile --project=desktop --project=touch --project=a11y --project=a11y-mobile` on `http://localhost:3224` reported 156 passed, 64 skipped, and 2 mobile failures outside About (`epic-9-mobile-regression.spec.ts:62`, `story-12-10-venue-detail-prefetch.atdd.spec.ts:406`). Exact rerun of those two failures on `http://localhost:3225` passed 2/2, matching the earlier exact rerun result.
 - Visual wrapper attempts: `.\scripts\run-sh.ps1 scripts/visual-validate.sh about /about mobile` and `desktop` failed immediately because `ANTHROPIC_API_KEY` is not set; no screenshot comparison ran.
 - Visual candidates captured and visually sanity-checked: `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-mobile-candidate.png` and `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-desktop-candidate.png`. No canonical reference PNGs were replaced, and `REBASELINE-LOG.md` was not changed.
+- Focused mobile legend viewport evidence captured and visually sanity-checked after fixed-bottom-nav overlap was noticed in the stitched mobile candidate: `_bmad-output/implementation-artifacts/validation/12-8-about-page-mobile-legend-candidate.png` (`390x844`, `deviceScaleFactor: 3`, `http://localhost:3226/about`, scrolled so the complete `SÅ LÄSER DU KARTAN` section is above the bottom nav).
 - Canonical review gate: `VISUAL_VALIDATE_PROVIDER=none ALLOW_MANUAL_VISUAL_VALIDATION=1 .\scripts\run-sh.ps1 scripts/story-review.sh 12-8-about-page-pin-legend-so-reads-the-sun-figure` passed lint/typecheck/full Vitest, ran providerless manual visual mode for mobile and desktop, and updated sprint status to `review`. Artifact: `_bmad-output/implementation-artifacts/validation/12-8-about-page-pin-legend-so-reads-the-sun-figure-review-20260727-204121.log`.
 - Post-dev TEA automation pass added `nextjs-app/test/unit/story-12-8-about-copy-contract.automation.test.ts` to persist the prior source-scan evidence as executable coverage against fake public accuracy/confidence numbers and About legend drift from shared public-sun/runtime pin semantics.
 - Post-dev TEA focused checks passed: `npx vitest run test/components/AboutPage.test.tsx test/unit/messages-parity.test.ts test/unit/story-12-8-about-copy-contract.automation.test.ts` (3 files / 31 tests), `PLAYWRIGHT_BASE_URL=http://localhost:3238 PLAYWRIGHT_PORT=3238 npx playwright test --project=a11y --project=a11y-mobile --grep "about page"` (2 tests), `npx tsc --noEmit`, and `npx eslint . --quiet`.
@@ -413,6 +414,7 @@ Codex GPT-5 auto-bmad delegate
 - `_bmad-output/implementation-artifacts/12-8-about-page-pin-legend-so-reads-the-sun-figure.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-mobile-candidate.png`
+- `_bmad-output/implementation-artifacts/validation/12-8-about-page-mobile-legend-candidate.png`
 - `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-desktop-candidate.png`
 - `_bmad-output/implementation-artifacts/validation/12-8-about-page-pin-legend-so-reads-the-sun-figure-review-20260727-204121.log`
 - `nextjs-app/components/custom/about/AboutPage.tsx`
@@ -432,3 +434,7 @@ Codex GPT-5 auto-bmad delegate
 
 - 2026-07-27: Implemented Story 12.8 About legend and accuracy reframe; completed deterministic gates; moved sprint status to `review` through `scripts/story-review.sh` with providerless visual acceptance pending.
 - 2026-07-27: Post-dev TEA automation added source-contract guard coverage for fake accuracy/confidence and shared pin semantics; focused Vitest, About axe, typecheck, and lint passed.
+
+### Review Findings
+
+- [ ] [Review][Decision][High] About visual gate is not approved: mobile and desktop visual wrappers failed without `ANTHROPIC_API_KEY`, no screenshot comparison or same-operation reference/log approval occurred, yet providerless manual mode moved the story to review. Recommended: fix: Run mobile and desktop About visual validation with a configured provider, or get explicit human approval for the captured candidate PNGs and record it before approval.
