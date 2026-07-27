@@ -480,6 +480,12 @@ Codex GPT-5 auto-bmad delegate
   - Resolution: `MapView` now records the bare-canvas dismissed slug while URL clearing is pending, skips same-slug URL selection during that transient window, clears the guard when the `venue` param changes/clears, and clears it when an explicit venue interaction takes over.
   - Tests: added a MapView regression that simulates bare-map dismiss, rerenders while the old `venue=...` search param is still present, then clears the URL and asserts the detail dismissal does not resurrect the old venue QuickInfo; A-to-B switching coverage remains green.
 
+#### Final Acceptance Audit (2026-07-27)
+
+- [x] Final commit `e234c29` contains the URL-sync dismissal guard; all latest Review Findings are resolved.
+- [x] Final acceptance auditor result: Approve, 0 Critical / 0 High / 0 Medium / 0 Low; security review 0 findings at all severities.
+- [x] No open findings, decisions, deferrals, or blockers remain. Story status remains `in-progress` until the canonical wrapper is rerun.
+
 ### Debug Log References
 
 - Baseline before edits: `npx tsc --noEmit`; `npx eslint . --quiet`.
@@ -580,6 +586,13 @@ Codex GPT-5 auto-bmad delegate
   `PLAYWRIGHT_PORT=3264 PLAYWRIGHT_BASE_URL=http://localhost:3264 npx playwright test test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts --project=mobile --workers=1` -> 4 passed, 2 skipped (desktop-only tests).
   `npx tsc --noEmit` -> passed.
   `npx eslint . --quiet` -> passed.
+- Final human-feedback verification after `e234c29` URL-sync guard:
+  `npx tsc --noEmit` -> passed. `npx eslint . --quiet` -> passed.
+  Full Vitest -> 197 files passed, 2 skipped; 1825 tests passed, 15 skipped.
+  Focused Story 12.10 Playwright desktop+mobile -> 10 passed, 2 skipped.
+  Individually green focused Playwright cases: mobile geometry contract, mobile planner params-to-venues, and desktop selected-intent prefetch-before-`Mer info`.
+  Full Playwright -> 151 passed, 65 skipped, 1 failed; the only failure was mobile planner params-to-venues timing out in-suite, then the exact fresh-port rerun passed. This is recorded as a known suite-order/timing flake; the full suite itself is not claimed all-green.
+  Final guard audit also ran focused Vitest `MapView` -> 6 passed, plus cache-miss/`TimeSlider` edge coverage -> 13 passed.
 
 ### Completion Notes List
 
@@ -630,6 +643,10 @@ Codex GPT-5 auto-bmad delegate
 - Post-fix URL-sync race patch: bare-map detail dismissal now stays closed while the stale `venue` search param is still
   observable; the pending dismissed-slug guard clears on URL catch-up or explicit venue replacement, preserving A-to-B
   pin switching and selected-intent prefetch.
+- Final acceptance evidence recorded after commit `e234c29`: all latest Review Findings resolved, final auditor approved
+  with 0 severity findings including security, typecheck/lint/Vitest/focused Story 12.10 Playwright passed, the single
+  full-Playwright mobile planner timeout is documented as a suite-order/timing flake with exact fresh-port rerun green,
+  and no open findings, decisions, deferrals, or blockers remain.
 
 ### File List
 
