@@ -471,6 +471,15 @@ Codex GPT-5 auto-bmad delegate
   - Resolution: `TimeSlider` now treats after-hours live display as a protected controlled value on blur, preserving the true wall-clock label/ARIA while the native thumb remains visually clamped at the planner end.
   - Tests: `TimeSlider.edge-cases.automate.test.tsx` blur regression plus Story 12.10 desktop/mobile Playwright.
 
+#### Post-Fix Re-review (2026-07-27)
+
+- [x] [Review][Patch][High] Bare-map detail dismissal can be reselected by stale URL sync before `router.replace` clears `venue`. [nextjs-app/components/custom/map/MapView.tsx:793]
+  - Triage: accepted as a surviving post-fix race, not as a stale product rule that the selected pin must always be cleared. Direct human intent requires the bare-map click to correctly dismiss URL-owned detail; the current patch clears local selection, but the old `venueSlugParam` can still drive URL selection sync until the async URL replace is reflected.
+  - Evidence: the post-fix diff adds `selectVenue(null)` after `handleDismissDetails()` in `handleMapCanvasDeselect` [nextjs-app/components/custom/map/MapView.tsx:958]. `handleDismissDetails()` removes `venue` through `router.replace(...)` [nextjs-app/components/custom/map/MapView.tsx:914], but while the stale `venueSlugParam` is still present the URL-selection effect can match that slug and call `selectVenue(match.id, match)` [nextjs-app/components/custom/map/MapView.tsx:793]. Once the URL finally clears, `selectedPinData && !isVenueDetailRequested` can render the resurrected venue QuickInfo [nextjs-app/components/custom/map/MapView.tsx:1447].
+  - Recommended: patch the URL-owned dismissal path with a transient dismissed-slug or pending-URL-clear guard so the URL-selection effect cannot reselect the just-dismissed slug while `router.replace` is pending. Clear the guard after the `venue` param changes/clears or when an explicit A-to-B pin/list interaction replaces the slug. Preserve explicit-interaction exact prefetch, visible loading scrim/spinner behavior, and open-detail A-to-B switching.
+  - Resolution: `MapView` now records the bare-canvas dismissed slug while URL clearing is pending, skips same-slug URL selection during that transient window, clears the guard when the `venue` param changes/clears, and clears it when an explicit venue interaction takes over.
+  - Tests: added a MapView regression that simulates bare-map dismiss, rerenders while the old `venue=...` search param is still present, then clears the URL and asserts the detail dismissal does not resurrect the old venue QuickInfo; A-to-B switching coverage remains green.
+
 ### Debug Log References
 
 - Baseline before edits: `npx tsc --noEmit`; `npx eslint . --quiet`.
@@ -562,6 +571,15 @@ Codex GPT-5 auto-bmad delegate
   -> 4 passed, 2 skipped (desktop-only tests).
   `npx tsc --noEmit` -> passed.
   `npx eslint . --quiet` -> passed.
+- Post-fix URL-sync race patch:
+  `npx vitest run test/components/MapView.test.tsx -t "keeps a bare-canvas detail dismissal closed"` -> first run failed as expected before the guard; passing coverage came from the targeted 3-test rerun below.
+  `npx vitest run test/components/MapView.test.tsx -t "bare-canvas detail dismissal|switches an open detail|dismisses an open detail from a bare canvas"` -> 1 file / 3 tests passed.
+  `npx vitest run test/components/MapView.test.tsx test/components/VenueDetailContent.test.tsx test/components/VenueDetailOverlay.test.tsx test/components/story-12-10-venue-detail-cache-miss-shell.atdd.test.tsx test/components/TimeSlider.edge-cases.automate.test.tsx` -> 5 files / 174 tests passed.
+  `PLAYWRIGHT_PORT=3261 PLAYWRIGHT_BASE_URL=http://localhost:3261 npx playwright test test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts --project=desktop --workers=1` -> setup failed before app assertions because an existing same-app `next dev` process held `.next/dev` and reset/refused connections; stopped PID 35732 after verifying it was `nextjs-app`'s dev server.
+  `PLAYWRIGHT_PORT=3263 PLAYWRIGHT_BASE_URL=http://localhost:3263 npx playwright test test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts --project=desktop --workers=1` -> 6 passed.
+  `PLAYWRIGHT_PORT=3264 PLAYWRIGHT_BASE_URL=http://localhost:3264 npx playwright test test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts --project=mobile --workers=1` -> 4 passed, 2 skipped (desktop-only tests).
+  `npx tsc --noEmit` -> passed.
+  `npx eslint . --quiet` -> passed.
 
 ### Completion Notes List
 
@@ -609,6 +627,9 @@ Codex GPT-5 auto-bmad delegate
   prefetch path.
 - Final human-feedback high patch: after-21 live slider blur no longer calls the planner snap seam that could coerce the
   live value to 21:00; visible label and `aria-valuetext` keep the true wall-clock time while the thumb stays clamped.
+- Post-fix URL-sync race patch: bare-map detail dismissal now stays closed while the stale `venue` search param is still
+  observable; the pending dismissed-slug guard clears on URL catch-up or explicit venue replacement, preserving A-to-B
+  pin switching and selected-intent prefetch.
 
 ### File List
 

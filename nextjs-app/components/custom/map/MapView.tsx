@@ -201,6 +201,7 @@ export function MapView() {
   }>({ token: 0, preserveSlug: null });
   const hasHandledFavouritesRouteEntryRef = useRef(false);
   const routeLoadingTimerRef = useRef<number | null>(null);
+  const pendingUrlClearDismissedVenueSlugRef = useRef<string | null>(null);
   const isFavouritesRoute = isFavouritesPath(pathname);
   const [desktopListMode, setDesktopListMode] = useState<'near' | 'favourites'>(
     isFavouritesRoute ? 'favourites' : 'near',
@@ -791,10 +792,24 @@ export function MapView() {
   }, [isFavouritesRoute, selectVenue, selectedVenueId]);
 
   useEffect(() => {
+    const dismissedSlug = pendingUrlClearDismissedVenueSlugRef.current;
+    if (!dismissedSlug) return;
+    if (!venueSlugParam || venueSlugParam !== dismissedSlug) {
+      pendingUrlClearDismissedVenueSlugRef.current = null;
+    }
+  }, [venueSlugParam]);
+
+  useEffect(() => {
     if (
       forcedState !== 'map-with-selected-venue' &&
       forcedState !== 'map-with-obscured-venue' &&
       !venueSlugParam
+    ) {
+      return;
+    }
+    if (
+      venueSlugParam &&
+      pendingUrlClearDismissedVenueSlugRef.current === venueSlugParam
     ) {
       return;
     }
@@ -886,6 +901,7 @@ export function MapView() {
       cancelVenueDetailPrefetchCandidates(null);
       return;
     }
+    pendingUrlClearDismissedVenueSlugRef.current = null;
     cancelVenueDetailPrefetchCandidates(slug);
     if (!detailPrefetchPlannerReady || !isOnline || showOfflineShell) return;
     void prefetchSelectedVenueDetail(queryClient, slug, venueDetailParams);
@@ -957,6 +973,7 @@ export function MapView() {
 
   const handleMapCanvasDeselect = useCallback(() => {
     if (canRequestVenueDetail && venueSlugParam) {
+      pendingUrlClearDismissedVenueSlugRef.current = venueSlugParam;
       handleDismissDetails();
       selectVenue(null);
       return;

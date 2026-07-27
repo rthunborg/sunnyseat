@@ -1930,6 +1930,43 @@ describe('<MapView />', () => {
       expect(selectVenueMock).toHaveBeenCalledWith(null);
     });
 
+    it('keeps a bare-canvas detail dismissal closed while the stale venue URL is clearing', async () => {
+      selectedVenueIdMock = 'venue-a';
+      selectedVenuePreviewMock = makeVenue({ id: 'venue-a', name: 'Aktiv plats', slug: 'venue-a' });
+      searchParamsMock = new URLSearchParams('venue=venue-a&_state=venue-detail&foo=bar');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([selectedVenuePreviewMock]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      const view = render(<MapView />, { wrapper: Wrapper });
+      selectVenueMock.mockClear();
+      fireEvent.click(screen.getByTestId('map-canvas-deselect'));
+
+      expect(selectVenueMock).toHaveBeenCalledWith(null);
+      selectVenueMock.mockClear();
+
+      // Next/router has not reflected the replace yet, so the old URL param is
+      // still observable for one render. It must not resurrect the just-dismissed
+      // venue into local selection.
+      view.rerender(<MapView />);
+      await waitMs(0);
+
+      expect(selectVenueMock).not.toHaveBeenCalledWith(
+        'venue-a',
+        expect.objectContaining({ slug: 'venue-a' }),
+      );
+
+      searchParamsMock = new URLSearchParams('foo=bar');
+      view.rerender(<MapView />);
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('venue-quick-info')).not.toBeInTheDocument(),
+      );
+    });
+
     it('keeps the deep-linked venue-detail-obscured pin weather-gated without rewriting unrelated pins', () => {
       selectedVenueIdMock = 'venue-1';
       searchParamsMock = new URLSearchParams(
