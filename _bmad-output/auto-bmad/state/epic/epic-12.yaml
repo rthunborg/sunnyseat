@@ -5,11 +5,11 @@ epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-26T19:06:30Z"
+updated_at: "2026-07-27T14:58:37Z"
 started_at: "2026-07-18T11:27:25Z"
 completed_at: null
-active_seconds: 133567
-timing_anchor: 1785079994
+active_seconds: 133568
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 needs_project_context_bootstrap: false
@@ -56,7 +56,7 @@ overrides: {}
 constraints:
   - "Execute Epic 12 in the user-confirmed dependency order: 12-1, 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, 12-10, 12-5, 12-8, 12-11, 12-2, 12-14."
 epic_slug: real-venue-launch-readiness-perf-trust-hours-console-hygiene
-active_story: 12-10-venue-detail-preload-instant-mer-info
+active_story: 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields
 stories_landed:
   - 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
   - 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
@@ -65,6 +65,7 @@ stories_landed:
   - 12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes
   - 12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider
   - 12-4-production-console-hygiene-hydration-error-maplibre-null-warning
+  - 12-10-venue-detail-preload-instant-mer-info
 auto_decisions:
   - "[12-7] Adopted the architecture-backed canonical `hidden boolean not null default false` migration/type contract after live/schema probes proved all previously referenced visibility columns absent; no protected database mutation was performed."
 uat_items:
@@ -152,6 +153,15 @@ uat_items:
   - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] On mobile viewport, cold-load `/?venue=test-venue-sunny&_state=venue-detail&_time=14:00` → Kafé Magasinet detail sheet opens over the map and no React hydration/page error appears."
   - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] On desktop viewport, cold-load `/?venue=test-venue-sunny&_state=venue-detail&_time=16:30` → Kafé Magasinet right-side detail panel opens over the map and no React hydration/page error appears."
   - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] During the map/detail checks, the only acceptable console noise is the exact OpenFreeMap Positron worker warning `Expected value to be of type number, but found null instead.` or browser WebGL ReadPixels noise; any React, SunnySeat, or main-thread MapLibre warning/error fails UAT."
+  - "[12-10-venue-detail-preload-instant-mer-info] Run the fixture dev server and open a shaded/night venue detail -> the not-sunny verdict contains no numeric percentage and does not fabricate a stale 25% value."
+  - "[12-10-venue-detail-preload-instant-mer-info] Open venue A with Mer info, then click venue B's map pin -> the existing detail surface switches to venue B and the URL venue parameter follows B."
+  - "[12-10-venue-detail-preload-instant-mer-info] With venue detail open, click bare map background -> detail and prior QuickInfo close, leaving the map context clean."
+  - "[12-10-venue-detail-preload-instant-mer-info] Load the map with Network recording -> after initial settle, at most six venue-detail prefetches run with concurrency bounded by the Story 12.10 scheduler and no separate expanded-radius discovery request."
+  - "[12-10-venue-detail-preload-instant-mer-info] After a candidate detail is prefetched, click its Mer info action -> populated detail appears immediately with zero new matching detail request."
+  - "[12-10-venue-detail-preload-instant-mer-info] Select a non-prefetched venue and immediately choose Mer info -> detail adopts the already-started selected-intent request instead of duplicating it."
+  - "[12-10-venue-detail-preload-instant-mer-info] Throttle a cold detail request -> the shell opens immediately with recognizable content beneath the token-grey subtle-blur scrim, spinner, skeletons, and Laddar platsinformation announcement; close/favourite/share remain usable."
+  - "[12-10-venue-detail-preload-instant-mer-info] Release the throttled detail response -> loaded content replaces the placeholders in place and aria-busy clears without replaying the panel entrance."
+  - "[12-10-venue-detail-preload-instant-mer-info] After 21:00 Stockholm time, open the live planner and blur the time slider -> visible and accessible time keep the true live value while only the thumb remains visually clamped to the planner end."
 preexisting_done_stories:
   - 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
 adopt_verdicts:
@@ -172,5 +182,5 @@ story_execution_order:
   - 12-11-first-run-coach-mark-guide-map-legend-feature-tour
   - 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
   - 12-14-hide-closed-venues-open-at-selected-time-filter
-story_order_cursor: 12-10-venue-detail-preload-instant-mer-info
+story_order_cursor: 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields
 order_override_reason: User-confirmed dependency order keeps prerequisite contracts ahead of their consumers while preserving Story 12-14 as the epic-end story.

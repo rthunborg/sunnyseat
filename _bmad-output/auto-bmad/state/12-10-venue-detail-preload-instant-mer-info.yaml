@@ -4,10 +4,10 @@ story_key: 12-10-venue-detail-preload-instant-mer-info
 epic_num: 12
 story_num: 10
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
-status: in-progress
-updated_at: "2026-07-26T19:06:30Z"
+status: done
+updated_at: "2026-07-27T14:58:37Z"
 started_at: "2026-07-26T15:43:49Z"
-completed_at: null
+completed_at: "2026-07-27T14:58:37Z"
 active_seconds: 11513
 timing_anchor: null
 is_first_in_epic: false
