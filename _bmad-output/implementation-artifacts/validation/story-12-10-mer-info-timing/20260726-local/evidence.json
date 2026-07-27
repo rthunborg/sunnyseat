@@ -11,15 +11,15 @@
         "detailRequestsBefore": 6,
         "detailRequestsAfter": 6,
         "detailRequestDelta": 0,
-        "clickToLoadedMs": 818.8,
+        "clickToLoadedMs": 568,
         "loadedMarker": "Loaded detail for prefetch-venue-1"
       },
-      "nonPrefetched": {
+      "selectedIntentCold": {
         "slug": "prefetch-venue-8",
         "detailRequestsBefore": 7,
         "detailRequestsAfter": 7,
         "detailRequestDelta": 0,
-        "clickToLoadedMs": 1505,
+        "clickToLoadedMs": 1492.5,
         "loadedMarker": "Loaded detail for prefetch-venue-8"
       }
     },
@@ -31,15 +31,15 @@
         "detailRequestsBefore": 6,
         "detailRequestsAfter": 6,
         "detailRequestDelta": 0,
-        "clickToLoadedMs": 1897,
+        "clickToLoadedMs": 1763,
         "loadedMarker": "Loaded detail for prefetch-venue-1"
       },
-      "nonPrefetched": {
+      "selectedIntentCold": {
         "slug": "prefetch-venue-8",
-        "detailRequestsBefore": 6,
+        "detailRequestsBefore": 7,
         "detailRequestsAfter": 7,
-        "detailRequestDelta": 1,
-        "clickToLoadedMs": 3565,
+        "detailRequestDelta": 0,
+        "clickToLoadedMs": 1537,
         "loadedMarker": "Loaded detail for prefetch-venue-8"
       }
     }

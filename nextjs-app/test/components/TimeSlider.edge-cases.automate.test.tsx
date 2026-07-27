@@ -169,3 +169,17 @@ describe('[11.2 automate] TimeSlider — a below-min controlled value displays c
     expect(screen.getByTestId('time-slider-value-badge')).toHaveTextContent('13:00');
   });
 });
+
+describe('[12.10 review] TimeSlider — after-hours live labels stay aligned with live results', () => {
+  it('keeps the thumb at the planner end while visible and aria text report the true live time', () => {
+    renderSlider({
+      minMinutes: 21 * 60,
+      selectedMinutes: 21 * 60 + 45,
+    });
+
+    const slider = screen.getByRole('slider', { name: 'Välj tid' });
+    expect(Number((slider as HTMLInputElement).value)).toBe(21 * 60);
+    expect(slider).toHaveAttribute('aria-valuetext', '21:45');
+    expect(screen.getByTestId('time-slider-value-badge')).toHaveTextContent('21:45');
+  });
+});

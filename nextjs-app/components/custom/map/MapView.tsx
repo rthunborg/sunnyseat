@@ -1,11 +1,11 @@
 'use client';
 
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
 import { AnimatePresence, motion } from 'motion/react';
 import { LoaderCircle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   VenueQuickInfo,
   type VenueQuickInfoDesktopPlacement,
@@ -158,6 +158,7 @@ export function MapView() {
   const tVenueList = useTranslations('venue.list');
   const tCommon = useTranslations('common');
   const locale = useLocale();
+  const queryClient = useQueryClient();
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
   const { selectedVenueId, selectedVenuePreview, selectVenue, toggleVenue } = useMapSelection();
@@ -165,7 +166,6 @@ export function MapView() {
   const plannerTime = useTimeContext();
   const favourites = useFavourites();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const forcedState = useForcedState();
@@ -305,7 +305,14 @@ export function MapView() {
   );
   const deferredPlanner = useDeferredValue(plannerArgs);
   const hasForcedPlannerSearchParam = searchParams.has('_date') || searchParams.has('_time');
-  const detailPrefetchPlannerReady = !hasForcedPlannerSearchParam || Boolean(plannerTime.plannerQuery);
+  const forcedPlannerDateParam = searchParams.get('_date')?.trim() || null;
+  const forcedPlannerTimeParam = searchParams.get('_time')?.trim() || null;
+  const forcedPlannerSearchParamsResolved =
+    (!forcedPlannerDateParam || plannerTime.selectedDate === forcedPlannerDateParam) &&
+    (!forcedPlannerTimeParam || plannerTime.selectedTime === forcedPlannerTimeParam);
+  const detailPrefetchPlannerReady =
+    !hasForcedPlannerSearchParam ||
+    (forcedPlannerSearchParamsResolved && Boolean(plannerTime.plannerQuery));
   const venueDetailParams = useMemo(
     () => ({
       ...plannerTime.plannerQuery,
@@ -880,13 +887,10 @@ export function MapView() {
       return;
     }
     cancelVenueDetailPrefetchCandidates(slug);
-    if (!coordsSettled || !detailPrefetchPlannerReady || !isOnline || showOfflineShell) {
-      return;
-    }
+    if (!detailPrefetchPlannerReady || !isOnline || showOfflineShell) return;
     void prefetchSelectedVenueDetail(queryClient, slug, venueDetailParams);
   }, [
     cancelVenueDetailPrefetchCandidates,
-    coordsSettled,
     detailPrefetchPlannerReady,
     isOnline,
     queryClient,

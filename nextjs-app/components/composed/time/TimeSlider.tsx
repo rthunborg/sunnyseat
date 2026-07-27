@@ -62,8 +62,12 @@ export function TimeSlider({
   const isDraggingRef = useRef(false);
   const isDragging = dragValue !== null;
   const displayMinutes = isDragging ? dragValue : clampMinutes(selectedMinutes, effectiveMin);
+  const displayLabelMinutes =
+    !isDragging && selectedMinutes > PLANNER_END_MINUTES
+      ? selectedMinutes
+      : displayMinutes;
 
-  const valueText = formatPlannerTime(displayMinutes);
+  const valueText = formatDisplayTime(displayLabelMinutes);
   const percent = progressPercent(displayMinutes);
   const elapsedPercent = progressPercent(effectiveMin);
   const activeTick = useMemo(() => closestTick(displayMinutes, ticks), [displayMinutes, ticks]);
@@ -249,6 +253,15 @@ function clampMinutes(minutes: number, min: number): number {
 
 function progressPercent(minutes: number): number {
   return ((minutes - PLANNER_START_MINUTES) / (PLANNER_END_MINUTES - PLANNER_START_MINUTES)) * 100;
+}
+
+function formatDisplayTime(minutes: number): string {
+  if (!Number.isFinite(minutes)) return formatPlannerTime(minutes);
+  const rounded = Math.round(minutes);
+  const hours = Math.floor(rounded / 60);
+  const remainder = rounded % 60;
+  if (hours < 0 || hours > 23 || remainder < 0) return formatPlannerTime(minutes);
+  return `${hours.toString().padStart(2, '0')}:${remainder.toString().padStart(2, '0')}`;
 }
 
 function closestTick(minutes: number, ticks: PlannerTick[]): PlannerTick {

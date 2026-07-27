@@ -1244,7 +1244,7 @@ describe('<MapView />', () => {
       expect(top - 170 - 40).toBeGreaterThanOrEqual(214 + 16);
     });
 
-    it('prioritizes the exact selected detail query when a map pin selects a venue', async () => {
+    it('cancels background detail prefetch and starts the selected detail key when a map pin selects a venue', async () => {
       useVenueSearchMock.mockReturnValue({
         data: makeVenueResponse([
           makeVenue({ id: 'venue-1', name: 'Bellora', slug: 'bellora' }),
@@ -1266,7 +1266,7 @@ describe('<MapView />', () => {
       expect(lastVenueDetailPrefetchParams()?.preserveVenueSlug).toBe('avenybaren');
       await waitFor(() =>
         expect(prefetchSelectedVenueDetailMock).toHaveBeenCalledWith(
-          expect.any(Object),
+          expect.any(QueryClient),
           'avenybaren',
           expect.objectContaining({ lat: 57.7089, lng: 11.9746 }),
         ),
@@ -1295,7 +1295,7 @@ describe('<MapView />', () => {
       expect(selectedVenueIdMock).toBeNull();
     });
 
-    it('prioritizes the exact selected detail query when a list row selects a venue', async () => {
+    it('cancels background detail prefetch and starts the selected detail key when a list row selects a venue', async () => {
       useVenueSearchMock.mockReturnValue({
         data: makeVenueResponse([
           makeVenue({ id: 'venue-1', name: 'Bellora', slug: 'bellora' }),
@@ -1315,7 +1315,7 @@ describe('<MapView />', () => {
       expect(lastVenueDetailPrefetchParams()?.preserveVenueSlug).toBe('avenybaren');
       await waitFor(() =>
         expect(prefetchSelectedVenueDetailMock).toHaveBeenCalledWith(
-          expect.any(Object),
+          expect.any(QueryClient),
           'avenybaren',
           expect.objectContaining({ lat: 57.7089, lng: 11.9746 }),
         ),
@@ -1324,6 +1324,61 @@ describe('<MapView />', () => {
         'venue-2',
         expect.objectContaining({ slug: 'avenybaren' }),
       );
+    });
+
+    it('starts one selected-intent detail prefetch for each explicit row selection', async () => {
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Bellora', slug: 'bellora' }),
+          makeVenue({ id: 'venue-2', name: 'Avenybaren', slug: 'avenybaren' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+      fireEvent.click(screen.getAllByRole('button', { name: /Välj Bellora/ })[0]);
+      await waitFor(() =>
+        expect(lastVenueDetailPrefetchParams()?.preserveVenueSlug).toBe('bellora'),
+      );
+      await waitFor(() =>
+        expect(prefetchSelectedVenueDetailMock).toHaveBeenCalledWith(
+          expect.any(QueryClient),
+          'bellora',
+          expect.objectContaining({ lat: 57.7089, lng: 11.9746 }),
+        ),
+      );
+      const firstInteractionToken = lastVenueDetailPrefetchParams()?.interactionToken ?? 0;
+
+      fireEvent.click(screen.getAllByRole('button', { name: /Välj Avenybaren/ })[0]);
+
+      await waitFor(() =>
+        expect(lastVenueDetailPrefetchParams()?.interactionToken).toBeGreaterThan(firstInteractionToken),
+      );
+      expect(lastVenueDetailPrefetchParams()?.preserveVenueSlug).toBe('avenybaren');
+      await waitFor(() => expect(prefetchSelectedVenueDetailMock).toHaveBeenCalledTimes(2));
+      expect(prefetchSelectedVenueDetailMock.mock.calls.map((call) => call[1])).toEqual([
+        'bellora',
+        'avenybaren',
+      ]);
+    });
+
+    it('does not enable forced-route detail prefetch until the URL planner time is resolved into context', () => {
+      searchParamsMock = new URLSearchParams('_time=14:00&_prefetch=venue-detail');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([
+          makeVenue({ id: 'venue-1', name: 'Bellora', slug: 'bellora' }),
+        ]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(lastVenueDetailPrefetchParams()?.enabled).toBe(false);
+      expect(useVenueDetailMock).toHaveBeenCalledWith(null, expect.any(Object));
     });
 
     it('passes the exact displayed distance order into initial detail prefetch when distance is selected before settle', async () => {
@@ -1843,7 +1898,7 @@ describe('<MapView />', () => {
       );
       await waitFor(() =>
         expect(prefetchSelectedVenueDetailMock).toHaveBeenCalledWith(
-          expect.any(Object),
+          expect.any(QueryClient),
           'venue-b',
           expect.objectContaining({ lat: 57.7089, lng: 11.9746 }),
         ),
@@ -3271,6 +3326,7 @@ describe('<MapView />', () => {
         expect.objectContaining({ slug: 'test-venue-sunny' }),
       );
       rerender(<MapView />);
+      expect(prefetchSelectedVenueDetailMock).not.toHaveBeenCalled();
 
       const quickInfos = screen.getAllByTestId('venue-quick-info');
       expect(screen.queryByTestId('mobile-venue-detail-sheet')).not.toBeInTheDocument();
@@ -3633,6 +3689,7 @@ function makeVenueResponse(venues: GetVenuesResponse['venues']): GetVenuesRespon
 }
 
 function lastVenueDetailPrefetchParams(): {
+  enabled: boolean;
   listVenues: GetVenuesResponse['venues'];
   favouriteVenueRows: GetVenuesResponse['venues'];
   interactionToken: number;

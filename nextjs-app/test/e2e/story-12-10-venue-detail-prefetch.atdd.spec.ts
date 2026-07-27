@@ -42,7 +42,7 @@ type ProjectTimingEvidence = {
   project: string;
   injectedDetailDelayMs: number;
   prefetched: OpenTiming;
-  nonPrefetched: OpenTiming;
+  selectedIntentCold: OpenTiming;
 };
 
 type TimingEvidenceAggregate = {
@@ -403,7 +403,7 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
     await expect.poll(() => network.detailCount(), { timeout: 750 }).toBeLessThanOrEqual(2);
   });
 
-  test('[P0] Mer info for a warmed candidate opens from cache and an unwarmed candidate uses the existing busy shell', async ({ page }, testInfo: TestInfo) => {
+  test('[P0] Mer info for a warmed candidate opens from cache and a selected cold candidate adopts the intent prefetch', async ({ page }, testInfo: TestInfo) => {
     await bypassOnboarding(page);
     const network = await mockListAndDetail(page);
 
@@ -441,12 +441,15 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
         timeout: APP_SETTLE_TIMEOUT_MS,
       })
       .toBe(1);
+    expect(network.detailCount() - coldIntentRequestsBefore).toBe(1);
     const coldStart = await page.evaluate(() => performance.now());
     const coldRequestsBefore = network.detailCount();
     await page.getByRole('button', { name: /Mer info/i }).click();
     const coldDetailSurface = visibleDetailSurface(page, 'Prefetch Venue 8');
     await expect(coldDetailSurface.getByRole('article', { name: 'Prefetch Venue 8' })).toHaveAttribute('aria-busy', 'true');
-    await expect.poll(() => network.detailCount(), { timeout: APP_SETTLE_TIMEOUT_MS }).toBe(7);
+    await expect(coldDetailSurface.getByTestId('venue-detail-loading-scrim')).toBeVisible();
+    await expect(coldDetailSurface.getByTestId('venue-detail-loading-spinner')).toBeVisible();
+    await expect.poll(() => network.detailCount(), { timeout: APP_SETTLE_TIMEOUT_MS }).toBe(coldRequestsBefore);
     const loadedColdDetailSurface = visibleDetailSurface(page, 'Prefetch Venue 8', 'Loaded detail for prefetch-venue-8');
     await expect(loadedColdDetailSurface.getByText('Loaded detail for prefetch-venue-8')).toBeVisible({
       timeout: APP_SETTLE_TIMEOUT_MS,
@@ -468,7 +471,7 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
       project: testInfo.project.name,
       injectedDetailDelayMs: COLD_DETAIL_DELAY_MS,
       prefetched: warmTiming,
-      nonPrefetched: coldTiming,
+      selectedIntentCold: coldTiming,
     };
     await testInfo.attach('story-12-10-mer-info-timing', {
       body: JSON.stringify(timingEvidence, null, 2),
@@ -515,8 +518,8 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
     await expect(page.locator('[data-testid="venue-pin"]').first()).toBeVisible();
   });
 
-  test('[P0] desktop early selected venue detail request is adopted by Mer info without duplicate fetch', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'desktop', 'desktop-specific early-click race');
+  test('[P0] desktop selected venue launches only the explicit selected-detail prefetch before Mer info', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'desktop-specific selected-intent regression');
     await forbidLiveMetno(page);
     await bypassOnboarding(page);
     const network = await mockListAndDetail(page, { delayAllDetailsMs: COLD_DETAIL_DELAY_MS });
@@ -526,6 +529,7 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
       state: 'visible',
       timeout: APP_SETTLE_TIMEOUT_MS,
     });
+    await expect.poll(() => network.detailCount(), { timeout: APP_SETTLE_TIMEOUT_MS }).toBe(6);
 
     await clickVisibleVenueCard(page, 'Prefetch Venue 8');
     await expect(
@@ -536,6 +540,7 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
         timeout: APP_SETTLE_TIMEOUT_MS,
       })
       .toBe(1);
+    expect(network.detailCount()).toBe(7);
 
     const detailRequestsBeforeOpen = network.detailCount();
     await page.getByRole('button', { name: /Mer info/i }).click();
@@ -552,7 +557,7 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
     ).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
 
     expect(detailSlugCount(network.detailUrls(), 'prefetch-venue-8')).toBe(1);
-    expect(network.detailCount()).toBeLessThanOrEqual(Math.max(detailRequestsBeforeOpen, 3));
-    expect(network.detailCount()).toBeLessThan(8);
+    expect(network.detailCount()).toBe(detailRequestsBeforeOpen);
+    expect(network.detailCount()).toBe(7);
   });
 });

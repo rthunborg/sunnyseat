@@ -301,7 +301,8 @@ export function VenueDetailContent({
 
         {reviewSlot}
       </div>
-      {loading ? <LoadingScrim label={labels.loading} /> : null}
+      {loading ? <LoadingScrim /> : null}
+      {loading ? <LoadingStatus label={labels.loading} /> : null}
     </article>
   );
 }
@@ -511,19 +512,32 @@ function LoadingBlock() {
   );
 }
 
-function LoadingScrim({ label }: { label: string }) {
+function LoadingScrim() {
   return (
     <div
-      aria-label={label}
-      aria-live="polite"
-      className="absolute inset-0 z-pin flex items-center justify-center bg-text-primary/20 backdrop-blur-standard"
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-bottom-sheet-peek flex items-center justify-center bg-text-primary/20 backdrop-blur-standard"
       data-testid="venue-detail-loading-scrim"
-      role="status"
     >
       <LoaderCircle
         aria-hidden="true"
         className="size-8 text-text-primary motion-safe:animate-spin"
+        data-testid="venue-detail-loading-spinner"
       />
+    </div>
+  );
+}
+
+function LoadingStatus({ label }: { label: string }) {
+  return (
+    <div
+      aria-label={label}
+      aria-live="polite"
+      className="sr-only"
+      data-testid="venue-detail-loading-status"
+      role="status"
+    >
+      {label}
     </div>
   );
 }

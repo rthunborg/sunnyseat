@@ -70,7 +70,7 @@ describe('Story 12.10 ATDD - cache-miss detail shell', () => {
     expect(enVenue.detail?.loading).toBeTruthy();
   });
 
-  test('[P1] cache-miss shell keeps identity, aria-busy, one visible polite status, stable skeletons, and retry-capable chrome', () => {
+  test('[P1] cache-miss shell keeps identity, aria-busy, visible loading scrim, one polite status, stable skeletons, and retry-capable chrome', () => {
     render(
       <VenueDetailContent
         fallbackVenue={FALLBACK_VENUE}
@@ -92,13 +92,9 @@ describe('Story 12.10 ATDD - cache-miss detail shell', () => {
       'aria-live',
       'polite',
     );
-    expect(screen.getByTestId('venue-detail-loading-scrim')).toHaveClass(
-      'bg-text-primary/20',
-      'backdrop-blur-standard',
-    );
-    expect(
-      screen.getByTestId('venue-detail-loading-scrim').querySelector('svg'),
-    ).toHaveClass('size-8', 'text-text-primary', 'motion-safe:animate-spin');
+    expect(screen.getByTestId('venue-detail-loading-status')).toHaveClass('sr-only');
+    expect(screen.getByTestId('venue-detail-loading-scrim')).toBeVisible();
+    expect(screen.getByTestId('venue-detail-loading-spinner')).toBeVisible();
     expect(screen.getAllByTestId('venue-detail-skeleton').length).toBeGreaterThan(2);
     expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeEnabled();
   });

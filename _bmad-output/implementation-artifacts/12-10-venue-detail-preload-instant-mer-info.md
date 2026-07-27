@@ -441,6 +441,21 @@ Codex GPT-5 auto-bmad delegate
 - **Security review**
   - Result: PASS, 0 findings.
 
+#### Human-feedback Re-review (2026-07-26)
+
+- [x] [Review][Product Override][High] Explicit selected-intent detail prefetch is required and bounded [nextjs-app/components/custom/map/MapView.tsx:876]
+  - Triage: superseded by direct product instruction on 2026-07-27. The stale review treated selected-intent prefetch as a defect, but explicit user pin/list selection must now immediately prefetch exactly that venue detail key so `Mer info` can reuse/adopt it.
+  - Resolution: explicit MapView pin selection, list-row selection, and open-detail A-to-B pin switching cancel background candidate work, preserve the selected slug, and call `prefetchSelectedVenueDetail` for that exact slug/params. Passive/default/forced URL selection remains effect-driven and does not call selected-intent prefetch. The initial settled background preload remains bounded to at most six candidates with concurrency two; an explicit selected-intent request after real interaction may be the seventh and is deduplicated by TanStack Query.
+  - Tests: `MapView.test.tsx` explicit-vs-passive selected-intent coverage and Story 12.10 desktop/mobile Playwright request-count checks.
+- [x] [Review][Patch][Med] After-21 live results use the true wall-clock while the visible and ARIA slider still reports 21:00 [nextjs-app/components/composed/time/TimeSlider.tsx:64]
+  - Triage: accepted.
+  - Resolution: `TimeSlider` keeps the thumb clamped to the planner end while its visible top-panel badge and `aria-valuetext` report the true after-hours live selected time.
+  - Tests: `TimeSlider.edge-cases.automate.test.tsx` after-hours label regression and Story 12.10 mobile exact-planner-param Playwright check.
+- [x] [Review][Product Override][Med] Cold-detail loading requires a visible token scrim and spinner [_bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md:251]
+  - Triage: superseded by direct product instruction on 2026-07-27. The stale no-visible-change/no-spinner constraint is overridden; a cold/loading venue detail must show a visible grey token scrim and loading spinner.
+  - Resolution: restored a visible token-based `bg-text-primary/20` + `backdrop-blur-standard` content scrim with `LoaderCircle` while retaining stable token skeletons underneath and one `sr-only` polite loading status. Close/favourite/share chrome stays outside the content scrim and remains usable.
+  - Tests: `VenueDetailContent.test.tsx`, `VenueDetailOverlay.test.tsx`, Story 12.10 cache-miss shell ATDD, and Story 12.10 desktop/mobile Playwright check the busy shell/scrim path.
+
 ### Debug Log References
 
 - Baseline before edits: `npx tsc --noEmit`; `npx eslint . --quiet`.
@@ -505,6 +520,22 @@ Codex GPT-5 auto-bmad delegate
 - Human remediation - night/live-time focused guard:
   `npx vitest run test/unit/TimeContext.test.tsx test/unit/services/sun-geometry-persisted-outcome.automate.test.ts`
   -> 2 files / 26 tests passed. `npx tsc --noEmit` -> passed. `npx eslint . --quiet` -> passed.
+- Human-feedback re-review finish:
+  `npx vitest run test/components/MapView.test.tsx test/components/TimeSlider.edge-cases.automate.test.tsx test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts`
+  -> 3 files / 137 tests passed. `npx tsc --noEmit` -> passed. `npx eslint . --quiet` -> passed.
+  `PLAYWRIGHT_PORT=3241 PLAYWRIGHT_BASE_URL=http://localhost:3241 npx playwright test test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts --project=desktop --workers=1`
+  -> 6 passed.
+  `PLAYWRIGHT_PORT=3242 PLAYWRIGHT_BASE_URL=http://localhost:3242 npx playwright test test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts --project=mobile --workers=1`
+  -> 4 passed, 2 skipped.
+- Product-direction reconciliation:
+  `npx vitest run test/components/MapView.test.tsx test/components/TimeSlider.edge-cases.automate.test.tsx test/components/VenueDetailContent.test.tsx test/components/VenueDetailOverlay.test.tsx test/components/story-12-10-venue-detail-cache-miss-shell.atdd.test.tsx test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts`
+  -> 6 files / 183 tests passed.
+  `PLAYWRIGHT_PORT=3251 PLAYWRIGHT_BASE_URL=http://localhost:3251 npx playwright test test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts --project=desktop --workers=1`
+  -> 6 passed.
+  `PLAYWRIGHT_PORT=3252 PLAYWRIGHT_BASE_URL=http://localhost:3252 npx playwright test test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts --project=mobile --workers=1`
+  -> 4 passed, 2 skipped (desktop-only tests).
+  `npx tsc --noEmit` -> passed.
+  `npx eslint . --quiet` -> passed.
 
 ### Completion Notes List
 
@@ -531,9 +562,10 @@ Codex GPT-5 auto-bmad delegate
 - Review fix: malformed detail slug and public not-found responses again include the generic `status` field in their
   JSON body while preserving non-leaking public error text.
 - Local timing evidence: `_bmad-output/implementation-artifacts/validation/story-12-10-mer-info-timing/20260726-local/evidence.json`
-  with 1500 ms injected cold-detail delay. Desktop warmed open: 0 new detail requests, 749 ms; desktop cold open:
-  1 new detail request, 2812.5 ms. Mobile warmed open: 0 new detail requests, 1667 ms; mobile cold open:
-  1 new detail request, 3395 ms.
+  with 1500 ms injected cold-detail delay. Desktop warmed open: 0 new detail requests from `Mer info`, 568 ms; desktop selected-intent cold open:
+  selected row click starts the single detail request, `Mer info` adds 0 more, 1492.5 ms. Mobile warmed open:
+  0 new detail requests from `Mer info`, 1763 ms; mobile selected-intent cold open: selected row click starts the single detail request,
+  `Mer info` adds 0 more, 1537 ms.
 - Advisory traceability completed for Story 12.10: 10/10 traced items `FULL`, P0 6/6, P1 4/4, no endpoint/auth/error/UI-state gaps, and machine summary written without `gate_status` because this trace is advisory-only.
 - Protected preview/live evidence was not run in this delegate because no credentials were provided; defer to the
   release lane.
@@ -543,6 +575,9 @@ Codex GPT-5 auto-bmad delegate
   wall-clock selected time and omit planner query params instead of aliasing to 21:00; persisted selected-instant
   outcomes now return public `NoSun`/0 when the requested instant is actually below horizon, while preserving a genuine
   low-angle daylight 25% nearest planner step. This addendum did not move story or sprint status.
+- Product-direction reconciliation: restored required explicit selected-intent detail prefetch for real pin/list/A-to-B
+  interactions while keeping passive/default selection from starting the extra request; restored the required visible
+  grey token scrim + spinner for cold/loading detail while preserving skeletons and one polite loading status.
 
 ### File List
 
@@ -552,6 +587,7 @@ Codex GPT-5 auto-bmad delegate
 - `nextjs-app/hooks/queries/useVenueDetail.ts`
 - `nextjs-app/hooks/queries/useVenueDetailPrefetch.ts`
 - `nextjs-app/components/custom/map/MapView.tsx`
+- `nextjs-app/components/composed/time/TimeSlider.tsx`
 - `nextjs-app/components/custom/map/VenuePinLayer.tsx`
 - `nextjs-app/components/custom/sheets/MobileBottomSheet.tsx`
 - `nextjs-app/app/api/venues/[slug]/route.ts`
@@ -562,6 +598,7 @@ Codex GPT-5 auto-bmad delegate
 - `nextjs-app/test/unit/services/sun-geometry-persisted-outcome.automate.test.ts`
 - `nextjs-app/test/unit/api/story-12-10-detail-public-resolver.atdd.test.ts`
 - `nextjs-app/test/components/story-12-10-venue-detail-cache-miss-shell.atdd.test.tsx`
+- `nextjs-app/test/components/TimeSlider.edge-cases.automate.test.tsx`
 - `nextjs-app/test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts`
 - `nextjs-app/test/e2e/map-primary.spec.ts`
 - `nextjs-app/test/components/MapView.test.tsx`
@@ -575,3 +612,4 @@ Codex GPT-5 auto-bmad delegate
 - `_bmad-output/test-artifacts/traceability/e2e-trace-summary-12-10-venue-detail-preload-instant-mer-info.json`
 - `_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-12-10-2026-07-26T21-01-02+02-00.json`
 - `_bmad-output/implementation-artifacts/validation/story-12-10-mer-info-timing/20260726-local/evidence.json`
+- `_bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md`
