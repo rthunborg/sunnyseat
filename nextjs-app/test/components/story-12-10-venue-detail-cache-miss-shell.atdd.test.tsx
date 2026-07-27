@@ -93,7 +93,10 @@ describe('Story 12.10 ATDD - cache-miss detail shell', () => {
       'polite',
     );
     expect(screen.getByTestId('venue-detail-loading-status')).toHaveClass('sr-only');
-    expect(screen.getByTestId('venue-detail-loading-scrim')).toBeVisible();
+    const loadingScrim = screen.getByTestId('venue-detail-loading-scrim');
+    expect(loadingScrim).toBeVisible();
+    expect(loadingScrim).toHaveClass('backdrop-blur-subtle');
+    expect(loadingScrim).not.toHaveClass('backdrop-blur-standard');
     expect(screen.getByTestId('venue-detail-loading-spinner')).toBeVisible();
     expect(screen.getAllByTestId('venue-detail-skeleton').length).toBeGreaterThan(2);
     expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeEnabled();

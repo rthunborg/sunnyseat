@@ -4,7 +4,7 @@ baseline_commit: baf0d8b18df4b5542cf2ffa4b9c3528988dc338c
 
 # Story 12.10: Venue Detail Preload - Instant "Mer info"
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -453,7 +453,7 @@ Codex GPT-5 auto-bmad delegate
   - Tests: `TimeSlider.edge-cases.automate.test.tsx` after-hours label regression and Story 12.10 mobile exact-planner-param Playwright check.
 - [x] [Review][Product Override][Med] Cold-detail loading requires a visible token scrim and spinner [_bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md:251]
   - Triage: superseded by direct product instruction on 2026-07-27. The stale no-visible-change/no-spinner constraint is overridden; a cold/loading venue detail must show a visible grey token scrim and loading spinner.
-  - Resolution: restored a visible token-based `bg-text-primary/20` + `backdrop-blur-standard` content scrim with `LoaderCircle` while retaining stable token skeletons underneath and one `sr-only` polite loading status. Close/favourite/share chrome stays outside the content scrim and remains usable.
+  - Resolution: restored a visible token-based `bg-text-primary/20` content scrim with `LoaderCircle` while retaining stable token skeletons underneath and one `sr-only` polite loading status. A later human-feedback refinement replaced the scrim blur token with `backdrop-blur-subtle` so loading remains unambiguous without making the underlying loading content unrecognizable. Close/favourite/share chrome stays outside the content scrim and remains usable.
   - Tests: `VenueDetailContent.test.tsx`, `VenueDetailOverlay.test.tsx`, Story 12.10 cache-miss shell ATDD, and Story 12.10 desktop/mobile Playwright check the busy shell/scrim path.
 
 #### Final Human-Feedback Re-review (2026-07-27)
@@ -593,6 +593,11 @@ Codex GPT-5 auto-bmad delegate
   Individually green focused Playwright cases: mobile geometry contract, mobile planner params-to-venues, and desktop selected-intent prefetch-before-`Mer info`.
   Full Playwright -> 151 passed, 65 skipped, 1 failed; the only failure was mobile planner params-to-venues timing out in-suite, then the exact fresh-port rerun passed. This is recorded as a known suite-order/timing flake; the full suite itself is not claimed all-green.
   Final guard audit also ran focused Vitest `MapView` -> 6 passed, plus cache-miss/`TimeSlider` edge coverage -> 13 passed.
+- Human-feedback blur refinement:
+  Baseline before production edits: `npx tsc --noEmit` -> passed; `npx eslint . --quiet` -> passed.
+  Focused guard: `npx vitest run test/components/story-12-10-venue-detail-cache-miss-shell.atdd.test.tsx test/components/VenueDetailContent.test.tsx`
+  -> 2 files / 27 tests passed, including the regression that the loading scrim uses `backdrop-blur-subtle` and does not use `backdrop-blur-standard`.
+  Final checks: `npx tsc --noEmit` -> passed; `npx eslint . --quiet` -> passed.
 
 ### Completion Notes List
 
@@ -651,6 +656,14 @@ Codex GPT-5 auto-bmad delegate
   `_bmad-output/implementation-artifacts/validation/12-10-venue-detail-preload-instant-mer-info-review-20260727-135556.log`:
   lint pass, typecheck pass, Vitest 197 files passed/2 skipped and 1825 tests passed/15 skipped, no mapped visual
   screen, and sprint transition to `review`.
+- Human-feedback blur refinement: the cache-miss loading scrim now uses the existing `backdrop-blur-subtle` token while preserving `bg-text-primary/20`, spinner, stable skeletons, `aria-busy`, usable shell chrome, and the single polite `Laddar platsinformation` status; no reference PNG or `REBASELINE-LOG.md` change was made, and the story remains `in-progress` for orchestrator-owned review handoff.
+- Human UAT visual evidence for the less-blur refinement was recorded at
+  `_bmad-output/implementation-artifacts/validation/story-12-10-human-uat/20260727-less-blur/`.
+  Mobile 390x844 and desktop 1440x900 captures both prove computed `backdrop-filter: blur(1.5px)`, token-grey
+  `bg-text-primary/20` scrim, visible spinner, 6 visible skeletons, exactly one polite Swedish status,
+  `aria-busy="true"` during the held cold-detail request and `aria-busy="false"` after release, with 0 console errors
+  and 0 page errors. This was evidence-only; authoritative reference PNGs and `REBASELINE-LOG.md` were unchanged, and
+  story status remains `in-progress`.
 
 ### File List
 
@@ -685,4 +698,9 @@ Codex GPT-5 auto-bmad delegate
 - `_bmad-output/test-artifacts/traceability/e2e-trace-summary-12-10-venue-detail-preload-instant-mer-info.json`
 - `_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-12-10-2026-07-26T21-01-02+02-00.json`
 - `_bmad-output/implementation-artifacts/validation/story-12-10-mer-info-timing/20260726-local/evidence.json`
+- `_bmad-output/implementation-artifacts/validation/story-12-10-human-uat/20260727-less-blur/evidence.json`
+- `_bmad-output/implementation-artifacts/validation/story-12-10-human-uat/20260727-less-blur/evidence.md`
+- `_bmad-output/implementation-artifacts/validation/story-12-10-human-uat/20260727-less-blur/mobile-390x844-venue-detail-loading.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-10-human-uat/20260727-less-blur/desktop-1440x900-venue-detail-loading.png`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `_bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md`

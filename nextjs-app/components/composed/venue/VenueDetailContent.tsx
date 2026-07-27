@@ -516,7 +516,7 @@ function LoadingScrim() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 z-bottom-sheet-peek flex items-center justify-center bg-text-primary/20 backdrop-blur-standard"
+      className="pointer-events-none absolute inset-0 z-bottom-sheet-peek flex items-center justify-center bg-text-primary/20 backdrop-blur-subtle"
       data-testid="venue-detail-loading-scrim"
     >
       <LoaderCircle
