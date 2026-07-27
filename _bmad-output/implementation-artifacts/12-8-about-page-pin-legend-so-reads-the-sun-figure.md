@@ -4,7 +4,7 @@ baseline_commit: NO_VCS
 
 # Story 12.8: About Page — Pin Legend + "So Reads the Sun Figure"
 
-Status: review
+Status: done
 
 screen_id: about
 

@@ -4,11 +4,11 @@ story_key: 12-8-about-page-pin-legend-so-reads-the-sun-figure
 epic_num: 12
 story_num: 8
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
-status: in-progress
-updated_at: "2026-07-27T19:49:57Z"
+status: done
+updated_at: "2026-07-27T19:52:53Z"
 started_at: "2026-07-27T18:12:39Z"
-completed_at: null
-active_seconds: 3320
+completed_at: "2026-07-27T19:52:53Z"
+active_seconds: 3410
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [6d0d44d, a5f51cc, 439cafe, 32b146e, 67ac36b]
+commits: [6d0d44d, a5f51cc, 439cafe, 32b146e, 67ac36b, 8fedff5]
 phase8_steps:
   trace_gate: null
   nfr: null

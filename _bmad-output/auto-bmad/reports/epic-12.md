@@ -378,3 +378,54 @@ No Story 12.5 review finding was deferred.
 1. Review and approve or reject the four Story 12.5 manual visual evidence images before anchor landing.
 
 **Next:** On approval, record Story 12.5 human acceptance and UAT, land it atomically on the epic anchor, then start Story 12.8.
+
+## Report — 2026-07-27T19:07:49Z (halted — needs-human)
+
+**Epic:** `12` — 14 stories.
+**Branch:** `epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene` (HEAD `67ac36b`).
+**Pipeline status:** Halted at Story 12.8 Tier-A review; explicit human visual acceptance is the sole remaining finding before the thin review can complete.
+**Continues:** 2026-07-27T17:14:07Z (halted — needs-human)
+
+**Summary:** Story 12.5 was visually approved and landed. Story 12.8 is fully implemented at BMAD review with clean typecheck, lint, unit, accessibility, automation, and security evidence; only its candidate visuals await approval.
+
+**Timing:** started 2026-07-18T11:27:25Z; completed in progress — elapsed 223h 40m (≈39h 54m AI-run, ≈183h 46m human/idle wait); resumed 8×.
+
+**Stories:**
+1. 12-1 was already done before this epic run.
+2. 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, 12-10, and 12-5 are landed.
+3. 12-8 is review-ready: implementation and automation green; Tier-A Critical 0 / High 1 / Med 0 / Low 0, where the sole High Decision is explicit visual acceptance; security clean.
+4. 12-11, 12-2, and 12-14 have not started in the confirmed dependency order.
+
+**Skipped (already done):** 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours (already done before this epic run).
+
+**Integration review:** Not reached; Story 12.8 awaits visual acceptance and Tier-A completion.
+
+**Epic gate:** Not reached; later stories remain.
+
+**TEA:** Story 12.8 Medium risk: post-dev automate completed. Full Vitest, typecheck, lint, About desktop/mobile axe, and focused copy-contract tests passed; two unrelated mobile Playwright flakes passed on exact rerun.
+
+**UAT:**
+1. Review the focused mobile legend candidate -> both amber sunny and grey not-sunny cards plus the 70% explanation are fully visible above the fixed navigation.
+2. Review the mobile full-page and desktop candidates -> the About page remains coherent across breakpoints, contains no public 85% accuracy claim, and explains that 70% is seating-area share rather than probability.
+
+**Overrides:** User-confirmed dependency order; per-story human visual review enabled; providerless manual visual evidence authorized.
+
+**Open questions:**
+1. Approve or reject the Story 12.8 mobile full-page, focused mobile legend, and desktop About candidates.
+
+**Deferred work:**
+1. [12-3] Capture protected-production 42+ venue cold-p95 evidence and verify the protected GitHub Production environment when access is available.
+2. [12-7] Apply 20260718214954_add_public_venue_visibility.sql before deployment, regenerate Supabase types, and verify no contract diff.
+3. [12-12] Apply 20260719000000_venue_media_storage.sql before hosted venue media use and verify protected Supabase Storage bucket/RLS behavior.
+No Story 12.8 review finding was deferred.
+
+**Auto-decided (epic mode):**
+1. [12-7] Adopted the architecture-backed canonical hidden boolean migration/type contract after schema probes found the referenced visibility columns absent.
+2. [12-5] Retained the accessibility-safe public pin color with explicit human visual acceptance evidence.
+
+**Planning drift:** None; Story 12.8 remains within the maintainer-approved dependency order and trust scope.
+
+**⚠️ Needs human:**
+1. Review and approve or reject the three Story 12.8 visual candidates before Tier-A completion and anchor landing.
+
+**Next:** On approval, resolve the Story 12.8 visual decision, complete Tier A and UAT, land it atomically, then start Story 12.11.
