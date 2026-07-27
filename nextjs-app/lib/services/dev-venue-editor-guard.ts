@@ -40,6 +40,9 @@ function hasForwardedHostAmbiguity(headers: Headers): boolean {
 
 function isLoopbackRequest(request: Request): boolean {
   const url = new URL(request.url);
+  const requestHost = hostnameFromHostHeader(url.host);
+  if (!requestHost || !LOOPBACK_HOSTS.has(requestHost)) return false;
+
   const hostHeader = request.headers.get('host') ?? url.host;
   const host = hostnameFromHostHeader(hostHeader);
   if (!host || !LOOPBACK_HOSTS.has(host)) return false;

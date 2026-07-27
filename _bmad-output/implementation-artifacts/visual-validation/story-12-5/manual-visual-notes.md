@@ -22,6 +22,17 @@ Captured implementation screenshots:
 - `mobile-venue-detail.png`
 - `desktop-venue-detail.png`
 
+Decision evidence:
+
+- The implementation screenshots above were captured after the Story 12.5 accessibility
+  correction that changed the sunny public pin percent/icon color to the
+  `text-text-primary` design token.
+- The manual acceptance decision for Story 12.5 is to retain that a11y-safe pin color
+  because the captured gate-off map/detail package was reviewed with the correction
+  present and no editor chrome or unrelated public layout change was accepted.
+- No reference PNGs were replaced in this pass; this file is the explicit acceptance
+  artifact for the Story 12.5 gate-off visual decision.
+
 Reference screenshots compared:
 
 - `nextjs-app/docs/design/references/screens/mobile/map-primary.png`

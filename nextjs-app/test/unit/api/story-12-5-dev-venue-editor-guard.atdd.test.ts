@@ -97,10 +97,19 @@ describe('Story 12.5 dev venue editor guard', () => {
         },
       }),
     );
+    const spoofedHost = await GET(
+      request('https://sunnyseat.example/api/dev/venues', {
+        headers: {
+          host: 'localhost:3000',
+          origin: 'http://localhost:3000',
+        },
+      }),
+    );
 
     expect(remote.status).toBe(403);
     expect(forwarded.status).toBe(403);
     expect(forwardedProto.status).toBe(403);
+    expect(spoofedHost.status).toBe(403);
     expect(listDevEditorVenuesMock).not.toHaveBeenCalled();
   });
 

@@ -338,8 +338,8 @@ function parseThumbnail(
   });
 
   const errors: string[] = [];
-  if (value.alt !== undefined && !alt) errors.push('thumbnail alt cannot be empty');
-  if (value.initials !== undefined && !initials) errors.push('thumbnail initials cannot be empty');
+  if (!alt) errors.push('thumbnail alt is required');
+  if (!initials) errors.push('thumbnail initials are required');
   if (value.cardUrl !== undefined && !cardUrl) errors.push('thumbnail cardUrl must be a managed venue-media card.webp URL for this slug');
   if (value.heroUrl !== undefined && !heroUrl) errors.push('thumbnail heroUrl must be a managed venue-media hero.webp URL for this slug');
   if (errors.length > 0) return { ok: false, errors };

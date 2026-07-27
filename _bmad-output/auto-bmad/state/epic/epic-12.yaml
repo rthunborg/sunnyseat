@@ -5,10 +5,10 @@ epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-27T16:45:15Z"
+updated_at: "2026-07-27T17:06:04Z"
 started_at: "2026-07-18T11:27:25Z"
 completed_at: null
-active_seconds: 138933
+active_seconds: 140166
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -68,6 +68,7 @@ stories_landed:
   - 12-10-venue-detail-preload-instant-mer-info
 auto_decisions:
   - "[12-7] Adopted the architecture-backed canonical `hidden boolean not null default false` migration/type contract after live/schema probes proved all previously referenced visibility columns absent; no protected database mutation was performed."
+  - "Gate-off public map pins are no longer pixel unchanged [Med] → fix: keep the a11y-safe pin color only with explicit visual rebaseline/acceptance evidence; otherwise move or revert that public pin change out of Story 12.5. (Tier A, 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields)"
 uat_items:
   - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify a cold protected-production /api/venues central-viewport request for the 42+ venue dataset returns p95 <= ~5s with logs proving persisted geometry reads and zero request-path shadow/provider recompute."
   - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify missing current geometry_input_hash coverage returns machine-readable 503 SUN_GEOMETRY_COVERAGE_MISSING instead of omitting sunDaySeries or recomputing shadows."

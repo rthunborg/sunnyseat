@@ -89,6 +89,7 @@ export async function patchDevEditorVenue(
   }
 
   await verifyThumbnailMediaIfNeeded(client, current, parsed.patch);
+  const thumbnailForWrite = buildThumbnailForWrite(current, parsed.patch);
   const { data, error } = await client.rpc('apply_dev_venue_editor_patch', {
     p_venue_id: requiredString(current.id, 'id'),
     p_update_display_coordinates: parsed.patch.updateDisplayLocation,
@@ -103,7 +104,7 @@ export async function patchDevEditorVenue(
     p_update_description: parsed.patch.updateDescription,
     p_description: parsed.patch.description ?? null,
     p_update_thumbnail: parsed.patch.updateThumbnail,
-    p_thumbnail: (parsed.patch.thumbnail ?? null) as Json | null,
+    p_thumbnail: thumbnailForWrite as Json | null,
     p_dirty_reason: 'dev-venue-editor-seating-area',
   });
   if (error) {
@@ -114,6 +115,17 @@ export async function patchDevEditorVenue(
   const updated = await readDevEditorVenueRowById(client, requiredString(current.id, 'id'));
   if (!updated) throw new DevVenueEditorError('Venue not found after update', 503);
   return rowToDevEditorVenue(updated);
+}
+
+function buildThumbnailForWrite(
+  row: DevVenueEditorRow,
+  patch: ParsedDevVenueEditorPatch,
+): VenueThumbnailDto | null {
+  if (!patch.updateThumbnail || !patch.thumbnail) return null;
+  const legacyUrl = row.thumbnail?.url?.trim();
+  return legacyUrl
+    ? { ...patch.thumbnail, url: legacyUrl }
+    : patch.thumbnail;
 }
 
 async function resolveDevEditorVenueRow(

@@ -593,6 +593,21 @@ Codex GPT-5 auto-bmad dev-story delegate
   guard ambiguity and id-to-slug editor query invalidation. Reran focused changed
   Vitest (2 files / 5 tests passed), typecheck, lint, focused Story 12.5 Vitest
   (9 files / 36 tests passed), and focused Story 12.5 Playwright (4 passed).
+- 2026-07-27: Tier-A code-review fix pass baseline checks passed:
+  `npx tsc --noEmit` and `npx eslint . --quiet` from `nextjs-app/`.
+- 2026-07-27: Tier-A code-review fix pass changed-test Vitest passed:
+  `npx vitest run test/unit/api/story-12-5-dev-venue-editor-guard.atdd.test.ts
+  test/unit/services/story-12-5-dev-venue-editor-validation.atdd.test.ts
+  test/unit/services/story-12-5-dev-venue-editor-store.automation.test.ts`
+  (3 files / 21 tests passed).
+- 2026-07-27: Tier-A code-review fix pass focused Story 12.5 Vitest passed:
+  9 files / 38 tests passed.
+- 2026-07-27: Tier-A code-review fix pass focused Story 12.5 Playwright passed:
+  `npx playwright test test/e2e/story-12-5-dev-venue-editor.spec.ts`
+  (4/4 across desktop and mobile).
+- 2026-07-27: Tier-A code-review fix pass full `npx vitest run` passed on rerun:
+  206 files passed, 2 skipped; 1868 tests passed, 15 skipped. Non-fatal jsdom
+  warning: `Not implemented: navigation to another Document`.
 
 ### Completion Notes
 
@@ -622,6 +637,10 @@ Codex GPT-5 auto-bmad dev-story delegate
 - Ready for review: sprint status is `review` via the canonical story-review wrapper.
   The only residual broad-suite note is the previously reproduced unrelated Story 12.10
   full mobile+desktop Playwright assertion recorded in Debug Log References.
+- Addressed Tier-A review findings by retaining the sunny pin `text-text-primary`
+  accessibility correction with explicit manual visual acceptance evidence, hardening
+  loopback validation against spoofed `Host` headers, and preventing thumbnail writes
+  from dropping legacy `url` fallbacks or saving blank non-null text fields.
 
 ### File List
 
@@ -697,3 +716,11 @@ Codex GPT-5 auto-bmad dev-story delegate
   `review`.
 - 2026-07-27: Expanded post-review automation for forwarded-proto fail-closed guard
   behavior and id-to-slug editor query invalidation.
+- 2026-07-27: Addressed Tier-A code review findings: visual acceptance evidence,
+  spoofed-host guard hardening, and thumbnail fallback/text validation.
+
+### Review Findings
+
+- [x] [Review][Decision][Med] Gate-off public map pins are no longer pixel unchanged — `nextjs-app/components/custom/map/VenuePin.tsx` changed the normal sunny pin percent/icon color from `text-amber-cta-text` to `text-text-primary`, while the Design Gate requires dev-flag-off map/detail pixels and references to remain unchanged. Recommended: fix: keep the a11y-safe pin color only with an explicit visual rebaseline/acceptance artifact; otherwise move or revert the public pin contrast change out of Story 12.5 so gate-off pixels remain unchanged.
+- [x] [Review][Patch][Med] Spoofable loopback check lets exposed dev servers accept service-role editor calls [nextjs-app/lib/services/dev-venue-editor-guard.ts:41]
+- [x] [Review][Patch][Med] Thumbnail edits drop legacy `url` fallback and can save incomplete thumbnail text fields [nextjs-app/lib/services/dev-venue-editor-validation.ts:317]

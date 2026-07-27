@@ -239,4 +239,62 @@ describe('Story 12.5 dev venue editor store writes', () => {
       }),
     );
   });
+
+  it('preserves an existing legacy thumbnail url fallback when writing editor-managed renditions', async () => {
+    const legacyUrl = 'https://example.com/legacy-patio.jpg';
+    supabaseMock.state.resolveResult = {
+      data: [
+        {
+          ...CURRENT_ROW,
+          thumbnail: {
+            alt: 'Legacy patio',
+            initials: 'LP',
+            url: legacyUrl,
+          },
+        },
+      ],
+      error: null,
+    };
+    supabaseMock.state.storageResults.set(
+      'test-venue-sunny/v20260727/card.webp',
+      { data: [storageFile('card.webp', 'image/webp', 82_000)], error: null },
+    );
+    supabaseMock.state.readByIdResult = {
+      data: {
+        ...CURRENT_ROW,
+        thumbnail: {
+          alt: 'Uteservering hos Kafé Magasinet',
+          initials: 'KM',
+          cardUrl: CARD_URL,
+          url: legacyUrl,
+        },
+      },
+      error: null,
+    };
+
+    const venue = await patchDevEditorVenue('test-venue-sunny', {
+      thumbnail: {
+        alt: 'Uteservering hos Kafé Magasinet',
+        initials: 'KM',
+        cardUrl: CARD_URL,
+      },
+    });
+
+    expect(supabaseMock.rpc).toHaveBeenCalledWith(
+      'apply_dev_venue_editor_patch',
+      expect.objectContaining({
+        p_update_thumbnail: true,
+        p_thumbnail: {
+          alt: 'Uteservering hos Kafé Magasinet',
+          initials: 'KM',
+          cardUrl: CARD_URL,
+          url: legacyUrl,
+        },
+      }),
+    );
+    expect(venue.thumbnail).toMatchObject({
+      cardUrl: CARD_URL,
+      url: legacyUrl,
+    });
+  });
 });

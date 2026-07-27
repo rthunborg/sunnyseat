@@ -239,4 +239,37 @@ describe('Story 12.5 dev venue editor validation', () => {
       errors: { thumbnail: expect.arrayContaining([expect.stringMatching(/legacy/i)]) },
     });
   });
+
+  it('rejects incomplete non-null thumbnail text fields instead of saving blank alt or initials', () => {
+    const missingAlt = parseDevVenueEditorPatch(
+      { thumbnail: { initials: 'KM' } },
+      CONTEXT,
+    );
+    const missingInitials = parseDevVenueEditorPatch(
+      { thumbnail: { alt: 'Uteservering hos Kafé Magasinet' } },
+      CONTEXT,
+    );
+    const blankText = parseDevVenueEditorPatch(
+      { thumbnail: { alt: '  ', initials: '  ' } },
+      CONTEXT,
+    );
+
+    expect(missingAlt).toMatchObject({
+      ok: false,
+      errors: { thumbnail: expect.arrayContaining([expect.stringMatching(/alt is required/i)]) },
+    });
+    expect(missingInitials).toMatchObject({
+      ok: false,
+      errors: { thumbnail: expect.arrayContaining([expect.stringMatching(/initials are required/i)]) },
+    });
+    expect(blankText).toMatchObject({
+      ok: false,
+      errors: {
+        thumbnail: expect.arrayContaining([
+          expect.stringMatching(/alt is required/i),
+          expect.stringMatching(/initials are required/i),
+        ]),
+      },
+    });
+  });
 });

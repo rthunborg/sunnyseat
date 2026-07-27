@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 5
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-27T16:45:15Z"
+updated_at: "2026-07-27T17:06:05Z"
 started_at: "2026-07-27T15:03:23Z"
 completed_at: null
-active_seconds: 5228
+active_seconds: 6461
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [8b83f95, 38ccb18, fa23bf2, f571337]
+commits: [8b83f95, 38ccb18, fa23bf2, f571337, 11325c9]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -57,3 +57,4 @@ constraints:
   - Preserve Story 12.12 card/hero venue-photo rendition contract and versioned media fields.
   - "The editor must be impossible to reach or execute in production; no active public route, client-side service-role secret, or production write path."
 tier_a_base_sha: 3054b20
+tier_a_review: "done — Changes Requested; Critical 0 / High 0 / Med 3 / Low 0; two patches fixed and one Medium decision auto-resolved to retain the accessibility-safe pin color with explicit manual visual acceptance; dedicated security Medium fixed"
