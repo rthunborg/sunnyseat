@@ -1,0 +1,92 @@
+{
+  "schema_version": "0.1.0",
+  "snapshot_at": "2026-07-27T19:16:00+02:00",
+  "repo": "sunnyseat",
+  "collection_mode": "advisory_story_scope",
+  "collection_status": "COLLECTED",
+  "inventory_basis": "acceptance_criteria",
+  "gate_basis": "none",
+  "source_sha": "",
+  "target": {
+    "type": "story",
+    "id": "12.5",
+    "label": "Dev-Only Venue Editor - Drag Pin, Paste Polygon, Persisted Hide/Show, Inline Fields"
+  },
+  "decision_mode": "advisory",
+  "evaluator": "Rasmus",
+  "confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/implementation-artifacts/12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields.md",
+      "_bmad-output/test-artifacts/atdd-checklist-12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields.md",
+      "_bmad-output/test-artifacts/automation-summary.md",
+      "project-context.md"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "advisory_status": "PASS",
+  "coverage": {
+    "inventory": {
+      "fully_covered": 8,
+      "partially_covered": 0,
+      "uncovered": 0,
+      "total": 8,
+      "full_pct": 100,
+      "covered_or_partial_pct": 100
+    },
+    "priority_breakdown": {
+      "P0": { "total": 6, "fully_covered": 6, "partially_covered": 0, "uncovered": 0, "full_pct": 100, "covered_or_partial_pct": 100 },
+      "P1": { "total": 2, "fully_covered": 2, "partially_covered": 0, "uncovered": 0, "full_pct": 100, "covered_or_partial_pct": 100 },
+      "P2": { "total": 0, "fully_covered": 0, "partially_covered": 0, "uncovered": 0, "full_pct": 100, "covered_or_partial_pct": 100 },
+      "P3": { "total": 0, "fully_covered": 0, "partially_covered": 0, "uncovered": 0, "full_pct": 100, "covered_or_partial_pct": 100 }
+    },
+    "by_level": {
+      "e2e": { "tests": 2, "criteria_covered": 2 },
+      "api": { "tests": 11, "criteria_covered": 6 },
+      "component": { "tests": 4, "criteria_covered": 4 },
+      "unit": { "tests": 25, "criteria_covered": 7 },
+      "other": { "tests": 1, "criteria_covered": 1 }
+    }
+  },
+  "tests": {
+    "primary_story_files": 10,
+    "primary_story_cases_mapped": 33,
+    "supporting_files_reviewed": 4,
+    "supporting_cases_mapped": 10,
+    "skipped_cases": 0,
+    "fixme_cases": 0,
+    "pending_cases": 0
+  },
+  "risk_summary": {
+    "critical_open": 0,
+    "high_open": 0,
+    "medium_open": 0,
+    "low_open": 0
+  },
+  "heuristics": {
+    "endpoint_gaps": 0,
+    "auth_negative_path_status": "present",
+    "error_path_status": "present",
+    "ui_journey_status": "present",
+    "ui_state_status": "present"
+  },
+  "material_gaps": [],
+  "uncovered_acceptance_criteria": [],
+  "blockers": [],
+  "recommendations": [
+    {
+      "priority": "LOW",
+      "action": "No remediation required from this advisory trace. Preserve the report with the Story 12.5 review packet.",
+      "requirements": []
+    }
+  ],
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-report-12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields.md",
+    "phase1_matrix_path": "_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-12-5-2026-07-27T19-16-00+02-00.json",
+    "trace_report_url": "",
+    "artifact_url": ""
+  }
+}
