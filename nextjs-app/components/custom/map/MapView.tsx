@@ -958,6 +958,7 @@ export function MapView() {
   const handleMapCanvasDeselect = useCallback(() => {
     if (canRequestVenueDetail && venueSlugParam) {
       handleDismissDetails();
+      selectVenue(null);
       return;
     }
     cancelVenueDetailPrefetchCandidates(null);

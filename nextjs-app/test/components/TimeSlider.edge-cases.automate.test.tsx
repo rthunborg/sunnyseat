@@ -182,4 +182,17 @@ describe('[12.10 review] TimeSlider — after-hours live labels stay aligned wit
     expect(slider).toHaveAttribute('aria-valuetext', '21:45');
     expect(screen.getByTestId('time-slider-value-badge')).toHaveTextContent('21:45');
   });
+
+  it('does not snap the controlled live value back to 21:00 on blur', () => {
+    const { onSnap, slider } = renderSlider({
+      minMinutes: 21 * 60,
+      selectedMinutes: 21 * 60 + 45,
+    });
+
+    fireEvent.blur(slider);
+
+    expect(onSnap).not.toHaveBeenCalled();
+    expect(slider).toHaveAttribute('aria-valuetext', '21:45');
+    expect(screen.getByTestId('time-slider-value-badge')).toHaveTextContent('21:45');
+  });
 });

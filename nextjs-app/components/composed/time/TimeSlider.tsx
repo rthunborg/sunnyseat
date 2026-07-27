@@ -62,8 +62,9 @@ export function TimeSlider({
   const isDraggingRef = useRef(false);
   const isDragging = dragValue !== null;
   const displayMinutes = isDragging ? dragValue : clampMinutes(selectedMinutes, effectiveMin);
+  const isAfterHoursLiveDisplay = !isDragging && selectedMinutes > PLANNER_END_MINUTES;
   const displayLabelMinutes =
-    !isDragging && selectedMinutes > PLANNER_END_MINUTES
+    isAfterHoursLiveDisplay
       ? selectedMinutes
       : displayMinutes;
 
@@ -125,6 +126,11 @@ export function TimeSlider({
     isDraggingRef.current = false;
     onMinutesChange(dragValue ?? clampMinutes(selectedMinutes, effectiveMin));
     setDragValue(null);
+    onSnap();
+  };
+
+  const handleBlur = () => {
+    if (isAfterHoursLiveDisplay) return;
     onSnap();
   };
 
@@ -208,7 +214,7 @@ export function TimeSlider({
               commit(PLANNER_END_MINUTES);
             }
           }}
-          onBlur={() => onSnap()}
+          onBlur={handleBlur}
           className="absolute inset-0 z-base h-11 w-full cursor-grab opacity-0 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary active:cursor-grabbing"
         />
         <div

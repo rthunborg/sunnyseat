@@ -456,6 +456,21 @@ Codex GPT-5 auto-bmad delegate
   - Resolution: restored a visible token-based `bg-text-primary/20` + `backdrop-blur-standard` content scrim with `LoaderCircle` while retaining stable token skeletons underneath and one `sr-only` polite loading status. Close/favourite/share chrome stays outside the content scrim and remains usable.
   - Tests: `VenueDetailContent.test.tsx`, `VenueDetailOverlay.test.tsx`, Story 12.10 cache-miss shell ATDD, and Story 12.10 desktop/mobile Playwright check the busy shell/scrim path.
 
+#### Final Human-Feedback Re-review (2026-07-27)
+
+- [x] [Review][Patch][High] Bare-map detail dismissal leaves the previous venue selected, so closing detail can reveal QuickInfo instead of returning to the bare map. [nextjs-app/components/custom/map/MapView.tsx:958]
+  - Triage: accepted. This matches the direct 2026-07-27 product direction that pin B switches an open A detail panel, while a bare-map click closes the detail state to the map.
+  - Trigger: open detail for venue A, click bare map canvas, `handleMapCanvasDeselect` calls `handleDismissDetails()` and returns without `selectVenue(null)`; `selectedPinData && !isVenueDetailRequested` can then render QuickInfo for A.
+  - Recommended: fix by clearing the selected venue when a bare-map click dismisses URL-owned detail, without regressing the pin A-to-B replacement path.
+  - Resolution: `handleMapCanvasDeselect` now clears local selection after dismissing URL-owned detail from a bare-map click, while the existing open-detail A-to-B pin replacement path still returns before local selection changes.
+  - Tests: `MapView.test.tsx` bare-canvas regression plus Story 12.10 desktop/mobile Playwright.
+- [x] [Review][Patch][High] After-21 live slider display can snap back to 21:00 on blur/snap, dropping the true live label/ARIA and reintroducing planner params. [nextjs-app/components/composed/time/TimeSlider.tsx:211]
+  - Triage: accepted. This matches the direct 2026-07-27 product direction that after-21 live label/ARIA remains the true wall-clock time while only the representational thumb is safely clamped.
+  - Trigger: during an after-21 live session, `TimeSlider` displays `selectedMinutes` for label/ARIA, but `onBlur={() => onSnap()}` still calls `TimeContext.snapSelectedMinutes`, which snaps through planner clamping and can convert the live value to `21:00`.
+  - Recommended: fix by making snap preserve after-hours live `selectedMinutes`/`isLiveNow` and only clamp the visual thumb.
+  - Resolution: `TimeSlider` now treats after-hours live display as a protected controlled value on blur, preserving the true wall-clock label/ARIA while the native thumb remains visually clamped at the planner end.
+  - Tests: `TimeSlider.edge-cases.automate.test.tsx` blur regression plus Story 12.10 desktop/mobile Playwright.
+
 ### Debug Log References
 
 - Baseline before edits: `npx tsc --noEmit`; `npx eslint . --quiet`.
@@ -536,6 +551,17 @@ Codex GPT-5 auto-bmad delegate
   -> 4 passed, 2 skipped (desktop-only tests).
   `npx tsc --noEmit` -> passed.
   `npx eslint . --quiet` -> passed.
+- Final human-feedback high patch pass:
+  `npx vitest run test/components/MapView.test.tsx test/components/TimeSlider.edge-cases.automate.test.tsx test/components/TimeSlider.test.tsx test/components/TimeSlider.dragdecouple.atdd.test.tsx`
+  -> first run 1 MapView expectation failure after production fix; rerun after test assertion correction -> 4 files / 141 tests passed.
+  `PLAYWRIGHT_PORT=3253 PLAYWRIGHT_BASE_URL=http://localhost:3253 npx playwright test test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts --project=desktop --workers=1`
+  -> setup failed before app assertions because a stale same-app `next dev` lock reset/refused connections; process was gone on inspection.
+  `PLAYWRIGHT_PORT=3254 PLAYWRIGHT_BASE_URL=http://localhost:3254 npx playwright test test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts --project=desktop --workers=1`
+  -> 6 passed.
+  `PLAYWRIGHT_PORT=3255 PLAYWRIGHT_BASE_URL=http://localhost:3255 npx playwright test test/e2e/story-12-10-venue-detail-prefetch.atdd.spec.ts --project=mobile --workers=1`
+  -> 4 passed, 2 skipped (desktop-only tests).
+  `npx tsc --noEmit` -> passed.
+  `npx eslint . --quiet` -> passed.
 
 ### Completion Notes List
 
@@ -578,6 +604,11 @@ Codex GPT-5 auto-bmad delegate
 - Product-direction reconciliation: restored required explicit selected-intent detail prefetch for real pin/list/A-to-B
   interactions while keeping passive/default selection from starting the extra request; restored the required visible
   grey token scrim + spinner for cold/loading detail while preserving skeletons and one polite loading status.
+- Final human-feedback high patch: bare-map canvas dismissal now returns from URL-owned detail to the bare map by
+  clearing selected venue state; open detail A-to-B pin replacement remains URL-only and preserves the selected-intent
+  prefetch path.
+- Final human-feedback high patch: after-21 live slider blur no longer calls the planner snap seam that could coerce the
+  live value to 21:00; visible label and `aria-valuetext` keep the true wall-clock time while the thumb stays clamped.
 
 ### File List
 

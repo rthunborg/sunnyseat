@@ -1905,7 +1905,7 @@ describe('<MapView />', () => {
       );
     });
 
-    it('dismisses an open detail from a bare canvas click without clearing the selected pin', async () => {
+    it('dismisses an open detail from a bare canvas click and clears the selected pin', async () => {
       selectedVenueIdMock = 'venue-a';
       selectedVenuePreviewMock = makeVenue({ id: 'venue-a', name: 'Aktiv plats', slug: 'venue-a' });
       searchParamsMock = new URLSearchParams('venue=venue-a&_state=venue-detail&foo=bar');
@@ -1927,8 +1927,7 @@ describe('<MapView />', () => {
       await waitFor(() =>
         expect(lastVenueDetailPrefetchParams()?.preserveVenueSlug).toBeNull(),
       );
-      expect(selectVenueMock).not.toHaveBeenCalledWith(null);
-      expect(selectedVenueIdMock).toBe('venue-a');
+      expect(selectVenueMock).toHaveBeenCalledWith(null);
     });
 
     it('keeps the deep-linked venue-detail-obscured pin weather-gated without rewriting unrelated pins', () => {
