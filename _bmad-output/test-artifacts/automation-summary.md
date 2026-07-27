@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-27T18:45:00+02:00'
+lastSaved: '2026-07-27T20:56:00+02:00'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-12.md'
@@ -1029,5 +1029,71 @@ Continue with visual evidence/test-review/trace as required by the orchestrator;
 ## Next Recommended Workflow
 
 Continue the orchestrator-controlled Tier A review, trace-advisory, UAT, and canonical story-review transition for Story 12.10.
+
+---
+
+# Automation Expansion Summary - Story 12.8 (About Page Pin Legend + Sun Figure)
+
+## Preflight And Context
+
+- **Framework:** Vitest 4.1.4 and Playwright 1.59.1 are configured under `nextjs-app`; framework readiness passed.
+- **Stack:** frontend static About route with component/i18n/a11y coverage; no API, persistence, Pact, or contract endpoint is in Story 12.8 scope.
+- **Mode:** BMad-integrated from `_bmad-output/implementation-artifacts/12-8-about-page-pin-legend-so-reads-the-sun-figure.md`.
+- **Execution mode:** sequential. The active task scope was a post-dev audit/addition for Story 12.8 only, and no subagent/browser-CLI session was needed for the static route coverage gap.
+- **Loaded context:** story ACs, `project-context.md`, TEA config, existing About source/tests, Playwright config, message parity test, public-sun helper, runtime `VenuePin` semantics, and TEA knowledge fragments for test levels, priorities, deterministic quality, fixture/data guidance, selective execution, CI/burn-in, network-first E2E, selector resilience, and Playwright CLI usage.
+
+## Coverage Plan
+
+| Priority | Level | Target | Decision |
+| --- | --- | --- | --- |
+| P0 | Component/i18n | New About legend section order, selected-time wording, seating-share-not-probability example, Swedish/English parity. | Already covered by `AboutPage.test.tsx` and `messages-parity.test.ts`; rerun focused suite. |
+| P0 | Component/source | Prevent fake `85%`/`ABOUT_ACCURACY_PLACEHOLDER` and public per-venue confidence numbers from returning. | Add a durable source-contract unit guard because the story log recorded ad hoc scans but no persisted automated source scan. |
+| P0 | Source/component | Keep static About legend aligned with Story 12.6 public sunny predicate and runtime map-pin token semantics. | Add a source-contract unit guard against About-only thresholds/status rules and pin token divergence from `VenuePin.tsx`/`public-sun.ts`. |
+| P1 | E2E a11y | About route remains axe-clean on desktop and mobile after the static legend/content changes. | Rerun the executable focused About scans in `a11y` and `a11y-mobile`. |
+| N/A | API/CDC | No endpoint, provider, or request/response contract changed by this story. | No API, Pact, fixtures, factories, or network mocks generated. |
+
+## Generated Coverage
+
+- **ADDED** `nextjs-app/test/unit/story-12-8-about-copy-contract.automation.test.ts` with 3 focused unit/source-contract tests:
+  - forbids `ABOUT_ACCURACY_PLACEHOLDER`, `AccuracyCountUp`, `about-accuracy-stat`, old `accuracyStat*` message keys, public `85%`/`Träffsäkerhet: 85 procent`, and visible `Säkerhet NN%` / `Confidence NN%` patterns from the About source/message corpus;
+  - verifies the About legend wording maps to the shared public-sun predicate (`sunExposurePercent > 50` and `weatherGateState !== 'gated'`) without About-local threshold/status logic;
+  - verifies static About swatches retain the same Story 12.6 token semantics as runtime map pins (`bg-amber-pin`, `border-t-amber-pin`, `bg-pin-shaded`, `border-t-pin-shaded`, sun/cloud icons).
+- **Aggregate:** +1 test file / +3 unit tests. No production code, i18n production copy, fixtures, visual references, story status, sprint status, or live-provider integrations changed.
+
+## Validation And Gate
+
+- `npx vitest run test/components/AboutPage.test.tsx test/unit/messages-parity.test.ts test/unit/story-12-8-about-copy-contract.automation.test.ts` -> **3 files / 31 tests passed**.
+- `$env:PLAYWRIGHT_BASE_URL='http://localhost:3238'; $env:PLAYWRIGHT_PORT='3238'; npx playwright test --project=a11y --project=a11y-mobile --grep "about page"` -> **2 tests passed**:
+  - `a11y: about page (/about)`;
+  - `a11y: about page mobile (/about)`.
+- `npx tsc --noEmit` -> **passed**.
+- `npx eslint . --quiet` -> **passed**.
+- Playwright emitted the known non-failing Next workspace-root warning about multiple lockfiles; no test assertion failed.
+
+## Checklist Validation
+
+- Framework scaffolding exists (`playwright.config.ts`, Vitest tests, `package.json` scripts/dependencies).
+- Acceptance criteria mapped to existing and newly added tests.
+- Duplicate coverage avoided: no extra E2E journey was added for static content already covered by component/i18n/a11y tests.
+- Test quality met: deterministic source/component assertions, no hard waits, no network/live service calls, no fixtures needed, and no brittle CSS selectors in E2E additions.
+- CLI sessions cleaned up: N/A; no browser CLI session was opened.
+- Temp artifacts: no `/tmp` worker outputs were created because no subagent/worker file generation was used.
+
+## Assumptions, Risks, And Deferred Coverage
+
+- Visual validation/reference promotion remains outside this TEA pass; Story 12.8 already records providerless visual candidate evidence and no reference PNGs were changed here.
+- Existing full-suite story evidence remains the broader release-confidence baseline; this TEA pass reran only focused relevant checks plus typecheck/lint because it added one isolated unit/source test.
+- The source-contract test intentionally pins Story 12.8's current "remove fake rate" decision. If a future story introduces a real measured public accuracy rate, this guard should be updated in that story with the real data-source contract.
+
+## Definition Of Done
+
+- Story 12.8 ACs were audited against existing automated coverage.
+- One meaningful missing guardrail was added for fabricated accuracy/confidence and public-sun/pin semantic drift.
+- Focused component/i18n/source, About a11y, typecheck, and lint checks passed.
+- TEA automation evidence was persisted in this summary.
+
+## Next Recommended Workflow
+
+Continue orchestrator-owned review/test-review/trace gates as needed. Story 12.8 does not need additional API, contract, fixture, or broad E2E automation from this TEA pass.
 
 ---

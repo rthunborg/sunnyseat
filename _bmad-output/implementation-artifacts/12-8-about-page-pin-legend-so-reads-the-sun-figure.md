@@ -396,6 +396,8 @@ Codex GPT-5 auto-bmad delegate
 - Visual wrapper attempts: `.\scripts\run-sh.ps1 scripts/visual-validate.sh about /about mobile` and `desktop` failed immediately because `ANTHROPIC_API_KEY` is not set; no screenshot comparison ran.
 - Visual candidates captured and visually sanity-checked: `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-mobile-candidate.png` and `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-desktop-candidate.png`. No canonical reference PNGs were replaced, and `REBASELINE-LOG.md` was not changed.
 - Canonical review gate: `VISUAL_VALIDATE_PROVIDER=none ALLOW_MANUAL_VISUAL_VALIDATION=1 .\scripts\run-sh.ps1 scripts/story-review.sh 12-8-about-page-pin-legend-so-reads-the-sun-figure` passed lint/typecheck/full Vitest, ran providerless manual visual mode for mobile and desktop, and updated sprint status to `review`. Artifact: `_bmad-output/implementation-artifacts/validation/12-8-about-page-pin-legend-so-reads-the-sun-figure-review-20260727-204121.log`.
+- Post-dev TEA automation pass added `nextjs-app/test/unit/story-12-8-about-copy-contract.automation.test.ts` to persist the prior source-scan evidence as executable coverage against fake public accuracy/confidence numbers and About legend drift from shared public-sun/runtime pin semantics.
+- Post-dev TEA focused checks passed: `npx vitest run test/components/AboutPage.test.tsx test/unit/messages-parity.test.ts test/unit/story-12-8-about-copy-contract.automation.test.ts` (3 files / 31 tests), `PLAYWRIGHT_BASE_URL=http://localhost:3238 PLAYWRIGHT_PORT=3238 npx playwright test --project=a11y --project=a11y-mobile --grep "about page"` (2 tests), `npx tsc --noEmit`, and `npx eslint . --quiet`.
 
 ### Completion Notes List
 
@@ -404,6 +406,7 @@ Codex GPT-5 auto-bmad delegate
 - Updated Swedish and English About messages, including the selected-time explanation, seating-area-share example, no-probability wording, and more honest data-source copy with verified venue facts and OSM as supplemental pilot only.
 - Enabled executable desktop and mobile About axe scans; fixed the About desktop footer wordmark contrast by using the existing logo text token.
 - Visual comparison remains pending human/provider acceptance because the legacy visual provider requires `ANTHROPIC_API_KEY`; candidate PNGs were captured under validation artifacts and no references were promoted.
+- Added a durable post-dev source-contract guard so the story no longer relies only on log-scanned evidence for "no fake accuracy/confidence" and "About legend matches shared pin semantics."
 
 ### File List
 
@@ -420,9 +423,12 @@ Codex GPT-5 auto-bmad delegate
 - `nextjs-app/messages/en/about.json`
 - `nextjs-app/test/components/AboutPage.test.tsx`
 - `nextjs-app/test/components/AccuracyCountUp.test.tsx` (deleted)
+- `nextjs-app/test/unit/story-12-8-about-copy-contract.automation.test.ts`
 - `nextjs-app/test/e2e/axe.spec.ts`
 - `nextjs-app/test/e2e/axe-mobile.spec.ts`
+- `_bmad-output/test-artifacts/automation-summary.md`
 
 ### Change Log
 
 - 2026-07-27: Implemented Story 12.8 About legend and accuracy reframe; completed deterministic gates; moved sprint status to `review` through `scripts/story-review.sh` with providerless visual acceptance pending.
+- 2026-07-27: Post-dev TEA automation added source-contract guard coverage for fake accuracy/confidence and shared pin semantics; focused Vitest, About axe, typecheck, and lint passed.

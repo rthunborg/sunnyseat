@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 8
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-27T18:51:30Z"
+updated_at: "2026-07-27T18:57:11Z"
 started_at: "2026-07-27T18:12:39Z"
 completed_at: null
-active_seconds: 2259
+active_seconds: 2575
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "Medium because Story 12.8 changes About-page/i18n presentation and consumes the shared Story 12.6 sunny predicate plus Story 12.13 confidence-removal contract, while adding no backend or persistence contract."
 epic_story_count: 14
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [6d0d44d, a5f51cc]
+commits: [6d0d44d, a5f51cc, 439cafe]
 phase8_steps:
   trace_gate: null
   nfr: null
