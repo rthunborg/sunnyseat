@@ -325,3 +325,56 @@ No additional deferred work was archived in this halted session.
 1. Choose documented manual human visual validation for Story 12.5, or provide ANTHROPIC_API_KEY so the legacy automated visual validator can run.
 
 **Next:** Resume Story 12.5 Phase 5 after that choice; complete its visual evidence, remaining acceptance-evidence matrix, canonical review gate, post-dev TEA, and thin review before advancing to Story 12.8.
+
+## Report — 2026-07-27T17:14:07Z (halted — needs-human)
+
+**Epic:** `12` — 14 stories.
+**Branch:** `epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene` (HEAD `fd970d0`).
+**Pipeline status:** Halted after Story 12.5 Tier-A fixes and PASS trace advisory; explicit human visual acceptance is required before landing the story on the Epic 12 anchor.
+**Continues:** 2026-07-27T16:01:02Z (halted — needs-human)
+
+**Summary:** Story 12.5 is fully implemented, at BMAD review, and has passed development, automation, manual mobile/desktop visual validation, thin acceptance/security review after three Medium fixes, and story-level traceability. It is paused only for the maintainer-requested visual acceptance.
+
+**Timing:** started 2026-07-18T11:27:25Z; completed in progress — elapsed 221h 46m (≈39h 02m AI-run, ≈182h 44m human/idle wait); resumed 7×.
+
+**Stories:**
+1. 12-1 was already done before this epic run.
+2. 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, and 12-10 are landed.
+3. 12-5 is review-ready: implementation and automation green; Tier-A Critical 0 / High 0 / Med 3 / Low 0 with all three Medium findings fixed; trace PASS across AC1-AC8; awaiting human visual acceptance.
+4. 12-8, 12-11, 12-2, and 12-14 have not started in the confirmed dependency order.
+
+**Skipped (already done):** 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours (already done before this epic run).
+
+**Integration review:** Not reached; Story 12.5 awaits visual acceptance and anchor landing.
+
+**Epic gate:** Not reached; later stories remain.
+
+**TEA:** Story 12.5 High risk: ATDD, post-dev automate, and trace-advisory all completed. Typecheck, lint, 206-file full Vitest, focused desktop/mobile Playwright, and accessibility passed. Trace verdict PASS with all eight ACs fully covered.
+
+**UAT:**
+1. Run development without SUNNYSEAT_ADMIN=dev and open /?_editor=venues -> the normal map appears with no editor or dev data.
+2. Run a production server even with SUNNYSEAT_ADMIN=dev and request /api/dev/venues -> receive non-cacheable 404 JSON.
+3. Run local development with SUNNYSEAT_ADMIN=dev and open /?_editor=venues -> the Swedish venue editor exposes the supported coordinate, polygon, visibility, metadata, and media fields.
+4. Edit, validate, save, reset, hide, and unhide a seeded venue -> valid atomic changes reach public surfaces while invalid input leaves persisted data unchanged.
+
+**Overrides:** User-confirmed dependency order; per-story human visual review enabled; Story 12.5 manual visual provider path explicitly authorized.
+
+**Open questions:**
+1. Approve or reject the four Story 12.5 manual evidence images: mobile/desktop map-primary and mobile/desktop venue-detail.
+
+**Deferred work:**
+1. [12-3] Capture protected-production 42+ venue cold-p95 evidence and verify the protected GitHub Production environment when access is available.
+2. [12-7] Apply 20260718214954_add_public_venue_visibility.sql before deployment, regenerate Supabase types, and verify no contract diff.
+3. [12-12] Apply 20260719000000_venue_media_storage.sql before hosted venue media use and verify protected Supabase Storage bucket/RLS behavior.
+No Story 12.5 review finding was deferred.
+
+**Auto-decided (epic mode):**
+1. [12-7] Adopted the architecture-backed canonical hidden boolean not null default false migration/type contract after live/schema probes found all previously referenced visibility columns absent; no protected database mutation was performed.
+2. [12-5] Gate-off public pin visual decision [Med] -> fix: retained the accessibility-safe pin color and made the post-fix manual visual acceptance evidence explicit (Tier A).
+
+**Planning drift:** None; Story 12.5 remains within the maintainer-approved dependency order and scope.
+
+**⚠️ Needs human:**
+1. Review and approve or reject the four Story 12.5 manual visual evidence images before anchor landing.
+
+**Next:** On approval, record Story 12.5 human acceptance and UAT, land it atomically on the epic anchor, then start Story 12.8.

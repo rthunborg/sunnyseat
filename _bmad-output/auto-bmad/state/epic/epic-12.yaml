@@ -5,10 +5,10 @@ epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-27T17:11:28Z"
+updated_at: "2026-07-27T18:09:04Z"
 started_at: "2026-07-18T11:27:25Z"
 completed_at: null
-active_seconds: 140466
+active_seconds: 140550
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: true
 story_trace: null
-commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc, 8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021, 66eb5d7, 7f5c709, 55bffea, e442fed, ef47622, 6483f7e, "7592112", c3673e1, 9549c7e, bc7b65b, "9346726", 2a21274, b4427d4, d5fd2f3, 5fe8bec, e0bc76b, 31d0062, 645a2c0, "3586481", 4d0a2d5, 3df41ff, 1882e29, 2f3749f, 272b46d, 26a1f1e, fa612a7, a5f6eb9, b64da80, 3432eca, baf0d8b, e1194b0, a76905f, 2fd49bb, 4eec7dd, 07b2b8a, 5441d55, 30e841e, 486afdb, e596035, d1bb55b, 2e2dc5b, e234c29, c6fe705, 24f134a, 5da0f82, 4cb5743, 3054b20, 8b83f95, 38ccb18]
+commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc, 8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021, 66eb5d7, 7f5c709, 55bffea, e442fed, ef47622, 6483f7e, "7592112", c3673e1, 9549c7e, bc7b65b, "9346726", 2a21274, b4427d4, d5fd2f3, 5fe8bec, e0bc76b, 31d0062, 645a2c0, "3586481", 4d0a2d5, 3df41ff, 1882e29, 2f3749f, 272b46d, 26a1f1e, fa612a7, a5f6eb9, b64da80, 3432eca, baf0d8b, e1194b0, a76905f, 2fd49bb, 4eec7dd, 07b2b8a, 5441d55, 30e841e, 486afdb, e596035, d1bb55b, 2e2dc5b, e234c29, c6fe705, 24f134a, 5da0f82, 4cb5743, 3054b20, 8b83f95, 38ccb18, fa23bf2, f571337, 11325c9, 5829d10, fd970d0]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -56,7 +56,7 @@ overrides: {}
 constraints:
   - "Execute Epic 12 in the user-confirmed dependency order: 12-1, 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, 12-10, 12-5, 12-8, 12-11, 12-2, 12-14."
 epic_slug: real-venue-launch-readiness-perf-trust-hours-console-hygiene
-active_story: 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields
+active_story: 12-8-about-page-pin-legend-so-reads-the-sun-figure
 stories_landed:
   - 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
   - 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
@@ -66,6 +66,7 @@ stories_landed:
   - 12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider
   - 12-4-production-console-hygiene-hydration-error-maplibre-null-warning
   - 12-10-venue-detail-preload-instant-mer-info
+  - 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields
 auto_decisions:
   - "[12-7] Adopted the architecture-backed canonical `hidden boolean not null default false` migration/type contract after live/schema probes proved all previously referenced visibility columns absent; no protected database mutation was performed."
   - "Gate-off public map pins are no longer pixel unchanged [Med] → fix: keep the a11y-safe pin color only with explicit visual rebaseline/acceptance evidence; otherwise move or revert that public pin change out of Story 12.5. (Tier A, 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields)"
@@ -163,6 +164,24 @@ uat_items:
   - "[12-10-venue-detail-preload-instant-mer-info] Throttle a cold detail request -> the shell opens immediately with recognizable content beneath the token-grey subtle-blur scrim, spinner, skeletons, and Laddar platsinformation announcement; close/favourite/share remain usable."
   - "[12-10-venue-detail-preload-instant-mer-info] Release the throttled detail response -> loaded content replaces the placeholders in place and aria-busy clears without replaying the panel entrance."
   - "[12-10-venue-detail-preload-instant-mer-info] After 21:00 Stockholm time, open the live planner and blur the time slider -> visible and accessible time keep the true live value while only the thumb remains visually clamped to the planner end."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With dev server running without `SUNNYSEAT_ADMIN=dev`, open `http://localhost:3000/?_editor=venues` -> normal map loads with no `Redigera platser` panel and no `/api/dev/venues` data shown."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With production server running even with `SUNNYSEAT_ADMIN=dev`, request `/api/dev/venues` -> response is `404` JSON with `Cache-Control: no-store`."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With non-production dev server running with `SUNNYSEAT_ADMIN=dev` on `localhost`, open `/?_editor=venues` -> `Redigera platser` panel appears with venue selector, hidden toggle, display coordinates, engine coordinates, polygon, tags, description, and thumbnail fields."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, select a venue -> display pin appears on the map and engine latitude/longitude are visible read-only in the panel."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, drag the display pin or use arrow keys on it, then click `Spara` -> save succeeds, `Sparat` appears, and the public pin/location updates while engine latitude/longitude stay unchanged."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, edit display latitude/longitude to non-numeric values and click `Spara` -> inline alert `Kontrollera fälten` appears and no mutation is sent."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, paste a valid closed GeoJSON Polygon or raw `[lng, lat]` ring in `Uteservering` and click `Spara` -> save succeeds and the venue geometry is accepted."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, paste malformed JSON in `Uteservering` and click `Spara` -> save fails with validation feedback and previous polygon remains unchanged."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, paste an unclosed or out-of-Gothenburg polygon and click `Spara` -> save fails with validation feedback and no venue write is applied."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, tick `Dold` for a visible venue and click `Spara` -> save succeeds and venue disappears from public map/list/detail/reviews/feedback after local invalidation or within documented 30-second cache bound."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, select hidden venue, untick `Dold`, and click `Spara` -> save succeeds and venue is visible again."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, set tags to comma-separated values with spaces/duplicates and click `Spara` -> save succeeds and public venue shows trimmed, deduplicated tags."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, edit `Beskrivning` and click `Spara` -> save succeeds and description is available on public detail without editor-only fields."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, enter thumbnail `Bildtext` and `Initialer` plus valid managed `venue-media/{slug}/{version}/card.webp` or `hero.webp` URLs and click `Spara` -> save succeeds and public media surfaces use managed renditions."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, enter a thumbnail legacy external `url` via API or invalid managed media URL and save -> rejected with validation error and no thumbnail update."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, clear both thumbnail `Bildtext` and `Initialer` while keeping a non-null thumbnail edit and save -> rejected because alt and initials required."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, change a field then click `Återställ` -> edits return to persisted values and `Spara` disabled."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With DevTools Network open during editor list/save -> dev endpoints use `Cache-Control: no-store`, public list/detail retain `public, max-age=30, s-maxage=30, must-revalidate`."
 preexisting_done_stories:
   - 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
 adopt_verdicts:
@@ -183,5 +202,5 @@ story_execution_order:
   - 12-11-first-run-coach-mark-guide-map-legend-feature-tour
   - 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
   - 12-14-hide-closed-venues-open-at-selected-time-filter
-story_order_cursor: 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields
+story_order_cursor: 12-8-about-page-pin-legend-so-reads-the-sun-figure
 order_override_reason: User-confirmed dependency order keeps prerequisite contracts ahead of their consumers while preserving Story 12-14 as the epic-end story.

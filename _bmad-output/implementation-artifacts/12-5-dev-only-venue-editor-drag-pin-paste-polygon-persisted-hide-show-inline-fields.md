@@ -4,7 +4,7 @@ baseline_commit: NO_VCS
 
 # Story 12.5: Dev-Only Venue Editor - Drag Pin, Paste Polygon, Persisted Hide/Show, Inline Fields
 
-Status: review
+Status: done
 
 ## Story
 
