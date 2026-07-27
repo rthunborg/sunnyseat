@@ -43,6 +43,35 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-07-27 — `about` (mobile + desktop) — Story 12.8 approved providerless rebaseline
+
+**Trigger:** Story 12.8 added the About page pin legend and "Hur säkra är vi?" accuracy reframe, so the active About references were stale. The legacy visual wrappers failed before comparison because `ANTHROPIC_API_KEY` is not set.
+
+**Resolution:** Rasmus explicitly approved Story 12.8 visual acceptance on 2026-07-27 (`Approved: Story 12.8 visual acceptance`). Promoted exactly the approved full-page mobile and desktop implementation candidates to the canonical About references. The focused mobile legend capture remains supporting evidence only and was not substituted for the full-page mobile reference.
+
+**Changed PNGs (2):**
+- `nextjs-app/docs/design/references/screens/mobile/about.png`
+- `nextjs-app/docs/design/references/screens/desktop/about.png`
+
+**Source of new PNG:** Human-approved implementation candidates:
+- `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-mobile-candidate.png` -> `mobile/about.png` (viewport 390x844, full-page PNG 390x2811)
+- `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-desktop-candidate.png` -> `desktop/about.png` (viewport 1440x900, full-page PNG 1440x2254)
+
+**Old -> new SHA-256:**
+- `mobile/about`: `e973813581f21e0a34ab5a1877629211658197fa149aa0dda4c26dc81ce35858` -> `f922544e7b128ed31f5b1e40d7f67bd769a2edb790354692959508d694af5e07`
+- `desktop/about`: `5a5644e0f47271c86c673e3aee199e49f652b038383e1970c4882a307d81c565` -> `1189595045c8ecc4f9ebfd96d0aff8dcab265958a10b0d243a2eeae28d34c77c`
+
+**Supporting evidence retained, not promoted:**
+- `_bmad-output/implementation-artifacts/validation/12-8-about-page-mobile-legend-candidate.png` (viewport 390x844, deviceScaleFactor 3, PNG 1170x2532, SHA-256 `c7ddd54dec3265ea56cd121e5ab773336d44bf37ab08bece9b9f237d97620a92`)
+
+**Recipe change:** None to `nextjs-app/scripts/capture-claude-design-refs.mjs`, `project-context.md`, or visual-validation route mappings. This was an implementation-state rebaseline from reviewed Story 12.8 candidates.
+
+**Verification:** Providerless/manual rationale: automated Claude/Anthropic visual comparison could not run without `ANTHROPIC_API_KEY`, so Story 12.8 used deterministic candidate captures plus explicit human approval. Candidate evidence was visually sanity-checked in the Story 12.8 Dev Agent Record, including focused proof that the complete `SÅ LÄSER DU KARTAN` section fits above the mobile bottom nav. After promotion, both active About references were SHA-verified to byte-match the approved candidates exactly.
+
+**Reason / spec link:** Story 12.8 requires the About page to explain the public pin legend, selected-time semantics, the seating-area sun figure, and the confidence/accuracy honesty posture without a fake public hit-rate. The promoted references encode the approved final About layout for both mapped `/about` viewports.
+
+**Re-evaluation trigger:** Re-capture these references if the About page section order, pin legend swatches/copy, accuracy-reframe copy, standalone About route layout, mobile bottom-nav overlap behavior, or Story 12.6/12.13 public pin/confidence semantics change.
+
 ### 2026-07-24 — `map-primary` + `map-panel-venues` (mobile) — Story 12.9 human-approved rebaseline
 
 **Trigger:** Rasmus approved the Story 12.9 slider/date refinement rebaseline on 2026-07-24 (`Approved: rebaseline Story 12.9`). The current mobile references still reflected the older, taller planner chrome and pre-refinement row-sheet ordinary view.

@@ -394,11 +394,12 @@ Codex GPT-5 auto-bmad delegate
 - Required a11y gate: `npx playwright test --project=a11y --project=a11y-mobile` passed on `http://localhost:3219`: 19 passed, 9 skipped. A prior `127.0.0.1` attempt failed with redirect-loop setup errors before assertions; rerun on `localhost` resolved it.
 - Broad browser sweep: `npx playwright test --project=mobile --project=desktop --project=touch --project=a11y --project=a11y-mobile` on `http://localhost:3224` reported 156 passed, 64 skipped, and 2 mobile failures outside About (`epic-9-mobile-regression.spec.ts:62`, `story-12-10-venue-detail-prefetch.atdd.spec.ts:406`). Exact rerun of those two failures on `http://localhost:3225` passed 2/2, matching the earlier exact rerun result.
 - Visual wrapper attempts: `.\scripts\run-sh.ps1 scripts/visual-validate.sh about /about mobile` and `desktop` failed immediately because `ANTHROPIC_API_KEY` is not set; no screenshot comparison ran.
-- Visual candidates captured and visually sanity-checked: `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-mobile-candidate.png` and `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-desktop-candidate.png`. No canonical reference PNGs were replaced, and `REBASELINE-LOG.md` was not changed.
+- Visual candidates captured and visually sanity-checked: `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-mobile-candidate.png` and `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-desktop-candidate.png`. Rasmus approved Story 12.8 visual acceptance on 2026-07-27, and the approved full-page candidates were promoted to `nextjs-app/docs/design/references/screens/mobile/about.png` and `nextjs-app/docs/design/references/screens/desktop/about.png` with a same-operation `REBASELINE-LOG.md` entry.
 - Focused mobile legend viewport evidence captured and visually sanity-checked after fixed-bottom-nav overlap was noticed in the stitched mobile candidate: `_bmad-output/implementation-artifacts/validation/12-8-about-page-mobile-legend-candidate.png` (`390x844`, `deviceScaleFactor: 3`, `http://localhost:3226/about`, scrolled so the complete `SÅ LÄSER DU KARTAN` section is above the bottom nav).
 - Canonical review gate: `VISUAL_VALIDATE_PROVIDER=none ALLOW_MANUAL_VISUAL_VALIDATION=1 .\scripts\run-sh.ps1 scripts/story-review.sh 12-8-about-page-pin-legend-so-reads-the-sun-figure` passed lint/typecheck/full Vitest, ran providerless manual visual mode for mobile and desktop, and updated sprint status to `review`. Artifact: `_bmad-output/implementation-artifacts/validation/12-8-about-page-pin-legend-so-reads-the-sun-figure-review-20260727-204121.log`.
 - Post-dev TEA automation pass added `nextjs-app/test/unit/story-12-8-about-copy-contract.automation.test.ts` to persist the prior source-scan evidence as executable coverage against fake public accuracy/confidence numbers and About legend drift from shared public-sun/runtime pin semantics.
 - Post-dev TEA focused checks passed: `npx vitest run test/components/AboutPage.test.tsx test/unit/messages-parity.test.ts test/unit/story-12-8-about-copy-contract.automation.test.ts` (3 files / 31 tests), `PLAYWRIGHT_BASE_URL=http://localhost:3238 PLAYWRIGHT_PORT=3238 npx playwright test --project=a11y --project=a11y-mobile --grep "about page"` (2 tests), `npx tsc --noEmit`, and `npx eslint . --quiet`.
+- Rebaseline verification after promotion: `mobile/about.png` is `390x2811`, SHA-256 `f922544e7b128ed31f5b1e40d7f67bd769a2edb790354692959508d694af5e07`, byte-matching `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-mobile-candidate.png`; `desktop/about.png` is `1440x2254`, SHA-256 `1189595045c8ecc4f9ebfd96d0aff8dcab265958a10b0d243a2eeae28d34c77c`, byte-matching `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-desktop-candidate.png`.
 
 ### Completion Notes List
 
@@ -406,7 +407,7 @@ Codex GPT-5 auto-bmad delegate
 - Removed the fake public `85%` accuracy claim, deleted the About count-up component/test, and reframed TRÄFFSÄKERHET around "Hur säkra är vi?" prose plus internal confidence/feedback-loop honesty.
 - Updated Swedish and English About messages, including the selected-time explanation, seating-area-share example, no-probability wording, and more honest data-source copy with verified venue facts and OSM as supplemental pilot only.
 - Enabled executable desktop and mobile About axe scans; fixed the About desktop footer wordmark contrast by using the existing logo text token.
-- Visual comparison remains pending human/provider acceptance because the legacy visual provider requires `ANTHROPIC_API_KEY`; candidate PNGs were captured under validation artifacts and no references were promoted.
+- Resolved the visual acceptance decision: Rasmus approved Story 12.8 visual acceptance on 2026-07-27; the approved full-page mobile and desktop candidates were promoted to the canonical About references, with the focused mobile legend capture retained only as supporting evidence.
 - Added a durable post-dev source-contract guard so the story no longer relies only on log-scanned evidence for "no fake accuracy/confidence" and "About legend matches shared pin semantics."
 
 ### File List
@@ -417,6 +418,9 @@ Codex GPT-5 auto-bmad delegate
 - `_bmad-output/implementation-artifacts/validation/12-8-about-page-mobile-legend-candidate.png`
 - `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-desktop-candidate.png`
 - `_bmad-output/implementation-artifacts/validation/12-8-about-page-pin-legend-so-reads-the-sun-figure-review-20260727-204121.log`
+- `nextjs-app/docs/design/references/REBASELINE-LOG.md`
+- `nextjs-app/docs/design/references/screens/mobile/about.png`
+- `nextjs-app/docs/design/references/screens/desktop/about.png`
 - `nextjs-app/components/custom/about/AboutPage.tsx`
 - `nextjs-app/components/custom/about/DataSourceList.tsx`
 - `nextjs-app/components/custom/about/AccuracyCountUp.tsx` (deleted)
@@ -432,9 +436,10 @@ Codex GPT-5 auto-bmad delegate
 
 ### Change Log
 
-- 2026-07-27: Implemented Story 12.8 About legend and accuracy reframe; completed deterministic gates; moved sprint status to `review` through `scripts/story-review.sh` with providerless visual acceptance pending.
+- 2026-07-27: Implemented Story 12.8 About legend and accuracy reframe; completed deterministic gates; moved sprint status to `review` through `scripts/story-review.sh`; providerless visual acceptance was later approved by Rasmus.
 - 2026-07-27: Post-dev TEA automation added source-contract guard coverage for fake accuracy/confidence and shared pin semantics; focused Vitest, About axe, typecheck, and lint passed.
+- 2026-07-27: Resolved visual review finding by promoting the approved full-page mobile and desktop About candidates to canonical references and recording the providerless/manual rebaseline in `REBASELINE-LOG.md`.
 
 ### Review Findings
 
-- [ ] [Review][Decision][High] About visual gate is not approved: mobile and desktop visual wrappers failed without `ANTHROPIC_API_KEY`, no screenshot comparison or same-operation reference/log approval occurred, yet providerless manual mode moved the story to review. Recommended: fix: Run mobile and desktop About visual validation with a configured provider, or get explicit human approval for the captured candidate PNGs and record it before approval.
+- [x] [Review][Decision][High] About visual gate is not approved: mobile and desktop visual wrappers failed without `ANTHROPIC_API_KEY`, no screenshot comparison or same-operation reference/log approval occurred, yet providerless manual mode moved the story to review. Resolved: Rasmus explicitly approved Story 12.8 visual acceptance on 2026-07-27; the approved full-page mobile and desktop candidate PNGs were promoted to canonical About references, and the providerless/manual rebaseline was recorded in `nextjs-app/docs/design/references/REBASELINE-LOG.md` with source paths, viewport/dimension evidence, hashes, rationale, and verification.
