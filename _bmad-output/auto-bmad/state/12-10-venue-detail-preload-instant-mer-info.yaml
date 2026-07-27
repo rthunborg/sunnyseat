@@ -5,7 +5,7 @@ epic_num: 12
 story_num: 10
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: done
-updated_at: "2026-07-27T14:58:37Z"
+updated_at: "2026-07-27T15:03:22Z"
 started_at: "2026-07-26T15:43:49Z"
 completed_at: "2026-07-27T14:58:37Z"
 active_seconds: 11513
@@ -32,7 +32,7 @@ story_trace:
   verdict: PASS
   uncovered: []
   material_gaps: []
-commits: [e1194b0, a76905f, 2fd49bb, 4eec7dd, 07b2b8a, 5441d55]
+commits: [e1194b0, a76905f, 2fd49bb, 4eec7dd, 07b2b8a, 5441d55, 30e841e, 486afdb, e596035, d1bb55b, 2e2dc5b, e234c29, c6fe705, 24f134a, 5da0f82, 4cb5743, 3054b20]
 phase8_steps:
   trace_gate: null
   nfr: null
