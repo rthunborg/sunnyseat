@@ -4,7 +4,7 @@ baseline_commit: baf0d8b18df4b5542cf2ffa4b9c3528988dc338c
 
 # Story 12.10: Venue Detail Preload - Instant "Mer info"
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -663,7 +663,11 @@ Codex GPT-5 auto-bmad delegate
   `bg-text-primary/20` scrim, visible spinner, 6 visible skeletons, exactly one polite Swedish status,
   `aria-busy="true"` during the held cold-detail request and `aria-busy="false"` after release, with 0 console errors
   and 0 page errors. This was evidence-only; authoritative reference PNGs and `REBASELINE-LOG.md` were unchanged, and
-  story status remains `in-progress`.
+  story status remained `in-progress` until the canonical wrapper reran.
+- Canonical final review sync completed with validation artifact
+  `_bmad-output/implementation-artifacts/validation/12-10-venue-detail-preload-instant-mer-info-review-20260727-145432.log`:
+  lint pass, typecheck pass, Vitest 197 files passed/2 skipped and 1825 tests passed/15 skipped, no mapped visual
+  screen, and sprint transition `in-progress` -> `review`. Story status is now `review`; human approval remains pending.
 
 ### File List
 
@@ -702,5 +706,6 @@ Codex GPT-5 auto-bmad delegate
 - `_bmad-output/implementation-artifacts/validation/story-12-10-human-uat/20260727-less-blur/evidence.md`
 - `_bmad-output/implementation-artifacts/validation/story-12-10-human-uat/20260727-less-blur/mobile-390x844-venue-detail-loading.png`
 - `_bmad-output/implementation-artifacts/validation/story-12-10-human-uat/20260727-less-blur/desktop-1440x900-venue-detail-loading.png`
+- `_bmad-output/implementation-artifacts/validation/12-10-venue-detail-preload-instant-mer-info-review-20260727-145432.log`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `_bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md`
