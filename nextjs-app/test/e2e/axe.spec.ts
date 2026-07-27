@@ -200,28 +200,19 @@ test.describe('axe-core a11y gate', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
-  // Story 7.1 — the About page is the first standalone scrolling content
-  // route. It (and its privacy sub-page) must pass the gate too.
-  //
-  // FAST-FOLLOW (maintainer decision, 2026-06-29 — Epic 7 close-out): both the
-  // About and Privacy pages currently fail color-contrast on ONE shared
-  // element — the content-page footer wordmark (`text-text-muted` #938e81 on
-  // the cream surface #fdfaf4, 16px bold) is 3.13:1 vs the WCAG 1.4.3 AA 4.5:1
-  // threshold (SERIOUS). This is PRE-EXISTING design-token debt, not page
-  // logic, and was deliberately designated a post-launch fast-follow rather
-  // than an MVP launch gate. The rest of each page is axe-clean. These two
-  // scans are `test.fixme` (not deleted) so the coverage intent is recorded;
-  // flip them back to `test` once the footer token meets 4.5:1. Tracked in
-  // deferred-work.md, targeted at Story 5.1 / a focused a11y pass. (The mobile
-  // venue-card amber-label contrast debt is handled the same way in
-  // axe-mobile.spec.ts.)
-  test.fixme('a11y: about page (/about)', async ({ page }) => {
+  // Story 12.8 resolves the About footer contrast debt and makes the
+  // standalone route executable in the a11y gate. Privacy still carries the
+  // same pre-existing footer debt and remains explicitly tracked as fixme.
+  test('a11y: about page (/about)', async ({ page }) => {
     await page.goto('/about');
     await page.getByTestId('about-page').waitFor({ state: 'visible' });
     const violations = await runAxe(page);
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
+  // FAST-FOLLOW (maintainer decision, 2026-06-29 — Epic 7 close-out): privacy
+  // currently fails color contrast on its footer wordmark (`text-text-muted`).
+  // Leave this unrelated debt alone for Story 12.8.
   test.fixme('a11y: privacy page (/sekretess)', async ({ page }) => {
     await page.goto('/sekretess');
     await page.getByTestId('privacy-page').waitFor({ state: 'visible' });

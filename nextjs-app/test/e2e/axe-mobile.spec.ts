@@ -115,6 +115,13 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
+  test('a11y: about page mobile (/about)', async ({ page }) => {
+    await page.goto('/about');
+    await page.getByTestId('about-page').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
   // Story 10.2 (Task 5, AC4) — the muted "Sol bakom moln" obscured surface at
   // the mobile viewport. These scans render the mobile venue-card-bearing map
   // shell (bottom-sheet list) UNDERNEATH the forced obscured surface, so they

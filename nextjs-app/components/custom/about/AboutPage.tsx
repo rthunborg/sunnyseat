@@ -1,14 +1,12 @@
 'use client';
 
-import { Shield } from 'lucide-react';
+import { Cloud, Shield, Sun } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import {
-  ABOUT_ACCURACY_PLACEHOLDER,
   ABOUT_HERO_SRC_DESKTOP,
   ABOUT_HERO_SRC_MOBILE,
 } from '@/lib/constants/about';
-import { AccuracyCountUp } from './AccuracyCountUp';
 import { DataSourceList } from './DataSourceList';
 
 // Primary in-app "back to map" CTA — a locale-aware <Link> styled with the
@@ -70,6 +68,70 @@ export function AboutPage() {
         </picture>
       </div>
 
+      {/* SÅ LÄSER DU KARTAN */}
+      <section className="mt-10" aria-labelledby="about-map-legend-heading">
+        <h2 id="about-map-legend-heading" className={SECTION_LABEL_CLASSNAME}>
+          {t('sectionMapLegend')}
+        </h2>
+        <div className="mt-4 flex flex-col gap-4 text-body-lg text-text-body">
+          <p>{t('mapLegendIntro')}</p>
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <li className="flex gap-3 rounded-card bg-surface-muted p-4">
+              <span
+                aria-hidden="true"
+                className="flex min-h-11 w-12 shrink-0 items-center justify-center"
+              >
+                <span className="flex flex-col items-center">
+                  <span
+                    data-testid="about-pin-swatch-sunny"
+                    className="flex h-[50px] w-11 flex-col items-center justify-center gap-0.5 rounded-pill border-[2.5px] border-white bg-amber-pin py-1 shadow-card"
+                  >
+                    <span className="text-label-xs leading-none text-text-primary">70%</span>
+                    <Sun
+                      aria-hidden="true"
+                      data-testid="about-pin-icon-sun"
+                      className="size-3.5 text-text-primary"
+                    />
+                  </span>
+                  <span className="-mt-0.5 block h-0 w-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-amber-pin shadow-subtle" />
+                </span>
+              </span>
+              <span className="flex flex-col gap-1">
+                <span className="text-label-lg text-text-primary">{t('mapLegendSunnyTitle')}</span>
+                <span className="text-body-sm text-text-body">{t('mapLegendSunnyBody')}</span>
+              </span>
+            </li>
+            <li className="flex gap-3 rounded-card bg-surface-muted p-4">
+              <span
+                aria-hidden="true"
+                className="flex min-h-11 w-12 shrink-0 items-center justify-center"
+              >
+                <span className="flex flex-col items-center opacity-80">
+                  <span
+                    data-testid="about-pin-swatch-shaded"
+                    className="flex min-h-11 min-w-11 items-center justify-center rounded-pill border border-white/20 bg-pin-shaded px-4 py-2 shadow-subtle"
+                  >
+                    <Cloud
+                      aria-hidden="true"
+                      data-testid="about-pin-icon-cloud"
+                      className="size-3.5 text-text-body"
+                    />
+                  </span>
+                  <span className="block h-0 w-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-pin-shaded" />
+                </span>
+              </span>
+              <span className="flex flex-col gap-1">
+                <span className="text-label-lg text-text-primary">{t('mapLegendShadedTitle')}</span>
+                <span className="text-body-sm text-text-body">{t('mapLegendShadedBody')}</span>
+              </span>
+            </li>
+          </ul>
+          <p className="rounded-card bg-surface-muted p-4 text-body-md text-text-body">
+            {t('mapLegendExample')}
+          </p>
+        </div>
+      </section>
+
       {/* ALGORITMEN */}
       <section className="mt-10" aria-labelledby="about-algorithm-heading">
         <h2 id="about-algorithm-heading" className={SECTION_LABEL_CLASSNAME}>
@@ -107,13 +169,8 @@ export function AboutPage() {
             <h2 id="about-accuracy-heading" className={SECTION_LABEL_CLASSNAME}>
               {t('sectionAccuracy')}
             </h2>
-            <AccuracyCountUp
-              value={ABOUT_ACCURACY_PLACEHOLDER}
-              suffix={t('accuracyStatSuffix')}
-              ariaLabel={t('accuracyStatAria', { value: ABOUT_ACCURACY_PLACEHOLDER })}
-              className="mt-3 font-display text-[56px] font-extrabold leading-none text-amber-text lg:text-[64px]"
-            />
-            <p className="mt-4 text-body-md text-text-body">{t('accuracyBody')}</p>
+            <h3 className="mt-3 text-heading-md text-text-primary">{t('accuracyHeading')}</h3>
+            <p className="mt-3 text-body-md text-text-body">{t('accuracyBody')}</p>
           </div>
         </div>
       </section>
@@ -146,7 +203,7 @@ export function AboutPage() {
       {/* Desktop footer — wordmark + KONTAKT + "Tillbaka till kartan ↗" (AC2).
           No "← Tillbaka" back link on desktop. */}
       <footer className="mt-12 hidden items-center justify-between border-t border-divider pt-8 lg:flex">
-        <span className="text-display-sm text-text-muted">sunnyseat</span>
+        <span className="text-display-sm text-text-logo">sunnyseat</span>
         <div className="flex items-center gap-6">
           <a
             href="#kontakt"

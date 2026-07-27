@@ -1,0 +1,62 @@
+SunnySeat story review gate
+Story: 12-8-about-page-pin-legend-so-reads-the-sun-figure
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-8-about-page-pin-legend-so-reads-the-sun-figure-review-20260727-204121.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/12-8-about-page-pin-legend-so-reads-the-sun-figure.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+Not implemented: navigation to another Document
+
+ Test Files  205 passed | 2 skipped (207)
+      Tests  1864 passed | 15 skipped (1879)
+   Start at  20:41:44
+   Duration  82.98s (transform 10.58s, setup 126.73s, import 131.19s, tests 104.63s, environment 748.39s)
+
+
+Running visual validation: screen='about' route='/about' viewport='mobile'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   about
+Route:    /about
+Viewport: mobile
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/mobile/about.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='about' route='/about' viewport='desktop'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   about
+Route:    /about
+Viewport: desktop
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/desktop/about.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+Updated sprint status: 12-8-about-page-pin-legend-so-reads-the-sun-figure -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-8-about-page-pin-legend-so-reads-the-sun-figure-review-20260727-204121.log

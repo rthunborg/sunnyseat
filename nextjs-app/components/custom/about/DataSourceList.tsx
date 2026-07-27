@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, CloudSun, Landmark, Map, type LucideIcon } from 'lucide-react';
+import { Building2, CloudSun, Clock, Landmark, Map, type LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 type DataSource = {
@@ -11,7 +11,7 @@ type DataSource = {
 };
 
 /**
- * The four open-data sources, user-safe names only — no EPSG / Baskarta layer
+ * User-safe source names only — no EPSG / Baskarta layer
  * names / DTM / RPC internals (Story 3.0.6 contract). Informational: tapping a
  * source does nothing.
  */
@@ -19,6 +19,7 @@ const DATA_SOURCES: readonly DataSource[] = [
   { key: 'lantmateriet', icon: Landmark, nameKey: 'sourceLantmaterietName', descKey: 'sourceLantmaterietDesc' },
   { key: 'goteborg', icon: Building2, nameKey: 'sourceGoteborgName', descKey: 'sourceGoteborgDesc' },
   { key: 'metno', icon: CloudSun, nameKey: 'sourceMetnoName', descKey: 'sourceMetnoDesc' },
+  { key: 'venueFacts', icon: Clock, nameKey: 'sourceVenueFactsName', descKey: 'sourceVenueFactsDesc' },
   { key: 'osm', icon: Map, nameKey: 'sourceOsmName', descKey: 'sourceOsmDesc' },
 ];
 
