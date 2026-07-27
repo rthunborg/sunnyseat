@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-26T20:30:00+02:00'
+lastSaved: '2026-07-27T18:45:00+02:00'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-12.md'
@@ -97,6 +97,64 @@ inputDocuments:
   - '_bmad-output/implementation-artifacts/12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider.md'
   - 'nextjs-app/components/custom/sheets/MobileBottomSheet.tsx'
   - 'nextjs-app/test/components/MobileBottomSheet.test.tsx'
+---
+
+# Automation Expansion Summary - Story 12.5 (Dev-Only Venue Editor)
+
+## Preflight And Context
+
+- **Framework:** Vitest 4.1.4 and Playwright are configured under `nextjs-app`; framework readiness passed.
+- **Stack:** fullstack Next.js route handlers, service validation/store logic, TanStack Query hooks, component UI, and Playwright browser coverage.
+- **Mode:** BMad-integrated from `_bmad-output/implementation-artifacts/12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields.md`.
+- **Execution:** sequential. The skill's worker model was not used because the active runtime instruction prohibits subagent delegation unless explicitly required.
+- **Knowledge loaded:** project context, TEA config, test levels, risk priorities, test quality, data factories, fixture architecture, network-first safeguards, selector resilience, and Story 12.5 implementation/tests.
+
+## Coverage Plan
+
+| Priority | Level | Target | Decision |
+| --- | --- | --- | --- |
+| P0 | API guard | Forwarded host ambiguity was covered; forwarded proto ambiguity was not. | Add active route test and close the guard gap. |
+| P1 | Query hook | Editor save by numeric id must invalidate public/editor roots and exact affected detail keys for both id and returned slug. | Add hook test and update mutation invalidation. |
+| P0/P1 | Existing route/store/validator/component/E2E | Production hard deny, service-role writes, polygon/media validation, hidden public matrix, display-coordinate consumers, and editor UI already have active focused coverage. | Rerun the Story 12.5 focused suite rather than duplicate. |
+
+## Generated Coverage
+
+- **UPDATED** `nextjs-app/test/unit/api/story-12-5-dev-venue-editor-guard.atdd.test.ts`
+  - Added forwarded-proto ambiguity coverage to the existing fail-closed guard route test.
+- **UPDATED** `nextjs-app/lib/services/dev-venue-editor-guard.ts`
+  - Treats `x-forwarded-proto` as ambiguous forwarded state, matching the story's fail-closed boundary.
+- **NEW** `nextjs-app/test/unit/queries/useDevVenueEditor.automation.test.tsx`
+  - Proves a save submitted by id invalidates `queryKeys.venues.all`, `queryKeys.venues.devVenueEditor.all()`, `queryKeys.venues.detail(id)`, and `queryKeys.venues.detail(returnedSlug)`.
+- **UPDATED** `nextjs-app/hooks/queries/useDevVenueEditor.ts`
+  - Invalidates exact detail keys for the submitted identifier, returned venue id, and returned venue slug.
+- **Aggregate:** +1 new deterministic hook test and +1 expanded guard route assertion. No new fixtures, browser helpers, live Supabase/Met.no calls, visual references, or sprint-status edits.
+
+## Validation And Gate
+
+- Focused new/changed Vitest: `npx vitest run test/unit/api/story-12-5-dev-venue-editor-guard.atdd.test.ts test/unit/queries/useDevVenueEditor.automation.test.tsx` -> **2 files / 5 tests passed**.
+- TypeScript: `npx tsc --noEmit` -> **0 errors**.
+- Lint: `npx eslint . --quiet` -> **0 errors**.
+- Focused Story 12.5 Vitest regression: `npx vitest run ...story-12-5... test/unit/queries/useDevVenueEditor.automation.test.tsx test/components/DevVenueEditor.test.tsx` -> **9 files / 36 tests passed**.
+- Focused Story 12.5 Playwright: `npx playwright test test/e2e/story-12-5-dev-venue-editor.spec.ts` -> **4 tests passed** across mobile and desktop.
+- Playwright emitted the existing Next workspace-root/multiple-lockfile warning; it did not fail the run.
+
+## Assumptions, Risks, And Deferred Coverage
+
+- No Pact/consumer contract tests were generated because Story 12.5 has no external service-provider contract; it is an internal guarded Next route/UI workflow.
+- No new broad Playwright sweep was run. The story file already records the known unrelated Story 12.10 full-suite Playwright failure; this pass changed only guard and cache-invalidation behavior and reran focused Story 12.5 browser coverage.
+- No visual validation was needed because gate-off user-facing UI was not changed.
+
+## Definition Of Done
+
+- Existing Story 12.5 coverage was reviewed to avoid duplicate tests.
+- The forwarded-proto production-impossibility boundary and id-to-slug local invalidation gap are now automated.
+- Focused Story 12.5 Vitest, focused Story 12.5 Playwright, typecheck, and lint passed.
+- Durable automation result written here under the configured BMAD test-artifact directory.
+
+## Next Recommended Workflow
+
+Continue the orchestrator-owned review/test-review flow for Story 12.5.
+
 ---
 
 # Automation Expansion Summary - Story 12.9 (Mobile Bottom-Sheet Row-Quantized Drag + Slim Time-Slider)

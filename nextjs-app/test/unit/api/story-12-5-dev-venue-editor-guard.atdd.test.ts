@@ -72,7 +72,7 @@ describe('Story 12.5 dev venue editor guard', () => {
     expect(patchDevEditorVenueMock).not.toHaveBeenCalled();
   });
 
-  it('fails closed for non-loopback hosts and forwarded-host ambiguity', async () => {
+  it('fails closed for non-loopback hosts and forwarded-host/proto ambiguity', async () => {
     vi.stubEnv('SUNNYSEAT_ADMIN', 'dev');
 
     const remote = await GET(
@@ -90,9 +90,17 @@ describe('Story 12.5 dev venue editor guard', () => {
         },
       }),
     );
+    const forwardedProto = await GET(
+      request('http://localhost/api/dev/venues', {
+        headers: {
+          'x-forwarded-proto': 'https',
+        },
+      }),
+    );
 
     expect(remote.status).toBe(403);
     expect(forwarded.status).toBe(403);
+    expect(forwardedProto.status).toBe(403);
     expect(listDevEditorVenuesMock).not.toHaveBeenCalled();
   });
 

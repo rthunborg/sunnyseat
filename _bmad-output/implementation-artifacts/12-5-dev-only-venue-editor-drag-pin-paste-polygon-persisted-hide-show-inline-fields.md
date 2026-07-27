@@ -589,6 +589,10 @@ Codex GPT-5 auto-bmad dev-story delegate
   `.\scripts\run-sh.ps1 scripts/story-review.sh 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields`.
   Gate reran lint/typecheck/Vitest, skipped auto visual detection because no mapped
   screen ID was parseable in the story file, and moved sprint status to `review`.
+- 2026-07-27: Phase 6 test automation expanded Story 12.5 coverage for forwarded-proto
+  guard ambiguity and id-to-slug editor query invalidation. Reran focused changed
+  Vitest (2 files / 5 tests passed), typecheck, lint, focused Story 12.5 Vitest
+  (9 files / 36 tests passed), and focused Story 12.5 Playwright (4 passed).
 
 ### Completion Notes
 
@@ -657,6 +661,7 @@ Codex GPT-5 auto-bmad dev-story delegate
 - `nextjs-app/test/components/VenueTagsData.atdd.test.tsx`
 - `nextjs-app/test/e2e/story-12-5-dev-venue-editor.spec.ts`
 - `nextjs-app/test/unit/api/story-12-5-dev-venue-editor-guard.atdd.test.ts`
+- `nextjs-app/test/unit/queries/useDevVenueEditor.automation.test.tsx`
 - `nextjs-app/test/unit/api/story-12-5-public-display-and-hidden.automation.test.ts`
 - `nextjs-app/test/unit/services/story-12-5-dev-venue-editor-store.automation.test.ts`
 - `nextjs-app/test/unit/services/story-12-5-dev-venue-editor-validation.atdd.test.ts`
@@ -690,3 +695,5 @@ Codex GPT-5 auto-bmad dev-story delegate
   `_bmad-output/implementation-artifacts/visual-validation/story-12-5/`.
 - 2026-07-27: Passed the canonical story-review wrapper and moved sprint status to
   `review`.
+- 2026-07-27: Expanded post-review automation for forwarded-proto fail-closed guard
+  behavior and id-to-slug editor query invalidation.

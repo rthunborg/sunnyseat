@@ -25,13 +25,20 @@ export function usePatchDevVenueEditorVenue() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: patchDevVenueEditorVenue,
-    onSuccess: async (_data, variables) => {
+    onSuccess: async (data, variables) => {
+      const exactDetailKeys = new Set([
+        variables.identifier,
+        data.venue.id,
+        data.venue.slug,
+      ]);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.venues.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.venues.devVenueEditor.all() }),
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.venues.detail(variables.identifier),
-        }),
+        ...Array.from(exactDetailKeys).map((identifier) =>
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.venues.detail(identifier),
+          }),
+        ),
       ]);
     },
   });

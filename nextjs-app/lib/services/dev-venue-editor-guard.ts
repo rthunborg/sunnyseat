@@ -31,7 +31,11 @@ export function guardedJson(detail: string, status: number): NextResponse {
 }
 
 function hasForwardedHostAmbiguity(headers: Headers): boolean {
-  return Boolean(headers.get('x-forwarded-host') || headers.get('forwarded'));
+  return Boolean(
+    headers.get('x-forwarded-host') ||
+    headers.get('x-forwarded-proto') ||
+    headers.get('forwarded'),
+  );
 }
 
 function isLoopbackRequest(request: Request): boolean {
