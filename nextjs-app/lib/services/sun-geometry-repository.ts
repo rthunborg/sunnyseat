@@ -394,14 +394,15 @@ export async function buildGeometryInputPayloadForVenue(
         reason: 'invalid-seating-polygon',
       });
     }
+    const fallbackPoint = venue.engineLocation ?? venue.location;
     const geometry = venue.seatingArea ?? {
       type: 'Polygon',
       coordinates: [
         [
-          [venue.location.lng, venue.location.lat],
-          [venue.location.lng, venue.location.lat],
-          [venue.location.lng, venue.location.lat],
-          [venue.location.lng, venue.location.lat],
+          [fallbackPoint.lng, fallbackPoint.lat],
+          [fallbackPoint.lng, fallbackPoint.lat],
+          [fallbackPoint.lng, fallbackPoint.lat],
+          [fallbackPoint.lng, fallbackPoint.lat],
         ],
       ],
     } satisfies GeoJSON.Polygon;

@@ -36,10 +36,15 @@ export function seatingCentroidWgs84(polygon: GeoJSON.Polygon): Wgs84Coordinate 
   return { lng: lng / count, lat: lat / count };
 }
 
-export function venueEngineCoordinate(venue: Pick<StoredVenue, 'seatingArea' | 'location'>): Wgs84Coordinate {
+export function venueEngineCoordinate(
+  venue: Pick<StoredVenue, 'seatingArea' | 'location' | 'engineLocation'>,
+): Wgs84Coordinate {
   return venue.seatingArea
     ? seatingCentroidWgs84(venue.seatingArea)
-    : { lat: venue.location.lat, lng: venue.location.lng };
+    : {
+        lat: (venue.engineLocation ?? venue.location).lat,
+        lng: (venue.engineLocation ?? venue.location).lng,
+      };
 }
 
 function samePosition(a: number[] | undefined, b: number[] | undefined): boolean {

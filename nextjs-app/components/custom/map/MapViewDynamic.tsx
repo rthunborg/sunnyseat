@@ -35,8 +35,29 @@ const ForcedVenueDetailInitialFrame =
         },
       );
 
+const DevVenueEditor =
+  process.env.NODE_ENV === 'production'
+    ? null
+    : dynamic(
+        () => import('@/components/custom/dev/DevVenueEditor')
+          .then((m) => m.DevVenueEditor),
+        {
+          ssr: false,
+          loading: () => null,
+        },
+      );
+
 export function MapViewDynamic() {
-  return <MapView />;
+  const searchParams = useSearchParams();
+  const showDevEditor =
+    process.env.NODE_ENV !== 'production' &&
+    searchParams.get('_editor') === 'venues';
+  return (
+    <>
+      <MapView />
+      {showDevEditor && DevVenueEditor && <DevVenueEditor />}
+    </>
+  );
 }
 
 function MapViewLoadingFallback() {

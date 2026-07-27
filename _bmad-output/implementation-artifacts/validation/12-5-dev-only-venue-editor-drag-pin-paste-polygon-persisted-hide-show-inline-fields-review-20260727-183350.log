@@ -1,0 +1,41 @@
+SunnySeat story review gate
+Story: 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields-review-20260727-183350.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+Not implemented: navigation to another Document
+
+ Test Files  205 passed | 2 skipped (207)
+      Tests  1865 passed | 15 skipped (1880)
+   Start at  18:34:14
+   Duration  79.12s (transform 10.47s, setup 128.67s, import 129.93s, tests 100.38s, environment 705.39s)
+
+Skipping visual validation: no mapped screen ID found in story file
+Updated sprint status: 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields-review-20260727-183350.log

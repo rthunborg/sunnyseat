@@ -85,6 +85,7 @@ const ROW_WITH_TAGS = {
   neighborhood: 'Inom Vallgraven',
   lat: 57.7,
   lng: 11.97,
+  hidden: false,
   is_partner: false,
   confidence: 92,
   sun_exposure_percent: 95,
@@ -98,6 +99,7 @@ const ROW_WITH_NULL_TAGS = {
   neighborhood: 'Haga',
   lat: 57.7,
   lng: 11.95,
+  hidden: false,
   is_partner: false,
   confidence: 80,
   sun_exposure_percent: 10,
@@ -122,8 +124,10 @@ describe('Story 9.7 AC1 — venue DTO carries real tags from the DB adapter (RED
     vi.doMock('@/lib/supabase/server', () => ({
       getSupabaseServiceRole: () => ({
         from: () => ({
-          select: () =>
-            Promise.resolve({ data: [ROW_WITH_TAGS, ROW_WITH_NULL_TAGS], error: null }),
+          select: () => ({
+            eq: () =>
+              Promise.resolve({ data: [ROW_WITH_TAGS, ROW_WITH_NULL_TAGS], error: null }),
+          }),
         }),
       }),
     }));

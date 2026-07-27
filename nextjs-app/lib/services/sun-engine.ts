@@ -825,12 +825,13 @@ async function computeRealSunEngineResult(
 
 /** Resolve the engine geometry: real seating polygon, else point footprint. */
 export function resolveVenueGeometry(
-  venue: Pick<StoredVenue, 'seatingArea' | 'location'>,
+  venue: Pick<StoredVenue, 'seatingArea' | 'location' | 'engineLocation'>,
 ): GeoJSON.Polygon {
   if (venue.seatingArea) return venue.seatingArea;
+  const point = venue.engineLocation ?? venue.location;
   return synthesizeFootprint(
-    venue.location.lat,
-    venue.location.lng,
+    point.lat,
+    point.lng,
     VENUE_FOOTPRINT_FALLBACK_SIZE_M,
   );
 }

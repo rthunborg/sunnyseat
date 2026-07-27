@@ -25,6 +25,12 @@ export const queryKeys = {
       [...queryKeys.venues.all, 'favourites', normalizeFavouriteFilters(filters)] as const,
     search: (query: string) =>
       [...queryKeys.venues.all, 'search', query] as const,
+    devVenueEditor: {
+      all: () => [...queryKeys.venues.all, 'dev-editor'] as const,
+      list: () => [...queryKeys.venues.devVenueEditor.all(), 'list'] as const,
+      detail: (identifier: string) =>
+        [...queryKeys.venues.devVenueEditor.all(), 'detail', identifier] as const,
+    },
   },
   sun: {
     all: ['sun'] as const,

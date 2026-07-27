@@ -77,8 +77,8 @@ describe('<VenuePin />', () => {
     expect(button.dataset.pinState).toBe('sunny');
     expect(button.dataset.selected).toBe('true');
     expect(button.querySelector('[data-pin-tail]')).not.toBeNull();
-    expect(button.querySelector('span')).toHaveClass('text-amber-cta-text');
-    expect(button.querySelector('[data-pin-icon="sun"]')).toHaveClass('text-amber-cta-text');
+    expect(button.querySelector('span')).toHaveClass('text-text-primary');
+    expect(button.querySelector('[data-pin-icon="sun"]')).toHaveClass('text-text-primary');
   });
 
   it('renders the shaded pill regardless of isSelected (single shaded variant)', () => {

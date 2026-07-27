@@ -18,7 +18,9 @@ Story 12.3 persists ungated day-series geometry by `geometry_input_hash`. Any
 change to seating geometry, seating/ground elevation, or shadow-caster import
 inputs must mark the affected venue geometry dirty and let the protected
 precompute job publish a new ready hash before public reads use the change.
-Public reads must not fill gaps by doing the full-day shadow projection.
+Use the protected `mark_venue_geometry_dirty` workflow (or the Story 12.5 editor
+RPC that calls it) for those changes. Public reads must not fill gaps by doing
+the full-day shadow projection.
 
 ## Field groups
 
@@ -30,7 +32,8 @@ Public reads must not fill gaps by doing the full-day shadow projection.
 | `slug` | text | ✅ | Unique (`idx_venues_slug`), URL-safe, no spaces. Used by `/api/venues/[slug]`. |
 | `venue_name` | text | ✅ | Display name. |
 | `neighborhood` | text | ✅ | e.g. `"Haga"`, `"Inom Vallgraven"`. |
-| `lat` / `lng` | double precision | ✅ | Venue point, WGS84 (decimal degrees). |
+| `lat` / `lng` | double precision | ✅ | Canonical engine point, WGS84 (decimal degrees). Sun/weather fallbacks use this pair when no `seating_area` is present. |
+| `display_lat` / `display_lng` | double precision | optional pair | Display-only public pin override. Both must be null or both set inside Gothenburg bounds (`57.6`-`57.8`, `11.8`-`12.1`). Null pair falls back to `lat`/`lng`. Dragging this pin never changes the Story 12.3 geometry input hash. |
 | `is_partner` | boolean | — | Defaults false. |
 | `thumbnail` | jsonb | — | `{ "alt": "...", "initials": "KK", "cardUrl": "https://<supabase>/storage/v1/object/public/venue-media/{slug}/{mediaVersion}/card.webp", "heroUrl": "https://<supabase>/storage/v1/object/public/venue-media/{slug}/{mediaVersion}/hero.webp" }`. `url` is legacy read fallback only. |
 | `description` | text | — | Short Swedish blurb. |
@@ -45,6 +48,7 @@ Public reads must not fill gaps by doing the full-day shadow projection.
 | **`seating_elevation_m`** | double precision ≥ 0 | optional | Estimated metres of the **seating surface above local ground/street**. Null/0 = street level. Rooftop bars / raised terraces / balconies use the approx floor height (4th floor ≈ 12 m). **Consumed by the engine as of Story 8.6** (Tier-1 rooftop/raised height gate — see "Elevation" below). Set it for rooftop / raised venues so they are predicted from their seating height; leave it null for street-level venues (byte-identical to the pre-8.6 ground-level path). |
 | **`ground_elevation_m`** | double precision | optional | The venue's **RH2000 absolute ground elevation** (Z, metres) at its point — the height of the *ground the venue stands on*, NOT a height above ground. **May be negative.** For a **hilltop** venue this lets the engine compare each caster's roof against the venue's own ground, so a building standing downhill stops shadowing a venue uphill from it. **Consumed by the engine as of Story 8.7** (Tier-2 terrain gate — see "Elevation" below). Null → engine falls back to the Story 8.6 relative gate (byte-identical). Derive it the same way casters get `ground_z_rh2000`: sample the Göteborg **Höjdmodell 2022 DTM** at the venue's `lat`/`lng` (or, pragmatically, take `ground_z_rh2000` of the `shadow_casters` rows nearest the seating polygon). Leave it null unless the venue sits on a meaningful rise. |
 | `tags` | text[] | — | Canonical **Swedish** tag values for the chip filter (Story 9.7), e.g. `'{Takterrass,Skaldjur}'`. Defaults `'{}'` = no tags: the venue always shows normally and is only hidden while a chip it lacks is active. Chips are **derived from the union of tags across venues** — a tag no venue carries never renders a chip. Keep values inside the known vocabulary in `lib/utils/venue-tags.ts` (`TAG_DISPLAY_EN`); when introducing a new tag, add its English display mapping there in the same change. |
+| `hidden` | boolean | — | Defaults false. Public list/detail/reviews/feedback paths fail closed for hidden rows. Story 12.5 exposes hide/show only through the dev-only editor guard. |
 | `place_id` | text | optional | **Place-ID-only** server-side identity/reference metadata. It is never a source of canonical hours and is not projected into public DTOs. Two venue rows may share an ID when they represent distinct seating areas; never merge those rows. Do not store a companion provider URL or returned content. |
 
 ### 2. Engine-managed columns — placeholders only
@@ -76,6 +80,8 @@ Note there is **no `id`** — it auto-assigns. Send it only to overwrite an exis
   "neighborhood": "Haga",
   "lat": 57.6995,
   "lng": 11.9560,
+  "display_lat": null,
+  "display_lng": null,
   "is_partner": false,
   "thumbnail": {
     "alt": "Uteservering hos Kafé Kringlan",
@@ -98,6 +104,7 @@ Note there is **no `id`** — it auto-assigns. Send it only to overwrite an exis
   "seating_elevation_m": null,
   "ground_elevation_m": null,
   "tags": ["Innergård"],
+  "hidden": false,
   "place_id": "[optional-place-id]",
   "hours_source_type": "venue_website",
   "hours_source_reference": "venue-site:kafe-kringlan:2026-07-14",
@@ -227,6 +234,22 @@ Use **[geojson.io](https://geojson.io)**:
 3. Copy the GeoJSON from the right panel — it's already WGS84, `[lng, lat]`, closed-ring. Send the `geometry` object (or the whole feature).
 
 Keep it ~4–20 vertices. Alternatives: [geoman.io](https://geoman.io/geojson-editor), [placemark.io](https://placemark.io).
+
+## Dev-only venue editor
+
+Local venue edits can use the Story 12.5 editor at the map route with
+`?_editor=venues` while running on loopback with `SUNNYSEAT_ADMIN=dev`.
+Production returns 404 before reading any request body, and non-loopback or
+forwarded-host requests are denied.
+
+The editor writes through the service-role-only
+`apply_dev_venue_editor_patch` RPC. Display pin drags update only
+`display_lat/display_lng`. Hide/show updates `hidden`. Seating polygon paste
+updates `seating_area` and marks the venue dirty with `mark_venue_geometry_dirty`;
+public real-engine reads then fail closed until protected precompute publishes
+ready coverage for the new hash. Thumbnail edits may only reference managed
+`venue-media/{slug}/{mediaVersion}/{card|hero}.webp` objects with valid WebP
+metadata and byte caps; legacy external `url` is read-only fallback data.
 
 ## Elevation (rooftop bars / hilltop venues)
 

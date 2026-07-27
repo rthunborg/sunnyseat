@@ -85,11 +85,11 @@ function SunnyPill({ percent }: { percent: number }) {
   return (
     <div className="flex flex-col items-center">
       <div className="flex h-[50px] w-11 flex-col items-center justify-center gap-0.5 rounded-pill border-[2.5px] border-white bg-amber-pin py-1 shadow-card">
-        <span className="text-label-xs leading-none text-amber-cta-text">{percent}%</span>
+        <span className="text-label-xs leading-none text-text-primary">{percent}%</span>
         <Sun
           aria-hidden="true"
           data-pin-icon="sun"
-          className="size-3.5 text-amber-cta-text"
+          className="size-3.5 text-text-primary"
         />
       </div>
       <span

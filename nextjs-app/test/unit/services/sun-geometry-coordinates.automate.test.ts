@@ -49,6 +49,12 @@ describe('Story 12.3 automated coverage - shared venue engine coordinates', () =
         location: { lat: 57.705, lng: 11.97 },
       }),
     ).toEqual({ lat: 57.705, lng: 11.97 });
+    expect(
+      venueEngineCoordinate({
+        location: { lat: 57.7065, lng: 11.9715 },
+        engineLocation: { lat: 57.705, lng: 11.97 },
+      }),
+    ).toEqual({ lat: 57.705, lng: 11.97 });
   });
 
   test('rejects non-finite coordinates instead of emitting an invalid hash input point', () => {

@@ -70,6 +70,13 @@ function everyDay(open: string, close: string): WeeklyOpeningHours {
  * byte-identical because launch venues leave it null → footprint fallback).
  */
 export type StoredVenueServerOnly = {
+  /**
+   * Canonical persisted venue point from `venues.lat/lng`. Public `location`
+   * may be the display-only pin coordinate (`display_lat/display_lng`), but
+   * weather and geometry fallbacks must continue to use this engine point.
+   * Server-only and never serialized into the DTO.
+   */
+  engineLocation?: VenueDataDto['location'];
   seatingArea?: GeoJSON.Polygon;
   /**
    * Metres the venue's outdoor seating surface sits above its own local ground
@@ -152,6 +159,11 @@ export const VENUE_SELECT_COLUMNS = [
   'neighborhood',
   'lat',
   'lng',
+  // Story 12.5: display-only public pin coordinates. When absent, public DTO
+  // location falls back to `lat/lng`; sun/weather engine fallbacks use the
+  // server-only engineLocation populated from `lat/lng`.
+  'display_lat',
+  'display_lng',
   'is_partner',
   'thumbnail',
   'description',
@@ -181,7 +193,7 @@ export const VENUE_SELECT_COLUMNS = [
   'ground_elevation_m',
 ].join(', ');
 
-const PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS = [
+export const PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS = [
   VENUE_SELECT_COLUMNS,
   // Story 12.7 canonical public guard, server-only and never mapped to the DTO.
   'hidden',
@@ -194,6 +206,8 @@ type VenueRow = {
   neighborhood?: string | null;
   lat?: number | null;
   lng?: number | null;
+  display_lat?: number | null;
+  display_lng?: number | null;
   is_partner?: boolean | null;
   thumbnail?: VenueDataDto['thumbnail'] | null;
   description?: string | null;
@@ -382,11 +396,14 @@ async function readSupabaseVenues(): Promise<StoredVenue[]> {
   const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
   const { data, error } = await getSupabaseServiceRole()
     .from('venues')
-    .select(VENUE_SELECT_COLUMNS);
+    .select(PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS)
+    .eq('hidden', false);
   if (error) {
     throw new Error(`Venue store failed: ${error.message}`);
   }
-  return ((data ?? []) as VenueRow[]).map(fromVenueRow);
+  return ((data ?? []) as VenueRow[])
+    .filter(isPublicVenueRow)
+    .map(fromVenueRow);
 }
 
 async function readSupabaseVenueBySlug(slug: string): Promise<StoredVenue | null> {
@@ -502,6 +519,7 @@ function fromVenueRow(row: VenueRow): StoredVenue {
       `Venue store failed: venue ${id} has invalid coordinates (lat=${formatBadValue(row.lat)}, lng=${formatBadValue(row.lng)})`,
     );
   }
+  const displayLocation = displayLocationFromRow(row, id, lat, lng);
   const skyCondition = coerceSkyCondition(row.sky_condition);
   const currentSunStatus = coerceSunStatus(row.current_sun_status);
   const seatingArea = coerceSeatingArea(row.seating_area);
@@ -514,7 +532,8 @@ function fromVenueRow(row: VenueRow): StoredVenue {
     venueSlug: slug,
     slug,
     neighborhood: row.neighborhood ?? '',
-    location: { lat, lng },
+    location: displayLocation,
+    engineLocation: { lat, lng },
     currentSunStatus,
     // Stored seed-era sky/status fields are not an authoritative weather-gate
     // contract. The real engine replaces this value; until then, fail closed.
@@ -536,6 +555,30 @@ function fromVenueRow(row: VenueRow): StoredVenue {
     ...detailFromRow(row),
   };
   return stored;
+}
+
+function displayLocationFromRow(
+  row: VenueRow,
+  id: string,
+  fallbackLat: number,
+  fallbackLng: number,
+): VenueDataDto['location'] {
+  const hasDisplayLat = row.display_lat !== null && row.display_lat !== undefined;
+  const hasDisplayLng = row.display_lng !== null && row.display_lng !== undefined;
+  if (!hasDisplayLat && !hasDisplayLng) {
+    return { lat: fallbackLat, lng: fallbackLng };
+  }
+  if (!hasDisplayLat || !hasDisplayLng) {
+    throw new Error(
+      `Venue store failed: venue ${id} has incomplete display coordinates`,
+    );
+  }
+  if (!isFiniteNumber(row.display_lat) || !isFiniteNumber(row.display_lng)) {
+    throw new Error(
+      `Venue store failed: venue ${id} has invalid display coordinates`,
+    );
+  }
+  return { lat: row.display_lat, lng: row.display_lng };
 }
 
 /**

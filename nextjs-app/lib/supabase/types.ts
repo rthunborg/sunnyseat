@@ -618,6 +618,8 @@ export type Database = {
           created_at: string
           current_sun_status: string
           description: string | null
+          display_lat: number | null
+          display_lng: number | null
           ground_elevation_m: number | null
           hidden: boolean
           hours_last_error_class: string | null
@@ -653,6 +655,8 @@ export type Database = {
           created_at?: string
           current_sun_status: string
           description?: string | null
+          display_lat?: number | null
+          display_lng?: number | null
           ground_elevation_m?: number | null
           hidden?: boolean
           hours_last_error_class?: string | null
@@ -688,6 +692,8 @@ export type Database = {
           created_at?: string
           current_sun_status?: string
           description?: string | null
+          display_lat?: number | null
+          display_lng?: number | null
           ground_elevation_m?: number | null
           hidden?: boolean
           hours_last_error_class?: string | null
@@ -935,6 +941,26 @@ export type Database = {
       mark_venue_geometry_dirty: {
         Args: {
           p_reason?: string
+          p_venue_id: string
+        }
+        Returns: boolean
+      }
+      apply_dev_venue_editor_patch: {
+        Args: {
+          p_dirty_reason?: string
+          p_display_lat?: number | null
+          p_display_lng?: number | null
+          p_hidden?: boolean | null
+          p_seating_area?: Json | null
+          p_tags?: string[] | null
+          p_description?: string | null
+          p_thumbnail?: Json | null
+          p_update_description?: boolean
+          p_update_display_coordinates?: boolean
+          p_update_hidden?: boolean
+          p_update_seating_area?: boolean
+          p_update_tags?: boolean
+          p_update_thumbnail?: boolean
           p_venue_id: string
         }
         Returns: boolean

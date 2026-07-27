@@ -9,5 +9,29 @@
   "settings": "Inställningar",
   "pinSunnyAria": "{name} — soligt vid vald tid — {percent} procent sol",
   "pinSunnyWeatherUnknownAria": "{name} — soligt vid vald tid — {percent} procent sol. Väder saknas vid vald tid.",
-  "pinNotSunnyAria": "{name} — inte soligt vid vald tid"
+  "pinNotSunnyAria": "{name} — inte soligt vid vald tid",
+  "devEditor": {
+    "title": "Redigera plats",
+    "venue": "Plats",
+    "hidden": "Dold",
+    "displayLat": "Visningslatitud",
+    "displayLng": "Visningslongitud",
+    "engineLat": "Motorlatitud",
+    "engineLng": "Motorlongitud",
+    "seatingArea": "Uteservering",
+    "tags": "Taggar",
+    "description": "Beskrivning",
+    "thumbnailAlt": "Bildtext",
+    "thumbnailInitials": "Initialer",
+    "thumbnailCard": "Kortbild",
+    "thumbnailHero": "Hero-bild",
+    "save": "Spara",
+    "saving": "Sparar",
+    "reset": "Återställ",
+    "saved": "Sparat",
+    "empty": "Ingen plats vald",
+    "dragPinAria": "Visningsnål för {name}",
+    "loadFailed": "Kunde inte ladda redigeraren",
+    "validationFailed": "Kontrollera fälten"
+  }
 }

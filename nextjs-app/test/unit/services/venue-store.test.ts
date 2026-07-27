@@ -4,6 +4,7 @@ import {
   getVenues,
   storedVenueDetail,
   toVenueData,
+  PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS,
   VENUE_SELECT_COLUMNS,
   type StoredVenue,
 } from '@/lib/services/venue-store';
@@ -15,13 +16,20 @@ const supabaseMock = vi.hoisted(() => {
     singleResult: { data: null as unknown, error: null as unknown },
   };
   const maybeSingle = vi.fn(() => Promise.resolve(state.singleResult));
-  const eq = vi.fn(() => ({ maybeSingle }));
-  const select = vi.fn(() => ({
-    // Thenable so `await client.from('venues').select(cols)` resolves the list.
+  const listThenable = {
     then: (
       onFulfilled: (value: unknown) => unknown,
       onRejected?: (reason: unknown) => unknown,
     ) => Promise.resolve(state.listResult).then(onFulfilled, onRejected),
+  };
+  const eq = vi.fn((column: string) => (
+    column === 'hidden'
+      ? listThenable
+      : { maybeSingle }
+  ));
+  const select = vi.fn(() => ({
+    // Thenable so `await client.from('venues').select(cols)` resolves the list.
+    ...listThenable,
     eq,
   }));
   const from = vi.fn(() => ({ select }));
@@ -46,6 +54,7 @@ const SUPABASE_ROW = {
   neighborhood: 'Centrum',
   lat: 57.71,
   lng: 11.98,
+  hidden: false,
   is_partner: true,
   thumbnail: { alt: 'Supa', initials: 'SV', url: 'https://example.com/x.jpg' },
   description: 'En riktig uteservering.',
@@ -181,14 +190,15 @@ describe('venue-store (Supabase opt-in)', () => {
     expect(supabaseMock.select).toHaveBeenCalledWith(VENUE_SELECT_COLUMNS);
     expect(supabaseMock.eq).toHaveBeenCalledWith('slug', 'supa-venue');
 
-    // The column set must include all 22 contract columns (incl. the server-only
-    // seating_area, seating_elevation_m, and ground_elevation_m). A dropped/renamed
+    // The column set must include all 23 contract columns (incl. the display-only
+    // coordinates and server-only geometry/elevation fields). A dropped/renamed
     // column would fail here.
     const columns = VENUE_SELECT_COLUMNS.split(', ');
     // Story 11.9 (AC3/AC4): peak_time + shadow_warning_minutes are DROPPED; the
     // opening_hours column stays (its jsonb shape changed, not the column list).
     expect(columns).toEqual([
-      'id', 'slug', 'venue_name', 'neighborhood', 'lat', 'lng', 'is_partner',
+      'id', 'slug', 'venue_name', 'neighborhood', 'lat', 'lng',
+      'display_lat', 'display_lng', 'is_partner',
       'thumbnail', 'description', 'address', 'opening_hours',
       'current_sun_status', 'sky_condition', 'confidence',
       'sun_exposure_percent', 'sun_window', 'prediction_uncertainty', 'tags',
@@ -196,8 +206,8 @@ describe('venue-store (Supabase opt-in)', () => {
     ]);
     expect(columns).not.toContain('peak_time');
     expect(columns).not.toContain('shadow_warning_minutes');
-    // Story 11.9 (AC3/AC4): 23 − peak_time − shadow_warning_minutes = 21 columns.
-    expect(columns).toHaveLength(21);
+    // Story 12.5: 23 columns after adding display_lat/display_lng.
+    expect(columns).toHaveLength(23);
     // Story 9.7: `tags` IS a client field (mapped into the DTO), unlike the
     // server-only seating_* columns.
     expect(columns).toContain('tags');
@@ -210,7 +220,16 @@ describe('venue-store (Supabase opt-in)', () => {
     await getVenues();
 
     expect(supabaseMock.from).toHaveBeenCalledWith('venues');
-    expect(supabaseMock.select).toHaveBeenCalledWith(VENUE_SELECT_COLUMNS);
+    expect(supabaseMock.select).toHaveBeenCalledWith(PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS);
+  });
+
+  it('[12.5] filters the live list at the store boundary so hidden venues never enter public route logic', async () => {
+    useSupabaseStore();
+    supabaseMock.state.listResult = { data: [SUPABASE_ROW], error: null };
+
+    await getVenues();
+
+    expect(supabaseMock.eq).toHaveBeenCalledWith('hidden', false);
   });
 
   it('fails closed when configured for Supabase without full credentials', async () => {
@@ -250,6 +269,82 @@ describe('venue-store (Supabase opt-in)', () => {
     });
     expect(venues[0]).not.toHaveProperty('description');
     expect(venues[0]).not.toHaveProperty('peakTime');
+  });
+
+  it('[12.5] maps display_lat/display_lng into the public pin location without mutating the persisted engine point', async () => {
+    useSupabaseStore();
+    supabaseMock.state.singleResult = {
+      data: {
+        ...SUPABASE_ROW,
+        display_lat: 57.7061,
+        display_lng: 11.9712,
+        seating_area: {
+          type: 'Polygon',
+          coordinates: [[
+            [11.98, 57.71],
+            [11.981, 57.71],
+            [11.981, 57.711],
+            [11.98, 57.711],
+            [11.98, 57.71],
+          ]],
+        },
+      },
+      error: null,
+    };
+
+    const venue = await getVenueBySlug('supa-venue');
+
+    expect(venue?.location).toEqual({ lat: 57.7061, lng: 11.9712 });
+    expect(venue?.seatingArea?.coordinates[0][0]).toEqual([11.98, 57.71]);
+  });
+
+  it('[12.5] maps display coordinates on the public list DTO and strips server-only/editor-only fields', async () => {
+    useSupabaseStore();
+    const seatingArea = {
+      type: 'Polygon',
+      coordinates: [[
+        [11.98, 57.71],
+        [11.981, 57.71],
+        [11.981, 57.711],
+        [11.98, 57.711],
+        [11.98, 57.71],
+      ]],
+    };
+    supabaseMock.state.listResult = {
+      data: [{
+        ...SUPABASE_ROW,
+        display_lat: 57.7061,
+        display_lng: 11.9712,
+        hidden: false,
+        seating_area: seatingArea,
+        seating_elevation_m: 2,
+        ground_elevation_m: 3,
+      }],
+      error: null,
+    };
+
+    const [venue] = await getVenues();
+
+    expect(venue.location).toEqual({ lat: 57.7061, lng: 11.9712 });
+    expect(venue).not.toHaveProperty('engineLocation');
+    expect(venue).not.toHaveProperty('seatingArea');
+    expect(venue).not.toHaveProperty('seatingElevationM');
+    expect(venue).not.toHaveProperty('groundElevationM');
+    expect(venue).not.toHaveProperty('hidden');
+    expect(venue).not.toHaveProperty('description');
+    expect(venue).not.toHaveProperty('address');
+  });
+
+  it('[12.5] rejects half-populated display coordinates instead of mixing display and engine pairs', async () => {
+    useSupabaseStore();
+    supabaseMock.state.singleResult = {
+      data: { ...SUPABASE_ROW, display_lat: 57.7061, display_lng: null },
+      error: null,
+    };
+
+    await expect(getVenueBySlug('supa-venue')).rejects.toThrow(
+      'Venue store failed: venue 9 has incomplete display coordinates',
+    );
   });
 
   it('maps a row to a detailed StoredVenue by slug', async () => {
@@ -597,6 +692,35 @@ describe('venue-store projection helpers', () => {
     expect(base).toMatchObject({ id: '1', skyCondition: 'clear', sunWindow: { start: '13:00', end: '18:30' } });
     // Story 9.7: `tags` IS a client field — it survives the projection.
     expect(base.tags).toEqual(['Innergård', 'Hund ok', 'Wifi', 'Bakverk']);
+  });
+
+  it('[12.5] toVenueData strips display-editor and engine-only fields while preserving public inline fields', () => {
+    const seatingArea: GeoJSON.Polygon = {
+      type: 'Polygon',
+      coordinates: [[
+        [11.97, 57.705],
+        [11.971, 57.705],
+        [11.971, 57.706],
+        [11.97, 57.706],
+        [11.97, 57.705],
+      ]],
+    };
+    const base = toVenueData({
+      ...stored,
+      engineLocation: { lat: 57.705, lng: 11.97 },
+      seatingArea,
+      seatingElevationM: 1.5,
+      groundElevationM: 2.5,
+      thumbnail: { alt: 'Bild', initials: 'KM' },
+    });
+
+    expect(base.location).toBe(stored.location);
+    expect(base.tags).toEqual(stored.tags);
+    expect(base.thumbnail).toEqual({ alt: 'Bild', initials: 'KM' });
+    expect(base).not.toHaveProperty('engineLocation');
+    expect(base).not.toHaveProperty('seatingArea');
+    expect(base).not.toHaveProperty('seatingElevationM');
+    expect(base).not.toHaveProperty('groundElevationM');
   });
 
   it('toVenueData surfaces openingHours on the list DTO when the store carries it (Story 11.4 AC1 / 11.9 AC2)', () => {

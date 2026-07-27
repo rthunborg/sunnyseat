@@ -44,6 +44,7 @@
 
 generated: 2026-06-02
 last_updated: 2026-07-27
+# Note (2026-07-27, dev-story 12.5 - 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields ready-for-dev -> in-progress): baseline typecheck and lint passed before edits; implementation started with production-impossible dev editor guard, display-coordinate migration/store mapping, geometry dirty/publish seam, hidden route matrix, media validation, and dev-only UI as the active scope.
 # Note (2026-07-27, create-story 12.5 - 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields backlog -> ready-for-dev): authored the Story 12.5 context file at _bmad-output/implementation-artifacts/12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields.md. Core guidance: dev/localhost-only editor with production hard deny before flags/input, Story 12.3 geometry_input_hash/publication seam, Story 12.7 canonical hidden resolver, Story 12.12 card/hero media contract, AD-06 display_lat/display_lng separation from seating-centroid engine/weather coordinates, public hidden route matrix, cache-bound/query invalidation, and docs update. Folded targeted Epic 12 retro/deferred constraints for schema drift, a11y-mobile evidence, protected Storage evidence, visual-gate discipline, centroid duplication, and tag vocabulary drift. story-file-audit: all 7 checks PASS. Next: bmad-dev-story 12-5.
 # Note (2026-07-27, human-feedback refinement 12.10 - 12-10-venue-detail-preload-instant-mer-info review -> in-progress): reopened for loading scrim blur adjustment; baseline and final typecheck/lint passed; focused cache-miss shell coverage passed; orchestrator owns final review transition.
 # Note (2026-07-26, dev-story 12.10 - 12-10-venue-detail-preload-instant-mer-info ready-for-dev -> in-progress): baseline typecheck and lint passed before edits; implementation started under orchestrator override to leave review transition for post-dev gates.
@@ -327,7 +328,7 @@ development_status:
   12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass: ready-for-dev
   12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze: review
   12-4-production-console-hygiene-hydration-error-maplibre-null-warning: done
-  12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields: ready-for-dev
+  12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields: review
   12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number: review
   12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues: review
   12-8-about-page-pin-legend-so-reads-the-sun-figure: backlog

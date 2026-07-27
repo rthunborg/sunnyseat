@@ -277,3 +277,51 @@
 **⚠️ Needs human:** (none)
 
 **Next:** Implement Option A with RED-first structural/hydration coverage, stress both dismissal flows on mobile and desktop, then rerun static, console, visual, review, and UAT gates.
+
+## Report — 2026-07-27T16:01:02Z (halted — needs-human)
+
+**Epic:** `12` — 14 stories.
+**Branch:** `epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene` (HEAD `fa23bf2`).
+**Pipeline status:** Halted at Story 12.5 / Phase 5: core implementation and automated development checks are complete, but the required visual gate cannot run without ANTHROPIC_API_KEY or explicit approval for documented manual human validation.
+**Continues:** 2026-07-25T19:27:28Z (resumed — in-progress)
+
+**Summary:** Story 12.10 was human-approved and recorded done. Story 12.5 now has its dev-only venue editor implementation and core automated checks complete, but remains in-progress with its implementation uncommitted until the visual-validation choice is resolved.
+
+**Timing:** started 2026-07-18T11:27:25Z; completed in progress — elapsed 220h 33m (≈38h 03m AI-run, ≈182h 29m human/idle wait); resumed 6×.
+
+**Stories:**
+1. 12-1 was already done before this epic run.
+2. 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, and 12-10 are landed; Story 12.10 is human-approved and done.
+3. 12-5 is halted in Phase 5 after implementation and core automated validation; required mobile/desktop visual validation is unresolved.
+4. 12-8, 12-11, 12-2, and 12-14 have not started in the confirmed dependency order.
+
+**Skipped (already done):** 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours (already done before this epic run).
+
+**Integration review:** Not reached; Story 12.5 has not landed and later stories remain.
+
+**Epic gate:** Not reached; the epic is halted in Story 12.5 Phase 5.
+
+**TEA:** Story 12.5 is High risk. Pre-dev ATDD is complete. Typecheck, lint, full Vitest, focused Story 12.5 Playwright, and accessibility suites passed; post-dev automate and trace-advisory have not run because Phase 5 has not completed.
+
+**UAT:** (none)
+
+**Overrides:** User-confirmed dependency order and per-story human visual review are retained.
+
+**Open questions:**
+1. Use documented manual human visual validation for Story 12.5, or supply ANTHROPIC_API_KEY for the legacy automated validator?
+
+**Deferred work:**
+1. [12-3] Capture protected-production 42+ venue cold-p95 evidence and verify the protected GitHub Production environment when access is available.
+2. [12-7] Apply 20260718214954_add_public_venue_visibility.sql before deployment, regenerate Supabase types, and verify no contract diff.
+3. [12-12] Apply 20260719000000_venue_media_storage.sql before hosted venue media use and verify protected Supabase Storage bucket/RLS behavior.
+No additional deferred work was archived in this halted session.
+
+**Auto-decided (epic mode):**
+1. [12-7] Adopted the architecture-backed canonical hidden boolean not null default false migration/type contract after live/schema probes found all previously referenced visibility columns absent; no protected database mutation was performed.
+
+**Planning drift:** None; Story 12.5 is being executed in the maintainer-approved dependency order.
+
+**⚠️ Needs human:**
+1. Choose documented manual human visual validation for Story 12.5, or provide ANTHROPIC_API_KEY so the legacy automated visual validator can run.
+
+**Next:** Resume Story 12.5 Phase 5 after that choice; complete its visual evidence, remaining acceptance-evidence matrix, canonical review gate, post-dev TEA, and thin review before advancing to Story 12.8.

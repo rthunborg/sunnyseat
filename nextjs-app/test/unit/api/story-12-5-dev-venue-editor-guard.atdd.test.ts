@@ -1,124 +1,157 @@
-/**
- * ATDD RED-PHASE acceptance scaffolds - Story 12.5
- * Dev-only venue editor guard and production-impossibility boundary.
- *
- * These tests are intentionally skipped until Story 12.5 implementation lands.
- * Replace loadPlannedEditorGuard() with the real guard import when the route is built.
- */
+import { NextRequest } from 'next/server';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { GET } from '@/app/api/dev/venues/route';
+import { PATCH } from '@/app/api/dev/venues/[identifier]/route';
+import {
+  listDevEditorVenues,
+  patchDevEditorVenue,
+} from '@/lib/services/dev-venue-editor-store';
 
-import { describe, expect, test, vi } from 'vitest';
+vi.mock('@/lib/services/dev-venue-editor-store', () => ({
+  listDevEditorVenues: vi.fn(),
+  patchDevEditorVenue: vi.fn(),
+}));
 
-type GuardInput = {
-  nodeEnv: 'development' | 'test' | 'production';
-  adminFlag?: string;
-  host?: string;
-  origin?: string;
-  forwardedHost?: string;
-  forwardedProto?: string;
-  readBody?: () => unknown;
-  touchSupabase?: () => unknown;
-};
+const listDevEditorVenuesMock = vi.mocked(listDevEditorVenues);
+const patchDevEditorVenueMock = vi.mocked(patchDevEditorVenue);
 
-type GuardDecision = {
-  allowed: boolean;
-  status: 200 | 400 | 403 | 404;
-  body: Record<string, unknown>;
-  headers: Headers;
-};
-
-type PlannedEditorGuardModule = {
-  evaluateDevVenueEditorGuard: (input: GuardInput) => Promise<GuardDecision>;
-};
-
-async function loadPlannedEditorGuard(): Promise<PlannedEditorGuardModule> {
-  throw new Error(
-    'RED: implement a server-only dev venue editor guard and import it in this ATDD scaffold.',
-  );
+function request(
+  url: string,
+  init?: {
+    method?: string;
+    body?: BodyInit | null;
+    headers?: HeadersInit;
+  },
+): NextRequest {
+  const headers = new Headers(init?.headers);
+  if (!headers.has('host')) headers.set('host', 'localhost:3000');
+  if (!headers.has('origin')) headers.set('origin', 'http://localhost:3000');
+  return new NextRequest(url, {
+    method: init?.method,
+    body: init?.body,
+    headers,
+  });
 }
 
-describe.skip('Story 12.5 ATDD - dev venue editor guard', () => {
-  test('[P0] production denies before flags, request body parsing, or Supabase access', async () => {
-    const guard = await loadPlannedEditorGuard();
-    const readBody = vi.fn();
-    const touchSupabase = vi.fn();
+function patchContext(identifier = 'test-venue-sunny') {
+  return { params: Promise.resolve({ identifier }) };
+}
 
-    const decision = await guard.evaluateDevVenueEditorGuard({
-      nodeEnv: 'production',
-      adminFlag: 'dev',
-      host: 'localhost:3000',
-      origin: 'http://localhost:3000',
-      readBody,
-      touchSupabase,
-    });
-
-    expect(decision).toMatchObject({ allowed: false, status: 404 });
-    expect(decision.headers.get('cache-control')).toBe('no-store');
-    expect(JSON.stringify(decision.body)).not.toMatch(/dev|admin|supabase|service/i);
-    expect(readBody).not.toHaveBeenCalled();
-    expect(touchSupabase).not.toHaveBeenCalled();
+describe('Story 12.5 dev venue editor guard', () => {
+  beforeEach(() => {
+    vi.unstubAllEnvs();
+    vi.stubEnv('NODE_ENV', 'development');
+    listDevEditorVenuesMock.mockReset();
+    patchDevEditorVenueMock.mockReset();
   });
 
-  test('[P0] non-production still requires SUNNYSEAT_ADMIN=dev and loopback host plus origin', async () => {
-    const guard = await loadPlannedEditorGuard();
-
-    await expect(
-      guard.evaluateDevVenueEditorGuard({
-        nodeEnv: 'development',
-        adminFlag: undefined,
-        host: 'localhost:3000',
-        origin: 'http://localhost:3000',
-      }),
-    ).resolves.toMatchObject({ allowed: false, status: 404 });
-
-    await expect(
-      guard.evaluateDevVenueEditorGuard({
-        nodeEnv: 'development',
-        adminFlag: 'dev',
-        host: 'sunnyseat.example',
-        origin: 'https://sunnyseat.example',
-      }),
-    ).resolves.toMatchObject({ allowed: false, status: 404 });
-
-    await expect(
-      guard.evaluateDevVenueEditorGuard({
-        nodeEnv: 'development',
-        adminFlag: 'dev',
-        host: '127.0.0.1:3000',
-        origin: 'http://127.0.0.1:3000',
-      }),
-    ).resolves.toMatchObject({ allowed: true, status: 200 });
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
-  test('[P0] ambiguous forwarded host or origin fails closed before body parsing', async () => {
-    const guard = await loadPlannedEditorGuard();
-    const readBody = vi.fn();
+  it('denies production before touching the editor service, even when the dev flag is set', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('SUNNYSEAT_ADMIN', 'dev');
 
-    const decision = await guard.evaluateDevVenueEditorGuard({
-      nodeEnv: 'development',
-      adminFlag: 'dev',
-      host: 'localhost:3000',
-      origin: 'http://localhost:3000',
-      forwardedHost: 'sunnyseat.example',
-      forwardedProto: 'https',
-      readBody,
-    });
+    const res = await GET(request('http://localhost/api/dev/venues'));
 
-    expect(decision).toMatchObject({ allowed: false, status: 404 });
-    expect(readBody).not.toHaveBeenCalled();
+    expect(res.status).toBe(404);
+    expect(listDevEditorVenuesMock).not.toHaveBeenCalled();
   });
 
-  test('[P0] denied guard responses never expose service-role configuration to clients', async () => {
-    const guard = await loadPlannedEditorGuard();
+  it('denies non-production requests when SUNNYSEAT_ADMIN is unset before parsing the request body', async () => {
+    const res = await PATCH(
+      request('http://localhost/api/dev/venues/test-venue-sunny', {
+        method: 'PATCH',
+        body: '{not-json',
+      }),
+      patchContext(),
+    );
 
-    const decision = await guard.evaluateDevVenueEditorGuard({
-      nodeEnv: 'test',
-      adminFlag: 'wrong',
-      host: 'localhost:3000',
-      origin: 'http://localhost:3000',
+    expect(res.status).toBe(403);
+    expect(patchDevEditorVenueMock).not.toHaveBeenCalled();
+  });
+
+  it('fails closed for non-loopback hosts and forwarded-host ambiguity', async () => {
+    vi.stubEnv('SUNNYSEAT_ADMIN', 'dev');
+
+    const remote = await GET(
+      request('https://sunnyseat.example/api/dev/venues', {
+        headers: {
+          host: 'sunnyseat.example',
+          origin: 'https://sunnyseat.example',
+        },
+      }),
+    );
+    const forwarded = await GET(
+      request('http://localhost/api/dev/venues', {
+        headers: {
+          'x-forwarded-host': 'sunnyseat.example',
+        },
+      }),
+    );
+
+    expect(remote.status).toBe(403);
+    expect(forwarded.status).toBe(403);
+    expect(listDevEditorVenuesMock).not.toHaveBeenCalled();
+  });
+
+  it('allows loopback dev reads and writes through the guarded editor service only when explicitly enabled', async () => {
+    vi.stubEnv('SUNNYSEAT_ADMIN', 'dev');
+    listDevEditorVenuesMock.mockResolvedValue([
+      {
+        id: '1',
+        slug: 'test-venue-sunny',
+        venueName: 'Kafé Magasinet',
+        hidden: false,
+        displayLocation: { lat: 57.706, lng: 11.971 },
+        engineLocation: { lat: 57.705, lng: 11.97 },
+        tags: ['Innergård'],
+      },
+      {
+        id: '2',
+        slug: 'test-venue-hidden',
+        venueName: 'Dold testplats',
+        hidden: true,
+        displayLocation: { lat: 57.707, lng: 11.972 },
+        engineLocation: { lat: 57.707, lng: 11.972 },
+        tags: [],
+      },
+    ]);
+    patchDevEditorVenueMock.mockResolvedValue({
+      id: '1',
+      slug: 'test-venue-sunny',
+      venueName: 'Kafé Magasinet',
+      hidden: true,
+      displayLocation: { lat: 57.706, lng: 11.971 },
+      engineLocation: { lat: 57.705, lng: 11.97 },
+      tags: ['Innergård'],
     });
 
-    expect(decision).toMatchObject({ allowed: false });
-    expect(JSON.stringify(decision.body)).not.toMatch(/SUPABASE_SERVICE_ROLE_KEY|service-role/i);
-    expect(decision.headers.get('cache-control')).toBe('no-store');
+    const read = await GET(request('http://localhost/api/dev/venues'));
+    const write = await PATCH(
+      request('http://localhost/api/dev/venues/test-venue-sunny', {
+        method: 'PATCH',
+        body: JSON.stringify({ hidden: true }),
+      }),
+      patchContext(),
+    );
+
+    expect(read.status).toBe(200);
+    expect(read.headers.get('Cache-Control')).toBe('no-store');
+    expect(await read.json()).toMatchObject({
+      venues: [
+        { slug: 'test-venue-sunny', hidden: false },
+        { slug: 'test-venue-hidden', hidden: true },
+      ],
+    });
+    expect(write.status).toBe(200);
+    expect(await write.json()).toMatchObject({
+      venue: { slug: 'test-venue-sunny', hidden: true },
+    });
+    expect(patchDevEditorVenueMock).toHaveBeenCalledWith(
+      'test-venue-sunny',
+      { hidden: true },
+    );
   });
 });

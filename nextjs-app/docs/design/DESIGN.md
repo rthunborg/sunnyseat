@@ -317,8 +317,8 @@ Border: 2px solid color-white (#ffffff)
 Border-radius: radius-pill (9999px)
 Shadow: shadow-card
 Padding: space-5 (10px) vertical, space-4 (8px) horizontal
-Text: text-label-xs / color-amber-cta-text (#554300) seating-share percentage
-Icon: decorative sun
+Text: text-label-xs / color-text-primary (#1b1b1e) seating-share percentage
+Icon: decorative sun / color-text-primary (#1b1b1e)
 ```
 
 ### Map Venue Pin — Not Sunny

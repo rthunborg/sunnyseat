@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 5
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-27T15:20:46Z"
+updated_at: "2026-07-27T16:39:29Z"
 started_at: "2026-07-27T15:03:23Z"
 completed_at: null
-active_seconds: 1010
+active_seconds: 4938
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "High because Story 12.5 adds a production-impossible maintainer editor with permission gates, service-role mutations, geometry and visibility data-integrity writes, polygon input parsing, and cache invalidation."
 epic_story_count: 14
 stories_after_in_epic: 4
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [8b83f95, 38ccb18]
+commits: [8b83f95, 38ccb18, fa23bf2]
 phase8_steps:
   trace_gate: null
   nfr: null

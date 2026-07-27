@@ -9,5 +9,29 @@
   "settings": "Settings",
   "pinSunnyAria": "{name} — sunny at selected time — {percent} percent sun",
   "pinSunnyWeatherUnknownAria": "{name} — sunny at selected time — {percent} percent sun. Weather unavailable at selected time.",
-  "pinNotSunnyAria": "{name} — not sunny at selected time"
+  "pinNotSunnyAria": "{name} — not sunny at selected time",
+  "devEditor": {
+    "title": "Edit venue",
+    "venue": "Venue",
+    "hidden": "Hidden",
+    "displayLat": "Display latitude",
+    "displayLng": "Display longitude",
+    "engineLat": "Engine latitude",
+    "engineLng": "Engine longitude",
+    "seatingArea": "Outdoor seating",
+    "tags": "Tags",
+    "description": "Description",
+    "thumbnailAlt": "Image text",
+    "thumbnailInitials": "Initials",
+    "thumbnailCard": "Card image",
+    "thumbnailHero": "Hero image",
+    "save": "Save",
+    "saving": "Saving",
+    "reset": "Reset",
+    "saved": "Saved",
+    "empty": "No venue selected",
+    "dragPinAria": "Display pin for {name}",
+    "loadFailed": "Could not load editor",
+    "validationFailed": "Check the fields"
+  }
 }

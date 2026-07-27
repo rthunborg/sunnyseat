@@ -4,7 +4,7 @@ baseline_commit: NO_VCS
 
 # Story 12.5: Dev-Only Venue Editor - Drag Pin, Paste Polygon, Persisted Hide/Show, Inline Fields
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -131,155 +131,155 @@ must not move the prediction, weather bucket, geometry hash, or persisted covera
 
 ## Tasks / Subtasks
 
-- [ ] **Task 0 - Preflight source, schema, and safety boundaries** (AC: all)
-  - [ ] Run baseline typecheck and lint from `nextjs-app/`; stop for unrelated failures.
-  - [ ] Inspect current files before changing them: `nextjs-app/lib/services/venue-store.ts`,
+- [x] **Task 0 - Preflight source, schema, and safety boundaries** (AC: all)
+  - [x] Run baseline typecheck and lint from `nextjs-app/`; stop for unrelated failures.
+  - [x] Inspect current files before changing them: `nextjs-app/lib/services/venue-store.ts`,
     `/app/api/venues/route.ts`, `/app/api/venues/[slug]/route.ts`,
     `/app/api/reviews/route.ts`, `/app/api/venues/[slug]/feedback/route.ts`,
     `lib/services/sun-geometry-*`, `lib/utils/venue-media.ts`, `lib/query-keys.ts`,
     `hooks/queries/useVenueSearch.ts`, `hooks/queries/useVenueDetail.ts`,
     `components/custom/map/MapView.tsx`, and `components/custom/map/MapViewDynamic.tsx`.
-  - [ ] Add red-first tests for production hard deny, loopback/dev flag checks, public hidden
+  - [x] Add red-first tests for production hard deny, loopback/dev flag checks, public hidden
     route matrix, display-coordinate isolation, polygon validation, media URL/object
     validation, and query invalidation.
-  - [ ] Confirm no live Met.no, Google, production Supabase, or Storage calls occur in
+  - [x] Confirm no live Met.no, Google, production Supabase, or Storage calls occur in
     default tests. Use deterministic mocks or disposable local DB/Storage abstractions.
 
-- [ ] **Task 1 - Add display-coordinate schema, types, and store mapping** (AC: 2, 8)
-  - [ ] Add a versioned, idempotent repository-root migration for `venues.display_lat` and
+- [x] **Task 1 - Add display-coordinate schema, types, and store mapping** (AC: 2, 8)
+  - [x] Add a versioned, idempotent repository-root migration for `venues.display_lat` and
     `venues.display_lng` with WGS84/Gothenburg bounds checks and a both-null-or-both-non-null
     pair check. Keep `venues.hidden` as the existing Story 12.7 column, not a duplicate.
-  - [ ] Update/generated-sync `nextjs-app/lib/supabase/types.ts`, server row types, Zod
+  - [x] Update/generated-sync `nextjs-app/lib/supabase/types.ts`, server row types, Zod
     schemas, DTO mapping tests, and any public API types impacted by the additive schema.
-  - [ ] Update `VENUE_SELECT_COLUMNS`/row mapping so `StoredVenue.location` for public DTOs
+  - [x] Update `VENUE_SELECT_COLUMNS`/row mapping so `StoredVenue.location` for public DTOs
     coalesces `display_lat/display_lng` first and legacy `lat/lng` second.
-  - [ ] Preserve server-only engine data. Do not serialize `seating_area`,
+  - [x] Preserve server-only engine data. Do not serialize `seating_area`,
     `seating_elevation_m`, `ground_elevation_m`, engine coordinates, geometry hashes beyond
     the existing prediction-evidence seam, caster rows, or provider provenance.
-  - [ ] Add tests proving display coordinates affect public location, distance sort, radius
+  - [x] Add tests proving display coordinates affect public location, distance sort, radius
     inclusion, map marker positions, route summaries, and native map URLs, while engine
     weather/prediction coordinates remain the seating centroid.
 
-- [ ] **Task 2 - Implement fail-closed editor guard and service-role routes** (AC: 1, 6, 7)
-  - [ ] Create a small server-only guard helper for editor routes. First branch:
+- [x] **Task 2 - Implement fail-closed editor guard and service-role routes** (AC: 1, 6, 7)
+  - [x] Create a small server-only guard helper for editor routes. First branch:
     `NODE_ENV === 'production'` returns a generic production deny (prefer 404/no-store for
     page/API surfaces) before reading `SUNNYSEAT_ADMIN`, request body, host/origin, or
     Supabase.
-  - [ ] In non-production, require `SUNNYSEAT_ADMIN=dev` and loopback host/origin. Reject
+  - [x] In non-production, require `SUNNYSEAT_ADMIN=dev` and loopback host/origin. Reject
     missing/remote/ambiguous forwarded-host or forwarded-proto combinations before any write.
-  - [ ] Add typed editor API routes, for example `GET /api/dev/venues`,
+  - [x] Add typed editor API routes, for example `GET /api/dev/venues`,
     `GET /api/dev/venues/[idOrSlug]`, and `PATCH /api/dev/venues/[idOrSlug]`, or an
     equivalent narrowly scoped internal path. All responses use `Cache-Control: no-store`.
-  - [ ] Routes use only the server-side Supabase service-role client. Client components never
+  - [x] Routes use only the server-side Supabase service-role client. Client components never
     import Supabase clients and never see service-role credentials.
-  - [ ] Editor read mode may include hidden venues; public route handlers and public query
+  - [x] Editor read mode may include hidden venues; public route handlers and public query
     hooks never accept `includeHidden` or route-local visibility overrides.
-  - [ ] Add route tests for production deny with dev flag set, non-prod missing flag, remote
+  - [x] Add route tests for production deny with dev flag set, non-prod missing flag, remote
     host/origin, forwarded-host ambiguity, body parse after deny, and service-role-not-called
     assertions on denied requests.
 
-- [ ] **Task 3 - Add editor UI behind the dev-only split** (AC: 1, 2, 3, 6, 7; Design Gate)
-  - [ ] Mount editor chrome only through a dev-only dynamic/DCE pattern, such as a
+- [x] **Task 3 - Add editor UI behind the dev-only split** (AC: 1, 2, 3, 6, 7; Design Gate)
+  - [x] Mount editor chrome only through a dev-only dynamic/DCE pattern, such as a
     `process.env.NODE_ENV === 'production' ? null : dynamic(...)` entry from the map shell or
     a dedicated dev page that returns `notFound()` in production before importing editor UI.
-  - [ ] Keep the normal first screen the existing map. With `SUNNYSEAT_ADMIN` unset, no editor
+  - [x] Keep the normal first screen the existing map. With `SUNNYSEAT_ADMIN` unset, no editor
     entrypoint or extra chrome is visible and reference screenshots remain unchanged.
-  - [ ] Provide editor controls a maintainer naturally expects for this scope: venue select
+  - [x] Provide editor controls a maintainer naturally expects for this scope: venue select
     including hidden rows, draggable display pin, coordinate save/reset, polygon paste
     textarea, hide/show toggle, tags input, description field, thumbnail JSON/URL fields,
     validation errors, pending/saved/error states, and query invalidation after save.
-  - [ ] Use existing project tokens, shadcn primitives where useful, lucide icons for common
+  - [x] Use existing project tokens, shadcn primitives where useful, lucide icons for common
     actions, semantic controls, visible focus, 44x44 px minimum touch targets, and
     `prefers-reduced-motion` safe behavior. New labels/default UI copy should be Swedish
     unless an internal technical field name is clearer for maintainers.
-  - [ ] Do not import server-only modules (`lib/supabase`, `lib/solar`, `lib/weather`,
+  - [x] Do not import server-only modules (`lib/supabase`, `lib/solar`, `lib/weather`,
     `lib/buildings`, middleware) into client components. Client data access goes through the
     guarded API and TanStack hooks/mutations.
 
-- [ ] **Task 4 - Validate and publish seating polygon edits through the 12.3 seam** (AC: 3)
-  - [ ] Add a shared server validator for pasted polygons. It accepts only a linear ring or
+- [x] **Task 4 - Validate and publish seating polygon edits through the 12.3 seam** (AC: 3)
+  - [x] Add a shared server validator for pasted polygons. It accepts only a linear ring or
     GeoJSON `Polygon`, normalizes to canonical GeoJSON, enforces closure, finite `[lng, lat]`
     pairs, at least four positions including closure, no degenerate ring, and Gothenburg
     bounds. Reuse or extract bounds from existing project geography constants rather than
     hardcoding multiple copies.
-  - [ ] After a valid seating/elevation-affecting edit, call the Story 12.3 publication seam:
+  - [x] After a valid seating/elevation-affecting edit, call the Story 12.3 publication seam:
     stage inputs, compute the full planner-window geometry artifacts and
     `computeGeometryInputHash()`, then atomically publish via the existing
     `publish_venue_geometry_generation` path. If implementation cannot complete that publish
     in the interactive route without unacceptable latency, use a deliberate dirty/staged
     workflow that calls `mark_venue_geometry_dirty` and makes public reads fail closed until
     the protected precompute run publishes ready coverage.
-  - [ ] Do not compute or approximate `geometry_input_hash` in a route/component. The only
+  - [x] Do not compute or approximate `geometry_input_hash` in a route/component. The only
     acceptable hash implementation is Story 12.3's server-only hash module.
-  - [ ] Add tests for valid ring and Polygon input, unclosed rings, too few positions,
+  - [x] Add tests for valid ring and Polygon input, unclosed rings, too few positions,
     lat/lng order mistakes that fall outside bounds, non-finite values, malformed JSON,
     holes if supported, no-write-on-error, dirty-state fail-closed, and ready publish using
     exact current hash.
-  - [ ] Hidden venues are still precompute targets. A hidden venue with invalid geometry is a
+  - [x] Hidden venues are still precompute targets. A hidden venue with invalid geometry is a
     precompute/editor error, not silently excluded from persisted geometry coverage.
 
-- [ ] **Task 5 - Implement hide/show and public visibility convergence** (AC: 4, 5, 6)
-  - [ ] Update the public list path so Supabase mode returns only `hidden === false` rows.
+- [x] **Task 5 - Implement hide/show and public visibility convergence** (AC: 4, 5, 6)
+  - [x] Update the public list path so Supabase mode returns only `hidden === false` rows.
     Detail, reviews, feedback, and prefetch already use the shared resolver; keep them on
     that resolver and add regression coverage for the full matrix.
-  - [ ] Editor hide/show writes `venues.hidden` only through the guarded service route and
+  - [x] Editor hide/show writes `venues.hidden` only through the guarded service route and
     never exposes whether a hidden row exists through public responses.
-  - [ ] In the editing browser, invalidate `queryKeys.venues.all`, active editor queries,
+  - [x] In the editing browser, invalidate `queryKeys.venues.all`, active editor queries,
     and exact detail keys for the affected slug/id after a successful mutation.
-  - [ ] If no Next server tag cache is present, document the route header bound as the
+  - [x] If no Next server tag cache is present, document the route header bound as the
     cross-browser staleness guarantee. If a server tag/cache mechanism is added, keep it
     route-local and add tests for invalidation.
-  - [ ] Add route tests: hidden venue absent from `/api/venues`; hidden detail 404; reviews
+  - [x] Add route tests: hidden venue absent from `/api/venues`; hidden detail 404; reviews
     GET/POST 404 before persistence; feedback POST 404 before persistence; detail prefetch
     sees the same public not-found class; show restores visibility.
 
-- [ ] **Task 6 - Implement inline field validation and media object checks** (AC: 7, 8)
-  - [ ] Reuse existing tag coercion semantics from `venue-store.ts`: trim, drop empty or
+- [x] **Task 6 - Implement inline field validation and media object checks** (AC: 7, 8)
+  - [x] Reuse existing tag coercion semantics from `venue-store.ts`: trim, drop empty or
     non-string values, dedupe while preserving first-seen order, and always emit `[]` as the
     honest no-tags value.
-  - [ ] For unknown tag vocabulary, do not silently create broken chips. Either surface an
+  - [x] For unknown tag vocabulary, do not silently create broken chips. Either surface an
     editor warning and test the existing `localizeTag()` fallback remains legible, or update
     `TAG_DISPLAY_EN` in the same change when adding an intentional new canonical tag.
-  - [ ] Validate `description` as bounded text and keep it optional/null-safe.
-  - [ ] Validate `thumbnail` with the Story 12.12 helper. Preserve existing external legacy
+  - [x] Validate `description` as bounded text and keep it optional/null-safe.
+  - [x] Validate `thumbnail` with the Story 12.12 helper. Preserve existing external legacy
     `url` as read-only fallback; reject editor attempts to create/edit external `url`.
-  - [ ] For each new `cardUrl`/`heroUrl`, verify the object exists in Supabase Storage with
+  - [x] For each new `cardUrl`/`heroUrl`, verify the object exists in Supabase Storage with
     the expected `venue-media` bucket/key, content type, and byte ceiling before writing the
     venue row. Tests mock Storage deterministically; protected live Storage verification
     remains a release-evidence lane if credentials are unavailable.
-  - [ ] Add public DTO tests proving inline changes reflect on the next public load without
+  - [x] Add public DTO tests proving inline changes reflect on the next public load without
     leaking editor-only fields.
 
-- [ ] **Task 7 - Update maintainer documentation and environment examples** (AC: 1, 8)
-  - [ ] Update `nextjs-app/docs/venue-data-load.md` with how to enable/use the dev editor,
+- [x] **Task 7 - Update maintainer documentation and environment examples** (AC: 1, 8)
+  - [x] Update `nextjs-app/docs/venue-data-load.md` with how to enable/use the dev editor,
     the production hard deny, the `SUNNYSEAT_ADMIN=dev` and loopback requirements, display
     coordinate semantics, polygon paste examples, hidden behavior, thumbnail validation, and
     cache staleness/invalidation expectations.
-  - [ ] Update `.env.example` / `nextjs-app/.env.example` only if the dev flag or Supabase
+  - [x] Update `.env.example` / `nextjs-app/.env.example` only if the dev flag or Supabase
     variables are not already documented. Do not commit real secrets.
-  - [ ] If adding maintainer scripts under `nextjs-app/scripts/` or root `scripts/`, update
+  - [x] If adding maintainer scripts under `nextjs-app/scripts/` or root `scripts/`, update
     the matching `.gitignore` allow-list immediately.
-  - [ ] Document how direct DB/import maintenance and the dev editor share the same
+  - [x] Document how direct DB/import maintenance and the dev editor share the same
     geometry/hash/dirty/publish invariants.
 
-- [ ] **Task 8 - Run required gates and transition through the review script** (AC: all)
-  - [ ] Run from `nextjs-app/`: `npx tsc --noEmit`, `npx eslint . --quiet`, and
+- [x] **Task 8 - Run required gates and transition through the review script** (AC: all)
+  - [x] Run from `nextjs-app/`: `npx tsc --noEmit`, `npx eslint . --quiet`, and
     `npx vitest run`. Use `VITEST_MAX_WORKERS=4` if the Windows suite shows worker
     instability.
-  - [ ] Run focused tests for the new editor guard/routes, venue-store display mapping,
+  - [x] Run focused tests for the new editor guard/routes, venue-store display mapping,
     public route hidden matrix, geometry/hash/polygon validation, media validation, query
     invalidation, and editor UI/mutation behavior.
-  - [ ] Run Playwright for dev editor flows and any public route/detail/prefetch visibility
+  - [x] Run Playwright for dev editor flows and any public route/detail/prefetch visibility
     behavior touched by the implementation. Use `CI=1` or isolated `PLAYWRIGHT_PORT` to avoid
     reusing an unrelated localhost server.
-  - [ ] Run `a11y` and `a11y-mobile` for affected browser flows. If `a11y-mobile` remains
+  - [x] Run `a11y` and `a11y-mobile` for affected browser flows. If `a11y-mobile` remains
     blocked by known unrelated contrast debt, mark the exact skipped/fixme scope rather than
     claiming mobile a11y coverage.
-  - [ ] Run visual validation for gate-off normal user map/detail screens if the
+  - [x] Run visual validation for gate-off normal user map/detail screens if the
     implementation changes map/detail DOM, route state forcing, or layout around the map.
     Missing visual-provider credentials do not authorize reference replacement or a manual
     pass unless explicitly allowed and documented.
-  - [ ] Move to review only through
+  - [x] Move to review only through
     `.\scripts\run-sh.ps1 scripts/story-review.sh 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields`
     from repository root.
 
@@ -524,4 +524,169 @@ Must remain untouched unless a story test proves otherwise:
 
 ### Dev Agent Record
 
-_To be filled by the dev-story agent._
+### Agent Model Used
+
+Codex GPT-5 auto-bmad dev-story delegate
+
+### Implementation Plan
+
+- Start with the story-required baseline gates and red-first Story 12.5 tests.
+- Add the display-coordinate migration/types/store mapping before editor routes so public
+  DTO behavior and route/distance/routing semantics have one source of truth.
+- Keep editor authorization in a small server-only guard used by every dev route, with
+  production denial before flags, request bodies, host/origin checks, or Supabase access.
+- Implement editor API writes through Next route handlers and service-role Supabase only;
+  client editor code will call those APIs through TanStack query/mutation hooks.
+- For seating polygon edits, use the existing Story 12.3 dirty/publish seam. The interactive
+  route will mark geometry dirty after a validated seating-area change, preserving fail-closed
+  public reads until protected precompute republishes ready coverage rather than attempting
+  full planner-window shadow publication inside the browser request.
+- Reuse Story 12.7 canonical `hidden` visibility semantics and Story 12.12 media rendition
+  URL validation; add mocked Storage object metadata checks in the editor service.
+
+### Debug Log References
+
+- 2026-07-27: Baseline `npx tsc --noEmit` passed from `nextjs-app/`.
+- 2026-07-27: Baseline `npx eslint . --quiet` passed from `nextjs-app/`.
+- 2026-07-27: Added display-coordinate migration, Supabase type sync, public-store
+  coalescing, server-only engine-coordinate isolation, guarded dev editor routes/services,
+  dev-only editor UI, query invalidation, docs, and focused Story 12.5 tests.
+- 2026-07-27: Closed remaining evidence gaps with active route/store/service/component
+  tests, removed the six obsolete skipped Story 12.5 red-phase scaffold files, and
+  reran the focused Story 12.5 Vitest set: 8 files passed / 72 tests passed.
+- 2026-07-27: Final `npx tsc --noEmit` passed from `nextjs-app/`.
+- 2026-07-27: Final `npx eslint . --quiet` passed from `nextjs-app/`.
+- 2026-07-27: Final `npx vitest run` passed: 205 files passed, 2 skipped; 1865
+  tests passed, 15 skipped. Non-fatal jsdom warning: `Not implemented: navigation to
+  another Document`.
+- 2026-07-27: Story-focused Playwright
+  `npx playwright test test/e2e/story-12-5-dev-venue-editor.spec.ts` passed:
+  4/4 across desktop and mobile.
+- 2026-07-27: A11y Playwright initially hit a harness mismatch when only
+  `PLAYWRIGHT_PORT=3107` was set; rerun with matching
+  `PLAYWRIGHT_BASE_URL=http://localhost:3107` reached the app and surfaced one
+  pre-existing selected-pin contrast issue. Fixed the sunny map pin percent/icon to
+  `text-text-primary`, updated `DESIGN.md` and `VenuePin.test.tsx`, then reran
+  `npx playwright test --project=a11y --project=a11y-mobile --workers=1` with
+  matching base URL/port: 17 passed and 10 skipped.
+- 2026-07-27: Full isolated mobile+desktop Playwright sweep
+  `CI=1 PLAYWRIGHT_PORT=3106 npx playwright test --project=mobile --project=desktop
+  --workers=4` did not pass: 129 passed, 65 skipped, 1 flaky
+  (`epic-11-chip-filter-parity.spec.ts` mobile), 1 failed
+  (`story-12-10-venue-detail-prefetch.atdd.spec.ts:406`, expected cold-detail
+  `aria-busy="true"` but received `"false"`). This failure reproduced the earlier
+  pre-existing Story 12.10 prefetch assertion and is not caused by the Story 12.5
+  editor path.
+- 2026-07-27: Visual validation provider credentials are still unavailable, but
+  human/orchestrator approval was supplied for manual mode. Ran
+  `VISUAL_VALIDATE_PROVIDER=none ALLOW_MANUAL_VISUAL_VALIDATION=1` through
+  `.\scripts\run-sh.ps1 scripts/visual-validate.sh ...` for `map-primary` and
+  `venue-detail` on mobile and desktop; all four manual-wrapper commands passed.
+  Captured implementation screenshots and manual notes under
+  `_bmad-output/implementation-artifacts/visual-validation/story-12-5/`; manual
+  result PASS with only dynamic map, fixture image, and capture scale differences.
+- 2026-07-27: Canonical review gate passed:
+  `.\scripts\run-sh.ps1 scripts/story-review.sh 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields`.
+  Gate reran lint/typecheck/Vitest, skipped auto visual detection because no mapped
+  screen ID was parseable in the story file, and moved sprint status to `review`.
+
+### Completion Notes
+
+- Implemented the local-only venue editor behind `_editor=venues`, non-production
+  dynamic loading, `SUNNYSEAT_ADMIN=dev`, loopback host/origin validation, and a
+  production hard deny before flag/body/Supabase access.
+- Added `venues.display_lat/display_lng`, public DTO location coalescing, and
+  server-only `engineLocation` use so display pin edits do not move prediction,
+  weather, or fallback geometry coordinates.
+- Added guarded service-role list/patch routes for hidden rows, display coordinates,
+  seating polygon paste, tags, description, and Story 12.12 managed thumbnail fields.
+  Seating-area edits call the Story 12.3 dirty seam via the migration RPC rather than
+  computing geometry hashes in the route.
+- Added editor query/mutation hooks with immediate invalidation for public venue roots,
+  editor keys, and affected details; documented the remaining public cache bound as
+  the existing 30-second route header.
+- Updated maintainer docs and `nextjs-app/.env.example` with the local editor flag.
+- Closed the remaining skipped Story 12.5 scaffold debt by replacing it with active
+  route/store/service/component coverage and deleting the obsolete skipped files.
+- Fixed an incidental existing a11y contrast failure on sunny map pin percent/icon text
+  using the existing `text-text-primary` token; this was required for the a11y gate and
+  does not expose the dev editor on public surfaces.
+- Manual visual validation was explicitly allowed for this run because the Claude visual
+  provider has no `ANTHROPIC_API_KEY`; wrapper commands passed in manual mode and
+  implementation screenshots/manual notes were saved under
+  `_bmad-output/implementation-artifacts/visual-validation/story-12-5/`.
+- Ready for review: sprint status is `review` via the canonical story-review wrapper.
+  The only residual broad-suite note is the previously reproduced unrelated Story 12.10
+  full mobile+desktop Playwright assertion recorded in Debug Log References.
+
+### File List
+
+- `_bmad-output/implementation-artifacts/12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/validation/12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields-review-20260727-183350.log`
+- `_bmad-output/implementation-artifacts/visual-validation/story-12-5/manual-visual-notes.md`
+- `_bmad-output/implementation-artifacts/visual-validation/story-12-5/mobile-map-primary.png`
+- `_bmad-output/implementation-artifacts/visual-validation/story-12-5/desktop-map-primary.png`
+- `_bmad-output/implementation-artifacts/visual-validation/story-12-5/mobile-venue-detail.png`
+- `_bmad-output/implementation-artifacts/visual-validation/story-12-5/desktop-venue-detail.png`
+- `supabase/migrations/20260727173000_dev_venue_editor_display_coordinates.sql`
+- `nextjs-app/.env.example`
+- `nextjs-app/app/api/dev/venues/route.ts`
+- `nextjs-app/app/api/dev/venues/[identifier]/route.ts`
+- `nextjs-app/components/custom/dev/DevVenueEditor.tsx`
+- `nextjs-app/components/custom/map/MapViewDynamic.tsx`
+- `nextjs-app/components/custom/map/VenuePin.tsx`
+- `nextjs-app/docs/design/DESIGN.md`
+- `nextjs-app/docs/venue-data-load.md`
+- `nextjs-app/hooks/queries/useDevVenueEditor.ts`
+- `nextjs-app/lib/constants/geography.ts`
+- `nextjs-app/lib/query-keys.ts`
+- `nextjs-app/lib/services/dev-venue-editor-guard.ts`
+- `nextjs-app/lib/services/dev-venue-editor-store.ts`
+- `nextjs-app/lib/services/dev-venue-editor-validation.ts`
+- `nextjs-app/lib/services/sun-engine.ts`
+- `nextjs-app/lib/services/sun-geometry-coordinates.ts`
+- `nextjs-app/lib/services/sun-geometry-repository.ts`
+- `nextjs-app/lib/services/venue-store.ts`
+- `nextjs-app/lib/supabase/types.ts`
+- `nextjs-app/lib/types/dev-venue-editor.ts`
+- `nextjs-app/messages/en/map.json`
+- `nextjs-app/messages/sv/map.json`
+- `nextjs-app/test/components/DevVenueEditor.test.tsx`
+- `nextjs-app/test/components/VenuePin.test.tsx`
+- `nextjs-app/test/components/VenueTagsData.atdd.test.tsx`
+- `nextjs-app/test/e2e/story-12-5-dev-venue-editor.spec.ts`
+- `nextjs-app/test/unit/api/story-12-5-dev-venue-editor-guard.atdd.test.ts`
+- `nextjs-app/test/unit/api/story-12-5-public-display-and-hidden.automation.test.ts`
+- `nextjs-app/test/unit/services/story-12-5-dev-venue-editor-store.automation.test.ts`
+- `nextjs-app/test/unit/services/story-12-5-dev-venue-editor-validation.atdd.test.ts`
+- `nextjs-app/test/unit/services/story-12-5-display-coordinate-consumers.automation.test.ts`
+- `nextjs-app/test/unit/services/story-12-5-inline-fields-public-contract.automation.test.ts`
+- `nextjs-app/test/unit/services/story-12-5-schema-contract.automation.test.ts`
+- `nextjs-app/test/unit/services/sun-geometry-coordinates.automate.test.ts`
+- `nextjs-app/test/unit/services/venue-store.test.ts`
+- Deleted obsolete skipped Story 12.5 scaffolds:
+  `nextjs-app/test/unit/api/story-12-5-dev-venue-editor-route.atdd.test.ts`,
+  `nextjs-app/test/unit/services/story-12-5-venue-display-coordinate.atdd.test.ts`,
+  `nextjs-app/test/unit/services/story-12-5-polygon-validation.atdd.test.ts`,
+  `nextjs-app/test/unit/services/story-12-5-media-editor-contract.atdd.test.ts`,
+  `nextjs-app/test/components/story-12-5-dev-venue-editor.atdd.test.tsx`,
+  `nextjs-app/test/e2e/story-12-5-dev-venue-editor.atdd.spec.ts`
+
+### Change Log
+
+- 2026-07-27: Started Story 12.5 dev-story implementation; baseline typecheck and lint passed.
+- 2026-07-27: Implemented dev-only venue editor schema, guard, service route, UI,
+  validation, query invalidation, docs, and tests.
+- 2026-07-27: Added focused Playwright coverage for gate-off map stability and mocked
+  local editor display-coordinate save flow.
+- 2026-07-27: Replaced skipped Story 12.5 ATDD scaffolds with active public-route,
+  store, service, display-consumer, inline-field, and component coverage; deleted the
+  obsolete skipped scaffold files.
+- 2026-07-27: Fixed sunny pin percent/icon contrast with `text-text-primary` after
+  the a11y gate surfaced the existing 4.24:1 contrast gap.
+- 2026-07-27: Ran approved manual visual validation mode for gate-off `map-primary`
+  and `venue-detail` on mobile and desktop; saved screenshots and notes under
+  `_bmad-output/implementation-artifacts/visual-validation/story-12-5/`.
+- 2026-07-27: Passed the canonical story-review wrapper and moved sprint status to
+  `review`.

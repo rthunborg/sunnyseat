@@ -51,3 +51,7 @@
 - [Phase 5 â€” dev-story] Canonical story visual pickup requires explicit `screen_id:` markers; prose or brace-expanded reference paths do not register with `story-review.sh`.
 - [Phase 5 â€” dev-story] Human-style candidate review caught a mobile loaded-state capture that did not visibly show the photo; pair loaded/fallback on the same surface and assert media completion before capture.
 - [Phase 6 â€” testarch-automate] Exact public-object URL matching previously accepted doubled or trailing path separators because empty segments were filtered before validation; test malformed path structure before normalization.
+
+## Story 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields
+- [Phase 5 â€” dev-story] Manual visual mode was required because the Claude visual provider lacked ANTHROPIC_API_KEY; human approval and mobile/desktop artifacts were recorded.
+- [Phase 5 â€” dev-story] The accessibility gate exposed a sunny-pin contrast gap; Story 12.5 fixed it with the existing text-primary token.
