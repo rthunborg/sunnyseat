@@ -4,7 +4,7 @@ baseline_commit: baf0d8b18df4b5542cf2ffa4b9c3528988dc338c
 
 # Story 12.10: Venue Detail Preload - Instant "Mer info"
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -647,6 +647,10 @@ Codex GPT-5 auto-bmad delegate
   with 0 severity findings including security, typecheck/lint/Vitest/focused Story 12.10 Playwright passed, the single
   full-Playwright mobile planner timeout is documented as a suite-order/timing flake with exact fresh-port rerun green,
   and no open findings, decisions, deferrals, or blockers remain.
+- Canonical review sync completed with validation artifact
+  `_bmad-output/implementation-artifacts/validation/12-10-venue-detail-preload-instant-mer-info-review-20260727-135556.log`:
+  lint pass, typecheck pass, Vitest 197 files passed/2 skipped and 1825 tests passed/15 skipped, no mapped visual
+  screen, and sprint transition to `review`.
 
 ### File List
 
