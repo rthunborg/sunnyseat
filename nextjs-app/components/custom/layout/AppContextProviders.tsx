@@ -15,6 +15,7 @@ import { TimeProvider } from '@/lib/contexts/TimeContext';
 import { FavouritesProvider } from '@/lib/contexts/FavouritesContext';
 import { GeolocationProvider } from '@/hooks/useGeolocation';
 import { SettingsProvider } from '@/lib/contexts/SettingsContext';
+import { FirstRunGuideProvider } from '@/lib/contexts/FirstRunGuideContext';
 import { TagFilterProvider } from '@/lib/contexts/TagFilterContext';
 import { SettingsModalRoot } from '@/components/custom/settings/SettingsModalRoot';
 
@@ -49,10 +50,12 @@ export function AppContextProviders({ children }: { children: ReactNode }) {
         <MapInstanceProvider>
           <MapSelectionProvider>
             <SettingsProvider>
-              <SearchParamTimeProviders>{children}</SearchParamTimeProviders>
-              {/* One mount point for the settings + app-feedback modals, openable
-                  from the desktop nav and the mobile map controls. */}
-              <SettingsModalRoot />
+              <FirstRunGuideProvider>
+                <SearchParamTimeProviders>{children}</SearchParamTimeProviders>
+                {/* One mount point for the settings + app-feedback modals, openable
+                    from the desktop nav and the mobile map controls. */}
+                <SettingsModalRoot />
+              </FirstRunGuideProvider>
             </SettingsProvider>
           </MapSelectionProvider>
         </MapInstanceProvider>

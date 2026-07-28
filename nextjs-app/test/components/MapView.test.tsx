@@ -99,6 +99,22 @@ const useVenueDetailPrefetchMock = vi.fn();
 const prefetchSelectedVenueDetailMock = vi.fn<(...args: unknown[]) => Promise<void>>(
   async () => undefined,
 );
+const coachGuideMock = vi.fn(
+  ({
+    forcedStepId,
+    autoStartEnabled,
+  }: {
+    forcedStepId?: string | null;
+    autoStartEnabled?: boolean;
+  }) => (
+    <div
+      hidden
+      data-testid="coach-guide-stub"
+      data-forced-step-id={forcedStepId ?? ''}
+      data-auto-start-enabled={String(autoStartEnabled)}
+    />
+  ),
+);
 const useFavouritesMock = vi.fn<() => FavouritesShape>(() => ({
   favouriteIds: [],
   isHydrated: true,
@@ -302,6 +318,12 @@ vi.mock('@/components/custom/map/UserLocationLayer', () => ({
 vi.mock('@/components/custom/map/MapLoadingFallback', () => ({
   MapLoadingFallback: () => <div data-testid="map-loading-fallback-stub" />,
 }));
+vi.mock('@/components/custom/coach-tour/FirstRunCoachMarkGuide', () => ({
+  FirstRunCoachMarkGuide: (props: {
+    forcedStepId?: string | null;
+    autoStartEnabled?: boolean;
+  }) => coachGuideMock(props),
+}));
 vi.mock('@/components/custom/feedback/ReviewFlow', () => ({
   ReviewFlow: ({ venue, instanceId }: { venue: { id: string }; instanceId?: string }) => (
     <div
@@ -466,6 +488,7 @@ describe('<MapView />', () => {
     });
     useVenueDetailPrefetchMock.mockClear();
     prefetchSelectedVenueDetailMock.mockReset().mockResolvedValue(undefined);
+    coachGuideMock.mockClear();
     useFavouritesMock.mockReset().mockReturnValue({
       favouriteIds: [],
       isHydrated: true,
@@ -484,6 +507,73 @@ describe('<MapView />', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+  });
+
+  describe('Story 12.11 — coach-mark guide route states', () => {
+    it('maps coach-mark-first to the pin-legend guide step and disables visual prefetch churn', () => {
+      searchParamsMock = new URLSearchParams('_state=coach-mark-first&_time=14:00');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.getByTestId('coach-guide-stub')).toHaveAttribute(
+        'data-forced-step-id',
+        'pin-legend',
+      );
+      expect(screen.getByTestId('coach-guide-stub')).toHaveAttribute(
+        'data-auto-start-enabled',
+        'false',
+      );
+      expect(useVenueDetailPrefetchMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ enabled: false }),
+      );
+    });
+
+    it('maps coach-mark-middle to the mounted planner guide step', () => {
+      searchParamsMock = new URLSearchParams('_state=coach-mark-middle&_time=14:00');
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.getByTestId('coach-guide-stub')).toHaveAttribute(
+        'data-forced-step-id',
+        'time-slider',
+      );
+      expect(screen.getByTestId('coach-guide-stub')).toHaveAttribute(
+        'data-auto-start-enabled',
+        'false',
+      );
+    });
+
+    it('leaves the guide in auto-start mode on the normal map route', () => {
+      useVenueSearchMock.mockReturnValue({
+        data: makeVenueResponse([makeVenue({ id: 'venue-1', name: 'Bellora' })]),
+        isFetching: false,
+        isError: false,
+        dataUpdatedAt: 1,
+      });
+
+      render(<MapView />, { wrapper: Wrapper });
+
+      expect(screen.getByTestId('coach-guide-stub')).toHaveAttribute(
+        'data-forced-step-id',
+        '',
+      );
+      expect(screen.getByTestId('coach-guide-stub')).toHaveAttribute(
+        'data-auto-start-enabled',
+        'true',
+      );
+    });
   });
 
   describe('tile-paint cover (Task 8)', () => {

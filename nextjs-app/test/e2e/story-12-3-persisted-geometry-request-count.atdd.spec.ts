@@ -4,7 +4,7 @@
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';
-import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import type { GetVenuesResponse, VenueDataDto, VenueDaySeriesEntry } from '@/lib/types/api';
 import {
   PLANNER_END_MINUTES,
@@ -16,10 +16,14 @@ const APP_SETTLE_TIMEOUT_MS = 15_000;
 const VENUES_MATCHER = '**/api/venues?**';
 
 async function bypassOnboarding(page: Page): Promise<void> {
-  await page.addInitScript((key: string) => {
+  await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
     window.sessionStorage.clear();
-    window.localStorage.setItem(key, '1');
-  }, ONBOARDED_FLAG_KEY);
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 }
 
 async function forceMiddayTime(page: Page): Promise<void> {

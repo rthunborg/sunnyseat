@@ -43,7 +43,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-02
-last_updated: 2026-07-27
+last_updated: 2026-07-28
 # Note (2026-07-27, create-story 12.11 - 12-11-first-run-coach-mark-guide-map-legend-feature-tour backlog -> ready-for-dev):
 # authored the Story 12.11 context file at _bmad-output/implementation-artifacts/12-11-first-run-coach-mark-guide-map-legend-feature-tour.md.
 # Core guidance: post-onboarding first-run coach tour; locked feedback to copy-only guidance; forced visual states are
@@ -342,7 +342,7 @@ development_status:
   12-8-about-page-pin-legend-so-reads-the-sun-figure: done
   12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider: review
   12-10-venue-detail-preload-instant-mer-info: done
-  12-11-first-run-coach-mark-guide-map-legend-feature-tour: ready-for-dev
+  12-11-first-run-coach-mark-guide-map-legend-feature-tour: review
   12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes: review
   12-13-remove-the-user-facing-confidence-indicator-keep-it-internal: review
   12-14-hide-closed-venues-open-at-selected-time-filter: backlog

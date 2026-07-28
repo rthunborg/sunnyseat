@@ -1,5 +1,5 @@
 import { expect, test, type ConsoleMessage, type Page, type TestInfo } from '@playwright/test';
-import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 
 const APP_SETTLE_TIMEOUT_MS = 15_000;
 const WATCHED_CONSOLE_TYPES = new Set(['warning', 'error']);
@@ -218,10 +218,14 @@ function attachConsoleHygieneGuard(page: Page): {
 }
 
 async function bypassOnboarding(page: Page): Promise<void> {
-  await page.addInitScript((key: string) => {
+  await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
     window.sessionStorage.clear();
-    window.localStorage.setItem(key, '1');
-  }, ONBOARDED_FLAG_KEY);
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 }
 
 function canonicalMapRoute(projectName: string): string {

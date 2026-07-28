@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 
 const APP_SETTLE_TIMEOUT_MS = 15_000;
 
@@ -35,9 +35,13 @@ test.describe('Onboarding overlay', () => {
   });
 
   test('returning user sees the map immediately, no overlay', async ({ page }) => {
-    await page.addInitScript((key: string) => {
-      window.localStorage.setItem(key, '1');
-    }, ONBOARDED_FLAG_KEY);
+    await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
     await page.goto('/');
     await expect(page.locator('[data-testid="map-container"]:visible').first()).toBeVisible({
       timeout: APP_SETTLE_TIMEOUT_MS,

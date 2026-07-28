@@ -391,6 +391,7 @@ export function MobileBottomSheet({
     <motion.div
       ref={sheetRef}
       data-testid="mobile-bottom-sheet"
+      data-tour-anchor="venue-list"
       data-state={`rows-${clampedVisibleRows}`}
       data-visible-rows={clampedVisibleRows}
       data-max-rows={maxRows}

@@ -279,6 +279,7 @@ function TagChipStrip({
           ref={scrollerRef}
           aria-label={label}
           data-testid="desktop-tag-chip-strip"
+          data-tour-anchor="tag-chips"
           className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden motion-reduce:scroll-auto"
           style={{ scrollBehavior }}
         >

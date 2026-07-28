@@ -1,6 +1,7 @@
 'use client';
 
 import { useSettings } from '@/lib/contexts/SettingsContext';
+import { useFirstRunGuide } from '@/lib/contexts/FirstRunGuideContext';
 import { SettingsModal } from './SettingsModal';
 import { AppFeedbackModal } from '@/components/custom/feedback/AppFeedbackModal';
 
@@ -11,12 +12,22 @@ import { AppFeedbackModal } from '@/components/custom/feedback/AppFeedbackModal'
  */
 export function SettingsModalRoot() {
   const { activeView, openFeedback, close } = useSettings();
+  const { startGuide } = useFirstRunGuide();
   return (
     <>
       <SettingsModal
         open={activeView === 'settings'}
         onClose={close}
         onOpenFeedback={openFeedback}
+        onOpenGuide={(restoreFocusElement) => {
+          startGuide({
+            source: 'settings',
+            initialStepId: 'pin-legend',
+            persistOnDismiss: false,
+            restoreFocusElement,
+          });
+          close();
+        }}
       />
       <AppFeedbackModal open={activeView === 'feedback'} onClose={close} />
     </>

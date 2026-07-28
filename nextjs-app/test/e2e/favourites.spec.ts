@@ -1,18 +1,24 @@
 import { expect, test } from '@playwright/test';
-import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import { FAVOURITES_STORAGE_KEY } from '@/lib/services/favourites-storage';
 
 const APP_SETTLE_TIMEOUT_MS = 15_000;
 
 async function seedShell(page: import('@playwright/test').Page, favouriteIds?: string[]): Promise<void> {
   await page.addInitScript(
-    ({ onboardedKey, favouritesKey, ids }) => {
+    ({ onboardedKey, guideSeenKey, favouritesKey, ids }) => {
       window.localStorage.setItem(onboardedKey, '1');
+      window.localStorage.setItem(guideSeenKey, '1');
       if (ids) {
         window.localStorage.setItem(favouritesKey, JSON.stringify(ids));
       }
     },
-    { onboardedKey: ONBOARDED_FLAG_KEY, favouritesKey: FAVOURITES_STORAGE_KEY, ids: favouriteIds },
+    {
+      onboardedKey: ONBOARDED_FLAG_KEY,
+      guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY,
+      favouritesKey: FAVOURITES_STORAGE_KEY,
+      ids: favouriteIds,
+    },
   );
 }
 

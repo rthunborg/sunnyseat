@@ -10,6 +10,53 @@
   "pinSunnyAria": "{name} — soligt vid vald tid — {percent} procent sol",
   "pinSunnyWeatherUnknownAria": "{name} — soligt vid vald tid — {percent} procent sol. Väder saknas vid vald tid.",
   "pinNotSunnyAria": "{name} — inte soligt vid vald tid",
+  "coachTour": {
+    "progress": "Steg {current} av {total}",
+    "skip": "Hoppa över",
+    "back": "Tillbaka",
+    "next": "Nästa",
+    "done": "Klart",
+    "close": "Stäng guide",
+    "targetDescription": "Guidesteget markerar {target}.",
+    "steps": {
+      "pinLegend": {
+        "title": "Kartnålarna",
+        "body": "Gula nålar visar platser med direkt sol vid den valda tiden. Grå nålar betyder att platsen är skuggad eller saknar sol just då.",
+        "target": "kartans nålar"
+      },
+      "timeSlider": {
+        "title": "Välj tid",
+        "body": "Dra tidsreglaget för att se hur solen flyttar sig under dagen. Kartnålar och listan uppdateras utan att du behöver ladda om.",
+        "target": "tidsreglaget"
+      },
+      "datePlanner": {
+        "title": "Planera datum",
+        "body": "Öppna datumväljaren när du vill planera upp till några dagar framåt. I dag visas direkt när live-läget gäller.",
+        "target": "datumknappen"
+      },
+      "tagChips": {
+        "title": "Filtrera platser",
+        "body": "Använd taggarna för att smalna av kartan och listan till den typ av uteservering du letar efter.",
+        "target": "taggfiltret"
+      },
+      "venueList": {
+        "title": "Jämför listan",
+        "body": "Listan sorterar platserna efter sol eller avstånd. När du öppnar en plats kan du efter besöket svara på om solen stämde.",
+        "target": "platslistan"
+      },
+      "favourites": {
+        "title": "Spara favoriter",
+        "body": "Spara platser du vill återkomma till. Favoriter är gratis och följer samma solprognos som kartan.",
+        "target": "favoritvyn"
+      }
+    },
+    "pinLegend": {
+      "sunnyLabel": "Soligt",
+      "sunnyDescription": "Direkt sol vid vald tid.",
+      "shadedLabel": "Skuggat",
+      "shadedDescription": "Ingen direkt sol just då."
+    }
+  },
   "devEditor": {
     "title": "Redigera plats",
     "venue": "Plats",

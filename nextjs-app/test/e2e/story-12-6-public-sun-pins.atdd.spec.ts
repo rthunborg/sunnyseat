@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
-import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import type { GetVenuesResponse, VenueDataDto, VenueDaySeriesEntry, VenueSunStatus } from '@/lib/types/api';
 
 type WeatherGateState = 'gated' | 'not_gated' | 'unknown';
@@ -67,10 +67,14 @@ function response(): GetVenuesResponse {
 
 async function arrangeMap(page: Page): Promise<string[]> {
   const metnoHits: string[] = [];
-  await page.addInitScript((key: string) => {
+  await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
     window.sessionStorage.clear();
-    window.localStorage.setItem(key, '1');
-  }, ONBOARDED_FLAG_KEY);
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
   await page.route('**://api.met.no/**', (route: Route) => {
     metnoHits.push(route.request().url());
     return route.abort();

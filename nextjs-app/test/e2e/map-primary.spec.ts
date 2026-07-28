@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 
 // Story 1.6 review (P25): named timeout for the pin-morph settle wait.
 // The morph animation is 200 ms, but CI WebKit can keep the exiting pill
@@ -14,9 +14,13 @@ type WindowOpenCall = {
 };
 
 async function bypassOnboarding(page: import('@playwright/test').Page): Promise<void> {
-  await page.addInitScript((key: string) => {
-    window.localStorage.setItem(key, '1');
-  }, ONBOARDED_FLAG_KEY);
+  await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 }
 
 async function captureWindowOpen(page: Page): Promise<void> {

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { fireEvent, screen } from '@testing-library/react';
 import { renderWithProviders } from '@/test/setup/test-utils';
 import { SettingsModal } from '@/components/custom/settings/SettingsModal';
+import commonMessagesEn from '@/messages/en/common.json';
 import commonMessages from '@/messages/sv/common.json';
 
 vi.mock('@/i18n/navigation', () => ({
@@ -24,23 +25,37 @@ const messages = {
   about: {},
   favourites: {},
 };
+const messagesEn = {
+  ...messages,
+  common: commonMessagesEn,
+};
 
-function renderSettings() {
+function renderSettings(options: { locale?: 'sv' | 'en' } = {}) {
   const onClose = vi.fn();
   const onOpenFeedback = vi.fn();
+  const onOpenGuide = vi.fn();
   renderWithProviders(
-    <SettingsModal open onClose={onClose} onOpenFeedback={onOpenFeedback} />,
-    { messages },
+    <SettingsModal
+      open
+      onClose={onClose}
+      onOpenFeedback={onOpenFeedback}
+      onOpenGuide={onOpenGuide}
+    />,
+    {
+      locale: options.locale,
+      messages: options.locale === 'en' ? messagesEn : messages,
+    },
   );
-  return { onClose, onOpenFeedback };
+  return { onClose, onOpenFeedback, onOpenGuide };
 }
 
 describe('<SettingsModal />', () => {
-  it('renders the title, subtitle and both rows', () => {
+  it('renders the title, subtitle and settings rows', () => {
     renderSettings();
     expect(screen.getByRole('dialog', { name: 'Inställningar' })).toBeInTheDocument();
     expect(screen.getByText('SunnySeat · version 1.0')).toBeInTheDocument();
     expect(screen.getByTestId('settings-row-feedback')).toHaveTextContent('Skicka feedback');
+    expect(screen.getByTestId('settings-row-guide')).toHaveTextContent('Visa guide igen');
     expect(screen.getByTestId('settings-row-about')).toHaveTextContent('Om SunnySeat');
   });
 
@@ -48,6 +63,20 @@ describe('<SettingsModal />', () => {
     const { onOpenFeedback } = renderSettings();
     fireEvent.click(screen.getByTestId('settings-row-feedback'));
     expect(onOpenFeedback).toHaveBeenCalledTimes(1);
+  });
+
+  it('relaunches the coach guide from the guide row', () => {
+    const { onOpenGuide } = renderSettings();
+    const row = screen.getByTestId('settings-row-guide');
+    fireEvent.click(row);
+    expect(onOpenGuide).toHaveBeenCalledWith(row);
+  });
+
+  it('renders the English guide relaunch copy from message keys', () => {
+    renderSettings({ locale: 'en' });
+    expect(screen.getByTestId('settings-row-guide')).toHaveTextContent(
+      'Show guide again',
+    );
   });
 
   it('links the about row to /about and closes on navigate', () => {

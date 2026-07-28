@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 11
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-27T20:07:25Z"
+updated_at: "2026-07-28T08:29:52Z"
 started_at: "2026-07-27T19:56:49Z"
 completed_at: null
-active_seconds: 592
+active_seconds: 45029
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "Medium because Story 12.11 adds a stateful first-run UI flow with persisted seen-state, Settings relaunch, breakpoint-specific anchors, and accessibility/focus/motion contracts across multiple mounted map controls, without a High-risk auth, schema, external-contract, or concurrency trigger."
 epic_story_count: 14
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [9a0f45a]
+commits: [9a0f45a, 7d2c676]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -47,7 +47,8 @@ merge_method: null
 merge_commit: null
 branch_deleted: false
 open_questions: []
-deferred_work: []
+deferred_work:
+  - "Stabilize the mobile future-date exact-response wait in nextjs-app/test/e2e/map-primary.spec.ts; under full-suite concurrency the UI visibly reaches tomorrow while the response predicate can time out, and isolated reruns are inconsistent."
 blockers: []
 overrides: {}
 constraints:

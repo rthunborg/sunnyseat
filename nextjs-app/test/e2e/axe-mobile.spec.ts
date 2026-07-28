@@ -10,13 +10,30 @@
 
 import { expect, test } from '@playwright/test';
 import { runAxe, formatViolations } from './helpers/axe';
-import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import { arrangeVenuePhotoMedia } from './helpers/venue-photo-media';
 
 async function bypassOnboarding(page: import('@playwright/test').Page) {
-  await page.addInitScript((key: string) => {
-    window.localStorage.setItem(key, '1');
-  }, ONBOARDED_FLAG_KEY);
+  await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
+}
+
+async function mockEmptyVenues(page: import('@playwright/test').Page) {
+  await page.route('**/api/venues?**', async (route) => {
+    await route.fulfill({
+      json: {
+        venues: [],
+        meta: { count: 0, radiusKm: 2 },
+        timestamp: '2026-07-28T12:00:00.000Z',
+        totalCount: 0,
+      },
+    });
+  });
 }
 
 test.describe('axe-core a11y gate (mobile viewport)', () => {
@@ -78,6 +95,36 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
     expect(handleBox!.height).toBeGreaterThanOrEqual(44);
     await expect(page.locator('[data-bottom-sheet-body="true"]')).toHaveAttribute('aria-hidden', 'true');
 
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test('a11y: coach-mark first step mobile (/?_state=coach-mark-first)', async ({ page }) => {
+    await bypassOnboarding(page);
+    await mockEmptyVenues(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?_state=coach-mark-first&_time=14:00');
+    await page.getByTestId('coach-tour-dialog').waitFor({ state: 'visible' });
+    await expect(page.getByTestId('coach-tour-dialog')).toHaveAttribute(
+      'data-reduced-motion',
+      'true',
+    );
+    await expect(page.getByTestId('coach-tour-step-pin-legend')).toBeVisible();
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test('a11y: coach-mark middle step mobile (/?_state=coach-mark-middle)', async ({ page }) => {
+    await bypassOnboarding(page);
+    await mockEmptyVenues(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?_state=coach-mark-middle&_time=14:00');
+    await page.getByTestId('coach-tour-dialog').waitFor({ state: 'visible' });
+    await expect(page.getByTestId('coach-tour-dialog')).toHaveAttribute(
+      'data-reduced-motion',
+      'true',
+    );
+    await expect(page.getByTestId('coach-tour-step-time-slider')).toBeVisible();
     const violations = await runAxe(page);
     expect(violations, formatViolations(violations)).toEqual([]);
   });

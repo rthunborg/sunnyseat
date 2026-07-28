@@ -31,6 +31,7 @@ import {
   withForcedVenuePhotoThumbnail,
 } from '@/components/custom/venue/forced-venue-detail';
 import { TimeSliderPanel } from '@/components/custom/time/TimeSliderPanel';
+import { FirstRunCoachMarkGuide } from '@/components/custom/coach-tour/FirstRunCoachMarkGuide';
 import { isVenueSunnyForList, sortVenuesForList, VenueList } from '@/components/custom/venue/VenueList';
 import { useVenueDetail } from '@/hooks/queries/useVenueDetail';
 import {
@@ -65,6 +66,7 @@ import {
   type RouteSummary,
 } from '@/lib/services/routing';
 import { DURATION_FAST_S, DURATION_FLY_MS, EASE_ENTER } from '@/lib/constants/animation';
+import type { CoachTourStepId } from '@/lib/constants/coach-tour';
 import { useForcedState } from '@/lib/dev/use-forced-state';
 import { cn } from '@/lib/utils';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
@@ -249,11 +251,14 @@ export function MapView() {
   const isForcedObscuredReference = forcedState === 'map-with-obscured-venue';
   const isForcedObscuredDetailReference = forcedState === 'venue-detail-obscured';
   const isForcedPhotoReference = isForcedVenuePhotoState(forcedState);
+  const coachTourForcedStep = coachTourStepFromForcedState(forcedState);
+  const isForcedCoachTourReference = coachTourForcedStep !== null;
   const isForcedVisualReference =
     forcedState === 'map-primary' ||
     forcedState === 'map-panel-venues' ||
     forcedState === 'map-with-selected-venue' ||
     isForcedObscuredReference ||
+    isForcedCoachTourReference ||
     isForcedPhotoReference;
   // Story 9.4 AC2: gate the FIRST venue fetch until the user's location has
   // resolved to a real value (`success`) or the centrum fallback. While the
@@ -755,7 +760,9 @@ export function MapView() {
   }, [pathname, router, searchParams, selectedVenuePreview, venueSlugParam]);
 
   const isForcedRowSheetReference =
-    forcedState === 'map-primary' || forcedState === 'map-panel-venues';
+    forcedState === 'map-primary' ||
+    forcedState === 'map-panel-venues' ||
+    isForcedCoachTourReference;
   const forcedSheetRows = resolveForcedSheetRows({
     forcedState: isForcedRowSheetReference ? forcedState : null,
     maxRows: mobileSheetMetrics.maxRows,
@@ -1233,7 +1240,11 @@ export function MapView() {
   })();
 
   return (
-    <div className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full">
+    <div
+      data-tour-anchor="map-surface"
+      tabIndex={-1}
+      className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full outline-none"
+    >
       <MapContainer />
       {/* Offline shell (Story 7.3): keep the cached map background but hide
           every venue-data surface (pins, search, sheet, list, overlays,
@@ -1375,6 +1386,7 @@ export function MapView() {
       </MobileBottomSheet>
       <aside
         data-testid="desktop-venue-list-panel"
+        data-tour-anchor="venue-list"
         className="absolute left-0 top-0 bottom-0 z-bottom-sheet-peek hidden lg:flex lg:w-venue-list-desktop flex-col border-r border-divider bg-surface-cream shadow-card"
       >
         <VenueListControls
@@ -1534,6 +1546,10 @@ export function MapView() {
         mobileSheetHeightPx={mobileSheetMetrics.sheetHeightPx}
         isVenueDetailOpen={isVenueDetailRequested}
       />
+      <FirstRunCoachMarkGuide
+        forcedStepId={coachTourForcedStep}
+        autoStartEnabled={!forcedState && !isVenueDetailRequested && !routeOverlay}
+      />
       {!tilesPainted && (
         <div className="absolute inset-0 z-floating-buttons" data-testid="map-tile-paint-cover">
           <MapLoadingFallback />
@@ -1669,7 +1685,18 @@ function shouldUseForcedSunnyMapPins(forcedState: string | null): boolean {
   return forcedState === 'map-primary' ||
     forcedState === 'map-panel-venues' ||
     forcedState === 'map-with-selected-venue' ||
+    isCoachTourForcedState(forcedState) ||
     isForcedVenuePhotoState(forcedState);
+}
+
+function isCoachTourForcedState(forcedState: string | null): boolean {
+  return coachTourStepFromForcedState(forcedState) !== null;
+}
+
+function coachTourStepFromForcedState(forcedState: string | null): CoachTourStepId | null {
+  if (forcedState === 'coach-mark-first') return 'pin-legend';
+  if (forcedState === 'coach-mark-middle') return 'time-slider';
+  return null;
 }
 
 function measuredElementHeight(node: HTMLElement | null): number {
@@ -1694,6 +1721,7 @@ function resolveForcedSheetRows({
   }
   if (forcedState === 'map-primary') return 0;
   if (forcedState === 'map-panel-venues') return 3;
+  if (isCoachTourForcedState(forcedState)) return 3;
   return null;
 }
 

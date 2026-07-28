@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import {
   arrangeVenuePhotoMedia,
   type VenuePhotoTestState,
@@ -33,11 +33,15 @@ const CASES = [
 ] as const;
 
 async function arrangePhotoState(page: Page, state: VenuePhotoTestState) {
-  await page.addInitScript((key: string) => {
-    window.sessionStorage.clear();
-    window.localStorage.clear();
-    window.localStorage.setItem(key, '1');
-  }, ONBOARDED_FLAG_KEY);
+  await page.addInitScript(
+    ({ onboardedKey, guideSeenKey }) => {
+      window.sessionStorage.clear();
+      window.localStorage.clear();
+      window.localStorage.setItem(onboardedKey, '1');
+      window.localStorage.setItem(guideSeenKey, '1');
+    },
+    { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+  );
 
   await arrangeVenuePhotoMedia(page, state);
 }

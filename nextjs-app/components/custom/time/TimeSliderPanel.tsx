@@ -57,6 +57,7 @@ export function TimeSliderPanel({
       <motion.section
         ref={panelRef}
         data-testid="time-slider-panel"
+        data-tour-anchor="time-slider"
         data-reduced-motion={String(shouldReduceMotion)}
         aria-label={t('panelLabel')}
         className={cn(
@@ -218,6 +219,7 @@ function CalendarButton({
       aria-expanded={open}
       onClick={onClick}
       data-testid="planner-date-trigger"
+      data-tour-anchor="date-planner"
       data-planner-layout-part={layoutPart}
       className={cn(
         'flex min-h-11 items-center justify-center rounded-pill text-amber-dark outline-none transition-colors duration-fast ease-default focus-visible:ring-2 focus-visible:ring-text-primary',

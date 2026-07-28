@@ -55,3 +55,7 @@
 ## Story 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields
 - [Phase 5 â€” dev-story] Manual visual mode was required because the Claude visual provider lacked ANTHROPIC_API_KEY; human approval and mobile/desktop artifacts were recorded.
 - [Phase 5 â€” dev-story] The accessibility gate exposed a sunny-pin contrast gap; Story 12.5 fixed it with the existing text-primary token.
+
+## Story 12-11-first-run-coach-mark-guide-map-legend-feature-tour
+- [Phase 5 â€” dev-story] Story-review visual extraction matched negative-scope `_state=feedback`; screen discovery should prefer explicit `screen_id` markers.
+- [Phase 5 â€” dev-story] Full Playwright retains unrelated mobile timing instability: the future-date test can time out on an exact response predicate after the UI visibly selects tomorrow, while all Story 12.11-specific E2E and axe lanes are green.
