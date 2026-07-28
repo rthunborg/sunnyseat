@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-27T20:56:00+02:00'
+lastSaved: '2026-07-28T10:41:00+02:00'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-12.md'
@@ -97,6 +97,56 @@ inputDocuments:
   - '_bmad-output/implementation-artifacts/12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider.md'
   - 'nextjs-app/components/custom/sheets/MobileBottomSheet.tsx'
   - 'nextjs-app/test/components/MobileBottomSheet.test.tsx'
+---
+
+# Automation Expansion Summary - Story 12.11 (First-Run Coach-Mark Guide)
+
+## Preflight And Context
+
+- **Framework:** Vitest 4.1.4 and Playwright are configured under `nextjs-app`; framework readiness passed.
+- **Stack:** frontend PWA guide, persistence, settings relaunch, and forced-state behavior with no API/provider contract change.
+- **Mode:** BMad-integrated from `_bmad-output/implementation-artifacts/12-11-first-run-coach-mark-guide-map-legend-feature-tour.md`.
+- **Execution mode:** sequential. Existing component, E2E, axe, and message coverage was audited before adding tests.
+- **Scope:** automated tests/evidence only; no production source, sprint status, auto-bmad state, visual references, or `REBASELINE-LOG.md` changed.
+
+## Coverage Plan
+
+| Priority | Level | Target | Decision |
+| --- | --- | --- | --- |
+| P0 | Component | Core map anchor fail-closed auto-start behavior. | Added a focused component regression. |
+| P0 | Component | Requested step target visibility before rendering. | Added a focused component regression. |
+| P0 | E2E | First-run journey, returning-user suppression, Settings relaunch, forced states, and no feedback-detail transition. | Existing coverage was sufficient; reran Story 12.11 browser spec. |
+| P0 | Component/i18n | Settings row, MapView forced-state mapping, and Swedish/English message parity. | Existing coverage was sufficient; reran adjacent suite. |
+
+## Generated Coverage
+
+- **UPDATED** `nextjs-app/test/components/FirstRunCoachMarkGuide.test.tsx`:
+  - added no-auto-start/no-seen-write coverage when required `map-surface` anchor is zero-size or unavailable;
+  - added rendered-guide skip coverage from zero-size requested `time-slider` to visible `date-planner`;
+  - changed a resolver-only test to use a detached container so it does not leave stale anchors in `document.body`.
+- **Aggregate:** +2 focused component tests. No fixtures, helpers, API mocks, browser test files, live providers, visual artifacts, or product code changed.
+
+## Validation And Gate
+
+- `npx vitest run test/components/FirstRunCoachMarkGuide.test.tsx` -> **1 file / 17 tests passed**.
+- `npx vitest run test/components/FirstRunCoachMarkGuide.test.tsx test/components/SettingsModal.test.tsx test/components/MapView.test.tsx test/unit/messages-parity.test.ts` -> **4 files / 162 tests passed**; non-fatal jsdom navigation warning.
+- `npx tsc --noEmit` -> **passed**.
+- `npx eslint . --quiet` -> **passed**.
+- `npx playwright test test/e2e/story-12-11-coach-mark-guide.spec.ts --project=mobile --project=desktop --reporter=line` -> **10/10 passed**; known Next workspace-root warning and Motion reduced-motion warnings only.
+- `npx vitest run` -> **207 passed / 2 skipped files; 1889 passed / 15 skipped tests**; non-fatal jsdom navigation warning.
+
+## Assumptions, Risks, And Deferred Coverage
+
+- No additional E2E, axe, or visual test was added because existing Story 12.11 browser, axe, and visual evidence already covers those surfaces.
+- Visual validation/reference approval remains as previously recorded; no canonical reference PNG or rebaseline log changed.
+- No API/Pact tests were generated because Story 12.11 has no provider contract change.
+
+## Definition Of Done
+
+- Existing coverage was audited and non-duplicative component gaps were filled.
+- Focused, adjacent, static, Story 12.11 E2E, and full Vitest checks passed.
+- Durable automation summary and story bookkeeping were refreshed.
+
 ---
 
 # Automation Expansion Summary - Story 12.5 (Dev-Only Venue Editor)

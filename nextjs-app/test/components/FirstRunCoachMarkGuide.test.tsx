@@ -178,6 +178,7 @@ describe('<FirstRunCoachMarkGuide />', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -189,15 +190,50 @@ describe('<FirstRunCoachMarkGuide />', () => {
   });
 
   it('skips absent optional anchors when resolving the next step', () => {
-    document.body.innerHTML = `
+    const root = document.createElement('div');
+    root.innerHTML = `
       <div data-tour-anchor="time-slider"></div>
       <div data-tour-anchor="date-planner"></div>
     `;
     rectOverrides.set('time-slider', null);
     const steps = getCoachTourSteps();
-    const index = resolveAvailableCoachStepIndex(steps, 1);
+    const index = resolveAvailableCoachStepIndex(steps, 1, 1, root);
     expect(index).toBe(2);
     expect(steps[index ?? -1]?.id).toBe('date-planner');
+  });
+
+  it('does not auto-start or write the seen flag when the core map anchor is unavailable', () => {
+    vi.useFakeTimers();
+    window.localStorage.setItem(ONBOARDED_FLAG_KEY, '1');
+    rectOverrides.set('map-surface', null);
+
+    const view = renderGuide({ autoStartEnabled: true });
+
+    act(() => {
+      vi.advanceTimersByTime(3_500);
+    });
+
+    expect(screen.queryByTestId('coach-tour-dialog')).toBeNull();
+    expect(window.localStorage.getItem(FIRST_RUN_GUIDE_SEEN_KEY)).toBeNull();
+    view.unmount();
+  });
+
+  it('skips a zero-size requested step target before rendering the guide card', async () => {
+    rectOverrides.set('time-slider', null);
+
+    renderManualGuide('time-slider');
+
+    expect(await screen.findByTestId('coach-tour-step-date-planner')).toBeInTheDocument();
+    expect(screen.queryByTestId('coach-tour-step-time-slider')).toBeNull();
+    await waitFor(() =>
+      expect(screen.getByTestId('anchor-date-planner')).toHaveAttribute(
+        'aria-describedby',
+        expect.stringContaining('coach-tour-target-description'),
+      ),
+    );
+    expect(screen.getByTestId('anchor-time-slider')).not.toHaveAttribute(
+      'aria-describedby',
+    );
   });
 
   it('renders the forced first step with public pin swatches and no persistence write', async () => {

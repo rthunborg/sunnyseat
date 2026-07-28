@@ -505,6 +505,12 @@ Codex GPT-5
   and `story-12-10` prefetch. `map-primary` future-date request passed once in isolation, then
   failed in later serial/isolation reruns while the UI visibly selected tomorrow; documented as
   unresolved unrelated suite risk.
+- 2026-07-28 test automation expansion: audited existing Story 12.11 component/E2E/message
+  coverage; added focused component regressions for no auto-start/no seen write when the
+  required map anchor is unavailable and for zero-size requested target skipping before render.
+  Validation: focused guide spec passed 17/17; adjacent Story 12.11 Vitest set passed 4 files/162
+  tests; full Vitest passed 207 files/1889 tests with 2 files/15 tests skipped; typecheck/lint
+  passed; Story 12.11 Playwright mobile+desktop passed 10/10.
 
 ### Completion Notes List
 
@@ -528,6 +534,9 @@ Codex GPT-5
   first-run guide does not mask unrelated tests.
 - No canonical reference PNGs or `REBASELINE-LOG.md` entries were changed; manual visual
   candidate captures were produced only as review evidence.
+- Expanded guide component coverage for the required-map-anchor fail-closed auto-start path and
+  zero-size requested-target skip path; also isolated a resolver test in a detached container to
+  prevent DOM pollution.
 
 ### File List
 
@@ -591,6 +600,8 @@ Codex GPT-5
 - 2026-07-28: Implemented first-run coach-mark guide, Settings relaunch, responsive anchors,
   forced visual states, copy/a11y/motion behavior, route-map rows, and component/E2E/a11y
   coverage for Story 12.11.
+- 2026-07-28: Expanded Story 12.11 component automation for missing core-anchor auto-start
+  suppression and zero-size requested-target skipping; refreshed test evidence.
 
 ## Story File Audit
 
