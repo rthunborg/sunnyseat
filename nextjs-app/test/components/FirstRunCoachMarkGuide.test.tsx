@@ -218,6 +218,32 @@ describe('<FirstRunCoachMarkGuide />', () => {
     view.unmount();
   });
 
+  it('keeps polling until onboarding finishes instead of expiring before the map is eligible', async () => {
+    vi.useFakeTimers();
+
+    const view = renderGuide({ autoStartEnabled: true });
+    await act(async () => {});
+
+    await act(async () => {
+      vi.advanceTimersByTime(3_500);
+    });
+    expect(screen.queryByTestId('coach-tour-dialog')).toBeNull();
+
+    await act(async () => {
+      window.localStorage.setItem(ONBOARDED_FLAG_KEY, '1');
+      vi.advanceTimersByTime(100);
+    });
+    await act(async () => {
+      vi.runOnlyPendingTimers();
+    });
+
+    expect(screen.getByRole('dialog', { name: 'Kartnålarna' })).toHaveAttribute(
+      'data-tour-source',
+      'auto',
+    );
+    view.unmount();
+  });
+
   it('skips a zero-size requested step target before rendering the guide card', async () => {
     rectOverrides.set('time-slider', null);
 
@@ -244,6 +270,12 @@ describe('<FirstRunCoachMarkGuide />', () => {
     expect(screen.getByTestId('coach-tour-pin-legend')).toHaveTextContent('Soligt');
     expect(screen.getByTestId('coach-tour-pin-legend')).toHaveTextContent('Skuggat');
     expect(screen.getByText('95%')).toBeInTheDocument();
+    expect(screen.getByTestId('coach-tour-pin-legend').querySelector('[data-pin-icon="sun"]'))
+      .toBeInTheDocument();
+    expect(screen.getByTestId('coach-tour-pin-legend').querySelector('[data-pin-icon="cloud"]'))
+      .toBeInTheDocument();
+    expect(screen.getAllByTestId('coach-tour-pin-legend')[0].querySelectorAll('[data-pin-tail]'))
+      .toHaveLength(2);
     expect(document.querySelector('[data-tour-anchor="feedback"]')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Hoppa över' }));

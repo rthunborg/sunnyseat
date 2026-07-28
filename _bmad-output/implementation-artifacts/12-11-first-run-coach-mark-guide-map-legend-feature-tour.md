@@ -511,6 +511,13 @@ Codex GPT-5
   Validation: focused guide spec passed 17/17; adjacent Story 12.11 Vitest set passed 4 files/162
   tests; full Vitest passed 207 files/1889 tests with 2 files/15 tests skipped; typecheck/lint
   passed; Story 12.11 Playwright mobile+desktop passed 10/10.
+- 2026-07-28 review-fix pass: resolved the Settings relaunch focus decision plus all three
+  unresolved review patches. Validation: pre-edit baseline typecheck/lint passed; focused
+  component set passed 42/42; `npx tsc --noEmit` passed; `npx eslint . --quiet` passed after
+  rerun (first rerun raced Playwright test-results cleanup); full `npx vitest run` passed
+  207 files / 1892 tests with 2 files / 15 tests skipped; Story 12.11 Playwright mobile+desktop
+  passed 10/10; coach-mark axe desktop+mobile passed 4/4. Refreshed the four existing
+  Story 12.11 visual candidate PNGs in place from `http://localhost:3277` with reduced motion.
 
 ### Completion Notes List
 
@@ -537,6 +544,15 @@ Codex GPT-5
 - Expanded guide component coverage for the required-map-anchor fail-closed auto-start path and
   zero-size requested-target skip path; also isolated a resolver test in a detached container to
   prevent DOM pollution.
+- Resolved review finding: Settings-launched guide now reopens enough Settings state on close
+  and restores focus to `settings-row-guide` instead of falling back to the map target.
+- Resolved review finding: auto-start polling no longer expires while onboarding/geolocation or
+  blocking surfaces are still pending; it waits for eligibility and still avoids writing the seen
+  flag when the core map anchor is unavailable.
+- Resolved review finding: the mobile venue-list tour anchor is exposed only when the sheet body
+  has at least one visible row, so collapsed/inert sheet content is skipped by the guide resolver.
+- Resolved review finding: coach legend swatches now mirror the real sunny and shaded map pin DOM
+  shape, icon order, tails, opacity, and token classes.
 
 ### File List
 
@@ -568,6 +584,7 @@ Codex GPT-5
 - `nextjs-app/messages/sv/map.json`
 - `nextjs-app/test/components/FirstRunCoachMarkGuide.test.tsx`
 - `nextjs-app/test/components/MapView.test.tsx`
+- `nextjs-app/test/components/MobileBottomSheet.test.tsx`
 - `nextjs-app/test/components/SettingsModal.test.tsx`
 - `nextjs-app/test/e2e/axe-mobile.spec.ts`
 - `nextjs-app/test/e2e/axe.spec.ts`
@@ -602,6 +619,16 @@ Codex GPT-5
   coverage for Story 12.11.
 - 2026-07-28: Expanded Story 12.11 component automation for missing core-anchor auto-start
   suppression and zero-size requested-target skipping; refreshed test evidence.
+- 2026-07-28: Addressed Story 12.11 review findings for Settings restore focus, delayed
+  auto-start eligibility, collapsed mobile-sheet anchor suppression, and real-pin legend swatch
+  parity; refreshed all four existing visual candidate PNGs.
+
+### Review Findings
+
+- [x] [Review][Decision][Med] Settings relaunch focus target is unmounted before guide close — `SettingsModalRoot.tsx` passes the Settings row element as `restoreFocusElement` and immediately closes Settings; because the modal unmounts its content, `FirstRunCoachMarkGuide.tsx` falls back to the map target instead of restoring focus to `settings-row-guide`, violating the explicit WCAG/story task. Recommended: fix: Keep or recreate enough Settings state after the settings-launched guide closes so focus lands back on `settings-row-guide` rather than the map fallback. [auto-resolved: fix per triage recommendation — epic mode; carry into thin fix pass]
+- [x] [Review][Patch][High] Auto-start polling can expire before onboarding/geolocation completes [nextjs-app/components/custom/coach-tour/FirstRunCoachMarkGuide.tsx:189]
+- [x] [Review][Patch][Med] Mobile venue-list step can anchor to a collapsed or inert sheet [nextjs-app/components/custom/sheets/MobileBottomSheet.tsx:394]
+- [x] [Review][Patch][Med] Coach legend swatches do not match the real map pins [nextjs-app/components/custom/coach-tour/FirstRunCoachMarkGuide.tsx:517]
 
 ## Story File Audit
 

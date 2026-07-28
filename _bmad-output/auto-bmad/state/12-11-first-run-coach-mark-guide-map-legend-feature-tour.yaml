@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 11
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-28T08:42:46Z"
+updated_at: "2026-07-28T09:05:35Z"
 started_at: "2026-07-27T19:56:49Z"
 completed_at: null
-active_seconds: 45641
+active_seconds: 46970
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "Medium because Story 12.11 adds a stateful first-run UI flow with persisted seen-state, Settings relaunch, breakpoint-specific anchors, and accessibility/focus/motion contracts across multiple mounted map controls, without a High-risk auth, schema, external-contract, or concurrency trigger."
 epic_story_count: 14
 stories_after_in_epic: 3
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [9a0f45a, 7d2c676, 58d263e]
+commits: [9a0f45a, 7d2c676, 58d263e, 0bccfcd]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -56,3 +56,4 @@ constraints:
   - "Define deterministic mobile and desktop target anchors from the landed Story 12.6 pin legend and Story 12.9 interaction model, preserving focus visibility, 44x44 touch targets, and reduced-motion behavior."
   - "Lock one deterministic feedback-step approach in the story context: copy-only guidance, or opening a deterministic venue detail before targeting feedback; automate that exact path."
 tier_a_base_sha: 03e32a4
+tier_a_review: "done â€” Changes Requested resolved; Critical 0 / High 1 / Med 3 / Low 0; all four findings fixed, including the Medium focus-restoration decision auto-resolved to its recommended fix; security clean 0 findings; post-fix VERIFIED/PASS."

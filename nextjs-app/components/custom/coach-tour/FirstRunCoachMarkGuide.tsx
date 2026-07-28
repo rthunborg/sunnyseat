@@ -56,6 +56,7 @@ type ActiveGuide = {
   source: FirstRunGuideSource;
   persistOnDismiss: boolean;
   restoreFocusElement: HTMLElement | null;
+  restoreFocusFallback: (() => boolean) | null;
 };
 
 type CardPosition = {
@@ -101,7 +102,6 @@ const COACH_TOUR_STEPS: readonly CoachTourStep[] = [
 
 const TARGET_DESCRIPTION_ID = 'coach-tour-target-description';
 const HEADING_ID = 'coach-tour-heading';
-const AUTO_START_MAX_ATTEMPTS = 30;
 const AUTO_START_POLL_MS = 100;
 const HIGHLIGHT_EXPAND_PX = 6;
 const CARD_GUTTER_PX = 16;
@@ -182,14 +182,12 @@ export function FirstRunCoachMarkGuide({
     if (!autoStartEnabled || forcedStepId || activeGuide || launch || hasSeenGuide) {
       return undefined;
     }
-    let attempts = 0;
     const tryStart = () => {
-      attempts += 1;
       if (autoStartedRef.current || hasSeenGuide) return true;
-      if (!hasOnboarded() || isBlockingSurfaceOpen()) return attempts >= AUTO_START_MAX_ATTEMPTS;
+      if (!hasOnboarded() || isBlockingSurfaceOpen()) return false;
       const firstStepIndex = resolveAvailableCoachStepIndex(COACH_TOUR_STEPS, 0);
       if (firstStepIndex === null || COACH_TOUR_STEPS[firstStepIndex].id !== 'pin-legend') {
-        return attempts >= AUTO_START_MAX_ATTEMPTS;
+        return false;
       }
       autoStartedRef.current = true;
       startGuide({
@@ -233,6 +231,7 @@ export function FirstRunCoachMarkGuide({
         source: launch.source,
         persistOnDismiss: launch.persistOnDismiss,
         restoreFocusElement: launch.restoreFocusElement,
+        restoreFocusFallback: launch.restoreFocusFallback,
       });
       setCurrentIndex(index);
     }, 0);
@@ -244,6 +243,7 @@ export function FirstRunCoachMarkGuide({
 
   const closeGuide = useCallback((writeSeen = true) => {
     const restoreFocusElement = activeGuide?.restoreFocusElement;
+    const restoreFocusFallback = activeGuide?.restoreFocusFallback;
     if (activeGuide?.persistOnDismiss && writeSeen) {
       markGuideSeen();
     }
@@ -256,6 +256,7 @@ export function FirstRunCoachMarkGuide({
         restoreFocusElement.focus({ preventScroll: true });
         return;
       }
+      if (restoreFocusFallback?.()) return;
       document
         .querySelector<HTMLElement>(tourAnchorSelector(COACH_TOUR_STEP_ANCHORS['pin-legend']))
         ?.focus({ preventScroll: true });
@@ -335,9 +336,13 @@ export function FirstRunCoachMarkGuide({
   }, [activeGuide, currentIndex]);
 
   useEffect(() => {
-    if (!activeGuide || currentIndex === null) return;
-    window.requestAnimationFrame(() => headingRef.current?.focus({ preventScroll: true }));
-  }, [activeGuide, currentIndex]);
+    if (!activeGuide || currentIndex === null || !targetRect) return undefined;
+    headingRef.current?.focus({ preventScroll: true });
+    const frame = window.requestAnimationFrame(() => {
+      headingRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeGuide, currentIndex, targetRect]);
 
   const activeIndex = currentIndex;
   const currentStep = activeIndex === null ? null : COACH_TOUR_STEPS[activeIndex];
@@ -509,12 +514,19 @@ function PinLegend() {
         label={t('sunnyLabel')}
         description={t('sunnyDescription')}
         swatch={(
-          <span className="relative flex h-[50px] w-11 items-center justify-center rounded-pill border-[2.5px] border-white bg-amber-pin py-1 text-label-xs text-text-primary shadow-card">
-            <span className="flex flex-col items-center gap-0.5">
-              <Sun aria-hidden="true" className="size-3.5 text-text-primary" />
-              <span>95%</span>
+          <span className="flex flex-col items-center">
+            <span className="flex h-[50px] w-11 flex-col items-center justify-center gap-0.5 rounded-pill border-[2.5px] border-white bg-amber-pin py-1 shadow-card">
+              <span className="text-label-xs leading-none text-text-primary">95%</span>
+              <Sun
+                aria-hidden="true"
+                data-pin-icon="sun"
+                className="size-3.5 text-text-primary"
+              />
             </span>
-            <span className="absolute left-1/2 top-[calc(100%-1px)] h-0 w-0 -translate-x-1/2 border-x-[7px] border-t-[8px] border-x-transparent border-t-amber-pin" />
+            <span
+              data-pin-tail
+              className="-mt-0.5 block h-0 w-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-amber-pin shadow-subtle"
+            />
           </span>
         )}
       />
@@ -522,9 +534,19 @@ function PinLegend() {
         label={t('shadedLabel')}
         description={t('shadedDescription')}
         swatch={(
-          <span className="relative flex min-h-11 min-w-11 items-center justify-center rounded-pill border border-white/20 bg-pin-shaded px-4 py-2 text-text-body shadow-subtle">
-            <Cloud aria-hidden="true" className="size-[13px]" />
-            <span className="absolute left-1/2 top-[calc(100%-1px)] h-0 w-0 -translate-x-1/2 border-x-[7px] border-t-[8px] border-x-transparent border-t-pin-shaded" />
+          <span className="flex flex-col items-center opacity-80">
+            <span className="flex min-h-11 min-w-11 items-center justify-center rounded-pill border border-white/20 bg-pin-shaded px-4 py-2 shadow-subtle">
+              <Cloud
+                aria-hidden="true"
+                data-pin-icon="cloud"
+                className="text-text-body"
+                style={{ width: '13px', height: '13px' }}
+              />
+            </span>
+            <span
+              data-pin-tail
+              className="block h-0 w-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-pin-shaded"
+            />
           </span>
         )}
       />

@@ -22,6 +22,7 @@ export type FirstRunGuideStartOptions = {
   initialStepId?: CoachTourStepId;
   persistOnDismiss?: boolean;
   restoreFocusElement?: HTMLElement | null;
+  restoreFocusFallback?: (() => boolean) | null;
 };
 
 export type FirstRunGuideLaunch = {
@@ -30,6 +31,7 @@ export type FirstRunGuideLaunch = {
   initialStepId: CoachTourStepId;
   persistOnDismiss: boolean;
   restoreFocusElement: HTMLElement | null;
+  restoreFocusFallback: (() => boolean) | null;
 };
 
 type FirstRunGuideContextValue = {
@@ -108,6 +110,7 @@ export function FirstRunGuideProvider({ children }: { children: ReactNode }) {
       initialStepId: options.initialStepId ?? 'pin-legend',
       persistOnDismiss: options.persistOnDismiss ?? false,
       restoreFocusElement: options.restoreFocusElement ?? null,
+      restoreFocusFallback: options.restoreFocusFallback ?? null,
     }));
   }, []);
 
@@ -136,4 +139,3 @@ export function FirstRunGuideProvider({ children }: { children: ReactNode }) {
 export function useFirstRunGuide(): FirstRunGuideContextValue {
   return useContext(FirstRunGuideContext);
 }
-

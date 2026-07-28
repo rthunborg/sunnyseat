@@ -175,6 +175,7 @@ describe('<MobileBottomSheet /> row-count contract', () => {
     const body = document.querySelector('[data-bottom-sheet-body="true"]') as HTMLElement;
     const scrollBody = document.querySelector('[data-bottom-sheet-scroll-body="true"]') as HTMLElement;
     expect(sheet).toHaveAttribute('data-visible-rows', '0');
+    expect(sheet).not.toHaveAttribute('data-tour-anchor');
     expect(sheet).toHaveAttribute('data-sheet-height', '44');
     expect(body).toHaveAttribute('aria-hidden', 'true');
     expect(body.hasAttribute('inert')).toBe(true);
@@ -182,6 +183,15 @@ describe('<MobileBottomSheet /> row-count contract', () => {
     expect(screen.getByTestId('sheet-chrome')).toBeInTheDocument();
     screen.getByRole('button', { name: 'Visa platslistan' }).focus();
     expect(screen.getByRole('button', { name: 'Visa platslistan' })).toHaveFocus();
+  });
+
+  it('exposes the venue-list tour anchor only when at least one row is visible', () => {
+    renderSheet({ visibleRows: 1, rowCount: 5 });
+
+    expect(screen.getByTestId('mobile-bottom-sheet')).toHaveAttribute(
+      'data-tour-anchor',
+      'venue-list',
+    );
   });
 
   it('keyboard ArrowUp/ArrowDown changes exactly one row and saturates at 0..maxRows', () => {

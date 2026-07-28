@@ -1,10 +1,15 @@
-import { describe, expect, it, vi } from 'vitest';
-import type { ReactNode } from 'react';
-import { fireEvent, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { useEffect, type ReactNode } from 'react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWithProviders } from '@/test/setup/test-utils';
+import { FirstRunCoachMarkGuide } from '@/components/custom/coach-tour/FirstRunCoachMarkGuide';
 import { SettingsModal } from '@/components/custom/settings/SettingsModal';
+import { SettingsModalRoot } from '@/components/custom/settings/SettingsModalRoot';
+import { FirstRunGuideProvider } from '@/lib/contexts/FirstRunGuideContext';
+import { SettingsProvider, useSettings } from '@/lib/contexts/SettingsContext';
 import commonMessagesEn from '@/messages/en/common.json';
 import commonMessages from '@/messages/sv/common.json';
+import mapMessages from '@/messages/sv/map.json';
 
 vi.mock('@/i18n/navigation', () => ({
   Link: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
@@ -18,7 +23,7 @@ vi.mock('@/i18n/navigation', () => ({
 
 const messages = {
   common: commonMessages,
-  map: {},
+  map: mapMessages,
   onboarding: {},
   venue: {},
   feedback: {},
@@ -49,6 +54,48 @@ function renderSettings(options: { locale?: 'sv' | 'en' } = {}) {
   return { onClose, onOpenFeedback, onOpenGuide };
 }
 
+function OpenSettingsOnMount() {
+  const { openSettings } = useSettings();
+  useEffect(() => {
+    openSettings();
+  }, [openSettings]);
+  return null;
+}
+
+function renderSettingsGuideHarness() {
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function getRect(this: HTMLElement) {
+    const anchor = this.getAttribute('data-tour-anchor');
+    const width = anchor === 'map-surface' ? 390 : 320;
+    const height = anchor === 'map-surface' ? 844 : 240;
+    return {
+      x: 0,
+      y: 0,
+      width,
+      height,
+      top: 0,
+      left: 0,
+      right: width,
+      bottom: height,
+      toJSON: () => ({}),
+    } as DOMRect;
+  });
+  renderWithProviders(
+    <SettingsProvider>
+      <FirstRunGuideProvider>
+        <OpenSettingsOnMount />
+        <div tabIndex={-1} data-testid="anchor-map-surface" data-tour-anchor="map-surface" />
+        <SettingsModalRoot />
+        <FirstRunCoachMarkGuide autoStartEnabled={false} />
+      </FirstRunGuideProvider>
+    </SettingsProvider>,
+    { messages },
+  );
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe('<SettingsModal />', () => {
   it('renders the title, subtitle and settings rows', () => {
     renderSettings();
@@ -70,6 +117,20 @@ describe('<SettingsModal />', () => {
     const row = screen.getByTestId('settings-row-guide');
     fireEvent.click(row);
     expect(onOpenGuide).toHaveBeenCalledWith(row);
+  });
+
+  it('recreates Settings after guide close and restores focus to the guide row', async () => {
+    renderSettingsGuideHarness();
+
+    const row = await screen.findByTestId('settings-row-guide');
+    fireEvent.click(row);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Kartnålarna' });
+    expect(dialog).toHaveAttribute('data-tour-source', 'settings');
+    fireEvent.click(screen.getByRole('button', { name: 'Hoppa över' }));
+
+    const restoredRow = await screen.findByTestId('settings-row-guide');
+    await waitFor(() => expect(restoredRow).toHaveFocus());
   });
 
   it('renders the English guide relaunch copy from message keys', () => {

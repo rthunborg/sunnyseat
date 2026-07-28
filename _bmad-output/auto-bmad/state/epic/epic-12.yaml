@@ -5,10 +5,10 @@ epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-28T08:42:46Z"
+updated_at: "2026-07-28T09:05:35Z"
 started_at: "2026-07-18T11:27:25Z"
 completed_at: null
-active_seconds: 189674
+active_seconds: 191004
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: true
 story_trace: null
-commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc, 8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021, 66eb5d7, 7f5c709, 55bffea, e442fed, ef47622, 6483f7e, "7592112", c3673e1, 9549c7e, bc7b65b, "9346726", 2a21274, b4427d4, d5fd2f3, 5fe8bec, e0bc76b, 31d0062, 645a2c0, "3586481", 4d0a2d5, 3df41ff, 1882e29, 2f3749f, 272b46d, 26a1f1e, fa612a7, a5f6eb9, b64da80, 3432eca, baf0d8b, e1194b0, a76905f, 2fd49bb, 4eec7dd, 07b2b8a, 5441d55, 30e841e, 486afdb, e596035, d1bb55b, 2e2dc5b, e234c29, c6fe705, 24f134a, 5da0f82, 4cb5743, 3054b20, 8b83f95, 38ccb18, fa23bf2, f571337, 11325c9, 5829d10, fd970d0, 2a9da16, 6d0d44d, a5f51cc, 439cafe, 32b146e, 67ac36b, 8fedff5, 03e32a4, 9a0f45a, 7d2c676, 58d263e]
+commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc, 8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021, 66eb5d7, 7f5c709, 55bffea, e442fed, ef47622, 6483f7e, "7592112", c3673e1, 9549c7e, bc7b65b, "9346726", 2a21274, b4427d4, d5fd2f3, 5fe8bec, e0bc76b, 31d0062, 645a2c0, "3586481", 4d0a2d5, 3df41ff, 1882e29, 2f3749f, 272b46d, 26a1f1e, fa612a7, a5f6eb9, b64da80, 3432eca, baf0d8b, e1194b0, a76905f, 2fd49bb, 4eec7dd, 07b2b8a, 5441d55, 30e841e, 486afdb, e596035, d1bb55b, 2e2dc5b, e234c29, c6fe705, 24f134a, 5da0f82, 4cb5743, 3054b20, 8b83f95, 38ccb18, fa23bf2, f571337, 11325c9, 5829d10, fd970d0, 2a9da16, 6d0d44d, a5f51cc, 439cafe, 32b146e, 67ac36b, 8fedff5, 03e32a4, 9a0f45a, 7d2c676, 58d263e, 0bccfcd]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -71,7 +71,8 @@ stories_landed:
   - 12-8-about-page-pin-legend-so-reads-the-sun-figure
 auto_decisions:
   - "[12-7] Adopted the architecture-backed canonical `hidden boolean not null default false` migration/type contract after live/schema probes proved all previously referenced visibility columns absent; no protected database mutation was performed."
-  - "Gate-off public map pins are no longer pixel unchanged [Med] → fix: keep the a11y-safe pin color only with explicit visual rebaseline/acceptance evidence; otherwise move or revert that public pin change out of Story 12.5. (Tier A, 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields)"
+  - "Gate-off public map pins are no longer pixel unchanged [Med] â†’ fix: keep the a11y-safe pin color only with explicit visual rebaseline/acceptance evidence; otherwise move or revert that public pin change out of Story 12.5. (Tier A, 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields)"
+  - "Settings relaunch focus target is unmounted before guide close [Med] â†’ fix: Keep or recreate enough Settings state after the settings-launched guide closes so focus lands back on settings-row-guide rather than the map fallback. (Tier A, 12-11-first-run-coach-mark-guide-map-legend-feature-tour)"
 uat_items:
   - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify a cold protected-production /api/venues central-viewport request for the 42+ venue dataset returns p95 <= ~5s with logs proving persisted geometry reads and zero request-path shadow/provider recompute."
   - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify missing current geometry_input_hash coverage returns machine-readable 503 SUN_GEOMETRY_COVERAGE_MISSING instead of omitting sunDaySeries or recomputing shadows."
