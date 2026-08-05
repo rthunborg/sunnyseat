@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 11
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-08-05T19:10:07Z"
+updated_at: "2026-08-05T19:26:21Z"
 started_at: "2026-07-27T19:56:49Z"
 completed_at: null
-active_seconds: 52825
+active_seconds: 53637
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [9a0f45a, 7d2c676, 58d263e, 0bccfcd, 4561d28, 4f2e681, 9802db8, cf68b99]
+commits: [9a0f45a, 7d2c676, 58d263e, 0bccfcd, 4561d28, 4f2e681, 9802db8, cf68b99, 1c04e31]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -60,4 +60,4 @@ constraints:
   - "Human visual-review correction: end the amber percentage explanation after the selected-time seating-share meaning; omit the explicit confidence contrast from this coach step."
   - "Human visual-review correction: label skip as `Hoppa Ã¶ver guide` / `Skip guide` and present it as a restrained, right-aligned utility pill at the same modal height while preserving the Back/Next row and bilingual parity."
 tier_a_base_sha: 03e32a4
-tier_a_review: "done â€” initial thin review resolved (Critical 0 / High 1 / Med 3 / Low 0); human copy correction follow-up Round 2 approved with Critical 0 / High 0 / Med 0 / Low 0 and security clean."
+tier_a_review: "done â€” initial thin review resolved (Critical 0 / High 1 / Med 3 / Low 0); first human-copy follow-up was clean; latest skip-button/copy follow-up Round 2 raised Med 1 / all other severities 0, security clean, then fixed and post-fix verified with no open findings."

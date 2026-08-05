@@ -64,7 +64,7 @@ test.describe('Story 12.11 coach-mark guide', () => {
     await expect(dialog.getByRole('heading', { name: 'Kartnålarna' })).toBeFocused();
     await expect(dialog.getByRole('button', { name: 'Hoppa över guide' })).toBeVisible();
     await expect(dialog.getByTestId('coach-tour-skip')).toHaveClass(/border-divider/);
-    await expect(dialog.getByTestId('coach-tour-skip')).toHaveClass(/ml-auto/);
+    await expect(dialog.getByTestId('coach-tour-skip')).toHaveClass(/justify-self-end/);
     await expect(dialog.getByRole('button', { name: 'Stäng guide' })).toBeVisible();
 
     await dialog.getByRole('button', { name: 'Hoppa över guide' }).click();

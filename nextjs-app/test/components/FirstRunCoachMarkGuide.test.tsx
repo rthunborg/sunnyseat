@@ -326,11 +326,11 @@ describe('<FirstRunCoachMarkGuide />', () => {
     const actions = screen.getByTestId('coach-tour-actions');
     const skip = screen.getByRole('button', { name: 'Hoppa över guide' });
     expect(skip).toBe(screen.getByTestId('coach-tour-skip'));
-    expect(actions).toHaveClass('justify-end');
+    expect(actions).toHaveClass('grid', 'grid-cols-[minmax(0,1fr)_auto]');
     expect(skip).toHaveClass(
-      'ml-auto',
       'inline-flex',
       'min-h-11',
+      'justify-self-end',
       'rounded-pill',
       'border',
       'border-divider',
