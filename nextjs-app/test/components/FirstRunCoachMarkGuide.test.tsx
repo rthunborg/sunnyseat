@@ -37,6 +37,11 @@ const messages = {
   favourites: {},
 };
 
+const messagesEn = {
+  ...messages,
+  map: mapMessagesEn,
+};
+
 const EXPECTED_SV_PIN_COPY =
   'Procenten visar hur stor andel av uteserveringens platser vi tror är i direkt sol vid den valda tiden.';
 const EXPECTED_SV_PLANNER_COPY =
@@ -124,11 +129,15 @@ function renderGuide({
   autoStartEnabled = false,
   anchors,
   mapDescription,
+  locale = 'sv',
+  renderMessages = messages,
 }: {
   forcedStepId?: CoachTourStepId | null;
   autoStartEnabled?: boolean;
   anchors?: string[];
   mapDescription?: string;
+  locale?: 'sv' | 'en';
+  renderMessages?: typeof messages;
 } = {}) {
   return renderWithProviders(
     <FirstRunGuideProvider>
@@ -138,7 +147,7 @@ function renderGuide({
         autoStartEnabled={autoStartEnabled}
       />
     </FirstRunGuideProvider>,
-    { messages },
+    { locale, messages: renderMessages },
   );
 }
 
@@ -178,6 +187,41 @@ function SeenProbe() {
 
 function renderSeenProbe() {
   return renderWithProviders(<SeenProbe />, { messages });
+}
+
+function expectSeparatedFooterLayout(
+  skipLabel: string,
+  backLabel: string,
+  nextLabel: string,
+) {
+  const actions = screen.getByTestId('coach-tour-actions');
+  const skipRow = screen.getByTestId('coach-tour-skip-row');
+  const navigation = screen.getByTestId('coach-tour-navigation');
+  const skip = screen.getByRole('button', { name: skipLabel });
+  const back = screen.getByRole('button', { name: backLabel });
+  const next = screen.getByRole('button', { name: nextLabel });
+
+  expect(skip).toBe(screen.getByTestId('coach-tour-skip'));
+  expect(actions).toHaveClass('flex', 'flex-col', 'gap-2', 'pt-1');
+  expect(actions.firstElementChild).toBe(skipRow);
+  expect(actions.lastElementChild).toBe(navigation);
+  expect(skipRow).toHaveClass('flex', 'justify-end');
+  expect(navigation).toHaveClass('flex', 'justify-end', 'gap-2');
+  expect(skipRow).toContainElement(skip);
+  expect(navigation).not.toContainElement(skip);
+  expect(navigation).toContainElement(back);
+  expect(navigation).toContainElement(next);
+  expect(navigation.compareDocumentPosition(skipRow)).toBe(Node.DOCUMENT_POSITION_PRECEDING);
+  expect(skip).toHaveClass(
+    'inline-flex',
+    'min-h-11',
+    'rounded-pill',
+    'border',
+    'border-divider',
+    'bg-surface-cream',
+    'shadow-subtle',
+  );
+  expect(skip).not.toHaveClass('justify-self-end');
 }
 
 describe('<FirstRunCoachMarkGuide />', () => {
@@ -319,24 +363,22 @@ describe('<FirstRunCoachMarkGuide />', () => {
     expect(mapMessagesEn.coachTour.skip).toBe('Skip guide');
   });
 
-  it('renders skip as a right-aligned secondary pill button', async () => {
+  it('renders skip in a separate right-aligned row above navigation', async () => {
     renderGuide({ forcedStepId: 'pin-legend' });
 
     await screen.findByRole('dialog', { name: 'Kartnålarna' });
-    const actions = screen.getByTestId('coach-tour-actions');
-    const skip = screen.getByRole('button', { name: 'Hoppa över guide' });
-    expect(skip).toBe(screen.getByTestId('coach-tour-skip'));
-    expect(actions).toHaveClass('grid', 'grid-cols-[minmax(0,1fr)_auto]');
-    expect(skip).toHaveClass(
-      'inline-flex',
-      'min-h-11',
-      'justify-self-end',
-      'rounded-pill',
-      'border',
-      'border-divider',
-      'bg-surface-cream',
-      'shadow-subtle',
-    );
+    expectSeparatedFooterLayout('Hoppa över guide', 'Tillbaka', 'Nästa');
+  });
+
+  it('uses the same separated footer layout for English copy', async () => {
+    renderGuide({
+      forcedStepId: 'pin-legend',
+      locale: 'en',
+      renderMessages: messagesEn,
+    });
+
+    await screen.findByRole('dialog', { name: 'Map pins' });
+    expectSeparatedFooterLayout('Skip guide', 'Back', 'Next');
   });
 
   it('keeps the card inside the viewport when the map surface fills the screen', async () => {
@@ -429,8 +471,8 @@ describe('<FirstRunCoachMarkGuide />', () => {
       expect.stringContaining('coach-tour-target-description'),
     );
 
-    const skip = screen.getByRole('button', { name: 'Hoppa över guide' });
-    skip.focus();
+    const next = screen.getByRole('button', { name: 'Nästa' });
+    next.focus();
     fireEvent.keyDown(dialog, { key: 'Tab' });
     expect(screen.getByRole('button', { name: 'Stäng guide' })).toHaveFocus();
 

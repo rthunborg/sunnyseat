@@ -526,11 +526,12 @@ Codex GPT-5
   15 skipped; Story 12.11 Playwright mobile+desktop passed 10/10 on serial rerun after a
   transient Next dev `/sv` JSON parse failure in the parallel run; coach-mark axe passed 4/4 on
   serial rerun after the same transient affected the parallel mobile first-step case.
-- 2026-08-05 follow-up skip-footer patch: replaced the wrapping coach-guide action footer with
-  a two-column single-row grid so `Hoppa över guide` / `Skip guide` stays a rightmost secondary
-  pill at the same action height as Back/Next. Validation: focused coach/settings component tests
-  passed 29/29; Story 12.11 Playwright mobile+desktop passed 10/10; `npx tsc --noEmit` passed;
-  `npx eslint . --quiet` passed.
+- 2026-08-05 follow-up skip-footer validation: the first two-column single-row attempt caused the
+  longer Swedish skip pill to overlap `Nästa` by about 36px in exact-size captures. Replaced it
+  with a dedicated right-aligned skip row above the intact, grouped Back/Next row. Validation:
+  focused coach tests passed 22/22; Story 12.11 Playwright mobile+desktop passed 10/10; full
+  Vitest passed 1896 tests; `npx tsc --noEmit` and `npx eslint . --quiet` passed. Exact
+  390x844 and 1440x900 visual captures passed with no overlap, wrapping, overflow, or clipping.
 
 ### Completion Notes List
 
@@ -571,9 +572,9 @@ Codex GPT-5
 - Renamed the skip action to "Hoppa över guide" / "Skip guide" and changed it from bare utility
   text to a right-aligned, token-based secondary pill button while keeping Next as the dominant
   forward action.
-- Resolved review finding: the coach-guide footer no longer uses wrapping flex layout or
-  `ml-auto`; it now keeps Back/Next grouped and the skip pill right-aligned in a deterministic
-  single-row grid.
+- Resolved the captured Swedish overlap: the coach-guide footer now gives the skip pill a
+  dedicated right-aligned row above a separate, grouped and right-aligned Back/Next row. The
+  English route uses the same structure and visual hierarchy.
 
 ### File List
 
@@ -584,6 +585,10 @@ Codex GPT-5
 - `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/coach-mark-first-desktop.png`
 - `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/coach-mark-middle-mobile.png`
 - `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/coach-mark-middle-desktop.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260805-skip-guide-refinement-v2/coach-mark-first-mobile-20260805-skip-guide-refinement-v2.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260805-skip-guide-refinement-v2/coach-mark-first-desktop-20260805-skip-guide-refinement-v2.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260805-skip-guide-refinement-v2/coach-mark-middle-mobile-20260805-skip-guide-refinement-v2.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260805-skip-guide-refinement-v2/coach-mark-middle-desktop-20260805-skip-guide-refinement-v2.png`
 - `project-context.md`
 - `nextjs-app/components/composed/venue/MobileTagChips.tsx`
 - `nextjs-app/components/composed/venue/VenueListControls.tsx`
@@ -646,6 +651,8 @@ Codex GPT-5
 - 2026-08-05: Refined coach-guide percentage copy and skip-button label/treatment from human
   visual feedback; story remains in review pending refreshed visual acceptance.
 - 2026-08-05: Addressed follow-up review finding for the coach-guide skip footer wrapping risk.
+- 2026-08-05: Corrected the Swedish single-row overlap found by exact-size visual validation;
+  moved the skip pill to its own right-aligned row and preserved grouped Back/Next navigation.
 
 ### Review Findings
 
@@ -653,7 +660,7 @@ Codex GPT-5
 - [x] [Review][Patch][High] Auto-start polling can expire before onboarding/geolocation completes [nextjs-app/components/custom/coach-tour/FirstRunCoachMarkGuide.tsx:189]
 - [x] [Review][Patch][Med] Mobile venue-list step can anchor to a collapsed or inert sheet [nextjs-app/components/custom/sheets/MobileBottomSheet.tsx:394]
 - [x] [Review][Patch][Med] Coach legend swatches do not match the real map pins [nextjs-app/components/custom/coach-tour/FirstRunCoachMarkGuide.tsx:517]
-- [x] [Review][Patch][Med] Footer layout can wrap the clearer skip button below the Back/Next controls instead of keeping it at the same action height and furthest right as requested — `FirstRunCoachMarkGuide.tsx` changes the actions row to `flex flex-wrap items-center justify-end gap-2 pt-1`, keeps the Back/Next group, then appends the longer `Hoppa över guide` pill with `ml-auto`; in the 352px coach-card width this can exceed one row on both mobile and desktop. [nextjs-app/components/custom/coach-tour/FirstRunCoachMarkGuide.tsx:465]
+- [x] [Review][Patch][Med] Footer layout can wrap the clearer skip button below the Back/Next controls instead of keeping it at the same action height and furthest right as requested — `FirstRunCoachMarkGuide.tsx` changes the actions row to `flex flex-wrap items-center justify-end gap-2 pt-1`, keeps the Back/Next group, then appends the longer `Hoppa över guide` pill with `ml-auto`; in the 352px coach-card width this can exceed one row on both mobile and desktop. Final visual-resolution note: the attempted single-row grid overlapped `Nästa`; exact-size validation passed after placing the right-aligned skip pill in its own row above the grouped navigation row. [nextjs-app/components/custom/coach-tour/FirstRunCoachMarkGuide.tsx:465]
 
 ## Story File Audit
 

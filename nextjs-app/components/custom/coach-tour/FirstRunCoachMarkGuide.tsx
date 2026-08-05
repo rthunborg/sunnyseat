@@ -467,9 +467,22 @@ export function FirstRunCoachMarkGuide({
             {currentStep.id === 'pin-legend' && <PinLegend />}
             <div
               data-testid="coach-tour-actions"
-              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 pt-1"
+              className="flex flex-col gap-2 pt-1"
             >
-              <div className="flex min-w-0 items-center gap-2">
+              <div data-testid="coach-tour-skip-row" className="flex justify-end">
+                <button
+                  type="button"
+                  data-testid="coach-tour-skip"
+                  onClick={() => closeGuide()}
+                  className="inline-flex min-h-11 items-center justify-center rounded-pill border border-divider bg-surface-cream px-4 text-label-lg text-text-body shadow-subtle outline-none transition-colors duration-fast ease-default hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-text-primary"
+                >
+                  {t('skip')}
+                </button>
+              </div>
+              <div
+                data-testid="coach-tour-navigation"
+                className="flex min-w-0 items-center justify-end gap-2"
+              >
                 <button
                   type="button"
                   disabled={!hasPrevious}
@@ -493,14 +506,6 @@ export function FirstRunCoachMarkGuide({
                   <ChevronRight aria-hidden="true" className="size-4" />
                 </button>
               </div>
-              <button
-                type="button"
-                data-testid="coach-tour-skip"
-                onClick={() => closeGuide()}
-                className="inline-flex min-h-11 items-center justify-center justify-self-end rounded-pill border border-divider bg-surface-cream px-4 text-label-lg text-text-body shadow-subtle outline-none transition-colors duration-fast ease-default hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-text-primary"
-              >
-                {t('skip')}
-              </button>
             </div>
           </div>
         </motion.div>
