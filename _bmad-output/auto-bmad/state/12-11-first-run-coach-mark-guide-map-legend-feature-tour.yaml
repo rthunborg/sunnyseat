@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 11
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-08-05T17:34:35Z"
+updated_at: "2026-08-05T17:39:45Z"
 started_at: "2026-07-27T19:56:49Z"
 completed_at: null
-active_seconds: 48306
+active_seconds: 48548
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [9a0f45a, 7d2c676, 58d263e, 0bccfcd, 4561d28]
+commits: [9a0f45a, 7d2c676, 58d263e, 0bccfcd, 4561d28, 4f2e681]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -55,5 +55,7 @@ constraints:
   - "Keep the coach tour first-run-only through persisted seen-state, while providing an explicit Settings relaunch path; do not repeatedly interrupt returning users."
   - "Define deterministic mobile and desktop target anchors from the landed Story 12.6 pin legend and Story 12.9 interaction model, preserving focus visibility, 44x44 touch targets, and reduced-motion behavior."
   - "Lock one deterministic feedback-step approach in the story context: copy-only guidance, or opening a deterministic venue detail before targeting feedback; automate that exact path."
+  - "Human visual-review correction: explain that the amber percentage is the predicted share of outdoor seating in direct sun at the selected time, not model confidence."
+  - "Human visual-review correction: present date/time changes as optional because the map defaults to now, and disclose that predictions become less certain farther into the future."
 tier_a_base_sha: 03e32a4
-tier_a_review: "done â€” Changes Requested resolved; Critical 0 / High 1 / Med 3 / Low 0; all four findings fixed, including the Medium focus-restoration decision auto-resolved to its recommended fix; security clean 0 findings; post-fix VERIFIED/PASS."
+tier_a_review: "done â€” initial thin review resolved (Critical 0 / High 1 / Med 3 / Low 0); human copy correction follow-up Round 2 approved with Critical 0 / High 0 / Med 0 / Low 0 and security clean."
