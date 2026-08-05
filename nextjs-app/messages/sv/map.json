@@ -21,12 +21,12 @@
     "steps": {
       "pinLegend": {
         "title": "Kartnålarna",
-        "body": "Gula nålar visar platser med direkt sol vid den valda tiden. Grå nålar betyder att platsen är skuggad eller saknar sol just då.",
+        "body": "Procenten visar hur stor andel av uteserveringens platser vi tror är i direkt sol vid den valda tiden – inte hur säkra vi är.",
         "target": "kartans nålar"
       },
       "timeSlider": {
         "title": "Välj tid",
-        "body": "Dra tidsreglaget för att se hur solen flyttar sig under dagen. Kartnålar och listan uppdateras utan att du behöver ladda om.",
+        "body": "Du behöver inte ändra något – kartan visar läget just nu. Vill du planera framåt kan du välja datum och tid. Ju längre fram du tittar, desto osäkrare blir prognosen.",
         "target": "tidsreglaget"
       },
       "datePlanner": {

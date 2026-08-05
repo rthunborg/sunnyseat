@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 11
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-07-29T09:56:04Z"
+updated_at: "2026-08-05T17:34:35Z"
 started_at: "2026-07-27T19:56:49Z"
 completed_at: null
-active_seconds: 47221
+active_seconds: 48306
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false

@@ -5,6 +5,10 @@ import {
 } from '@/lib/constants/onboarding';
 
 const APP_SETTLE_TIMEOUT_MS = 15_000;
+const EXPECTED_PIN_COPY =
+  'Procenten visar hur stor andel av uteserveringens platser vi tror är i direkt sol vid den valda tiden – inte hur säkra vi är.';
+const EXPECTED_PLANNER_COPY =
+  'Du behöver inte ändra något – kartan visar läget just nu. Vill du planera framåt kan du välja datum och tid. Ju längre fram du tittar, desto osäkrare blir prognosen.';
 
 async function seedOnboarded(page: Page, seenGuide = false): Promise<void> {
   await page.addInitScript(
@@ -106,6 +110,7 @@ test.describe('Story 12.11 coach-mark guide', () => {
     await expect(dialog).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
     await expect(dialog).toHaveAttribute('data-tour-source', 'forced');
     await expect(page.getByTestId('coach-tour-step-pin-legend')).toBeVisible();
+    await expect(dialog).toContainText(EXPECTED_PIN_COPY);
     await expect(page.getByTestId('coach-tour-pin-legend')).toContainText('Soligt');
     await expect(page.getByTestId('coach-tour-pin-legend')).toContainText('Skuggat');
     await expect(page.locator('[data-tour-anchor="map-surface"]')).toHaveAttribute(
@@ -125,6 +130,7 @@ test.describe('Story 12.11 coach-mark guide', () => {
     const dialog = activeDialog(page);
     await expect(dialog).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
     await expect(page.getByTestId('coach-tour-step-time-slider')).toBeVisible();
+    await expect(dialog).toContainText(EXPECTED_PLANNER_COPY);
     const planner = page.locator('[data-tour-anchor="time-slider"]:visible').first();
     await expect(planner).toBeVisible();
     await expect(planner).toHaveAttribute(
@@ -155,4 +161,3 @@ test.describe('Story 12.11 coach-mark guide', () => {
     await expectNoDetailOrFeedbackTransition(page);
   });
 });
-

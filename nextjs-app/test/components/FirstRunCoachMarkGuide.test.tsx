@@ -14,6 +14,7 @@ import {
   ONBOARDED_FLAG_KEY,
 } from '@/lib/constants/onboarding';
 import commonMessages from '@/messages/sv/common.json';
+import mapMessagesEn from '@/messages/en/map.json';
 import mapMessages from '@/messages/sv/map.json';
 
 const motionState = vi.hoisted(() => ({ reducedMotion: false }));
@@ -35,6 +36,15 @@ const messages = {
   about: {},
   favourites: {},
 };
+
+const EXPECTED_SV_PIN_COPY =
+  'Procenten visar hur stor andel av uteserveringens platser vi tror är i direkt sol vid den valda tiden – inte hur säkra vi är.';
+const EXPECTED_SV_PLANNER_COPY =
+  'Du behöver inte ändra något – kartan visar läget just nu. Vill du planera framåt kan du välja datum och tid. Ju längre fram du tittar, desto osäkrare blir prognosen.';
+const EXPECTED_EN_PIN_COPY =
+  'The percentage shows the share of the outdoor seating places we think are in direct sun at the selected time, not how confident we are.';
+const EXPECTED_EN_PLANNER_COPY =
+  'You do not need to change anything — the map shows what is happening right now. To plan ahead, choose a date and time. The farther ahead you look, the less certain the forecast becomes.';
 
 type TestRect = {
   x: number;
@@ -267,6 +277,7 @@ describe('<FirstRunCoachMarkGuide />', () => {
 
     const dialog = await screen.findByRole('dialog', { name: 'Kartnålarna' });
     expect(dialog).toHaveAttribute('data-tour-source', 'forced');
+    expect(dialog).toHaveTextContent(EXPECTED_SV_PIN_COPY);
     expect(screen.getByTestId('coach-tour-pin-legend')).toHaveTextContent('Soligt');
     expect(screen.getByTestId('coach-tour-pin-legend')).toHaveTextContent('Skuggat');
     expect(screen.getByText('95%')).toBeInTheDocument();
@@ -281,6 +292,29 @@ describe('<FirstRunCoachMarkGuide />', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Hoppa över' }));
     await waitFor(() => expect(screen.queryByTestId('coach-tour-dialog')).toBeNull());
     expect(window.localStorage.getItem(FIRST_RUN_GUIDE_SEEN_KEY)).toBeNull();
+  });
+
+  it('renders the middle planner step as optional now/default guidance with forecast uncertainty', async () => {
+    renderGuide({ forcedStepId: 'time-slider' });
+
+    const dialog = await screen.findByRole('dialog', { name: 'Välj tid' });
+    expect(dialog).toHaveTextContent(EXPECTED_SV_PLANNER_COPY);
+  });
+
+  it('keeps Swedish and English coach copy aligned with the no-confidence semantics', () => {
+    expect(mapMessages.coachTour.steps.pinLegend.body).toBe(EXPECTED_SV_PIN_COPY);
+    expect(mapMessages.coachTour.steps.timeSlider.body).toBe(EXPECTED_SV_PLANNER_COPY);
+    expect(mapMessagesEn.coachTour.steps.pinLegend.body).toBe(EXPECTED_EN_PIN_COPY);
+    expect(mapMessagesEn.coachTour.steps.timeSlider.body).toBe(EXPECTED_EN_PLANNER_COPY);
+
+    const publicCopy = [
+      mapMessages.coachTour.steps.pinLegend.body,
+      mapMessages.coachTour.steps.timeSlider.body,
+      mapMessagesEn.coachTour.steps.pinLegend.body,
+      mapMessagesEn.coachTour.steps.timeSlider.body,
+    ].join(' ');
+    expect(publicCopy).not.toMatch(/\b\d+\s*%\s*(?:säker|säkra|säkerhet|confidence)/i);
+    expect(publicCopy).not.toMatch(/\b(?:säkerhet|confidence)\s*\d+\s*%/i);
   });
 
   it('keeps the card inside the viewport when the map surface fills the screen', async () => {
