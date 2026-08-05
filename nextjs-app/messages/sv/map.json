@@ -12,7 +12,7 @@
   "pinNotSunnyAria": "{name} — inte soligt vid vald tid",
   "coachTour": {
     "progress": "Steg {current} av {total}",
-    "skip": "Hoppa över",
+    "skip": "Hoppa över guide",
     "back": "Tillbaka",
     "next": "Nästa",
     "done": "Klart",
@@ -21,7 +21,7 @@
     "steps": {
       "pinLegend": {
         "title": "Kartnålarna",
-        "body": "Procenten visar hur stor andel av uteserveringens platser vi tror är i direkt sol vid den valda tiden – inte hur säkra vi är.",
+        "body": "Procenten visar hur stor andel av uteserveringens platser vi tror är i direkt sol vid den valda tiden.",
         "target": "kartans nålar"
       },
       "timeSlider": {

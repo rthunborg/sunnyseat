@@ -6,7 +6,7 @@ import {
 
 const APP_SETTLE_TIMEOUT_MS = 15_000;
 const EXPECTED_PIN_COPY =
-  'Procenten visar hur stor andel av uteserveringens platser vi tror är i direkt sol vid den valda tiden – inte hur säkra vi är.';
+  'Procenten visar hur stor andel av uteserveringens platser vi tror är i direkt sol vid den valda tiden.';
 const EXPECTED_PLANNER_COPY =
   'Du behöver inte ändra något – kartan visar läget just nu. Vill du planera framåt kan du välja datum och tid. Ju längre fram du tittar, desto osäkrare blir prognosen.';
 
@@ -62,10 +62,12 @@ test.describe('Story 12.11 coach-mark guide', () => {
     await expect(dialog).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
     await expect(dialog).toHaveAttribute('data-tour-source', 'auto');
     await expect(dialog.getByRole('heading', { name: 'Kartnålarna' })).toBeFocused();
-    await expect(dialog.getByRole('button', { name: 'Hoppa över' })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Hoppa över guide' })).toBeVisible();
+    await expect(dialog.getByTestId('coach-tour-skip')).toHaveClass(/border-divider/);
+    await expect(dialog.getByTestId('coach-tour-skip')).toHaveClass(/ml-auto/);
     await expect(dialog.getByRole('button', { name: 'Stäng guide' })).toBeVisible();
 
-    await dialog.getByRole('button', { name: 'Hoppa över' }).click();
+    await dialog.getByRole('button', { name: 'Hoppa över guide' }).click();
     await expect(dialog).toHaveCount(0);
     await expect
       .poll(() =>

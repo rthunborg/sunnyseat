@@ -518,6 +518,14 @@ Codex GPT-5
   207 files / 1892 tests with 2 files / 15 tests skipped; Story 12.11 Playwright mobile+desktop
   passed 10/10; coach-mark axe desktop+mobile passed 4/4. Refreshed the four existing
   Story 12.11 visual candidate PNGs in place from `http://localhost:3277` with reduced motion.
+- 2026-08-05 human-feedback refinement: baseline `npx tsc --noEmit` and
+  `npx eslint . --quiet` passed before edits. Updated the first-step seating-share copy and
+  skip action treatment/labels. Validation: focused coach/settings component tests passed
+  29/29; message parity/removed-key plus coach copy tests passed 60/60; post-change
+  typecheck and lint passed; full `npx vitest run` passed 207 files / 1895 tests with
+  15 skipped; Story 12.11 Playwright mobile+desktop passed 10/10 on serial rerun after a
+  transient Next dev `/sv` JSON parse failure in the parallel run; coach-mark axe passed 4/4 on
+  serial rerun after the same transient affected the parallel mobile first-step case.
 
 ### Completion Notes List
 
@@ -553,6 +561,11 @@ Codex GPT-5
   has at least one visible row, so collapsed/inert sheet content is skipped by the guide resolver.
 - Resolved review finding: coach legend swatches now mirror the real sunny and shaded map pin DOM
   shape, icon order, tails, opacity, and token classes.
+- Refined the first guide step so the Swedish percentage explanation stops after the seating-share
+  meaning, with English copy kept semantically aligned.
+- Renamed the skip action to "Hoppa över guide" / "Skip guide" and changed it from bare utility
+  text to a right-aligned, token-based secondary pill button while keeping Next as the dominant
+  forward action.
 
 ### File List
 
@@ -622,6 +635,8 @@ Codex GPT-5
 - 2026-07-28: Addressed Story 12.11 review findings for Settings restore focus, delayed
   auto-start eligibility, collapsed mobile-sheet anchor suppression, and real-pin legend swatch
   parity; refreshed all four existing visual candidate PNGs.
+- 2026-08-05: Refined coach-guide percentage copy and skip-button label/treatment from human
+  visual feedback; story remains in review pending refreshed visual acceptance.
 
 ### Review Findings
 

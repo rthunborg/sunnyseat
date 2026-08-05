@@ -465,14 +465,10 @@ export function FirstRunCoachMarkGuide({
               {t('targetDescription', { target: stepTarget })}
             </p>
             {currentStep.id === 'pin-legend' && <PinLegend />}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => closeGuide()}
-                className="min-h-11 rounded-pill px-4 text-label-lg text-text-body outline-none transition-colors duration-fast ease-default hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-text-primary"
-              >
-                {t('skip')}
-              </button>
+            <div
+              data-testid="coach-tour-actions"
+              className="flex flex-wrap items-center justify-end gap-2 pt-1"
+            >
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -497,6 +493,14 @@ export function FirstRunCoachMarkGuide({
                   <ChevronRight aria-hidden="true" className="size-4" />
                 </button>
               </div>
+              <button
+                type="button"
+                data-testid="coach-tour-skip"
+                onClick={() => closeGuide()}
+                className="ml-auto inline-flex min-h-11 items-center justify-center rounded-pill border border-divider bg-surface-cream px-4 text-label-lg text-text-body shadow-subtle outline-none transition-colors duration-fast ease-default hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-text-primary"
+              >
+                {t('skip')}
+              </button>
             </div>
           </div>
         </motion.div>

@@ -38,11 +38,11 @@ const messages = {
 };
 
 const EXPECTED_SV_PIN_COPY =
-  'Procenten visar hur stor andel av uteserveringens platser vi tror är i direkt sol vid den valda tiden – inte hur säkra vi är.';
+  'Procenten visar hur stor andel av uteserveringens platser vi tror är i direkt sol vid den valda tiden.';
 const EXPECTED_SV_PLANNER_COPY =
   'Du behöver inte ändra något – kartan visar läget just nu. Vill du planera framåt kan du välja datum och tid. Ju längre fram du tittar, desto osäkrare blir prognosen.';
 const EXPECTED_EN_PIN_COPY =
-  'The percentage shows the share of the outdoor seating places we think are in direct sun at the selected time, not how confident we are.';
+  'The percentage shows the share of outdoor seats we think are in direct sun at the selected time.';
 const EXPECTED_EN_PLANNER_COPY =
   'You do not need to change anything — the map shows what is happening right now. To plan ahead, choose a date and time. The farther ahead you look, the less certain the forecast becomes.';
 
@@ -289,7 +289,7 @@ describe('<FirstRunCoachMarkGuide />', () => {
       .toHaveLength(2);
     expect(document.querySelector('[data-tour-anchor="feedback"]')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Hoppa över' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hoppa över guide' }));
     await waitFor(() => expect(screen.queryByTestId('coach-tour-dialog')).toBeNull());
     expect(window.localStorage.getItem(FIRST_RUN_GUIDE_SEEN_KEY)).toBeNull();
   });
@@ -315,6 +315,28 @@ describe('<FirstRunCoachMarkGuide />', () => {
     ].join(' ');
     expect(publicCopy).not.toMatch(/\b\d+\s*%\s*(?:säker|säkra|säkerhet|confidence)/i);
     expect(publicCopy).not.toMatch(/\b(?:säkerhet|confidence)\s*\d+\s*%/i);
+    expect(mapMessages.coachTour.skip).toBe('Hoppa över guide');
+    expect(mapMessagesEn.coachTour.skip).toBe('Skip guide');
+  });
+
+  it('renders skip as a right-aligned secondary pill button', async () => {
+    renderGuide({ forcedStepId: 'pin-legend' });
+
+    await screen.findByRole('dialog', { name: 'Kartnålarna' });
+    const actions = screen.getByTestId('coach-tour-actions');
+    const skip = screen.getByRole('button', { name: 'Hoppa över guide' });
+    expect(skip).toBe(screen.getByTestId('coach-tour-skip'));
+    expect(actions).toHaveClass('justify-end');
+    expect(skip).toHaveClass(
+      'ml-auto',
+      'inline-flex',
+      'min-h-11',
+      'rounded-pill',
+      'border',
+      'border-divider',
+      'bg-surface-cream',
+      'shadow-subtle',
+    );
   });
 
   it('keeps the card inside the viewport when the map surface fills the screen', async () => {
@@ -335,7 +357,7 @@ describe('<FirstRunCoachMarkGuide />', () => {
   it.each(COACH_TOUR_STEP_IDS)('can be skipped from step %s', async (stepId) => {
     renderManualGuide(stepId);
     await screen.findByTestId(`coach-tour-step-${stepId}`);
-    fireEvent.click(screen.getByRole('button', { name: 'Hoppa över' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hoppa över guide' }));
     await waitFor(() => expect(screen.queryByTestId('coach-tour-dialog')).toBeNull());
   });
 
@@ -344,7 +366,7 @@ describe('<FirstRunCoachMarkGuide />', () => {
     const view = renderGuide({ autoStartEnabled: true });
 
     await screen.findByRole('dialog', { name: 'Kartnålarna' });
-    fireEvent.click(screen.getByRole('button', { name: 'Hoppa över' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hoppa över guide' }));
     await waitFor(() =>
       expect(window.localStorage.getItem(FIRST_RUN_GUIDE_SEEN_KEY)).toBe('1'),
     );
@@ -407,8 +429,8 @@ describe('<FirstRunCoachMarkGuide />', () => {
       expect.stringContaining('coach-tour-target-description'),
     );
 
-    const next = screen.getByRole('button', { name: 'Nästa' });
-    next.focus();
+    const skip = screen.getByRole('button', { name: 'Hoppa över guide' });
+    skip.focus();
     fireEvent.keyDown(dialog, { key: 'Tab' });
     expect(screen.getByRole('button', { name: 'Stäng guide' })).toHaveFocus();
 

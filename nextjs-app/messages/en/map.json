@@ -12,7 +12,7 @@
   "pinNotSunnyAria": "{name} — not sunny at selected time",
   "coachTour": {
     "progress": "Step {current} of {total}",
-    "skip": "Skip",
+    "skip": "Skip guide",
     "back": "Back",
     "next": "Next",
     "done": "Done",
@@ -21,7 +21,7 @@
     "steps": {
       "pinLegend": {
         "title": "Map pins",
-        "body": "The percentage shows the share of the outdoor seating places we think are in direct sun at the selected time, not how confident we are.",
+        "body": "The percentage shows the share of outdoor seats we think are in direct sun at the selected time.",
         "target": "the map pins"
       },
       "timeSlider": {

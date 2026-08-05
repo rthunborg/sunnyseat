@@ -127,7 +127,7 @@ describe('<SettingsModal />', () => {
 
     const dialog = await screen.findByRole('dialog', { name: 'Kartnålarna' });
     expect(dialog).toHaveAttribute('data-tour-source', 'settings');
-    fireEvent.click(screen.getByRole('button', { name: 'Hoppa över' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hoppa över guide' }));
 
     const restoredRow = await screen.findByTestId('settings-row-guide');
     await waitFor(() => expect(restoredRow).toHaveFocus());
