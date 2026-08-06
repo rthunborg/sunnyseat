@@ -189,7 +189,7 @@ function renderSeenProbe() {
   return renderWithProviders(<SeenProbe />, { messages });
 }
 
-function expectSeparatedFooterLayout(
+function expectCenteredSkipSplitFooterLayout(
   skipLabel: string,
   backLabel: string,
   nextLabel: string,
@@ -205,22 +205,48 @@ function expectSeparatedFooterLayout(
   expect(actions).toHaveClass('flex', 'flex-col', 'gap-2', 'pt-1');
   expect(actions.firstElementChild).toBe(skipRow);
   expect(actions.lastElementChild).toBe(navigation);
-  expect(skipRow).toHaveClass('flex', 'justify-end');
-  expect(navigation).toHaveClass('flex', 'justify-end', 'gap-2');
+  expect(skipRow).toHaveClass('flex', 'w-full', 'justify-center');
+  expect(skipRow).not.toHaveClass('justify-end');
+  expect(navigation).toHaveClass('flex', 'w-full', 'justify-between', 'gap-2');
+  expect(navigation).not.toHaveClass('justify-end');
   expect(skipRow).toContainElement(skip);
   expect(navigation).not.toContainElement(skip);
   expect(navigation).toContainElement(back);
   expect(navigation).toContainElement(next);
-  expect(navigation.compareDocumentPosition(skipRow)).toBe(Node.DOCUMENT_POSITION_PRECEDING);
+  expect(
+    skipRow.compareDocumentPosition(navigation) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  expect(
+    skip.compareDocumentPosition(back) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  expect(
+    back.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  expect(back).toBeDisabled();
+  expect(back).toHaveClass('cursor-not-allowed', 'text-text-muted', 'opacity-60');
   expect(skip).toHaveClass(
     'inline-flex',
     'min-h-11',
     'rounded-pill',
     'border',
-    'border-divider',
-    'bg-surface-cream',
-    'shadow-subtle',
+    'border-error/10',
+    'bg-error/5',
+    'text-text-primary',
+    'hover:border-error/20',
+    'hover:bg-error/10',
+    'focus-visible:ring-text-primary',
   );
+  expect(skip).not.toHaveClass('border-divider');
+  expect(skip).not.toHaveClass('bg-surface-cream');
+  expect(skip).not.toHaveClass('text-text-body');
+  expect(next).toHaveClass(
+    'bg-action-progress',
+    'hover:bg-action-progress-hover',
+    'text-surface-cream',
+    'focus-visible:ring-text-primary',
+  );
+  expect(next).not.toHaveClass('bg-text-primary');
+  expect(next).not.toHaveClass('hover:bg-amber-dark');
   expect(skip).not.toHaveClass('justify-self-end');
 }
 
@@ -363,14 +389,14 @@ describe('<FirstRunCoachMarkGuide />', () => {
     expect(mapMessagesEn.coachTour.skip).toBe('Skip guide');
   });
 
-  it('renders skip in a separate right-aligned row above navigation', async () => {
+  it('centers skip in a separate row above split Back and Next navigation', async () => {
     renderGuide({ forcedStepId: 'pin-legend' });
 
     await screen.findByRole('dialog', { name: 'Kartnålarna' });
-    expectSeparatedFooterLayout('Hoppa över guide', 'Tillbaka', 'Nästa');
+    expectCenteredSkipSplitFooterLayout('Hoppa över guide', 'Tillbaka', 'Nästa');
   });
 
-  it('uses the same separated footer layout for English copy', async () => {
+  it('uses the same centered split footer layout and token classes for English copy', async () => {
     renderGuide({
       forcedStepId: 'pin-legend',
       locale: 'en',
@@ -378,7 +404,7 @@ describe('<FirstRunCoachMarkGuide />', () => {
     });
 
     await screen.findByRole('dialog', { name: 'Map pins' });
-    expectSeparatedFooterLayout('Skip guide', 'Back', 'Next');
+    expectCenteredSkipSplitFooterLayout('Skip guide', 'Back', 'Next');
   });
 
   it('keeps the card inside the viewport when the map surface fills the screen', async () => {

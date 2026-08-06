@@ -78,6 +78,13 @@
   --color-border-nav: #f5f5f4;
   --color-map-line: #e8e2d5;
   --color-error: #ba1a1a;
+  /* Story 12.11 human-feedback refinement: muted evergreen for in-flow
+     progression actions such as the coach-guide Next/Done button. This is a
+     product UI action token, deliberately separate from MapLibre basemap park
+     greens. `--color-surface-cream` text contrast is ~5.99:1 on the default
+     fill and ~8.09:1 on hover. */
+  --color-action-progress: #356b4f;
+  --color-action-progress-hover: #28563e;
 
   /* ---- White & Glass ---- */
   --color-white: #ffffff;

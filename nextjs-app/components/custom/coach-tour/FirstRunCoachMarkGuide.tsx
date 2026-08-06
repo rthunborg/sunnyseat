@@ -469,19 +469,19 @@ export function FirstRunCoachMarkGuide({
               data-testid="coach-tour-actions"
               className="flex flex-col gap-2 pt-1"
             >
-              <div data-testid="coach-tour-skip-row" className="flex justify-end">
+              <div data-testid="coach-tour-skip-row" className="flex w-full justify-center">
                 <button
                   type="button"
                   data-testid="coach-tour-skip"
                   onClick={() => closeGuide()}
-                  className="inline-flex min-h-11 items-center justify-center rounded-pill border border-divider bg-surface-cream px-4 text-label-lg text-text-body shadow-subtle outline-none transition-colors duration-fast ease-default hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-text-primary"
+                  className="inline-flex min-h-11 items-center justify-center rounded-pill border border-error/10 bg-error/5 px-4 text-label-lg text-text-primary outline-none transition-colors duration-fast ease-default hover:border-error/20 hover:bg-error/10 focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2"
                 >
                   {t('skip')}
                 </button>
               </div>
               <div
                 data-testid="coach-tour-navigation"
-                className="flex min-w-0 items-center justify-end gap-2"
+                className="flex w-full min-w-0 items-center justify-between gap-2"
               >
                 <button
                   type="button"
@@ -500,7 +500,7 @@ export function FirstRunCoachMarkGuide({
                 <button
                   type="button"
                   onClick={goToNext}
-                  className="flex min-h-11 items-center gap-1 rounded-pill bg-text-primary px-4 text-label-lg text-surface-cream outline-none transition-colors duration-fast ease-default hover:bg-amber-dark focus-visible:ring-2 focus-visible:ring-amber-primary"
+                  className="flex min-h-11 items-center gap-1 rounded-pill bg-action-progress px-4 text-label-lg text-surface-cream outline-none transition-colors duration-fast ease-default hover:bg-action-progress-hover focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2"
                 >
                   {hasNext ? t('next') : t('done')}
                   <ChevronRight aria-hidden="true" className="size-4" />

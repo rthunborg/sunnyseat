@@ -532,6 +532,25 @@ Codex GPT-5
   focused coach tests passed 22/22; Story 12.11 Playwright mobile+desktop passed 10/10; full
   Vitest passed 1896 tests; `npx tsc --noEmit` and `npx eslint . --quiet` passed. Exact
   390x844 and 1440x900 visual captures passed with no overlap, wrapping, overflow, or clipping.
+- 2026-08-06 human-feedback action hierarchy refinement: superseded the prior right-aligned skip
+  row candidate. Centered "Hoppa över guide" / "Skip guide" in its own row with a very light
+  `color-error`-derived tint, split the navigation row with Back at the far left and Next at the
+  far right, and added documented `color-action-progress` / `color-action-progress-hover`
+  evergreen tokens for the forward guide action. Validation: focused
+  `npx vitest run test/components/FirstRunCoachMarkGuide.test.tsx` passed 22/22; first serialized
+  Story 12.11 Playwright run had one transient mobile auto-start miss while forced-state geometry
+  checks passed, identical rerun passed 10/10; `npx tsc --noEmit` passed; `npx eslint . --quiet`
+  passed; initial full `npx vitest run` failed on isolated concurrency flakes
+  (`weather-snapshots.atdd` timeout and `SettingsModal` focus), both failed files passed in
+  isolation; `$env:VITEST_MAX_WORKERS='4'; npx vitest run` hit the known `sun-engine.test.ts`
+  timeout, which passed 33/33 in isolation; `$env:VITEST_MAX_WORKERS='1'; npx vitest run`
+  passed 207 files / 1896 tests with 2 files / 15 tests skipped.
+- 2026-08-06 final reconciliation: primary adversarial review reported 0 findings and security
+  review reported clean with artifact
+  `_bmad-output/implementation-artifacts/validation/12-11-action-v3-security-review-20260806.md`.
+  Alt review kept one Med evidence gap open because fresh Aug 6 v3 exact-size visual captures are
+  still pending; the automatable color-evidence portion was addressed by adding rendered
+  Playwright computed-style assertions for the skip and next action buttons.
 
 ### Completion Notes List
 
@@ -575,11 +594,19 @@ Codex GPT-5
 - Resolved the captured Swedish overlap: the coach-guide footer now gives the skip pill a
   dedicated right-aligned row above a separate, grouped and right-aligned Back/Next row. The
   English route uses the same structure and visual hierarchy.
+- Superseded the right-aligned skip footer with the latest human-requested hierarchy candidate:
+  Skip is centered in its own row as a light `color-error`-tinted utility pill, Back/Next use a
+  `justify-between` navigation row, and Next now uses the documented muted evergreen
+  `color-action-progress` token pair.
+- Expanded Story 12.11 E2E footer assertions from token-class checks to actual rendered default
+  button colors: Next background/text, Skip text, and non-transparent `color-error`-derived skip
+  background/border alpha.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/12-11-first-run-coach-mark-guide-map-legend-feature-tour.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/validation/12-11-action-v3-security-review-20260806.md`
 - `_bmad-output/implementation-artifacts/validation/12-11-first-run-coach-mark-guide-map-legend-feature-tour-review-20260728-102610.log`
 - `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/coach-mark-first-mobile.png`
 - `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/coach-mark-first-desktop.png`
@@ -590,6 +617,8 @@ Codex GPT-5
 - `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260805-skip-guide-refinement-v2/coach-mark-middle-mobile-20260805-skip-guide-refinement-v2.png`
 - `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260805-skip-guide-refinement-v2/coach-mark-middle-desktop-20260805-skip-guide-refinement-v2.png`
 - `project-context.md`
+- `nextjs-app/app/globals.css`
+- `nextjs-app/docs/design/DESIGN.md`
 - `nextjs-app/components/composed/venue/MobileTagChips.tsx`
 - `nextjs-app/components/composed/venue/VenueListControls.tsx`
 - `nextjs-app/components/custom/coach-tour/FirstRunCoachMarkGuide.tsx`
@@ -653,14 +682,20 @@ Codex GPT-5
 - 2026-08-05: Addressed follow-up review finding for the coach-guide skip footer wrapping risk.
 - 2026-08-05: Corrected the Swedish single-row overlap found by exact-size visual validation;
   moved the skip pill to its own right-aligned row and preserved grouped Back/Next navigation.
+- 2026-08-06: Applied latest human action-hierarchy feedback: centered the skip pill, split
+  Back/Next navigation to far-left/far-right, introduced the documented action-progress evergreen
+  token pair for Next, and expanded component/E2E geometry/token assertions.
 
 ### Review Findings
 
+- [x] [Primary Review][Clean] Final Round 3 primary adversarial review reported 0 findings.
+- [x] [Security Review][Clean] Security review reported clean; artifact recorded at `_bmad-output/implementation-artifacts/validation/12-11-action-v3-security-review-20260806.md`.
 - [x] [Review][Decision][Med] Settings relaunch focus target is unmounted before guide close — `SettingsModalRoot.tsx` passes the Settings row element as `restoreFocusElement` and immediately closes Settings; because the modal unmounts its content, `FirstRunCoachMarkGuide.tsx` falls back to the map target instead of restoring focus to `settings-row-guide`, violating the explicit WCAG/story task. Recommended: fix: Keep or recreate enough Settings state after the settings-launched guide closes so focus lands back on `settings-row-guide` rather than the map fallback. [auto-resolved: fix per triage recommendation — epic mode; carry into thin fix pass]
 - [x] [Review][Patch][High] Auto-start polling can expire before onboarding/geolocation completes [nextjs-app/components/custom/coach-tour/FirstRunCoachMarkGuide.tsx:189]
 - [x] [Review][Patch][Med] Mobile venue-list step can anchor to a collapsed or inert sheet [nextjs-app/components/custom/sheets/MobileBottomSheet.tsx:394]
 - [x] [Review][Patch][Med] Coach legend swatches do not match the real map pins [nextjs-app/components/custom/coach-tour/FirstRunCoachMarkGuide.tsx:517]
-- [x] [Review][Patch][Med] Footer layout can wrap the clearer skip button below the Back/Next controls instead of keeping it at the same action height and furthest right as requested — `FirstRunCoachMarkGuide.tsx` changes the actions row to `flex flex-wrap items-center justify-end gap-2 pt-1`, keeps the Back/Next group, then appends the longer `Hoppa över guide` pill with `ml-auto`; in the 352px coach-card width this can exceed one row on both mobile and desktop. Final visual-resolution note: the attempted single-row grid overlapped `Nästa`; exact-size validation passed after placing the right-aligned skip pill in its own row above the grouped navigation row. [nextjs-app/components/custom/coach-tour/FirstRunCoachMarkGuide.tsx:465]
+- [x] [Review][Patch][Med] Footer layout can wrap the clearer skip button below the Back/Next controls instead of keeping it at the same action height and furthest right as requested — `FirstRunCoachMarkGuide.tsx` changes the actions row to `flex flex-wrap items-center justify-end gap-2 pt-1`, keeps the Back/Next group, then appends the longer `Hoppa över guide` pill with `ml-auto`; in the 352px coach-card width this can exceed one row on both mobile and desktop. Superseded visual-resolution note (2026-08-06): the intermediate right-aligned skip-row candidate is no longer current. Latest human feedback centers the skip pill in its own row, uses an error-derived light tint, and splits Back/Next with `justify-between`; focused component/E2E geometry gates now assert that contract. [nextjs-app/components/custom/coach-tour/FirstRunCoachMarkGuide.tsx:465]
+- [ ] [Alt Review][Patch][Med] Evidence gap remains until fresh Aug 6 v3 exact-size visual captures are produced and reviewed. Automatable rendered-color assertions were added for the default action buttons, but visual evidence is not resolved by this patch and must remain pending fresh v3 captures.
 
 ## Story File Audit
 

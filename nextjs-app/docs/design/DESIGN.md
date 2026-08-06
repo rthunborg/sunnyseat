@@ -61,6 +61,8 @@ Last audited: 2026-04-06
 | `color-border-nav` | `#f5f5f4` | Bottom nav bar top border |
 | `color-map-line` | `#e8e2d5` | Decorative map road lines (rendered at 40% opacity) |
 | `color-error` | `#ba1a1a` | Warning/error text (e.g. "Blir skuggigt om 45 min") |
+| `color-action-progress` | `#356b4f` | Muted evergreen fill for in-flow progression actions such as the coach-guide "Nästa"/"Klar" button. Use with `color-surface-cream` text; contrast is ~5.99:1. This is a product UI token and must not be substituted with MapLibre basemap greens. |
+| `color-action-progress-hover` | `#28563e` | Hover/active companion for `color-action-progress`. Use with `color-surface-cream` text; contrast is ~8.09:1. |
 
 ### White & Glass Overlays
 
@@ -415,6 +417,18 @@ Padding: space-4 (8px) vertical, space-5 (10px) horizontal approx.
 Gap: space-2 (4px) between icon and label
 Text: ~12px / Bold / Manrope / color-amber-cta-text (#554300)
 Width: 278px (mobile)
+```
+
+### Coach Guide Progress Button
+
+```
+Background: color-action-progress (#356b4f)
+Hover/active: color-action-progress-hover (#28563e)
+Border-radius: radius-pill
+Text: text-label-lg / color-surface-cream (#fdfaf4)
+Contrast: ~5.99:1 default, ~8.09:1 hover/active
+Usage: in-flow tutorial progression such as "Nästa"/"Klar"; do not use MapLibre basemap greens for UI actions.
+Skip utility: color-error at low opacity for background/border/hover, with color-text-primary text.
 ```
 
 ### Bottom Navigation Bar

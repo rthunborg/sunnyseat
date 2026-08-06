@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 11
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-08-05T19:53:44Z"
+updated_at: "2026-08-06T16:23:08Z"
 started_at: "2026-07-27T19:56:49Z"
 completed_at: null
-active_seconds: 55032
+active_seconds: 57820
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [9a0f45a, 7d2c676, 58d263e, 0bccfcd, 4561d28, 4f2e681, 9802db8, cf68b99, 1c04e31, 13e3639, 22e43eb]
+commits: [9a0f45a, 7d2c676, 58d263e, 0bccfcd, 4561d28, 4f2e681, 9802db8, cf68b99, 1c04e31, 13e3639, 22e43eb, 7e2a0e4]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -59,5 +59,6 @@ constraints:
   - "Human visual-review correction: present date/time changes as optional because the map defaults to now, and disclose that predictions become less certain farther into the future."
   - "Human visual-review correction: end the amber percentage explanation after the selected-time seating-share meaning; omit the explicit confidence contrast from this coach step."
   - "Human visual-review correction: label skip with localized 'skip guide' copy in Swedish and English; use a restrained right-aligned utility pill in a dedicated row above the grouped Back/Next row, preserving bilingual parity."
+  - "Human visual-review correction: keep Skip centered in its own row above navigation, align Back left and Next right, tint Skip with a very light error-derived red and near-black text, and use a documented accessible evergreen action token for Next."
 tier_a_base_sha: 03e32a4
-tier_a_review: "done - initial thin review resolved (Critical 0 / High 1 / Med 3 / Low 0); human-copy follow-up clean; skip-button follow-up Round 2 raised Med 1 and was fixed; exact-size visual validation then exposed and corrected Swedish single-row overlap; targeted post-correction audit is clean with no open findings."
+tier_a_review: "done - final automatic follow-up Round 3: primary review clean (0 findings), security clean, independent alt review raised Med 1 for missing Aug 6 v3 visual evidence; computed rendered-color assertions added and passing, with the visual evidence item intentionally open for exact-size capture."
