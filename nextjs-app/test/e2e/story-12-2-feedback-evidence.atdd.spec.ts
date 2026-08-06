@@ -25,8 +25,8 @@ function promptForProject(page: Page, projectName: string) {
   return panel.getByTestId('feedback-prompt');
 }
 
-test.describe('story 12.2 feedback prediction evidence (ATDD red phase)', () => {
-  test.skip('[P0] feedback submission includes public verdict, weather flags, exposure, and geometry hash', async ({ page }, testInfo) => {
+test.describe('story 12.2 feedback prediction evidence', () => {
+  test('[P0] feedback submission includes public verdict, weather flags, exposure, and geometry hash', async ({ page }, testInfo) => {
     await bypassOnboarding(page);
 
     await page.route('**/api/venues/*/feedback', async (route) => {
@@ -119,4 +119,3 @@ test.describe('story 12.2 feedback prediction evidence (ATDD red phase)', () => 
     await expect(prompt.getByText('Tack för din feedback.')).toBeVisible();
   });
 });
-

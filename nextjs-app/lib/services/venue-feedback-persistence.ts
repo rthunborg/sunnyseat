@@ -5,6 +5,11 @@ type FeedbackInsertRow = {
   venue_slug: string;
   user_timestamp: string;
   predicted_state: string;
+  sun_exposure_percent: number;
+  public_sun_verdict: string;
+  weather_gated: boolean;
+  weather_unknown: boolean;
+  geometry_input_hash: string;
   sun_accuracy?: string;
   confidence_at_prediction?: number;
   was_sunny?: boolean;
@@ -76,6 +81,11 @@ function toFeedbackInsertRow(feedback: FeedbackResponse): FeedbackInsertRow {
     venue_slug: feedback.venueSlug,
     user_timestamp: feedback.userTimestamp,
     predicted_state: feedback.predictedState,
+    sun_exposure_percent: feedback.sunExposurePercent,
+    public_sun_verdict: feedback.publicSunVerdict,
+    weather_gated: feedback.weatherGated,
+    weather_unknown: feedback.weatherUnknown,
+    geometry_input_hash: feedback.geometryInputHash,
     ...(feedback.sunAccuracy ? { sun_accuracy: feedback.sunAccuracy } : {}),
     ...(feedback.confidenceAtPrediction !== undefined
       ? { confidence_at_prediction: feedback.confidenceAtPrediction }

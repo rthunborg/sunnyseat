@@ -50,6 +50,7 @@ scripts/*
 !scripts/remediate-opening-hours.ts
 !scripts/precompute-sun-geometry.ts
 !scripts/refresh-weather-snapshots.ts
+!scripts/feedback-accuracy-report.ts
 
 # vercel
 .vercel

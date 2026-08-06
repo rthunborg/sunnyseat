@@ -20,6 +20,8 @@ import { normalizeVenueMediaRenditionUrl } from '@/lib/utils/venue-media';
 const TIME_WINDOW_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MAX_THUMBNAIL_ALT_LENGTH = 120;
 const MAX_THUMBNAIL_INITIALS_LENGTH = 3;
+const FIXTURE_GEOMETRY_INPUT_HASH =
+  'g1:0000000000000000000000000000000000000000000000000000000000000000';
 
 const PREDICTION_UNCERTAINTY_LEVELS: ReadonlySet<PredictionUncertaintyLevel> =
   new Set(['low', 'medium', 'high']);
@@ -53,6 +55,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 92,
     distanceMeters: 0,
     sunExposurePercent: 95,
+    predictionEvidence: { geometryInputHash: FIXTURE_GEOMETRY_INPUT_HASH },
     tags: ['Innergård', 'Hund ok', 'Wifi', 'Bakverk'],
     sunWindow: { start: '13:00', end: '18:30' },
     // Story 11.4 (AC1) CI-determinism / 11.9 (AC2): the seed path returns raw
@@ -91,6 +94,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 88,
     distanceMeters: 0,
     sunExposurePercent: 89,
+    predictionEvidence: { geometryInputHash: FIXTURE_GEOMETRY_INPUT_HASH },
     tags: ['Morgonsol', 'Take-away', 'Surdeg'],
     sunWindow: { start: '12:45', end: '18:15' },
     // Story 11.4 (AC1) / 11.9 (AC2): second present-case fixture for the
@@ -125,6 +129,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 78,
     distanceMeters: 0,
     sunExposurePercent: 82,
+    predictionEvidence: { geometryInputHash: FIXTURE_GEOMETRY_INPUT_HASH },
     tags: ['Kanal', 'Skaldjur'],
     sunWindow: { start: '14:00', end: '17:45' },
     thumbnail: {
@@ -147,6 +152,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 70,
     distanceMeters: 0,
     sunExposurePercent: 65,
+    predictionEvidence: { geometryInputHash: FIXTURE_GEOMETRY_INPUT_HASH },
     tags: ['Parasoller', 'Specialkaffe'],
     predictionUncertainty: {
       level: 'medium',
@@ -173,6 +179,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 66,
     distanceMeters: 0,
     sunExposurePercent: 58,
+    predictionEvidence: { geometryInputHash: FIXTURE_GEOMETRY_INPUT_HASH },
     tags: ['Innergård', 'Hund ok'],
     predictionUncertainty: {
       level: 'medium',
@@ -199,6 +206,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 80,
     distanceMeters: 0,
     sunExposurePercent: 22,
+    predictionEvidence: { geometryInputHash: FIXTURE_GEOMETRY_INPUT_HASH },
     tags: ['Svalt', 'Lunch'],
     sunWindow: { start: '16:10', end: '16:45' },
     thumbnail: {
@@ -221,6 +229,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     confidence: 75,
     distanceMeters: 0,
     sunExposurePercent: 14,
+    predictionEvidence: { geometryInputHash: FIXTURE_GEOMETRY_INPUT_HASH },
     tags: ['Bakgård', 'Kväll'],
     sunWindow: { start: '11:30', end: '12:20' },
     thumbnail: {

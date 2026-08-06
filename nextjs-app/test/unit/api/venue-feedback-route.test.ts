@@ -45,6 +45,11 @@ function makeRequest(slug: string, body: unknown): NextRequest {
 const VALID_BODY = {
   userTimestamp: '2026-06-07T12:00:00.000Z',
   predictedState: 'Sunny',
+  sunExposurePercent: 82,
+  publicSunVerdict: 'amber',
+  weatherGated: false,
+  weatherUnknown: false,
+  geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   confidenceAtPrediction: 92,
   wasSunny: true,
   outdoorSeatingConfirmed: true,
@@ -191,8 +196,10 @@ describe('POST /api/venues/[slug]/feedback', () => {
 
   it('rejects payloads without any feedback answer or note', async () => {
     const res = await POST(makeRequest('test-venue-sunny', {
-      userTimestamp: VALID_BODY.userTimestamp,
-      predictedState: 'Sunny',
+      ...VALID_BODY,
+      wasSunny: undefined,
+      outdoorSeatingConfirmed: undefined,
+      note: undefined,
     }), {
       params: Promise.resolve({ slug: 'test-venue-sunny' }),
     });
@@ -222,9 +229,9 @@ describe('POST /api/venues/[slug]/feedback', () => {
 
   it('accepts the explicit unsure sun answer and safe multiline notes', async () => {
     const res = await POST(makeRequest('test-venue-sunny', {
-      userTimestamp: VALID_BODY.userTimestamp,
-      predictedState: 'Sunny',
+      ...VALID_BODY,
       sunAccuracy: 'unsure',
+      wasSunny: undefined,
       note: 'Rad ett\r\nRad två',
     }), {
       params: Promise.resolve({ slug: 'test-venue-sunny' }),
@@ -239,9 +246,9 @@ describe('POST /api/venues/[slug]/feedback', () => {
 
   it('derives wasSunny for decisive sunAccuracy payloads before persistence', async () => {
     const res = await POST(makeRequest('test-venue-sunny', {
-      userTimestamp: VALID_BODY.userTimestamp,
-      predictedState: 'Sunny',
+      ...VALID_BODY,
       sunAccuracy: 'not_sunny',
+      wasSunny: undefined,
     }), {
       params: Promise.resolve({ slug: 'test-venue-sunny' }),
     });

@@ -215,6 +215,11 @@ describe('Story 12.5 public display coordinates and hidden route matrix', () => 
       feedbackPost(hiddenIdentifier, {
         userTimestamp: '2026-07-27T12:00:00.000Z',
         predictedState: 'Sunny',
+        sunExposurePercent: 82,
+        publicSunVerdict: 'amber',
+        weatherGated: false,
+        weatherUnknown: false,
+        geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         wasSunny: true,
       }),
       detailContext(hiddenIdentifier),

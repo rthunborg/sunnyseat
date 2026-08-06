@@ -61,7 +61,7 @@ describe('[12.2 AC1] feedback POST uses the shared live public venue resolver', 
     vi.useRealTimers();
   });
 
-  test.skip('[P0] route source consumes the shared 12.7 resolver and removes live VENUE_FIXTURE matching', () => {
+  test('[P0] route source consumes the shared 12.7 resolver and removes live VENUE_FIXTURE matching', () => {
     const source = readRouteSource();
 
     expect(source).toMatch(/resolve.*public.*venue|public.*venue.*resolver/i);
@@ -70,7 +70,7 @@ describe('[12.2 AC1] feedback POST uses the shared live public venue resolver', 
     expect(source).toMatch(/fixture.*mode/i);
   });
 
-  test.skip('[P0] hidden and unknown live venues return the same public 404 before persistence', async () => {
+  test('[P0] hidden and unknown live venues return the same public 404 before persistence', async () => {
     for (const identifier of ['hidden-venue-slug', 'unknown-venue-slug']) {
       const res = await POST(makeRequest(identifier, completeAmberEvidence), {
         params: Promise.resolve({ slug: identifier }),
@@ -97,7 +97,7 @@ describe('[12.2 AC2/AC3] feedback evidence contract', () => {
     vi.useRealTimers();
   });
 
-  test.skip('[P0] accepts and persists complete prediction-time evidence for an amber public verdict', async () => {
+  test('[P0] accepts and persists complete prediction-time evidence for an amber public verdict', async () => {
     const res = await POST(makeRequest('test-venue-sunny', completeAmberEvidence), {
       params: Promise.resolve({ slug: 'test-venue-sunny' }),
     });
@@ -127,7 +127,7 @@ describe('[12.2 AC2/AC3] feedback evidence contract', () => {
     );
   });
 
-  test.skip('[P0] treats exactly 50 percent as grey and maps not_sunny agreement explicitly', async () => {
+  test('[P0] treats exactly 50 percent as grey and maps not_sunny agreement explicitly', async () => {
     const res = await POST(makeRequest('test-venue-sunny', {
       ...completeAmberEvidence,
       predictedState: 'Partial',
@@ -148,7 +148,7 @@ describe('[12.2 AC2/AC3] feedback evidence contract', () => {
     });
   });
 
-  test.skip('[P0] accepts CloudObscured only as diagnostic predictedState while weather-gated verdict is grey', async () => {
+  test('[P0] accepts CloudObscured only as diagnostic predictedState while weather-gated verdict is grey', async () => {
     const res = await POST(makeRequest('test-venue-sunny', {
       ...completeAmberEvidence,
       predictedState: 'CloudObscured',
@@ -169,7 +169,7 @@ describe('[12.2 AC2/AC3] feedback evidence contract', () => {
     });
   });
 
-  test.skip('[P0] rejects contradictory public verdict, weather flags, and geometry hashes before persistence', async () => {
+  test('[P0] rejects contradictory public verdict, weather flags, and geometry hashes before persistence', async () => {
     const invalidBodies = [
       { ...completeAmberEvidence, sunExposurePercent: 72, publicSunVerdict: 'grey' },
       { ...completeAmberEvidence, weatherGated: true, weatherUnknown: true },
@@ -187,4 +187,3 @@ describe('[12.2 AC2/AC3] feedback evidence contract', () => {
     expect(persistenceMock.persistVenueFeedback).not.toHaveBeenCalled();
   });
 });
-

@@ -4,6 +4,16 @@ import { useSubmitFeedback } from '@/hooks/mutations/useSubmitFeedback';
 import { hasSubmittedVenueFeedback } from '@/lib/services/feedback-session';
 import { TestProviders } from '../../setup/test-utils';
 
+const VALID_FEEDBACK_PAYLOAD = {
+  userTimestamp: '2026-06-07T12:00:00.000Z',
+  predictedState: 'Sunny' as const,
+  sunExposurePercent: 82,
+  publicSunVerdict: 'amber' as const,
+  weatherGated: false,
+  weatherUnknown: false,
+  geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+};
+
 describe('useSubmitFeedback', () => {
   it('posts feedback, disables automatic retry, and marks session only on success', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
@@ -18,8 +28,7 @@ describe('useSubmitFeedback', () => {
     });
 
     result.current.mutate({
-      userTimestamp: '2026-06-07T12:00:00.000Z',
-      predictedState: 'Sunny',
+      ...VALID_FEEDBACK_PAYLOAD,
       wasSunny: true,
     });
 
@@ -40,8 +49,7 @@ describe('useSubmitFeedback', () => {
     });
 
     result.current.mutate({
-      userTimestamp: '2026-06-07T12:00:00.000Z',
-      predictedState: 'Sunny',
+      ...VALID_FEEDBACK_PAYLOAD,
       wasSunny: false,
     });
 

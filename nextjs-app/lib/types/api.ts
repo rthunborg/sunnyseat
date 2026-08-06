@@ -14,6 +14,7 @@ export type VenueSunStatus = 'Sunny' | 'Partial' | 'Shaded' | 'NoSun' | 'CloudOb
 
 export type WeatherGateState = 'gated' | 'not_gated' | 'unknown';
 export type PublicSunWeatherGateState = Exclude<WeatherGateState, 'gated'>;
+export type PublicSunVerdict = 'amber' | 'grey';
 
 // STORY 11.1 (AC1): one gated per-planner-step entry of the client-side
 // day-series. `minutes` is the planner minutes-of-day (06:00 → 360 … 21:00 →
@@ -141,10 +142,10 @@ export interface VenueDataDto {
   skyCondition?: string; // 'clear' | 'partly-cloudy' | 'overcast' | 'rain' | 'unavailable'
   isPartner: boolean;
   /**
-   * Internal prediction certainty, 0..100. Story 12.13 removed every public
-   * visible and assistive rendering of this number. It remains on the DTO as
-   * short-lived non-rendering transition evidence for feedback-session stamping
-   * until Story 12.2 replaces that evidence contract server-side.
+   * Internal diagnostic prediction certainty, 0..100. Story 12.13 removed every public
+   * visible and assistive rendering of this number from user-facing surfaces.
+   * Story 12.2 keeps it as maintainer-only model evidence; public users see
+   * uncertainty prose, never a confidence number.
    */
   confidence: number;
   distanceMeters: number;
@@ -293,6 +294,11 @@ export interface SubmitFeedbackRequest {
   venueSlug?: string;
   userTimestamp: string; // ISO 8601
   predictedState: VenueSunStatus;
+  sunExposurePercent: number;
+  publicSunVerdict: PublicSunVerdict;
+  weatherGated: boolean;
+  weatherUnknown: boolean;
+  geometryInputHash: string;
   sunAccuracy?: FeedbackSunAccuracy;
   wasSunny?: boolean;
   outdoorSeatingConfirmed?: boolean;
@@ -308,6 +314,11 @@ export interface FeedbackResponse {
   venueSlug: string;
   userTimestamp: string;
   predictedState: VenueSunStatus;
+  sunExposurePercent: number;
+  publicSunVerdict: PublicSunVerdict;
+  weatherGated: boolean;
+  weatherUnknown: boolean;
+  geometryInputHash: string;
   sunAccuracy?: FeedbackSunAccuracy;
   wasSunny?: boolean;
   outdoorSeatingConfirmed?: boolean;

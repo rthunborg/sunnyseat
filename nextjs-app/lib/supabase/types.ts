@@ -37,41 +37,56 @@ export type Database = {
         Row: {
           confidence_at_prediction: number | null
           created_at: string
+          geometry_input_hash: string | null
           id: string
           note: string | null
           outdoor_seating_confirmed: boolean | null
           predicted_state: string
+          public_sun_verdict: 'amber' | 'grey' | null
           sun_accuracy: string | null
+          sun_exposure_percent: number | null
           user_timestamp: string
           venue_id: string
           venue_slug: string
           was_sunny: boolean | null
+          weather_gated: boolean | null
+          weather_unknown: boolean | null
         }
         Insert: {
           confidence_at_prediction?: number | null
           created_at?: string
+          geometry_input_hash?: string | null
           id?: string
           note?: string | null
           outdoor_seating_confirmed?: boolean | null
           predicted_state: string
+          public_sun_verdict?: 'amber' | 'grey' | null
           sun_accuracy?: string | null
+          sun_exposure_percent?: number | null
           user_timestamp: string
           venue_id: string
           venue_slug: string
           was_sunny?: boolean | null
+          weather_gated?: boolean | null
+          weather_unknown?: boolean | null
         }
         Update: {
           confidence_at_prediction?: number | null
           created_at?: string
+          geometry_input_hash?: string | null
           id?: string
           note?: string | null
           outdoor_seating_confirmed?: boolean | null
           predicted_state?: string
+          public_sun_verdict?: 'amber' | 'grey' | null
           sun_accuracy?: string | null
+          sun_exposure_percent?: number | null
           user_timestamp?: string
           venue_id?: string
           venue_slug?: string
           was_sunny?: boolean | null
+          weather_gated?: boolean | null
+          weather_unknown?: boolean | null
         }
         Relationships: []
       }

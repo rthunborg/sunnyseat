@@ -109,6 +109,9 @@ const FORCED_VISUAL_VENUE_DETAIL: VenueDetailDto = {
   confidence: 95,
   distanceMeters: 420,
   sunExposurePercent: 95,
+  predictionEvidence: {
+    geometryInputHash: 'g1:0000000000000000000000000000000000000000000000000000000000000000',
+  },
   tags: ['Innergård', 'Hund ok', 'Wifi', 'Bakverk'],
   sunWindow: { start: '11:00', end: '15:00' },
   thumbnail: {

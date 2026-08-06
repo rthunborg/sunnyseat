@@ -99,6 +99,11 @@ const liveVenueRow: VenueRow = {
 const validFeedbackBody = {
   userTimestamp: '2026-07-18T12:00:00.000Z',
   predictedState: 'Sunny',
+  sunExposurePercent: 82,
+  publicSunVerdict: 'amber',
+  weatherGated: false,
+  weatherUnknown: false,
+  geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   confidenceAtPrediction: 82,
   wasSunny: true,
   outdoorSeatingConfirmed: true,

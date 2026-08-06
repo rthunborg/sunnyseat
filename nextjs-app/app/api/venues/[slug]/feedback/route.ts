@@ -5,11 +5,13 @@ import {
   isSafePublicVenueIdentifier,
   resolvePublicVenueIdentifier,
 } from '@/lib/services/venue-store';
+import { publicSunVerdictFor } from '@/lib/utils/public-sun';
 import type {
   FeedbackResponse,
   FeedbackSunAccuracy,
   SubmitFeedbackRequest,
   VenueSunStatus,
+  WeatherGateState,
 } from '@/lib/types/api';
 
 type RouteContext = {
@@ -20,6 +22,7 @@ const NOTE_MAX_LENGTH = 500;
 const VENUE_IDENTIFIER_MAX_LENGTH = 120;
 const UNSAFE_NOTE_CONTROL_CHARACTER_PATTERN =
   /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u;
+const GEOMETRY_INPUT_HASH_PATTERN = /^g[0-9]+:[0-9a-f]{64}$/u;
 // STORY 10 review [Patch][High]: `predictedState` MUST accept the FULL
 // VenueSunStatus union — on the live real-engine path a detail view's
 // `predictedState` can be `'CloudObscured'` (weather-gated), and that value is
@@ -48,6 +51,11 @@ const feedbackSchema = z.object({
     .optional(),
   userTimestamp: z.iso.datetime({ offset: true }),
   predictedState: z.enum(PREDICTED_STATES),
+  sunExposurePercent: z.number().int().min(0).max(100),
+  publicSunVerdict: z.enum(['amber', 'grey']),
+  weatherGated: z.boolean(),
+  weatherUnknown: z.boolean(),
+  geometryInputHash: z.string().regex(GEOMETRY_INPUT_HASH_PATTERN),
   confidenceAtPrediction: z.number().min(0).max(100).optional(),
   sunAccuracy: z.enum(SUN_ACCURACY_VALUES).optional(),
   wasSunny: z.boolean().optional(),
@@ -74,6 +82,25 @@ const feedbackSchema = z.object({
       code: 'custom',
       path: ['note'],
       message: 'note contains invalid control characters',
+    });
+  }
+  if (value.weatherGated && value.weatherUnknown) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['weatherGated'],
+      message: 'weatherGated and weatherUnknown cannot both be true',
+    });
+  }
+  const weatherGateState = weatherGateStateFromFeedbackEvidence(value);
+  const expectedVerdict = publicSunVerdictFor({
+    sunExposurePercent: value.sunExposurePercent,
+    weatherGateState,
+  });
+  if (value.publicSunVerdict !== expectedVerdict) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['publicSunVerdict'],
+      message: 'publicSunVerdict does not match prediction evidence',
     });
   }
   if (
@@ -105,6 +132,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   let venue;
   try {
+    // Fixture mode fallback is centralized in the Story 12.7 resolver. This route
+    // never does route-local VENUE_FIXTURE matching in live mode.
     venue = await resolvePublicVenueIdentifier(identifier);
   } catch {
     return jsonError('Venue store unavailable', 503);
@@ -146,6 +175,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     venueSlug: venue.slug,
     userTimestamp: body.userTimestamp,
     predictedState: body.predictedState,
+    sunExposurePercent: body.sunExposurePercent,
+    publicSunVerdict: body.publicSunVerdict,
+    weatherGated: body.weatherGated,
+    weatherUnknown: body.weatherUnknown,
+    geometryInputHash: body.geometryInputHash,
     ...(body.sunAccuracy !== undefined ? { sunAccuracy: body.sunAccuracy } : {}),
     ...(wasSunny !== undefined ? { wasSunny } : {}),
     ...(body.outdoorSeatingConfirmed !== undefined
@@ -180,4 +214,12 @@ function wasSunnyFromSunAccuracy(
   if (sunAccuracy === 'sunny') return true;
   if (sunAccuracy === 'not_sunny') return false;
   return undefined;
+}
+
+function weatherGateStateFromFeedbackEvidence(
+  value: Pick<SubmitFeedbackRequest, 'weatherGated' | 'weatherUnknown'>,
+): WeatherGateState {
+  if (value.weatherGated) return 'gated';
+  if (value.weatherUnknown) return 'unknown';
+  return 'not_gated';
 }

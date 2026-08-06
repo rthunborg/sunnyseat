@@ -14,6 +14,9 @@
 
 ## Story 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
 - [Phase 5 â€” dev-story] Story 12.2 correctly stopped at its mandatory Task 0 because Stories 12.3, 12.6, 12.7, and 12.13 own prerequisite shared contracts that are not yet on the branch.
+- [Phase 5 â€” dev-story] Story 12.2 found all prerequisite Epic 12 contracts present and consumed them directly; no route-local venue resolver, geometry hash, or public-sunny substitute was introduced.
+- [Phase 5 â€” dev-story] No visible UI or copy changed; the canonical review wrapper initially inferred visual validation from story prose, so explicit no-standalone-visual-deliverable metadata was required to avoid an unavailable ANTHROPIC_API_KEY gate.
+- [Phase 5 â€” dev-story] The weather-gated browser scaffold remains skipped because _state=venue-detail-obscured does not force-render the feedback prompt; API and unit vectors cover gated evidence.
 
 ## Story 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
 - [Phase 5 â€” dev-story] Keep geometry_input_hash date-independent; stockholm_date is the separate persisted-coverage key.

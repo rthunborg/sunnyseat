@@ -91,6 +91,11 @@ function makeFeedbackPost(identifier: string, body: unknown): NextRequest {
 const VALID_FEEDBACK_BODY = {
   userTimestamp: '2026-07-18T12:00:00.000Z',
   predictedState: 'Sunny',
+  sunExposurePercent: 82,
+  publicSunVerdict: 'amber',
+  weatherGated: false,
+  weatherUnknown: false,
+  geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   wasSunny: true,
 };
 

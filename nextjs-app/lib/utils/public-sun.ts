@@ -1,4 +1,8 @@
-import type { VenueDaySeriesEntry, WeatherGateState } from '@/lib/types/api';
+import type {
+  PublicSunVerdict,
+  VenueDaySeriesEntry,
+  WeatherGateState,
+} from '@/lib/types/api';
 
 export type PublicSunVenue = {
   id?: string;
@@ -29,6 +33,12 @@ export function isVenuePubliclySunny(
     normalizedPercent(venue.sunExposurePercent) > 50 &&
     normalizeWeatherGateState(venue.weatherGateState) !== 'gated'
   );
+}
+
+export function publicSunVerdictFor(
+  venue: Pick<PublicSunVenue, 'sunExposurePercent' | 'weatherGateState'>,
+): PublicSunVerdict {
+  return isVenuePubliclySunny(venue) ? 'amber' : 'grey';
 }
 
 export function isWeatherGateUnknown(
