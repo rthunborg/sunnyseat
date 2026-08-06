@@ -3,6 +3,7 @@ import {
   type FeedbackAccuracyFeedbackRow,
 } from '@/lib/services/feedback-accuracy-report';
 import { getSupabaseServiceRole } from '@/lib/supabase/server';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Maintainer report contract:
@@ -13,7 +14,7 @@ import { getSupabaseServiceRole } from '@/lib/supabase/server';
  * - keep stale hashes in stale_hash_count and sunAccuracy === 'unsure' rows in unsure_count,
  *   not in agreement_rate
  * - use the shared public sunny predicate semantics: sunExposurePercent > 50 is amber unless
- *   weather_gated / weather_unknown forces the public verdict grey
+ *   weather_gated forces the public verdict grey; weather_unknown remains explicit evidence
  * - representative vectors: Partial 40 => grey/not_sunny, Partial 60 => amber/sunny, 50 => grey/not_sunny
  * - compare publicSunVerdict / public_sun_verdict with feedback, not raw predicted_state directly to sun_accuracy
  */
@@ -28,8 +29,19 @@ type VenueReportQueryRow = {
     | null;
 };
 
-async function main() {
-  const supabase = getSupabaseServiceRole();
+type FeedbackAccuracyReportCliOptions = {
+  supabase?: ReturnType<typeof getSupabaseServiceRole>;
+  env?: NodeJS.ProcessEnv | { FEEDBACK_ACCURACY_MIN_SAMPLES?: string };
+  stdout?: Pick<NodeJS.WriteStream, 'write'>;
+  stderr?: Pick<NodeJS.WriteStream, 'write'>;
+};
+
+export async function runFeedbackAccuracyReportCli({
+  supabase = getSupabaseServiceRole(),
+  env = process.env,
+  stdout = process.stdout,
+  stderr = process.stderr,
+}: FeedbackAccuracyReportCliOptions = {}): Promise<number> {
   const [{ data: venues, error: venueError }, { data: feedback, error: feedbackError }] =
     await Promise.all([
       supabase
@@ -52,8 +64,15 @@ async function main() {
         ].join(', ')),
     ]);
 
-  if (venueError) throw new Error(`venue report query failed: ${venueError.message}`);
-  if (feedbackError) throw new Error(`feedback report query failed: ${feedbackError.message}`);
+  if (venueError) {
+    stderr.write(`venue report query failed: ${venueError.message}\n`);
+    return 1;
+  }
+
+  if (feedbackError) {
+    stderr.write(`feedback report query failed: ${feedbackError.message}\n`);
+    return 1;
+  }
 
   const venueRows = (venues ?? []) as unknown as VenueReportQueryRow[];
   const feedbackRows = (feedback ?? []) as unknown as FeedbackAccuracyFeedbackRow[];
@@ -72,14 +91,19 @@ async function main() {
       };
     }),
     feedback: feedbackRows,
-    minimumSampleCount: Number.parseInt(process.env.FEEDBACK_ACCURACY_MIN_SAMPLES ?? '3', 10),
+    minimumSampleCount: Number.parseInt(env.FEEDBACK_ACCURACY_MIN_SAMPLES ?? '3', 10),
   });
 
-  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  return 0;
 }
 
-main().catch((error: unknown) => {
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  runFeedbackAccuracyReportCli().then((exitCode) => {
+    process.exitCode = exitCode;
+  }).catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
   process.stderr.write(`${message}\n`);
   process.exitCode = 1;
-});
+  });
+}

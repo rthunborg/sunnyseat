@@ -200,6 +200,9 @@ Codex GPT-5
 - 2026-08-06: Targeted Playwright passed: `npx playwright test test/e2e/story-12-2-feedback-evidence.atdd.spec.ts` => P0 evidence submission passed on mobile and desktop; P1 weather-gated visual scaffold remains skipped because `_state=venue-detail-obscured` does not force-render the feedback prompt. Weather-gated evidence is covered by API/unit tests without changing production forced-state behavior.
 - 2026-08-06: First canonical review wrapper run passed lint/typecheck/full Vitest, then failed the auto-detected `feedback` visual gate because `ANTHROPIC_API_KEY` is not set. Added explicit no-standalone-visual-deliverable metadata because this story makes no visible UI change.
 - 2026-08-06: Canonical review wrapper passed: `.\scripts\run-sh.ps1 scripts/story-review.sh 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass` => lint/typecheck/full Vitest passed; visual validation skipped via no-standalone-visual-deliverable metadata; sprint status moved to `review`. Validation artifact: `_bmad-output/implementation-artifacts/validation/12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass-review-20260806-201352.log`.
+- 2026-08-06: Post-review `/bmad-testarch-automate` added executable maintainer CLI wrapper coverage: `npx vitest run test/unit/scripts/feedback-accuracy-report.test.ts` => 1 file / 2 tests passed.
+- 2026-08-06: Post-review `/bmad-testarch-automate` static checks passed after the CLI runner extraction: `npx tsc --noEmit`; `npx eslint . --quiet`.
+- 2026-08-06: Post-review `/bmad-testarch-automate` focused Story 12.2 regression passed: `npx vitest run test/unit/api/story-12-2-feedback-accuracy-loop.atdd.test.ts test/unit/story-12-2-accuracy-ops-and-cap-cleanup.atdd.test.ts test/unit/services/feedback-accuracy-report.test.ts test/unit/scripts/feedback-accuracy-report.test.ts test/unit/services/venue-feedback-persistence.test.ts test/unit/api/venue-feedback-route.test.ts test/components/FeedbackFlow.test.tsx test/unit/services/feedback-session.test.ts test/unit/mutations/useSubmitFeedback.test.tsx` => 9 files / 54 tests passed.
 
 ### Completion Notes List
 
@@ -207,6 +210,7 @@ Codex GPT-5
 - Feedback UI/session now snapshots `sunExposurePercent`, `publicSunVerdict`, weather flags, and `geometryInputHash` at detail-view time while preserving the existing Swedish two-tap UX.
 - Added nullable feedback evidence migration and updated Supabase/API/persistence types. Legacy rows remain valid but are excluded from current agreement when evidence/hash is absent or stale.
 - Added deterministic maintainer report service plus CLI under `nextjs-app/scripts/`, with current-hash agreement, stale/legacy/unsure/invalid counters, representative wrong windows, and deterministic ranking.
+- Post-review automate made the maintainer report CLI runner injectable and covered its Supabase query shape, env-configured minimum-sample threshold, deterministic JSON output, and query-failure behavior.
 - Removed the `SUNNYSEAT_COVERAGE_CAP` bypass while preserving the fail-closed internal coverage confidence cap and diagnostic-only confidence documentation.
 - No public copy, uncertainty-label, or visual presentation change was made; visual validation was not required.
 
@@ -242,6 +246,7 @@ Codex GPT-5
 - nextjs-app/test/unit/services/feedback-session.test.ts
 - nextjs-app/test/unit/services/sun-engine.cloud-gate.coverage.test.ts
 - nextjs-app/test/unit/services/venue-feedback-persistence.test.ts
+- nextjs-app/test/unit/scripts/feedback-accuracy-report.test.ts
 - nextjs-app/test/unit/shadow-data-coverage.cap-flag.test.ts
 - nextjs-app/test/unit/story-12-2-accuracy-ops-and-cap-cleanup.atdd.test.ts
 - supabase/migrations/20260806190000_feedback_accuracy_loop_evidence.sql

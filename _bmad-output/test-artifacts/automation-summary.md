@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-07-28T10:41:00+02:00'
+lastSaved: '2026-08-06T20:27:56+02:00'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-12.md'
@@ -97,6 +97,71 @@ inputDocuments:
   - '_bmad-output/implementation-artifacts/12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider.md'
   - 'nextjs-app/components/custom/sheets/MobileBottomSheet.tsx'
   - 'nextjs-app/test/components/MobileBottomSheet.test.tsx'
+  - '_bmad-output/implementation-artifacts/12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.md'
+  - 'nextjs-app/scripts/feedback-accuracy-report.ts'
+  - 'nextjs-app/lib/services/feedback-accuracy-report.ts'
+  - 'nextjs-app/test/unit/services/feedback-accuracy-report.test.ts'
+  - 'nextjs-app/test/unit/scripts/feedback-accuracy-report.test.ts'
+  - 'nextjs-app/test/unit/api/story-12-2-feedback-accuracy-loop.atdd.test.ts'
+  - 'nextjs-app/test/unit/story-12-2-accuracy-ops-and-cap-cleanup.atdd.test.ts'
+---
+
+# Automation Expansion Summary - Story 12.2 (Feedback Accuracy Loop)
+
+## Preflight And Context
+
+- **Framework:** Vitest 4.1.4, Playwright, strict TypeScript, and ESLint are configured under `nextjs-app`; framework readiness passed.
+- **Stack:** fullstack Next.js API/service/script contract plus feedback UI submission evidence. No public visual contract changed in this automate pass.
+- **Mode:** BMad-integrated Create mode against `_bmad-output/implementation-artifacts/12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.md`, using implementation checkpoint `a9beae3` as provided context.
+- **Execution:** sequential/local. The generic automate subagent fan-out was not used because this delegate is already the assigned automation worker and the useful scope was one narrow maintainer-report gap.
+- **Knowledge loaded:** project context, TEA config, Story 12.2 file, test levels, priorities, deterministic data/testing quality, selective testing, CI/burn-in guidance, Playwright utility references, and existing Story 12.2 tests/source.
+
+## Coverage Plan
+
+| Priority | Level | Target | Decision |
+| --- | --- | --- | --- |
+| P0 | API/unit/component/E2E | Feedback route evidence validation, live resolver use, persistence mapping, public verdict vectors, stale-hash reset semantics, coverage-cap bypass removal, and browser feedback submission. | Existing Story 12.2 coverage is direct and green; rerun focused set rather than duplicate. |
+| P1 | Unit/script | Maintainer CLI wrapper should be executable under mocked Supabase and prove query shape, hidden-venue filter, env-configured sample threshold, deterministic JSON output, and query-failure behavior. | Add focused script unit coverage and make the script runner injectable/exported. |
+
+## Generated Coverage
+
+- **UPDATED** `nextjs-app/scripts/feedback-accuracy-report.ts`
+  - exported `runFeedbackAccuracyReportCli()` with injectable Supabase/env/stdout/stderr seams;
+  - preserved direct script execution via `import.meta.url` guard;
+  - returns explicit process-style status codes for query failures and avoids partial JSON output;
+  - corrected the maintainer contract comment so weather-unknown remains explicit evidence rather than being described as a forced-grey state.
+- **ADDED** `nextjs-app/test/unit/scripts/feedback-accuracy-report.test.ts`
+  - verifies the CLI queries visible venues and feedback evidence fields, applies `FEEDBACK_ACCURACY_MIN_SAMPLES`, and writes deterministic report JSON;
+  - verifies venue-query failure returns non-zero, writes stderr, and does not emit partial stdout.
+- **Aggregate:** +1 test file / +2 deterministic unit tests. No fixtures, E2E files, live Supabase calls, visual artifacts, sprint status, or git state changed.
+
+## Validation And Gate
+
+- `npx vitest run test/unit/scripts/feedback-accuracy-report.test.ts` -> **1 file / 2 tests passed**.
+- `npx tsc --noEmit` -> **passed**.
+- `npx eslint . --quiet` -> **passed**.
+- Focused Story 12.2 unit/component set:
+  `npx vitest run test/unit/api/story-12-2-feedback-accuracy-loop.atdd.test.ts test/unit/story-12-2-accuracy-ops-and-cap-cleanup.atdd.test.ts test/unit/services/feedback-accuracy-report.test.ts test/unit/scripts/feedback-accuracy-report.test.ts test/unit/services/venue-feedback-persistence.test.ts test/unit/api/venue-feedback-route.test.ts test/components/FeedbackFlow.test.tsx test/unit/services/feedback-session.test.ts test/unit/mutations/useSubmitFeedback.test.tsx`
+  -> **9 files / 54 tests passed**.
+- Vitest emitted the existing non-fatal `--localstorage-file` warning; exit code was 0.
+
+## Assumptions, Risks, And Deferred Coverage
+
+- Full Vitest and targeted Playwright remain as already recorded in the story file from the implementation/review transition. This pass added one isolated unit/script test and reran the focused Story 12.2 unit/component set plus static checks.
+- No visual validation was needed because public copy/layout/uncertainty labels were unchanged.
+- No Pact/CDC coverage was generated because Story 12.2 has no external provider contract; Supabase access is mocked at the script boundary.
+
+## Definition Of Done
+
+- Existing Story 12.2 coverage was reviewed to avoid duplicate tests.
+- The maintainer report script now has executable wrapper coverage rather than only source-presence assertions.
+- Focused new test, focused Story 12.2 regression set, typecheck, and lint passed.
+- Durable automation evidence was persisted in this summary.
+
+## Next Recommended Workflow
+
+Continue the orchestrator-owned Story 12.2 review/UAT/finalization flow.
+
 ---
 
 # Automation Expansion Summary - Story 12.11 (First-Run Coach-Mark Guide)
