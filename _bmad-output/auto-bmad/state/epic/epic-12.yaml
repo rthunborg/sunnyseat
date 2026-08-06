@@ -5,10 +5,10 @@ epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-08-06T18:59:04Z"
+updated_at: "2026-08-06T19:05:42Z"
 started_at: "2026-07-18T11:27:25Z"
 completed_at: null
-active_seconds: 208486
+active_seconds: 208628
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: true
 story_trace: null
-commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc, 8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021, 66eb5d7, 7f5c709, 55bffea, e442fed, ef47622, 6483f7e, "7592112", c3673e1, 9549c7e, bc7b65b, "9346726", 2a21274, b4427d4, d5fd2f3, 5fe8bec, e0bc76b, 31d0062, 645a2c0, "3586481", 4d0a2d5, 3df41ff, 1882e29, 2f3749f, 272b46d, 26a1f1e, fa612a7, a5f6eb9, b64da80, 3432eca, baf0d8b, e1194b0, a76905f, 2fd49bb, 4eec7dd, 07b2b8a, 5441d55, 30e841e, 486afdb, e596035, d1bb55b, 2e2dc5b, e234c29, c6fe705, 24f134a, 5da0f82, 4cb5743, 3054b20, 8b83f95, 38ccb18, fa23bf2, f571337, 11325c9, 5829d10, fd970d0, 2a9da16, 6d0d44d, a5f51cc, 439cafe, 32b146e, 67ac36b, 8fedff5, 03e32a4, 9a0f45a, 7d2c676, 58d263e, 0bccfcd, 4561d28, 4f2e681, 9802db8, cf68b99, 1c04e31, 13e3639, 22e43eb, 7e2a0e4, 541bf1a, d95a663, 218f96c]
+commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc, 8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021, 66eb5d7, 7f5c709, 55bffea, e442fed, ef47622, 6483f7e, "7592112", c3673e1, 9549c7e, bc7b65b, "9346726", 2a21274, b4427d4, d5fd2f3, 5fe8bec, e0bc76b, 31d0062, 645a2c0, "3586481", 4d0a2d5, 3df41ff, 1882e29, 2f3749f, 272b46d, 26a1f1e, fa612a7, a5f6eb9, b64da80, 3432eca, baf0d8b, e1194b0, a76905f, 2fd49bb, 4eec7dd, 07b2b8a, 5441d55, 30e841e, 486afdb, e596035, d1bb55b, 2e2dc5b, e234c29, c6fe705, 24f134a, 5da0f82, 4cb5743, 3054b20, 8b83f95, 38ccb18, fa23bf2, f571337, 11325c9, 5829d10, fd970d0, 2a9da16, 6d0d44d, a5f51cc, 439cafe, 32b146e, 67ac36b, 8fedff5, 03e32a4, 9a0f45a, 7d2c676, 58d263e, 0bccfcd, 4561d28, 4f2e681, 9802db8, cf68b99, 1c04e31, 13e3639, 22e43eb, 7e2a0e4, 541bf1a, d95a663, 218f96c, d4a35ec, a9beae3, 37fa1a0, 6fba046, 5f8eca0]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -57,7 +57,7 @@ overrides: {}
 constraints:
   - "Execute Epic 12 in the user-confirmed dependency order: 12-1, 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, 12-10, 12-5, 12-8, 12-11, 12-2, 12-14."
 epic_slug: real-venue-launch-readiness-perf-trust-hours-console-hygiene
-active_story: 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
+active_story: 12-14-hide-closed-venues-open-at-selected-time-filter
 stories_landed:
   - 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
   - 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
@@ -70,6 +70,7 @@ stories_landed:
   - 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields
   - 12-8-about-page-pin-legend-so-reads-the-sun-figure
   - 12-11-first-run-coach-mark-guide-map-legend-feature-tour
+  - 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
 auto_decisions:
   - "[12-7] Adopted the architecture-backed canonical `hidden boolean not null default false` migration/type contract after live/schema probes proved all previously referenced visibility columns absent; no protected database mutation was performed."
   - "Gate-off public map pins are no longer pixel unchanged [Med] â†’ fix: keep the a11y-safe pin color only with explicit visual rebaseline/acceptance evidence; otherwise move or revert that public pin change out of Story 12.5. (Tier A, 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields)"
@@ -218,6 +219,16 @@ uat_items:
   - "[12-11-first-run-coach-mark-guide-map-legend-feature-tour] With `/?_state=coach-mark-first&_time=14:00` open, advance to \"Jämför listan\" -> copy mentions answering whether the sun matched, but no \"Stämmer det?\" feedback control, venue detail sheet/panel, or `venue=` URL appears."
   - "[12-11-first-run-coach-mark-guide-map-legend-feature-tour] With any guide step open, press `Tab` repeatedly -> focus cycles only through guide controls; press `Escape` -> the guide closes."
   - "[12-11-first-run-coach-mark-guide-map-legend-feature-tour] With two tabs open to `/?_time=14:00` after running `localStorage.setItem('sunnyseat_onboarded','1'); localStorage.removeItem('sunnyseat_first_run_guide_seen')` in each tab, click \"Hoppa över guide\" in one tab -> the guide closes in the other tab through the shared seen flag."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] Start `cd nextjs-app && npm run dev`, open `http://localhost:3000/?venue=test-venue-sunny&_state=feedback&_time=14:00`, answer “Ja”, submit → the prompt shows “Tack för din feedback.” and no confidence percentage is shown."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] With the dev server running, POST valid JSON to `http://localhost:3000/api/venues/test-venue-sunny/feedback` including `predictedState:\"Sunny\"`, `sunExposurePercent:95`, `publicSunVerdict:\"amber\"`, `weatherGated:false`, `weatherUnknown:false`, a valid `geometryInputHash`, and `sunAccuracy:\"sunny\"` → response is `201` and echoes the evidence fields."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] POST the same endpoint with `sunExposurePercent:50`, `publicSunVerdict:\"grey\"`, and `sunAccuracy:\"not_sunny\"` → response is `201`."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] POST the same endpoint with `predictedState:\"CloudObscured\"`, `sunExposurePercent:95`, `publicSunVerdict:\"grey\"`, `weatherGated:true`, `weatherUnknown:false`, and `sunAccuracy:\"not_sunny\"` → response is `201`."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] POST the same endpoint with `weatherGated:true` and `weatherUnknown:true` → response is `400`."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] POST the same endpoint with contradictory evidence, for example `sunExposurePercent:95`, `weatherGated:false`, `weatherUnknown:false`, and `publicSunVerdict:\"grey\"` → response is `400`."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] POST `http://localhost:3000/api/venues/missing-venue/feedback` with an otherwise valid body → response is `404`."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] POST `http://localhost:3000/api/venues/test-venue-sunny/feedback` with body `venueId:\"wrong-id\"` and otherwise valid evidence → response is `409`."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] In a Supabase-configured local or protected environment, run `cd nextjs-app && $env:FEEDBACK_ACCURACY_MIN_SAMPLES=3; npx tsx scripts/feedback-accuracy-report.ts` → JSON includes ranked `areas` and `venues` with agreement/disagreement, stale, legacy, invalid, unsure, and current-hash fields."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] In Vercel Production environment variables, confirm `SUNNYSEAT_COVERAGE_CAP` is absent → the removed bypass cannot be enabled."
 preexisting_done_stories:
   - 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
 adopt_verdicts:
@@ -238,5 +249,5 @@ story_execution_order:
   - 12-11-first-run-coach-mark-guide-map-legend-feature-tour
   - 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
   - 12-14-hide-closed-venues-open-at-selected-time-filter
-story_order_cursor: 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
+story_order_cursor: 12-14-hide-closed-venues-open-at-selected-time-filter
 order_override_reason: User-confirmed dependency order keeps prerequisite contracts ahead of their consumers while preserving Story 12-14 as the epic-end story.

@@ -4,11 +4,11 @@ story_key: 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
 epic_num: 12
 story_num: 2
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
-status: in-progress
-updated_at: "2026-08-06T18:59:12Z"
+status: done
+updated_at: "2026-08-06T19:02:56Z"
 started_at: "2026-07-18T11:42:18Z"
-completed_at: null
-active_seconds: 6177
+completed_at: "2026-08-06T19:02:56Z"
+active_seconds: 6318
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -30,7 +30,7 @@ story_trace:
   verdict: PASS
   uncovered: []
   ran: true
-commits: [64bc456, b578b18, f6c62ec, d4a35ec, a9beae3, 37fa1a0, 6fba046]
+commits: [64bc456, b578b18, f6c62ec, d4a35ec, a9beae3, 37fa1a0, 6fba046, 5f8eca0]
 phase8_steps:
   trace_gate: null
   nfr: null
