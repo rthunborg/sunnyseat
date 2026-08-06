@@ -59,3 +59,4 @@
 ## Story 12-11-first-run-coach-mark-guide-map-legend-feature-tour
 - [Phase 5 â€” dev-story] Story-review visual extraction matched negative-scope `_state=feedback`; screen discovery should prefer explicit `screen_id` markers.
 - [Phase 5 â€” dev-story] Full Playwright retains unrelated mobile timing instability: the future-date test can time out on an exact response predicate after the UI visibly selects tomorrow, while all Story 12.11-specific E2E and axe lanes are green.
+- [Phase 5 â€” dev-story] Full Vitest can still wedge at startup on the Windows workspace even with the previously stable single-worker approach; focused Story 12.11 coverage, typecheck, lint, and Playwright remained green.

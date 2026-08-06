@@ -467,16 +467,21 @@ export function FirstRunCoachMarkGuide({
             {currentStep.id === 'pin-legend' && <PinLegend />}
             <div
               data-testid="coach-tour-actions"
-              className="flex flex-col gap-2 pt-1"
+              className="flex flex-col gap-3 pt-1 desktop:gap-2"
             >
               <div data-testid="coach-tour-skip-row" className="flex w-full justify-center">
                 <button
                   type="button"
                   data-testid="coach-tour-skip"
                   onClick={() => closeGuide()}
-                  className="inline-flex min-h-11 items-center justify-center rounded-pill border border-error/10 bg-error/5 px-4 text-label-lg text-text-primary outline-none transition-colors duration-fast ease-default hover:border-error/20 hover:bg-error/10 focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2"
+                  className="group inline-flex min-h-11 min-w-11 items-center justify-center rounded-pill p-0 text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2"
                 >
-                  {t('skip')}
+                  <span
+                    data-testid="coach-tour-skip-pill"
+                    className="inline-flex min-h-10 items-center justify-center rounded-pill border border-error/10 bg-error/5 px-3 text-label-md transition-colors duration-fast ease-default group-hover:border-error/20 group-hover:bg-error/10 desktop:min-h-11 desktop:px-4 desktop:text-label-lg"
+                  >
+                    {t('skip')}
+                  </span>
                 </button>
               </div>
               <div

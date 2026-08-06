@@ -198,11 +198,12 @@ function expectCenteredSkipSplitFooterLayout(
   const skipRow = screen.getByTestId('coach-tour-skip-row');
   const navigation = screen.getByTestId('coach-tour-navigation');
   const skip = screen.getByRole('button', { name: skipLabel });
+  const skipPill = screen.getByTestId('coach-tour-skip-pill');
   const back = screen.getByRole('button', { name: backLabel });
   const next = screen.getByRole('button', { name: nextLabel });
 
   expect(skip).toBe(screen.getByTestId('coach-tour-skip'));
-  expect(actions).toHaveClass('flex', 'flex-col', 'gap-2', 'pt-1');
+  expect(actions).toHaveClass('flex', 'flex-col', 'gap-3', 'pt-1', 'desktop:gap-2');
   expect(actions.firstElementChild).toBe(skipRow);
   expect(actions.lastElementChild).toBe(navigation);
   expect(skipRow).toHaveClass('flex', 'w-full', 'justify-center');
@@ -225,20 +226,35 @@ function expectCenteredSkipSplitFooterLayout(
   expect(back).toBeDisabled();
   expect(back).toHaveClass('cursor-not-allowed', 'text-text-muted', 'opacity-60');
   expect(skip).toHaveClass(
+    'group',
     'inline-flex',
     'min-h-11',
+    'min-w-11',
     'rounded-pill',
+    'p-0',
+    'text-text-primary',
+    'focus-visible:ring-text-primary',
+  );
+  expect(skipPill).toHaveClass(
+    'inline-flex',
+    'min-h-10',
     'border',
     'border-error/10',
     'bg-error/5',
-    'text-text-primary',
-    'hover:border-error/20',
-    'hover:bg-error/10',
-    'focus-visible:ring-text-primary',
+    'px-3',
+    'text-label-md',
+    'group-hover:border-error/20',
+    'group-hover:bg-error/10',
+    'desktop:min-h-11',
+    'desktop:px-4',
+    'desktop:text-label-lg',
   );
+  expect(skip).toContainElement(skipPill);
   expect(skip).not.toHaveClass('border-divider');
   expect(skip).not.toHaveClass('bg-surface-cream');
   expect(skip).not.toHaveClass('text-text-body');
+  expect(skipPill).not.toHaveClass('px-4');
+  expect(skipPill).not.toHaveClass('text-label-lg');
   expect(next).toHaveClass(
     'bg-action-progress',
     'hover:bg-action-progress-hover',

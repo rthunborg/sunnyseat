@@ -192,43 +192,62 @@ async function expectRenderedActionColors(page: Page, skip: Locator, next: Locat
   expectRgbaChannels(nextText, EXPECTED_SURFACE_CREAM_RGB, 'Next text');
 }
 
-async function expectCenteredSkipSplitFooterLayout(page: Page, dialog: Locator): Promise<void> {
+async function expectCenteredSkipSplitFooterLayout(
+  page: Page,
+  dialog: Locator,
+  testInfo: TestInfo,
+): Promise<void> {
+  const isDesktop = testInfo.project.name === 'desktop';
+  const expectedRowGapPx = isDesktop ? 8 : 12;
+  const expectedSkipPillHeightPx = isDesktop ? 44 : 40;
+
   const skipRow = dialog.getByTestId('coach-tour-skip-row');
   const navigation = dialog.getByTestId('coach-tour-navigation');
   const skip = dialog.getByTestId('coach-tour-skip');
+  const skipPill = dialog.getByTestId('coach-tour-skip-pill');
   const back = navigation.getByRole('button', { name: 'Tillbaka' });
   const next = navigation.getByRole('button', { name: /Nästa|Klar/ });
 
   await expect(skipRow).toHaveCSS('justify-content', 'center');
   await expect(navigation).toHaveCSS('justify-content', 'space-between');
-  await expect(skip).toHaveClass(/bg-error\/5/);
-  await expect(skip).toHaveClass(/border-error\/10/);
-  await expect(skip).toHaveClass(/hover:border-error\/20/);
-  await expect(skip).toHaveClass(/hover:bg-error\/10/);
+  await expect(skip).toHaveClass(/min-h-11/);
+  await expect(skip).toHaveClass(/min-w-11/);
   await expect(skip).toHaveClass(/text-text-primary/);
+  await expect(skipPill).toHaveClass(/bg-error\/5/);
+  await expect(skipPill).toHaveClass(/border-error\/10/);
+  await expect(skipPill).toHaveClass(/group-hover:border-error\/20/);
+  await expect(skipPill).toHaveClass(/group-hover:bg-error\/10/);
+  await expect(skipPill).toHaveClass(isDesktop ? /desktop:text-label-lg/ : /text-label-md/);
   await expect(next).toHaveClass(/bg-action-progress/);
   await expect(next).toHaveClass(/hover:bg-action-progress-hover/);
   await expect(next).toHaveClass(/text-surface-cream/);
   await expect(back).toBeDisabled();
-  await expectRenderedActionColors(page, skip, next);
+  await expectRenderedActionColors(page, skipPill, next);
 
-  const [dialogBox, skipBox, skipRowBox, navigationBox, backBox, nextBox] = await Promise.all([
-    requiredBox(dialog, 'dialog'),
-    requiredBox(skip, 'skip'),
-    requiredBox(skipRow, 'skip row'),
-    requiredBox(navigation, 'navigation row'),
-    requiredBox(back, 'back button'),
-    requiredBox(next, 'next button'),
-  ]);
+  const [dialogBox, skipBox, skipPillBox, skipRowBox, navigationBox, backBox, nextBox] =
+    await Promise.all([
+      requiredBox(dialog, 'dialog'),
+      requiredBox(skip, 'skip'),
+      requiredBox(skipPill, 'skip visible pill'),
+      requiredBox(skipRow, 'skip row'),
+      requiredBox(navigation, 'navigation row'),
+      requiredBox(back, 'back button'),
+      requiredBox(next, 'next button'),
+    ]);
 
   expect(skipBox.height).toBeGreaterThanOrEqual(44);
   expect(backBox.height).toBeGreaterThanOrEqual(44);
   expect(nextBox.height).toBeGreaterThanOrEqual(44);
+  expectWithinTolerance(
+    skipPillBox.height,
+    expectedSkipPillHeightPx,
+    'visible skip pill height follows breakpoint sizing',
+  );
 
   expectWithinTolerance(
-    skipBox.x + skipBox.width / 2,
+    skipPillBox.x + skipPillBox.width / 2,
     skipRowBox.x + skipRowBox.width / 2,
-    'skip center aligns with skip-row center',
+    'visible skip pill center aligns with skip-row center',
   );
   expect(skipBox.x).toBeGreaterThanOrEqual(skipRowBox.x - GEOMETRY_TOLERANCE_PX);
   expect(skipBox.x + skipBox.width).toBeLessThanOrEqual(
@@ -238,13 +257,24 @@ async function expectCenteredSkipSplitFooterLayout(page: Page, dialog: Locator):
   expect(skipBox.y + skipBox.height).toBeLessThanOrEqual(
     skipRowBox.y + skipRowBox.height + GEOMETRY_TOLERANCE_PX,
   );
+  expect(skipPillBox.y).toBeGreaterThanOrEqual(skipBox.y - GEOMETRY_TOLERANCE_PX);
+  expect(skipPillBox.y + skipPillBox.height).toBeLessThanOrEqual(
+    skipBox.y + skipBox.height + GEOMETRY_TOLERANCE_PX,
+  );
 
   expect(boxesOverlap(skipRowBox, navigationBox)).toBe(false);
   expect(skipRowBox.y + skipRowBox.height).toBeLessThanOrEqual(
     navigationBox.y + GEOMETRY_TOLERANCE_PX,
   );
+  expectWithinTolerance(
+    navigationBox.y - (skipRowBox.y + skipRowBox.height),
+    expectedRowGapPx,
+    'gap between skip and navigation rows follows breakpoint sizing',
+  );
   expect(boxesOverlap(skipBox, backBox)).toBe(false);
   expect(boxesOverlap(skipBox, nextBox)).toBe(false);
+  expect(boxesOverlap(skipPillBox, backBox)).toBe(false);
+  expect(boxesOverlap(skipPillBox, nextBox)).toBe(false);
   expect(boxesOverlap(backBox, nextBox)).toBe(false);
 
   expectWithinTolerance(backBox.x, navigationBox.x, 'Back touches navigation left edge');
@@ -266,6 +296,7 @@ async function expectCenteredSkipSplitFooterLayout(page: Page, dialog: Locator):
 
   for (const [label, box] of [
     ['skip', skipBox],
+    ['visible skip pill', skipPillBox],
     ['back', backBox],
     ['next', nextBox],
   ] as const) {
@@ -314,7 +345,7 @@ test.describe('Story 12.11 coach-mark guide', () => {
     await expect(dialog.getByRole('heading', { name: 'Kartnålarna' })).toBeFocused();
     await expect(dialog.getByRole('button', { name: 'Hoppa över guide' })).toBeVisible();
     await expectActionProgressTokenValues(page);
-    await expectCenteredSkipSplitFooterLayout(page, dialog);
+    await expectCenteredSkipSplitFooterLayout(page, dialog, testInfo);
     await expect(dialog.getByRole('button', { name: 'Stäng guide' })).toBeVisible();
 
     await dialog.getByRole('button', { name: 'Hoppa över guide' }).click();
@@ -362,7 +393,7 @@ test.describe('Story 12.11 coach-mark guide', () => {
     await expect(dialog).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
     await expect(dialog).toHaveAttribute('data-tour-source', 'forced');
     await expect(page.getByTestId('coach-tour-step-pin-legend')).toBeVisible();
-    await expectCenteredSkipSplitFooterLayout(page, dialog);
+    await expectCenteredSkipSplitFooterLayout(page, dialog, testInfo);
     await expect(dialog).toContainText(EXPECTED_PIN_COPY);
     await expect(page.getByTestId('coach-tour-pin-legend')).toContainText('Soligt');
     await expect(page.getByTestId('coach-tour-pin-legend')).toContainText('Skuggat');

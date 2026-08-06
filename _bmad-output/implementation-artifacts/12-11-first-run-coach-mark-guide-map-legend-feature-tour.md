@@ -557,6 +557,18 @@ Codex GPT-5
   matched the intended hierarchy with the muted evergreen Next action, surface-cream Next text,
   text-primary Skip text, and the translucent error-derived Skip treatment now also covered by
   Playwright computed-color assertions.
+- 2026-08-06 mobile-only skip refinement: baseline `npx tsc --noEmit` and
+  `npx eslint . --quiet` passed before edits. Refined the mobile coach-guide footer so the row
+  gap between "Hoppa över guide" and Back/Next grows from 8px to 12px while desktop stays at 8px;
+  the visible mobile skip pill now uses a 40px/high, 12px-label treatment while the semantic
+  button keeps a 44px minimum touch target. Fresh 390x844 mobile captures for
+  `coach-mark-first` and `coach-mark-middle` passed geometry checks: visible skip pill 40px,
+  semantic hit target 44px, row gap 12px, centered skip, and unchanged Back/Next alignment.
+  Validation: focused coach/settings component tests passed 30/30; Story 12.11 Playwright
+  mobile+desktop passed 10/10; post-change typecheck and lint passed. Full Vitest did not
+  produce a failure signal but was not usable in this pass: the first bounded single-worker run
+  timed out at the command limit, and a background rerun remained stuck at the startup banner
+  until its exact process tree was stopped.
 
 ### Completion Notes List
 
@@ -607,6 +619,9 @@ Codex GPT-5
 - Expanded Story 12.11 E2E footer assertions from token-class checks to actual rendered default
   button colors: Next background/text, Skip text, and non-transparent `color-error`-derived skip
   background/border alpha.
+- Refined the mobile coach-guide skip hierarchy: the visible skip pill is smaller on mobile,
+  the skip-to-navigation row gap is slightly larger on mobile, desktop sizing remains unchanged,
+  and the underlying skip button retains the required 44px touch target.
 
 ### File List
 
@@ -626,6 +641,8 @@ Codex GPT-5
 - `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260806-action-hierarchy-v3/coach-mark-first-desktop-20260806-action-hierarchy-v3.png`
 - `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260806-action-hierarchy-v3/coach-mark-middle-mobile-20260806-action-hierarchy-v3.png`
 - `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260806-action-hierarchy-v3/coach-mark-middle-desktop-20260806-action-hierarchy-v3.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260806-mobile-skip-refinement-v4/coach-mark-first-mobile-20260806-mobile-skip-refinement-v4.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260806-mobile-skip-refinement-v4/coach-mark-middle-mobile-20260806-mobile-skip-refinement-v4.png`
 - `project-context.md`
 - `nextjs-app/app/globals.css`
 - `nextjs-app/docs/design/DESIGN.md`
@@ -698,6 +715,9 @@ Codex GPT-5
 - 2026-08-06: Closed the alt visual-evidence gap with fresh exact-size v3 captures for both
   coach states on mobile and desktop; geometry/color hierarchy passed, with computed-color
   Playwright assertions covering the action treatments.
+- 2026-08-06: Applied final mobile-only visual refinement to the coach-guide skip row: larger
+  skip/navigation gap and smaller visible skip pill on mobile while preserving desktop layout and
+  the 44px accessible hit target.
 
 ### Review Findings
 
