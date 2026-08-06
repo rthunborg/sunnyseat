@@ -4,11 +4,11 @@ story_key: 12-11-first-run-coach-mark-guide-map-legend-feature-tour
 epic_num: 12
 story_num: 11
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
-status: in-progress
-updated_at: "2026-08-06T17:20:17Z"
+status: done
+updated_at: "2026-08-06T17:31:40Z"
 started_at: "2026-07-27T19:56:49Z"
-completed_at: null
-active_seconds: 59714
+completed_at: "2026-08-06T17:31:40Z"
+active_seconds: 59801
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [9a0f45a, 7d2c676, 58d263e, 0bccfcd, 4561d28, 4f2e681, 9802db8, cf68b99, 1c04e31, 13e3639, 22e43eb, 7e2a0e4, 541bf1a, d95a663]
+commits: [9a0f45a, 7d2c676, 58d263e, 0bccfcd, 4561d28, 4f2e681, 9802db8, cf68b99, 1c04e31, 13e3639, 22e43eb, 7e2a0e4, 541bf1a, d95a663, 218f96c]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -62,4 +62,4 @@ constraints:
   - "Human visual-review correction: keep Skip centered in its own row above navigation, align Back left and Next right, tint Skip with a very light error-derived red and near-black text, and use a documented accessible evergreen action token for Next."
   - "Human visual-review correction: on mobile only, slightly increase the gap between the centered Skip row and the Back/Next row, and make the visible Skip pill plus label slightly smaller while preserving a minimum 44x44 accessible touch target; keep desktop rendering unchanged."
 tier_a_base_sha: 03e32a4
-tier_a_review: "done - automatic review cap reached after final Round 3; human-directed mobile-only v4 refinement passed focused component tests (30/30), Story 12.11 mobile+desktop Playwright (10/10), typecheck, lint, responsive geometry assertions, and independent exact-size visual inspection; fresh human visual acceptance is pending. Full Vitest produced no failing assertion but wedged at startup on this Windows workspace and was stopped exactly."
+tier_a_review: "done - automatic review cap reached after final Round 3; the human-directed mobile-only v4 refinement passed focused component tests (30/30), Story 12.11 mobile+desktop Playwright (10/10), typecheck, lint, responsive geometry assertions, independent exact-size visual inspection, and Rasmus explicitly approved Story 12.11 visual acceptance on 2026-08-06. Full Vitest produced no failing assertion but wedged at startup on this Windows workspace and was stopped exactly."

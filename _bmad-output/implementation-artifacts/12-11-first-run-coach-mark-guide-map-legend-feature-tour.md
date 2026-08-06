@@ -10,7 +10,7 @@ tea_selected:
 
 # Story 12.11: First-Run Coach-Mark Guide (Map Legend + Feature Tour)
 
-Status: review
+Status: done
 
 screen_id: coach-mark-first
 screen_id: coach-mark-middle
@@ -564,6 +564,8 @@ Codex GPT-5
   button keeps a 44px minimum touch target. Fresh 390x844 mobile captures for
   `coach-mark-first` and `coach-mark-middle` passed geometry checks: visible skip pill 40px,
   semantic hit target 44px, row gap 12px, centered skip, and unchanged Back/Next alignment.
+  Rasmus approved Story 12.11 visual acceptance for the 20260806 mobile-skip-refinement-v4
+  first/middle mobile captures on 2026-08-06.
   Validation: focused coach/settings component tests passed 30/30; Story 12.11 Playwright
   mobile+desktop passed 10/10; post-change typecheck and lint passed. Full Vitest did not
   produce a failure signal but was not usable in this pass: the first bounded single-worker run
@@ -717,7 +719,8 @@ Codex GPT-5
   Playwright assertions covering the action treatments.
 - 2026-08-06: Applied final mobile-only visual refinement to the coach-guide skip row: larger
   skip/navigation gap and smaller visible skip pill on mobile while preserving desktop layout and
-  the 44px accessible hit target.
+  the 44px accessible hit target; Rasmus approved Story 12.11 visual acceptance for the
+  20260806 mobile-skip-refinement-v4 first/middle mobile captures on 2026-08-06.
 
 ### Review Findings
 
