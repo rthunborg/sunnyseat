@@ -215,6 +215,7 @@ Codex GPT-5
 - 2026-08-06: Review patch static checks passed: `npx tsc --noEmit`; `npx eslint . --quiet`.
 - 2026-08-06: Review patch focused Story 12.2 regression passed: `npx vitest run test/unit/api/story-12-2-feedback-accuracy-loop.atdd.test.ts test/unit/story-12-2-accuracy-ops-and-cap-cleanup.atdd.test.ts test/unit/services/feedback-accuracy-report.test.ts test/unit/scripts/feedback-accuracy-report.test.ts test/unit/services/venue-feedback-persistence.test.ts test/unit/api/venue-feedback-route.test.ts test/components/FeedbackFlow.test.tsx test/unit/services/feedback-session.test.ts test/unit/mutations/useSubmitFeedback.test.tsx` => 9 files / 55 tests passed.
 - 2026-08-06: Review patch full Vitest passed with bounded worker count: `$env:VITEST_MAX_WORKERS='4'; npx vitest run` => 211 files / 1916 tests passed; existing non-fatal jsdom navigation and `--localstorage-file` warnings remained.
+- 2026-08-06: Advisory story-level `/bmad-testarch-trace` completed for Story 12.2 AC1-AC8 only. Verdict: PASS; uncovered ACs: none. Artifacts: `_bmad-output/test-artifacts/traceability/traceability-report-12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.md`, `_bmad-output/test-artifacts/traceability/e2e-trace-summary-12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.json`, `_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-12-2-2026-08-06T20-53-56+02-00.json`.
 
 ### Completion Notes List
 
@@ -227,6 +228,7 @@ Codex GPT-5
 - ✅ Resolved review finding [Med]: venue and area rankings now enforce `minimumSampleCount` instead of including one-off disagreements below threshold.
 - ✅ Resolved review finding [Med]: ranking tie-breakers now use `latest_disagreeing_feedback_at`; `latest_feedback_at` remains report context only.
 - ✅ Resolved review finding [Med]: present-but-malformed prediction evidence now increments `invalid_evidence_count`; only rows with all evidence fields missing count as legacy/unscored.
+- Advisory traceability is PASS for all eight Story 12.2 ACs, with no uncovered acceptance criteria; one skipped P1 weather-gated browser scaffold remains documented but covered by active API/unit tests.
 - Removed the `SUNNYSEAT_COVERAGE_CAP` bypass while preserving the fail-closed internal coverage confidence cap and diagnostic-only confidence documentation.
 - No public copy, uncertainty-label, or visual presentation change was made; visual validation was not required.
 
@@ -236,6 +238,9 @@ Codex GPT-5
 - _bmad-output/implementation-artifacts/sprint-status.yaml
 - _bmad-output/implementation-artifacts/validation/12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass-review-20260806-201032.log
 - _bmad-output/implementation-artifacts/validation/12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass-review-20260806-201352.log
+- _bmad-output/test-artifacts/traceability/e2e-trace-summary-12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.json
+- _bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-12-2-2026-08-06T20-53-56+02-00.json
+- _bmad-output/test-artifacts/traceability/traceability-report-12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.md
 - nextjs-app/.gitignore
 - nextjs-app/app/api/venues/[slug]/feedback/route.ts
 - nextjs-app/components/custom/feedback/FeedbackFlow.tsx

@@ -1,0 +1,132 @@
+{
+  "schema_version": "0.1.0",
+  "snapshot_at": "2026-08-06T20:53:56+02:00",
+  "trace_target": {
+    "type": "story",
+    "id": "12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass",
+    "label": "Story 12.2: Feedback-Driven Accuracy Loop + Retire the Coverage-Cap Bypass"
+  },
+  "collection_mode": "advisory_story_scope",
+  "collection_status": "COLLECTED",
+  "allow_gate": false,
+  "coverage_basis": "acceptance_criteria",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/implementation-artifacts/12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.md",
+      "_bmad-output/test-artifacts/test-design/test-design-epic-12.md",
+      "_bmad-output/planning-artifacts/architecture.md",
+      "project-context.md"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "requirements": [
+    {
+      "id": "AC1",
+      "priority": "P0",
+      "title": "Live feedback identity prerequisite",
+      "coverage": "FULL",
+      "tests": ["T-A01", "T-A02", "T-RT02", "T-RT03", "T-RT06"]
+    },
+    {
+      "id": "AC2",
+      "priority": "P0",
+      "title": "Explicit agreement mapping",
+      "coverage": "FULL",
+      "tests": ["T-A04", "T-A05", "T-O06", "T-R01", "T-R02", "T-RT05"]
+    },
+    {
+      "id": "AC3",
+      "priority": "P0",
+      "title": "Prediction evidence is persisted",
+      "coverage": "FULL",
+      "tests": ["T-A03", "T-A06", "T-O01", "T-O02", "T-O03", "T-P01", "T-C01", "T-C02", "T-E01"]
+    },
+    {
+      "id": "AC4",
+      "priority": "P0",
+      "title": "Maintainer-ranked wrong-venue list",
+      "coverage": "FULL",
+      "tests": ["T-O04", "T-R03", "T-R04", "T-S01", "T-S02"]
+    },
+    {
+      "id": "AC5",
+      "priority": "P0",
+      "title": "Corrected geometry resets current accuracy",
+      "coverage": "FULL",
+      "tests": ["T-O01", "T-O04", "T-O05", "T-R02"]
+    },
+    {
+      "id": "AC6",
+      "priority": "P0",
+      "title": "Coverage-cap bypass is retired",
+      "coverage": "FULL",
+      "tests": ["T-O07", "T-O08"]
+    },
+    {
+      "id": "AC7",
+      "priority": "P1",
+      "title": "Uncertainty impact is deliberate",
+      "coverage": "FULL",
+      "tests": ["T-O08", "T-RT04", "T-E01"]
+    },
+    {
+      "id": "AC8",
+      "priority": "P1",
+      "title": "Remaining internal confidence uses are documented",
+      "coverage": "FULL",
+      "tests": ["T-O09", "T-E01"]
+    }
+  ],
+  "gap_analysis": {
+    "critical_gaps": [],
+    "high_gaps": [],
+    "medium_gaps": [],
+    "low_gaps": [],
+    "partial_coverage": [],
+    "unit_only_concerns": []
+  },
+  "coverage_heuristics": {
+    "counts": {
+      "endpoints_without_tests": 0,
+      "auth_missing_negative_paths": 0,
+      "happy_path_only_criteria": 0,
+      "ui_journeys_without_e2e": 0,
+      "ui_states_missing_coverage": 0
+    }
+  },
+  "test_inventory": {
+    "summary": {
+      "files": 10,
+      "cases": 56,
+      "skipped_cases": 1,
+      "fixme_cases": 0,
+      "pending_cases": 0,
+      "by_level": {
+        "e2e": { "tests": 1, "criteria_covered": 3 },
+        "api": { "tests": 17, "criteria_covered": 4 },
+        "component": { "tests": 12, "criteria_covered": 3 },
+        "unit": { "tests": 27, "criteria_covered": 7 },
+        "other": { "tests": 0, "criteria_covered": 0 }
+      }
+    },
+    "blockers": [
+      {
+        "id": "T-E02-skipped",
+        "severity": "low",
+        "reason": "Skipped weather-gated browser scaffold because forced obscured detail does not render feedback prompt; active API/unit tests cover the AC behavior.",
+        "test_file": "nextjs-app/test/e2e/story-12-2-feedback-evidence.atdd.spec.ts",
+        "test_title": "[P1] grey public verdict is submitted for weather-gated detail without adding visible confidence copy"
+      }
+    ]
+  },
+  "recommendations": [
+    {
+      "priority": "LOW",
+      "action": "Keep the Story 12.2 focused route/report/persistence/component/E2E suites in standing regression.",
+      "requirements": ["AC1", "AC2", "AC3", "AC4", "AC5"]
+    }
+  ]
+}

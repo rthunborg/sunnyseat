@@ -1,0 +1,163 @@
+{
+  "schema_version": "0.1.0",
+  "snapshot_at": "2026-08-06T20:53:56+02:00",
+  "repo": "sunnyseat",
+  "collection_mode": "advisory_story_scope",
+  "collection_status": "COLLECTED",
+  "inventory_basis": "acceptance_criteria",
+  "gate_basis": "none",
+  "source_sha": "",
+  "target": {
+    "type": "story",
+    "id": "12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass",
+    "label": "Story 12.2: Feedback-Driven Accuracy Loop + Retire the Coverage-Cap Bypass"
+  },
+  "decision_mode": "advisory",
+  "evaluator": "Rasmus",
+  "confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/implementation-artifacts/12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.md",
+      "_bmad-output/test-artifacts/test-design/test-design-epic-12.md",
+      "_bmad-output/planning-artifacts/architecture.md",
+      "project-context.md"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "advisory_status": "PASS",
+  "coverage": {
+    "inventory": {
+      "covered": 8,
+      "fully_covered": 8,
+      "partially_covered": 0,
+      "uncovered": 0,
+      "total": 8,
+      "pct": 100,
+      "full_pct": 100,
+      "covered_or_partial_pct": 100
+    },
+    "priority_breakdown": {
+      "P0": {
+        "total": 6,
+        "covered": 6,
+        "fully_covered": 6,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "pct": 100,
+        "full_pct": 100
+      },
+      "P1": {
+        "total": 2,
+        "covered": 2,
+        "fully_covered": 2,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "pct": 100,
+        "full_pct": 100
+      },
+      "P2": {
+        "total": 0,
+        "covered": 0,
+        "fully_covered": 0,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "pct": 100,
+        "full_pct": 100
+      },
+      "P3": {
+        "total": 0,
+        "covered": 0,
+        "fully_covered": 0,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "pct": 100,
+        "full_pct": 100
+      }
+    },
+    "by_level": {
+      "e2e": {
+        "tests": 1,
+        "runtime_runs": 2,
+        "criteria_covered": 3
+      },
+      "api": {
+        "tests": 17,
+        "criteria_covered": 4
+      },
+      "component": {
+        "tests": 12,
+        "criteria_covered": 3
+      },
+      "unit": {
+        "tests": 27,
+        "criteria_covered": 7
+      },
+      "other": {
+        "tests": 0,
+        "criteria_covered": 0
+      }
+    }
+  },
+  "tests": {
+    "files": 10,
+    "cases": 56,
+    "direct_story_files": 10,
+    "direct_story_vitest_cases": 55,
+    "direct_story_e2e_scenario_identities": 1,
+    "direct_story_e2e_browser_executions": 2,
+    "skipped_cases": 1,
+    "fixme_cases": 0,
+    "pending_cases": 0
+  },
+  "risk_summary": {
+    "critical_open": 0,
+    "high_open": 0,
+    "medium_open": 0,
+    "low_open": 0,
+    "partial_p0": 0,
+    "partial_p1": 0
+  },
+  "heuristics": {
+    "endpoint_gaps": 0,
+    "auth_negative_path_status": "not_applicable",
+    "error_path_status": "present",
+    "ui_journey_status": "present",
+    "ui_state_status": "present"
+  },
+  "uncovered_requirements": [],
+  "material_gaps": [],
+  "blockers": [],
+  "recommendations": [
+    {
+      "priority": "LOW",
+      "action": "Keep the Story 12.2 focused route/report/persistence/component/E2E suites in standing regression because they protect the exact feedback evidence contract.",
+      "requirements": [
+        "AC1",
+        "AC2",
+        "AC3",
+        "AC4",
+        "AC5"
+      ]
+    },
+    {
+      "priority": "LOW",
+      "action": "If forced weather-gated feedback browser state becomes feasible later, the skipped P1 E2E scaffold can be activated; current API/unit coverage already covers the AC behavior.",
+      "requirements": [
+        "AC2",
+        "AC3",
+        "AC7"
+      ]
+    }
+  ],
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-report-12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.md",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": "",
+    "trace_summary_path": "_bmad-output/test-artifacts/traceability/e2e-trace-summary-12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.json",
+    "phase1_matrix_path": "_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-12-2-2026-08-06T20-53-56+02-00.json"
+  }
+}
