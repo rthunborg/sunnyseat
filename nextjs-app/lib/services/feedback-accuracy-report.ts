@@ -40,12 +40,37 @@ export type FeedbackAccuracyVenueReport = {
   stale_hash_count: number;
   invalid_evidence_count: number;
   latest_feedback_at: string | null;
+  latest_disagreeing_feedback_at: string | null;
   representative_wrong_windows: string[];
+};
+
+export type FeedbackAccuracyAreaReport = {
+  area: string;
+  venue_count: number;
+  current_sample_count: number;
+  agreement_count: number;
+  disagreement_count: number;
+  agreement_rate: number | null;
+  disagreement_rate: number | null;
+  unsure_count: number;
+  legacy_unscored_count: number;
+  stale_hash_count: number;
+  invalid_evidence_count: number;
+  latest_feedback_at: string | null;
+  latest_disagreeing_feedback_at: string | null;
+  representative_wrong_windows: string[];
+  venues: Array<{
+    venue_id: string;
+    venue_slug: string;
+    venue_name: string;
+    disagreement_count: number;
+  }>;
 };
 
 export type FeedbackAccuracyReport = {
   generated_at: string;
   minimum_sample_count: number;
+  areas: FeedbackAccuracyAreaReport[];
   venues: FeedbackAccuracyVenueReport[];
 };
 
@@ -69,14 +94,18 @@ export function buildFeedbackAccuracyReport({
     feedbackByVenue.set(venueId, rows);
   }
 
-  const reports = venues
-    .map((venue) => scoreVenue(venue, feedbackByVenue.get(venue.venue_id) ?? []))
-    .filter((report) => report.current_sample_count >= minimumSampleCount || report.disagreement_count > 0)
+  const scoredVenues = venues.map((venue) => scoreVenue(venue, feedbackByVenue.get(venue.venue_id) ?? []));
+  const reports = scoredVenues
+    .filter((report) => report.current_sample_count >= minimumSampleCount)
     .sort(compareVenueReports);
+  const areaReports = buildAreaReports(scoredVenues)
+    .filter((report) => report.current_sample_count >= minimumSampleCount)
+    .sort(compareAreaReports);
 
   return {
     generated_at: generatedAt,
     minimum_sample_count: minimumSampleCount,
+    areas: areaReports,
     venues: reports,
   };
 }
@@ -92,6 +121,7 @@ function scoreVenue(
   let staleHashCount = 0;
   let invalidEvidenceCount = 0;
   let latestFeedbackAt: string | null = null;
+  let latestDisagreeingFeedbackAt: string | null = null;
   const wrongWindows = new Set<string>();
 
   for (const row of rows) {
@@ -101,11 +131,16 @@ function scoreVenue(
         latestFeedbackAt = timestamp;
       }
 
-      const evidence = parseEvidence(row);
-      if (!evidence) {
+      const evidenceResult = parseEvidence(row);
+      if (evidenceResult.kind === 'legacy') {
         legacyUnscoredCount += 1;
         continue;
       }
+      if (evidenceResult.kind === 'invalid') {
+        invalidEvidenceCount += 1;
+        continue;
+      }
+      const { evidence } = evidenceResult;
       if (
         !venue.current_geometry_input_hash ||
         evidence.geometry_input_hash !== venue.current_geometry_input_hash
@@ -138,7 +173,12 @@ function scoreVenue(
         agreementCount += 1;
       } else {
         disagreementCount += 1;
-        if (timestamp) wrongWindows.add(representativeWindow(timestamp));
+        if (timestamp) {
+          wrongWindows.add(representativeWindow(timestamp));
+          if (!latestDisagreeingFeedbackAt || timestamp > latestDisagreeingFeedbackAt) {
+            latestDisagreeingFeedbackAt = timestamp;
+          }
+        }
       }
     } catch {
       invalidEvidenceCount += 1;
@@ -167,18 +207,37 @@ function scoreVenue(
     stale_hash_count: staleHashCount,
     invalid_evidence_count: invalidEvidenceCount,
     latest_feedback_at: latestFeedbackAt,
+    latest_disagreeing_feedback_at: latestDisagreeingFeedbackAt,
     representative_wrong_windows: [...wrongWindows].sort(),
   };
 }
 
-function parseEvidence(row: FeedbackAccuracyFeedbackRow): {
+function parseEvidence(row: FeedbackAccuracyFeedbackRow): (
+  | {
+      kind: 'complete';
+      evidence: {
   sun_exposure_percent: number;
   public_sun_verdict: PublicSunVerdict;
   weather_gated: boolean;
   weather_unknown: boolean;
   geometry_input_hash: string;
-} | null {
+      };
+    }
+  | { kind: 'legacy' }
+  | { kind: 'invalid' }
+) {
   const sunExposurePercent = row.sun_exposure_percent;
+  const hasAnyEvidence =
+    sunExposurePercent !== null ||
+    row.public_sun_verdict !== null ||
+    row.weather_gated !== null ||
+    row.weather_unknown !== null ||
+    row.geometry_input_hash !== null;
+
+  if (!hasAnyEvidence) {
+    return { kind: 'legacy' };
+  }
+
   if (
     typeof sunExposurePercent !== 'number' ||
     !Number.isInteger(sunExposurePercent) ||
@@ -190,17 +249,20 @@ function parseEvidence(row: FeedbackAccuracyFeedbackRow): {
     !row.geometry_input_hash ||
     !GEOMETRY_INPUT_HASH_PATTERN.test(row.geometry_input_hash)
   ) {
-    return null;
+    return { kind: 'invalid' };
   }
   if (row.weather_gated && row.weather_unknown) {
-    throw new Error('invalid weather evidence');
+    return { kind: 'invalid' };
   }
   return {
+    kind: 'complete',
+    evidence: {
     sun_exposure_percent: sunExposurePercent,
     public_sun_verdict: row.public_sun_verdict,
     weather_gated: row.weather_gated,
     weather_unknown: row.weather_unknown,
     geometry_input_hash: row.geometry_input_hash,
+    },
   };
 }
 
@@ -259,13 +321,105 @@ function compareVenueReports(
   if (disagreementCountDelta !== 0) return disagreementCountDelta;
 
   const recencyDelta =
-    sortableTimestamp(right.latest_feedback_at) - sortableTimestamp(left.latest_feedback_at);
+    sortableTimestamp(right.latest_disagreeing_feedback_at) -
+    sortableTimestamp(left.latest_disagreeing_feedback_at);
   if (recencyDelta !== 0) return recencyDelta;
 
   return `${left.venue_id}:${left.venue_slug}`.localeCompare(
     `${right.venue_id}:${right.venue_slug}`,
     'sv-SE',
   );
+}
+
+function buildAreaReports(
+  venues: readonly FeedbackAccuracyVenueReport[],
+): FeedbackAccuracyAreaReport[] {
+  const byArea = new Map<string, FeedbackAccuracyVenueReport[]>();
+  for (const venue of venues) {
+    const area = venue.area.trim() || 'Okänt område';
+    const entries = byArea.get(area) ?? [];
+    entries.push(venue);
+    byArea.set(area, entries);
+  }
+
+  return [...byArea.entries()].map(([area, areaVenues]) => {
+    const currentSampleCount = sumBy(areaVenues, 'current_sample_count');
+    const agreementCount = sumBy(areaVenues, 'agreement_count');
+    const disagreementCount = sumBy(areaVenues, 'disagreement_count');
+    return {
+      area,
+      venue_count: areaVenues.length,
+      current_sample_count: currentSampleCount,
+      agreement_count: agreementCount,
+      disagreement_count: disagreementCount,
+      agreement_rate:
+        currentSampleCount === 0 ? null : roundRate(agreementCount / currentSampleCount),
+      disagreement_rate:
+        currentSampleCount === 0 ? null : roundRate(disagreementCount / currentSampleCount),
+      unsure_count: sumBy(areaVenues, 'unsure_count'),
+      legacy_unscored_count: sumBy(areaVenues, 'legacy_unscored_count'),
+      stale_hash_count: sumBy(areaVenues, 'stale_hash_count'),
+      invalid_evidence_count: sumBy(areaVenues, 'invalid_evidence_count'),
+      latest_feedback_at: latestTimestamp(areaVenues.map((venue) => venue.latest_feedback_at)),
+      latest_disagreeing_feedback_at: latestTimestamp(
+        areaVenues.map((venue) => venue.latest_disagreeing_feedback_at),
+      ),
+      representative_wrong_windows: [
+        ...new Set(areaVenues.flatMap((venue) => venue.representative_wrong_windows)),
+      ].sort(),
+      venues: areaVenues
+        .filter((venue) => venue.disagreement_count > 0)
+        .sort(compareVenueReports)
+        .map((venue) => ({
+          venue_id: venue.venue_id,
+          venue_slug: venue.venue_slug,
+          venue_name: venue.venue_name,
+          disagreement_count: venue.disagreement_count,
+        })),
+    };
+  });
+}
+
+function compareAreaReports(
+  left: FeedbackAccuracyAreaReport,
+  right: FeedbackAccuracyAreaReport,
+): number {
+  const disagreementRateDelta =
+    sortableRate(right.disagreement_rate) - sortableRate(left.disagreement_rate);
+  if (disagreementRateDelta !== 0) return disagreementRateDelta;
+
+  const disagreementCountDelta = right.disagreement_count - left.disagreement_count;
+  if (disagreementCountDelta !== 0) return disagreementCountDelta;
+
+  const recencyDelta =
+    sortableTimestamp(right.latest_disagreeing_feedback_at) -
+    sortableTimestamp(left.latest_disagreeing_feedback_at);
+  if (recencyDelta !== 0) return recencyDelta;
+
+  return left.area.localeCompare(right.area, 'sv-SE');
+}
+
+function sumBy(
+  venues: readonly FeedbackAccuracyVenueReport[],
+  field: keyof Pick<
+    FeedbackAccuracyVenueReport,
+    | 'current_sample_count'
+    | 'agreement_count'
+    | 'disagreement_count'
+    | 'unsure_count'
+    | 'legacy_unscored_count'
+    | 'stale_hash_count'
+    | 'invalid_evidence_count'
+  >,
+): number {
+  return venues.reduce((sum, venue) => sum + venue[field], 0);
+}
+
+function latestTimestamp(values: readonly (string | null)[]): string | null {
+  return values.reduce<string | null>((latest, value) => {
+    if (!value) return latest;
+    return !latest || value > latest ? value : latest;
+  }, null);
 }
 
 function sortableRate(value: number | null): number {

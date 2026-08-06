@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 2
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-08-06T18:30:40Z"
+updated_at: "2026-08-06T18:51:02Z"
 started_at: "2026-07-18T11:42:18Z"
 completed_at: null
-active_seconds: 4639
+active_seconds: 5772
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -27,7 +27,7 @@ hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [64bc456, b578b18, f6c62ec, d4a35ec, a9beae3]
+commits: [64bc456, b578b18, f6c62ec, d4a35ec, a9beae3, 37fa1a0]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -53,3 +53,4 @@ blockers: []
 overrides: {}
 constraints: []
 tier_a_base_sha: 0748044e3743a9fe2b64e674d22b7e8074d7b9d9
+tier_a_review: "done - Tier A acceptance audit produced four Medium patch findings and the dedicated security review produced zero findings; all four patches were resolved, review_findings reconciled with zero open items, post-fix verification proceeded, focused Story 12.2 Vitest passed 55 tests, typecheck and lint passed, and full Vitest passed 211 files / 1916 tests."

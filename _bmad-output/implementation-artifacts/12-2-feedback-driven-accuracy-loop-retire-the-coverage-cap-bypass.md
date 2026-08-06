@@ -177,6 +177,13 @@ No standalone visual deliverable. Story 12.2 changes the hidden feedback evidenc
 - [Source: `nextjs-app/components/custom/feedback/FeedbackFlow.tsx` and `nextjs-app/lib/services/feedback-session.ts` - current submitted prediction fields]
 - [Source: `nextjs-app/lib/solar/shadow-data-coverage.ts` and `nextjs-app/lib/services/sun-engine.ts` - coverage cap and uncertainty coupling]
 
+### Review Findings
+
+- [x] [Review][Patch][Med] Maintainer report has no ranked area output [nextjs-app/lib/services/feedback-accuracy-report.ts:38] — AC4 requires the maintainer report to rank venues and areas that look wrong; the current report shape only returns `venues`, with `area` as per-venue context rather than a ranked area/neighborhood aggregate.
+- [x] [Review][Patch][Med] Minimum sample count is bypassed for any disagreement [nextjs-app/lib/services/feedback-accuracy-report.ts:72] — AC4 requires ranking with a minimum sample count, but the current filter includes any venue with one disagreement even when the CLI default threshold is higher.
+- [x] [Review][Patch][Med] Tie-breaker uses latest feedback rather than latest disagreeing feedback [nextjs-app/lib/services/feedback-accuracy-report.ts:100] — AC4 requires deterministic ordering by newest disagreeing feedback after disagreement rate/count, but `latestFeedbackAt` is updated before row classification and can be set by agreeing, unsure, stale, legacy, or invalid evidence.
+- [x] [Review][Patch][Med] Malformed complete evidence is counted as legacy rather than invalid [nextjs-app/lib/services/feedback-accuracy-report.ts:183] — AC4/AC5 require malformed evidence to be reported as bounded invalid evidence while missing pre-12.2 evidence is counted as legacy; `parseEvidence` returns `null` for several malformed present fields and the caller increments `legacyUnscoredCount`.
+
 ## Dev Agent Record
 
 ### Agent Model Used
@@ -203,6 +210,11 @@ Codex GPT-5
 - 2026-08-06: Post-review `/bmad-testarch-automate` added executable maintainer CLI wrapper coverage: `npx vitest run test/unit/scripts/feedback-accuracy-report.test.ts` => 1 file / 2 tests passed.
 - 2026-08-06: Post-review `/bmad-testarch-automate` static checks passed after the CLI runner extraction: `npx tsc --noEmit`; `npx eslint . --quiet`.
 - 2026-08-06: Post-review `/bmad-testarch-automate` focused Story 12.2 regression passed: `npx vitest run test/unit/api/story-12-2-feedback-accuracy-loop.atdd.test.ts test/unit/story-12-2-accuracy-ops-and-cap-cleanup.atdd.test.ts test/unit/services/feedback-accuracy-report.test.ts test/unit/scripts/feedback-accuracy-report.test.ts test/unit/services/venue-feedback-persistence.test.ts test/unit/api/venue-feedback-route.test.ts test/components/FeedbackFlow.test.tsx test/unit/services/feedback-session.test.ts test/unit/mutations/useSubmitFeedback.test.tsx` => 9 files / 54 tests passed.
+- 2026-08-06: Review patch pass resolved all four unchecked `[Review][Patch][Med]` findings in the maintainer accuracy report.
+- 2026-08-06: Review patch focused report validation passed: `npx vitest run test/unit/services/feedback-accuracy-report.test.ts test/unit/scripts/feedback-accuracy-report.test.ts` => 2 files / 6 tests passed.
+- 2026-08-06: Review patch static checks passed: `npx tsc --noEmit`; `npx eslint . --quiet`.
+- 2026-08-06: Review patch focused Story 12.2 regression passed: `npx vitest run test/unit/api/story-12-2-feedback-accuracy-loop.atdd.test.ts test/unit/story-12-2-accuracy-ops-and-cap-cleanup.atdd.test.ts test/unit/services/feedback-accuracy-report.test.ts test/unit/scripts/feedback-accuracy-report.test.ts test/unit/services/venue-feedback-persistence.test.ts test/unit/api/venue-feedback-route.test.ts test/components/FeedbackFlow.test.tsx test/unit/services/feedback-session.test.ts test/unit/mutations/useSubmitFeedback.test.tsx` => 9 files / 55 tests passed.
+- 2026-08-06: Review patch full Vitest passed with bounded worker count: `$env:VITEST_MAX_WORKERS='4'; npx vitest run` => 211 files / 1916 tests passed; existing non-fatal jsdom navigation and `--localstorage-file` warnings remained.
 
 ### Completion Notes List
 
@@ -211,6 +223,10 @@ Codex GPT-5
 - Added nullable feedback evidence migration and updated Supabase/API/persistence types. Legacy rows remain valid but are excluded from current agreement when evidence/hash is absent or stale.
 - Added deterministic maintainer report service plus CLI under `nextjs-app/scripts/`, with current-hash agreement, stale/legacy/unsure/invalid counters, representative wrong windows, and deterministic ranking.
 - Post-review automate made the maintainer report CLI runner injectable and covered its Supabase query shape, env-configured minimum-sample threshold, deterministic JSON output, and query-failure behavior.
+- ✅ Resolved review finding [Med]: maintainer report now returns ranked `areas` aggregates alongside ranked venues.
+- ✅ Resolved review finding [Med]: venue and area rankings now enforce `minimumSampleCount` instead of including one-off disagreements below threshold.
+- ✅ Resolved review finding [Med]: ranking tie-breakers now use `latest_disagreeing_feedback_at`; `latest_feedback_at` remains report context only.
+- ✅ Resolved review finding [Med]: present-but-malformed prediction evidence now increments `invalid_evidence_count`; only rows with all evidence fields missing count as legacy/unscored.
 - Removed the `SUNNYSEAT_COVERAGE_CAP` bypass while preserving the fail-closed internal coverage confidence cap and diagnostic-only confidence documentation.
 - No public copy, uncertainty-label, or visual presentation change was made; visual validation was not required.
 

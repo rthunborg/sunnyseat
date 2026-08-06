@@ -79,7 +79,7 @@ describe('feedback accuracy report CLI', () => {
 
     const exitCode = await runFeedbackAccuracyReportCli({
       supabase: supabase.supabase,
-      env: { FEEDBACK_ACCURACY_MIN_SAMPLES: '2' },
+      env: { FEEDBACK_ACCURACY_MIN_SAMPLES: '1' },
       stdout,
       stderr,
     });
@@ -100,6 +100,11 @@ describe('feedback accuracy report CLI', () => {
     expect(typeof output).toBe('string');
     const parsed = JSON.parse(output as string) as {
       minimum_sample_count: number;
+      areas: Array<{
+        area: string;
+        current_sample_count: number;
+        disagreement_count: number;
+      }>;
       venues: Array<{
         venue_id: string;
         current_sample_count: number;
@@ -107,7 +112,33 @@ describe('feedback accuracy report CLI', () => {
         representative_wrong_windows: string[];
       }>;
     };
-    expect(parsed.minimum_sample_count).toBe(2);
+    expect(parsed.minimum_sample_count).toBe(1);
+    expect(parsed.areas).toEqual([
+      {
+        area: 'Inom Vallgraven',
+        venue_count: 1,
+        current_sample_count: 1,
+        agreement_count: 0,
+        disagreement_count: 1,
+        agreement_rate: 0,
+        disagreement_rate: 1,
+        unsure_count: 0,
+        legacy_unscored_count: 0,
+        stale_hash_count: 0,
+        invalid_evidence_count: 0,
+        latest_feedback_at: '2026-08-06T12:15:00.000Z',
+        latest_disagreeing_feedback_at: '2026-08-06T12:15:00.000Z',
+        representative_wrong_windows: ['12:00-12:59Z'],
+        venues: [
+          {
+            venue_id: '1',
+            venue_slug: 'test-venue-sunny',
+            venue_name: 'Kafé Magasinet',
+            disagreement_count: 1,
+          },
+        ],
+      },
+    ]);
     expect(parsed.venues).toEqual([
       {
         venue_id: '1',
@@ -125,6 +156,7 @@ describe('feedback accuracy report CLI', () => {
         stale_hash_count: 0,
         invalid_evidence_count: 0,
         latest_feedback_at: '2026-08-06T12:15:00.000Z',
+        latest_disagreeing_feedback_at: '2026-08-06T12:15:00.000Z',
         representative_wrong_windows: ['12:00-12:59Z'],
       },
     ]);

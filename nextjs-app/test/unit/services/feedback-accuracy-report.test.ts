@@ -20,6 +20,13 @@ const venues = [
     area: 'Haga',
     current_geometry_input_hash: CURRENT_HASH,
   },
+  {
+    venue_id: '3',
+    venue_slug: 'third',
+    venue_name: 'Third',
+    area: 'Haga',
+    current_geometry_input_hash: CURRENT_HASH,
+  },
 ];
 
 function row(overrides: Partial<Parameters<typeof buildFeedbackAccuracyReport>[0]['feedback'][number]>) {
@@ -61,6 +68,13 @@ describe('feedback accuracy maintainer report', () => {
       agreement_rate: 1,
       unsure_count: 0,
     });
+    expect(report.areas[0]).toMatchObject({
+      area: 'Inom Vallgraven',
+      current_sample_count: 6,
+      agreement_count: 6,
+      disagreement_count: 0,
+      agreement_rate: 1,
+    });
   });
 
   it('excludes unsure, stale-hash, missing-evidence, and invalid evidence from current agreement', () => {
@@ -71,7 +85,14 @@ describe('feedback accuracy maintainer report', () => {
         row({ sun_accuracy: 'not_sunny', sun_exposure_percent: 80, public_sun_verdict: 'amber' }),
         row({ sun_accuracy: 'unsure' }),
         row({ geometry_input_hash: OLD_HASH }),
-        row({ sun_exposure_percent: null, public_sun_verdict: null }),
+        row({
+          sun_exposure_percent: null,
+          public_sun_verdict: null,
+          weather_gated: null,
+          weather_unknown: null,
+          geometry_input_hash: null,
+        }),
+        row({ sun_exposure_percent: null, public_sun_verdict: 'amber' }),
         row({ weather_gated: true, weather_unknown: true }),
       ],
     });
@@ -83,21 +104,77 @@ describe('feedback accuracy maintainer report', () => {
       unsure_count: 1,
       stale_hash_count: 1,
       legacy_unscored_count: 1,
-      invalid_evidence_count: 1,
+      invalid_evidence_count: 2,
       representative_wrong_windows: ['12:00-12:59Z'],
     });
   });
 
-  it('sorts by disagreement rate, count, recency, and stable identity', () => {
+  it('enforces minimum sample count for venue and area rankings', () => {
+    const report = buildFeedbackAccuracyReport({
+      venues,
+      generatedAt: '2026-08-06T12:00:00.000Z',
+      minimumSampleCount: 2,
+      feedback: [
+        row({ venue_id: '1', venue_slug: 'test-venue-sunny', sun_accuracy: 'not_sunny' }),
+        row({ venue_id: '2', venue_slug: 'second', sun_accuracy: 'not_sunny' }),
+        row({ venue_id: '3', venue_slug: 'third', sun_accuracy: 'not_sunny' }),
+      ],
+    });
+
+    expect(report.venues).toEqual([]);
+    expect(report.areas).toHaveLength(1);
+    expect(report.areas[0]).toMatchObject({
+      area: 'Haga',
+      current_sample_count: 2,
+      disagreement_count: 2,
+      venues: [
+        {
+          venue_id: '2',
+          venue_slug: 'second',
+          venue_name: 'Second',
+          disagreement_count: 1,
+        },
+        {
+          venue_id: '3',
+          venue_slug: 'third',
+          venue_name: 'Third',
+          disagreement_count: 1,
+        },
+      ],
+    });
+  });
+
+  it('sorts by disagreement rate, count, latest disagreeing feedback, and stable identity', () => {
     const report = buildFeedbackAccuracyReport({
       venues,
       generatedAt: '2026-08-06T12:00:00.000Z',
       feedback: [
-        row({ venue_id: '1', venue_slug: 'test-venue-sunny', sun_accuracy: 'not_sunny', user_timestamp: '2026-08-06T12:00:00.000Z' }),
-        row({ venue_id: '2', venue_slug: 'second', sun_accuracy: 'not_sunny', user_timestamp: '2026-08-06T13:00:00.000Z' }),
+        row({
+          venue_id: '1',
+          venue_slug: 'test-venue-sunny',
+          sun_accuracy: 'not_sunny',
+          user_timestamp: '2026-08-06T12:00:00.000Z',
+        }),
+        row({
+          venue_id: '1',
+          venue_slug: 'test-venue-sunny',
+          sun_accuracy: 'sunny',
+          user_timestamp: '2026-08-06T14:00:00.000Z',
+        }),
+        row({
+          venue_id: '2',
+          venue_slug: 'second',
+          sun_accuracy: 'not_sunny',
+          user_timestamp: '2026-08-06T13:00:00.000Z',
+        }),
       ],
     });
 
     expect(report.venues.map((venue) => venue.venue_id)).toEqual(['2', '1']);
+    expect(report.venues.map((venue) => venue.latest_disagreeing_feedback_at)).toEqual([
+      '2026-08-06T13:00:00.000Z',
+      '2026-08-06T12:00:00.000Z',
+    ]);
+    expect(report.venues[1].latest_feedback_at).toBe('2026-08-06T14:00:00.000Z');
   });
 });
