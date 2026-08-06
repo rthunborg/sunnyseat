@@ -551,6 +551,12 @@ Codex GPT-5
   Alt review kept one Med evidence gap open because fresh Aug 6 v3 exact-size visual captures are
   still pending; the automatable color-evidence portion was addressed by adding rendered
   Playwright computed-style assertions for the skip and next action buttons.
+- 2026-08-06 action hierarchy v3 visual review: fresh exact-size mobile and desktop captures for
+  `coach-mark-first` and `coach-mark-middle` passed. Geometry showed the centered skip row,
+  split Back/Next row, no overlap/wrapping/clipping, and stable touch targets; color evidence
+  matched the intended hierarchy with the muted evergreen Next action, surface-cream Next text,
+  text-primary Skip text, and the translucent error-derived Skip treatment now also covered by
+  Playwright computed-color assertions.
 
 ### Completion Notes List
 
@@ -616,6 +622,10 @@ Codex GPT-5
 - `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260805-skip-guide-refinement-v2/coach-mark-first-desktop-20260805-skip-guide-refinement-v2.png`
 - `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260805-skip-guide-refinement-v2/coach-mark-middle-mobile-20260805-skip-guide-refinement-v2.png`
 - `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260805-skip-guide-refinement-v2/coach-mark-middle-desktop-20260805-skip-guide-refinement-v2.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260806-action-hierarchy-v3/coach-mark-first-mobile-20260806-action-hierarchy-v3.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260806-action-hierarchy-v3/coach-mark-first-desktop-20260806-action-hierarchy-v3.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260806-action-hierarchy-v3/coach-mark-middle-mobile-20260806-action-hierarchy-v3.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/20260806-action-hierarchy-v3/coach-mark-middle-desktop-20260806-action-hierarchy-v3.png`
 - `project-context.md`
 - `nextjs-app/app/globals.css`
 - `nextjs-app/docs/design/DESIGN.md`
@@ -685,6 +695,9 @@ Codex GPT-5
 - 2026-08-06: Applied latest human action-hierarchy feedback: centered the skip pill, split
   Back/Next navigation to far-left/far-right, introduced the documented action-progress evergreen
   token pair for Next, and expanded component/E2E geometry/token assertions.
+- 2026-08-06: Closed the alt visual-evidence gap with fresh exact-size v3 captures for both
+  coach states on mobile and desktop; geometry/color hierarchy passed, with computed-color
+  Playwright assertions covering the action treatments.
 
 ### Review Findings
 
@@ -695,7 +708,7 @@ Codex GPT-5
 - [x] [Review][Patch][Med] Mobile venue-list step can anchor to a collapsed or inert sheet [nextjs-app/components/custom/sheets/MobileBottomSheet.tsx:394]
 - [x] [Review][Patch][Med] Coach legend swatches do not match the real map pins [nextjs-app/components/custom/coach-tour/FirstRunCoachMarkGuide.tsx:517]
 - [x] [Review][Patch][Med] Footer layout can wrap the clearer skip button below the Back/Next controls instead of keeping it at the same action height and furthest right as requested — `FirstRunCoachMarkGuide.tsx` changes the actions row to `flex flex-wrap items-center justify-end gap-2 pt-1`, keeps the Back/Next group, then appends the longer `Hoppa över guide` pill with `ml-auto`; in the 352px coach-card width this can exceed one row on both mobile and desktop. Superseded visual-resolution note (2026-08-06): the intermediate right-aligned skip-row candidate is no longer current. Latest human feedback centers the skip pill in its own row, uses an error-derived light tint, and splits Back/Next with `justify-between`; focused component/E2E geometry gates now assert that contract. [nextjs-app/components/custom/coach-tour/FirstRunCoachMarkGuide.tsx:465]
-- [ ] [Alt Review][Patch][Med] Evidence gap remains until fresh Aug 6 v3 exact-size visual captures are produced and reviewed. Automatable rendered-color assertions were added for the default action buttons, but visual evidence is not resolved by this patch and must remain pending fresh v3 captures.
+- [x] [Alt Review][Patch][Med] Evidence gap resolved: fresh Aug 6 v3 exact-size visual captures passed for `coach-mark-first` and `coach-mark-middle` on mobile and desktop. The captures verify the centered skip row, split Back/Next row, no overlap/wrapping/clipping, and intended color hierarchy; Playwright computed-color assertions now cover the default action treatments for Next and Skip.
 
 ## Story File Audit
 
