@@ -482,3 +482,184 @@ No Story 12.8 review finding was deferred.
 5. Provide or approve nextjs-app/docs/design/references/screens/desktop/map-selected-time-closed.png.
 
 **Next:** After resolving the visual gate, rerun $auto-bmad epic --epic 12; the pipeline will resume Story 12.14 Phase 5, then run post-dev coverage, Tier A, epic gates, Tier B integration review, and local finalization.
+
+## Report — 2026-08-07T19:50:17Z (halted — needs-human)
+
+**Epic:** `12` — 14 stories.
+**Branch:** `epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene` (HEAD `e58cd5a`).
+**Pipeline status:** Epic 12 implementation, automated verification, manual visual acceptance, two-pass Tier-B integration review, and E8b closing artifacts are complete locally. Final Git staging/commits are blocked because the Codex approval/usage quota rejected the required workspace Git write until 2026-08-12 18:30. The trace gate remains FAIL at its two-iteration cap, so the epic is caveated and not launch-ready; git mode is local and no push/PR was attempted.
+**Continues:** 2026-08-07T14:50:25Z halted report at HEAD 18ee246; resumed after the user's blanket manual-visual authorization and landed Story 12.14, gate remediation, and both integration-review passes.
+
+**Summary:** All 13 fresh Epic 12 stories landed on the epic branch (Story 12.1 was pre-existing done). The assembled app now has persisted real-scale geometry/weather reads, shared live venue identity/visibility, public sun presentation with internal-only confidence, selected-time availability, media renditions/fallbacks, bounded detail prefetch, row-quantized mobile sheet, coach guide, About/trust copy, feedback accuracy tooling, dev-only venue editing, and console/operational hardening. Typecheck, lint, and 213 Vitest files / 1,960 tests are green. Tier-B iteration 2 converged with no new surviving findings and security 0/0/0. Protected production/Supabase evidence remains outstanding, and final Git closeout is blocked by the approval quota.
+
+**Timing:** started 2026-07-18T11:27:25Z; completed in progress — elapsed 488h 22m (≈64h 26m AI-run, ≈423h 56m human/idle wait); resumed 10×.
+
+**Stories:**
+1. 12-1 provider-hours policy — pre-existing done; provider-neutral/no-Google-durable-hours policy retained
+2. 12-2 feedback accuracy loop — landed; review; server-owned evidence verification and reporting hardened
+3. 12-3 persisted real-scale day series — landed; review; protected 42+ venue cold-p95 and Production-environment proof outstanding
+4. 12-4 console hygiene — landed; done; hydration/MapLibre console contract guarded
+5. 12-5 dev-only venue editor — landed; done; localhost/dev authorization, bounds, visibility, geometry, and media guards hardened
+6. 12-6 simplified public pin model — landed; review; amber percentage vs grey no-number contract
+7. 12-7 live venue resolver — landed; review; protected visibility migration/type proof outstanding
+8. 12-8 About/legend trust copy — landed; done; public accuracy/confidence framing corrected
+9. 12-9 row-quantized mobile sheet — landed; review; real row-count/gesture behavior covered
+10. 12-10 bounded venue-detail prefetch — landed; done; exact-key placeholder and candidate-scoped cooldown hardened
+11. 12-11 first-run coach guide — landed; done; full-concurrency future-date response wait remains a stabilization item
+12. 12-12 Supabase venue media — landed; review; protected Storage migration/policy proof outstanding
+13. 12-13 internal-only confidence — landed; review; public confidence surfaces removed
+14. 12-14 selected-time availability — landed; review; manual mobile/desktop open/closed visuals accepted and canonical review gate passed
+
+**Skipped (already done):** 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours (already done before this run)
+
+**Integration review:** Tier B ran two complete chunked iterations over the whole epic with 6 logical lenses (ab-deep + independent ab-alt-deep) and a single dedicated security review. Iteration 1 triaged 32 patches (9 High, 23 Med; 0 Decisions/Defers), all fixed and verified. Iteration 2 covered 17 chronological chunks: primary 0 blind / 1 edge / 7 auditor candidates; secondary 10 blind / 10 edge / 7 auditor; security HIGH 0 / MEDIUM 0 / LOW 0. Joint triage retained 0 new findings and dismissed 17 final-tree candidates (6 artifact-only, 9 false-positive/current-contract, 2 duplicate/already-fixed). Gate exit-clean: 0 non-deferred, all 6 lenses ran. convergence_unverified remains sticky from earlier high-severity history, so any eventual PR must be draft/caveated.
+
+**Epic gate:** Trace FAIL at the 2-pass remediation cap: 21 material rows = 15 FULL, 6 PARTIAL, 0 UNCOVERED; remaining gaps are protected production p95/no-recompute proof, protected GitHub Production environment/live Supabase visibility migration, protected Storage-policy proof, concurrent visibility/cache evidence, and the Story 12.11 full-concurrency stability lane. NFR: Performance FAIL, Security FAIL, Reliability/Maintainability/Deployability CONCERNS because protected/live evidence is absent. Test review: 82/100 Grade B, Request Changes. These are launch gates, not claims of missing implementation.
+
+**TEA:** Epic-level trace, NFR, and test-review artifacts are complete. Gate remediation added targeted coverage in two iterations. Final local checks: npx tsc --noEmit PASS; npx eslint . --quiet PASS; npx vitest run PASS (213 files / 1,960 tests). Story 12.14 focused Playwright passed 8/8 and its canonical story-review gate passed after user-authorized manual visual evidence.
+
+**UAT:**
+1. Setup: run `cd C:\Users\Rasmus\sunnyseat\nextjs-app && npm run dev`; use mobile 390x844 and desktop 1440x900, with Console/Network open -> app serves locally without hydration errors or new SunnySeat/MapLibre main-thread warnings
+2. Clear onboarding state on mobile `/` -> welcome overlay appears once over the map; choose `Hoppa till Göteborgs centrum` -> map, pins, and list become usable
+3. Returning-user desktop `/?_time=16:30` -> map/list/planner load without onboarding and no venue request contains stale date `2026-05-20`
+4. Visual pass `/?_state=map-primary&_time=14:00` mobile and `/?_time=16:30` desktop -> planner, map, pins, sheet/panel, Swedish list, and navigation match their canonical viewport layout without clipping
+5. Inspect map pins visually and in the accessibility tree -> amber pins show sun + seating percentage + sunny label; grey shade/cloud pins show cloud/no number + not-sunny label; every pin is keyboard-activatable with visible focus and >=44x44 target
+6. Open `/?_state=map-with-obscured-venue&_time=14:00` on both viewports -> obscured venue is grey/no-number and selected copy says `Sol bakom moln` without amber or confidence wording
+7. Open `/?_state=map-panel-venues&_time=14:00` and `/favoriter?_state=favourites-tab&_time=14:00` -> genuinely sunny rows sort ahead of grey rows; no visible/hidden `Säkerhet`, `Confidence`, `~NN%`, or secondary confidence percentage appears
+8. Open sunny and obscured venue-detail forced states on mobile/desktop -> selected-time hours, distance/address, route, feedback/reviews, and correct sunny/grey hero render; no confidence metadata appears visibly or in accessibility names
+9. From `/?venue=test-venue-sunny&_time=14:00`, choose `Visa Rutt` -> route overlay has usable directions/fallback and no empty separator/confidence number; uncertainty copy for `cafe-halvvags` remains qualitative only
+10. Open feedback state, answer and submit -> thank-you state appears with no public confidence; Network payload contains server-verifiable prediction evidence including the hidden internal fields
+11. Drag the mobile time slider and select tomorrow -> badge follows the thumb, time commits on release, calendar restores focus, same-date scrub produces zero venue/weather requests, and date change produces exactly one venue-list request
+12. Exercise `_sheetRows=0|1|3|max` -> resting sheet shows only complete rows, tracks finger without a map gap, scrolls internally at max, retains height when selecting a venue, and ArrowUp/ArrowDown moves one row with reduced-motion respected
+13. Open `venue-photo-loaded` and `venue-photo-fallback` states on mobile/desktop -> list/card/detail use card/hero renditions when loaded and branded initials/placeholders with no broken-image icon on failure
+14. Observe detail prefetch after initial settle -> at most six candidates and concurrency two; opening a prefetched/selected-intent venue duplicates no request, switching venue updates the surface/URL, and a throttled cold detail shows accessible in-place loading before replacement
+15. After 21:00 Stockholm time, blur the live planner -> visible/accessibility time remains the true live value while only the thumb is clamped; shaded/night detail never fabricates a stale percentage
+16. Open `/about` on mobile/desktop -> legend precedes algorithm; amber 70% is explained as seating-area exposure, grey is no-number, confidence is internal-only, data sources are accurate, no fake 85%/Google-hours claim appears, and navigation/focus are accessible
+17. Run first-guide, middle-guide, Settings relaunch, keyboard trap/Escape, reduced-motion, and cross-tab seen-state flows -> guide anchors to mounted controls, restores Settings focus, never opens feedback/detail during list guidance, and syncs dismissal
+18. At 14:00, Kafé Magasinet is discoverable/open; at 09:00 partial search `Kafé` excludes it but exact `Kafé Magasinet` remains labelled `Stängt vid vald tid` and opens detail without a pin/open claim
+19. Open `/favoriter?_state=map-selected-time-closed&_time=09:00` -> saved closed venue remains accessible/openable, stays labelled closed, and does not regain a map pin; unknown-hours Brygghuset Lerum remains visible without an open/closed claim
+20. Request `/api/venues` with 51 ids -> 400 at-most-50; exercise feedback 201 sunny/grey/weather-gated bodies plus contradictory 400, missing 404, and venueId mismatch 409 paths
+21. With migrated disposable/live Supabase, verify public ID/slug reviews/feedback identity, hidden/deleted/collision non-leaking failures, no-store reads, absent/public/hidden/public transitions, and precompute hidden projection
+22. Run without and with `SUNNYSEAT_ADMIN=dev`, plus a production build -> editor is absent when disabled, production route is hard-denied, and localhost editor validates coordinate bounds, polygons, visibility, tags/description, managed media, reset, and cache contracts
+23. Protected Story 12.7: apply `20260718214954_add_public_venue_visibility.sql`, regenerate types, and inspect schema/data -> `hidden` is boolean NOT NULL DEFAULT false and live queries have no 42703/contract diff
+24. Protected Story 12.12: apply Storage migration and run `node scripts/upload-venue-media.mjs ...` with optimized WebP -> exact card/hero paths upload create-only without secret output; duplicates, wrong names/types/sizes, browser writes, and unauthorized policy paths fail
+25. Protected Story 12.3: cold-request the 42+ venue central viewport -> p95 <= ~5s with persisted geometry and zero request-path provider recompute; missing current hash returns machine-readable 503; weather re-gates unchanged geometry; scheduled coverage spans today through max future + 1
+26. Protected operations: verify geometry/weather RPC/table grants are service-role-only, GitHub Production configuration exists without committed secrets, retired warmer is absent, feedback accuracy report emits ranked evidence, and `SUNNYSEAT_COVERAGE_CAP` is absent in Vercel
+27. Final regression: rerun typecheck, quiet lint, full Vitest, and focused Epic 12 Playwright/request-count/visual states -> all pass or any failure is recorded with exact command/scope
+
+**Overrides:** User-approved dependency order; user authorized manual visual acceptance for all remaining stories and required mobile/desktop resources to accompany validation asks.
+
+**Open questions:** (none)
+
+**Deferred work:**
+1. [12-3] Capture protected-production 42+ venue cold-p95/no-recompute evidence and protected GitHub Production configuration proof
+2. [12-7] Apply the visibility migration, regenerate Supabase types, and verify the protected live/disposable route contract
+3. [12-12] Apply the Storage migration and verify protected service-role upload, public reads, create-only behavior, and no browser writes
+4. [12-11] Stabilize or narrow the mobile future-date exact-response wait under full-suite concurrency
+Epic-end reconciliation marked 4 missed completions; 10 total resolved entries were atomically moved to deferred-work-resolved.md; 95 unresolved/conditional entries remain active.
+
+**Auto-decided (epic mode):**
+1. [12-7] Adopted canonical `hidden boolean not null default false` after schema probes found the referenced visibility columns absent; no protected database mutation was performed
+2. [12-5] Retained the accessibility-safe public pin color with explicit visual rebaseline/acceptance evidence
+3. [12-11] Preserved enough Settings state after guide close so focus returns to `Visa guide igen` rather than the map fallback
+
+**Planning drift:** Structural: Story 12.1 Google-hours framing became a provider-neutral weekly-hours/manual-review workflow; Story 12.10 broad prefetch wording narrowed to initial-settle-only, six candidates, concurrency two, no restart/10 km expansion; Story 12.14 closed-venue policy became exact-name closed search plus openable grey favourites. Detail/product drift: 12.8/12.13 moved all confidence internal. Execution/operational drift: 12.7 mocks/local proof could not establish migrated live truth, and protected launch evidence became epic-boundary follow-up rather than story-local finish work. Re-sync epics/PRD/architecture before the next feature epic; use correct-course if the structural policy changes are carried forward.
+
+**⚠️ Needs human:**
+1. Restore/approve Git write capacity: the required staging approval was rejected because the Codex usage/approval quota is exhausted until 2026-08-12 18:30; closing docs/report/state are therefore uncommitted
+2. Run and approve the protected Story 12.3 production performance/coverage/environment evidence
+3. Apply and verify the Story 12.7 visibility migration/types against protected Supabase
+4. Apply and verify the Story 12.12 Storage migration/policies against protected Supabase
+5. Resolve the Story 12.11 full-concurrency future-date wait and approve the eight stories still at BMAD review
+
+**Next:** When Git staging approval becomes available, explicitly stage only the E8a/E8b artifacts and report/state files (preserving the unrelated map-primary/evidence/validation working-tree items), commit the closing docs and pipeline report, run the caveated local finalize plan (no story status flips), mark the epic anchor done, and commit final state. Protected evidence must then be collected and the epic gates re-run before launch approval.
+
+## Report — 2026-08-07T20:42:19Z (final - caveated)
+
+**Epic:** `12` — 14 stories.
+**Branch:** `epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene` (HEAD `d5200a4`).
+**Pipeline status:** Local caveated completion: all Epic 12 implementation, automated verification, manual visual evidence, two-pass integration review, gate artifacts, project-context refresh, deferred-work archive, and retrospective are committed. Git mode is local, so no push or PR was attempted. Trace remains FAIL at the two-pass cap and convergence_unverified remains sticky; therefore no BMAD story statuses are flipped and the epic is not launch-ready.
+**Continues:** 2026-08-07T19:50:17Z halted report at HEAD e58cd5a; resumed after explicit Git staging/final-commit approval.
+
+**Summary:** All 13 fresh Epic 12 stories landed on the epic branch and Story 12.1 was pre-existing done. The final application tree passes typecheck, quiet lint, and 213 Vitest files / 1,960 tests. Tier-B iteration 2 converged with zero new surviving findings and dedicated security review 0/0/0. The remaining work is protected production/Supabase evidence, one Story 12.11 concurrency stabilization item, and human approval of the eight review stories.
+
+**Timing:** started 2026-07-18T11:27:25Z; completed in progress — elapsed 489h 14m (≈64h 26m AI-run, ≈424h 48m human/idle wait); resumed 11×.
+
+**Stories:**
+1. 12-1 provider-hours policy â€” pre-existing done; provider-neutral/no-Google-durable-hours policy retained
+2. 12-2 feedback accuracy loop â€” landed; review; server-owned evidence verification and reporting hardened
+3. 12-3 persisted real-scale day series â€” landed; review; protected 42+ venue cold-p95 and Production-environment proof outstanding
+4. 12-4 console hygiene â€” landed; done; hydration/MapLibre console contract guarded
+5. 12-5 dev-only venue editor â€” landed; done; localhost/dev authorization, bounds, visibility, geometry, and media guards hardened
+6. 12-6 simplified public pin model â€” landed; review; amber percentage vs grey no-number contract
+7. 12-7 live venue resolver â€” landed; review; protected visibility migration/type proof outstanding
+8. 12-8 About/legend trust copy â€” landed; done; public accuracy/confidence framing corrected
+9. 12-9 row-quantized mobile sheet â€” landed; review; real row-count/gesture behavior covered
+10. 12-10 bounded venue-detail prefetch â€” landed; done; exact-key placeholder and candidate-scoped cooldown hardened
+11. 12-11 first-run coach guide â€” landed; done; full-concurrency future-date response wait remains a stabilization item
+12. 12-12 Supabase venue media â€” landed; review; protected Storage migration/policy proof outstanding
+13. 12-13 internal-only confidence â€” landed; review; public confidence surfaces removed
+14. 12-14 selected-time availability â€” landed; review; manual mobile/desktop open/closed visuals accepted and canonical review gate passed
+
+**Skipped (already done):** 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours (already done before this run)
+
+**Integration review:** Tier B completed two chunked whole-epic iterations with six logical lenses plus dedicated security. Iteration 1 persisted and fixed 32 patches (9 High, 23 Med). Iteration 2 reviewed 17 chronological chunks, retained zero new findings after joint triage, and exited clean with all six lenses complete. Security findings: HIGH 0 / MEDIUM 0 / LOW 0. The earlier high-severity history keeps convergence_unverified sticky, so any future PR must be draft/caveated.
+
+**Epic gate:** Trace FAIL at remediation cap: 21 material rows = 15 FULL, 6 PARTIAL, 0 UNCOVERED. Remaining gaps require protected production p95/no-recompute proof, protected GitHub environment/live visibility migration, protected Storage-policy proof, concurrent visibility/cache evidence, and Story 12.11 full-concurrency stability. NFR: Performance FAIL, Security evidence FAIL, Reliability/Maintainability/Deployability CONCERNS. Test review: 82/100 Grade B, Request Changes.
+
+**TEA:** Epic trace/NFR/test-review artifacts and two remediation iterations are committed. Final local verification: npx tsc --noEmit PASS; npx eslint . --quiet PASS; npx vitest run PASS (213 files / 1,960 tests). Story 12.14 focused Playwright passed 8/8 and the canonical story-review gate passed with user-authorized manual mobile/desktop visual evidence.
+
+**UAT:**
+1. Setup: run `cd C:\Users\Rasmus\sunnyseat\nextjs-app && npm run dev`; use mobile 390x844 and desktop 1440x900, with Console/Network open -> app serves locally without hydration errors or new SunnySeat/MapLibre main-thread warnings
+2. Clear onboarding state on mobile `/` -> welcome overlay appears once over the map; choose `Hoppa till GÃ¶teborgs centrum` -> map, pins, and list become usable
+3. Returning-user desktop `/?_time=16:30` -> map/list/planner load without onboarding and no venue request contains stale date `2026-05-20`
+4. Visual pass `/?_state=map-primary&_time=14:00` mobile and `/?_time=16:30` desktop -> planner, map, pins, sheet/panel, Swedish list, and navigation match their canonical viewport layout without clipping
+5. Inspect map pins visually and in the accessibility tree -> amber pins show sun + seating percentage + sunny label; grey shade/cloud pins show cloud/no number + not-sunny label; every pin is keyboard-activatable with visible focus and >=44x44 target
+6. Open `/?_state=map-with-obscured-venue&_time=14:00` on both viewports -> obscured venue is grey/no-number and selected copy says `Sol bakom moln` without amber or confidence wording
+7. Open `/?_state=map-panel-venues&_time=14:00` and `/favoriter?_state=favourites-tab&_time=14:00` -> genuinely sunny rows sort ahead of grey rows; no visible/hidden `SÃ¤kerhet`, `Confidence`, `~NN%`, or secondary confidence percentage appears
+8. Open sunny and obscured venue-detail forced states on mobile/desktop -> selected-time hours, distance/address, route, feedback/reviews, and correct sunny/grey hero render; no confidence metadata appears visibly or in accessibility names
+9. From `/?venue=test-venue-sunny&_time=14:00`, choose `Visa Rutt` -> route overlay has usable directions/fallback and no empty separator/confidence number; uncertainty copy for `cafe-halvvags` remains qualitative only
+10. Open feedback state, answer and submit -> thank-you state appears with no public confidence; Network payload contains server-verifiable prediction evidence including the hidden internal fields
+11. Drag the mobile time slider and select tomorrow -> badge follows the thumb, time commits on release, calendar restores focus, same-date scrub produces zero venue/weather requests, and date change produces exactly one venue-list request
+12. Exercise `_sheetRows=0|1|3|max` -> resting sheet shows only complete rows, tracks finger without a map gap, scrolls internally at max, retains height when selecting a venue, and ArrowUp/ArrowDown moves one row with reduced-motion respected
+13. Open `venue-photo-loaded` and `venue-photo-fallback` states on mobile/desktop -> list/card/detail use card/hero renditions when loaded and branded initials/placeholders with no broken-image icon on failure
+14. Observe detail prefetch after initial settle -> at most six candidates and concurrency two; opening a prefetched/selected-intent venue duplicates no request, switching venue updates the surface/URL, and a throttled cold detail shows accessible in-place loading before replacement
+15. After 21:00 Stockholm time, blur the live planner -> visible/accessibility time remains the true live value while only the thumb is clamped; shaded/night detail never fabricates a stale percentage
+16. Open `/about` on mobile/desktop -> legend precedes algorithm; amber 70% is explained as seating-area exposure, grey is no-number, confidence is internal-only, data sources are accurate, no fake 85%/Google-hours claim appears, and navigation/focus are accessible
+17. Run first-guide, middle-guide, Settings relaunch, keyboard trap/Escape, reduced-motion, and cross-tab seen-state flows -> guide anchors to mounted controls, restores Settings focus, never opens feedback/detail during list guidance, and syncs dismissal
+18. At 14:00, KafÃ© Magasinet is discoverable/open; at 09:00 partial search `KafÃ©` excludes it but exact `KafÃ© Magasinet` remains labelled `StÃ¤ngt vid vald tid` and opens detail without a pin/open claim
+19. Open `/favoriter?_state=map-selected-time-closed&_time=09:00` -> saved closed venue remains accessible/openable, stays labelled closed, and does not regain a map pin; unknown-hours Brygghuset Lerum remains visible without an open/closed claim
+20. Request `/api/venues` with 51 ids -> 400 at-most-50; exercise feedback 201 sunny/grey/weather-gated bodies plus contradictory 400, missing 404, and venueId mismatch 409 paths
+21. With migrated disposable/live Supabase, verify public ID/slug reviews/feedback identity, hidden/deleted/collision non-leaking failures, no-store reads, absent/public/hidden/public transitions, and precompute hidden projection
+22. Run without and with `SUNNYSEAT_ADMIN=dev`, plus a production build -> editor is absent when disabled, production route is hard-denied, and localhost editor validates coordinate bounds, polygons, visibility, tags/description, managed media, reset, and cache contracts
+23. Protected Story 12.7: apply `20260718214954_add_public_venue_visibility.sql`, regenerate types, and inspect schema/data -> `hidden` is boolean NOT NULL DEFAULT false and live queries have no 42703/contract diff
+24. Protected Story 12.12: apply Storage migration and run `node scripts/upload-venue-media.mjs ...` with optimized WebP -> exact card/hero paths upload create-only without secret output; duplicates, wrong names/types/sizes, browser writes, and unauthorized policy paths fail
+25. Protected Story 12.3: cold-request the 42+ venue central viewport -> p95 <= ~5s with persisted geometry and zero request-path provider recompute; missing current hash returns machine-readable 503; weather re-gates unchanged geometry; scheduled coverage spans today through max future + 1
+26. Protected operations: verify geometry/weather RPC/table grants are service-role-only, GitHub Production configuration exists without committed secrets, retired warmer is absent, feedback accuracy report emits ranked evidence, and `SUNNYSEAT_COVERAGE_CAP` is absent in Vercel
+27. Final regression: rerun typecheck, quiet lint, full Vitest, and focused Epic 12 Playwright/request-count/visual states -> all pass or any failure is recorded with exact command/scope
+
+**Overrides:** User-approved dependency order; manual visual acceptance authorized for all remaining stories with mobile/desktop resources supplied for validation.
+
+**Open questions:** (none)
+
+**Deferred work:**
+1. [12-3] Capture protected-production 42+ venue cold-p95/no-recompute evidence and protected GitHub Production configuration proof
+2. [12-7] Apply the visibility migration, regenerate Supabase types, and verify the protected live/disposable route contract
+3. [12-12] Apply the Storage migration and verify protected service-role upload, public reads, create-only behavior, and no browser writes
+4. [12-11] Stabilize or narrow the mobile future-date exact-response wait under full-suite concurrency
+Epic-end reconciliation marked 4 missed completions; 10 total resolved entries were archived; 95 unresolved/conditional entries remain active.
+
+**Auto-decided (epic mode):**
+1. [12-7] Adopted canonical `hidden boolean not null default false` after schema probes found the referenced visibility columns absent; no protected database mutation was performed
+2. [12-5] Retained the accessibility-safe public pin color with explicit visual rebaseline/acceptance evidence
+3. [12-11] Preserved enough Settings state after guide close so focus returns to `Visa guide igen` rather than the map fallback
+
+**Planning drift:** Structural: provider-neutral hours replaced the historical Google-hours framing; detail prefetch narrowed to initial-settle/six candidates/concurrency two/no restart; selected-time policy retained exact-name closed search and openable grey favourites. Product: confidence became internal-only. Execution: local mocks could not establish live migrated visibility, and protected launch evidence became epic-boundary follow-up. Re-sync epics/PRD/architecture before the next feature epic.
+
+**⚠️ Needs human:**
+1. Collect and approve protected Story 12.3 production performance, coverage, grants, and GitHub-environment evidence
+2. Apply and verify the Story 12.7 visibility migration and regenerated types against protected Supabase
+3. Apply and verify the Story 12.12 Storage migration, service-role uploads, public reads, and no-browser-write policies
+4. Resolve the Story 12.11 full-concurrency future-date wait, re-run the epic gates, and approve the eight stories still at BMAD review
+
+**Next:** Commit this pipeline report, run the caveated local finalize predicate (no story status flips), mark the epic anchor done, and commit final state. Then collect protected evidence and re-run gates before launch approval.
