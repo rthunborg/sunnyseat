@@ -237,7 +237,7 @@ describe('<VenueSearchShell variant="mobile" /> top-bar controls (Story 9.6)', (
         },
       }),
     ];
-    const { getByRole, queryByText } = render(<VenueSearchShell variant="desktop" />, {
+    const { getByLabelText, getByRole, queryByText } = render(<VenueSearchShell variant="desktop" />, {
       wrapper: Wrapper,
     });
     const input = getByRole('combobox', { name: 'Sök plats' });
@@ -257,6 +257,41 @@ describe('<VenueSearchShell variant="mobile" /> top-bar controls (Story 9.6)', (
       pathname: '/',
       query: { venue: 'kafe-magasinet' },
     });
+  });
+
+  it('retains a closed exact match when the user omits accents and casing, but still filters non-full-name text', async () => {
+    vi.useFakeTimers();
+    searchState.venues = [
+      makeSearchVenue({
+        id: 'closed-venue',
+        name: 'Kafé Magasinet',
+        slug: 'kafe-magasinet',
+        openingHours: {
+          '1': { open: '18:00', close: '22:00' },
+          '2': { open: '18:00', close: '22:00' },
+          '3': { open: '18:00', close: '22:00' },
+          '4': { open: '18:00', close: '22:00' },
+          '5': { open: '18:00', close: '22:00' },
+          '6': { open: '18:00', close: '22:00' },
+          '7': { open: '18:00', close: '22:00' },
+        },
+      }),
+    ];
+    const { getByLabelText, getByRole, queryByText } = render(<VenueSearchShell variant="desktop" />, {
+      wrapper: Wrapper,
+    });
+    const input = getByRole('combobox', { name: 'Sök plats' });
+
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'kafe magasinet ' } });
+    await actFlushSearchDebounce();
+    expect(
+      getByLabelText('Kafé Magasinet, Inom Vallgraven, Stängt vid vald tid'),
+    ).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: 'magasinet' } });
+    await actFlushSearchDebounce();
+    expect(queryByText('Kafé Magasinet')).toBeNull();
   });
 });
 

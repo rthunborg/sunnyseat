@@ -301,6 +301,12 @@ GPT-5 Codex (auto-bmad deep delegate).
   - `.\scripts\run-sh.ps1 scripts/visual-validate.sh map-selected-time-closed "/favoriter?_state=map-selected-time-closed&_time=09:00" desktop`
 - PASS with escalation for Git Bash home access: `$env:VISUAL_VALIDATE_PROVIDER='none'; $env:ALLOW_MANUAL_VISUAL_VALIDATION='1'; .\scripts\run-sh.ps1 scripts/story-review.sh 12-14-hide-closed-venues-open-at-selected-time-filter` -> lint, typecheck, Vitest 213 files / 1938 tests, manual visual wrapper, sprint-status review update. Validation log: `_bmad-output/implementation-artifacts/validation/12-14-hide-closed-venues-open-at-selected-time-filter-review-20260807-171735.log`.
 - NOTE: `story-review.sh` also extracted the unrelated `feedback` screen from the story's `_state=feedback` cautionary note and ran it in manual mode; this repeated the Story 12.11 negative-scope extraction hazard but did not change product validation.
+- PASS (automate baseline before coverage edits): `npx tsc --noEmit`
+- PASS (automate baseline before coverage edits): `npx eslint . --quiet`
+- PASS (automate focused new coverage): `npx vitest run test/unit/utils/opening-hours-selected-time.atdd.test.ts test/components/VenueSearchShell.test.tsx` (2 files, 21 tests)
+- PASS (automate focused Story 12.14 regression): `npx vitest run test/unit/utils/opening-hours-selected-time.atdd.test.ts test/unit/api/venues-route-candidate-cap.atdd.test.ts test/unit/api/venues-route.test.ts test/components/VenueCard.test.tsx test/components/VenueDetailContent.test.tsx test/components/FavouritesList.test.tsx test/components/VenueSearchShell.test.tsx test/components/VenueSearchCombobox.test.tsx test/components/MapView.test.tsx` (9 files, 250 tests)
+- PASS (automate post-edit static checks): `npx tsc --noEmit`
+- PASS (automate post-edit static checks): `npx eslint . --quiet`
 
 ### Completion Notes List
 
@@ -313,6 +319,8 @@ GPT-5 Codex (auto-bmad deep delegate).
 - Completed the explicitly authorized manual visual path for `map-selected-time-open` and `map-selected-time-closed` on mobile and desktop; no reference PNGs were promoted or replaced.
 - Exact closed by-name search retention remains covered by E2E/component tests; it has no separate `project-context.md` visual route.
 - Story review transition completed through the canonical `scripts/story-review.sh` gate using provider-neutral/manual visual validation.
+- Expanded selected-time utility ATDD coverage for malformed intervals and invalid selected instants so availability fails closed without fabricated open copy.
+- Expanded closed exact-name search coverage for accent/case-normalized full-name matching while preserving filtering for non-full-name text.
 
 ### File List
 
@@ -343,6 +351,7 @@ GPT-5 Codex (auto-bmad deep delegate).
 - `nextjs-app/test/components/VenueCard.test.tsx`
 - `nextjs-app/test/components/VenueDetailContent.test.tsx`
 - `nextjs-app/test/e2e/story-12-14-selected-time-availability.atdd.spec.ts`
+- `_bmad-output/test-artifacts/automation-summary.md`
 - `_bmad-output/implementation-artifacts/validation/story-12-14-manual-visual-20260807-170859/manual-visual-acceptance.md`
 - `_bmad-output/implementation-artifacts/validation/story-12-14-manual-visual-20260807-170859/map-selected-time-open-mobile.png`
 - `_bmad-output/implementation-artifacts/validation/story-12-14-manual-visual-20260807-170859/map-selected-time-open-desktop.png`

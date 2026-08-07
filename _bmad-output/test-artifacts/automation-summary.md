@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-08-06T20:27:56+02:00'
+lastSaved: '2026-08-07T17:32:19+02:00'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-12.md'
@@ -1210,5 +1210,60 @@ Continue the orchestrator-controlled Tier A review, trace-advisory, UAT, and can
 ## Next Recommended Workflow
 
 Continue orchestrator-owned review/test-review/trace gates as needed. Story 12.8 does not need additional API, contract, fixture, or broad E2E automation from this TEA pass.
+
+---
+
+# Automation Expansion Summary - Story 12.14 (Hide Closed Venues at Selected Time)
+
+## Preflight And Context
+
+- **Framework:** Vitest 4.1.4, Playwright, strict TypeScript, and ESLint are configured under `nextjs-app`; framework readiness passed.
+- **Stack:** frontend selected-instant availability logic, search/favourites/detail components, and one internal `/api/venues` candidate-cap contract.
+- **Mode:** BMad-integrated from `_bmad-output/implementation-artifacts/12-14-hide-closed-venues-open-at-selected-time-filter.md`.
+- **Execution:** sequential/local. `playwright-cli` was unavailable, so browser exploration was skipped and source/test analysis was used. No CLI browser session was opened.
+- **Scope:** post-dev coverage expansion only. Production source, visual references, sprint status, Auto-BMAD state, and git state were not changed.
+
+## Coverage Plan
+
+| Priority | Level | Target | Decision |
+| --- | --- | --- | --- |
+| P0 | Unit | Selected-instant utility should fail closed for malformed intervals and invalid instants without falling back to wall-clock time. | Added focused ATDD utility coverage. |
+| P1 | Component | Exact closed search retention should include the intended normalized full-name equality, including accent/case differences, while still rejecting non-full-name matches. | Added focused search-shell component coverage. |
+| P0 | Component/API/E2E | MapView filtering, favourites retention, detail copy, API candidate headroom, and browser no-provider paths. | Existing coverage was sufficient; reran focused Story 12.14 regression rather than duplicate. |
+
+## Generated Coverage
+
+- **UPDATED** `nextjs-app/test/unit/utils/opening-hours-selected-time.atdd.test.ts`
+  - added malformed selected-weekday interval coverage;
+  - added invalid selected-instant coverage proving no wall-clock fallback or fabricated open copy.
+- **UPDATED** `nextjs-app/test/components/VenueSearchShell.test.tsx`
+  - added closed exact-match retention for accent/case-normalized full-name input;
+  - proves a non-full-name query remains filtered when the same venue is closed.
+- **Aggregate:** +3 deterministic assertions across 2 existing test files. No new fixtures, helpers, E2E files, production code, live providers, or visual artifacts.
+
+## Validation And Gate
+
+- Baseline before edits: `npx tsc --noEmit` -> passed.
+- Baseline before edits: `npx eslint . --quiet` -> passed.
+- Focused new tests: `npx vitest run test/unit/utils/opening-hours-selected-time.atdd.test.ts test/components/VenueSearchShell.test.tsx` -> **2 files / 21 tests passed**.
+- Focused Story 12.14 regression: `npx vitest run test/unit/utils/opening-hours-selected-time.atdd.test.ts test/unit/api/venues-route-candidate-cap.atdd.test.ts test/unit/api/venues-route.test.ts test/components/VenueCard.test.tsx test/components/VenueDetailContent.test.tsx test/components/FavouritesList.test.tsx test/components/VenueSearchShell.test.tsx test/components/VenueSearchCombobox.test.tsx test/components/MapView.test.tsx` -> **9 files / 250 tests passed**.
+- Static checks after edits: `npx tsc --noEmit` -> passed; `npx eslint . --quiet` -> passed.
+
+## Assumptions, Risks, And Deferred Coverage
+
+- The story file's existing full Vitest, Playwright, and manual/provider-neutral visual validation remain the broader release-confidence baseline.
+- No new Playwright/E2E test was added because the existing Story 12.14 E2E already covers closed discovery disappearance, retained exact closed search, retained closed favourite, detail state, and no provider fan-out.
+- No Pact/CDC coverage was generated because Story 12.14 has no external provider contract change.
+
+## Definition Of Done
+
+- Existing Story 12.14 coverage was reviewed to avoid duplicate tests.
+- Two concrete negative/normalization gaps were automated at the lowest reliable level.
+- Focused new tests, focused Story 12.14 regression, typecheck, and lint passed.
+- Durable automation evidence was persisted in this summary.
+
+## Next Recommended Workflow
+
+Continue orchestrator-owned test-review/trace/finalization for Story 12.14.
 
 ---

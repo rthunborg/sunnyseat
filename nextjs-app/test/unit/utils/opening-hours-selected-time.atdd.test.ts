@@ -43,6 +43,37 @@ describe('[12.14 AC1] selected-instant venue availability', () => {
     expect(isVenueOpenAt(HOURS, new Date('2026-06-20T00:00:00.000Z'))).toBe('closed');
   });
 
+  it('treats malformed selected weekday intervals as closed instead of fabricating open copy', () => {
+    const malformedHours = {
+      '1': { open: 'not-a-time', close: '22:00' },
+      '7': { open: '18:00', close: '02:00' },
+    } as unknown as WeeklyOpeningHours;
+
+    expect(getVenueAvailabilityAt(malformedHours, new Date('2026-06-15T10:00:00.000Z'))).toEqual({
+      state: 'closed',
+    });
+    expect(
+      formatOpeningHoursAt(
+        malformedHours,
+        new Date('2026-06-15T10:00:00.000Z'),
+        'sv-SE',
+        'Öppet vid vald tid · till {time}',
+      ),
+    ).toEqual({});
+  });
+
+  it('treats an invalid selected instant as closed and never falls back to wall-clock time', () => {
+    expect(isVenueOpenAt(HOURS, new Date('not-a-real-instant'))).toBe('closed');
+    expect(
+      formatOpeningHoursAt(
+        HOURS,
+        new Date('not-a-real-instant'),
+        'sv-SE',
+        'Öppet vid vald tid · till {time}',
+      ),
+    ).toEqual({});
+  });
+
   it('formats selected-instant open copy only when the venue is open at that instant', () => {
     const open = formatOpeningHoursAt(
       HOURS,
