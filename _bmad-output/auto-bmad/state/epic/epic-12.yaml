@@ -4,10 +4,10 @@ story_key: epic-12
 epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
-status: in-progress
-updated_at: "2026-08-07T20:41:55Z"
+status: done
+updated_at: "2026-08-07T20:42:54Z"
 started_at: "2026-07-18T11:27:25Z"
-completed_at: null
+completed_at: "2026-08-07T20:42:54Z"
 active_seconds: 232000
 timing_anchor: null
 is_first_in_epic: false
@@ -20,14 +20,14 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 14
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 7, 81, 82]
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
 code_review_iterations: 2
 code_review_loop_done: true
 hitl_halt: "auto-continued (epic - no halt)"
 external_review_iterations: 0
 convergence_unverified: true
 story_trace: null
-commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc, 8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021, 66eb5d7, 7f5c709, 55bffea, e442fed, ef47622, 6483f7e, "7592112", c3673e1, 9549c7e, bc7b65b, "9346726", 2a21274, b4427d4, d5fd2f3, 5dbaee5, 5fe8bec, e0bc76b, 31d0062, 645a2c0, "3586481", 4d0a2d5, 3df41ff, 1882e29, 2f3749f, 272b46d, 26a1f1e, fa612a7, a5f6eb9, b64da80, 3432eca, baf0d8b, e1194b0, a76905f, 2fd49bb, 4eec7dd, 07b2b8a, 5441d55, 30e841e, 486afdb, e596035, d1bb55b, 2e2dc5b, e234c29, c6fe705, 24f134a, 5da0f82, 4cb5743, 3054b20, 8b83f95, 38ccb18, fa23bf2, f571337, 11325c9, 5829d10, fd970d0, 2a9da16, 6d0d44d, a5f51cc, 439cafe, 32b146e, 67ac36b, 8fedff5, 03e32a4, 9a0f45a, 7d2c676, 58d263e, 0bccfcd, 4561d28, 96bbd73, 4f2e681, 9802db8, cf68b99, 1c04e31, 13e3639, 22e43eb, 7e2a0e4, 541bf1a, d95a663, 218f96c, d4a35ec, a9beae3, 37fa1a0, 6fba046, 5f8eca0, 7da3720, 38b1eec, 18ee246, 7c1fd45, f8d5283, 8c67fe3, 590f19b, a4c2a12, ee1e646, ca0b65b, e58cd5a, d5200a4]
+commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc, 8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021, 66eb5d7, 7f5c709, 55bffea, e442fed, ef47622, 6483f7e, "7592112", c3673e1, 9549c7e, bc7b65b, "9346726", 2a21274, b4427d4, d5fd2f3, 5dbaee5, 5fe8bec, e0bc76b, 31d0062, 645a2c0, "3586481", 4d0a2d5, 3df41ff, 1882e29, 2f3749f, 272b46d, 26a1f1e, fa612a7, a5f6eb9, b64da80, 3432eca, baf0d8b, e1194b0, a76905f, 2fd49bb, 4eec7dd, 07b2b8a, 5441d55, 30e841e, 486afdb, e596035, d1bb55b, 2e2dc5b, e234c29, c6fe705, 24f134a, 5da0f82, 4cb5743, 3054b20, 8b83f95, 38ccb18, fa23bf2, f571337, 11325c9, 5829d10, fd970d0, 2a9da16, 6d0d44d, a5f51cc, 439cafe, 32b146e, 67ac36b, 8fedff5, 03e32a4, 9a0f45a, 7d2c676, 58d263e, 0bccfcd, 4561d28, 96bbd73, 4f2e681, 9802db8, cf68b99, 1c04e31, 13e3639, 22e43eb, 7e2a0e4, 541bf1a, d95a663, 218f96c, d4a35ec, a9beae3, 37fa1a0, 6fba046, 5f8eca0, 7da3720, 38b1eec, 18ee246, 7c1fd45, f8d5283, 8c67fe3, 590f19b, a4c2a12, ee1e646, ca0b65b, e58cd5a, d5200a4, 9bee0c4]
 phase8_steps:
   trace_gate: failed
   nfr: done
