@@ -346,7 +346,22 @@ development_status:
   12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes: review
   12-13-remove-the-user-facing-confidence-indicator-keep-it-internal: review
   12-14-hide-closed-venues-open-at-selected-time-filter: review
-  epic-12-retrospective: optional
+  epic-12-retrospective: done
+
+# Note (2026-08-07, retrospective epic-12 — epic-12-retrospective -> done): bmad-retrospective (auto-bmad delegate;
+# solo synthesis with Rasmus as sole facilitator+participant) synthesized the full Epic 12 retro from
+# retro-notes/epic-12.md + all 14 story files (12.1-12.14; current mix 6 done / 8 review) + project-context.md +
+# the Epic 12 state file + epic trace/NFR/test-review artifacts + this file. Saved
+# _bmad-output/implementation-artifacts/epic-12-retro-2026-08-07.md (10 sections: summary/metrics,
+# what-went-well, what-was-hard, key-insights, Epic-11-retro follow-through, next-epic prep [no Epic 13 authored],
+# 7 action items, readiness assessment, planning drift, next steps). Epic verdict: implementation-complete but NOT
+# launch-ready — all 14 planned stories landed, yet epic trace remains FAIL (15/21 FULL overall, P0 5/9 FULL),
+# NFR remains FAIL, and test-review remains 82/B Request Changes. Human approval is still outstanding because
+# epic-12 stays in-progress and 8 stories remain at review. Public-launch proof still lacks the protected/live
+# evidence lanes for Story 12.3 cold-p95 + production env verification, Story 12.7 visibility migration/live
+# schema proof, Story 12.12 Storage policy verification, and Story 12.11 future-date exact-response concurrency
+# stabilization. This edit intentionally does not change epic/story statuses beyond marking the retrospective done;
+# orchestrator owns any later re-gate and epic-boundary close-out.
 
 # Note (2026-07-13, sprint activation epic-12): Epic 11 and Stories 11.1-11.9 are complete on main via
 # PR #17 (merge 08c965d; Story 11.9 entered the epic branch via PR #18). Sprint 13 moved to completed_sprints;

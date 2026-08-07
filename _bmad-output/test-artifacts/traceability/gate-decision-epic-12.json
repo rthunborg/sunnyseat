@@ -1,0 +1,117 @@
+{
+  "schema_version": "0.1.0",
+  "generated_at": "2026-08-07T18:51:48+02:00",
+  "workflow": "testarch-trace",
+  "gate_iteration": 2,
+  "gate_iteration_cap_reached": true,
+  "remediation_commit": "ee1e646",
+  "remediation_evidence_status": "new_ac_to_test_evidence_consumed_but_no_verified_change_to_protected_live_blocking_lanes",
+  "target": {
+    "type": "epic",
+    "id": "12",
+    "label": "Real-Venue Launch Readiness - Performance, Trust, Hours, Console Hygiene"
+  },
+  "decision_mode": "deterministic",
+  "gate_decision": "FAIL",
+  "gate_type": "epic",
+  "criteria": {
+    "collection_status": "COLLECTED",
+    "allow_gate": true,
+    "p0_coverage_required": 100,
+    "p0_coverage_actual": 55.56,
+    "p1_coverage_required_for_pass": 90,
+    "p1_coverage_actual": 81.82,
+    "overall_coverage_required": 80,
+    "overall_coverage_actual": 71.43,
+    "security_policy_status": "PARTIAL",
+    "critical_nfr_status": "PARTIAL"
+  },
+  "deterministic_rule_result": {
+    "rule": "P0 coverage < 100% => FAIL",
+    "applied": true,
+    "rationale": "After gate iteration 2, required P0 evidence lanes for protected production performance/security, live visibility migration execution, and protected Storage policy verification remain PARTIAL."
+  },
+  "remediation_assessment": {
+    "input_commit": "ee1e646",
+    "gate_iteration_cap_reached": true,
+    "git_inspection_used": false,
+    "evidence_basis": [
+      "_bmad-output/auto-bmad/state/epic/epic-12.yaml",
+      "_bmad-output/implementation-artifacts/deferred-work.md",
+      "_bmad-output/implementation-artifacts/12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md",
+      "_bmad-output/implementation-artifacts/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md",
+      "_bmad-output/implementation-artifacts/12-11-first-run-coach-mark-guide-map-legend-feature-tour.md",
+      "_bmad-output/implementation-artifacts/12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes.md",
+      "_bmad-output/test-artifacts/automation-summary.md",
+      "_bmad-output/auto-bmad/retro-notes/epic-12.md"
+    ],
+    "finding": "Story 12.3, 12.7, 12.11, and 12.12 AC-to-test evidence was consumed from the current story artifacts. The new evidence strengthens local deterministic coverage but does not close the protected/live P0 lanes. Story 12.11 records a corrected serialized mobile repeat at 3/3 pass, while the prior parallel repeat was 2/3 and no broad-concurrency pass is claimed."
+  },
+  "blocking_gaps": [
+    {
+      "id": "12.3-PROTECTED-PROD-P95",
+      "priority": "P0",
+      "classification": "protected-live-performance-evidence",
+      "requirements": [
+        "12.3 AC2",
+        "12.3 AC6"
+      ],
+      "needed": "Capture protected-production 42+ venue cold-p95 evidence with logs proving persisted geometry reads and zero request-path provider/shadow recompute."
+    },
+    {
+      "id": "12.3-PROTECTED-ENV-AUDIT",
+      "priority": "P0",
+      "classification": "protected-live-environment-security-evidence",
+      "requirements": [
+        "12.3 AC2"
+      ],
+      "needed": "Verify protected GitHub Production environment variables/secrets and live protected Supabase/service-only evidence."
+    },
+    {
+      "id": "12.7-VISIBILITY-MIGRATION-LIVE",
+      "priority": "P0",
+      "classification": "live-database-migration-evidence",
+      "requirements": [
+        "12.7 OPS-1"
+      ],
+      "needed": "Apply `20260718214954_add_public_venue_visibility.sql`, verify live schema/query behavior, regenerate Supabase types, and prove no contract diff."
+    },
+    {
+      "id": "12.12-STORAGE-POLICY-PROTECTED-VERIFY",
+      "priority": "P0",
+      "classification": "protected-live-storage-policy-evidence",
+      "requirements": [
+        "12.12 AC1",
+        "12.12 AC2"
+      ],
+      "needed": "Apply `20260719000000_venue_media_storage.sql` and verify protected Storage public reads, service-role upload, and anon/auth write denial."
+    }
+  ],
+  "non_blocking_or_secondary_gaps": [
+    {
+      "id": "12.7-CONCURRENT-VISIBILITY-RACE",
+      "priority": "P1",
+      "classification": "concurrent-live-behavior-evidence",
+      "needed": "Add concurrent resolver/cache evidence or narrow the race-consistency claim."
+    },
+    {
+      "id": "12.11-MAP-PRIMARY-FUTURE-DATE-STABILITY",
+      "priority": "P1",
+      "classification": "broad-suite-e2e-stability-evidence",
+      "needed": "Keep as PARTIAL: corrected serialized mobile repeat passed 3/3, but prior parallel evidence was 2/3 and no broad-concurrency pass is claimed."
+    }
+  ],
+  "rationale": "Epic 12 has broad deterministic functional coverage across stories, including the newly consumed AC-to-test evidence for Stories 12.3, 12.7, 12.11, and 12.12. The gate still fails because iteration 2 does not provide verified remediation evidence for protected production performance/security, live visibility migration execution, or protected Storage RLS verification. Local story tests and source assertions cannot substitute for those protected/live release lanes.",
+  "next_regate_inputs": [
+    "Story 12.3 protected-production p95 dataset and protected environment audit record",
+    "Story 12.7 post-migration live schema/type/query verification record",
+    "Story 12.12 protected Storage bucket/RLS verification record",
+    "Optional Story 12.7 concurrent visibility/cache evidence",
+    "Optional Story 12.11 broad-concurrency stable future-date wait evidence"
+  ],
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-report-epic-12.md",
+    "coverage_matrix_path": "_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-epic-12-2026-08-07T18-14-43+02-00.json",
+    "trace_summary_path": "_bmad-output/test-artifacts/traceability/e2e-trace-summary-epic-12.json"
+  }
+}
