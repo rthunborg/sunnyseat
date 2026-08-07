@@ -57,6 +57,8 @@ vi.mock('@/hooks/queries/useDevVenueEditor', () => ({
 
 describe('<DevVenueEditor />', () => {
   beforeEach(() => {
+    vi.unstubAllEnvs();
+    vi.stubEnv('SUNNYSEAT_ADMIN', 'dev');
     searchParamsMock.value = new URLSearchParams();
     mutateMock.mockReset();
     hooksMock.venues.mockReset();
@@ -76,6 +78,16 @@ describe('<DevVenueEditor />', () => {
     render(<DevVenueEditor />);
 
     expect(screen.queryByText('Redigera plats')).not.toBeInTheDocument();
+  });
+
+  it('renders no editor chrome when the server-side dev admin gate is not enabled', () => {
+    vi.stubEnv('SUNNYSEAT_ADMIN', '');
+    searchParamsMock.value = new URLSearchParams('_editor=venues');
+
+    render(<DevVenueEditor />);
+
+    expect(screen.queryByText('Redigera plats')).not.toBeInTheDocument();
+    expect(hooksMock.venues).toHaveBeenCalledWith(false);
   });
 
   it('renders the editor after a successful guarded query and patches display coordinates', async () => {

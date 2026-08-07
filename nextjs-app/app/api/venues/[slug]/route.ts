@@ -96,9 +96,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     const requestedAt = resolveRequestedAt(planner.selection, now);
     let outcome;
     try {
-      outcome = await buildPersistedSunOutcome(stored, requestedAt, now, {
-        weatherBucket: _request.nextUrl.searchParams.get('weatherBucket') ?? undefined,
-      });
+      outcome = await buildPersistedSunOutcome(stored, requestedAt, now);
     } catch (error) {
       if (error instanceof SunGeometryCoverageMissingError) {
         return NextResponse.json(

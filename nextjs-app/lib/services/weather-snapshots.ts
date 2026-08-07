@@ -114,7 +114,13 @@ export function gateGeometrySeriesWithWeatherSnapshots(input: {
   }
 
   return input.geometrySeries.map((entry) => {
-    const matchedWeather = weatherByMinutes.get(entry.minutes);
+    const matchedWeather =
+      weatherByMinutes.get(entry.minutes) ??
+      nearestSnapshotSliceForGeometryStep(
+        input.weatherSlices ?? [],
+        input.stockholmDate,
+        entry.minutes,
+      );
     const weather: WeatherSnapshotSlice = isUsableSnapshotWeather(matchedWeather)
       ? matchedWeather
       : { weatherUnknown: true };
@@ -144,6 +150,20 @@ export function gateGeometrySeriesWithWeatherSnapshots(input: {
       skyCondition,
     };
   });
+}
+
+function nearestSnapshotSliceForGeometryStep(
+  slices: WeatherSnapshotSlice[],
+  stockholmDate: string | undefined,
+  minutes: number,
+): WeatherSnapshotSlice | undefined {
+  if (!stockholmDate) return undefined;
+  const slice = selectSnapshotSliceForStep({
+    requestedAt: stepInstantFor(stockholmDate, minutes),
+    slices,
+    maxStalenessMinutes: 90,
+  });
+  return slice.weatherUnknown ? undefined : { ...slice, minutes };
 }
 
 function isUsableSnapshotWeather(
@@ -215,7 +235,7 @@ function skyConditionFromSnapshotCloudCover(cloudCover: number | undefined): str
 }
 
 const defaultWeatherSnapshotRepository: WeatherSnapshotRepository = {
-  async readSnapshotForVenueDay(venue, bucket, stockholmDate) {
+  async readSnapshotForVenueDay(venue, _bucket, stockholmDate) {
     const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
     const coordinate = venueEngineCoordinate(venue);
     const coordinateBucket = `${coordinate.lat.toFixed(4)},${coordinate.lng.toFixed(4)}`;
@@ -224,7 +244,7 @@ const defaultWeatherSnapshotRepository: WeatherSnapshotRepository = {
       .select('bucket_key, stockholm_date, slices, weather_updated_at, expires_at')
       .eq('coordinate_bucket', coordinateBucket)
       .eq('stockholm_date', stockholmDate)
-      .eq('bucket_key', bucket ?? 'current')
+      .eq('bucket_key', 'current')
       .maybeSingle();
     if (error) throw new Error(`Weather snapshot read failed: ${error.message}`);
     if (!data) return null;

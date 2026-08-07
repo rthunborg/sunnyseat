@@ -12,6 +12,7 @@ type VenueRow = {
   lng: number;
   is_partner: boolean;
   hidden?: boolean | null;
+  deleted_at?: string | null;
   current_sun_status?: string | null;
   confidence?: number | null;
   sun_exposure_percent?: number | null;
@@ -34,9 +35,14 @@ const supabaseMock = vi.hoisted(() => {
     const next = state.nextResults.shift();
     return next ? await next : { data: [], error: null };
   });
+  const query = {
+    eq: vi.fn(() => query),
+    is: vi.fn(() => query),
+    limit,
+  };
   const or = vi.fn((filter: string) => {
     state.lastFilter = filter;
-    return { limit };
+    return query;
   });
   const select = vi.fn((columns: string) => {
     state.lastSelect = columns;
@@ -47,7 +53,7 @@ const supabaseMock = vi.hoisted(() => {
     return { select };
   });
 
-  return { state, from, select, or, limit };
+  return { state, from, select, or, eq: query.eq, is: query.is, limit };
 });
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -97,6 +103,8 @@ describe('Story 12.7 automated resolver coverage', () => {
     supabaseMock.from.mockClear();
     supabaseMock.select.mockClear();
     supabaseMock.or.mockClear();
+    supabaseMock.eq.mockClear();
+    supabaseMock.is.mockClear();
     supabaseMock.limit.mockClear();
   });
 
@@ -124,9 +132,11 @@ describe('Story 12.7 automated resolver coverage', () => {
       'id.eq."live-zero-review",slug.eq."live-zero-review"',
     );
     expect(supabaseMock.state.lastSelect).toContain('hidden');
+    expect(supabaseMock.state.lastSelect).toContain('deleted_at');
     expect(supabaseMock.state.lastSelect).not.toContain('is_hidden');
     expect(supabaseMock.state.lastSelect).not.toContain('visibility');
-    expect(supabaseMock.state.lastSelect).not.toContain('deleted_at');
+    expect(supabaseMock.eq).toHaveBeenCalledWith('hidden', false);
+    expect(supabaseMock.is).toHaveBeenCalledWith('deleted_at', null);
     expect(supabaseMock.limit).toHaveBeenCalledWith(2);
   });
 

@@ -86,15 +86,12 @@ export function isVenueDetailQueryEnabled(
   return (slug?.trim() ?? '').length > 0;
 }
 
-export function sameVenueDetailPlaceholderData(
-  normalizedSlug: string,
-) {
+export function sameVenueDetailPlaceholderData(currentQueryKey: QueryKey) {
   return (
     previousData: GetVenueDetailResponse | undefined,
     previousQuery: { queryKey?: QueryKey } | undefined,
   ): GetVenueDetailResponse | undefined => {
-    const previousKey = previousQuery?.queryKey;
-    if (Array.isArray(previousKey) && previousKey[2] === normalizedSlug) {
+    if (queryKeysEqual(previousQuery?.queryKey, currentQueryKey)) {
       return keepPreviousData(previousData);
     }
     return undefined;
@@ -157,4 +154,8 @@ function normalizeLocation(
 
 function bucket(n: number): number {
   return Math.round(n * BUCKET_FACTOR) / BUCKET_FACTOR;
+}
+
+function queryKeysEqual(left: QueryKey | undefined, right: QueryKey): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }

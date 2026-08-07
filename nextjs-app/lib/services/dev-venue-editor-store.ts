@@ -222,8 +222,7 @@ async function verifyRendition(
   const { data, error } = await client.storage
     .from(VENUE_MEDIA_BUCKET)
     .list(`${slug}/${path.version}`, {
-      limit: 1,
-      search: path.filename,
+      limit: 100,
     });
   if (error) {
     addMediaError(errors, rendition, `storage lookup failed: ${error.message}`);

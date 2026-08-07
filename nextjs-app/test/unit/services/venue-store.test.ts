@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getVenueBySlug,
   getVenues,
+  resolvePublicVenueIdentifier,
   storedVenueDetail,
   toVenueData,
   PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS,
@@ -22,19 +23,30 @@ const supabaseMock = vi.hoisted(() => {
       onRejected?: (reason: unknown) => unknown,
     ) => Promise.resolve(state.listResult).then(onFulfilled, onRejected),
   };
-  const eq = vi.fn((column: string) => (
-    column === 'hidden'
-      ? listThenable
-      : { maybeSingle }
-  ));
-  const select = vi.fn(() => ({
-    // Thenable so `await client.from('venues').select(cols)` resolves the list.
+  const query = {
+    // Thenable so `await client.from('venues').select(cols).eq(...).is(...)`
+    // resolves the list, while detail reads can continue to `.maybeSingle()`.
     ...listThenable,
-    eq,
-  }));
+    or: vi.fn(() => query),
+    eq: vi.fn(() => query),
+    is: vi.fn(() => query),
+    limit: vi.fn(() => query),
+    maybeSingle,
+  };
+  const select = vi.fn(() => query);
   const from = vi.fn(() => ({ select }));
   const client = { from };
-  return { state, client, from, select, eq, maybeSingle };
+  return {
+    state,
+    client,
+    from,
+    select,
+    or: query.or,
+    eq: query.eq,
+    is: query.is,
+    limit: query.limit,
+    maybeSingle,
+  };
 });
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -173,7 +185,10 @@ describe('venue-store (Supabase opt-in)', () => {
     supabaseMock.state.singleResult = { data: null, error: null };
     supabaseMock.from.mockClear();
     supabaseMock.select.mockClear();
+    supabaseMock.or.mockClear();
     supabaseMock.eq.mockClear();
+    supabaseMock.is.mockClear();
+    supabaseMock.limit.mockClear();
     supabaseMock.maybeSingle.mockClear();
   });
 
@@ -187,8 +202,10 @@ describe('venue-store (Supabase opt-in)', () => {
     // slug — so a snake_case column/filter typo is caught offline before the live
     // table. VENUE_SELECT_COLUMNS is imported from the source so it cannot drift.
     expect(supabaseMock.from).toHaveBeenCalledWith('venues');
-    expect(supabaseMock.select).toHaveBeenCalledWith(VENUE_SELECT_COLUMNS);
+    expect(supabaseMock.select).toHaveBeenCalledWith(PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS);
     expect(supabaseMock.eq).toHaveBeenCalledWith('slug', 'supa-venue');
+    expect(supabaseMock.eq).toHaveBeenCalledWith('hidden', false);
+    expect(supabaseMock.is).toHaveBeenCalledWith('deleted_at', null);
 
     // The column set must include all 23 contract columns (incl. the display-only
     // coordinates and server-only geometry/elevation fields). A dropped/renamed
@@ -230,6 +247,33 @@ describe('venue-store (Supabase opt-in)', () => {
     await getVenues();
 
     expect(supabaseMock.eq).toHaveBeenCalledWith('hidden', false);
+  });
+
+  it('[12.16] filters soft-deleted rows at the store boundary for public list and detail reads', async () => {
+    useSupabaseStore();
+    supabaseMock.state.listResult = {
+      data: [
+        SUPABASE_ROW,
+        { ...SUPABASE_ROW, id: 'deleted', slug: 'deleted', deleted_at: '2026-08-01T00:00:00.000Z' },
+      ],
+      error: null,
+    };
+
+    const venues = await getVenues();
+    await getVenueBySlug('supa-venue');
+
+    expect(venues.map((venue) => venue.id)).toEqual(['9']);
+    expect(supabaseMock.is).toHaveBeenCalledWith('deleted_at', null);
+  });
+
+  it('[12.16] filters soft-deleted rows in the public id/slug resolver', async () => {
+    useSupabaseStore();
+    supabaseMock.state.listResult = { data: [SUPABASE_ROW], error: null };
+
+    await resolvePublicVenueIdentifier('supa-venue');
+
+    expect(supabaseMock.eq).toHaveBeenCalledWith('hidden', false);
+    expect(supabaseMock.is).toHaveBeenCalledWith('deleted_at', null);
   });
 
   it('fails closed when configured for Supabase without full credentials', async () => {

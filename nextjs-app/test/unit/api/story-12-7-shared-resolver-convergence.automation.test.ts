@@ -25,6 +25,21 @@ const feedbackPersistenceMock = vi.hoisted(() => ({
   persistVenueFeedback: vi.fn(async (feedback: FeedbackResponse) => feedback),
 }));
 
+const predictionMock = vi.hoisted(() => ({
+  buildPersistedSunOutcome: vi.fn(async (venue: VenueDataDto) => ({
+    venue: {
+      ...venue,
+      currentSunStatus: 'Sunny',
+      sunExposurePercent: 82,
+      weatherGateState: 'not_gated',
+      predictionEvidence: {
+        geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      },
+    },
+    freshness: { sunDataSource: 'weather' },
+  })),
+}));
+
 vi.mock('@/lib/services/venue-store', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/services/venue-store')>();
   return {
@@ -41,6 +56,11 @@ vi.mock('@/lib/services/venue-reviews-persistence', () => ({
 
 vi.mock('@/lib/services/venue-feedback-persistence', () => ({
   persistVenueFeedback: feedbackPersistenceMock.persistVenueFeedback,
+}));
+
+vi.mock('@/lib/services/sun-geometry-repository', () => ({
+  buildPersistedSunOutcome: predictionMock.buildPersistedSunOutcome,
+  SunGeometryCoverageMissingError: class SunGeometryCoverageMissingError extends Error {},
 }));
 
 const LIVE_VENUE: VenueDataDto = {
@@ -108,6 +128,7 @@ describe('Story 12.7 automated route convergence coverage', () => {
     reviewPersistenceMock.getVenueReviewsFromPersistence.mockReset();
     reviewPersistenceMock.persistVenueReview.mockReset();
     reviewPersistenceMock.summarizeReviews.mockClear();
+    predictionMock.buildPersistedSunOutcome.mockClear();
     feedbackPersistenceMock.persistVenueFeedback.mockClear();
     feedbackPersistenceMock.persistVenueFeedback.mockImplementation(async (feedback) => feedback);
   });

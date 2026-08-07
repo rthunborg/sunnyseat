@@ -36,7 +36,7 @@ alter table public.feedback
   add constraint feedback_geometry_input_hash_check
     check (
       geometry_input_hash is null
-      or geometry_input_hash ~ '^g[0-9]+:[0-9a-f]{64}$'
+      or geometry_input_hash ~ '^g1:[0-9a-f]{64}$'
     );
 
 alter table public.feedback enable row level security;
@@ -62,4 +62,4 @@ comment on column public.feedback.weather_gated is
 comment on column public.feedback.weather_unknown is
   'Story 12.2 prediction evidence: true when weather was unknown, never inferred as known-clear.';
 comment on column public.feedback.geometry_input_hash is
-  'Story 12.2 prediction evidence: venue geometry generation hash in gN:sha256 format.';
+  'Story 12.2 prediction evidence: canonical venue geometry generation hash in g1:sha256 format.';

@@ -6,6 +6,7 @@ import {
   FirstRunCoachMarkGuide,
   getCoachTourSteps,
   resolveAvailableCoachStepIndex,
+  resolveAvailableCoachStepIndexes,
 } from '@/components/custom/coach-tour/FirstRunCoachMarkGuide';
 import { FirstRunGuideProvider, useFirstRunGuide, useFirstRunGuideSeen, writeFirstRunGuideSeen } from '@/lib/contexts/FirstRunGuideContext';
 import { COACH_TOUR_STEP_IDS, type CoachTourStepId } from '@/lib/constants/coach-tour';
@@ -298,6 +299,19 @@ describe('<FirstRunCoachMarkGuide />', () => {
     expect(steps[index ?? -1]?.id).toBe('date-planner');
   });
 
+  it('counts only visible anchors in coach progress text', async () => {
+    rectOverrides.set('time-slider', null);
+    rectOverrides.set('tag-chips', null);
+    rectOverrides.set('favourites', null);
+
+    renderGuide({ forcedStepId: 'pin-legend' });
+
+    expect(await screen.findByRole('dialog', { name: 'Kartnålarna' })).toHaveTextContent(
+      'Steg 1 av 3',
+    );
+    expect(resolveAvailableCoachStepIndexes(getCoachTourSteps())).toEqual([0, 2, 4]);
+  });
+
   it('does not auto-start or write the seen flag when the core map anchor is unavailable', () => {
     vi.useFakeTimers();
     window.localStorage.setItem(ONBOARDED_FLAG_KEY, '1');
@@ -460,6 +474,20 @@ describe('<FirstRunCoachMarkGuide />', () => {
     await waitFor(() => expect(screen.queryByTestId('coach-tour-dialog')).toBeNull());
   });
 
+  it('does not write the seen flag when the active target disappears before an explicit action', async () => {
+    window.localStorage.setItem(ONBOARDED_FLAG_KEY, '1');
+    renderGuide({ autoStartEnabled: true });
+
+    await screen.findByRole('dialog', { name: 'Kartnålarna' });
+    for (const anchor of defaultRects.keys()) {
+      rectOverrides.set(anchor, null);
+    }
+    fireEvent(window, new Event('resize'));
+
+    await waitFor(() => expect(screen.queryByTestId('coach-tour-dialog')).toBeNull());
+    expect(window.localStorage.getItem(FIRST_RUN_GUIDE_SEEN_KEY)).toBeNull();
+  });
+
   it('updates same-tab, cross-tab, and clear() seen-state subscribers', async () => {
     renderSeenProbe();
     expect(screen.getByTestId('seen-probe')).toHaveTextContent('false');
@@ -524,6 +552,20 @@ describe('<FirstRunCoachMarkGuide />', () => {
       'aria-describedby',
       'existing-id',
     );
+  });
+
+  it('hides and inerts sibling app content while the coach dialog is modal', async () => {
+    renderGuide({ forcedStepId: 'pin-legend' });
+
+    await screen.findByRole('dialog', { name: 'Kartnålarna' });
+    const anchor = screen.getByTestId('anchor-map-surface');
+    expect(anchor).toHaveAttribute('aria-hidden', 'true');
+    expect(anchor).toHaveAttribute('inert');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hoppa över guide' }));
+    await waitFor(() => expect(screen.queryByTestId('coach-tour-dialog')).toBeNull());
+    expect(anchor).not.toHaveAttribute('aria-hidden');
+    expect(anchor).not.toHaveAttribute('inert');
   });
 
   it('marks reduced-motion state on the dialog when requested by the user', async () => {

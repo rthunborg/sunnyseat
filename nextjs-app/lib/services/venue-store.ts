@@ -197,6 +197,7 @@ export const PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS = [
   VENUE_SELECT_COLUMNS,
   // Story 12.7 canonical public guard, server-only and never mapped to the DTO.
   'hidden',
+  'deleted_at',
 ].join(', ');
 
 type VenueRow = {
@@ -235,6 +236,7 @@ type VenueRow = {
   // Story 12.7 canonical public visibility field. Server-only and intentionally
   // excluded from VENUE_SELECT_COLUMNS / public DTO projection.
   hidden?: boolean | null;
+  deleted_at?: string | null;
 };
 
 /**
@@ -397,7 +399,8 @@ async function readSupabaseVenues(): Promise<StoredVenue[]> {
   const { data, error } = await getSupabaseServiceRole()
     .from('venues')
     .select(PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS)
-    .eq('hidden', false);
+    .eq('hidden', false)
+    .is('deleted_at', null);
   if (error) {
     throw new Error(`Venue store failed: ${error.message}`);
   }
@@ -410,8 +413,10 @@ async function readSupabaseVenueBySlug(slug: string): Promise<StoredVenue | null
   const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
   const { data, error } = await getSupabaseServiceRole()
     .from('venues')
-    .select(VENUE_SELECT_COLUMNS)
+    .select(PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS)
     .eq('slug', slug)
+    .eq('hidden', false)
+    .is('deleted_at', null)
     .maybeSingle();
   if (error) {
     throw new Error(`Venue store failed: ${error.message}`);
@@ -428,6 +433,8 @@ async function readSupabasePublicVenueByIdentifier(
     .from('venues')
     .select(PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS)
     .or(`id.eq.${operand},slug.eq.${operand}`)
+    .eq('hidden', false)
+    .is('deleted_at', null)
     .limit(2);
   if (error) {
     throw new Error(`Venue store failed: ${error.message}`);
@@ -449,7 +456,7 @@ function matchesPublicVenueIdentifier(identifier: string) {
 }
 
 function isPublicVenueRow(row: VenueRow): boolean {
-  return row.hidden === false;
+  return row.hidden === false && row.deleted_at == null;
 }
 
 /**

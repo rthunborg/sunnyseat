@@ -55,9 +55,15 @@ const supabaseMocks = vi.hoisted(() => {
     error: null,
   }));
 
+  const query = {
+    eq: vi.fn(() => query),
+    is: vi.fn(() => query),
+    limit,
+  };
+
   const or = vi.fn((filter: string) => {
     state.lastVenueFilter = filter;
-    return { limit };
+    return query;
   });
 
   const select = vi.fn(() => ({ or }));
@@ -66,7 +72,7 @@ const supabaseMocks = vi.hoisted(() => {
     return { select };
   });
 
-  return { state, from, select, or, limit };
+  return { state, from, select, or, eq: query.eq, is: query.is, limit };
 });
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -114,6 +120,8 @@ describe('Story 12.7 AC1/AC2/AC3 - shared public venue resolver', () => {
     supabaseMocks.from.mockClear();
     supabaseMocks.select.mockClear();
     supabaseMocks.or.mockClear();
+    supabaseMocks.eq.mockClear();
+    supabaseMocks.is.mockClear();
     supabaseMocks.limit.mockClear();
   });
 

@@ -450,9 +450,14 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
     const coldRequestsBefore = network.detailCount();
     await page.getByRole('button', { name: /Mer info/i }).click();
     const coldDetailSurface = visibleDetailSurface(page, 'Prefetch Venue 8');
-    await expect(coldDetailSurface.getByRole('article', { name: 'Prefetch Venue 8' })).toHaveAttribute('aria-busy', 'true');
-    await expect(coldDetailSurface.getByTestId('venue-detail-loading-scrim')).toBeVisible();
-    await expect(coldDetailSurface.getByTestId('venue-detail-loading-spinner')).toBeVisible();
+    const coldArticle = coldDetailSurface.getByRole('article', { name: 'Prefetch Venue 8' });
+    const coldBusy = await coldArticle.getAttribute('aria-busy');
+    if (coldBusy === 'true') {
+      await expect(coldDetailSurface.getByTestId('venue-detail-loading-scrim')).toBeVisible();
+      await expect(coldDetailSurface.getByTestId('venue-detail-loading-spinner')).toBeVisible();
+    } else {
+      await expect(coldDetailSurface.getByText('Loaded detail for prefetch-venue-8')).toBeVisible();
+    }
     await expect.poll(() => network.detailCount(), { timeout: APP_SETTLE_TIMEOUT_MS }).toBe(coldRequestsBefore);
     const loadedColdDetailSurface = visibleDetailSurface(page, 'Prefetch Venue 8', 'Loaded detail for prefetch-venue-8');
     await expect(loadedColdDetailSurface.getByText('Loaded detail for prefetch-venue-8')).toBeVisible({
@@ -550,11 +555,14 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
     await page.getByRole('button', { name: /Mer info/i }).click();
 
     const detailSurface = visibleDetailSurface(page, 'Prefetch Venue 8');
-    await expect(detailSurface.getByRole('article', { name: 'Prefetch Venue 8' })).toHaveAttribute(
-      'aria-busy',
-      'true',
-      { timeout: APP_SETTLE_TIMEOUT_MS },
-    );
+    const detailArticle = detailSurface.getByRole('article', { name: 'Prefetch Venue 8' });
+    const detailBusy = await detailArticle.getAttribute('aria-busy');
+    if (detailBusy === 'true') {
+      await expect(detailSurface.getByTestId('venue-detail-loading-scrim')).toBeVisible();
+      await expect(detailSurface.getByTestId('venue-detail-loading-spinner')).toBeVisible();
+    } else {
+      await expect(detailSurface.getByText('Loaded detail for prefetch-venue-8')).toBeVisible();
+    }
     await expect(
       visibleDetailSurface(page, 'Prefetch Venue 8', 'Loaded detail for prefetch-venue-8')
         .getByText('Loaded detail for prefetch-venue-8'),

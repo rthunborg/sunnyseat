@@ -294,9 +294,7 @@ export async function GET(request: NextRequest) {
         storeVenues,
         SUN_ENGINE_LIST_CONCURRENCY,
         (venue) =>
-          buildPersistedSunOutcome(venue, requestedAt, now, {
-            weatherBucket: params.get('weatherBucket') ?? undefined,
-          }),
+          buildPersistedSunOutcome(venue, requestedAt, now),
       );
     } catch (error) {
       if (error instanceof SunGeometryCoverageMissingError) {

@@ -201,7 +201,7 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
     const outcome = await buildPersistedSunOutcome(
       venue,
       new Date('2026-07-18T20:30:00.000Z'), // 22:30 Stockholm: actual sun below horizon.
-      new Date('2026-07-18T20:30:00.000Z'),
+      new Date('2026-07-18T19:00:00.000Z'),
       {
         repositories: {
           sunGeometryRepository: makeGeometryRepository(coverage, []),
@@ -239,7 +239,7 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
     const outcome = await buildPersistedSunOutcome(
       venue,
       new Date('2026-07-18T19:30:00.000Z'), // 21:30 Stockholm: low, but still above horizon.
-      new Date('2026-07-18T19:30:00.000Z'),
+      new Date('2026-07-18T19:00:00.000Z'),
       {
         repositories: {
           sunGeometryRepository: makeGeometryRepository(coverage, []),
@@ -253,6 +253,39 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
       sunExposurePercent: 25,
     });
     expect(outcome.venue.currentSunStatus).not.toBe('NoSun');
+  });
+
+  test('does not label live current requests after the planner end as the stale last persisted step', async () => {
+    const venue = makeVenue();
+    const coverage: PersistedSunGeometryCoverage = {
+      venueId: venue.id,
+      stockholmDate: '2026-07-18',
+      geometryInputHash: GEOMETRY_HASH,
+      status: 'ready',
+      series: [
+        { minutes: 21 * 60, sunExposurePercent: 25 },
+      ],
+    };
+    const liveNow = new Date('2026-07-18T19:30:00.000Z'); // 21:30 Stockholm.
+
+    const outcome = await buildPersistedSunOutcome(
+      venue,
+      liveNow,
+      liveNow,
+      {
+        repositories: {
+          sunGeometryRepository: makeGeometryRepository(coverage, []),
+          weatherSnapshotRepository: makeWeatherRepository(null, []),
+        },
+      },
+    );
+
+    expect(outcome.venue).toMatchObject({
+      currentSunStatus: 'NoSun',
+      weatherGateState: 'unknown',
+      skyCondition: 'unavailable',
+      sunExposurePercent: 0,
+    });
   });
 
   test.each(['expired', 'missing'] as const)(

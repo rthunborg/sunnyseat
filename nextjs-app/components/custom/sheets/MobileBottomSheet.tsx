@@ -91,7 +91,7 @@ export function computeMaxVisibleRows({
   const rowBudget =
     availableSheetHeight - handleHeightPx - chromeHeightPx - bodyBottomPaddingPx;
 
-  return clampInteger(Math.floor(rowBudget / rowHeight), 0, finiteRows);
+  return clampInteger(Math.floor(rowBudget / rowHeight), 1, finiteRows);
 }
 
 export type ComputeSheetHeightInput = {

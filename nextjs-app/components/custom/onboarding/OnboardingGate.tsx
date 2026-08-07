@@ -129,6 +129,7 @@ function OnboardingGateInner() {
   const [initialHasOnboarded] = useState(() => liveHasOnboarded);
   const wroteFlagThisSessionRef = useRef(false);
   const [dismissed, setDismissed] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [pendingFly, setPendingFly] = useState<{ lat: number; lng: number } | null>(null);
   // Cross-tab dismissal: if ANOTHER tab marks the user onboarded while this
   // overlay is open (and WE did not write the flag ourselves this session),
@@ -136,6 +137,10 @@ function OnboardingGateInner() {
   // Task 8.2 behaviour. A same-tab grant/deny sets `wroteFlagThisSessionRef`,
   // so its own write is ignored here and the exit animation plays out via the
   // normal `onDismiss` path instead of an abrupt unmount.
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
   useEffect(() => {
     if (!liveHasOnboarded) return;
     if (initialHasOnboarded) return;
@@ -243,6 +248,7 @@ function OnboardingGateInner() {
 
   return (
     <OnboardingScreen
+      interactive={hydrated}
       onDismiss={handleDismiss}
       onLocationGranted={handleLocationGranted}
       onLocationDenied={handleLocationDenied}

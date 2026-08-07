@@ -7,6 +7,36 @@ const persistenceMock = vi.hoisted(() => ({
   persistVenueFeedback: vi.fn(async (feedback: FeedbackResponse) => feedback),
 }));
 
+const predictionMock = vi.hoisted(() => {
+  type PredictionState = {
+    predictedState: FeedbackResponse['predictedState'];
+    sunExposurePercent: number;
+    weatherGateState: 'gated' | 'not_gated' | 'unknown';
+    geometryInputHash: string;
+  };
+  const state: PredictionState = {
+    predictedState: 'Sunny',
+    sunExposurePercent: 82,
+    weatherGateState: 'not_gated',
+    geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  };
+  return {
+    state: { ...state },
+    buildPersistedSunOutcome: vi.fn(async (venue: Record<string, unknown>) => ({
+      venue: {
+        ...venue,
+        currentSunStatus: predictionMock.state.predictedState,
+        sunExposurePercent: predictionMock.state.sunExposurePercent,
+        weatherGateState: predictionMock.state.weatherGateState,
+        predictionEvidence: {
+          geometryInputHash: predictionMock.state.geometryInputHash,
+        },
+      },
+      freshness: { sunDataSource: 'weather' },
+    })),
+  };
+});
+
 const supabaseMocks = vi.hoisted(() => {
   const state = {
     venueRow: null as Record<string, unknown> | null,
@@ -15,17 +45,27 @@ const supabaseMocks = vi.hoisted(() => {
     data: state.venueRow === null ? [] : [state.venueRow],
     error: null,
   }));
-  const or = vi.fn(() => ({ limit }));
+  const query = {
+    eq: vi.fn(() => query),
+    is: vi.fn(() => query),
+    limit,
+  };
+  const or = vi.fn(() => query);
   const select = vi.fn(() => ({ or }));
   const from = vi.fn((table: string) => {
     if (table !== 'venues') throw new Error(`unexpected table ${table}`);
     return { select };
   });
-  return { state, from, select, or, limit };
+  return { state, from, select, or, eq: query.eq, is: query.is, limit };
 });
 
 vi.mock('@/lib/services/venue-feedback-persistence', () => ({
   persistVenueFeedback: persistenceMock.persistVenueFeedback,
+}));
+
+vi.mock('@/lib/services/sun-geometry-repository', () => ({
+  buildPersistedSunOutcome: predictionMock.buildPersistedSunOutcome,
+  SunGeometryCoverageMissingError: class SunGeometryCoverageMissingError extends Error {},
 }));
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -84,10 +124,17 @@ describe('POST /api/venues/[slug]/feedback', () => {
     vi.unstubAllEnvs();
     persistenceMock.persistVenueFeedback.mockClear();
     persistenceMock.persistVenueFeedback.mockImplementation(async (feedback) => feedback);
+    predictionMock.state.predictedState = 'Sunny';
+    predictionMock.state.sunExposurePercent = 82;
+    predictionMock.state.weatherGateState = 'not_gated';
+    predictionMock.state.geometryInputHash = VALID_BODY.geometryInputHash;
+    predictionMock.buildPersistedSunOutcome.mockClear();
     supabaseMocks.state.venueRow = null;
     supabaseMocks.from.mockClear();
     supabaseMocks.select.mockClear();
     supabaseMocks.or.mockClear();
+    supabaseMocks.eq.mockClear();
+    supabaseMocks.is.mockClear();
     supabaseMocks.limit.mockClear();
   });
 
@@ -126,9 +173,14 @@ describe('POST /api/venues/[slug]/feedback', () => {
     // path a detail view's predictedState can be 'CloudObscured', which
     // FeedbackFlow POSTs verbatim. The Zod enum must accept the full
     // VenueSunStatus union or the user sees a feedback-flow validation error.
+    predictionMock.state.predictedState = 'CloudObscured';
+    predictionMock.state.weatherGateState = 'gated';
+    predictionMock.state.sunExposurePercent = 82;
     const res = await POST(makeRequest('test-venue-sunny', {
       ...VALID_BODY,
       predictedState: 'CloudObscured',
+      publicSunVerdict: 'grey',
+      weatherGated: true,
     }), {
       params: Promise.resolve({ slug: 'test-venue-sunny' }),
     });
@@ -137,6 +189,8 @@ describe('POST /api/venues/[slug]/feedback', () => {
     await expect(res.json()).resolves.toMatchObject({ predictedState: 'CloudObscured' });
     expect(persistenceMock.persistVenueFeedback).toHaveBeenCalledWith(expect.objectContaining({
       predictedState: 'CloudObscured',
+      publicSunVerdict: 'grey',
+      weatherGated: true,
     }));
   });
 

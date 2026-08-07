@@ -118,8 +118,8 @@ export function TimeProvider({
         if (!isPlannerDateSelectable(previous.selectedDate, currentTime)) {
           return stateFromNow(currentTime);
         }
-        const wasLiveNow = isStateLiveNow(previous);
-        if (wasLiveNow) {
+        const tracksCurrentClock = isStateAlignedWithCurrentClock(previous);
+        if (tracksCurrentClock) {
           return stateFromNow(currentTime);
         }
         // Story 11.2 (AC4): on `today`, the effective slider minimum = the
@@ -233,10 +233,14 @@ export function TimeProvider({
       const liveMinutes = parsePlannerTime(liveTime);
       const isLiveClockEligibleForLiveQuery =
         liveMinutes !== null &&
-        liveMinutes >= PLANNER_START_MINUTES;
+        liveMinutes >= PLANNER_START_MINUTES &&
+        liveMinutes <= PLANNER_END_MINUTES;
       const today = stockholmDateKey(state.currentTime);
       const mode = state.selectedDate === today ? 'today' : 'future';
       const isPlannerDateValid = isPlannerDateSelectable(state.selectedDate, state.currentTime);
+      const isSelectedTimeInPlannerRange =
+        state.selectedMinutes >= PLANNER_START_MINUTES &&
+        state.selectedMinutes <= PLANNER_END_MINUTES;
       const isLiveNow =
         mode === 'today' &&
         isLiveClockEligibleForLiveQuery &&
@@ -262,7 +266,7 @@ export function TimeProvider({
         mode,
         isLiveNow,
         minMinutes,
-        plannerQuery: suppressForcedSeedPlannerQuery || isLiveNow || !isPlannerDateValid
+        plannerQuery: suppressForcedSeedPlannerQuery || isLiveNow || !isPlannerDateValid || !isSelectedTimeInPlannerRange
           ? undefined
           : { date: state.selectedDate, time: state.selectedTime },
         ticks: generatePlannerTicks(),
@@ -347,6 +351,12 @@ function isStateLiveNow(state: TimeState): boolean {
   return state.selectedDate === stockholmDateKey(state.currentTime) &&
     liveMinutes !== null &&
     liveMinutes >= PLANNER_START_MINUTES &&
+    liveMinutes <= PLANNER_END_MINUTES &&
+    state.selectedTime === formatLivePlannerTime(state.currentTime);
+}
+
+function isStateAlignedWithCurrentClock(state: TimeState): boolean {
+  return state.selectedDate === stockholmDateKey(state.currentTime) &&
     state.selectedTime === formatLivePlannerTime(state.currentTime);
 }
 

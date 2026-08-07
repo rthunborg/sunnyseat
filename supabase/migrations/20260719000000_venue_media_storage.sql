@@ -25,6 +25,27 @@ set
 
 alter table storage.objects enable row level security;
 
+do $$
+declare
+  stale_policy record;
+begin
+  for stale_policy in
+    select policyname
+    from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and cmd in ('INSERT', 'UPDATE', 'DELETE', 'ALL')
+      and roles && array['public'::name, 'anon'::name, 'authenticated'::name]
+      and (
+        policyname ilike '%venue%media%'
+        or coalesce(qual, '') ~* 'venue-media'
+        or coalesce(with_check, '') ~* 'venue-media'
+      )
+  loop
+    execute format('drop policy if exists %I on storage.objects', stale_policy.policyname);
+  end loop;
+end $$;
+
 drop policy if exists "venue media public read" on storage.objects;
 
 create policy "venue media public read"

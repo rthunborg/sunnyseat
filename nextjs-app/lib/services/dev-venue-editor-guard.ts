@@ -34,6 +34,8 @@ function hasForwardedHostAmbiguity(headers: Headers): boolean {
   return Boolean(
     headers.get('x-forwarded-host') ||
     headers.get('x-forwarded-proto') ||
+    headers.get('x-forwarded-for') ||
+    headers.get('x-real-ip') ||
     headers.get('forwarded'),
   );
 }
@@ -44,16 +46,32 @@ function isLoopbackRequest(request: Request): boolean {
   if (!requestHost || !LOOPBACK_HOSTS.has(requestHost)) return false;
 
   const hostHeader = request.headers.get('host') ?? url.host;
-  const host = hostnameFromHostHeader(hostHeader);
+  const normalizedHost = normalizedUrlHost(url.protocol, hostHeader);
+  const host = normalizedHost ? hostnameFromHostHeader(normalizedHost) : null;
   if (!host || !LOOPBACK_HOSTS.has(host)) return false;
 
   const origin = request.headers.get('origin');
-  if (!origin) return true;
+  if (!origin) return false;
   try {
     const originUrl = new URL(origin);
-    return LOOPBACK_HOSTS.has(hostnameFromHostHeader(originUrl.host) ?? '');
+    const originHost = hostnameFromHostHeader(originUrl.host);
+    return (
+      originHost !== null &&
+      LOOPBACK_HOSTS.has(originHost) &&
+      originHost === host &&
+      originUrl.protocol === url.protocol &&
+      originUrl.host === normalizedHost
+    );
   } catch {
     return false;
+  }
+}
+
+function normalizedUrlHost(protocol: string, hostHeader: string): string | null {
+  try {
+    return new URL(`${protocol}//${hostHeader}`).host.toLowerCase();
+  } catch {
+    return null;
   }
 }
 

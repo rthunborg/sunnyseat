@@ -1,26 +1,9 @@
 import type { VenueDataDto, VenueDetailDto, VenueThumbnailDto } from '@/lib/types/api';
+import { buildVenueMediaPublicUrl } from '@/lib/utils/venue-media';
 
+const PHOTO_LOADED_VERSION = 'v2026-07';
 const PHOTO_FALLBACK_VERSION = 'v2026-07-missing';
 const FALLBACK_SUPABASE_ORIGIN = 'https://sunnyseat.supabase.co';
-const FORCED_PHOTO_WEBP_DATA_URL = [
-  'data:image/webp;base64,',
-  'UklGRuwDAABXRUJQVlA4WAoAAAAgAAAAPwAAJwAASUNDUMgBAAAAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABh',
-  'Y3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-  'AlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJD',
-  'AAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZ',
-  'WiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAAN',
-  'WQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAx',
-  'ADZWUDgg/gEAANAMAJ0BKkAAKAA+KQ6FQiGGVyWZBgChLEAXDITPuPXvxV5yWN2T/WHO9gdQBvH/lAFMewmYTlzx',
-  'qy3qBedOVExPELKw4XTa1nghzhSQwXSN9Gsxz5/ooIcFEm5UTnHKv9/9G4KhIHV8NTSx/jaQgAD+',
-  '/b8R8MBs8SxR89h/i93d9VcfMLykhKJVxLzes6H+zrv99Q1yn/95P0dsEY9xFde///GL9VHhsc',
-  'fa7H/7g+NK46lzuemQ7xz3bEPV9xK2Rt6Lcfv+a1ukvzbHMy3vfCx9ACAKy/RxjknbYPnenOc',
-  '1sIcjn1UBoHn/kZWD9ZSasswGgzeyCTQFb9UFZX2kkbIMbeJeEVhfe6JTEuxHt0GLn0oPDDBdtvuyke',
-  'FM/Kx/Fe/u3uqv75Fte5vDUG/wsvp10Vg9ip6/uefk3rSL7/wlVpy5o5zi/CIAUTXDmsM5/uv8q',
-  'LX+pufP/DHf+7fwvgXI31W49Hl8IOr5OLMrafcpj3WN60p9s/9MxKf0v8rllIYEjzw//yK',
-  'DPf9HbbfgrXTh7AsqOXrHfv3+z0sAZjV7HNC2uYAm+u9TawjPei7uP2VW7OqrIFCjPaFve',
-  'KFeGaaUPXvdJGx2EB6YqBPZPwNTriMTeIJEihmQK+O8didoSbDVyCjiaXaPf1gjiPO0Vj5xOS',
-  'NhSJwcB6wLwOoAAA==',
-].join('');
 
 export type ForcedVenuePhotoState = 'venue-photo-loaded' | 'venue-photo-fallback';
 
@@ -84,14 +67,15 @@ function forcedVenueMediaUrl(
   forcedState: ForcedVenuePhotoState,
   rendition: 'card' | 'hero',
 ): string {
-  if (forcedState === 'venue-photo-loaded') {
-    return FORCED_PHOTO_WEBP_DATA_URL;
-  }
-
   const configuredOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || FALLBACK_SUPABASE_ORIGIN;
-  const origin = configuredOrigin.replace(/\/+$/, '');
-  const version = PHOTO_FALLBACK_VERSION;
-  return `${origin}/storage/v1/object/public/venue-media/test-venue-sunny/${version}/${rendition}.webp`;
+  const version =
+    forcedState === 'venue-photo-loaded' ? PHOTO_LOADED_VERSION : PHOTO_FALLBACK_VERSION;
+  return buildVenueMediaPublicUrl({
+    origin: configuredOrigin,
+    slug: 'test-venue-sunny',
+    mediaVersion: version,
+    rendition,
+  });
 }
 
 const FORCED_VISUAL_VENUE_DETAIL: VenueDetailDto = {

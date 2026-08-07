@@ -18,7 +18,7 @@ export const MAX_DETAIL_PREFETCH_CANDIDATES = 6;
 export const DETAIL_PREFETCH_CONCURRENCY = 2;
 export const DETAIL_PREFETCH_ERROR_COOLDOWN_MS = 60_000;
 
-let venueDetailPrefetchCooldownUntil = 0;
+const venueDetailPrefetchCooldownUntilByHash = new Map<string, number>();
 
 type VenueDetailPrefetchVenue = Pick<
   VenueDataDto,
@@ -70,11 +70,11 @@ export function useVenueDetailPrefetch({
 }: UseVenueDetailPrefetchParams): void {
   const queryClient = useQueryClient();
   const prefetchStartedRef = useRef(false);
-  const initialPrefetchKeyRef = useRef<string | null>(null);
+  const initialPrefetchStartKeyRef = useRef<string | null>(null);
   const pendingStartRef = useRef<(() => void) | null>(null);
   const activeRunRef = useRef<VenueDetailPrefetchRun | null>(null);
   const surfaceSettled = listMode === 'favourites' ? favouritesSettled : listSettled;
-  const plannerLocationKey = stablePlannerLocationKey(detailParams);
+  const plannerDateLocationKey = stablePlannerDateLocationKey(detailParams);
   const candidates = useMemo(
     () =>
       selectVenueDetailPrefetchCandidates({
@@ -92,16 +92,16 @@ export function useVenueDetailPrefetch({
       cancelPendingStart();
       pendingStartRef.current = null;
       prefetchStartedRef.current = true;
-      initialPrefetchKeyRef.current = plannerLocationKey;
+      initialPrefetchStartKeyRef.current = plannerDateLocationKey;
     }
     cancelCandidateQueries(queryClient, activeRunRef.current, preserveVenueSlug);
-  }, [interactionToken, plannerLocationKey, preserveVenueSlug, queryClient]);
+  }, [interactionToken, plannerDateLocationKey, preserveVenueSlug, queryClient]);
 
   useEffect(() => {
-    if (!prefetchStartedRef.current || !initialPrefetchKeyRef.current) return;
-    if (initialPrefetchKeyRef.current === plannerLocationKey) return;
+    if (!prefetchStartedRef.current || !initialPrefetchStartKeyRef.current) return;
+    if (initialPrefetchStartKeyRef.current === plannerDateLocationKey) return;
     cancelCandidateQueries(queryClient, activeRunRef.current, null);
-  }, [plannerLocationKey, queryClient]);
+  }, [plannerDateLocationKey, queryClient]);
 
   useEffect(() => {
     if (
@@ -109,7 +109,11 @@ export function useVenueDetailPrefetch({
       !surfaceSettled ||
       prefetchStartedRef.current ||
       pendingStartRef.current ||
-      isVenueDetailPrefetchInCooldown() ||
+      candidates.every((candidate) =>
+        isVenueDetailPrefetchInCooldownForCandidate(
+          queryKeyHash(normalizeVenueDetailQuery(candidate.slug, detailParams).queryKey),
+        )
+      ) ||
       candidates.length === 0
     ) {
       return undefined;
@@ -119,7 +123,7 @@ export function useVenueDetailPrefetch({
       pendingStartRef.current = null;
       if (prefetchStartedRef.current) return;
       prefetchStartedRef.current = true;
-      initialPrefetchKeyRef.current = plannerLocationKey;
+      initialPrefetchStartKeyRef.current = plannerDateLocationKey;
       const run = createPrefetchRun(candidates, detailParams);
       activeRunRef.current = run;
       void runVenueDetailPrefetch(queryClient, run).finally(() => {
@@ -141,9 +145,8 @@ export function useVenueDetailPrefetch({
     detailParams.date,
     detailParams.lat,
     detailParams.lng,
-    detailParams.time,
     enabled,
-    plannerLocationKey,
+    plannerDateLocationKey,
     queryClient,
     surfaceSettled,
   ]);
@@ -249,7 +252,11 @@ async function runVenueDetailPrefetch(
     );
     if (results.includes('error')) {
       run.cancelled = true;
-      enterVenueDetailPrefetchCooldown();
+      enterVenueDetailPrefetchCooldown(
+        batch
+          .filter((candidate, index) => results[index] === 'error')
+          .map((candidate) => candidate.queryKeyHash),
+      );
       return;
     }
   }
@@ -267,6 +274,7 @@ function nextPrefetchBatch(
   ) {
     const candidate = run.candidates[run.nextIndex];
     run.nextIndex += 1;
+    if (isVenueDetailPrefetchInCooldownForCandidate(candidate.queryKeyHash)) continue;
     if (isDetailQueryFresh(queryClient, candidate.queryKey)) continue;
     batch.push(candidate);
   }
@@ -342,8 +350,12 @@ function scheduleDeterministicYield(callback: () => void): () => void {
   return () => window.clearTimeout(id);
 }
 
-function stablePlannerLocationKey(params: VenueDetailParams): string {
-  const normalized = normalizeVenueDetailQuery('__prefetch_planner__', params);
+function stablePlannerDateLocationKey(params: VenueDetailParams): string {
+  const normalized = normalizeVenueDetailQuery('__prefetch_planner__', {
+    date: params.date,
+    lat: params.lat,
+    lng: params.lng,
+  });
   return queryKeyHash(normalized.queryKey);
 }
 
@@ -385,23 +397,31 @@ function queryKeyHash(queryKey: QueryKey): string {
   return JSON.stringify(queryKey);
 }
 
-function enterVenueDetailPrefetchCooldown(now = Date.now()): void {
-  venueDetailPrefetchCooldownUntil = Math.max(
-    venueDetailPrefetchCooldownUntil,
-    now + DETAIL_PREFETCH_ERROR_COOLDOWN_MS,
-  );
+function enterVenueDetailPrefetchCooldown(queryKeyHashes: readonly string[], now = Date.now()): void {
+  for (const queryKeyHash of queryKeyHashes) {
+    venueDetailPrefetchCooldownUntilByHash.set(
+      queryKeyHash,
+      Math.max(
+        venueDetailPrefetchCooldownUntilByHash.get(queryKeyHash) ?? 0,
+        now + DETAIL_PREFETCH_ERROR_COOLDOWN_MS,
+      ),
+    );
+  }
 }
 
 export function isVenueDetailPrefetchInCooldown(now = Date.now()): boolean {
-  return now < venueDetailPrefetchCooldownUntil;
+  for (const until of venueDetailPrefetchCooldownUntilByHash.values()) {
+    if (now < until) return true;
+  }
+  return false;
 }
 
 export function __resetVenueDetailPrefetchCooldownForTests(): void {
-  venueDetailPrefetchCooldownUntil = 0;
+  venueDetailPrefetchCooldownUntilByHash.clear();
 }
 
 export function __enterVenueDetailPrefetchCooldownForTests(now = Date.now()): void {
-  enterVenueDetailPrefetchCooldown(now);
+  enterVenueDetailPrefetchCooldown(['__test__'], now);
 }
 
 export function __createVenueDetailPrefetchRunForTests(
@@ -422,4 +442,11 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (value === null || typeof value !== 'object') return false;
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
+}
+
+function isVenueDetailPrefetchInCooldownForCandidate(
+  queryKeyHash: string,
+  now = Date.now(),
+): boolean {
+  return now < (venueDetailPrefetchCooldownUntilByHash.get(queryKeyHash) ?? 0);
 }

@@ -14,10 +14,10 @@ export function useVenueDetail(
   slug: string | null | undefined,
   params?: VenueDetailParams | undefined,
 ): UseQueryResult<GetVenueDetailResponse, Error> {
-  const { normalizedSlug } = normalizeVenueDetailQuery(slug, params);
+  const { queryKey } = normalizeVenueDetailQuery(slug, params);
   return useQuery<GetVenueDetailResponse, Error>({
     ...venueDetailQueryOptions(slug, params),
-    placeholderData: sameVenueDetailPlaceholderData(normalizedSlug),
+    placeholderData: sameVenueDetailPlaceholderData(queryKey),
     enabled: isVenueDetailQueryEnabled(slug),
   });
 }

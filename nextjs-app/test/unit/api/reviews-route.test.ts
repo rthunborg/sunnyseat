@@ -195,11 +195,14 @@ describe('/api/reviews', () => {
     const reviewInserts: Array<Record<string, unknown>> = [];
     supabaseMocks.from.mockImplementation((table: string) => {
       if (table === 'venues') {
+        const venueQuery = {
+          eq: () => venueQuery,
+          is: () => venueQuery,
+          limit: async () => ({ data: [LIVE_VENUE_ROW], error: null }),
+        };
         return {
           select: () => ({
-            or: () => ({
-              limit: async () => ({ data: [LIVE_VENUE_ROW], error: null }),
-            }),
+            or: () => venueQuery,
           }),
         };
       }

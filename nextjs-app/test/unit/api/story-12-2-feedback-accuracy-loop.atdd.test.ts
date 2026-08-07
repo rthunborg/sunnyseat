@@ -16,8 +16,43 @@ const persistenceMock = vi.hoisted(() => ({
   persistVenueFeedback: vi.fn(async (feedback: Record<string, unknown>) => feedback),
 }));
 
+const predictionMock = vi.hoisted(() => {
+  type PredictionState = {
+    predictedState: 'Sunny' | 'Partial' | 'Shaded' | 'NoSun' | 'CloudObscured';
+    sunExposurePercent: number;
+    weatherGateState: 'gated' | 'not_gated' | 'unknown';
+    geometryInputHash: string;
+  };
+  const state: PredictionState = {
+    predictedState: 'Partial',
+    sunExposurePercent: 61,
+    weatherGateState: 'not_gated',
+    geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  };
+  return {
+    state,
+    buildPersistedSunOutcome: vi.fn(async (venue: Record<string, unknown>) => ({
+      venue: {
+        ...venue,
+        currentSunStatus: predictionMock.state.predictedState,
+        sunExposurePercent: predictionMock.state.sunExposurePercent,
+        weatherGateState: predictionMock.state.weatherGateState,
+        predictionEvidence: {
+          geometryInputHash: predictionMock.state.geometryInputHash,
+        },
+      },
+      freshness: { sunDataSource: 'weather' },
+    })),
+  };
+});
+
 vi.mock('@/lib/services/venue-feedback-persistence', () => ({
   persistVenueFeedback: persistenceMock.persistVenueFeedback,
+}));
+
+vi.mock('@/lib/services/sun-geometry-repository', () => ({
+  buildPersistedSunOutcome: predictionMock.buildPersistedSunOutcome,
+  SunGeometryCoverageMissingError: class SunGeometryCoverageMissingError extends Error {},
 }));
 
 const appRoot = process.cwd();
@@ -55,6 +90,11 @@ describe('[12.2 AC1] feedback POST uses the shared live public venue resolver', 
     persistenceMock.persistVenueFeedback.mockImplementation(
       async (feedback: Record<string, unknown>) => feedback,
     );
+    predictionMock.state.predictedState = 'Partial';
+    predictionMock.state.sunExposurePercent = 61;
+    predictionMock.state.weatherGateState = 'not_gated';
+    predictionMock.state.geometryInputHash = completeAmberEvidence.geometryInputHash;
+    predictionMock.buildPersistedSunOutcome.mockClear();
   });
 
   afterEach(() => {
@@ -128,6 +168,7 @@ describe('[12.2 AC2/AC3] feedback evidence contract', () => {
   });
 
   test('[P0] treats exactly 50 percent as grey and maps not_sunny agreement explicitly', async () => {
+    predictionMock.state.sunExposurePercent = 50;
     const res = await POST(makeRequest('test-venue-sunny', {
       ...completeAmberEvidence,
       predictedState: 'Partial',
@@ -149,6 +190,9 @@ describe('[12.2 AC2/AC3] feedback evidence contract', () => {
   });
 
   test('[P0] accepts CloudObscured only as diagnostic predictedState while weather-gated verdict is grey', async () => {
+    predictionMock.state.predictedState = 'CloudObscured';
+    predictionMock.state.sunExposurePercent = 92;
+    predictionMock.state.weatherGateState = 'gated';
     const res = await POST(makeRequest('test-venue-sunny', {
       ...completeAmberEvidence,
       predictedState: 'CloudObscured',

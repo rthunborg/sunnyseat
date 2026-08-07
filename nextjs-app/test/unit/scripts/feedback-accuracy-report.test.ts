@@ -128,7 +128,7 @@ describe('feedback accuracy report CLI', () => {
         invalid_evidence_count: 0,
         latest_feedback_at: '2026-08-06T12:15:00.000Z',
         latest_disagreeing_feedback_at: '2026-08-06T12:15:00.000Z',
-        representative_wrong_windows: ['12:00-12:59Z'],
+        representative_wrong_windows: ['14:00-14:59 Europe/Stockholm'],
         venues: [
           {
             venue_id: '1',
@@ -157,7 +157,7 @@ describe('feedback accuracy report CLI', () => {
         invalid_evidence_count: 0,
         latest_feedback_at: '2026-08-06T12:15:00.000Z',
         latest_disagreeing_feedback_at: '2026-08-06T12:15:00.000Z',
-        representative_wrong_windows: ['12:00-12:59Z'],
+        representative_wrong_windows: ['14:00-14:59 Europe/Stockholm'],
       },
     ]);
   });

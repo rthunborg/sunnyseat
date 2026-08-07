@@ -20,10 +20,16 @@ const supabaseMock = vi.hoisted(() => {
   const from = vi.fn(() => ({ select }));
   const rpc = vi.fn(() => Promise.resolve(state.rpcResult));
   const list = vi.fn((prefix: string, options?: { search?: string }) => {
-    const key = `${prefix}/${options?.search ?? ''}`;
-    return Promise.resolve(
-      state.storageResults.get(key) ?? { data: [], error: null },
-    );
+    if (options?.search) {
+      const key = `${prefix}/${options.search}`;
+      return Promise.resolve(
+        state.storageResults.get(key) ?? { data: [], error: null },
+      );
+    }
+    const files = [...state.storageResults.entries()]
+      .filter(([key]) => key.startsWith(`${prefix}/`))
+      .flatMap(([, result]) => Array.isArray(result.data) ? result.data : []);
+    return Promise.resolve({ data: files, error: null });
   });
   const storageFrom = vi.fn(() => ({ list }));
   const client = { from, rpc, storage: { from: storageFrom } };
@@ -220,11 +226,11 @@ describe('Story 12.5 dev venue editor store writes', () => {
     expect(supabaseMock.storageFrom).toHaveBeenCalledWith('venue-media');
     expect(supabaseMock.list).toHaveBeenCalledWith(
       'test-venue-sunny/v20260727',
-      { limit: 1, search: 'card.webp' },
+      { limit: 100 },
     );
     expect(supabaseMock.list).toHaveBeenCalledWith(
       'test-venue-sunny/v20260727',
-      { limit: 1, search: 'hero.webp' },
+      { limit: 100 },
     );
     expect(supabaseMock.rpc).toHaveBeenCalledWith(
       'apply_dev_venue_editor_patch',
@@ -237,6 +243,35 @@ describe('Story 12.5 dev venue editor store writes', () => {
           heroUrl: HERO_URL,
         },
       }),
+    );
+  });
+
+  it('requires each thumbnail URL to resolve to its exact rendition object', async () => {
+    supabaseMock.state.storageResults.set(
+      'test-venue-sunny/v20260727/hero.webp',
+      { data: [storageFile('hero.webp', 'image/webp', 240_000)], error: null },
+    );
+
+    await expect(
+      patchDevEditorVenue('test-venue-sunny', {
+        thumbnail: {
+          alt: 'Uteservering hos Kafé Magasinet',
+          initials: 'KM',
+          cardUrl: CARD_URL,
+          heroUrl: HERO_URL,
+        },
+      }),
+    ).rejects.toMatchObject({
+      status: 400,
+      errors: {
+        'thumbnail.cardUrl': expect.arrayContaining([expect.stringMatching(/missing/i)]),
+      },
+    });
+
+    expect(supabaseMock.rpc).not.toHaveBeenCalled();
+    expect(supabaseMock.list).toHaveBeenCalledWith(
+      'test-venue-sunny/v20260727',
+      { limit: 100 },
     );
   });
 

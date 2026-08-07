@@ -2,11 +2,7 @@
 
 import {
   Suspense,
-  useEffect,
-  useState,
-  type Dispatch,
   type ReactNode,
-  type SetStateAction,
 } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { MapInstanceProvider } from '@/lib/contexts/MapInstanceContext';
@@ -85,52 +81,24 @@ function SearchParamTimeProviders({ children }: { children: ReactNode }) {
   return <DevSearchParamTimeProviders>{children}</DevSearchParamTimeProviders>;
 }
 
-type ForcedPlannerParams = {
-  forcedDate?: string;
-  forcedTime?: string;
-};
-
 function DevSearchParamTimeProviders({ children }: { children: ReactNode }) {
-  const [forcedPlanner, setForcedPlanner] = useState<ForcedPlannerParams>({});
-
-  // Keep `children` mounted exactly once. The URL-reader can suspend behind its
-  // own null fallback, but the app shell and any body portals no longer exist in
-  // both the Suspense fallback and resolved branches at the same time.
   return (
-    <TimeProvider
-      forcedDate={forcedPlanner.forcedDate}
-      forcedTime={forcedPlanner.forcedTime}
-    >
-      <FavouritesProvider>{children}</FavouritesProvider>
-      <Suspense fallback={null}>
-        <DevSearchParamTimeSync onChange={setForcedPlanner} />
-      </Suspense>
-    </TimeProvider>
+    <Suspense fallback={null}>
+      <DevSearchParamTimeProvidersResolved>{children}</DevSearchParamTimeProvidersResolved>
+    </Suspense>
   );
 }
 
-function DevSearchParamTimeSync({
-  onChange,
-}: {
-  onChange: Dispatch<SetStateAction<ForcedPlannerParams>>;
-}) {
+function DevSearchParamTimeProvidersResolved({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   const forcedDate = searchParams.get('_date') ?? undefined;
   const forcedTime = searchParams.get('_time') ?? undefined;
 
-  useEffect(() => {
-    onChange((previous) => {
-      if (
-        previous.forcedDate === forcedDate &&
-        previous.forcedTime === forcedTime
-      ) {
-        return previous;
-      }
-      return { forcedDate, forcedTime };
-    });
-  }, [forcedDate, forcedTime, onChange]);
-
-  return null;
+  return (
+    <TimeProvider forcedDate={forcedDate} forcedTime={forcedTime}>
+      <FavouritesProvider>{children}</FavouritesProvider>
+    </TimeProvider>
+  );
 }
 
 function DefaultTimeProviders({ children }: { children: ReactNode }) {

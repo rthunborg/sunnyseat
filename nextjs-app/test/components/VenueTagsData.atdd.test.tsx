@@ -124,10 +124,14 @@ describe('Story 9.7 AC1 — venue DTO carries real tags from the DB adapter (RED
     vi.doMock('@/lib/supabase/server', () => ({
       getSupabaseServiceRole: () => ({
         from: () => ({
-          select: () => ({
-            eq: () =>
-              Promise.resolve({ data: [ROW_WITH_TAGS, ROW_WITH_NULL_TAGS], error: null }),
-          }),
+          select: () => {
+            const query = {
+              eq: () => query,
+              is: () =>
+                Promise.resolve({ data: [ROW_WITH_TAGS, ROW_WITH_NULL_TAGS], error: null }),
+            };
+            return query;
+          },
         }),
       }),
     }));

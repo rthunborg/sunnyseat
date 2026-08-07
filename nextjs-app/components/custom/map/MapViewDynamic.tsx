@@ -36,7 +36,7 @@ const ForcedVenueDetailInitialFrame =
       );
 
 const DevVenueEditor =
-  process.env.NODE_ENV === 'production'
+  process.env.NODE_ENV === 'production' || process.env.SUNNYSEAT_ADMIN !== 'dev'
     ? null
     : dynamic(
         () => import('@/components/custom/dev/DevVenueEditor')
@@ -51,6 +51,7 @@ export function MapViewDynamic() {
   const searchParams = useSearchParams();
   const showDevEditor =
     process.env.NODE_ENV !== 'production' &&
+    process.env.SUNNYSEAT_ADMIN === 'dev' &&
     searchParams.get('_editor') === 'venues';
   return (
     <>

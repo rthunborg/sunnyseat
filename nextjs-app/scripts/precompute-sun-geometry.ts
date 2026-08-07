@@ -86,7 +86,7 @@ const result = await runSunGeometryPrecompute({
 });
 
 const failureDetails = Array.isArray(result.failures) ? result.failures.slice(0, 100) : [];
-const { error: finishError } = await supabase.rpc('finish_geometry_precompute_run', {
+const { data: finishAccepted, error: finishError } = await supabase.rpc('finish_geometry_precompute_run', {
   p_run_id: runId,
   p_written_venue_days: Number(result.writtenVenueDays ?? 0),
   p_reused_venue_days: Number(result.reusedVenueDays ?? 0),
@@ -96,6 +96,18 @@ const { error: finishError } = await supabase.rpc('finish_geometry_precompute_ru
   p_failure_details: failureDetails,
 } as never);
 if (finishError) throw new Error(`Geometry precompute finish failed: ${finishError.message}`);
+if (!finishAccepted) throw new Error(`Geometry precompute finish rejected for ${runId}`);
+if (result.status === 'completed') {
+  const { data: finished, error: finishReadError } = await supabase
+    .from('geometry_precompute_runs')
+    .select('id,status,written_venue_days,reused_venue_days,missing_venue_days,stale_hash_venue_days,failed_venue_days')
+    .eq('id', runId)
+    .maybeSingle();
+  if (finishReadError) throw new Error(`Geometry precompute finish verification failed: ${finishReadError.message}`);
+  if (!finished || finished.status !== 'completed') {
+    throw new Error(`Geometry precompute finish rejected for ${runId}`);
+  }
+}
 
 await writeSummary([
   '## SunnySeat sun geometry precompute',

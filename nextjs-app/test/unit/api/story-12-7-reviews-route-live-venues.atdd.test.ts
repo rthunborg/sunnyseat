@@ -24,6 +24,7 @@ type VenueRow = {
   lng: number;
   is_partner: boolean;
   hidden?: boolean | null;
+  deleted_at?: string | null;
   current_sun_status?: string | null;
   confidence?: number | null;
   sun_exposure_percent?: number | null;
@@ -67,9 +68,14 @@ const supabaseMocks = vi.hoisted(() => {
     data: candidateVenueRows().slice(0, count),
     error: null,
   }));
+  const venueQuery = {
+    eq: vi.fn(() => venueQuery),
+    is: vi.fn(() => venueQuery),
+    limit: venueLimit,
+  };
   const venueOr = vi.fn((filter: string) => {
     state.lastVenueFilter = filter;
-    return { limit: venueLimit };
+    return venueQuery;
   });
   const venueSelect = vi.fn(() => ({ or: venueOr }));
 
@@ -97,6 +103,8 @@ const supabaseMocks = vi.hoisted(() => {
     from,
     venueSelect,
     venueOr,
+    venueEq: venueQuery.eq,
+    venueIs: venueQuery.is,
     venueLimit,
     reviewSelect,
     reviewOr,
@@ -173,6 +181,8 @@ describe('Story 12.7 AC1/AC2/AC3 - /api/reviews live venue resolution', () => {
     supabaseMocks.from.mockClear();
     supabaseMocks.venueSelect.mockClear();
     supabaseMocks.venueOr.mockClear();
+    supabaseMocks.venueEq.mockClear();
+    supabaseMocks.venueIs.mockClear();
     supabaseMocks.venueLimit.mockClear();
     supabaseMocks.reviewSelect.mockClear();
     supabaseMocks.reviewOr.mockClear();

@@ -19,6 +19,7 @@ type VenueRow = {
   lng: number;
   is_partner: boolean;
   hidden?: boolean | null;
+  deleted_at?: string | null;
   current_sun_status?: string | null;
   confidence?: number | null;
   sun_exposure_percent?: number | null;
@@ -27,6 +28,21 @@ type VenueRow = {
 
 const persistenceMock = vi.hoisted(() => ({
   persistVenueFeedback: vi.fn(async (feedback: FeedbackResponse) => feedback),
+}));
+
+const predictionMock = vi.hoisted(() => ({
+  buildPersistedSunOutcome: vi.fn(async (venue: Record<string, unknown>) => ({
+    venue: {
+      ...venue,
+      currentSunStatus: 'Sunny',
+      sunExposurePercent: 82,
+      weatherGateState: 'not_gated',
+      predictionEvidence: {
+        geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      },
+    },
+    freshness: { sunDataSource: 'weather' },
+  })),
 }));
 
 const supabaseMocks = vi.hoisted(() => {
@@ -55,9 +71,14 @@ const supabaseMocks = vi.hoisted(() => {
     data: candidateVenueRows().slice(0, count),
     error: null,
   }));
+  const query = {
+    eq: vi.fn(() => query),
+    is: vi.fn(() => query),
+    limit,
+  };
   const or = vi.fn((filter: string) => {
     state.lastVenueFilter = filter;
-    return { limit };
+    return query;
   });
   const select = vi.fn(() => ({ or }));
   const from = vi.fn((table: string) => {
@@ -65,11 +86,16 @@ const supabaseMocks = vi.hoisted(() => {
     return { select };
   });
 
-  return { state, from, select, or, limit };
+  return { state, from, select, or, eq: query.eq, is: query.is, limit };
 });
 
 vi.mock('@/lib/services/venue-feedback-persistence', () => ({
   persistVenueFeedback: persistenceMock.persistVenueFeedback,
+}));
+
+vi.mock('@/lib/services/sun-geometry-repository', () => ({
+  buildPersistedSunOutcome: predictionMock.buildPersistedSunOutcome,
+  SunGeometryCoverageMissingError: class SunGeometryCoverageMissingError extends Error {},
 }));
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -135,11 +161,14 @@ describe('Story 12.7 AC4 - /api/venues/[slug]/feedback live venue resolution', (
     vi.unstubAllEnvs();
     persistenceMock.persistVenueFeedback.mockClear();
     persistenceMock.persistVenueFeedback.mockImplementation(async (feedback) => feedback);
+    predictionMock.buildPersistedSunOutcome.mockClear();
     supabaseMocks.state.venueRows = [];
     supabaseMocks.state.lastVenueFilter = '';
     supabaseMocks.from.mockClear();
     supabaseMocks.select.mockClear();
     supabaseMocks.or.mockClear();
+    supabaseMocks.eq.mockClear();
+    supabaseMocks.is.mockClear();
     supabaseMocks.limit.mockClear();
   });
 

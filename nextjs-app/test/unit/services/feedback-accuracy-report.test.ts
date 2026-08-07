@@ -105,7 +105,7 @@ describe('feedback accuracy maintainer report', () => {
       stale_hash_count: 1,
       legacy_unscored_count: 1,
       invalid_evidence_count: 2,
-      representative_wrong_windows: ['12:00-12:59Z'],
+      representative_wrong_windows: ['14:00-14:59 Europe/Stockholm'],
     });
   });
 

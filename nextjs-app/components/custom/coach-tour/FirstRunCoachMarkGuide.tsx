@@ -138,6 +138,15 @@ export function resolveAvailableCoachStepIndex(
   return null;
 }
 
+export function resolveAvailableCoachStepIndexes(
+  steps: readonly CoachTourStep[],
+  root: Pick<Document, 'querySelectorAll'> = document,
+): number[] {
+  return steps.flatMap((step, index) =>
+    findVisibleTourTarget(step.anchor, root) ? [index] : [],
+  );
+}
+
 export function FirstRunCoachMarkGuide({
   forcedStepId = null,
   autoStartEnabled = true,
@@ -158,6 +167,7 @@ export function FirstRunCoachMarkGuide({
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const [targetRect, setTargetRect] = useState<TargetRect | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const targetRef = useRef<HTMLElement | null>(null);
   const previousDescribedByRef = useRef<string | null>(null);
@@ -283,7 +293,7 @@ export function FirstRunCoachMarkGuide({
         if (nextIndex !== null) {
           setCurrentIndex(nextIndex);
         } else {
-          closeGuide();
+          closeGuide(false);
         }
         return;
       }
@@ -345,8 +355,21 @@ export function FirstRunCoachMarkGuide({
     return () => window.cancelAnimationFrame(frame);
   }, [activeGuide, currentIndex, targetRect]);
 
+  useEffect(() => {
+    if (!activeGuide || !targetRect) return undefined;
+    return inertSiblingsWhileModal(overlayRef.current);
+  }, [activeGuide, targetRect]);
+
   const activeIndex = currentIndex;
   const currentStep = activeIndex === null ? null : COACH_TOUR_STEPS[activeIndex];
+  const availableStepIndexes = useMemo(
+    () => (activeIndex === null ? [] : resolveAvailableCoachStepIndexes(COACH_TOUR_STEPS)),
+    [activeIndex, targetRect],
+  );
+  const progressIndex =
+    activeIndex === null ? -1 : availableStepIndexes.indexOf(activeIndex);
+  const progressCurrent = progressIndex >= 0 ? progressIndex + 1 : 1;
+  const progressTotal = Math.max(availableStepIndexes.length, progressCurrent);
   const cardPosition = useMemo(
     () => (targetRect ? resolveCardPosition(targetRect) : null),
     [targetRect],
@@ -391,6 +414,7 @@ export function FirstRunCoachMarkGuide({
   return (
     <AnimatePresence>
       <motion.div
+        ref={overlayRef}
         key={`coach-tour-${activeGuide.id}`}
         className="fixed inset-0 z-modal"
         data-testid="coach-tour-overlay"
@@ -439,8 +463,8 @@ export function FirstRunCoachMarkGuide({
               <div className="min-w-0">
                 <p className="text-label-md text-amber-dark">
                   {t('progress', {
-                    current: activeIndex + 1,
-                    total: COACH_TOUR_STEPS.length,
+                    current: progressCurrent,
+                    total: progressTotal,
                   })}
                 </p>
                 <h2
@@ -703,4 +727,35 @@ function isBlockingSurfaceOpen(): boolean {
   return Boolean(
     document.querySelector('[role="dialog"]:not([data-testid="coach-tour-dialog"])'),
   );
+}
+
+function inertSiblingsWhileModal(overlay: HTMLElement | null): () => void {
+  const parent = overlay?.parentElement;
+  if (!overlay || !parent) return () => undefined;
+  const siblings = Array.from(parent.children).filter(
+    (child): child is HTMLElement => child instanceof HTMLElement && child !== overlay,
+  );
+  const previous = siblings.map((element) => ({
+    element,
+    ariaHidden: element.getAttribute('aria-hidden'),
+    inert: element.hasAttribute('inert'),
+  }));
+  for (const element of siblings) {
+    element.setAttribute('aria-hidden', 'true');
+    element.setAttribute('inert', '');
+  }
+  return () => {
+    for (const { element, ariaHidden, inert } of previous) {
+      if (ariaHidden === null) {
+        element.removeAttribute('aria-hidden');
+      } else {
+        element.setAttribute('aria-hidden', ariaHidden);
+      }
+      if (inert) {
+        element.setAttribute('inert', '');
+      } else {
+        element.removeAttribute('inert');
+      }
+    }
+  };
 }

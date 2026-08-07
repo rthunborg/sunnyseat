@@ -1,11 +1,30 @@
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
   buildSunGeometryPrecomputeWindow,
+  collectSunGeometryPrecomputeTargets,
   runSunGeometryPrecompute,
   type SunGeometryPrecomputeTarget,
 } from '@/lib/services/sun-geometry-precompute';
 import { PLANNER_END_MINUTES, PLANNER_START_MINUTES } from '@/lib/utils/time-planner';
 import type { GeometryInputPayload } from '@/lib/services/sun-geometry-repository';
+
+const supabaseMock = vi.hoisted(() => {
+  const state = {
+    result: { data: [] as unknown, error: null as unknown },
+  };
+  const query = {
+    is: vi.fn(() => query),
+    order: vi.fn(() => Promise.resolve(state.result)),
+  };
+  const select = vi.fn(() => query);
+  const from = vi.fn(() => ({ select }));
+  const client = { from };
+  return { state, client, from, select, is: query.is, order: query.order };
+});
+
+vi.mock('@/lib/supabase/server', () => ({
+  getSupabaseServiceRole: () => supabaseMock.client,
+}));
 
 function makeGeometryInputPayload(venueId: string): GeometryInputPayload {
   return {
@@ -39,6 +58,55 @@ function makeGeometryInputPayload(venueId: string): GeometryInputPayload {
     casters: [],
   };
 }
+
+function makePrecomputeVenueRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'venue-1',
+    slug: 'venue-1',
+    venue_name: 'Venue One',
+    neighborhood: 'Centrum',
+    lat: 57.705,
+    lng: 11.97,
+    display_lat: null,
+    display_lng: null,
+    is_partner: false,
+    thumbnail: null,
+    description: null,
+    address: null,
+    opening_hours: null,
+    current_sun_status: 'Shaded',
+    sky_condition: null,
+    confidence: 80,
+    sun_exposure_percent: 0,
+    sun_window: null,
+    prediction_uncertainty: null,
+    tags: [],
+    seating_area: {
+      type: 'Polygon',
+      coordinates: [[
+        [11.97, 57.705],
+        [11.971, 57.705],
+        [11.971, 57.706],
+        [11.97, 57.706],
+        [11.97, 57.705],
+      ]],
+    },
+    seating_elevation_m: null,
+    ground_elevation_m: null,
+    hidden: false,
+    deleted_at: null,
+    ...overrides,
+  };
+}
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  supabaseMock.state.result = { data: [], error: null };
+  supabaseMock.from.mockClear();
+  supabaseMock.select.mockClear();
+  supabaseMock.is.mockClear();
+  supabaseMock.order.mockClear();
+});
 
 describe('Story 12.3 automated coverage - precompute run publication semantics', () => {
   test('publishes one complete generation containing every date when batch publishing is available', async () => {
@@ -156,5 +224,29 @@ describe('Story 12.3 automated coverage - precompute run publication semantics',
     expect(
       timings.coldRouteBefore + timings.coldRouteAfter + timings.bucketRollAfter,
     ).toBeGreaterThan(0);
+  });
+
+  test('[12.16] filters soft-deleted venues from precompute targeting while retaining hidden venues', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    supabaseMock.state.result = {
+      data: [
+        makePrecomputeVenueRow({ id: 'visible', slug: 'visible', hidden: false }),
+        makePrecomputeVenueRow({ id: 'hidden', slug: 'hidden', hidden: true }),
+      ],
+      error: null,
+    };
+
+    const targets = await collectSunGeometryPrecomputeTargets();
+
+    expect(supabaseMock.from).toHaveBeenCalledWith('venues');
+    expect(supabaseMock.select).toHaveBeenCalledWith(
+      expect.stringContaining('deleted_at'),
+    );
+    expect(supabaseMock.is).toHaveBeenCalledWith('deleted_at', null);
+    expect(supabaseMock.order).toHaveBeenCalledWith('id');
+    expect(targets.map((target) => ({ id: target.id, isHidden: target.isHidden }))).toEqual([
+      { id: 'visible', isHidden: false },
+      { id: 'hidden', isHidden: true },
+    ]);
   });
 });

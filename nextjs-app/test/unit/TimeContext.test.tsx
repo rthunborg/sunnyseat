@@ -184,7 +184,7 @@ describe('TimeContext', () => {
     expect(result.current.plannerQuery).toEqual({ date: '2026-07-25', time: '14:00' });
   });
 
-  it('clamps live clock values before planner hours into an explicit planner query, but keeps after-hours live wall-clock', () => {
+  it('clamps live clock values before planner hours into an explicit planner query, but does not mark after-hours wall-clock as live planner data', () => {
     const early = renderHook(() => useTimeContext(), {
       wrapper: makeWrapper(() => new Date('2026-05-20T01:30:00.000Z')),
     });
@@ -195,18 +195,18 @@ describe('TimeContext', () => {
     early.unmount();
 
     const late = renderHook(() => useTimeContext(), {
-      // 19:45Z = 21:45 Stockholm. This is after the visible planner range, but
-      // it is still the user's live "now", not an explicit 21:00 planner pick.
+    // 19:45Z = 21:45 Stockholm. This is after the visible planner range, so it
+    // must not be labelled as current planner data or emit invalid planner params.
       wrapper: makeWrapper(() => new Date('2026-05-20T19:45:00.000Z')),
     });
     expect(late.result.current.selectedTime).toBe('21:45');
     expect(late.result.current.selectedMinutes).toBe(21 * 60 + 45);
     expect(late.result.current.minMinutes).toBe(21 * 60);
-    expect(late.result.current.isLiveNow).toBe(true);
+    expect(late.result.current.isLiveNow).toBe(false);
     expect(late.result.current.plannerQuery).toBeUndefined();
   });
 
-  it('keeps after-21 live-today selected time aligned with the clock tick', () => {
+  it('keeps after-21 selected wall-clock aligned with the clock tick without calling it live planner data', () => {
     vi.useFakeTimers();
     const clock = vi.fn()
       .mockReturnValueOnce(new Date('2026-05-20T19:45:00.000Z'))
@@ -217,7 +217,7 @@ describe('TimeContext', () => {
     });
 
     expect(result.current.selectedTime).toBe('21:45');
-    expect(result.current.isLiveNow).toBe(true);
+    expect(result.current.isLiveNow).toBe(false);
 
     act(() => {
       vi.advanceTimersByTime(60 * 1000);
@@ -225,7 +225,7 @@ describe('TimeContext', () => {
 
     expect(result.current.selectedTime).toBe('21:46');
     expect(result.current.selectedMinutes).toBe(21 * 60 + 46);
-    expect(result.current.isLiveNow).toBe(true);
+    expect(result.current.isLiveNow).toBe(false);
     expect(result.current.plannerQuery).toBeUndefined();
   });
 
@@ -276,7 +276,7 @@ describe('TimeContext', () => {
 
     expect(result.current.selectedDate).toBe('2026-11-15');
     expect(result.current.selectedTime).toBe('21:30');
-    expect(result.current.isLiveNow).toBe(true);
+    expect(result.current.isLiveNow).toBe(false);
     expect(result.current.plannerQuery).toBeUndefined();
   });
 

@@ -3,6 +3,10 @@ import path from 'node:path';
 import { QueryClient } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
+  normalizeVenueDetailQuery,
+  sameVenueDetailPlaceholderData,
+} from '@/hooks/queries/venue-detail-query-options';
+import {
   __createVenueDetailPrefetchRunForTests,
   __enterVenueDetailPrefetchCooldownForTests,
   __resetVenueDetailPrefetchCooldownForTests,
@@ -179,6 +183,60 @@ describe('Story 12.10 ATDD - venue detail prefetch query contract', () => {
     expect(isVenueDetailPrefetchInCooldown(now + DETAIL_PREFETCH_ERROR_COOLDOWN_MS)).toBe(false);
   });
 
+  test('[P0] prefetch cooldown is scoped to failed exact detail keys, not the whole session', async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    });
+    fetchSpy
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ detail: 'Too many venue requests', status: 429 }), {
+          status: 429,
+          statusText: 'Too Many Requests',
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ detail: 'Too many venue requests', status: 429 }), {
+          status: 429,
+          statusText: 'Too Many Requests',
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+    const detailParams = { date: '2026-07-27', time: '14:00' };
+    const firstRun = __createVenueDetailPrefetchRunForTests(
+      [
+        candidate('venue-1', 'venue-1', 1),
+        candidate('venue-2', 'venue-2', 2),
+      ],
+      detailParams,
+    );
+
+    await __runVenueDetailPrefetchForTests(client, firstRun);
+
+    fetchSpy.mockResolvedValue(
+      new Response(JSON.stringify({ venue: { slug: 'venue-3' } }), {
+        status: 200,
+        statusText: 'OK',
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    const secondRun = __createVenueDetailPrefetchRunForTests(
+      [
+        candidate('venue-1', 'venue-1', 1),
+        candidate('venue-3', 'venue-3', 3),
+      ],
+      detailParams,
+    );
+
+    await __runVenueDetailPrefetchForTests(client, secondRun);
+
+    expect(fetchSpy.mock.calls.map((call: [RequestInfo | URL, RequestInit?]) => call[0])).toEqual([
+      '/api/venues/venue-1?date=2026-07-27&time=14%3A00',
+      '/api/venues/venue-2?date=2026-07-27&time=14%3A00',
+      '/api/venues/venue-3?date=2026-07-27&time=14%3A00',
+    ]);
+  });
+
   test('[P0] scheduler captures the first settled planner/location key and never restarts on scrub or planner-date changes', () => {
     const schedulerSource = readAppFile('hooks/queries/useVenueDetailPrefetch.ts');
 
@@ -186,6 +244,8 @@ describe('Story 12.10 ATDD - venue detail prefetch query contract', () => {
     expect(schedulerSource).toMatch(/hasRun.*Ref|prefetchStarted.*Ref|initialRun.*Ref/i);
     expect(schedulerSource).toMatch(/listVenues|favouriteVenueRows/);
     expect(schedulerSource).toMatch(/dedupe|Set<|new Set/);
+    expect(schedulerSource).toMatch(/initialPrefetchStartKey|plannerDateLocationKey/);
+    expect(schedulerSource).not.toMatch(/detailParams\.time,\s*\n\s*enabled,\s*\n\s*plannerLocationKey/);
     expect(schedulerSource).not.toMatch(/useVenueSearch|fetch\(`?\/api\/venues\?/);
   });
 
@@ -229,6 +289,30 @@ describe('Story 12.10 ATDD - venue detail prefetch query contract', () => {
       lat: 57.7089,
       lng: 11.9746,
     }))).toEqual({ venue: { slug: 'venue-8' }, timestamp: 'now' });
+  });
+
+  test('[P0] same-slug placeholder data is reused only for the exact planner/location key', () => {
+    const current = normalizeVenueDetailQuery('venue-8', {
+      date: '2026-07-27',
+      time: '14:00',
+      lat: 57.70894,
+      lng: 11.97464,
+    });
+    const previousSameSlugDifferentPlanner = normalizeVenueDetailQuery('venue-8', {
+      date: '2026-07-27',
+      time: '15:00',
+      lat: 57.70894,
+      lng: 11.97464,
+    });
+    const previousData = { venue: { slug: 'venue-8' }, timestamp: 'old' } as never;
+    const placeholder = sameVenueDetailPlaceholderData(current.queryKey);
+
+    expect(placeholder(previousData, {
+      queryKey: previousSameSlugDifferentPlanner.queryKey,
+    })).toBeUndefined();
+    expect(placeholder(previousData, {
+      queryKey: current.queryKey,
+    })).toBe(previousData);
   });
 
   test('[P0] forced dev routes require an explicit venue-detail prefetch opt-in', () => {

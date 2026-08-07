@@ -51,6 +51,7 @@ type PrecomputeVenueRow = {
   seating_elevation_m?: number | null;
   ground_elevation_m?: number | null;
   hidden?: boolean | null;
+  deleted_at?: string | null;
 };
 
 type GeometryInputBuildResult = {
@@ -104,7 +105,8 @@ export async function collectSunGeometryPrecomputeTargets(options: {
   const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
   const { data, error } = await getSupabaseServiceRole()
     .from('venues')
-    .select(`${VENUE_SELECT_COLUMNS}, hidden`)
+    .select(`${VENUE_SELECT_COLUMNS}, hidden, deleted_at`)
+    .is('deleted_at', null)
     .order('id');
   if (error) throw new Error(`Precompute target read failed: ${error.message}`);
   return ((data ?? []) as PrecomputeVenueRow[]).map((row, index) => {

@@ -97,6 +97,13 @@ describe('Story 12.5 dev venue editor guard', () => {
         },
       }),
     );
+    const forwardedFor = await GET(
+      request('http://localhost/api/dev/venues', {
+        headers: {
+          'x-forwarded-for': '203.0.113.10',
+        },
+      }),
+    );
     const spoofedHost = await GET(
       request('https://sunnyseat.example/api/dev/venues', {
         headers: {
@@ -105,11 +112,20 @@ describe('Story 12.5 dev venue editor guard', () => {
         },
       }),
     );
+    const missingOrigin = await GET(
+      request('http://localhost/api/dev/venues', {
+        headers: {
+          origin: '',
+        },
+      }),
+    );
 
     expect(remote.status).toBe(403);
     expect(forwarded.status).toBe(403);
     expect(forwardedProto.status).toBe(403);
+    expect(forwardedFor.status).toBe(403);
     expect(spoofedHost.status).toBe(403);
+    expect(missingOrigin.status).toBe(403);
     expect(listDevEditorVenuesMock).not.toHaveBeenCalled();
   });
 
@@ -145,9 +161,9 @@ describe('Story 12.5 dev venue editor guard', () => {
       tags: ['Innergård'],
     });
 
-    const read = await GET(request('http://localhost/api/dev/venues'));
+    const read = await GET(request('http://localhost:3000/api/dev/venues'));
     const write = await PATCH(
-      request('http://localhost/api/dev/venues/test-venue-sunny', {
+      request('http://localhost:3000/api/dev/venues/test-venue-sunny', {
         method: 'PATCH',
         body: JSON.stringify({ hidden: true }),
       }),

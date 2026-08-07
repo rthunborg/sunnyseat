@@ -182,6 +182,27 @@ describe('Story 12.12 ATDD - venue media DTO and sanitizer contract', () => {
     expect(media.selectVenueHeroImageUrl({ ...thumbnailWithRenditions, heroUrl: undefined })).toBe(LEGACY_URL);
   });
 
+  it('[P0] deterministic photo-loaded forced state uses managed Storage URLs, not inline data URLs', async () => {
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', SUPABASE_ORIGIN);
+    const forced = await import('@/components/custom/venue/forced-venue-detail');
+
+    const loaded = forced.resolveForcedVisualVenueDetail(
+      'test-venue-sunny',
+      'venue-photo-loaded',
+    );
+    const fallback = forced.resolveForcedVisualVenueDetail(
+      'test-venue-sunny',
+      'venue-photo-fallback',
+    );
+
+    expect(loaded?.thumbnail?.cardUrl).toBe(CARD_URL);
+    expect(loaded?.thumbnail?.heroUrl).toBe(HERO_URL);
+    expect(loaded?.thumbnail?.cardUrl).not.toMatch(/^data:image\/webp;base64,/);
+    expect(fallback?.thumbnail?.cardUrl).toBe(
+      `${SUPABASE_ORIGIN}/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07-missing/card.webp`,
+    );
+  });
+
   it('[P0] active runtime sources do not reintroduce external legacy photo hosts', async () => {
     const runtimeSources = [
       'lib/services/venues-fixture.ts',

@@ -1,16 +1,17 @@
 /**
  * External-review fix (PR #17, finding 4) — DATE-STABLE top-N truncation.
  *
- * The list route sorts by the SINGLE-INSTANT sun rank then `.slice(0, MAX_RESULTS)`.
- * With >MAX_RESULTS matches, a venue OUTSIDE the instant top-N that becomes the
+ * The list route sorts by the SINGLE-INSTANT sun rank then slices to the list/search
+ * candidate cap. With more matches than the cap, a venue OUTSIDE the instant top-N
+ * that becomes the
  * sunniest at a scrubbed planner time was truncated away BEFORE the client (which
  * derives every scrubbed step from the cached `sunDaySeries`) ever saw it — so its
  * pin + "Mest sol" row vanished for that time. The fix truncates by the venue's
  * DAY-PEAK exposure (stable across the whole day, no payload growth) while keeping
  * the response ORDER on the single-instant rank the client re-sort expects.
  *
- * This spec drives the REAL route with a fully-mocked adapter boundary: 51 venues
- * (> MAX_RESULTS = 50) with controlled instant fields + controlled day-series so
+ * This spec drives the REAL route with a fully-mocked adapter boundary: 101 venues
+ * (> list/search candidate cap = 100) with controlled instant fields + controlled day-series so
  * the peak vs. instant divergence is deterministic.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -167,15 +168,15 @@ describe('venues route — date-stable peak-rank truncation (external-review fix
     storeMocks.getVenues.mockReset();
   });
 
-  it('keeps a venue that is OUTSIDE the instant top-50 but is the DAY-PEAK sunniest in the truncated set', async () => {
-    // 50 venues that are all NoSun "now" but Sunny at their peak (fills the top-50
+  it('keeps a venue that is OUTSIDE the instant top-100 but is the DAY-PEAK sunniest in the truncated set', async () => {
+    // 100 venues that are all NoSun "now" but Sunny at their peak (fills the top-100
     // by peak), plus 1 SPECIAL venue that is NoSun now AND ... wait: to force the
-    // instant-sort to drop the special venue, make the 50 fillers Partial "now"
+    // instant-sort to drop the special venue, make the 100 fillers Partial "now"
     // (instant rank 1) with only a Partial peak, and the special venue NoSun "now"
-    // (instant rank 0, so the instant sort ranks it LAST → dropped at 51) but Sunny
+    // (instant rank 0, so the instant sort ranks it LAST → dropped at 101) but Sunny
     // at its peak (peak rank 2, the highest of all) → the peak truncation MUST keep
     // it.
-    const fillers = Array.from({ length: 50 }, (_, i) => storedVenue(i));
+    const fillers = Array.from({ length: 100 }, (_, i) => storedVenue(i));
     for (const v of fillers) {
       profiles.map.set(v.id, { instant: 'Partial', peak: 'Partial' } satisfies Profile);
     }
@@ -190,29 +191,29 @@ describe('venues route — date-stable peak-rank truncation (external-review fix
     expect(res.status).toBe(200);
     const body = (await res.json()) as GetVenuesResponse;
 
-    // Exactly MAX_RESULTS returned; the pre-slice match count is 51.
-    expect(body.venues).toHaveLength(50);
-    expect(body.totalCount).toBe(51);
+    // Exactly the list/search candidate cap returned; the pre-slice match count is 101.
+    expect(body.venues).toHaveLength(100);
+    expect(body.totalCount).toBe(101);
 
     // THE HEADLINE: the special low-instant/high-peak venue survived truncation
     // (the naive instant-only slice would have dropped it).
     const kept = body.venues.find((v) => v.id === special.id);
-    expect(kept, 'day-peak-sunniest venue must survive the top-50 truncation').toBeDefined();
+    expect(kept, 'day-peak-sunniest venue must survive the top-100 truncation').toBeDefined();
     // Its cached day-series is present so the client can derive the peak step.
     expect(Array.isArray(kept?.sunDaySeries)).toBe(true);
 
     // And a filler venue (Partial peak, lower than the special's Sunny peak) was
     // the one dropped instead — the set now favours day-peak potential.
-    expect(body.venues.length).toBe(50);
+    expect(body.venues.length).toBe(100);
   });
 
-  it('[P0] keeps an all-grey gated future peak ahead of a weaker grey peak at the top-50 cutoff', async () => {
-    const publiclySunnyFillers = Array.from({ length: 49 }, (_, i) => storedVenue(i));
+  it('[P0] keeps an all-grey gated future peak ahead of a weaker grey peak at the top-100 cutoff', async () => {
+    const publiclySunnyFillers = Array.from({ length: 99 }, (_, i) => storedVenue(i));
     for (const venue of publiclySunnyFillers) {
       profiles.map.set(venue.id, { instant: 'NoSun', peak: 'Partial' } satisfies Profile);
     }
 
-    const weakerGreyPeak = storedVenue(50);
+    const weakerGreyPeak = storedVenue(990);
     profiles.map.set(weakerGreyPeak.id, { instant: 'NoSun', peak: 'Shaded' } satisfies Profile);
 
     const gatedHighPeak = storedVenue(999);
@@ -230,8 +231,8 @@ describe('venues route — date-stable peak-rank truncation (external-review fix
     expect(res.status).toBe(200);
     const body = (await res.json()) as GetVenuesResponse;
 
-    expect(body.venues).toHaveLength(50);
-    expect(body.totalCount).toBe(51);
+    expect(body.venues).toHaveLength(100);
+    expect(body.totalCount).toBe(101);
 
     const keptIds = body.venues.map((venue) => venue.id);
     expect(keptIds).toContain(gatedHighPeak.id);
@@ -246,13 +247,13 @@ describe('venues route — date-stable peak-rank truncation (external-review fix
     );
   });
 
-  it('[P0] keeps an exact-50 future peak ahead of a weaker grey peak at the top-50 cutoff', async () => {
-    const publiclySunnyFillers = Array.from({ length: 49 }, (_, i) => storedVenue(i));
+  it('[P0] keeps an exact-50 future peak ahead of a weaker grey peak at the top-100 cutoff', async () => {
+    const publiclySunnyFillers = Array.from({ length: 99 }, (_, i) => storedVenue(i));
     for (const venue of publiclySunnyFillers) {
       profiles.map.set(venue.id, { instant: 'NoSun', peak: 'Partial' } satisfies Profile);
     }
 
-    const weakerGreyPeak = storedVenue(50);
+    const weakerGreyPeak = storedVenue(990);
     profiles.map.set(weakerGreyPeak.id, {
       instant: 'NoSun',
       peak: 'Shaded',
@@ -277,8 +278,8 @@ describe('venues route — date-stable peak-rank truncation (external-review fix
     const body = (await res.json()) as GetVenuesResponse;
     const keptIds = body.venues.map((venue) => venue.id);
 
-    expect(body.venues).toHaveLength(50);
-    expect(body.totalCount).toBe(51);
+    expect(body.venues).toHaveLength(100);
+    expect(body.totalCount).toBe(101);
     expect(keptIds).toContain(exactFiftyPeak.id);
     expect(keptIds).not.toContain(weakerGreyPeak.id);
   });

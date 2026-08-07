@@ -8,6 +8,8 @@ const repoRoot = path.resolve(process.cwd(), '..');
 const migrationPath = path.join(repoRoot, 'supabase', 'migrations', '20260719000000_venue_media_storage.sql');
 const uploadScriptPath = path.join(process.cwd(), 'scripts', 'upload-venue-media.mjs');
 const venueDocsPath = path.join(process.cwd(), 'docs', 'venue-data-load.md');
+const browserWritePolicyPattern =
+  /create\s+policy[\s\S]*?on\s+storage\.objects[\s\S]*?for\s+(insert|update|delete|all)[\s\S]*?to\s+[^;\n]*\b(public|anon|authenticated)\b/i;
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -96,7 +98,7 @@ describe('Story 12.12 ATDD - Supabase Storage migration, upload tooling, and doc
     expect(sql).toMatch(/350\s*\*\s*1024|358400/);
     expect(sql).toMatch(/create\s+policy/i);
     expect(sql).toMatch(/\bselect\b/i);
-    expect(sql).not.toMatch(/for\s+(insert|update|delete)\s+to\s+(anon|authenticated)/i);
+    expect(sql).not.toMatch(/for\s+(insert|update|delete)\s+to\s+(public|anon|authenticated)/i);
   });
 
   it('[P0] documents protected-policy evidence gaps instead of faking live Supabase verification', async () => {
@@ -111,14 +113,22 @@ describe('Story 12.12 ATDD - Supabase Storage migration, upload tooling, and doc
     const sql = await readFile(migrationPath, 'utf8');
 
     expect(sql).toMatch(/alter\s+table\s+storage\.objects\s+enable\s+row\s+level\s+security/i);
+    expect(sql).toMatch(/from\s+pg_policies/i);
+    expect(sql).toMatch(/roles\s*&&\s*array\['public'::name,\s*'anon'::name,\s*'authenticated'::name\]/i);
+    expect(sql).toMatch(/drop\s+policy\s+if\s+exists\s+%I\s+on\s+storage\.objects/i);
     expect(sql).toMatch(
       /create\s+policy\s+"venue media public read"\s+on\s+storage\.objects\s+for\s+select\s+to\s+anon,\s*authenticated\s+using\s*\(\s*bucket_id\s*=\s*'venue-media'\s*\)/i,
     );
-    expect(sql).not.toMatch(
-      /create\s+policy[\s\S]*?on\s+storage\.objects[\s\S]*?for\s+(insert|update|delete|all)[\s\S]*?to\s+(anon|authenticated)/i,
-    );
-    expect(sql).not.toMatch(
-      /with\s+check\s*\(\s*bucket_id\s*=\s*'venue-media'\s*\)/i,
+    expect(sql).not.toMatch(browserWritePolicyPattern);
+
+    expect(
+      `create policy "venue media service writes"
+       on storage.objects
+       for insert
+       to service_role
+       with check (bucket_id = 'venue-media')`,
+    ).not.toMatch(
+      browserWritePolicyPattern,
     );
   });
 

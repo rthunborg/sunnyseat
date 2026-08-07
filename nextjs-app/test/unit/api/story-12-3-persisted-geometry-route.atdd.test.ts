@@ -157,7 +157,7 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
     expect(body.code).toBe('SUN_GEOMETRY_COVERAGE_MISSING');
   });
 
-  test('weather-bucket rollover re-gates O(steps) from the same persisted geometry values', async () => {
+  test('public weatherBucket query params cannot override the server-owned current snapshot', async () => {
     const routePath = '@/app/api/venues/route';
     const route = (await import(routePath)) as RouteTestHook;
     const persistedSeries = [
@@ -176,13 +176,17 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
       }),
     });
 
+    const bucketReads: Array<string | undefined> = [];
     route.__setWeatherSnapshotRepositoryForTests?.({
-      readSnapshotForVenueDay: async (_venue: unknown, bucket: string) => ({
+      readSnapshotForVenueDay: async (_venue: unknown, bucket: string | undefined) => {
+        bucketReads.push(bucket);
+        return {
         status: 'ready',
-        bucket,
+        bucket: 'current',
         weatherUpdatedAt: '2026-07-18T10:00:00.000Z',
-        slices: [{ minutes: 720, cloudCover: bucket === 'overcast' ? 95 : 10, isRaining: false }],
-      }),
+        slices: [{ minutes: 720, cloudCover: 95, isRaining: false }],
+        };
+      },
     });
 
     const sunny = await route.GET(venuesRequest('&weatherBucket=clear'));
@@ -192,7 +196,9 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
 
     expect(sunnyBody.venues[0]?.sunDaySeries).toHaveLength(persistedSeries.length);
     expect(overcastBody.venues[0]?.sunDaySeries).toHaveLength(persistedSeries.length);
-    expect(overcastBody.venues[0]?.sunDaySeries).not.toEqual(sunnyBody.venues[0]?.sunDaySeries);
+    expect(bucketReads.length).toBeGreaterThan(1);
+    expect(bucketReads.every((bucket) => bucket === undefined)).toBe(true);
+    expect(overcastBody.venues[0]?.sunDaySeries).toEqual(sunnyBody.venues[0]?.sunDaySeries);
     expect(overcastBody.venues[0]?.sunDaySeries).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ minutes: 720, sunExposurePercent: 92, currentSunStatus: 'CloudObscured' }),

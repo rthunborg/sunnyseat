@@ -158,6 +158,19 @@ describe('<MobileBottomSheet /> row-count contract', () => {
     ).toBe(1);
   });
 
+  it('keeps at least one visible row available for a populated sheet even when the measured budget is tiny', () => {
+    expect(
+      computeMaxVisibleRows({
+        viewportHeightPx: 360,
+        rowCount: 3,
+        rowHeightPx: 88,
+        handleHeightPx: 44,
+        chromeHeightPx: 180,
+        topChromeClearancePx: 211,
+      }),
+    ).toBe(1);
+  });
+
   it('clamps an out-of-range parent row count back to the computed maxRows', () => {
     const onVisibleRowsChange = renderSheet({ visibleRows: 9, rowCount: 5 });
 

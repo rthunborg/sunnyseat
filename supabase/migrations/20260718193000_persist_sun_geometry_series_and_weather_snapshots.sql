@@ -272,6 +272,7 @@ set search_path = public
 as $$
 declare
   database_now timestamptz := clock_timestamp();
+  inserted_id text;
 begin
   update public.geometry_precompute_runs
      set status = 'expired',
@@ -280,10 +281,13 @@ begin
    where status = 'running'
      and lease_expires_at <= database_now;
 
+  perform pg_advisory_xact_lock(hashtext('sunnyseat:geometry-precompute-run'));
+
   if exists (
     select 1
       from public.geometry_precompute_runs
      where status = 'running'
+       and lease_expires_at > database_now
      for update
   ) then
     return false;
@@ -316,9 +320,12 @@ begin
   on conflict (id) do update
     set heartbeat_at = excluded.heartbeat_at,
         lease_expires_at = excluded.lease_expires_at
-    where public.geometry_precompute_runs.status = 'running';
+    where public.geometry_precompute_runs.id = p_run_id
+      and public.geometry_precompute_runs.status = 'running'
+      and public.geometry_precompute_runs.lease_expires_at > database_now
+  returning id into inserted_id;
 
-  return true;
+  return inserted_id = p_run_id;
 end;
 $$;
 

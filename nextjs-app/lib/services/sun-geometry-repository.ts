@@ -12,6 +12,7 @@ import {
   venueEngineCoordinate,
 } from '@/lib/services/sun-geometry-coordinates';
 import { calculateSolarPosition } from '@/lib/solar/solar-calculation-service';
+import { MAX_SHADOW_DISTANCE } from '@/lib/solar';
 import {
   buildPlannerHashContract,
 } from '@/lib/services/sun-geometry-hash';
@@ -151,7 +152,9 @@ export async function buildPersistedSunOutcome(
     venue,
     stockholmDate,
   });
-  const selectedStep = selectedStepForRequestedInstant(gatedSeries, venue, requestedAt);
+  const selectedStep = selectedStepForRequestedInstant(gatedSeries, venue, requestedAt, {
+    isLiveCurrentRequest: requestedAt.getTime() === now.getTime(),
+  });
   const publicSunWindow = extractPublicSunWindow(gatedSeries, {
     stepMinutes: PLANNER_STEP_MINUTES,
   });
@@ -279,8 +282,19 @@ function selectedStepForRequestedInstant(
   series: readonly VenueDaySeriesEntry[],
   venue: StoredVenue,
   requestedAt: Date,
+  options: { isLiveCurrentRequest?: boolean } = {},
 ): VenueDaySeriesEntry {
-  const selectedStep = nearestStep(series, stockholmMinutes(requestedAt));
+  const requestedMinutes = stockholmMinutes(requestedAt);
+  const selectedStep = nearestStep(series, requestedMinutes);
+  if (options.isLiveCurrentRequest && requestedMinutes > PLANNER_END_MINUTES) {
+    return {
+      ...selectedStep,
+      sunExposurePercent: 0,
+      currentSunStatus: 'NoSun',
+      weatherGateState: 'unknown',
+      skyCondition: 'unavailable',
+    };
+  }
   if (isSunBelowHorizonAtInstant(venue, requestedAt)) {
     return {
       ...selectedStep,
@@ -434,10 +448,10 @@ export async function buildGeometryInputPayloadForVenue(
 
 async function readRuntimeCasterHashRecords(centroid: { lat: number; lng: number }): Promise<unknown[]> {
   const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
-  const { data, error } = await getSupabaseServiceRole().rpc('get_shadow_caster_hash_records', {
+    const { data, error } = await getSupabaseServiceRole().rpc('get_shadow_caster_hash_records', {
     p_latitude: centroid.lat,
     p_longitude: centroid.lng,
-    p_radius_meters: 1500,
+    p_radius_meters: MAX_SHADOW_DISTANCE,
   });
   if (error) throw new Error(error.message);
   return (data ?? []).map((row: Record<string, unknown>) => ({

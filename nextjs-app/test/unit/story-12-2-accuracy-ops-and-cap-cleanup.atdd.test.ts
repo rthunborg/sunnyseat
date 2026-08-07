@@ -98,7 +98,7 @@ describe('[12.2 AC3/AC5] feedback evidence migration and generated type contract
     expect(feedbackMigration).toMatch(/sun_exposure_percent[\s\S]*(?:between\s+0\s+and\s+100|>=\s*0[\s\S]*<=\s*100)/i);
     expect(feedbackMigration).toMatch(/public_sun_verdict[\s\S]*\('amber',\s*'grey'\)/i);
     expect(feedbackMigration).toMatch(/weather_gated[\s\S]*weather_unknown[\s\S]*(?:not|false)/i);
-    expect(feedbackMigration).toMatch(/geometry_input_hash[\s\S]*g\[0-9\]\+:\[0-9a-f\]\{64\}|geometry_input_hash[\s\S]*g\[0-9\]\+:\[0-9a-f\]\{64\}/i);
+    expect(feedbackMigration).toMatch(/geometry_input_hash[\s\S]*g1:\[0-9a-f\]\{64\}|geometry_input_hash[\s\S]*\^g1:\[0-9a-f\]\{64\}/i);
     expect(feedbackMigration).toMatch(/ALTER\s+TABLE[\s\S]*feedback[\s\S]*ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
     expect(feedbackMigration).toMatch(/REVOKE[\s\S]*FROM\s+(?:PUBLIC|anon|authenticated)/i);
     expect(feedbackMigration).not.toMatch(/CREATE\s+POLICY[\s\S]*TO\s+(?:anon|authenticated)/i);

@@ -1,7 +1,7 @@
 import { publicSunVerdictFor } from '@/lib/utils/public-sun';
 import type { FeedbackSunAccuracy, PublicSunVerdict, WeatherGateState } from '@/lib/types/api';
 
-const GEOMETRY_INPUT_HASH_PATTERN = /^g[0-9]+:[0-9a-f]{64}$/u;
+const GEOMETRY_INPUT_HASH_PATTERN = /^g1:[0-9a-f]{64}$/u;
 
 export type FeedbackAccuracyFeedbackRow = {
   venue_id: string | null;
@@ -305,8 +305,12 @@ function normalizeTimestamp(value: string | null): string | null {
 
 function representativeWindow(timestamp: string): string {
   const date = new Date(timestamp);
-  const hour = date.getUTCHours().toString().padStart(2, '0');
-  return `${hour}:00-${hour}:59Z`;
+  const hour = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Stockholm',
+    hour: '2-digit',
+    hour12: false,
+  }).format(date);
+  return `${hour}:00-${hour}:59 Europe/Stockholm`;
 }
 
 function compareVenueReports(

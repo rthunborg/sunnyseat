@@ -16,6 +16,7 @@ import type {
   DevEditorVenueDto,
   DevVenueEditorPatchRequest,
 } from '@/lib/types/dev-venue-editor';
+import { GOTHENBURG_BOUNDS } from '@/lib/constants/geography';
 import { cn } from '@/lib/utils';
 
 type Draft = {
@@ -38,6 +39,7 @@ export function DevVenueEditor() {
   const t = useTranslations('map.devEditor');
   const enabled =
     process.env.NODE_ENV !== 'production' &&
+    process.env.SUNNYSEAT_ADMIN === 'dev' &&
     searchParams.get('_editor') === 'venues';
   const venuesQuery = useDevVenueEditorVenues(enabled);
   const patchMutation = usePatchDevVenueEditorVenue();
@@ -337,10 +339,12 @@ function DevVenueDisplayPinLayer({
 
     const handleDragEnd = () => {
       const lngLat = marker.getLngLat();
-      onMove({
+      const clamped = clampCoordinateToGothenburgBounds({
         lat: roundCoordinate(lngLat.lat),
         lng: roundCoordinate(lngLat.lng),
       });
+      marker.setLngLat([clamped.lng, clamped.lat]);
+      onMove(clamped);
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       const delta = event.shiftKey ? 0.001 : 0.0001;
@@ -352,10 +356,10 @@ function DevVenueDisplayPinLayer({
       if (event.key === 'ArrowLeft') next = { lat: current.lat, lng: current.lng - delta };
       if (!next) return;
       event.preventDefault();
-      const rounded = {
+      const rounded = clampCoordinateToGothenburgBounds({
         lat: roundCoordinate(next.lat),
         lng: roundCoordinate(next.lng),
-      };
+      });
       marker.setLngLat([rounded.lng, rounded.lat]);
       onMove(rounded);
     };
@@ -546,4 +550,21 @@ function formatCoordinate(value: number): string {
 
 function roundCoordinate(value: number): number {
   return Math.round(value * 1_000_000) / 1_000_000;
+}
+
+function clampCoordinateToGothenburgBounds(coordinate: Coordinate): Coordinate {
+  return {
+    lat: roundCoordinate(
+      Math.min(
+        GOTHENBURG_BOUNDS.maxLatitude,
+        Math.max(GOTHENBURG_BOUNDS.minLatitude, coordinate.lat),
+      ),
+    ),
+    lng: roundCoordinate(
+      Math.min(
+        GOTHENBURG_BOUNDS.maxLongitude,
+        Math.max(GOTHENBURG_BOUNDS.minLongitude, coordinate.lng),
+      ),
+    ),
+  };
 }
