@@ -51,6 +51,7 @@ const messages = {
       noResults: 'Inga resultat för "{query}"',
       resultCount: '{count, plural, one {# resultat} other {# resultat}}',
       settings: 'Inställningar',
+      closedAtSelectedTime: 'Stängt vid vald tid',
     },
   },
 };
@@ -82,7 +83,23 @@ vi.mock('@/lib/contexts/MapSelectionContext', () => ({
 }));
 
 vi.mock('@/lib/contexts/TimeContext', () => ({
-  useTimeContext: () => ({ plannerQuery: {} }),
+  useTimeContext: () => ({
+    currentTime: new Date('2026-05-20T10:15:00.000Z'),
+    selectedDate: '2026-05-20',
+    selectedTime: '12:15',
+    selectedMinutes: 735,
+    isLiveNow: true,
+    plannerQuery: undefined,
+  }),
+}));
+
+vi.mock('@/i18n/navigation', () => ({
+  usePathname: () => '/',
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 // Mockable geolocation status so the locate-feedback branch is driven directly.

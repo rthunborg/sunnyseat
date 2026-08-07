@@ -46,15 +46,15 @@ test.describe('favourites', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
 
-    const firstCard = page.getByTestId('venue-card').first();
-    await expect(firstCard).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
-    const firstVenue = firstCard.getByRole('button', { name: /^Välj / });
-    await expect(firstVenue).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
-    const label = (await firstVenue.getAttribute('aria-label')) ?? '';
-    const venueName = label.match(/^Välj ([^,]+)/)?.[1] ?? 'Kafé Magasinet';
+    const venueName = 'Kafé Magasinet';
+    const venueCard = page.getByTestId('venue-card').filter({ hasText: venueName }).first();
+    await expect(venueCard).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+    await expect(venueCard.getByRole('button', { name: /^Välj / })).toBeVisible({
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
 
-    await firstCard.getByRole('button', { name: /Spara som favorit/ }).click();
-    await expect(firstCard.getByRole('button', { name: /Ta bort favorit/ })).toHaveAttribute(
+    await venueCard.getByRole('button', { name: /Spara som favorit/ }).click();
+    await expect(page.getByRole('button', { name: `Ta bort favorit: ${venueName}` })).toHaveAttribute(
       'aria-pressed',
       'true',
     );

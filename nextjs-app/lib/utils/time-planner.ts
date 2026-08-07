@@ -1,3 +1,5 @@
+import { fromZonedTime } from 'date-fns-tz';
+
 export const STOCKHOLM_TIME_ZONE = 'Europe/Stockholm';
 export const PLANNER_START_MINUTES = 6 * 60;
 export const PLANNER_END_MINUTES = 21 * 60;
@@ -52,6 +54,15 @@ export function formatTimeInStockholm(date: Date): string {
     hour12: false,
   }).formatToParts(date);
   return `${partValue(parts, 'hour')}:${partValue(parts, 'minute')}`;
+}
+
+export function stockholmInstantFromDateTime(
+  date: string,
+  time: string,
+): Date | null {
+  if (!isValidDateKey(date)) return null;
+  if (parsePlannerTime(time) === null) return null;
+  return fromZonedTime(`${date}T${time}:00`, STOCKHOLM_TIME_ZONE);
 }
 
 export function parsePlannerTime(value: string): number | null {

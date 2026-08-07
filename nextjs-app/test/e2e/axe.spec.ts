@@ -51,7 +51,7 @@ test.describe('axe-core a11y gate', () => {
   { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
 );
 
-    await page.goto('/?venue=test-venue-sunny&_state=map-with-selected-venue');
+    await page.goto('/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00');
     await page.locator('[data-testid="venue-pin"]').first().waitFor({ state: 'visible' });
     await page.locator('[data-testid="venue-quick-info"]:visible').waitFor({ state: 'visible' });
     const violations = await runAxe(page);
@@ -223,7 +223,7 @@ test.describe('axe-core a11y gate', () => {
       window.open = () => null;
     });
 
-    await page.goto('/?venue=test-venue-sunny&_state=map-with-selected-venue');
+    await page.goto('/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00');
     await page.locator('[data-testid="venue-quick-info"]:visible').waitFor({ state: 'visible' });
     await page
       .locator('[data-testid="venue-quick-info"]:visible')

@@ -22,6 +22,8 @@ import { useTagFilter } from '@/lib/contexts/TagFilterContext';
 import { useTimeContext } from '@/lib/contexts/TimeContext';
 import { collectTags, localizeTag } from '@/lib/utils/venue-tags';
 import { venuePlannerQueryArgs } from '@/lib/utils/venue-query-planner';
+import { getVenueAvailabilityAt } from '@/lib/utils/opening-hours';
+import { stockholmInstantFromDateTime } from '@/lib/utils/time-planner';
 import { cn } from '@/lib/utils';
 
 const SEARCH_RADIUS_KM = 1.5;
@@ -95,9 +97,22 @@ export function DesktopNavBar() {
     enabled: coordsSettled,
     ...deferredPlanner,
   });
+  const selectedInstant = useMemo(
+    () =>
+      stockholmInstantFromDateTime(plannerTime.selectedDate, plannerTime.selectedTime) ??
+      plannerTime.currentTime,
+    [plannerTime.currentTime, plannerTime.selectedDate, plannerTime.selectedTime],
+  );
+  const venuesForTags = useMemo(
+    () =>
+      (venueQuery.data?.venues ?? []).filter(
+        (venue) => getVenueAvailabilityAt(venue.openingHours, selectedInstant).state !== 'closed',
+      ),
+    [selectedInstant, venueQuery.data?.venues],
+  );
   const allTags = useMemo(
-    () => collectTags(venueQuery.data?.venues ?? []),
-    [venueQuery.data?.venues],
+    () => collectTags(venuesForTags),
+    [venuesForTags],
   );
 
   // Story 9.7 orphaned-tag guard: when the venue set changes (new location/time)

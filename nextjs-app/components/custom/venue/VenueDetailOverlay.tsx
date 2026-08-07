@@ -30,6 +30,8 @@ export type VenueDetailOverlayProps = {
   fallbackVenue: VenueDataDto;
   detail?: VenueDetailDto;
   currentTime: string;
+  selectedInstant?: Date;
+  isLivePlannerTime?: boolean;
   labels: VenueDetailOverlayLabels;
   isLoading?: boolean;
   reducedMotion?: boolean;
@@ -57,6 +59,8 @@ export function VenueDetailOverlay({
   fallbackVenue,
   detail,
   currentTime,
+  selectedInstant,
+  isLivePlannerTime = true,
   labels,
   isLoading = false,
   reducedMotion,
@@ -179,6 +183,8 @@ export function VenueDetailOverlay({
             fallbackVenue={fallbackVenue}
             detail={detail}
             currentTime={currentTime}
+            selectedInstant={selectedInstant}
+            isLivePlannerTime={isLivePlannerTime}
             labels={labels}
             distanceIsApproximate={distanceIsApproximate}
             isLoading={isLoading}
@@ -270,6 +276,8 @@ export function VenueDetailOverlay({
           fallbackVenue={fallbackVenue}
           detail={detail}
           currentTime={currentTime}
+          selectedInstant={selectedInstant}
+          isLivePlannerTime={isLivePlannerTime}
           labels={labels}
           distanceIsApproximate={distanceIsApproximate}
           isLoading={isLoading}
