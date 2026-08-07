@@ -62,8 +62,8 @@ export function VenueSearchCombobox({
   const prefersReducedMotion = useReducedMotion();
   const [hasHydrated, setHasHydrated] = useState(false);
   const shouldReduceMotion = hasHydrated && prefersReducedMotion === true;
-  const [open, setOpen] = useState(false);
   const trimmedQuery = query.trim();
+  const [open, setOpen] = useState(() => trimmedQuery.length > 0);
   const visibleVenues = useMemo(
     () => (filterResults ? filterVenuesForQuery(venues, trimmedQuery) : venues),
     [filterResults, trimmedQuery, venues],

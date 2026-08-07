@@ -56,6 +56,7 @@ import {
   extractBestPublicSunStep,
   extractPublicSunPeak,
 } from '@/lib/utils/public-sun';
+import { getVenueAvailabilityAt } from '@/lib/utils/opening-hours';
 
 const DEFAULT_RADIUS_KM = 1.5;
 const MAX_RADIUS_KM = 3.0;
@@ -277,11 +278,11 @@ export async function GET(request: NextRequest) {
     shouldUseRealSunEngine() ||
     (process.env.NODE_ENV === 'test' && routeUsesInjectedSunGeometryRepositoryForTests());
   const now = new Date();
+  const requestedAt = resolveRequestedAt(planner.selection, now);
   let freshness: SunFreshnessMeta;
   let processedVenues: VenueDataDto[];
 
   if (useRealEngine) {
-    const requestedAt = resolveRequestedAt(planner.selection, now);
     let outcomes: Awaited<ReturnType<typeof buildPersistedSunOutcome>>[];
     try {
       outcomes = await mapWithConcurrency(
@@ -351,14 +352,17 @@ export async function GET(request: NextRequest) {
   // TWO-STAGE selection: truncate by public day-peak so a venue that can become
   // the public sunniest venue later in the day is kept in the client cache; order
   // the kept set by the selected instant so the server and client lists agree.
+  // Story 12.14: availability is a visibility predicate before public-sun
+  // ordering for discovery/search lists. When the route has more candidates than
+  // the response cap, keep open/unknown rows ahead of explicitly closed rows so
+  // closed high-sun venues cannot starve the client-side selected-time filter.
   const instantOrder = compareVenuesByPublicSun;
   const candidateLimit = ids.value ? FAVOURITE_ID_LIMIT : LIST_SEARCH_CANDIDATE_LIMIT;
-  const keptByPeak =
-    matchedVenues.length > candidateLimit
-      ? [...matchedVenues]
-          .sort(compareVenuesByPublicSunPeak)
-          .slice(0, candidateLimit)
-      : matchedVenues;
+  const keptByPeak = selectResponseCandidates(
+    matchedVenues,
+    candidateLimit,
+    ids.value ? undefined : requestedAt,
+  );
   const venues = [...keptByPeak].sort(instantOrder);
 
   // `count` reflects what was returned; `totalCount` reflects the
@@ -408,6 +412,30 @@ function matchesVenueQuery(venue: VenueDataDto, q: string | undefined): boolean 
     venue.neighborhood,
   ].join(' '));
   return terms.every((term) => searchable.includes(term));
+}
+
+function selectResponseCandidates(
+  venues: VenueDataDto[],
+  candidateLimit: number,
+  availabilityInstant: Date | undefined,
+): VenueDataDto[] {
+  if (venues.length <= candidateLimit) return venues;
+
+  const byPeak = [...venues].sort(compareVenuesByPublicSunPeak);
+  if (!availabilityInstant) return byPeak.slice(0, candidateLimit);
+
+  const visibleAtSelectedTime: VenueDataDto[] = [];
+  const closedAtSelectedTime: VenueDataDto[] = [];
+  for (const venue of byPeak) {
+    const availability = getVenueAvailabilityAt(venue.openingHours, availabilityInstant).state;
+    if (availability === 'closed') {
+      closedAtSelectedTime.push(venue);
+    } else {
+      visibleAtSelectedTime.push(venue);
+    }
+  }
+
+  return [...visibleAtSelectedTime, ...closedAtSelectedTime].slice(0, candidateLimit);
 }
 
 function normalizeSearchText(value: string): string {

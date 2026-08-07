@@ -51,7 +51,7 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 **Source of new PNG (if any):** n/a
 
-**Recipe change (if any):** Added `map-selected-time-open` and `map-selected-time-closed` rows to `project-context.md` and documented them in `nextjs-app/docs/design/references/claude-design/STATE-MAPPING.md`. `map-selected-time-closed` is reachable by URL alone because the app dev-forcing path treats seeded venue id `1` as a saved favourite at `_time=09:00`.
+**Recipe change (if any):** Added `map-selected-time-open` and `map-selected-time-closed` rows to `project-context.md` and documented them in `nextjs-app/docs/design/references/claude-design/STATE-MAPPING.md`. Code-review follow-up on 2026-08-07 changed `map-selected-time-closed` from the favourites-only route to `/?_state=map-selected-time-closed&_time=09:00&_search=Kaf%C3%A9%20Magasinet`; the dev-forcing path now seeds the exact closed search result so the same mapped state covers closed discovery exclusion plus retained labelled exact search.
 
 **Follow-up recipe note:** Added an inline `capture-claude-design-refs.mjs` comment recording that these two screen IDs are implementation-derived and must not be regenerated from the Claude MVP prototype without maintainer approval.
 

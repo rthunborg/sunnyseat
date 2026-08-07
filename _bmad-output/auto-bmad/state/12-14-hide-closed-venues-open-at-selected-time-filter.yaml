@@ -5,10 +5,10 @@ epic_num: 12
 story_num: 14
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-08-07T15:34:28Z"
+updated_at: "2026-08-07T15:58:24Z"
 started_at: "2026-08-06T19:19:30Z"
 completed_at: null
-active_seconds: 12121
+active_seconds: 13404
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
@@ -20,14 +20,14 @@ tea_selected: [automate]
 tea_rationale: "Adds non-trivial selected-instant availability branching across multiple modules and UI surfaces, without a high-risk migration, external contract, or security-sensitive path."
 epic_story_count: 14
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [38b1eec, 18ee246, 7c1fd45]
+commits: [38b1eec, 18ee246, 7c1fd45, f8d5283]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -53,3 +53,4 @@ overrides: {}
 constraints:
   - "Manual visual acceptance is authorized for Story 12.14; every human validation request must include the relevant mobile/desktop visual resources directly in chat."
 tier_a_base_sha: 7da3720242b234a42c18eb76a6daf8ab57c85c4b
+tier_a_review: "done - Tier A acceptance audit produced one High and two Medium patch findings; dedicated security review produced zero findings; all three patches were resolved, review_findings reconciled with zero open items, post-fix verification proceeded, typecheck and lint passed, focused regressions passed, and full Vitest passed 213 files / 1943 tests."

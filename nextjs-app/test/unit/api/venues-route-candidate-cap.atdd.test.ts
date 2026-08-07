@@ -8,21 +8,24 @@ function makeRequest(query: string): NextRequest {
 
 describe('[12.14 AC7] GET /api/venues selected-time availability candidate headroom', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-15T08:00:00.000Z'));
     vi.doUnmock('@/lib/services/venue-store');
     vi.resetModules();
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.doUnmock('@/lib/services/venue-store');
     vi.resetModules();
     vi.restoreAllMocks();
   });
 
-  it('keeps normal list/search candidate headroom above the favourite-ID cap so closed-heavy sets do not starve open tail venues', async () => {
+  it('keeps open selected-time venues ahead of closed high-sun candidates while favourite-ID caps stay separate', async () => {
     const closedAtSelectedTime = everyDay('19:00', '22:00');
     const openAtSelectedTime = everyDay('11:00', '22:00');
     const venues = [
-      ...Array.from({ length: 51 }, (_, index) =>
+      ...Array.from({ length: 101 }, (_, index) =>
         makeVenue({
           id: `closed-candidate-${index}`,
           sunExposurePercent: 95,
@@ -43,13 +46,18 @@ describe('[12.14 AC7] GET /api/venues selected-time availability candidate headr
     }));
 
     const { GET } = await import('@/app/api/venues/route');
-    const listResponse = await GET(makeRequest('?lat=57.7&lng=11.97&q=candidate'));
+    const listResponse = await GET(
+      makeRequest('?lat=57.7&lng=11.97&q=candidate&date=2026-07-15&time=12:00'),
+    );
     expect(listResponse.status).toBe(200);
     const listBody = await listResponse.json();
 
-    expect(listBody.totalCount).toBe(52);
-    expect(listBody.venues).toHaveLength(52);
+    expect(listBody.totalCount).toBe(102);
+    expect(listBody.venues).toHaveLength(100);
     expect(listBody.venues.map((venue: VenueDataDto) => venue.id)).toContain('open-tail-0');
+    expect(
+      listBody.venues.filter((venue: VenueDataDto) => venue.id.startsWith('closed-candidate-')),
+    ).toHaveLength(99);
 
     const tooManyIds = Array.from({ length: 51 }, (_, index) => `id-${index}`).join(',');
     const favouritesResponse = await GET(

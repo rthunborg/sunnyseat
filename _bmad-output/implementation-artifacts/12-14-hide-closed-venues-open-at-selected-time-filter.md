@@ -307,6 +307,12 @@ GPT-5 Codex (auto-bmad deep delegate).
 - PASS (automate focused Story 12.14 regression): `npx vitest run test/unit/utils/opening-hours-selected-time.atdd.test.ts test/unit/api/venues-route-candidate-cap.atdd.test.ts test/unit/api/venues-route.test.ts test/components/VenueCard.test.tsx test/components/VenueDetailContent.test.tsx test/components/FavouritesList.test.tsx test/components/VenueSearchShell.test.tsx test/components/VenueSearchCombobox.test.tsx test/components/MapView.test.tsx` (9 files, 250 tests)
 - PASS (automate post-edit static checks): `npx tsc --noEmit`
 - PASS (automate post-edit static checks): `npx eslint . --quiet`
+- PASS (review patch focused): `npx vitest run test/unit/api/venues-route-candidate-cap.atdd.test.ts test/components/MapView.test.tsx test/components/VenueSearchShell.test.tsx test/components/VenueSearchCombobox.test.tsx` (4 files, 144 tests)
+- PASS (review patch route regression): `npx vitest run test/unit/api/venues-route-peak-truncation.test.ts test/unit/api/venues-route.test.ts` (2 files, 46 tests)
+- FAIL then fixed (review patch full suite): `npx vitest run` initially exposed a null `useSearchParams()` test mock compatibility bug in the new forced-search helper; helper was made null-tolerant.
+- PASS (review patch static checks): `npx tsc --noEmit`
+- PASS (review patch static checks): `npx eslint . --quiet`
+- PASS (review patch full suite): `npx vitest run` (213 files, 1943 tests)
 
 ### Completion Notes List
 
@@ -321,6 +327,9 @@ GPT-5 Codex (auto-bmad deep delegate).
 - Story review transition completed through the canonical `scripts/story-review.sh` gate using provider-neutral/manual visual validation.
 - Expanded selected-time utility ATDD coverage for malformed intervals and invalid selected instants so availability fails closed without fabricated open copy.
 - Expanded closed exact-name search coverage for accent/case-normalized full-name matching while preserving filtering for non-full-name text.
+- Resolved review patch finding: planned-mode QuickInfo now suppresses selected-time opening-hours copy while live-now QuickInfo keeps `Öppet till HH:MM`.
+- Resolved review patch finding: `/api/venues` candidate slicing now prioritizes open/unknown selected-time candidates ahead of explicitly closed rows before applying the list/search cap.
+- Resolved review patch finding: `map-selected-time-closed` now maps to a URL-forced exact closed search state that also proves closed discovery rows/counts/pins remain excluded.
 
 ### File List
 
@@ -360,9 +369,16 @@ GPT-5 Codex (auto-bmad deep delegate).
 - `_bmad-output/implementation-artifacts/validation/12-14-hide-closed-venues-open-at-selected-time-filter-review-20260807-171735.log`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 
+### Review Findings
+
+- [x] [Review][Patch][Med] Planned-mode QuickInfo still renders an hours line [nextjs-app/components/custom/map/MapView.tsx:725] — AC5/E12-AD-07 requires constrained map/list/QuickInfo surfaces to suppress hours copy in planned mode; `MapView` passes `quickInfo.openAtSelectedUntilLine` into `formatOpeningHoursAt(...)` for non-live planner time and `VenueQuickInfo` renders any `openingHours.display`, so planned QuickInfo can show `Öppet vid vald tid · till HH:MM` instead of suppressing the line. Source: Acceptance Auditor primary. Resolved 2026-08-07.
+- [x] [Review][Patch][High] Server candidate slicing can still starve open venues behind closed high-sun candidates [nextjs-app/app/api/venues/route.ts:355] — AC7/AC2 require closed venues not to starve selected-time client filtering before public-sun ordering; `keptByPeak` still sorts all matched venues by public sun peak and slices to `candidateLimit` before client availability can run, so more than 100 closed high-peak venues can exclude lower-peak open/unknown venues from the response. Source: Acceptance Auditor primary. Resolved 2026-08-07.
+- [x] [Review][Patch][Med] Selected-time visual routes do not cover required closed discovery/search visual states [project-context.md:389] — AC9 requires `map-selected-time-closed` proof for no closed discovery row/count contribution and a labelled exact closed search result; current mobile/desktop routes point only to `/favoriter?_state=map-selected-time-closed&_time=09:00`, exercising saved-favourite retention but not the discovery list/search combobox exact-match state, and `STATE-MAPPING.md:67` mirrors that gap. Source: Acceptance Auditor primary. Resolved 2026-08-07.
+
 ## Change Log
 
 | Date | Version | Description | Author |
 | --- | --- | --- | --- |
 | 2026-08-07 | 1.0 | Completed selected-time availability filtering implementation and deterministic verification; review transition remains blocked on visual credentials and approved selected-time reference PNGs. | GPT-5 Codex |
 | 2026-08-07 | 1.1 | Completed explicitly authorized provider-neutral/manual selected-time visual validation and moved story to review through `scripts/story-review.sh`. | GPT-5 Codex |
+| 2026-08-07 | 1.2 | Addressed three code-review patch findings for planned QuickInfo copy, candidate cap ordering, and selected-time closed visual route coverage. | GPT-5 Codex |

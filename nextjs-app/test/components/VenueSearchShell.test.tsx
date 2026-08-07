@@ -45,6 +45,9 @@ const selectionState = vi.hoisted(() => ({
 const routerState = vi.hoisted(() => ({
   push: vi.fn(),
 }));
+const navigationState = vi.hoisted(() => ({
+  searchParams: '',
+}));
 
 vi.mock('@/lib/contexts/SettingsContext', () => ({
   useSettings: () => ({
@@ -98,7 +101,7 @@ vi.mock('@/i18n/navigation', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(navigationState.searchParams),
 }));
 
 const messages = {
@@ -155,6 +158,7 @@ describe('<VenueSearchShell variant="mobile" /> top-bar controls (Story 9.6)', (
     vi.useRealTimers();
     geoState.status = 'idle';
     searchState.venues = [];
+    navigationState.searchParams = '';
   });
 
   it('enables the settings gear and opens the settings modal on click', () => {
@@ -292,6 +296,36 @@ describe('<VenueSearchShell variant="mobile" /> top-bar controls (Story 9.6)', (
     fireEvent.change(input, { target: { value: 'magasinet' } });
     await actFlushSearchDebounce();
     expect(queryByText('Kafé Magasinet')).toBeNull();
+  });
+
+  it('seeds the exact closed search result for the selected-time closed visual route', () => {
+    navigationState.searchParams =
+      '_state=map-selected-time-closed&_search=Kaf%C3%A9%20Magasinet';
+    searchState.venues = [
+      makeSearchVenue({
+        id: 'closed-venue',
+        name: 'Kafé Magasinet',
+        slug: 'kafe-magasinet',
+        openingHours: {
+          '1': { open: '18:00', close: '22:00' },
+          '2': { open: '18:00', close: '22:00' },
+          '3': { open: '18:00', close: '22:00' },
+          '4': { open: '18:00', close: '22:00' },
+          '5': { open: '18:00', close: '22:00' },
+          '6': { open: '18:00', close: '22:00' },
+          '7': { open: '18:00', close: '22:00' },
+        },
+      }),
+    ];
+
+    const { getByRole } = render(<VenueSearchShell variant="desktop" />, {
+      wrapper: Wrapper,
+    });
+
+    expect(getByRole('combobox', { name: 'Sök plats' })).toHaveValue('Kafé Magasinet');
+    expect(
+      getByRole('option', { name: /Kafé Magasinet.*Stängt vid vald tid/ }),
+    ).toBeInTheDocument();
   });
 });
 

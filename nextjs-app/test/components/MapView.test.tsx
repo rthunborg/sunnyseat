@@ -370,6 +370,31 @@ function Wrapper({ children }: { children: ReactNode }) {
   );
 }
 
+function PlannedTimeWrapper({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(createTestQueryClient);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <NextIntlClientProvider
+        locale="sv"
+        messages={{
+          common: commonMessages,
+          favourites: favouritesMessages,
+          map: mapMessages,
+          venue: venueMessages,
+        }}
+      >
+        <TimeProvider
+          initialNowIso="2026-05-20T10:15:00.000Z"
+          clock={() => new Date('2026-05-20T10:15:00.000Z')}
+          forcedTime="14:00"
+        >
+          {children}
+        </TimeProvider>
+      </NextIntlClientProvider>
+    </QueryClientProvider>
+  );
+}
+
 function EnglishWrapper({ children }: { children: ReactNode }) {
   const [queryClient] = useState(createTestQueryClient);
   return (
@@ -2902,6 +2927,34 @@ describe('<MapView />', () => {
 
         expect(pinLayerIds()).toEqual([]);
         expect(screen.queryByText('Vald stängd plats')).toBeNull();
+      });
+
+      it('suppresses planned-mode opening-hours copy on the constrained quick-info card', () => {
+        const openVenue = makeVenue({
+          id: 'planned-open',
+          name: 'Planerat öppen plats',
+          openingHours: {
+            '1': { open: '11:00', close: '22:00' },
+            '2': { open: '11:00', close: '22:00' },
+            '3': { open: '11:00', close: '22:00' },
+            '4': { open: '11:00', close: '22:00' },
+            '5': { open: '11:00', close: '22:00' },
+            '6': { open: '11:00', close: '22:00' },
+            '7': { open: '11:00', close: '22:00' },
+          },
+        });
+        selectedVenueIdMock = openVenue.id;
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([openVenue]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+
+        render(<MapView />, { wrapper: PlannedTimeWrapper });
+
+        expect(screen.getAllByTestId('venue-quick-info').length).toBeGreaterThan(0);
+        expect(screen.queryAllByTestId('quick-info-opening-hours')).toHaveLength(0);
       });
     });
 

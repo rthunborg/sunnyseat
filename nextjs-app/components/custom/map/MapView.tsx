@@ -715,22 +715,20 @@ export function MapView() {
     isForcedVisualReference,
     selectedVenueDto,
   ]);
-  // Story 11.9 (AC2): derive the quick-info "Öppet till HH:MM" line for the CURRENT
-  // Stockholm weekday from the list-DTO per-weekday `openingHours`, keeping the
-  // component presentational (it renders the pre-derived `display` verbatim).
-  // Closed today / no hours → `{}` → the card renders nothing (never fabricated).
+  // Story 11.9 (AC2): derive the quick-info "Öppet till HH:MM" line only for the
+  // live planner state. Story 12.14 (AC5/E12-AD-07) keeps constrained QuickInfo
+  // surfaces from making planned-time hours claims; the detail surface owns the
+  // qualified "Öppet vid vald tid" copy.
   const quickInfoOpeningHours = useMemo(
-    () =>
-      selectedQuickInfoVenue?.openingHours
-        ? formatOpeningHoursAt(
-            selectedQuickInfoVenue.openingHours,
-            selectedInstant,
-            locale,
-            plannerTime.isLiveNow
-              ? tVenue('quickInfo.openUntilLine', { time: '{time}' })
-              : tVenue('quickInfo.openAtSelectedUntilLine', { time: '{time}' }),
-          )
-        : undefined,
+    () => {
+      if (!plannerTime.isLiveNow || !selectedQuickInfoVenue?.openingHours) return undefined;
+      return formatOpeningHoursAt(
+        selectedQuickInfoVenue.openingHours,
+        selectedInstant,
+        locale,
+        tVenue('quickInfo.openUntilLine', { time: '{time}' }),
+      );
+    },
     [locale, plannerTime.isLiveNow, selectedInstant, selectedQuickInfoVenue, tVenue],
   );
   const selectedPinData = useMemo(() => {

@@ -44,7 +44,9 @@ export function VenueSearchShell({
 }: VenueSearchShellProps) {
   const t = useTranslations('venue.search');
   const tNav = useTranslations('common.nav');
-  const [query, setQuery] = useState('');
+  const searchParams = useSearchParams();
+  const forcedVisualSearch = initialForcedSearchQuery(searchParams);
+  const [query, setQuery] = useState(forcedVisualSearch);
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
   const { selectVenue } = useMapSelection();
@@ -52,7 +54,6 @@ export function VenueSearchShell({
   const plannerTime = useTimeContext();
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const trimmedQuery = query.trim();
   const [debouncedQuery, setDebouncedQuery] = useState(trimmedQuery);
 
@@ -224,6 +225,14 @@ export function VenueSearchShell({
 
 function hasValidVenueLocation(venue: VenueDataDto): boolean {
   return Number.isFinite(venue.location?.lat) && Number.isFinite(venue.location?.lng);
+}
+
+function initialForcedSearchQuery(params: Pick<URLSearchParams, 'get'> | null): string {
+  if (process.env.NODE_ENV === 'production') return '';
+  if (!params) return '';
+  if (params.get('_state') !== 'map-selected-time-closed') return '';
+  const raw = params.get('_search') ?? '';
+  return Array.from(raw.trim()).slice(0, MAX_QUERY_LENGTH).join('');
 }
 
 function venueDetailSlug(venue: Pick<VenueDataDto, 'slug' | 'venueSlug'>): string | null {
