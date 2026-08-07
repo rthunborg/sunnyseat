@@ -5,10 +5,10 @@ epic_num: 12
 story_num: null
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-08-07T15:57:29Z"
+updated_at: "2026-08-07T16:08:51Z"
 started_at: "2026-07-18T11:27:25Z"
 completed_at: null
-active_seconds: 219702
+active_seconds: 219963
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -20,7 +20,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 14
 stories_after_in_epic: null
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
@@ -58,7 +58,7 @@ constraints:
   - "Execute Epic 12 in the user-confirmed dependency order: 12-1, 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, 12-10, 12-5, 12-8, 12-11, 12-2, 12-14."
   - "Manual visual acceptance is authorized for every remaining Epic 12 story; every human validation request must include the relevant mobile/desktop visual resources directly in chat."
 epic_slug: real-venue-launch-readiness-perf-trust-hours-console-hygiene
-active_story: 12-14-hide-closed-venues-open-at-selected-time-filter
+active_story: null
 stories_landed:
   - 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
   - 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
@@ -72,6 +72,7 @@ stories_landed:
   - 12-8-about-page-pin-legend-so-reads-the-sun-figure
   - 12-11-first-run-coach-mark-guide-map-legend-feature-tour
   - 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
+  - 12-14-hide-closed-venues-open-at-selected-time-filter
 auto_decisions:
   - "[12-7] Adopted the architecture-backed canonical `hidden boolean not null default false` migration/type contract after live/schema probes proved all previously referenced visibility columns absent; no protected database mutation was performed."
   - "Gate-off public map pins are no longer pixel unchanged [Med] â†’ fix: keep the a11y-safe pin color only with explicit visual rebaseline/acceptance evidence; otherwise move or revert that public pin change out of Story 12.5. (Tier A, 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields)"
@@ -230,6 +231,17 @@ uat_items:
   - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] POST `http://localhost:3000/api/venues/test-venue-sunny/feedback` with body `venueId:\"wrong-id\"` and otherwise valid evidence → response is `409`."
   - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] In a Supabase-configured local or protected environment, run `cd nextjs-app && $env:FEEDBACK_ACCURACY_MIN_SAMPLES=3; npx tsx scripts/feedback-accuracy-report.ts` → JSON includes ranked `areas` and `venues` with agreement/disagreement, stale, legacy, invalid, unsure, and current-hash fields."
   - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] In Vercel Production environment variables, confirm `SUNNYSEAT_COVERAGE_CAP` is absent → the removed bypass cannot be enabled."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Start fixture dev mode and open /?_time=14:00 -> Kafé Magasinet is visible in discovery and does not show Stängt vid vald tid."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Open /?_time=09:00 on desktop and search Kafé -> Kafé Magasinet is excluded as a partial closed match."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Open /?_time=09:00 and search exact Kafé Magasinet -> the exact result remains and is labelled Stängt vid vald tid."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Click the exact closed result -> detail opens with Stängt vid vald tid, no open badge/hours, and no venue map pin."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Open /favoriter?_state=map-selected-time-closed&_time=09:00 -> the saved venue remains actionable and labelled Stängt vid vald tid."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Click the closed favourite -> detail opens with the closed label and does not restore a map pin."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Open /?_time=09:00 -> unknown-hours Brygghuset Lerum remains visible and is not labelled closed."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Open /?venue=test-venue-sunny&_time=14:00 -> detail shows planned-time open copy with the closing time."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Scrub the same date from 14:00 to 09:00 with Network open -> no new venues or weather requests occur after settle."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Change the planner date to tomorrow with Network open -> exactly one new venue-list request occurs after settle."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Request /api/venues with 51 ids -> response is 400 with the at-most-50 validation error."
 preexisting_done_stories:
   - 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
 adopt_verdicts:
