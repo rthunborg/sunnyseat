@@ -67,6 +67,11 @@ const MAX_ID_LENGTH = 80;
 const MAX_IDS_QUERY_LENGTH = FAVOURITE_ID_LIMIT * (MAX_ID_LENGTH + 1) - 1;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/u;
 const DIACRITIC_PATTERN = /[\u0300-\u036f]/gu;
+let getVenuesForRoute: typeof getVenues = getVenues;
+
+export function __setVenueStoreForTests(loader: typeof getVenues | undefined): void {
+  getVenuesForRoute = loader ?? getVenues;
+}
 
 export function __setSunGeometryRepositoryForTests(repo: SunGeometryRepository | undefined): void {
   setSunGeometryRepositoryForTests(repo);
@@ -239,7 +244,7 @@ export async function GET(request: NextRequest) {
     return badRequest('Longitude must be between -180 and 180 degrees');
   }
 
-  const storeVenues = await getVenues();
+  const storeVenues = await getVenuesForRoute();
   const uniqueness = validateVenueUniqueness(storeVenues);
   if (!uniqueness.valid) {
     return NextResponse.json(

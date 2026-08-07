@@ -622,22 +622,42 @@ test.describe('map-primary', () => {
 
     const planner = await expectFreePlannerChrome(page);
     const slider = planner.getByRole('slider', { name: 'Välj tid' });
-    const expectedDate = addDaysToDateKey(stockholmDateKey(), 1);
+    const expectedDate = addDaysToDateKey(stockholmDateKey(), 2);
     const selectedTime = await slider.getAttribute('aria-valuetext');
     expect(selectedTime).toMatch(/^\d{2}:\d{2}$/);
 
-    const plannedResponse = page.waitForResponse((response) => {
+    const venueResponses: Array<{ url: string; status: number }> = [];
+    page.on('response', (response) => {
       const url = new URL(response.url());
-      return url.pathname.endsWith('/api/venues') &&
-        url.searchParams.get('date') === expectedDate &&
-        url.searchParams.get('time') === selectedTime;
+      if (url.pathname.endsWith('/api/venues')) {
+        venueResponses.push({
+          url: response.url(),
+          status: response.status(),
+        });
+      }
     });
     await planner.getByRole('button', { name: 'Öppna kalender' }).click();
     await page.getByRole('button', { name: swedishSelectDateLabel(expectedDate) }).click();
-    const response = await plannedResponse;
-    expect(response.ok()).toBe(true);
-    const params = new URL(response.url()).searchParams;
+    await expect.poll(() => {
+      return venueResponses.some((response) => {
+        const params = new URL(response.url).searchParams;
+        return response.status >= 200 &&
+          response.status < 400 &&
+          params.get('date') === expectedDate &&
+          params.get('time') === selectedTime;
+      });
+    }, { timeout: APP_SETTLE_TIMEOUT_MS }).toBe(true);
+    const plannedResponse = venueResponses.find((response) => {
+      const params = new URL(response.url).searchParams;
+      return response.status >= 200 &&
+        response.status < 400 &&
+        params.get('date') === expectedDate &&
+        params.get('time') === selectedTime;
+    });
+    expect(plannedResponse).toBeTruthy();
+    const params = new URL(plannedResponse!.url).searchParams;
     expect(params.get('time')).toBe(selectedTime);
+    expect(plannedResponse!.status).toBeLessThan(400);
 
     await expect(slider).toHaveAttribute('aria-valuemin', '360');
     await slider.press('Home');

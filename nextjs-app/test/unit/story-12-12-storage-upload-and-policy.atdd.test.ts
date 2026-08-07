@@ -107,6 +107,21 @@ describe('Story 12.12 ATDD - Supabase Storage migration, upload tooling, and doc
     expect(sql).toMatch(/service.?role/i);
   });
 
+  it('[P0] local migration source permits browser public reads only for venue-media and no browser writes', async () => {
+    const sql = await readFile(migrationPath, 'utf8');
+
+    expect(sql).toMatch(/alter\s+table\s+storage\.objects\s+enable\s+row\s+level\s+security/i);
+    expect(sql).toMatch(
+      /create\s+policy\s+"venue media public read"\s+on\s+storage\.objects\s+for\s+select\s+to\s+anon,\s*authenticated\s+using\s*\(\s*bucket_id\s*=\s*'venue-media'\s*\)/i,
+    );
+    expect(sql).not.toMatch(
+      /create\s+policy[\s\S]*?on\s+storage\.objects[\s\S]*?for\s+(insert|update|delete|all)[\s\S]*?to\s+(anon|authenticated)/i,
+    );
+    expect(sql).not.toMatch(
+      /with\s+check\s*\(\s*bucket_id\s*=\s*'venue-media'\s*\)/i,
+    );
+  });
+
   it('[P0] maintainer upload validation enforces slug, mediaVersion, mime, dimensions, byte caps, and create-only keys', async () => {
     const script = await import(pathToFileURL(uploadScriptPath).href);
 

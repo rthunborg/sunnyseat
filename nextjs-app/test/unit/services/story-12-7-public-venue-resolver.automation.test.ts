@@ -18,19 +18,21 @@ type VenueRow = {
   tags?: string[] | null;
 };
 
+type SupabaseResult = {
+  data: VenueRow[] | null;
+  error: { message: string } | null;
+};
+
 const supabaseMock = vi.hoisted(() => {
   const state = {
-    nextResults: [] as Array<{
-      data: VenueRow[] | null;
-      error: { message: string } | null;
-    }>,
+    nextResults: [] as Array<SupabaseResult | Promise<SupabaseResult>>,
     lastFilter: '',
     lastSelect: '',
   };
 
   const limit = vi.fn(async () => {
     const next = state.nextResults.shift();
-    return next ?? { data: [], error: null };
+    return next ? await next : { data: [], error: null };
   });
   const or = vi.fn((filter: string) => {
     state.lastFilter = filter;
@@ -73,6 +75,16 @@ function useSupabaseVenueStore() {
   vi.stubEnv('SUNNYSEAT_VENUE_STORE', 'supabase');
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key');
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
 }
 
 describe('Story 12.7 automated resolver coverage', () => {
@@ -180,6 +192,35 @@ describe('Story 12.7 automated resolver coverage', () => {
     await expect(resolvePublicVenueIdentifier('late-visible')).resolves.toBeNull();
     await expect(resolvePublicVenueIdentifier('late-visible'))
       .resolves.toMatchObject({ id: '13', slug: 'late-visible' });
+    expect(supabaseMock.limit).toHaveBeenCalledTimes(2);
+  });
+
+  it('[P1] isolates concurrent same-slug visibility reads without in-flight cache bleed', async () => {
+    const hiddenFirstRead = deferred<SupabaseResult>();
+    const visibleRow = { ...LIVE_ROW, id: '15', slug: 'race-visible', hidden: false };
+    const hiddenRow = { ...visibleRow, hidden: true };
+
+    supabaseMock.state.nextResults = [
+      hiddenFirstRead.promise,
+      { data: [visibleRow], error: null },
+    ];
+
+    const first = resolvePublicVenueIdentifier('race-visible');
+    await expect.poll(() => supabaseMock.limit.mock.calls.length).toBe(1);
+    const second = resolvePublicVenueIdentifier('race-visible');
+    await expect.poll(() => supabaseMock.limit.mock.calls.length).toBe(2);
+
+    await expect(second).resolves.toMatchObject({ id: '15', slug: 'race-visible' });
+    hiddenFirstRead.resolve({ data: [hiddenRow], error: null });
+    await expect(first).resolves.toBeNull();
+    expect(supabaseMock.or).toHaveBeenNthCalledWith(
+      1,
+      'id.eq."race-visible",slug.eq."race-visible"',
+    );
+    expect(supabaseMock.or).toHaveBeenNthCalledWith(
+      2,
+      'id.eq."race-visible",slug.eq."race-visible"',
+    );
     expect(supabaseMock.limit).toHaveBeenCalledTimes(2);
   });
 

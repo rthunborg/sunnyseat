@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import type { StoredVenue } from '@/lib/services/venue-store';
 
 function appSource(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8');
@@ -26,6 +27,7 @@ function venuesRequest(query = DEFAULT_VENUES_QUERY): NextRequest {
 }
 
 type RouteTestHook = {
+  __setVenueStoreForTests?: (loader: (() => Promise<StoredVenue[]>) | undefined) => void;
   __setSunGeometryRepositoryForTests?: (repo: unknown) => void;
   __setWeatherSnapshotRepositoryForTests?: (repo: unknown) => void;
   GET: (request: NextRequest) => Promise<Response>;
@@ -38,10 +40,41 @@ beforeEach(() => {
 
 afterEach(async () => {
   const route = (await import('@/app/api/venues/route')) as RouteTestHook;
+  route.__setVenueStoreForTests?.(undefined);
   route.__setSunGeometryRepositoryForTests?.(undefined);
   route.__setWeatherSnapshotRepositoryForTests?.(undefined);
   vi.useRealTimers();
 });
+
+function routeScaleVenue(index: number): StoredVenue {
+  const id = `scale-${index.toString().padStart(2, '0')}`;
+  const row = Math.floor(index / 7);
+  const column = index % 7;
+  return {
+    id,
+    venueId: id,
+    venueName: `Scale Venue ${index}`,
+    venueSlug: id,
+    slug: id,
+    neighborhood: 'Centrum',
+    location: {
+      lat: 57.7089 + row * 0.0001,
+      lng: 11.9746 + column * 0.0001,
+    },
+    currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
+    isPartner: false,
+    confidence: 90,
+    distanceMeters: 0,
+    sunExposurePercent: 80,
+    tags: [],
+  };
+}
+
+function geometryHashForVenue(venueId: string): string {
+  const numericSuffix = Number(venueId.replace(/\D/gu, ''));
+  return `g1:${numericSuffix.toString(16).padStart(64, '0')}`;
+}
 
 describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-path projection', () => {
   test('source contract removes 61-step shadow projection and live weather fan-out from the list route', () => {
@@ -165,6 +198,79 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
         expect.objectContaining({ minutes: 720, sunExposurePercent: 92, currentSunStatus: 'CloudObscured' }),
       ]),
     );
+  });
+
+  test('42+ venue list requests read persisted current hashes and coverage without request-path recompute', async () => {
+    const routePath = '@/app/api/venues/route';
+    const route = (await import(routePath)) as RouteTestHook;
+    const venues = Array.from({ length: 42 }, (_, index) => routeScaleVenue(index + 1));
+    const expectedIds = venues.map((venue) => venue.id).sort();
+    const currentHashReads: string[] = [];
+    const coverageReads: string[] = [];
+    const weatherReads: string[] = [];
+
+    route.__setVenueStoreForTests?.(async () => venues);
+    route.__setSunGeometryRepositoryForTests?.({
+      readCurrentGeometryInput: async (venueId: string, stockholmDate: string, venue: StoredVenue) => {
+        currentHashReads.push(`${venueId}:${stockholmDate}:${venue.id}`);
+        return {
+          status: 'ready',
+          geometryInputHash: geometryHashForVenue(venueId),
+        };
+      },
+      readCurrentCoverageForVenueDay: async (
+        venueId: string,
+        stockholmDate: string,
+        geometryInputHash: string,
+      ) => {
+        expect(geometryInputHash).toBe(geometryHashForVenue(venueId));
+        coverageReads.push(`${venueId}:${stockholmDate}:${geometryInputHash}`);
+        return {
+          stockholmDate,
+          geometryInputHash,
+          status: 'ready',
+          series: [
+            { minutes: 720, sunExposurePercent: 82 },
+            { minutes: 735, sunExposurePercent: 78 },
+          ],
+        };
+      },
+    });
+    route.__setWeatherSnapshotRepositoryForTests?.({
+      readSnapshotForVenueDay: async (venue: StoredVenue, bucket: string | undefined, stockholmDate: string) => {
+        weatherReads.push(`${venue.id}:${bucket ?? 'current'}:${stockholmDate}`);
+        return {
+          status: 'ready',
+          bucket: bucket ?? 'current',
+          weatherUpdatedAt: '2026-07-18T10:00:00.000Z',
+          slices: [
+            { minutes: 720, cloudCover: 10, isRaining: false },
+            { minutes: 735, cloudCover: 10, isRaining: false },
+          ],
+        };
+      },
+    });
+
+    const response = await route.GET(venuesRequest('&radiusKm=3'));
+    const body = (await response.json()) as {
+      venues: Array<{ id: string; sunDaySeries?: unknown[] }>;
+      meta: { count: number; sunDataSource?: string; weatherUpdatedAt?: string };
+      totalCount: number;
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.meta.count).toBe(42);
+    expect(body.totalCount).toBe(42);
+    expect(body.venues).toHaveLength(42);
+    expect(body.venues.map((venue) => venue.id).sort()).toEqual(expectedIds);
+    expect(body.venues.every((venue) => venue.sunDaySeries?.length === 2)).toBe(true);
+    expect(currentHashReads.map((entry) => entry.split(':')[0]).sort()).toEqual(expectedIds);
+    expect(coverageReads.map((entry) => entry.split(':')[0]).sort()).toEqual(expectedIds);
+    expect(weatherReads.map((entry) => entry.split(':')[0]).sort()).toEqual(expectedIds);
+    expect(body.meta).toMatchObject({
+      sunDataSource: 'weather',
+      weatherUpdatedAt: '2026-07-18T10:00:00.000Z',
+    });
   });
 
   test('coverage gaps fail closed for the whole response and are surfaced in freshness headers', async () => {
