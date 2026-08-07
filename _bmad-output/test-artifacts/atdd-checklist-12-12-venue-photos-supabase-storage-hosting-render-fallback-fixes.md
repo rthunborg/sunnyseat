@@ -6,7 +6,7 @@ stepsCompleted:
   - step-04c-aggregate
   - step-05-validate-and-complete
 lastStep: step-05-validate-and-complete
-lastSaved: '2026-07-19'
+lastSaved: '2026-08-07'
 workflowType: testarch-atdd
 storyId: '12.12'
 storyKey: 12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes
@@ -53,6 +53,12 @@ Story 12.12 adds Supabase Storage-hosted optimized venue photo renditions and wi
 | Desktop `VenueQuickInfo` error fallback; mobile anchored placeholder unchanged | component quick-info tests |
 | Venue data docs describe Storage convention over hotlinks | docs assertion in storage/docs test |
 | Visual loaded/fallback states, mobile + desktop | visual-state unit checks and `story-12-12-venue-photo-states.atdd.spec.ts` |
+
+## Trace Gate Remediation Evidence (2026-08-07)
+
+| Trace gap | Story / AC | Discoverable test | Local evidence | Residual external blocker |
+| --- | --- | --- | --- | --- |
+| 12.12 local Storage migration policy matrix | Supabase public URL, public read, no browser writes | `nextjs-app/test/unit/story-12-12-storage-upload-and-policy.atdd.test.ts` -> `[P0] local migration source permits browser public reads only for venue-media and no browser writes` | Source-level migration assertion proves Storage RLS is enabled, browser read policies are exact to `venue-media` for `anon`/`authenticated`, no browser `insert`/`update`/`delete`/`all` policy exists, and no browser write `with check` path is introduced. Focused remediation command passed on 2026-08-07: `npx vitest run test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts test/unit/services/story-12-7-public-venue-resolver.automation.test.ts test/unit/story-12-12-storage-upload-and-policy.atdd.test.ts` -> 3 files / 29 tests passed, duration 3.77s. | Does not claim the policy was applied in protected Supabase, that service-role upload succeeded live, that public read succeeded live, or that anon/auth write denial was verified against the protected instance. |
 
 ## Red-Phase Test Scaffolds Created
 

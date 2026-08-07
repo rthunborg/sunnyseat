@@ -1267,3 +1267,51 @@ Continue orchestrator-owned review/test-review/trace gates as needed. Story 12.8
 Continue orchestrator-owned test-review/trace/finalization for Story 12.14.
 
 ---
+
+# Automation Expansion Summary - Epic 12 Gate Remediation Iteration 2
+
+## Preflight And Context
+
+- **Scope:** final allowed trace-gate remediation iteration for Stories 12.3, 12.7, 12.11, and 12.12.
+- **Mode:** BMad-integrated `/bmad-testarch-automate`, sequential/local. No subagents were used.
+- **Boundary:** evidence mapping and one narrow 12.11 Playwright test refinement only. Trace-gate files and the epic anchor were not modified.
+- **Non-claims:** this pass does not claim protected GitHub Production, live Supabase, applied live migrations, protected Storage-policy verification, production p95, or broad-suite Playwright concurrency.
+
+## Trace Evidence Mapping
+
+| Story | Trace gap | Discoverable test / evidence surface | Result | Residual blocker |
+| --- | --- | --- | --- | --- |
+| 12.3 | 42-venue persisted-read/no-recompute route behavior | `nextjs-app/test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts` -> `42+ venue list requests read persisted current hashes and coverage without request-path recompute`; mapped in `_bmad-output/test-artifacts/atdd-checklist-12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md` | Focused unit command passed 3 files / 29 tests, duration 3.77s. | Protected production p95 and protected GitHub environment evidence remain external. |
+| 12.7 | Concurrent same-slug visibility/cache isolation | `nextjs-app/test/unit/services/story-12-7-public-venue-resolver.automation.test.ts` -> `[P1] isolates concurrent same-slug visibility reads without in-flight cache bleed`; mapped in `_bmad-output/test-artifacts/atdd-checklist-12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md` | Focused unit command passed 3 files / 29 tests, duration 3.77s. | Live Supabase migration/schema visibility evidence remains external. |
+| 12.11 | Exact successful future-date `/api/venues` response for the final selected planner date/time | `nextjs-app/test/e2e/map-primary.spec.ts` -> `mobile: selecting a future date sends planner params to the venues API`; mapped in Story 12.11 Dev Agent Record | Final serialized mobile repeat passed 3/3 in 18.4s after the test captured the final post-selection slider time. | Prior bounded parallel repeat still failed 2 passed / 1 failed and no broad-suite concurrency was exercised. |
+| 12.12 | Local Storage migration public-read/no-browser-write policy matrix | `nextjs-app/test/unit/story-12-12-storage-upload-and-policy.atdd.test.ts` -> `[P0] local migration source permits browser public reads only for venue-media and no browser writes`; mapped in `_bmad-output/test-artifacts/atdd-checklist-12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes.md` | Focused unit command passed 3 files / 29 tests, duration 3.77s. | Protected Supabase Storage applied-policy verification remains external. |
+
+## Validation Results
+
+- Focused units: `npx vitest run test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts test/unit/services/story-12-7-public-venue-resolver.automation.test.ts test/unit/story-12-12-storage-upload-and-policy.atdd.test.ts` -> **PASS**, 3 files / 29 tests, duration 3.77s.
+- 12.11 bounded parallel probe before final fix: `npx playwright test test/e2e/map-primary.spec.ts --project=mobile --grep "mobile: selecting a future date sends planner params to the venues API" --repeat-each=3 --retries=0` -> **FAIL**, 2 passed / 1 failed. Failure occurred before the exact-response assertion at initial venue-pin readiness with a Next/Turbopack JSON parse warning. This was not broad-suite concurrency evidence.
+- 12.11 serialized probe before final fix: `npx playwright test test/e2e/map-primary.spec.ts --project=mobile --grep "mobile: selecting a future date sends planner params to the venues API" --repeat-each=3 --workers=1 --retries=0` -> **FAIL**, 2 passed / 1 failed. Failure was a stale test oracle: the test matched the pre-click time while the selected-date UI had advanced to 13:00.
+- 12.11 first post-refinement rerun: same serialized command -> **FAIL**, 3 failed, because the added wait compared the date-cell accessible label (`Välj 9 augusti 2026`) to the closed trigger text (`söndag 9 augusti`). The wait was corrected without changing product code.
+- 12.11 final post-refinement rerun: same serialized command -> **PASS**, 3 passed, 18.4s. Playwright emitted the known non-failing Next multiple-lockfile workspace-root warning.
+
+## Files Modified By This Pass
+
+- `nextjs-app/test/e2e/map-primary.spec.ts`
+- `_bmad-output/implementation-artifacts/12-11-first-run-coach-mark-guide-map-legend-feature-tour.md`
+- `_bmad-output/test-artifacts/atdd-checklist-12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md`
+- `_bmad-output/test-artifacts/atdd-checklist-12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md`
+- `_bmad-output/test-artifacts/atdd-checklist-12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes.md`
+- `_bmad-output/test-artifacts/automation-summary.md`
+
+## Definition Of Done
+
+- Trace-discoverable evidence mapping was added for the already-verified Story 12.3, 12.7, and 12.12 unit tests.
+- Story 12.11's future-date exact-response Playwright test now matches the final selected date/time, and the bounded serialized repeat passed after the fix.
+- Failed bounded Playwright probes were recorded as failures, not reclassified as passes.
+- Protected/live release evidence remains explicitly deferred to the release lane.
+
+## Next Recommended Workflow
+
+Re-run trace/test-review gates against the updated evidence surfaces. Do not treat this pass as satisfying protected production, live Supabase, protected Storage-policy, or production p95 evidence.
+
+---

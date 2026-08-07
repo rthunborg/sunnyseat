@@ -7,15 +7,17 @@ stepsCompleted:
   - step-04c-aggregate
   - step-05-validate-and-complete
 lastStep: step-05-validate-and-complete
-lastSaved: 2026-07-18
+lastSaved: 2026-08-07
 storyId: "12.7"
 storyKey: 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
 storyFile: C:\Users\Rasmus\sunnyseat\_bmad-output\implementation-artifacts\12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md
 atddChecklistPath: _bmad-output/test-artifacts/atdd-checklist-12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md
 generatedTestFiles:
   - nextjs-app/test/unit/services/story-12-7-public-venue-resolver.atdd.test.ts
+  - nextjs-app/test/unit/services/story-12-7-public-venue-resolver.automation.test.ts
   - nextjs-app/test/unit/api/story-12-7-reviews-route-live-venues.atdd.test.ts
   - nextjs-app/test/unit/api/story-12-7-feedback-route-live-venues.atdd.test.ts
+  - nextjs-app/test/unit/api/story-12-7-shared-resolver-convergence.automation.test.ts
 inputDocuments:
   - project-context.md
   - _bmad-output/implementation-artifacts/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md
@@ -54,11 +56,19 @@ Active red-phase acceptance tests were generated because this run explicitly req
 | Visibility and leakage | Resolver and route tests cover hidden/deleted/unknown/blank misses, same public 404 class, and no hidden/deleted/visibility wording in response bodies. |
 | Cache/race consistency | Resolver tests require corrupt id/slug collisions to fail closed and misses not to be cached over later visible rows. |
 
+## Trace Gate Remediation Evidence (2026-08-07)
+
+| Trace gap | Story / risk | Discoverable test | Local evidence | Residual external blocker |
+| --- | --- | --- | --- | --- |
+| 12.7 concurrent same-slug visibility/cache isolation | Cache/race consistency; hidden/deleted public leakage | `nextjs-app/test/unit/services/story-12-7-public-venue-resolver.automation.test.ts` -> `[P1] isolates concurrent same-slug visibility reads without in-flight cache bleed` | Uses a pending first mocked Supabase `.limit()` promise and a second immediate same-slug visible row to prove concurrent resolver calls do not share in-flight cache state or leak the first query's visibility result. Focused remediation command passed on 2026-08-07: `npx vitest run test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts test/unit/services/story-12-7-public-venue-resolver.automation.test.ts test/unit/story-12-12-storage-upload-and-policy.atdd.test.ts` -> 3 files / 29 tests passed, duration 3.77s. | Does not prove the migration was applied to live Supabase or that protected/live schema visibility columns are present. |
+
 ## Generated Files
 
 - `nextjs-app/test/unit/services/story-12-7-public-venue-resolver.atdd.test.ts`
+- `nextjs-app/test/unit/services/story-12-7-public-venue-resolver.automation.test.ts`
 - `nextjs-app/test/unit/api/story-12-7-reviews-route-live-venues.atdd.test.ts`
 - `nextjs-app/test/unit/api/story-12-7-feedback-route-live-venues.atdd.test.ts`
+- `nextjs-app/test/unit/api/story-12-7-shared-resolver-convergence.automation.test.ts`
 
 ## Activation Plan
 

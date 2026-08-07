@@ -7,7 +7,7 @@ stepsCompleted:
   - step-04c-aggregate
   - step-05-validate-and-complete
 lastStep: step-05-validate-and-complete
-lastSaved: 2026-07-18
+lastSaved: 2026-08-07
 storyId: "12.3"
 storyKey: 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
 storyFile: C:\Users\Rasmus\sunnyseat\_bmad-output\implementation-artifacts\12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md
@@ -61,6 +61,12 @@ Red-phase acceptance scaffolds are generated and intentionally skipped with `tes
 | AC5 midnight roll | Precompute window test requires the one-day lookahead buffer used for midnight continuity. |
 | AC6 CPU profiling | Precompute tests require cold-route before/after, bucket-roll, and precompute timing evidence. |
 | AC7 retire external warmer | Ops tests reject quarter-hour warmer/keep-alive references in workflows and deployment docs. |
+
+## Trace Gate Remediation Evidence (2026-08-07)
+
+| Trace gap | Story / AC | Discoverable test | Local evidence | Residual external blocker |
+| --- | --- | --- | --- | --- |
+| 12.3 42-venue persisted-read/no-recompute behavior | AC2, AC6 | `nextjs-app/test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts` -> `42+ venue list requests read persisted current hashes and coverage without request-path recompute` | Injects a 42-venue route loader and proves `/api/venues` reads persisted current hashes, coverage, and weather snapshots for each venue without invoking request-path sun-geometry recompute fallback. Focused remediation command passed on 2026-08-07: `npx vitest run test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts test/unit/services/story-12-7-public-venue-resolver.automation.test.ts test/unit/story-12-12-storage-upload-and-policy.atdd.test.ts` -> 3 files / 29 tests passed, duration 3.77s. | Does not replace protected GitHub Production, protected environment audit, live Supabase, or production 42+ venue p95 evidence. |
 
 ## Generated Files
 

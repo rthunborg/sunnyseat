@@ -571,6 +571,15 @@ Codex GPT-5
   produce a failure signal but was not usable in this pass: the first bounded single-worker run
   timed out at the command limit, and a background rerun remained stuck at the startup banner
   until its exact process tree was stopped.
+- 2026-08-07 Epic 12 gate-remediation iteration 2: refined the `map-primary` future-date
+  exact-response wait to capture the final planner time after selecting the future date, then
+  match the successful `/api/venues` response against that final date/time. Bounded evidence:
+  the prior parallel repeat of the exact mobile grep failed 2 passed / 1 failed before the exact
+  response assertion at initial venue-pin readiness; the serialized pre-refinement repeat failed
+  2 passed / 1 failed because it matched a stale pre-click time while the UI had selected the
+  future date at 13:00; the final corrected serialized rerun
+  `npx playwright test test/e2e/map-primary.spec.ts --project=mobile --grep "mobile: selecting a future date sends planner params to the venues API" --repeat-each=3 --workers=1 --retries=0`
+  passed 3/3 in 18.4s. This is not broad-suite concurrency evidence.
 
 ### Completion Notes List
 
@@ -624,6 +633,9 @@ Codex GPT-5
 - Refined the mobile coach-guide skip hierarchy: the visible skip pill is smaller on mobile,
   the skip-to-navigation row gap is slightly larger on mobile, desktop sizing remains unchanged,
   and the underlying skip button retains the required 44px touch target.
+- Refined the 12.11 `map-primary` future-date API assertion so it records `/api/venues`
+  responses before the calendar action, waits for the selected date trigger, captures the final
+  post-selection slider time, and maps the exact successful response to that final date/time.
 
 ### File List
 
@@ -721,6 +733,8 @@ Codex GPT-5
   skip/navigation gap and smaller visible skip pill on mobile while preserving desktop layout and
   the 44px accessible hit target; Rasmus approved Story 12.11 visual acceptance for the
   20260806 mobile-skip-refinement-v4 first/middle mobile captures on 2026-08-06.
+- 2026-08-07: Refined the Story 12.11 `map-primary` future-date exact-response check to use
+  the final post-selection planner time and recorded the bounded serialized mobile repeat result.
 
 ### Review Findings
 

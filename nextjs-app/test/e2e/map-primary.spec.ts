@@ -302,6 +302,17 @@ function swedishSelectDateLabel(dateKey: string): string {
   return `Välj ${label}`;
 }
 
+function swedishSelectedDateText(dateKey: string): string {
+  const [year = '1970', month = '01', day = '01'] = dateKey.split('-');
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  return new Intl.DateTimeFormat('sv-SE', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(date);
+}
+
 test.describe('map-primary', () => {
   test.beforeEach(async ({ page }, testInfo) => {
     await page.setExtraHTTPHeaders({
@@ -623,8 +634,6 @@ test.describe('map-primary', () => {
     const planner = await expectFreePlannerChrome(page);
     const slider = planner.getByRole('slider', { name: 'Välj tid' });
     const expectedDate = addDaysToDateKey(stockholmDateKey(), 2);
-    const selectedTime = await slider.getAttribute('aria-valuetext');
-    expect(selectedTime).toMatch(/^\d{2}:\d{2}$/);
 
     const venueResponses: Array<{ url: string; status: number }> = [];
     page.on('response', (response) => {
@@ -638,25 +647,25 @@ test.describe('map-primary', () => {
     });
     await planner.getByRole('button', { name: 'Öppna kalender' }).click();
     await page.getByRole('button', { name: swedishSelectDateLabel(expectedDate) }).click();
-    await expect.poll(() => {
-      return venueResponses.some((response) => {
-        const params = new URL(response.url).searchParams;
-        return response.status >= 200 &&
-          response.status < 400 &&
-          params.get('date') === expectedDate &&
-          params.get('time') === selectedTime;
-      });
-    }, { timeout: APP_SETTLE_TIMEOUT_MS }).toBe(true);
-    const plannedResponse = venueResponses.find((response) => {
+    await expect(planner.getByTestId('planner-date-trigger')).toContainText(
+      swedishSelectedDateText(expectedDate),
+    );
+    const plannedTime = await slider.getAttribute('aria-valuetext');
+    expect(plannedTime).toMatch(/^\d{2}:\d{2}$/);
+    const isSuccessfulPlannerResponse = (response: { url: string; status: number }) => {
       const params = new URL(response.url).searchParams;
       return response.status >= 200 &&
         response.status < 400 &&
         params.get('date') === expectedDate &&
-        params.get('time') === selectedTime;
-    });
+        params.get('time') === plannedTime;
+    };
+    await expect.poll(() => {
+      return venueResponses.some(isSuccessfulPlannerResponse);
+    }, { timeout: APP_SETTLE_TIMEOUT_MS }).toBe(true);
+    const plannedResponse = venueResponses.find(isSuccessfulPlannerResponse);
     expect(plannedResponse).toBeTruthy();
     const params = new URL(plannedResponse!.url).searchParams;
-    expect(params.get('time')).toBe(selectedTime);
+    expect(params.get('time')).toBe(plannedTime);
     expect(plannedResponse!.status).toBeLessThan(400);
 
     await expect(slider).toHaveAttribute('aria-valuemin', '360');
