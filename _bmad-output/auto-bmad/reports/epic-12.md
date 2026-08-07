@@ -429,3 +429,56 @@ No Story 12.8 review finding was deferred.
 1. Review and approve or reject the three Story 12.8 visual candidates before Tier-A completion and anchor landing.
 
 **Next:** On approval, resolve the Story 12.8 visual decision, complete Tier A and UAT, land it atomically, then start Story 12.11.
+
+## Report — 2026-08-07T14:50:25Z (halted â€” needs-human)
+
+**Epic:** `12` — 14 stories.
+**Branch:** `epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene` (HEAD `18ee246`).
+**Pipeline status:** Halted at Story 12.14 / Phase 5: implementation and automated checks passed, but required visual validation cannot run without ANTHROPIC_API_KEY and four approved selected-time reference PNGs.
+**Continues:** 2026-07-27T19:07:49Z (halted â€” needs-human)
+
+**Summary:** Twelve stories are already landed by this Epic 12 run. Story 12.14 now has its selected-time availability implementation and automated verification complete in the working tree, but remains in-progress and uncommitted because the visual gate requires human-provided references or explicit manual acceptance.
+
+**Timing:** started 2026-07-18T11:27:25Z; completed in progress — elapsed 483h 23m (≈60h 10m AI-run, ≈423h 12m human/idle wait); resumed 9×.
+
+**Stories:**
+1. 12-1 was already done before this epic run.
+2. 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, 12-10, 12-5, 12-8, 12-11, and 12-2 are landed on the epic anchor.
+3. 12-14 is halted in Phase 5 after implementation and automated validation; visual validation and the canonical review transition have not completed.
+
+**Skipped (already done):** 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours (already done before this run)
+
+**Integration review:** Not run â€” Story 12.14 has not landed, so the whole-epic Tier B review remains pending.
+
+**Epic gate:** Not run â€” the Epic 12 trace, NFR, and test-quality gates remain pending after Story 12.14 lands.
+
+**TEA:** Story 12.14 risk medium; post-dev automate is selected but has not run because Phase 5 is incomplete. Typecheck, lint, full Vitest (213 files / 1938 tests), focused Story 12.14 Vitest (9 files / 247 tests), and Story 12.14 Playwright passed; one existing Epic 11 desktop timeout passed on exact rerun.
+
+**UAT:** (none)
+
+**Overrides:** none
+
+**Open questions:**
+1. Approve or promote implementation-derived selected-time reference PNGs, or explicitly approve manual visual acceptance; then rerun visual validation and scripts/story-review.sh.
+
+**Deferred work:**
+1. [12-3] Capture the protected-production 42+ venue cold-p95 dataset and verify the protected GitHub Production environment when access is available.
+2. [12-7] Apply 20260718214954_add_public_venue_visibility.sql before deploying Story 12.7, regenerate Supabase types, and verify no contract diff.
+3. [12-12] Apply 20260719000000_venue_media_storage.sql before hosted venue media is used, then verify protected Storage bucket/RLS behavior.
+4. [12-11] Stabilize the mobile future-date exact-response wait in nextjs-app/test/e2e/map-primary.spec.ts under full-suite concurrency.
+
+**Auto-decided (epic mode):**
+1. [12-7] Adopted the architecture-backed canonical hidden boolean migration/type contract after schema probes found the referenced visibility columns absent.
+2. [12-5] Retained the accessibility-safe public pin color with explicit visual rebaseline/acceptance evidence.
+3. [12-11] Kept enough Settings state after guide close so focus returns to the guide row rather than the map fallback.
+
+**Planning drift:** none
+
+**⚠️ Needs human:**
+1. Set/provide ANTHROPIC_API_KEY, or explicitly authorize documented manual visual acceptance for Story 12.14.
+2. Provide or approve nextjs-app/docs/design/references/screens/mobile/map-selected-time-open.png.
+3. Provide or approve nextjs-app/docs/design/references/screens/desktop/map-selected-time-open.png.
+4. Provide or approve nextjs-app/docs/design/references/screens/mobile/map-selected-time-closed.png.
+5. Provide or approve nextjs-app/docs/design/references/screens/desktop/map-selected-time-closed.png.
+
+**Next:** After resolving the visual gate, rerun $auto-bmad epic --epic 12; the pipeline will resume Story 12.14 Phase 5, then run post-dev coverage, Tier A, epic gates, Tier B integration review, and local finalization.

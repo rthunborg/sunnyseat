@@ -1,6 +1,10 @@
+---
+baseline_commit: NO_VCS
+---
+
 # Story 12.14: Hide Closed Venues (Open-at-Selected-Time Filter)
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -90,56 +94,56 @@ Controlling replacement for implementation:
 
 ## Tasks / Subtasks
 
-- [ ] Implement the selected-instant availability utility (AC: 1, 5)
-  - [ ] Extend `nextjs-app/lib/utils/opening-hours.ts` or add a colocated client-safe helper that reuses the existing canonical `WeeklyOpeningHours` shape.
-  - [ ] Export a tri-state availability type and a helper for selected-instant close-time formatting.
-  - [ ] Use Stockholm-local weekday and minutes for the supplied instant; handle DST through existing project date/time utilities or `date-fns-tz`.
-  - [ ] Cover same-day intervals, open boundary, close boundary, before-open, after-close, missing/null day, undefined whole object, and prior-day spillover.
+- [x] Implement the selected-instant availability utility (AC: 1, 5)
+  - [x] Extend `nextjs-app/lib/utils/opening-hours.ts` or add a colocated client-safe helper that reuses the existing canonical `WeeklyOpeningHours` shape.
+  - [x] Export a tri-state availability type and a helper for selected-instant close-time formatting.
+  - [x] Use Stockholm-local weekday and minutes for the supplied instant; handle DST through existing project date/time utilities or `date-fns-tz`.
+  - [x] Cover same-day intervals, open boundary, close boundary, before-open, after-close, missing/null day, undefined whole object, and prior-day spillover.
 
-- [ ] Wire selected instant into MapView without making time a network key (AC: 2, 6, 8)
-  - [ ] Derive one selected instant from the existing planner date and selected minutes.
-  - [ ] Apply availability filtering to discovery venues before active tags, sorting, row counts, and pin data.
-  - [ ] Split "all favourite rows" from "favourite rows eligible for pins" so closed favourites remain inspectable but unpinned.
-  - [ ] Ensure `selectedVenuePreviewForMap`, active favourite pin rows, and regular discovery rows cannot leak a closed pin.
-  - [ ] Preserve existing map click-to-close-detail and different-pin-replaces-detail behaviours while updating closed-selection continuity.
+- [x] Wire selected instant into MapView without making time a network key (AC: 2, 6, 8)
+  - [x] Derive one selected instant from the existing planner date and selected minutes.
+  - [x] Apply availability filtering to discovery venues before active tags, sorting, row counts, and pin data.
+  - [x] Split "all favourite rows" from "favourite rows eligible for pins" so closed favourites remain inspectable but unpinned.
+  - [x] Ensure `selectedVenuePreviewForMap`, active favourite pin rows, and regular discovery rows cannot leak a closed pin.
+  - [x] Preserve existing map click-to-close-detail and different-pin-replaces-detail behaviours while updating closed-selection continuity.
 
-- [ ] Update retained closed favourite UI (AC: 3, 5, 9)
-  - [ ] Pass availability state through `FavouritesList`, `VenueList`, and `VenueCard` without violating the component layering rule.
-  - [ ] Add Swedish/English copy for `Stängt vid vald tid`.
-  - [ ] Add a subdued/grey visual treatment using design tokens only; do not use raw hex, ad-hoc shadows, or arbitrary Tailwind colors outside the design system.
-  - [ ] Keep the row/button actionable and keyboard/screen-reader clear.
+- [x] Update retained closed favourite UI (AC: 3, 5, 9)
+  - [x] Pass availability state through `FavouritesList`, `VenueList`, and `VenueCard` without violating the component layering rule.
+  - [x] Add Swedish/English copy for `Stängt vid vald tid`.
+  - [x] Add a subdued/grey visual treatment using design tokens only; do not use raw hex, ad-hoc shadows, or arbitrary Tailwind colors outside the design system.
+  - [x] Keep the row/button actionable and keyboard/screen-reader clear.
 
-- [ ] Update retained exact-name search behaviour (AC: 4, 5, 9)
-  - [ ] Classify search results in `VenueSearchShell` after API data arrives using the same availability helper and selected instant.
-  - [ ] Retain only normalized full-name exact matches when closed; filter out closed partial/area/fuzzy results.
-  - [ ] Extend `VenueSearchCombobox` result rows to show the closed-at-selected-time status where applicable.
-  - [ ] Ensure selecting a retained closed result opens detail but does not inject a map pin.
+- [x] Update retained exact-name search behaviour (AC: 4, 5, 9)
+  - [x] Classify search results in `VenueSearchShell` after API data arrives using the same availability helper and selected instant.
+  - [x] Retain only normalized full-name exact matches when closed; filter out closed partial/area/fuzzy results.
+  - [x] Extend `VenueSearchCombobox` result rows to show the closed-at-selected-time status where applicable.
+  - [x] Ensure selecting a retained closed result opens detail but does not inject a map pin.
 
-- [ ] Update quick-info and detail hours copy (AC: 5, 6)
-  - [ ] Replace `new Date()` usage in `MapView` quick-info opening-hours derivation with the selected instant.
-  - [ ] Replace `new Date()` usage in `VenueDetailContent` opening-hours derivation with the selected instant passed from the parent.
-  - [ ] Remove open badges/open lines when availability is `closed`.
-  - [ ] Add planned open detail copy: `Öppet vid vald tid · till HH:MM` and English equivalent.
-  - [ ] Add a polite live-region announcement when an already-open detail changes to closed because selected time changed.
+- [x] Update quick-info and detail hours copy (AC: 5, 6)
+  - [x] Replace `new Date()` usage in `MapView` quick-info opening-hours derivation with the selected instant.
+  - [x] Replace `new Date()` usage in `VenueDetailContent` opening-hours derivation with the selected instant passed from the parent.
+  - [x] Remove open badges/open lines when availability is `closed`.
+  - [x] Add planned open detail copy: `Öppet vid vald tid · till HH:MM` and English equivalent.
+  - [x] Add a polite live-region announcement when an already-open detail changes to closed because selected time changed.
 
-- [ ] Separate venue list/search caps from favourite ID caps (AC: 7)
-  - [ ] In `nextjs-app/app/api/venues/route.ts`, keep favourite ID count and query-length guards bounded and independently named.
-  - [ ] Add a separately named bounded list/search candidate limit used only for normal candidate responses.
-  - [ ] Update route tests so a closed-heavy candidate set does not starve open visible results while favourite ID limits still reject excessive IDs.
+- [x] Separate venue list/search caps from favourite ID caps (AC: 7)
+  - [x] In `nextjs-app/app/api/venues/route.ts`, keep favourite ID count and query-length guards bounded and independently named.
+  - [x] Add a separately named bounded list/search candidate limit used only for normal candidate responses.
+  - [x] Update route tests so a closed-heavy candidate set does not starve open visible results while favourite ID limits still reject excessive IDs.
 
-- [ ] Add visual-state plumbing and references (AC: 9)
-  - [ ] Add `map-selected-time-open` and `map-selected-time-closed` to the Screen ID -> Route Map in `project-context.md`.
-  - [ ] Add deterministic forced-state handling/fixtures for both states.
-  - [ ] Update `nextjs-app/scripts/capture-claude-design-refs.mjs` if needed to capture implementation-derived references.
-  - [ ] Update `nextjs-app/docs/design/references/REBASELINE-LOG.md` when reference PNGs or capture recipes change.
-  - [ ] Include explicit `screen_id:` markers in any validation artifact so Story 12.11's negative-scope visual extraction issue does not repeat.
+- [x] Add visual-state plumbing and references (AC: 9)
+  - [x] Add `map-selected-time-open` and `map-selected-time-closed` to the Screen ID -> Route Map in `project-context.md`.
+  - [x] Add deterministic forced-state handling/fixtures for both states.
+  - [x] Update `nextjs-app/scripts/capture-claude-design-refs.mjs` if needed to capture implementation-derived references.
+  - [x] Update `nextjs-app/docs/design/references/REBASELINE-LOG.md` when reference PNGs or capture recipes change.
+  - [x] Include explicit `screen_id:` markers in any validation artifact so Story 12.11's negative-scope visual extraction issue does not repeat.
 
-- [ ] Add and run tests (AC: 1-9)
-  - [ ] Unit-test the selected-instant availability boundary table.
-  - [ ] Add component/integration coverage for all MapView pin/list sources, favourites retention, exact-name search retention, and selected detail state.
-  - [ ] Add or extend E2E coverage for zero-fetch time scrub and one-fetch date change.
-  - [ ] Add mobile and desktop visual validations for `map-selected-time-open` and `map-selected-time-closed`.
-  - [ ] Run the required story checks and record exact commands/results in the Dev Agent Record.
+- [x] Add and run tests (AC: 1-9)
+  - [x] Unit-test the selected-instant availability boundary table.
+  - [x] Add component/integration coverage for all MapView pin/list sources, favourites retention, exact-name search retention, and selected detail state.
+  - [x] Add or extend E2E coverage for zero-fetch time scrub and one-fetch date change.
+  - [x] Add mobile and desktop visual validations for `map-selected-time-open` and `map-selected-time-closed` using the explicitly authorized provider-neutral/manual path; captured and inspected all four mapped route/viewport screenshots without promoting reference PNGs.
+  - [x] Run the required story checks and record exact commands/results in the Dev Agent Record.
 
 ## Dev Notes
 
@@ -272,17 +276,84 @@ For `map-selected-time-closed`, review that:
 
 ### Agent Model Used
 
-TBD by dev-story agent.
+GPT-5 Codex (auto-bmad deep delegate).
 
 ### Debug Log References
 
-TBD by dev-story agent.
+- PASS (baseline before edits): `npx tsc --noEmit`
+- PASS (baseline before edits): `npx eslint . --quiet`
+- PASS: `npx vitest run test/unit/utils/opening-hours-selected-time.atdd.test.ts test/unit/api/venues-route-candidate-cap.atdd.test.ts test/unit/api/venues-route.test.ts test/components/VenueCard.test.tsx test/components/VenueDetailContent.test.tsx test/components/FavouritesList.test.tsx test/components/VenueSearchShell.test.tsx test/components/VenueSearchCombobox.test.tsx test/components/MapView.test.tsx` (9 files, 247 tests)
+- PASS: `npx tsc --noEmit`
+- PASS: `npx eslint . --quiet`
+- PASS: `npx vitest run` (213 files, 1938 tests; after fixing route-test mock cleanup and the settings-launched coach-guide focus race exposed by the full suite)
+- PASS with escalated Playwright browser launch: `npx playwright test test/e2e/story-12-14-selected-time-availability.atdd.spec.ts test/e2e/epic-11-scrub-zero-fetch.spec.ts` (7 passed, 1 existing Epic 11 desktop timeout)
+- PASS on rerun with escalated Playwright browser launch: `npx playwright test test/e2e/epic-11-scrub-zero-fetch.spec.ts --project=desktop --grep "settled same-date time scrub"` (1 passed)
+- FAIL (environment blocker): `.\scripts\run-sh.ps1 scripts/visual-validate.sh map-selected-time-open "/?_state=map-selected-time-open&_time=14:00" mobile` -> `ANTHROPIC_API_KEY` is not set.
+- FAIL (environment blocker): `.\scripts\run-sh.ps1 scripts/visual-validate.sh map-selected-time-closed "/favoriter?_state=map-selected-time-closed&_time=09:00" mobile` -> `ANTHROPIC_API_KEY` is not set.
+- BLOCKED visual references: `nextjs-app/docs/design/references/screens/{mobile,desktop}/map-selected-time-open.png` and `map-selected-time-closed.png` are absent pending maintainer approval.
+- FAIL (environment/sandbox): `npx playwright test test/e2e/story-12-14-selected-time-availability.atdd.spec.ts test/e2e/epic-11-scrub-zero-fetch.spec.ts` -> Playwright browser launch blocked with `spawn EPERM`; default Turbopack dev server also hit local root-inference watcher panic.
+- PASS with escalated Playwright browser launch and webpack dev-server override: `$env:PLAYWRIGHT_WEB_SERVER_COMMAND='npx next dev --webpack'; npx playwright test test/e2e/story-12-14-selected-time-availability.atdd.spec.ts test/e2e/epic-11-scrub-zero-fetch.spec.ts --workers=1 --timeout=60000` (8 passed).
+- PASS manual visual capture/inspection artifact: `_bmad-output/implementation-artifacts/validation/story-12-14-manual-visual-20260807-170859/manual-visual-acceptance.md` covers `screen_id: map-selected-time-open` and `screen_id: map-selected-time-closed` on mobile and desktop.
+- PASS provider-neutral/manual visual wrapper with `VISUAL_VALIDATE_PROVIDER=none` and `ALLOW_MANUAL_VISUAL_VALIDATION=1` for all four mapped routes:
+  - `.\scripts\run-sh.ps1 scripts/visual-validate.sh map-selected-time-open "/?_state=map-selected-time-open&_time=14:00" mobile`
+  - `.\scripts\run-sh.ps1 scripts/visual-validate.sh map-selected-time-open "/?_state=map-selected-time-open&_time=16:30" desktop`
+  - `.\scripts\run-sh.ps1 scripts/visual-validate.sh map-selected-time-closed "/favoriter?_state=map-selected-time-closed&_time=09:00" mobile`
+  - `.\scripts\run-sh.ps1 scripts/visual-validate.sh map-selected-time-closed "/favoriter?_state=map-selected-time-closed&_time=09:00" desktop`
+- PASS with escalation for Git Bash home access: `$env:VISUAL_VALIDATE_PROVIDER='none'; $env:ALLOW_MANUAL_VISUAL_VALIDATION='1'; .\scripts\run-sh.ps1 scripts/story-review.sh 12-14-hide-closed-venues-open-at-selected-time-filter` -> lint, typecheck, Vitest 213 files / 1938 tests, manual visual wrapper, sprint-status review update. Validation log: `_bmad-output/implementation-artifacts/validation/12-14-hide-closed-venues-open-at-selected-time-filter-review-20260807-171735.log`.
+- NOTE: `story-review.sh` also extracted the unrelated `feedback` screen from the story's `_state=feedback` cautionary note and ran it in manual mode; this repeated the Story 12.11 negative-scope extraction hazard but did not change product validation.
 
 ### Completion Notes List
 
-- Story context created from Epic 12 planning artifacts, architecture E12-AD-07, UX selected-instant availability rules, prior Story 12 implementation files, retro notes, and deferred-work entries.
-- Sprint status intentionally not edited by this create-story delegate; auto-bmad orchestration owns state transitions.
+- Completed/verified selected-instant availability filtering across discovery, tags, pins, favourite rows, exact-name search, quick info, and detail copy without adding selected time to query keys.
+- Added a token-backed muted treatment for retained closed venue cards while keeping their row button enabled and labelled.
+- Added focused detail/card/API cap tests for selected-time open/closed/unknown copy, retained closed card accessibility, and candidate headroom above the favourite-ID cap.
+- Fixed route-test mock cleanup so the new dynamic route ATDD test does not leak into later route/sun-engine tests.
+- Fixed a settings-launched coach-guide focus race exposed by the full Vitest suite; settings launches now prefer the reopen-and-focus fallback rather than focusing an exiting settings row.
+- Added capture-script trace comments and updated the rebaseline log for implementation-derived `map-selected-time-open` / `map-selected-time-closed` states.
+- Completed the explicitly authorized manual visual path for `map-selected-time-open` and `map-selected-time-closed` on mobile and desktop; no reference PNGs were promoted or replaced.
+- Exact closed by-name search retention remains covered by E2E/component tests; it has no separate `project-context.md` visual route.
+- Story review transition completed through the canonical `scripts/story-review.sh` gate using provider-neutral/manual visual validation.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/12-14-hide-closed-venues-open-at-selected-time-filter.md`
+- `project-context.md`
+- `nextjs-app/app/api/venues/route.ts`
+- `nextjs-app/lib/utils/opening-hours.ts`
+- `nextjs-app/components/custom/map/MapView.tsx`
+- `nextjs-app/components/custom/favourites/FavouritesList.tsx`
+- `nextjs-app/components/custom/venue/VenueList.tsx`
+- `nextjs-app/components/custom/search/VenueSearchShell.tsx`
+- `nextjs-app/components/composed/search/VenueSearchCombobox.tsx`
+- `nextjs-app/components/composed/venue/VenueCard.tsx`
+- `nextjs-app/components/composed/venue/VenueDetailContent.tsx`
+- `nextjs-app/components/custom/coach-tour/FirstRunCoachMarkGuide.tsx`
+- `nextjs-app/messages/sv/venue.json`
+- `nextjs-app/messages/en/venue.json`
+- `nextjs-app/scripts/capture-claude-design-refs.mjs`
+- `nextjs-app/docs/design/references/claude-design/STATE-MAPPING.md`
+- `nextjs-app/docs/design/references/REBASELINE-LOG.md`
+- `nextjs-app/test/unit/utils/opening-hours-selected-time.atdd.test.ts`
+- `nextjs-app/test/unit/api/venues-route-candidate-cap.atdd.test.ts`
+- `nextjs-app/test/unit/api/venues-route.test.ts`
+- `nextjs-app/test/components/MapView.test.tsx`
+- `nextjs-app/test/components/FavouritesList.test.tsx`
+- `nextjs-app/test/components/VenueSearchShell.test.tsx`
+- `nextjs-app/test/components/VenueSearchCombobox.test.tsx`
+- `nextjs-app/test/components/VenueCard.test.tsx`
+- `nextjs-app/test/components/VenueDetailContent.test.tsx`
+- `nextjs-app/test/e2e/story-12-14-selected-time-availability.atdd.spec.ts`
+- `_bmad-output/implementation-artifacts/validation/story-12-14-manual-visual-20260807-170859/manual-visual-acceptance.md`
+- `_bmad-output/implementation-artifacts/validation/story-12-14-manual-visual-20260807-170859/map-selected-time-open-mobile.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-14-manual-visual-20260807-170859/map-selected-time-open-desktop.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-14-manual-visual-20260807-170859/map-selected-time-closed-mobile.png`
+- `_bmad-output/implementation-artifacts/validation/story-12-14-manual-visual-20260807-170859/map-selected-time-closed-desktop.png`
+- `_bmad-output/implementation-artifacts/validation/12-14-hide-closed-venues-open-at-selected-time-filter-review-20260807-171735.log`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+
+## Change Log
+
+| Date | Version | Description | Author |
+| --- | --- | --- | --- |
+| 2026-08-07 | 1.0 | Completed selected-time availability filtering implementation and deterministic verification; review transition remains blocked on visual credentials and approved selected-time reference PNGs. | GPT-5 Codex |
+| 2026-08-07 | 1.1 | Completed explicitly authorized provider-neutral/manual selected-time visual validation and moved story to review through `scripts/story-review.sh`. | GPT-5 Codex |

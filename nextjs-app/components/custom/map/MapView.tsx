@@ -72,7 +72,12 @@ import { cn } from '@/lib/utils';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
 import { mapVenueDtoToPinData } from '@/lib/utils/venue-pin-mapping';
 import { deriveVenueSunAtMinutes } from '@/lib/utils/venue-day-series';
-import { formatOpeningHours } from '@/lib/utils/opening-hours';
+import {
+  formatOpeningHoursAt,
+  getVenueAvailabilityAt,
+  type VenueAvailabilityState,
+} from '@/lib/utils/opening-hours';
+import { stockholmInstantFromDateTime } from '@/lib/utils/time-planner';
 import { venuePlannerQueryArgs } from '@/lib/utils/venue-query-planner';
 import { collectTags, filterVenuesByTags } from '@/lib/utils/venue-tags';
 import { MobileTagChips } from '@/components/composed/venue/MobileTagChips';
@@ -197,12 +202,17 @@ export function MapView() {
     fallbackHref: string;
   } | null>(null);
   const [routeLoadingVenueId, setRouteLoadingVenueId] = useState<string | null>(null);
+  const [availabilityAnnouncement, setAvailabilityAnnouncement] = useState('');
   const [venueDetailPrefetchInteraction, setVenueDetailPrefetchInteraction] = useState<{
     token: number;
     preserveSlug: string | null;
   }>({ token: 0, preserveSlug: null });
   const hasHandledFavouritesRouteEntryRef = useRef(false);
   const routeLoadingTimerRef = useRef<number | null>(null);
+  const previousDetailAvailabilityRef = useRef<{
+    venueId: string;
+    state: VenueAvailabilityState;
+  } | null>(null);
   const pendingUrlClearDismissedVenueSlugRef = useRef<string | null>(null);
   const isFavouritesRoute = isFavouritesPath(pathname);
   const [desktopListMode, setDesktopListMode] = useState<'near' | 'favourites'>(
@@ -250,13 +260,28 @@ export function MapView() {
   // is reachable on the fixture/CI path WITHOUT live Met.no weather.
   const isForcedObscuredReference = forcedState === 'map-with-obscured-venue';
   const isForcedObscuredDetailReference = forcedState === 'venue-detail-obscured';
+  const isForcedSelectedTimeOpenReference = forcedState === 'map-selected-time-open';
+  const isForcedSelectedTimeClosedReference = forcedState === 'map-selected-time-closed';
   const isForcedPhotoReference = isForcedVenuePhotoState(forcedState);
   const coachTourForcedStep = coachTourStepFromForcedState(forcedState);
   const isForcedCoachTourReference = coachTourForcedStep !== null;
+  const effectiveFavouriteIds = useMemo(
+    () => (isForcedSelectedTimeClosedReference ? ['1'] : favourites.favouriteIds),
+    [favourites.favouriteIds, isForcedSelectedTimeClosedReference],
+  );
+  const isEffectiveFavourite = useCallback(
+    (id: string) =>
+      isForcedSelectedTimeClosedReference && id === '1'
+        ? true
+        : favourites.isFavourite(id),
+    [favourites, isForcedSelectedTimeClosedReference],
+  );
   const isForcedVisualReference =
     forcedState === 'map-primary' ||
     forcedState === 'map-panel-venues' ||
     forcedState === 'map-with-selected-venue' ||
+    isForcedSelectedTimeOpenReference ||
+    isForcedSelectedTimeClosedReference ||
     isForcedObscuredReference ||
     isForcedCoachTourReference ||
     isForcedPhotoReference;
@@ -331,6 +356,12 @@ export function MapView() {
       plannerTime.plannerQuery,
     ],
   );
+  const selectedInstant = useMemo(
+    () =>
+      stockholmInstantFromDateTime(plannerTime.selectedDate, plannerTime.selectedTime) ??
+      plannerTime.currentTime,
+    [plannerTime.currentTime, plannerTime.selectedDate, plannerTime.selectedTime],
+  );
   const hasDevForcingSearchParam = searchParams.has('_state') || hasForcedPlannerSearchParam;
   const routeAllowsVenueDetailPrefetch =
     !hasDevForcingSearchParam || searchParams.get('_prefetch') === 'venue-detail';
@@ -353,7 +384,7 @@ export function MapView() {
     const rows = venueQuery.data?.venues;
     return new Set(Array.isArray(rows) ? rows.map((venue) => venue.id) : []);
   }, [venueQuery.data?.venues]);
-  const favouritesAllInLoadedList = favourites.favouriteIds.every((id) =>
+  const favouritesAllInLoadedList = effectiveFavouriteIds.every((id) =>
     loadedVenueIds.has(id),
   );
   // Enable the network favourites query only when we actually need it: the
@@ -364,7 +395,7 @@ export function MapView() {
   const needsFavouriteFetch =
     listMode === 'favourites' && !favouritesAllInLoadedList;
   const favouriteVenueQuery = useFavouriteVenues({
-    ids: favourites.favouriteIds,
+    ids: effectiveFavouriteIds,
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
     enabled: coordsSettled && needsFavouriteFetch,
@@ -467,6 +498,14 @@ export function MapView() {
       applyDaySeriesDerivation(venue, plannerTime.selectedMinutes),
     );
   }, [rawVenuesData, plannerTime.selectedMinutes]);
+  const rawVenueAvailabilityById = useMemo(
+    () => availabilityByVenueId(rawVenues, selectedInstant),
+    [rawVenues, selectedInstant],
+  );
+  const discoveryVenues = useMemo(() => {
+    if (!Array.isArray(rawVenues)) return rawVenues;
+    return rawVenues.filter((venue) => rawVenueAvailabilityById[venue.id] !== 'closed');
+  }, [rawVenueAvailabilityById, rawVenues]);
   // Story 9.7: apply the shared tag filter to the loaded Närmast list ONCE, so
   // BOTH the venue lists (desktop + mobile) AND the map pins derive from the same
   // filtered source. Pure client `.filter()` over already-fetched data — issues
@@ -478,9 +517,9 @@ export function MapView() {
   // (scope decision — see Task 6 Completion Notes): tag filtering is scoped to
   // the Närmast list + pins, avoiding double-filtering the favourites surface.
   const tagFilteredVenues = useMemo(() => {
-    if (!Array.isArray(rawVenues)) return rawVenues;
-    return filterVenuesByTags(rawVenues, activeTags);
-  }, [activeTags, rawVenues]);
+    if (!Array.isArray(discoveryVenues)) return discoveryVenues;
+    return filterVenuesByTags(discoveryVenues, activeTags);
+  }, [activeTags, discoveryVenues]);
   // Story 11.3 (AC1): the mobile tag-chip row shares the desktop data source —
   // the union of the LOADED venues' tags via `collectTags`. Derived from the
   // SAME `venueQuery.data` the desktop nav reads (no second fetch; TanStack
@@ -491,8 +530,8 @@ export function MapView() {
   // viewport) over the SAME cached union, so a stale mobile filter can never
   // strand the surfaces — no duplicate prune needed here.
   const allTags = useMemo(
-    () => collectTags(venueQuery.data?.venues ?? []),
-    [venueQuery.data?.venues],
+    () => collectTags(discoveryVenues ?? []),
+    [discoveryVenues],
   );
   // Story 9.4 AC1: build the favourites rows by preferring the loaded Närmast
   // list (no extra fetch when the favourites are already loaded — the common
@@ -501,7 +540,7 @@ export function MapView() {
   // deep link). This keeps the Närmast↔Favoriter toggle instant: when every
   // favourite is in the list cache the favourites query stays disabled and
   // these rows come straight from `rawVenues`.
-  const favouriteIdsForRows = favourites.favouriteIds;
+  const favouriteIdsForRows = effectiveFavouriteIds;
   // Story 11.1 AC1 ("both venue lists"): the favourites network payload hits the
   // same real-engine `/api/venues` path, so its rows carry `sunDaySeries` too.
   // Derive the per-step value here — mirroring `rawVenues` — so an out-of-radius
@@ -509,15 +548,16 @@ export function MapView() {
   // payload, never in the Närmast list cache) tracks a same-date time scrub for
   // both its card figures and its "Mest sol" rank. Without this the top-up rows
   // would render the server's single-instant fields, frozen against the scrub.
+  const favouriteVenuesData = favouriteVenueQuery.data?.venues;
   const networkFavouriteRows = useMemo<VenueDataDto[]>(() => {
-    const rows = Array.isArray(favouriteVenueQuery.data?.venues)
-      ? favouriteVenueQuery.data.venues
+    const rows = Array.isArray(favouriteVenuesData)
+      ? favouriteVenuesData
       : EMPTY_VENUES;
     if (rows.length === 0) return EMPTY_VENUES;
     return rows.map((venue) =>
       applyDaySeriesDerivation(venue, plannerTime.selectedMinutes),
     );
-  }, [favouriteVenueQuery.data?.venues, plannerTime.selectedMinutes]);
+  }, [favouriteVenuesData, plannerTime.selectedMinutes]);
   const favouriteVenueRows = useMemo<VenueDataDto[]>(() => {
     const allowed = new Set(favouriteIdsForRows);
     if (allowed.size === 0) return EMPTY_VENUES;
@@ -543,17 +583,17 @@ export function MapView() {
     }
     return rows.length === 0 ? EMPTY_VENUES : rows;
   }, [favouriteIdsForRows, networkFavouriteRows, rawVenues]);
-  const activeFavouriteVenueRows = listMode === 'favourites'
+  const selectedPreviewSlug = selectedVenuePreview?.slug || selectedVenuePreview?.venueSlug || null;
+  const favouriteRowsForSelectedPreview = listMode === 'favourites'
     ? favouriteVenueRows
     : EMPTY_VENUES;
-  const selectedPreviewSlug = selectedVenuePreview?.slug || selectedVenuePreview?.venueSlug || null;
   const selectedPreviewIsInCurrentRows = useMemo(() => {
     if (!selectedVenuePreview) return false;
     if (Array.isArray(rawVenues) && rawVenues.some((venue) => venue.id === selectedVenuePreview.id)) {
       return true;
     }
-    return activeFavouriteVenueRows.some((venue) => venue.id === selectedVenuePreview.id);
-  }, [activeFavouriteVenueRows, rawVenues, selectedVenuePreview]);
+    return favouriteRowsForSelectedPreview.some((venue) => venue.id === selectedVenuePreview.id);
+  }, [favouriteRowsForSelectedPreview, rawVenues, selectedVenuePreview]);
   const canRequestVenueDetail = Boolean(venueSlugParam) &&
     forcedState !== 'map-with-selected-venue' &&
     forcedState !== 'map-with-obscured-venue';
@@ -575,7 +615,38 @@ export function MapView() {
     if (!venueMatchesSlug(detailVenue, selectedPreviewSlug)) return null;
     return detailVenue;
   }, [selectedPreviewDetailQuery.data?.venue, selectedPreviewSlug, selectedVenuePreview]);
-  const selectedVenuePreviewForMap = refreshedSelectedVenuePreview ?? selectedVenuePreview;
+  const combinedAvailabilityByVenueId = useMemo(
+    () =>
+      availabilityByVenueId(
+        [
+          ...(Array.isArray(rawVenues) ? rawVenues : EMPTY_VENUES),
+          ...networkFavouriteRows,
+          ...(selectedVenuePreview ? [selectedVenuePreview] : EMPTY_VENUES),
+          ...(refreshedSelectedVenuePreview ? [refreshedSelectedVenuePreview] : EMPTY_VENUES),
+        ],
+        selectedInstant,
+      ),
+    [
+      networkFavouriteRows,
+      rawVenues,
+      refreshedSelectedVenuePreview,
+      selectedInstant,
+      selectedVenuePreview,
+    ],
+  );
+  const favouriteVenuePinRows = useMemo(
+    () => favouriteVenueRows.filter((venue) => combinedAvailabilityByVenueId[venue.id] !== 'closed'),
+    [combinedAvailabilityByVenueId, favouriteVenueRows],
+  );
+  const activeFavouriteVenueRows = listMode === 'favourites'
+    ? favouriteVenuePinRows
+    : EMPTY_VENUES;
+  const selectedVenuePreviewCandidate = refreshedSelectedVenuePreview ?? selectedVenuePreview;
+  const selectedVenuePreviewForMap =
+    selectedVenuePreviewCandidate &&
+    combinedAvailabilityByVenueId[selectedVenuePreviewCandidate.id] !== 'closed'
+      ? selectedVenuePreviewCandidate
+      : null;
   const venueDtosForMap = useMemo(() => {
     // Story 9.7: pins derive from the tag-filtered Närmast list, so an active
     // chip filters the map pins identically to the venue list (AC3). The
@@ -651,14 +722,16 @@ export function MapView() {
   const quickInfoOpeningHours = useMemo(
     () =>
       selectedQuickInfoVenue?.openingHours
-        ? formatOpeningHours(
+        ? formatOpeningHoursAt(
             selectedQuickInfoVenue.openingHours,
-            new Date(),
+            selectedInstant,
             locale,
-            tVenue('quickInfo.openUntilLine', { time: '{time}' }),
+            plannerTime.isLiveNow
+              ? tVenue('quickInfo.openUntilLine', { time: '{time}' })
+              : tVenue('quickInfo.openAtSelectedUntilLine', { time: '{time}' }),
           )
         : undefined,
-    [selectedQuickInfoVenue, locale, tVenue],
+    [locale, plannerTime.isLiveNow, selectedInstant, selectedQuickInfoVenue, tVenue],
   );
   const selectedPinData = useMemo(() => {
     if (!selectedVenueId) return null;
@@ -700,7 +773,7 @@ export function MapView() {
       const listVenue = rawVenues.find((venue) => venueMatchesSlug(venue, venueSlugParam));
       if (listVenue) return { venue: listVenue, isSynthetic: false };
     }
-    const favouriteVenue = activeFavouriteVenueRows.find((venue) => venueMatchesSlug(venue, venueSlugParam));
+    const favouriteVenue = favouriteVenueRows.find((venue) => venueMatchesSlug(venue, venueSlugParam));
     if (favouriteVenue) return { venue: favouriteVenue, isSynthetic: false };
     if (selectedVenueDto && venueMatchesSlug(selectedVenueDto, venueSlugParam)) {
       return { venue: selectedVenueDto, isSynthetic: false };
@@ -713,7 +786,7 @@ export function MapView() {
     return null;
   }, [
     detailVenue,
-    activeFavouriteVenueRows,
+    favouriteVenueRows,
     rawVenues,
     selectedVenueDto,
     venueDetailQuery.isError,
@@ -740,11 +813,11 @@ export function MapView() {
     const candidates = [
       detailVenue,
       selectedVenueDto,
-      ...activeFavouriteVenueRows,
+      ...favouriteVenueRows,
       ...(Array.isArray(rawVenues) ? rawVenues : []),
     ];
     return candidates.find((venue) => venueMatchesSlug(venue, venueSlugParam))?.id;
-  }, [activeFavouriteVenueRows, detailVenue, rawVenues, selectedVenueDto, venueSlugParam]);
+  }, [detailVenue, favouriteVenueRows, rawVenues, selectedVenueDto, venueSlugParam]);
   const isVenueDetailRequested = canRequestVenueDetail && Boolean(detailFallbackVenue);
 
   useEffect(() => {
@@ -997,6 +1070,18 @@ export function MapView() {
 
   const handleSelectVenueFromList = (venue: VenueDataDto) => {
     prioritizeVenueDetailQuery(venue);
+    if (combinedAvailabilityByVenueId[venue.id] === 'closed') {
+      const slug = venueDetailSlug(venue);
+      if (!slug) return;
+      router.push({
+        pathname,
+        query: {
+          ...queryWithout(searchParams, ['venue', '_state']),
+          venue: slug,
+        },
+      });
+      return;
+    }
     selectVenue(venue.id, venue);
     if (mapInstance && hasValidVenueLocation(venue)) {
       mapInstance.easeTo({
@@ -1035,8 +1120,8 @@ export function MapView() {
   const loadedVenueCount = venueQuery.data?.venues?.length ?? 0;
   const isNearListLoading = venueQuery.isFetching && loadedVenueCount === 0;
   const favouriteIdSet = useMemo(
-    () => new Set(favourites.favouriteIds),
-    [favourites.favouriteIds],
+    () => new Set(effectiveFavouriteIds),
+    [effectiveFavouriteIds],
   );
   const displayedListVenues = useMemo(
     () => sortVenuesForList(listVenues, effectiveSortMode),
@@ -1054,7 +1139,7 @@ export function MapView() {
   const isFavouriteListLoading = !favourites.isHydrated ||
     (
       favouriteVenueQuery.isFetching &&
-      favourites.favouriteIds.length > 0 &&
+      effectiveFavouriteIds.length > 0 &&
       visibleFavouriteVenueCount === 0
     );
   const nearVenueSurfaceSettled =
@@ -1119,10 +1204,34 @@ export function MapView() {
   const activeRouteVenueId = isVenueDetailRequested
     ? (detailRouteVenue?.id ?? null)
     : (selectedQuickInfoVenue?.id ?? selectedVenueDto?.id ?? null);
+  const detailAvailabilityState = detailRouteVenue && isVenueDetailRequested
+    ? getVenueAvailabilityAt(detailRouteVenue.openingHours, selectedInstant).state
+    : null;
 
   useEffect(() => {
     setDesktopListMode(isFavouritesRoute ? 'favourites' : 'near');
   }, [isFavouritesRoute]);
+
+  useEffect(() => {
+    if (!detailRouteVenue || !detailAvailabilityState) {
+      previousDetailAvailabilityRef.current = null;
+      return;
+    }
+    const previous = previousDetailAvailabilityRef.current;
+    if (
+      previous?.venueId === detailRouteVenue.id &&
+      previous.state === 'open' &&
+      detailAvailabilityState === 'closed'
+    ) {
+      setAvailabilityAnnouncement(
+        tVenue('detail.closedAtSelectedAnnouncement', { name: detailRouteVenue.venueName }),
+      );
+    }
+    previousDetailAvailabilityRef.current = {
+      venueId: detailRouteVenue.id,
+      state: detailAvailabilityState,
+    };
+  }, [detailAvailabilityState, detailRouteVenue, tVenue]);
 
   useEffect(() => {
     return () => {
@@ -1246,6 +1355,16 @@ export function MapView() {
       className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full outline-none"
     >
       <MapContainer />
+      {availabilityAnnouncement && (
+        <div
+          aria-atomic="true"
+          aria-live="polite"
+          className="sr-only"
+          role="status"
+        >
+          {availabilityAnnouncement}
+        </div>
+      )}
       {/* Offline shell (Story 7.3): keep the cached map background but hide
           every venue-data surface (pins, search, sheet, list, overlays,
           controls, errors) so only the map + "Ingen anslutning" banner show. */}
@@ -1357,7 +1476,7 @@ export function MapView() {
       >
         {listMode === 'favourites' ? (
           <FavouritesList
-            favouriteIds={favourites.favouriteIds}
+            favouriteIds={effectiveFavouriteIds}
             venues={favouriteVenueRows}
             mode="mobile"
             sortMode={effectiveSortMode}
@@ -1368,7 +1487,8 @@ export function MapView() {
             compactCards
             onSelectVenue={handleSelectVenueFromList}
             onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
-            isFavourite={favourites.isFavourite}
+            isFavourite={isEffectiveFavourite}
+            availabilityByVenueId={combinedAvailabilityByVenueId}
           />
         ) : (
           <VenueList
@@ -1381,6 +1501,7 @@ export function MapView() {
             onSelectVenue={handleSelectVenueFromList}
             onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
             isFavourite={favourites.isFavourite}
+            availabilityByVenueId={combinedAvailabilityByVenueId}
           />
         )}
       </MobileBottomSheet>
@@ -1400,7 +1521,7 @@ export function MapView() {
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {listMode === 'favourites' ? (
             <FavouritesList
-              favouriteIds={favourites.favouriteIds}
+              favouriteIds={effectiveFavouriteIds}
               venues={favouriteVenueRows}
               mode="desktop"
               sortMode={effectiveSortMode}
@@ -1410,7 +1531,8 @@ export function MapView() {
               onRetry={() => favouriteVenueQuery.refetch()}
               onSelectVenue={handleSelectVenueFromList}
               onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
-              isFavourite={favourites.isFavourite}
+              isFavourite={isEffectiveFavourite}
+              availabilityByVenueId={combinedAvailabilityByVenueId}
             />
           ) : (
             <VenueList
@@ -1422,6 +1544,7 @@ export function MapView() {
               onSelectVenue={handleSelectVenueFromList}
               onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
               isFavourite={favourites.isFavourite}
+              availabilityByVenueId={combinedAvailabilityByVenueId}
             />
           )}
         </div>
@@ -1435,12 +1558,14 @@ export function MapView() {
             detail={detailVenue ?? undefined}
             isLoading={venueDetailQuery.isFetching && !detailVenue}
             currentTime={plannerTime.selectedTime}
+            selectedInstant={selectedInstant}
+            isLivePlannerTime={plannerTime.isLiveNow}
             labels={venueDetailLabels(tVenue)}
             onDismiss={handleDismissDetails}
             onRoute={handleRouteDetailVenue}
             routeEstimateLabel={detailRouteEstimateLabel}
             isRouteLoading={routeLoadingVenueId === detailRouteVenue?.id}
-            isFavourite={detailFavouriteId ? favourites.isFavourite(detailFavouriteId) : false}
+            isFavourite={detailFavouriteId ? isEffectiveFavourite(detailFavouriteId) : false}
             onFavouriteToggle={
               detailFavouriteId ? () => favourites.toggleFavourite(detailFavouriteId) : undefined
             }
@@ -1458,12 +1583,14 @@ export function MapView() {
             detail={detailVenue ?? undefined}
             isLoading={venueDetailQuery.isFetching && !detailVenue}
             currentTime={plannerTime.selectedTime}
+            selectedInstant={selectedInstant}
+            isLivePlannerTime={plannerTime.isLiveNow}
             labels={venueDetailLabels(tVenue)}
             onDismiss={handleDismissDetails}
             onRoute={handleRouteDetailVenue}
             routeEstimateLabel={detailRouteEstimateLabel}
             isRouteLoading={routeLoadingVenueId === detailRouteVenue?.id}
-            isFavourite={detailFavouriteId ? favourites.isFavourite(detailFavouriteId) : false}
+            isFavourite={detailFavouriteId ? isEffectiveFavourite(detailFavouriteId) : false}
             onFavouriteToggle={
               detailFavouriteId ? () => favourites.toggleFavourite(detailFavouriteId) : undefined
             }
@@ -1492,7 +1619,7 @@ export function MapView() {
             onOpenDetails={handleOpenDetails}
             onRoute={handleRouteSelectedVenue}
             isRouteLoading={routeLoadingVenueId === selectedQuickInfoVenue?.id}
-            isFavourite={selectedQuickInfoVenue ? favourites.isFavourite(selectedQuickInfoVenue.id) : false}
+            isFavourite={selectedQuickInfoVenue ? isEffectiveFavourite(selectedQuickInfoVenue.id) : false}
             onFavouriteToggle={
               selectedQuickInfoVenue
                 ? () => favourites.toggleFavourite(selectedQuickInfoVenue.id)
@@ -1521,7 +1648,7 @@ export function MapView() {
             onOpenDetails={handleOpenDetails}
             onRoute={handleRouteSelectedVenue}
             isRouteLoading={routeLoadingVenueId === selectedQuickInfoVenue?.id}
-            isFavourite={selectedQuickInfoVenue ? favourites.isFavourite(selectedQuickInfoVenue.id) : false}
+            isFavourite={selectedQuickInfoVenue ? isEffectiveFavourite(selectedQuickInfoVenue.id) : false}
             onFavouriteToggle={
               selectedQuickInfoVenue
                 ? () => favourites.toggleFavourite(selectedQuickInfoVenue.id)
@@ -1589,6 +1716,19 @@ function formatLabel(template: string, values: Record<string, string>): string {
 
 function hasValidVenueLocation(venue: VenueDataDto): boolean {
   return Number.isFinite(venue.location?.lat) && Number.isFinite(venue.location?.lng);
+}
+
+function availabilityByVenueId(
+  venues: readonly VenueDataDto[] | undefined,
+  selectedInstant: Date,
+): Record<string, VenueAvailabilityState> {
+  if (!Array.isArray(venues) || venues.length === 0) return {};
+  return Object.fromEntries(
+    venues.map((venue) => [
+      venue.id,
+      getVenueAvailabilityAt(venue.openingHours, selectedInstant).state,
+    ]),
+  ) as Record<string, VenueAvailabilityState>;
 }
 
 /**
@@ -1685,6 +1825,7 @@ function shouldUseForcedSunnyMapPins(forcedState: string | null): boolean {
   return forcedState === 'map-primary' ||
     forcedState === 'map-panel-venues' ||
     forcedState === 'map-with-selected-venue' ||
+    forcedState === 'map-selected-time-open' ||
     isCoachTourForcedState(forcedState) ||
     isForcedVenuePhotoState(forcedState);
 }
@@ -1861,6 +2002,9 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     city: t('detail.city'),
     openUntil: t('detail.openUntil', { time: '{time}' }),
     openUntilLine: t('detail.openUntilLine', { time: '{time}' }),
+    openAtSelected: t('detail.openAtSelected', { time: '{time}' }),
+    openAtSelectedUntilLine: t('detail.openAtSelectedUntilLine', { time: '{time}' }),
+    closedAtSelectedTime: t('detail.closedAtSelectedTime'),
     placeholderImageShort: t('detail.placeholderImageShort'),
     facts: {
       distance: t('detail.facts.distance'),

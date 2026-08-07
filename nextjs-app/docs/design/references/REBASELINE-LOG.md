@@ -43,6 +43,24 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-08-06 — `map-selected-time-open` / `map-selected-time-closed` (mobile + desktop) — Story 12.14 selected-time visual routes
+
+**Trigger:** Story 12.14 added selected-instant availability states that have no Claude Design prototype recipe or active reference PNGs: open discovery filtering and retained closed favourite/search rows.
+
+**Resolution:** No reference PNG was promoted by the dev agent. Added route-map and state-mapping documentation only, with active implementation-derived PNG promotion deferred until explicit maintainer approval.
+
+**Source of new PNG (if any):** n/a
+
+**Recipe change (if any):** Added `map-selected-time-open` and `map-selected-time-closed` rows to `project-context.md` and documented them in `nextjs-app/docs/design/references/claude-design/STATE-MAPPING.md`. `map-selected-time-closed` is reachable by URL alone because the app dev-forcing path treats seeded venue id `1` as a saved favourite at `_time=09:00`.
+
+**Follow-up recipe note:** Added an inline `capture-claude-design-refs.mjs` comment recording that these two screen IDs are implementation-derived and must not be regenerated from the Claude MVP prototype without maintainer approval.
+
+**Verification:** Pending final Story 12.14 validation. On this Windows host, project-context documents the legacy visual screenshot bug; use the provider-neutral manual path rather than promoting unapproved PNGs.
+
+**Reason / spec link:** Story 12.14 AC9 requires mobile and desktop selected-time visual coverage, while `project-context.md` forbids dev agents from self-blessing reference PNGs without maintainer approval.
+
+**Re-evaluation trigger:** Promote active PNGs only after explicit maintainer approval, or revisit if the visual provider becomes Windows-portable and the selected-time states receive approved references.
+
 ### 2026-07-27 — `about` (mobile + desktop) — Story 12.8 approved providerless rebaseline
 
 **Trigger:** Story 12.8 added the About page pin legend and "Hur säkra är vi?" accuracy reframe, so the active About references were stale. The legacy visual wrappers failed before comparison because `ANTHROPIC_API_KEY` is not set.

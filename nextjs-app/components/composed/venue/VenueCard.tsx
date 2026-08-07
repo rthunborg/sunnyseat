@@ -1,6 +1,6 @@
 'use client';
 
-import { Cloud, Footprints, Heart, ImageIcon, Star, Sun } from 'lucide-react';
+import { Clock, Cloud, Footprints, Heart, ImageIcon, Star, Sun } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -15,6 +15,7 @@ import {
 import type { VenueThumbnailDto, WeatherGateState } from '@/lib/types/api';
 import { normalizeWeatherGateState } from '@/lib/utils/public-sun';
 import { selectVenueCardImageUrl } from '@/lib/utils/venue-media';
+import type { VenueAvailabilityState } from '@/lib/utils/opening-hours';
 import { cn } from '@/lib/utils';
 
 export type VenueCardLabels = {
@@ -30,6 +31,7 @@ export type VenueCardLabels = {
   distanceApproximate?: string;
   sunUnavailable: string;
   weatherUnavailable?: string;
+  closedAtSelectedTime?: string;
   statusMostlyShade?: string;
   statusFullSun?: string;
   statusPartialSun?: string;
@@ -61,6 +63,7 @@ export type VenueCardProps = {
    * is neither amber-sunny nor plain-shaded, so it arrives with `isSunny=false`
    * (no amber chrome) AND `isObscured=true` (muted, not grey-shaded). */
   isObscured?: boolean;
+  availabilityState?: VenueAvailabilityState;
   visualMetadata?: VenueVisualMetadata;
   labels: VenueCardLabels;
   onSelect: () => void;
@@ -84,6 +87,7 @@ export function VenueCard({
   isSunny,
   weatherGateState,
   isObscured = false,
+  availabilityState,
   visualMetadata,
   labels,
   onSelect,
@@ -102,9 +106,14 @@ export function VenueCard({
     isSunny && normalizeWeatherGateState(weatherGateState) === 'unknown'
       ? labels.weatherUnavailable
       : undefined;
-  const selectLabel = weatherUnavailableLabel
-    ? `${labels.select}. ${weatherUnavailableLabel}`
-    : labels.select;
+  const closedAtSelectedTimeLabel = availabilityState === 'closed'
+    ? labels.closedAtSelectedTime
+    : undefined;
+  const selectLabel = [
+    labels.select,
+    weatherUnavailableLabel,
+    closedAtSelectedTimeLabel,
+  ].filter(Boolean).join('. ');
   // Story 10.2 (AC1): the obscured state OVERRIDES both the amber "FULL SOL"/
   // "DELVIS SOL" path AND the grey "MEST SKUGGA" path with the muted "Sol
   // bakom moln" headline. An obscured venue never shows amber sun copy.
@@ -130,12 +139,14 @@ export function VenueCard({
   return (
     <article
       data-testid="venue-card"
+      data-availability={availabilityState}
       className={cn(
         'group flex w-full items-center gap-3 text-left',
         animateIn && 'motion-safe:animate-in motion-safe:fade-in',
         compact
           ? 'min-h-20 rounded-card border border-divider/70 bg-white p-2 shadow-subtle transition-colors duration-fast ease-default hover:bg-surface-muted'
           : 'min-h-venue-card border-b border-divider/70 bg-transparent px-0 py-2',
+        availabilityState === 'closed' && 'bg-surface-muted/60 hover:bg-surface-muted',
       )}
       style={
         animateIn
@@ -261,6 +272,12 @@ export function VenueCard({
         {weatherUnavailableLabel && (
           <span className="mt-1 block text-label-xs text-text-body">
             {weatherUnavailableLabel}
+          </span>
+        )}
+        {closedAtSelectedTimeLabel && (
+          <span className="mt-1 inline-flex items-center gap-1 rounded-pill border border-divider bg-surface-muted px-2 py-0.5 text-label-xs-medium text-text-body">
+            <Clock aria-hidden="true" className="size-3 shrink-0" />
+            <span>{closedAtSelectedTimeLabel}</span>
           </span>
         )}
       </span>

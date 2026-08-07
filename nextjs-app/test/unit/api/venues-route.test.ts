@@ -507,16 +507,15 @@ describe('GET /api/venues', () => {
     );
   });
 
-  it('caps favourite ID filters at the venue result limit without an off-by-one extra ID', async () => {
+  it('rejects favourite ID filters above the favourite ID cap instead of silently truncating', async () => {
     const cappedUnknownIds = Array.from({ length: 50 }, (_, index) => `unknown-${index}`);
     const res = await GET(
       makeRequest(`?lat=57.7089&lng=11.9746&ids=${[...cappedUnknownIds, '7'].join(',')}`),
     );
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as GetVenuesResponse;
-
-    expect(body.venues.map((venue) => venue.id)).not.toContain('7');
-    expect(body.totalCount).toBe(0);
+    expect(res.status).toBe(400);
+    expect((await res.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/ids.*50/i) }),
+    );
   });
 
   it('applies geometry-only weather availability before future planner projection', async () => {

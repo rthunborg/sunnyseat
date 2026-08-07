@@ -424,6 +424,11 @@ function waitMs(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+function pinLayerIds(): string[] {
+  const raw = screen.getByTestId('venue-pin-layer-stub').getAttribute('data-venues') ?? '[]';
+  return (JSON.parse(raw) as Array<{ id: string }>).map((pin) => pin.id);
+}
+
 function mockMobilePlannerPanelHeight(height: number): void {
   const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function getBoundingClientRect(this: HTMLElement) {
@@ -2652,11 +2657,6 @@ describe('<MapView />', () => {
         });
       }
 
-      function pinLayerIds(): string[] {
-        const raw = screen.getByTestId('venue-pin-layer-stub').getAttribute('data-venues') ?? '[]';
-        return (JSON.parse(raw) as Array<{ id: string }>).map((pin) => pin.id);
-      }
-
       function desktopVenueCardNames(): string[] {
         return within(screen.getByTestId('desktop-venue-list-panel'))
           .getAllByTestId('venue-card')
@@ -2798,6 +2798,110 @@ describe('<MapView />', () => {
 
         // Pre-data: the skeleton is the correct state (nothing loaded to filter).
         expect(within(mobileSheet()).getByRole('status')).toBeInTheDocument();
+      });
+    });
+
+    describe('Story 12.14 — selected-time venue availability filtering', () => {
+      const closedAtSelectedTimeHours = {
+        '1': { open: '18:00', close: '22:00' },
+        '2': { open: '18:00', close: '22:00' },
+        '3': { open: '18:00', close: '22:00' },
+        '4': { open: '18:00', close: '22:00' },
+        '5': { open: '18:00', close: '22:00' },
+        '6': { open: '18:00', close: '22:00' },
+        '7': { open: '18:00', close: '22:00' },
+      };
+
+      it('removes closed venues from discovery pins, ranked rows, and tags while keeping unknown venues', () => {
+        const openVenue = { ...makeVenue({ id: 'open', name: 'Öppen plats' }), tags: ['Kanal'] };
+        const closedVenue = {
+          ...makeVenue({
+            id: 'closed',
+            name: 'Stängd plats',
+            openingHours: closedAtSelectedTimeHours,
+          }),
+          tags: ['Innergård'],
+        };
+        const unknownVenue = {
+          ...makeVenue({ id: 'unknown', name: 'Okänd plats', openingHours: undefined }),
+          tags: ['Tak'],
+        };
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([openVenue, closedVenue, unknownVenue]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+
+        render(<MapView />, { wrapper: Wrapper });
+
+        expect(pinLayerIds()).toEqual(['open', 'unknown']);
+        const panel = within(screen.getByTestId('desktop-venue-list-panel'));
+        expect(panel.getByRole('button', { name: /Välj Öppen plats/ })).toBeInTheDocument();
+        expect(panel.getByRole('button', { name: /Välj Okänd plats/ })).toBeInTheDocument();
+        expect(panel.queryByRole('button', { name: /Välj Stängd plats/ })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Innergård' })).toBeNull();
+      });
+
+      it('retains a closed saved favourite in the list but removes its pin and opens detail directly', () => {
+        pathnameMock = '/favoriter';
+        const closedFavourite = makeVenue({
+          id: 'closed-favourite',
+          name: 'Sparad stängd plats',
+          slug: 'sparad-stangd-plats',
+          openingHours: closedAtSelectedTimeHours,
+        });
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([closedFavourite]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+        useFavouritesMock.mockReturnValue({
+          favouriteIds: ['closed-favourite'],
+          isHydrated: true,
+          isFavourite: (id: string) => id === 'closed-favourite',
+          toggleFavourite: vi.fn(),
+          addFavourite: vi.fn(),
+          removeFavourite: vi.fn(),
+        });
+
+        render(<MapView />, { wrapper: Wrapper });
+
+        expect(pinLayerIds()).toEqual([]);
+        expect(screen.getAllByText('Stängt vid vald tid').length).toBeGreaterThan(0);
+        fireEvent.click(screen.getAllByRole('button', {
+          name: /Välj Sparad stängd plats.*Stängt vid vald tid/,
+        })[0]);
+
+        expect(selectVenueMock).not.toHaveBeenCalledWith('closed-favourite', expect.anything());
+        expect(stubMap.easeTo).not.toHaveBeenCalled();
+        expect(routerPushMock).toHaveBeenCalledWith({
+          pathname: '/favoriter',
+          query: { venue: 'sparad-stangd-plats' },
+        });
+      });
+
+      it('does not reintroduce a closed selected preview as a map pin or quick-info card', () => {
+        const closedPreview = makeVenue({
+          id: 'closed-preview',
+          name: 'Vald stängd plats',
+          slug: 'vald-stangd-plats',
+          openingHours: closedAtSelectedTimeHours,
+        });
+        selectedVenueIdMock = closedPreview.id;
+        selectedVenuePreviewMock = closedPreview;
+        useVenueSearchMock.mockReturnValue({
+          data: makeVenueResponse([]),
+          isFetching: false,
+          isError: false,
+          dataUpdatedAt: 1,
+        });
+
+        render(<MapView />, { wrapper: Wrapper });
+
+        expect(pinLayerIds()).toEqual([]);
+        expect(screen.queryByText('Vald stängd plats')).toBeNull();
       });
     });
 

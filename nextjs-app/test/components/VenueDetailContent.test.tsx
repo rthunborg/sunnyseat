@@ -69,7 +69,10 @@ const labels = {
   },
   city: 'Göteborg',
   openUntil: 'ÖPPET · {time}',
+  openAtSelected: 'ÖPPET VID VALD TID · {time}',
   openUntilLine: 'Öppet till {time}',
+  openAtSelectedUntilLine: 'Öppet vid vald tid · till {time}',
+  closedAtSelectedTime: 'Stängt vid vald tid',
   placeholderImageShort: 'Platshållarbild',
   facts: {
     distance: 'AVSTÅND',
@@ -426,6 +429,68 @@ describe('VenueDetailContent', () => {
 
     expect(screen.queryByText(/ÖPPET ·/)).not.toBeInTheDocument();
     expect(screen.queryByText('ÖPPET · 22:00')).not.toBeInTheDocument();
+  });
+
+  it('derives planned selected-time open copy from selectedInstant instead of live wall time (Story 12.14 AC5)', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="09:00"
+        selectedInstant={new Date('2026-06-15T12:00:00.000Z')}
+        isLivePlannerTime={false}
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('ÖPPET VID VALD TID · 22:00')).toBeInTheDocument();
+    expect(screen.getByText('Öppet vid vald tid · till 22:00')).toBeInTheDocument();
+    expect(screen.queryByText('Öppet till 22:00')).not.toBeInTheDocument();
+  });
+
+  it('labels selected-time closed details without rendering any open-hours badge or open claim (Story 12.14 AC5)', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={{
+          ...DETAIL,
+          openingHours: {
+            '1': { open: '18:00', close: '22:00' },
+          },
+        }}
+        currentTime="20:00"
+        selectedInstant={new Date('2026-06-15T10:00:00.000Z')}
+        isLivePlannerTime={false}
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('Stängt vid vald tid')).toBeInTheDocument();
+    expect(screen.queryByText(/ÖPPET/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Öppet vid vald tid/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Öppet till/)).not.toBeInTheDocument();
+  });
+
+  it('keeps unknown opening-hours details visible without open or closed claims (Story 12.14 AC5)', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={{ ...DETAIL, openingHours: undefined }}
+        currentTime="14:00"
+        selectedInstant={new Date('2026-06-15T12:00:00.000Z')}
+        isLivePlannerTime={false}
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('Detaljer saknas')).toBeInTheDocument();
+    expect(screen.queryByText('Stängt vid vald tid')).not.toBeInTheDocument();
+    expect(screen.queryByText(/ÖPPET/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Öppet vid vald tid/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Öppet till/)).not.toBeInTheDocument();
   });
 
   it('swaps skeletons for real content in the SAME instance when detail streams in (Story 11.6 AC1 — no layout jump / no stale skeleton)', () => {

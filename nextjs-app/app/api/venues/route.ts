@@ -59,11 +59,11 @@ import {
 
 const DEFAULT_RADIUS_KM = 1.5;
 const MAX_RADIUS_KM = 3.0;
-const MAX_RESULTS = 50;
+const LIST_SEARCH_CANDIDATE_LIMIT = 100;
+const FAVOURITE_ID_LIMIT = 50;
 const MAX_QUERY_LENGTH = 80;
 const MAX_ID_LENGTH = 80;
-const MAX_IDS = MAX_RESULTS;
-const MAX_IDS_QUERY_LENGTH = MAX_IDS * (MAX_ID_LENGTH + 1) - 1;
+const MAX_IDS_QUERY_LENGTH = FAVOURITE_ID_LIMIT * (MAX_ID_LENGTH + 1) - 1;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/u;
 const DIACRITIC_PATTERN = /[\u0300-\u036f]/gu;
 
@@ -154,7 +154,6 @@ function parseIdsFilter(
   const ids: string[] = [];
   const seen = new Set<string>();
   for (const part of raw.split(',')) {
-    if (ids.length >= MAX_IDS) break;
     if (part.includes(',')) {
       return { success: false, error: 'ids entries cannot contain commas' };
     }
@@ -168,6 +167,9 @@ function parseIdsFilter(
     }
     seen.add(id);
     ids.push(id);
+    if (ids.length > FAVOURITE_ID_LIMIT) {
+      return { success: false, error: `ids must contain at most ${FAVOURITE_ID_LIMIT} entries` };
+    }
   }
   return { success: true, value: ids.length > 0 ? ids : undefined };
 }
@@ -350,17 +352,18 @@ export async function GET(request: NextRequest) {
   // the public sunniest venue later in the day is kept in the client cache; order
   // the kept set by the selected instant so the server and client lists agree.
   const instantOrder = compareVenuesByPublicSun;
+  const candidateLimit = ids.value ? FAVOURITE_ID_LIMIT : LIST_SEARCH_CANDIDATE_LIMIT;
   const keptByPeak =
-    matchedVenues.length > MAX_RESULTS
+    matchedVenues.length > candidateLimit
       ? [...matchedVenues]
           .sort(compareVenuesByPublicSunPeak)
-          .slice(0, MAX_RESULTS)
+          .slice(0, candidateLimit)
       : matchedVenues;
   const venues = [...keptByPeak].sort(instantOrder);
 
   // `count` reflects what was returned; `totalCount` reflects the
-  // pre-slice match count so the client can surface "showing top 50 of N"
-  // when the result set is clipped.
+  // pre-slice match count so the client can surface a clipped-result message
+  // when the result set exceeds the route's candidate cap.
   const response: GetVenuesResponse = {
     venues,
     meta: {

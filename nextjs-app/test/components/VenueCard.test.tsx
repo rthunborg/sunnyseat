@@ -226,6 +226,44 @@ describe('<VenueCard />', () => {
     expect(screen.getByTestId('venue-card')).not.toHaveTextContent('76% sol');
   });
 
+  it('renders a closed selected-time card as muted, labelled, and still actionable', () => {
+    const onSelect = vi.fn();
+
+    render(
+      <VenueCard
+        name="Kafé Magasinet"
+        sunTimeRange="Sol 13:00-18:30"
+        distanceMeters={180}
+        sunExposurePercent={92}
+        thumbnail={{ alt: 'Uteservering', initials: 'KM' }}
+        isSunny
+        availabilityState="closed"
+        labels={{
+          select: 'Välj Kafé Magasinet, Sol 13:00-18:30, Avstånd 180 m',
+          favourite: 'Spara {name}',
+          sun: 'Sol',
+          photoPlaceholder: 'Platshållarbild',
+          distance: 'Avstånd',
+          sunUnavailable: 'Soltid saknas',
+          closedAtSelectedTime: 'Stängt vid vald tid',
+        }}
+        onSelect={onSelect}
+      />,
+    );
+
+    const card = screen.getByTestId('venue-card');
+    expect(card).toHaveAttribute('data-availability', 'closed');
+    expect(card).toHaveClass('bg-surface-muted/60');
+    expect(card).toHaveTextContent('Stängt vid vald tid');
+
+    const selectButton = screen.getByRole('button', {
+      name: /Välj Kafé Magasinet.*Stängt vid vald tid/,
+    });
+    expect(selectButton).toBeEnabled();
+    fireEvent.click(selectButton);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
   it('does not render stale-weather confidence copy on the card', () => {
     render(
       <VenueCard

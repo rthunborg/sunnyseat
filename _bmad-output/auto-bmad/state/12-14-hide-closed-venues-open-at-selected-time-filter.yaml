@@ -5,29 +5,29 @@ epic_num: 12
 story_num: 14
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
 status: in-progress
-updated_at: "2026-08-06T20:05:57Z"
+updated_at: "2026-08-07T15:23:26Z"
 started_at: "2026-08-06T19:19:30Z"
 completed_at: null
-active_seconds: 2353
+active_seconds: 11542
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
 needs_project_context_bootstrap: false
-git_mode: remote
+git_mode: local
 base_branch: main
 tea_risk: med
 tea_selected: [automate]
 tea_rationale: "Adds non-trivial selected-instant availability branching across multiple modules and UI surfaces, without a high-risk migration, external contract, or security-sensitive path."
 epic_story_count: 14
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4, 5]
 code_review_iterations: 0
 code_review_loop_done: false
 hitl_halt: null
 external_review_iterations: 0
 convergence_unverified: false
 story_trace: null
-commits: [38b1eec]
+commits: [38b1eec, 18ee246]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -50,5 +50,6 @@ open_questions: []
 deferred_work: []
 blockers: []
 overrides: {}
-constraints: []
+constraints:
+  - "Manual visual acceptance is authorized for Story 12.14; every human validation request must include the relevant mobile/desktop visual resources directly in chat."
 tier_a_base_sha: 7da3720242b234a42c18eb76a6daf8ab57c85c4b

@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { VenueCard, VenueCardSkeleton } from '@/components/composed/venue/VenueCard';
 import type { VenueListSortMode } from '@/components/composed/venue/VenueListControls';
 import type { VenueDataDto } from '@/lib/types/api';
+import type { VenueAvailabilityState } from '@/lib/utils/opening-hours';
 import { compareVenuesByPublicSun, isVenuePubliclySunny } from '@/lib/utils/public-sun';
 import { getVenueVisualMetadata } from '@/lib/utils/venue-visual-metadata';
 import { cn } from '@/lib/utils';
@@ -29,6 +30,7 @@ export type VenueListProps = {
   locationIsApproximate?: boolean;
   onFavouriteToggle?: (venue: VenueDataDto) => void;
   isFavourite?: (id: string) => boolean;
+  availabilityByVenueId?: Record<string, VenueAvailabilityState>;
 };
 
 export function VenueList({
@@ -42,6 +44,7 @@ export function VenueList({
   locationIsApproximate = false,
   onFavouriteToggle,
   isFavourite,
+  availabilityByVenueId,
 }: VenueListProps) {
   const t = useTranslations('venue.list');
   const locale = useLocale();
@@ -76,6 +79,7 @@ export function VenueList({
       {sortedVenues.map((venue, index) => {
         const sunTimeRange = resolveSunTimeRange(venue, t('sun'));
         const isObscured = venue.currentSunStatus === 'CloudObscured';
+        const availabilityState = availabilityByVenueId?.[venue.id];
         // Story 10.2 (AC4 — obscured phrase EXACTLY once): the obscured card's
         // accessible name is built HERE in ONE place via `cardAriaObscured`
         // (which folds in "sol bakom moln just nu") rather than the plain
@@ -104,6 +108,7 @@ export function VenueList({
             isSunny={isVenueSunnyForList(venue)}
             weatherGateState={venue.weatherGateState}
             isObscured={isObscured}
+            availabilityState={availabilityState}
             visualMetadata={getVenueVisualMetadata(venue, locale)}
             compact={compact}
             staggerIndex={index}
@@ -119,6 +124,7 @@ export function VenueList({
               distanceApproximate: t('distanceApproximate'),
               sunUnavailable: t('sunUnavailable'),
               weatherUnavailable: t('weatherUnavailable'),
+              closedAtSelectedTime: t('closedAtSelectedTime'),
               statusMostlyShade: t('statusMostlyShade'),
               statusFullSun: t('statusFullSun'),
               statusPartialSun: t('statusPartialSun'),

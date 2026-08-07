@@ -25,7 +25,8 @@ import {
   skyConditionCopy,
 } from '@/lib/utils/sun-status-presentation';
 import { isVenuePubliclySunny } from '@/lib/utils/public-sun';
-import { formatOpeningHours } from '@/lib/utils/opening-hours';
+import { formatOpeningHoursAt, getVenueAvailabilityAt } from '@/lib/utils/opening-hours';
+import { stockholmInstantFromDateTime } from '@/lib/utils/time-planner';
 import { selectVenueHeroImageUrl } from '@/lib/utils/venue-media';
 import { cn } from '@/lib/utils';
 
@@ -41,6 +42,9 @@ export type VenueDetailContentLabels = {
    * row, composed from the current weekday's close. `{time}` is substituted with
    * today's close (HH:MM). */
   openUntilLine: string;
+  openAtSelectedUntilLine?: string;
+  openAtSelected?: string;
+  closedAtSelectedTime?: string;
   address: string;
   sunBadge: string;
   /** Story 12.10: percentage-free grey hero badge copy for all public non-sunny
@@ -75,6 +79,8 @@ export type VenueDetailContentProps = {
   fallbackVenue: VenueDataDto;
   detail?: VenueDetailDto;
   currentTime: string;
+  selectedInstant?: Date;
+  isLivePlannerTime?: boolean;
   labels: VenueDetailContentLabels;
   /** Story 9.5 AC3 (folded into 9.9): the distance is centrum-relative (the
    * Gothenburg-centrum geolocation fallback), not a real personal fix — annotate
@@ -96,6 +102,8 @@ export function VenueDetailContent({
   fallbackVenue,
   detail,
   currentTime,
+  selectedInstant,
+  isLivePlannerTime = true,
   labels,
   distanceIsApproximate = false,
   isLoading = false,
@@ -122,22 +130,31 @@ export function VenueDetailContent({
         rain: labels.sky.rain,
       })
     : null;
-  // Story 11.6 (AC1) / 11.9 (AC2): never fabricate a closing time. The badge's
-  // close + the Öppettider row's "Öppet till HH:MM" line are DERIVED at render time
-  // from the per-weekday `openingHours` for the CURRENT Stockholm weekday
-  // (`formatOpeningHours` — pure, injected `now`). While loading the badge is a
-  // same-box skeleton; a loaded detail that is closed today (or has no hours)
-  // yields no `closesAt` → the badge is OMITTED and the row falls back to
-  // `detailsUnavailable` rather than a stand-in "22:00".
-  const derivedHours = detail
-    ? formatOpeningHours(
+  // Story 12.14: opening copy is derived from the selected planner instant,
+  // not from the wall clock. The fallback keeps older isolated tests stable
+  // without reintroducing live time: production callers pass `selectedInstant`.
+  const effectiveSelectedInstant =
+    selectedInstant ?? stockholmInstantFromDateTime('2026-05-20', currentTime);
+  const availability = detail && effectiveSelectedInstant
+    ? getVenueAvailabilityAt(detail.openingHours, effectiveSelectedInstant)
+    : { state: 'unknown' as const };
+  const openLineTemplate = isLivePlannerTime
+    ? labels.openUntilLine
+    : (labels.openAtSelectedUntilLine ?? labels.openUntilLine);
+  const openBadgeTemplate = isLivePlannerTime
+    ? labels.openUntil
+    : (labels.openAtSelected ?? labels.openUntil);
+  const derivedHours = detail && effectiveSelectedInstant
+    ? formatOpeningHoursAt(
         detail.openingHours,
-        new Date(),
+        effectiveSelectedInstant,
         locale,
-        labels.openUntilLine,
+        openLineTemplate,
       )
     : {};
   const closesAt = derivedHours.closesAt;
+  const closedAtSelectedTimeLabel =
+    availability.state === 'closed' ? (labels.closedAtSelectedTime ?? labels.detailsUnavailable) : null;
   const isDesktop = mode === 'desktop';
 
   return (
@@ -173,7 +190,7 @@ export function VenueDetailContent({
                 ) : (
                   <span aria-hidden="true" className="size-2 rounded-pill bg-amber-badge-text" />
                 )}
-                {formatLabel(labels.openUntil, { time: closesAt })}
+                {formatLabel(openBadgeTemplate, { time: closesAt })}
               </span>
             ) : null}
           </div>
@@ -259,7 +276,9 @@ export function VenueDetailContent({
               // Story 11.9 (AC2): the "Öppet till HH:MM" line is DERIVED for the
               // current weekday; closed-today / no-hours → the honest
               // detailsUnavailable copy (never a fabricated close).
-              <p>{derivedHours.display ?? labels.detailsUnavailable}</p>
+              <p>
+                {derivedHours.display ?? closedAtSelectedTimeLabel ?? labels.detailsUnavailable}
+              </p>
             )}
           </DetailRow>
 

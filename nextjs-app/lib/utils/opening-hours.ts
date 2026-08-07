@@ -29,6 +29,13 @@ export type DerivedOpeningHours = {
   closesAt?: string;
 };
 
+export type VenueAvailabilityState = 'open' | 'closed' | 'unknown';
+
+export type VenueAvailabilityAt = {
+  state: VenueAvailabilityState;
+  closesAt?: string;
+};
+
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /**
@@ -78,6 +85,130 @@ function coerceInterval(value: unknown): OpeningInterval | undefined {
   if (typeof open !== 'string' || typeof close !== 'string') return undefined;
   if (!TIME_PATTERN.test(open) || !TIME_PATTERN.test(close)) return undefined;
   return { open, close };
+}
+
+export function isVenueOpenAt(
+  hours: WeeklyOpeningHours | null | undefined,
+  selectedInstant: Date,
+  timeZone: string = STOCKHOLM_TIME_ZONE,
+): VenueAvailabilityState {
+  return getVenueAvailabilityAt(hours, selectedInstant, timeZone).state;
+}
+
+export function getVenueAvailabilityAt(
+  hours: WeeklyOpeningHours | null | undefined,
+  selectedInstant: Date,
+  timeZone: string = STOCKHOLM_TIME_ZONE,
+): VenueAvailabilityAt {
+  if (!hours || typeof hours !== 'object') return { state: 'unknown' };
+  const local = localWeekdayAndMinute(selectedInstant, timeZone);
+  if (!local) return { state: 'closed' };
+
+  const todayInterval = coerceInterval(hours[String(local.weekday)]);
+  if (todayInterval && isWithinSameDayInterval(todayInterval, local.minutes)) {
+    return { state: 'open', closesAt: todayInterval.close };
+  }
+  if (todayInterval && isWithinOvernightIntervalSameDay(todayInterval, local.minutes)) {
+    return { state: 'open', closesAt: todayInterval.close };
+  }
+
+  const priorInterval = coerceInterval(hours[String(previousIsoWeekday(local.weekday))]);
+  if (priorInterval && isWithinPriorDaySpillover(priorInterval, local.minutes)) {
+    return { state: 'open', closesAt: priorInterval.close };
+  }
+
+  return { state: 'closed' };
+}
+
+export function formatOpeningHoursAt(
+  hours: WeeklyOpeningHours | null | undefined,
+  selectedInstant: Date,
+  locale?: string,
+  template: string = DEFAULT_OPEN_UNTIL_TEMPLATE,
+  timeZone: string = STOCKHOLM_TIME_ZONE,
+): DerivedOpeningHours {
+  void locale;
+  const availability = getVenueAvailabilityAt(hours, selectedInstant, timeZone);
+  if (availability.state !== 'open' || !availability.closesAt) return {};
+  return {
+    display: template.replaceAll('{time}', availability.closesAt),
+    closesAt: availability.closesAt,
+  };
+}
+
+function localWeekdayAndMinute(
+  instant: Date,
+  timeZone: string,
+): { weekday: number; minutes: number } | null {
+  if (Number.isNaN(instant.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(instant);
+  const weekdayToken = parts.find((part) => part.type === 'weekday')?.value;
+  const hourToken = parts.find((part) => part.type === 'hour')?.value;
+  const minuteToken = parts.find((part) => part.type === 'minute')?.value;
+  const weekday = weekdayFromToken(weekdayToken);
+  const hour = hourToken ? Number(hourToken) : Number.NaN;
+  const minute = minuteToken ? Number(minuteToken) : Number.NaN;
+  if (
+    weekday === undefined ||
+    !Number.isInteger(hour) ||
+    !Number.isInteger(minute) ||
+    hour < 0 ||
+    hour > 23 ||
+    minute < 0 ||
+    minute > 59
+  ) {
+    return null;
+  }
+  return { weekday, minutes: hour * 60 + minute };
+}
+
+function weekdayFromToken(token: string | undefined): number | undefined {
+  const map: Record<string, number> = {
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+    Sun: 7,
+  };
+  return token ? map[token] : undefined;
+}
+
+function previousIsoWeekday(weekday: number): number {
+  return weekday === 1 ? 7 : weekday - 1;
+}
+
+function timeToMinutes(time: string): number {
+  const [hours = '0', minutes = '0'] = time.split(':');
+  return Number(hours) * 60 + Number(minutes);
+}
+
+function isOvernight(interval: OpeningInterval): boolean {
+  return timeToMinutes(interval.close) < timeToMinutes(interval.open);
+}
+
+function isWithinSameDayInterval(interval: OpeningInterval, minutes: number): boolean {
+  if (isOvernight(interval)) return false;
+  const open = timeToMinutes(interval.open);
+  const close = timeToMinutes(interval.close);
+  return minutes >= open && minutes < close;
+}
+
+function isWithinOvernightIntervalSameDay(interval: OpeningInterval, minutes: number): boolean {
+  if (!isOvernight(interval)) return false;
+  return minutes >= timeToMinutes(interval.open);
+}
+
+function isWithinPriorDaySpillover(interval: OpeningInterval, minutes: number): boolean {
+  if (!isOvernight(interval)) return false;
+  return minutes < timeToMinutes(interval.close);
 }
 
 /**

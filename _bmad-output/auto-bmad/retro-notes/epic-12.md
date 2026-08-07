@@ -66,3 +66,5 @@
 
 ## Story 12-14-hide-closed-venues-open-at-selected-time-filter
 - [Phase 3 â€” create-story] Story 12.14 overrides older epic wording with E12-AD-07: closed favourites and exact-name matches stay inspectable and labelled; closed discovery pins and rows remain hidden.
+- [Phase 5 â€” dev-story] Full Vitest exposed a settings-launched coach-guide focus race; fixed by preferring the reopen-and-focus fallback instead of focusing an exiting settings row.
+- [Phase 5 â€” dev-story] story-review.sh extracted unrelated _state=feedback from a cautionary story note; manual mode made it harmless, but the screen-ID extractor remains noisy.

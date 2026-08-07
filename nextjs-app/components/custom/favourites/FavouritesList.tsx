@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { VenueList } from '@/components/custom/venue/VenueList';
 import type { VenueListSortMode } from '@/components/composed/venue/VenueListControls';
 import type { VenueDataDto } from '@/lib/types/api';
+import type { VenueAvailabilityState } from '@/lib/utils/opening-hours';
 
 type FavouritesListProps = {
   favouriteIds: readonly string[];
@@ -24,6 +25,7 @@ type FavouritesListProps = {
   onRetry?: () => unknown;
   animateCards?: boolean;
   compactCards?: boolean;
+  availabilityByVenueId?: Record<string, VenueAvailabilityState>;
 };
 
 export function FavouritesList({
@@ -39,6 +41,7 @@ export function FavouritesList({
   onRetry,
   animateCards = false,
   compactCards,
+  availabilityByVenueId,
 }: FavouritesListProps) {
   const t = useTranslations('favourites');
   const favouriteIdSet = new Set(favouriteIds);
@@ -94,6 +97,7 @@ export function FavouritesList({
       onSelectVenue={onSelectVenue}
       onFavouriteToggle={onFavouriteToggle}
       isFavourite={isFavourite}
+      availabilityByVenueId={availabilityByVenueId}
     />
   );
 }

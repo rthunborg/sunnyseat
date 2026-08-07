@@ -252,6 +252,7 @@ export function FirstRunCoachMarkGuide({
     setTargetRect(null);
     endGuide();
     window.requestAnimationFrame(() => {
+      if (activeGuide?.source === 'settings' && restoreFocusFallback?.()) return;
       if (restoreFocusElement?.isConnected) {
         restoreFocusElement.focus({ preventScroll: true });
         return;

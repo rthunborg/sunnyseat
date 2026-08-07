@@ -54,6 +54,7 @@ const messages = {
       distance: 'Avstånd',
       distanceApproximate: '≈ från centrum',
       sunUnavailable: 'Soltid saknas',
+      closedAtSelectedTime: 'Stängt vid vald tid',
       statusMostlyShade: 'MEST SKUGGA',
       statusFullSun: 'FULL SOL',
       statusPartialSun: 'DELVIS SOL',
@@ -182,5 +183,30 @@ describe('<FavouritesList />', () => {
       expect.stringContaining('Kafé Magasinet'),
       expect.stringContaining('Skuggbaren'),
     ]);
+  });
+
+  it('retains a closed saved venue as an actionable favourite row with selected-time copy', () => {
+    const onSelectVenue = vi.fn();
+    renderWithProviders(
+      <FavouritesList
+        favouriteIds={['1']}
+        venues={[venue]}
+        mode="mobile"
+        sortMode="sun"
+        availabilityByVenueId={{ '1': 'closed' }}
+        onSelectVenue={onSelectVenue}
+        onFavouriteToggle={vi.fn()}
+        isFavourite={() => true}
+      />,
+      { messages },
+    );
+
+    expect(screen.getByText('Stängt vid vald tid')).toBeInTheDocument();
+    const rowButton = screen.getByRole('button', {
+      name: /Välj Kafé Magasinet.*Stängt vid vald tid/,
+    });
+    expect(rowButton).toBeEnabled();
+    fireEvent.click(rowButton);
+    expect(onSelectVenue).toHaveBeenCalledWith(venue);
   });
 });

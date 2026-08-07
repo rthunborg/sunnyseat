@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest';
-import { fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import { useRef, type ReactNode } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -20,6 +20,31 @@ const mockState = vi.hoisted(() => ({
 }));
 
 const geoState = vi.hoisted(() => ({ status: 'idle' as string }));
+const searchState = vi.hoisted(() => ({
+  venues: [] as Array<{
+    id: string;
+    venueId: string;
+    venueName: string;
+    venueSlug: string;
+    slug: string;
+    neighborhood: string;
+    location: { lat: number; lng: number };
+    currentSunStatus: string;
+    weatherGateState: string;
+    isPartner: boolean;
+    confidence: number;
+    distanceMeters: number;
+    sunExposurePercent: number;
+    tags: string[];
+    openingHours?: Record<string, { open: string; close: string } | null>;
+  }>,
+}));
+const selectionState = vi.hoisted(() => ({
+  selectVenue: vi.fn(),
+}));
+const routerState = vi.hoisted(() => ({
+  push: vi.fn(),
+}));
 
 vi.mock('@/lib/contexts/SettingsContext', () => ({
   useSettings: () => ({
@@ -41,7 +66,7 @@ vi.mock('@/hooks/useGeolocation', () => ({
 
 vi.mock('@/hooks/queries/useVenueSearch', () => ({
   useVenueSearch: () => ({
-    data: { venues: [] },
+    data: { venues: searchState.venues },
     isFetching: false,
     isError: false,
     dataUpdatedAt: 1,
@@ -51,13 +76,29 @@ vi.mock('@/hooks/queries/useVenueSearch', () => ({
 vi.mock('@/lib/contexts/MapSelectionContext', () => ({
   useMapSelection: () => ({
     selectedVenueId: null,
-    selectVenue: vi.fn(),
+    selectVenue: selectionState.selectVenue,
     toggleVenue: vi.fn(),
   }),
 }));
 
 vi.mock('@/lib/contexts/TimeContext', () => ({
-  useTimeContext: () => ({ plannerQuery: {} }),
+  useTimeContext: () => ({
+    currentTime: new Date('2026-05-20T10:15:00.000Z'),
+    selectedDate: '2026-05-20',
+    selectedTime: '12:15',
+    selectedMinutes: 735,
+    isLiveNow: true,
+    plannerQuery: undefined,
+  }),
+}));
+
+vi.mock('@/i18n/navigation', () => ({
+  usePathname: () => '/',
+  useRouter: () => ({ push: routerState.push }),
+}));
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const messages = {
@@ -76,6 +117,7 @@ const messages = {
       noResults: 'Inga resultat för "{query}"',
       resultCount: '{count, plural, one {# resultat} other {# resultat}}',
       settings: 'Inställningar',
+      closedAtSelectedTime: 'Stängt vid vald tid',
     },
   },
 };
@@ -110,7 +152,9 @@ function Wrapper({ children }: { children: ReactNode }) {
 describe('<VenueSearchShell variant="mobile" /> top-bar controls (Story 9.6)', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
     geoState.status = 'idle';
+    searchState.venues = [];
   });
 
   it('enables the settings gear and opens the settings modal on click', () => {
@@ -174,4 +218,80 @@ describe('<VenueSearchShell variant="mobile" /> top-bar controls (Story 9.6)', (
     expect(queryByTestId('map-control-my-location')).toBeNull();
     expect(queryByTestId('map-control-settings')).toBeNull();
   });
+
+  it('keeps only an exact full-name closed match in search and opens it as detail without restoring a pin', async () => {
+    vi.useFakeTimers();
+    searchState.venues = [
+      makeSearchVenue({
+        id: 'closed-venue',
+        name: 'Kafé Magasinet',
+        slug: 'kafe-magasinet',
+        openingHours: {
+          '1': { open: '18:00', close: '22:00' },
+          '2': { open: '18:00', close: '22:00' },
+          '3': { open: '18:00', close: '22:00' },
+          '4': { open: '18:00', close: '22:00' },
+          '5': { open: '18:00', close: '22:00' },
+          '6': { open: '18:00', close: '22:00' },
+          '7': { open: '18:00', close: '22:00' },
+        },
+      }),
+    ];
+    const { getByRole, queryByText } = render(<VenueSearchShell variant="desktop" />, {
+      wrapper: Wrapper,
+    });
+    const input = getByRole('combobox', { name: 'Sök plats' });
+
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'Kafé' } });
+    await actFlushSearchDebounce();
+    expect(queryByText('Kafé Magasinet')).toBeNull();
+
+    fireEvent.change(input, { target: { value: 'Kafé Magasinet' } });
+    await actFlushSearchDebounce();
+    const exact = getByRole('option', { name: /Kafé Magasinet.*Stängt vid vald tid/ });
+    fireEvent.click(exact);
+
+    expect(selectionState.selectVenue).not.toHaveBeenCalled();
+    expect(routerState.push).toHaveBeenCalledWith({
+      pathname: '/',
+      query: { venue: 'kafe-magasinet' },
+    });
+  });
 });
+
+async function actFlushSearchDebounce() {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(250);
+  });
+}
+
+function makeSearchVenue({
+  id,
+  name,
+  slug,
+  openingHours,
+}: {
+  id: string;
+  name: string;
+  slug: string;
+  openingHours?: Record<string, { open: string; close: string } | null>;
+}) {
+  return {
+    id,
+    venueId: id,
+    venueName: name,
+    venueSlug: slug,
+    slug,
+    neighborhood: 'Inom Vallgraven',
+    location: { lat: 57.7, lng: 11.97 },
+    currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
+    isPartner: false,
+    confidence: 92,
+    distanceMeters: 180,
+    sunExposurePercent: 95,
+    tags: [],
+    openingHours,
+  };
+}
