@@ -335,6 +335,21 @@ describe('<OnboardingScreen />', () => {
     }
   });
 
+  it('noninteractive pre-hydration frame suppresses first-frame entrance variants', () => {
+    reducedMotionMock.mockReturnValue(false);
+    installGeolocationStub();
+
+    renderWithProviders(<OnboardingScreen interactive={false} onDismiss={() => {}} />);
+
+    const animatedRegions = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-motion-initial]'),
+    );
+    expect(animatedRegions).toHaveLength(3);
+    for (const animatedRegion of animatedRegions) {
+      expect(animatedRegion).toHaveAttribute('data-motion-initial', 'false');
+    }
+  });
+
   it('primary CTA reflects `aria-busy=true` and `disabled` while pending', () => {
     const stub = installGeolocationStub();
     // Hold the geolocation request open so `pending` stays `true`.

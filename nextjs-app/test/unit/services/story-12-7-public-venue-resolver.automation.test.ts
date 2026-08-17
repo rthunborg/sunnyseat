@@ -262,6 +262,12 @@ describe('Story 12.7 canonical visibility schema contract', () => {
   const visibilityMigration = visibilityMigrationName
     ? readFileSync(join(migrationsDir, visibilityMigrationName), 'utf8')
     : '';
+  const softDeleteMigrationName = readdirSync(migrationsDir)
+    .filter((file) => file.endsWith('.sql'))
+    .find((file) => file.includes('add_venue_soft_delete_timestamp'));
+  const softDeleteMigration = softDeleteMigrationName
+    ? readFileSync(join(migrationsDir, softDeleteMigrationName), 'utf8')
+    : '';
   const generatedTypes = readFileSync(
     join(process.cwd(), 'lib', 'supabase', 'types.ts'),
     'utf8',
@@ -286,5 +292,22 @@ describe('Story 12.7 canonical visibility schema contract', () => {
     expect(venueTypes).toMatch(/Row:\s*{[\s\S]*?hidden:\s*boolean/i);
     expect(venueTypes).toMatch(/Insert:\s*{[\s\S]*?hidden\?:\s*boolean/i);
     expect(venueTypes).toMatch(/Update:\s*{[\s\S]*?hidden\?:\s*boolean/i);
+  });
+
+  it('[P0] migrates deleted_at as a nullable soft-delete timestamp without hidden conflation', () => {
+    expect(softDeleteMigrationName).toBe(
+      '20260808130000_add_venue_soft_delete_timestamp.sql',
+    );
+    expect(softDeleteMigration).toMatch(
+      /alter\s+table\s+public\.venues\s+add\s+column\s+if\s+not\s+exists\s+deleted_at\s+timestamptz\s+default\s+null/i,
+    );
+    expect(softDeleteMigration).toMatch(/comment\s+on\s+column\s+public\.venues\.deleted_at\s+is/i);
+    expect(softDeleteMigration).not.toMatch(/\bhidden\b/i);
+    expect(softDeleteMigration).not.toMatch(/\bupdate\s+public\.venues\b/i);
+    expect(softDeleteMigration).not.toMatch(/\bcreate\s+(?:unique\s+)?index\b/i);
+    expect(softDeleteMigration).not.toMatch(/\b(create\s+or\s+replace\s+function|grant|revoke|policy|row\s+level\s+security)\b/i);
+    expect(venueTypes).toMatch(/Row:\s*{[\s\S]*?deleted_at:\s*string\s*\|\s*null/i);
+    expect(venueTypes).toMatch(/Insert:\s*{[\s\S]*?deleted_at\?:\s*string\s*\|\s*null/i);
+    expect(venueTypes).toMatch(/Update:\s*{[\s\S]*?deleted_at\?:\s*string\s*\|\s*null/i);
   });
 });

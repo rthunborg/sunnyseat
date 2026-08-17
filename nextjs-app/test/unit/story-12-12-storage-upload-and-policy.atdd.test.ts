@@ -112,7 +112,7 @@ describe('Story 12.12 ATDD - Supabase Storage migration, upload tooling, and doc
   it('[P0] local migration source permits browser public reads only for venue-media and no browser writes', async () => {
     const sql = await readFile(migrationPath, 'utf8');
 
-    expect(sql).toMatch(/alter\s+table\s+storage\.objects\s+enable\s+row\s+level\s+security/i);
+    expect(sql).not.toMatch(/alter\s+table\s+storage\.objects\s+enable\s+row\s+level\s+security/i);
     expect(sql).toMatch(/from\s+pg_policies/i);
     expect(sql).toMatch(/roles\s*&&\s*array\['public'::name,\s*'anon'::name,\s*'authenticated'::name\]/i);
     expect(sql).toMatch(/drop\s+policy\s+if\s+exists\s+%I\s+on\s+storage\.objects/i);
@@ -365,6 +365,89 @@ describe('Story 12.12 ATDD - Supabase Storage migration, upload tooling, and doc
     expect(from).toHaveBeenCalledWith('venue-media');
     expect(list).toHaveBeenCalledWith('test-venue-sunny/v2026-07', { limit: 100 });
     expect(upload).not.toHaveBeenCalled();
+  });
+
+  it('[P0] upload workflow rolls back objects written by a failed invocation so the media version can be retried', async () => {
+    vi.stubEnv('SUPABASE_URL', 'https://sunnyseat.supabase.co');
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-test-key');
+
+    const objectKeys = new Set(['test-venue-sunny/v2026-07/original-note.txt']);
+    let failNextHeroUpload = true;
+    const list = vi.fn(async (prefix: string) => ({
+      data: [...objectKeys]
+        .filter((key) => key.startsWith(`${prefix}/`))
+        .map((key) => ({ name: key.slice(prefix.length + 1) })),
+      error: null,
+    }));
+    const upload = vi.fn(async (key: string) => {
+      if (objectKeys.has(key)) {
+        return { data: null, error: { message: 'Object already exists' } };
+      }
+      if (key.endsWith('/hero.webp') && failNextHeroUpload) {
+        failNextHeroUpload = false;
+        return { data: null, error: { message: 'network timeout' } };
+      }
+      objectKeys.add(key);
+      return { data: { path: key }, error: null };
+    });
+    const remove = vi.fn(async (keys: string[]) => {
+      for (const key of keys) {
+        objectKeys.delete(key);
+      }
+      return { data: keys.map((name) => ({ name })), error: null };
+    });
+    const from = vi.fn(() => ({
+      list,
+      upload,
+      remove,
+      getPublicUrl: (key: string) => ({ data: { publicUrl: `https://cdn.sunnyseat.test/${key}` } }),
+    }));
+    vi.doMock('@supabase/supabase-js', () => ({
+      createClient: vi.fn(() => ({ storage: { from } })),
+    }));
+
+    const script = await import(pathToFileURL(uploadScriptPath).href);
+
+    await withTempMediaFiles(
+      {
+        card: makeWebpWithDimensions(640, 400),
+        hero: makeWebpWithDimensions(1600, 900),
+      },
+      async ({ cardPath, heroPath }) => {
+        await expect(
+          script.uploadVenueMediaRenditions({
+            slug: 'test-venue-sunny',
+            mediaVersion: 'v2026-07',
+            cardPath,
+            heroPath,
+          }),
+        ).rejects.toThrow(/hero\.webp.*network timeout/i);
+
+        expect(objectKeys.has('test-venue-sunny/v2026-07/card.webp')).toBe(false);
+        expect(objectKeys.has('test-venue-sunny/v2026-07/original-note.txt')).toBe(true);
+
+        await expect(
+          script.uploadVenueMediaRenditions({
+            slug: 'test-venue-sunny',
+            mediaVersion: 'v2026-07',
+            cardPath,
+            heroPath,
+          }),
+        ).resolves.toMatchObject({
+          bucket: 'venue-media',
+          cardPath: 'test-venue-sunny/v2026-07/card.webp',
+          heroPath: 'test-venue-sunny/v2026-07/hero.webp',
+        });
+      },
+    );
+
+    expect(objectKeys).toEqual(
+      new Set([
+        'test-venue-sunny/v2026-07/original-note.txt',
+        'test-venue-sunny/v2026-07/card.webp',
+        'test-venue-sunny/v2026-07/hero.webp',
+      ]),
+    );
   });
 
   it('[P0] upload tooling refuses missing service-role configuration without leaking secrets', async () => {

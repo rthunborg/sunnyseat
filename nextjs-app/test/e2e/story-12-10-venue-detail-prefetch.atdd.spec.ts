@@ -1,6 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
-import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
+import { expect, test, type Locator, type Page, type Route, type TestInfo } from '@playwright/test';
 import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import type { GetVenueDetailResponse, GetVenuesResponse, VenueDataDto, VenueDaySeriesEntry } from '@/lib/types/api';
 import {
@@ -17,17 +15,6 @@ const PREFETCH_ROUTE = '/?_time=14:00&_prefetch=venue-detail';
 const PREFETCH_DEEP_LINK_ROUTE =
   '/?venue=prefetch-venue-1&_time=14:00&_prefetch=venue-detail';
 const COLD_DETAIL_DELAY_MS = 1500;
-const TIMING_EVIDENCE_DIR = path.join(
-  process.cwd(),
-  '..',
-  '_bmad-output',
-  'implementation-artifacts',
-  'validation',
-  'story-12-10-mer-info-timing',
-  '20260726-local',
-);
-const TIMING_EVIDENCE_PATH = path.join(TIMING_EVIDENCE_DIR, 'evidence.json');
-const TIMING_EVIDENCE_LOCK_DIR = path.join(TIMING_EVIDENCE_DIR, '.evidence.lock');
 
 type OpenTiming = {
   slug: string;
@@ -43,13 +30,6 @@ type ProjectTimingEvidence = {
   injectedDetailDelayMs: number;
   prefetched: OpenTiming;
   selectedIntentCold: OpenTiming;
-};
-
-type TimingEvidenceAggregate = {
-  story: '12.10';
-  source: 'local Playwright fixtures';
-  injectedDetailDelayMs: number;
-  projects: Record<string, ProjectTimingEvidence>;
 };
 
 async function bypassOnboarding(page: Page): Promise<void> {
@@ -260,72 +240,25 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function writeTimingEvidence(
-  projectName: string,
-  evidence: ProjectTimingEvidence,
-): void {
-  mkdirSync(TIMING_EVIDENCE_DIR, { recursive: true });
-  withTimingEvidenceLock(() => {
-    const aggregate = readTimingEvidenceAggregate();
-    aggregate.projects[projectName] = evidence;
-    const sortedProjects = Object.fromEntries(
-      Object.entries(aggregate.projects).sort(([a], [b]) => a.localeCompare(b)),
-    );
-    writeFileSync(
-      TIMING_EVIDENCE_PATH,
-      `${JSON.stringify({ ...aggregate, projects: sortedProjects }, null, 2)}\n`,
-      'utf8',
-    );
-  });
-}
-
-function readTimingEvidenceAggregate(): TimingEvidenceAggregate {
-  if (!existsSync(TIMING_EVIDENCE_PATH)) {
-    return {
-      story: '12.10',
-      source: 'local Playwright fixtures',
-      injectedDetailDelayMs: COLD_DETAIL_DELAY_MS,
-      projects: {},
-    };
-  }
-  try {
-    const parsed = JSON.parse(readFileSync(TIMING_EVIDENCE_PATH, 'utf8')) as TimingEvidenceAggregate;
-    return {
-      story: '12.10',
-      source: 'local Playwright fixtures',
-      injectedDetailDelayMs: COLD_DETAIL_DELAY_MS,
-      projects: parsed.projects ?? {},
-    };
-  } catch {
-    return {
-      story: '12.10',
-      source: 'local Playwright fixtures',
-      injectedDetailDelayMs: COLD_DETAIL_DELAY_MS,
-      projects: {},
-    };
-  }
-}
-
-function withTimingEvidenceLock(writeEvidence: () => void): void {
-  const deadline = Date.now() + 5000;
-  while (true) {
-    try {
-      mkdirSync(TIMING_EVIDENCE_LOCK_DIR);
-      break;
-    } catch (error) {
-      if (Date.now() > deadline) throw error;
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
-    }
-  }
-  try {
-    writeEvidence();
-  } finally {
-    rmSync(TIMING_EVIDENCE_LOCK_DIR, { recursive: true, force: true });
-  }
-}
-
 function detailSlugCount(urls: string[], slug: string): number {
   return urls.filter((url) => decodeURIComponent(new URL(url).pathname.split('/').pop() ?? '') === slug).length;
+}
+
+async function detailShellState(
+  detailSurface: Locator,
+  loadedMarker: string,
+): Promise<'loading' | 'loaded' | string> {
+  return await detailSurface.evaluate((surface, marker) => {
+    const article = surface.querySelector('article');
+    const busy = article?.getAttribute('aria-busy') ?? 'missing';
+    const hasLoadedMarker = surface.textContent?.includes(marker) ?? false;
+    const hasScrim = Boolean(surface.querySelector('[data-testid="venue-detail-loading-scrim"]'));
+    const hasSpinner = Boolean(surface.querySelector('[data-testid="venue-detail-loading-spinner"]'));
+
+    if (hasLoadedMarker) return 'loaded';
+    if (busy === 'true' && hasScrim && hasSpinner) return 'loading';
+    return `busy=${busy};loaded=${hasLoadedMarker};scrim=${hasScrim};spinner=${hasSpinner}`;
+  }, loadedMarker);
 }
 
 test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () => {
@@ -450,14 +383,11 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
     const coldRequestsBefore = network.detailCount();
     await page.getByRole('button', { name: /Mer info/i }).click();
     const coldDetailSurface = visibleDetailSurface(page, 'Prefetch Venue 8');
-    const coldArticle = coldDetailSurface.getByRole('article', { name: 'Prefetch Venue 8' });
-    const coldBusy = await coldArticle.getAttribute('aria-busy');
-    if (coldBusy === 'true') {
-      await expect(coldDetailSurface.getByTestId('venue-detail-loading-scrim')).toBeVisible();
-      await expect(coldDetailSurface.getByTestId('venue-detail-loading-spinner')).toBeVisible();
-    } else {
-      await expect(coldDetailSurface.getByText('Loaded detail for prefetch-venue-8')).toBeVisible();
-    }
+    await expect
+      .poll(() => detailShellState(coldDetailSurface, 'Loaded detail for prefetch-venue-8'), {
+        timeout: APP_SETTLE_TIMEOUT_MS,
+      })
+      .toMatch(/^(loading|loaded)$/);
     await expect.poll(() => network.detailCount(), { timeout: APP_SETTLE_TIMEOUT_MS }).toBe(coldRequestsBefore);
     const loadedColdDetailSurface = visibleDetailSurface(page, 'Prefetch Venue 8', 'Loaded detail for prefetch-venue-8');
     await expect(loadedColdDetailSurface.getByText('Loaded detail for prefetch-venue-8')).toBeVisible({
@@ -486,7 +416,6 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
       body: JSON.stringify(timingEvidence, null, 2),
       contentType: 'application/json',
     });
-    writeTimingEvidence(testInfo.project.name, timingEvidence);
   });
 
   test('[P0] desktop A-to-B pin switch replaces the venue URL so Back returns to the map', async ({ page }, testInfo) => {
@@ -555,14 +484,11 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
     await page.getByRole('button', { name: /Mer info/i }).click();
 
     const detailSurface = visibleDetailSurface(page, 'Prefetch Venue 8');
-    const detailArticle = detailSurface.getByRole('article', { name: 'Prefetch Venue 8' });
-    const detailBusy = await detailArticle.getAttribute('aria-busy');
-    if (detailBusy === 'true') {
-      await expect(detailSurface.getByTestId('venue-detail-loading-scrim')).toBeVisible();
-      await expect(detailSurface.getByTestId('venue-detail-loading-spinner')).toBeVisible();
-    } else {
-      await expect(detailSurface.getByText('Loaded detail for prefetch-venue-8')).toBeVisible();
-    }
+    await expect
+      .poll(() => detailShellState(detailSurface, 'Loaded detail for prefetch-venue-8'), {
+        timeout: APP_SETTLE_TIMEOUT_MS,
+      })
+      .toMatch(/^(loading|loaded)$/);
     await expect(
       visibleDetailSurface(page, 'Prefetch Venue 8', 'Loaded detail for prefetch-venue-8')
         .getByText('Loaded detail for prefetch-venue-8'),

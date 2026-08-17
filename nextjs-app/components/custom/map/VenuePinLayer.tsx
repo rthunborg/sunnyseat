@@ -119,7 +119,7 @@ export function VenuePinLayer({ venues, onToggleVenue, onCanvasDeselect }: Venue
       if (!currentIds.has(id)) {
         entry.observer.disconnect();
         entry.marker.remove();
-        entry.root.unmount();
+        scheduleRootUnmount(entry.root);
         markersRef.current.delete(id);
       }
     }
@@ -363,6 +363,13 @@ function renderEntry(
       ariaLabel={ariaLabel}
     />,
   );
+}
+
+function scheduleRootUnmount(root: Root) {
+  // React warns if a detached root is synchronously unmounted while this
+  // component's passive effects are being flushed. MapLibre marker removal
+  // can stay immediate; only the React subtree teardown needs to yield.
+  queueMicrotask(() => root.unmount());
 }
 
 function venueFingerprint(v: VenuePinData): string {

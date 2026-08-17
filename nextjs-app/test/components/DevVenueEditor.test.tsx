@@ -13,8 +13,66 @@ const hooksMock = vi.hoisted(() => ({
 
 const mutateMock = vi.hoisted(() => vi.fn());
 
+type MockLngLat = { lat: number; lng: number };
+type MockMarkerEvent = 'dragend';
+
+const mapInstanceMock = vi.hoisted(() => vi.fn());
+const markerMock = vi.hoisted(() => {
+  class MockMarker {
+    static instances: MockMarker[] = [];
+
+    element: HTMLElement;
+    lngLat: MockLngLat = { lat: 0, lng: 0 };
+    listeners = new Map<MockMarkerEvent, () => void>();
+
+    constructor(options: { element: HTMLElement }) {
+      this.element = options.element;
+      MockMarker.instances.push(this);
+    }
+
+    setLngLat(value: [number, number]) {
+      this.lngLat = { lng: value[0], lat: value[1] };
+      return this;
+    }
+
+    getLngLat() {
+      return this.lngLat;
+    }
+
+    addTo() {
+      document.body.appendChild(this.element);
+      return this;
+    }
+
+    on(event: MockMarkerEvent, listener: () => void) {
+      this.listeners.set(event, listener);
+      return this;
+    }
+
+    off(event: MockMarkerEvent, listener: () => void) {
+      if (this.listeners.get(event) === listener) {
+        this.listeners.delete(event);
+      }
+      return this;
+    }
+
+    remove() {
+      this.element.remove();
+      return this;
+    }
+  }
+
+  return { Marker: MockMarker };
+});
+
 vi.mock('next/navigation', () => ({
   useSearchParams: () => searchParamsMock.value,
+}));
+
+vi.mock('maplibre-gl', () => ({
+  default: {
+    Marker: markerMock.Marker,
+  },
 }));
 
 vi.mock('next-intl', () => ({
@@ -47,7 +105,7 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('@/lib/contexts/MapInstanceContext', () => ({
-  useMapInstance: () => ({ mapInstance: null }),
+  useMapInstance: () => ({ mapInstance: mapInstanceMock() }),
 }));
 
 vi.mock('@/hooks/queries/useDevVenueEditor', () => ({
@@ -58,7 +116,6 @@ vi.mock('@/hooks/queries/useDevVenueEditor', () => ({
 describe('<DevVenueEditor />', () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
-    vi.stubEnv('SUNNYSEAT_ADMIN', 'dev');
     searchParamsMock.value = new URLSearchParams();
     mutateMock.mockReset();
     hooksMock.venues.mockReset();
@@ -72,22 +129,34 @@ describe('<DevVenueEditor />', () => {
       isPending: false,
       isError: false,
     });
+    mapInstanceMock.mockReset();
+    mapInstanceMock.mockReturnValue(null);
+    markerMock.Marker.instances.length = 0;
   });
 
   it('renders no editor chrome without the explicit dev-editor query parameter', () => {
-    render(<DevVenueEditor />);
+    render(<DevVenueEditor adminEnabled />);
 
     expect(screen.queryByText('Redigera plats')).not.toBeInTheDocument();
   });
 
-  it('renders no editor chrome when the server-side dev admin gate is not enabled', () => {
-    vi.stubEnv('SUNNYSEAT_ADMIN', '');
+  it('keeps the guarded query disabled when the server-computed admin gate is false', () => {
     searchParamsMock.value = new URLSearchParams('_editor=venues');
 
     render(<DevVenueEditor />);
 
     expect(screen.queryByText('Redigera plats')).not.toBeInTheDocument();
     expect(hooksMock.venues).toHaveBeenCalledWith(false);
+  });
+
+  it('uses the server-computed admin prop instead of reading private server env in the browser', () => {
+    vi.stubEnv('SUNNYSEAT_ADMIN', '');
+    searchParamsMock.value = new URLSearchParams('_editor=venues');
+
+    render(<DevVenueEditor adminEnabled />);
+
+    expect(screen.queryByText('Redigera plats')).not.toBeInTheDocument();
+    expect(hooksMock.venues).toHaveBeenCalledWith(true);
   });
 
   it('renders the editor after a successful guarded query and patches display coordinates', async () => {
@@ -112,7 +181,7 @@ describe('<DevVenueEditor />', () => {
       },
     });
 
-    render(<DevVenueEditor />);
+    render(<DevVenueEditor adminEnabled />);
 
     fireEvent.change(await screen.findByLabelText('Visningslatitud'), {
       target: { value: '57.706100' },
@@ -152,7 +221,7 @@ describe('<DevVenueEditor />', () => {
       },
     });
 
-    render(<DevVenueEditor />);
+    render(<DevVenueEditor adminEnabled />);
 
     fireEvent.click(await screen.findByLabelText('Dold'));
     fireEvent.change(screen.getByLabelText('Uteservering'), {
@@ -209,7 +278,7 @@ describe('<DevVenueEditor />', () => {
       },
     });
 
-    render(<DevVenueEditor />);
+    render(<DevVenueEditor adminEnabled />);
 
     fireEvent.change(await screen.findByLabelText('Visningslatitud'), {
       target: { value: 'inte ett tal' },
@@ -218,5 +287,41 @@ describe('<DevVenueEditor />', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Kontrollera fälten');
     expect(mutateMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps keyboard focus on the display pin across consecutive arrow nudges', async () => {
+    searchParamsMock.value = new URLSearchParams('_editor=venues');
+    mapInstanceMock.mockReturnValue({});
+    hooksMock.venues.mockReturnValue({
+      isError: false,
+      data: {
+        venues: [
+          {
+            id: '1',
+            slug: 'test-venue-sunny',
+            venueName: 'Kafé Magasinet',
+            hidden: false,
+            displayLocation: { lat: 57.705, lng: 11.97 },
+            engineLocation: { lat: 57.7048, lng: 11.9698 },
+            tags: [],
+            description: null,
+            thumbnail: null,
+          },
+        ],
+        timestamp: '2026-07-27T15:00:00.000Z',
+      },
+    });
+
+    render(<DevVenueEditor adminEnabled />);
+
+    const pin = await screen.findByTestId('dev-venue-editor-display-pin');
+    pin.focus();
+
+    fireEvent.keyDown(pin, { key: 'ArrowUp' });
+    fireEvent.keyDown(pin, { key: 'ArrowUp' });
+
+    expect(markerMock.Marker.instances).toHaveLength(1);
+    expect(document.activeElement).toBe(pin);
+    expect(screen.getByLabelText('Visningslatitud')).toHaveValue('57.705200');
   });
 });

@@ -14,6 +14,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import type { StoredVenue } from '@/lib/services/venue-store';
+import * as venueRoute from '@/app/api/venues/route';
 
 function appSource(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8');
@@ -33,13 +34,14 @@ type RouteTestHook = {
   GET: (request: NextRequest) => Promise<Response>;
 };
 
+const route = venueRoute as RouteTestHook;
+
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date('2026-07-18T10:00:00.000Z'));
 });
 
-afterEach(async () => {
-  const route = (await import('@/app/api/venues/route')) as RouteTestHook;
+afterEach(() => {
   route.__setVenueStoreForTests?.(undefined);
   route.__setSunGeometryRepositoryForTests?.(undefined);
   route.__setWeatherSnapshotRepositoryForTests?.(undefined);
@@ -116,8 +118,6 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
   });
 
   test('missing exact current geometry hash returns typed 503 instead of omitting the series or recomputing', async () => {
-    const routePath = '@/app/api/venues/route';
-    const route = (await import(routePath)) as RouteTestHook;
     expect(route.__setSunGeometryRepositoryForTests).toBeTypeOf('function');
 
     route.__setSunGeometryRepositoryForTests?.({
@@ -137,8 +137,6 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
   });
 
   test('old-hash or wrong-day coverage cannot satisfy a public list read', async () => {
-    const routePath = '@/app/api/venues/route';
-    const route = (await import(routePath)) as RouteTestHook;
 
     route.__setSunGeometryRepositoryForTests?.({
       computeCurrentGeometryInputHash: async () =>
@@ -158,8 +156,6 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
   });
 
   test('public weatherBucket query params cannot override the server-owned current snapshot', async () => {
-    const routePath = '@/app/api/venues/route';
-    const route = (await import(routePath)) as RouteTestHook;
     const persistedSeries = [
       { minutes: 720, sunExposurePercent: 92 },
       { minutes: 735, sunExposurePercent: 92 },
@@ -207,8 +203,6 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
   });
 
   test('42+ venue list requests read persisted current hashes and coverage without request-path recompute', async () => {
-    const routePath = '@/app/api/venues/route';
-    const route = (await import(routePath)) as RouteTestHook;
     const venues = Array.from({ length: 42 }, (_, index) => routeScaleVenue(index + 1));
     const expectedIds = venues.map((venue) => venue.id).sort();
     const currentHashReads: string[] = [];
@@ -280,8 +274,6 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
   });
 
   test('coverage gaps fail closed for the whole response and are surfaced in freshness headers', async () => {
-    const routePath = '@/app/api/venues/route';
-    const route = (await import(routePath)) as RouteTestHook;
 
     route.__setSunGeometryRepositoryForTests?.({
       computeCurrentGeometryInputHash: async () =>

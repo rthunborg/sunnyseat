@@ -23,8 +23,6 @@ set
   allowed_mime_types = excluded.allowed_mime_types,
   file_size_limit = excluded.file_size_limit;
 
-alter table storage.objects enable row level security;
-
 do $$
 declare
   stale_policy record;

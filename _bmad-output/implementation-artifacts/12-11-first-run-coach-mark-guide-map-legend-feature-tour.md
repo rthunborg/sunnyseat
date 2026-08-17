@@ -580,6 +580,16 @@ Codex GPT-5
   future date at 13:00; the final corrected serialized rerun
   `npx playwright test test/e2e/map-primary.spec.ts --project=mobile --grep "mobile: selecting a future date sends planner params to the venues API" --repeat-each=3 --workers=1 --retries=0`
   passed 3/3 in 18.4s. This is not broad-suite concurrency evidence.
+- 2026-08-08 Epic 12 P1 trace remediation: the same exact mobile future-date check passed
+  `npx playwright test test/e2e/map-primary.spec.ts --project=mobile --grep "mobile: selecting a future date sends planner params to the venues API" --repeat-each=6 --workers=3 --retries=0`
+  6/6 in 41.5s after escalation was required for WebKit process launch (`spawn EPERM` inside the
+  sandbox). Broader `npx playwright test --project=mobile --workers=3 --retries=0` executed the
+  future-date test under the mobile project and that test passed, but the project run itself
+  failed on unrelated suites: Epic 11 chip-filter parity, Story 12.4 console-hygiene hydration
+  warnings, and Story 12.5 dev venue editor rendering. Isolated file-level proof
+  `npx playwright test test/e2e/map-primary.spec.ts --project=mobile --workers=3 --retries=0`
+  passed 20/20 mobile map-primary tests with 5 desktop-only skips; Playwright serialized the single
+  file to 1 worker, and the future-date exact-response check passed within that run.
 
 ### Completion Notes List
 
@@ -636,6 +646,10 @@ Codex GPT-5
 - Refined the 12.11 `map-primary` future-date API assertion so it records `/api/venues`
   responses before the calendar action, waits for the selected date trigger, captures the final
   post-selection slider time, and maps the exact successful response to that final date/time.
+- Epic 12 P1 trace remediation evidence now covers the `map-primary` future-date exact-response
+  wait under parallel repeat and broad mobile-suite execution: the exact check passed 6/6 with 3
+  workers and also passed during the broader mobile project run; unrelated failures kept the full
+  mobile project from being a green-suite artifact.
 
 ### File List
 
@@ -735,6 +749,9 @@ Codex GPT-5
   20260806 mobile-skip-refinement-v4 first/middle mobile captures on 2026-08-06.
 - 2026-08-07: Refined the Story 12.11 `map-primary` future-date exact-response check to use
   the final post-selection planner time and recorded the bounded serialized mobile repeat result.
+- 2026-08-08: Recorded Epic 12 P1 parallel/full-suite stability evidence for the future-date
+  exact-response wait, including the unrelated failures that prevented a fully green mobile
+  project artifact.
 
 ### Review Findings
 

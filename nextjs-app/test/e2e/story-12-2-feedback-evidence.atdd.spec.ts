@@ -7,6 +7,10 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 
+const FIXED_CREATED_AT = '2026-07-18T11:00:00.000Z';
+const WEATHER_GATED_DETAIL_VIEW_KEY = 'sunnyseat:feedback:view:1';
+const WEATHER_GATED_PLANNER_TIMESTAMP = '2026-07-18T12:00:00.000Z';
+
 async function bypassOnboarding(page: Page): Promise<void> {
   await page.addInitScript(
   ({ onboardedKey, guideSeenKey }) => {
@@ -16,6 +20,30 @@ async function bypassOnboarding(page: Page): Promise<void> {
   },
   { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
 );
+}
+
+async function seedWeatherGatedDetailView(page: Page): Promise<void> {
+  await page.addInitScript(
+    ({ key, plannerTimestamp }) => {
+      window.sessionStorage.setItem(key, JSON.stringify({
+        venueId: '1',
+        venueSlug: 'test-venue-sunny',
+        viewedAt: Date.parse(plannerTimestamp),
+        plannerTimestamp,
+        predictedState: 'CloudObscured',
+        sunExposurePercent: 95,
+        publicSunVerdict: 'grey',
+        weatherGated: true,
+        weatherUnknown: false,
+        geometryInputHash: 'g1:0000000000000000000000000000000000000000000000000000000000000000',
+        confidenceAtPrediction: 95,
+      }));
+    },
+    {
+      key: WEATHER_GATED_DETAIL_VIEW_KEY,
+      plannerTimestamp: WEATHER_GATED_PLANNER_TIMESTAMP,
+    },
+  );
 }
 
 function promptForProject(page: Page, projectName: string) {
@@ -58,7 +86,7 @@ test.describe('story 12.2 feedback prediction evidence', () => {
           weatherGated: body.weatherGated,
           weatherUnknown: body.weatherUnknown,
           geometryInputHash: body.geometryInputHash,
-          createdAt: new Date().toISOString(),
+          createdAt: FIXED_CREATED_AT,
         }),
       });
     });
@@ -77,8 +105,9 @@ test.describe('story 12.2 feedback prediction evidence', () => {
     await expect(prompt.getByText('Tack för din feedback.')).toBeVisible();
   });
 
-  test.skip('[P1] grey public verdict is submitted for weather-gated detail without adding visible confidence copy', async ({ page }, testInfo) => {
+  test('[P1] grey public verdict is submitted for weather-gated detail without adding visible confidence copy', async ({ page }, testInfo) => {
     await bypassOnboarding(page);
+    await seedWeatherGatedDetailView(page);
 
     await page.route('**/api/venues/*/feedback', async (route) => {
       const body = route.request().postDataJSON() as Record<string, unknown>;
@@ -104,12 +133,12 @@ test.describe('story 12.2 feedback prediction evidence', () => {
           weatherUnknown: body.weatherUnknown,
           sunExposurePercent: body.sunExposurePercent,
           geometryInputHash: body.geometryInputHash,
-          createdAt: new Date().toISOString(),
+          createdAt: FIXED_CREATED_AT,
         }),
       });
     });
 
-    await page.goto('/?venue=test-venue-sunny&_state=venue-detail-obscured&_time=14:00');
+    await page.goto('/?venue=test-venue-sunny&_state=feedback&_time=14:00');
     const prompt = promptForProject(page, testInfo.project.name);
     await expect(prompt).toBeVisible({ timeout: 15_000 });
     await expect(prompt.getByText(/% säker|säkerhet/i)).toHaveCount(0);

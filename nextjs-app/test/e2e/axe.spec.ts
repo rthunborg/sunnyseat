@@ -12,6 +12,11 @@ import { runAxe, formatViolations } from './helpers/axe';
 import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import { arrangeVenuePhotoMedia } from './helpers/venue-photo-media';
 
+const APPROVED_CARD_URL =
+  'https://hhnbxrhfhlzxgllxukzj.supabase.co/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07/card.webp';
+const APPROVED_HERO_URL =
+  'https://hhnbxrhfhlzxgllxukzj.supabase.co/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07/hero.webp';
+
 async function bypassOnboarding(page: Page) {
   await page.addInitScript(
     ({ onboardedKey, guideSeenKey }) => {
@@ -21,6 +26,10 @@ async function bypassOnboarding(page: Page) {
     },
     { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
   );
+}
+
+async function expectImageLoaded(locator: ReturnType<Page['getByTestId']>) {
+  await expect(locator).toHaveJSProperty('naturalWidth', 64);
 }
 
 test.describe('axe-core a11y gate', () => {
@@ -107,15 +116,17 @@ test.describe('axe-core a11y gate', () => {
     await targetCard.waitFor({ state: 'visible' });
     await expect(targetCard.getByTestId('venue-card-photo')).toHaveAttribute(
       'src',
-      /^data:image\/webp;base64,/,
+      APPROVED_CARD_URL,
     );
+    await expectImageLoaded(targetCard.getByTestId('venue-card-photo'));
     await targetCard.click();
     const quickInfo = page.locator('[data-testid="venue-quick-info"]:visible').first();
     await quickInfo.waitFor({ state: 'visible' });
     await expect(quickInfo.getByTestId('venue-quick-info-photo')).toHaveAttribute(
       'src',
-      /^data:image\/webp;base64,/,
+      APPROVED_CARD_URL,
     );
+    await expectImageLoaded(quickInfo.getByTestId('venue-quick-info-photo'));
     let violations = await runAxe(page);
     expect(violations, formatViolations(violations)).toEqual([]);
 
@@ -124,8 +135,9 @@ test.describe('axe-core a11y gate', () => {
     await detailPanel.waitFor({ state: 'visible' });
     await expect(detailPanel.getByTestId('venue-detail-hero-photo')).toHaveAttribute(
       'src',
-      /^data:image\/webp;base64,/,
+      APPROVED_HERO_URL,
     );
+    await expectImageLoaded(detailPanel.getByTestId('venue-detail-hero-photo'));
     violations = await runAxe(page);
     expect(violations, formatViolations(violations)).toEqual([]);
   });

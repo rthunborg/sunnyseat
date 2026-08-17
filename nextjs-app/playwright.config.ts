@@ -93,6 +93,12 @@ export default defineConfig({
   ],
   webServer: {
     command: webServerCommand,
+    // Story 12.5: the dev venue editor is gated by a private server-side flag.
+    // E2E starts its own loopback dev server, so enable that gate here while
+    // client code still requires the explicit `?_editor=venues` probe.
+    env: {
+      SUNNYSEAT_ADMIN: process.env.SUNNYSEAT_ADMIN || 'dev',
+    },
     port: webServerPort,
     reuseExistingServer: !process.env.CI,
   },

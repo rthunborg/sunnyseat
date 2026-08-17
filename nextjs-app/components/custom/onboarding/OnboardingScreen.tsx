@@ -43,6 +43,7 @@ export function OnboardingScreen({
   const geolocation = useGeolocation();
   const [phase, setPhase] = useState<'visible' | 'exiting'>('visible');
   const [pending, setPending] = useState(false);
+  const suppressEntranceMotion = reduceMotion || !interactive;
 
   // Phase 1 — react to a resolved geolocation status (success | fallback)
   // ONLY when we initiated the request via the primary CTA. Sets the
@@ -103,10 +104,10 @@ export function OnboardingScreen({
       aria-labelledby="onboarding-headline"
       data-testid="onboarding-screen"
       data-phase={phase}
-      initial={reduceMotion ? false : { opacity: 0 }}
+      initial={suppressEntranceMotion ? false : { opacity: 0 }}
       animate={{ opacity: phase === 'exiting' ? 0 : 1 }}
       transition={{
-        duration: reduceMotion
+        duration: suppressEntranceMotion
           ? 0
           : phase === 'exiting'
             ? EXIT_DURATION_S
@@ -136,11 +137,11 @@ export function OnboardingScreen({
 
       {/* Hero copy */}
       <motion.div
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+        initial={suppressEntranceMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{
-          duration: reduceMotion ? 0 : ENTRANCE_DURATION_S,
-          delay: reduceMotion ? 0 : ENTRANCE_HEADLINE_DELAY_S,
+          duration: suppressEntranceMotion ? 0 : ENTRANCE_DURATION_S,
+          delay: suppressEntranceMotion ? 0 : ENTRANCE_HEADLINE_DELAY_S,
           ease: 'easeOut',
         }}
         className="flex-1 lg:flex-none flex flex-col justify-center items-center relative z-10 text-balance"
@@ -158,11 +159,11 @@ export function OnboardingScreen({
 
       {/* CTA stack */}
       <motion.div
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+        initial={suppressEntranceMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{
-          duration: reduceMotion ? 0 : ENTRANCE_DURATION_S,
-          delay: reduceMotion ? 0 : ENTRANCE_CTA_DELAY_S,
+          duration: suppressEntranceMotion ? 0 : ENTRANCE_DURATION_S,
+          delay: suppressEntranceMotion ? 0 : ENTRANCE_CTA_DELAY_S,
           ease: 'easeOut',
         }}
         className="relative z-10 lg:w-full lg:max-w-md"

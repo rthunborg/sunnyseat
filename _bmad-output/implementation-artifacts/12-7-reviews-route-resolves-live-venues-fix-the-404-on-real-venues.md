@@ -263,6 +263,7 @@ Codex GPT-5
 - 2026-07-18: Review-fix full `npx vitest run` passed: 182 files passed, 2 skipped; 1729 tests passed, 15 skipped. Vitest printed the existing jsdom navigation warning after the green summary.
 - 2026-07-18: Canonical dry-run gate `.\scripts\run-sh.ps1 scripts/story-review.sh --dry-run 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues` passed npm `lint`, `typecheck`, and `test`, skipped visual validation because the backend story has no mapped screen ID, and did not update sprint status. Artifact: `_bmad-output/implementation-artifacts/validation/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues-review-20260718-215644.log`.
 - 2026-07-18: Playwright was not rerun because this fix changes no client DTO, UI, or mapped browser flow; the canonical gate did not require E2E or visual validation.
+- 2026-08-08 Epic 12 P1 trace remediation: focused `npx vitest run test/unit/services/story-12-7-public-venue-resolver.automation.test.ts` passed: 1 file / 10 tests. This includes the deterministic concurrent same-slug visibility race `[P1] isolates concurrent same-slug visibility reads without in-flight cache bleed`, which holds one hidden first read open with a deferred Supabase result, starts a second read for the same slug, proves the second visible read resolves independently, then resolves the first hidden read to `null`.
 
 ### Completion Notes List
 
@@ -275,6 +276,7 @@ Codex GPT-5
 - Downstream Story 12.5, 12.10, and 12.14 consumers still need to adopt the shared public guard when their routes are implemented/touched.
 - Resolved all four review findings: public resolution now requires canonical `hidden === false`; control-character identifiers are rejected before data access; the migration, resolver projection, precompute query, generated types, and tests share the same schema contract; and collisions use explicit `limit(2)` cardinality rather than error-message text.
 - Deployment prerequisite: apply `supabase/migrations/20260718214954_add_public_venue_visibility.sql` before deploying the resolver/precompute code. After applying it, regenerate Supabase types and verify that `nextjs-app/lib/supabase/types.ts` has no diff from the synchronized contract committed with this fix.
+- Epic 12 P1 trace remediation evidence now directly covers the concurrent in-flight visibility/cache race: same-slug hidden and visible reads do not share a cached miss or an in-flight promise, and the resolver result reflects each call's own Supabase response.
 
 ### File List
 
@@ -304,3 +306,4 @@ Codex GPT-5
 - 2026-07-18: Implemented Story 12.7 shared live public venue resolver, rewired reviews/feedback routes, removed review-local fixture identity resolution, updated tests, and passed the canonical review gate.
 - 2026-07-18: Expanded Phase 6 durable automation coverage for Story 12.7 resolver semantics and route convergence; focused and full Vitest suites passed.
 - 2026-07-18: Resolved the Tier-A review findings with canonical fail-closed `hidden` schema support, pre-data-access identifier validation, explicit collision cardinality, aligned tests/types/precompute, and a green dry-run story gate.
+- 2026-08-08: Recorded and re-verified Epic 12 P1 concurrent visibility/cache race evidence with the focused resolver automation suite.

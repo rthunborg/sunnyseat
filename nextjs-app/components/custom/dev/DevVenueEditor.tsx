@@ -34,12 +34,16 @@ type Draft = {
 
 type Coordinate = { lat: number; lng: number };
 
-export function DevVenueEditor() {
+type DevVenueEditorProps = {
+  adminEnabled?: boolean;
+};
+
+export function DevVenueEditor({ adminEnabled = false }: DevVenueEditorProps) {
   const searchParams = useSearchParams();
   const t = useTranslations('map.devEditor');
   const enabled =
     process.env.NODE_ENV !== 'production' &&
-    process.env.SUNNYSEAT_ADMIN === 'dev' &&
+    adminEnabled &&
     searchParams.get('_editor') === 'venues';
   const venuesQuery = useDevVenueEditorVenues(enabled);
   const patchMutation = usePatchDevVenueEditorVenue();
@@ -314,9 +318,17 @@ function DevVenueDisplayPinLayer({
   const { mapInstance } = useMapInstance();
   const markerRef = useRef<maplibregl.Marker | null>(null);
   const elementRef = useRef<HTMLDivElement | null>(null);
+  const locationRef = useRef<Coordinate | null>(null);
+  const markerVenueId = venue?.id ?? null;
+  const hasDisplayLocation = location !== null;
 
   useEffect(() => {
-    if (!mapInstance || !venue || !location) return;
+    locationRef.current = location;
+  }, [location]);
+
+  useEffect(() => {
+    const initialLocation = locationRef.current;
+    if (!mapInstance || !markerVenueId || !initialLocation) return;
     const element = document.createElement('div');
     element.className = cn(
       'flex size-11 cursor-grab items-center justify-center rounded-pill border-2',
@@ -326,7 +338,6 @@ function DevVenueDisplayPinLayer({
     element.setAttribute('tabindex', '0');
     element.setAttribute('role', 'button');
     element.dataset.testid = 'dev-venue-editor-display-pin';
-    element.setAttribute('aria-label', label);
     element.innerHTML = '<span aria-hidden="true" class="block size-3 rounded-pill bg-amber-primary"></span>';
 
     const marker = new maplibregl.Marker({
@@ -334,7 +345,7 @@ function DevVenueDisplayPinLayer({
       anchor: 'center',
       draggable: true,
     })
-      .setLngLat([location.lng, location.lat])
+      .setLngLat([initialLocation.lng, initialLocation.lat])
       .addTo(mapInstance);
 
     const handleDragEnd = () => {
@@ -375,7 +386,7 @@ function DevVenueDisplayPinLayer({
       markerRef.current = null;
       elementRef.current = null;
     };
-  }, [label, location, mapInstance, onMove, venue]);
+  }, [hasDisplayLocation, mapInstance, markerVenueId, onMove]);
 
   useEffect(() => {
     if (!markerRef.current || !location) return;

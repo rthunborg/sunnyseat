@@ -3,26 +3,24 @@ import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/on
 
 const APP_SETTLE_TIMEOUT_MS = 15_000;
 const WATCHED_CONSOLE_TYPES = new Set(['warning', 'error']);
-const MAX_POSITRON_WARNINGS_PER_WORKER = 3;
 const POSITRON_REF_LENGTH_WARNING =
   'Expected value to be of type number, but found null instead.';
 const POSITRON_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
-const POSITRON_REF_LENGTH_LAYER_IDS = [
-  'highway-shield-non-us',
-  'highway-shield-us-interstate',
-  'road_shield_us',
-] as const;
 const CHROMIUM_READPIXELS_WARNING_PATTERN =
   /^\[\.WebGL-0x[0-9A-Fa-f]+\]GL Driver Message \(OpenGL, Performance, GL_CLOSE_PATH_NV, High\): GPU stall due to ReadPixels(?: \(this message will no longer repeat\))?$/;
 
-// OpenFreeMap Positron style expressions in `highway-shield-non-us`,
-// `highway-shield-us-interstate`, and `road_shield_us` can compare a
-// missing/null `ref_length` against a numeric threshold. MapLibre 5 reports
-// that upstream style-worker warning during tile/style evaluation.
-// The runtime URL/line belongs to the bundled MapLibre logger, so the guard
-// records candidate worker warnings first and only allows them at assertion time
-// after the page has loaded the Positron style and the exact `ref_length` layers
-// are still present.
+const MAP_STYLE_FIXTURE = {
+  version: 8,
+  name: 'SunnySeat E2E map style fixture',
+  sources: {},
+  layers: [
+    {
+      id: 'background',
+      type: 'background',
+      paint: { 'background-color': 'rgba(250, 248, 241, 1)' },
+    },
+  ],
+};
 
 type ConsoleIssue = {
   source: 'console' | 'pageerror';
@@ -30,42 +28,6 @@ type ConsoleIssue = {
   text: string;
   location: string;
 };
-
-type PositronWarningCandidate = ConsoleIssue & {
-  workerUrl: string;
-};
-
-type PositronStyleLayer = {
-  id?: unknown;
-  source?: unknown;
-  'source-layer'?: unknown;
-  filter?: unknown;
-};
-
-function pageOriginForMessage(message: ConsoleMessage): string | null {
-  const pageUrl = message.page()?.url();
-  if (!pageUrl) return null;
-  try {
-    return new URL(pageUrl).origin;
-  } catch {
-    return null;
-  }
-}
-
-function isPotentialPositronRefLengthWarning(message: ConsoleMessage): boolean {
-  const workerUrl = message.worker()?.url();
-  const pageOrigin = pageOriginForMessage(message);
-  const locationUrl = message.location().url;
-
-  return (
-    message.type() === 'warning' &&
-    message.text() === POSITRON_REF_LENGTH_WARNING &&
-    workerUrl !== undefined &&
-    pageOrigin !== null &&
-    locationUrl === workerUrl &&
-    workerUrl.startsWith(`blob:${pageOrigin}/`)
-  );
-}
 
 function isAllowedBrowserNoise(message: ConsoleMessage): boolean {
   const location = message.location();
@@ -92,64 +54,14 @@ function formatIssue(issue: ConsoleIssue): string {
   return `${issue.source}:${issue.type} @ ${issue.location}\n${issue.text}`;
 }
 
-function containsRefLengthGet(value: unknown): boolean {
-  return (
-    Array.isArray(value) &&
-    value.length === 2 &&
-    value[0] === 'get' &&
-    value[1] === 'ref_length'
-  );
-}
-
-function containsRefLengthNumericComparison(value: unknown): boolean {
-  if (!Array.isArray(value)) return false;
-
-  const [operator, ...operands] = value;
-  const isNumericComparison =
-    operator === '<' || operator === '<=' || operator === '>' || operator === '>=';
-  if (
-    isNumericComparison &&
-    operands.some(containsRefLengthGet) &&
-    operands.some((operand) => typeof operand === 'number' && Number.isFinite(operand))
-  ) {
-    return true;
-  }
-
-  return value.some(containsRefLengthNumericComparison);
-}
-
-function hasExpectedPositronRefLengthLayers(style: unknown): boolean {
-  if (
-    style === null ||
-    typeof style !== 'object' ||
-    !Array.isArray((style as { layers?: unknown }).layers)
-  ) {
-    return false;
-  }
-
-  const layers = (style as { layers: PositronStyleLayer[] }).layers;
-  return POSITRON_REF_LENGTH_LAYER_IDS.every((layerId) => {
-    const layer = layers.find((candidate) => candidate.id === layerId);
-    return (
-      layer?.source === 'openmaptiles' &&
-      layer['source-layer'] === 'transportation_name' &&
-      containsRefLengthNumericComparison(layer.filter)
-    );
+async function routeMapStyleFixture(page: Page): Promise<void> {
+  await page.route(/^https:\/\/tiles\.openfreemap\.org\/styles\/positron\/?$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(MAP_STYLE_FIXTURE),
+    });
   });
-}
-
-async function hasLoadedExpectedPositronRefLengthStyle(page: Page): Promise<boolean> {
-  const loadedStyleUrl = await page.evaluate((styleUrl) => {
-    return performance
-      .getEntriesByType('resource')
-      .some((entry) => entry.name === styleUrl || entry.name === `${styleUrl}/`);
-  }, POSITRON_STYLE_URL);
-  if (!loadedStyleUrl) return false;
-
-  const response = await page.request.get(POSITRON_STYLE_URL);
-  if (!response.ok()) return false;
-
-  return hasExpectedPositronRefLengthLayers(await response.json());
 }
 
 function attachConsoleHygieneGuard(page: Page): {
@@ -157,34 +69,9 @@ function attachConsoleHygieneGuard(page: Page): {
   assertClean: () => Promise<void>;
 } {
   const issues: ConsoleIssue[] = [];
-  const positronWarningCandidates: PositronWarningCandidate[] = [];
-  const allowedPositronWarningsByWorker = new Map<string, number>();
 
   page.on('console', (message) => {
     if (!WATCHED_CONSOLE_TYPES.has(message.type())) return;
-    if (isPotentialPositronRefLengthWarning(message)) {
-      const workerUrl = message.worker()?.url() ?? 'unknown-worker';
-      const allowedPositronWarningCount =
-        (allowedPositronWarningsByWorker.get(workerUrl) ?? 0) + 1;
-      allowedPositronWarningsByWorker.set(workerUrl, allowedPositronWarningCount);
-      if (allowedPositronWarningCount <= MAX_POSITRON_WARNINGS_PER_WORKER) {
-        positronWarningCandidates.push({
-          source: 'console',
-          type: message.type(),
-          text: message.text(),
-          location: formatConsoleLocation(message),
-          workerUrl,
-        });
-        return;
-      }
-      issues.push({
-        source: 'console',
-        type: message.type(),
-        text: `Allowed Positron warning cap exceeded for worker (${allowedPositronWarningCount}/${MAX_POSITRON_WARNINGS_PER_WORKER}): ${message.text()}`,
-        location: formatConsoleLocation(message),
-      });
-      return;
-    }
     if (isAllowedBrowserNoise(message)) return;
     issues.push({
       source: 'console',
@@ -206,13 +93,7 @@ function attachConsoleHygieneGuard(page: Page): {
   return {
     issues: () => issues,
     assertClean: async () => {
-      const unresolvedPositronWarnings =
-        positronWarningCandidates.length > 0 &&
-        !(await hasLoadedExpectedPositronRefLengthStyle(page))
-          ? positronWarningCandidates
-          : [];
-
-      expect([...issues, ...unresolvedPositronWarnings].map(formatIssue)).toEqual([]);
+      expect(issues.map(formatIssue)).toEqual([]);
     },
   };
 }
@@ -265,6 +146,10 @@ async function waitForMapReady(page: Page): Promise<void> {
 }
 
 test.describe('Story 12.4 production console hygiene', () => {
+  test.beforeEach(async ({ page }) => {
+    await routeMapStyleFixture(page);
+  });
+
   test('guard captures synthetic console warnings and page errors', async ({ page }) => {
     const guard = attachConsoleHygieneGuard(page);
 

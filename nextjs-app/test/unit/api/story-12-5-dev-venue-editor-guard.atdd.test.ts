@@ -21,11 +21,14 @@ function request(
     method?: string;
     body?: BodyInit | null;
     headers?: HeadersInit;
+    includeOrigin?: boolean;
   },
 ): NextRequest {
   const headers = new Headers(init?.headers);
   if (!headers.has('host')) headers.set('host', 'localhost:3000');
-  if (!headers.has('origin')) headers.set('origin', 'http://localhost:3000');
+  if (init?.includeOrigin !== false && !headers.has('origin')) {
+    headers.set('origin', 'http://localhost:3000');
+  }
   return new NextRequest(url, {
     method: init?.method,
     body: init?.body,
@@ -112,21 +115,44 @@ describe('Story 12.5 dev venue editor guard', () => {
         },
       }),
     );
-    const missingOrigin = await GET(
-      request('http://localhost/api/dev/venues', {
-        headers: {
-          origin: '',
-        },
-      }),
-    );
 
     expect(remote.status).toBe(403);
     expect(forwarded.status).toBe(403);
     expect(forwardedProto.status).toBe(403);
     expect(forwardedFor.status).toBe(403);
     expect(spoofedHost.status).toBe(403);
-    expect(missingOrigin.status).toBe(403);
     expect(listDevEditorVenuesMock).not.toHaveBeenCalled();
+  });
+
+  it('allows browser-realistic loopback GET requests without an Origin header', async () => {
+    vi.stubEnv('SUNNYSEAT_ADMIN', 'dev');
+    listDevEditorVenuesMock.mockResolvedValue([]);
+
+    const read = await GET(
+      request('http://localhost:3000/api/dev/venues', {
+        includeOrigin: false,
+      }),
+    );
+
+    expect(read.status).toBe(200);
+    expect(await read.json()).toMatchObject({ venues: [] });
+    expect(listDevEditorVenuesMock).toHaveBeenCalledOnce();
+  });
+
+  it('denies loopback writes without an Origin header before touching the editor service', async () => {
+    vi.stubEnv('SUNNYSEAT_ADMIN', 'dev');
+
+    const write = await PATCH(
+      request('http://localhost:3000/api/dev/venues/test-venue-sunny', {
+        method: 'PATCH',
+        body: JSON.stringify({ hidden: true }),
+        includeOrigin: false,
+      }),
+      patchContext(),
+    );
+
+    expect(write.status).toBe(403);
+    expect(patchDevEditorVenueMock).not.toHaveBeenCalled();
   });
 
   it('allows loopback dev reads and writes through the guarded editor service only when explicitly enabled', async () => {

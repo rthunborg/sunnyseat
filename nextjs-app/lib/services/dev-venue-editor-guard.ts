@@ -51,7 +51,7 @@ function isLoopbackRequest(request: Request): boolean {
   if (!host || !LOOPBACK_HOSTS.has(host)) return false;
 
   const origin = request.headers.get('origin');
-  if (!origin) return false;
+  if (!origin) return request.method === 'GET' || request.method === 'HEAD';
   try {
     const originUrl = new URL(origin);
     const originHost = hostnameFromHostHeader(originUrl.host);

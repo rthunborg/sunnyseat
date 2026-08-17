@@ -14,6 +14,9 @@ import {
 
 const APP_SETTLE_TIMEOUT_MS = 15_000;
 const VENUES_MATCHER = '**/api/venues?**';
+const FIXED_STOCKHOLM_NOW = new Date('2026-08-08T11:00:00.000+02:00');
+const FIXED_STOCKHOLM_DATE = '2026-08-08';
+const REQUEST_COUNT_STABILITY_MS = 500;
 
 async function bypassOnboarding(page: Page): Promise<void> {
   await page.addInitScript(
@@ -27,9 +30,11 @@ async function bypassOnboarding(page: Page): Promise<void> {
 }
 
 async function forceMiddayTime(page: Page): Promise<void> {
+  await page.clock.setFixedTime(FIXED_STOCKHOLM_NOW);
   const nativeGoto = page.goto.bind(page);
   page.goto = ((url: string, options?: Parameters<typeof nativeGoto>[1]) => {
     const target = new URL(url, 'http://localhost:3000');
+    if (!target.searchParams.has('_date')) target.searchParams.set('_date', FIXED_STOCKHOLM_DATE);
     if (!target.searchParams.has('_time')) target.searchParams.set('_time', '13:00');
     return nativeGoto(target.pathname + target.search + target.hash, options);
   }) as typeof page.goto;
@@ -99,6 +104,33 @@ function response(): GetVenuesResponse {
   };
 }
 
+async function expectRequestCountToStay(
+  getCount: () => number,
+  expected: number,
+  stableForMs = REQUEST_COUNT_STABILITY_MS,
+): Promise<void> {
+  let lastCount = getCount();
+  let stableSince = Date.now();
+
+  await expect
+    .poll(
+      () => {
+        const current = getCount();
+        if (current !== lastCount) {
+          lastCount = current;
+          stableSince = Date.now();
+        }
+        if (current !== expected) return -1;
+        return Date.now() - stableSince;
+      },
+      {
+        timeout: stableForMs + 1_000,
+        intervals: [50, 100, 100, 100, 100],
+      },
+    )
+    .toBeGreaterThanOrEqual(stableForMs);
+}
+
 async function mockVenues(page: Page): Promise<{ count: () => number; urls: () => string[] }> {
   let count = 0;
   const urls: string[] = [];
@@ -109,17 +141,6 @@ async function mockVenues(page: Page): Promise<{ count: () => number; urls: () =
     await route.fulfill({ json: response() });
   });
   return { count: () => count, urls: () => urls };
-}
-
-function stockholmDateKey(date = new Date()): string {
-  const parts = new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'Europe/Stockholm',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date);
-  const part = (type: string) => parts.find((entry) => entry.type === type)?.value ?? '';
-  return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
 function addDaysToDateKey(dateKey: string, days: number): string {
@@ -142,7 +163,7 @@ function swedishSelectDateLabel(dateKey: string): string {
 }
 
 async function selectDifferentDateFromCalendar(page: Page): Promise<string> {
-  const targetDate = addDaysToDateKey(stockholmDateKey(), 1);
+  const targetDate = addDaysToDateKey(FIXED_STOCKHOLM_DATE, 1);
   const planner = page.locator('[data-testid="time-slider-panel"]:visible').first();
   const trigger = planner.getByTestId('planner-date-trigger');
   await expect(trigger).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
@@ -171,9 +192,8 @@ test.describe('Story 12.3 persisted geometry request-count invariants', () => {
     const slider = page.getByRole('slider').first();
     await slider.focus();
     for (let i = 0; i < 6; i++) await slider.press('ArrowRight');
-    await page.waitForTimeout(500);
 
-    expect(venues.count()).toBe(afterLoad);
+    await expectRequestCountToStay(venues.count, afterLoad);
     expect(providerHits).toEqual([]);
   });
 

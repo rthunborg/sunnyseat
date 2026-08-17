@@ -36,7 +36,7 @@ const ForcedVenueDetailInitialFrame =
       );
 
 const DevVenueEditor =
-  process.env.NODE_ENV === 'production' || process.env.SUNNYSEAT_ADMIN !== 'dev'
+  process.env.NODE_ENV === 'production'
     ? null
     : dynamic(
         () => import('@/components/custom/dev/DevVenueEditor')
@@ -47,16 +47,22 @@ const DevVenueEditor =
         },
       );
 
-export function MapViewDynamic() {
+type MapViewDynamicProps = {
+  devVenueEditorEnabled?: boolean;
+};
+
+export function MapViewDynamic({ devVenueEditorEnabled = false }: MapViewDynamicProps) {
   const searchParams = useSearchParams();
   const showDevEditor =
     process.env.NODE_ENV !== 'production' &&
-    process.env.SUNNYSEAT_ADMIN === 'dev' &&
+    devVenueEditorEnabled &&
     searchParams.get('_editor') === 'venues';
   return (
     <>
       <MapView />
-      {showDevEditor && DevVenueEditor && <DevVenueEditor />}
+      {showDevEditor && DevVenueEditor && (
+        <DevVenueEditor adminEnabled={devVenueEditorEnabled} />
+      )}
     </>
   );
 }

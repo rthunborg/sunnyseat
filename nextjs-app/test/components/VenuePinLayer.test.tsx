@@ -290,6 +290,37 @@ describe('<VenuePinLayer />', () => {
     expect(handleRef.current?.selectVenueSpy).toHaveBeenCalledWith(null);
   });
 
+  it('defers the detached React root unmount when a venue leaves during rerender', () => {
+    const stubMap = makeStubMap();
+    const handleRef: { current: WrapperHandle | null } = { current: null };
+    const Wrapper = makeWrapper(stubMap, handleRef);
+    const queuedMicrotasks: VoidFunction[] = [];
+    const queueMicrotaskSpy = vi
+      .spyOn(globalThis, 'queueMicrotask')
+      .mockImplementation((callback) => {
+        queuedMicrotasks.push(callback);
+      });
+
+    try {
+      const { rerender } = render(<VenuePinLayer venues={baseVenues} />, {
+        wrapper: Wrapper,
+      });
+
+      rerender(<VenuePinLayer venues={baseVenues.slice(1)} />);
+
+      expect(allMarkers[0].remove).toHaveBeenCalledOnce();
+      expect(createdRoots[0].unmount).not.toHaveBeenCalled();
+      expect(queuedMicrotasks).toHaveLength(1);
+
+      queuedMicrotasks.splice(0).forEach((callback) => callback());
+
+      expect(createdRoots[0].unmount).toHaveBeenCalledOnce();
+    } finally {
+      queueMicrotaskSpy.mockRestore();
+      queuedMicrotasks.splice(0).forEach((callback) => callback());
+    }
+  });
+
   it('does not clear selection when the selected venue exists but its marker has not mounted yet', () => {
     const stubMap = makeStubMap();
     const handleRef: { current: WrapperHandle | null } = { current: null };

@@ -632,6 +632,7 @@ export type Database = {
           confidence: number
           created_at: string
           current_sun_status: string
+          deleted_at: string | null
           description: string | null
           display_lat: number | null
           display_lng: number | null
@@ -669,6 +670,7 @@ export type Database = {
           confidence: number
           created_at?: string
           current_sun_status: string
+          deleted_at?: string | null
           description?: string | null
           display_lat?: number | null
           display_lng?: number | null
@@ -706,6 +708,7 @@ export type Database = {
           confidence?: number
           created_at?: string
           current_sun_status?: string
+          deleted_at?: string | null
           description?: string | null
           display_lat?: number | null
           display_lng?: number | null
