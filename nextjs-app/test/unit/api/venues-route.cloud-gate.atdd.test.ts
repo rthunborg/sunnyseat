@@ -7,15 +7,19 @@
  * it). Now that Task 1/5 are implemented these are un-skipped and green.
  *
  * WHAT AC4 REQUIRES OF THIS SURFACE:
- *  1. `normalizeVenueForResponse` (the API sanitizer) must round-trip a
- *     `CloudObscured` venue WITHOUT corrupting the status (preserve the value).
- *  2. A `CloudObscured` venue must sort SENSIBLY in the venues route (no NaN
- *     from a missing SUN_STATUS_ORDER key — Task 1 (a) load-bearing surface).
+ *  1. `normalizeVenueForResponse` (the API sanitizer) must preserve the
+ *     `CloudObscured` status while enforcing its already-fired weather gate.
+ *  2. A high-exposure `CloudObscured` venue must remain in the public grey band.
  */
 
 import { describe, expect, it } from 'vitest';
 import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
-import type { VenueDataDto, VenueSunStatus } from '@/lib/types/api';
+import type { VenueDataDto } from '@/lib/types/api';
+import {
+  compareVenuesByPublicSun,
+  extractPublicSunPeak,
+  isVenuePubliclySunny,
+} from '@/lib/utils/public-sun';
 
 function makeCloudObscuredVenue(overrides: Partial<VenueDataDto> = {}): VenueDataDto {
   return {
@@ -28,6 +32,7 @@ function makeCloudObscuredVenue(overrides: Partial<VenueDataDto> = {}): VenueDat
     location: { lat: 57.7089, lng: 11.9746 },
     // Weather-gated headline, but geometrically sunlit — the two-signal model.
     currentSunStatus: 'CloudObscured',
+    weatherGateState: 'gated',
     skyCondition: 'overcast',
     isPartner: false,
     confidence: 60,
@@ -44,8 +49,30 @@ describe('[10.1 AC4] CloudObscured round-trips through the API sanitizer', () =>
     const normalized = normalizeVenueForResponse(makeCloudObscuredVenue());
 
     expect(normalized.currentSunStatus).toBe('CloudObscured');
+    expect(normalized.weatherGateState).toBe('gated');
     // The geometric layer survives the sanitizer unchanged (two-signal model).
     expect(normalized.sunExposurePercent).toBe(95);
+  });
+
+  it('fails a contradictory not_gated producer closed before public ranking', () => {
+    const normalized = normalizeVenueForResponse(
+      makeCloudObscuredVenue({
+        weatherGateState: 'not_gated',
+        sunDaySeries: [
+          {
+            minutes: 720,
+            sunExposurePercent: 95,
+            currentSunStatus: 'CloudObscured',
+            weatherGateState: 'not_gated',
+          },
+        ],
+      }),
+    );
+
+    expect(normalized.weatherGateState).toBe('gated');
+    expect(normalized.sunDaySeries?.[0]?.weatherGateState).toBe('gated');
+    expect(isVenuePubliclySunny(normalized)).toBe(false);
+    expect(extractPublicSunPeak(normalized.sunDaySeries ?? [])).toBeNull();
   });
 
   it('does NOT drop or downgrade the value to a legacy status', () => {
@@ -57,31 +84,31 @@ describe('[10.1 AC4] CloudObscured round-trips through the API sanitizer', () =>
   });
 });
 
-describe('[10.1 AC4] CloudObscured sorts sensibly (no NaN from SUN_STATUS_ORDER)', () => {
-  it('a CloudObscured venue receives a defined numeric sort rank (never undefined ⇒ NaN)', () => {
-    // Story 10.1 Task 1 (a): SUN_STATUS_ORDER is `Record<VenueSunStatus, number>`.
-    // A missing key would make `rank(CloudObscured) - rank(other) = NaN`, silently
-    // corrupting the list sort. The dev ranks CloudObscured between Partial and
-    // Shaded (documented choice). Assert the comparator produces a total order:
-    // sorting a mixed list must not throw and must not leave CloudObscured at an
-    // undefined position.
-    const statuses: VenueSunStatus[] = [
-      'NoSun',
-      'CloudObscured',
-      'Sunny',
-      'Shaded',
-      'Partial',
-    ];
+describe('[12.6] CloudObscured stays outside the public-sunny band', () => {
+  it('sorts a lower-exposure genuine Partial before high-exposure CloudObscured', () => {
+    const obscured = normalizeVenueForResponse(makeCloudObscuredVenue());
+    const partial = normalizeVenueForResponse(
+      makeCloudObscuredVenue({
+        id: 'partial',
+        currentSunStatus: 'Partial',
+        weatherGateState: 'not_gated',
+        sunExposurePercent: 60,
+        skyCondition: 'clear',
+      }),
+    );
+    const shaded = normalizeVenueForResponse(
+      makeCloudObscuredVenue({
+        id: 'shaded',
+        currentSunStatus: 'Shaded',
+        weatherGateState: 'not_gated',
+        sunExposurePercent: 20,
+        skyCondition: 'clear',
+      }),
+    );
 
-    // The route is not exported, so we assert the invariant the route relies on:
-    // every status the DTO can carry must map to a finite rank. This mirrors the
-    // `Record<VenueSunStatus, number>` compile-forcing site. A helper import of
-    // the route's SUN_STATUS_ORDER can replace this once the dev exports it; for
-    // now assert via the sanitizer that the value survives to the sort input.
-    for (const s of statuses) {
-      const dto = makeCloudObscuredVenue({ currentSunStatus: s });
-      const normalized = normalizeVenueForResponse(dto);
-      expect(normalized.currentSunStatus).toBe(s);
-    }
+    const ordered = [shaded, obscured, partial].sort(compareVenuesByPublicSun);
+
+    expect(ordered.map((venue) => venue.id)).toEqual(['partial', '99', 'shaded']);
+    expect(ordered.map(isVenuePubliclySunny)).toEqual([true, false, false]);
   });
 });

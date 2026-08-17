@@ -31,7 +31,6 @@ using the service-role client — there is **no anon/browser Supabase client**, 
 | `SUNNYSEAT_SUN_ENGINE` | `real` computes live sun/shadow/weather (else seed) | No | Production only |
 | `SUNNYSEAT_FEEDBACK_PERSISTENCE` | `supabase` writes `public.feedback` | No | Production only |
 | `SUNNYSEAT_REVIEW_PERSISTENCE` | `supabase` reads/writes `public.reviews` | No | Production only |
-| `SUNNYSEAT_COVERAGE_CAP` | `off` lifts the shadow-data coverage confidence clamp so the RAW engine confidence displays (maintainer field-verification only; every other honesty cap still applies) | No | **TEMPORARY** — pre-launch verification; remove at launch (Story 12.2) |
 
 Unset = the in-memory fixture/seed default, so CI and local dev have **zero
 live-Supabase dependency** and the output is byte-identical to the fixture era.
@@ -67,6 +66,20 @@ Leave `SUN_HOURS_AUDIT_ENABLED=false` until migrations and one-time provenance
 remediation pass. Use `workflow_dispatch` for a controlled manual run. Bounded
 run/outcome history is retained for 180 days.
 
+### Sun geometry and weather jobs
+
+Story 12.3 adds direct GitHub Actions runners for persisted ungated
+`geometry_input_hash` day-series coverage and weather snapshots. These are
+separate from the hours audit and use independent emergency stops.
+
+| Variable | Description | Required | Environment |
+|---|---|---|---|
+| `SUPABASE_URL` | Project URL used by the direct runners | Yes when enabled | GitHub protected `Production` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only table/RPC credentials | Yes when enabled | GitHub protected `Production` secret |
+| `SUN_GEOMETRY_PRECOMPUTE_ENABLED` | Enables persisted geometry precompute when exactly `true` | Yes | GitHub protected `Production` variable |
+| `SUN_WEATHER_REFRESH_ENABLED` | Enables weather snapshot refresh when exactly `true` | Yes | GitHub protected `Production` variable |
+| `MET_NO_USER_AGENT` | Public Met.no contact identifier for snapshot refresh | Yes when weather enabled | GitHub protected `Production` variable |
+
 ### Application Configuration
 
 | Variable | Description | Required | Default | Environment |
@@ -92,6 +105,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://[project-ref].supabase.co
 SUPABASE_SERVICE_ROLE_KEY=[your-service-role-key]
 SUPABASE_URL=https://[project-ref].supabase.co
 SUN_HOURS_AUDIT_ENABLED=false
+SUN_GEOMETRY_PRECOMPUTE_ENABLED=false
+SUN_WEATHER_REFRESH_ENABLED=false
 
 # Data-source adapters (omit to use the in-memory seed default)
 # SUNNYSEAT_VENUE_STORE=supabase
@@ -123,6 +138,9 @@ Configure in Vercel Dashboard → Project Settings → Environment Variables:
 
 - Select **Production** environment
 - Set all required variables
+- Remove any old coverage-cap bypass variable; the app no longer reads one, and
+  the internal diagnostic coverage cap now always fails closed until validated
+  coverage evidence exists.
 - Use production values:
   - `NEXT_PUBLIC_APP_URL=https://sunnyseat.se`
   - `NODE_ENV=production`

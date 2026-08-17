@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Cloud, Heart, Sun, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { RouteButton } from '@/components/composed/routing/RouteButton';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -12,14 +13,12 @@ import {
   EASE_EXIT,
 } from '@/lib/constants/animation';
 import {
-  getConfidenceDisplayState,
-  type ConfidenceDisplayLabels,
-} from '@/lib/utils/confidence-display';
-import {
   isObscuredSunStatus,
   skyConditionCopy,
 } from '@/lib/utils/sun-status-presentation';
-import type { SunFreshnessMeta, VenueSunStatus } from '@/lib/types/api';
+import type { VenueSunStatus, VenueThumbnailDto, WeatherGateState } from '@/lib/types/api';
+import { isVenuePubliclySunny, normalizeWeatherGateState } from '@/lib/utils/public-sun';
+import { selectVenueCardImageUrl } from '@/lib/utils/venue-media';
 import { cn } from '@/lib/utils';
 
 export type VenueQuickInfoMode = 'mobile' | 'desktop';
@@ -28,8 +27,6 @@ export type VenueQuickInfoDesktopPlacement = 'above' | 'pinned';
 export type VenueQuickInfoProps = {
   mode: VenueQuickInfoMode;
   name: string;
-  confidencePercent?: number;
-  confidenceMeta?: SunFreshnessMeta;
   sunExposurePercent?: number;
   /**
    * Story 11.4 (AC1) / 11.9 (AC2): the venue's DERIVED opening-hours display for
@@ -45,6 +42,7 @@ export type VenueQuickInfoProps = {
    * `'CloudObscured'` the card mutes the amber "% SOL" badge + headline into
    * the "Sol bakom moln" treatment while keeping the geometric layer (AC2). */
   currentSunStatus?: VenueSunStatus;
+  weatherGateState?: WeatherGateState;
   /** Story 10.2 (AC3): serialized DTO sky field (`'clear' | 'partly-cloudy' |
    * 'overcast' | 'unavailable'`) — surfaced as plain-language copy. Absent /
    * 'unavailable' renders no sky line (never fabricate). */
@@ -54,11 +52,7 @@ export type VenueQuickInfoProps = {
    * (Gothenburg fallback), not a real personal fix — annotate it honestly.
    * Mirrors `VenueCard.distanceIsApproximate`. */
   distanceIsApproximate?: boolean;
-  thumbnail?: {
-    alt: string;
-    initials: string;
-    url?: string;
-  };
+  thumbnail?: VenueThumbnailDto;
   isLoadingSunData: boolean;
   position?: { x: number; y: number };
   desktopPlacement?: VenueQuickInfoDesktopPlacement;
@@ -73,9 +67,6 @@ export type VenueQuickInfoProps = {
     moreInfo: string;
     close: string;
     photoPlaceholder: string;
-    confidence: string;
-    confidenceApproximate: string;
-    confidenceUnavailable: string;
     distance: string;
     /** Story 9.5 AC3 (folded into 9.9): honest "≈ från centrum" annotation
      * shown alongside the distance value on the Gothenburg-centrum fallback. */
@@ -87,6 +78,8 @@ export type VenueQuickInfoProps = {
     /** Story 10.2 (AC1): the muted "Sol bakom moln" headline shown when the
      * venue is CloudObscured. */
     obscuredHeadline?: string;
+    weatherUnavailable?: string;
+    notSunnyVerdict?: string;
     /** Story 10.2 (AC3): plain-language sky descriptors. When absent, no sky
      * line renders. Story 10.4 (AC2): adds the rain descriptor. */
     sky?: {
@@ -104,11 +97,10 @@ const THUMBNAIL_MAX_ALT = 120;
 export function VenueQuickInfo({
   mode,
   name,
-  confidencePercent,
-  confidenceMeta,
   sunExposurePercent,
   openingHours,
   currentSunStatus,
+  weatherGateState,
   skyCondition,
   distanceMeters,
   distanceIsApproximate = false,
@@ -127,11 +119,6 @@ export function VenueQuickInfo({
   const shouldReduceMotion = useReducedMotion() ?? false;
   const isDesktop = mode === 'desktop';
   const isAnchoredMobile = !isDesktop && Boolean(position);
-  const confidenceDisplay = getConfidenceDisplayState({
-    confidence: confidencePercent,
-    meta: confidenceMeta,
-    labels: confidenceDisplayLabels(labels),
-  });
   // Story 9.5 AC3 (folded into 9.9): the honest centrum-relative annotation.
   // Shown only on the Gothenburg-centrum fallback AND when a label is provided;
   // the real distance number always stays visible — only the label is qualified.
@@ -141,6 +128,16 @@ export function VenueQuickInfo({
       : null;
   // Story 10.2: the muted "Sol bakom moln" state + the plain-language sky line.
   const isObscured = isObscuredSunStatus(currentSunStatus);
+  const normalizedWeatherGateState = normalizeWeatherGateState(weatherGateState);
+  const isPublicSunny = isVenuePubliclySunny({
+    sunExposurePercent: sunExposurePercent ?? 0,
+    weatherGateState: normalizedWeatherGateState,
+  });
+  const publicVerdictQualification = isPublicSunny
+    ? normalizedWeatherGateState === 'unknown'
+      ? labels.weatherUnavailable
+      : undefined
+    : labels.notSunnyVerdict;
   const skyLine = labels.sky
     ? skyConditionCopy(skyCondition, labels.sky)
     : null;
@@ -199,7 +196,7 @@ export function VenueQuickInfo({
           label={labels.photoPlaceholder}
           thumbnail={thumbnail}
           sunExposurePercent={sunExposurePercent}
-          isObscured={isObscured}
+          isPublicSunny={isPublicSunny}
           compact={isAnchoredMobile}
           forcePlaceholder={isAnchoredMobile}
           isFavourite={isFavourite}
@@ -271,8 +268,21 @@ export function VenueQuickInfo({
                         : 'space-y-1'
                     }
                   >
+                    {publicVerdictQualification && (
+                      <p
+                        data-testid="quick-info-public-verdict"
+                        className={cn(
+                          'text-text-body',
+                          isAnchoredMobile
+                            ? 'basis-full text-label-xs-medium'
+                            : 'text-body-sm',
+                        )}
+                      >
+                        {publicVerdictQualification}
+                      </p>
+                    )}
                     {/* Story 11.4 (AC1): the single honest opening-hours line, in
-                        the slot vacated by the removed "Säkerhet: NN%" chip and the
+                        the slot vacated by the removed confidence chip and the
                         "Sol HH:mm–HH:mm" window line. Rendered ONLY when the store
                         carries opening hours; ABSENT → nothing (never fabricated,
                         never a closesAt-only fallback). Uses `text-text-body` (not
@@ -290,13 +300,8 @@ export function VenueQuickInfo({
                       </p>
                     )}
                     <p className={isAnchoredMobile ? 'contents' : 'text-body-sm text-text-body'}>
-                      {/* Story 11.4 (AC1/AC4): the VISIBLE "Säkerhet: NN%" chrome is
-                          removed on both breakpoints (confidence lives on in the
-                          detail view). The sr-only accessible confidence text is
-                          PRESERVED so the accessible name (name → sun % → opening
-                          hours → distance → confidence) does not regress. No
-                          visible separator remains, so no dangling "·". */}
-                      <span className="sr-only">{confidenceDisplay.accessibleText}. </span>
+                      {/* Story 12.13: no visible or sr-only confidence number is
+                          emitted here. Distance/opening hours/weather remain. */}
                       <span className="font-bold">
                         {isAnchoredMobile && (
                           <span className="sr-only">
@@ -377,7 +382,7 @@ function VenueThumbnail({
   label,
   thumbnail,
   sunExposurePercent,
-  isObscured = false,
+  isPublicSunny,
   compact = false,
   forcePlaceholder = false,
   isFavourite = false,
@@ -385,9 +390,9 @@ function VenueThumbnail({
   onFavouriteToggle,
 }: {
   label: string;
-  thumbnail?: { alt: string; initials: string; url?: string };
+  thumbnail?: VenueThumbnailDto;
   sunExposurePercent?: number;
-  isObscured?: boolean;
+  isPublicSunny: boolean;
   compact?: boolean;
   forcePlaceholder?: boolean;
   isFavourite?: boolean;
@@ -397,6 +402,27 @@ function VenueThumbnail({
   const accessibleLabel = normalizeAlt(thumbnail?.alt, label);
   const initials = normalizeInitials(thumbnail?.initials);
   const sunExposureText = formatPercent(sunExposurePercent);
+  const [imageFailed, setImageFailed] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const imageUrl = forcePlaceholder ? undefined : selectVenueCardImageUrl(thumbnail);
+  const shouldRenderImage = Boolean(imageUrl) && !imageFailed;
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [forcePlaceholder, imageUrl]);
+
+  useEffect(() => {
+    const image = imageRef.current;
+    if (!image || !shouldRenderImage) return undefined;
+    const handleError = () => setImageFailed(true);
+    if (image.complete && image.naturalWidth === 0) {
+      handleError();
+      return undefined;
+    }
+    image.addEventListener('error', handleError);
+    return () => image.removeEventListener('error', handleError);
+  }, [imageUrl, shouldRenderImage]);
+
   return (
     <div
       className={cn(
@@ -405,9 +431,11 @@ function VenueThumbnail({
         compact ? 'h-18' : 'h-24',
       )}
     >
-      {thumbnail?.url && !forcePlaceholder ? (
+      {shouldRenderImage ? (
         <img
-          src={thumbnail.url}
+          data-testid="venue-quick-info-photo"
+          ref={imageRef}
+          src={imageUrl}
           alt={accessibleLabel}
           className="absolute inset-0 size-full object-cover"
           loading="lazy"
@@ -415,6 +443,7 @@ function VenueThumbnail({
         />
       ) : (
         <div
+          data-testid="venue-quick-info-photo-fallback"
           role="img"
           aria-label={accessibleLabel}
           className="absolute inset-0 flex items-center justify-center"
@@ -458,12 +487,9 @@ function VenueThumbnail({
         <div
           className={cn(
             'absolute rounded-badge backdrop-blur-standard shadow-subtle flex items-center',
-            // Story 10.2 (AC1): no amber sun badge while obscured — a muted
-            // slate pill (white text, `bg-pin-obscured` 5.50:1 AA) with a Cloud
-            // icon. The geometric % stays (AC2, position not weather).
-            isObscured
-              ? 'bg-pin-obscured text-white'
-              : 'bg-amber-gold/90 text-amber-cta-text',
+            isPublicSunny
+              ? 'bg-amber-gold/90 text-amber-cta-text'
+              : 'bg-pin-shaded text-text-body',
             // Story 9.9: on the 72px compact (anchored-mobile) strip, match the
             // reference's small top-left "% Sol" pill (top:8 left:8, tight
             // padding) so it never jams against the favourite heart or the
@@ -473,12 +499,12 @@ function VenueThumbnail({
               : 'left-3 top-3 gap-1.5 px-3 py-1.5 text-display-sm',
           )}
         >
-          {isObscured ? (
-            <Cloud aria-hidden="true" className={compact ? 'size-3' : 'size-4'} />
-          ) : (
+          {isPublicSunny ? (
             <Sun aria-hidden="true" className={compact ? 'size-3' : 'size-4'} />
+          ) : (
+            <Cloud aria-hidden="true" className={compact ? 'size-3' : 'size-4'} />
           )}
-          {sunExposureText} SOL
+          {isPublicSunny && `${sunExposureText} SOL`}
         </div>
       )}
       {onFavouriteToggle && (
@@ -595,14 +621,4 @@ function formatDistance(meters?: number): string {
 function formatPercent(value: number | undefined): string | null {
   if (!Number.isFinite(value)) return null;
   return `${Math.max(0, Math.min(100, Math.round(value ?? 0)))}%`;
-}
-
-function confidenceDisplayLabels(
-  labels: VenueQuickInfoProps['labels'],
-): ConfidenceDisplayLabels {
-  return {
-    confidence: labels.confidence,
-    approximate: labels.confidenceApproximate,
-    unavailable: labels.confidenceUnavailable,
-  };
 }

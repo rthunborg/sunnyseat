@@ -13,13 +13,26 @@ import type { VenueDataDto } from '@/lib/types/api';
 
 const VENUE: Pick<
   VenueDataDto,
-  'id' | 'slug' | 'venueSlug' | 'location' | 'currentSunStatus' | 'confidence'
+  | 'id'
+  | 'slug'
+  | 'venueSlug'
+  | 'location'
+  | 'currentSunStatus'
+  | 'weatherGateState'
+  | 'confidence'
+  | 'sunExposurePercent'
+  | 'predictionEvidence'
 > = {
   id: '1',
   slug: 'test-venue-sunny',
   venueSlug: 'test-venue-sunny',
   location: { lat: 57.705, lng: 11.97 },
   currentSunStatus: 'Sunny',
+  weatherGateState: 'not_gated',
+  sunExposurePercent: 95,
+  predictionEvidence: {
+    geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  },
   confidence: 92,
 };
 
@@ -40,6 +53,12 @@ describe('feedback-session', () => {
     expect(readVenueDetailView(VENUE.id)).toMatchObject({
       venueId: '1',
       plannerTimestamp: '2026-06-07T12:00:00.000Z',
+      sunExposurePercent: 95,
+      publicSunVerdict: 'amber',
+      weatherGated: false,
+      weatherUnknown: false,
+      geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      confidenceAtPrediction: 92,
     });
 
     expect(hasSubmittedVenueFeedback(VENUE.id)).toBe(false);

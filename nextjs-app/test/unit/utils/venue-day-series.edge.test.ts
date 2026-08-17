@@ -29,7 +29,12 @@ import type { VenueDaySeriesEntry } from '@/lib/types/api';
 function fullSeries(): VenueDaySeriesEntry[] {
   const series: VenueDaySeriesEntry[] = [];
   for (let m = PLANNER_START_MINUTES; m <= PLANNER_END_MINUTES; m += PLANNER_STEP_MINUTES) {
-    series.push({ minutes: m, sunExposurePercent: (m / 15) % 100, currentSunStatus: 'Partial' });
+    series.push({
+      minutes: m,
+      sunExposurePercent: (m / 15) % 100,
+      currentSunStatus: 'Partial',
+      weatherGateState: 'not_gated',
+    });
   }
   return series;
 }
@@ -60,8 +65,18 @@ describe('Story 11.1 — deriveVenueSunAtMinutes null/fallback branches', () => 
     // exact-match lookup finds nothing and returns null rather than a wrong
     // neighbouring step.
     const sparse: VenueDaySeriesEntry[] = [
-      { minutes: 12 * 60, sunExposurePercent: 90, currentSunStatus: 'Sunny' },
-      { minutes: 14 * 60, sunExposurePercent: 40, currentSunStatus: 'Shaded' },
+      {
+        minutes: 12 * 60,
+        sunExposurePercent: 90,
+        currentSunStatus: 'Sunny',
+        weatherGateState: 'not_gated',
+      },
+      {
+        minutes: 14 * 60,
+        sunExposurePercent: 40,
+        currentSunStatus: 'Shaded',
+        weatherGateState: 'not_gated',
+      },
     ];
     expect(deriveVenueSunAtMinutes(sparse, 13 * 60)).toBeNull();
   });
@@ -76,12 +91,14 @@ describe('Story 11 (review) — deriveVenueSunAtMinutes carries the per-step sky
         minutes: 13 * 60,
         sunExposurePercent: 80,
         currentSunStatus: 'Sunny',
+        weatherGateState: 'gated',
         skyCondition: 'clear',
       },
       {
         minutes: 14 * 60,
         sunExposurePercent: 10,
         currentSunStatus: 'CloudObscured',
+        weatherGateState: 'not_gated',
         skyCondition: 'overcast',
       },
     ];
@@ -93,7 +110,12 @@ describe('Story 11 (review) — deriveVenueSunAtMinutes carries the per-step sky
     // A series predating the field: derivation still resolves; skyCondition is
     // undefined so the caller leaves the venue`s server value untouched.
     const legacy: VenueDaySeriesEntry[] = [
-      { minutes: 13 * 60, sunExposurePercent: 50, currentSunStatus: 'Partial' },
+      {
+        minutes: 13 * 60,
+        sunExposurePercent: 50,
+        currentSunStatus: 'Partial',
+        weatherGateState: 'not_gated',
+      },
     ];
     const derived = deriveVenueSunAtMinutes(legacy, 13 * 60);
     expect(derived).not.toBeNull();

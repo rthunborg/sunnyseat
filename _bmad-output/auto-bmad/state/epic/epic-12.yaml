@@ -1,0 +1,266 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: epic-12
+epic_num: 12
+story_num: null
+branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
+status: done
+updated_at: "2026-08-07T20:42:54Z"
+started_at: "2026-07-18T11:27:25Z"
+completed_at: "2026-08-07T20:42:54Z"
+active_seconds: 232000
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: local
+base_branch: main
+tea_risk: null
+tea_selected: []
+tea_rationale: null
+epic_story_count: 14
+stories_after_in_epic: null
+completed_phases: [0, 1, 2, 5, 7, 9, 81, 82]
+code_review_iterations: 2
+code_review_loop_done: true
+hitl_halt: "auto-continued (epic - no halt)"
+external_review_iterations: 0
+convergence_unverified: true
+story_trace: null
+commits: [9d89d47, "0748044", 64bc456, b578b18, f6c62ec, a0e9435, 4aa9759, b78f21e, c4b82dc, d11423f, 3b541f0, 5d2ad93, f5e9d83, 3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc, 8f17d33, 72b3d7c, ec167e7, c92242d, "9898151", 73a303c, ff05021, 66eb5d7, 7f5c709, 55bffea, e442fed, ef47622, 6483f7e, "7592112", c3673e1, 9549c7e, bc7b65b, "9346726", 2a21274, b4427d4, d5fd2f3, 5dbaee5, 5fe8bec, e0bc76b, 31d0062, 645a2c0, "3586481", 4d0a2d5, 3df41ff, 1882e29, 2f3749f, 272b46d, 26a1f1e, fa612a7, a5f6eb9, b64da80, 3432eca, baf0d8b, e1194b0, a76905f, 2fd49bb, 4eec7dd, 07b2b8a, 5441d55, 30e841e, 486afdb, e596035, d1bb55b, 2e2dc5b, e234c29, c6fe705, 24f134a, 5da0f82, 4cb5743, 3054b20, 8b83f95, 38ccb18, fa23bf2, f571337, 11325c9, 5829d10, fd970d0, 2a9da16, 6d0d44d, a5f51cc, 439cafe, 32b146e, 67ac36b, 8fedff5, 03e32a4, 9a0f45a, 7d2c676, 58d263e, 0bccfcd, 4561d28, 96bbd73, 4f2e681, 9802db8, cf68b99, 1c04e31, 13e3639, 22e43eb, 7e2a0e4, 541bf1a, d95a663, 218f96c, d4a35ec, a9beae3, 37fa1a0, 6fba046, 5f8eca0, 7da3720, 38b1eec, 18ee246, 7c1fd45, f8d5283, 8c67fe3, 590f19b, a4c2a12, ee1e646, ca0b65b, e58cd5a, d5200a4, 9bee0c4]
+phase8_steps:
+  trace_gate: failed
+  nfr: done
+  test_review: done
+  project_context: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: FAIL
+gate_iterations: 2
+deferred_work_archived: 10
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work:
+  - "[12-3] Protected Story 12.3 production evidence remains: capture the 42+ venue cold-p95 dataset and verify the protected GitHub Production environment when protected access is available."
+  - "[12-7] Apply `20260718214954_add_public_venue_visibility.sql` before deploying Story 12.7 code, then regenerate Supabase types and verify no contract diff."
+  - "[12-12] Apply `20260719000000_venue_media_storage.sql` before hosted venue media is used, then verify protected Supabase Storage bucket/RLS policy behavior with service-role upload and public rendition reads."
+  - "[12-11] Stabilize the mobile future-date exact-response wait in nextjs-app/test/e2e/map-primary.spec.ts; the UI visibly reaches tomorrow while the response predicate can time out under full-suite concurrency."
+blockers: []
+overrides: {}
+constraints:
+  - "Execute Epic 12 in the user-confirmed dependency order: 12-1, 12-3, 12-7, 12-6, 12-13, 12-12, 12-9, 12-4, 12-10, 12-5, 12-8, 12-11, 12-2, 12-14."
+  - "Manual visual acceptance is authorized for every remaining Epic 12 story; every human validation request must include the relevant mobile/desktop visual resources directly in chat."
+epic_slug: real-venue-launch-readiness-perf-trust-hours-console-hygiene
+active_story: null
+stories_landed:
+  - 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
+  - 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
+  - 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number
+  - 12-13-remove-the-user-facing-confidence-indicator-keep-it-internal
+  - 12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes
+  - 12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider
+  - 12-4-production-console-hygiene-hydration-error-maplibre-null-warning
+  - 12-10-venue-detail-preload-instant-mer-info
+  - 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields
+  - 12-8-about-page-pin-legend-so-reads-the-sun-figure
+  - 12-11-first-run-coach-mark-guide-map-legend-feature-tour
+  - 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
+  - 12-14-hide-closed-venues-open-at-selected-time-filter
+auto_decisions:
+  - "[12-7] Adopted the architecture-backed canonical `hidden boolean not null default false` migration/type contract after live/schema probes proved all previously referenced visibility columns absent; no protected database mutation was performed."
+  - "Gate-off public map pins are no longer pixel unchanged [Med] â†’ fix: keep the a11y-safe pin color only with explicit visual rebaseline/acceptance evidence; otherwise move or revert that public pin change out of Story 12.5. (Tier A, 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields)"
+  - "Settings relaunch focus target is unmounted before guide close [Med] â†’ fix: Keep or recreate enough Settings state after the settings-launched guide closes so focus lands back on settings-row-guide rather than the map fallback. (Tier A, 12-11-first-run-coach-mark-guide-map-legend-feature-tour)"
+uat_items:
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify a cold protected-production /api/venues central-viewport request for the 42+ venue dataset returns p95 <= ~5s with logs proving persisted geometry reads and zero request-path shadow/provider recompute."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify missing current geometry_input_hash coverage returns machine-readable 503 SUN_GEOMETRY_COVERAGE_MISSING instead of omitting sunDaySeries or recomputing shadows."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify same-date time scrub makes zero /api/venues requests after initial load."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify changing planner date makes exactly one /api/venues request and does not trigger browser-path provider bursts."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify a weather-bucket change re-gates the same persisted geometry series without changing sunExposurePercent."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify day+3 weather uses retained in-horizon forecast data or explicitly degrades to unknown, never a stale nearest ~48h slice."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify the scheduled action precomputes every live venue for today through today + PLANNER_MAX_FUTURE_DAYS + 1 and records complete run coverage."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify the midnight-roll buffer keeps the newly selectable Stockholm date persisted immediately after local midnight."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify persisted geometry/weather tables and RPCs are service-role-only with no anon or authenticated grants."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify the external quarter-hour warmer path is absent and normal latency does not depend on it."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify protected GitHub Production secrets/variables exist for geometry precompute and weather refresh without committed secrets."
+  - "[12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze] Verify typecheck, lint, full Vitest, focused request-count Playwright, and scheduled-runner bundles remain green."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED DISPOSABLE/PREVIEW SUPABASE REQUIRED] Apply the visibility migration and verify venues.hidden is boolean NOT NULL DEFAULT false, existing/defaulted rows read false, and no query returns 42703."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED LIVE-MODE SUPABASE REQUIRED] A public non-fixture venue resolves by slug and ID on reviews GET with 200, empty reviews, and reviewCount 0."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED LIVE-MODE SUPABASE REQUIRED] Reviews POST by live ID and slug both return 201 and persist the same canonical venue identity."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED LIVE-MODE SUPABASE REQUIRED] Feedback POST by live ID and slug both return 201 and persist the same canonical venue identity."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED DISPOSABLE SUPABASE REQUIRED] Hidden, unknown, and hard-deleted identifiers return non-leaking 404s across reviews/feedback with no persistence writes."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [LOCAL FAULT-INJECTION] Unsafe control-character identifiers return validation 400 before resolver or persistence access."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [LOCAL FIXTURE + MIGRATED DISPOSABLE] A fixture-only slug resolves only in fixture mode and returns 404 in live mode without fallback."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [LOCAL FAULT-INJECTION] Safe identifiers against an unavailable venue store map consistently to 503 on reviews GET/POST and feedback POST."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED DISPOSABLE SUPABASE REQUIRED] ID/slug collisions fail closed with 404 across all three routes and produce no write."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED DISPOSABLE SUPABASE REQUIRED] Sequential absent/public/hidden/public transitions produce 404/200/404/200 without restart, and successful reviews GET remains no-store."
+  - "[12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues] [MIGRATED DISPOSABLE SUPABASE REQUIRED] Precompute target collection projects hidden without 42703 and returns correct isHidden values."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] Start the nextjs-app dev server, use a mobile viewport, complete onboarding if shown, and open /?_state=map-primary&_time=14:00 -> the map shows only amber sun pins with % and grey cloud pins with no number."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On /?_state=map-primary&_time=14:00, inspect a grey cloud pin visually and in the browser accessibility tree -> its name says the venue is \"inte soligt vid vald tid\" and contains no percentage or confidence."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On /?_state=map-primary&_time=14:00, inspect an amber sun pin visually and in the browser accessibility tree -> it keeps the sun icon, seating-sun percentage, and \"soligt vid vald tid\", with no confidence wording."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On mobile, open /?_state=map-with-obscured-venue&_time=14:00 -> cloud-obscured venues use the same grey cloud no-number pin as other not-sunny venues."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On /?_state=map-with-obscured-venue&_time=14:00, inspect the selected venue quick-info card -> it explains \"Sol bakom moln\" while also showing \"Inte soligt vid vald tid\", not amber sunny copy."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On /?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00, compare selected and unselected pins -> selection only emphasizes the pin and does not change sunny/not-sunny meaning."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On /?_state=map-panel-venues&_time=14:00, review the mobile list sorted by \"Mest sol\" -> genuinely sunny venues precede grey/not-sunny venues, and grey cards are not described as sunny."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On /favoriter?_state=favourites-tab&_time=14:00, review saved cards -> sunny cards may show % sol, while grey/not-sunny cards use cloud/not-sunny wording instead of a visible sun percentage."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On desktop, open /?_time=16:30 -> map/list presentation follows the same two-pin rule: amber sun with %, grey cloud with no number."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On desktop, open /?_state=map-with-obscured-venue&_time=14:00 -> obscured venues remain grey cloud no-number pins and selected/adjacent copy does not call them sunny."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] On desktop, open /?venue=test-venue-sunny&_state=venue-detail-obscured&_time=16:30 -> detail copy preserves \"Sol bakom moln\" without turning the map/public verdict into sunny."
+  - "[12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number] Navigate reachable pins with the keyboard -> each pin has a visible focus ring, remains activatable as a button, and has at least a 44x44 px target."
+  - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Mobile viewport, open http://localhost:3000/?_state=map-panel-venues&_time=14:00 -> venue cards show sun/distance/rating/tags and at most one retained sun-exposure value such as 95% sol; no standalone confidence percent, ~NN%, SÃ¤kerhet, or Confidence."
+  - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Mobile viewport, on http://localhost:3000/?_state=map-panel-venues&_time=14:00, inspect the first venue card button in the browser Accessibility panel -> accessible name reads like VÃ¤lj KafÃ© Magasinet, Sol 13:00-18:30, AvstÃ¥nd â€¦ and does not include confidence text or a second percentage."
+  - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Mobile viewport, open http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00 -> QuickInfo shows KafÃ© Magasinet, the amber % SOL badge, opening hours/distance, Visa Rutt, and Mer Info; it does not show or expose SÃ¤kerhet, Confidence, or a confidence percent."
+  - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Mobile viewport, on http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00, inspect QuickInfo in the Accessibility panel -> dialog/button/metadata do not contain hidden confidence text; distance and action labels remain present."
+  - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Mobile viewport, open http://localhost:3000/favoriter?_state=favourites-tab&_time=14:00 -> saved favourite cards render with retained amber N% sol/sun-window content and no secondary confidence chip or hidden confidence label."
+  - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Desktop viewport, open http://localhost:3000/favoriter?_state=favourites-tab&_time=14:00 -> favourites list cards still render, reflow cleanly, and contain no SÃ¤kerhet, Confidence, ~NN%, or standalone confidence percentage."
+  - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Mobile viewport, open http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=14:00 -> venue detail shows the retained sunny hero badge/accessibility label 95% sol, description, hours, distance/address, route and feedback/review areas; no confidence text appears visibly or in the Accessibility panel."
+  - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Desktop viewport, open http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=16:30 -> right-side venue detail panel keeps normal sunny layout and route CTA; no visible or hidden confidence metadata is present."
+  - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Mobile viewport, open http://localhost:3000/?_state=map-with-obscured-venue&_time=14:00 -> map pins use the grey/cloud no-number state, selected QuickInfo shows Sol bakom moln Â· Mulet, and neither pins nor QuickInfo show 95%, SÃ¤kerhet, or Confidence."
+  - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Mobile viewport, open http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail-obscured&_time=14:00 -> detail hero badge is grey/cloud with accessible label Sol bakom moln, the detail block shows Sol bakom moln Â· Mulet, and no % or confidence copy appears on the obscured chrome."
+  - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Desktop viewport, open http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail-obscured&_time=16:30 -> desktop obscured detail matches the same percentage-free grey/weather contract and has no visible or hidden confidence text."
+  - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Open http://localhost:3000/?venue=test-venue-sunny&_time=14:00, click Visa Rutt -> route overlay shows Rutt till KafÃ© Magasinet, walk/bike/direction or fallback map action, no empty separator row, and no SÃ¤kerhet, Confidence, or confidence percentage."
+  - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Open http://localhost:3000/?venue=cafe-halvvags&_time=14:00, click Visa Rutt -> route overlay may show uncertainty copy such as OsÃ¤ker prognos; that row is uncertainty-only and does not include SÃ¤kerhet, Confidence, ~NN%, or a confidence number."
+  - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] Open http://localhost:3000/?venue=test-venue-sunny&_state=feedback&_time=14:00 -> feedback prompt renders normally with Var det soligt nÃ¤r du kom?, answer buttons, note field, and submit action; no confidence copy is shown to the user."
+  - "[12-13-remove-the-user-facing-confidence-indicator-keep-it-internal] With DevTools Network open on http://localhost:3000/?venue=test-venue-sunny&_state=feedback&_time=14:00, submit feedback in local/test dev only -> POST to /api/venues/test-venue-sunny/feedback still includes prediction evidence such as predictedState and hidden confidenceAtPrediction, while the page UI never displays that confidence value."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] With dev server running from nextjs-app, open mobile /?_state=venue-photo-loaded&_time=14:00 -> KafÃ© Magasinet's list card shows a real venue photo, not initials or a broken-image icon."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] On mobile /?_state=venue-photo-loaded&_time=14:00, tap KafÃ© Magasinet -> anchored QuickInfo still uses the designed placeholder by design, not the real photo."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] Open mobile /?venue=test-venue-sunny&_state=venue-photo-loaded&_time=14:00 -> venue detail hero shows the real photo with normal object-cover framing."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] With dev server running from nextjs-app, open desktop /?_state=venue-photo-loaded&_time=16:30, select KafÃ© Magasinet -> desktop QuickInfo shows the real card rendition photo."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] On desktop /?venue=test-venue-sunny&_state=venue-photo-loaded&_time=16:30 -> venue detail panel shows the real hero rendition photo."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] Open mobile /?venue=test-venue-sunny&_state=venue-photo-fallback&_time=14:00 -> detail hero degrades to the branded placeholder; no broken-image icon is visible."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] Open desktop /?_state=venue-photo-fallback&_time=16:30, select KafÃ© Magasinet -> list card and desktop QuickInfo degrade to initials/fallback UI; no broken-image icon is visible."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] With protected Supabase env set in nextjs-app and optimized files available, run node scripts/upload-venue-media.mjs test-venue-sunny v2026-07 ./card.webp ./hero.webp -> script returns JSON with venue-media/test-venue-sunny/v2026-07/card.webp and hero.webp public URLs and does not print the service-role key."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] Re-run the same upload command with the same slug and mediaVersion -> script fails create-only with 'Venue media version already exists' and requires a new mediaVersion."
+  - "[12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes] Run the upload command with a non-WebP/wrongly named/raw-original file such as ./original.jpg or oversized card.webp/hero.webp -> script rejects before upload with a validation error."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] Start `cd nextjs-app && npm run dev`, open mobile 390x844 `/?_state=map-primary&_time=14:00` â†’ the top planner is slim, the time badge sits above the slider, and the mobile date pill shows a calendar icon plus `Idag` with no next-day chevron."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] On mobile `/?_state=map-primary&_time=14:00`, drag the time slider thumb â†’ the `HH:MM` badge follows the thumb and the selected time updates only after release."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] On mobile `/?_state=map-primary&_time=14:00`, tap the date pill â†’ a calendar dialog opens; close it with X, Escape, and backdrop in separate tries â†’ focus returns to the date pill each time."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] On mobile `/?_state=map-primary&_time=14:00`, open the date dialog and choose tomorrow â†’ the dialog closes and the date pill changes to the selected date without showing a separate next-day shortcut."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] Open desktop `/?_state=map-primary&_time=14:00` â†’ the desktop planner layout remains horizontal and still includes the next-day arrow control."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] Open mobile 390x844 `/?_state=map-panel-venues&_time=14:00&_sheetRows=3` â†’ the sheet shows controls/chips plus exactly three complete venue rows, with no half-clipped resting row."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] On mobile `/?_state=map-panel-venues&_sheetRows=3`, slowly drag the sheet handle up and down â†’ the sheet tracks the finger, its bottom stays pinned above the bottom nav, and no bare map strip appears."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] On mobile `/?_state=map-panel-venues&_sheetRows=0` â†’ only the handle is visible; controls, chips, and venue rows are hidden, and the bottom nav remains visible with no map gap."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] From mobile `/?_state=map-panel-venues&_sheetRows=0`, drag the handle upward one row at a time â†’ each release reveals one additional complete venue row."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] From mobile `/?_state=map-panel-venues&_sheetRows=3`, drag downward on a visible venue row while the list is at the top â†’ the sheet settles one row lower, and repeated drags can reach handle-only."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] Open mobile `/?_state=map-panel-venues&_sheetRows=max`, scroll the venue list internally, then drag downward while not at the top â†’ the list scrolls instead of collapsing the sheet."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] Open mobile `/?_state=map-panel-venues&_sheetRows=max` â†’ the sheet caps below the top planner/search area and extra venues scroll inside the sheet."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] On mobile `/?_state=map-panel-venues&_sheetRows=max`, tap a visible venue row â†’ QuickInfo opens and the sheet stays at the same visible height instead of collapsing."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] On mobile `/?_state=map-panel-venues&_sheetRows=1`, focus the sheet handle and press ArrowUp/ArrowDown â†’ the sheet expands/collapses exactly one row per keypress, with a visible focus ring, reaching both max rows and handle-only."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] With browser/OS reduced motion enabled, open mobile `/?_state=map-panel-venues&_sheetRows=2` and drag or use ArrowUp/ArrowDown â†’ row changes still work and no transform-style sheet animation or entrance flash is visible."
+  - "[12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider] On a notched mobile device/simulator, repeat a slow sheet drag from `/?_state=map-panel-venues&_sheetRows=3` â†’ the sheet remains anchored above the safe-area bottom/nav with no exposed map gap."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] Clear `localStorage.sunnyseat_onboarded`, open `/` with DevTools Console open → onboarding appears once, map is visible behind it, and there are no React hydration errors or app-origin console warnings/errors."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] On `/`, click `Hoppa till Göteborgs centrum` → onboarding dismisses, map pins and venue list become usable, and no new app-origin console warning/error appears."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] Set `localStorage.sunnyseat_onboarded=1`, cold-load `/?_time=16:30` on desktop → no onboarding overlay appears, map/list render, and no `/api/venues` request uses stale date `2026-05-20`."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] On mobile viewport, cold-load `/?_state=map-primary&_time=14:00` → map canvas, venue pins, bottom sheet, and Swedish venue list render with no app-origin console warnings/errors."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] On desktop viewport, cold-load `/?_time=16:30` → map canvas, venue pins, desktop venue panel, and time slider render with no app-origin console warnings/errors."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] On mobile viewport, cold-load `/?venue=test-venue-sunny&_state=venue-detail&_time=14:00` → Kafé Magasinet detail sheet opens over the map and no React hydration/page error appears."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] On desktop viewport, cold-load `/?venue=test-venue-sunny&_state=venue-detail&_time=16:30` → Kafé Magasinet right-side detail panel opens over the map and no React hydration/page error appears."
+  - "[12-4-production-console-hygiene-hydration-error-maplibre-null-warning] During the map/detail checks, the only acceptable console noise is the exact OpenFreeMap Positron worker warning `Expected value to be of type number, but found null instead.` or browser WebGL ReadPixels noise; any React, SunnySeat, or main-thread MapLibre warning/error fails UAT."
+  - "[12-10-venue-detail-preload-instant-mer-info] Run the fixture dev server and open a shaded/night venue detail -> the not-sunny verdict contains no numeric percentage and does not fabricate a stale 25% value."
+  - "[12-10-venue-detail-preload-instant-mer-info] Open venue A with Mer info, then click venue B's map pin -> the existing detail surface switches to venue B and the URL venue parameter follows B."
+  - "[12-10-venue-detail-preload-instant-mer-info] With venue detail open, click bare map background -> detail and prior QuickInfo close, leaving the map context clean."
+  - "[12-10-venue-detail-preload-instant-mer-info] Load the map with Network recording -> after initial settle, at most six venue-detail prefetches run with concurrency bounded by the Story 12.10 scheduler and no separate expanded-radius discovery request."
+  - "[12-10-venue-detail-preload-instant-mer-info] After a candidate detail is prefetched, click its Mer info action -> populated detail appears immediately with zero new matching detail request."
+  - "[12-10-venue-detail-preload-instant-mer-info] Select a non-prefetched venue and immediately choose Mer info -> detail adopts the already-started selected-intent request instead of duplicating it."
+  - "[12-10-venue-detail-preload-instant-mer-info] Throttle a cold detail request -> the shell opens immediately with recognizable content beneath the token-grey subtle-blur scrim, spinner, skeletons, and Laddar platsinformation announcement; close/favourite/share remain usable."
+  - "[12-10-venue-detail-preload-instant-mer-info] Release the throttled detail response -> loaded content replaces the placeholders in place and aria-busy clears without replaying the panel entrance."
+  - "[12-10-venue-detail-preload-instant-mer-info] After 21:00 Stockholm time, open the live planner and blur the time slider -> visible and accessible time keep the true live value while only the thumb remains visually clamped to the planner end."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With dev server running without `SUNNYSEAT_ADMIN=dev`, open `http://localhost:3000/?_editor=venues` -> normal map loads with no `Redigera platser` panel and no `/api/dev/venues` data shown."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With production server running even with `SUNNYSEAT_ADMIN=dev`, request `/api/dev/venues` -> response is `404` JSON with `Cache-Control: no-store`."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With non-production dev server running with `SUNNYSEAT_ADMIN=dev` on `localhost`, open `/?_editor=venues` -> `Redigera platser` panel appears with venue selector, hidden toggle, display coordinates, engine coordinates, polygon, tags, description, and thumbnail fields."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, select a venue -> display pin appears on the map and engine latitude/longitude are visible read-only in the panel."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, drag the display pin or use arrow keys on it, then click `Spara` -> save succeeds, `Sparat` appears, and the public pin/location updates while engine latitude/longitude stay unchanged."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, edit display latitude/longitude to non-numeric values and click `Spara` -> inline alert `Kontrollera fälten` appears and no mutation is sent."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, paste a valid closed GeoJSON Polygon or raw `[lng, lat]` ring in `Uteservering` and click `Spara` -> save succeeds and the venue geometry is accepted."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, paste malformed JSON in `Uteservering` and click `Spara` -> save fails with validation feedback and previous polygon remains unchanged."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, paste an unclosed or out-of-Gothenburg polygon and click `Spara` -> save fails with validation feedback and no venue write is applied."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, tick `Dold` for a visible venue and click `Spara` -> save succeeds and venue disappears from public map/list/detail/reviews/feedback after local invalidation or within documented 30-second cache bound."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, select hidden venue, untick `Dold`, and click `Spara` -> save succeeds and venue is visible again."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, set tags to comma-separated values with spaces/duplicates and click `Spara` -> save succeeds and public venue shows trimmed, deduplicated tags."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, edit `Beskrivning` and click `Spara` -> save succeeds and description is available on public detail without editor-only fields."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, enter thumbnail `Bildtext` and `Initialer` plus valid managed `venue-media/{slug}/{version}/card.webp` or `hero.webp` URLs and click `Spara` -> save succeeds and public media surfaces use managed renditions."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, enter a thumbnail legacy external `url` via API or invalid managed media URL and save -> rejected with validation error and no thumbnail update."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, clear both thumbnail `Bildtext` and `Initialer` while keeping a non-null thumbnail edit and save -> rejected because alt and initials required."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With editor open, change a field then click `Återställ` -> edits return to persisted values and `Spara` disabled."
+  - "[12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields] With DevTools Network open during editor list/save -> dev endpoints use `Cache-Control: no-store`, public list/detail retain `public, max-age=30, s-maxage=30, must-revalidate`."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Mobile 390x844 at `/about` → page opens in Swedish with title `Hur fungerar SunnySeat?`, hero image, and `SÅ LÄSER DU KARTAN` before `ALGORITMEN`."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Mobile 390x844 at `/about`, scroll through legend → complete `SÅ LÄSER DU KARTAN` section is readable and not covered by the bottom nav."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Mobile 390x844 at `/about`, inspect amber legend pin → shows amber sun swatch with `70%` and text says more than half the seating is in direct sun at selected time when weather does not block it."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Mobile 390x844 at `/about`, inspect grey legend pin → shows grey cloud swatch with no percent and text says not sunny due to shade, low exposure, clouds, rain, or obstruction."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Mobile 390x844 at `/about`, read legend intro → copy says pins follow selected time: `just nu` by default or planner date/time."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Mobile 390x844 at `/about`, read `70%` explanation → copy says it means about 70% of seating area is sunny at selected time, not a 70% chance of sun."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Desktop 1440x900 at `/about` → page opens in Swedish with the same section order: legend, algorithm, data sources, accuracy, contact."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Desktop 1440x900 at `/about`, inspect legend layout → amber and grey swatches match the mobile semantics and are static content, not clickable pin controls."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Any viewport at `/about`, browser-find `85%` → no match; the old fake public accuracy stat is absent."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Any viewport at `/about`, browser-find `Träffsäkerhet: 85 procent` → no match."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Any viewport at `/about`, inspect `TRÄFFSÄKERHET` → shows `Hur säkra är vi?` prose about getting the sun figure right, `stämmer det?` feedback, and internal confidence only."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Any viewport at `/about`, scan visible copy for confidence indicators → no per-venue `Säkerhet NN%` or `Confidence NN%` number is shown; only permitted internal-confidence prose appears."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Any viewport at `/about`, inspect `DATAKÄLLOR` → shows Lantmäteriet, Göteborgs Stad öppna data, Met.no, Verifierade platsuppgifter, and OpenStreetMap."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Any viewport at `/about`, inspect data-source wording → Google is not named as an hours/source provider and OpenStreetMap is described only as a supplemental pilot."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Any viewport at `/about`, browser-find `EPSG`, `Baskarta`, `DTM`, and `RPC` → no matches in public About copy."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Mobile keyboard/screen-reader pass at `/about` → top wordmark, `← Tillbaka`, privacy link, and `Tillbaka till kartan` are reachable with visible focus and meaningful names."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Desktop keyboard pass at `/about` → privacy link, footer `KONTAKT`, and `Tillbaka till kartan ↗` are reachable with visible focus; legend swatches are skipped as non-interactive content."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Mobile at `/about`, activate `← Tillbaka` or `Tillbaka till kartan` → navigates back to `/`."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] Desktop at `/about`, activate footer `KONTAKT` → scrolls to the contact section; activate `Tillbaka till kartan ↗` → navigates back to `/`."
+  - "[12-8-about-page-pin-legend-so-reads-the-sun-figure] English route, if locale switching is available, open `/en/about` → English mirror renders the same map-reading, 70%-not-probability, data-source, and accuracy-reframe content."
+  - "[12-11-first-run-coach-mark-guide-map-legend-feature-tour] With app running via `cd C:\\Users\\Rasmus\\sunnyseat\\nextjs-app && npm run dev`, set mobile viewport 390x844, run `localStorage.setItem('sunnyseat_onboarded','1'); localStorage.removeItem('sunnyseat_first_run_guide_seen'); location.href='/?_time=14:00'` -> guide auto-opens on \"Kartnålarna\" with focus on the heading, \"Soligt\" and \"Skuggat\" pin examples, and visible \"Hoppa över guide\" plus close button."
+  - "[12-11-first-run-coach-mark-guide-map-legend-feature-tour] With the auto-open guide visible after `localStorage.setItem('sunnyseat_onboarded','1'); localStorage.removeItem('sunnyseat_first_run_guide_seen'); location.href='/?_time=14:00'`, click \"Hoppa över guide\" -> guide closes, `localStorage.getItem('sunnyseat_first_run_guide_seen')` returns `1`, and reload does not auto-show the guide."
+  - "[12-11-first-run-coach-mark-guide-map-legend-feature-tour] With the auto-open guide visible after `localStorage.setItem('sunnyseat_onboarded','1'); localStorage.removeItem('sunnyseat_first_run_guide_seen'); location.href='/?_time=14:00'`, click \"Stäng guide\" -> guide closes in one action and the seen flag is persisted."
+  - "[12-11-first-run-coach-mark-guide-map-legend-feature-tour] With app running and `localStorage.setItem('sunnyseat_onboarded','1'); localStorage.setItem('sunnyseat_first_run_guide_seen','1'); location.href='/?_time=14:00'`, open Inställningar and click \"Visa guide igen\" -> Settings closes and the guide opens at \"Kartnålarna\" despite the seen flag."
+  - "[12-11-first-run-coach-mark-guide-map-legend-feature-tour] With a Settings-launched guide open from `/?_time=14:00`, click \"Stäng guide\" -> Settings reopens and keyboard focus returns to the \"Visa guide igen\" row."
+  - "[12-11-first-run-coach-mark-guide-map-legend-feature-tour] With mobile viewport 390x844 and `localStorage.setItem('sunnyseat_onboarded','1'); localStorage.setItem('sunnyseat_first_run_guide_seen','1'); location.href='/?_state=coach-mark-first&_time=14:00'`, click \"Nästa\" through the guide -> each step appears in order for time, date, tags, venue list, and favourites, with \"Tillbaka\" enabled after the first step and \"Klart\" closing the final step."
+  - "[12-11-first-run-coach-mark-guide-map-legend-feature-tour] With desktop viewport 1440x900 and `localStorage.setItem('sunnyseat_onboarded','1'); localStorage.setItem('sunnyseat_first_run_guide_seen','1'); location.href='/?_state=coach-mark-first&_time=16:30'`, inspect the first guide step -> card and highlight align to the real map surface, no text/button clipping occurs, Skip is centered above Back/Next, Back is left, and Next is right."
+  - "[12-11-first-run-coach-mark-guide-map-legend-feature-tour] With mobile viewport 390x844 and `localStorage.setItem('sunnyseat_onboarded','1'); localStorage.setItem('sunnyseat_first_run_guide_seen','1'); location.href='/?_state=coach-mark-middle&_time=14:00'` -> guide opens on \"Välj tid\", highlights the mounted time planner, shows the date trigger on screen, and does not open any detail or feedback surface."
+  - "[12-11-first-run-coach-mark-guide-map-legend-feature-tour] With desktop viewport 1440x900 and `localStorage.setItem('sunnyseat_onboarded','1'); localStorage.setItem('sunnyseat_first_run_guide_seen','1'); location.href='/?_state=coach-mark-middle&_time=16:30'` -> guide opens on \"Välj tid\" anchored to the desktop planner controls, with the venue list panel still stable."
+  - "[12-11-first-run-coach-mark-guide-map-legend-feature-tour] With `/?_state=coach-mark-first&_time=14:00` open, advance to \"Jämför listan\" -> copy mentions answering whether the sun matched, but no \"Stämmer det?\" feedback control, venue detail sheet/panel, or `venue=` URL appears."
+  - "[12-11-first-run-coach-mark-guide-map-legend-feature-tour] With any guide step open, press `Tab` repeatedly -> focus cycles only through guide controls; press `Escape` -> the guide closes."
+  - "[12-11-first-run-coach-mark-guide-map-legend-feature-tour] With two tabs open to `/?_time=14:00` after running `localStorage.setItem('sunnyseat_onboarded','1'); localStorage.removeItem('sunnyseat_first_run_guide_seen')` in each tab, click \"Hoppa över guide\" in one tab -> the guide closes in the other tab through the shared seen flag."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] Start `cd nextjs-app && npm run dev`, open `http://localhost:3000/?venue=test-venue-sunny&_state=feedback&_time=14:00`, answer “Ja”, submit → the prompt shows “Tack för din feedback.” and no confidence percentage is shown."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] With the dev server running, POST valid JSON to `http://localhost:3000/api/venues/test-venue-sunny/feedback` including `predictedState:\"Sunny\"`, `sunExposurePercent:95`, `publicSunVerdict:\"amber\"`, `weatherGated:false`, `weatherUnknown:false`, a valid `geometryInputHash`, and `sunAccuracy:\"sunny\"` → response is `201` and echoes the evidence fields."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] POST the same endpoint with `sunExposurePercent:50`, `publicSunVerdict:\"grey\"`, and `sunAccuracy:\"not_sunny\"` → response is `201`."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] POST the same endpoint with `predictedState:\"CloudObscured\"`, `sunExposurePercent:95`, `publicSunVerdict:\"grey\"`, `weatherGated:true`, `weatherUnknown:false`, and `sunAccuracy:\"not_sunny\"` → response is `201`."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] POST the same endpoint with `weatherGated:true` and `weatherUnknown:true` → response is `400`."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] POST the same endpoint with contradictory evidence, for example `sunExposurePercent:95`, `weatherGated:false`, `weatherUnknown:false`, and `publicSunVerdict:\"grey\"` → response is `400`."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] POST `http://localhost:3000/api/venues/missing-venue/feedback` with an otherwise valid body → response is `404`."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] POST `http://localhost:3000/api/venues/test-venue-sunny/feedback` with body `venueId:\"wrong-id\"` and otherwise valid evidence → response is `409`."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] In a Supabase-configured local or protected environment, run `cd nextjs-app && $env:FEEDBACK_ACCURACY_MIN_SAMPLES=3; npx tsx scripts/feedback-accuracy-report.ts` → JSON includes ranked `areas` and `venues` with agreement/disagreement, stale, legacy, invalid, unsure, and current-hash fields."
+  - "[12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass] In Vercel Production environment variables, confirm `SUNNYSEAT_COVERAGE_CAP` is absent → the removed bypass cannot be enabled."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Start fixture dev mode and open /?_time=14:00 -> Kafé Magasinet is visible in discovery and does not show Stängt vid vald tid."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Open /?_time=09:00 on desktop and search Kafé -> Kafé Magasinet is excluded as a partial closed match."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Open /?_time=09:00 and search exact Kafé Magasinet -> the exact result remains and is labelled Stängt vid vald tid."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Click the exact closed result -> detail opens with Stängt vid vald tid, no open badge/hours, and no venue map pin."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Open /favoriter?_state=map-selected-time-closed&_time=09:00 -> the saved venue remains actionable and labelled Stängt vid vald tid."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Click the closed favourite -> detail opens with the closed label and does not restore a map pin."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Open /?_time=09:00 -> unknown-hours Brygghuset Lerum remains visible and is not labelled closed."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Open /?venue=test-venue-sunny&_time=14:00 -> detail shows planned-time open copy with the closing time."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Scrub the same date from 14:00 to 09:00 with Network open -> no new venues or weather requests occur after settle."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Change the planner date to tomorrow with Network open -> exactly one new venue-list request occurs after settle."
+  - "[12-14-hide-closed-venues-open-at-selected-time-filter] Request /api/venues with 51 ids -> response is 400 with the at-most-50 validation error."
+preexisting_done_stories:
+  - 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
+adopt_verdicts:
+  - "12-1 skipped: already done"
+  - 12-2 through 12-14 queued fresh from backlog
+story_execution_order:
+  - 12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours
+  - 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
+  - 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
+  - 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number
+  - 12-13-remove-the-user-facing-confidence-indicator-keep-it-internal
+  - 12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes
+  - 12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider
+  - 12-4-production-console-hygiene-hydration-error-maplibre-null-warning
+  - 12-10-venue-detail-preload-instant-mer-info
+  - 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields
+  - 12-8-about-page-pin-legend-so-reads-the-sun-figure
+  - 12-11-first-run-coach-mark-guide-map-legend-feature-tour
+  - 12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass
+  - 12-14-hide-closed-venues-open-at-selected-time-filter
+story_order_cursor: 12-14-hide-closed-venues-open-at-selected-time-filter
+order_override_reason: User-confirmed dependency order keeps prerequisite contracts ahead of their consumers while preserving Story 12-14 as the epic-end story.

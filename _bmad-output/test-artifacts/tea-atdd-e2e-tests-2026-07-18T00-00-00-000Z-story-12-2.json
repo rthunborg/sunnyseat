@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "subagent": "atdd-e2e-tests",
+  "tests": [
+    {
+      "file": "nextjs-app/test/e2e/story-12-2-feedback-evidence.atdd.spec.ts",
+      "description": "ATDD E2E scaffolds for browser feedback evidence submission and no visible confidence regression.",
+      "expected_to_fail": true,
+      "acceptance_criteria_covered": ["AC2", "AC3", "AC7"],
+      "priority_coverage": { "P0": 1, "P1": 1, "P2": 0, "P3": 0 }
+    }
+  ],
+  "fixture_needs": ["feedbackForcedState", "feedbackEvidenceRouteMock"],
+  "knowledge_fragments_used": ["selector-resilience", "timing-debugging", "test-quality", "playwright-cli", "intercept-network-call"],
+  "test_count": 2,
+  "tdd_phase": "RED",
+  "summary": "Generated 2 skipped red-phase E2E scaffolds for Story 12.2."
+}
+

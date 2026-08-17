@@ -341,6 +341,11 @@ Opening-hours review is not a Vercel cron. Inspect the protected GitHub
 `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` configuration belongs to the
 GitHub `production` environment.
 
+Sun geometry precompute and weather snapshot refresh also run as protected
+GitHub Actions, not Vercel cron endpoints. Inspect
+`Sun Geometry And Weather Snapshots`, `SUN_GEOMETRY_PRECOMPUTE_ENABLED`, and
+`SUN_WEATHER_REFRESH_ENABLED` before debugging `/api/venues` latency.
+
 ### Performance Issues
 
 1. **Build Optimization**: Review build output size

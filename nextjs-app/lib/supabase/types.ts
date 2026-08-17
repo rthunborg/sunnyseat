@@ -37,41 +37,56 @@ export type Database = {
         Row: {
           confidence_at_prediction: number | null
           created_at: string
+          geometry_input_hash: string | null
           id: string
           note: string | null
           outdoor_seating_confirmed: boolean | null
           predicted_state: string
+          public_sun_verdict: 'amber' | 'grey' | null
           sun_accuracy: string | null
+          sun_exposure_percent: number | null
           user_timestamp: string
           venue_id: string
           venue_slug: string
           was_sunny: boolean | null
+          weather_gated: boolean | null
+          weather_unknown: boolean | null
         }
         Insert: {
           confidence_at_prediction?: number | null
           created_at?: string
+          geometry_input_hash?: string | null
           id?: string
           note?: string | null
           outdoor_seating_confirmed?: boolean | null
           predicted_state: string
+          public_sun_verdict?: 'amber' | 'grey' | null
           sun_accuracy?: string | null
+          sun_exposure_percent?: number | null
           user_timestamp: string
           venue_id: string
           venue_slug: string
           was_sunny?: boolean | null
+          weather_gated?: boolean | null
+          weather_unknown?: boolean | null
         }
         Update: {
           confidence_at_prediction?: number | null
           created_at?: string
+          geometry_input_hash?: string | null
           id?: string
           note?: string | null
           outdoor_seating_confirmed?: boolean | null
           predicted_state?: string
+          public_sun_verdict?: 'amber' | 'grey' | null
           sun_accuracy?: string | null
+          sun_exposure_percent?: number | null
           user_timestamp?: string
           venue_id?: string
           venue_slug?: string
           was_sunny?: boolean | null
+          weather_gated?: boolean | null
+          weather_unknown?: boolean | null
         }
         Relationships: []
       }
@@ -443,14 +458,186 @@ export type Database = {
         }
         Relationships: []
       }
+      geometry_precompute_runs: {
+        Row: {
+          duration_ms: number | null
+          expected_venue_days: number
+          failed_venue_days: number
+          failure_details: Json
+          finished_at: string | null
+          geometry_input_hash: string | null
+          heartbeat_at: string
+          id: string
+          lease_expires_at: string
+          missing_venue_days: number
+          reused_venue_days: number
+          stale_hash_venue_days: number
+          started_at: string
+          status: string
+          trigger_type: string
+          window_end: string
+          window_start: string
+          written_venue_days: number
+        }
+        Insert: {
+          duration_ms?: number | null
+          expected_venue_days?: number
+          failed_venue_days?: number
+          failure_details?: Json
+          finished_at?: string | null
+          geometry_input_hash?: string | null
+          heartbeat_at?: string
+          id: string
+          lease_expires_at?: string
+          missing_venue_days?: number
+          reused_venue_days?: number
+          stale_hash_venue_days?: number
+          started_at?: string
+          status?: string
+          trigger_type: string
+          window_end: string
+          window_start: string
+          written_venue_days?: number
+        }
+        Update: {
+          duration_ms?: number | null
+          expected_venue_days?: number
+          failed_venue_days?: number
+          failure_details?: Json
+          finished_at?: string | null
+          geometry_input_hash?: string | null
+          heartbeat_at?: string
+          id?: string
+          lease_expires_at?: string
+          missing_venue_days?: number
+          reused_venue_days?: number
+          stale_hash_venue_days?: number
+          started_at?: string
+          status?: string
+          trigger_type?: string
+          window_end?: string
+          window_start?: string
+          written_venue_days?: number
+        }
+        Relationships: []
+      }
+      venue_geometry_inputs: {
+        Row: {
+          building_run_id: string | null
+          current_geometry_input_hash: string | null
+          current_input: Json | null
+          dirty_reason: string | null
+          pending_geometry_input_hash: string | null
+          pending_input: Json | null
+          ready_at: string | null
+          status: string
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          building_run_id?: string | null
+          current_geometry_input_hash?: string | null
+          current_input?: Json | null
+          dirty_reason?: string | null
+          pending_geometry_input_hash?: string | null
+          pending_input?: Json | null
+          ready_at?: string | null
+          status?: string
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          building_run_id?: string | null
+          current_geometry_input_hash?: string | null
+          current_input?: Json | null
+          dirty_reason?: string | null
+          pending_geometry_input_hash?: string | null
+          pending_input?: Json | null
+          ready_at?: string | null
+          status?: string
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: []
+      }
+      venue_sun_geometry_series: {
+        Row: {
+          created_at: string
+          geometry_input_hash: string
+          input_payload: Json | null
+          run_id: string | null
+          series: Json
+          stockholm_date: string
+          updated_at: string
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string
+          geometry_input_hash: string
+          input_payload?: Json | null
+          run_id?: string | null
+          series: Json
+          stockholm_date: string
+          updated_at?: string
+          venue_id: string
+        }
+        Update: {
+          created_at?: string
+          geometry_input_hash?: string
+          input_payload?: Json | null
+          run_id?: string | null
+          series?: Json
+          stockholm_date?: string
+          updated_at?: string
+          venue_id?: string
+        }
+        Relationships: []
+      }
+      weather_bucket_snapshots: {
+        Row: {
+          bucket_key: string
+          coordinate_bucket: string
+          expires_at: string
+          refreshed_at: string
+          run_id: string | null
+          slices: Json
+          stockholm_date: string
+          weather_updated_at: string | null
+        }
+        Insert: {
+          bucket_key: string
+          coordinate_bucket: string
+          expires_at: string
+          refreshed_at?: string
+          run_id?: string | null
+          slices: Json
+          stockholm_date: string
+          weather_updated_at?: string | null
+        }
+        Update: {
+          bucket_key?: string
+          coordinate_bucket?: string
+          expires_at?: string
+          refreshed_at?: string
+          run_id?: string | null
+          slices?: Json
+          stockholm_date?: string
+          weather_updated_at?: string | null
+        }
+        Relationships: []
+      }
       venues: {
         Row: {
           address: string | null
           confidence: number
           created_at: string
           current_sun_status: string
+          deleted_at: string | null
           description: string | null
+          display_lat: number | null
+          display_lng: number | null
           ground_elevation_m: number | null
+          hidden: boolean
           hours_last_error_class: string | null
           hours_next_review_at: string | null
           hours_notes: string | null
@@ -483,8 +670,12 @@ export type Database = {
           confidence: number
           created_at?: string
           current_sun_status: string
+          deleted_at?: string | null
           description?: string | null
+          display_lat?: number | null
+          display_lng?: number | null
           ground_elevation_m?: number | null
+          hidden?: boolean
           hours_last_error_class?: string | null
           hours_next_review_at?: string | null
           hours_notes?: string | null
@@ -517,8 +708,12 @@ export type Database = {
           confidence?: number
           created_at?: string
           current_sun_status?: string
+          deleted_at?: string | null
           description?: string | null
+          display_lat?: number | null
+          display_lng?: number | null
           ground_elevation_m?: number | null
+          hidden?: boolean
           hours_last_error_class?: string | null
           hours_next_review_at?: string | null
           hours_notes?: string | null
@@ -721,6 +916,83 @@ export type Database = {
             }
             Returns: string
           }
+      claim_geometry_precompute_run: {
+        Args: {
+          p_expected_venue_days: number
+          p_geometry_input_hash: string | null
+          p_lease_seconds?: number
+          p_run_id: string
+          p_trigger_type: string
+          p_window_end: string
+          p_window_start: string
+        }
+        Returns: boolean
+      }
+      fail_geometry_precompute_run: {
+        Args: {
+          p_failure_details?: Json
+          p_run_id: string
+        }
+        Returns: boolean
+      }
+      finish_geometry_precompute_run: {
+        Args: {
+          p_failed_venue_days: number
+          p_failure_details?: Json
+          p_missing_venue_days: number
+          p_reused_venue_days: number
+          p_run_id: string
+          p_stale_hash_venue_days: number
+          p_written_venue_days: number
+        }
+        Returns: boolean
+      }
+      heartbeat_geometry_precompute_run: {
+        Args: {
+          p_lease_seconds?: number
+          p_run_id: string
+        }
+        Returns: boolean
+      }
+      is_valid_geometry_input_hash: { Args: { value: string }; Returns: boolean }
+      is_valid_sun_geometry_series: { Args: { value: Json }; Returns: boolean }
+      mark_venue_geometry_dirty: {
+        Args: {
+          p_reason?: string
+          p_venue_id: string
+        }
+        Returns: boolean
+      }
+      apply_dev_venue_editor_patch: {
+        Args: {
+          p_dirty_reason?: string
+          p_display_lat?: number | null
+          p_display_lng?: number | null
+          p_hidden?: boolean | null
+          p_seating_area?: Json | null
+          p_tags?: string[] | null
+          p_description?: string | null
+          p_thumbnail?: Json | null
+          p_update_description?: boolean
+          p_update_display_coordinates?: boolean
+          p_update_hidden?: boolean
+          p_update_seating_area?: boolean
+          p_update_tags?: boolean
+          p_update_thumbnail?: boolean
+          p_venue_id: string
+        }
+        Returns: boolean
+      }
+      publish_venue_geometry_generation: {
+        Args: {
+          p_geometry_input_hash: string
+          p_input_payload: Json
+          p_run_id: string
+          p_series_by_date: Json
+          p_venue_id: string
+        }
+        Returns: boolean
+      }
       apply_hours_remediation_batch: {
         Args:
           | { p_requests: Json; p_run_id: string }
@@ -976,6 +1248,28 @@ export type Database = {
           SourceFlags: string[]
           SourceObjectMetadata: Json
           SourcePriority: number
+        }[]
+      }
+      get_shadow_caster_hash_records: {
+        Args: {
+          p_latitude: number
+          p_longitude: number
+          p_radius_meters?: number
+        }
+        Returns: {
+          caster_class: string | null
+          filter_decision: string | null
+          footprint_ewkb_hex: string
+          ground_z_rh2000: number | null
+          height_m: number
+          id: number
+          import_generation: string | null
+          provenance_metadata: Json | null
+          roof_z_rh2000: number | null
+          shadow_caster_tier: string | null
+          source_flags: string[]
+          source_object_metadata: Json | null
+          source_priority: number | null
         }[]
       }
       gettransactionid: { Args: never; Returns: unknown }

@@ -41,13 +41,13 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { PLANNER_START_MINUTES, PLANNER_END_MINUTES, PLANNER_STEP_MINUTES } from '@/lib/utils/time-planner';
-import type { VenueSunStatus } from '@/lib/types/api';
+import type { VenueDaySeriesEntry, VenueSunStatus } from '@/lib/types/api';
 
 // GREEN PHASE (Story 11.1 Task 4): the real pure client helper.
 import { deriveVenueSunAtMinutes as deriveOrNull } from '@/lib/utils/venue-day-series';
 
 type DerivedSun = { sunExposurePercent: number; currentSunStatus: VenueSunStatus };
-type DaySeriesEntry = { minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus };
+type DaySeriesEntry = VenueDaySeriesEntry;
 // The helper returns `null` when the step has no entry (caller falls back to the
 // server single-instant fields). These fixtures always contain the queried step,
 // so wrap to the non-null contract the ATDD assertions expect.
@@ -70,15 +70,20 @@ const deriveVenueSunAtMinutes = (
 // not only "now"), a Shaded step, and a NoSun step.
 function fixedGatedSeries(): DaySeriesEntry[] {
   const byStep = new Map<number, Omit<DaySeriesEntry, 'minutes'>>([
-    [12 * 60, { sunExposurePercent: 95, currentSunStatus: 'Sunny' }], // 12:00 clear sunlit
-    [13 * 60, { sunExposurePercent: 95, currentSunStatus: 'CloudObscured' }], // 13:00 same geometry, gated by cloud/rain
-    [17 * 60, { sunExposurePercent: 20, currentSunStatus: 'Shaded' }], // 17:00 building shadow
-    [20 * 60, { sunExposurePercent: 0, currentSunStatus: 'NoSun' }], // 20:00 sun down
+    [12 * 60, { sunExposurePercent: 95, currentSunStatus: 'Sunny', weatherGateState: 'not_gated' }], // 12:00 clear sunlit
+    [13 * 60, { sunExposurePercent: 95, currentSunStatus: 'CloudObscured', weatherGateState: 'gated' }], // 13:00 same geometry, gated by cloud/rain
+    [17 * 60, { sunExposurePercent: 20, currentSunStatus: 'Shaded', weatherGateState: 'not_gated' }], // 17:00 building shadow
+    [20 * 60, { sunExposurePercent: 0, currentSunStatus: 'NoSun', weatherGateState: 'not_gated' }], // 20:00 sun down
   ]);
   const series: DaySeriesEntry[] = [];
   for (let m = PLANNER_START_MINUTES; m <= PLANNER_END_MINUTES; m += PLANNER_STEP_MINUTES) {
     const hit = byStep.get(m);
-    series.push({ minutes: m, sunExposurePercent: hit?.sunExposurePercent ?? 60, currentSunStatus: hit?.currentSunStatus ?? 'Partial' });
+    series.push({
+      minutes: m,
+      sunExposurePercent: hit?.sunExposurePercent ?? 60,
+      currentSunStatus: hit?.currentSunStatus ?? 'Partial',
+      weatherGateState: hit?.weatherGateState ?? 'not_gated',
+    });
   }
   return series;
 }

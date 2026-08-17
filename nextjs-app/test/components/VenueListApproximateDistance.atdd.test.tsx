@@ -58,6 +58,7 @@ function makeVenue(overrides: Partial<VenueDataDto> = {}): VenueDataDto {
     neighborhood: 'Centrum',
     location: { lat: 57.7, lng: 11.97 },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     isPartner: false,
     confidence: 90,
     distanceMeters: 250,

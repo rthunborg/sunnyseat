@@ -1,0 +1,30 @@
+[
+  {
+    "screen": "map-primary",
+    "route": "/?_state=map-primary&_time=14:00",
+    "viewport": "mobile",
+    "exitCode": 0,
+    "log": "wrapper-map-primary-mobile.log"
+  },
+  {
+    "screen": "map-primary",
+    "route": "/?_time=16:30",
+    "viewport": "desktop",
+    "exitCode": 0,
+    "log": "wrapper-map-primary-desktop.log"
+  },
+  {
+    "screen": "venue-detail",
+    "route": "/?venue=test-venue-sunny&_state=venue-detail&_time=14:00",
+    "viewport": "mobile",
+    "exitCode": 0,
+    "log": "wrapper-venue-detail-mobile.log"
+  },
+  {
+    "screen": "venue-detail",
+    "route": "/?venue=test-venue-sunny&_state=venue-detail&_time=16:30",
+    "viewport": "desktop",
+    "exitCode": 0,
+    "log": "wrapper-venue-detail-desktop.log"
+  }
+]

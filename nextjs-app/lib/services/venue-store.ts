@@ -23,6 +23,9 @@ import type {
 } from '@/lib/types/api';
 import type { SkyCondition } from '@/lib/types/design-tokens';
 
+const UNSAFE_PUBLIC_VENUE_IDENTIFIER_PATTERN =
+  /[\u0000-\u001F\u007F-\u009F]/u;
+
 /**
  * Detail attributes served only by `/api/venues/[slug]`. Kept separate from the
  * list DTO: the route pipeline spreads `...venue`, so folding these into the
@@ -67,6 +70,13 @@ function everyDay(open: string, close: string): WeeklyOpeningHours {
  * byte-identical because launch venues leave it null → footprint fallback).
  */
 export type StoredVenueServerOnly = {
+  /**
+   * Canonical persisted venue point from `venues.lat/lng`. Public `location`
+   * may be the display-only pin coordinate (`display_lat/display_lng`), but
+   * weather and geometry fallbacks must continue to use this engine point.
+   * Server-only and never serialized into the DTO.
+   */
+  engineLocation?: VenueDataDto['location'];
   seatingArea?: GeoJSON.Polygon;
   /**
    * Metres the venue's outdoor seating surface sits above its own local ground
@@ -149,6 +159,11 @@ export const VENUE_SELECT_COLUMNS = [
   'neighborhood',
   'lat',
   'lng',
+  // Story 12.5: display-only public pin coordinates. When absent, public DTO
+  // location falls back to `lat/lng`; sun/weather engine fallbacks use the
+  // server-only engineLocation populated from `lat/lng`.
+  'display_lat',
+  'display_lng',
   'is_partner',
   'thumbnail',
   'description',
@@ -178,6 +193,13 @@ export const VENUE_SELECT_COLUMNS = [
   'ground_elevation_m',
 ].join(', ');
 
+export const PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS = [
+  VENUE_SELECT_COLUMNS,
+  // Story 12.7 canonical public guard, server-only and never mapped to the DTO.
+  'hidden',
+  'deleted_at',
+].join(', ');
+
 type VenueRow = {
   id?: string | null;
   slug?: string | null;
@@ -185,6 +207,8 @@ type VenueRow = {
   neighborhood?: string | null;
   lat?: number | null;
   lng?: number | null;
+  display_lat?: number | null;
+  display_lng?: number | null;
   is_partner?: boolean | null;
   thumbnail?: VenueDataDto['thumbnail'] | null;
   description?: string | null;
@@ -209,6 +233,10 @@ type VenueRow = {
   // Server-only RH2000 absolute ground Z at the venue point (Story 8.7); may be
   // negative; never in the DTO.
   ground_elevation_m?: number | null;
+  // Story 12.7 canonical public visibility field. Server-only and intentionally
+  // excluded from VENUE_SELECT_COLUMNS / public DTO projection.
+  hidden?: boolean | null;
+  deleted_at?: string | null;
 };
 
 /**
@@ -251,6 +279,34 @@ export async function getVenueBySlug(slug: string): Promise<StoredVenue | null> 
   return readSupabaseVenueBySlug(normalized);
 }
 
+/**
+ * Story 12.7 public identity guard for routes that accept either a venue id or
+ * slug. In live mode this is the single Supabase lookup used by reviews and
+ * feedback; fixture fallback exists only when the venue store itself is not in
+ * Supabase mode.
+ */
+export async function resolvePublicVenueIdentifier(
+  identifier: string,
+): Promise<StoredVenue | null> {
+  if (!isSafePublicVenueIdentifier(identifier)) return null;
+  const normalized = identifier.trim();
+  if (!usesSupabaseVenueStore()) {
+    return buildInMemorySeed().find(matchesPublicVenueIdentifier(normalized)) ?? null;
+  }
+  if (!hasSupabaseServiceRoleConfig()) {
+    throw new Error(
+      'Venue store is configured for Supabase but credentials are incomplete',
+    );
+  }
+  return readSupabasePublicVenueByIdentifier(normalized);
+}
+
+/** Shared route/store guard for identifiers before they reach PostgREST. */
+export function isSafePublicVenueIdentifier(identifier: string): boolean {
+  return identifier.trim().length > 0 &&
+    !UNSAFE_PUBLIC_VENUE_IDENTIFIER_PATTERN.test(identifier);
+}
+
 /** Strip the detail block, yielding the base list DTO shape. */
 export function toVenueData(venue: StoredVenue): VenueDataDto {
   const base: VenueDataDto = {
@@ -262,6 +318,7 @@ export function toVenueData(venue: StoredVenue): VenueDataDto {
     neighborhood: venue.neighborhood,
     location: venue.location,
     currentSunStatus: venue.currentSunStatus,
+    weatherGateState: venue.weatherGateState,
     isPartner: venue.isPartner,
     confidence: venue.confidence,
     distanceMeters: venue.distanceMeters,
@@ -341,24 +398,74 @@ async function readSupabaseVenues(): Promise<StoredVenue[]> {
   const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
   const { data, error } = await getSupabaseServiceRole()
     .from('venues')
-    .select(VENUE_SELECT_COLUMNS);
+    .select(PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS)
+    .eq('hidden', false)
+    .is('deleted_at', null);
   if (error) {
     throw new Error(`Venue store failed: ${error.message}`);
   }
-  return ((data ?? []) as VenueRow[]).map(fromVenueRow);
+  return ((data ?? []) as VenueRow[])
+    .filter(isPublicVenueRow)
+    .map(fromVenueRow);
 }
 
 async function readSupabaseVenueBySlug(slug: string): Promise<StoredVenue | null> {
   const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
   const { data, error } = await getSupabaseServiceRole()
     .from('venues')
-    .select(VENUE_SELECT_COLUMNS)
+    .select(PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS)
     .eq('slug', slug)
+    .eq('hidden', false)
+    .is('deleted_at', null)
     .maybeSingle();
   if (error) {
     throw new Error(`Venue store failed: ${error.message}`);
   }
   return data ? fromVenueRow(data as VenueRow) : null;
+}
+
+async function readSupabasePublicVenueByIdentifier(
+  identifier: string,
+): Promise<StoredVenue | null> {
+  const operand = postgrestOrFilterValue(identifier);
+  const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
+  const { data, error } = await getSupabaseServiceRole()
+    .from('venues')
+    .select(PUBLIC_VENUE_RESOLVER_SELECT_COLUMNS)
+    .or(`id.eq.${operand},slug.eq.${operand}`)
+    .eq('hidden', false)
+    .is('deleted_at', null)
+    .limit(2);
+  if (error) {
+    throw new Error(`Venue store failed: ${error.message}`);
+  }
+
+  const rows = (data ?? []) as VenueRow[];
+  if (rows.length !== 1) return null;
+  const row = rows[0];
+  if (!isPublicVenueRow(row)) return null;
+  return fromVenueRow(row);
+}
+
+function matchesPublicVenueIdentifier(identifier: string) {
+  return (candidate: StoredVenue) =>
+    candidate.id === identifier ||
+    candidate.venueId === identifier ||
+    candidate.slug === identifier ||
+    candidate.venueSlug === identifier;
+}
+
+function isPublicVenueRow(row: VenueRow): boolean {
+  return row.hidden === false && row.deleted_at == null;
+}
+
+/**
+ * Quote + escape a value for a PostgREST `.or()` operand. Public route
+ * identifiers are user-controlled; double-quoting keeps commas, dots, parens,
+ * quotes, and backslashes literal inside the id/slug equality filters.
+ */
+function postgrestOrFilterValue(value: string): string {
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
 // STORY 10.1 (AC4, Task 1): the DB `coerceSunStatus` allow-list, typed
@@ -419,7 +526,9 @@ function fromVenueRow(row: VenueRow): StoredVenue {
       `Venue store failed: venue ${id} has invalid coordinates (lat=${formatBadValue(row.lat)}, lng=${formatBadValue(row.lng)})`,
     );
   }
+  const displayLocation = displayLocationFromRow(row, id, lat, lng);
   const skyCondition = coerceSkyCondition(row.sky_condition);
+  const currentSunStatus = coerceSunStatus(row.current_sun_status);
   const seatingArea = coerceSeatingArea(row.seating_area);
   const seatingElevationM = coerceSeatingElevation(row.seating_elevation_m);
   const groundElevationM = coerceGroundElevation(row.ground_elevation_m);
@@ -430,8 +539,12 @@ function fromVenueRow(row: VenueRow): StoredVenue {
     venueSlug: slug,
     slug,
     neighborhood: row.neighborhood ?? '',
-    location: { lat, lng },
-    currentSunStatus: coerceSunStatus(row.current_sun_status),
+    location: displayLocation,
+    engineLocation: { lat, lng },
+    currentSunStatus,
+    // Stored seed-era sky/status fields are not an authoritative weather-gate
+    // contract. The real engine replaces this value; until then, fail closed.
+    weatherGateState: 'unknown',
     isPartner: Boolean(row.is_partner),
     confidence: numberOr(row.confidence, 0),
     distanceMeters: 0,
@@ -449,6 +562,30 @@ function fromVenueRow(row: VenueRow): StoredVenue {
     ...detailFromRow(row),
   };
   return stored;
+}
+
+function displayLocationFromRow(
+  row: VenueRow,
+  id: string,
+  fallbackLat: number,
+  fallbackLng: number,
+): VenueDataDto['location'] {
+  const hasDisplayLat = row.display_lat !== null && row.display_lat !== undefined;
+  const hasDisplayLng = row.display_lng !== null && row.display_lng !== undefined;
+  if (!hasDisplayLat && !hasDisplayLng) {
+    return { lat: fallbackLat, lng: fallbackLng };
+  }
+  if (!hasDisplayLat || !hasDisplayLng) {
+    throw new Error(
+      `Venue store failed: venue ${id} has incomplete display coordinates`,
+    );
+  }
+  if (!isFiniteNumber(row.display_lat) || !isFiniteNumber(row.display_lng)) {
+    throw new Error(
+      `Venue store failed: venue ${id} has invalid display coordinates`,
+    );
+  }
+  return { lat: row.display_lat, lng: row.display_lng };
 }
 
 /**

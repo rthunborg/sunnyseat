@@ -1,0 +1,172 @@
+SunnySeat story review gate
+Story: 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number-review-20260719-143731.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+Not implemented: navigation to another Document
+
+ Test Files  189 passed | 2 skipped (191)
+      Tests  1760 passed | 15 skipped (1775)
+   Start at  14:38:26
+   Duration  179.00s (transform 13.15s, setup 425.27s, import 266.13s, tests 149.77s, environment 1597.09s)
+
+
+Running visual validation: screen='favourites-tab' route='/favoriter?_state=favourites-tab&_time=14:00' viewport='mobile'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   favourites-tab
+Route:    /favoriter?_state=favourites-tab&_time=14:00
+Viewport: mobile
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/mobile/favourites-tab.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='favourites-tab' route='/favoriter?_state=favourites-tab&_time=14:00' viewport='desktop'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   favourites-tab
+Route:    /favoriter?_state=favourites-tab&_time=14:00
+Viewport: desktop
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/desktop/favourites-tab.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='map-panel-venues' route='/?_state=map-panel-venues&_time=14:00' viewport='mobile'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   map-panel-venues
+Route:    /?_state=map-panel-venues&_time=14:00
+Viewport: mobile
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/mobile/map-panel-venues.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='map-primary' route='/?_state=map-primary&_time=14:00' viewport='mobile'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   map-primary
+Route:    /?_state=map-primary&_time=14:00
+Viewport: mobile
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/mobile/map-primary.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='map-primary' route='/?_time=16:30' viewport='desktop'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   map-primary
+Route:    /?_time=16:30
+Viewport: desktop
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/desktop/map-primary.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='map-with-obscured-venue' route='/?_state=map-with-obscured-venue&_time=14:00' viewport='mobile'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   map-with-obscured-venue
+Route:    /?_state=map-with-obscured-venue&_time=14:00
+Viewport: mobile
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/mobile/map-with-obscured-venue.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='map-with-obscured-venue' route='/?_state=map-with-obscured-venue&_time=14:00' viewport='desktop'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   map-with-obscured-venue
+Route:    /?_state=map-with-obscured-venue&_time=14:00
+Viewport: desktop
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/desktop/map-with-obscured-venue.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='map-with-selected-venue' route='/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00' viewport='mobile'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   map-with-selected-venue
+Route:    /?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00
+Viewport: mobile
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/mobile/map-with-selected-venue.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=14:00' viewport='mobile'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   venue-detail
+Route:    /?venue=test-venue-sunny&_state=venue-detail&_time=14:00
+Viewport: mobile
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/mobile/venue-detail.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='venue-detail' route='/?venue=test-venue-sunny&_state=venue-detail&_time=16:30' viewport='desktop'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   venue-detail
+Route:    /?venue=test-venue-sunny&_state=venue-detail&_time=16:30
+Viewport: desktop
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/desktop/venue-detail.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='venue-detail-obscured' route='/?venue=test-venue-sunny&_state=venue-detail-obscured&_time=14:00' viewport='mobile'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   venue-detail-obscured
+Route:    /?venue=test-venue-sunny&_state=venue-detail-obscured&_time=14:00
+Viewport: mobile
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/mobile/venue-detail-obscured.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+
+Running visual validation: screen='venue-detail-obscured' route='/?venue=test-venue-sunny&_state=venue-detail-obscured&_time=16:30' viewport='desktop'
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   venue-detail-obscured
+Route:    /?venue=test-venue-sunny&_state=venue-detail-obscured&_time=16:30
+Viewport: desktop
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/desktop/venue-detail-obscured.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1
+Updated sprint status: 12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number -> review
+
+Story review gate passed.
+Validation artifact written to: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number-review-20260719-143731.log

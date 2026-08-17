@@ -1,6 +1,6 @@
 'use client';
 
-import { Cloud, Footprints, Heart, ImageIcon, Star, Sun } from 'lucide-react';
+import { Clock, Cloud, Footprints, Heart, ImageIcon, Star, Sun } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -12,11 +12,10 @@ import {
   formatVenueSunPercent,
   type VenueVisualMetadata,
 } from '@/lib/utils/venue-visual-metadata';
-import {
-  getConfidenceDisplayState,
-  type ConfidenceDisplayLabels,
-} from '@/lib/utils/confidence-display';
-import type { SunFreshnessMeta } from '@/lib/types/api';
+import type { VenueThumbnailDto, WeatherGateState } from '@/lib/types/api';
+import { normalizeWeatherGateState } from '@/lib/utils/public-sun';
+import { selectVenueCardImageUrl } from '@/lib/utils/venue-media';
+import type { VenueAvailabilityState } from '@/lib/utils/opening-hours';
 import { cn } from '@/lib/utils';
 
 export type VenueCardLabels = {
@@ -26,14 +25,13 @@ export type VenueCardLabels = {
   favouriteRemove?: string;
   sun: string;
   photoPlaceholder: string;
-  confidence: string;
-  confidenceApproximate: string;
-  confidenceUnavailable: string;
   distance: string;
   /** Story 9.5 AC3: honest "≈ från centrum" annotation shown alongside the
    * distance when the origin is the Gothenburg-centrum fallback. */
   distanceApproximate?: string;
   sunUnavailable: string;
+  weatherUnavailable?: string;
+  closedAtSelectedTime?: string;
   statusMostlyShade?: string;
   statusFullSun?: string;
   statusPartialSun?: string;
@@ -51,32 +49,27 @@ export type VenueCardProps = {
   name: string;
   neighborhood?: string;
   sunTimeRange?: string;
-  confidencePercent?: number;
-  confidenceMeta?: SunFreshnessMeta;
   distanceMeters?: number;
   /** Story 9.5 AC3: the distance is centrum-relative (Gothenburg fallback),
    * not a real personal fix — annotate it honestly. */
   distanceIsApproximate?: boolean;
   sunExposurePercent?: number;
-  thumbnail?: {
-    alt: string;
-    initials: string;
-    url?: string;
-  };
+  thumbnail?: VenueThumbnailDto;
   isSunny: boolean;
+  weatherGateState?: WeatherGateState;
   /** Story 10.2 (AC1): the weather-gated "Sol bakom moln" state. Rendered as
    * a muted slate treatment DISTINCT from both the amber sunny path (`isSunny`)
    * and the grey shaded path. `isSunny` is NOT overloaded — an obscured venue
    * is neither amber-sunny nor plain-shaded, so it arrives with `isSunny=false`
    * (no amber chrome) AND `isObscured=true` (muted, not grey-shaded). */
   isObscured?: boolean;
+  availabilityState?: VenueAvailabilityState;
   visualMetadata?: VenueVisualMetadata;
   labels: VenueCardLabels;
   onSelect: () => void;
   onFavouriteToggle?: () => void;
   isFavourite?: boolean;
   compact?: boolean;
-  showVisibleConfidence?: boolean;
   staggerIndex?: number;
   animateIn?: boolean;
 };
@@ -87,35 +80,40 @@ export function VenueCard({
   name,
   neighborhood,
   sunTimeRange,
-  confidencePercent,
-  confidenceMeta,
   distanceMeters,
   distanceIsApproximate = false,
   sunExposurePercent,
   thumbnail,
   isSunny,
+  weatherGateState,
   isObscured = false,
+  availabilityState,
   visualMetadata,
   labels,
   onSelect,
   onFavouriteToggle,
   isFavourite = false,
   compact = false,
-  showVisibleConfidence = true,
   staggerIndex = 0,
   animateIn = false,
 }: VenueCardProps) {
   const sunPercent = formatVenueSunPercent(sunExposurePercent);
   const distance = formatVenueDistance(distanceMeters);
-  const confidenceDisplay = getConfidenceDisplayState({
-    confidence: confidencePercent,
-    meta: confidenceMeta,
-    labels: confidenceDisplayLabels(labels),
-  });
-  // Story 9.1 de-bloat: the button's accessible name (labels.select) already
-  // carries name + sun% + Säkerhet (once) + Avstånd, so we no longer append the
-  // prediction-uncertainty paragraph to it.
-  const selectLabel = labels.select;
+  // Story 12.13: the button's accessible name carries name + sun + distance
+  // only. Model confidence remains internal/feedback evidence and must not be
+  // rendered visibly or to assistive technology.
+  const weatherUnavailableLabel =
+    isSunny && normalizeWeatherGateState(weatherGateState) === 'unknown'
+      ? labels.weatherUnavailable
+      : undefined;
+  const closedAtSelectedTimeLabel = availabilityState === 'closed'
+    ? labels.closedAtSelectedTime
+    : undefined;
+  const selectLabel = [
+    labels.select,
+    weatherUnavailableLabel,
+    closedAtSelectedTimeLabel,
+  ].filter(Boolean).join('. ');
   // Story 10.2 (AC1): the obscured state OVERRIDES both the amber "FULL SOL"/
   // "DELVIS SOL" path AND the grey "MEST SKUGGA" path with the muted "Sol
   // bakom moln" headline. An obscured venue never shows amber sun copy.
@@ -127,14 +125,6 @@ export function VenueCard({
         ? (labels.statusFullSun ?? 'FULL SOL')
         : (labels.statusPartialSun ?? 'DELVIS SOL');
   const sunUnitLabel = labels.sun.toLocaleLowerCase();
-  // Story 10.2 (AC2): on an obscured card the geometric % is reframed as
-  // position-not-weather ("{percent} solläge · sol här när det klarnar") — the
-  // value/meaning is unchanged, only the label reframes it. Falls back to the
-  // plain "{percent} sol" chip when no obscured-position copy is provided.
-  const obscuredPositionLabel =
-    isObscured && labels.obscuredPosition
-      ? formatLabel(labels.obscuredPosition, { percent: sunPercent })
-      : null;
   // Story 9.5 AC3: honest centrum-relative annotation. Shown only on the
   // Gothenburg-centrum fallback; the real distance number stays visible —
   // only the label is qualified ("≈ från centrum").
@@ -149,12 +139,14 @@ export function VenueCard({
   return (
     <article
       data-testid="venue-card"
+      data-availability={availabilityState}
       className={cn(
         'group flex w-full items-center gap-3 text-left',
         animateIn && 'motion-safe:animate-in motion-safe:fade-in',
         compact
           ? 'min-h-20 rounded-card border border-divider/70 bg-white p-2 shadow-subtle transition-colors duration-fast ease-default hover:bg-surface-muted'
           : 'min-h-venue-card border-b border-divider/70 bg-transparent px-0 py-2',
+        availabilityState === 'closed' && 'bg-surface-muted/60 hover:bg-surface-muted',
       )}
       style={
         animateIn
@@ -235,26 +227,18 @@ export function VenueCard({
                 </>
               )}
               <span className="text-text-faint">·</span>
-              {isObscured ? (
-                // AC1/AC2: no amber sun chip while obscured — muted slate, and
-                // the geometric % reframed as position-not-weather.
-                <span className="flex items-center gap-1 font-bold text-obscured-text">
-                  <Cloud aria-hidden="true" className="size-3 shrink-0 fill-current" />
-                  <span>{obscuredPositionLabel ?? `${sunPercent} ${sunUnitLabel}`}</span>
-                </span>
-              ) : (
+              {isSunny ? (
                 <span className="font-extrabold text-amber-dark">{sunPercent} {sunUnitLabel}</span>
-              )}
-              {!isObscured && confidenceDisplay.visibleText && showVisibleConfidence && (
-                <>
-                  <span className="text-text-faint">·</span>
-                  <span
-                    aria-hidden="true"
-                    className="font-extrabold text-label-xs text-amber-text"
-                  >
-                    {confidenceDisplay.visibleText}
-                  </span>
-                </>
+              ) : (
+                <span
+                  className={cn(
+                    'flex items-center gap-1 font-bold',
+                    isObscured ? 'text-obscured-text' : 'text-text-body',
+                  )}
+                >
+                  <Cloud aria-hidden="true" className="size-3 shrink-0 fill-current" />
+                  <span>{statusLabel}</span>
+                </span>
               )}
             </span>
             {visualMetadata && (
@@ -272,11 +256,11 @@ export function VenueCard({
             {/* Sun window ("Sol HH:MM–HH:MM"): a genuinely-real signal (the sunny
                 hours) kept discoverable to screen readers. Story 9.1's de-bloat
                 removed the OLD sr-only block because it DUPLICATED the
-                confidence + distance already in the button's accessible name —
-                but that block also carried the sun window, which is not a
-                duplicate and is the core value the favourites view surfaces per
-                saved venue. Re-added on its own (sr-only, so the visible card
-                stays de-bloated per 9.1) in the NON-COMPACT variant only —
+                distance already in the button's accessible name — but that
+                block also carried the sun window, which is not a duplicate and
+                is the core value the favourites view surfaces per saved venue.
+                Re-added on its own (sr-only, so the visible card stays
+                de-bloated per 9.1) in the NON-COMPACT variant only —
                 matching the pre-9.1 placement so the mobile `/favoriter` card
                 (bottom sheet at 'mid') exposes it while the always-compact
                 desktop-list-panel card does not (keeping a single DOM match). */}
@@ -284,6 +268,17 @@ export function VenueCard({
               {sunTimeRange ?? labels.sunUnavailable}
             </span>
           </>
+        )}
+        {weatherUnavailableLabel && (
+          <span className="mt-1 block text-label-xs text-text-body">
+            {weatherUnavailableLabel}
+          </span>
+        )}
+        {closedAtSelectedTimeLabel && (
+          <span className="mt-1 inline-flex items-center gap-1 rounded-pill border border-divider bg-surface-muted px-2 py-0.5 text-label-xs-medium text-text-body">
+            <Clock aria-hidden="true" className="size-3 shrink-0" />
+            <span>{closedAtSelectedTimeLabel}</span>
+          </span>
         )}
       </span>
       </button>
@@ -357,7 +352,7 @@ function VenueCardThumbnail({
   const imageRef = useRef<HTMLImageElement>(null);
   const initials = normalizeInitials(thumbnail?.initials);
   const label = thumbnail?.alt?.trim() || fallbackLabel;
-  const imageUrl = thumbnail?.url;
+  const imageUrl = selectVenueCardImageUrl(thumbnail);
   const shouldRenderImage = Boolean(imageUrl) && !imageFailed;
 
   useEffect(() => {
@@ -387,6 +382,7 @@ function VenueCardThumbnail({
     >
       {shouldRenderImage ? (
         <img
+          data-testid="venue-card-photo"
           ref={imageRef}
           src={imageUrl}
           alt={label}
@@ -397,6 +393,7 @@ function VenueCardThumbnail({
       ) : (
         <>
           <span
+            data-testid="venue-card-photo-fallback"
             role="img"
             aria-label={label}
             className="flex size-full items-center justify-center text-display-lg text-amber-dark/55"
@@ -436,14 +433,6 @@ function VenueCardThumbnail({
 function normalizeInitials(value: string | undefined): string {
   const trimmed = value?.trim() || 'SS';
   return Array.from(trimmed).slice(0, THUMBNAIL_MAX_INITIALS).join('').toUpperCase();
-}
-
-function confidenceDisplayLabels(labels: VenueCardLabels): ConfidenceDisplayLabels {
-  return {
-    confidence: labels.confidence,
-    approximate: labels.confidenceApproximate,
-    unavailable: labels.confidenceUnavailable,
-  };
 }
 
 function formatLabel(template: string, values: Record<string, string>): string {

@@ -45,7 +45,7 @@
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';
-import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import type {
   GetVenuesResponse,
   GetVenueDetailResponse,
@@ -58,10 +58,14 @@ const APP_SETTLE_TIMEOUT_MS = 15_000;
 
 // --- Onboarding + deterministic-time helpers (reuse the suite conventions) ---
 async function bypassOnboarding(page: Page): Promise<void> {
-  await page.addInitScript((key: string) => {
+  await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
     window.sessionStorage.clear();
-    window.localStorage.setItem(key, '1');
-  }, ONBOARDED_FLAG_KEY);
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 }
 
 /** Force `?_time=13:00` so the sun is deterministically up (retro-note pattern). */
@@ -86,7 +90,7 @@ async function forbidLiveMetno(page: Page): Promise<string[]> {
 
 // --- Scenario definitions ----------------------------------------------------
 // A single geometrically-sunlit seed venue whose GEOMETRY is identical across
-// scenarios; only the weather-derived headline/sky/confidence differ.
+// scenarios; only the weather-derived headline/sky/internal confidence differ.
 type ScenarioId =
   | 'overcast'
   | 'clear'
@@ -98,6 +102,7 @@ interface ScenarioSpec {
   id: ScenarioId;
   /** Card/pin + detail DTO override (weather-derived fields only). */
   currentSunStatus: VenueDataDto['currentSunStatus'];
+  weatherGateState: VenueDataDto['weatherGateState'];
   /** Serialized sky field; `undefined` ⇒ no sky line ('unavailable' semantics). */
   skyCondition?: string;
   confidence: number;
@@ -106,16 +111,6 @@ interface ScenarioSpec {
   expectSkyCopy?: 'rain';
   /** True ⇒ NO sky line must render at all (weather-missing). */
   expectNoSkyLine?: boolean;
-  /**
-   * The freshness/uncertainty signal (AC1 #5). For a weather-backed non-obscured
-   * scenario the confidence `%` badge renders on the card; for weather-missing
-   * (`sunDataSource='geometry-only'`, no `weatherUpdatedAt`) `getConfidenceDisplayState`
-   * returns `kind:'hidden'` ⇒ the confidence badge is ABSENT. Only meaningful on
-   * non-obscured cards (the obscured card suppresses the amber confidence chip
-   * regardless), so it is set only for `clear` (present, the control) and
-   * `weather-missing` (absent).
-   */
-  expectConfidenceBadge?: boolean;
 }
 
 // GEOMETRY is byte-identical across every scenario — only the weather-derived
@@ -125,6 +120,7 @@ const SCENARIOS: ScenarioSpec[] = [
   {
     id: 'overcast',
     currentSunStatus: 'CloudObscured',
+    weatherGateState: 'gated',
     skyCondition: 'overcast',
     confidence: 40,
     expectObscured: true,
@@ -132,17 +128,17 @@ const SCENARIOS: ScenarioSpec[] = [
   {
     id: 'clear',
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     skyCondition: 'clear',
     confidence: 92,
     expectObscured: false,
-    // Control for AC1 #5: weather-backed ⇒ the confidence badge IS present.
-    expectConfidenceBadge: true,
   },
   {
     id: 'high-cirrus-only',
     // Total cloud can be near-100 but effective (0.25·high) stays < threshold ⇒
     // NOT gated. skyCondition reads the RAW total ⇒ NOT 'overcast', NOT obscured.
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     skyCondition: 'partly-cloudy',
     confidence: 78,
     expectObscured: false,
@@ -150,6 +146,7 @@ const SCENARIOS: ScenarioSpec[] = [
   {
     id: 'active-rain',
     currentSunStatus: 'CloudObscured',
+    weatherGateState: 'gated',
     skyCondition: 'rain',
     confidence: 35,
     expectObscured: true,
@@ -160,13 +157,11 @@ const SCENARIOS: ScenarioSpec[] = [
     // No fabricated clear sky: geometry governs (Sunny), skyCondition ABSENT
     // ('unavailable' ⇒ never rendered) ⇒ NO sky line.
     currentSunStatus: 'Sunny',
+    weatherGateState: 'unknown',
     skyCondition: undefined,
     confidence: 55,
     expectObscured: false,
     expectNoSkyLine: true,
-    // AC1 #5: the freshness/uncertainty signal reflects the missing weather —
-    // geometry-only source ⇒ the confidence badge is ABSENT (never fabricated).
-    expectConfidenceBadge: false,
   },
 ];
 
@@ -174,22 +169,8 @@ const SCENARIOS: ScenarioSpec[] = [
 const RAIN_SKY_COPY = /Regn|Rain/;
 // The overcast/obscured sky descriptor — must NOT appear on a non-obscured card.
 const OVERCAST_SKY_COPY = /Mulet|Overcast/;
-// The confidence (freshness/uncertainty) signal on the card. Present only when
-// `getConfidenceDisplayState` returns a `%` value (weather-backed, exact OR
-// approximate); ABSENT ("Säkerhet saknas" / "Confidence unavailable", no `%`) for
-// the geometry-only weather-missing scenario.
-//
-// Story 11.4 (AC1/AC4) removed the VISIBLE "Säkerhet: NN%" chip from QuickInfo — the
-// confidence text now lives on ONLY as sr-only accessible text on the card
-// (`VenueQuickInfo.tsx` "removed confidence chip"; the visible chip lives in the
-// detail view). `toContainText` reads that sr-only text, whose format is
-// `"<Säkerhet|Confidence> [cirka|about ]NN%"` (from `getConfidenceDisplayState.
-// accessibleText`) — NO colon. The pre-11.4 `/Säkerhet:|Confidence:/` regex keyed
-// on the old colon-labelled visible chip and no longer matches; match the current
-// label-then-percentage form instead. The `\d+\s*%` anchor keeps this ABSENT for
-// the unavailable ("saknas"/"unavailable") case and distinct from the geometric
-// "NN% SOL" thumbnail badge (which is not preceded by the confidence label).
-const CONFIDENCE_BADGE_COPY = /(Säkerhet|Confidence)\s+(cirka\s+|about\s+)?\d+\s*%/;
+// Story 12.13: public confidence copy is removed from card/detail surfaces.
+const PUBLIC_CONFIDENCE_COPY = /Säkerhet|Confidence/;
 
 // --- DTO builders ------------------------------------------------------------
 // Build a valid list/detail response from the seed venue merged with the scenario
@@ -207,6 +188,7 @@ function baseVenue(scenario: ScenarioSpec): VenueDataDto {
     neighborhood: 'Inom Vallgraven',
     location: { lat: 57.705, lng: 11.97 },
     currentSunStatus: scenario.currentSunStatus,
+    weatherGateState: scenario.weatherGateState,
     isPartner: true,
     confidence: scenario.confidence,
     distanceMeters: 0,
@@ -328,10 +310,10 @@ async function assertCardAndPin(
 
   const obscured = quickInfo.locator('[data-testid="quick-info-obscured"]');
   if (scenario.expectObscured) {
-    // Muted "Sol bakom moln" chrome present; the geometric % is still visible
-    // (reframed as clear-sky potential) — the obscured card keeps the % badge.
+    // Story 12.6: muted "Sol bakom moln" diagnostics remain, but the public
+    // quick-info badge is not sunny when the weather gate is closed.
     await expect(obscured).toBeVisible();
-    await expect(quickInfo).toContainText('95%');
+    await expect(quickInfo).not.toContainText('95%');
   } else {
     await expect(obscured).toHaveCount(0);
     // Amber Sunny: the % SOL badge renders (geometry visible), no obscured chrome.
@@ -347,18 +329,9 @@ async function assertCardAndPin(
     await expect(quickInfo).not.toContainText(OVERCAST_SKY_COPY);
   }
 
-  // AC1 #5 — the freshness/uncertainty signal (the previously-unverified half of
-  // weather-missing). The confidence `%` badge is HIDDEN for the geometry-only
-  // weather-missing scenario and PRESENT for a weather-backed control (clear), so
-  // the two non-obscured scenarios are distinguished by the presence of the
-  // confidence signal, not just the (identical) geometry. Only asserted where the
-  // scenario opts in (`expectConfidenceBadge` set) — the obscured cards suppress
-  // the amber confidence chip regardless, so it is not meaningful there.
-  if (scenario.expectConfidenceBadge === true) {
-    await expect(quickInfo).toContainText(CONFIDENCE_BADGE_COPY);
-  } else if (scenario.expectConfidenceBadge === false) {
-    await expect(quickInfo).not.toContainText(CONFIDENCE_BADGE_COPY);
-  }
+  // Story 12.13: confidence remains internal evidence and must not leak into
+  // the quick-info surface in any weather scenario.
+  await expect(quickInfo).not.toContainText(PUBLIC_CONFIDENCE_COPY);
 }
 
 /**
@@ -399,6 +372,7 @@ async function assertDetail(
     // A non-obscured detail must NOT carry the overcast/obscured sky descriptor.
     await expect(detailPanel).not.toContainText(OVERCAST_SKY_COPY);
   }
+  await expect(detailPanel).not.toContainText(PUBLIC_CONFIDENCE_COPY);
 }
 
 // ---------------------------------------------------------------------------

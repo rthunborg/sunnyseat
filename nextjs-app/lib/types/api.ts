@@ -12,6 +12,10 @@
 // geometric tier. Story 10.2 owns the muted UI rendering of this value.
 export type VenueSunStatus = 'Sunny' | 'Partial' | 'Shaded' | 'NoSun' | 'CloudObscured';
 
+export type WeatherGateState = 'gated' | 'not_gated' | 'unknown';
+export type PublicSunWeatherGateState = Exclude<WeatherGateState, 'gated'>;
+export type PublicSunVerdict = 'amber' | 'grey';
+
 // STORY 11.1 (AC1): one gated per-planner-step entry of the client-side
 // day-series. `minutes` is the planner minutes-of-day (06:00 → 360 … 21:00 →
 // 1260, at PLANNER_STEP_MINUTES resolution). `sunExposurePercent` keeps its ONE
@@ -25,6 +29,7 @@ export interface VenueDaySeriesEntry {
   minutes: number;
   sunExposurePercent: number;
   currentSunStatus: VenueSunStatus;
+  weatherGateState: WeatherGateState;
   /**
    * STORY 11 (review): the per-step gated sky condition (same values as the
    * top-level `VenueDataDto.skyCondition`). Carried so a time scrub can override
@@ -72,9 +77,37 @@ export interface PredictionUncertaintyDto {
   reasons: PredictionUncertaintyReason[];
 }
 
+export interface PredictionEvidenceDto {
+  /**
+   * Opaque server-computed geometry generation marker used by the feedback
+   * accuracy loop. It is evidence, not display copy; clients must not derive
+   * engine internals from it.
+   */
+  geometryInputHash?: string;
+}
+
 export interface SunFreshnessMeta {
   weatherUpdatedAt?: string;
   sunDataSource?: SunDataSource;
+}
+
+export interface VenueThumbnailDto {
+  alt: string;
+  initials: string;
+  /**
+   * Card/list/QuickInfo rendition hosted from Supabase Storage.
+   * New rows should use `venue-media/{slug}/{mediaVersion}/card.webp`.
+   */
+  cardUrl?: string;
+  /**
+   * Venue-detail hero rendition hosted from Supabase Storage.
+   * New rows should use `venue-media/{slug}/{mediaVersion}/hero.webp`.
+   */
+  heroUrl?: string;
+  /**
+   * Legacy single-image field retained as a read fallback during rollout.
+   */
+  url?: string;
 }
 
 export interface VenuesMeta extends SunFreshnessMeta {
@@ -105,12 +138,14 @@ export interface VenueDataDto {
   neighborhood: string;
   location: CoordinatesDto;
   currentSunStatus: VenueSunStatus;
+  weatherGateState: WeatherGateState;
   skyCondition?: string; // 'clear' | 'partly-cloudy' | 'overcast' | 'rain' | 'unavailable'
   isPartner: boolean;
   /**
-   * Prediction certainty, 0..100. This is not the amount of direct sun.
-   * Weather freshness/source metadata decides whether the value is exact,
-   * approximate, or hidden in the UI.
+   * Internal diagnostic prediction certainty, 0..100. Story 12.13 removed every public
+   * visible and assistive rendering of this number from user-facing surfaces.
+   * Story 12.2 keeps it as maintainer-only model evidence; public users see
+   * uncertainty prose, never a confidence number.
    */
   confidence: number;
   distanceMeters: number;
@@ -134,9 +169,12 @@ export interface VenueDataDto {
    * user-facing uncertainty causes and must not expose source/geodata internals.
    */
   predictionUncertainty?: PredictionUncertaintyDto;
+  predictionEvidence?: PredictionEvidenceDto;
   sunWindow?: {
     start: string;
     end: string;
+    /** Weather certainty across this public-sunny window. */
+    weatherGateState?: PublicSunWeatherGateState;
   };
   /**
    * STORY 11.1 (AC1): the per-planner-step gated day-series, one entry per
@@ -162,11 +200,7 @@ export interface VenueDataDto {
    * distinguishable from seven explicitly closed weekdays.
    */
   openingHours?: WeeklyOpeningHours;
-  thumbnail?: {
-    alt: string;
-    initials: string;
-    url?: string;
-  };
+  thumbnail?: VenueThumbnailDto;
   reviewSummary?: ReviewSummaryDto;
 }
 
@@ -190,12 +224,14 @@ export interface VenueSunTimelineDto {
   };
   windows: VenueSunTimelineWindowDto[];
   peakTime?: string;
+  peakWeatherGateState?: PublicSunWeatherGateState;
 }
 
 export interface VenueSunTimelineWindowDto {
   start: string;
   end: string;
   status: VenueDataDto['currentSunStatus'];
+  weatherGateState?: PublicSunWeatherGateState;
 }
 
 export interface CoordinatesDto {
@@ -258,6 +294,11 @@ export interface SubmitFeedbackRequest {
   venueSlug?: string;
   userTimestamp: string; // ISO 8601
   predictedState: VenueSunStatus;
+  sunExposurePercent: number;
+  publicSunVerdict: PublicSunVerdict;
+  weatherGated: boolean;
+  weatherUnknown: boolean;
+  geometryInputHash: string;
   sunAccuracy?: FeedbackSunAccuracy;
   wasSunny?: boolean;
   outdoorSeatingConfirmed?: boolean;
@@ -273,6 +314,11 @@ export interface FeedbackResponse {
   venueSlug: string;
   userTimestamp: string;
   predictedState: VenueSunStatus;
+  sunExposurePercent: number;
+  publicSunVerdict: PublicSunVerdict;
+  weatherGated: boolean;
+  weatherUnknown: boolean;
+  geometryInputHash: string;
   sunAccuracy?: FeedbackSunAccuracy;
   wasSunny?: boolean;
   outdoorSeatingConfirmed?: boolean;

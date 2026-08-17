@@ -1,0 +1,67 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes
+epic_num: 12
+story_num: 12
+branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
+status: done
+updated_at: "2026-07-20T12:05:31Z"
+started_at: "2026-07-19T16:39:48Z"
+completed_at: "2026-07-20T12:05:31Z"
+active_seconds: 9703
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "High by TEA policy because Story 12.12 changes the cross-boundary venue-photo contract across Supabase Storage hosting, URL/render behavior, and resilient fallbacks, where regressions can affect every venue surface."
+epic_story_count: 14
+stories_after_in_epic: 2
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+code_review_iterations: 0
+code_review_loop_done: false
+hitl_halt: null
+external_review_iterations: 0
+convergence_unverified: true
+story_trace: null
+commits: [9549c7e, bc7b65b, "9346726", 2a21274, b4427d4, d5fd2f3]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work:
+  - "Inherited mobile detail contrast debt keeps the Story 12.12 a11y-mobile photo scans as fixme; this is already tracked in the existing cross-story deferred-work ledger entry for pre-existing WCAG 1.4.3 failures."
+  - "Protected live Supabase Storage verification remains outstanding after migration deployment; recorded in deferred-work.md under Story 12.12 post-dev automation."
+blockers: []
+overrides: {}
+constraints: []
+tier_a_base_sha: c3673e1a8396af2e8df3b071d6bbac3558c4ff1e
+tier_a_review:
+  low: 0
+  verdict: "Changes Requested -> fixed"
+  dismissed_noise: 0
+  fixed: 2
+  deferred: 0
+  open_decisions_auto_resolved: 0
+  high: 2
+  security: "No findings; HIGH 0 / MEDIUM 0 / LOW 0"
+  medium: 0
+  critical: 0

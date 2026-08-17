@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { LocaleSync } from '@/components/custom/layout/locale-sync';
 import { AppContextProviders } from '@/components/custom/layout/AppContextProviders';
-import { ResponsiveLayout } from '@/components/custom/layout/ResponsiveLayout';
+import { AppRouteFrame } from '@/components/custom/layout/AppRouteFrame';
 
 type Props = {
   children: React.ReactNode;
@@ -27,7 +27,7 @@ export default async function LocaleLayout({ children, params }: Props) {
     <NextIntlClientProvider locale={locale}>
       <LocaleSync />
       <AppContextProviders>
-        <ResponsiveLayout>{children}</ResponsiveLayout>
+        <AppRouteFrame>{children}</AppRouteFrame>
       </AppContextProviders>
     </NextIntlClientProvider>
   );

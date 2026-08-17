@@ -30,8 +30,8 @@
  * STANDING STORY-11.8 INVARIANT (promoted from the 11.1 seam — no longer red-phase):
  * This is now the durable epic request-count + marker-persistence gate that Story 11.8
  * OWNS. The 11.1 day-series has landed (scrub no longer changes the query key), the
- * `date-change-overlay` testid exists in `MapView.tsx`, and the `.filter({ visible: true })`
- * dual-variant `planner-date-next` selector binds the visible instance on each breakpoint.
+ * `date-change-overlay` testid exists in `MapView.tsx`, and the visible planner calendar
+ * trigger selects the next in-window date on each breakpoint.
  * The `test.describe(...)` below is LIVE (not `.skip`) and MUST stay un-skipped, green, and
  * CI-wired: it runs under `--project=desktop` AND `--project=mobile` (the CI "E2E tests" step).
  * The two assertions are load-bearing — do NOT weaken them:
@@ -45,8 +45,8 @@
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';
-import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
-import type { GetVenuesResponse, VenueDataDto, VenueSunStatus } from '@/lib/types/api';
+import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import type { GetVenuesResponse, VenueDataDto, VenueDaySeriesEntry } from '@/lib/types/api';
 import {
   PLANNER_START_MINUTES,
   PLANNER_END_MINUTES,
@@ -57,10 +57,14 @@ const APP_SETTLE_TIMEOUT_MS = 15_000;
 const VENUES_MATCHER = '**/api/venues?**';
 
 async function bypassOnboarding(page: Page): Promise<void> {
-  await page.addInitScript((key: string) => {
+  await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
     window.sessionStorage.clear();
-    window.localStorage.setItem(key, '1');
-  }, ONBOARDED_FLAG_KEY);
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 }
 
 /** Force `?_time=13:00` so the sun is deterministically up (retro-note pattern). */
@@ -83,14 +87,15 @@ async function forbidLiveMetno(page: Page): Promise<string[]> {
 }
 
 /** One gated day-series (61 entries) — midday sunlit, one gated step. */
-function daySeries(): { minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus }[] {
-  const series: { minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus }[] = [];
+function daySeries(): VenueDaySeriesEntry[] {
+  const series: VenueDaySeriesEntry[] = [];
   for (let m = PLANNER_START_MINUTES; m <= PLANNER_END_MINUTES; m += PLANNER_STEP_MINUTES) {
     const sunlit = m >= 11 * 60 && m <= 18 * 60;
     series.push({
       minutes: m,
       sunExposurePercent: sunlit ? 90 : 10,
       currentSunStatus: sunlit ? (m === 13 * 60 ? 'CloudObscured' : 'Sunny') : 'Shaded',
+      weatherGateState: sunlit && m === 13 * 60 ? 'gated' : 'not_gated',
     });
   }
   return series;
@@ -106,6 +111,7 @@ function buildVenue(id: string, name: string, lat: number, lng: number): VenueDa
     neighborhood: 'Inom Vallgraven',
     location: { lat, lng },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     isPartner: true,
     confidence: 90,
     distanceMeters: 0,
@@ -148,6 +154,49 @@ async function mockVenuesWithCounter(page: Page): Promise<{ count: () => number 
     await route.fulfill({ json: buildVenuesResponse() });
   });
   return { count: () => count };
+}
+
+function stockholmDateKey(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Europe/Stockholm',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((entry) => entry.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+function addDaysToDateKey(dateKey: string, days: number): string {
+  const [year = '1970', month = '01', day = '01'] = dateKey.split('-');
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function swedishSelectDateLabel(dateKey: string): string {
+  const [year = '1970', month = '01', day = '01'] = dateKey.split('-');
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  const label = new Intl.DateTimeFormat('sv-SE', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+  return `Välj ${label}`;
+}
+
+async function selectDifferentDateFromCalendar(page: Page): Promise<string> {
+  const targetDate = addDaysToDateKey(stockholmDateKey(), 1);
+  const planner = page.locator('[data-testid="time-slider-panel"]:visible').first();
+  const trigger = planner.getByTestId('planner-date-trigger');
+  await expect(trigger).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+  await expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+  await trigger.click();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  await page.getByRole('button', { name: swedishSelectDateLabel(targetDate) }).click();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  return targetDate;
 }
 
 test.describe('[11.1 AC1/AC3] day-series scrub = 0 requests, date change = 1 + markers persist', () => {
@@ -198,17 +247,11 @@ test.describe('[11.1 AC1/AC3] day-series scrub = 0 requests, date change = 1 + m
     const afterLoad = venues.count();
     const pinCountBefore = await page.locator('[data-testid="venue-pin"]').count();
 
-    // Trigger a DATE change (the one fetch AC3 permits) via the planner
-    // "next day" control (the `planner-date-next` testid Task 5 exposes on
-    // TimeSliderPanel). This flips the query key to the new date → exactly one
-    // new venue request fires. BOTH the mobile and desktop panels always render
-    // the control in the DOM (only one is un-hidden per breakpoint via CSS), so
-    // we must target the VISIBLE instance, not the DOM-order-first one: on the
-    // desktop viewport the mobile panel (rendered first) is `lg:hidden`, so a
-    // bare `.first()` would resolve the hidden mobile button and never click.
-    // `.filter({ visible: true })` resolves the single visible date-next button
-    // on either project (verified: exactly one visible instance per breakpoint).
-    await page.getByTestId('planner-date-next').filter({ visible: true }).click();
+    // Trigger a DATE change (the one fetch AC3 permits) via the planner calendar
+    // trigger. Story 12.9 removes the mobile next-day shortcut, so the durable
+    // request-count gate uses the date dialog path that exists on both breakpoints.
+    const expectedDate = await selectDifferentDateFromCalendar(page);
+    expect(expectedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
     // (a) EXACTLY ONE new venue request fires for the date change.
     // (b) the dim + centered spinner OVERLAY appears while the request is in flight

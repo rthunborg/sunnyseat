@@ -199,6 +199,25 @@ describe('<VenueSearchCombobox />', () => {
     expect(screen.getByText('Inga resultat för "test-venue-sunny"')).toBeInTheDocument();
   });
 
+  it('marks retained closed exact-match results with selected-time copy in text and accessible name', () => {
+    render(
+      <Harness
+        venues={[makeVenue({ id: '1', name: 'Kafé Magasinet', neighborhood: 'Inom Vallgraven' })]}
+        availabilityByVenueId={{ '1': 'closed' }}
+        onSelectVenue={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByRole('combobox', { name: 'Sök plats' });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'Kafé Magasinet' } });
+
+    expect(screen.getByText('Stängt vid vald tid')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Kafé Magasinet, Inom Vallgraven, Stängt vid vald tid'),
+    ).toHaveAttribute('role', 'option');
+  });
+
   it('marks the reduced-motion dropdown path for instant/opacity-only transitions', async () => {
     motionState.reducedMotion = true;
     render(
@@ -227,11 +246,13 @@ function Harness({
   onSelectVenue,
   error,
   maxLength,
+  availabilityByVenueId,
 }: {
   venues: VenueDataDto[];
   onSelectVenue: (venue: VenueDataDto) => void;
   error?: string;
   maxLength?: number;
+  availabilityByVenueId?: Record<string, 'open' | 'closed' | 'unknown'>;
 }) {
   const [query, setQuery] = useState('');
   return (
@@ -244,6 +265,8 @@ function Harness({
       variant="mobile"
       error={error}
       maxLength={maxLength}
+      availabilityByVenueId={availabilityByVenueId}
+      closedAtSelectedTimeLabel="Stängt vid vald tid"
     />
   );
 }
@@ -268,6 +291,7 @@ function makeVenue({
     neighborhood,
     location: { lat: 57.7, lng: 11.97 },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     isPartner: false,
     confidence: 92,
     distanceMeters: 180,

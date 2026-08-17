@@ -21,6 +21,7 @@ const SAMPLE_RESPONSE: GetVenueDetailResponse = {
     neighborhood: 'Inom Vallgraven',
     location: { lat: 57.705, lng: 11.97 },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     isPartner: true,
     confidence: 92,
     distanceMeters: 0,
@@ -180,7 +181,7 @@ describe('useVenueDetail', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('keeps previous venue detail visible while planner params change', async () => {
+  it('does not reuse placeholder detail data when planner params change', async () => {
     const firstResponse: GetVenueDetailResponse = {
       ...SAMPLE_RESPONSE,
       venue: {
@@ -224,8 +225,8 @@ describe('useVenueDetail', () => {
     rerender({ time: '15:00' });
 
     await waitFor(() => expect(result.current.isFetching).toBe(true));
-    expect(result.current.data).toEqual(firstResponse);
-    expect(result.current.isPlaceholderData).toBe(true);
+    expect(result.current.data).toBeUndefined();
+    expect(result.current.isPlaceholderData).toBe(false);
 
     resolveSecond?.(
       new Response(JSON.stringify(secondResponse), {
@@ -233,8 +234,8 @@ describe('useVenueDetail', () => {
         headers: { 'Content-Type': 'application/json' },
       }),
     );
-    await waitFor(() => expect(result.current.isPlaceholderData).toBe(false));
-    expect(result.current.data).toEqual(secondResponse);
+    await waitFor(() => expect(result.current.data).toEqual(secondResponse));
+    expect(result.current.isPlaceholderData).toBe(false);
   });
 
   it('does not reuse placeholder detail data when the slug changes', async () => {

@@ -1,5 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000';
+const webServerPort = Number(process.env.PLAYWRIGHT_PORT ?? (new URL(baseURL).port || 3000));
+const webServerCommand =
+  process.env.PLAYWRIGHT_WEB_SERVER_COMMAND ??
+  (webServerPort === 3000 ? 'npm run dev' : `npm run dev -- --port ${webServerPort}`);
+
 export default defineConfig({
   testDir: './test/e2e',
   timeout: 30_000,
@@ -11,7 +17,7 @@ export default defineConfig({
   // is fast; keep 0 locally so flakes surface immediately during development.
   retries: process.env.CI ? 2 : 0,
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL,
     trace: 'on-first-retry',
     // Story 1.6 review (P28): Swedish is the default product copy
     // (CLAUDE.md "Swedish copy is default"); axe-core and every other
@@ -86,8 +92,14 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
-    port: 3000,
+    command: webServerCommand,
+    // Story 12.5: the dev venue editor is gated by a private server-side flag.
+    // E2E starts its own loopback dev server, so enable that gate here while
+    // client code still requires the explicit `?_editor=venues` probe.
+    env: {
+      SUNNYSEAT_ADMIN: process.env.SUNNYSEAT_ADMIN || 'dev',
+    },
+    port: webServerPort,
     reuseExistingServer: !process.env.CI,
   },
 });

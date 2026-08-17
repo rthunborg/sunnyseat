@@ -7,8 +7,78 @@
   "zoomOut": "Zooma ut",
   "myLocation": "Min plats",
   "settings": "Inställningar",
-  "pinSunnyAria": "{name} — solig plats — {percent} procent sol",
-  "pinPartialAria": "{name} — delvis solig plats — {percent} procent sol",
-  "pinShadedAria": "{name} — skuggad plats — {percent} procent sol",
-  "pinObscuredAria": "{name} — sol bakom moln just nu — {percent} procent solläge"
+  "pinSunnyAria": "{name} — soligt vid vald tid — {percent} procent sol",
+  "pinSunnyWeatherUnknownAria": "{name} — soligt vid vald tid — {percent} procent sol. Väder saknas vid vald tid.",
+  "pinNotSunnyAria": "{name} — inte soligt vid vald tid",
+  "coachTour": {
+    "progress": "Steg {current} av {total}",
+    "skip": "Hoppa över guide",
+    "back": "Tillbaka",
+    "next": "Nästa",
+    "done": "Klart",
+    "close": "Stäng guide",
+    "targetDescription": "Guidesteget markerar {target}.",
+    "steps": {
+      "pinLegend": {
+        "title": "Kartnålarna",
+        "body": "Procenten visar hur stor andel av uteserveringens platser vi tror är i direkt sol vid den valda tiden.",
+        "target": "kartans nålar"
+      },
+      "timeSlider": {
+        "title": "Välj tid",
+        "body": "Du behöver inte ändra något – kartan visar läget just nu. Vill du planera framåt kan du välja datum och tid. Ju längre fram du tittar, desto osäkrare blir prognosen.",
+        "target": "tidsreglaget"
+      },
+      "datePlanner": {
+        "title": "Planera datum",
+        "body": "Öppna datumväljaren när du vill planera upp till några dagar framåt. I dag visas direkt när live-läget gäller.",
+        "target": "datumknappen"
+      },
+      "tagChips": {
+        "title": "Filtrera platser",
+        "body": "Använd taggarna för att smalna av kartan och listan till den typ av uteservering du letar efter.",
+        "target": "taggfiltret"
+      },
+      "venueList": {
+        "title": "Jämför listan",
+        "body": "Listan sorterar platserna efter sol eller avstånd. När du öppnar en plats kan du efter besöket svara på om solen stämde.",
+        "target": "platslistan"
+      },
+      "favourites": {
+        "title": "Spara favoriter",
+        "body": "Spara platser du vill återkomma till. Favoriter är gratis och följer samma solprognos som kartan.",
+        "target": "favoritvyn"
+      }
+    },
+    "pinLegend": {
+      "sunnyLabel": "Soligt",
+      "sunnyDescription": "Direkt sol vid vald tid.",
+      "shadedLabel": "Skuggat",
+      "shadedDescription": "Ingen direkt sol just då."
+    }
+  },
+  "devEditor": {
+    "title": "Redigera plats",
+    "venue": "Plats",
+    "hidden": "Dold",
+    "displayLat": "Visningslatitud",
+    "displayLng": "Visningslongitud",
+    "engineLat": "Motorlatitud",
+    "engineLng": "Motorlongitud",
+    "seatingArea": "Uteservering",
+    "tags": "Taggar",
+    "description": "Beskrivning",
+    "thumbnailAlt": "Bildtext",
+    "thumbnailInitials": "Initialer",
+    "thumbnailCard": "Kortbild",
+    "thumbnailHero": "Hero-bild",
+    "save": "Spara",
+    "saving": "Sparar",
+    "reset": "Återställ",
+    "saved": "Sparat",
+    "empty": "Ingen plats vald",
+    "dragPinAria": "Visningsnål för {name}",
+    "loadFailed": "Kunde inte ladda redigeraren",
+    "validationFailed": "Kontrollera fälten"
+  }
 }

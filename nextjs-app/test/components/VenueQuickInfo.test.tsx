@@ -51,9 +51,6 @@ const labels = {
   moreInfo: 'Mer Info',
   close: 'Stäng platskort',
   photoPlaceholder: 'Platshållarbild',
-  confidence: 'Säkerhet',
-  confidenceApproximate: 'cirka',
-  confidenceUnavailable: 'Säkerhet saknas',
   distance: 'Avstånd',
   distanceApproximate: '≈ från centrum',
   loadingSun: 'Laddar soldata',
@@ -85,11 +82,6 @@ describe('<VenueQuickInfo />', () => {
       <VenueQuickInfo
         mode="mobile"
         name="Testbaren"
-        confidencePercent={92}
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: new Date().toISOString(),
-        }}
         sunExposurePercent={95}
         openingHours={OPENING_HOURS}
         distanceMeters={420}
@@ -124,11 +116,6 @@ describe('<VenueQuickInfo />', () => {
         <VenueQuickInfo
           mode={mode}
           name="Testbaren"
-          confidencePercent={92}
-          confidenceMeta={{
-            sunDataSource: 'weather',
-            weatherUpdatedAt: new Date().toISOString(),
-          }}
           sunExposurePercent={95}
           openingHours={OPENING_HOURS}
           distanceMeters={420}
@@ -254,6 +241,7 @@ describe('<VenueQuickInfo />', () => {
         openingHours={undefined}
         distanceMeters={420}
         currentSunStatus="CloudObscured"
+        weatherGateState="gated"
         skyCondition="overcast"
         thumbnail={{ alt: 'Uteservering', initials: 'MB' }}
         isLoadingSunData={false}
@@ -272,7 +260,7 @@ describe('<VenueQuickInfo />', () => {
     expect(screen.getByTestId('venue-quick-info')).not.toHaveTextContent('Öppet');
     // The metadata paragraph carrying the sr-only confidence + distance has no
     // dangling leading/trailing separator even with opening hours gone.
-    const metadata = screen.getByText('88% SOL').closest('[data-testid="venue-quick-info"]');
+    const metadata = screen.getByTestId('quick-info-obscured').closest('[data-testid="venue-quick-info"]');
     expect(metadata).toBeInTheDocument();
   });
 
@@ -359,20 +347,14 @@ describe('<VenueQuickInfo />', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Story 11.4 (AC4) — regenerated aria: sr-only confidence kept, no dangling
-  // separator, no duplicated phrase.
+  // Story 12.13 — confidence is no longer public, visibly or sr-only.
   // ---------------------------------------------------------------------------
 
-  it('keeps the sr-only accessible confidence text after removing the visible chip (Story 11.4 AC1/AC4)', () => {
+  it('omits confidence text after public confidence removal (Story 12.13 AC1)', () => {
     render(
       <VenueQuickInfo
         mode="mobile"
         name="Testbaren"
-        confidencePercent={92}
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: new Date().toISOString(),
-        }}
         sunExposurePercent={95}
         openingHours={OPENING_HOURS}
         distanceMeters={420}
@@ -384,24 +366,17 @@ describe('<VenueQuickInfo />', () => {
       />,
     );
 
-    // The confidence signal is still exposed to assistive tech (sr-only), even
-    // though the visible "Säkerhet: 92%" chip is gone.
-    const srConfidence = screen.getByText(/Säkerhet 92%/);
-    expect(srConfidence).toHaveClass('sr-only');
-    // But there is NO visible "Säkerhet: 92%" chip.
-    expect(screen.queryByText(/Säkerhet:/)).toBeNull();
+    const card = screen.getByTestId('venue-quick-info');
+    expect(card).not.toHaveTextContent(/Säkerhet|Confidence/);
+    expect(card).toHaveTextContent('Öppet till 22:00');
+    expect(card).toHaveTextContent('Avstånd: 420 m');
   });
 
-  it('regenerates a clean accessible name with no dangling separator or duplicated phrase (Story 11.4 AC4)', () => {
+  it('regenerates clean metadata with no dangling separator after confidence removal', () => {
     render(
       <VenueQuickInfo
         mode="mobile"
         name="Testbaren"
-        confidencePercent={92}
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: new Date().toISOString(),
-        }}
         sunExposurePercent={95}
         openingHours={OPENING_HOURS}
         distanceMeters={420}
@@ -414,26 +389,22 @@ describe('<VenueQuickInfo />', () => {
       />,
     );
 
-    // The metadata paragraph reads confidence (sr-only) + distance with no
-    // leading/trailing "·" now that the confidence/sun-window lines are gone.
-    // Anchor on the sr-only confidence node (unambiguous) to reach the paragraph.
-    const metadata = screen.getByText(/Säkerhet 92%/).closest('p');
+    // The metadata paragraph now carries distance only; no confidence phrase or
+    // separator remains.
+    const metadata = screen.getByText('420 m').closest('p');
     const normalized = metadata?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
     expect(normalized.startsWith('·')).toBe(false);
     expect(normalized.endsWith('·')).toBe(false);
     expect(normalized).not.toContain('·');
-    // The confidence phrase appears exactly once (no duplication).
-    const occurrences = normalized.match(/Säkerhet 92%/g) ?? [];
-    expect(occurrences).toHaveLength(1);
+    expect(normalized).toContain('420 m');
+    expect(screen.getByTestId('venue-quick-info')).not.toHaveTextContent(/Säkerhet|Confidence/);
   });
 
-  it('hides confidence entirely (sr-only "unavailable") for geometry-only data, still shows opening hours (AC1/AC4)', () => {
+  it('does not render unavailable-confidence fallback for geometry-only data, still shows opening hours', () => {
     render(
       <VenueQuickInfo
         mode="mobile"
         name="Testbaren"
-        confidencePercent={92}
-        confidenceMeta={{ sunDataSource: 'geometry-only' }}
         sunExposurePercent={95}
         openingHours={OPENING_HOURS}
         distanceMeters={420}
@@ -445,9 +416,8 @@ describe('<VenueQuickInfo />', () => {
       />,
     );
 
-    // No visible confidence anywhere; the sr-only "unavailable" line remains.
-    expect(screen.queryByText(/Säkerhet:/)).toBeNull();
-    expect(screen.getByText(/Säkerhet saknas/)).toHaveClass('sr-only');
+    // No visible or sr-only confidence fallback remains.
+    expect(screen.getByTestId('venue-quick-info')).not.toHaveTextContent(/Säkerhet|Confidence/);
     // The opening-hours line + sun badge still render.
     expect(screen.getByTestId('quick-info-opening-hours')).toHaveTextContent('Öppet till 22:00');
     expect(screen.getByText(/95% SOL/)).toBeInTheDocument();
@@ -466,6 +436,7 @@ describe('<VenueQuickInfo />', () => {
         openingHours={OPENING_HOURS}
         distanceMeters={420}
         currentSunStatus="CloudObscured"
+        weatherGateState="gated"
         skyCondition="overcast"
         thumbnail={{ alt: 'Uteservering', initials: 'MB' }}
         isLoadingSunData={false}
@@ -481,10 +452,8 @@ describe('<VenueQuickInfo />', () => {
     expect(obscuredBlock).toHaveTextContent('Sol bakom moln');
     // AC3: overcast -> "Mulet" plain-language descriptor.
     expect(obscuredBlock).toHaveTextContent('Mulet');
-    // The photo-strip badge shows the geometric % as a muted-slate pill, never amber.
-    const badge = screen.getByText(/92% SOL/).closest('div');
-    expect(badge?.className).toContain('bg-pin-obscured');
-    expect(badge?.className).not.toContain('bg-amber-gold');
+    // The photo-strip badge is grey and percentage-free under the public gate.
+    expect(screen.queryByText(/92% SOL/)).not.toBeInTheDocument();
     // The opening-hours line still renders alongside the obscured treatment.
     expect(screen.getByTestId('quick-info-opening-hours')).toHaveTextContent('Öppet till 22:00');
   });
@@ -497,6 +466,7 @@ describe('<VenueQuickInfo />', () => {
         sunExposurePercent={92}
         distanceMeters={420}
         currentSunStatus="CloudObscured"
+        weatherGateState="gated"
         skyCondition="unavailable"
         thumbnail={{ alt: 'Uteservering', initials: 'MB' }}
         isLoadingSunData={false}
@@ -554,15 +524,11 @@ describe('<VenueQuickInfo />', () => {
         <VenueQuickInfo
           mode="mobile"
           name="Testbaren"
-          confidencePercent={80}
-          confidenceMeta={{
-            sunDataSource: 'weather',
-            weatherUpdatedAt: new Date().toISOString(),
-          }}
           sunExposurePercent={exposure}
           openingHours={OPENING_HOURS}
           distanceMeters={420}
           currentSunStatus={status}
+          weatherGateState={status === 'CloudObscured' ? 'gated' : 'not_gated'}
           skyCondition={sky}
           position={{ x: 180, y: 260 }}
           isLoadingSunData={false}
@@ -599,11 +565,6 @@ describe('<VenueQuickInfo />', () => {
       <VenueQuickInfo
         mode="mobile"
         name="Brygghuset Lerum"
-        confidencePercent={66}
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: new Date().toISOString(),
-        }}
         sunExposurePercent={58}
         openingHours={OPENING_HOURS}
         distanceMeters={420}
@@ -923,7 +884,7 @@ describe('<VenueQuickInfo />', () => {
         labels={labels}
       />,
     );
-    expect(screen.getByText(/SOL/)).toHaveTextContent('0% SOL');
+    expect(screen.queryByText(/SOL/)).not.toBeInTheDocument();
   });
 
   it('hides the sun-exposure badge entirely when the exposure value is absent', () => {

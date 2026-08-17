@@ -1,304 +1,570 @@
 'use client';
 
-import { useRef, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { useDrag } from '@use-gesture/react';
 import { motion, useReducedMotion } from 'motion/react';
-import {
-  DURATION_FAST_S,
-  DURATION_SLOW_S,
-  EASE_EXIT,
-  EASE_SPRING,
-} from '@/lib/constants/animation';
 import { cn } from '@/lib/utils';
 
-// Story 11.3 (AC2): the fourth INTERACTIVE snap is `'collapsed'` — handle-only
-// (just the drag pill + safe-area). It is DISTINCT from `'dismissed'`: collapsed
-// stays draggable + keyboard-reachable (the user drags it back up through
-// peek → mid → full), while `'dismissed'` is a `pointer-events-none` exit state
-// used elsewhere. Ordered smallest → largest for the gesture cascade.
-export type MobileBottomSheetState = 'collapsed' | 'peek' | 'mid' | 'full' | 'dismissed';
+export type MobileBottomSheetMetrics = {
+  visibleRows: number;
+  maxRows: number;
+  rowCount: number;
+  rowHeightPx: number;
+  chromeHeightPx: number;
+  handleHeightPx: number;
+  safeAreaInsetBottomPx: number;
+  sheetHeightPx: number;
+  maxSheetHeightPx: number;
+};
 
 export type MobileBottomSheetProps = {
-  state: MobileBottomSheetState;
-  onStateChange: (state: MobileBottomSheetState) => void;
+  visibleRows: number;
+  onVisibleRowsChange: (visibleRows: number, reason?: 'layout' | 'interaction') => void;
   handleLabel: string;
+  rowStatusLabel: (visibleRows: number, maxRows: number) => string;
   children: ReactNode;
+  chrome?: ReactNode;
+  rowCount?: number;
+  forcedDragOffsetPx?: number;
+  onMetricsChange?: (metrics: MobileBottomSheetMetrics) => void;
   className?: string;
 };
 
-const DRAG_TO_FULL_PX = -36;
-const DRAG_TO_PEEK_PX = 96;
-// Story 11.3 (AC2/AC3): a downward drag past this distance (or a fast swipe)
-// from peek reaches the handle-only `'collapsed'` snap. Kept below
-// DRAG_TO_PEEK_PX so a shorter downward drag from mid/full lands on peek first
-// (peek → collapsed needs a deliberate further pull). SET from the real drag
-// feel (the epic left the gesture thresholds UNKNOWN); tests pin the BEHAVIOUR
-// (peek ⇄ collapsed reachable by gesture + keyboard), not this exact number.
-const DRAG_TO_COLLAPSED_PX = 64;
-const DRAG_TO_DISMISS_PX = 220;
-const FAST_SWIPE_VELOCITY = 0.55;
+const HANDLE_HEIGHT_FALLBACK_PX = 44;
+const ROW_HEIGHT_FALLBACK_PX = 88;
+const CHROME_HEIGHT_FALLBACK_PX = 104;
+const BODY_BOTTOM_PADDING_PX = 16;
+const MOBILE_NAV_HEIGHT_PX = 52;
+const MOBILE_TOP_CHROME_CLEARANCE_PX = 211;
 const CLICK_SUPPRESS_DRAG_PX = 8;
+const FAST_SWIPE_VELOCITY = 0.25;
+const FLING_ROW_SKIP = 2;
+const SHEET_SETTLE_SPRING = {
+  type: 'spring',
+  stiffness: 420,
+  damping: 38,
+  mass: 0.9,
+} as const;
+
+export type ComputeMaxVisibleRowsInput = {
+  viewportHeightPx: number;
+  rowCount: number;
+  rowHeightPx: number;
+  handleHeightPx?: number;
+  chromeHeightPx?: number;
+  navHeightPx?: number;
+  topChromeClearancePx?: number;
+  safeAreaInsetBottomPx?: number;
+  bodyBottomPaddingPx?: number;
+};
+
+export function computeMaxVisibleRows({
+  viewportHeightPx,
+  rowCount,
+  rowHeightPx,
+  handleHeightPx = HANDLE_HEIGHT_FALLBACK_PX,
+  chromeHeightPx = CHROME_HEIGHT_FALLBACK_PX,
+  navHeightPx = MOBILE_NAV_HEIGHT_PX,
+  topChromeClearancePx = MOBILE_TOP_CHROME_CLEARANCE_PX,
+  safeAreaInsetBottomPx = 0,
+  bodyBottomPaddingPx = BODY_BOTTOM_PADDING_PX,
+}: ComputeMaxVisibleRowsInput): number {
+  const finiteRows = Math.max(0, Math.floor(finiteOr(rowCount, 0)));
+  if (finiteRows === 0) return 0;
+
+  const viewport = Math.max(0, finiteOr(viewportHeightPx, 0));
+  const rowHeight = Math.max(1, finiteOr(rowHeightPx, ROW_HEIGHT_FALLBACK_PX));
+  const safeAreaInsetBottom = Math.max(0, finiteOr(safeAreaInsetBottomPx, 0));
+  const availableSheetHeight = Math.max(
+    handleHeightPx,
+    viewport - navHeightPx - safeAreaInsetBottom - topChromeClearancePx,
+  );
+  const rowBudget =
+    availableSheetHeight - handleHeightPx - chromeHeightPx - bodyBottomPaddingPx;
+
+  return clampInteger(Math.floor(rowBudget / rowHeight), 1, finiteRows);
+}
+
+export type ComputeSheetHeightInput = {
+  visibleRows: number;
+  rowHeightPx: number;
+  handleHeightPx?: number;
+  chromeHeightPx?: number;
+  bodyBottomPaddingPx?: number;
+};
+
+export function computeSheetHeight({
+  visibleRows,
+  rowHeightPx,
+  handleHeightPx = HANDLE_HEIGHT_FALLBACK_PX,
+  chromeHeightPx = CHROME_HEIGHT_FALLBACK_PX,
+  bodyBottomPaddingPx = BODY_BOTTOM_PADDING_PX,
+}: ComputeSheetHeightInput): number {
+  const rows = Math.max(0, Math.floor(finiteOr(visibleRows, 0)));
+  if (rows === 0) return handleHeightPx;
+  return handleHeightPx + chromeHeightPx + bodyBottomPaddingPx + rows * rowHeightPx;
+}
+
+export type ResolveVisibleRowsAfterDragInput = {
+  visibleRows: number;
+  maxRows: number;
+  rowHeightPx: number;
+  movementY: number;
+  velocityY: number;
+  directionY?: number;
+};
+
+export function resolveVisibleRowsAfterDrag({
+  visibleRows,
+  maxRows,
+  rowHeightPx,
+  movementY,
+  velocityY,
+  directionY = 0,
+}: ResolveVisibleRowsAfterDragInput): number {
+  const currentRows = clampInteger(visibleRows, 0, maxRows);
+  if (maxRows <= 0) return 0;
+  if (Math.abs(movementY) <= CLICK_SUPPRESS_DRAG_PX) return currentRows;
+
+  const releaseDir = movementY < 0 ? 1 : movementY > 0 ? -1 : -directionY;
+  if (releaseDir === 0) return currentRows;
+
+  const rowHeight = Math.max(1, rowHeightPx);
+  const distanceRows = Math.round(Math.abs(movementY) / rowHeight);
+  const velocityRows = velocityY >= FAST_SWIPE_VELOCITY ? FLING_ROW_SKIP : 0;
+  const deltaRows = releaseDir * Math.max(distanceRows, velocityRows);
+  if (deltaRows === 0) return currentRows;
+
+  return clampInteger(currentRows + deltaRows, 0, maxRows);
+}
 
 export function MobileBottomSheet({
-  state,
-  onStateChange,
+  visibleRows,
+  onVisibleRowsChange,
   handleLabel,
+  rowStatusLabel,
   children,
+  chrome,
+  rowCount = 0,
+  forcedDragOffsetPx = 0,
+  onMetricsChange,
   className,
 }: MobileBottomSheetProps) {
   const shouldReduceMotion = useReducedMotion() ?? false;
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const handleRef = useRef<HTMLButtonElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const chromeRef = useRef<HTMLDivElement>(null);
   const scrollBodyRef = useRef<HTMLDivElement>(null);
   const suppressNextClickRef = useRef(false);
-  const [dragY, setDragY] = useState(0);
-  const isFull = state === 'full';
-  const isMid = state === 'mid';
-  const isPeek = state === 'peek';
-  const isCollapsed = state === 'collapsed';
-  const isDismissed = state === 'dismissed';
-  const isScrollable = isFull || isMid;
+  const [dragOffsetPx, setDragOffsetPx] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [measured, setMeasured] = useState({
+    handleHeightPx: HANDLE_HEIGHT_FALLBACK_PX,
+    rowHeightPx: ROW_HEIGHT_FALLBACK_PX,
+    chromeHeightPx: CHROME_HEIGHT_FALLBACK_PX,
+    safeAreaInsetBottomPx: 0,
+    rowCount: Math.max(0, rowCount),
+    viewportHeightPx: 844,
+  });
+
+  const measure = useCallback(() => {
+    const handleHeightPx = elementHeight(handleRef.current, HANDLE_HEIGHT_FALLBACK_PX);
+    const chromeHeightPx = elementHeight(chromeRef.current, CHROME_HEIGHT_FALLBACK_PX);
+    const rowNodes = Array.from(
+      scrollBodyRef.current?.querySelectorAll<HTMLElement>(
+        '[data-testid="venue-card"], [data-testid="venue-card-skeleton"]',
+      ) ?? [],
+    );
+    const measuredRowCount = Math.max(rowCount, rowNodes.length);
+    const rowHeightPx = measureRowHeight(rowNodes, ROW_HEIGHT_FALLBACK_PX);
+    const viewportHeightPx =
+      typeof window === 'undefined' ? 844 : window.innerHeight || 844;
+    const safeAreaInsetBottomPx = measureSafeAreaInsetBottomPx();
+
+    setMeasured((previous) => {
+      const next = {
+        handleHeightPx,
+        rowHeightPx,
+        chromeHeightPx,
+        safeAreaInsetBottomPx,
+        rowCount: measuredRowCount,
+        viewportHeightPx,
+      };
+      return measurementsEqual(previous, next) ? previous : next;
+    });
+  }, [rowCount]);
+
+  useLayoutEffect(() => {
+    measure();
+  }, [children, chrome, measure, visibleRows]);
+
+  useLayoutEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(() => measure());
+    const nodes: Element[] = [];
+    if (sheetRef.current) nodes.push(sheetRef.current);
+    if (handleRef.current) nodes.push(handleRef.current);
+    if (bodyRef.current) nodes.push(bodyRef.current);
+    if (chromeRef.current) nodes.push(chromeRef.current);
+    if (scrollBodyRef.current) nodes.push(scrollBodyRef.current);
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, [measure]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handleResize = () => measure();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [measure]);
+
+  const maxRows = useMemo(
+    () =>
+      computeMaxVisibleRows({
+        viewportHeightPx: measured.viewportHeightPx,
+        rowCount: measured.rowCount,
+        rowHeightPx: measured.rowHeightPx,
+        handleHeightPx: measured.handleHeightPx,
+        chromeHeightPx: measured.chromeHeightPx,
+        safeAreaInsetBottomPx: measured.safeAreaInsetBottomPx,
+      }),
+    [measured],
+  );
+  const clampedVisibleRows = clampInteger(visibleRows, 0, maxRows);
+  const sheetHeightPx = computeSheetHeight({
+    visibleRows: clampedVisibleRows,
+    rowHeightPx: measured.rowHeightPx,
+    handleHeightPx: measured.handleHeightPx,
+    chromeHeightPx: measured.chromeHeightPx,
+  });
+  const maxSheetHeightPx = computeSheetHeight({
+    visibleRows: maxRows,
+    rowHeightPx: measured.rowHeightPx,
+    handleHeightPx: measured.handleHeightPx,
+    chromeHeightPx: measured.chromeHeightPx,
+  });
+  const dragHeightPx = clampNumber(
+    sheetHeightPx + dragOffsetPx + forcedDragOffsetPx,
+    measured.handleHeightPx,
+    Math.max(measured.handleHeightPx, maxSheetHeightPx),
+  );
+  const renderedHeightPx = isDragging || forcedDragOffsetPx !== 0 ? dragHeightPx : sheetHeightPx;
+  const bodyIsHidden = clampedVisibleRows === 0;
+  const scrollCanOverflow = clampedVisibleRows >= maxRows && measured.rowCount > maxRows;
+
+  const metrics = useMemo<MobileBottomSheetMetrics>(
+    () => ({
+      visibleRows: clampedVisibleRows,
+      maxRows,
+      rowCount: measured.rowCount,
+      rowHeightPx: measured.rowHeightPx,
+      chromeHeightPx: measured.chromeHeightPx,
+      handleHeightPx: measured.handleHeightPx,
+      safeAreaInsetBottomPx: measured.safeAreaInsetBottomPx,
+      sheetHeightPx: renderedHeightPx,
+      maxSheetHeightPx,
+    }),
+    [
+      clampedVisibleRows,
+      maxRows,
+      maxSheetHeightPx,
+      measured.chromeHeightPx,
+      measured.handleHeightPx,
+      measured.rowCount,
+      measured.rowHeightPx,
+      measured.safeAreaInsetBottomPx,
+      renderedHeightPx,
+    ],
+  );
+
+  useEffect(() => {
+    onMetricsChange?.(metrics);
+  }, [metrics, onMetricsChange]);
+
+  useEffect(() => {
+    if (visibleRows !== clampedVisibleRows) {
+      onVisibleRowsChange(clampedVisibleRows, 'layout');
+    }
+  }, [clampedVisibleRows, onVisibleRowsChange, visibleRows]);
+
+  const settleFromDrag = useCallback(
+    (movementY: number, velocityY: number, directionY?: number) => {
+      const nextRows = resolveVisibleRowsAfterDrag({
+        visibleRows: clampedVisibleRows,
+        maxRows,
+        rowHeightPx: measured.rowHeightPx,
+        movementY,
+        velocityY,
+        directionY,
+      });
+      onVisibleRowsChange(nextRows, 'interaction');
+    },
+    [clampedVisibleRows, maxRows, measured.rowHeightPx, onVisibleRowsChange],
+  );
 
   const handleBind = useDrag(
-    ({ event, movement: [, my], offset: [, oy], velocity: [, vy], direction: [, dy], last, active }) => {
-      const target = event.target instanceof Element ? event.target : null;
-      const isBodyDrag = Boolean(target?.closest('[data-bottom-sheet-scroll-body="true"]'));
-      const bodyScrollTop = scrollBodyRef.current?.scrollTop ?? 0;
-
-      if (last) setDragY(0);
-      if (isBodyDrag && isFull && bodyScrollTop > 0 && my > 0) return;
-      if (active && !shouldReduceMotion) {
-        setDragY(Math.max(-80, my));
+    ({ movement: [, my], velocity: [, vy], direction: [, dy], last, active }) => {
+      if (last) {
+        setDragOffsetPx(0);
+        setIsDragging(false);
+      } else if (active) {
+        setIsDragging(true);
+      }
+      if (active) {
+        setDragOffsetPx(-my);
       }
       if (!last) return;
 
       suppressNextClickRef.current = Math.abs(my) > CLICK_SUPPRESS_DRAG_PX;
-      // Story 11.3 (AC2/AC3): resolve the release to one of the FOUR interactive
-      // snaps (collapsed → peek → mid → full) using BOTH distance (`my`/`oy`) and
-      // velocity (`vy` vs FAST_SWIPE_VELOCITY). Derive the release DIRECTION from
-      // the accumulated movement sign, NOT the instantaneous `direction` — at the
-      // final (release) event the pointer/touch delta is 0, so `dy` can read 0 and
-      // a valid drag would otherwise snap back with no state change (the real bug
-      // behind the reported jank; a CDP touchEnd carries no residual direction).
-      const releaseDir = my < 0 ? -1 : my > 0 ? 1 : dy;
-      // ---- UPWARD (expand) ----
-      if (releaseDir < 0 && (my <= DRAG_TO_FULL_PX || oy <= DRAG_TO_FULL_PX)) {
-        // collapsed climbs to peek; peek → mid; mid/full → full.
-        onStateChange(isCollapsed ? 'peek' : isPeek ? 'mid' : 'full');
-        return;
-      }
-      // ---- DOWNWARD (collapse) ----
-      if (releaseDir > 0 && isFull && (my >= DRAG_TO_DISMISS_PX || vy >= FAST_SWIPE_VELOCITY)) {
-        onStateChange('peek');
-        return;
-      }
-      if (releaseDir > 0 && isFull && my >= DRAG_TO_PEEK_PX) {
-        onStateChange('mid');
-        return;
-      }
-      // From mid, a downward drag past the peek threshold (or a fast swipe) → peek.
-      if (releaseDir > 0 && isMid && (my >= DRAG_TO_PEEK_PX || vy >= FAST_SWIPE_VELOCITY)) {
-        onStateChange('peek');
-        return;
-      }
-      // From peek, a downward drag past the collapsed threshold (or a fast swipe)
-      // reaches the handle-only collapsed snap; a shorter drag settles back to peek.
-      if (releaseDir > 0 && isPeek && (my >= DRAG_TO_COLLAPSED_PX || vy >= FAST_SWIPE_VELOCITY)) {
-        onStateChange('collapsed');
-        return;
-      }
+      settleFromDrag(my, vy, dy);
     },
     {
       axis: 'y',
-      bounds: { top: -80, bottom: 320 },
-      rubberband: 0.15,
+      bounds: { top: -maxSheetHeightPx, bottom: maxSheetHeightPx },
+      rubberband: 0.12,
       pointer: { capture: true },
     },
   );
 
   const bodyBind = useDrag(
     ({ movement: [, my], velocity: [, vy], direction: [, dy], last, active }) => {
-      if (!isFull) {
-        if (last) setDragY(0);
-        return;
-      }
       const bodyScrollTop = scrollBodyRef.current?.scrollTop ?? 0;
-      if (last) setDragY(0);
-      if (bodyScrollTop > 0 || my <= 0) return;
+      const draggingDown = my > 0;
+      const draggingUp = my < 0;
+      const listOwnsScroll =
+        (draggingDown && bodyScrollTop > 0) ||
+        (draggingUp && clampedVisibleRows >= maxRows && scrollCanOverflow);
 
-      if (active && !shouldReduceMotion) {
-        setDragY(Math.min(120, my));
+      if (last) {
+        setDragOffsetPx(0);
+        setIsDragging(false);
+      } else if (active && !listOwnsScroll) {
+        setIsDragging(true);
+      }
+      if (listOwnsScroll) return;
+      if (active) {
+        setDragOffsetPx(-my);
       }
       if (!last) return;
 
-      suppressNextClickRef.current = my > CLICK_SUPPRESS_DRAG_PX;
-      // See handleBind: derive release direction from the accumulated movement
-      // (a release event carries no instantaneous direction). `my > 0` is already
-      // guaranteed above, so this collapses to a distance/velocity test downward.
-      const releaseDir = my > 0 ? 1 : dy;
-      if (releaseDir > 0 && (my >= DRAG_TO_PEEK_PX || vy >= FAST_SWIPE_VELOCITY)) {
-        onStateChange('peek');
-      }
+      suppressNextClickRef.current = Math.abs(my) > CLICK_SUPPRESS_DRAG_PX;
+      settleFromDrag(my, vy, dy);
     },
     {
       axis: 'y',
-      bounds: { top: 0, bottom: 180 },
+      bounds: { top: -maxSheetHeightPx, bottom: maxSheetHeightPx },
       rubberband: 0.12,
-      pointer: { capture: false },
+      pointer: { capture: false, touch: true },
     },
   );
 
+  const statusLabel = rowStatusLabel(clampedVisibleRows, maxRows);
+  const handleStyle: CSSProperties = { touchAction: 'none' };
+  const renderedScrollBodyHeightPx =
+    clampedVisibleRows === 0
+      ? 0
+      : clampNumber(
+          renderedHeightPx -
+            measured.handleHeightPx -
+            measured.chromeHeightPx -
+            BODY_BOTTOM_PADDING_PX,
+          0,
+          maxRows * measured.rowHeightPx,
+        );
+  const scrollBodyStyle: CSSProperties = {
+    height: renderedScrollBodyHeightPx,
+    maxHeight: renderedScrollBodyHeightPx,
+    touchAction: scrollCanOverflow ? 'pan-y' : 'none',
+  };
+
   return (
-    <>
-      {isFull && (
-        <motion.div
-          aria-hidden="true"
-          data-testid="mobile-bottom-sheet-backdrop"
-          className="absolute inset-0 z-bottom-sheet-peek bg-text-primary/20 lg:hidden"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: DURATION_FAST_S, ease: EASE_EXIT }}
-        />
+    <motion.div
+      ref={sheetRef}
+      data-testid="mobile-bottom-sheet"
+      data-tour-anchor={bodyIsHidden ? undefined : 'venue-list'}
+      data-state={`rows-${clampedVisibleRows}`}
+      data-visible-rows={clampedVisibleRows}
+      data-max-rows={maxRows}
+      data-row-height={Math.round(measured.rowHeightPx)}
+      data-sheet-height={Math.round(renderedHeightPx)}
+      data-dragging={String(isDragging || forcedDragOffsetPx !== 0)}
+      className={cn(
+        'absolute inset-x-0 bottom-[calc(var(--size-mobile-nav-h)+env(safe-area-inset-bottom))] z-bottom-sheet-peek flex flex-col overflow-hidden rounded-t-panel bg-surface-cream text-text-primary shadow-sheet-peek-up lg:hidden',
+        'touch-pan-y',
+        className,
       )}
-      <motion.div
-        layout={!shouldReduceMotion}
-        data-testid="mobile-bottom-sheet"
-        data-state={state}
-        className={cn(
-          'absolute inset-x-0 bottom-[var(--size-mobile-nav-h)] flex flex-col overflow-hidden bg-surface-cream text-text-primary lg:hidden',
-          'touch-pan-y',
-          isDismissed
-            ? 'pointer-events-none z-bottom-sheet-peek h-[var(--size-bottom-sheet-peek-h)] rounded-t-panel shadow-sheet-peek-up'
-            : isFull
-            ? 'z-bottom-sheet-full h-[min(var(--size-bottom-sheet-full-h),calc(100dvh-var(--size-mobile-nav-h)-env(safe-area-inset-top)-var(--spacing)*6))] rounded-t-sheet-full shadow-sheet-full-up'
-            : isMid
-            ? 'z-bottom-sheet-peek h-[var(--size-bottom-sheet-mid-h)] rounded-t-panel shadow-sheet-peek-up'
-            : isCollapsed
-            ? 'z-bottom-sheet-peek h-[var(--size-bottom-sheet-collapsed-h)] rounded-t-panel shadow-sheet-peek-up'
-            : 'z-bottom-sheet-peek h-[var(--size-bottom-sheet-peek-h)] rounded-t-panel shadow-sheet-peek-up',
-          className,
-        )}
-        initial={false}
-        animate={sheetMotionState(state, shouldReduceMotion, dragY)}
-        transition={{
-          duration: shouldReduceMotion ? DURATION_FAST_S : DURATION_SLOW_S,
-          ease: shouldReduceMotion ? EASE_EXIT : EASE_SPRING,
+      initial={false}
+      animate={{
+        opacity: 1,
+        height: renderedHeightPx,
+      }}
+      transition={{
+        ...(shouldReduceMotion || isDragging ? { duration: 0 } : SHEET_SETTLE_SPRING),
+      }}
+      style={{ height: renderedHeightPx, maxHeight: maxSheetHeightPx }}
+    >
+      <button
+        ref={handleRef}
+        type="button"
+        data-testid="mobile-bottom-sheet-handle"
+        aria-label={handleLabel}
+        aria-describedby="mobile-bottom-sheet-row-status"
+        {...handleBind()}
+        onClick={(event) => {
+          if (suppressNextClickRef.current) {
+            suppressNextClickRef.current = false;
+            event.preventDefault();
+            return;
+          }
+          onVisibleRowsChange(clickCycleRows(clampedVisibleRows, maxRows), 'interaction');
         }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onVisibleRowsChange(clickCycleRows(clampedVisibleRows, maxRows), 'interaction');
+          }
+          if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            onVisibleRowsChange(clampInteger(clampedVisibleRows + 1, 0, maxRows), 'interaction');
+          }
+          if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            onVisibleRowsChange(clampInteger(clampedVisibleRows - 1, 0, maxRows), 'interaction');
+          }
+        }}
+        className="flex min-h-11 shrink-0 items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+        style={handleStyle}
       >
-        <button
-          type="button"
-          data-testid="mobile-bottom-sheet-handle"
-          aria-label={handleLabel}
-          {...handleBind()}
-          onClick={(event) => {
-            if (suppressNextClickRef.current) {
-              suppressNextClickRef.current = false;
-              event.preventDefault();
-              return;
-            }
-            onStateChange(clickCycle(state));
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              onStateChange(clickCycle(state));
-            }
-            // Story 11.3 (AC2): the ArrowUp/ArrowDown cascade now spans the four
-            // interactive snaps. ArrowUp expands one rung (collapsed → peek → mid
-            // → full); ArrowDown collapses one rung (full → mid → peek →
-            // collapsed). Both saturate at the ends (never reaching 'dismissed').
-            if (event.key === 'ArrowUp') onStateChange(expandOneRung(state));
-            if (event.key === 'ArrowDown') onStateChange(collapseOneRung(state));
-          }}
-          className="flex min-h-11 shrink-0 items-center justify-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
-          style={{ touchAction: 'none' }}
-        >
-          <span
-            aria-hidden="true"
-            className={cn(
-              'h-[var(--size-drag-pill-h)] rounded-pill',
-              isFull ? 'w-[var(--size-drag-pill-w-lg)] bg-drag-handle' : 'w-[var(--size-drag-pill-w)] bg-drag-handle-map',
-            )}
-          />
-        </button>
+        <span
+          aria-hidden="true"
+          className="h-[var(--size-drag-pill-h)] w-[var(--size-drag-pill-w-lg)] rounded-pill bg-drag-handle-map"
+        />
+      </button>
+      <div
+        ref={bodyRef}
+        data-bottom-sheet-body="true"
+        aria-hidden={bodyIsHidden}
+        inert={bodyIsHidden}
+        className={cn(
+          'min-h-0 flex-1 px-4 pb-4',
+          bodyIsHidden && 'pointer-events-none',
+        )}
+      >
+        <div ref={chromeRef} data-bottom-sheet-chrome="true">
+          {chrome}
+        </div>
         <div
           ref={scrollBodyRef}
           data-bottom-sheet-scroll-body="true"
           {...bodyBind()}
-          // Story 11.3 (AC2): in the handle-only collapsed snap the body content
-          // (sort toggles, chip row, list) is hidden from AT + interaction — only
-          // the drag pill + safe-area show. Distinct from 'dismissed' (which
-          // hides the whole sheet); here the handle above stays interactive.
-          aria-hidden={isDismissed || isCollapsed}
-          // External-review fix: `aria-hidden` + `pointer-events-none` hid the
-          // collapsed body from AT and the mouse, but its focusable children
-          // stayed in the TAB ORDER — a keyboard user could tab into visually
-          // clipped controls. `inert` (React 19 boolean prop) removes the whole
-          // subtree from tab order AND the a11y tree; `aria-hidden` is kept for AT
-          // parity across engines. The handle above is OUTSIDE this body, so it
-          // stays focusable (what makes 'collapsed' distinct from 'dismissed').
-          inert={isDismissed || isCollapsed}
+          onClickCapture={(event) => {
+            if (!suppressNextClickRef.current) return;
+            suppressNextClickRef.current = false;
+            event.preventDefault();
+            event.stopPropagation();
+          }}
           className={cn(
-            'min-h-0 flex-1 px-4 pb-4',
-            isScrollable ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',
-            isCollapsed && 'pointer-events-none',
+            'min-h-0',
+            scrollCanOverflow ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',
           )}
-          style={{ touchAction: isScrollable ? 'pan-y' : 'none' }}
+          style={scrollBodyStyle}
         >
           {children}
         </div>
-      </motion.div>
-    </>
+      </div>
+      <p id="mobile-bottom-sheet-row-status" className="sr-only" aria-live="polite">
+        {statusLabel}
+      </p>
+    </motion.div>
   );
 }
 
-// Story 11.3 (AC2): the four INTERACTIVE snaps ordered smallest → largest for
-// the keyboard/click cascade. `'dismissed'` is the non-interactive exit state and
-// is deliberately NOT part of this ladder — the handle can never reach it.
-const SNAP_LADDER = ['collapsed', 'peek', 'mid', 'full'] as const;
-
-/** ArrowUp / expand: move up one rung, saturating at 'full'. */
-function expandOneRung(state: MobileBottomSheetState): MobileBottomSheetState {
-  const index = SNAP_LADDER.indexOf(state as (typeof SNAP_LADDER)[number]);
-  if (index === -1) return 'mid';
-  return SNAP_LADDER[Math.min(index + 1, SNAP_LADDER.length - 1)];
+function clickCycleRows(visibleRows: number, maxRows: number): number {
+  if (maxRows <= 0) return 0;
+  if (visibleRows >= maxRows) return 0;
+  return clampInteger(visibleRows + 1, 0, maxRows);
 }
 
-/** ArrowDown / collapse: move down one rung, saturating at 'collapsed'. */
-function collapseOneRung(state: MobileBottomSheetState): MobileBottomSheetState {
-  const index = SNAP_LADDER.indexOf(state as (typeof SNAP_LADDER)[number]);
-  if (index === -1) return 'peek';
-  return SNAP_LADDER[Math.max(index - 1, 0)];
+function measureRowHeight(rowNodes: HTMLElement[], fallback: number): number {
+  const first = rowNodes[0];
+  if (!first) return fallback;
+  const firstRect = first.getBoundingClientRect();
+  const firstHeight = positiveOr(firstRect.height || first.offsetHeight, fallback);
+  const second = rowNodes[1];
+  if (!second) return Math.max(1, firstHeight);
+
+  const distance = second.getBoundingClientRect().top - firstRect.top;
+  return Math.max(1, positiveOr(distance > 0 ? distance : firstHeight, firstHeight));
 }
 
-/**
- * Click / Enter / Space toggle: cycle upward through the ladder, then wrap from
- * the top back down to peek so a tap keeps opening the sheet and, once full,
- * tucks it back to peek (never straight to the handle-only collapsed state,
- * which is a deliberate drag/keyboard action).
- */
-function clickCycle(state: MobileBottomSheetState): MobileBottomSheetState {
-  switch (state) {
-    case 'collapsed':
-      return 'peek';
-    case 'peek':
-      return 'mid';
-    case 'mid':
-      return 'full';
-    case 'full':
-      return 'peek';
-    default:
-      return 'mid';
-  }
+function elementHeight(node: HTMLElement | null, fallback: number): number {
+  if (!node) return fallback;
+  return Math.max(1, positiveOr(node.getBoundingClientRect().height || node.offsetHeight, fallback));
 }
 
-function sheetMotionState(
-  state: MobileBottomSheetState,
-  shouldReduceMotion: boolean,
-  dragY: number,
-) {
-  if (shouldReduceMotion) {
-    return { opacity: state === 'dismissed' ? 0 : 1, y: 0 };
-  }
-  if (state === 'dismissed') return { opacity: 0, y: '100%' };
-  return { opacity: 1, y: dragY };
+function measureSafeAreaInsetBottomPx(): number {
+  if (typeof document === 'undefined' || typeof window === 'undefined') return 0;
+  const probe = document.createElement('div');
+  probe.style.position = 'fixed';
+  probe.style.visibility = 'hidden';
+  probe.style.pointerEvents = 'none';
+  probe.style.paddingBottom = 'env(safe-area-inset-bottom)';
+  document.body.appendChild(probe);
+  const computed = window.getComputedStyle(probe).paddingBottom;
+  probe.remove();
+  return Math.max(0, Number.parseFloat(computed) || 0);
+}
+
+function finiteOr(value: number, fallback: number): number {
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function positiveOr(value: number, fallback: number): number {
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function clampInteger(value: number, min: number, max: number): number {
+  return Math.round(clampNumber(value, min, max));
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+  const safeValue = finiteOr(value, min);
+  const safeMax = Math.max(min, finiteOr(max, min));
+  return Math.min(safeMax, Math.max(min, safeValue));
+}
+
+function measurementsEqual(
+  left: {
+    handleHeightPx: number;
+    rowHeightPx: number;
+    chromeHeightPx: number;
+    safeAreaInsetBottomPx: number;
+    rowCount: number;
+    viewportHeightPx: number;
+  },
+  right: {
+    handleHeightPx: number;
+    rowHeightPx: number;
+    chromeHeightPx: number;
+    safeAreaInsetBottomPx: number;
+    rowCount: number;
+    viewportHeightPx: number;
+  },
+): boolean {
+  return left.handleHeightPx === right.handleHeightPx &&
+    left.rowHeightPx === right.rowHeightPx &&
+    left.chromeHeightPx === right.chromeHeightPx &&
+    left.safeAreaInsetBottomPx === right.safeAreaInsetBottomPx &&
+    left.rowCount === right.rowCount &&
+    left.viewportHeightPx === right.viewportHeightPx;
 }

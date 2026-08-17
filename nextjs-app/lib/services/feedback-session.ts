@@ -1,5 +1,11 @@
 import { greatCircleMeters } from '@/lib/utils/geo';
-import type { CoordinatesDto, VenueDataDto, VenueSunStatus } from '@/lib/types/api';
+import { publicSunVerdictFor } from '@/lib/utils/public-sun';
+import type {
+  CoordinatesDto,
+  PublicSunVerdict,
+  VenueDataDto,
+  VenueSunStatus,
+} from '@/lib/types/api';
 
 const DETAIL_VIEW_PREFIX = 'sunnyseat:feedback:view:';
 const SUBMITTED_PREFIX = 'sunnyseat:feedback:submitted:';
@@ -18,6 +24,11 @@ export type FeedbackDetailViewRecord = {
   viewedAt: number;
   plannerTimestamp: string;
   predictedState?: VenueSunStatus;
+  sunExposurePercent: number;
+  publicSunVerdict: PublicSunVerdict;
+  weatherGated: boolean;
+  weatherUnknown: boolean;
+  geometryInputHash?: string;
   confidenceAtPrediction?: number;
 };
 
@@ -25,7 +36,15 @@ export type FeedbackGeolocationStatus = 'idle' | 'pending' | 'success' | 'fallba
 
 type VenueIdentity = Pick<
   VenueDataDto,
-  'id' | 'slug' | 'venueSlug' | 'location' | 'currentSunStatus' | 'confidence'
+  | 'id'
+  | 'slug'
+  | 'venueSlug'
+  | 'location'
+  | 'currentSunStatus'
+  | 'confidence'
+  | 'sunExposurePercent'
+  | 'weatherGateState'
+  | 'predictionEvidence'
 >;
 
 export function recordVenueDetailView(
@@ -39,6 +58,16 @@ export function recordVenueDetailView(
     viewedAt: now,
     plannerTimestamp,
     predictedState: venue.currentSunStatus,
+    sunExposurePercent: venue.sunExposurePercent,
+    publicSunVerdict: publicSunVerdictFor(venue),
+    weatherGated: venue.weatherGateState === 'gated',
+    weatherUnknown: venue.weatherGateState === 'unknown',
+    ...(venue.predictionEvidence?.geometryInputHash
+      ? { geometryInputHash: venue.predictionEvidence.geometryInputHash }
+      : {}),
+    // Story 12.13 transition: the public UI no longer renders confidence, but
+    // feedback still needs the model's internal value until Story 12.2 replaces
+    // this client-side evidence stamp.
     confidenceAtPrediction: venue.confidence,
   } satisfies FeedbackDetailViewRecord;
   safeSessionSet(detailKey(venue.id), JSON.stringify(record));
@@ -54,7 +83,11 @@ export function readVenueDetailView(venueId: string): FeedbackDetailViewRecord |
       typeof parsed.venueId !== 'string' ||
       typeof parsed.venueSlug !== 'string' ||
       typeof parsed.viewedAt !== 'number' ||
-      typeof parsed.plannerTimestamp !== 'string'
+      typeof parsed.plannerTimestamp !== 'string' ||
+      typeof parsed.sunExposurePercent !== 'number' ||
+      !isPublicSunVerdict(parsed.publicSunVerdict) ||
+      typeof parsed.weatherGated !== 'boolean' ||
+      typeof parsed.weatherUnknown !== 'boolean'
     ) {
       return null;
     }
@@ -62,6 +95,10 @@ export function readVenueDetailView(venueId: string): FeedbackDetailViewRecord |
   } catch {
     return null;
   }
+}
+
+function isPublicSunVerdict(value: unknown): value is PublicSunVerdict {
+  return value === 'amber' || value === 'grey';
 }
 
 export function markVenueFeedbackSubmitted(venueId: string) {

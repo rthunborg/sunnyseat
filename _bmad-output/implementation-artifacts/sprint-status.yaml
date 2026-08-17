@@ -2,7 +2,7 @@
 # Used by BMAD workflows: create-story, dev-story, sprint-planning, sprint-status
 #
 # generated: 2026-06-02
-# last_updated: 2026-07-13T18:56:02+02:00
+# last_updated: 2026-07-27T17:12:53+02:00
 # project: sunnyseat
 # project_key: NOKEY
 # tracking_system: file-system
@@ -43,7 +43,21 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-02
-last_updated: 2026-07-14
+last_updated: 2026-08-07
+# Note (2026-07-27, create-story 12.11 - 12-11-first-run-coach-mark-guide-map-legend-feature-tour backlog -> ready-for-dev):
+# authored the Story 12.11 context file at _bmad-output/implementation-artifacts/12-11-first-run-coach-mark-guide-map-legend-feature-tour.md.
+# Core guidance: post-onboarding first-run coach tour; locked feedback to copy-only guidance; forced visual states are
+# coach-mark-first and coach-mark-middle; mobile/desktop anchors use mounted Story 12.6 pins/map semantics and Story 12.9
+# row-sheet/planner/list surfaces; Settings relaunch, first-run-only seen-state, focus trap, 44x44 targets, reduced motion,
+# Swedish copy, no public confidence, a11y-mobile, and visual validation are required. story-file-audit: all 7 checks PASS.
+# Next: bmad-dev-story 12-11.
+# Note (2026-07-27, create-story 12.8 - 12-8-about-page-pin-legend-so-reads-the-sun-figure backlog -> ready-for-dev): authored the Story 12.8 context file at _bmad-output/implementation-artifacts/12-8-about-page-pin-legend-so-reads-the-sun-figure.md. Core guidance: add a static About legend before ALGORITMEN using Story 12.6's shared public-sun predicate (amber direct sun when sunExposurePercent > 50 and weather is not gated; grey not-sunny for shade/clouds), explain that pin numbers are seating-area share in sun at the selected time and not probability, preserve Story 12.13's no public confidence number, and remove the fake ABOUT_ACCURACY_PLACEHOLDER=85 claim unless Story 12.2 supplies measured aggregate data. Required gates: component/i18n/presentation tests, executable mobile+desktop About a11y evidence, mobile+desktop visual evidence, and same-operation REBASELINE-LOG updates for any reference change. Folded targeted retro/deferred constraints: explicit screen_id marker, a11y-mobile non-vacuous execution, visual-provider/manual-approval discipline, About footer contrast debt, and rebaseline helper candidate-output risk. story-file-audit: all 7 checks PASS. Next: bmad-dev-story 12-8.
+# Note (2026-07-27, dev-story 12.5 - 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields ready-for-dev -> in-progress): baseline typecheck and lint passed before edits; implementation started with production-impossible dev editor guard, display-coordinate migration/store mapping, geometry dirty/publish seam, hidden route matrix, media validation, and dev-only UI as the active scope.
+# Note (2026-07-27, create-story 12.5 - 12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields backlog -> ready-for-dev): authored the Story 12.5 context file at _bmad-output/implementation-artifacts/12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields.md. Core guidance: dev/localhost-only editor with production hard deny before flags/input, Story 12.3 geometry_input_hash/publication seam, Story 12.7 canonical hidden resolver, Story 12.12 card/hero media contract, AD-06 display_lat/display_lng separation from seating-centroid engine/weather coordinates, public hidden route matrix, cache-bound/query invalidation, and docs update. Folded targeted Epic 12 retro/deferred constraints for schema drift, a11y-mobile evidence, protected Storage evidence, visual-gate discipline, centroid duplication, and tag vocabulary drift. story-file-audit: all 7 checks PASS. Next: bmad-dev-story 12-5.
+# Note (2026-07-27, human-feedback refinement 12.10 - 12-10-venue-detail-preload-instant-mer-info review -> in-progress): reopened for loading scrim blur adjustment; baseline and final typecheck/lint passed; focused cache-miss shell coverage passed; orchestrator owns final review transition.
+# Note (2026-07-26, dev-story 12.10 - 12-10-venue-detail-preload-instant-mer-info ready-for-dev -> in-progress): baseline typecheck and lint passed before edits; implementation started under orchestrator override to leave review transition for post-dev gates.
+# Note (2026-07-26, create-story 12.10 - 12-10-venue-detail-preload-instant-mer-info backlog -> ready-for-dev): authored the Story 12.10 context file at _bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md. Mandatory Superseded Epic Text included: initial-settle-only prefetch, six candidates, concurrency two, no same-date scrub/date restart, and no 10 km expansion. Core guidance: share the exact useVenueDetail/detailAt query contract with the prefetcher, add a bounded/cancellable TanStack Query v5 scheduler, converge /api/venues/[slug] on Story 12.7's public resolver, preserve Epic 11 request-count gates, and keep cache-miss detail shell accessible with Swedish loading announcement. story-file-audit: all 7 checks PASS. Next: bmad-dev-story 12-10.
+# Note (2026-07-20, create-story 12.9 — 12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider backlog -> ready-for-dev): authored the Story 12.9 context file at _bmad-output/implementation-artifacts/12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider.md. ACs and Design Gate copied verbatim from epics.md §Story 12.9. Core implementation guidance: replace the Story 11.3 fixed snap enum/translate-Y venue-list sheet with a bottom-anchored height/max-height row-count model (`N=0..maxRows`), derive rowHeight from the real rendered row variant or use one consistent variant, enable row-origin drag at scrollTop===0, migrate MapView/MapControls/computeRecenterPadding from `MobileBottomSheetState` to measured row obstruction, and apply the mobile-only TimeSlider padding reductions. Visual source correction recorded: current `map-panel-venues` project-context text, Claude BottomSheet.jsx, and capture recipe are stale fixed-`mid` references; revised UX row-count behavior controls, with canonical mobile `map-panel-venues` normally `N=3` complete rows and extra candidate evidence for N=0/1/few/max/mid-drag before human-approved rebaseline. Backdrop ambiguity resolved as implementation guidance: list sheet keeps map visible/interactable outside the bottom-anchored sheet; old full-screen backdrop semantics remain for detail/full overlay contracts, not the row list. Folded overlapping retro/deferred notes: explicit `screen_id:` marker, DOM-state assertions before capture, Windows `VITEST_MAX_WORKERS=4` if full Vitest times out, explicit a11y-mobile execution, recenter canvas-clamp opportunity, and conditional TimeSlider pointer deferrals only if handlers are touched. story-file-audit: all 7 checks PASS. Next: bmad-dev-story 12-9.
 # Note (2026-07-06, sprint change): maintainer folded the drafted single-story Epic 12 "Cleaner Venue Data" into Epic 11 as Story 11.9 (venue data model cleanup) and dissolved Epic 12; 11-9 registered as backlog. Epic-end gates/retro re-run when 11-9 lands (retrospective for stories 1-8 already recorded).
 # Note (2026-07-06, create-story 11-9 — 11-9-venue-data-model-cleanup backlog -> ready-for-dev): comprehensive story context authored at _bmad-output/implementation-artifacts/11-9-venue-data-model-cleanup.md (6 ACs verbatim from epics.md §Story 11.9 + Design Gate Criteria; 6 tasks incl. live idempotent migration the dev agent applies to project hhnbxrhfhlzxgllxukzj). Grounded against live schema (8-2-venues-store-contract.sql + reviews/feedback text venue_id joins → keep text PK), the venue-store adapter/DTO/render seams (11.4 quick-info + 11.6 detail badge), and a new pure per-weekday opening-hours formatter reusing the time-planner Intl/Europe-Stockholm precedent. Folded epic-11 retro constraints (never-fabricate absent hours, byte-identical-visual = no self-blessed rebaseline, full-suite e2e sweep, EOL/LF hygiene) + the directly-triggered deferred item (closesAt ÖPPET badge has no is-open guard — this per-weekday data-layer change is its trigger). epic-11 stays in-progress until 11-9 lands. Next: dev-story 11-9.
 # Note (2026-07-05, create-story 11.7 — 11-7 -> ready-for-dev): bmad-create-story drafted the Story 11.7 context file (_bmad-output/implementation-artifacts/11-7-hygiene-deferred-debt.md). SEVENTH story of Epic 11 "Feels Instant, Reads Clear" — Hygiene: Three-Epics-Deferred Debt Finally Scheduled. 3 ACs verbatim from epics.md:2985-2999 (Given/When/Then preserved incl. code spans vercel.json/.gitattributes/`git add --renormalize`/confidence-calculator.ts/toSunStatusToken + "maintainer-blessed checkpoint"; labelled AC1/AC2/AC3) + the hygiene "no new screen" Design Gate verbatim (epics.md:2999) with an explicit "no standard four gate criteria — intentional" callout. CORE MOVES: (AC1a) the lightningcss error-swallow is in vercel.json's installCommand ending `... || true` (`:5`), NOT buildCommand as the epic prose says — remove ONLY the `|| true`, keep the root-reach `--no-package-lock lightningcss@1.31.1` install + `--include=dev` + `2>&1`; sync docs/vercel-deployment.md:154; no live deploy (orchestrator/maintainer PR concern). (AC1b) root .gitattributes currently normalizes ONLY `/.gitattributes`+`*.sh` — add `text eol=lf` for the SOURCE extension set (ts/tsx/js/jsx/mjs/cjs/json/css/md/yml/yaml/sql/html/py/…) + binary `-text` guards (png/jpg/ico/woff2/ttf); CRITICAL do NOT blanket `* text=auto` and do NOT include the 113 `.log` artifacts (bloats the diff unreviewably — R-016); run one-time `git add --renormalize .`; KEEP the renormalization ISOLATED from functional change (orchestrator commit-splits; dev surfaces which files are EOL-only). core.autocrlf=true, ~800 tracked CRLF/mixed files. (AC2) `toSunStatusToken` (sun-status-presentation.ts:15-33) is orphaned — imported ONLY by its own unit test; every render surface branches inline on isObscuredSunStatus/CloudObscured. DELETE recommended (wiring ~7 surfaces would touch visuals → violates byte-identical Design Gate + belongs to no owning story); R-017 BINARY outcome — grep proves ZERO refs after; the `never`-exhaustiveness survives via the sibling `windowLabelTier`; remove only the toSunStatusToken import+describe block from the test (keep windowLabelTier/isObscuredSunStatus/isSunWindowStatus/skyConditionCopy — live-consumed). (AC3) consolidated reference-PNG rebaseline — this story OWNS it (deferred across epics 9/10/11). UNATTENDED epic-mode → CAPTURE+STAGE+DOCUMENT the proposed new baselines (dev STRUCTURALLY FORBIDDEN from self-blessing); the maintainer BLESSING is DEFERRED to PR review, NOT a blocker. Screens = every Epic-11-touched surface (map-primary 11-1/11-2/11-5, map-panel-venues/map-with-selected-venue 11-3/11-4, venue-detail 11-6 incl. empty-reviews + the AC3 centered-vs-left-aligned-VenueDetail.jsx reconciliation) + Epic-9 favourites/list + Epic-10 obscured (already rebaselined 2026-07-03 — re-verify, recapture only if drifted); capture via one-off Playwright per project-context.md Screen ID→Route Map (deviceScaleFactor:2, sv-SE, sunnyseat_onboarded, networkidle, 390×844/1440×900, force `?_time=13:00` on sun surfaces, abort-on-timeout, verify forced state in DOM before staging); one REBASELINE-LOG.md entry per screen. DEFERRED-WORK folded (subject-overlap only, NONE reopened): [ADDRESS] vercel installCommand swallow (8.5-R1), LF/CRLF churn + .gitattributes (8.3-R1/8.5-R1 — the confidence-calculator.ts EOL round), toSunStatusToken orphan (10.2), reference-PNG rebaseline cascade (9.8 + epic-9 review line 261 + 11.6 note/finding); [NOTE do-NOT-reopen] capture-script poison warning (7.1 — abort-on-timeout), isPartner venue→pin mapper (Target 5.1 — different mapper), middleware.ts stale comment (out of §11.7 intake), UserPin #d97706 token (already CLOSED by 11.5 Task 2). RETRO-NOTES(epic-11) folded directly: installCommand-not-buildCommand correction; dev-forbidden-to-self-bless / 11.7 owns consolidated rebaseline; empty-reviews screenshot captured at 11.7; e2e/capture force ?_time=13:00. story-file-audit: all 7 checks PASS (3 ACs + Design Gate verbatim + absence callout; sequencing fix-vercel→gitattributes/renormalize→delete-mapper→rebaseline[after 11.1-11.6 landed]→gates correct; every task maps to an AC, scope fences exclude 11.5-closed/5.1-owned/out-of-intake items; file-impact realistic [EDIT vercel.json/vercel-deployment.md/.gitattributes/sun-status-presentation.ts+test, STAGE PNGs, EDIT REBASELINE-LOG.md, + renormalization churn], commit-grouping note for orchestrator, NO new route/schema/dependency/component/token; refs incl. CLAUDE/AGENTS.md, project-context.md, epics.md, architecture.md, ux-design-specification.md, DESIGN.md, test-design R-016/R-017, retro-notes, deferred-work, all touched source w/ verified line refs; standard four-command gate + byte-identical-UI guardrail). Epic-11 already in-progress (11-7 not first) — no epic flip. Story file + this status edit uncommitted in the working tree (orchestrator owns git/PR). Next: bmad-dev-story 11-7.
@@ -319,20 +333,35 @@ development_status:
   #   favourites and exact by-name closed search results. Include the mandatory `Superseded Epic Text` section.
   epic-12: in-progress
   12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours: done
-  12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass: backlog
-  12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze: backlog
-  12-4-production-console-hygiene-hydration-error-maplibre-null-warning: backlog
-  12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields: backlog
-  12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number: backlog
-  12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues: backlog
-  12-8-about-page-pin-legend-so-reads-the-sun-figure: backlog
-  12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider: backlog
-  12-10-venue-detail-preload-instant-mer-info: backlog
-  12-11-first-run-coach-mark-guide-map-legend-feature-tour: backlog
-  12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes: backlog
-  12-13-remove-the-user-facing-confidence-indicator-keep-it-internal: backlog
-  12-14-hide-closed-venues-open-at-selected-time-filter: backlog
-  epic-12-retrospective: optional
+  12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass: review
+  12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze: review
+  12-4-production-console-hygiene-hydration-error-maplibre-null-warning: done
+  12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields: done
+  12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number: review
+  12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues: review
+  12-8-about-page-pin-legend-so-reads-the-sun-figure: done
+  12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider: review
+  12-10-venue-detail-preload-instant-mer-info: done
+  12-11-first-run-coach-mark-guide-map-legend-feature-tour: done
+  12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes: review
+  12-13-remove-the-user-facing-confidence-indicator-keep-it-internal: review
+  12-14-hide-closed-venues-open-at-selected-time-filter: review
+  epic-12-retrospective: done
+
+# Note (2026-08-07, retrospective epic-12 — epic-12-retrospective -> done): bmad-retrospective (auto-bmad delegate;
+# solo synthesis with Rasmus as sole facilitator+participant) synthesized the full Epic 12 retro from
+# retro-notes/epic-12.md + all 14 story files (12.1-12.14; current mix 6 done / 8 review) + project-context.md +
+# the Epic 12 state file + epic trace/NFR/test-review artifacts + this file. Saved
+# _bmad-output/implementation-artifacts/epic-12-retro-2026-08-07.md (10 sections: summary/metrics,
+# what-went-well, what-was-hard, key-insights, Epic-11-retro follow-through, next-epic prep [no Epic 13 authored],
+# 7 action items, readiness assessment, planning drift, next steps). Epic verdict: implementation-complete but NOT
+# launch-ready — all 14 planned stories landed, yet epic trace remains FAIL (15/21 FULL overall, P0 5/9 FULL),
+# NFR remains FAIL, and test-review remains 82/B Request Changes. Human approval is still outstanding because
+# epic-12 stays in-progress and 8 stories remain at review. Public-launch proof still lacks the protected/live
+# evidence lanes for Story 12.3 cold-p95 + production env verification, Story 12.7 visibility migration/live
+# schema proof, Story 12.12 Storage policy verification, and Story 12.11 future-date exact-response concurrency
+# stabilization. This edit intentionally does not change epic/story statuses beyond marking the retrospective done;
+# orchestrator owns any later re-gate and epic-boundary close-out.
 
 # Note (2026-07-13, sprint activation epic-12): Epic 11 and Stories 11.1-11.9 are complete on main via
 # PR #17 (merge 08c965d; Story 11.9 entered the epic branch via PR #18). Sprint 13 moved to completed_sprints;
@@ -342,12 +371,45 @@ development_status:
 # Inventory remains 12 epics / 87 stories; status totals are 8 done / 1 in-progress / 3 backlog epics and
 # 61 done / 26 backlog stories, with no story currently ready-for-dev, in-progress, or review.
 
+# Note (2026-07-19, create-story 12.12 — backlog -> ready-for-dev): authored the Story 12.12 context file
+# at _bmad-output/implementation-artifacts/12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes.md.
+# The brief preserves all 6 Epic 12.12 ACs and 4 Design Gate Criteria, resolves the rendition-selection option via
+# E12-AD-10 (`thumbnail.cardUrl`/`thumbnail.heroUrl` plus legacy `url` fallback), and scopes the implementation to
+# the `venue-media` Supabase Storage bucket/policies, immutable optimized WebP renditions, sanitizer/DTO updates,
+# card/desktop-quick-info/detail fallback behavior, venue-data docs, and the four required `venue-photo-*`
+# visual references. Baseline typecheck and lint passed before drafting; create-story self-validation passed.
+
 # Note (2026-07-13, create-story 12.1 — backlog -> ready-for-dev): authored the provider-neutral Story 12.1
 # brief at _bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md.
 # The historical Google Places title and every retained Epic 12.1 line are preserved verbatim under the mandatory
 # `Superseded Epic Text` section; the controlling contract follows the approved Place-ID-only policy pivot,
 # canonical migrations, provenance audit, direct weekly GitHub Action, DTO compatibility, documentation, and
 # deterministic/live test lanes. Story-file-audit passed all 7 checks; baseline typecheck and lint both passed.
+
+# Note (2026-07-18, create-story 12.2 — backlog -> ready-for-dev): authored the feedback accuracy-loop
+# story context at _bmad-output/implementation-artifacts/12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.md.
+# The brief folds in Story 12.1 retro constraints and overlapping deferred confidence/coverage-cap work,
+# and explicitly gates implementation on the shared 12.3 geometry_input_hash, 12.6 public-sunny predicate,
+# 12.7 live resolver, and 12.13 confidence-removal premise. It keeps Story 12.2 backend/ops scoped unless
+# uncertainty labels or feedback UI change, in which case normal copy/a11y/visual validation applies.
+
+# Note (2026-07-18, create-story 12.3 — backlog -> ready-for-dev): authored the persisted day-series
+# story context at _bmad-output/implementation-artifacts/12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md.
+# The brief makes 12.3 the canonical owner of `geometry_input_hash`, shared seating centroid, service-only
+# persisted ungated geometry, scheduled full-window+buffer coverage, weather snapshots, fail-closed
+# `SUN_GEOMETRY_COVERAGE_MISSING`, and the prediction-evidence hash seam consumed by 12.2. It folds in
+# Story 12.1 retro constraints (run ownership/input binding, executable DB state tests, protected live evidence,
+# script allow-lists, Supabase CLI fallback) plus overlapping deferred weather/hash/centroid/test concerns.
+# Story-file-audit passed all 7 checks after adding verbatim source ACs/design gate and expected file impact;
+# draft baseline `npx tsc --noEmit` and `npx eslint . --quiet` both passed from nextjs-app.
+
+# Note (2026-07-18, create-story 12.7 — backlog -> ready-for-dev): authored the shared live venue
+# resolver story context at _bmad-output/implementation-artifacts/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md.
+# The brief preserves the Epic 12.7 bug context, user story, acceptance criteria, and backend-only/no-design-gate
+# scope verbatim, then binds implementation to E12-AD-05: one server-only public id-or-slug resolver for reviews
+# GET, reviews POST, and feedback POST; fixture fallback only in fixture mode; hidden/deleted/unknown live venues
+# resolve to the same public 404. Story-file-audit passed all 7 checks; draft baseline `npx tsc --noEmit`
+# and `npx eslint . --quiet` both passed from nextjs-app.
 
 # Note (2026-07-12, sprint-planning epic-12 — Epic 12 registered as backlog): full sprint-planning refresh against epics.md recognized the flexible `## Epic 12 (Backlog):` header and added all 14 title-derived story keys plus the retrospective in source order. No 12-* story files exist, so Epic 12 and Stories 12.1-12.14 remain backlog and the retrospective remains optional. All prior advanced statuses and retrospective action items were preserved. Inventory: 12 epics / 87 stories; status totals: 7 done, 1 in-progress, 4 backlog epics; 53 done, 8 review, 26 backlog stories. Epic 12 is explicitly not scheduled; epics.md recommends Story 12.3 first when prioritized.
 

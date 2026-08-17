@@ -67,6 +67,7 @@ export function MobileNavBar() {
             key={key}
             href={href}
             data-testid={`mobile-nav-tab-${key}`}
+            data-tour-anchor={key === 'favoriter' ? 'favourites' : undefined}
             data-active={isActive ? 'true' : 'false'}
             aria-current={isActive ? 'page' : undefined}
             className={[

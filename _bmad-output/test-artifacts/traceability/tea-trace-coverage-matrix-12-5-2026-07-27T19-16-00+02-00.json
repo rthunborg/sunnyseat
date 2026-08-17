@@ -1,0 +1,232 @@
+{
+  "phase": "PHASE_1_COMPLETE",
+  "generated_at": "2026-07-27T19:16:00+02:00",
+  "trace_target": {
+    "type": "story",
+    "id": "12.5",
+    "label": "Dev-Only Venue Editor - Drag Pin, Paste Polygon, Persisted Hide/Show, Inline Fields"
+  },
+  "collection_mode": "advisory_story_scope",
+  "allow_gate": false,
+  "coverage_basis": "acceptance_criteria",
+  "summary_confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/implementation-artifacts/12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields.md",
+      "_bmad-output/test-artifacts/atdd-checklist-12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields.md",
+      "_bmad-output/test-artifacts/automation-summary.md",
+      "project-context.md"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "requirements": [
+    {
+      "id": "AC1",
+      "priority": "P0",
+      "title": "Dev/localhost-only and fail-closed",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "DEV-GUARD-01", "title": "denies production before touching the editor service, even when the dev flag is set", "file": "nextjs-app/test/unit/api/story-12-5-dev-venue-editor-guard.atdd.test.ts", "line": 52, "level": "api", "status": "active" },
+        { "id": "DEV-GUARD-02", "title": "denies non-production requests when SUNNYSEAT_ADMIN is unset before parsing the request body", "file": "nextjs-app/test/unit/api/story-12-5-dev-venue-editor-guard.atdd.test.ts", "line": 62, "level": "api", "status": "active" },
+        { "id": "DEV-GUARD-03", "title": "fails closed for non-loopback hosts and forwarded-host/proto ambiguity", "file": "nextjs-app/test/unit/api/story-12-5-dev-venue-editor-guard.atdd.test.ts", "line": 75, "level": "api", "status": "active" },
+        { "id": "DEV-COMP-01", "title": "renders no editor chrome without the explicit dev-editor query parameter", "file": "nextjs-app/test/components/DevVenueEditor.test.tsx", "line": 75, "level": "component", "status": "active" },
+        { "id": "DEV-E2E-01", "title": "gate-off map does not render editor chrome or request the dev API", "file": "nextjs-app/test/e2e/story-12-5-dev-venue-editor.spec.ts", "line": 33, "level": "e2e", "status": "active" }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "present",
+        "auth_negative_paths": "present",
+        "error_paths": "present",
+        "ui_journey": "present"
+      }
+    },
+    {
+      "id": "AC2",
+      "priority": "P0",
+      "title": "Drag save persists display-only coordinates",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "SCHEMA-01", "title": "adds nullable display coordinates with pair and Gothenburg-bound constraints", "file": "nextjs-app/test/unit/services/story-12-5-schema-contract.automation.test.ts", "line": 25, "level": "unit", "status": "active" },
+        { "id": "VALIDATION-01", "title": "accepts display-only coordinates separately from seating geometry", "file": "nextjs-app/test/unit/services/story-12-5-dev-venue-editor-validation.atdd.test.ts", "line": 10, "level": "unit", "status": "active" },
+        { "id": "PUBLIC-DISPLAY-01", "title": "uses display coordinates for public radius inclusion and distance calculation", "file": "nextjs-app/test/unit/api/story-12-5-public-display-and-hidden.automation.test.ts", "line": 151, "level": "api", "status": "active" },
+        { "id": "DISPLAY-CONSUMER-01", "title": "maps public venue pins from the display location, never a server-only engine coordinate", "file": "nextjs-app/test/unit/services/story-12-5-display-coordinate-consumers.automation.test.ts", "line": 30, "level": "unit", "status": "active" },
+        { "id": "DISPLAY-CONSUMER-02", "title": "builds route summaries from the public display location when no cached distance is present", "file": "nextjs-app/test/unit/services/story-12-5-display-coordinate-consumers.automation.test.ts", "line": 46, "level": "unit", "status": "active" },
+        { "id": "DISPLAY-CONSUMER-03", "title": "builds native maps URLs with display coordinates", "file": "nextjs-app/test/unit/services/story-12-5-display-coordinate-consumers.automation.test.ts", "line": 62, "level": "unit", "status": "active" },
+        { "id": "VENUE-STORE-12-5-01", "title": "maps display_lat/display_lng into the public pin location without mutating the persisted engine point", "file": "nextjs-app/test/unit/services/venue-store.test.ts", "line": 274, "level": "unit", "status": "active" },
+        { "id": "DEV-COMP-02", "title": "renders the editor after a successful guarded query and patches display coordinates", "file": "nextjs-app/test/components/DevVenueEditor.test.tsx", "line": 81, "level": "component", "status": "active" },
+        { "id": "DEV-E2E-02", "title": "mocked local editor renders and saves a display-coordinate patch", "file": "nextjs-app/test/e2e/story-12-5-dev-venue-editor.spec.ts", "line": 50, "level": "e2e", "status": "active" }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "present",
+        "error_paths": "present",
+        "ui_journey": "present"
+      }
+    },
+    {
+      "id": "AC3",
+      "priority": "P0",
+      "title": "Pasted polygon is validated server-side",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "VALIDATION-02", "title": "accepts a pasted GeoJSON Polygon, Feature, or raw ring only when it is closed, non-degenerate, and inside Gothenburg", "file": "nextjs-app/test/unit/services/story-12-5-dev-venue-editor-validation.atdd.test.ts", "line": 32, "level": "unit", "status": "active" },
+        { "id": "STORE-01", "title": "rejects invalid seating polygons before the RPC write", "file": "nextjs-app/test/unit/services/story-12-5-dev-venue-editor-store.automation.test.ts", "line": 113, "level": "unit", "status": "active" },
+        { "id": "STORE-02", "title": "writes valid seating polygons through the dirty geometry RPC seam", "file": "nextjs-app/test/unit/services/story-12-5-dev-venue-editor-store.automation.test.ts", "line": 128, "level": "unit", "status": "active" },
+        { "id": "SCHEMA-02", "title": "exposes the atomic dev editor RPC without granting public write access", "file": "nextjs-app/test/unit/services/story-12-5-schema-contract.automation.test.ts", "line": 33, "level": "unit", "status": "active" },
+        { "id": "DEV-COMP-03", "title": "shows a non-destructive validation alert before mutating invalid display coordinates", "file": "nextjs-app/test/components/DevVenueEditor.test.tsx", "line": 178, "level": "component", "status": "active" }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "present",
+        "error_paths": "present",
+        "ui_state": "present"
+      }
+    },
+    {
+      "id": "AC4",
+      "priority": "P0",
+      "title": "Hide/show is persisted and public-wide",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "VENUE-STORE-12-5-02", "title": "filters the live list at the store boundary so hidden venues never enter public route logic", "file": "nextjs-app/test/unit/services/venue-store.test.ts", "line": 226, "level": "unit", "status": "active" },
+        { "id": "PUBLIC-HIDDEN-01", "title": "keeps public list/detail responses hidden-blind and restores visibility through the shared resolver", "file": "nextjs-app/test/unit/api/story-12-5-public-display-and-hidden.automation.test.ts", "line": 173, "level": "api", "status": "active" },
+        { "id": "PUBLIC-HIDDEN-02", "title": "returns the same public not-found class for hidden detail, reviews, and feedback before persistence", "file": "nextjs-app/test/unit/api/story-12-5-public-display-and-hidden.automation.test.ts", "line": 201, "level": "api", "status": "active" },
+        { "id": "DEV-GUARD-04", "title": "allows loopback dev reads and writes through the guarded editor service only when explicitly enabled", "file": "nextjs-app/test/unit/api/story-12-5-dev-venue-editor-guard.atdd.test.ts", "line": 116, "level": "api", "status": "active" },
+        { "id": "DEV-COMP-04", "title": "exposes hidden, polygon, tags, description, and thumbnail controls in Swedish and saves inline changes", "file": "nextjs-app/test/components/DevVenueEditor.test.tsx", "line": 121, "level": "component", "status": "active" },
+        { "id": "DETAIL-PREFETCH-01", "title": "prefetch and mounted detail share one client-safe query-options builder", "file": "nextjs-app/test/unit/story-12-10-venue-detail-prefetch.atdd.test.ts", "line": 35, "level": "unit", "status": "active" }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "present",
+        "error_paths": "present",
+        "ui_journey": "present"
+      }
+    },
+    {
+      "id": "AC5",
+      "priority": "P1",
+      "title": "Cache behavior is explicit",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "CACHE-ROUTE-01", "title": "returns a public s-maxage=30 Cache-Control the edge can honour", "file": "nextjs-app/test/unit/api/venues-route-caching.atdd.test.ts", "line": 53, "level": "api", "status": "active" },
+        { "id": "CACHE-ROUTE-02", "title": "sets a public s-maxage Cache-Control on the detail route", "file": "nextjs-app/test/unit/api/venues-route-caching.atdd.test.ts", "line": 109, "level": "api", "status": "active" },
+        { "id": "QUERY-INVALIDATION-01", "title": "invalidates public/editor roots plus affected id and returned slug detail keys after a save by id", "file": "nextjs-app/test/unit/queries/useDevVenueEditor.automation.test.tsx", "line": 13, "level": "unit", "status": "active" },
+        { "id": "SCHEMA-03", "title": "generated Supabase types and central query keys know about the editor surface", "file": "nextjs-app/test/unit/services/story-12-5-schema-contract.automation.test.ts", "line": 40, "level": "unit", "status": "active" },
+        { "id": "SCHEMA-04", "title": "venue loading docs describe display-only pin edits and the dirty geometry publish workflow", "file": "nextjs-app/test/unit/services/story-12-5-schema-contract.automation.test.ts", "line": 49, "level": "unit", "status": "active" }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "present",
+        "error_paths": "present"
+      }
+    },
+    {
+      "id": "AC6",
+      "priority": "P0",
+      "title": "Editor can read hidden venues",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "DEV-GUARD-04", "title": "allows loopback dev reads and writes through the guarded editor service only when explicitly enabled", "file": "nextjs-app/test/unit/api/story-12-5-dev-venue-editor-guard.atdd.test.ts", "line": 116, "level": "api", "status": "active" },
+        { "id": "PUBLIC-HIDDEN-01", "title": "keeps public list/detail responses hidden-blind and restores visibility through the shared resolver", "file": "nextjs-app/test/unit/api/story-12-5-public-display-and-hidden.automation.test.ts", "line": 173, "level": "api", "status": "active" },
+        { "id": "PUBLIC-HIDDEN-02", "title": "returns the same public not-found class for hidden detail, reviews, and feedback before persistence", "file": "nextjs-app/test/unit/api/story-12-5-public-display-and-hidden.automation.test.ts", "line": 201, "level": "api", "status": "active" }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "present",
+        "auth_negative_paths": "present"
+      }
+    },
+    {
+      "id": "AC7",
+      "priority": "P0",
+      "title": "Inline field edits use the same guarded route",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "VALIDATION-01", "title": "accepts display-only coordinates separately from seating geometry", "file": "nextjs-app/test/unit/services/story-12-5-dev-venue-editor-validation.atdd.test.ts", "line": 10, "level": "unit", "status": "active" },
+        { "id": "INLINE-01", "title": "keeps unknown tag vocabulary legible through editor validation and tag localization fallback", "file": "nextjs-app/test/unit/services/story-12-5-inline-fields-public-contract.automation.test.ts", "line": 7, "level": "unit", "status": "active" },
+        { "id": "INLINE-02", "title": "surfaces editor-safe tags and thumbnail on the public DTO without leaking editor-only fields", "file": "nextjs-app/test/unit/services/story-12-5-inline-fields-public-contract.automation.test.ts", "line": 27, "level": "unit", "status": "active" },
+        { "id": "VALIDATION-04", "title": "allows only managed Supabase media renditions and never accepts legacy external url writes", "file": "nextjs-app/test/unit/services/story-12-5-dev-venue-editor-validation.atdd.test.ts", "line": 201, "level": "unit", "status": "active" },
+        { "id": "VALIDATION-05", "title": "rejects incomplete non-null thumbnail text fields instead of saving blank alt or initials", "file": "nextjs-app/test/unit/services/story-12-5-dev-venue-editor-validation.atdd.test.ts", "line": 243, "level": "unit", "status": "active" },
+        { "id": "STORE-03", "title": "rejects thumbnail renditions with wrong Storage metadata before the venue row write", "file": "nextjs-app/test/unit/services/story-12-5-dev-venue-editor-store.automation.test.ts", "line": 153, "level": "unit", "status": "active" },
+        { "id": "STORE-04", "title": "verifies managed card and hero renditions before writing inline thumbnail fields", "file": "nextjs-app/test/unit/services/story-12-5-dev-venue-editor-store.automation.test.ts", "line": 183, "level": "unit", "status": "active" },
+        { "id": "STORE-05", "title": "preserves an existing legacy thumbnail url fallback when writing editor-managed renditions", "file": "nextjs-app/test/unit/services/story-12-5-dev-venue-editor-store.automation.test.ts", "line": 243, "level": "unit", "status": "active" },
+        { "id": "DEV-COMP-04", "title": "exposes hidden, polygon, tags, description, and thumbnail controls in Swedish and saves inline changes", "file": "nextjs-app/test/components/DevVenueEditor.test.tsx", "line": 121, "level": "component", "status": "active" }
+      ],
+      "heuristics": {
+        "endpoint_coverage": "present",
+        "error_paths": "present",
+        "ui_state": "present"
+      }
+    },
+    {
+      "id": "AC8",
+      "priority": "P1",
+      "title": "Maintainer docs are updated",
+      "coverage": "FULL",
+      "tests": [
+        { "id": "SCHEMA-04", "title": "venue loading docs describe display-only pin edits and the dirty geometry publish workflow", "file": "nextjs-app/test/unit/services/story-12-5-schema-contract.automation.test.ts", "line": 49, "level": "unit", "status": "active" },
+        { "id": "DOCS-SOURCE-01", "title": "venue data load guide documents SUNNYSEAT_ADMIN=dev loopback editor, production deny, service route, display coordinates, polygon/media contracts, hidden behavior, and cache expectations", "file": "nextjs-app/docs/venue-data-load.md", "line": 241, "level": "other", "status": "active" }
+      ],
+      "heuristics": {
+        "documentation": "present"
+      }
+    }
+  ],
+  "coverage_statistics": {
+    "total_requirements": 8,
+    "fully_covered": 8,
+    "partially_covered": 0,
+    "uncovered": 0,
+    "overall_coverage_percentage": 100,
+    "priority_breakdown": {
+      "P0": { "total": 6, "covered": 6, "percentage": 100 },
+      "P1": { "total": 2, "covered": 2, "percentage": 100 },
+      "P2": { "total": 0, "covered": 0, "percentage": 100 },
+      "P3": { "total": 0, "covered": 0, "percentage": 100 }
+    }
+  },
+  "gap_analysis": {
+    "critical_gaps": [],
+    "high_gaps": [],
+    "medium_gaps": [],
+    "low_gaps": [],
+    "partial_coverage_items": [],
+    "unit_only_items": []
+  },
+  "coverage_heuristics": {
+    "endpoint_gaps": [],
+    "auth_negative_path_gaps": [],
+    "happy_path_only_gaps": [],
+    "ui_journey_gaps": [],
+    "ui_state_gaps": [],
+    "counts": {
+      "endpoints_without_tests": 0,
+      "auth_missing_negative_paths": 0,
+      "happy_path_only_criteria": 0,
+      "ui_journeys_without_e2e": 0,
+      "ui_states_missing_coverage": 0
+    }
+  },
+  "test_inventory": {
+    "summary": {
+      "files": 14,
+      "cases": 43,
+      "skipped_cases": 0,
+      "fixme_cases": 0,
+      "pending_cases": 0,
+      "by_level": {
+        "e2e": { "tests": 2, "criteria_covered": 2 },
+        "api": { "tests": 11, "criteria_covered": 6 },
+        "component": { "tests": 4, "criteria_covered": 4 },
+        "unit": { "tests": 25, "criteria_covered": 7 },
+        "other": { "tests": 1, "criteria_covered": 1 }
+      }
+    },
+    "blockers": []
+  },
+  "blockers": [],
+  "recommendations": [
+    {
+      "priority": "LOW",
+      "action": "Keep Story 12.5 trace evidence attached to the review packet; no uncovered acceptance criteria were found.",
+      "requirements": []
+    }
+  ]
+}

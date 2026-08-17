@@ -12,6 +12,7 @@ const LIST_VENUE: VenueDataDto = {
   neighborhood: 'Inom Vallgraven',
   location: { lat: 57.705, lng: 11.97 },
   currentSunStatus: 'Sunny',
+  weatherGateState: 'not_gated',
   isPartner: true,
   confidence: 92,
   distanceMeters: 0,
@@ -52,13 +53,13 @@ const labels = {
   route: 'Visa Rutt',
   routeLoading: 'Öppnar kartor',
   photoPlaceholder: 'Platshållarbild för platsen',
-  loading: 'Laddar platsdetaljer',
+  loading: 'Laddar platsinformation',
   detailsUnavailable: 'Detaljer saknas',
   openingHours: 'Öppettider',
   address: 'Adress',
   sunBadge: '{percent}% sol',
+  notSunnyVerdict: 'Inte soligt vid vald tid',
   obscuredHeadline: 'Sol bakom moln',
-  obscuredBadge: '{percent}% solläge',
   sky: {
     label: 'Himmel nu',
     clear: 'Klart',
@@ -66,12 +67,12 @@ const labels = {
     overcast: 'Mulet',
     rain: 'Regn',
   },
-  confidence: 'Säkerhet',
-  confidenceApproximate: 'cirka',
-  confidenceUnavailable: 'Säkerhet saknas',
   city: 'Göteborg',
   openUntil: 'ÖPPET · {time}',
+  openAtSelected: 'ÖPPET VID VALD TID · {time}',
   openUntilLine: 'Öppet till {time}',
+  openAtSelectedUntilLine: 'Öppet vid vald tid · till {time}',
+  closedAtSelectedTime: 'Stängt vid vald tid',
   placeholderImageShort: 'Platshållarbild',
   facts: {
     distance: 'AVSTÅND',
@@ -85,10 +86,6 @@ describe('VenueDetailContent', () => {
       <VenueDetailContent
         fallbackVenue={LIST_VENUE}
         detail={DETAIL}
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: new Date().toISOString(),
-        }}
         currentTime="15:30"
         labels={labels}
         onRoute={() => undefined}
@@ -106,8 +103,9 @@ describe('VenueDetailContent', () => {
     expect(screen.queryByText('PLATSER UTE')).not.toBeInTheDocument();
     expect(screen.queryByText(/Blir skuggigt om/)).not.toBeInTheDocument();
     expect(screen.getByLabelText('95% sol')).toContainHTML('svg');
-    expect(screen.queryByText(/Säkerhet:/)).not.toBeInTheDocument();
-    expect(screen.getByText('Säkerhet 92%')).toHaveClass('sr-only');
+    expect(screen.getByLabelText('95% sol')).toHaveTextContent('95%');
+    expect(screen.queryByText('95% SOL')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Säkerhet|Confidence/)).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /ÖPPNA I KARTOR/i })).toHaveAttribute(
       'href',
       'https://www.google.com/maps/search/?api=1&query=57.705%2C11.97',
@@ -160,6 +158,7 @@ describe('VenueDetailContent', () => {
     const obscuredDetail: VenueDetailDto = {
       ...DETAIL,
       currentSunStatus: 'CloudObscured',
+      weatherGateState: 'not_gated',
       skyCondition: 'overcast',
       timeline: {
         ...DETAIL.timeline,
@@ -177,9 +176,11 @@ describe('VenueDetailContent', () => {
       />,
     );
 
-    // AC1: the hero badge is the muted "% solläge" badge, NOT the amber "% sol" badge.
-    expect(screen.getByLabelText('95% solläge')).toBeInTheDocument();
+    // AC1 / Story 12.13: the hero badge is muted and percentage-free, NOT the
+    // amber "% sol" badge.
+    expect(screen.getByLabelText('Sol bakom moln')).toBeInTheDocument();
     expect(screen.queryByLabelText('95% sol')).not.toBeInTheDocument();
+    expect(screen.queryByText(/95%/)).not.toBeInTheDocument();
     // AC1: the muted "Sol bakom moln" headline is present.
     const obscuredBlock = screen.getByTestId('venue-detail-obscured');
     expect(obscuredBlock).toHaveTextContent('Sol bakom moln');
@@ -221,7 +222,35 @@ describe('VenueDetailContent', () => {
     expect(screen.queryByTestId('venue-detail-obscured')).not.toBeInTheDocument();
     // The amber sun badge is intact for the sunny state.
     expect(screen.getByLabelText('95% sol')).toBeInTheDocument();
+    expect(screen.getByLabelText('95% sol')).toHaveTextContent('95%');
+    expect(screen.queryByText('95% SOL')).not.toBeInTheDocument();
   });
+
+  it.each([
+    ['NoSun', { currentSunStatus: 'NoSun' as const, sunExposurePercent: 25 }],
+    ['Shaded', { currentSunStatus: 'Shaded' as const, sunExposurePercent: 25 }],
+    ['low Partial', { currentSunStatus: 'Partial' as const, sunExposurePercent: 25 }],
+  ])(
+    'renders %s as a percentage-free grey cloud verdict in the hero',
+    (_label, overrides) => {
+      render(
+        <VenueDetailContent
+          fallbackVenue={{ ...LIST_VENUE, ...overrides }}
+          detail={{ ...DETAIL, ...overrides }}
+          currentTime="15:30"
+          labels={labels}
+          onRoute={() => undefined}
+        />,
+      );
+
+      const badge = screen.getByRole('img', { name: 'Inte soligt vid vald tid' });
+      expect(badge).toHaveClass('bg-pin-shaded', 'text-text-body');
+      expect(badge.querySelector('svg')).not.toBeNull();
+      expect(badge).not.toHaveTextContent(/\d+%/);
+      expect(screen.queryByLabelText('25% sol')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('venue-detail-obscured')).not.toBeInTheDocument();
+    },
+  );
 
   it('renders route estimate copy and a scoped loading label on the primary CTA', () => {
     const { rerender } = render(
@@ -260,10 +289,6 @@ describe('VenueDetailContent', () => {
       <VenueDetailContent
         fallbackVenue={LIST_VENUE}
         detail={DETAIL}
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: new Date().toISOString(),
-        }}
         currentTime="15:30"
         labels={labels}
         onRoute={() => undefined}
@@ -280,10 +305,6 @@ describe('VenueDetailContent', () => {
         mode="desktop"
         fallbackVenue={LIST_VENUE}
         detail={DETAIL}
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: new Date().toISOString(),
-        }}
         currentTime="15:30"
         labels={labels}
         onRoute={() => undefined}
@@ -296,39 +317,36 @@ describe('VenueDetailContent', () => {
     expect(desktopHero?.className).not.toMatch(/h-\[/);
   });
 
-  it('keeps confidence metadata accessible without adding duplicate visible detail text', () => {
+  it('does not render confidence metadata while keeping the public sun badge', () => {
     const { rerender } = render(
       <VenueDetailContent
         fallbackVenue={LIST_VENUE}
         detail={DETAIL}
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: '2026-05-22T09:00:00.000Z',
-        }}
         currentTime="15:30"
         labels={labels}
         onRoute={() => undefined}
       />,
     );
 
-    expect(screen.queryByText(/Säkerhet:/)).not.toBeInTheDocument();
-    expect(screen.getByText('Säkerhet cirka 92%')).toHaveClass('sr-only');
+    expect(screen.queryByText(/Säkerhet|Confidence/)).not.toBeInTheDocument();
     expect(screen.getByLabelText('95% sol')).toBeInTheDocument();
+    expect(screen.getByLabelText('95% sol')).toHaveTextContent('95%');
+    expect(screen.queryByText('95% SOL')).not.toBeInTheDocument();
 
     rerender(
       <VenueDetailContent
         fallbackVenue={LIST_VENUE}
         detail={DETAIL}
-        confidenceMeta={{ sunDataSource: 'geometry-only' }}
         currentTime="15:30"
         labels={labels}
         onRoute={() => undefined}
       />,
     );
 
-    expect(screen.queryByText(/Säkerhet:/)).toBeNull();
-    expect(screen.getByText(/Säkerhet saknas/)).toHaveClass('sr-only');
+    expect(screen.queryByText(/Säkerhet|Confidence/)).toBeNull();
     expect(screen.getByLabelText('95% sol')).toBeInTheDocument();
+    expect(screen.getByLabelText('95% sol')).toHaveTextContent('95%');
+    expect(screen.queryByText('95% SOL')).not.toBeInTheDocument();
   });
 
   it('does not render the removed uncertainty disclaimer text (Story 9.1 de-bloat)', () => {
@@ -341,10 +359,6 @@ describe('VenueDetailContent', () => {
             level: 'medium',
             reasons: ['vegetation', 'awning', 'seasonal_furniture'],
           },
-        }}
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: new Date().toISOString(),
         }}
         currentTime="15:30"
         labels={labels}
@@ -376,7 +390,7 @@ describe('VenueDetailContent', () => {
     expect(screen.getByRole('heading', { name: 'Kafé Magasinet' })).toBeInTheDocument();
     expect(screen.getByText('Innergård')).toBeInTheDocument();
     // The scoped loading status is announced and skeletons stand in for detail.
-    expect(screen.getByLabelText('Laddar platsdetaljer')).toBeInTheDocument();
+    expect(screen.getAllByRole('status', { name: 'Laddar platsinformation' })).toHaveLength(1);
     expect(screen.getAllByTestId('venue-detail-skeleton').length).toBeGreaterThan(1);
     // AC1 (load-bearing): the header badge must NOT flash a fabricated "22:00" —
     // no "ÖPPET · 22:00" while detail is unloaded, and a skeleton stands in.
@@ -415,6 +429,68 @@ describe('VenueDetailContent', () => {
 
     expect(screen.queryByText(/ÖPPET ·/)).not.toBeInTheDocument();
     expect(screen.queryByText('ÖPPET · 22:00')).not.toBeInTheDocument();
+  });
+
+  it('derives planned selected-time open copy from selectedInstant instead of live wall time (Story 12.14 AC5)', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="09:00"
+        selectedInstant={new Date('2026-06-15T12:00:00.000Z')}
+        isLivePlannerTime={false}
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('ÖPPET VID VALD TID · 22:00')).toBeInTheDocument();
+    expect(screen.getByText('Öppet vid vald tid · till 22:00')).toBeInTheDocument();
+    expect(screen.queryByText('Öppet till 22:00')).not.toBeInTheDocument();
+  });
+
+  it('labels selected-time closed details without rendering any open-hours badge or open claim (Story 12.14 AC5)', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={{
+          ...DETAIL,
+          openingHours: {
+            '1': { open: '18:00', close: '22:00' },
+          },
+        }}
+        currentTime="20:00"
+        selectedInstant={new Date('2026-06-15T10:00:00.000Z')}
+        isLivePlannerTime={false}
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('Stängt vid vald tid')).toBeInTheDocument();
+    expect(screen.queryByText(/ÖPPET/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Öppet vid vald tid/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Öppet till/)).not.toBeInTheDocument();
+  });
+
+  it('keeps unknown opening-hours details visible without open or closed claims (Story 12.14 AC5)', () => {
+    render(
+      <VenueDetailContent
+        fallbackVenue={LIST_VENUE}
+        detail={{ ...DETAIL, openingHours: undefined }}
+        currentTime="14:00"
+        selectedInstant={new Date('2026-06-15T12:00:00.000Z')}
+        isLivePlannerTime={false}
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByText('Detaljer saknas')).toBeInTheDocument();
+    expect(screen.queryByText('Stängt vid vald tid')).not.toBeInTheDocument();
+    expect(screen.queryByText(/ÖPPET/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Öppet vid vald tid/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Öppet till/)).not.toBeInTheDocument();
   });
 
   it('swaps skeletons for real content in the SAME instance when detail streams in (Story 11.6 AC1 — no layout jump / no stale skeleton)', () => {
@@ -597,16 +673,12 @@ describe('VenueDetailContent', () => {
     expect(factCard?.textContent).toMatch(/\d+\s?m|\d+(?:\.\d+)?\s?km/);
   });
 
-  it('removes the desktop EXPONERING row and the mobile-only AVSTÅND fact while keeping confidence in desktop mode (Story 9.1 AC #1)', () => {
+  it('removes the desktop EXPONERING row and the mobile-only AVSTÅND fact while keeping genuine rows in desktop mode', () => {
     render(
       <VenueDetailContent
         mode="desktop"
         fallbackVenue={LIST_VENUE}
         detail={DETAIL}
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: new Date().toISOString(),
-        }}
         currentTime="15:30"
         labels={labels}
         onRoute={() => undefined}
@@ -621,9 +693,8 @@ describe('VenueDetailContent', () => {
     expect(screen.queryByText('AVSTÅND')).not.toBeInTheDocument();
     // No dead shadow-warning copy in desktop either.
     expect(screen.queryByText(/Blir skuggigt om/)).not.toBeInTheDocument();
-    // The preserved confidence signal still renders (announced once, sr-only).
-    expect(screen.getByText('Säkerhet 92%')).toHaveClass('sr-only');
-    expect(screen.queryByText(/Säkerhet:/)).not.toBeInTheDocument();
+    // Story 12.13: no public confidence signal remains in desktop mode either.
+    expect(screen.queryByText(/Säkerhet|Confidence/)).not.toBeInTheDocument();
     // The kept opening-hours and address rows survive (they back genuine signals).
     expect(screen.getByText('Öppettider')).toBeInTheDocument();
     expect(screen.getByText('Adress')).toBeInTheDocument();

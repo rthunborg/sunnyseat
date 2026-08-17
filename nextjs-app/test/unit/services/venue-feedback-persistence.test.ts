@@ -22,6 +22,11 @@ const FEEDBACK: FeedbackResponse = {
   venueSlug: 'test-venue-sunny',
   userTimestamp: '2026-06-07T12:00:00.000Z',
   predictedState: 'Sunny',
+  sunExposurePercent: 82,
+  publicSunVerdict: 'amber',
+  weatherGated: false,
+  weatherUnknown: false,
+  geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   sunAccuracy: 'sunny',
   createdAt: '2026-06-07T12:01:00.000Z',
 };
@@ -80,6 +85,11 @@ describe('venue-feedback-persistence', () => {
       venue_slug: 'test-venue-sunny',
       user_timestamp: '2026-06-07T12:00:00.000Z',
       predicted_state: 'Sunny',
+      sun_exposure_percent: 82,
+      public_sun_verdict: 'amber',
+      weather_gated: false,
+      weather_unknown: false,
+      geometry_input_hash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       sun_accuracy: 'sunny',
       was_sunny: true,
     });

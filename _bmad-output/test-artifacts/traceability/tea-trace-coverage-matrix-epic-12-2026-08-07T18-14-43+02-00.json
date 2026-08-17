@@ -1,0 +1,423 @@
+{
+  "schema_version": "0.1.0",
+  "generated_at": "2026-08-07T18:51:48+02:00",
+  "repo": "sunnyseat",
+  "workflow": "testarch-trace",
+  "gate_iteration": 2,
+  "gate_iteration_cap_reached": true,
+  "remediation_commit": "ee1e646",
+  "remediation_evidence_status": "new_ac_to_test_evidence_consumed_but_no_verified_change_to_protected_live_blocking_lanes",
+  "target": {
+    "type": "epic",
+    "id": "12",
+    "label": "Real-Venue Launch Readiness - Performance, Trust, Hours, Console Hygiene"
+  },
+  "collection_mode": "epic_quality_gate",
+  "collection_status": "COLLECTED",
+  "allow_gate": true,
+  "inventory_basis": "material_acceptance_criteria_and_required_evidence_lanes",
+  "decision_mode": "deterministic",
+  "confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "synthetic": false,
+    "sources": [
+      "project-context.md",
+      "_bmad-output/auto-bmad/state/epic/epic-12.yaml",
+      "_bmad-output/implementation-artifacts/deferred-work.md",
+      "_bmad-output/auto-bmad/retro-notes/epic-12.md",
+      "_bmad-output/planning-artifacts/epics.md",
+      "_bmad-output/test-artifacts/test-design/test-design-epic-12.md",
+      "_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md",
+      "_bmad-output/implementation-artifacts/12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.md",
+      "_bmad-output/implementation-artifacts/12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md",
+      "_bmad-output/implementation-artifacts/12-4-production-console-hygiene-hydration-error-maplibre-null-warning.md",
+      "_bmad-output/implementation-artifacts/12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields.md",
+      "_bmad-output/implementation-artifacts/12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md",
+      "_bmad-output/implementation-artifacts/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md",
+      "_bmad-output/implementation-artifacts/12-8-about-page-pin-legend-so-reads-the-sun-figure.md",
+      "_bmad-output/implementation-artifacts/12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider.md",
+      "_bmad-output/implementation-artifacts/12-10-venue-detail-preload-instant-mer-info.md",
+      "_bmad-output/implementation-artifacts/12-11-first-run-coach-mark-guide-map-legend-feature-tour.md",
+      "_bmad-output/implementation-artifacts/12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes.md",
+      "_bmad-output/implementation-artifacts/12-13-remove-the-user-facing-confidence-indicator-keep-it-internal.md",
+      "_bmad-output/implementation-artifacts/12-14-hide-closed-venues-open-at-selected-time-filter.md",
+      "_bmad-output/test-artifacts/traceability/traceability-report-12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md",
+      "_bmad-output/test-artifacts/traceability/traceability-report-12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.md",
+      "_bmad-output/test-artifacts/traceability/traceability-report-12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md",
+      "_bmad-output/test-artifacts/traceability/traceability-report-12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields.md",
+      "_bmad-output/test-artifacts/traceability/traceability-report-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md",
+      "_bmad-output/test-artifacts/traceability/traceability-report-12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md",
+      "_bmad-output/test-artifacts/traceability/traceability-report-12-10-venue-detail-preload-instant-mer-info.md"
+    ]
+  },
+  "coverage_statistics": {
+    "material_gate_rows": {
+      "fully_covered": 15,
+      "partially_covered": 6,
+      "uncovered": 0,
+      "total": 21,
+      "full_pct": 71.43,
+      "covered_or_partial_pct": 100
+    },
+    "priority_breakdown": {
+      "P0": {
+        "total": 9,
+        "fully_covered": 5,
+        "partially_covered": 4,
+        "uncovered": 0,
+        "full_pct": 55.56,
+        "covered_or_partial_pct": 100
+      },
+      "P1": {
+        "total": 11,
+        "fully_covered": 9,
+        "partially_covered": 2,
+        "uncovered": 0,
+        "full_pct": 81.82,
+        "covered_or_partial_pct": 100
+      },
+      "P2": {
+        "total": 1,
+        "fully_covered": 1,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "full_pct": 100,
+        "covered_or_partial_pct": 100
+      },
+      "P3": {
+        "total": 0,
+        "fully_covered": 0,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "full_pct": 100,
+        "covered_or_partial_pct": 100
+      }
+    }
+  },
+  "remediation_assessment": {
+    "input_commit": "ee1e646",
+    "gate_iteration_cap_reached": true,
+    "git_inspection_used": false,
+    "evidence_basis": "current BMAD artifacts only",
+    "finding": "Current Story 12.3/12.7/12.11/12.12 AC-to-test evidence was consumed. It confirms local deterministic coverage, Story 12.11 serialized 3/3 pass, and Story 12.11 prior parallel 2/3 result, but does not provide verified protected/live evidence for the P0 launch lanes. Counts and gate verdict remain unchanged."
+  },
+  "requirements": [
+    {
+      "id": "12.1-HOURS-GOVERNANCE",
+      "story": "12.1",
+      "priority": "P1",
+      "status": "FULL",
+      "coverage": "Provider-neutral opening-hours governance, scheduled audit behavior, provenance, and no-Google-hours policy are traced by the completed Story 12.1 record and story trace.",
+      "evidence": [
+        "traceability-report-12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md"
+      ]
+    },
+    {
+      "id": "12.2-FEEDBACK-ACCURACY",
+      "story": "12.2",
+      "priority": "P1",
+      "status": "FULL",
+      "coverage": "Feedback evidence, public verdict parity, invalid contradiction rejection, aggregation/reporting, and coverage-cap removal are traced as 8/8 FULL.",
+      "evidence": [
+        "traceability-report-12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.md"
+      ]
+    },
+    {
+      "id": "12.3-PERSISTED-GEOMETRY-DETERMINISTIC",
+      "story": "12.3",
+      "priority": "P0",
+      "status": "FULL",
+      "coverage": "Persisted geometry/hash, request-count, missing-coverage 503, weather re-gating, day-plus-three degradation, rollover, service-role local/security tests, scheduled runner evidence, and current story AC-to-test evidence are traced as covered in deterministic lanes.",
+      "evidence": [
+        "traceability-report-12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md",
+        "e2e-trace-summary-12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.json"
+      ]
+    },
+    {
+      "id": "12.3-PROTECTED-PROD-P95",
+      "story": "12.3",
+      "priority": "P0",
+      "status": "PARTIAL",
+      "classification": "protected-live-performance-evidence",
+      "coverage": "Protected production 42+ venue cold-p95 evidence is not collected.",
+      "gap": "No protected-production dataset proves p95 <= approximately 5s with route/date/hash/run metadata, edge/warm/cold classification, logs proving persisted geometry reads, and zero request-path provider or shadow recompute.",
+      "requirements": [
+        "12.3 AC2",
+        "12.3 AC6",
+        "Epic 12 R-001",
+        "public-launch sign-off cold p95 lane"
+      ]
+    },
+    {
+      "id": "12.3-PROTECTED-ENV-AUDIT",
+      "story": "12.3",
+      "priority": "P0",
+      "status": "PARTIAL",
+      "classification": "protected-live-environment-security-evidence",
+      "coverage": "Protected GitHub Production environment and live protected Supabase advisor evidence are not collected.",
+      "gap": "Production secrets/variables for geometry precompute and weather refresh, protected environment guard behavior, and live service-only database advisory evidence remain external-access evidence.",
+      "requirements": [
+        "12.3 AC2",
+        "Epic 12 R-002"
+      ]
+    },
+    {
+      "id": "12.4-CONSOLE-HYGIENE",
+      "story": "12.4",
+      "priority": "P1",
+      "status": "FULL",
+      "coverage": "Cold map/detail console and pageerror guards for hydration and MapLibre null-reference hygiene are recorded as implemented and gate-checked.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-4-production-console-hygiene-hydration-error-maplibre-null-warning.md"
+      ]
+    },
+    {
+      "id": "12.5-DEV-EDITOR-DENY-AND-VALIDATION",
+      "story": "12.5",
+      "priority": "P0",
+      "status": "FULL",
+      "coverage": "Production editor deny, dev-only routes, public visibility impact, coordinate separation, polygon/media validation, and cache behavior are traced as 8/8 FULL.",
+      "evidence": [
+        "traceability-report-12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields.md"
+      ]
+    },
+    {
+      "id": "12.6-PUBLIC-SUNNY-PIN-SEMANTICS",
+      "story": "12.6",
+      "priority": "P0",
+      "status": "FULL",
+      "coverage": "Shared public sunny semantics, two-pin rule, card/detail/accessibility parity, weather-obscured treatment, and visual acceptance are traced as 13/13 FULL.",
+      "evidence": [
+        "traceability-report-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md"
+      ]
+    },
+    {
+      "id": "12.7-LIVE-RESOLVER-ROUTE-MATRIX",
+      "story": "12.7",
+      "priority": "P0",
+      "status": "FULL",
+      "coverage": "Reviews/feedback live resolver route matrix, visible/hidden/unknown handling, fixture-mode isolation, validation failures, unavailable-store 503 mapping, no-store behavior, and current story AC-to-test evidence are traced in deterministic route/unit suites.",
+      "evidence": [
+        "traceability-report-12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md",
+        "e2e-trace-summary-12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.json"
+      ]
+    },
+    {
+      "id": "12.7-VISIBILITY-MIGRATION-LIVE",
+      "story": "12.7",
+      "priority": "P0",
+      "status": "PARTIAL",
+      "classification": "live-database-migration-evidence",
+      "coverage": "Migration SQL and local generated types are asserted, but no migrated database or post-migration live query has been verified.",
+      "gap": "Apply `20260718214954_add_public_venue_visibility.sql`, verify `venues.hidden boolean not null default false`, prove no 42703 on resolver/precompute projections, regenerate Supabase types, and verify no contract diff before deployment.",
+      "requirements": [
+        "12.7 OPS-1",
+        "Epic 12 R-003",
+        "Epic 12 R-010"
+      ]
+    },
+    {
+      "id": "12.7-CONCURRENT-VISIBILITY-RACE",
+      "story": "12.7",
+      "priority": "P1",
+      "status": "PARTIAL",
+      "classification": "concurrent-live-behavior-evidence",
+      "coverage": "Sequential absent/public/hidden/public visibility transitions are covered; concurrent in-flight visibility changes are not directly exercised.",
+      "gap": "Add concurrent resolver/cache evidence or narrow the cache-race claim.",
+      "requirements": [
+        "12.7 INV-1"
+      ]
+    },
+    {
+      "id": "12.8-ABOUT-LEGEND-TRUTH",
+      "story": "12.8",
+      "priority": "P1",
+      "status": "FULL",
+      "coverage": "About page pin legend, 70-percent-not-probability explanation, no fake public accuracy stat, no public confidence indicator, Swedish copy, accessibility, and data-source policy are recorded as implemented and gate-checked.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-8-about-page-pin-legend-so-reads-the-sun-figure.md"
+      ]
+    },
+    {
+      "id": "12.9-ROW-QUANTIZED-MOBILE-SHEET",
+      "story": "12.9",
+      "priority": "P1",
+      "status": "FULL",
+      "coverage": "Row-quantized sheet, slim time slider, recenter behavior, touch/keyboard coverage, accessibility and visual evidence are recorded as implemented and reviewed.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider.md"
+      ]
+    },
+    {
+      "id": "12.10-DETAIL-PREFETCH",
+      "story": "12.10",
+      "priority": "P1",
+      "status": "FULL",
+      "coverage": "Exact query key, bounded idle preload budget, no scrub/date restart, immediate detail open, skeleton replacement, and hidden guard are traced as 10/10 FULL.",
+      "evidence": [
+        "traceability-report-12-10-venue-detail-preload-instant-mer-info.md"
+      ]
+    },
+    {
+      "id": "12.11-COACH-GUIDE",
+      "story": "12.11",
+      "priority": "P1",
+      "status": "FULL",
+      "coverage": "First-run guide auto-open, persistence, settings relaunch, focus behavior, responsive anchors, mobile/desktop guide states, axe evidence, and visual acceptance are recorded as implemented and accepted.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-11-first-run-coach-mark-guide-map-legend-feature-tour.md"
+      ]
+    },
+    {
+      "id": "12.11-MAP-PRIMARY-FUTURE-DATE-STABILITY",
+      "story": "12.11",
+      "priority": "P1",
+      "status": "PARTIAL",
+      "classification": "broad-suite-e2e-stability-evidence",
+      "coverage": "The corrected serialized mobile repeat passed 3/3 after matching the final selected date/time, but the prior parallel repeat was 2/3 and no broad-concurrency pass is claimed.",
+      "gap": "Collect broad-concurrency stable evidence, or keep the claim scoped to serialized execution.",
+      "requirements": [
+        "Epic 12 R-005",
+        "Story 12.11 deferred work"
+      ]
+    },
+    {
+      "id": "12.12-MEDIA-DTO-RENDER-FALLBACK",
+      "story": "12.12",
+      "priority": "P1",
+      "status": "FULL",
+      "coverage": "Media DTO validation, managed rendition selection, card/detail/quick-info render behavior, fallback states, upload tooling, docs, E2E/media interception, visual acceptance, and current story AC-to-test evidence are recorded as implemented.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes.md"
+      ]
+    },
+    {
+      "id": "12.12-STORAGE-POLICY-PROTECTED-VERIFY",
+      "story": "12.12",
+      "priority": "P0",
+      "status": "PARTIAL",
+      "classification": "protected-live-storage-policy-evidence",
+      "coverage": "Local SQL/text tests cover policy intent, but protected Supabase Storage bucket/RLS behavior was not verified.",
+      "gap": "Apply `20260719000000_venue_media_storage.sql`, then verify protected `venue-media` public reads, service-role upload, anon/auth write denial, bucket constraints, and public rendition reads before hosted media is used.",
+      "requirements": [
+        "12.12 AC1",
+        "12.12 AC2",
+        "Epic 12 R-015",
+        "Epic 12 R-010"
+      ]
+    },
+    {
+      "id": "12.13-CONFIDENCE-REMOVAL",
+      "story": "12.13",
+      "priority": "P1",
+      "status": "FULL",
+      "coverage": "Visible and accessible public confidence removal, uncertainty retention, feedback evidence retention, source/i18n scans, a11y and visual evidence are recorded as implemented and reviewed.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-13-remove-the-user-facing-confidence-indicator-keep-it-internal.md"
+      ]
+    },
+    {
+      "id": "12.14-SELECTED-TIME-AVAILABILITY",
+      "story": "12.14",
+      "priority": "P0",
+      "status": "FULL",
+      "coverage": "Selected-time open/closed filtering, exact-name closed result retention, saved closed favourite behavior, unknown-hours treatment, request-count invariants, 50-id validation, visual/manual evidence and canonical review gate are recorded as passed.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-14-hide-closed-venues-open-at-selected-time-filter.md"
+      ]
+    },
+    {
+      "id": "EPIC12-VISUAL-REBASELINE-GOVERNANCE",
+      "story": "epic-12",
+      "priority": "P2",
+      "status": "FULL",
+      "coverage": "Remaining Epic 12 visual states used manual visual acceptance authorized in the epic state; affected story records preserve visual candidate paths, captures, and review-gate logs.",
+      "evidence": [
+        "_bmad-output/auto-bmad/state/epic/epic-12.yaml",
+        "story implementation records"
+      ]
+    }
+  ],
+  "material_gaps": [
+    {
+      "id": "12.3-PROTECTED-PROD-P95",
+      "priority": "P0",
+      "severity": "critical",
+      "status": "PARTIAL",
+      "classification": "protected-live-performance-evidence",
+      "requirements": [
+        "12.3 AC2",
+        "12.3 AC6"
+      ],
+      "reason": "Protected production 42+ venue cold-p95 dataset and logs proving persisted geometry reads/no recompute are missing."
+    },
+    {
+      "id": "12.3-PROTECTED-ENV-AUDIT",
+      "priority": "P0",
+      "severity": "high",
+      "status": "PARTIAL",
+      "classification": "protected-live-environment-security-evidence",
+      "requirements": [
+        "12.3 AC2"
+      ],
+      "reason": "Protected GitHub Production secrets/variables and live protected Supabase evidence were not collected."
+    },
+    {
+      "id": "12.7-VISIBILITY-MIGRATION-LIVE",
+      "priority": "P0",
+      "severity": "critical",
+      "status": "PARTIAL",
+      "classification": "live-database-migration-evidence",
+      "requirements": [
+        "12.7 OPS-1"
+      ],
+      "reason": "Visibility migration and post-apply live schema/query evidence are missing before deployment."
+    },
+    {
+      "id": "12.12-STORAGE-POLICY-PROTECTED-VERIFY",
+      "priority": "P0",
+      "severity": "high",
+      "status": "PARTIAL",
+      "classification": "protected-live-storage-policy-evidence",
+      "requirements": [
+        "12.12 AC1",
+        "12.12 AC2"
+      ],
+      "reason": "Protected Supabase Storage bucket/RLS behavior has not been verified with service-role upload, public reads, and anon/auth write denial."
+    },
+    {
+      "id": "12.7-CONCURRENT-VISIBILITY-RACE",
+      "priority": "P1",
+      "severity": "medium",
+      "status": "PARTIAL",
+      "classification": "concurrent-live-behavior-evidence",
+      "requirements": [
+        "12.7 INV-1"
+      ],
+      "reason": "Concurrent in-flight visibility changes are not directly exercised."
+    },
+    {
+      "id": "12.11-MAP-PRIMARY-FUTURE-DATE-STABILITY",
+      "priority": "P1",
+      "severity": "medium",
+      "status": "PARTIAL",
+      "classification": "broad-suite-e2e-stability-evidence",
+      "requirements": [
+        "Story 12.11 deferred work"
+      ],
+      "reason": "The corrected serialized mobile repeat passed 3/3, but prior parallel evidence was 2/3 and no broad-concurrency pass is claimed."
+    }
+  ],
+  "gate_decision": {
+    "decision": "FAIL",
+    "deterministic_rule": "P0 coverage is below 100% because required protected-production, migration, and storage-policy evidence lanes remain PARTIAL.",
+    "rationale": "Epic 12 implementation coverage is broad, including the newly consumed AC-to-test evidence for Stories 12.3, 12.7, 12.11, and 12.12, but gate iteration 2 still has no verified remediation evidence closing the protected/live P0 lanes. Missing live/protected operational evidence cannot be substituted with local deterministic tests."
+  },
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-report-epic-12.md",
+    "trace_summary_path": "_bmad-output/test-artifacts/traceability/e2e-trace-summary-epic-12.json",
+    "gate_decision_path": "_bmad-output/test-artifacts/traceability/gate-decision-epic-12.json"
+  }
+}

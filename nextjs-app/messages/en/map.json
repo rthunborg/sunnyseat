@@ -7,8 +7,78 @@
   "zoomOut": "Zoom out",
   "myLocation": "My location",
   "settings": "Settings",
-  "pinSunnyAria": "{name} — sunny venue — {percent} percent sun",
-  "pinPartialAria": "{name} — partially sunny venue — {percent} percent sun",
-  "pinShadedAria": "{name} — shaded venue — {percent} percent sun",
-  "pinObscuredAria": "{name} — sun behind clouds right now — {percent} percent sun position"
+  "pinSunnyAria": "{name} — sunny at selected time — {percent} percent sun",
+  "pinSunnyWeatherUnknownAria": "{name} — sunny at selected time — {percent} percent sun. Weather unavailable at selected time.",
+  "pinNotSunnyAria": "{name} — not sunny at selected time",
+  "coachTour": {
+    "progress": "Step {current} of {total}",
+    "skip": "Skip guide",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "close": "Close guide",
+    "targetDescription": "This guide step highlights {target}.",
+    "steps": {
+      "pinLegend": {
+        "title": "Map pins",
+        "body": "The percentage shows the share of outdoor seats we think are in direct sun at the selected time.",
+        "target": "the map pins"
+      },
+      "timeSlider": {
+        "title": "Choose time",
+        "body": "You do not need to change anything — the map shows what is happening right now. To plan ahead, choose a date and time. The farther ahead you look, the less certain the forecast becomes.",
+        "target": "the time slider"
+      },
+      "datePlanner": {
+        "title": "Plan a date",
+        "body": "Open the date picker when you want to plan a few days ahead. Today is shown when live mode applies.",
+        "target": "the date button"
+      },
+      "tagChips": {
+        "title": "Filter venues",
+        "body": "Use tags to narrow the map and list to the kind of outdoor seating you are looking for.",
+        "target": "the tag filter"
+      },
+      "venueList": {
+        "title": "Compare the list",
+        "body": "The list sorts venues by sun or distance. After opening a venue, you can later answer whether the sun prediction matched.",
+        "target": "the venue list"
+      },
+      "favourites": {
+        "title": "Save favourites",
+        "body": "Save places you want to revisit. Favourites are free and use the same sun forecast as the map.",
+        "target": "the favourites view"
+      }
+    },
+    "pinLegend": {
+      "sunnyLabel": "Sunny",
+      "sunnyDescription": "Direct sun at the selected time.",
+      "shadedLabel": "Shaded",
+      "shadedDescription": "No direct sun right then."
+    }
+  },
+  "devEditor": {
+    "title": "Edit venue",
+    "venue": "Venue",
+    "hidden": "Hidden",
+    "displayLat": "Display latitude",
+    "displayLng": "Display longitude",
+    "engineLat": "Engine latitude",
+    "engineLng": "Engine longitude",
+    "seatingArea": "Outdoor seating",
+    "tags": "Tags",
+    "description": "Description",
+    "thumbnailAlt": "Image text",
+    "thumbnailInitials": "Initials",
+    "thumbnailCard": "Card image",
+    "thumbnailHero": "Hero image",
+    "save": "Save",
+    "saving": "Saving",
+    "reset": "Reset",
+    "saved": "Saved",
+    "empty": "No venue selected",
+    "dragPinAria": "Display pin for {name}",
+    "loadFailed": "Could not load editor",
+    "validationFailed": "Check the fields"
+  }
 }

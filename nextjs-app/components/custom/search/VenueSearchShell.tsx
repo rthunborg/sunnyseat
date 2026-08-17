@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { Navigation, Settings } from 'lucide-react';
 import {
   VenueSearchCombobox,
@@ -13,8 +14,14 @@ import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
 import { useSettings } from '@/lib/contexts/SettingsContext';
 import { useTimeContext } from '@/lib/contexts/TimeContext';
+import { usePathname, useRouter } from '@/i18n/navigation';
 import { DURATION_FLY_MS } from '@/lib/constants/animation';
 import type { VenueDataDto } from '@/lib/types/api';
+import {
+  getVenueAvailabilityAt,
+  type VenueAvailabilityState,
+} from '@/lib/utils/opening-hours';
+import { stockholmInstantFromDateTime } from '@/lib/utils/time-planner';
 import { venuePlannerQueryArgs } from '@/lib/utils/venue-query-planner';
 import { cn } from '@/lib/utils';
 
@@ -37,12 +44,16 @@ export function VenueSearchShell({
 }: VenueSearchShellProps) {
   const t = useTranslations('venue.search');
   const tNav = useTranslations('common.nav');
-  const [query, setQuery] = useState('');
+  const searchParams = useSearchParams();
+  const forcedVisualSearch = initialForcedSearchQuery(searchParams);
+  const [query, setQuery] = useState(forcedVisualSearch);
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
   const { selectVenue } = useMapSelection();
   const { openSettings } = useSettings();
   const plannerTime = useTimeContext();
+  const router = useRouter();
+  const pathname = usePathname();
   const trimmedQuery = query.trim();
   const [debouncedQuery, setDebouncedQuery] = useState(trimmedQuery);
 
@@ -72,9 +83,33 @@ export function VenueSearchShell({
     ...plannerArgs,
   });
   const isDebouncingSearch = trimmedQuery.length > 0 && trimmedQuery !== debouncedQuery;
-  const venues = !isDebouncingSearch && Array.isArray(venueQuery.data?.venues)
+  const queriedVenues = !isDebouncingSearch && Array.isArray(venueQuery.data?.venues)
     ? venueQuery.data.venues
     : [];
+  const selectedInstant = useMemo(
+    () =>
+      stockholmInstantFromDateTime(plannerTime.selectedDate, plannerTime.selectedTime) ??
+      plannerTime.currentTime,
+    [plannerTime.currentTime, plannerTime.selectedDate, plannerTime.selectedTime],
+  );
+  const availabilityByVenueId = useMemo<Record<string, VenueAvailabilityState>>(() => {
+    const entries = queriedVenues.map((venue) => [
+      venue.id,
+      getVenueAvailabilityAt(venue.openingHours, selectedInstant).state,
+    ] as const);
+    return Object.fromEntries(entries) as Record<string, VenueAvailabilityState>;
+  }, [queriedVenues, selectedInstant]);
+  const normalizedQuery = normalizeSearchText(trimmedQuery);
+  const venues = useMemo(
+    () =>
+      queriedVenues.filter((venue) => {
+        const availability = availabilityByVenueId[venue.id];
+        if (availability !== 'closed') return true;
+        return normalizedQuery.length > 0 &&
+          normalizeSearchText(venue.venueName) === normalizedQuery;
+      }),
+    [availabilityByVenueId, normalizedQuery, queriedVenues],
+  );
   const labels: VenueSearchComboboxLabels = {
     label: t('label'),
     placeholder: t('placeholder'),
@@ -86,6 +121,20 @@ export function VenueSearchShell({
   };
 
   const handleSelectVenue = (venue: VenueDataDto) => {
+    if (availabilityByVenueId[venue.id] === 'closed') {
+      const slug = venueDetailSlug(venue);
+      if (!slug) return;
+      router.push({
+        pathname,
+        query: {
+          ...queryWithout(searchParams, ['venue', '_state']),
+          venue: slug,
+        },
+      });
+      setQuery('');
+      onVenueSelected?.();
+      return;
+    }
     selectVenue(venue.id, venue);
     if (mapInstance && hasValidVenueLocation(venue)) {
       mapInstance.easeTo({
@@ -111,6 +160,8 @@ export function VenueSearchShell({
           isLoading={trimmedQuery.length > 0 && (isDebouncingSearch || venueQuery.isFetching)}
           error={venueQuery.isError && trimmedQuery.length > 0 ? labels.error : undefined}
           filterResults={false}
+          availabilityByVenueId={availabilityByVenueId}
+          closedAtSelectedTimeLabel={t('closedAtSelectedTime')}
           maxLength={MAX_QUERY_LENGTH}
           className="min-w-0 flex-1"
         />
@@ -164,6 +215,8 @@ export function VenueSearchShell({
       isLoading={trimmedQuery.length > 0 && (isDebouncingSearch || venueQuery.isFetching)}
       error={venueQuery.isError && trimmedQuery.length > 0 ? labels.error : undefined}
       filterResults={false}
+      availabilityByVenueId={availabilityByVenueId}
+      closedAtSelectedTimeLabel={t('closedAtSelectedTime')}
       maxLength={MAX_QUERY_LENGTH}
       className={cn('w-search-desktop', className)}
     />
@@ -172,4 +225,45 @@ export function VenueSearchShell({
 
 function hasValidVenueLocation(venue: VenueDataDto): boolean {
   return Number.isFinite(venue.location?.lat) && Number.isFinite(venue.location?.lng);
+}
+
+function initialForcedSearchQuery(params: Pick<URLSearchParams, 'get'> | null): string {
+  if (process.env.NODE_ENV === 'production') return '';
+  if (!params) return '';
+  if (params.get('_state') !== 'map-selected-time-closed') return '';
+  const raw = params.get('_search') ?? '';
+  return Array.from(raw.trim()).slice(0, MAX_QUERY_LENGTH).join('');
+}
+
+function venueDetailSlug(venue: Pick<VenueDataDto, 'slug' | 'venueSlug'>): string | null {
+  const slug = (venue.slug || venue.venueSlug || '').trim();
+  if (!slug || /[\u0000-\u001F\u007F-\u009F]/u.test(slug)) return null;
+  return slug;
+}
+
+function queryWithout(
+  params: Pick<URLSearchParams, 'forEach'>,
+  excludedKeys: string[],
+): Record<string, string | string[]> {
+  const excluded = new Set(excludedKeys);
+  const query: Record<string, string | string[]> = {};
+
+  params.forEach((value, key) => {
+    if (excluded.has(key)) return;
+    const current = query[key];
+    if (current === undefined) {
+      query[key] = value;
+      return;
+    }
+    query[key] = Array.isArray(current) ? [...current, value] : [current, value];
+  });
+
+  return query;
+}
+
+function normalizeSearchText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/gu, '')
+    .toLocaleLowerCase('sv-SE');
 }

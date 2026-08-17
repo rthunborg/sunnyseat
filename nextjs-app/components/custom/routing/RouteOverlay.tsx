@@ -11,13 +11,7 @@ import {
 } from '@/lib/constants/animation';
 import { cn } from '@/lib/utils';
 
-/**
- * Public confidence/uncertainty context for the destination. `visible` is
- * the compact on-screen form (e.g. "Säkerhet ~88%"); `accessible` spells
- * out qualifiers the visible glyphs don't convey to screen readers
- * (e.g. "Säkerhet cirka 88%").
- */
-export type RouteOverlayConfidence = {
+export type RouteOverlayUncertainty = {
   visible: string;
   accessible: string;
 };
@@ -27,12 +21,8 @@ export type RouteOverlayLabels = {
   walk: string | null;
   bike: string | null;
   direction: string | null;
-  /**
-   * Formatted by the orchestrator from the same display helpers the venue
-   * surfaces use. Null when the public confidence display is unavailable —
-   * the overlay must not invent or leak a substitute.
-   */
-  confidence?: RouteOverlayConfidence | null;
+  /** Public prediction uncertainty context. Null means the row is omitted. */
+  uncertainty?: RouteOverlayUncertainty | null;
   close: string;
   fallback: string;
   unavailable: string;
@@ -52,7 +42,7 @@ export function RouteOverlay({
   className,
 }: RouteOverlayProps) {
   const shouldReduceMotion = useReducedMotion() ?? false;
-  const hasRouteText = Boolean(labels.walk || labels.bike || labels.direction);
+  const hasRouteText = Boolean(labels.walk || labels.bike || labels.direction || labels.uncertainty);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -129,10 +119,10 @@ export function RouteOverlay({
             {labels.direction}
           </RouteOverlayRow>
         )}
-        {labels.confidence && (
+        {labels.uncertainty && (
           <RouteOverlayRow icon={<Sun aria-hidden="true" className="size-4" />}>
-            <span aria-hidden="true">{labels.confidence.visible}</span>
-            <span className="sr-only">{labels.confidence.accessible}</span>
+            <span aria-hidden="true">{labels.uncertainty.visible}</span>
+            <span className="sr-only">{labels.uncertainty.accessible}</span>
           </RouteOverlayRow>
         )}
         {!hasRouteText && (

@@ -1,0 +1,9 @@
+⨯ Failed to start server
+Error: listen EADDRINUSE: address already in use ::1:43220
+    at <unknown> (Error: listen EADDRINUSE: address already in use ::1:43220) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::1',
+  port: 43220
+}

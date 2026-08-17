@@ -1,0 +1,56 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 12-14-hide-closed-venues-open-at-selected-time-filter
+epic_num: 12
+story_num: 14
+branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
+status: in-progress
+updated_at: "2026-08-07T16:04:32Z"
+started_at: "2026-08-06T19:19:30Z"
+completed_at: null
+active_seconds: 13665
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: true
+needs_project_context_bootstrap: false
+git_mode: local
+base_branch: main
+tea_risk: med
+tea_selected: [automate]
+tea_rationale: "Adds non-trivial selected-instant availability branching across multiple modules and UI surfaces, without a high-risk migration, external contract, or security-sensitive path."
+epic_story_count: 14
+stories_after_in_epic: 0
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+code_review_iterations: 0
+code_review_loop_done: false
+hitl_halt: null
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [38b1eec, 18ee246, 7c1fd45, f8d5283, 8c67fe3]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work: []
+blockers: []
+overrides: {}
+constraints:
+  - "Manual visual acceptance is authorized for Story 12.14; every human validation request must include the relevant mobile/desktop visual resources directly in chat."
+tier_a_base_sha: 7da3720242b234a42c18eb76a6daf8ab57c85c4b
+tier_a_review: "done - Tier A acceptance audit produced one High and two Medium patch findings; dedicated security review produced zero findings; all three patches were resolved, review_findings reconciled with zero open items, post-fix verification proceeded, typecheck and lint passed, focused regressions passed, and full Vitest passed 213 files / 1943 tests."

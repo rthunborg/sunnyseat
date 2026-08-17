@@ -10,12 +10,30 @@
 
 import { expect, test } from '@playwright/test';
 import { runAxe, formatViolations } from './helpers/axe';
-import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { arrangeVenuePhotoMedia } from './helpers/venue-photo-media';
 
 async function bypassOnboarding(page: import('@playwright/test').Page) {
-  await page.addInitScript((key: string) => {
-    window.localStorage.setItem(key, '1');
-  }, ONBOARDED_FLAG_KEY);
+  await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
+}
+
+async function mockEmptyVenues(page: import('@playwright/test').Page) {
+  await page.route('**/api/venues?**', async (route) => {
+    await route.fulfill({
+      json: {
+        venues: [],
+        meta: { count: 0, radiusKm: 2 },
+        timestamp: '2026-07-28T12:00:00.000Z',
+        totalCount: 0,
+      },
+    });
+  });
 }
 
 test.describe('axe-core a11y gate (mobile viewport)', () => {
@@ -33,6 +51,84 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
   // debt. Flip them back to `test` once the venue-card contrast meets 4.5:1.
   // The offline shell (Story 7.3's own surface — no venue cards) is the one
   // mobile surface asserted clean here, and it passes.
+  test('a11y: mobile row-count sheet handle-only state (/?_state=map-primary)', async ({ page }) => {
+    await bypassOnboarding(page);
+    await page.route('**://api.met.no/**', (route) => route.abort());
+    await page.route('**/api/venues?**', async (route) => {
+      await route.fulfill({
+        json: {
+          venues: [
+            {
+              id: 'venue-1',
+              venueId: 'venue-1',
+              venueName: 'Kafé Magasinet',
+              venueSlug: 'test-venue-sunny',
+              slug: 'test-venue-sunny',
+              neighborhood: 'Inom Vallgraven',
+              location: { lat: 57.705, lng: 11.97 },
+              currentSunStatus: 'Sunny',
+              weatherGateState: 'not_gated',
+              isPartner: true,
+              confidence: 90,
+              distanceMeters: 120,
+              sunExposurePercent: 90,
+              tags: [],
+              sunWindow: { start: '11:00', end: '18:00' },
+              thumbnail: { alt: 'Kafé Magasinet', initials: 'K' },
+            },
+          ],
+          meta: { count: 1, radiusKm: 2 },
+          timestamp: '2026-07-20T12:00:00.000Z',
+          totalCount: 1,
+        },
+      });
+    });
+
+    await page.goto('/?_state=map-primary&_time=14:00');
+    const sheet = page.getByTestId('mobile-bottom-sheet');
+    await expect(sheet).toHaveAttribute('data-visible-rows', '0');
+    await expect(sheet).toHaveAttribute('data-dragging', 'false');
+    const handle = page.getByTestId('mobile-bottom-sheet-handle');
+    await expect(handle).toHaveAttribute('aria-describedby', 'mobile-bottom-sheet-row-status');
+    const handleBox = await handle.boundingBox();
+    expect(handleBox).not.toBeNull();
+    expect(handleBox!.height).toBeGreaterThanOrEqual(44);
+    await expect(page.locator('[data-bottom-sheet-body="true"]')).toHaveAttribute('aria-hidden', 'true');
+
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test('a11y: coach-mark first step mobile (/?_state=coach-mark-first)', async ({ page }) => {
+    await bypassOnboarding(page);
+    await mockEmptyVenues(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?_state=coach-mark-first&_time=14:00');
+    await page.getByTestId('coach-tour-dialog').waitFor({ state: 'visible' });
+    await expect(page.getByTestId('coach-tour-dialog')).toHaveAttribute(
+      'data-reduced-motion',
+      'true',
+    );
+    await expect(page.getByTestId('coach-tour-step-pin-legend')).toBeVisible();
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test('a11y: coach-mark middle step mobile (/?_state=coach-mark-middle)', async ({ page }) => {
+    await bypassOnboarding(page);
+    await mockEmptyVenues(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?_state=coach-mark-middle&_time=14:00');
+    await page.getByTestId('coach-tour-dialog').waitFor({ state: 'visible' });
+    await expect(page.getByTestId('coach-tour-dialog')).toHaveAttribute(
+      'data-reduced-motion',
+      'true',
+    );
+    await expect(page.getByTestId('coach-tour-step-time-slider')).toBeVisible();
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
   test.fixme('a11y: map-primary mobile (/)', async ({ page }) => {
     await bypassOnboarding(page);
     await page.goto('/');
@@ -66,6 +162,13 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
+  test('a11y: about page mobile (/about)', async ({ page }) => {
+    await page.goto('/about');
+    await page.getByTestId('about-page').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
   // Story 10.2 (Task 5, AC4) — the muted "Sol bakom moln" obscured surface at
   // the mobile viewport. These scans render the mobile venue-card-bearing map
   // shell (bottom-sheet list) UNDERNEATH the forced obscured surface, so they
@@ -89,6 +192,31 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
     await page.goto('/?venue=test-venue-sunny&_state=venue-detail-obscured');
     await page.locator('[data-testid="mobile-venue-detail-sheet"]:visible').waitFor({ state: 'visible' });
     await page.locator('[data-testid="venue-detail-obscured"]:visible').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  // Story 12.12: the photo states open the mobile detail sheet directly, but
+  // active axe scans still inherit pre-existing mobile detail contrast debt on
+  // the `AVSTAND` metadata label (#949086 on white, 3.18:1). Keep explicit
+  // coverage intent here while desktop photo surfaces are active-gated in
+  // axe.spec.ts.
+  test.fixme('a11y: mobile venue photo loaded (/?_state=venue-photo-loaded)', async ({ page }) => {
+    await bypassOnboarding(page);
+    await arrangeVenuePhotoMedia(page, 'venue-photo-loaded');
+    await page.goto('/?venue=test-venue-sunny&_state=venue-photo-loaded&_time=14:00');
+    await page.locator('[data-testid="mobile-venue-detail-sheet"]:visible').waitFor({ state: 'visible' });
+    await page.locator('[data-testid="venue-detail-hero-photo"]:visible').waitFor({ state: 'visible' });
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test.fixme('a11y: mobile venue photo fallback (/?_state=venue-photo-fallback)', async ({ page }) => {
+    await bypassOnboarding(page);
+    await arrangeVenuePhotoMedia(page, 'venue-photo-fallback');
+    await page.goto('/?venue=test-venue-sunny&_state=venue-photo-fallback&_time=14:00');
+    await page.locator('[data-testid="mobile-venue-detail-sheet"]:visible').waitFor({ state: 'visible' });
+    await page.locator('[data-testid="venue-detail-hero-fallback"]:visible').waitFor({ state: 'visible' });
     const violations = await runAxe(page);
     expect(violations, formatViolations(violations)).toEqual([]);
   });

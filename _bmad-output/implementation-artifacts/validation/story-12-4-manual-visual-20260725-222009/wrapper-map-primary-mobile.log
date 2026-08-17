@@ -1,0 +1,9 @@
+VISUAL GATE MANUAL MODE: VISUAL_VALIDATE_PROVIDER=none
+Screen:   map-primary
+Route:    /?_state=map-primary&_time=14:00
+Viewport: mobile
+
+This is not an automated visual pass. Run a manual comparison against
+nextjs-app/docs/design/references/screens/mobile/map-primary.png and
+record the rationale in the story or validation artifact.
+Manual visual acceptance explicitly allowed by ALLOW_MANUAL_VISUAL_VALIDATION=1

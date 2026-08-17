@@ -1,0 +1,65 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 12-13-remove-the-user-facing-confidence-indicator-keep-it-internal
+epic_num: 12
+story_num: 13
+branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
+status: done
+updated_at: "2026-07-19T16:32:54Z"
+started_at: "2026-07-19T12:59:01Z"
+completed_at: "2026-07-19T16:32:54Z"
+active_seconds: 9669
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: med
+tea_selected: [automate]
+tea_rationale: "Medium by TEA policy because Story 12.13 is a non-trivial multi-module UI/accessibility contract sweep without a high-risk API, DB, security, payment, or concurrency signal."
+epic_story_count: 14
+stories_after_in_epic: 9
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+code_review_iterations: 0
+code_review_loop_done: false
+hitl_halt: null
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [55bffea, e442fed, ef47622, 6483f7e, "7592112"]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work: []
+blockers: []
+overrides: {}
+constraints: []
+tier_a_base_sha: 7f5c709cd509c90ac57734f17f6237927c7bcccf
+tier_a_review:
+  verdict: "Changes Requested -> fixed"
+  critical: 0
+  high: 0
+  medium: 1
+  low: 0
+  open_decisions_auto_resolved: 0
+  dismissed_noise: 0
+  security: "No findings; HIGH 0 / MEDIUM 0 / LOW 0"
+  fixed: 1
+  deferred: 0

@@ -1,0 +1,69 @@
+SunnySeat story review gate
+Story: 12-13-remove-the-user-facing-confidence-indicator-keep-it-internal
+Mode: apply
+Sprint status: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/sprint-status.yaml
+Validation artifact: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/validation/12-13-remove-the-user-facing-confidence-indicator-keep-it-internal-review-20260719-172339.log
+
+Story file: /c/Users/Rasmus/sunnyseat/_bmad-output/implementation-artifacts/12-13-remove-the-user-facing-confidence-indicator-keep-it-internal.md
+Current sprint status: in-progress
+
+Running npm script: lint
+
+> sunnyseat@0.1.0 lint
+> eslint . --quiet
+
+
+Running npm script: typecheck
+
+> sunnyseat@0.1.0 typecheck
+> tsc --noEmit
+
+
+Running npm script: test
+
+> sunnyseat@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.4 C:/Users/Rasmus/sunnyseat/nextjs-app
+
+ ❯ test/unit/services/weather-snapshots.atdd.test.ts (5 tests | 1 failed) 5829ms
+     × snapshot refresh covers the selectable planner horizon or marks out-of-horizon as unknown 5727ms
+ ❯ test/unit/services/sun-geometry-precompute.atdd.test.ts (5 tests | 1 failed) 6194ms
+     × computes deterministic ungated geometry-only entries for every planner step 6125ms
+Not implemented: navigation to another Document
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/unit/services/sun-geometry-precompute.atdd.test.ts > Story 12.3 AC1/AC3/AC6 - geometry-only precompute > computes deterministic ungated geometry-only entries for every planner step
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/unit/services/sun-geometry-precompute.atdd.test.ts:36:3
+     34|
+     35| describe('Story 12.3 AC1/AC3/AC6 - geometry-only precompute', () => {
+     36|   test('computes deterministic ungated geometry-only entries for every…
+       |   ^
+     37|     const { computeUngatedGeometryDaySeries } = await loadPrecomputeMo…
+     38|     const series = await computeUngatedGeometryDaySeries({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  test/unit/services/weather-snapshots.atdd.test.ts > Story 12.3 AC1/AC4 - weather snapshots cover the planner horizon without stale nearest-slice reuse > snapshot refresh covers the selectable planner horizon or marks out-of-horizon as unknown
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/unit/services/weather-snapshots.atdd.test.ts:25:3
+     23|
+     24| describe('Story 12.3 AC1/AC4 - weather snapshots cover the planner hor…
+     25|   test('snapshot refresh covers the selectable planner horizon or mark…
+       |   ^
+     26|     const { buildWeatherSnapshotWindow } = await loadWeatherSnapshotsM…
+     27|     const window = buildWeatherSnapshotWindow(new Date('2026-07-18T09:…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 186 passed | 2 skipped (190)
+      Tests  2 failed | 1758 passed | 15 skipped (1775)
+   Start at  17:24:45
+   Duration  207.74s (transform 13.11s, setup 448.22s, import 332.63s, tests 156.15s, environment 1843.82s)
+

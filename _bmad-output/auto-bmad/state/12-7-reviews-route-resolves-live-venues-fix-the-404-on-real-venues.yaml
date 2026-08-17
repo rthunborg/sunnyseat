@@ -1,0 +1,71 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
+epic_num: 12
+story_num: 7
+branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
+status: done
+updated_at: "2026-07-18T20:23:39Z"
+started_at: "2026-07-18T18:43:57Z"
+completed_at: "2026-07-18T20:18:21Z"
+active_seconds: 5573
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: high
+tea_selected: [atdd, automate, trace-advisory]
+tea_rationale: "Changes the public reviews and feedback identity-resolution contract across live Supabase and fixture modes, including security-sensitive visibility boundaries and shared cache behavior."
+epic_story_count: 14
+stories_after_in_epic: 11
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+code_review_iterations: 1
+code_review_loop_done: true
+hitl_halt: null
+external_review_iterations: 0
+convergence_unverified: false
+story_trace:
+  verdict: CONCERNS
+  ran: true
+  coverage: "{\"traced\": 10, \"full\": 8, \"partial\": 2, \"uncovered\": 0}"
+  uncovered: []
+  material_gaps: ["OPS-1: apply the hidden migration, verify boolean NOT NULL DEFAULT false on a migrated database, regenerate types, and smoke-test live ID/slug plus hidden rejection", "INV-1: concurrent in-flight visibility changes are not directly exercised", No direct production-query test covers the precompute hidden projection, No route test forces resolver failure and verifies stable 503 mapping before persistence]
+commits: [3f104fa, 9c329d1, 7e41ef2, 0dbcd95, 5ec82cc, 7195d0d, 4102afc]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work:
+  - "Apply `20260718214954_add_public_venue_visibility.sql` before deploying Story 12.7 code, then regenerate Supabase types and verify no contract diff."
+blockers: []
+overrides: {}
+constraints: []
+tier_a_base_sha: f5e9d83b46f75e77e3e42b184f1ebc5006d78772
+tier_a_review:
+  verdict: "Changes Requested -> fixed"
+  critical: 0
+  high: 1
+  medium: 2
+  low: 1
+  open_decisions_auto_resolved: 0
+  dismissed_noise: 3
+  security: "No findings; HIGH 0 / MEDIUM 0 / LOW 0"
+  fixed: 4
+  deferred: 0

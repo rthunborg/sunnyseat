@@ -127,6 +127,7 @@ function computedOutcome(venue: StoredVenue): SunEngineOutcome {
     venue: {
       ...toVenueData(venue),
       currentSunStatus: 'Sunny',
+      weatherGateState: 'not_gated',
       confidence: 55,
       sunExposurePercent: 90,
       skyCondition: 'clear',

@@ -1,0 +1,65 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 12-11-first-run-coach-mark-guide-map-legend-feature-tour
+epic_num: 12
+story_num: 11
+branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
+status: done
+updated_at: "2026-08-06T17:31:40Z"
+started_at: "2026-07-27T19:56:49Z"
+completed_at: "2026-08-06T17:31:40Z"
+active_seconds: 59801
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: med
+tea_selected: [automate]
+tea_rationale: "Medium because Story 12.11 adds a stateful first-run UI flow with persisted seen-state, Settings relaunch, breakpoint-specific anchors, and accessibility/focus/motion contracts across multiple mounted map controls, without a High-risk auth, schema, external-contract, or concurrency trigger."
+epic_story_count: 14
+stories_after_in_epic: 3
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+code_review_iterations: 0
+code_review_loop_done: false
+hitl_halt: null
+external_review_iterations: 0
+convergence_unverified: false
+story_trace: null
+commits: [9a0f45a, 7d2c676, 58d263e, 0bccfcd, 4561d28, 4f2e681, 9802db8, cf68b99, 1c04e31, 13e3639, 22e43eb, 7e2a0e4, 541bf1a, d95a663, 218f96c]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work:
+  - "Stabilize the mobile future-date exact-response wait in nextjs-app/test/e2e/map-primary.spec.ts; under full-suite concurrency the UI visibly reaches tomorrow while the response predicate can time out, and isolated reruns are inconsistent."
+blockers: []
+overrides: {}
+constraints:
+  - "Keep the coach tour first-run-only through persisted seen-state, while providing an explicit Settings relaunch path; do not repeatedly interrupt returning users."
+  - "Define deterministic mobile and desktop target anchors from the landed Story 12.6 pin legend and Story 12.9 interaction model, preserving focus visibility, 44x44 touch targets, and reduced-motion behavior."
+  - "Lock one deterministic feedback-step approach in the story context: copy-only guidance, or opening a deterministic venue detail before targeting feedback; automate that exact path."
+  - "Human visual-review correction: explain that the amber percentage is the predicted share of outdoor seating in direct sun at the selected time, not model confidence."
+  - "Human visual-review correction: present date/time changes as optional because the map defaults to now, and disclose that predictions become less certain farther into the future."
+  - "Human visual-review correction: end the amber percentage explanation after the selected-time seating-share meaning; omit the explicit confidence contrast from this coach step."
+  - "Human visual-review correction: label skip with localized 'skip guide' copy in Swedish and English; use a restrained right-aligned utility pill in a dedicated row above the grouped Back/Next row, preserving bilingual parity."
+  - "Human visual-review correction: keep Skip centered in its own row above navigation, align Back left and Next right, tint Skip with a very light error-derived red and near-black text, and use a documented accessible evergreen action token for Next."
+  - "Human visual-review correction: on mobile only, slightly increase the gap between the centered Skip row and the Back/Next row, and make the visible Skip pill plus label slightly smaller while preserving a minimum 44x44 accessible touch target; keep desktop rendering unchanged."
+tier_a_base_sha: 03e32a4
+tier_a_review: "done - automatic review cap reached after final Round 3; the human-directed mobile-only v4 refinement passed focused component tests (30/30), Story 12.11 mobile+desktop Playwright (10/10), typecheck, lint, responsive geometry assertions, independent exact-size visual inspection, and Rasmus explicitly approved Story 12.11 visual acceptance on 2026-08-06. Full Vitest produced no failing assertion but wedged at startup on this Windows workspace and was stopped exactly."

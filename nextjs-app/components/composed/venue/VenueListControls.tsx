@@ -47,6 +47,7 @@ export function VenueListControls({
           <SegmentButton
             active={listMode === 'favourites'}
             onClick={() => onListModeChange?.('favourites')}
+            tourAnchor="favourites"
             icon={<Heart aria-hidden="true" className="size-4" />}
           >
             {labels.favouritesTab}
@@ -152,6 +153,7 @@ function SegmentButton({
   onClick,
   icon,
   children,
+  tourAnchor,
 }: {
   active?: boolean;
   disabled?: boolean;
@@ -159,6 +161,7 @@ function SegmentButton({
   onClick?: () => void;
   icon: ReactNode;
   children: string;
+  tourAnchor?: string;
 }) {
   return (
     <button
@@ -167,6 +170,7 @@ function SegmentButton({
       aria-label={unavailable ? `${children}, ${unavailable}` : children}
       disabled={disabled}
       onClick={onClick}
+      data-tour-anchor={tourAnchor}
       className={cn(
         'flex min-h-11 flex-1 items-center justify-center gap-2 border-b-2 px-2 text-label-lg outline-none focus-visible:ring-2 focus-visible:ring-text-primary',
         active

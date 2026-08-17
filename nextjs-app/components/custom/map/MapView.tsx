@@ -1,17 +1,18 @@
 'use client';
 
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { AnimatePresence, motion } from 'motion/react';
 import { LoaderCircle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   VenueQuickInfo,
   type VenueQuickInfoDesktopPlacement,
 } from '@/components/composed/venue/VenueQuickInfo';
 import {
   MobileBottomSheet,
-  type MobileBottomSheetState,
+  type MobileBottomSheetMetrics,
 } from '@/components/custom/sheets/MobileBottomSheet';
 import { VenueDetailOverlay } from '@/components/custom/venue/VenueDetailOverlay';
 import { RouteOverlay, type RouteOverlayLabels } from '@/components/custom/routing/RouteOverlay';
@@ -24,10 +25,19 @@ import { FavouritesList } from '@/components/custom/favourites/FavouritesList';
 import { FeedbackFlow } from '@/components/custom/feedback/FeedbackFlow';
 import { ReviewFlow } from '@/components/custom/feedback/ReviewFlow';
 import { VenueSearchShell } from '@/components/custom/search/VenueSearchShell';
-import { resolveForcedVisualVenueDetail } from '@/components/custom/venue/forced-venue-detail';
+import {
+  isForcedVenuePhotoState,
+  resolveForcedVisualVenueDetail,
+  withForcedVenuePhotoThumbnail,
+} from '@/components/custom/venue/forced-venue-detail';
 import { TimeSliderPanel } from '@/components/custom/time/TimeSliderPanel';
-import { isVenueSunnyForList, VenueList } from '@/components/custom/venue/VenueList';
+import { FirstRunCoachMarkGuide } from '@/components/custom/coach-tour/FirstRunCoachMarkGuide';
+import { isVenueSunnyForList, sortVenuesForList, VenueList } from '@/components/custom/venue/VenueList';
 import { useVenueDetail } from '@/hooks/queries/useVenueDetail';
+import {
+  prefetchSelectedVenueDetail,
+  useVenueDetailPrefetch,
+} from '@/hooks/queries/useVenueDetailPrefetch';
 import { isVenueNotFoundError } from '@/hooks/queries/venue-query-options';
 import { useFavouriteVenues } from '@/hooks/queries/useFavouriteVenues';
 import { useVenueSearch } from '@/hooks/queries/useVenueSearch';
@@ -40,13 +50,12 @@ import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
 import { useTagFilter } from '@/lib/contexts/TagFilterContext';
 import { useTimeContext } from '@/lib/contexts/TimeContext';
 import { type VenuePinData } from '@/lib/types/map';
-import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
-import { getConfidenceDisplayState } from '@/lib/utils/confidence-display';
+import type { VenueDataDto } from '@/lib/types/api';
 import {
   getPredictionUncertaintyDisplay,
   type PredictionUncertaintyDisplayLabels,
 } from '@/lib/utils/prediction-uncertainty-display';
-import type { RouteOverlayConfidence } from '@/components/custom/routing/RouteOverlay';
+import type { RouteOverlayUncertainty } from '@/components/custom/routing/RouteOverlay';
 import {
   buildGoogleMapsDirectionsUrl,
   buildGoogleMapsSearchUrl,
@@ -57,12 +66,18 @@ import {
   type RouteSummary,
 } from '@/lib/services/routing';
 import { DURATION_FAST_S, DURATION_FLY_MS, EASE_ENTER } from '@/lib/constants/animation';
+import type { CoachTourStepId } from '@/lib/constants/coach-tour';
 import { useForcedState } from '@/lib/dev/use-forced-state';
 import { cn } from '@/lib/utils';
 import { isStyleResourceUrl } from '@/lib/utils/map-errors';
 import { mapVenueDtoToPinData } from '@/lib/utils/venue-pin-mapping';
 import { deriveVenueSunAtMinutes } from '@/lib/utils/venue-day-series';
-import { formatOpeningHours } from '@/lib/utils/opening-hours';
+import {
+  formatOpeningHoursAt,
+  getVenueAvailabilityAt,
+  type VenueAvailabilityState,
+} from '@/lib/utils/opening-hours';
+import { stockholmInstantFromDateTime } from '@/lib/utils/time-planner';
 import { venuePlannerQueryArgs } from '@/lib/utils/venue-query-planner';
 import { collectTags, filterVenuesByTags } from '@/lib/utils/venue-tags';
 import { MobileTagChips } from '@/components/composed/venue/MobileTagChips';
@@ -96,22 +111,25 @@ const QUICK_INFO_MOBILE_VIEWPORT_GUTTER = 16;
 // one gutter BELOW the planner bottom at common mobile heights.
 //   planner bottom ≈ SAFE_AREA_MAX + PLANNER_TOP_OFFSET + PLANNER_HEIGHT
 // SAFE_AREA_MAX covers the tallest common notch inset (~59px); PLANNER_TOP_OFFSET
-// mirrors `var(--spacing)*18 = 72px`; PLANNER_HEIGHT is the mobile panel's own
-// rendered height (`pt-5 pb-2` + a 44px slider/calendar row ≈ 80px). Keep these
-// in sync with TimeSliderPanel's mobile offset (MapView.tsx ~line 872) — if that
-// `top-[…*18]` offset or the panel padding changes, update these.
+// mirrors `var(--spacing)*18 = 72px`. The planner height itself is measured from
+// the rendered mobile TimeSliderPanel during layout, because font metrics,
+// compact date text, and safe-area/browser chrome can change the actual panel
+// box. Keep the offset in sync with TimeSliderPanel's mobile `top-[…*18]`.
 const MOBILE_SAFE_AREA_MAX_PX = 59;
 const MOBILE_PLANNER_TOP_OFFSET_PX = 72;
-const MOBILE_PLANNER_HEIGHT_PX = 80;
-const QUICK_INFO_MOBILE_PLANNER_BOTTOM_PX =
-  MOBILE_SAFE_AREA_MAX_PX + MOBILE_PLANNER_TOP_OFFSET_PX + MOBILE_PLANNER_HEIGHT_PX;
 const MOBILE_NAV_HEIGHT_PX = 52;
-const MOBILE_SHEET_MID_HEIGHT_PX = 320;
-const FORCED_VISUAL_CONFIDENCE_META: SunFreshnessMeta = {
-  sunDataSource: 'weather',
-  weatherUpdatedAt: '2999-01-01T00:00:00.000Z',
-};
 const EMPTY_VENUES: VenueDataDto[] = [];
+const DEFAULT_MOBILE_SHEET_METRICS: MobileBottomSheetMetrics = {
+  visibleRows: 3,
+  maxRows: 3,
+  rowCount: 3,
+  rowHeightPx: 88,
+  chromeHeightPx: 104,
+  handleHeightPx: 44,
+  safeAreaInsetBottomPx: 0,
+  sheetHeightPx: 416,
+  maxSheetHeightPx: 416,
+};
 // Round 2 R2-P4: Round 1 P31 released the loading cover on the very first
 // tile error, but MapContainer only latches the sand fallback after
 // TILE_FAILURE_THRESHOLD = 4 errors. A single transient blip (CORS retry,
@@ -147,9 +165,10 @@ export function MapView() {
   const tVenueList = useTranslations('venue.list');
   const tCommon = useTranslations('common');
   const locale = useLocale();
+  const queryClient = useQueryClient();
   const geolocation = useGeolocation();
   const { mapInstance } = useMapInstance();
-  const { selectedVenueId, selectedVenuePreview, selectVenue } = useMapSelection();
+  const { selectedVenueId, selectedVenuePreview, selectVenue, toggleVenue } = useMapSelection();
   const { activeTags, isActive: isTagActive, toggleTag } = useTagFilter();
   const plannerTime = useTimeContext();
   const favourites = useFavourites();
@@ -171,8 +190,11 @@ export function MapView() {
   const [quickInfoPosition, setQuickInfoPosition] = useState<{ x: number; y: number } | undefined>();
   const [quickInfoDesktopPlacement, setQuickInfoDesktopPlacement] =
     useState<VenueQuickInfoDesktopPlacement>('above');
-  const [mobileSheetState, setMobileSheetState] =
-    useState<MobileBottomSheetState>('mid');
+  const mobilePlannerPanelRef = useRef<HTMLElement | null>(null);
+  const [mobilePlannerHeightPx, setMobilePlannerHeightPx] = useState(0);
+  const [mobileSheetVisibleRows, setMobileSheetVisibleRows] = useState(3);
+  const [mobileSheetMetrics, setMobileSheetMetrics] =
+    useState<MobileBottomSheetMetrics>(DEFAULT_MOBILE_SHEET_METRICS);
   const [venueSortMode, setVenueSortMode] = useState<VenueListSortMode>('sun');
   const [routeOverlay, setRouteOverlay] = useState<{
     venueId: string;
@@ -180,8 +202,18 @@ export function MapView() {
     fallbackHref: string;
   } | null>(null);
   const [routeLoadingVenueId, setRouteLoadingVenueId] = useState<string | null>(null);
+  const [availabilityAnnouncement, setAvailabilityAnnouncement] = useState('');
+  const [venueDetailPrefetchInteraction, setVenueDetailPrefetchInteraction] = useState<{
+    token: number;
+    preserveSlug: string | null;
+  }>({ token: 0, preserveSlug: null });
   const hasHandledFavouritesRouteEntryRef = useRef(false);
   const routeLoadingTimerRef = useRef<number | null>(null);
+  const previousDetailAvailabilityRef = useRef<{
+    venueId: string;
+    state: VenueAvailabilityState;
+  } | null>(null);
+  const pendingUrlClearDismissedVenueSlugRef = useRef<string | null>(null);
   const isFavouritesRoute = isFavouritesPath(pathname);
   const [desktopListMode, setDesktopListMode] = useState<'near' | 'favourites'>(
     isFavouritesRoute ? 'favourites' : 'near',
@@ -191,17 +223,68 @@ export function MapView() {
   );
   const listMode = isFavouritesRoute ? 'favourites' : desktopListMode;
   const effectiveSortMode = listMode === 'favourites' ? 'sun' : venueSortMode;
+  const cancelVenueDetailPrefetchCandidates = useCallback((preserveSlug?: string | null) => {
+    setVenueDetailPrefetchInteraction((current) => ({
+      token: current.token + 1,
+      preserveSlug: preserveSlug ?? null,
+    }));
+  }, []);
+  const measureMobilePlannerHeight = useCallback(() => {
+    const nextHeight = measuredElementHeight(mobilePlannerPanelRef.current);
+    if (nextHeight <= 0) return;
+    setMobilePlannerHeightPx((previous) =>
+      previous === nextHeight ? previous : nextHeight,
+    );
+  }, []);
+
+  useLayoutEffect(() => {
+    measureMobilePlannerHeight();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const node = mobilePlannerPanelRef.current;
+    if (!node) return undefined;
+    const observer = new ResizeObserver(() => measureMobilePlannerHeight());
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [measureMobilePlannerHeight]);
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handleResize = () => measureMobilePlannerHeight();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [measureMobilePlannerHeight]);
   // Story 10.2 (Task 5): `map-with-obscured-venue` is the deterministic
   // obscured force-state — a sibling of `map-with-selected-venue` that
   // normalizes the selected venue + pin to the weather-gated CloudObscured
   // state (+ `skyCondition: 'overcast'`) so the muted pin/quick-info surface
   // is reachable on the fixture/CI path WITHOUT live Met.no weather.
   const isForcedObscuredReference = forcedState === 'map-with-obscured-venue';
+  const isForcedObscuredDetailReference = forcedState === 'venue-detail-obscured';
+  const isForcedSelectedTimeOpenReference = forcedState === 'map-selected-time-open';
+  const isForcedSelectedTimeClosedReference = forcedState === 'map-selected-time-closed';
+  const isForcedPhotoReference = isForcedVenuePhotoState(forcedState);
+  const coachTourForcedStep = coachTourStepFromForcedState(forcedState);
+  const isForcedCoachTourReference = coachTourForcedStep !== null;
+  const effectiveFavouriteIds = useMemo(
+    () => (isForcedSelectedTimeClosedReference ? ['1'] : favourites.favouriteIds),
+    [favourites.favouriteIds, isForcedSelectedTimeClosedReference],
+  );
+  const isEffectiveFavourite = useCallback(
+    (id: string) =>
+      isForcedSelectedTimeClosedReference && id === '1'
+        ? true
+        : favourites.isFavourite(id),
+    [favourites, isForcedSelectedTimeClosedReference],
+  );
   const isForcedVisualReference =
     forcedState === 'map-primary' ||
     forcedState === 'map-panel-venues' ||
     forcedState === 'map-with-selected-venue' ||
-    isForcedObscuredReference;
+    isForcedSelectedTimeOpenReference ||
+    isForcedSelectedTimeClosedReference ||
+    isForcedObscuredReference ||
+    isForcedCoachTourReference ||
+    isForcedPhotoReference;
   // Story 9.4 AC2: gate the FIRST venue fetch until the user's location has
   // resolved to a real value (`success`) or the centrum fallback. While the
   // status is `idle`/`pending` the fallback-centrum key and the eventual
@@ -252,6 +335,36 @@ export function MapView() {
     ],
   );
   const deferredPlanner = useDeferredValue(plannerArgs);
+  const hasForcedPlannerSearchParam = searchParams.has('_date') || searchParams.has('_time');
+  const forcedPlannerDateParam = searchParams.get('_date')?.trim() || null;
+  const forcedPlannerTimeParam = searchParams.get('_time')?.trim() || null;
+  const forcedPlannerSearchParamsResolved =
+    (!forcedPlannerDateParam || plannerTime.selectedDate === forcedPlannerDateParam) &&
+    (!forcedPlannerTimeParam || plannerTime.selectedTime === forcedPlannerTimeParam);
+  const detailPrefetchPlannerReady =
+    !hasForcedPlannerSearchParam ||
+    (forcedPlannerSearchParamsResolved && Boolean(plannerTime.plannerQuery));
+  const venueDetailParams = useMemo(
+    () => ({
+      ...plannerTime.plannerQuery,
+      lat: geolocation.coords.lat,
+      lng: geolocation.coords.lng,
+    }),
+    [
+      geolocation.coords.lat,
+      geolocation.coords.lng,
+      plannerTime.plannerQuery,
+    ],
+  );
+  const selectedInstant = useMemo(
+    () =>
+      stockholmInstantFromDateTime(plannerTime.selectedDate, plannerTime.selectedTime) ??
+      plannerTime.currentTime,
+    [plannerTime.currentTime, plannerTime.selectedDate, plannerTime.selectedTime],
+  );
+  const hasDevForcingSearchParam = searchParams.has('_state') || hasForcedPlannerSearchParam;
+  const routeAllowsVenueDetailPrefetch =
+    !hasDevForcingSearchParam || searchParams.get('_prefetch') === 'venue-detail';
   const venueQuery = useVenueSearch({
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
@@ -271,7 +384,7 @@ export function MapView() {
     const rows = venueQuery.data?.venues;
     return new Set(Array.isArray(rows) ? rows.map((venue) => venue.id) : []);
   }, [venueQuery.data?.venues]);
-  const favouritesAllInLoadedList = favourites.favouriteIds.every((id) =>
+  const favouritesAllInLoadedList = effectiveFavouriteIds.every((id) =>
     loadedVenueIds.has(id),
   );
   // Enable the network favourites query only when we actually need it: the
@@ -282,7 +395,7 @@ export function MapView() {
   const needsFavouriteFetch =
     listMode === 'favourites' && !favouritesAllInLoadedList;
   const favouriteVenueQuery = useFavouriteVenues({
-    ids: favourites.favouriteIds,
+    ids: effectiveFavouriteIds,
     lat: geolocation.coords.lat,
     lng: geolocation.coords.lng,
     enabled: coordsSettled && needsFavouriteFetch,
@@ -385,6 +498,14 @@ export function MapView() {
       applyDaySeriesDerivation(venue, plannerTime.selectedMinutes),
     );
   }, [rawVenuesData, plannerTime.selectedMinutes]);
+  const rawVenueAvailabilityById = useMemo(
+    () => availabilityByVenueId(rawVenues, selectedInstant),
+    [rawVenues, selectedInstant],
+  );
+  const discoveryVenues = useMemo(() => {
+    if (!Array.isArray(rawVenues)) return rawVenues;
+    return rawVenues.filter((venue) => rawVenueAvailabilityById[venue.id] !== 'closed');
+  }, [rawVenueAvailabilityById, rawVenues]);
   // Story 9.7: apply the shared tag filter to the loaded Närmast list ONCE, so
   // BOTH the venue lists (desktop + mobile) AND the map pins derive from the same
   // filtered source. Pure client `.filter()` over already-fetched data — issues
@@ -396,9 +517,9 @@ export function MapView() {
   // (scope decision — see Task 6 Completion Notes): tag filtering is scoped to
   // the Närmast list + pins, avoiding double-filtering the favourites surface.
   const tagFilteredVenues = useMemo(() => {
-    if (!Array.isArray(rawVenues)) return rawVenues;
-    return filterVenuesByTags(rawVenues, activeTags);
-  }, [activeTags, rawVenues]);
+    if (!Array.isArray(discoveryVenues)) return discoveryVenues;
+    return filterVenuesByTags(discoveryVenues, activeTags);
+  }, [activeTags, discoveryVenues]);
   // Story 11.3 (AC1): the mobile tag-chip row shares the desktop data source —
   // the union of the LOADED venues' tags via `collectTags`. Derived from the
   // SAME `venueQuery.data` the desktop nav reads (no second fetch; TanStack
@@ -409,15 +530,9 @@ export function MapView() {
   // viewport) over the SAME cached union, so a stale mobile filter can never
   // strand the surfaces — no duplicate prune needed here.
   const allTags = useMemo(
-    () => collectTags(venueQuery.data?.venues ?? []),
-    [venueQuery.data?.venues],
+    () => collectTags(discoveryVenues ?? []),
+    [discoveryVenues],
   );
-  // Confidence meta for the favourites surface: prefer the network favourites
-  // query's meta when it ran (out-of-radius / cold deep-link), otherwise fall
-  // back to the loaded list meta, since AC1 may source the rows entirely from
-  // the Närmast list cache without a favourites fetch.
-  const favouriteListConfidenceMeta =
-    favouriteVenueQuery.data?.meta ?? venueQuery.data?.meta;
   // Story 9.4 AC1: build the favourites rows by preferring the loaded Närmast
   // list (no extra fetch when the favourites are already loaded — the common
   // case) and only topping up with the network favourites query for ids the
@@ -425,7 +540,7 @@ export function MapView() {
   // deep link). This keeps the Närmast↔Favoriter toggle instant: when every
   // favourite is in the list cache the favourites query stays disabled and
   // these rows come straight from `rawVenues`.
-  const favouriteIdsForRows = favourites.favouriteIds;
+  const favouriteIdsForRows = effectiveFavouriteIds;
   // Story 11.1 AC1 ("both venue lists"): the favourites network payload hits the
   // same real-engine `/api/venues` path, so its rows carry `sunDaySeries` too.
   // Derive the per-step value here — mirroring `rawVenues` — so an out-of-radius
@@ -433,15 +548,16 @@ export function MapView() {
   // payload, never in the Närmast list cache) tracks a same-date time scrub for
   // both its card figures and its "Mest sol" rank. Without this the top-up rows
   // would render the server's single-instant fields, frozen against the scrub.
+  const favouriteVenuesData = favouriteVenueQuery.data?.venues;
   const networkFavouriteRows = useMemo<VenueDataDto[]>(() => {
-    const rows = Array.isArray(favouriteVenueQuery.data?.venues)
-      ? favouriteVenueQuery.data.venues
+    const rows = Array.isArray(favouriteVenuesData)
+      ? favouriteVenuesData
       : EMPTY_VENUES;
     if (rows.length === 0) return EMPTY_VENUES;
     return rows.map((venue) =>
       applyDaySeriesDerivation(venue, plannerTime.selectedMinutes),
     );
-  }, [favouriteVenueQuery.data?.venues, plannerTime.selectedMinutes]);
+  }, [favouriteVenuesData, plannerTime.selectedMinutes]);
   const favouriteVenueRows = useMemo<VenueDataDto[]>(() => {
     const allowed = new Set(favouriteIdsForRows);
     if (allowed.size === 0) return EMPTY_VENUES;
@@ -467,17 +583,17 @@ export function MapView() {
     }
     return rows.length === 0 ? EMPTY_VENUES : rows;
   }, [favouriteIdsForRows, networkFavouriteRows, rawVenues]);
-  const activeFavouriteVenueRows = listMode === 'favourites'
+  const selectedPreviewSlug = selectedVenuePreview?.slug || selectedVenuePreview?.venueSlug || null;
+  const favouriteRowsForSelectedPreview = listMode === 'favourites'
     ? favouriteVenueRows
     : EMPTY_VENUES;
-  const selectedPreviewSlug = selectedVenuePreview?.slug || selectedVenuePreview?.venueSlug || null;
   const selectedPreviewIsInCurrentRows = useMemo(() => {
     if (!selectedVenuePreview) return false;
     if (Array.isArray(rawVenues) && rawVenues.some((venue) => venue.id === selectedVenuePreview.id)) {
       return true;
     }
-    return activeFavouriteVenueRows.some((venue) => venue.id === selectedVenuePreview.id);
-  }, [activeFavouriteVenueRows, rawVenues, selectedVenuePreview]);
+    return favouriteRowsForSelectedPreview.some((venue) => venue.id === selectedVenuePreview.id);
+  }, [favouriteRowsForSelectedPreview, rawVenues, selectedVenuePreview]);
   const canRequestVenueDetail = Boolean(venueSlugParam) &&
     forcedState !== 'map-with-selected-venue' &&
     forcedState !== 'map-with-obscured-venue';
@@ -489,12 +605,8 @@ export function MapView() {
     !canRequestVenueDetail,
   );
   const selectedPreviewDetailQuery = useVenueDetail(
-    shouldRefreshSelectedPreview ? selectedPreviewSlug : null,
-    {
-      ...plannerTime.plannerQuery,
-      lat: geolocation.coords.lat,
-      lng: geolocation.coords.lng,
-    },
+    shouldRefreshSelectedPreview && detailPrefetchPlannerReady ? selectedPreviewSlug : null,
+    venueDetailParams,
   );
   const refreshedSelectedVenuePreview = useMemo(() => {
     const detailVenue = selectedPreviewDetailQuery.data?.venue;
@@ -503,7 +615,38 @@ export function MapView() {
     if (!venueMatchesSlug(detailVenue, selectedPreviewSlug)) return null;
     return detailVenue;
   }, [selectedPreviewDetailQuery.data?.venue, selectedPreviewSlug, selectedVenuePreview]);
-  const selectedVenuePreviewForMap = refreshedSelectedVenuePreview ?? selectedVenuePreview;
+  const combinedAvailabilityByVenueId = useMemo(
+    () =>
+      availabilityByVenueId(
+        [
+          ...(Array.isArray(rawVenues) ? rawVenues : EMPTY_VENUES),
+          ...networkFavouriteRows,
+          ...(selectedVenuePreview ? [selectedVenuePreview] : EMPTY_VENUES),
+          ...(refreshedSelectedVenuePreview ? [refreshedSelectedVenuePreview] : EMPTY_VENUES),
+        ],
+        selectedInstant,
+      ),
+    [
+      networkFavouriteRows,
+      rawVenues,
+      refreshedSelectedVenuePreview,
+      selectedInstant,
+      selectedVenuePreview,
+    ],
+  );
+  const favouriteVenuePinRows = useMemo(
+    () => favouriteVenueRows.filter((venue) => combinedAvailabilityByVenueId[venue.id] !== 'closed'),
+    [combinedAvailabilityByVenueId, favouriteVenueRows],
+  );
+  const activeFavouriteVenueRows = listMode === 'favourites'
+    ? favouriteVenuePinRows
+    : EMPTY_VENUES;
+  const selectedVenuePreviewCandidate = refreshedSelectedVenuePreview ?? selectedVenuePreview;
+  const selectedVenuePreviewForMap =
+    selectedVenuePreviewCandidate &&
+    combinedAvailabilityByVenueId[selectedVenuePreviewCandidate.id] !== 'closed'
+      ? selectedVenuePreviewCandidate
+      : null;
   const venueDtosForMap = useMemo(() => {
     // Story 9.7: pins derive from the tag-filtered Närmast list, so an active
     // chip filters the map pins identically to the venue list (AC3). The
@@ -536,11 +679,24 @@ export function MapView() {
       // Story 10.2 (Task 5): the obscured force-state normalizes every pin to
       // the muted CloudObscured pill (deterministic obscured surface).
       if (isForcedObscuredReference) return [normalizeForcedObscuredPin(pin)];
+      // Story 12.6 visual-defect pass: `venue-detail-obscured` forces the
+      // detail DTO for the deep-linked seeded venue into the weather-gated
+      // CloudObscured state. Keep that selected map pin coherent with the
+      // detail surface without rewriting unrelated background pins.
+      if (isForcedObscuredDetailReference && venueMatchesSlug(v, venueSlugParam)) {
+        return [normalizeForcedObscuredPin(pin)];
+      }
       return forceSunnyVisualPins
         ? [normalizeForcedVisualPin(pin)]
         : [pin];
     });
-  }, [forceSunnyVisualPins, isForcedObscuredReference, venueDtosForMap]);
+  }, [
+    forceSunnyVisualPins,
+    isForcedObscuredDetailReference,
+    isForcedObscuredReference,
+    venueDtosForMap,
+    venueSlugParam,
+  ]);
   const selectedVenueDto = useMemo(() => {
     if (!selectedVenueId) return null;
     return venueDtosForMap.find((venue) => venue.id === selectedVenueId) ?? null;
@@ -548,37 +704,40 @@ export function MapView() {
   const selectedQuickInfoVenue = useMemo(() => {
     if (!selectedVenueDto) return null;
     if (isForcedObscuredReference) return normalizeForcedObscuredVenue(selectedVenueDto);
+    if (isForcedPhotoReference) return normalizeForcedPhotoVenue(selectedVenueDto, forcedState);
     return isForcedVisualReference
       ? normalizeForcedVisualVenue(selectedVenueDto)
       : selectedVenueDto;
-  }, [isForcedObscuredReference, isForcedVisualReference, selectedVenueDto]);
-  // Story 11.9 (AC2): derive the quick-info "Öppet till HH:MM" line for the CURRENT
-  // Stockholm weekday from the list-DTO per-weekday `openingHours`, keeping the
-  // component presentational (it renders the pre-derived `display` verbatim).
-  // Closed today / no hours → `{}` → the card renders nothing (never fabricated).
+  }, [
+    forcedState,
+    isForcedObscuredReference,
+    isForcedPhotoReference,
+    isForcedVisualReference,
+    selectedVenueDto,
+  ]);
+  // Story 11.9 (AC2): derive the quick-info "Öppet till HH:MM" line only for the
+  // live planner state. Story 12.14 (AC5/E12-AD-07) keeps constrained QuickInfo
+  // surfaces from making planned-time hours claims; the detail surface owns the
+  // qualified "Öppet vid vald tid" copy.
   const quickInfoOpeningHours = useMemo(
-    () =>
-      selectedQuickInfoVenue?.openingHours
-        ? formatOpeningHours(
-            selectedQuickInfoVenue.openingHours,
-            new Date(),
-            locale,
-            tVenue('quickInfo.openUntilLine', { time: '{time}' }),
-          )
-        : undefined,
-    [selectedQuickInfoVenue, locale, tVenue],
+    () => {
+      if (!plannerTime.isLiveNow || !selectedQuickInfoVenue?.openingHours) return undefined;
+      return formatOpeningHoursAt(
+        selectedQuickInfoVenue.openingHours,
+        selectedInstant,
+        locale,
+        tVenue('quickInfo.openUntilLine', { time: '{time}' }),
+      );
+    },
+    [locale, plannerTime.isLiveNow, selectedInstant, selectedQuickInfoVenue, tVenue],
   );
   const selectedPinData = useMemo(() => {
     if (!selectedVenueId) return null;
     return venues.find((venue) => venue.id === selectedVenueId) ?? null;
   }, [selectedVenueId, venues]);
   const venueDetailQuery = useVenueDetail(
-    canRequestVenueDetail ? venueSlugParam : null,
-    {
-      ...plannerTime.plannerQuery,
-      lat: geolocation.coords.lat,
-      lng: geolocation.coords.lng,
-    },
+    canRequestVenueDetail && detailPrefetchPlannerReady ? venueSlugParam : null,
+    venueDetailParams,
   );
   const forcedVisualVenueDetail = useMemo(
     () => resolveForcedVisualVenueDetail(venueSlugParam, forcedState),
@@ -587,11 +746,6 @@ export function MapView() {
   const queriedDetailVenue = venueDetailQuery.data?.venue;
   const queriedDetailMatchesUrl = venueMatchesSlug(queriedDetailVenue, venueSlugParam);
   const detailVenue = forcedVisualVenueDetail ?? (queriedDetailMatchesUrl ? queriedDetailVenue : null);
-  const detailConfidenceMeta = forcedVisualVenueDetail
-    ? FORCED_VISUAL_CONFIDENCE_META
-    : queriedDetailMatchesUrl
-    ? (venueDetailQuery.data?.meta ?? venueQuery.data?.meta)
-    : venueQuery.data?.meta;
   const feedbackVenue = (forcedVisualVenueDetail || !venueDetailQuery.isPlaceholderData)
     ? detailVenue
     : null;
@@ -617,7 +771,7 @@ export function MapView() {
       const listVenue = rawVenues.find((venue) => venueMatchesSlug(venue, venueSlugParam));
       if (listVenue) return { venue: listVenue, isSynthetic: false };
     }
-    const favouriteVenue = activeFavouriteVenueRows.find((venue) => venueMatchesSlug(venue, venueSlugParam));
+    const favouriteVenue = favouriteVenueRows.find((venue) => venueMatchesSlug(venue, venueSlugParam));
     if (favouriteVenue) return { venue: favouriteVenue, isSynthetic: false };
     if (selectedVenueDto && venueMatchesSlug(selectedVenueDto, venueSlugParam)) {
       return { venue: selectedVenueDto, isSynthetic: false };
@@ -630,7 +784,7 @@ export function MapView() {
     return null;
   }, [
     detailVenue,
-    activeFavouriteVenueRows,
+    favouriteVenueRows,
     rawVenues,
     selectedVenueDto,
     venueDetailQuery.isError,
@@ -638,7 +792,6 @@ export function MapView() {
     venueSlugParam,
   ]);
   const detailFallbackVenue = detailFallback?.venue ?? null;
-  const isSyntheticDetailFallback = detailFallback?.isSynthetic ?? false;
   const reviewVenue = (forcedVisualVenueDetail || !venueDetailQuery.isPlaceholderData)
     ? (detailVenue ?? detailFallbackVenue)
     : detailFallbackVenue;
@@ -658,11 +811,11 @@ export function MapView() {
     const candidates = [
       detailVenue,
       selectedVenueDto,
-      ...activeFavouriteVenueRows,
+      ...favouriteVenueRows,
       ...(Array.isArray(rawVenues) ? rawVenues : []),
     ];
     return candidates.find((venue) => venueMatchesSlug(venue, venueSlugParam))?.id;
-  }, [activeFavouriteVenueRows, detailVenue, rawVenues, selectedVenueDto, venueSlugParam]);
+  }, [detailVenue, favouriteVenueRows, rawVenues, selectedVenueDto, venueSlugParam]);
   const isVenueDetailRequested = canRequestVenueDetail && Boolean(detailFallbackVenue);
 
   useEffect(() => {
@@ -677,21 +830,34 @@ export function MapView() {
     router.replace(Object.keys(query).length > 0 ? { pathname, query } : pathname);
   }, [pathname, router, searchParams, selectedVenuePreview, venueSlugParam]);
 
-  useEffect(() => {
-    if (forcedState === 'map-panel-venues') {
-      setMobileSheetState('mid');
-    }
-  }, [forcedState]);
+  const isForcedRowSheetReference =
+    forcedState === 'map-primary' ||
+    forcedState === 'map-panel-venues' ||
+    isForcedCoachTourReference;
+  const forcedSheetRows = resolveForcedSheetRows({
+    forcedState: isForcedRowSheetReference ? forcedState : null,
+    maxRows: mobileSheetMetrics.maxRows,
+    rowsParam: isForcedRowSheetReference ? searchParams.get('_sheetRows') : null,
+  });
+  const forcedSheetDragOffsetPx =
+    isForcedRowSheetReference && searchParams.get('_sheetDrag') === 'mid'
+      ? Math.round(mobileSheetMetrics.rowHeightPx / 2)
+      : 0;
 
   useEffect(() => {
-    if (selectedVenueId && !isVenueDetailRequested) {
-      setMobileSheetState('peek');
-      return;
+    if (forcedSheetRows === null) return;
+    setMobileSheetVisibleRows(forcedSheetRows);
+  }, [forcedSheetRows]);
+
+  useEffect(() => {
+    if (forcedSheetRows !== null) return;
+    if (listMode === 'favourites' && mobileSheetVisibleRows === 0) {
+      const reopenRows = Math.min(3, Math.max(0, mobileSheetMetrics.maxRows));
+      if (reopenRows > 0) {
+        setMobileSheetVisibleRows(reopenRows);
+      }
     }
-    if (listMode === 'favourites') {
-      setMobileSheetState('mid');
-    }
-  }, [isVenueDetailRequested, listMode, selectedVenueId]);
+  }, [forcedSheetRows, listMode, mobileSheetMetrics.maxRows, mobileSheetVisibleRows]);
 
   useEffect(() => {
     if (!isFavouritesRoute) {
@@ -704,6 +870,14 @@ export function MapView() {
   }, [isFavouritesRoute, selectVenue, selectedVenueId]);
 
   useEffect(() => {
+    const dismissedSlug = pendingUrlClearDismissedVenueSlugRef.current;
+    if (!dismissedSlug) return;
+    if (!venueSlugParam || venueSlugParam !== dismissedSlug) {
+      pendingUrlClearDismissedVenueSlugRef.current = null;
+    }
+  }, [venueSlugParam]);
+
+  useEffect(() => {
     if (
       forcedState !== 'map-with-selected-venue' &&
       forcedState !== 'map-with-obscured-venue' &&
@@ -711,15 +885,22 @@ export function MapView() {
     ) {
       return;
     }
-    if (!Array.isArray(rawVenues) || rawVenues.length === 0) return;
+    if (
+      venueSlugParam &&
+      pendingUrlClearDismissedVenueSlugRef.current === venueSlugParam
+    ) {
+      return;
+    }
+    if (!Array.isArray(venueDtosForMap) || venueDtosForMap.length === 0) return;
     const match = venueSlugParam
-      ? rawVenues.find((venue) => venueMatchesSlug(venue, venueSlugParam))
-      : rawVenues[0];
+      ? venueDtosForMap.find((venue) => venueMatchesSlug(venue, venueSlugParam))
+      : venueDtosForMap[0];
     if (!match) return;
+    if (selectedVenueId === match.id) return;
     selectVenue(match.id, match);
-  }, [forcedState, rawVenues, selectVenue, selectedVenuePreview, venueSlugParam]);
+  }, [forcedState, selectVenue, selectedVenueId, selectedVenuePreview, venueDtosForMap, venueSlugParam]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Story 9.10 Task 3: guard against a selected venue whose coordinates are
     // null / non-finite (the `?venue=<slug>` deep-link at :604 selects a match
     // WITHOUT a location check, and real venue rows can carry a null lat/lng
@@ -758,7 +939,9 @@ export function MapView() {
           // Require that top to sit a gutter BELOW the planner-panel bottom, so
           // `minY = plannerBottom + gutter + cardHeight + anchorGap`. This keeps
           // the sun-% badge (top-left of the card) clear of the slider above it.
-          QUICK_INFO_MOBILE_PLANNER_BOTTOM_PX +
+          MOBILE_SAFE_AREA_MAX_PX +
+          MOBILE_PLANNER_TOP_OFFSET_PX +
+          mobilePlannerHeightPx +
           QUICK_INFO_MOBILE_VIEWPORT_GUTTER +
           QUICK_INFO_MOBILE_HEIGHT_ESTIMATE +
           QUICK_INFO_MOBILE_ANCHOR_GAP;
@@ -768,7 +951,7 @@ export function MapView() {
             minY,
             height -
               MOBILE_NAV_HEIGHT_PX -
-              MOBILE_SHEET_MID_HEIGHT_PX -
+              mobileSheetMetrics.sheetHeightPx -
               QUICK_INFO_MOBILE_VIEWPORT_GUTTER,
           );
       const canFitAbove = maxY >= minY;
@@ -788,11 +971,31 @@ export function MapView() {
       mapInstance.off('move', updatePosition);
       mapInstance.off('zoom', updatePosition);
     };
-  }, [mapInstance, selectedVenueDto]);
+  }, [mapInstance, mobilePlannerHeightPx, mobileSheetMetrics.sheetHeightPx, selectedVenueDto]);
+
+  const prioritizeVenueDetailQuery = useCallback((venue: VenueDataDto) => {
+    const slug = venueDetailSlug(venue);
+    if (!slug) {
+      cancelVenueDetailPrefetchCandidates(null);
+      return;
+    }
+    pendingUrlClearDismissedVenueSlugRef.current = null;
+    cancelVenueDetailPrefetchCandidates(slug);
+    if (!detailPrefetchPlannerReady || !isOnline || showOfflineShell) return;
+    void prefetchSelectedVenueDetail(queryClient, slug, venueDetailParams);
+  }, [
+    cancelVenueDetailPrefetchCandidates,
+    detailPrefetchPlannerReady,
+    isOnline,
+    queryClient,
+    showOfflineShell,
+    venueDetailParams,
+  ]);
 
   const handleOpenDetails = () => {
     const slug = selectedVenueDto?.slug ?? selectedPinData?.slug;
     if (!slug) return;
+    cancelVenueDetailPrefetchCandidates(slug);
     router.push({
       pathname,
       query: {
@@ -802,14 +1005,82 @@ export function MapView() {
     });
   };
 
-  const handleDismissDetails = () => {
+  const handleDismissDetails = useCallback(() => {
+    cancelVenueDetailPrefetchCandidates(null);
     const query = queryWithout(searchParams, ['venue', '_state']);
     router.replace(Object.keys(query).length > 0 ? { pathname, query } : pathname);
-  };
+  }, [cancelVenueDetailPrefetchCandidates, pathname, router, searchParams]);
+
+  const handleMapPinToggle = useCallback((venueId: string) => {
+    const venue = venueDtosForMap.find((candidate) => candidate.id === venueId);
+    const detailIsUrlOwned = canRequestVenueDetail && Boolean(venueSlugParam);
+
+    if (detailIsUrlOwned) {
+      if (!venue) return;
+      const slug = venueDetailSlug(venue);
+      if (!slug) return;
+      prioritizeVenueDetailQuery(venue);
+      router.replace({
+        pathname,
+        query: {
+          ...queryWithout(searchParams, ['_state']),
+          venue: slug,
+        },
+      });
+      return;
+    }
+
+    if (!venue || selectedVenueId === venueId) {
+      cancelVenueDetailPrefetchCandidates(null);
+    } else {
+      prioritizeVenueDetailQuery(venue);
+    }
+    toggleVenue(venueId);
+  }, [
+    canRequestVenueDetail,
+    cancelVenueDetailPrefetchCandidates,
+    pathname,
+    prioritizeVenueDetailQuery,
+    router,
+    searchParams,
+    selectedVenueId,
+    toggleVenue,
+    venueDtosForMap,
+    venueSlugParam,
+  ]);
+
+  const handleMapCanvasDeselect = useCallback(() => {
+    if (canRequestVenueDetail && venueSlugParam) {
+      pendingUrlClearDismissedVenueSlugRef.current = venueSlugParam;
+      handleDismissDetails();
+      selectVenue(null);
+      return;
+    }
+    cancelVenueDetailPrefetchCandidates(null);
+    selectVenue(null);
+  }, [
+    canRequestVenueDetail,
+    cancelVenueDetailPrefetchCandidates,
+    handleDismissDetails,
+    selectVenue,
+    venueSlugParam,
+  ]);
 
   const handleSelectVenueFromList = (venue: VenueDataDto) => {
+    prioritizeVenueDetailQuery(venue);
+    if (combinedAvailabilityByVenueId[venue.id] === 'closed') {
+      const slug = venueDetailSlug(venue);
+      if (!slug) return;
+      router.push({
+        pathname,
+        query: {
+          ...queryWithout(searchParams, ['venue', '_state']),
+          venue: slug,
+        },
+      });
+      return;
+    }
     selectVenue(venue.id, venue);
-    setMobileSheetState('peek');
     if (mapInstance && hasValidVenueLocation(venue)) {
       mapInstance.easeTo({
         center: [venue.location.lng, venue.location.lat],
@@ -826,15 +1097,15 @@ export function MapView() {
       const validVenues = Array.isArray(tagFilteredVenues)
         ? tagFilteredVenues.filter(hasValidVenueLocation)
         : [];
+      if (isForcedPhotoReference) {
+        return validVenues.map((venue) => normalizeForcedPhotoVenue(venue, forcedState));
+      }
       return isForcedVisualReference
         ? validVenues.map(normalizeForcedVisualVenue)
         : validVenues;
     },
-    [isForcedVisualReference, tagFilteredVenues],
+    [forcedState, isForcedPhotoReference, isForcedVisualReference, tagFilteredVenues],
   );
-  const listConfidenceMeta = isForcedVisualReference
-    ? FORCED_VISUAL_CONFIDENCE_META
-    : venueQuery.data?.meta;
   // Story 11.3 (AC1, empty-state fold-in from the 9.7 code review): the Närmast
   // list shows its loading skeleton ONLY while there is genuinely no underlying
   // venue data yet — never when a tag filter has legitimately pruned the loaded
@@ -847,24 +1118,72 @@ export function MapView() {
   const loadedVenueCount = venueQuery.data?.venues?.length ?? 0;
   const isNearListLoading = venueQuery.isFetching && loadedVenueCount === 0;
   const favouriteIdSet = useMemo(
-    () => new Set(favourites.favouriteIds),
-    [favourites.favouriteIds],
+    () => new Set(effectiveFavouriteIds),
+    [effectiveFavouriteIds],
+  );
+  const displayedListVenues = useMemo(
+    () => sortVenuesForList(listVenues, effectiveSortMode),
+    [effectiveSortMode, listVenues],
+  );
+  const displayedFavouriteVenueRows = useMemo(
+    () => sortVenuesForList(
+      favouriteVenueRows.filter((venue) => favouriteIdSet.has(venue.id)),
+      'sun',
+    ),
+    [favouriteIdSet, favouriteVenueRows],
   );
   const visibleFavouriteVenueCount = favouriteVenueRows
     .filter((venue) => favouriteIdSet.has(venue.id)).length;
   const isFavouriteListLoading = !favourites.isHydrated ||
     (
       favouriteVenueQuery.isFetching &&
-      favourites.favouriteIds.length > 0 &&
+      effectiveFavouriteIds.length > 0 &&
       visibleFavouriteVenueCount === 0
     );
-  const quickInfoConfidenceMeta = isForcedVisualReference
-    ? FORCED_VISUAL_CONFIDENCE_META
-    : selectedVenueId && refreshedSelectedVenuePreview?.id === selectedVenueId
-    ? (selectedPreviewDetailQuery.data?.meta ?? venueQuery.data?.meta)
-    : selectedVenueId && activeFavouriteVenueRows.some((venue) => venue.id === selectedVenueId)
-    ? (favouriteListConfidenceMeta ?? venueQuery.data?.meta)
-    : venueQuery.data?.meta;
+  const nearVenueSurfaceSettled =
+    coordsSettled &&
+    venueQuery.isSuccess &&
+    !venueQuery.isFetching &&
+    !venueQuery.isPlaceholderData &&
+    Array.isArray(venueQuery.data?.venues);
+  const favouriteVenueSurfaceSettled =
+    favourites.isHydrated &&
+    !isFavouriteListLoading &&
+    !favouriteVenueQuery.isFetching &&
+    !favouriteVenueQuery.isPlaceholderData;
+  useVenueDetailPrefetch({
+    enabled:
+      coordsSettled &&
+      detailPrefetchPlannerReady &&
+      routeAllowsVenueDetailPrefetch &&
+      !venueSlugParam &&
+      isOnline &&
+      !showOfflineShell &&
+      !isForcedVisualReference,
+    listMode,
+    listVenues: displayedListVenues,
+    favouriteVenueRows: displayedFavouriteVenueRows,
+    listSettled: nearVenueSurfaceSettled,
+    favouritesSettled: favouriteVenueSurfaceSettled,
+    detailParams: {
+      ...venueDetailParams,
+    },
+    interactionToken: venueDetailPrefetchInteraction.token,
+    preserveVenueSlug: venueDetailPrefetchInteraction.preserveSlug,
+  });
+  const handleMobileSheetVisibleRowsChange = useCallback((visibleRows: number, reason?: 'layout' | 'interaction') => {
+    if (reason !== 'layout') {
+      cancelVenueDetailPrefetchCandidates(null);
+    }
+    setMobileSheetVisibleRows(visibleRows);
+  }, [cancelVenueDetailPrefetchCandidates]);
+  const handleToggleTag = useCallback((tag: string) => {
+    cancelVenueDetailPrefetchCandidates(null);
+    toggleTag(tag);
+  }, [cancelVenueDetailPrefetchCandidates, toggleTag]);
+  const mobileSheetRowCount = listMode === 'favourites'
+    ? (isFavouriteListLoading ? 3 : Math.max(visibleFavouriteVenueCount, 0))
+    : (isNearListLoading ? 3 : Math.max(listVenues.length, 0));
   const routeText = routeLabels(tVenue);
   // Story 11.4 (AC1/AC2): the quick-info no longer renders a "Sol HH:mm–HH:mm"
   // window line or a truncated ETA inside its route button, so the
@@ -883,10 +1202,34 @@ export function MapView() {
   const activeRouteVenueId = isVenueDetailRequested
     ? (detailRouteVenue?.id ?? null)
     : (selectedQuickInfoVenue?.id ?? selectedVenueDto?.id ?? null);
+  const detailAvailabilityState = detailRouteVenue && isVenueDetailRequested
+    ? getVenueAvailabilityAt(detailRouteVenue.openingHours, selectedInstant).state
+    : null;
 
   useEffect(() => {
     setDesktopListMode(isFavouritesRoute ? 'favourites' : 'near');
   }, [isFavouritesRoute]);
+
+  useEffect(() => {
+    if (!detailRouteVenue || !detailAvailabilityState) {
+      previousDetailAvailabilityRef.current = null;
+      return;
+    }
+    const previous = previousDetailAvailabilityRef.current;
+    if (
+      previous?.venueId === detailRouteVenue.id &&
+      previous.state === 'open' &&
+      detailAvailabilityState === 'closed'
+    ) {
+      setAvailabilityAnnouncement(
+        tVenue('detail.closedAtSelectedAnnouncement', { name: detailRouteVenue.venueName }),
+      );
+    }
+    previousDetailAvailabilityRef.current = {
+      venueId: detailRouteVenue.id,
+      state: detailAvailabilityState,
+    };
+  }, [detailAvailabilityState, detailRouteVenue, tVenue]);
 
   useEffect(() => {
     return () => {
@@ -904,6 +1247,7 @@ export function MapView() {
   }, [activeRouteVenueId]);
 
   const handleDesktopListModeChange = (mode: VenueListModeSelection) => {
+    cancelVenueDetailPrefetchCandidates(null);
     setDesktopListMode(mode);
     const query = queryWithout(searchParams, ['venue', '_state']);
     if (mode === 'favourites' && !isFavouritesRoute) {
@@ -917,21 +1261,16 @@ export function MapView() {
   const handleRouteSelectedVenue = () => {
     const venue = selectedQuickInfoVenue ?? selectedVenueDto;
     if (!venue) return;
-    handleRouteVenue(venue, quickInfoConfidenceMeta);
+    handleRouteVenue(venue);
   };
 
   const handleRouteDetailVenue = () => {
     if (!detailRouteVenue) return;
-    // The synthetic loading-fallback venue hardcodes placeholder fields
-    // (confidence: 0); withholding the freshness meta keeps the confidence
-    // display hidden instead of inventing "0%" for an unfetched venue.
-    handleRouteVenue(
-      detailRouteVenue,
-      isSyntheticDetailFallback ? undefined : detailConfidenceMeta,
-    );
+    handleRouteVenue(detailRouteVenue);
   };
 
-  const handleRouteVenue = (venue: VenueDataDto, confidenceMeta?: SunFreshnessMeta) => {
+  const handleRouteVenue = (venue: VenueDataDto) => {
+    cancelVenueDetailPrefetchCandidates(null);
     const summary = getRouteSummary({ venue, origin: geolocation.coords });
     const platform = typeof navigator === 'undefined'
       ? 'google'
@@ -942,7 +1281,7 @@ export function MapView() {
     const directionsUrl = buildNativeDirectionsUrl(venue, platform);
     setRouteOverlay({
       venueId: venue.id,
-      labels: routeOverlayLabels(venue, summary, routeText, confidenceMeta),
+      labels: routeOverlayLabels(venue, summary, routeText),
       fallbackHref: buildGoogleMapsDirectionsUrl(venue),
     });
     setRouteLoadingVenueId(venue.id);
@@ -957,6 +1296,7 @@ export function MapView() {
   };
   const handleSortModeChange = (mode: VenueListSortMode) => {
     if (listMode === 'favourites') return;
+    cancelVenueDetailPrefetchCandidates(null);
     setVenueSortMode(mode);
   };
 
@@ -1007,14 +1347,32 @@ export function MapView() {
   })();
 
   return (
-    <div className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full">
+    <div
+      data-tour-anchor="map-surface"
+      tabIndex={-1}
+      className="relative h-dvh lg:h-[calc(100dvh-var(--size-desktop-nav-h))] w-full outline-none"
+    >
       <MapContainer />
+      {availabilityAnnouncement && (
+        <div
+          aria-atomic="true"
+          aria-live="polite"
+          className="sr-only"
+          role="status"
+        >
+          {availabilityAnnouncement}
+        </div>
+      )}
       {/* Offline shell (Story 7.3): keep the cached map background but hide
           every venue-data surface (pins, search, sheet, list, overlays,
           controls, errors) so only the map + "Ingen anslutning" banner show. */}
       {!showOfflineShell && (
         <>
-      <VenuePinLayer venues={venues} />
+      <VenuePinLayer
+        venues={venues}
+        onToggleVenue={handleMapPinToggle}
+        onCanvasDeselect={handleMapCanvasDeselect}
+      />
       {/* Story 11.1 (AC3): the date-change dim + spinner overlay. Rendered as an
           absolutely-positioned sibling so the pin layer above stays MOUNTED
           (markers persist keyed by venue id) while the single new-date request
@@ -1054,11 +1412,12 @@ export function MapView() {
         <VenueSearchShell
           variant="mobile"
           className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*3)] z-bottom-sheet-full"
-          onVenueSelected={() => setMobileSheetState('peek')}
+          onVenueSelected={() => undefined}
         />
       )}
       <TimeSliderPanel
         variant="mobile"
+        panelRef={mobilePlannerPanelRef}
         className="absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+var(--spacing)*18)]"
       />
       {/* Desktop planner mirrors the Claude Design reference (src-desktop/
@@ -1076,71 +1435,77 @@ export function MapView() {
         )}
       />
       <MobileBottomSheet
-        state={mobileSheetState}
-        onStateChange={setMobileSheetState}
+        visibleRows={mobileSheetVisibleRows}
+        onVisibleRowsChange={handleMobileSheetVisibleRowsChange}
+        rowCount={mobileSheetRowCount}
+        forcedDragOffsetPx={forcedSheetDragOffsetPx}
+        onMetricsChange={setMobileSheetMetrics}
         handleLabel={tVenueList('handle')}
+        rowStatusLabel={(visibleRows, maxRows) =>
+          tVenueList('rowStatus', { visibleRows, maxRows })
+        }
+        chrome={(
+          <>
+            <VenueListControls
+              mode="mobile"
+              sortMode={effectiveSortMode}
+              onSortModeChange={handleSortModeChange}
+              listMode={listMode}
+              labels={venueListControlLabels(tVenueList)}
+            />
+            {/* Story 11.3 (AC1): the mobile tag-chip row sits directly UNDER the sort
+                toggles, inside the sheet body, so it scrolls/collapses with the
+                header (not a floating layer). It is a NEW consumer of the SHARED
+                TagFilterContext — a toggle here filters BOTH the mobile list AND the
+                map pins (the venue surfaces already read `activeTags`). It rides the
+                Närmast list only (favourites are intentionally unfiltered, matching
+                the desktop scope). Renders nothing until a tag loads. */}
+            {listMode !== 'favourites' && (
+              <MobileTagChips
+                tags={allTags}
+                isActive={isTagActive}
+                onToggleTag={handleToggleTag}
+                locale={locale === 'en' ? 'en' : 'sv'}
+                label={tCommon('nav.filter')}
+              />
+            )}
+          </>
+        )}
       >
-        {mobileSheetState !== 'peek' && (
-          <VenueListControls
-            mode="mobile"
-            sortMode={effectiveSortMode}
-            onSortModeChange={handleSortModeChange}
-            listMode={listMode}
-            labels={venueListControlLabels(tVenueList)}
-          />
-        )}
-        {/* Story 11.3 (AC1): the mobile tag-chip row sits directly UNDER the sort
-            toggles, inside the sheet body, so it scrolls/collapses with the
-            header (not a floating layer). It is a NEW consumer of the SHARED
-            TagFilterContext — a toggle here filters BOTH the mobile list AND the
-            map pins (the venue surfaces already read `activeTags`). It rides the
-            Närmast list only (favourites are intentionally unfiltered, matching
-            the desktop scope). Renders nothing until a tag loads. */}
-        {mobileSheetState !== 'peek' && listMode !== 'favourites' && (
-          <MobileTagChips
-            tags={allTags}
-            isActive={isTagActive}
-            onToggleTag={toggleTag}
-            locale={locale === 'en' ? 'en' : 'sv'}
-            label={tCommon('nav.filter')}
-          />
-        )}
         {listMode === 'favourites' ? (
           <FavouritesList
-            favouriteIds={favourites.favouriteIds}
+            favouriteIds={effectiveFavouriteIds}
             venues={favouriteVenueRows}
             mode="mobile"
             sortMode={effectiveSortMode}
-            confidenceMeta={favouriteListConfidenceMeta}
             locationIsApproximate={locationIsApproximate}
             isLoading={isFavouriteListLoading}
             isError={favouriteVenueQuery.isError}
             onRetry={() => favouriteVenueQuery.refetch()}
-            animateCards={mobileSheetState === 'full'}
-            compactCards={mobileSheetState === 'peek'}
+            compactCards
             onSelectVenue={handleSelectVenueFromList}
             onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
-            isFavourite={favourites.isFavourite}
+            isFavourite={isEffectiveFavourite}
+            availabilityByVenueId={combinedAvailabilityByVenueId}
           />
         ) : (
           <VenueList
             venues={listVenues}
             mode="mobile"
             sortMode={effectiveSortMode}
-            confidenceMeta={listConfidenceMeta}
-            showVisibleConfidence={!isForcedVisualReference}
             locationIsApproximate={locationIsApproximate}
             isLoading={isNearListLoading}
-            animateCards={mobileSheetState === 'full'}
-            compactCards={mobileSheetState === 'peek'}
+            compactCards
             onSelectVenue={handleSelectVenueFromList}
             onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
             isFavourite={favourites.isFavourite}
+            availabilityByVenueId={combinedAvailabilityByVenueId}
           />
         )}
       </MobileBottomSheet>
       <aside
         data-testid="desktop-venue-list-panel"
+        data-tour-anchor="venue-list"
         className="absolute left-0 top-0 bottom-0 z-bottom-sheet-peek hidden lg:flex lg:w-venue-list-desktop flex-col border-r border-divider bg-surface-cream shadow-card"
       >
         <VenueListControls
@@ -1154,31 +1519,30 @@ export function MapView() {
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {listMode === 'favourites' ? (
             <FavouritesList
-              favouriteIds={favourites.favouriteIds}
+              favouriteIds={effectiveFavouriteIds}
               venues={favouriteVenueRows}
               mode="desktop"
               sortMode={effectiveSortMode}
-              confidenceMeta={favouriteListConfidenceMeta}
               locationIsApproximate={locationIsApproximate}
               isLoading={isFavouriteListLoading}
               isError={favouriteVenueQuery.isError}
               onRetry={() => favouriteVenueQuery.refetch()}
               onSelectVenue={handleSelectVenueFromList}
               onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
-              isFavourite={favourites.isFavourite}
+              isFavourite={isEffectiveFavourite}
+              availabilityByVenueId={combinedAvailabilityByVenueId}
             />
           ) : (
             <VenueList
               venues={listVenues}
               mode="desktop"
               sortMode={effectiveSortMode}
-              confidenceMeta={listConfidenceMeta}
-              showVisibleConfidence={!isForcedVisualReference}
               locationIsApproximate={locationIsApproximate}
               isLoading={isNearListLoading}
               onSelectVenue={handleSelectVenueFromList}
               onFavouriteToggle={(venue) => favourites.toggleFavourite(venue.id)}
               isFavourite={favourites.isFavourite}
+              availabilityByVenueId={combinedAvailabilityByVenueId}
             />
           )}
         </div>
@@ -1190,15 +1554,16 @@ export function MapView() {
             mode="mobile"
             fallbackVenue={detailFallbackVenue}
             detail={detailVenue ?? undefined}
-            confidenceMeta={detailConfidenceMeta}
             isLoading={venueDetailQuery.isFetching && !detailVenue}
             currentTime={plannerTime.selectedTime}
+            selectedInstant={selectedInstant}
+            isLivePlannerTime={plannerTime.isLiveNow}
             labels={venueDetailLabels(tVenue)}
             onDismiss={handleDismissDetails}
             onRoute={handleRouteDetailVenue}
             routeEstimateLabel={detailRouteEstimateLabel}
             isRouteLoading={routeLoadingVenueId === detailRouteVenue?.id}
-            isFavourite={detailFavouriteId ? favourites.isFavourite(detailFavouriteId) : false}
+            isFavourite={detailFavouriteId ? isEffectiveFavourite(detailFavouriteId) : false}
             onFavouriteToggle={
               detailFavouriteId ? () => favourites.toggleFavourite(detailFavouriteId) : undefined
             }
@@ -1214,15 +1579,16 @@ export function MapView() {
             mode="desktop"
             fallbackVenue={detailFallbackVenue}
             detail={detailVenue ?? undefined}
-            confidenceMeta={detailConfidenceMeta}
             isLoading={venueDetailQuery.isFetching && !detailVenue}
             currentTime={plannerTime.selectedTime}
+            selectedInstant={selectedInstant}
+            isLivePlannerTime={plannerTime.isLiveNow}
             labels={venueDetailLabels(tVenue)}
             onDismiss={handleDismissDetails}
             onRoute={handleRouteDetailVenue}
             routeEstimateLabel={detailRouteEstimateLabel}
             isRouteLoading={routeLoadingVenueId === detailRouteVenue?.id}
-            isFavourite={detailFavouriteId ? favourites.isFavourite(detailFavouriteId) : false}
+            isFavourite={detailFavouriteId ? isEffectiveFavourite(detailFavouriteId) : false}
             onFavouriteToggle={
               detailFavouriteId ? () => favourites.toggleFavourite(detailFavouriteId) : undefined
             }
@@ -1237,22 +1603,21 @@ export function MapView() {
             key="quick-info-mobile"
             mode="mobile"
             name={selectedPinData.name}
-            confidencePercent={selectedQuickInfoVenue?.confidence}
-            confidenceMeta={quickInfoConfidenceMeta}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
             openingHours={quickInfoOpeningHours}
             currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
+            weatherGateState={selectedQuickInfoVenue?.weatherGateState}
             skyCondition={selectedQuickInfoVenue?.skyCondition}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
             distanceIsApproximate={locationIsApproximate}
             thumbnail={selectedQuickInfoVenue?.thumbnail}
             isLoadingSunData={!selectedQuickInfoVenue}
             position={quickInfoPosition}
-            onDismiss={() => selectVenue(null)}
+            onDismiss={handleMapCanvasDeselect}
             onOpenDetails={handleOpenDetails}
             onRoute={handleRouteSelectedVenue}
             isRouteLoading={routeLoadingVenueId === selectedQuickInfoVenue?.id}
-            isFavourite={selectedQuickInfoVenue ? favourites.isFavourite(selectedQuickInfoVenue.id) : false}
+            isFavourite={selectedQuickInfoVenue ? isEffectiveFavourite(selectedQuickInfoVenue.id) : false}
             onFavouriteToggle={
               selectedQuickInfoVenue
                 ? () => favourites.toggleFavourite(selectedQuickInfoVenue.id)
@@ -1266,11 +1631,10 @@ export function MapView() {
             key="quick-info-desktop"
             mode="desktop"
             name={selectedPinData.name}
-            confidencePercent={selectedQuickInfoVenue?.confidence}
-            confidenceMeta={quickInfoConfidenceMeta}
             sunExposurePercent={selectedQuickInfoVenue?.sunExposurePercent}
             openingHours={quickInfoOpeningHours}
             currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
+            weatherGateState={selectedQuickInfoVenue?.weatherGateState}
             skyCondition={selectedQuickInfoVenue?.skyCondition}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
             distanceIsApproximate={locationIsApproximate}
@@ -1278,11 +1642,11 @@ export function MapView() {
             isLoadingSunData={!selectedQuickInfoVenue}
             position={quickInfoPosition}
             desktopPlacement={quickInfoDesktopPlacement}
-            onDismiss={() => selectVenue(null)}
+            onDismiss={handleMapCanvasDeselect}
             onOpenDetails={handleOpenDetails}
             onRoute={handleRouteSelectedVenue}
             isRouteLoading={routeLoadingVenueId === selectedQuickInfoVenue?.id}
-            isFavourite={selectedQuickInfoVenue ? favourites.isFavourite(selectedQuickInfoVenue.id) : false}
+            isFavourite={selectedQuickInfoVenue ? isEffectiveFavourite(selectedQuickInfoVenue.id) : false}
             onFavouriteToggle={
               selectedQuickInfoVenue
                 ? () => favourites.toggleFavourite(selectedQuickInfoVenue.id)
@@ -1304,8 +1668,12 @@ export function MapView() {
           flyTo lands the user-location dot centred in the UNOBSCURED map area
           (mobile bottom-sheet snap / desktop detail panel). */}
       <MapControls
-        mobileSheetState={mobileSheetState}
+        mobileSheetHeightPx={mobileSheetMetrics.sheetHeightPx}
         isVenueDetailOpen={isVenueDetailRequested}
+      />
+      <FirstRunCoachMarkGuide
+        forcedStepId={coachTourForcedStep}
+        autoStartEnabled={!forcedState && !isVenueDetailRequested && !routeOverlay}
       />
       {!tilesPainted && (
         <div className="absolute inset-0 z-floating-buttons" data-testid="map-tile-paint-cover">
@@ -1348,6 +1716,19 @@ function hasValidVenueLocation(venue: VenueDataDto): boolean {
   return Number.isFinite(venue.location?.lat) && Number.isFinite(venue.location?.lng);
 }
 
+function availabilityByVenueId(
+  venues: readonly VenueDataDto[] | undefined,
+  selectedInstant: Date,
+): Record<string, VenueAvailabilityState> {
+  if (!Array.isArray(venues) || venues.length === 0) return {};
+  return Object.fromEntries(
+    venues.map((venue) => [
+      venue.id,
+      getVenueAvailabilityAt(venue.openingHours, selectedInstant).state,
+    ]),
+  ) as Record<string, VenueAvailabilityState>;
+}
+
 /**
  * Story 11.1 (AC1): override a venue's headline sun fields with the derived
  * per-step value from its cached `sunDaySeries` at `selectedMinutes`. A venue
@@ -1355,7 +1736,7 @@ function hasValidVenueLocation(venue: VenueDataDto): boolean {
  * the server's single-instant fields. The derived value is the ALREADY weather-
  * gated series entry — the client does not re-gate. This feeds pins, both venue
  * lists, quick-info figures, the obscured presentation, and the "Mest sol"
- * ordering input (`getVenueSunRankForList` reads `currentSunStatus` +
+ * ordering input (the shared public-sun comparator reads `weatherGateState` +
  * `sunExposurePercent`) so ordering tracks the scrub.
  *
  * STORY 11 (review): `skyCondition` (the obscured sub-line) is ALSO overridden
@@ -1378,6 +1759,7 @@ function applyDaySeriesDerivation(
   if (
     derived.currentSunStatus === venue.currentSunStatus &&
     derived.sunExposurePercent === venue.sunExposurePercent &&
+    derived.weatherGateState === venue.weatherGateState &&
     nextSkyCondition === venue.skyCondition
   ) {
     return venue;
@@ -1385,6 +1767,7 @@ function applyDaySeriesDerivation(
   return {
     ...venue,
     currentSunStatus: derived.currentSunStatus,
+    weatherGateState: derived.weatherGateState,
     sunExposurePercent: derived.sunExposurePercent,
     skyCondition: nextSkyCondition,
   };
@@ -1400,6 +1783,14 @@ function venueMatchesSlug(
 ): boolean {
   if (!venue || !slug) return false;
   return venue.slug === slug || venue.venueSlug === slug;
+}
+
+function venueDetailSlug(
+  venue: Pick<VenueDataDto, 'slug' | 'venueSlug'> | null | undefined,
+): string | null {
+  const slug = (venue?.slug || venue?.venueSlug || '').trim();
+  if (!slug || /[\u0000-\u001F\u007F-\u009F]/u.test(slug)) return null;
+  return slug;
 }
 
 function fallbackVenueFromSlug(slug: string): VenueDataDto {
@@ -1418,6 +1809,7 @@ function fallbackVenueFromSlug(slug: string): VenueDataDto {
     neighborhood: '',
     location: { lat: Number.NaN, lng: Number.NaN },
     currentSunStatus: 'Shaded',
+    weatherGateState: 'unknown',
     isPartner: false,
     confidence: 0,
     distanceMeters: Number.NaN,
@@ -1430,7 +1822,46 @@ function fallbackVenueFromSlug(slug: string): VenueDataDto {
 function shouldUseForcedSunnyMapPins(forcedState: string | null): boolean {
   return forcedState === 'map-primary' ||
     forcedState === 'map-panel-venues' ||
-    forcedState === 'map-with-selected-venue';
+    forcedState === 'map-with-selected-venue' ||
+    forcedState === 'map-selected-time-open' ||
+    isCoachTourForcedState(forcedState) ||
+    isForcedVenuePhotoState(forcedState);
+}
+
+function isCoachTourForcedState(forcedState: string | null): boolean {
+  return coachTourStepFromForcedState(forcedState) !== null;
+}
+
+function coachTourStepFromForcedState(forcedState: string | null): CoachTourStepId | null {
+  if (forcedState === 'coach-mark-first') return 'pin-legend';
+  if (forcedState === 'coach-mark-middle') return 'time-slider';
+  return null;
+}
+
+function measuredElementHeight(node: HTMLElement | null): number {
+  if (!node) return 0;
+  const height = node.getBoundingClientRect().height || node.offsetHeight;
+  return Number.isFinite(height) && height > 0 ? Math.round(height) : 0;
+}
+
+function resolveForcedSheetRows({
+  forcedState,
+  rowsParam,
+  maxRows,
+}: {
+  forcedState: string | null;
+  rowsParam: string | null;
+  maxRows: number;
+}): number | null {
+  if (rowsParam) {
+    if (rowsParam === 'max') return Math.max(0, maxRows);
+    const parsed = Number(rowsParam);
+    return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : null;
+  }
+  if (forcedState === 'map-primary') return 0;
+  if (forcedState === 'map-panel-venues') return 3;
+  if (isCoachTourForcedState(forcedState)) return 3;
+  return null;
 }
 
 function normalizeForcedVisualPin(pin: VenuePinData): VenuePinData {
@@ -1438,6 +1869,7 @@ function normalizeForcedVisualPin(pin: VenuePinData): VenuePinData {
     ...pin,
     sunStatus: 'Sunny',
     sunExposurePercent: 95,
+    weatherGateState: 'not_gated',
   };
 }
 
@@ -1445,6 +1877,7 @@ function normalizeForcedVisualVenue(venue: VenueDataDto): VenueDataDto {
   return {
     ...venue,
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     skyCondition: 'clear',
     confidence: 95,
     sunExposurePercent: 95,
@@ -1458,16 +1891,27 @@ function normalizeForcedVisualVenue(venue: VenueDataDto): VenueDataDto {
   };
 }
 
+function normalizeForcedPhotoVenue(
+  venue: VenueDataDto,
+  forcedState: string | null,
+): VenueDataDto {
+  const visuallyStableVenue = normalizeForcedVisualVenue(venue);
+  return isForcedVenuePhotoState(forcedState) && venueMatchesSlug(venue, 'test-venue-sunny')
+    ? withForcedVenuePhotoThumbnail(visuallyStableVenue, forcedState)
+    : visuallyStableVenue;
+}
+
 // Story 10.2 (Task 5): the deterministic obscured normalizers. Mirror the
 // forced-sunny pair but set the weather-gated headline state (CloudObscured +
-// overcast sky) while KEEPING the geometric layer (95% solläge, a sun window)
-// so the "when it clears" potential stays visible — the exact two-signal case
-// the muted UI must render. Dev-only; no live Met.no.
+// overcast sky) while KEEPING the internal geometric layer and sun window so the
+// "when it clears" potential stays available without rendering a grey-surface
+// percentage. Dev-only; no live Met.no.
 function normalizeForcedObscuredPin(pin: VenuePinData): VenuePinData {
   return {
     ...pin,
     sunStatus: 'CloudObscured',
     sunExposurePercent: 95,
+    weatherGateState: 'gated',
   };
 }
 
@@ -1475,6 +1919,7 @@ function normalizeForcedObscuredVenue(venue: VenueDataDto): VenueDataDto {
   return {
     ...normalizeForcedVisualVenue(venue),
     currentSunStatus: 'CloudObscured',
+    weatherGateState: 'gated',
     skyCondition: 'overcast',
   };
 }
@@ -1505,9 +1950,6 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     moreInfo: t('quickInfo.moreInfo'),
     close: t('quickInfo.close'),
     photoPlaceholder: t('quickInfo.photoPlaceholder'),
-    confidence: t('quickInfo.confidence'),
-    confidenceApproximate: t('quickInfo.confidenceApproximate'),
-    confidenceUnavailable: t('quickInfo.confidenceUnavailable'),
     distance: t('quickInfo.distance'),
     distanceApproximate: t('quickInfo.distanceApproximate'),
     loadingSun: t('quickInfo.loadingSun'),
@@ -1516,6 +1958,8 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     favouriteRemove: t('list.favouriteRemove'),
     // Story 10.2: muted "Sol bakom moln" headline + plain-language sky copy.
     obscuredHeadline: t('quickInfo.obscuredHeadline'),
+    weatherUnavailable: t('quickInfo.weatherUnavailable'),
+    notSunnyVerdict: t('quickInfo.notSunnyVerdict'),
     sky: {
       clear: t('quickInfo.sky.clear'),
       partlyCloudy: t('quickInfo.sky.partlyCloudy'),
@@ -1542,9 +1986,10 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     openingHours: t('detail.openingHours'),
     address: t('detail.address'),
     sunBadge: t('detail.sunBadge', { percent: '{percent}' }),
-    // Story 10.2: muted obscured hero headline/badge + plain-language sky copy.
+    notSunnyVerdict: t('detail.notSunnyVerdict'),
+    // Story 10.2 / 12.13: muted obscured hero headline + plain-language sky copy.
+    // The obscured hero badge is deliberately percentage-free.
     obscuredHeadline: t('detail.obscuredHeadline'),
-    obscuredBadge: t('detail.obscuredBadge', { percent: '{percent}' }),
     sky: {
       label: t('detail.sky.label'),
       clear: t('detail.sky.clear'),
@@ -1552,12 +1997,12 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
       overcast: t('detail.sky.overcast'),
       rain: t('detail.sky.rain'),
     },
-    confidence: t('detail.confidence'),
-    confidenceApproximate: t('detail.confidenceApproximate'),
-    confidenceUnavailable: t('detail.confidenceUnavailable'),
     city: t('detail.city'),
     openUntil: t('detail.openUntil', { time: '{time}' }),
     openUntilLine: t('detail.openUntilLine', { time: '{time}' }),
+    openAtSelected: t('detail.openAtSelected', { time: '{time}' }),
+    openAtSelectedUntilLine: t('detail.openAtSelectedUntilLine', { time: '{time}' }),
+    closedAtSelectedTime: t('detail.closedAtSelectedTime'),
     placeholderImageShort: t('detail.placeholderImageShort'),
     facts: {
       distance: t('detail.facts.distance'),
@@ -1576,9 +2021,6 @@ function routeLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     unavailable: t('route.unavailable'),
     openMaps: t('route.openMaps'),
     close: t('route.close'),
-    confidence: t('route.confidence'),
-    confidenceApproximate: t('route.confidenceApproximate'),
-    confidenceUnavailable: t('route.confidenceUnavailable'),
     uncertainty: predictionUncertaintyLabels(t),
     directionFallback: t('route.directionFallback', { neighborhood: '{neighborhood}' }),
     directions: {
@@ -1598,67 +2040,31 @@ function routeOverlayLabels(
   venue: VenueDataDto,
   summary: RouteSummary,
   labels: ReturnType<typeof routeLabels>,
-  confidenceMeta?: SunFreshnessMeta,
 ): RouteOverlayLabels {
   return {
     title: formatLabel(labels.overlayTitle, { name: venue.venueName }),
     walk: routeEstimateLabel(summary.walkMinutes, labels.walkEstimate) ?? null,
     bike: routeEstimateLabel(summary.bikeMinutes, labels.bikeEstimate) ?? null,
     direction: routeDirectionLabel(summary.direction, venue.neighborhood, labels),
-    confidence: routeConfidenceLabel(venue, labels, confidenceMeta),
+    uncertainty: routeUncertaintyLabel(venue, labels),
     close: labels.close,
     fallback: labels.openMaps,
     unavailable: labels.unavailable,
   };
 }
 
-/**
- * The route overlay's "confidence context" reuses the exact public
- * confidence/uncertainty presentation already shown on venue surfaces
- * (Story 3.0.6 contract). When the public display is hidden (no fresh
- * weather metadata, geometry-only source) the overlay shows nothing
- * rather than inventing a number. The accessible variant spells out the
- * approximate qualifier ("Säkerhet cirka 88%") that the visible "~" glyph
- * does not convey to screen readers.
- */
-function routeConfidenceLabel(
+function routeUncertaintyLabel(
   venue: VenueDataDto,
   labels: ReturnType<typeof routeLabels>,
-  confidenceMeta?: SunFreshnessMeta,
-): RouteOverlayConfidence | null {
-  const confidenceDisplay = getConfidenceDisplayState({
-    confidence: venue.confidence,
-    meta: confidenceMeta,
-    labels: {
-      confidence: labels.confidence,
-      approximate: labels.confidenceApproximate,
-      unavailable: labels.confidenceUnavailable,
-    },
-  });
+): RouteOverlayUncertainty | null {
   const uncertaintyDisplay = getPredictionUncertaintyDisplay({
     predictionUncertainty: venue.predictionUncertainty,
     labels: labels.uncertainty,
   });
-  const uncertaintyLabel = uncertaintyDisplay?.visibleLabel ?? null;
-  const visibleParts = [
-    confidenceDisplay.visibleText
-      ? `${labels.confidence} ${confidenceDisplay.visibleText}`
-      : null,
-    uncertaintyLabel,
-  ].filter(Boolean);
-  if (visibleParts.length === 0) return null;
-  // `accessibleText` is always populated (the confidence value for the
-  // exact/approximate kinds, the "unavailable" label for the hidden kind).
-  // Include it unconditionally so a hidden-confidence-with-uncertainty row
-  // still announces "Säkerhet saknas" to screen readers, matching the
-  // VenueQuickInfo surface that shares this Story 3.0.6 helper.
-  const accessibleParts = [
-    confidenceDisplay.accessibleText,
-    uncertaintyLabel,
-  ].filter(Boolean);
+  if (!uncertaintyDisplay) return null;
   return {
-    visible: visibleParts.join(' · '),
-    accessible: accessibleParts.join(' · '),
+    visible: uncertaintyDisplay.visibleLabel,
+    accessible: uncertaintyDisplay.accessibleText,
   };
 }
 
@@ -1879,4 +2285,3 @@ function MapVenueError({ onRetry }: { onRetry: () => unknown }) {
     </div>
   );
 }
-

@@ -139,7 +139,52 @@ describe('TimeContext', () => {
     expect(result.current.plannerQuery).toEqual({ date: '2026-05-20', time: '14:00' });
   });
 
-  it('clamps live clock values before and after planner hours into explicit planner queries', () => {
+  it('does not emit stale forced planner query params before the client clock resolves', () => {
+    function Probe() {
+      const time = useTimeContext();
+      return (
+        <span>
+          {time.plannerQuery
+            ? `${time.plannerQuery.date} ${time.plannerQuery.time}`
+            : 'no-planner-query'}
+        </span>
+      );
+    }
+
+    expect(
+      renderToString(
+        <TimeProvider
+          initialNowIso="2026-05-20T06:00:00.000Z"
+          clock={() => new Date('2026-07-25T10:00:00.000Z')}
+          forcedTime="14:00"
+        >
+          <Probe />
+        </TimeProvider>,
+      ),
+    ).toContain('no-planner-query');
+  });
+
+  it('emits forced planner query params from the client clock after mount', () => {
+    const { result } = renderHook(() => useTimeContext(), {
+      wrapper: function Wrapper({ children }: { children: ReactNode }) {
+        return (
+          <TimeProvider
+            initialNowIso="2026-05-20T06:00:00.000Z"
+            clock={() => new Date('2026-07-25T10:00:00.000Z')}
+            forcedTime="14:00"
+          >
+            {children}
+          </TimeProvider>
+        );
+      },
+    });
+
+    expect(result.current.selectedDate).toBe('2026-07-25');
+    expect(result.current.selectedTime).toBe('14:00');
+    expect(result.current.plannerQuery).toEqual({ date: '2026-07-25', time: '14:00' });
+  });
+
+  it('clamps live clock values before planner hours into an explicit planner query, but does not mark after-hours wall-clock as live planner data', () => {
     const early = renderHook(() => useTimeContext(), {
       wrapper: makeWrapper(() => new Date('2026-05-20T01:30:00.000Z')),
     });
@@ -150,12 +195,38 @@ describe('TimeContext', () => {
     early.unmount();
 
     const late = renderHook(() => useTimeContext(), {
-      wrapper: makeWrapper(() => new Date('2026-05-20T21:45:00.000Z')),
+    // 19:45Z = 21:45 Stockholm. This is after the visible planner range, so it
+    // must not be labelled as current planner data or emit invalid planner params.
+      wrapper: makeWrapper(() => new Date('2026-05-20T19:45:00.000Z')),
     });
-    expect(late.result.current.selectedTime).toBe('21:00');
-    expect(late.result.current.selectedMinutes).toBe(21 * 60);
+    expect(late.result.current.selectedTime).toBe('21:45');
+    expect(late.result.current.selectedMinutes).toBe(21 * 60 + 45);
+    expect(late.result.current.minMinutes).toBe(21 * 60);
     expect(late.result.current.isLiveNow).toBe(false);
-    expect(late.result.current.plannerQuery).toEqual({ date: '2026-05-20', time: '21:00' });
+    expect(late.result.current.plannerQuery).toBeUndefined();
+  });
+
+  it('keeps after-21 selected wall-clock aligned with the clock tick without calling it live planner data', () => {
+    vi.useFakeTimers();
+    const clock = vi.fn()
+      .mockReturnValueOnce(new Date('2026-05-20T19:45:00.000Z'))
+      .mockReturnValueOnce(new Date('2026-05-20T19:46:00.000Z'));
+
+    const { result } = renderHook(() => useTimeContext(), {
+      wrapper: makeWrapper(clock),
+    });
+
+    expect(result.current.selectedTime).toBe('21:45');
+    expect(result.current.isLiveNow).toBe(false);
+
+    act(() => {
+      vi.advanceTimersByTime(60 * 1000);
+    });
+
+    expect(result.current.selectedTime).toBe('21:46');
+    expect(result.current.selectedMinutes).toBe(21 * 60 + 46);
+    expect(result.current.isLiveNow).toBe(false);
+    expect(result.current.plannerQuery).toBeUndefined();
   });
 
   it('future dates preserve selected time and expose future planner mode', () => {
@@ -204,7 +275,7 @@ describe('TimeContext', () => {
     });
 
     expect(result.current.selectedDate).toBe('2026-11-15');
-    expect(result.current.selectedTime).toBe('21:00');
+    expect(result.current.selectedTime).toBe('21:30');
     expect(result.current.isLiveNow).toBe(false);
     expect(result.current.plannerQuery).toBeUndefined();
   });

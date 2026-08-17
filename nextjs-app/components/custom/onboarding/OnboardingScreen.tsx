@@ -18,6 +18,7 @@ export type OnboardingScreenProps = {
   onDismiss: () => void;
   onLocationGranted?: (coords: { lat: number; lng: number }) => void;
   onLocationDenied?: () => void;
+  interactive?: boolean;
 };
 
 /**
@@ -33,24 +34,16 @@ export function OnboardingScreen({
   onDismiss,
   onLocationGranted,
   onLocationDenied,
+  interactive = true,
 }: OnboardingScreenProps) {
   const t = useTranslations('onboarding');
-  // First-frame default `false` (animations on by default). The outer
-  // wrapper's entrance fade-in starts from `opacity: 0`, so even users
-  // whose browser hasn't resolved the prefers-reduced-motion query yet
-  // do not see a flash of unstyled content.
-  //
-  // Story 1.6 review (P36): the project intentionally diverges from
-  // VenuePin/VenuePinLayer's `?? true` default. Their baseline opacity
-  // is 1 (or 0 with a stagger), so the defensive default avoids motion
-  // flash. OnboardingScreen's baseline is 0; `?? true` here would mean
-  // non-reduced-motion users miss the entrance animation entirely. Keep
-  // both defaults as-is and document the divergence so future audits
-  // don't try to "normalize" away the per-component tuning.
-  const reduceMotion = useReducedMotion() ?? false;
+  // Fail closed while the media query is unresolved so reduced-motion
+  // users never receive a first-frame fade/slide before the hook settles.
+  const reduceMotion = useReducedMotion() ?? true;
   const geolocation = useGeolocation();
   const [phase, setPhase] = useState<'visible' | 'exiting'>('visible');
   const [pending, setPending] = useState(false);
+  const suppressEntranceMotion = reduceMotion || !interactive;
 
   // Phase 1 — react to a resolved geolocation status (success | fallback)
   // ONLY when we initiated the request via the primary CTA. Sets the
@@ -84,6 +77,7 @@ export function OnboardingScreen({
   }, [phase, reduceMotion, onDismiss]);
 
   const handleUseLocation = () => {
+    if (!interactive) return;
     // Guard rapid double-clicks: the second call would fire a second
     // `getCurrentPosition` and racey the first resolution.
     if (pending) return;
@@ -92,6 +86,7 @@ export function OnboardingScreen({
   };
 
   const handleUseCentrum = () => {
+    if (!interactive) return;
     // Clear `pending` first so the Phase-1 effect can't re-fire
     // `onLocationDenied` on the next render — `useCentrum()` flips
     // status to `'fallback'` synchronously, which would otherwise
@@ -109,10 +104,10 @@ export function OnboardingScreen({
       aria-labelledby="onboarding-headline"
       data-testid="onboarding-screen"
       data-phase={phase}
-      initial={{ opacity: 0 }}
+      initial={suppressEntranceMotion ? false : { opacity: 0 }}
       animate={{ opacity: phase === 'exiting' ? 0 : 1 }}
       transition={{
-        duration: reduceMotion
+        duration: suppressEntranceMotion
           ? 0
           : phase === 'exiting'
             ? EXIT_DURATION_S
@@ -142,11 +137,11 @@ export function OnboardingScreen({
 
       {/* Hero copy */}
       <motion.div
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+        initial={suppressEntranceMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{
-          duration: reduceMotion ? 0 : ENTRANCE_DURATION_S,
-          delay: reduceMotion ? 0 : ENTRANCE_HEADLINE_DELAY_S,
+          duration: suppressEntranceMotion ? 0 : ENTRANCE_DURATION_S,
+          delay: suppressEntranceMotion ? 0 : ENTRANCE_HEADLINE_DELAY_S,
           ease: 'easeOut',
         }}
         className="flex-1 lg:flex-none flex flex-col justify-center items-center relative z-10 text-balance"
@@ -164,18 +159,18 @@ export function OnboardingScreen({
 
       {/* CTA stack */}
       <motion.div
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+        initial={suppressEntranceMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{
-          duration: reduceMotion ? 0 : ENTRANCE_DURATION_S,
-          delay: reduceMotion ? 0 : ENTRANCE_CTA_DELAY_S,
+          duration: suppressEntranceMotion ? 0 : ENTRANCE_DURATION_S,
+          delay: suppressEntranceMotion ? 0 : ENTRANCE_CTA_DELAY_S,
           ease: 'easeOut',
         }}
         className="relative z-10 lg:w-full lg:max-w-md"
       >
         <AmberCTAButton
           onClick={handleUseLocation}
-          disabled={pending}
+          disabled={pending || !interactive}
           aria-busy={pending}
           data-testid="onboarding-cta-primary"
           data-pending={pending ? 'true' : 'false'}
@@ -187,6 +182,7 @@ export function OnboardingScreen({
         <button
           type="button"
           onClick={handleUseCentrum}
+          disabled={!interactive}
           data-testid="onboarding-cta-skip"
           className="w-full mt-[18px] min-h-11 flex items-center justify-center bg-transparent text-white/90 underline underline-offset-4 text-body-sm font-bold"
         >

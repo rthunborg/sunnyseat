@@ -51,6 +51,7 @@ export function MobileTagChips({
     <nav
       aria-label={label}
       data-testid="mobile-tag-chips"
+      data-tour-anchor="tag-chips"
       // `overflow-x-auto` + `pan-x` claims the horizontal axis so a fling on the
       // chips scrolls the chips and leaves the sheet `data-state` unchanged.
       className={cn(

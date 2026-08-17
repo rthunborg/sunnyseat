@@ -18,11 +18,13 @@
  * the ATDD suite enforces this). It imports only the pure planner-step utilities.
  */
 import { snapPlannerMinutes } from '@/lib/utils/time-planner';
-import type { VenueDaySeriesEntry, VenueSunStatus } from '@/lib/types/api';
+import type { VenueDaySeriesEntry, VenueSunStatus, WeatherGateState } from '@/lib/types/api';
+import { normalizeWeatherGateState } from '@/lib/utils/public-sun';
 
 export type DerivedVenueSun = {
   sunExposurePercent: number;
   currentSunStatus: VenueSunStatus;
+  weatherGateState: WeatherGateState;
   /**
    * The per-step gated sky condition (obscured sub-line). Carried so a scrub
    * overrides the obscured sky phrase to track the step instead of freezing at
@@ -51,6 +53,7 @@ export function deriveVenueSunAtMinutes(
   return {
     sunExposurePercent: entry.sunExposurePercent,
     currentSunStatus: entry.currentSunStatus,
+    weatherGateState: normalizeWeatherGateState(entry.weatherGateState),
     skyCondition: entry.skyCondition,
   };
 }

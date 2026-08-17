@@ -1,15 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { StrictMode, useEffect } from 'react';
 import { renderToString } from 'react-dom/server';
+import { hydrateRoot } from 'react-dom/client';
 import { NextIntlClientProvider } from 'next-intl';
-import { OnboardingGateWithSuspense } from '@/components/custom/onboarding/OnboardingGate';
+import {
+  AppRouteOnboardingGate,
+  OnboardingGateWithSuspense,
+} from '@/components/custom/onboarding/OnboardingGate';
+import { AppRouteFrame } from '@/components/custom/layout/AppRouteFrame';
 import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import onboardingMessages from '@/messages/sv/onboarding.json';
 
 const useForcedStateMock = vi.fn<() => string | null>(() => null);
+const usePathnameMock = vi.fn<() => string>(() => '/');
 const useMapInstanceMock = vi.fn<() => { mapRef: { current: unknown }; mapInstance: unknown }>(
   () => ({ mapRef: { current: null }, mapInstance: null }),
 );
+const onboardingScreenMountSpy = vi.fn();
+const onboardingScreenUnmountSpy = vi.fn();
 
 vi.mock('@/lib/dev/use-forced-state', () => ({
   useForcedState: () => useForcedStateMock(),
@@ -17,6 +26,18 @@ vi.mock('@/lib/dev/use-forced-state', () => ({
 
 vi.mock('@/lib/contexts/MapInstanceContext', () => ({
   useMapInstance: () => useMapInstanceMock(),
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => usePathnameMock(),
+}));
+
+vi.mock('@/components/custom/layout/DesktopNavBar', () => ({
+  DesktopNavBar: () => <header data-testid="desktop-nav-bar" />,
+}));
+
+vi.mock('@/components/custom/layout/MobileNavBar', () => ({
+  MobileNavBar: () => <nav data-testid="mobile-nav-bar" />,
 }));
 
 // OnboardingScreen is exercised in its own test; here we replace it with
@@ -31,18 +52,25 @@ vi.mock('@/components/custom/onboarding/OnboardingScreen', () => ({
     onDismiss: () => void;
     onLocationGranted?: (coords: { lat: number; lng: number }) => void;
     onLocationDenied?: () => void;
-  }) => (
-    <div data-testid="onboarding-screen-stub">
-      <button data-testid="dismiss" onClick={onDismiss}>dismiss</button>
-      <button
-        data-testid="grant"
-        onClick={() => onLocationGranted?.({ lat: 57.7, lng: 11.97 })}
-      >
-        grant
-      </button>
-      <button data-testid="deny" onClick={() => onLocationDenied?.()}>deny</button>
-    </div>
-  ),
+  }) => {
+    useEffect(() => {
+      onboardingScreenMountSpy();
+      return () => onboardingScreenUnmountSpy();
+    }, []);
+
+    return (
+      <div data-testid="onboarding-screen-stub">
+        <button data-testid="dismiss" onClick={onDismiss}>dismiss</button>
+        <button
+          data-testid="grant"
+          onClick={() => onLocationGranted?.({ lat: 57.7, lng: 11.97 })}
+        >
+          grant
+        </button>
+        <button data-testid="deny" onClick={() => onLocationDenied?.()}>deny</button>
+      </div>
+    );
+  },
 }));
 
 function Wrapper({ children }: { children: React.ReactNode }) {
@@ -57,9 +85,8 @@ function Wrapper({ children }: { children: React.ReactNode }) {
  * Run `fn` with the global `document` shadowed to `undefined` so a
  * `renderToString` call takes the same "no DOM" branch a real Node SSR render
  * does. jsdom otherwise leaves `document` defined during `renderToString`,
- * which does not match production SSR and would make the gate's client-only
- * `createPortal` path run (portals are not serialised, so the overlay would be
- * absent from the string). Restored in a `finally` so later tests keep the DOM.
+ * which does not match production SSR. Restored in a `finally` so later tests
+ * keep the DOM.
  */
 function withoutDocument<T>(fn: () => T): T {
   const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'document');
@@ -89,10 +116,13 @@ describe('<OnboardingGate />', () => {
 
   beforeEach(() => {
     useForcedStateMock.mockReset().mockReturnValue(null);
+    usePathnameMock.mockReset().mockReturnValue('/');
     useMapInstanceMock.mockReset().mockReturnValue({
       mapRef: { current: null },
       mapInstance: null,
     });
+    onboardingScreenMountSpy.mockReset();
+    onboardingScreenUnmountSpy.mockReset();
     originalLocalStorage = Object.getOwnPropertyDescriptor(window, 'localStorage');
     store = new Map<string, string>();
     Object.defineProperty(window, 'localStorage', {
@@ -127,13 +157,8 @@ describe('<OnboardingGate />', () => {
     // old non-interactive placeholder div. The map is never leaked under a
     // privacy choice on the server frame.
     //
-    // The gate portals the overlay to `document.body` on the CLIENT and renders
-    // it INLINE on the server (keyed on `typeof document === 'undefined'`, the
-    // real Node-SSR condition). jsdom leaks a `document` into `renderToString`,
-    // which does NOT match real Next SSR, so shadow it away for the duration of
-    // this render to exercise the true server path (portals are not serialised
-    // by `renderToString`, so the inline path is what puts the overlay in the
-    // SSR HTML).
+    // Shadow `document` away so this render exercises the same no-DOM condition
+    // as real Node SSR.
     const html = withoutDocument(() =>
       renderToString(
         <Wrapper>
@@ -142,7 +167,186 @@ describe('<OnboardingGate />', () => {
       ),
     );
     expect(html).toContain('data-testid="onboarding-screen-stub"');
+    expect(html).not.toContain('aria-hidden="true"');
+    expect(html).not.toContain('inert=""');
     expect(html).not.toContain('data-testid="onboarding-gate-placeholder"');
+  });
+
+  it('hydrates the server-rendered first-visit overlay without a topology mismatch', async () => {
+    const html = withoutDocument(() =>
+      renderToString(
+        <Wrapper>
+          <OnboardingGateWithSuspense />
+        </Wrapper>,
+      ),
+    );
+    const rootElement = document.createElement('div');
+    rootElement.innerHTML = html;
+    document.body.appendChild(rootElement);
+    const recoverableErrors: string[] = [];
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+
+    try {
+      await act(async () => {
+        root = hydrateRoot(
+          rootElement,
+          <Wrapper>
+            <OnboardingGateWithSuspense />
+          </Wrapper>,
+          {
+            onRecoverableError(error) {
+              recoverableErrors.push(
+                error instanceof Error ? error.message : String(error),
+              );
+            },
+          },
+        );
+      });
+
+      await waitFor(() =>
+        expect(
+          rootElement.querySelectorAll('[data-testid="onboarding-screen-stub"]'),
+        ).toHaveLength(1),
+      );
+      expect(document.querySelectorAll('[data-onboarding-portal]')).toHaveLength(0);
+      expect(
+        document.querySelectorAll('[data-testid="onboarding-screen-stub"]'),
+      ).toHaveLength(1);
+      expect(onboardingScreenMountSpy).toHaveBeenCalledTimes(1);
+      expect(onboardingScreenUnmountSpy).not.toHaveBeenCalled();
+      expect(
+        rootElement.querySelector('[data-testid="onboarding-screen-stub"]'),
+      ).not.toBeNull();
+      expect(recoverableErrors).toEqual([]);
+    } finally {
+      if (root) {
+        const mountedRoot = root;
+        await act(async () => {
+          mountedRoot.unmount();
+        });
+      }
+      rootElement.remove();
+    }
+  });
+
+  it('hydrates the app route frame with one external onboarding sibling and no portal host', async () => {
+    const html = withoutDocument(() =>
+      renderToString(
+        <Wrapper>
+          <AppRouteFrame>
+            <div data-testid="app-content">map content</div>
+          </AppRouteFrame>
+        </Wrapper>,
+      ),
+    );
+    const rootElement = document.createElement('div');
+    rootElement.innerHTML = html;
+    document.body.appendChild(rootElement);
+    const recoverableErrors: string[] = [];
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+
+    try {
+      await act(async () => {
+        root = hydrateRoot(
+          rootElement,
+          <Wrapper>
+            <AppRouteFrame>
+              <div data-testid="app-content">map content</div>
+            </AppRouteFrame>
+          </Wrapper>,
+          {
+            onRecoverableError(error) {
+              recoverableErrors.push(
+                error instanceof Error ? error.message : String(error),
+              );
+            },
+          },
+        );
+      });
+
+      await waitFor(() =>
+        expect(
+          document.querySelectorAll('[data-testid="onboarding-screen-stub"]'),
+        ).toHaveLength(1),
+      );
+      const appShell = rootElement.querySelector<HTMLElement>('[data-app-shell]');
+      const onboardingScreen = document.querySelector<HTMLElement>(
+        '[data-testid="onboarding-screen-stub"]',
+      );
+
+      expect(rootElement.querySelectorAll('[data-app-shell]')).toHaveLength(1);
+      expect(onboardingScreen).not.toBeNull();
+      expect(appShell?.contains(onboardingScreen)).toBe(false);
+      expect(onboardingScreen?.parentElement).toBe(appShell?.parentElement);
+      expect(appShell?.nextElementSibling).toBe(onboardingScreen);
+      expect(document.querySelectorAll('[data-onboarding-portal]')).toHaveLength(0);
+      expect(recoverableErrors).toEqual([]);
+    } finally {
+      if (root) {
+        const mountedRoot = root;
+        await act(async () => {
+          mountedRoot.unmount();
+        });
+      }
+      rootElement.remove();
+    }
+  });
+
+  it('keeps a single onboarding screen after StrictMode hydration settles', async () => {
+    const html = withoutDocument(() =>
+      renderToString(
+        <Wrapper>
+          <OnboardingGateWithSuspense />
+        </Wrapper>,
+      ),
+    );
+    const rootElement = document.createElement('div');
+    rootElement.innerHTML = html;
+    document.body.appendChild(rootElement);
+    const recoverableErrors: string[] = [];
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+
+    try {
+      await act(async () => {
+        root = hydrateRoot(
+          rootElement,
+          <StrictMode>
+            <Wrapper>
+              <OnboardingGateWithSuspense />
+            </Wrapper>
+          </StrictMode>,
+          {
+            onRecoverableError(error) {
+              recoverableErrors.push(
+                error instanceof Error ? error.message : String(error),
+              );
+            },
+          },
+        );
+      });
+
+      await waitFor(() =>
+        expect(
+          document.querySelectorAll('[data-testid="onboarding-screen-stub"]'),
+        ).toHaveLength(1),
+      );
+      expect(document.querySelectorAll('[data-onboarding-portal]')).toHaveLength(0);
+      expect(
+        document.querySelectorAll('[data-testid="onboarding-screen-stub"]'),
+      ).toHaveLength(1);
+      expect(
+        rootElement.querySelector('[data-testid="onboarding-screen-stub"]'),
+      ).not.toBeNull();
+      expect(recoverableErrors).toEqual([]);
+    } finally {
+      if (root) {
+        const mountedRoot = root;
+        await act(async () => {
+          mountedRoot.unmount();
+        });
+      }
+      rootElement.remove();
+    }
   });
 
   it('returning user (flag set, no _state): renders nothing', async () => {
@@ -158,21 +362,45 @@ describe('<OnboardingGate />', () => {
     expect(await screen.findByTestId('onboarding-screen-stub')).toBeInTheDocument();
   });
 
-  it('isolates the underlying app shell while the dialog is visible', async () => {
-    const shell = document.createElement('div');
-    shell.setAttribute('data-app-shell', '');
-    document.body.appendChild(shell);
+  it.each([
+    ['/', true],
+    ['/favoriter', true],
+    ['/about', false],
+    ['/sekretess', false],
+  ])('route-scoped frame gate on %s renders onboarding=%s', async (pathname, expected) => {
+    usePathnameMock.mockReturnValue(pathname);
+    render(
+      <AppRouteOnboardingGate />,
+      { wrapper: Wrapper },
+    );
 
-    renderGate({ container: shell });
+    if (expected) {
+      expect(await screen.findByTestId('onboarding-screen-stub')).toBeInTheDocument();
+    } else {
+      await waitFor(() =>
+        expect(screen.queryByTestId('onboarding-screen-stub')).toBeNull(),
+      );
+    }
+  });
+
+  it('isolates the underlying app shell while the dialog is visible', async () => {
+    const { container } = render(
+      <AppRouteFrame>
+        <div data-testid="app-content">map content</div>
+      </AppRouteFrame>,
+      { wrapper: Wrapper },
+    );
+    const shell = container.querySelector<HTMLElement>('[data-app-shell]');
+
+    expect(shell).not.toBeNull();
     expect(await screen.findByTestId('onboarding-screen-stub')).toBeInTheDocument();
+    expect(shell?.contains(screen.getByTestId('onboarding-screen-stub'))).toBe(false);
     await waitFor(() => expect(shell).toHaveAttribute('aria-hidden', 'true'));
     expect(shell).toHaveAttribute('inert');
 
     fireEvent.click(screen.getByTestId('dismiss'));
     await waitFor(() => expect(shell).not.toHaveAttribute('aria-hidden'));
     expect(shell).not.toHaveAttribute('inert');
-
-    shell.remove();
   });
 
   it('grant in the real flow writes the localStorage flag', async () => {

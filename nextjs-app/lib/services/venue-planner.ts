@@ -9,6 +9,7 @@ import {
   STOCKHOLM_TIME_ZONE,
   validatePlannerDateTime,
 } from '@/lib/utils/time-planner';
+import { normalizeWeatherGateState } from '@/lib/utils/public-sun';
 
 export type VenuePlannerSelection = {
   date: string;
@@ -104,15 +105,25 @@ export function applyPlannerSelectionToVenue(
   const currentSunStatus = inSunWindow
     ? sunStatusFromExposure(sunExposurePercent, venue.currentSunStatus)
     : 'Shaded';
+  const weatherGateState = normalizeWeatherGateState(venue.weatherGateState);
   return {
     ...venue,
     currentSunStatus,
+    weatherGateState,
     confidence: Math.max(35, Math.round(venue.confidence - forecastPenalty - weatherPenalty)),
     sunExposurePercent,
     sunWindow: adjustedWindow
       ? {
           start: formatPlannerTime(adjustedWindow.start),
           end: formatPlannerTime(adjustedWindow.end),
+          ...(venue.sunWindow?.weatherGateState
+            ? {
+                weatherGateState:
+                  venue.sunWindow.weatherGateState === 'not_gated'
+                    ? 'not_gated' as const
+                    : 'unknown' as const,
+              }
+            : {}),
         }
       : venue.sunWindow,
   };

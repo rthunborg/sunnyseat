@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Command } from 'cmdk';
 import { motion, useReducedMotion } from 'motion/react';
-import { Search, X } from 'lucide-react';
+import { Clock, Search, X } from 'lucide-react';
 import {
   DURATION_DEFAULT_S,
   DURATION_FAST_S,
@@ -11,6 +11,7 @@ import {
   EASE_EXIT,
 } from '@/lib/constants/animation';
 import type { VenueDataDto } from '@/lib/types/api';
+import type { VenueAvailabilityState } from '@/lib/utils/opening-hours';
 import { cn } from '@/lib/utils';
 
 export type VenueSearchComboboxLabels = {
@@ -34,6 +35,8 @@ export type VenueSearchComboboxProps = {
   isLoading?: boolean;
   error?: string;
   filterResults?: boolean;
+  availabilityByVenueId?: Record<string, VenueAvailabilityState>;
+  closedAtSelectedTimeLabel?: string;
   maxLength?: number;
   className?: string;
 };
@@ -49,6 +52,8 @@ export function VenueSearchCombobox({
   isLoading = false,
   error,
   filterResults = true,
+  availabilityByVenueId,
+  closedAtSelectedTimeLabel,
   maxLength,
   className,
 }: VenueSearchComboboxProps) {
@@ -57,8 +62,8 @@ export function VenueSearchCombobox({
   const prefersReducedMotion = useReducedMotion();
   const [hasHydrated, setHasHydrated] = useState(false);
   const shouldReduceMotion = hasHydrated && prefersReducedMotion === true;
-  const [open, setOpen] = useState(false);
   const trimmedQuery = query.trim();
+  const [open, setOpen] = useState(() => trimmedQuery.length > 0);
   const visibleVenues = useMemo(
     () => (filterResults ? filterVenuesForQuery(venues, trimmedQuery) : venues),
     [filterResults, trimmedQuery, venues],
@@ -202,27 +207,45 @@ export function VenueSearchCombobox({
               {labels.noResults(trimmedQuery)}
             </Command.Empty>
           )}
-          {shouldShowResults && !isLoading && !error && visibleVenues.map((venue) => (
-            <Command.Item
-              key={venue.id}
-              value={venue.id}
-              keywords={[venue.venueName, venue.neighborhood]}
-              onSelect={() => handleSelectVenue(venue)}
-              className="flex min-h-11 cursor-pointer items-center gap-3 rounded-venue-image px-3 py-2 text-body-sm text-text-body outline-none data-[selected=true]:bg-surface-muted"
-            >
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-badge bg-amber-primary text-label-xs text-amber-cta-text">
-                {initialsForVenue(venue)}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-body-sm-medium text-text-primary">
-                  {venue.venueName}
+          {shouldShowResults && !isLoading && !error && visibleVenues.map((venue) => {
+            const isClosed = availabilityByVenueId?.[venue.id] === 'closed';
+            const optionLabel = [
+              venue.venueName,
+              venue.neighborhood,
+              isClosed ? closedAtSelectedTimeLabel : undefined,
+            ].filter(Boolean).join(', ');
+            return (
+              <Command.Item
+                key={venue.id}
+                value={venue.id}
+                keywords={[venue.venueName, venue.neighborhood]}
+                aria-label={optionLabel}
+                onSelect={() => handleSelectVenue(venue)}
+                className={cn(
+                  'flex min-h-11 cursor-pointer items-center gap-3 rounded-venue-image px-3 py-2 text-body-sm text-text-body outline-none data-[selected=true]:bg-surface-muted',
+                  isClosed && 'bg-surface-muted/60',
+                )}
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-badge bg-amber-primary text-label-xs text-amber-cta-text">
+                  {initialsForVenue(venue)}
                 </span>
-                <span className="block truncate text-label-xs-medium text-text-muted">
-                  {venue.neighborhood}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-body-sm-medium text-text-primary">
+                    {venue.venueName}
+                  </span>
+                  <span className="block truncate text-label-xs-medium text-text-muted">
+                    {venue.neighborhood}
+                  </span>
+                  {isClosed && closedAtSelectedTimeLabel && (
+                    <span className="mt-1 flex items-center gap-1 text-label-xs-medium text-text-body">
+                      <Clock aria-hidden="true" className="size-3 shrink-0" />
+                      <span>{closedAtSelectedTimeLabel}</span>
+                    </span>
+                  )}
                 </span>
-              </span>
-            </Command.Item>
-          ))}
+              </Command.Item>
+            );
+          })}
         </Command.List>
       </motion.div>
     </Command>

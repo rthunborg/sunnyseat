@@ -122,6 +122,9 @@ jobs:
       - name: A11y tests (axe-core)
         run: npx playwright test --project=a11y
 
+      - name: A11y mobile tests (axe-core)
+        run: npx playwright test --project=a11y-mobile
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

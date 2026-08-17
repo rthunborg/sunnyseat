@@ -1,4 +1,11 @@
-import type { VenueDetailDto } from '@/lib/types/api';
+import type { VenueDataDto, VenueDetailDto, VenueThumbnailDto } from '@/lib/types/api';
+import { buildVenueMediaPublicUrl } from '@/lib/utils/venue-media';
+
+const PHOTO_LOADED_VERSION = 'v2026-07';
+const PHOTO_FALLBACK_VERSION = 'v2026-07-missing';
+const FALLBACK_SUPABASE_ORIGIN = 'https://sunnyseat.supabase.co';
+
+export type ForcedVenuePhotoState = 'venue-photo-loaded' | 'venue-photo-fallback';
 
 export function resolveForcedVisualVenueDetail(
   slug: string | null,
@@ -15,7 +22,16 @@ export function resolveForcedVisualVenueDetail(
   // timeline, sunExposurePercent) is UNCHANGED — it is the "when it clears"
   // potential the two-signal model preserves (AC2).
   if (forcedState === 'venue-detail-obscured') {
-    return { ...FORCED_VISUAL_VENUE_DETAIL, currentSunStatus: 'CloudObscured', skyCondition: 'overcast' };
+    return {
+      ...FORCED_VISUAL_VENUE_DETAIL,
+      currentSunStatus: 'CloudObscured',
+      weatherGateState: 'gated',
+      skyCondition: 'overcast',
+    };
+  }
+
+  if (isForcedVenuePhotoState(forcedState)) {
+    return withForcedVenuePhotoThumbnail(FORCED_VISUAL_VENUE_DETAIL, forcedState);
   }
 
   if (forcedState !== 'venue-detail' && forcedState !== 'feedback' && forcedState !== 'review') {
@@ -23,6 +39,43 @@ export function resolveForcedVisualVenueDetail(
   }
 
   return FORCED_VISUAL_VENUE_DETAIL;
+}
+
+export function isForcedVenuePhotoState(
+  forcedState: string | null,
+): forcedState is ForcedVenuePhotoState {
+  return forcedState === 'venue-photo-loaded' || forcedState === 'venue-photo-fallback';
+}
+
+export function withForcedVenuePhotoThumbnail<T extends VenueDataDto>(
+  venue: T,
+  forcedState: ForcedVenuePhotoState,
+): T {
+  const thumbnail: VenueThumbnailDto = {
+    alt: venue.thumbnail?.alt?.trim() || `Uteservering hos ${venue.venueName}`,
+    initials: venue.thumbnail?.initials?.trim() || venue.venueName.slice(0, 2).toUpperCase(),
+    cardUrl: forcedVenueMediaUrl(forcedState, 'card'),
+    heroUrl: forcedVenueMediaUrl(forcedState, 'hero'),
+  };
+  return {
+    ...venue,
+    thumbnail,
+  };
+}
+
+function forcedVenueMediaUrl(
+  forcedState: ForcedVenuePhotoState,
+  rendition: 'card' | 'hero',
+): string {
+  const configuredOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || FALLBACK_SUPABASE_ORIGIN;
+  const version =
+    forcedState === 'venue-photo-loaded' ? PHOTO_LOADED_VERSION : PHOTO_FALLBACK_VERSION;
+  return buildVenueMediaPublicUrl({
+    origin: configuredOrigin,
+    slug: 'test-venue-sunny',
+    mediaVersion: version,
+    rendition,
+  });
 }
 
 const FORCED_VISUAL_VENUE_DETAIL: VenueDetailDto = {
@@ -34,11 +87,15 @@ const FORCED_VISUAL_VENUE_DETAIL: VenueDetailDto = {
   neighborhood: 'Linné',
   location: { lat: 57.6986, lng: 11.9467 },
   currentSunStatus: 'Sunny',
+  weatherGateState: 'not_gated',
   skyCondition: 'clear',
   isPartner: false,
   confidence: 95,
   distanceMeters: 420,
   sunExposurePercent: 95,
+  predictionEvidence: {
+    geometryInputHash: 'g1:0000000000000000000000000000000000000000000000000000000000000000',
+  },
   tags: ['Innergård', 'Hund ok', 'Wifi', 'Bakverk'],
   sunWindow: { start: '11:00', end: '15:00' },
   thumbnail: {

@@ -61,6 +61,7 @@ type StubMap = {
   zoomIn: Mock;
   zoomOut: Mock;
   flyTo: Mock;
+  getCanvas: Mock;
   on: Mock;
   off: Mock;
   __dragstart: DragHandler[];
@@ -74,6 +75,7 @@ function makeStubMap(): StubMap {
     zoomIn: vi.fn(),
     zoomOut: vi.fn(),
     flyTo: vi.fn(),
+    getCanvas: vi.fn(() => ({ clientHeight: 900 })),
     on: vi.fn((event: string, handler: DragHandler) => {
       if (event === 'dragstart') dragstart.push(handler);
       if (event === 'dragend') dragend.push(handler);
@@ -161,22 +163,21 @@ describe('<MapControls />', () => {
     expect(stubMap.zoomOut).toHaveBeenCalled();
   });
 
-  it('shared success-fly-to: flies to the resolved coords when geolocation resolves to success (mobile, default mid snap)', () => {
+  it('shared success-fly-to: flies to the resolved coords when geolocation resolves to success (mobile measured row-sheet)', () => {
     // The success fly-to still lives in MapControls (shared for both the mobile
     // top-bar locate and the desktop-nav locate, which drive the same
     // useGeolocation context). Here we drive the hook state directly.
     // jsdom has no matchMedia → isDesktopViewport() is false → mobile padding.
     geoState.status = 'success';
     geoState.coords = { lat: 57.71, lng: 11.99 };
-    render(<MapControls />, { wrapper: makeWrapper(stubMap) });
+    render(<MapControls mobileSheetHeightPx={320} />, { wrapper: makeWrapper(stubMap) });
     expect(stubMap.flyTo).toHaveBeenCalledWith({
       center: [11.99, 57.71],
       zoom: GOTHENBURG_CENTRE.zoom,
       duration: 500,
-      // Story 11.5 (AC3): default `mid` snap → bottom padding = mid height
-      // (320) + nav-bar cover (52) = 372; top = mobile top-bar cover (72).
-      // Derived from the snap enum, not a fixed offset (R-013).
-      padding: { top: 72, bottom: 372, left: 0, right: 0 },
+      // Story 12.9: measured sheet height (320) + nav cover (52) + safe-area
+      // allowance (24). Derived from row-sheet obstruction, not a snap enum.
+      padding: { top: 72, bottom: 396, left: 0, right: 0 },
     });
   });
 
@@ -186,29 +187,28 @@ describe('<MapControls />', () => {
     expect(stubMap.flyTo).not.toHaveBeenCalled();
   });
 
-  // Story 11.5 (AC3 / Task 5, test-design R-013): the recenter padding must be
-  // DERIVED from the current obstruction state, not a fixed offset. These
-  // assertions prove the landed centre changes per snap/panel so a fixed-offset
-  // regression fails, and that flyTo stays 500 ms.
-  it('recenter padding VARIES per mobile snap (mid → 320 vs full → 560 bottom)', () => {
+  // Story 12.9: the recenter padding must be DERIVED from the measured row-sheet
+  // obstruction, not a fixed old snap value. These assertions prove the landed
+  // centre changes per row-sheet height, and that flyTo stays 500 ms.
+  it('recenter padding varies by measured mobile sheet height', () => {
     geoState.status = 'success';
     geoState.coords = { lat: 57.71, lng: 11.99 };
 
     const midMap = makeStubMap();
-    render(<MapControls mobileSheetState="mid" />, { wrapper: makeWrapper(midMap) });
+    render(<MapControls mobileSheetHeightPx={320} />, { wrapper: makeWrapper(midMap) });
     expect(midMap.flyTo).toHaveBeenCalledWith(
       expect.objectContaining({
         duration: 500,
-        padding: { top: 72, bottom: 372, left: 0, right: 0 },
+        padding: { top: 72, bottom: 396, left: 0, right: 0 },
       }),
     );
 
     const fullMap = makeStubMap();
-    render(<MapControls mobileSheetState="full" />, { wrapper: makeWrapper(fullMap) });
+    render(<MapControls mobileSheetHeightPx={560} />, { wrapper: makeWrapper(fullMap) });
     expect(fullMap.flyTo).toHaveBeenCalledWith(
       expect.objectContaining({
         duration: 500,
-        padding: { top: 72, bottom: 612, left: 0, right: 0 },
+        padding: { top: 72, bottom: 636, left: 0, right: 0 },
       }),
     );
 
@@ -218,10 +218,10 @@ describe('<MapControls />', () => {
     expect(midPadding.bottom).not.toBe(fullPadding.bottom);
   });
 
-  it('recenter padding: collapsed snap uses the handle-strip cover (44 + safe-area allowance + nav-bar cover)', () => {
+  it('recenter padding: handle-only row sheet uses handle strip + safe-area + nav-bar cover', () => {
     geoState.status = 'success';
     geoState.coords = { lat: 57.71, lng: 11.99 };
-    render(<MapControls mobileSheetState="collapsed" />, { wrapper: makeWrapper(stubMap) });
+    render(<MapControls mobileSheetHeightPx={44} />, { wrapper: makeWrapper(stubMap) });
     expect(stubMap.flyTo).toHaveBeenCalledWith(
       expect.objectContaining({
         padding: { top: 72, bottom: 120, left: 0, right: 0 },
@@ -269,25 +269,24 @@ describe('<MapControls />', () => {
     }
   });
 
-  it('recenter padding: dismissed snap flies with zero bottom padding (raw-viewport centre)', () => {
-    // Boundary: with the sheet fully dismissed nothing obstructs the bottom, so
-    // only the top search-bar cover remains — the dot centres on the near-raw
-    // viewport. Locks the `dismissed → bottom 0` derivation end-to-end.
+  it('recenter padding: zero sheet height still includes nav + safe-area bottom obstruction', () => {
+    // Boundary: the row sheet can be handle-only but the fixed mobile nav and
+    // safe-area still obstruct the bottom band.
     geoState.status = 'success';
     geoState.coords = { lat: 57.71, lng: 11.99 };
-    render(<MapControls mobileSheetState="dismissed" />, { wrapper: makeWrapper(stubMap) });
+    render(<MapControls mobileSheetHeightPx={0} />, { wrapper: makeWrapper(stubMap) });
     expect(stubMap.flyTo).toHaveBeenCalledWith(
       expect.objectContaining({
         duration: 500,
-        padding: { top: 72, bottom: 0, left: 0, right: 0 },
+        padding: { top: 72, bottom: 76, left: 0, right: 0 },
       }),
     );
   });
 
-  it('default props on DESKTOP: the default mid snap is ignored, side-panel padding wins', () => {
-    // Prop-default path — MapView passes props, but the defaults ('mid'/false)
+  it('default props on DESKTOP: mobile sheet height is ignored, side-panel padding wins', () => {
+    // Prop-default path — MapView passes props, but the defaults
     // must degrade correctly if a future caller omits them at the desktop
-    // breakpoint: no phantom bottom padding from the default mid snap.
+    // breakpoint: no phantom bottom padding from a mobile row-sheet default.
     const originalMatchMedia = window.matchMedia;
     window.matchMedia = ((query: string) => ({
       matches: query.includes('min-width: 1024px'),
@@ -324,11 +323,11 @@ describe('<MapControls />', () => {
       geoState.status = 'success';
       geoState.coords = { lat: 57.71, lng: 11.99 };
       expect(() =>
-        render(<MapControls mobileSheetState="mid" />, { wrapper: makeWrapper(stubMap) }),
+        render(<MapControls mobileSheetHeightPx={320} />, { wrapper: makeWrapper(stubMap) }),
       ).not.toThrow();
       expect(stubMap.flyTo).toHaveBeenCalledWith(
         expect.objectContaining({
-          padding: { top: 72, bottom: 372, left: 0, right: 0 },
+          padding: { top: 72, bottom: 396, left: 0, right: 0 },
         }),
       );
     } finally {
@@ -336,22 +335,22 @@ describe('<MapControls />', () => {
     }
   });
 
-  it('does NOT re-fly when only the sheet snap changes after a geolocation success (external-review fix)', () => {
-    // Regression: `mobileSheetState`/`isVenueDetailOpen` used to be effect deps,
-    // so after a success ANY later snap change re-ran flyTo and yanked the map
+  it('does NOT re-fly when only the measured sheet height changes after a geolocation success', () => {
+    // Regression: obstruction props used to be effect deps, so after a success
+    // ANY later sheet change re-ran flyTo and yanked the map
     // back to the user location with no locate action. The effect now triggers
     // ONLY on geolocation transitions (obstruction state is read from refs).
     geoState.status = 'success';
     geoState.coords = { lat: 57.71, lng: 11.99 };
-    const { rerender } = render(<MapControls mobileSheetState="mid" />, {
+    const { rerender } = render(<MapControls mobileSheetHeightPx={320} />, {
       wrapper: makeWrapper(stubMap),
     });
     // One fly on the initial success.
     expect(stubMap.flyTo).toHaveBeenCalledTimes(1);
 
-    // The user drags the sheet to a new snap (geolocation UNCHANGED). No re-fly.
-    rerender(<MapControls mobileSheetState="full" />);
-    rerender(<MapControls mobileSheetState="collapsed" />);
+    // The user drags the sheet to new row heights (geolocation UNCHANGED). No re-fly.
+    rerender(<MapControls mobileSheetHeightPx={560} />);
+    rerender(<MapControls mobileSheetHeightPx={44} />);
     expect(stubMap.flyTo).toHaveBeenCalledTimes(1);
   });
 
@@ -375,7 +374,7 @@ describe('<MapControls />', () => {
     // jump to stale coords).
     geoState.status = 'pending';
     geoState.coords = { lat: 57.71, lng: 11.99 };
-    render(<MapControls mobileSheetState="mid" />, { wrapper: makeWrapper(stubMap) });
+    render(<MapControls mobileSheetHeightPx={320} />, { wrapper: makeWrapper(stubMap) });
     expect(stubMap.flyTo).not.toHaveBeenCalled();
   });
 
@@ -384,7 +383,7 @@ describe('<MapControls />', () => {
     // flyTo against a not-yet-bound canvas.
     geoState.status = 'success';
     geoState.coords = { lat: 57.71, lng: 11.99 };
-    render(<MapControls mobileSheetState="mid" />, { wrapper: makeNullMapWrapper() });
+    render(<MapControls mobileSheetHeightPx={320} />, { wrapper: makeNullMapWrapper() });
     expect(stubMap.flyTo).not.toHaveBeenCalled();
   });
 
@@ -400,6 +399,52 @@ describe('<MapControls />', () => {
 
     act(() => stubMap.__dragend[0]());
     expect(wrapper.style.opacity).toBe('1');
+  });
+
+  it('removes mobile controls from interaction when the measured row sheet covers the stack', () => {
+    const originalRect = HTMLElement.prototype.getBoundingClientRect;
+    const originalInnerHeight = Object.getOwnPropertyDescriptor(window, 'innerHeight');
+    Object.defineProperty(window, 'innerHeight', {
+      configurable: true,
+      value: 844,
+    });
+    HTMLElement.prototype.getBoundingClientRect = function getBoundingClientRect() {
+      if ((this as HTMLElement).dataset.testid === 'map-controls') {
+        return {
+          x: 329,
+          y: 200,
+          width: 48,
+          height: 108,
+          top: 200,
+          right: 377,
+          bottom: 308,
+          left: 329,
+          toJSON: () => ({}),
+        };
+      }
+      return originalRect.call(this);
+    };
+
+    try {
+      const { getByTestId, rerender } = render(
+        <MapControls mobileSheetHeightPx={560} />,
+        { wrapper: makeWrapper(stubMap) },
+      );
+      const controls = getByTestId('map-controls');
+      expect(controls).toHaveAttribute('data-mobile-sheet-overlap', 'true');
+      expect(controls).toHaveAttribute('aria-hidden', 'true');
+      expect(controls).toHaveAttribute('inert');
+
+      rerender(<MapControls mobileSheetHeightPx={320} />);
+      expect(controls).toHaveAttribute('data-mobile-sheet-overlap', 'false');
+      expect(controls).not.toHaveAttribute('aria-hidden');
+      expect(controls).not.toHaveAttribute('inert');
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = originalRect;
+      if (originalInnerHeight) {
+        Object.defineProperty(window, 'innerHeight', originalInnerHeight);
+      }
+    }
   });
 
   it('renders the zoom buttons disabled while mapInstance is null', () => {

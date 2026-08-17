@@ -4,7 +4,6 @@ import type {
   ReviewSummaryDto,
   VenueDataDto,
 } from '@/lib/types/api';
-import { VENUE_FIXTURE } from '@/lib/services/venues-fixture';
 
 type ReviewInsertRow = {
   venue_id: string;
@@ -110,17 +109,6 @@ const fixtureReviewSeeds: Record<string, FixtureReviewSeed[]> = {
 
 const memoryReviews: ReviewDto[] = [];
 
-export function resolveReviewVenueIdentifier(identifier: string): VenueDataDto | null {
-  const normalizedIdentifier = identifier.trim();
-  if (!normalizedIdentifier) return null;
-  return VENUE_FIXTURE.find((candidate) =>
-    candidate.id === normalizedIdentifier ||
-    candidate.venueId === normalizedIdentifier ||
-    candidate.slug === normalizedIdentifier ||
-    candidate.venueSlug === normalizedIdentifier
-  ) ?? null;
-}
-
 export function getVenueReviews(venue: VenueDataDto): ReviewDto[] {
   return sortReviewsNewestFirst([
     ...seededReviewsForVenue(venue),
@@ -144,11 +132,6 @@ export async function getReviewSummaryForVenueFromPersistence(
   venue: VenueDataDto,
 ): Promise<ReviewSummaryDto> {
   return summarizeReviews(await getVenueReviewsFromPersistence(venue));
-}
-
-export function getReviewSummaryForVenueIdentifier(identifier: string): ReviewSummaryDto | null {
-  const venue = resolveReviewVenueIdentifier(identifier);
-  return venue ? getReviewSummaryForVenue(venue) : null;
 }
 
 export async function persistVenueReview(review: ReviewDto): Promise<ReviewDto> {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useReducedMotion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -9,11 +9,14 @@ import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
 import { VenuePin } from './VenuePin';
 import type { VenuePinData } from '@/lib/types/map';
+import { isVenuePubliclySunny, isWeatherGateUnknown } from '@/lib/utils/public-sun';
 
 type AriaResolver = (venue: VenuePinData, percent: number) => string;
 
 type VenuePinLayerProps = {
   venues: VenuePinData[];
+  onToggleVenue?: (venueId: string) => void;
+  onCanvasDeselect?: () => void;
 };
 
 type MarkerEntry = {
@@ -48,7 +51,7 @@ const STAGGER_MAX_INDEX = 30;
  * background (AC4). Clicks on overlay DOM (controls, pills, future
  * sheets) are ignored via a target-canvas check.
  */
-export function VenuePinLayer({ venues }: VenuePinLayerProps) {
+export function VenuePinLayer({ venues, onToggleVenue, onCanvasDeselect }: VenuePinLayerProps) {
   const { mapInstance } = useMapInstance();
   const { selectedVenueId, selectVenue, toggleVenue } = useMapSelection();
   // Story 1.6 review (P36): null (matchMedia not yet resolved) treated
@@ -59,22 +62,21 @@ export function VenuePinLayer({ venues }: VenuePinLayerProps) {
   // tuned to its different baseline).
   const shouldReduceMotion = useReducedMotion() ?? true;
   const t = useTranslations('map');
+  const fallbackCanvasDeselect = useCallback(() => selectVenue(null), [selectVenue]);
+  const handleToggleVenue = onToggleVenue ?? toggleVenue;
+  const handleCanvasDeselect = onCanvasDeselect ?? fallbackCanvasDeselect;
 
-  // Resolve the three pin aria variants once per render rather than once
+  // Resolve the public pin aria variants once per render rather than once
   // per pin — wrapping each `createRoot` subtree with its own
   // `<NextIntlClientProvider>` so a deeply-nested `useTranslations()`
   // would work shipped 50 copies of the entire messages object on every
   // marker-render pass (Story 1.4 R2 deferred-work).
   const resolveAria: AriaResolver = (venue, percent) => {
     const name = venue.name;
-    if (venue.sunStatus === 'Sunny') return t('pinSunnyAria', { name, percent });
-    if (venue.sunStatus === 'Partial') return t('pinPartialAria', { name, percent });
-    // Story 10.2 (AC4): the obscured pin announces "sol bakom moln", not
-    // "shaded". Placed BEFORE the shaded fallback so a CloudObscured venue
-    // never collapses to the shaded aria. `{percent}` is the geometric
-    // solläge that survives the gate (AC2, position not weather).
-    if (venue.sunStatus === 'CloudObscured') return t('pinObscuredAria', { name, percent });
-    return t('pinShadedAria', { name, percent });
+    if (!isVenuePubliclySunny(venue)) return t('pinNotSunnyAria', { name });
+    return isWeatherGateUnknown(venue)
+      ? t('pinSunnyWeatherUnknownAria', { name, percent })
+      : t('pinSunnyAria', { name, percent });
   };
 
   const markersRef = useRef<Map<string, MarkerEntry>>(new Map());
@@ -84,7 +86,7 @@ export function VenuePinLayer({ venues }: VenuePinLayerProps) {
   // window — Round 2 R1-P3 follow-up).
   const prevSelectedRef = useRef<string | null>(selectedVenueId);
   const selectedRef = useRef<string | null>(selectedVenueId);
-  const toggleRef = useRef(toggleVenue);
+  const toggleRef = useRef(handleToggleVenue);
   const resolveAriaRef = useRef<AriaResolver>(resolveAria);
   const venueIdsRef = useRef<Set<string>>(new Set(venues.map((venue) => venue.id)));
   // Story 1.6 review (P32): the entrance stagger is now per-batch — every
@@ -102,7 +104,7 @@ export function VenuePinLayer({ venues }: VenuePinLayerProps) {
   // up-to-date values regardless of declaration order.
   useLayoutEffect(() => {
     selectedRef.current = selectedVenueId;
-    toggleRef.current = toggleVenue;
+    toggleRef.current = handleToggleVenue;
     resolveAriaRef.current = resolveAria;
     venueIdsRef.current = new Set(venues.map((venue) => venue.id));
   });
@@ -117,7 +119,7 @@ export function VenuePinLayer({ venues }: VenuePinLayerProps) {
       if (!currentIds.has(id)) {
         entry.observer.disconnect();
         entry.marker.remove();
-        entry.root.unmount();
+        scheduleRootUnmount(entry.root);
         markersRef.current.delete(id);
       }
     }
@@ -300,14 +302,14 @@ export function VenuePinLayer({ venues }: VenuePinLayerProps) {
       // — those should never deselect even if the click bubbles to the
       // canvas (e.g. transparent edge of attribution control).
       if (target instanceof Element && target.closest('.maplibregl-ctrl')) return;
-      selectVenue(null);
+      handleCanvasDeselect();
     };
 
     map.on('click', handleMapClick);
     return () => {
       map.off('click', handleMapClick);
     };
-  }, [mapInstance, selectVenue]);
+  }, [handleCanvasDeselect, mapInstance]);
 
   useEffect(() => {
     const markers = markersRef.current;
@@ -363,6 +365,13 @@ function renderEntry(
   );
 }
 
+function scheduleRootUnmount(root: Root) {
+  // React warns if a detached root is synchronously unmounted while this
+  // component's passive effects are being flushed. MapLibre marker removal
+  // can stay immediate; only the React subtree teardown needs to yield.
+  queueMicrotask(() => root.unmount());
+}
+
 function venueFingerprint(v: VenuePinData): string {
   // `isPartner` is excluded — Story 1.4 doesn't render it, so changes
   // would re-render pins for no visible reason. Story 5.1 (golden pin /
@@ -370,5 +379,5 @@ function venueFingerprint(v: VenuePinData): string {
   // *(Target: Story 5.1)*  ← BMAD-grep tag: `rg "\*\(Target: 5"` will
   // surface this when 5.1 starts so the rollout doesn't silently miss
   // the fingerprint update.
-  return `${v.id}|${v.name}|${v.sunStatus}|${v.sunExposurePercent}|${v.lat}|${v.lng}`;
+  return `${v.id}|${v.name}|${v.sunStatus}|${v.sunExposurePercent}|${v.weatherGateState}|${v.lat}|${v.lng}`;
 }

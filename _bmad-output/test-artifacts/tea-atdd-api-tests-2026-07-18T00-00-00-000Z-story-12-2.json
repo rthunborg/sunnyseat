@@ -1,0 +1,40 @@
+{
+  "success": true,
+  "subagent": "atdd-api-tests",
+  "tests": [
+    {
+      "file": "nextjs-app/test/unit/api/story-12-2-feedback-accuracy-loop.atdd.test.ts",
+      "description": "ATDD API/unit route scaffolds for live feedback identity and prediction evidence.",
+      "expected_to_fail": true,
+      "acceptance_criteria_covered": ["AC1", "AC2", "AC3", "AC5"],
+      "priority_coverage": { "P0": 7, "P1": 0, "P2": 0, "P3": 0 }
+    },
+    {
+      "file": "nextjs-app/test/unit/story-12-2-accuracy-ops-and-cap-cleanup.atdd.test.ts",
+      "description": "ATDD source/SQL contract scaffolds for migration, maintainer report, hash reset, and coverage-cap cleanup.",
+      "expected_to_fail": true,
+      "acceptance_criteria_covered": ["AC2", "AC3", "AC4", "AC5", "AC6", "AC7", "AC8"],
+      "priority_coverage": { "P0": 9, "P1": 1, "P2": 0, "P3": 0 }
+    }
+  ],
+  "fixture_needs": ["feedbackEvidenceFactory", "currentGeometryHashFixture", "maintainerAccuracyReportFixture"],
+  "knowledge_fragments_used": [
+    "data-factories",
+    "test-quality",
+    "test-levels-framework",
+    "test-priorities-matrix",
+    "api-request",
+    "pactjs-utils-overview",
+    "pactjs-utils-consumer-helpers",
+    "pactjs-utils-provider-verifier",
+    "pactjs-utils-request-filter",
+    "pact-consumer-di",
+    "pact-consumer-framework-setup",
+    "pact-broker-webhooks",
+    "pact-mcp"
+  ],
+  "test_count": 15,
+  "tdd_phase": "RED",
+  "provider_scrutiny": "completed",
+  "summary": "Generated 15 skipped red-phase API/unit/SQL contract scaffolds for Story 12.2."
+}

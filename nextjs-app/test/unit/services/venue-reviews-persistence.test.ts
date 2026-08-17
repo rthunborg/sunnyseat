@@ -7,9 +7,9 @@ import {
   getVenueReviewsFromPersistence,
   getVenueReviews,
   persistVenueReview,
-  resolveReviewVenueIdentifier,
 } from '@/lib/services/venue-reviews-persistence';
-import type { ReviewDto } from '@/lib/types/api';
+import { resolvePublicVenueIdentifier } from '@/lib/services/venue-store';
+import type { ReviewDto, VenueDataDto } from '@/lib/types/api';
 
 const supabaseMocks = vi.hoisted(() => ({
   rows: [] as Array<Record<string, unknown>>,
@@ -31,6 +31,12 @@ const REVIEW: ReviewDto = {
   createdAt: '2026-06-08T12:00:00.000Z',
 };
 
+async function fixtureVenue(identifier = 'test-venue-sunny'): Promise<VenueDataDto> {
+  const venue = await resolvePublicVenueIdentifier(identifier);
+  expect(venue).not.toBeNull();
+  return venue!;
+}
+
 describe('venue-reviews-persistence', () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
@@ -39,18 +45,19 @@ describe('venue-reviews-persistence', () => {
     supabaseMocks.from.mockReset();
   });
 
-  it('resolves fixture venues by id and slug identifiers', () => {
-    expect(resolveReviewVenueIdentifier('1')?.slug).toBe('test-venue-sunny');
-    expect(resolveReviewVenueIdentifier('test-venue-sunny')?.id).toBe('1');
-    expect(resolveReviewVenueIdentifier('missing')).toBeNull();
+  it('uses the shared public resolver for fixture venues by id and slug identifiers', async () => {
+    await expect(resolvePublicVenueIdentifier('1'))
+      .resolves.toMatchObject({ slug: 'test-venue-sunny' });
+    await expect(resolvePublicVenueIdentifier('test-venue-sunny'))
+      .resolves.toMatchObject({ id: '1' });
+    await expect(resolvePublicVenueIdentifier('missing')).resolves.toBeNull();
   });
 
   it('returns seeded reviews newest-first and includes memory submissions', async () => {
-    const venue = resolveReviewVenueIdentifier('test-venue-sunny');
-    expect(venue).not.toBeNull();
+    const venue = await fixtureVenue();
     await persistVenueReview(REVIEW);
 
-    const reviews = getVenueReviews(venue!);
+    const reviews = getVenueReviews(venue);
 
     expect(reviews[0]).toMatchObject({
       id: 'review_1',
@@ -61,10 +68,10 @@ describe('venue-reviews-persistence', () => {
   });
 
   it('computes review summaries from seeded and submitted ratings', async () => {
-    const venue = resolveReviewVenueIdentifier('test-venue-sunny');
+    const venue = await fixtureVenue();
     await persistVenueReview(REVIEW);
 
-    expect(getReviewSummaryForVenue(venue!)).toEqual({
+    expect(getReviewSummaryForVenue(venue)).toEqual({
       averageRating: 4.7,
       reviewCount: 3,
     });
@@ -118,14 +125,14 @@ describe('venue-reviews-persistence', () => {
         }),
       }),
     }));
-    const venue = resolveReviewVenueIdentifier('test-venue-sunny');
+    const venue = await fixtureVenue();
 
     await expect(persistVenueReview(REVIEW)).resolves.toMatchObject({
       id: 'supabase_review_1',
       createdAt: '2026-06-08T12:05:00.000Z',
     });
 
-    const reviews = await getVenueReviewsFromPersistence(venue!);
+    const reviews = await getVenueReviewsFromPersistence(venue);
     expect(reviews).toHaveLength(1);
     expect(reviews[0]).toMatchObject({
       id: 'supabase_review_1',
@@ -164,9 +171,9 @@ describe('venue-reviews-persistence', () => {
         }),
       }),
     }));
-    const venue = resolveReviewVenueIdentifier('test-venue-sunny');
+    const venue = await fixtureVenue();
 
-    const reviews = await getVenueReviewsFromPersistence(venue!);
+    const reviews = await getVenueReviewsFromPersistence(venue);
 
     expect(reviews).toEqual([{
       id: 'supabase_review_unrated',
@@ -212,7 +219,7 @@ describe('venue-reviews-persistence', () => {
       return { insert, select: readSelect };
     });
 
-    const venue = resolveReviewVenueIdentifier('test-venue-sunny')!;
+    const venue = await fixtureVenue();
     const photoReview: ReviewDto = {
       ...REVIEW,
       photo: { name: 'ute.jpg', type: 'image/jpeg', size: 2048, lastModified: 111 },

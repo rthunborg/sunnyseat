@@ -62,15 +62,20 @@ export function TimeSlider({
   const isDraggingRef = useRef(false);
   const isDragging = dragValue !== null;
   const displayMinutes = isDragging ? dragValue : clampMinutes(selectedMinutes, effectiveMin);
+  const isAfterHoursLiveDisplay = !isDragging && selectedMinutes > PLANNER_END_MINUTES;
+  const displayLabelMinutes =
+    isAfterHoursLiveDisplay
+      ? selectedMinutes
+      : displayMinutes;
 
-  const valueText = formatPlannerTime(displayMinutes);
+  const valueText = formatDisplayTime(displayLabelMinutes);
   const percent = progressPercent(displayMinutes);
   const elapsedPercent = progressPercent(effectiveMin);
   const activeTick = useMemo(() => closestTick(displayMinutes, ticks), [displayMinutes, ticks]);
   const isTopPanel = variant === 'topPanel';
-  const visibleTicks = isTopPanel
-    ? ticks.filter((tick) => [6 * 60, 12 * 60, 18 * 60, 21 * 60].includes(tick.minutes))
-    : ticks;
+  const visibleTicks = ticks;
+  const topPanelTrackPosition = 'top-8 -translate-y-1/2';
+  const standardTrackPosition = 'top-1/2 -translate-y-1/2';
   const hasElapsedSegment = effectiveMin > PLANNER_START_MINUTES;
 
   // During an active drag the grabbed thumb must follow the pointer 1:1 (no
@@ -124,9 +129,14 @@ export function TimeSlider({
     onSnap();
   };
 
+  const handleBlur = () => {
+    if (isAfterHoursLiveDisplay) return;
+    onSnap();
+  };
+
   return (
     <div className={cn('w-full', className)}>
-      <div className={cn('relative flex items-center', isTopPanel ? 'min-h-12 pt-4' : 'min-h-11')}>
+      <div className="relative flex min-h-11 items-center">
         {isTopPanel && (
           <div
             data-testid="time-slider-value-badge"
@@ -140,7 +150,10 @@ export function TimeSlider({
         <div
           data-testid="time-slider-track"
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-1/2 h-slider-track-h h-[var(--size-slider-track-h)] -translate-y-1/2 overflow-hidden rounded-pill bg-surface-slider-track bg-gradient-to-r from-surface-slider-track via-amber-pale/60 to-amber-dark/40"
+          className={[
+            'pointer-events-none absolute inset-x-0 h-slider-track-h h-[var(--size-slider-track-h)] overflow-hidden rounded-pill bg-surface-slider-track bg-gradient-to-r from-surface-slider-track via-amber-pale/60 to-amber-dark/40',
+            isTopPanel ? topPanelTrackPosition : standardTrackPosition,
+          ].join(' ')}
         >
           <div
             data-testid="time-slider-progress"
@@ -201,7 +214,7 @@ export function TimeSlider({
               commit(PLANNER_END_MINUTES);
             }
           }}
-          onBlur={() => onSnap()}
+          onBlur={handleBlur}
           className="absolute inset-0 z-base h-11 w-full cursor-grab opacity-0 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary active:cursor-grabbing"
         />
         <div
@@ -209,10 +222,11 @@ export function TimeSlider({
           data-reduced-motion={String(reducedMotion)}
           aria-hidden="true"
           className={[
-            'pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-pill shadow-subtle',
+            'pointer-events-none absolute -translate-x-1/2 rounded-pill shadow-subtle',
+            isTopPanel ? 'top-8 -translate-y-1/2' : 'top-1/2 -translate-y-1/2',
             followClass,
             isTopPanel
-              ? 'flex size-6 items-center justify-center border-slider-thumb border-amber-primary bg-white shadow-button-sm'
+              ? 'flex size-slider-thumb items-center justify-center border-slider-thumb border-amber-primary bg-white shadow-button-sm'
               : 'size-slider-thumb border-slider-thumb border-white bg-amber-dark',
           ].join(' ')}
           style={{ left: `${percent}%` }}
@@ -220,23 +234,21 @@ export function TimeSlider({
           {isTopPanel && <span className="size-1.5 rounded-pill bg-amber-primary" />}
         </div>
       </div>
-      <div className={cn('mt-1 flex justify-between text-text-muted', isTopPanel && 'pr-10')}>
-        {visibleTicks.map((tick) => (
-          <span
-            key={tick.label}
-            className={[
-              'text-label-xs-medium',
-              tick.label === activeTick.label
-                ? 'text-amber-dark'
-                : !isTopPanel
-                  ? 'text-tab-inactive'
-                  : '',
-            ].filter(Boolean).join(' ')}
-          >
-            {isTopPanel ? tick.label.slice(0, 2) : tick.label}
-          </span>
-        ))}
-      </div>
+      {!isTopPanel && (
+        <div className="mt-1 flex justify-between text-text-muted">
+          {visibleTicks.map((tick) => (
+            <span
+              key={tick.label}
+              className={[
+                'text-label-xs-medium',
+                tick.label === activeTick.label ? 'text-amber-dark' : 'text-tab-inactive',
+              ].join(' ')}
+            >
+              {tick.label}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -247,6 +259,15 @@ function clampMinutes(minutes: number, min: number): number {
 
 function progressPercent(minutes: number): number {
   return ((minutes - PLANNER_START_MINUTES) / (PLANNER_END_MINUTES - PLANNER_START_MINUTES)) * 100;
+}
+
+function formatDisplayTime(minutes: number): string {
+  if (!Number.isFinite(minutes)) return formatPlannerTime(minutes);
+  const rounded = Math.round(minutes);
+  const hours = Math.floor(rounded / 60);
+  const remainder = rounded % 60;
+  if (hours < 0 || hours > 23 || remainder < 0) return formatPlannerTime(minutes);
+  return `${hours.toString().padStart(2, '0')}:${remainder.toString().padStart(2, '0')}`;
 }
 
 function closestTick(minutes: number, ticks: PlannerTick[]): PlannerTick {

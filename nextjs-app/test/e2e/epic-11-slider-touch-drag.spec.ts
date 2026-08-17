@@ -54,8 +54,8 @@
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';
-import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
-import type { GetVenuesResponse, VenueDataDto, VenueSunStatus } from '@/lib/types/api';
+import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import type { GetVenuesResponse, VenueDataDto, VenueDaySeriesEntry } from '@/lib/types/api';
 import {
   PLANNER_START_MINUTES,
   PLANNER_END_MINUTES,
@@ -66,10 +66,14 @@ const APP_SETTLE_TIMEOUT_MS = 15_000;
 const VENUES_MATCHER = '**/api/venues?**';
 
 async function bypassOnboarding(page: Page): Promise<void> {
-  await page.addInitScript((key: string) => {
+  await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
     window.sessionStorage.clear();
-    window.localStorage.setItem(key, '1');
-  }, ONBOARDED_FLAG_KEY);
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 }
 
 /** Force `?_time=13:00` so the sun is deterministically up (retro-note pattern). */
@@ -91,14 +95,15 @@ async function forbidLiveMetno(page: Page): Promise<string[]> {
   return hits;
 }
 
-function daySeries(): { minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus }[] {
-  const series: { minutes: number; sunExposurePercent: number; currentSunStatus: VenueSunStatus }[] = [];
+function daySeries(): VenueDaySeriesEntry[] {
+  const series: VenueDaySeriesEntry[] = [];
   for (let m = PLANNER_START_MINUTES; m <= PLANNER_END_MINUTES; m += PLANNER_STEP_MINUTES) {
     const sunlit = m >= 11 * 60 && m <= 18 * 60;
     series.push({
       minutes: m,
       sunExposurePercent: sunlit ? 90 : 10,
       currentSunStatus: sunlit ? 'Sunny' : 'Shaded',
+      weatherGateState: 'not_gated',
     });
   }
   return series;
@@ -114,6 +119,7 @@ function buildVenue(id: string, name: string, lat: number, lng: number): VenueDa
     neighborhood: 'Inom Vallgraven',
     location: { lat, lng },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     isPartner: true,
     confidence: 90,
     distanceMeters: 0,

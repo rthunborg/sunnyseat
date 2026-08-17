@@ -23,6 +23,36 @@ Supabase service role. It writes only bounded rows to `hours_review_runs` and
 venue classification failure is recorded and the remaining venues continue.
 Run-level database/configuration failures fail the Action.
 
+## Sun geometry precompute and weather snapshots
+
+Workflow: `.github/workflows/sun-geometry-and-weather.yml`
+
+- Geometry runner: `nextjs-app/scripts/precompute-sun-geometry.ts`.
+- Weather runner: `nextjs-app/scripts/refresh-weather-snapshots.ts`.
+- Public HTTP route: none. `/api/venues` reads persisted
+  `geometry_input_hash` coverage and weather snapshots instead of relying on an
+  external request warmer.
+- Coverage: geometry precomputes today through
+  `today + PLANNER_MAX_FUTURE_DAYS + 1`, so the Stockholm-midnight planner roll
+  already has the new selectable day.
+- Weather: snapshots are keyed by the shared four-decimal engine coordinate
+  bucket and are refreshed independently from deterministic geometry.
+- Protected environment: `Production`, `main` only, bounded timeout, and GitHub
+  workflow concurrency.
+
+Configure these in the GitHub `Production` environment:
+
+| Name | Kind | Purpose |
+|---|---|---|
+| `SUPABASE_URL` | Secret | Protected project URL used only by the runners. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Secret | Server-only key for service-only tables and RPCs. |
+| `SUN_GEOMETRY_PRECOMPUTE_ENABLED` | Variable | Set exactly `true` to enable geometry publication. |
+| `SUN_WEATHER_REFRESH_ENABLED` | Variable | Set exactly `true` to enable weather snapshot refresh. |
+| `MET_NO_USER_AGENT` | Variable | Identifying public Met.no User-Agent for weather refresh. |
+
+Step summaries include run IDs, windows, and bounded counts only. They must not
+print provider payloads, service rows, or credentials.
+
 ### Protected configuration
 
 Configure these in the GitHub `production` environment:
@@ -81,8 +111,7 @@ completed and the step summary reports `retention_prune_failed` separately.
 
 ## Historical scheduled workflow
 
-`.github/workflows/scheduled-cron-jobs.yml` still documents weather,
-precomputation, cache, accuracy, and cleanup endpoint jobs. Story 12.1 removes
-the obsolete OSM-ingestion schedule, manual-dispatch option, and job as required
-by AC7; the remaining endpoint jobs keep their existing ownership. Do not copy
-their `CRON_SECRET` pattern into the direct hours audit.
+`.github/workflows/scheduled-cron-jobs.yml` still documents older weather,
+precomputation, accuracy, and cleanup endpoint jobs. Story 12.3 retired the
+cache warmer; do not reintroduce a public request warmer to keep normal list
+latency alive.

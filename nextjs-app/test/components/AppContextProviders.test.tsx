@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import { useEffect, type ReactNode } from 'react';
 import { addDaysToDateKey, stockholmDateKey } from '@/lib/utils/time-planner';
 
 /**
@@ -98,17 +98,57 @@ describe('AppContextProviders — `?_time=`/`?_date=` production gate', () => {
   it('honours `?_time=`/`?_date=` in development (forces the planner)', async () => {
     const { useSearchParams } = await renderUnderEnv('development');
 
-    expect(await screen.findByTestId('probe')).toHaveTextContent(
-      `${FORCED_DATE} ${FORCED_TIME}`,
+    await waitFor(() =>
+      expect(screen.getByTestId('probe')).toHaveTextContent(
+        `${FORCED_DATE} ${FORCED_TIME}`,
+      ),
     );
+    expect(useSearchParams).toHaveBeenCalled();
+  });
+
+  it('keeps the child tree mounted once while dev URL forcing syncs', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    const { useSearchParams } = await import('next/navigation');
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams(`_time=${FORCED_TIME}&_date=${FORCED_DATE}`) as ReturnType<
+        typeof useSearchParams
+      >,
+    );
+    const { AppContextProviders } = await import(
+      '@/components/custom/layout/AppContextProviders'
+    );
+    const mountSpy = vi.fn();
+    const unmountSpy = vi.fn();
+
+    function ChildProbe() {
+      useEffect(() => {
+        mountSpy();
+        return () => unmountSpy();
+      }, []);
+      return <span data-testid="child-probe">child</span>;
+    }
+
+    render(
+      <AppContextProviders>
+        <ChildProbe />
+      </AppContextProviders>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getAllByTestId('child-probe')).toHaveLength(1),
+    );
+    expect(mountSpy).toHaveBeenCalledTimes(1);
+    expect(unmountSpy).not.toHaveBeenCalled();
     expect(useSearchParams).toHaveBeenCalled();
   });
 
   it('honours `?_time=`/`?_date=` in preview/test (non-production keeps forcing)', async () => {
     const { useSearchParams } = await renderUnderEnv('test');
 
-    expect(await screen.findByTestId('probe')).toHaveTextContent(
-      `${FORCED_DATE} ${FORCED_TIME}`,
+    await waitFor(() =>
+      expect(screen.getByTestId('probe')).toHaveTextContent(
+        `${FORCED_DATE} ${FORCED_TIME}`,
+      ),
     );
     expect(useSearchParams).toHaveBeenCalled();
   });
@@ -131,8 +171,10 @@ describe('AppContextProviders — `?_time=`/`?_date=` production gate', () => {
   it('honours forcing for an arbitrary non-production env (e.g. preview)', async () => {
     const { useSearchParams } = await renderUnderEnv('preview');
 
-    expect(await screen.findByTestId('probe')).toHaveTextContent(
-      `${FORCED_DATE} ${FORCED_TIME}`,
+    await waitFor(() =>
+      expect(screen.getByTestId('probe')).toHaveTextContent(
+        `${FORCED_DATE} ${FORCED_TIME}`,
+      ),
     );
     expect(useSearchParams).toHaveBeenCalled();
   });
@@ -144,10 +186,12 @@ describe('AppContextProviders — `?_time=`/`?_date=` production gate', () => {
   it('honours `?_time=` alone in development (forces time, date falls back to today)', async () => {
     const { useSearchParams } = await renderUnderEnv('development', `_time=${FORCED_TIME}`);
 
-    const probe = await screen.findByTestId('probe');
     // Time IS forced; the forced 2026-07-01 date is NOT applied (no `_date`),
     // so the date resolves to today rather than the forced date.
-    expect(probe).toHaveTextContent(FORCED_TIME);
+    await waitFor(() =>
+      expect(screen.getByTestId('probe')).toHaveTextContent(FORCED_TIME),
+    );
+    const probe = screen.getByTestId('probe');
     expect(probe).not.toHaveTextContent(FORCED_DATE);
     expect(useSearchParams).toHaveBeenCalled();
   });

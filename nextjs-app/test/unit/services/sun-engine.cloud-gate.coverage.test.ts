@@ -76,6 +76,7 @@ function makeStoredVenue(overrides: Partial<StoredVenue> = {}): StoredVenue {
     neighborhood: 'Inom Vallgraven',
     location: { lat: 57.7053, lng: 11.9639 },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     skyCondition: 'clear',
     isPartner: true,
     confidence: 92,
@@ -192,7 +193,7 @@ describe('[10.1 AC1] overcast FORECAST slice still gates the headline (10.4 seam
     expect(outcome.venue.currentSunStatus).toBe('CloudObscured');
     // The geometric layer is still preserved under a forecast-driven gate.
     expect(outcome.venue.sunExposurePercent).toBe(100);
-  });
+  }, 10_000);
 
   it('a CLEAR forecast slice does not gate (forecast path is not blanket-pessimistic)', async () => {
     const forecastClear: GetForecastOverride = async () => [

@@ -7,8 +7,71 @@ const persistenceMock = vi.hoisted(() => ({
   persistVenueFeedback: vi.fn(async (feedback: FeedbackResponse) => feedback),
 }));
 
+const predictionMock = vi.hoisted(() => {
+  type PredictionState = {
+    predictedState: FeedbackResponse['predictedState'];
+    sunExposurePercent: number;
+    weatherGateState: 'gated' | 'not_gated' | 'unknown';
+    geometryInputHash: string;
+  };
+  const state: PredictionState = {
+    predictedState: 'Sunny',
+    sunExposurePercent: 82,
+    weatherGateState: 'not_gated',
+    geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  };
+  return {
+    state: { ...state },
+    buildPersistedSunOutcome: vi.fn(async (venue: Record<string, unknown>) => ({
+      venue: {
+        ...venue,
+        currentSunStatus: predictionMock.state.predictedState,
+        sunExposurePercent: predictionMock.state.sunExposurePercent,
+        weatherGateState: predictionMock.state.weatherGateState,
+        predictionEvidence: {
+          geometryInputHash: predictionMock.state.geometryInputHash,
+        },
+      },
+      freshness: { sunDataSource: 'weather' },
+    })),
+  };
+});
+
+const supabaseMocks = vi.hoisted(() => {
+  const state = {
+    venueRow: null as Record<string, unknown> | null,
+  };
+  const limit = vi.fn(async () => ({
+    data: state.venueRow === null ? [] : [state.venueRow],
+    error: null,
+  }));
+  const query = {
+    eq: vi.fn(() => query),
+    is: vi.fn(() => query),
+    limit,
+  };
+  const or = vi.fn(() => query);
+  const select = vi.fn(() => ({ or }));
+  const from = vi.fn((table: string) => {
+    if (table !== 'venues') throw new Error(`unexpected table ${table}`);
+    return { select };
+  });
+  return { state, from, select, or, eq: query.eq, is: query.is, limit };
+});
+
 vi.mock('@/lib/services/venue-feedback-persistence', () => ({
   persistVenueFeedback: persistenceMock.persistVenueFeedback,
+}));
+
+vi.mock('@/lib/services/sun-geometry-repository', () => ({
+  buildPersistedSunOutcome: predictionMock.buildPersistedSunOutcome,
+  SunGeometryCoverageMissingError: class SunGeometryCoverageMissingError extends Error {},
+}));
+
+vi.mock('@/lib/supabase/server', () => ({
+  getSupabaseServiceRole: () => ({
+    from: supabaseMocks.from,
+  }),
 }));
 
 function makeRequest(slug: string, body: unknown): NextRequest {
@@ -22,22 +85,62 @@ function makeRequest(slug: string, body: unknown): NextRequest {
 const VALID_BODY = {
   userTimestamp: '2026-06-07T12:00:00.000Z',
   predictedState: 'Sunny',
+  sunExposurePercent: 82,
+  publicSunVerdict: 'amber',
+  weatherGated: false,
+  weatherUnknown: false,
+  geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   confidenceAtPrediction: 92,
   wasSunny: true,
   outdoorSeatingConfirmed: true,
   note: 'Solen stämde.',
 };
 
+const LIVE_VENUE_ROW = {
+  id: '8',
+  slug: 'live-zero-review',
+  venue_name: 'Live Zero Review',
+  neighborhood: 'Centrum',
+  lat: 57.706,
+  lng: 11.971,
+  is_partner: false,
+  hidden: false,
+  current_sun_status: 'Sunny',
+  confidence: 82,
+  sun_exposure_percent: 71,
+  tags: [],
+};
+
+function useSupabaseVenueStore() {
+  vi.stubEnv('SUNNYSEAT_VENUE_STORE', 'supabase');
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
+  vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key');
+}
+
 describe('POST /api/venues/[slug]/feedback', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-07T12:05:00.000Z'));
+    vi.unstubAllEnvs();
     persistenceMock.persistVenueFeedback.mockClear();
     persistenceMock.persistVenueFeedback.mockImplementation(async (feedback) => feedback);
+    predictionMock.state.predictedState = 'Sunny';
+    predictionMock.state.sunExposurePercent = 82;
+    predictionMock.state.weatherGateState = 'not_gated';
+    predictionMock.state.geometryInputHash = VALID_BODY.geometryInputHash;
+    predictionMock.buildPersistedSunOutcome.mockClear();
+    supabaseMocks.state.venueRow = null;
+    supabaseMocks.from.mockClear();
+    supabaseMocks.select.mockClear();
+    supabaseMocks.or.mockClear();
+    supabaseMocks.eq.mockClear();
+    supabaseMocks.is.mockClear();
+    supabaseMocks.limit.mockClear();
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
 
   it('persists a valid fixture-backed feedback payload through the adapter', async () => {
@@ -70,9 +173,14 @@ describe('POST /api/venues/[slug]/feedback', () => {
     // path a detail view's predictedState can be 'CloudObscured', which
     // FeedbackFlow POSTs verbatim. The Zod enum must accept the full
     // VenueSunStatus union or the user sees a feedback-flow validation error.
+    predictionMock.state.predictedState = 'CloudObscured';
+    predictionMock.state.weatherGateState = 'gated';
+    predictionMock.state.sunExposurePercent = 82;
     const res = await POST(makeRequest('test-venue-sunny', {
       ...VALID_BODY,
       predictedState: 'CloudObscured',
+      publicSunVerdict: 'grey',
+      weatherGated: true,
     }), {
       params: Promise.resolve({ slug: 'test-venue-sunny' }),
     });
@@ -81,6 +189,8 @@ describe('POST /api/venues/[slug]/feedback', () => {
     await expect(res.json()).resolves.toMatchObject({ predictedState: 'CloudObscured' });
     expect(persistenceMock.persistVenueFeedback).toHaveBeenCalledWith(expect.objectContaining({
       predictedState: 'CloudObscured',
+      publicSunVerdict: 'grey',
+      weatherGated: true,
     }));
   });
 
@@ -92,6 +202,38 @@ describe('POST /api/venues/[slug]/feedback', () => {
     expect(res.status).toBe(201);
     const body = (await res.json()) as FeedbackResponse;
     expect(body.venueSlug).toBe('test-venue-sunny');
+  });
+
+  it('resolves live Supabase venue slugs and ids absent from fixtures before persistence', async () => {
+    useSupabaseVenueStore();
+    supabaseMocks.state.venueRow = LIVE_VENUE_ROW;
+
+    const bySlug = await POST(makeRequest('live-zero-review', VALID_BODY), {
+      params: Promise.resolve({ slug: 'live-zero-review' }),
+    });
+    expect(bySlug.status).toBe(201);
+    await expect(bySlug.json()).resolves.toMatchObject({
+      venueId: '8',
+      venueSlug: 'live-zero-review',
+    });
+
+    persistenceMock.persistVenueFeedback.mockClear();
+    const byId = await POST(makeRequest('8', {
+      ...VALID_BODY,
+      venueId: '8',
+      venueSlug: 'live-zero-review',
+    }), {
+      params: Promise.resolve({ slug: '8' }),
+    });
+    expect(byId.status).toBe(201);
+    await expect(byId.json()).resolves.toMatchObject({
+      venueId: '8',
+      venueSlug: 'live-zero-review',
+    });
+    expect(persistenceMock.persistVenueFeedback).toHaveBeenCalledWith(expect.objectContaining({
+      venueId: '8',
+      venueSlug: 'live-zero-review',
+    }));
   });
 
   it('rejects unknown venues with stable 404', async () => {
@@ -108,8 +250,10 @@ describe('POST /api/venues/[slug]/feedback', () => {
 
   it('rejects payloads without any feedback answer or note', async () => {
     const res = await POST(makeRequest('test-venue-sunny', {
-      userTimestamp: VALID_BODY.userTimestamp,
-      predictedState: 'Sunny',
+      ...VALID_BODY,
+      wasSunny: undefined,
+      outdoorSeatingConfirmed: undefined,
+      note: undefined,
     }), {
       params: Promise.resolve({ slug: 'test-venue-sunny' }),
     });
@@ -139,9 +283,9 @@ describe('POST /api/venues/[slug]/feedback', () => {
 
   it('accepts the explicit unsure sun answer and safe multiline notes', async () => {
     const res = await POST(makeRequest('test-venue-sunny', {
-      userTimestamp: VALID_BODY.userTimestamp,
-      predictedState: 'Sunny',
+      ...VALID_BODY,
       sunAccuracy: 'unsure',
+      wasSunny: undefined,
       note: 'Rad ett\r\nRad två',
     }), {
       params: Promise.resolve({ slug: 'test-venue-sunny' }),
@@ -156,9 +300,9 @@ describe('POST /api/venues/[slug]/feedback', () => {
 
   it('derives wasSunny for decisive sunAccuracy payloads before persistence', async () => {
     const res = await POST(makeRequest('test-venue-sunny', {
-      userTimestamp: VALID_BODY.userTimestamp,
-      predictedState: 'Sunny',
+      ...VALID_BODY,
       sunAccuracy: 'not_sunny',
+      wasSunny: undefined,
     }), {
       params: Promise.resolve({ slug: 'test-venue-sunny' }),
     });

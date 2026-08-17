@@ -1,11 +1,13 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import {
   Clock,
   Cloud,
   ExternalLink,
   Footprints,
   ImageIcon,
+  LoaderCircle,
   MapPin,
   Star,
   Sun,
@@ -13,21 +15,19 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { RouteButton } from '@/components/composed/routing/RouteButton';
 import { buildGoogleMapsSearchUrl } from '@/lib/services/routing';
-import type { SunFreshnessMeta, VenueDataDto, VenueDetailDto } from '@/lib/types/api';
+import type { VenueDataDto, VenueDetailDto } from '@/lib/types/api';
 import {
   formatVenueDistance,
-  formatVenueSunPercent,
   getVenueVisualMetadata,
 } from '@/lib/utils/venue-visual-metadata';
-import {
-  getConfidenceDisplayState,
-  type ConfidenceDisplayLabels,
-} from '@/lib/utils/confidence-display';
 import {
   isObscuredSunStatus,
   skyConditionCopy,
 } from '@/lib/utils/sun-status-presentation';
-import { formatOpeningHours } from '@/lib/utils/opening-hours';
+import { isVenuePubliclySunny } from '@/lib/utils/public-sun';
+import { formatOpeningHoursAt, getVenueAvailabilityAt } from '@/lib/utils/opening-hours';
+import { stockholmInstantFromDateTime } from '@/lib/utils/time-planner';
+import { selectVenueHeroImageUrl } from '@/lib/utils/venue-media';
 import { cn } from '@/lib/utils';
 
 export type VenueDetailContentLabels = {
@@ -42,14 +42,17 @@ export type VenueDetailContentLabels = {
    * row, composed from the current weekday's close. `{time}` is substituted with
    * today's close (HH:MM). */
   openUntilLine: string;
+  openAtSelectedUntilLine?: string;
+  openAtSelected?: string;
+  closedAtSelectedTime?: string;
   address: string;
   sunBadge: string;
+  /** Story 12.10: percentage-free grey hero badge copy for all public non-sunny
+   * states except CloudObscured, which keeps the explicit obscured treatment. */
+  notSunnyVerdict?: string;
   /** Story 10.2 (AC1): the muted "Sol bakom moln" hero headline shown when
    * the venue is CloudObscured. */
   obscuredHeadline?: string;
-  /** Story 10.2 (AC1/AC2): the muted hero badge for the obscured state —
-   * "{percent}% solläge" (position, not "% sol"). */
-  obscuredBadge?: string;
   /** Story 10.2 (AC3): plain-language sky descriptors + a "Himmel nu" label.
    * When the sky is unavailable, no sky line renders. Story 10.4 (AC2): adds the
    * rain descriptor. */
@@ -60,9 +63,6 @@ export type VenueDetailContentLabels = {
     overcast: string;
     rain: string;
   };
-  confidence: string;
-  confidenceApproximate: string;
-  confidenceUnavailable: string;
   city: string;
   openUntil: string;
   placeholderImageShort: string;
@@ -78,8 +78,9 @@ export type VenueDetailContentLabels = {
 export type VenueDetailContentProps = {
   fallbackVenue: VenueDataDto;
   detail?: VenueDetailDto;
-  confidenceMeta?: SunFreshnessMeta;
   currentTime: string;
+  selectedInstant?: Date;
+  isLivePlannerTime?: boolean;
   labels: VenueDetailContentLabels;
   /** Story 9.5 AC3 (folded into 9.9): the distance is centrum-relative (the
    * Gothenburg-centrum geolocation fallback), not a real personal fix — annotate
@@ -100,8 +101,9 @@ export type VenueDetailContentProps = {
 export function VenueDetailContent({
   fallbackVenue,
   detail,
-  confidenceMeta,
   currentTime,
+  selectedInstant,
+  isLivePlannerTime = true,
   labels,
   distanceIsApproximate = false,
   isLoading = false,
@@ -128,34 +130,38 @@ export function VenueDetailContent({
         rain: labels.sky.rain,
       })
     : null;
-  // Story 11.6 (AC1) / 11.9 (AC2): never fabricate a closing time. The badge's
-  // close + the Öppettider row's "Öppet till HH:MM" line are DERIVED at render time
-  // from the per-weekday `openingHours` for the CURRENT Stockholm weekday
-  // (`formatOpeningHours` — pure, injected `now`). While loading the badge is a
-  // same-box skeleton; a loaded detail that is closed today (or has no hours)
-  // yields no `closesAt` → the badge is OMITTED and the row falls back to
-  // `detailsUnavailable` rather than a stand-in "22:00".
-  const derivedHours = detail
-    ? formatOpeningHours(
+  // Story 12.14: opening copy is derived from the selected planner instant,
+  // not from the wall clock. The fallback keeps older isolated tests stable
+  // without reintroducing live time: production callers pass `selectedInstant`.
+  const effectiveSelectedInstant =
+    selectedInstant ?? stockholmInstantFromDateTime('2026-05-20', currentTime);
+  const availability = detail && effectiveSelectedInstant
+    ? getVenueAvailabilityAt(detail.openingHours, effectiveSelectedInstant)
+    : { state: 'unknown' as const };
+  const openLineTemplate = isLivePlannerTime
+    ? labels.openUntilLine
+    : (labels.openAtSelectedUntilLine ?? labels.openUntilLine);
+  const openBadgeTemplate = isLivePlannerTime
+    ? labels.openUntil
+    : (labels.openAtSelected ?? labels.openUntil);
+  const derivedHours = detail && effectiveSelectedInstant
+    ? formatOpeningHoursAt(
         detail.openingHours,
-        new Date(),
+        effectiveSelectedInstant,
         locale,
-        labels.openUntilLine,
+        openLineTemplate,
       )
     : {};
   const closesAt = derivedHours.closesAt;
+  const closedAtSelectedTimeLabel =
+    availability.state === 'closed' ? (labels.closedAtSelectedTime ?? labels.detailsUnavailable) : null;
   const isDesktop = mode === 'desktop';
-  const confidenceDisplay = getConfidenceDisplayState({
-    confidence: venue.confidence,
-    meta: confidenceMeta,
-    labels: confidenceDisplayLabels(labels),
-  });
 
   return (
     <article
       aria-busy={loading}
       aria-label={venue.venueName}
-      className={cn('bg-surface-cream text-text-primary', className)}
+      className={cn('relative bg-surface-cream text-text-primary', className)}
     >
       <HeroImage
         venue={venue}
@@ -164,6 +170,7 @@ export function VenueDetailContent({
         isDesktop={isDesktop}
         isObscured={isObscured}
         skyLine={skyLine}
+        locale={locale}
       />
       <div className={cn('px-6 pb-8', isDesktop ? 'space-y-5 pt-6' : 'space-y-4 pt-5')}>
         <header className="space-y-2">
@@ -183,7 +190,7 @@ export function VenueDetailContent({
                 ) : (
                   <span aria-hidden="true" className="size-2 rounded-pill bg-amber-badge-text" />
                 )}
-                {formatLabel(labels.openUntil, { time: closesAt })}
+                {formatLabel(openBadgeTemplate, { time: closesAt })}
               </span>
             ) : null}
           </div>
@@ -199,10 +206,9 @@ export function VenueDetailContent({
             </span>
             <span className="hidden text-text-faint lg:inline">·</span>
             <span className="hidden lg:inline">{metadata.price}</span>
-            <span className="sr-only">{confidenceDisplay.accessibleText}</span>
           </div>
           {loading ? (
-            <LoadingBlock label={labels.loading} />
+            <LoadingBlock />
           ) : null}
         </header>
 
@@ -270,7 +276,9 @@ export function VenueDetailContent({
               // Story 11.9 (AC2): the "Öppet till HH:MM" line is DERIVED for the
               // current weekday; closed-today / no-hours → the honest
               // detailsUnavailable copy (never a fabricated close).
-              <p>{derivedHours.display ?? labels.detailsUnavailable}</p>
+              <p>
+                {derivedHours.display ?? closedAtSelectedTimeLabel ?? labels.detailsUnavailable}
+              </p>
             )}
           </DetailRow>
 
@@ -312,6 +320,8 @@ export function VenueDetailContent({
 
         {reviewSlot}
       </div>
+      {loading ? <LoadingScrim /> : null}
+      {loading ? <LoadingStatus label={labels.loading} /> : null}
     </article>
   );
 }
@@ -323,6 +333,7 @@ function HeroImage({
   isDesktop,
   isObscured,
   skyLine,
+  locale,
 }: {
   venue: VenueDataDto;
   labels: VenueDetailContentLabels;
@@ -330,10 +341,36 @@ function HeroImage({
   isDesktop: boolean;
   isObscured: boolean;
   skyLine: string | null;
+  locale: string;
 }) {
   const thumbnail = venue.thumbnail;
   const alt = thumbnail?.alt?.trim() || labels.photoPlaceholder;
+  const imageUrl = selectVenueHeroImageUrl(thumbnail);
+  const [imageFailed, setImageFailed] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const shouldRenderImage = Boolean(imageUrl) && !imageFailed && !isLoading;
+  const isPubliclySunny = isVenuePubliclySunny(venue);
   const percentText = String(Math.round(venue.sunExposurePercent));
+  const sunnyBadgeLabel = formatLabel(labels.sunBadge, { percent: percentText });
+  const sunnyBadgeVisibleText = `${percentText}%`;
+  const notSunnyLabel = defaultNotSunnyVerdict(labels, locale);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageUrl]);
+
+  useEffect(() => {
+    const image = imageRef.current;
+    if (!image || !shouldRenderImage) return undefined;
+    const handleError = () => setImageFailed(true);
+    if (image.complete && image.naturalWidth === 0) {
+      handleError();
+      return undefined;
+    }
+    image.addEventListener('error', handleError);
+    return () => image.removeEventListener('error', handleError);
+  }, [imageUrl, shouldRenderImage]);
+
   return (
     <div
       className={cn(
@@ -346,8 +383,19 @@ function HeroImage({
           data-testid="venue-detail-skeleton"
           className="size-full rounded-none bg-surface-muted"
         />
+      ) : shouldRenderImage ? (
+        <img
+          data-testid="venue-detail-hero-photo"
+          ref={imageRef}
+          src={imageUrl}
+          alt={alt}
+          className="absolute inset-0 size-full object-cover"
+          loading={isDesktop ? 'eager' : 'lazy'}
+          decoding="async"
+        />
       ) : (
         <div
+          data-testid="venue-detail-hero-fallback"
           aria-label={alt}
           className="flex size-full flex-col items-center justify-center gap-3"
           role="img"
@@ -369,23 +417,28 @@ function HeroImage({
           under the gate. The geometric % value is unchanged. */}
       <div
         aria-label={
-          isObscured && labels.obscuredBadge
-            ? formatLabel(labels.obscuredBadge, { percent: percentText })
-            : formatLabel(labels.sunBadge, { percent: percentText })
+          isObscured
+            ? (labels.obscuredHeadline ?? 'Sol bakom moln')
+            : isPubliclySunny
+              ? sunnyBadgeLabel
+              : notSunnyLabel
         }
         className={cn(
           'absolute left-4 top-4 flex h-10 items-center justify-center gap-2 rounded-pill px-4 text-heading-lg backdrop-blur-standard shadow-subtle',
           isObscured
             ? 'bg-pin-obscured text-white'
-            : 'bg-amber-gold/90 text-amber-cta-text',
+            : isPubliclySunny
+              ? 'bg-amber-gold/90 text-amber-cta-text'
+              : 'bg-pin-shaded text-text-body',
         )}
+        role="img"
       >
-        {isObscured ? (
+        {isObscured || !isPubliclySunny ? (
           <Cloud aria-hidden="true" className="size-5" />
         ) : (
           <Sun aria-hidden="true" className="size-5 fill-current" />
         )}
-        {formatVenueSunPercent(venue.sunExposurePercent)}
+        {isPubliclySunny && !isObscured ? sunnyBadgeVisibleText : null}
       </div>
       {/* AC1/AC3: the muted "Sol bakom moln" headline + the plain-language sky
           line, only for the obscured state. `skyLine` is null when the DTO sky
@@ -463,9 +516,9 @@ function FactCard({
   );
 }
 
-function LoadingBlock({ label }: { label: string }) {
+function LoadingBlock() {
   return (
-    <div aria-label={label} className="space-y-2" role="status">
+    <div aria-hidden="true" className="space-y-2">
       <Skeleton
         data-testid="venue-detail-skeleton"
         className="h-5 w-full bg-surface-muted"
@@ -478,19 +531,44 @@ function LoadingBlock({ label }: { label: string }) {
   );
 }
 
+function LoadingScrim() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-bottom-sheet-peek flex items-center justify-center bg-text-primary/20 backdrop-blur-subtle"
+      data-testid="venue-detail-loading-scrim"
+    >
+      <LoaderCircle
+        aria-hidden="true"
+        className="size-8 text-text-primary motion-safe:animate-spin"
+        data-testid="venue-detail-loading-spinner"
+      />
+    </div>
+  );
+}
+
+function LoadingStatus({ label }: { label: string }) {
+  return (
+    <div
+      aria-label={label}
+      aria-live="polite"
+      className="sr-only"
+      data-testid="venue-detail-loading-status"
+      role="status"
+    >
+      {label}
+    </div>
+  );
+}
+
+function defaultNotSunnyVerdict(labels: VenueDetailContentLabels, locale: string): string {
+  if (labels.notSunnyVerdict) return labels.notSunnyVerdict;
+  return locale.startsWith('en') ? 'Not sunny at the selected time' : 'Inte soligt vid vald tid';
+}
+
 function formatLabel(template: string, values: Record<string, string>): string {
   return Object.entries(values).reduce(
     (label, [key, value]) => label.replaceAll(`{${key}}`, value),
     template,
   );
-}
-
-function confidenceDisplayLabels(
-  labels: VenueDetailContentLabels,
-): ConfidenceDisplayLabels {
-  return {
-    confidence: labels.confidence,
-    approximate: labels.confidenceApproximate,
-    unavailable: labels.confidenceUnavailable,
-  };
 }

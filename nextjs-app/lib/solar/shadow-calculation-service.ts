@@ -1,4 +1,5 @@
 import { supabaseServiceRole } from '@/lib/supabase/server';
+import { seatingCentroidWgs84 } from '@/lib/services/sun-geometry-coordinates';
 import { calculateSolarPosition } from './solar-calculation-service';
 import { extractObstructionRiskClasses, getObstructionRiskConfidenceCap } from './obstruction-risk';
 import {
@@ -512,13 +513,13 @@ async function fetchNearbyBuildings(
   venueGeometry: GeoJSON.Polygon,
   radiusDeg: number
 ): Promise<Building[] | null> {
-  const centroid = getCentroid(venueGeometry);
+  const centroid = seatingCentroidWgs84(venueGeometry);
 
   let response: Awaited<ReturnType<typeof supabaseServiceRole.rpc>>;
   try {
     response = await supabaseServiceRole.rpc('get_buildings_near_point', {
-      p_latitude: centroid[1],
-      p_longitude: centroid[0],
+      p_latitude: centroid.lat,
+      p_longitude: centroid.lng,
       p_radius_meters: radiusDeg * 111300,
     });
   } catch (error) {
@@ -637,19 +638,6 @@ function parseWkbHexPolygon(hex: string): GeoJSON.Polygon | null {
   } catch {
     return null;
   }
-}
-
-function getCentroid(polygon: GeoJSON.Polygon): [number, number] {
-  const ring = polygon.coordinates[0];
-  const n = ring.length - 1;
-  if (n === 0) return [0, 0];
-  let cx = 0;
-  let cy = 0;
-  for (let i = 0; i < n; i++) {
-    cx += ring[i][0];
-    cy += ring[i][1];
-  }
-  return [cx / n, cy / n];
 }
 
 function averageConfidence(shadows: ShadowProjection[]): number {

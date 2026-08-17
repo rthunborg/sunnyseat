@@ -1,0 +1,727 @@
+{
+  "capturedAt": "2026-07-19T14:37:08.603Z",
+  "results": [
+    {
+      "viewport": "mobile",
+      "screenId": "map-panel-venues",
+      "route": "/?_state=map-panel-venues&_time=14:00",
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\mobile\\map-panel-venues.png",
+        "exists": true,
+        "bytes": 535299,
+        "sha256": "5b168fac021deb8e0b3e9567fa9fa8d4adf4837fee772cceb1f26ade3e98d3c6",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        },
+        "sameSha256": true
+      },
+      "assertions": {
+        "details": {
+          "map visible": true,
+          "visible pin count": 7,
+          "visible venue-card count": 7,
+          "favourites/list retain primary sun-exposure value": true,
+          "mobile bottom sheet state": "mid",
+          "confidence absent from visible/sr/aria/title text": true,
+          "sun exposure retained somewhere when applicable": true
+        },
+        "failures": []
+      },
+      "url": "http://localhost:3000/?_state=map-panel-venues&_time=14:00",
+      "fileName": "mobile-map-panel-venues.png",
+      "outPath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-13-candidates\\20260719-163445\\mobile-map-panel-venues.png",
+      "htmlLang": "sv",
+      "status": "captured",
+      "confidenceMatches": [],
+      "events": {
+        "console": [
+          {
+            "type": "warning",
+            "text": "You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled"
+          },
+          {
+            "type": "warning",
+            "text": "[.WebGL-0x48e40351ec00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+          },
+          {
+            "type": "warning",
+            "text": "[.WebGL-0x48e40351ec00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+          },
+          {
+            "type": "warning",
+            "text": "[.WebGL-0x48e40351ec00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+          },
+          {
+            "type": "warning",
+            "text": "[.WebGL-0x48e40351ec00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          }
+        ],
+        "pageErrors": [],
+        "requestFailed": [
+          {
+            "method": "GET",
+            "url": "http://localhost:3000/api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-05-20&time=14%3A00",
+            "failure": "net::ERR_ABORTED"
+          }
+        ],
+        "httpErrors": []
+      },
+      "candidate": {
+        "bytes": 535299,
+        "sha256": "5b168fac021deb8e0b3e9567fa9fa8d4adf4837fee772cceb1f26ade3e98d3c6",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        }
+      }
+    },
+    {
+      "viewport": "mobile",
+      "screenId": "map-with-selected-venue",
+      "route": "/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00",
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\mobile\\map-with-selected-venue.png",
+        "exists": true,
+        "bytes": 720292,
+        "sha256": "d3f65d7ed9fa76267d481799bce725f5d8f0ab8fc0ef8e77066a8115c92144ba",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        },
+        "sameSha256": false
+      },
+      "assertions": {
+        "details": {
+          "map visible": true,
+          "visible pin count": 7,
+          "quick info visible": true,
+          "quick info retains sunny sun-exposure figure": true,
+          "confidence absent from visible/sr/aria/title text": true,
+          "sun exposure retained somewhere when applicable": true
+        },
+        "failures": []
+      },
+      "url": "http://localhost:3000/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00",
+      "fileName": "mobile-map-with-selected-venue.png",
+      "outPath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-13-candidates\\20260719-163445\\mobile-map-with-selected-venue.png",
+      "htmlLang": "sv",
+      "status": "captured",
+      "confidenceMatches": [],
+      "events": {
+        "console": [
+          {
+            "type": "warning",
+            "text": "You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled"
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          }
+        ],
+        "pageErrors": [],
+        "requestFailed": [],
+        "httpErrors": [
+          {
+            "status": 400,
+            "url": "http://localhost:3000/api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-05-20&time=14%3A00"
+          }
+        ]
+      },
+      "candidate": {
+        "bytes": 720291,
+        "sha256": "004d7fc41a55d37b50d9944d8d113bf1860e8ae97bcdd9f052f8164b3f591580",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        }
+      }
+    },
+    {
+      "viewport": "mobile",
+      "screenId": "favourites-tab",
+      "route": "/favoriter?_state=favourites-tab&_time=14:00",
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\mobile\\favourites-tab.png",
+        "exists": true,
+        "bytes": 570933,
+        "sha256": "1d12b31c8fcb4a2f116f2341c008d66896ff48760bb5f5597e5c1d8019b74c92",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        },
+        "sameSha256": false
+      },
+      "assertions": {
+        "details": {
+          "map visible": true,
+          "visible pin count": 7,
+          "visible venue-card count": 2,
+          "favourites/list retain primary sun-exposure value": true,
+          "confidence absent from visible/sr/aria/title text": true,
+          "sun exposure retained somewhere when applicable": true
+        },
+        "failures": []
+      },
+      "favourites": true,
+      "url": "http://localhost:3000/favoriter?_state=favourites-tab&_time=14:00",
+      "fileName": "mobile-favourites-tab.png",
+      "outPath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-13-candidates\\20260719-163445\\mobile-favourites-tab.png",
+      "htmlLang": "sv",
+      "status": "captured",
+      "confidenceMatches": [],
+      "events": {
+        "console": [
+          {
+            "type": "warning",
+            "text": "You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled"
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          }
+        ],
+        "pageErrors": [],
+        "requestFailed": [],
+        "httpErrors": [
+          {
+            "status": 400,
+            "url": "http://localhost:3000/api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-05-20&time=14%3A00"
+          }
+        ]
+      },
+      "candidate": {
+        "bytes": 568276,
+        "sha256": "eee2df4ddc89948bcedcf8f82d8aaa8481e0081b339d84411b137a1582425ba4",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        }
+      }
+    },
+    {
+      "viewport": "mobile",
+      "screenId": "venue-detail",
+      "route": "/?venue=test-venue-sunny&_state=venue-detail&_time=14:00",
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\mobile\\venue-detail.png",
+        "exists": true,
+        "bytes": 275995,
+        "sha256": "5ba211f13af3e4e5927f4b0cc5100be36fd8210d7a1e30e034f600314c08cc42",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        },
+        "sameSha256": false
+      },
+      "assertions": {
+        "details": {
+          "map visible": true,
+          "visible pin count": 7,
+          "mobile detail visible": true,
+          "sunny detail retains sun-exposure figure": true,
+          "detail skeleton absent": true,
+          "confidence absent from visible/sr/aria/title text": true,
+          "sun exposure retained somewhere when applicable": true
+        },
+        "failures": []
+      },
+      "url": "http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=14:00",
+      "fileName": "mobile-venue-detail.png",
+      "outPath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-13-candidates\\20260719-163445\\mobile-venue-detail.png",
+      "htmlLang": "sv",
+      "status": "captured",
+      "confidenceMatches": [],
+      "events": {
+        "console": [
+          {
+            "type": "warning",
+            "text": "You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled"
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          }
+        ],
+        "pageErrors": [],
+        "requestFailed": [
+          {
+            "method": "GET",
+            "url": "http://localhost:3000/api/venues/test-venue-sunny?date=2026-07-19&time=14%3A00&lat=57.7089&lng=11.9746",
+            "failure": "net::ERR_ABORTED"
+          },
+          {
+            "method": "GET",
+            "url": "http://localhost:3000/api/reviews?venueId=test-venue-sunny",
+            "failure": "net::ERR_ABORTED"
+          }
+        ],
+        "httpErrors": [
+          {
+            "status": 400,
+            "url": "http://localhost:3000/api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-05-20&time=14%3A00"
+          }
+        ]
+      },
+      "candidate": {
+        "bytes": 276034,
+        "sha256": "77730bda52d0161675fdeef649658c0b44f6795022c77faed0664e6dc801a7f9",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        }
+      }
+    },
+    {
+      "viewport": "mobile",
+      "screenId": "venue-detail-obscured",
+      "route": "/?venue=test-venue-sunny&_state=venue-detail-obscured&_time=14:00",
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\mobile\\venue-detail-obscured.png",
+        "exists": true,
+        "bytes": 265846,
+        "sha256": "ac25a55c467977207bf2420ef15af37ae3866bbef3ce5fc92f4cd2c2378a1a50",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        },
+        "sameSha256": false
+      },
+      "assertions": {
+        "details": {
+          "map visible": true,
+          "visible pin count": 7,
+          "mobile detail visible": true,
+          "obscured sky copy visible": true,
+          "obscured detail percentage-free": true,
+          "detail skeleton absent": true,
+          "confidence absent from visible/sr/aria/title text": true,
+          "sun exposure retained somewhere when applicable": true
+        },
+        "failures": []
+      },
+      "url": "http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail-obscured&_time=14:00",
+      "fileName": "mobile-venue-detail-obscured.png",
+      "outPath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-13-candidates\\20260719-163445\\mobile-venue-detail-obscured.png",
+      "htmlLang": "sv",
+      "status": "captured",
+      "confidenceMatches": [],
+      "events": {
+        "console": [
+          {
+            "type": "warning",
+            "text": "You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled"
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          }
+        ],
+        "pageErrors": [],
+        "requestFailed": [
+          {
+            "method": "GET",
+            "url": "http://localhost:3000/api/venues/test-venue-sunny?date=2026-07-19&time=14%3A00&lat=57.7089&lng=11.9746",
+            "failure": "net::ERR_ABORTED"
+          },
+          {
+            "method": "GET",
+            "url": "http://localhost:3000/api/reviews?venueId=test-venue-sunny",
+            "failure": "net::ERR_ABORTED"
+          }
+        ],
+        "httpErrors": [
+          {
+            "status": 400,
+            "url": "http://localhost:3000/api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-05-20&time=14%3A00"
+          }
+        ]
+      },
+      "candidate": {
+        "bytes": 265204,
+        "sha256": "58a62f69a652991b70ab40a71f1fd94f742cae56c336bae042200404f1eee028",
+        "dimensions": {
+          "width": 780,
+          "height": 1688
+        }
+      }
+    },
+    {
+      "viewport": "desktop",
+      "screenId": "map-primary",
+      "route": "/?_time=16:30",
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\desktop\\map-primary.png",
+        "exists": true,
+        "bytes": 2871680,
+        "sha256": "073294af904d6f65163eceeefd6be492b5308333bf874f86f0cef7d0a1b36ec4",
+        "dimensions": {
+          "width": 2880,
+          "height": 1800
+        },
+        "sameSha256": true
+      },
+      "assertions": {
+        "details": {
+          "map visible": true,
+          "visible pin count": 7,
+          "venue list text visible": true,
+          "desktop venue panel visible": true,
+          "confidence absent from visible/sr/aria/title text": true,
+          "sun exposure retained somewhere when applicable": false
+        },
+        "failures": []
+      },
+      "url": "http://localhost:3000/?_time=16:30",
+      "fileName": "desktop-map-primary.png",
+      "outPath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-13-candidates\\20260719-163445\\desktop-map-primary.png",
+      "htmlLang": "sv",
+      "status": "captured",
+      "confidenceMatches": [],
+      "events": {
+        "console": [
+          {
+            "type": "warning",
+            "text": "You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled"
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          }
+        ],
+        "pageErrors": [
+          "Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\nhttps://react.dev/link/hydration-mismatch\n\n  ...\n    <RedirectBoundary>\n      <RedirectErrorBoundary router={{...}}>\n        <InnerLayoutRouter url=\"/?_time=16:30\" tree={[...]} params={{locale:\"sv\"}} cacheNode={{rsc:{...}, ...}} ...>\n          <SegmentViewNode type=\"page\" pagePath=\"[locale]/p...\">\n            <SegmentTrieNode>\n            <Home>\n              <MapViewDynamic>\n              <OnboardingGateWithSuspense>\n                <Suspense fallback={null}>\n                  <OnboardingGateInner>\n                    <OnboardingScreen onDismiss={function OnboardingGateInner[handleDismiss]} ...>\n                      <motion.div role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"onboarding...\" ...>\n                        <div\n+                         role=\"dialog\"\n-                         role={null}\n+                         aria-modal=\"true\"\n-                         aria-modal={null}\n+                         aria-labelledby=\"onboarding-headline\"\n-                         aria-labelledby={null}\n+                         data-testid=\"onboarding-screen\"\n-                         data-testid={null}\n+                         data-phase=\"visible\"\n-                         data-phase={null}\n+                         className=\"fixed inset-0 z-toast gradient-onboarding text-white flex flex-col px-8 py-16 ove...\"\n-                         className={null}\n+                         style={{opacity:0}}\n-                         style={{display:\"contents\"}}\n                          ref={function useMotionRef.useCallback}\n-                         data-onboarding-inline-frame=\"\"\n-                         aria-hidden=\"true\"\n-                         inert=\"\"\n                        >\n                          <div\n+                           aria-hidden=\"true\"\n-                           aria-hidden={null}\n+                           className=\"absolute left-1/2 -top-10 w-[340px] h-[340px] -translate-x-1/2 rounded-full opa...\"\n-                           className=\"fixed inset-0 z-toast gradient-onboarding text-white flex flex-col px-8 py-16 o...\"\n-                           role=\"dialog\"\n-                           aria-modal=\"true\"\n-                           aria-labelledby=\"onboarding-headline\"\n-                           data-testid=\"onboarding-screen\"\n-                           data-phase=\"visible\"\n-                           style={{opacity:\"0\"}}\n                          >\n-                           <div\n-                             aria-hidden=\"true\"\n-                             className=\"absolute left-1/2 -top-10 w-[340px] h-[340px] -translate-x-1/2 rounded-full o...\"\n-                           >\n-                           <div\n-                             aria-hidden=\"true\"\n-                             className=\"absolute -left-32 -bottom-32 w-[480px] h-[480px] rounded-full pointer-events-...\"\n-                           >\n-                           <div\n-                             className=\"mt-5 lg:mt-0 flex justify-center items-center gap-2 font-display font-extrabo...\"\n-                           >\n-                           <div\n-                             className=\"flex-1 lg:flex-none flex flex-col justify-center items-center relative z-10 t...\"\n-                             style={{opacity:\"0\",transform:\"translateY...\"}}\n-                           >\n-                           <div\n-                             className=\"relative z-10 lg:w-full lg:max-w-md\"\n-                             style={{opacity:\"0\",transform:\"translateY...\"}}\n-                           >\n                          ...\n          ...\n        ...\n"
+        ],
+        "requestFailed": [
+          {
+            "method": "GET",
+            "url": "http://localhost:3000/api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-05-20&time=16%3A30",
+            "failure": "net::ERR_ABORTED"
+          }
+        ],
+        "httpErrors": []
+      },
+      "candidate": {
+        "bytes": 2871680,
+        "sha256": "073294af904d6f65163eceeefd6be492b5308333bf874f86f0cef7d0a1b36ec4",
+        "dimensions": {
+          "width": 2880,
+          "height": 1800
+        }
+      }
+    },
+    {
+      "viewport": "desktop",
+      "screenId": "favourites-tab",
+      "route": "/favoriter?_state=favourites-tab&_time=14:00",
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\desktop\\favourites-tab.png",
+        "exists": true,
+        "bytes": 2557247,
+        "sha256": "4f98f31c4ef9e178b0364dbbaeae8fa0c4443680f204d81698b5cbbc3554aac2",
+        "dimensions": {
+          "width": 2880,
+          "height": 1800
+        },
+        "sameSha256": true
+      },
+      "assertions": {
+        "details": {
+          "map visible": true,
+          "visible pin count": 7,
+          "favourites/list retain primary sun-exposure value": true,
+          "venue list text visible": true,
+          "confidence absent from visible/sr/aria/title text": true,
+          "sun exposure retained somewhere when applicable": false
+        },
+        "failures": []
+      },
+      "favourites": true,
+      "url": "http://localhost:3000/favoriter?_state=favourites-tab&_time=14:00",
+      "fileName": "desktop-favourites-tab.png",
+      "outPath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-13-candidates\\20260719-163445\\desktop-favourites-tab.png",
+      "htmlLang": "sv",
+      "status": "captured",
+      "confidenceMatches": [],
+      "events": {
+        "console": [
+          {
+            "type": "warning",
+            "text": "You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled"
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          }
+        ],
+        "pageErrors": [],
+        "requestFailed": [],
+        "httpErrors": [
+          {
+            "status": 400,
+            "url": "http://localhost:3000/api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-05-20&time=14%3A00"
+          }
+        ]
+      },
+      "candidate": {
+        "bytes": 2557247,
+        "sha256": "4f98f31c4ef9e178b0364dbbaeae8fa0c4443680f204d81698b5cbbc3554aac2",
+        "dimensions": {
+          "width": 2880,
+          "height": 1800
+        }
+      }
+    },
+    {
+      "viewport": "desktop",
+      "screenId": "venue-detail",
+      "route": "/?venue=test-venue-sunny&_state=venue-detail&_time=16:30",
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\desktop\\venue-detail.png",
+        "exists": true,
+        "bytes": 2389545,
+        "sha256": "05f3321ce879b0b52710dc2b6b973a21f3270bea16b3640653e96fde830f723e",
+        "dimensions": {
+          "width": 2880,
+          "height": 1800
+        },
+        "sameSha256": true
+      },
+      "assertions": {
+        "details": {
+          "map visible": true,
+          "visible pin count": 7,
+          "desktop detail visible": true,
+          "sunny detail retains sun-exposure figure": true,
+          "detail skeleton absent": true,
+          "confidence absent from visible/sr/aria/title text": true,
+          "sun exposure retained somewhere when applicable": false
+        },
+        "failures": []
+      },
+      "url": "http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail&_time=16:30",
+      "fileName": "desktop-venue-detail.png",
+      "outPath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-13-candidates\\20260719-163445\\desktop-venue-detail.png",
+      "htmlLang": "sv",
+      "status": "captured",
+      "confidenceMatches": [],
+      "events": {
+        "console": [
+          {
+            "type": "warning",
+            "text": "You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled"
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          }
+        ],
+        "pageErrors": [],
+        "requestFailed": [
+          {
+            "method": "GET",
+            "url": "http://localhost:3000/api/venues/test-venue-sunny?date=2026-07-19&time=16%3A30&lat=57.7089&lng=11.9746",
+            "failure": "net::ERR_ABORTED"
+          },
+          {
+            "method": "GET",
+            "url": "http://localhost:3000/api/reviews?venueId=test-venue-sunny",
+            "failure": "net::ERR_ABORTED"
+          }
+        ],
+        "httpErrors": [
+          {
+            "status": 400,
+            "url": "http://localhost:3000/api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-05-20&time=16%3A30"
+          }
+        ]
+      },
+      "candidate": {
+        "bytes": 2389545,
+        "sha256": "05f3321ce879b0b52710dc2b6b973a21f3270bea16b3640653e96fde830f723e",
+        "dimensions": {
+          "width": 2880,
+          "height": 1800
+        }
+      }
+    },
+    {
+      "viewport": "desktop",
+      "screenId": "venue-detail-obscured",
+      "route": "/?venue=test-venue-sunny&_state=venue-detail-obscured&_time=16:30",
+      "reference": {
+        "path": "C:\\Users\\Rasmus\\sunnyseat\\nextjs-app\\docs\\design\\references\\screens\\desktop\\venue-detail-obscured.png",
+        "exists": true,
+        "bytes": 2364049,
+        "sha256": "7c510fb51fa542c4e57ad12630ac739e60f5408680503b5c0d5ed1ca6b18f802",
+        "dimensions": {
+          "width": 2880,
+          "height": 1800
+        },
+        "sameSha256": false
+      },
+      "assertions": {
+        "details": {
+          "map visible": true,
+          "visible pin count": 7,
+          "desktop detail visible": true,
+          "obscured sky copy visible": true,
+          "obscured detail percentage-free": true,
+          "detail skeleton absent": true,
+          "confidence absent from visible/sr/aria/title text": true,
+          "sun exposure retained somewhere when applicable": true
+        },
+        "failures": []
+      },
+      "url": "http://localhost:3000/?venue=test-venue-sunny&_state=venue-detail-obscured&_time=16:30",
+      "fileName": "desktop-venue-detail-obscured.png",
+      "outPath": "C:\\Users\\Rasmus\\sunnyseat\\_bmad-output\\implementation-artifacts\\validation\\story-12-13-candidates\\20260719-163445\\desktop-venue-detail-obscured.png",
+      "htmlLang": "sv",
+      "status": "captured",
+      "confidenceMatches": [],
+      "events": {
+        "console": [
+          {
+            "type": "warning",
+            "text": "You have Reduced Motion enabled on your device. Animations may not appear as expected.. For more information and steps for solving, visit https://motion.dev/troubleshooting/reduced-motion-disabled"
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          },
+          {
+            "type": "warning",
+            "text": "Expected value to be of type number, but found null instead."
+          }
+        ],
+        "pageErrors": [],
+        "requestFailed": [
+          {
+            "method": "GET",
+            "url": "http://localhost:3000/api/venues/test-venue-sunny?date=2026-07-19&time=16%3A30&lat=57.7089&lng=11.9746",
+            "failure": "net::ERR_ABORTED"
+          },
+          {
+            "method": "GET",
+            "url": "http://localhost:3000/api/reviews?venueId=test-venue-sunny",
+            "failure": "net::ERR_ABORTED"
+          }
+        ],
+        "httpErrors": [
+          {
+            "status": 400,
+            "url": "http://localhost:3000/api/venues?lat=57.7089&lng=11.9746&radiusKm=1.5&date=2026-05-20&time=16%3A30"
+          }
+        ]
+      },
+      "candidate": {
+        "bytes": 2365810,
+        "sha256": "f17a896333dd594099f9053179cf7e4884371bb60bfe72dc0a54a1b844c2895b",
+        "dimensions": {
+          "width": 2880,
+          "height": 1800
+        }
+      }
+    }
+  ]
+}

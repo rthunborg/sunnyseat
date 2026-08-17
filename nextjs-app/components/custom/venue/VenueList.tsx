@@ -4,8 +4,9 @@ import { useMemo } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { VenueCard, VenueCardSkeleton } from '@/components/composed/venue/VenueCard';
 import type { VenueListSortMode } from '@/components/composed/venue/VenueListControls';
-import type { SunFreshnessMeta, VenueDataDto } from '@/lib/types/api';
-import { getConfidenceDisplayState } from '@/lib/utils/confidence-display';
+import type { VenueDataDto } from '@/lib/types/api';
+import type { VenueAvailabilityState } from '@/lib/utils/opening-hours';
+import { compareVenuesByPublicSun, isVenuePubliclySunny } from '@/lib/utils/public-sun';
 import { getVenueVisualMetadata } from '@/lib/utils/venue-visual-metadata';
 import { cn } from '@/lib/utils';
 
@@ -19,8 +20,6 @@ export type VenueListProps = {
   animateCards?: boolean;
   sortMode?: VenueListSortMode;
   compactCards?: boolean;
-  confidenceMeta?: SunFreshnessMeta;
-  showVisibleConfidence?: boolean;
   /**
    * Story 9.5 AC3: when the origin is the Gothenburg-centrum fallback (no real
    * personal fix), the distances are centrum-relative, not from the user. The
@@ -31,6 +30,7 @@ export type VenueListProps = {
   locationIsApproximate?: boolean;
   onFavouriteToggle?: (venue: VenueDataDto) => void;
   isFavourite?: (id: string) => boolean;
+  availabilityByVenueId?: Record<string, VenueAvailabilityState>;
 };
 
 export function VenueList({
@@ -41,11 +41,10 @@ export function VenueList({
   animateCards = false,
   sortMode = 'sun',
   compactCards,
-  confidenceMeta,
-  showVisibleConfidence = true,
   locationIsApproximate = false,
   onFavouriteToggle,
   isFavourite,
+  availabilityByVenueId,
 }: VenueListProps) {
   const t = useTranslations('venue.list');
   const locale = useLocale();
@@ -80,15 +79,7 @@ export function VenueList({
       {sortedVenues.map((venue, index) => {
         const sunTimeRange = resolveSunTimeRange(venue, t('sun'));
         const isObscured = venue.currentSunStatus === 'CloudObscured';
-        const confidenceDisplay = getConfidenceDisplayState({
-          confidence: venue.confidence,
-          meta: confidenceMeta,
-          labels: {
-            confidence: t('confidence'),
-            approximate: t('confidenceApproximate'),
-            unavailable: t('confidenceUnavailable'),
-          },
-        });
+        const availabilityState = availabilityByVenueId?.[venue.id];
         // Story 10.2 (AC4 — obscured phrase EXACTLY once): the obscured card's
         // accessible name is built HERE in ONE place via `cardAriaObscured`
         // (which folds in "sol bakom moln just nu") rather than the plain
@@ -102,7 +93,6 @@ export function VenueList({
           : t('cardAria', {
               name: venue.venueName,
               sun: sunTimeRange ?? t('sunUnavailable'),
-              confidence: confidenceDisplay.accessibleText,
               distance: formatDistance(venue.distanceMeters),
             });
         return (
@@ -111,17 +101,16 @@ export function VenueList({
             name={venue.venueName}
             neighborhood={venue.neighborhood}
             sunTimeRange={sunTimeRange}
-            confidencePercent={venue.confidence}
-            confidenceMeta={confidenceMeta}
             distanceMeters={venue.distanceMeters}
             distanceIsApproximate={locationIsApproximate}
             sunExposurePercent={venue.sunExposurePercent}
             thumbnail={venue.thumbnail}
             isSunny={isVenueSunnyForList(venue)}
+            weatherGateState={venue.weatherGateState}
             isObscured={isObscured}
+            availabilityState={availabilityState}
             visualMetadata={getVenueVisualMetadata(venue, locale)}
             compact={compact}
-            showVisibleConfidence={showVisibleConfidence}
             staggerIndex={index}
             animateIn={animateCards}
             labels={{
@@ -131,12 +120,11 @@ export function VenueList({
               favouriteRemove: t('favouriteRemove'),
               sun: t('sun'),
               photoPlaceholder: t('photoPlaceholder'),
-              confidence: t('confidence'),
-              confidenceApproximate: t('confidenceApproximate'),
-              confidenceUnavailable: t('confidenceUnavailable'),
               distance: t('distance'),
               distanceApproximate: t('distanceApproximate'),
               sunUnavailable: t('sunUnavailable'),
+              weatherUnavailable: t('weatherUnavailable'),
+              closedAtSelectedTime: t('closedAtSelectedTime'),
               statusMostlyShade: t('statusMostlyShade'),
               statusFullSun: t('statusFullSun'),
               statusPartialSun: t('statusPartialSun'),
@@ -165,51 +153,16 @@ export function sortVenuesForList(
     if (sortMode === 'distance') {
       return sortableDistance(a.distanceMeters) - sortableDistance(b.distanceMeters);
     }
-    const sunDelta = getVenueSunRankForList(b) - getVenueSunRankForList(a);
-    if (sunDelta !== 0) return sunDelta;
-    return sortableDistance(a.distanceMeters) - sortableDistance(b.distanceMeters);
+    return compareVenuesByPublicSun(a, b);
   });
 }
 
 export function isVenueSunnyForList(venue: VenueDataDto): boolean {
-  // Story 10.2: "amber-sunny" is the geometric sunny/partial tier ONLY. A
-  // CloudObscured venue is NOT amber (its rank is derived from solläge below,
-  // not the fixed Sunny/Partial rungs), so this stays false for obscured and
-  // the card's amber-vs-muted decision is driven off the separate obscured
-  // signal, not this predicate.
-  if (venue.currentSunStatus === 'CloudObscured') return false;
-  return getVenueSunRankForList(venue) > 0;
-}
-
-export function getVenueSunRankForList(venue: VenueDataDto): number {
-  switch (venue.currentSunStatus) {
-    case 'Sunny':
-      return 2;
-    case 'Partial':
-      return 1;
-    // Story 10.2 (AC2 + the 10.1 hand-off): a weather-gated CloudObscured
-    // venue is geometrically Sunny/Partial underneath, but that tier is not
-    // recoverable from `currentSunStatus` once gated. Rank it by the honest
-    // geometric solläge (`sunExposurePercent`) that survives the gate, mapped
-    // into the same [0, 2] ordering space as Sunny(2)/Partial(1)/Shaded(0):
-    // rank = (sunExposurePercent / 100) * 2. So a 95%-solläge obscured venue
-    // (→ 1.9) out-ranks a Partial (1) — "Mest sol" still ranks by solläge
-    // under an overcast sky — while a low-solläge obscured venue sinks toward
-    // Shaded. Non-obscured ordering is unchanged (byte-identical clear-sky
-    // list). Assert RELATIVE ordering only (epic-10 re-tune-survives convention).
-    case 'CloudObscured': {
-      const percent = Number.isFinite(venue.sunExposurePercent)
-        ? Math.max(0, Math.min(100, venue.sunExposurePercent))
-        : 0;
-      return (percent / 100) * 2;
-    }
-    default:
-      return 0;
-  }
+  return isVenuePubliclySunny(venue);
 }
 
 function resolveSunTimeRange(venue: VenueDataDto, sunLabel: string): string | undefined {
-  if (!venue.sunWindow) return undefined;
+  if (!isVenuePubliclySunny(venue) || !venue.sunWindow) return undefined;
   return `${sunLabel} ${venue.sunWindow.start}-${venue.sunWindow.end}`;
 }
 

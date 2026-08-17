@@ -7,17 +7,61 @@
 // "every route" but only 2 of 26+ Screen IDs are reachable today.
 // Rationale for the impact filter is documented in `helpers/axe.ts`.
 
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { runAxe, formatViolations } from './helpers/axe';
-import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { arrangeVenuePhotoMedia } from './helpers/venue-photo-media';
+
+const APPROVED_CARD_PATH =
+  '/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07/card.webp';
+const APPROVED_HERO_PATH =
+  '/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07/hero.webp';
+const APPROVED_PHOTO_ORIGINS = [
+  'https://hhnbxrhfhlzxgllxukzj.supabase.co',
+  'https://sunnyseat.supabase.co',
+] as const;
+
+async function bypassOnboarding(page: Page) {
+  await page.addInitScript(
+    ({ onboardedKey, guideSeenKey }) => {
+      window.localStorage.clear();
+      window.localStorage.setItem(onboardedKey, '1');
+      window.localStorage.setItem(guideSeenKey, '1');
+    },
+    { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+  );
+}
+
+async function expectImageLoaded(locator: ReturnType<Page['getByTestId']>) {
+  await expect(locator).toHaveJSProperty('naturalWidth', 64);
+}
+
+async function expectApprovedVenuePhotoUrl(
+  locator: ReturnType<Page['getByTestId']>,
+  expectedPath: typeof APPROVED_CARD_PATH | typeof APPROVED_HERO_PATH,
+  expectedOrigin?: string,
+): Promise<string> {
+  const src = await locator.getAttribute('src');
+  expect(src).toBeTruthy();
+  const url = new URL(src as string);
+  expect(url.protocol).toBe('https:');
+  expect(APPROVED_PHOTO_ORIGINS).toContain(url.origin);
+  expect(url.pathname).toBe(expectedPath);
+  if (expectedOrigin) expect(url.origin).toBe(expectedOrigin);
+  return url.origin;
+}
 
 test.describe('axe-core a11y gate', () => {
   test('a11y: map-primary (/)', async ({ page }) => {
     // Bypass onboarding so axe sees the underlying map shell, not the
     // overlay (the overlay is exercised by the dedicated sweep below).
-    await page.addInitScript((key: string) => {
-      window.localStorage.setItem(key, '1');
-    }, ONBOARDED_FLAG_KEY);
+    await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 
     await page.goto('/');
     await page.waitForLoadState('networkidle');
@@ -27,11 +71,15 @@ test.describe('axe-core a11y gate', () => {
   });
 
   test('a11y: map selected venue QuickInfo', async ({ page }) => {
-    await page.addInitScript((key: string) => {
-      window.localStorage.setItem(key, '1');
-    }, ONBOARDED_FLAG_KEY);
+    await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 
-    await page.goto('/?venue=test-venue-sunny&_state=map-with-selected-venue');
+    await page.goto('/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00');
     await page.locator('[data-testid="venue-pin"]').first().waitFor({ state: 'visible' });
     await page.locator('[data-testid="venue-quick-info"]:visible').waitFor({ state: 'visible' });
     const violations = await runAxe(page);
@@ -44,9 +92,13 @@ test.describe('axe-core a11y gate', () => {
   // contrast is a CI gate rather than a manual claim. Desktop viewport covers
   // the obscured quick-info + the obscured venue-detail overlay.
   test('a11y: map obscured venue QuickInfo (/?_state=map-with-obscured-venue)', async ({ page }) => {
-    await page.addInitScript((key: string) => {
-      window.localStorage.setItem(key, '1');
-    }, ONBOARDED_FLAG_KEY);
+    await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 
     await page.goto('/?_state=map-with-obscured-venue');
     await page.locator('[data-testid="venue-pin"]').first().waitFor({ state: 'visible' });
@@ -57,14 +109,82 @@ test.describe('axe-core a11y gate', () => {
   });
 
   test('a11y: obscured venue detail (/?_state=venue-detail-obscured)', async ({ page }) => {
-    await page.addInitScript((key: string) => {
-      window.localStorage.setItem(key, '1');
-    }, ONBOARDED_FLAG_KEY);
+    await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 
     await page.goto('/?venue=test-venue-sunny&_state=venue-detail-obscured');
     await page.locator('[data-testid="desktop-venue-detail-panel"]:visible').waitFor({ state: 'visible' });
     await page.locator('[data-testid="venue-detail-obscured"]:visible').waitFor({ state: 'visible' });
     const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test('a11y: venue photo loaded card, desktop QuickInfo, and detail', async ({ page }) => {
+    await bypassOnboarding(page);
+    await arrangeVenuePhotoMedia(page, 'venue-photo-loaded');
+
+    await page.goto('/?_state=venue-photo-loaded&_time=16:30');
+    const targetCard = page.locator('[data-testid="venue-card"]:visible', {
+      hasText: /Kaf[eé] Magasinet/i,
+    }).first();
+    await targetCard.waitFor({ state: 'visible' });
+    const approvedOrigin = await expectApprovedVenuePhotoUrl(
+      targetCard.getByTestId('venue-card-photo'),
+      APPROVED_CARD_PATH,
+    );
+    await expectImageLoaded(targetCard.getByTestId('venue-card-photo'));
+    await targetCard.click();
+    const quickInfo = page.locator('[data-testid="venue-quick-info"]:visible').first();
+    await quickInfo.waitFor({ state: 'visible' });
+    await expectApprovedVenuePhotoUrl(
+      quickInfo.getByTestId('venue-quick-info-photo'),
+      APPROVED_CARD_PATH,
+      approvedOrigin,
+    );
+    await expectImageLoaded(quickInfo.getByTestId('venue-quick-info-photo'));
+    let violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+
+    await page.goto('/?venue=test-venue-sunny&_state=venue-photo-loaded&_time=16:30');
+    const detailPanel = page.getByTestId('desktop-venue-detail-panel');
+    await detailPanel.waitFor({ state: 'visible' });
+    await expectApprovedVenuePhotoUrl(
+      detailPanel.getByTestId('venue-detail-hero-photo'),
+      APPROVED_HERO_PATH,
+      approvedOrigin,
+    );
+    await expectImageLoaded(detailPanel.getByTestId('venue-detail-hero-photo'));
+    violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test('a11y: venue photo fallback card, desktop QuickInfo, and detail', async ({ page }) => {
+    await bypassOnboarding(page);
+    await arrangeVenuePhotoMedia(page, 'venue-photo-fallback');
+
+    await page.goto('/?_state=venue-photo-fallback&_time=16:30');
+    const targetCard = page.locator('[data-testid="venue-card"]:visible', {
+      hasText: /Kaf[eé] Magasinet/i,
+    }).first();
+    await targetCard.waitFor({ state: 'visible' });
+    await expect(targetCard.getByTestId('venue-card-photo-fallback')).toHaveCount(1);
+    await targetCard.click();
+    const quickInfo = page.locator('[data-testid="venue-quick-info"]:visible').first();
+    await quickInfo.waitFor({ state: 'visible' });
+    await expect(quickInfo.getByTestId('venue-quick-info-photo-fallback')).toHaveCount(1);
+    let violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+
+    await page.goto('/?venue=test-venue-sunny&_state=venue-photo-fallback&_time=16:30');
+    const detailPanel = page.getByTestId('desktop-venue-detail-panel');
+    await detailPanel.waitFor({ state: 'visible' });
+    await detailPanel.getByTestId('venue-detail-hero-fallback').waitFor({ state: 'visible' });
+    violations = await runAxe(page);
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
@@ -75,14 +195,46 @@ test.describe('axe-core a11y gate', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
+  test('a11y: coach-mark first step desktop (/?_state=coach-mark-first)', async ({ page }) => {
+    await bypassOnboarding(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?_state=coach-mark-first&_time=16:30');
+    await page.getByTestId('coach-tour-dialog').waitFor({ state: 'visible' });
+    await expect(page.getByTestId('coach-tour-dialog')).toHaveAttribute(
+      'data-reduced-motion',
+      'true',
+    );
+    await expect(page.getByTestId('coach-tour-step-pin-legend')).toBeVisible();
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
+  test('a11y: coach-mark middle step desktop (/?_state=coach-mark-middle)', async ({ page }) => {
+    await bypassOnboarding(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?_state=coach-mark-middle&_time=16:30');
+    await page.getByTestId('coach-tour-dialog').waitFor({ state: 'visible' });
+    await expect(page.getByTestId('coach-tour-dialog')).toHaveAttribute(
+      'data-reduced-motion',
+      'true',
+    );
+    await expect(page.getByTestId('coach-tour-step-time-slider')).toBeVisible();
+    const violations = await runAxe(page);
+    expect(violations, formatViolations(violations)).toEqual([]);
+  });
+
   // Story 3.4 Task 5.4 — Epic 3 visit-loop surfaces: venue detail, route
   // overlay, feedback prompt, and review form (forced states per the Screen
   // ID → Route Map in project-context.md).
 
   test('a11y: venue detail (/?venue=test-venue-sunny&_state=venue-detail)', async ({ page }) => {
-    await page.addInitScript((key: string) => {
-      window.localStorage.setItem(key, '1');
-    }, ONBOARDED_FLAG_KEY);
+    await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 
     await page.goto('/?venue=test-venue-sunny&_state=venue-detail');
     await page.locator('[data-testid="desktop-venue-detail-panel"]:visible').waitFor({ state: 'visible' });
@@ -91,16 +243,20 @@ test.describe('axe-core a11y gate', () => {
   });
 
   test('a11y: route overlay after Visa Rutt', async ({ page }) => {
-    await page.addInitScript((key: string) => {
-      window.localStorage.setItem(key, '1');
-    }, ONBOARDED_FLAG_KEY);
+    await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
     // Stub the native-map handoff so the runner never leaves the app and
     // the overlay's blocked-handoff fallback state stays on screen.
     await page.addInitScript(() => {
       window.open = () => null;
     });
 
-    await page.goto('/?venue=test-venue-sunny&_state=map-with-selected-venue');
+    await page.goto('/?venue=test-venue-sunny&_state=map-with-selected-venue&_time=14:00');
     await page.locator('[data-testid="venue-quick-info"]:visible').waitFor({ state: 'visible' });
     await page
       .locator('[data-testid="venue-quick-info"]:visible')
@@ -112,9 +268,13 @@ test.describe('axe-core a11y gate', () => {
   });
 
   test('a11y: feedback prompt (/?venue=test-venue-sunny&_state=feedback)', async ({ page }) => {
-    await page.addInitScript((key: string) => {
-      window.localStorage.setItem(key, '1');
-    }, ONBOARDED_FLAG_KEY);
+    await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 
     await page.goto('/?venue=test-venue-sunny&_state=feedback');
     await page.locator('[data-testid="feedback-prompt"]:visible').waitFor({ state: 'visible' });
@@ -123,9 +283,13 @@ test.describe('axe-core a11y gate', () => {
   });
 
   test('a11y: review form (/?venue=test-venue-sunny&_state=review)', async ({ page }) => {
-    await page.addInitScript((key: string) => {
-      window.localStorage.setItem(key, '1');
-    }, ONBOARDED_FLAG_KEY);
+    await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 
     await page.goto('/?venue=test-venue-sunny&_state=review');
     await page.locator('[data-testid="review-form-desktop"]:visible').waitFor({ state: 'visible' });
@@ -133,28 +297,19 @@ test.describe('axe-core a11y gate', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
-  // Story 7.1 — the About page is the first standalone scrolling content
-  // route. It (and its privacy sub-page) must pass the gate too.
-  //
-  // FAST-FOLLOW (maintainer decision, 2026-06-29 — Epic 7 close-out): both the
-  // About and Privacy pages currently fail color-contrast on ONE shared
-  // element — the content-page footer wordmark (`text-text-muted` #938e81 on
-  // the cream surface #fdfaf4, 16px bold) is 3.13:1 vs the WCAG 1.4.3 AA 4.5:1
-  // threshold (SERIOUS). This is PRE-EXISTING design-token debt, not page
-  // logic, and was deliberately designated a post-launch fast-follow rather
-  // than an MVP launch gate. The rest of each page is axe-clean. These two
-  // scans are `test.fixme` (not deleted) so the coverage intent is recorded;
-  // flip them back to `test` once the footer token meets 4.5:1. Tracked in
-  // deferred-work.md, targeted at Story 5.1 / a focused a11y pass. (The mobile
-  // venue-card amber-label contrast debt is handled the same way in
-  // axe-mobile.spec.ts.)
-  test.fixme('a11y: about page (/about)', async ({ page }) => {
+  // Story 12.8 resolves the About footer contrast debt and makes the
+  // standalone route executable in the a11y gate. Privacy still carries the
+  // same pre-existing footer debt and remains explicitly tracked as fixme.
+  test('a11y: about page (/about)', async ({ page }) => {
     await page.goto('/about');
     await page.getByTestId('about-page').waitFor({ state: 'visible' });
     const violations = await runAxe(page);
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
+  // FAST-FOLLOW (maintainer decision, 2026-06-29 — Epic 7 close-out): privacy
+  // currently fails color contrast on its footer wordmark (`text-text-muted`).
+  // Leave this unrelated debt alone for Story 12.8.
   test.fixme('a11y: privacy page (/sekretess)', async ({ page }) => {
     await page.goto('/sekretess');
     await page.getByTestId('privacy-page').waitFor({ state: 'visible' });
@@ -174,9 +329,13 @@ test.describe('axe-core a11y gate', () => {
   // Story 3.4 review R1-P7 — the localized venue-detail not-found/error
   // notice is its own interactive surface and must pass the gate too.
   test('a11y: venue detail not-found notice (/?venue=<invalid slug>)', async ({ page }) => {
-    await page.addInitScript((key: string) => {
-      window.localStorage.setItem(key, '1');
-    }, ONBOARDED_FLAG_KEY);
+    await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 
     await page.goto('/?venue=this-venue-does-not-exist');
     await page.getByTestId('venue-detail-error').waitFor({ state: 'visible' });
@@ -189,9 +348,13 @@ test.describe('axe-core a11y gate', () => {
   // data, regardless of real network state. The mobile-viewport variant is
   // covered by the `a11y-mobile` project (axe-mobile.spec.ts / Task 8.5).
   test('a11y: offline shell (/?_state=map-primary-offline)', async ({ page }) => {
-    await page.addInitScript((key: string) => {
-      window.localStorage.setItem(key, '1');
-    }, ONBOARDED_FLAG_KEY);
+    await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 
     await page.goto('/?_state=map-primary-offline');
     await page.getByTestId('offline-banner').waitFor({ state: 'visible' });

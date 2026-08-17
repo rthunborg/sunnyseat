@@ -162,27 +162,23 @@ describe('<VenueList />', () => {
     expect(card).not.toHaveTextContent('MEST SKUGGA');
   });
 
-  it('renders API-backed confidence metadata in venue cards', () => {
+  it('does not render API-backed confidence metadata in venue cards', () => {
     render(
       <VenueList
         venues={[makeVenue({ id: 'sun-near', name: 'Sol Nära', status: 'Sunny', distanceMeters: 120 })]}
         mode="mobile"
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: new Date().toISOString(),
-        }}
         onSelectVenue={vi.fn()}
       />,
       { wrapper: Wrapper },
     );
 
-    // Story 9.1: the visible confidence chip stays; confidence appears once in
-    // the button accessible name and the duplicated "Säkerhet:" sr-only is gone.
-    expect(screen.getByTestId('venue-card')).toHaveTextContent('90%');
-    expect(screen.getByTestId('venue-card')).not.toHaveTextContent('Säkerhet: 90%');
-    const selectButton = screen.getByRole('button', { name: /Säkerhet 90%/ });
+    // Story 12.13: API confidence remains internal and is not visible or
+    // announced in the list card accessible name.
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('85% sol');
+    expect(screen.getByTestId('venue-card')).not.toHaveTextContent('Säkerhet');
+    const selectButton = screen.getByRole('button', { name: /Välj Sol Nära/ });
     expect(selectButton).toBeInTheDocument();
-    expect(selectButton.getAttribute('aria-label')?.match(/Säkerhet/g)).toHaveLength(1);
+    expect(selectButton).not.toHaveAccessibleName(/Säkerhet/);
   });
 
   it('does not surface prediction-uncertainty metadata on list cards (Story 9.1 de-bloat)', () => {
@@ -201,10 +197,6 @@ describe('<VenueList />', () => {
           }),
         ]}
         mode="mobile"
-        confidenceMeta={{
-          sunDataSource: 'weather',
-          weatherUpdatedAt: new Date().toISOString(),
-        }}
         onSelectVenue={vi.fn()}
       />,
       { wrapper: Wrapper },
@@ -310,6 +302,7 @@ function makeVenue({
     neighborhood: 'Centrum',
     location: { lat: 57.7, lng: 11.97 },
     currentSunStatus: status,
+    weatherGateState: 'not_gated',
     isPartner: false,
     confidence: status === 'Sunny' ? 90 : 40,
     distanceMeters,

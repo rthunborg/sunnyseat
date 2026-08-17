@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { persistVenueFeedback } from '@/lib/services/venue-feedback-persistence';
-import { VENUE_FIXTURE } from '@/lib/services/venues-fixture';
+import {
+  isSafePublicVenueIdentifier,
+  resolvePublicVenueIdentifier,
+} from '@/lib/services/venue-store';
+import {
+  buildPersistedSunOutcome,
+  SunGeometryCoverageMissingError,
+} from '@/lib/services/sun-geometry-repository';
+import { publicSunVerdictFor } from '@/lib/utils/public-sun';
 import type {
   FeedbackResponse,
   FeedbackSunAccuracy,
   SubmitFeedbackRequest,
   VenueSunStatus,
+  WeatherGateState,
 } from '@/lib/types/api';
 
 type RouteContext = {
@@ -14,7 +23,10 @@ type RouteContext = {
 };
 
 const NOTE_MAX_LENGTH = 500;
-const UNSAFE_CONTROL_CHARACTER_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u;
+const VENUE_IDENTIFIER_MAX_LENGTH = 120;
+const UNSAFE_NOTE_CONTROL_CHARACTER_PATTERN =
+  /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u;
+const GEOMETRY_INPUT_HASH_PATTERN = /^g1:[0-9a-f]{64}$/u;
 // STORY 10 review [Patch][High]: `predictedState` MUST accept the FULL
 // VenueSunStatus union — on the live real-engine path a detail view's
 // `predictedState` can be `'CloudObscured'` (weather-gated), and that value is
@@ -35,10 +47,19 @@ const PREDICTED_STATES = Object.keys(PREDICTED_STATE_MEMBERS) as [VenueSunStatus
 const SUN_ACCURACY_VALUES = ['sunny', 'not_sunny', 'unsure'] as const satisfies FeedbackSunAccuracy[];
 
 const feedbackSchema = z.object({
-  venueId: z.string().trim().min(1).max(80).optional(),
-  venueSlug: z.string().trim().min(1).max(120).optional(),
+  venueId: z.string().trim().min(1).max(80)
+    .refine(isSafePublicVenueIdentifier, 'venueId contains invalid control characters')
+    .optional(),
+  venueSlug: z.string().trim().min(1).max(120)
+    .refine(isSafePublicVenueIdentifier, 'venueSlug contains invalid control characters')
+    .optional(),
   userTimestamp: z.iso.datetime({ offset: true }),
   predictedState: z.enum(PREDICTED_STATES),
+  sunExposurePercent: z.number().int().min(0).max(100),
+  publicSunVerdict: z.enum(['amber', 'grey']),
+  weatherGated: z.boolean(),
+  weatherUnknown: z.boolean(),
+  geometryInputHash: z.string().regex(GEOMETRY_INPUT_HASH_PATTERN),
   confidenceAtPrediction: z.number().min(0).max(100).optional(),
   sunAccuracy: z.enum(SUN_ACCURACY_VALUES).optional(),
   wasSunny: z.boolean().optional(),
@@ -60,11 +81,30 @@ const feedbackSchema = z.object({
       message: 'At least one feedback answer or note is required',
     });
   }
-  if (value.note && UNSAFE_CONTROL_CHARACTER_PATTERN.test(value.note)) {
+  if (value.note && UNSAFE_NOTE_CONTROL_CHARACTER_PATTERN.test(value.note)) {
     ctx.addIssue({
       code: 'custom',
       path: ['note'],
       message: 'note contains invalid control characters',
+    });
+  }
+  if (value.weatherGated && value.weatherUnknown) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['weatherGated'],
+      message: 'weatherGated and weatherUnknown cannot both be true',
+    });
+  }
+  const weatherGateState = weatherGateStateFromFeedbackEvidence(value);
+  const expectedVerdict = publicSunVerdictFor({
+    sunExposurePercent: value.sunExposurePercent,
+    weatherGateState,
+  });
+  if (value.publicSunVerdict !== expectedVerdict) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['publicSunVerdict'],
+      message: 'publicSunVerdict does not match prediction evidence',
     });
   }
   if (
@@ -87,13 +127,21 @@ export async function POST(request: NextRequest, context: RouteContext) {
   } catch {
     return jsonError('Invalid venue identifier', 400);
   }
+  if (
+    identifier.length > VENUE_IDENTIFIER_MAX_LENGTH ||
+    !isSafePublicVenueIdentifier(identifier)
+  ) {
+    return jsonError('Invalid venue identifier', 400);
+  }
 
-  const venue = VENUE_FIXTURE.find((candidate) =>
-    candidate.id === identifier ||
-    candidate.venueId === identifier ||
-    candidate.slug === identifier ||
-    candidate.venueSlug === identifier,
-  );
+  let venue;
+  try {
+    // Fixture mode fallback is centralized in the Story 12.7 resolver. This route
+    // never does route-local VENUE_FIXTURE matching in live mode.
+    venue = await resolvePublicVenueIdentifier(identifier);
+  } catch {
+    return jsonError('Venue store unavailable', 503);
+  }
   if (!venue) return jsonError(`Venue not found: ${identifier}`, 404);
 
   let rawBody: unknown;
@@ -123,6 +171,31 @@ export async function POST(request: NextRequest, context: RouteContext) {
   if (body.venueSlug && body.venueSlug !== venue.slug && body.venueSlug !== venue.venueSlug) {
     return jsonError('Body venueSlug does not match path venue', 409);
   }
+  let predictionEvidence: PredictionEvidence;
+  try {
+    const requestedAt = new Date(body.userTimestamp);
+    const outcome = await buildPersistedSunOutcome(venue, requestedAt, new Date());
+    predictionEvidence = {
+      predictedState: outcome.venue.currentSunStatus,
+      sunExposurePercent: outcome.venue.sunExposurePercent,
+      weatherGated: outcome.venue.weatherGateState === 'gated',
+      weatherUnknown: outcome.venue.weatherGateState === 'unknown',
+      geometryInputHash: outcome.venue.predictionEvidence?.geometryInputHash,
+      publicSunVerdict: publicSunVerdictFor(outcome.venue),
+    };
+  } catch (error) {
+    if (error instanceof SunGeometryCoverageMissingError) {
+      return jsonError('Current prediction evidence unavailable', 503);
+    }
+    throw error;
+  }
+  if (!isCompletePredictionEvidence(predictionEvidence)) {
+    return jsonError('Current prediction evidence unavailable', 503);
+  }
+  if (!feedbackMatchesServerPrediction(body, predictionEvidence)) {
+    return jsonError('Feedback prediction evidence is stale or invalid', 409);
+  }
+
   const wasSunny = body.wasSunny ?? wasSunnyFromSunAccuracy(body.sunAccuracy);
 
   const response: FeedbackResponse = {
@@ -130,7 +203,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     venueId: venue.id,
     venueSlug: venue.slug,
     userTimestamp: body.userTimestamp,
-    predictedState: body.predictedState,
+    predictedState: predictionEvidence.predictedState,
+    sunExposurePercent: predictionEvidence.sunExposurePercent,
+    publicSunVerdict: predictionEvidence.publicSunVerdict,
+    weatherGated: predictionEvidence.weatherGated,
+    weatherUnknown: predictionEvidence.weatherUnknown,
+    geometryInputHash: predictionEvidence.geometryInputHash,
     ...(body.sunAccuracy !== undefined ? { sunAccuracy: body.sunAccuracy } : {}),
     ...(wasSunny !== undefined ? { wasSunny } : {}),
     ...(body.outdoorSeatingConfirmed !== undefined
@@ -165,4 +243,39 @@ function wasSunnyFromSunAccuracy(
   if (sunAccuracy === 'sunny') return true;
   if (sunAccuracy === 'not_sunny') return false;
   return undefined;
+}
+
+function weatherGateStateFromFeedbackEvidence(
+  value: Pick<SubmitFeedbackRequest, 'weatherGated' | 'weatherUnknown'>,
+): WeatherGateState {
+  if (value.weatherGated) return 'gated';
+  if (value.weatherUnknown) return 'unknown';
+  return 'not_gated';
+}
+
+type PredictionEvidence = {
+  predictedState: VenueSunStatus;
+  sunExposurePercent: number;
+  publicSunVerdict: SubmitFeedbackRequest['publicSunVerdict'];
+  weatherGated: boolean;
+  weatherUnknown: boolean;
+  geometryInputHash: string | undefined;
+};
+
+function isCompletePredictionEvidence(
+  evidence: PredictionEvidence,
+): evidence is PredictionEvidence & { geometryInputHash: string } {
+  return GEOMETRY_INPUT_HASH_PATTERN.test(evidence.geometryInputHash ?? '');
+}
+
+function feedbackMatchesServerPrediction(
+  body: SubmitFeedbackRequest,
+  evidence: PredictionEvidence & { geometryInputHash: string },
+): boolean {
+  return body.predictedState === evidence.predictedState &&
+    body.sunExposurePercent === evidence.sunExposurePercent &&
+    body.publicSunVerdict === evidence.publicSunVerdict &&
+    body.weatherGated === evidence.weatherGated &&
+    body.weatherUnknown === evidence.weatherUnknown &&
+    body.geometryInputHash === evidence.geometryInputHash;
 }

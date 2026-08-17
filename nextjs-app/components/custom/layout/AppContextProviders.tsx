@@ -1,6 +1,9 @@
 'use client';
 
-import { Suspense, type ReactNode } from 'react';
+import {
+  Suspense,
+  type ReactNode,
+} from 'react';
 import { useSearchParams } from 'next/navigation';
 import { MapInstanceProvider } from '@/lib/contexts/MapInstanceContext';
 import { MapSelectionProvider } from '@/lib/contexts/MapSelectionContext';
@@ -8,6 +11,7 @@ import { TimeProvider } from '@/lib/contexts/TimeContext';
 import { FavouritesProvider } from '@/lib/contexts/FavouritesContext';
 import { GeolocationProvider } from '@/hooks/useGeolocation';
 import { SettingsProvider } from '@/lib/contexts/SettingsContext';
+import { FirstRunGuideProvider } from '@/lib/contexts/FirstRunGuideContext';
 import { TagFilterProvider } from '@/lib/contexts/TagFilterContext';
 import { SettingsModalRoot } from '@/components/custom/settings/SettingsModalRoot';
 
@@ -42,12 +46,12 @@ export function AppContextProviders({ children }: { children: ReactNode }) {
         <MapInstanceProvider>
           <MapSelectionProvider>
             <SettingsProvider>
-              <Suspense fallback={<DefaultTimeProviders>{children}</DefaultTimeProviders>}>
+              <FirstRunGuideProvider>
                 <SearchParamTimeProviders>{children}</SearchParamTimeProviders>
-              </Suspense>
-              {/* One mount point for the settings + app-feedback modals, openable
-                  from the desktop nav and the mobile map controls. */}
-              <SettingsModalRoot />
+                {/* One mount point for the settings + app-feedback modals, openable
+                    from the desktop nav and the mobile map controls. */}
+                <SettingsModalRoot />
+              </FirstRunGuideProvider>
             </SettingsProvider>
           </MapSelectionProvider>
         </MapInstanceProvider>
@@ -78,6 +82,14 @@ function SearchParamTimeProviders({ children }: { children: ReactNode }) {
 }
 
 function DevSearchParamTimeProviders({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={null}>
+      <DevSearchParamTimeProvidersResolved>{children}</DevSearchParamTimeProvidersResolved>
+    </Suspense>
+  );
+}
+
+function DevSearchParamTimeProvidersResolved({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   const forcedDate = searchParams.get('_date') ?? undefined;
   const forcedTime = searchParams.get('_time') ?? undefined;

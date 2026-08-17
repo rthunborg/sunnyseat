@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, type ReactNode } from 'react';
-import { ChevronRight, Info, MessageSquare, X } from 'lucide-react';
+import { ChevronRight, Info, Map, MessageSquare, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Link } from '@/i18n/navigation';
@@ -27,10 +27,12 @@ export function SettingsModal({
   open,
   onClose,
   onOpenFeedback,
+  onOpenGuide,
 }: {
   open: boolean;
   onClose: () => void;
   onOpenFeedback: () => void;
+  onOpenGuide: (restoreFocusElement?: HTMLElement | null) => void;
 }) {
   const t = useTranslations('common.settings');
   const shouldReduceMotion = useReducedMotion() ?? false;
@@ -98,6 +100,19 @@ export function SettingsModal({
                 <MessageSquare aria-hidden="true" className="size-[18px]" />
               </RowIcon>
               <RowText title={t('feedbackTitle')} sub={t('feedbackSubtitle')} />
+              <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-text-muted" />
+            </button>
+
+            <button
+              type="button"
+              onClick={(event) => onOpenGuide(event.currentTarget)}
+              data-testid="settings-row-guide"
+              className={ROW_CLASS}
+            >
+              <RowIcon>
+                <Map aria-hidden="true" className="size-[18px]" />
+              </RowIcon>
+              <RowText title={t('guideTitle')} sub={t('guideSubtitle')} />
               <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-text-muted" />
             </button>
 

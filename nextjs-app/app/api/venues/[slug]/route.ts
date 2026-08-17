@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
 import {
-  getVenueBySlug,
+  resolvePublicVenueIdentifier,
   storedVenueDetail,
   toVenueData,
   type StoredVenueDetail,
@@ -16,10 +16,13 @@ import {
   resolveFixtureSunFreshness,
 } from '@/lib/services/weather-freshness-fixture';
 import {
-  applyRealSunEngine,
   resolveRequestedAt,
   shouldUseRealSunEngine,
 } from '@/lib/services/sun-engine';
+import {
+  buildPersistedSunOutcome,
+  SunGeometryCoverageMissingError,
+} from '@/lib/services/sun-geometry-repository';
 import { badRequest } from '@/lib/utils/api-errors';
 import { greatCircleMeters } from '@/lib/utils/geo';
 import { formatPlannerTime, parsePlannerTime } from '@/lib/utils/time-planner';
@@ -41,6 +44,7 @@ type RouteContext = {
 
 type DetailTimelineProjection = {
   peakTime?: string;
+  peakWeatherGateState?: 'not_gated' | 'unknown';
   windowStatus?: VenueDataDto['currentSunStatus'];
 };
 
@@ -69,11 +73,11 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       { status: 400 },
     );
   }
-  const stored = await getVenueBySlug(decodedSlug);
+  const stored = await resolvePublicVenueIdentifier(decodedSlug);
 
   if (!stored) {
     return NextResponse.json(
-      { detail: `Venue not found: ${decodedSlug}`, status: 404 },
+      { detail: 'Venue not found', status: 404 },
       { status: 404 },
     );
   }
@@ -90,12 +94,38 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
   if (useRealEngine) {
     const requestedAt = resolveRequestedAt(planner.selection, now);
-    const outcome = await applyRealSunEngine(stored, requestedAt, now);
+    let outcome;
+    try {
+      outcome = await buildPersistedSunOutcome(stored, requestedAt, now);
+    } catch (error) {
+      if (error instanceof SunGeometryCoverageMissingError) {
+        return NextResponse.json(
+          {
+            error: 'Sun geometry coverage missing',
+            code: 'SUN_GEOMETRY_COVERAGE_MISSING',
+            detail: 'Missing current geometry coverage for the requested venue/date/hash.',
+            statusCode: 503,
+          },
+          {
+            status: 503,
+            headers: {
+              'Cache-Control': 'no-store',
+              'X-Sun-Geometry-Coverage': 'missing',
+            },
+          },
+        );
+      }
+      throw error;
+    }
     freshness = outcome.freshness;
-    const base = withDetailDistance(outcome.venue, coordinates.value);
+    const { sunDaySeries: _sunDaySeries, ...venueWithoutSeries } = outcome.venue;
+    const base = withDetailDistance(venueWithoutSeries, coordinates.value);
     adjustedVenue = normalizeVenueForResponse(base);
     timelineProjection = {
       ...(outcome.peakTime ? { peakTime: outcome.peakTime } : {}),
+      ...(outcome.peakWeatherGateState
+        ? { peakWeatherGateState: outcome.peakWeatherGateState }
+        : {}),
       windowStatus: adjustedVenue.currentSunStatus,
     };
   } else {
@@ -159,12 +189,16 @@ function buildDetailDto(
   // is now ONLY the live timeline-derived engine/planner value. No surface loses a
   // real value (the fixture fallback was a stored-column echo, not a computed one).
   const peakTime = timelineProjection?.peakTime;
+  const peakWeatherGateState = timelineProjection?.peakWeatherGateState;
   const sunWindow = venue.sunWindow
     ? [
         {
           start: venue.sunWindow.start,
           end: venue.sunWindow.end,
           status: timelineWindowStatus,
+          ...(venue.sunWindow.weatherGateState
+            ? { weatherGateState: venue.sunWindow.weatherGateState }
+            : {}),
         },
       ]
     : [];
@@ -187,6 +221,7 @@ function buildDetailDto(
       range: { start: '06:00', end: '21:00' },
       windows: sunWindow,
       ...(peakTime ? { peakTime } : {}),
+      ...(peakWeatherGateState ? { peakWeatherGateState } : {}),
     },
   };
 }
@@ -243,6 +278,9 @@ function timelineProjectionFromAdjustedVenue(
 ): DetailTimelineProjection {
   return {
     peakTime: peakTimeFromSunWindow(venue.sunWindow),
+    ...(venue.sunWindow?.weatherGateState
+      ? { peakWeatherGateState: venue.sunWindow.weatherGateState }
+      : {}),
     windowStatus: venue.currentSunStatus,
   };
 }

@@ -43,6 +43,146 @@ If a re-baseline is left undocumented, future dev agents will assume the active 
 
 ## Entries
 
+### 2026-08-06 — `map-selected-time-open` / `map-selected-time-closed` (mobile + desktop) — Story 12.14 selected-time visual routes
+
+**Trigger:** Story 12.14 added selected-instant availability states that have no Claude Design prototype recipe or active reference PNGs: open discovery filtering and retained closed favourite/search rows.
+
+**Resolution:** No reference PNG was promoted by the dev agent. Added route-map and state-mapping documentation only, with active implementation-derived PNG promotion deferred until explicit maintainer approval.
+
+**Source of new PNG (if any):** n/a
+
+**Recipe change (if any):** Added `map-selected-time-open` and `map-selected-time-closed` rows to `project-context.md` and documented them in `nextjs-app/docs/design/references/claude-design/STATE-MAPPING.md`. Code-review follow-up on 2026-08-07 changed `map-selected-time-closed` from the favourites-only route to `/?_state=map-selected-time-closed&_time=09:00&_search=Kaf%C3%A9%20Magasinet`; the dev-forcing path now seeds the exact closed search result so the same mapped state covers closed discovery exclusion plus retained labelled exact search.
+
+**Follow-up recipe note:** Added an inline `capture-claude-design-refs.mjs` comment recording that these two screen IDs are implementation-derived and must not be regenerated from the Claude MVP prototype without maintainer approval.
+
+**Verification:** Pending final Story 12.14 validation. On this Windows host, project-context documents the legacy visual screenshot bug; use the provider-neutral manual path rather than promoting unapproved PNGs.
+
+**Reason / spec link:** Story 12.14 AC9 requires mobile and desktop selected-time visual coverage, while `project-context.md` forbids dev agents from self-blessing reference PNGs without maintainer approval.
+
+**Re-evaluation trigger:** Promote active PNGs only after explicit maintainer approval, or revisit if the visual provider becomes Windows-portable and the selected-time states receive approved references.
+
+### 2026-07-27 — `about` (mobile + desktop) — Story 12.8 approved providerless rebaseline
+
+**Trigger:** Story 12.8 added the About page pin legend and "Hur säkra är vi?" accuracy reframe, so the active About references were stale. The legacy visual wrappers failed before comparison because `ANTHROPIC_API_KEY` is not set.
+
+**Resolution:** Rasmus explicitly approved Story 12.8 visual acceptance on 2026-07-27 (`Approved: Story 12.8 visual acceptance`). Promoted exactly the approved full-page mobile and desktop implementation candidates to the canonical About references. The focused mobile legend capture remains supporting evidence only and was not substituted for the full-page mobile reference.
+
+**Changed PNGs (2):**
+- `nextjs-app/docs/design/references/screens/mobile/about.png`
+- `nextjs-app/docs/design/references/screens/desktop/about.png`
+
+**Source of new PNG:** Human-approved implementation candidates:
+- `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-mobile-candidate.png` -> `mobile/about.png` (viewport 390x844, full-page PNG 390x2811)
+- `_bmad-output/implementation-artifacts/validation/12-8-about-page-about-desktop-candidate.png` -> `desktop/about.png` (viewport 1440x900, full-page PNG 1440x2254)
+
+**Old -> new SHA-256:**
+- `mobile/about`: `e973813581f21e0a34ab5a1877629211658197fa149aa0dda4c26dc81ce35858` -> `f922544e7b128ed31f5b1e40d7f67bd769a2edb790354692959508d694af5e07`
+- `desktop/about`: `5a5644e0f47271c86c673e3aee199e49f652b038383e1970c4882a307d81c565` -> `1189595045c8ecc4f9ebfd96d0aff8dcab265958a10b0d243a2eeae28d34c77c`
+
+**Supporting evidence retained, not promoted:**
+- `_bmad-output/implementation-artifacts/validation/12-8-about-page-mobile-legend-candidate.png` (viewport 390x844, deviceScaleFactor 3, PNG 1170x2532, SHA-256 `c7ddd54dec3265ea56cd121e5ab773336d44bf37ab08bece9b9f237d97620a92`)
+
+**Recipe change:** None to `nextjs-app/scripts/capture-claude-design-refs.mjs`, `project-context.md`, or visual-validation route mappings. This was an implementation-state rebaseline from reviewed Story 12.8 candidates.
+
+**Verification:** Providerless/manual rationale: automated Claude/Anthropic visual comparison could not run without `ANTHROPIC_API_KEY`, so Story 12.8 used deterministic candidate captures plus explicit human approval. Candidate evidence was visually sanity-checked in the Story 12.8 Dev Agent Record, including focused proof that the complete `SÅ LÄSER DU KARTAN` section fits above the mobile bottom nav. After promotion, both active About references were SHA-verified to byte-match the approved candidates exactly.
+
+**Reason / spec link:** Story 12.8 requires the About page to explain the public pin legend, selected-time semantics, the seating-area sun figure, and the confidence/accuracy honesty posture without a fake public hit-rate. The promoted references encode the approved final About layout for both mapped `/about` viewports.
+
+**Re-evaluation trigger:** Re-capture these references if the About page section order, pin legend swatches/copy, accuracy-reframe copy, standalone About route layout, mobile bottom-nav overlap behavior, or Story 12.6/12.13 public pin/confidence semantics change.
+
+### 2026-07-24 — `map-primary` + `map-panel-venues` (mobile) — Story 12.9 human-approved rebaseline
+
+**Trigger:** Rasmus approved the Story 12.9 slider/date refinement rebaseline on 2026-07-24 (`Approved: rebaseline Story 12.9`). The current mobile references still reflected the older, taller planner chrome and pre-refinement row-sheet ordinary view.
+
+**Resolution:** Promoted exactly the two approved ordinary mobile candidates. `rows-max` and `mid-drag` remain supporting evidence only and were not copied over any canonical reference.
+
+**Changed PNGs (2):**
+- `nextjs-app/docs/design/references/screens/mobile/map-primary.png`
+- `nextjs-app/docs/design/references/screens/mobile/map-panel-venues.png`
+
+**Source of new PNG:** Human-reviewed implementation candidates from `_bmad-output/implementation-artifacts/validation/story-12-9-slider-date-candidates/20260724-slider-date-refinement/`:
+- `mobile-map-primary-slim-slider-date-pill.png` -> `mobile/map-primary.png`
+- `mobile-map-panel-venues-rows-3.png` -> `mobile/map-panel-venues.png`
+
+**Old -> new SHA-256:**
+- `mobile/map-primary`: `74b6685f267b9d4e578b99be7dfded6d3973d9bbf071fc7beeb54c2fdaca6c97` -> `3a3beb45f26229c87cf4106e775748a30cf24d3644ee604024e12acd2161392a`
+- `mobile/map-panel-venues`: `5b168fac021deb8e0b3e9567fa9fa8d4adf4837fee772cceb1f26ade3e98d3c6` -> `ea182e52412071c0588d78952e168206c0060b689fdcab8a42ecae78829cd1d3`
+
+**Supporting evidence retained, not promoted:**
+- `mobile-map-panel-venues-rows-max.png` SHA-256 `cb91ee8fde17c16151623911fe362a55ba5f2ba3ef0d61d6e425b730bbf819f6`
+- `mobile-map-panel-venues-mid-drag.png` SHA-256 `68fdb158f749a1da6cacc5df36f805d45e6f0e3c8446f6fa21019da94e0700ad`
+
+**Recipe change (if any):** `project-context.md` already contained the approved ordinary routes, so it was unchanged. `nextjs-app/docs/design/references/claude-design/STATE-MAPPING.md` and `nextjs-app/scripts/capture-claude-design-refs.mjs` were updated only to replace stale "pending approval" wording with the approved implementation-derived Story 12.9 baseline and to keep the Claude prototype recipe skipped for `map-panel-venues`.
+
+**Verification:** Candidate capture evidence asserted the mobile planner/date geometry, row-sheet states, and supporting max/mid-drag proof before screenshot write: 4 captured, 0 failed, 0 product errors. After promotion, `mobile/map-primary.png` and `mobile/map-panel-venues.png` were SHA-verified to byte-match the approved candidates exactly. Final story-review gate results are recorded in the Story 12.9 Dev Agent Record.
+
+**Reason / spec link:** Story 12.9 acceptance criteria require a slimmer mobile planner/time-slider surface, calendar/date trigger consolidation, row-quantized venue sheet at `N=3` for the ordinary `map-panel-venues` reference, and retained max/mid-drag proof. Human approval on 2026-07-24 authorizes replacing the stale active PNGs with the implementation-derived ordinary views.
+
+**Re-evaluation trigger:** Re-capture these references if mobile planner height/date-trigger chrome, top-panel slider geometry, row-sheet `N=3` ordinary state, row-height/max-row computation, map-control obstruction behavior, or the implementation-derived capture route changes.
+
+### 2026-07-20 — `map-panel-venues` (mobile) recipe retirement — Story 12.9 row-count sheet
+
+**Trigger:** Story 12.9 replaces the fixed mobile bottom-sheet snap model with a row-quantized venue-list sheet (`N=0..maxRows`). The existing Claude prototype/capture recipe still drives fixed `peek`/`mid`/`full` behavior and would regenerate a stale reference for `map-panel-venues`.
+
+**Resolution:** The prototype recipe is retired/skipped until implementation-derived row-count candidates are human-reviewed and explicitly approved for promotion. No active reference PNG is replaced in this operation.
+
+**Source of new PNG (if any):** n/a — no canonical reference promoted.
+
+**Recipe change (if any):** Edited `nextjs-app/scripts/capture-claude-design-refs.mjs` so the `map-panel-venues` mobile recipe is skipped and points reviewers to `/?_state=map-panel-venues&_time=14:00` with `_sheetRows=0|1|3|max` and `_sheetDrag=mid` candidate variants.
+
+**Verification:** No visual gate pass is claimed. Story 12.9 candidates must be captured from the running app with DOM assertions and approved by Rasmus before replacing `nextjs-app/docs/design/references/screens/mobile/map-panel-venues.png`.
+
+**Reason / spec link:** Story 12.9 acceptance criteria and UX spec redefine the mobile venue-list sheet as a bottom-anchored, measured row-count component; the old prototype remains useful for visual tone but is no longer authoritative for this interaction model.
+
+**Re-evaluation trigger:** Revisit if the Claude Design bundle gains a row-count sheet matching Story 12.9 or after Story 12.9 implementation candidates are approved/promoted.
+
+### 2026-07-19 — Story 12.13 confidence-removal reference cleanup (3 references, mobile + desktop) — human-approved rebaseline
+
+**Trigger:** Story 12.13 removes user-facing confidence numbers while keeping the public sun-exposure presentation and weather honesty signals. The current references were stale on three surfaces: saved favourites still showed the secondary confidence percentages beside primary `N% sol`, and obscured detail still showed a grey percentage chip even though weather-gated/obscured detail must be percentage-free.
+
+**Resolution:** Rasmus explicitly approved the Story 12.13 rebaseline on 2026-07-19 after human review (`Approved: rebaseline Story 12.13`). Exactly three final candidates were promoted. No hash-noise-only captures were promoted: `mobile/map-with-selected-venue` and `mobile/venue-detail` differed by hash only but matched the current user-visible contract, and desktop `map-primary`, `favourites-tab`, and sunny `venue-detail` already matched their authoritative references.
+
+**Changed PNGs (3):**
+- `nextjs-app/docs/design/references/screens/mobile/favourites-tab.png`
+- `nextjs-app/docs/design/references/screens/mobile/venue-detail-obscured.png`
+- `nextjs-app/docs/design/references/screens/desktop/venue-detail-obscured.png`
+
+**Source of new PNG:** Human-reviewed implementation candidates from `_bmad-output/implementation-artifacts/validation/story-12-13-candidates/20260719-163445/`.
+
+**Old → new SHA-256:**
+- `mobile/favourites-tab`: `1d12b31c8fcb4a2f116f2341c008d66896ff48760bb5f5597e5c1d8019b74c92` → `eee2df4ddc89948bcedcf8f82d8aaa8481e0081b339d84411b137a1582425ba4`
+- `mobile/venue-detail-obscured`: `ac25a55c467977207bf2420ef15af37ae3866bbef3ce5fc92f4cd2c2378a1a50` → `58a62f69a652991b70ab40a71f1fd94f742cae56c336bae042200404f1eee028`
+- `desktop/venue-detail-obscured`: `7c510fb51fa542c4e57ad12630ac739e60f5408680503b5c0d5ed1ca6b18f802` → `f17a896333dd594099f9053179cf7e4884371bb60bfe72dc0a54a1b844c2895b`
+
+**Recipe change:** None to `nextjs-app/scripts/capture-claude-design-refs.mjs`, `project-context.md`, or visual-validation route mappings. This was an implementation-state rebaseline from reviewed Story 12.13 candidates.
+
+**Verification:** The final candidate evidence captured 9/9 Story 12.13 visual targets with no assertion failures. It asserted that selected sunny QuickInfo retains `95% SOL`, sunny detail retains sun icon + visible `95%`, obscured detail is percentage-free while preserving `SOL BAKOM MOLN · MULET`, favourites retain primary sun-exposure values while losing secondary confidence, and no visible/sr-only/ARIA/title confidence leaks exist. After promotion, the three authoritative references were SHA-verified to match the approved candidates exactly, and no other reference PNG was changed.
+
+**Reason / spec link:** Story 12.13 acceptance criteria remove user-facing confidence indicators but keep internal confidence, primary sun-exposure values, and the Story 12.6 grey/not-sunny weather-honesty model. The promoted references encode the final public contract: favourites show only primary sun exposure, and obscured detail uses cloud/sky copy without a percentage chip.
+
+**Re-evaluation trigger:** Re-capture these references if public confidence display is reintroduced, favourites card metadata changes, the public sun-exposure chip wording changes, obscured/weather-gated detail presentation changes, or Story 12.2 changes uncertainty/weather honesty copy in a way that affects these surfaces.
+
+### 2026-07-19 — Story 12.6 public two-state pin semantics (10 map-visible references, mobile + desktop) — human-approved rebaseline
+
+**Trigger:** Story 12.6 replaced the prior public map-pin presentation with a shared two-state public predicate. The pre-12.6 references were stale for the new contract because grey/not-sunny or cloud-obscured pins could still show seating-sun percentages, which now misrepresents the user-facing sunny/not-sunny model.
+
+**Resolution:** Rasmus explicitly approved the Story 12.6 rebaseline on 2026-07-19 after human visual review. The ten reviewed candidate screenshots were promoted to the authoritative reference PNGs. The intended public semantics are: amber sun pin plus seating-share percentage only when the shared predicate is sunny; grey cloud pin with no number when not sunny or weather-gated; selected pin emphasis must not change that sunny/not-sunny meaning. The promoted references also preserve selected-pin/detail consistency for `map-with-selected-venue`, `map-with-obscured-venue`, `venue-detail`, and `venue-detail-obscured`.
+
+**Changed PNGs (10):**
+- **mobile:** `map-primary`, `map-panel-venues`, `map-with-selected-venue`, `map-with-obscured-venue`, `favourites-tab` at 390×844 viewport / 780×1688 PNG dimensions.
+- **desktop:** `map-primary`, `map-with-obscured-venue`, `favourites-tab`, `venue-detail`, `venue-detail-obscured` at 1440×900 viewport / 2880×1800 PNG dimensions.
+
+**Source of new PNG:** Human-reviewed implementation candidates from `_bmad-output/implementation-artifacts/validation/story-12-6-candidates/20260719-012718/`. Candidate SHA-256 values were verified before promotion and the promoted authoritative PNGs now match those hashes:
+`mobile/map-primary` `74b6685f267b9d4e578b99be7dfded6d3973d9bbf071fc7beeb54c2fdaca6c97`; `mobile/map-panel-venues` `5b168fac021deb8e0b3e9567fa9fa8d4adf4837fee772cceb1f26ade3e98d3c6`; `mobile/map-with-selected-venue` `d3f65d7ed9fa76267d481799bce725f5d8f0ab8fc0ef8e77066a8115c92144ba`; `mobile/map-with-obscured-venue` `b5ed4b6061fbfef167c29ea76db70d85ff640169f1e892cf1503aad1929f219a`; `mobile/favourites-tab` `1d12b31c8fcb4a2f116f2341c008d66896ff48760bb5f5597e5c1d8019b74c92`; `desktop/map-primary` `073294af904d6f65163eceeefd6be492b5308333bf874f86f0cef7d0a1b36ec4`; `desktop/map-with-obscured-venue` `6b1e14731a7729472f89752b011cf52c4fc3aab9b6401759b7523df64d293049`; `desktop/favourites-tab` `4f98f31c4ef9e178b0364dbbaeae8fa0c4443680f204d81698b5cbbc3554aac2`; `desktop/venue-detail` `05f3321ce879b0b52710dc2b6b973a21f3270bea16b3640653e96fde830f723e`; `desktop/venue-detail-obscured` `7c510fb51fa542c4e57ad12630ac739e60f5408680503b5c0d5ed1ca6b18f802`.
+
+**Recipe change:** None to `nextjs-app/scripts/capture-claude-design-refs.mjs`, `project-context.md`, or visual-validation route mappings. This was an implementation-state rebaseline from reviewed Story 12.6 candidates.
+
+**Verification:** Manual visual review accepted by Rasmus because the legacy automated Claude/Anthropic visual provider could not run without `ANTHROPIC_API_KEY`. Candidate capture evidence asserted Swedish locale, forced screen states, visible map/pins/panels, and Story 12.6 pin semantics before screenshot write. The promoted files were post-copy SHA-verified against the approved candidates.
+
+**Reason / spec link:** Story 12.6 acceptance criteria require the public UI to use one grey not-sunny/cloud-obscured pin without a percentage and one amber sunny pin with percentage, backed by the shared public predicate. Story 12.13 will remove remaining user-facing confidence displays outside this pin contract.
+
+**Re-evaluation trigger:** Re-capture these references if the shared public sunny predicate, venue pin chrome, selected-pin treatment, QuickInfo/detail sunny/not-sunny copy, mobile bottom-sheet map layout, desktop side-panel layout, or Story 12.13 confidence-removal UI changes these surfaces.
+
 ### 2026-07-06 — basemap colour re-tune (10 map-visible references, mobile + desktop) — maintainer design review (Amelia / dev-story, STAGED — awaiting maintainer blessing)
 
 > **Blessing status: STAGED — awaiting maintainer blessing.** Dev agents are structurally forbidden from self-blessing reference PNGs (`AGENTS.md:177-179`). This run captured + staged + documented the recolour baseline; the maintainer blesses (or rejects) each pair at PR review. This is NOT a blocker — staging + documenting is the deliverable.
@@ -485,3 +625,32 @@ The actual cause was a post-Story-1.5 prototype-state baseline carry-forward: pr
 **Reason / spec link:** `AGENTS.md` requires reference/capture recipe changes to be logged, and `docs/dev/state-forcing.md` reserves `_state` for dev-only visual-state forcing.
 
 **Re-evaluation trigger:** Revisit this route if the visual gate stops using `project-context.md`, if `_state` is removed from dev URLs, or if the `map-primary` mobile reference PNG is re-baselined to real fixture data instead of normalized visual data.
+
+### 2026-07-19 — `venue-photo-loaded` + `venue-photo-fallback` (mobile + desktop) — Story 12.12 approved implementation baselines (Codex / dev-story)
+
+**Trigger:** Story 12.12 adds real Supabase Storage photo rendering and explicit broken-media fallback states. The Claude Design prototype only contains designed placeholders, so the four active references had to come from deterministic implementation captures. Rasmus explicitly approved this promotion with `Approved: rebaseline Story 12.12`.
+
+**Resolution:** Promote the approved candidate PNG set from `_bmad-output/implementation-artifacts/validation/story-12-12-venue-photo-candidates/20260719T195547/` into active references:
+`nextjs-app/docs/design/references/screens/mobile/venue-photo-loaded.png`,
+`nextjs-app/docs/design/references/screens/mobile/venue-photo-fallback.png`,
+`nextjs-app/docs/design/references/screens/desktop/venue-photo-loaded.png`, and
+`nextjs-app/docs/design/references/screens/desktop/venue-photo-fallback.png`.
+
+**Source of new PNG:** Playwright captures of the running implementation using the canonical `project-context.md` routes:
+`/?venue=test-venue-sunny&_state=venue-photo-loaded&_time=14:00` (mobile),
+`/?venue=test-venue-sunny&_state=venue-photo-fallback&_time=14:00` (mobile),
+`/?venue=test-venue-sunny&_state=venue-photo-loaded&_time=16:30` (desktop), and
+`/?venue=test-venue-sunny&_state=venue-photo-fallback&_time=16:30` (desktop). The candidate capture step asserted the detail image/fallback state before each screenshot.
+
+**Recipe change:** `project-context.md` keeps both screen IDs mapped for mobile and desktop. `STATE-MAPPING.md` and `capture-claude-design-refs.mjs` document that these states are approved implementation-derived baselines and must not be regenerated from the Claude prototype.
+
+**Verification:** The promoted active PNGs byte-match the approved candidate set:
+mobile `venue-photo-loaded.png` 1170×1992 SHA-256 `ad7a30a8464e81da38d91758968edac06b78d8262f3f5fb6caa5154bb51551d6`;
+mobile `venue-photo-fallback.png` 1170×1992 SHA-256 `35aafba29cbd19250cab405dcb97216000490fc18fd702486f32a19befc9b0e5`;
+desktop `venue-photo-loaded.png` 1280×720 SHA-256 `1b1c1a7bedb2190d25e990fd2f50c621ec5022415a0043ef3885c989bdbfbcda`;
+desktop `venue-photo-fallback.png` 1280×720 SHA-256 `09c40fb73dbeeecb1879aeda222efb1ef66d05c854e25d2d9a26f8efcfff25e3`.
+Story 12.12 also records DOM/E2E coverage for card-vs-hero URL selection and fallback rendering that a single visual screenshot cannot prove.
+
+**Reason / spec link:** Story 12.12 Design Gate requires deterministic photo-loaded and fallback visual states; `AGENTS.md` requires any reference PNG promotion to update this log in the same operation and forbids self-blessing without maintainer approval.
+
+**Re-evaluation trigger:** Mandatory rebaseline if the `venue-media` rendition naming contract changes, the forced-state photo/fallback fixtures change, the venue detail/list/quick-info photo layout changes, the approved candidate hashes no longer match active references, or a future visual provider replaces the manual-approved promotion flow.

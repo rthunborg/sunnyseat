@@ -18,6 +18,7 @@ import {
   subscribeToFeedbackSubmitted,
 } from '@/lib/services/feedback-session';
 import { buildGoogleMapsSearchUrl } from '@/lib/services/routing';
+import { publicSunVerdictFor } from '@/lib/utils/public-sun';
 import type { VenueDataDto, VenueDetailDto } from '@/lib/types/api';
 
 const SUCCESS_VISIBLE_MS = 3000;
@@ -52,14 +53,20 @@ export function FeedbackFlow({
     },
     currentSunStatus: venue.currentSunStatus,
     confidence: venue.confidence,
+    sunExposurePercent: venue.sunExposurePercent,
+    weatherGateState: venue.weatherGateState,
+    predictionEvidence: venue.predictionEvidence,
   }), [
     venue.confidence,
     venue.currentSunStatus,
     venue.id,
     venue.location.lat,
     venue.location.lng,
+    venue.predictionEvidence,
     venue.slug,
+    venue.sunExposurePercent,
     venue.venueSlug,
+    venue.weatherGateState,
   ]);
 
   useEffect(() => {
@@ -218,7 +225,16 @@ function FeedbackPromptController({
   const address = 'address' in venue ? venue.address : venue.neighborhood;
   const payloadTimestamp = detailView?.plannerTimestamp ?? plannerTimestamp;
   const predictedState = detailView?.predictedState ?? venue.currentSunStatus;
+  const sunExposurePercent = detailView?.sunExposurePercent ?? venue.sunExposurePercent;
+  const publicSunVerdict = detailView?.publicSunVerdict ?? publicSunVerdictFor(venue);
+  const weatherGated = detailView?.weatherGated ?? venue.weatherGateState === 'gated';
+  const weatherUnknown = detailView?.weatherUnknown ?? venue.weatherGateState === 'unknown';
+  const geometryInputHash =
+    detailView?.geometryInputHash ?? venue.predictionEvidence?.geometryInputHash;
   const confidenceAtPrediction = detailView?.confidenceAtPrediction ?? venue.confidence;
+
+  if (!geometryInputHash) return null;
+  const feedbackGeometryInputHash = geometryInputHash;
 
   return (
     <FeedbackPrompt
@@ -241,6 +257,11 @@ function FeedbackPromptController({
         venueId: venue.id,
         userTimestamp: payloadTimestamp,
         predictedState,
+        sunExposurePercent,
+        publicSunVerdict,
+        weatherGated,
+        weatherUnknown,
+        geometryInputHash: feedbackGeometryInputHash,
         confidenceAtPrediction,
         ...payload,
       },

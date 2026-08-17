@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 
 const APP_SETTLE_TIMEOUT_MS = 15_000;
 
@@ -35,9 +35,13 @@ test.describe('Onboarding overlay', () => {
   });
 
   test('returning user sees the map immediately, no overlay', async ({ page }) => {
-    await page.addInitScript((key: string) => {
-      window.localStorage.setItem(key, '1');
-    }, ONBOARDED_FLAG_KEY);
+    await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
     await page.goto('/');
     await expect(page.locator('[data-testid="map-container"]:visible').first()).toBeVisible({
       timeout: APP_SETTLE_TIMEOUT_MS,
@@ -65,10 +69,48 @@ test.describe('Story 9.5 — clean-context onboarding reliability (RED)', () => 
     // No addInitScript setting the onboarded flag — a genuinely fresh visitor.
     await page.goto('/');
     const screen = page.getByTestId('onboarding-screen');
-    // The overlay must appear; today's placeholder-then-portal flash lets a
-    // clean automated session slip straight to the map (the smoke-test gap).
+    // The overlay must appear as a single active dialog outside the app shell;
+    // the Suspense fallback and resolved provider branches must not duplicate it.
+    const appShell = page.locator('[data-app-shell]');
+    await expect(appShell).toHaveCount(1);
+    await expect(appShell).toHaveAttribute('aria-hidden', 'true', {
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
+    await expect(appShell).toHaveAttribute('inert', /.*/);
+    await expect(page.locator('[data-onboarding-portal]')).toHaveCount(0);
+    await expect(screen).toHaveCount(1);
     await expect(screen).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
     await expect(screen.getByTestId('onboarding-cta-primary')).toBeVisible();
+    const shellContainsScreen = await appShell.evaluate((shell) => {
+      const onboardingScreen = document.querySelector('[data-testid="onboarding-screen"]');
+      return onboardingScreen !== null && shell.contains(onboardingScreen);
+    });
+    expect(shellContainsScreen).toBe(false);
+  });
+
+  test('first-time skip on / dismisses, writes the onboarded flag, and unblocks the app shell', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    const screen = page.getByTestId('onboarding-screen');
+    await expect(screen).toHaveCount(1, { timeout: APP_SETTLE_TIMEOUT_MS });
+    await screen.getByTestId('onboarding-cta-skip').click();
+
+    await expect(page.getByTestId('onboarding-screen')).toHaveCount(0, {
+      timeout: APP_SETTLE_TIMEOUT_MS,
+    });
+    await expect(page.getByTestId('map-container')).toBeVisible();
+    await expect(page.locator('[data-app-shell]')).not.toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
+    await expect(page.locator('[data-app-shell]')).not.toHaveAttribute('inert', /.*/);
+    await expect
+      .poll(() =>
+        page.evaluate((key: string) => window.localStorage.getItem(key), ONBOARDED_FLAG_KEY),
+      )
+      .toBe('1');
   });
 
   test('the map underneath is inert/hidden while the welcome overlay is up (no flash-through)', async ({
@@ -102,6 +144,58 @@ test.describe('Story 9.5 — clean-context onboarding reliability (RED)', () => 
       timeout: APP_SETTLE_TIMEOUT_MS,
     });
     await expect(page.getByTestId('map-container')).toBeVisible();
+    await expect(page.locator('[data-app-shell]')).not.toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
+    await expect(page.locator('[data-app-shell]')).not.toHaveAttribute('inert', /.*/);
+    await expect
+      .poll(() =>
+        page.evaluate((key: string) => window.localStorage.getItem(key), ONBOARDED_FLAG_KEY),
+      )
+      .toBe('1');
+  });
+});
+
+test.describe('Story 12.4 — onboarding route scope', () => {
+  test('first-time route scope is / and /favoriter only', async ({ page }) => {
+    const cases = [
+      { route: '/', onboarding: true },
+      { route: '/favoriter', onboarding: true },
+      { route: '/about', onboarding: false },
+      { route: '/sekretess', onboarding: false },
+    ] as const;
+
+    for (const { route, onboarding } of cases) {
+      await test.step(`${route} onboarding=${onboarding}`, async () => {
+        await page.goto(route);
+        await expect(page.getByTestId('responsive-layout')).toBeVisible({
+          timeout: APP_SETTLE_TIMEOUT_MS,
+        });
+        await expect(page.locator('[data-app-shell]')).toHaveCount(1);
+        await expect(page.locator('[data-onboarding-portal]')).toHaveCount(0);
+        if (onboarding) {
+          await expect(page.getByTestId('onboarding-screen')).toHaveCount(1, {
+            timeout: APP_SETTLE_TIMEOUT_MS,
+          });
+          const shellContainsScreen = await page.locator('[data-app-shell]').evaluate((shell) => {
+            const onboardingScreen = document.querySelector('[data-testid="onboarding-screen"]');
+            return onboardingScreen !== null && shell.contains(onboardingScreen);
+          });
+          expect(shellContainsScreen).toBe(false);
+        } else {
+          await expect(page.getByTestId('onboarding-screen')).toHaveCount(0);
+          await expect(page.locator('[data-app-shell]')).not.toHaveAttribute(
+            'aria-hidden',
+            'true',
+          );
+          await expect(page.locator('[data-app-shell]')).not.toHaveAttribute(
+            'inert',
+            /.*/,
+          );
+        }
+      });
+    }
   });
 });
 

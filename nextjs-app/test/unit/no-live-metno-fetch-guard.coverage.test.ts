@@ -59,11 +59,15 @@ function isGuardRejection(err: unknown): boolean {
 
 /** Attempt a fetch and report whether the GUARD (not the network) rejected it. */
 async function guardTrippedFor(input: string | URL | Request): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 100);
   try {
-    await fetch(input);
+    await fetch(input, { signal: controller.signal });
     return false; // resolved ⇒ guard did not fire
   } catch (err) {
     return isGuardRejection(err);
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

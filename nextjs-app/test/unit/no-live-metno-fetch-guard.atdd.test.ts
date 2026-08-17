@@ -66,13 +66,17 @@ describe('[10.5 AC4] shared no-live-Met.no fetch guard (installed in test/setup/
     // "no live Met.no" error. If the dev scopes the guard to api.met.no only,
     // this passes trivially; if they extend it to all external hosts, the guard
     // must still allow relative/same-origin.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 100);
     let guardTripped = false;
     try {
-      await fetch('/api/venues');
+      await fetch('/api/venues', { signal: controller.signal });
     } catch (err) {
       // Any error is acceptable EXCEPT the guard's own message — the guard must
       // not have fired for a relative URL.
       guardTripped = /no live met\.no|met\.no fetch guard|forbidden.*met/i.test(String(err));
+    } finally {
+      clearTimeout(timeout);
     }
     expect(guardTripped).toBe(false);
   });

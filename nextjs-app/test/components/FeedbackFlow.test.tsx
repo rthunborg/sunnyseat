@@ -41,10 +41,14 @@ const VENUE: VenueDetailDto = {
   neighborhood: 'Inom Vallgraven',
   location: { lat: 57.705, lng: 11.97 },
   currentSunStatus: 'Sunny',
+  weatherGateState: 'not_gated',
   isPartner: true,
   confidence: 92,
   distanceMeters: 0,
   sunExposurePercent: 95,
+  predictionEvidence: {
+    geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  },
   tags: [],
   sunWindow: { start: '13:00', end: '18:30' },
   description: 'Stor uteservering med eftermiddagssol.',
@@ -154,6 +158,11 @@ describe('FeedbackFlow', () => {
         venueSlug: 'test-venue-sunny',
         userTimestamp: '2026-06-07T12:00:00.000Z',
         predictedState: 'Sunny',
+        sunExposurePercent: 95,
+        publicSunVerdict: 'amber',
+        weatherGated: false,
+        weatherUnknown: false,
+        geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         wasSunny: true,
         createdAt: '2026-06-07T12:01:00.000Z',
       }), {
@@ -218,11 +227,21 @@ describe('FeedbackFlow', () => {
     const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body)) as {
       userTimestamp: string;
       predictedState: string;
+      sunExposurePercent: number;
+      publicSunVerdict: string;
+      weatherGated: boolean;
+      weatherUnknown: boolean;
+      geometryInputHash: string;
       confidenceAtPrediction: number;
     };
     expect(body).toMatchObject({
       userTimestamp: '2026-06-07T12:00:00.000Z',
       predictedState: 'Sunny',
+      sunExposurePercent: 95,
+      publicSunVerdict: 'amber',
+      weatherGated: false,
+      weatherUnknown: false,
+      geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       confidenceAtPrediction: 92,
     });
   });

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
+import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 
 // Story 3.4 Task 7.2 — Epic 3 visit-loop hardening coverage:
 // route overlay dismiss preserves venue context, deep links render detail,
@@ -9,10 +9,14 @@ import { ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 const APP_SETTLE_TIMEOUT_MS = 15_000;
 
 async function bypassOnboarding(page: Page): Promise<void> {
-  await page.addInitScript((key: string) => {
+  await page.addInitScript(
+  ({ onboardedKey, guideSeenKey }) => {
     window.sessionStorage.clear();
-    window.localStorage.setItem(key, '1');
-  }, ONBOARDED_FLAG_KEY);
+    window.localStorage.setItem(onboardedKey, '1');
+    window.localStorage.setItem(guideSeenKey, '1');
+  },
+  { onboardedKey: ONBOARDED_FLAG_KEY, guideSeenKey: FIRST_RUN_GUIDE_SEEN_KEY },
+);
 }
 
 // Stub the native-map handoff exactly like map-primary.spec.ts — the test
@@ -41,7 +45,7 @@ test.describe('Epic 3 visit loop', () => {
     ).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
   });
 
-  test('route overlay shows destination, confidence context, and walk time, and dismiss preserves venue context', async ({ page }, testInfo) => {
+  test('route overlay shows destination and walk time without confidence, and dismiss preserves venue context', async ({ page }, testInfo) => {
     await bypassOnboarding(page);
     await stubWindowOpen(page);
     await page.goto('/?venue=test-venue-sunny&_time=14:00');
@@ -52,11 +56,10 @@ test.describe('Epic 3 visit loop', () => {
 
     const overlay = page.locator('[data-testid="route-overlay"]:visible');
     await expect(overlay).toBeVisible();
-    // Destination, confidence context, and estimated walk time before the
-    // app attempts to leave (AC #3). The dev fixture serves fresh weather
-    // meta, so the public confidence display must render in the overlay.
+    // Destination and estimated walk time render before the app attempts to
+    // leave. Story 12.13 removes public confidence from this handoff.
     await expect(overlay).toContainText('Rutt till Kafé Magasinet');
-    await expect(overlay).toContainText(/Säkerhet \d+%/);
+    await expect(overlay).not.toContainText(/Säkerhet|Confidence/);
     await expect(overlay).toContainText(/min promenad/);
     // Blocked handoff (window.open → null): localized open-directions action
     // keeps the *directions* intent (Story 3.1 Round 1 finding #4).

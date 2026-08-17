@@ -1,5 +1,5 @@
 import type { AnchorHTMLAttributes } from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, within } from '@/test/setup/test-utils';
 import { AboutPage } from '@/components/custom/about/AboutPage';
 import aboutSv from '@/messages/sv/about.json';
@@ -20,34 +20,11 @@ vi.mock('next-intl/navigation', () => ({
   }),
 }));
 
-const reducedMotionMock = vi.fn<() => boolean>(() => false);
-
-// Stub Motion so the count-up resolves to its final value synchronously and
-// jsdom never needs IntersectionObserver. AC #3 / #5 detail lives in the
-// dedicated AccuracyCountUp test.
-vi.mock('motion/react', () => ({
-  useReducedMotion: () => reducedMotionMock(),
-  useInView: () => true,
-  animate: (
-    _from: number,
-    to: number,
-    opts?: { onUpdate?: (v: number) => void; onComplete?: () => void },
-  ) => {
-    opts?.onUpdate?.(to);
-    opts?.onComplete?.();
-    return { stop: () => {} };
-  },
-}));
-
 const svMessages = { about: aboutSv, common: commonSv };
 const enMessages = { about: aboutEn, common: commonEn };
 
 describe('<AboutPage />', () => {
-  beforeEach(() => {
-    reducedMotionMock.mockReturnValue(false);
-  });
-
-  it('renders the AC1 sections in order: h1 then ALGORITMEN, DATAKÄLLOR, TRÄFFSÄKERHET, Kontakt', () => {
+  it('renders the sections in order with the map-reading legend before ALGORITMEN', () => {
     renderWithProviders(<AboutPage />, { messages: svMessages });
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Hur fungerar SunnySeat?');
@@ -56,6 +33,7 @@ describe('<AboutPage />', () => {
       .getAllByRole('heading', { level: 2 })
       .map((node) => node.textContent);
     expect(sectionHeadings).toEqual([
+      'SÅ LÄSER DU KARTAN',
       'ALGORITMEN',
       'DATAKÄLLOR',
       'TRÄFFSÄKERHET',
@@ -70,29 +48,73 @@ describe('<AboutPage />', () => {
     ).toBeInTheDocument();
   });
 
-  it('lists the four user-safe data sources (AC1) without leaking geodata internals', () => {
+  it('renders the Swedish pin legend copy and seating-share example', () => {
+    renderWithProviders(<AboutPage />, { messages: svMessages });
+
+    expect(
+      screen.getByText(/Pinnarna följer vald tid: just nu som standard/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/mer än hälften av sittytan ligger i direkt sol/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/vädret inte blockerar solen/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/skugga, låg solexponering, moln, regn eller annan blockering/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/70% betyder att ungefär 70% av sittytan är solig vid vald tid/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/inte att det är 70% chans/i)).toBeInTheDocument();
+  });
+
+  it('renders static token-backed swatches that mirror the public pin semantics', () => {
+    renderWithProviders(<AboutPage />, { messages: svMessages });
+
+    const sunnySwatch = screen.getByTestId('about-pin-swatch-sunny');
+    expect(sunnySwatch).toHaveClass('bg-amber-pin');
+    expect(sunnySwatch).toHaveTextContent('70%');
+    expect(within(sunnySwatch).getByTestId('about-pin-icon-sun')).toBeInTheDocument();
+
+    const shadedSwatch = screen.getByTestId('about-pin-swatch-shaded');
+    expect(shadedSwatch).toHaveClass('bg-pin-shaded');
+    expect(shadedSwatch).not.toHaveTextContent(/\d+%/);
+    expect(within(shadedSwatch).getByTestId('about-pin-icon-cloud')).toBeInTheDocument();
+
+    expect(screen.queryByRole('button', { name: /70%/ })).not.toBeInTheDocument();
+  });
+
+  it('lists user-safe data sources without leaking geodata internals or active Google/OSM hour claims', () => {
     const { container } = renderWithProviders(<AboutPage />, { messages: svMessages });
 
     const items = within(screen.getByTestId('about-data-sources')).getAllByRole('listitem');
-    expect(items).toHaveLength(4);
+    expect(items).toHaveLength(5);
     expect(screen.getByText('Lantmäteriet')).toBeInTheDocument();
     expect(screen.getByText('Göteborgs Stad öppna data')).toBeInTheDocument();
     expect(screen.getByText('Met.no')).toBeInTheDocument();
+    expect(screen.getByText('Verifierade platsuppgifter')).toBeInTheDocument();
     expect(screen.getByText('OpenStreetMap')).toBeInTheDocument();
+    expect(screen.getByText(/kompletterande pilot/i)).toBeInTheDocument();
+    expect(container).not.toHaveTextContent(/Google/i);
 
     // Story 3.0.6: no EPSG / Baskarta / DTM / RPC internals in any string.
     expectNoSensitiveSourceTerms(container as HTMLElement);
   });
 
-  it('counts the accuracy stat up to the placeholder figure (AC3)', () => {
-    renderWithProviders(<AboutPage />, { messages: svMessages });
-    expect(screen.getByTestId('about-accuracy-stat')).toHaveTextContent('85%');
-  });
+  it('reframes accuracy as feedback-driven prose without fake public rates or confidence percentages', () => {
+    const { container } = renderWithProviders(<AboutPage />, { messages: svMessages });
 
-  it('still shows the figure under reduced motion (AC5)', () => {
-    reducedMotionMock.mockReturnValue(true);
-    renderWithProviders(<AboutPage />, { messages: svMessages });
-    expect(screen.getByTestId('about-accuracy-stat')).toHaveTextContent('85%');
+    expect(screen.getByRole('heading', { level: 3, name: 'Hur säkra är vi?' })).toBeInTheDocument();
+    expect(screen.getByText(/målet är att solfiguren ska stämma/i)).toBeInTheDocument();
+    expect(screen.getByText(/stämmer det\?/i)).toBeInTheDocument();
+    expect(screen.getByText(/internt för att prioritera förbättringar/i)).toBeInTheDocument();
+
+    expect(screen.queryByTestId('about-accuracy-stat')).not.toBeInTheDocument();
+    expect(container).not.toHaveTextContent('85%');
+    expect(container).not.toHaveTextContent('Träffsäkerhet: 85 procent');
+    expect(container).not.toHaveTextContent(/Säkerhet\s+\d+%/i);
+    expect(container).not.toHaveTextContent(/Confidence\s+\d+%/i);
   });
 
   it('navigates back to the map from the back link and both CTAs (AC4)', () => {
@@ -121,6 +143,10 @@ describe('<AboutPage />', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('How does SunnySeat work?');
     expect(
       screen.getAllByRole('heading', { level: 2 }).map((node) => node.textContent),
-    ).toEqual(['THE ALGORITHM', 'DATA SOURCES', 'ACCURACY', 'Contact & feedback']);
+    ).toEqual(['HOW TO READ THE MAP', 'THE ALGORITHM', 'DATA SOURCES', 'ACCURACY', 'Contact & feedback']);
+    expect(screen.getByText(/70% means roughly 70% of the seating area is sunny/i)).toBeInTheDocument();
+    expect(screen.getByText(/not a 70% chance/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: 'How sure are we?' })).toBeInTheDocument();
+    expect(screen.getByText(/internal confidence/i)).toBeInTheDocument();
   });
 });

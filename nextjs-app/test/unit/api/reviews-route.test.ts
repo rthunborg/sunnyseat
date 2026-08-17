@@ -45,6 +45,28 @@ const VALID_BODY = {
   text: 'Soligt och bra bord.',
 };
 
+const LIVE_VENUE_ROW = {
+  id: '8',
+  slug: 'live-zero-review',
+  venue_name: 'Live Zero Review',
+  neighborhood: 'Centrum',
+  lat: 57.706,
+  lng: 11.971,
+  is_partner: false,
+  hidden: false,
+  current_sun_status: 'NoSun',
+  confidence: 76,
+  sun_exposure_percent: 0,
+  tags: [],
+};
+
+function useLiveSupabaseReviews() {
+  vi.stubEnv('SUNNYSEAT_VENUE_STORE', 'supabase');
+  vi.stubEnv('SUNNYSEAT_REVIEW_PERSISTENCE', 'supabase');
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
+  vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key');
+}
+
 describe('/api/reviews', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -166,6 +188,77 @@ describe('/api/reviews', () => {
       rating: 5,
     });
     expect(body.summary).toEqual({ averageRating: 5, reviewCount: 1 });
+  });
+
+  it('resolves live Supabase venues absent from fixtures for empty reads and id-first posts', async () => {
+    useLiveSupabaseReviews();
+    const reviewInserts: Array<Record<string, unknown>> = [];
+    supabaseMocks.from.mockImplementation((table: string) => {
+      if (table === 'venues') {
+        const venueQuery = {
+          eq: () => venueQuery,
+          is: () => venueQuery,
+          limit: async () => ({ data: [LIVE_VENUE_ROW], error: null }),
+        };
+        return {
+          select: () => ({
+            or: () => venueQuery,
+          }),
+        };
+      }
+      if (table === 'reviews') {
+        return {
+          select: () => ({
+            or: () => ({
+              order: async () => ({ data: [], error: null }),
+            }),
+          }),
+          insert: (row: Record<string, unknown>) => {
+            reviewInserts.push(row);
+            return {
+              select: () => ({
+                single: async () => ({
+                  data: {
+                    id: 'db_live_review',
+                    created_at: '2026-06-08T12:00:00.000Z',
+                  },
+                  error: null,
+                }),
+              }),
+            };
+          },
+        };
+      }
+      throw new Error(`unexpected table ${table}`);
+    });
+
+    const read = await GET(makeGet('http://localhost/api/reviews?venueId=live-zero-review'));
+    expect(read.status).toBe(200);
+    await expect(read.json()).resolves.toMatchObject({
+      reviews: [],
+      summary: { averageRating: null, reviewCount: 0 },
+    });
+
+    const write = await POST(makePost({
+      venueId: '8',
+      venueSlug: 'live-zero-review',
+      text: 'Live venue review works.',
+      rating: 5,
+    }));
+    expect(write.status).toBe(201);
+    await expect(write.json()).resolves.toMatchObject({
+      review: {
+        id: 'db_live_review',
+        venueId: '8',
+        venueSlug: 'live-zero-review',
+      },
+    });
+    expect(reviewInserts).toEqual([
+      expect.objectContaining({
+        venue_id: '8',
+        venue_slug: 'live-zero-review',
+      }),
+    ]);
   });
 
   it('rejects invalid content type and oversized JSON before persistence', async () => {

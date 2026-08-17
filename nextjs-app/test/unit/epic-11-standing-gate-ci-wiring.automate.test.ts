@@ -27,11 +27,8 @@
  * a rendered pixel). It asserts the WIRING is present — the behaviour specs
  * themselves (run under those projects) prove the behaviour.
  *
- * Deliberately NOT guarded here (scope-fence — Story-5.1 / epic-retro decision):
- * `a11y-mobile` is defined-but-not-invoked by CI (carries a Story-5.1 `test.fixme`
- * on known color-contrast debt). Blind-wiring it would red the build. This suite
- * therefore does NOT assert `--project=a11y-mobile` is invoked — it stays a
- * documented, deliberate omission, not an accidental gap.
+ * Story 12.6 closes the earlier mobile axe omission: `a11y-mobile` is a live CI
+ * gate and must stay non-vacuous, with an active Story 12.6 mobile pin spec.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -84,12 +81,8 @@ describe('Story 11.8 — Epic-11 standing-gate CI-wiring contract (automate)', (
       expect(ciWorkflow).toMatch(/npx playwright test[^\n]*--project=a11y(?=\s|$)/m);
     });
 
-    it('does NOT blind-wire a11y-mobile into CI (Story-5.1 test.fixme debt — deliberate omission)', () => {
-      // a11y-mobile carries a Story-5.1 `test.fixme` on known color-contrast debt
-      // and would red the build. It is defined-but-not-invoked BY DESIGN
-      // (epic-retro / Story-5.1 decision). This asserts the deliberate omission
-      // so nobody "helpfully" wires it in without resolving 5.1 first.
-      expect(ciWorkflow).not.toMatch(/--project=a11y-mobile/);
+    it('invokes the mobile axe AA gate (--project=a11y-mobile)', () => {
+      expect(ciWorkflow).toMatch(/npx playwright test[^\n]*--project=a11y-mobile/);
     });
   });
 
@@ -137,6 +130,14 @@ describe('Story 11.8 — Epic-11 standing-gate CI-wiring contract (automate)', (
       );
       expect(a11yProject, "a11y project block").not.toBeNull();
       expect(a11yProject![0]).toMatch(/testMatch:\s*'?\*\*\/axe\.spec\.ts'?/);
+    });
+
+    it('routes the mobile axe spec to the a11y-mobile project via testMatch', () => {
+      const a11yMobileProject = playwrightConfig.match(
+        /name:\s*'a11y-mobile'[\s\S]*?use:\s*\{[^}]*\}/,
+      );
+      expect(a11yMobileProject, "a11y-mobile project block").not.toBeNull();
+      expect(a11yMobileProject![0]).toMatch(/testMatch:\s*'?\*\*\/axe-mobile\.spec\.ts'?/);
     });
   });
 });

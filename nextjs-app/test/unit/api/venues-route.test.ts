@@ -247,7 +247,9 @@ describe('GET /api/venues', () => {
     expect(venue.sunWindow).toEqual({ start: '13:00', end: '18:30' });
     expect(venue.thumbnail?.alt.length).toBeLessThanOrEqual(120);
     expect(venue.thumbnail?.initials.length).toBeLessThanOrEqual(3);
-    expect(venue.thumbnail?.url).toMatch(/^https:\/\//);
+    expect(venue.thumbnail?.url).toBeUndefined();
+    expect(venue.thumbnail?.cardUrl).toBeUndefined();
+    expect(venue.thumbnail?.heroUrl).toBeUndefined();
   });
 
   it('returns sanitized prediction uncertainty metadata for seeded venues', async () => {
@@ -312,11 +314,13 @@ describe('GET /api/venues', () => {
     const normalized = normalizeVenueForResponse({
       ...makeVenue({ id: 'gated', lat: 57.7, lng: 11.9 }),
       currentSunStatus: 'CloudObscured',
+      weatherGateState: 'gated',
       skyCondition: 'overcast',
     });
 
     // The gated status is preserved verbatim; the geometric layer is untouched.
     expect(normalized.currentSunStatus).toBe('CloudObscured');
+    expect(normalized.weatherGateState).toBe('gated');
     expect(normalized.sunExposurePercent).toBe(90);
     // Survives an actual JSON serialization round-trip (the route JSON-encodes the DTO).
     const roundTripped = JSON.parse(JSON.stringify(normalized)) as VenueDataDto;
@@ -430,6 +434,7 @@ describe('GET /api/venues', () => {
     const venue = body.venues.find((candidate) => candidate.slug === 'test-venue-sunny');
     expect(venue).toMatchObject({
       currentSunStatus: 'Shaded',
+      weatherGateState: 'not_gated',
       sunExposurePercent: expect.any(Number),
     });
     expect(venue?.confidence).toBeLessThan(92);
@@ -445,6 +450,7 @@ describe('GET /api/venues', () => {
     expect(body.venues.every((venue) => Number.isFinite(venue.distanceMeters))).toBe(true);
     expect(body.venues[0]).toEqual(expect.objectContaining({
       currentSunStatus: expect.any(String),
+      weatherGateState: 'not_gated',
       confidence: expect.any(Number),
     }));
     expect(body.meta.count).toBe(2);
@@ -501,16 +507,15 @@ describe('GET /api/venues', () => {
     );
   });
 
-  it('caps favourite ID filters at the venue result limit without an off-by-one extra ID', async () => {
+  it('rejects favourite ID filters above the favourite ID cap instead of silently truncating', async () => {
     const cappedUnknownIds = Array.from({ length: 50 }, (_, index) => `unknown-${index}`);
     const res = await GET(
       makeRequest(`?lat=57.7089&lng=11.9746&ids=${[...cappedUnknownIds, '7'].join(',')}`),
     );
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as GetVenuesResponse;
-
-    expect(body.venues.map((venue) => venue.id)).not.toContain('7');
-    expect(body.totalCount).toBe(0);
+    expect(res.status).toBe(400);
+    expect((await res.json()) as { detail: string }).toEqual(
+      expect.objectContaining({ detail: expect.stringMatching(/ids.*50/i) }),
+    );
   });
 
   it('applies geometry-only weather availability before future planner projection', async () => {
@@ -530,6 +535,7 @@ describe('GET /api/venues', () => {
     expect(geometryOnlyVenue).toMatchObject({
       skyCondition: 'unavailable',
       currentSunStatus: 'Sunny',
+      weatherGateState: 'unknown',
     });
     expect(geometryOnlyVenue?.sunExposurePercent).toBe(weatherVenue?.sunExposurePercent);
     expect(geometryOnlyVenue?.confidence).toBe(weatherVenue?.confidence);
@@ -610,6 +616,7 @@ function makeVenue({
     neighborhood: 'Centrum',
     location: { lat, lng },
     currentSunStatus: 'Sunny',
+    weatherGateState: 'not_gated',
     isPartner: false,
     confidence: 90,
     distanceMeters: 0,

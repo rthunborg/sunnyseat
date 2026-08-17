@@ -45,9 +45,6 @@ function labels(
     moreInfo: 'Mer Info',
     close: 'Stäng platskort',
     photoPlaceholder: 'Platshållarbild',
-    confidence: 'Säkerhet',
-    confidenceApproximate: 'cirka',
-    confidenceUnavailable: 'Säkerhet saknas',
     distance: 'Avstånd',
     distanceApproximate: APPROXIMATE,
     loadingSun: 'Laddar soldata',
@@ -68,8 +65,6 @@ function renderQuickInfo(props: {
     <VenueQuickInfo
       mode="mobile"
       name="Solterrassen"
-      confidencePercent={92}
-      confidenceMeta={{ sunDataSource: 'weather', weatherUpdatedAt: new Date().toISOString() }}
       sunExposurePercent={80}
       distanceMeters={props.distanceMeters ?? 420}
       distanceIsApproximate={props.distanceIsApproximate}

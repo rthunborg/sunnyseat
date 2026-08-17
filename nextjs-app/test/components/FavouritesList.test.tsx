@@ -12,6 +12,7 @@ const venue: VenueDataDto = {
   neighborhood: 'Centrum',
   location: { lat: 57.705, lng: 11.97 },
   currentSunStatus: 'Sunny',
+  weatherGateState: 'not_gated',
   skyCondition: 'clear',
   isPartner: false,
   confidence: 92,
@@ -28,6 +29,7 @@ const shadedVenue: VenueDataDto = {
   venueId: '2',
   venueName: 'Skuggbaren',
   currentSunStatus: 'Shaded',
+  weatherGateState: 'not_gated',
   distanceMeters: 20,
   sunExposurePercent: 10,
 };
@@ -49,19 +51,17 @@ const messages = {
       empty: 'Inga platser hittades i det här området.',
       sun: 'Sol',
       photoPlaceholder: 'Platshållarbild för platsen',
-      confidence: 'Säkerhet',
-      confidenceApproximate: 'cirka',
-      confidenceUnavailable: 'Säkerhet saknas',
       distance: 'Avstånd',
       distanceApproximate: '≈ från centrum',
       sunUnavailable: 'Soltid saknas',
+      closedAtSelectedTime: 'Stängt vid vald tid',
       statusMostlyShade: 'MEST SKUGGA',
       statusFullSun: 'FULL SOL',
       statusPartialSun: 'DELVIS SOL',
       favourite: 'Spara {name}',
       favouriteAdd: 'Spara som favorit',
       favouriteRemove: 'Ta bort favorit',
-      cardAria: 'Välj {name}, {sun}, {confidence}, Avstånd {distance}',
+      cardAria: 'Välj {name}, {sun}, Avstånd {distance}',
     },
   },
 };
@@ -183,5 +183,30 @@ describe('<FavouritesList />', () => {
       expect.stringContaining('Kafé Magasinet'),
       expect.stringContaining('Skuggbaren'),
     ]);
+  });
+
+  it('retains a closed saved venue as an actionable favourite row with selected-time copy', () => {
+    const onSelectVenue = vi.fn();
+    renderWithProviders(
+      <FavouritesList
+        favouriteIds={['1']}
+        venues={[venue]}
+        mode="mobile"
+        sortMode="sun"
+        availabilityByVenueId={{ '1': 'closed' }}
+        onSelectVenue={onSelectVenue}
+        onFavouriteToggle={vi.fn()}
+        isFavourite={() => true}
+      />,
+      { messages },
+    );
+
+    expect(screen.getByText('Stängt vid vald tid')).toBeInTheDocument();
+    const rowButton = screen.getByRole('button', {
+      name: /Välj Kafé Magasinet.*Stängt vid vald tid/,
+    });
+    expect(rowButton).toBeEnabled();
+    fireEvent.click(rowButton);
+    expect(onSelectVenue).toHaveBeenCalledWith(venue);
   });
 });

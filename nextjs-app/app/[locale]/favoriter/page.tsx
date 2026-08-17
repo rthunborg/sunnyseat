@@ -1,11 +1,12 @@
 import { MapViewDynamic } from '@/components/custom/map/MapViewDynamic';
-import { OnboardingGateWithSuspense } from '@/components/custom/onboarding/OnboardingGate';
 
 export default function FavouritesPage() {
   return (
-    <>
-      <MapViewDynamic />
-      <OnboardingGateWithSuspense />
-    </>
+    <MapViewDynamic
+      devVenueEditorEnabled={
+        process.env.NODE_ENV !== 'production' &&
+        process.env.SUNNYSEAT_ADMIN === 'dev'
+      }
+    />
   );
 }

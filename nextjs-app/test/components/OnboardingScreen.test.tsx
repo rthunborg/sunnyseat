@@ -18,7 +18,13 @@ vi.mock('motion/react', async () => {
       layout: _layout,
       ...rest
     } = props;
-    return React.createElement('div', rest);
+    const transition = _transition as { duration?: unknown; delay?: unknown } | undefined;
+    return React.createElement('div', {
+      ...rest,
+      'data-motion-initial': JSON.stringify(_initial ?? null),
+      'data-motion-duration': String(transition?.duration ?? ''),
+      'data-motion-delay': String(transition?.delay ?? ''),
+    });
   };
   return {
     motion: { div: passthrough },
@@ -158,6 +164,73 @@ describe('<OnboardingScreen />', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
+  it('preserves exit state across a parent rerender without duplicating the dialog', () => {
+    installGeolocationStub();
+    const onDismiss = vi.fn();
+    const onLocationDenied = vi.fn();
+
+    const { rerender } = renderWithProviders(
+      <OnboardingScreen
+        onDismiss={onDismiss}
+        onLocationDenied={onLocationDenied}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('onboarding-cta-skip'));
+
+    expect(onLocationDenied).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('onboarding-screen').dataset.phase).toBe('exiting');
+
+    rerender(
+      <OnboardingScreen
+        onDismiss={onDismiss}
+        onLocationDenied={onLocationDenied}
+      />,
+    );
+
+    expect(screen.getAllByTestId('onboarding-screen')).toHaveLength(1);
+    expect(screen.getByTestId('onboarding-screen').dataset.phase).toBe('exiting');
+
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves primary CTA pending state across a parent rerender', () => {
+    const stub = installGeolocationStub();
+    stub.getCurrentPosition.mockImplementation(() => {});
+    const onDismiss = vi.fn();
+
+    const { rerender } = renderWithProviders(
+      <OnboardingScreen onDismiss={onDismiss} />,
+    );
+
+    fireEvent.click(screen.getByTestId('onboarding-cta-primary'));
+
+    expect(stub.getCurrentPosition).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('onboarding-cta-primary')).toBeDisabled();
+    expect(screen.getByTestId('onboarding-cta-primary')).toHaveAttribute(
+      'data-pending',
+      'true',
+    );
+
+    rerender(<OnboardingScreen onDismiss={onDismiss} />);
+
+    expect(screen.getAllByTestId('onboarding-screen')).toHaveLength(1);
+    expect(screen.getByTestId('onboarding-cta-primary')).toBeDisabled();
+    expect(screen.getByTestId('onboarding-cta-primary')).toHaveAttribute(
+      'data-pending',
+      'true',
+    );
+    expect(stub.getCurrentPosition).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
   it('primary CTA click on success → onLocationGranted + onDismiss after fade', async () => {
     const stub = installGeolocationStub();
     stub.getCurrentPosition.mockImplementation(
@@ -240,6 +313,41 @@ describe('<OnboardingScreen />', () => {
       vi.advanceTimersByTime(0);
     });
     expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('reduced-motion path suppresses first-frame entrance motion', () => {
+    reducedMotionMock.mockReturnValue(true);
+    installGeolocationStub();
+
+    renderWithProviders(<OnboardingScreen onDismiss={() => {}} />);
+
+    expect(screen.getByTestId('onboarding-screen')).toHaveAttribute(
+      'data-motion-initial',
+      'false',
+    );
+    const animatedRegions = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-motion-initial]'),
+    );
+    expect(animatedRegions).toHaveLength(3);
+    for (const animatedRegion of animatedRegions) {
+      expect(animatedRegion).toHaveAttribute('data-motion-initial', 'false');
+      expect(animatedRegion).toHaveAttribute('data-motion-duration', '0');
+    }
+  });
+
+  it('noninteractive pre-hydration frame suppresses first-frame entrance variants', () => {
+    reducedMotionMock.mockReturnValue(false);
+    installGeolocationStub();
+
+    renderWithProviders(<OnboardingScreen interactive={false} onDismiss={() => {}} />);
+
+    const animatedRegions = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-motion-initial]'),
+    );
+    expect(animatedRegions).toHaveLength(3);
+    for (const animatedRegion of animatedRegions) {
+      expect(animatedRegion).toHaveAttribute('data-motion-initial', 'false');
+    }
   });
 
   it('primary CTA reflects `aria-busy=true` and `disabled` while pending', () => {
