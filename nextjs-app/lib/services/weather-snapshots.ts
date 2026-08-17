@@ -234,11 +234,96 @@ function skyConditionFromSnapshotCloudCover(cloudCover: number | undefined): str
   return 'clear';
 }
 
+type PersistedWeatherSnapshotRow = {
+  coordinate_bucket?: unknown;
+  stockholm_date?: unknown;
+  bucket_key?: unknown;
+  slices?: unknown;
+  weather_updated_at?: unknown;
+  expires_at?: unknown;
+};
+
+function coordinateBucketForVenue(venue: WeatherSnapshotVenue): string {
+  const coordinate = venueEngineCoordinate(venue);
+  return `${coordinate.lat.toFixed(4)},${coordinate.lng.toFixed(4)}`;
+}
+
+function weatherSnapshotRecordFromRow(row: PersistedWeatherSnapshotRow): WeatherSnapshotRecord {
+  const expiresAt = typeof row.expires_at === 'string' ? new Date(row.expires_at) : null;
+  if (expiresAt && expiresAt.getTime() <= Date.now()) {
+    return {
+      status: 'expired',
+      bucket: typeof row.bucket_key === 'string' ? row.bucket_key : undefined,
+      weatherUpdatedAt:
+        typeof row.weather_updated_at === 'string' ? row.weather_updated_at : undefined,
+      slices: [],
+    };
+  }
+  return {
+    status: 'ready',
+    bucket: typeof row.bucket_key === 'string' ? row.bucket_key : undefined,
+    weatherUpdatedAt:
+      typeof row.weather_updated_at === 'string' ? row.weather_updated_at : undefined,
+    slices: Array.isArray(row.slices) ? row.slices : [],
+  };
+}
+
+/**
+ * Preload the server-owned current snapshots for a list request in one query.
+ * Coordinate buckets are deduplicated, while the returned repository still
+ * gates each venue independently through `buildPersistedSunOutcome`.
+ */
+export async function prepareWeatherSnapshotRepositoryForVenueDays(
+  venues: readonly WeatherSnapshotVenue[],
+  stockholmDate: string,
+): Promise<WeatherSnapshotRepository> {
+  const coordinateBuckets = [
+    ...new Set(venues.map((venue) => coordinateBucketForVenue(venue))),
+  ];
+  const requestedBuckets = new Set(coordinateBuckets);
+  const snapshotsByCoordinateBucket = new Map<string, PersistedWeatherSnapshotRow>();
+
+  if (coordinateBuckets.length > 0) {
+    const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
+    const { data, error } = await getSupabaseServiceRole()
+      .from('weather_bucket_snapshots')
+      .select('coordinate_bucket, bucket_key, stockholm_date, slices, weather_updated_at, expires_at')
+      .in('coordinate_bucket', coordinateBuckets)
+      .eq('stockholm_date', stockholmDate)
+      .eq('bucket_key', 'current');
+    if (error) throw new Error(`Weather snapshot batch read failed: ${error.message}`);
+
+    for (const value of Array.isArray(data) ? data : []) {
+      if (!value || typeof value !== 'object') continue;
+      const row = value as PersistedWeatherSnapshotRow;
+      const coordinateBucket = typeof row.coordinate_bucket === 'string'
+        ? row.coordinate_bucket
+        : null;
+      if (
+        !coordinateBucket ||
+        !requestedBuckets.has(coordinateBucket) ||
+        row.stockholm_date !== stockholmDate ||
+        row.bucket_key !== 'current'
+      ) {
+        continue;
+      }
+      snapshotsByCoordinateBucket.set(coordinateBucket, row);
+    }
+  }
+
+  return {
+    async readSnapshotForVenueDay(venue, _bucket, requestedStockholmDate) {
+      if (requestedStockholmDate !== stockholmDate) return null;
+      const row = snapshotsByCoordinateBucket.get(coordinateBucketForVenue(venue));
+      return row ? weatherSnapshotRecordFromRow(row) : null;
+    },
+  };
+}
+
 const defaultWeatherSnapshotRepository: WeatherSnapshotRepository = {
   async readSnapshotForVenueDay(venue, _bucket, stockholmDate) {
     const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
-    const coordinate = venueEngineCoordinate(venue);
-    const coordinateBucket = `${coordinate.lat.toFixed(4)},${coordinate.lng.toFixed(4)}`;
+    const coordinateBucket = coordinateBucketForVenue(venue);
     const { data, error } = await getSupabaseServiceRole()
       .from('weather_bucket_snapshots')
       .select('bucket_key, stockholm_date, slices, weather_updated_at, expires_at')
@@ -248,20 +333,6 @@ const defaultWeatherSnapshotRepository: WeatherSnapshotRepository = {
       .maybeSingle();
     if (error) throw new Error(`Weather snapshot read failed: ${error.message}`);
     if (!data) return null;
-    const expiresAt = typeof data.expires_at === 'string' ? new Date(data.expires_at) : null;
-    if (expiresAt && expiresAt.getTime() <= Date.now()) {
-      return {
-        status: 'expired',
-        bucket: data.bucket_key,
-        weatherUpdatedAt: data.weather_updated_at ?? undefined,
-        slices: [],
-      };
-    }
-    return {
-      status: 'ready',
-      bucket: data.bucket_key,
-      weatherUpdatedAt: data.weather_updated_at ?? undefined,
-      slices: Array.isArray(data.slices) ? data.slices : [],
-    };
+    return weatherSnapshotRecordFromRow(data);
   },
 };

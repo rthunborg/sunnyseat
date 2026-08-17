@@ -31,6 +31,7 @@ type RouteTestHook = {
   __setVenueStoreForTests?: (loader: (() => Promise<StoredVenue[]>) | undefined) => void;
   __setSunGeometryRepositoryForTests?: (repo: unknown) => void;
   __setWeatherSnapshotRepositoryForTests?: (repo: unknown) => void;
+  __setPersistedSunRepositoryPreparerForTests?: (preparer: unknown) => void;
   GET: (request: NextRequest) => Promise<Response>;
 };
 
@@ -45,6 +46,7 @@ afterEach(() => {
   route.__setVenueStoreForTests?.(undefined);
   route.__setSunGeometryRepositoryForTests?.(undefined);
   route.__setWeatherSnapshotRepositoryForTests?.(undefined);
+  route.__setPersistedSunRepositoryPreparerForTests?.(undefined);
   vi.useRealTimers();
 });
 
@@ -89,6 +91,10 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
     expect(source).not.toContain('applyRealSunEngine');
     expect(source).not.toContain("import('@/lib/weather/met-no-service')");
     expect(source).not.toContain("import('@/lib/weather/nowcast-service')");
+    expect(source).toContain('preparePersistedSunRouteRepositoriesForVenueDays');
+    expect(source).toMatch(
+      /buildPersistedSunOutcome\(venue, requestedAt, now, \{ repositories \}\)/u,
+    );
   });
 
   test('public persisted reads use the published current hash instead of recomputing live geometry input', () => {
@@ -99,6 +105,69 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
     expect(defaultRepository).toContain("select('status, current_geometry_input_hash')");
     expect(defaultRepository).not.toContain('buildGeometryInputPayloadForVenue(venue, stockholmDate)');
     expect(defaultRepository).not.toContain('computeGeometryInputHash(input)');
+  });
+
+  test('production list wiring uses one prepared repository set instead of the scalar test repository', async () => {
+    const venues = Array.from({ length: 42 }, (_, index) => routeScaleVenue(index + 1));
+    const scalarCurrentRead = vi.fn(async () => {
+      throw new Error('scalar geometry repository must not run');
+    });
+    const scalarCoverageRead = vi.fn(async () => {
+      throw new Error('scalar geometry repository must not run');
+    });
+    const preparedCurrentRead = vi.fn(async (venueId: string) => ({
+      status: 'ready' as const,
+      geometryInputHash: geometryHashForVenue(venueId),
+    }));
+    const preparedCoverageRead = vi.fn(async (venueId: string) => ({
+      venueId,
+      stockholmDate: '2026-07-18',
+      geometryInputHash: geometryHashForVenue(venueId),
+      status: 'ready' as const,
+      series: [
+        { minutes: 720, sunExposurePercent: 82 },
+        { minutes: 735, sunExposurePercent: 78 },
+      ],
+    }));
+    const preparedWeatherRead = vi.fn(async () => ({
+      status: 'ready' as const,
+      bucket: 'current',
+      weatherUpdatedAt: '2026-07-18T10:00:00.000Z',
+      slices: [
+        { minutes: 720, cloudCover: 10, isRaining: false },
+        { minutes: 735, cloudCover: 10, isRaining: false },
+      ],
+    }));
+    const prepareRepositories = vi.fn(async () => ({
+      sunGeometryRepository: {
+        readCurrentGeometryInput: preparedCurrentRead,
+        readCurrentCoverageForVenueDay: preparedCoverageRead,
+      },
+      weatherSnapshotRepository: {
+        readSnapshotForVenueDay: preparedWeatherRead,
+      },
+    }));
+
+    route.__setVenueStoreForTests?.(async () => venues);
+    // The injected scalar repository turns on the persisted branch in tests;
+    // the prepared request-scoped repositories must override it completely.
+    route.__setSunGeometryRepositoryForTests?.({
+      readCurrentGeometryInput: scalarCurrentRead,
+      readCurrentCoverageForVenueDay: scalarCoverageRead,
+    });
+    route.__setPersistedSunRepositoryPreparerForTests?.(prepareRepositories);
+
+    const response = await route.GET(venuesRequest('&radiusKm=3'));
+    expect(response.status).toBe(200);
+    expect(prepareRepositories).toHaveBeenCalledTimes(1);
+    expect(prepareRepositories).toHaveBeenCalledWith(venues, '2026-07-18');
+    expect(scalarCurrentRead).not.toHaveBeenCalled();
+    expect(scalarCoverageRead).not.toHaveBeenCalled();
+    expect(preparedCurrentRead).toHaveBeenCalledTimes(42);
+    expect(preparedCoverageRead).toHaveBeenCalledTimes(42);
+    expect(preparedWeatherRead).toHaveBeenCalledTimes(42);
+    const body = (await response.json()) as { venues: unknown[] };
+    expect(body.venues).toHaveLength(42);
   });
 
   test('detail coverage-missing response does not leak venue/date/hash diagnostics', () => {

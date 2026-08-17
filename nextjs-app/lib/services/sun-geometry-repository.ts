@@ -19,6 +19,7 @@ import {
 import {
   gateGeometrySeriesWithWeatherSnapshots,
   getWeatherSnapshotRepositoryForRoute,
+  prepareWeatherSnapshotRepositoryForVenueDays,
   type WeatherSnapshotRepository,
 } from '@/lib/services/weather-snapshots';
 import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
@@ -348,6 +349,113 @@ async function buildLegacyEngineOutcomeForTests(
 }
 
 const ZERO_GEOMETRY_INPUT_HASH = 'g1:0000000000000000000000000000000000000000000000000000000000000000';
+
+/**
+ * Preload the exact current geometry rows for a list request in one database
+ * snapshot. The returned repository is request-scoped and performs no I/O when
+ * `buildPersistedSunOutcome` subsequently reads each venue.
+ */
+export async function prepareSunGeometryRepositoryForVenueDays(
+  venues: readonly Pick<StoredVenue, 'id'>[],
+  stockholmDate: string,
+): Promise<SunGeometryRepository> {
+  const venueIds = [...new Set(venues.map((venue) => venue.id))];
+  const requestedVenueIds = new Set(venueIds);
+  const currentInputs = new Map<string, CurrentGeometryInputState>();
+  const coverageByVenue = new Map<string, PersistedSunGeometryCoverage>();
+
+  if (venueIds.length > 0) {
+    const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
+    const { data, error } = await getSupabaseServiceRole().rpc(
+      'read_current_venue_sun_geometry_batch',
+      {
+        p_venue_ids: venueIds,
+        p_stockholm_date: stockholmDate,
+      },
+    );
+    if (error) throw new Error(`Geometry batch read failed: ${error.message}`);
+
+    for (const value of Array.isArray(data) ? data : []) {
+      if (!value || typeof value !== 'object') continue;
+      const row = value as Record<string, unknown>;
+      const venueId = typeof row.venue_id === 'string' ? row.venue_id : null;
+      if (!venueId || !requestedVenueIds.has(venueId)) continue;
+
+      const inputStatus = typeof row.input_status === 'string'
+        ? row.input_status as CurrentGeometryInputState['status']
+        : undefined;
+      const currentGeometryInputHash = typeof row.current_geometry_input_hash === 'string'
+        ? row.current_geometry_input_hash
+        : null;
+      if (inputStatus !== undefined || currentGeometryInputHash !== null) {
+        currentInputs.set(venueId, {
+          status: inputStatus,
+          geometryInputHash: currentGeometryInputHash,
+        });
+      }
+
+      const coverageDate = typeof row.coverage_stockholm_date === 'string'
+        ? row.coverage_stockholm_date
+        : null;
+      const coverageGeometryInputHash = typeof row.coverage_geometry_input_hash === 'string'
+        ? row.coverage_geometry_input_hash
+        : null;
+      if (
+        coverageDate !== stockholmDate ||
+        coverageGeometryInputHash === null ||
+        coverageGeometryInputHash !== currentGeometryInputHash ||
+        row.series === null ||
+        row.series === undefined
+      ) {
+        continue;
+      }
+      coverageByVenue.set(venueId, {
+        venueId,
+        stockholmDate: coverageDate,
+        geometryInputHash: coverageGeometryInputHash,
+        status: 'ready',
+        series: normalizePersistedSeries(row.series),
+      });
+    }
+  }
+
+  return {
+    async readCurrentGeometryInput(venueId, requestedStockholmDate) {
+      if (requestedStockholmDate !== stockholmDate || !requestedVenueIds.has(venueId)) return null;
+      return currentInputs.get(venueId) ?? null;
+    },
+    async readCurrentCoverageForVenueDay(venueId, requestedStockholmDate, geometryInputHash) {
+      if (requestedStockholmDate !== stockholmDate || !requestedVenueIds.has(venueId)) return null;
+      const currentInput = currentInputs.get(venueId);
+      if (
+        currentInput?.status !== 'ready' ||
+        currentInput.geometryInputHash !== geometryInputHash
+      ) {
+        return null;
+      }
+      const coverage = coverageByVenue.get(venueId);
+      if (
+        !coverage ||
+        coverage.stockholmDate !== requestedStockholmDate ||
+        coverage.geometryInputHash !== geometryInputHash
+      ) {
+        return null;
+      }
+      return coverage;
+    },
+  };
+}
+
+export async function preparePersistedSunRouteRepositoriesForVenueDays(
+  venues: readonly StoredVenue[],
+  stockholmDate: string,
+): Promise<PersistedSunRouteRepositories> {
+  const [sunGeometryRepository, weatherSnapshotRepository] = await Promise.all([
+    prepareSunGeometryRepositoryForVenueDays(venues, stockholmDate),
+    prepareWeatherSnapshotRepositoryForVenueDays(venues, stockholmDate),
+  ]);
+  return { sunGeometryRepository, weatherSnapshotRepository };
+}
 
 const defaultSunGeometryRepository: SunGeometryRepository = {
   async readCurrentGeometryInput(venueId) {
