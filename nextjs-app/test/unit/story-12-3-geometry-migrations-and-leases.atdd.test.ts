@@ -30,6 +30,10 @@ function hashRuntimeSetMigrationSource(): string {
   return migrationSource('fix_shadow_caster_hash_records_runtime_set');
 }
 
+function batchCurrentGeometryReadMigrationSource(): string {
+  return migrationSource('read_current_venue_sun_geometry_batch');
+}
+
 function normalizeSql(sql: string): string {
   return sql.replace(/\s+/g, ' ').trim();
 }
@@ -295,6 +299,39 @@ describe('Story 12.3 AC2/AC3/AC5/AC7 - persisted geometry SQL and scheduled oper
     expect(sql).toMatch(/revoke all on function public\.get_shadow_caster_hash_records\(double precision, double precision, double precision\)[\s\S]+from public, anon, authenticated, service_role/i);
     expect(sql).toMatch(/grant execute on function public\.get_shadow_caster_hash_records\(double precision, double precision, double precision\) to service_role/i);
     expect(sql).not.toMatch(/grant execute on function public\.get_shadow_caster_hash_records[^;]+to\s+(anon|authenticated)/i);
+  });
+
+  test('batch current-geometry read is stable, security-definer, search-path hardened, and service-role only', () => {
+    const sql = batchCurrentGeometryReadMigrationSource();
+    const compact = normalizeSql(sql);
+
+    expect(compact).toMatch(
+      /create or replace function public\.read_current_venue_sun_geometry_batch\( p_venue_ids text\[\], p_stockholm_date date \)/i,
+    );
+    expect(compact).toMatch(
+      /returns table \( venue_id text, input_status text, current_geometry_input_hash text, coverage_stockholm_date date, coverage_geometry_input_hash text, series jsonb \)/i,
+    );
+    expect(compact).toMatch(/language sql stable security definer set search_path = pg_catalog, public/i);
+    expect(sql).toMatch(
+      /revoke all on function public\.read_current_venue_sun_geometry_batch\(text\[\], date\)[\s\S]+from public, anon, authenticated/i,
+    );
+    expect(sql).toMatch(
+      /grant execute on function public\.read_current_venue_sun_geometry_batch\(text\[\], date\)[\s\S]+to service_role/i,
+    );
+    expect(sql).not.toMatch(
+      /grant execute on function public\.read_current_venue_sun_geometry_batch[^;]+to\s+(public|anon|authenticated)/i,
+    );
+  });
+
+  test('batch current-geometry read joins only the requested date and each venue current hash', () => {
+    const compact = normalizeSql(batchCurrentGeometryReadMigrationSource());
+
+    expect(compact).toMatch(/from unnest\(coalesce\(p_venue_ids, array\[\]::text\[\]\)\) with ordinality/i);
+    expect(compact).toMatch(/left join public\.venue_geometry_inputs as inputs on inputs\.venue_id = requested\.venue_id/i);
+    expect(compact).toMatch(/left join public\.venue_sun_geometry_series as coverage on coverage\.venue_id = inputs\.venue_id/i);
+    expect(compact).toMatch(/coverage\.stockholm_date = p_stockholm_date/i);
+    expect(compact).toMatch(/coverage\.geometry_input_hash = inputs\.current_geometry_input_hash/i);
+    expect(compact).not.toMatch(/execute\s+format|execute\s+\$|quote_ident/i);
   });
 
   test('hash runtime-set hotfix keeps canonical output stable while mirroring runtime caster exclusions', () => {

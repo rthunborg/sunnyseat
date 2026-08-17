@@ -1272,6 +1272,20 @@ export type Database = {
           source_priority: number | null
         }[]
       }
+      read_current_venue_sun_geometry_batch: {
+        Args: {
+          p_stockholm_date: string
+          p_venue_ids: string[]
+        }
+        Returns: {
+          coverage_geometry_input_hash: string | null
+          coverage_stockholm_date: string | null
+          current_geometry_input_hash: string | null
+          input_status: string | null
+          series: Json | null
+          venue_id: string
+        }[]
+      }
       gettransactionid: { Args: never; Returns: unknown }
       is_canonical_weekly_opening_hours: {
         Args: { p_hours: Json }

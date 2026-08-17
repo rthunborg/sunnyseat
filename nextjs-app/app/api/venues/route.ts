@@ -18,7 +18,7 @@ import {
 import { badRequest } from '@/lib/utils/api-errors';
 import { greatCircleMeters } from '@/lib/utils/geo';
 import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
-import { getVenues } from '@/lib/services/venue-store';
+import { getVenues, type StoredVenue } from '@/lib/services/venue-store';
 import {
   applyPlannerSelectionToVenue,
   parseVenuePlannerParams,
@@ -36,15 +36,18 @@ import {
 } from '@/lib/services/sun-engine';
 import {
   buildPersistedSunOutcome,
+  preparePersistedSunRouteRepositoriesForVenueDays,
   routeUsesInjectedSunGeometryRepositoryForTests,
   SunGeometryCoverageMissingError,
   __setSunGeometryRepositoryForTests as setSunGeometryRepositoryForTests,
+  type PersistedSunRouteRepositories,
   type SunGeometryRepository,
 } from '@/lib/services/sun-geometry-repository';
 import {
   __setWeatherSnapshotRepositoryForTests as setWeatherSnapshotRepositoryForTests,
   type WeatherSnapshotRepository,
 } from '@/lib/services/weather-snapshots';
+import { stockholmDateKey } from '@/lib/utils/time-planner';
 import type {
   GetVenuesResponse,
   SunFreshnessMeta,
@@ -68,6 +71,11 @@ const MAX_IDS_QUERY_LENGTH = FAVOURITE_ID_LIMIT * (MAX_ID_LENGTH + 1) - 1;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/u;
 const DIACRITIC_PATTERN = /[\u0300-\u036f]/gu;
 let getVenuesForRoute: typeof getVenues = getVenues;
+type PersistedSunRepositoryPreparer = (
+  venues: readonly StoredVenue[],
+  stockholmDate: string,
+) => Promise<PersistedSunRouteRepositories>;
+let persistedSunRepositoryPreparerForTests: PersistedSunRepositoryPreparer | undefined;
 
 export function __setVenueStoreForTests(loader: typeof getVenues | undefined): void {
   getVenuesForRoute = loader ?? getVenues;
@@ -79,6 +87,12 @@ export function __setSunGeometryRepositoryForTests(repo: SunGeometryRepository |
 
 export function __setWeatherSnapshotRepositoryForTests(repo: WeatherSnapshotRepository | undefined): void {
   setWeatherSnapshotRepositoryForTests(repo);
+}
+
+export function __setPersistedSunRepositoryPreparerForTests(
+  preparer: PersistedSunRepositoryPreparer | undefined,
+): void {
+  persistedSunRepositoryPreparerForTests = preparer;
 }
 
 function compareVenuesByPublicSunPeak(left: VenueDataDto, right: VenueDataDto): number {
@@ -290,11 +304,24 @@ export async function GET(request: NextRequest) {
   if (useRealEngine) {
     let outcomes: Awaited<ReturnType<typeof buildPersistedSunOutcome>>[];
     try {
+      // Production list reads preload all exact date/current-hash geometry and
+      // current weather snapshots in two concurrent backend calls. Keep the
+      // legacy/injected test path unchanged so older semantic route tests remain
+      // isolated from Supabase while the batch adapters have focused tests.
+      const prepareRepositories = process.env.NODE_ENV === 'test'
+        ? persistedSunRepositoryPreparerForTests
+        : preparePersistedSunRouteRepositoriesForVenueDays;
+      const repositories = prepareRepositories
+        ? await prepareRepositories(
+            storeVenues,
+            stockholmDateKey(requestedAt),
+          )
+        : undefined;
       outcomes = await mapWithConcurrency(
         storeVenues,
         SUN_ENGINE_LIST_CONCURRENCY,
         (venue) =>
-          buildPersistedSunOutcome(venue, requestedAt, now),
+          buildPersistedSunOutcome(venue, requestedAt, now, { repositories }),
       );
     } catch (error) {
       if (error instanceof SunGeometryCoverageMissingError) {

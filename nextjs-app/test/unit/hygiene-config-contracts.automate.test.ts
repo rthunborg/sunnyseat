@@ -25,6 +25,7 @@ const vercelJsonRaw = readFileSync(join(projectRoot, 'vercel.json'), 'utf8');
 const vercelJson = JSON.parse(vercelJsonRaw) as {
   buildCommand: string;
   installCommand: string;
+  regions: string[];
 };
 const vercelDeploymentDoc = readFileSync(
   join(projectRoot, 'docs', 'vercel-deployment.md'),
@@ -76,6 +77,13 @@ describe('Story 11.7 — hygiene config-contract guards (automate)', () => {
       // install step. Pin buildCommand clean so nobody "fixes" the wrong line.
       expect(vercelJson.buildCommand).toBe('npm run build');
       expect(vercelJson.buildCommand).not.toMatch(ERROR_SWALLOW);
+    });
+
+    it('pins Node functions to Dublin beside the eu-west-1 Supabase project', () => {
+      expect(vercelJson.regions).toEqual(['dub1']);
+      expect(vercelDeploymentDoc).toContain('`dub1`');
+      expect(vercelDeploymentDoc).toContain('`eu-west-1`');
+      expect(vercelDeploymentDoc).toContain('"regions": ["dub1"]');
     });
 
     it('docs/vercel-deployment.md mirrors the exact installCommand (config + doc must not drift)', () => {

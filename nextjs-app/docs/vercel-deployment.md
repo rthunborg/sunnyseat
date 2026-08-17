@@ -54,7 +54,9 @@ The project is automatically linked when you import from GitHub. To verify:
 1. **General Settings**:
    - Project name and description
    - Team/organization assignment
-   - Region selection (choose closest to your users)
+   - Function region is versioned in `vercel.json`: keep `dub1` (Dublin) so
+     Node functions are co-located with the Supabase `eu-west-1` database.
+     Do not override it with a different Dashboard region.
 
 2. **Build & Development Settings**:
    - Framework: Next.js
@@ -142,16 +144,20 @@ Vercel supports three environments:
 
 ## Build Configuration
 
-The project uses `vercel.json` for Vercel-specific configuration. There are no
-cron jobs in the MVP (compute-on-request, DECISION D), so `vercel.json` declares
-no `crons`:
+The project uses `vercel.json` for Vercel-specific configuration. Geometry and
+weather refreshes run through the protected GitHub Actions workflow, not Vercel
+Cron, so `vercel.json` intentionally declares no `crons`. The single `dub1`
+Function region matches the Supabase `eu-west-1` region; static assets and edge
+cache hits remain globally served.
 
 ```json
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "installCommand": "npm install --include=dev && (cd .. && npm install --no-package-lock lightningcss@1.31.1 2>&1)"
+  "installCommand": "npm install --include=dev && (cd .. && npm install --no-package-lock lightningcss@1.31.1 2>&1)",
+  "regions": ["dub1"]
 }
 ```
 
