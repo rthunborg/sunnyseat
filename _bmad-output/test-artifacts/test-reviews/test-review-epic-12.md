@@ -6,7 +6,7 @@ stepsCompleted:
   - step-03f-aggregate-scores
   - step-04-generate-report
 lastStep: step-04-generate-report
-lastSaved: 2026-08-07
+lastSaved: 2026-08-17
 workflowType: testarch-test-review
 reviewScope: suite
 epic: "12"
@@ -16,34 +16,71 @@ inputDocuments:
   - _bmad-output/qa/epic-12-test-design-2026-07-12.md
   - _bmad-output/test-artifacts/traceability/traceability-report-epic-12.md
   - _bmad-output/test-artifacts/nfr-assessment-epic-12.md
+  - _bmad-output/test-artifacts/automation-summary.md
+  - _bmad-output/test-artifacts/epic-12-protected-validation/protected-validation-report-2026-08-08.md
+  - _bmad-output/test-artifacts/traceability/gate-decision-epic-12.json
+  - _bmad-output/test-artifacts/traceability/e2e-trace-summary-epic-12.json
   - nextjs-app/package.json
   - nextjs-app/playwright.config.ts
+  - nextjs-app/vitest.config.ts
 ---
 
 # Test Quality Review: Epic 12 Test Suite
 
-**Quality Score:** 82/100
-**Grade:** B - Good, with required fixes before treating the suite as release-gate evidence
-**Verdict:** Request Changes
-**Review Date:** 2026-08-07
+**Quality Score:** 90/100
+**Grade:** A- - Good, approved with comments
+**Verdict:** Approve with Comments
+**Review Date:** 2026-08-17
 **Reviewer:** TEA Agent
-**Execution Mode:** Static review of existing evidence plus targeted test inspection. Broad suites were not run.
+**Execution Mode:** Evidence-only refresh of existing suite evidence plus targeted static test inspection. Broad suites were not rerun locally.
 
 ## Scope Boundary
 
-This review evaluates the quality of the Epic 12 test suite itself. The already-known trace cap failure, protected/live evidence gaps, and NFR evidence gaps remain release-gate issues, but they are not counted as test-code defects here unless the inspected test code creates a concrete reliability, isolation, or maintainability problem.
+This review evaluates the quality of the Epic 12 test suite itself. The original 2026-08-07 findings are retained below for history; the 2026-08-17 protected-evidence refresh updates their current disposition. The separately owned trace workflow has now consumed the protected report and records PASS at 21/21 FULL.
+
+## 2026-08-17 Evidence-Only Refresh
+
+**Current verdict:** **Approve with Comments** for test-suite quality.
+
+The protected/final evidence now materially changes the test-review outcome:
+
+- Final main CI run `32039760444` passed on exact SHA `a20aac8a4a333a00efa82f4d334eeed033037f46`, including TypeScript, lint, production build, full Vitest, bundle/MapLibre, Playwright, touch-target, Lighthouse, and desktop/mobile axe lanes.
+- The authoritative final suite evidence records **215 Vitest files / 1,986 tests** plus green E2E/touch/axe/Lighthouse gates.
+- Protected primary, alternate, and security reviews reported zero findings after finalization.
+- Protected geometry and weather jobs are green, production deployment is exact-SHA/ready/promoted, and live zero-error scans plus pg_stat deltas support the release evidence set.
+
+### Current Finding Disposition
+
+| Prior finding | Current disposition | Evidence |
+| --- | --- | --- |
+| Live OpenFreeMap style dependency in console hygiene E2E | Resolved | `story-12-4-console-hygiene.spec.ts` still declares the Positron URL, but routes it to `MAP_STYLE_FIXTURE` before navigation and no longer uses `page.request.get()` for the assertion path. |
+| Permanently skipped Story 12.2 P1 feedback scenario | Resolved | Targeted inspection found no `test.skip()` in `story-12-2-feedback-evidence.atdd.spec.ts`. |
+| Story 12.3 hard wait in request-count regression | Resolved | Targeted inspection found no `waitForTimeout()` in `story-12-3-persisted-geometry-request-count.atdd.spec.ts`; the file now uses fixed date fixtures and event/assertion-oriented flow. |
+| Story 12.10 shared aggregate timing evidence | Resolved | Timing evidence is now attached with `testInfo.attach('story-12-10-mer-info-timing', ...)` instead of a shared repo-local aggregate JSON/lock. |
+| Large multi-purpose story specs | Open P2 maintainability comment | Examples remain large: `map-primary.spec.ts` 1092 lines, `story-12-10-venue-detail-prefetch.atdd.spec.ts` 501 lines, `story-12-11-coach-mark-guide.spec.ts` 447 lines, `story-12-1-hours-policy-and-operations.atdd.test.ts` 374 lines. Split only when touched; not a release blocker. |
+| Runtime timestamp/current-date helpers | Accepted low-severity comment | Story 12.3 now uses fixed primary date fixtures; remaining `new Date(Date.UTC(...))` uses are deterministic helper transforms. Keep preferring fixed fixtures for new date-boundary tests. |
+
+### Residual Test-Review Caveats
+
+- Some Playwright specs intentionally use project-routed `test.skip(...)` guards for mobile/desktop-specific scenarios. These are acceptable as test routing, but they make raw skip counts noisy; keep reasons explicit.
+- Recovered Vercel request/function/external telemetry belongs to NFR observability evidence, not test-code quality. It classifies only `3` true cold starts and cannot group external calls by destination path, so those residuals remain explicit without reducing the suite-quality score.
+- The formal trace refresh is PASS at 21/21 FULL; this review did not edit the trace-owned artifacts.
 
 ## Score Breakdown
 
 | Dimension | Score | Weight | Weighted | Rationale |
 | --- | ---: | ---: | ---: | --- |
-| Determinism | 80 | 30% | 24.0 | Strong mocking overall, but one live external style fetch, one unconditional skip, and one hard wait reduce repeatability. |
-| Isolation | 85 | 30% | 25.5 | Good API/provider seams, but one E2E spec writes shared aggregate evidence with a custom lock. |
-| Maintainability | 78 | 25% | 19.5 | Broad coverage and clear helpers, with several large multi-purpose specs over 300 lines. |
-| Performance | 86 | 15% | 12.9 | Mostly bounded, but avoidable waits and aggregate evidence IO add cost and variance. |
-| **Total** |  |  | **81.9 -> 82** |  |
+| Determinism | 92 | 30% | 27.6 | Prior live style fetch, unconditional skip, and hard wait findings are resolved; fixed fixtures and route mocks dominate the inspected suite. |
+| Isolation | 90 | 30% | 27.0 | API/provider seams remain strong, protected live checks are observational/read-only, and Story 12.10 evidence now uses Playwright attachments instead of shared aggregate state. |
+| Maintainability | 86 | 25% | 21.5 | Coverage is broad and traceable, but several multi-purpose E2E/story files remain large enough to slow review and increase coupling risk. |
+| Performance | 92 | 15% | 13.8 | Final CI and focused reruns are green; bounded waits/attachments are acceptable. Large browser specs remain the main execution-cost concern. |
+| **Total** |  |  | **89.9 -> 90** |  |
 
-## Actionable Findings
+## Historical Actionable Findings From 2026-08-07
+
+The findings below are preserved as the original review history. Current disposition is recorded in the 2026-08-17 table above; resolved items are not current blockers.
+
+## Original Actionable Findings
 
 ### High
 
@@ -74,7 +111,7 @@ This review evaluates the quality of the Epic 12 test suite itself. The already-
 
 ## Strengths
 
-- Epic 12 has broad layered coverage across unit, component, API, SQL assertion, and Playwright E2E tests, matching the trace report's 15 FULL / 6 PARTIAL / 0 UNCOVERED picture.
+- Epic 12 has broad layered coverage across unit, component, API, SQL assertion, and Playwright E2E tests. The original trace report recorded 15 FULL / 6 PARTIAL / 0 UNCOVERED before the protected-evidence refresh.
 - Provider isolation is generally strong: Met.no/Google/live-provider boundaries are guarded by static tests and API seam tests.
 - Playwright CI wiring includes the `a11y-mobile` project, and Story 12 mobile accessibility coverage is active.
 - Request-count and scrub/prefetch tests target real regression risks instead of only rendering states.
@@ -84,23 +121,34 @@ This review evaluates the quality of the Epic 12 test suite itself. The already-
 
 | Check | Result |
 | --- | --- |
-| Independent and deterministic | Concerns |
-| No real provider dependency | Concerns due OpenFreeMap style fetch |
-| Clear setup/teardown | Pass with concerns for shared aggregate evidence |
-| BDD/readability | Pass with concerns for large specs |
-| No hard waits | Concerns |
-| CI suitability | Pass with concerns |
-| Required evidence preserved | Pass; existing evidence reviewed only |
+| Independent and deterministic | Pass |
+| No real provider dependency | Pass |
+| Clear setup/teardown | Pass |
+| BDD/readability | Pass with maintainability comments for large specs |
+| No hard waits | Pass for inspected prior findings |
+| CI suitability | Pass |
+| Required evidence preserved | Pass; final CI/protected evidence reviewed |
 
 ## Open Questions / Deferred Work
 
-- Decide whether the skipped Story 12.2 weather-gated feedback scenario is still a required P1 release guard or should be explicitly removed from the acceptance/evidence set.
-- Decide whether Story 12.10 timing evidence belongs in Playwright attachments, `_bmad-output/test-artifacts`, or a separate post-run report generated outside the spec body.
+- Consider splitting the largest Playwright/story specs when they are next touched, especially `map-primary.spec.ts` and Story 12.10.
+- If required for a later public-launch gate, collect a larger provider-classified cold-start sample and add destination-path instrumentation; keep those NFR concerns outside test-code quality scoring.
 
 ## Blockers
 
-None for producing this review artifact. The suite quality verdict remains Request Changes until the high finding and skipped P1 scenario are addressed or accepted with rationale.
+None for producing this review artifact. Current test-suite quality verdict is Approve with Comments.
 
 ## Retro Notes
 
-- The console-hygiene suite's live OpenFreeMap style fetch is a hidden external dependency despite the broader Epic 12 no-live-provider testing posture.
+None.
+
+## 2026-08-17 Sign-Off
+
+- **Suite Quality:** Approve with Comments
+- **Score:** 90/100
+- **Critical findings:** 0
+- **High findings:** 0 current
+- **Medium findings:** 0 current blockers
+- **Test-code residuals:** large-spec maintainability and noisy project-routed skips.
+- **NFR evidence notes outside the suite-quality score:** strict-cold sample size and external destination-path attribution.
+- **Generated by:** BMAD `testarch-test-review` evidence-only refresh.

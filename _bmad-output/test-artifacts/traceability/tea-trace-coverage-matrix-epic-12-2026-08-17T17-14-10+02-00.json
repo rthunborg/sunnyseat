@@ -1,0 +1,654 @@
+{
+  "schema_version": "0.1.0",
+  "generated_at": "2026-08-17T17:26:01+02:00",
+  "phase": "PHASE_1_COMPLETE",
+  "repo": "sunnyseat",
+  "workflow": "testarch-trace",
+  "gate_iteration": 2,
+  "gate_iteration_cap_reached": true,
+  "post_finalization_evidence_refresh": true,
+  "source_sha": "a20aac8a4a333a00efa82f4d334eeed033037f46",
+  "trace_target": {
+    "type": "epic",
+    "id": "12",
+    "label": "Real-Venue Launch Readiness - Performance, Trust, Hours, Console Hygiene"
+  },
+  "collection_mode": "epic_quality_gate",
+  "collection_status": "COLLECTED",
+  "allow_gate": true,
+  "coverage_basis": "material_acceptance_criteria_and_required_evidence_lanes",
+  "summary_confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "synthetic": false,
+    "external_pointer_status": "not_used",
+    "sources": [
+      "project-context.md",
+      "_bmad-output/test-artifacts/test-design/test-design-epic-12.md",
+      "_bmad-output/test-artifacts/epic-12-protected-validation/protected-validation-report-2026-08-08.md",
+      "_bmad-output/test-artifacts/automation-summary.md",
+      "_bmad-output/implementation-artifacts/12-1..12-14 story records",
+      "_bmad-output/test-artifacts/traceability/traceability-report-12-*.md"
+    ]
+  },
+  "requirements": [
+    {
+      "id": "12.1-HOURS-GOVERNANCE",
+      "story": "12.1",
+      "priority": "P1",
+      "coverage": "FULL",
+      "status": "FULL",
+      "description": "Provider-neutral opening-hours governance, scheduled audit behavior, provenance, and no-Google-hours policy.",
+      "evidence": [
+        "_bmad-output/test-artifacts/traceability/traceability-report-12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md"
+      ],
+      "tests": []
+    },
+    {
+      "id": "12.2-FEEDBACK-ACCURACY",
+      "story": "12.2",
+      "priority": "P1",
+      "coverage": "FULL",
+      "status": "FULL",
+      "description": "Feedback evidence, public verdict parity, invalid contradiction rejection, aggregation/reporting, and coverage-cap removal.",
+      "evidence": [
+        "_bmad-output/test-artifacts/traceability/traceability-report-12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass.md"
+      ],
+      "tests": []
+    },
+    {
+      "id": "12.3-PERSISTED-GEOMETRY-DETERMINISTIC",
+      "story": "12.3",
+      "priority": "P0",
+      "coverage": "FULL",
+      "status": "FULL",
+      "description": "Persisted geometry/hash, exact current coverage, fail-closed typed missing coverage, read-time weather gating, scheduler, and local service-only contracts.",
+      "evidence": [
+        "_bmad-output/test-artifacts/traceability/traceability-report-12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md",
+        "_bmad-output/test-artifacts/atdd-checklist-12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md"
+      ],
+      "tests": [
+        {
+          "id": "12.3-API-42-VENUE-PERSISTED-READ",
+          "title": "42+ venue list requests read persisted current hashes and coverage without request-path recompute",
+          "file": "nextjs-app/test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts",
+          "line": 274,
+          "level": "api",
+          "status": "active"
+        },
+        {
+          "id": "12.3-SQL-BATCH-RPC-CONTRACT",
+          "title": "read_current_venue_sun_geometry_batch is service-only and revokes public/anon/authenticated execute",
+          "file": "nextjs-app/test/unit/story-12-3-geometry-migrations-and-leases.atdd.test.ts",
+          "line": 309,
+          "level": "unit",
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "id": "12.3-PROTECTED-PROD-P95",
+      "story": "12.3",
+      "priority": "P0",
+      "coverage": "FULL",
+      "status": "FULL",
+      "classification": "protected-live-performance-evidence",
+      "description": "Protected production route correctness, recovered Vercel request/function/external telemetry, uncached p95, edge p95, and no request-path legacy/shadow fan-out.",
+      "evidence": [
+        "_bmad-output/test-artifacts/epic-12-protected-validation/protected-validation-report-2026-08-08.md#protected-final-closeout-evidence-2026-08-17",
+        "_bmad-output/implementation-artifacts/12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md#protected-closeout-evidence-addendum-2026-08-17"
+      ],
+      "metrics": {
+        "origin_miss": {
+          "sample": "20/20 unique x-vercel-cache MISS",
+          "ttfb_p95_ms": 2565.53,
+          "total_p95_ms": 2672.727
+        },
+        "brotli_edge_hit": {
+          "sample": "20/20 x-vercel-cache HIT after prime",
+          "ttfb_p95_ms": 165.474,
+          "total_p95_ms": 167.005
+        },
+        "vercel_recovered_request_log": {
+          "unique_user_agents": "41/41",
+          "status": "all 200",
+          "miss": 21,
+          "hit": 20,
+          "edge_region": "arn1"
+        },
+        "vercel_recovered_function_invocations": {
+          "route": "/api/venues",
+          "total": 21,
+          "region": "dub1",
+          "status": "all 200",
+          "classification": {
+            "cold": 3,
+            "prewarmed": 1,
+            "hot": 17,
+            "origin_subset": {
+              "cold": 3,
+              "prewarmed": 1,
+              "hot": 16
+            },
+            "edge_prime": "hot"
+          },
+          "function_duration_p95_ms": {
+            "cold": 1827,
+            "cold_n": 3,
+            "hot_origin": 575,
+            "prewarmed": 2146,
+            "all_21": 1827
+          }
+        },
+        "vercel_internal_request_duration_p95_ms": {
+          "origin_miss": 2358,
+          "hit": 56
+        },
+        "vercel_canonical_external_metric": {
+          "total": 63,
+          "host": "Supabase",
+          "route": "/api/venues",
+          "region": "dub1",
+          "status": "all 200",
+          "path_dimension": "unsupported",
+          "attribution": "21 x 3 inferred from code, Supabase sample, and exact pg_stat delta"
+        },
+        "live_sql_delta": {
+          "venue_list": "+1",
+          "read_current_venue_sun_geometry_batch": "+1",
+          "weather_bucket_snapshots": "+1",
+          "legacy_geometry_inputs": "+0",
+          "legacy_sun_geometry_series": "+0",
+          "legacy_weather": "+0",
+          "get_buildings_near_point": "+0",
+          "get_shadow_caster_hash_records": "+0"
+        }
+      },
+      "caveat": "Origin MISS samples are not relabeled as 20 classified Vercel cold starts. Recovered telemetry observed 3 classified cold invocations under threshold; external 21 x 3 attribution is inferred because provider path dimension is unsupported.",
+      "tests": []
+    },
+    {
+      "id": "12.3-PROTECTED-ENV-AUDIT",
+      "story": "12.3",
+      "priority": "P0",
+      "coverage": "FULL",
+      "status": "FULL",
+      "classification": "protected-live-environment-security-evidence",
+      "description": "Protected Production variables, geometry/weather jobs, service-only batch RPC, and protected Supabase posture.",
+      "evidence": [
+        "_bmad-output/test-artifacts/epic-12-protected-validation/protected-validation-report-2026-08-08.md",
+        "GitHub Actions runs 32036137520, 32036508651, 32039760444"
+      ],
+      "tests": []
+    },
+    {
+      "id": "12.4-CONSOLE-HYGIENE",
+      "story": "12.4",
+      "priority": "P1",
+      "coverage": "FULL",
+      "status": "FULL",
+      "description": "Cold map/detail console and pageerror guards for hydration and MapLibre null-reference hygiene.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-4-production-console-hygiene-hydration-error-maplibre-null-warning.md"
+      ],
+      "tests": []
+    },
+    {
+      "id": "12.5-DEV-EDITOR-DENY-AND-VALIDATION",
+      "story": "12.5",
+      "priority": "P0",
+      "coverage": "FULL",
+      "status": "FULL",
+      "description": "Production editor deny, dev-only routes, public visibility impact, coordinate separation, polygon/media validation, and cache behavior.",
+      "evidence": [
+        "_bmad-output/test-artifacts/traceability/traceability-report-12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields.md"
+      ],
+      "tests": []
+    },
+    {
+      "id": "12.6-PUBLIC-SUNNY-PIN-SEMANTICS",
+      "story": "12.6",
+      "priority": "P0",
+      "coverage": "FULL",
+      "status": "FULL",
+      "description": "Shared public-sunny predicate, two-pin rule, card/detail/accessibility parity, weather-obscured treatment, and visual acceptance.",
+      "evidence": [
+        "_bmad-output/test-artifacts/traceability/traceability-report-12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number.md"
+      ],
+      "tests": []
+    },
+    {
+      "id": "12.7-LIVE-RESOLVER-ROUTE-MATRIX",
+      "story": "12.7",
+      "priority": "P0",
+      "coverage": "FULL",
+      "status": "FULL",
+      "description": "Reviews/feedback live resolver route matrix, visible/hidden/unknown handling, fixture-mode isolation, validation failures, unavailable-store mapping, and no-store behavior.",
+      "evidence": [
+        "_bmad-output/test-artifacts/traceability/traceability-report-12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md"
+      ],
+      "tests": [
+        {
+          "id": "12.7-RESOLVER-ATDD",
+          "title": "Live id and slug resolution, hidden/unknown public miss, fixture-only fallback, collisions, and miss invalidation",
+          "file": "nextjs-app/test/unit/services/story-12-7-public-venue-resolver.atdd.test.ts",
+          "line": 124,
+          "level": "unit",
+          "status": "active"
+        },
+        {
+          "id": "12.7-ROUTE-CONVERGENCE",
+          "title": "Reviews and feedback share the public resolver without leaking not-found boundaries",
+          "file": "nextjs-app/test/unit/api/story-12-7-shared-resolver-convergence.automation.test.ts",
+          "line": 113,
+          "level": "api",
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "id": "12.7-VISIBILITY-MIGRATION-LIVE",
+      "story": "12.7",
+      "priority": "P0",
+      "coverage": "FULL",
+      "status": "FULL",
+      "classification": "live-database-migration-evidence",
+      "description": "Protected hidden migration, live visible/hidden smoke with restore, and scoped generated-type visibility section parity.",
+      "evidence": [
+        "_bmad-output/test-artifacts/epic-12-protected-validation/protected-validation-report-2026-08-08.md",
+        "_bmad-output/implementation-artifacts/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md#protected-closeout-evidence-addendum-2026-08-17"
+      ],
+      "caveat": "The visibility type section matches; unrelated generated-type whole-file drift is not claimed resolved.",
+      "tests": []
+    },
+    {
+      "id": "12.7-CONCURRENT-VISIBILITY-RACE",
+      "story": "12.7",
+      "priority": "P1",
+      "coverage": "FULL",
+      "status": "FULL",
+      "classification": "concurrent-live-behavior-evidence",
+      "description": "Concurrent same-slug hidden and visible reads resolve independently without cached miss or shared in-flight promise bleed.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md"
+      ],
+      "tests": [
+        {
+          "id": "12.7-P1-CONCURRENT-VISIBILITY",
+          "title": "[P1] isolates concurrent same-slug visibility reads without in-flight cache bleed",
+          "file": "nextjs-app/test/unit/services/story-12-7-public-venue-resolver.automation.test.ts",
+          "line": 208,
+          "level": "unit",
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "id": "12.8-ABOUT-LEGEND-TRUTH",
+      "story": "12.8",
+      "priority": "P1",
+      "coverage": "FULL",
+      "status": "FULL",
+      "description": "About page pin legend, no fake public accuracy statistic, no public confidence indicator, Swedish copy, accessibility, and data-source policy.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-8-about-page-pin-legend-so-reads-the-sun-figure.md",
+        "_bmad-output/test-artifacts/automation-summary.md"
+      ],
+      "tests": []
+    },
+    {
+      "id": "12.9-ROW-QUANTIZED-MOBILE-SHEET",
+      "story": "12.9",
+      "priority": "P1",
+      "coverage": "FULL",
+      "status": "FULL",
+      "description": "Row-quantized sheet, slim time slider, recenter behavior, touch/keyboard coverage, accessibility, and visual evidence.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider.md"
+      ],
+      "tests": []
+    },
+    {
+      "id": "12.10-DETAIL-PREFETCH",
+      "story": "12.10",
+      "priority": "P1",
+      "coverage": "FULL",
+      "status": "FULL",
+      "description": "Exact query key, bounded idle preload budget, no scrub/date restart, immediate detail open, skeleton replacement, and hidden guard.",
+      "evidence": [
+        "_bmad-output/test-artifacts/traceability/traceability-report-12-10-venue-detail-preload-instant-mer-info.md"
+      ],
+      "tests": []
+    },
+    {
+      "id": "12.11-COACH-GUIDE",
+      "story": "12.11",
+      "priority": "P1",
+      "coverage": "FULL",
+      "status": "FULL",
+      "description": "First-run guide auto-open, persistence, settings relaunch, focus behavior, responsive anchors, mobile/desktop guide states, axe evidence, and visual acceptance.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-11-first-run-coach-mark-guide-map-legend-feature-tour.md"
+      ],
+      "tests": []
+    },
+    {
+      "id": "12.11-MAP-PRIMARY-FUTURE-DATE-STABILITY",
+      "story": "12.11",
+      "priority": "P1",
+      "coverage": "FULL",
+      "status": "FULL",
+      "classification": "broad-suite-e2e-stability-evidence",
+      "description": "Future-date exact-response wait is covered by focused 6/6 parallel evidence and final exact-head CI.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-11-first-run-coach-mark-guide-map-legend-feature-tour.md",
+        "_bmad-output/test-artifacts/automation-summary.md",
+        "GitHub Actions run 32039760444"
+      ],
+      "tests": [
+        {
+          "id": "12.11-E2E-FUTURE-DATE-EXACT-RESPONSE",
+          "title": "mobile: selecting a future date sends planner params to the venues API",
+          "file": "nextjs-app/test/e2e/map-primary.spec.ts",
+          "line": 622,
+          "level": "e2e",
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "id": "12.12-MEDIA-DTO-RENDER-FALLBACK",
+      "story": "12.12",
+      "priority": "P1",
+      "coverage": "FULL",
+      "status": "FULL",
+      "description": "Media DTO validation, managed rendition selection, card/detail/quick-info render behavior, fallback states, upload tooling, docs, E2E/media interception, visual acceptance, and accessibility evidence.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes.md"
+      ],
+      "tests": [
+        {
+          "id": "12.12-STORAGE-LOCAL-POLICY-CONTRACT",
+          "title": "[P0] local migration source permits browser public reads only for venue-media and no browser writes",
+          "file": "nextjs-app/test/unit/story-12-12-storage-upload-and-policy.atdd.test.ts",
+          "line": 112,
+          "level": "unit",
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "id": "12.12-STORAGE-POLICY-PROTECTED-VERIFY",
+      "story": "12.12",
+      "priority": "P0",
+      "coverage": "FULL",
+      "status": "FULL",
+      "classification": "protected-live-storage-policy-evidence",
+      "description": "Protected Supabase Storage venue-media public-read/no-browser-write policy contract plus dynamic service-role create-only upload, anonymous public read, browser write-denial, and cleanup smoke.",
+      "evidence": [
+        "_bmad-output/test-artifacts/epic-12-protected-validation/protected-validation-report-2026-08-08.md#protected-storage-owner-compatible-retry-2026-08-17",
+        "_bmad-output/test-artifacts/epic-12-protected-validation/protected-validation-report-2026-08-08.md#protected-storage-object-smoke",
+        "_bmad-output/implementation-artifacts/12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes.md#protected-closeout-evidence-addendum-2026-08-17",
+        "_bmad-output/test-artifacts/automation-summary.md#protected-closeout-verification-summary---epic-12-2026-08-17"
+      ],
+      "protected_smoke": {
+        "temporary_prefix": "test-venue-sunny/ve12-probe-20260817-7950324b/",
+        "service_role_upload": "card.webp and hero.webp",
+        "duplicate_version_refusal": true,
+        "anonymous_get": "HTTP 200 image/webp with SHA-256 parity",
+        "anon_and_authenticated_insert_update": "403 RLS",
+        "cleanup_remaining_objects": 0
+      },
+      "tests": []
+    },
+    {
+      "id": "12.13-CONFIDENCE-REMOVAL",
+      "story": "12.13",
+      "priority": "P1",
+      "coverage": "FULL",
+      "status": "FULL",
+      "description": "Visible and accessible public confidence removal, uncertainty retention, feedback evidence retention, source/i18n scans, a11y, and visual evidence.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-13-remove-the-user-facing-confidence-indicator-keep-it-internal.md"
+      ],
+      "tests": []
+    },
+    {
+      "id": "12.14-SELECTED-TIME-AVAILABILITY",
+      "story": "12.14",
+      "priority": "P0",
+      "coverage": "FULL",
+      "status": "FULL",
+      "description": "Selected-time open/closed filtering, exact-name closed result retention, saved closed favourite behavior, unknown-hours treatment, request-count invariants, 50-id validation, visual/manual evidence, and canonical review gate.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/12-14-hide-closed-venues-open-at-selected-time-filter.md",
+        "_bmad-output/test-artifacts/automation-summary.md"
+      ],
+      "tests": []
+    },
+    {
+      "id": "EPIC12-VISUAL-REBASELINE-GOVERNANCE",
+      "story": "epic-12",
+      "priority": "P2",
+      "coverage": "FULL",
+      "status": "FULL",
+      "description": "Manual-authorized visual acceptance and story-level visual candidate/reference provenance are preserved for affected Epic 12 visual states.",
+      "evidence": [
+        "_bmad-output/implementation-artifacts/validation/story-12-11-visual-candidates/",
+        "_bmad-output/implementation-artifacts/validation/story-12-12-venue-photo-candidates/",
+        "_bmad-output/implementation-artifacts/validation/story-12-14-manual-visual-20260807-170859/"
+      ],
+      "tests": []
+    }
+  ],
+  "coverage_statistics": {
+    "total_requirements": 21,
+    "fully_covered": 21,
+    "partially_covered": 0,
+    "uncovered": 0,
+    "overall_coverage_percentage": 100,
+    "material_gate_rows": {
+      "fully_covered": 21,
+      "partially_covered": 0,
+      "uncovered": 0,
+      "total": 21,
+      "full_pct": 100,
+      "covered_or_partial_pct": 100
+    },
+    "priority_breakdown": {
+      "P0": {
+        "total": 9,
+        "covered": 9,
+        "fully_covered": 9,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "percentage": 100,
+        "full_pct": 100
+      },
+      "P1": {
+        "total": 11,
+        "covered": 11,
+        "fully_covered": 11,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "percentage": 100,
+        "full_pct": 100
+      },
+      "P2": {
+        "total": 1,
+        "covered": 1,
+        "fully_covered": 1,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "percentage": 100,
+        "full_pct": 100
+      },
+      "P3": {
+        "total": 0,
+        "covered": 0,
+        "fully_covered": 0,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "percentage": 100,
+        "full_pct": 100
+      }
+    }
+  },
+  "gap_analysis": {
+    "critical_gaps": [],
+    "high_gaps": [],
+    "medium_gaps": [],
+    "low_gaps": [],
+    "partial_coverage_items": [],
+    "unit_only_items": []
+  },
+  "coverage_heuristics": {
+    "endpoint_gaps": [],
+    "auth_negative_path_gaps": [],
+    "happy_path_only_gaps": [],
+    "ui_journey_gaps": [],
+    "ui_state_gaps": [],
+    "counts": {
+      "endpoints_without_tests": 0,
+      "auth_missing_negative_paths": 0,
+      "happy_path_only_criteria": 0,
+      "ui_journeys_without_e2e": 0,
+      "ui_states_missing_coverage": 0
+    }
+  },
+  "test_inventory": {
+    "summary": {
+      "files": 7,
+      "cases": 8,
+      "skipped_cases": 0,
+      "fixme_cases": 0,
+      "pending_cases": 0,
+      "by_level": {
+        "e2e": {
+          "tests": 1,
+          "criteria_covered": 1
+        },
+        "api": {
+          "tests": 3,
+          "criteria_covered": 3
+        },
+        "component": {
+          "tests": 0,
+          "criteria_covered": 0
+        },
+        "unit": {
+          "tests": 4,
+          "criteria_covered": 4
+        },
+        "other": {
+          "tests": 0,
+          "criteria_covered": 0
+        }
+      }
+    },
+    "tests": [
+      {
+        "id": "12.3-API-42-VENUE-PERSISTED-READ",
+        "file": "nextjs-app/test/unit/api/story-12-3-persisted-geometry-route.atdd.test.ts",
+        "line": 274,
+        "title": "42+ venue list requests read persisted current hashes and coverage without request-path recompute",
+        "level": "api",
+        "status": "active"
+      },
+      {
+        "id": "12.3-SQL-BATCH-RPC-CONTRACT",
+        "file": "nextjs-app/test/unit/story-12-3-geometry-migrations-and-leases.atdd.test.ts",
+        "line": 309,
+        "title": "read_current_venue_sun_geometry_batch is service-only and revokes public/anon/authenticated execute",
+        "level": "unit",
+        "status": "active"
+      },
+      {
+        "id": "12.7-RESOLVER-ATDD",
+        "file": "nextjs-app/test/unit/services/story-12-7-public-venue-resolver.atdd.test.ts",
+        "line": 124,
+        "title": "Live id and slug resolution, hidden/unknown public miss, fixture-only fallback, collisions, and miss invalidation",
+        "level": "unit",
+        "status": "active"
+      },
+      {
+        "id": "12.7-ROUTE-CONVERGENCE",
+        "file": "nextjs-app/test/unit/api/story-12-7-shared-resolver-convergence.automation.test.ts",
+        "line": 113,
+        "title": "Reviews and feedback share the public resolver without leaking not-found boundaries",
+        "level": "api",
+        "status": "active"
+      },
+      {
+        "id": "12.7-P1-CONCURRENT-VISIBILITY",
+        "file": "nextjs-app/test/unit/services/story-12-7-public-venue-resolver.automation.test.ts",
+        "line": 208,
+        "title": "[P1] isolates concurrent same-slug visibility reads without in-flight cache bleed",
+        "level": "unit",
+        "status": "active"
+      },
+      {
+        "id": "12.11-E2E-FUTURE-DATE-EXACT-RESPONSE",
+        "file": "nextjs-app/test/e2e/map-primary.spec.ts",
+        "line": 622,
+        "title": "mobile: selecting a future date sends planner params to the venues API",
+        "level": "e2e",
+        "status": "active"
+      },
+      {
+        "id": "12.12-STORAGE-LOCAL-POLICY-CONTRACT",
+        "file": "nextjs-app/test/unit/story-12-12-storage-upload-and-policy.atdd.test.ts",
+        "line": 112,
+        "title": "[P0] local migration source permits browser public reads only for venue-media and no browser writes",
+        "level": "unit",
+        "status": "active"
+      },
+      {
+        "id": "12.14-SELECTED-TIME-REGRESSION",
+        "file": "nextjs-app/test/unit/utils/opening-hours-selected-time.atdd.test.ts",
+        "line": 1,
+        "title": "Selected-instant availability utility and malformed/invalid instant regressions",
+        "level": "unit",
+        "status": "active"
+      }
+    ],
+    "blockers": []
+  },
+  "residual_caveats": [
+    {
+      "id": "VERCEL-STRICT-COLD-SAMPLE-SIZE",
+      "severity": "low",
+      "status": "documented",
+      "reason": "Recovered Vercel function telemetry classified 21 /api/venues invocations as 3 cold, 1 prewarmed, and 17 hot; all observed cold invocations were under threshold with p95 1827 ms, but strict 20-classified-cold evidence remains under-sampled at n=3."
+    },
+    {
+      "id": "VERCEL-EXTERNAL-PATH-DIMENSION-LIMIT",
+      "severity": "low",
+      "status": "documented",
+      "reason": "Canonical external metric recovered 63 total dependencies, all Supabase host, origin route /api/venues, dub1, 200; path dimension is unsupported, so 21 x 3 attribution is inferred from code, Supabase sample evidence, and exact pg_stat delta."
+    },
+    {
+      "id": "VERCEL-LEGACY-AGGREGATES-TIMEOUT",
+      "severity": "low",
+      "status": "documented",
+      "reason": "Legacy aggregate telemetry still times out; exact-window request/function telemetry, canonical external telemetry, source contracts, and live SQL delta cover the gate lane."
+    },
+    {
+      "id": "SUPABASE-TYPES-GLOBAL-DRIFT",
+      "severity": "low",
+      "status": "documented",
+      "reason": "Visibility section type parity is exact; unrelated whole-file generated-type drift remains out of scope for this trace gate."
+    }
+  ],
+  "blockers": [],
+  "recommendations": [
+    {
+      "priority": "LOW",
+      "action": "Keep telemetry wording precise: recovered Vercel telemetry proves 21 /api/venues invocations with 3 observed classified cold starts under threshold, not 20 classified cold starts; external dependency count is 63 Supabase-host calls with 21 x 3 attribution inferred because path dimension is unsupported.",
+      "requirements": [
+        "Telemetry caveat"
+      ]
+    }
+  ]
+}

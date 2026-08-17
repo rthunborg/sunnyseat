@@ -1,15 +1,13 @@
 {
   "schema_version": "0.1.0",
-  "snapshot_at": "2026-08-07T18:51:48+02:00",
+  "snapshot_at": "2026-08-17T17:26:01+02:00",
   "repo": "sunnyseat",
+  "workflow": "testarch-trace",
   "collection_mode": "epic_quality_gate",
-  "gate_iteration": 2,
-  "gate_iteration_cap_reached": true,
-  "remediation_commit": "ee1e646",
-  "remediation_evidence_status": "new_ac_to_test_evidence_consumed_but_no_verified_change_to_protected_live_blocking_lanes",
   "collection_status": "COLLECTED",
   "inventory_basis": "material_acceptance_criteria_and_required_evidence_lanes",
   "gate_basis": "deterministic_epic_gate",
+  "source_sha": "a20aac8a4a333a00efa82f4d334eeed033037f46",
   "target": {
     "type": "epic",
     "id": "12",
@@ -22,169 +20,212 @@
     "resolution_mode": "formal_requirements",
     "confidence": "high",
     "sources": [
+      "project-context.md",
       "_bmad-output/test-artifacts/test-design/test-design-epic-12.md",
-      "_bmad-output/auto-bmad/state/epic/epic-12.yaml",
-      "_bmad-output/implementation-artifacts/deferred-work.md",
-      "_bmad-output/auto-bmad/retro-notes/epic-12.md",
-      "_bmad-output/implementation-artifacts/12-1..12-14-*.md",
-      "_bmad-output/test-artifacts/traceability/traceability-report-12-*.md",
-      "project-context.md"
+      "_bmad-output/test-artifacts/epic-12-protected-validation/protected-validation-report-2026-08-08.md",
+      "_bmad-output/test-artifacts/automation-summary.md",
+      "_bmad-output/implementation-artifacts/12-1..12-14 story records",
+      "_bmad-output/test-artifacts/traceability/traceability-report-12-*.md"
     ],
     "external_pointer_status": "not_used",
     "synthetic": false
   },
-  "gate_status": "FAIL",
+  "gate_status": "PASS",
+  "gate_iteration": 2,
+  "gate_iteration_cap_reached": true,
+  "post_finalization_evidence_refresh": true,
   "coverage": {
     "inventory": {
-      "fully_covered": 15,
-      "partially_covered": 6,
+      "covered": 21,
+      "fully_covered": 21,
+      "partially_covered": 0,
       "uncovered": 0,
       "total": 21,
-      "full_pct": 71.43,
+      "pct": 100,
+      "full_pct": 100,
       "covered_or_partial_pct": 100
     },
     "priority_breakdown": {
       "P0": {
         "total": 9,
-        "fully_covered": 5,
-        "partially_covered": 4,
+        "covered": 9,
+        "fully_covered": 9,
+        "partially_covered": 0,
         "uncovered": 0,
-        "full_pct": 55.56,
+        "pct": 100,
+        "full_pct": 100,
         "covered_or_partial_pct": 100
       },
       "P1": {
         "total": 11,
-        "fully_covered": 9,
-        "partially_covered": 2,
+        "covered": 11,
+        "fully_covered": 11,
+        "partially_covered": 0,
         "uncovered": 0,
-        "full_pct": 81.82,
+        "pct": 100,
+        "full_pct": 100,
         "covered_or_partial_pct": 100
       },
       "P2": {
         "total": 1,
+        "covered": 1,
         "fully_covered": 1,
         "partially_covered": 0,
         "uncovered": 0,
+        "pct": 100,
         "full_pct": 100,
         "covered_or_partial_pct": 100
+      },
+      "P3": {
+        "total": 0,
+        "covered": 0,
+        "fully_covered": 0,
+        "partially_covered": 0,
+        "uncovered": 0,
+        "pct": 100,
+        "full_pct": 100,
+        "covered_or_partial_pct": 100
+      }
+    },
+    "by_level": {
+      "e2e": {
+        "tests": 0,
+        "criteria_covered": 9
+      },
+      "api": {
+        "tests": 0,
+        "criteria_covered": 9
+      },
+      "component": {
+        "tests": 0,
+        "criteria_covered": 9
+      },
+      "unit": {
+        "tests": 0,
+        "criteria_covered": 18
+      },
+      "other": {
+        "tests": 0,
+        "criteria_covered": 7
       }
     }
   },
   "tests": {
     "implementation_tests_rerun_by_trace": false,
-    "reason": "The gate-iteration 2 trace pass consumed current Story 12.3/12.7/12.11/12.12 AC-to-test evidence, deferred-work notes, retro notes, and per-story trace artifacts. The epic gate fails on missing protected/live evidence independent of a local rerun.",
-    "story_recorded_evidence": [
-      "Story 12.3 local deterministic persisted-geometry, request-count, scheduler, route, and SQL evidence; protected production p95/environment evidence remains deferred",
-      "Story 12.7 resolver/reviews/feedback route and visibility-schema contract tests; live migration apply/type-regeneration verification remains a deployment prerequisite",
-      "Story 12.11 corrected serialized mobile future-date exact-response repeat passed 3/3; prior parallel repeat was 2/3, so no broad-concurrency pass is claimed",
-      "Story 12.12 media DTO/render/fallback/storage upload policy tests and migration text evidence; protected Supabase preview policy verification was not run",
-      "typecheck/lint/full or focused Vitest evidence recorded across stories",
-      "Playwright evidence recorded across affected story files",
-      "visual/manual acceptance recorded for applicable frontend stories"
-    ]
+    "files": 0,
+    "cases": 0,
+    "skipped_cases": 0,
+    "fixme_cases": 0,
+    "pending_cases": 0,
+    "reason": "This evidence-only trace refresh consumed dated protected validation, final exact-head CI, story records, and existing trace artifacts. It did not rerun implementation suites."
   },
   "risk_summary": {
-    "critical_open": 2,
-    "high_open": 2,
-    "medium_open": 2,
+    "critical_open": 0,
+    "high_open": 0,
+    "medium_open": 0,
     "low_open": 0,
-    "partial_p0": 4,
-    "partial_p1": 2
+    "partial_p0": 0,
+    "partial_p1": 0
   },
   "heuristics": {
     "endpoint_gaps": 0,
-    "auth_negative_path_status": "partial",
+    "auth_negative_path_status": "present",
     "error_path_status": "present",
     "ui_journey_status": "present",
     "ui_state_status": "present"
   },
-  "uncovered_requirements": [],
-  "material_gaps": [
+  "gate_criteria": {
+    "p0_coverage_required": "100%",
+    "p0_coverage_actual": "100%",
+    "p0_status": "MET",
+    "p1_coverage_target": "90%",
+    "p1_coverage_minimum": "80%",
+    "p1_coverage_actual": "100%",
+    "p1_status": "MET",
+    "overall_coverage_minimum": "80%",
+    "overall_coverage_actual": "100%",
+    "overall_status": "MET"
+  },
+  "closed_former_gaps": [
     {
       "id": "12.3-PROTECTED-PROD-P95",
       "priority": "P0",
-      "status": "PARTIAL",
-      "classification": "protected-live-performance-evidence",
-      "reason": "Protected production 42+ venue cold-p95 dataset and logs proving persisted geometry reads/no recompute are missing."
+      "status": "FULL",
+      "reason": "Exact-SHA production route correctness, recovered Vercel request/function/external telemetry, origin MISS p95 below threshold, edge HIT p95 below threshold, zero-error scan, and live SQL delta prove the persisted-read/no-legacy-fan-out route behavior."
     },
     {
       "id": "12.3-PROTECTED-ENV-AUDIT",
       "priority": "P0",
-      "status": "PARTIAL",
-      "classification": "protected-live-environment-security-evidence",
-      "reason": "Protected GitHub Production secrets/variables and live protected Supabase evidence were not collected."
+      "status": "FULL",
+      "reason": "Protected geometry/weather jobs, Production variables, service-only batch RPC, and protected Supabase posture are verified."
     },
     {
       "id": "12.7-VISIBILITY-MIGRATION-LIVE",
       "priority": "P0",
-      "status": "PARTIAL",
-      "classification": "live-database-migration-evidence",
-      "reason": "Visibility migration and post-apply live schema/query evidence are missing before deployment."
+      "status": "FULL",
+      "reason": "Protected hidden migration, live visible/hidden smoke with restore, and scoped type-section parity are verified."
     },
     {
       "id": "12.12-STORAGE-POLICY-PROTECTED-VERIFY",
       "priority": "P0",
-      "status": "PARTIAL",
-      "classification": "protected-live-storage-policy-evidence",
-      "reason": "Protected Supabase Storage bucket/RLS behavior has not been verified with service-role upload, public reads, and anon/auth write denial."
+      "status": "FULL",
+      "reason": "Protected venue-media bucket and public-read/no-browser-write policy contract are verified, and the bounded dynamic smoke proved service-role create-only upload, duplicate-version refusal, anonymous 200 image/webp SHA parity, anon/auth write denial, cleanup, and protected SQL remaining_objects=0."
     },
     {
       "id": "12.7-CONCURRENT-VISIBILITY-RACE",
       "priority": "P1",
-      "status": "PARTIAL",
-      "classification": "concurrent-live-behavior-evidence",
-      "reason": "Concurrent in-flight visibility changes are not directly exercised."
+      "status": "FULL",
+      "reason": "The deferred same-slug visibility race test proves independent concurrent reads without in-flight cache bleed."
     },
     {
       "id": "12.11-MAP-PRIMARY-FUTURE-DATE-STABILITY",
       "priority": "P1",
-      "status": "PARTIAL",
-      "classification": "broad-suite-e2e-stability-evidence",
-      "reason": "The corrected serialized mobile repeat passed 3/3, but prior parallel evidence was 2/3 and no broad-concurrency pass is claimed."
+      "status": "FULL",
+      "reason": "Focused future-date exact-response test passed 6/6 with 3 workers and final exact-head CI passed the broad integration lane."
     }
   ],
+  "residual_caveats": [
+    {
+      "id": "VERCEL-STRICT-COLD-SAMPLE-SIZE",
+      "severity": "low",
+      "status": "documented",
+      "reason": "Recovered Vercel function telemetry classified 21 /api/venues invocations as 3 cold, 1 prewarmed, and 17 hot; all observed cold invocations were under threshold with p95 1827 ms, but strict 20-classified-cold evidence remains under-sampled at n=3."
+    },
+    {
+      "id": "VERCEL-EXTERNAL-PATH-DIMENSION-LIMIT",
+      "severity": "low",
+      "status": "documented",
+      "reason": "Canonical external metric recovered 63 total dependencies, all Supabase host, origin route /api/venues, dub1, 200; path dimension is unsupported, so 21 x 3 attribution is inferred from code, Supabase sample evidence, and exact pg_stat delta."
+    },
+    {
+      "id": "VERCEL-LEGACY-AGGREGATES-TIMEOUT",
+      "severity": "low",
+      "status": "documented",
+      "reason": "Legacy aggregate telemetry still times out; exact-window request/function telemetry, canonical external telemetry, source contracts, and live SQL delta cover the gate lane."
+    },
+    {
+      "id": "SUPABASE-TYPES-GLOBAL-DRIFT",
+      "severity": "low",
+      "status": "documented",
+      "reason": "The protected generated visibility section matches exactly; unrelated broader generated-type drift is not represented as a global parity pass."
+    }
+  ],
+  "blockers": [],
   "recommendations": [
     {
-      "priority": "HIGH",
-      "action": "Collect Story 12.3 protected production cold-p95 and protected environment evidence before public-launch approval.",
+      "priority": "LOW",
+      "action": "Keep the telemetry wording exact in release notes: recovered Vercel telemetry proves 21 /api/venues invocations with 3 observed classified cold starts under threshold, not 20 classified cold starts; external dependency count is 63 Supabase-host calls with 21 x 3 attribution inferred because path dimension is unsupported.",
       "requirements": [
-        "12.3 AC2",
-        "12.3 AC6"
-      ]
-    },
-    {
-      "priority": "HIGH",
-      "action": "Apply and verify the Story 12.7 visibility migration, regenerate Supabase types, and smoke live visible/hidden resolver paths before deployment.",
-      "requirements": [
-        "12.7 OPS-1"
-      ]
-    },
-    {
-      "priority": "HIGH",
-      "action": "Apply and verify the Story 12.12 storage migration/policy with service-role upload, public reads, and anon/auth write denial before hosted media is used.",
-      "requirements": [
-        "12.12 AC1",
-        "12.12 AC2"
-      ]
-    },
-    {
-      "priority": "MEDIUM",
-      "action": "Add concurrent resolver/cache evidence for Story 12.7 or narrow the race-consistency claim.",
-      "requirements": [
-        "12.7 INV-1"
-      ]
-    },
-    {
-      "priority": "MEDIUM",
-      "action": "Collect broad-concurrency stable evidence for `nextjs-app/test/e2e/map-primary.spec.ts` future-date exact-response wait, or keep the claim scoped to serialized execution.",
-      "requirements": [
-        "Story 12.11 deferred work"
+        "Telemetry caveat"
       ]
     }
   ],
   "links": {
     "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-report-epic-12.md",
-    "coverage_matrix_path": "_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-epic-12-2026-08-07T18-14-43+02-00.json",
-    "gate_decision_path": "_bmad-output/test-artifacts/traceability/gate-decision-epic-12.json"
+    "coverage_matrix_path": "_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-epic-12-2026-08-17T17-14-10+02-00.json",
+    "gate_decision_path": "_bmad-output/test-artifacts/traceability/gate-decision-epic-12.json",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": ""
   }
 }

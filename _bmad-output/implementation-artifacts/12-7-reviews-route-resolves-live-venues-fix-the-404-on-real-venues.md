@@ -4,7 +4,7 @@ baseline_commit: NO_VCS
 
 # Story 12.7: Reviews Route Resolves Live Venues (Fix the 404 on Real Venues)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -307,3 +307,25 @@ Codex GPT-5
 - 2026-07-18: Expanded Phase 6 durable automation coverage for Story 12.7 resolver semantics and route convergence; focused and full Vitest suites passed.
 - 2026-07-18: Resolved the Tier-A review findings with canonical fail-closed `hidden` schema support, pre-data-access identifier validation, explicit collision cardinality, aligned tests/types/precompute, and a green dry-run story gate.
 - 2026-08-08: Recorded and re-verified Epic 12 P1 concurrent visibility/cache race evidence with the focused resolver automation suite.
+
+## Protected Closeout Evidence Addendum - 2026-08-17
+
+- The canonical `public.venues.hidden` migration remains applied on the protected Supabase
+  project. A live visibility smoke verified visible/hidden public behavior and restored the
+  temporary visibility mutation after the check, leaving no validation-state change behind.
+- The checked-in Supabase types match the protected generated visibility section exactly,
+  including `hidden`. The broader generated type file still contains unrelated
+  generator/schema drift; this is intentionally not represented as a whole-file parity pass.
+- The direct concurrent same-slug test recorded on 2026-08-08 remains the deterministic race
+  evidence: a deferred hidden read and a concurrent visible read resolve independently without
+  an in-flight promise or cached-miss bleed.
+- Exact-head GitHub Actions run `32039760444` passed against
+  `a20aac8a4a333a00efa82f4d334eeed033037f46`, including full build/test, Playwright, and
+  desktop/mobile accessibility gates.
+- The same SHA is ready and promoted in Vercel production deployment
+  `dpl_91a1VcSSJpa8JSGCnrvqXecSSAHi`; its post-ready scan found no `/api/venues` runtime
+  errors and no error/fatal deployment logs.
+
+This addendum closes the previously external protected visibility/apply-and-restore evidence
+lane. It does not broaden the scoped visibility type match into a claim that all generated
+Supabase types are globally drift-free.

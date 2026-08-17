@@ -6,7 +6,7 @@ stepsCompleted:
   - step-04-analyze-gaps
   - step-05-gate-decision
 lastStep: step-05-gate-decision
-lastSaved: '2026-07-18'
+lastSaved: '2026-08-17T17:14:10+02:00'
 workflowType: testarch-trace
 scope: story-only
 story: 12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues
@@ -22,6 +22,7 @@ oracleSources:
   - project-context.md
 externalPointerStatus: not_used
 tempCoverageMatrixPath: 'C:/tmp/tea-trace-coverage-matrix-2026-07-18T22-08-03+02-00.json'
+postFinalizationEvidenceRefresh: true
 ---
 
 # Traceability Report - Story 12.7: Reviews Route Resolves Live Venues
@@ -29,6 +30,22 @@ tempCoverageMatrixPath: 'C:/tmp/tea-trace-coverage-matrix-2026-07-18T22-08-03+02
 **Scope:** STORY-LEVEL - Story 12.7 AC1-AC4 and the final review-fix contracts only.
 **Mode:** ADVISORY. This trace reports coverage and evidence gaps without blocking, remediating, changing sprint status, or editing implementation/auto-bmad state.
 **Story status at trace time:** `review`.
+
+## Current Addendum - 2026-08-17 Protected Closeout Evidence
+
+**Current advisory verdict:** PASS.
+
+This addendum supersedes the July 18 advisory CONCERNS verdict below for release-evidence purposes. The prior concern had two lanes: OPS-1 needed protected/live migration evidence for `public.venues.hidden`, and INV-1 needed direct concurrent visibility/cache evidence. Both are now closed.
+
+Closing evidence:
+
+- The canonical `public.venues.hidden` migration is applied on the protected Supabase project.
+- A live visibility smoke verified visible/hidden public behavior and restored the temporary visibility mutation after verification.
+- The protected generated visibility section matches the checked-in type contract, including `hidden`.
+- The broader generated Supabase type file still contains unrelated generator/schema drift; this addendum claims only the scoped visibility-section parity.
+- The 2026-08-08 deterministic concurrent same-slug test remains valid: a deferred hidden read and a concurrent visible read resolve independently without an in-flight promise or cached-miss bleed.
+- Exact-head CI run `32039760444` passed against `a20aac8a4a333a00efa82f4d334eeed033037f46`, including full build/test, Playwright, and desktop/mobile accessibility gates.
+- The same SHA is promoted in Vercel production deployment `dpl_91a1VcSSJpa8JSGCnrvqXecSSAHi`; the post-ready scan found no `/api/venues` runtime errors and no error/fatal deployment logs.
 
 ## Coverage Oracle
 
@@ -171,7 +188,7 @@ The repeated unit/static/API mappings are justified defense in depth: unit tests
 
 Phase 1 machine matrix: `C:/tmp/tea-trace-coverage-matrix-2026-07-18T22-08-03+02-00.json`.
 
-## Advisory Verdict: CONCERNS
+## Historical Advisory Verdict - 2026-07-18: CONCERNS
 
 Formal gate evaluation was intentionally skipped because this Story 12.7 trace is advisory (`allow_gate=false`). No gate-decision artifact or blocking signal was emitted.
 

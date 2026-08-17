@@ -4,7 +4,7 @@ baseline_commit: 5dbaee54c8ea2f50fed267d3b88e5fef6fc43088
 
 # Story 12.9: Mobile Bottom-Sheet Row-Quantized Drag + Slim Time-Slider
 
-Status: review
+Status: done
 
 ## Story
 

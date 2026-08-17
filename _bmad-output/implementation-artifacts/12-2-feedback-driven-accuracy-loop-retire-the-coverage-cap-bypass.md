@@ -1,6 +1,6 @@
 # Story 12.2: Feedback-Driven Accuracy Loop + Retire the Coverage-Cap Bypass
 
-Status: review
+Status: done
 
 ## Story
 

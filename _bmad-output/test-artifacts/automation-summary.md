@@ -1315,3 +1315,85 @@ Continue orchestrator-owned test-review/trace/finalization for Story 12.14.
 Re-run trace/test-review gates against the updated evidence surfaces. Do not treat this pass as satisfying protected production, live Supabase, protected Storage-policy, or production p95 evidence.
 
 ---
+
+# Protected Closeout Verification Summary - Epic 12 (2026-08-17)
+
+## Protected Jobs, Database, And Deploy
+
+- PR #24's indexable caster-hash fix (`f447907`, merge
+  `061f8f928b9cb95595bbb2228bd561a7f5b41204`) was followed by successful protected
+  geometry run `32036137520` with `210/210` outputs.
+- Protected weather run `32036508651` succeeded with exactly `168` snapshot rows.
+- PR #25's three-operation persisted-read batch implementation
+  (`0cb84ce84172f064a64ab06e1486734a5802e69e`) merged as
+  `a20aac8a4a333a00efa82f4d334eeed033037f46`. The protected batch RPC migration is
+  applied as remote version `20260817143743`, name
+  `read_current_venue_sun_geometry_batch`.
+- Main CI run `32039760444` passed on that exact SHA, including build/test, Lighthouse,
+  TypeScript, lint, production build, full Vitest, bundle/MapLibre, Playwright, touch-target,
+  and desktop/mobile axe gates.
+- Exact-SHA Vercel deployment `dpl_91a1VcSSJpa8JSGCnrvqXecSSAHi` is ready and promoted;
+  `/api/venues` is deployed in `dub1`. A post-ready scan found zero `/api/venues` runtime
+  errors and zero error/fatal logs for that deployment.
+
+## Live Correctness And Timing
+
+- All live datasets passed the exact `42` unique venue, `61` quarter-hour step, exposure
+  range, enum, `g1:<64-hex>` hash, weather consistency, warning-absence, expected cache class,
+  and ETag assertions.
+- `20/20` unique origin-cache-miss requests: p95 `2565.530 ms` TTFB and
+  `2672.727 ms` total.
+- `20/20` identity edge-HIT requests after prime: p95 `169.377 ms` TTFB and
+  `267.938 ms` total.
+- `20/20` Brotli edge-HIT requests after prime: p95 `165.474 ms` TTFB and
+  `167.005 ms` total; `12,609` bytes on wire and `360,358` bytes decoded.
+
+## Other Protected Evidence
+
+- Live visible/hidden public behavior passed and the temporary visibility mutation was
+  restored. The protected generated visibility types section matches the checked-in contract;
+  unrelated broader whole-file generator/schema drift remains and is not hidden by this pass.
+- The owner-compatible `venue_media_storage` migration is applied as `20260817111301`.
+  Protected verification found a public WebP-only `venue-media` bucket with a `358400` byte
+  limit, exactly one anon/auth SELECT policy, no browser write policy, and zero objects.
+- A bounded dynamic Storage smoke then used generated non-user WebPs to prove service-role
+  create-only upload, duplicate-version refusal, anonymous `200 image/webp` byte/hash parity,
+  anonymous and authenticated insert/update denial, delete no-op with object retention, and
+  service-role cleanup. Protected SQL confirmed zero objects beneath the temporary prefix and
+  the temporary auth user/local fixtures were removed.
+- Story 12.11's focused future-date check previously passed `6/6` with `3` workers; final
+  exact-head CI supplies the green broad integration artifact.
+
+## Evidence Boundary
+
+- Vercel provider-side invocation, cache, and external-dependency metric rollups were
+  unavailable when this summary was written (`INTERNAL_ERROR` / `query_timeout`). The origin
+  `MISS` sample is therefore not restated as 20 proven cold function starts, and this summary
+  does not claim final live dependency counts or live zero-provider counts absent those
+  metrics. The merged implementation and deterministic coverage establish the intended
+  three-operation persisted-read/no-recompute contract; recovered provider telemetry may be
+  appended later.
+- A separate protected read-only `pg_stat_statements` delta around one unique production
+  cache miss directly recorded `+1` venue-list statement, `+1` batch geometry RPC, and `+1`
+  batched weather statement. All legacy per-venue geometry-input/series/weather statements
+  and both shadow-provider RPCs recorded `+0`. This proves the exact live three-Supabase-call
+  budget without overstating the still-unavailable Vercel function-start/network rollups.
+- A later official request-log recovery accounted for all `41/41` tagged requests and all
+  `21` `dub1` function invocations: `3` cold, `1` prewarmed, `17` hot. Classified-cold
+  function-duration p95 was `1,827 ms` (`n=3`); hot-origin p95 was `575 ms`; internal
+  request-duration p95 was `2,358 ms` for origin misses and `56 ms` for hits.
+- Canonical external metrics counted exactly `63` successful calls, all to Supabase from
+  `/api/venues` in `dub1`, with no other external hostname. Destination-path grouping is not
+  supported, so the `21 x 3` split remains a documented inference corroborated by code,
+  Supabase log samples, and the exact SQL delta. The strict `n=20` true-cold lane remains
+  under-sampled at `n=3` rather than being relabeled.
+
+## Definition Of Done
+
+- Protected geometry/weather jobs, production schema/RPCs, live visibility, Storage policy,
+  exact-head CI, exact production deployment, live response correctness, uncached latency,
+  edge latency, and runtime-error lanes now have dated durable evidence.
+- The provider-metric classification limitation is explicit rather than converted into an
+  unsupported pass claim.
+
+---

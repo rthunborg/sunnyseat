@@ -4,7 +4,7 @@ baseline_commit: NO_VCS
 
 # Story 12.3: Day-Series Compute at Real-Venue Scale - Kill the Cold-Start Freeze
 
-Status: review
+Status: done
 
 ## Story
 
@@ -186,7 +186,7 @@ latency
   - [x] SQL/integration tests: migration replay; role denial with `SET ROLE anon|authenticated`; service-role intended operations; old/wrong hash denial; dirty state; atomic promotion race; interrupted publish; lease claim/heartbeat/expiry/final states; idempotent rerun; per-venue failure isolation with whole-run incomplete status.
   - [x] API tests: exact persisted read; no shadow fallback; missing coverage typed 503; stale/expired weather unknown; zero live provider calls; no service data leakage; additive prediction-evidence hash field; current bucket re-gate parity; midnight rollover.
   - [x] E2E tests: preserve Epic 11 scrub=0/date-change=1 gates; update request-count assertions to fail on request-path Met.no/nowcast and fail if date change causes more than the one list/favourites request.
-  - [ ] Live/protected evidence: collect a dated 42+ venue cold p95 dataset with cold definition, route, venue count, Stockholm date, hash generation, edge/warm/cold classification, response mode, and logs/metrics proving persisted geometry reads plus zero request-path provider/shadow recompute. Do not substitute CI mocks for this lane.
+  - [x] Live/protected evidence: collect a dated 42+ venue cold p95 dataset with cold definition, route, venue count, Stockholm date, hash generation, edge/warm/cold classification, response mode, and logs/metrics proving persisted geometry reads plus zero request-path provider/shadow recompute. Do not substitute CI mocks for this lane.
   - [x] Run from `nextjs-app/`: `npx tsc --noEmit`, `npx eslint . --quiet`, `npx vitest run`, and `npx playwright test` because this story touches route behavior, DTOs, and standing request-count gates. Run visual validation only if visible UI/copy changes despite the no-visual scope.
   - [x] If Supabase CLI profile validation blocks a live/preview apply, use the documented protected-pooler plus explicit migration-history transaction fallback and record exact evidence in the Dev Agent Record.
 
@@ -421,3 +421,79 @@ Codex GPT-5
 - [x] [Review][Patch][Med] Empty out-of-horizon weather snapshots are advertised as fresh weather [nextjs-app/lib/services/sun-geometry-repository.ts:183]
 - [x] [Review][Patch][Med] The profiling implementation records placeholder zeros while the tests only assert numbers [nextjs-app/lib/services/sun-geometry-precompute.ts:240]
 - [x] [Review][Patch][Low] Detail coverage-missing response exposes internal geometry diagnostics [nextjs-app/app/api/venues/\[slug\]/route.ts:107]
+
+## Protected Closeout Evidence Addendum - 2026-08-17
+
+- PR #24's indexable caster-hash fix (`f447907`) merged as
+  `061f8f928b9cb95595bbb2228bd561a7f5b41204`. Protected geometry workflow run
+  `32036137520` then completed successfully with `210/210` venue-date outputs.
+- Protected weather workflow run `32036508651` completed successfully with exactly `168`
+  snapshot rows.
+- PR #25 batched the persisted list read into three database operations: venue list, atomic
+  geometry RPC, and weather snapshot batch. Commit
+  `0cb84ce84172f064a64ab06e1486734a5802e69e` merged as exact `main` SHA
+  `a20aac8a4a333a00efa82f4d334eeed033037f46`.
+- The protected database has remote migration `20260817143743` /
+  `read_current_venue_sun_geometry_batch` applied. Catalog verification confirmed its
+  service-role-only, `STABLE SECURITY DEFINER`, fixed-search-path contract; the exact
+  current-hash/date read returned `42` valid rows and planned in approximately `2.5 ms`.
+- Exact-head GitHub Actions run `32039760444` passed, including build/test, Lighthouse,
+  TypeScript, lint, production build, Vitest, bundle/MapLibre, Playwright, touch-target, and
+  desktop/mobile axe gates.
+- Vercel production deployment `dpl_91a1VcSSJpa8JSGCnrvqXecSSAHi` is ready and promoted
+  from the same `a20aac8a4a333a00efa82f4d334eeed033037f46` SHA. `/api/venues` and the
+  other non-middleware functions are deployed in `dub1`; the exact deployment produced no
+  `/api/venues` runtime errors and no error/fatal logs in the post-ready scan.
+- All live response samples passed the exact `42`-venue / `61`-step, range, enum,
+  `g1:<64-hex>`, weather consistency, cache-class, warning-absence, and ETag assertions.
+  The `20/20` unique origin-cache-miss dataset recorded client p95 `2565.530 ms` TTFB and
+  `2672.727 ms` total. After priming, the `20/20` Brotli edge-HIT dataset recorded p95
+  `165.474 ms` TTFB and `167.005 ms` total (`12,609` bytes on wire, `360,358` decoded).
+  The identity edge-HIT dataset recorded p95 `169.377 ms` TTFB and `267.938 ms` total.
+- Evidence boundary: Vercel provider-side invocation/cache/dependency rollups returned
+  `INTERNAL_ERROR` / `query_timeout` when this addendum was written. The origin `MISS`
+  dataset is not relabeled as 20 proven cold function starts, and no final live
+  external-dependency count or live zero-provider count is claimed without that rollup. The
+  merged implementation and deterministic tests establish the three-call/no-recompute
+  contract; a recovered provider metric can be appended separately.
+
+This addendum supersedes the earlier statement that protected production evidence was wholly
+deferred. It closes the protected jobs, exact-deployment correctness, uncached route-latency,
+edge-latency, and runtime-error evidence lanes while retaining the provider-metric
+classification caveat above.
+
+### Live Three-Statement Delta - 2026-08-17
+
+- A protected read-only `pg_stat_statements` baseline/delta around one unique production
+  cache miss (`sunnyseat-e12-20260817-batch-sql-delta-001`, HTTP `200`, `dub1`) recorded
+  exactly `+1` venue-list statement, `+1` `read_current_venue_sun_geometry_batch` RPC, and
+  `+1` batched `weather_bucket_snapshots` statement.
+- The two legacy per-venue geometry-input statements, legacy per-venue series statement,
+  legacy per-venue weather statement, `get_buildings_near_point`, and
+  `get_shadow_caster_hash_records` all recorded `+0` calls across the same request.
+- This is direct live database evidence for the route's three-Supabase-statement budget and
+  zero legacy/shadow-RPC fan-out. Vercel's function-start and external-network rollups remain
+  unavailable, so the request is still described as a cache miss rather than a provider-proven
+  cold start, and no unsupported external-network count is inferred.
+
+### Recovered Vercel Telemetry - 2026-08-17
+
+- The official request-log backend accounted for all `41/41` tagged HTTP `200` requests:
+  `21` cache misses and `20` hits. It recorded `21` `/api/venues` invocations, all in `dub1`:
+  `3` cold, `1` prewarmed, and `17` hot (origin subset `3/1/16`; edge prime hot).
+- Vercel function-duration p95 was `1,827 ms` for classified cold (`n=3`), `575 ms` for
+  hot-origin, `2,146 ms` for the prewarmed invocation, and `1,827 ms` across all `21`.
+  Internal request-duration p95 was `2,358 ms` for the `20` origin misses and `56 ms` for
+  the `20` edge hits.
+- Canonical external metrics counted exactly `63` HTTP `200` calls, all to the protected
+  Supabase host from `/api/venues` in `dub1`, with no other external hostname.
+- Vercel does not expose destination path as a canonical grouping dimension, so the exact
+  `21 x 3` endpoint attribution remains an explicit inference corroborated by deployed code,
+  a Supabase API-log sample containing only the venue/batch-RPC/weather paths, and the exact
+  single-request SQL delta above.
+- The strict `20`-true-cold dataset remains under-sampled at `n=3`; the story does not relabel
+  the other cache misses as cold. All observed classified-cold and origin-miss timings remain
+  below the approximately five-second threshold.
+
+This telemetry supersedes the prior “provider rollups unavailable” wording while preserving
+the honest sample-size and destination-path limitations.

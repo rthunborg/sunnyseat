@@ -987,3 +987,180 @@ Story 12.12 protected storage compatibility is now verified on production for th
 - Exactly one matching public read policy exists for `anon` and `authenticated` SELECT on `venue-media` objects.
 - No browser write policies exist for `venue-media`.
 - The bucket is empty; no validation objects were uploaded.
+
+## Protected Final Closeout Evidence - 2026-08-17
+
+Scope: final protected Epic 12 production verification after the geometry hash lookup and
+persisted-read batching remediations. This addendum preserves the earlier attempts above and
+records only the final verified state. No secrets, tokens, raw credentials, object bytes, or
+provider payloads are recorded here.
+
+### Geometry And Weather Protected Jobs
+
+- PR #24 delivered the indexable caster-hash lookup fix in commit `f447907`; it merged as
+  `061f8f928b9cb95595bbb2228bd561a7f5b41204`.
+- Protected geometry workflow run `32036137520` completed successfully with `210/210`
+  venue-date outputs.
+- Protected weather workflow run `32036508651` completed successfully with exactly `168`
+  snapshot rows.
+- The protected visibility smoke established visible/hidden public behavior and restored the
+  temporary visibility mutation after verification.
+- The generated Supabase types match the protected visibility section exactly. A broader
+  whole-file generated-types comparison still contains unrelated generator/schema drift, so
+  this evidence is deliberately limited to the visibility contract and does not claim global
+  byte-for-byte type-file parity.
+
+### Persisted-Read Batching And Database State
+
+- PR #25 replaced the list route's per-venue persisted-read fan-out with three batched database
+  operations: one venue list read, one atomic geometry batch RPC, and one weather snapshot
+  batch read. Its implementation commit is `0cb84ce84172f064a64ab06e1486734a5802e69e`;
+  it merged to `main` as `a20aac8a4a333a00efa82f4d334eeed033037f46`.
+- The protected Supabase project has the batch RPC migration applied under remote version
+  `20260817143743`, name `read_current_venue_sun_geometry_batch`.
+- Protected catalog verification confirmed the RPC is service-role-only, `STABLE`,
+  `SECURITY DEFINER`, and configured with `search_path=pg_catalog,public`. Its exact
+  current-date/current-hash query returned `42` valid rows; the database-side function plan
+  completed in approximately `2.5 ms`.
+- The earlier owner-compatible Storage retry remains valid: migration version
+  `20260817111301` is applied; `venue-media` is public-read, WebP-only, capped at `358400`
+  bytes, has exactly one `anon`/`authenticated` SELECT policy, has no browser write policy,
+  and remained empty after validation.
+
+### Main CI And Exact Production Deployment
+
+- GitHub Actions run `32039760444` completed successfully against exact `main` SHA
+  `a20aac8a4a333a00efa82f4d334eeed033037f46`. Build/test, Lighthouse, TypeScript,
+  lint, production build, unit/component coverage, bundle/MapLibre checks, Playwright,
+  touch-target checks, and desktop/mobile axe jobs all passed.
+- Vercel production deployment `dpl_91a1VcSSJpa8JSGCnrvqXecSSAHi` is `READY` and
+  promoted from exact SHA `a20aac8a4a333a00efa82f4d334eeed033037f46`.
+- Production alias: `https://sunnyseat.vercel.app`.
+- Deployment build URL: `https://sunnyseat-gx6h4d6a3-enhancior.vercel.app`.
+- The deployment and every non-middleware Lambda, including `/api/venues`, are placed in
+  Vercel region `dub1`, colocated with the Supabase `eu-west-1` project rather than the
+  previous `iad1` function placement.
+- A post-ready error scan extending beyond 60 seconds found no `/api/venues` runtime errors
+  and no error/fatal logs for this exact deployment.
+
+### Live Response Correctness And Performance
+
+Every recorded live response assertion used the exact production deployment and SHA above.
+The validator required HTTP 200, exactly `42` unique venue ids/slugs, exactly `61` quarter-hour
+steps from minute `360` through `1260`, finite `0..100` exposure values, valid sun/gate enums,
+`g1:` plus 64-hex geometry hashes, consistent weather source/timestamps, no coverage warning,
+the expected cache class, and an ETag.
+
+- Origin-miss dataset: `20/20` unique `_perf` requests returned `x-vercel-cache: MISS` and
+  passed every correctness assertion. Client p95 was `2565.530 ms` time to first byte and
+  `2672.727 ms` total. Identity transfer size was `360,358` bytes.
+- Identity edge dataset: after one prime, `20/20` measured responses returned cache `HIT` and
+  passed every correctness assertion. Client p95 was `169.377 ms` time to first byte and
+  `267.938 ms` total; identity transfer size was `360,358` bytes.
+- Browser-realistic edge dataset: after one prime, `20/20` Brotli responses returned cache
+  `HIT` and passed every correctness assertion. Client p95 was `165.474 ms` time to first byte
+  and `167.005 ms` total; compressed wire size was `12,609` bytes and decoded size was
+  `360,358` bytes.
+- The Brotli prime was an uncached `MISS`, transferred `12,650` bytes, and completed in
+  `2813.336 ms`, also below the story's approximately five-second route threshold.
+
+### Metrics Limitation At Time Of This Addendum
+
+Vercel's provider-side function-invocation, request-cache, and external-dependency metric
+rollups for the tagged probe window were not available when this section was written: the
+metrics API returned `INTERNAL_ERROR` for invocation aggregation and `query_timeout` for the
+request/external-API aggregations. Therefore:
+
+- the `20` unique origin-miss measurements above are not mislabeled as `20` independently
+  proven cold function starts;
+- the merged source and local contract coverage establish the three-call route architecture,
+  but this addendum does not claim a final live dependency-call count or live zero-provider
+  count without the provider-side rollup; and
+- a recovered metric rollup may be appended separately without rewriting this historical
+  limitation.
+
+The client-observed live dataset, exact-SHA deployment, protected database/job evidence, and
+zero-error scan are complete and reproducible. The remaining limitation is evidence
+classification/telemetry, not a failed live correctness or latency assertion.
+
+### Independent Live SQL-Call Delta
+
+Because the Vercel aggregate endpoint remained unavailable, a separate protected read-only
+`pg_stat_statements` baseline/delta was taken around one unique, uncached production request
+(`sunnyseat-e12-20260817-batch-sql-delta-001`) at `2026-08-17T15:09:31Z`. The response was
+HTTP `200`, `x-vercel-cache: MISS`, `x-sun-data-source: weather`, and was served by the
+`arn1::dub1` path.
+
+- Public venue-list statement: calls `45 -> 46` (`+1`).
+- `read_current_venue_sun_geometry_batch` RPC statement: calls `22 -> 23` (`+1`).
+- Batched `weather_bucket_snapshots` statement: calls `22 -> 23` (`+1`).
+- Both legacy per-venue `venue_geometry_inputs` statements stayed at `976` calls (`+0`).
+- The legacy per-venue `venue_sun_geometry_series` statement stayed at `976` calls (`+0`).
+- The legacy per-venue weather statement stayed at `976` calls (`+0`).
+- `get_buildings_near_point` stayed at `5417` calls (`+0`) and
+  `get_shadow_caster_hash_records` stayed at `71` calls (`+0`).
+
+This independently proves an exact three-Supabase-statement live origin invocation and zero
+database-observable legacy per-venue or shadow-provider RPC fan-out for that request. It does
+not replace Vercel's unavailable function-start classification or external-network metric,
+so the provider-telemetry limitation above remains accurate.
+
+### Protected Storage Object Smoke
+
+The earlier statements that no object was uploaded describe the migration-only verification
+lanes above. They are superseded for dynamic validation by this bounded 2026-08-17 smoke,
+which used generated, non-user WebP fixtures under the temporary prefix
+`test-venue-sunny/ve12-probe-20260817-7950324b/` and then removed every object.
+
+- The service-role-only maintainer tool created `card.webp` and `hero.webp` with immutable,
+  create-only keys. Repeating the same upload failed with `Venue media version already
+  exists`, proving duplicate-version refusal before overwrite.
+- Anonymous public GET returned HTTP `200` and `image/webp` for both objects. `card.webp`
+  was `90` bytes with matching local/remote SHA-256
+  `4d516e77b6063ab1a819d00754dc15dc04d87ea8db56b385e781a1abc69dced4`;
+  `hero.webp` was `114` bytes with matching SHA-256
+  `1dd4ac1dc92619e23be375e94ef30eaf012686e82aa46bdeb6a853778d0744f6`.
+- Anonymous `INSERT` and `UPDATE` both returned `403` with an RLS-policy denial. Anonymous
+  `DELETE` returned zero deleted rows and the target remained present, proving the Storage
+  API's non-leaking no-op behavior without a delete policy.
+- A temporary authenticated user produced the same write boundary: `INSERT` and `UPDATE`
+  returned `403`; `DELETE` returned zero rows and the object remained. The temporary auth
+  user was deleted during the probe's `finally` cleanup.
+- Service-role cleanup removed the two retained rendition objects (`removedRows: 2`). A
+  protected SQL verification then returned `remaining_objects: 0` for the temporary prefix,
+  and the generated local fixture directory was also removed.
+
+This closes the dynamic Story 12.12 service-write/public-read/browser-write-denial/cleanup
+contract without leaving user media, temporary users, or validation objects in production.
+
+### Provider Telemetry Recovery
+
+After the legacy `vercel metrics` aggregate queries above continued to time out, the official
+Vercel request-log backend and canonical `/metrics/v1` external-request endpoint produced the
+following exact tagged-window evidence for deployment
+`dpl_91a1VcSSJpa8JSGCnrvqXecSSAHi`:
+
+- All `41/41` tagged requests had unique user agents and HTTP `200`: `21` cache `MISS` and
+  `20` cache `HIT`, all entering through edge region `arn1`.
+- The `21` `/api/venues` function invocations were all HTTP `200` in `dub1`: `3` classified
+  `cold`, `1` `prewarmed`, and `17` `hot`. The origin-only subset was `3` cold, `1`
+  prewarmed, and `16` hot; the edge-cache prime was the remaining hot invocation.
+- Vercel function-duration p95 was `1,827 ms` for the three classified cold invocations,
+  `575 ms` for hot-origin invocations, `2,146 ms` for the one prewarmed invocation, and
+  `1,827 ms` across all `21` invocations. Vercel internal request-duration p95 was
+  `2,358 ms` for the `20` measured origin misses and `56 ms` for the `20` measured hits.
+- The canonical external-request metric counted exactly `63` outbound calls. Every call was
+  HTTP `200` to `hhnbxrhfhlzxgllxukzj.supabase.co`, originated from `/api/venues`, and ran
+  from `dub1`; no other external hostname appeared.
+
+The canonical external metric does not expose destination path or deployment ID as grouping
+dimensions. Therefore the exact `21 x 3` endpoint split is an explicit inference, not a
+provider-emitted path breakdown. It is corroborated by the deployed unconditional three-read
+code path, the Supabase API-log sample containing only `/rest/v1/venues`,
+`/rest/v1/rpc/read_current_venue_sun_geometry_batch`, and
+`/rest/v1/weather_bucket_snapshots`, plus the exact single-request SQL delta above.
+
+This recovery supersedes only the earlier statement that no provider telemetry was available.
+The strict `20` classified-cold sample was not achieved: only `3` invocations were cold, so a
+gate requiring `n=20` true cold starts remains honestly under-sampled even though every
+observed cold invocation and the full origin-miss dataset met the latency threshold.

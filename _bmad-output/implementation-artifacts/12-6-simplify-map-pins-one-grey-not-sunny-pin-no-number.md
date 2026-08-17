@@ -4,7 +4,7 @@ baseline_commit: 4102afccbcefc3ea5c07b6deafbb0f771f5a8b1c
 
 # Story 12.6: Simplify Map Pins — One Grey "Not Sunny" Pin, No Number
 
-Status: review
+Status: done
 
 ## Story
 

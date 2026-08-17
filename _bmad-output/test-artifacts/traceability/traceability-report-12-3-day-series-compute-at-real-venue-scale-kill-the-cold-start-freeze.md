@@ -6,7 +6,7 @@ stepsCompleted:
   - step-04-analyze-gaps
   - step-05-gate-decision
 lastStep: step-05-gate-decision
-lastSaved: '2026-07-18'
+lastSaved: '2026-08-17T17:26:01+02:00'
 scope: story-only
 story: 12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze
 advisory: true
@@ -14,6 +14,7 @@ coverageBasis: acceptance_criteria
 oracleResolutionMode: formal_requirements
 oracleConfidence: high
 externalPointerStatus: not_used
+postFinalizationEvidenceRefresh: true
 ---
 
 # Traceability Report - Story 12.3: Day-Series Compute at Real-Venue Scale
@@ -22,6 +23,31 @@ externalPointerStatus: not_used
 **Mode:** ADVISORY. Surfaces coverage and evidence gaps for review-time visibility. Does not block, remediate, update sprint status, or open a quality gate.
 **Story status at trace time:** `review`.
 **Coverage oracle:** formal acceptance criteria in `_bmad-output/implementation-artifacts/12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md`.
+
+## Current Addendum - 2026-08-17 Protected Closeout Evidence
+
+**Current advisory verdict:** PASS.
+
+This addendum supersedes the July 18 advisory CONCERNS verdict below for release-evidence purposes. The prior concern was narrow: AC2 and AC6 needed protected production p95 evidence plus proof of persisted reads and zero request-path provider/shadow recompute. That evidence now exists in the protected closeout record.
+
+Closing evidence:
+
+- Protected geometry workflow run `32036137520` succeeded with `210/210` venue-date outputs.
+- Protected weather workflow run `32036508651` succeeded with exactly `168` snapshot rows.
+- PR #25's three-operation persisted-read implementation merged as exact `main` SHA `a20aac8a4a333a00efa82f4d334eeed033037f46`.
+- The protected batch RPC migration is applied as remote version `20260817143743`, name `read_current_venue_sun_geometry_batch`; catalog verification confirmed service-role-only `STABLE SECURITY DEFINER` with `search_path=pg_catalog,public`.
+- Exact-head CI run `32039760444` passed, including build/test, TypeScript, lint, production build, Vitest, bundle/MapLibre, Playwright, touch-target, Lighthouse, and desktop/mobile axe lanes.
+- Vercel deployment `dpl_91a1VcSSJpa8JSGCnrvqXecSSAHi` is ready and promoted from the exact SHA in `dub1`, with no `/api/venues` runtime errors or error/fatal deployment logs in the post-ready scan.
+- Live `/api/venues` validation returned HTTP 200, exactly 42 unique venues, exactly 61 planner steps, valid hashes/enums/weather, no coverage warning, expected cache class, and an ETag.
+- The 20/20 unique origin-cache-miss dataset recorded p95 `2565.530 ms` TTFB and `2672.727 ms` total, below the approximately 5 second route threshold.
+- The 20/20 Brotli edge-HIT dataset recorded p95 `165.474 ms` TTFB and `167.005 ms` total, below the warm/edge threshold.
+- Recovered Vercel request-log telemetry for the exact tagged deployment window accounted for `41/41` unique UAs, all `200`, `21` MISS + `20` HIT, all edge `arn1`.
+- Recovered Vercel function telemetry recorded `21` `/api/venues` invocations, all `dub1`/`200`: `3` cold, `1` prewarmed, and `17` hot. Function-duration p95 was `1827 ms` for observed cold (`n=3`), `575 ms` for hot-origin, `2146 ms` for prewarmed, and `1827 ms` across all 21 invocations.
+- Vercel internal request-duration p95 was `2358 ms` for origin MISS and `56 ms` for HIT.
+- Canonical external-dependency telemetry recovered `63` total dependencies, all Supabase host / origin route `/api/venues` / `dub1` / `200`; because path dimension is unsupported, `21 x 3` attribution is an explicit inference corroborated by code, Supabase sample evidence, and the exact `pg_stat_statements` delta.
+- A protected read-only `pg_stat_statements` delta around one unique production cache miss recorded exactly `+1` venue-list statement, `+1` `read_current_venue_sun_geometry_batch` RPC, and `+1` batched `weather_bucket_snapshots` statement; legacy per-venue geometry/weather statements and shadow-provider RPCs recorded `+0`.
+
+Evidence boundary: the origin MISS sample is not relabeled as 20 classified Vercel function cold starts. Recovered Vercel telemetry observed only 3 classified cold invocations, all under threshold, so the strict 20-classified-cold lane remains under-sampled at `n=3`. External dependency count is now recovered as 63 Supabase-host calls, but per-request `21 x 3` attribution is inferred because provider path dimension is unsupported. Legacy aggregate rollups still time out. The Story 12.3 release concern is nevertheless closed because route latency, exact-deployment correctness, recovered Vercel request/function/external telemetry, persisted-read proof, and no-database-observable legacy/shadow fan-out evidence now exist.
 
 ## What Was Run
 
@@ -34,7 +60,7 @@ This trace pass:
 
 No implementation tests were executed during this advisory trace pass. No implementation files, sprint status, or auto-bmad state files were modified.
 
-## Advisory Verdict: CONCERNS
+## Historical Advisory Verdict - 2026-07-18: CONCERNS
 
 No Story 12.3 acceptance criterion is completely uncovered. The automated matrix covers the core functional, security, scheduler, weather, midnight-roll, and no-warmer contracts.
 
@@ -198,9 +224,9 @@ None.
 - Collect the protected production evidence lane before final release approval: 42+ venue cold p95, route/date/hash/run metadata, edge/warm/cold classification, logs proving persisted geometry reads, and zero provider/shadow recompute on request path.
 - Keep the Story 12.3 focused request-count gate and route/source contract tests in the standing regression set because they guard the original cold-start regression.
 
-## Advisory Gate Decision
+## Historical Advisory Gate Decision - 2026-07-18
 
-**GATE DECISION: CONCERNS** (advisory - not opened or enforced by this pass)
+**Historical gate decision: CONCERNS** (advisory - not opened or enforced by this pass)
 
 Coverage analysis:
 

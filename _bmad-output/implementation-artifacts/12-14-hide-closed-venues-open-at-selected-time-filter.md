@@ -4,7 +4,7 @@ baseline_commit: NO_VCS
 
 # Story 12.14: Hide Closed Venues (Open-at-Selected-Time Filter)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

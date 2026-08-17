@@ -331,21 +331,21 @@ development_status:
   #   no 10 km expansion. Include the mandatory `Superseded Epic Text` section.
   # - 12.14: Apply the resolved closed-venue search/favourites policy, including openable greyed closed
   #   favourites and exact by-name closed search results. Include the mandatory `Superseded Epic Text` section.
-  epic-12: in-progress
+  epic-12: done
   12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours: done
-  12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass: review
-  12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze: review
+  12-2-feedback-driven-accuracy-loop-retire-the-coverage-cap-bypass: done
+  12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze: done
   12-4-production-console-hygiene-hydration-error-maplibre-null-warning: done
   12-5-dev-only-venue-editor-drag-pin-paste-polygon-persisted-hide-show-inline-fields: done
-  12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number: review
-  12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues: review
+  12-6-simplify-map-pins-one-grey-not-sunny-pin-no-number: done
+  12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues: done
   12-8-about-page-pin-legend-so-reads-the-sun-figure: done
-  12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider: review
+  12-9-mobile-bottom-sheet-row-quantized-drag-slim-time-slider: done
   12-10-venue-detail-preload-instant-mer-info: done
   12-11-first-run-coach-mark-guide-map-legend-feature-tour: done
-  12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes: review
-  12-13-remove-the-user-facing-confidence-indicator-keep-it-internal: review
-  12-14-hide-closed-venues-open-at-selected-time-filter: review
+  12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes: done
+  12-13-remove-the-user-facing-confidence-indicator-keep-it-internal: done
+  12-14-hide-closed-venues-open-at-selected-time-filter: done
   epic-12-retrospective: done
 
 # Note (2026-08-07, retrospective epic-12 — epic-12-retrospective -> done): bmad-retrospective (auto-bmad delegate;
