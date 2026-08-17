@@ -7,7 +7,7 @@ stepsCompleted:
   - 'step-04e-aggregate-nfr'
   - 'step-05-generate-report'
 lastStep: 'step-05-generate-report'
-lastSaved: '2026-08-07'
+lastSaved: '2026-08-17'
 workflowType: 'testarch-nfr-assess'
 inputDocuments:
   - 'project-context.md'
@@ -19,6 +19,7 @@ inputDocuments:
   - '_bmad-output/test-artifacts/traceability/e2e-trace-summary-epic-12.json'
   - '_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-epic-12-2026-08-07T18-14-43+02-00.json'
   - '_bmad-output/test-artifacts/automation-summary.md'
+  - '_bmad-output/test-artifacts/epic-12-protected-validation/protected-validation-report-2026-08-08.md'
   - '_bmad-output/auto-bmad/state/epic/epic-12.yaml'
   - '_bmad-output/auto-bmad/retro-notes/epic-12.md'
   - '_bmad-output/implementation-artifacts/12-1..12-14 story records'
@@ -26,15 +27,46 @@ inputDocuments:
 
 # NFR Evidence Audit - Epic 12 "Real-Venue Launch Readiness"
 
-**Date:** 2026-08-07
+**Date:** 2026-08-17 evidence-only refresh; original 2026-08-07 assessment preserved below
 **Scope:** Epic 12, stories 12.1-12.14
-**Overall Status:** FAIL - public-launch NFR evidence is incomplete
+**Overall Status:** CONCERNS - protected P0 evidence now closed; strict-cold sample size, external endpoint granularity, and the missing full restore/failover drill remain non-blocking evidence gaps
 
 ---
 
-This audit summarizes existing implementation evidence. It did not run tests, mutate protected services, inspect git, or fabricate protected/live evidence. The controlling trace gate is still **FAIL** at iteration cap with **15 FULL / 6 PARTIAL / 0 UNCOVERED** material rows. Local deterministic evidence is broad, but four P0 protected/live evidence lanes and two P1 stability/concurrency lanes remain partial.
+This audit summarizes existing implementation evidence. It did not run tests, mutate protected services, inspect git, or fabricate protected/live evidence. The original 2026-08-07 assessment below is preserved for history; the 2026-08-17 protected-evidence refresh supersedes its missing-evidence findings for NFR purposes. The separately owned trace workflow has now consumed the protected report and records **PASS** at 21/21 FULL.
 
-## Executive Summary
+## 2026-08-17 Protected Evidence Refresh
+
+**Assessment:** NFR status improves from **FAIL** to **CONCERNS**.
+
+The formerly blocking protected/live lanes now have durable evidence:
+
+- Performance: exact-SHA production `/api/venues` returned 20/20 origin `MISS` responses with p95 `2565.530 ms` TTFB and `2672.727 ms` total, below the approximately five-second route threshold. Edge `HIT` p95 was `169.377 ms` TTFB / `267.938 ms` total for identity responses and `165.474 ms` TTFB / `167.005 ms` total for Brotli responses. Recovered official Vercel telemetry for the tagged deployment/window recorded 41/41 unique user agents as 200 responses, split into 21 `MISS` and 20 `HIT`; Vercel internal request-duration p95 was `2358 ms` for origin `MISS` and `56 ms` for `HIT`.
+- Function classification: recovered Vercel invocation telemetry recorded 21 `/api/venues` invocations, all `dub1` and 200, classified as 3 cold, 1 prewarmed, and 17 hot. The origin subset was 3 cold, 1 prewarmed, and 16 hot, with the edge-prime invocation hot. Function-duration p95 was `1827 ms` for cold (`n=3`), `575 ms` for hot-origin, `2146 ms` for prewarmed, and `1827 ms` overall.
+- Data-path proof: a protected read-only `pg_stat_statements` delta around one unique origin `MISS` recorded exactly `+1` venue-list statement, `+1` batch geometry RPC, and `+1` batched weather statement, with `+0` legacy per-venue geometry/weather statements and `+0` shadow-provider RPCs.
+- External-provider proof: recovered Vercel canonical external metrics recorded 63 calls, all Supabase, on the `/api/venues` origin route in `dub1`, all 200. Vercel did not expose destination path for this metric, so the exact `21 x 3` endpoint split remains an inference backed by code inspection, a Supabase log sample, and the exact pg_stat delta.
+- Security/deployability: protected Supabase core schema, batch RPC, visibility behavior, GitHub Production variables, and owner-compatible `venue-media` Storage bucket/policy are verified. Storage has exactly one anon/auth SELECT policy, no browser write policy, WebP-only objects, and a `358400` byte limit.
+- Reliability: protected geometry run `32036137520` produced `210/210` venue-date outputs; protected weather run `32036508651` produced exactly `168` snapshot rows; exact deployment `dpl_91a1VcSSJpa8JSGCnrvqXecSSAHi` at SHA `a20aac8a4a333a00efa82f4d334eeed033037f46` had a zero-error runtime scan beyond 60 seconds.
+- CI: GitHub Actions run `32039760444` passed on exact SHA `a20aac8a4a333a00efa82f4d334eeed033037f46`, including TypeScript, lint, production build, full Vitest, bundle/MapLibre, Playwright, touch-target, Lighthouse, and desktop/mobile axe gates.
+
+**Residual caveats:** Vercel provider telemetry is now partially recovered, so the old "metrics unavailable" caveat is superseded. The strict 20-classified-cold-start lane is still under-sampled because only 3 function starts were classified cold in the recovered window. Vercel's canonical external metric proves 63 successful Supabase calls for `/api/venues`, but destination path is unsupported; therefore the exact `21 x 3` Supabase endpoint split is still an inference backed by implementation, Supabase log sampling, and pg_stat delta rather than a Vercel destination-path measurement. Legacy aggregate queries still timeout and are not used for the current pass decision. Separately, fail-closed behavior, leases, emergency stops, and rollback notes are documented, but this epic did not execute a full restore/failover drill.
+
+### Refreshed NFR Classification
+
+| Area | Status | Refreshed rationale |
+| --- | --- | --- |
+| Testability & automation | PASS | Final CI is green; 215 Vitest files / 1,986 tests, Playwright, touch, Lighthouse, and desktop/mobile axe lanes passed on exact SHA. |
+| Test data strategy | PASS | Deterministic fixture/provider-isolated coverage remains intact; protected live checks used observation and read-only SQL deltas without provider payload leakage. |
+| Scalability & availability | PASS | Batched persisted-read architecture is deployed and live-proven by pg_stat delta; origin and edge p95 datasets meet the Epic 12 route thresholds. |
+| Disaster recovery | CONCERNS | Fail-closed coverage, leases, emergency stops, and rollback notes exist, but no full restore/failover drill is in this epic evidence set. |
+| Security | PASS | Protected GitHub Production variables/secrets names, service-only batch RPC posture, visibility, and Storage public-read/no-browser-write policy are verified. |
+| Monitorability/debuggability/manageability | CONCERNS | Runtime error scan is clean and recovered Vercel telemetry covers request/function/external aggregates, but strict cold-start sample size is only `n=3`, external destination path is unsupported, and legacy aggregate queries still timeout. |
+| QoS/QoE | PASS | Live response correctness, uncached p95, edge p95, Brotli size, visual/manual acceptance, touch, Lighthouse, and axe evidence are green. |
+| Deployability | PASS | Exact SHA main CI and Vercel production promotion are verified; Supabase migrations/RPC/storage/visibility compatibility are applied and checked. |
+
+**Current NFR sign-off:** **CONCERNS**, not FAIL. The remaining issues are strict cold-start sample size, destination-level external-call attribution, and the absence of a full restore/failover drill—not failed correctness, latency, security, or deployability evidence.
+
+## Original 2026-08-07 Executive Summary
 
 **Assessment:** Local implementation evidence is strong, but release-grade NFR evidence is not complete.
 
@@ -204,7 +236,7 @@ No invented numeric threshold was used for Story 12.10 "instant detail open", co
 | QoS/QoE | FAIL | Local UI/interaction evidence is strong, but the critical cold p95 lane is missing. |
 | Deployability | CONCERNS | Source migrations and types exist locally, but required protected/live apply and verification are incomplete. |
 
-## Gate YAML Snippet
+## Original 2026-08-07 Gate YAML Snippet
 
 ```yaml
 nfr_assessment:
@@ -255,7 +287,7 @@ nfr_assessment:
 - Test design: `_bmad-output/test-artifacts/test-design/test-design-epic-12.md`
 - Epic state: `_bmad-output/auto-bmad/state/epic/epic-12.yaml`
 
-## Sign-Off
+## Original 2026-08-07 Sign-Off
 
 **NFR Evidence Audit:** FAIL
 
@@ -270,3 +302,113 @@ nfr_assessment:
 **Workflow:** testarch-nfr
 
 <!-- Powered by BMAD-CORE -->
+
+---
+
+## 2026-08-17 Gate YAML Snippet
+
+```yaml
+nfr_assessment:
+  date: '2026-08-17'
+  epic_id: '12'
+  feature_name: 'Real-Venue Launch Readiness'
+  mode: 'evidence_only_protected_refresh'
+  exact_sha: 'a20aac8a4a333a00efa82f4d334eeed033037f46'
+  main_ci_run: '32039760444'
+  production_deployment: 'dpl_91a1VcSSJpa8JSGCnrvqXecSSAHi'
+  trace_artifact_status: 'refreshed_pass_21_of_21_full'
+  attributes:
+    performance: 'PASS'
+    security: 'PASS'
+    reliability: 'PASS'
+    maintainability: 'PASS'
+    scalability: 'PASS'
+    deployability: 'PASS'
+    monitorability: 'CONCERNS'
+    disaster_recovery: 'CONCERNS'
+  live_evidence:
+    tagged_vercel_window:
+      unique_user_agents_200: '41/41'
+      cache_split:
+        miss: 21
+        hit: 20
+      api_venues_invocations:
+        total: 21
+        status_200: 21
+        region: 'dub1'
+        cold: 3
+        prewarmed: 1
+        hot: 17
+        origin_subset:
+          cold: 3
+          prewarmed: 1
+          hot: 16
+          edge_prime: 'hot'
+      function_duration_p95_ms:
+        cold_n3: 1827
+        hot_origin: 575
+        prewarmed: 2146
+        all: 1827
+      vercel_internal_request_duration_p95_ms:
+        origin_miss: 2358
+        hit: 56
+      external_metrics:
+        calls: 63
+        provider: 'Supabase'
+        route: '/api/venues'
+        region: 'dub1'
+        status_200: 63
+        destination_path: 'unsupported'
+        endpoint_split: 'inferred_21x3_from_code_supabase_log_sample_and_pg_stat_delta'
+    origin_miss:
+      samples: 20
+      correctness_passed: 20
+      p95_ttfb_ms: 2565.530
+      p95_total_ms: 2672.727
+    edge_identity_hit:
+      samples: 20
+      correctness_passed: 20
+      p95_ttfb_ms: 169.377
+      p95_total_ms: 267.938
+    edge_brotli_hit:
+      samples: 20
+      correctness_passed: 20
+      p95_ttfb_ms: 165.474
+      p95_total_ms: 167.005
+      wire_bytes: 12609
+    pg_stat_delta_single_origin_miss:
+      venue_list_statements: '+1'
+      batch_geometry_rpc_statements: '+1'
+      batched_weather_statements: '+1'
+      legacy_geometry_input_statements: '+0'
+      legacy_geometry_series_statements: '+0'
+      legacy_weather_statements: '+0'
+      shadow_provider_rpcs: '+0'
+  caveats:
+    - 'Strict 20-classified-cold-start lane remains under-sampled: recovered function telemetry includes 3 cold starts, 1 prewarmed, and 17 hot invocations.'
+    - 'Vercel external metric proves 63 Supabase calls for /api/venues, but destination path is unsupported; exact 21x3 endpoint split remains inferred from code, Supabase log sample, and pg_stat delta.'
+    - 'Fail-closed behavior, leases, emergency stops, and rollback notes are documented, but no full restore/failover drill was executed in this epic evidence set.'
+    - 'Legacy aggregate queries still timeout and are not used as pass evidence.'
+  overall_status: 'CONCERNS'
+  blockers: false
+  critical_issues: 0
+  high_priority_issues: 0
+  evidence_gaps: 3
+  recommendations:
+    - 'If strict cold-start proof is required, collect a larger provider-classified cold-start sample rather than reclassifying cache MISS samples as cold starts.'
+    - 'If destination-level external attribution is required, supplement Vercel metrics with Supabase-side logs or application instrumentation because Vercel destination path is unsupported.'
+    - 'Before a public-launch resilience gate that requires disaster-recovery proof, execute and record a full restore/failover drill.'
+```
+
+## 2026-08-17 Sign-Off
+
+**NFR Evidence Audit:** CONCERNS
+
+- Critical issues: 0
+- High-priority issues: 0
+- Evidence gaps: 3 non-blocking caveats: strict cold-start sample size, destination-path attribution, and no full restore/failover drill
+
+**Gate status:** NFR can proceed with caveat. Protected production performance, security, deployability, Storage, geometry/weather jobs, exact-head CI, exact deployment evidence, recovered request/function/external Vercel telemetry, and the formal trace PASS are complete. The remaining NFR caveats are strict cold-start sample size (`n=3`, not 20), destination-level external-call attribution, and the absence of a full restore/failover drill.
+
+**Generated:** 2026-08-17
+**Workflow:** testarch-nfr evidence-only refresh

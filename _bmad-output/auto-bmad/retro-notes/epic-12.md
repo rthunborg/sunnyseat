@@ -68,3 +68,8 @@
 - [Phase 3 â€” create-story] Story 12.14 overrides older epic wording with E12-AD-07: closed favourites and exact-name matches stay inspectable and labelled; closed discovery pins and rows remain hidden.
 - [Phase 5 â€” dev-story] Full Vitest exposed a settings-launched coach-guide focus race; fixed by preferring the reopen-and-focus fallback instead of focusing an exiting settings row.
 - [Phase 5 â€” dev-story] story-review.sh extracted unrelated _state=feedback from a cautionary story note; manual mode made it harmless, but the screen-ID extractor remains noisy.
+
+## Story epic-12-closeout-2026-08-17
+- Protected closeout moved Epic 12 from hypothetical launch blockers to direct production proof: PRs #23/#24/#25 merged, prod serves a20aac8 in dub1, and protected geometry/weather completed 210/210 and 168.
+- Official request logs accounted for all 41 tagged requests and classified the 21 dub1 invocations as 3 cold, 1 prewarmed, and 17 hot; canonical external metrics counted 63 successful Supabase calls and no other hostname.
+- The remaining non-blocking NFR concerns are strict-cold sample size (`n=3`), destination-path metric granularity, and the absence of a full restore/failover drill—not observed correctness, latency, security, or deployability failures.

@@ -4,10 +4,10 @@ story_key: 12-14-hide-closed-venues-open-at-selected-time-filter
 epic_num: 12
 story_num: 14
 branch: epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene
-status: in-progress
-updated_at: "2026-08-07T16:04:32Z"
+status: done
+updated_at: "2026-08-17T15:29:38Z"
 started_at: "2026-08-06T19:19:30Z"
-completed_at: null
+completed_at: "2026-08-17T15:29:38Z"
 active_seconds: 13665
 timing_anchor: null
 is_first_in_epic: false

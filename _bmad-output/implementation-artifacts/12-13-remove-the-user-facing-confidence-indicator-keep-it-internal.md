@@ -4,7 +4,7 @@ baseline_commit: e442fedc27f4250f83dcf3a1df126de00a4ed75b
 
 # Story 12.13: Remove the User-Facing Confidence Indicator (Keep It Internal)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -417,6 +417,11 @@ Codex GPT-5
 - Story 12.13 automate pass added a focused source-boundary guard proving public UI/message files cannot reintroduce numeric confidence display plumbing while internal DTO, feedback evidence, route schema, and server confidence calculator paths remain intentionally retained.
 - No new E2E was added in the automate pass because existing MapView/component/a11y/visual coverage already exercises the public surfaces; the added value is a cheap broad regression guard.
 - Resolved review finding by running the required `a11y` plus `a11y-mobile` Playwright matrix, fixing the one surfaced ARIA semantics defect, and preserving legal accessible names for the hero sun/obscured badge.
+
+### Protected Closeout Record-Integrity Note - 2026-08-17
+
+- Story 12.13 had already passed its review gate before the protected Epic 12 closeout; focused 129-test evidence, the full suite, desktop/mobile a11y, human approval, and the refreshed FULL trace row support the `done` transition.
+- The 44 implementation-task checkboxes above were pre-existing workflow-record drift and were not mapped one-by-one in the completion notes. They remain unchecked to preserve provenance rather than mechanically claiming unrecorded per-subtask execution. This is non-blocking artifact hygiene, not known implementation or release debt.
 
 ### Review Findings
 

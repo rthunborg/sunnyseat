@@ -1,117 +1,218 @@
 {
   "schema_version": "0.1.0",
-  "generated_at": "2026-08-07T18:51:48+02:00",
+  "evaluated_at": "2026-08-17T17:26:01+02:00",
+  "repo": "sunnyseat",
   "workflow": "testarch-trace",
-  "gate_iteration": 2,
-  "gate_iteration_cap_reached": true,
-  "remediation_commit": "ee1e646",
-  "remediation_evidence_status": "new_ac_to_test_evidence_consumed_but_no_verified_change_to_protected_live_blocking_lanes",
   "target": {
     "type": "epic",
     "id": "12",
     "label": "Real-Venue Launch Readiness - Performance, Trust, Hours, Console Hygiene"
   },
-  "decision_mode": "deterministic",
-  "gate_decision": "FAIL",
-  "gate_type": "epic",
+  "source_sha": "a20aac8a4a333a00efa82f4d334eeed033037f46",
+  "collection_status": "COLLECTED",
+  "gate_basis": "deterministic_epic_gate",
+  "gate_status": "PASS",
+  "gate_decision": "PASS",
+  "gate_iteration": 2,
+  "gate_iteration_cap_reached": true,
+  "post_finalization_evidence_refresh": true,
+  "rationale": "All Epic 12 material trace rows are FULL after the protected 2026-08-17 evidence refresh. The former P0 blockers for protected production performance/no-fan-out, protected jobs/service-only posture, live visibility migration, and protected Storage policy are now closed. Recovered Vercel request/function/external telemetry now corroborates the protected production route lane: 41/41 unique-UAs all 200, 21 MISS + 20 HIT, 21 /api/venues invocations all dub1/200, observed cold p95 1827 ms (n=3), internal request-duration p95 2358 ms for origin MISS and 56 ms for HIT, and 63 canonical external dependencies all Supabase host. Story 12.12 Storage now has both static protected catalog evidence and bounded dynamic smoke evidence for service-role create-only upload, public read, browser write denial, and cleanup. The former P1 gaps for concurrent visibility/cache behavior and future-date exact-response stability are also closed. The PASS does not claim 20 classified Vercel cold starts; the strict classified-cold sample is n=3, and external 21 x 3 attribution is inferred because provider path dimension is unsupported.",
   "criteria": {
-    "collection_status": "COLLECTED",
-    "allow_gate": true,
     "p0_coverage_required": 100,
-    "p0_coverage_actual": 55.56,
+    "p0_coverage_actual": 100,
+    "p0_status": "MET",
     "p1_coverage_required_for_pass": 90,
-    "p1_coverage_actual": 81.82,
+    "p1_coverage_minimum": 80,
+    "p1_coverage_actual": 100,
+    "p1_status": "MET",
     "overall_coverage_required": 80,
-    "overall_coverage_actual": 71.43,
-    "security_policy_status": "PARTIAL",
-    "critical_nfr_status": "PARTIAL"
+    "overall_coverage_actual": 100,
+    "overall_status": "MET",
+    "security_policy_status": "MET",
+    "critical_nfr_trace_status": "MET"
   },
-  "deterministic_rule_result": {
-    "rule": "P0 coverage < 100% => FAIL",
-    "applied": true,
-    "rationale": "After gate iteration 2, required P0 evidence lanes for protected production performance/security, live visibility migration execution, and protected Storage policy verification remain PARTIAL."
+  "material_rows": {
+    "total": 21,
+    "full": 21,
+    "partial": 0,
+    "uncovered": 0,
+    "priority_breakdown": {
+      "P0": {
+        "total": 9,
+        "full": 9,
+        "partial": 0,
+        "uncovered": 0,
+        "full_pct": 100
+      },
+      "P1": {
+        "total": 11,
+        "full": 11,
+        "partial": 0,
+        "uncovered": 0,
+        "full_pct": 100
+      },
+      "P2": {
+        "total": 1,
+        "full": 1,
+        "partial": 0,
+        "uncovered": 0,
+        "full_pct": 100
+      },
+      "P3": {
+        "total": 0,
+        "full": 0,
+        "partial": 0,
+        "uncovered": 0,
+        "full_pct": 100
+      }
+    }
   },
-  "remediation_assessment": {
-    "input_commit": "ee1e646",
-    "gate_iteration_cap_reached": true,
-    "git_inspection_used": false,
-    "evidence_basis": [
-      "_bmad-output/auto-bmad/state/epic/epic-12.yaml",
-      "_bmad-output/implementation-artifacts/deferred-work.md",
-      "_bmad-output/implementation-artifacts/12-3-day-series-compute-at-real-venue-scale-kill-the-cold-start-freeze.md",
-      "_bmad-output/implementation-artifacts/12-7-reviews-route-resolves-live-venues-fix-the-404-on-real-venues.md",
-      "_bmad-output/implementation-artifacts/12-11-first-run-coach-mark-guide-map-legend-feature-tour.md",
-      "_bmad-output/implementation-artifacts/12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes.md",
-      "_bmad-output/test-artifacts/automation-summary.md",
-      "_bmad-output/auto-bmad/retro-notes/epic-12.md"
-    ],
-    "finding": "Story 12.3, 12.7, 12.11, and 12.12 AC-to-test evidence was consumed from the current story artifacts. The new evidence strengthens local deterministic coverage but does not close the protected/live P0 lanes. Story 12.11 records a corrected serialized mobile repeat at 3/3 pass, while the prior parallel repeat was 2/3 and no broad-concurrency pass is claimed."
-  },
-  "blocking_gaps": [
+  "closed_former_gaps": [
+    "12.3-PROTECTED-PROD-P95",
+    "12.3-PROTECTED-ENV-AUDIT",
+    "12.7-VISIBILITY-MIGRATION-LIVE",
+    "12.12-STORAGE-POLICY-PROTECTED-VERIFY",
+    "12.7-CONCURRENT-VISIBILITY-RACE",
+    "12.11-MAP-PRIMARY-FUTURE-DATE-STABILITY"
+  ],
+  "residual_caveats": [
     {
-      "id": "12.3-PROTECTED-PROD-P95",
-      "priority": "P0",
-      "classification": "protected-live-performance-evidence",
-      "requirements": [
-        "12.3 AC2",
-        "12.3 AC6"
-      ],
-      "needed": "Capture protected-production 42+ venue cold-p95 evidence with logs proving persisted geometry reads and zero request-path provider/shadow recompute."
+      "id": "VERCEL-STRICT-COLD-SAMPLE-SIZE",
+      "severity": "low",
+      "status": "documented",
+      "statement": "Recovered Vercel function telemetry classified 21 /api/venues invocations as 3 cold, 1 prewarmed, and 17 hot; all observed cold invocations were under threshold with p95 1827 ms, but the strict 20-classified-cold lane remains under-sampled at n=3."
     },
     {
-      "id": "12.3-PROTECTED-ENV-AUDIT",
-      "priority": "P0",
-      "classification": "protected-live-environment-security-evidence",
-      "requirements": [
-        "12.3 AC2"
-      ],
-      "needed": "Verify protected GitHub Production environment variables/secrets and live protected Supabase/service-only evidence."
+      "id": "VERCEL-EXTERNAL-PATH-DIMENSION-LIMIT",
+      "severity": "low",
+      "status": "documented",
+      "statement": "Canonical external metric recovered 63 total dependencies, all Supabase host, origin route /api/venues, dub1, 200; path dimension is unsupported, so 21 x 3 attribution is an explicit inference corroborated by code, Supabase sample evidence, and exact pg_stat delta."
     },
     {
-      "id": "12.7-VISIBILITY-MIGRATION-LIVE",
-      "priority": "P0",
-      "classification": "live-database-migration-evidence",
-      "requirements": [
-        "12.7 OPS-1"
-      ],
-      "needed": "Apply `20260718214954_add_public_venue_visibility.sql`, verify live schema/query behavior, regenerate Supabase types, and prove no contract diff."
-    },
-    {
-      "id": "12.12-STORAGE-POLICY-PROTECTED-VERIFY",
-      "priority": "P0",
-      "classification": "protected-live-storage-policy-evidence",
-      "requirements": [
-        "12.12 AC1",
-        "12.12 AC2"
-      ],
-      "needed": "Apply `20260719000000_venue_media_storage.sql` and verify protected Storage public reads, service-role upload, and anon/auth write denial."
+      "id": "VERCEL-LEGACY-AGGREGATES-TIMEOUT",
+      "severity": "low",
+      "status": "documented",
+      "statement": "Legacy aggregate telemetry still times out; this no longer blocks the trace gate because exact-window request/function telemetry, canonical external telemetry, source contracts, and live SQL delta cover the route-performance/no-fan-out lane."
     }
   ],
-  "non_blocking_or_secondary_gaps": [
-    {
-      "id": "12.7-CONCURRENT-VISIBILITY-RACE",
-      "priority": "P1",
-      "classification": "concurrent-live-behavior-evidence",
-      "needed": "Add concurrent resolver/cache evidence or narrow the race-consistency claim."
+  "evidence": {
+    "protected_geometry_run": "32036137520",
+    "protected_geometry_outputs": "210/210",
+    "protected_weather_run": "32036508651",
+    "protected_weather_rows": 168,
+    "main_ci_run": "32039760444",
+    "production_deployment_id": "dpl_91a1VcSSJpa8JSGCnrvqXecSSAHi",
+    "production_region": "dub1",
+    "batch_rpc_remote_migration": {
+      "version": "20260817143743",
+      "name": "read_current_venue_sun_geometry_batch"
     },
-    {
-      "id": "12.11-MAP-PRIMARY-FUTURE-DATE-STABILITY",
-      "priority": "P1",
-      "classification": "broad-suite-e2e-stability-evidence",
-      "needed": "Keep as PARTIAL: corrected serialized mobile repeat passed 3/3, but prior parallel evidence was 2/3 and no broad-concurrency pass is claimed."
+    "storage_remote_migration": {
+      "version": "20260817111301",
+      "name": "venue_media_storage"
+    },
+    "storage_dynamic_smoke": {
+      "temporary_prefix": "test-venue-sunny/ve12-probe-20260817-7950324b/",
+      "service_role_upload": "card.webp and hero.webp created with create-only immutable keys",
+      "duplicate_version_refusal": true,
+      "anonymous_public_get": "HTTP 200 image/webp with local/remote SHA-256 parity for both renditions",
+      "card_sha256": "4d516e77b6063ab1a819d00754dc15dc04d87ea8db56b385e781a1abc69dced4",
+      "hero_sha256": "1dd4ac1df88c0baf3474b2e52d8012f823784ab10be891c8e534b420990744f6",
+      "anon_and_authenticated_insert_update": "403 RLS",
+      "delete_noop_retained_objects": true,
+      "service_role_cleanup": "2 objects removed",
+      "protected_sql_remaining_objects": 0,
+      "temporary_auth_user_removed": true,
+      "local_fixtures_removed": true
+    },
+    "origin_miss_p95_ms": {
+      "ttfb": 2565.53,
+      "total": 2672.727,
+      "sample": "20/20 unique x-vercel-cache MISS"
+    },
+    "brotli_edge_hit_p95_ms": {
+      "ttfb": 165.474,
+      "total": 167.005,
+      "sample": "20/20 x-vercel-cache HIT after prime"
+    },
+    "identity_edge_hit_p95_ms": {
+      "ttfb": 169.377,
+      "total": 267.938,
+      "sample": "20/20 x-vercel-cache HIT after prime"
+    },
+    "vercel_recovered_request_log": {
+      "deployment_id": "dpl_91a1VcSSJpa8JSGCnrvqXecSSAHi",
+      "tagged_window": true,
+      "unique_user_agents": "41/41",
+      "status": "all 200",
+      "cache": {
+        "miss": 21,
+        "hit": 20
+      },
+      "edge_region": "arn1"
+    },
+    "vercel_recovered_function_invocations": {
+      "route": "/api/venues",
+      "total": 21,
+      "region": "dub1",
+      "status": "all 200",
+      "classification": {
+        "cold": 3,
+        "prewarmed": 1,
+        "hot": 17,
+        "origin_subset": {
+          "cold": 3,
+          "prewarmed": 1,
+          "hot": 16
+        },
+        "edge_prime": "hot"
+      },
+      "function_duration_p95_ms": {
+        "cold": 1827,
+        "cold_n": 3,
+        "hot_origin": 575,
+        "prewarmed": 2146,
+        "all_21": 1827
+      }
+    },
+    "vercel_internal_request_duration_p95_ms": {
+      "origin_miss": 2358,
+      "hit": 56
+    },
+    "vercel_canonical_external_metric": {
+      "total": 63,
+      "host": "Supabase",
+      "route": "/api/venues",
+      "region": "dub1",
+      "status": "all 200",
+      "path_dimension": "unsupported",
+      "attribution": "21 x 3 inferred from code, Supabase sample, and exact pg_stat delta"
+    },
+    "live_sql_delta": {
+      "venue_list": "+1",
+      "read_current_venue_sun_geometry_batch": "+1",
+      "weather_bucket_snapshots": "+1",
+      "legacy_geometry_inputs": "+0",
+      "legacy_sun_geometry_series": "+0",
+      "legacy_weather": "+0",
+      "get_buildings_near_point": "+0",
+      "get_shadow_caster_hash_records": "+0"
     }
-  ],
-  "rationale": "Epic 12 has broad deterministic functional coverage across stories, including the newly consumed AC-to-test evidence for Stories 12.3, 12.7, 12.11, and 12.12. The gate still fails because iteration 2 does not provide verified remediation evidence for protected production performance/security, live visibility migration execution, or protected Storage RLS verification. Local story tests and source assertions cannot substitute for those protected/live release lanes.",
-  "next_regate_inputs": [
-    "Story 12.3 protected-production p95 dataset and protected environment audit record",
-    "Story 12.7 post-migration live schema/type/query verification record",
-    "Story 12.12 protected Storage bucket/RLS verification record",
-    "Optional Story 12.7 concurrent visibility/cache evidence",
-    "Optional Story 12.11 broad-concurrency stable future-date wait evidence"
+  },
+  "blockers": [],
+  "recommendations": [
+    {
+      "priority": "LOW",
+      "action": "Keep telemetry wording exact: recovered Vercel telemetry proves 21 /api/venues invocations with 3 observed classified cold starts under threshold, not 20 classified cold starts; external dependency count is 63 Supabase-host calls with 21 x 3 attribution inferred because path dimension is unsupported.",
+      "requirements": [
+        "Telemetry caveat"
+      ]
+    }
   ],
   "links": {
     "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-report-epic-12.md",
-    "coverage_matrix_path": "_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-epic-12-2026-08-07T18-14-43+02-00.json",
-    "trace_summary_path": "_bmad-output/test-artifacts/traceability/e2e-trace-summary-epic-12.json"
+    "coverage_matrix_path": "_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-epic-12-2026-08-17T17-14-10+02-00.json",
+    "trace_summary_path": "_bmad-output/test-artifacts/traceability/e2e-trace-summary-epic-12.json",
+    "protected_validation_path": "_bmad-output/test-artifacts/epic-12-protected-validation/protected-validation-report-2026-08-08.md"
   }
 }

@@ -663,3 +663,53 @@ Epic-end reconciliation marked 4 missed completions; 10 total resolved entries w
 4. Resolve the Story 12.11 full-concurrency future-date wait, re-run the epic gates, and approve the eight stories still at BMAD review
 
 **Next:** Commit this pipeline report, run the caveated local finalize predicate (no story status flips), mark the epic anchor done, and commit final state. Then collect protected evidence and re-run gates before launch approval.
+
+## Report — 2026-08-17T15:30:30Z (final - protected closeout PASS)
+
+**Epic:** `12` — 14 stories.
+**Branch context:** Epic implementation branch `epic/12-real-venue-launch-readiness-perf-trust-hours-console-hygiene`; final main/production HEAD `a20aac8`.
+**Pipeline status:** Complete: trace PASS, exact-head CI and production deployment green, and all Epic 12 tracker states finalized. NFR remains CONCERNS for strict-cold sample size, metric path granularity, and the absence of a full restore/failover drill.
+**Continues:** Controlled post-finalization evidence closeout of the historical 2026-08-07 caveated final; no third automate/remediation iteration was fabricated.
+
+**Summary:** Epic 12 is complete. PR #23 closed launch-readiness gaps, PR #24 fixed the production geometry timeout, and PR #25 deployed three-call persisted reads in dub1. Protected jobs, database/storage/visibility, production correctness, latency, telemetry, and exact-head CI are durably verified.
+
+**Timing:** started 2026-07-18T11:27:25Z; completed 2026-08-07T20:42:54Z — elapsed 489h 15m (≈64h 26m AI-run, ≈424h 48m human/idle wait); resumed 12×.
+
+**Stories:**
+1. 12.1, 12.4, 12.5, 12.8, 12.10, and 12.11 were already done.
+2. 12.2, 12.3, 12.6, 12.7, 12.9, 12.12, 12.13, and 12.14 moved from review to done through the sanctioned atomic writer after the clean finalize predicate.
+3. All 14 Epic 12 stories and epic-12 are now done.
+
+**Skipped (already done):** Six stories were already done; no completed story was re-run or re-flipped.
+
+**Integration review:** Verified convergence: final batching primary/alternate/security reviews reported zero findings; GitHub Actions run 32039760444 passed on exact production SHA a20aac8. Code PRs: https://github.com/rthunborg/sunnyseat/pull/23, https://github.com/rthunborg/sunnyseat/pull/24, and https://github.com/rthunborg/sunnyseat/pull/25.
+
+**Epic gate:** PASS: 21/21 material rows FULL (P0 9/9, P1 11/11, P2 1/1); gate iteration remains 2.
+
+**TEA:** Trace PASS; NFR CONCERNS with no blocker; suite test review Approve with Comments, 90/100. The remaining release/NFR concerns are telemetry sampling/granularity and the missing full restore/failover drill; the test-review comments are large-spec maintainability and noisy project-routed skips, not failed product lanes.
+
+**UAT:**
+1. User explicitly authorized manual visual acceptance for all remaining Epic 12 stories; the existing mobile/desktop reference artifacts and provenance remain the acceptance record.
+2. Protected geometry completed 210/210 and weather completed 168 exact rows; visibility was mutated/restored safely; dynamic Storage upload/read/write-denial/cleanup passed with zero survivors.
+3. Exact-SHA production in dub1 returned correct 42-venue/61-step payloads; origin-MISS p95 was 2672.727 ms total and Brotli edge-HIT p95 was 167.005 ms total.
+4. Official Vercel logs classified 21 invocations as 3 cold, 1 prewarmed, and 17 hot; all ran in dub1 and all 41 tagged requests returned 200.
+
+**Overrides:** User approved staging/final commits, manual visual acceptance, the protected lane, production deployments, and production database changes. No trace or NFR waiver was used.
+
+**Open questions:**
+1. Optional observability follow-up: collect 20 provider-classified true cold starts instead of the current n=3, and add destination-path instrumentation if provider-native endpoint attribution is required.
+2. Before a public-launch resilience gate that requires disaster-recovery proof, execute and record a full restore/failover drill.
+
+**Deferred work:**
+The Story 12.12 protected Storage item was reconciled as resolved and archived through deferred_ledger.py; no Epic 12 deferred item remains.
+
+**Auto-decided (epic mode):**
+1. Preserved gate_iterations=2 because this was an evidence-only post-cap re-gate, not a third automate pass.
+2. Used PR #25 as the canonical single-slot PR/merge record while enumerating PRs #23-#25 in this report.
+3. Kept the strict-cold sample-size, path-dimension, and restore/failover-drill caveats visible while accepting the formal trace PASS and non-blocking NFR CONCERNS result.
+
+**Planning drift:** The protected closeout required a production geometry hotfix, a three-call batch read, and a dub1 region move after the original finalization. Those changes were reviewed, merged, deployed, and incorporated as dated evidence rather than rewriting the historical report.
+
+**⚠️ Needs human:** (none)
+
+**Next:** Epic 12 is complete. A future public-launch task may collect broader strict-cold and physical-device evidence, add destination-path instrumentation, and execute a full restore/failover drill without reopening this implementation epic.

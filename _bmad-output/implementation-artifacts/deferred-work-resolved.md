@@ -54,3 +54,7 @@
 ## Deferred from: epic review of epic-11 (2026-07-05)
 
 - ✅ [x] [Review][Defer][Med] Query-key planner derivation is hand-duplicated across `useVenueSearch` and `useFavouriteVenues` with no shared helper — both hooks now consume the shared `deriveQueryKeyPlanner(planner?.date)` helper, which emits the date-only key fragment and strips `time` consistently. `[nextjs-app/hooks/queries/useVenueSearch.ts:94-100, nextjs-app/hooks/queries/useFavouriteVenues.ts:41-45]` — resolved in `nextjs-app/lib/utils/venue-query-planner.ts` and both hook consumers.
+
+## Deferred from: post-dev test automation of 12-12-venue-photos-supabase-storage-hosting-render-fallback-fixes (2026-07-19)
+
+- ✅ [x] **[Med] Protected live Supabase Storage verification** *(Target: None — conditional, triggered when protected Supabase credentials became available for Story 12.12 storage-policy verification)* — resolved 2026-08-17. Remote migration `20260817111301` applied the public, WebP-only, size-capped `venue-media` bucket contract. A bounded dynamic smoke proved service-role create-only card/hero upload, duplicate-key refusal, anonymous `200 image/webp` reads with SHA-256 parity, anonymous/authenticated write denial, delete no-op retention, service-role cleanup, and protected SQL `remaining_objects=0`; the temporary auth user and local fixtures were also removed. Evidence: `_bmad-output/test-artifacts/epic-12-protected-validation/protected-validation-report-2026-08-08.md` and Story 12.12's dated protected-smoke addendum. [Post-dev test automation of Story 12.12; bmad-testarch-automate]

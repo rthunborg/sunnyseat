@@ -4,7 +4,7 @@ baseline_commit: NO_VCS
 
 # Story 12.12: Venue Photos — Supabase Storage Hosting + Render/Fallback Fixes
 
-Status: review
+Status: done
 
 ## Story
 
@@ -560,3 +560,44 @@ Codex GPT-5 auto-bmad dev-story delegate
   four required new media references.
 - Scope fences exclude editor UI, preloading, closed-venue filtering, engine/weather,
   confidence, payments, and unaudited rebaseline work.
+
+## Protected Closeout Evidence Addendum - 2026-08-17
+
+- The owner-compatible Storage migration is applied on the protected Supabase project as
+  remote version `20260817111301`, name `venue_media_storage`.
+- Protected catalog verification confirmed the `venue-media` bucket is public-read,
+  restricted to `image/webp`, and capped at `358400` bytes.
+- Exactly one matching `storage.objects` policy exists: SELECT for `anon` and
+  `authenticated` where `bucket_id = 'venue-media'`. No matching browser `INSERT`, `UPDATE`,
+  `DELETE`, or `ALL` policy exists.
+- The protected bucket contained `0` objects after verification. No object upload or cleanup
+  was needed in this lane, so no durable validation media or credentials were introduced.
+- Because this migration changes Storage metadata rather than the generated `public` schema,
+  it does not require a generated `nextjs-app/lib/supabase/types.ts` change.
+- Exact-head GitHub Actions run `32039760444` passed against
+  `a20aac8a4a333a00efa82f4d334eeed033037f46`, including production build, full tests,
+  Playwright, and desktop/mobile accessibility gates.
+
+This addendum supersedes the earlier completion note that protected Supabase verification was
+unavailable. It verifies the requested public-read/no-browser-write production Storage
+contract while preserving the already approved manual visual evidence documented above.
+
+### Protected Dynamic Storage Smoke - 2026-08-17
+
+- Generated non-user `card.webp` and `hero.webp` fixtures were uploaded through the
+  service-role maintainer tool under the temporary immutable version
+  `ve12-probe-20260817-7950324b`.
+- A second create-only upload to the same version was rejected with the tool's
+  already-exists error; neither rendition was overwritten.
+- Anonymous public GET returned HTTP `200`, `image/webp`, and byte-for-byte SHA-256 matches
+  for both renditions (`90`-byte card and `114`-byte hero).
+- Anonymous and temporary-authenticated `INSERT`/`UPDATE` attempts returned `403` RLS
+  denials. Their `DELETE` attempts returned zero deleted rows and left the targeted objects
+  present, which proves denial while preserving the Storage API's non-leaking response.
+- Service-role cleanup removed both retained rendition objects; protected SQL verified zero
+  rows beneath the temporary prefix, and the temporary authenticated user and local fixtures
+  were removed.
+
+This dynamic smoke supersedes only the earlier migration-lane statement that no upload was
+performed. The final production bucket state is again empty, with the public-read and
+no-browser-write policy contract intact.

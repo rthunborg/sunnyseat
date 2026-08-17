@@ -777,3 +777,22 @@ Codex GPT-5
 | Test gate | pass | Matches repo commands, requires a11y/a11y-mobile, Playwright, visual validation through the Windows wrapper, and story-review gate usage. |
 
 All checks pass, story ready for dev.
+
+## Epic Closeout Evidence Addendum - 2026-08-17
+
+- The exact future-date `/api/venues` response assertion previously passed `6/6` with
+  `3` workers; that focused parallel result remains the direct Story 12.11 P1 stability
+  evidence. The broader mobile-project attempt recorded at the time remained non-green only
+  because of unrelated suites, as documented above.
+- Final exact-head GitHub Actions run `32039760444` passed against
+  `a20aac8a4a333a00efa82f4d334eeed033037f46`. The successful run includes the full
+  Playwright lane as well as TypeScript, lint, build, Vitest, bundle/MapLibre, Lighthouse,
+  touch-target, and desktop/mobile axe gates, closing the prior absence of a green broad-suite
+  artifact for final Epic 12 head.
+- That exact SHA is ready and promoted in Vercel production deployment
+  `dpl_91a1VcSSJpa8JSGCnrvqXecSSAHi`. Live `/api/venues` validation returned the expected
+  `42` venues and `61` planner steps with consistent hashes/weather, and the post-ready scan
+  found no route runtime errors or deployment error/fatal logs.
+
+The dated final-main CI artifact is the broad integration evidence; the earlier `6/6` parallel
+repeat remains the narrowly attributable Story 12.11 concurrency evidence.

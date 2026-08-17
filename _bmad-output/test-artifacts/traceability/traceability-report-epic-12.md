@@ -1,33 +1,37 @@
 ---
 stepsCompleted: ['step-01-load-context', 'step-02-discover-tests', 'step-03-map-criteria', 'step-04-analyze-gaps', 'step-05-gate-decision']
 lastStep: 'step-05-gate-decision'
-lastSaved: '2026-08-07'
+lastSaved: '2026-08-17T17:26:01+02:00'
 workflowType: 'testarch-trace'
 gateType: 'epic'
 decisionMode: 'deterministic'
 gateIteration: 2
 gateIterationCapReached: true
-remediationCommit: 'ee1e646'
-remediationEvidenceStatus: 'new_ac_to_test_evidence_consumed_but_no_verified_change_to_protected_live_blocking_lanes'
+postFinalizationEvidenceRefresh: true
+sourceSha: 'a20aac8a4a333a00efa82f4d334eeed033037f46'
 inputDocuments:
   - 'project-context.md'
-  - '_bmad-output/auto-bmad/state/epic/epic-12.yaml'
-  - '_bmad-output/implementation-artifacts/deferred-work.md'
-  - '_bmad-output/auto-bmad/retro-notes/epic-12.md'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-12.md'
+  - '_bmad-output/test-artifacts/epic-12-protected-validation/protected-validation-report-2026-08-08.md'
+  - '_bmad-output/test-artifacts/automation-summary.md'
   - '_bmad-output/implementation-artifacts/12-1..12-14-*.md'
   - '_bmad-output/test-artifacts/traceability/traceability-report-12-*.md'
 generatedArtifacts:
-  - '_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-epic-12-2026-08-07T18-14-43+02-00.json'
+  - '_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-epic-12-2026-08-17T17-14-10+02-00.json'
   - '_bmad-output/test-artifacts/traceability/e2e-trace-summary-epic-12.json'
   - '_bmad-output/test-artifacts/traceability/gate-decision-epic-12.json'
+tempCoverageMatrixPath: '_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-epic-12-2026-08-17T17-14-10+02-00.json'
+coverageBasis: 'material_acceptance_criteria_and_required_evidence_lanes'
+oracleConfidence: 'high'
+oracleResolutionMode: 'formal_requirements'
+externalPointerStatus: 'not_used'
 ---
 
 # Traceability Matrix & Gate Decision - Epic 12
 
 **Epic:** Real-Venue Launch Readiness - Performance, Trust, Hours, Console Hygiene
 
-**Date:** 2026-08-07
+**Date:** 2026-08-17
 
 **Evaluator:** TEA Agent
 
@@ -35,153 +39,121 @@ generatedArtifacts:
 
 **Decision Mode:** deterministic
 
-**Gate Iteration:** 2
+**Gate Iteration:** 2, with post-finalization evidence refresh after the capped automate/remediation iterations. This report does not create or imply a third remediation iteration.
 
-**Remediation Commit Input:** `ee1e646`
+## Gate Decision: PASS
 
-**Gate Iteration Cap:** reached
+Epic 12 now meets the deterministic trace gate:
 
-**Story status at trace time:** 14 stories traced. Story 12.1 is `done`; 12.4, 12.5, 12.8, 12.10, and 12.11 are `done`; 12.2, 12.3, 12.6, 12.7, 12.9, 12.12, 12.13, and 12.14 are at `review`.
+- P0 material rows: 9/9 FULL.
+- P1 material rows: 11/11 FULL.
+- P2 material rows: 1/1 FULL.
+- Overall material rows: 21/21 FULL.
+- Critical/high/medium/low open trace gaps: 0/0/0/0.
 
-Note: This workflow does not generate tests. This gate-iteration pass did not rerun implementation test suites; it consumed the current story-recorded verification evidence, deferred-work notes, retro notes, per-story trace artifacts, Epic 12 test design, and epic state. The gate fails on missing protected/live evidence independent of a local rerun.
+The previous FAIL was caused by six partial evidence lanes. The 2026-08-17 protected closeout evidence closes those lanes:
 
-## Gate Iteration 2 Evidence Refresh
+| Former gap | Current classification | Closing evidence |
+| --- | --- | --- |
+| 12.3 protected production p95 / persisted-read proof | FULL | Exact-SHA production deployment in `dub1`; request-log backend accounted for 41/41 unique UAs, all 200, 21 MISS + 20 HIT, all edge `arn1`; 21 `/api/venues` invocations were all `dub1`/200 with 3 cold, 1 prewarmed, and 17 hot classifications. Function-duration p95 was 1827 ms for observed cold (n=3), 575 ms for hot-origin, 2146 ms for prewarmed, and 1827 ms across all 21. Vercel internal request-duration p95 was 2358 ms for origin MISS and 56 ms for HIT. Prior route probes recorded 20/20 unique origin cache MISS responses, p95 2565.530 ms TTFB / 2672.727 ms total, and 20/20 Brotli edge HIT responses, p95 165.474 ms TTFB / 167.005 ms total. Canonical external metric recovered 63 total dependencies, all Supabase host / origin route `/api/venues` / `dub1` / 200; because path dimension is unsupported, the 21 x 3 attribution is an explicit inference corroborated by code, Supabase sample, and the protected `pg_stat_statements` delta proving exactly +1 venue list, +1 batch geometry RPC, +1 batched weather statement, and +0 legacy per-venue/shadow RPC calls. |
+| 12.3 protected environment / service-only jobs | FULL | Protected geometry workflow run `32036137520` succeeded with 210/210 venue-date outputs; protected weather workflow run `32036508651` succeeded with exactly 168 snapshot rows; GitHub Production variables and protected service-role posture are recorded in the protected validation report; batch RPC catalog is service-role-only, `STABLE SECURITY DEFINER`, with `search_path=pg_catalog,public`. |
+| 12.7 visibility migration/live proof | FULL | `public.venues.hidden` is applied on protected Supabase; live visible/hidden smoke passed and the temporary mutation was restored; generated protected visibility section matches the checked-in type contract. The broader generated-type file still has unrelated generator/schema drift and is not claimed globally drift-free. |
+| 12.12 protected Storage policy proof | FULL | Owner-compatible Storage migration applied as remote version `20260817111301` / `venue_media_storage`; `venue-media` is public-read, WebP-only, capped at 358400 bytes, and has exactly one anon/auth SELECT policy with no browser write policy. The bounded dynamic smoke under `test-venue-sunny/ve12-probe-20260817-7950324b/` proved service-role create-only upload, duplicate-version refusal, anonymous `200 image/webp` byte/SHA parity for card and hero renditions, anon/auth write denial, delete no-op retention, service-role cleanup, and protected SQL `remaining_objects=0`. |
+| 12.7 concurrent visibility/cache race | FULL | Deterministic deferred same-slug visibility race test passed and remains valid: a hidden first read and concurrent visible second read resolve independently without in-flight promise or cached-miss bleed. |
+| 12.11 future-date exact-response stability | FULL | Focused future-date Playwright check passed 6/6 with 3 workers; final exact-head CI run `32039760444` passed the broad Playwright, build, type, lint, Vitest, bundle/MapLibre, Lighthouse, touch-target, and desktop/mobile axe lanes. |
 
-The supplied remediation commit `ee1e646` is recorded as an input label for this re-gate. Per delegate constraints, git inspection was not used. The current BMAD evidence set still carries the same six PARTIAL rows from the previous trace, including four P0 protected/live launch evidence lanes.
+## Evidence Boundary
 
-Current Story 12.3/12.7/12.11/12.12 AC-to-test evidence was consumed. It strengthens local deterministic coverage and is reflected in the FULL local implementation rows, but no row was upgraded from PARTIAL to FULL because the current artifacts do not provide verified remediation evidence for the protected production p95 run, protected environment audit, live visibility migration verification, protected Storage policy verification, concurrent visibility race, or broad-suite future-date wait stability.
+The PASS does not rely on overstated telemetry.
 
-The Story 12.11 remediation evidence is explicitly scoped: the corrected serialized mobile repeat for the future-date exact-response check passed 3/3, while the prior parallel repeat was 2/3. This trace therefore does not claim broad-concurrency pass evidence.
+- Recovered Vercel telemetry classifies the exact tagged deployment window: 41/41 unique UAs, all 200, 21 MISS + 20 HIT, all edge `arn1`; 21 `/api/venues` invocations all `dub1`/200, classified as 3 cold, 1 prewarmed, and 17 hot. The origin subset is 3 cold / 1 prewarmed / 16 hot, with the edge-prime invocation hot.
+- Strict "20 classified cold Vercel function starts" evidence remains under-sampled at n=3, so this report does not relabel the 20 origin MISS route probes as 20 classified cold starts. All observed classified cold invocations were below threshold: p95 cold function duration was 1827 ms (n=3).
+- Canonical external-dependency telemetry recovered 63 total calls, all Supabase host, origin route `/api/venues`, `dub1`, 200. Path dimension is unsupported, so 21 x 3 per-request attribution is an explicit inference, not a directly emitted provider dimension; it is corroborated by source contracts, Supabase sample evidence, and the protected live SQL delta.
+- Legacy aggregate rollups still time out. The no-fan-out claim is nevertheless covered by the recovered canonical external metric plus merged source/test contracts and the independent protected live SQL delta proving the route's three Supabase statements and +0 legacy per-venue/shadow RPC calls for a unique production cache miss.
 
-## PHASE 1: REQUIREMENTS TRACEABILITY
+## Phase 1: Requirements Traceability
 
 ### Coverage Summary
 
-Epic 12 has broad implementation-level coverage across all 14 stories, but the public-launch gate is not satisfied because several required evidence lanes remain partial. The table below uses material epic gate rows: one row can represent a grouped story contract or a required operational evidence lane. It intentionally does not claim every atomic UAT item as a separate row.
-
 | Priority | Material Rows | FULL | PARTIAL | UNCOVERED | FULL % | Status |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| P0 | 9 | 5 | 4 | 0 | 55.56% | FAIL |
-| P1 | 11 | 9 | 2 | 0 | 81.82% | CONCERNS |
+| P0 | 9 | 9 | 0 | 0 | 100% | PASS |
+| P1 | 11 | 11 | 0 | 0 | 100% | PASS |
 | P2 | 1 | 1 | 0 | 0 | 100% | PASS |
-| Total | 21 | 15 | 6 | 0 | 71.43% | FAIL |
-
-Deterministic gate rule: P0 coverage must be 100%. Epic 12 is therefore **FAIL**.
+| P3 | 0 | 0 | 0 | 0 | 100% | PASS |
+| **Total** | **21** | **21** | **0** | **0** | **100%** | **PASS** |
 
 ### Story Coverage Matrix
 
-| Story | Status | Trace / Evidence Status | Gate Note |
+| Story / lane | Priority | Status | Gate note |
 | --- | --- | --- | --- |
-| 12.1 | done | FULL | Provider-neutral hours governance, scheduled audit, provenance, and no-Google-hours policy are traced as PASS. |
-| 12.2 | review | FULL | Feedback evidence, public verdict parity, invalid contradiction rejection, aggregation, and coverage-cap removal are traced as 8/8 FULL. |
-| 12.3 | review | PARTIAL | Deterministic persisted-geometry coverage is strong, but protected production p95 and protected environment evidence are missing. |
-| 12.4 | done | FULL | Console/pageerror hygiene for hydration and MapLibre null-reference warnings is recorded as gate-checked. |
-| 12.5 | done | FULL | Dev editor production deny, validation, hidden-toggle behavior, and public route impact are traced as 8/8 FULL. |
-| 12.6 | review | FULL | Public sunny/pin semantics, grey cloud no-number behavior, accessibility, and visual evidence are traced as 13/13 FULL. |
-| 12.7 | review | PARTIAL | Deterministic resolver tests cover most behavior, but visibility migration execution/live schema evidence and concurrent visibility race evidence remain partial. |
-| 12.8 | done | FULL | About legend, accuracy-truth copy, policy/data-source copy, accessibility, and visual evidence are recorded as complete. |
-| 12.9 | review | FULL | Row-quantized sheet, slim slider, touch/keyboard, accessibility, and visual evidence are recorded as complete. |
-| 12.10 | done | FULL | Bounded detail prefetch, exact key, no scrub/date restart, hidden guard, and loading replacement are traced as 10/10 FULL. |
-| 12.11 | done | PARTIAL | Coach-guide contract is covered and visually accepted; the map-primary future-date exact-response wait has serialized 3/3 evidence, but parallel evidence was 2/3 and no broad-concurrency pass is claimed. |
-| 12.12 | review | PARTIAL | Media DTO/render/fallback coverage is strong; protected Supabase Storage policy verification is missing. |
-| 12.13 | review | FULL | Public confidence removal and internal confidence retention are recorded as complete. |
-| 12.14 | review | FULL | Selected-time open/closed filtering, exact closed search, retained closed favourite, unknown-hours policy, and request-count checks are recorded as passed. |
+| 12.1 Hours governance | P1 | FULL | Provider-neutral hours governance, provenance, scheduled audit, and no-Google-hours policy remain traced as complete. |
+| 12.2 Feedback accuracy loop | P1 | FULL | Public verdict parity, invalid contradiction rejection, aggregation/reporting, and coverage-cap removal remain traced as complete. |
+| 12.3 Persisted geometry deterministic lanes | P0 | FULL | Hash, exact current-date/current-hash persisted coverage, fail-closed coverage gaps, read-time weather gating, direct scheduled jobs, and local SQL/service-only tests remain covered. |
+| 12.3 Protected p95 and no request-path recompute | P0 | FULL | Exact production deployment, recovered Vercel request/function/external telemetry, origin MISS/edge HIT p95 datasets, correctness assertions, zero-error scan, and live SQL delta close the former protected p95/no-fan-out gap. |
+| 12.3 Protected environment and service-only jobs | P0 | FULL | Protected geometry/weather jobs, Production variables, service-only batch RPC, and protected Supabase verification close the former environment/security gap. |
+| 12.4 Console hygiene | P1 | FULL | Hydration and MapLibre warning/error guards remain complete. |
+| 12.5 Dev editor deny and validation | P0 | FULL | Production deny, validation, hidden-toggle behavior, and public-route impact remain complete. |
+| 12.6 Public sunny/pin semantics | P0 | FULL | Shared public-sunny predicate, grey no-number pin semantics, accessibility, and visual evidence remain complete. |
+| 12.7 Live resolver route matrix | P0 | FULL | Reviews/feedback public resolver, id/slug/hidden/unknown handling, fixture-mode isolation, and route convergence remain complete. |
+| 12.7 Visibility migration/live proof | P0 | FULL | Protected `hidden` migration, live smoke/restore, and scoped type-section verification close the former migration gap. |
+| 12.7 Concurrent visibility/cache race | P1 | FULL | Deferred same-slug race test proves independent concurrent resolver calls. |
+| 12.8 About legend/truth | P1 | FULL | Legend, no fabricated public confidence/accuracy, accessibility, and visual evidence remain complete. |
+| 12.9 Row-quantized mobile sheet | P1 | FULL | Row-count sheet, slim slider, touch/keyboard, accessibility, and visual evidence remain complete. |
+| 12.10 Detail prefetch | P1 | FULL | Bounded initial-settle detail prefetch, exact keys, no scrub/date restart, hidden guard, and loading replacement remain complete. |
+| 12.11 Coach guide | P1 | FULL | First-run guide behavior, persistence, focus, responsive anchors, axe, and visual acceptance remain complete. |
+| 12.11 Future-date exact-response stability | P1 | FULL | 6/6 focused parallel evidence plus exact-head green CI close the former stability gap. |
+| 12.12 Media DTO/render/fallback | P1 | FULL | DTO validation, rendition selection, fallback behavior, upload tooling, E2E/media interception, and visual evidence remain complete. |
+| 12.12 Protected Storage policy | P0 | FULL | Protected `venue-media` bucket/policy/no-browser-write verification plus dynamic service-write/public-read/cleanup smoke closes the former protected Storage gap. |
+| 12.13 Confidence removal | P1 | FULL | Public confidence removal and internal diagnostic retention remain complete. |
+| 12.14 Selected-time availability | P0 | FULL | Selected-instant open/closed filtering, exact closed search, retained closed favourites, unknown-hours policy, and request-count checks remain complete. |
+| Epic visual rebaseline governance | P2 | FULL | Manual-authorized visual acceptance and candidate/reference provenance remain recorded in the owning story artifacts. |
+
+### Coverage Heuristics
+
+- Endpoint gaps: 0. Public list/detail/reviews/feedback/storage-relevant route behavior is covered by route, component, E2E, and protected-live evidence as applicable.
+- Auth/authz negative-path status: present for service-only geometry/RPC, dev editor production deny, public hidden/unknown non-leakage, and Storage no-browser-write posture including the protected dynamic anon/auth write-denial smoke.
+- Error-path status: present for typed geometry coverage misses, stale/wrong hash/date, malformed identifiers, hidden/unknown rows, image fallback, and route failure boundaries.
+- UI journey and state status: present for mapped Epic 12 frontend states, including manual visual acceptance where authorized and exact-head desktop/mobile axe CI.
 
 ### Material Gaps
 
-#### Critical / P0
+None.
 
-1. **12.3 protected production cold-p95 evidence is missing.** Classification: protected-live-performance-evidence.
-   - Requirements affected: 12.3 AC2, 12.3 AC6, Epic 12 R-001.
-   - Required evidence: protected-production `/api/venues` central-viewport cold request over the 42+ venue dataset with p95 <= approximately 5s, route/date/hash/run metadata, cold/warm/edge classification, logs proving persisted geometry reads, and zero request-path provider or shadow recompute.
-   - Current state: story trace marks this lane partial; epic deferred work repeats the same requirement.
-
-2. **12.7 visibility migration execution/live schema proof is missing.** Classification: live-database-migration-evidence.
-   - Requirements affected: 12.7 OPS-1, Epic 12 R-003, Epic 12 R-010.
-   - Required evidence: apply `20260718214954_add_public_venue_visibility.sql`, verify `venues.hidden boolean not null default false`, prove no 42703 on resolver/precompute projections, smoke live visible/hidden id/slug behavior, regenerate Supabase types, and verify no contract diff.
-   - Current state: source SQL and local types are asserted, but no migrated database or post-migration live query is verified.
-
-3. **12.12 protected Supabase Storage policy verification is missing.** Classification: protected-live-storage-policy-evidence.
-   - Requirements affected: 12.12 AC1, 12.12 AC2, Epic 12 R-015, Epic 12 R-010.
-   - Required evidence: apply `20260719000000_venue_media_storage.sql`, verify protected `venue-media` public reads, service-role upload, anon/auth write denial, bucket constraints, and public rendition reads before hosted media is used.
-   - Current state: local SQL/text tests cover policy intent, but protected Supabase preview verification was not run.
-
-#### High / P0
-
-4. **12.3 protected GitHub Production environment and live Supabase advisor evidence are missing.** Classification: protected-live-environment-security-evidence.
-   - Requirements affected: 12.3 AC2, Epic 12 R-002.
-   - Required evidence: protected Production secrets/variables for geometry precompute and weather refresh, protected environment behavior, and live service-only Supabase evidence.
-   - Current state: not collected due protected access requirements.
-
-#### Medium / P1
-
-5. **12.7 concurrent visibility/cache race evidence is partial.** Classification: concurrent-live-behavior-evidence.
-   - Requirement affected: 12.7 INV-1.
-   - Current state: sequential absent/public/hidden/public transitions are covered; concurrent in-flight visibility changes are not directly exercised.
-
-6. **12.11 map-primary future-date exact-response wait is unstable under full-suite concurrency.** Classification: broad-suite-e2e-stability-evidence.
-   - Requirement affected: Story 12.11 deferred work / Epic 12 request-count reliability lane.
-   - Current state: the corrected serialized mobile repeat passed 3/3, but the prior parallel repeat was 2/3 and no broad-concurrency pass is claimed.
-
-### Uncovered Requirements / ACs
-
-No story acceptance criterion is classified as totally uncovered in the local implementation record. The failing items are **partial required evidence lanes**. For the Epic 12 gate, a partial P0 launch evidence lane is treated as not FULL and therefore blocks PASS.
-
-The specific ACs left partial are:
-
-- 12.3 AC2 / AC6: protected-production p95 and no request-path recompute evidence.
-- 12.3 AC2: protected GitHub Production environment / live protected Supabase evidence.
-- 12.7 OPS-1: visibility migration applied and verified against a migrated database/live route matrix.
-- 12.12 AC1 / AC2: protected Supabase Storage public-read and write-denial policy behavior.
-- 12.7 INV-1: concurrent visibility/cache behavior.
-- Story 12.11 deferred test-stability item: future-date exact-response wait has serialized 3/3 evidence but remains partial for broad-concurrency stability.
-
-## PHASE 2: QUALITY GATE DECISION
-
-**Gate Type:** epic
-
-**Decision Mode:** deterministic
+## Phase 2: Quality Gate Decision
 
 ### Decision Criteria
 
 | Criterion | Threshold | Actual | Status |
 | --- | --- | --- | --- |
 | Collection status | COLLECTED | COLLECTED | PASS |
-| P0 coverage | 100% | 5/9 material rows FULL = 55.56% | FAIL |
-| Overall coverage | >=80% | 15/21 material rows FULL = 71.43% | FAIL |
-| P1 coverage | >=90% for PASS | 9/11 material rows FULL = 81.82% | CONCERNS |
-| Security/policy evidence | no open P0 security/policy lane | 12.3 and 12.12 protected evidence partial | FAIL |
-| Critical NFR evidence | no open critical NFR lane | 12.3 protected p95 partial | FAIL |
+| P0 coverage | 100% | 9/9 material rows FULL = 100% | PASS |
+| Overall coverage | >=80% | 21/21 material rows FULL = 100% | PASS |
+| P1 coverage | >=90% for PASS | 11/11 material rows FULL = 100% | PASS |
+| Security/policy evidence | no open P0 security/policy lane | Protected environment, service-only RPC, visibility, editor deny, and Storage static-plus-dynamic lanes verified | PASS |
+| Critical NFR trace evidence | no open critical NFR trace lane | Protected performance, recovered Vercel request/function/external telemetry, jobs, CI, deployment, correctness, and no-fan-out evidence present | PASS |
 
-### GATE DECISION: FAIL
+### Rationale
 
-Deterministic rule outcome: P0 coverage is below 100%, so the gate is **FAIL**.
+Epic 12 has complete formal-requirement trace coverage and the protected/live evidence lanes that caused the prior gate failure are now dated, exact-SHA, and durable. The final decision is **PASS** because all P0 rows are FULL, all P1 rows are FULL, overall material-row coverage is 100%, exact-head CI is green, the exact production deployment is promoted in `dub1`, and the live `/api/venues` route met correctness and latency gates without database-observable legacy fan-out.
 
-Rationale: Epic 12 implementation coverage is broad and most deterministic story suites are recorded green, including the newly consumed AC-to-test evidence for Stories 12.3, 12.7, 12.11, and 12.12. The gate still fails because iteration 2 has no verified remediation evidence for the protected/live lanes. Local tests and source assertions cannot substitute for protected production p95/security evidence, live migration execution proof, or protected Supabase Storage policy verification.
-
-### Required Regate Inputs
-
-1. Collect Story 12.3 protected production p95 evidence for the 42+ venue dataset, including logs proving persisted geometry reads and zero request-path provider/shadow recompute.
-2. Verify Story 12.3 protected GitHub Production environment variables/secrets and live protected Supabase/service-only posture.
-3. Apply and verify Story 12.7 visibility migration, regenerate Supabase types, verify no contract diff, and smoke live visible/hidden id/slug route behavior.
-4. Apply and verify Story 12.12 Storage migration/policy with service-role upload, public reads, and anon/auth write denial.
-5. Add or collect Story 12.7 concurrent visibility/cache evidence, or narrow the claim.
-6. Collect broad-concurrency stable evidence for the Story 12.11 future-date exact-response wait, or keep the claim scoped to serialized execution.
+The telemetry limitation is explicitly scoped: recovered Vercel telemetry now supplies request-log, function-classification, internal request-duration, and canonical external-dependency evidence for the exact tagged window. The remaining limits are narrower: the strict classified-cold sample is n=3 rather than 20, the external metric lacks a path dimension so 21 x 3 attribution is inferred from corroborating evidence, and legacy aggregate rollups still time out. The available evidence is sufficient for the Epic 12 trace gate because it proves the launch-critical user-facing route behavior, persisted-read architecture, protected database/job posture, Storage policy plus dynamic service-write/public-read/browser-write-denial behavior, visibility behavior, and final integration state.
 
 ## Related Artifacts
 
-- Coverage matrix: `_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-epic-12-2026-08-07T18-14-43+02-00.json`
+- Coverage matrix: `_bmad-output/test-artifacts/traceability/tea-trace-coverage-matrix-epic-12-2026-08-17T17-14-10+02-00.json`
 - E2E trace summary: `_bmad-output/test-artifacts/traceability/e2e-trace-summary-epic-12.json`
 - Gate decision JSON: `_bmad-output/test-artifacts/traceability/gate-decision-epic-12.json`
-- Epic state: `_bmad-output/auto-bmad/state/epic/epic-12.yaml`
+- Protected validation: `_bmad-output/test-artifacts/epic-12-protected-validation/protected-validation-report-2026-08-08.md`
+- Automation summary: `_bmad-output/test-artifacts/automation-summary.md`
 - Test design: `_bmad-output/test-artifacts/test-design/test-design-epic-12.md`
 
 ## Sign-Off
 
-**Phase 1 - Traceability Assessment:** COLLECTED. All Epic 12 stories are mapped; six material rows remain partial, including four P0 protected/live launch evidence lanes.
+**Phase 1 - Traceability Assessment:** PASS. All Epic 12 material rows are FULL after the post-finalization evidence refresh.
 
-**Phase 2 - Gate Decision:** FAIL. P0 coverage is not 100% after gate iteration 2.
+**Phase 2 - Gate Decision:** PASS.
 
-**Overall Status:** FAIL - Epic 12 is not ready for public-launch gate approval until the protected production, migration, and storage-policy evidence lanes are completed and re-gated.
+**Overall Status:** PASS - Epic 12 traceability and release-gate evidence are sufficient for protected closeout, subject to the documented telemetry caveat that strict classified-cold Vercel function evidence is n=3 and external 21 x 3 attribution is inferred because the provider metric lacks path dimension.
 
 <!-- Powered by BMAD-CORE -->
