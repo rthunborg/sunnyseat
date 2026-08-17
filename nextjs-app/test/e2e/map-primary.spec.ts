@@ -339,6 +339,7 @@ test.describe('map-primary', () => {
       'Mobile-viewport map-primary checks run only in the mobile Playwright project',
     );
 
+    await bypassOnboarding(page);
     await page.goto('/');
 
     await expect(visibleTestId(page, 'map-container')).toBeVisible({
