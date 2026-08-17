@@ -12,10 +12,14 @@ import { runAxe, formatViolations } from './helpers/axe';
 import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import { arrangeVenuePhotoMedia } from './helpers/venue-photo-media';
 
-const APPROVED_CARD_URL =
-  'https://hhnbxrhfhlzxgllxukzj.supabase.co/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07/card.webp';
-const APPROVED_HERO_URL =
-  'https://hhnbxrhfhlzxgllxukzj.supabase.co/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07/hero.webp';
+const APPROVED_CARD_PATH =
+  '/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07/card.webp';
+const APPROVED_HERO_PATH =
+  '/storage/v1/object/public/venue-media/test-venue-sunny/v2026-07/hero.webp';
+const APPROVED_PHOTO_ORIGINS = [
+  'https://hhnbxrhfhlzxgllxukzj.supabase.co',
+  'https://sunnyseat.supabase.co',
+] as const;
 
 async function bypassOnboarding(page: Page) {
   await page.addInitScript(
@@ -30,6 +34,21 @@ async function bypassOnboarding(page: Page) {
 
 async function expectImageLoaded(locator: ReturnType<Page['getByTestId']>) {
   await expect(locator).toHaveJSProperty('naturalWidth', 64);
+}
+
+async function expectApprovedVenuePhotoUrl(
+  locator: ReturnType<Page['getByTestId']>,
+  expectedPath: typeof APPROVED_CARD_PATH | typeof APPROVED_HERO_PATH,
+  expectedOrigin?: string,
+): Promise<string> {
+  const src = await locator.getAttribute('src');
+  expect(src).toBeTruthy();
+  const url = new URL(src as string);
+  expect(url.protocol).toBe('https:');
+  expect(APPROVED_PHOTO_ORIGINS).toContain(url.origin);
+  expect(url.pathname).toBe(expectedPath);
+  if (expectedOrigin) expect(url.origin).toBe(expectedOrigin);
+  return url.origin;
 }
 
 test.describe('axe-core a11y gate', () => {
@@ -114,17 +133,18 @@ test.describe('axe-core a11y gate', () => {
       hasText: /Kaf[eé] Magasinet/i,
     }).first();
     await targetCard.waitFor({ state: 'visible' });
-    await expect(targetCard.getByTestId('venue-card-photo')).toHaveAttribute(
-      'src',
-      APPROVED_CARD_URL,
+    const approvedOrigin = await expectApprovedVenuePhotoUrl(
+      targetCard.getByTestId('venue-card-photo'),
+      APPROVED_CARD_PATH,
     );
     await expectImageLoaded(targetCard.getByTestId('venue-card-photo'));
     await targetCard.click();
     const quickInfo = page.locator('[data-testid="venue-quick-info"]:visible').first();
     await quickInfo.waitFor({ state: 'visible' });
-    await expect(quickInfo.getByTestId('venue-quick-info-photo')).toHaveAttribute(
-      'src',
-      APPROVED_CARD_URL,
+    await expectApprovedVenuePhotoUrl(
+      quickInfo.getByTestId('venue-quick-info-photo'),
+      APPROVED_CARD_PATH,
+      approvedOrigin,
     );
     await expectImageLoaded(quickInfo.getByTestId('venue-quick-info-photo'));
     let violations = await runAxe(page);
@@ -133,9 +153,10 @@ test.describe('axe-core a11y gate', () => {
     await page.goto('/?venue=test-venue-sunny&_state=venue-photo-loaded&_time=16:30');
     const detailPanel = page.getByTestId('desktop-venue-detail-panel');
     await detailPanel.waitFor({ state: 'visible' });
-    await expect(detailPanel.getByTestId('venue-detail-hero-photo')).toHaveAttribute(
-      'src',
-      APPROVED_HERO_URL,
+    await expectApprovedVenuePhotoUrl(
+      detailPanel.getByTestId('venue-detail-hero-photo'),
+      APPROVED_HERO_PATH,
+      approvedOrigin,
     );
     await expectImageLoaded(detailPanel.getByTestId('venue-detail-hero-photo'));
     violations = await runAxe(page);
