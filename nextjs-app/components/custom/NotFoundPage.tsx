@@ -3,9 +3,10 @@
 import { useRef, type MouseEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { LocateFixed, Settings } from 'lucide-react';
-import { animate, motion, useReducedMotion } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { Link, useRouter } from '@/i18n/navigation';
-import { DURATION_SLOW_S, EASE_DEFAULT, EASE_EXIT } from '@/lib/constants/animation';
+import { DURATION_SLOW_S, EASE_DEFAULT } from '@/lib/constants/animation';
 
 // In-app "back to the map" CTA — a locale-aware <Link> styled with the
 // `gradient-route-button` recipe (AC1, mirrors the About page CTA). This is
@@ -58,7 +59,15 @@ export function NotFoundPage() {
     if (navigatingRef.current) return;
     navigatingRef.current = true;
     const goToMap = () => router.push('/');
-    void animate(node, { opacity: 0 }, { duration: DURATION_SLOW_S, ease: EASE_EXIT }).finished.then(
+    const exitAnimation = node.animate(
+      [{ opacity: 1 }, { opacity: 0 }],
+      {
+        duration: DURATION_SLOW_S * 1000,
+        easing: 'ease-in',
+        fill: 'forwards',
+      },
+    );
+    void exitAnimation.finished.then(
       goToMap,
       goToMap,
     );
@@ -120,7 +129,7 @@ export function NotFoundPage() {
           />
           {/* Amber-gold rounded-square pin tile with a "?" inside (AC1). The
               float (AC3) is gated by reduced motion (AC5). */}
-          <motion.div
+          <m.div
             data-testid="not-found-pin"
             aria-hidden="true"
             animate={reduceMotion ? undefined : { y: [0, -4, 0, 4, 0] }}
@@ -130,7 +139,7 @@ export function NotFoundPage() {
             className="relative grid size-24 place-items-center rounded-card bg-amber-gold shadow-card"
           >
             <PinQuestionMark className="size-14 text-amber-cta-text" />
-          </motion.div>
+          </m.div>
         </div>
 
         <h1 className="mt-8 max-w-[15ch] text-display-xl text-text-primary">

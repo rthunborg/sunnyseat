@@ -2,7 +2,7 @@
 # Used by BMAD workflows: create-story, dev-story, sprint-planning, sprint-status
 #
 # generated: 2026-06-02
-# last_updated: 2026-07-27T17:12:53+02:00
+# last_updated: 2026-08-17T22:05:00+02:00
 # project: sunnyseat
 # project_key: NOKEY
 # tracking_system: file-system
@@ -43,7 +43,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-02
-last_updated: 2026-08-07
+last_updated: 2026-08-17
 # Note (2026-07-27, create-story 12.11 - 12-11-first-run-coach-mark-guide-map-legend-feature-tour backlog -> ready-for-dev):
 # authored the Story 12.11 context file at _bmad-output/implementation-artifacts/12-11-first-run-coach-mark-guide-map-legend-feature-tour.md.
 # Core guidance: post-onboarding first-run coach tour; locked feedback to copy-only guidance; forced visual states are
@@ -347,6 +347,9 @@ development_status:
   12-13-remove-the-user-facing-confidence-indicator-keep-it-internal: done
   12-14-hide-closed-venues-open-at-selected-time-filter: done
   epic-12-retrospective: done
+  epic-13: in-progress
+  13-1-provider-classified-cold-starts-dependency-path-tracing-and-isolated-restore-drill: in-progress
+  epic-13-retrospective: optional
 
 # Note (2026-08-07, retrospective epic-12 — epic-12-retrospective -> done): bmad-retrospective (auto-bmad delegate;
 # solo synthesis with Rasmus as sole facilitator+participant) synthesized the full Epic 12 retro from

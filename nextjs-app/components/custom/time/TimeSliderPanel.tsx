@@ -3,7 +3,8 @@
 import { useCallback, useRef, useState, type Ref } from 'react';
 import { Calendar, ChevronRight } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { motion, useReducedMotion } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { DatePickerDialog } from '@/components/composed/time/DatePickerDialog';
 import { TimeSlider } from '@/components/composed/time/TimeSlider';
 import { DURATION_SLOW_S, EASE_ENTER } from '@/lib/constants/animation';
@@ -54,7 +55,7 @@ export function TimeSliderPanel({
 
   return (
     <>
-      <motion.section
+      <m.section
         ref={panelRef}
         data-testid="time-slider-panel"
         data-tour-anchor="time-slider"
@@ -128,7 +129,7 @@ export function TimeSliderPanel({
             />
           </div>
         )}
-      </motion.section>
+      </m.section>
       <DatePickerDialog
         open={calendarOpen}
         selectedDate={time.selectedDate}

@@ -20,9 +20,9 @@ A live Next.js web/PWA app that helps people in Gothenburg find outdoor venue se
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js `^16.2.2` (App Router, **Turbopack default**) |
+| Framework | Next.js `16.3.1` (App Router, **Turbopack default**) |
 | Language | TypeScript `^6.0.2` (strict) |
-| React | React `^19.2.5` + **React Compiler** (`babel-plugin-react-compiler ^1.0.0`) |
+| React | React `^19.2.5`; React Compiler package installed but temporarily disabled while the binding total-JavaScript budget remediation remains in progress |
 | Styling | Tailwind CSS v4 (`^4.2.2`, CSS-first `@theme` tokens) |
 | UI Primitives | shadcn/ui v4 (`shadcn ^4.2.0`) + `@base-ui/react ^1.4.0` |
 | Map | MapLibre GL JS `^5.23.0` |

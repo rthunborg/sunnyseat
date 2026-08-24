@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Command } from 'cmdk';
-import { motion, useReducedMotion } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { Clock, Search, X } from 'lucide-react';
 import {
   DURATION_DEFAULT_S,
@@ -162,7 +163,7 @@ export function VenueSearchCombobox({
         )}
       </div>
 
-      <motion.div
+      <m.div
         aria-hidden={!shouldShowResults}
         initial={false}
         animate={
@@ -247,7 +248,7 @@ export function VenueSearchCombobox({
             );
           })}
         </Command.List>
-      </motion.div>
+      </m.div>
     </Command>
   );
 }

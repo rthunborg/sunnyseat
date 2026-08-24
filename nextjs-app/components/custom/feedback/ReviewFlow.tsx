@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { MessageSquare } from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { ReviewCard, type ReviewCardLabels } from '@/components/composed/feedback/ReviewCard';
 import { ReviewForm, type ReviewFormLabels, type ReviewFormSubmit } from '@/components/composed/feedback/ReviewForm';
 import { AmberCTAButton } from '@/components/composed/shared/AmberCTAButton';
@@ -110,7 +112,7 @@ export function ReviewFlow({
 
       <AnimatePresence initial={false}>
         {formOpen && (
-          <motion.div
+          <m.div
             key="review-form-shell"
             initial={reducedMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -132,7 +134,7 @@ export function ReviewFlow({
               onSubmit={submitReview}
               onRetry={submitReview}
             />
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 

@@ -3,7 +3,9 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { ChevronRight, Info, Map, MessageSquare, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { Link } from '@/i18n/navigation';
 import { LanguageSwitcher } from '@/components/custom/layout/LanguageSwitcher';
 import {
@@ -46,7 +48,7 @@ export function SettingsModal({
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
+        <m.div
           className="fixed inset-0 z-modal flex items-end justify-center bg-text-primary/30 backdrop-blur-standard lg:items-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -54,7 +56,7 @@ export function SettingsModal({
           transition={{ duration: shouldReduceMotion ? 0 : DURATION_FAST_S, ease: EASE_ENTER }}
           onPointerDown={onClose}
         >
-          <motion.div
+          <m.div
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
@@ -142,8 +144,8 @@ export function SettingsModal({
             >
               {t('close')}
             </button>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

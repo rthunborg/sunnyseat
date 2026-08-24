@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createObservedSupabaseFetch } from '@/lib/observability/supabase-fetch-observer';
 
 let _supabaseServiceRole: SupabaseClient | null = null;
 
@@ -17,12 +18,15 @@ export function getSupabaseServiceRole(): SupabaseClient {
       autoRefreshToken: false,
       persistSession: false,
     },
+    global: {
+      fetch: createObservedSupabaseFetch(supabaseUrl),
+    },
   });
 
   return _supabaseServiceRole;
 }
 
-// Lazily initialized server-only client using the Supabase service-role key.
+// Lazily initialized server-only client using the service-role key.
 export const supabaseServiceRole = new Proxy({} as SupabaseClient, {
   get(_target, prop) {
     return Reflect.get(getSupabaseServiceRole(), prop);

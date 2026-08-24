@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { motion, useReducedMotion } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { FeedbackPrompt, type FeedbackPromptLabels, type FeedbackPromptSubmit } from '@/components/composed/feedback/FeedbackPrompt';
 import { useSubmitFeedback } from '@/hooks/mutations/useSubmitFeedback';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -182,7 +183,7 @@ export function FeedbackFlow({
   if (!visible) return null;
 
   return (
-    <motion.div
+    <m.div
       data-testid="feedback-flow-shell"
       initial={false}
       animate={{ opacity: isExiting ? 0 : 1 }}
@@ -197,7 +198,7 @@ export function FeedbackFlow({
         isExiting={isExiting}
         onClose={startExit}
       />
-    </motion.div>
+    </m.div>
   );
 }
 

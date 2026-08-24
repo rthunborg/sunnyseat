@@ -1,6 +1,8 @@
 'use client';
 
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { Cloud, Sun } from 'lucide-react';
 import type { VenuePinData, VenuePinSelection } from '@/lib/types/map';
 import { isVenuePubliclySunny } from '@/lib/utils/public-sun';
@@ -72,9 +74,9 @@ export function VenuePin({ venue, isSelected, onClick, ariaLabel }: VenuePinProp
         subtree
       ) : (
         <AnimatePresence initial={false}>
-          <motion.div key={`${state}-pin`} initial={false} transition={{ duration: 0 }}>
+          <m.div key={`${state}-pin`} initial={false} transition={{ duration: 0 }}>
             {subtree}
-          </motion.div>
+          </m.div>
         </AnimatePresence>
       )}
     </button>

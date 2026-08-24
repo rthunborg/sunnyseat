@@ -1,7 +1,9 @@
 'use client';
 
 import { WifiOff } from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { useTranslations } from 'next-intl';
 import { DURATION_DEFAULT_S, EASE_DEFAULT } from '@/lib/constants/animation';
 
@@ -26,7 +28,7 @@ export function OfflineBanner({ visible = true }: { visible?: boolean }) {
   return (
     <AnimatePresence>
       {visible && (
-        <motion.div
+        <m.div
           key="offline-banner"
           data-testid="offline-banner"
           role="status"
@@ -43,7 +45,7 @@ export function OfflineBanner({ visible = true }: { visible?: boolean }) {
               {t('offline.banner')}
             </span>
           </div>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

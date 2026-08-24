@@ -5,7 +5,6 @@ import { withSerwist } from '@serwist/turbopack';
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 const nextConfig: NextConfig = {
-  reactCompiler: true,
   // Hide the floating Next.js dev-tools indicator in `next dev`. The
   // visual validation gate (Story 1.5) screenshots the dev server and
   // compares against static design references, where the indicator is

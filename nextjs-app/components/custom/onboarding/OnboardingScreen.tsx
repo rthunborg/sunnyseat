@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { useTranslations } from 'next-intl';
 import { Navigation, Sun } from 'lucide-react';
 import { AmberCTAButton } from '@/components/composed/shared/AmberCTAButton';
@@ -98,7 +99,7 @@ export function OnboardingScreen({
   };
 
   return (
-    <motion.div
+    <m.div
       role="dialog"
       aria-modal="true"
       aria-labelledby="onboarding-headline"
@@ -136,7 +137,7 @@ export function OnboardingScreen({
       </div>
 
       {/* Hero copy */}
-      <motion.div
+      <m.div
         initial={suppressEntranceMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{
@@ -155,10 +156,10 @@ export function OnboardingScreen({
         <p className="mt-3.5 text-body-md text-white/70 text-center tracking-[0.02em]">
           {t('subtitle')}
         </p>
-      </motion.div>
+      </m.div>
 
       {/* CTA stack */}
-      <motion.div
+      <m.div
         initial={suppressEntranceMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{
@@ -196,7 +197,7 @@ export function OnboardingScreen({
           />
           {t('trustMicrocopy')}
         </p>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 }

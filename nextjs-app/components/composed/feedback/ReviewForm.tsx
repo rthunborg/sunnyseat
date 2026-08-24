@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Camera, Star } from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { AmberCTAButton } from '@/components/composed/shared/AmberCTAButton';
 import {
   DURATION_DEFAULT_S,
@@ -92,7 +94,7 @@ export function ReviewForm({
       <div className="grid">
         <AnimatePresence>
           {submitState === 'success' ? (
-            <motion.div
+            <m.div
               key="success"
               role="status"
               initial={reducedMotion ? false : { opacity: 0 }}
@@ -109,9 +111,9 @@ export function ReviewForm({
               >
                 {labels.close}
               </button>
-            </motion.div>
+            </m.div>
           ) : (
-            <motion.form
+            <m.form
               key="form"
               initial={reducedMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -273,7 +275,7 @@ export function ReviewForm({
                   {labels.close}
                 </button>
               </div>
-            </motion.form>
+            </m.form>
           )}
         </AnimatePresence>
       </div>

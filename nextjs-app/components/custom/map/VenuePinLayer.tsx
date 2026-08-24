@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { useReducedMotion } from 'motion/react';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { useTranslations } from 'next-intl';
 import maplibregl from 'maplibre-gl';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';

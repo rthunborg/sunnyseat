@@ -37,6 +37,7 @@ import type {
   VenueDetailDto,
 } from '@/lib/types/api';
 import { sunFreshnessHeaders } from '@/lib/utils/sun-freshness';
+import { withRequestLogging } from '@/lib/middleware/request-logger';
 
 type RouteContext = {
   params: Promise<{ slug: string }>;
@@ -53,7 +54,7 @@ type DetailCoordinates = {
   lng: number;
 };
 
-export async function GET(_request: NextRequest, context: RouteContext) {
+async function getVenueDetailHandler(_request: NextRequest, context: RouteContext) {
   const planner = parseVenuePlannerParams(_request.nextUrl.searchParams);
   if (!planner.ok) {
     return NextResponse.json(
@@ -166,6 +167,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     },
   });
 }
+
+export const GET = withRequestLogging(getVenueDetailHandler);
 
 function buildDetailDto(
   venue: VenueDataDto,

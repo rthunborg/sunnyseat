@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useReducedMotion } from 'motion/react';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { ChevronLeft, ChevronRight, LocateFixed, Settings } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link, usePathname } from '@/i18n/navigation';

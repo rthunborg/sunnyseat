@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import { Bike, Compass, ExternalLink, Footprints, Sun, X } from 'lucide-react';
-import { motion, useReducedMotion } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import {
   DURATION_FAST_S,
   DURATION_SLOW_S,
@@ -60,7 +61,7 @@ export function RouteOverlay({
   }, []);
 
   return (
-    <motion.aside
+    <m.aside
       role="dialog"
       aria-label={labels.title}
       data-testid="route-overlay"
@@ -140,7 +141,7 @@ export function RouteOverlay({
         {labels.fallback}
         <ExternalLink aria-hidden="true" className="size-3.5" />
       </a>
-    </motion.aside>
+    </m.aside>
   );
 }
 

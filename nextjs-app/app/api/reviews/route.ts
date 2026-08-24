@@ -17,6 +17,7 @@ import type {
   SubmitReviewRequest,
   SubmitReviewResponse,
 } from '@/lib/types/api';
+import { withRequestLogging } from '@/lib/middleware/request-logger';
 
 const REVIEW_TEXT_MAX_LENGTH = 1000;
 const PHOTO_NAME_MAX_LENGTH = 120;
@@ -85,7 +86,7 @@ const reviewSchema = z.object({
   }
 });
 
-export async function GET(request: NextRequest) {
+async function getReviewsHandler(request: NextRequest) {
   const identifier = request.nextUrl.searchParams.get('venueId')?.trim();
   if (!identifier) return jsonError('venueId query parameter is required', 400);
   if (!isSafePublicVenueIdentifier(identifier)) {
@@ -118,7 +119,7 @@ export async function GET(request: NextRequest) {
   });
 }
 
-export async function POST(request: NextRequest) {
+async function postReviewHandler(request: NextRequest) {
   if (!isJsonRequest(request)) {
     return jsonError('Content-Type must be application/json', 415);
   }
@@ -199,6 +200,9 @@ export async function POST(request: NextRequest) {
     return jsonError('Review persistence unavailable', 503);
   }
 }
+
+export const GET = withRequestLogging(getReviewsHandler);
+export const POST = withRequestLogging(postReviewHandler);
 
 export function clearReviewRateLimitForTests() {
   rateLimitBuckets.clear();

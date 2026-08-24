@@ -303,6 +303,14 @@ describe('[12.1 review] deployment contracts are explicit and recoverable', () =
     join(repoRoot, '.github', 'workflows', 'hours-review-audit.yml'),
     'utf8',
   );
+  const sunWorkflow = readFileSync(
+    join(repoRoot, '.github', 'workflows', 'sun-geometry-and-weather.yml'),
+    'utf8',
+  );
+  const buildWorkflow = readFileSync(
+    join(repoRoot, '.github', 'workflows', 'build-and-test-nextjs.yml'),
+    'utf8',
+  );
   const fixture = readFileSync(
     join(process.cwd(), 'test', 'sql', 'story-12-1-hours-governance-fixture.sql'),
     'utf8',
@@ -342,12 +350,61 @@ describe('[12.1 review] deployment contracts are explicit and recoverable', () =
     expect(runner).toMatch(/hours_last_error_class/);
   });
 
-  test('production workflow pins actions and forbids npx network fallback', () => {
-    expect(workflow).toContain(
-      'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2',
+  test('all workflows pin Node 24 actions and keep dependency audit contracts', () => {
+    const workflows = [
+      {
+        name: 'build',
+        source: buildWorkflow,
+        checkout: 1,
+        setupNode: 1,
+        upload: 2,
+        download: 0,
+        installs: 1,
+      },
+      {
+        name: 'hours',
+        source: workflow,
+        checkout: 1,
+        setupNode: 1,
+        upload: 0,
+        download: 0,
+        installs: 1,
+      },
+      {
+        name: 'sun',
+        source: sunWorkflow,
+        checkout: 2,
+        setupNode: 2,
+        upload: 0,
+        download: 0,
+        installs: 2,
+      },
+    ];
+    const pins = {
+      checkout: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+      setupNode: 'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',
+      upload: 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a',
+      download: 'actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c',
+    };
+
+    for (const current of workflows) {
+      expect(current.source.split(pins.checkout)).toHaveLength(current.checkout + 1);
+      expect(current.source.split(pins.setupNode)).toHaveLength(current.setupNode + 1);
+      expect(current.source.split(pins.upload)).toHaveLength(current.upload + 1);
+      expect(current.source.split(pins.download)).toHaveLength(current.download + 1);
+      expect(current.source.match(/npm ci --no-audit/g) ?? []).toHaveLength(current.installs);
+    }
+
+    expect(buildWorkflow).toContain('npm audit --omit=dev --audit-level=high');
+    expect(buildWorkflow).toContain('npm run bundle:verify');
+    expect(buildWorkflow).not.toContain('nextjs-build');
+    expect(buildWorkflow).not.toContain('actions/download-artifact@');
+    expect(buildWorkflow).not.toMatch(/^  lighthouse:/m);
+    expect(buildWorkflow.indexOf('npm run lighthouse')).toBeGreaterThan(
+      buildWorkflow.indexOf('npx playwright test --project=a11y-mobile'),
     );
-    expect(workflow).toContain(
-      'actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3',
+    expect(buildWorkflow).toMatch(
+      /name: Lighthouse CI[\s\S]*npm run lighthouse[\s\S]*if: always\(\)[\s\S]*name: lhci-report/,
     );
     expect(workflow).toMatch(/npx\s+--no-install\s+esbuild/);
   });

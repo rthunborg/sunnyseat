@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "lighthouse": "lhci autorun",
+    "bundle:verify": "node scripts/verify-js-budgets.mjs",
     "bundle:analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
@@ -27,7 +28,7 @@
     "lucide-react": "^1.8.0",
     "maplibre-gl": "^5.23.0",
     "motion": "^12.38.0",
-    "next": "^16.2.2",
+    "next": "16.3.1",
     "next-intl": "^4.9.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
@@ -38,7 +39,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
     "@lhci/cli": "^0.15.1",
-    "@next/bundle-analyzer": "^16.2.4",
+    "@next/bundle-analyzer": "16.3.1",
     "@playwright/test": "^1.59.1",
     "@serwist/turbopack": "^9.5.7",
     "@tailwindcss/postcss": "^4.2.2",
@@ -52,7 +53,7 @@
     "cross-env": "^10.1.0",
     "esbuild": "^0.28.1",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^16.2.4",
+    "eslint-config-next": "16.3.1",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "jsdom": "^29.0.2",
     "shadcn": "^4.2.0",

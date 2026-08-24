@@ -60,6 +60,7 @@ import {
   extractPublicSunPeak,
 } from '@/lib/utils/public-sun';
 import { getVenueAvailabilityAt } from '@/lib/utils/opening-hours';
+import { withRequestLogging } from '@/lib/middleware/request-logger';
 
 const DEFAULT_RADIUS_KM = 1.5;
 const MAX_RADIUS_KM = 3.0;
@@ -239,7 +240,7 @@ function weakEtag(input: unknown): string {
 // Staleness window: CDN s-maxage 30s / sun-compute cache 15 min / buildings cache
 // 24h (see `lib/services/sun-engine-cache.ts` + architecture.md Caching Strategy).
 
-export async function GET(request: NextRequest) {
+async function getVenuesHandler(request: NextRequest) {
   const params = request.nextUrl.searchParams;
 
   if (params.has('latitude') || params.has('longitude')) {
@@ -432,6 +433,10 @@ export async function GET(request: NextRequest) {
     },
   });
 }
+
+export const GET = withRequestLogging(async (request) =>
+  getVenuesHandler(request),
+);
 
 function matchesVenueQuery(venue: VenueDataDto, q: string | undefined): boolean {
   if (!q) return true;
