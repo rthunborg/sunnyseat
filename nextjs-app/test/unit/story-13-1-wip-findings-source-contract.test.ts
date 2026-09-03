@@ -76,9 +76,8 @@ describe('Story 13.1 WIP findings source contract', () => {
 
     for (const expected of [
       'begin transaction read only;',
-      "current_setting('sunnyseat.dr_as_of_utc')::timestamptz",
-      'missing or malformed values fail closed',
-      'PGOPTIONS',
+      "values ('__SUNNYSEAT_DR_AS_OF_UTC__'::timestamptz)",
+      'single sentinel below',
       'verifier_parameters as (',
       "set local statement_timeout = '120s';",
       "set local lock_timeout = '5s';",
@@ -90,6 +89,12 @@ describe('Story 13.1 WIP findings source contract', () => {
       'exact_ordered_61_step_rows',
       '(select count(*) from public.venue_geometry_inputs) = 42',
       '(select count(*) from weather_bucket_groups) = 42',
+      'nonempty_required_current_rows',
+      'currently_unexpired_required_rows',
+      'empty_slice_rows',
+      'malformed_slice_rows',
+      'slices_is_array',
+      "select 'weather_date_cohort', to_jsonb(cohort)",
       'service_role_membership_contract as (',
       'outbound_effect_contract as (',
       'storage_contract as (',
@@ -101,16 +106,39 @@ describe('Story 13.1 WIP findings source contract', () => {
     expect(verifier).not.toContain('membership.inherit_option');
     expect(verifier).not.toContain('membership.set_option');
     expect(verifier).not.toContain("set local sunnyseat.dr_as_of_utc = '2026-08-26T00:00:00Z';");
+    expect(verifier.match(/__SUNNYSEAT_DR_AS_OF_UTC__/g)).toHaveLength(1);
     expect(verifier).not.toContain('timezone(\'Europe/Stockholm\', now())');
     expect(verifier).not.toContain('expires_at > now()');
+    expect(verifier).not.toContain('count(*) filter (where slice_count > 0) = count(*)');
+    expect(runbook).toContain("Retained\n  rows beyond Met.no's real forecast horizon may have an empty slice array");
     expect(runbook).toContain(verifierSha256);
+    expect(runbook).toContain('restore_verifier_rendered_sha256');
+    expect(runbook).toContain('Restore verifier template must contain exactly one as-of sentinel.');
+    expect(runbook).toContain("$PnpmCliVersion = '11.24.0'");
+    expect(runbook).toContain('corepack pnpm dlx "supabase@$SupabaseCliVersion" @args');
+    expect(runbook).not.toContain('-c sunnyseat.dr_as_of_utc=');
+    expect(runbook).not.toContain('npx --yes "supabase@$SupabaseCliVersion"');
+
+    const normalizedVerifier = verifier
+      .replace(/\s+/gu, ' ')
+      .replace(/\(\s+/gu, '(')
+      .replace(/\s+\)/gu, ')');
+    for (const expectedEdge of [
+      "('authenticator', 'postgres', 'supabase_admin', true)",
+      "('authenticator', 'supabase_storage_admin', 'supabase_admin', false)",
+      "('postgres', 'cli_login_postgres', 'supabase_admin', false)",
+      "('service_role', 'authenticator', 'supabase_admin', false)",
+      "('service_role', 'postgres', 'supabase_admin', true)",
+    ]) {
+      expect(normalizedVerifier).toContain(expectedEdge);
+    }
   });
 
   it('keeps the DR runbook on the isolated approval boundary', () => {
     const runbook = readRepo('docs/launch/disaster-recovery-runbook.md');
 
     for (const expected of [
-      'Status: **RUNBOOK READY; PROVIDER RESTORE NOT EXERCISED**',
+      'Status: **RUNBOOK READY; SOURCE REFRESHED; PROVIDER RESTORE BLOCKED**',
       'fresh explicit approval',
       '- restore over the source project or run `supabase backups restore`;',
       '$targetName = "sunnyseat-dr-$sessionId"',
@@ -144,8 +172,12 @@ describe('Story 13.1 WIP findings source contract', () => {
     expect(runbook).toContain('function Assert-ProductionVercelIdentityBinding {');
     expect(runbook).toContain('Production Vercel project ID does not match reviewed hash binding.');
     expect(runbook).toContain('Authoring production deployment ID does not match reviewed hash binding.');
-    expect(runbook).not.toContain('prj_Y3jvsIxhNaruzSYM2pRwMTyRm7Jw');
-    expect(runbook).not.toContain('dpl_FszRAy5d7i84BvfTWt1UGHpQURCE');
+    expect(runbook).not.toMatch(
+      /\$productionVercelProjectId\s*=\s*['"]prj_[A-Za-z0-9]+['"]/u,
+    );
+    expect(runbook).not.toMatch(
+      /\$authoringProductionDeploymentId\s*=\s*['"]dpl_[A-Za-z0-9]+['"]/u,
+    );
   });
 
   it('keeps production audit gates in scheduled service-only workflows', () => {

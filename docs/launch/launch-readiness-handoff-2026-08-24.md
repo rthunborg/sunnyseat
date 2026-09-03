@@ -2,9 +2,10 @@
 
 Date: 2026-08-24 (Europe/Stockholm)
 
-This is a portable WIP checkpoint for continuing from a fresh clone. The commit
-that contains this document is intentionally not a completed Story 13.1 commit
-and must not be treated as release approval.
+This is a portable WIP checkpoint for continuing Story 13.1. The implementation
+has merged and deployed, but the story is intentionally still `in-progress`:
+provider-classified cold-start evidence, an isolated restore, and human device
+acceptance remain incomplete. This document is not release approval.
 
 ## Resume target
 
@@ -17,8 +18,13 @@ and must not be treated as release approval.
   (`chore: reconcile post-epic-12 local work`).
 - Protected Epic 12 main: `236dde353972e707388468a0686d9ca022a0cc09`.
 - Epic 12 is complete. Do not reopen it. Its closeout merged through PR #26.
-- Production remains `https://sunnyseat.vercel.app` from deployment
-  `dpl_FszRAy5d7i84BvfTWt1`; this WIP branch has not been deployed to production.
+- Story implementation commits:
+  - `56995fbd91d174b8ca8204b85122aa5fd4133bf0`
+  - `2a0ce92c0d022e724dc6c2a2fd196dab7c92a6d8`
+- PR #27 merged to `main` as
+  `6c09f8ce69bb8ec7c035b01b855bd1b91fbe36e2`.
+- Production is `https://sunnyseat.vercel.app`, deployment
+  `dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L`, READY in `dub1` from that merge.
 
 Fresh-clone setup:
 
@@ -102,6 +108,19 @@ are in this checkpoint.
   unique IDs, and exactly 61 series steps per venue.
 - This is implementation and feasibility evidence only. The required set of at
   least 20 provider-classified true cold starts has **not** been collected.
+- Production window 01 captured 30 uncached origin attempts, one edge-prime
+  request, and 20 edge repeats. Every response was HTTP 200 with 42 unique
+  venues and exactly 61 ordered steps per venue. Client-only nearest-rank
+  results were origin MISS n=30 p50/p95 498.842/3141.4 ms, edge-prime MISS n=1
+  1325.426/1325.426 ms, and edge HIT n=20 64.351/84.539 ms. These are not cold,
+  prewarmed, or hot-origin classifications. The authenticated connector does
+  not expose `function_start_type`; accepted provider-classified cold n remains
+  zero until the pinned Vercel CLI/metrics lane is authenticated and imported.
+- One exact request was correlated to a single GET `/api/venues` 200 MISS
+  envelope in `dub1` plus directly observed Supabase calls only: GET
+  `/rest/v1/venues`, GET `/rest/v1/weather_bucket_snapshots`, and POST
+  `/rest/v1/rpc/read_current_venue_sun_geometry_batch`. No Met.no or
+  shadow-caster/hash request was observed.
 
 ### Disaster-recovery preparation
 
@@ -116,21 +135,40 @@ are in this checkpoint.
   RLS, grants, service-role-only RPCs, Storage policy/object-byte limitations,
   venue visibility, geometry, weather, application reads/writes, rollback, and
   cleanup.
-- A pinned Supabase CLI 2.114.0 read-only source verification passed:
-  - `read_only=on`, `hard_failure_count=0`
-  - geometry: 504 rows, 12 complete cohorts of 42, required 5/5, checksum
-    `5c89e1507406b4b68de70b2f5bbd1e42`
-  - weather: 462 rows, 11 complete cohorts of 42, required 4/4, checksum
-    `5552328de825c28a2a04142793f895bf`
-  - verifier SHA-256:
-    `4EC7569D654F9A89182D66BAE0B6319AB88A1FF00C699A16877CCEF4F82EF012`
-- The previously observed latest source backup was physical backup ID
-  `1408240294`, timestamp `2026-08-18T07:05:56.434Z`, WALG enabled, no PITR,
-  region `eu-west-1`, source size approximately 922 MB. This is stale metadata;
-  refresh it before any drill.
-- No restore, clone creation, failover, production write, or other cloud
-  mutation was performed. At the provider's displayed **Restore to New Project**
-  price/confirmation boundary, stop and obtain fresh explicit user approval.
+- Fresh provider inventory on 2026-09-03 reports source `ACTIVE_HEALTHY` in
+  `eu-west-1`, PostgreSQL 17.6, 24 migrations, one empty `venue-media` bucket,
+  zero Auth users/identities/sessions, no branches, WAL-G enabled, PITR disabled,
+  and organization plan `free`.
+- Fresh `backups list` returned no selectable backup (`backups: null`, empty
+  physical-backup metadata). Supabase documents Restore to New Project as a
+  paid-plan/physical-backup feature. The displayed cost/confirmation boundary
+  is therefore currently unreachable; do not upgrade the plan or create a
+  target without a separate user decision.
+- The verifier now renders one fixed UTC anchor into a hash-bound ignored copy
+  because the linked Management API query path does not inherit `PGOPTIONS`.
+  Supabase CLI remains exact 2.114.0 and runs through Corepack/pnpm 11.24.0.
+- Latest fresh source capture at `2026-09-03T09:03:58.557Z` passed read-only
+  with `hard_failure_count=0` and template SHA-256
+  `7C3C0E46673F425E06B603C5A0B51A75F0D48EB11C785F926F0DFD57EB2DCB37`:
+  - geometry: 924 valid exact-61 rows, 22 complete 42-venue cohorts, required
+    5/5, checksum `6920ae761dc43ba9ce9b33c2ebf400d4`;
+  - weather: 882 rows over 21 complete cohorts, required 4/4 and 168/168
+    required rows nonempty and unexpired, 30 legitimate retained empty rows
+    outside required dates, zero malformed rows, checksum
+    `550bd200762426749145cc99f7c7aa43`;
+  - the exact five-edge service-role membership contract passed after recording
+    the provider's current, stricter `admin_option=false` values.
+- Before that recovery, a capture at `2026-09-03T08:57:48.710Z` proved all 168
+  required rows were expired despite the preceding weather job succeeding.
+  The latest 100 successful scheduled runs contain 36 delivery gaps over the
+  two-hour TTL, with a worst gap of 606.6 minutes. Expiry remains fail-closed to
+  weather `unknown`; it is not a restore-integrity failure, but reliable live
+  weather remains a launch-readiness defect. Manual weather-only run
+  `33736676157` restored freshness and passed in 41 seconds.
+- No restore, clone creation, failover, paid-plan change, or target resource was
+  performed. The only production write was the existing protected weather-only
+  refresh workflow. At a future displayed **Restore to New Project** price/
+  confirmation boundary, stop and obtain fresh explicit user approval.
 
 ### Infrastructure maintenance already implemented
 
@@ -203,6 +241,20 @@ The final combined working tree has completed the clean local gate set:
 - desktop axe — PASS (18/18)
 - Lighthouse — PASS assertions over three runs; performance 0.86 / 0.88 /
   0.87 and accessibility 1.00 / 1.00 / 1.00
+- Protected CI run `33731589197` — PASS, including the complete test, browser,
+  touch, axe, build, bundle, async-loading, and Lighthouse lanes.
+- PR #27 merged and production deployment
+  `dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L` reached READY on the canonical alias.
+- Automated production browser verification passed at 390x844 and 1440x900:
+  healthy Swedish accessibility trees, no page/console errors, zero venue-list
+  requests across three same-date scrubs, exactly one venue-list request on a
+  date change, and a working venue detail/reviews entry flow without submission.
+  Headless screenshots show the token fallback map surface while network logs
+  prove OpenFreeMap style/tile HTTP 200; physical-device map rendering remains
+  required.
+- Focused post-merge DR source-contract tests — PASS (11/11); fresh read-only
+  source verifier — PASS with zero hard failures. A subsequent independent
+  focused DR patch rereview found no actionable findings.
 - Story 13.1 has no mapped Screen ID or standalone visual deliverable, so visual
   validation is not applicable; do not describe this as a screenshot PASS.
 - Post-review verification changes received a targeted adversarial audit and
@@ -211,29 +263,36 @@ The final combined working tree has completed the clean local gate set:
 
 ## Launch blockers and remaining work, in order
 
-1. Commit/PR the finished Story 13.1 code, obtain green protected CI, merge, and
-   deploy before collecting final production evidence.
-2. Run the production measurement lane across controlled windows until there
+1. Authenticate pinned Vercel CLI 59.1.3, import exact provider metrics for
+   window 01, and continue the production measurement lane until there
    are at least 20 **provider-classified** cold starts. Report cold, prewarmed,
    hot-origin, and edge-hit cohorts separately with raw n/p50/p95; enforce HTTP
    200, 42 unique venues, 61 ordered steps per venue, and the approximately
    five-second uncached-route threshold. Claim endpoint paths only from directly
    observed telemetry.
-3. Refresh backup/source metadata, then execute the isolated provider-native
-   restore only after fresh user approval at the displayed-cost confirmation.
-   Measure recovery time, state actual RPO/RTO, run the complete verifier and
-   restored-app smoke matrix, roll back, and verify cleanup. Never overwrite or
-   fail over production without a separate fresh approval.
-4. Run automated production acceptance and give the user the physical-device
+2. Resolve production weather scheduling reliability. GitHub's requested
+   five-minute schedule has repeatedly exceeded the two-hour freshness TTL.
+   Do not extend the TTL. The reviewed narrow direction is a CRON_SECRET-
+   authenticated Vercel Pro cron using the existing refresh logic plus a durable
+   cross-scheduler lease; configuration and schema/application changes need a
+   dedicated reviewed follow-up before activation. Until then, monitor and use
+   the protected weather-only manual dispatch when stale.
+3. Decide whether to move the Supabase organization off `free` and establish a
+   selectable physical backup. Only then can the runbook reach the provider's
+   displayed Restore to New Project cost boundary and request fresh approval.
+   After approval, measure recovery, run parity and isolated application smoke,
+   roll back, and identity-verify cleanup. Never overwrite or fail over
+   production without a separate fresh approval.
+4. Give the user the physical-device
    checklist with exact production URLs, screenshots/reference images, and
    pass/fail questions. Do not create fake production reviews or feedback.
 5. Publish the durable launch report with changes, commits/PRs, commands and
     results, production evidence, remaining caveats, and an explicit GO / GO
     WITH CAVEATS / NO-GO recommendation.
 
-Until the provider cold-start sample, isolated restore drill, protected CI and
-deployment, and required human device checks are resolved, the honest interim
-recommendation is **NO-GO**.
+Until the provider cold-start sample, reliable weather scheduling, isolated
+restore drill, and required human device checks are resolved, the honest
+interim recommendation is **NO-GO**.
 
 ## Acceptance URLs and human-only scope
 
@@ -263,8 +322,11 @@ use the canonical checked-in design references or recapture on the new machine.
 
 ## External-state and cleanup statement
 
-- No production deployment was changed by this WIP branch.
+- PR #27 changed production to deployment
+  `dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L`; protected CI and deployment are green.
 - No restore target or paid cloud resource was created.
 - No production feedback/review test data was written.
+- Protected manual workflow run `33736676157` refreshed only production weather
+  snapshots after the source verifier proved they had expired.
 - No task-owned server, browser, watcher, container, WSL process, or other
   long-lived runtime remains active at this checkpoint.

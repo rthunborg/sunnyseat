@@ -6,8 +6,10 @@
 -- close then rolls the read-only transaction back.
 -- Supply one fixed UTC anchor at runtime and reuse it unchanged for source and
 -- target verifier runs so midnight or long restore duration cannot change
--- expected cohorts. The runbook sets it through PGOPTIONS immediately before
--- each db query; missing or malformed values fail closed.
+-- expected cohorts. The reviewed runbook replaces the single sentinel below
+-- while rendering one session-bound copy, verifies its SHA-256, and reuses that
+-- exact rendered file for source and target. A missing/duplicate sentinel fails
+-- closed before any query executes.
 begin transaction read only;
 set local statement_timeout = '120s';
 set local lock_timeout = '5s';
@@ -15,11 +17,14 @@ set local lock_timeout = '5s';
 with recursive
 verifier_parameters as (
   select
-    current_setting('sunnyseat.dr_as_of_utc')::timestamptz as as_of_utc,
+    anchor.as_of_utc,
     timezone(
       'Europe/Stockholm',
-      current_setting('sunnyseat.dr_as_of_utc')::timestamptz
+      anchor.as_of_utc
     )::date as as_of_stockholm_date
+  from (
+    values ('__SUNNYSEAT_DR_AS_OF_UTC__'::timestamptz)
+  ) as anchor(as_of_utc)
 ),
 expected_installed_extensions(extension_name) as (
   values
@@ -234,19 +239,19 @@ expected_service_role_membership_edges(
       'authenticator',
       'supabase_storage_admin',
       'supabase_admin',
-      true
+      false
     ),
     (
       'postgres',
       'cli_login_postgres',
       'supabase_admin',
-      true
+      false
     ),
     (
       'service_role',
       'authenticator',
       'supabase_admin',
-      true
+      false
     ),
     ('service_role', 'postgres', 'supabase_admin', true)
 ),
@@ -1223,10 +1228,10 @@ weather_row_validation as (
         then jsonb_array_length(snapshot.slices)
       else 0
     end as slice_count,
+    jsonb_typeof(snapshot.slices) = 'array' as slices_is_array,
     snapshot.expires_at > snapshot.refreshed_at as expiry_valid,
     case
       when jsonb_typeof(snapshot.slices) <> 'array' then false
-      when jsonb_array_length(snapshot.slices) = 0 then false
       else not exists (
         select 1
         from jsonb_array_elements(snapshot.slices) as slice(value)
@@ -1324,8 +1329,11 @@ weather_date_cohorts as (
   select
     stockholm_date,
     count(*)::bigint as snapshot_rows,
-    count(distinct coordinate_bucket)::bigint as distinct_buckets
-  from public.weather_bucket_snapshots
+    count(distinct coordinate_bucket)::bigint as distinct_buckets,
+    count(*) filter (where slices_is_array)::bigint as array_snapshot_rows,
+    count(*) filter (where slice_count > 0)::bigint as nonempty_snapshot_rows,
+    count(*) filter (where slices_valid)::bigint as valid_snapshot_rows
+  from weather_row_validation
   group by stockholm_date
 ),
 weather_contract as (
@@ -1334,6 +1342,22 @@ weather_contract as (
     count(distinct source.coordinate_bucket)::bigint
       as coordinate_bucket_count,
     count(*) filter (where slice_count > 0)::bigint as nonempty_slice_rows,
+    count(*) filter (
+      where slices_is_array and slice_count = 0
+    )::bigint as empty_slice_rows,
+    count(*) filter (where not slices_is_array)::bigint
+      as malformed_slice_rows,
+    count(*) filter (
+      where slice_count > 0 and slices_valid
+    )::bigint as valid_nonempty_slice_rows,
+    count(*) filter (
+      where source.stockholm_date in (
+        select required.stockholm_date
+        from required_weather_dates required
+      )
+        and slice_count > 0
+        and slices_valid
+    )::bigint as nonempty_required_current_rows,
     coalesce(sum(slice_count), 0)::bigint as total_slices,
     count(*) filter (where slices_valid)::bigint as valid_slice_rows,
     count(*) filter (where expiry_valid)::bigint as valid_expiry_rows,
@@ -1341,6 +1365,13 @@ weather_contract as (
       where source.expires_at > (select as_of_utc from verifier_parameters)
     )::bigint
       as currently_unexpired_rows,
+    count(*) filter (
+      where source.stockholm_date in (
+        select required.stockholm_date
+        from required_weather_dates required
+      )
+        and source.expires_at > (select as_of_utc from verifier_parameters)
+    )::bigint as currently_unexpired_required_rows,
     count(*) filter (where source.bucket_key = 'current')::bigint
       as current_bucket_key_rows,
     (
@@ -1379,10 +1410,17 @@ weather_contract as (
         distinct (source.coordinate_bucket, source.stockholm_date)
       )
       and count(*) filter (where source.bucket_key = 'current') = count(*)
-      and count(*) filter (where slice_count > 0) = count(*)
+      and count(*) filter (where slices_is_array) = count(*)
       and count(*) filter (where slices_valid) = count(*)
       and count(*) filter (where expiry_valid) = count(*)
-      and coalesce(sum(slice_count), 0) >= count(*)
+      and count(*) filter (
+        where source.stockholm_date in (
+          select required.stockholm_date
+          from required_weather_dates required
+        )
+          and slice_count > 0
+          and slices_valid
+      ) = 42 * (select count(*) from required_weather_dates)
       and (
         select count(*)
         from required_weather_dates required
@@ -2085,6 +2123,9 @@ from geometry_contract geometry
 union all
 select 'weather_contract', to_jsonb(weather)
 from weather_contract weather
+union all
+select 'weather_date_cohort', to_jsonb(cohort)
+from weather_date_cohorts cohort
 union all
 select 'weather_bucket_contract', to_jsonb(bucket)
 from weather_bucket_groups bucket

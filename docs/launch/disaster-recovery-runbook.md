@@ -1,11 +1,14 @@
 # SunnySeat isolated disaster-recovery rehearsal
 
-Status: **RUNBOOK READY; PROVIDER RESTORE NOT EXERCISED**.
+Status: **RUNBOOK READY; SOURCE REFRESHED; PROVIDER RESTORE BLOCKED**.
 
-The source verifier was most recently exercised read-only on 2026-08-24. No
-disposable Supabase project was created, no restore/cost was confirmed, no
-target or production resource was mutated, and no failover was attempted.
-Execution remains pending fresh approval of the provider-displayed cost.
+The source verifier was most recently exercised read-only on 2026-09-03. No
+disposable Supabase project was created, no restore/cost was confirmed, and no
+failover was attempted. Fresh provider inventory reports a Free organization
+with no selectable backup, so Restore to New Project cannot yet reach its
+displayed-cost confirmation boundary. A protected weather-only workflow was
+manually dispatched after the verifier found expired snapshots; no other source
+or production mutation occurred.
 
 ## Scope and inviolable safety boundary
 
@@ -44,9 +47,22 @@ $ErrorActionPreference = 'Stop'
 
 $SupabaseCliVersion = '2.114.0'
 $VercelCliVersion = '59.1.3'
+$PnpmCliVersion = '11.24.0'
 if ($SupabaseCliVersion -ne '2.114.0' -or
+    $PnpmCliVersion -ne '11.24.0' -or
     $VercelCliVersion -ne '59.1.3') {
   throw 'Unreviewed CLI version.'
+}
+
+function Invoke-SupabaseCli {
+  $actualPnpmVersion = (& corepack pnpm --version).Trim()
+  if ($LASTEXITCODE -ne 0 -or $actualPnpmVersion -ne $PnpmCliVersion) {
+    throw 'Pinned pnpm runtime is unavailable.'
+  }
+  # Supabase declares pnpm as its package-manager devEngine. Use the exact
+  # reviewed Corepack/pnpm runtime and CLI package rather than weakening engine
+  # checks, installing a global, or allowing an unpinned latest resolution.
+  & corepack pnpm dlx "supabase@$SupabaseCliVersion" @args
 }
 
 $sessionStartUtc = (Get-Date).ToUniversalTime()
@@ -111,8 +127,10 @@ $sourceProjectName = 'SunnySeat'
 $expectedOrganizationId = '<source-organization-id>'
 $expectedRegion = 'eu-west-1'
 $restoreVerifierAsOfUtc = ''
-$expectedRestoreVerifierSha256 =
-  '4564E278D1C2BAEAB00580182AB0FD78E15A4BA0B9D0B0884F90DD32F7F790BB'
+$expectedRestoreVerifierTemplateSha256 =
+  '7C3C0E46673F425E06B603C5A0B51A75F0D48EB11C785F926F0DFD57EB2DCB37'
+$renderedRestoreVerifierPath = ''
+$renderedRestoreVerifierSha256 = ''
 
 # Populate only after Restore to a New Project succeeds.
 $targetRef = ''
@@ -131,10 +149,7 @@ function Get-TextSha256 {
 }
 
 function Get-CurrentSupabaseProjects {
-  $json = & npx --yes "supabase@$SupabaseCliVersion" `
-    projects list `
-    --output json `
-    --agent no
+  $json = Invoke-SupabaseCli projects list --output json --agent no
   if ($LASTEXITCODE -ne 0) {
     throw 'Could not refresh Supabase project inventory.'
   }
@@ -296,7 +311,11 @@ function Get-HashedBindingRecord {
     organization_id_sha256 = Get-TextSha256 $expectedOrganizationId
     region = $expectedRegion
     restore_verifier_as_of_utc = $restoreVerifierAsOfUtc
-    restore_verifier_sha256 = $expectedRestoreVerifierSha256
+    restore_verifier_template_sha256 =
+      $expectedRestoreVerifierTemplateSha256
+    restore_verifier_rendered_sha256 = if ($renderedRestoreVerifierSha256) {
+      $renderedRestoreVerifierSha256
+    } else { $null }
     target_ref_sha256 = if ($targetRef) {
       Get-TextSha256 $targetRef
     } else { $null }
@@ -327,9 +346,49 @@ function Assert-RestoreVerifierAnchor {
   $actualHash = (
     Get-FileHash -Algorithm SHA256 -LiteralPath $verifierPath
   ).Hash.ToUpperInvariant()
-  if ($actualHash -ne $expectedRestoreVerifierSha256) {
-    throw 'Restore verifier SQL hash differs from the reviewed binding.'
+  if ($actualHash -ne $expectedRestoreVerifierTemplateSha256) {
+    throw 'Restore verifier SQL template hash differs from the reviewed binding.'
   }
+}
+
+function New-DrRestoreVerifierCapture {
+  Assert-RestoreVerifierAnchor
+  if (-not [string]::IsNullOrWhiteSpace($renderedRestoreVerifierPath) -or
+      -not [string]::IsNullOrWhiteSpace($renderedRestoreVerifierSha256)) {
+    throw 'Restore verifier capture already rendered for this session.'
+  }
+
+  $templatePath = Join-Path $authoringRepositoryRoot (
+    'scripts\dr\verify-restore.sql'
+  )
+  $template = Get-Content -Raw -LiteralPath $templatePath
+  $sentinel = '__SUNNYSEAT_DR_AS_OF_UTC__'
+  $sentinelCount = ([regex]::Matches(
+    $template,
+    [regex]::Escape($sentinel)
+  )).Count
+  if ($sentinelCount -ne 1) {
+    throw 'Restore verifier template must contain exactly one as-of sentinel.'
+  }
+
+  $rendered = $template.Replace($sentinel, $restoreVerifierAsOfUtc)
+  if ($rendered.Contains($sentinel) -or
+      $rendered -notmatch [regex]::Escape($restoreVerifierAsOfUtc)) {
+    throw 'Restore verifier anchor rendering failed closed.'
+  }
+
+  $script:renderedRestoreVerifierPath = Join-Path (
+    $sessionEvidenceDirectory
+  ) 'verify-restore.rendered.sql'
+  [IO.File]::WriteAllText(
+    $renderedRestoreVerifierPath,
+    $rendered,
+    [Text.UTF8Encoding]::new($false)
+  )
+  $script:renderedRestoreVerifierSha256 = (
+    Get-FileHash -Algorithm SHA256 `
+      -LiteralPath $renderedRestoreVerifierPath
+  ).Hash.ToUpperInvariant()
 }
 
 function Start-RestoreVerifierAnchor {
@@ -343,27 +402,24 @@ function Start-RestoreVerifierAnchor {
       [Globalization.CultureInfo]::InvariantCulture
     )
   Assert-RestoreVerifierAnchor
+  New-DrRestoreVerifierCapture
 }
 
 function Invoke-DrRestoreVerifier {
   param([Parameter(Mandatory)][string]$ProjectRef)
   Assert-RestoreVerifierAnchor
-  $previousPgOptions = $env:PGOPTIONS
-  try {
-    $env:PGOPTIONS =
-      "-c sunnyseat.dr_as_of_utc=$restoreVerifierAsOfUtc"
-    & npx --yes "supabase@$SupabaseCliVersion" db query `
-      --linked `
-      --project-ref $ProjectRef `
-      --file scripts/dr/verify-restore.sql `
-      --output-format text
-  } finally {
-    if ($null -eq $previousPgOptions) {
-      Remove-Item Env:\PGOPTIONS -ErrorAction SilentlyContinue
-    } else {
-      $env:PGOPTIONS = $previousPgOptions
-    }
+  if (-not (Test-Path -LiteralPath $renderedRestoreVerifierPath -PathType Leaf)) {
+    throw 'Session-bound restore verifier file is missing.'
   }
+  $currentRenderedHash = (
+    Get-FileHash -Algorithm SHA256 `
+      -LiteralPath $renderedRestoreVerifierPath
+  ).Hash.ToUpperInvariant()
+  if ($currentRenderedHash -ne $renderedRestoreVerifierSha256) {
+    throw 'Session-bound restore verifier hash drifted.'
+  }
+  Invoke-SupabaseCli db query --linked --project-ref $ProjectRef `
+    --file $renderedRestoreVerifierPath --output-format text
 }
 ```
 
@@ -383,19 +439,27 @@ Persist only `Get-HashedBindingRecord | ConvertTo-Json`. Never retain raw
 
 ## Current read-only recovery inventory
 
-Captured 2026-08-18:
+Refreshed 2026-09-03:
 
-- source name `SunnySeat`, region `eu-west-1`;
-- database approximately 922 MB;
-- eight completed physical backups;
-- latest observed record ID `1408240294` with provider `inserted_at`
-  `2026-08-18T07:05:56.434Z`;
-- PITR disabled; physical/WAL-G backup capability enabled;
+- source name `SunnySeat`, status `ACTIVE_HEALTHY`, region `eu-west-1`;
+- organization plan `free`;
+- PostgreSQL `17.6.1.084`;
+- `backups list` returned `backups: null` and empty physical-backup metadata;
+- PITR disabled; WAL-G capability reports enabled;
 - 24 remote migration rows, earliest `20260629215021`, latest
   `20260817143743`;
 - one `venue-media` bucket, zero Storage objects;
 - zero Auth users, identities, and sessions;
+- zero preview branches;
 - PostGIS present; no `pg_net`, `pg_cron`, `wrappers`, or Edge Functions.
+
+Historical 2026-08-18 inventory observed eight physical backup records, latest
+record ID `1408240294` at `2026-08-18T07:05:56.434Z`, and approximately 922 MB.
+Those records are no longer selectable in the fresh CLI response and must not
+be used as current backup evidence. Supabase documents Restore to New Project
+as requiring a paid plan with physical backups. Do not change plan, create a
+backup, or create a target merely to advance this runbook; that requires a
+separate user decision before the later displayed-cost approval boundary.
 
 The backup record timestamp is management metadata. It is not proven to be
 snapshot completion, a WAL recovery point, or the newest included commit. Call
@@ -404,7 +468,8 @@ the provider supplies a distinct authoritative recovery point.
 
 ## Source verifier, algorithms, and exercised evidence
 
-Run unchanged with the exact pin and a fresh, session-scoped verifier anchor:
+Render once from the unchanged reviewed template with the exact pins and a
+fresh, session-scoped verifier anchor:
 
 ```powershell
 Start-RestoreVerifierAnchor
@@ -412,12 +477,15 @@ Invoke-DrRestoreVerifier -ProjectRef $sourceRef
 ```
 
 CLI `2.114.0` requires `--linked` with `--project-ref` for `db query`.
-The SQL begins `TRANSACTION READ ONLY`, reads its fixed as-of timestamp from
-the runtime `PGOPTIONS` value set by `Invoke-DrRestoreVerifier`, has bounded
-timeouts, performs no DDL/DML/RPC, and leaves its report SELECT final. Require
-exit zero and `transaction_read_only: "on"`. The reviewed verifier SHA-256 for
-future paid-drill source and target captures is
-`4564E278D1C2BAEAB00580182AB0FD78E15A4BA0B9D0B0884F90DD32F7F790BB`.
+That linked Management API path does not inherit host `PGOPTIONS`, so
+`Start-RestoreVerifierAnchor` verifies the immutable template hash, replaces
+its one reviewed UTC sentinel into a session-local ignored copy, and records
+the rendered hash. Source and target must use that same rendered file. The SQL
+begins `TRANSACTION READ ONLY`, has bounded timeouts, performs no DDL/DML/RPC,
+and leaves its report SELECT final. Require exit zero and
+`transaction_read_only: "on"`. The reviewed template SHA-256 for future
+paid-drill source and target captures is
+`7C3C0E46673F425E06B603C5A0B51A75F0D48EB11C785F926F0DFD57EB2DCB37`.
 
 Deterministic algorithms and hard gates:
 
@@ -458,14 +526,54 @@ Deterministic algorithms and hard gates:
   five-date application window present and no duplicate venue/date rows.
   Weather requires exactly 42 coordinate buckets, one `current` row per
   bucket/date, every retained and current four-date cohort complete across all
-  42 buckets, structurally valid nonempty slices, and
-  `expires_at > refreshed_at`. Current-time freshness is reported separately
-  and is not mislabeled as a restore-integrity gate. Raw totals, date ranges,
-  full scheduled-table checksums, and latest timestamps remain output for exact
-  fresh-source versus target comparison; zero-row and stale-hash vacuous passes
-  cannot succeed.
+  42 buckets, structurally valid slices, nonempty slices for every row in the
+  current four-date planner window, and `expires_at > refreshed_at`. Retained
+  rows beyond Met.no's real forecast horizon may have an empty slice array;
+  their count and the full scheduled-table checksum remain explicit parity
+  evidence. Current-time freshness for both all retained rows and the required
+  planner window is reported separately and is not mislabeled as a
+  restore-integrity gate. Raw totals, date ranges, full scheduled-table
+  checksums, and latest timestamps remain output for exact fresh-source versus
+  target comparison; zero-row and stale-hash vacuous passes cannot succeed.
 
 ### Exercised source results
+
+#### Fresh 2026-09-03 source result
+
+After a protected weather-only recovery run, the source capture anchored at
+`2026-09-03T09:03:58.557Z` reported:
+
+- exact Supabase CLI `2.114.0` through Corepack/pnpm `11.24.0`; exit 0;
+- template SHA-256
+  `7C3C0E46673F425E06B603C5A0B51A75F0D48EB11C785F926F0DFD57EB2DCB37`;
+- rendered SHA-256
+  `BC5488BF5377175F67A48C2258D83F28BA3EAF9CC029DDE10BF1A12DB9B1597B`;
+- `transaction_read_only=on`, `hard_failure_count=0` across all 13 categories;
+- 24/24 migration statement bodies with metadata checksum
+  `dc92dd6ac392da787c4acad2f343e207` and statement checksum
+  `d5d34a18e55cee01fd559b68595c46c3`;
+- geometry: 924/924 current-hash, validator-valid exact ordered 61-step rows,
+  22 complete 42-venue cohorts (`2026-08-17` through `2026-09-07`), required
+  current dates 5/5, checksum `6920ae761dc43ba9ce9b33c2ebf400d4`;
+- weather: 882 structurally valid rows in 21 complete 42-bucket cohorts
+  (`2026-08-17` through `2026-09-06`), required current dates 4/4 with 168/168
+  nonempty and unexpired rows, 30 retained empty arrays outside required dates,
+  zero malformed arrays, checksum `550bd200762426749145cc99f7c7aa43`;
+- exact service-role membership graph 5/5, all 10 service RPCs secure, exact
+  six-extension allowlist, and zero outbound-effect capability;
+- one `venue-media` bucket with zero objects; zero Auth users, identities, and
+  sessions.
+
+An immediately preceding source capture anchored at
+`2026-09-03T08:57:48.710Z` also had zero restore-integrity failures but reported
+zero unexpired required weather rows. GitHub's five-minute schedule had not
+delivered since 05:07 UTC. Protected manual workflow run `33736676157` refreshed
+weather successfully in 41 seconds at 09:03 UTC; the post-run source capture
+then proved all 168 required rows unexpired. This is recovery evidence, not a
+reliable scheduling fix: 36 of the latest 100 successful scheduled-run gaps
+exceeded the two-hour TTL, with a maximum of 606.6 minutes. Preserve the
+fail-closed expiry behavior and track an independent scheduler/lease follow-up
+as a production availability blocker.
 
 #### Historical structural-retention and outbound hardening result
 
@@ -619,7 +727,7 @@ test user/session, feedback row, or test object remaining.
 2. List backups read-only:
 
    ```powershell
-   npx --yes supabase@2.114.0 backups list `
+   Invoke-SupabaseCli backups list `
      --project-ref $sourceRef `
      --output json
    ```
@@ -637,6 +745,12 @@ test user/session, feedback row, or test object remaining.
 ## Phase 2: provider-native isolated clone and cost approval
 
 **NOT EXERCISED. First paid/provider-mutating boundary.**
+
+Current blocker (2026-09-03): the source organization reports plan `free` and
+the pinned CLI returns no selectable physical backup. The steps below cannot be
+started until the maintainer separately decides to establish an eligible paid
+backup posture. That decision is distinct from, and precedes, the required
+fresh approval of the exact cost shown on the later confirmation page.
 
 1. In the guarded source Dashboard open **Database > Backups > Restore to a New
    Project**. Never use in-place CLI restore.
@@ -804,7 +918,7 @@ transport, not recovery of real bytes.
 
    ```powershell
    Assert-DrTargetOperational
-   npx --yes supabase@2.114.0 db query `
+   Invoke-SupabaseCli db query `
      --linked `
      --project-ref $targetRef `
      --file supabase/migrations/20260719000000_venue_media_storage.sql `
@@ -2245,7 +2359,7 @@ function Invoke-DrCleanup {
     $target = Resolve-DrTargetCleanupIdentity
     if ($null -eq $target) { return }
     Assert-DrTargetCleanupIdentity
-    npx --yes supabase@2.114.0 projects delete $targetRef `
+    Invoke-SupabaseCli projects delete $targetRef `
       --yes `
       --agent no
     if ($LASTEXITCODE -ne 0) {
