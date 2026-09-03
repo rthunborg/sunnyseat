@@ -73,6 +73,7 @@ so that launch decisions rest on provider-classified performance, attributable d
   - [x] Generate unique query nonce only for uncached/origin attempts and a unique sanitized request tag for every request.
   - [x] Preserve exact raw rows and join them to Vercel logs by tag/request ID and exact time window.
   - [x] Treat Vercel provider telemetry as the sole authority for cold, prewarmed, and hot classification.
+  - [x] Capture the first post-deploy client window and exact request/dependency correlation without calling cache MISS a cold start.
   - [ ] Continue sampling until provider-classified cold n is at least 20.
   - [ ] Report cohorts independently with raw n, p50, and p95.
 - [x] Task 4 — Write the DR runbook before the drill (AC: 6, 7)
@@ -80,11 +81,14 @@ so that launch decisions rest on provider-classified performance, attributable d
   - [x] State that local Compose validates PostgreSQL/PostGIS contracts only, not Supabase Auth, Storage API, object bytes, or project settings.
   - [x] Add read-only validation SQL/scripts for repeatable parity, security, count, and checksum checks.
 - [ ] Task 5 — Execute the safest available isolated rehearsal (AC: 6, 7)
+  - [x] Refresh provider/source/backup metadata and rerun the hash-bound read-only source verifier.
+  - [ ] Establish an eligible physical backup posture; the current Free plan exposes no selectable backup.
   - [ ] Prefer a provider-native restored clone or staging Supabase project when credentials and backup capabilities are available.
   - [ ] Otherwise execute and label the local disposable SQL-only lane, record its limitations, and do not claim a full Supabase restore.
   - [ ] Measure elapsed recovery time, state RPO/RTO, exercise rollback/cleanup, and record proof that production was unchanged.
 - [ ] Task 6 — Run required gates and publish evidence (AC: all)
   - [x] Typecheck, lint, full Vitest, build/bundle checks, relevant Playwright, axe, and Lighthouse.
+  - [x] Obtain protected green CI, merge PR #27, deploy, and run automated production browser verification.
   - [ ] Use scripts/story-review.sh through scripts/run-sh.ps1 for any review transition.
   - [x] Never directly edit sprint status to force review.
 
@@ -215,6 +219,15 @@ GPT-5.6
 - 2026-09-03 final Lighthouse gate: `npm run lighthouse` PASS, three runs with performance 0.86 / 0.88 / 0.87 and accessibility 1.00 / 1.00 / 1.00. Story 13.1 has no mapped Screen ID or standalone visual deliverable, so the canonical review gate is expected to record visual validation as not applicable rather than claim a visual PASS.
 - 2026-09-03 post-review verification-change audit: four actionable harness/accessibility findings were fixed without weakening gates; a focused rereview found one deterministic date-change request-gate race, which was fixed. Final Vitest, browser, axe, build, bundle, async-loading, and Lighthouse gates are green. The user explicitly accepted the four-round convergence caveat; no unresolved implementation finding remains, while the post-deploy cold-start evidence and approved isolated restore remain open acceptance work.
 - 2026-09-03 protected CI run 33730992614: production audit, typecheck, lint, and build passed; full Vitest stopped at one deterministic Story 13.1 source-contract assertion because the reconciled handoff had removed the literal `**Security release applied.**` marker. The handoff now retains that explicit durable marker while keeping completed work out of the remaining-work list; the focused source-contract suite passes before the CI rerun.
+- 2026-09-03 protected CI rerun 33731589197: PASS in 15m07s across production audit, typecheck, lint, full Vitest, build, exact bundle/MapLibre async gates, mobile/desktop/touch Playwright, complete axe projects, and Lighthouse. PR #27 merged as `6c09f8ce69bb8ec7c035b01b855bd1b91fbe36e2`; production deployment `dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L` reached READY in `dub1`.
+- 2026-09-03 production window 01: 30 origin MISS, one edge-prime MISS, and 20 edge HIT client samples all passed HTTP 200 / 42 unique venues / exact ordered 61-step checks. Client total nearest-rank p50/p95: origin 498.842/3141.4 ms, edge-prime 1325.426/1325.426 ms, edge 64.351/84.539 ms. Provider-classified cold n remains 0 because the authenticated connector lacks `function_start_type` and pinned Vercel CLI 59.1.3 is not authenticated; no MISS was labeled cold.
+- 2026-09-03 exact production request correlation: one `/api/venues` GET 200 MISS envelope in `dub1` matched only the directly observed `/rest/v1/venues`, `/rest/v1/weather_bucket_snapshots`, and `/rest/v1/rpc/read_current_venue_sun_geometry_batch` calls; no Met.no or shadow-caster/hash execution was observed.
+- 2026-09-03 automated production browser verification at 390x844 and 1440x900: healthy Swedish accessibility trees, no console/page errors, zero venue-list requests over three same-date scrubs, exactly one request on date change, and detail/reviews entry without submission. OpenFreeMap resources returned HTTP 200, while headless screenshots retained the fallback surface; physical-device rendering remains open.
+- 2026-09-03 DR metadata/source refresh: source is ACTIVE_HEALTHY/eu-west-1/PostgreSQL 17.6 on a Free organization, with 24 migrations, one empty Storage bucket, zero Auth rows, no branches, WAL-G enabled, PITR disabled, and no selectable backup. Restore to New Project cannot reach its cost boundary until an eligible paid physical backup posture is separately chosen.
+- 2026-09-03 DR verifier hardening: the linked CLI path could not consume the PGOPTIONS anchor, so the runbook now hash-verifies the immutable template, renders one ignored fixed-anchor copy, and reuses it. It records the current exact five-edge role graph, permits structurally valid empty retained weather arrays only outside the required planner window, and emits per-date/nonempty/freshness evidence. Focused source-contract Vitest PASS (11/11).
+- 2026-09-03 independent focused DR patch rereview: no actionable findings after the weather-array, per-date evidence, role-membership, and template-hash corrections; focused source-contract Vitest remains PASS (11/11).
+- 2026-09-03 fresh source verifier after protected weather recovery: exact Supabase CLI 2.114.0 through Corepack/pnpm 11.24.0, template SHA `7C3C0E46673F425E06B603C5A0B51A75F0D48EB11C785F926F0DFD57EB2DCB37`, read-only on, hard failures 0; 924 exact geometry rows; 882 weather rows with required 168/168 nonempty+unexpired; 30 legitimate retained empty rows outside required dates; zero malformed rows.
+- 2026-09-03 production weather scheduling audit: 36 of the latest 100 successful scheduled-run gaps exceeded the two-hour snapshot TTL (maximum 606.6 minutes). Pre-recovery source capture had zero unexpired required rows. Protected manual weather-only run 33736676157 passed in 41s and restored all 168 required rows. The fail-closed unknown-weather path remains correct, but reliable independent scheduling remains a NO-GO availability blocker.
 
 ### Completion Notes List
 
@@ -238,7 +251,10 @@ GPT-5.6
 - Round 4 JS bundle verification now fails closed when the root route diagnostic has an empty `firstLoadChunkPaths` graph.
 - Final verification hardening isolates the Playwright-only rate-limit bypass to an explicitly flagged development server, refuses reuse of an unflagged borrowed server, stabilizes the held date-change request-count assertion, waits for Motion opacity to settle before axe analysis, and restores the Privacy page to the complete axe matrix with token-compliant AA text contrast.
 - React Compiler remains disabled for launch. The measured non-compiler build is inside every binding JavaScript budget, and `project-context.md` records the decision for a later evidence-led reevaluation instead of accepting compiler-related launch risk now.
-- Code and local gates are ready for delivery, but Task 3's required provider-classified cold-start sample and Task 5's isolated provider restore rehearsal are deliberately still open. No restore, production failover, fake feedback, or fake review has been executed.
+- Code, protected CI, merge, deployment, and automated production-browser checks are complete. Task 3's required provider-classified cold-start sample and Task 5's isolated provider restore rehearsal remain open; the current Free Supabase plan has no selectable backup.
+- The fresh source verifier passes after correcting two runbook assumptions discovered only against the live provider: Management API queries require a rendered fixed anchor rather than PGOPTIONS, and current provider-managed role membership uses three stricter `admin_option=false` edges. Required current weather dates remain fully nonempty; only retained out-of-horizon empty arrays are allowed and checksum-compared.
+- Production weather freshness was manually recovered without weakening the two-hour TTL. Historical GitHub scheduler gaps prove the missing independent background-recovery promise is a separate launch blocker; a Vercel Pro cron requires CRON_SECRET plus a durable cross-scheduler lease and must be implemented/reviewed before activation.
+- No restore, production failover, paid-plan change, fake feedback, or fake review has been executed.
 
 ### File List
 
@@ -323,6 +339,7 @@ GPT-5.6
 - project-context.md
 - scripts/dr/verify-restore.sql
 - _bmad-output/implementation-artifacts/13-1-provider-classified-cold-starts-dependency-path-tracing-and-isolated-restore-drill.md
+- _bmad-output/implementation-artifacts/validation/story-13-1-restore-drill/.gitignore
 
 ### Review Findings
 
