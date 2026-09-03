@@ -59,6 +59,9 @@ scripts/*
 # vercel
 .vercel
 
+# Supabase CLI link state created when the CLI is run from the app directory
+/supabase/.temp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

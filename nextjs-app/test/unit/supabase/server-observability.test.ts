@@ -140,7 +140,7 @@ describe('Supabase server observability', () => {
       },
       () =>
         options.global!.fetch!(
-          'https://project-ref.supabase.co/rest/v1/rpc/get_shadow_caster_hash_records?apikey=never-log-query',
+          'https://project-ref.supabase.co/rest/v1/rpc/get_shadow_caster_hash_records_v2?apikey=never-log-query',
           {
             method: 'POST',
             body: JSON.stringify({ venue_ids: ['never-log-venue-id'] }),

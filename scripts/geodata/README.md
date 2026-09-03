@@ -149,6 +149,10 @@ python scripts/geodata/shadow_caster_pipeline.py validate-artifacts
 
 Then run the generated SQL manually with a local `psql` client and an approved Supabase connection string. Do not commit connection strings or secrets.
 
+The generated handoff stores collection, update, provenance, Z-semantics, and shared source-object metadata once on `shadow_caster_import_batches`. Each `shadow_casters` row contains only object-specific metadata. Do not add batch-wide file lists, checksums, CRS descriptions, or derivation details back to individual caster rows.
+
+For a full replacement, commit the import before reclaiming old pages. A regular `VACUUM` makes deleted pages reusable but does not reduce Supabase disk usage; schedule the locking `VACUUM (FULL, ANALYZE) public.shadow_casters` separately when physical compaction is needed. See [`docs/shadow-caster-storage-runbook.md`](../../docs/shadow-caster-storage-runbook.md) for checks, thresholds, and rollback guidance.
+
 The generated SQL includes smoke checks:
 
 - row counts by `filter_decision` and `active`

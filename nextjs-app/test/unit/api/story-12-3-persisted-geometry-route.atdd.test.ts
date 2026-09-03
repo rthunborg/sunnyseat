@@ -181,7 +181,7 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
   test('geometry input construction reads canonical shadow-caster hash records', () => {
     const source = appSource('lib/services/sun-geometry-repository.ts');
 
-    expect(source).toContain("rpc('get_shadow_caster_hash_records'");
+    expect(source).toContain("rpc('get_shadow_caster_hash_records_v2'");
     expect(source).not.toContain("rpc('get_buildings_near_point'");
     expect(source).toContain('footprint_ewkb_hex');
   });

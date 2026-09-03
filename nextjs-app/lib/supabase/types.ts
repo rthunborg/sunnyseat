@@ -276,27 +276,42 @@ export type Database = {
           created_at: string
           id: string
           notes: string | null
+          provenance_metadata: Json
+          source_collection_metadata: Json
           source_dataset: string
           source_description: string | null
           source_metadata: Json
+          source_object_shared_metadata: Json
+          source_update_metadata: Json
+          z_semantics: string | null
         }
         Insert: {
           completed_at?: string | null
           created_at?: string
           id: string
           notes?: string | null
+          provenance_metadata?: Json
+          source_collection_metadata?: Json
           source_dataset: string
           source_description?: string | null
           source_metadata?: Json
+          source_object_shared_metadata?: Json
+          source_update_metadata?: Json
+          z_semantics?: string | null
         }
         Update: {
           completed_at?: string | null
           created_at?: string
           id?: string
           notes?: string | null
+          provenance_metadata?: Json
+          source_collection_metadata?: Json
           source_dataset?: string
           source_description?: string | null
           source_metadata?: Json
+          source_object_shared_metadata?: Json
+          source_update_metadata?: Json
+          z_semantics?: string | null
         }
         Relationships: []
       }
@@ -319,12 +334,10 @@ export type Database = {
           imported_at: string
           matched_line_count: number | null
           metric_crs: string
-          provenance_metadata: Json
           quality_score: number | null
           roof_z_rh2000: number | null
           runtime_geometry_crs: string
           shadow_caster_tier: string | null
-          source_collection_metadata: Json
           source_dataset: string
           source_external_id: string | null
           source_flags: string[]
@@ -337,9 +350,7 @@ export type Database = {
           source_priority: number
           source_purpose: string | null
           source_subclass: string | null
-          source_update_metadata: Json
           updated_at: string
-          z_semantics: string | null
           z_spread_m: number | null
         }
         Insert: {
@@ -360,12 +371,10 @@ export type Database = {
           imported_at?: string
           matched_line_count?: number | null
           metric_crs?: string
-          provenance_metadata?: Json
           quality_score?: number | null
           roof_z_rh2000?: number | null
           runtime_geometry_crs?: string
           shadow_caster_tier?: string | null
-          source_collection_metadata?: Json
           source_dataset: string
           source_external_id?: string | null
           source_flags?: string[]
@@ -378,9 +387,7 @@ export type Database = {
           source_priority?: number
           source_purpose?: string | null
           source_subclass?: string | null
-          source_update_metadata?: Json
           updated_at?: string
-          z_semantics?: string | null
           z_spread_m?: number | null
         }
         Update: {
@@ -401,12 +408,10 @@ export type Database = {
           imported_at?: string
           matched_line_count?: number | null
           metric_crs?: string
-          provenance_metadata?: Json
           quality_score?: number | null
           roof_z_rh2000?: number | null
           runtime_geometry_crs?: string
           shadow_caster_tier?: string | null
-          source_collection_metadata?: Json
           source_dataset?: string
           source_external_id?: string | null
           source_flags?: string[]
@@ -419,9 +424,7 @@ export type Database = {
           source_priority?: number
           source_purpose?: string | null
           source_subclass?: string | null
-          source_update_metadata?: Json
           updated_at?: string
-          z_semantics?: string | null
           z_spread_m?: number | null
         }
         Relationships: [
@@ -1269,6 +1272,26 @@ export type Database = {
           shadow_caster_tier: string | null
           source_flags: string[]
           source_object_metadata: Json | null
+          source_priority: number | null
+        }[]
+      }
+      get_shadow_caster_hash_records_v2: {
+        Args: {
+          p_latitude: number
+          p_longitude: number
+          p_radius_meters?: number
+        }
+        Returns: {
+          caster_class: string | null
+          filter_decision: string | null
+          footprint_ewkb_hex: string
+          ground_z_rh2000: number | null
+          height_m: number
+          id: number
+          import_generation: string | null
+          roof_z_rh2000: number | null
+          shadow_caster_tier: string | null
+          source_flags: string[]
           source_priority: number | null
         }[]
       }

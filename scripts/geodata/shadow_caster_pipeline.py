@@ -131,6 +131,14 @@ BASKARTA_COMMON_TYPE_FIELDS = (
 )
 BASKARTA_BUILDING_RUNTIME_TYPES = BUILDING_LINE_TYPES
 BASKARTA_Z_SHAPE_TYPES = {11, 13, 15, 18, 31}
+BATCH_SHARED_SOURCE_OBJECT_KEYS = (
+    "candidateSource",
+    "dtmTileIds",
+    "matchBufferM",
+    "rawSourceFiles",
+    "sourceDataset",
+    "sourceFileChecksums",
+)
 BASKARTA_SHAPE_TYPE_NAMES = {
     0: "NULL",
     1: "POINT",
@@ -1225,10 +1233,6 @@ def map_feature_to_shadow_caster_row(
     quality_score = round(as_float(properties.get("shadowRuntimeQualityScore", properties.get("qualityScore"))), 3)
     bbox_3007_values = properties.get("bbox3007") or []
     centroid_3007_values = properties.get("centroid3007") or []
-    raw_source_files = properties.get("sourceFiles") or DEFAULT_RAW_SOURCE_FILES
-    source_file_checksums_value = properties.get("sourceFileChecksums") or {}
-    match_buffer_m = properties.get("matchBufferM", DEFAULT_MATCH_BUFFER_M)
-    dtm_tile_ids = properties.get("dtmTileIds") or DEFAULT_DTM_TILE_IDS
     source_layer = properties.get("sourceLayer") or "byggnad_l"
     source_subclass = (
         properties.get("sourceSubclass")
@@ -1236,62 +1240,20 @@ def map_feature_to_shadow_caster_row(
         or properties.get("objectType")
         or properties.get("purpose")
     )
-    z_semantics = properties.get("zSemantics") or SOURCE_Z_SEMANTICS
     caster_class = properties.get("casterClass") or ("building" if source_layer == "byggnad_l" else "structure")
     active = decision == "include" and caster_class == "building" and source_layer == "byggnad_l"
 
     source_object_metadata = {
         "areaM2": properties.get("areaM2"),
         "baskartaZStats": properties.get("baskartaZStats", {}),
-        "candidateSource": properties.get("source"),
-        "dtmTileIds": dtm_tile_ids,
-        "matchBufferM": match_buffer_m,
-        "rawSourceFiles": raw_source_files,
-        "sourceFileChecksums": source_file_checksums_value,
-        "sourceDataset": properties.get("sourceDataset", SOURCE_DATASET),
+        "logicalObjectId": properties.get("logicalObjectId"),
+        "runtimeApproved": properties.get("runtimeApproved"),
+        "obstructionRisks": properties.get("obstructionRisks"),
+        "uncertaintyCauses": properties.get("uncertaintyCauses"),
+        "knownObstructions": properties.get("knownObstructions"),
     }
     source_object_metadata = {
         key: value for key, value in source_object_metadata.items() if value is not None
-    }
-
-    source_collection_metadata = {
-        "dtmTileIds": dtm_tile_ids,
-        "matchBufferM": match_buffer_m,
-        "rawSourceFiles": raw_source_files,
-        "sourceDataset": properties.get("sourceDataset", SOURCE_DATASET),
-        "sourceDescription": SOURCE_DESCRIPTION,
-        "sourceFileChecksums": source_file_checksums_value,
-        "sourceLayer": source_layer,
-    }
-    source_collection_metadata = {
-        key: value for key, value in source_collection_metadata.items() if value is not None
-    }
-
-    source_update_metadata = {
-        "sourceModelDate": "2026-06-05",
-        "sourceRefresh": properties.get("sourceRefresh") or SOURCE_REFRESH_POLICY,
-        "sourceUpdateMode": "manual reviewed geodata refresh",
-    }
-    source_update_metadata = {
-        key: value for key, value in source_update_metadata.items() if value is not None
-    }
-
-    provenance_metadata = {
-        "bbox3007": list(MVP_BBOX_3007),
-        "crs": {
-            "sourceFootprint": SOURCE_FOOTPRINT_CRS,
-            "metric": METRIC_CRS,
-            "runtimeGeometry": RUNTIME_GEOMETRY_CRS,
-        },
-        "derivationMethod": properties.get("heightCandidateMethod"),
-        "dtmTiles": dtm_tile_ids,
-        "lineTypes": sorted(BUILDING_LINE_TYPES),
-        "matchBufferM": match_buffer_m,
-        "rawSourceFiles": raw_source_files,
-        "sourceFileChecksums": source_file_checksums_value,
-        "sourceDescription": SOURCE_DESCRIPTION,
-        "sourcePriorityOrder": SOURCE_PRIORITIES,
-        "timestampPolicy": "JSONL rows use null imported_at/updated_at; SQL handoff coalesces DB defaults at load time.",
     }
 
     return {
@@ -1312,14 +1274,10 @@ def map_feature_to_shadow_caster_row(
         "source_geom_3007": properties.get("sourceGeom3007"),
         "source_layer": source_layer,
         "source_subclass": source_subclass,
-        "z_semantics": z_semantics,
-        "source_collection_metadata": source_collection_metadata,
-        "source_update_metadata": source_update_metadata,
         "source_object_metadata": source_object_metadata,
         "engine_geometry_method": properties.get("engineGeometryMethod") or "largest polygon part from source footprint",
         "runtime_geometry_crs": RUNTIME_GEOMETRY_CRS,
         "metric_crs": METRIC_CRS,
-        "provenance_metadata": provenance_metadata,
         "quality_score": quality_score,
         "shadow_caster_tier": properties.get("shadowCasterTier") or tier(properties, quality_score),
         "filter_decision": decision,
@@ -1336,6 +1294,78 @@ def map_feature_to_shadow_caster_row(
         "imported_at": None,
         "updated_at": None,
     }
+
+
+def build_batch_provenance(properties: dict[str, Any]) -> dict[str, Any]:
+    raw_source_files = properties.get("sourceFiles") or DEFAULT_RAW_SOURCE_FILES
+    source_file_checksums_value = properties.get("sourceFileChecksums") or {}
+    match_buffer_m = properties.get("matchBufferM", DEFAULT_MATCH_BUFFER_M)
+    dtm_tile_ids = properties.get("dtmTileIds") or DEFAULT_DTM_TILE_IDS
+    source_layer = properties.get("sourceLayer") or "byggnad_l"
+
+    source_object_shared_metadata = {
+        "candidateSource": properties.get("source"),
+        "dtmTileIds": dtm_tile_ids,
+        "matchBufferM": match_buffer_m,
+        "rawSourceFiles": raw_source_files,
+        "sourceFileChecksums": source_file_checksums_value,
+        "sourceDataset": properties.get("sourceDataset", SOURCE_DATASET),
+    }
+    source_collection_metadata = {
+        "dtmTileIds": dtm_tile_ids,
+        "matchBufferM": match_buffer_m,
+        "rawSourceFiles": raw_source_files,
+        "sourceDataset": properties.get("sourceDataset", SOURCE_DATASET),
+        "sourceDescription": SOURCE_DESCRIPTION,
+        "sourceFileChecksums": source_file_checksums_value,
+        "sourceLayer": source_layer,
+    }
+    source_update_metadata = {
+        "sourceModelDate": "2026-06-05",
+        "sourceRefresh": properties.get("sourceRefresh") or SOURCE_REFRESH_POLICY,
+        "sourceUpdateMode": "manual reviewed geodata refresh",
+    }
+    provenance_metadata = {
+        "bbox3007": list(MVP_BBOX_3007),
+        "crs": {
+            "sourceFootprint": SOURCE_FOOTPRINT_CRS,
+            "metric": METRIC_CRS,
+            "runtimeGeometry": RUNTIME_GEOMETRY_CRS,
+        },
+        "derivationMethod": properties.get("heightCandidateMethod"),
+        "dtmTiles": dtm_tile_ids,
+        "lineTypes": sorted(BUILDING_LINE_TYPES),
+        "matchBufferM": match_buffer_m,
+        "rawSourceFiles": raw_source_files,
+        "sourceFileChecksums": source_file_checksums_value,
+        "sourceDescription": SOURCE_DESCRIPTION,
+        "sourcePriorityOrder": SOURCE_PRIORITIES,
+        "timestampPolicy": "JSONL rows use null imported_at/updated_at; SQL handoff coalesces DB defaults at load time.",
+    }
+    return {
+        "zSemantics": properties.get("zSemantics") or SOURCE_Z_SEMANTICS,
+        "sourceCollectionMetadata": {
+            key: value for key, value in source_collection_metadata.items() if value is not None
+        },
+        "sourceUpdateMetadata": {
+            key: value for key, value in source_update_metadata.items() if value is not None
+        },
+        "sourceObjectSharedMetadata": {
+            key: value for key, value in source_object_shared_metadata.items() if value is not None
+        },
+        "provenanceMetadata": provenance_metadata,
+    }
+
+
+def resolve_batch_provenance(features: list[dict[str, Any]]) -> dict[str, Any]:
+    if not features:
+        return build_batch_provenance({})
+    expected = build_batch_provenance(features[0]["properties"])
+    for index, feature in enumerate(features[1:], start=2):
+        actual = build_batch_provenance(feature["properties"])
+        if actual != expected:
+            raise ValueError(f"batch-level provenance differs at source feature {index}")
+    return expected
 
 
 def cluster_centers_3007() -> dict[str, tuple[float, float]]:
@@ -1779,6 +1809,9 @@ def command_emit_import(args: argparse.Namespace) -> int:
     include_features = sorted(load_jsonl(include_path), key=stable_sort_key)
     review_features = sorted(load_jsonl(review_path), key=stable_sort_key)
     excluded_features = sorted(load_jsonl(excluded_path), key=stable_sort_key)
+    batch_provenance = resolve_batch_provenance(
+        include_features + review_features + excluded_features
+    )
 
     import_rows = [
         row
@@ -1804,6 +1837,7 @@ def command_emit_import(args: argparse.Namespace) -> int:
         diagnostics_path,
         import_rows,
         diagnostic_rows,
+        batch_provenance,
     )
     write_json(manifest_path, manifest)
     write_sql_handoff(sql_path, import_path, diagnostics_path, manifest)
@@ -1821,6 +1855,7 @@ def build_import_manifest(
     diagnostics_path: Path,
     import_rows: list[dict[str, Any]],
     diagnostic_rows: list[dict[str, Any]],
+    batch_provenance: dict[str, Any],
 ) -> dict[str, Any]:
     import_counts = Counter(row["filter_decision"] for row in import_rows)
     diagnostic_counts = Counter(row["filter_decision"] for row in diagnostic_rows)
@@ -1841,6 +1876,7 @@ def build_import_manifest(
             "sourceDataset": SOURCE_DATASET,
             "sourceDescription": SOURCE_DESCRIPTION,
             "completionStatus": "review_artifacts_generated_no_db_write",
+            **batch_provenance,
             "sourceMetadata": {
                 "inputChecksums": {
                     role: file_sha256(path)
@@ -1884,6 +1920,19 @@ def write_sql_handoff(path: Path, import_jsonl: Path, diagnostics_jsonl: Path, m
     source_dataset = sql_literal(batch["sourceDataset"])
     source_description = sql_literal(batch["sourceDescription"])
     source_metadata = sql_literal(json.dumps(batch["sourceMetadata"], ensure_ascii=False, sort_keys=True))
+    z_semantics = sql_literal(batch["zSemantics"])
+    source_collection_metadata = sql_literal(
+        json.dumps(batch["sourceCollectionMetadata"], ensure_ascii=False, sort_keys=True)
+    )
+    source_update_metadata = sql_literal(
+        json.dumps(batch["sourceUpdateMetadata"], ensure_ascii=False, sort_keys=True)
+    )
+    source_object_shared_metadata = sql_literal(
+        json.dumps(batch["sourceObjectSharedMetadata"], ensure_ascii=False, sort_keys=True)
+    )
+    provenance_metadata = sql_literal(
+        json.dumps(batch["provenanceMetadata"], ensure_ascii=False, sort_keys=True)
+    )
     notes = sql_literal(
         "Generated by scripts/geodata/shadow_caster_pipeline.py emit-import; no automatic production import was executed."
     )
@@ -1918,6 +1967,11 @@ insert into public.shadow_caster_import_batches (
   source_dataset,
   source_description,
   source_metadata,
+  z_semantics,
+  source_collection_metadata,
+  source_update_metadata,
+  source_object_shared_metadata,
+  provenance_metadata,
   completed_at,
   notes
 ) values (
@@ -1925,6 +1979,11 @@ insert into public.shadow_caster_import_batches (
   {source_dataset},
   {source_description},
   {source_metadata}::jsonb,
+  {z_semantics},
+  {source_collection_metadata}::jsonb,
+  {source_update_metadata}::jsonb,
+  {source_object_shared_metadata}::jsonb,
+  {provenance_metadata}::jsonb,
   now(),
   {notes}
 )
@@ -1932,6 +1991,11 @@ on conflict (id) do update set
   source_dataset = excluded.source_dataset,
   source_description = excluded.source_description,
   source_metadata = excluded.source_metadata,
+  z_semantics = excluded.z_semantics,
+  source_collection_metadata = excluded.source_collection_metadata,
+  source_update_metadata = excluded.source_update_metadata,
+  source_object_shared_metadata = excluded.source_object_shared_metadata,
+  provenance_metadata = excluded.provenance_metadata,
   completed_at = excluded.completed_at,
   notes = excluded.notes;
 
@@ -1955,14 +2019,10 @@ insert into public.shadow_casters (
   source_geom_3007,
   source_layer,
   source_subclass,
-  z_semantics,
-  source_collection_metadata,
-  source_update_metadata,
   source_object_metadata,
   engine_geometry_method,
   runtime_geometry_crs,
   metric_crs,
-  provenance_metadata,
   quality_score,
   shadow_caster_tier,
   filter_decision,
@@ -1999,14 +2059,10 @@ select
   end,
   payload->>'source_layer',
   payload->>'source_subclass',
-  payload->>'z_semantics',
-  payload->'source_collection_metadata',
-  payload->'source_update_metadata',
   payload->'source_object_metadata',
   payload->>'engine_geometry_method',
   payload->>'runtime_geometry_crs',
   payload->>'metric_crs',
-  payload->'provenance_metadata',
   nullif(payload->>'quality_score', '')::numeric,
   payload->>'shadow_caster_tier',
   payload->>'filter_decision',
@@ -2056,13 +2112,9 @@ REQUIRED_ROW_FIELDS = {
     "source_geom_3007",
     "source_layer",
     "source_subclass",
-    "z_semantics",
-    "source_collection_metadata",
-    "source_update_metadata",
     "source_object_metadata",
     "runtime_geometry_crs",
     "metric_crs",
-    "provenance_metadata",
     "quality_score",
     "shadow_caster_tier",
     "filter_decision",
@@ -2602,8 +2654,6 @@ def validate_rows(rows: list[dict[str, Any]], expected_batch_id: str) -> list[st
             errors.append(f"row {index}: source_layer is required")
         if not row.get("source_subclass"):
             errors.append(f"row {index}: source_subclass is required")
-        if not row.get("z_semantics"):
-            errors.append(f"row {index}: z_semantics is required")
         errors.extend(f"row {index}: {error}" for error in validate_geojson_geometry(row.get("geometry"), "runtime", "Polygon"))
         source_geom_3007 = row.get("source_geom_3007")
         if source_geom_3007 is not None:
@@ -2651,19 +2701,29 @@ def validate_rows(rows: list[dict[str, Any]], expected_batch_id: str) -> list[st
                 errors.append(f"row {index}: active row below 3 m")
         if decision in {"review", "exclude"} and row.get("active") is not False:
             errors.append(f"row {index}: review/exclude rows must be inactive")
-        provenance = row.get("provenance_metadata") or {}
-        if provenance.get("bbox3007") != list(MVP_BBOX_3007):
-            errors.append(f"row {index}: provenance bbox mismatch")
-        if not provenance.get("rawSourceFiles"):
-            errors.append(f"row {index}: provenance rawSourceFiles are required")
-        if provenance.get("matchBufferM") is None:
-            errors.append(f"row {index}: provenance matchBufferM is required")
-        collection_metadata = row.get("source_collection_metadata") or {}
-        if not isinstance(collection_metadata, dict) or not collection_metadata.get("rawSourceFiles"):
-            errors.append(f"row {index}: source_collection_metadata rawSourceFiles are required")
-        update_metadata = row.get("source_update_metadata") or {}
-        if not isinstance(update_metadata, dict) or not update_metadata.get("sourceRefresh"):
-            errors.append(f"row {index}: source_update_metadata sourceRefresh is required")
+    return errors
+
+
+def validate_batch_provenance(import_batch: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if not import_batch.get("zSemantics"):
+        errors.append("import batch zSemantics is required")
+    collection = import_batch.get("sourceCollectionMetadata") or {}
+    if not isinstance(collection, dict) or not collection.get("rawSourceFiles"):
+        errors.append("import batch sourceCollectionMetadata rawSourceFiles are required")
+    update = import_batch.get("sourceUpdateMetadata") or {}
+    if not isinstance(update, dict) or not update.get("sourceRefresh"):
+        errors.append("import batch sourceUpdateMetadata sourceRefresh is required")
+    shared = import_batch.get("sourceObjectSharedMetadata") or {}
+    if not isinstance(shared, dict) or not shared.get("rawSourceFiles"):
+        errors.append("import batch sourceObjectSharedMetadata rawSourceFiles are required")
+    provenance = import_batch.get("provenanceMetadata") or {}
+    if provenance.get("bbox3007") != list(MVP_BBOX_3007):
+        errors.append("import batch provenance bbox mismatch")
+    if not provenance.get("rawSourceFiles"):
+        errors.append("import batch provenance rawSourceFiles are required")
+    if provenance.get("matchBufferM") is None:
+        errors.append("import batch provenance matchBufferM is required")
     return errors
 
 
@@ -2682,6 +2742,7 @@ def command_validate_artifacts(args: argparse.Namespace) -> int:
     diagnostic_rows = load_jsonl(diagnostics_path) if diagnostics_path.exists() else []
     expected_batch_id = manifest["importBatch"]["id"]
     errors = validate_rows(import_rows + diagnostic_rows, expected_batch_id)
+    errors.extend(validate_batch_provenance(manifest["importBatch"]))
 
     counts = Counter(row.get("filter_decision") for row in import_rows)
     diagnostic_counts = Counter(row.get("filter_decision") for row in diagnostic_rows)

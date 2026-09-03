@@ -556,7 +556,7 @@ export async function buildGeometryInputPayloadForVenue(
 
 async function readRuntimeCasterHashRecords(centroid: { lat: number; lng: number }): Promise<unknown[]> {
   const { getSupabaseServiceRole } = await import('@/lib/supabase/server');
-    const { data, error } = await getSupabaseServiceRole().rpc('get_shadow_caster_hash_records', {
+  const { data, error } = await getSupabaseServiceRole().rpc('get_shadow_caster_hash_records_v2', {
     p_latitude: centroid.lat,
     p_longitude: centroid.lng,
     p_radius_meters: MAX_SHADOW_DISTANCE,
@@ -573,8 +573,6 @@ async function readRuntimeCasterHashRecords(centroid: { lat: number; lng: number
     filterDecision: row.filter_decision ?? null,
     casterClass: row.caster_class ?? null,
     sourceFlags: row.source_flags ?? [],
-    sourceObjectMetadata: row.source_object_metadata ?? null,
-    provenanceMetadata: row.provenance_metadata ?? null,
     importGeneration: row.import_generation ?? null,
   }));
 }

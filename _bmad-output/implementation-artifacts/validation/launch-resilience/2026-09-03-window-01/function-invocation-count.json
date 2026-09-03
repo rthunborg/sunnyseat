@@ -1,0 +1,932 @@
+{
+  "query": {
+    "metric": "vercel.function_invocation.count",
+    "aggregation": "sum",
+    "groupBy": [
+      "function_start_type",
+      "client_user_agent",
+      "function_region",
+      "deployment_id",
+      "http_status",
+      "route"
+    ],
+    "filter": "(deployment_id eq 'dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L') and (route eq '/api/venues') and (environment eq 'production') and (environment eq 'production')",
+    "startTime": "2026-09-03T08:24:58.153Z",
+    "endTime": "2026-09-03T08:25:14.478Z",
+    "granularity": {
+      "minutes": 5
+    },
+    "orderBy": "count",
+    "orderDirection": "desc"
+  },
+  "summary": [
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "cold",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-edge-prime-001",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "cold",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-001",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "cold",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-003",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "cold",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-014",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-004",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-005",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-006",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-007",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-008",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-009",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-010",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-011",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-012",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-013",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-015",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-016",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-017",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-018",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-019",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-020",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-021",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-022",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-023",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-024",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-025",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-026",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-027",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-028",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-029",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-030",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "prewarmed",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-002",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    }
+  ],
+  "data": [
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "cold",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-edge-prime-001",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "cold",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-edge-prime-001",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "cold",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-001",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "cold",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-001",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "cold",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-003",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "cold",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-003",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "cold",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-014",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "cold",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-014",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-004",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-004",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-005",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-005",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-006",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-006",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-007",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-007",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-008",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-008",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-009",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-009",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-010",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-010",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-011",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-011",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-012",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-012",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-013",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-013",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-015",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-015",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-016",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-016",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-017",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-017",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-018",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-018",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-019",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-019",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-020",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-020",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-021",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-021",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-022",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-022",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-023",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-023",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-024",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-024",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-025",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-025",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-026",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-026",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-027",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-027",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-028",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-028",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-029",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-029",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-030",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-030",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:20:00.000Z",
+      "vercel_function_invocation_count_sum": 0,
+      "route": "/api/venues",
+      "function_start_type": "prewarmed",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-002",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T08:25:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "prewarmed",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t082458z-6fb05fa8-origin-002",
+      "function_region": "dub1",
+      "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+      "http_status": "200"
+    }
+  ],
+  "statistics": {
+    "bytesRead": 10989812,
+    "rowsRead": 121400,
+    "dbTimeSeconds": 0.9553990364074707
+  },
+  "orderBy": "count",
+  "orderDirection": "desc"
+}
