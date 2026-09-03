@@ -1,0 +1,41 @@
+{
+  "schema_version": 3,
+  "session_id": "lr-20260903t082458z-6fb05fa8",
+  "deployment_id": "dpl_9ycVfmVttmAxP9mrCi4Jq8Qh7Y4L",
+  "environment": "production",
+  "base_url": "https://sunnyseat.vercel.app",
+  "endpoint_path": "/api/venues",
+  "measurement_cohort": "gothenburg-centre-radius-3km",
+  "started_at_utc": "2026-09-03T08:24:58.152Z",
+  "ended_at_utc": "2026-09-03T08:25:14.480Z",
+  "measurement_window": {
+    "started_at_utc": "2026-09-03T08:24:58.153Z",
+    "ended_at_utc": "2026-09-03T08:25:14.478Z"
+  },
+  "origin_count_requested": 30,
+  "edge_count_requested": 20,
+  "concurrency": 4,
+  "request_timeout_ms": 10000,
+  "provider_evidence_plan": "provider-evidence-plan.json",
+  "provider_evidence_plan_sha256": "96ed3b5e16b54efec87936f651f7b5416246f35fa398fa5a1f8e4a5f28a83931",
+  "client_samples": 51,
+  "client_samples_sha256": "c4d32ec1f16f0452b6de74ce3938ee6a220c5cdf561f8bd196f9bcb278a63870",
+  "correctness_passed": true,
+  "client_correctness_summary": {
+    "raw_samples": 51,
+    "passed_samples": 51,
+    "failed_samples": 0,
+    "http_200": 51,
+    "payload_valid": 51,
+    "timing_valid": 51,
+    "deployment_matched": 51,
+    "cache_usable": 51,
+    "origin_echoed": 51
+  },
+  "cache_counts": {
+    "MISS": 31,
+    "HIT": 20
+  },
+  "classification_note": "cache_status is recorded but never used as function start classification",
+  "integrity_scope": "SHA-256 hashes recorded by this lane are local tamper evidence for the captured byte streams. This local hash record does not authenticate provider origin or prove that a provider export is complete."
+}

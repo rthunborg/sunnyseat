@@ -358,21 +358,24 @@ class ShadowCasterPipelineTest(unittest.TestCase):
             pipeline.combined_hash([right], extra),
         )
 
-    def test_shadow_casters_contract_mapping_includes_raw_source_and_match_provenance(self) -> None:
-        row = pipeline.map_feature_to_shadow_caster_row(
-            pipeline.enriched_feature(
-                pipeline.load_jsonl(self.source)[0],
-                "include",
-                [],
-            ),
-            "fixture-batch",
+    def test_shadow_casters_contract_mapping_moves_batch_provenance_off_each_row(self) -> None:
+        feature = pipeline.enriched_feature(
+            pipeline.load_jsonl(self.source)[0],
+            "include",
+            [],
         )
+        row = pipeline.map_feature_to_shadow_caster_row(feature, "fixture-batch")
 
-        self.assertIn("rawSourceFiles", row["source_object_metadata"])
-        self.assertIn("matchBufferM", row["source_object_metadata"])
-        self.assertIn("dtmTileIds", row["source_object_metadata"])
-        self.assertIn("rawSourceFiles", row["provenance_metadata"])
-        self.assertIn("matchBufferM", row["provenance_metadata"])
+        self.assertTrue(set(pipeline.BATCH_SHARED_SOURCE_OBJECT_KEYS).isdisjoint(row["source_object_metadata"]))
+        self.assertNotIn("source_collection_metadata", row)
+        self.assertNotIn("source_update_metadata", row)
+        self.assertNotIn("provenance_metadata", row)
+        self.assertNotIn("z_semantics", row)
+
+        batch = pipeline.build_batch_provenance(feature["properties"])
+        self.assertIn("rawSourceFiles", batch["sourceObjectSharedMetadata"])
+        self.assertIn("matchBufferM", batch["sourceObjectSharedMetadata"])
+        self.assertIn("rawSourceFiles", batch["provenanceMetadata"])
 
     def test_shadow_casters_contract_mapping_preserves_source_3d_geometry_separately(self) -> None:
         feature = pipeline.enriched_feature(
@@ -397,9 +400,10 @@ class ShadowCasterPipelineTest(unittest.TestCase):
         self.assertEqual(row["source_geom_3007"]["coordinates"][0][2], 24.5)
         self.assertEqual(row["source_layer"], "byggnad_l")
         self.assertEqual(row["source_subclass"], "Takkonturer")
-        self.assertIn("RH2000", row["z_semantics"])
-        self.assertIn("rawSourceFiles", row["source_collection_metadata"])
-        self.assertIn("sourceRefresh", row["source_update_metadata"])
+        batch = pipeline.build_batch_provenance(feature["properties"])
+        self.assertIn("RH2000", batch["zSemantics"])
+        self.assertIn("rawSourceFiles", batch["sourceCollectionMetadata"])
+        self.assertIn("sourceRefresh", batch["sourceUpdateMetadata"])
 
     def test_candidate_output_emits_matched_baskarta_source_z_geometry(self) -> None:
         from shapely.geometry import LineString, Polygon
@@ -636,6 +640,11 @@ class ShadowCasterPipelineTest(unittest.TestCase):
                 "sourceDataset": "dataset-'quoted",
                 "sourceDescription": "source 'quoted'",
                 "sourceMetadata": {"owner": "O'Hara"},
+                "zSemantics": "z 'quoted'",
+                "sourceCollectionMetadata": {"files": ["one"]},
+                "sourceUpdateMetadata": {"mode": "manual"},
+                "sourceObjectSharedMetadata": {"dataset": "shared"},
+                "provenanceMetadata": {"owner": "O'Hara"},
             },
         }
 
@@ -669,6 +678,11 @@ class ShadowCasterPipelineTest(unittest.TestCase):
                 "sourceDataset": "dataset",
                 "sourceDescription": "desc",
                 "sourceMetadata": {"k": "v"},
+                "zSemantics": "RH2000",
+                "sourceCollectionMetadata": {"files": ["one"]},
+                "sourceUpdateMetadata": {"mode": "manual"},
+                "sourceObjectSharedMetadata": {"dataset": "shared"},
+                "provenanceMetadata": {"k": "v"},
             },
         }
 

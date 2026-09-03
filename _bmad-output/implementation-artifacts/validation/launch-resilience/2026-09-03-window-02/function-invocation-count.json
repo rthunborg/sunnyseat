@@ -1,0 +1,128 @@
+{
+  "query": {
+    "metric": "vercel.function_invocation.count",
+    "aggregation": "sum",
+    "groupBy": [
+      "function_start_type",
+      "client_user_agent",
+      "function_region",
+      "deployment_id",
+      "http_status",
+      "route"
+    ],
+    "filter": "(deployment_id eq 'dpl_5sHPi3mxvwk7yi4za86kugi38Gob') and (route eq '/api/venues') and (environment eq 'production') and (environment eq 'production')",
+    "startTime": "2026-09-03T10:11:25.005Z",
+    "endTime": "2026-09-03T10:11:40.253Z",
+    "granularity": {
+      "minutes": 5
+    },
+    "orderBy": "count",
+    "orderDirection": "desc"
+  },
+  "summary": [
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "cold",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t101125z-056eb7ee-origin-002",
+      "function_region": "dub1",
+      "deployment_id": "dpl_5sHPi3mxvwk7yi4za86kugi38Gob",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t101125z-056eb7ee-origin-001",
+      "function_region": "dub1",
+      "deployment_id": "dpl_5sHPi3mxvwk7yi4za86kugi38Gob",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t101125z-056eb7ee-origin-003",
+      "function_region": "dub1",
+      "deployment_id": "dpl_5sHPi3mxvwk7yi4za86kugi38Gob",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t101125z-056eb7ee-origin-004",
+      "function_region": "dub1",
+      "deployment_id": "dpl_5sHPi3mxvwk7yi4za86kugi38Gob",
+      "http_status": "200"
+    },
+    {
+      "route": "/api/venues",
+      "vercel_function_invocation_count_sum": 1,
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t101125z-056eb7ee-origin-007",
+      "function_region": "dub1",
+      "deployment_id": "dpl_5sHPi3mxvwk7yi4za86kugi38Gob",
+      "http_status": "200"
+    }
+  ],
+  "data": [
+    {
+      "timestamp": "2026-09-03T10:10:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "cold",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t101125z-056eb7ee-origin-002",
+      "function_region": "dub1",
+      "deployment_id": "dpl_5sHPi3mxvwk7yi4za86kugi38Gob",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T10:10:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t101125z-056eb7ee-origin-001",
+      "function_region": "dub1",
+      "deployment_id": "dpl_5sHPi3mxvwk7yi4za86kugi38Gob",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T10:10:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t101125z-056eb7ee-origin-003",
+      "function_region": "dub1",
+      "deployment_id": "dpl_5sHPi3mxvwk7yi4za86kugi38Gob",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T10:10:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t101125z-056eb7ee-origin-004",
+      "function_region": "dub1",
+      "deployment_id": "dpl_5sHPi3mxvwk7yi4za86kugi38Gob",
+      "http_status": "200"
+    },
+    {
+      "timestamp": "2026-09-03T10:10:00.000Z",
+      "vercel_function_invocation_count_sum": 1,
+      "route": "/api/venues",
+      "function_start_type": "hot",
+      "client_user_agent": "SunnySeatLaunchProbe/2 lr-20260903t101125z-056eb7ee-origin-007",
+      "function_region": "dub1",
+      "deployment_id": "dpl_5sHPi3mxvwk7yi4za86kugi38Gob",
+      "http_status": "200"
+    }
+  ],
+  "statistics": {
+    "bytesRead": 41952684,
+    "rowsRead": 1137456,
+    "dbTimeSeconds": 0.5449728965759277
+  },
+  "orderBy": "count",
+  "orderDirection": "desc"
+}
