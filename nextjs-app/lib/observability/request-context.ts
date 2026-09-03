@@ -14,7 +14,7 @@ export type RequestContext = {
 
 const requestContextStorage = new AsyncLocalStorage<RequestContext>();
 const LAUNCH_PROBE_REQUEST_ID =
-  /^lr-[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?-(?:origin|edge-prime|edge)-\d{3}$/u;
+  /^lr-\d{8}t\d{6}z-[0-9a-f]{8}-(?:origin|edge-prime|edge)-\d{3}$/u;
 
 export function resolveRequestId(candidate: string | null | undefined): string {
   return candidate && LAUNCH_PROBE_REQUEST_ID.test(candidate)

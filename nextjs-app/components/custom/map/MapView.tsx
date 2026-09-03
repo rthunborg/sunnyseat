@@ -87,21 +87,22 @@ import { VenuePinLayer } from './VenuePinLayer';
 import { UserLocationLayer } from './UserLocationLayer';
 import { MapControls } from './MapControls';
 
-const FeedbackFlow = dynamic(() =>
+const loadFeedbackFlow = () =>
   import('@/components/custom/feedback/FeedbackFlow').then(
     (module) => module.FeedbackFlow,
-  ),
-);
-const VenueDetailOverlay = dynamic(() =>
+  );
+const loadVenueDetailOverlay = () =>
   import('@/components/custom/venue/VenueDetailOverlay').then(
     (module) => module.VenueDetailOverlay,
-  ),
-);
-const ReviewFlow = dynamic(() =>
+  );
+const loadReviewFlow = () =>
   import('@/components/custom/feedback/ReviewFlow').then(
     (module) => module.ReviewFlow,
-  ),
-);
+  );
+
+const FeedbackFlow = dynamic(loadFeedbackFlow);
+const VenueDetailOverlay = dynamic(loadVenueDetailOverlay);
+const ReviewFlow = dynamic(loadReviewFlow);
 
 const SLOW_LOAD_PILL_MS = 3000;
 const SEARCH_RADIUS_KM = 1.5;
@@ -1186,6 +1187,25 @@ export function MapView() {
     interactionToken: venueDetailPrefetchInteraction.token,
     preserveVenueSlug: venueDetailPrefetchInteraction.preserveSlug,
   });
+  useEffect(() => {
+    const preloadLazyInteractionChunks = () => {
+      void loadVenueDetailOverlay();
+      void loadFeedbackFlow();
+      void loadReviewFlow();
+    };
+    const browserWindow = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+
+    if (typeof browserWindow.requestIdleCallback === 'function') {
+      const idleId = browserWindow.requestIdleCallback(preloadLazyInteractionChunks);
+      return () => browserWindow.cancelIdleCallback?.(idleId);
+    }
+
+    const timeoutId = window.setTimeout(preloadLazyInteractionChunks, 1_000);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
   const handleMobileSheetVisibleRowsChange = useCallback((visibleRows: number, reason?: 'layout' | 'interaction') => {
     if (reason !== 'layout') {
       cancelVenueDetailPrefetchCandidates(null);

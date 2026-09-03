@@ -2,7 +2,7 @@
 
 > **Purpose:** This file is the BMAD dev agent's injection point for design awareness. BMAD's dev agent (Amelia) loads this as foundational reference in Step 2 of its workflow. It lives at the project root — not inside `_bmad/` — so it survives BMAD reinstalls without being overwritten.
 >
-> Last updated: 2026-08-17 (Epic 12 protected closeout context refresh; Epic 9–11 ratified conventions remain, Epic 12 production batch-read conventions promoted below)
+> Last updated: 2026-08-26 (Story 13.1 launch-resilience context refresh; Next 16.3.3 security patch, local venue search combobox, and launch bundle posture promoted below)
 >
 > **MVP scope correction:** planner, future date simulation, and favourites are free MVP functionality. Season Pass / Swish is Future Monetization only.
 >
@@ -20,9 +20,9 @@ A live Next.js web/PWA app that helps people in Gothenburg find outdoor venue se
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js `16.3.1` (App Router, **Turbopack default**) |
+| Framework | Next.js `16.3.3` (App Router, **Turbopack default**) |
 | Language | TypeScript `^6.0.2` (strict) |
-| React | React `^19.2.5`; React Compiler package installed but temporarily disabled while the binding total-JavaScript budget remediation remains in progress |
+| React | React `^19.2.5`; React Compiler remains explicitly disabled for launch via `next.config.ts` even though Next may install its compiler plugin transitively |
 | Styling | Tailwind CSS v4 (`^4.2.2`, CSS-first `@theme` tokens) |
 | UI Primitives | shadcn/ui v4 (`shadcn ^4.2.0`) + `@base-ui/react ^1.4.0` |
 | Map | MapLibre GL JS `^5.23.0` |
@@ -30,7 +30,7 @@ A live Next.js web/PWA app that helps people in Gothenburg find outdoor venue se
 | Animation | Motion `^12.38.0` |
 | Gestures | `@use-gesture/react ^10.3.1` |
 | i18n | next-intl `^4.9.1` |
-| Search / Command | cmdk `^1.1.1` |
+| Search / Command | Local WAI-ARIA venue combobox/listbox (`VenueSearchCombobox`); no `cmdk` dependency in the launch graph |
 | PWA | Serwist `^9.5.7` (via `@serwist/turbopack`) |
 | Database | Supabase (`@supabase/supabase-js ^2.103.3`, PostgreSQL 15 + PostGIS) |
 | Sun Engine | TypeScript — NREL SPA + Turf.js (`@turf/turf ^7.3.4`, `nextjs-app/lib/solar/` + `lib/services/sun-engine.ts`); two-signal geometric-potential + weather-gate (Epic 10) |
@@ -51,6 +51,7 @@ A live Next.js web/PWA app that helps people in Gothenburg find outdoor venue se
 - **Epic 10 ("Honest Sky", stories 10.1–10.5) has landed.** It added the weather-truth half of the two-signal model: a cloud gate that flips a geometrically-sunlit venue to a new `CloudObscured` status when the sky is (near-)total overcast or raining, layer-weighted effective cloud cover (thin high cirrus no longer reads as blocking stratus), a Met.no Nowcast 2.0 near-now radar-rain signal, the muted "Sun Behind Clouds" UI treatment, and a reality-verification / regression-guard pass. Its `CloudObscured` / `SkyCondition` union extensions, "undefined never 0" missing-weather discipline, exhaustiveness-forcing allow-lists, and deterministic weather e2e seam are ratified in "Epic 10 Ratified Conventions" below — **binding for any story that reads sun status, sky condition, or weather.**
 - **Epic 11 ("Feels Instant, Reads Clear", stories 11.1–11.9) has landed.** An anti-"shipped-but-insufficient" pass that killed the user-visible time-scrub stall that survived epics 9/10: the server now emits a whole-day gated **sun day-series** and the client derives every time-dependent surface (marker %, pin state, quick-info, "Mest sol" ordering, obscured sky line) from that cached series, so a settled same-date scrub issues **zero** venue requests and only a date change fetches. Query keys went **date-only** (time never in the key, gated by a new `isLiveNow` flag); the planner date picker moved to a fixed **today→today+3** window (client/state-enforced, server opted out); the mobile bottom sheet + tag-chip filtering + time-slider drag were reworked for real touch (`@use-gesture` release-direction snapping, a CDP real-touch Playwright project); and a hygiene pass finally scheduled three-epics-deferred debt (`.gitattributes` LF normalization, Vercel install fail-loud, the amber-badge contrast token, orphaned-mapper deletion). **Story 11.9 (a venue-data-model cleanup folded in from the dissolved Epic 12, landed after the original 11.1–11.8 epic-end)** replaced the venue store's pre-localized `{ display, closesAt }` opening-hours STRING with a per-weekday `opening_hours` jsonb (numeric ISO-weekday keys `"1"`..`"7"`, derived+localized at render time via `lib/utils/opening-hours.ts`), dropped the unused `venues.peak_time` + `shadow_warning_minutes` columns, and made the text PK auto-assign from a sequence (inserts omit `id`) — applied as a live prod-DB migration. Its conventions are ratified in "Epic 11 Ratified Conventions" below — **binding for any story touching the planner time/date, venue query keys, the mobile bottom sheet / slider / chip strip, the venue `opening_hours` data, or the standing perf/touch CI gates.**
 - **Epic 12 ("Real-Venue Launch Readiness", stories 12.1–12.14) is complete.** It adds provider-neutral hours governance, persisted deterministic sun-geometry/day-series reads, weather snapshots, shared live public-venue identity/visibility, public-sunny presentation, internal-only confidence, Supabase Storage media renditions, bounded detail prefetch, a first-run coach guide, selected-instant availability, and a dev-only venue editor. All 14 stories and the epic are `done`; protected production validation, the formal PASS trace gate, and the remaining low-risk NFR caveats are recorded in the Epic 12 closeout artifacts.
+- **Story 13.1 launch-resilience posture is active.** The security target is exact Next.js `16.3.3` pins for `next`, `eslint-config-next`, and `@next/bundle-analyzer`, with the `@swc/helpers` override preserved and npm 10 lockfile generation required. Launch bundle remediation keeps React Compiler disabled, removes command-menu package weight from the venue search path, and preserves the explicit gates: total emitted static JS <= 614,400 B gzipped, initial route JS <= 286,720 B gzipped, MapLibre async chunk <= 327,680 B gzipped, plus separate all-routes MapLibre async verification.
 - **Production admin operations remain retired.** Story 12.5 added a narrowly scoped **localhost/dev-only** venue editor with production hard-deny guards before flags/input. It is an exception to hand-written maintenance, not a production admin product. Routine venue/geodata maintenance still uses reviewed, fail-closed database/import operations documented in `nextjs-app/docs/venue-data-load.md`.
 - **Live DB access:** the direct host is IPv6-only; bulk psql/live-data ops go through the **IPv4 session pooler** (`aws-1-eu-west-1`) via Docker psql, creds in the gitignored `.env.local`. `public.venues` holds the 42-real-venue Göteborg set loaded 2026-07-07. Fixture mode and its seeded venues remain valid deterministic test infrastructure; they are not the live dataset.
 - **Deferred/future:** Epics 4/5/6 are deferred. Season Pass / Swish / paywall states are Future Monetization only and must not enter MVP stories.

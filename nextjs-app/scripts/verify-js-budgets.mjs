@@ -187,6 +187,9 @@ export async function verifyJsBudgets({
   if (!rootStats || !Array.isArray(rootStats.firstLoadChunkPaths)) {
     fail(`route-bundle-stats.json does not contain ${ROOT_ROUTE} firstLoadChunkPaths.`);
   }
+  if (rootStats.firstLoadChunkPaths.length === 0) {
+    fail(`Route ${ROOT_ROUTE} firstLoadChunkPaths is empty; initial route bytes cannot be verified.`);
+  }
 
   const initialResolved = rootStats.firstLoadChunkPaths.map((chunkPath) =>
     resolveDiagnosticChunkPath(resolvedAppDir, chunkPath),

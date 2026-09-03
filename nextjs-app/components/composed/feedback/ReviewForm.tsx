@@ -63,7 +63,7 @@ export function ReviewForm({
   onClose: () => void;
   onRetry?: (payload: ReviewFormSubmit) => void;
 }) {
-  const reducedMotion = useReducedMotion() ?? false;
+  const reducedMotion = useReducedMotion();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState('');

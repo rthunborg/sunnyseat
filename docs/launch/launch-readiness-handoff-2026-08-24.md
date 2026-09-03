@@ -10,8 +10,10 @@ and must not be treated as release approval.
 
 - Repository: `https://github.com/rthunborg/sunnyseat.git`
 - Branch: `codex/launch-resilience-follow-up`
-- Resolve the exact checkpoint with `git rev-parse HEAD` after checkout.
-- Parent checkpoint: `1b1d408361fbc374b443740270b347c848095acf`
+- Exact continuation checkpoint:
+  `668badb0ce15ee321a6aca207f1c5288dbe8f7ea`.
+- Parent reconciliation checkpoint:
+  `1b1d4083e803a86beed9254d8bcb935ca8499eae`
   (`chore: reconcile post-epic-12 local work`).
 - Protected Epic 12 main: `236dde353972e707388468a0686d9ca022a0cc09`.
 - Epic 12 is complete. Do not reopen it. Its closeout merged through PR #26.
@@ -42,8 +44,9 @@ are in this checkpoint.
   evidence artifact and the authoritative historical artifact was restored.
 - The valid `await bypassOnboarding(page)` change in
   `nextjs-app/test/e2e/map-primary.spec.ts` was preserved.
-- The result was committed as `1b1d408`, directly on top of the immutable Epic
-  12 main SHA.
+- The reconciliation result was committed as
+  `1b1d4083e803a86beed9254d8bcb935ca8499eae`, directly on top of the
+  immutable Epic 12 main SHA.
 - Unrelated untracked validation captures and local Supabase material were left
   untouched.
 
@@ -144,15 +147,16 @@ are in this checkpoint.
   upload/download path whose GitHub codeload requests intermittently returned
   429/502. Normal setup-node exact cache-hit/no-save behavior is documented.
 - The npm 10 lockfile was regenerated/repaired. Production audit was zero.
-  The full audit still reported 10 findings (2 low, 1 moderate, 7 high), all in
-  the development-only transitive tree of the current latest
-  `@lhci/cli@0.15.1`; do not use `npm audit fix --force` or blindly downgrade.
+  The full audit reports 14 findings (2 low, 4 moderate, 8 high), all in the
+  development-only Lighthouse CI transitive tree. Browserslist is pinned by an
+  exact override to patched 4.28.8. Do not use `npm audit fix --force` or perform
+  broad blind upgrades.
 
 ### Accessibility and acceptance preparation
 
 - The AVSTÅND fact-card text now uses the AA-safe body text token.
-- Eight mobile axe checks were activated and the relevant mobile axe project
-  passed 13/13 during the work.
+- The complete mobile axe project passes 14/14 and the complete desktop axe
+  project passes 18/18, including the re-enabled Privacy route.
 - Route/device acceptance coverage has been inventoried. Production has no
   venue media, so photo-loaded validation remains local/intercepted or against
   canonical references.
@@ -160,9 +164,11 @@ are in this checkpoint.
   launch/update behavior, true offline fallback, real GPS, touch gestures, and
   VoiceOver/TalkBack.
 
-## Compile-safe but unfinished bundle work
+## Final bundle and compiler decision
 
-- React Compiler is temporarily disabled in `next.config.ts`.
+- React Compiler remains deliberately disabled for launch in `next.config.ts`;
+  `project-context.md` records the decision and a later evidence-led
+  reevaluation path.
 - A single strict `LazyMotion` + `domMin` provider boundary now serves source-
   wide `m.*` usage.
 - A small hydration-safe `useReducedMotion` hook preserves the explicit reduced-
@@ -170,81 +176,61 @@ are in this checkpoint.
 - NotFound's one imperative Motion animation was replaced with equivalent WAAPI.
 - The budget gate now correctly treats **all emitted** `.next/static/**/*.js` as
   the binding total, not just the initial + MapLibre union.
-- Fresh results after these changes:
-  - initial: 249,769 / 286,720 bytes — PASS
-  - MapLibre: 305,536 / 327,680 bytes — PASS
-  - all emitted static JavaScript: 628,977 / 614,400 bytes — **FAIL by 14,577**
-- Baseline reductions were 48,831 total bytes, 25,003 initial bytes, and 17,791
-  MapLibre bytes. Stop treating the total budget as passed until the final
-  14,577 bytes are removed safely and the exact gate passes.
+- Final exact results:
+  - initial: 231.37 KiB / 280 KiB — PASS
+  - MapLibre-loaded: 298.43 KiB / 320 KiB — PASS
+  - all emitted static JavaScript: 598.40 KiB / 600 KiB — PASS
+- The MapLibre asynchronous-loading verifier also passes: one MapLibre chunk is
+  absent from the root first-load files across all 15 inspected manifests.
 
 ## Verification at this pause
 
-The final combined working tree reached this safe boundary:
+The final combined working tree has completed the clean local gate set:
 
 - `npx tsc --noEmit` — PASS
 - `npx eslint . --quiet` — PASS
-- `npm run build` — PASS
-- reduced-motion and bundle-gate unit tests — 8/8 PASS
-- focused source/interaction tests — 47/47 PASS
-- request-identity route tests and related route suites — 37/37 PASS
-- production-probe focused tests — 31/31 PASS
-- mobile axe run during the work — 13/13 PASS
-- exact bundle gate — initial PASS, MapLibre PASS, total FAIL by 14,577 bytes
-- `git diff --check` — PASS (line-ending normalization notices only)
-
-The following final gates have **not** been run as a clean, complete set after
-all combined changes: full Vitest, all relevant Playwright projects, desktop and
-touch acceptance, the complete axe matrix, Lighthouse, and visual validation.
-Do not infer their result from focused passes.
+- `npx vitest run` — PASS (225 files, 2076 tests)
+- `npm run build` — PASS on Next.js 16.3.3
+- exact bundle verifier — PASS at 231.37 KiB initial, 298.43 KiB
+  MapLibre-loaded, and 598.40 KiB all-static
+- MapLibre async verifier — PASS
+- Playwright mobile + desktop — PASS (149 passed, 51 project-inapplicable skips)
+- Playwright touch — PASS (8/8)
+- mobile axe — PASS (14/14)
+- desktop axe — PASS (18/18)
+- Lighthouse — PASS assertions over three runs; performance 0.86 / 0.88 /
+  0.87 and accessibility 1.00 / 1.00 / 1.00
+- Story 13.1 has no mapped Screen ID or standalone visual deliverable, so visual
+  validation is not applicable; do not describe this as a screenshot PASS.
+- Post-review verification changes received a targeted adversarial audit and
+  rereview. All actionable findings were fixed. Four formal review rounds ran;
+  the user explicitly accepted the mechanical convergence caveat after Round 4.
 
 ## Launch blockers and remaining work, in order
 
-1. **Security release first.** The application is pinned to Next.js 16.3.1.
-   The official Next.js blog announced an August 26, 2026 coordinated release
-   for a critical vulnerability affecting the 16.3 and 15.5 lines. On resume,
-   check the official advisory/release, upgrade `next`, `eslint-config-next`, and
-   `@next/bundle-analyzer` to the matching patched version, regenerate the lock
-   with npm 10, and rerun both production and full audits. Do not assume 16.3.2
-   is the security fix merely because it is newer.
-2. Finish the remaining 14,577-byte all-static JavaScript reduction without
-   weakening the binding budgets or accessibility/interaction behavior. Decide
-   deliberately whether React Compiler remains disabled, then reconcile
-   `project-context.md` with the final decision.
-3. Perform the second independent/adversarial review round over the combined
-   observability, probe, DR, route-identity, CI, accessibility, and bundle diffs.
-   The first probe and DR review findings were fixed, but no final combined
-   review has accepted this checkpoint.
-4. From a clean npm 10 install, run the complete gates: typecheck, lint, full
-   Vitest, production build, exact bundle verifier, MapLibre async verifier,
-   relevant mobile/desktop/touch Playwright projects, axe projects, Lighthouse,
-   and required visual validation.
-5. Update Story 13.1 tasks, Dev Agent Record, verification evidence, and file
-   list. Use `scripts/story-review.sh` through `scripts/run-sh.ps1` for any review
-   transition. Human approval alone moves a reviewed story to done.
-6. Commit/PR the finished Story 13.1 code, obtain green protected CI, merge, and
+1. Commit/PR the finished Story 13.1 code, obtain green protected CI, merge, and
    deploy before collecting final production evidence.
-7. Run the production measurement lane across controlled windows until there
+2. Run the production measurement lane across controlled windows until there
    are at least 20 **provider-classified** cold starts. Report cold, prewarmed,
    hot-origin, and edge-hit cohorts separately with raw n/p50/p95; enforce HTTP
    200, 42 unique venues, 61 ordered steps per venue, and the approximately
    five-second uncached-route threshold. Claim endpoint paths only from directly
    observed telemetry.
-8. Refresh backup/source metadata, then execute the isolated provider-native
+3. Refresh backup/source metadata, then execute the isolated provider-native
    restore only after fresh user approval at the displayed-cost confirmation.
    Measure recovery time, state actual RPO/RTO, run the complete verifier and
    restored-app smoke matrix, roll back, and verify cleanup. Never overwrite or
    fail over production without a separate fresh approval.
-9. Run automated production acceptance and give the user the physical-device
+4. Run automated production acceptance and give the user the physical-device
    checklist with exact production URLs, screenshots/reference images, and
    pass/fail questions. Do not create fake production reviews or feedback.
-10. Publish the durable launch report with changes, commits/PRs, commands and
+5. Publish the durable launch report with changes, commits/PRs, commands and
     results, production evidence, remaining caveats, and an explicit GO / GO
     WITH CAVEATS / NO-GO recommendation.
 
-Until the security patch, total bundle budget, provider cold-start sample,
-isolated restore drill, complete gate suite, and required human device checks
-are resolved, the honest interim recommendation is **NO-GO**.
+Until the provider cold-start sample, isolated restore drill, protected CI and
+deployment, and required human device checks are resolved, the honest interim
+recommendation is **NO-GO**.
 
 ## Acceptance URLs and human-only scope
 

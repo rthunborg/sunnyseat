@@ -10,6 +10,8 @@ export const VERCEL_CLI_VERSION = '59.1.3';
 const REQUEST_ROUTE = '/api/venues';
 const CANONICAL_SESSION_ID = /^lr-\d{8}t\d{6}z-[0-9a-f]{8}$/u;
 const CANONICAL_PROBE_ID = /^(lr-\d{8}t\d{6}z-[0-9a-f]{8})-(origin|edge-prime|edge)-(\d{3})$/u;
+const CANONICAL_DEPLOYMENT_ID = /^dpl_[A-Za-z0-9_-]{1,128}$/u;
+const VERCEL_ENVIRONMENTS = new Set(['production', 'preview']);
 const REQUEST_COHORTS = new Set(['origin', 'edge-prime', 'edge-repeat']);
 const CLIENT_TIMING_TOLERANCE_MS = 250;
 const CLIENT_SAMPLE_FIELDS = new Set([
@@ -70,6 +72,7 @@ const EXTERNAL_GROUP_BY = [
   'request_method',
   'request_path',
 ];
+const METRIC_EXPORT_LIMIT = 500;
 
 const EXPECTED_DEPENDENCIES = new Map([
   ['venue_list', { path: '/rest/v1/venues', method: 'GET' }],
@@ -116,6 +119,10 @@ export function isCanonicalProbeId(value) {
   return typeof value === 'string' && CANONICAL_PROBE_ID.test(value);
 }
 
+function isCanonicalDeploymentId(value) {
+  return typeof value === 'string' && CANONICAL_DEPLOYMENT_ID.test(value);
+}
+
 function metricExport({
   id,
   outputFile,
@@ -125,6 +132,7 @@ function metricExport({
   groupBy,
   deploymentId,
   measurementWindow,
+  environment,
 }) {
   const argv = [
     'npx',
@@ -134,12 +142,16 @@ function metricExport({
     metric,
     '--aggregation',
     aggregation,
-    '--prod',
+  ];
+  if (environment === 'production') argv.push('--prod');
+  argv.push(
     '--filter',
     `deployment_id eq '${deploymentId}'`,
     '--filter',
     `${routeDimension} eq '${REQUEST_ROUTE}'`,
-  ];
+    '--filter',
+    `environment eq '${environment}'`,
+  );
   for (const dimension of groupBy) {
     argv.push('--group-by', dimension);
   }
@@ -151,7 +163,7 @@ function metricExport({
     '--granularity',
     '5m',
     '--limit',
-    '500',
+    String(METRIC_EXPORT_LIMIT),
     '--order-by',
     'count',
     '--order',
@@ -167,7 +179,7 @@ function vercelRequestIdSuffix(value) {
   return suffix && /^[A-Za-z0-9_-]{1,256}$/u.test(suffix) ? suffix : null;
 }
 
-function requestLogExports(clientSamples, deploymentId) {
+function requestLogExports(clientSamples, deploymentId, environment) {
   if (!Array.isArray(clientSamples) || clientSamples.length === 0) {
     throw new Error(
       'Cannot build a provider evidence plan without the collected client samples.',
@@ -202,7 +214,7 @@ function requestLogExports(clientSamples, deploymentId) {
       argv: [
         'npx', '--yes', `vercel@${VERCEL_CLI_VERSION}`,
         'logs', deploymentId,
-        '--environment', 'production',
+        '--environment', environment,
         '--request-id', requestId,
         '--limit', String(REQUEST_LOG_CAPTURE_LIMIT),
         '--json',
@@ -215,19 +227,20 @@ export function buildVercelEvidencePlan({
   deploymentId,
   measurementWindow,
   clientSamples,
+  environment = 'production',
 }) {
   const startedAt = normalizedUtcTimestamp(
     measurementWindow?.started_at_utc,
   );
   const endedAt = normalizedUtcTimestamp(measurementWindow?.ended_at_utc);
   if (
-    typeof deploymentId !== 'string' ||
-    deploymentId.length === 0 ||
+    !isCanonicalDeploymentId(deploymentId) ||
     !startedAt ||
     !endedAt ||
-    Date.parse(startedAt) > Date.parse(endedAt)
+    Date.parse(startedAt) > Date.parse(endedAt) ||
+    !VERCEL_ENVIRONMENTS.has(environment)
   ) {
-    throw new Error('Cannot build a provider evidence plan without an exact deployment and UTC window.');
+    throw new Error('Cannot build a provider evidence plan without a canonical deployment id, environment, and UTC window.');
   }
   const exactWindow = {
     started_at_utc: startedAt,
@@ -238,7 +251,7 @@ export function buildVercelEvidencePlan({
     provider: 'vercel',
     cli: { package: 'vercel', version: VERCEL_CLI_VERSION },
     deployment_id: deploymentId,
-    environment: 'production',
+    environment,
     measurement_window: exactWindow,
     integrity_scope:
       'SHA-256 hashes recorded by this lane are local tamper evidence for the captured byte streams. This local hash record does not authenticate provider origin or prove that a provider export is complete.',
@@ -254,6 +267,7 @@ export function buildVercelEvidencePlan({
         groupBy: PROVIDER_GROUP_BY,
         deploymentId,
         measurementWindow: exactWindow,
+        environment,
       }),
       metricExport({
         id: 'provider_duration',
@@ -264,6 +278,7 @@ export function buildVercelEvidencePlan({
         groupBy: PROVIDER_GROUP_BY,
         deploymentId,
         measurementWindow: exactWindow,
+        environment,
       }),
       metricExport({
         id: 'provider_external',
@@ -274,8 +289,9 @@ export function buildVercelEvidencePlan({
         groupBy: EXTERNAL_GROUP_BY,
         deploymentId,
         measurementWindow: exactWindow,
+        environment,
       }),
-      ...requestLogExports(clientSamples, deploymentId),
+      ...requestLogExports(clientSamples, deploymentId, environment),
     ],
   };
 }
@@ -338,8 +354,9 @@ function normalizedUtcTimestamp(value) {
   return new Date(milliseconds).toISOString();
 }
 
-export function normalizeRuntimeEvents(entries) {
+export function normalizeRuntimeEvents(entries, { environment = 'production' } = {}) {
   const events = [];
+  if (!VERCEL_ENVIRONMENTS.has(environment)) return events;
   for (const entry of entries) {
     const envelope =
       entry &&
@@ -359,7 +376,7 @@ export function normalizeRuntimeEvents(entries) {
       envelope.id.length === 0 ||
       typeof envelope.deploymentId !== 'string' ||
       envelope.deploymentId.length === 0 ||
-      envelope.environment !== 'production' ||
+      envelope.environment !== environment ||
       !REQUEST_LOG_SOURCES.has(envelope.source) ||
       envelope.requestMethod !== 'GET' ||
       envelope.requestPath !== REQUEST_ROUTE ||
@@ -517,6 +534,7 @@ function metricRows({
     const summary = document.summary;
     const granularity = query?.granularity;
     const groupBy = Array.isArray(query?.groupBy) ? query.groupBy : [];
+    const queryLimit = Number(query?.limit);
     const queryIsExact =
       query &&
       typeof query === 'object' &&
@@ -526,6 +544,7 @@ function metricRows({
       granularity &&
       typeof granularity === 'object' &&
       granularity.minutes === 5 &&
+      queryLimit === METRIC_EXPORT_LIMIT &&
       query.orderBy === 'count' &&
       query.orderDirection === 'desc' &&
       groupBy.length === requiredGroupBy.length &&
@@ -537,6 +556,15 @@ function metricRows({
     ) {
       errors.push(
         `${evidenceLabel} is not an official production ${expectedMetric} query document.`,
+      );
+      continue;
+    }
+    if (
+      summary.length >= METRIC_EXPORT_LIMIT &&
+      !metricDocumentDeclaresComplete(document)
+    ) {
+      errors.push(
+        `${evidenceLabel} reached the ${METRIC_EXPORT_LIMIT}-row export limit without explicit non-truncated pagination metadata.`,
       );
       continue;
     }
@@ -573,6 +601,31 @@ function metricRows({
   return { rows, errors, rawDocuments, rawSummaryRows };
 }
 
+function metricDocumentDeclaresComplete(document) {
+  const pagination = document.pagination;
+  if (pagination && typeof pagination === 'object') {
+    const next =
+      pagination.next ??
+      pagination.nextCursor ??
+      pagination.nextPage ??
+      pagination.cursor;
+    const hasMore =
+      pagination.hasMore ??
+      pagination.has_more ??
+      pagination.more;
+    return (
+      (hasMore === false || hasMore === 0) &&
+      (next === null || next === undefined || next === '')
+    );
+  }
+  const meta = document.meta ?? document.metadata;
+  if (meta && typeof meta === 'object') {
+    if (meta.truncated === false || meta.is_truncated === false) return true;
+  }
+  if (document.truncated === false || document.is_truncated === false) return true;
+  return false;
+}
+
 function validRuntimeProvenance(value) {
   return (
     value &&
@@ -600,6 +653,7 @@ function providerDimensionKey(row) {
  *   invocationEvidence: MetricDocumentEvidence[],
  *   durationEvidence: MetricDocumentEvidence[],
  *   expectedDeploymentId: string,
+ *   expectedEnvironment?: 'production' | 'preview',
  *   runtimeEvents: Array<Record<string, unknown>>,
  *   measurementWindow?: {
  *     started_at_utc: string,
@@ -610,12 +664,25 @@ function providerDimensionKey(row) {
 export function deriveVercelProviderSamples({
   invocationEvidence,
   expectedDeploymentId,
+  expectedEnvironment = 'production',
   durationEvidence,
   runtimeEvents,
   measurementWindow = null,
 }) {
+  if (!VERCEL_ENVIRONMENTS.has(expectedEnvironment)) {
+    return {
+      samples: [],
+      errors: [`Unsupported Vercel environment: ${expectedEnvironment}.`],
+      raw_counts: {
+        provider_invocation_documents: 0,
+        provider_invocation_summary_rows: 0,
+        provider_duration_documents: 0,
+        provider_duration_summary_rows: 0,
+      },
+    };
+  }
   const requiredFilterClauses = [
-    "environment eq 'production'",
+    `environment eq '${expectedEnvironment}'`,
     `deployment_id eq '${expectedDeploymentId}'`,
     `route eq '${REQUEST_ROUTE}'`,
   ];
@@ -731,7 +798,7 @@ export function deriveVercelProviderSamples({
       provider_request_id: providerRequestId,
       start_type: startType,
       deployment_id: deploymentId,
-      environment: 'production',
+      environment: expectedEnvironment,
       route,
       timestamp_utc: timestampUtc,
       region,
@@ -939,6 +1006,7 @@ function validateExternalProviderEvidence({
   measurementWindow,
   expectedDeploymentId,
   expectedSupabaseHostname,
+  expectedEnvironment,
 }) {
   const metric = metricRows({
     evidence,
@@ -948,7 +1016,7 @@ function validateExternalProviderEvidence({
     measurementWindow,
     evidenceLabel: 'Provider external evidence',
     requiredFilterClauses: [
-      "environment eq 'production'",
+      `environment eq '${expectedEnvironment}'`,
       `deployment_id eq '${expectedDeploymentId}'`,
       `origin_route eq '${REQUEST_ROUTE}'`,
     ],
@@ -1015,6 +1083,13 @@ function validateExternalProviderEvidence({
       );
       continue;
     }
+    if (!acceptedByRegion.has(region)) {
+      complete = false;
+      errors.push(
+        `Provider external evidence contains function region ${region} with no accepted provider sample.`,
+      );
+      continue;
+    }
     const regionPaths = pathCountsByRegion.get(region) ?? new Map();
     if (regionPaths.has(requestPath)) {
       complete = false;
@@ -1037,10 +1112,10 @@ function validateExternalProviderEvidence({
     }
     for (const [requestPath, requestMethod] of expectedPathMethods) {
       const observedCount = regionPaths.get(requestPath) ?? 0;
-      if (observedCount < acceptedCount) {
+      if (observedCount !== acceptedCount) {
         complete = false;
         errors.push(
-          `Provider external evidence for ${region} expected at least ${acceptedCount} ${requestMethod} ${requestPath} calls; received ${observedCount}.`,
+          `Provider external evidence for ${region} expected exactly ${acceptedCount} ${requestMethod} ${requestPath} calls for correlated probes; received ${observedCount}.`,
         );
       }
     }
@@ -1072,6 +1147,7 @@ function validateProviderRequestEvidence({
   captureSources,
   clientSamples,
   expectedDeploymentId,
+  expectedEnvironment,
 }) {
   const errors = [];
   const acceptedByProbeId = new Map();
@@ -1195,7 +1271,7 @@ function validateProviderRequestEvidence({
         entry.capture_id === source.capture_id);
     const envelopeMatches =
       envelope.deploymentId === expectedDeploymentId &&
-      envelope.environment === 'production' &&
+      envelope.environment === expectedEnvironment &&
       REQUEST_LOG_SOURCES.has(envelope.source) &&
       envelope.requestMethod === 'GET' &&
       envelope.requestPath === REQUEST_ROUTE &&
@@ -1239,8 +1315,22 @@ export function buildLaunchReport({
   providerExternalEvidence = /** @type {MetricDocumentEvidence[]} */ ([]),
   minColdSamples = 20,
   uncachedThresholdMs = 5_000,
+  expectedEnvironment = 'production',
 }) {
   const errors = [];
+  if (!VERCEL_ENVIRONMENTS.has(expectedEnvironment)) {
+    return {
+      schema_version: 3,
+      generated_at: new Date().toISOString(),
+      deployment_id: expectedDeploymentId,
+      environment: expectedEnvironment,
+      measurement_window: null,
+      raw_counts: {},
+      cohorts: {},
+      acceptance: { passed: false },
+      errors: [`Unsupported Vercel environment: ${expectedEnvironment}.`],
+    };
+  }
   let correctness = clientSamples.length > 0;
   let providerJoinComplete = true;
   let dependencyAttributionComplete = true;
@@ -1311,12 +1401,16 @@ export function buildLaunchReport({
     if (
       sample.deployment_id !== expectedDeploymentId ||
       sample.response_deployment_id !== expectedDeploymentId ||
-      sample.environment !== 'production'
+      sample.environment !== expectedEnvironment
     ) {
       accepted = false;
       errors.push(`${probeId} is not bound to the expected production deployment.`);
     }
-    if (cacheStatus === 'MISS' && sample.response_request_id !== probeId) {
+    if (
+      cacheStatus === 'MISS' &&
+      sample.response_request_id !== null &&
+      sample.response_request_id !== probeId
+    ) {
       accepted = false;
       errors.push(`${probeId} did not echo its origin request id.`);
     }
@@ -1365,6 +1459,7 @@ export function buildLaunchReport({
     captureSources: providerRequestCaptureSources,
     clientSamples,
     expectedDeploymentId,
+    expectedEnvironment,
   });
   errors.push(...requestEvidence.errors);
   if (!requestEvidence.complete) providerJoinComplete = false;
@@ -1390,7 +1485,9 @@ export function buildLaunchReport({
     (sample) => String(sample.cache_status).toUpperCase() === 'HIT',
   );
   const originSamples = acceptedClientSamples.filter(
-    (sample) => String(sample.cache_status).toUpperCase() === 'MISS',
+    (sample) =>
+      sample.requested_cohort === 'origin' &&
+      String(sample.cache_status).toUpperCase() === 'MISS',
   );
   const edgePrimeSamples = acceptedClientSamples.filter(
     (sample) => sample.requested_cohort === 'edge-prime',
@@ -1438,6 +1535,7 @@ export function buildLaunchReport({
     durationEvidence: providerDurationEvidence,
     runtimeEvents: correlatedRuntimeEvents,
     measurementWindow,
+    expectedEnvironment,
   });
   if (derivation.errors.length > 0) providerJoinComplete = false;
   errors.push(...derivation.errors);
@@ -1475,7 +1573,7 @@ export function buildLaunchReport({
       typeof sample.region !== 'string' ||
       sample.region.length === 0 ||
       sample.route !== REQUEST_ROUTE ||
-      sample.environment !== 'production' ||
+      sample.environment !== expectedEnvironment ||
       sample.deployment_id !== expectedDeploymentId
     ) {
       accepted = false;
@@ -1487,7 +1585,7 @@ export function buildLaunchReport({
     if (!clientSample || String(clientSample.cache_status).toUpperCase() !== 'MISS') {
       accepted = false;
       providerJoinComplete = false;
-      errors.push(`${probeId} has no matching accepted origin client sample.`);
+      errors.push(`${probeId} has no matching accepted function-running client sample.`);
     } else if (!withinClientInterval(providerTimestampMs, clientSample)) {
       accepted = false;
       providerJoinComplete = false;
@@ -1502,15 +1600,27 @@ export function buildLaunchReport({
     providerByProbeId.set(probeId, sample);
     acceptedProviderSamples.push(sample);
   }
+  const acceptedOriginProviderSamples = acceptedProviderSamples.filter(
+    (sample) => clientByProbeId.get(sample.probe_id)?.requested_cohort === 'origin',
+  );
+  const functionRunningSamples = acceptedClientSamples.filter(
+    (sample) => String(sample.cache_status).toUpperCase() === 'MISS',
+  );
+  const acceptedFunctionProviderSamples = acceptedProviderSamples.filter(
+    (sample) => {
+      const clientSample = clientByProbeId.get(sample.probe_id);
+      return clientSample && String(clientSample.cache_status).toUpperCase() === 'MISS';
+    },
+  );
 
-  for (const sample of originSamples) {
+  for (const sample of functionRunningSamples) {
     if (!providerByProbeId.has(sample.probe_id)) {
       providerJoinComplete = false;
       errors.push(`${sample.probe_id} has no provider classification.`);
     }
   }
 
-  for (const providerSample of acceptedProviderSamples) {
+  for (const providerSample of acceptedFunctionProviderSamples) {
     const clientSample = clientByProbeId.get(providerSample.probe_id);
     const probeEvents = correlatedRuntimeEvents.filter(
       (event) => event.request_id === providerSample.probe_id,
@@ -1519,7 +1629,7 @@ export function buildLaunchReport({
       const eventTimestampMs = utcMilliseconds(event.timestamp_utc);
       return (
         event.deployment_id === expectedDeploymentId &&
-        event.environment === 'production' &&
+        event.environment === expectedEnvironment &&
         event.provider_request_id === providerSample.provider_request_id &&
         validRuntimeProvenance(event.runtime_provenance) &&
         withinClientInterval(eventTimestampMs, clientSample) &&
@@ -1588,15 +1698,16 @@ export function buildLaunchReport({
     measurementWindow,
     expectedDeploymentId,
     expectedSupabaseHostname,
+    expectedEnvironment,
   });
   errors.push(...external.errors);
-  const coldSamples = acceptedProviderSamples.filter(
+  const coldSamples = acceptedOriginProviderSamples.filter(
     (sample) => sample.start_type === 'cold',
   );
-  const prewarmedSamples = acceptedProviderSamples.filter(
+  const prewarmedSamples = acceptedOriginProviderSamples.filter(
     (sample) => sample.start_type === 'prewarmed',
   );
-  const hotSamples = acceptedProviderSamples.filter(
+  const hotSamples = acceptedOriginProviderSamples.filter(
     (sample) => sample.start_type === 'hot',
   );
   const correlatedOriginSamples = originSamples.filter((sample) =>
@@ -1655,7 +1766,7 @@ export function buildLaunchReport({
     schema_version: 3,
     generated_at: new Date().toISOString(),
     deployment_id: expectedDeploymentId,
-    environment: 'production',
+    environment: expectedEnvironment,
     measurement_window: measurementWindow,
     raw_counts: {
       client_samples: clientSamples.length,

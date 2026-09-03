@@ -15,6 +15,8 @@ describe('request observability context', () => {
     for (const candidate of [
       'probe_2026-08-17:001',
       'safe-but-not-a-controlled-probe',
+      'lr-readable-venue-slug-origin-001',
+      'lr-20260818t090000z-private-venue-slug-origin-001',
       'lr-20260818t090000z-a1b2c3d4-origin-1',
       'lr-20260818t090000z-a1b2c3d4-unknown-001',
       'unsafe id/with?query=never-log',
@@ -48,6 +50,64 @@ describe('request observability context', () => {
     ]);
 
     expect(requestIds).toEqual(['probe-first', 'probe-second']);
+    expect(getRequestContext()).toBeUndefined();
+  });
+
+  test('keeps nested async request contexts isolated until their callbacks finish', async () => {
+    const observations: string[] = [];
+    const first = runWithRequestContext(
+      {
+        requestId: 'lr-20260818t090000z-a1b2c3d4-origin-001',
+        route: '/api/venues',
+        region: 'dub1',
+        deploymentId: 'dpl-first',
+        environment: 'production',
+      },
+      async () => {
+        observations.push(`first-start:${getRequestContext()?.requestId}`);
+        await Promise.resolve();
+        await runWithRequestContext(
+          {
+            requestId: 'lr-20260818t090000z-b2c3d4e5-origin-002',
+            route: '/api/venues',
+            region: 'iad1',
+            deploymentId: 'dpl-nested',
+            environment: 'preview',
+          },
+          async () => {
+            await Promise.resolve();
+            observations.push(`nested:${getRequestContext()?.requestId}`);
+          },
+        );
+        observations.push(`first-end:${getRequestContext()?.requestId}`);
+      },
+    );
+    const second = runWithRequestContext(
+      {
+        requestId: 'lr-20260818t090000z-c3d4e5f6-edge-prime-003',
+        route: '/api/venues',
+        region: 'arn1',
+        deploymentId: 'dpl-second',
+        environment: 'production',
+      },
+      async () => {
+        await Promise.resolve();
+        observations.push(`second:${getRequestContext()?.requestId}`);
+      },
+    );
+
+    await Promise.all([first, second]);
+
+    expect(observations).toEqual(expect.arrayContaining([
+      'first-start:lr-20260818t090000z-a1b2c3d4-origin-001',
+      'nested:lr-20260818t090000z-b2c3d4e5-origin-002',
+      'second:lr-20260818t090000z-c3d4e5f6-edge-prime-003',
+      'first-end:lr-20260818t090000z-a1b2c3d4-origin-001',
+    ]));
+    expect(observations.indexOf('first-start:lr-20260818t090000z-a1b2c3d4-origin-001'))
+      .toBeLessThan(observations.indexOf('first-end:lr-20260818t090000z-a1b2c3d4-origin-001'));
+    expect(observations.indexOf('nested:lr-20260818t090000z-b2c3d4e5-origin-002'))
+      .toBeLessThan(observations.indexOf('first-end:lr-20260818t090000z-a1b2c3d4-origin-001'));
     expect(getRequestContext()).toBeUndefined();
   });
 });

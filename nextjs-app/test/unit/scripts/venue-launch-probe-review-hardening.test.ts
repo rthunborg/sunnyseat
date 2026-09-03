@@ -2,9 +2,10 @@ import { createHash } from 'node:crypto';
 import { describe, expect, test } from 'vitest';
 import {
   buildVercelEvidencePlan,
-  buildLaunchReport,
+  buildLaunchReport as buildLaunchReportUntyped,
   deriveVercelProviderSamples,
   isCanonicalProbeId,
+  normalizeRuntimeEvents,
   PROVIDER_JOIN_CLOCK_SKEW_MS,
   validateVercelEvidencePlan,
 } from '../../../scripts/launch-resilience/venue-probe-lib.mjs';
@@ -35,6 +36,58 @@ const EXTERNAL_GROUP_BY = [
 ];
 
 type StartType = 'cold' | 'prewarmed' | 'hot';
+
+type PercentileSummary = {
+  p50: number | null;
+  p95: number | null;
+};
+
+type CohortSummary = {
+  n: number;
+  client_ttfb_ms: PercentileSummary;
+  client_total_ms: PercentileSummary;
+  function_duration_ms: PercentileSummary;
+};
+
+type LaunchReport = {
+  acceptance: {
+    passed: boolean;
+    correctness: boolean;
+    provider_join_complete: boolean;
+    provider_request_evidence_complete: boolean;
+    edge_cache_lane_complete: boolean;
+    edge_provider_correlation_complete: boolean;
+    dependency_attribution_complete: boolean;
+    external_provider_complete: boolean;
+    cold_sample_count: number;
+    uncached_route_threshold_ms: number;
+    provider_join_clock_skew_ms: number;
+  };
+  cohorts: {
+    cold: CohortSummary;
+    prewarmed: CohortSummary;
+    hot: CohortSummary;
+    origin_uncached: CohortSummary;
+    edge_hit: CohortSummary;
+  };
+  raw_counts: {
+    rejected_client_samples: number;
+    runtime_events: number;
+    provider_external_requests: number;
+    [key: string]: number | undefined;
+  };
+  errors: string[];
+};
+
+const buildLaunchReportRuntime = buildLaunchReportUntyped as unknown as (
+  options: Record<string, unknown>,
+) => unknown;
+
+function buildLaunchReport(
+  options: Record<string, unknown>,
+): LaunchReport {
+  return buildLaunchReportRuntime(options) as LaunchReport;
+}
 
 function requestSourceSha(probeId: string) {
   return createHash('sha256').update(`request-log:${probeId}`).digest('hex');
@@ -209,6 +262,7 @@ function rawMetricEvidence(
         startTime: windowStart,
         endTime: windowEnd,
         granularity: { minutes: 5 },
+        limit: 500,
         orderBy: 'count',
         orderDirection: 'desc',
       },
@@ -363,7 +417,7 @@ function buildEvidenceReport({
   minCold?: number;
   windowStart?: string;
   windowEnd?: string;
-}) {
+}): LaunchReport {
   const derivedWindowStart = windowStart ?? new Date(Math.min(
     ...clients.map((sample) => Date.parse(sample.started_at_utc)),
   )).toISOString();
@@ -564,6 +618,57 @@ describe('venue probe final observability hardening', () => {
     ).not.toBe(provenance.invocation_raw_document_sha256);
   });
 
+  test('ignores non-200 provider request envelopes when normalizing runtime logs', () => {
+    const probeId = canonicalProbeId('non-200-envelope');
+    const validRuntimeLog = JSON.stringify(runtimeEvents(probeId)[0]);
+
+    expect(normalizeRuntimeEvents([{
+      envelope: {
+        id: `provider-${probeId}`,
+        timestamp: Date.parse(WINDOW_START),
+        deploymentId: DEPLOYMENT_ID,
+        environment: 'production',
+        source: 'serverless',
+        requestMethod: 'GET',
+        requestPath: '/api/venues',
+        responseStatusCode: 304,
+        cache: 'HIT',
+        logs: [{ level: 'info', message: validRuntimeLog }],
+      },
+      source_sha256: requestSourceSha(probeId),
+      source_record: 1,
+    }])).toEqual([]);
+  });
+
+  test('rejects provider metric evidence outside the exact client window', () => {
+    const probeId = canonicalProbeId('window-drift');
+    const sample = providerSpec(probeId);
+    const metrics = providerMetricEvidence(
+      [sample],
+      '2026-08-18T09:00:01.000Z',
+      '2026-08-18T09:00:02.000Z',
+    );
+
+    const result = deriveVercelProviderSamples({
+      invocationEvidence: metrics.providerInvocationEvidence,
+      durationEvidence: metrics.providerDurationEvidence,
+      runtimeEvents: runtimeEvents(probeId),
+      expectedDeploymentId: DEPLOYMENT_ID,
+      measurementWindow: {
+        started_at_utc: WINDOW_START,
+        ended_at_utc: WINDOW_END,
+      },
+    });
+
+    expect(result.samples).toEqual([]);
+    expect(result.errors).toContain(
+      'Provider invocation evidence does not cover the exact client measurement window.',
+    );
+    expect(result.errors).toContain(
+      'Provider duration evidence does not cover the exact client measurement window.',
+    );
+  });
+
   test('rejects metric documents with dimensions outside the sanctioned command', () => {
     const probeId = canonicalProbeId('extra-group');
     const samples = [providerSpec(probeId)];
@@ -611,7 +716,7 @@ describe('venue probe final observability hardening', () => {
     );
   });
 
-  test('allows organic same-route counts but requires every exact path per region', () => {
+  test('requires exact same-route external counts for the correlated probe requests', () => {
     const dubId = canonicalProbeId('dub-cold');
     const iadId = canonicalProbeId('iad-cold');
     const samples = [
@@ -639,17 +744,20 @@ describe('venue probe final observability hardening', () => {
       'Provider external evidence is missing accepted region iad1.',
     );
 
-    const organicTraffic = externalMetricEvidence(samples);
-    organicTraffic[0]!.document.summary[0]!
+    const unrelatedSameRouteTraffic = externalMetricEvidence(samples);
+    unrelatedSameRouteTraffic[0]!.document.summary[0]!
       .vercel_external_api_request_count_sum = 3;
-    const organicReport = buildEvidenceReport({
+    const unrelatedTrafficReport = buildEvidenceReport({
       clients,
       samples,
       events,
-      external: organicTraffic,
+      external: unrelatedSameRouteTraffic,
     });
-    expect(organicReport.acceptance.external_provider_complete).toBe(true);
-    expect(organicReport.raw_counts.provider_external_requests).toBe(8);
+    expect(unrelatedTrafficReport.acceptance.external_provider_complete).toBe(false);
+    expect(unrelatedTrafficReport.raw_counts.provider_external_requests).toBe(8);
+    expect(unrelatedTrafficReport.errors).toContain(
+      'Provider external evidence for dub1 expected exactly 1 GET /rest/v1/venues calls for correlated probes; received 3.',
+    );
 
     const insufficient = externalMetricEvidence(samples);
     insufficient[0]!.document.summary[0]!
@@ -662,7 +770,23 @@ describe('venue probe final observability hardening', () => {
     });
     expect(insufficientReport.acceptance.external_provider_complete).toBe(false);
     expect(insufficientReport.errors).toContain(
-      'Provider external evidence for dub1 expected at least 1 GET /rest/v1/venues calls; received 0.',
+      'Provider external evidence for dub1 expected exactly 1 GET /rest/v1/venues calls for correlated probes; received 0.',
+    );
+
+    const extraRegion = externalMetricEvidence(samples);
+    for (const dependencyRow of externalMetricEvidence([providerSpec(canonicalProbeId('unaccepted-region'), 'cold', 'fra1')])[0]!
+      .document.summary) {
+      extraRegion[0]!.document.summary.push(dependencyRow);
+    }
+    const extraRegionReport = buildEvidenceReport({
+      clients,
+      samples,
+      events,
+      external: extraRegion,
+    });
+    expect(extraRegionReport.acceptance.external_provider_complete).toBe(false);
+    expect(extraRegionReport.errors).toContain(
+      'Provider external evidence contains function region fra1 with no accepted provider sample.',
     );
   });
 
@@ -1006,6 +1130,23 @@ describe('venue probe final observability hardening', () => {
     })).toContain(
       'Provider evidence plan does not match the sanctioned Vercel CLI 59.1.3 commands.',
     );
+
+    for (const unsafeDeploymentId of [
+      ' dpl_test_launch_resilience',
+      "dpl_test_launch_resilience' or environment eq 'preview",
+      'dpl test launch resilience',
+      'dpl_test_launch_resilience\n--filter route eq /',
+    ]) {
+      expect(() =>
+        buildVercelEvidencePlan({
+          deploymentId: unsafeDeploymentId,
+          measurementWindow,
+          clientSamples: clients,
+        }),
+      ).toThrow(
+        'Cannot build a provider evidence plan without a canonical deployment id, environment, and UTC window.',
+      );
+    }
   });
   test('requires one edge prime MISS followed by at least one repeat HIT', () => {
     const originId = canonicalProbeId('edge-lane-origin');
@@ -1038,6 +1179,101 @@ describe('venue probe final observability hardening', () => {
     expect(missingRepeat.acceptance.edge_cache_lane_complete).toBe(false);
     expect(missingRepeat.errors).toContain(
       'Edge cache lane requires exactly one prime MISS followed by at least one repeat HIT for the same session.',
+    );
+  });
+
+  test('requires provider classification and dependency attribution for edge-prime MISS function runs', () => {
+    const originId = canonicalProbeId('edge-prime-provider-origin');
+    const edge = edgeLaneClients('edge-prime-provider-required');
+    const clients = [clientSample(originId), edge.prime, edge.repeat];
+    const report = buildEvidenceReport({
+      clients,
+      samples: [providerSpec(originId, 'cold')],
+      events: [
+        ...runtimeEvents(originId),
+        ...runtimeEvents(edge.prime.probe_id),
+      ],
+      minCold: 1,
+    });
+
+    expect(report.acceptance.passed).toBe(false);
+    expect(report.acceptance.provider_join_complete).toBe(false);
+    expect(report.errors).toContain(
+      `${edge.prime.probe_id} has no provider classification.`,
+    );
+  });
+
+  test('does not count edge-prime MISS samples toward origin latency or cold-start cohorts', () => {
+    const originId = canonicalProbeId('edge-prime-origin');
+    const edge = edgeLaneClients('edge-prime-cold');
+    const clients = [clientSample(originId), edge.prime, edge.repeat];
+    const samples = [
+      providerSpec(originId, 'hot'),
+      providerSpec(edge.prime.probe_id, 'cold'),
+    ];
+    const report = buildEvidenceReport({
+      clients,
+      samples,
+      events: [
+        ...runtimeEvents(originId),
+        ...runtimeEvents(edge.prime.probe_id),
+      ],
+      minCold: 1,
+    });
+
+    expect(report.acceptance.passed).toBe(false);
+    expect(report.acceptance.cold_sample_count).toBe(0);
+    expect(report.cohorts.cold.n).toBe(0);
+    expect(report.cohorts.hot.n).toBe(1);
+    expect(report.cohorts.origin_uncached.n).toBe(1);
+    expect(report.errors).toContain(
+      'Need at least 1 provider-classified cold samples; received 0.',
+    );
+  });
+
+  test('rejects provider metric summaries that may be truncated at the CLI export limit', () => {
+    const probeId = canonicalProbeId('metric-limit');
+    const metrics = providerMetricEvidence([providerSpec(probeId)]);
+    const summaryRow = metrics.providerInvocationEvidence[0]!.document.summary[0]!;
+    metrics.providerInvocationEvidence[0]!.document.summary = Array.from(
+      { length: 500 },
+      () => ({ ...summaryRow }),
+    );
+
+    const result = deriveVercelProviderSamples({
+      invocationEvidence: metrics.providerInvocationEvidence,
+      durationEvidence: metrics.providerDurationEvidence,
+      runtimeEvents: runtimeEvents(probeId),
+      expectedDeploymentId: DEPLOYMENT_ID,
+      measurementWindow: {
+        started_at_utc: WINDOW_START,
+        ended_at_utc: WINDOW_END,
+      },
+    });
+
+    expect(result.samples).toEqual([]);
+    expect(result.errors).toContain(
+      'Provider invocation evidence reached the 500-row export limit without explicit non-truncated pagination metadata.',
+    );
+
+    const invocationDocument = metrics.providerInvocationEvidence[0]!
+      .document as Record<string, unknown>;
+    invocationDocument.pagination = {
+      hasMore: false,
+      nextCursor: null,
+    };
+    const complete = deriveVercelProviderSamples({
+      invocationEvidence: metrics.providerInvocationEvidence,
+      durationEvidence: metrics.providerDurationEvidence,
+      runtimeEvents: runtimeEvents(probeId),
+      expectedDeploymentId: DEPLOYMENT_ID,
+      measurementWindow: {
+        started_at_utc: WINDOW_START,
+        ended_at_utc: WINDOW_END,
+      },
+    });
+    expect(complete.errors).not.toContain(
+      'Provider invocation evidence reached the 500-row export limit without explicit non-truncated pagination metadata.',
     );
   });
 

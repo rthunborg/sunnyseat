@@ -1,5 +1,5 @@
-import type { AnchorHTMLAttributes } from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { AnchorHTMLAttributes, ComponentPropsWithoutRef } from 'react';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderWithProviders, screen, fireEvent, waitFor } from '@/test/setup/test-utils';
 import { NotFoundPage } from '@/components/custom/NotFoundPage';
 import commonSv from '@/messages/sv/common.json';
@@ -22,22 +22,30 @@ vi.mock('next-intl/navigation', () => ({
 }));
 
 const reducedMotionMock = vi.fn<() => boolean>(() => false);
-const animateMock = vi.fn(() => ({ finished: Promise.resolve() }));
+const animateMock = vi.fn<() => Animation>(
+  () => ({ finished: Promise.resolve() }) as unknown as Animation,
+);
+const originalElementAnimate = HTMLElement.prototype.animate;
 
-// Stub Motion: `motion.div` records whether a float `animate` prop was passed
-// (so AC3/AC5 gating is assertable), and the imperative `animate` used by the
-// CTA exit fade resolves synchronously.
-vi.mock('motion/react', async () => {
+// Stub the minimal Motion entrypoint used by the component. `m.div` records
+// whether a float `animate` prop was passed so AC3/AC5 gating stays assertable
+// without depending on LazyMotion's runtime provider in this focused test.
+vi.mock('motion/react-m', async () => {
   const React = await import('react');
-  type DivProps = React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>;
-  const passthrough = ({ animate: animateProp, transition: _transition, ...rest }: DivProps) =>
+  type MotionDivProps = ComponentPropsWithoutRef<'div'> & {
+    animate?: unknown;
+    transition?: unknown;
+  };
+  const passthrough = ({ animate: animateProp, transition: _transition, ...rest }: MotionDivProps) =>
     React.createElement('div', { ...rest, 'data-has-float': animateProp ? 'true' : 'false' });
   return {
-    motion: { div: passthrough },
-    useReducedMotion: () => reducedMotionMock(),
-    animate: (..._args: unknown[]) => animateMock(),
+    div: passthrough,
   };
 });
+
+vi.mock('@/hooks/use-reduced-motion', () => ({
+  useReducedMotion: () => reducedMotionMock(),
+}));
 
 const svMessages = { common: commonSv };
 const enMessages = { common: commonEn };
@@ -47,6 +55,23 @@ describe('<NotFoundPage />', () => {
     reducedMotionMock.mockReturnValue(false);
     animateMock.mockClear();
     pushMock.mockClear();
+    Object.defineProperty(HTMLElement.prototype, 'animate', {
+      configurable: true,
+      writable: true,
+      value: animateMock,
+    });
+  });
+
+  afterEach(() => {
+    if (originalElementAnimate) {
+      Object.defineProperty(HTMLElement.prototype, 'animate', {
+        configurable: true,
+        writable: true,
+        value: originalElementAnimate,
+      });
+    } else {
+      Reflect.deleteProperty(HTMLElement.prototype, 'animate');
+    }
   });
 
   it('renders the wordmark, pin, heading and CTA (AC1)', () => {

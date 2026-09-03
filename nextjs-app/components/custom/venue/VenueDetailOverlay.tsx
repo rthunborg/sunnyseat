@@ -78,7 +78,7 @@ export function VenueDetailOverlay({
   feedbackSlot,
   reviewSlot,
 }: VenueDetailOverlayProps) {
-  const prefersReducedMotion = useReducedMotion() ?? false;
+  const prefersReducedMotion = useReducedMotion();
   const shouldReduceMotion = reducedMotion ?? prefersReducedMotion;
   const scrollBodyRef = useRef<HTMLDivElement>(null);
   const [dragY, setDragY] = useState(0);

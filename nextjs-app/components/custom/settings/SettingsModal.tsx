@@ -37,7 +37,7 @@ export function SettingsModal({
   onOpenGuide: (restoreFocusElement?: HTMLElement | null) => void;
 }) {
   const t = useTranslations('common.settings');
-  const shouldReduceMotion = useReducedMotion() ?? false;
+  const shouldReduceMotion = useReducedMotion();
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

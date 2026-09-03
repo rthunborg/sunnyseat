@@ -98,8 +98,14 @@ export default defineConfig({
     // client code still requires the explicit `?_editor=venues` probe.
     env: {
       SUNNYSEAT_ADMIN: process.env.SUNNYSEAT_ADMIN || 'dev',
+      // Browser contexts share one loopback source address in the local/CI dev
+      // server. Identify this bounded harness explicitly so its parallel reads
+      // do not consume one production-style per-IP bucket.
+      SUNNYSEAT_E2E: '1',
     },
     port: webServerPort,
-    reuseExistingServer: !process.env.CI,
+    // The E2E rate-limit isolation flag belongs to the server this runner owns.
+    // Reusing an arbitrary local dev server would silently omit that contract.
+    reuseExistingServer: false,
   },
 });

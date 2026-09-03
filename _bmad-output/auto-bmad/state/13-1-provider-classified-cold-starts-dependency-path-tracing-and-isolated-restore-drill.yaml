@@ -1,0 +1,64 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 13-1-provider-classified-cold-starts-dependency-path-tracing-and-isolated-restore-drill
+epic_num: 13
+story_num: 1
+branch: codex/launch-resilience-follow-up
+status: in-progress
+updated_at: "2026-09-03T07:58:57Z"
+started_at: "2026-08-26T15:56:21Z"
+completed_at: null
+active_seconds: 13849
+timing_anchor: 1788419251
+is_first_in_epic: true
+is_last_in_epic: true
+needs_project_context_bootstrap: false
+git_mode: local
+base_branch: main
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "Public route and observability contract changes, concurrency-sensitive request scoping, and restore/data-integrity evidence."
+epic_story_count: 1
+stories_after_in_epic: 0
+completed_phases: [5, 6, 7]
+code_review_iterations: 4
+code_review_loop_done: true
+hitl_halt: continued with user-accepted review caveat after four rounds
+external_review_iterations: 0
+convergence_unverified: true
+story_trace: null
+commits: []
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work:
+  - "Full npm audit retains 14 development-only transitive Lighthouse CI findings (2 low, 4 moderate, 8 high); production audit is clean, Browserslist is pinned to patched 4.28.8, and no force fix or broad blind upgrade was used."
+  - Post-deploy production evidence still requires at least 20 provider-classified cold starts with separated cohorts and exact correctness/dependency attribution.
+  - The isolated provider restore rehearsal remains pending fresh explicit approval at the provider displayed-cost confirmation boundary.
+  - "Physical-device PWA, real GPS, touch-gesture, and VoiceOver/TalkBack validation remains human-required after deployment."
+blockers: []
+overrides:
+  start_phase: 5
+  skip: [branch]
+constraints:
+  - "Follow the user-specified ordered continuation plan; security maintenance precedes launch recommendation."
+  - Do not reopen Epic 12.
+  - Do not cross the provider Restore to New Project cost/confirmation boundary without fresh explicit approval.
+  - Do not edit sprint status directly to force review.
+  - Preserve user-owned dirty validation artifacts and local Supabase material.

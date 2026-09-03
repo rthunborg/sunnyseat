@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Command } from 'cmdk';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import * as m from 'motion/react-m';
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { Clock, Search, X } from 'lucide-react';
@@ -60,16 +60,25 @@ export function VenueSearchCombobox({
 }: VenueSearchComboboxProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const optionRefs = useRef(new Map<string, HTMLLIElement>());
+  const generatedId = useId();
+  const listboxId = `${generatedId}-venue-search-listbox`;
   const prefersReducedMotion = useReducedMotion();
   const [hasHydrated, setHasHydrated] = useState(false);
   const shouldReduceMotion = hasHydrated && prefersReducedMotion === true;
   const trimmedQuery = query.trim();
   const [open, setOpen] = useState(() => trimmedQuery.length > 0);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const visibleVenues = useMemo(
     () => (filterResults ? filterVenuesForQuery(venues, trimmedQuery) : venues),
     [filterResults, trimmedQuery, venues],
   );
   const shouldShowResults = open && trimmedQuery.length > 0;
+  const shouldShowOptions = shouldShowResults && !isLoading && !error && visibleVenues.length > 0;
+  const activeVenue = shouldShowOptions && activeIndex >= 0
+    ? visibleVenues[Math.min(activeIndex, visibleVenues.length - 1)]
+    : undefined;
+  const activeOptionId = activeVenue ? optionIdForVenue(listboxId, activeVenue.id) : undefined;
 
   useEffect(() => {
     setHasHydrated(true);
@@ -95,8 +104,24 @@ export function VenueSearchCombobox({
     return () => document.removeEventListener('focusin', handleFocusIn);
   }, []);
 
+  useEffect(() => {
+    if (!shouldShowOptions) {
+      setActiveIndex(-1);
+      return;
+    }
+    setActiveIndex((current) =>
+      current >= 0 && current < visibleVenues.length ? current : 0,
+    );
+  }, [shouldShowOptions, visibleVenues.length]);
+
+  useEffect(() => {
+    if (!activeVenue) return;
+    optionRefs.current.get(activeVenue.id)?.scrollIntoView({ block: 'nearest' });
+  }, [activeVenue]);
+
   const handleSelectVenue = (venue: VenueDataDto) => {
     setOpen(false);
+    setActiveIndex(-1);
     inputRef.current?.blur();
     onSelectVenue(venue);
   };
@@ -104,14 +129,69 @@ export function VenueSearchCombobox({
   const handleClear = () => {
     onQueryChange('');
     setOpen(false);
+    setActiveIndex(-1);
     inputRef.current?.focus();
   };
 
+  const handleInputChange = (nextQuery: string) => {
+    const boundedQuery = maxLength === undefined
+      ? nextQuery
+      : Array.from(nextQuery).slice(0, maxLength).join('');
+    onQueryChange(boundedQuery);
+    setOpen(boundedQuery.trim().length > 0);
+    setActiveIndex(0);
+  };
+
+  const moveActiveIndex = (direction: 'next' | 'previous' | 'first' | 'last') => {
+    if (visibleVenues.length === 0) return;
+    setOpen(trimmedQuery.length > 0);
+    setActiveIndex((current) => {
+      if (direction === 'first') return 0;
+      if (direction === 'last') return visibleVenues.length - 1;
+      if (direction === 'next') {
+        return current < 0 ? 0 : Math.min(current + 1, visibleVenues.length - 1);
+      }
+      return current <= 0 ? 0 : current - 1;
+    });
+  };
+
+  const handleInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setOpen(false);
+      setActiveIndex(-1);
+      inputRef.current?.blur();
+      return;
+    }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveActiveIndex('next');
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveActiveIndex('previous');
+      return;
+    }
+    if (event.key === 'Home' && shouldShowOptions) {
+      event.preventDefault();
+      moveActiveIndex('first');
+      return;
+    }
+    if (event.key === 'End' && shouldShowOptions) {
+      event.preventDefault();
+      moveActiveIndex('last');
+      return;
+    }
+    if (event.key === 'Enter' && shouldShowOptions) {
+      event.preventDefault();
+      handleSelectVenue(activeVenue ?? visibleVenues[0]!);
+    }
+  };
+
   return (
-    <Command
+    <div
       ref={rootRef}
-      label={labels.label}
-      shouldFilter={false}
       role="search"
       aria-label={labels.label}
       className={cn('relative text-text-primary', className)}
@@ -124,27 +204,20 @@ export function VenueSearchCombobox({
         )}
       >
         <Search aria-hidden="true" className="size-5 shrink-0 text-text-muted" />
-        <Command.Input
+        <input
           ref={inputRef}
           value={query}
-          onValueChange={(nextQuery) => {
-            const boundedQuery = maxLength === undefined
-              ? nextQuery
-              : Array.from(nextQuery).slice(0, maxLength).join('');
-            onQueryChange(boundedQuery);
-            setOpen(boundedQuery.trim().length > 0);
-          }}
+          onChange={(event) => handleInputChange(event.target.value)}
           onFocus={() => {
             onSearchFocus?.();
             if (trimmedQuery.length > 0) setOpen(true);
           }}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              event.preventDefault();
-              setOpen(false);
-              inputRef.current?.blur();
-            }
-          }}
+          onKeyDown={handleInputKeyDown}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={shouldShowResults}
+          aria-controls={listboxId}
+          aria-activedescendant={activeOptionId}
           aria-label={labels.label}
           placeholder={labels.placeholder}
           maxLength={maxLength}
@@ -181,49 +254,71 @@ export function VenueSearchCombobox({
         }}
         className="absolute left-0 right-0 top-full z-glass-panel mt-2 overflow-hidden rounded-card border border-divider bg-surface-cream shadow-card"
       >
-        <Command.List
+        <ul
+          id={listboxId}
+          role="listbox"
           data-testid="venue-search-results"
           data-reduced-motion={String(shouldReduceMotion)}
           aria-label={labels.resultCount(visibleVenues.length)}
           className="max-h-72 overflow-y-auto p-2"
         >
           {shouldShowResults && isLoading && (
-            <div
-              role="status"
-              className="px-3 py-3 text-body-sm text-text-muted"
-            >
-              {labels.loading}
-            </div>
+            <li role="presentation">
+              <div
+                role="status"
+                className="px-3 py-3 text-body-sm text-text-muted"
+              >
+                {labels.loading}
+              </div>
+            </li>
           )}
           {shouldShowResults && !isLoading && error && (
-            <div
-              role="alert"
-              className="px-3 py-3 text-body-sm text-error"
-            >
-              {error}
-            </div>
+            <li role="presentation">
+              <div
+                role="alert"
+                className="px-3 py-3 text-body-sm text-error"
+              >
+                {error}
+              </div>
+            </li>
           )}
           {shouldShowResults && !isLoading && !error && visibleVenues.length === 0 && (
-            <Command.Empty className="px-3 py-3 text-body-sm text-text-body">
-              {labels.noResults(trimmedQuery)}
-            </Command.Empty>
+            <li role="presentation">
+              <div className="px-3 py-3 text-body-sm text-text-body">
+                {labels.noResults(trimmedQuery)}
+              </div>
+            </li>
           )}
-          {shouldShowResults && !isLoading && !error && visibleVenues.map((venue) => {
+          {shouldShowOptions && visibleVenues.map((venue, index) => {
             const isClosed = availabilityByVenueId?.[venue.id] === 'closed';
+            const isActive = activeVenue?.id === venue.id;
             const optionLabel = [
               venue.venueName,
               venue.neighborhood,
               isClosed ? closedAtSelectedTimeLabel : undefined,
             ].filter(Boolean).join(', ');
             return (
-              <Command.Item
+              <li
                 key={venue.id}
-                value={venue.id}
-                keywords={[venue.venueName, venue.neighborhood]}
+                id={optionIdForVenue(listboxId, venue.id)}
+                ref={(node) => {
+                  if (node) optionRefs.current.set(venue.id, node);
+                  else optionRefs.current.delete(venue.id);
+                }}
+                role="option"
                 aria-label={optionLabel}
-                onSelect={() => handleSelectVenue(venue)}
+                aria-selected={isActive}
+                data-active={isActive}
+                onMouseDown={(event) => event.preventDefault()}
+                onMouseMove={() => setActiveIndex(index)}
+                onClick={() => handleSelectVenue(venue)}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter' && event.key !== ' ') return;
+                  event.preventDefault();
+                  handleSelectVenue(venue);
+                }}
                 className={cn(
-                  'flex min-h-11 cursor-pointer items-center gap-3 rounded-venue-image px-3 py-2 text-body-sm text-text-body outline-none data-[selected=true]:bg-surface-muted',
+                  'flex min-h-11 cursor-pointer items-center gap-3 rounded-venue-image px-3 py-2 text-body-sm text-text-body outline-none data-[active=true]:bg-surface-muted',
                   isClosed && 'bg-surface-muted/60',
                 )}
               >
@@ -244,12 +339,12 @@ export function VenueSearchCombobox({
                     </span>
                   )}
                 </span>
-              </Command.Item>
+              </li>
             );
           })}
-        </Command.List>
+        </ul>
       </m.div>
-    </Command>
+    </div>
   );
 }
 
@@ -276,4 +371,8 @@ function normalizeSearchText(value: string): string {
 function initialsForVenue(venue: VenueDataDto): string {
   const fallback = venue.thumbnail?.initials || venue.venueName;
   return Array.from(fallback.trim() || 'SS').slice(0, 2).join('').toUpperCase();
+}
+
+function optionIdForVenue(listboxId: string, venueId: string): string {
+  return `${listboxId}-option-${venueId.replace(/[^A-Za-z0-9_-]/g, '-')}`;
 }

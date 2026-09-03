@@ -28,6 +28,10 @@ vi.mock('motion/react', async (importOriginal) => {
   };
 });
 
+vi.mock('@/hooks/use-reduced-motion', () => ({
+  useReducedMotion: () => motionState.reducedMotion,
+}));
+
 const messages = {
   common: commonMessages,
   map: mapMessages,

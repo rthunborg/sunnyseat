@@ -118,7 +118,7 @@ export function VenueQuickInfo({
   isFavourite = false,
   labels,
 }: VenueQuickInfoProps) {
-  const shouldReduceMotion = useReducedMotion() ?? false;
+  const shouldReduceMotion = useReducedMotion();
   const isDesktop = mode === 'desktop';
   const isAnchoredMobile = !isDesktop && Boolean(position);
   // Story 9.5 AC3 (folded into 9.9): the honest centrum-relative annotation.

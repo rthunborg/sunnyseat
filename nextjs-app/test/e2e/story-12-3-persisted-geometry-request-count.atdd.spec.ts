@@ -131,16 +131,36 @@ async function expectRequestCountToStay(
     .toBeGreaterThanOrEqual(stableForMs);
 }
 
-async function mockVenues(page: Page): Promise<{ count: () => number; urls: () => string[] }> {
+async function mockVenues(page: Page): Promise<{
+  count: () => number;
+  urls: () => string[];
+  holdNextRequest: () => void;
+  releaseDateChange: () => void;
+}> {
   let count = 0;
   const urls: string[] = [];
+  let shouldHoldNextRequest = false;
+  let releaseDateChange = () => {};
+  const dateChangeGate = new Promise<void>((resolve) => {
+    releaseDateChange = resolve;
+  });
   await page.route(VENUES_MATCHER, async (route) => {
     count += 1;
     urls.push(route.request().url());
-    if (count > 1) await new Promise((resolve) => setTimeout(resolve, 400));
+    if (shouldHoldNextRequest) {
+      shouldHoldNextRequest = false;
+      await dateChangeGate;
+    }
     await route.fulfill({ json: response() });
   });
-  return { count: () => count, urls: () => urls };
+  return {
+    count: () => count,
+    urls: () => urls,
+    holdNextRequest: () => {
+      shouldHoldNextRequest = true;
+    },
+    releaseDateChange,
+  };
 }
 
 function addDaysToDateKey(dateKey: string, days: number): string {
@@ -210,13 +230,18 @@ test.describe('Story 12.3 persisted geometry request-count invariants', () => {
     });
     const afterLoad = venues.count();
 
+    venues.holdNextRequest();
     const expectedDate = await selectDifferentDateFromCalendar(page);
     expect(expectedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    await expect(page.locator('[data-testid="date-change-overlay"]')).toBeVisible({
-      timeout: APP_SETTLE_TIMEOUT_MS,
-    });
-
-    expect(venues.count()).toBe(afterLoad + 1);
-    expect(providerHits).toEqual([]);
+    const overlay = page.locator('[data-testid="date-change-overlay"]');
+    try {
+      await expect(overlay).toBeVisible({ timeout: APP_SETTLE_TIMEOUT_MS });
+      await expect.poll(venues.count, { timeout: APP_SETTLE_TIMEOUT_MS }).toBe(afterLoad + 1);
+      expect(providerHits).toEqual([]);
+    } finally {
+      venues.releaseDateChange();
+    }
+    await expect(overlay).toHaveCount(0, { timeout: APP_SETTLE_TIMEOUT_MS });
+    await expectRequestCountToStay(venues.count, afterLoad + 1);
   });
 });

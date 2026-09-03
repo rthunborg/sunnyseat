@@ -45,10 +45,14 @@ jobs:
       - name: Unit + component tests
         run: npm test
 
-      - name: Verify JS bundle budgets and MapLibre async boundary
+      - name: Verify JS bundle budgets
         # Deterministic level-9 gzip accounting from Next's route diagnostics.
-        # Enforces 280 KiB initial, 320 KiB MapLibre, and 600 KiB union caps.
+        # Enforces 280 KiB initial, 320 KiB MapLibre-loaded, and 600 KiB
+        # all-emitted static JS caps.
         run: npm run bundle:verify
+
+      - name: Verify MapLibre async boundary across all routes
+        run: node scripts/verify-maplibre-async.mjs
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium webkit

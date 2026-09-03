@@ -160,7 +160,7 @@ export function MobileBottomSheet({
   onMetricsChange,
   className,
 }: MobileBottomSheetProps) {
-  const shouldReduceMotion = useReducedMotion() ?? false;
+  const shouldReduceMotion = useReducedMotion();
   const sheetRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLButtonElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);

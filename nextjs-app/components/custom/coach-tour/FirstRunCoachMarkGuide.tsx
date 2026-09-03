@@ -157,7 +157,7 @@ export function FirstRunCoachMarkGuide({
   autoStartEnabled?: boolean;
 }) {
   const t = useTranslations('map.coachTour');
-  const shouldReduceMotion = useReducedMotion() ?? false;
+  const shouldReduceMotion = useReducedMotion();
   const {
     launch,
     startGuide,

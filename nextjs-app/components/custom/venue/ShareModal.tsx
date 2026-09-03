@@ -104,7 +104,7 @@ export type ShareModalProps = {
  */
 export function ShareModal({ open, onClose, venueName, url }: ShareModalProps) {
   const t = useTranslations('venue.detail.shareModal');
-  const shouldReduceMotion = useReducedMotion() ?? false;
+  const shouldReduceMotion = useReducedMotion();
   const dialogRef = useRef<HTMLDivElement>(null);
   const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [copied, setCopied] = useState(false);

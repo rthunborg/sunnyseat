@@ -42,7 +42,7 @@ export function RouteOverlay({
   onDismiss,
   className,
 }: RouteOverlayProps) {
-  const shouldReduceMotion = useReducedMotion() ?? false;
+  const shouldReduceMotion = useReducedMotion();
   const hasRouteText = Boolean(labels.walk || labels.bike || labels.direction || labels.uncertainty);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 

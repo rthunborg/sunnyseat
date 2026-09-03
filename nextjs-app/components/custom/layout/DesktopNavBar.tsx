@@ -239,10 +239,10 @@ function TagChipStrip({
   // External-review fix: the arrow scroll + the scroller's CSS scroll-behavior
   // were unconditionally `smooth`, so prefers-reduced-motion users still got an
   // animated scroll. Gate both on reduced motion → `auto`/instant, matching the
-  // app's motion policy. `?? false` keeps SSR/jsdom (no matchMedia) on the
-  // animated default. `motion-reduce:scroll-auto` is the CSS backstop so a user
+  // app's motion policy. The shared hook fails closed while matchMedia is
+  // unavailable, and `motion-reduce:scroll-auto` is the CSS backstop so a user
   // who toggles the OS setting after mount still gets an instant native scroll.
-  const reducedMotion = useReducedMotion() ?? false;
+  const reducedMotion = useReducedMotion();
   const scrollBehavior: ScrollBehavior = reducedMotion ? 'auto' : 'smooth';
 
   const updateScrollState = useCallback(() => {

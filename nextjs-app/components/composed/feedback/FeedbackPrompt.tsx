@@ -61,7 +61,7 @@ export function FeedbackPrompt({
   onClose: () => void;
   onRetry?: (payload: FeedbackPromptSubmit) => void;
 }) {
-  const reducedMotion = useReducedMotion() ?? false;
+  const reducedMotion = useReducedMotion();
   const [outdoor, setOutdoor] = useState<boolean | undefined>();
   const [sunAccuracy, setSunAccuracy] = useState<FeedbackSunAccuracy | undefined>();
   const [note, setNote] = useState('');

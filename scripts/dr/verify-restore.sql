@@ -4,11 +4,23 @@
 -- The one-shot Supabase CLI connection uses an explicit read-only transaction.
 -- The report SELECT is deliberately final so the CLI returns it; connection
 -- close then rolls the read-only transaction back.
+-- Supply one fixed UTC anchor at runtime and reuse it unchanged for source and
+-- target verifier runs so midnight or long restore duration cannot change
+-- expected cohorts. The runbook sets it through PGOPTIONS immediately before
+-- each db query; missing or malformed values fail closed.
 begin transaction read only;
 set local statement_timeout = '120s';
 set local lock_timeout = '5s';
 
 with recursive
+verifier_parameters as (
+  select
+    current_setting('sunnyseat.dr_as_of_utc')::timestamptz as as_of_utc,
+    timezone(
+      'Europe/Stockholm',
+      current_setting('sunnyseat.dr_as_of_utc')::timestamptz
+    )::date as as_of_stockholm_date
+),
 expected_installed_extensions(extension_name) as (
   values
     ('pg_stat_statements'::text),
@@ -214,37 +226,29 @@ expected_service_role_membership_edges(
   granted_role,
   member_role,
   grantor_role,
-  admin_option,
-  inherit_option,
-  set_option
+  admin_option
 ) as (
   values
-    ('authenticator', 'postgres', 'supabase_admin', true, true, true),
+    ('authenticator', 'postgres', 'supabase_admin', true),
     (
       'authenticator',
       'supabase_storage_admin',
       'supabase_admin',
-      false,
-      false,
       true
     ),
     (
       'postgres',
       'cli_login_postgres',
       'supabase_admin',
-      false,
-      false,
       true
     ),
     (
       'service_role',
       'authenticator',
       'supabase_admin',
-      false,
-      false,
       true
     ),
-    ('service_role', 'postgres', 'supabase_admin', true, true, true)
+    ('service_role', 'postgres', 'supabase_admin', true)
 ),
 service_role_reachable(role_oid, path) as (
   select role_row.oid, array[role_row.oid]
@@ -262,9 +266,7 @@ service_role_membership_edges as (
     granted_role.rolname as granted_role,
     member_role.rolname as member_role,
     grantor_role.rolname as grantor_role,
-    membership.admin_option,
-    membership.inherit_option,
-    membership.set_option
+    membership.admin_option
   from pg_auth_members membership
   join pg_roles granted_role on granted_role.oid = membership.roleid
   join pg_roles member_role on member_role.oid = membership.member
@@ -1059,7 +1061,8 @@ venue_visibility as (
 required_geometry_dates as (
   select
     (
-      timezone('Europe/Stockholm', now())::date + day_offset::integer
+      (select as_of_stockholm_date from verifier_parameters)
+      + day_offset::integer
     )::date as stockholm_date
   from generate_series(0, 4) required(day_offset)
 ),
@@ -1302,7 +1305,9 @@ weather_bucket_groups as (
     coordinate_bucket,
     count(*)::bigint as snapshot_rows,
     count(distinct stockholm_date)::bigint as distinct_dates,
-    count(*) filter (where expires_at > now())::bigint
+    count(*) filter (
+      where expires_at > (select as_of_utc from verifier_parameters)
+    )::bigint
       as currently_unexpired_rows
   from public.weather_bucket_snapshots
   group by coordinate_bucket
@@ -1310,7 +1315,8 @@ weather_bucket_groups as (
 required_weather_dates as (
   select
     (
-      timezone('Europe/Stockholm', now())::date + day_offset::integer
+      (select as_of_stockholm_date from verifier_parameters)
+      + day_offset::integer
     )::date as stockholm_date
   from generate_series(0, 3) required(day_offset)
 ),
@@ -1331,7 +1337,9 @@ weather_contract as (
     coalesce(sum(slice_count), 0)::bigint as total_slices,
     count(*) filter (where slices_valid)::bigint as valid_slice_rows,
     count(*) filter (where expiry_valid)::bigint as valid_expiry_rows,
-    count(*) filter (where source.expires_at > now())::bigint
+    count(*) filter (
+      where source.expires_at > (select as_of_utc from verifier_parameters)
+    )::bigint
       as currently_unexpired_rows,
     count(*) filter (where source.bucket_key = 'current')::bigint
       as current_bucket_key_rows,
@@ -2022,6 +2030,14 @@ select
     'timezone', current_setting('TimeZone'),
     'transaction_read_only', current_setting('transaction_read_only')
   ) as details
+union all
+select
+  'verifier_parameters',
+  jsonb_build_object(
+    'as_of_utc', as_of_utc,
+    'as_of_stockholm_date', as_of_stockholm_date
+  )
+from verifier_parameters
 union all
 select 'migration_history', to_jsonb(migration)
 from migration_history migration

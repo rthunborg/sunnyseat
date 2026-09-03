@@ -14,7 +14,16 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { checkRateLimit, clientKeyFromHeaders } from '@/lib/utils/rate-limit';
 
-export function venueRateLimitMiddleware(request: NextRequest): NextResponse {
+export function isE2eRateLimitBypassEnabled(
+  environment: { NODE_ENV?: string; SUNNYSEAT_E2E?: string } = process.env,
+): boolean {
+  return environment.NODE_ENV === 'development' && environment.SUNNYSEAT_E2E === '1';
+}
+
+export function venueRateLimitMiddleware(
+  request: NextRequest,
+  environment: { NODE_ENV?: string; SUNNYSEAT_E2E?: string } = process.env,
+): NextResponse {
   // Story 9.3 scoped this bucket to the venue READ routes only. The proxy matcher
   // also routes mutation subpaths here (notably `POST /api/venues/[slug]/feedback`),
   // so gate this read rate-limit bucket to `method === 'GET'` — otherwise a feedback
@@ -24,6 +33,15 @@ export function venueRateLimitMiddleware(request: NextRequest): NextResponse {
   // anonymous route guarded by its own strict Zod schema. There is no separate
   // mutation rate-limit bucket — these requests simply pass through untouched.
   if (request.method !== 'GET') {
+    return NextResponse.next();
+  }
+
+  // The complete Playwright matrix runs many isolated browser contexts against
+  // one loopback dev-server process. Without this explicit harness-only escape,
+  // every context shares the missing-client fallback bucket and the suite
+  // deterministically exhausts the production quota. Production can never take
+  // this path, even if the E2E flag is accidentally configured there.
+  if (isE2eRateLimitBypassEnabled(environment)) {
     return NextResponse.next();
   }
 

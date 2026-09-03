@@ -31,9 +31,8 @@ describe('/api/venues observability integration', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('x-sunnyseat-request-id')).toBe(
-      'lr-20260818t090000z-a1b2c3d4-origin-002',
-    );
+    expect(response.headers.get('Cache-Control')).toMatch(/s-maxage=30/u);
+    expect(response.headers.get('x-sunnyseat-request-id')).toBeNull();
     const completionEvents = info.mock.calls
       .map(([entry]) => JSON.parse(String(entry)) as Record<string, unknown>)
       .filter((event) => event.event === 'api_request_complete');
@@ -45,7 +44,7 @@ describe('/api/venues observability integration', () => {
     });
   });
 
-  test('records and echoes the request id for a fail-closed 503', async () => {
+  test('records and echoes the request id for a non-cacheable fail-closed 503', async () => {
     route.__setSunGeometryRepositoryForTests?.({
       readCurrentCoverageForVenueDay: async () => null,
       computeCurrentGeometryInputHash: async () =>

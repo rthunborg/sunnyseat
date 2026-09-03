@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { describe, expect, test, vi } from 'vitest';
 import {
   buildVercelEvidencePlan,
-  buildLaunchReport,
+  buildLaunchReport as buildLaunchReportUntyped,
   normalizeRuntimeEvents,
   parseJsonLines,
   requestLogEvidenceFromJsonLines,
@@ -13,6 +13,7 @@ import {
 } from '../../../scripts/launch-resilience/venue-probe-lib.mjs';
 import {
   reportCommand,
+  replanCommand,
   REQUEST_TIMEOUT_MS,
   sampleVenueRequest,
 } from '../../../scripts/launch-resilience/venue-probe.mjs';
@@ -23,6 +24,59 @@ const TEST_WINDOW_START = '2026-08-18T09:00:00.000Z';
 const TEST_WINDOW_END = '2026-08-18T09:00:00.125Z';
 const TEST_SOURCE_SHA256 = 'a'.repeat(64);
 const TEST_EXTERNAL_SOURCE_SHA256 = 'b'.repeat(64);
+
+type PercentileSummary = {
+  p50: number | null;
+  p95: number | null;
+};
+
+type CohortSummary = {
+  n: number;
+  client_ttfb_ms: PercentileSummary;
+  client_total_ms: PercentileSummary;
+  function_duration_ms: PercentileSummary;
+};
+
+type LaunchReport = {
+  acceptance: {
+    passed: boolean;
+    correctness: boolean;
+    provider_join_complete: boolean;
+    provider_request_evidence_complete: boolean;
+    edge_cache_lane_complete: boolean;
+    edge_provider_correlation_complete: boolean;
+    dependency_attribution_complete: boolean;
+    external_provider_complete: boolean;
+    cold_sample_count: number;
+    uncached_route_threshold_ms: number;
+    provider_join_clock_skew_ms: number;
+  };
+  cohorts: {
+    cold: CohortSummary;
+    prewarmed: CohortSummary;
+    hot: CohortSummary;
+    origin_uncached: CohortSummary;
+    edge_hit: CohortSummary;
+  };
+  raw_counts: {
+    rejected_client_samples: number;
+    runtime_events: number;
+    provider_external_requests: number;
+    [key: string]: number | undefined;
+  };
+  errors: string[];
+};
+
+const buildLaunchReportRuntime = buildLaunchReportUntyped as unknown as (
+  options: Record<string, unknown>,
+) => unknown;
+
+function buildLaunchReport(
+  options: Record<string, unknown>,
+): LaunchReport {
+  return buildLaunchReportRuntime(options) as LaunchReport;
+}
+
 function validPayload() {
   return {
     venues: Array.from({ length: 42 }, (_, venueIndex) => ({
@@ -56,7 +110,11 @@ function controlledProbeId(
   return `lr-20260818t090000z-${token}-${cohort}-${String(sequence).padStart(3, '0')}`;
 }
 
-function clientSample(probeLabel: string, cacheStatus = 'MISS') {
+function clientSample(
+  probeLabel: string,
+  cacheStatus = 'MISS',
+  environment = 'production',
+) {
   const probeId = controlledProbeId(
     probeLabel,
     cacheStatus === 'HIT' ? 'edge' : 'origin',
@@ -72,7 +130,7 @@ function clientSample(probeLabel: string, cacheStatus = 'MISS') {
     response_request_id: cacheStatus === 'HIT' ? 'edge-prime' : probeId,
     response_deployment_id: TEST_DEPLOYMENT_ID,
     vercel_id: `arn1::dub1::${probeId}`,
-    environment: 'production',
+    environment,
     schema_version: 3,
     http_status: 200,
     cache_status: cacheStatus,
@@ -101,7 +159,7 @@ function providerRequestEvidence(
         id: String(client.vercel_id).split('::').at(-1),
         timestamp: Date.parse('2026-08-18T09:00:00.100Z'),
         deploymentId: TEST_DEPLOYMENT_ID,
-        environment: 'production',
+        environment: client.environment,
         source,
         requestMethod: 'GET',
         requestPath: '/api/venues',
@@ -123,15 +181,15 @@ function providerRequestEvidence(
   };
 }
 
-function edgeLaneClientSamples(label: string, repeatCount = 2) {
+function edgeLaneClientSamples(label: string, repeatCount = 2, environment = 'production') {
   const primeId = controlledProbeId(label, 'edge-prime');
   const prime = {
-    ...clientSample(primeId),
+    ...clientSample(primeId, 'MISS', environment),
     sequence: 2,
     requested_cohort: 'edge-prime',
   };
   const repeats = Array.from({ length: repeatCount }, (_, index) => ({
-    ...clientSample(controlledProbeId(label, 'edge', index + 1), 'HIT'),
+    ...clientSample(controlledProbeId(label, 'edge', index + 1), 'HIT', environment),
     sequence: index + 3,
     response_request_id: primeId,
   }));
@@ -141,6 +199,7 @@ function providerSample(
   probeLabel: string,
   startType: 'cold' | 'prewarmed' | 'hot',
   functionDurationMs: number,
+  environment = 'production',
 ) {
   const probeId = controlledProbeId(probeLabel);
   return {
@@ -148,7 +207,7 @@ function providerSample(
     provider_request_id: `provider-${probeId}`,
     start_type: startType,
     deployment_id: TEST_DEPLOYMENT_ID,
-    environment: 'production',
+    environment,
     route: '/api/venues',
     timestamp_utc: '2026-08-18T09:00:00.100Z',
     region: 'dub1',
@@ -162,11 +221,12 @@ function runtimeEvents(
   region = 'dub1',
   timestamp = '2026-08-18T09:00:00.100Z',
   providerRequestId?: string,
+  environment = 'production',
 ) {
   const probeId = controlledProbeId(probeLabel);
   const eventMetadata = {
     deployment_id: TEST_DEPLOYMENT_ID,
-    environment: 'production',
+    environment,
     timestamp_utc: timestamp,
     provider_request_id: providerRequestId ?? probeId,
     runtime_provenance: {
@@ -250,6 +310,7 @@ function rawMetricEvidence(
   sourceSha256: string,
   windowStart = TEST_WINDOW_START,
   windowEnd = TEST_WINDOW_END,
+  environment = 'production',
 ) {
   return [{
     source_sha256: sourceSha256,
@@ -261,10 +322,11 @@ function rawMetricEvidence(
         groupBy,
         filter: `(deployment_id eq '${TEST_DEPLOYMENT_ID}') and (${
           metric === 'vercel.external_api_request.count' ? 'origin_route' : 'route'
-        } eq '/api/venues') and (environment eq 'production')`,
+        } eq '/api/venues') and (environment eq '${environment}')`,
         startTime: windowStart,
         endTime: windowEnd,
         granularity: { minutes: 5 },
+        limit: 500,
         orderBy: 'count',
         orderDirection: 'desc',
       },
@@ -299,6 +361,7 @@ function providerMetricEvidence(
       TEST_SOURCE_SHA256,
       windowStart,
       windowEnd,
+      samples[0]?.environment ?? 'production',
     ),
     providerDurationEvidence: rawMetricEvidence(
       'vercel.function_invocation.function_duration_ms',
@@ -312,6 +375,7 @@ function providerMetricEvidence(
       'd'.repeat(64),
       windowStart,
       windowEnd,
+      samples[0]?.environment ?? 'production',
     ),
   };
 }
@@ -368,6 +432,7 @@ function externalMetricEvidence(
     TEST_EXTERNAL_SOURCE_SHA256,
     windowStart,
     windowEnd,
+    samples[0]?.environment ?? 'production',
   );
 }
 
@@ -461,9 +526,44 @@ describe('venue launch probe evidence', () => {
       function_duration_ms: { p50: 1_009, p95: 1_018 },
     });
     expect(report.cohorts.prewarmed.n).toBe(1);
-    expect(report.cohorts.hot.n).toBe(2);
-    expect(report.cohorts.origin_uncached.n).toBe(23);
+    expect(report.cohorts.hot.n).toBe(1);
+    expect(report.cohorts.origin_uncached.n).toBe(22);
     expect(report.cohorts.edge_hit.n).toBe(2);
+    expect(report.errors).toEqual([]);
+  });
+
+  test('accepts preview evidence without production-only runtime joins', () => {
+    const cold = Array.from({ length: 20 }, (_, index) =>
+      providerSample(`preview-cold-${index + 1}`, 'cold', 1_000 + index, 'preview'),
+    );
+    const edge = edgeLaneClientSamples('preview-edge', 1, 'preview');
+    const providers = [
+      ...cold,
+      providerSample(edge.prime.probe_id, 'hot', 550, 'preview'),
+    ];
+    const clients = [
+      ...cold.map((sample) => clientSample(sample.probe_id, 'MISS', 'preview')),
+      edge.prime,
+      ...edge.repeats,
+    ];
+    const appEvents = providers.flatMap((sample) =>
+      runtimeEvents(sample.probe_id, 'dub1', '2026-08-18T09:00:00.100Z', undefined, 'preview'),
+    );
+
+    const report = buildLaunchReport({
+      clientSamples: clients,
+      runtimeEvents: appEvents,
+      ...reportEvidence(providers, clients),
+      expectedEnvironment: 'preview',
+      minColdSamples: 20,
+      uncachedThresholdMs: 5_000,
+    });
+
+    expect(report.acceptance).toMatchObject({
+      passed: true,
+      dependency_attribution_complete: true,
+      cold_sample_count: 20,
+    });
     expect(report.errors).toEqual([]);
   });
 
@@ -543,7 +643,31 @@ describe('venue launch probe evidence', () => {
     expect(report.acceptance.passed).toBe(false);
   });
 
-  test('rejects ambiguous cache states and origin echo mismatches', () => {
+  test('accepts missing cacheable MISS response echoes but rejects stale mismatches', () => {
+    const noEcho = {
+      ...clientSample('no-echo-miss', 'MISS'),
+      response_request_id: null as string | null,
+    };
+    const providerSamples = [
+      providerSample(noEcho.probe_id, 'cold', 900),
+    ];
+    const report = buildLaunchReport({
+      clientSamples: [noEcho],
+      runtimeEvents: runtimeEvents(noEcho.probe_id),
+      ...reportEvidence(providerSamples),
+      minColdSamples: 1,
+      uncachedThresholdMs: 5_000,
+    });
+
+    expect(report.cohorts.origin_uncached.n).toBe(1);
+    expect(report.cohorts.cold.n).toBe(1);
+    expect(report.raw_counts.rejected_client_samples).toBe(0);
+    expect(report.errors).not.toContain(
+      `${noEcho.probe_id} did not echo its origin request id.`,
+    );
+  });
+
+  test('rejects ambiguous cache states and stale origin echo mismatches', () => {
     const stale = clientSample('stale-client', 'STALE');
     const wrongEcho = clientSample('wrong-echo', 'MISS');
     wrongEcho.response_request_id = 'different-probe';
@@ -964,6 +1088,203 @@ describe('venue launch probe evidence', () => {
       });
     } finally {
       process.exitCode = previousExitCode;
+      await rm(temporaryRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('replans preview multi-window evidence with one edge-prime and >=20 origin attempts', async () => {
+    const temporaryRoot = await mkdtemp(join(tmpdir(), 'sunnyseat-venue-replan-'));
+    try {
+      const origins = Array.from({ length: 20 }, (_, index) => ({
+        ...clientSample(`replan-preview-origin-${index + 1}`, 'MISS', 'preview'),
+        sequence: index + 1,
+      }));
+      const edge = edgeLaneClientSamples('replan-preview-edge', 1, 'preview');
+      edge.prime.sequence = 21;
+      edge.repeats[0]!.sequence = 22;
+      const firstPath = join(temporaryRoot, 'client-window-a.jsonl');
+      const secondPath = join(temporaryRoot, 'client-window-b.jsonl');
+      const outputDirectory = join(temporaryRoot, 'replanned');
+      await Promise.all([
+        writeFile(
+          firstPath,
+          `${origins.slice(0, 12).map((sample) => JSON.stringify(sample)).join('\n')}\n`,
+          'utf8',
+        ),
+        writeFile(
+          secondPath,
+          `${[...origins.slice(12), edge.prime, ...edge.repeats]
+            .map((sample) => JSON.stringify(sample))
+            .join('\n')}\n`,
+          'utf8',
+        ),
+      ]);
+
+      await replanCommand({
+        'deployment-id': TEST_DEPLOYMENT_ID,
+        environment: 'preview',
+        client: `${firstPath},${secondPath}`,
+        'output-dir': outputDirectory,
+      });
+
+      const manifest = JSON.parse(
+        await readFile(join(outputDirectory, 'manifest.json'), 'utf8'),
+      );
+      const plan = JSON.parse(
+        await readFile(join(outputDirectory, 'provider-evidence-plan.json'), 'utf8'),
+      );
+      expect(manifest).toMatchObject({
+        command: 'replan',
+        deployment_id: TEST_DEPLOYMENT_ID,
+        environment: 'preview',
+        client_samples: 22,
+        client_samples_by_requested_cohort: {
+          origin: 20,
+          edge_prime: 1,
+          edge_repeat: 1,
+        },
+        minimum_provider_cold_samples_required: 20,
+        edge_prime_policy: 'exactly_one_across_aggregated_windows',
+        correctness_passed: true,
+        client_correctness_summary: {
+          raw_samples: 22,
+          passed_samples: 22,
+          failed_samples: 0,
+        },
+        cache_counts: {
+          MISS: 21,
+          HIT: 1,
+        },
+      });
+      expect(plan.environment).toBe('preview');
+      const providerCount = plan.exports.find(
+        (entry: { id: string }) => entry.id === 'provider_count',
+      );
+      expect(providerCount.argv).not.toContain('--prod');
+      expect(providerCount.argv).toContain("environment eq 'preview'");
+      const requestLogs = plan.exports.filter((entry: { id: string }) =>
+        entry.id.startsWith('request_log_'),
+      );
+      expect(requestLogs).toHaveLength(22);
+      expect(requestLogs[0]!.argv).toContain('--environment');
+      expect(requestLogs[0]!.argv[requestLogs[0]!.argv.indexOf('--environment') + 1]).toBe(
+        'preview',
+      );
+      expect(manifest.client_sources).toEqual([
+        expect.objectContaining({ path: firstPath, row_count: 12 }),
+        expect.objectContaining({ path: secondPath, row_count: 10 }),
+      ]);
+    } finally {
+      await rm(temporaryRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('preserves failed raw client correctness when replanning aggregated windows', async () => {
+    const temporaryRoot = await mkdtemp(join(tmpdir(), 'sunnyseat-venue-replan-'));
+    try {
+      const origins = Array.from({ length: 20 }, (_, index) => ({
+        ...clientSample(`replan-raw-origin-${index + 1}`),
+        sequence: index + 1,
+      }));
+      origins[5]!.validation = {
+        ...origins[5]!.validation,
+        passed: false,
+        venue_count: 41,
+      };
+      const edge = edgeLaneClientSamples('replan-raw-edge', 1);
+      edge.prime.sequence = 21;
+      edge.repeats[0]!.sequence = 22;
+      const clientPath = join(temporaryRoot, 'client-window.jsonl');
+      const outputDirectory = join(temporaryRoot, 'replanned');
+      await writeFile(
+        clientPath,
+        `${[...origins, edge.prime, ...edge.repeats]
+          .map((sample) => JSON.stringify(sample))
+          .join('\n')}\n`,
+        'utf8',
+      );
+
+      await replanCommand({
+        'deployment-id': TEST_DEPLOYMENT_ID,
+        client: clientPath,
+        'output-dir': outputDirectory,
+      });
+
+      const manifest = JSON.parse(
+        await readFile(join(outputDirectory, 'manifest.json'), 'utf8'),
+      );
+      const plan = JSON.parse(
+        await readFile(join(outputDirectory, 'provider-evidence-plan.json'), 'utf8'),
+      );
+
+      expect(manifest).toMatchObject({
+        command: 'replan',
+        client_samples: 22,
+        correctness_passed: false,
+        client_correctness_summary: {
+          raw_samples: 22,
+          passed_samples: 21,
+          failed_samples: 1,
+          payload_valid: 21,
+        },
+        cache_counts: {
+          MISS: 21,
+          HIT: 1,
+        },
+      });
+      expect(manifest.client_sources).toEqual([
+        expect.objectContaining({ path: clientPath, row_count: 22 }),
+      ]);
+      expect(plan.exports.filter((entry: { id: string }) =>
+        entry.id.startsWith('request_log_'),
+      )).toHaveLength(22);
+    } finally {
+      await rm(temporaryRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('rejects replan aggregation with multiple edge-prime samples or too few origin attempts', async () => {
+    const temporaryRoot = await mkdtemp(join(tmpdir(), 'sunnyseat-venue-replan-'));
+    try {
+      const origins = Array.from({ length: 20 }, (_, index) =>
+        clientSample(`replan-origin-${index + 1}`),
+      );
+      const edgeA = edgeLaneClientSamples('replan-edge-a', 1);
+      const edgeB = edgeLaneClientSamples('replan-edge-b', 1);
+      const duplicatePrimePath = join(temporaryRoot, 'duplicate-prime.jsonl');
+      await writeFile(
+        duplicatePrimePath,
+        `${[...origins, edgeA.prime, edgeA.repeats[0]!, edgeB.prime]
+          .map((sample) => JSON.stringify(sample))
+          .join('\n')}\n`,
+        'utf8',
+      );
+
+      await expect(
+        replanCommand({
+          'deployment-id': TEST_DEPLOYMENT_ID,
+          client: duplicatePrimePath,
+          'output-dir': join(temporaryRoot, 'duplicate-output'),
+        }),
+      ).rejects.toThrow('exactly one edge-prime client sample');
+
+      const tooFewOriginsPath = join(temporaryRoot, 'too-few-origins.jsonl');
+      await writeFile(
+        tooFewOriginsPath,
+        `${[...origins.slice(0, 19), edgeA.prime, edgeA.repeats[0]!]
+          .map((sample) => JSON.stringify(sample))
+          .join('\n')}\n`,
+        'utf8',
+      );
+
+      await expect(
+        replanCommand({
+          'deployment-id': TEST_DEPLOYMENT_ID,
+          client: tooFewOriginsPath,
+          'output-dir': join(temporaryRoot, 'too-few-output'),
+        }),
+      ).rejects.toThrow('at least 20 origin client attempts');
+    } finally {
       await rm(temporaryRoot, { recursive: true, force: true });
     }
   });

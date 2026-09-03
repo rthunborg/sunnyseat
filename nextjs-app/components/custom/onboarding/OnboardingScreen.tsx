@@ -40,7 +40,7 @@ export function OnboardingScreen({
   const t = useTranslations('onboarding');
   // Fail closed while the media query is unresolved so reduced-motion
   // users never receive a first-frame fade/slide before the hook settles.
-  const reduceMotion = useReducedMotion() ?? true;
+  const reduceMotion = useReducedMotion();
   const geolocation = useGeolocation();
   const [phase, setPhase] = useState<'visible' | 'exiting'>('visible');
   const [pending, setPending] = useState(false);

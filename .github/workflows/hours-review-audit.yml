@@ -35,6 +35,9 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --no-audit
 
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Build service-only audit runner
         run: >-
           npx --no-install esbuild scripts/audit-opening-hours.ts

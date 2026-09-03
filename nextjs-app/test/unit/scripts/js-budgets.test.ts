@@ -196,6 +196,14 @@ describe('deterministic JavaScript budget gate', () => {
     );
   });
 
+  test('fails closed when the root route first-load chunk graph is empty', async () => {
+    const appDir = await createFixture({ initialPaths: [] });
+
+    const result = runGate(appDir);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('/[locale] firstLoadChunkPaths is empty');
+  });
+
   test('fails closed when no MapLibre-bearing JavaScript exists', async () => {
     const appDir = await createFixture({ includeMap: false });
 

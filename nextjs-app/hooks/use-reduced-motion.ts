@@ -24,18 +24,19 @@ function subscribe(onChange: () => void): () => void {
   return () => mediaQuery.removeListener(onChange);
 }
 
-function getSnapshot(): boolean | null {
-  return getMediaQuery()?.matches ?? null;
+function getSnapshot(): boolean {
+  return getMediaQuery()?.matches ?? true;
 }
 
-function getServerSnapshot(): null {
-  return null;
+function getFallbackSnapshot(): true {
+  return true;
 }
 
 /**
- * Reactive platform reduced-motion preference with a hydration-safe unknown
- * state. Callers retain their existing `??` fallback for first paint.
+ * Reactive platform reduced-motion preference. The SSR/unavailable fallback is
+ * fail-closed so reduced-motion users never receive hydration-time animations
+ * before matchMedia resolves.
  */
-export function useReducedMotion(): boolean | null {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+export function useReducedMotion(): boolean {
+  return useSyncExternalStore(subscribe, getSnapshot, getFallbackSnapshot);
 }

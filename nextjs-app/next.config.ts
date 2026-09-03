@@ -5,6 +5,11 @@ import { withSerwist } from '@serwist/turbopack';
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 const nextConfig: NextConfig = {
+  // Story 13.1 launch bundle posture: keep React Compiler disabled for the
+  // launch patch. Next 16.3.3 may install the compiler plugin transitively, but
+  // the app must not opt in until a separate measured compiler rollout exists.
+  reactCompiler: false,
+
   // Hide the floating Next.js dev-tools indicator in `next dev`. The
   // visual validation gate (Story 1.5) screenshots the dev server and
   // compares against static design references, where the indicator is

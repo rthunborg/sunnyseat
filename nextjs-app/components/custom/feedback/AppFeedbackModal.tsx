@@ -37,7 +37,7 @@ export function AppFeedbackModal({
 }) {
   const t = useTranslations('common.appFeedback');
   const locale = useLocale();
-  const prefersReducedMotion = useReducedMotion() ?? false;
+  const prefersReducedMotion = useReducedMotion();
   const shouldReduceMotion = reducedMotion ?? prefersReducedMotion;
   const dialogRef = useRef<HTMLDivElement>(null);
   const [rating, setRating] = useState(0);

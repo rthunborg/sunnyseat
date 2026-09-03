@@ -41,7 +41,7 @@ export function NotFoundPage() {
   const navigatingRef = useRef(false);
   // `?? true` keeps the first paint static (no float flash) until the
   // matchMedia query resolves; same convention as `VenuePin`.
-  const reduceMotion = useReducedMotion() ?? true;
+  const reduceMotion = useReducedMotion();
 
   // AC4 — fade the page out over ~300 ms, then navigate to the map. The CTA
   // stays a real <Link href="/"> so modified clicks (new tab) and the no-JS

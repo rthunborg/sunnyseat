@@ -28,7 +28,7 @@ export function ReviewFlow({
   const forcedState = useForcedState();
   const sectionRef = useRef<HTMLElement>(null);
   const successTimerRef = useRef<number | null>(null);
-  const reducedMotion = useReducedMotion() ?? false;
+  const reducedMotion = useReducedMotion();
   const identifier = venue.slug || venue.venueSlug || venue.id;
   const reviewsQuery = useVenueReviews(identifier);
   const mutation = useSubmitReview(identifier);

@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { GET, validateVenueUniqueness } from '@/app/api/venues/route';
-import { venueRateLimitMiddleware as middleware } from '@/lib/utils/venue-rate-limit-middleware';
+import {
+  isE2eRateLimitBypassEnabled,
+  venueRateLimitMiddleware as middleware,
+} from '@/lib/utils/venue-rate-limit-middleware';
 import { clearVenueRateLimitForTests } from '@/lib/utils/rate-limit';
 import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
 import { sunSeasonBounds } from '@/lib/utils/time-planner';
@@ -187,6 +190,37 @@ describe('GET /api/venues', () => {
       last = middleware(makeRequest('?lat=57.7089&lng=11.9746'));
     }
     expect(last?.status).toBe(429);
+  });
+
+  it('allows the explicit E2E bypass only outside production', () => {
+    expect(
+      isE2eRateLimitBypassEnabled({ NODE_ENV: 'development', SUNNYSEAT_E2E: '1' }),
+    ).toBe(true);
+    expect(
+      isE2eRateLimitBypassEnabled({ NODE_ENV: 'test', SUNNYSEAT_E2E: '1' }),
+    ).toBe(false);
+    expect(
+      isE2eRateLimitBypassEnabled({ NODE_ENV: 'production', SUNNYSEAT_E2E: '1' }),
+    ).toBe(false);
+    expect(
+      isE2eRateLimitBypassEnabled({ NODE_ENV: 'development', SUNNYSEAT_E2E: undefined }),
+    ).toBe(false);
+  });
+
+  it('bypasses the middleware only for the owned development E2E server', () => {
+    const malformedRequest = makeRequest('?lat=57.7089&lng=11.9746', {
+      'X-Forwarded-For': '999.999.999.999',
+    });
+
+    expect(
+      middleware(malformedRequest, { NODE_ENV: 'development', SUNNYSEAT_E2E: '1' }).status,
+    ).toBe(200);
+    expect(
+      middleware(malformedRequest, { NODE_ENV: 'production', SUNNYSEAT_E2E: '1' }).status,
+    ).toBe(400);
+    expect(
+      middleware(malformedRequest, { NODE_ENV: 'development' }).status,
+    ).toBe(400);
   });
 
   it('falls back to X-Real-IP when X-Forwarded-For is blank (middleware)', () => {

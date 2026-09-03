@@ -36,7 +36,7 @@ export function FeedbackFlow({
 }) {
   const forcedState = useForcedState();
   const geolocation = useGeolocation();
-  const reducedMotion = useReducedMotion() ?? false;
+  const reducedMotion = useReducedMotion();
   const [removed, setRemoved] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);

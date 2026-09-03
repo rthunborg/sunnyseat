@@ -54,6 +54,42 @@ $sessionId = $sessionStartUtc.ToString('yyyyMMddTHHmmssZ')
 $targetCreationDeadlineUtc = $sessionStartUtc.AddHours(2)
 $cloneConfirmedAtUtc = $null
 $cleanupDeadlineUtc = $null
+$authoringRepositoryRoot = '<absolute-path-to-reviewed-sunnyseat-checkout>'
+$expectedApplicationCommit = '<exact-reviewed-application-commit-sha>'
+$drEvidenceRoot = Join-Path $authoringRepositoryRoot (
+  '_bmad-output\implementation-artifacts\validation\' +
+  'story-13-1-restore-drill'
+)
+$sessionEvidenceIgnorePath = Join-Path $drEvidenceRoot '.gitignore'
+$sessionEvidenceDirectory = Join-Path $drEvidenceRoot $sessionId
+$smokeEvidenceDirectory = Join-Path (
+  $sessionEvidenceDirectory
+) 'preview-smoke'
+
+if ($expectedApplicationCommit -notmatch '^[0-9a-f]{40}$') {
+  throw 'Set the exact reviewed application commit SHA before any provider mutation.'
+}
+if (-not (Test-Path -LiteralPath $authoringRepositoryRoot -PathType Container)) {
+  throw 'Authoring repository root does not exist.'
+}
+New-Item -ItemType Directory -Path $drEvidenceRoot -Force | Out-Null
+$expectedEvidenceIgnore = "*`n!.gitignore`n"
+if (Test-Path -LiteralPath $sessionEvidenceIgnorePath -PathType Leaf) {
+  if ((Get-Content -Raw -LiteralPath $sessionEvidenceIgnorePath) -ne
+      $expectedEvidenceIgnore) {
+    throw 'DR evidence ignore guard differs from the reviewed session policy.'
+  }
+} else {
+  [IO.File]::WriteAllText(
+    $sessionEvidenceIgnorePath,
+    $expectedEvidenceIgnore,
+    [Text.UTF8Encoding]::new($false)
+  )
+}
+New-Item -ItemType Directory -Path $sessionEvidenceDirectory -Force |
+  Out-Null
+New-Item -ItemType Directory -Path $smokeEvidenceDirectory -Force |
+  Out-Null
 
 # Initialise before any provider mutation. Raw IDs live only in this process.
 $cleanupLedger = [ordered]@{
@@ -74,6 +110,9 @@ $sourceRef = '<source-project-ref>'
 $sourceProjectName = 'SunnySeat'
 $expectedOrganizationId = '<source-organization-id>'
 $expectedRegion = 'eu-west-1'
+$restoreVerifierAsOfUtc = ''
+$expectedRestoreVerifierSha256 =
+  '4564E278D1C2BAEAB00580182AB0FD78E15A4BA0B9D0B0884F90DD32F7F790BB'
 
 # Populate only after Restore to a New Project succeeds.
 $targetRef = ''
@@ -256,12 +295,74 @@ function Get-HashedBindingRecord {
     source_name_sha256 = Get-TextSha256 $sourceProjectName
     organization_id_sha256 = Get-TextSha256 $expectedOrganizationId
     region = $expectedRegion
+    restore_verifier_as_of_utc = $restoreVerifierAsOfUtc
+    restore_verifier_sha256 = $expectedRestoreVerifierSha256
     target_ref_sha256 = if ($targetRef) {
       Get-TextSha256 $targetRef
     } else { $null }
     target_name_sha256 = if ($targetRef) {
       Get-TextSha256 $targetName
     } else { $null }
+  }
+}
+
+function Assert-RestoreVerifierAnchor {
+  if ($restoreVerifierAsOfUtc -notmatch
+      '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$') {
+    throw 'Set a fresh UTC restore verifier anchor before running verifier SQL.'
+  }
+  $anchorUtc = [DateTimeOffset]::Parse(
+    $restoreVerifierAsOfUtc,
+    [Globalization.CultureInfo]::InvariantCulture,
+    [Globalization.DateTimeStyles]::AssumeUniversal
+  ).UtcDateTime
+  $nowUtc = (Get-Date).ToUniversalTime()
+  if ($anchorUtc -lt $sessionStartUtc.AddMinutes(-5) -or
+      $anchorUtc -gt $nowUtc.AddMinutes(5)) {
+    throw 'Restore verifier anchor is outside this rehearsal session.'
+  }
+  $verifierPath = Join-Path $authoringRepositoryRoot (
+    'scripts\dr\verify-restore.sql'
+  )
+  $actualHash = (
+    Get-FileHash -Algorithm SHA256 -LiteralPath $verifierPath
+  ).Hash.ToUpperInvariant()
+  if ($actualHash -ne $expectedRestoreVerifierSha256) {
+    throw 'Restore verifier SQL hash differs from the reviewed binding.'
+  }
+}
+
+function Start-RestoreVerifierAnchor {
+  Assert-SourceBinding
+  if (-not [string]::IsNullOrWhiteSpace($restoreVerifierAsOfUtc)) {
+    throw 'Restore verifier anchor already captured.'
+  }
+  $script:restoreVerifierAsOfUtc =
+    (Get-Date).ToUniversalTime().ToString(
+      "yyyy-MM-ddTHH:mm:ss.fff'Z'",
+      [Globalization.CultureInfo]::InvariantCulture
+    )
+  Assert-RestoreVerifierAnchor
+}
+
+function Invoke-DrRestoreVerifier {
+  param([Parameter(Mandatory)][string]$ProjectRef)
+  Assert-RestoreVerifierAnchor
+  $previousPgOptions = $env:PGOPTIONS
+  try {
+    $env:PGOPTIONS =
+      "-c sunnyseat.dr_as_of_utc=$restoreVerifierAsOfUtc"
+    & npx --yes "supabase@$SupabaseCliVersion" db query `
+      --linked `
+      --project-ref $ProjectRef `
+      --file scripts/dr/verify-restore.sql `
+      --output-format text
+  } finally {
+    if ($null -eq $previousPgOptions) {
+      Remove-Item Env:\PGOPTIONS -ErrorAction SilentlyContinue
+    } else {
+      $env:PGOPTIONS = $previousPgOptions
+    }
   }
 }
 ```
@@ -303,21 +404,20 @@ the provider supplies a distinct authoritative recovery point.
 
 ## Source verifier, algorithms, and exercised evidence
 
-Run unchanged with the exact pin:
+Run unchanged with the exact pin and a fresh, session-scoped verifier anchor:
 
 ```powershell
-Assert-SourceBinding
-npx --yes supabase@2.114.0 db query `
-  --linked `
-  --project-ref $sourceRef `
-  --file scripts/dr/verify-restore.sql `
-  --output-format text
+Start-RestoreVerifierAnchor
+Invoke-DrRestoreVerifier -ProjectRef $sourceRef
 ```
 
 CLI `2.114.0` requires `--linked` with `--project-ref` for `db query`.
-The SQL begins `TRANSACTION READ ONLY`, has bounded timeouts, performs no
-DDL/DML/RPC, and leaves its report SELECT final. Require exit zero and
-`transaction_read_only: "on"`.
+The SQL begins `TRANSACTION READ ONLY`, reads its fixed as-of timestamp from
+the runtime `PGOPTIONS` value set by `Invoke-DrRestoreVerifier`, has bounded
+timeouts, performs no DDL/DML/RPC, and leaves its report SELECT final. Require
+exit zero and `transaction_read_only: "on"`. The reviewed verifier SHA-256 for
+future paid-drill source and target captures is
+`4564E278D1C2BAEAB00580182AB0FD78E15A4BA0B9D0B0884F90DD32F7F790BB`.
 
 Deterministic algorithms and hard gates:
 
@@ -367,7 +467,7 @@ Deterministic algorithms and hard gates:
 
 ### Exercised source results
 
-#### Fresh structural-retention and outbound hardening result
+#### Historical structural-retention and outbound hardening result
 
 At approximately `2026-08-24T13:17Z`:
 
@@ -409,8 +509,9 @@ Fresh exact data manifest:
 | `venues` | curated | 42 | 42 | `4ea017e252f860ffdb15fe2b62d89661` |
 | `weather_bucket_snapshots` | scheduled | 462 | 462 | `5552328de825c28a2a04142793f895bf` |
 
-These fresh values are still source evidence, not a selected-backup or restored
-target manifest. Capture them again immediately before the paid confirmation.
+These values are historical source evidence produced by an older verifier file,
+not a selected-backup or restored target manifest. Capture source evidence again
+with the reviewed SHA-256 above immediately before paid confirmation.
 
 #### Historical baseline result
 
@@ -489,6 +590,11 @@ commit timeline. Otherwise state that exact achieved RPO is unmeasured.
 
 Use a new ignored evidence directory:
 `_bmad-output/implementation-artifacts/validation/story-13-1-restore-drill/<session>/`.
+The runbook creates/reuses
+`_bmad-output/implementation-artifacts/validation/story-13-1-restore-drill/.gitignore`
+with `*` and `!.gitignore` before provider mutation, so every per-session raw
+capture, including `<session>/preview-smoke/`, stays local unless a later
+sanitized artifact is intentionally promoted by a separate reviewed change.
 Retain sanitized:
 
 - hashed source/target bindings, backup selection, cost screenshot;
@@ -585,11 +691,7 @@ connectivity, enter cleanup, and do not run application smoke.
 
 ```powershell
 Assert-DrTargetOperational
-npx --yes supabase@2.114.0 db query `
-  --linked `
-  --project-ref $targetRef `
-  --file scripts/dr/verify-restore.sql `
-  --output-format text
+Invoke-DrRestoreVerifier -ProjectRef $targetRef
 ```
 
 Require read-only `on`. Before Phase 6, only `storage_contract` may differ, and
@@ -837,11 +939,14 @@ transport, not recovery of real bytes.
 
 ## Phase 7: mechanically isolated Vercel preview
 
-Reject current production identifiers:
+Reject current production identifiers by runtime value and reviewed hash
+binding:
 
-- project `sunnyseat` / `prj_Y3jvsIxhNaruzSYM2pRwMTyRm7Jw`;
-- deployment `dpl_FszRAy5d7i84BvfTWt1UGHpQURCE` and prefix
-  `dpl_FszRAy5d7i84BvfTWt1`;
+- project name `sunnyseat` and the project ID supplied in this PowerShell
+  session, after it matches
+  `$expectedProductionVercelProjectIdSha256`;
+- production deployment ID supplied in this PowerShell session, after it
+  matches `$expectedAuthoringProductionDeploymentIdSha256`;
 - URL/alias `https://sunnyseat.vercel.app` / `sunnyseat.vercel.app`;
 - team display `Enhancior`; root `nextjs-app`.
 
@@ -850,8 +955,13 @@ project or shared Preview environment is forbidden, even if it appears empty.
 Use a clean disposable application copy with no `.vercel` or env file:
 
 ```powershell
-$productionVercelProjectId = 'prj_Y3jvsIxhNaruzSYM2pRwMTyRm7Jw'
-$authoringProductionDeploymentId = 'dpl_FszRAy5d7i84BvfTWt1UGHpQURCE'
+$expectedProductionVercelProjectIdSha256 =
+  '<sha256-of-reviewed-production-vercel-project-id>'
+$expectedAuthoringProductionDeploymentIdSha256 =
+  '<sha256-of-reviewed-authoring-production-deployment-id>'
+$productionVercelProjectId = '<runtime-production-vercel-project-id>'
+$authoringProductionDeploymentId =
+  '<runtime-authoring-production-deployment-id>'
 $productionDeploymentId = ''
 $productionUrl = 'https://sunnyseat.vercel.app'
 $productionAlias = 'sunnyseat.vercel.app'
@@ -888,6 +998,56 @@ function Assert-DrLocalRoot {
   }
 }
 
+function Assert-DrApplicationWorkspace {
+  param([switch]$AllowVercelLink)
+  Assert-DrLocalRoot
+  if (-not (Test-Path -LiteralPath $drLocalRoot -PathType Container)) {
+    throw 'Disposable local root is missing.'
+  }
+  if (-not (Test-Path -LiteralPath $stagingWorkspace -PathType Container)) {
+    throw 'Disposable workspace does not contain nextjs-app.'
+  }
+  $commitRaw = & git -C $drLocalRoot rev-parse HEAD
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Could not read disposable workspace commit.'
+  }
+  $workspaceCommit = ($commitRaw -join "`n").Trim()
+  if ($workspaceCommit -ne $expectedApplicationCommit) {
+    throw 'Disposable workspace is not at the expected application commit.'
+  }
+  $workspaceStatus = (& git -C $drLocalRoot status --porcelain=v1) -join "`n"
+  if ($LASTEXITCODE -ne 0 -or
+      -not [string]::IsNullOrWhiteSpace($workspaceStatus)) {
+    throw 'Disposable workspace is not clean.'
+  }
+
+  foreach ($forbiddenPath in @(
+    (Join-Path $stagingWorkspace '.env'),
+    (Join-Path $stagingWorkspace '.env.local'),
+    (Join-Path $stagingWorkspace '.env.production'),
+    (Join-Path $stagingWorkspace '.env.preview')
+  )) {
+    if (Test-Path -LiteralPath $forbiddenPath) {
+      throw "Disposable workspace contains forbidden local state: $forbiddenPath"
+    }
+  }
+
+  $vercelLinkPath = Join-Path $stagingWorkspace '.vercel/project.json'
+  if (-not $AllowVercelLink) {
+    if (Test-Path -LiteralPath (Join-Path $stagingWorkspace '.vercel')) {
+      throw 'Disposable workspace was linked before the dedicated project guard.'
+    }
+    return
+  }
+  if (Test-Path -LiteralPath $vercelLinkPath) {
+    $link = Get-Content -Raw -LiteralPath $vercelLinkPath | ConvertFrom-Json
+    if ($link.projectId -ne $stagingVercelProjectId -or
+        $link.orgId -ne $stagingVercelTeamId) {
+      throw 'Disposable workspace Vercel link is not session-bound.'
+    }
+  }
+}
+
 function Get-VercelApiJson {
   param([Parameter(Mandatory)][string]$Path)
   $json = & npx --yes "vercel@$VercelCliVersion" api $Path `
@@ -906,7 +1066,27 @@ function ConvertFrom-VercelTimestamp {
   [DateTimeOffset]::Parse("$Value").UtcDateTime
 }
 
+function Assert-ProductionVercelIdentityBinding {
+  if ($productionVercelProjectId -notmatch '^prj_[A-Za-z0-9]+$' -or
+      $authoringProductionDeploymentId -notmatch '^dpl_[A-Za-z0-9]+$' -or
+      $expectedProductionVercelProjectIdSha256 -notmatch
+        '^[0-9a-fA-F]{64}$' -or
+      $expectedAuthoringProductionDeploymentIdSha256 -notmatch
+        '^[0-9a-fA-F]{64}$') {
+    throw 'Production Vercel identity placeholders must be supplied at runtime.'
+  }
+  if ((Get-TextSha256 $productionVercelProjectId) -ne
+      $expectedProductionVercelProjectIdSha256.ToLowerInvariant()) {
+    throw 'Production Vercel project ID does not match reviewed hash binding.'
+  }
+  if ((Get-TextSha256 $authoringProductionDeploymentId) -ne
+      $expectedAuthoringProductionDeploymentIdSha256.ToLowerInvariant()) {
+    throw 'Authoring production deployment ID does not match reviewed hash binding.'
+  }
+}
+
 function Get-CurrentProductionVercelDeployment {
+  Assert-ProductionVercelIdentityBinding
   $json = & npx --yes vercel@59.1.3 inspect $productionUrl `
     --json `
     --scope $stagingVercelTeamSlug
@@ -927,10 +1107,14 @@ function Start-ProductionVercelBaseline {
   if ($productionDeploymentId) {
     throw 'Production baseline already captured.'
   }
+  Assert-ProductionVercelIdentityBinding
   $script:productionDeploymentId =
     (Get-CurrentProductionVercelDeployment).id
   if (-not $productionDeploymentId) {
     throw 'Production deployment ID missing.'
+  }
+  if ($productionDeploymentId -ne $authoringProductionDeploymentId) {
+    throw 'Production deployment differs from the reviewed authoring binding.'
   }
 }
 
@@ -945,7 +1129,7 @@ function Assert-ProductionVercelBinding {
 }
 
 function Assert-VercelStagingProject {
-  Assert-DrLocalRoot
+  Assert-DrApplicationWorkspace -AllowVercelLink
   Assert-DrTargetOperational
   Assert-ProductionVercelBinding
   if (-not $stagingVercelProjectId -or
@@ -1001,6 +1185,8 @@ function Assert-VercelPreview {
       $deployment.readyState -ne 'READY' -or
       $deployment.target -eq 'production' -or
       $deployment.url -ne ([Uri]$previewUrl).Host -or
+      $deployment.meta.sunnyseatDrSourceCommit -ne
+        $expectedApplicationCommit -or
       $aliases -contains $productionAlias) {
     throw 'Preview identity/environment/alias guard failed.'
   }
@@ -1016,8 +1202,11 @@ function Assert-VercelPreview {
   foreach ($name in @(
     'NEXT_PUBLIC_SUPABASE_URL',
     'SUPABASE_SERVICE_ROLE_KEY',
+    'SUNNYSEAT_VENUE_STORE',
+    'SUNNYSEAT_SUN_ENGINE',
     'SUNNYSEAT_FEEDBACK_PERSISTENCE',
-    'SUNNYSEAT_REVIEW_PERSISTENCE'
+    'SUNNYSEAT_REVIEW_PERSISTENCE',
+    'SUNNYSEAT_DR_SOURCE_COMMIT'
   )) {
     $matches = @($environment.envs | Where-Object key -eq $name)
     if ($matches.Count -lt 1) { throw "$name missing." }
@@ -1028,6 +1217,41 @@ function Assert-VercelPreview {
     }
   }
 }
+```
+
+Create and populate the clean exact-commit disposable workspace before creating
+any Vercel project. The workspace must not be the operator's current checkout:
+
+```powershell
+Assert-ProductionVercelBinding
+Assert-DrTargetOperational
+Assert-DrLocalRoot
+if (Test-Path -LiteralPath $drLocalRoot) {
+  throw 'Disposable local root already exists; choose a new session or cleanup first.'
+}
+$resolvedApplicationCommit = (
+  & git -C $authoringRepositoryRoot rev-parse "$expectedApplicationCommit^{commit}"
+).Trim()
+if ($LASTEXITCODE -ne 0 -or
+    $resolvedApplicationCommit -ne $expectedApplicationCommit) {
+  throw 'Authoring repository does not contain the exact reviewed commit.'
+}
+
+& git clone --no-local $authoringRepositoryRoot $drLocalRoot
+if ($LASTEXITCODE -ne 0) { throw 'Disposable workspace clone failed.' }
+& git -C $drLocalRoot switch --detach $expectedApplicationCommit
+if ($LASTEXITCODE -ne 0) { throw 'Could not detach workspace at exact commit.' }
+Assert-DrApplicationWorkspace
+$sourceBinding = [ordered]@{
+  application_commit = $expectedApplicationCommit
+  application_commit_sha256 = Get-TextSha256 $expectedApplicationCommit
+  source_repository_root_sha256 = Get-TextSha256 $authoringRepositoryRoot
+  disposable_workspace_sha256 = Get-TextSha256 $drLocalRoot
+}
+$sourceBinding | ConvertTo-Json -Depth 4 |
+  Set-Content -LiteralPath (
+    Join-Path $sessionEvidenceDirectory 'application-source-binding.json'
+  ) -Encoding utf8NoBOM
 ```
 
 Create and ledger the session-dedicated project before linking it. The provider
@@ -1134,21 +1358,30 @@ Set-DrPreviewEnvironment NEXT_PUBLIC_SUPABASE_URL $targetOrigin
 Set-DrPreviewEnvironment `
   SUPABASE_SERVICE_ROLE_KEY `
   $env:DR_TARGET_SERVICE_ROLE_KEY
+Set-DrPreviewEnvironment SUNNYSEAT_VENUE_STORE supabase
+Set-DrPreviewEnvironment SUNNYSEAT_SUN_ENGINE real
 Set-DrPreviewEnvironment SUNNYSEAT_FEEDBACK_PERSISTENCE supabase
 Set-DrPreviewEnvironment SUNNYSEAT_REVIEW_PERSISTENCE supabase
+Set-DrPreviewEnvironment SUNNYSEAT_DR_SOURCE_COMMIT $expectedApplicationCommit
 ```
 
-Configure no anon key, source key, cron secret, production target/domain,
-scheduled job, SMTP/OAuth/webhook/callback. Deploy from guarded workspace
+Configure no `NEXT_PUBLIC_SUPABASE_ANON_KEY`, source key, cron secret,
+production target/domain, scheduled job, SMTP/OAuth/webhook/callback. The
+target anon key is used only in direct Phase 6 negative API checks through the
+process-local `DR_TARGET_ANON_KEY`; it is never a preview application
+environment variable. Deploy from guarded workspace
 (**TARGET-BOUND VERCEL MUTATION**):
 
 ```powershell
 Assert-VercelStagingProject
+Assert-DrApplicationWorkspace -AllowVercelLink
 Push-Location $stagingWorkspace
 try {
   $previewUrl = (
     & npx --yes vercel@59.1.3 deploy `
       --yes `
+      --target preview `
+      --meta "sunnyseatDrSourceCommit=$expectedApplicationCommit" `
       --scope $stagingVercelTeamSlug
   ).Trim()
   if ($LASTEXITCODE -ne 0) { throw 'Preview deploy failed.' }
@@ -1169,7 +1402,9 @@ Assert-VercelPreview
 ### Deterministic preview smoke and artifacts
 
 Create one canonical, opaque probe session ID. The collector uses origin
-sequences 001..003; reserve 004 for the independent target-binding read:
+sequences 001..004; sequence 004 is the provider-proven target-binding read.
+Reserve 005..007 for browser/detail/reviews smoke and 008 for the single
+target-bound feedback mutation:
 
 ```powershell
 $probeNonce = [Convert]::ToHexString(
@@ -1182,17 +1417,98 @@ Run the exact collector:
 
 ```powershell
 Assert-VercelPreview
-Push-Location nextjs-app
+Push-Location $stagingWorkspace
 node scripts/launch-resilience/venue-probe.mjs collect `
   --deployment-id $previewDeploymentId `
   --base-url $previewUrl `
-  --origin-count 3 `
+  --environment preview `
+  --origin-count 4 `
   --edge-count 0 `
   --concurrency 1 `
   --session-id $probeSessionId `
   --output-dir $smokeEvidenceDirectory
 Pop-Location
 ```
+
+The collector writes `client-samples.jsonl`, `manifest.json`, and
+`provider-evidence-plan.json`. Execute every
+`provider-evidence-plan.json.exports[].argv` array exactly from the linked
+`$stagingWorkspace`, save each stdout byte-for-byte beside the plan under its
+declared `stdout_file`, and do not hand-author or trim a preview metric/log
+command. For preview plans the generated Vercel commands use
+`--environment preview` and omit Production targeting. If the generated plan
+does not match the reviewed `venue-probe.mjs` interface, stop instead of
+editing the commands.
+
+Build the preview probe report from those generated captures:
+
+```powershell
+Assert-VercelPreview
+$previewProviderPlanPath = Join-Path (
+  $smokeEvidenceDirectory
+) 'provider-evidence-plan.json'
+$previewProviderPlan = Get-Content -Raw -LiteralPath (
+  $previewProviderPlanPath
+) | ConvertFrom-Json
+$previewProviderReportDirectory = Join-Path (
+  $smokeEvidenceDirectory
+) 'preview-probe-report'
+$previewRequestLogPaths = @(
+  $previewProviderPlan.exports |
+    Where-Object { "$($_.id)".StartsWith('request_log_') } |
+    ForEach-Object { Join-Path $smokeEvidenceDirectory $_.stdout_file }
+)
+
+Push-Location $stagingWorkspace
+try {
+  node scripts/launch-resilience/venue-probe.mjs report `
+    --deployment-id $previewDeploymentId `
+    --supabase-host "$targetRef.supabase.co" `
+    --client (Join-Path $smokeEvidenceDirectory 'client-samples.jsonl') `
+    --plan $previewProviderPlanPath `
+    --provider-count (
+      Join-Path $smokeEvidenceDirectory 'function-invocation-count.json'
+    ) `
+    --provider-duration (
+      Join-Path $smokeEvidenceDirectory 'function-duration.json'
+    ) `
+    --request-log ($previewRequestLogPaths -join ',') `
+    --external (
+      Join-Path $smokeEvidenceDirectory 'external-api-request-count.json'
+    ) `
+    --environment preview `
+    --min-cold 20 `
+    --threshold-ms 5000 `
+    --output-dir $previewProviderReportDirectory
+  if ($LASTEXITCODE -notin 0, 2) {
+    throw 'Preview probe report command failed unexpectedly.'
+  }
+} finally { Pop-Location }
+
+$previewProbeReportPath = Join-Path $previewProviderReportDirectory 'report.json'
+$previewProbeReport = Get-Content -Raw -LiteralPath $previewProbeReportPath |
+  ConvertFrom-Json
+if (-not $previewProbeReport.acceptance.correctness -or
+    -not $previewProbeReport.acceptance.provider_request_evidence_complete -or
+    -not $previewProbeReport.acceptance.provider_join_complete -or
+    -not $previewProbeReport.acceptance.dependency_attribution_complete -or
+    -not $previewProbeReport.acceptance.external_provider_complete -or
+    [int]$previewProbeReport.raw_counts.provider_external_requests -ne 12) {
+  throw 'Preview probe did not prove correctness plus exact target dependency attribution.'
+}
+foreach ($reportError in @($previewProbeReport.errors)) {
+  if ($reportError -notmatch
+      '^(Edge cache lane requires|Need at least 20 provider-classified cold samples)') {
+    throw "Unexpected preview probe report error: $reportError"
+  }
+}
+```
+
+The preview report's overall acceptance is expected to remain FAIL for this DR
+smoke because `--min-cold 20` is non-loosenable and no edge lane is collected.
+For the restore drill, use it only as the preview-capable proof of HTTP/payload
+correctness, request-log correlation, provider join, and direct dependency
+attribution against `$targetRef.supabase.co`.
 
 Create `$smokeScriptPath` inside the ignored evidence directory with this exact
 body (not in repo source):
@@ -1207,9 +1523,9 @@ const [baseUrl, evidenceDir, expectedDeploymentId, sessionId] =
 assert(baseUrl && evidenceDir && expectedDeploymentId && sessionId);
 await mkdir(evidenceDir, { recursive: true });
 
-const requestId = `${sessionId}-origin-004`;
-const detailRequestId = `${sessionId}-origin-005`;
-const reviewsRequestId = `${sessionId}-origin-006`;
+const requestId = `${sessionId}-origin-005`;
+const detailRequestId = `${sessionId}-origin-006`;
+const reviewsRequestId = `${sessionId}-origin-007`;
 function assertResponseBinding(response, expectedRequestId) {
   assert.equal(
     response.headers.get('x-sunnyseat-request-id'),
@@ -1370,8 +1686,9 @@ node $smokeScriptPath `
   $probeSessionId
 ```
 
-Required artifacts: collector raw JSONL; `preview-smoke.json`; fallback
-screenshot; sanitized Vercel project/deployment/env metadata; correlated
+Required artifacts: collector raw JSONL; generated provider plan exports;
+`preview-probe-report/report.json`; `preview-smoke.json`; fallback screenshot;
+sanitized Vercel project/deployment/env metadata; correlated
 runtime/external-dependency logs; SHA-256 evidence manifest. A missing selector,
 path, deployment/request header, unexpected console/page error, or non-Storage
 4xx/5xx is a failure.
@@ -1391,175 +1708,88 @@ small DR cohort does not satisfy the separate 20 provider-classified cold-start
 gate. Never infer endpoint attribution from code, cache headers, or host totals.
 
 Before any preview-routed mutation, prove that the exact deployed preview made
-the 004 read against this session's exact target host. An environment value,
-application response, source inspection, or aggregate host total is not proof.
-Vercel's destination-path metric can lag; retry only the read-only query for ten
-minutes and fail without writing if no complete provider evidence arrives:
+the collector's 004 read against this session's exact target host. An
+environment value, application response, source inspection, or aggregate host
+total is not proof. The proof must come from the reviewed preview-capable probe
+report, built from the generated provider plan, exact request-log captures, and
+the preview external-dependency export:
 
 ```powershell
 $previewSmokePath = Join-Path $smokeEvidenceDirectory 'preview-smoke.json'
 $previewSmoke = Get-Content -Raw -LiteralPath $previewSmokePath |
   ConvertFrom-Json
-if ($previewSmoke.requestId -ne "$probeSessionId-origin-004" -or
-    $previewSmoke.listEchoedRequestId -ne "$probeSessionId-origin-004" -or
+if ($previewSmoke.requestId -ne "$probeSessionId-origin-005" -or
+    $previewSmoke.listEchoedRequestId -ne "$probeSessionId-origin-005" -or
     $previewSmoke.deploymentId -ne $previewDeploymentId -or
-    $previewSmoke.detailRequestId -ne "$probeSessionId-origin-005" -or
-    $previewSmoke.detailEchoedRequestId -ne "$probeSessionId-origin-005" -or
+    $previewSmoke.detailRequestId -ne "$probeSessionId-origin-006" -or
+    $previewSmoke.detailEchoedRequestId -ne "$probeSessionId-origin-006" -or
     $previewSmoke.detailDeploymentId -ne $previewDeploymentId -or
-    $previewSmoke.reviewsRequestId -ne "$probeSessionId-origin-006" -or
-    $previewSmoke.reviewsEchoedRequestId -ne "$probeSessionId-origin-006" -or
+    $previewSmoke.reviewsRequestId -ne "$probeSessionId-origin-007" -or
+    $previewSmoke.reviewsEchoedRequestId -ne "$probeSessionId-origin-007" -or
     $previewSmoke.reviewsDeploymentId -ne $previewDeploymentId) {
   throw 'Preview smoke identity does not match the binding request.'
 }
-$previewBindingStartedUtc =
-  [DateTimeOffset]::Parse($previewSmoke.listStartedAtUtc).
-    ToUniversalTime().ToString('o')
-$previewBindingEndedUtc =
-  [DateTimeOffset]::Parse($previewSmoke.listEndedAtUtc).
-    ToUniversalTime().ToString('o')
-$previewBindingEvidencePath = Join-Path (
-  $smokeEvidenceDirectory
-) 'preview-target-binding-external.json'
-$previewTargetBindingProven = $false
-$previewTargetBindingEvidenceSha256 = $null
 
-function Test-PreviewTargetBindingMetric {
-  param([Parameter(Mandatory)]$Document)
-
-  $rows = @($Document.summary)
-  if ($rows.Count -eq 0) { return $false }
-  if ($rows.Count -ne 3) {
-    throw 'Binding window contains missing or additional dependency groups.'
-  }
-
-  $expected = [ordered]@{
-    '/rest/v1/venues' = 'GET'
-    '/rest/v1/rpc/read_current_venue_sun_geometry_batch' = 'POST'
-    '/rest/v1/weather_bucket_snapshots' = 'GET'
-  }
-  $seen = [Collections.Generic.HashSet[string]]::new()
-  $regions = @(
-    $rows | ForEach-Object { "$($_.function_region)" } | Sort-Object -Unique
-  )
-  if ($regions.Count -ne 1 -or -not $regions[0]) {
-    throw 'Binding request did not resolve to one identified function region.'
-  }
-
-  foreach ($row in $rows) {
-    $path = "$($row.request_path)"
-    $method = "$($row.request_method)".ToUpperInvariant()
-    try {
-      $count = [long]$row.vercel_external_api_request_count_sum
-      $status = [int]$row.http_status
-    } catch {
-      throw 'Binding metric contains a nonnumeric count or status.'
-    }
-    $groupKey = @(
-      $row.deployment_id,
-      $row.function_region,
-      $row.http_status,
-      $row.origin_route,
-      $row.request_hostname,
-      $method,
-      $path
-    ) -join [char]31
-    if (-not $seen.Add($groupKey)) {
-      throw 'Binding metric contains a duplicate provider group.'
-    }
-    if ($row.deployment_id -ne $previewDeploymentId -or
-        -not $row.function_region -or
-        $status -ne 200 -or
-        $row.origin_route -ne '/api/venues' -or
-        $row.request_hostname -ne "$targetRef.supabase.co" -or
-        -not $expected.Contains($path) -or
-        $expected[$path] -ne $method -or
-        $count -ne 1) {
-      throw 'Preview dependency host/path/method/status/deployment mismatch.'
-    }
-  }
-
-  foreach ($path in $expected.Keys) {
-    if (@($rows | Where-Object request_path -eq $path).Count -ne 1) {
-      throw "Expected dependency path missing: $path"
-    }
-  }
-  $true
+$previewClientSamples = @(
+  Get-Content -LiteralPath (
+    Join-Path $smokeEvidenceDirectory 'client-samples.jsonl'
+  ) | ForEach-Object { $_ | ConvertFrom-Json }
+)
+$bindingSamples = @(
+  $previewClientSamples |
+    Where-Object { $_.probe_id -eq "$probeSessionId-origin-004" }
+)
+if ($bindingSamples.Count -ne 1 -or
+    $bindingSamples[0].http_status -ne 200 -or
+    $bindingSamples[0].response_request_id -ne "$probeSessionId-origin-004" -or
+    $bindingSamples[0].response_deployment_id -ne $previewDeploymentId) {
+  throw 'Preview collector binding sample 004 is missing or unbound.'
 }
 
-for ($attempt = 1; $attempt -le 40; $attempt++) {
-  Assert-VercelPreview
-  Assert-TargetOriginBinding
-  $metricRaw = @(
-    & npx --yes vercel@59.1.3 metrics `
-      vercel.external_api_request.count `
-      --aggregation sum `
-      --project $stagingVercelProjectId `
-      --filter "environment eq 'preview'" `
-      --filter "deployment_id eq '$previewDeploymentId'" `
-      --filter "origin_route eq '/api/venues'" `
-      --group-by deployment_id `
-      --group-by function_region `
-      --group-by http_status `
-      --group-by origin_route `
-      --group-by request_hostname `
-      --group-by request_method `
-      --group-by request_path `
-      --since $previewBindingStartedUtc `
-      --until $previewBindingEndedUtc `
-      --granularity 5m `
-      --limit 500 `
-      --order-by count `
-      --order desc `
-      --json `
-      --scope $stagingVercelTeamSlug
-  )
-  if ($LASTEXITCODE -ne 0) {
-    throw 'Preview target-binding metric query failed.'
-  }
-  $metricText = $metricRaw -join "`n"
-  [IO.File]::WriteAllText(
-    $previewBindingEvidencePath,
-    $metricText,
-    [Text.UTF8Encoding]::new($false)
-  )
-  $metricDocument = $metricText | ConvertFrom-Json
-  if (Test-PreviewTargetBindingMetric $metricDocument) {
-    $previewTargetBindingProven = $true
-    $previewTargetBindingEvidenceSha256 = Get-TextSha256 $metricText
-    break
-  }
-  if ($attempt -lt 40) { Start-Sleep -Seconds 15 }
-}
-if (-not $previewTargetBindingProven) {
-  throw 'No complete provider-classified preview target binding; do not write.'
-}
+$previewTargetBindingEvidencePath =
+  Join-Path $previewProviderReportDirectory 'report.json'
+$previewTargetBindingEvidence = Get-Content -Raw -LiteralPath (
+  $previewTargetBindingEvidencePath
+)
+$previewTargetBindingEvidenceSha256 =
+  Get-TextSha256 $previewTargetBindingEvidence
+$previewTargetBindingProven = $true
 
-function Assert-PreviewTargetBinding {
+function Assert-PreviewProbeTargetBinding {
   Assert-VercelPreview
   Assert-TargetOriginBinding
   if (-not $previewTargetBindingProven -or
       -not $previewTargetBindingEvidenceSha256) {
-    throw 'Preview target binding was not provider-proven.'
+    throw 'Preview target binding was not probe/provider-proven.'
   }
   $currentEvidence = Get-Content -Raw -LiteralPath (
-    $previewBindingEvidencePath
+    $previewTargetBindingEvidencePath
   )
   if ((Get-TextSha256 $currentEvidence) -ne
       $previewTargetBindingEvidenceSha256) {
     throw 'Preview target-binding evidence changed after validation.'
   }
+  $report = $currentEvidence | ConvertFrom-Json
+  if (-not $report.acceptance.correctness -or
+      -not $report.acceptance.provider_request_evidence_complete -or
+      -not $report.acceptance.provider_join_complete -or
+      -not $report.acceptance.dependency_attribution_complete -or
+      -not $report.acceptance.external_provider_complete -or
+      [int]$report.raw_counts.provider_external_requests -ne 12) {
+    throw 'Preview probe report no longer proves target-bound dependencies.'
+  }
 }
 ```
 
-This exact three-row proof also gates zero Met.no and zero shadow-caster calls for
-the 004 request. Keep broader per-request runtime correlation as a separate
-application-smoke gate.
+This exact preview probe proof gates zero Met.no calls, zero shadow-caster RPCs,
+and the three expected Supabase paths for the collector's 004 request before
+any preview-routed write.
 
 Perform one preview app-feedback write (**TARGET-BOUND APPLICATION MUTATION**):
 
 ```powershell
-Assert-PreviewTargetBinding
-$feedbackRequestId = "$probeSessionId-origin-007"
+Assert-PreviewProbeTargetBinding
+$feedbackRequestId = "$probeSessionId-origin-008"
 $feedbackResponse = Invoke-WebRequest `
   -Method Post `
   -Uri "$previewUrl/api/feedback" `
@@ -1581,7 +1811,7 @@ if (-not [string]::IsNullOrWhiteSpace($drFeedbackId)) {
 
 # Re-prove the preview and target identities after the routed mutation, before
 # trusting either the response or a read-back.
-Assert-PreviewTargetBinding
+Assert-PreviewProbeTargetBinding
 if ($feedbackResponse.StatusCode -ne 201) {
   throw 'Preview feedback write failed.'
 }
@@ -1723,6 +1953,31 @@ function Get-VercelCleanupProjectIdentity {
 
 function Remove-ExactVercelApiResource {
   param([Parameter(Mandatory)][string]$Path)
+  $project = Get-VercelCleanupProjectIdentity
+  if ($null -eq $project) {
+    throw 'Disposable Vercel project identity is required before DELETE.'
+  }
+  $escapedTeam = [Regex]::Escape($stagingVercelTeamId)
+  $escapedProjectId = [Regex]::Escape($project.id)
+  $allowedDeletePaths = @(
+    "^/v13/deployments/dpl_[A-Za-z0-9]+\?teamId=$escapedTeam$",
+    "^/v9/projects/$escapedProjectId/env/[A-Za-z0-9_]+\?teamId=$escapedTeam$",
+    "^/v9/projects/$escapedProjectId\?teamId=$escapedTeam$"
+  )
+  if (-not ($allowedDeletePaths | Where-Object { $Path -match $_ })) {
+    throw "Vercel DELETE path is outside the DR cleanup allowlist: $Path"
+  }
+  if ($Path -match '^/v13/deployments/([^?]+)\?') {
+    if ($matches[1] -ne $cleanupLedger.preview_deployment_id) {
+      throw 'Vercel DELETE deployment does not match the ledgered preview deployment.'
+    }
+  } elseif ($Path -match '^/v9/projects/[^/]+/env/([^?]+)\?') {
+    if ($matches[1] -notin @($cleanupLedger.preview_environment_ids)) {
+      throw 'Vercel DELETE environment does not match a ledgered preview env.'
+    }
+  } elseif ($Path -notmatch "^/v9/projects/$escapedProjectId\?") {
+    throw 'Vercel DELETE path did not match an exact cleanup resource.'
+  }
   & npx --yes vercel@59.1.3 api $Path `
     --method DELETE `
     --dangerously-skip-permissions `
@@ -1735,11 +1990,7 @@ function Get-TargetCleanupVerification {
   if ($null -eq $target) { return $null }
   Assert-DrTargetCleanupIdentity
   $raw = @(
-    & npx --yes supabase@2.114.0 db query `
-      --linked `
-      --project-ref $targetRef `
-      --file scripts/dr/verify-restore.sql `
-      --output-format text
+    Invoke-DrRestoreVerifier -ProjectRef $targetRef
   )
   if ($LASTEXITCODE -ne 0) { throw 'Target cleanup verifier failed.' }
   $text = $raw -join "`n"
@@ -1853,7 +2104,8 @@ function Clear-DrSecretsAndLocalFiles {
   foreach ($name in @(
     'probePath',
     'smokeScriptPath',
-    'previewBindingEvidencePath'
+    'previewBindingEvidencePath',
+    'previewTargetBindingEvidencePath'
   )) {
     $variable = Get-Variable -Name $name -Scope Script -ErrorAction SilentlyContinue
     if ($variable -and $variable.Value -and
@@ -2035,8 +2287,20 @@ foreach ($command in @(
   'Get-VercelApiJson',
   'ConvertFrom-VercelTimestamp',
   'Assert-DrLocalRoot',
+  'Assert-DrApplicationWorkspace',
   'Start-ProductionVercelBaseline',
   'Assert-ProductionVercelBinding',
+  'Assert-DrTargetCleanupIdentity',
+  'Assert-TargetOriginBinding',
+  'Invoke-DrCleanupStep',
+  'Resolve-DrTargetCleanupIdentity',
+  'Get-VercelCleanupProjectIdentity',
+  'Remove-ExactVercelApiResource',
+  'Get-TargetCleanupVerification',
+  'Assert-VercelDisposableProjectAbsent',
+  'Assert-SupabaseTargetAbsentAndSourceHealthy',
+  'Assert-ProductionApplicationSmoke',
+  'Clear-DrSecretsAndLocalFiles',
   'Invoke-DrCleanup'
 )) {
   if (-not (Get-Command $command -ErrorAction SilentlyContinue)) {

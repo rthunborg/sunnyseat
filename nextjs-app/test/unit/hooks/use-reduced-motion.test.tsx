@@ -48,11 +48,11 @@ describe('useReducedMotion', () => {
     expect(mediaQuery.removeEventListener).toHaveBeenCalledWith('change', expect.any(Function));
   });
 
-  test('returns null when matchMedia is unavailable', () => {
+  test('fails closed to reduced motion when matchMedia is unavailable', () => {
     vi.stubGlobal('matchMedia', undefined);
 
     const { result } = renderHook(() => useReducedMotion());
 
-    expect(result.current).toBeNull();
+    expect(result.current).toBe(true);
   });
 });

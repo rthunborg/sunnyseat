@@ -20,9 +20,6 @@ type ExternalDependencyBase = {
   status: number;
   duration_ms: number;
   region: string;
-  deployment_id: string;
-  environment: string;
-  timestamp_utc: string;
 };
 
 type ExternalDependencyEvent =
@@ -81,9 +78,6 @@ export function createObservedSupabaseFetch(
           status,
           duration_ms: Math.round(performance.now() - start),
           region: context.region,
-          deployment_id: context.deploymentId,
-          environment: context.environment,
-          timestamp_utc: new Date().toISOString(),
         };
         const event: ExternalDependencyEvent = operation
           ? {

@@ -17,6 +17,7 @@ npm run lint
 npm run build
 npm test
 npm run bundle:verify
+node scripts/verify-maplibre-async.mjs
 npx playwright install --with-deps chromium  # one-time, per machine
 npx playwright test
 npm run lighthouse
@@ -86,9 +87,10 @@ npm test
 
 ```bash
 npm run bundle:verify
+node scripts/verify-maplibre-async.mjs
 ```
 
-- Reads `.next/diagnostics/route-bundle-stats.json` and the exact `/[locale]` initial chunk graph.
+- `npm run bundle:verify` reads `.next/diagnostics/route-bundle-stats.json` and the exact `/[locale]` initial chunk graph.
 - Gzips each unique JavaScript chunk independently with Node zlib level 9 and compares exact bytes:
   - route initial: at most 280 KiB;
   - all MapLibre-bearing chunks: at most 320 KiB;
@@ -96,7 +98,8 @@ npm run bundle:verify
 - Requires MapLibre detection and rejects overlap with the initial graph.
 - Fails closed on missing/stale diagnostics, missing chunks, or a Next framework-version mismatch.
 - Reports the unique initial-plus-MapLibre union as a diagnostic only; every emitted static JavaScript chunk remains part of the binding total budget.
-- Maps to CI step: `Verify JS bundle budgets and MapLibre async boundary`.
+- `node scripts/verify-maplibre-async.mjs` is the separate all-routes MapLibre async verifier. It cross-checks every route manifest's `rootMainFiles` and must stay wired even though the budget verifier also checks the `/[locale]` initial route overlap.
+- Maps to CI steps: `Verify JS bundle budgets` and `Verify MapLibre async boundary across all routes`.
 
 ### 6. Playwright e2e tests
 

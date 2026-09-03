@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { GET as venueDetailGET } from '@/app/api/venues/[slug]/route';
+import { POST as venueFeedbackPOST } from '@/app/api/venues/[slug]/feedback/route';
 import {
   GET as reviewsGET,
   POST as reviewsPOST,
@@ -12,6 +13,10 @@ import { clearPersistedVenueReviewsForTests } from '@/lib/services/venue-reviews
 
 const DEPLOYMENT_ID = 'dpl_route_identity_test';
 type NextRequestInit = NonNullable<ConstructorParameters<typeof NextRequest>[1]>;
+
+function routeProbeId(sequence: number): string {
+  return `lr-20260818t090000z-a1b2c3d4-origin-${String(sequence).padStart(3, '0')}`;
+}
 
 function request(
   url: string,
@@ -26,6 +31,31 @@ function request(
 function expectIdentityHeaders(response: Response, requestId: string): void {
   expect(response.headers.get('x-sunnyseat-request-id')).toBe(requestId);
   expect(response.headers.get('x-sunnyseat-deployment-id')).toBe(DEPLOYMENT_ID);
+}
+
+function expectCacheableGetIdentityHeaders(response: Response): void {
+  expect(response.headers.get('x-sunnyseat-request-id')).toBeNull();
+  expect(response.headers.get('x-sunnyseat-deployment-id')).toBe(DEPLOYMENT_ID);
+}
+
+function apiRequestCompleteEvents(): Array<Record<string, unknown>> {
+  return vi.mocked(console.info).mock.calls
+    .flatMap(([message]) => {
+      if (typeof message !== 'string') return [];
+      try {
+        const parsed = JSON.parse(message);
+        return parsed?.event === 'api_request_complete' ? [parsed] : [];
+      } catch {
+        return [];
+      }
+    });
+}
+
+function expectNoStructuredTelemetryLeak(...unsafeValues: string[]): void {
+  const structuredTelemetry = JSON.stringify(apiRequestCompleteEvents());
+  for (const unsafeValue of unsafeValues) {
+    expect(structuredTelemetry).not.toContain(unsafeValue);
+  }
 }
 
 describe('public route response identity', () => {
@@ -44,19 +74,27 @@ describe('public route response identity', () => {
     vi.unstubAllEnvs();
   });
 
-  it('echoes canonical identity headers on a successful venue-detail GET', async () => {
-    const requestId = 'lr-routeidentity-origin-001';
+  it('does not replay a request ID on a successful cacheable venue-detail GET', async () => {
+    const requestId = routeProbeId(1);
     const response = await venueDetailGET(
       request('http://localhost/api/venues/test-venue-sunny', requestId),
       { params: Promise.resolve({ slug: 'test-venue-sunny' }) },
     );
 
     expect(response.status).toBe(200);
-    expectIdentityHeaders(response, requestId);
+    expectCacheableGetIdentityHeaders(response);
+    expect(apiRequestCompleteEvents().at(-1)).toMatchObject({
+      event: 'api_request_complete',
+      request_id: requestId,
+      method: 'GET',
+      route: '/api/venues/[slug]',
+      status: 200,
+      deployment_id: DEPLOYMENT_ID,
+    });
   });
 
   it('echoes canonical identity headers on an error venue-detail GET', async () => {
-    const requestId = 'lr-routeidentity-origin-002';
+    const requestId = routeProbeId(2);
     const response = await venueDetailGET(
       request(
         'http://localhost/api/venues/test-venue-sunny?lat=invalid&lng=11.9746',
@@ -69,8 +107,55 @@ describe('public route response identity', () => {
     expectIdentityHeaders(response, requestId);
   });
 
+  it('normalizes venue-detail structured telemetry without slug or query leakage', async () => {
+    const requestId = routeProbeId(9);
+    const secretSlug = 'private-venue-slug';
+    const secretQuery = 'do-not-log-this-query';
+    const response = await venueDetailGET(
+      request(
+        `http://localhost/api/venues/${secretSlug}?token=${secretQuery}`,
+        requestId,
+      ),
+      { params: Promise.resolve({ slug: secretSlug }) },
+    );
+
+    expect(response.status).toBe(404);
+    expect(apiRequestCompleteEvents().at(-1)).toMatchObject({
+      event: 'api_request_complete',
+      request_id: requestId,
+      method: 'GET',
+      route: '/api/venues/[slug]',
+      status: 404,
+    });
+    expectNoStructuredTelemetryLeak(secretSlug, secretQuery);
+  });
+
+  it('normalizes venue-feedback structured telemetry without slug or query leakage', async () => {
+    const requestId = routeProbeId(10);
+    const secretSlug = 'private-feedback-venue';
+    const secretQuery = 'feedback-query-secret';
+    const response = await venueFeedbackPOST(
+      request(
+        `http://localhost/api/venues/${secretSlug}/feedback?token=${secretQuery}`,
+        requestId,
+        { method: 'POST' },
+      ),
+      { params: Promise.resolve({ slug: secretSlug }) },
+    );
+
+    expect(response.status).toBe(404);
+    expect(apiRequestCompleteEvents().at(-1)).toMatchObject({
+      event: 'api_request_complete',
+      request_id: requestId,
+      method: 'POST',
+      route: '/api/venues/[slug]/feedback',
+      status: 404,
+    });
+    expectNoStructuredTelemetryLeak(secretSlug, secretQuery);
+  });
+
   it('echoes canonical identity headers on a successful reviews GET', async () => {
-    const requestId = 'lr-routeidentity-origin-003';
+    const requestId = routeProbeId(3);
     const response = await reviewsGET(
       request(
         'http://localhost/api/reviews?venueId=test-venue-sunny',
@@ -83,7 +168,7 @@ describe('public route response identity', () => {
   });
 
   it('echoes canonical identity headers on an error reviews GET', async () => {
-    const requestId = 'lr-routeidentity-origin-004';
+    const requestId = routeProbeId(4);
     const response = await reviewsGET(
       request('http://localhost/api/reviews', requestId),
     );
@@ -93,7 +178,7 @@ describe('public route response identity', () => {
   });
 
   it('echoes canonical identity headers on a successful reviews POST', async () => {
-    const requestId = 'lr-routeidentity-origin-005';
+    const requestId = routeProbeId(5);
     const response = await reviewsPOST(
       request('http://localhost/api/reviews', requestId, {
         method: 'POST',
@@ -115,7 +200,7 @@ describe('public route response identity', () => {
   });
 
   it('echoes canonical identity headers on an error reviews POST', async () => {
-    const requestId = 'lr-routeidentity-origin-006';
+    const requestId = routeProbeId(6);
     const response = await reviewsPOST(
       request('http://localhost/api/reviews', requestId, {
         method: 'POST',
@@ -129,7 +214,7 @@ describe('public route response identity', () => {
   });
 
   it('echoes canonical identity headers on a successful feedback POST', async () => {
-    const requestId = 'lr-routeidentity-origin-007';
+    const requestId = routeProbeId(7);
     const response = await feedbackPOST(
       request('http://localhost/api/feedback', requestId, {
         method: 'POST',
@@ -143,7 +228,7 @@ describe('public route response identity', () => {
   });
 
   it('echoes canonical identity headers on an error feedback POST', async () => {
-    const requestId = 'lr-routeidentity-origin-008';
+    const requestId = routeProbeId(8);
     const response = await feedbackPOST(
       request('http://localhost/api/feedback', requestId, {
         method: 'POST',

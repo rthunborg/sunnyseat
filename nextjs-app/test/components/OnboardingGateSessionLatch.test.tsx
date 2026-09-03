@@ -62,6 +62,10 @@ vi.mock('motion/react', async () => {
   };
 });
 
+vi.mock('@/hooks/use-reduced-motion', () => ({
+  useReducedMotion: () => false,
+}));
+
 // A real-shaped geolocation whose `useCentrum` synchronously reports the
 // fallback status so the skip button drives a real same-tab grant/deny write
 // through the gate's `onLocationDenied` → `writeFlag()` path.

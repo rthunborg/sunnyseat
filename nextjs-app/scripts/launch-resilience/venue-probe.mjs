@@ -24,6 +24,8 @@ import {
 const REQUEST_ID_HEADER = 'x-sunnyseat-request-id';
 const DEPLOYMENT_ID_HEADER = 'x-sunnyseat-deployment-id';
 const DEFAULT_BASE_URL = 'https://sunnyseat.vercel.app';
+const VERCEL_ENVIRONMENTS = new Set(['production', 'preview']);
+const MIN_REPLAN_ORIGIN_ATTEMPTS = 20;
 export const REQUEST_TIMEOUT_MS = 10_000;
 
 const HELP = `
@@ -33,22 +35,39 @@ Collect raw client samples and an exact provider export plan:
   node scripts/launch-resilience/venue-probe.mjs collect \\
     --deployment-id <exact-vercel-deployment-id> \\
     --output-dir <new-evidence-directory> \\
-    [--base-url ${DEFAULT_BASE_URL}] [--origin-count 30] \\
+    [--base-url ${DEFAULT_BASE_URL}] [--environment production|preview] [--origin-count 30] \\
     [--edge-count 20] [--concurrency 4] \\
     [--session-id lr-YYYYMMDDtHHMMSSz-8hex]
+
+Merge client samples from repeated controlled windows into a new exact provider
+export plan:
+  node scripts/launch-resilience/venue-probe.mjs replan \\
+    --deployment-id <exact-vercel-deployment-id> \\
+    --client <client-samples.jsonl[,more.jsonl]> \\
+    --output-dir <new-evidence-directory> \\
+    [--environment production|preview]
+
+For multi-window cold-start aggregation, run the edge lane exactly once across
+all client evidence. Use the first collection window with --edge-count > 0, then
+additional origin-only windows with --edge-count 0 until the report can prove at
+least 20 provider-classified cold starts. Replan refuses multiple edge-prime
+samples and refuses fewer than 20 origin client attempts.
 
 The collector writes provider-evidence-plan.json. Execute each argv array exactly
 with Vercel CLI ${VERCEL_CLI_VERSION} from the linked SunnySeat project and save
 stdout byte-for-byte in the named file. The pinned commands are equivalent to:
 
-  npx --yes vercel@${VERCEL_CLI_VERSION} metrics vercel.function_invocation.count --aggregation sum --prod --filter "deployment_id eq '<DEPLOYMENT>'" --filter "route eq '/api/venues'" --group-by function_start_type --group-by client_user_agent --group-by function_region --group-by deployment_id --group-by http_status --group-by route --since <START_UTC> --until <END_UTC> --granularity 5m --limit 500 --order-by count --order desc --json
+  npx --yes vercel@${VERCEL_CLI_VERSION} metrics vercel.function_invocation.count --aggregation sum --prod --filter "deployment_id eq '<DEPLOYMENT>'" --filter "route eq '/api/venues'" --filter "environment eq 'production'" --group-by function_start_type --group-by client_user_agent --group-by function_region --group-by deployment_id --group-by http_status --group-by route --since <START_UTC> --until <END_UTC> --granularity 5m --limit 500 --order-by count --order desc --json
 
-  npx --yes vercel@${VERCEL_CLI_VERSION} metrics vercel.function_invocation.function_duration_ms --aggregation avg --prod --filter "deployment_id eq '<DEPLOYMENT>'" --filter "route eq '/api/venues'" --group-by function_start_type --group-by client_user_agent --group-by function_region --group-by deployment_id --group-by http_status --group-by route --since <START_UTC> --until <END_UTC> --granularity 5m --limit 500 --order-by count --order desc --json
+  npx --yes vercel@${VERCEL_CLI_VERSION} metrics vercel.function_invocation.function_duration_ms --aggregation avg --prod --filter "deployment_id eq '<DEPLOYMENT>'" --filter "route eq '/api/venues'" --filter "environment eq 'production'" --group-by function_start_type --group-by client_user_agent --group-by function_region --group-by deployment_id --group-by http_status --group-by route --since <START_UTC> --until <END_UTC> --granularity 5m --limit 500 --order-by count --order desc --json
 
-  npx --yes vercel@${VERCEL_CLI_VERSION} metrics vercel.external_api_request.count --aggregation sum --prod --filter "deployment_id eq '<DEPLOYMENT>'" --filter "origin_route eq '/api/venues'" --group-by deployment_id --group-by function_region --group-by http_status --group-by origin_route --group-by request_hostname --group-by request_method --group-by request_path --since <START_UTC> --until <END_UTC> --granularity 5m --limit 500 --order-by count --order desc --json
+  npx --yes vercel@${VERCEL_CLI_VERSION} metrics vercel.external_api_request.count --aggregation sum --prod --filter "deployment_id eq '<DEPLOYMENT>'" --filter "origin_route eq '/api/venues'" --filter "environment eq 'production'" --group-by deployment_id --group-by function_region --group-by http_status --group-by origin_route --group-by request_hostname --group-by request_method --group-by request_path --since <START_UTC> --until <END_UTC> --granularity 5m --limit 500 --order-by count --order desc --json
 
   # Repeat once per client sample, using the request_log entries in the plan:
   npx --yes vercel@${VERCEL_CLI_VERSION} logs <DEPLOYMENT> --environment production --request-id <X-VERCEL-ID-SUFFIX> --limit 10 --json
+
+For preview plans, the metric commands omit --prod and every environment filter
+or logs command uses preview. Do not edit generated argv by hand.
 
 Build the acceptance report from those unmodified exports:
   node scripts/launch-resilience/venue-probe.mjs report \\
@@ -61,7 +80,7 @@ Build the acceptance report from those unmodified exports:
     --request-log <request-log-001.jsonl[,request-log-002.jsonl,...]> \\
     --external <external-api-request-count.json[,more.json]> \\
     --output-dir <new-report-directory> \\
-    [--min-cold 20] [--threshold-ms 5000]
+    [--environment production|preview] [--min-cold 20] [--threshold-ms 5000]
 
 At least 20 provider-classified cold starts and a threshold no greater than 5000
 ms are non-loosenable CLI gates. x-vercel-cache is never a start-type authority.
@@ -120,6 +139,14 @@ function sessionIdOption(value) {
   return sessionId;
 }
 
+function environmentOption(value) {
+  const environment = value ?? 'production';
+  if (!VERCEL_ENVIRONMENTS.has(environment)) {
+    throw new Error('--environment must be production or preview.');
+  }
+  return environment;
+}
+
 function probeId(sessionId, cohort, sequence) {
   const value = `${sessionId}-${cohort}-${String(sequence).padStart(3, '0')}`;
   if (value.length > 64) {
@@ -167,6 +194,7 @@ export async function sampleVenueRequest({
   requestedCohort,
   sequence,
   deploymentId,
+  environment = 'production',
 }) {
   const startedAt = new Date().toISOString();
   const start = performance.now();
@@ -197,7 +225,7 @@ export async function sampleVenueRequest({
       sequence,
       probe_id: requestProbeId,
       deployment_id: deploymentId,
-      environment: 'production',
+      environment,
       requested_cohort: requestedCohort,
       request_route: '/api/venues',
       started_at_utc: startedAt,
@@ -222,7 +250,7 @@ export async function sampleVenueRequest({
       sequence,
       probe_id: requestProbeId,
       deployment_id: deploymentId,
-      environment: 'production',
+      environment,
       requested_cohort: requestedCohort,
       request_route: '/api/venues',
       started_at_utc: startedAt,
@@ -261,6 +289,106 @@ function exactClientMeasurementWindow(samples) {
     ended_at_utc: new Date(Math.max(...ends)).toISOString(),
   };
 }
+
+function clientSampleCorrectness(sample, deploymentId, environment) {
+  const cacheStatus = String(sample?.cache_status ?? '').toUpperCase();
+  const timingOk =
+    Number.isFinite(sample?.ttfb_ms) &&
+    Number.isFinite(sample?.total_ms) &&
+    sample.ttfb_ms >= 0 &&
+    sample.total_ms >= sample.ttfb_ms;
+  const cacheOk = cacheStatus === 'MISS' || cacheStatus === 'HIT';
+  const deploymentOk =
+    sample?.deployment_id === deploymentId &&
+    sample?.response_deployment_id === deploymentId &&
+    sample?.environment === environment;
+  const originEchoOk =
+    cacheStatus !== 'MISS' ||
+    sample?.response_request_id === null ||
+    sample?.response_request_id === sample?.probe_id;
+  return {
+    http_200: sample?.http_status === 200,
+    payload_valid: sample?.validation?.passed === true,
+    timing_valid: timingOk,
+    deployment_matched: deploymentOk,
+    cache_usable: cacheOk,
+    origin_echoed: originEchoOk,
+    passed:
+      sample?.http_status === 200 &&
+      sample?.validation?.passed === true &&
+      timingOk &&
+      deploymentOk &&
+      cacheOk &&
+      originEchoOk,
+  };
+}
+
+function clientCorrectnessSummary(samples, deploymentId, environment) {
+  const counts = {
+    raw_samples: samples.length,
+    passed_samples: 0,
+    failed_samples: 0,
+    http_200: 0,
+    payload_valid: 0,
+    timing_valid: 0,
+    deployment_matched: 0,
+    cache_usable: 0,
+    origin_echoed: 0,
+  };
+  for (const sample of samples) {
+    const correctness = clientSampleCorrectness(sample, deploymentId, environment);
+    if (correctness.passed) counts.passed_samples += 1;
+    if (correctness.http_200) counts.http_200 += 1;
+    if (correctness.payload_valid) counts.payload_valid += 1;
+    if (correctness.timing_valid) counts.timing_valid += 1;
+    if (correctness.deployment_matched) counts.deployment_matched += 1;
+    if (correctness.cache_usable) counts.cache_usable += 1;
+    if (correctness.origin_echoed) counts.origin_echoed += 1;
+  }
+  counts.failed_samples = samples.length - counts.passed_samples;
+  return counts;
+}
+
+function cacheCounts(samples) {
+  return Object.fromEntries(
+    [...new Set(samples.map((sample) => sample.cache_status))].map(
+      (cacheStatus) => [
+        cacheStatus,
+        samples.filter((sample) => sample.cache_status === cacheStatus).length,
+      ],
+    ),
+  );
+}
+
+function replanAggregationPolicy(samples) {
+  const counts = {
+    origin: 0,
+    edge_prime: 0,
+    edge_repeat: 0,
+  };
+  for (const sample of samples) {
+    if (sample?.requested_cohort === 'origin') counts.origin += 1;
+    if (sample?.requested_cohort === 'edge-prime') counts.edge_prime += 1;
+    if (sample?.requested_cohort === 'edge-repeat') counts.edge_repeat += 1;
+  }
+  if (counts.origin < MIN_REPLAN_ORIGIN_ATTEMPTS) {
+    throw new Error(
+      `Replan requires at least ${MIN_REPLAN_ORIGIN_ATTEMPTS} origin client attempts before provider cold classification; received ${counts.origin}.`,
+    );
+  }
+  if (counts.edge_prime !== 1) {
+    throw new Error(
+      `Replan requires exactly one edge-prime client sample across all aggregated windows; received ${counts.edge_prime}.`,
+    );
+  }
+  if (counts.edge_repeat < 1) {
+    throw new Error(
+      'Replan requires at least one edge-repeat client sample after the single edge-prime.',
+    );
+  }
+  return counts;
+}
+
 async function collectCommand(values) {
   if (!values['deployment-id']) {
     throw new Error('--deployment-id is required for an exact deployment lane.');
@@ -271,6 +399,7 @@ async function collectCommand(values) {
 
   const baseUrl = values['base-url'] ?? DEFAULT_BASE_URL;
   const deploymentId = values['deployment-id'];
+  const environment = environmentOption(values.environment);
   const outputDirectory = resolve(values['output-dir']);
   const sessionId = sessionIdOption(values['session-id']);
   const originCount = integerOption(
@@ -326,6 +455,7 @@ async function collectCommand(values) {
       requestedCohort,
       sequence,
       deploymentId,
+      environment,
     });
     samples.push(sample);
     clientWriteQueue = clientWriteQueue.then(() => clientHandle.write(`${JSON.stringify(sample)}\n`));
@@ -373,10 +503,16 @@ async function collectCommand(values) {
 
   const endedAt = new Date().toISOString();
   const measurementWindow = exactClientMeasurementWindow(samples);
+  const correctnessSummary = clientCorrectnessSummary(
+    samples,
+    deploymentId,
+    environment,
+  );
   const evidencePlan = buildVercelEvidencePlan({
     deploymentId,
     measurementWindow,
     clientSamples: samples,
+    environment,
   });
   const evidencePlanContent = `${JSON.stringify(evidencePlan, null, 2)}\n`;
   const evidencePlanPath = resolve(
@@ -388,6 +524,7 @@ async function collectCommand(values) {
     schema_version: 3,
     session_id: sessionId,
     deployment_id: deploymentId,
+    environment,
     base_url: new URL(baseUrl).origin,
     endpoint_path: '/api/venues',
     measurement_cohort: 'gothenburg-centre-radius-3km',
@@ -404,31 +541,9 @@ async function collectCommand(values) {
     client_samples_sha256: sha256(
       await readFile(clientPath, 'utf8'),
     ),
-    correctness_passed: samples.every((sample) => {
-      const cacheStatus = String(sample.cache_status).toUpperCase();
-      return (
-        sample.http_status === 200 &&
-        sample.validation.passed === true &&
-        sample.deployment_id === deploymentId &&
-        sample.response_deployment_id === deploymentId &&
-        Number.isFinite(sample.ttfb_ms) &&
-        Number.isFinite(sample.total_ms) &&
-        sample.ttfb_ms >= 0 &&
-        sample.total_ms >= sample.ttfb_ms &&
-        (cacheStatus === 'MISS' || cacheStatus === 'HIT') &&
-        (cacheStatus !== 'MISS' || sample.response_request_id === sample.probe_id)
-      );
-    }),
-    cache_counts: Object.fromEntries(
-      [...new Set(samples.map((sample) => sample.cache_status))].map(
-        (cacheStatus) => [
-          cacheStatus,
-          samples.filter(
-            (sample) => sample.cache_status === cacheStatus,
-          ).length,
-        ],
-      ),
-    ),
+    correctness_passed: correctnessSummary.failed_samples === 0,
+    client_correctness_summary: correctnessSummary,
+    cache_counts: cacheCounts(samples),
     classification_note:
       'cache_status is recorded but never used as function start classification',
     integrity_scope:
@@ -459,15 +574,91 @@ async function readJsonLineFiles(paths) {
   const sources = [];
   for (const path of paths) {
     const content = await readFile(path, 'utf8');
-    rows.push(...parseJsonLines(content, path));
+    const parsedRows = parseJsonLines(content, path);
+    rows.push(...parsedRows);
     sources.push({
       path,
       sha256: sha256(content),
       bytes: Buffer.byteLength(content),
+      row_count: parsedRows.length,
     });
   }
   return { rows, sources };
 }
+
+export async function replanCommand(values) {
+  if (!values['deployment-id']) {
+    throw new Error('--deployment-id is required for an exact deployment lane.');
+  }
+  if (!values['output-dir']) {
+    throw new Error('--output-dir is required.');
+  }
+  const clientPaths = splitPaths(values.client, 'client');
+  const environment = environmentOption(values.environment);
+  const client = await readJsonLineFiles(clientPaths);
+  const seenProbeIds = new Set();
+  for (const sample of client.rows) {
+    const probeId = typeof sample?.probe_id === 'string' ? sample.probe_id : '';
+    if (!probeId || seenProbeIds.has(probeId)) {
+      throw new Error('Client samples must contain unique probe IDs before replanning.');
+    }
+    seenProbeIds.add(probeId);
+    if (
+      sample.deployment_id !== values['deployment-id'] ||
+      sample.environment !== environment
+    ) {
+      throw new Error(
+        'Client samples must all match the requested deployment and environment before replanning.',
+      );
+    }
+  }
+  const aggregation = replanAggregationPolicy(client.rows);
+  const correctnessSummary = clientCorrectnessSummary(
+    client.rows,
+    values['deployment-id'],
+    environment,
+  );
+
+  const outputDirectory = resolve(values['output-dir']);
+  await mkdir(outputDirectory, { recursive: true });
+  const measurementWindow = exactClientMeasurementWindow(client.rows);
+  const evidencePlan = buildVercelEvidencePlan({
+    deploymentId: values['deployment-id'],
+    measurementWindow,
+    clientSamples: client.rows,
+    environment,
+  });
+  const evidencePlanContent = `${JSON.stringify(evidencePlan, null, 2)}\n`;
+  const evidencePlanPath = resolve(outputDirectory, 'provider-evidence-plan.json');
+  await writeExclusive(evidencePlanPath, evidencePlanContent);
+  await writeExclusive(
+    resolve(outputDirectory, 'manifest.json'),
+    `${JSON.stringify({
+      schema_version: 1,
+      command: 'replan',
+      deployment_id: values['deployment-id'],
+      environment,
+      measurement_window: measurementWindow,
+      client_samples: client.rows.length,
+      client_samples_by_requested_cohort: aggregation,
+      correctness_passed: correctnessSummary.failed_samples === 0,
+      client_correctness_summary: correctnessSummary,
+      cache_counts: cacheCounts(client.rows),
+      minimum_provider_cold_samples_required: MIN_REPLAN_ORIGIN_ATTEMPTS,
+      edge_prime_policy: 'exactly_one_across_aggregated_windows',
+      client_sources: client.sources,
+      provider_evidence_plan: 'provider-evidence-plan.json',
+      provider_evidence_plan_sha256: sha256(evidencePlanContent),
+      classification_note:
+        'cache_status is recorded but never used as function start classification',
+      integrity_scope: evidencePlan.integrity_scope,
+    }, null, 2)}\n`,
+  );
+  process.stdout.write(
+    `Provider export plan: ${evidencePlanPath}\nManifest: ${resolve(outputDirectory, 'manifest.json')}\n`,
+  );
+}
+
 async function readRequestLogFiles(paths, plan) {
   const evidence = [];
   const sources = [];
@@ -586,7 +777,7 @@ function markdownReport(report) {
       ? '- None.'
       : report.errors.map((error) => `- ${error}`).join('\n');
 
-  return `# SunnySeat production venue measurement
+  return `# SunnySeat ${report.environment} venue measurement
 
 Generated: ${report.generated_at}
 Deployment: ${report.deployment_id} (${report.environment})
@@ -661,6 +852,7 @@ export async function reportCommand(values) {
     1,
     5_000,
   );
+  const environment = environmentOption(values.environment);
 
   const client = await readJsonLineFiles(clientPaths);
   const plan = await readJsonObjectFile(planPaths[0], 'provider evidence plan');
@@ -669,6 +861,7 @@ export async function reportCommand(values) {
     deploymentId: values['deployment-id'],
     measurementWindow,
     clientSamples: client.rows,
+    environment,
   });
   if (planErrors.length > 0) {
     throw new Error(planErrors.join(' '));
@@ -684,10 +877,11 @@ export async function reportCommand(values) {
     clientSamples: client.rows,
     providerInvocationEvidence: providerCount.evidence,
     providerDurationEvidence: providerDuration.evidence,
-    runtimeEvents: normalizeRuntimeEvents(requestLogs.evidence),
+    runtimeEvents: normalizeRuntimeEvents(requestLogs.evidence, { environment }),
     providerRequestEvidence: requestLogs.evidence,
     providerRequestCaptureSources: requestLogs.sources,
     expectedDeploymentId: values['deployment-id'],
+    expectedEnvironment: environment,
     expectedSupabaseHostname: values['supabase-host'],
     providerExternalEvidence: external.evidence,
     minColdSamples,
@@ -737,6 +931,7 @@ async function main() {
       'batch-pause-ms': { type: 'string' },
       'edge-prime-pause-ms': { type: 'string' },
       'session-id': { type: 'string' },
+      environment: { type: 'string' },
       client: { type: 'string' },
       plan: { type: 'string' },
       'provider-count': { type: 'string' },
@@ -754,11 +949,15 @@ async function main() {
     return;
   }
   if (positionals.length !== 1) {
-    throw new Error('Supply exactly one command: collect or report.');
+    throw new Error('Supply exactly one command: collect, replan, or report.');
   }
 
   if (positionals[0] === 'collect') {
     await collectCommand(values);
+    return;
+  }
+  if (positionals[0] === 'replan') {
+    await replanCommand(values);
     return;
   }
   if (positionals[0] === 'report') {

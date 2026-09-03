@@ -28,7 +28,7 @@ export function TimeSliderPanel({
   const t = useTranslations('venue.planner');
   const locale = useLocale();
   const time = useTimeContext();
-  const prefersReducedMotion = useReducedMotion() ?? false;
+  const prefersReducedMotion = useReducedMotion();
   const shouldReduceMotion = reducedMotion ?? prefersReducedMotion;
   const [calendarOpen, setCalendarOpen] = useState(false);
   const calendarTriggerRef = useRef<HTMLButtonElement>(null);
