@@ -181,6 +181,15 @@ describe('<VenueList />', () => {
     expect(selectButton).not.toHaveAccessibleName(/Säkerhet/);
   });
 
+  it('treats omitted direct-sun state as unknown, not an amber claim', () => {
+    const venue = makeVenue({ id: 'legacy', name: 'Äldre svar', status: 'Sunny', distanceMeters: 50 });
+    delete venue.directSunState;
+    render(<VenueList venues={[venue]} mode="mobile" onSelectVenue={vi.fn()} />, { wrapper: Wrapper });
+    const card = screen.getByTestId('venue-card');
+    expect(card).toHaveTextContent('OKLART OM DIREKT SOL');
+    expect(card).not.toHaveTextContent('FULL SOL');
+  });
+
   it('does not surface prediction-uncertainty metadata on list cards (Story 9.1 de-bloat)', () => {
     const { container } = render(
       <VenueList
@@ -303,6 +312,7 @@ function makeVenue({
     location: { lat: 57.7, lng: 11.97 },
     currentSunStatus: status,
     weatherGateState: 'not_gated',
+    directSunState: status === 'CloudObscured' || status === 'Shaded' ? 'blocked' : 'likely',
     isPartner: false,
     confidence: status === 'Sunny' ? 90 : 40,
     distanceMeters,

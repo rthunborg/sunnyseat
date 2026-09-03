@@ -163,6 +163,9 @@ function scoreVenue(
       const expectedVerdict = publicSunVerdictFor({
         sunExposurePercent: evidence.sun_exposure_percent,
         weatherGateState,
+        // Feedback rows predate the explicit direct-sun column. Their two
+        // persisted compatibility flags encode the same three states.
+        directSunState: directSunStateFromEvidence(evidence),
       });
       if (evidence.public_sun_verdict !== expectedVerdict) {
         invalidEvidenceCount += 1;
@@ -275,6 +278,14 @@ function weatherGateStateFromEvidence(
   if (evidence.weather_gated) return 'gated';
   if (evidence.weather_unknown) return 'unknown';
   return 'not_gated';
+}
+
+function directSunStateFromEvidence(
+  evidence: { weather_gated: boolean; weather_unknown: boolean },
+) {
+  if (evidence.weather_gated) return 'blocked' as const;
+  if (evidence.weather_unknown) return 'unknown' as const;
+  return 'likely' as const;
 }
 
 function normalizeSunAccuracy(value: string | null): FeedbackSunAccuracy | null {

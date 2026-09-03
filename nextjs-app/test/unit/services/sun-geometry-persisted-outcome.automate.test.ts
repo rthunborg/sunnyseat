@@ -10,6 +10,7 @@ import type {
   WeatherSnapshotRepository,
 } from '@/lib/services/weather-snapshots';
 import type { StoredVenue } from '@/lib/services/venue-store';
+import { isVenuePubliclySunny } from '@/lib/utils/public-sun';
 
 const GEOMETRY_HASH = 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
@@ -84,7 +85,7 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
       status: 'ready',
       series: [
         { minutes: 720, sunExposurePercent: 91 },
-        { minutes: 735, sunExposurePercent: 20 },
+        { minutes: 735, sunExposurePercent: 85 },
       ],
     };
     const snapshot: WeatherSnapshotRecord = {
@@ -92,8 +93,30 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
       bucket: 'current-57.7050,11.9700',
       weatherUpdatedAt: '2026-07-18T09:55:00.000Z',
       slices: [
-        { minutes: 720, cloudCover: 95, isRaining: false },
-        { minutes: 735, cloudCover: 10, isRaining: false },
+        {
+          minutes: 720,
+          validAt: '2026-07-18T10:00:00.000Z',
+          cloudCover: 95,
+          cloudCoverLow: 95,
+          cloudCoverMedium: 95,
+          cloudCoverHigh: 95,
+          fogAreaFraction: 0,
+          precipitationAmount: 0,
+          symbolCode: 'cloudy',
+          isRaining: false,
+        },
+        {
+          minutes: 735,
+          validAt: '2026-07-18T10:15:00.000Z',
+          cloudCover: 0,
+          cloudCoverLow: 0,
+          cloudCoverMedium: 0,
+          cloudCoverHigh: 0,
+          fogAreaFraction: 0,
+          precipitationAmount: 0,
+          symbolCode: 'clearsky_day',
+          isRaining: false,
+        },
       ],
     };
 
@@ -136,13 +159,21 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
     expect(outcome.venue).toMatchObject({
       currentSunStatus: 'CloudObscured',
       weatherGateState: 'gated',
+      directSunState: 'blocked',
+      directSunReasons: ['cloud-obstruction'],
       sunExposurePercent: 91,
       skyCondition: 'overcast',
       confidence: 88,
       predictionEvidence: { geometryInputHash: GEOMETRY_HASH },
     });
     expect(outcome.daySeries).toEqual(outcome.venue.sunDaySeries);
-    expect(outcome.peakTime).toBeUndefined();
+    expect(outcome.daySeries?.[1]).toMatchObject({
+      minutes: 735,
+      directSunState: 'likely',
+      directSunReasons: [],
+      weatherGateState: 'not_gated',
+    });
+    expect(outcome.peakTime).toBe('12:15');
   });
 
   test('falls back to geometry-only confidence when the weather snapshot is expired', async () => {
@@ -178,6 +209,8 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
     expect(outcome.venue).toMatchObject({
       currentSunStatus: 'Sunny',
       weatherGateState: 'unknown',
+      directSunState: 'unknown',
+      directSunReasons: ['weather-unavailable'],
       skyCondition: 'unavailable',
       confidence: 40,
       sunExposurePercent: 85,
@@ -213,6 +246,8 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
     expect(outcome.venue).toMatchObject({
       currentSunStatus: 'NoSun',
       weatherGateState: 'not_gated',
+      directSunState: 'blocked',
+      directSunReasons: ['geometry'],
       sunExposurePercent: 0,
     });
     expect(outcome.daySeries).toEqual([
@@ -253,6 +288,11 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
       sunExposurePercent: 25,
     });
     expect(outcome.venue.currentSunStatus).not.toBe('NoSun');
+    expect(outcome.venue).toMatchObject({
+      directSunState: 'blocked',
+      directSunReasons: ['geometry'],
+      weatherGateState: 'not_gated',
+    });
   });
 
   test('does not label live current requests after the planner end as the stale last persisted step', async () => {
@@ -282,14 +322,16 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
 
     expect(outcome.venue).toMatchObject({
       currentSunStatus: 'NoSun',
-      weatherGateState: 'unknown',
+      weatherGateState: 'not_gated',
+      directSunState: 'blocked',
+      directSunReasons: ['geometry'],
       skyCondition: 'unavailable',
       sunExposurePercent: 0,
     });
   });
 
   test.each(['expired', 'missing'] as const)(
-    '%s snapshots with retained slices keep public window and peak weather-qualified as unknown',
+    '%s snapshots with retained slices do not fabricate a public sun window or peak',
     async (status) => {
       const venue = makeVenue({ confidence: 73 });
       const coverage: PersistedSunGeometryCoverage = {
@@ -322,17 +364,13 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
       expect(outcome.freshness).toEqual({ sunDataSource: 'geometry-only' });
       expect(outcome.daySeries?.[0]).toMatchObject({
         weatherGateState: 'unknown',
+        directSunState: 'unknown',
+        directSunReasons: ['weather-unavailable'],
         skyCondition: 'unavailable',
       });
-      expect(outcome.venue.sunWindow).toEqual({
-        start: '12:00',
-        end: '12:00',
-        weatherGateState: 'unknown',
-      });
-      expect(outcome).toMatchObject({
-        peakTime: '12:00',
-        peakWeatherGateState: 'unknown',
-      });
+      expect(outcome.venue.sunWindow).toBeUndefined();
+      expect(outcome.peakTime).toBeUndefined();
+      expect(outcome.peakWeatherGateState).toBeUndefined();
     },
   );
 
@@ -369,7 +407,58 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
     expect(outcome.venue).toMatchObject({
       confidence: 40,
       skyCondition: 'unavailable',
+      directSunState: 'unknown',
+      directSunReasons: ['weather-unavailable'],
     });
+  });
+
+  test('keeps fresh but incomplete weather unknown instead of promoting geometric exposure to public sun', async () => {
+    const venue = makeVenue({ confidence: 73 });
+    const coverage: PersistedSunGeometryCoverage = {
+      venueId: venue.id,
+      stockholmDate: '2026-07-18',
+      geometryInputHash: GEOMETRY_HASH,
+      status: 'ready',
+      series: [{ minutes: 720, sunExposurePercent: 85 }],
+    };
+
+    const outcome = await buildPersistedSunOutcome(
+      venue,
+      new Date('2026-07-18T10:00:00.000Z'),
+      new Date('2026-07-18T10:00:00.000Z'),
+      {
+        repositories: {
+          sunGeometryRepository: makeGeometryRepository(coverage, []),
+          weatherSnapshotRepository: makeWeatherRepository(
+            {
+              status: 'ready',
+              weatherUpdatedAt: '2026-07-18T09:55:00.000Z',
+              // The snapshot is fresh but lacks layer and fog evidence required
+              // for a positive direct-sun claim.
+              slices: [{
+                minutes: 720,
+                validAt: '2026-07-18T10:00:00.000Z',
+                cloudCover: 5,
+                isRaining: false,
+              }],
+            },
+            [],
+          ),
+        },
+      },
+    );
+
+    expect(outcome.freshness).toEqual({
+      sunDataSource: 'weather',
+      weatherUpdatedAt: '2026-07-18T09:55:00.000Z',
+    });
+    expect(outcome.venue).toMatchObject({
+      sunExposurePercent: 85,
+      directSunState: 'unknown',
+      directSunReasons: ['weather-incomplete'],
+      weatherGateState: 'unknown',
+    });
+    expect(isVenuePubliclySunny(outcome.venue)).toBe(false);
   });
 
   test('fails closed on dirty current input without reading stale coverage', async () => {

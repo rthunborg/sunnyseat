@@ -33,6 +33,7 @@ function makeCloudObscuredVenue(overrides: Partial<VenueDataDto> = {}): VenueDat
     // Weather-gated headline, but geometrically sunlit — the two-signal model.
     currentSunStatus: 'CloudObscured',
     weatherGateState: 'gated',
+    directSunState: 'blocked',
     skyCondition: 'overcast',
     isPartner: false,
     confidence: 60,
@@ -92,6 +93,7 @@ describe('[12.6] CloudObscured stays outside the public-sunny band', () => {
         id: 'partial',
         currentSunStatus: 'Partial',
         weatherGateState: 'not_gated',
+        directSunState: 'likely',
         sunExposurePercent: 60,
         skyCondition: 'clear',
       }),
@@ -101,6 +103,7 @@ describe('[12.6] CloudObscured stays outside the public-sunny band', () => {
         id: 'shaded',
         currentSunStatus: 'Shaded',
         weatherGateState: 'not_gated',
+        directSunState: 'blocked',
         sunExposurePercent: 20,
         skyCondition: 'clear',
       }),

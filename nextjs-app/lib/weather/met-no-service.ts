@@ -46,6 +46,9 @@ interface MetNoResponse {
           details?: {
             precipitation_amount?: number;
           };
+          summary?: {
+            symbol_code?: string;
+          };
         };
       };
     }>;
@@ -68,7 +71,7 @@ export async function getForecast(
     // STORY 10.3 (AC1): `complete` (not `compact`) so the response carries the
     // three-layer cloud split (`cloud_area_fraction_low/_medium/_high`) that the
     // layer-weighted effective-cover gate consumes. Same API, same TOS posture,
-    // same 4-decimal coordinate truncation, same `revalidate: 300` caching — the
+    // same 4-decimal coordinate rounding, same `revalidate: 300` caching — the
     // ONLY change from Story 8.5 is the endpoint path segment. `complete` payloads
     // are larger (many more instant variables) but we read only a handful of
     // `instant.details` fields, so the extra parse cost is negligible and the
@@ -99,30 +102,31 @@ export async function getForecast(
 
       const validAt = new Date(entry.time);
       const entryTime = validAt.getTime();
+      // A malformed provider timestamp cannot be matched safely to a geometry
+      // step. Drop the entry so downstream snapshot selection fails closed.
+      if (!Number.isFinite(entryTime)) continue;
       if (entryTime > forecastHorizon) continue;
       const isForecast = entryTime > now + 30 * 60000;
-
-      const fogFraction = instant.fog_area_fraction;
-      const visibility =
-        fogFraction != null ? (100 - fogFraction) / 10.0 : undefined;
 
       slices.push({
         // STORY 10.1 (AC2): do NOT default a missing `cloud_area_fraction` to `0`
         // (clear sky) — the old optimistic default was exactly the wrong failure
         // mode. Leave `cloudCover` undefined when the field is absent so the slice
-        // reads "weather-unknown for gating": non-gating AND non-clear downstream
-        // (the cloud gate does not fire, skyCondition → 'unavailable', and the
-        // confidence blend treats it as neutral rather than 100% overcast).
+        // reads weather-unknown downstream. The direct-sun classifier can never
+        // promote that incomplete evidence to `likely`.
         cloudCover: instant.cloud_area_fraction,
         // STORY 10.3 (AC1): the three-layer split from the `complete` product.
         // Like the total above, leave each `undefined` when the band is absent —
-        // do NOT `?? 0`. A partial `complete` entry (any layer missing) degrades to
-        // the Tier-0 total via `effectiveCloudCover`'s fallback (Story 10.3 AC3).
+        // do NOT `?? 0`. The scalar effective-cover helper may retain its legacy
+        // raw-total fallback, but direct-sun classification still requires every
+        // layer before it may return `likely`.
         cloudCoverLow: instant.cloud_area_fraction_low,
         cloudCoverMedium: instant.cloud_area_fraction_medium,
         cloudCoverHigh: instant.cloud_area_fraction_high,
+        fogAreaFraction: instant.fog_area_fraction,
+        precipitationAmount: entry.data?.next_1_hours?.details?.precipitation_amount,
+        symbolCode: entry.data?.next_1_hours?.summary?.symbol_code,
         temperature: instant.air_temperature ?? 0,
-        visibility,
         isForecast,
         source: 'metno',
         // createdAt = when WE fetched (kept for confidence-calculator's data-age

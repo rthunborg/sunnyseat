@@ -10,11 +10,14 @@
  * and asserts the correct card + pin + detail presentation for each, at a forced
  * `?_time=13:00` (sun deterministically up) and WITHOUT any live Met.no call:
  *
- *   1. overcast ≥ threshold        ⇒ muted "Sol bakom moln" obscured chrome
- *   2. clear                        ⇒ amber Sunny
- *   3. high-cirrus-only             ⇒ Sunny, NOT gated (the 10.3 differentiator)
- *   4. active rain                  ⇒ obscured chrome + rain sky copy
- *   5. weather-missing              ⇒ ungated (geometry governs), NO sky line
+ *   1. complete overcast           ⇒ muted "Sol bakom moln" obscured chrome
+ *   2. clear                        ⇒ amber direct-sun verdict
+ *   3. broken clouds                ⇒ neutral unknown + clear-sky potential
+ *   4. precipitation                ⇒ obscured chrome + rain sky copy
+ *   5. fog                          ⇒ obscured chrome
+ *   6. stale/missing weather        ⇒ neutral unknown, no fabricated sky line
+ *   7. incomplete weather           ⇒ neutral unknown
+ *   8. contradictory weather        ⇒ neutral unknown
  *
  * =========================================================================
  * DETERMINISTIC MECHANISM (the load-bearing decision — story Dev Notes)
@@ -94,15 +97,20 @@ async function forbidLiveMetno(page: Page): Promise<string[]> {
 type ScenarioId =
   | 'overcast'
   | 'clear'
-  | 'high-cirrus-only'
-  | 'active-rain'
-  | 'weather-missing';
+  | 'broken-clouds'
+  | 'precipitation'
+  | 'fog'
+  | 'stale-missing'
+  | 'incomplete'
+  | 'contradictory';
 
 interface ScenarioSpec {
   id: ScenarioId;
   /** Card/pin + detail DTO override (weather-derived fields only). */
   currentSunStatus: VenueDataDto['currentSunStatus'];
   weatherGateState: VenueDataDto['weatherGateState'];
+  directSunState: NonNullable<VenueDataDto['directSunState']>;
+  directSunReasons: NonNullable<VenueDataDto['directSunReasons']>;
   /** Serialized sky field; `undefined` ⇒ no sky line ('unavailable' semantics). */
   skyCondition?: string;
   confidence: number;
@@ -121,6 +129,8 @@ const SCENARIOS: ScenarioSpec[] = [
     id: 'overcast',
     currentSunStatus: 'CloudObscured',
     weatherGateState: 'gated',
+    directSunState: 'blocked',
+    directSunReasons: ['cloud-obstruction'],
     skyCondition: 'overcast',
     confidence: 40,
     expectObscured: true,
@@ -129,39 +139,74 @@ const SCENARIOS: ScenarioSpec[] = [
     id: 'clear',
     currentSunStatus: 'Sunny',
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
+    directSunReasons: [],
     skyCondition: 'clear',
     confidence: 92,
     expectObscured: false,
   },
   {
-    id: 'high-cirrus-only',
-    // Total cloud can be near-100 but effective (0.25·high) stays < threshold ⇒
-    // NOT gated. skyCondition reads the RAW total ⇒ NOT 'overcast', NOT obscured.
+    id: 'broken-clouds',
     currentSunStatus: 'Sunny',
-    weatherGateState: 'not_gated',
+    weatherGateState: 'unknown',
+    directSunState: 'unknown',
+    directSunReasons: ['cloud-obstruction'],
     skyCondition: 'partly-cloudy',
     confidence: 78,
     expectObscured: false,
   },
   {
-    id: 'active-rain',
+    id: 'precipitation',
     currentSunStatus: 'CloudObscured',
     weatherGateState: 'gated',
+    directSunState: 'blocked',
+    directSunReasons: ['precipitation'],
     skyCondition: 'rain',
     confidence: 35,
     expectObscured: true,
     expectSkyCopy: 'rain',
   },
   {
-    id: 'weather-missing',
-    // No fabricated clear sky: geometry governs (Sunny), skyCondition ABSENT
-    // ('unavailable' ⇒ never rendered) ⇒ NO sky line.
+    id: 'fog',
+    currentSunStatus: 'CloudObscured',
+    weatherGateState: 'gated',
+    directSunState: 'blocked',
+    directSunReasons: ['fog'],
+    skyCondition: 'overcast',
+    confidence: 35,
+    expectObscured: true,
+  },
+  {
+    id: 'stale-missing',
     currentSunStatus: 'Sunny',
     weatherGateState: 'unknown',
+    directSunState: 'unknown',
+    directSunReasons: ['weather-unavailable'],
     skyCondition: undefined,
     confidence: 55,
     expectObscured: false,
     expectNoSkyLine: true,
+  },
+  {
+    id: 'incomplete',
+    currentSunStatus: 'Sunny',
+    weatherGateState: 'unknown',
+    directSunState: 'unknown',
+    directSunReasons: ['weather-incomplete'],
+    skyCondition: undefined,
+    confidence: 55,
+    expectObscured: false,
+    expectNoSkyLine: true,
+  },
+  {
+    id: 'contradictory',
+    currentSunStatus: 'Sunny',
+    weatherGateState: 'unknown',
+    directSunState: 'unknown',
+    directSunReasons: ['contradictory-weather'],
+    skyCondition: 'partly-cloudy',
+    confidence: 55,
+    expectObscured: false,
   },
 ];
 
@@ -189,6 +234,8 @@ function baseVenue(scenario: ScenarioSpec): VenueDataDto {
     location: { lat: 57.705, lng: 11.97 },
     currentSunStatus: scenario.currentSunStatus,
     weatherGateState: scenario.weatherGateState,
+    directSunState: scenario.directSunState,
+    directSunReasons: scenario.directSunReasons,
     isPartner: true,
     confidence: scenario.confidence,
     distanceMeters: 0,
@@ -211,8 +258,8 @@ function buildVenuesResponse(scenario: ScenarioSpec): GetVenuesResponse {
       count: 1,
       radiusKm: 2,
       // weather-missing ⇒ geometry-only freshness; otherwise weather-backed.
-      sunDataSource: scenario.id === 'weather-missing' ? 'geometry-only' : 'weather',
-      ...(scenario.id === 'weather-missing'
+      sunDataSource: scenario.id === 'stale-missing' ? 'geometry-only' : 'weather',
+      ...(scenario.id === 'stale-missing'
         ? {}
         : { weatherUpdatedAt: '2026-06-21T11:00:00.000Z' }),
     },
@@ -255,8 +302,8 @@ function buildVenueDetailResponse(scenario: ScenarioSpec): GetVenueDetailRespons
   return {
     venue: detail,
     meta: {
-      sunDataSource: scenario.id === 'weather-missing' ? 'geometry-only' : 'weather',
-      ...(scenario.id === 'weather-missing'
+      sunDataSource: scenario.id === 'stale-missing' ? 'geometry-only' : 'weather',
+      ...(scenario.id === 'stale-missing'
         ? {}
         : { weatherUpdatedAt: '2026-06-21T11:00:00.000Z' }),
     },
@@ -314,10 +361,15 @@ async function assertCardAndPin(
     // quick-info badge is not sunny when the weather gate is closed.
     await expect(obscured).toBeVisible();
     await expect(quickInfo).not.toContainText('95%');
-  } else {
+  } else if (scenario.directSunState === 'likely') {
     await expect(obscured).toHaveCount(0);
     // Amber Sunny: the % SOL badge renders (geometry visible), no obscured chrome.
     await expect(quickInfo).toContainText('95%');
+  } else {
+    await expect(obscured).toHaveCount(0);
+    await expect(quickInfo).not.toContainText('95%');
+    await expect(quickInfo).toContainText(/Oklart om direkt sol|Direct sunlight is unclear/);
+    await expect(quickInfo).toContainText(/Vid klar himmel: 95% utan byggnadsskugga|95% clear-sky potential/);
   }
 
   // Sky-line copy assertions on the card (RELATIVE, per scenario).
@@ -371,6 +423,10 @@ async function assertDetail(
   if (!scenario.expectObscured) {
     // A non-obscured detail must NOT carry the overcast/obscured sky descriptor.
     await expect(detailPanel).not.toContainText(OVERCAST_SKY_COPY);
+  }
+  if (scenario.directSunState === 'unknown') {
+    await expect(detailPanel).toContainText(/OKLART OM DIREKT SOL|DIRECT SUN UNCLEAR/);
+    await expect(detailPanel).toContainText(/Vid klar himmel: 95% utan byggnadsskugga|95% clear-sky potential/);
   }
   await expect(detailPanel).not.toContainText(PUBLIC_CONFIDENCE_COPY);
 }

@@ -58,6 +58,7 @@ function venue(overrides: Partial<StoryVenuePinData> = {}): StoryVenuePinData {
     lat: 57.7089,
     lng: 11.9746,
     sunStatus: 'Sunny',
+    directSunState: 'likely',
     sunExposurePercent: 80,
     weatherGateState: 'not_gated',
     isPartner: false,
@@ -83,12 +84,12 @@ describe('Story 12.6 - exactly two honest pin presentations', () => {
   });
 
   test.each([
-    ['25% NoSun', venue({ sunExposurePercent: 25, sunStatus: 'NoSun' })],
-    ['exactly 50', venue({ sunExposurePercent: 50, sunStatus: 'Sunny' })],
-    ['low Partial', venue({ sunExposurePercent: 40, sunStatus: 'Partial' })],
+    ['25% NoSun', venue({ sunExposurePercent: 25, sunStatus: 'NoSun', directSunState: 'blocked' })],
+    ['exactly 50', venue({ sunExposurePercent: 50, sunStatus: 'Sunny', directSunState: 'blocked' })],
+    ['low Partial', venue({ sunExposurePercent: 40, sunStatus: 'Partial', directSunState: 'blocked' })],
     [
       'gated CloudObscured',
-      venue({ sunExposurePercent: 95, sunStatus: 'CloudObscured', weatherGateState: 'gated' }),
+      venue({ sunExposurePercent: 95, sunStatus: 'CloudObscured', weatherGateState: 'gated', directSunState: 'blocked' }),
     ],
   ] as const)('[P0] %s renders the same canonical percentage-free grey cloud', (_label, pin) => {
     renderPin(pin);
@@ -104,7 +105,6 @@ describe('Story 12.6 - exactly two honest pin presentations', () => {
 
   test.each([
     ['51% known clear', venue({ sunExposurePercent: 51, weatherGateState: 'not_gated' })],
-    ['80% weather unknown', venue({ sunExposurePercent: 80, weatherGateState: 'unknown' })],
   ] as const)('[P0] %s keeps the amber sun and seating-share percentage', (_label, pin) => {
     renderPin(pin);
     const button = screen.getByTestId('venue-pin');
@@ -113,6 +113,26 @@ describe('Story 12.6 - exactly two honest pin presentations', () => {
     expect(button).toHaveTextContent(`${Math.round(pin.sunExposurePercent)}%`);
     expect(button.querySelector('[data-pin-icon="sun"]')).not.toBeNull();
     expect(button.querySelector('[data-pin-tail]')).not.toBeNull();
+  });
+
+  test('[P0] omitted direct-sun state is neutral rather than an amber sun claim', () => {
+    const pin = venue({ sunExposurePercent: 80 });
+    delete pin.directSunState;
+    renderPin(pin);
+
+    const button = screen.getByTestId('venue-pin');
+    expect(button).toHaveAttribute('data-pin-state', 'shaded');
+    expect(button).not.toHaveTextContent('80%');
+    expect(button.querySelector('[data-pin-icon="sun"]')).toBeNull();
+  });
+
+  test('[P0] weather-unknown direct-sun state is neutral rather than an amber sun claim', () => {
+    renderPin(venue({ sunExposurePercent: 80, weatherGateState: 'unknown', directSunState: 'unknown' }));
+
+    const button = screen.getByTestId('venue-pin');
+    expect(button).toHaveAttribute('data-pin-state', 'shaded');
+    expect(button).not.toHaveTextContent('80%');
+    expect(button.querySelector('[data-pin-icon="sun"]')).toBeNull();
   });
 
   test('[P0] selection adds emphasis without changing semantic state or subtree shape', () => {
@@ -139,12 +159,12 @@ describe('Story 12.6 - exactly two honest pin presentations', () => {
   });
 
   test('[P0] an existing marker crossing from grey to amber updates without an entrance flash', () => {
-    const rendered = renderPin(venue({ sunExposurePercent: 40, sunStatus: 'Partial' }));
+    const rendered = renderPin(venue({ sunExposurePercent: 40, sunStatus: 'Partial', directSunState: 'blocked' }));
     motionHarness.calls.length = 0;
 
     rendered.rerender(
       <VenuePin
-        venue={venue({ sunExposurePercent: 51, sunStatus: 'Partial' })}
+        venue={venue({ sunExposurePercent: 51, sunStatus: 'Partial', directSunState: 'likely' })}
         isSelected={false}
         onClick={() => {}}
         ariaLabel="Venue aria"

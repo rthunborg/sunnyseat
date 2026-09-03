@@ -88,7 +88,7 @@ The design reinforces this emotionally. A warm amber/sand palette, frosted glass
 - **First "aha" moment:** ≥70% of new users see a map with sunny venue pins within 10 seconds of granting location (onboarding → map load). Measured via performance timing + analytics event.
 - **Decision time:** Median time from map load to tapping a venue detail ≤60 seconds.
 - **Redirect discovery:** ≥30% of users who view a venue detail also view at least one other venue in the same session — indicating the "nearby sunny alternative" flow is working.
-- **Accuracy trust:** ≥80% of determinate feedback submissions confirm the public sunny/not-sunny verdict was correct, measured over a rolling 14-day window against the shared `>50% sunlit and not weather-gated` predicate. "Unsure" responses are reported separately and excluded from the correctness denominator; results remain attributable to the geometry-input version used for the prediction.
+- **Accuracy trust:** ≥80% of determinate feedback submissions confirm the public direct-sun verdict was correct, measured over a rolling 14-day window against the shared `sunExposurePercent > 50 && directSunState === 'likely'` predicate. "Unsure" responses are reported separately and excluded from the correctness denominator; results remain attributable to the geometry-input and weather-policy versions used for the prediction.
 - **Return usage:** D7 retention ≥20%. D30 retention ≥10%. Seasonal re-activation (users returning the following sun season) ≥15%.
 
 ### Business Success
@@ -116,7 +116,7 @@ The design reinforces this emotionally. A warm amber/sand palette, frosted glass
 | Venues at launch | 50 verified | Launch day | Database count |
 | Current real-path dataset | 42 loaded real venues | Current state (2026-07-12) | Database count and Epic 12 verification |
 | First-session engagement | ≥3 venue detail views per session | Month 1 | Analytics |
-| Prediction accuracy | ≥80% determinate verdicts confirmed correct | Rolling 14-day | Feedback API, segmented by geometry-input version; "unsure" reported separately |
+| Prediction accuracy | ≥80% determinate verdicts confirmed correct, with direct-sun false positives reported separately | Rolling 14-day after a representative labelled sample exists | Feedback/validation data segmented by direct-sun state, weather freshness/category, forecast horizon, and geometry-input version; "unsure" reported separately |
 | Planner adoption | ≥25% of MAU | First sun season | Planner/date interactions |
 | Favourites adoption | ≥15% of MAU | First sun season | Local favourite saves |
 | MAU | 2,000 | End of first sun season | Unique sessions |
@@ -216,7 +216,7 @@ If circumstances require an early ship, the core sun discovery loop can launch i
 
 **Opening Scene:** It's a Tuesday at 16:45. Lina's wrapping up early at her studio in Majorna. The sky broke open an hour ago after a grey morning and she can feel the sun through the window. She texts two friends: "Afterwork? Somewhere sunny?" Nobody knows where the sun is actually hitting right now.
 
-**Rising Action:** Lina opens SunnySeat on her phone. The onboarding asks for her location — she taps "Använd min plats." A skippable coach-mark guide points out the actual controls in her mobile layout and can be reopened later from Settings. Within seconds, a warm sand-coloured map appears with amber pins scattered across Linnéstaden and Långgatorna. Amber means more than half of the seating is sunlit at the selected instant and the venue is not weather-gated; grey means it is not currently sunny and carries no percentage. Venues known to be closed at that Stockholm instant are absent, while venues with unknown hours remain discoverable. She sees three amber pins within walking distance. She taps the closest — Kafé Magasinet — and a quick-info card shows the sun window, selected-instant exposure share, distance, and availability without a confidence number. She taps for details: a hero photo of the patio, a sun timeline showing solid amber through 18:30, and a "Visa Rutt" button.
+**Rising Action:** Lina opens SunnySeat on her phone. The onboarding asks for her location — she taps "Använd min plats." A skippable coach-mark guide points out the actual controls in her mobile layout and can be reopened later from Settings. Within seconds, a warm sand-coloured map appears with amber pins scattered across Linnéstaden and Långgatorna. Amber means more than half of the seating has clear-sky geometric exposure at the selected instant and fresh, coherent weather evidence makes direct sunlight likely; grey means direct sun is blocked or uncertain and carries no percentage. Venues known to be closed at that Stockholm instant are absent, while venues with unknown hours remain discoverable. She sees three amber pins within walking distance. She taps the closest — Kafé Magasinet — and a quick-info card shows the weather-qualified direct-sun window, selected-instant clear-sky exposure share, distance, and availability without a confidence number. She taps for details: a hero photo of the patio, a sun timeline showing solid amber through 18:30, and a "Visa Rutt" button.
 
 **Climax:** She taps "Visa Rutt" — 11 minutes walk. She screenshots the venue detail and drops it in the group chat. "This place has sun until half six. Walking there now."
 
@@ -252,7 +252,7 @@ If circumstances require an early ship, the core sun discovery loop can launch i
 
 **Opening Scene:** Marcus has a wine bar with a small courtyard that gets gorgeous afternoon sun from 14:00–18:00 in summer. His problem: nobody knows the courtyard exists unless they walk in. On sunny days he has 6 empty tables while places on Avenyn are packed.
 
-**Rising Action:** Marcus hears about SunnySeat from another venue owner. He contacts SunnySeat about becoming a partner. His venue gets a Golden Pin on the map — larger, more prominent, with a warm glow. When more than half of his courtyard seating is sunlit and the venue is not weather-gated, a "SOL NU" badge appears on his venue card in the list.
+**Rising Action:** Marcus hears about SunnySeat from another venue owner. He contacts SunnySeat about becoming a partner. His venue gets a Golden Pin on the map — larger, more prominent, with a warm glow. When more than half of his courtyard seating has clear-sky geometric exposure and `directSunState` is `likely`, a "SOL NU" badge appears on his venue card in the list.
 
 **Climax:** On the first sunny Thursday after partnering, Marcus watches his terrace fill up between 14:00 and 15:00. Three groups mention they found him on SunnySeat. His courtyard goes from the neighbourhood's hidden secret to a destination.
 
@@ -389,7 +389,7 @@ Minimal. Organic search is not a user acquisition channel. No SSR venue pages ne
 
 ### Sun Exposure Intelligence
 
-- **FR7:** Users can view the selected-instant sun state and, where the venue is sunny, the percentage of its seating in direct sun. Internal model confidence is not displayed visually or to screen readers.
+- **FR7:** Users can view the selected-instant `likely`, `blocked`, or `unknown` direct-sun state. The seating percentage always means clear-sky geometric area without modelled building shade; it is shown as an unqualified sunny percentage only when the direct-sun state is `likely`, and as explicitly labelled clear-sky potential when the state is `unknown`. Internal model confidence is not displayed visually or to screen readers.
 - **FR8:** Users can view a sun timeline for a venue showing when sun exposure starts, peaks, and ends for today.
 - **FR9:** Users can scrub through time to see how venue sun states change throughout the current day.
 - **FR10:** Users can select a future date and simulate sun exposure states for all venues on that date.
@@ -422,7 +422,7 @@ Minimal. Organic search is not a user acquisition channel. No SSR venue pages ne
 ### Partner & B2B Features
 
 - **FR27:** Partner venues are visually distinguished on the map with enhanced pin styling (Golden Pin).
-- **FR28:** Partner venues display a "Sunny Now" badge when more than 50% of their outdoor seating is sunlit at the selected instant and the venue is not weather-gated.
+- **FR28:** Partner venues display a "Sunny Now" badge only when more than 50% of their outdoor seating is geometrically exposed at the selected instant and the authoritative direct-sun state is `likely`.
 - **FR29:** Partner venues can be deep-linked directly from external sources.
 - **FR30:** Partners can view analytics showing venue views, detail opens, and route requests segmented by sun state.
 
@@ -452,7 +452,7 @@ Minimal. Organic search is not a user acquisition channel. No SSR venue pages ne
 ### Epic 12 Launch Readiness Requirements
 
 - **LR1 — Availability truth:** Map pins, ranked discovery lists, and their availability counts hide venues explicitly closed at the selected Stockholm instant. An exact by-name match remains discoverable with `Stängt vid vald tid`; a saved closed venue remains visible in favourites with an accessible greyed treatment and can still open its detail view. Venues with unknown hours remain visible, and past-midnight sessions use the previous weekday where appropriate.
-- **LR2 — Pin truth:** Amber means more than 50% of seating is sunlit at the selected instant and the venue is not weather-gated. Grey means not sunny and carries no percentage. Icons, labels, and accessible names distinguish states without relying on colour alone.
+- **LR2 — Pin truth:** Amber means more than 50% of seating is geometrically exposed at the selected instant and fresh, complete, coherent weather evidence makes direct sun `likely`. Neutral pins cover `blocked` and `unknown`, carry no percentage, and use state-specific accessible names; venue surfaces explain whether the cause is geometry, weather obstruction, or uncertainty. Icons, labels, and accessible names distinguish states without relying on colour alone.
 - **LR3 — Guided first use:** A skippable, accessible, responsive coach-mark guide explains controls that are actually mounted in the current layout and can be reopened from Settings.
 - **LR4 — Live venue identity:** Reviews and feedback resolve live venues by id or slug and consistently reject hidden or unknown venues.
 - **LR5 — Venue media:** Venue photos use stable hosted renditions with deterministic selection by surface and a graceful fallback when media is absent or unavailable.
@@ -501,7 +501,7 @@ Minimal. Organic search is not a user acquisition channel. No SSR venue pages ne
 
 ### Integration
 
-- **NFR28:** Met.no Locationforecast 2.0 API: User-Agent attribution header included per terms of service. If weather is unavailable, geometric sun potential may still be served, but weather remains explicitly unknown and is never treated as clear.
+- **NFR28:** Met.no Locationforecast 2.0 API: User-Agent attribution header included per terms of service. Provider access occurs only in scheduled snapshot refresh work; public venue reads use persisted geometry plus persisted weather snapshots and make zero live Met.no calls. If weather is unavailable, geometric sun potential may still be served, but weather remains explicitly unknown and is never treated as clear.
 - **NFR29:** Future Swish Merchant API integration supports test environment for development. Webhook handler idempotent — duplicate callbacks produce no side effects.
 - **NFR30:** MapLibre GL JS: Vector tile source must support Gothenburg coverage at zoom levels 10–18. Tile loading failures display fallback map background.
 - **NFR31:** Web Push API: Push subscription management handles browser permission revocation gracefully. Failed deliveries do not retry indefinitely.
@@ -510,7 +510,7 @@ Minimal. Organic search is not a user acquisition channel. No SSR venue pages ne
 ### Reliability
 
 - **NFR33:** 99.5% uptime measured monthly, excluding planned maintenance communicated ≥24 hours in advance.
-- **NFR34:** Stale or missing Met.no data affects the public weather/uncertainty state rather than a visible confidence number. Missing weather remains unknown and is never fabricated as clear; any freshness or uncertainty communication must be accessible without exposing internal confidence.
+- **NFR34:** Stale, missing, incomplete, malformed, unmatched, or contradictory Met.no evidence produces public direct-sun state `unknown`, never `likely` or fabricated clear weather. Any freshness or uncertainty communication must be accessible without exposing internal confidence. The two-hour snapshot TTL and 90-minute valid-time match are fail-closed boundaries and must not be loosened to hide scheduling gaps.
 - **NFR35:** Persisted geometry is day-specific and another day's geometry is never substituted. Missing venue × date coverage is an observable operational failure. Current weather gating is applied at read time, and scheduled coverage reporting exposes completeness for every venue and date across the selectable window, including continuous midnight rollover.
 - **NFR36:** Future Swish payment status polling times out after 5 minutes with a clear "payment not confirmed" message and retry option.
 - **NFR37:** Service worker caches app shell for offline display. Cache invalidation on new deployment.
@@ -576,3 +576,43 @@ No unresolved product-scope decision blocks this PRD update. Epic 12 retains imp
 ### Resolved
 
 - **Future paid-status persistence without accounts (preserved 2026-05-19):** If Season Pass returns after MVP, the preserved recovery model is: user enters their Swish transaction ID (found in the Swish app's history), the server looks up the transaction in the `purchases` table, and re-issues a signed JWT. Zero PII required. Fully specified in `future-monetization-season-pass.md`.
+## 2026-09-03 Direct-Sun Truth correction
+
+This dated correction supersedes every earlier shorthand equating geometric
+exposure or non-gated/unknown weather with “sunny”. Actual sunlight means a
+meaningful direct beam can reach the seating polygon geometrically **and** fresh,
+coherent forecast evidence supports it. Bright diffuse daylight is not direct
+sun. The public product must expose `likely`, `blocked`, and `unknown` direct-sun
+outcomes, keep clear-sky geometry separately, and only recommend `likely`.
+Missing/stale/incomplete weather is unknown, never clear. This is a launch
+correctness gate independent of weather-snapshot scheduling reliability.
+
+### Durable direct-sun requirements
+
+- **FR-LR-01:** Serialize clear-sky geometry separately from `likely`, `blocked`
+  and `unknown` direct sunlight.
+- **FR-LR-02:** Amber requires `likely`; diffuse, stale, incomplete,
+  contradictory and broken-cloud evidence is never direct sun.
+- **NFR-LR-01:** Fresh complete-overcast fixtures yield zero amber venues,
+  windows and peaks.
+- **NFR-LR-02:** Public venue reads make zero live Met.no calls.
+
+These requirements explicitly supersede the prior predicates in FR7, FR12,
+FR28, LR2, NFR28, and NFR34 wherever “not weather-gated” or geometric exposure
+could be read as affirmative direct sun. Historical Epic 10 behavior remains
+documented, but it is not the launch contract.
+
+### Measurable correctness gate
+
+- Deterministic blocking fixtures (complete overcast, precipitation, and dense
+  fog) must produce zero amber venues, public sunny windows, or public peaks at
+  unit, persisted-route, API, component, and Playwright boundaries.
+- Missing, stale, incomplete, malformed, unmatched, broken-cloud, and
+  contradictory evidence must produce zero affirmative direct-sun claims and
+  must retain clearly qualified geometric potential where available.
+- Before launch, a timestamped Gothenburg field-validation set must report a
+  confusion matrix for `likely`, `blocked`, and `unknown`, segmented by forecast
+  horizon, weather category, and geometry-input version. `unknown` is coverage,
+  not an error. The release decision must set and meet an explicit direct-sun
+  false-positive ceiling from that representative sample; no unmeasured accuracy
+  percentage may be advertised.

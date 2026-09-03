@@ -18,8 +18,8 @@ import {
   isObscuredSunStatus,
   skyConditionCopy,
 } from '@/lib/utils/sun-status-presentation';
-import type { VenueSunStatus, VenueThumbnailDto, WeatherGateState } from '@/lib/types/api';
-import { isVenuePubliclySunny, normalizeWeatherGateState } from '@/lib/utils/public-sun';
+import type { DirectSunState, VenueSunStatus, VenueThumbnailDto, WeatherGateState } from '@/lib/types/api';
+import { isVenuePubliclySunny, normalizeDirectSunState, normalizeWeatherGateState } from '@/lib/utils/public-sun';
 import { selectVenueCardImageUrl } from '@/lib/utils/venue-media';
 import { cn } from '@/lib/utils';
 
@@ -45,6 +45,7 @@ export type VenueQuickInfoProps = {
    * the "Sol bakom moln" treatment while keeping the geometric layer (AC2). */
   currentSunStatus?: VenueSunStatus;
   weatherGateState?: WeatherGateState;
+  directSunState?: DirectSunState;
   /** Story 10.2 (AC3): serialized DTO sky field (`'clear' | 'partly-cloudy' |
    * 'overcast' | 'unavailable'`) — surfaced as plain-language copy. Absent /
    * 'unavailable' renders no sky line (never fabricate). */
@@ -81,6 +82,8 @@ export type VenueQuickInfoProps = {
      * venue is CloudObscured. */
     obscuredHeadline?: string;
     weatherUnavailable?: string;
+    directSunUncertain?: string;
+    clearSkyPotential?: string;
     notSunnyVerdict?: string;
     /** Story 10.2 (AC3): plain-language sky descriptors. When absent, no sky
      * line renders. Story 10.4 (AC2): adds the rain descriptor. */
@@ -103,6 +106,7 @@ export function VenueQuickInfo({
   openingHours,
   currentSunStatus,
   weatherGateState,
+  directSunState,
   skyCondition,
   distanceMeters,
   distanceIsApproximate = false,
@@ -134,12 +138,13 @@ export function VenueQuickInfo({
   const isPublicSunny = isVenuePubliclySunny({
     sunExposurePercent: sunExposurePercent ?? 0,
     weatherGateState: normalizedWeatherGateState,
+    directSunState: normalizeDirectSunState(directSunState),
   });
   const publicVerdictQualification = isPublicSunny
-    ? normalizedWeatherGateState === 'unknown'
-      ? labels.weatherUnavailable
-      : undefined
-    : labels.notSunnyVerdict;
+    ? undefined
+    : normalizeDirectSunState(directSunState) === 'unknown'
+      ? labels.directSunUncertain
+      : labels.notSunnyVerdict;
   const skyLine = labels.sky
     ? skyConditionCopy(skyCondition, labels.sky)
     : null;
@@ -281,6 +286,12 @@ export function VenueQuickInfo({
                         )}
                       >
                         {publicVerdictQualification}
+                      </p>
+                    )}
+                    {normalizeDirectSunState(directSunState) === 'unknown' &&
+                      sunExposurePercent !== undefined && labels.clearSkyPotential && (
+                      <p className={cn('text-text-body', isAnchoredMobile ? 'basis-full text-label-xs-medium' : 'text-body-sm')}>
+                        {labels.clearSkyPotential.replace('{percent}', String(Math.round(sunExposurePercent)))}
                       </p>
                     )}
                     {/* Story 11.4 (AC1): the single honest opening-hours line, in

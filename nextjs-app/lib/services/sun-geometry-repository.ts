@@ -165,6 +165,8 @@ export async function buildPersistedSunOutcome(
     ...toVenueData(venue),
     currentSunStatus: selectedStep.currentSunStatus,
     weatherGateState: selectedStep.weatherGateState,
+    directSunState: selectedStep.directSunState,
+    directSunReasons: selectedStep.directSunReasons,
     sunExposurePercent: selectedStep.sunExposurePercent,
     confidence: freshness.sunDataSource === SUN_DATA_SOURCE_WEATHER ? venue.confidence : Math.min(venue.confidence, 40),
     skyCondition: selectedStep.skyCondition,
@@ -292,7 +294,9 @@ function selectedStepForRequestedInstant(
       ...selectedStep,
       sunExposurePercent: 0,
       currentSunStatus: 'NoSun',
-      weatherGateState: 'unknown',
+      weatherGateState: 'not_gated',
+      directSunState: 'blocked',
+      directSunReasons: ['geometry'],
       skyCondition: 'unavailable',
     };
   }
@@ -302,6 +306,8 @@ function selectedStepForRequestedInstant(
       sunExposurePercent: 0,
       currentSunStatus: 'NoSun',
       weatherGateState: 'not_gated',
+      directSunState: 'blocked',
+      directSunReasons: ['geometry'],
     };
   }
   return selectedStep;

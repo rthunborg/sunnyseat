@@ -56,7 +56,7 @@ describe('feedback accuracy maintainer report', () => {
         row({ predicted_state: 'Partial', sun_accuracy: 'sunny', sun_exposure_percent: 60, public_sun_verdict: 'amber' }),
         row({ predicted_state: 'Partial', sun_accuracy: 'not_sunny', sun_exposure_percent: 50, public_sun_verdict: 'grey' }),
         row({ predicted_state: 'Sunny', sun_accuracy: 'not_sunny', sun_exposure_percent: 95, public_sun_verdict: 'grey', weather_gated: true }),
-        row({ predicted_state: 'Sunny', sun_accuracy: 'sunny', sun_exposure_percent: 95, public_sun_verdict: 'amber', weather_unknown: true }),
+        row({ predicted_state: 'Sunny', sun_accuracy: 'not_sunny', sun_exposure_percent: 95, public_sun_verdict: 'grey', weather_unknown: true }),
       ],
     });
 

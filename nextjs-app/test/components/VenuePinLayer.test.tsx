@@ -143,8 +143,8 @@ function makeStubMap(): StubMap {
 const messages = {
   map: {
     pinSunnyAria: 'Soligt vid vald tid — {percent} procent sol',
-    pinSunnyWeatherUnknownAria: 'Soligt vid vald tid — {percent} procent sol. Väder saknas vid vald tid.',
     pinNotSunnyAria: 'Inte soligt vid vald tid',
+    pinUnknownAria: '{name} — direkt solljus är osäkert vid vald tid',
   },
 };
 
@@ -192,16 +192,19 @@ const baseVenues: VenuePinData[] = [
     id: '1', slug: 'a', name: 'A', lat: 57.7, lng: 11.97,
     sunStatus: 'Sunny', sunExposurePercent: 95, isPartner: false,
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
   },
   {
     id: '2', slug: 'b', name: 'B', lat: 57.7, lng: 11.97,
     sunStatus: 'Sunny', sunExposurePercent: 80, isPartner: false,
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
   },
   {
     id: '3', slug: 'c', name: 'C', lat: 57.7, lng: 11.97,
     sunStatus: 'Shaded', sunExposurePercent: 20, isPartner: false,
     weatherGateState: 'not_gated',
+    directSunState: 'blocked',
   },
 ];
 
@@ -239,6 +242,7 @@ describe('<VenuePinLayer />', () => {
       id: 'obscured', slug: 'o', name: 'Obscured', lat: 57.7, lng: 11.97,
       sunStatus: 'CloudObscured', sunExposurePercent: 88, isPartner: false,
       weatherGateState: 'gated',
+      directSunState: 'blocked',
     };
 
     render(<VenuePinLayer venues={[obscuredVenue]} />, { wrapper: Wrapper });

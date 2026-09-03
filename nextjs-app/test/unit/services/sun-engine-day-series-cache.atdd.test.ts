@@ -80,6 +80,7 @@ function weatherSlice(overrides: Partial<WeatherSlice> = {}): WeatherSlice {
     isForecast: false,
     source: 'metno',
     createdAt: new Date('2026-06-21T10:30:00.000Z'),
+    validAt: new Date('2026-06-21T10:30:00.000Z'),
     ...overrides,
   };
 }

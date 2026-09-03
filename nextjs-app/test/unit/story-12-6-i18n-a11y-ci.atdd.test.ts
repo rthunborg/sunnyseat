@@ -7,26 +7,26 @@ const messages = (locale: 'sv' | 'en') =>
   JSON.parse(read('messages', locale, 'map.json')) as Record<string, string>;
 
 describe('Story 12.6 - localized non-colour accessible outcomes', () => {
-  test('[P0] Swedish and English expose sunny, not-sunny, and unknown-weather meaning', () => {
+  test('[P0] Swedish and English distinguish likely, blocked, and unknown direct sun', () => {
     const sv = messages('sv');
     const en = messages('en');
     const svValues = Object.values(sv);
     const enValues = Object.values(en);
 
     expect(svValues).toEqual(expect.arrayContaining([
-      expect.stringMatching(/soligt vid vald tid.*\{percent\}/i),
-      expect.stringMatching(/inte soligt vid vald tid/i),
-      expect.stringMatching(/v.der.*(saknas|otillg.nglig|ok.nt)/i),
+      expect.stringMatching(/direkt sol sannolik vid vald tid.*\{percent\}.*utan byggnadsskugga/i),
+      expect.stringMatching(/ingen direkt sol v.ntas vid vald tid/i),
+      expect.stringMatching(/oklart om direkt sol vid vald tid/i),
     ]));
     expect(enValues).toEqual(expect.arrayContaining([
-      expect.stringMatching(/sunny at selected time.*\{percent\}/i),
-      expect.stringMatching(/not sunny at selected time/i),
-      expect.stringMatching(/weather.*(unavailable|unknown)/i),
+      expect.stringMatching(/direct sunlight likely at the selected time.*\{percent\}.*without building shade/i),
+      expect.stringMatching(/no direct sunlight expected at the selected time/i),
+      expect.stringMatching(/direct sunlight is unclear at the selected time/i),
     ]));
 
     for (const dictionary of [sv, en]) {
       const notSunny = Object.values(dictionary).find((value) =>
-        /inte soligt vid vald tid|not sunny at selected time/i.test(value),
+        /ingen direkt sol v.ntas vid vald tid|no direct sunlight expected at the selected time/i.test(value),
       );
       expect(notSunny).toBeDefined();
       expect(notSunny).not.toContain('{percent}');

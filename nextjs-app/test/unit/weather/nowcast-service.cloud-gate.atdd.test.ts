@@ -107,14 +107,14 @@ describe('[10.4 AC1] nowcast-service — Nowcast 2.0 client + graceful degradati
     vi.restoreAllMocks();
   });
 
-  it('requests the /nowcast/2.0/complete endpoint with 4-decimal-truncated coordinates', async () => {
+  it('requests the /nowcast/2.0/complete endpoint with 4-decimal-rounded coordinates', async () => {
     fetchMock.mockResolvedValue({
       ok: true,
       json: async () => nowcastResponse([{ time: '2026-07-03T12:00:00Z', rate: 0 }]),
     });
     const getNowcastPrecipitationRate = await loadGetNowcastPrecipitationRate();
 
-    // Long-precision coords must be truncated to 4dp (Met.no TOS, Story 8.5).
+    // Long-precision coords are rounded to 4dp at the provider boundary.
     await getNowcastPrecipitationRate(57.708912, 11.974622);
 
     const [url] = fetchMock.mock.calls[0] as [string];

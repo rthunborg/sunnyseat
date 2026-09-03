@@ -48,11 +48,11 @@ const messagesEn = {
 };
 
 const EXPECTED_SV_PIN_COPY =
-  'Procenten visar hur stor andel av uteserveringens platser vi tror är i direkt sol vid den valda tiden.';
+  'En gul nål betyder att direkt sol är sannolik. Procenten visar hur stor del av sittplatserna som inte skuggas av byggnader. En grå nål kan betyda skugga, väderblockering eller osäkert väder.';
 const EXPECTED_SV_PLANNER_COPY =
   'Du behöver inte ändra något – kartan visar läget just nu. Vill du planera framåt kan du välja datum och tid. Ju längre fram du tittar, desto osäkrare blir prognosen.';
 const EXPECTED_EN_PIN_COPY =
-  'The percentage shows the share of outdoor seats we think are in direct sun at the selected time.';
+  'A yellow pin means direct sunlight is likely. The percentage is the share of seating not shaded by buildings. A grey pin can mean shade, weather obstruction, or uncertain weather.';
 const EXPECTED_EN_PLANNER_COPY =
   'You do not need to change anything — the map shows what is happening right now. To plan ahead, choose a date and time. The farther ahead you look, the less certain the forecast becomes.';
 
@@ -382,8 +382,8 @@ describe('<FirstRunCoachMarkGuide />', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Kartnålarna' });
     expect(dialog).toHaveAttribute('data-tour-source', 'forced');
     expect(dialog).toHaveTextContent(EXPECTED_SV_PIN_COPY);
-    expect(screen.getByTestId('coach-tour-pin-legend')).toHaveTextContent('Soligt');
-    expect(screen.getByTestId('coach-tour-pin-legend')).toHaveTextContent('Skuggat');
+    expect(screen.getByTestId('coach-tour-pin-legend')).toHaveTextContent('Direkt sol sannolik');
+    expect(screen.getByTestId('coach-tour-pin-legend')).toHaveTextContent('Ingen gul solmarkering');
     expect(screen.getByText('95%')).toBeInTheDocument();
     expect(screen.getByTestId('coach-tour-pin-legend').querySelector('[data-pin-icon="sun"]'))
       .toBeInTheDocument();

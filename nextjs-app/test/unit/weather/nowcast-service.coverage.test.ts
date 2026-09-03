@@ -180,7 +180,7 @@ describe('nowcast-service — default-coordinate accessor path', () => {
     vi.restoreAllMocks();
   });
 
-  it('called with NO arguments defaults to the Gothenburg coordinate (4-dp truncated)', async () => {
+  it('called with NO arguments defaults to the Gothenburg coordinate (4-dp rounded)', async () => {
     fetchMock.mockResolvedValue({
       ok: true,
       json: async () => nowcastResponse([{ time: '2026-07-03T12:00:00Z', rate: 0 }]),

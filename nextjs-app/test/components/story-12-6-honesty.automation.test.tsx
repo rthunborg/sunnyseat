@@ -43,6 +43,8 @@ const quickInfoLabels = {
   favouriteRemove: 'Ta bort favorit',
   obscuredHeadline: 'Sol bakom moln',
   weatherUnavailable: 'Väder saknas vid vald tid',
+  directSunUncertain: 'Oklart om direkt sol vid vald tid',
+  clearSkyPotential: 'Vid klar himmel: {percent}% utan byggnadsskugga',
   notSunnyVerdict: 'Inte soligt vid vald tid',
   sky: {
     clear: 'Klart',
@@ -92,6 +94,7 @@ function renderQuickInfo(props: {
       mode="mobile"
       name={props.name}
       sunExposurePercent={props.exposure}
+      directSunState={props.gate === 'unknown' ? 'unknown' : 'blocked'}
       currentSunStatus={props.status}
       weatherGateState={props.gate}
       skyCondition={props.gate === 'unknown' ? 'unavailable' : 'clear'}
@@ -133,7 +136,7 @@ describe('Story 12.6 automation - map-adjacent public verdict honesty', () => {
     }
   });
 
-  test('[P0] an unknown-weather sunny card includes localized weather-unavailable meaning', () => {
+  test('[P0] unknown weather never renders an affirmative sun label', () => {
     render(
       <VenueList
         venues={[
@@ -142,6 +145,7 @@ describe('Story 12.6 automation - map-adjacent public verdict honesty', () => {
             venueName: 'Okänt väder',
             sunExposurePercent: 80,
             weatherGateState: 'unknown',
+            directSunState: 'unknown',
           }),
         ]}
         mode="desktop"
@@ -151,8 +155,10 @@ describe('Story 12.6 automation - map-adjacent public verdict honesty', () => {
     );
 
     const card = screen.getByTestId('venue-card');
-    expect(card).toHaveTextContent(/FULL SOL/i);
-    expect(card).toHaveTextContent(/Väder saknas vid vald tid/i);
+    expect(card).toHaveTextContent(/OKLART OM DIREKT SOL/i);
+    expect(card).not.toHaveTextContent(/FULL SOL/i);
+    expect(card).toHaveTextContent(/Oklart om direkt sol vid vald tid/i);
+    expect(card).toHaveTextContent(/Vid klar himmel: 80% utan byggnadsskugga/i);
   });
 
   test('[P0] low and exact-50 QuickInfo states expose a localized not-sunny verdict without a percentage', () => {
@@ -174,6 +180,7 @@ describe('Story 12.6 automation - map-adjacent public verdict honesty', () => {
           name={scenario.name}
           sunExposurePercent={scenario.exposure}
           currentSunStatus="Partial"
+          directSunState="blocked"
           weatherGateState="not_gated"
           skyCondition="clear"
           distanceMeters={100}
@@ -197,7 +204,7 @@ describe('Story 12.6 automation - map-adjacent public verdict honesty', () => {
     ]);
   });
 
-  test('[P0] unknown-weather sunny QuickInfo includes localized weather-unavailable meaning', () => {
+  test('[P0] unknown weather QuickInfo is neutral and explains missing weather', () => {
     renderQuickInfo({
       name: 'Okänt väder',
       exposure: 80,
@@ -206,7 +213,8 @@ describe('Story 12.6 automation - map-adjacent public verdict honesty', () => {
     });
 
     const quickInfo = screen.getByTestId('venue-quick-info');
-    expect(quickInfo).toHaveTextContent(/80%\s*SOL/i);
-    expect(quickInfo).toHaveTextContent(/Väder saknas vid vald tid/i);
+    expect(quickInfo).not.toHaveTextContent(/80%\s*SOL/i);
+    expect(quickInfo).toHaveTextContent(/Oklart om direkt sol vid vald tid/i);
+    expect(quickInfo).toHaveTextContent(/Vid klar himmel: 80% utan byggnadsskugga/i);
   });
 });

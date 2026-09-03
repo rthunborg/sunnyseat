@@ -12,8 +12,8 @@ import {
   formatVenueSunPercent,
   type VenueVisualMetadata,
 } from '@/lib/utils/venue-visual-metadata';
-import type { VenueThumbnailDto, WeatherGateState } from '@/lib/types/api';
-import { normalizeWeatherGateState } from '@/lib/utils/public-sun';
+import type { DirectSunState, VenueThumbnailDto, WeatherGateState } from '@/lib/types/api';
+import { normalizeDirectSunState } from '@/lib/utils/public-sun';
 import { selectVenueCardImageUrl } from '@/lib/utils/venue-media';
 import type { VenueAvailabilityState } from '@/lib/utils/opening-hours';
 import { cn } from '@/lib/utils';
@@ -31,6 +31,8 @@ export type VenueCardLabels = {
   distanceApproximate?: string;
   sunUnavailable: string;
   weatherUnavailable?: string;
+  directSunUncertain?: string;
+  clearSkyPotential?: string;
   closedAtSelectedTime?: string;
   statusMostlyShade?: string;
   statusFullSun?: string;
@@ -39,6 +41,7 @@ export type VenueCardLabels = {
    * weather-gated state is CloudObscured. Replaces the amber FULL SOL / grey
    * MEST SKUGGA labels for that state. */
   statusObscured?: string;
+  statusUncertain?: string;
   /** Story 10.2 (AC2): reframes the geometric % as position-not-weather on an
    * obscured card, e.g. "{percent} solläge · sol här när det klarnar". The
    * `{percent}` placeholder is substituted with the formatted solläge value. */
@@ -57,6 +60,7 @@ export type VenueCardProps = {
   thumbnail?: VenueThumbnailDto;
   isSunny: boolean;
   weatherGateState?: WeatherGateState;
+  directSunState?: DirectSunState;
   /** Story 10.2 (AC1): the weather-gated "Sol bakom moln" state. Rendered as
    * a muted slate treatment DISTINCT from both the amber sunny path (`isSunny`)
    * and the grey shaded path. `isSunny` is NOT overloaded — an obscured venue
@@ -86,6 +90,7 @@ export function VenueCard({
   thumbnail,
   isSunny,
   weatherGateState,
+  directSunState,
   isObscured = false,
   availabilityState,
   visualMetadata,
@@ -102,23 +107,26 @@ export function VenueCard({
   // Story 12.13: the button's accessible name carries name + sun + distance
   // only. Model confidence remains internal/feedback evidence and must not be
   // rendered visibly or to assistive technology.
-  const weatherUnavailableLabel =
-    isSunny && normalizeWeatherGateState(weatherGateState) === 'unknown'
-      ? labels.weatherUnavailable
+  const directSunUncertainLabel =
+    normalizeDirectSunState(directSunState) === 'unknown' && sunExposurePercent !== undefined
+      ? labels.directSunUncertain
       : undefined;
   const closedAtSelectedTimeLabel = availabilityState === 'closed'
     ? labels.closedAtSelectedTime
     : undefined;
   const selectLabel = [
     labels.select,
-    weatherUnavailableLabel,
+    directSunUncertainLabel,
     closedAtSelectedTimeLabel,
   ].filter(Boolean).join('. ');
   // Story 10.2 (AC1): the obscured state OVERRIDES both the amber "FULL SOL"/
   // "DELVIS SOL" path AND the grey "MEST SKUGGA" path with the muted "Sol
   // bakom moln" headline. An obscured venue never shows amber sun copy.
+  const isUncertain = normalizeDirectSunState(directSunState) === 'unknown' && !isObscured;
   const statusLabel = isObscured
     ? (labels.statusObscured ?? 'SOL BAKOM MOLN')
+    : isUncertain
+      ? (labels.statusUncertain ?? 'OKLART OM DIREKT SOL')
     : !isSunny
       ? (labels.statusMostlyShade ?? 'MEST SKUGGA')
       : (sunExposurePercent ?? 0) >= 75
@@ -190,7 +198,11 @@ export function VenueCard({
             <span
               className={cn(
                 'mt-1 flex items-center gap-1 text-label-xs',
-                isObscured ? 'text-obscured-text' : 'text-amber-dark',
+                isObscured
+                  ? 'text-obscured-text'
+                  : isSunny
+                    ? 'text-amber-dark'
+                    : 'text-text-body',
               )}
             >
               {isSunny ? (
@@ -269,9 +281,12 @@ export function VenueCard({
             </span>
           </>
         )}
-        {weatherUnavailableLabel && (
+        {directSunUncertainLabel && (
           <span className="mt-1 block text-label-xs text-text-body">
-            {weatherUnavailableLabel}
+            <span className="block">{directSunUncertainLabel}</span>
+            {isUncertain && labels.clearSkyPotential && (
+              <span className="block">{formatLabel(labels.clearSkyPotential, { percent: String(Math.round(sunExposurePercent ?? 0)) })}</span>
+            )}
           </span>
         )}
         {closedAtSelectedTimeLabel && (

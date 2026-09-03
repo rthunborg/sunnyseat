@@ -179,7 +179,7 @@ function buildDetailDto(
   const openingHours = fixture?.openingHours ?? venue.openingHours;
   const rawWindowStatus = timelineProjection?.windowStatus ?? venue.currentSunStatus;
   // Story 10.2 (AC2) + Iteration-2 review fix: on the LIVE real-engine path this
-  // status can be 'CloudObscured' after applyCloudGate. The sun-window timeline is
+  // status can be 'CloudObscured' after the direct-sun compatibility projection. The sun-window timeline is
   // the geometric "when it clears" POTENTIAL, not a weather signal, so remap the
   // obscured value back to the geometric 'Partial' tier here — mirroring the client
   // `timelineFromListVenue` fallback remap so the server-loaded detail timeline and

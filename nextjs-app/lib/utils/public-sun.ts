@@ -1,5 +1,6 @@
 import type {
   PublicSunVerdict,
+  DirectSunState,
   VenueDaySeriesEntry,
   WeatherGateState,
 } from '@/lib/types/api';
@@ -12,12 +13,13 @@ export type PublicSunVenue = {
   venueName?: string;
   sunExposurePercent: number;
   weatherGateState: WeatherGateState;
+  directSunState?: DirectSunState;
   distanceMeters?: number;
 };
 
 export type PublicSunStep = Pick<
   VenueDaySeriesEntry,
-  'minutes' | 'sunExposurePercent' | 'weatherGateState'
+  'minutes' | 'sunExposurePercent' | 'weatherGateState' | 'directSunState'
 >;
 
 export function normalizeWeatherGateState(value: unknown): WeatherGateState {
@@ -26,17 +28,20 @@ export function normalizeWeatherGateState(value: unknown): WeatherGateState {
     : 'unknown';
 }
 
+/** Missing/legacy direct-sun evidence is unknown, never affirmative. */
+export function normalizeDirectSunState(value: unknown): DirectSunState {
+  return value === 'likely' || value === 'blocked' || value === 'unknown' ? value : 'unknown';
+}
+
 export function isVenuePubliclySunny(
-  venue: Pick<PublicSunVenue, 'sunExposurePercent' | 'weatherGateState'>,
+  venue: Pick<PublicSunVenue, 'sunExposurePercent' | 'weatherGateState' | 'directSunState'>,
 ): boolean {
-  return (
-    normalizedPercent(venue.sunExposurePercent) > 50 &&
-    normalizeWeatherGateState(venue.weatherGateState) !== 'gated'
-  );
+  return normalizedPercent(venue.sunExposurePercent) > 50 &&
+    normalizeDirectSunState(venue.directSunState) === 'likely';
 }
 
 export function publicSunVerdictFor(
-  venue: Pick<PublicSunVenue, 'sunExposurePercent' | 'weatherGateState'>,
+  venue: Pick<PublicSunVenue, 'sunExposurePercent' | 'weatherGateState' | 'directSunState'>,
 ): PublicSunVerdict {
   return isVenuePubliclySunny(venue) ? 'amber' : 'grey';
 }
@@ -68,39 +73,34 @@ export function compareVenuesByPublicSun<T extends PublicSunVenue>(
 export function extractPublicSunWindow(
   series: readonly PublicSunStep[],
   options: { stepMinutes: number },
-): { startMinutes: number; endMinutes: number; weatherGateState: 'not_gated' | 'unknown' } | null {
+): { startMinutes: number; endMinutes: number; weatherGateState: 'not_gated' } | null {
   const stepMinutes = Math.max(1, Math.round(options.stepMinutes));
-  type WindowRun = { start: number; end: number; length: number; unknown: boolean };
+  type WindowRun = { start: number; end: number; length: number };
   let best: WindowRun | null = null;
   let runStart: number | null = null;
   let runEnd = 0;
   let runLength = 0;
-  let runUnknown = false;
 
   for (const entry of [...series].sort((a, b) => a.minutes - b.minutes)) {
     if (!isVenuePubliclySunny(entry)) {
       runStart = null;
       runLength = 0;
-      runUnknown = false;
       continue;
     }
 
     if (runStart !== null && entry.minutes === runEnd + stepMinutes) {
       runEnd = entry.minutes;
       runLength += 1;
-      runUnknown = runUnknown || normalizeWeatherGateState(entry.weatherGateState) === 'unknown';
     } else {
       runStart = entry.minutes;
       runEnd = entry.minutes;
       runLength = 1;
-      runUnknown = normalizeWeatherGateState(entry.weatherGateState) === 'unknown';
     }
 
     const current: WindowRun = {
       start: runStart,
       end: runEnd,
       length: runLength,
-      unknown: runUnknown,
     };
     if (
       best === null ||
@@ -115,7 +115,7 @@ export function extractPublicSunWindow(
   return {
     startMinutes: best.start,
     endMinutes: best.end,
-    weatherGateState: best.unknown ? 'unknown' : 'not_gated',
+    weatherGateState: 'not_gated',
   };
 }
 

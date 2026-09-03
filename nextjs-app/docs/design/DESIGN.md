@@ -52,7 +52,7 @@ Last audited: 2026-04-06
 |---|---|---|
 | `color-tab-active` | `#b45309` | Active bottom-nav tab label (AA-passing on `surface-cream`; bumped from `#d97706` in Story 1.6 Task 5) |
 | `color-tab-inactive` | `#57534e` | Inactive bottom-nav tab label (AA-passing on `surface-cream`; bumped from `#a8a29e` in Story 1.6 Task 5) |
-| `color-pin-shaded` | `#e4e1e5` | Single not-sunny map pin background for <=50% sunlit seating and weather-gated venues |
+| `color-pin-shaded` | `#e4e1e5` | Neutral pin background for geometry-blocked, weather-blocked, and weather-unknown venues |
 | `color-pin-obscured` | `#5e6a7a` | "Sol bakom moln" obscured venue badge/fill for non-pin explanatory surfaces. Story 12.6 removed the separate obscured map-pin state; weather-gated map pins use `color-pin-shaded`. White text on it = 5.50:1 (AA). |
 | `color-obscured-text` | `#41505f` | Obscured-state label/body text ("Sol bakom moln", muted status labels). AA on white/cream/sand (8.28:1 / 7.94:1 / 7.29:1). |
 | `color-drag-handle` | `#d6d3d1` | Venue detail drag handle pill |
@@ -309,9 +309,11 @@ Layering is significant in SunnySeat — map pins, bottom sheets, glass overlays
 
 ### Map Venue Pin — Sunny
 
-Public sunny is exactly `sunExposurePercent > 50 && weatherGateState !== 'gated'`.
-Selection, hover, partner, and focus treatments may add emphasis, but must not create
-another data shape.
+Public sunny requires `sunExposurePercent > 50` **and**
+`directSunState === 'likely'`. The percentage is clear-sky geometric exposure;
+weather decides whether it may be presented as expected direct sun. Selection,
+hover, partner, and focus treatments may add emphasis, but must not create another
+data shape.
 
 ```
 Background: color-amber-pin (#f1b100)
@@ -325,9 +327,10 @@ Icon: decorative sun / color-text-primary (#1b1b1e)
 
 ### Map Venue Pin — Not Sunny
 
-Not-sunny pins are the only grey map-pin presentation. They cover `Shaded`, `NoSun`,
-low `Partial`, exactly 50%, and weather-gated `CloudObscured` venues. The pin exposes
-the cloud icon and no visible percentage or text.
+Neutral pins are the only grey map-pin presentation. They cover geometrically
+blocked venues, weather-blocked venues, and `directSunState === 'unknown'`.
+Weather-unknown copy may state the clear-sky geometric potential, but never calls
+it direct sun. The pin exposes a non-colour cue and no visible percentage or text.
 
 ```
 Background: color-pin-shaded (#e4e1e5)
@@ -496,6 +499,17 @@ Warm gradient overlay: gradient-map-overlay
 ---
 
 ## Elevation Model
+
+## Direct-sun truth presentation (2026-09-03)
+
+`likely` may use amber sun treatment. `blocked` uses existing neutral/cloud
+treatment. `unknown` is never amber or announced as "not sunny": Swedish
+primary copy is **"Oklart om direkt sol vid vald tid"**, paired with
+**"Vid klar himmel: {percent}% utan byggnadsskugga"**. Its compact status is
+**"OKLART OM DIREKT SOL"**. Grey map pins cover both determinate non-sun and
+unknown states, so their per-pin accessible names distinguish those outcomes and
+the map legend explicitly says grey may mean shade, weather obstruction, or
+uncertain weather. Use existing tokens; no colour, motion, or layout rebaseline.
 
 Elevation uses a **warm amber shadow system** for interactive elements and a **neutral shadow system** for structural chrome (nav, sheets). Higher elevation = larger spread + stronger warm tint.
 

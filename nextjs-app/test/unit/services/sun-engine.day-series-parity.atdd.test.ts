@@ -99,10 +99,17 @@ const SUMMER_MIDDAY = new Date('2026-06-21T10:30:00.000Z'); // Stockholm 12:30
 function weatherSlice(overrides: Partial<WeatherSlice> = {}): WeatherSlice {
   return {
     cloudCover: 10,
+    cloudCoverLow: 10,
+    cloudCoverMedium: 0,
+    cloudCoverHigh: 0,
+    fogAreaFraction: 0,
+    precipitationAmount: 0,
+    symbolCode: 'clearsky_day',
     temperature: 18,
     isForecast: false,
     source: 'metno',
     createdAt: new Date('2026-06-21T10:30:00.000Z'),
+    validAt: new Date('2026-06-21T10:30:00.000Z'),
     ...overrides,
   };
 }
@@ -179,6 +186,29 @@ describe('Story 11.1 AC1 — day-series covers every planner step', () => {
 // AC1 / Task 1 — PARITY: series entry == single-shot compute at the same instant
 // ===========================================================================
 describe('Story 11.1 AC1 — per-step parity with the single-instant compute', () => {
+  it('skips a malformed provider timestamp when a valid matching slice follows', async () => {
+    mocks.getForecast.mockResolvedValue([
+      weatherSlice({ validAt: new Date('not-a-timestamp') }),
+      weatherSlice({ validAt: SUMMER_MIDDAY }),
+    ]);
+
+    const single = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
+    expect(single.venue.directSunState).toBe('likely');
+  });
+
+  it('keeps a clear but temporally distant provider slice unknown', async () => {
+    mocks.getForecast.mockResolvedValue([
+      weatherSlice({ validAt: new Date('2026-06-21T00:00:00.000Z') }),
+    ]);
+
+    const single = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
+    expect(single.venue).toMatchObject({
+      directSunState: 'unknown',
+      directSunReasons: ['weather-unavailable'],
+      weatherGateState: 'unknown',
+    });
+  });
+
   // P0 — the load-bearing guardrail. For the step whose instant equals the
   // single-shot requestedAt, the series entry's %/status equals
   // applyRealSunEngine's byte-for-byte. A diff is a FAIL, never a rebaseline.
@@ -254,6 +284,7 @@ describe('Story 11.1 AC1 — Epic-10 cloud/rain gate applies per step', () => {
     const midday = series.find((e) => e.minutes === 13 * 60);
     expect(midday).toBeDefined();
     expect(midday!.currentSunStatus).toBe('CloudObscured');
+    expect(midday!.directSunState).toBe('blocked');
   });
 
   // P0 — a CLEAR-sky step keeps its geometric status (NOT gated). The gate only
@@ -265,6 +296,7 @@ describe('Story 11.1 AC1 — Epic-10 cloud/rain gate applies per step', () => {
     const midday = series.find((e) => e.minutes === 13 * 60);
     expect(midday).toBeDefined();
     expect(midday!.currentSunStatus).not.toBe('CloudObscured');
+    expect(midday!.directSunState).toBe('likely');
   });
 
   // P0 — a step where the sun is DOWN / geometry is not sunlit is NEVER gated:
@@ -312,9 +344,9 @@ describe('Story 11.1 AC1 — rain threaded explicitly per step (horizon rule)', 
   });
 
   // P0 — a step BEYOND the nowcast horizon (or in the past) must NOT read the
-  // near-now rain: `precipitationRate = undefined` ⇒ `isRaining = false` ⇒
-  // forecast cloud governs (byte-identical to Epic-10 Tiers 0/1). A future step is
-  // never "raining now".
+  // near-now rain: `precipitationRate = undefined` stays unknown. The forecast
+  // precipitation period must independently provide explicit dry evidence; a
+  // future step is never labelled from the current radar state.
   it('does not read near-now rain for a step beyond the nowcast horizon', async () => {
     mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 5 })]);
     // Even with an active near-now rain nowcast, a step well beyond the 90-min

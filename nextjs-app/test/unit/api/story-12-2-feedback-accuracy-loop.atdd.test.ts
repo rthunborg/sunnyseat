@@ -37,6 +37,11 @@ const predictionMock = vi.hoisted(() => {
         currentSunStatus: predictionMock.state.predictedState,
         sunExposurePercent: predictionMock.state.sunExposurePercent,
         weatherGateState: predictionMock.state.weatherGateState,
+        directSunState: predictionMock.state.weatherGateState === 'gated'
+          ? 'blocked'
+          : predictionMock.state.weatherGateState === 'unknown'
+            ? 'unknown'
+            : 'likely',
         predictionEvidence: {
           geometryInputHash: predictionMock.state.geometryInputHash,
         },

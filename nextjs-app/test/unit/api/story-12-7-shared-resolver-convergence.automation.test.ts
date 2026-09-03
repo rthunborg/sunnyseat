@@ -32,6 +32,7 @@ const predictionMock = vi.hoisted(() => ({
       currentSunStatus: 'Sunny',
       sunExposurePercent: 82,
       weatherGateState: 'not_gated',
+      directSunState: 'likely',
       predictionEvidence: {
         geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       },

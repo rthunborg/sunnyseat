@@ -9,8 +9,8 @@ import type { WeatherSlice } from './types';
  * light — so gating both as "80% ⇒ obscured" is a false negative. Tier 1 fixes it
  * by weighting the Met.no `complete` three-layer split (low/medium/high cover) so
  * low + medium cloud dominate and high cloud contributes only weakly, producing a
- * single "how much sun is actually BLOCKED" scalar that feeds BOTH the Story 10.1
- * cloud gate (`applyCloudGate`) AND the FR12 confidence blend (`calcCloudCertainty`).
+ * single obstruction proxy retained for confidence and compatibility projection.
+ * It is not, by itself, an affirmative direct-sun decision.
  *
  * THE PHYSICS (why these weights):
  *  - Low/medium cloud (stratus, cumulus, altostratus, below ~5000 m) blocks the
@@ -31,12 +31,14 @@ import type { WeatherSlice } from './types';
  * a real 100/100/100 sky IS overcast, and clamping keeps it at 100 rather than
  * fabricating a >100 value.
  *
- * FALLBACK (AC3): the weighting applies ONLY when ALL THREE layers are present. If
+ * LEGACY SCALAR FALLBACK (AC3): weighting applies ONLY when ALL THREE layers are present. If
  * ANY of low/medium/high is `undefined` (a partial `complete` entry, a non-Met.no
  * producer, a fixture without the split), the effective value degrades to the raw
  * TOTAL `slice.cloudCover` — exactly Tier-0 behaviour. And if that total is itself
  * `undefined` (Story 10.1 AC2: field absent), the effective value stays `undefined`
- * — non-gating AND non-clear. NEVER fabricate a `0` or `100` when data is missing.
+ * — unknown. The direct-sun classifier independently requires complete evidence
+ * before `likely`; this fallback must never promote missing data. NEVER fabricate
+ * a `0` or `100` when data is missing.
  */
 
 /** Weight for low-cloud cover (below ~2000 m). Blocks the direct beam fully. */
@@ -53,9 +55,12 @@ export const CLOUD_WEIGHT_HIGH = 0.25;
 /**
  * The layer-weighted effective cloud cover for a weather slice, or `undefined` when
  * cloud data is unusable (unknown-never-clear). See the module doc for the physics,
- * the weights, and the AC3 fallback contract.
+ * the weights, and the scalar fallback contract. Callers deciding public direct
+ * sun must use `classifyDirectSun`, not this value alone.
  */
-export function effectiveCloudCover(slice: WeatherSlice | null | undefined): number | undefined {
+export function effectiveCloudCover(
+  slice: Pick<WeatherSlice, 'cloudCover' | 'cloudCoverLow' | 'cloudCoverMedium' | 'cloudCoverHigh'> | null | undefined,
+): number | undefined {
   if (!slice) return undefined;
 
   const { cloudCoverLow: low, cloudCoverMedium: medium, cloudCoverHigh: high } = slice;

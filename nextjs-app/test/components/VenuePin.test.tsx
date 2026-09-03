@@ -37,6 +37,7 @@ const sunnyVenue: VenuePinData = {
   lat: 57.7089,
   lng: 11.9746,
   sunStatus: 'Sunny',
+  directSunState: 'likely',
   weatherGateState: 'not_gated',
   sunExposurePercent: 95,
   isPartner: false,
@@ -48,6 +49,7 @@ const shadedVenue: VenuePinData = {
   slug: 'test-venue-shaded',
   name: 'Test Shaded',
   sunStatus: 'Shaded',
+  directSunState: 'blocked',
   weatherGateState: 'not_gated',
   sunExposurePercent: 22,
 };
@@ -58,6 +60,7 @@ const obscuredVenue: VenuePinData = {
   slug: 'test-venue-obscured',
   name: 'Test Obscured',
   sunStatus: 'CloudObscured',
+  directSunState: 'blocked',
   weatherGateState: 'gated',
   sunExposurePercent: 88,
 };

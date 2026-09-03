@@ -1,4 +1,4 @@
-import type { VenueSunStatus, WeatherGateState } from '@/lib/types/api';
+import type { DirectSunState, VenueSunStatus, WeatherGateState } from '@/lib/types/api';
 
 /**
  * Map-related type definitions for Story 1.4 onwards.
@@ -28,6 +28,7 @@ export type VenuePinData = {
   sunStatus: VenueSunStatus;
   sunExposurePercent: number;
   weatherGateState: WeatherGateState;
+  directSunState?: DirectSunState;
   isPartner: boolean;
 };
 

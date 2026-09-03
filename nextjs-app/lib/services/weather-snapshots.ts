@@ -5,8 +5,14 @@ import {
   stockholmDateKey,
 } from '@/lib/utils/time-planner';
 import { fromZonedTime } from 'date-fns-tz';
-import type { VenueDaySeriesEntry, WeatherGateState } from '@/lib/types/api';
-import { applyCloudGate, classifySunStatus, CLOUD_GATE_THRESHOLD_PERCENT } from '@/lib/services/sun-engine';
+import type { VenueDaySeriesEntry } from '@/lib/types/api';
+import {
+  classifyDirectSun,
+  skyConditionForDirectSun,
+  sunStatusForDirectSun,
+  weatherGateStateForDirectSun,
+} from '@/lib/services/direct-sun-classifier';
+import { classifySunStatus } from '@/lib/services/sun-engine';
 import { venueEngineCoordinate } from '@/lib/services/sun-geometry-coordinates';
 import { calculateSolarPosition } from '@/lib/solar/solar-calculation-service';
 
@@ -17,6 +23,9 @@ export type WeatherSnapshotSlice = {
   cloudCoverLow?: number;
   cloudCoverMedium?: number;
   cloudCoverHigh?: number;
+  fogAreaFraction?: number;
+  precipitationAmount?: number;
+  symbolCode?: string;
   isRaining?: boolean;
   weatherUnknown?: boolean;
 };
@@ -62,15 +71,16 @@ export function buildWeatherSnapshotWindow(now: Date): string[] {
 export async function refreshWeatherSnapshotsForVenue(input: {
   venueId?: string;
   now?: Date;
-  forecastSlices?: Array<{ validAt: string; cloudCover?: number }>;
+  forecastSlices?: Array<Omit<WeatherSnapshotSlice, 'isRaining' | 'weatherUnknown'>>;
   nowcastRateByValidAt?: Record<string, number | undefined>;
 }): Promise<{ venueId?: string; slices: WeatherSnapshotSlice[] }> {
   const now = input.now ?? new Date();
   const horizonMs = 90 * 60 * 1000;
   const slices = (input.forecastSlices ?? []).map((slice) => {
-    const validAtMs = new Date(slice.validAt).getTime();
+    const validAt = slice.validAt;
+    const validAtMs = validAt ? new Date(validAt).getTime() : Number.NaN;
     const isNearNow = validAtMs >= now.getTime() && validAtMs <= now.getTime() + horizonMs;
-    const rate = isNearNow ? input.nowcastRateByValidAt?.[slice.validAt] : undefined;
+    const rate = isNearNow && validAt ? input.nowcastRateByValidAt?.[validAt] : undefined;
     return {
       ...slice,
       isRaining: rate !== undefined ? rate > 0 : undefined,
@@ -85,12 +95,16 @@ export function selectSnapshotSliceForStep(input: {
   maxStalenessMinutes?: number;
 }): WeatherSnapshotSlice {
   const { requestedAt, slices } = input;
+  const requestedAtMs = requestedAt.getTime();
+  if (!Number.isFinite(requestedAtMs)) return { weatherUnknown: true };
   const maxStalenessMs = (input.maxStalenessMinutes ?? 90) * 60 * 1000;
   let best: WeatherSnapshotSlice | undefined;
   let bestDelta = Number.POSITIVE_INFINITY;
   for (const slice of slices) {
     if (!slice.validAt) continue;
-    const delta = Math.abs(new Date(slice.validAt).getTime() - requestedAt.getTime());
+    const validAtMs = new Date(slice.validAt).getTime();
+    if (!Number.isFinite(validAtMs)) continue;
+    const delta = Math.abs(validAtMs - requestedAtMs);
     if (delta < bestDelta) {
       best = slice;
       bestDelta = delta;
@@ -114,13 +128,16 @@ export function gateGeometrySeriesWithWeatherSnapshots(input: {
   }
 
   return input.geometrySeries.map((entry) => {
-    const matchedWeather =
-      weatherByMinutes.get(entry.minutes) ??
-      nearestSnapshotSliceForGeometryStep(
-        input.weatherSlices ?? [],
-        input.stockholmDate,
-        entry.minutes,
-      );
+    // Persisted/public reads always carry the Stockholm date, so even an exact
+    // minute key must prove a valid provider timestamp within the 90-minute
+    // boundary. Minute-only matching remains solely for isolated pure fixtures.
+    const matchedWeather = input.stockholmDate
+      ? nearestSnapshotSliceForGeometryStep(
+          input.weatherSlices ?? [],
+          input.stockholmDate,
+          entry.minutes,
+        )
+      : weatherByMinutes.get(entry.minutes);
     const weather: WeatherSnapshotSlice = isUsableSnapshotWeather(matchedWeather)
       ? matchedWeather
       : { weatherUnknown: true };
@@ -128,25 +145,20 @@ export function gateGeometrySeriesWithWeatherSnapshots(input: {
     const geometricStatus = isSunVisible
       ? classifySunStatus(entry.sunExposurePercent)
       : 'NoSun';
-    const isRaining = weather.isRaining === true;
-    const cloudCover = weather.weatherUnknown ? undefined : effectiveSnapshotCloudCover(weather);
-    const currentSunStatus = applyCloudGate(geometricStatus, isSunVisible, cloudCover, isRaining);
-    const skyCondition = weather.weatherUnknown
-      ? 'unavailable'
-      : isRaining
-        ? 'rain'
-        : skyConditionFromSnapshotCloudCover(cloudCover);
+    const directSun = classifyDirectSun({
+      geometryPotentialPercent: entry.sunExposurePercent,
+      isSunVisible,
+      weather,
+    });
+    const currentSunStatus = sunStatusForDirectSun(geometricStatus, directSun);
+    const skyCondition = skyConditionForDirectSun(weather, directSun);
     return {
       minutes: entry.minutes,
       sunExposurePercent: entry.sunExposurePercent,
       currentSunStatus,
-      weatherGateState: weatherGateStateFromSnapshot(
-        weather,
-        isSunVisible,
-        entry.sunExposurePercent,
-        cloudCover,
-        isRaining,
-      ),
+      weatherGateState: weatherGateStateForDirectSun(directSun),
+      directSunState: directSun.state,
+      directSunReasons: directSun.reasons,
       skyCondition,
     };
   });
@@ -170,29 +182,7 @@ function isUsableSnapshotWeather(
   weather: WeatherSnapshotSlice | undefined,
 ): weather is WeatherSnapshotSlice {
   if (!weather || weather.weatherUnknown === true) return false;
-  if (weather.isRaining === true) return true;
-  return effectiveSnapshotCloudCover(weather) !== undefined;
-}
-
-function weatherGateStateFromSnapshot(
-  weather: WeatherSnapshotSlice,
-  isSunVisible: boolean,
-  sunExposurePercent: number,
-  cloudCover: number | undefined,
-  isRaining: boolean,
-): WeatherGateState {
-  if (weather.weatherUnknown || (!Number.isFinite(cloudCover) && !isRaining)) {
-    return 'unknown';
-  }
-  const cloudGates =
-    typeof cloudCover === 'number' &&
-    Number.isFinite(cloudCover) &&
-    cloudCover >= CLOUD_GATE_THRESHOLD_PERCENT;
-  return isSunVisible &&
-    classifySunStatus(sunExposurePercent) !== 'Shaded' &&
-    (cloudGates || isRaining)
-    ? 'gated'
-    : 'not_gated';
+  return true;
 }
 
 function isSunVisibleAtStep(
@@ -215,25 +205,6 @@ function stepInstantFor(stockholmDate: string, minutes: number): Date {
   return fromZonedTime(`${stockholmDate}T${hh}:${mm}:00`, STOCKHOLM_TIME_ZONE);
 }
 
-function effectiveSnapshotCloudCover(slice: WeatherSnapshotSlice): number | undefined {
-  const low = slice.cloudCoverLow;
-  const medium = slice.cloudCoverMedium;
-  const high = slice.cloudCoverHigh;
-  if ([low, medium, high].every((value) => typeof value === 'number' && Number.isFinite(value))) {
-    return Math.max(low as number, (medium as number) * 0.7, (high as number) * 0.35);
-  }
-  return typeof slice.cloudCover === 'number' && Number.isFinite(slice.cloudCover)
-    ? slice.cloudCover
-    : undefined;
-}
-
-function skyConditionFromSnapshotCloudCover(cloudCover: number | undefined): string {
-  if (cloudCover === undefined) return 'unavailable';
-  if (cloudCover >= CLOUD_GATE_THRESHOLD_PERCENT) return 'overcast';
-  if (cloudCover >= 30) return 'partly-cloudy';
-  return 'clear';
-}
-
 type PersistedWeatherSnapshotRow = {
   coordinate_bucket?: unknown;
   stockholm_date?: unknown;
@@ -250,7 +221,7 @@ function coordinateBucketForVenue(venue: WeatherSnapshotVenue): string {
 
 function weatherSnapshotRecordFromRow(row: PersistedWeatherSnapshotRow): WeatherSnapshotRecord {
   const expiresAt = typeof row.expires_at === 'string' ? new Date(row.expires_at) : null;
-  if (expiresAt && expiresAt.getTime() <= Date.now()) {
+  if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
     return {
       status: 'expired',
       bucket: typeof row.bucket_key === 'string' ? row.bucket_key : undefined,

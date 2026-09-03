@@ -54,6 +54,8 @@ function computedOutcome(venue: StoredVenue): SunEngineOutcome {
       ...toVenueData(venue),
       currentSunStatus: 'Partial',
       weatherGateState: 'not_gated',
+      directSunState: 'likely',
+      directSunReasons: [],
       confidence: 55,
       sunExposurePercent: 60,
       skyCondition: 'clear',
@@ -75,6 +77,8 @@ function cloudObscuredOutcome(venue: StoredVenue): SunEngineOutcome {
       ...toVenueData(venue),
       currentSunStatus: 'CloudObscured',
       weatherGateState: 'gated',
+      directSunState: 'blocked',
+      directSunReasons: ['cloud-obstruction'],
       confidence: 60,
       sunExposurePercent: 90,
       skyCondition: 'overcast',
@@ -91,7 +95,9 @@ function unavailableOutcome(venue: StoredVenue): SunEngineOutcome {
     venue: {
       ...toVenueData(venue),
       currentSunStatus: 'NoSun',
-      weatherGateState: 'not_gated',
+      weatherGateState: 'unknown',
+      directSunState: 'unknown',
+      directSunReasons: ['weather-unavailable'],
       confidence: 20,
       sunExposurePercent: 0,
       skyCondition: 'unavailable',
@@ -201,6 +207,10 @@ describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
     expect(sunny).toBeDefined();
     expect(sunny?.currentSunStatus).toBe('Sunny');
     expect(sunny?.confidence).toBe(92);
+    // A legacy seed without an explicit direct-sun verdict is normalized to
+    // unknown; a clear-sky geometry headline alone must never become public sun.
+    expect(sunny?.directSunState).toBe('unknown');
+    expect(sunny && isVenuePubliclySunny(sunny)).toBe(false);
 
     // Other venues still received engine values.
     const others = body.venues.filter((v) => v.slug !== 'test-venue-sunny');
@@ -243,22 +253,34 @@ describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
     const byId: Record<string, {
       currentSunStatus: 'Sunny' | 'Partial' | 'CloudObscured' | 'Shaded' | 'NoSun';
       sunExposurePercent: number;
+      directSunState: 'likely' | 'blocked';
     }> = {
-      '1': { currentSunStatus: 'Sunny', sunExposurePercent: 95 },
-      '2': { currentSunStatus: 'Partial', sunExposurePercent: 60 },
+      '1': { currentSunStatus: 'Sunny', sunExposurePercent: 95, directSunState: 'likely' },
+      '2': { currentSunStatus: 'Partial', sunExposurePercent: 60, directSunState: 'likely' },
       // Geometrically sunlit but weather-gated: exposure stays high (two-signal).
-      '3': { currentSunStatus: 'CloudObscured', sunExposurePercent: 90 },
-      '4': { currentSunStatus: 'Shaded', sunExposurePercent: 20 },
-      '5': { currentSunStatus: 'NoSun', sunExposurePercent: 0 },
+      '3': { currentSunStatus: 'CloudObscured', sunExposurePercent: 90, directSunState: 'blocked' },
+      '4': { currentSunStatus: 'Shaded', sunExposurePercent: 20, directSunState: 'blocked' },
+      '5': { currentSunStatus: 'NoSun', sunExposurePercent: 0, directSunState: 'blocked' },
     };
     adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) => {
-      const fields = byId[venue.id] ?? { currentSunStatus: 'Sunny' as const, sunExposurePercent: 95 };
+      const fields = byId[venue.id] ?? {
+        currentSunStatus: 'Sunny' as const,
+        sunExposurePercent: 95,
+        directSunState: 'likely' as const,
+      };
       return {
         venue: {
           ...toVenueData(venue),
           currentSunStatus: fields.currentSunStatus,
           weatherGateState:
             fields.currentSunStatus === 'CloudObscured' ? 'gated' : 'not_gated',
+          directSunState: fields.directSunState,
+          directSunReasons:
+            fields.directSunState === 'likely'
+              ? []
+              : fields.currentSunStatus === 'CloudObscured'
+                ? ['cloud-obstruction']
+                : ['geometry'],
           confidence: 60,
           sunExposurePercent: fields.sunExposurePercent,
           skyCondition: fields.currentSunStatus === 'CloudObscured' ? 'overcast' : 'clear',
@@ -275,8 +297,15 @@ describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
     const gated = body.venues.find((v) => v.id === '3');
     expect(gated?.currentSunStatus).toBe('CloudObscured');
     expect(gated?.weatherGateState).toBe('gated');
+    expect(gated?.directSunState).toBe('blocked');
     expect(gated?.sunExposurePercent).toBe(90);
     expect(gated && isVenuePubliclySunny(gated)).toBe(false);
+    expect(
+      isVenuePubliclySunny({
+        sunExposurePercent: 95,
+        weatherGateState: 'not_gated',
+      }),
+    ).toBe(false);
 
     const publicSunnyFlags = body.venues.map(isVenuePubliclySunny);
     const firstGreyIndex = publicSunnyFlags.indexOf(false);

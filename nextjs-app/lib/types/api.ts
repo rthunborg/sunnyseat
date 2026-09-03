@@ -15,21 +15,37 @@ export type VenueSunStatus = 'Sunny' | 'Partial' | 'Shaded' | 'NoSun' | 'CloudOb
 export type WeatherGateState = 'gated' | 'not_gated' | 'unknown';
 export type PublicSunWeatherGateState = Exclude<WeatherGateState, 'gated'>;
 export type PublicSunVerdict = 'amber' | 'grey';
+/** Forecast verdict for meaningful direct beam at the seating polygon. */
+export type DirectSunState = 'likely' | 'blocked' | 'unknown';
+/** Public-safe evidence categories; never provider payload or diagnostics. */
+export type DirectSunReason =
+  | 'geometry'
+  | 'geometry-incomplete'
+  | 'cloud-obstruction'
+  | 'precipitation'
+  | 'fog'
+  | 'weather-unavailable'
+  | 'weather-incomplete'
+  | 'contradictory-weather';
 
-// STORY 11.1 (AC1): one gated per-planner-step entry of the client-side
+// STORY 11.1 (AC1): one classified per-planner-step entry of the client-side
 // day-series. `minutes` is the planner minutes-of-day (06:00 → 360 … 21:00 →
 // 1260, at PLANNER_STEP_MINUTES resolution). `sunExposurePercent` keeps its ONE
-// geometric clear-sky meaning; `currentSunStatus` is the ALREADY weather-gated
-// (Epic-10 cloud/rain gate applied per step) headline the client renders
-// directly — the client NEVER re-gates. Populated ONLY on the real-engine list
+// geometric clear-sky meaning; `directSunState` is the authoritative direct-beam
+// verdict and `currentSunStatus` is its backward-compatible headline projection.
+// The client renders the verdict directly and never reclassifies weather. Populated ONLY on the real-engine list
 // path; the client derives marker %, pin state, quick-info, list ordering and
 // the obscured presentation for ANY planner time from this cached series, so a
 // settled time change issues zero network requests.
 export interface VenueDaySeriesEntry {
   minutes: number;
+  /** Clear-sky geometric seating-area potential. */
   sunExposurePercent: number;
   currentSunStatus: VenueSunStatus;
   weatherGateState: WeatherGateState;
+  /** Actual forecast direct sunlight. Missing legacy data normalizes to unknown. */
+  directSunState?: DirectSunState;
+  directSunReasons?: DirectSunReason[];
   /**
    * STORY 11 (review): the per-step gated sky condition (same values as the
    * top-level `VenueDataDto.skyCondition`). Carried so a time scrub can override
@@ -139,6 +155,9 @@ export interface VenueDataDto {
   location: CoordinatesDto;
   currentSunStatus: VenueSunStatus;
   weatherGateState: WeatherGateState;
+  /** Actual predicted direct sunlight, distinct from `sunExposurePercent`. */
+  directSunState?: DirectSunState;
+  directSunReasons?: DirectSunReason[];
   skyCondition?: string; // 'clear' | 'partly-cloudy' | 'overcast' | 'rain' | 'unavailable'
   isPartner: boolean;
   /**
@@ -150,8 +169,10 @@ export interface VenueDataDto {
   confidence: number;
   distanceMeters: number;
   /**
-   * Direct-sun amount, 0..100. This powers pins, hero badges, and "X% sol"
-   * surfaces, while confidence remains a trust/certainty metric.
+   * Clear-sky geometric share of the seating polygon, 0..100. It may power a
+   * direct-sun badge only when `directSunState === 'likely'`; otherwise it is
+   * labelled solely as potential without building shade. Confidence remains a
+   * separate diagnostic certainty metric.
    */
   sunExposurePercent: number;
   /**

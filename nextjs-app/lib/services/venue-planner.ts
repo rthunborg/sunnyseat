@@ -110,6 +110,8 @@ export function applyPlannerSelectionToVenue(
     ...venue,
     currentSunStatus,
     weatherGateState,
+    directSunState: inSunWindow ? venue.directSunState : 'blocked',
+    directSunReasons: inSunWindow ? venue.directSunReasons : ['geometry'],
     confidence: Math.max(35, Math.round(venue.confidence - forecastPenalty - weatherPenalty)),
     sunExposurePercent,
     sunWindow: adjustedWindow

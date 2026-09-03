@@ -10,7 +10,7 @@
  * TOS posture is IDENTICAL to the forecast client and shares its primitives so the
  * two cannot drift: the same identifying `User-Agent` (imported from
  * `met-no-service.ts`, not re-declared — Met.no 403s a missing/non-identifying UA)
- * and the same `.toFixed(4)` coordinate truncation.
+ * and the same `.toFixed(4)` coordinate rounding.
  *
  * GRACEFUL DEGRADATION (AC1 + the epic's unknown-never-fabricates discipline):
  * the accessor returns `number | undefined`, never throws. `undefined` = "we don't
@@ -64,7 +64,7 @@ export async function getNowcastPrecipitationRate(
   try {
     // `/complete` is the JSON (GeoJSON) product; `/classic` is the legacy XML
     // variant (not used). Same `api.met.no/weatherapi` base + `.toFixed(4)`
-    // coordinate truncation (Met.no TOS) as the forecast client.
+    // coordinate rounding (Met.no precision contract) as the forecast client.
     const url = `${API_BASE}/nowcast/2.0/complete?lat=${latitude.toFixed(4)}&lon=${longitude.toFixed(4)}`;
 
     const res = await fetch(url, {

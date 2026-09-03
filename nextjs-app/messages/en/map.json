@@ -7,9 +7,9 @@
   "zoomOut": "Zoom out",
   "myLocation": "My location",
   "settings": "Settings",
-  "pinSunnyAria": "{name} — sunny at selected time — {percent} percent sun",
-  "pinSunnyWeatherUnknownAria": "{name} — sunny at selected time — {percent} percent sun. Weather unavailable at selected time.",
-  "pinNotSunnyAria": "{name} — not sunny at selected time",
+  "pinSunnyAria": "{name} — direct sunlight likely at the selected time — {percent} percent without building shade",
+  "pinNotSunnyAria": "{name} — no direct sunlight expected at the selected time",
+  "pinUnknownAria": "{name} — direct sunlight is unclear at the selected time",
   "coachTour": {
     "progress": "Step {current} of {total}",
     "skip": "Skip guide",
@@ -21,7 +21,7 @@
     "steps": {
       "pinLegend": {
         "title": "Map pins",
-        "body": "The percentage shows the share of outdoor seats we think are in direct sun at the selected time.",
+        "body": "A yellow pin means direct sunlight is likely. The percentage is the share of seating not shaded by buildings. A grey pin can mean shade, weather obstruction, or uncertain weather.",
         "target": "the map pins"
       },
       "timeSlider": {
@@ -51,10 +51,10 @@
       }
     },
     "pinLegend": {
-      "sunnyLabel": "Sunny",
-      "sunnyDescription": "Direct sun at the selected time.",
-      "shadedLabel": "Shaded",
-      "shadedDescription": "No direct sun right then."
+      "sunnyLabel": "Direct sun likely",
+      "sunnyDescription": "Weather supports direct sun; the percentage is the area without building shade.",
+      "shadedLabel": "No yellow sun marker",
+      "shadedDescription": "Shade, weather obstruction, or unclear weather. Open the venue for details."
     }
   },
   "devEditor": {

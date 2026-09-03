@@ -10,11 +10,12 @@ import type {
   PredictionUncertaintyDto,
   PredictionUncertaintyLevel,
   PredictionUncertaintyReason,
+  DirectSunReason,
   VenueDataDto,
   VenueDaySeriesEntry,
   VenueThumbnailDto,
 } from '@/lib/types/api';
-import { normalizeWeatherGateState } from '@/lib/utils/public-sun';
+import { normalizeDirectSunState, normalizeWeatherGateState } from '@/lib/utils/public-sun';
 import { normalizeVenueMediaRenditionUrl } from '@/lib/utils/venue-media';
 
 const TIME_WINDOW_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -50,6 +51,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     location: { lat: 57.7050, lng: 11.9700 },
     currentSunStatus: 'Sunny',
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
     skyCondition: 'clear',
     isPartner: true,
     confidence: 92,
@@ -89,6 +91,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     location: { lat: 57.7035, lng: 11.9520 },
     currentSunStatus: 'Sunny',
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
     skyCondition: 'clear',
     isPartner: false,
     confidence: 88,
@@ -124,6 +127,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     location: { lat: 57.7080, lng: 11.9655 },
     currentSunStatus: 'Sunny',
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
     skyCondition: 'partly-cloudy',
     isPartner: false,
     confidence: 78,
@@ -147,6 +151,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     location: { lat: 57.7000, lng: 11.9710 },
     currentSunStatus: 'Partial',
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
     skyCondition: 'partly-cloudy',
     isPartner: false,
     confidence: 70,
@@ -174,6 +179,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     location: { lat: 57.7115, lng: 11.9605 },
     currentSunStatus: 'Partial',
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
     skyCondition: 'partly-cloudy',
     isPartner: false,
     confidence: 66,
@@ -201,6 +207,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     location: { lat: 57.7095, lng: 11.9785 },
     currentSunStatus: 'Shaded',
     weatherGateState: 'not_gated',
+    directSunState: 'blocked',
     skyCondition: 'overcast',
     isPartner: false,
     confidence: 80,
@@ -224,6 +231,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     location: { lat: 57.7060, lng: 11.9820 },
     currentSunStatus: 'Shaded',
     weatherGateState: 'not_gated',
+    directSunState: 'blocked',
     skyCondition: 'overcast',
     isPartner: false,
     confidence: 75,
@@ -278,6 +286,8 @@ export function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
   const url = normalizeThumbnailUrl(rawThumbnail?.url);
   const predictionUncertainty = normalizePredictionUncertainty(rawPredictionUncertainty);
   const sunDaySeries = normalizeSunDaySeries(rawSunDaySeries);
+  const directSunState = normalizeDirectSunState((venue as { directSunState?: unknown }).directSunState);
+  const directSunReasons = normalizeDirectSunReasons((venue as { directSunReasons?: unknown }).directSunReasons);
 
   return {
     ...venueWithoutUncertainty,
@@ -285,6 +295,8 @@ export function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
       venue.currentSunStatus,
       (venue as VenueDataDto & { weatherGateState?: unknown }).weatherGateState,
     ),
+    directSunState,
+    ...(directSunReasons.length > 0 ? { directSunReasons } : {}),
     sunWindow,
     ...(sunDaySeries ? { sunDaySeries } : {}),
     thumbnail:
@@ -325,7 +337,23 @@ function normalizeSunDaySeries(value: unknown): VenueDaySeriesEntry[] | undefine
         entry.currentSunStatus,
         (entry as VenueDaySeriesEntry & { weatherGateState?: unknown }).weatherGateState,
       ),
+      directSunState: normalizeDirectSunState((entry as { directSunState?: unknown }).directSunState),
+      ...(normalizeDirectSunReasons((entry as { directSunReasons?: unknown }).directSunReasons).length > 0
+        ? { directSunReasons: normalizeDirectSunReasons((entry as { directSunReasons?: unknown }).directSunReasons) }
+        : {}),
     }));
+}
+
+const DIRECT_SUN_REASONS: ReadonlySet<DirectSunReason> = new Set([
+  'geometry', 'geometry-incomplete', 'cloud-obstruction', 'precipitation', 'fog', 'weather-unavailable',
+  'weather-incomplete', 'contradictory-weather',
+]);
+
+function normalizeDirectSunReasons(value: unknown): DirectSunReason[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((reason): reason is DirectSunReason =>
+    typeof reason === 'string' && DIRECT_SUN_REASONS.has(reason as DirectSunReason),
+  ))];
 }
 
 function normalizePredictionUncertainty(value: unknown): PredictionUncertaintyDto | undefined {

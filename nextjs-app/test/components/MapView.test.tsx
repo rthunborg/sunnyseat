@@ -1903,10 +1903,11 @@ describe('<MapView />', () => {
       expect(screen.getByTestId('mobile-venue-detail-sheet')).toBeInTheDocument();
       expect(screen.getAllByRole('heading', { name: 'Kafé Magasinet' })).toHaveLength(2);
       expect(screen.getAllByText('Stor uteservering med eftermiddagssol, skyddade bord och nära till både spårvagn och kajstråk.')).toHaveLength(2);
-      expect(screen.getAllByLabelText('95% sol')).toHaveLength(2);
-      for (const detailSunBadge of screen.getAllByLabelText('95% sol')) {
-        expect(detailSunBadge).toHaveTextContent('95%');
-      }
+      // The synthetic forced-detail fallback has geometry, but no authoritative
+      // direct-sun state; it must remain neutral rather than claim direct sun.
+      expect(screen.getAllByText('OKLART OM DIREKT SOL')).toHaveLength(2);
+      expect(screen.getAllByText('Vid klar himmel: 95% utan byggnadsskugga')).toHaveLength(2);
+      expect(screen.queryByLabelText('95% sol')).not.toBeInTheDocument();
       expect(screen.queryByText('95% SOL')).not.toBeInTheDocument();
       expect(screen.queryByText(/Säkerhet/)).not.toBeInTheDocument();
       // Story 11.6 (AC2): the "Soltider idag" sun-forecast section is removed on
@@ -2597,6 +2598,7 @@ describe('<MapView />', () => {
             name: 'Bellora',
             status: 'Partial',
             sunExposurePercent: 61,
+            directSunState: 'likely',
           }),
         ]),
         isFetching: false,
@@ -4018,6 +4020,7 @@ function makeVenue({
   slug,
   status = 'Sunny',
   sunExposurePercent = 95,
+  directSunState = status === 'Sunny' ? 'likely' : 'blocked',
   thumbnailUrl,
   confidence = 92,
   sunWindow = { start: '13:00', end: '18:30' },
@@ -4038,6 +4041,7 @@ function makeVenue({
   slug?: string;
   status?: GetVenuesResponse['venues'][number]['currentSunStatus'];
   sunExposurePercent?: number;
+  directSunState?: GetVenuesResponse['venues'][number]['directSunState'];
   thumbnailUrl?: string;
   confidence?: number;
   sunWindow?: GetVenuesResponse['venues'][number]['sunWindow'];
@@ -4055,6 +4059,7 @@ function makeVenue({
     neighborhood: 'Centrum',
     location: { lat: 57.7, lng: 11.97 },
     currentSunStatus: status,
+    directSunState,
     weatherGateState: 'not_gated',
     isPartner: false,
     confidence,

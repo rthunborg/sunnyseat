@@ -12,6 +12,7 @@ const LIST_VENUE: VenueDataDto = {
   neighborhood: 'Inom Vallgraven',
   location: { lat: 57.705, lng: 11.97 },
   currentSunStatus: 'Sunny',
+  directSunState: 'likely',
   weatherGateState: 'not_gated',
   isPartner: true,
   confidence: 92,
@@ -59,6 +60,9 @@ const labels = {
   address: 'Adress',
   sunBadge: '{percent}% sol',
   notSunnyVerdict: 'Inte soligt vid vald tid',
+  directSunUncertain: 'Oklart om direkt sol vid vald tid',
+  statusUncertain: 'OKLART OM DIREKT SOL',
+  clearSkyPotential: 'Vid klar himmel: {percent}% utan byggnadsskugga',
   obscuredHeadline: 'Sol bakom moln',
   sky: {
     label: 'Himmel nu',

@@ -87,6 +87,7 @@ describe('<VenueQuickInfo />', () => {
         mode="mobile"
         name="Testbaren"
         sunExposurePercent={95}
+        directSunState="likely"
         openingHours={OPENING_HOURS}
         distanceMeters={420}
         thumbnail={{
@@ -422,9 +423,10 @@ describe('<VenueQuickInfo />', () => {
 
     // No visible or sr-only confidence fallback remains.
     expect(screen.getByTestId('venue-quick-info')).not.toHaveTextContent(/Säkerhet|Confidence/);
-    // The opening-hours line + sun badge still render.
+    // Geometry-only data remains useful context, but must never create a
+    // direct-sun claim when the authoritative state is absent.
     expect(screen.getByTestId('quick-info-opening-hours')).toHaveTextContent('Öppet till 22:00');
-    expect(screen.getByText(/95% SOL/)).toBeInTheDocument();
+    expect(screen.queryByText(/95% SOL/)).toBeNull();
   });
 
   // ---------------------------------------------------------------------------
@@ -495,6 +497,7 @@ describe('<VenueQuickInfo />', () => {
         sunExposurePercent={95}
         distanceMeters={420}
         currentSunStatus="Sunny"
+        directSunState="likely"
         skyCondition="clear"
         thumbnail={{ alt: 'Uteservering', initials: 'SB' }}
         isLoadingSunData={false}
@@ -739,6 +742,7 @@ describe('<VenueQuickInfo />', () => {
         mode="mobile"
         name="Testbaren"
         sunExposurePercent={95}
+        directSunState="likely"
         isLoadingSunData={false}
         onDismiss={() => {}}
         onOpenDetails={() => {}}
@@ -761,6 +765,7 @@ describe('<VenueQuickInfo />', () => {
         mode="mobile"
         name="Testbaren"
         sunExposurePercent={95}
+        directSunState="likely"
         isLoadingSunData={false}
         isFavourite
         onDismiss={() => {}}
@@ -867,6 +872,7 @@ describe('<VenueQuickInfo />', () => {
         mode="mobile"
         name="Testbaren"
         sunExposurePercent={140}
+        directSunState="likely"
         isLoadingSunData={false}
         onDismiss={() => {}}
         onOpenDetails={() => {}}
@@ -881,6 +887,7 @@ describe('<VenueQuickInfo />', () => {
         mode="mobile"
         name="Testbaren"
         sunExposurePercent={-25}
+        directSunState="likely"
         isLoadingSunData={false}
         onDismiss={() => {}}
         onOpenDetails={() => {}}
@@ -914,6 +921,7 @@ describe('<VenueQuickInfo />', () => {
         name="Testbaren"
         sunExposurePercent={95}
         position={{ x: 180, y: 260 }}
+        directSunState="likely"
         isLoadingSunData={false}
         onDismiss={() => {}}
         onOpenDetails={() => {}}
@@ -935,6 +943,7 @@ describe('<VenueQuickInfo />', () => {
         mode="mobile"
         name="Testbaren"
         sunExposurePercent={95}
+        directSunState="likely"
         isLoadingSunData={false}
         onDismiss={() => {}}
         onOpenDetails={() => {}}

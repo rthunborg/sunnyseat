@@ -24,7 +24,7 @@ import {
   isObscuredSunStatus,
   skyConditionCopy,
 } from '@/lib/utils/sun-status-presentation';
-import { isVenuePubliclySunny } from '@/lib/utils/public-sun';
+import { isVenuePubliclySunny, normalizeDirectSunState } from '@/lib/utils/public-sun';
 import { formatOpeningHoursAt, getVenueAvailabilityAt } from '@/lib/utils/opening-hours';
 import { stockholmInstantFromDateTime } from '@/lib/utils/time-planner';
 import { selectVenueHeroImageUrl } from '@/lib/utils/venue-media';
@@ -50,6 +50,9 @@ export type VenueDetailContentLabels = {
   /** Story 12.10: percentage-free grey hero badge copy for all public non-sunny
    * states except CloudObscured, which keeps the explicit obscured treatment. */
   notSunnyVerdict?: string;
+  directSunUncertain?: string;
+  statusUncertain?: string;
+  clearSkyPotential?: string;
   /** Story 10.2 (AC1): the muted "Sol bakom moln" hero headline shown when
    * the venue is CloudObscured. */
   obscuredHeadline?: string;
@@ -349,11 +352,15 @@ function HeroImage({
   const [imageFailed, setImageFailed] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
   const shouldRenderImage = Boolean(imageUrl) && !imageFailed && !isLoading;
-  const isPubliclySunny = isVenuePubliclySunny(venue);
+  const isPubliclySunny = isVenuePubliclySunny({
+    ...venue,
+    directSunState: venue.directSunState,
+  });
   const percentText = String(Math.round(venue.sunExposurePercent));
   const sunnyBadgeLabel = formatLabel(labels.sunBadge, { percent: percentText });
   const sunnyBadgeVisibleText = `${percentText}%`;
   const notSunnyLabel = defaultNotSunnyVerdict(labels, locale);
+  const isDirectSunUncertain = normalizeDirectSunState(venue.directSunState) === 'unknown';
 
   useEffect(() => {
     setImageFailed(false);
@@ -421,7 +428,9 @@ function HeroImage({
             ? (labels.obscuredHeadline ?? 'Sol bakom moln')
             : isPubliclySunny
               ? sunnyBadgeLabel
-              : notSunnyLabel
+              : isDirectSunUncertain
+                ? (labels.directSunUncertain ?? notSunnyLabel)
+                : notSunnyLabel
         }
         className={cn(
           'absolute left-4 top-4 flex h-10 items-center justify-center gap-2 rounded-pill px-4 text-heading-lg backdrop-blur-standard shadow-subtle',
@@ -438,8 +447,17 @@ function HeroImage({
         ) : (
           <Sun aria-hidden="true" className="size-5 fill-current" />
         )}
-        {isPubliclySunny && !isObscured ? sunnyBadgeVisibleText : null}
+        {isPubliclySunny && !isObscured
+          ? sunnyBadgeVisibleText
+          : isDirectSunUncertain
+            ? (labels.statusUncertain ?? labels.directSunUncertain)
+            : null}
       </div>
+      {isDirectSunUncertain && labels.clearSkyPotential && (
+        <p className="absolute left-4 top-16 rounded-pill bg-surface-cream/90 px-3 py-1 text-label-xs-medium text-text-body">
+          {labels.clearSkyPotential.replace('{percent}', percentText)}
+        </p>
+      )}
       {/* AC1/AC3: the muted "Sol bakom moln" headline + the plain-language sky
           line, only for the obscured state. `skyLine` is null when the DTO sky
           is unavailable → no sky descriptor (never fabricate). */}

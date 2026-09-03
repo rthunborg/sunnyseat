@@ -175,6 +175,9 @@ function snapshotSlice(
     cloudCoverLow: slice.cloudCoverLow,
     cloudCoverMedium: slice.cloudCoverMedium,
     cloudCoverHigh: slice.cloudCoverHigh,
+    fogAreaFraction: slice.fogAreaFraction,
+    precipitationAmount: slice.precipitationAmount,
+    symbolCode: slice.symbolCode,
     ...(nearNow && nowcastRate !== undefined ? { isRaining: nowcastRate > 0 } : {}),
   };
 }

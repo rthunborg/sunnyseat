@@ -80,6 +80,20 @@ function geometryHashForVenue(venueId: string): string {
   return `g1:${numericSuffix.toString(16).padStart(64, '0')}`;
 }
 
+function clearSnapshotSlice(minutes: number) {
+  return {
+    minutes,
+    cloudCover: 10,
+    cloudCoverLow: 10,
+    cloudCoverMedium: 0,
+    cloudCoverHigh: 0,
+    fogAreaFraction: 0,
+    precipitationAmount: 0,
+    symbolCode: 'clearsky_day',
+    isRaining: false,
+  };
+}
+
 describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-path projection', () => {
   test('source contract removes 61-step shadow projection and live weather fan-out from the list route', () => {
     const source = appSource('app/api/venues/route.ts');
@@ -134,8 +148,8 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
       bucket: 'current',
       weatherUpdatedAt: '2026-07-18T10:00:00.000Z',
       slices: [
-        { minutes: 720, cloudCover: 10, isRaining: false },
-        { minutes: 735, cloudCover: 10, isRaining: false },
+        clearSnapshotSlice(720),
+        clearSnapshotSlice(735),
       ],
     }));
     const prepareRepositories = vi.fn(async () => ({
@@ -249,15 +263,20 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
         status: 'ready',
         bucket: 'current',
         weatherUpdatedAt: '2026-07-18T10:00:00.000Z',
-        slices: [{ minutes: 720, cloudCover: 95, isRaining: false }],
+        slices: [{
+          minutes: 720, validAt: '2026-07-18T10:00:00.000Z',
+          cloudCover: 95, cloudCoverLow: 95, cloudCoverMedium: 0,
+          cloudCoverHigh: 0, fogAreaFraction: 0, precipitationAmount: 0, symbolCode: 'cloudy',
+          isRaining: false,
+        }],
         };
       },
     });
 
     const sunny = await route.GET(venuesRequest('&weatherBucket=clear'));
     const overcast = await route.GET(venuesRequest('&weatherBucket=overcast'));
-    const sunnyBody = (await sunny.json()) as { venues: Array<{ sunDaySeries: unknown[] }> };
-    const overcastBody = (await overcast.json()) as { venues: Array<{ sunDaySeries: unknown[] }> };
+    const sunnyBody = (await sunny.json()) as { venues: Array<{ directSunState?: string; sunDaySeries: unknown[] }> };
+    const overcastBody = (await overcast.json()) as { venues: Array<{ directSunState?: string; sunDaySeries: unknown[] }> };
 
     expect(sunnyBody.venues[0]?.sunDaySeries).toHaveLength(persistedSeries.length);
     expect(overcastBody.venues[0]?.sunDaySeries).toHaveLength(persistedSeries.length);
@@ -269,6 +288,7 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
         expect.objectContaining({ minutes: 720, sunExposurePercent: 92, currentSunStatus: 'CloudObscured' }),
       ]),
     );
+    expect(overcastBody.venues[0]?.directSunState).toBe('blocked');
   });
 
   test('42+ venue list requests read persisted current hashes and coverage without request-path recompute', async () => {
@@ -313,8 +333,8 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
           bucket: bucket ?? 'current',
           weatherUpdatedAt: '2026-07-18T10:00:00.000Z',
           slices: [
-            { minutes: 720, cloudCover: 10, isRaining: false },
-            { minutes: 735, cloudCover: 10, isRaining: false },
+            clearSnapshotSlice(720),
+            clearSnapshotSlice(735),
           ],
         };
       },

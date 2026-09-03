@@ -1642,6 +1642,7 @@ export function MapView() {
             openingHours={quickInfoOpeningHours}
             currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
             weatherGateState={selectedQuickInfoVenue?.weatherGateState}
+            directSunState={selectedQuickInfoVenue?.directSunState}
             skyCondition={selectedQuickInfoVenue?.skyCondition}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
             distanceIsApproximate={locationIsApproximate}
@@ -1670,6 +1671,7 @@ export function MapView() {
             openingHours={quickInfoOpeningHours}
             currentSunStatus={selectedQuickInfoVenue?.currentSunStatus}
             weatherGateState={selectedQuickInfoVenue?.weatherGateState}
+            directSunState={selectedQuickInfoVenue?.directSunState}
             skyCondition={selectedQuickInfoVenue?.skyCondition}
             distanceMeters={selectedQuickInfoVenue?.distanceMeters}
             distanceIsApproximate={locationIsApproximate}
@@ -1795,6 +1797,8 @@ function applyDaySeriesDerivation(
     derived.currentSunStatus === venue.currentSunStatus &&
     derived.sunExposurePercent === venue.sunExposurePercent &&
     derived.weatherGateState === venue.weatherGateState &&
+    derived.directSunState === venue.directSunState &&
+    JSON.stringify(derived.directSunReasons) === JSON.stringify(venue.directSunReasons ?? []) &&
     nextSkyCondition === venue.skyCondition
   ) {
     return venue;
@@ -1803,6 +1807,8 @@ function applyDaySeriesDerivation(
     ...venue,
     currentSunStatus: derived.currentSunStatus,
     weatherGateState: derived.weatherGateState,
+    directSunState: derived.directSunState,
+    directSunReasons: derived.directSunReasons,
     sunExposurePercent: derived.sunExposurePercent,
     skyCondition: nextSkyCondition,
   };
@@ -1845,6 +1851,7 @@ function fallbackVenueFromSlug(slug: string): VenueDataDto {
     location: { lat: Number.NaN, lng: Number.NaN },
     currentSunStatus: 'Shaded',
     weatherGateState: 'unknown',
+    directSunState: 'unknown',
     isPartner: false,
     confidence: 0,
     distanceMeters: Number.NaN,
@@ -1905,6 +1912,7 @@ function normalizeForcedVisualPin(pin: VenuePinData): VenuePinData {
     sunStatus: 'Sunny',
     sunExposurePercent: 95,
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
   };
 }
 
@@ -1913,6 +1921,7 @@ function normalizeForcedVisualVenue(venue: VenueDataDto): VenueDataDto {
     ...venue,
     currentSunStatus: 'Sunny',
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
     skyCondition: 'clear',
     confidence: 95,
     sunExposurePercent: 95,
@@ -1947,6 +1956,7 @@ function normalizeForcedObscuredPin(pin: VenuePinData): VenuePinData {
     sunStatus: 'CloudObscured',
     sunExposurePercent: 95,
     weatherGateState: 'gated',
+    directSunState: 'blocked',
   };
 }
 
@@ -1955,6 +1965,7 @@ function normalizeForcedObscuredVenue(venue: VenueDataDto): VenueDataDto {
     ...normalizeForcedVisualVenue(venue),
     currentSunStatus: 'CloudObscured',
     weatherGateState: 'gated',
+    directSunState: 'blocked',
     skyCondition: 'overcast',
   };
 }
@@ -1994,6 +2005,8 @@ function quickInfoLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     // Story 10.2: muted "Sol bakom moln" headline + plain-language sky copy.
     obscuredHeadline: t('quickInfo.obscuredHeadline'),
     weatherUnavailable: t('quickInfo.weatherUnavailable'),
+    directSunUncertain: t('quickInfo.directSunUncertain'),
+    clearSkyPotential: t('quickInfo.clearSkyPotential', { percent: '{percent}' }),
     notSunnyVerdict: t('quickInfo.notSunnyVerdict'),
     sky: {
       clear: t('quickInfo.sky.clear'),
@@ -2022,6 +2035,9 @@ function venueDetailLabels(t: ReturnType<typeof useTranslations<'venue'>>) {
     address: t('detail.address'),
     sunBadge: t('detail.sunBadge', { percent: '{percent}' }),
     notSunnyVerdict: t('detail.notSunnyVerdict'),
+    directSunUncertain: t('detail.directSunUncertain'),
+    statusUncertain: t('detail.statusUncertain'),
+    clearSkyPotential: t('detail.clearSkyPotential', { percent: '{percent}' }),
     // Story 10.2 / 12.13: muted obscured hero headline + plain-language sky copy.
     // The obscured hero badge is deliberately percentage-free.
     obscuredHeadline: t('detail.obscuredHeadline'),

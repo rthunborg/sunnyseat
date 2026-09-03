@@ -107,6 +107,7 @@ export function VenueList({
             thumbnail={venue.thumbnail}
             isSunny={isVenueSunnyForList(venue)}
             weatherGateState={venue.weatherGateState}
+            directSunState={venue.directSunState}
             isObscured={isObscured}
             availabilityState={availabilityState}
             visualMetadata={getVenueVisualMetadata(venue, locale)}
@@ -124,11 +125,14 @@ export function VenueList({
               distanceApproximate: t('distanceApproximate'),
               sunUnavailable: t('sunUnavailable'),
               weatherUnavailable: t('weatherUnavailable'),
+              directSunUncertain: t('directSunUncertain'),
+              clearSkyPotential: t('clearSkyPotential', { percent: '{percent}' }),
               closedAtSelectedTime: t('closedAtSelectedTime'),
               statusMostlyShade: t('statusMostlyShade'),
               statusFullSun: t('statusFullSun'),
               statusPartialSun: t('statusPartialSun'),
               statusObscured: t('statusObscured'),
+              statusUncertain: t('statusUncertain'),
               obscuredPosition: t('obscuredPosition', { percent: '{percent}' }),
             }}
             isFavourite={isFavourite?.(venue.id) ?? false}
@@ -158,6 +162,9 @@ export function sortVenuesForList(
 }
 
 export function isVenueSunnyForList(venue: VenueDataDto): boolean {
+  // Public route DTOs are normalized with a directSunState. Keep the
+  // presentational list usable for old isolated fixtures without weakening the
+  // route contract (missing serialized evidence remains unknown upstream).
   return isVenuePubliclySunny(venue);
 }
 

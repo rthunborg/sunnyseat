@@ -100,6 +100,11 @@ const feedbackSchema = z.object({
   const expectedVerdict = publicSunVerdictFor({
     sunExposurePercent: value.sunExposurePercent,
     weatherGateState,
+    // The established feedback payload stores the weather decision as the two
+    // compatibility flags. Their three mutually-exclusive combinations are
+    // exactly the public direct-sun states; do not treat omitted direct-sun
+    // evidence as clear at this boundary.
+    directSunState: directSunStateFromFeedbackEvidence(value),
   });
   if (value.publicSunVerdict !== expectedVerdict) {
     ctx.addIssue({
@@ -254,6 +259,14 @@ function weatherGateStateFromFeedbackEvidence(
   if (value.weatherGated) return 'gated';
   if (value.weatherUnknown) return 'unknown';
   return 'not_gated';
+}
+
+function directSunStateFromFeedbackEvidence(
+  value: Pick<SubmitFeedbackRequest, 'weatherGated' | 'weatherUnknown'>,
+) {
+  if (value.weatherGated) return 'blocked' as const;
+  if (value.weatherUnknown) return 'unknown' as const;
+  return 'likely' as const;
 }
 
 type PredictionEvidence = {

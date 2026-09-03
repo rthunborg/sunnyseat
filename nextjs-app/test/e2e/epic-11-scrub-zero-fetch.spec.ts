@@ -96,6 +96,8 @@ function daySeries(): VenueDaySeriesEntry[] {
       sunExposurePercent: sunlit ? 90 : 10,
       currentSunStatus: sunlit ? (m === 13 * 60 ? 'CloudObscured' : 'Sunny') : 'Shaded',
       weatherGateState: sunlit && m === 13 * 60 ? 'gated' : 'not_gated',
+      directSunState: sunlit ? (m === 13 * 60 ? 'blocked' : 'likely') : 'blocked',
+      directSunReasons: sunlit ? (m === 13 * 60 ? ['cloud-obstruction'] : []) : ['geometry'],
     });
   }
   return series;
@@ -112,6 +114,8 @@ function buildVenue(id: string, name: string, lat: number, lng: number): VenueDa
     location: { lat, lng },
     currentSunStatus: 'Sunny',
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
+    directSunReasons: [],
     isPartner: true,
     confidence: 90,
     distanceMeters: 0,

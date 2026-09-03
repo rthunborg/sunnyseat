@@ -263,35 +263,41 @@ The final combined working tree has completed the clean local gate set:
 
 ## Launch blockers and remaining work, in order
 
-1. Authenticate pinned Vercel CLI 59.1.3, import exact provider metrics for
+1. Complete Epic 14 direct-sun correctness and field-validation gates. Fresh
+   complete-overcast input must never produce amber/sunny output; unknown weather
+   must stay neutral and geometric percentages must remain qualified clear-sky
+   potential. The deterministic matrix, both UI breakpoints, accessibility, and
+   an explicit field-evidence false-positive ceiling must pass before release.
+2. Authenticate pinned Vercel CLI 59.1.3, import exact provider metrics for
    window 01, and continue the production measurement lane until there
    are at least 20 **provider-classified** cold starts. Report cold, prewarmed,
    hot-origin, and edge-hit cohorts separately with raw n/p50/p95; enforce HTTP
    200, 42 unique venues, 61 ordered steps per venue, and the approximately
    five-second uncached-route threshold. Claim endpoint paths only from directly
    observed telemetry.
-2. Resolve production weather scheduling reliability. GitHub's requested
+3. Resolve production weather scheduling reliability. GitHub's requested
    five-minute schedule has repeatedly exceeded the two-hour freshness TTL.
    Do not extend the TTL. The reviewed narrow direction is a CRON_SECRET-
    authenticated Vercel Pro cron using the existing refresh logic plus a durable
    cross-scheduler lease; configuration and schema/application changes need a
    dedicated reviewed follow-up before activation. Until then, monitor and use
    the protected weather-only manual dispatch when stale.
-3. Decide whether to move the Supabase organization off `free` and establish a
+4. Decide whether to move the Supabase organization off `free` and establish a
    selectable physical backup. Only then can the runbook reach the provider's
    displayed Restore to New Project cost boundary and request fresh approval.
    After approval, measure recovery, run parity and isolated application smoke,
    roll back, and identity-verify cleanup. Never overwrite or fail over
    production without a separate fresh approval.
-4. Give the user the physical-device
+5. Give the user the physical-device
    checklist with exact production URLs, screenshots/reference images, and
    pass/fail questions. Do not create fake production reviews or feedback.
-5. Publish the durable launch report with changes, commits/PRs, commands and
+6. Publish the durable launch report with changes, commits/PRs, commands and
     results, production evidence, remaining caveats, and an explicit GO / GO
     WITH CAVEATS / NO-GO recommendation.
 
-Until the provider cold-start sample, reliable weather scheduling, isolated
-restore drill, and required human device checks are resolved, the honest
+Until direct-sun correctness/field validation, the provider cold-start sample,
+reliable weather scheduling, isolated restore drill, and required human device
+checks are resolved, the honest
 interim recommendation is **NO-GO**.
 
 ## Acceptance URLs and human-only scope
@@ -330,3 +336,14 @@ use the canonical checked-in design references or recapture on the new machine.
   snapshots after the source verifier proved they had expired.
 - No task-owned server, browser, watcher, container, WSL process, or other
   long-lived runtime remains active at this checkpoint.
+# 2026-09-03 Direct-sun correctness addendum
+
+A fresh-data correctness defect was reproduced: complete medium-layer overcast
+could be publicly sunny because persisted snapshot cloud math diverged from the
+canonical model and the public predicate treated unknown weather as affirmative.
+The remediation introduces a conservative `likely/blocked/unknown` direct-sun
+verdict; overcast is blocked and missing/expired/legacy-incomplete snapshots are
+unknown. This is a separate launch blocker from the documented scheduler gaps.
+The two-hour TTL remains unchanged, and public venue reads remain snapshot-only
+with zero live Met.no calls. See
+[direct-sun truth decision](../../_bmad-output/planning-artifacts/decisions/direct-sun-weather-truth-2026-09-03.md).

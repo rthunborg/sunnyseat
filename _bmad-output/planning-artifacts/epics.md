@@ -4562,3 +4562,72 @@ So that launch decisions rest on provider-classified performance, attributable d
 - Attribution: only directly observed bounded destination paths are claimed.
 - Public path: zero Met.no and zero shadow-caster/hash RPC invocations.
 - Recovery: isolated restore only; production unchanged; measured RTO and stated RPO; cleanup proven.
+## Epic 14 — Direct-Sun Truth and Calibration Readiness (2026-09-03)
+
+This post-Epic-13 correction does not reopen Epic 12 or change Story 13.1.
+
+### Story 14.1 — Conservative direct-sun verdict
+
+Given persisted geometry and fresh Met.no snapshots, the API must keep geometric
+potential distinct from actual direct sunlight, classify complete overcast as
+blocked, and classify missing/stale/incomplete/contradictory conditions as
+unknown. Amber pins, ranking, peaks, windows, cards, detail, and accessibility
+copy require likely direct sun. Verification includes clear, broken cloud,
+overcast, precipitation, fog, stale, missing, contradictory, 90-minute/DST, API
+serialization, no-provider-read, component, and Playwright regression coverage.
+
+### Story 14.2 — Ground-truth observation protocol
+
+Define a reviewed Gothenburg observation protocol that records whether a crisp
+direct beam and cast shadow are physically present at the seating polygon,
+distinct from diffuse brightness. Pair each observation with timestamp, bounded
+location/venue, seating surface, obstruction notes, provider valid time/raw
+weather categories, classifier version, geometry-input version, and rendered
+label. Specify consent, retention, sampling across seasons/horizons/weather, and
+inter-observer checks. Do not add production telemetry or schema until a separate
+design/privacy review approves the collection and operational model.
+
+### Story 14.3 — Seating-polygon and shadow-model field validation
+
+Audit every launch venue's actual seating footprint, surface elevation, polygon
+orientation, active shadow-caster inventory/height/ground elevation, and known
+unmodelled obstructions such as trees, awnings, umbrellas, bridges, seasonal
+furniture, and construction. Compare timestamped predicted shadow boundaries
+against field photographs/measurements at varied solar azimuth/elevation. Version
+all corrected geometry inputs and define eligibility/uncertainty rules for venues
+whose physical scene cannot yet support a trustworthy claim.
+
+### Story 14.4 — Weather/direct-beam model evaluation
+
+Evaluate candidate signals against the labelled set rather than tuning to
+anecdotes. Baseline the conservative Locationforecast classifier, then compare
+calibrated cloud-layer/symbol/precipitation models and, only after approval,
+candidate direct-normal/global irradiance, observation-assimilated, radar, or
+satellite-derived cloud-motion products. Measure false-positive/false-negative
+rates, calibration, latency, spatial/temporal resolution, forecast horizon,
+coverage, licensing, cost, availability, and request-path implications. No
+candidate may introduce a live provider call into the public venue read.
+
+### Story 14.5 — Versioned fusion and observability design
+
+Specify a versioned, replayable model that keeps solar/shadow geometry, weather
+evidence, and final direct-sun state separate. Define safe offline replay,
+champion/challenger comparison, threshold provenance, drift checks, rollback,
+and coarse privacy-safe telemetry. Any provider, scheduled job, schema migration,
+or production telemetry remains a separately reviewed change.
+
+### Story 14.6 — Accuracy and launch evidence gate
+
+Run the deterministic matrix plus representative field validation at both UI
+breakpoints. Publish the three-state confusion matrix segmented by weather class,
+forecast horizon, season, venue, and geometry version; report unknown coverage
+separately. Set and meet an explicit maximum false-positive rate for affirmative
+direct-sun claims, verify snapshot scheduling independently, complete Swedish UX,
+WCAG/reduced-motion/performance checks, and issue a human-reviewed launch decision.
+SunnySeat remains unreleased until this gate and the separate scheduling gate are
+both satisfactory.
+
+This roadmap expresses the goal of approaching physical reality as closely as
+practical using best-available external observations and models; it does not
+claim terrace-scale certainty that the inputs cannot resolve, and it does not
+approve a provider, migration, schedule, or telemetry deployment.

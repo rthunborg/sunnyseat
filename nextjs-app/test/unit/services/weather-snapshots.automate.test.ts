@@ -13,7 +13,18 @@ describe('Story 12.3 automated coverage - weather snapshot read-time gates', () 
         id: 'venue-1',
         location: { lat: 57.705, lng: 11.97 },
       },
-      weatherSlices: [{ minutes: 1260, cloudCover: 100, isRaining: true }],
+      weatherSlices: [{
+        minutes: 1260,
+        validAt: '2026-12-18T20:00:00.000Z',
+        cloudCover: 100,
+        cloudCoverLow: 100,
+        cloudCoverMedium: 100,
+        cloudCoverHigh: 100,
+        fogAreaFraction: 0,
+        precipitationAmount: 1,
+        symbolCode: 'rain',
+        isRaining: true,
+      }],
     });
 
     expect(gated).toEqual([
@@ -37,6 +48,9 @@ describe('Story 12.3 automated coverage - weather snapshot read-time gates', () 
           cloudCoverLow: 95,
           cloudCoverMedium: 0,
           cloudCoverHigh: 0,
+          fogAreaFraction: 0,
+          precipitationAmount: 0,
+          symbolCode: 'cloudy',
           isRaining: false,
         },
       ],
@@ -59,8 +73,28 @@ describe('Story 12.3 automated coverage - weather snapshot read-time gates', () 
         { minutes: 735, sunExposurePercent: 90 },
       ],
       weatherSlices: [
-        { minutes: 720, cloudCover: 5, isRaining: false },
-        { minutes: 735, cloudCover: 5, isRaining: true },
+        {
+          minutes: 720,
+          cloudCover: 5,
+          cloudCoverLow: 5,
+          cloudCoverMedium: 5,
+          cloudCoverHigh: 5,
+          fogAreaFraction: 0,
+          precipitationAmount: 0,
+          symbolCode: 'clearsky_day',
+          isRaining: false,
+        },
+        {
+          minutes: 735,
+          cloudCover: 5,
+          cloudCoverLow: 5,
+          cloudCoverMedium: 5,
+          cloudCoverHigh: 5,
+          fogAreaFraction: 0,
+          precipitationAmount: 1,
+          symbolCode: 'rain',
+          isRaining: true,
+        },
       ],
     });
 

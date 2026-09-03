@@ -63,6 +63,8 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
               location: { lat: 57.705, lng: 11.97 },
               currentSunStatus: 'Sunny',
               weatherGateState: 'not_gated',
+              directSunState: 'likely',
+              directSunReasons: [],
               isPartner: true,
               confidence: 90,
               distanceMeters: 120,

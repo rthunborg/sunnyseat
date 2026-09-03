@@ -50,8 +50,9 @@ updated: '2026-07-13'
 **Date:** 2026-04-08
 **MVP scope correction:** 2026-05-19 — planner, date picker, future sun simulation, and favourites are free MVP functionality. Season Pass, Swish, paywalls, payment states, and premium recovery are preserved as Future Monetization references only.
 **Visual source refresh:** 2026-05-21 — MVP visual validation uses the refreshed Claude Design MVP Unlocked pages only: `SunnySeat MVP Mobile Unlocked.html` and `SunnySeat MVP Desktop Unlocked.html`. Post-MVP Unlocked/Locked pages are future-only.
-**Epic 12 launch-readiness correction:** 2026-07-12 — selected-instant availability plus a two-presentation amber/grey verdict supersedes the prior confidence-first/no-teaching model. Sun percentage means share of seating in direct sun, never probability; internal confidence is not exposed visually or to assistive technology.
+**Epic 12 launch-readiness correction:** 2026-07-12 — selected-instant availability plus a two-presentation amber/grey verdict supersedes the prior confidence-first/no-teaching model. Internal confidence is not exposed visually or to assistive technology.
 **Epic 12 closed-venue policy closure:** 2026-07-13 — map and ranked discovery hide explicitly closed venues, while exact by-name search returns a labelled result and favourites retain saved closed venues as greyed, accessible, inspectable rows.
+**Direct-sun truth correction:** 2026-09-03 — this supersedes all older “weather does not gate” shorthand below. The percentage is clear-sky geometric area without modelled building shade; amber requires `directSunState: likely`. Grey may mean blocked or unknown, and diffuse daylight is never called direct sun.
 
 ---
 
@@ -61,7 +62,7 @@ updated: '2026-07-13'
 
 ### Defining Experience
 
-SunnySeat's core experience is opening a map and instantly seeing which available venue patios are sunny at the selected Stockholm instant: now by default, or the planner's chosen date and time. The map is not a feature of the product — it is the product. Every other interaction (venue details, free planner, favourites, feedback) layers on top of this persistent map canvas. The defining user action is the visual scan: open the app, see amber pins where more than half of the seating is in direct sun and weather does not gate it, pick an available venue, go.
+SunnySeat's core experience is opening a map and instantly seeing where direct sunlight is likely at the selected Stockholm instant: now by default, or the planner's chosen date and time. The map is not a feature of the product — it is the product. Every other interaction (venue details, free planner, favourites, feedback) layers on top of this persistent map canvas. The defining user action is the visual scan: open the app, see amber pins only where more than half of the seating has clear-sky geometric exposure and fresh coherent weather supports direct sun, pick an available venue, go.
 
 ### Platform Strategy
 
@@ -73,7 +74,7 @@ SunnySeat's core experience is opening a map and instantly seeing which availabl
 
 ### Effortless Interactions
 
-- **Visual scan answers the question:** Exactly two pin presentations answer the selected instant: amber sun + seating-share percentage for `>50% sunlit && !weatherGated`; grey cloud with no percentage otherwise. Icon and accessible name carry the distinction without colour alone.
+- **Visual scan answers the question:** Exactly two visual pin presentations answer the selected instant: amber sun + clear-sky seating-share percentage only for `sunExposurePercent > 50 && directSunState === 'likely'`; grey cloud with no percentage for blocked or unknown. State-specific accessible names distinguish blocked from unknown without relying on colour alone.
 - **Distance is immediate:** Users can see how far venues are from their position without tapping. The map's spatial layout is the primary comparison tool.
 - **One-tap depth:** Tapping a pin reveals venue name, selected-instant sun information, distance, and availability in a quick-info card. One more tap opens full detail. Internal confidence is absent from visible and screen-reader content.
 - **No forced engagement on grey days:** When no venues are sunny, the map shows grey pins honestly. No upsell prompts, no "check back later" nudges — a quiet, boring experience is the correct experience when the sun isn't out.
@@ -88,7 +89,7 @@ SunnySeat's core experience is opening a map and instantly seeing which availabl
 
 1. **The Map Is the Product** — The map isn't a feature, it's the entire experience. Everything else layers on top of the persistent map canvas.
 2. **Guided Clarity** — Sun state is visible at a glance through amber-sun vs grey-cloud pins, then reinforced by a short About legend and a skippable first-run coach-mark guide.
-3. **Honest Data** — SunnySeat reflects reality without editorial spin. Grey day means grey pins. The percentage is the share of seating in direct sun, not a probability or a confidence score; weather and uncertainty remain explicit without a confidence number.
+3. **Honest Data** — SunnySeat reflects reality without editorial spin. Grey day means grey pins. The percentage is the clear-sky share of seating without modelled building shade, not a probability or confidence score; direct-sun weather state and uncertainty remain explicit without a confidence number.
 4. **Zero-Tap Discovery** — Which venues are sunny and how far away they are is visible without tapping anything.
 5. **Layered Depth** — Simple at the surface (map + pins), rich underneath (venue detail, sun timeline, weather and uncertainty context). Users who just want a sunny seat never have to go deeper.
 
@@ -139,7 +140,7 @@ SunnySeat's core experience is opening a map and instantly seeing which availabl
 
 **"Open the map, browse sunny venues, pick one."**
 
-SunnySeat's defining experience is a 1–2 minute map browse where users scan amber and grey pins, tap a few to compare, and decide where to go. The interaction mirrors how people already use map apps — pan, zoom, tap pins — with one critical difference: the pins reflect the selected instant. Amber means more than 50% of seating is sunlit and weather does not gate the result. Grey means not sunny at that instant, whether because of shade, low exposure, or weather obstruction. Venues explicitly closed at that instant are absent from the map/ranked browse; venues with unknown hours remain discoverable. Deliberate retrieval is different: exact by-name search and saved favourites retain access to a closed venue with an explicit closed label.
+SunnySeat's defining experience is a 1–2 minute map browse where users scan amber and grey pins, tap a few to compare, and decide where to go. The interaction mirrors how people already use map apps — pan, zoom, tap pins — with one critical difference: the pins reflect the selected instant. Amber means more than 50% of seating has clear-sky geometric exposure and the direct-sun forecast verdict is `likely`. Grey means direct sun is blocked or the verdict is unknown; detail copy distinguishes the cause. Venues explicitly closed at that instant are absent from the map/ranked browse; venues with unknown hours remain discoverable. Deliberate retrieval is different: exact by-name search and saved favourites retain access to a closed venue with an explicit closed label.
 
 This is SunnySeat's Shazam moment: a familiar interaction pattern (map with pins) that delivers an answer no other tool can provide (which patio is in direct sun right now). The innovation is invisible — users don't learn a new interaction, they just get a new kind of answer from a pattern they already trust.
 
@@ -183,12 +184,12 @@ Users approach SunnySeat with a **"where should I go?" map app** mental model, n
 - Time slider for temporal exploration (transit apps, weather radar)
 
 **What's novel (the SunnySeat innovation):**
-- **Selected-instant sun-state pins:** Pin presentation reflects the chosen time (amber sun + seating-share percentage when sunny; grey cloud without a percentage otherwise). This is time-sensitive data visualisation disguised as familiar map UI.
+- **Selected-instant sun-state pins:** Pin presentation reflects the chosen time (amber sun + clear-sky seating-share percentage only when direct sun is likely; grey neutral pin without a percentage for blocked or unknown). This is time-sensitive data visualisation disguised as familiar map UI.
 - **The "recovery redirect" pattern:** Deliberately optimising for the user's *second* choice — the moment their first pick falls through and the map instantly shows nearby sunny alternatives. Most map apps optimise for the first choice; SunnySeat optimises for the pivot.
-- **Exposure share without probability theatre:** The amber percentage says how much of the seating area is in direct sun at the selected instant. Internal model confidence remains diagnostic-only; public weather and uncertainty copy carry honest caveats.
+- **Exposure share without probability theatre:** The percentage says how much of the seating area would avoid modelled building shade under clear sky. Amber additionally says direct sun is likely. Internal model confidence remains diagnostic-only; public weather and uncertainty copy carry honest caveats.
 
 **Teaching the novel patterns:**
-Use light, optional teaching. A first-run, skippable coach-mark guide introduces the two pin meanings and the mounted planner/list controls; Settings can reopen it. The About page repeats the two-pin legend and states that “70%” means roughly 70% of the seating surface is sunny at the selected time, not a 70% chance of sun. The core map remains usable without completing either explanation.
+Use light, optional teaching. A first-run, skippable coach-mark guide introduces the pin meanings and the mounted planner/list controls; Settings can reopen it. The About page repeats the legend and states that “70%” means roughly 70% of the seating surface is free of modelled building shade under clear sky, not a 70% chance of sun. The core map remains usable without completing either explanation.
 
 ### 2.5 Experience Mechanics
 
@@ -352,7 +353,7 @@ Partner venues (B2B) appear within the normal consumer map experience with visua
 | Feature | Consumer-Visible Behaviour |
 |---------|---------------------------|
 | **Golden Pin** | Partner venues display a larger, more prominent amber pin with a warm glow effect. Visually elevated above standard pins without breaking the map's readability. |
-| **SOL NU Badge** | When a partner venue's patio is in direct sun, a "SOL NU" badge appears on their venue card in the list view. Standard venues show sun state but without the badge emphasis. |
+| **SOL NU Badge** | When a partner venue has geometry above 50% and `directSunState: likely`, a "SOL NU" badge appears on its venue card. Standard venues show the same forecast semantics without the badge emphasis. |
 | **Partner Deep-Links** | External links (from partner websites, social media) can deep-link directly to a partner's venue detail page in SunnySeat. URL format: `sunnyseat.se/?venue=[slug]`. |
 | **No consumer-facing distinction label** | Partner status is not explicitly labelled — the visual enhancements (Golden Pin, SOL NU badge) speak for themselves. No "Sponsored" or "Partner" tag. |
 
@@ -494,8 +495,9 @@ components/custom/
 
 | Presentation | Predicate | Tokens | Content | Accessible-name rule |
 |--------------|-----------|--------|---------|----------------------|
-| Sunny | `sunExposurePercent > 50 && !weatherGated` | Existing amber pin, border, and shadow tokens | Sun icon + seating-share percentage | Names venue, “soligt vid vald tid,” and seating-share percentage |
-| Not sunny | All other results, including low-`Partial`, `Shaded`, `NoSun`, and `CloudObscured` | Existing grey pin, border, and shadow tokens | Cloud icon; no number | Names venue and “inte soligt vid vald tid”; never includes a percentage |
+| Direct sun likely | `sunExposurePercent > 50 && directSunState === 'likely'` | Existing amber pin, border, and shadow tokens | Sun icon + clear-sky seating-share percentage | Names venue, “direkt sol sannolik vid vald tid,” and percentage without building shade |
+| Direct sun blocked | `directSunState === 'blocked'` or geometry ≤50% | Existing grey pin, border, and shadow tokens | Cloud icon; no number | Names venue and “ingen direkt sol väntas vid vald tid”; never includes a percentage |
+| Direct sun unknown | Missing/legacy or explicit `directSunState === 'unknown'` | Same grey visual presentation | Cloud icon; no number | Names venue and “oklart om direkt sol vid vald tid”; never includes a percentage |
 
 Selection, hover/focus, clustering, and any partner emphasis may add an interaction ring, focus indicator, or existing partner decoration, but must not create a third sun-state presentation or change the predicate/content. A selected grey pin stays the same grey cloud without a number; a selected amber pin stays the same amber sun with its seating-share percentage. `CloudObscured` remains available to cards/detail for honest weather copy even though its pin shares the grey presentation.
 
@@ -530,7 +532,7 @@ Venue detail remains a full content sheet/desktop panel and uses its existing di
 **Purpose:** Horizontal bar showing when a venue has sun exposure throughout the day.
 **Visual:** Gradient bar (`gradient-timeline-bar`) on a track background. Height: `size-timeline-h` (12px). Time markers at key points (sunrise, current time, sunset).
 **Content:** Solid amber segments for sun windows. Gap/transparent for shaded periods. Current time indicated with `text-time` styling.
-**Verdict alignment:** Unqualified “Sol HH:MM–HH:MM” and peak labels use the same `>50% sunlit && !weatherGated` predicate as pins/cards. Lower exposure may remain visible only as explicitly qualified “viss sol”/potential treatment, and weather-gated clear-sky geometry may remain only as clearly labelled potential; neither may make a grey venue sound unqualifiedly sunny.
+**Verdict alignment:** Unqualified “Sol HH:MM–HH:MM” and peak labels use the same `sunExposurePercent > 50 && directSunState === 'likely'` predicate as pins/cards. Lower exposure and blocked/unknown clear-sky geometry may remain visible only as explicitly qualified potential; none may make a grey venue sound unqualifiedly sunny.
 
 #### CoachMarkGuide
 
@@ -617,7 +619,7 @@ This roadmap follows the user journey priority: the map experience must work bef
 - Internal confidence computation, coverage diagnostics, uncertainty reasons, logs, and maintainer tooling remain intact.
 - Public UI and assistive text never expose a confidence percentage: remove it from list cards, QuickInfo, venue detail, card accessible names, sr-only lines, and the route overlay.
 - The route overlay retains its prediction-uncertainty honesty row when meaningful, renamed and rendered as uncertainty-only; remove empty separators/slots when no uncertainty copy exists.
-- The bold sun-exposure value is separate from confidence. It remains only where the public presentation is amber and always means share of seating in direct sun at the selected instant.
+- The bold exposure value is separate from confidence and always means clear-sky geometric share without modelled building shade. It is unqualified only on the amber `likely` path; unknown views may show it only as explicitly labelled clear-sky potential.
 - Grey pins, grey cards, grey accessible names, and weather-gated presentations remain percentage-free. Weather/uncertainty copy may explain shade, clouds, rain, stale/missing weather, or model limitations without numeric confidence.
 - About may say confidence is tracked internally to prioritize improvements, but it must not teach or display a per-venue “Säkerhet” number.
 
@@ -773,7 +775,7 @@ Sheets are the primary container for all non-map content. Consistent behaviour a
 ### Accessibility Floor
 
 - Pin accessible names use the exact shared amber predicate. Amber names may include seating-share percentage; every grey name is percentage-free, including low-`Partial` and weather-gated venues.
-- Colour is never the sole state signal: amber uses a sun icon and grey uses a cloud icon; text alternatives say “soligt vid vald tid” or “inte soligt vid vald tid.”
+- Colour is never the sole state signal: amber uses a sun icon and grey uses a cloud icon; text alternatives say “direkt sol sannolik,” “ingen direkt sol väntas,” or “oklart om direkt sol” at the selected time.
 - No visible, `aria-label`, sr-only, live-region, routing-overlay, or card-name string may expose model confidence. Prediction uncertainty and weather honesty remain available as non-numeric public copy.
 - The row-count sheet exposes its current `N` and range, supports ArrowUp/ArrowDown one row at a time, keeps a visible focus indicator, and announces changes without moving focus.
 - Coach marks trap focus in the current step, support Escape and skip at every step, verify the target is mounted before describing it, and restore focus on exit.
@@ -849,7 +851,7 @@ This section maps every Figma screen frame to its specific interactions, states,
 **Layout (top to bottom):**
 - Floating glass search bar at top (within safe area): `color-glass-standard`, `blur-standard`, `radius-pill`. Placeholder text: "Sök plats eller område i Göteborg..."
 - Map canvas (MapLibre GL JS): `color-surface-sand` base, decorative road lines, `gradient-map-overlay`. Fills entire viewport behind all other elements.
-- Venue pins: exactly two presentations — amber sun + seating-share percentage for `>50% sunlit && !weatherGated`, grey cloud without percentage otherwise. Explicitly closed venues are filtered out; unknown-hours venues remain. See **VenuePin**.
+- Venue pins: exactly two visual presentations — amber sun + clear-sky seating-share percentage only for `sunExposurePercent > 50 && directSunState === 'likely'`; grey cloud without percentage for blocked or unknown, with state-specific accessible names. Explicitly closed venues are filtered out; unknown-hours venues remain. See **VenuePin**.
 - Map control buttons (right edge): zoom +/− stack + my-location button. GlassButton 48×48px, `shadow-button-float`.
 - Time slider panel (bottom, above nav): `color-glass-slider`, `blur-heavy`, `radius-panel`. The mobile-only vertical padding/min-height uses the slimmer existing token utilities while preserving value-badge clearance and 44x44 touch targets; desktop spacing is unchanged. Contains the time scrubber track, current time indicator, and Calendar + selected-date trigger. See **TimeSliderPanel**.
 - Quick-info card (when pin selected): slides up from bottom above the time slider. See **VenueQuickInfo** component spec.
@@ -946,7 +948,7 @@ The desktop list, pins, QuickInfo, counts, selected-instant availability, photo 
 
 | State | Behaviour |
 |-------|-----------|
-| Default | List of eligible venues sorted with shared `>50% && !weatherGated` sunny-first semantics |
+| Default | List of eligible venues sorted with shared `sunExposurePercent > 50 && directSunState === 'likely'` sunny-first semantics |
 | Loading | Venue cards show shimmer placeholder (thumbnail + text lines) |
 | Empty (no venues in area) | "Inga platser hittades i det här området." message. No illustration. |
 | Scrolled to bottom | Subtle fade-out at bottom edge indicating end of list |
@@ -1408,9 +1410,9 @@ The following premium/paywall/payment screens are preserved as future references
 - "Hur fungerar SunnySeat?" heading.
 - Hero photo (sunset/outdoor scene).
 - "SÅ LÄSER DU KARTAN" section before ALGORITMEN with the real amber-sun and grey-cloud swatches.
-  - Amber: more than half of seating is in direct sun at the selected time and weather does not gate it; the number is seating share.
-  - Grey: not sunny at the selected time because of shade, low exposure, or weather obstruction; no number.
-  - Plain-language example: “70% betyder att ungefär 70% av sittytan är solig vid vald tid — inte att det är 70% chans att det är soligt.”
+  - Amber: more than half of seating has clear-sky geometric exposure and fresh coherent weather makes direct sun likely; the number is geometric seating share.
+  - Grey: direct sun is blocked or uncertain because of geometry, weather obstruction, or unavailable/inconclusive weather; no unqualified number.
+  - Plain-language example: “70% betyder att ungefär 70% av sittytan saknar beräknad byggnadsskugga vid klar himmel — inte att det är 70% chans till sol.”
 - "ALGORITMEN" section: explanation of sun position calculations, shadow modeling, weather integration.
 - "DATAKÄLLOR" section: names the sources actually active for each claim — Lantmäteriet/Göteborg open geodata for shadow inputs, Met.no for weather, and independently sourced canonical venue hours with provenance. OpenStreetMap is described only as a gated supplemental pilot until its licensing/coverage decision is approved; retained Google Place IDs alone do not imply Google supplies or verifies public hours and do not trigger a Google attribution claim.
 - "TRÄFFSÄKERHET" / “Hur säkra är vi?” section: explains that SunnySeat aims to improve the sun figure through “stämmer det?” feedback and may track confidence internally for maintainer prioritization, but never exposes a per-venue confidence number.
@@ -1446,3 +1448,28 @@ The following premium/paywall/payment screens are preserved as future references
 - No "← Tillbaka" link — navigation via navbar.
 
 **Interactions, States, Animations:** Same content contract as mobile, adapted to the two-column desktop layout. The pin legend uses the same two real swatches and accessible names as the map.
+## 2026-09-03 Direct-Sun Truth UX correction
+
+Amber and “soligt” mean `directSunState: likely`, not merely unobstructed
+geometry. `blocked` remains a non-amber cloud/rain/fog treatment. `unknown` uses
+the neutral Swedish-first copy “Oklart om direkt sol vid vald tid”; it must never
+say that direct sun is present. “Väder saknas” is reserved for genuinely
+unavailable weather. Where shown, a percentage is labelled as
+clear-sky potential/solläge, not weather-confirmed sun. Diffuse daylight is never
+called direct sunlight. The established icon distinction, WCAG labels, and
+reduced-motion behaviour remain unchanged.
+
+### Three-outcome matrix
+
+| State | Copy | Presentation |
+| --- | --- | --- |
+| likely | “Direkt sol sannolik” / normal sunny copy | amber only when geometry >50% |
+| blocked by weather | “Sol bakom moln” plus applicable sky context | neutral, non-amber, percentage-free headline |
+| blocked by geometry | “Inte soligt vid vald tid” / shade copy | neutral, non-amber, percentage-free headline |
+| unknown | “Oklart om direkt sol vid vald tid” | neutral plus “Vid klar himmel: {percent}% utan byggnadsskugga” |
+
+Unknown must not use “Väder saknas” unless weather is actually unavailable.
+Individual unknown map pins use an explicit unknown accessible name. Because the
+same neutral pin shape also represents blocked outcomes, the legend explains
+that grey may mean geometry shade, weather obstruction, or uncertain weather;
+opening the venue reveals the precise state. No outcome relies on colour alone.

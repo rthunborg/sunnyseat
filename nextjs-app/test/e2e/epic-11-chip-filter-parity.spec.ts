@@ -79,6 +79,8 @@ function buildVenue(
     location: { lat, lng },
     currentSunStatus: 'Sunny',
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
+    directSunReasons: [],
     isPartner: true,
     confidence: 90,
     distanceMeters: 120,

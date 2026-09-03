@@ -1,5 +1,5 @@
 import { greatCircleMeters } from '@/lib/utils/geo';
-import { publicSunVerdictFor } from '@/lib/utils/public-sun';
+import { normalizeDirectSunState, publicSunVerdictFor } from '@/lib/utils/public-sun';
 import type {
   CoordinatesDto,
   PublicSunVerdict,
@@ -44,6 +44,7 @@ type VenueIdentity = Pick<
   | 'confidence'
   | 'sunExposurePercent'
   | 'weatherGateState'
+  | 'directSunState'
   | 'predictionEvidence'
 >;
 
@@ -52,6 +53,7 @@ export function recordVenueDetailView(
   plannerTimestamp: string,
   now = Date.now(),
 ): FeedbackDetailViewRecord {
+  const directSunState = normalizeDirectSunState(venue.directSunState);
   const record = {
     venueId: venue.id,
     venueSlug: venue.slug || venue.venueSlug,
@@ -60,8 +62,10 @@ export function recordVenueDetailView(
     predictedState: venue.currentSunStatus,
     sunExposurePercent: venue.sunExposurePercent,
     publicSunVerdict: publicSunVerdictFor(venue),
-    weatherGated: venue.weatherGateState === 'gated',
-    weatherUnknown: venue.weatherGateState === 'unknown',
+    // Legacy feedback has only weather flags: retain weather blocking separately
+    // from geometry, but never reconstruct absent direct evidence as likely.
+    weatherGated: directSunState === 'blocked' && venue.weatherGateState === 'gated',
+    weatherUnknown: directSunState === 'unknown',
     ...(venue.predictionEvidence?.geometryInputHash
       ? { geometryInputHash: venue.predictionEvidence.geometryInputHash }
       : {}),
