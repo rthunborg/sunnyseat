@@ -60,8 +60,8 @@ are in this checkpoint.
   - `_bmad-output/implementation-artifacts/sprint-status.yaml`
   - `_bmad-output/implementation-artifacts/13-1-provider-classified-cold-starts-dependency-path-tracing-and-isolated-restore-drill.md`
 - Sprint status currently records Epic 13 and Story 13.1 as `in-progress`.
-  The story document still says `ready-for-dev`; reconcile this only through the
-  sanctioned BMAD workflow/state mechanism. Do not directly force a sprint
+  The story document and Auto-BMAD state now also say `in-progress`, reconciled
+  through the sanctioned workflow convention. Do not directly force a sprint
   status transition and do not move the story to `review` until all evidence and
   gates are complete.
 
@@ -134,6 +134,9 @@ are in this checkpoint.
 
 ### Infrastructure maintenance already implemented
 
+- **Security release applied.** `next`, `eslint-config-next`, and
+  `@next/bundle-analyzer` are pinned to the official patched Next.js 16.3.3
+  release.
 - GitHub workflows use exact Node-24-runtime action pins:
   - `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1`
     (v7.0.1)
