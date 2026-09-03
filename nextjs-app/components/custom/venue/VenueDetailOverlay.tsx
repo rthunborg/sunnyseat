@@ -3,7 +3,8 @@
 import { useCallback, useRef, useState } from 'react';
 import { useDrag } from '@use-gesture/react';
 import { Heart, Share2, X } from 'lucide-react';
-import { motion, useReducedMotion } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { VenueDetailContent, type VenueDetailContentLabels } from '@/components/composed/venue/VenueDetailContent';
 import { ShareModal } from '@/components/custom/venue/ShareModal';
 import {
@@ -77,7 +78,7 @@ export function VenueDetailOverlay({
   feedbackSlot,
   reviewSlot,
 }: VenueDetailOverlayProps) {
-  const prefersReducedMotion = useReducedMotion() ?? false;
+  const prefersReducedMotion = useReducedMotion();
   const shouldReduceMotion = reducedMotion ?? prefersReducedMotion;
   const scrollBodyRef = useRef<HTMLDivElement>(null);
   const [dragY, setDragY] = useState(0);
@@ -144,7 +145,7 @@ export function VenueDetailOverlay({
 
   if (mode === 'desktop') {
     return (
-      <motion.aside
+      <m.aside
         role="dialog"
         aria-modal="false"
         aria-label={fallbackVenue.venueName}
@@ -204,12 +205,12 @@ export function VenueDetailOverlay({
           venueName={shareTitle}
           url={shareUrl}
         />
-      </motion.aside>
+      </m.aside>
     );
   }
 
   return (
-    <motion.aside
+    <m.aside
       role="dialog"
       aria-modal="false"
       aria-label={fallbackVenue.venueName}
@@ -297,7 +298,7 @@ export function VenueDetailOverlay({
         venueName={shareTitle}
         url={shareUrl}
       />
-    </motion.aside>
+    </m.aside>
   );
 }
 

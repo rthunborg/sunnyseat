@@ -31,6 +31,25 @@ vi.mock('motion/react', async () => {
   };
 });
 
+vi.mock('motion/react-m', async () => {
+  const ReactModule = await import('react');
+  type MotionProps = React.HTMLAttributes<HTMLDivElement> & {
+    initial?: unknown;
+    animate?: unknown;
+    exit?: unknown;
+    transition?: unknown;
+  };
+  const MotionDiv = ({ initial, animate: _animate, exit: _exit, transition, ...rest }: MotionProps) => {
+    motionHarness.calls.push({ initial, transition });
+    return ReactModule.createElement('div', rest);
+  };
+  return { div: MotionDiv };
+});
+
+vi.mock('@/hooks/use-reduced-motion', () => ({
+  useReducedMotion: () => motionHarness.reducedMotion,
+}));
+
 function venue(overrides: Partial<StoryVenuePinData> = {}): StoryVenuePinData {
   return {
     id: 'venue',

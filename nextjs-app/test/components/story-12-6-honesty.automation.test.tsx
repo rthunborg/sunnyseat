@@ -27,6 +27,10 @@ vi.mock('motion/react', async () => {
   };
 });
 
+vi.mock('@/hooks/use-reduced-motion', () => ({
+  useReducedMotion: () => false,
+}));
+
 const quickInfoLabels = {
   route: 'Visa Rutt',
   moreInfo: 'Mer Info',

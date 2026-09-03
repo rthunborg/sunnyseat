@@ -1,6 +1,100 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterEach, beforeEach } from 'vitest';
+import React from 'react';
+import { afterEach, beforeEach, vi } from 'vitest';
+
+type MotionElementProps = React.HTMLAttributes<HTMLElement> & {
+  animate?: unknown;
+  exit?: unknown;
+  initial?: unknown;
+  layout?: unknown;
+  transition?: {
+    delay?: unknown;
+    duration?: unknown;
+    type?: unknown;
+  };
+  children?: React.ReactNode;
+};
+
+const MOTION_TEST_TAGS = [
+  'aside',
+  'button',
+  'div',
+  'form',
+  'header',
+  'li',
+  'main',
+  'nav',
+  'p',
+  'section',
+  'span',
+  'ul',
+] as const;
+
+function jsonMotionProp(value: unknown): string | undefined {
+  return value === undefined ? undefined : JSON.stringify(value);
+}
+
+function transitionEndStyle(animate: unknown): React.CSSProperties | undefined {
+  if (!animate || typeof animate !== 'object' || Array.isArray(animate)) {
+    return undefined;
+  }
+  const transitionEnd = (animate as { transitionEnd?: unknown }).transitionEnd;
+  if (
+    !transitionEnd ||
+    typeof transitionEnd !== 'object' ||
+    Array.isArray(transitionEnd)
+  ) {
+    return undefined;
+  }
+  return transitionEnd as React.CSSProperties;
+}
+
+function createMotionTestElement(tagName: string) {
+  return React.forwardRef<HTMLElement, MotionElementProps>(function MotionTestElement(
+    {
+      animate,
+      children,
+      exit,
+      initial,
+      layout: _layout,
+      transition,
+      ...props
+    },
+    ref,
+  ) {
+    const motionEndStyle = transitionEndStyle(animate);
+    const style = motionEndStyle
+      ? { ...props.style, ...motionEndStyle }
+      : props.style;
+
+    return React.createElement(
+      tagName,
+      {
+        ...props,
+        ref,
+        style,
+        'data-has-float': animate ? 'true' : 'false',
+        'data-motion-animate': jsonMotionProp(animate),
+        'data-motion-delay': transition ? String(transition.delay ?? '') : undefined,
+        'data-motion-duration': transition ? String(transition.duration ?? '') : undefined,
+        'data-motion-exit': jsonMotionProp(exit),
+        'data-motion-height': animate
+          ? String((animate as { height?: unknown }).height ?? '')
+          : undefined,
+        'data-motion-initial': jsonMotionProp(initial),
+        'data-motion-type': transition ? String(transition.type ?? '') : undefined,
+      },
+      children,
+    );
+  });
+}
+
+const motionTestElements = Object.fromEntries(
+  MOTION_TEST_TAGS.map((tagName) => [tagName, createMotionTestElement(tagName)]),
+);
+
+vi.mock('motion/react-m', () => motionTestElements);
 
 // Run after every test to tear down rendered trees and avoid cross-test leakage.
 afterEach(() => {
@@ -222,7 +316,31 @@ class MemoryStorage implements Storage {
   setItem(key: string, value: string): void { this.store.set(key, String(value)); }
 }
 
+function createDefaultMatchMedia(): typeof window.matchMedia {
+  return (query: string): MediaQueryList => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  });
+}
+
 beforeEach(() => {
+  const defaultMatchMedia = createDefaultMatchMedia();
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: defaultMatchMedia,
+  });
+  Object.defineProperty(globalThis, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: defaultMatchMedia,
+  });
   Object.defineProperty(window, 'localStorage', {
     configurable: true,
     writable: true,
@@ -233,9 +351,9 @@ beforeEach(() => {
     writable: true,
     value: new MemoryStorage(),
   });
-  // jsdom does not implement `Element.prototype.scrollIntoView`; cmdk
-  // (the venue-search combobox) calls it on keyboard navigation / when a
-  // second option is present. Install a no-op so combobox tests don't throw
+  // jsdom does not implement `Element.prototype.scrollIntoView`; the venue
+  // search combobox calls it during keyboard navigation. Install a no-op so
+  // combobox tests don't throw
   // `scrollIntoView is not a function`.
   if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
     Element.prototype.scrollIntoView = function scrollIntoView(): void {};

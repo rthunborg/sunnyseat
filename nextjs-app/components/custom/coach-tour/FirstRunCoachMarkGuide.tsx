@@ -12,7 +12,9 @@ import {
 } from 'react';
 import { ChevronLeft, ChevronRight, Cloud, Sun, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import {
   COACH_TOUR_ANCHOR_ATTRIBUTE,
   COACH_TOUR_STEP_ANCHORS,
@@ -155,7 +157,7 @@ export function FirstRunCoachMarkGuide({
   autoStartEnabled?: boolean;
 }) {
   const t = useTranslations('map.coachTour');
-  const shouldReduceMotion = useReducedMotion() ?? false;
+  const shouldReduceMotion = useReducedMotion();
   const {
     launch,
     startGuide,
@@ -413,7 +415,7 @@ export function FirstRunCoachMarkGuide({
 
   return (
     <AnimatePresence>
-      <motion.div
+      <m.div
         ref={overlayRef}
         key={`coach-tour-${activeGuide.id}`}
         className="fixed inset-0 z-modal"
@@ -430,7 +432,7 @@ export function FirstRunCoachMarkGuide({
           className="pointer-events-none fixed rounded-panel border-2 border-amber-primary shadow-card"
           style={highlightStyle(targetRect)}
         />
-        <motion.div
+        <m.div
           ref={dialogRef}
           role="dialog"
           aria-modal="true"
@@ -538,8 +540,8 @@ export function FirstRunCoachMarkGuide({
               </div>
             </div>
           </div>
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
     </AnimatePresence>
   );
 }

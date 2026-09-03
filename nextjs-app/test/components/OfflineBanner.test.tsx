@@ -11,6 +11,10 @@ vi.mock('motion/react', async (importOriginal) => {
   return { ...actual, useReducedMotion: () => reducedMotion };
 });
 
+vi.mock('@/hooks/use-reduced-motion', () => ({
+  useReducedMotion: () => reducedMotion,
+}));
+
 import { OfflineBanner } from '@/components/custom/offline/OfflineBanner';
 
 function renderBanner(visible: boolean, locale: 'sv' | 'en' = 'sv') {

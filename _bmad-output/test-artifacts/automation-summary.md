@@ -6,7 +6,7 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-08-07T17:32:19+02:00'
+lastSaved: '2026-08-26T19:11:44+02:00'
 inputDocuments:
   - '_bmad-output/implementation-artifacts/12-1-google-places-opening-hours-sync-weekly-scheduled-replace-hand-maintained-hours.md'
   - '_bmad-output/test-artifacts/test-design/test-design-epic-12.md'
@@ -104,6 +104,77 @@ inputDocuments:
   - 'nextjs-app/test/unit/scripts/feedback-accuracy-report.test.ts'
   - 'nextjs-app/test/unit/api/story-12-2-feedback-accuracy-loop.atdd.test.ts'
   - 'nextjs-app/test/unit/story-12-2-accuracy-ops-and-cap-cleanup.atdd.test.ts'
+---
+
+# Automation Expansion Summary - Story 13.1 (Provider-Classified Cold Starts + Dependency Path Tracing + Isolated Restore Drill)
+
+## Preflight And Context
+
+- **Framework:** Vitest 4.1.9, strict TypeScript, and ESLint are configured under `nextjs-app`; framework readiness passed.
+- **Stack:** Next.js route/middleware observability, Supabase fetch dependency telemetry, launch-resilience probe/report scripts, and source-contract DR/runbook guardrails.
+- **Mode:** BMad-integrated `/bmad-testarch-automate` from `_bmad-output/implementation-artifacts/13-1-provider-classified-cold-starts-dependency-path-tracing-and-isolated-restore-drill.md`.
+- **Execution:** sequential/local. The current runtime forbids proactive subagent delegation unless explicitly requested by higher-priority instructions, so no worker files or child agents were used.
+- **Scope:** automated tests and minimal observability seams only. No deployment, provider restore, DR approval-boundary crossing, sprint status, story status, or git operation was performed.
+
+## Coverage Plan
+
+| Priority | Level | Target | Decision |
+| --- | --- | --- | --- |
+| P0 | Unit | One canonical launch-probe request-id grammar must be shared by request context and request logging. | Tightened the shared parser and added readable/private probe-id rejection coverage. |
+| P0 | Unit | Async request context and Supabase dependency telemetry must stay request-scoped under concurrent/nested work. | Added focused isolation coverage for nested `AsyncLocalStorage` contexts and concurrent observed Supabase fetches. |
+| P0 | Unit | Dependency telemetry failures and out-of-context fetches must not leak query/header/body/error details or create unattributed noise. | Added no-context and rejected-fetch leak-boundary coverage. |
+| P0 | Unit/script | Provider evidence import must ignore non-200 request envelopes and reject official metric documents outside the exact accepted client window. | Added launch-probe hardening tests. |
+| P1 | Source contract | DR restore verifier/runbook must preserve read-only verification, exact 42x61 data gates, security checks, cleanup, and explicit provider-restore approval boundary. | Added source-contract assertions without running provider restore. |
+
+## Generated Coverage
+
+- **UPDATED** `nextjs-app/lib/observability/request-context.ts`
+  - narrowed the preserved launch-probe request-id grammar to the opaque canonical `lr-YYYYMMDDtHHMMSSz-<8hex>-<origin|edge-prime|edge>-NNN` shape.
+- **UPDATED** `nextjs-app/lib/middleware/request-logger.ts`
+  - replaced duplicate request-id validation with the shared `resolveRequestId()` seam so middleware and route dependency telemetry cannot drift.
+- **UPDATED** `nextjs-app/test/unit/observability/request-context.test.ts`
+  - added readable/private launch-id rejection vectors;
+  - added nested/concurrent async context isolation coverage.
+- **UPDATED** `nextjs-app/test/unit/supabase/server-observability.test.ts`
+  - added no-context suppression coverage;
+  - added concurrent request-bound dependency attribution coverage;
+  - added rejected-upstream leak-boundary coverage.
+- **UPDATED** `nextjs-app/test/unit/scripts/venue-launch-probe-review-hardening.test.ts`
+  - added non-200 request-envelope normalization rejection;
+  - added exact-window metric evidence rejection.
+- **UPDATED** `nextjs-app/test/unit/story-13-1-wip-findings-source-contract.test.ts`
+  - added restore verifier read-only/42x61/security summary contract coverage;
+  - added DR runbook approval-boundary and cleanup contract coverage.
+
+## Validation And Gate
+
+- Baseline before edits: `npx tsc --noEmit` -> **passed**.
+- Baseline before edits: `npx eslint . --quiet` -> **passed**.
+- Focused new/changed tests: `npx vitest run test/unit/observability/request-context.test.ts test/unit/supabase/server-observability.test.ts test/unit/middleware/request-logger.test.ts test/unit/scripts/venue-launch-probe-review-hardening.test.ts test/unit/story-13-1-wip-findings-source-contract.test.ts` -> **5 files / 37 tests passed**.
+- Focused Story 13.1 unit regression: `npx vitest run test/unit/observability/request-context.test.ts test/unit/supabase/server-observability.test.ts test/unit/middleware/request-logger.test.ts test/unit/api/venues-route-observability.test.ts test/unit/api/request-identity-routes.test.ts test/unit/scripts/venue-launch-probe.test.ts test/unit/scripts/venue-launch-probe-review-hardening.test.ts test/unit/story-13-1-wip-findings-source-contract.test.ts` -> **8 files / 68 tests passed**.
+- Static checks after edits: `npx tsc --noEmit` -> **passed**; `npx eslint . --quiet` -> **passed**.
+- Full unit/component suite: `npx vitest run` -> **225 files / 2063 tests passed**.
+- Vitest emitted existing non-fatal jsdom navigation and Node `--localstorage-file` warnings; exit code was 0.
+
+## Assumptions, Risks, And Deferred Coverage
+
+- Provider restore, provider-displayed cost approval, production failover, and live provider metric execution remain outside this automation pass by design.
+- No Playwright/E2E coverage was generated because this pass touched server/script/source-contract observability and DR guardrails rather than a browser-visible workflow.
+- No Pact/CDC coverage was generated because the story evidence contracts are internal probe/runbook/database-verifier contracts, not a consumer/provider API schema exchange.
+
+## Definition Of Done
+
+- Existing Story 13.1 coverage was audited and non-duplicative P0/P1 gaps were filled.
+- Request-id validation now has one shared code seam and regression coverage.
+- Dependency path telemetry has concurrent, no-context, and failure leak-boundary coverage.
+- Launch probe provider evidence import has exact-window and non-200 envelope guard coverage.
+- DR restore verifier/runbook safety boundaries are pinned by source-contract tests without crossing the approval boundary.
+- Focused, story-level, static, and full Vitest checks passed.
+
+## Next Recommended Workflow
+
+Continue orchestrator-owned test-review/trace/review flow for Story 13.1. Do not treat this pass as provider restore execution, protected production evidence, or DR approval.
+
 ---
 
 # Automation Expansion Summary - Story 12.2 (Feedback Accuracy Loop)

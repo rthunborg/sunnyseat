@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { persistAppFeedback } from '@/lib/services/app-feedback-persistence';
 import type { AppFeedbackResponse, SubmitAppFeedbackRequest } from '@/lib/types/api';
+import { withRequestLogging } from '@/lib/middleware/request-logger';
 
 const COMMENT_MAX_LENGTH = 500;
 
@@ -38,7 +39,7 @@ const appFeedbackSchema = z
     }
   });
 
-export async function POST(request: NextRequest) {
+async function postFeedbackHandler(request: NextRequest) {
   let rawBody: unknown;
   try {
     rawBody = await request.json();
@@ -75,6 +76,8 @@ export async function POST(request: NextRequest) {
     return jsonError('Feedback persistence unavailable', 503);
   }
 }
+
+export const POST = withRequestLogging(postFeedbackHandler);
 
 function jsonError(detail: string, status: number) {
   return NextResponse.json({ detail, status }, { status });

@@ -46,6 +46,10 @@ vi.mock('motion/react', async () => {
   };
 });
 
+vi.mock('@/hooks/use-reduced-motion', () => ({
+  useReducedMotion: () => motionState.shouldReduceMotion,
+}));
+
 const labels = {
   route: 'Visa Rutt',
   moreInfo: 'Mer Info',

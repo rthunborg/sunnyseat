@@ -1,6 +1,8 @@
 'use client';
 
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { Cloud, Heart, Sun, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { RouteButton } from '@/components/composed/routing/RouteButton';
@@ -116,7 +118,7 @@ export function VenueQuickInfo({
   isFavourite = false,
   labels,
 }: VenueQuickInfoProps) {
-  const shouldReduceMotion = useReducedMotion() ?? false;
+  const shouldReduceMotion = useReducedMotion();
   const isDesktop = mode === 'desktop';
   const isAnchoredMobile = !isDesktop && Boolean(position);
   // Story 9.5 AC3 (folded into 9.9): the honest centrum-relative annotation.
@@ -150,7 +152,7 @@ export function VenueQuickInfo({
     : undefined;
 
   return (
-      <motion.aside
+      <m.aside
         role="dialog"
         aria-label={name}
         data-testid="venue-quick-info"
@@ -205,7 +207,7 @@ export function VenueQuickInfo({
         />
         <div className={cn(isAnchoredMobile ? 'px-3 pt-2 pb-2.5' : 'p-4')}>
           <AnimatePresence>
-            <motion.div
+            <m.div
               key={name}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -332,7 +334,7 @@ export function VenueQuickInfo({
                   </div>
                 )}
               </div>
-            </motion.div>
+            </m.div>
           </AnimatePresence>
           <div className={cn('flex gap-2', isAnchoredMobile ? 'mt-2' : 'mt-3')}>
             {/* Story 11.4 (AC2): the quick-info route CTA reads only "VISA RUTT"
@@ -374,7 +376,7 @@ export function VenueQuickInfo({
             className="absolute left-1/2 -bottom-2 size-4 -translate-x-1/2 rotate-45 bg-surface-cream shadow-card"
           />
         )}
-      </motion.aside>
+      </m.aside>
   );
 }
 

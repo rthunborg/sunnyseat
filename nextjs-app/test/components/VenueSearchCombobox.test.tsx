@@ -1,18 +1,35 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ComponentPropsWithoutRef } from 'react';
 import { useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { VenueSearchCombobox } from '@/components/composed/search/VenueSearchCombobox';
 import type { VenueDataDto } from '@/lib/types/api';
 
 const motionState = vi.hoisted(() => ({ reducedMotion: false }));
 
-vi.mock('motion/react', async () => {
-  const actual = await vi.importActual<typeof import('motion/react')>('motion/react');
+vi.mock('motion/react-m', () => {
+  type MotionDivProps = ComponentPropsWithoutRef<'div'> & {
+    animate?: unknown;
+    initial?: unknown;
+    transition?: unknown;
+  };
+
   return {
-    ...actual,
-    useReducedMotion: () => motionState.reducedMotion,
+    div: ({ animate: _animate, initial: _initial, transition: _transition, ...props }: MotionDivProps) => {
+      const isHidden = props['aria-hidden'] === true || props['aria-hidden'] === 'true';
+      return (
+        <div
+          {...props}
+          style={{ ...(props.style ?? {}), display: isHidden ? 'none' : props.style?.display }}
+        />
+      );
+    },
   };
 });
+
+vi.mock('@/hooks/use-reduced-motion', () => ({
+  useReducedMotion: () => motionState.reducedMotion,
+}));
 
 const LABELS = {
   label: 'Sök plats',
@@ -25,6 +42,10 @@ const LABELS = {
 };
 
 describe('<VenueSearchCombobox />', () => {
+  afterEach(() => {
+    motionState.reducedMotion = false;
+  });
+
   it('filters by venue name and neighborhood and selects a clicked result', async () => {
     const onSelectVenue = vi.fn();
     render(
@@ -73,10 +94,8 @@ describe('<VenueSearchCombobox />', () => {
   });
 
   // Story 9.6 AC4 (low-priority polish): pressing Enter with NO prior ArrowDown
-  // selects the first visible result. Verified empirically: cmdk 1.1.1 (with
-  // `shouldFilter={false}`) auto-highlights the first item when the list opens,
-  // so a bare Enter already fires that item's `onSelect` — no explicit keydown
-  // handler was needed. This test documents + guards that default behaviour.
+  // selects the first visible result. This guards the combobox contract directly
+  // now that the launch bundle no longer ships a separate command-menu package.
   it('selects the first visible result on a bare Enter with no prior ArrowDown', () => {
     const onSelectVenue = vi.fn();
     render(
@@ -96,6 +115,42 @@ describe('<VenueSearchCombobox />', () => {
 
     expect(onSelectVenue).toHaveBeenCalledTimes(1);
     expect(onSelectVenue).toHaveBeenCalledWith(expect.objectContaining({ id: '1' }));
+  });
+
+  it('tracks ARIA expansion, active option, and Home/End keyboard movement', () => {
+    const onSelectVenue = vi.fn();
+    render(
+      <Harness
+        venues={[
+          makeVenue({ id: '1', name: 'Kafé Magasinet', neighborhood: 'Inom Vallgraven' }),
+          makeVenue({ id: '2', name: 'Café Halvvägs', neighborhood: 'Vasastaden' }),
+          makeVenue({ id: '3', name: 'Cafe Zenith', neighborhood: 'Haga' }),
+        ]}
+        onSelectVenue={onSelectVenue}
+      />,
+    );
+
+    const input = screen.getByRole('combobox', { name: 'Sök plats' });
+    expect(input).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'a' } });
+
+    const options = screen.getAllByRole('option');
+    expect(input).toHaveAttribute('aria-expanded', 'true');
+    expect(input).toHaveAttribute('aria-controls', screen.getByRole('listbox').id);
+    expect(options[0]).toHaveAttribute('aria-selected', 'true');
+    expect(input.getAttribute('aria-activedescendant')).toBe(options[0]!.id);
+
+    fireEvent.keyDown(input, { key: 'End' });
+    expect(options[2]).toHaveAttribute('aria-selected', 'true');
+    fireEvent.keyDown(input, { key: 'Home' });
+    expect(options[0]).toHaveAttribute('aria-selected', 'true');
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    expect(options[1]).toHaveAttribute('aria-selected', 'true');
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onSelectVenue).toHaveBeenCalledWith(expect.objectContaining({ id: '2' }));
   });
 
   it('dismisses on Escape, clears query from the clear button, and renders no-results copy', async () => {

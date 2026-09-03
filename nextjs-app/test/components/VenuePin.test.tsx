@@ -26,6 +26,10 @@ vi.mock('motion/react', async () => {
   };
 });
 
+vi.mock('@/hooks/use-reduced-motion', () => ({
+  useReducedMotion: () => reducedMotionMock(),
+}));
+
 const sunnyVenue: VenuePinData = {
   id: '1',
   slug: 'test-venue-sunny',

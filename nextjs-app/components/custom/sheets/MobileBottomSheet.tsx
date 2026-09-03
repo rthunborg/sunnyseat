@@ -11,7 +11,8 @@ import {
   type ReactNode,
 } from 'react';
 import { useDrag } from '@use-gesture/react';
-import { motion, useReducedMotion } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { cn } from '@/lib/utils';
 
 export type MobileBottomSheetMetrics = {
@@ -159,7 +160,7 @@ export function MobileBottomSheet({
   onMetricsChange,
   className,
 }: MobileBottomSheetProps) {
-  const shouldReduceMotion = useReducedMotion() ?? false;
+  const shouldReduceMotion = useReducedMotion();
   const sheetRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLButtonElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -388,7 +389,7 @@ export function MobileBottomSheet({
   };
 
   return (
-    <motion.div
+    <m.div
       ref={sheetRef}
       data-testid="mobile-bottom-sheet"
       data-tour-anchor={bodyIsHidden ? undefined : 'venue-list'}
@@ -485,7 +486,7 @@ export function MobileBottomSheet({
       <p id="mobile-bottom-sheet-row-status" className="sr-only" aria-live="polite">
         {statusLabel}
       </p>
-    </motion.div>
+    </m.div>
   );
 }
 

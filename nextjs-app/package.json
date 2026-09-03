@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "lighthouse": "lhci autorun",
+    "bundle:verify": "node scripts/verify-js-budgets.mjs",
     "bundle:analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
@@ -22,12 +23,11 @@
     "@use-gesture/react": "^10.3.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "cmdk": "^1.1.1",
     "date-fns-tz": "^3.2.0",
     "lucide-react": "^1.8.0",
     "maplibre-gl": "^5.23.0",
     "motion": "^12.38.0",
-    "next": "^16.2.2",
+    "next": "16.3.3",
     "next-intl": "^4.9.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
@@ -38,7 +38,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
     "@lhci/cli": "^0.15.1",
-    "@next/bundle-analyzer": "^16.2.4",
+    "@next/bundle-analyzer": "16.3.3",
     "@playwright/test": "^1.59.1",
     "@serwist/turbopack": "^9.5.7",
     "@tailwindcss/postcss": "^4.2.2",
@@ -48,11 +48,10 @@
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "babel-plugin-react-compiler": "^1.0.0",
     "cross-env": "^10.1.0",
     "esbuild": "^0.28.1",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^16.2.4",
+    "eslint-config-next": "16.3.3",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "jsdom": "^29.0.2",
     "shadcn": "^4.2.0",
@@ -62,6 +61,7 @@
     "vitest": "^4.1.4"
   },
   "overrides": {
-    "@swc/helpers": "0.5.15"
+    "@swc/helpers": "0.5.15",
+    "browserslist": "4.28.8"
   }
 }

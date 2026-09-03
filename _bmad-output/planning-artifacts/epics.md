@@ -4503,3 +4503,62 @@ future multi-city scale would revisit it, e.g. viewport-bounded candidate sets)
 > favourite** that's closed be hidden like the rest, or always shown with a "stängt" marker
 > (a user deliberately saved it)? Default here is hide everywhere for map/list; both search
 > and the favourites-when-closed treatment are maintainer calls at story creation.
+## Epic 13: Launch Resilience Evidence
+
+Close the three non-blocking evidence gaps carried from the completed Epic 12 NFR assessment without reopening or changing Epic 12.
+
+### Story 13.1: Provider-Classified Cold Starts, Dependency-Path Tracing, and Isolated Restore Drill
+
+As the SunnySeat maintainer,
+I want directly measured production resilience and recovery evidence,
+So that launch decisions rest on provider-classified performance, attributable dependencies, and a rehearsed recovery path.
+
+**Acceptance Criteria:**
+
+**Given** /api/venues can be served by an edge cache or a Vercel Function
+**When** the production measurement lane runs
+**Then** every sample has a unique sanitized request tag, exact UTC window, deployment ID, client timing, Vercel request correlation, function start classification when invoked, execution region, HTTP status, cache cohort, and directly observed external dependency records
+**And** application telemetry never guesses a function start class and never relabels cache MISS as cold
+
+**Given** cold starts are provider-defined
+**When** evidence is accepted
+**Then** it contains at least 20 Vercel-provider-classified true cold starts
+**And** cold, prewarmed, hot-origin, and edge-hit cohorts are reported separately with raw sample counts, p50, and p95
+**And** sampling continues across as many controlled windows as necessary to reach cold n >= 20
+
+**Given** every timing sample must remain a correctness proof
+**When** a response is recorded
+**Then** it is HTTP 200, contains exactly 42 unique venue identifiers, and every venue contains exactly 61 ordered day-series steps
+**And** any failed correctness assertion excludes the sample from latency statistics and fails the lane
+**And** the existing approximately five-second uncached-route threshold remains the performance gate
+
+**Given** the public persisted-read contract is three Supabase calls
+**When** the route performs an origin invocation
+**Then** bounded structured telemetry directly observes only /rest/v1/venues, /rest/v1/rpc/read_current_venue_sun_geometry_batch, and /rest/v1/weather_bucket_snapshots
+**And** it records request tag, bounded operation/path, method, status, duration, and region without query strings, payloads, headers, secrets, venue IDs, coordinates, or arbitrary high-cardinality labels
+**And** evidence proves no Met.no request and no shadow-caster/hash RPC runs on the public read path
+**And** endpoint-level attribution is claimed only for paths directly observed
+
+**Given** correlation must remain safe under concurrent requests
+**When** telemetry is implemented
+**Then** request context is isolated per invocation, generated or tightly validated request tags are echoed only on origin responses, and edge hits remain correlated through Vercel request logs
+**And** unit and route tests cover context isolation, path allowlisting, sanitization, 200/503 completion, and secret/query omission
+
+**Given** recovery evidence must not risk production
+**When** the disaster-recovery rehearsal begins
+**Then** a written runbook first identifies the backup/source snapshot, isolated target, prerequisites, restore commands, validation queries, rollback, and cleanup
+**And** the restore runs only into an isolated disposable or staging database/project
+**And** production overwrite or failover is prohibited without fresh explicit maintainer approval
+
+**Given** the isolated restore completes
+**When** parity is assessed
+**Then** evidence covers schema and migration-history parity, representative ordered row counts and checksums, RLS, grants, service-role-only RPCs, Storage bucket/policy and object-byte limitations, venue visibility, geometry, weather, and application contracts
+**And** application smoke tests run against the restored environment where credentials and provider capabilities permit
+**And** recovery time is measured, RPO and RTO are stated, rollback is documented, temporary resources are cleaned up, and anything unsafe or unavailable is explicitly recorded without overstating the drill
+
+**Operational Gate Criteria:**
+- Direct provider evidence: cold n >= 20; all cohorts have raw rows, n, p50, and p95.
+- Correctness: every included sample is 200 / 42 unique venues / 61 ordered steps per venue.
+- Attribution: only directly observed bounded destination paths are claimed.
+- Public path: zero Met.no and zero shadow-caster/hash RPC invocations.
+- Recovery: isolated restore only; production unchanged; measured RTO and stated RPO; cleanup proven.

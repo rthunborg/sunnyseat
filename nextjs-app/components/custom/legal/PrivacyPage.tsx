@@ -1,6 +1,4 @@
-'use client';
-
-import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 
 const FOCUS_LINK_CLASSNAME =
@@ -11,9 +9,28 @@ const FOCUS_LINK_CLASSNAME =
  * NFR16 privacy link. Plain scrolling content; copy lives in the `privacy`
  * i18n scope.
  */
-export function PrivacyPage() {
-  const t = useTranslations('privacy');
+export type PrivacyPageCopy = {
+  title: string;
+  backLink: string;
+  intro: string;
+  body1: string;
+  body2: string;
+  lastUpdated: string;
+};
 
+export async function PrivacyPage() {
+  const t = await getTranslations('privacy');
+  return <PrivacyPageView copy={{
+    title: t('title'),
+    backLink: t('backLink'),
+    intro: t('intro'),
+    body1: t('body1'),
+    body2: t('body2'),
+    lastUpdated: t('lastUpdated'),
+  }} />;
+}
+
+export function PrivacyPageView({ copy }: { copy: PrivacyPageCopy }) {
   return (
     <article
       data-testid="privacy-page"
@@ -25,17 +42,17 @@ export function PrivacyPage() {
           data-testid="privacy-back-link"
           className={`inline-flex min-h-11 items-center text-label-lg text-amber-dark ${FOCUS_LINK_CLASSNAME}`}
         >
-          {t('backLink')}
+          {copy.backLink}
         </Link>
       </div>
 
-      <h1 className="text-display-xl text-text-primary lg:text-center">{t('title')}</h1>
+      <h1 className="text-display-xl text-text-primary lg:text-center">{copy.title}</h1>
 
       <div className="mt-6 flex flex-col gap-4 text-body-lg text-text-body">
-        <p>{t('intro')}</p>
-        <p>{t('body1')}</p>
-        <p>{t('body2')}</p>
-        <p className="text-body-sm text-text-muted">{t('lastUpdated')}</p>
+        <p>{copy.intro}</p>
+        <p>{copy.body1}</p>
+        <p>{copy.body2}</p>
+        <p className="text-body-sm text-text-body">{copy.lastUpdated}</p>
       </div>
     </article>
   );

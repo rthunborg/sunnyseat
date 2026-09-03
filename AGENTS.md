@@ -8,7 +8,7 @@ This file is the canonical repo-level rulebook for Codex and other AI coding age
 
 > **Working directory:** The repository root (`C:\Users\Rasmus\sunnyseat\`) is **not** the Next.js app root. The application lives in `nextjs-app/`. Git operations and planning-doc reads happen from the root. All `npm`/`npx` app commands must run from `nextjs-app/`.
 
-- Frontend: Next.js 16.2.2 App Router, TypeScript strict, Tailwind CSS v4 CSS-first `@theme`, shadcn/ui v4, MapLibre GL JS 5.x, TanStack Query 5.x, Motion 12.x (`motion/react`), `@use-gesture/react`, `cmdk`, `next-intl`, Serwist, `date-fns-tz`
+- Frontend: Next.js 16.3.3 App Router, TypeScript strict, Tailwind CSS v4 CSS-first `@theme`, shadcn/ui v4, MapLibre GL JS 5.x, TanStack Query 5.x, Motion 12.x (`motion/react`), `@use-gesture/react`, `next-intl`, Serwist, `date-fns-tz`
 - Backend: Supabase PostgreSQL 15 + PostGIS, Next.js API routes, Zod v4, server-only Supabase service-role infrastructure, dormant Future Monetization Swish Merchant API, Met.no Locationforecast 2.0
 - Deployment: Vercel
 

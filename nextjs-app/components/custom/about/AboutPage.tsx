@@ -1,13 +1,11 @@
-'use client';
-
 import { Cloud, Shield, Sun } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import {
   ABOUT_HERO_SRC_DESKTOP,
   ABOUT_HERO_SRC_MOBILE,
 } from '@/lib/constants/about';
-import { DataSourceList } from './DataSourceList';
+import { DataSourceList, type DataSourceListCopy } from './DataSourceList';
 
 // Primary in-app "back to map" CTA — a locale-aware <Link> styled with the
 // `gradient-route-button` recipe (Story 7.1 Task 6.1). NOT the routing
@@ -21,10 +19,90 @@ const FOCUS_LINK_CLASSNAME =
 // Uppercase amber section labels (DESIGN.md text-heading-sm = uppercase + tracking).
 const SECTION_LABEL_CLASSNAME = 'text-heading-sm text-amber-dark';
 
-export function AboutPage() {
-  const t = useTranslations('about');
-  const tCommon = useTranslations('common');
+export type AboutPageCopy = {
+  title: string;
+  logoAria: string;
+  backLink: string;
+  heroAlt: string;
+  sectionMapLegend: string;
+  mapLegendIntro: string;
+  mapLegendSunnyTitle: string;
+  mapLegendSunnyBody: string;
+  mapLegendShadedTitle: string;
+  mapLegendShadedBody: string;
+  mapLegendExample: string;
+  sectionAlgorithm: string;
+  model: string;
+  algorithmBody: string;
+  uncertainty: string;
+  sectionDataSources: string;
+  dataSources: DataSourceListCopy;
+  sectionAccuracy: string;
+  accuracyHeading: string;
+  accuracyBody: string;
+  sectionContact: string;
+  contactBody: string;
+  privacyLink: string;
+  ctaToMap: string;
+  ctaToMapDesktop: string;
+  footerContact: string;
+};
 
+export async function AboutPage() {
+  const t = await getTranslations('about');
+  const tCommon = await getTranslations('common');
+  return <AboutPageView copy={{
+    title: t('title'),
+    logoAria: tCommon('nav.logoAria'),
+    backLink: t('backLink'),
+    heroAlt: t('heroAlt'),
+    sectionMapLegend: t('sectionMapLegend'),
+    mapLegendIntro: t('mapLegendIntro'),
+    mapLegendSunnyTitle: t('mapLegendSunnyTitle'),
+    mapLegendSunnyBody: t('mapLegendSunnyBody'),
+    mapLegendShadedTitle: t('mapLegendShadedTitle'),
+    mapLegendShadedBody: t('mapLegendShadedBody'),
+    mapLegendExample: t('mapLegendExample'),
+    sectionAlgorithm: t('sectionAlgorithm'),
+    model: t('model'),
+    algorithmBody: t('algorithmBody'),
+    uncertainty: t('uncertainty'),
+    sectionDataSources: t('sectionDataSources'),
+    dataSources: {
+      lantmateriet: {
+        name: t('sourceLantmaterietName'),
+        desc: t('sourceLantmaterietDesc'),
+      },
+      goteborg: {
+        name: t('sourceGoteborgName'),
+        desc: t('sourceGoteborgDesc'),
+      },
+      metno: {
+        name: t('sourceMetnoName'),
+        desc: t('sourceMetnoDesc'),
+      },
+      venueFacts: {
+        name: t('sourceVenueFactsName'),
+        desc: t('sourceVenueFactsDesc'),
+      },
+      osm: {
+        name: t('sourceOsmName'),
+        desc: t('sourceOsmDesc'),
+      },
+    },
+    sectionAccuracy: t('sectionAccuracy'),
+    accuracyHeading: t('accuracyHeading'),
+    accuracyBody: t('accuracyBody'),
+    sectionContact: t('sectionContact'),
+    contactBody: t('contactBody'),
+    privacyLink: t('privacyLink'),
+    ctaToMap: t('ctaToMap'),
+    ctaToMapDesktop: t('ctaToMapDesktop'),
+    footerContact: t('footerContact'),
+  }} />;
+}
+
+export function AboutPageView({ copy }: { copy: AboutPageCopy }) {
   return (
     <article
       data-testid="about-page"
@@ -36,7 +114,7 @@ export function AboutPage() {
       <div className="mb-6 flex items-center justify-between lg:hidden">
         <Link
           href="/"
-          aria-label={tCommon('nav.logoAria')}
+          aria-label={copy.logoAria}
           className={`flex min-h-11 items-center text-display-sm text-text-logo ${FOCUS_LINK_CLASSNAME}`}
         >
           Sunny<span className="text-amber-dark">Seat</span>
@@ -46,11 +124,11 @@ export function AboutPage() {
           data-testid="about-back-link"
           className={`inline-flex min-h-11 items-center text-label-lg text-amber-dark ${FOCUS_LINK_CLASSNAME}`}
         >
-          {t('backLink')}
+          {copy.backLink}
         </Link>
       </div>
 
-      <h1 className="text-display-xl text-text-primary lg:text-center">{t('title')}</h1>
+      <h1 className="text-display-xl text-text-primary lg:text-center">{copy.title}</h1>
 
       {/* Hero photo (sunset/outdoor scene) — maintainer-provided, art-directed
           per viewport: portrait (4:5) on mobile, landscape (16:9) on desktop.
@@ -62,7 +140,7 @@ export function AboutPage() {
           {/* eslint-disable-next-line @next/next/no-img-element -- art-directed responsive hero requires <picture>; sources are pre-optimized */}
           <img
             src={ABOUT_HERO_SRC_MOBILE}
-            alt={t('heroAlt')}
+            alt={copy.heroAlt}
             className="absolute inset-0 size-full object-cover"
           />
         </picture>
@@ -71,10 +149,10 @@ export function AboutPage() {
       {/* SÅ LÄSER DU KARTAN */}
       <section className="mt-10" aria-labelledby="about-map-legend-heading">
         <h2 id="about-map-legend-heading" className={SECTION_LABEL_CLASSNAME}>
-          {t('sectionMapLegend')}
+          {copy.sectionMapLegend}
         </h2>
         <div className="mt-4 flex flex-col gap-4 text-body-lg text-text-body">
-          <p>{t('mapLegendIntro')}</p>
+          <p>{copy.mapLegendIntro}</p>
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <li className="flex gap-3 rounded-card bg-surface-muted p-4">
               <span
@@ -97,8 +175,8 @@ export function AboutPage() {
                 </span>
               </span>
               <span className="flex flex-col gap-1">
-                <span className="text-label-lg text-text-primary">{t('mapLegendSunnyTitle')}</span>
-                <span className="text-body-sm text-text-body">{t('mapLegendSunnyBody')}</span>
+                <span className="text-label-lg text-text-primary">{copy.mapLegendSunnyTitle}</span>
+                <span className="text-body-sm text-text-body">{copy.mapLegendSunnyBody}</span>
               </span>
             </li>
             <li className="flex gap-3 rounded-card bg-surface-muted p-4">
@@ -121,13 +199,13 @@ export function AboutPage() {
                 </span>
               </span>
               <span className="flex flex-col gap-1">
-                <span className="text-label-lg text-text-primary">{t('mapLegendShadedTitle')}</span>
-                <span className="text-body-sm text-text-body">{t('mapLegendShadedBody')}</span>
+                <span className="text-label-lg text-text-primary">{copy.mapLegendShadedTitle}</span>
+                <span className="text-body-sm text-text-body">{copy.mapLegendShadedBody}</span>
               </span>
             </li>
           </ul>
           <p className="rounded-card bg-surface-muted p-4 text-body-md text-text-body">
-            {t('mapLegendExample')}
+            {copy.mapLegendExample}
           </p>
         </div>
       </section>
@@ -135,22 +213,22 @@ export function AboutPage() {
       {/* ALGORITMEN */}
       <section className="mt-10" aria-labelledby="about-algorithm-heading">
         <h2 id="about-algorithm-heading" className={SECTION_LABEL_CLASSNAME}>
-          {t('sectionAlgorithm')}
+          {copy.sectionAlgorithm}
         </h2>
         <div className="mt-4 flex flex-col gap-4 text-body-lg text-text-body">
-          <p>{t('model')}</p>
-          <p>{t('algorithmBody')}</p>
-          <p>{t('uncertainty')}</p>
+          <p>{copy.model}</p>
+          <p>{copy.algorithmBody}</p>
+          <p>{copy.uncertainty}</p>
         </div>
       </section>
 
       {/* DATAKÄLLOR */}
       <section className="mt-10" aria-labelledby="about-data-sources-heading">
         <h2 id="about-data-sources-heading" className={SECTION_LABEL_CLASSNAME}>
-          {t('sectionDataSources')}
+          {copy.sectionDataSources}
         </h2>
         <div className="mt-4">
-          <DataSourceList />
+          <DataSourceList copy={copy.dataSources} />
         </div>
       </section>
 
@@ -167,10 +245,10 @@ export function AboutPage() {
           />
           <div className="relative">
             <h2 id="about-accuracy-heading" className={SECTION_LABEL_CLASSNAME}>
-              {t('sectionAccuracy')}
+              {copy.sectionAccuracy}
             </h2>
-            <h3 className="mt-3 text-heading-md text-text-primary">{t('accuracyHeading')}</h3>
-            <p className="mt-3 text-body-md text-text-body">{t('accuracyBody')}</p>
+            <h3 className="mt-3 text-heading-md text-text-primary">{copy.accuracyHeading}</h3>
+            <p className="mt-3 text-body-md text-text-body">{copy.accuracyBody}</p>
           </div>
         </div>
       </section>
@@ -178,9 +256,9 @@ export function AboutPage() {
       {/* Kontakt & feedback (anchor target for the desktop footer KONTAKT link). */}
       <section id="kontakt" className="mt-10 scroll-mt-24" aria-labelledby="about-contact-heading">
         <h2 id="about-contact-heading" className="text-heading-md text-text-primary">
-          {t('sectionContact')}
+          {copy.sectionContact}
         </h2>
-        <p className="mt-4 text-body-lg text-text-body">{t('contactBody')}</p>
+        <p className="mt-4 text-body-lg text-text-body">{copy.contactBody}</p>
         <p className="mt-4">
           <Link
             href="/sekretess"
@@ -188,7 +266,7 @@ export function AboutPage() {
             className={`inline-flex min-h-11 items-center gap-1.5 text-label-lg text-amber-dark underline underline-offset-4 ${FOCUS_LINK_CLASSNAME}`}
           >
             <Shield aria-hidden="true" className="size-4" />
-            {t('privacyLink')}
+            {copy.privacyLink}
           </Link>
         </p>
       </section>
@@ -196,7 +274,7 @@ export function AboutPage() {
       {/* Mobile CTA — full-width "Tillbaka till kartan". */}
       <div className="mt-10 lg:hidden">
         <Link href="/" data-testid="about-cta-map-mobile" className={`${CTA_LINK_CLASSNAME} w-full`}>
-          {t('ctaToMap')}
+          {copy.ctaToMap}
         </Link>
       </div>
 
@@ -209,10 +287,10 @@ export function AboutPage() {
             href="#kontakt"
             className={`inline-flex min-h-11 items-center text-label-md text-text-body ${FOCUS_LINK_CLASSNAME}`}
           >
-            {t('footerContact')}
+            {copy.footerContact}
           </a>
           <Link href="/" data-testid="about-cta-map-desktop" className={CTA_LINK_CLASSNAME}>
-            {t('ctaToMapDesktop')}
+            {copy.ctaToMapDesktop}
           </Link>
         </div>
       </footer>

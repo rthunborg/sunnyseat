@@ -39,6 +39,10 @@ vi.mock('motion/react', async () => {
   };
 });
 
+vi.mock('@/hooks/use-reduced-motion', () => ({
+  useReducedMotion: () => mockState.reducedMotion,
+}));
+
 vi.mock('@/lib/contexts/SettingsContext', () => ({
   useSettings: () => ({
     activeView: null,
@@ -140,6 +144,7 @@ const NAV_MESSAGES = {
       error: 'Sökningen kunde inte genomföras',
       noResults: 'Inga resultat för "{query}"',
       resultCount: '{count, plural, one {# resultat} other {# resultat}}',
+      closedAtSelectedTime: 'Stängt vid vald tid',
       settings: 'Inställningar',
     },
   },

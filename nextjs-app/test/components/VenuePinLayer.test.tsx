@@ -35,6 +35,10 @@ vi.mock('motion/react', async () => {
   };
 });
 
+vi.mock('@/hooks/use-reduced-motion', () => ({
+  useReducedMotion: () => reducedMotion(),
+}));
+
 const createdRoots: Array<{ render: Mock; unmount: Mock; container: HTMLElement }> = [];
 
 vi.mock('react-dom/client', async () => {

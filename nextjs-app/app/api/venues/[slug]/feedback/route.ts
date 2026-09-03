@@ -17,6 +17,7 @@ import type {
   VenueSunStatus,
   WeatherGateState,
 } from '@/lib/types/api';
+import { withRequestLogging } from '@/lib/middleware/request-logger';
 
 type RouteContext = {
   params: Promise<{ slug: string }>;
@@ -120,7 +121,7 @@ const feedbackSchema = z.object({
   }
 });
 
-export async function POST(request: NextRequest, context: RouteContext) {
+async function postVenueFeedbackHandler(request: NextRequest, context: RouteContext) {
   let identifier: string;
   try {
     identifier = decodeURIComponent((await context.params).slug);
@@ -244,6 +245,8 @@ function wasSunnyFromSunAccuracy(
   if (sunAccuracy === 'not_sunny') return false;
   return undefined;
 }
+
+export const POST = withRequestLogging(postVenueFeedbackHandler);
 
 function weatherGateStateFromFeedbackEvidence(
   value: Pick<SubmitFeedbackRequest, 'weatherGated' | 'weatherUnknown'>,

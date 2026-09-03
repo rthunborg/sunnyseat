@@ -10,11 +10,13 @@ This document is the local equivalent of `.github/workflows/build-and-test-nextj
 
 ```bash
 cd nextjs-app
-npm ci
+npm ci --no-audit
+npm audit --omit=dev --audit-level=high
 npm run typecheck
 npm run lint
 npm run build
 npm test
+npm run bundle:verify
 node scripts/verify-maplibre-async.mjs
 npx playwright install --with-deps chromium  # one-time, per machine
 npx playwright test
@@ -27,6 +29,18 @@ If every command exits 0, your branch is in the same shape CI will report.
 
 ## Local recipe — one section per gate
 
+### Dependency install and production audit
+
+```bash
+npm ci --no-audit
+npm audit --omit=dev --audit-level=high
+```
+
+- `npm ci --no-audit` keeps install output deterministic; the explicit audit immediately after it is the gate.
+- The audit omits development dependencies and fails on exploitable high/critical production findings.
+- Verified 2026-08-18: the production audit reports 0 vulnerabilities.
+- The full audit is not green: 10 findings remain solely in the development-only `@lhci/cli@0.15.1` tree. npm's suggested force path downgrades to unsafe `0.1.0`, so do not use `npm audit fix --force` or add an override for that noise.
+
 ### 1. Type check (`npm run typecheck`)
 
 ```bash
@@ -36,7 +50,7 @@ npm run typecheck
 - Runs `tsc --noEmit`.
 - Expected: 0 errors.
 - Maps to CI step: `Type check`.
-- Common cause of failure: stale `node_modules`. Run `npm ci` first.
+- Common cause of failure: stale `node_modules`. Run `npm ci --no-audit` first.
 
 ### 2. Lint (`npm run lint`)
 
@@ -69,33 +83,25 @@ npm test
 - Maps to CI step: `Unit + component tests`.
 - Skipped at this layer: e2e (`test/e2e/**`) — those run via Playwright in step 7.
 
-### 5. Bundle size cap
+### 5. JavaScript budgets and MapLibre async boundary
 
 ```bash
-js_files=$(find .next/static -name '*.js' -print)
-[ -z "$js_files" ] && { echo "::error::No JS files — build broken"; exit 1; }
-total_size=$(find .next/static -name '*.js' -print0 | xargs -0 cat | gzip -c | wc -c)
-total_kb=$((total_size / 1024))
-echo "Total gzipped JS: ${total_kb} KB"
-[ "$total_kb" -le 600 ] && echo "OK" || echo "OVER BUDGET"
-```
-
-- Cap: 600 KB total gzipped JS (re-baselined in Story 1.6 Task 4 from the original 400 KB; see PRD NFR8).
-- MapLibre dynamic chunk is included in the total; it is NOT counted in route-initial bundle thanks to `next/dynamic({ ssr: false })` on `MapView`.
-- Maps to CI step: `Bundle size check`.
-- Story 1.6 review (P5): aggregate via single `gzip -c | wc -c` rather than per-file `gzip -c {} \;` to remove ~10 bytes-per-file gzip-header inflation.
-
-### 6. MapLibre async-load verification
-
-```bash
+npm run bundle:verify
 node scripts/verify-maplibre-async.mjs
 ```
 
-- Confirms the maplibre-gl chunk is NOT referenced from any route's `rootMainFiles` build manifest.
-- Expected: `PASS: maplibre-gl is async-loaded …`.
-- Maps to CI step: `Verify maplibre is async-loaded`.
+- `npm run bundle:verify` reads `.next/diagnostics/route-bundle-stats.json` and the exact `/[locale]` initial chunk graph.
+- Gzips each unique JavaScript chunk independently with Node zlib level 9 and compares exact bytes:
+  - route initial: at most 280 KiB;
+  - all MapLibre-bearing chunks: at most 320 KiB;
+  - all emitted files under `.next/static/**/*.js`: at most 600 KiB.
+- Requires MapLibre detection and rejects overlap with the initial graph.
+- Fails closed on missing/stale diagnostics, missing chunks, or a Next framework-version mismatch.
+- Reports the unique initial-plus-MapLibre union as a diagnostic only; every emitted static JavaScript chunk remains part of the binding total budget.
+- `node scripts/verify-maplibre-async.mjs` is the separate all-routes MapLibre async verifier. It cross-checks every route manifest's `rootMainFiles` and must stay wired even though the budget verifier also checks the `/[locale]` initial route overlap.
+- Maps to CI steps: `Verify JS bundle budgets` and `Verify MapLibre async boundary across all routes`.
 
-### 7. Playwright e2e tests
+### 6. Playwright e2e tests
 
 One-time per machine:
 
@@ -112,7 +118,7 @@ npx playwright test
 - Runs every spec under `test/e2e/**` against the dev server (started automatically via `playwright.config.ts` `webServer`).
 - Maps to CI step: `E2E tests`.
 
-### 8. Accessibility tests (axe-core)
+### 7. Accessibility tests (axe-core)
 
 ```bash
 npx playwright test test/e2e/axe.spec.ts
@@ -122,7 +128,7 @@ npx playwright test test/e2e/axe.spec.ts
 - The gate fails on `serious` or `critical` impact only — `moderate` and `minor` violations are logged but do not fail the build (see `test/e2e/helpers/axe.ts`).
 - Maps to CI step: `A11y tests (axe-core)`.
 
-### 9. Lighthouse (`npm run lighthouse`)
+### 8. Lighthouse (`npm run lighthouse`)
 
 ```bash
 npm run lighthouse
@@ -133,10 +139,10 @@ npm run lighthouse
   - `categories:performance` ≥ 0.55 (re-baselined; see PRD NFR2 / architecture line 339)
   - `categories:accessibility` ≥ 0.95
 - Local-vs-CI variance: expect ±0.05 between Linux runners and local Windows.
-- Maps to CI job: `lighthouse` (separate job, runs after `build-and-test`).
-- Reports written to `.lighthouseci/`.
+- Maps to the `Lighthouse CI` step in `build-and-test`, after Playwright and both axe projects, using the same `.next` tree produced earlier in that job.
+- Reports are always uploaded from `.lighthouseci/`; there is no `.next` artifact handoff.
 
-### 10. Bundle analysis (developer-only)
+### 9. Bundle analysis (developer-only)
 
 ```bash
 npm run bundle:analyze
@@ -148,6 +154,13 @@ npm run bundle:analyze
 - Story 1.6 history: Round 1 P42 documented the PowerShell workaround `$env:ANALYZE = 'true'; npm run build`, but the npm script itself remained bash-only; Round 2 R2-P7 (2026-05-08) fixed the script via `cross-env` so the workaround is no longer needed.
 
 ---
+
+## CI runtime and cache maintenance
+
+- Node-24-compatible action pins are exact: `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1` (v7.0.1), `actions/setup-node@820762786026740c76f36085b0efc47a31fe5020` (v7.0.0), and `actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` (v7.0.1).
+- Those actions execute on GitHub's Node 24 action runtime; `node-version: '22'` remains SunnySeat's tested application runtime.
+- A setup-node npm-cache exact hit followed by “not saving cache” is normal informational behavior: the immutable key already exists.
+- The intermittent 429/502 was GitHub codeload fetching the former download-artifact action, not a Lighthouse page download. Running Lighthouse in the build job removes that action, its redundant checkout/setup/install, and the large `.next` handoff.
 
 ## Adding a new route to the Lighthouse config
 
@@ -199,9 +212,9 @@ If you need to assert English copy, the default Playwright locale (`en-US`) alre
 
 You probably have a stale `tsconfig.tsbuildinfo`. Run `rm tsconfig.tsbuildinfo && npm run typecheck`.
 
-### `Bundle size check` reports a different number than CI
+### `bundle:verify` reports missing or stale diagnostics
 
-CI runs Linux; local runs Windows. `find` with embedded sub-shells differs between bash and PowerShell. Make sure you ran the command in a real bash (Git Bash, WSL, or the Bash tool from Claude Code) — not PowerShell. The number should match within 1 KB.
+Run a complete `npm run build` first, then rerun `npm run bundle:verify`. The Node gate uses deterministic level-9 gzip and exact byte comparisons, so Windows and Linux should agree. Do not use an interrupted or compile-only build as release evidence.
 
 ### `Lighthouse` fails with "Screen emulation mobile setting (true) does not match formFactor setting (desktop)"
 
@@ -209,7 +222,7 @@ Stop using the `desktop` preset. The current config sets `formFactor: "mobile"` 
 
 ### Playwright complains about "two different versions of @playwright/test"
 
-You ran `npm install` outside `nextjs-app/` and it created a competing `package.json` at the project root. Delete the root-level `package.json`, `node_modules/`, and `package-lock.json` (project root only — DO NOT touch `nextjs-app/package.json`), then re-run `cd nextjs-app && npm ci`.
+You ran `npm install` outside `nextjs-app/` and it created a competing `package.json` at the project root. Delete the root-level `package.json`, `node_modules/`, and `package-lock.json` (project root only — DO NOT touch `nextjs-app/package.json`), then re-run `cd nextjs-app && npm ci --no-audit`.
 
 ### `npx playwright test` returns "No tests found"
 

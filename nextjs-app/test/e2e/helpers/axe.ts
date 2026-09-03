@@ -23,6 +23,18 @@ export async function runAxe(
   options: { tags?: string[] } = {},
 ): Promise<AxeViolation[]> {
   const tags = options.tags ?? ['wcag2a', 'wcag2aa'];
+  // Axe samples rendered colours at the instant it runs. Wait for visible
+  // Motion surfaces to finish their entrance opacity so the gate measures the
+  // stable UI state instead of an arbitrary fade frame (which blends both text
+  // and background with the page and produces nondeterministic ratios).
+  await page.waitForFunction(() => {
+    const visibleMotionSurfaces = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-reduced-motion]'),
+    ).filter((element) => element.getClientRects().length > 0);
+    return visibleMotionSurfaces.every(
+      (element) => Number.parseFloat(window.getComputedStyle(element).opacity) >= 0.999,
+    );
+  });
   const result = await new AxeBuilder({ page }).withTags(tags).analyze();
 
   return (result.violations as unknown as AxeViolation[]).filter(

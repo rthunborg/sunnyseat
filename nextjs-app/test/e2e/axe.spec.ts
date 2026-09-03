@@ -297,9 +297,8 @@ test.describe('axe-core a11y gate', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
-  // Story 12.8 resolves the About footer contrast debt and makes the
-  // standalone route executable in the a11y gate. Privacy still carries the
-  // same pre-existing footer debt and remains explicitly tracked as fixme.
+  // Story 12.8 resolves the About footer contrast debt and makes both static
+  // information routes executable in the a11y gate.
   test('a11y: about page (/about)', async ({ page }) => {
     await page.goto('/about');
     await page.getByTestId('about-page').waitFor({ state: 'visible' });
@@ -307,10 +306,7 @@ test.describe('axe-core a11y gate', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
-  // FAST-FOLLOW (maintainer decision, 2026-06-29 — Epic 7 close-out): privacy
-  // currently fails color contrast on its footer wordmark (`text-text-muted`).
-  // Leave this unrelated debt alone for Story 12.8.
-  test.fixme('a11y: privacy page (/sekretess)', async ({ page }) => {
+  test('a11y: privacy page (/sekretess)', async ({ page }) => {
     await page.goto('/sekretess');
     await page.getByTestId('privacy-page').waitFor({ state: 'visible' });
     const violations = await runAxe(page);

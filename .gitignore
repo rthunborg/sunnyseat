@@ -41,6 +41,8 @@ scripts/*
 !scripts/run-sh.ps1
 !scripts/geodata/
 !scripts/geodata/**
+!scripts/dr/
+!scripts/dr/**
 scripts/geodata/**/__pycache__/
 scripts/geodata/**/*.py[cod]
 

@@ -20,15 +20,18 @@ jobs:
         working-directory: nextjs-app
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: nextjs-app/package-lock.json
 
-      - run: npm ci
+      - run: npm ci --no-audit
+
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Type check
         run: npm run typecheck
@@ -42,55 +45,13 @@ jobs:
       - name: Unit + component tests
         run: npm test
 
-      - name: Bundle size check
-        # NFR8 JS budget. History: 650 → 600 KB (Story 1.6, Task 7); 541 KB
-        # measured at 1.6 close-out. Story 1.6 review P6 explicitly flagged a
-        # per-route/per-chunk refinement of this aggregate as future scope (W11).
-        #
-        # 2026-06-29 (Epic 7 close-out): refined to measure INITIAL-LOAD JS.
-        # The aggregate of ALL static chunks (~668 KB at MVP-complete) is
-        # dominated by the ~327 KB MapLibre GL vendor chunk, which is
-        # deliberately lazy-loaded — it loads only when the map mounts, and that
-        # async boundary is independently enforced by the `verify-maplibre-async`
-        # step below. NFR8 targets initial-load performance, so the MapLibre
-        # vendor chunk is excluded here and the budget guards the rest of the
-        # app/framework JS (340 KB measured at MVP-complete; 420 KB budget =
-        # ~80 KB headroom, matching the original ~60 KB spirit).
-        #
-        # Retained safety checks (Story 1.6 review P4/P5):
-        #   P4: explicit FAIL when no .js files are found (broken/empty build);
-        #   P5: single `gzip -c | wc -c` pipe (no per-file header inflation).
-        # Fail-safe: MapLibre is detected by content, which survives Turbopack's
-        # hashed chunk names; if detection ever misses, those bytes fall back
-        # INTO the measured total — erring toward a FAIL, never a false pass.
-        run: |
-          js_files=$(find .next/static -name '*.js' -print)
-          if [ -z "$js_files" ]; then
-            echo "::error::No JS files found under .next/static — build appears broken or incomplete."
-            exit 1
-          fi
-          ml_files=$(grep -rlE 'maplibregl|maplibre-gl|MaplibreGL' .next/static --include='*.js' || true)
-          echo "MapLibre vendor chunk(s) excluded (lazy/async — see verify-maplibre-async):"
-          echo "${ml_files:-  (none detected)}" | sed 's/^/  /'
-          prune=()
-          for f in $ml_files; do prune+=( ! -path "$f" ); done
-          total_size=$(find .next/static -name '*.js' "${prune[@]}" -print0 | xargs -0 cat | gzip -c | wc -c)
-          total_kb=$((total_size / 1024))
-          full_size=$(find .next/static -name '*.js' -print0 | xargs -0 cat | gzip -c | wc -c)
-          echo "Full aggregate gzipped JS (incl. lazy MapLibre): $((full_size / 1024)) KB"
-          echo "Initial-load JS (excl. lazy MapLibre — NFR8 budget metric): ${total_kb} KB"
-          if [ "$total_kb" -le 0 ]; then
-            echo "::error::Bundle size measurement returned 0 KB — gzip pipeline failed."
-            exit 1
-          fi
-          BUDGET_KB=420
-          if [ "$total_kb" -gt "$BUDGET_KB" ]; then
-            echo "::error::Initial-load JS (${total_kb} KB, excl. lazy MapLibre) exceeds ${BUDGET_KB} KB budget (NFR8)"
-            exit 1
-          fi
-          echo "Initial-load JS within ${BUDGET_KB} KB budget (lazy MapLibre vendor chunk excluded)"
+      - name: Verify JS bundle budgets
+        # Deterministic level-9 gzip accounting from Next's route diagnostics.
+        # Enforces 280 KiB initial, 320 KiB MapLibre-loaded, and 600 KiB
+        # all-emitted static JS caps.
+        run: npm run bundle:verify
 
-      - name: Verify maplibre is async-loaded
+      - name: Verify MapLibre async boundary across all routes
         run: node scripts/verify-maplibre-async.mjs
 
       - name: Install Playwright browsers
@@ -125,48 +86,17 @@ jobs:
       - name: A11y mobile tests (axe-core)
         run: npx playwright test --project=a11y-mobile
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with:
           name: playwright-report
           path: nextjs-app/test-results/
 
-      # Story 1.6 P8: share .next/ with the lighthouse job rather than
-      # rebuilding. Avoids env drift between jobs and saves ~2 min per push.
-      - name: Upload build artifact for Lighthouse
-        uses: actions/upload-artifact@v4
-        with:
-          name: nextjs-build
-          path: nextjs-app/.next/
-          include-hidden-files: true
-          retention-days: 1
-
-  lighthouse:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    defaults:
-      run:
-        working-directory: nextjs-app
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: nextjs-app/package-lock.json
-      - run: npm ci
-      # Story 1.6 P8: download the build from build-and-test instead of
-      # rebuilding. The build manifest, chunks, and route data are all
-      # required by `npm start` which lighthouse drives.
-      - uses: actions/download-artifact@v4
-        with:
-          name: nextjs-build
-          path: nextjs-app/.next/
       - name: Lighthouse CI
         run: npm run lighthouse
-      # Story 1.6 P9: always upload .lighthouseci/ so passing runs leave
-      # a baseline for trend comparison; not just failures.
-      - uses: actions/upload-artifact@v4
+
+      # Preserve a report for both passing and failing Lighthouse runs.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: lhci-report

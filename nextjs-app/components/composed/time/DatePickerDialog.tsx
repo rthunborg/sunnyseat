@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
 import {
   isDateInCurrentSunSeason,
   isPlannerDateSelectable,
@@ -74,7 +75,7 @@ export function DatePickerDialog({
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
+        <m.div
           className="fixed inset-0 z-modal flex items-end justify-center bg-text-primary/30 backdrop-blur-standard lg:items-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -82,7 +83,7 @@ export function DatePickerDialog({
           transition={{ duration: reducedMotion ? 0 : DURATION_FAST_S, ease: EASE_ENTER }}
           onPointerDown={close}
         >
-          <motion.div
+          <m.div
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
@@ -184,8 +185,8 @@ export function DatePickerDialog({
             <p className="mt-4 text-body-sm text-text-muted">
               {labels.selectedDate}: {formatDate(parseDateKey(selectedDate), localeTag)}
             </p>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

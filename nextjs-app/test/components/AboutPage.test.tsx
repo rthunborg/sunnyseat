@@ -1,7 +1,7 @@
 import type { AnchorHTMLAttributes } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { renderWithProviders, screen, within } from '@/test/setup/test-utils';
-import { AboutPage } from '@/components/custom/about/AboutPage';
+import { AboutPageView, type AboutPageCopy } from '@/components/custom/about/AboutPage';
 import aboutSv from '@/messages/sv/about.json';
 import aboutEn from '@/messages/en/about.json';
 import commonSv from '@/messages/sv/common.json';
@@ -22,10 +22,12 @@ vi.mock('next-intl/navigation', () => ({
 
 const svMessages = { about: aboutSv, common: commonSv };
 const enMessages = { about: aboutEn, common: commonEn };
+const svCopy = makeAboutCopy(aboutSv, commonSv);
+const enCopy = makeAboutCopy(aboutEn, commonEn);
 
 describe('<AboutPage />', () => {
   it('renders the sections in order with the map-reading legend before ALGORITMEN', () => {
-    renderWithProviders(<AboutPage />, { messages: svMessages });
+    renderWithProviders(<AboutPageView copy={svCopy} />, { messages: svMessages });
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Hur fungerar SunnySeat?');
 
@@ -42,14 +44,14 @@ describe('<AboutPage />', () => {
   });
 
   it('renders the hero image with localized alt text (AC1)', () => {
-    renderWithProviders(<AboutPage />, { messages: svMessages });
+    renderWithProviders(<AboutPageView copy={svCopy} />, { messages: svMessages });
     expect(
       screen.getByRole('img', { name: 'Solnedgång över en uteservering i Göteborg' }),
     ).toBeInTheDocument();
   });
 
   it('renders the Swedish pin legend copy and seating-share example', () => {
-    renderWithProviders(<AboutPage />, { messages: svMessages });
+    renderWithProviders(<AboutPageView copy={svCopy} />, { messages: svMessages });
 
     expect(
       screen.getByText(/Pinnarna följer vald tid: just nu som standard/i),
@@ -70,7 +72,7 @@ describe('<AboutPage />', () => {
   });
 
   it('renders static token-backed swatches that mirror the public pin semantics', () => {
-    renderWithProviders(<AboutPage />, { messages: svMessages });
+    renderWithProviders(<AboutPageView copy={svCopy} />, { messages: svMessages });
 
     const sunnySwatch = screen.getByTestId('about-pin-swatch-sunny');
     expect(sunnySwatch).toHaveClass('bg-amber-pin');
@@ -86,7 +88,7 @@ describe('<AboutPage />', () => {
   });
 
   it('lists user-safe data sources without leaking geodata internals or active Google/OSM hour claims', () => {
-    const { container } = renderWithProviders(<AboutPage />, { messages: svMessages });
+    const { container } = renderWithProviders(<AboutPageView copy={svCopy} />, { messages: svMessages });
 
     const items = within(screen.getByTestId('about-data-sources')).getAllByRole('listitem');
     expect(items).toHaveLength(5);
@@ -103,7 +105,7 @@ describe('<AboutPage />', () => {
   });
 
   it('reframes accuracy as feedback-driven prose without fake public rates or confidence percentages', () => {
-    const { container } = renderWithProviders(<AboutPage />, { messages: svMessages });
+    const { container } = renderWithProviders(<AboutPageView copy={svCopy} />, { messages: svMessages });
 
     expect(screen.getByRole('heading', { level: 3, name: 'Hur säkra är vi?' })).toBeInTheDocument();
     expect(screen.getByText(/målet är att solfiguren ska stämma/i)).toBeInTheDocument();
@@ -118,28 +120,28 @@ describe('<AboutPage />', () => {
   });
 
   it('navigates back to the map from the back link and both CTAs (AC4)', () => {
-    renderWithProviders(<AboutPage />, { messages: svMessages });
+    renderWithProviders(<AboutPageView copy={svCopy} />, { messages: svMessages });
     expect(screen.getByTestId('about-back-link')).toHaveAttribute('href', '/');
     expect(screen.getByTestId('about-cta-map-mobile')).toHaveAttribute('href', '/');
     expect(screen.getByTestId('about-cta-map-desktop')).toHaveAttribute('href', '/');
   });
 
   it('includes a privacy-policy link in the contact section (AC6 / NFR16)', () => {
-    renderWithProviders(<AboutPage />, { messages: svMessages });
+    renderWithProviders(<AboutPageView copy={svCopy} />, { messages: svMessages });
     const privacyLink = screen.getByTestId('about-privacy-link');
     expect(privacyLink).toHaveTextContent('Integritetspolicy');
     expect(privacyLink).toHaveAttribute('href', '/sekretess');
   });
 
   it('shows the desktop footer chrome (wordmark + KONTAKT + map CTA)', () => {
-    renderWithProviders(<AboutPage />, { messages: svMessages });
+    renderWithProviders(<AboutPageView copy={svCopy} />, { messages: svMessages });
     expect(screen.getByText('sunnyseat')).toBeInTheDocument();
     expect(screen.getByText('KONTAKT')).toBeInTheDocument();
     expect(screen.getByTestId('about-cta-map-desktop')).toHaveTextContent('Tillbaka till kartan');
   });
 
   it('renders English copy when the locale is en (AC7)', () => {
-    renderWithProviders(<AboutPage />, { messages: enMessages, locale: 'en' });
+    renderWithProviders(<AboutPageView copy={enCopy} />, { messages: enMessages, locale: 'en' });
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('How does SunnySeat work?');
     expect(
       screen.getAllByRole('heading', { level: 2 }).map((node) => node.textContent),
@@ -150,3 +152,58 @@ describe('<AboutPage />', () => {
     expect(screen.getByText(/internal confidence/i)).toBeInTheDocument();
   });
 });
+
+function makeAboutCopy(
+  about: typeof aboutSv,
+  common: typeof commonSv,
+): AboutPageCopy {
+  return {
+    title: about.title,
+    logoAria: common.nav.logoAria,
+    backLink: about.backLink,
+    heroAlt: about.heroAlt,
+    sectionMapLegend: about.sectionMapLegend,
+    mapLegendIntro: about.mapLegendIntro,
+    mapLegendSunnyTitle: about.mapLegendSunnyTitle,
+    mapLegendSunnyBody: about.mapLegendSunnyBody,
+    mapLegendShadedTitle: about.mapLegendShadedTitle,
+    mapLegendShadedBody: about.mapLegendShadedBody,
+    mapLegendExample: about.mapLegendExample,
+    sectionAlgorithm: about.sectionAlgorithm,
+    model: about.model,
+    algorithmBody: about.algorithmBody,
+    uncertainty: about.uncertainty,
+    sectionDataSources: about.sectionDataSources,
+    dataSources: {
+      lantmateriet: {
+        name: about.sourceLantmaterietName,
+        desc: about.sourceLantmaterietDesc,
+      },
+      goteborg: {
+        name: about.sourceGoteborgName,
+        desc: about.sourceGoteborgDesc,
+      },
+      metno: {
+        name: about.sourceMetnoName,
+        desc: about.sourceMetnoDesc,
+      },
+      venueFacts: {
+        name: about.sourceVenueFactsName,
+        desc: about.sourceVenueFactsDesc,
+      },
+      osm: {
+        name: about.sourceOsmName,
+        desc: about.sourceOsmDesc,
+      },
+    },
+    sectionAccuracy: about.sectionAccuracy,
+    accuracyHeading: about.accuracyHeading,
+    accuracyBody: about.accuracyBody,
+    sectionContact: about.sectionContact,
+    contactBody: about.contactBody,
+    privacyLink: about.privacyLink,
+    ctaToMap: about.ctaToMap,
+    ctaToMapDesktop: about.ctaToMapDesktop,
+    footerContact: about.footerContact,
+  };
+}

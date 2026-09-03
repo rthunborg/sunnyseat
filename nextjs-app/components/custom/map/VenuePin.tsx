@@ -1,6 +1,8 @@
 'use client';
 
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { Cloud, Sun } from 'lucide-react';
 import type { VenuePinData, VenuePinSelection } from '@/lib/types/map';
 import { isVenuePubliclySunny } from '@/lib/utils/public-sun';
@@ -27,18 +29,12 @@ type VenuePinProps = {
  * alone is not relied on (NFR27).
  */
 export function VenuePin({ venue, isSelected, onClick, ariaLabel }: VenuePinProps) {
-  // Treat null (initial render before matchMedia resolves) as true so
-  // reduced-motion users never see a one-frame entrance flicker. The
-  // pin baseline opacity is `1`; without this fallback, the entrance
-  // motion could flash for a frame before the hook resolves.
+  // The shared hook fails closed while matchMedia is unavailable, so
+  // reduced-motion users never see a one-frame entrance flicker.
   //
-  // Story 1.6 review (P36): the project intentionally diverges from
-  // OnboardingScreen's `?? false` default. Components whose baseline
-  // CSS is "fully visible" (VenuePin, VenuePinLayer) default to `true`
-  // — accessibility-defensive. Components whose CSS baseline is
-  // "invisible until motion runs" (OnboardingScreen) default to `false`
-  // so non-reduced-motion users don't miss the entrance entirely.
-  const shouldReduceMotion = useReducedMotion() ?? true;
+  // Motion components use explicit visible reduced-motion variants so the
+  // static baseline stays intact when animation is disabled at hydration.
+  const shouldReduceMotion = useReducedMotion() !== false;
 
   const state: VenuePinSelection = isVenuePubliclySunny(venue) ? 'sunny' : 'shaded';
 
@@ -72,9 +68,9 @@ export function VenuePin({ venue, isSelected, onClick, ariaLabel }: VenuePinProp
         subtree
       ) : (
         <AnimatePresence initial={false}>
-          <motion.div key={`${state}-pin`} initial={false} transition={{ duration: 0 }}>
+          <m.div key={`${state}-pin`} initial={false} transition={{ duration: 0 }}>
             {subtree}
-          </motion.div>
+          </m.div>
         </AnimatePresence>
       )}
     </button>

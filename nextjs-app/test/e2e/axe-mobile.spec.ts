@@ -37,20 +37,15 @@ async function mockEmptyVenues(page: import('@playwright/test').Page) {
 }
 
 test.describe('axe-core a11y gate (mobile viewport)', () => {
-  // Story 7.3 Task 8.5 surfaced PRE-EXISTING color-contrast debt on every
-  // venue-card-bearing surface at the mobile viewport (the desktop `a11y`
-  // project never reached them): the decorative `aria-hidden` sun-percentage
-  // label `text-amber-text` (#fbbc00) on cream is ~1.63:1 (SERIOUS, WCAG
-  // 1.4.3). That debt lives in the venue-card component and is already targeted
-  // at Story 5.1 (Golden Pin / venue-card rework) in deferred-work.md — it is
-  // NOT Story 7.3 code, and fixing it requires a design-token contrast change
-  // plus a visual-reference rebaseline cascade. Every scan that renders a venue
-  // card (map-primary, the venue-detail sheet, and the feedback/review states,
-  // which open inside the detail sheet) is therefore scaffolded as `test.fixme`
-  // — the coverage intent is recorded without gating Story 7.3 on pre-existing
-  // debt. Flip them back to `test` once the venue-card contrast meets 4.5:1.
-  // The offline shell (Story 7.3's own surface — no venue cards) is the one
-  // mobile surface asserted clean here, and it passes.
+  test.beforeEach(async ({ page }) => {
+    // Axe samples composited colours. Reduced motion keeps each scan on the
+    // settled UI instead of catching sheet/page opacity during entrance.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+  });
+
+  // Mobile-specific surfaces are active CI gates. The historical venue-card
+  // amber-label contrast debt was resolved by the readable `text-amber-dark`
+  // treatment, so these scans must not remain deferred.
   test('a11y: mobile row-count sheet handle-only state (/?_state=map-primary)', async ({ page }) => {
     await bypassOnboarding(page);
     await page.route('**://api.met.no/**', (route) => route.abort());
@@ -129,7 +124,7 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
-  test.fixme('a11y: map-primary mobile (/)', async ({ page }) => {
+  test('a11y: map-primary mobile (/)', async ({ page }) => {
     await bypassOnboarding(page);
     await page.goto('/');
     await page.waitForLoadState('networkidle');
@@ -138,7 +133,7 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
-  test.fixme('a11y: mobile venue-detail sheet (/?venue=test-venue-sunny&_state=venue-detail)', async ({ page }) => {
+  test('a11y: mobile venue-detail sheet (/?venue=test-venue-sunny&_state=venue-detail)', async ({ page }) => {
     await bypassOnboarding(page);
     await page.goto('/?venue=test-venue-sunny&_state=venue-detail');
     await page.locator('[data-testid="mobile-venue-detail-sheet"]:visible').waitFor({ state: 'visible' });
@@ -146,7 +141,7 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
-  test.fixme('a11y: mobile feedback prompt (/?venue=test-venue-sunny&_state=feedback)', async ({ page }) => {
+  test('a11y: mobile feedback prompt (/?venue=test-venue-sunny&_state=feedback)', async ({ page }) => {
     await bypassOnboarding(page);
     await page.goto('/?venue=test-venue-sunny&_state=feedback');
     await page.locator('[data-testid="feedback-prompt"]:visible').waitFor({ state: 'visible' });
@@ -154,7 +149,7 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
-  test.fixme('a11y: mobile review form (/?venue=test-venue-sunny&_state=review)', async ({ page }) => {
+  test('a11y: mobile review form (/?venue=test-venue-sunny&_state=review)', async ({ page }) => {
     await bypassOnboarding(page);
     await page.goto('/?venue=test-venue-sunny&_state=review');
     await page.locator('[data-testid="review-form-mobile"]:visible').waitFor({ state: 'visible' });
@@ -169,16 +164,9 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
-  // Story 10.2 (Task 5, AC4) — the muted "Sol bakom moln" obscured surface at
-  // the mobile viewport. These scans render the mobile venue-card-bearing map
-  // shell (bottom-sheet list) UNDERNEATH the forced obscured surface, so they
-  // inherit the SAME PRE-EXISTING venue-card amber-label contrast debt
-  // (`text-amber-text` ~1.63:1, Story 5.1) that fixmes every mobile card scan
-  // above — NOT the new obscured chrome. The obscured slate palette itself is
-  // AA (5.50:1 fill / 8.28:1 text) and is gated active on the DESKTOP obscured
-  // scans in axe.spec.ts (no venue cards there). Flip these back to `test` once
-  // the venue-card contrast meets 4.5:1 (Story 5.1).
-  test.fixme('a11y: mobile obscured quick-info (/?_state=map-with-obscured-venue)', async ({ page }) => {
+  // Story 10.2 (Task 5, AC4) — the obscured slate palette and its surrounding
+  // mobile map/detail surfaces are exercised together at the mobile viewport.
+  test('a11y: mobile obscured quick-info (/?_state=map-with-obscured-venue)', async ({ page }) => {
     await bypassOnboarding(page);
     await page.goto('/?_state=map-with-obscured-venue');
     await page.locator('[data-testid="venue-pin"]').first().waitFor({ state: 'visible' });
@@ -187,7 +175,7 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
-  test.fixme('a11y: mobile obscured venue-detail (/?_state=venue-detail-obscured)', async ({ page }) => {
+  test('a11y: mobile obscured venue-detail (/?_state=venue-detail-obscured)', async ({ page }) => {
     await bypassOnboarding(page);
     await page.goto('/?venue=test-venue-sunny&_state=venue-detail-obscured');
     await page.locator('[data-testid="mobile-venue-detail-sheet"]:visible').waitFor({ state: 'visible' });
@@ -196,12 +184,9 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
-  // Story 12.12: the photo states open the mobile detail sheet directly, but
-  // active axe scans still inherit pre-existing mobile detail contrast debt on
-  // the `AVSTAND` metadata label (#949086 on white, 3.18:1). Keep explicit
-  // coverage intent here while desktop photo surfaces are active-gated in
-  // axe.spec.ts.
-  test.fixme('a11y: mobile venue photo loaded (/?_state=venue-photo-loaded)', async ({ page }) => {
+  // Story 12.12: photo states open the mobile detail sheet directly, so both
+  // loaded and fallback media paths are active mobile accessibility gates.
+  test('a11y: mobile venue photo loaded (/?_state=venue-photo-loaded)', async ({ page }) => {
     await bypassOnboarding(page);
     await arrangeVenuePhotoMedia(page, 'venue-photo-loaded');
     await page.goto('/?venue=test-venue-sunny&_state=venue-photo-loaded&_time=14:00');
@@ -211,7 +196,7 @@ test.describe('axe-core a11y gate (mobile viewport)', () => {
     expect(violations, formatViolations(violations)).toEqual([]);
   });
 
-  test.fixme('a11y: mobile venue photo fallback (/?_state=venue-photo-fallback)', async ({ page }) => {
+  test('a11y: mobile venue photo fallback (/?_state=venue-photo-fallback)', async ({ page }) => {
     await bypassOnboarding(page);
     await arrangeVenuePhotoMedia(page, 'venue-photo-fallback');
     await page.goto('/?venue=test-venue-sunny&_state=venue-photo-fallback&_time=14:00');

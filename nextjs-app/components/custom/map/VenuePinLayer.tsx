@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { useReducedMotion } from 'motion/react';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { useTranslations } from 'next-intl';
 import maplibregl from 'maplibre-gl';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
@@ -54,13 +54,9 @@ const STAGGER_MAX_INDEX = 30;
 export function VenuePinLayer({ venues, onToggleVenue, onCanvasDeselect }: VenuePinLayerProps) {
   const { mapInstance } = useMapInstance();
   const { selectedVenueId, selectVenue, toggleVenue } = useMapSelection();
-  // Story 1.6 review (P36): null (matchMedia not yet resolved) treated
-  // as true — pin baseline opacity is 0 in the entrance path; with
-  // `?? false` reduced-motion users would see a one-frame stagger flash
-  // before the hook reads true. See VenuePin.tsx for the full divergence
-  // rationale (the OnboardingScreen `?? false` default is intentional and
-  // tuned to its different baseline).
-  const shouldReduceMotion = useReducedMotion() ?? true;
+  // The shared hook fails closed while matchMedia is unavailable, so
+  // reduced-motion users never see a one-frame stagger flash.
+  const shouldReduceMotion = useReducedMotion();
   const t = useTranslations('map');
   const fallbackCanvasDeselect = useCallback(() => selectVenue(null), [selectVenue]);
   const handleToggleVenue = onToggleVenue ?? toggleVenue;

@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { Clock3, ExternalLink } from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion, type Transition } from 'motion/react';
+import { AnimatePresence, type Transition } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { AmberCTAButton } from '@/components/composed/shared/AmberCTAButton';
 import { DURATION_DEFAULT_S, DURATION_FAST_S, DURATION_SLOW_S, EASE_DEFAULT, EASE_EXIT } from '@/lib/constants/animation';
 import { cn } from '@/lib/utils';
@@ -59,7 +61,7 @@ export function FeedbackPrompt({
   onClose: () => void;
   onRetry?: (payload: FeedbackPromptSubmit) => void;
 }) {
-  const reducedMotion = useReducedMotion() ?? false;
+  const reducedMotion = useReducedMotion();
   const [outdoor, setOutdoor] = useState<boolean | undefined>();
   const [sunAccuracy, setSunAccuracy] = useState<FeedbackSunAccuracy | undefined>();
   const [note, setNote] = useState('');
@@ -90,7 +92,7 @@ export function FeedbackPrompt({
       <div className="grid">
       <AnimatePresence>
         {submitState === 'success' ? (
-          <motion.p
+          <m.p
             key="success"
             role="status"
             initial={reducedMotion ? false : { opacity: 0 }}
@@ -100,9 +102,9 @@ export function FeedbackPrompt({
             className="col-start-1 row-start-1 py-8 text-center text-heading-lg text-text-primary"
           >
             {labels.success}
-          </motion.p>
+          </m.p>
         ) : (
-          <motion.div
+          <m.div
             key="form"
             initial={reducedMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -214,7 +216,7 @@ export function FeedbackPrompt({
                 {labels.close}
               </button>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
       </div>
@@ -251,7 +253,7 @@ function ChoiceButton({
   icon?: React.ReactNode;
 }) {
   return (
-    <motion.button
+    <m.button
       type="button"
       aria-label={`${groupLabel} ${label}`}
       aria-pressed={selected}
@@ -268,6 +270,6 @@ function ChoiceButton({
     >
       {icon}
       {label}
-    </motion.button>
+    </m.button>
   );
 }

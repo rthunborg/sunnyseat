@@ -2,7 +2,9 @@
 
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { AnimatePresence, motion } from 'motion/react';
+import dynamic from 'next/dynamic';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
 import { LoaderCircle } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
@@ -14,7 +16,6 @@ import {
   MobileBottomSheet,
   type MobileBottomSheetMetrics,
 } from '@/components/custom/sheets/MobileBottomSheet';
-import { VenueDetailOverlay } from '@/components/custom/venue/VenueDetailOverlay';
 import { RouteOverlay, type RouteOverlayLabels } from '@/components/custom/routing/RouteOverlay';
 import {
   VenueListControls,
@@ -22,8 +23,6 @@ import {
   type VenueListSortMode,
 } from '@/components/composed/venue/VenueListControls';
 import { FavouritesList } from '@/components/custom/favourites/FavouritesList';
-import { FeedbackFlow } from '@/components/custom/feedback/FeedbackFlow';
-import { ReviewFlow } from '@/components/custom/feedback/ReviewFlow';
 import { VenueSearchShell } from '@/components/custom/search/VenueSearchShell';
 import {
   isForcedVenuePhotoState,
@@ -87,6 +86,23 @@ import { MapLoadingFallback } from './MapLoadingFallback';
 import { VenuePinLayer } from './VenuePinLayer';
 import { UserLocationLayer } from './UserLocationLayer';
 import { MapControls } from './MapControls';
+
+const loadFeedbackFlow = () =>
+  import('@/components/custom/feedback/FeedbackFlow').then(
+    (module) => module.FeedbackFlow,
+  );
+const loadVenueDetailOverlay = () =>
+  import('@/components/custom/venue/VenueDetailOverlay').then(
+    (module) => module.VenueDetailOverlay,
+  );
+const loadReviewFlow = () =>
+  import('@/components/custom/feedback/ReviewFlow').then(
+    (module) => module.ReviewFlow,
+  );
+
+const FeedbackFlow = dynamic(loadFeedbackFlow);
+const VenueDetailOverlay = dynamic(loadVenueDetailOverlay);
+const ReviewFlow = dynamic(loadReviewFlow);
 
 const SLOW_LOAD_PILL_MS = 3000;
 const SEARCH_RADIUS_KM = 1.5;
@@ -1171,6 +1187,25 @@ export function MapView() {
     interactionToken: venueDetailPrefetchInteraction.token,
     preserveVenueSlug: venueDetailPrefetchInteraction.preserveSlug,
   });
+  useEffect(() => {
+    const preloadLazyInteractionChunks = () => {
+      void loadVenueDetailOverlay();
+      void loadFeedbackFlow();
+      void loadReviewFlow();
+    };
+    const browserWindow = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+
+    if (typeof browserWindow.requestIdleCallback === 'function') {
+      const idleId = browserWindow.requestIdleCallback(preloadLazyInteractionChunks);
+      return () => browserWindow.cancelIdleCallback?.(idleId);
+    }
+
+    const timeoutId = window.setTimeout(preloadLazyInteractionChunks, 1_000);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
   const handleMobileSheetVisibleRowsChange = useCallback((visibleRows: number, reason?: 'layout' | 'interaction') => {
     if (reason !== 'layout') {
       cancelVenueDetailPrefetchCandidates(null);
@@ -1384,7 +1419,7 @@ export function MapView() {
           dev does NOT self-bless a reference PNG here. */}
       <AnimatePresence>
         {isDateChangeLoading && (
-          <motion.div
+          <m.div
             key="date-change-overlay"
             data-testid="date-change-overlay"
             role="status"
@@ -1400,7 +1435,7 @@ export function MapView() {
               aria-hidden="true"
               className="size-8 text-text-primary motion-safe:animate-spin"
             />
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
       {/* Story 9.5 AC2: the amber user-location dot. Gated on a real GPS fix

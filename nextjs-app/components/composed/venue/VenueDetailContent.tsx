@@ -500,7 +500,7 @@ function FactCard({
 }) {
   return (
     <section className="rounded-card border border-divider bg-white p-3">
-      <div className="mb-2 flex items-center gap-2 text-label-sm text-text-muted">
+      <div className="mb-2 flex items-center gap-2 text-label-sm text-text-body">
         <span className="text-amber-dark">{icon}</span>
         <span>{label}</span>
       </div>

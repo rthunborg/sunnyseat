@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, Link2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import {
   DURATION_FAST_S,
   DURATION_SLOW_S,
@@ -102,7 +104,7 @@ export type ShareModalProps = {
  */
 export function ShareModal({ open, onClose, venueName, url }: ShareModalProps) {
   const t = useTranslations('venue.detail.shareModal');
-  const shouldReduceMotion = useReducedMotion() ?? false;
+  const shouldReduceMotion = useReducedMotion();
   const dialogRef = useRef<HTMLDivElement>(null);
   const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [copied, setCopied] = useState(false);
@@ -146,7 +148,7 @@ export function ShareModal({ open, onClose, venueName, url }: ShareModalProps) {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
+        <m.div
           className="fixed inset-0 z-modal flex items-end justify-center bg-text-primary/30 backdrop-blur-standard lg:items-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -154,7 +156,7 @@ export function ShareModal({ open, onClose, venueName, url }: ShareModalProps) {
           transition={{ duration: shouldReduceMotion ? 0 : DURATION_FAST_S, ease: EASE_ENTER }}
           onPointerDown={onClose}
         >
-          <motion.div
+          <m.div
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
@@ -262,8 +264,8 @@ export function ShareModal({ open, onClose, venueName, url }: ShareModalProps) {
                 )}
               </button>
             </div>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

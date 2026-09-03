@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Send, Sparkles, Star, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { useSubmitAppFeedback } from '@/hooks/mutations/useSubmitAppFeedback';
 import {
   DURATION_FAST_S,
@@ -35,7 +37,7 @@ export function AppFeedbackModal({
 }) {
   const t = useTranslations('common.appFeedback');
   const locale = useLocale();
-  const prefersReducedMotion = useReducedMotion() ?? false;
+  const prefersReducedMotion = useReducedMotion();
   const shouldReduceMotion = reducedMotion ?? prefersReducedMotion;
   const dialogRef = useRef<HTMLDivElement>(null);
   const [rating, setRating] = useState(0);
@@ -69,7 +71,7 @@ export function AppFeedbackModal({
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
+        <m.div
           className="fixed inset-0 z-modal flex items-end justify-center bg-text-primary/30 backdrop-blur-standard lg:items-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -77,7 +79,7 @@ export function AppFeedbackModal({
           transition={{ duration: shouldReduceMotion ? 0 : DURATION_FAST_S, ease: EASE_ENTER }}
           onPointerDown={onClose}
         >
-          <motion.div
+          <m.div
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
@@ -194,8 +196,8 @@ export function AppFeedbackModal({
                 </button>
               </>
             )}
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

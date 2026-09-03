@@ -37,6 +37,10 @@ vi.mock('motion/react', async () => {
   };
 });
 
+vi.mock('@/hooks/use-reduced-motion', () => ({
+  useReducedMotion: () => reducedMotionMock,
+}));
+
 function renderSheet({
   visibleRows = 3,
   rowCount = 5,
