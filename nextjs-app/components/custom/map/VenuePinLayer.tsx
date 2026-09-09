@@ -4,7 +4,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { useTranslations } from 'next-intl';
-import maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
+import { getMapLibre } from '@/lib/maplibre';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
 import { VenuePin } from './VenuePin';
@@ -195,7 +196,7 @@ export function VenuePinLayer({ venues, onToggleVenue, onCanvasDeselect }: Venue
       }
 
       const root = createRoot(element);
-      const marker = new maplibregl.Marker({ element, anchor: 'bottom' })
+      const marker = new (getMapLibre().Marker)({ element, anchor: 'bottom' })
         .setLngLat([venue.lng, venue.lat])
         .addTo(map);
       // MapLibre's attach overwrites our role-strip; re-apply, then

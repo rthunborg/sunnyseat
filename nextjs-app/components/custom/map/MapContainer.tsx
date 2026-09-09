@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
+import { getMapLibre } from '@/lib/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';
@@ -54,7 +55,7 @@ export function MapContainer() {
       });
     };
 
-    const map = new maplibregl.Map({
+    const map = new (getMapLibre().Map)({
       container: containerRef.current,
       style: STYLE_URL,
       center: [GOTHENBURG_CENTRE.lng, GOTHENBURG_CENTRE.lat],

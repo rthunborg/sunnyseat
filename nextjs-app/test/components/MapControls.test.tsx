@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { useRef, type ReactNode } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import { MapInstanceContext } from '@/lib/contexts/MapInstanceContext';
 import { MapControls } from '@/components/custom/map/MapControls';
 import { GOTHENBURG_CENTRE } from '@/lib/constants/geography';

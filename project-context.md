@@ -41,7 +41,7 @@ A live Next.js web/PWA app that helps people in Gothenburg find outdoor venue se
 | React | React `^19.2.5`; React Compiler remains explicitly disabled for launch via `next.config.ts` even though Next may install its compiler plugin transitively |
 | Styling | Tailwind CSS v4 (`^4.2.2`, CSS-first `@theme` tokens) |
 | UI Primitives | shadcn/ui v4 (`shadcn ^4.2.0`) + `@base-ui/react ^1.4.0` |
-| Map | MapLibre GL JS `^5.23.0` |
+| Map | MapLibre GL JS `6.4.1` |
 | Data Fetching | TanStack Query `^5.99.0` |
 | Animation | Motion `^12.38.0` |
 | Gestures | `@use-gesture/react ^10.3.1` |

@@ -198,7 +198,7 @@ npm install -D @axe-core/react eslint-plugin-jsx-a11y @next/bundle-analyzer vite
 
 **Additional Setup (post-scaffold):**
 - shadcn/ui CLI v4 for commodity component infrastructure
-- MapLibre GL JS (declared `^5.23.0`, lockfile-resolved `5.24.0`) for interactive maps
+- MapLibre GL JS (pinned `6.4.1`) for interactive maps; prepared same-origin ESM modules share code with the worker and remain behind the client dynamic boundary
 - TanStack Query (declared `^5.99.0`, lockfile-resolved `5.101.2`) for server state management
 - Motion (12.38.0) — successor to framer-motion, using `motion/react` imports
 - @use-gesture/react for unified touch/mouse gesture handling

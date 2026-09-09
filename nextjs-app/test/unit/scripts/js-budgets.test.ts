@@ -128,6 +128,27 @@ function runGate(
 }
 
 describe('deterministic JavaScript budget gate', () => {
+  test('counts module workers and public ESM in total and MapLibre budgets', async () => {
+    const appDir = await createFixture();
+    const publicDir = path.join(appDir, 'public', 'vendor', 'maplibre', '6.4.1');
+    await mkdir(publicDir, { recursive: true });
+    await writeFile(path.join(publicDir, 'worker.mjs'), SECOND_MAP_SOURCE);
+    await writeFile(path.join(appDir, '.next/static/chunks/extra.mjs'), OTHER_SOURCE);
+    const result = runGate(appDir);
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      maplibre: { gzipBytes: MAP_GZIP_BYTES + SECOND_MAP_GZIP_BYTES },
+      total: { gzipBytes: INITIAL_GZIP_BYTES + MAP_GZIP_BYTES + SECOND_MAP_GZIP_BYTES + 2 * OTHER_GZIP_BYTES },
+    });
+    const over = runGate(appDir, {
+      initial: INITIAL_GZIP_BYTES,
+      maplibre: MAP_GZIP_BYTES + SECOND_MAP_GZIP_BYTES - 1,
+      total: 600 * 1024,
+    });
+    expect(over.status).toBe(1);
+    expect(over.stderr).toContain('MapLibre-loaded JS');
+  });
+
   test('passes at each exact byte boundary and fails one byte over', async () => {
     const appDir = await createFixture();
     const exactBudgets = {

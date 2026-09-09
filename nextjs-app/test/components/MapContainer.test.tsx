@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render } from '@testing-library/react';
 import { useRef, useState, type ReactNode } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import { MapInstanceContext } from '@/lib/contexts/MapInstanceContext';
 
 const messages = {
@@ -32,7 +32,7 @@ let paintPropertyCalls: Array<{ layerId: string; name: string; value: unknown }>
 // exist (resilient skip). Includes the real positron water/green ids.
 const MOCK_STYLE_LAYER_IDS = new Set(['water', 'waterway', 'park', 'landcover_wood']);
 
-vi.mock('maplibre-gl', () => {
+vi.mock('@/lib/maplibre', () => {
   class MockMap {
     constructor() {
       activeListeners = makeListeners();
@@ -70,7 +70,7 @@ vi.mock('maplibre-gl', () => {
     }
   }
   return {
-    default: { Map: MockMap },
+    getMapLibre: () => ({ Map: MockMap }),
   };
 });
 

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { act, render } from '@testing-library/react';
 import { useRef, useState, type ReactNode } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
-import maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import { MapInstanceContext } from '@/lib/contexts/MapInstanceContext';
 import { MapSelectionContext } from '@/lib/contexts/MapSelectionContext';
 import { VenuePinLayer } from '@/components/custom/map/VenuePinLayer';
@@ -78,7 +78,7 @@ type StubMarker = {
 
 const allMarkers: StubMarker[] = [];
 
-vi.mock('maplibre-gl', () => {
+vi.mock('@/lib/maplibre', () => {
   class Marker {
     private element: HTMLElement;
     private lngLat: [number, number] | null = null;
@@ -107,7 +107,7 @@ vi.mock('maplibre-gl', () => {
   // having a stub class prevents "Map is not a constructor" trips when
   // that happens (Round 2 — formerly R1-Dismiss #2).
   class Map {}
-  return { default: { Marker, Map } };
+  return { getMapLibre: () => ({ Marker, Map }) };
 });
 
 type MapClickHandler = (e: { originalEvent: { target: EventTarget | null } }) => void;

@@ -814,3 +814,86 @@ build and bundle checks remain the evidence for these unchanged fixes. The
 known production dependency audit failure is not waived; PR CI will determine
 whether the normal merge checks pass. Security dependency remediation remains
 separate from the approved direct-sun patch until scoped and verified.
+
+## Security dependency remediation and browser checkpoint — 2026-09-09
+
+Rasmus authorized fixing the dependency audit blockers, committing and merging
+production-relevant work. This checkpoint supersedes the open dependency finding
+above; it does not waive scheduling reliability or field/device launch blockers.
+
+MapLibre is pinned to 6.4.1 (GHSA-jrc7-96c5-q579 patched); the lockfile resolves
+sharp 0.35.4 (GHSA-rgj7-g3m4-5g8c patched). MapLibre 6 requires native ESM and a
+module worker. A build-time esbuild/Terser step prepares versioned same-origin
+modules with shared code and a SHA-256 manifest. The map remains asynchronously
+loaded. No external CDN or provider call is needed to prepare these modules.
+The bundle gate now counts public JavaScript and .mjs/.cjs as well as .js, and
+checks the prepared module hashes; budgets were not increased. Active stack
+references were updated, preserving historical architecture review text.
+
+Execution exposed two defects corrected in this patch: the old bundle verifier
+omitted .mjs/public JavaScript, and locale routing treated .mjs URLs as pages.
+Both have deterministic regression coverage. A browser security regression also
+renders fixture geometry through the real local worker and verifies removal of
+consecutive malicious attribution event attributes. No design tokens, Swedish
+copy, direct-sun rules, weather matching boundaries, schedules or data changed.
+
+Commands run from `nextjs-app/`:
+
+```powershell
+npm install --save-exact maplibre-gl@6.4.1 --no-audit
+npm update sharp --no-audit
+npm install --save-dev --save-exact terser@5.44.1 --no-audit
+npx tsc --noEmit
+npx eslint . --quiet
+npm audit --omit=dev
+npm run build
+node scripts/verify-js-budgets.mjs
+node scripts/verify-maplibre-async.mjs
+npx vitest run
+npx playwright test test/e2e/epic-10-weather-matrix.spec.ts test/e2e/maplibre-security.spec.ts --project=mobile --project=desktop --output C:\Users\Rasmus\.codex\visualizations\2026\09\08\01a08266-440b-7fc1-9fcc-18c0be4cc9a1\release-2026-09-09\dependency-browser
+```
+
+Final TypeScript, lint, production build and async-boundary checks passed.
+Production dependency audit: **zero vulnerabilities**. Full isolated Vitest:
+**229 files, 2,174 tests passed**. An earlier full run overlapped a build and timed
+out in one geometry precompute test; the isolated full rerun passed without
+altering that test or its timeout. Native sharp AVIF encode/decode also passed
+for a generated 2x2 image (sharp 0.35.4, libheif 1.23.2).
+
+Complete gzip accounting: **231.44 KiB initial, 300.84 KiB MapLibre-loaded,
+599.46 KiB total emitted/public JavaScript**, within unchanged 280/320/600 KiB
+limits. Headroom is small and remains enforced in CI.
+
+Actual browser execution: **20 passed** — all nine weather scenarios on both
+mobile (WebKit/iPhone 14) and desktop (Chromium), plus the security test on each.
+The approved runner and its automatic webServer/browser descendants were started
+through resource-guard with this actor's trusted context. Local fixture engines,
+mocked venue/list/detail responses, and a mocked style/GeoJSON source avoided
+production services and live Met.no. The first browser attempt exposed the .mjs
+routing failure; the complete rerun passed after the narrow matcher correction.
+
+Evidence root:
+`C:\Users\Rasmus\.codex\visualizations\2026\09\08\01a08266-440b-7fc1-9fcc-18c0be4cc9a1\release-2026-09-09`.
+`dependency-browser.log` and `dependency-browser-exit.txt` record the final run;
+`dependency-vitest-final.log` records the full passing unit run.
+
+`dependency-browser/` contains **26 screenshots**: the weather matrix's 24
+card/QuickInfo/detail captures and two map-security captures. This checkpoint
+visually inspected **eight**: both breakpoint security captures, both
+`neutralized-legacy-obscured-detail.png`, both `clear-card.png`, and both
+`overcast-quick-info.png`. Unknown detail remained visually neutral with qualified
+clear-sky potential; clear cards retained affirmative treatment and genuinely
+blocked QuickInfo retained obscured treatment. All 24 matrix axe JSON artifacts
+contain empty violation arrays, and the scenario accessible-name assertions
+passed. The earlier complete 24-image inspection remains historical evidence.
+Automated reference comparison was **not run**: the user's explicit manual visual
+acceptance and instruction to skip the Anthropic API remain in effect. No
+reference replacement or rebaseline occurred.
+
+Both owned browser-runner resources were stopped with verified results.
+Actor-scoped `CloseActor` then `List` through Windows PowerShell 5.1 returned
+verified cleanup and **zero active owned resources**. `git diff --check` passed.
+The unrelated `.codex/config.toml` change and both protected untracked paths stay
+outside the security commit. PR #29 CI and the subsequent main deployment must
+confirm the remote outcome; no claim of their completion is made at this local
+checkpoint.

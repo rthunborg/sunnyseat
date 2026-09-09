@@ -26,6 +26,8 @@ describe('proxy matcher', () => {
     expect('/icon.png'.match(matcher)).toBeNull();
     expect('/manual.pdf'.match(matcher)).toBeNull();
     expect('/worker.wasm'.match(matcher)).toBeNull();
+    expect('/vendor/maplibre/6.4.1/maplibre-gl-worker.mjs'.match(matcher)).toBeNull();
+    expect('/vendor/maplibre/6.4.1/chunk-shared.mjs'.match(matcher)).toBeNull();
     expect('/_next/static/app.js'.match(matcher)).toBeNull();
     // The locale pattern still EXCLUDES /api/* (the negative lookahead) — the
     // venue routes are matched by their own explicit entries instead.

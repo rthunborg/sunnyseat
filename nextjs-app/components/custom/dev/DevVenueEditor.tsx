@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
+import { getMapLibre } from '@/lib/maplibre';
 import { Eye, EyeOff, LoaderCircle, RotateCcw, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -340,7 +341,7 @@ function DevVenueDisplayPinLayer({
     element.dataset.testid = 'dev-venue-editor-display-pin';
     element.innerHTML = '<span aria-hidden="true" class="block size-3 rounded-pill bg-amber-primary"></span>';
 
-    const marker = new maplibregl.Marker({
+    const marker = new (getMapLibre().Marker)({
       element,
       anchor: 'center',
       draggable: true,

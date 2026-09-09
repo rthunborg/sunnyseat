@@ -39,7 +39,7 @@ export default function proxy(request: NextRequest) {
 // lookahead still excludes all OTHER `/api/*` routes from locale handling).
 export const config = {
   matcher: [
-    '/((?!api|trpc|_next|_vercel|dev|.*\\.(?:avif|br|css|csv|gif|gz|ico|jpg|jpeg|js|json|map|mp3|mp4|ogg|opus|pdf|png|svg|txt|wasm|webmanifest|webm|webp|woff|woff2|xml|zip)$).*)',
+    '/((?!api|trpc|_next|_vercel|dev|.*\\.(?:avif|br|css|csv|gif|gz|ico|jpg|jpeg|js|mjs|json|map|mp3|mp4|ogg|opus|pdf|png|svg|txt|wasm|webmanifest|webm|webp|woff|woff2|xml|zip)$).*)',
     '/api/venues',
     '/api/venues/:slug*',
   ],
