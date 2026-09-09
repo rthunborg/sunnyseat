@@ -9,7 +9,6 @@ export type VenueVisualMetadata = {
   distance?: string;
   bestAt?: string;
   seats: string;
-  price: string;
 };
 
 type MetadataLocale = 'sv' | 'en';
@@ -25,7 +24,6 @@ const BY_SLUG: Record<string, Record<MetadataLocale, VenueVisualMetadata>> = {
       distance: '340 m',
       bestAt: '13:00',
       seats: '~24',
-      price: 'kr · kr',
     },
     en: {
       type: 'Cafe',
@@ -36,7 +34,6 @@ const BY_SLUG: Record<string, Record<MetadataLocale, VenueVisualMetadata>> = {
       distance: '340 m',
       bestAt: '13:00',
       seats: '~24',
-      price: 'kr · kr',
     },
   },
   'bryggeriet-soltak': {
@@ -47,7 +44,6 @@ const BY_SLUG: Record<string, Record<MetadataLocale, VenueVisualMetadata>> = {
       tags: ['Morgonsol', 'Take-away', 'Surdeg'],
       exposure: 'Väster',
       seats: '~32',
-      price: 'kr · kr',
     },
     en: {
       type: 'Bar',
@@ -56,7 +52,6 @@ const BY_SLUG: Record<string, Record<MetadataLocale, VenueVisualMetadata>> = {
       tags: ['Morning sun', 'Take-away', 'Sourdough'],
       exposure: 'West',
       seats: '~32',
-      price: 'kr · kr',
     },
   },
   'solplats-magasinsgatan': {
@@ -67,7 +62,6 @@ const BY_SLUG: Record<string, Record<MetadataLocale, VenueVisualMetadata>> = {
       tags: ['Kanal', 'Skaldjur'],
       exposure: 'Söder',
       seats: '~18',
-      price: 'kr · kr',
     },
     en: {
       type: 'Cafe',
@@ -76,7 +70,6 @@ const BY_SLUG: Record<string, Record<MetadataLocale, VenueVisualMetadata>> = {
       tags: ['Canal', 'Seafood'],
       exposure: 'South',
       seats: '~18',
-      price: 'kr · kr',
     },
   },
   'cafe-halvvags': {
@@ -87,7 +80,6 @@ const BY_SLUG: Record<string, Record<MetadataLocale, VenueVisualMetadata>> = {
       tags: ['Parasoller', 'Specialkaffe'],
       exposure: 'Öster',
       seats: '~20',
-      price: 'kr',
     },
     en: {
       type: 'Cafe',
@@ -96,7 +88,6 @@ const BY_SLUG: Record<string, Record<MetadataLocale, VenueVisualMetadata>> = {
       tags: ['Parasols', 'Specialty coffee'],
       exposure: 'East',
       seats: '~20',
-      price: 'kr',
     },
   },
   'brygghuset-lerum': {
@@ -107,7 +98,6 @@ const BY_SLUG: Record<string, Record<MetadataLocale, VenueVisualMetadata>> = {
       tags: ['Innergård', 'Hund ok'],
       exposure: 'Väster',
       seats: '~28',
-      price: 'kr · kr',
     },
     en: {
       type: 'Restaurant',
@@ -116,7 +106,6 @@ const BY_SLUG: Record<string, Record<MetadataLocale, VenueVisualMetadata>> = {
       tags: ['Courtyard', 'Dogs ok'],
       exposure: 'West',
       seats: '~28',
-      price: 'kr · kr',
     },
   },
   'skuggans-hus': {
@@ -127,7 +116,6 @@ const BY_SLUG: Record<string, Record<MetadataLocale, VenueVisualMetadata>> = {
       tags: ['Svalt', 'Lunch'],
       exposure: 'Norr',
       seats: '~16',
-      price: 'kr · kr',
     },
     en: {
       type: 'Restaurant',
@@ -136,7 +124,6 @@ const BY_SLUG: Record<string, Record<MetadataLocale, VenueVisualMetadata>> = {
       tags: ['Cool shade', 'Lunch'],
       exposure: 'North',
       seats: '~16',
-      price: 'kr · kr',
     },
   },
   'bistro-bakgarden': {
@@ -147,7 +134,6 @@ const BY_SLUG: Record<string, Record<MetadataLocale, VenueVisualMetadata>> = {
       tags: ['Bakgård', 'Kväll'],
       exposure: 'Öster',
       seats: '~22',
-      price: 'kr · kr',
     },
     en: {
       type: 'Bistro',
@@ -156,7 +142,6 @@ const BY_SLUG: Record<string, Record<MetadataLocale, VenueVisualMetadata>> = {
       tags: ['Backyard', 'Evening'],
       exposure: 'East',
       seats: '~22',
-      price: 'kr · kr',
     },
   },
 };
@@ -170,7 +155,6 @@ const DEFAULT_METADATA: Record<MetadataLocale, VenueVisualMetadata> = {
     exposure: 'Söder',
     bestAt: '13:00',
     seats: '~24',
-    price: 'kr · kr',
   },
   en: {
     type: 'Cafe',
@@ -180,7 +164,6 @@ const DEFAULT_METADATA: Record<MetadataLocale, VenueVisualMetadata> = {
     exposure: 'South',
     bestAt: '13:00',
     seats: '~24',
-    price: 'kr · kr',
   },
 };
 
