@@ -1071,3 +1071,81 @@ metadata, not the actual image files (https://supabase.com/docs/guides/platform/
 Validation and release result are appended below after the gates finish. No new
 production browser execution, screenshot inspection or automated reference
 comparison is claimed by these API/database checks.
+
+### Coordinate fix local validation and ownership
+
+Final application head: d58b1e5d38ed0b037caead1f77169d4f1f8d59f4, PR #30.
+The fallback/engine-disabled list path also explicitly removes the four internal
+engine fields before serialization, preserving the fixture direct-sun tuple.
+
+Commands run from nextjs-app:
+- `npx tsc --noEmit`: baseline and final passed.
+- `npx eslint . --quiet`: baseline and final passed.
+- `npx vitest run test/unit/services/venue-store.test.ts test/unit/api/venues-route.test.ts test/unit/services/weather-snapshots.direct-sun.test.ts test/unit/services/weather-snapshots.automate.test.ts test/unit/services/sun-geometry-persisted-outcome.automate.test.ts test/unit/api/venues-route-real-engine.test.ts`: 6 files / 148 tests passed.
+- Final `npx vitest run --maxWorkers=2`: 230 files / 2,178 tests passed, 204.36s.
+  The first default-worker full run had one unrelated opening-hours test timeout
+  (229 files / 2,176 tests passed); its reduced-worker retry passed, followed by
+  the successful full run on the final fallback-boundary fix. No timeout or
+  ignore setting was changed. Local counts include the protected untracked
+  documentation-contract test; that file was neither edited nor committed.
+- `git diff --check`: passed.
+
+Local evidence: `.codex/artifacts/venue-list-weather-2026-09-09/` contains
+`venue-list-weather-vitest-2026-09-09.log`,
+`venue-list-weather-vitest-retry-2026-09-09.log`, and `final-vitest.log`.
+
+Trusted context was present for this actor. No managed local server or browser
+was launched. Built-in Windows PowerShell 5.1 JSON-stdin guard `CloseActor` and
+`List` both returned verified=true with zero unresolved owned resources; the
+context-bearing helper was removed. An initial direct script pipeline produced
+a binding error before an operation ran; the correct subprocess-stdin wrapper
+then completed successfully. This was an invocation correction, not a new hook
+repair. The pre-existing hook config modification and two protected untracked
+paths remain untouched.
+
+Scheduled refresh workflow is active, but the latest scheduled runs observed at
+01:16, 05:01 and 09:33 UTC failed before refresh. The successful 12:35 manual
+run does not prove reliable five-minute scheduling. No schedule configuration
+was changed. Image acquisition remains dependent on genuine source assets.
+
+### CI and merge evidence
+
+PR #30 merged as 87a0ff714825212629fdfdbc165741c22abad429 after CI run
+34353452036 passed for exact application head d58b1e5. Commands:
+`gh pr merge 30 --merge --match-head-commit d58b1e5d38ed0b037caead1f77169d4f1f8d59f4`
+and `gh run view 34353452036 --log`. The full log is saved in the local evidence
+directory as `ci-passing.log`.
+
+CI: 229 tracked Vitest files / 2,175 tests passed; the local-only protected test
+accounts for the three additional local tests. Browser execution:
+`npx playwright test --project=mobile --project=desktop` completed with 158
+passed, one mobile chip-filter test passing on retry (reported flaky), and 51
+existing skips. The weather matrix has no skips and executes all nine scenarios
+on both projects, including neutralized-legacy-obscured. `--project=touch`
+passed 8 tests; `--project=a11y` passed 18; `--project=a11y-mobile` passed 14.
+Build, dependency audit, JS budgets, MapLibre async boundary and Lighthouse passed.
+The flaky chip-filter case is not represented as a clean first-attempt pass.
+
+This is actual CI browser execution, not discovery. No new screenshots were
+manually inspected in this production-data investigation; successful-run matrix
+captures were not downloaded. No automated reference-image comparison was run,
+and no Anthropic key, replacement reference or rebaseline was used. Existing
+manual visual acceptance and prior screenshot evidence remain historical.
+
+### Production verification after rollout
+
+Production deployment dpl_8hAUV3DAq5PR9fSCbtwx2oz7DeMs is READY in dub1 for merge
+87a0ff7, with sunnyseat.vercel.app pointing to it. At 2026-09-09T13:12:00.106Z,
+GET `/api/venues?lat=57.7089&lng=11.9746&radiusKm=3&date=2026-09-09&time=15%3A15`
+returned HTTP 200 / X-Vercel-Cache MISS, 42 blocked venues, zero
+weather-unavailable reasons and no server-only engine fields. Detail reads for
+Posthotellet and Tyska Bron agreed with list cloud-obstruction; Lilla London
+agreed with list geometry obstruction. Automated equality assertions passed.
+A second current-time list read at 13:12:13.778Z likewise returned 42 blocked
+venues and zero weather-unavailable reasons. These are forecast/geometry API
+checks, not an independent outdoor ground-truth observation.
+
+Evidence: `.codex/artifacts/venue-list-weather-2026-09-09/production-api-smoke.json`.
+No photo objects or venue image URLs were changed. Image acquisition and reliable
+scheduled refresh remain open. The final documentation-only follow-up records
+these results; no application changes follow the CI-verified d58b1e5 head.
