@@ -67,7 +67,7 @@ test.describe('story 12.2 feedback prediction evidence', () => {
       // authoritative directSunState. Feedback must preserve a neutral verdict.
       expect(body.publicSunVerdict).toBe('grey');
       expect(body.weatherGated).toBe(false);
-      expect(body.weatherUnknown).toBe(false);
+      expect(body.weatherUnknown).toBe(true);
       expect(body.geometryInputHash).toMatch(
         /^g1:[0-9a-f]{64}$/,
       );

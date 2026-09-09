@@ -933,3 +933,23 @@ the normal GitHub CI rerun; it is not claimed as a local browser pass or screens
 inspection. This is the expected closed-actor guard boundary, not missing trusted
 context or a restarted machine-hook investigation. Final `git diff --check`
 passed. The PR remains unmerged pending the new remote result.
+
+### CI assertion completion — 2026-09-09
+
+Run https://github.com/rthunborg/sunnyseat/actions/runs/34335828750 passed the
+same pre-browser gates and **155 E2E tests**, with 51 existing skips and four
+failures. The pin locator and scroll/layout checks passed. The remaining failures
+were later assertions in two tests on both breakpoints: old coach legend copy,
+and weatherUnknown=false for the deliberately unknown feedback fallback.
+The tests now assert the frozen approved two-signal Swedish legend wording and
+weatherUnknown=true (derived from directSunState by feedback-session). This
+clarifies the preceding checkpoint's reference to legacy flags; the stored
+feedback evidence correctly carries unknown, not a clear-weather claim.
+
+No application code changed. TypeScript, lint and full Vitest passed again:
+229 local files / 2,174 tests; `ci-copy-vitest.log`. The downloaded CI artifact
+`ci-artifacts/story-12-11-coach-mark-gui-3ab86-eedback-detail-side-effects-{mobile,desktop}/coach-footer.png`
+was actually inspected on both breakpoints: controls are visible after scrolling,
+with qualified legend copy intact. These are two additional screenshot
+inspections, not automated reference comparisons. CI rerun still must complete
+before merge. No local resource was launched; verified cleanup remains unchanged.
