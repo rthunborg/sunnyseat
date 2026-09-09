@@ -362,7 +362,13 @@ async function getVenuesHandler(request: NextRequest) {
   } else {
     freshness = resolveFixtureSunFreshness(params);
     processedVenues = storeVenues
-      .map((v) => normalizeVenueForResponse(v))
+      .map(({
+        engineLocation: _engineLocation,
+        seatingArea: _seatingArea,
+        seatingElevationM: _seatingElevationM,
+        groundElevationM: _groundElevationM,
+        ...venue
+      }) => normalizeVenueForResponse(venue))
       .map((v) => applyFixtureWeatherAvailability(v, freshness))
       .map((v) => applyPlannerSelectionToVenue(v, planner.selection))
       .map((v) => ({

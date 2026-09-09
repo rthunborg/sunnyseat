@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import { GET, validateVenueUniqueness } from '@/app/api/venues/route';
+import { GET, validateVenueUniqueness, __setVenueStoreForTests } from '@/app/api/venues/route';
 import {
   isE2eRateLimitBypassEnabled,
   venueRateLimitMiddleware as middleware,
 } from '@/lib/utils/venue-rate-limit-middleware';
 import { clearVenueRateLimitForTests } from '@/lib/utils/rate-limit';
-import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
+import { normalizeVenueForResponse, VENUE_FIXTURE } from '@/lib/services/venues-fixture';
 import { sunSeasonBounds } from '@/lib/utils/time-planner';
 import type { GetVenuesResponse, VenueDataDto } from '@/lib/types/api';
 import { expectNoSensitiveSourceTerms } from '../../setup/sensitive-source-terms';
@@ -24,6 +24,25 @@ describe('GET /api/venues', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    __setVenueStoreForTests(undefined);
+  });
+
+  it('does not serialize server-only engine inputs when using the fallback list path', async () => {
+    __setVenueStoreForTests(async () => [{
+      ...VENUE_FIXTURE[0],
+      engineLocation: { lat: 57.71, lng: 11.98 },
+      seatingArea: { type: 'Polygon', coordinates: [[[11.98, 57.71], [11.981, 57.71], [11.981, 57.711], [11.98, 57.71]]] },
+      seatingElevationM: 2,
+      groundElevationM: 3,
+    }]);
+    const response = await GET(makeRequest('?lat=57.7089&lng=11.9746'));
+    expect(response.status).toBe(200);
+    const body = await response.json() as GetVenuesResponse;
+    expect(body.venues).toHaveLength(1);
+    for (const field of ['engineLocation', 'seatingArea', 'seatingElevationM', 'groundElevationM']) {
+      expect(body.venues[0]).not.toHaveProperty(field);
+    }
+    expect(body.venues[0].directSunState).toBe('likely');
   });
 
   it('carries real tags on each venue DTO and does NOT tag-filter server-side (Story 9.7)', async () => {
