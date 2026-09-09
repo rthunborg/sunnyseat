@@ -897,3 +897,39 @@ The unrelated `.codex/config.toml` change and both protected untracked paths sta
 outside the security commit. PR #29 CI and the subsequent main deployment must
 confirm the remote outcome; no claim of their completion is made at this local
 checkpoint.
+
+### Full CI follow-up — 2026-09-09
+
+Security commit `8521a1a` passed clean Linux install, production audit (zero),
+TypeScript, lint, build, all committed unit tests and unchanged bundle budgets.
+Vercel preview `dpl_Gg8wJF4c9nn9oYjMWShAo8esQCmC` reached READY in dub1. GitHub
+run https://github.com/rthunborg/sunnyseat/actions/runs/34333691620 then reported
+**151 E2E passes, 51 skips and eight failures** (four tests on each breakpoint).
+Later touch/accessibility/Lighthouse steps were skipped by that failure.
+
+The follow-up changes only three E2E files:
+- Feedback evidence now expects the neutral grey verdict for the synthetic
+  forced-detail fallback that intentionally has no authoritative directSunState.
+  Its legacy geometry/weather flags remain independently asserted.
+- The unknown map-pin locator is scoped to venue-pin, avoiding a strict-locator
+  collision with the corrected VenueList uncertainty label.
+- The coach guide footer is scrolled into view inside its existing scrollable
+  dialog before checking clipping, geometry, spacing and touch-target bounds.
+  No bounds tolerance is relaxed; the test also captures `coach-footer.png`.
+
+An attempted change to add likely evidence to the dev fallback was rejected by
+its existing MapView unit regression and withdrawn before commit. Production and
+dev application behavior remain unchanged; Epic 12 is not reopened. Final local
+`npx tsc --noEmit`, `npx eslint . --quiet`, and `npx vitest run` pass again:
+**229 files / 2,174 tests** (local count includes the protected untracked test).
+Evidence: `ci-tests-vitest-final.log`; the failed exploratory run is retained in
+`ci-fixture-vitest.log` under the evidence root above.
+
+A new local managed browser launch was rejected with `ACTOR_CLOSING` after this
+actor's earlier CloseActor. No unmanaged fallback was started. A further
+CloseActor/List verified zero active resources, and the context-bearing helper
+was removed. Browser execution of these three test corrections is delegated to
+the normal GitHub CI rerun; it is not claimed as a local browser pass or screenshot
+inspection. This is the expected closed-actor guard boundary, not missing trusted
+context or a restarted machine-hook investigation. Final `git diff --check`
+passed. The PR remains unmerged pending the new remote result.

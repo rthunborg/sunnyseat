@@ -224,6 +224,10 @@ async function expectCenteredSkipSplitFooterLayout(
   await expect(back).toBeDisabled();
   await expectRenderedActionColors(page, skipPill, next);
 
+  // The dialog deliberately scrolls when the legend exceeds its available
+  // height. Bring the complete footer into view before measuring its bounds.
+  await dialog.getByTestId('coach-tour-actions').scrollIntoViewIfNeeded();
+
   const [dialogBox, skipBox, skipPillBox, skipRowBox, navigationBox, backBox, nextBox] =
     await Promise.all([
       requiredBox(dialog, 'dialog'),
@@ -313,6 +317,7 @@ async function expectCenteredSkipSplitFooterLayout(
       dialogBox.y + dialogBox.height + GEOMETRY_TOLERANCE_PX,
     );
   }
+  await page.screenshot({ path: testInfo.outputPath('coach-footer.png'), animations: 'disabled' });
 }
 
 async function openSettings(page: Page, testInfo: TestInfo): Promise<void> {

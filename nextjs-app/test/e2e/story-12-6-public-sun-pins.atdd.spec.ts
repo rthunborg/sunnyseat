@@ -123,7 +123,9 @@ test.describe('Story 12.6 - deterministic public-sun pin journey', () => {
     const exact = page.getByRole('button', { name: /Exakt femtio.*ingen direkt sol v.ntas vid vald tid/i });
     const gated = page.getByRole('button', { name: /Molngatad hog.*ingen direkt sol v.ntas vid vald tid/i });
     const over = page.getByRole('button', { name: /Precis over.*direkt sol sannolik vid vald tid.*51/i });
-    const unknown = page.getByRole('button', { name: /Okant vader.*oklart om direkt sol vid vald tid/i });
+    const unknown = page.getByTestId('venue-pin').and(
+      page.getByRole('button', { name: /Okant vader.*oklart om direkt sol vid vald tid/i }),
+    );
 
     for (const grey of [low, exact, gated]) {
       await expect(grey).toBeVisible();
