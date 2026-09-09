@@ -91,7 +91,7 @@ export function VenueCard({
   isSunny,
   weatherGateState,
   directSunState,
-  isObscured = false,
+  isObscured: rawIsObscured = false,
   availabilityState,
   visualMetadata,
   labels,
@@ -102,6 +102,7 @@ export function VenueCard({
   staggerIndex = 0,
   animateIn = false,
 }: VenueCardProps) {
+  const isObscured = rawIsObscured && directSunState === 'blocked';
   const sunPercent = formatVenueSunPercent(sunExposurePercent);
   const distance = formatVenueDistance(distanceMeters);
   // Story 12.13: the button's accessible name carries name + sun + distance
@@ -119,10 +120,8 @@ export function VenueCard({
     directSunUncertainLabel,
     closedAtSelectedTimeLabel,
   ].filter(Boolean).join('. ');
-  // Story 10.2 (AC1): the obscured state OVERRIDES both the amber "FULL SOL"/
-  // "DELVIS SOL" path AND the grey "MEST SKUGGA" path with the muted "Sol
-  // bakom moln" headline. An obscured venue never shows amber sun copy.
-  const isUncertain = normalizeDirectSunState(directSunState) === 'unknown' && !isObscured;
+  // Compatibility obstruction never overrides the authoritative unknown state.
+  const isUncertain = normalizeDirectSunState(directSunState) === 'unknown';
   const statusLabel = isObscured
     ? (labels.statusObscured ?? 'SOL BAKOM MOLN')
     : isUncertain
@@ -390,7 +389,8 @@ function VenueCardThumbnail({
     <span
       data-testid="venue-card-thumbnail"
       className={cn(
-        'relative block shrink-0 overflow-hidden rounded-venue-image border border-dashed border-amber-dark/35 bg-surface-sand venue-photo-gradient shadow-subtle',
+        'relative block shrink-0 overflow-hidden rounded-venue-image border border-dashed shadow-subtle',
+        isSunny ? 'border-amber-dark/35 bg-surface-sand venue-photo-gradient' : 'border-divider bg-surface-muted',
         compact && 'h-venue-card-thumb-compact w-venue-card-thumb-compact',
         !compact && 'h-venue-card-thumb w-venue-card-thumb',
       )}
@@ -411,7 +411,7 @@ function VenueCardThumbnail({
             data-testid="venue-card-photo-fallback"
             role="img"
             aria-label={label}
-            className="flex size-full items-center justify-center text-display-lg text-amber-dark/55"
+            className={cn('flex size-full items-center justify-center text-display-lg', isSunny ? 'text-amber-dark/55' : 'text-text-body')}
           >
             {initials.slice(0, 1)}
           </span>

@@ -620,7 +620,7 @@ This roadmap follows the user journey priority: the map experience must work bef
 - Public UI and assistive text never expose a confidence percentage: remove it from list cards, QuickInfo, venue detail, card accessible names, sr-only lines, and the route overlay.
 - The route overlay retains its prediction-uncertainty honesty row when meaningful, renamed and rendered as uncertainty-only; remove empty separators/slots when no uncertainty copy exists.
 - The bold exposure value is separate from confidence and always means clear-sky geometric share without modelled building shade. It is unqualified only on the amber `likely` path; unknown views may show it only as explicitly labelled clear-sky potential.
-- Grey pins, grey cards, grey accessible names, and weather-gated presentations remain percentage-free. Weather/uncertainty copy may explain shade, clouds, rain, stale/missing weather, or model limitations without numeric confidence.
+- Grey pins, unqualified grey verdict headlines, grey accessible names, and weather-blocked presentations remain percentage-free. An `unknown` card or detail may show the geometric percentage only in the explicit qualified form “Vid klar himmel: {percent}% utan byggnadsskugga”, as defined by the Direct-Sun Truth matrix below. Weather/uncertainty copy may explain shade, clouds, rain, stale/missing weather, or model limitations without numeric confidence.
 - About may say confidence is tracked internally to prioritize improvements, but it must not teach or display a per-venue “Säkerhet” number.
 
 ## UX Consistency Patterns
@@ -1469,6 +1469,11 @@ reduced-motion behaviour remain unchanged.
 | unknown | “Oklart om direkt sol vid vald tid” | neutral plus “Vid klar himmel: {percent}% utan byggnadsskugga” |
 
 Unknown must not use “Väder saknas” unless weather is actually unavailable.
+Follow-up clarification (2026-09-07): direct state takes precedence over legacy
+status on cards, list activation names, QuickInfo, and detail/hero accessible
+names. “Sol bakom moln” requires `directSunState === 'blocked'`; a neutralized
+`CloudObscured + unknown` tuple uses only the unknown treatment and qualified
+clear-sky potential, without definite obscured or overcast claims.
 Individual unknown map pins use an explicit unknown accessible name. Because the
 same neutral pin shape also represents blocked outcomes, the legend explains
 that grey may mean geometry shade, weather obstruction, or uncertain weather;

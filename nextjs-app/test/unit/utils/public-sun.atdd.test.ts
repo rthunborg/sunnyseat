@@ -30,7 +30,12 @@ type PublicSunModule = {
   extractPublicSunWindow: (
     series: PublicSunStep[],
     options: { stepMinutes: number },
-  ) => { startMinutes: number; endMinutes: number; weatherGateState: 'not_gated' } | null;
+  ) => {
+    startMinutes: number;
+    endMinutes: number;
+    weatherGateState: 'not_gated';
+    status: 'Sunny' | 'Partial';
+  } | null;
   extractPublicSunPeak: (series: PublicSunStep[]) => PublicSunStep | null;
 };
 
@@ -46,6 +51,7 @@ describe('Story 12.6 - one public sunny predicate', () => {
     ['just above 50 is sunny only when likely', 50.01, 'not_gated', 'likely', 'Shaded', 1, true],
     ['40% Partial remains not sunny', 40, 'not_gated', 'likely', 'Partial', 99, false],
     ['gated high exposure remains not sunny', 95, 'gated', 'blocked', 'CloudObscured', 99, false],
+    ['contradictory gated likely evidence remains not sunny', 95, 'gated', 'likely', 'CloudObscured', 99, false],
     ['unknown high exposure retains geometry but is not sunny', 95, 'unknown', 'unknown', 'Sunny', 1, false],
   ] as const)(
     '[P0] %s',
@@ -96,7 +102,7 @@ describe('Story 12.6 - total comparator, window, and peak', () => {
     const { extractPublicSunWindow } = await loadPublicSun();
     const series: PublicSunStep[] = [
       { minutes: 360, sunExposurePercent: 51, weatherGateState: 'unknown', directSunState: 'unknown' },
-      { minutes: 375, sunExposurePercent: 70, weatherGateState: 'not_gated', directSunState: 'likely' },
+      { minutes: 375, sunExposurePercent: 70, weatherGateState: 'not_gated', directSunState: 'likely', currentSunStatus: 'Sunny' },
       { minutes: 390, sunExposurePercent: 100, weatherGateState: 'gated', directSunState: 'blocked' },
       { minutes: 405, sunExposurePercent: 80, weatherGateState: 'not_gated', directSunState: 'likely' },
       { minutes: 420, sunExposurePercent: 90, weatherGateState: 'unknown', directSunState: 'unknown' },
@@ -107,6 +113,23 @@ describe('Story 12.6 - total comparator, window, and peak', () => {
       startMinutes: 375,
       endMinutes: 375,
       weatherGateState: 'not_gated',
+      status: 'Sunny',
+    });
+  });
+
+  test('[P1] derives a multi-step window status from the qualifying run', async () => {
+    const { extractPublicSunWindow } = await loadPublicSun();
+    const series: PublicSunStep[] = [
+      { minutes: 540, sunExposurePercent: 10, weatherGateState: 'not_gated', directSunState: 'blocked', currentSunStatus: 'Shaded' },
+      { minutes: 720, sunExposurePercent: 95, weatherGateState: 'not_gated', directSunState: 'likely', currentSunStatus: 'Sunny' },
+      { minutes: 735, sunExposurePercent: 65, weatherGateState: 'not_gated', directSunState: 'likely', currentSunStatus: 'Partial' },
+    ];
+
+    expect(extractPublicSunWindow(series, { stepMinutes: 15 })).toEqual({
+      startMinutes: 720,
+      endMinutes: 735,
+      weatherGateState: 'not_gated',
+      status: 'Partial',
     });
   });
 

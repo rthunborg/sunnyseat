@@ -3193,8 +3193,10 @@ to each, and most review churn in this epic traced back to these five:**
    as-written or re-scopes the gate SPECS deliberately in the same change — never a
    silently-red gate. Corollary: ONE selected-instant source drives both the 12.14 filter
    and any hours copy. *(Binds 12.10, 12.14, 12.3.)*
-5. **One "sunny" boundary.** ">50% of seating sunlit AND not weather-gated" lives in ONE
-   shared predicate consumed by: pin colour AND the pin presentation/aria resolver (incl.
+5. **Historical "sunny" boundary, superseded by Epic 14.** Story 12 originally used
+   ">50% of seating sunlit AND not weather-gated". The binding launch predicate is now
+   `sunExposurePercent > 50 && directSunState === 'likely'`; `unknown` is neutral. That ONE
+   shared predicate is consumed by: pin colour AND the pin presentation/aria resolver (incl.
    the 35–50% low-`Partial` case), card copy/emphasis, server rank AND the client sort
    mirror (12.6), the feedback agreement mapping (12.2), the About legend (12.8) — and the
    **sun-window/peak labels**: `extractSunlitWindow` / `peakTimeFromTimeline` still use the
@@ -3352,13 +3354,14 @@ submitted for live venues
 **Given** the live `feedback` table accumulates `predicted_state` vs observed
 `sun_accuracy` (+ `note`) per venue, but the two use DIFFERENT vocabularies
 (`predicted_state` ∈ Sunny/Partial/Shaded/NoSun/CloudObscured vs `sun_accuracy` ∈
-sunny/not_sunny/unsure), and Story 12.6 moves "sunny" to the >50%-sunlit &
-not-weather-gated boundary
+sunny/not_sunny/unsure), and Epic 14 defines "sunny" as geometry above 50% plus
+`directSunState === 'likely'`
 **When** the aggregation (a SQL view / script) computes per-venue and per-area
 **agreement rate**
 **Then** it uses an EXPLICIT mapping, not a raw string compare: a prediction counts as
-"sunny" iff it matches the 12.6 rule (>50% sunlit AND not gated — i.e. the amber-pin
-condition, NOT "any Partial"), compared against `sun_accuracy` sunny/not_sunny; `unsure`
+"sunny" iff it matches the current shared rule (`sunExposurePercent > 50 &&
+directSunState === 'likely'` — the amber-pin condition, NOT "any Partial"), compared
+against `sun_accuracy` sunny/not_sunny; `unsure`
 feedback is handled by a stated policy (excluded from the rate, or reported separately) —
 so 35–50% and Partial/cloudy cases don't silently skew the ranked list
 
@@ -3770,6 +3773,13 @@ table
 
 ### Story 12.6: Simplify Map Pins — One Grey "Not Sunny" Pin, No Number
 
+> **Epic 14 supersession (2026-09-03):** This completed story records the visual
+> consolidation history; it is not reopened. Every affirmative predicate below is
+> governed by the current binding contract
+> `sunExposurePercent > 50 && directSunState === 'likely'`. Merely being
+> “not weather-gated” is insufficient because missing/incomplete weather is
+> `unknown`, never clear.
+
 _Context (2026-07-08, maintainer decision):_ today the map has THREE pin visuals
 (`VenuePin.tsx`): amber (Sunny/Partial), light-grey shaded (Shaded/NoSun), and a
 slate-grey "sol bakom moln" obscured pill (CloudObscured, Story 10.2) — and every
@@ -3787,9 +3797,9 @@ So that I instantly see where the sun is without misreading the percentage.
 
 **Given** the amber-vs-grey decision today keys off the Sunny/Partial/Shaded
 thresholds (amber at ≥30% sunlit)
-**When** the pin colour rule is changed per the MAINTAINER DECISION (2026-07-08) to a
-**50% cut**: a pin is **amber (sunny)** only when **more than 50%** of the seating is
-in sun AND it is not weather-gated; **grey (not sunny)** when **50% or less** is sunlit
+**When** the pin colour rule is evaluated under the Epic 14 contract: a pin is
+**amber (sunny)** only when **more than 50%** of the seating has clear-sky geometric
+exposure and `directSunState === 'likely'`; **grey (not sunny/uncertain)** otherwise
 **Then** a venue at e.g. 40% sunlit (amber today) shows GREY, and the card/label copy
 that says "sunny"/highlights the sun figure tracks the SAME 50% line so a grey-pinned
 venue is never described as sunny (reconcile the pin, the card "% sol" emphasis, and
@@ -3804,8 +3814,8 @@ ones on the rendered list
 **When** the 50% cut lands
 **Then** the ORDERING predicates are updated to the same boundary on BOTH sides — the server
 rank AND the client `getVenueSunRankForList`/`isVenueSunnyForList` (they are required to stay
-in lock-step) — so a grey venue (≤50% sunlit OR weather-gated) is never promoted into the
-sunny-first / "Mest sol" band above genuinely sunny (>50%, not-gated) venues; the sort, the
+in lock-step) — so a grey venue (≤50% geometry OR direct sun blocked/unknown) is never promoted into the
+sunny-first / "Mest sol" band above genuinely sunny (>50% geometry, `likely`) venues; the sort, the
 pin, and the card copy all agree on one line (covered by a server test AND a client
 list-order test)
 
@@ -3827,7 +3837,7 @@ requires flipping the i18n keys + tests, NOT just the visual + screenshots: `pin
 asserts the obscured aria contains the number (e.g. "88"), so the grey-pin variants are
 updated to a percent-free "inte soligt" contract and those pin-aria tests are flipped (else
 SR users still hear the old percentage). CRITICALLY, the presentation/aria RESOLVER keys on
-the shared **>50% predicate, not raw status**: a 35–50% venue keeps
+the shared **>50% plus `directSunState === 'likely'` predicate, not raw status**: a 35–50% venue keeps
 `currentSunStatus='Partial'`, and `VenuePin`/`VenuePinLayer` branch on STATUS today — so
 without this, a grey 40% venue would still get the sunny presentation + `pinPartialAria`
 with `{percent}`. The low-Partial case explicitly gets the grey percent-free contract,
@@ -3843,8 +3853,8 @@ are rebaselined and `REBASELINE-LOG.md` updated in the same operation
 - **Visual:** Two pin states only — amber sun pill with % (sunny), grey cloud pill
   with no number (not sunny); matches the design-token palette (`--color-amber-pin`,
   `--color-pin-*`)
-- **Behaviour:** amber ⟺ >50% sunlit and not weather-gated; grey otherwise (incl.
-  cloudy/rain-gated); the card never labels a grey-pinned venue "sunny"
+- **Behaviour:** amber ⟺ `sunExposurePercent > 50 && directSunState === 'likely'`;
+  grey otherwise (including blocked and unknown); the card never labels a grey-pinned venue "sunny"
 - **Animation:** No entrance flash when a venue crosses the gate on refresh (keep the
   existing `initial={false}` / duration-0 treatment on the grey pill)
 - **Visual validation:** Screenshot comparison of the map (mobile + desktop) against
@@ -4575,6 +4585,12 @@ unknown. Amber pins, ranking, peaks, windows, cards, detail, and accessibility
 copy require likely direct sun. Verification includes clear, broken cloud,
 overcast, precipitation, fog, stale, missing, contradictory, 90-minute/DST, API
 serialization, no-provider-read, component, and Playwright regression coverage.
+
+Follow-up conformance (2026-09-07): malformed present weather booleans remain
+timestamp-addressable unknown evidence; nonempty/malformed reasons invalidate
+`likely` for current and cached day-series DTOs. Direct-state `unknown` takes
+precedence over historical `CloudObscured` UI prose, including accessible names.
+Only `blocked` permits definite obscured presentation. Epic 12 remains closed.
 
 ### Story 14.2 — Ground-truth observation protocol
 

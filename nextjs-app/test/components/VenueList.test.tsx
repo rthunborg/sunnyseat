@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it, vi } from 'vitest';
 import { VenueList } from '@/components/custom/venue/VenueList';
+import { normalizeVenueForResponse, VENUE_FIXTURE } from '@/lib/services/venues-fixture';
 import { VenueListControls } from '@/components/composed/venue/VenueListControls';
 import venueMessages from '@/messages/sv/venue.json';
 import type { VenueDataDto } from '@/lib/types/api';
@@ -16,6 +17,18 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe('<VenueList />', () => {
+  it('keeps normalized legacy unknown out of the obscured activation name', () => {
+    const venue = normalizeVenueForResponse({
+      ...VENUE_FIXTURE[0], currentSunStatus: 'CloudObscured', weatherGateState: 'gated',
+      directSunState: 'likely', skyCondition: 'overcast',
+    });
+    render(<VenueList venues={[venue]} mode="mobile" onSelectVenue={vi.fn()} />, { wrapper: Wrapper });
+    const button = screen.getByRole('button', { name: /Välj/ });
+    expect(button).toHaveAccessibleName(/Oklart om direkt sol/);
+    expect(button).not.toHaveAccessibleName(/sol bakom moln/i);
+    expect(screen.getByTestId('venue-card')).not.toHaveTextContent('SOL BAKOM MOLN');
+  });
+
   it('announces the loading state semantically', () => {
     render(
       <VenueList

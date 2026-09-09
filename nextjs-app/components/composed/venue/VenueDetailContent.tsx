@@ -124,7 +124,7 @@ export function VenueDetailContent({
   const loading = isLoading && !detail;
   const metadata = getVenueVisualMetadata(venue, locale);
   // Story 10.2: the muted "Sol bakom moln" state + the plain-language sky line.
-  const isObscured = isObscuredSunStatus(venue.currentSunStatus);
+  const isObscured = venue.directSunState === 'blocked' && isObscuredSunStatus(venue.currentSunStatus);
   const skyLine = labels.sky
     ? skyConditionCopy(venue.skyCondition, {
         clear: labels.sky.clear,
@@ -381,7 +381,8 @@ function HeroImage({
   return (
     <div
       className={cn(
-        'relative overflow-hidden bg-surface-sand venue-detail-hero-gradient',
+        'relative overflow-hidden',
+        isPubliclySunny ? 'bg-surface-sand venue-detail-hero-gradient' : 'bg-surface-muted',
         isDesktop ? 'h-venue-detail-hero-desktop' : 'h-venue-detail-hero-mobile',
       )}
     >
@@ -404,18 +405,18 @@ function HeroImage({
         <div
           data-testid="venue-detail-hero-fallback"
           aria-label={alt}
-          className="flex size-full flex-col items-center justify-center gap-3"
+          className={cn('flex size-full flex-col items-center gap-3', isDirectSunUncertain ? 'justify-end pb-4' : 'justify-center')}
           role="img"
         >
-          <span className="flex size-16 items-center justify-center rounded-venue-image border border-dashed border-amber-dark/35 bg-surface-cream/70 text-text-muted shadow-subtle">
+          {!isDirectSunUncertain && <span className="flex size-16 items-center justify-center rounded-venue-image border border-dashed border-amber-dark/35 bg-surface-cream/70 text-text-muted shadow-subtle">
             <ImageIcon aria-hidden="true" className="size-8" />
-          </span>
-          <span className="text-label-sm text-text-muted">
+          </span>}
+          <span className="text-label-sm text-text-body">
             {labels.placeholderImageShort}
           </span>
-          <span className="text-heading-sm normal-case tracking-normal text-amber-dark">
+          {!isDirectSunUncertain && <span className="text-heading-sm normal-case tracking-normal text-amber-dark">
             {venue.venueName}
-          </span>
+          </span>}
         </div>
       )}
       {/* Story 10.2 (AC1): the always-amber hero sun badge is muted to slate
@@ -433,7 +434,8 @@ function HeroImage({
                 : notSunnyLabel
         }
         className={cn(
-          'absolute left-4 top-4 flex h-10 items-center justify-center gap-2 rounded-pill px-4 text-heading-lg backdrop-blur-standard shadow-subtle',
+          'absolute left-4 flex items-center justify-center gap-2 rounded-pill px-4 backdrop-blur-standard shadow-subtle',
+          isDirectSunUncertain ? 'right-4 top-16 min-h-10 py-2 text-heading-sm' : 'top-4 h-10 text-heading-lg',
           isObscured
             ? 'bg-pin-obscured text-white'
             : isPubliclySunny
@@ -454,7 +456,7 @@ function HeroImage({
             : null}
       </div>
       {isDirectSunUncertain && labels.clearSkyPotential && (
-        <p className="absolute left-4 top-16 rounded-pill bg-surface-cream/90 px-3 py-1 text-label-xs-medium text-text-body">
+        <p className="absolute left-4 right-4 top-28 rounded-pill bg-surface-cream/90 px-3 py-1 text-label-xs-medium text-text-body">
           {labels.clearSkyPotential.replace('{percent}', percentText)}
         </p>
       )}

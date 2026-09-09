@@ -1,8 +1,56 @@
 import { describe, expect, it } from 'vitest';
-import { gateGeometrySeriesWithWeatherSnapshots, selectSnapshotSliceForStep } from '@/lib/services/weather-snapshots';
+import {
+  gateGeometrySeriesWithWeatherSnapshots,
+  matchNowcastObservationToForecast,
+  normalizeWeatherSnapshotSlices,
+  refreshWeatherSnapshotsForVenue,
+  selectSnapshotSliceForStep,
+} from '@/lib/services/weather-snapshots';
 import { extractPublicSunPeak, extractPublicSunWindow, isVenuePubliclySunny } from '@/lib/utils/public-sun';
 
 describe('persisted weather snapshot direct-sun contract', () => {
+  it.each([true, false])('unknown duplicate evidence wins timestamp/minute ties (malformed first=%s)', (malformedFirst) => {
+    const clear = {
+      minutes: 720, validAt: '2026-07-01T10:00:00.000Z',
+      cloudCover: 0, cloudCoverLow: 0, cloudCoverMedium: 0, cloudCoverHigh: 0,
+      fogAreaFraction: 0, precipitationAmount: 0, symbolCode: 'clearsky_day',
+    };
+    const malformed = { ...clear, isRaining: 'true' };
+    const slices = normalizeWeatherSnapshotSlices(malformedFirst ? [malformed, clear] : [clear, malformed]);
+    for (const stockholmDate of ['2026-07-01', undefined]) {
+      const [step] = gateGeometrySeriesWithWeatherSnapshots({
+        geometrySeries: [{ minutes: 720, sunExposurePercent: 95 }],
+        weatherSlices: slices, stockholmDate,
+      });
+      expect(step.directSunState).toBe('unknown');
+      expect(isVenuePubliclySunny(step)).toBe(false);
+    }
+  });
+
+  it.each(['weatherUnknown', 'isRaining'] as const)('fails closed on malformed %s without selecting a clear neighbour', (flag) => {
+    const clear = {
+      minutes: 720, validAt: '2026-07-01T10:00:00.000Z',
+      cloudCover: 0, cloudCoverLow: 0, cloudCoverMedium: 0, cloudCoverHigh: 0,
+      fogAreaFraction: 0, precipitationAmount: 0, symbolCode: 'clearsky_day',
+    };
+    for (const value of ['true', 'false', null, 0, 1, {}, []]) {
+      const slices = normalizeWeatherSnapshotSlices([
+        { ...clear, [flag]: value },
+        { ...clear, minutes: 780, validAt: '2026-07-01T11:00:00.000Z' },
+      ], { requireValidAt: true });
+      expect(selectSnapshotSliceForStep({ requestedAt: new Date(clear.validAt), slices }))
+        .toMatchObject({ validAt: clear.validAt, weatherUnknown: true });
+      const series = gateGeometrySeriesWithWeatherSnapshots({
+        geometrySeries: [{ minutes: 720, sunExposurePercent: 95 }],
+        weatherSlices: slices, stockholmDate: '2026-07-01',
+      });
+      expect(series[0]).toMatchObject({ directSunState: 'unknown', weatherGateState: 'unknown' });
+      expect(isVenuePubliclySunny(series[0])).toBe(false);
+      expect(extractPublicSunWindow(series, { stepMinutes: 15 })).toBeNull();
+      expect(extractPublicSunPeak(series)).toBeNull();
+    }
+  });
+
   it('keeps fresh complete overcast out of public results, peaks, and windows', () => {
     const series = gateGeometrySeriesWithWeatherSnapshots({
       geometrySeries: [{ minutes: 720, sunExposurePercent: 95 }],
@@ -60,6 +108,111 @@ describe('persisted weather snapshot direct-sun contract', () => {
       startMinutes: 720,
       endMinutes: 720,
       weatherGateState: 'not_gated',
+      status: 'Sunny',
+    });
+  });
+
+  it('keeps positive 12:04 nowcast rain on the persisted 12:00 slice after a 12:05 refresh', async () => {
+    const validAt = '2026-07-03T12:00:00.000Z';
+    const nowcastMatch = matchNowcastObservationToForecast({
+      forecastSlices: [{ validAt }, { validAt: '2026-07-03T13:00:00.000Z' }],
+      observation: {
+        validAt: '2026-07-03T12:04:00.000Z',
+        precipitationRate: 0.4,
+      },
+      refreshedAt: new Date('2026-07-03T12:05:00.000Z'),
+    });
+    expect(nowcastMatch).toEqual({
+      forecastValidAt: validAt,
+      observation: {
+        validAt: '2026-07-03T12:04:00.000Z',
+        precipitationRate: 0.4,
+      },
+    });
+
+    const refreshed = await refreshWeatherSnapshotsForVenue({
+      now: new Date('2026-07-03T12:05:00.000Z'),
+      forecastSlices: [{
+        minutes: 840,
+        validAt,
+        cloudCover: 0,
+        cloudCoverLow: 0,
+        cloudCoverMedium: 0,
+        cloudCoverHigh: 0,
+        fogAreaFraction: 0,
+        precipitationAmount: 0,
+        symbolCode: 'clearsky_day',
+      }, {
+        minutes: 900,
+        validAt: '2026-07-03T13:00:00.000Z',
+        cloudCover: 0,
+      }],
+      nowcastObservation: nowcastMatch?.observation,
+    });
+    expect(refreshed.slices[0]).toMatchObject({
+      validAt,
+      nowcastValidAt: '2026-07-03T12:04:00.000Z',
+      nowcastPrecipitationRate: 0.4,
+      isRaining: true,
+    });
+    expect(refreshed.slices[1]).not.toHaveProperty('isRaining');
+
+    const [step] = gateGeometrySeriesWithWeatherSnapshots({
+      geometrySeries: [{ minutes: 840, sunExposurePercent: 95 }],
+      weatherSlices: refreshed.slices,
+    });
+
+    expect(step).toMatchObject({
+      directSunState: 'blocked',
+      directSunReasons: ['precipitation'],
+      weatherGateState: 'gated',
+      skyCondition: 'rain',
+    });
+  });
+
+  it('rejects a nowcast observation that is too old to be current evidence', () => {
+    expect(matchNowcastObservationToForecast({
+      forecastSlices: [{ validAt: '2026-07-03T12:00:00.000Z' }],
+      observation: {
+        validAt: '2026-07-03T11:49:00.000Z',
+        precipitationRate: 0.4,
+      },
+      refreshedAt: new Date('2026-07-03T12:05:00.000Z'),
+    })).toBeUndefined();
+  });
+
+  it('discards malformed persisted entries without crashing and retains a valid neighbour', () => {
+    const validSlice = {
+      minutes: 720,
+      validAt: '2026-07-01T10:00:00.000Z',
+      cloudCover: 100,
+      symbolCode: 'cloudy',
+    };
+    const malformed = [null, 'broken', 7, { validAt: 'not-a-time' }, validSlice];
+
+    expect(normalizeWeatherSnapshotSlices(malformed, { requireValidAt: true })).toEqual([
+      validSlice,
+    ]);
+    expect(() => gateGeometrySeriesWithWeatherSnapshots({
+      geometrySeries: [{ minutes: 720, sunExposurePercent: 95 }],
+      weatherSlices: malformed as never,
+    })).not.toThrow();
+    expect(gateGeometrySeriesWithWeatherSnapshots({
+      geometrySeries: [{ minutes: 720, sunExposurePercent: 95 }],
+      weatherSlices: malformed as never,
+    })[0]).toMatchObject({ directSunState: 'blocked', weatherGateState: 'gated' });
+  });
+
+  it('turns an all-malformed persisted array into unknown weather instead of throwing', () => {
+    const [step] = gateGeometrySeriesWithWeatherSnapshots({
+      geometrySeries: [{ minutes: 720, sunExposurePercent: 95 }],
+      weatherSlices: [null, false, 'broken'] as never,
+    });
+
+    expect(step).toMatchObject({
+      directSunState: 'unknown',
+      directSunReasons: ['weather-unavailable'],
+      weatherGateState: 'unknown',
     });
   });
 

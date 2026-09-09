@@ -37,6 +37,7 @@ import type {
   VenueDetailDto,
 } from '@/lib/types/api';
 import { sunFreshnessHeaders } from '@/lib/utils/sun-freshness';
+import { isVenuePubliclySunny } from '@/lib/utils/public-sun';
 import { withRequestLogging } from '@/lib/middleware/request-logger';
 
 type RouteContext = {
@@ -127,7 +128,9 @@ async function getVenueDetailHandler(_request: NextRequest, context: RouteContex
       ...(outcome.peakWeatherGateState
         ? { peakWeatherGateState: outcome.peakWeatherGateState }
         : {}),
-      windowStatus: adjustedVenue.currentSunStatus,
+      ...(adjustedVenue.sunWindow
+        ? { windowStatus: outcome.sunWindowStatus ?? 'Partial' }
+        : {}),
     };
   } else {
     freshness = resolveFixtureSunFreshness(_request.nextUrl.searchParams);
@@ -178,14 +181,10 @@ function buildDetailDto(
 ): VenueDetailDto {
   const openingHours = fixture?.openingHours ?? venue.openingHours;
   const rawWindowStatus = timelineProjection?.windowStatus ?? venue.currentSunStatus;
-  // Story 10.2 (AC2) + Iteration-2 review fix: on the LIVE real-engine path this
-  // status can be 'CloudObscured' after the direct-sun compatibility projection. The sun-window timeline is
-  // the geometric "when it clears" POTENTIAL, not a weather signal, so remap the
-  // obscured value back to the geometric 'Partial' tier here — mirroring the client
-  // `timelineFromListVenue` fallback remap so the server-loaded detail timeline and
-  // the pre-load fallback render identically. Without this the window ships
-  // 'CloudObscured', which SunTimeline/bestWindowLabel do not handle → a blank bar
-  // labelled "Shaded" (the exact dishonest label AC4 exists to prevent).
+  // Current persisted outcomes carry the status of the qualifying public-sun
+  // run. Keep the remap only as a fail-safe for older fixture/mocked outcomes:
+  // `CloudObscured` is not a valid window tier and must not become an unhandled,
+  // misleading timeline bar.
   const timelineWindowStatus =
     rawWindowStatus === 'CloudObscured' ? 'Partial' : rawWindowStatus;
   // STORY 11.9 (AC3): the stored `peak_time` fixture fallback is gone — peakTime
@@ -279,12 +278,21 @@ function parseStrictCoordinate(value: string | null): number | null {
 function timelineProjectionFromAdjustedVenue(
   venue: VenueDataDto,
 ): DetailTimelineProjection {
+  const selectedStatus = venue.currentSunStatus;
+  const windowStatus =
+    venue.sunWindow &&
+    isVenuePubliclySunny(venue) &&
+    (selectedStatus === 'Sunny' || selectedStatus === 'Partial')
+      ? selectedStatus
+      : venue.sunWindow
+        ? 'Partial'
+        : undefined;
   return {
     peakTime: peakTimeFromSunWindow(venue.sunWindow),
     ...(venue.sunWindow?.weatherGateState
       ? { peakWeatherGateState: venue.sunWindow.weatherGateState }
       : {}),
-    windowStatus: venue.currentSunStatus,
+    ...(windowStatus ? { windowStatus } : {}),
   };
 }
 

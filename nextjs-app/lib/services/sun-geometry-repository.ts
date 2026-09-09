@@ -19,6 +19,7 @@ import {
 import {
   gateGeometrySeriesWithWeatherSnapshots,
   getWeatherSnapshotRepositoryForRoute,
+  hasUsableWeatherSnapshotEvidenceForStep,
   prepareWeatherSnapshotRepositoryForVenueDays,
   type WeatherSnapshotRepository,
 } from '@/lib/services/weather-snapshots';
@@ -146,7 +147,9 @@ export async function buildPersistedSunOutcome(
     options.weatherBucket,
     stockholmDate,
   );
-  const weatherSlices = snapshot?.status === 'ready' ? snapshot.slices : [];
+  const weatherSlices = isUsableWeatherSnapshotForRequest(snapshot, requestedAt)
+    ? snapshot.slices
+    : [];
   const gatedSeries = gateGeometrySeriesWithWeatherSnapshots({
     geometrySeries: coverage.series,
     weatherSlices,
@@ -160,7 +163,7 @@ export async function buildPersistedSunOutcome(
     stepMinutes: PLANNER_STEP_MINUTES,
   });
   const publicSunPeak = extractPublicSunPeak(gatedSeries);
-  const freshness = freshnessFromSnapshot(snapshot);
+  const freshness = freshnessFromSnapshot(snapshot, requestedAt);
   const venueDto = normalizeVenueForResponse({
     ...toVenueData(venue),
     currentSunStatus: selectedStep.currentSunStatus,
@@ -193,6 +196,7 @@ export async function buildPersistedSunOutcome(
               : 'unknown' as const,
         }
       : {}),
+    ...(publicSunWindow ? { sunWindowStatus: publicSunWindow.status } : {}),
     daySeries: gatedSeries,
   };
 }
@@ -265,11 +269,23 @@ function assertCurrentCoverage(
   }
 }
 
-function freshnessFromSnapshot(snapshot: Awaited<ReturnType<WeatherSnapshotRepository['readSnapshotForVenueDay']>>): SunFreshnessMeta {
-  if (snapshot?.status === 'ready' && snapshot.weatherUpdatedAt && snapshot.slices.length > 0) {
+function freshnessFromSnapshot(
+  snapshot: Awaited<ReturnType<WeatherSnapshotRepository['readSnapshotForVenueDay']>>,
+  requestedAt: Date,
+): SunFreshnessMeta {
+  if (isUsableWeatherSnapshotForRequest(snapshot, requestedAt)) {
     return { sunDataSource: SUN_DATA_SOURCE_WEATHER, weatherUpdatedAt: snapshot.weatherUpdatedAt };
   }
   return { sunDataSource: SUN_DATA_SOURCE_GEOMETRY_ONLY };
+}
+
+function isUsableWeatherSnapshotForRequest(
+  snapshot: Awaited<ReturnType<WeatherSnapshotRepository['readSnapshotForVenueDay']>>,
+  requestedAt: Date,
+): snapshot is NonNullable<typeof snapshot> & { status: 'ready'; weatherUpdatedAt: string } {
+  if (snapshot?.status !== 'ready' || !snapshot.weatherUpdatedAt) return false;
+  if (!Number.isFinite(new Date(snapshot.weatherUpdatedAt).getTime())) return false;
+  return hasUsableWeatherSnapshotEvidenceForStep({ requestedAt, slices: snapshot.slices });
 }
 
 function nearestStep<T extends { minutes: number }>(series: readonly T[], minutes: number): T {

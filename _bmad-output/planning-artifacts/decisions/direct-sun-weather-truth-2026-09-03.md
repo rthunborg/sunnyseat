@@ -19,12 +19,16 @@ evidence is `unknown`; it never falls back to clear.
 
 ## Evidence and trace
 
-`refresh-weather-snapshots.ts` fetches Locationforecast `complete`, stores only
-weather slices in `weather_bucket_snapshots`, and the public venue read joins
-that snapshot with persisted geometry. `weather-snapshots.ts` matches an exact
-planner minute or nearest valid time within 90 minutes, classifies once, then
-`public-sun.ts` uses only `directSunState === 'likely'`. The request path does
-not call Met.no.
+`refresh-weather-snapshots.ts` fetches Locationforecast `complete`, retains a
+near-now radar observation with its provider valid time, and stores only weather
+slices in `weather_bucket_snapshots`. A current observation within 15 minutes of
+refresh is attached to exactly one closest forecast slice within 90 minutes, so
+rain at 12:04 is not lost merely because the current forecast period began at
+12:00. The public venue read joins that snapshot with persisted geometry.
+`weather-snapshots.ts` validates untrusted JSON, matches the nearest provider
+valid time within 90 minutes, classifies once, then `public-sun.ts` requires
+geometry above 50%, normalized `not_gated`, and `directSunState === 'likely'`.
+The request path does not call Met.no.
 
 The deterministic fixture `{ total: 100, low: 0, medium: 100, high: 0, fog:
 0, precipitation: 0, symbol: cloudy }` with 95% clear-sky geometry reproduces
@@ -67,6 +71,22 @@ the existing two-hour TTL.
 
 **Confirmed:** fresh complete-overcast fixtures previously became public sunny because the snapshot path used divergent cloud math and the public predicate accepted non-gated/unknown data. Fresh complete-overcast now deterministically yields `blocked`; scheduler expiry independently yields `unknown`. The public read path is snapshot-only.
 
+**External-review hardening:** positive radar rain can no longer be dropped at an
+hour boundary; malformed persisted arrays cannot crash classification; invalid
+or request-irrelevant snapshot evidence cannot claim weather provenance/full
+confidence; contradictory legacy DTO tuples fail closed; and detail windows
+carry the status of their qualifying run rather than the selected instant.
+
+**Follow-up conformance (2026-09-07):** malformed present boolean flags retain
+their slice identity as weather-unknown rather than becoming clear or allowing a
+neighbouring forecast to replace them. Nonempty/malformed `likely` reason
+payloads are contradictory and normalize to unknown on current/day-series DTOs.
+Retained `CloudObscured` compatibility status cannot override unknown copy or
+accessible names; definite obscured presentation requires `blocked`.
+These are implementation corrections to the accepted intent, not a new product
+decision. No ordinary live producer of contradictory likely reasons was found;
+that finding hardens the DTO boundary against legacy/corrupt/future producers.
+
 **Hypotheses to validate:** the conservative threshold is a useful launch guard but not a calibrated irradiance model; forecast-grid cloud fractions may disagree with local direct-beam conditions, especially around broken cloud, coastline effects, fog and short-lived showers.
 
 The original Gothenburg observation is consistent with the confirmed defect but
@@ -77,7 +97,7 @@ the repository defect.
 
 ## Precise decision trace and ownership
 
-`Met.no Locationforecast complete → met-no-service.ts (UTC provider valid time; coordinate request) → refresh-weather-snapshots.ts → weather_bucket_snapshots slices (total/low/medium/high cloud, fog, precipitation, symbol) → weather-snapshots.ts nearest ≤90-minute snapshot match + direct-sun-classifier.ts → persisted venue/day-series normalization → /api/venues and /api/venues/[slug] → TanStack query + planner scrub derivation → MapView, pins, cards, QuickInfo and detail.`
+`Met.no Locationforecast complete + timestamped Nowcast observation → provider parsing (UTC valid times; coordinate request) → one bounded observation-to-forecast match in refresh-weather-snapshots.ts → weather_bucket_snapshots slices (total/low/medium/high cloud, fog, precipitation, symbol, optional current-rain flag) → runtime validation + request-relevant nearest ≤90-minute match in weather-snapshots.ts → direct-sun-classifier.ts → fail-closed persisted venue/day-series normalization → /api/venues and /api/venues/[slug] → TanStack query + planner scrub derivation → MapView, pins, cards, QuickInfo and detail.`
 
 Only the scheduled refresh calls Met.no. API reads never call it. Geometry is owned by persisted solar coverage; weather classification is owned server-side; UI consumes serialized state/reasons and never reclassifies.
 
@@ -101,13 +121,15 @@ Provider uncertainty remains explicit: forecast grid resolution, update horizon,
 
 ## Deterministic reproduction and verification
 
-The focused regression is
-`test/unit/services/weather-snapshots.direct-sun.test.ts`; the classifier boundary
-is in `test/unit/services/direct-sun-classifier.test.ts`, and persisted/API/UI
-coverage extends the same case. From `nextjs-app` run:
+The focused regressions are
+`test/unit/services/weather-snapshots.direct-sun.test.ts`,
+`test/unit/services/sun-geometry-persisted-outcome.automate.test.ts`, and
+`test/unit/api/venues-route.cloud-gate.atdd.test.ts`; the classifier boundary is
+in `test/unit/services/direct-sun-classifier.test.ts`, and API/UI coverage extends
+the same case. From `nextjs-app` run:
 
 ```powershell
-npx vitest run test/unit/services/direct-sun-classifier.test.ts test/unit/services/weather-snapshots.direct-sun.test.ts
+npx vitest run test/unit/services/direct-sun-classifier.test.ts test/unit/services/weather-snapshots.direct-sun.test.ts test/unit/services/sun-geometry-persisted-outcome.automate.test.ts test/unit/api/venues-route.cloud-gate.atdd.test.ts
 npx vitest run
 npx tsc --noEmit
 npx eslint . --quiet

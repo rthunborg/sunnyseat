@@ -133,7 +133,7 @@ export function VenueQuickInfo({
       ? labels.distanceApproximate
       : null;
   // Story 10.2: the muted "Sol bakom moln" state + the plain-language sky line.
-  const isObscured = isObscuredSunStatus(currentSunStatus);
+  const isObscured = directSunState === 'blocked' && isObscuredSunStatus(currentSunStatus);
   const normalizedWeatherGateState = normalizeWeatherGateState(weatherGateState);
   const isPublicSunny = isVenuePubliclySunny({
     sunExposurePercent: sunExposurePercent ?? 0,
@@ -440,7 +440,9 @@ function VenueThumbnail({
     <div
       className={cn(
         'relative overflow-hidden rounded-t-card border-b border-divider flex items-center justify-center',
-        forcePlaceholder ? 'gradient-cta-amber' : 'bg-amber-primary venue-photo-gradient',
+        isPublicSunny
+          ? (forcePlaceholder ? 'gradient-cta-amber' : 'bg-amber-primary venue-photo-gradient')
+          : 'bg-surface-muted',
         compact ? 'h-18' : 'h-24',
       )}
     >
@@ -469,7 +471,7 @@ function VenueThumbnail({
               />
               <div
                 aria-hidden="true"
-                className="absolute left-5 bottom-3 h-10 w-24 rounded-pill bg-amber-pale/30"
+                className={cn('absolute left-5 bottom-3 h-10 w-24 rounded-pill', isPublicSunny ? 'bg-amber-pale/30' : 'bg-surface-icon-bg')}
               />
             </>
           ) : (
@@ -480,7 +482,7 @@ function VenueThumbnail({
               />
               <div
                 aria-hidden="true"
-                className="absolute right-8 top-5 h-20 w-20 rotate-12 rounded-badge border border-surface-cream/40 bg-amber-pale/35"
+                className={cn('absolute right-8 top-5 h-20 w-20 rotate-12 rounded-badge border border-surface-cream/40', isPublicSunny ? 'bg-amber-pale/35' : 'bg-surface-icon-bg')}
               />
               <div
                 aria-hidden="true"
@@ -488,7 +490,7 @@ function VenueThumbnail({
               />
               <span
                 aria-hidden="true"
-                className="relative rounded-badge border border-surface-cream/40 bg-surface-cream/80 px-3 py-2 text-label-lg text-amber-cta-text shadow-subtle"
+                className={cn('relative rounded-badge border border-surface-cream/40 bg-surface-cream/80 px-3 py-2 text-label-lg shadow-subtle', isPublicSunny ? 'text-amber-cta-text' : 'text-text-body')}
               >
                 {initials}
               </span>

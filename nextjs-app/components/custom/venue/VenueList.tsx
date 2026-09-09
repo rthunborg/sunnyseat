@@ -78,7 +78,7 @@ export function VenueList({
     <div className={cn('space-y-3', compact && 'space-y-2')}>
       {sortedVenues.map((venue, index) => {
         const sunTimeRange = resolveSunTimeRange(venue, t('sun'));
-        const isObscured = venue.currentSunStatus === 'CloudObscured';
+        const isObscured = venue.directSunState === 'blocked' && venue.currentSunStatus === 'CloudObscured';
         const availabilityState = availabilityByVenueId?.[venue.id];
         // Story 10.2 (AC4 — obscured phrase EXACTLY once): the obscured card's
         // accessible name is built HERE in ONE place via `cardAriaObscured`

@@ -10,7 +10,10 @@ import { PLANNER_MAX_FUTURE_DAYS } from '@/lib/utils/time-planner';
 
 type WeatherSnapshotsModule = {
   buildWeatherSnapshotWindow: (now: Date) => string[];
-  refreshWeatherSnapshotsForVenue: (input: unknown) => Promise<Record<string, unknown>>;
+  refreshWeatherSnapshotsForVenue: (input: unknown) => Promise<{
+    venueId?: string;
+    slices?: Array<Record<string, unknown>>;
+  }>;
   selectSnapshotSliceForStep: (input: unknown) => Record<string, unknown> | null;
   gateGeometrySeriesWithWeatherSnapshots: (input: unknown) => Array<Record<string, unknown>>;
 };
@@ -61,7 +64,7 @@ describe('Story 12.3 AC1/AC4 - weather snapshots cover the planner horizon witho
     ]);
   });
 
-  test('snapshot refresh preserves explicit rain true/false/unknown and only uses nowcast near now', async () => {
+  test('snapshot refresh preserves timestamped near-now rain on only the closest forecast slice', async () => {
     const { refreshWeatherSnapshotsForVenue } = await loadWeatherSnapshotsModule();
     const result = await refreshWeatherSnapshotsForVenue({
       venueId: 'venue-1',
@@ -70,17 +73,19 @@ describe('Story 12.3 AC1/AC4 - weather snapshots cover the planner horizon witho
         { validAt: '2026-07-18T07:15:00.000Z', cloudCover: 10 },
         { validAt: '2026-07-18T11:00:00.000Z', cloudCover: 10 },
       ],
-      nowcastRateByValidAt: {
-        '2026-07-18T07:15:00.000Z': 0.4,
+      nowcastObservation: {
+        validAt: '2026-07-18T07:14:00.000Z',
+        precipitationRate: 0.4,
       },
     });
 
-    expect(result).toMatchObject({
-      slices: expect.arrayContaining([
-        expect.objectContaining({ validAt: '2026-07-18T07:15:00.000Z', isRaining: true }),
-        expect.objectContaining({ validAt: '2026-07-18T11:00:00.000Z', isRaining: undefined }),
-      ]),
+    expect(result.slices?.[0]).toMatchObject({
+      validAt: '2026-07-18T07:15:00.000Z',
+      nowcastValidAt: '2026-07-18T07:14:00.000Z',
+      nowcastPrecipitationRate: 0.4,
+      isRaining: true,
     });
+    expect(result.slices?.[1]).not.toHaveProperty('isRaining');
   });
 
   test('Met.no forecast retention is no longer hard-coded to the first retained slices', () => {
@@ -88,5 +93,13 @@ describe('Story 12.3 AC1/AC4 - weather snapshots cover the planner horizon witho
 
     expect(source).not.toContain('timeseries.slice(0, 48)');
     expect(source).toMatch(/PLANNER_MAX_FUTURE_DAYS|WEATHER_SNAPSHOT_HORIZON|forecastHorizon/i);
+  });
+
+  test('scheduled persistence matches timestamped nowcast evidence instead of requiring a future forecast start', () => {
+    const source = readFileSync(join(process.cwd(), 'scripts/refresh-weather-snapshots.ts'), 'utf8');
+
+    expect(source).toContain('getNowcastPrecipitationObservation');
+    expect(source).toContain('matchNowcastObservationToForecast');
+    expect(source).not.toMatch(/validAtMs\s*>=\s*now\.getTime\(\)/u);
   });
 });

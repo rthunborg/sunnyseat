@@ -26,6 +26,8 @@ export type WeatherSnapshotSlice = {
   fogAreaFraction?: number;
   precipitationAmount?: number;
   symbolCode?: string;
+  nowcastValidAt?: string;
+  nowcastPrecipitationRate?: number;
   isRaining?: boolean;
   weatherUnknown?: boolean;
 };
@@ -36,6 +38,115 @@ export type WeatherSnapshotRecord = {
   weatherUpdatedAt?: string;
   slices: WeatherSnapshotSlice[];
 };
+
+export type SnapshotNowcastObservation = {
+  validAt: string;
+  precipitationRate: number;
+};
+
+export type SnapshotNowcastMatch = {
+  forecastValidAt: string;
+  observation: SnapshotNowcastObservation;
+};
+
+/** Nowcast is a roughly five-minute product; older observations are not current evidence. */
+export const NOWCAST_OBSERVATION_MAX_AGE_MINUTES = 15;
+
+const SNAPSHOT_PERCENT_FIELDS = [
+  'cloudCover',
+  'cloudCoverLow',
+  'cloudCoverMedium',
+  'cloudCoverHigh',
+  'fogAreaFraction',
+] as const;
+
+/**
+ * Runtime trust boundary for JSON-backed weather slices.
+ *
+ * Invalid entries are discarded instead of being cast into the typed domain.
+ * A mixed array can therefore retain its valid evidence, while an all-malformed
+ * array becomes empty and is handled as weather-unknown.
+ */
+export function normalizeWeatherSnapshotSlices(
+  value: unknown,
+  options: { requireValidAt?: boolean } = {},
+): WeatherSnapshotSlice[] {
+  if (!Array.isArray(value)) return [];
+  const normalized: WeatherSnapshotSlice[] = [];
+  for (const candidate of value) {
+    const slice = normalizeWeatherSnapshotSlice(candidate, options.requireValidAt === true);
+    if (slice) normalized.push(slice);
+  }
+  return normalized;
+}
+
+/**
+ * Attach one timestamped near-now radar observation to the closest forecast
+ * slice. This avoids both losing rain just after an hourly boundary and applying
+ * a single instantaneous rate to every slice in the 90-minute forecast horizon.
+ */
+export function matchNowcastObservationToForecast(input: {
+  forecastSlices: ReadonlyArray<{ validAt?: Date | string }>;
+  observation?: SnapshotNowcastObservation;
+  refreshedAt: Date;
+  maxForecastMatchMinutes?: number;
+}): SnapshotNowcastMatch | undefined {
+  const refreshedAtMs = input.refreshedAt.getTime();
+  const observationAtMs = input.observation
+    ? new Date(input.observation.validAt).getTime()
+    : Number.NaN;
+  const precipitationRate = input.observation?.precipitationRate;
+  if (
+    !Number.isFinite(refreshedAtMs) ||
+    !Number.isFinite(observationAtMs) ||
+    typeof precipitationRate !== 'number' ||
+    !Number.isFinite(precipitationRate) ||
+    precipitationRate < 0 ||
+    Math.abs(observationAtMs - refreshedAtMs) > NOWCAST_OBSERVATION_MAX_AGE_MINUTES * 60_000
+  ) {
+    return undefined;
+  }
+
+  let closestValidAt: string | undefined;
+  let closestDelta = Number.POSITIVE_INFINITY;
+  for (const slice of input.forecastSlices) {
+    if (slice.validAt === undefined) continue;
+    const validAtMs = new Date(slice.validAt).getTime();
+    if (!Number.isFinite(validAtMs)) continue;
+    const delta = Math.abs(validAtMs - observationAtMs);
+    if (delta < closestDelta) {
+      closestDelta = delta;
+      closestValidAt = new Date(validAtMs).toISOString();
+    }
+  }
+
+  const maxForecastMatchMs = (input.maxForecastMatchMinutes ?? 90) * 60_000;
+  return closestValidAt && closestDelta <= maxForecastMatchMs
+    ? {
+        forecastValidAt: closestValidAt,
+        observation: {
+          validAt: new Date(observationAtMs).toISOString(),
+          precipitationRate,
+        },
+      }
+    : undefined;
+}
+
+/** Persist the matched observation and derive the legacy rain blocker from it. */
+export function attachMatchedNowcastEvidence(
+  slice: WeatherSnapshotSlice,
+  match: SnapshotNowcastMatch | undefined,
+): WeatherSnapshotSlice {
+  const sliceValidAt = normalizedInstant(slice.validAt);
+  if (!sliceValidAt || match?.forecastValidAt !== sliceValidAt) return { ...slice };
+  return {
+    ...slice,
+    validAt: sliceValidAt,
+    nowcastValidAt: match.observation.validAt,
+    nowcastPrecipitationRate: match.observation.precipitationRate,
+    isRaining: match.observation.precipitationRate > 0,
+  };
+}
 
 export interface WeatherSnapshotRepository {
   readSnapshotForVenueDay(
@@ -72,20 +183,18 @@ export async function refreshWeatherSnapshotsForVenue(input: {
   venueId?: string;
   now?: Date;
   forecastSlices?: Array<Omit<WeatherSnapshotSlice, 'isRaining' | 'weatherUnknown'>>;
-  nowcastRateByValidAt?: Record<string, number | undefined>;
+  nowcastObservation?: SnapshotNowcastObservation;
 }): Promise<{ venueId?: string; slices: WeatherSnapshotSlice[] }> {
   const now = input.now ?? new Date();
-  const horizonMs = 90 * 60 * 1000;
-  const slices = (input.forecastSlices ?? []).map((slice) => {
-    const validAt = slice.validAt;
-    const validAtMs = validAt ? new Date(validAt).getTime() : Number.NaN;
-    const isNearNow = validAtMs >= now.getTime() && validAtMs <= now.getTime() + horizonMs;
-    const rate = isNearNow && validAt ? input.nowcastRateByValidAt?.[validAt] : undefined;
-    return {
-      ...slice,
-      isRaining: rate !== undefined ? rate > 0 : undefined,
-    };
+  const forecastSlices = input.forecastSlices ?? [];
+  const nowcastMatch = matchNowcastObservationToForecast({
+    forecastSlices,
+    observation: input.nowcastObservation,
+    refreshedAt: now,
   });
+  const slices = forecastSlices.map((slice) =>
+    attachMatchedNowcastEvidence(slice, nowcastMatch),
+  );
   return { venueId: input.venueId, slices };
 }
 
@@ -94,7 +203,8 @@ export function selectSnapshotSliceForStep(input: {
   slices: WeatherSnapshotSlice[];
   maxStalenessMinutes?: number;
 }): WeatherSnapshotSlice {
-  const { requestedAt, slices } = input;
+  const { requestedAt } = input;
+  const slices = normalizeWeatherSnapshotSlices(input.slices);
   const requestedAtMs = requestedAt.getTime();
   if (!Number.isFinite(requestedAtMs)) return { weatherUnknown: true };
   const maxStalenessMs = (input.maxStalenessMinutes ?? 90) * 60 * 1000;
@@ -105,7 +215,7 @@ export function selectSnapshotSliceForStep(input: {
     const validAtMs = new Date(slice.validAt).getTime();
     if (!Number.isFinite(validAtMs)) continue;
     const delta = Math.abs(validAtMs - requestedAtMs);
-    if (delta < bestDelta) {
+    if (delta < bestDelta || (delta === bestDelta && slice.weatherUnknown === true)) {
       best = slice;
       bestDelta = delta;
     }
@@ -122,9 +232,12 @@ export function gateGeometrySeriesWithWeatherSnapshots(input: {
   venue?: WeatherSnapshotVenue;
   stockholmDate?: string;
 }): VenueDaySeriesEntry[] {
+  const weatherSlices = normalizeWeatherSnapshotSlices(input.weatherSlices);
   const weatherByMinutes = new Map<number, WeatherSnapshotSlice>();
-  for (const slice of input.weatherSlices ?? []) {
-    if (typeof slice.minutes === 'number') weatherByMinutes.set(slice.minutes, slice);
+  for (const slice of weatherSlices) {
+    if (typeof slice.minutes === 'number' && weatherByMinutes.get(slice.minutes)?.weatherUnknown !== true) {
+      weatherByMinutes.set(slice.minutes, slice);
+    }
   }
 
   return input.geometrySeries.map((entry) => {
@@ -133,7 +246,7 @@ export function gateGeometrySeriesWithWeatherSnapshots(input: {
     // boundary. Minute-only matching remains solely for isolated pure fixtures.
     const matchedWeather = input.stockholmDate
       ? nearestSnapshotSliceForGeometryStep(
-          input.weatherSlices ?? [],
+          weatherSlices,
           input.stockholmDate,
           entry.minutes,
         )
@@ -164,6 +277,24 @@ export function gateGeometrySeriesWithWeatherSnapshots(input: {
   });
 }
 
+/**
+ * Report weather-backed freshness only when the requested step can consume a
+ * timestamped slice with real forecast evidence. A nominally `ready` row with
+ * an empty/malformed body must not receive full weather confidence.
+ */
+export function hasUsableWeatherSnapshotEvidenceForStep(input: {
+  requestedAt: Date;
+  slices: WeatherSnapshotSlice[];
+  maxStalenessMinutes?: number;
+}): boolean {
+  const slice = selectSnapshotSliceForStep(input);
+  if (slice.weatherUnknown === true) return false;
+  return SNAPSHOT_PERCENT_FIELDS.some((field) => slice[field] !== undefined) ||
+    slice.precipitationAmount !== undefined ||
+    slice.symbolCode !== undefined ||
+    (slice.nowcastValidAt !== undefined && slice.nowcastPrecipitationRate !== undefined);
+}
+
 function nearestSnapshotSliceForGeometryStep(
   slices: WeatherSnapshotSlice[],
   stockholmDate: string | undefined,
@@ -183,6 +314,85 @@ function isUsableSnapshotWeather(
 ): weather is WeatherSnapshotSlice {
   if (!weather || weather.weatherUnknown === true) return false;
   return true;
+}
+
+function normalizeWeatherSnapshotSlice(
+  candidate: unknown,
+  requireValidAt: boolean,
+): WeatherSnapshotSlice | undefined {
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return undefined;
+  const raw = candidate as Record<string, unknown>;
+
+  const minutes = finiteIntegerInRange(raw.minutes, 0, 24 * 60 - 1);
+  const validAt = normalizedInstant(raw.validAt);
+  if (requireValidAt && !validAt) return undefined;
+  if (minutes === undefined && !validAt) return undefined;
+
+  const slice: WeatherSnapshotSlice = {};
+  if (minutes !== undefined) slice.minutes = minutes;
+  if (validAt) slice.validAt = validAt;
+  if (['weatherUnknown', 'isRaining'].some((field) =>
+    Object.hasOwn(raw, field) && typeof raw[field] !== 'boolean',
+  )) {
+    // Keep the identity so nearest-time matching cannot replace malformed
+    // current evidence with a neighbouring clear forecast.
+    return { ...slice, weatherUnknown: true };
+  }
+  for (const field of SNAPSHOT_PERCENT_FIELDS) {
+    const value = finiteNumberInRange(raw[field], 0, 100);
+    if (value !== undefined) slice[field] = value;
+  }
+  const precipitationAmount = finiteNumberInRange(
+    raw.precipitationAmount,
+    0,
+    Number.POSITIVE_INFINITY,
+  );
+  if (precipitationAmount !== undefined) slice.precipitationAmount = precipitationAmount;
+  if (typeof raw.symbolCode === 'string' && raw.symbolCode.trim()) {
+    slice.symbolCode = raw.symbolCode.trim();
+  }
+  const nowcastValidAt = normalizedInstant(raw.nowcastValidAt);
+  const nowcastPrecipitationRate = finiteNumberInRange(
+    raw.nowcastPrecipitationRate,
+    0,
+    Number.POSITIVE_INFINITY,
+  );
+  if (nowcastValidAt && nowcastPrecipitationRate !== undefined) {
+    slice.nowcastValidAt = nowcastValidAt;
+    slice.nowcastPrecipitationRate = nowcastPrecipitationRate;
+    slice.isRaining = nowcastPrecipitationRate > 0;
+  } else if (typeof raw.isRaining === 'boolean') {
+    // Backward-compatible for still-unexpired pre-hardening snapshots. A false
+    // flag remains non-affirmative in the classifier.
+    slice.isRaining = raw.isRaining;
+  }
+  if (typeof raw.weatherUnknown === 'boolean') slice.weatherUnknown = raw.weatherUnknown;
+  return slice;
+}
+
+function normalizedInstant(value: unknown): string | undefined {
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  const instantMs = new Date(value).getTime();
+  return Number.isFinite(instantMs) ? new Date(instantMs).toISOString() : undefined;
+}
+
+function finiteNumberInRange(
+  value: unknown,
+  minimum: number,
+  maximum: number,
+): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value >= minimum && value <= maximum
+    ? value
+    : undefined;
+}
+
+function finiteIntegerInRange(
+  value: unknown,
+  minimum: number,
+  maximum: number,
+): number | undefined {
+  const normalized = finiteNumberInRange(value, minimum, maximum);
+  return normalized !== undefined && Number.isInteger(normalized) ? normalized : undefined;
 }
 
 function isSunVisibleAtStep(
@@ -225,17 +435,15 @@ function weatherSnapshotRecordFromRow(row: PersistedWeatherSnapshotRow): Weather
     return {
       status: 'expired',
       bucket: typeof row.bucket_key === 'string' ? row.bucket_key : undefined,
-      weatherUpdatedAt:
-        typeof row.weather_updated_at === 'string' ? row.weather_updated_at : undefined,
+      weatherUpdatedAt: normalizedInstant(row.weather_updated_at),
       slices: [],
     };
   }
   return {
     status: 'ready',
     bucket: typeof row.bucket_key === 'string' ? row.bucket_key : undefined,
-    weatherUpdatedAt:
-      typeof row.weather_updated_at === 'string' ? row.weather_updated_at : undefined,
-    slices: Array.isArray(row.slices) ? row.slices : [],
+    weatherUpdatedAt: normalizedInstant(row.weather_updated_at),
+    slices: normalizeWeatherSnapshotSlices(row.slices, { requireValidAt: true }),
   };
 }
 

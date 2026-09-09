@@ -128,7 +128,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     currentSunStatus: 'Sunny',
     weatherGateState: 'not_gated',
     directSunState: 'likely',
-    skyCondition: 'partly-cloudy',
+    skyCondition: 'clear',
     isPartner: false,
     confidence: 78,
     distanceMeters: 0,
@@ -152,7 +152,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     currentSunStatus: 'Partial',
     weatherGateState: 'not_gated',
     directSunState: 'likely',
-    skyCondition: 'partly-cloudy',
+    skyCondition: 'clear',
     isPartner: false,
     confidence: 70,
     distanceMeters: 0,
@@ -180,7 +180,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     currentSunStatus: 'Partial',
     weatherGateState: 'not_gated',
     directSunState: 'likely',
-    skyCondition: 'partly-cloudy',
+    skyCondition: 'clear',
     isPartner: false,
     confidence: 66,
     distanceMeters: 0,
@@ -251,6 +251,7 @@ export function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
   const {
     predictionUncertainty: rawPredictionUncertainty,
     sunDaySeries: rawSunDaySeries,
+    directSunReasons: rawDirectSunReasons,
     ...venueWithoutUncertainty
   } = venue as VenueDataDto & {
     predictionUncertainty?: unknown;
@@ -286,17 +287,22 @@ export function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
   const url = normalizeThumbnailUrl(rawThumbnail?.url);
   const predictionUncertainty = normalizePredictionUncertainty(rawPredictionUncertainty);
   const sunDaySeries = normalizeSunDaySeries(rawSunDaySeries);
-  const directSunState = normalizeDirectSunState((venue as { directSunState?: unknown }).directSunState);
-  const directSunReasons = normalizeDirectSunReasons((venue as { directSunReasons?: unknown }).directSunReasons);
+  const directSun = normalizeDirectSunTuple({
+    currentSunStatus: venue.currentSunStatus,
+    weatherGateState: (venue as VenueDataDto & { weatherGateState?: unknown }).weatherGateState,
+    directSunState: (venue as { directSunState?: unknown }).directSunState,
+    directSunReasons: rawDirectSunReasons,
+    sunExposurePercent: venue.sunExposurePercent,
+    skyCondition: venue.skyCondition,
+  });
 
   return {
     ...venueWithoutUncertainty,
-    weatherGateState: normalizeWeatherGateStateForStatus(
-      venue.currentSunStatus,
-      (venue as VenueDataDto & { weatherGateState?: unknown }).weatherGateState,
-    ),
-    directSunState,
-    ...(directSunReasons.length > 0 ? { directSunReasons } : {}),
+    weatherGateState: directSun.weatherGateState,
+    directSunState: directSun.directSunState,
+    ...(Array.isArray(rawDirectSunReasons) || directSun.directSunReasons.length > 0
+      ? { directSunReasons: directSun.directSunReasons }
+      : {}),
     sunWindow,
     ...(sunDaySeries ? { sunDaySeries } : {}),
     thumbnail:
@@ -331,17 +337,67 @@ function normalizeSunDaySeries(value: unknown): VenueDaySeriesEntry[] | undefine
   if (!Array.isArray(value)) return undefined;
   return value
     .filter((entry): entry is VenueDaySeriesEntry => Boolean(entry) && typeof entry === 'object')
-    .map((entry) => ({
-      ...entry,
-      weatherGateState: normalizeWeatherGateStateForStatus(
-        entry.currentSunStatus,
-        (entry as VenueDaySeriesEntry & { weatherGateState?: unknown }).weatherGateState,
-      ),
-      directSunState: normalizeDirectSunState((entry as { directSunState?: unknown }).directSunState),
-      ...(normalizeDirectSunReasons((entry as { directSunReasons?: unknown }).directSunReasons).length > 0
-        ? { directSunReasons: normalizeDirectSunReasons((entry as { directSunReasons?: unknown }).directSunReasons) }
-        : {}),
-    }));
+    .map((entry) => {
+      const directSun = normalizeDirectSunTuple({
+        currentSunStatus: entry.currentSunStatus,
+        weatherGateState: (entry as VenueDaySeriesEntry & { weatherGateState?: unknown }).weatherGateState,
+        directSunState: (entry as { directSunState?: unknown }).directSunState,
+        directSunReasons: (entry as { directSunReasons?: unknown }).directSunReasons,
+        sunExposurePercent: entry.sunExposurePercent,
+        skyCondition: entry.skyCondition,
+      });
+      const { directSunReasons: _rawDirectSunReasons, ...entryWithoutReasons } = entry;
+      return {
+        ...entryWithoutReasons,
+        weatherGateState: directSun.weatherGateState,
+        directSunState: directSun.directSunState,
+        ...(Array.isArray(entry.directSunReasons) || directSun.directSunReasons.length > 0
+          ? { directSunReasons: directSun.directSunReasons }
+          : {}),
+      };
+    });
+}
+
+function normalizeDirectSunTuple(input: {
+  currentSunStatus: VenueDataDto['currentSunStatus'];
+  weatherGateState: unknown;
+  directSunState: unknown;
+  directSunReasons: unknown;
+  sunExposurePercent: unknown;
+  skyCondition: unknown;
+}): {
+  weatherGateState: VenueDataDto['weatherGateState'];
+  directSunState: NonNullable<VenueDataDto['directSunState']>;
+  directSunReasons: DirectSunReason[];
+} {
+  const weatherGateState = normalizeWeatherGateStateForStatus(
+    input.currentSunStatus,
+    input.weatherGateState,
+  );
+  const directSunState = normalizeDirectSunState(input.directSunState);
+  const directSunReasons = normalizeDirectSunReasons(input.directSunReasons);
+  const exposure = typeof input.sunExposurePercent === 'number' && Number.isFinite(input.sunExposurePercent)
+    ? input.sunExposurePercent
+    : Number.NaN;
+  const coherentLikely =
+    // Likely has no blocking/uncertainty reasons. Do not erase malformed or
+    // unrecognized reason payloads into an apparently coherent empty list.
+    (input.directSunReasons === undefined ||
+      (Array.isArray(input.directSunReasons) && input.directSunReasons.length === 0)) &&
+    weatherGateState === 'not_gated' &&
+    (input.currentSunStatus === 'Sunny' || input.currentSunStatus === 'Partial') &&
+    exposure > 50 && exposure <= 100 &&
+    (input.skyCondition === undefined || input.skyCondition === 'clear');
+
+  if (directSunState !== 'likely' || coherentLikely) {
+    return { weatherGateState, directSunState, directSunReasons };
+  }
+
+  return {
+    weatherGateState: input.currentSunStatus === 'CloudObscured' ? 'gated' : 'unknown',
+    directSunState: 'unknown',
+    directSunReasons: [...new Set([...directSunReasons, 'contradictory-weather' as const])],
+  };
 }
 
 const DIRECT_SUN_REASONS: ReadonlySet<DirectSunReason> = new Set([

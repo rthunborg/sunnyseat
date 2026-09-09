@@ -32,12 +32,14 @@ describe('Story 12.6 automation - public-sun contract defects', () => {
       sunExposurePercent: 80,
       weatherGateState: 'not_gated' as const,
       directSunState: 'likely' as const,
+      currentSunStatus: 'Sunny' as const,
     };
     const earlier = {
       minutes: 630,
       sunExposurePercent: 80,
       weatherGateState: 'not_gated' as const,
       directSunState: 'likely' as const,
+      currentSunStatus: 'Sunny' as const,
     };
 
     expect(extractPublicSunPeak([later, earlier])).toEqual(earlier);

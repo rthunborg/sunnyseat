@@ -394,4 +394,70 @@ describe('Story 12.3 persisted public-read batching', () => {
     ).resolves.toBeNull();
     expect(supabaseMock.from).toHaveBeenCalledTimes(1);
   });
+
+  test('sanitizes malformed JSON weather slices at the persisted-row boundary', async () => {
+    const mixedVenue = makeVenue(1, 0);
+    const malformedVenue = makeVenue(2, 1);
+    supabaseMock.state.weatherResult = {
+      data: [
+        {
+          coordinate_bucket: coordinateBucket(mixedVenue),
+          bucket_key: 'current',
+          stockholm_date: STOCKHOLM_DATE,
+          weather_updated_at: '2026-07-18T10:55:00.000Z',
+          expires_at: '2026-07-18T13:00:00.000Z',
+          slices: [
+            null,
+            42,
+            'not-a-slice',
+            { minutes: 720, cloudCover: 100 },
+            {
+              minutes: 720,
+              validAt: '2026-07-18T10:00:00.000Z',
+              cloudCover: 100,
+              precipitationAmount: 0.4,
+              symbolCode: 'cloudy',
+            },
+          ],
+        },
+        {
+          coordinate_bucket: coordinateBucket(malformedVenue),
+          bucket_key: 'current',
+          stockholm_date: STOCKHOLM_DATE,
+          weather_updated_at: '2026-07-18T10:55:00.000Z',
+          expires_at: '2026-07-18T13:00:00.000Z',
+          slices: [null, false, {}, { validAt: 'not-an-instant', cloudCover: 100 }],
+        },
+      ],
+      error: null,
+    };
+
+    const repository = await prepareWeatherSnapshotRepositoryForVenueDays(
+      [mixedVenue, malformedVenue],
+      STOCKHOLM_DATE,
+    );
+
+    await expect(
+      repository.readSnapshotForVenueDay(mixedVenue, undefined, STOCKHOLM_DATE),
+    ).resolves.toEqual({
+      status: 'ready',
+      bucket: 'current',
+      weatherUpdatedAt: '2026-07-18T10:55:00.000Z',
+      slices: [
+        {
+          minutes: 720,
+          validAt: '2026-07-18T10:00:00.000Z',
+          cloudCover: 100,
+          precipitationAmount: 0.4,
+          symbolCode: 'cloudy',
+        },
+      ],
+    });
+    await expect(
+      repository.readSnapshotForVenueDay(malformedVenue, undefined, STOCKHOLM_DATE),
+    ).resolves.toMatchObject({
+      status: 'ready',
+      slices: [],
+    });
+  });
 });

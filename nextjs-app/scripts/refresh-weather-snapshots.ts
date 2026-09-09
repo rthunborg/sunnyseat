@@ -2,7 +2,10 @@ import { appendFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import {
+  attachMatchedNowcastEvidence,
   buildWeatherSnapshotWindow,
+  matchNowcastObservationToForecast,
+  type SnapshotNowcastMatch,
   type WeatherSnapshotSlice,
 } from '../lib/services/weather-snapshots';
 import { collectSunGeometryPrecomputeTargets } from '../lib/services/sun-geometry-precompute';
@@ -10,7 +13,10 @@ import { venueEngineCoordinate } from '../lib/services/sun-geometry-coordinates'
 import { mapWithConcurrency } from '../lib/services/sun-engine';
 import { stockholmDateKey } from '../lib/utils/time-planner';
 import { getForecast } from '../lib/weather/met-no-service';
-import { getNowcastPrecipitationRate } from '../lib/weather/nowcast-service';
+import {
+  getNowcastPrecipitationObservation,
+  type NowcastPrecipitationObservation,
+} from '../lib/weather/nowcast-service';
 import type { WeatherSlice } from '../lib/solar/types';
 import type { Database } from '../lib/supabase/types';
 
@@ -65,13 +71,13 @@ await mapWithConcurrency([...buckets.entries()], PROVIDER_CONCURRENCY, async ([b
     const forecast = await retryWithJitter(() =>
       withTimeout(getForecast(bucket.lat, bucket.lng), PROVIDER_TIMEOUT_MS, 'locationforecast timeout'),
     );
-    const nowcastRate = await retryWithJitter(() =>
-      withTimeout(getNowcastPrecipitationRate(bucket.lat, bucket.lng), PROVIDER_TIMEOUT_MS, 'nowcast timeout'),
+    const nowcastObservation = await retryWithJitter(() =>
+      withTimeout(getNowcastPrecipitationObservation(bucket.lat, bucket.lng), PROVIDER_TIMEOUT_MS, 'nowcast timeout'),
     );
     const rows = buildSnapshotRows({
       bucketKey,
       forecast,
-      nowcastRate,
+      nowcastObservation,
       window,
       now,
       runId,
@@ -128,7 +134,7 @@ function coordinateBucket(location: { lat: number; lng: number }): string {
 function buildSnapshotRows(input: {
   bucketKey: string;
   forecast: WeatherSlice[];
-  nowcastRate: number | undefined;
+  nowcastObservation: NowcastPrecipitationObservation | undefined;
   window: string[];
   now: Date;
   runId: string;
@@ -144,13 +150,18 @@ function buildSnapshotRows(input: {
 }> {
   const refreshedAt = input.now.toISOString();
   const expiresAt = new Date(input.now.getTime() + 2 * 60 * 60 * 1000).toISOString();
+  const nowcastMatch = matchNowcastObservationToForecast({
+    forecastSlices: input.forecast,
+    observation: input.nowcastObservation,
+    refreshedAt: input.now,
+  });
   return input.window.map((stockholmDate) => ({
     coordinate_bucket: input.bucketKey,
     stockholm_date: stockholmDate,
     bucket_key: 'current',
     slices: input.forecast
       .filter((slice) => slice.validAt && stockholmDateKey(slice.validAt) === stockholmDate)
-      .map((slice) => snapshotSlice(slice, input.nowcastRate, input.now)),
+      .map((slice) => snapshotSlice(slice, nowcastMatch)),
     weather_updated_at: refreshedAt,
     expires_at: expiresAt,
     refreshed_at: refreshedAt,
@@ -160,17 +171,13 @@ function buildSnapshotRows(input: {
 
 function snapshotSlice(
   slice: WeatherSlice,
-  nowcastRate: number | undefined,
-  now: Date,
+  nowcastMatch: SnapshotNowcastMatch | undefined,
 ): WeatherSnapshotSlice {
   const validAt = slice.validAt ?? slice.createdAt;
-  const validAtMs = validAt.getTime();
-  const nearNow =
-    validAtMs >= now.getTime() &&
-    validAtMs <= now.getTime() + 90 * 60 * 1000;
-  return {
+  const validAtIso = validAt.toISOString();
+  return attachMatchedNowcastEvidence({
     minutes: stockholmMinutes(validAt),
-    validAt: validAt.toISOString(),
+    validAt: validAtIso,
     cloudCover: slice.cloudCover,
     cloudCoverLow: slice.cloudCoverLow,
     cloudCoverMedium: slice.cloudCoverMedium,
@@ -178,8 +185,7 @@ function snapshotSlice(
     fogAreaFraction: slice.fogAreaFraction,
     precipitationAmount: slice.precipitationAmount,
     symbolCode: slice.symbolCode,
-    ...(nearNow && nowcastRate !== undefined ? { isRaining: nowcastRate > 0 } : {}),
-  };
+  }, nowcastMatch);
 }
 
 function stockholmMinutes(date: Date): number {

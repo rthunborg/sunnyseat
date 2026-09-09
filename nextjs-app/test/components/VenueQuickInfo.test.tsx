@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { VenueQuickInfo } from '@/components/composed/venue/VenueQuickInfo';
+import { normalizeVenueForResponse, VENUE_FIXTURE } from '@/lib/services/venues-fixture';
 import { expectNoSensitiveSourceTerms } from '../setup/sensitive-source-terms';
 
 const motionState = vi.hoisted(() => ({
@@ -73,6 +74,24 @@ const labels = {
 const OPENING_HOURS = { display: 'Öppet till 22:00', closesAt: '22:00' };
 
 describe('<VenueQuickInfo />', () => {
+  it.each(['mobile', 'desktop'] as const)('keeps normalized legacy unknown free of obscured claims (%s)', (mode) => {
+    const venue = normalizeVenueForResponse({
+      ...VENUE_FIXTURE[0], currentSunStatus: 'CloudObscured', weatherGateState: 'gated',
+      directSunState: 'likely', skyCondition: 'overcast', sunExposurePercent: 95,
+    });
+    render(<VenueQuickInfo mode={mode} name={venue.venueName}
+      currentSunStatus={venue.currentSunStatus} weatherGateState={venue.weatherGateState}
+      directSunState={venue.directSunState} skyCondition={venue.skyCondition}
+      sunExposurePercent={venue.sunExposurePercent} isLoadingSunData={false}
+      labels={{ ...labels, directSunUncertain: 'Oklart om direkt sol vid vald tid',
+        clearSkyPotential: 'Vid klar himmel: {percent}% utan byggnadsskugga' }}
+      onDismiss={vi.fn()} onOpenDetails={vi.fn()} onRoute={vi.fn()} />);
+    expect(screen.queryByTestId('quick-info-obscured')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog')).not.toHaveTextContent(/Sol bakom moln|Mulet/);
+    expect(screen.getByRole('dialog')).toHaveTextContent('Oklart om direkt sol vid vald tid');
+    expect(screen.getByRole('dialog')).toHaveTextContent('Vid klar himmel: 95% utan byggnadsskugga');
+  });
+
   afterEach(() => {
     motionState.shouldReduceMotion = false;
   });
@@ -87,6 +106,7 @@ describe('<VenueQuickInfo />', () => {
         mode="mobile"
         name="Testbaren"
         sunExposurePercent={95}
+        weatherGateState="not_gated"
         directSunState="likely"
         openingHours={OPENING_HOURS}
         distanceMeters={420}
@@ -245,7 +265,7 @@ describe('<VenueQuickInfo />', () => {
         sunExposurePercent={88}
         openingHours={undefined}
         distanceMeters={420}
-        currentSunStatus="CloudObscured"
+        currentSunStatus="CloudObscured" directSunState="blocked"
         weatherGateState="gated"
         skyCondition="overcast"
         thumbnail={{ alt: 'Uteservering', initials: 'MB' }}
@@ -441,7 +461,7 @@ describe('<VenueQuickInfo />', () => {
         sunExposurePercent={92}
         openingHours={OPENING_HOURS}
         distanceMeters={420}
-        currentSunStatus="CloudObscured"
+        currentSunStatus="CloudObscured" directSunState="blocked"
         weatherGateState="gated"
         skyCondition="overcast"
         thumbnail={{ alt: 'Uteservering', initials: 'MB' }}
@@ -471,7 +491,7 @@ describe('<VenueQuickInfo />', () => {
         name="Molnbaren"
         sunExposurePercent={92}
         distanceMeters={420}
-        currentSunStatus="CloudObscured"
+        currentSunStatus="CloudObscured" directSunState="blocked"
         weatherGateState="gated"
         skyCondition="unavailable"
         thumbnail={{ alt: 'Uteservering', initials: 'MB' }}
@@ -497,6 +517,7 @@ describe('<VenueQuickInfo />', () => {
         sunExposurePercent={95}
         distanceMeters={420}
         currentSunStatus="Sunny"
+        weatherGateState="not_gated"
         directSunState="likely"
         skyCondition="clear"
         thumbnail={{ alt: 'Uteservering', initials: 'SB' }}
@@ -534,7 +555,7 @@ describe('<VenueQuickInfo />', () => {
           sunExposurePercent={exposure}
           openingHours={OPENING_HOURS}
           distanceMeters={420}
-          currentSunStatus={status}
+          currentSunStatus={status} directSunState={isObscured ? 'blocked' : undefined}
           weatherGateState={status === 'CloudObscured' ? 'gated' : 'not_gated'}
           skyCondition={sky}
           position={{ x: 180, y: 260 }}
@@ -742,6 +763,7 @@ describe('<VenueQuickInfo />', () => {
         mode="mobile"
         name="Testbaren"
         sunExposurePercent={95}
+        weatherGateState="not_gated"
         directSunState="likely"
         isLoadingSunData={false}
         onDismiss={() => {}}
@@ -765,6 +787,7 @@ describe('<VenueQuickInfo />', () => {
         mode="mobile"
         name="Testbaren"
         sunExposurePercent={95}
+        weatherGateState="not_gated"
         directSunState="likely"
         isLoadingSunData={false}
         isFavourite
@@ -872,6 +895,7 @@ describe('<VenueQuickInfo />', () => {
         mode="mobile"
         name="Testbaren"
         sunExposurePercent={140}
+        weatherGateState="not_gated"
         directSunState="likely"
         isLoadingSunData={false}
         onDismiss={() => {}}
@@ -887,6 +911,7 @@ describe('<VenueQuickInfo />', () => {
         mode="mobile"
         name="Testbaren"
         sunExposurePercent={-25}
+        weatherGateState="not_gated"
         directSunState="likely"
         isLoadingSunData={false}
         onDismiss={() => {}}
@@ -921,6 +946,7 @@ describe('<VenueQuickInfo />', () => {
         name="Testbaren"
         sunExposurePercent={95}
         position={{ x: 180, y: 260 }}
+        weatherGateState="not_gated"
         directSunState="likely"
         isLoadingSunData={false}
         onDismiss={() => {}}
@@ -943,6 +969,7 @@ describe('<VenueQuickInfo />', () => {
         mode="mobile"
         name="Testbaren"
         sunExposurePercent={95}
+        weatherGateState="not_gated"
         directSunState="likely"
         isLoadingSunData={false}
         onDismiss={() => {}}

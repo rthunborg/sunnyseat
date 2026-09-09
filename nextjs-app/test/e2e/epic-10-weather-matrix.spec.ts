@@ -6,7 +6,7 @@
  * =========================================================================
  * The historical failure mode ("weather fetched but not consumed",
  * epics.md:2650-2653) is exactly the kind of regression a full-stack e2e catches
- * that a unit test can miss. This matrix renders FIVE weather scenarios END-TO-END
+ * that a unit test can miss. This matrix renders nine weather scenarios END-TO-END
  * and asserts the correct card + pin + detail presentation for each, at a forced
  * `?_time=13:00` (sun deterministically up) and WITHOUT any live Met.no call:
  *
@@ -47,7 +47,9 @@
  * on mobile) — branch the detail assertion on `testInfo.project.name`.
  */
 
-import { expect, test, type Page, type Route } from '@playwright/test';
+import { expect, test, type Page, type Route, type Locator, type TestInfo } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { writeFile } from 'node:fs/promises';
 import { FIRST_RUN_GUIDE_SEEN_KEY, ONBOARDED_FLAG_KEY } from '@/lib/constants/onboarding';
 import type {
   GetVenuesResponse,
@@ -58,6 +60,65 @@ import type {
 
 const SEED_SLUG = 'test-venue-sunny';
 const APP_SETTLE_TIMEOUT_MS = 15_000;
+
+// Capture the four distinct verdict presentations without changing references.
+const EVIDENCE_SCENARIOS = new Set<ScenarioId>([
+  'clear', 'overcast', 'stale-missing', 'neutralized-legacy-obscured',
+]);
+
+async function inspectSurface(
+  page: Page,
+  surface: Locator,
+  scenario: ScenarioSpec,
+  name: string,
+  testInfo: TestInfo,
+): Promise<void> {
+  await expect(surface).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  // Motion and map fly-to positioning are not CSS screenshot animations.
+  // Wait for consecutive stable bounds before measuring or capturing them.
+  let previousBounds = '';
+  let stableSamples = 0;
+  await expect.poll(async () => {
+    const bounds = JSON.stringify(await surface.boundingBox());
+    stableSamples = bounds === previousBounds ? stableSamples + 1 : 0;
+    previousBounds = bounds;
+    return stableSamples;
+  }, { intervals: [200], timeout: APP_SETTLE_TIMEOUT_MS }).toBeGreaterThanOrEqual(3);
+  if (scenario.directSunState === 'unknown') {
+    await expect(surface).toContainText(/Oklart om direkt sol/i);
+    await expect(surface).toContainText('Vid klar himmel: 95% utan byggnadsskugga');
+    await expect(surface).not.toContainText(/Sol bakom moln|FULL SOL|95% SOL/i);
+    const accessibleTree = await surface.ariaSnapshot();
+    expect(accessibleTree).not.toMatch(/Sol bakom moln|FULL SOL|95% SOL/i);
+  }
+  if (scenario.directSunState !== 'likely') {
+    const fallback = surface.locator('[data-testid$="photo-fallback"], [data-testid="venue-detail-hero-fallback"]').first();
+    await expect(fallback.locator('..')).toHaveCSS('background-image', 'none');
+  }
+  if (scenario.directSunState === 'unknown' && name === 'detail') {
+    const headline = surface.getByRole('img', { name: /Oklart om direkt sol/i });
+    const headlineBox = await headline.boundingBox();
+    expect(headlineBox).not.toBeNull();
+    for (const button of await surface.getByRole('button').all()) {
+      const buttonBox = await button.boundingBox();
+      if (!buttonBox || !headlineBox) continue;
+      const overlap = buttonBox.x < headlineBox.x + headlineBox.width &&
+        buttonBox.x + buttonBox.width > headlineBox.x &&
+        buttonBox.y < headlineBox.y + headlineBox.height &&
+        buttonBox.y + buttonBox.height > headlineBox.y;
+      expect(overlap, 'uncertainty headline must not overlap detail controls').toBe(false);
+    }
+  }
+  if (!EVIDENCE_SCENARIOS.has(scenario.id)) return;
+  await writeFile(testInfo.outputPath(`${scenario.id}-${name}-aria.txt`), await surface.ariaSnapshot());
+  await page.screenshot({ path: testInfo.outputPath(`${scenario.id}-${name}.png`), animations: 'disabled' });
+  // Use the real rendered WCAG 2.1 A/AA scan; retain all findings in evidence.
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  await writeFile(testInfo.outputPath(`${scenario.id}-${name}-axe.json`), JSON.stringify(results.violations, null, 2));
+  expect(results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
+}
 
 // --- Onboarding + deterministic-time helpers (reuse the suite conventions) ---
 async function bypassOnboarding(page: Page): Promise<void> {
@@ -84,8 +145,15 @@ async function forceMiddayTime(page: Page): Promise<void> {
 /** Trip the test if any request leaves for api.met.no (belt-and-braces). */
 async function forbidLiveMetno(page: Page): Promise<string[]> {
   const hits: string[] = [];
-  await page.route('**://api.met.no/**', (route: Route) => {
-    hits.push(route.request().url());
+  await page.route('**/*', (route: Route) => {
+    const url = new URL(route.request().url());
+    if (url.protocol === 'blob:' && /^http:\/\/(localhost|127\.0\.0\.1):/.test(url.origin)) return route.continue();
+    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return route.continue();
+    // The map is deliberately blank so captures do not depend on live tiles.
+    if (url.hostname === 'tiles.openfreemap.org' && url.pathname === '/styles/positron') {
+      return route.fulfill({ json: { version: 8, sources: {}, layers: [] } });
+    }
+    hits.push(`${url.hostname}${url.pathname}`);
     return route.abort();
   });
   return hits;
@@ -102,7 +170,8 @@ type ScenarioId =
   | 'fog'
   | 'stale-missing'
   | 'incomplete'
-  | 'contradictory';
+  | 'contradictory'
+  | 'neutralized-legacy-obscured';
 
 interface ScenarioSpec {
   id: ScenarioId;
@@ -125,6 +194,16 @@ interface ScenarioSpec {
 // currentSunStatus / skyCondition / confidence change. `skyCondition` is ABSENT
 // for weather-missing (⇒ no sky line; the app never fabricates a clear sky).
 const SCENARIOS: ScenarioSpec[] = [
+  {
+    id: 'neutralized-legacy-obscured',
+    currentSunStatus: 'CloudObscured',
+    weatherGateState: 'gated',
+    directSunState: 'unknown',
+    directSunReasons: ['contradictory-weather'],
+    skyCondition: 'overcast',
+    confidence: 40,
+    expectObscured: false,
+  },
   {
     id: 'overcast',
     currentSunStatus: 'CloudObscured',
@@ -337,11 +416,26 @@ async function assertCardAndPin(
   page: Page,
   scenario: ScenarioSpec,
   projectName: string,
+  testInfo: TestInfo,
 ): Promise<void> {
   await page.locator('[data-testid="venue-pin"]').first().waitFor({
     state: 'visible',
     timeout: APP_SETTLE_TIMEOUT_MS,
   });
+
+  const card = page.locator('[data-testid="venue-card"]:visible').first();
+  await inspectSurface(page, card, scenario, 'card', testInfo);
+  const select = card.getByRole('button', { name: /Välj Kafé Magasinet/ });
+  if (scenario.directSunState === 'unknown') {
+    await expect(select).toHaveAccessibleName(/Oklart om direkt sol/i);
+    await expect(select).not.toHaveAccessibleName(/Sol bakom moln|95% sol/i);
+  }
+  // Keyboard focus and target size on the affected list activation surface.
+  await select.focus();
+  await expect(select).toBeFocused();
+  const box = await select.boundingBox();
+  expect(box?.height).toBeGreaterThanOrEqual(44);
+  expect(box?.width).toBeGreaterThanOrEqual(44);
 
   if (projectName === 'desktop') {
     await page.locator('[data-testid="venue-pin"]').first().click();
@@ -367,7 +461,7 @@ async function assertCardAndPin(
     await expect(quickInfo).toContainText('95%');
   } else {
     await expect(obscured).toHaveCount(0);
-    await expect(quickInfo).not.toContainText('95%');
+    await expect(quickInfo).not.toContainText(/95% SOL/i);
     await expect(quickInfo).toContainText(/Oklart om direkt sol|Direct sunlight is unclear/);
     await expect(quickInfo).toContainText(/Vid klar himmel: 95% utan byggnadsskugga|95% clear-sky potential/);
   }
@@ -384,6 +478,7 @@ async function assertCardAndPin(
   // Story 12.13: confidence remains internal evidence and must not leak into
   // the quick-info surface in any weather scenario.
   await expect(quickInfo).not.toContainText(PUBLIC_CONFIDENCE_COPY);
+  await inspectSurface(page, quickInfo, scenario, 'quick-info', testInfo);
 }
 
 /**
@@ -394,6 +489,7 @@ async function assertDetail(
   page: Page,
   scenario: ScenarioSpec,
   projectName: string,
+  testInfo: TestInfo,
 ): Promise<void> {
   await page.goto(`/?venue=${SEED_SLUG}`);
 
@@ -402,6 +498,8 @@ async function assertDetail(
       ? page.locator('[data-testid="desktop-venue-detail-panel"]:visible')
       : page.locator('[data-testid="mobile-venue-detail-sheet"]:visible');
   await detailPanel.waitFor({ state: 'visible', timeout: APP_SETTLE_TIMEOUT_MS });
+  // The list fallback already carries a verdict; wait for the mocked detail DTO.
+  await expect(detailPanel).toContainText('En trivsam uteservering vid kanalen.');
 
   const obscured = detailPanel.locator('[data-testid="venue-detail-obscured"]');
   if (scenario.expectObscured) {
@@ -425,10 +523,12 @@ async function assertDetail(
     await expect(detailPanel).not.toContainText(OVERCAST_SKY_COPY);
   }
   if (scenario.directSunState === 'unknown') {
+    await expect(detailPanel.locator('[aria-label="Sol bakom moln"]')).toHaveCount(0);
     await expect(detailPanel).toContainText(/OKLART OM DIREKT SOL|DIRECT SUN UNCLEAR/);
     await expect(detailPanel).toContainText(/Vid klar himmel: 95% utan byggnadsskugga|95% clear-sky potential/);
   }
   await expect(detailPanel).not.toContainText(PUBLIC_CONFIDENCE_COPY);
+  await inspectSurface(page, detailPanel, scenario, 'detail', testInfo);
 }
 
 // ---------------------------------------------------------------------------
@@ -439,6 +539,18 @@ test.describe('[10.5 AC1] deterministic mocked-weather e2e matrix', () => {
     test(`scenario "${scenario.id}" renders the correct card + pin + detail (both breakpoints)`, async ({
       page,
     }, testInfo) => {
+      test.setTimeout(90_000);
+      const pageErrors: string[] = [];
+      page.on('pageerror', (error) => pageErrors.push(error.message));
+      const consoleErrors: string[] = [];
+      page.on('console', (message) => {
+        if (message.type() === 'error') consoleErrors.push(message.text());
+      });
+      // Keep forced 13:00 distinct from live-now so the dev planner query gate resolves.
+      await page.clock.setFixedTime(new Date('2026-06-21T10:00:00.000Z'));
+      if (scenario.id === 'neutralized-legacy-obscured') {
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+      }
       const metnoHits = await forbidLiveMetno(page);
       await bypassOnboarding(page);
       await forceMiddayTime(page);
@@ -446,11 +558,13 @@ test.describe('[10.5 AC1] deterministic mocked-weather e2e matrix', () => {
 
       await page.goto('/');
 
-      await assertCardAndPin(page, scenario, testInfo.project.name);
-      await assertDetail(page, scenario, testInfo.project.name);
+      await assertCardAndPin(page, scenario, testInfo.project.name, testInfo);
+      await assertDetail(page, scenario, testInfo.project.name, testInfo);
 
       // Belt-and-braces: NO outbound Met.no request may have fired.
       expect(metnoHits, `outbound api.met.no requests during "${scenario.id}"`).toEqual([]);
+      expect(pageErrors).toEqual([]);
+      expect(consoleErrors).toEqual([]);
     });
   }
 });

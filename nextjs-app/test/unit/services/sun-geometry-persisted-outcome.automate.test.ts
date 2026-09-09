@@ -174,6 +174,7 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
       weatherGateState: 'not_gated',
     });
     expect(outcome.peakTime).toBe('12:15');
+    expect(outcome.sunWindowStatus).toBe('Sunny');
   });
 
   test('falls back to geometry-only confidence when the weather snapshot is expired', async () => {
@@ -410,6 +411,178 @@ describe('Story 12.3 automated coverage - persisted sun outcome assembly', () =>
       directSunState: 'unknown',
       directSunReasons: ['weather-unavailable'],
     });
+  });
+
+  test.each([
+    {
+      label: 'an invalid weather_updated_at',
+      weatherUpdatedAt: 'not-a-timestamp',
+      slices: [{
+        minutes: 720,
+        validAt: '2026-07-18T10:00:00.000Z',
+        cloudCover: 0,
+        cloudCoverLow: 0,
+        cloudCoverMedium: 0,
+        cloudCoverHigh: 0,
+        fogAreaFraction: 0,
+        precipitationAmount: 0,
+        symbolCode: 'clearsky_day',
+      }],
+    },
+    {
+      label: 'only malformed provider valid-times',
+      weatherUpdatedAt: '2026-07-18T09:55:00.000Z',
+      slices: [{ minutes: 720, validAt: 'not-a-timestamp', cloudCover: 0 }],
+    },
+    {
+      label: 'no slice inside the signed 90-minute match boundary',
+      weatherUpdatedAt: '2026-07-18T09:55:00.000Z',
+      slices: [{ minutes: 720, validAt: '2026-07-18T13:00:00.000Z', cloudCover: 0 }],
+    },
+    {
+      label: 'a timestamped slice without forecast evidence',
+      weatherUpdatedAt: '2026-07-18T09:55:00.000Z',
+      slices: [{ minutes: 720, validAt: '2026-07-18T10:00:00.000Z' }],
+    },
+    {
+      label: 'an all-malformed JSON array',
+      weatherUpdatedAt: '2026-07-18T09:55:00.000Z',
+      slices: [null, 'broken', false] as unknown,
+    },
+  ])('fails $label closed to geometry-only provenance and capped confidence', async ({
+    weatherUpdatedAt,
+    slices,
+  }) => {
+    const venue = makeVenue({ confidence: 73 });
+    const coverage: PersistedSunGeometryCoverage = {
+      venueId: venue.id,
+      stockholmDate: '2026-07-18',
+      geometryInputHash: GEOMETRY_HASH,
+      status: 'ready',
+      series: [{ minutes: 720, sunExposurePercent: 85 }],
+    };
+
+    const outcome = await buildPersistedSunOutcome(
+      venue,
+      new Date('2026-07-18T10:00:00.000Z'),
+      new Date('2026-07-18T10:00:00.000Z'),
+      {
+        repositories: {
+          sunGeometryRepository: makeGeometryRepository(coverage, []),
+          weatherSnapshotRepository: makeWeatherRepository({
+            status: 'ready',
+            weatherUpdatedAt,
+            slices: slices as WeatherSnapshotRecord['slices'],
+          }, []),
+        },
+      },
+    );
+
+    expect(outcome.freshness).toEqual({ sunDataSource: 'geometry-only' });
+    expect(outcome.venue).toMatchObject({
+      confidence: 40,
+      directSunState: 'unknown',
+      weatherGateState: 'unknown',
+      skyCondition: 'unavailable',
+    });
+    expect(outcome.venue.sunWindow).toBeUndefined();
+    expect(outcome.peakTime).toBeUndefined();
+  });
+
+  test('ignores malformed neighbours and uses the valid persisted slice without throwing', async () => {
+    const venue = makeVenue({ confidence: 73 });
+    const coverage: PersistedSunGeometryCoverage = {
+      venueId: venue.id,
+      stockholmDate: '2026-07-18',
+      geometryInputHash: GEOMETRY_HASH,
+      status: 'ready',
+      series: [{ minutes: 720, sunExposurePercent: 85 }],
+    };
+    const slices = [null, 'broken', {
+      minutes: 720,
+      validAt: '2026-07-18T10:00:00.000Z',
+      cloudCover: 0,
+      cloudCoverLow: 0,
+      cloudCoverMedium: 0,
+      cloudCoverHigh: 0,
+      fogAreaFraction: 0,
+      precipitationAmount: 0,
+      symbolCode: 'clearsky_day',
+    }] as unknown as WeatherSnapshotRecord['slices'];
+
+    const outcome = await buildPersistedSunOutcome(
+      venue,
+      new Date('2026-07-18T10:00:00.000Z'),
+      new Date('2026-07-18T10:00:00.000Z'),
+      {
+        repositories: {
+          sunGeometryRepository: makeGeometryRepository(coverage, []),
+          weatherSnapshotRepository: makeWeatherRepository({
+            status: 'ready',
+            weatherUpdatedAt: '2026-07-18T09:55:00.000Z',
+            slices,
+          }, []),
+        },
+      },
+    );
+
+    expect(outcome.freshness.sunDataSource).toBe('weather');
+    expect(outcome.venue.directSunState).toBe('likely');
+    expect(isVenuePubliclySunny(outcome.venue)).toBe(true);
+  });
+
+  test('derives the public window status from its qualifying run, not the selected instant', async () => {
+    const venue = makeVenue();
+    const coverage: PersistedSunGeometryCoverage = {
+      venueId: venue.id,
+      stockholmDate: '2026-07-18',
+      geometryInputHash: GEOMETRY_HASH,
+      status: 'ready',
+      series: [
+        { minutes: 540, sunExposurePercent: 10 },
+        { minutes: 720, sunExposurePercent: 95 },
+        { minutes: 735, sunExposurePercent: 65 },
+      ],
+    };
+    const clearSlice = (minutes: number, validAt: string) => ({
+      minutes,
+      validAt,
+      cloudCover: 0,
+      cloudCoverLow: 0,
+      cloudCoverMedium: 0,
+      cloudCoverHigh: 0,
+      fogAreaFraction: 0,
+      precipitationAmount: 0,
+      symbolCode: 'clearsky_day',
+    });
+
+    const outcome = await buildPersistedSunOutcome(
+      venue,
+      new Date('2026-07-18T07:00:00.000Z'),
+      new Date('2026-07-18T07:00:00.000Z'),
+      {
+        repositories: {
+          sunGeometryRepository: makeGeometryRepository(coverage, []),
+          weatherSnapshotRepository: makeWeatherRepository({
+            status: 'ready',
+            weatherUpdatedAt: '2026-07-18T06:55:00.000Z',
+            slices: [
+              clearSlice(540, '2026-07-18T07:00:00.000Z'),
+              clearSlice(720, '2026-07-18T10:00:00.000Z'),
+              clearSlice(735, '2026-07-18T10:15:00.000Z'),
+            ],
+          }, []),
+        },
+      },
+    );
+
+    expect(outcome.venue.currentSunStatus).toBe('Shaded');
+    expect(outcome.venue.sunWindow).toEqual({
+      start: '12:00',
+      end: '12:15',
+      weatherGateState: 'not_gated',
+    });
+    expect(outcome.sunWindowStatus).toBe('Partial');
   });
 
   test('keeps fresh but incomplete weather unknown instead of promoting geometric exposure to public sun', async () => {

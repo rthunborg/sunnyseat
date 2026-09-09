@@ -1507,6 +1507,39 @@ own persistence expiry or time-zone conversion. The
 public route reads one request-scoped batch of persisted geometry and snapshots;
 it never calls Met.no, extends TTL, or computes shadow casters.
 
+The 2026-09-03 external-review hardening makes the snapshot boundary explicit:
+
+- Nowcast rain is retained as `{ validAt, precipitationRate }`. An observation
+  within 15 minutes of refresh is attached to exactly one closest
+  Locationforecast slice within 90 minutes, including the current hourly slice
+  whose provider time precedes the refresh. It is never smeared across the
+  horizon, and a negative radar flag never supplies missing forecast
+  precipitation evidence.
+- JSON snapshot entries are runtime-validated before property access. Malformed
+  neighbours are discarded; an all-malformed array becomes weather-unknown
+  rather than throwing or fabricating clear conditions.
+  Follow-up clarification (2026-09-07): a present `weatherUnknown` or `isRaining`
+  must be boolean. A malformed flag retains only the slice's valid time/minute
+  identity and `weatherUnknown: true`, so matching cannot replace that evidence
+  with a neighbouring clear forecast. It supplies no weather provenance or full
+  confidence. Unknown wins equal-distance timestamp ties (including duplicates),
+  independent of input order. The signed +/-90-minute boundary and two-hour TTL
+  are unchanged.
+- A `ready` row is weather-backed for classification, provenance, and confidence
+  only when `weather_updated_at` is parseable and the requested instant has a
+  timestamp-matched slice containing real provider evidence. Otherwise the read
+  is geometry-only, confidence is capped, and direct sun is `unknown`.
+- DTO normalization rejects contradictory affirmative tuples (for example
+  `CloudObscured + gated + likely`). The shared public predicate also requires
+  normalized `not_gated` as defence in depth. A timeline window carries the
+  status of its qualifying run, never the status of the independently selected
+  instant.
+  A `likely` tuple must have absent or empty reasons; nonempty or malformed
+  reason payloads normalize to `unknown` with `contradictory-weather`, on both
+  current DTOs and day-series entries. Public presentation and accessible names
+  resolve direct state first: `CloudObscured` copy requires `blocked`; a retained
+  legacy status cannot override `unknown`. This adds no client reclassification.
+
 #### Classification and precedence
 
 For geometry above 50% with the sun above the horizon, effective obstruction is
@@ -1535,17 +1568,19 @@ them requires reviewed field evidence and a new decision record.
 
 ```text
 scheduled refresh
-  -> Met.no complete / optional near-now radar
+  -> Met.no complete / optional timestamped near-now radar
   -> parse provider units + UTC validAt
+  -> match bounded radar observation to one forecast slice
   -> weather_bucket_snapshots (2 h TTL)
 
 public venue read
   -> persisted venue polygon + geometry day series
-  -> persisted snapshot; exact/nearest <= 90 min
+  -> runtime-validated persisted snapshot; exact/nearest <= 90 min
+  -> validate request-relevant provenance/confidence
   -> one direct-sun classifier
-  -> direct state/reasons + compatibility projections
+  -> normalized direct state/reasons + compatibility projections
   -> list/detail API DTO + cached day-series scrub
-  -> pins, cards, QuickInfo, detail, ranking, windows, peaks
+  -> pins, cards, QuickInfo, detail, ranking, qualifying-run windows, peaks
 ```
 
 #### Consequences and separately reviewed follow-ons

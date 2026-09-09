@@ -138,6 +138,8 @@ export type SunEngineOutcome = {
   peakTime?: string;
   /** Weather certainty attached to a public-sunny peak. */
   peakWeatherGateState?: PublicSunWeatherGateState;
+  /** Display tier derived from the qualifying public-sun window, not the selected instant. */
+  sunWindowStatus?: Extract<VenueSunStatus, 'Sunny' | 'Partial'>;
   /**
    * STORY 11.1 (AC1): the per-planner-step gated day-series. Carried SEPARATELY
    * from `venue` (not merged onto the DTO) so ONLY the LIST route attaches it to

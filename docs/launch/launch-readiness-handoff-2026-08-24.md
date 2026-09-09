@@ -347,3 +347,312 @@ unknown. This is a separate launch blocker from the documented scheduler gaps.
 The two-hour TTL remains unchanged, and public venue reads remain snapshot-only
 with zero live Met.no calls. See
 [direct-sun truth decision](../../_bmad-output/planning-artifacts/decisions/direct-sun-weather-truth-2026-09-03.md).
+
+Historical verification record (2026-09-03): an independent post-implementation review reported no P0 findings and eight
+actionable conformance defects, all corrected in the local Epic 14 fix pass:
+positive Nowcast rain now retains its provider time across the hourly forecast
+boundary; malformed persisted JSON fails closed on list and detail; contradictory
+affirmative DTOs are neutralized; weather provenance/full confidence requires
+validated request-relevant evidence; detail-window status comes from its
+qualifying run; the UX percentage rule and Epic 12 historical predicate are
+explicitly reconciled; and affirmative fixtures are coherent. The approved
+product contract did not change, so `bmad-correct-course` was not required and
+Epic 12 remains closed. Local verification passes TypeScript, ESLint, 2,153
+Vitest tests, the 98-test focused regression set, `git diff --check`, and
+Playwright discovery (246 cases/26 files, including the 16-case weather matrix).
+Actual browser execution was not claimed because this actor lacked the trusted
+resource-guard lifecycle context. Nothing in this fix pass was deployed, and no
+production data, schedule, TTL, provider path, schema, secret, or telemetry sink
+was changed.
+
+## Direct-sun follow-up conformance — 2026-09-07
+
+The three later review findings are corrected locally: malformed present weather
+flags retain timestamped unknown evidence; nonempty/malformed reasons invalidate
+likely current/day-series DTOs; and unknown takes precedence over legacy obscured
+copy and accessible names on card, list, QuickInfo and detail. Unknown also wins
+duplicate/equal-distance weather matches regardless of input order. No ordinary live
+producer of contradictory likely reasons was demonstrated; the DTO boundary now
+also rejects that corrupt/legacy/future input. Approved intent is unchanged,
+`bmad-correct-course` was unnecessary, and Epic 12 remains closed.
+
+Final local TypeScript/lint pass; full Vitest passes 229 files / 2,173 tests;
+focused regression passes 8 files / 160 tests. Playwright discovers 248 cases in
+26 files, including 18 weather-matrix cases. Discovery is not browser execution:
+trusted resource-guard context was unavailable, so browser and screenshot
+validation remain unexecuted. See the existing
+[bugfix spec](../../_bmad-output/implementation-artifacts/spec-direct-sun-weather-accuracy.md)
+for exact commands, per-finding evidence and final diff verification.
+
+Nothing was committed or deployed. This pass changed no production data,
+configuration, schedules, schemas, provider integrations, secrets or telemetry.
+The signed 90-minute match and two-hour TTL remain unchanged. Direct-sun
+correctness/human validation and scheduling reliability remain separate launch
+blockers; these local fixes are not release approval.
+
+### Browser continuation checkpoint — 2026-09-07
+
+Browser/server approval is explicit, but execution remains blocked before launch:
+this actor received no trusted startup-hook resource-guard context. An explicit
+built-in Windows PowerShell 5.1.26100.9168 presence check returned
+`ContextVariablePresent: false` (exit 0). Guard installation alone is insufficient.
+The exact check and pending matrix command are recorded in the existing
+[bugfix spec](../../_bmad-output/implementation-artifacts/spec-direct-sun-weather-accuracy.md#browser-execution-continuation--2026-09-07-blocked-before-launch).
+
+Playwright configuration inspection confirms automatic server startup and
+`reuseExistingServer: false`; the runner was not launched. Mobile and desktop
+each still have all nine matrix scenarios unexecuted. No card, QuickInfo or detail
+screenshots were captured or inspected (no new screenshot paths), no browser
+accessibility checks ran, and no automated visual comparison ran. Historical
+passing unit/static checks and discovery remain distinct from those open gates.
+
+No application/test defects were corrected in this continuation; only this
+handoff and the existing spec changed. Branch `codex/direct-sun-weather-accuracy`
+and HEAD `6e493c1` remain the checkpoint. The 36 modified tracked files and two
+pre-existing untracked paths are preserved; no commit, deployment or external
+service mutation occurred. No owned runtime was started. Guard `CloseActor`/`List`
+verification is unavailable without trusted context, so no verified-cleanup claim
+is made. Resume after trusted hook injection; renewed approval is unnecessary.
+
+### Hook diagnosis update — 2026-09-07
+
+The locally created guard source has been found. Eight isolated PowerShell
+startup cases, a read-only adapter preflight, and four shell-proxy passthrough
+tests passed. The actual Codex hook failure has not been reproduced or fixed;
+trusted context remains absent. An operator-run diagnostic launcher is prepared
+outside the repo to capture the failure stage during a normal Codex launch.
+The installed guard and recovered source remain unchanged. See the existing
+[bugfix spec](../../_bmad-output/implementation-artifacts/spec-direct-sun-weather-accuracy.md#hook-diagnosis-continuation--2026-09-07)
+for commands, diagnostic paths, results and limits.
+
+Browser execution, screenshots, accessibility checks and automated visual
+comparison remain pending on both breakpoints. No screenshot paths exist for
+this continuation. The deprecated repo feature flag was updated to `hooks`;
+the current status is 37 unstaged modified tracked files and the same two
+pre-existing untracked paths, with branch/HEAD unchanged. No app code was
+changed by this continuation and no server/browser/broker was launched.
+Diagnostic subprocesses completed; guard CloseActor/List cannot be verified
+without context. Historical test results and both separate launch blockers
+remain unchanged.
+
+### Actual browser and screenshot follow-up — 2026-09-08
+
+Trusted context was received by this actor and guarded browser execution is now
+complete. The exact app command was:
+
+```powershell
+npx playwright test test/e2e/epic-10-weather-matrix.spec.ts --project=mobile --project=desktop
+```
+
+From `nextjs-app/`, the runner used fixture venue/sun services, port 43127,
+`PLAYWRIGHT_BASE_URL=http://localhost:43127` and
+`PLAYWRIGHT_WEB_SERVER_COMMAND=npm run dev -- --hostname localhost --port 43127`.
+Playwright owned its automatic server beneath resource-guard. A numeric-loopback
+bind initially caused locale redirect loops; matching the bind/origin hostname
+resolved them without app routing changes. The final harness fixes the clock,
+mocks list/detail and map style, blocks unexpected external requests and waits
+for loaded detail plus stable animation bounds.
+
+**Browser:** mobile WebKit 390x664 and desktop Chromium 1280x720 each pass all
+nine scenarios: clear, overcast, broken-clouds, precipitation, fog, stale-missing,
+incomplete, contradictory, neutralized-legacy-obscured. Final result: 18/18,
+exit 0, 1.3 minutes. Legacy-obscured also exercises reduced motion on both.
+**Accessibility/browser checks:** 24 WCAG 2.1 A/AA axe scans, zero violations;
+unknown accessible names, list focus/target size and headline/control separation
+pass. Zero page/console errors and unexpected external browser requests.
+
+**Screenshots:** all 24 final PNGs were opened and inspected: card, QuickInfo and
+loaded detail for clear, overcast, ordinary unknown and legacy-obscured unknown
+on both breakpoints. They are retained at:
+`C:\Users\Rasmus\.codex\visualizations\2026\09\08\01a08266-440b-7fc1-9fcc-18c0be4cc9a1\final-evidence\`.
+Filenames are `{mobile|desktop}-{clear|overcast|stale-missing|neutralized-legacy-obscured}-{card|quick-info|detail}.png`;
+each has matching `-aria.txt` and `-axe.json`. The existing
+[bugfix spec](../../_bmad-output/implementation-artifacts/spec-direct-sun-weather-accuracy.md)
+contains the exact filename inventory, execution environment and historical /
+intermediate results. These are fixture maps, not live tile-rendering evidence.
+
+Inspection exposed residual amber photo fallbacks for non-likely states and an
+unknown detail headline overlapping controls. Both are corrected with existing
+tokens, and a resulting 3.06:1 placeholder-caption contrast failure was corrected
+with the body-text token. Regression coverage now checks those rendered defects.
+Unknown is neutral with Swedish uncertainty and qualified geometry; genuine
+blocked states retain obscured treatment and clear remains amber.
+
+TypeScript/lint pass; focused regression passes 8 files / 160 tests; full Vitest
+passes 229 files / 2,173 tests. Automated reference comparison is **still open**:
+these root commands both exit 1 before capture because ANTHROPIC_API_KEY is absent:
+
+```powershell
+.\scripts\run-sh.ps1 scripts/visual-validate.sh venue-detail '/?venue=test-venue-sunny&_time=13:00' mobile
+.\scripts\run-sh.ps1 scripts/visual-validate.sh venue-detail '/?venue=test-venue-sunny&_time=13:00' desktop
+```
+
+No reference or capture recipe was replaced, no rebaseline/manual waiver was
+made, and no review/release approval is implied. Physical-device, field accuracy,
+production-build budgets and scheduling reliability are not established by this
+run. The dev `_time` detail gate still requires a forced time distinct from
+live-now in this harness; no production routing change was made for it.
+
+Cleanup is guard-verified: every exact runner stopped; CloseActor verified;
+List revision 53 verified all ten owned records stopped, zero active/unresolved
+resources and no leases. No user-owned resources were stopped. Branch/HEAD remain
+`codex/direct-sun-weather-accuracy` / `6e493c1`. This session layered changes onto
+six already-dirty files (three venue components, weather-matrix E2E, existing spec
+and this handoff); the other 31 dirty tracked files and both pre-existing
+untracked paths are preserved. No commit, deployment or production mutation.
+The two-hour TTL and signed 90-minute match are unchanged. Direct-sun field
+correctness and scheduling remain separate launch blockers; Epic 12 stays closed.
+
+Final repository verification: git diff --check PASS (exit 0; CRLF-to-LF warnings only). Branch codex/direct-sun-weather-accuracy, HEAD 6e493c1e073cb0e08012d6773f05125055de4142; 37 unstaged modified tracked files, zero staged changes, and the same two untouched pre-existing untracked paths.
+
+## Manual visual acceptance and production release — 2026-09-09
+
+Rasmus explicitly approved all new fixes, requested skipping the Anthropic API
+key, and authorized proceeding with production deployment. This supersedes the
+previous no-deployment instruction for this approved bugfix release. It does not
+claim that scheduling reliability, field accuracy, or other launch evidence is
+complete. No commit, schema, schedule, provider configuration, secret or telemetry
+change is authorized or performed as part of this release.
+
+Manual visual acceptance is based on the previously inspected 24 screenshots,
+18 executed weather-matrix cases and 24 clean axe scans recorded above. The
+rationale is the approved neutral unknown presentation, preserved qualified
+clear-sky potential, corrected detail overlap and contrast, and retained genuine
+blocked treatment. No reference PNG or capture recipe was replaced.
+
+Both manual wrapper invocations exited 0 with process-local
+`VISUAL_VALIDATE_PROVIDER=none` and `ALLOW_MANUAL_VISUAL_VALIDATION=1`:
+
+```powershell
+.\scripts\run-sh.ps1 scripts/visual-validate.sh venue-detail '/?venue=test-venue-sunny&_time=13:00' mobile
+.\scripts\run-sh.ps1 scripts/visual-validate.sh venue-detail '/?venue=test-venue-sunny&_time=13:00' desktop
+```
+
+This is explicit human acceptance, **not automated visual comparison**. The
+Anthropic comparison remains unexecuted by user choice.
+
+Fresh release checks, run from `nextjs-app/`, all exited 0:
+
+- `npm run build` — Next.js 16.3.3 production build, including TypeScript.
+- `npm run bundle:verify` — initial 231.37/280 KiB, MapLibre-loaded
+  298.85/320 KiB, all emitted static JS 599.04/600 KiB (gzip).
+- `node scripts/verify-maplibre-async.mjs` — async boundary passes across
+  15 route manifests.
+
+Existing final TypeScript, lint, full Vitest and browser evidence from September 8
+remains applicable: no application/test source changed during this release turn.
+Build emitted only the existing external `C:\DEV\pnpm-lock.yaml` warning; no
+workspace/root configuration was changed. Local Node was 22.23.2; the existing
+Vercel project uses Node 24.x.
+
+Production before this release was `dpl_E4JHngr8SDe2RDk6MjWXM86GeqEz`, READY in
+`dub1`, built from `16dea3bd4529b60e793e33b52e67e698af924fd2`. That commit was
+verified as an ancestor of the current HEAD. The linked target is the existing
+`enhancior/sunnyseat` project, with root directory `nextjs-app`.
+
+### Actual deployment outcome
+
+Final production deployment: `dpl_8mFMnsRMTaFcA4XYhcQ8cvYim88R`, **READY**, runtime
+region **dub1**, aliases `https://sunnyseat.vercel.app` and
+`https://sunnyseat-enhancior.vercel.app`. Immutable deployment URL:
+`https://sunnyseat-8p7yk32ic-enhancior.vercel.app`.
+
+The first CLI deployment (`dpl_YXWPqBpKW2HmEf5zEkgrUhucEuBN`) unexpectedly used
+`iad1` despite the nested app configuration. Post-deploy inspection caught this;
+the same source was redeployed with explicit `--regions dub1`, restoring the
+required Dublin placement. No repository or project region setting was edited.
+The superseded deployment remains in Vercel history.
+
+Release evidence directory:
+`C:\Users\Rasmus\.codex\visualizations\2026\09\08\01a08266-440b-7fc1-9fcc-18c0be4cc9a1\release-2026-09-09`.
+Its `source/` contains 747 tracked application files copied byte-for-byte from the
+approved dirty working tree, preserving the `nextjs-app/` layout and existing
+project link. Local secrets, ignored files and both pre-existing untracked paths
+were excluded. `source-manifest.json` records SHA-256 for every copied application
+file; all 747 hashes were rechecked against the working tree. This is a retained
+release artifact, not a new source of product intent. No commit was created.
+
+Exact final deploy command, invoked from `C:\DEV\sunnyseat\nextjs-app` with
+`$releaseRoot` set to the evidence directory above:
+
+```powershell
+npx --yes vercel@59.1.3 deploy "$releaseRoot\source" --prod --yes --scope enhancior --regions dub1 --meta sunnyseatSourceHead=6e493c1e073cb0e08012d6773f05125055de4142 --meta sunnyseatDirtyWorkingTree=true
+```
+
+Both deployment commands exited 0. The first command was identical except for
+omitting `--regions dub1`; logs are `deploy.log` and `deploy-dub1.log`.
+Final cloud build completed in 16 seconds. Read-only HTTP smoke checks passed for
+`/`, `/sv/about`, `/api/venues?lat=57.7089&lng=11.9746&radiusKm=3`, and
+`/api/venues/tyska-bron`. All returned 200; both APIs returned the exact final
+deployment ID, and response region headers included `dub1`. The list returned
+42 venues: 26 blocked, 16 unknown, zero likely. Evidence: `smoke-final.json`.
+No production writes or live provider requests were deliberately triggered;
+public requests exercised the existing snapshot-only route. These HTTP checks do
+not establish field accuracy or constitute a new production browser/screenshot run.
+
+The final connector error-log query timed out. A bounded CLI retry exited 0 with
+no error entries returned:
+
+```powershell
+npx --yes vercel@59.1.3 logs dpl_8mFMnsRMTaFcA4XYhcQ8cvYim88R --environment production --level error --since 5m --limit 20 --json --no-follow
+```
+
+This is a short post-deploy sample, not sustained monitoring. Output is preserved
+in `runtime-errors.log`; monitoring configuration was not changed.
+
+### Newly observed dependency audit failure — remains open
+
+During the remote build npm reported dependency advisories. The subsequent
+`npm audit --omit=dev --audit-level=high --json` exited **1**, reporting one
+critical MapLibre advisory and one high-severity sharp advisory. Evidence:
+`production-audit.json`. Package manifests and lockfiles are unchanged from HEAD,
+so these were pre-existing dependencies, not introduced by the direct-sun fixes.
+The audit failure became known while the first deployment was building; it was
+not a passed pre-deploy gate and is not waived by visual acceptance.
+
+- MapLibre: https://github.com/advisories/GHSA-jrc7-96c5-q579 — attribution HTML
+  sanitization issue; the advisory lists 6.4.1 as patched. The current 5.x
+  dependency is reported affected; a major upgrade or mitigation needs explicit
+  implementation and regression testing.
+- sharp: https://github.com/advisories/GHSA-rgj7-g3m4-5g8c — libheif advisory,
+  reported affected below 0.35.4.
+
+No dependency upgrade or exploitability clearance was performed. These findings
+require follow-up before claiming full production readiness, alongside existing
+scheduling and field/device validation gaps. The approved direct-sun bugfix is
+live; this is not an all-clear for launch.
+
+### Final working tree and lifecycle
+
+Only the existing spec and launch handoff were edited in this release turn. No
+application/test source, dependencies, schema, schedule, provider configuration,
+secrets or telemetry configuration changed. Branch remains
+`codex/direct-sun-weather-accuracy`, HEAD
+`6e493c1e073cb0e08012d6773f05125055de4142`, with 37 unstaged tracked modifications,
+zero staged changes and the same two pre-existing untracked paths. The live source
+includes uncommitted fixes; a future Git deployment must include those fixes to
+avoid overwriting them.
+
+This actor received its own trusted lifecycle context. All local commands were
+bounded foreground work; no managed server/browser was launched in this turn.
+The first cleanup helper invocation failed at PowerShell pipeline binding before
+issuing an operation. Retrying through the external built-in Windows PowerShell
+5.1 executable with JSON stdin succeeded: `CloseActor` verified, then `List`
+verified with **zero active owned resources**. The context-bearing helper was
+removed after verification. Final `git diff --check` passed.
+
+## Git reconciliation authorization — 2026-09-09
+
+Rasmus explicitly authorized committing and merging the relevant production work,
+then switching to main. The release changes are being reconciled through a PR;
+this supersedes earlier no-commit/no-merge constraints. The unrelated local
+`.codex/config.toml` hook-key change and the two protected pre-existing untracked
+paths remain outside this commit. No sprint-status transition is made.
+
+Application source remains identical to the deployed, SHA-256-recorded release.
+The prior successful TypeScript, lint, full Vitest, 18-case browser matrix,
+24 screenshot inspections and axe scans, manual visual approval, production
+build and bundle checks remain the evidence for these unchanged fixes. The
+known production dependency audit failure is not waived; PR CI will determine
+whether the normal merge checks pass. Security dependency remediation remains
+separate from the approved direct-sun patch until scoped and verified.

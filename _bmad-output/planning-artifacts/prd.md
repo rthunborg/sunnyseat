@@ -596,6 +596,24 @@ correctness gate independent of weather-snapshot scheduling reliability.
 - **NFR-LR-01:** Fresh complete-overcast fixtures yield zero amber venues,
   windows and peaks.
 - **NFR-LR-02:** Public venue reads make zero live Met.no calls.
+- **NFR-LR-03:** A timestamped positive near-now radar observation is matched to
+  exactly one closest forecast slice under the bounded current-observation rule,
+  including a provider slice that starts before refresh. It must not be dropped
+  at an hourly boundary or copied across the forecast horizon.
+- **NFR-LR-04:** Persisted snapshot JSON is an untrusted boundary. Malformed
+  entries are discarded without a list/detail 500; no usable request-time match
+  means weather-unknown, geometry-only provenance, and capped confidence.
+- **NFR-LR-05:** Contradictory affirmative DTO tuples fail closed before ranking,
+  pins, windows, or peaks. Detail timeline window status comes from the
+  qualifying window run, not the selected instant.
+
+Follow-up conformance clarification (2026-09-07): present weather flags must be
+booleans, including string `"true"`/`"false"` rejection. Their timestamped unknown
+slice must not be skipped in favour of nearby clear evidence. Nonempty or
+malformed reasons cannot accompany a public `likely` DTO or cached day-series
+entry. Unknown always uses uncertain Swedish copy and qualified clear-sky
+potential; retained `CloudObscured` status cannot produce a definite obstruction
+headline or accessible name. Obscured presentation requires `blocked`.
 
 These requirements explicitly supersede the prior predicates in FR7, FR12,
 FR28, LR2, NFR28, and NFR34 wherever “not weather-gated” or geometric exposure
@@ -610,6 +628,12 @@ documented, but it is not the launch contract.
 - Missing, stale, incomplete, malformed, unmatched, broken-cloud, and
   contradictory evidence must produce zero affirmative direct-sun claims and
   must retain clearly qualified geometric potential where available.
+- A refresh at 12:05 with a clear 12:00 Locationforecast slice and positive
+  timestamped Nowcast rain must persist a precipitation blocker. Invalid
+  `weather_updated_at`, invalid/out-of-range `validAt`, all-malformed arrays, and
+  evidence-free slices must not claim weather provenance or full confidence.
+- A selected shaded/blocked instant with a later qualifying direct-sun run must
+  serialize that run's `Sunny`/`Partial` status on the detail timeline.
 - Before launch, a timestamped Gothenburg field-validation set must report a
   confusion matrix for `likely`, `blocked`, and `unknown`, segmented by forecast
   horizon, weather category, and geometry-input version. `unknown` is coverage,
