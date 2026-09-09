@@ -795,3 +795,23 @@ was actually inspected on both breakpoints: controls are visible after scrolling
 with qualified legend copy intact. These are two additional screenshot
 inspections, not automated reference comparisons. CI rerun still must complete
 before merge. No local resource was launched; verified cleanup remains unchanged.
+
+### Obscured accessibility fixture — 2026-09-09
+
+Run https://github.com/rthunborg/sunnyseat/actions/runs/34337460796 passed audit,
+type/lint/build/unit/budgets, **159 E2E tests** (51 existing skips) and **eight
+real-touch tests**. The dedicated desktop accessibility suite passed 17 tests;
+its obscured-detail test timed out before scanning because the dev-only fixture
+had CloudObscured/gated flags but no explicit blocked directSunState. The strict
+UI correctly neutralized it. Mobile accessibility and Lighthouse had not run.
+
+The obscured fixture alone now declares blocked plus cloud-obstruction. The
+ordinary forced detail/feedback fallback remains without authoritative evidence
+and remains neutral. A unit regression checks both distinctions, preserved
+geometry/clear-sky potential and the production guard. No production behavior,
+references or Epic 12 scope changed. Final local commands `npx tsc --noEmit`,
+`npx eslint . --quiet`, `npm run build`, `node scripts/verify-js-budgets.mjs`, and
+`npx vitest run` pass: **230 files / 2,176 local tests**; unchanged 599.46 KiB
+complete JS budget. Full unit evidence: `obscured-vitest.log` under the evidence
+root above. Browser validation of this dev fixture remains with the next normal
+CI run; no local resource was started after verified actor cleanup.

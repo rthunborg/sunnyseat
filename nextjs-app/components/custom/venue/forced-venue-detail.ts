@@ -26,6 +26,8 @@ export function resolveForcedVisualVenueDetail(
       ...FORCED_VISUAL_VENUE_DETAIL,
       currentSunStatus: 'CloudObscured',
       weatherGateState: 'gated',
+      directSunState: 'blocked',
+      directSunReasons: ['cloud-obstruction'],
       skyCondition: 'overcast',
     };
   }
