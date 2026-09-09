@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { act, render } from '@testing-library/react';
 import { useRef, useState, type ReactNode } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
-import maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import { MapInstanceContext } from '@/lib/contexts/MapInstanceContext';
 import { MapSelectionContext } from '@/lib/contexts/MapSelectionContext';
 import { VenuePinLayer } from '@/components/custom/map/VenuePinLayer';
@@ -78,7 +78,7 @@ type StubMarker = {
 
 const allMarkers: StubMarker[] = [];
 
-vi.mock('maplibre-gl', () => {
+vi.mock('@/lib/maplibre', () => {
   class Marker {
     private element: HTMLElement;
     private lngLat: [number, number] | null = null;
@@ -107,7 +107,7 @@ vi.mock('maplibre-gl', () => {
   // having a stub class prevents "Map is not a constructor" trips when
   // that happens (Round 2 — formerly R1-Dismiss #2).
   class Map {}
-  return { default: { Marker, Map } };
+  return { getMapLibre: () => ({ Marker, Map }) };
 });
 
 type MapClickHandler = (e: { originalEvent: { target: EventTarget | null } }) => void;
@@ -143,8 +143,8 @@ function makeStubMap(): StubMap {
 const messages = {
   map: {
     pinSunnyAria: 'Soligt vid vald tid — {percent} procent sol',
-    pinSunnyWeatherUnknownAria: 'Soligt vid vald tid — {percent} procent sol. Väder saknas vid vald tid.',
     pinNotSunnyAria: 'Inte soligt vid vald tid',
+    pinUnknownAria: '{name} — direkt solljus är osäkert vid vald tid',
   },
 };
 
@@ -192,16 +192,19 @@ const baseVenues: VenuePinData[] = [
     id: '1', slug: 'a', name: 'A', lat: 57.7, lng: 11.97,
     sunStatus: 'Sunny', sunExposurePercent: 95, isPartner: false,
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
   },
   {
     id: '2', slug: 'b', name: 'B', lat: 57.7, lng: 11.97,
     sunStatus: 'Sunny', sunExposurePercent: 80, isPartner: false,
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
   },
   {
     id: '3', slug: 'c', name: 'C', lat: 57.7, lng: 11.97,
     sunStatus: 'Shaded', sunExposurePercent: 20, isPartner: false,
     weatherGateState: 'not_gated',
+    directSunState: 'blocked',
   },
 ];
 
@@ -239,6 +242,7 @@ describe('<VenuePinLayer />', () => {
       id: 'obscured', slug: 'o', name: 'Obscured', lat: 57.7, lng: 11.97,
       sunStatus: 'CloudObscured', sunExposurePercent: 88, isPartner: false,
       weatherGateState: 'gated',
+      directSunState: 'blocked',
     };
 
     render(<VenuePinLayer venues={[obscuredVenue]} />, { wrapper: Wrapper });

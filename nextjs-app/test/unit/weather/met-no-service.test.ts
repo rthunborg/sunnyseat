@@ -72,7 +72,7 @@ describe('met-no-service getForecast (Story 8.5 5.3/5.4)', () => {
     expect(headersFromCall()['User-Agent']).toBe('SunnySeat/1.0 rasmus.thunborg@enhancior.se');
   });
 
-  it('truncates request coordinates to 4 decimals per Met.no TOS', async () => {
+  it('rounds request coordinates to 4 decimals at the Met.no boundary', async () => {
     fetchMock.mockResolvedValue({
       ok: true,
       json: async () => metNoResponse(['2026-06-21T12:00:00Z']),
@@ -98,5 +98,44 @@ describe('met-no-service getForecast (Story 8.5 5.3/5.4)', () => {
     expect(slices[1].validAt?.toISOString()).toBe('2026-06-21T13:00:00.000Z');
     // createdAt (fetch instant) remains present for the confidence calculator.
     expect(slices[0].createdAt).toBeInstanceOf(Date);
+  });
+
+  it('drops a malformed provider timestamp instead of creating an unmatchable slice', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => metNoResponse(['not-a-timestamp', '2026-06-21T12:00:00Z']),
+    });
+
+    const slices = await getForecast(57.7089, 11.9746);
+
+    expect(slices).toHaveLength(1);
+    expect(slices[0].validAt?.toISOString()).toBe('2026-06-21T12:00:00.000Z');
+  });
+
+  it('maps supported complete fields without fabricating visibility', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ properties: { timeseries: [{
+        time: '2026-06-21T12:00:00Z',
+        data: {
+          instant: { details: {
+            air_temperature: 18,
+            cloud_area_fraction: 80,
+            cloud_area_fraction_low: 10,
+            cloud_area_fraction_medium: 60,
+            cloud_area_fraction_high: 90,
+            fog_area_fraction: 45,
+          } },
+          next_1_hours: { details: { precipitation_amount: 0.2 }, summary: { symbol_code: 'rain' } },
+        },
+      }] } }),
+    });
+
+    const [slice] = await getForecast(57.7089, 11.9746);
+    expect(slice).toMatchObject({
+      cloudCover: 80, cloudCoverLow: 10, cloudCoverMedium: 60, cloudCoverHigh: 90,
+      fogAreaFraction: 45, precipitationAmount: 0.2, symbolCode: 'rain',
+    });
+    expect(slice).not.toHaveProperty('visibility');
   });
 });

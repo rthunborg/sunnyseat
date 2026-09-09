@@ -198,7 +198,7 @@ npm install -D @axe-core/react eslint-plugin-jsx-a11y @next/bundle-analyzer vite
 
 **Additional Setup (post-scaffold):**
 - shadcn/ui CLI v4 for commodity component infrastructure
-- MapLibre GL JS (declared `^5.23.0`, lockfile-resolved `5.24.0`) for interactive maps
+- MapLibre GL JS (pinned `6.4.1`) for interactive maps; prepared same-origin ESM modules share code with the worker and remain behind the client dynamic boundary
 - TanStack Query (declared `^5.99.0`, lockfile-resolved `5.101.2`) for server state management
 - Motion (12.38.0) — successor to framer-motion, using `motion/react` imports
 - @use-gesture/react for unified touch/mouse gesture handling
@@ -1190,17 +1190,17 @@ The nearby/city candidate cap is separated from `MAX_IDS` and `MAX_IDS_QUERY_LEN
 
 **Product policy — resolved 2026-07-13:** Rasmus/Product chose labelled retention for deliberate retrieval. Story 12.14 implements and verifies the exact-name search and closed-favourite behavior above. The retained Story 12.14 wording that applies the closed filter to `/favoriter` rows, together with its “Open questions for planning” paragraph, is controlled superseded prose: its two maintainer calls are now resolved and both conflicting passages must be named in the story brief's **Superseded Epic Text** section alongside the adopted `E12-AD-07` behavior.
 
-#### E12-AD-08 — One public sunny predicate and label policy [ADOPTED]
+#### E12-AD-08 — One public sunny predicate and label policy [ADOPTED 2026-07-13; SUNNY PREDICATE SUPERSEDED BY E14-AD-01]
 
 **Binds:** Stories 12.2, 12.6, and 12.8; pin/ARIA presentation, cards, server and client ranking, feedback agreement, About copy, sun windows, and peak labels.
 
 **Prevents:** `Partial` status creating an amber 40% pin, client/server ordering disagreement, and a grey venue announcing an unqualified sunny window.
 
-**Rule:** one shared domain predicate defines public sunny as `sunExposurePercent > 50 && weatherGateState !== 'gated'`, where `weatherGateState` is the explicit tri-state `gated | not_gated | unknown`. Server ranking and feedback mapping import it from a server-safe pure module; client list/pin/card/ARIA use the same module or a parity-tested generated mirror. `unknown` may expose geometric potential under the standing Epic 10/PRD contract, but must retain an explicit unknown-weather signal and uncertainty copy and must never be presented as clear weather. Raw `VenueSunStatus` remains diagnostic and does not decide the public colour by itself. Amber retains percentage; grey is percentage-free and remains distinguishable by cloud icon/text.
+**Historical rule (superseded for sunny classification):** this section originally defined public sunny as `sunExposurePercent > 50 && weatherGateState !== 'gated'`. E14-AD-01 replaces that predicate with geometry above 50% plus `directSunState === 'likely'`; unknown is neutral. The remaining comparator/window consistency intent is preserved.
 
-Unqualified `Sol HH:MM–HH:MM` and peak labels are extracted only from steps satisfying the same predicate. The window is the longest contiguous qualifying sample run; displayed start/end are the first and last qualifying sample minutes (not the next step boundary), and equal-length ties choose the earliest run. Peak is the maximum qualifying exposure sample, with the earliest minute winning a tie. Geometry below/equal to 50%, or a weather-gated step, may appear only as explicitly localized `viss sol`/potential copy; it cannot populate an unqualified sunny window or peak. Weather-unknown treatment remains governed by Epic 10's non-fabrication contract and must be encoded explicitly in predicate tests.
+Unqualified `Sol HH:MM–HH:MM` and peak labels are extracted only from steps satisfying the current E14-AD-01 predicate. The window is the longest contiguous qualifying sample run; displayed start/end are the first and last qualifying sample minutes (not the next step boundary), and equal-length ties choose the earliest run. Peak is the maximum qualifying exposure sample, with the earliest minute winning a tie. Geometry below/equal to 50%, weather-blocked steps, and weather-unknown steps cannot populate an unqualified sunny window or peak. Unknown may expose geometry only as explicitly localized clear-sky potential.
 
-For `Mest sol`, server and client use the same total comparison tuple: public-sunny first, then `sunExposurePercent` descending, then distance ascending, then stable venue ID ascending. Weather-gated venues do not enter the sunny band, while their geometric percentage still gives deterministic secondary order inside the grey band. Other explicit user-selected sort modes may replace this tuple but cannot redefine public sunny.
+For `Mest sol`, server and client use the same total comparison tuple: public-sunny first, then `sunExposurePercent` descending, then distance ascending, then stable venue ID ascending. Blocked and unknown venues do not enter the sunny band, while their geometric percentage still gives deterministic secondary order inside the neutral band. Other explicit user-selected sort modes may replace this tuple but cannot redefine public sunny.
 
 #### E12-AD-09 — Detail prefetch preserves the Epic 11 request gates [ADOPTED]
 
@@ -1462,3 +1462,140 @@ Naming, structure, communication, process, format, and enforcement patterns docu
 
 **First Implementation Priority:**
 Run the scaffold initialization sequence from the "Starter Template Evaluation" section, then begin with Epic 8 story planning — the map + venue discovery core (FR1–6) is the foundation all other features build upon.
+## 2026-09-03 Direct-Sun Truth architecture delta
+
+### E14-AD-01 — Direct-sun truth supersedes E12-AD-08
+
+**Status:** Accepted 2026-09-03. **Scope:** application/domain correction only.
+This supersedes E12-AD-08 wherever `weatherGateState !== 'gated'` could make
+unknown weather publicly sunny. It does not rewrite Epic 12 history, change
+geometry ownership, extend freshness, or reopen Story 13.1.
+
+#### Domain ownership
+
+| Signal | Authoritative owner | Meaning |
+| --- | --- | --- |
+| `sunExposurePercent` plus geometric status | persisted solar/shadow geometry | Clear-sky share of the seating polygon not blocked by modelled casters; never a weather probability. |
+| raw weather evidence | scheduled Met.no snapshot refresh | Provider valid time; total/low/medium/high cloud fractions (%), fog area fraction (%), next-hour precipitation amount (mm), condition symbol, and optional near-now radar-rain observation. |
+| `directSunState` and `directSunReasons` | `lib/services/direct-sun-classifier.ts` | `likely`, `blocked`, or `unknown` forecast verdict for meaningful direct beam, with public-safe reason categories. |
+| `currentSunStatus`, `weatherGateState`, `skyCondition` | projections from the same classification | Backward-compatible presentation/context fields; never authoritative for an amber decision. |
+
+The compatibility fields must be projected from the classification, not run
+through a second cloud formula. Public ranking, amber pins/cards, partner badge,
+sun windows, and peaks require geometry above 50% **and**
+`directSunState === 'likely'`. Missing legacy state normalizes to `unknown`.
+
+#### Ingestion, units, time, and location
+
+The scheduled refresh calls Met.no Locationforecast 2.0 `complete` with the
+validated seating-polygon centroid, rounded to four decimals only at the
+provider/cache boundary. Met.no timestamps are parsed as UTC instants and kept as
+ISO `validAt`; planner/date conversion occurs in `Europe/Stockholm`, including
+DST. Cloud and fog fields remain percentages and precipitation remains the
+provider's next-one-hour millimetre amount. `fog_area_fraction` is retained as
+fog coverage and is never converted into visibility. Unsupported visibility is
+absent.
+
+`weather_bucket_snapshots.slices` persists those normalized fields. A snapshot
+row is usable only before its existing two-hour `expires_at`; missing or invalid
+expiry fails closed. Provider `validAt`, not the convenience `minutes` field, is
+authoritative for every public match: the closest valid provider instant may be
+used only within 90 minutes. Missing or invalid `validAt`, absent/empty forecasts,
+and out-of-horizon or unmatched evidence become `unknown`. The pure classifier
+receives only evidence already admitted by this temporal boundary; it does not
+own persistence expiry or time-zone conversion. The
+public route reads one request-scoped batch of persisted geometry and snapshots;
+it never calls Met.no, extends TTL, or computes shadow casters.
+
+The 2026-09-03 external-review hardening makes the snapshot boundary explicit:
+
+- Nowcast rain is retained as `{ validAt, precipitationRate }`. An observation
+  within 15 minutes of refresh is attached to exactly one closest
+  Locationforecast slice within 90 minutes, including the current hourly slice
+  whose provider time precedes the refresh. It is never smeared across the
+  horizon, and a negative radar flag never supplies missing forecast
+  precipitation evidence.
+- JSON snapshot entries are runtime-validated before property access. Malformed
+  neighbours are discarded; an all-malformed array becomes weather-unknown
+  rather than throwing or fabricating clear conditions.
+  Follow-up clarification (2026-09-07): a present `weatherUnknown` or `isRaining`
+  must be boolean. A malformed flag retains only the slice's valid time/minute
+  identity and `weatherUnknown: true`, so matching cannot replace that evidence
+  with a neighbouring clear forecast. It supplies no weather provenance or full
+  confidence. Unknown wins equal-distance timestamp ties (including duplicates),
+  independent of input order. The signed +/-90-minute boundary and two-hour TTL
+  are unchanged.
+- A `ready` row is weather-backed for classification, provenance, and confidence
+  only when `weather_updated_at` is parseable and the requested instant has a
+  timestamp-matched slice containing real provider evidence. Otherwise the read
+  is geometry-only, confidence is capped, and direct sun is `unknown`.
+- DTO normalization rejects contradictory affirmative tuples (for example
+  `CloudObscured + gated + likely`). The shared public predicate also requires
+  normalized `not_gated` as defence in depth. A timeline window carries the
+  status of its qualifying run, never the status of the independently selected
+  instant.
+  A `likely` tuple must have absent or empty reasons; nonempty or malformed
+  reason payloads normalize to `unknown` with `contradictory-weather`, on both
+  current DTOs and day-series entries. Public presentation and accessible names
+  resolve direct state first: `CloudObscured` copy requires `blocked`; a retained
+  legacy status cannot override `unknown`. This adds no client reclassification.
+
+#### Classification and precedence
+
+For geometry above 50% with the sun above the horizon, effective obstruction is
+`clamp(low + medium + 0.25 × high, 0, 100)`, retained alongside raw total cover.
+The initial conservative policy is:
+
+1. Below-horizon or geometry at/below 50% is `blocked: geometry`; malformed
+   geometric visibility/percentage is `unknown: geometry-incomplete`.
+2. Missing/expired snapshot evidence is `unknown: weather-unavailable`.
+3. A precipitation/fog/cloudy symbol, positive precipitation, dense fog at/above
+   80%, or raw/effective cloud at/above 80% is `blocked` with the applicable
+   weather reason. Independent known blockers win over otherwise incomplete or
+   contradictory fields.
+4. An out-of-range/non-finite value, missing required field, broken-cloud symbol,
+   or raw/effective obstruction strictly between 20% and 80% is `unknown`.
+5. `likely` requires all total/layer/fog fields valid and at/below 20%, an
+   explicit zero `next_1_hours.precipitation_amount`, and a coherent clear/fair
+   symbol. A false near-now radar rain flag does not fill a missing forecast
+   precipitation period. A clear symbol conflicting
+   with other valid metrics is `unknown: contradictory-weather`.
+
+These thresholds are safety policy, not calibrated irradiance physics. Changing
+them requires reviewed field evidence and a new decision record.
+
+#### Data flow
+
+```text
+scheduled refresh
+  -> Met.no complete / optional timestamped near-now radar
+  -> parse provider units + UTC validAt
+  -> match bounded radar observation to one forecast slice
+  -> weather_bucket_snapshots (2 h TTL)
+
+public venue read
+  -> persisted venue polygon + geometry day series
+  -> runtime-validated persisted snapshot; exact/nearest <= 90 min
+  -> validate request-relevant provenance/confidence
+  -> one direct-sun classifier
+  -> normalized direct state/reasons + compatibility projections
+  -> list/detail API DTO + cached day-series scrub
+  -> pins, cards, QuickInfo, detail, ranking, qualifying-run windows, peaks
+```
+
+#### Consequences and separately reviewed follow-ons
+
+The conservative gate intentionally creates more `unknown` and some false
+negatives to eliminate unsupported sunny claims. It adds no request latency,
+provider traffic, paid cost, migration, scheduler change, secret, or production
+telemetry. A future calibrated model may evaluate direct-normal irradiance,
+satellite-derived products, observation assimilation, or another provider, but
+each new source/schema/job/telemetry sink requires its own architecture, privacy,
+cost, and reliability review.
+
+If production observability is later approved, emit structured categories only:
+coarse provider coordinate bucket, provider valid time/age and horizon, bounded
+cloud/fog/precipitation/symbol categories, classifier version/state/reasons,
+geometry percentage band/input version, API surface, and rendered-label category
+under an anonymous correlation id. Never log exact user location, IP, free-text
+feedback, secrets, or raw provider payloads.

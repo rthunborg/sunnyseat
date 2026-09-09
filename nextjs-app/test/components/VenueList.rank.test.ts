@@ -16,6 +16,7 @@ function makeVenue(overrides: Partial<VenueDataDto>): VenueDataDto {
     location: { lat: 57.7, lng: 11.97 },
     currentSunStatus: 'Sunny',
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
     isPartner: false,
     confidence: 80,
     distanceMeters: 100,
@@ -28,8 +29,8 @@ function makeVenue(overrides: Partial<VenueDataDto>): VenueDataDto {
 describe('VenueList public-sun sorting (Story 12.6)', () => {
   it('orders public-sunny venues first, then exposure, distance, and stable id', () => {
     const venues = [
-      makeVenue({ id: 'grey-100', sunExposurePercent: 100, weatherGateState: 'gated', distanceMeters: 1 }),
-      makeVenue({ id: 'sun-b', sunExposurePercent: 80, weatherGateState: 'unknown', distanceMeters: 100 }),
+      makeVenue({ id: 'grey-100', sunExposurePercent: 100, weatherGateState: 'gated', directSunState: 'blocked', distanceMeters: 1 }),
+      makeVenue({ id: 'sun-b', sunExposurePercent: 80, weatherGateState: 'not_gated', directSunState: 'likely', distanceMeters: 100 }),
       makeVenue({ id: 'sun-a', sunExposurePercent: 80, weatherGateState: 'not_gated', distanceMeters: 100 }),
       makeVenue({ id: 'sun-51', sunExposurePercent: 51, weatherGateState: 'not_gated', distanceMeters: 0 }),
       makeVenue({ id: 'grey-50', sunExposurePercent: 50, weatherGateState: 'not_gated', distanceMeters: 0 }),
@@ -66,7 +67,7 @@ describe('VenueList public-sun sorting (Story 12.6)', () => {
 });
 
 describe('isVenueSunnyForList public predicate', () => {
-  it('requires exposure above 50 and a non-gated weather state', () => {
+  it('requires exposure above 50 and likely direct sunlight', () => {
     expect(isVenueSunnyForList(makeVenue({ sunExposurePercent: 50 }))).toBe(false);
     expect(isVenueSunnyForList(makeVenue({ sunExposurePercent: 51 }))).toBe(true);
     expect(
@@ -74,10 +75,11 @@ describe('isVenueSunnyForList public predicate', () => {
         makeVenue({
           currentSunStatus: 'CloudObscured',
           weatherGateState: 'gated',
+          directSunState: 'blocked',
           sunExposurePercent: 100,
         }),
       ),
     ).toBe(false);
-    expect(isVenueSunnyForList(makeVenue({ weatherGateState: 'unknown', sunExposurePercent: 80 }))).toBe(true);
+    expect(isVenueSunnyForList(makeVenue({ weatherGateState: 'unknown', directSunState: 'unknown', sunExposurePercent: 80 }))).toBe(false);
   });
 });

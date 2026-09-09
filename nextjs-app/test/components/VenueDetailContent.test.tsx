@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { VenueDetailContent } from '@/components/composed/venue/VenueDetailContent';
+import { normalizeVenueForResponse } from '@/lib/services/venues-fixture';
 import type { VenueDataDto, VenueDetailDto } from '@/lib/types/api';
 
 const LIST_VENUE: VenueDataDto = {
@@ -12,6 +13,7 @@ const LIST_VENUE: VenueDataDto = {
   neighborhood: 'Inom Vallgraven',
   location: { lat: 57.705, lng: 11.97 },
   currentSunStatus: 'Sunny',
+  directSunState: 'likely',
   weatherGateState: 'not_gated',
   isPartner: true,
   confidence: 92,
@@ -59,6 +61,9 @@ const labels = {
   address: 'Adress',
   sunBadge: '{percent}% sol',
   notSunnyVerdict: 'Inte soligt vid vald tid',
+  directSunUncertain: 'Oklart om direkt sol vid vald tid',
+  statusUncertain: 'OKLART OM DIREKT SOL',
+  clearSkyPotential: 'Vid klar himmel: {percent}% utan byggnadsskugga',
   obscuredHeadline: 'Sol bakom moln',
   sky: {
     label: 'Himmel nu',
@@ -81,6 +86,26 @@ const labels = {
 };
 
 describe('VenueDetailContent', () => {
+  it.each(['mobile', 'desktop'] as const)('announces normalized legacy unknown instead of obscured weather (%s)', (mode) => {
+    const venue = normalizeVenueForResponse({
+      ...LIST_VENUE, currentSunStatus: 'CloudObscured', weatherGateState: 'gated',
+      directSunState: 'likely', skyCondition: 'overcast',
+    });
+    const { rerender } = render(<VenueDetailContent fallbackVenue={venue}
+      currentTime="15:30" mode={mode} labels={labels} onRoute={() => undefined} />);
+    const assertUnknown = () => {
+      expect(screen.queryByTestId('venue-detail-obscured')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/Sol bakom moln/)).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Oklart om direkt sol vid vald tid')).toBeInTheDocument();
+      expect(screen.getByText('Vid klar himmel: 95% utan byggnadsskugga')).toBeInTheDocument();
+      expect(screen.getByRole('article')).not.toHaveTextContent(/Sol bakom moln|Mulet/);
+    };
+    assertUnknown();
+    rerender(<VenueDetailContent fallbackVenue={venue} detail={{ ...DETAIL, ...venue }}
+      currentTime="15:30" mode={mode} labels={labels} onRoute={() => undefined} />);
+    assertUnknown();
+  });
+
   it('renders detail content, the real distance fact, maps link, and route CTA', () => {
     render(
       <VenueDetailContent
@@ -158,7 +183,8 @@ describe('VenueDetailContent', () => {
     const obscuredDetail: VenueDetailDto = {
       ...DETAIL,
       currentSunStatus: 'CloudObscured',
-      weatherGateState: 'not_gated',
+      weatherGateState: 'gated',
+      directSunState: 'blocked',
       skyCondition: 'overcast',
       timeline: {
         ...DETAIL.timeline,
@@ -168,7 +194,7 @@ describe('VenueDetailContent', () => {
 
     render(
       <VenueDetailContent
-        fallbackVenue={{ ...LIST_VENUE, currentSunStatus: 'CloudObscured', skyCondition: 'overcast' }}
+        fallbackVenue={{ ...LIST_VENUE, currentSunStatus: 'CloudObscured', directSunState: 'blocked', weatherGateState: 'gated', skyCondition: 'overcast' }}
         detail={obscuredDetail}
         currentTime="15:30"
         labels={labels}
@@ -192,8 +218,8 @@ describe('VenueDetailContent', () => {
   it('renders NO sky line when the obscured venue sky is unavailable (AC3 — never fabricate)', () => {
     render(
       <VenueDetailContent
-        fallbackVenue={{ ...LIST_VENUE, currentSunStatus: 'CloudObscured', skyCondition: 'unavailable' }}
-        detail={{ ...DETAIL, currentSunStatus: 'CloudObscured', skyCondition: 'unavailable' }}
+        fallbackVenue={{ ...LIST_VENUE, currentSunStatus: 'CloudObscured', directSunState: 'blocked', weatherGateState: 'gated', skyCondition: 'unavailable' }}
+        detail={{ ...DETAIL, currentSunStatus: 'CloudObscured', directSunState: 'blocked', weatherGateState: 'gated', skyCondition: 'unavailable' }}
         currentTime="15:30"
         labels={labels}
         onRoute={() => undefined}

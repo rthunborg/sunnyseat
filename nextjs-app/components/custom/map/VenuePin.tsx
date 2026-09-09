@@ -36,7 +36,12 @@ export function VenuePin({ venue, isSelected, onClick, ariaLabel }: VenuePinProp
   // static baseline stays intact when animation is disabled at hydration.
   const shouldReduceMotion = useReducedMotion() !== false;
 
-  const state: VenuePinSelection = isVenuePubliclySunny(venue) ? 'sunny' : 'shaded';
+  // Route data is normalized before mapping. This local fallback is only for
+  // isolated visual consumers that predate the direct-sun DTO field.
+  const state: VenuePinSelection = isVenuePubliclySunny({
+    ...venue,
+    directSunState: venue.directSunState,
+  }) ? 'sunny' : 'shaded';
 
   // Clamp + default — the API contract is `0..100`, but defensive
   // rendering means we never display "NaN%" / "undefined%" if the

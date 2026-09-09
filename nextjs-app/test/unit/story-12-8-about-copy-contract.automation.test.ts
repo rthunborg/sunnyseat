@@ -46,7 +46,7 @@ describe('Story 12.8 About copy/source contract', () => {
     const aboutSource = readProjectFile('components/custom/about/AboutPage.tsx');
 
     expect(publicSunSource).toMatch(/normalizedPercent\(venue\.sunExposurePercent\)\s*>\s*50/);
-    expect(publicSunSource).toMatch(/normalizeWeatherGateState\(venue\.weatherGateState\)\s*!==\s*'gated'/);
+    expect(publicSunSource).toMatch(/normalizeDirectSunState\(venue\.directSunState\)\s*===\s*'likely'/);
 
     expect(svAbout.mapLegendIntro).toMatch(/vald tid/i);
     expect(svAbout.mapLegendSunnyBody).toMatch(/Mer än hälften/i);

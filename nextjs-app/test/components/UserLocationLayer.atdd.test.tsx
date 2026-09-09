@@ -30,7 +30,7 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { render } from '@testing-library/react';
 import { createElement, useRef, type ComponentType, type ReactNode } from 'react';
-import maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import { MapInstanceContext } from '@/lib/contexts/MapInstanceContext';
 import { UserLocationLayer } from '@/components/custom/map/UserLocationLayer';
 
@@ -58,7 +58,7 @@ type StubMarker = {
 
 const allMarkers: StubMarker[] = [];
 
-vi.mock('maplibre-gl', () => {
+vi.mock('@/lib/maplibre', () => {
   class Marker {
     private element: HTMLElement;
     constructor(opts: { element?: HTMLElement; anchor?: string } = {}) {
@@ -79,7 +79,7 @@ vi.mock('maplibre-gl', () => {
     }
   }
   class Map {}
-  return { default: { Marker, Map } };
+  return { getMapLibre: () => ({ Marker, Map }) };
 });
 
 function makeWrapper() {

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
+import { getMapLibre } from '@/lib/maplibre';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import type { GeolocationStatus, GeolocationCoords } from '@/hooks/useGeolocation';
 import { UserPin } from './UserPin';
@@ -75,7 +76,7 @@ export function UserLocationLayer({ status, coords }: UserLocationLayerProps) {
 
     const element = document.createElement('div');
     const root = createRoot(element);
-    const marker = new maplibregl.Marker({ element, anchor: 'center' })
+    const marker = new (getMapLibre().Marker)({ element, anchor: 'center' })
       .setLngLat(lngLat)
       .addTo(mapInstance);
     entryRef.current = { marker, root, element };

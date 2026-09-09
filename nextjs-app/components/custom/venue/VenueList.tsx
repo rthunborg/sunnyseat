@@ -78,7 +78,7 @@ export function VenueList({
     <div className={cn('space-y-3', compact && 'space-y-2')}>
       {sortedVenues.map((venue, index) => {
         const sunTimeRange = resolveSunTimeRange(venue, t('sun'));
-        const isObscured = venue.currentSunStatus === 'CloudObscured';
+        const isObscured = venue.directSunState === 'blocked' && venue.currentSunStatus === 'CloudObscured';
         const availabilityState = availabilityByVenueId?.[venue.id];
         // Story 10.2 (AC4 — obscured phrase EXACTLY once): the obscured card's
         // accessible name is built HERE in ONE place via `cardAriaObscured`
@@ -107,6 +107,7 @@ export function VenueList({
             thumbnail={venue.thumbnail}
             isSunny={isVenueSunnyForList(venue)}
             weatherGateState={venue.weatherGateState}
+            directSunState={venue.directSunState}
             isObscured={isObscured}
             availabilityState={availabilityState}
             visualMetadata={getVenueVisualMetadata(venue, locale)}
@@ -124,11 +125,14 @@ export function VenueList({
               distanceApproximate: t('distanceApproximate'),
               sunUnavailable: t('sunUnavailable'),
               weatherUnavailable: t('weatherUnavailable'),
+              directSunUncertain: t('directSunUncertain'),
+              clearSkyPotential: t('clearSkyPotential', { percent: '{percent}' }),
               closedAtSelectedTime: t('closedAtSelectedTime'),
               statusMostlyShade: t('statusMostlyShade'),
               statusFullSun: t('statusFullSun'),
               statusPartialSun: t('statusPartialSun'),
               statusObscured: t('statusObscured'),
+              statusUncertain: t('statusUncertain'),
               obscuredPosition: t('obscuredPosition', { percent: '{percent}' }),
             }}
             isFavourite={isFavourite?.(venue.id) ?? false}
@@ -158,6 +162,9 @@ export function sortVenuesForList(
 }
 
 export function isVenueSunnyForList(venue: VenueDataDto): boolean {
+  // Public route DTOs are normalized with a directSunState. Keep the
+  // presentational list usable for old isolated fixtures without weakening the
+  // route contract (missing serialized evidence remains unknown upstream).
   return isVenuePubliclySunny(venue);
 }
 

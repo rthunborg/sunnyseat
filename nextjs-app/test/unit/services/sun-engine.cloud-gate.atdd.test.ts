@@ -102,6 +102,12 @@ function makeStoredVenue(overrides: Partial<StoredVenue> = {}): StoredVenue {
 function weatherSlice(overrides: Partial<WeatherSlice> = {}): WeatherSlice {
   return {
     cloudCover: 10,
+    cloudCoverLow: 10,
+    cloudCoverMedium: 0,
+    cloudCoverHigh: 0,
+    fogAreaFraction: 0,
+    precipitationAmount: 0,
+    symbolCode: 'clearsky_day',
     temperature: 18,
     isForecast: false,
     source: 'metno',
@@ -179,6 +185,8 @@ describe('[10.1 AC1] cloud gate through computeRealSunEngineResult', () => {
     const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
 
     expect(outcome.venue.currentSunStatus).toBe('CloudObscured');
+    expect(outcome.venue.directSunState).toBe('blocked');
+    expect(outcome.venue.directSunReasons).toContain('cloud-obstruction');
   });
 
   it('PRESERVES the geometric layer unchanged under the gate (sunExposurePercent / sunWindow / peakTime)', async () => {
@@ -198,15 +206,18 @@ describe('[10.1 AC1] cloud gate through computeRealSunEngineResult', () => {
     const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
 
     expect(outcome.venue.currentSunStatus).toBe('Sunny');
+    expect(outcome.venue.directSunState).toBe('likely');
   });
 
-  it('missing/unavailable weather does NOT gate (AC2) — degrades to geometric Sunny, sky unavailable', async () => {
+  it('missing/unavailable weather preserves geometry but makes direct sunlight unknown', async () => {
     mocks.getForecast.mockResolvedValue([]); // Met.no unavailable → weather === null
 
     const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
 
     expect(outcome.venue.currentSunStatus).toBe('Sunny'); // never fabricates a gate
     expect(outcome.venue.skyCondition).toBe('unavailable');
+    expect(outcome.venue.directSunState).toBe('unknown');
+    expect(outcome.venue.directSunReasons).toContain('weather-unavailable');
   });
 });
 
@@ -231,16 +242,17 @@ describe('[10.3 AC2] layered cloud detail through computeRealSunEngineResult', (
     vi.restoreAllMocks();
   });
 
-  it('100%-HIGH-only cirrus over a sunlit venue does NOT gate — the cirrus-doesn-not-cry-no-sun case this story exists for', async () => {
-    // Total cloud is 100% but it is all thin high cirrus; the effective cover lands
-    // well below the gate, so the geometric Sunny survives.
+  it('100%-HIGH-only cirrus blocks direct sunlight under the conservative raw-total policy', async () => {
+    // The weighted cover is low, but the provider total is 100%. The approved
+    // initial model treats either raw total or effective cover >=80 as a blocker.
     mocks.getForecast.mockResolvedValue([
       weatherSlice({ cloudCover: 100, cloudCoverLow: 0, cloudCoverMedium: 0, cloudCoverHigh: 100 }),
     ]);
 
     const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
 
-    expect(outcome.venue.currentSunStatus).toBe('Sunny');
+    expect(outcome.venue.currentSunStatus).toBe('CloudObscured');
+    expect(outcome.venue.directSunState).toBe('blocked');
     // The geometric layer is untouched (two-signal guarantee).
     expect(outcome.venue.sunExposurePercent).toBe(100);
     // ...but skyCondition still honestly reports the OBSERVABLE overcast sky
@@ -260,10 +272,13 @@ describe('[10.3 AC2] layered cloud detail through computeRealSunEngineResult', (
     expect(outcome.venue.sunExposurePercent).toBe(100);
   });
 
-  it('a partial split (layer missing) falls back to the raw total for gating (AC3 Tier-0)', async () => {
-    // No layer fields ⇒ the effective cover = the raw total 100 ⇒ gates exactly as
-    // Story 10.1 did (the compact-shaped slice path stays byte-compatible).
-    mocks.getForecast.mockResolvedValue([weatherSlice({ cloudCover: 100 })]);
+  it('raw total overcast blocks even if layer detail is incomplete', async () => {
+    mocks.getForecast.mockResolvedValue([weatherSlice({
+      cloudCover: 100,
+      cloudCoverLow: undefined,
+      cloudCoverMedium: undefined,
+      cloudCoverHigh: undefined,
+    })]);
 
     const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
 
@@ -287,17 +302,15 @@ describe('[10.3 AC2] layered cloud detail through computeRealSunEngineResult', (
     expect(outcome.venue.skyCondition).toBe('overcast');
   });
 
-  it('cirrus over a THIN low haze (well below the gate combined) does NOT gate — the terrace keeps its sun', async () => {
-    // A little low cloud (20%) plus full cirrus: LOW*20 + HIGH*100 stays under the
-    // 80 gate, so the geometric Sunny survives. The additive path does not
-    // over-count cirrus into a false gate.
+  it('raw total overcast blocks even when weighted cloud cover is below 80%', async () => {
     mocks.getForecast.mockResolvedValue([
       weatherSlice({ cloudCover: 100, cloudCoverLow: 20, cloudCoverMedium: 0, cloudCoverHigh: 100 }),
     ]);
 
     const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
 
-    expect(outcome.venue.currentSunStatus).toBe('Sunny');
+    expect(outcome.venue.currentSunStatus).toBe('CloudObscured');
+    expect(outcome.venue.directSunState).toBe('blocked');
   });
 });
 

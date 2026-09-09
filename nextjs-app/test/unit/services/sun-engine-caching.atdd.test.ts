@@ -64,10 +64,17 @@ const SUMMER_MIDDAY = new Date('2026-06-21T10:30:00.000Z'); // Stockholm 12:30
 function weatherSlice(overrides: Partial<WeatherSlice> = {}): WeatherSlice {
   return {
     cloudCover: 10,
+    cloudCoverLow: 10,
+    cloudCoverMedium: 0,
+    cloudCoverHigh: 0,
+    fogAreaFraction: 0,
+    precipitationAmount: 0,
+    symbolCode: 'clearsky_day',
     temperature: 18,
     isForecast: false,
     source: 'metno',
     createdAt: new Date('2026-06-21T10:30:00.000Z'),
+    validAt: new Date('2026-06-21T10:30:00.000Z'),
     ...overrides,
   };
 }
@@ -147,6 +154,8 @@ describe('Story 9.3 AC1 — single shared building fetch', () => {
         "venue": {
           "confidence": 60,
           "currentSunStatus": "Sunny",
+          "directSunReasons": [],
+          "directSunState": "likely",
           "distanceMeters": 0,
           "id": "1",
           "isPartner": true,

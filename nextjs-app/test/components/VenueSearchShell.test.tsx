@@ -3,7 +3,7 @@ import { act, fireEvent, render } from '@testing-library/react';
 import { useRef, type ReactNode } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import { MapInstanceContext } from '@/lib/contexts/MapInstanceContext';
 import { VenueSearchShell } from '@/components/custom/search/VenueSearchShell';
 

@@ -166,10 +166,10 @@ describe('[10.3 AC1] met-no-service switches to `complete` + carries the layer s
     await getForecast(57.7089, 11.9746);
 
     const [url] = fetchMock.mock.calls[0] as [string];
-    // Mirrors the 4-decimal-truncation URL assertion in met-no-service.test.ts:75.
+    // Mirrors the 4-decimal-rounding URL assertion in met-no-service.test.ts.
     expect(url).toContain('/locationforecast/2.0/complete');
     expect(url).not.toContain('/compact');
-    // The TOS-mandated 4-decimal truncation still carries over unchanged.
+    // The 4-decimal provider-boundary rounding still carries over unchanged.
     expect(url).toContain('lat=57.7089');
     expect(url).toContain('lon=11.9746');
   });

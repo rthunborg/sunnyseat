@@ -18,8 +18,8 @@ import {
   isObscuredSunStatus,
   skyConditionCopy,
 } from '@/lib/utils/sun-status-presentation';
-import type { VenueSunStatus, VenueThumbnailDto, WeatherGateState } from '@/lib/types/api';
-import { isVenuePubliclySunny, normalizeWeatherGateState } from '@/lib/utils/public-sun';
+import type { DirectSunState, VenueSunStatus, VenueThumbnailDto, WeatherGateState } from '@/lib/types/api';
+import { isVenuePubliclySunny, normalizeDirectSunState, normalizeWeatherGateState } from '@/lib/utils/public-sun';
 import { selectVenueCardImageUrl } from '@/lib/utils/venue-media';
 import { cn } from '@/lib/utils';
 
@@ -45,6 +45,7 @@ export type VenueQuickInfoProps = {
    * the "Sol bakom moln" treatment while keeping the geometric layer (AC2). */
   currentSunStatus?: VenueSunStatus;
   weatherGateState?: WeatherGateState;
+  directSunState?: DirectSunState;
   /** Story 10.2 (AC3): serialized DTO sky field (`'clear' | 'partly-cloudy' |
    * 'overcast' | 'unavailable'`) — surfaced as plain-language copy. Absent /
    * 'unavailable' renders no sky line (never fabricate). */
@@ -81,6 +82,8 @@ export type VenueQuickInfoProps = {
      * venue is CloudObscured. */
     obscuredHeadline?: string;
     weatherUnavailable?: string;
+    directSunUncertain?: string;
+    clearSkyPotential?: string;
     notSunnyVerdict?: string;
     /** Story 10.2 (AC3): plain-language sky descriptors. When absent, no sky
      * line renders. Story 10.4 (AC2): adds the rain descriptor. */
@@ -103,6 +106,7 @@ export function VenueQuickInfo({
   openingHours,
   currentSunStatus,
   weatherGateState,
+  directSunState,
   skyCondition,
   distanceMeters,
   distanceIsApproximate = false,
@@ -129,17 +133,18 @@ export function VenueQuickInfo({
       ? labels.distanceApproximate
       : null;
   // Story 10.2: the muted "Sol bakom moln" state + the plain-language sky line.
-  const isObscured = isObscuredSunStatus(currentSunStatus);
+  const isObscured = directSunState === 'blocked' && isObscuredSunStatus(currentSunStatus);
   const normalizedWeatherGateState = normalizeWeatherGateState(weatherGateState);
   const isPublicSunny = isVenuePubliclySunny({
     sunExposurePercent: sunExposurePercent ?? 0,
     weatherGateState: normalizedWeatherGateState,
+    directSunState: normalizeDirectSunState(directSunState),
   });
   const publicVerdictQualification = isPublicSunny
-    ? normalizedWeatherGateState === 'unknown'
-      ? labels.weatherUnavailable
-      : undefined
-    : labels.notSunnyVerdict;
+    ? undefined
+    : normalizeDirectSunState(directSunState) === 'unknown'
+      ? labels.directSunUncertain
+      : labels.notSunnyVerdict;
   const skyLine = labels.sky
     ? skyConditionCopy(skyCondition, labels.sky)
     : null;
@@ -281,6 +286,12 @@ export function VenueQuickInfo({
                         )}
                       >
                         {publicVerdictQualification}
+                      </p>
+                    )}
+                    {normalizeDirectSunState(directSunState) === 'unknown' &&
+                      sunExposurePercent !== undefined && labels.clearSkyPotential && (
+                      <p className={cn('text-text-body', isAnchoredMobile ? 'basis-full text-label-xs-medium' : 'text-body-sm')}>
+                        {labels.clearSkyPotential.replace('{percent}', String(Math.round(sunExposurePercent)))}
                       </p>
                     )}
                     {/* Story 11.4 (AC1): the single honest opening-hours line, in
@@ -429,7 +440,9 @@ function VenueThumbnail({
     <div
       className={cn(
         'relative overflow-hidden rounded-t-card border-b border-divider flex items-center justify-center',
-        forcePlaceholder ? 'gradient-cta-amber' : 'bg-amber-primary venue-photo-gradient',
+        isPublicSunny
+          ? (forcePlaceholder ? 'gradient-cta-amber' : 'bg-amber-primary venue-photo-gradient')
+          : 'bg-surface-muted',
         compact ? 'h-18' : 'h-24',
       )}
     >
@@ -458,7 +471,7 @@ function VenueThumbnail({
               />
               <div
                 aria-hidden="true"
-                className="absolute left-5 bottom-3 h-10 w-24 rounded-pill bg-amber-pale/30"
+                className={cn('absolute left-5 bottom-3 h-10 w-24 rounded-pill', isPublicSunny ? 'bg-amber-pale/30' : 'bg-surface-icon-bg')}
               />
             </>
           ) : (
@@ -469,7 +482,7 @@ function VenueThumbnail({
               />
               <div
                 aria-hidden="true"
-                className="absolute right-8 top-5 h-20 w-20 rotate-12 rounded-badge border border-surface-cream/40 bg-amber-pale/35"
+                className={cn('absolute right-8 top-5 h-20 w-20 rotate-12 rounded-badge border border-surface-cream/40', isPublicSunny ? 'bg-amber-pale/35' : 'bg-surface-icon-bg')}
               />
               <div
                 aria-hidden="true"
@@ -477,7 +490,7 @@ function VenueThumbnail({
               />
               <span
                 aria-hidden="true"
-                className="relative rounded-badge border border-surface-cream/40 bg-surface-cream/80 px-3 py-2 text-label-lg text-amber-cta-text shadow-subtle"
+                className={cn('relative rounded-badge border border-surface-cream/40 bg-surface-cream/80 px-3 py-2 text-label-lg shadow-subtle', isPublicSunny ? 'text-amber-cta-text' : 'text-text-body')}
               >
                 {initials}
               </span>

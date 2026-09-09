@@ -1,7 +1,7 @@
 /**
  * STORY 11.1 (AC1, Task 4): the PURE, CLIENT-SAFE day-series derivation.
  *
- * Given a venue's cached `sunDaySeries` (one gated entry per PLANNER_STEP_MINUTES
+ * Given a venue's cached `sunDaySeries` (one classified entry per PLANNER_STEP_MINUTES
  * step) and a selected planner minutes value, return the
  * `{ sunExposurePercent, currentSunStatus }` for that step. This is the single
  * seam the client reads for marker %, pin state, quick-info figures, "Mest sol"
@@ -9,22 +9,24 @@
  * derives ALL time-dependent UI offline-from-network and issues ZERO requests
  * (R-001, the Epic-11 headline).
  *
- * The client NEVER re-gates: the series already carries the Epic-10 weather-gated
- * `currentSunStatus` per step (the gate is authoritative server-side). This helper
- * only READS the emitted value.
+ * The client NEVER reclassifies weather: the series already carries the explicit
+ * server-owned `directSunState` plus compatibility fields per step. This helper
+ * only reads and fail-safe normalizes the emitted values.
  *
  * API BOUNDARY: this module is client-safe. It MUST NOT import `sun-engine.ts` /
  * `sun-engine-cache.ts` / `met-no-service` / `nowcast-service` (a source scan in
  * the ATDD suite enforces this). It imports only the pure planner-step utilities.
  */
 import { snapPlannerMinutes } from '@/lib/utils/time-planner';
-import type { VenueDaySeriesEntry, VenueSunStatus, WeatherGateState } from '@/lib/types/api';
-import { normalizeWeatherGateState } from '@/lib/utils/public-sun';
+import type { DirectSunReason, DirectSunState, VenueDaySeriesEntry, VenueSunStatus, WeatherGateState } from '@/lib/types/api';
+import { normalizeDirectSunState, normalizeWeatherGateState } from '@/lib/utils/public-sun';
 
 export type DerivedVenueSun = {
   sunExposurePercent: number;
   currentSunStatus: VenueSunStatus;
   weatherGateState: WeatherGateState;
+  directSunState: DirectSunState;
+  directSunReasons: DirectSunReason[];
   /**
    * The per-step gated sky condition (obscured sub-line). Carried so a scrub
    * overrides the obscured sky phrase to track the step instead of freezing at
@@ -54,6 +56,8 @@ export function deriveVenueSunAtMinutes(
     sunExposurePercent: entry.sunExposurePercent,
     currentSunStatus: entry.currentSunStatus,
     weatherGateState: normalizeWeatherGateState(entry.weatherGateState),
+    directSunState: normalizeDirectSunState(entry.directSunState),
+    directSunReasons: Array.isArray(entry.directSunReasons) ? entry.directSunReasons : [],
     skyCondition: entry.skyCondition,
   };
 }

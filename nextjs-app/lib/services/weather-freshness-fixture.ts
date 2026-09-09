@@ -39,6 +39,8 @@ export function applyFixtureWeatherAvailability(
     ...venue,
     skyCondition: 'unavailable',
     weatherGateState: 'unknown',
+    directSunState: 'unknown',
+    directSunReasons: ['weather-unavailable'],
   };
 }
 

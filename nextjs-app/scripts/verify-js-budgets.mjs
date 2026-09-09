@@ -2,6 +2,7 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { gzipSync } from 'node:zlib';
+import { createHash } from 'node:crypto';
 
 export const DEFAULT_JS_BUDGETS = Object.freeze({
   initial: 280 * 1024,
@@ -80,7 +81,7 @@ async function findJavaScriptFiles(directory) {
       const absolute = path.join(current, entry.name);
       if (entry.isDirectory()) {
         await walk(absolute);
-      } else if (entry.isFile() && entry.name.endsWith('.js')) {
+      } else if (entry.isFile() && /\.(?:m?js|cjs)$/u.test(entry.name)) {
         results.push(absolute);
       }
     }
@@ -205,11 +206,41 @@ export async function verifyJsBudgets({
     fail(`No JavaScript files were emitted under ${staticDir}.`);
   }
 
+  // Native module workers and self-hosted ESM are JavaScript too. Omitting
+  // .mjs/public assets would make a MapLibre 6 migration appear falsely smaller.
+  const publicDir = path.join(resolvedAppDir, 'public');
+  try {
+    await stat(publicDir);
+    allStaticPaths.push(...await findJavaScriptFiles(publicDir));
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  if (appPackage.dependencies['maplibre-gl']) {
+    const installedMap = await readRequiredJson(
+      path.join(resolvedAppDir, 'node_modules/maplibre-gl/package.json'),
+      'installed MapLibre metadata',
+    );
+    const preparedDir = path.join(publicDir, 'vendor/maplibre', installedMap.version);
+    const manifest = await readRequiredJson(path.join(preparedDir, 'manifest.json'), 'MapLibre module manifest');
+    if (manifest.version !== installedMap.version ||
+        !manifest.hashes?.['maplibre-gl.mjs'] || !manifest.hashes?.['maplibre-gl-worker.mjs']) {
+      fail('MapLibre module manifest is incomplete or stale.');
+    }
+    for (const [file, hash] of Object.entries(manifest.hashes)) {
+      if (path.basename(file) !== file) fail('Invalid prepared module path');
+      const prepared = await readRequiredFile(path.join(preparedDir, file), 'prepared MapLibre module');
+      if (createHash('sha256').update(prepared).digest('hex') !== hash) {
+        fail(`Prepared MapLibre module is stale or modified: ${file}`);
+      }
+    }
+  }
+
   const maplibrePaths = [];
   for (const filePath of allStaticPaths) {
     const contents = await readRequiredFile(filePath, 'static JavaScript chunk');
 
-    if (MAPLIBRE_MARKER.test(contents.toString('utf8'))) maplibrePaths.push(filePath);
+    if (MAPLIBRE_MARKER.test(contents.toString('utf8')) ||
+        filePath.includes(`${path.sep}vendor${path.sep}maplibre${path.sep}`)) maplibrePaths.push(filePath);
   }
   if (maplibrePaths.length === 0) {
     fail('Build contains no MapLibre-bearing JavaScript chunk; async loading cannot be verified.');

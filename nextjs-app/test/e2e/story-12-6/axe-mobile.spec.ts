@@ -27,6 +27,8 @@ async function arrangeLowPartialPin(page: Page): Promise<void> {
             location: { lat: 57.7089, lng: 11.9746 },
             currentSunStatus: 'Partial',
             weatherGateState: 'not_gated',
+            directSunState: 'blocked',
+            directSunReasons: ['geometry'],
             isPartner: false,
             confidence: 99,
             distanceMeters: 100,
@@ -39,6 +41,8 @@ async function arrangeLowPartialPin(page: Page): Promise<void> {
                 sunExposurePercent: 40,
                 currentSunStatus: 'Partial',
                 weatherGateState: 'not_gated',
+                directSunState: 'blocked',
+                directSunReasons: ['geometry'],
                 skyCondition: 'clear',
               },
             ],
@@ -56,7 +60,7 @@ async function arrangeLowPartialPin(page: Page): Promise<void> {
 test('[P1] pin-bearing a11y-mobile coverage is executable and non-vacuous', async ({ page }, testInfo) => {
   expect(testInfo.project.name).toBe('a11y-mobile');
   await arrangeLowPartialPin(page);
-  const pin = page.getByRole('button', { name: /Lag partial.*inte soligt vid vald tid/i });
+  const pin = page.getByRole('button', { name: /Lag partial.*ingen direkt sol v.ntas vid vald tid/i });
 
   await expect(pin).toBeVisible({ timeout: 15_000 });
   await expect(pin).not.toContainText(/\d+%/);

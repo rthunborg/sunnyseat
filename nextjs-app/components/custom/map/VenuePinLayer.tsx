@@ -4,12 +4,13 @@ import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { useTranslations } from 'next-intl';
-import maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
+import { getMapLibre } from '@/lib/maplibre';
 import { useMapInstance } from '@/lib/contexts/MapInstanceContext';
 import { useMapSelection } from '@/lib/contexts/MapSelectionContext';
 import { VenuePin } from './VenuePin';
 import type { VenuePinData } from '@/lib/types/map';
-import { isVenuePubliclySunny, isWeatherGateUnknown } from '@/lib/utils/public-sun';
+import { isVenuePubliclySunny, normalizeDirectSunState } from '@/lib/utils/public-sun';
 
 type AriaResolver = (venue: VenuePinData, percent: number) => string;
 
@@ -69,10 +70,11 @@ export function VenuePinLayer({ venues, onToggleVenue, onCanvasDeselect }: Venue
   // marker-render pass (Story 1.4 R2 deferred-work).
   const resolveAria: AriaResolver = (venue, percent) => {
     const name = venue.name;
+    if (normalizeDirectSunState(venue.directSunState) === 'unknown') {
+      return t('pinUnknownAria', { name });
+    }
     if (!isVenuePubliclySunny(venue)) return t('pinNotSunnyAria', { name });
-    return isWeatherGateUnknown(venue)
-      ? t('pinSunnyWeatherUnknownAria', { name, percent })
-      : t('pinSunnyAria', { name, percent });
+    return t('pinSunnyAria', { name, percent });
   };
 
   const markersRef = useRef<Map<string, MarkerEntry>>(new Map());
@@ -194,7 +196,7 @@ export function VenuePinLayer({ venues, onToggleVenue, onCanvasDeselect }: Venue
       }
 
       const root = createRoot(element);
-      const marker = new maplibregl.Marker({ element, anchor: 'bottom' })
+      const marker = new (getMapLibre().Marker)({ element, anchor: 'bottom' })
         .setLngLat([venue.lng, venue.lat])
         .addTo(map);
       // MapLibre's attach overwrites our role-strip; re-apply, then
@@ -375,5 +377,5 @@ function venueFingerprint(v: VenuePinData): string {
   // *(Target: Story 5.1)*  ← BMAD-grep tag: `rg "\*\(Target: 5"` will
   // surface this when 5.1 starts so the rollout doesn't silently miss
   // the fingerprint update.
-  return `${v.id}|${v.name}|${v.sunStatus}|${v.sunExposurePercent}|${v.weatherGateState}|${v.lat}|${v.lng}`;
+  return `${v.id}|${v.name}|${v.sunStatus}|${v.sunExposurePercent}|${v.weatherGateState}|${v.directSunState}|${v.lat}|${v.lng}`;
 }

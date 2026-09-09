@@ -117,6 +117,7 @@ function publicSunPeakCandidate(venue: VenueDataDto) {
     distanceMeters: venue.distanceMeters,
     sunExposurePercent: peak?.sunExposurePercent ?? venue.sunExposurePercent,
     weatherGateState: peak?.weatherGateState ?? venue.weatherGateState,
+    directSunState: peak?.directSunState ?? venue.directSunState,
   };
 }
 

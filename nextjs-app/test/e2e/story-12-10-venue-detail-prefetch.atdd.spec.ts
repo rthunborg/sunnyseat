@@ -61,6 +61,8 @@ function daySeries(): VenueDaySeriesEntry[] {
       sunExposurePercent: sunlit ? 90 : 10,
       currentSunStatus: sunlit ? 'Sunny' : 'Shaded',
       weatherGateState: 'not_gated',
+      directSunState: sunlit ? 'likely' : 'blocked',
+      directSunReasons: sunlit ? [] : ['geometry'],
     });
   }
   return series;
@@ -84,6 +86,8 @@ function venue(id: number): VenueDataDto {
     location: { lat: 57.7075 - row * 0.003, lng: 11.9685 + column * 0.003 },
     currentSunStatus: 'Sunny',
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
+    directSunReasons: [],
     isPartner: false,
     confidence: 90,
     distanceMeters: id * 20,
@@ -435,7 +439,7 @@ test.describe('Story 12.10 ATDD - detail prefetch request-count behavior', () =>
       .poll(() => new URL(page.url()).searchParams.get('venue'), { timeout: APP_SETTLE_TIMEOUT_MS })
       .toBe('prefetch-venue-1');
 
-    await page.getByRole('button', { name: /Prefetch Venue 2 .*soligt vid vald tid/i }).click();
+    await page.getByRole('button', { name: /Prefetch Venue 2 .*direkt sol sannolik vid vald tid/i }).click();
 
     await expect
       .poll(() => new URL(page.url()).searchParams.get('venue'), { timeout: APP_SETTLE_TIMEOUT_MS })

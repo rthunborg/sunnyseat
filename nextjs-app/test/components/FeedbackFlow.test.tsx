@@ -42,6 +42,7 @@ const VENUE: VenueDetailDto = {
   location: { lat: 57.705, lng: 11.97 },
   currentSunStatus: 'Sunny',
   weatherGateState: 'not_gated',
+  directSunState: 'likely',
   isPartner: true,
   confidence: 92,
   distanceMeters: 0,

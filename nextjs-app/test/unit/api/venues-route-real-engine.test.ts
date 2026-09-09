@@ -54,6 +54,8 @@ function computedOutcome(venue: StoredVenue): SunEngineOutcome {
       ...toVenueData(venue),
       currentSunStatus: 'Partial',
       weatherGateState: 'not_gated',
+      directSunState: 'likely',
+      directSunReasons: [],
       confidence: 55,
       sunExposurePercent: 60,
       skyCondition: 'clear',
@@ -61,6 +63,7 @@ function computedOutcome(venue: StoredVenue): SunEngineOutcome {
     },
     freshness: { sunDataSource: 'weather', weatherUpdatedAt: NOW.toISOString() },
     peakTime: '14:00',
+    sunWindowStatus: 'Partial',
   };
 }
 
@@ -75,6 +78,8 @@ function cloudObscuredOutcome(venue: StoredVenue): SunEngineOutcome {
       ...toVenueData(venue),
       currentSunStatus: 'CloudObscured',
       weatherGateState: 'gated',
+      directSunState: 'blocked',
+      directSunReasons: ['cloud-obstruction'],
       confidence: 60,
       sunExposurePercent: 90,
       skyCondition: 'overcast',
@@ -91,7 +96,9 @@ function unavailableOutcome(venue: StoredVenue): SunEngineOutcome {
     venue: {
       ...toVenueData(venue),
       currentSunStatus: 'NoSun',
-      weatherGateState: 'not_gated',
+      weatherGateState: 'unknown',
+      directSunState: 'unknown',
+      directSunReasons: ['weather-unavailable'],
       confidence: 20,
       sunExposurePercent: 0,
       skyCondition: 'unavailable',
@@ -101,6 +108,40 @@ function unavailableOutcome(venue: StoredVenue): SunEngineOutcome {
 }
 
 describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
+  it.each(['precipitation', 'weather-unavailable'] as const)('list and detail serialize contradictory %s reasons as unknown', async (reason) => {
+    vi.spyOn(await import('@/lib/services/sun-engine'), 'computeVenueDaySeries').mockResolvedValue([
+      { minutes: 750, sunExposurePercent: 95, currentSunStatus: 'Sunny',
+        weatherGateState: 'not_gated', directSunState: 'likely', directSunReasons: [reason], skyCondition: 'clear' },
+    ]);
+    adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) => {
+      const outcome = computedOutcome(venue);
+      return { ...outcome, venue: { ...outcome.venue, sunWindow: undefined, directSunReasons: [reason] },
+        peakTime: undefined,
+      };
+    });
+    const response = await LIST_GET(listRequest('?lat=57.7089&lng=11.9746'));
+    expect(response.status).toBe(200);
+    const body = await response.json() as GetVenuesResponse;
+    expect(body.venues.length).toBeGreaterThan(0);
+    for (const venue of body.venues) {
+      expect(venue.directSunState).toBe('unknown');
+      expect(venue.directSunReasons).toEqual([reason, 'contradictory-weather']);
+      expect(venue.sunDaySeries?.[0].directSunState).toBe('unknown');
+      expect(isVenuePubliclySunny(venue)).toBe(false);
+    }
+    const cachedRequest = listRequest('?lat=57.7089&lng=11.9746');
+    cachedRequest.headers.set('if-none-match', response.headers.get('etag')!);
+    expect((await LIST_GET(cachedRequest)).status).toBe(304);
+    const detail = await DETAIL_GET(detailRequest('test-venue-sunny'), {
+      params: Promise.resolve({ slug: 'test-venue-sunny' }),
+    });
+    expect(detail.status).toBe(200);
+    const detailBody = await detail.json() as GetVenueDetailResponse;
+    expect(detailBody.venue.directSunState).toBe('unknown');
+    expect(detailBody.venue.directSunReasons).toEqual([reason, 'contradictory-weather']);
+    expect(isVenuePubliclySunny(detailBody.venue)).toBe(false);
+  });
+
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
@@ -201,6 +242,10 @@ describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
     expect(sunny).toBeDefined();
     expect(sunny?.currentSunStatus).toBe('Sunny');
     expect(sunny?.confidence).toBe(92);
+    // A legacy seed without an explicit direct-sun verdict is normalized to
+    // unknown; a clear-sky geometry headline alone must never become public sun.
+    expect(sunny?.directSunState).toBe('unknown');
+    expect(sunny && isVenuePubliclySunny(sunny)).toBe(false);
 
     // Other venues still received engine values.
     const others = body.venues.filter((v) => v.slug !== 'test-venue-sunny');
@@ -243,22 +288,34 @@ describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
     const byId: Record<string, {
       currentSunStatus: 'Sunny' | 'Partial' | 'CloudObscured' | 'Shaded' | 'NoSun';
       sunExposurePercent: number;
+      directSunState: 'likely' | 'blocked';
     }> = {
-      '1': { currentSunStatus: 'Sunny', sunExposurePercent: 95 },
-      '2': { currentSunStatus: 'Partial', sunExposurePercent: 60 },
+      '1': { currentSunStatus: 'Sunny', sunExposurePercent: 95, directSunState: 'likely' },
+      '2': { currentSunStatus: 'Partial', sunExposurePercent: 60, directSunState: 'likely' },
       // Geometrically sunlit but weather-gated: exposure stays high (two-signal).
-      '3': { currentSunStatus: 'CloudObscured', sunExposurePercent: 90 },
-      '4': { currentSunStatus: 'Shaded', sunExposurePercent: 20 },
-      '5': { currentSunStatus: 'NoSun', sunExposurePercent: 0 },
+      '3': { currentSunStatus: 'CloudObscured', sunExposurePercent: 90, directSunState: 'blocked' },
+      '4': { currentSunStatus: 'Shaded', sunExposurePercent: 20, directSunState: 'blocked' },
+      '5': { currentSunStatus: 'NoSun', sunExposurePercent: 0, directSunState: 'blocked' },
     };
     adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) => {
-      const fields = byId[venue.id] ?? { currentSunStatus: 'Sunny' as const, sunExposurePercent: 95 };
+      const fields = byId[venue.id] ?? {
+        currentSunStatus: 'Sunny' as const,
+        sunExposurePercent: 95,
+        directSunState: 'likely' as const,
+      };
       return {
         venue: {
           ...toVenueData(venue),
           currentSunStatus: fields.currentSunStatus,
           weatherGateState:
             fields.currentSunStatus === 'CloudObscured' ? 'gated' : 'not_gated',
+          directSunState: fields.directSunState,
+          directSunReasons:
+            fields.directSunState === 'likely'
+              ? []
+              : fields.currentSunStatus === 'CloudObscured'
+                ? ['cloud-obstruction']
+                : ['geometry'],
           confidence: 60,
           sunExposurePercent: fields.sunExposurePercent,
           skyCondition: fields.currentSunStatus === 'CloudObscured' ? 'overcast' : 'clear',
@@ -275,8 +332,15 @@ describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
     const gated = body.venues.find((v) => v.id === '3');
     expect(gated?.currentSunStatus).toBe('CloudObscured');
     expect(gated?.weatherGateState).toBe('gated');
+    expect(gated?.directSunState).toBe('blocked');
     expect(gated?.sunExposurePercent).toBe(90);
     expect(gated && isVenuePubliclySunny(gated)).toBe(false);
+    expect(
+      isVenuePubliclySunny({
+        sunExposurePercent: 95,
+        weatherGateState: 'not_gated',
+      }),
+    ).toBe(false);
 
     const publicSunnyFlags = body.venues.map(isVenuePubliclySunny);
     const firstGreyIndex = publicSunnyFlags.indexOf(false);
@@ -320,17 +384,9 @@ describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
   });
 
   it('remaps a CloudObscured detail timeline window to Partial clear-sky potential (10.2 AC2/AC4, iter-2 Patch[High])', async () => {
-    // Iteration-2 review [Patch][High]: on the LIVE real-engine path
-    // `buildDetailDto` sets the timeline window status from
-    // `adjustedVenue.currentSunStatus`, which after `applyCloudGate` can be
-    // `CloudObscured`. The SERVER-loaded `detail.timeline` is consumed DIRECTLY by
-    // VenueDetailContent — the client `timelineFromListVenue` CloudObscured→Partial
-    // remap only guards the pre-load fallback and never runs on the loaded DTO.
-    // An unremapped `CloudObscured` window is unhandled by SunTimeline (blank bar)
-    // and mislabelled "Shaded" (the exact dishonest label AC4 forbids). The fix
-    // mirrors the client remap in the server buildDetailDto: the sun-window timeline
-    // is geometric clear-sky POTENTIAL, so a weather-gated headline renders as
-    // `Partial`, never `CloudObscured`.
+    // Older engine outcomes did not carry a qualifying-run window status. They
+    // must degrade to Partial rather than reuse the selected CloudObscured state,
+    // which SunTimeline does not support.
     adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) =>
       cloudObscuredOutcome(venue),
     );
@@ -355,5 +411,39 @@ describe('venue routes with SUNNYSEAT_SUN_ENGINE=real (route wiring)', () => {
     expect(
       body.venue.timeline.windows.every((w) => w.status !== 'CloudObscured'),
     ).toBe(true);
+  });
+
+  it('serializes a future qualifying window status instead of the blocked selected instant', async () => {
+    adapterMocks.applyRealSunEngine.mockImplementation(async (venue: StoredVenue) => ({
+      venue: {
+        ...toVenueData(venue),
+        currentSunStatus: 'Shaded',
+        weatherGateState: 'not_gated',
+        directSunState: 'blocked',
+        directSunReasons: ['geometry'],
+        confidence: 70,
+        sunExposurePercent: 10,
+        skyCondition: 'clear',
+        sunWindow: { start: '12:00', end: '13:00', weatherGateState: 'not_gated' },
+      },
+      freshness: { sunDataSource: 'weather', weatherUpdatedAt: NOW.toISOString() },
+      peakTime: '12:30',
+      peakWeatherGateState: 'not_gated',
+      sunWindowStatus: 'Sunny',
+    } satisfies SunEngineOutcome));
+
+    const res = await DETAIL_GET(detailRequest('test-venue-sunny'), {
+      params: Promise.resolve({ slug: 'test-venue-sunny' }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as GetVenueDetailResponse;
+
+    expect(body.venue.currentSunStatus).toBe('Shaded');
+    expect(body.venue.timeline.windows).toEqual([{
+      start: '12:00',
+      end: '13:00',
+      status: 'Sunny',
+      weatherGateState: 'not_gated',
+    }]);
   });
 });

@@ -1,12 +1,33 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { VenueCard } from '@/components/composed/venue/VenueCard';
+import { normalizeVenueForResponse, VENUE_FIXTURE } from '@/lib/services/venues-fixture';
+import { isVenuePubliclySunny } from '@/lib/utils/public-sun';
 import {
   VENUE_CARD_FADE_MS,
   VENUE_CARD_STAGGER_STEP_MS,
 } from '@/lib/constants/animation';
 
 describe('<VenueCard />', () => {
+  it.each([true, false])('shows normalized legacy uncertainty instead of obscured copy (compact=%s)', (compact) => {
+    const venue = normalizeVenueForResponse({
+      ...VENUE_FIXTURE[0], currentSunStatus: 'CloudObscured', weatherGateState: 'gated',
+      directSunState: 'likely', sunExposurePercent: 95, skyCondition: 'overcast',
+    });
+    render(<VenueCard name={venue.venueName} compact={compact}
+      sunExposurePercent={venue.sunExposurePercent} directSunState={venue.directSunState}
+      isSunny={isVenuePubliclySunny(venue)} isObscured={venue.currentSunStatus === 'CloudObscured'}
+      labels={{ select: `Välj ${venue.venueName}`, favourite: 'Spara', sun: 'Sol',
+        photoPlaceholder: 'Bild', distance: 'Avstånd', sunUnavailable: 'Soltid saknas',
+        directSunUncertain: 'Oklart om direkt sol vid vald tid',
+        clearSkyPotential: 'Vid klar himmel: {percent}% utan byggnadsskugga',
+      }} onSelect={vi.fn()} />);
+    expect(screen.getByTestId('venue-card')).not.toHaveTextContent(/SOL BAKOM MOLN|FULL SOL|DELVIS SOL/);
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('OKLART OM DIREKT SOL');
+    expect(screen.getByRole('button', { name: /Välj/ })).toHaveAccessibleName(/Oklart om direkt sol/);
+    expect(screen.getByTestId('venue-card')).toHaveTextContent('Vid klar himmel: 95% utan byggnadsskugga');
+  });
+
   it('renders venue sunlight, distance, and an accessible activation label', () => {
     const onSelect = vi.fn();
 
@@ -48,7 +69,7 @@ describe('<VenueCard />', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
-  it('renders the four sun states distinctly on the compact card (Story 10.2 AC1)', () => {
+  it('renders likely, geometry-blocked, weather-blocked, and unknown states distinctly', () => {
     const baseLabels = {
       favourite: 'Spara {name}',
       sun: 'Sol',
@@ -59,12 +80,13 @@ describe('<VenueCard />', () => {
       statusFullSun: 'FULL SOL',
       statusPartialSun: 'DELVIS SOL',
       statusObscured: 'SOL BAKOM MOLN',
+      statusUncertain: 'OKLART OM DIREKT SOL',
     };
 
     // Sunny (>=75% -> FULL SOL)
     const { rerender } = render(
       <VenueCard
-        name="Sol" sunExposurePercent={90} distanceMeters={100} compact isSunny
+        name="Sol" sunExposurePercent={90} distanceMeters={100} compact isSunny directSunState="likely"
         thumbnail={{ alt: 'a', initials: 'SO' }}
         labels={{ ...baseLabels, select: 'Välj Sol' }}
         onSelect={vi.fn()}
@@ -75,7 +97,7 @@ describe('<VenueCard />', () => {
     // Partial (<75% amber -> DELVIS SOL)
     rerender(
       <VenueCard
-        name="Delvis" sunExposurePercent={55} distanceMeters={100} compact isSunny
+        name="Delvis" sunExposurePercent={55} distanceMeters={100} compact isSunny directSunState="likely"
         thumbnail={{ alt: 'a', initials: 'DE' }}
         labels={{ ...baseLabels, select: 'Välj Delvis' }}
         onSelect={vi.fn()}
@@ -86,18 +108,34 @@ describe('<VenueCard />', () => {
     // Shaded (isSunny false, not obscured -> MEST SKUGGA)
     rerender(
       <VenueCard
-        name="Skugga" sunExposurePercent={15} distanceMeters={100} compact isSunny={false}
+        name="Skugga" sunExposurePercent={15} distanceMeters={100} compact isSunny={false} directSunState="blocked"
         thumbnail={{ alt: 'a', initials: 'SK' }}
         labels={{ ...baseLabels, select: 'Välj Skugga' }}
         onSelect={vi.fn()}
       />,
     );
-    expect(screen.getByTestId('venue-card')).toHaveTextContent('MEST SKUGGA');
+    const shadedCard = screen.getByTestId('venue-card');
+    expect(shadedCard).toHaveTextContent('MEST SKUGGA');
+    expect(screen.getByText('MEST SKUGGA').closest('span.text-text-body')).not.toBeNull();
+
+    // Unknown uses neutral copy and colour even when clear-sky geometry is high.
+    rerender(
+      <VenueCard
+        name="Oklart" sunExposurePercent={90} distanceMeters={100} compact isSunny={false} directSunState="unknown"
+        thumbnail={{ alt: 'a', initials: 'OK' }}
+        labels={{ ...baseLabels, select: 'Välj Oklart', directSunUncertain: 'Oklart om direkt sol' }}
+        onSelect={vi.fn()}
+      />,
+    );
+    const unknownCard = screen.getByTestId('venue-card');
+    expect(unknownCard).toHaveTextContent('OKLART OM DIREKT SOL');
+    expect(screen.getByText('OKLART OM DIREKT SOL').closest('span.text-text-body')).not.toBeNull();
+    expect(unknownCard.querySelector('.text-amber-dark')).toBeNull();
 
     // Obscured (isObscured -> SOL BAKOM MOLN, muted; NO amber sun copy)
     rerender(
       <VenueCard
-        name="Moln" sunExposurePercent={90} distanceMeters={100} compact isSunny={false} isObscured
+        name="Moln" sunExposurePercent={90} distanceMeters={100} compact isSunny={false} isObscured directSunState="blocked"
         thumbnail={{ alt: 'a', initials: 'MO' }}
         labels={{ ...baseLabels, select: 'Välj Moln' }}
         onSelect={vi.fn()}
@@ -118,7 +156,7 @@ describe('<VenueCard />', () => {
   it('renders an obscured non-compact card as percentage-free not-sunny chrome', () => {
     render(
       <VenueCard
-        name="Molnig" sunExposurePercent={92} distanceMeters={100} isSunny={false} isObscured
+        name="Molnig" sunExposurePercent={92} distanceMeters={100} isSunny={false} isObscured directSunState="blocked"
         thumbnail={{ alt: 'a', initials: 'ML' }}
         labels={{
           select: 'Välj Molnig',
@@ -155,7 +193,7 @@ describe('<VenueCard />', () => {
     // headline obscured tests, so pin the suppression directly.
     render(
       <VenueCard
-        name="Molnig" sunExposurePercent={92} distanceMeters={100} isSunny={false} isObscured
+        name="Molnig" sunExposurePercent={92} distanceMeters={100} isSunny={false} isObscured directSunState="blocked"
         thumbnail={{ alt: 'a', initials: 'ML' }}
         labels={{
           select: 'Välj Molnig',
@@ -180,7 +218,7 @@ describe('<VenueCard />', () => {
   it('renders the muted-slate thumbnail badge (cloud icon) on an obscured card, never the amber sun badge (Story 10.2 AC1)', () => {
     render(
       <VenueCard
-        name="Molnig" sunExposurePercent={92} distanceMeters={100} isSunny={false} isObscured
+        name="Molnig" sunExposurePercent={92} distanceMeters={100} isSunny={false} isObscured directSunState="blocked"
         thumbnail={{ alt: 'a', initials: 'ML' }}
         labels={{
           select: 'Välj Molnig',
@@ -237,6 +275,7 @@ describe('<VenueCard />', () => {
         sunExposurePercent={92}
         thumbnail={{ alt: 'Uteservering', initials: 'KM' }}
         isSunny
+        directSunState="likely"
         availabilityState="closed"
         labels={{
           select: 'Välj Kafé Magasinet, Sol 13:00-18:30, Avstånd 180 m',

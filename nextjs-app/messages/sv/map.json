@@ -7,9 +7,9 @@
   "zoomOut": "Zooma ut",
   "myLocation": "Min plats",
   "settings": "Inställningar",
-  "pinSunnyAria": "{name} — soligt vid vald tid — {percent} procent sol",
-  "pinSunnyWeatherUnknownAria": "{name} — soligt vid vald tid — {percent} procent sol. Väder saknas vid vald tid.",
-  "pinNotSunnyAria": "{name} — inte soligt vid vald tid",
+  "pinSunnyAria": "{name} — direkt sol sannolik vid vald tid — {percent} procent utan byggnadsskugga",
+  "pinNotSunnyAria": "{name} — ingen direkt sol väntas vid vald tid",
+  "pinUnknownAria": "{name} — oklart om direkt sol vid vald tid",
   "coachTour": {
     "progress": "Steg {current} av {total}",
     "skip": "Hoppa över guide",
@@ -21,7 +21,7 @@
     "steps": {
       "pinLegend": {
         "title": "Kartnålarna",
-        "body": "Procenten visar hur stor andel av uteserveringens platser vi tror är i direkt sol vid den valda tiden.",
+        "body": "En gul nål betyder att direkt sol är sannolik. Procenten visar hur stor del av sittplatserna som inte skuggas av byggnader. En grå nål kan betyda skugga, väderblockering eller osäkert väder.",
         "target": "kartans nålar"
       },
       "timeSlider": {
@@ -51,10 +51,10 @@
       }
     },
     "pinLegend": {
-      "sunnyLabel": "Soligt",
-      "sunnyDescription": "Direkt sol vid vald tid.",
-      "shadedLabel": "Skuggat",
-      "shadedDescription": "Ingen direkt sol just då."
+      "sunnyLabel": "Direkt sol sannolik",
+      "sunnyDescription": "Vädret stöder direkt sol; procenten är ytan utan byggnadsskugga.",
+      "shadedLabel": "Ingen gul solmarkering",
+      "shadedDescription": "Skugga, väderblockering eller oklart väder. Öppna platsen för detaljer."
     }
   },
   "devEditor": {

@@ -10,11 +10,12 @@ import type {
   PredictionUncertaintyDto,
   PredictionUncertaintyLevel,
   PredictionUncertaintyReason,
+  DirectSunReason,
   VenueDataDto,
   VenueDaySeriesEntry,
   VenueThumbnailDto,
 } from '@/lib/types/api';
-import { normalizeWeatherGateState } from '@/lib/utils/public-sun';
+import { normalizeDirectSunState, normalizeWeatherGateState } from '@/lib/utils/public-sun';
 import { normalizeVenueMediaRenditionUrl } from '@/lib/utils/venue-media';
 
 const TIME_WINDOW_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -50,6 +51,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     location: { lat: 57.7050, lng: 11.9700 },
     currentSunStatus: 'Sunny',
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
     skyCondition: 'clear',
     isPartner: true,
     confidence: 92,
@@ -89,6 +91,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     location: { lat: 57.7035, lng: 11.9520 },
     currentSunStatus: 'Sunny',
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
     skyCondition: 'clear',
     isPartner: false,
     confidence: 88,
@@ -124,7 +127,8 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     location: { lat: 57.7080, lng: 11.9655 },
     currentSunStatus: 'Sunny',
     weatherGateState: 'not_gated',
-    skyCondition: 'partly-cloudy',
+    directSunState: 'likely',
+    skyCondition: 'clear',
     isPartner: false,
     confidence: 78,
     distanceMeters: 0,
@@ -147,7 +151,8 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     location: { lat: 57.7000, lng: 11.9710 },
     currentSunStatus: 'Partial',
     weatherGateState: 'not_gated',
-    skyCondition: 'partly-cloudy',
+    directSunState: 'likely',
+    skyCondition: 'clear',
     isPartner: false,
     confidence: 70,
     distanceMeters: 0,
@@ -174,7 +179,8 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     location: { lat: 57.7115, lng: 11.9605 },
     currentSunStatus: 'Partial',
     weatherGateState: 'not_gated',
-    skyCondition: 'partly-cloudy',
+    directSunState: 'likely',
+    skyCondition: 'clear',
     isPartner: false,
     confidence: 66,
     distanceMeters: 0,
@@ -201,6 +207,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     location: { lat: 57.7095, lng: 11.9785 },
     currentSunStatus: 'Shaded',
     weatherGateState: 'not_gated',
+    directSunState: 'blocked',
     skyCondition: 'overcast',
     isPartner: false,
     confidence: 80,
@@ -224,6 +231,7 @@ export const VENUE_FIXTURE: VenueDataDto[] = [
     location: { lat: 57.7060, lng: 11.9820 },
     currentSunStatus: 'Shaded',
     weatherGateState: 'not_gated',
+    directSunState: 'blocked',
     skyCondition: 'overcast',
     isPartner: false,
     confidence: 75,
@@ -243,6 +251,7 @@ export function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
   const {
     predictionUncertainty: rawPredictionUncertainty,
     sunDaySeries: rawSunDaySeries,
+    directSunReasons: rawDirectSunReasons,
     ...venueWithoutUncertainty
   } = venue as VenueDataDto & {
     predictionUncertainty?: unknown;
@@ -278,13 +287,22 @@ export function normalizeVenueForResponse(venue: VenueDataDto): VenueDataDto {
   const url = normalizeThumbnailUrl(rawThumbnail?.url);
   const predictionUncertainty = normalizePredictionUncertainty(rawPredictionUncertainty);
   const sunDaySeries = normalizeSunDaySeries(rawSunDaySeries);
+  const directSun = normalizeDirectSunTuple({
+    currentSunStatus: venue.currentSunStatus,
+    weatherGateState: (venue as VenueDataDto & { weatherGateState?: unknown }).weatherGateState,
+    directSunState: (venue as { directSunState?: unknown }).directSunState,
+    directSunReasons: rawDirectSunReasons,
+    sunExposurePercent: venue.sunExposurePercent,
+    skyCondition: venue.skyCondition,
+  });
 
   return {
     ...venueWithoutUncertainty,
-    weatherGateState: normalizeWeatherGateStateForStatus(
-      venue.currentSunStatus,
-      (venue as VenueDataDto & { weatherGateState?: unknown }).weatherGateState,
-    ),
+    weatherGateState: directSun.weatherGateState,
+    directSunState: directSun.directSunState,
+    ...(Array.isArray(rawDirectSunReasons) || directSun.directSunReasons.length > 0
+      ? { directSunReasons: directSun.directSunReasons }
+      : {}),
     sunWindow,
     ...(sunDaySeries ? { sunDaySeries } : {}),
     thumbnail:
@@ -319,13 +337,79 @@ function normalizeSunDaySeries(value: unknown): VenueDaySeriesEntry[] | undefine
   if (!Array.isArray(value)) return undefined;
   return value
     .filter((entry): entry is VenueDaySeriesEntry => Boolean(entry) && typeof entry === 'object')
-    .map((entry) => ({
-      ...entry,
-      weatherGateState: normalizeWeatherGateStateForStatus(
-        entry.currentSunStatus,
-        (entry as VenueDaySeriesEntry & { weatherGateState?: unknown }).weatherGateState,
-      ),
-    }));
+    .map((entry) => {
+      const directSun = normalizeDirectSunTuple({
+        currentSunStatus: entry.currentSunStatus,
+        weatherGateState: (entry as VenueDaySeriesEntry & { weatherGateState?: unknown }).weatherGateState,
+        directSunState: (entry as { directSunState?: unknown }).directSunState,
+        directSunReasons: (entry as { directSunReasons?: unknown }).directSunReasons,
+        sunExposurePercent: entry.sunExposurePercent,
+        skyCondition: entry.skyCondition,
+      });
+      const { directSunReasons: _rawDirectSunReasons, ...entryWithoutReasons } = entry;
+      return {
+        ...entryWithoutReasons,
+        weatherGateState: directSun.weatherGateState,
+        directSunState: directSun.directSunState,
+        ...(Array.isArray(entry.directSunReasons) || directSun.directSunReasons.length > 0
+          ? { directSunReasons: directSun.directSunReasons }
+          : {}),
+      };
+    });
+}
+
+function normalizeDirectSunTuple(input: {
+  currentSunStatus: VenueDataDto['currentSunStatus'];
+  weatherGateState: unknown;
+  directSunState: unknown;
+  directSunReasons: unknown;
+  sunExposurePercent: unknown;
+  skyCondition: unknown;
+}): {
+  weatherGateState: VenueDataDto['weatherGateState'];
+  directSunState: NonNullable<VenueDataDto['directSunState']>;
+  directSunReasons: DirectSunReason[];
+} {
+  const weatherGateState = normalizeWeatherGateStateForStatus(
+    input.currentSunStatus,
+    input.weatherGateState,
+  );
+  const directSunState = normalizeDirectSunState(input.directSunState);
+  const directSunReasons = normalizeDirectSunReasons(input.directSunReasons);
+  const exposure = typeof input.sunExposurePercent === 'number' && Number.isFinite(input.sunExposurePercent)
+    ? input.sunExposurePercent
+    : Number.NaN;
+  const coherentLikely =
+    // Likely has no blocking/uncertainty reasons. Do not erase malformed or
+    // unrecognized reason payloads into an apparently coherent empty list.
+    (input.directSunReasons === undefined ||
+      (Array.isArray(input.directSunReasons) && input.directSunReasons.length === 0)) &&
+    weatherGateState === 'not_gated' &&
+    (input.currentSunStatus === 'Sunny' || input.currentSunStatus === 'Partial') &&
+    exposure > 50 && exposure <= 100 &&
+    (input.skyCondition === undefined || input.skyCondition === 'clear');
+
+  if (directSunState !== 'likely' || coherentLikely) {
+    return { weatherGateState, directSunState, directSunReasons };
+  }
+
+  return {
+    weatherGateState: input.currentSunStatus === 'CloudObscured' ? 'gated' : 'unknown',
+    directSunState: 'unknown',
+    directSunReasons: [...new Set([...directSunReasons, 'contradictory-weather' as const])],
+  };
+}
+
+const DIRECT_SUN_REASONS: ReadonlySet<DirectSunReason> = new Set([
+  'geometry', 'geometry-incomplete', 'cloud-obstruction', 'precipitation', 'fog', 'weather-unavailable',
+  'weather-incomplete', 'contradictory-weather',
+]);
+
+function normalizeDirectSunReasons(value: unknown): DirectSunReason[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((reason): reason is DirectSunReason =>
+    typeof reason === 'string' && DIRECT_SUN_REASONS.has(reason as DirectSunReason),
+  ))];
 }
 
 function normalizePredictionUncertainty(value: unknown): PredictionUncertaintyDto | undefined {

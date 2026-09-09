@@ -155,18 +155,19 @@ export interface WeatherSlice {
    * Total cloud cover 0..100 (`cloud_area_fraction`). STORY 10.1 (AC2): OPTIONAL
    * so a timeseries entry that lacks cloud data reads "unknown" rather than the
    * old optimistic `?? 0` (clear-sky) default — absent cloud must NEVER produce a
-   * clear gate input. `undefined` = unknown = NON-gating AND NON-clear: the cloud
-   * gate (sun-engine `applyCloudGate`) does not fire, `skyConditionFromCloudCover`
-   * maps it to `'unavailable'`, and the confidence blend (`calcCloudCertainty`)
-   * treats it as neutral (freshness-only), not as 100% overcast.
+   * clear input. `undefined` means unknown: the direct-sun classifier must return
+   * `unknown`, while compatibility displays map it to unavailable and confidence
+   * treats it as neutral rather than inventing clear or overcast weather.
    */
   cloudCover?: number;
   /**
    * Low-cloud cover 0..100 (`cloud_area_fraction_low`, below ~2000 m). STORY 10.3
    * (AC1): the Met.no `complete` product's three-layer split. OPTIONAL — a partial
    * `complete` entry, a non-Met.no producer, or a fixture without it stays valid;
-   * `undefined` = this layer unknown ⇒ `effectiveCloudCover` falls back to the raw
-   * total (Story 10.3 AC3). NOT a partition of the total: each band is an
+   * `undefined` = this layer unknown. `effectiveCloudCover` retains a raw-total
+   * scalar fallback for legacy confidence calculations, but the direct-sun
+   * classifier requires all bands before it may return `likely`. NOT a partition
+   * of the total: each band is an
    * independent cover fraction, so low+medium+high can exceed 100. Do NOT `?? 0`.
    */
   cloudCoverLow?: number;
@@ -174,6 +175,12 @@ export interface WeatherSlice {
   cloudCoverMedium?: number;
   /** High-cloud cover 0..100 (`cloud_area_fraction_high`, cirrus above ~5000 m). See {@link WeatherSlice.cloudCoverLow}. */
   cloudCoverHigh?: number;
+  /** Met.no `fog_area_fraction`, 0..100. This is not visibility. */
+  fogAreaFraction?: number;
+  /** Met.no `next_1_hours.details.precipitation_amount`, mm for the period. */
+  precipitationAmount?: number;
+  /** Met.no `next_1_hours.summary.symbol_code`; a forecast condition category. */
+  symbolCode?: string;
   temperature: number;
   visibility?: number;
   isForecast: boolean;

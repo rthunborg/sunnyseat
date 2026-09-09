@@ -63,9 +63,11 @@ test.describe('story 12.2 feedback prediction evidence', () => {
       expect(body.predictedState).toBe('Sunny');
       expect(body.sunAccuracy).toBe('sunny');
       expect(body.sunExposurePercent).toBe(95);
-      expect(body.publicSunVerdict).toBe('amber');
+      // This dev fallback supplies geometry and legacy weather flags, but no
+      // authoritative directSunState. Feedback must preserve a neutral verdict.
+      expect(body.publicSunVerdict).toBe('grey');
       expect(body.weatherGated).toBe(false);
-      expect(body.weatherUnknown).toBe(false);
+      expect(body.weatherUnknown).toBe(true);
       expect(body.geometryInputHash).toMatch(
         /^g1:[0-9a-f]{64}$/,
       );

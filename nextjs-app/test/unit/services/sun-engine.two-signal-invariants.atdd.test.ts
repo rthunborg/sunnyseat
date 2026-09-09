@@ -121,6 +121,12 @@ function makeStoredVenue(overrides: Partial<StoredVenue> = {}): StoredVenue {
 function weatherSlice(overrides: Partial<WeatherSlice> = {}): WeatherSlice {
   return {
     cloudCover: 10,
+    cloudCoverLow: 10,
+    cloudCoverMedium: 0,
+    cloudCoverHigh: 0,
+    fogAreaFraction: 0,
+    precipitationAmount: 0,
+    symbolCode: 'clearsky_day',
     temperature: 18,
     isForecast: false,
     source: 'metno',
@@ -185,33 +191,44 @@ type Scenario = {
   forecast: WeatherSlice[];
   nowcastRate: number | undefined;
   expectObscured: boolean;
+  expectedDirectSunState: 'likely' | 'blocked' | 'unknown';
 };
 
 const SCENARIOS: Scenario[] = [
-  { name: 'clear', forecast: [weatherSlice({ cloudCover: 0 })], nowcastRate: 0, expectObscured: false },
+  {
+    name: 'clear',
+    forecast: [weatherSlice({ cloudCover: 0, cloudCoverLow: 0, cloudCoverMedium: 0, cloudCoverHigh: 0 })],
+    nowcastRate: 0,
+    expectObscured: false,
+    expectedDirectSunState: 'likely',
+  },
   {
     name: 'overcast (low stratus ≥ threshold)',
     forecast: [weatherSlice({ cloudCover: 100, cloudCoverLow: 100, cloudCoverMedium: 0, cloudCoverHigh: 0 })],
     nowcastRate: 0,
     expectObscured: true,
+    expectedDirectSunState: 'blocked',
   },
   {
-    name: 'high-cirrus-only (effective < threshold ⇒ NOT gated)',
+    name: 'high-cirrus-only (raw total 100% blocks under conservative policy)',
     forecast: [weatherSlice({ cloudCover: 100, cloudCoverLow: 0, cloudCoverMedium: 0, cloudCoverHigh: 100 })],
     nowcastRate: 0,
-    expectObscured: false,
+    expectObscured: true,
+    expectedDirectSunState: 'blocked',
   },
   {
     name: 'active rain (rate>0 forces gate)',
     forecast: [weatherSlice({ cloudCover: 10 })],
     nowcastRate: 0.5,
     expectObscured: true,
+    expectedDirectSunState: 'blocked',
   },
   {
-    name: 'weather-missing (no cloud slice ⇒ NOT gated, geometry governs)',
+    name: 'weather-missing (geometry remains, direct sunlight is unknown)',
     forecast: [],
     nowcastRate: undefined,
     expectObscured: false,
+    expectedDirectSunState: 'unknown',
   },
 ];
 
@@ -294,6 +311,7 @@ describe('[10.5 AC4] two-signal guarantee — geometry is byte-identical across 
       } else {
         expect(status, `"${s.name}" must NOT be obscured`).not.toBe('CloudObscured');
       }
+      expect(byName.get(s.name)!.venue.directSunState).toBe(s.expectedDirectSunState);
     }
   });
 
@@ -332,9 +350,10 @@ describe('[10.5 AC4] two-signal guarantee — geometry is byte-identical across 
     expect(overcast.cloudCertainty).toBeLessThan(clear.cloudCertainty);
   });
 
-  it('weather-missing NEVER fabricates a clear sky: NOT gated + skyCondition="unavailable"', async () => {
+  it('weather-missing NEVER fabricates direct sun: geometry remains, state is unknown', async () => {
     const missing = await runScenario(SCENARIOS[4]);
     expect(missing.venue.currentSunStatus).not.toBe('CloudObscured');
     expect(missing.venue.skyCondition).toBe('unavailable');
+    expect(missing.venue.directSunState).toBe('unknown');
   });
 });

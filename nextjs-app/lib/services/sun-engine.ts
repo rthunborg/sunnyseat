@@ -40,7 +40,6 @@ import type {
   PublicSunWeatherGateState,
   SunFreshnessMeta,
   VenueDataDto,
-  WeatherGateState,
   VenueSunStatus,
 } from '@/lib/types/api';
 import {
@@ -54,6 +53,12 @@ import type {
   WeatherSlice,
 } from '@/lib/solar/types';
 import type { VenueDaySeriesEntry } from '@/lib/types/api';
+import {
+  classifyDirectSun,
+  skyConditionForDirectSun,
+  sunStatusForDirectSun,
+  weatherGateStateForDirectSun,
+} from '@/lib/services/direct-sun-classifier';
 import {
   PLANNER_END_MINUTES,
   PLANNER_START_MINUTES,
@@ -122,6 +127,7 @@ export const NOWCAST_HORIZON_MS = 90 * 60 * 1000;
 // Weather older than this (or any forecast slice) flags a `weather` uncertainty
 // reason, matching the confidence-display "approximate" boundary (Story 2.6).
 const STALE_WEATHER_AGE_MS = 2 * 60 * 60 * 1000;
+const FORECAST_MATCH_MAX_DELTA_MS = 90 * 60 * 1000;
 
 export type SunEngineOutcome = {
   /** Base venue DTO with the six sun-output fields replaced by engine values. */
@@ -132,6 +138,8 @@ export type SunEngineOutcome = {
   peakTime?: string;
   /** Weather certainty attached to a public-sunny peak. */
   peakWeatherGateState?: PublicSunWeatherGateState;
+  /** Display tier derived from the qualifying public-sun window, not the selected instant. */
+  sunWindowStatus?: Extract<VenueSunStatus, 'Sunny' | 'Partial'>;
   /**
    * STORY 11.1 (AC1): the per-planner-step gated day-series. Carried SEPARATELY
    * from `venue` (not merged onto the DTO) so ONLY the LIST route attaches it to
@@ -146,7 +154,7 @@ export type SunEngineOutcome = {
 
 type SunEngineFields = Pick<
   VenueDataDto,
-  'currentSunStatus' | 'confidence' | 'sunExposurePercent' | 'weatherGateState'
+  'currentSunStatus' | 'confidence' | 'sunExposurePercent' | 'weatherGateState' | 'directSunState' | 'directSunReasons'
 > & {
   skyCondition?: string;
   sunWindow?: VenueDataDto['sunWindow'];
@@ -434,18 +442,16 @@ export function safeSeedOutcome(venue: StoredVenue): SunEngineOutcome {
  * step, sharing the SAME building set (ONE `get_buildings_near_point` RPC via the
  * buildings cache) and the SAME forecast/nowcast fetchers — no extra RPC and no
  * per-step Met.no calls beyond the batch-deduped fetchers. Each step reuses the
- * shared {@link gatedStepValue} so a series entry is byte-identical to the single
+ * shared direct-sun classifier so a series entry is byte-identical to the single
  * shot at the corresponding instant (the Task-1 parity guardrail).
  *
  * The Epic-10 cloud/rain gate is applied PER STEP (never only "now"): each step's
  * weather is the forecast slice nearest THAT step's instant, and `isRaining` is
  * threaded EXPLICITLY per step under the AC4 horizon rule — the near-now nowcast
  * is consulted ONLY for a step within `[now, now + NOWCAST_HORIZON_MS]`; steps in
- * the past or beyond the horizon get `precipitationRate = undefined ⇒ isRaining =
- * false ⇒ forecast cloud governs` (byte-identical to Tiers 0/1). We never lean on
- * `applyCloudGate`'s `isRaining = false` default (the Epic-10 defer this producer
- * is the exact "new caller" for). A false-negative "sunny during rain" is the
- * worst outcome for an honesty-first app.
+ * the past or beyond the horizon keep the nowcast signal unknown. The forecast
+ * precipitation period must independently prove zero precipitation before the
+ * classifier can return `likely`; a missing radar value is never coerced to dry.
  *
  * Cached (AC2) per `(venue id, Stockholm day, weather-refresh bucket, elevation)`
  * via {@link getSunDaySeriesCache}: the series is a WHOLE-DAY artifact, so one
@@ -503,7 +509,6 @@ async function computeVenueDaySeriesResult(
   const {
     calculateVenueShadowFromBuildings,
     fetchVenueBuildings,
-    effectiveCloudCover,
     SHADOW_SEARCH_RADIUS_DEG,
   } = await import('@/lib/solar');
   const getForecast =
@@ -540,10 +545,10 @@ async function computeVenueDaySeriesResult(
       venueGroundZ,
     });
     const weather = nearestForecastSlice(forecast, stepInstant);
-    const effectiveCover = effectiveCloudCover(weather);
     // Rain per step: consult the near-now nowcast ONLY inside the horizon
-    // (AC4 rule). Beyond the horizon / in the past → undefined ⇒ isRaining=false
-    // ⇒ forecast cloud governs. `getNowcast` is the batch-deduped fetcher, so a
+    // (AC4 rule). Beyond the horizon / in the past the value remains undefined;
+    // forecast precipitation must independently prove a dry period. `getNowcast`
+    // is the batch-deduped fetcher, so a
     // co-located coord shares one call across all its near-now steps.
     const isNearNow =
       stepInstant.getTime() >= now.getTime() &&
@@ -551,34 +556,34 @@ async function computeVenueDaySeriesResult(
     const precipitationRate = isNearNow
       ? await getNowcast(engineCoordinate.lat, engineCoordinate.lng)
       : undefined;
-    const isRaining = precipitationRate !== undefined && precipitationRate > 0;
+    const isRaining = precipitationRate === undefined
+      ? undefined
+      : precipitationRate > 0;
 
-    const { sunExposurePercent, currentSunStatus } = gatedStepValue(
-      shadowInfo,
-      effectiveCover,
-      isRaining,
-    );
+    const { sunExposurePercent, currentSunStatus: geometricStatus } =
+      geometricStepValue(shadowInfo);
+    const directSun = classifyDirectSun({
+      geometryPotentialPercent: sunExposurePercent,
+      isSunVisible: shadowInfo.solarPosition.isSunVisible,
+      weather: weather ? { ...weather, isRaining } : undefined,
+    });
+    const currentSunStatus = sunStatusForDirectSun(geometricStatus, directSun);
     // STORY 11 (review): carry the per-step gated sky condition so a client time
     // scrub can override the obscured sub-line to track the step (parity with the
     // single-instant compute at ~L749 — rain precedence, else cloud descriptor,
     // else unavailable). Keeps the obscured sky phrase from freezing at the
     // server single-instant on a scrub (the Epic-10 honesty class).
-    const skyCondition = isRaining
-      ? 'rain'
-      : weather
-        ? skyConditionFromCloudCover(weather.cloudCover)
-        : 'unavailable';
+    const skyCondition = skyConditionForDirectSun(
+      weather ? { ...weather, isRaining } : undefined,
+      directSun,
+    );
     series.push({
       minutes,
       sunExposurePercent,
       currentSunStatus,
-      weatherGateState: weatherGateStateFor(
-        weather,
-        shadowInfo.solarPosition.isSunVisible,
-        sunExposurePercent,
-        isRaining,
-        effectiveCover,
-      ),
+      weatherGateState: weatherGateStateForDirectSun(directSun),
+      directSunState: directSun.state,
+      directSunReasons: directSun.reasons,
       skyCondition,
     });
   }
@@ -600,17 +605,20 @@ function nearestForecastSlice(
   forecast: readonly WeatherSlice[],
   instant: Date,
 ): WeatherSlice | null {
-  if (forecast.length === 0) return null;
-  let best = forecast[0];
-  let bestDelta = Math.abs(weatherValidAt(best).getTime() - instant.getTime());
+  const instantMs = instant.getTime();
+  if (forecast.length === 0 || !Number.isFinite(instantMs)) return null;
+  let best: WeatherSlice | null = null;
+  let bestDelta = Number.POSITIVE_INFINITY;
   for (const slice of forecast) {
-    const delta = Math.abs(weatherValidAt(slice).getTime() - instant.getTime());
+    const validAtMs = forecastValidAtMs(slice);
+    if (validAtMs === undefined) continue;
+    const delta = Math.abs(validAtMs - instantMs);
     if (delta < bestDelta) {
       best = slice;
       bestDelta = delta;
     }
   }
-  return best;
+  return best && bestDelta <= FORECAST_MATCH_MAX_DELTA_MS ? best : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -661,7 +669,6 @@ async function computeRealSunEngineResult(
     fetchVenueBuildings,
     calculateConfidenceFactors,
     calculateDisplayConfidence,
-    effectiveCloudCover,
     SHADOW_SEARCH_RADIUS_DEG,
   } = await import('@/lib/solar');
   // On the list route the batch passes a deduped fetcher (one Met.no call per
@@ -715,8 +722,8 @@ async function computeRealSunEngineResult(
   // STORY 10.4 (AC4 horizon gate): consult the near-now radar nowcast ONLY when the
   // requested instant is within [now, now + NOWCAST_HORIZON_MS]. Beyond the horizon
   // (a future-planner time) OR in the past there is no live radar for that instant,
-  // so we do NOT fetch — `precipitationRate` stays `undefined` ⇒ rain contributes
-  // nothing ⇒ behaviour is byte-identical to Tiers 0/1 (forecast cloud governs).
+  // so we do NOT fetch — `precipitationRate` stays `undefined`; forecast
+  // precipitation must independently prove a dry period.
   // This is the AC4 guarantee: a future-planner request never fires the nowcast.
   const isNearNow =
     requestedAt.getTime() >= now.getTime() &&
@@ -725,31 +732,29 @@ async function computeRealSunEngineResult(
     ? await getNowcast(engineCoordinate.lat, engineCoordinate.lng)
     : undefined;
   // STORY 10.4 (AC2/AC3): rain is a ONE-WAY additive gate trigger. `undefined`
-  // (unknown / no coverage / beyond horizon) AND `0` (radar says genuinely no rain)
-  // both yield `false` ⇒ rain contributes NOTHING; only a strictly-positive rate
-  // fires the gate. Never `?? 0` the rate — unknown and no-rain stay distinct.
-  const isRaining = precipitationRate !== undefined && precipitationRate > 0;
+  // (unknown / no coverage / beyond horizon) remains unknown, `0` becomes an
+  // explicit false nowcast signal, and only a strictly-positive rate blocks.
+  // Never `?? 0` the rate — unknown and no-rain stay distinct.
+  const isRaining = precipitationRate === undefined
+    ? undefined
+    : precipitationRate > 0;
 
-  // STORY 11.1: the geometric-%, geometric-headline and weather-gate are computed
-  // by the SHARED {@link gatedStepValue} helper so the single-instant compute here
-  // and the per-step day-series producer are BYTE-IDENTICAL at any instant (the
+  // STORY 11.1: the geometric percentage and headline are computed identically,
+  // then the canonical direct-sun classifier supplies the weather verdict so the
+  // single-instant compute here and per-step series are BYTE-IDENTICAL (the
   // Task-1 parity guardrail — the series is this same computation sampled per step,
   // never a new formula). `effectiveCover` is derived from the SAME `weather` slice
   // that produces `skyCondition` below, keeping the cached outcome internally
   // consistent (10.1 AC4).
-  const effectiveCover = effectiveCloudCover(weather);
-  const { sunExposurePercent, currentSunStatus } = gatedStepValue(
-    shadowInfo,
-    effectiveCover,
-    isRaining,
-  );
-  const weatherGateState = weatherGateStateFor(
-    weather,
-    shadowInfo.solarPosition.isSunVisible,
-    sunExposurePercent,
-    isRaining,
-    effectiveCover,
-  );
+  const { sunExposurePercent, currentSunStatus: geometricStatus } =
+    geometricStepValue(shadowInfo);
+  const directSun = classifyDirectSun({
+    geometryPotentialPercent: sunExposurePercent,
+    isSunVisible: shadowInfo.solarPosition.isSunVisible,
+    weather: weather ? { ...weather, isRaining } : undefined,
+  });
+  const currentSunStatus = sunStatusForDirectSun(geometricStatus, directSun);
+  const weatherGateState = weatherGateStateForDirectSun(directSun);
 
   const confidenceFactors = calculateConfidenceFactors(
     1.0,
@@ -764,11 +769,10 @@ async function computeRealSunEngineResult(
   // cloud value; otherwise fall back to the cloud-derived descriptor.
   // `skyConditionFromCloudCover` stays pure (it does not know about rain) — rain
   // precedence lives here at the call site, mirroring the two-signal concern split.
-  const skyCondition = isRaining
-    ? 'rain'
-    : weather
-      ? skyConditionFromCloudCover(weather.cloudCover)
-      : 'unavailable';
+  const skyCondition = skyConditionForDirectSun(
+    weather ? { ...weather, isRaining } : undefined,
+    directSun,
+  );
   const predictionUncertainty = buildPredictionUncertainty(
     shadowInfo,
     weather,
@@ -796,6 +800,8 @@ async function computeRealSunEngineResult(
   const fields: SunEngineFields = {
     currentSunStatus,
     weatherGateState,
+    directSunState: directSun.state,
+    directSunReasons: directSun.reasons,
     confidence,
     sunExposurePercent,
     skyCondition,
@@ -861,20 +867,23 @@ async function fetchWeatherForVenue(
   requestedAt: Date,
 ): Promise<WeatherSlice | null> {
   const forecast = await getForecast(location.lat, location.lng);
-  if (forecast.length === 0) return null;
+  const requestedAtMs = requestedAt.getTime();
+  if (forecast.length === 0 || !Number.isFinite(requestedAtMs)) return null;
   // Pick the slice whose valid-time is closest to the requested instant. Now
   // that WeatherSlice carries `validAt` we match directly instead of the old
   // hour-offset approximation. [Story 8.5 Task 5.3]
-  let best = forecast[0];
-  let bestDelta = Math.abs(weatherValidAt(best).getTime() - requestedAt.getTime());
+  let best: WeatherSlice | null = null;
+  let bestDelta = Number.POSITIVE_INFINITY;
   for (const slice of forecast) {
-    const delta = Math.abs(weatherValidAt(slice).getTime() - requestedAt.getTime());
+    const validAtMs = forecastValidAtMs(slice);
+    if (validAtMs === undefined) continue;
+    const delta = Math.abs(validAtMs - requestedAtMs);
     if (delta < bestDelta) {
       best = slice;
       bestDelta = delta;
     }
   }
-  return best;
+  return best && bestDelta <= FORECAST_MATCH_MAX_DELTA_MS ? best : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -882,17 +891,14 @@ async function fetchWeatherForVenue(
 // ---------------------------------------------------------------------------
 
 /**
- * STORY 11.1 (Task 1, parity guardrail): the ONE place the geometric %, the
- * geometric headline (below-horizon `NoSun` precedence) and the Epic-10 weather
- * gate are combined into a `{ sunExposurePercent, currentSunStatus }` for a
- * single instant. BOTH the single-instant compute (`computeRealSunEngineResult`)
- * and the per-step day-series producer (`computeVenueDaySeries`) call this, so a
- * series entry is byte-identical to the single-shot compute at the same instant —
- * the series is this same computation sampled per step, never a new formula.
+ * Legacy Epic-10 compatibility mapper retained for direct unit-test coverage and
+ * older internal callers. It is not the public direct-sun decision boundary;
+ * current single-instant and day-series paths call `classifyDirectSun` and project
+ * compatibility fields from that explicit verdict.
  *
- * `sunExposurePercent` KEEPS its ONE geometric clear-sky meaning; the gate ONLY
- * rewrites the headline status. STORY 10.1/10.3: the gate reads the layer-weighted
- * effective cover (`undefined` ⇒ no gate). STORY 10.4: `isRaining` is OR-ed into
+ * `sunExposurePercent` keeps its geometric clear-sky meaning; this helper only
+ * rewrites the legacy headline status. STORY 10.1/10.3: the gate reads the
+ * layer-weighted effective cover (`undefined` ⇒ no legacy gate). STORY 10.4: `isRaining` is OR-ed into
  * the fire condition — a geometrically-sunlit venue under active rain becomes
  * `CloudObscured` even below the cloud threshold, while NoSun/Shaded/below-horizon
  * are never gated.
@@ -903,10 +909,10 @@ export function gatedStepValue(
   isRaining: boolean,
 ): { sunExposurePercent: number; currentSunStatus: VenueSunStatus } {
   const isSunVisible = shadowInfo.solarPosition.isSunVisible;
-  const sunExposurePercent = Math.round(clampPercent(shadowInfo.sunlitAreaPercent));
-  const geometricSunStatus: VenueSunStatus = isSunVisible
-    ? classifySunStatus(sunExposurePercent)
-    : 'NoSun';
+  const {
+    sunExposurePercent,
+    currentSunStatus: geometricSunStatus,
+  } = geometricStepValue(shadowInfo);
   const currentSunStatus = applyCloudGate(
     geometricSunStatus,
     isSunVisible,
@@ -914,6 +920,18 @@ export function gatedStepValue(
     isRaining,
   );
   return { sunExposurePercent, currentSunStatus };
+}
+
+function geometricStepValue(
+  shadowInfo: Pick<VenueShadowInfo, 'sunlitAreaPercent' | 'solarPosition'>,
+): { sunExposurePercent: number; currentSunStatus: VenueSunStatus } {
+  const sunExposurePercent = Math.round(clampPercent(shadowInfo.sunlitAreaPercent));
+  return {
+    sunExposurePercent,
+    currentSunStatus: shadowInfo.solarPosition.isSunVisible
+      ? classifySunStatus(sunExposurePercent)
+      : 'NoSun',
+  };
 }
 
 /** Map sunlit% to the public sun-status enum (`NoSun` decided by the caller). */
@@ -924,7 +942,8 @@ export function classifySunStatus(sunExposurePercent: number): VenueSunStatus {
 }
 
 /**
- * STORY 10.1 (AC1) + STORY 10.4 (AC2): the weather gate. Given the geometry-derived
+ * Legacy STORY 10.1 (AC1) + STORY 10.4 (AC2) weather mapper. It remains for
+ * compatibility tests, but must not decide amber/direct-sun presentation. Given the geometry-derived
  * `currentSunStatus`, whether the sun is geometrically up, the effective cloud
  * cover, and whether it is raining near-now, return the (possibly gated) headline
  * status.
@@ -994,27 +1013,6 @@ export function skyConditionFromCloudCover(cloudCover: number | undefined): stri
   if (cloudCover < 20) return 'clear';
   if (cloudCover <= 60) return 'partly-cloudy';
   return 'overcast';
-}
-
-function weatherGateStateFor(
-  weather: WeatherSlice | null,
-  isSunVisible: boolean,
-  sunExposurePercent: number,
-  isRaining: boolean,
-  effectiveCover: number | undefined,
-): WeatherGateState {
-  if (!weather || (!Number.isFinite(effectiveCover) && !isRaining)) {
-    return 'unknown';
-  }
-  const cloudGates =
-    typeof effectiveCover === 'number' &&
-    Number.isFinite(effectiveCover) &&
-    effectiveCover >= CLOUD_GATE_THRESHOLD_PERCENT;
-  return isSunVisible &&
-    sunExposurePercent >= SUNLIT_THRESHOLD_PERCENT &&
-    (cloudGates || isRaining)
-    ? 'gated'
-    : 'not_gated';
 }
 
 /**
@@ -1110,6 +1108,8 @@ function mergeSunFields(base: VenueDataDto, fields: SunEngineFields): VenueDataD
     ...base,
     currentSunStatus: fields.currentSunStatus,
     weatherGateState: fields.weatherGateState,
+    directSunState: fields.directSunState,
+    directSunReasons: fields.directSunReasons,
     confidence: fields.confidence,
     sunExposurePercent: fields.sunExposurePercent,
   };
@@ -1135,9 +1135,17 @@ function obstructionReason(risk: ObstructionRiskClass): PredictionUncertaintyRea
   return risk;
 }
 
-/** The slice's own valid-time, falling back to the fetch instant if absent. */
+/** The slice's own valid-time, falling back to the fetch instant for metadata only. */
 function weatherValidAt(weather: WeatherSlice): Date {
   return weather.validAt ?? weather.createdAt;
+}
+
+/** Valid provider time used for forecast matching; missing/invalid is incomplete. */
+function forecastValidAtMs(weather: WeatherSlice): number | undefined {
+  const validAtMs = weather.validAt?.getTime();
+  return typeof validAtMs === 'number' && Number.isFinite(validAtMs)
+    ? validAtMs
+    : undefined;
 }
 
 function isWeatherUncertain(weather: WeatherSlice | null, now: Date): boolean {

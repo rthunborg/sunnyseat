@@ -14,7 +14,11 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import type { StoredVenue } from '@/lib/services/venue-store';
+import type { GetVenuesResponse, GetVenueDetailResponse } from '@/lib/types/api';
+import { isVenuePubliclySunny, extractPublicSunPeak, extractPublicSunWindow } from '@/lib/utils/public-sun';
+import { deriveVenueSunAtMinutes } from '@/lib/utils/venue-day-series';
 import * as venueRoute from '@/app/api/venues/route';
+import * as venueDetailRoute from '@/app/api/venues/[slug]/route';
 
 function appSource(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8');
@@ -37,7 +41,69 @@ type RouteTestHook = {
 
 const route = venueRoute as RouteTestHook;
 
+test.each(['weatherUnknown', 'isRaining'] as const)('persisted list and detail reject string %s with neutral cache/provenance', async (flag) => {
+  vi.stubEnv('SUNNYSEAT_SUN_ENGINE', 'real');
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
+  vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role');
+  const providerFetch = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Unexpected outbound request'));
+  route.__setSunGeometryRepositoryForTests?.({
+    computeCurrentGeometryInputHash: async () => geometryHashForVenue('1'),
+    readCurrentCoverageForVenueDay: async () => ({
+      venueId: '1', stockholmDate: '2026-07-18', geometryInputHash: geometryHashForVenue('1'),
+      status: 'ready', series: [{ minutes: 720, sunExposurePercent: 95 }],
+    }),
+  });
+  let flagValue: unknown = false;
+  route.__setWeatherSnapshotRepositoryForTests?.({
+    readSnapshotForVenueDay: async () => ({
+      status: 'ready', weatherUpdatedAt: '2026-07-18T09:55:00.000Z',
+      slices: [{ ...clearSnapshotSlice(720), [flag]: flagValue }, clearSnapshotSlice(780)],
+    }),
+  });
+  try {
+    const clearResponse = await route.GET(venuesRequest());
+    expect(clearResponse.status).toBe(200);
+    const clearBody = await clearResponse.json() as GetVenuesResponse;
+    expect(clearBody.venues.every(isVenuePubliclySunny)).toBe(true);
+    const clearEtag = clearResponse.headers.get('etag');
+    for (flagValue of ['true', 'false']) {
+      const response = await route.GET(venuesRequest());
+      expect(response.status).toBe(200);
+      expect(response.headers.get('etag')).not.toBe(clearEtag);
+      const body = await response.json() as GetVenuesResponse;
+      expect(body.meta.sunDataSource).toBe('geometry-only');
+      expect(body.meta.weatherUpdatedAt).toBeUndefined();
+      for (const venue of body.venues) {
+        expect(venue).toMatchObject({ directSunState: 'unknown', weatherGateState: 'unknown', confidence: 40 });
+        expect(isVenuePubliclySunny(venue)).toBe(false);
+        expect(venue.sunWindow).toBeUndefined();
+        expect(extractPublicSunPeak(venue.sunDaySeries ?? [])).toBeNull();
+        expect(extractPublicSunWindow(venue.sunDaySeries ?? [], { stepMinutes: 15 })).toBeNull();
+        expect(deriveVenueSunAtMinutes(venue.sunDaySeries, 720)?.directSunState).toBe('unknown');
+      }
+      const cachedRequest = venuesRequest();
+      cachedRequest.headers.set('if-none-match', response.headers.get('etag')!);
+      expect((await route.GET(cachedRequest)).status).toBe(304);
+
+      const detailResponse = await venueDetailRoute.GET(new NextRequest(
+        'http://localhost/api/venues/test-venue-sunny?date=2026-07-18&time=12:00',
+      ), { params: Promise.resolve({ slug: 'test-venue-sunny' }) });
+      expect(detailResponse.status).toBe(200);
+      const detail = await detailResponse.json() as GetVenueDetailResponse;
+      expect(detail.meta?.sunDataSource).toBe('geometry-only');
+      expect(detail.venue).toMatchObject({ directSunState: 'unknown', weatherGateState: 'unknown', confidence: 40 });
+      expect(isVenuePubliclySunny(detail.venue)).toBe(false);
+      expect(detail.venue.timeline.windows).toEqual([]);
+      expect(detail.venue.timeline.peakTime).toBeUndefined();
+    }
+    expect(providerFetch).not.toHaveBeenCalled();
+  } finally {
+    providerFetch.mockRestore();
+  }
+});
+
 beforeEach(() => {
+  vi.unstubAllEnvs();
   vi.useFakeTimers();
   vi.setSystemTime(new Date('2026-07-18T10:00:00.000Z'));
 });
@@ -48,6 +114,7 @@ afterEach(() => {
   route.__setWeatherSnapshotRepositoryForTests?.(undefined);
   route.__setPersistedSunRepositoryPreparerForTests?.(undefined);
   vi.useRealTimers();
+  vi.unstubAllEnvs();
 });
 
 function routeScaleVenue(index: number): StoredVenue {
@@ -78,6 +145,23 @@ function routeScaleVenue(index: number): StoredVenue {
 function geometryHashForVenue(venueId: string): string {
   const numericSuffix = Number(venueId.replace(/\D/gu, ''));
   return `g1:${numericSuffix.toString(16).padStart(64, '0')}`;
+}
+
+function clearSnapshotSlice(minutes: number) {
+  const stockholmHour = Math.floor(minutes / 60);
+  const minute = minutes % 60;
+  return {
+    minutes,
+    validAt: new Date(Date.UTC(2026, 6, 18, stockholmHour - 2, minute)).toISOString(),
+    cloudCover: 10,
+    cloudCoverLow: 10,
+    cloudCoverMedium: 0,
+    cloudCoverHigh: 0,
+    fogAreaFraction: 0,
+    precipitationAmount: 0,
+    symbolCode: 'clearsky_day',
+    isRaining: false,
+  };
 }
 
 describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-path projection', () => {
@@ -134,8 +218,8 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
       bucket: 'current',
       weatherUpdatedAt: '2026-07-18T10:00:00.000Z',
       slices: [
-        { minutes: 720, cloudCover: 10, isRaining: false },
-        { minutes: 735, cloudCover: 10, isRaining: false },
+        clearSnapshotSlice(720),
+        clearSnapshotSlice(735),
       ],
     }));
     const prepareRepositories = vi.fn(async () => ({
@@ -249,15 +333,20 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
         status: 'ready',
         bucket: 'current',
         weatherUpdatedAt: '2026-07-18T10:00:00.000Z',
-        slices: [{ minutes: 720, cloudCover: 95, isRaining: false }],
+        slices: [{
+          minutes: 720, validAt: '2026-07-18T10:00:00.000Z',
+          cloudCover: 95, cloudCoverLow: 95, cloudCoverMedium: 0,
+          cloudCoverHigh: 0, fogAreaFraction: 0, precipitationAmount: 0, symbolCode: 'cloudy',
+          isRaining: false,
+        }],
         };
       },
     });
 
     const sunny = await route.GET(venuesRequest('&weatherBucket=clear'));
     const overcast = await route.GET(venuesRequest('&weatherBucket=overcast'));
-    const sunnyBody = (await sunny.json()) as { venues: Array<{ sunDaySeries: unknown[] }> };
-    const overcastBody = (await overcast.json()) as { venues: Array<{ sunDaySeries: unknown[] }> };
+    const sunnyBody = (await sunny.json()) as { venues: Array<{ directSunState?: string; sunDaySeries: unknown[] }> };
+    const overcastBody = (await overcast.json()) as { venues: Array<{ directSunState?: string; sunDaySeries: unknown[] }> };
 
     expect(sunnyBody.venues[0]?.sunDaySeries).toHaveLength(persistedSeries.length);
     expect(overcastBody.venues[0]?.sunDaySeries).toHaveLength(persistedSeries.length);
@@ -269,6 +358,130 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
         expect.objectContaining({ minutes: 720, sunExposurePercent: 92, currentSunStatus: 'CloudObscured' }),
       ]),
     );
+    expect(overcastBody.venues[0]?.directSunState).toBe('blocked');
+  });
+
+  test('malformed persisted weather entries cannot 500 the public list route', async () => {
+    const venue = routeScaleVenue(1);
+    let allMalformed = false;
+    route.__setVenueStoreForTests?.(async () => [venue]);
+    route.__setSunGeometryRepositoryForTests?.({
+      computeCurrentGeometryInputHash: async () => geometryHashForVenue(venue.id),
+      readCurrentCoverageForVenueDay: async () => ({
+        venueId: venue.id,
+        stockholmDate: '2026-07-18',
+        geometryInputHash: geometryHashForVenue(venue.id),
+        status: 'ready',
+        series: [{ minutes: 720, sunExposurePercent: 95 }],
+      }),
+    });
+    route.__setWeatherSnapshotRepositoryForTests?.({
+      readSnapshotForVenueDay: async () => ({
+        status: 'ready',
+        weatherUpdatedAt: '2026-07-18T09:55:00.000Z',
+        slices: allMalformed
+          ? [null, 'broken', false]
+          : [null, 'broken', {
+              minutes: 720,
+              validAt: '2026-07-18T10:00:00.000Z',
+              cloudCover: 100,
+              cloudCoverLow: 0,
+              cloudCoverMedium: 100,
+              cloudCoverHigh: 0,
+              fogAreaFraction: 0,
+              precipitationAmount: 0,
+              symbolCode: 'cloudy',
+            }],
+      }),
+    });
+
+    const mixedResponse = await route.GET(venuesRequest());
+    expect(mixedResponse.status).toBe(200);
+    const mixedBody = (await mixedResponse.json()) as {
+      venues: Array<{ directSunState?: string; weatherGateState: string }>;
+    };
+    expect(mixedBody.venues[0]).toMatchObject({
+      directSunState: 'blocked',
+      weatherGateState: 'gated',
+    });
+
+    allMalformed = true;
+    const malformedResponse = await route.GET(venuesRequest('&radiusKm=3'));
+    expect(malformedResponse.status).toBe(200);
+    const malformedBody = (await malformedResponse.json()) as {
+      venues: Array<{ directSunState?: string; weatherGateState: string; confidence: number }>;
+      meta: { sunDataSource: string };
+    };
+    expect(malformedBody.venues[0]).toMatchObject({
+      directSunState: 'unknown',
+      weatherGateState: 'unknown',
+      confidence: 40,
+    });
+    expect(malformedBody.meta.sunDataSource).toBe('geometry-only');
+  });
+
+  test('malformed persisted weather entries cannot 500 the public detail route', async () => {
+    let allMalformed = false;
+    vi.stubEnv('SUNNYSEAT_SUN_ENGINE', 'real');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role');
+    route.__setSunGeometryRepositoryForTests?.({
+      computeCurrentGeometryInputHash: async () => geometryHashForVenue('1'),
+      readCurrentCoverageForVenueDay: async () => ({
+        venueId: '1',
+        stockholmDate: '2026-07-18',
+        geometryInputHash: geometryHashForVenue('1'),
+        status: 'ready',
+        series: [{ minutes: 720, sunExposurePercent: 95 }],
+      }),
+    });
+    route.__setWeatherSnapshotRepositoryForTests?.({
+      readSnapshotForVenueDay: async () => ({
+        status: 'ready',
+        weatherUpdatedAt: '2026-07-18T09:55:00.000Z',
+        slices: allMalformed
+          ? [null, 'broken', false]
+          : [null, 'broken', {
+              minutes: 720,
+              validAt: '2026-07-18T10:00:00.000Z',
+              cloudCover: 100,
+              cloudCoverLow: 0,
+              cloudCoverMedium: 100,
+              cloudCoverHigh: 0,
+              fogAreaFraction: 0,
+              precipitationAmount: 0,
+              symbolCode: 'cloudy',
+            }],
+      }),
+    });
+
+    const request = () => new NextRequest(
+      'http://localhost/api/venues/test-venue-sunny?date=2026-07-18&time=12:00',
+    );
+    const context = { params: Promise.resolve({ slug: 'test-venue-sunny' }) };
+    const mixedResponse = await venueDetailRoute.GET(request(), context);
+    expect(mixedResponse.status).toBe(200);
+    const mixedBody = (await mixedResponse.json()) as {
+      venue: { directSunState?: string; weatherGateState: string };
+    };
+    expect(mixedBody.venue).toMatchObject({
+      directSunState: 'blocked',
+      weatherGateState: 'gated',
+    });
+
+    allMalformed = true;
+    const malformedResponse = await venueDetailRoute.GET(request(), context);
+    expect(malformedResponse.status).toBe(200);
+    const malformedBody = (await malformedResponse.json()) as {
+      venue: { directSunState?: string; weatherGateState: string; confidence: number };
+      meta: { sunDataSource: string };
+    };
+    expect(malformedBody.venue).toMatchObject({
+      directSunState: 'unknown',
+      weatherGateState: 'unknown',
+      confidence: 40,
+    });
+    expect(malformedBody.meta.sunDataSource).toBe('geometry-only');
   });
 
   test('42+ venue list requests read persisted current hashes and coverage without request-path recompute', async () => {
@@ -313,8 +526,8 @@ describe('Story 12.3 AC1/AC2 - /api/venues uses persisted geometry, not request-
           bucket: bucket ?? 'current',
           weatherUpdatedAt: '2026-07-18T10:00:00.000Z',
           slices: [
-            { minutes: 720, cloudCover: 10, isRaining: false },
-            { minutes: 735, cloudCover: 10, isRaining: false },
+            clearSnapshotSlice(720),
+            clearSnapshotSlice(735),
           ],
         };
       },

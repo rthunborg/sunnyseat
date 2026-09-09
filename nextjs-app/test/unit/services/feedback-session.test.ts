@@ -19,6 +19,7 @@ const VENUE: Pick<
   | 'location'
   | 'currentSunStatus'
   | 'weatherGateState'
+  | 'directSunState'
   | 'confidence'
   | 'sunExposurePercent'
   | 'predictionEvidence'
@@ -29,6 +30,7 @@ const VENUE: Pick<
   location: { lat: 57.705, lng: 11.97 },
   currentSunStatus: 'Sunny',
   weatherGateState: 'not_gated',
+  directSunState: 'likely',
   sunExposurePercent: 95,
   predictionEvidence: {
     geometryInputHash: 'g1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',

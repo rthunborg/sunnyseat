@@ -69,10 +69,8 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => searchParamsMock.value,
 }));
 
-vi.mock('maplibre-gl', () => ({
-  default: {
-    Marker: markerMock.Marker,
-  },
+vi.mock('@/lib/maplibre', () => ({
+  getMapLibre: () => ({ Marker: markerMock.Marker }),
 }));
 
 vi.mock('next-intl', () => ({

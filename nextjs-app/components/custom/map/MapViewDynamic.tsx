@@ -16,7 +16,14 @@ import { MapLoadingFallback } from './MapLoadingFallback';
  * the main bundle (PRD NFR8).
  */
 const MapView = dynamic(
-  () => import('./MapView').then((m) => m.MapView),
+  async () => {
+    const [view, runtime] = await Promise.all([
+      import('./MapView'),
+      import('@/lib/maplibre'),
+    ]);
+    await runtime.loadMapLibre();
+    return view.MapView;
+  },
   {
     ssr: false,
     loading: () => <MapViewLoadingFallback />,
@@ -39,8 +46,14 @@ const DevVenueEditor =
   process.env.NODE_ENV === 'production'
     ? null
     : dynamic(
-        () => import('@/components/custom/dev/DevVenueEditor')
-          .then((m) => m.DevVenueEditor),
+        async () => {
+          const [editor, runtime] = await Promise.all([
+            import('@/components/custom/dev/DevVenueEditor'),
+            import('@/lib/maplibre'),
+          ]);
+          await runtime.loadMapLibre();
+          return editor.DevVenueEditor;
+        },
         {
           ssr: false,
           loading: () => null,

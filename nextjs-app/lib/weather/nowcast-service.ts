@@ -10,7 +10,7 @@
  * TOS posture is IDENTICAL to the forecast client and shares its primitives so the
  * two cannot drift: the same identifying `User-Agent` (imported from
  * `met-no-service.ts`, not re-declared — Met.no 403s a missing/non-identifying UA)
- * and the same `.toFixed(4)` coordinate truncation.
+ * and the same `.toFixed(4)` coordinate rounding.
  *
  * GRACEFUL DEGRADATION (AC1 + the epic's unknown-never-fabricates discipline):
  * the accessor returns `number | undefined`, never throws. `undefined` = "we don't
@@ -50,6 +50,17 @@ interface NowcastResponse {
   };
 }
 
+type NowcastTimeseriesEntry = NonNullable<
+  NonNullable<NowcastResponse['properties']>['timeseries']
+>[number];
+
+export type NowcastPrecipitationObservation = {
+  /** Provider valid-time for the instantaneous radar rate. */
+  validAt: string;
+  /** Instantaneous precipitation rate in mm/h. */
+  precipitationRate: number;
+};
+
 /**
  * Fetch the near-now radar precipitation rate (mm/h) at a coordinate.
  *
@@ -61,10 +72,43 @@ export async function getNowcastPrecipitationRate(
   latitude = GOTHENBURG.LATITUDE,
   longitude = GOTHENBURG.LONGITUDE,
 ): Promise<number | undefined> {
+  const entry = await fetchNearestNowcastEntry(latitude, longitude);
+  return precipitationRateFromEntry(entry);
+}
+
+/**
+ * Fetch the same near-now rate together with its provider valid-time.
+ *
+ * Snapshot persistence needs this timestamp so an observation made just after an
+ * hourly Locationforecast boundary can be attached to the correct forecast slice
+ * instead of being dropped (or smeared across every future slice). A malformed
+ * provider time fails closed here even though the legacy rate-only accessor can
+ * still return the selected entry's rate to its immediate caller.
+ */
+export async function getNowcastPrecipitationObservation(
+  latitude = GOTHENBURG.LATITUDE,
+  longitude = GOTHENBURG.LONGITUDE,
+): Promise<NowcastPrecipitationObservation | undefined> {
+  const entry = await fetchNearestNowcastEntry(latitude, longitude);
+  const precipitationRate = precipitationRateFromEntry(entry);
+  if (!entry || precipitationRate === undefined) return undefined;
+
+  const validAtMs = new Date(entry.time).getTime();
+  if (!Number.isFinite(validAtMs)) return undefined;
+  return {
+    validAt: new Date(validAtMs).toISOString(),
+    precipitationRate,
+  };
+}
+
+async function fetchNearestNowcastEntry(
+  latitude: number,
+  longitude: number,
+): Promise<NowcastTimeseriesEntry | undefined> {
   try {
     // `/complete` is the JSON (GeoJSON) product; `/classic` is the legacy XML
     // variant (not used). Same `api.met.no/weatherapi` base + `.toFixed(4)`
-    // coordinate truncation (Met.no TOS) as the forecast client.
+    // coordinate rounding (Met.no precision contract) as the forecast client.
     const url = `${API_BASE}/nowcast/2.0/complete?lat=${latitude.toFixed(4)}&lon=${longitude.toFixed(4)}`;
 
     const res = await fetch(url, {
@@ -93,11 +137,20 @@ export async function getNowcastPrecipitationRate(
     const entry = nearestToNowEntry(timeseries);
     // ABSENT `precipitation_rate` = radar coverage insufficient (Met.no OMITS it).
     // Stays `undefined` (unknown), NEVER `?? 0` — `0` would fabricate "no rain".
-    return entry?.data?.instant?.details?.precipitation_rate;
+    return entry;
   } catch (err) {
     console.error('Met.no nowcast fetch error:', err);
     return undefined;
   }
+}
+
+function precipitationRateFromEntry(
+  entry: NowcastTimeseriesEntry | undefined,
+): number | undefined {
+  const rate = entry?.data?.instant?.details?.precipitation_rate;
+  return typeof rate === 'number' && Number.isFinite(rate) && rate >= 0
+    ? rate
+    : undefined;
 }
 
 /**

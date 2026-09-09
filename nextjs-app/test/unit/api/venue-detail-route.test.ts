@@ -152,7 +152,9 @@ describe('GET /api/venues/[slug]', () => {
     expect(body.venue.timeline.windows[0]).toMatchObject({
       start: body.venue.sunWindow?.start,
       end: body.venue.sunWindow?.end,
-      status: 'Shaded',
+      // The selected 20:00 instant is shaded, but it must not overwrite the
+      // independently derived qualifying window's display tier.
+      status: 'Partial',
     });
     expect(body.venue.timeline.peakTime).toBe(peakTimeFromWindow(body.venue.sunWindow));
   });

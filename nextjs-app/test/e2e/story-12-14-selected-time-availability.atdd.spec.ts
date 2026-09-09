@@ -91,6 +91,8 @@ function daySeries(): VenueDaySeriesEntry[] {
       sunExposurePercent: 90,
       currentSunStatus: 'Sunny',
       weatherGateState: 'not_gated',
+      directSunState: 'likely',
+      directSunReasons: [],
     });
   }
   return series;
@@ -112,6 +114,8 @@ function venue(
     location: { lat: 57.705 + Number(id) / 1000, lng: 11.97 + Number(id) / 1000 },
     currentSunStatus: 'Sunny',
     weatherGateState: 'not_gated',
+    directSunState: 'likely',
+    directSunReasons: [],
     isPartner: true,
     confidence: 90,
     distanceMeters: 120,

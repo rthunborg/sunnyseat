@@ -67,12 +67,20 @@ function makeStoredVenue(overrides: Partial<StoredVenue> = {}): StoredVenue {
 }
 
 function weatherSlice(overrides: Partial<WeatherSlice> = {}): WeatherSlice {
+  const timestamp = new Date();
   return {
     cloudCover: 10,
+    cloudCoverLow: 10,
+    cloudCoverMedium: 0,
+    cloudCoverHigh: 0,
+    fogAreaFraction: 0,
+    precipitationAmount: 0,
+    symbolCode: 'clearsky_day',
     temperature: 18,
     isForecast: false,
     source: 'metno',
-    createdAt: new Date(),
+    createdAt: timestamp,
+    validAt: timestamp,
     ...overrides,
   };
 }
@@ -319,10 +327,10 @@ describe('applyRealSunEngine integration (mocked RPC + weather)', () => {
     mocks.getForecast.mockReset();
     mocks.getCurrentWeather.mockReset();
     mocks.rpc.mockResolvedValue({ data: [], error: null }); // no shadow casters
-    mocks.getForecast.mockResolvedValue([weatherSlice()]);
-    vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.useFakeTimers();
     vi.setSystemTime(SUMMER_MIDDAY);
+    mocks.getForecast.mockResolvedValue([weatherSlice()]);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -340,6 +348,7 @@ describe('applyRealSunEngine integration (mocked RPC + weather)', () => {
     expect(outcome.venue.confidence).toBeGreaterThanOrEqual(0);
     expect(outcome.venue.confidence).toBeLessThanOrEqual(100);
     expect(outcome.venue.skyCondition).toBe('clear'); // cloudCover 10
+    expect(outcome.venue.directSunState).toBe('likely');
   });
 
   it('caps confidence below the high-confidence band for unknown coverage (Story 3.0.5)', async () => {
@@ -374,6 +383,7 @@ describe('applyRealSunEngine integration (mocked RPC + weather)', () => {
     const outcome = await applyRealSunEngine(makeStoredVenue(), SUMMER_MIDDAY, SUMMER_MIDDAY);
     expect(outcome.freshness).toEqual({ sunDataSource: 'geometry-only' });
     expect(outcome.venue.skyCondition).toBe('unavailable');
+    expect(outcome.venue.directSunState).toBe('unknown');
   });
 
   it('drives calculateVenueShadowForGeometry, never the legacy fetchVenue table (DECISION B)', async () => {

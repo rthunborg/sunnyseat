@@ -21,6 +21,7 @@
 
 # production
 /build
+/public/vendor/maplibre/
 
 # misc
 .DS_Store
@@ -47,6 +48,8 @@ scripts/*
 !scripts/capture-not-found-rebaseline.mjs
 !scripts/verify-maplibre-async.mjs
 !scripts/verify-js-budgets.mjs
+!scripts/prepare-maplibre.mjs
+!scripts/maplibre-entry.mjs
 !scripts/upload-venue-media.mjs
 !scripts/audit-opening-hours.ts
 !scripts/remediate-opening-hours.ts

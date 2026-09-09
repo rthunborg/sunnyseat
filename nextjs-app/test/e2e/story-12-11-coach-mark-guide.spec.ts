@@ -7,7 +7,7 @@ import {
 const APP_SETTLE_TIMEOUT_MS = 15_000;
 const GEOMETRY_TOLERANCE_PX = 1.5;
 const EXPECTED_PIN_COPY =
-  'Procenten visar hur stor andel av uteserveringens platser vi tror är i direkt sol vid den valda tiden.';
+  'En gul nål betyder att direkt sol är sannolik. Procenten visar hur stor del av sittplatserna som inte skuggas av byggnader. En grå nål kan betyda skugga, väderblockering eller osäkert väder.';
 const EXPECTED_PLANNER_COPY =
   'Du behöver inte ändra något – kartan visar läget just nu. Vill du planera framåt kan du välja datum och tid. Ju längre fram du tittar, desto osäkrare blir prognosen.';
 const EXPECTED_ACTION_PROGRESS_RGB = { r: 53, g: 107, b: 79, a: 1 };
@@ -224,6 +224,10 @@ async function expectCenteredSkipSplitFooterLayout(
   await expect(back).toBeDisabled();
   await expectRenderedActionColors(page, skipPill, next);
 
+  // The dialog deliberately scrolls when the legend exceeds its available
+  // height. Bring the complete footer into view before measuring its bounds.
+  await dialog.getByTestId('coach-tour-actions').scrollIntoViewIfNeeded();
+
   const [dialogBox, skipBox, skipPillBox, skipRowBox, navigationBox, backBox, nextBox] =
     await Promise.all([
       requiredBox(dialog, 'dialog'),
@@ -313,6 +317,7 @@ async function expectCenteredSkipSplitFooterLayout(
       dialogBox.y + dialogBox.height + GEOMETRY_TOLERANCE_PX,
     );
   }
+  await page.screenshot({ path: testInfo.outputPath('coach-footer.png'), animations: 'disabled' });
 }
 
 async function openSettings(page: Page, testInfo: TestInfo): Promise<void> {
@@ -395,8 +400,8 @@ test.describe('Story 12.11 coach-mark guide', () => {
     await expect(page.getByTestId('coach-tour-step-pin-legend')).toBeVisible();
     await expectCenteredSkipSplitFooterLayout(page, dialog, testInfo);
     await expect(dialog).toContainText(EXPECTED_PIN_COPY);
-    await expect(page.getByTestId('coach-tour-pin-legend')).toContainText('Soligt');
-    await expect(page.getByTestId('coach-tour-pin-legend')).toContainText('Skuggat');
+    await expect(page.getByTestId('coach-tour-pin-legend')).toContainText('Direkt sol sannolik');
+    await expect(page.getByTestId('coach-tour-pin-legend')).toContainText('Ingen gul solmarkering');
     await expect(page.locator('[data-tour-anchor="map-surface"]')).toHaveAttribute(
       'aria-describedby',
       /coach-tour-target-description/,

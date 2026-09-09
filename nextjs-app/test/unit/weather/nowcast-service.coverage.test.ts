@@ -19,7 +19,10 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getNowcastPrecipitationRate } from '@/lib/weather/nowcast-service';
+import {
+  getNowcastPrecipitationObservation,
+  getNowcastPrecipitationRate,
+} from '@/lib/weather/nowcast-service';
 import { GOTHENBURG } from '@/lib/solar/constants';
 
 type Entry = { time: string; rate?: number; omitRate?: boolean };
@@ -160,6 +163,28 @@ describe('nowcast-service — near-now slice selection across a multi-entry time
     expect(rate).toBeUndefined();
     expect(rate).not.toBe(0);
   });
+
+  it('returns the provider valid-time together with positive near-now rain', async () => {
+    vi.setSystemTime(new Date('2026-07-03T12:05:00.000Z'));
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => nowcastResponse([{ time: '2026-07-03T12:04:00Z', rate: 0.4 }]),
+    });
+
+    await expect(getNowcastPrecipitationObservation(57.7089, 11.9746)).resolves.toEqual({
+      validAt: '2026-07-03T12:04:00.000Z',
+      precipitationRate: 0.4,
+    });
+  });
+
+  it('does not persist an observation whose selected provider time is malformed', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => nowcastResponse([{ time: 'not-a-timestamp', rate: 0.4 }]),
+    });
+
+    await expect(getNowcastPrecipitationObservation(57.7089, 11.9746)).resolves.toBeUndefined();
+  });
 });
 
 describe('nowcast-service — default-coordinate accessor path', () => {
@@ -180,7 +205,7 @@ describe('nowcast-service — default-coordinate accessor path', () => {
     vi.restoreAllMocks();
   });
 
-  it('called with NO arguments defaults to the Gothenburg coordinate (4-dp truncated)', async () => {
+  it('called with NO arguments defaults to the Gothenburg coordinate (4-dp rounded)', async () => {
     fetchMock.mockResolvedValue({
       ok: true,
       json: async () => nowcastResponse([{ time: '2026-07-03T12:00:00Z', rate: 0 }]),
