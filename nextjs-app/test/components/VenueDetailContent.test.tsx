@@ -142,6 +142,21 @@ describe('VenueDetailContent', () => {
     expect(screen.getByRole('button', { name: 'Visa Rutt' })).toBeEnabled();
   });
 
+  it('does not render fabricated price metadata in the desktop header', () => {
+    render(
+      <VenueDetailContent
+        mode="desktop"
+        fallbackVenue={LIST_VENUE}
+        detail={DETAIL}
+        currentTime="15:30"
+        labels={labels}
+        onRoute={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole('article')).not.toHaveTextContent(/\bkr\b/i);
+  });
+
   it('removes the "Soltider idag" sun-forecast section on both breakpoints (Story 11.6 AC2)', () => {
     const { rerender } = render(
       <VenueDetailContent

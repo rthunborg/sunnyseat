@@ -207,8 +207,6 @@ export function VenueDetailContent({
               <span className="font-bold text-text-primary">{metadata.rating}</span>
               <span className="text-text-body">({metadata.reviewCount})</span>
             </span>
-            <span className="hidden text-text-faint lg:inline">·</span>
-            <span className="hidden lg:inline">{metadata.price}</span>
           </div>
           {loading ? (
             <LoadingBlock />
