@@ -815,3 +815,56 @@ references or Epic 12 scope changed. Final local commands `npx tsc --noEmit`,
 complete JS budget. Full unit evidence: `obscured-vitest.log` under the evidence
 root above. Browser validation of this dev fixture remains with the next normal
 CI run; no local resource was started after verified actor cleanup.
+
+## Verified merge and production reconciliation — 2026-09-09
+
+PR https://github.com/rthunborg/sunnyseat/pull/29 merged after all checks passed
+for application head `11e9f8e7d118dbd44c8c0ef80571aae47b07c0eb`. Merge commit:
+`00a527a6929f97a54eb64ff7d22940016d5d3e79` on main. Checkout switched to main and
+fast-forwarded from origin; no reset, cleanup of user files or force push occurred.
+
+Passing CI: https://github.com/rthunborg/sunnyseat/actions/runs/34338915138.
+- Production audit: zero vulnerabilities. TypeScript, lint, build, JS budgets and
+  asynchronous map loading passed.
+- CI: 229 files / 2,173 committed unit tests. Local: 230 files / 2,176 tests;
+  the protected untracked documentation-contract file accounts for the difference.
+- Full mobile/desktop E2E: 159 passed, 51 existing skips, zero failures.
+- Real-touch: eight passed. Desktop axe: 18 passed. Mobile axe: 14 passed.
+- Lighthouse: all assertions passed over three runs, performance 69/70/70,
+  accessibility 100/100/100. Thresholds and references were unchanged.
+
+Commands: `gh pr checks 29`, `gh pr merge 29 --merge --match-head-commit
+11e9f8e7d118dbd44c8c0ef80571aae47b07c0eb`, `git fetch origin`, `git switch main`,
+`git pull --ff-only origin main`. CI evidence is saved as `ci-passing.log` and
+`lighthouse-passing/` under the existing release evidence root. The CI log records
+exact npm/Playwright/Lighthouse commands. Earlier failed runs remain historical
+checkpoints; they were not bypassed or represented as passes.
+
+Git-triggered production deployment `dpl_DH1FD262nSf2aTiLtCv8JjVubAMF` is READY
+in dub1 for merge commit 00a527a, with alias https://sunnyseat.vercel.app and
+immutable URL https://sunnyseat-pc75x9j8c-enhancior.vercel.app. Read-only HTTP
+checks passed for `/`, `/vendor/maplibre/6.4.1/maplibre-gl.mjs`,
+`/vendor/maplibre/6.4.1/maplibre-gl-worker.mjs` and
+`/api/venues?lat=57.7089&lng=11.9746&radiusKm=3`. Modules have JavaScript MIME;
+the snapshot API returned 42 venues. An initial parameter-free API probe correctly
+returned 400; the corrected probe is the recorded success. Evidence:
+`production-security-smoke.json`. No production browser execution is claimed.
+
+From nextjs-app, `npx --yes vercel@59.1.3 logs
+ dpl_DH1FD262nSf2aTiLtCv8JjVubAMF --environment production --level error
+ --since 5m --limit 20 --json --no-follow` returned no error entries. This is a
+short sample, not sustained monitoring. No schedule, provider, data, schema,
+secret or telemetry configuration was mutated.
+
+Resource cleanup is verified as recorded above: owned runners stopped, actor
+CloseActor/List returned zero active resources, and context-bearing helpers were
+removed. Automated reference comparison remains explicitly skipped under owner
+manual acceptance; screenshots and accessibility execution are reported
+separately. Scheduling reliability, field/device validation and the 51 existing
+E2E skips are not converted into launch clearance by this merge.
+
+This final checkpoint is a documentation-only follow-up to the verified merge.
+The unrelated `.codex/config.toml` hook-key change and protected untracked
+`_bmad-output/party-mode/` and
+`nextjs-app/test/unit/services/direct-sun-documentation-contract.test.ts` remain
+untouched and uncommitted. `git diff --check` passed.
