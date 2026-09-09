@@ -10,6 +10,7 @@ import {
   type StoredVenue,
 } from '@/lib/services/venue-store';
 import { validateVenueUniqueness } from '@/app/api/venues/route';
+import { venueEngineCoordinate } from '@/lib/services/sun-geometry-coordinates';
 
 const supabaseMock = vi.hoisted(() => {
   const state = {
@@ -342,7 +343,7 @@ describe('venue-store (Supabase opt-in)', () => {
     expect(venue?.seatingArea?.coordinates[0][0]).toEqual([11.98, 57.71]);
   });
 
-  it('[12.5] maps display coordinates on the public list DTO and strips server-only/editor-only fields', async () => {
+  it('preserves list engine inputs until the public DTO boundary, matching detail weather coordinates', async () => {
     useSupabaseStore();
     const seatingArea = {
       type: 'Polygon',
@@ -368,15 +369,37 @@ describe('venue-store (Supabase opt-in)', () => {
     };
 
     const [venue] = await getVenues();
+    supabaseMock.state.singleResult = {
+      data: (supabaseMock.state.listResult.data as unknown[])[0],
+      error: null,
+    };
+    const detail = await getVenueBySlug('supa-venue');
 
     expect(venue.location).toEqual({ lat: 57.7061, lng: 11.9712 });
-    expect(venue).not.toHaveProperty('engineLocation');
-    expect(venue).not.toHaveProperty('seatingArea');
-    expect(venue).not.toHaveProperty('seatingElevationM');
-    expect(venue).not.toHaveProperty('groundElevationM');
+    expect(venue.engineLocation).toEqual({ lat: 57.71, lng: 11.98 });
+    expect(venue.seatingArea).toEqual(seatingArea);
+    expect(venue.seatingElevationM).toBe(2);
+    expect(venue.groundElevationM).toBe(3);
+    expect(venueEngineCoordinate(venue)).toEqual(venueEngineCoordinate(detail!));
+    expect(venueEngineCoordinate(venue)).not.toEqual(venue.location);
+    const dto = toVenueData(venue);
+    for (const field of ['engineLocation', 'seatingArea', 'seatingElevationM', 'groundElevationM']) {
+      expect(dto).not.toHaveProperty(field);
+    }
     expect(venue).not.toHaveProperty('hidden');
     expect(venue).not.toHaveProperty('description');
     expect(venue).not.toHaveProperty('address');
+  });
+
+  it('uses the persisted engine point for list weather when only the display pin is moved', async () => {
+    useSupabaseStore();
+    supabaseMock.state.listResult = {
+      data: [{ ...SUPABASE_ROW, display_lat: 57.7061, display_lng: 11.9712 }],
+      error: null,
+    };
+    const [venue] = await getVenues();
+    expect(venueEngineCoordinate(venue)).toEqual({ lat: SUPABASE_ROW.lat, lng: SUPABASE_ROW.lng });
+    expect(toVenueData(venue).location).toEqual({ lat: 57.7061, lng: 11.9712 });
   });
 
   it('[12.5] rejects half-populated display coordinates instead of mixing display and engine pairs', async () => {

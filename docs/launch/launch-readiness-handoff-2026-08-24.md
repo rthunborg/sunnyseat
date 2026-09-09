@@ -868,3 +868,48 @@ The unrelated `.codex/config.toml` hook-key change and protected untracked
 `_bmad-output/party-mode/` and
 `nextjs-app/test/unit/services/direct-sun-documentation-contract.test.ts` remain
 untouched and uncommitted. `git diff --check` passed.
+
+## Production photo and weather diagnosis — 2026-09-09
+
+Owner-reported missing images and widespread unknown direct sun were investigated
+against production, read-only except for the explicitly authorized existing
+weather refresh. `gh workflow run sun-geometry-and-weather.yml --ref main -f
+mode=weather` completed successfully in run 34351937555. Snapshot refresh time
+was 2026-09-09T12:36:31.003Z: all 168 rows (42 coordinate buckets on each of
+September 9–12) were fresh and nonempty. This restores weather inputs, but does
+not establish scheduled-delivery reliability.
+
+Live `/api/venues?lat=57.7089&lng=11.9746&radiusKm=3` still reported Posthotellet
+as unknown/weather-unavailable while `/api/venues/posthotellet` reported
+blocked/cloud-obstruction. An uncached list response (X-Vercel-Cache MISS,
+Age 0, timestamp 2026-09-09T12:39:52.265Z) confirmed this was not merely CDN lag.
+Root cause: `getVenues()` called `toVenueData()` before weather lookup, stripping
+seating geometry and the canonical engine point. The list therefore queried
+weather for a different rounded coordinate than refresh/detail. Fix: retain
+server-only engine inputs through the list store, then strip them at the existing
+public DTO boundary. Regression coverage checks list/detail coordinate parity,
+seating/elevation retention, moved display-pin fallback and DTO non-disclosure.
+No weather thresholds, TTL, provider-time boundary or public live-provider reads
+were changed.
+
+Photo audit: all 42 public venues have blank legacy image URLs and no card/hero
+URLs; `storage.objects` contains zero venue-media objects. The July 19 photo
+contract commit 2a212746 removed generic Unsplash fixture hotlinks. The August 17
+storage smoke record explicitly removed only its two generated test objects and
+recorded an empty bucket. September 3 commit e4095b2 reduces building-shadow
+storage, with no venue-photo deletion found. These records do not demonstrate
+loss of a previously populated genuine venue-photo library. No recoverable
+originals were found in the repository; no speculative restoration was performed.
+
+Photo next step: obtain one genuine terrace/exterior image per venue from the
+owner or our own photography, retaining permission/source records and originals
+outside the app. Existing upload tooling validates two immutable WebP renditions:
+card <=640x400/120 KiB and hero <=1600x900/350 KiB, with metadata removed.
+42 pairs total at most 19.28 MiB (84 objects); only URLs/alt text belong in venue
+JSON. Uploads must be followed by updating the venue's cardUrl/heroUrl metadata.
+Back up the image objects separately: Supabase database backups contain Storage
+metadata, not the actual image files (https://supabase.com/docs/guides/platform/backups).
+
+Validation and release result are appended below after the gates finish. No new
+production browser execution, screenshot inspection or automated reference
+comparison is claimed by these API/database checks.
