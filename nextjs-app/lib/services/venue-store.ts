@@ -240,9 +240,9 @@ type VenueRow = {
 };
 
 /**
- * Venues for the list route (`/api/venues`). Returns BASE venue fields only —
- * the detail block is intentionally omitted so the existing list DTO shape is
- * unchanged. Detail is served by {@link getVenueBySlug}.
+ * Venues for the list route (`/api/venues`). Retains server-only engine inputs
+ * until the route projects the public DTO. Detail chrome is omitted;
+ * detail is served by {@link getVenueBySlug}.
  */
 export async function getVenues(): Promise<StoredVenue[]> {
   if (!usesSupabaseVenueStore()) {
@@ -254,7 +254,16 @@ export async function getVenues(): Promise<StoredVenue[]> {
     );
   }
   const rows = await readSupabaseVenues();
-  return rows.map(toVenueData);
+  // Keep engine inputs until the route has resolved geometry and weather.
+  // Projecting to the public DTO here loses the seating centroid and can make
+  // list requests miss snapshots that detail requests correctly find.
+  return rows.map((venue) => ({
+    ...toVenueData(venue),
+    engineLocation: venue.engineLocation,
+    seatingArea: venue.seatingArea,
+    seatingElevationM: venue.seatingElevationM,
+    groundElevationM: venue.groundElevationM,
+  }));
 }
 
 /**
