@@ -36,7 +36,30 @@ export type WeatherSnapshotRecord = {
   status?: 'ready' | 'expired' | 'missing';
   bucket?: string;
   weatherUpdatedAt?: string;
+  expiresAt?: string;
   slices: WeatherSnapshotSlice[];
+  normalizationIssues?: WeatherSnapshotNormalizationIssue[];
+};
+
+export type WeatherSnapshotNormalizationIssue = {
+  index: number;
+  code:
+    | 'invalid-slice'
+    | 'missing-valid-time'
+    | 'malformed-boolean-flag'
+    | 'invalid-field';
+  fields: string[];
+};
+
+export type WeatherSnapshotMatchDiagnostics = {
+  slice: WeatherSnapshotSlice;
+  matched: boolean;
+  providerValidAt?: string;
+  signedDifferenceMinutes?: number;
+  absoluteDifferenceMinutes?: number;
+  matchingLimitMinutes: number;
+  rejected: boolean;
+  rejectionReason?: 'invalid-requested-instant' | 'no-valid-slice' | 'outside-matching-limit';
 };
 
 export type SnapshotNowcastObservation = {
@@ -78,6 +101,58 @@ export function normalizeWeatherSnapshotSlices(
     if (slice) normalized.push(slice);
   }
   return normalized;
+}
+
+export function normalizeWeatherSnapshotSlicesWithDiagnostics(
+  value: unknown,
+  options: { requireValidAt?: boolean } = {},
+): { slices: WeatherSnapshotSlice[]; issues: WeatherSnapshotNormalizationIssue[] } {
+  if (!Array.isArray(value)) {
+    return {
+      slices: [],
+      issues: [{ index: -1, code: 'invalid-slice', fields: ['slices'] }],
+    };
+  }
+  const slices: WeatherSnapshotSlice[] = [];
+  const issues: WeatherSnapshotNormalizationIssue[] = [];
+  value.forEach((candidate, index) => {
+    const normalized = normalizeWeatherSnapshotSlice(candidate, options.requireValidAt === true);
+    if (!normalized) {
+      const raw = candidate && typeof candidate === 'object' && !Array.isArray(candidate)
+        ? candidate as Record<string, unknown>
+        : undefined;
+      issues.push({
+        index,
+        code: options.requireValidAt === true && raw && !normalizedInstant(raw.validAt)
+          ? 'missing-valid-time'
+          : 'invalid-slice',
+        fields: options.requireValidAt === true ? ['validAt'] : [],
+      });
+      return;
+    }
+    slices.push(normalized);
+    const raw = candidate as Record<string, unknown>;
+    const malformedFlags = ['weatherUnknown', 'isRaining'].filter(
+      (field) => Object.hasOwn(raw, field) && typeof raw[field] !== 'boolean',
+    );
+    if (malformedFlags.length > 0) {
+      issues.push({ index, code: 'malformed-boolean-flag', fields: malformedFlags });
+      return;
+    }
+    const invalidFields = [
+      ...SNAPSHOT_PERCENT_FIELDS,
+      'precipitationAmount',
+      'nowcastValidAt',
+      'nowcastPrecipitationRate',
+    ].filter((field) => Object.hasOwn(raw, field) && !Object.hasOwn(normalized, field));
+    if (Object.hasOwn(raw, 'symbolCode') && !Object.hasOwn(normalized, 'symbolCode')) {
+      invalidFields.push('symbolCode');
+    }
+    if (invalidFields.length > 0) {
+      issues.push({ index, code: 'invalid-field', fields: invalidFields });
+    }
+  });
+  return { slices, issues };
 }
 
 /**
@@ -203,13 +278,31 @@ export function selectSnapshotSliceForStep(input: {
   slices: WeatherSnapshotSlice[];
   maxStalenessMinutes?: number;
 }): WeatherSnapshotSlice {
+  return selectSnapshotSliceForStepWithDiagnostics(input).slice;
+}
+
+export function selectSnapshotSliceForStepWithDiagnostics(input: {
+  requestedAt: Date;
+  slices: WeatherSnapshotSlice[];
+  maxStalenessMinutes?: number;
+}): WeatherSnapshotMatchDiagnostics {
   const { requestedAt } = input;
   const slices = normalizeWeatherSnapshotSlices(input.slices);
   const requestedAtMs = requestedAt.getTime();
-  if (!Number.isFinite(requestedAtMs)) return { weatherUnknown: true };
-  const maxStalenessMs = (input.maxStalenessMinutes ?? 90) * 60 * 1000;
+  const matchingLimitMinutes = input.maxStalenessMinutes ?? 90;
+  if (!Number.isFinite(requestedAtMs)) {
+    return {
+      slice: { weatherUnknown: true },
+      matched: false,
+      matchingLimitMinutes,
+      rejected: true,
+      rejectionReason: 'invalid-requested-instant',
+    };
+  }
+  const maxStalenessMs = matchingLimitMinutes * 60 * 1000;
   let best: WeatherSnapshotSlice | undefined;
   let bestDelta = Number.POSITIVE_INFINITY;
+  let bestSignedDelta = Number.NaN;
   for (const slice of slices) {
     if (!slice.validAt) continue;
     const validAtMs = new Date(slice.validAt).getTime();
@@ -218,12 +311,39 @@ export function selectSnapshotSliceForStep(input: {
     if (delta < bestDelta || (delta === bestDelta && slice.weatherUnknown === true)) {
       best = slice;
       bestDelta = delta;
+      bestSignedDelta = validAtMs - requestedAtMs;
     }
   }
-  if (!best || bestDelta > maxStalenessMs) {
-    return { weatherUnknown: true };
+  if (!best) {
+    return {
+      slice: { weatherUnknown: true },
+      matched: false,
+      matchingLimitMinutes,
+      rejected: true,
+      rejectionReason: 'no-valid-slice',
+    };
   }
-  return best;
+  if (bestDelta > maxStalenessMs) {
+    return {
+      slice: { weatherUnknown: true },
+      matched: false,
+      providerValidAt: best.validAt,
+      signedDifferenceMinutes: bestSignedDelta / 60_000,
+      absoluteDifferenceMinutes: bestDelta / 60_000,
+      matchingLimitMinutes,
+      rejected: true,
+      rejectionReason: 'outside-matching-limit',
+    };
+  }
+  return {
+    slice: best,
+    matched: true,
+    providerValidAt: best.validAt,
+    signedDifferenceMinutes: bestSignedDelta / 60_000,
+    absoluteDifferenceMinutes: bestDelta / 60_000,
+    matchingLimitMinutes,
+    rejected: false,
+  };
 }
 
 export function gateGeometrySeriesWithWeatherSnapshots(input: {
@@ -429,21 +549,38 @@ function coordinateBucketForVenue(venue: WeatherSnapshotVenue): string {
   return `${coordinate.lat.toFixed(4)},${coordinate.lng.toFixed(4)}`;
 }
 
-function weatherSnapshotRecordFromRow(row: PersistedWeatherSnapshotRow): WeatherSnapshotRecord {
+function weatherSnapshotRecordFromRow(
+  row: PersistedWeatherSnapshotRow,
+  includeDiagnostics = false,
+): WeatherSnapshotRecord {
   const expiresAt = typeof row.expires_at === 'string' ? new Date(row.expires_at) : null;
+  const normalizedExpiresAt = expiresAt && !Number.isNaN(expiresAt.getTime())
+    ? expiresAt.toISOString()
+    : undefined;
+  const normalized = normalizeWeatherSnapshotSlicesWithDiagnostics(row.slices, {
+    requireValidAt: true,
+  });
   if (!expiresAt || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
     return {
       status: 'expired',
       bucket: typeof row.bucket_key === 'string' ? row.bucket_key : undefined,
       weatherUpdatedAt: normalizedInstant(row.weather_updated_at),
-      slices: [],
+      ...(includeDiagnostics && normalizedExpiresAt ? { expiresAt: normalizedExpiresAt } : {}),
+      slices: includeDiagnostics ? normalized.slices : [],
+      ...(includeDiagnostics && normalized.issues.length > 0
+        ? { normalizationIssues: normalized.issues }
+        : {}),
     };
   }
   return {
     status: 'ready',
     bucket: typeof row.bucket_key === 'string' ? row.bucket_key : undefined,
     weatherUpdatedAt: normalizedInstant(row.weather_updated_at),
-    slices: normalizeWeatherSnapshotSlices(row.slices, { requireValidAt: true }),
+    ...(includeDiagnostics ? { expiresAt: normalizedExpiresAt } : {}),
+    slices: normalized.slices,
+    ...(includeDiagnostics && normalized.issues.length > 0
+      ? { normalizationIssues: normalized.issues }
+      : {}),
   };
 }
 
@@ -455,6 +592,7 @@ function weatherSnapshotRecordFromRow(row: PersistedWeatherSnapshotRow): Weather
 export async function prepareWeatherSnapshotRepositoryForVenueDays(
   venues: readonly WeatherSnapshotVenue[],
   stockholmDate: string,
+  options: { includeDiagnostics?: boolean } = {},
 ): Promise<WeatherSnapshotRepository> {
   const coordinateBuckets = [
     ...new Set(venues.map((venue) => coordinateBucketForVenue(venue))),
@@ -494,7 +632,9 @@ export async function prepareWeatherSnapshotRepositoryForVenueDays(
     async readSnapshotForVenueDay(venue, _bucket, requestedStockholmDate) {
       if (requestedStockholmDate !== stockholmDate) return null;
       const row = snapshotsByCoordinateBucket.get(coordinateBucketForVenue(venue));
-      return row ? weatherSnapshotRecordFromRow(row) : null;
+      return row
+        ? weatherSnapshotRecordFromRow(row, options.includeDiagnostics === true)
+        : null;
     },
   };
 }

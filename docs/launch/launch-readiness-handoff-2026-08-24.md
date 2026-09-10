@@ -991,3 +991,183 @@ Evidence: `.codex/artifacts/venue-list-weather-2026-09-09/production-api-smoke.j
 No photo objects or venue image URLs were changed. Image acquisition and reliable
 scheduled refresh remain open. The final documentation-only follow-up records
 these results; no application changes follow the CI-verified d58b1e5 head.
+
+## Owner venue diagnostics API — implementation handoff (2026-09-10)
+
+### Purpose and access
+
+`GET /api/owner/venue-diagnostics` explains the current saved-evidence verdict
+for every visible production venue, or one venue selected by its canonical ID or
+slug. It is read-only and has no public UI. Before parsing query parameters or
+reading venues, the server requires:
+
+```http
+Authorization: Bearer <OWNER_DIAGNOSTICS_TOKEN>
+```
+
+The exact token is read from the server-only
+`SUNNYSEAT_OWNER_DIAGNOSTICS_TOKEN` environment variable. Configuration is
+fail-closed: an absent, short, oversized, or non-base64url-like configured value
+returns `503 OWNER_AUTH_NOT_CONFIGURED`; a missing, malformed, or incorrect
+request credential returns `401 UNAUTHORIZED`. Comparison hashes both values to
+fixed-length SHA-256 digests and uses constant-time comparison. There is no
+owner login page, cookie, public client secret, non-owner account role, or link
+that bypasses the header. All responses use `Cache-Control: private, no-store,
+max-age=0`, `Pragma: no-cache`, and `Vary: Authorization, Cookie`.
+
+Generate a 32-byte base64url token locally without committing or echoing it into
+shared logs. In PowerShell:
+
+```powershell
+$bytes = New-Object byte[] 32
+$rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
+$ownerDiagnosticsToken = [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+```
+
+Store that value in the Vercel Production environment under
+`SUNNYSEAT_OWNER_DIAGNOSTICS_TOKEN`, then deploy through the normal approved
+workflow. Deployment/configuration is intentionally not performed by this
+implementation. Rotate access by replacing the environment value and
+redeploying; the old token then fails.
+
+### Parameters
+
+| Parameter | Contract |
+| --- | --- |
+| `venue` | Optional single canonical venue ID or slug, maximum 80 characters. Omit for all visible venues. |
+| `date` + `time` | Optional pair using the existing server planner validation and `Europe/Stockholm` convention. Time is `HH:mm`, 06:00–21:00. Omit both for the captured current instant. |
+| `offset` | Optional integer 0–10,000; default 0. |
+| `limit` | Optional integer 1–100; default 100, which currently covers all 42 production venues. |
+
+Unknown or duplicate parameters are rejected. Pagination metadata reports total,
+returned count, and whether coverage is complete. A failure for one venue is
+returned in `failures[]` rather than silently omitting that venue or defaulting
+its evidence.
+
+PowerShell examples, using a local environment variable rather than a literal
+credential:
+
+```powershell
+$headers = @{ Authorization = "Bearer $env:SUNNYSEAT_OWNER_DIAGNOSTICS_TOKEN" }
+Invoke-RestMethod -Headers $headers -Uri 'https://sunnyseat.vercel.app/api/owner/venue-diagnostics'
+Invoke-RestMethod -Headers $headers -Uri 'https://sunnyseat.vercel.app/api/owner/venue-diagnostics?venue=posthotellet&date=2026-09-10&time=15%3A15'
+```
+
+Equivalent curl examples:
+
+```bash
+curl --fail-with-body -H "Authorization: Bearer $SUNNYSEAT_OWNER_DIAGNOSTICS_TOKEN" \
+  'https://sunnyseat.vercel.app/api/owner/venue-diagnostics'
+curl --fail-with-body -H "Authorization: Bearer $SUNNYSEAT_OWNER_DIAGNOSTICS_TOKEN" \
+  'https://sunnyseat.vercel.app/api/owner/venue-diagnostics?venue=posthotellet&date=2026-09-10&time=15%3A15'
+```
+
+### `venue-diagnostics.v1` response
+
+The top level contains `request`, `pagination`, `venues`, and `failures`.
+`request` records generation/request UTC instants, Stockholm date/time, current
+versus selected mode, and the nearest persisted 15-minute prediction step with
+its signed difference from the requested instant.
+
+Each successful venue entry contains:
+
+- `finalResult`: authoritative `directSunState` and reasons, clear-sky geometric
+  percentage with units, plus separately labelled public verdict, compatibility
+  status/gate, and sky presentation;
+- `geometry`: selected persisted step, solar horizon/azimuth/elevation evidence,
+  geometry hash/version/date coverage, engine coordinate versus display-only pin,
+  polygon summary and persisted elevations;
+- `weather`: snapshot status, refresh/expiry/age, fixed 120-minute TTL,
+  normalization issues, selected forecast and Nowcast fields, weighted
+  obstruction, provider-valid UTC time, signed/absolute difference and fixed
+  signed ±90-minute match limit;
+- `decision`: the canonical classifier's evaluated rules, operands, thresholds,
+  decisive rule, early exit, and all later rules marked `not-evaluated`;
+- `dataQuality` and `provenance`: explicit missing, expired, malformed,
+  incomplete, unmatched, or contradictory evidence and the limits of the claim.
+
+Values consumed by the decision trace use explicit `available`, `absent`, or
+`invalid` envelopes, so zero and `false` remain values rather than being confused
+with absence. In the rule trace, `matched` means the named rule condition fired,
+`not-matched` means it was evaluated and did not fire, and `not-evaluated` means
+an earlier decisive rule short-circuited it. A decisive clear/fair coherence rule
+may be `not-matched`: that is the successful no-conflict outcome leading to
+`likely`.
+
+Example excerpt:
+
+```json
+{
+  "contractVersion": "venue-diagnostics.v1",
+  "request": {
+    "requestedAtUtc": "2026-09-10T13:15:00.000Z",
+    "timezone": "Europe/Stockholm",
+    "stockholmDate": "2026-09-10",
+    "stockholmLocalTime": "15:15",
+    "mode": "selected"
+  },
+  "venues": [{
+    "venue": { "id": "venue-id", "slug": "posthotellet", "name": "Posthotellet" },
+    "finalResult": {
+      "directSunState": "blocked",
+      "reasons": ["cloud-obstruction"],
+      "sunExposurePercent": 95,
+      "publicVerdict": "grey",
+      "publicStatus": "CloudObscured",
+      "weatherGateState": "gated",
+      "skyCondition": "overcast"
+    },
+    "weather": {
+      "matching": {
+        "matched": true,
+        "signedDifferenceMinutes": { "availability": "available", "value": 0, "unit": "min" },
+        "matchingLimitMinutes": 90,
+        "rejected": false
+      },
+      "selectedSlice": {
+        "middleCloudCoverPercent": { "availability": "available", "value": 100, "unit": "%" },
+        "weightedCloudObstructionPercent": { "availability": "available", "value": 100, "unit": "%" },
+        "precipitationAmountNextHourMm": { "availability": "available", "value": 0, "unit": "mm" },
+        "isRaining": { "availability": "available", "value": false }
+      }
+    },
+    "decision": {
+      "decisiveRuleIds": ["blocking-symbol"],
+      "earlyExit": true
+    },
+    "provenance": {
+      "generatedFromCurrentSavedEvidence": true,
+      "reconstructsEarlierBrowserResponse": false
+    }
+  }],
+  "failures": []
+}
+```
+
+### Interpretation and known limits
+
+Snapshot status/freshness answers whether evidence was temporally admissible;
+weather obstruction answers what an admitted forecast said. An expired or
+unmatched snapshot therefore produces `unknown/weather-unavailable`, not
+`blocked/cloud-obstruction`. Inspect `expiresAtUtc`, normalization issues,
+matching rejection and signed provider difference before interpreting cloud or
+fog fields.
+
+The endpoint reads the same current request-scoped geometry/weather repositories,
+normalization, matching, and classifier as public predictions. It makes zero
+live Met.no calls, does no geometry/hash recomputation, performs no writes and
+does not trigger refresh/scheduled work. It does not dump provider payloads,
+building records, or full seating polygons.
+
+Current storage retains the geometry input hash and ready date series, but not
+the historical full input payload, intermediate shadow polygons, or every
+previous weather snapshot. Those fields are explicitly unavailable. The endpoint
+can identify potential browser-cache drift through geometry hash, snapshot
+refresh/expiry, provider-valid time and deployment/request provenance; it cannot
+claim to reconstruct an older browser result when those exact inputs are gone.
+
+Outstanding deployment prerequisite: set a newly generated
+`SUNNYSEAT_OWNER_DIAGNOSTICS_TOKEN` in Vercel Production and deploy only after
+normal review/approval. No production secret, data, schedule, migration, commit,
+merge, or deployment is part of this implementation.

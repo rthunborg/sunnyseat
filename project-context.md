@@ -409,6 +409,28 @@ Durable patterns promoted from Epic 12 ("Real-Venue Launch Readiness" — perfor
 
 ---
 
+## Owner-only venue diagnostics API (2026-09-10)
+
+- `GET /api/owner/venue-diagnostics` is a private, read-only operational route.
+  It requires the exact server-only bearer secret in
+  `SUNNYSEAT_OWNER_DIAGNOSTICS_TOKEN` before request parsing or data reads.
+- The route uses only the current venue store, persisted geometry generation,
+  saved weather snapshots, shared provider-time matching, normalization, and the
+  canonical direct-sun classifier. It never calls Met.no, computes shadow
+  geometry, writes data, refreshes snapshots, or triggers scheduled work.
+- The versioned `venue-diagnostics.v1` response distinguishes the authoritative
+  `directSunState` from compatibility status/sky fields and includes selected
+  geometry, normalized weather, snapshot freshness, signed provider-time delta,
+  classifier rule trace, provenance, and explicit per-venue/data-quality failures.
+- Results describe the saved evidence available when the diagnostic request is
+  made. They do not reconstruct an earlier browser response unless the same
+  geometry hash, snapshot refresh/expiry, and provider-valid slice are still
+  available. The current persistence model does not retain full historical
+  geometry input payloads or intermediate shadow polygons.
+- Every response, including errors, is `private, no-store`; the route logs no
+  credentials or diagnostic payloads. Operational invocation and schema details
+  live in `docs/launch/launch-readiness-handoff-2026-08-24.md`.
+
 ## Screen ID → Route Map
 
 This table is read by `scripts/story-review.sh` and `scripts/visual-validate.sh` to resolve a story's screen ID to a dev-server route. Every screen ID referenced in a story's acceptance criteria must have a row here. Rows with both mobile and desktop variants need one row per viewport — the gate reads the viewport column to pick the reference-PNG subfolder and the Playwright viewport size.

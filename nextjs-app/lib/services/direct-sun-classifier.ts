@@ -37,6 +37,62 @@ export type DirectSunClassification = {
   effectiveCloudCover?: number;
 };
 
+export type DirectSunDiagnosticOperand =
+  | { availability: 'available'; value: string | number | boolean | null; unit?: string }
+  | { availability: 'absent' }
+  | { availability: 'invalid'; receivedType: string; renderedValue: string };
+
+export type DirectSunDecisionRuleId =
+  | 'invalid-geometry-evidence'
+  | 'geometry-blocks-direct-sun'
+  | 'weather-unavailable'
+  | 'malformed-weather-unknown-flag'
+  | 'blocking-symbol'
+  | 'positive-precipitation'
+  | 'dense-fog'
+  | 'raw-cloud-obstruction'
+  | 'weighted-cloud-obstruction'
+  | 'malformed-weather-evidence'
+  | 'fog-exceeds-clear-threshold'
+  | 'partly-cloudy-symbol'
+  | 'incomplete-clear-evidence'
+  | 'clear-fair-conflict'
+  | 'remaining-cloud-obstruction'
+  | 'fallback-contradiction';
+
+export type DirectSunDecisionRuleTrace = {
+  id: DirectSunDecisionRuleId;
+  evaluation: 'matched' | 'not-matched' | 'not-evaluated';
+  decisive: boolean;
+  operands: Record<string, DirectSunDiagnosticOperand>;
+  threshold?: { operator: string; value: number; unit: string };
+};
+
+export type DirectSunClassificationWithTrace = DirectSunClassification & {
+  trace: DirectSunDecisionRuleTrace[];
+  decisiveRuleIds: DirectSunDecisionRuleId[];
+  earlyExit: boolean;
+};
+
+const DIRECT_SUN_RULE_ORDER: readonly DirectSunDecisionRuleId[] = [
+  'invalid-geometry-evidence',
+  'geometry-blocks-direct-sun',
+  'weather-unavailable',
+  'malformed-weather-unknown-flag',
+  'blocking-symbol',
+  'positive-precipitation',
+  'dense-fog',
+  'raw-cloud-obstruction',
+  'weighted-cloud-obstruction',
+  'malformed-weather-evidence',
+  'fog-exceeds-clear-threshold',
+  'partly-cloudy-symbol',
+  'incomplete-clear-evidence',
+  'clear-fair-conflict',
+  'remaining-cloud-obstruction',
+  'fallback-contradiction',
+];
+
 export type DirectSunSkyCondition =
   | 'clear'
   | 'partly-cloudy'
@@ -55,80 +111,324 @@ export function classifyDirectSun(input: {
   isSunVisible: boolean;
   weather?: DirectSunWeatherEvidence | null;
 }): DirectSunClassification {
+  return evaluateDirectSun(input);
+}
+
+/**
+ * Evaluate the canonical classifier while retaining a serializable explanation.
+ * Ordinary public calls use {@link classifyDirectSun} and discard this trace, so
+ * they do not allocate rule/operand objects.
+ */
+export function classifyDirectSunWithTrace(input: {
+  geometryPotentialPercent: number;
+  isSunVisible: boolean;
+  weather?: DirectSunWeatherEvidence | null;
+}): DirectSunClassificationWithTrace {
+  const collector = createDirectSunTraceCollector();
+  const classification = evaluateDirectSun(input, collector);
+  return collector.result(classification);
+}
+
+type DirectSunTraceCollector = {
+  record(
+    id: DirectSunDecisionRuleId,
+    matched: boolean,
+    operands: () => Record<string, DirectSunDiagnosticOperand>,
+    threshold?: DirectSunDecisionRuleTrace['threshold'],
+  ): void;
+  decide(id: DirectSunDecisionRuleId): void;
+  result(classification: DirectSunClassification): DirectSunClassificationWithTrace;
+};
+
+function createDirectSunTraceCollector(): DirectSunTraceCollector {
+  const evaluated: DirectSunDecisionRuleTrace[] = [];
+  let decisiveRuleId: DirectSunDecisionRuleId = 'fallback-contradiction';
+  return {
+    record(id, matched, operands, threshold) {
+      evaluated.push({
+        id,
+        evaluation: matched ? 'matched' : 'not-matched',
+        decisive: false,
+        operands: operands(),
+        ...(threshold ? { threshold } : {}),
+      });
+    },
+    decide(id) {
+      decisiveRuleId = id;
+      const decisive = evaluated.findLast((rule) => rule.id === id);
+      if (decisive) decisive.decisive = true;
+    },
+    result(classification) {
+    const evaluatedIds = new Set(evaluated.map((rule) => rule.id));
+    const trace = [
+      ...evaluated,
+      ...DIRECT_SUN_RULE_ORDER
+        .filter((id) => !evaluatedIds.has(id))
+        .map((id) => ({
+          id,
+          evaluation: 'not-evaluated' as const,
+          decisive: false,
+          operands: {},
+        })),
+    ];
+    return {
+      ...classification,
+      trace,
+      decisiveRuleIds: [decisiveRuleId],
+      earlyExit: decisiveRuleId !== 'fallback-contradiction',
+    };
+    },
+  };
+}
+
+function evaluateDirectSun(
+  input: {
+    geometryPotentialPercent: number;
+    isSunVisible: boolean;
+    weather?: DirectSunWeatherEvidence | null;
+  },
+  collector?: DirectSunTraceCollector,
+): DirectSunClassification {
+  const record = (
+    id: DirectSunDecisionRuleId,
+    matched: boolean,
+    operands: () => Record<string, DirectSunDiagnosticOperand>,
+    threshold?: DirectSunDecisionRuleTrace['threshold'],
+  ): boolean => {
+    collector?.record(id, matched, operands, threshold);
+    return matched;
+  };
+  const finish = (
+    classification: DirectSunClassification,
+    decisiveRuleId: DirectSunDecisionRuleId,
+  ): DirectSunClassification => {
+    collector?.decide(decisiveRuleId);
+    return classification;
+  };
+
   const geometry = finitePercent(input.geometryPotentialPercent);
-  if (geometry === undefined || typeof input.isSunVisible !== 'boolean') {
-    return { state: 'unknown', reasons: ['geometry-incomplete'] };
+  if (record(
+    'invalid-geometry-evidence',
+    geometry === undefined || typeof input.isSunVisible !== 'boolean',
+    () => ({
+      geometryPotentialPercent: diagnosticOperand(input.geometryPotentialPercent, '%', finitePercent),
+      isSunVisible: diagnosticOperand(input.isSunVisible),
+    }),
+  )) {
+    return finish({ state: 'unknown', reasons: ['geometry-incomplete'] }, 'invalid-geometry-evidence');
   }
-  if (!input.isSunVisible || geometry <= 50) {
-    return { state: 'blocked', reasons: ['geometry'] };
+  if (record(
+    'geometry-blocks-direct-sun',
+    !input.isSunVisible || geometry! <= 50,
+    () => ({
+      geometryPotentialPercent: diagnosticOperand(geometry, '%'),
+      isSunVisible: diagnosticOperand(input.isSunVisible),
+    }),
+    { operator: '<=', value: 50, unit: '%' },
+  )) {
+    return finish({ state: 'blocked', reasons: ['geometry'] }, 'geometry-blocks-direct-sun');
   }
 
   const weather = input.weather;
-  if (!weather || weather.weatherUnknown === true) {
-    return { state: 'unknown', reasons: ['weather-unavailable'] };
+  if (record(
+    'weather-unavailable',
+    !weather || weather.weatherUnknown === true,
+    () => ({ weather: weather ? diagnosticOperand('present') : { availability: 'absent' } }),
+  )) {
+    return finish({ state: 'unknown', reasons: ['weather-unavailable'] }, 'weather-unavailable');
   }
   // Persisted JSON is outside TypeScript's trust boundary. A truthy string such
   // as `"false"` must not be mistaken for an intentional unavailable marker.
-  if (weather.weatherUnknown !== undefined && typeof weather.weatherUnknown !== 'boolean') {
-    return { state: 'unknown', reasons: ['weather-incomplete'] };
+  if (record(
+    'malformed-weather-unknown-flag',
+    weather!.weatherUnknown !== undefined && typeof weather!.weatherUnknown !== 'boolean',
+    () => ({ weatherUnknown: diagnosticOperand(weather!.weatherUnknown) }),
+  )) {
+    return finish({ state: 'unknown', reasons: ['weather-incomplete'] }, 'malformed-weather-unknown-flag');
   }
 
-  const symbol = normalizedSymbol(weather.symbolCode);
-  const totalCover = finitePercent(weather.cloudCover);
-  const fog = finitePercent(weather.fogAreaFraction);
+  const symbol = normalizedSymbol(weather!.symbolCode);
+  const totalCover = finitePercent(weather!.cloudCover);
+  const fog = finitePercent(weather!.fogAreaFraction);
   // Only form a layer-weighted blocker from valid percentages. With missing
   // layers the valid raw total remains useful as an independent blocker, but it
   // is never enough to promote the result to `likely`.
-  const cover = hasValidCloudLayerEvidence(weather)
-    ? effectiveCloudCover(weather)
+  const cover = hasValidCloudLayerEvidence(weather!)
+    ? effectiveCloudCover(weather!)
     : totalCover;
   // Independent, provider-declared blockers win even if another field is
   // incomplete. This avoids silently downgrading rain, fog, or cloudy to clear.
-  if (FOG_SYMBOL.test(symbol ?? '')) return { state: 'blocked', reasons: ['fog'] };
-  if (PRECIPITATION_SYMBOL.test(symbol ?? '')) {
-    return { state: 'blocked', reasons: ['precipitation'] };
+  const blockingSymbolReason = FOG_SYMBOL.test(symbol ?? '')
+    ? 'fog' as const
+    : PRECIPITATION_SYMBOL.test(symbol ?? '')
+      ? 'precipitation' as const
+      : CLOUDY_SYMBOL.test(symbol ?? '')
+        ? 'cloud-obstruction' as const
+        : undefined;
+  if (record(
+    'blocking-symbol',
+    blockingSymbolReason !== undefined,
+    () => ({ symbolCode: diagnosticOperand(weather!.symbolCode) }),
+  )) {
+    return finish(
+      {
+        state: 'blocked',
+        reasons: [blockingSymbolReason!],
+        ...(blockingSymbolReason === 'cloud-obstruction' ? { effectiveCloudCover: cover } : {}),
+      },
+      'blocking-symbol',
+    );
   }
-  if (CLOUDY_SYMBOL.test(symbol ?? '')) {
-    return { state: 'blocked', reasons: ['cloud-obstruction'], effectiveCloudCover: cover };
+  if (record(
+    'positive-precipitation',
+    weather!.isRaining === true || positive(weather!.precipitationAmount),
+    () => ({
+      isRaining: diagnosticOperand(weather!.isRaining),
+      precipitationAmount: diagnosticOperand(weather!.precipitationAmount, 'mm'),
+    }),
+    { operator: '>', value: 0, unit: 'mm' },
+  )) {
+    return finish({ state: 'blocked', reasons: ['precipitation'] }, 'positive-precipitation');
   }
-  if (weather.isRaining === true || positive(weather.precipitationAmount)) {
-    return { state: 'blocked', reasons: ['precipitation'] };
-  }
-  if (fog !== undefined && fog >= DIRECT_SUN_BLOCKING_FOG_MIN) return { state: 'blocked', reasons: ['fog'] };
+  if (record(
+    'dense-fog',
+    fog !== undefined && fog >= DIRECT_SUN_BLOCKING_FOG_MIN,
+    () => ({ fogAreaFraction: diagnosticOperand(weather!.fogAreaFraction, '%', finitePercent) }),
+    { operator: '>=', value: DIRECT_SUN_BLOCKING_FOG_MIN, unit: '%' },
+  )) return finish({ state: 'blocked', reasons: ['fog'] }, 'dense-fog');
   // Full total coverage is a direct-beam blocker even where thin high layers
   // would yield a low weighted value. `likely` requires BOTH measurements clear.
-  if (totalCover !== undefined && totalCover >= DIRECT_SUN_BLOCKING_OBSTRUCTION_MIN) {
-    return { state: 'blocked', reasons: ['cloud-obstruction'], effectiveCloudCover: cover };
+  if (record(
+    'raw-cloud-obstruction',
+    totalCover !== undefined && totalCover >= DIRECT_SUN_BLOCKING_OBSTRUCTION_MIN,
+    () => ({ cloudCover: diagnosticOperand(weather!.cloudCover, '%', finitePercent) }),
+    { operator: '>=', value: DIRECT_SUN_BLOCKING_OBSTRUCTION_MIN, unit: '%' },
+  )) {
+    return finish({ state: 'blocked', reasons: ['cloud-obstruction'], effectiveCloudCover: cover }, 'raw-cloud-obstruction');
   }
-  if (cover !== undefined && cover >= DIRECT_SUN_BLOCKING_OBSTRUCTION_MIN) {
-    return { state: 'blocked', reasons: ['cloud-obstruction'], effectiveCloudCover: cover };
+  if (record(
+    'weighted-cloud-obstruction',
+    cover !== undefined && cover >= DIRECT_SUN_BLOCKING_OBSTRUCTION_MIN,
+    () => ({ effectiveCloudCover: diagnosticOperand(cover, '%') }),
+    { operator: '>=', value: DIRECT_SUN_BLOCKING_OBSTRUCTION_MIN, unit: '%' },
+  )) {
+    return finish({ state: 'blocked', reasons: ['cloud-obstruction'], effectiveCloudCover: cover }, 'weighted-cloud-obstruction');
   }
 
-  if (hasMalformedWeatherEvidence(weather)) {
-    return { state: 'unknown', reasons: ['weather-incomplete'] };
+  if (record(
+    'malformed-weather-evidence',
+    hasMalformedWeatherEvidence(weather!),
+    () => weatherDiagnosticOperands(weather!),
+  )) {
+    return finish({ state: 'unknown', reasons: ['weather-incomplete'] }, 'malformed-weather-evidence');
   }
 
-  if (fog === undefined) return { state: 'unknown', reasons: ['weather-incomplete'] };
-  if (fog > DIRECT_SUN_CLEAR_OBSTRUCTION_MAX) return { state: 'unknown', reasons: ['fog'] };
-  if (PARTLY_CLOUDY_SYMBOL.test(symbol ?? '')) {
-    return { state: 'unknown', reasons: ['cloud-obstruction'], effectiveCloudCover: cover };
+  if (record(
+    'fog-exceeds-clear-threshold',
+    fog === undefined || fog > DIRECT_SUN_CLEAR_OBSTRUCTION_MAX,
+    () => ({ fogAreaFraction: diagnosticOperand(weather!.fogAreaFraction, '%', finitePercent) }),
+    { operator: '<=', value: DIRECT_SUN_CLEAR_OBSTRUCTION_MAX, unit: '%' },
+  )) {
+    return finish(
+      fog === undefined
+        ? { state: 'unknown', reasons: ['weather-incomplete'] }
+        : { state: 'unknown', reasons: ['fog'] },
+      'fog-exceeds-clear-threshold',
+    );
   }
-  if (!hasExplicitNoPrecipitation(weather) || cover === undefined || totalCover === undefined || !hasCompleteCloudEvidence(weather)) {
-    return { state: 'unknown', reasons: ['weather-incomplete'] };
+  if (record(
+    'partly-cloudy-symbol',
+    PARTLY_CLOUDY_SYMBOL.test(symbol ?? ''),
+    () => ({ symbolCode: diagnosticOperand(weather!.symbolCode) }),
+  )) {
+    return finish({ state: 'unknown', reasons: ['cloud-obstruction'], effectiveCloudCover: cover }, 'partly-cloudy-symbol');
   }
-  if (!symbol) return { state: 'unknown', reasons: ['weather-incomplete'], effectiveCloudCover: cover };
+  if (record(
+    'incomplete-clear-evidence',
+    !hasExplicitNoPrecipitation(weather!) || cover === undefined || totalCover === undefined || !hasCompleteCloudEvidence(weather!),
+    () => weatherDiagnosticOperands(weather!),
+  )) {
+    return finish({ state: 'unknown', reasons: ['weather-incomplete'] }, 'incomplete-clear-evidence');
+  }
+  if (!symbol) {
+    return finish({ state: 'unknown', reasons: ['weather-incomplete'], effectiveCloudCover: cover }, 'incomplete-clear-evidence');
+  }
 
   // A clear/fair code against non-clear metrics is an unresolved forecast
   // conflict. A known independent blocker above has already won.
   if (CLEAR_OR_FAIR_SYMBOL.test(symbol)) {
-    return totalCover <= DIRECT_SUN_CLEAR_OBSTRUCTION_MAX && cover <= DIRECT_SUN_CLEAR_OBSTRUCTION_MAX
-      ? { state: 'likely', reasons: [], effectiveCloudCover: cover }
-      : { state: 'unknown', reasons: ['contradictory-weather'], effectiveCloudCover: cover };
+    const contradictory = totalCover! > DIRECT_SUN_CLEAR_OBSTRUCTION_MAX || cover! > DIRECT_SUN_CLEAR_OBSTRUCTION_MAX;
+    record(
+      'clear-fair-conflict',
+      contradictory,
+      () => ({
+        symbolCode: diagnosticOperand(symbol),
+        cloudCover: diagnosticOperand(totalCover, '%'),
+        effectiveCloudCover: diagnosticOperand(cover, '%'),
+      }),
+      { operator: '<=', value: DIRECT_SUN_CLEAR_OBSTRUCTION_MAX, unit: '%' },
+    );
+    return finish(
+      contradictory
+        ? { state: 'unknown', reasons: ['contradictory-weather'], effectiveCloudCover: cover }
+        : { state: 'likely', reasons: [], effectiveCloudCover: cover },
+      'clear-fair-conflict',
+    );
   }
-  if (cover > DIRECT_SUN_CLEAR_OBSTRUCTION_MAX || totalCover > DIRECT_SUN_CLEAR_OBSTRUCTION_MAX) {
-    return { state: 'unknown', reasons: ['cloud-obstruction'], effectiveCloudCover: cover };
+  if (record(
+    'remaining-cloud-obstruction',
+    cover! > DIRECT_SUN_CLEAR_OBSTRUCTION_MAX || totalCover! > DIRECT_SUN_CLEAR_OBSTRUCTION_MAX,
+    () => ({
+      cloudCover: diagnosticOperand(totalCover, '%'),
+      effectiveCloudCover: diagnosticOperand(cover, '%'),
+    }),
+    { operator: '>', value: DIRECT_SUN_CLEAR_OBSTRUCTION_MAX, unit: '%' },
+  )) {
+    return finish({ state: 'unknown', reasons: ['cloud-obstruction'], effectiveCloudCover: cover }, 'remaining-cloud-obstruction');
   }
-  return { state: 'unknown', reasons: ['contradictory-weather'], effectiveCloudCover: cover };
+  record('fallback-contradiction', true, () => ({ symbolCode: diagnosticOperand(symbol) }));
+  return finish({ state: 'unknown', reasons: ['contradictory-weather'], effectiveCloudCover: cover }, 'fallback-contradiction');
+}
+
+function weatherDiagnosticOperands(
+  weather: DirectSunWeatherEvidence,
+): Record<string, DirectSunDiagnosticOperand> {
+  return {
+    cloudCover: diagnosticOperand(weather.cloudCover, '%', finitePercent),
+    cloudCoverLow: diagnosticOperand(weather.cloudCoverLow, '%', finitePercent),
+    cloudCoverMedium: diagnosticOperand(weather.cloudCoverMedium, '%', finitePercent),
+    cloudCoverHigh: diagnosticOperand(weather.cloudCoverHigh, '%', finitePercent),
+    fogAreaFraction: diagnosticOperand(weather.fogAreaFraction, '%', finitePercent),
+    precipitationAmount: diagnosticOperand(weather.precipitationAmount, 'mm', (value) =>
+      typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined),
+    symbolCode: diagnosticOperand(weather.symbolCode),
+    isRaining: diagnosticOperand(weather.isRaining),
+    weatherUnknown: diagnosticOperand(weather.weatherUnknown),
+  };
+}
+
+function diagnosticOperand(
+  value: unknown,
+  unit?: string,
+  validator?: (candidate: unknown) => unknown,
+): DirectSunDiagnosticOperand {
+  if (value === undefined) return { availability: 'absent' };
+  if (
+    (validator && validator(value) === undefined) ||
+    (!validator && !['string', 'number', 'boolean'].includes(typeof value) && value !== null) ||
+    (typeof value === 'number' && !Number.isFinite(value))
+  ) {
+    return {
+      availability: 'invalid',
+      receivedType: typeof value,
+      renderedValue: typeof value === 'number' ? String(value) : Object.prototype.toString.call(value),
+    };
+  }
+  return {
+    availability: 'available',
+    value: value as string | number | boolean | null,
+    ...(unit ? { unit } : {}),
+  };
 }
 
 /**

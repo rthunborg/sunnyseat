@@ -471,10 +471,11 @@ export async function prepareSunGeometryRepositoryForVenueDays(
 export async function preparePersistedSunRouteRepositoriesForVenueDays(
   venues: readonly StoredVenue[],
   stockholmDate: string,
+  options: { includeDiagnostics?: boolean } = {},
 ): Promise<PersistedSunRouteRepositories> {
   const [sunGeometryRepository, weatherSnapshotRepository] = await Promise.all([
     prepareSunGeometryRepositoryForVenueDays(venues, stockholmDate),
-    prepareWeatherSnapshotRepositoryForVenueDays(venues, stockholmDate),
+    prepareWeatherSnapshotRepositoryForVenueDays(venues, stockholmDate, options),
   ]);
   return { sunGeometryRepository, weatherSnapshotRepository };
 }
