@@ -1,0 +1,35 @@
+/** Benchmark-only storage of actual survey values; caller must verify guard ownership. */
+import fs from 'node:fs';
+import path from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {summarizeSurvey} from './survey-report.mjs';
+import {artifactHashes,publishLane} from './evidence.mjs';
+const [container,database,input,out]=process.argv.slice(2);
+if(!container||!/^e15_[a-z0-9_]+$/.test(database??'')||![input,out].every(p=>p&&path.isAbsolute(p))||fs.existsSync(out))throw Error('New scratch database/output and absolute input required');
+const summary=summarizeSurvey(input),data=JSON.parse(fs.readFileSync(path.join(input,'survey.json'),'utf8'));
+const surveyEnv=JSON.parse(fs.readFileSync(path.join(input,'environment.json'),'utf8'));
+if(JSON.stringify(artifactHashes(path.join(input,'../capture-01'),Object.keys(surveyEnv.captureHashes)))!==JSON.stringify(surveyEnv.captureHashes))throw Error('Capture identity mismatch');
+const docker=(args,input)=>{const r=spawnSync('docker',args,{input,encoding:'utf8',timeout:120000,maxBuffer:64*1024*1024});if(r.status!==0)throw Error(r.stderr||String(r.error));return r.stdout;};
+const labels=JSON.parse(docker(['inspect',container,'--format','{{json .Config.Labels}}']));
+if(labels['com.rasmus.resource-guard.managed']!=='true'||labels['com.docker.compose.service']!=='postgres'||labels['com.docker.compose.project.working_dir']?.toLowerCase()!==path.resolve('..').toLowerCase())throw Error('Guard-managed repository postgres required');
+docker(['exec',container,'createdb','-U','sunnyseat',database]);
+const q=sql=>docker(['exec','-i',container,'psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U','sunnyseat','-d',database],sql);
+const census=`SELECT json_build_object('database_bytes',pg_database_size(current_database()),'day_rows',(SELECT count(*) FROM survey_days),'day_samples',(SELECT sum(cardinality(offsets)) FROM survey_days),'days_total_bytes',pg_total_relation_size('survey_days'),'inputs_total_bytes',pg_total_relation_size('survey_inputs'),'version',version());`;
+fs.mkdirSync(out,{recursive:true});
+const baseline=JSON.parse(q("SELECT json_build_object('database_bytes',pg_database_size(current_database()),'fsync',current_setting('fsync'),'full_page_writes',current_setting('full_page_writes'));"));
+const quote=v=>"'"+String(v).replaceAll("'","''")+"'";
+let sql='BEGIN; CREATE TABLE survey_days (venue text, generation integer, date date, offsets integer[] NOT NULL, exposure double precision[] NOT NULL, PRIMARY KEY(venue,generation,date)); CREATE TABLE survey_inputs (venue text PRIMARY KEY, payload jsonb NOT NULL);\n';
+const capture=JSON.parse(fs.readFileSync(path.join(input,'../capture-01/inputs.json'),'utf8'));
+sql+=`INSERT INTO survey_inputs VALUES ('capture',${quote(JSON.stringify(capture))}::jsonb);\n`;
+for(const c of data.cells){const start=Date.parse(c.date+'T00:00:00Z');sql+=`INSERT INTO survey_days VALUES (${quote(c.id)},1,${quote(c.date)},ARRAY[${c.plainPoints.map(p=>p.t-start)}]::integer[],ARRAY[${c.plainPoints.map(p=>p.value)}]::double precision[]);\n`;}
+sql+='COMMIT; ANALYZE;';fs.writeFileSync(path.join(out,'load.sql'),sql);
+const before=q('SELECT pg_current_wal_insert_lsn();').trim(),begin=performance.now();q(sql);const loadWallMs=performance.now()-begin;
+const loadWalBytes=Number(q(`SELECT pg_wal_lsn_diff(pg_current_wal_insert_lsn(),${quote(before)}::pg_lsn);`));
+const current=JSON.parse(q(census));
+q('INSERT INTO survey_days SELECT venue,g,date,offsets,exposure FROM survey_days CROSS JOIN generate_series(2,5) g WHERE generation=1; ANALYZE;');
+const retained=JSON.parse(q(census));
+if(current.day_rows!==252||retained.day_rows!==1260||retained.day_samples!==current.day_samples*5)throw Error('Incomplete storage matrix');
+const result={baseline,current,retained,loadWallMs,loadWalBytes,n:1,summary,scope:'Actual 252 measured days, one generation and five identical retained copies; input capture stored once as JSONB. This is benchmark scratch layout, not proposed application schema. No seasonal shadow values fabricated; retained copies are not recomputed historical years. No new edit/read benchmark.'};
+fs.writeFileSync(path.join(out,'storage.json'),JSON.stringify(result,null,2));
+fs.writeFileSync(path.join(out,'environment.json'),JSON.stringify({inputHashes:artifactHashes(input,['survey.json','environment.json','completion.json']),captureHashes:artifactHashes(path.join(input,'../capture-01'),['inputs.json']),sources:artifactHashes(process.cwd(),['scripts/benchmarks/epic-15/survey-storage.mjs','scripts/benchmarks/epic-15/survey-report.mjs','scripts/benchmarks/epic-15/evidence.mjs'])},null,2));
+publishLane(out,'completion.json',{complete:true,offlineAttempts:0,cells:['current','five-retained']},['storage.json','environment.json','load.sql'],['current','five-retained']);

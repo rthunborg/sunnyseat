@@ -1,0 +1,548 @@
+{
+  "rows": [
+    {
+      "gapStart": 292500,
+      "gapEnd": 302500,
+      "end": 590000,
+      "analyticEnclosure": {
+        "calls": 95,
+        "partitions": [
+          {
+            "start": 0,
+            "end": 292499.9964237213,
+            "state": "sunny"
+          },
+          {
+            "start": 292499.9964237213,
+            "end": 292500.03159046173,
+            "state": "unresolved"
+          },
+          {
+            "start": 292500.03159046173,
+            "end": 302499.97556209564,
+            "state": "shade"
+          },
+          {
+            "start": 302499.97556209564,
+            "end": 302500.01072883606,
+            "state": "unresolved"
+          },
+          {
+            "start": 302500.01072883606,
+            "end": 590000,
+            "state": "sunny"
+          }
+        ],
+        "complete": false,
+        "qualifying": [],
+        "guarantee": "conditional on valid whole-interval oracle; no application adapter"
+      },
+      "pointSamples": [
+        {
+          "stepMs": 60000,
+          "samples": 31,
+          "qualifying": [],
+          "complete": true
+        },
+        {
+          "stepMs": 10000,
+          "samples": 74,
+          "qualifying": [],
+          "complete": true
+        },
+        {
+          "stepMs": 5000,
+          "samples": 131,
+          "qualifying": [],
+          "complete": true
+        },
+        {
+          "stepMs": 1000,
+          "samples": 599,
+          "qualifying": [],
+          "complete": true
+        }
+      ]
+    },
+    {
+      "gapStart": 290250,
+      "gapEnd": 291250,
+      "end": 581000,
+      "analyticEnclosure": {
+        "calls": 95,
+        "partitions": [
+          {
+            "start": 0,
+            "end": 290249.9692440033,
+            "state": "sunny"
+          },
+          {
+            "start": 290249.9692440033,
+            "end": 290250.0038743019,
+            "state": "unresolved"
+          },
+          {
+            "start": 290250.0038743019,
+            "end": 291249.98837709427,
+            "state": "shade"
+          },
+          {
+            "start": 291249.98837709427,
+            "end": 291250.0230073929,
+            "state": "unresolved"
+          },
+          {
+            "start": 291250.0230073929,
+            "end": 581000,
+            "state": "sunny"
+          }
+        ],
+        "complete": false,
+        "qualifying": [],
+        "guarantee": "conditional on valid whole-interval oracle; no application adapter"
+      },
+      "pointSamples": [
+        {
+          "stepMs": 60000,
+          "samples": 11,
+          "qualifying": [
+            {
+              "start": 0,
+              "end": 581000,
+              "sunny": true,
+              "durationMs": 581000,
+              "minimumDurationMs": 581000,
+              "maximumDurationMs": 581000,
+              "status": "qualifies"
+            }
+          ],
+          "complete": true
+        },
+        {
+          "stepMs": 10000,
+          "samples": 60,
+          "qualifying": [
+            {
+              "start": 0,
+              "end": 581000,
+              "sunny": true,
+              "durationMs": 581000,
+              "minimumDurationMs": 581000,
+              "maximumDurationMs": 581000,
+              "status": "qualifies"
+            }
+          ],
+          "complete": true
+        },
+        {
+          "stepMs": 5000,
+          "samples": 118,
+          "qualifying": [
+            {
+              "start": 0,
+              "end": 581000,
+              "sunny": true,
+              "durationMs": 581000,
+              "minimumDurationMs": 581000,
+              "maximumDurationMs": 581000,
+              "status": "qualifies"
+            }
+          ],
+          "complete": true
+        },
+        {
+          "stepMs": 1000,
+          "samples": 590,
+          "qualifying": [],
+          "complete": true
+        }
+      ]
+    },
+    {
+      "gapStart": 290025,
+      "gapEnd": 290125,
+      "end": 580100,
+      "analyticEnclosure": {
+        "calls": 95,
+        "partitions": [
+          {
+            "start": 0,
+            "end": 290024.96650218964,
+            "state": "sunny"
+          },
+          {
+            "start": 290024.96650218964,
+            "end": 290025.00107884407,
+            "state": "unresolved"
+          },
+          {
+            "start": 290025.00107884407,
+            "end": 290124.9967634678,
+            "state": "shade"
+          },
+          {
+            "start": 290124.9967634678,
+            "end": 290125.0313401222,
+            "state": "unresolved"
+          },
+          {
+            "start": 290125.0313401222,
+            "end": 580100,
+            "state": "sunny"
+          }
+        ],
+        "complete": false,
+        "qualifying": [],
+        "guarantee": "conditional on valid whole-interval oracle; no application adapter"
+      },
+      "pointSamples": [
+        {
+          "stepMs": 60000,
+          "samples": 11,
+          "qualifying": [
+            {
+              "start": 0,
+              "end": 580100,
+              "sunny": true,
+              "durationMs": 580100,
+              "minimumDurationMs": 580100,
+              "maximumDurationMs": 580100,
+              "status": "qualifies"
+            }
+          ],
+          "complete": true
+        },
+        {
+          "stepMs": 10000,
+          "samples": 60,
+          "qualifying": [
+            {
+              "start": 0,
+              "end": 580100,
+              "sunny": true,
+              "durationMs": 580100,
+              "minimumDurationMs": 580100,
+              "maximumDurationMs": 580100,
+              "status": "qualifies"
+            }
+          ],
+          "complete": true
+        },
+        {
+          "stepMs": 5000,
+          "samples": 118,
+          "qualifying": [
+            {
+              "start": 0,
+              "end": 580100,
+              "sunny": true,
+              "durationMs": 580100,
+              "minimumDurationMs": 580100,
+              "maximumDurationMs": 580100,
+              "status": "qualifies"
+            }
+          ],
+          "complete": true
+        },
+        {
+          "stepMs": 1000,
+          "samples": 582,
+          "qualifying": [
+            {
+              "start": 0,
+              "end": 580100,
+              "sunny": true,
+              "durationMs": 580100,
+              "minimumDurationMs": 580100,
+              "maximumDurationMs": 580100,
+              "status": "qualifies"
+            }
+          ],
+          "complete": true
+        }
+      ]
+    },
+    {
+      "gapStart": 290000.25,
+      "gapEnd": 290001.25,
+      "end": 580001,
+      "analyticEnclosure": {
+        "calls": 95,
+        "partitions": [
+          {
+            "start": 0,
+            "end": 290000.2234339714,
+            "state": "sunny"
+          },
+          {
+            "start": 290000.2234339714,
+            "end": 290000.258004725,
+            "state": "unresolved"
+          },
+          {
+            "start": 290000.258004725,
+            "end": 290001.22598582506,
+            "state": "shade"
+          },
+          {
+            "start": 290001.22598582506,
+            "end": 290001.26055657864,
+            "state": "unresolved"
+          },
+          {
+            "start": 290001.26055657864,
+            "end": 580001,
+            "state": "sunny"
+          }
+        ],
+        "complete": false,
+        "qualifying": [],
+        "guarantee": "conditional on valid whole-interval oracle; no application adapter"
+      },
+      "pointSamples": [
+        {
+          "stepMs": 60000,
+          "samples": 11,
+          "qualifying": [
+            {
+              "start": 0,
+              "end": 580001,
+              "sunny": true,
+              "durationMs": 580001,
+              "minimumDurationMs": 580001,
+              "maximumDurationMs": 580001,
+              "status": "qualifies"
+            }
+          ],
+          "complete": true
+        },
+        {
+          "stepMs": 10000,
+          "samples": 60,
+          "qualifying": [
+            {
+              "start": 0,
+              "end": 580001,
+              "sunny": true,
+              "durationMs": 580001,
+              "minimumDurationMs": 580001,
+              "maximumDurationMs": 580001,
+              "status": "qualifies"
+            }
+          ],
+          "complete": true
+        },
+        {
+          "stepMs": 5000,
+          "samples": 118,
+          "qualifying": [
+            {
+              "start": 0,
+              "end": 580001,
+              "sunny": true,
+              "durationMs": 580001,
+              "minimumDurationMs": 580001,
+              "maximumDurationMs": 580001,
+              "status": "qualifies"
+            }
+          ],
+          "complete": true
+        },
+        {
+          "stepMs": 1000,
+          "samples": 582,
+          "qualifying": [
+            {
+              "start": 0,
+              "end": 580001,
+              "sunny": true,
+              "durationMs": 580001,
+              "minimumDurationMs": 580001,
+              "maximumDurationMs": 580001,
+              "status": "qualifies"
+            }
+          ],
+          "complete": true
+        }
+      ]
+    },
+    {
+      "gapStart": 290000.03125,
+      "gapEnd": 290000.15625,
+      "end": 580000.125,
+      "analyticEnclosure": {
+        "calls": 95,
+        "partitions": [
+          {
+            "start": 0,
+            "end": 290000.0279292986,
+            "state": "sunny"
+          },
+          {
+            "start": 290000.0279292986,
+            "end": 290000.0625,
+            "state": "unresolved"
+          },
+          {
+            "start": 290000.0625,
+            "end": 290000.13164140284,
+            "state": "shade"
+          },
+          {
+            "start": 290000.13164140284,
+            "end": 290000.16621210426,
+            "state": "unresolved"
+          },
+          {
+            "start": 290000.16621210426,
+            "end": 580000.125,
+            "state": "sunny"
+          }
+        ],
+        "complete": false,
+        "qualifying": [],
+        "guarantee": "conditional on valid whole-interval oracle; no application adapter"
+      },
+      "pointSamples": [
+        {
+          "stepMs": 60000,
+          "samples": 11,
+          "qualifying": [
+            {
+              "start": 0,
+              "end": 580000.125,
+              "sunny": true,
+              "durationMs": 580000.125,
+              "minimumDurationMs": 580000.125,
+              "maximumDurationMs": 580000.125,
+              "status": "qualifies"
+            }
+          ],
+          "complete": true
+        },
+        {
+          "stepMs": 10000,
+          "samples": 60,
+          "qualifying": [
+            {
+              "start": 0,
+              "end": 580000.125,
+              "sunny": true,
+              "durationMs": 580000.125,
+              "minimumDurationMs": 580000.125,
+              "maximumDurationMs": 580000.125,
+              "status": "qualifies"
+            }
+          ],
+          "complete": true
+        },
+        {
+          "stepMs": 5000,
+          "samples": 118,
+          "qualifying": [
+            {
+              "start": 0,
+              "end": 580000.125,
+              "sunny": true,
+              "durationMs": 580000.125,
+              "minimumDurationMs": 580000.125,
+              "maximumDurationMs": 580000.125,
+              "status": "qualifies"
+            }
+          ],
+          "complete": true
+        },
+        {
+          "stepMs": 1000,
+          "samples": 582,
+          "qualifying": [
+            {
+              "start": 0,
+              "end": 580000.125,
+              "sunny": true,
+              "durationMs": 580000.125,
+              "minimumDurationMs": 580000.125,
+              "maximumDurationMs": 580000.125,
+              "status": "qualifies"
+            }
+          ],
+          "complete": true
+        }
+      ]
+    }
+  ],
+  "threshold": [
+    {
+      "seconds": 299,
+      "result": {
+        "calls": 1,
+        "partitions": [
+          {
+            "start": 0,
+            "end": 299000,
+            "state": "sunny"
+          }
+        ],
+        "complete": true,
+        "qualifying": [],
+        "guarantee": "conditional on valid whole-interval oracle; no application adapter"
+      }
+    },
+    {
+      "seconds": 300,
+      "result": {
+        "calls": 1,
+        "partitions": [
+          {
+            "start": 0,
+            "end": 300000,
+            "state": "sunny"
+          }
+        ],
+        "complete": true,
+        "qualifying": [
+          {
+            "start": 0,
+            "end": 300000
+          }
+        ],
+        "guarantee": "conditional on valid whole-interval oracle; no application adapter"
+      }
+    },
+    {
+      "seconds": 301,
+      "result": {
+        "calls": 1,
+        "partitions": [
+          {
+            "start": 0,
+            "end": 301000,
+            "state": "sunny"
+          }
+        ],
+        "complete": true,
+        "qualifying": [
+          {
+            "start": 0,
+            "end": 301000
+          }
+        ],
+        "guarantee": "conditional on valid whole-interval oracle; no application adapter"
+      }
+    }
+  ],
+  "unavailable": {
+    "calls": 1000,
+    "partitions": [
+      {
+        "start": 0,
+        "end": 600000,
+        "state": "unresolved"
+      }
+    ],
+    "complete": false,
+    "qualifying": [],
+    "guarantee": "conditional on valid whole-interval oracle; no application adapter"
+  },
+  "scope": "Exact analytic step-signal oracle only. No geometric bounds, no production CPU/storage extrapolation."
+}

@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "survey.measurement.ts": "2f8cccfc4b3f7f72d70b764586cad58f978a1c390b071dac1a24e2d5be3090d6",
+    "survey-focus.measurement.ts": "721479b854c5489199f37ab64bf8a7f9e97dd06fd837c9de1fee98bfe784698b",
+    "survey-report.mjs": "edb8c4d5a6d19055830d1d2454d236f1afadcf9cccb7c097deaa657e74a0c023",
+    "survey-decision.mjs": "13c29947c46873ec4e0fd864abbe3a3e89fabec69176782db18399ad90c77311",
+    "survey-storage.mjs": "55398b23758ffc1949ce253abc295a83c757115ff53a5b7b64f9018761855945",
+    "evidence.mjs": "4fd8926cde056d7abfbf1d3de0bf96a201c7d47f311a8c5516b631b66ae77f72"
+  },
+  "priorVerified": 251,
+  "reproduction": "Summary and report byte-exact regenerated; baseline/final typecheck and lint exit 0; full suite 248 files 2276 tests.",
+  "runtimeChanges": false,
+  "storyStatus": "in-progress"
+}

@@ -1,0 +1,2172 @@
+[
+  {
+    "id": "open",
+    "date": "2026-03-01",
+    "samples": 549,
+    "serializedBytes": {
+      "json": 14824,
+      "arrays": 7142,
+      "bytes": 6593
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.08580000000074506,
+        "p95": 0.1157999999995809,
+        "max": 0.12769999999727588
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.01909999999043066,
+        "p95": 0.02449999999953434,
+        "max": 0.02650000000721775
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04129999999713618,
+        "p95": 0.16229999999632128,
+        "max": 0.22539999999571592
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "open",
+    "date": "2026-03-29",
+    "samples": 694,
+    "serializedBytes": {
+      "json": 18739,
+      "arrays": 9027,
+      "bytes": 8333
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.11109999999462161,
+        "p95": 0.20410000000265427,
+        "max": 0.5264999999926658
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.022799999991548248,
+        "p95": 0.04000000000814907,
+        "max": 0.05009999999310821
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.05109999999694992,
+        "p95": 0.07130000001052395,
+        "max": 0.1083000000071479
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "open",
+    "date": "2026-06-21",
+    "samples": 969,
+    "serializedBytes": {
+      "json": 26164,
+      "arrays": 12602,
+      "bytes": 11633
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.14679999998770654,
+        "p95": 0.18409999999857973,
+        "max": 0.20100000000093132
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.030200000008335337,
+        "p95": 0.03539999999338761,
+        "max": 0.038199999995413236
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.06819999999424908,
+        "p95": 0.10870000001159497,
+        "max": 0.10889999999199063
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "open",
+    "date": "2026-09-22",
+    "samples": 652,
+    "serializedBytes": {
+      "json": 17605,
+      "arrays": 8481,
+      "bytes": 7829
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.09880000000703149,
+        "p95": 0.13279999999213032,
+        "max": 0.14650000000256114
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.02089999998861458,
+        "p95": 0.05099999999220017,
+        "max": 0.053299999999580905
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.045100000003003515,
+        "p95": 0.0644999999931315,
+        "max": 0.08150000000023283
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "open",
+    "date": "2026-10-25",
+    "samples": 480,
+    "serializedBytes": {
+      "json": 12961,
+      "arrays": 6245,
+      "bytes": 5765
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.0727000000042608,
+        "p95": 0.10570000000006985,
+        "max": 0.1362000000081025
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.015499999994062819,
+        "p95": 0.02049999999871943,
+        "max": 0.021899999992456287
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03359999999520369,
+        "p95": 0.0878999999986263,
+        "max": 0.10769999999320135
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "open",
+    "date": "2026-10-31",
+    "samples": 448,
+    "serializedBytes": {
+      "json": 12097,
+      "arrays": 5829,
+      "bytes": 5381
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.036900000006426126,
+        "p95": 0.12099999999918509,
+        "max": 0.12630000000353903
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.007400000002235174,
+        "p95": 0.0253999999986263,
+        "max": 0.04409999999916181
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.01759999999194406,
+        "p95": 0.06760000000940636,
+        "max": 0.07409999999799766
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "open",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 6724,
+      "arrays": 3242,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.03919999999925494,
+        "p95": 0.05909999999857973,
+        "max": 0.060299999997369014
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.00849999999627471,
+        "p95": 0.01600000000325963,
+        "max": 0.01609999999345746
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.019100000004982576,
+        "p95": 0.03329999999550637,
+        "max": 0.03530000000318978
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "fully-covered",
+    "date": "2026-03-01",
+    "samples": 549,
+    "serializedBytes": {
+      "json": 13726,
+      "arrays": 6044,
+      "bytes": 6593
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.07820000000356231,
+        "p95": 0.0966000000044005,
+        "max": 0.10749999999825377
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.015599999998812564,
+        "p95": 0.01780000000144355,
+        "max": 0.018500000005587935
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.0371000000013737,
+        "p95": 0.04060000000754371,
+        "max": 0.04799999999522697
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "fully-covered",
+    "date": "2026-03-29",
+    "samples": 694,
+    "serializedBytes": {
+      "json": 17351,
+      "arrays": 7639,
+      "bytes": 8333
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.10979999999108259,
+        "p95": 0.1665999999968335,
+        "max": 0.20050000000628643
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.01810000000114087,
+        "p95": 0.025800000003073364,
+        "max": 0.05909999999857973
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04449999998905696,
+        "p95": 0.07879999998840503,
+        "max": 0.07980000000679865
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "fully-covered",
+    "date": "2026-06-21",
+    "samples": 969,
+    "serializedBytes": {
+      "json": 24226,
+      "arrays": 10664,
+      "bytes": 11633
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.13610000000335276,
+        "p95": 0.16699999998672865,
+        "max": 0.17389999999431893
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.025299999993876554,
+        "p95": 0.06010000000242144,
+        "max": 0.06010000000242144
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.05969999999797437,
+        "p95": 0.08259999999427237,
+        "max": 0.09799999999813735
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "fully-covered",
+    "date": "2026-09-22",
+    "samples": 652,
+    "serializedBytes": {
+      "json": 16301,
+      "arrays": 7177,
+      "bytes": 7829
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.09269999999378342,
+        "p95": 0.18130000001110602,
+        "max": 0.43560000001161825
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.013600000005681068,
+        "p95": 0.03620000000228174,
+        "max": 0.038100000005215406
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03500000000349246,
+        "p95": 0.05959999999322463,
+        "max": 0.07670000000507571
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "fully-covered",
+    "date": "2026-10-25",
+    "samples": 480,
+    "serializedBytes": {
+      "json": 12001,
+      "arrays": 5285,
+      "bytes": 5765
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.06859999999869615,
+        "p95": 0.12360000000626314,
+        "max": 0.13830000000598375
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.012900000001536682,
+        "p95": 0.03240000001096632,
+        "max": 0.06590000000142027
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03199999999196734,
+        "p95": 0.05130000000644941,
+        "max": 0.054700000007869676
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "fully-covered",
+    "date": "2026-10-31",
+    "samples": 448,
+    "serializedBytes": {
+      "json": 11201,
+      "arrays": 4933,
+      "bytes": 5381
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.06949999999778811,
+        "p95": 0.08680000000458676,
+        "max": 0.09900000000197906
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.012600000001839362,
+        "p95": 0.014999999999417923,
+        "max": 0.020600000003469177
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03149999999732245,
+        "p95": 0.0478000000002794,
+        "max": 0.0635000000038417
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "fully-covered",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 6226,
+      "arrays": 2744,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.03670000001147855,
+        "p95": 0.04439999999885913,
+        "max": 0.07150000000547152
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.007299999997485429,
+        "p95": 0.008600000001024455,
+        "max": 0.025500000003376044
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.01780000000144355,
+        "p95": 0.036399999997229315,
+        "max": 0.0644999999931315
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "courtyard",
+    "date": "2026-03-01",
+    "samples": 549,
+    "serializedBytes": {
+      "json": 13726,
+      "arrays": 6044,
+      "bytes": 6593
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.08049999999639113,
+        "p95": 0.14650000000256114,
+        "max": 0.9732999999978347
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.016100000008009374,
+        "p95": 0.020000000004074536,
+        "max": 0.04789999999047723
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03800000000046566,
+        "p95": 0.09100000000034925,
+        "max": 0.09140000000479631
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "courtyard",
+    "date": "2026-03-29",
+    "samples": 694,
+    "serializedBytes": {
+      "json": 17351,
+      "arrays": 7639,
+      "bytes": 8333
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.10540000000037253,
+        "p95": 0.13679999999294523,
+        "max": 0.18360000000393484
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.02029999998921994,
+        "p95": 0.029199999989941716,
+        "max": 0.04899999999906868
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.05139999999664724,
+        "p95": 0.09679999999934807,
+        "max": 0.10050000000046566
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "courtyard",
+    "date": "2026-06-21",
+    "samples": 993,
+    "serializedBytes": {
+      "json": 31044,
+      "arrays": 17146,
+      "bytes": 11921
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1860000000015134,
+        "p95": 0.269399999990128,
+        "max": 0.30070000000705477
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.06369999999878928,
+        "p95": 0.10000000000582077,
+        "max": 0.11800000000221189
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.069999999992433,
+        "p95": 0.15929999999934807,
+        "max": 0.6462000000028638
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "courtyard",
+    "date": "2026-09-22",
+    "samples": 652,
+    "serializedBytes": {
+      "json": 16301,
+      "arrays": 7177,
+      "bytes": 7829
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.0996000000013737,
+        "p95": 0.13730000000214204,
+        "max": 0.15490000000863802
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.019100000004982576,
+        "p95": 0.03689999999187421,
+        "max": 0.03809999999066349
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04809999999997672,
+        "p95": 0.06919999999809079,
+        "max": 0.08860000000277068
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "courtyard",
+    "date": "2026-10-25",
+    "samples": 480,
+    "serializedBytes": {
+      "json": 12001,
+      "arrays": 5285,
+      "bytes": 5765
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.07229999999981374,
+        "p95": 0.15030000000842847,
+        "max": 0.15419999998994172
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.012700000006589107,
+        "p95": 0.015899999998509884,
+        "max": 0.02869999999529682
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.033999999999650754,
+        "p95": 0.06330000000889413,
+        "max": 0.09440000000176951
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "courtyard",
+    "date": "2026-10-31",
+    "samples": 448,
+    "serializedBytes": {
+      "json": 11201,
+      "arrays": 4933,
+      "bytes": 5381
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.03599999999278225,
+        "p95": 0.04020000000309665,
+        "max": 0.0552999999927124
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.0062000000034458935,
+        "p95": 0.006999999997788109,
+        "max": 0.008000000001629815
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.017099999997299165,
+        "p95": 0.023400000005494803,
+        "max": 0.02479999999923166
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "courtyard",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 6226,
+      "arrays": 2744,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.038100000005215406,
+        "p95": 0.08390000001236331,
+        "max": 0.5480999999999767
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.008300000001327135,
+        "p95": 0.010199999989708886,
+        "max": 0.010300000009010546
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.018099999986588955,
+        "p95": 0.02530000000842847,
+        "max": 0.036399999997229315
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "narrow-street",
+    "date": "2026-03-01",
+    "samples": 561,
+    "serializedBytes": {
+      "json": 19821,
+      "arrays": 11971,
+      "bytes": 6737
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.09990000000107102,
+        "p95": 0.1349999999947613,
+        "max": 0.1690999999991618
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.03620000000228174,
+        "p95": 0.05689999999594875,
+        "max": 0.05710000000544824
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03220000000146683,
+        "p95": 0.0488000000041211,
+        "max": 0.08049999999639113
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "narrow-street",
+    "date": "2026-03-29",
+    "samples": 706,
+    "serializedBytes": {
+      "json": 22775,
+      "arrays": 12895,
+      "bytes": 8477
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.13679999999294523,
+        "p95": 0.1885000000038417,
+        "max": 0.20179999999527354
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.05010000000766013,
+        "p95": 0.08359999999811407,
+        "max": 0.13290000001143198
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.050900000002002344,
+        "p95": 0.07690000000002328,
+        "max": 0.07850000000325963
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "narrow-street",
+    "date": "2026-06-21",
+    "samples": 981,
+    "serializedBytes": {
+      "json": 28238,
+      "arrays": 14508,
+      "bytes": 11777
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1745000000082655,
+        "p95": 0.20339999999850988,
+        "max": 0.23440000000118744
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.043900000004214235,
+        "p95": 0.09130000000004657,
+        "max": 0.09470000000146683
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.06440000000293367,
+        "p95": 0.10310000000754371,
+        "max": 0.5900000000110595
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "narrow-street",
+    "date": "2026-09-22",
+    "samples": 664,
+    "serializedBytes": {
+      "json": 22046,
+      "arrays": 12754,
+      "bytes": 7973
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.13360000000102445,
+        "p95": 0.2041999999928521,
+        "max": 0.23990000000048894
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.04989999999816064,
+        "p95": 0.061400000005960464,
+        "max": 0.07700000000477303
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.030500000008032657,
+        "p95": 0.07850000000325963,
+        "max": 0.09480000000621658
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "narrow-street",
+    "date": "2026-10-25",
+    "samples": 492,
+    "serializedBytes": {
+      "json": 18337,
+      "arrays": 11453,
+      "bytes": 5909
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.10489999999117572,
+        "p95": 0.14250000000174623,
+        "max": 0.1459000000031665
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.04499999999825377,
+        "p95": 0.07610000000568107,
+        "max": 0.08090000000083819
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.02399999999033753,
+        "p95": 0.06429999999818392,
+        "max": 0.06949999999778811
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "narrow-street",
+    "date": "2026-10-31",
+    "samples": 460,
+    "serializedBytes": {
+      "json": 16926,
+      "arrays": 10490,
+      "bytes": 5525
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.10000000000582077,
+        "p95": 0.16549999998824205,
+        "max": 0.3044999999983702
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.04379999999946449,
+        "p95": 0.0595000000030268,
+        "max": 0.0635000000038417
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03250000000116415,
+        "p95": 0.06680000000051223,
+        "max": 0.09780000000318978
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "narrow-street",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 7995,
+      "arrays": 4513,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.045600000012200326,
+        "p95": 0.059900000007473864,
+        "max": 0.10489999999117572
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.016199999998207204,
+        "p95": 0.04800000000977889,
+        "max": 0.0503000000026077
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.01780000000144355,
+        "p95": 0.04409999999916181,
+        "max": 0.10890000000654254
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "rooftop-terrain",
+    "date": "2026-03-01",
+    "samples": 549,
+    "serializedBytes": {
+      "json": 14824,
+      "arrays": 7142,
+      "bytes": 6593
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.08610000000044238,
+        "p95": 0.11050000000977889,
+        "max": 0.11889999998675194
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.010899999993853271,
+        "p95": 0.018899999995483086,
+        "max": 0.021699999997508712
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.029900000008638017,
+        "p95": 0.06739999999990687,
+        "max": 0.09029999999620486
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "rooftop-terrain",
+    "date": "2026-03-29",
+    "samples": 694,
+    "serializedBytes": {
+      "json": 18739,
+      "arrays": 9027,
+      "bytes": 8333
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.09860000001208391,
+        "p95": 0.11340000000200234,
+        "max": 0.1676000000006752
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.01720000000204891,
+        "p95": 0.022400000001653098,
+        "max": 0.022600000011152588
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04499999999825377,
+        "p95": 0.05540000001201406,
+        "max": 0.05780000000959262
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "rooftop-terrain",
+    "date": "2026-06-21",
+    "samples": 969,
+    "serializedBytes": {
+      "json": 26164,
+      "arrays": 12602,
+      "bytes": 11633
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1407000000035623,
+        "p95": 0.1926999999996042,
+        "max": 0.20399999999790452
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.023399999990942888,
+        "p95": 0.052000000010593794,
+        "max": 0.4337999999988824
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.06330000000889413,
+        "p95": 0.10800000000745058,
+        "max": 0.11709999998856802
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "rooftop-terrain",
+    "date": "2026-09-22",
+    "samples": 652,
+    "serializedBytes": {
+      "json": 17605,
+      "arrays": 8481,
+      "bytes": 7829
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.09649999999965075,
+        "p95": 0.1309999999939464,
+        "max": 0.14400000000023283
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.021099999998114072,
+        "p95": 0.02440000000933651,
+        "max": 0.04179999999178108
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.045700000002398156,
+        "p95": 0.0791999999928521,
+        "max": 0.10789999998814892
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "rooftop-terrain",
+    "date": "2026-10-25",
+    "samples": 480,
+    "serializedBytes": {
+      "json": 12961,
+      "arrays": 6245,
+      "bytes": 5765
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.07809999999881256,
+        "p95": 0.09449999999196734,
+        "max": 0.1469000000070082
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.015299999999115244,
+        "p95": 0.022199999992153607,
+        "max": 0.028299999990849756
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03319999999075662,
+        "p95": 0.046900000001187436,
+        "max": 0.047200000000884756
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "rooftop-terrain",
+    "date": "2026-10-31",
+    "samples": 448,
+    "serializedBytes": {
+      "json": 12097,
+      "arrays": 5829,
+      "bytes": 5381
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.06480000000738073,
+        "p95": 0.10329999998793937,
+        "max": 0.14529999998921994
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.013599999991129152,
+        "p95": 0.03740000000107102,
+        "max": 0.30389999999897555
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.029399999999441206,
+        "p95": 0.04640000000654254,
+        "max": 0.05550000000221189
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "rooftop-terrain",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 6724,
+      "arrays": 3242,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.037800000005518086,
+        "p95": 0.07670000000507571,
+        "max": 0.07899999999790452
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.008500000010826625,
+        "p95": 0.010999999998603016,
+        "max": 0.012199999997392297
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.01870000000053551,
+        "p95": 0.027999999991152436,
+        "max": 0.02959999999438878
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "irregular",
+    "date": "2026-03-01",
+    "samples": 549,
+    "serializedBytes": {
+      "json": 13726,
+      "arrays": 6044,
+      "bytes": 6593
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.043399999995017424,
+        "p95": 0.09879999999247957,
+        "max": 0.14049999999406282
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.007499999992433004,
+        "p95": 0.02449999999953434,
+        "max": 0.02560000000812579
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.020900000003166497,
+        "p95": 0.04940000000351574,
+        "max": 0.07799999999406282
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "irregular",
+    "date": "2026-03-29",
+    "samples": 694,
+    "serializedBytes": {
+      "json": 17351,
+      "arrays": 7639,
+      "bytes": 8333
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.10460000000603031,
+        "p95": 0.13580000000365544,
+        "max": 0.14909999999508727
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.020699999993667006,
+        "p95": 0.04110000000218861,
+        "max": 0.04490000000805594
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04889999999431893,
+        "p95": 0.07099999999627471,
+        "max": 0.07910000000265427
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "irregular",
+    "date": "2026-06-21",
+    "samples": 969,
+    "serializedBytes": {
+      "json": 30300,
+      "arrays": 16738,
+      "bytes": 11633
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1827999999950407,
+        "p95": 0.2501999999949476,
+        "max": 0.26579999999376014
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.0565000000060536,
+        "p95": 0.10489999999117572,
+        "max": 0.12610000000859145
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.062399999995250255,
+        "p95": 0.12140000000363216,
+        "max": 0.1255000000091968
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "irregular",
+    "date": "2026-09-22",
+    "samples": 652,
+    "serializedBytes": {
+      "json": 16301,
+      "arrays": 7177,
+      "bytes": 7829
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.07520000000658911,
+        "p95": 0.14239999999699648,
+        "max": 0.15300000000570435
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.012000000002444722,
+        "p95": 0.029399999999441206,
+        "max": 0.03500000000349246
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03200000000651926,
+        "p95": 0.05940000001282897,
+        "max": 0.061499999996158294
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "irregular",
+    "date": "2026-10-25",
+    "samples": 480,
+    "serializedBytes": {
+      "json": 12001,
+      "arrays": 5285,
+      "bytes": 5765
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.04979999999341089,
+        "p95": 0.07670000000507571,
+        "max": 0.07710000000952277
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.008500000010826625,
+        "p95": 0.013900000005378388,
+        "max": 0.014600000009522773
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.024099999995087273,
+        "p95": 0.0478000000002794,
+        "max": 0.0697000000072876
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "irregular",
+    "date": "2026-10-31",
+    "samples": 448,
+    "serializedBytes": {
+      "json": 11201,
+      "arrays": 4933,
+      "bytes": 5381
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.0488000000041211,
+        "p95": 0.0891000000119675,
+        "max": 0.0966000000044005
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.006899999993038364,
+        "p95": 0.013500000000931323,
+        "max": 0.023799999995389953
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.02019999999902211,
+        "p95": 0.04010000001289882,
+        "max": 0.04260000000067521
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "irregular",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 6226,
+      "arrays": 2744,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.03239999999641441,
+        "p95": 0.044599999993806705,
+        "max": 0.04959999999846332
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.005999999993946403,
+        "p95": 0.007599999997182749,
+        "max": 0.007700000001932494
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.014800000004470348,
+        "p95": 0.01759999999194406,
+        "max": 0.02049999999871943
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "holed",
+    "date": "2026-03-01",
+    "samples": 561,
+    "serializedBytes": {
+      "json": 19831,
+      "arrays": 11981,
+      "bytes": 6737
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.09540000000561122,
+        "p95": 0.1304999999993015,
+        "max": 0.14570000000821892
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.03530000000318978,
+        "p95": 0.051100000011501834,
+        "max": 0.10979999999108259
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.029699999999138527,
+        "p95": 0.044599999993806705,
+        "max": 0.1220000000030268
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "holed",
+    "date": "2026-03-29",
+    "samples": 706,
+    "serializedBytes": {
+      "json": 22910,
+      "arrays": 13030,
+      "bytes": 8477
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.13300000000162981,
+        "p95": 0.18030000000726432,
+        "max": 0.194999999992433
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.04959999999846332,
+        "p95": 0.06979999999748543,
+        "max": 0.07749999999941792
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04760000000533182,
+        "p95": 0.06880000000819564,
+        "max": 0.08090000000083819
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "holed",
+    "date": "2026-06-21",
+    "samples": 981,
+    "serializedBytes": {
+      "json": 29146,
+      "arrays": 15416,
+      "bytes": 11777
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1860000000015134,
+        "p95": 0.27700000000186265,
+        "max": 0.2789000000047963
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.053500000009080395,
+        "p95": 0.08030000000144355,
+        "max": 0.08170000000973232
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.06680000000051223,
+        "p95": 0.08879999999771826,
+        "max": 0.09079999999084976
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "holed",
+    "date": "2026-09-22",
+    "samples": 664,
+    "serializedBytes": {
+      "json": 22032,
+      "arrays": 12740,
+      "bytes": 7973
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.12489999999525025,
+        "p95": 0.15219999999681022,
+        "max": 0.16429999998945277
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.03959999998915009,
+        "p95": 0.05060000000230502,
+        "max": 0.05409999999392312
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.037800000005518086,
+        "p95": 0.04860000000917353,
+        "max": 0.05099999999220017
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "holed",
+    "date": "2026-10-25",
+    "samples": 492,
+    "serializedBytes": {
+      "json": 18344,
+      "arrays": 11460,
+      "bytes": 5909
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.10670000000391155,
+        "p95": 0.1426999999966938,
+        "max": 0.20600000000558794
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.04919999999401625,
+        "p95": 0.07039999999688007,
+        "max": 0.5310000000026776
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.036699999996926636,
+        "p95": 0.054400000008172356,
+        "max": 0.06459999999788124
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "holed",
+    "date": "2026-10-31",
+    "samples": 460,
+    "serializedBytes": {
+      "json": 17480,
+      "arrays": 11044,
+      "bytes": 5525
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.10490000000572763,
+        "p95": 0.12960000000020955,
+        "max": 0.13379999999597203
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.046900000001187436,
+        "p95": 0.07250000000931323,
+        "max": 0.07590000001073349
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03239999999641441,
+        "p95": 0.07730000000447035,
+        "max": 0.08909999999741558
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "holed",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 8596,
+      "arrays": 5114,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.027699999991455115,
+        "p95": 0.02950000000419095,
+        "max": 0.03680000000167638
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.010999999998603016,
+        "p95": 0.011800000007497147,
+        "max": 0.011899999997694977
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.009500000000116415,
+        "p95": 0.00999999999476131,
+        "max": 0.01029999999445863
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "overlapping",
+    "date": "2026-03-01",
+    "samples": 561,
+    "serializedBytes": {
+      "json": 19918,
+      "arrays": 12068,
+      "bytes": 6737
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.12020000000484288,
+        "p95": 0.1747999999934109,
+        "max": 0.21580000000540167
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.05220000000554137,
+        "p95": 0.07009999999718275,
+        "max": 0.07140000000072177
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04370000000926666,
+        "p95": 0.07289999999920838,
+        "max": 0.07500000001164153
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "overlapping",
+    "date": "2026-03-29",
+    "samples": 706,
+    "serializedBytes": {
+      "json": 22991,
+      "arrays": 13111,
+      "bytes": 8477
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1294999999954598,
+        "p95": 0.14359999999578577,
+        "max": 0.6226999999926193
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.05469999999331776,
+        "p95": 0.05789999999979045,
+        "max": 0.07069999999657739
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04919999999401625,
+        "p95": 0.07339999999385327,
+        "max": 0.08259999999427237
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "overlapping",
+    "date": "2026-06-21",
+    "samples": 981,
+    "serializedBytes": {
+      "json": 29150,
+      "arrays": 15420,
+      "bytes": 11777
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1676000000006752,
+        "p95": 0.22419999999692664,
+        "max": 0.23239999999350403
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.05160000000614673,
+        "p95": 0.07009999999718275,
+        "max": 0.12380000000121072
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.06530000000202563,
+        "p95": 0.1113000000041211,
+        "max": 0.12299999999231659
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "overlapping",
+    "date": "2026-09-22",
+    "samples": 664,
+    "serializedBytes": {
+      "json": 22146,
+      "arrays": 12854,
+      "bytes": 7973
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.13030000000435393,
+        "p95": 0.2942999999941094,
+        "max": 0.3322000000043772
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.05139999999664724,
+        "p95": 0.11980000000039581,
+        "max": 0.1645999999891501
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.049299999998766,
+        "p95": 0.0791999999928521,
+        "max": 0.0864000000001397
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "overlapping",
+    "date": "2026-10-25",
+    "samples": 492,
+    "serializedBytes": {
+      "json": 18444,
+      "arrays": 11560,
+      "bytes": 5909
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.10790000000270084,
+        "p95": 0.1718000000109896,
+        "max": 0.47199999999429565
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.04959999999846332,
+        "p95": 0.09319999998842832,
+        "max": 0.12470000000030268
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.034299999999348074,
+        "p95": 0.06859999999869615,
+        "max": 0.07690000000002328
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "overlapping",
+    "date": "2026-10-31",
+    "samples": 460,
+    "serializedBytes": {
+      "json": 17612,
+      "arrays": 11176,
+      "bytes": 5525
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.10689999999885913,
+        "p95": 0.1834999999991851,
+        "max": 0.18430000000807922
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.04910000000381842,
+        "p95": 0.07630000000062864,
+        "max": 0.08520000000135042
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.035400000007939525,
+        "p95": 0.04770000001008157,
+        "max": 0.05409999999392312
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "overlapping",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 8723,
+      "arrays": 5241,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.049299999998766,
+        "p95": 0.1260000000038417,
+        "max": 0.12989999999990687
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.019799999994575046,
+        "p95": 0.06669999999576248,
+        "max": 0.07820000000356231
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.018500000005587935,
+        "p95": 0.03179999999701977,
+        "max": 0.05019999999785796
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "tiny",
+    "date": "2026-03-01",
+    "samples": 555,
+    "serializedBytes": {
+      "json": 14808,
+      "arrays": 7042,
+      "bytes": 6665
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.07110000000102445,
+        "p95": 0.10289999999804422,
+        "max": 0.13430000000516884
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.013400000010733493,
+        "p95": 0.020399999993969686,
+        "max": 0.020900000003166497
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03239999999641441,
+        "p95": 0.04889999999431893,
+        "max": 0.10369999999238644
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "tiny",
+    "date": "2026-03-29",
+    "samples": 700,
+    "serializedBytes": {
+      "json": 18550,
+      "arrays": 8754,
+      "bytes": 8405
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.10619999999471474,
+        "p95": 0.1444000000046799,
+        "max": 0.15219999999681022
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.023499999995692633,
+        "p95": 0.027000000001862645,
+        "max": 0.02800000000570435
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04890000000887085,
+        "p95": 0.0727000000042608,
+        "max": 0.09820000000763685
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "tiny",
+    "date": "2026-06-21",
+    "samples": 975,
+    "serializedBytes": {
+      "json": 25721,
+      "arrays": 12075,
+      "bytes": 11705
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1489000000001397,
+        "p95": 0.21030000000610016,
+        "max": 0.2614000000030501
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.03130000000237487,
+        "p95": 0.053599999999278225,
+        "max": 0.08170000000973232
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.06900000000314321,
+        "p95": 0.13130000000819564,
+        "max": 0.14759999999660067
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "tiny",
+    "date": "2026-09-22",
+    "samples": 658,
+    "serializedBytes": {
+      "json": 17469,
+      "arrays": 8261,
+      "bytes": 7901
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.09909999999217689,
+        "p95": 0.1364999999932479,
+        "max": 0.14420000000973232
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.021900000007008202,
+        "p95": 0.030100000003585592,
+        "max": 0.030499999993480742
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.045199999993201345,
+        "p95": 0.07959999999729916,
+        "max": 0.8032000000093831
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "tiny",
+    "date": "2026-10-25",
+    "samples": 486,
+    "serializedBytes": {
+      "json": 13043,
+      "arrays": 6243,
+      "bytes": 5837
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.07730000000447035,
+        "p95": 0.08819999999832362,
+        "max": 0.0883999999932712
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.014100000000325963,
+        "p95": 0.0166999999928521,
+        "max": 0.016799999997601844
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.030899999997927807,
+        "p95": 0.034899999998742715,
+        "max": 0.03620000000228174
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "tiny",
+    "date": "2026-10-31",
+    "samples": 454,
+    "serializedBytes": {
+      "json": 12213,
+      "arrays": 5861,
+      "bytes": 5453
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.07480000000214204,
+        "p95": 0.1055999999953201,
+        "max": 0.10639999998966232
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.01750000000174623,
+        "p95": 0.030499999993480742,
+        "max": 0.03170000000682194
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03470000000379514,
+        "p95": 0.051500000001396984,
+        "max": 0.05709999999089632
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "tiny",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 6724,
+      "arrays": 3242,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.0385999999998603,
+        "p95": 0.0625,
+        "max": 0.08509999999660067
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.00849999999627471,
+        "p95": 0.010099999999511056,
+        "max": 0.010799999989103526
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.01840000000083819,
+        "p95": 0.02569999999832362,
+        "max": 0.03380000000470318
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "cap-and-height-boundaries",
+    "date": "2026-03-01",
+    "samples": 549,
+    "serializedBytes": {
+      "json": 17580,
+      "arrays": 9898,
+      "bytes": 6593
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.09849999999278225,
+        "p95": 0.12439999998605344,
+        "max": 0.1518999999971129
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.030700000002980232,
+        "p95": 0.0488000000041211,
+        "max": 0.055900000006658956
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.036999999996623956,
+        "p95": 0.04839999999967404,
+        "max": 0.054199999998672865
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "cap-and-height-boundaries",
+    "date": "2026-03-29",
+    "samples": 694,
+    "serializedBytes": {
+      "json": 22457,
+      "arrays": 12745,
+      "bytes": 8333
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.12940000000526197,
+        "p95": 0.18130000001110602,
+        "max": 0.19650000000547152
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.045799999992595986,
+        "p95": 0.06739999999990687,
+        "max": 0.075700000001234
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.05000000000291038,
+        "p95": 0.05980000000272412,
+        "max": 0.09410000000207219
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "cap-and-height-boundaries",
+    "date": "2026-06-21",
+    "samples": 981,
+    "serializedBytes": {
+      "json": 31685,
+      "arrays": 17955,
+      "bytes": 11777
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.10519999999087304,
+        "p95": 0.1956999999965774,
+        "max": 0.24139999999897555
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.036999999996623956,
+        "p95": 0.08510000001115259,
+        "max": 0.08659999999508727
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03939999999420252,
+        "p95": 0.07700000000477303,
+        "max": 0.07950000000710133
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "cap-and-height-boundaries",
+    "date": "2026-09-22",
+    "samples": 652,
+    "serializedBytes": {
+      "json": 21094,
+      "arrays": 11970,
+      "bytes": 7829
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.11969999999564607,
+        "p95": 0.15320000000065193,
+        "max": 0.6635999999998603
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.036900000006426126,
+        "p95": 0.04520000000775326,
+        "max": 0.04989999999816064
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.044299999994109385,
+        "p95": 0.05499999999301508,
+        "max": 0.07030000000668224
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "cap-and-height-boundaries",
+    "date": "2026-10-25",
+    "samples": 492,
+    "serializedBytes": {
+      "json": 15969,
+      "arrays": 9085,
+      "bytes": 5909
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.09429999999701977,
+        "p95": 0.14349999999103602,
+        "max": 0.17339999999967404
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.033400000000256114,
+        "p95": 0.053899999998975545,
+        "max": 0.08920000000216532
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.036999999996623956,
+        "p95": 0.11789999999746215,
+        "max": 0.12739999999757856
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "cap-and-height-boundaries",
+    "date": "2026-10-31",
+    "samples": 460,
+    "serializedBytes": {
+      "json": 14852,
+      "arrays": 8416,
+      "bytes": 5525
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.09120000000984874,
+        "p95": 0.13330000000132713,
+        "max": 0.1367000000027474
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.029699999999138527,
+        "p95": 0.05070000000705477,
+        "max": 0.08120000000053551
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03180000001157168,
+        "p95": 0.061799999995855615,
+        "max": 0.06729999999515712
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  },
+  {
+    "id": "cap-and-height-boundaries",
+    "date": "2026-12-21",
+    "samples": 261,
+    "serializedBytes": {
+      "json": 8058,
+      "arrays": 4408,
+      "bytes": 3137
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.04809999999997672,
+        "p95": 0.08310000000346918,
+        "max": 0.11080000000947621
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.015899999998509884,
+        "p95": 0.02049999999871943,
+        "max": 0.021299999993061647
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.01989999999932479,
+        "p95": 0.027800000010756776,
+        "max": 0.033300000010058284
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. JSON parsing timings exclude validation; bytes timing includes validation, so not equal-work read evidence."
+  }
+]

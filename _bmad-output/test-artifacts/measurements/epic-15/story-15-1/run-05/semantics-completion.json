@@ -1,0 +1,18 @@
+{
+  "complete": true,
+  "offlineAttempts": 0,
+  "cells": [
+    "25/likely",
+    "25/blocked",
+    "25/unknown",
+    "0/likely",
+    "0/blocked",
+    "0/unknown",
+    "100/likely",
+    "100/blocked",
+    "100/unknown"
+  ],
+  "artifacts": {
+    "M04-pin-semantics.json": "06c48eb8768969958eac28a8a07e52935df3e450640a1fa542dd9bc1dd9a8a35"
+  }
+}

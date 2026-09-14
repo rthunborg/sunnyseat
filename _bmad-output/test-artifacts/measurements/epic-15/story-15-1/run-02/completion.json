@@ -1,0 +1,9 @@
+{
+  "offlineAttempts": 0,
+  "geometryCells": 70,
+  "syntheticOnly": true,
+  "ownerAcceptance": "PENDING",
+  "realCPU": "BLOCKED",
+  "database": "SEPARATE LANE",
+  "physicalAccuracy": "NOT MEASURED"
+}

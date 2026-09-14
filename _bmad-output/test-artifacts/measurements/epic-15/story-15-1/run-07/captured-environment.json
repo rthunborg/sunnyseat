@@ -1,0 +1,26 @@
+{
+  "sourceHashes": {
+    "package-lock.json": "b7b502955649c3850d539850ee4a47bcf7300d76527c2b6445e062b97ca7eb09",
+    "scripts/benchmarks/epic-15/measurement.ts": "fd57a304c1b0cfc1b419a6ca316d24bdc4f42ba9d2aef80da4956fc6bed0651c",
+    "lib/solar/solar-calculation-service.ts": "242edd188975dc292b4a5466d94b294bac11dea0ac34685b447da94f623b7c38",
+    "lib/solar/solar-math.ts": "a86d374dfa962da1593a1ad14799b97b7d3dfa204211dcdc74879fa2c8005f3b",
+    "lib/solar/shadow-calculation-service.ts": "a062ca104cdf6c6b0554489f817f57d309f21c493c3fab4b719b87a4f7572af5",
+    "lib/solar/shadow-geometry.ts": "f65dd63dff926c1a1bc388de50c8d4746b1e57e1cd7ea6ef7d529cafe7c4f8f7",
+    "lib/solar/timezone-utils.ts": "0ab8b0f88e767980212f52ad7f5f2a0eaa0c4dec1f962a9fc1db465af7fcea65",
+    "lib/solar/constants.ts": "c21cdfe07417a61ea80b58d07eda570e33686c54d64e0bc7e4a6b38ebbdee759",
+    "scripts/benchmarks/epic-15/captured.measurement.ts": "4e7437f2596088d42196a3a52b9c998ec401c656fe9e69c05b5a09b8e1c07bc7",
+    "scripts/benchmarks/epic-15/capture-inputs.ts": "b648912ed9959f3abfd4fe27068a9f7c4658dae2cc34f1b5e97d0ca577ca7cd6",
+    "scripts/benchmarks/epic-15/dense-sampling.ts": "307397ce214484083b2cc2741932afd84b3a9de978d2f1c7a98ed894df3a7219",
+    "scripts/benchmarks/epic-15/window-policy.ts": "61c47af3c2542b1b26377ac66aafb31cfaeb560ed79ff796d333ad5ee97c3deb"
+  },
+  "captureHashes": {
+    "inputs.json": "88949ff1a30568e5d3bf094dc957247395cd765a79dc84bbbf56a077edc05482",
+    "inputs.sql": "bb95155c0fb4a7b83cf271052c8ef35d36ced34795dc8cad0c6e5d8156373404",
+    "census.json": "fc5dff9becff9c63fb8a47dd8d885dfcbff642f1aad34e4677a6980f44f851d2",
+    "census.sql": "8d9350a96282c8177b20fe72a4dd99cd1d64d3cdeee449ab4ab5e94a71ba7d72"
+  },
+  "capturedAt": "2026-09-10T19:36:11.649287+00:00",
+  "measuredAt": "2026-09-11T11:13:07.895Z",
+  "node": "v22.23.2",
+  "offlineAttempts": 0
+}

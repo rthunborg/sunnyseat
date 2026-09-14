@@ -1,0 +1,18 @@
+{
+  "snapshotFiles": 411,
+  "preservedExceptAuthorizedDocuments": true,
+  "changedExistingFiles": [
+    "_bmad-output/implementation-artifacts/15-1-measure-daylight-transition-accuracy-cpu-and-storage.md",
+    "_bmad-output/implementation-artifacts/15-1-remaining-gates-2026-09-12.md",
+    "_bmad-output/test-artifacts/measurements/epic-15/story-15-1/AUDIT.md",
+    "_bmad-output/test-artifacts/measurements/epic-15/story-15-1/README.md",
+    "_bmad-output/test-artifacts/measurements/epic-15/story-15-1/file-manifest.json"
+  ],
+  "verbatimAcceptanceCriteria": 6,
+  "originalEvidenceEntriesPreserved": 325,
+  "branch": "main",
+  "head": "ed13d76a6e214f5e9f66ef5b73f8202f4406033d",
+  "storyStatus": "in-progress",
+  "sprintUnchanged": true,
+  "closureToolSha256": "fe171c6865e7e02e1f0a44e830556d2b0facc17f321519546094ad009f417f38"
+}

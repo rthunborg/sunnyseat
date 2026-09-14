@@ -1,0 +1,13 @@
+{
+  "complete": true,
+  "offlineAttempts": 0,
+  "cells": [
+    "34",
+    "8",
+    "47"
+  ],
+  "artifacts": {
+    "exact-reference.json": "13fb763e93dc68ab4cc46a9972c7b9d0f900eb2ddd1daa9198bd7fa314413b6f",
+    "environment.json": "05155004de97e69b30ddb6962209d960d81c8fdb21a6630a7b94847737e88d36"
+  }
+}

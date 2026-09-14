@@ -1,0 +1,119 @@
+{
+  "at": "2026-09-14T11:34:08.242Z",
+  "settings": {
+    "version": "PostgreSQL 15.13 (Debian 15.13-1.pgdg110+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 10.2.1-6) 10.2.1 20210110, 64-bit",
+    "fsync": "on",
+    "full_page_writes": "on"
+  },
+  "empty": {
+    "database_bytes": 7705391,
+    "relations": null
+  },
+  "actual": {
+    "database_bytes": 8188719,
+    "relations": [
+      {
+        "name": "legacy",
+        "total_bytes": 196608,
+        "table_bytes": 163840,
+        "index_bytes": 32768
+      },
+      {
+        "name": "shared_days",
+        "total_bytes": 49152,
+        "table_bytes": 16384,
+        "index_bytes": 32768
+      },
+      {
+        "name": "shared_inputs",
+        "total_bytes": 180224,
+        "table_bytes": 163840,
+        "index_bytes": 16384
+      }
+    ]
+  },
+  "replicated": {
+    "database_bytes": 12636975,
+    "relations": [
+      {
+        "name": "legacy",
+        "total_bytes": 4513792,
+        "table_bytes": 4440064,
+        "index_bytes": 73728
+      },
+      {
+        "name": "shared_days",
+        "total_bytes": 180224,
+        "table_bytes": 106496,
+        "index_bytes": 73728
+      },
+      {
+        "name": "shared_inputs",
+        "total_bytes": 180224,
+        "table_bytes": 163840,
+        "index_bytes": 16384
+      }
+    ]
+  },
+  "coexistence": {
+    "database_bytes": 13284143,
+    "relations": [
+      {
+        "name": "arrays",
+        "total_bytes": 647168,
+        "table_bytes": 614400,
+        "index_bytes": 32768
+      },
+      {
+        "name": "legacy",
+        "total_bytes": 4513792,
+        "table_bytes": 4440064,
+        "index_bytes": 73728
+      },
+      {
+        "name": "shared_days",
+        "total_bytes": 180224,
+        "table_bytes": 106496,
+        "index_bytes": 73728
+      },
+      {
+        "name": "shared_inputs",
+        "total_bytes": 180224,
+        "table_bytes": 163840,
+        "index_bytes": 16384
+      }
+    ]
+  },
+  "phases": [
+    {
+      "name": "three-actual-legacy-rows",
+      "wallMs": 196.43689999999992,
+      "walBytes": 119032
+    },
+    {
+      "name": "three-shared-rows",
+      "wallMs": 188.5377000000001,
+      "walBytes": 120064
+    },
+    {
+      "name": "replicate-legacy-36-more-dates",
+      "wallMs": 194.84389999999985,
+      "walBytes": 4282912
+    },
+    {
+      "name": "replicate-shared-36-more-dates",
+      "wallMs": 187.97920000000022,
+      "walBytes": 105960
+    },
+    {
+      "name": "coexisting-measured-array-week",
+      "wallMs": 351.64729999999963,
+      "walBytes": 559592
+    }
+  ],
+  "capturedAt": "2026-09-14T11:32:13.899902+00:00",
+  "actualRows": 3,
+  "replicatedRows": 111,
+  "arrayRows": 294,
+  "scope": "Three actual September18 legacy rows for venues34/8/47, with every original column and both physical index layouts. Business CHECK functions, public-venue FK and RLS are not cloned; this is physical storage evidence only. Shared variant reconstructs every original value exactly. 37-date repetition reuses original series/input/timestamps and is explicitly synthetic, not recalculated sun. Candidate arrays are 294 different measured venue-days; coexistence is additive occupancy, not an equivalent-payload compression comparison. Scratch PG15 differs from production PG17; small-table page granularity and compression limit generalization. No application migration or production write."
+}

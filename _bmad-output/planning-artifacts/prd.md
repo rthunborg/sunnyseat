@@ -487,7 +487,7 @@ Minimal. Organic search is not a user acquisition channel. No SSR venue pages ne
 
 - **NFR18:** System supports ≤10,000 MAU within $100/month operational budget (Vercel + Supabase).
 - **NFR19:** System handles "sunny day spikes" — 5x normal concurrent traffic — without degraded response times, by leveraging Vercel's auto-scaling serverless functions and Supabase connection pooling.
-- **NFR20:** Persist ungated sun geometry for every venue and date in the selectable planner window so high-traffic and cold requests do not recompute the full venue × day-series geometry path. Coverage rolls continuously across Stockholm midnight so the complete selectable window is available before the new day begins.
+- **NFR20:** Persist versioned ungated clear-sky geometry for every non-deleted venue across the explicitly supported March–October season. Compute date-dependent model-supported daylight independently of UI opening hours and planner limits, preserve exact supported-horizon boundary instants, and project the existing 06:00–21:00 15-minute public series from the seasonal artifact. Routine reads and unchanged seasons do not recompute shadow geometry; changed inputs publish a complete compatible generation before becoming current.
 - **NFR21:** Map tile serving offloaded to external tile provider CDN, not SunnySeat infrastructure.
 
 ### Accessibility
@@ -511,11 +511,17 @@ Minimal. Organic search is not a user acquisition channel. No SSR venue pages ne
 
 - **NFR33:** 99.5% uptime measured monthly, excluding planned maintenance communicated ≥24 hours in advance.
 - **NFR34:** Stale, missing, incomplete, malformed, unmatched, or contradictory Met.no evidence produces public direct-sun state `unknown`, never `likely` or fabricated clear weather. Any freshness or uncertainty communication must be accessible without exposing internal confidence. The two-hour snapshot TTL and 90-minute valid-time match are fail-closed boundaries and must not be loosened to hide scheduling gaps.
-- **NFR35:** Persisted geometry is day-specific and another day's geometry is never substituted. Missing venue × date coverage is an observable operational failure. Current weather gating is applied at read time, and scheduled coverage reporting exposes completeness for every venue and date across the selectable window, including continuous midnight rollover.
+- **NFR35:** Persisted geometry is day-specific and another day's geometry is never substituted. Missing venue × date coverage is an observable operational failure. Current weather gating is applied at read time, and scheduled coverage reporting exposes completeness for every venue and date across the selectable window, including continuous midnight rollover. A season release is current only when every referenced venue generation has exact date coverage, a matching current input hash, compatible engine/horizon/storage versions and verified checksums. Partial builds never become current. Staged edits keep the last complete generation current; committed out-of-band input changes remain fail-closed until recomputed. Legitimate below-supported-horizon no-direct-sun intervals are deterministic coverage, not missing coverage or weather staleness.
 - **NFR36:** Future Swish payment status polling times out after 5 minutes with a clear "payment not confirmed" message and retry option.
 - **NFR37:** Service worker caches app shell for offline display. Cache invalidation on new deployment.
 - **NFR38:** Canonical hours use independently sourced or expressly licensed evidence and record provenance, review status, last-reviewed time, and next-review time. Weekly automation reports due, unknown, conflicting, split-hours, and failed records for manual review; it never silently overwrites or partially updates a venue. No scheduled or request-path Google `regularOpeningHours` calls are permitted, and only Google Place IDs may be stored for Google identity/reference.
 - **NFR39:** Supported cold map and venue-detail flows produce no app-origin React errors or MapLibre warnings in the operational console. Any third-party warning allow-list is explicit, narrowly scoped, and carries the required attribution.
+
+- **NFR40 — Seasonal geometry lifecycle:** Seasonal geometry generation is bounded, resumable, idempotent and rollback-capable. It records measured compute time, total database relation/index size, expected/completed counts and retained versions. At least one previous verified compatible release is retained. Weather refresh, freshness and scheduler reliability remain independent launch gates.
+
+### Seasonal geometry supersession — approved 2026-09-10
+
+NFR20/NFR35/NFR40 describe the approved Epic 15 target, not deployed behavior. NFR35's existing midnight-coverage reporting remains an availability requirement; E15 removes the need to regenerate geometry nightly to satisfy it. The earlier NFR20 required rolling selectable-window persistence and continuous midnight replenishment; its exact prior text is preserved in [the approved change proposal](sprint-change-proposal-2026-09-09.md#5-artifact-and-backlog-impact). E12 implementation evidence is not rewritten. [Architecture](architecture.md) E15-AD-01/02 governs the supported-horizon convention and measurement gate. No weather truth, planner scope, monetization, accessibility or performance-budget change is approved.
 
 ## Design Artifacts
 
@@ -640,3 +646,31 @@ documented, but it is not the launch contract.
   not an error. The release decision must set and meet an explicit direct-sun
   false-positive ceiling from that representative sample; no unmeasured accuracy
   percentage may be advertised.
+
+### Owner policy amendment — accepted 2026-09-10
+
+Rasmus accepted the [Epic 15 owner policy](decisions/epic-15-owner-policy-2026-09-10.md). This supersedes earlier pending product-choice wording for NFR20/NFR35/NFR40 and E15-AD-01/02; it does not certify measurements or deployed behavior.
+
+- Below 5° means not sunny in SunnySeat. Retain the documented model-support/physical-light distinction; no special per-pin warning is required.
+- A public geometric sun window reconstructed by the accepted empirical detector must satisfy >=5° elevation and >50% sunlit seating for **at least 300 seconds**. Suppress shorter reconstructed windows; qualifying windows apply from calculated start to end. Preserve every detected shade gap; undetected-gap risk is explicitly accepted by the September 12 amendment below. Do not use previous displayed state or claim continuity is proven by two endpoint observations. Retain raw geometry separately. Suitable current weather remains mandatory; blocked/unknown evidence removes the sunny recommendation without a five-minute hold.
+- Require full March 1–October 31 coverage for every non-deleted venue including hidden venues, using the actual selected year. No past-date or effective-date exemption and no cross-year substitution; remaining dates are staging only.
+- Arrays are provisionally preferred. Final precision/schema and numeric production computation/storage/read budgets await representative measurements.
+
+The five-minute minimum duration and the separately accepted five-minute base cadence are independent choices; neither is a weather-refresh promise. Preserve the <=2-minute target for detected/matched transitions and <=10-second horizon-root target. Test reconstructed windows, detected gaps, known missed-gap risks, 299/300/301-second boundaries and uncertainty separately. Combined G1 remains open and 15.2 stays blocked.
+
+### Detector risk amendment — accepted 2026-09-12
+
+Rasmus explicitly accepted the tested candidate's documented risk after the four-minute untriggered shade counterexample was explained. Controlling decision: `_bmad-output/planning-artifacts/decisions/epic-15-detector-risk-acceptance-2026-09-12.md`. G1b detector selection/residual risk is accepted: five-minute UTC-aligned base samples plus supported-day endpoints; one-minute interior probes when either endpoint is within 5 percentage points of 50% or endpoint classifications differ; refine detected crossings to <=100ms brackets. This supersedes earlier Epic 15 quarter-hour/10-point candidate defaults and universal interior-discovery/no-gap guarantees, not public DTO parity requirements.
+
+Continuity is reconstructed under this empirical method. It can miss untriggered sub-five-minute sun/shade events (including the documented four-minute shade example) and shorter events between interior samples. Preserve every detected shade gap; never deliberately merge it. Retain known misses as accepted-risk diagnostics without rewriting historical failures as successful detection. A finite reference comparison is not a gap-free or physical-accuracy certificate. Missing/exhausted computations, missing dates/inputs and unresolved duration uncertainty still fail completion. This approval does not change weather, raw >50% classification, actual-year full-season completeness, final encoding/retention/budget approval or story status.
+
+
+### Story 15.1 closure acceptance — September 14, 2026
+
+Rasmus accepted CD15.1-v1 and amendment A1 in the [authoritative closure acceptance](decisions/epic-15-closure-acceptance-2026-09-14.md). This supersedes earlier pending G1d/combined-measurement-lock wording only. G1a–G1c remain accepted; full Float64 adaptive arrays/raw boundaries, shared versioned inputs, retention and the complete numerical pilot budget table in the hash-identified package are now accepted. These are design targets/safety limits, not measured deployed compliance. Story review/done and starting 15.2 remain separate.
+
+Retain current and immediately previous actual-year seasons, each with current plus compatible rollback generation, and all evidence-referenced generations; count shared physical generations once. The conservative four-copy legacy-coexistence model exceeds the accepted 400MB aggregate admission ceiling. Capacity admission remains held pending fresh measured capacity and a separately authorized resolution. No deletion, migration, upgrade or production operation is approved.
+
+A1 explicitly transfers the still-NOT-RUN M06 controlled cold/combined read p95, no-op DB p95 and matched writer-load proof to **15.5 I13 before 15.6 O02**. Actual-year retained-version diversity/churn belongs to **15.2 storage validation and 15.5 I13**, with fresh aggregate/disk/WAL headroom at **O01/O02**. The accepted bounded M05 measurements and weighted full-cohort extrapolations close measurement selection; full-cohort implemented throughput and new/removed-caster spatial resolution remain **15.3/15.5** proof. These are mandatory carried gates, not passes or waivers. Publication still requires exact full actual-year coverage, compatibility, parity, budget proof and rollback. Epic13 provider-cold and Epic14 weather/field gates remain independent.
+
+The accepted detector's known missed-gap risk, preservation of every detected shade gap, >=300-second reconstructed-window rule, failure on unresolved duration/missing/exhausted computation, and independent fresh coherent likely-weather gate remain unchanged. No runtime behavior is changed by this amendment.

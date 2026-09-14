@@ -1,0 +1,1 @@
+BEGIN READ ONLY; SELECT json_build_object('at',clock_timestamp(),'rows',(SELECT json_agg(s) FROM (SELECT * FROM public.venue_sun_geometry_series WHERE venue_id IN ('34','8','47') AND stockholm_date='2026-09-18' ORDER BY venue_id)s)); COMMIT;

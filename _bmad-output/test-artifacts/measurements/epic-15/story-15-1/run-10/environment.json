@@ -1,0 +1,38 @@
+{
+  "date": "2026-09-11T12:58:45.388Z",
+  "sources": {
+    "package-lock.json": "b7b502955649c3850d539850ee4a47bcf7300d76527c2b6445e062b97ca7eb09",
+    "scripts/benchmarks/epic-15/measurement.ts": "fd57a304c1b0cfc1b419a6ca316d24bdc4f42ba9d2aef80da4956fc6bed0651c",
+    "lib/solar/solar-calculation-service.ts": "242edd188975dc292b4a5466d94b294bac11dea0ac34685b447da94f623b7c38",
+    "lib/solar/solar-math.ts": "a86d374dfa962da1593a1ad14799b97b7d3dfa204211dcdc74879fa2c8005f3b",
+    "lib/solar/shadow-calculation-service.ts": "a062ca104cdf6c6b0554489f817f57d309f21c493c3fab4b719b87a4f7572af5",
+    "lib/solar/shadow-geometry.ts": "f65dd63dff926c1a1bc388de50c8d4746b1e57e1cd7ea6ef7d529cafe7c4f8f7",
+    "lib/solar/timezone-utils.ts": "0ab8b0f88e767980212f52ad7f5f2a0eaa0c4dec1f962a9fc1db465af7fcea65",
+    "lib/solar/constants.ts": "c21cdfe07417a61ea80b58d07eda570e33686c54d64e0bc7e4a6b38ebbdee759",
+    "scripts/benchmarks/epic-15/shadow-broadphase.ts": "b7706dc3909481f61c6597056ee4030f8cb851e4ef64dbd874c2019797a2d415",
+    "scripts/benchmarks/epic-15/broadphase.measurement.ts": "c4fd4a2981f62ca5eebbee9a9c595782795afda3bf2836439d4a65b1d3a4b4a0",
+    "scripts/benchmarks/epic-15/capture-inputs.ts": "b648912ed9959f3abfd4fe27068a9f7c4658dae2cc34f1b5e97d0ca577ca7cd6",
+    "node_modules/@turf/convex/dist/cjs/index.cjs": "76b42653ecf18e714acb7cdf8c52d0305e9f92e34ffd50f7fdfa20e21f94c7f5",
+    "node_modules/concaveman/index.js": "aa3d885d5e8736aff1baf777839bc796012b0f39256121da0b196214d93be231",
+    "node_modules/polyclip-ts/dist/cjs/index.cjs": "6110bcf6b3d9d09f037b591f611d2472fd7fc4158f7d5a76c6f1695c4793c48a"
+  },
+  "captureHashes": {
+    "inputs.json": "88949ff1a30568e5d3bf094dc957247395cd765a79dc84bbbf56a077edc05482",
+    "inputs.sql": "bb95155c0fb4a7b83cf271052c8ef35d36ced34795dc8cad0c6e5d8156373404",
+    "census.json": "fc5dff9becff9c63fb8a47dd8d885dfcbff642f1aad34e4677a6980f44f851d2",
+    "census.sql": "8d9350a96282c8177b20fe72a4dd99cd1d64d3cdeee449ab4ab5e94a71ba7d72"
+  },
+  "mainArtifacts": {
+    "fixtures.json": "7867a79e2ede6b10b1a0a18c8560c6607688aa36f6a2c27491bcb31819a15555",
+    "M06-identical-dataset.json": "36d1171b9893fc45f34cfa1c56b753a8ef2c8bc12f62129c08078012616d1668",
+    "M06-edited-dataset.json": "96e24d5cffcf189fac57a0d691c172050d45bbb36c9b3e23c902e6fd7d113d29",
+    "M06-edited-fixtures.json": "12f9a1b254e888af8c951829d4f1ec8156639fc95a971e46d080319b261c7e28",
+    "captured-cost.json": "53e09f48f6c300e1f15b8e398454a634d777698a43879a1340126b2cf0d622d6",
+    "captured-environment.json": "25ec35261d8c35cf4419596b7372c0a3adfa3266ef24c34424fa25b2293d777e"
+  },
+  "exactArtifacts": {
+    "exact-reference.json": "13fb763e93dc68ab4cc46a9972c7b9d0f900eb2ddd1daa9198bd7fa314413b6f",
+    "environment.json": "05155004de97e69b30ddb6962209d960d81c8fdb21a6630a7b94847737e88d36"
+  },
+  "offlineAttempts": 0
+}

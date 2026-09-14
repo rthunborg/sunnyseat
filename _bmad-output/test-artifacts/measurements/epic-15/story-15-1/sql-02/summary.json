@@ -1,0 +1,25 @@
+{
+  "database": "e15_story15_1_run02",
+  "loadMs": 1233.2064999999998,
+  "walBytes": 5287272,
+  "rowsPerEncoding": 350,
+  "inputFixtures": 10,
+  "roles": [
+    "current",
+    "previous-season-simulation",
+    "rollback",
+    "failed-staging",
+    "evidence-protected"
+  ],
+  "datasetSha256": "666a16b86710cbc7f65a4cd54b5c3550c1246fe7f6bed04876669448d2f5bcfb",
+  "sqlSha256": "0db8228f110fee6381daae618e99e59d518fb81b3262ced10d2f8259344f3650",
+  "status": "MEASURED LOCAL SYNTHETIC MATRIX ONLY",
+  "limits": [
+    "No actual application/production database baseline. Empty isolated DB baseline measured.",
+    "Retention copies are storage simulations; previous-season dates were NOT recomputed.",
+    "Not full-season or 500-venue capacity evidence.",
+    "All inputs validated by host measurement harness; SQL has experimental shape checks only, not production decoder validation.",
+    "No controlled cold cache or workload concurrency baseline.",
+    "No production budget acceptance."
+  ]
+}

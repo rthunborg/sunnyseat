@@ -1,0 +1,96 @@
+{
+  "rows": [
+    {
+      "percent": 25,
+      "state": "likely",
+      "aria": "Mätplats — ingen direkt sol väntas vid vald tid",
+      "visibleText": "",
+      "icon": "cloud",
+      "currentDetailCopyExample": "Inte soligt vid vald tid",
+      "scope": "Pin rendered; detail copy is source excerpt, NOT rendered detail evidence",
+      "html": "<button type=\"button\" aria-label=\"Mätplats — ingen direkt sol väntas vid vald tid\" data-testid=\"venue-pin\" data-pin-state=\"shaded\" data-selected=\"false\" data-reduced-motion=\"true\" class=\"flex min-h-11 min-w-11 cursor-pointer items-end justify-center border-0 bg-transparent p-0 outline-none focus-visible:rounded-pill focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2\"><div class=\"flex flex-col items-center opacity-80\"><div class=\"flex min-h-11 min-w-11 items-center justify-center rounded-pill border border-white/20 bg-pin-shaded px-4 py-2 shadow-subtle\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-cloud text-text-body\" aria-hidden=\"true\" data-pin-icon=\"cloud\" style=\"width: 13px; height: 13px;\"><path d=\"M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z\"></path></svg></div><span data-pin-tail=\"true\" class=\"block w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-pin-shaded\"></span></div></button>"
+    },
+    {
+      "percent": 25,
+      "state": "blocked",
+      "aria": "Mätplats — ingen direkt sol väntas vid vald tid",
+      "visibleText": "",
+      "icon": "cloud",
+      "currentDetailCopyExample": "Inte soligt vid vald tid",
+      "scope": "Pin rendered; detail copy is source excerpt, NOT rendered detail evidence",
+      "html": "<button type=\"button\" aria-label=\"Mätplats — ingen direkt sol väntas vid vald tid\" data-testid=\"venue-pin\" data-pin-state=\"shaded\" data-selected=\"false\" data-reduced-motion=\"true\" class=\"flex min-h-11 min-w-11 cursor-pointer items-end justify-center border-0 bg-transparent p-0 outline-none focus-visible:rounded-pill focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2\"><div class=\"flex flex-col items-center opacity-80\"><div class=\"flex min-h-11 min-w-11 items-center justify-center rounded-pill border border-white/20 bg-pin-shaded px-4 py-2 shadow-subtle\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-cloud text-text-body\" aria-hidden=\"true\" data-pin-icon=\"cloud\" style=\"width: 13px; height: 13px;\"><path d=\"M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z\"></path></svg></div><span data-pin-tail=\"true\" class=\"block w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-pin-shaded\"></span></div></button>"
+    },
+    {
+      "percent": 25,
+      "state": "unknown",
+      "aria": "Mätplats — oklart om direkt sol vid vald tid",
+      "visibleText": "",
+      "icon": "cloud",
+      "currentDetailCopyExample": "Vid klar himmel: 25% utan byggnadsskugga",
+      "scope": "Pin rendered; detail copy is source excerpt, NOT rendered detail evidence",
+      "html": "<button type=\"button\" aria-label=\"Mätplats — oklart om direkt sol vid vald tid\" data-testid=\"venue-pin\" data-pin-state=\"shaded\" data-selected=\"false\" data-reduced-motion=\"true\" class=\"flex min-h-11 min-w-11 cursor-pointer items-end justify-center border-0 bg-transparent p-0 outline-none focus-visible:rounded-pill focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2\"><div class=\"flex flex-col items-center opacity-80\"><div class=\"flex min-h-11 min-w-11 items-center justify-center rounded-pill border border-white/20 bg-pin-shaded px-4 py-2 shadow-subtle\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-cloud text-text-body\" aria-hidden=\"true\" data-pin-icon=\"cloud\" style=\"width: 13px; height: 13px;\"><path d=\"M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z\"></path></svg></div><span data-pin-tail=\"true\" class=\"block w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-pin-shaded\"></span></div></button>"
+    },
+    {
+      "percent": 0,
+      "state": "likely",
+      "aria": "Mätplats — ingen direkt sol väntas vid vald tid",
+      "visibleText": "",
+      "icon": "cloud",
+      "currentDetailCopyExample": "Inte soligt vid vald tid",
+      "scope": "Pin rendered; detail copy is source excerpt, NOT rendered detail evidence",
+      "html": "<button type=\"button\" aria-label=\"Mätplats — ingen direkt sol väntas vid vald tid\" data-testid=\"venue-pin\" data-pin-state=\"shaded\" data-selected=\"false\" data-reduced-motion=\"true\" class=\"flex min-h-11 min-w-11 cursor-pointer items-end justify-center border-0 bg-transparent p-0 outline-none focus-visible:rounded-pill focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2\"><div class=\"flex flex-col items-center opacity-80\"><div class=\"flex min-h-11 min-w-11 items-center justify-center rounded-pill border border-white/20 bg-pin-shaded px-4 py-2 shadow-subtle\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-cloud text-text-body\" aria-hidden=\"true\" data-pin-icon=\"cloud\" style=\"width: 13px; height: 13px;\"><path d=\"M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z\"></path></svg></div><span data-pin-tail=\"true\" class=\"block w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-pin-shaded\"></span></div></button>"
+    },
+    {
+      "percent": 0,
+      "state": "blocked",
+      "aria": "Mätplats — ingen direkt sol väntas vid vald tid",
+      "visibleText": "",
+      "icon": "cloud",
+      "currentDetailCopyExample": "Inte soligt vid vald tid",
+      "scope": "Pin rendered; detail copy is source excerpt, NOT rendered detail evidence",
+      "html": "<button type=\"button\" aria-label=\"Mätplats — ingen direkt sol väntas vid vald tid\" data-testid=\"venue-pin\" data-pin-state=\"shaded\" data-selected=\"false\" data-reduced-motion=\"true\" class=\"flex min-h-11 min-w-11 cursor-pointer items-end justify-center border-0 bg-transparent p-0 outline-none focus-visible:rounded-pill focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2\"><div class=\"flex flex-col items-center opacity-80\"><div class=\"flex min-h-11 min-w-11 items-center justify-center rounded-pill border border-white/20 bg-pin-shaded px-4 py-2 shadow-subtle\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-cloud text-text-body\" aria-hidden=\"true\" data-pin-icon=\"cloud\" style=\"width: 13px; height: 13px;\"><path d=\"M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z\"></path></svg></div><span data-pin-tail=\"true\" class=\"block w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-pin-shaded\"></span></div></button>"
+    },
+    {
+      "percent": 0,
+      "state": "unknown",
+      "aria": "Mätplats — oklart om direkt sol vid vald tid",
+      "visibleText": "",
+      "icon": "cloud",
+      "currentDetailCopyExample": "Vid klar himmel: 0% utan byggnadsskugga",
+      "scope": "Pin rendered; detail copy is source excerpt, NOT rendered detail evidence",
+      "html": "<button type=\"button\" aria-label=\"Mätplats — oklart om direkt sol vid vald tid\" data-testid=\"venue-pin\" data-pin-state=\"shaded\" data-selected=\"false\" data-reduced-motion=\"true\" class=\"flex min-h-11 min-w-11 cursor-pointer items-end justify-center border-0 bg-transparent p-0 outline-none focus-visible:rounded-pill focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2\"><div class=\"flex flex-col items-center opacity-80\"><div class=\"flex min-h-11 min-w-11 items-center justify-center rounded-pill border border-white/20 bg-pin-shaded px-4 py-2 shadow-subtle\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-cloud text-text-body\" aria-hidden=\"true\" data-pin-icon=\"cloud\" style=\"width: 13px; height: 13px;\"><path d=\"M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z\"></path></svg></div><span data-pin-tail=\"true\" class=\"block w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-pin-shaded\"></span></div></button>"
+    },
+    {
+      "percent": 100,
+      "state": "likely",
+      "aria": "Mätplats — direkt sol sannolik vid vald tid — 100 procent utan byggnadsskugga",
+      "visibleText": "100%",
+      "icon": "sun",
+      "currentDetailCopyExample": "Inte soligt vid vald tid",
+      "scope": "Pin rendered; detail copy is source excerpt, NOT rendered detail evidence",
+      "html": "<button type=\"button\" aria-label=\"Mätplats — direkt sol sannolik vid vald tid — 100 procent utan byggnadsskugga\" data-testid=\"venue-pin\" data-pin-state=\"sunny\" data-selected=\"false\" data-reduced-motion=\"true\" class=\"flex min-h-11 min-w-11 cursor-pointer items-end justify-center border-0 bg-transparent p-0 outline-none focus-visible:rounded-pill focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2\"><div class=\"flex flex-col items-center\"><div class=\"flex h-[50px] w-11 flex-col items-center justify-center gap-0.5 rounded-pill border-[2.5px] border-white bg-amber-pin py-1 shadow-card\"><span class=\"text-label-xs leading-none text-text-primary\">100%</span><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-sun size-3.5 text-text-primary\" aria-hidden=\"true\" data-pin-icon=\"sun\"><circle cx=\"12\" cy=\"12\" r=\"4\"></circle><path d=\"M12 2v2\"></path><path d=\"M12 20v2\"></path><path d=\"m4.93 4.93 1.41 1.41\"></path><path d=\"m17.66 17.66 1.41 1.41\"></path><path d=\"M2 12h2\"></path><path d=\"M20 12h2\"></path><path d=\"m6.34 17.66-1.41 1.41\"></path><path d=\"m19.07 4.93-1.41 1.41\"></path></svg></div><span data-pin-tail=\"true\" class=\"-mt-0.5 block h-0 w-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-amber-pin shadow-subtle\"></span></div></button>"
+    },
+    {
+      "percent": 100,
+      "state": "blocked",
+      "aria": "Mätplats — ingen direkt sol väntas vid vald tid",
+      "visibleText": "",
+      "icon": "cloud",
+      "currentDetailCopyExample": "Inte soligt vid vald tid",
+      "scope": "Pin rendered; detail copy is source excerpt, NOT rendered detail evidence",
+      "html": "<button type=\"button\" aria-label=\"Mätplats — ingen direkt sol väntas vid vald tid\" data-testid=\"venue-pin\" data-pin-state=\"shaded\" data-selected=\"false\" data-reduced-motion=\"true\" class=\"flex min-h-11 min-w-11 cursor-pointer items-end justify-center border-0 bg-transparent p-0 outline-none focus-visible:rounded-pill focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2\"><div class=\"flex flex-col items-center opacity-80\"><div class=\"flex min-h-11 min-w-11 items-center justify-center rounded-pill border border-white/20 bg-pin-shaded px-4 py-2 shadow-subtle\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-cloud text-text-body\" aria-hidden=\"true\" data-pin-icon=\"cloud\" style=\"width: 13px; height: 13px;\"><path d=\"M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z\"></path></svg></div><span data-pin-tail=\"true\" class=\"block w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-pin-shaded\"></span></div></button>"
+    },
+    {
+      "percent": 100,
+      "state": "unknown",
+      "aria": "Mätplats — oklart om direkt sol vid vald tid",
+      "visibleText": "",
+      "icon": "cloud",
+      "currentDetailCopyExample": "Vid klar himmel: 100% utan byggnadsskugga",
+      "scope": "Pin rendered; detail copy is source excerpt, NOT rendered detail evidence",
+      "html": "<button type=\"button\" aria-label=\"Mätplats — oklart om direkt sol vid vald tid\" data-testid=\"venue-pin\" data-pin-state=\"shaded\" data-selected=\"false\" data-reduced-motion=\"true\" class=\"flex min-h-11 min-w-11 cursor-pointer items-end justify-center border-0 bg-transparent p-0 outline-none focus-visible:rounded-pill focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2\"><div class=\"flex flex-col items-center opacity-80\"><div class=\"flex min-h-11 min-w-11 items-center justify-center rounded-pill border border-white/20 bg-pin-shaded px-4 py-2 shadow-subtle\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-cloud text-text-body\" aria-hidden=\"true\" data-pin-icon=\"cloud\" style=\"width: 13px; height: 13px;\"><path d=\"M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z\"></path></svg></div><span data-pin-tail=\"true\" class=\"block w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent border-t-pin-shaded\"></span></div></button>"
+    }
+  ],
+  "ownerAcceptance": "PENDING",
+  "risk": "0–5 degrees means model unsupported, not physically absent direct beam. Existing known-negative ARIA and 0% building-shadow potential copy need owner review."
+}

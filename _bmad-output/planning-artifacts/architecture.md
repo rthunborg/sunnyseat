@@ -1599,3 +1599,158 @@ cloud/fog/precipitation/symbol categories, classifier version/state/reasons,
 geometry percentage band/input version, API surface, and rendered-label category
 under an anonymous correlation id. Never log exact user location, IP, free-text
 feedback, secrets, or raw provider payloads.
+
+## Seasonal geometry architecture delta — approved 2026-09-10
+
+**State:** Accepted planning direction; not yet implemented. Source approval: [Sprint Change Proposal, Section 10](sprint-change-proposal-2026-09-09.md#10-approval-disposition-and-workflow-execution-log--2026-09-10). This section is the controlling architecture for Epic 15. Earlier decisions and production findings remain historical evidence.
+
+### E15-AD-01 — Season-wide daylight-aware geometry generations
+
+Replace routine rolling-window shadow work with immutable seasonal generations and a complete compatible release manifest. Supersede only E12-AD-02's fixed 61-entry **storage** requirement, E12-AD-03's UI planner-range/max-future-days hash dependency, and E12-AD-04's nightly today-through-today+4 replenishment requirement. Keep the public 61-step DTO, exact-date/current-input reads, service-role boundary, zero request-path geometry computation, typed coverage 503, leases, emergency switches and auditability.
+
+The server-side read path becomes: current season release → matching venue generation → exact-date compact exposure → existing DTO projection → independent weather snapshot classification. Resolve this with bounded batch reads, not per-venue request fan-out. A release pointer alone is insufficient to certify freshness: the committed input revision must still match. Capture consistent input snapshots during generation and recheck revisions in the publication transaction.
+
+#### Lifecycle 1 — Coverage and time rules
+
+1. **Supported product season:** retain March 1–October 31, keyed by explicit `season_year` and `Europe/Stockholm`. Do not infer the next supported season from wall-clock year during November/December; generation commands take an explicit season ID/year.
+2. **Public operating window:** retain the existing 06:00–21:00 and 15-minute UI/API series. This proposal does not expand or shrink the picker.
+3. **Computation window:** calculate model-supported daylight for each venue/date independently of opening hours and the UI window. Opening hours never affect geometry generation.
+4. **Two explicit solar boundaries:**
+   - Astronomical visibility remains the current model's refraction-corrected solar-centre elevation `> 0°`; twilight/diffuse light at or below that boundary is never direct sun.
+   - The recommended **supported direct-sun geometry horizon is refraction-corrected elevation `>= 5°`**, matching the existing shadow engine's reliable-elevation floor and its current inability to produce an affirmative result below 5°. From `0°` to `<5°`, record deterministic no-direct-sun for the supported model, not missing geometry or unknown weather. This is a model-support convention, not a claim that the physical sun is below the astronomical horizon.
+5. Find the daily 5° rising/setting crossings from UTC instants using the solar-position function and bisection to at most 10 seconds. Store the exact UTC boundary instants. Do not round inward to quarter-hours. Quarter-hour samples are anchored to Stockholm wall-clock time, but the exact first/last boundary records preserve the edge intervals.
+6. Venue seating/ground elevation continues to affect effective caster height, not solar event time. The current solar model has no terrain skyline or observer-elevation horizon. This limitation must be named in the generation metadata and field-validation plan.
+7. DST conversion occurs only through `Europe/Stockholm` zoned instants. Tests cover the 2026 spring transition (March 29), autumn transition (October 25), and season/date keys without assuming 24 equal local-clock hours.
+
+#### Lifecycle 2 — Resolution and transition accuracy
+
+The existing 15-minute series is compatible with the planner but is not sufficient to bound a live "right now" shadow transition: nearest-step selection can be wrong around a sharp 50% crossing, and a quarter-hour interval can conceal a short sun/shade run.
+
+Recommended sampling:
+
+- Retain every 15-minute daylight sample for parity and API projection.
+- Add adaptive samples within an interval when endpoint exposure straddles 50%, changes by at least 10 percentage points, or field validation identifies a sensitive edge. Recursively refine until the transition-time uncertainty is at most 2 minutes or a documented safety limit is reached.
+- Store aligned minute/second offsets and integer exposure values, not shadow polygons. Public 15-minute DTOs remain value-compatible; live selected-instant lookup may use the refined samples after parity/shadow-mode rollout proves it safer.
+- Do not claim that two-minute temporal resolution equals physical accuracy. The 200 m shadow cap, 5° floor, caster quality, vegetation/awnings and polygon accuracy remain limiting factors.
+
+The two-minute/10-point refinement thresholds and the 5° supported horizon are approved planning defaults, not a completed measurement decision. Before locking them, Story 15.1 must report added compute/storage cost and transition parity on representative venues and obtain owner acceptance.
+
+#### Lifecycle 3 — Proposed data model and lifecycle
+
+Use a new versioned schema rather than stretching the fixed-shape Story 12.3 table in place:
+
+- `sun_geometry_seasons`: season ID/year, Stockholm dates, timezone, horizon convention/version, base step, transition-refinement policy, engine/hash/storage format versions, status, expected counts, timestamps, checksum and release notes.
+- `sun_geometry_venue_generations`: immutable generation ID, season ID, venue ID, `geometry_input_hash`, status (`building | ready | retired | failed`), expected/completed day and sample counts, source input reference, run ID, timestamps and checksum. Unique ready generation per `(season, venue, hash, format_version)`.
+- `sun_geometry_days`: generation ID, Stockholm date, exact rising/setting supported-horizon UTC instants, aligned compact offset array plus exposure array (or a byte encoding selected only after SQL/TypeScript benchmark), sample count and checksum. Primary key `(generation_id, stockholm_date)`; index only the current read path.
+- `sun_geometry_releases`: immutable season release manifest mapping each in-scope venue to a ready generation, with status (`building | verified | current | retired`), compatibility versions, expected/completed venue/day counts and checksum.
+- One small current-release pointer per season. A transaction flips it only after every referenced venue generation is ready, internally complete, checksum-valid and version-compatible.
+
+Do not duplicate the caster/input payload on every venue-day. Keep the canonical input once on the venue generation (or in a content-addressed input table), with compact per-day values only. Do not persist intermediate or unioned shadow polygons.
+
+At read time, the server resolves the current season release and venue generation, reads the exact date, validates checksum/shape/version, deterministically fills public 06:00–21:00 points below the supported horizon with zero, and applies the current weather snapshot. Missing season/date/hash/release coverage remains an observable typed 503. Weather missing/stale/malformed/unmatched remains `unknown`, not a geometry coverage error.
+
+#### Lifecycle 4 — Input hashing and invalidation
+
+Introduce `g2`, retaining `g1` for historical feedback attribution. `g2` must include or bind through an immutable engine manifest:
+
+- canonical seating polygon and derived canonical engine coordinate;
+- seating elevation and venue ground elevation;
+- resolved eligible caster IDs, canonical 2D geometry, effective height inputs, ground/roof elevation and import generation;
+- every field that changes caster eligibility or exposure math;
+- solar-position/refraction algorithm version;
+- shadow algorithm version and constants, including search/shadow distance, minimum meaningful height and supported direct-sun horizon;
+- canonicalization version, base sampling interval, transition-refinement policy and storage decoder version;
+- dependency versions where a library upgrade can change numeric geometry results (notably Turf).
+
+The season dates and timezone policy belong to the generation/release contract. UI opening hours, planner date-window length, venue name/tags/photos/hours, weather, and display-only pin coordinates do not affect the geometry hash.
+
+Invalidation rules:
+
+- Seating polygon, seating elevation, ground elevation, canonical engine-coordinate derivation, relevant caster geometry/height/elevation/eligibility, algorithm/constants or numeric-geometry dependency changes create a new affected generation.
+- A display-only pin move does not invalidate geometry or weather coordinates.
+- A new venue generates all remaining supported season dates (and the full next season when preparing rollover) before it enters the current release.
+- A mid-season venue edit stages the data, computes and verifies a full season generation for reproducibility, then publishes a new release manifest. An optional optimization may compute only remaining dates, but historical feedback replay then requires retaining the old generation and explicit effective-date semantics; full-season regeneration is the safer default at 42–50 venues.
+- Caster import tooling computes affected venues spatially using the same runtime search radius. If that proof is unavailable or the engine/selection algorithm changes, invalidate all venues.
+- Season rollover is explicit: build next year's March–October release ahead of activation, verify it, and switch the season pointer only when the product begins serving that season. Retain at least the current and immediately previous season plus any generation referenced by retained feedback evidence.
+
+#### Lifecycle 5 — Safe generation and publication
+
+- Plan work as bounded `(season, venue batch, date range)` shards with deterministic keys. Default shard: 5 venues × 14 dates, adjusted after benchmark.
+- Each shard is idempotent, upserts only immutable/non-current build rows, heartbeats its lease, records counts/checksums and can resume from verified completed days.
+- Use database leases and workflow concurrency, but do not use one global lease that prevents an urgent single-venue repair from being queued. Serialize publication, not all computation; prevent two builders for the same venue/season/hash.
+- A failed/expired run never changes the current release pointer. Resume missing shards or abandon the build. The previously current release stays readable.
+- Completeness checks cover exact season dates, every non-deleted venue including hidden venues, horizon metadata, required samples, monotonic offsets, 0–100 exposure, per-day checksum, generation checksum and compatible versions.
+- Publication creates a verified immutable release manifest, rechecks it inside the pointer-flip transaction, then atomically makes it current. No partially written cohort becomes current.
+- Rollback is an atomic pointer flip to the last retained verified compatible release. Retain two verified release manifests and their generations at minimum; prune only unreferenced generations after feedback/evidence retention checks.
+- If valid current coverage is missing, fail closed with the existing typed 503 behavior. If inputs changed and a new generation is building, the old generation remains current only when the input change itself is still staged. An out-of-band committed input change marks the venue dirty and makes reads fail closed until a matching generation is published.
+
+#### Lifecycle 6 — Weather integration remains separate
+
+This change removes:
+
+- nightly/twice-nightly rolling geometry computation in steady state;
+- Stockholm-midnight geometry lookahead dependency;
+- repeated full geometry work when no input changed.
+
+It does not remove:
+
+- frequent Locationforecast/Nowcast refresh;
+- weather snapshot storage, the two-hour TTL, or signed 90-minute matching;
+- monitoring and recovery for weather scheduler gaps;
+- snapshot-only public reads and the zero-live-Met.no invariant;
+- weather classification/calibration work in Epic 14.
+
+Clear-sky geometry never contains cloud, fog, precipitation, weather status, localized copy or a public verdict. Public affirmative direct sun continues to require geometry above 50% and coherent `directSunState === 'likely'`.
+
+### E15-AD-02 — Supported direct-sun horizon and transition sampling
+
+**Current owner disposition:** the owner amendments at the end of this document accept the 5° product convention, >=300-second reconstructed public windows, actual-year full-season completeness and provisional arrays. September 12 additionally accepts the measured five-minute/5pp/one-minute detector and its documented missed-gap risk. Earlier candidate defaults and universal discovery claims are superseded only as specified there; final encoding, budget and combined G1 gates remain open.
+
+The approved planning default is refraction-corrected solar-centre elevation >=5°, separate from the existing >0° visibility boundary. The 0–5° interval is unsupported by the current reliable shadow model; a deterministic supported-model negative is not evidence of physical absence of a direct beam. Do not use twilight/diffuse brightness as direct sun. Seating elevation affects caster math, not solar event time; observer-elevation dip, terrain skyline and a long-shadow low-angle model are not silently introduced.
+
+Keep actual date/location-dependent rising and setting boundaries, solved on UTC instants to <=10 seconds, without inward rounding. The September 12 accepted detector uses five-minute UTC-aligned base points plus supported-day endpoints. Either endpoint within 5 percentage points of 50%, or differing >50% classifications, triggers one-minute interior samples; refine detected crossings to <=100ms brackets. Preserve the <=2-minute detected/matched-transition target without asserting discovery of all interior events. Exact edge records and offsets must support the first and last daylight interval even when no regular grid sample falls inside it. Public quarter-hour DTO compatibility remains a separate parity requirement.
+
+**Decision lock before Story 15.2:** Story 15.1 measures winter controls, season endpoints, solstice, transition dates, both Stockholm DST changes and representative venue geometries. Owner acceptance of measured horizon/refinement behavior, CPU and total relation/index budgets remains mandatory. No physics-accuracy guarantee follows from a sampling interval.
+
+Measurement follow-through (read with the accepted owner policy amendment):
+
+- Endpoint-only refinement can miss a short interior sun/shade run whose endpoints agree. Compare complete 1-minute reference intervals, including same-side endpoints; establish an interior-probe or equivalent validated policy before claiming a transition-time bound. If the proposed tolerance cannot be supported, return a measured amendment for approval.
+- The owner selected actual-year full-season coverage, including hidden non-deleted venues. Remaining-season work is staging only; no effective-date exemption or cross-year substitution is accepted. Exact-set publication verification remains required.
+
+Arrays versus versioned byte encoding remains a measured choice; no production migration is approved here. Measure heap, TOAST, indexes, input metadata, versioning, retained releases and operational headroom, not merely raw exposure bytes. Scenario estimates in the proposal are historical planning assumptions, not database-size measurements.
+
+### Epic 15 release and launch gates
+
+Stories 15.1–15.6 in [epics](epics.md) are ordered measurement → schema → generator → publication/reads → proof → rollout. Preserve current/previous season and at least two verified release manifests, including all referenced generations; protect retained-feedback references. A rollback target must match committed inputs and compatible engine/decoder contracts; otherwise rollback is not safe and reads remain fail-closed. Do not roll back venue inputs or weather implicitly.
+
+Public affirmative direct sun always requires geometry >50% **and coherent** `directSunState === 'likely'`. Missing, stale, malformed, incomplete, unmatched or contradictory weather never becomes clear. Preserve the two-hour TTL and signed ±90-minute provider-valid-time boundary. Public list/detail reads are snapshot-only with zero live Met.no calls. Swedish-first copy, API/component boundaries, WCAG 2.1 AA and existing performance budgets remain unchanged.
+
+Publish only after complete current-input coverage, parity/transition proof, measured size/latency budgets and a successful compatible rollback drill. Observe at least seven days **and** one real input invalidation, whichever completes later, before retiring routine geometry scheduling. Keep manual, invalidation and explicit-year rollover operations. Weather scheduling reliability and Epic 14 field correctness remain separate launch gates; Epic 12 is not reopened.
+
+### Owner policy amendment — accepted 2026-09-10
+
+Rasmus accepted the [Epic 15 owner policy](decisions/epic-15-owner-policy-2026-09-10.md). This supersedes earlier pending product-choice wording for NFR20/NFR35/NFR40 and E15-AD-01/02; it does not certify measurements or deployed behavior.
+
+- Below 5° means not sunny in SunnySeat. Retain the documented model-support/physical-light distinction; no special per-pin warning is required.
+- A public geometric sun window reconstructed by the accepted empirical detector must satisfy >=5° elevation and >50% sunlit seating for **at least 300 seconds**. Suppress shorter reconstructed windows; qualifying windows apply from calculated start to end. Preserve every detected shade gap; undetected-gap risk is explicitly accepted by the September 12 amendment below. Do not use previous displayed state or claim continuity is proven by two endpoint observations. Retain raw geometry separately. Suitable current weather remains mandatory; blocked/unknown evidence removes the sunny recommendation without a five-minute hold.
+- Require full March 1–October 31 coverage for every non-deleted venue including hidden venues, using the actual selected year. No past-date or effective-date exemption and no cross-year substitution; remaining dates are staging only.
+- Arrays are provisionally preferred. Final precision/schema and numeric production computation/storage/read budgets await representative measurements.
+
+The five-minute minimum duration and the separately accepted five-minute base cadence are independent choices; neither is a weather-refresh promise. Preserve the <=2-minute target for detected/matched transitions and <=10-second horizon-root target. Test reconstructed windows, detected gaps, known missed-gap risks, 299/300/301-second boundaries and uncertainty separately. Combined G1 remains open and 15.2 stays blocked.
+
+### Detector risk amendment — accepted 2026-09-12
+
+Rasmus explicitly accepted the tested candidate's documented risk after the four-minute untriggered shade counterexample was explained. Controlling decision: `_bmad-output/planning-artifacts/decisions/epic-15-detector-risk-acceptance-2026-09-12.md`. G1b detector selection/residual risk is accepted: five-minute UTC-aligned base samples plus supported-day endpoints; one-minute interior probes when either endpoint is within 5 percentage points of 50% or endpoint classifications differ; refine detected crossings to <=100ms brackets. This supersedes earlier Epic 15 quarter-hour/10-point candidate defaults and universal interior-discovery/no-gap guarantees, not public DTO parity requirements.
+
+Continuity is reconstructed under this empirical method. It can miss untriggered sub-five-minute sun/shade events (including the documented four-minute shade example) and shorter events between interior samples. Preserve every detected shade gap; never deliberately merge it. Retain known misses as accepted-risk diagnostics without rewriting historical failures as successful detection. A finite reference comparison is not a gap-free or physical-accuracy certificate. Missing/exhausted computations, missing dates/inputs and unresolved duration uncertainty still fail completion. This approval does not change weather, raw >50% classification, actual-year full-season completeness, final encoding/retention/budget approval or story status.
+
+
+### Story 15.1 closure acceptance — September 14, 2026
+
+Rasmus accepted CD15.1-v1 and amendment A1 in the [authoritative closure acceptance](decisions/epic-15-closure-acceptance-2026-09-14.md). This supersedes earlier pending G1d/combined-measurement-lock wording only. G1a–G1c remain accepted; full Float64 adaptive arrays/raw boundaries, shared versioned inputs, retention and the complete numerical pilot budget table in the hash-identified package are now accepted. These are design targets/safety limits, not measured deployed compliance. Story review/done and starting 15.2 remain separate.
+
+Retain current and immediately previous actual-year seasons, each with current plus compatible rollback generation, and all evidence-referenced generations; count shared physical generations once. The conservative four-copy legacy-coexistence model exceeds the accepted 400MB aggregate admission ceiling. Capacity admission remains held pending fresh measured capacity and a separately authorized resolution. No deletion, migration, upgrade or production operation is approved.
+
+A1 explicitly transfers the still-NOT-RUN M06 controlled cold/combined read p95, no-op DB p95 and matched writer-load proof to **15.5 I13 before 15.6 O02**. Actual-year retained-version diversity/churn belongs to **15.2 storage validation and 15.5 I13**, with fresh aggregate/disk/WAL headroom at **O01/O02**. The accepted bounded M05 measurements and weighted full-cohort extrapolations close measurement selection; full-cohort implemented throughput and new/removed-caster spatial resolution remain **15.3/15.5** proof. These are mandatory carried gates, not passes or waivers. Publication still requires exact full actual-year coverage, compatibility, parity, budget proof and rollback. Epic13 provider-cold and Epic14 weather/field gates remain independent.
+
+The accepted detector's known missed-gap risk, preservation of every detected shade gap, >=300-second reconstructed-window rule, failure on unresolved duration/missing/exhausted computation, and independent fresh coherent likely-weather gate remain unchanged. No runtime behavior is changed by this amendment.

@@ -1,0 +1,25 @@
+{
+  "snapshotFiles": 422,
+  "changedExistingFiles": [
+    "_bmad-output/implementation-artifacts/15-1-measure-daylight-transition-accuracy-cpu-and-storage.md",
+    "_bmad-output/implementation-artifacts/15-1-remaining-gates-2026-09-12.md",
+    "_bmad-output/implementation-artifacts/sprint-status.yaml",
+    "_bmad-output/planning-artifacts/architecture.md",
+    "_bmad-output/planning-artifacts/epics.md",
+    "_bmad-output/planning-artifacts/prd.md",
+    "_bmad-output/planning-artifacts/ux-design-specification.md",
+    "_bmad-output/test-artifacts/measurements/epic-15/story-15-1/AUDIT.md",
+    "_bmad-output/test-artifacts/measurements/epic-15/story-15-1/README.md",
+    "_bmad-output/test-artifacts/measurements/epic-15/story-15-1/file-manifest.json",
+    "_bmad-output/test-artifacts/test-design/test-design-epic-15.md",
+    "project-context.md"
+  ],
+  "allOtherSnapshotFilesPreserved": true,
+  "priorManifestEntriesPreserved": 335,
+  "verbatimAcceptanceCriteria": 6,
+  "storyStatus": "review",
+  "story15_2": "backlog; not started",
+  "packageSha256": "8135743c74d8777f4e6e3d3bfdc00c88508c390596b6e0a2b9d62571627a657e",
+  "acceptanceRecordSha256": "e032c09e801794f3a8cba2a8f0a381a1f6c8dc8903bc55f3d541c37796c60075",
+  "head": "ed13d76a6e214f5e9f66ef5b73f8202f4406033d"
+}

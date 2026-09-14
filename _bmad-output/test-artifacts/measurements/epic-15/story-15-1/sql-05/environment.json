@@ -1,0 +1,15 @@
+{
+  "inputHashes": {
+    "survey.json": "02a340257b9d1054112bc8a4b08178e6eb117fd0eab056c5eafd473eeeda4682",
+    "environment.json": "0636bfa235d6c56cb68b4a38f9d50d6dad9116951d596f3398fd86021133bf7f",
+    "completion.json": "a6bc23c6fc101bbb8203329cf7efee23e73625712d9c156c0060e50237552efd"
+  },
+  "captureHashes": {
+    "inputs.json": "88949ff1a30568e5d3bf094dc957247395cd765a79dc84bbbf56a077edc05482"
+  },
+  "sources": {
+    "scripts/benchmarks/epic-15/survey-storage.mjs": "55398b23758ffc1949ce253abc295a83c757115ff53a5b7b64f9018761855945",
+    "scripts/benchmarks/epic-15/survey-report.mjs": "edb8c4d5a6d19055830d1d2454d236f1afadcf9cccb7c097deaa657e74a0c023",
+    "scripts/benchmarks/epic-15/evidence.mjs": "4fd8926cde056d7abfbf1d3de0bf96a201c7d47f311a8c5516b631b66ae77f72"
+  }
+}

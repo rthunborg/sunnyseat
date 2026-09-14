@@ -1,0 +1,12 @@
+{"at" : "2026-09-10T12:10:22.675001+00:00", "database_bytes" : 13914927, "relations" : [{"schema":"bench_arrays","relation":"days","heap_main_bytes":376832,"table_including_toast_forks_bytes":1613824,"toast_total_including_index_bytes":1212416,"table_indexes_bytes":49152,"total_bytes":1662976}, 
+ {"schema":"bench_arrays","relation":"generations","heap_main_bytes":16384,"table_including_toast_forks_bytes":49152,"toast_total_including_index_bytes":8192,"table_indexes_bytes":16384,"total_bytes":65536}, 
+ {"schema":"bench_arrays","relation":"inputs","heap_main_bytes":16384,"table_including_toast_forks_bytes":49152,"toast_total_including_index_bytes":8192,"table_indexes_bytes":16384,"total_bytes":65536}, 
+ {"schema":"bench_arrays","relation":"releases","heap_main_bytes":8192,"table_including_toast_forks_bytes":16384,"toast_total_including_index_bytes":8192,"table_indexes_bytes":16384,"total_bytes":32768}, 
+ {"schema":"bench_bytes","relation":"days","heap_main_bytes":155648,"table_including_toast_forks_bytes":1712128,"toast_total_including_index_bytes":1531904,"table_indexes_bytes":49152,"total_bytes":1761280}, 
+ {"schema":"bench_bytes","relation":"generations","heap_main_bytes":16384,"table_including_toast_forks_bytes":49152,"toast_total_including_index_bytes":8192,"table_indexes_bytes":16384,"total_bytes":65536}, 
+ {"schema":"bench_bytes","relation":"inputs","heap_main_bytes":16384,"table_including_toast_forks_bytes":49152,"toast_total_including_index_bytes":8192,"table_indexes_bytes":16384,"total_bytes":65536}, 
+ {"schema":"bench_bytes","relation":"releases","heap_main_bytes":8192,"table_including_toast_forks_bytes":16384,"toast_total_including_index_bytes":8192,"table_indexes_bytes":16384,"total_bytes":32768}, 
+ {"schema":"bench_jsonb","relation":"days","heap_main_bytes":139264,"table_including_toast_forks_bytes":1859584,"toast_total_including_index_bytes":1695744,"table_indexes_bytes":49152,"total_bytes":1908736}, 
+ {"schema":"bench_jsonb","relation":"generations","heap_main_bytes":16384,"table_including_toast_forks_bytes":49152,"toast_total_including_index_bytes":8192,"table_indexes_bytes":16384,"total_bytes":65536}, 
+ {"schema":"bench_jsonb","relation":"inputs","heap_main_bytes":16384,"table_including_toast_forks_bytes":49152,"toast_total_including_index_bytes":8192,"table_indexes_bytes":16384,"total_bytes":65536}, 
+ {"schema":"bench_jsonb","relation":"releases","heap_main_bytes":8192,"table_including_toast_forks_bytes":16384,"toast_total_including_index_bytes":8192,"table_indexes_bytes":16384,"total_bytes":32768}]}

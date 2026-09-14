@@ -1,0 +1,48 @@
+{
+  "sourceHashes": {
+    "scripts/benchmarks/epic-15/window-policy.ts": "61c47af3c2542b1b26377ac66aafb31cfaeb560ed79ff796d333ad5ee97c3deb",
+    "scripts/benchmarks/epic-15/windows.measurement.ts": "bb5cd40cce216d4e1f2920281549d9c5992a50f7fb43cbb3ea4faa6bf95bd146",
+    "scripts/benchmarks/epic-15/window-report.mjs": "5f66197e27f9744b2cb215915304d9f49205449318a2d09ad08515531c5f230b",
+    "test/unit/benchmarks/epic-15/window-policy.test.ts": "01bede6719fc4b49ea5aebf90795a3b7a9dfc6765d9d2e83a77d98708a638280",
+    "test/fixtures/epic-15/geometries.ts": "a13b39eb23c88d85eda0e45ef43370ae1a99335aadd0823b3c1e8df8fd56cee2",
+    "package-lock.json": "b7b502955649c3850d539850ee4a47bcf7300d76527c2b6445e062b97ca7eb09",
+    "scripts/benchmarks/epic-15/measurement.ts": "fd57a304c1b0cfc1b419a6ca316d24bdc4f42ba9d2aef80da4956fc6bed0651c",
+    "lib/solar/solar-calculation-service.ts": "242edd188975dc292b4a5466d94b294bac11dea0ac34685b447da94f623b7c38",
+    "lib/solar/solar-math.ts": "a86d374dfa962da1593a1ad14799b97b7d3dfa204211dcdc74879fa2c8005f3b",
+    "lib/solar/shadow-calculation-service.ts": "a062ca104cdf6c6b0554489f817f57d309f21c493c3fab4b719b87a4f7572af5",
+    "lib/solar/shadow-geometry.ts": "f65dd63dff926c1a1bc388de50c8d4746b1e57e1cd7ea6ef7d529cafe7c4f8f7",
+    "lib/solar/timezone-utils.ts": "0ab8b0f88e767980212f52ad7f5f2a0eaa0c4dec1f962a9fc1db465af7fcea65",
+    "lib/solar/constants.ts": "c21cdfe07417a61ea80b58d07eda570e33686c54d64e0bc7e4a6b38ebbdee759"
+  },
+  "mainArtifacts": {
+    "environment.json": "00c527ee71669dc1005f525ae2a67f808ad70ec50a2e610faec3b205619bbdef",
+    "fixtures.json": "6727b60b9d169c75f919fbd9cd3765f862dd0027862cc78c6c7b39c517c6bdc8",
+    "M01-rollover.json": "17ee1031c1d7bd065b9677e7529c70f221ebf85f03fecc475a0a3924246e0a95",
+    "M01-solar.json": "b49c2d32d6c772d3d60ce65bf648d408111a1f4855266f3f7a3260d3bbe22638",
+    "M01-dst.json": "d4c6ea6313dcf444998b6ae65436cd1cdfb6149322f892172b7f3c96da015bc6",
+    "M01-season.json": "f51d1b31fe3966a052bb6668f5d34905af34793a0bf55694cb923af3905bb4da",
+    "M02-M03-geometry.json": "7c8f7362ea2b4e8f23ed92bc247d2e4d7ad0a96398b6462fc35fbffbeae873b2",
+    "M04-low-angle-deltas.json": "a0cfd067c07accb00db1a94b9bd48b9f11b6ac8dce0113a674f6f3e7a59ae214",
+    "M06-identical-dataset.json": "1e109a5c3bdfe7c4a9fb976c3733131dc5097a0b949ed0930fee6e101cda5775",
+    "M03-adversaries.json": "42a633ca35b0decea92a72ac9f1a36b2d085fdfd28919ea31f51e85ad4a03ac1",
+    "M03-limits.json": "2ea6ef20103b6c8d7a49adac7f7161bcdf6411c89623c2d3f5c2df056671da47",
+    "M03-trigger-boundaries.json": "dbae8236fc7b2c57cf734e073e505470c57f05ada2e3c687b177cf313085c1d3",
+    "M05-cpu-raw.json": "a9d4aa213c444ce78bb89d6c171f9a413a1963f0b9f837f929dfdb32928c15f8",
+    "M05-cpu-summary.json": "c947e4f35cd83d88f57e10bb452bc5fff4e0db11a82ea78986fac3361fbee677",
+    "M05-M07-projections.json": "a4cbf5c54af27eb764b5904c99f6598ee4b4783b7035f6e7e2934077fcdbc179",
+    "M06-payload-decode.json": "8ca05a34476b157d4ded869f64336b7a0316be0ca0e5a805b875810e00d07834"
+  },
+  "edgeArtifacts": {
+    "M02-physical-slits.json": "11bf9b744b27404bda8a287a70d73969611840ed3360faf55238acc34c380b19",
+    "M04-exact-edge-values.json": "8965ea4c9c4a94a54056f61a07c682c04e8a504ab4b9b2a5137594d2906787f8",
+    "M02-elevated.json": "cb30ae08ff02e4eab7ace52c41a7e0b9b713803d82e46c397815537f44604d4d"
+  },
+  "fixtureHash": "97bbd4ba363b23ac0ed87527b9de7884f657bcde977a733d43ce339a2404019d",
+  "ownerDecisionSha256": {
+    "_bmad-output/planning-artifacts/decisions/epic-15-owner-policy-2026-09-10.md": "116af2da20929901e696643b6ff791a0d0b8ade397305bf231cbba01473d9198"
+  },
+  "offlineAttempts": 0,
+  "node": "v22.23.2",
+  "selectedMain": "C:\\DEV\\sunnyseat\\_bmad-output\\test-artifacts\\measurements\\epic-15\\story-15-1\\run-04",
+  "scope": "Existing engine references reanalysed; new synthetic adaptive/filter CPU measurements. No database or provider calls."
+}

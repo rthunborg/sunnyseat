@@ -58,6 +58,10 @@ scripts/*
 !scripts/feedback-accuracy-report.ts
 !scripts/launch-resilience/
 !scripts/launch-resilience/**
+!scripts/benchmarks/
+scripts/benchmarks/*
+!scripts/benchmarks/epic-15/
+!scripts/benchmarks/epic-15/**
 
 # vercel
 .vercel

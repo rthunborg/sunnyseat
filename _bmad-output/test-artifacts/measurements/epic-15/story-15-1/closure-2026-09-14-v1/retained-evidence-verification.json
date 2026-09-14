@@ -1,0 +1,9 @@
+{
+  "verifiedOriginalManifestEntries": 325,
+  "byteIdenticalReports": [
+    "ACCEPTANCE-PACKAGE-2026-09-12.md",
+    "WORKLOADS-2026-09-12.md",
+    "ACCEPTED-MATRIX-2026-09-12.md",
+    "LEGACY-STORAGE-2026-09-14.md"
+  ]
+}

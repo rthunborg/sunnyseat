@@ -1,0 +1,26 @@
+{
+  "at": "2026-09-11T16:19:52.893Z",
+  "sources": {
+    "package-lock.json": "b7b502955649c3850d539850ee4a47bcf7300d76527c2b6445e062b97ca7eb09",
+    "scripts/benchmarks/epic-15/measurement.ts": "fd57a304c1b0cfc1b419a6ca316d24bdc4f42ba9d2aef80da4956fc6bed0651c",
+    "lib/solar/solar-calculation-service.ts": "242edd188975dc292b4a5466d94b294bac11dea0ac34685b447da94f623b7c38",
+    "lib/solar/solar-math.ts": "a86d374dfa962da1593a1ad14799b97b7d3dfa204211dcdc74879fa2c8005f3b",
+    "lib/solar/shadow-calculation-service.ts": "a062ca104cdf6c6b0554489f817f57d309f21c493c3fab4b719b87a4f7572af5",
+    "lib/solar/shadow-geometry.ts": "f65dd63dff926c1a1bc388de50c8d4746b1e57e1cd7ea6ef7d529cafe7c4f8f7",
+    "lib/solar/timezone-utils.ts": "0ab8b0f88e767980212f52ad7f5f2a0eaa0c4dec1f962a9fc1db465af7fcea65",
+    "lib/solar/constants.ts": "c21cdfe07417a61ea80b58d07eda570e33686c54d64e0bc7e4a6b38ebbdee759",
+    "scripts/benchmarks/epic-15/survey-focus.measurement.ts": "721479b854c5489199f37ab64bf8a7f9e97dd06fd837c9de1fee98bfe784698b",
+    "scripts/benchmarks/epic-15/survey-report.mjs": "edb8c4d5a6d19055830d1d2454d236f1afadcf9cccb7c097deaa657e74a0c023",
+    "scripts/benchmarks/epic-15/dense-sampling.ts": "307397ce214484083b2cc2741932afd84b3a9de978d2f1c7a98ed894df3a7219",
+    "scripts/benchmarks/epic-15/capture-inputs.ts": "b648912ed9959f3abfd4fe27068a9f7c4658dae2cc34f1b5e97d0ca577ca7cd6"
+  },
+  "inputHashes": {
+    "survey.json": "02a340257b9d1054112bc8a4b08178e6eb117fd0eab056c5eafd473eeeda4682",
+    "environment.json": "0636bfa235d6c56cb68b4a38f9d50d6dad9116951d596f3398fd86021133bf7f",
+    "completion.json": "a6bc23c6fc101bbb8203329cf7efee23e73625712d9c156c0060e50237552efd"
+  },
+  "captureHashes": {
+    "inputs.json": "88949ff1a30568e5d3bf094dc957247395cd765a79dc84bbbf56a077edc05482"
+  },
+  "offlineAttempts": 0
+}

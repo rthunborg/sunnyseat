@@ -1,0 +1,209 @@
+[
+  {
+    "limit": {
+      "maxSamples": 1
+    },
+    "result": {
+      "policy": "minute",
+      "points": [
+        {
+          "t": 0,
+          "value": 0
+        }
+      ],
+      "baseSamples": 2,
+      "completedBaseSamples": 1,
+      "baseGridComplete": false,
+      "additionalSamples": 0,
+      "failures": [
+        "sample-limit"
+      ],
+      "verified": false,
+      "detectionGuarantee": "NONE for arbitrary sub-minute runs"
+    }
+  },
+  {
+    "limit": {
+      "maxDepth": 0
+    },
+    "result": {
+      "policy": "minute",
+      "points": [
+        {
+          "t": 0,
+          "value": 0
+        },
+        {
+          "t": 60000,
+          "value": 0
+        },
+        {
+          "t": 120000,
+          "value": 0
+        },
+        {
+          "t": 180000,
+          "value": 0
+        },
+        {
+          "t": 240000,
+          "value": 0
+        },
+        {
+          "t": 300000,
+          "value": 0
+        },
+        {
+          "t": 360000,
+          "value": 0
+        },
+        {
+          "t": 420000,
+          "value": 100
+        },
+        {
+          "t": 480000,
+          "value": 100
+        },
+        {
+          "t": 540000,
+          "value": 100
+        },
+        {
+          "t": 600000,
+          "value": 100
+        },
+        {
+          "t": 660000,
+          "value": 100
+        },
+        {
+          "t": 720000,
+          "value": 100
+        },
+        {
+          "t": 780000,
+          "value": 100
+        },
+        {
+          "t": 840000,
+          "value": 100
+        },
+        {
+          "t": 900000,
+          "value": 100
+        }
+      ],
+      "baseSamples": 2,
+      "completedBaseSamples": 2,
+      "baseGridComplete": true,
+      "additionalSamples": 14,
+      "failures": [
+        "depth-limit"
+      ],
+      "verified": false,
+      "detectionGuarantee": "NONE for arbitrary sub-minute runs"
+    }
+  },
+  {
+    "limit": {
+      "maxMs": 0
+    },
+    "result": {
+      "policy": "minute",
+      "points": [],
+      "baseSamples": 2,
+      "completedBaseSamples": 0,
+      "baseGridComplete": false,
+      "additionalSamples": 0,
+      "failures": [
+        "time-limit"
+      ],
+      "verified": false,
+      "detectionGuarantee": "NONE for arbitrary sub-minute runs"
+    }
+  },
+  {
+    "limit": {
+      "rootIterations": 0
+    },
+    "result": {
+      "policy": "minute",
+      "points": [
+        {
+          "t": 0,
+          "value": 0
+        },
+        {
+          "t": 60000,
+          "value": 0
+        },
+        {
+          "t": 120000,
+          "value": 0
+        },
+        {
+          "t": 180000,
+          "value": 0
+        },
+        {
+          "t": 240000,
+          "value": 0
+        },
+        {
+          "t": 300000,
+          "value": 0
+        },
+        {
+          "t": 360000,
+          "value": 0
+        },
+        {
+          "t": 420000,
+          "value": 100
+        },
+        {
+          "t": 480000,
+          "value": 100
+        },
+        {
+          "t": 540000,
+          "value": 100
+        },
+        {
+          "t": 600000,
+          "value": 100
+        },
+        {
+          "t": 660000,
+          "value": 100
+        },
+        {
+          "t": 720000,
+          "value": 100
+        },
+        {
+          "t": 780000,
+          "value": 100
+        },
+        {
+          "t": 840000,
+          "value": 100
+        },
+        {
+          "t": 900000,
+          "value": 100
+        }
+      ],
+      "baseSamples": 2,
+      "completedBaseSamples": 2,
+      "baseGridComplete": true,
+      "additionalSamples": 14,
+      "failures": [
+        "solver-nonconvergence"
+      ],
+      "verified": false,
+      "detectionGuarantee": "NONE for arbitrary sub-minute runs"
+    }
+  }
+]

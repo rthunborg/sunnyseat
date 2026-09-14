@@ -1,0 +1,277 @@
+[
+  {
+    "path": "AUDIT.md",
+    "bytes": 2586,
+    "sha256": "b92ce843b2c8b015ec82022c7d63cab33d363c8fcd66f72cff3ee19c416ecd9a"
+  },
+  {
+    "path": "difference-ledger.json",
+    "bytes": 176708,
+    "sha256": "22cbe90c105ce906bddbcb998aa710e39d4418c2add4e5995919867d3ef27656"
+  },
+  {
+    "path": "integer-rounding-ledger.json",
+    "bytes": 25073,
+    "sha256": "5159085407ca6b06cbc37d002c670085333758b23466d9044115a5ca1d026ac0"
+  },
+  {
+    "path": "README.md",
+    "bytes": 8518,
+    "sha256": "ad932d683fb825b1a6de61fa1568773528d02ee892080692346dc99d1c4b79d1"
+  },
+  {
+    "path": "RESULTS.md",
+    "bytes": 14592,
+    "sha256": "83bc3a2447b6782d4d7d646b7e77e66b06eaef4877ec0e1653cb45f82831cb14"
+  },
+  {
+    "path": "run-01/completion.json",
+    "bytes": 200,
+    "sha256": "568036284472169f48ea3ebdc55d411ab5e5b7920c25123cea6e7b71d02519c6"
+  },
+  {
+    "path": "run-01/environment.json",
+    "bytes": 5180,
+    "sha256": "02be1c3b055e9c8287e3dddde40b57bc7d6a4538b4bdebfb6c8564548418fb83"
+  },
+  {
+    "path": "run-01/fixtures.json",
+    "bytes": 29914,
+    "sha256": "6727b60b9d169c75f919fbd9cd3765f862dd0027862cc78c6c7b39c517c6bdc8"
+  },
+  {
+    "path": "run-01/M01-dst.json",
+    "bytes": 715,
+    "sha256": "d4c6ea6313dcf444998b6ae65436cd1cdfb6149322f892172b7f3c96da015bc6"
+  },
+  {
+    "path": "run-01/M01-season.json",
+    "bytes": 146039,
+    "sha256": "f51d1b31fe3966a052bb6668f5d34905af34793a0bf55694cb923af3905bb4da"
+  },
+  {
+    "path": "run-01/M01-solar.json",
+    "bytes": 69996,
+    "sha256": "b49c2d32d6c772d3d60ce65bf648d408111a1f4855266f3f7a3260d3bbe22638"
+  },
+  {
+    "path": "run-01/M02-M03-geometry.json",
+    "bytes": 8269265,
+    "sha256": "8ee7dcfbb34730069321a297df7f9ccbe9c9ebb00d43c014be093c008de7d6b2"
+  },
+  {
+    "path": "run-01/M03-adversaries.json",
+    "bytes": 30458,
+    "sha256": "0da4df37f16a01c2b409ed8b7d6e4aabf1696c0ff4dd80efd99812a5d9d36d51"
+  },
+  {
+    "path": "run-01/M03-limits.json",
+    "bytes": 3460,
+    "sha256": "54b7a940201d9a0522023379e39fbb23d62294a7c1df13bea37b53b5562a7d2d"
+  },
+  {
+    "path": "run-01/M03-trigger-boundaries.json",
+    "bytes": 1364,
+    "sha256": "128c4acf29336a89dc4fa756146f7a65d0025969f52ab00ec0cc90b5ce471347"
+  },
+  {
+    "path": "run-01/M04-low-angle-deltas.json",
+    "bytes": 152631,
+    "sha256": "a0cfd067c07accb00db1a94b9bd48b9f11b6ac8dce0113a674f6f3e7a59ae214"
+  },
+  {
+    "path": "run-01/M05-cpu-raw.json",
+    "bytes": 61779,
+    "sha256": "25be65f23d49368b1e50b00c9d494f0e72d92e538595304bd4f8a5f5efab09a5"
+  },
+  {
+    "path": "run-01/M05-cpu-summary.json",
+    "bytes": 4577,
+    "sha256": "d0869968804125e719af67d0d281f4dff732ce721a48674b0af41f55abc5fec2"
+  },
+  {
+    "path": "run-01/M05-M07-projections.json",
+    "bytes": 4440,
+    "sha256": "9797bcf91ef989fb3f24ea2e245c6d0dc0e7d094fa43c9fba4bbce303109cda3"
+  },
+  {
+    "path": "run-01/M06-identical-dataset.json",
+    "bytes": 2578445,
+    "sha256": "1e109a5c3bdfe7c4a9fb976c3733131dc5097a0b949ed0930fee6e101cda5775"
+  },
+  {
+    "path": "run-01/M06-payload-decode.json",
+    "bytes": 56825,
+    "sha256": "b00183070182e4adac208bf97cae76fdf4c3ca9e338c8cd64e1afbb2d4a6dad6"
+  },
+  {
+    "path": "run-02/completion.json",
+    "bytes": 200,
+    "sha256": "568036284472169f48ea3ebdc55d411ab5e5b7920c25123cea6e7b71d02519c6"
+  },
+  {
+    "path": "run-02/environment.json",
+    "bytes": 5226,
+    "sha256": "ce701b8dba3e9df77d78fe92ab71104781158d3f630868a3a161b7db662076d2"
+  },
+  {
+    "path": "run-02/fixtures.json",
+    "bytes": 29914,
+    "sha256": "6727b60b9d169c75f919fbd9cd3765f862dd0027862cc78c6c7b39c517c6bdc8"
+  },
+  {
+    "path": "run-02/M01-dst.json",
+    "bytes": 715,
+    "sha256": "d4c6ea6313dcf444998b6ae65436cd1cdfb6149322f892172b7f3c96da015bc6"
+  },
+  {
+    "path": "run-02/M01-season.json",
+    "bytes": 146039,
+    "sha256": "f51d1b31fe3966a052bb6668f5d34905af34793a0bf55694cb923af3905bb4da"
+  },
+  {
+    "path": "run-02/M01-solar.json",
+    "bytes": 69996,
+    "sha256": "b49c2d32d6c772d3d60ce65bf648d408111a1f4855266f3f7a3260d3bbe22638"
+  },
+  {
+    "path": "run-02/M02-M03-geometry.json",
+    "bytes": 8248581,
+    "sha256": "d930aded4d67728238950496d79a0bbe4127d188dfa050298c2727dacb720b5f"
+  },
+  {
+    "path": "run-02/M02-physical-slits.json",
+    "bytes": 3894025,
+    "sha256": "e8e1754707c4eed30943db3e4d5afc3f9832d80157ee7863b5f1b6ec477d787e"
+  },
+  {
+    "path": "run-02/M03-adversaries.json",
+    "bytes": 30458,
+    "sha256": "0da4df37f16a01c2b409ed8b7d6e4aabf1696c0ff4dd80efd99812a5d9d36d51"
+  },
+  {
+    "path": "run-02/M03-limits.json",
+    "bytes": 3460,
+    "sha256": "54b7a940201d9a0522023379e39fbb23d62294a7c1df13bea37b53b5562a7d2d"
+  },
+  {
+    "path": "run-02/M03-trigger-boundaries.json",
+    "bytes": 1364,
+    "sha256": "128c4acf29336a89dc4fa756146f7a65d0025969f52ab00ec0cc90b5ce471347"
+  },
+  {
+    "path": "run-02/M04-exact-edge-values.json",
+    "bytes": 13260,
+    "sha256": "8965ea4c9c4a94a54056f61a07c682c04e8a504ab4b9b2a5137594d2906787f8"
+  },
+  {
+    "path": "run-02/M04-low-angle-deltas.json",
+    "bytes": 152631,
+    "sha256": "a0cfd067c07accb00db1a94b9bd48b9f11b6ac8dce0113a674f6f3e7a59ae214"
+  },
+  {
+    "path": "run-02/M04-pin-semantics.json",
+    "bytes": 14568,
+    "sha256": "46dfa274932af7493bae0f71ebb1db3e5f1d8930ab379d09203b9f36385d0997"
+  },
+  {
+    "path": "run-02/M05-cpu-raw.json",
+    "bytes": 61813,
+    "sha256": "3786fd059e4ad25d09b4fb06c410d14ad17fb8f42e1ba89c8f44a7420e1e18f3"
+  },
+  {
+    "path": "run-02/M05-cpu-summary.json",
+    "bytes": 4573,
+    "sha256": "5e734d206ea8971abc9c16dd539650f2e4fdb1de25abdc59961e5335e453ab38"
+  },
+  {
+    "path": "run-02/M05-M07-projections.json",
+    "bytes": 4439,
+    "sha256": "dc975bb21d3f914e4ba27f148948a313093624c85f3ccc03c568626f358012c1"
+  },
+  {
+    "path": "run-02/M05-strategies.json",
+    "bytes": 10682,
+    "sha256": "88cb51e97c451c5fbe2c7d3019d7880ada7ec6a661a36fe330dbb87a4507b947"
+  },
+  {
+    "path": "run-02/M06-identical-dataset.json",
+    "bytes": 2578445,
+    "sha256": "1e109a5c3bdfe7c4a9fb976c3733131dc5097a0b949ed0930fee6e101cda5775"
+  },
+  {
+    "path": "run-02/M06-payload-decode.json",
+    "bytes": 54016,
+    "sha256": "c3a11f1b30906c05bf164ceb6637cc1afda5dcc50b6217a094d6780c7af35859"
+  },
+  {
+    "path": "sql-02/arrays-plan.json",
+    "bytes": 2210,
+    "sha256": "5448a7a09d8e6d503a7183992ad4d4c025cf1232a61c5196ba4f1dcda752be54"
+  },
+  {
+    "path": "sql-02/bytes-plan.json",
+    "bytes": 2210,
+    "sha256": "bff6394ac9f98e1bf13f275e8533af0e1dd67427e60adc5360a43ebd125cdd67"
+  },
+  {
+    "path": "sql-02/capacity.txt",
+    "bytes": 158,
+    "sha256": "eaa5a620a3686cb52a04deda68cbb965dcfa16c7756b4cbe9f788360986a0512"
+  },
+  {
+    "path": "sql-02/census.sql",
+    "bytes": 663,
+    "sha256": "16f5fae8a789234be926ce24b0564606f3de65d352cc17d4a8886f4992ddaded"
+  },
+  {
+    "path": "sql-02/churn.json",
+    "bytes": 2563,
+    "sha256": "f4f47eb6d76f521536b1d8a7f306f425b83cf346ff0eb9a2df5f209a7fc24c4c"
+  },
+  {
+    "path": "sql-02/churn.sql",
+    "bytes": 891,
+    "sha256": "19ff7f721c1f8b3f388c5f4c6532538cce1891f3788d24bf36396aac01a47ae0"
+  },
+  {
+    "path": "sql-02/clean.json",
+    "bytes": 2562,
+    "sha256": "122e93de9e137bf45eb3c25548198a0e185ca9f1c9ec39a9de64916b4006b8a7"
+  },
+  {
+    "path": "sql-02/jsonb-plan.json",
+    "bytes": 2210,
+    "sha256": "1d672f030b9def60e60c90b64b34ed2259e27a4b0f3d295150ecd544e1eb18f9"
+  },
+  {
+    "path": "sql-02/load.sql",
+    "bytes": 14192788,
+    "sha256": "0db8228f110fee6381daae618e99e59d518fb81b3262ced10d2f8259344f3650"
+  },
+  {
+    "path": "sql-02/reads.json",
+    "bytes": 24690,
+    "sha256": "7fc6031fed1a722bb8d49d5e75958d248ec2944dfa728f2c90c6038bdfd7e6b3"
+  },
+  {
+    "path": "sql-02/settings.json",
+    "bytes": 340,
+    "sha256": "c9adcd7c81929569ddf311e781450b20c93af2f014af876143f3ed4781f74472"
+  },
+  {
+    "path": "sql-02/summary.json",
+    "bytes": 994,
+    "sha256": "bee747bb577115d92424c3e43b95129d671930111fc23c36574a2c5eb3521b58"
+  },
+  {
+    "path": "tooling-final-hashes.json",
+    "bytes": 635,
+    "sha256": "ed47f6350fe084d58d98b5443361152ad25c87cdf7fb2bccaf3d3ef7357ff087"
+  },
+  {
+    "path": "vitest-full.log",
+    "bytes": 945,
+    "sha256": "e7475497be3ad55ec65621de856f88c7409400561861e6780ca9ddfd0d3571cb"
+  }
+]

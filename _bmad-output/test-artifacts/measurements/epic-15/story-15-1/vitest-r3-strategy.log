@@ -1,0 +1,9 @@
+
+ RUN  v4.1.9 C:/DEV/sunnyseat/nextjs-app
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  16:56:01
+   Duration  75.93s (transform 95ms, setup 0ms, import 1.04s, tests 74.68s, environment 0ms)
+

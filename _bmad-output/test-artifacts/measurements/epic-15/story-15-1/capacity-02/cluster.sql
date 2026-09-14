@@ -1,0 +1,1 @@
+BEGIN READ ONLY; SET LOCAL statement_timeout = '10s'; SELECT json_build_object('captured_at',clock_timestamp(),'current_database_bytes',pg_database_size(current_database()),'cluster_database_bytes',(SELECT sum(pg_database_size(datname)) FROM pg_database),'database_count',(SELECT count(*) FROM pg_database)); COMMIT;

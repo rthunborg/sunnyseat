@@ -1,0 +1,79 @@
+[
+  {
+    "delta": 9.999,
+    "result": {
+      "policy": "endpoints",
+      "points": [
+        {
+          "t": 0,
+          "value": 20
+        },
+        {
+          "t": 900000,
+          "value": 29.999000000000002
+        }
+      ],
+      "baseSamples": 2,
+      "completedBaseSamples": 2,
+      "baseGridComplete": true,
+      "additionalSamples": 0,
+      "failures": [],
+      "verified": true,
+      "detectionGuarantee": "NONE for arbitrary sub-minute runs"
+    }
+  },
+  {
+    "delta": 10,
+    "result": {
+      "policy": "endpoints",
+      "points": [
+        {
+          "t": 0,
+          "value": 20
+        },
+        {
+          "t": 450000,
+          "value": 25
+        },
+        {
+          "t": 900000,
+          "value": 30
+        }
+      ],
+      "baseSamples": 2,
+      "completedBaseSamples": 2,
+      "baseGridComplete": true,
+      "additionalSamples": 1,
+      "failures": [],
+      "verified": true,
+      "detectionGuarantee": "NONE for arbitrary sub-minute runs"
+    }
+  },
+  {
+    "delta": 10.001,
+    "result": {
+      "policy": "endpoints",
+      "points": [
+        {
+          "t": 0,
+          "value": 20
+        },
+        {
+          "t": 450000,
+          "value": 25.0005
+        },
+        {
+          "t": 900000,
+          "value": 30.000999999999998
+        }
+      ],
+      "baseSamples": 2,
+      "completedBaseSamples": 2,
+      "baseGridComplete": true,
+      "additionalSamples": 1,
+      "failures": [],
+      "verified": true,
+      "detectionGuarantee": "NONE for arbitrary sub-minute runs"
+    }
+  }
+]

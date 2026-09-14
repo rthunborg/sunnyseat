@@ -43,7 +43,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-02
-last_updated: 2026-08-17
+last_updated: 2026-09-14
 # Note (2026-07-27, create-story 12.11 - 12-11-first-run-coach-mark-guide-map-legend-feature-tour backlog -> ready-for-dev):
 # authored the Story 12.11 context file at _bmad-output/implementation-artifacts/12-11-first-run-coach-mark-guide-map-legend-feature-tour.md.
 # Core guidance: post-onboarding first-run coach tour; locked feedback to copy-only guidance; forced visual states are
@@ -350,6 +350,18 @@ development_status:
   epic-13: in-progress
   13-1-provider-classified-cold-starts-dependency-path-tracing-and-isolated-restore-drill: in-progress
   epic-13-retrospective: optional
+
+  # 2026-09-10: Rasmus approved seasonal geometry Correct Course planning handoff.
+  # Epic 15 only; existing Epic 13/14 status reconciliation is outside this update.
+  # Measurement decision lock precedes schema work; production approval is separate.
+  epic-15: in-progress
+  15-1-measure-daylight-transition-accuracy-cpu-and-storage: done
+  15-2-define-g2-generation-schema-and-migration-rollback-contract: backlog
+  15-3-build-resumable-seasonal-generator-and-invalidation-planner: backlog
+  15-4-add-atomic-release-publication-and-compatibility-reads: backlog
+  15-5-prove-parity-transition-correctness-and-operational-recovery: backlog
+  15-6-staged-production-rollout-and-retire-routine-geometry-schedule: backlog
+  epic-15-retrospective: optional
 
 # Note (2026-08-07, retrospective epic-12 — epic-12-retrospective -> done): bmad-retrospective (auto-bmad delegate;
 # solo synthesis with Rasmus as sole facilitator+participant) synthesized the full Epic 12 retro from

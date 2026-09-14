@@ -1,0 +1,14 @@
+{
+  "sources": {
+    "threshold-sampling.ts": "c1be42ab6cce2d7d1b9ec90daf41552f8e0243a8e3c00c989cad223027598bd9",
+    "threshold.measurement.ts": "762df214fe766d5b59da0ce63fdb65bfbe4531729ed03e0b6b8749d137af0bc5",
+    "threshold-cost.measurement.ts": "e35968ec2391ce285a22520d2595e70346776425192b0f2b0fbf438d12a3ec79",
+    "threshold-report.mjs": "216f0d70b58ebf9f3add31438f5973419b4f384c6c4326ac5a225285baaccc6c",
+    "threshold-decision.mjs": "7d651539cf5be0168b4211966bd8f702e04b4b278a2262cef6f651f07cbb0f29",
+    "evidence.mjs": "4fd8926cde056d7abfbf1d3de0bf96a201c7d47f311a8c5516b631b66ae77f72"
+  },
+  "priorHashesVerified": 267,
+  "byteExactReports": true,
+  "validation": "Typecheck/lint exit 0; 249 files /2283 tests passed",
+  "status": "in-progress; no owner acceptance"
+}

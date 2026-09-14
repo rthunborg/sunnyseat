@@ -1,0 +1,18 @@
+{
+  "complete": true,
+  "offlineAttempts": 0,
+  "cells": [
+    "organization",
+    "database",
+    "cluster",
+    "documentation"
+  ],
+  "artifacts": {
+    "organization-tool.json": "df3b5b737dbc04b5ef99a751511c5c758d077f8b01bc07b5b5d817ee14830c27",
+    "census-tool.json": "596e95b87fd573d4414a24917c4bed1af9ed2798133f656d0e0bcb51929c91f6",
+    "census.sql": "000fa9a6a6d739d1b36dadc8643166926cbbb7fe0af1349522fe925c36214b24",
+    "cluster-tool.json": "3d22ff2b8028c5f2e2ad73faff2d5eab85a7975686b25809ec6a33466f6582fd",
+    "cluster.sql": "5f203af7ab3e13ddee0357187aa03f4f35f0a16ccae61ac3ea250fd601f54ab4",
+    "capacity.json": "ade13d2372fad71ac7e0a46254fdbdea429e1c8a4c6b11b7ef16771cd4ee4599"
+  }
+}
