@@ -4652,7 +4652,7 @@ approve a provider, migration, schedule, or telemetry deployment.
 
 ## Epic 15 — Seasonal Clear-sky Geometry Materialization
 
-**Approved for planning:** 2026-09-10 by Rasmus. **Current status (2026-09-15):** in-progress; Story 15.1 done, 15.2–15.6 backlog. Measurement decisions are accepted under CD15.1-v1/A1; no later story or production operation starts through this consolidation. [PRD](prd.md) NFR20/NFR35/NFR40 and [architecture](architecture.md) E15-AD-01/02 are controlling; the [approved proposal](sprint-change-proposal-2026-09-09.md) preserves rationale, alternatives and scenario estimates.
+**Approved for planning:** 2026-09-10 by Rasmus. **Status:** backlog; no implementation or production execution authorized in the Correct Course session. [PRD](prd.md) NFR20/NFR35/NFR40 and [architecture](architecture.md) E15-AD-01/02 are controlling; the [approved proposal](sprint-change-proposal-2026-09-09.md) preserves rationale, alternatives and scenario estimates.
 
 Replace routine rolling-window shadow computation with versioned daylight-aware seasonal generations while preserving snapshot-only weather gating, fail-closed correctness, and the existing public planner/API contract. Scope is March 1–October 31 in Europe/Stockholm, computed independently of UI hours. No venue-photo acquisition, Epic 12 reopening, provider/TTL change, or product planner extension.
 
@@ -4676,7 +4676,7 @@ These additive notes apply when the seasonal read path is introduced; existing a
 3. Report transition error, missed sun windows, additional adaptive samples, safety-limit behavior and changes from the existing 25% low-angle placeholder. Explicitly distinguish physical direct beam from the proposed >=5° supported-model convention; never count diffuse daylight as direct sun.
 4. Measure p50/p95 cost by caster distribution; extrapolate real date-dependent season counts for the observed current venue inventory and 50/100/500 growth scenarios. Compare rolling, full-season and staged generation, initial and incremental time.
 5. Benchmark compact arrays versus versioned bytes and existing JSONB, including total heap/TOAST/index size, shared inputs, metadata, versions, retention and headroom. Report assumptions separately from observed data; approve compute/storage/read budgets from measurements.
-6. Owner acceptance is recorded under September 10/12/14 decisions and CD15.1-v1/A1, consolidated September 15 in E15-AD-01/02. Preserve the accepted detector risk and full actual-year completeness; unpassed A1 candidate gates remain mandatory. Historical Story 15.1 AC text and evidence retain their original wording.
+6. Owner accepts the measured horizon/refinement policy before schema lock. Resolve interior-window detection and new-venue remaining-date versus full-season completeness semantics per E15-AD-02. Unresolved or failed bounds require an explicit amendment, not an accuracy reduction.
 
 ### Story 15.2 — Define g2, generation schema and migration/rollback contract
 
@@ -4698,8 +4698,8 @@ These additive notes apply when the seasonal read path is introduced; existing a
 **Acceptance criteria:**
 
 1. Generate actual date/venue daylight, skip expensive caster math below the approved horizon, preserve boundary records and deterministic negative coverage. Use the measured base/adaptive sampling policy.
-2. Implement bounded deterministic shards (one worker, at most 5 venues × 3 dates, under the accepted E15 operating envelope), durable progress/checksums, idempotent retries, expiring/heartbeated leases and safe resume of verified days.
-3. Permit one active geometry worker for the accepted pilot; queue/prioritize unrelated venues without simultaneous computation, prevent duplicate same-generation builders, and serialize publication separately. Interrupted/failed/expired work cannot change current coverage.
+2. Implement bounded deterministic shards (initial candidate 5 venues × 14 dates, tuned by measurements), durable progress/checksums, idempotent retries, expiring/heartbeated leases and safe resume of verified days.
+3. Prevent competing same-generation builders while allowing unrelated venues; serialize publication separately. Interrupted/failed/expired work cannot change current coverage.
 4. Invalidate all affected venues for seating/elevation/caster/algorithm edits; use runtime-aligned spatial influence proof for imports or conservatively invalidate all. Snapshot inputs consistently; recheck revisions before publication.
 5. Cover new venues, staged mid-season edits, explicit-year rollover, hidden/non-deleted venue inventory, failure recovery and retention without weakening the approved completeness contract.
 6. Author and verify build/invalidate/resume/rollover/retention runbook commands; keep existing rolling operation available until Story 15.6 approves retirement. Never invent trusted resource contexts.
@@ -4711,10 +4711,10 @@ These additive notes apply when the seasonal read path is introduced; existing a
 **Acceptance criteria:**
 
 1. Shadow-read a verified candidate with no current-pointer changes. Publish only a complete compatible immutable manifest using a transaction that rechecks input revisions, inventory, exact dates, versions, counts and checksums.
-2. Retain scheduled selectable-window coverage reporting across Stockholm midnight without geometry recomputation, with replacement-path proof in 15.5. Reject incomplete, corrupt, wrong-date/hash or incompatible artifacts; no partial cohort becomes current. Staged edits can keep prior inputs/results current; committed mismatched inputs yield the existing typed coverage 503.
+2. Reject incomplete, corrupt, wrong-date/hash or incompatible artifacts; no partial cohort becomes current. Staged edits can keep prior inputs/results current; committed mismatched inputs yield the existing typed coverage 503.
 3. Preserve 61 ordered public steps for 06:00–21:00, today-through-today+3 planner scope, API/component boundaries and bounded batched reads. Refined selected-instant lookup requires demonstrated transition correctness, not merely decoder availability.
 4. Apply separately refreshed snapshots only at read time. Keep >50% plus coherent likely, the two-hour weather TTL and signed ±90-minute match, all unknown-weather cases and zero live Met.no calls.
-5. Demonstrate atomic pointer rollback to a retained complete compatible season release manifest and all referenced generations; per-venue fallback rows alone are insufficient. Do not modify weather, inputs or unrelated production configuration as part of rollback.
+5. Demonstrate atomic compatible pointer rollback. Do not modify weather, inputs or unrelated production configuration as part of rollback.
 
 ### Story 15.5 — Prove parity, transition correctness and operational recovery
 
@@ -4744,21 +4744,7 @@ These additive notes apply when the seasonal read path is introduced; existing a
 
 ### Implementation handoff and scope
 
-Initial planning entered all six stories as backlog. Current sprint state is Epic 15 in-progress, 15.1 done and 15.2–15.6 backlog; this update makes no status transition. PM owns scope and gates, architect owns decision lock/design, test architect owns evidence, developer implements approved stories, maintainer approves production operations. Run required application typecheck/lint baselines from nextjs-app/ before each story; use normal review gates and human completion approval. No application or production work occurred in this planning approval.
-
-### Current Epic 15 disposition — consolidated 2026-09-15
-
-Rasmus explicitly accepted consolidation of the reviewed measurement choices into canonical architecture.md E15-AD-01/02. G1a–G1d is accepted under the September 10/12/14 decisions and CD15.1-v1/A1; Story 15.1 is done, while 15.2–15.6 remain backlog and are not started by this update. Earlier dated pending/default statements are historical and superseded by this disposition.
-
-The binding contract is >=5° supported-model horizon, <=10s UTC roots, five-minute UTC base/endpoints, 5pp endpoint-proximity or classification-change trigger, one-minute probes, <=100ms detected brackets, <=2-minute matched-transition target, and >=300s reconstructed public windows. Preserve every detected shade gap and the accepted four-minute missed-gap risk; finite comparisons do not prove universal discovery or physical accuracy. Missing/exhausted computation and unresolved duration fail completion. Below 5° does not prove physical absence of direct sunlight; independent fresh coherent likely-weather remains necessary.
-
-Require all 245 actual-year March–October dates for every non-deleted venue including hidden/new venues; remaining dates are staging only. Use full Float64 adaptive arrays/raw boundaries and shared immutable versioned inputs. Historical replay requires original retained geometry/input, weather and classifier evidence; recomputation with new inputs is not the historical prediction.
-
-The complete accepted CD15.1-v1 numerical table controls, including one worker, <=5 venues×3 dates per shard and 375MB warning/400MB aggregate admission. Retain current and previous actual-year seasons, each with current plus compatible rollback generations, and all evidence-referenced generations; count shared physical generations once. **Capacity admission remains held**, and accepted targets are not deployed compliance.
-
-A1 retains NOT RUN cold/combined-read, no-op DB p95 and matched writer-load proof at **15.5 I13 before 15.6 O02**; actual-year retained diversity/churn at **15.2 storage validation and 15.5 I13**; fresh aggregate/disk/WAL headroom at **O01/O02**. Full-cohort implemented throughput and new/removed-caster spatial resolution remain **15.3/15.5**. Public DTO parity, compatible rollback, Epic 13 cold/recovery and Epic 14 weather/field gates remain mandatory. No runtime or production operation is authorized.
-
-Acceptance trace: [September 15 consolidation](decisions/epic-15-architecture-consolidation-2026-09-15.md).
+All six stories enter backlog, not ready-for-dev/review/done. PM owns scope and gates, architect owns decision lock/design, test architect owns evidence, developer implements approved stories, maintainer approves production operations. Run required application typecheck/lint baselines from nextjs-app/ before each story; use normal review gates and human completion approval. No application or production work occurred in this planning approval.
 
 ### Owner policy amendment — accepted 2026-09-10
 

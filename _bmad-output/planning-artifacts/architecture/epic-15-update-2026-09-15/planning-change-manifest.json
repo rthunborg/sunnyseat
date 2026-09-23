@@ -1,0 +1,32 @@
+[
+  {
+    "path": "project-context.md",
+    "beforeSha256": "c7c2fb61b6664b3592ed0b20afd5c1833fc6989ae6f93e60efbafec974d75758",
+    "afterSha256": "b3abf9c7e60d581a34c3e2e9a8d05793d7897577fc0ab6991dc543dec2fc6214"
+  },
+  {
+    "path": "_bmad-output\\planning-artifacts\\architecture.md",
+    "beforeSha256": "893ba58109a64e4c07fc1f4a0b9a4571abf52154547063d80c818d2caa31b1c6",
+    "afterSha256": "e753c9ee9f2aecc2d52a6d6a51b30b7e19766dc4151d4833c4f7b34039f60c9b"
+  },
+  {
+    "path": "_bmad-output\\planning-artifacts\\epics.md",
+    "beforeSha256": "78f14114f2127d333ccb635a5a6cff1cf10418bd49d37f41e04e69ab39041a9e",
+    "afterSha256": "69b69730d5183d526e39724657df6613a6a06ab285bdcd43c8edf55397201ae2"
+  },
+  {
+    "path": "_bmad-output\\planning-artifacts\\implementation-readiness-report-2026-09-10-epic-15.md",
+    "beforeSha256": "ebb37df6b30604c547d6761cc4900cdac8c1853acce9b0a99881a291631ebee1",
+    "afterSha256": "181edd4c4842552fb096ff69e4c61ac726797c36ccf6ab5b71cdeaf014f09c0e"
+  },
+  {
+    "path": "_bmad-output\\planning-artifacts\\prd.md",
+    "beforeSha256": "4ab69e3bee54f7736073983183b04323c11128dad4e4c568bdc2dd72a327a6b3",
+    "afterSha256": "cf5acf038ff0acc98bf2340c445cf7b1a38b79c0844291e6ebbf2e2e66ef3889"
+  },
+  {
+    "path": "_bmad-output\\test-artifacts\\test-design\\test-design-epic-15.md",
+    "beforeSha256": "0b728ac8507e8be66596af6fc3ab3a365d2bb9bc6b4ec79b0501f3e9f880f665",
+    "afterSha256": "5cbe408dab8cab282d729f098915249e69c6bd77a416f7c67d05c215dd651f48"
+  }
+]

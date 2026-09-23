@@ -1,0 +1,156 @@
+{
+  "reason": "User confirmed Epic 15 / Story 15.2 review is current. Historical resume records retired without claiming completion or changing sprint statuses.",
+  "archived_at": "2026-09-21T16:03:27.9807305Z",
+  "records": [
+    {
+      "story_key": "13-1-provider-classified-cold-starts-dependency-path-tracing-and-isolated-restore-drill",
+      "sha256": "611D8C869EF48139BD1351C873BF02C1EAC60E4CEC9C4EC34F829EFBB6FDCA8C",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/13-1-provider-classified-cold-starts-dependency-path-tracing-and-isolated-restore-drill.yaml"
+    },
+    {
+      "story_key": "11-8-live-verification-pass-touch-gesture-perf-guards",
+      "sha256": "C08F07A0DEAA49D879688BD6245D6A6B962AF3B078E1D4732BE2CC97B382D606",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/11-8-live-verification-pass-touch-gesture-perf-guards.yaml"
+    },
+    {
+      "story_key": "11-7-hygiene-deferred-debt",
+      "sha256": "0DD69854C8272AAB0F35C852452E05C58E913F7FE0651CFDC66C9EE495B83A4B",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/11-7-hygiene-deferred-debt.yaml"
+    },
+    {
+      "story_key": "11-6-venue-detail-clean-first-paint-content-polish",
+      "sha256": "D9AC042928D850C32ADD2F46BB590EA814AB895C53259D54FF5845814B9EEAC2",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/11-6-venue-detail-clean-first-paint-content-polish.yaml"
+    },
+    {
+      "story_key": "11-5-map-legibility-location-dot-recenter",
+      "sha256": "3F9C7255665B5E88FD658CB2C1ED7F99757DC7A010F493F0221B0B354F8BEC7B",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/11-5-map-legibility-location-dot-recenter.yaml"
+    },
+    {
+      "story_key": "11-4-venue-quick-info-rework-reference-alignment",
+      "sha256": "3870EB2B3BF52D3AED8B6B93A49DE1F4D4E4F21966F213F4BD80832BE8311A40",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/11-4-venue-quick-info-rework-reference-alignment.yaml"
+    },
+    {
+      "story_key": "11-3-mobile-tag-filtering-bottom-sheet-overhaul",
+      "sha256": "028095AF38DF06280AFD2BC7EC6D8C314B5C5639355FBDA1D07BC9DA09E2F6F0",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/11-3-mobile-tag-filtering-bottom-sheet-overhaul.yaml"
+    },
+    {
+      "story_key": "11-2-time-slider-drag-fix-planner-range-rules",
+      "sha256": "05299949F044DC35BB44C60C16BEBDB8E055BE4FF464F11F5AEA86599CC1ED4B",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/11-2-time-slider-drag-fix-planner-range-rules.yaml"
+    },
+    {
+      "story_key": "11-1-client-side-day-series-instant-time-scrubbing",
+      "sha256": "8E981D6CBF936E0AFE4AF5FF417FBD4B1447239F47C86A5A9252076CD1DE2248",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/11-1-client-side-day-series-instant-time-scrubbing.yaml"
+    },
+    {
+      "story_key": "10-5-weather-reality-verification-pass-regression-guards",
+      "sha256": "A3C1BF42E58CE51D1925F9ADA2D81F57DFFC74B530DCDCAD14B33FA1A8D096D6",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/10-5-weather-reality-verification-pass-regression-guards.yaml"
+    },
+    {
+      "story_key": "10-4-rain-now-signal-met-no-nowcast",
+      "sha256": "BFCC0FC30B8863F18313C8E7402BF2F3EAAAB9EEE445FFD8E49C8363007BBAF8",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/10-4-rain-now-signal-met-no-nowcast.yaml"
+    },
+    {
+      "story_key": "10-3-layered-cloud-detail-met-no-complete-endpoint",
+      "sha256": "78E034F0413F95105E06C69569A78A9C6243680DABCB2D9520A9626394BAC8BD",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/10-3-layered-cloud-detail-met-no-complete-endpoint.yaml"
+    },
+    {
+      "story_key": "10-2-sun-behind-clouds-two-signal-ui-state",
+      "sha256": "6A96C4F99B8CCCEB9BF0C6FF5007790804777E4E61441170CEE6EEAE5D1390A2",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/10-2-sun-behind-clouds-two-signal-ui-state.yaml"
+    },
+    {
+      "story_key": "10-1-cloud-gated-sun-state-weather-truth-fixes",
+      "sha256": "949E043A5CAD6780F641DB186B14C1ED938A245668350BB875108EE38FAC2A15",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/10-1-cloud-gated-sun-state-weather-truth-fixes.yaml"
+    },
+    {
+      "story_key": "9-10-mobile-device-verification-pass-regression-guards",
+      "sha256": "36E7DCE19F453D7B005AA941A643866E0B736B7BE9EDB5F19C865734B7D7E525",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/9-10-mobile-device-verification-pass-regression-guards.yaml"
+    },
+    {
+      "story_key": "9-9-mobile-venue-quick-info-card-rework",
+      "sha256": "77BF7B4757BF6A31CEAC48EF548E1767CF782AC5CC684DA8E4D30FA6E5E0C81B",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/9-9-mobile-venue-quick-info-card-rework.yaml"
+    },
+    {
+      "story_key": "9-8-venue-sharing-real",
+      "sha256": "FA7BD11789906304B47BB9CC7C9274D79F6EBC2BE171919F22E32347020F8734",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/9-8-venue-sharing-real.yaml"
+    },
+    {
+      "story_key": "9-7-tag-filtering-real-data-working-chips",
+      "sha256": "8FBBAEA6806BF85A43127CD9DB35AFA649C642B620E2D87D881BF1E01DF8631C",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/9-7-tag-filtering-real-data-working-chips.yaml"
+    },
+    {
+      "story_key": "9-6-map-chrome-consolidation-dead-control-cleanup",
+      "sha256": "2E7E813895A15A6EA917E98C838485C2877CBC1FCEF561674E379203C25DA62C",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/9-6-map-chrome-consolidation-dead-control-cleanup.yaml"
+    },
+    {
+      "story_key": "9-5-location-onboarding-reliability",
+      "sha256": "F6E985CF4A28A4142D784793C799891813AD586BE99BBD79978CEAF8D358C7CE",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/9-5-location-onboarding-reliability.yaml"
+    },
+    {
+      "story_key": "9-4-client-query-hygiene-time-change-debounce",
+      "sha256": "2091143E45F3716695B6AA5E87D575F2DF40C599F7C908C1CD9FBB6EA62B83E8",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/9-4-client-query-hygiene-time-change-debounce.yaml"
+    },
+    {
+      "story_key": "9-3-venue-sun-compute-performance-server-caching",
+      "sha256": "995B91AF744D0E8D8807B0FBA516CD01C205CD070A6DB73C95EB88E47CE2CA8B",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/9-3-venue-sun-compute-performance-server-caching.yaml"
+    },
+    {
+      "story_key": "9-2-design-system-cta-token-fix-copy-correction",
+      "sha256": "787FB883BF95E62A0887C25CD9ED1F73F2CB8B4350D9D73F629F4E374575915C",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/9-2-design-system-cta-token-fix-copy-correction.yaml"
+    },
+    {
+      "story_key": "9-1-clean-app-content-sweep",
+      "sha256": "A0FE83BA5337CD8AE4681FF3DFA03CD80B7EA0C79C5D0A78EDBC7C9950E58CCB",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/9-1-clean-app-content-sweep.yaml"
+    },
+    {
+      "story_key": "9-0-production-gate-the-dev-planner-forcing-url-leak",
+      "sha256": "5BEFEFF4F99EB16CC6D075CEEE634F464A6C255146523247E8CAE90088B40B34",
+      "original_status": "in-progress",
+      "archive_file": "_bmad-output/auto-bmad/state/archive/2026-09-21-phase-alignment/9-0-production-gate-the-dev-planner-forcing-url-leak.yaml"
+    }
+  ]
+}

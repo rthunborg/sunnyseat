@@ -647,20 +647,6 @@ documented, but it is not the launch contract.
   false-positive ceiling from that representative sample; no unmeasured accuracy
   percentage may be advertised.
 
-### Current Epic 15 disposition — consolidated 2026-09-15
-
-Rasmus explicitly accepted consolidation of the reviewed measurement choices into canonical architecture.md E15-AD-01/02. G1a–G1d is accepted under the September 10/12/14 decisions and CD15.1-v1/A1; Story 15.1 is done, while 15.2–15.6 remain backlog and are not started by this update. Earlier dated pending/default statements are historical and superseded by this disposition.
-
-The binding contract is >=5° supported-model horizon, <=10s UTC roots, five-minute UTC base/endpoints, 5pp endpoint-proximity or classification-change trigger, one-minute probes, <=100ms detected brackets, <=2-minute matched-transition target, and >=300s reconstructed public windows. Preserve every detected shade gap and the accepted four-minute missed-gap risk; finite comparisons do not prove universal discovery or physical accuracy. Missing/exhausted computation and unresolved duration fail completion. Below 5° does not prove physical absence of direct sunlight; independent fresh coherent likely-weather remains necessary.
-
-Require all 245 actual-year March–October dates for every non-deleted venue including hidden/new venues; remaining dates are staging only. Use full Float64 adaptive arrays/raw boundaries and shared immutable versioned inputs. Historical replay requires original retained geometry/input, weather and classifier evidence; recomputation with new inputs is not the historical prediction.
-
-The complete accepted CD15.1-v1 numerical table controls, including one worker, <=5 venues×3 dates per shard and 375MB warning/400MB aggregate admission. Retain current and previous actual-year seasons, each with current plus compatible rollback generations, and all evidence-referenced generations; count shared physical generations once. **Capacity admission remains held**, and accepted targets are not deployed compliance.
-
-A1 retains NOT RUN cold/combined-read, no-op DB p95 and matched writer-load proof at **15.5 I13 before 15.6 O02**; actual-year retained diversity/churn at **15.2 storage validation and 15.5 I13**; fresh aggregate/disk/WAL headroom at **O01/O02**. Full-cohort implemented throughput and new/removed-caster spatial resolution remain **15.3/15.5**. Public DTO parity, compatible rollback, Epic 13 cold/recovery and Epic 14 weather/field gates remain mandatory. No runtime or production operation is authorized.
-
-Acceptance trace: [September 15 consolidation](decisions/epic-15-architecture-consolidation-2026-09-15.md).
-
 ### Owner policy amendment — accepted 2026-09-10
 
 Rasmus accepted the [Epic 15 owner policy](decisions/epic-15-owner-policy-2026-09-10.md). This supersedes earlier pending product-choice wording for NFR20/NFR35/NFR40 and E15-AD-01/02; it does not certify measurements or deployed behavior.

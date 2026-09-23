@@ -3,7 +3,7 @@ title: 'Epic 15 risk-based verification plan'
 date: '2026-09-10'
 author: 'Codex — Test Architect'
 designLevel: epic
-status: 'Measurement decisions accepted; candidate validation and capacity admission pending'
+status: 'Planning complete; owner decisions and execution pending'
 workflowStatus: completed
 totalSteps: 5
 stepsCompleted: [step-01-detect-mode, step-02-load-context, step-03-risk-and-testability, step-04-coverage-plan, step-05-generate-output]
@@ -34,13 +34,13 @@ inputDocuments:
 
 ## Executive summary and decision boundary
 
-This is a verification design, not measurement evidence, a dedicated story brief, implementation approval, or a launch verdict. The [readiness report](../../planning-artifacts/implementation-readiness-report-2026-09-10-epic-15.md) permits Story 15.1 preparation and measurement after normal story preflight. The measurement decision lock is satisfied under CD15.1-v1/A1; Stories 15.2–15.6 retain their ordered predecessors and explicit story-start boundary. Story 15.6 additionally requires separate maintainer authorization for production operations.
+This is a verification design, not measurement evidence, a dedicated story brief, implementation approval, or a launch verdict. The [readiness report](../../planning-artifacts/implementation-readiness-report-2026-09-10-epic-15.md) permits Story 15.1 preparation and measurement after normal story preflight. Stories 15.2–15.6 remain behind the measurement decision lock and their ordered predecessors. Story 15.6 additionally requires separate maintainer authorization for production operations.
 
-The controlling requirements are [PRD](../../planning-artifacts/prd.md) NFR20/NFR35/NFR40, [architecture](../../planning-artifacts/architecture.md) E15-AD-01/02, [Epic 15 and the Epic 13/14 amendments](../../planning-artifacts/epics.md), and [sprint state](../../implementation-artifacts/sprint-status.yaml). The [September 9 proposal](../../planning-artifacts/sprint-change-proposal-2026-09-09.md) is approved decision history; its estimates and earlier remaining-season wording are not a competing specification. Story 15.1 is done; 15.2–15.6 remain backlog. The September 15 disposition below governs current decisions; the original protocol and historical alternatives remain traceable. Epic 12 is done; Epic 13/13.1 is in progress. Missing Epic 14 sprint keys do not mean completion.
+The controlling requirements are [PRD](../../planning-artifacts/prd.md) NFR20/NFR35/NFR40, [architecture](../../planning-artifacts/architecture.md) E15-AD-01/02, [Epic 15 and the Epic 13/14 amendments](../../planning-artifacts/epics.md), and [sprint state](../../implementation-artifacts/sprint-status.yaml). The [September 9 proposal](../../planning-artifacts/sprint-change-proposal-2026-09-09.md) is approved decision history; its estimates and earlier remaining-season wording are not a competing specification. All six Epic 15 stories remain backlog. Epic 12 is done; Epic 13/13.1 is in progress. Missing Epic 14 sprint keys do not mean completion.
 
 The plan has **14 risks, 11 high risks (score >=6)**, and **28 scenario families: 7 measurement, 16 implementation/proof, 5 rollout**. Priorities are 10 P0, 17 P1 and 1 P2 families; each expands into the parameterized cases below. No P3 work is necessary. P0 is intentionally concentrated on truth, coverage and irreversible data-integrity exposure rather than a generic percentage quota. Every required AC remains mandatory at any priority.
 
-The horizon, detector risk, completeness, encoding and operating budgets are accepted under CD15.1-v1/A1. Implementation verification and capacity admission remain outstanding. Measurements may expose failed candidates. They must not convert an unsupported bound into an accepted accuracy reduction.
+The key unresolved decisions are interior-window detection, model-horizon semantics/presentation, full-season completeness, and measured encoding/compute/storage/read budgets. Measurements may expose failed candidates. They must not convert an unsupported bound into an accepted accuracy reduction.
 
 ## Non-negotiable contract and exclusions
 
@@ -60,7 +60,7 @@ The horizon, detector risk, completeness, encoding and operating budgets are acc
 
 ## Risk assessment
 
-Probability: 1 unlikely, 2 possible, 3 likely/known gap. Impact: 1 minor, 2 degraded with workaround, 3 core truth, availability, security or evidence integrity. Score = probability × impact. Scores >=6 require evidenced mitigation; score 9 prevents the affected downstream gate while open. These are planning judgments, not incident-frequency measurements. The original risk scores below are retained. Measurement-choice dispositions for R-01/R-02/R-03 and budget selection for R-08 follow the accepted September 15 consolidation; residual and implementation risks remain subject to their candidate gates. Owners are existing role responsibilities, not dispatched assignments.
+Probability: 1 unlikely, 2 possible, 3 likely/known gap. Impact: 1 minor, 2 degraded with workaround, 3 core truth, availability, security or evidence integrity. Score = probability × impact. Scores >=6 require evidenced mitigation; score 9 prevents the affected downstream gate while open. These are planning judgments, not incident-frequency measurements. All risks below are **OPEN**; owners are existing role responsibilities, not dispatched assignments.
 
 | ID | Category | Failure and basis | P | I | Score | Mitigation / scenarios | Owner; deadline |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -109,16 +109,16 @@ The [September 10 launch handoff](../../../docs/launch/launch-readiness-handoff-
 | G0 — start 15.1 | Dedicated measurement brief, recorded branch/HEAD/dirty state, typecheck and lint from `nextjs-app/`, fixture provenance and isolated lane availability. Unrelated baseline failures stop story edits. Not run here. | Architect + Test Architect |
 | G1a — horizon/presentation | Actual 0°/5° boundaries, low-angle durations, placeholder deltas, rounding/inclusion and Swedish/ARIA examples. Accept the model-qualified claim, not physical darkness. F1/F2. | Rasmus with PM/Architect |
 | G1b — detection policy | Complete interval comparisons, missed/false-window durations, worst transition errors, sample costs and safety-limit outcome. Lock an interior-probe/equivalent method and the supported claim. F1/F3. | Rasmus with Architect/Test Architect |
-| G1c — completeness | ACCEPTED: full actual-year March–October for every non-deleted venue including hidden/new venues. No effective-date exemption or cross-year substitution; remaining dates are staging only. F4 resolved by owner policy; I02/I07/I08 still required. | Rasmus + PM/Architect; before schema |
-| G1d — encoding and budgets | Observed arrays/bytes/JSONB comparisons, initial/incremental CPU, storage/retention/headroom, decode/batch/read measurements. The complete CD15.1-v1 budgets and shard/limit choices are ACCEPTED under A1; cold/load/retained-diversity proof remains NOT RUN at the specified candidate gates and capacity admission remains held. F1/F5. | Rasmus + Architect/Test Architect |
+| G1c — completeness | Full March–October generation for every published non-deleted venue including hidden, OR explicit approved effective-date applicability with historical read/replay/feedback/edit/deletion/rollover semantics and synchronized living specs. Until then remaining dates are staging only. F4. | Rasmus + PM/Architect; before schema |
+| G1d — encoding and budgets | Observed arrays/bytes/JSONB comparisons, initial/incremental CPU, storage/retention/headroom, decode/batch/read measurements. Final numerical budgets and shard/limit choices are UNKNOWN until accepted. F1/F5. | Rasmus + Architect/Test Architect |
 | G2 — implementation sequence | Accepted versioned G1 record precedes 15.2; then 15.2 → 15.3 → 15.4 → 15.5. Each story retains its own review/human completion gate. | PM + story owners |
 | G3 — production and launch | 15.5 evidence, approved candidate, separately scoped production migration/publication/rollback/retirement authorization. Independent Epic 14 field correctness and weather scheduler reliability remain open. | Maintainer + PM |
 
-G1 is one combined decision lock: partial acceptance does not unlock schema work. Failed bounds require an explicit amendment; neither elapsed time nor this plan is approval. G1 is now accepted under CD15.1-v1/A1; this does not pass carried measurements or start another story. PM must reconcile Epic 14 sprint tracking when authorized (readiness F6); this task does not regenerate it.
+G1 is one combined decision lock: partial acceptance does not unlock schema work. Failed bounds require an explicit amendment; neither elapsed time nor this plan is approval. Measurements can compare alternatives while the decision is open. PM must reconcile Epic 14 sprint tracking when authorized (readiness F6); this task does not regenerate it.
 
-## Story 15.1 measurement protocol — retained original experiment design
+## Story 15.1 measurement protocol — separate from implementation
 
-**Purpose:** characterize alternatives and deliver a decision record. No production schema, pointer, runtime or schedule changes. A failed candidate is a valid experimental finding, not successful implementation evidence. M01–M07 below retain the original experiment protocol and alternatives; current results and scope transfers are governed by CD15.1-v1/A1. They must not be read as a new pending measurement decision or as completed candidate tests.
+**Purpose:** characterize alternatives and deliver a decision record. No production schema, pointer, runtime or schedule changes. A failed candidate is a valid experimental finding, not successful implementation evidence. M01–M07 are planned experiments, not test scaffolds.
 
 ### Reproducibility and reference contract
 
@@ -243,8 +243,8 @@ AC numbers refer to the existing numbered lists in `epics.md`; scenario descript
 | NFR35 — integrity/availability | 100% compatible current-input exact-date release; partial/corrupt rejected; supported-model negative distinct from missing geometry; continuous selectable midnight coverage | Exact-set/checksum/mutation/race ledger I02/I07–I09, publication evidence O02/O03 |
 | NFR40 — lifecycle/reliability | Bounded/resumable/idempotent; current and previous season plus >=2 verified releases and evidence references; safe compatible rollback | Raw shard/recovery/retention/drill results I05/I14–I16; observation O04 |
 | Performance/scalability | Existing approximately 5-second cold gate and warm <200 ms target; <=600 KB gzipped total JS, <=280 KB initial route, <=320 KB MapLibre; NFR18 <=10,000 MAU within $100/month and NFR19 5× baseline traffic remain constraints | CPU/size/decode M05/M06, candidate DB/query/load/build I13. Define exact latency measurement boundaries/cache cohorts and baseline concurrency in G1d; do not imply arbitrary 500-VU load or provider cold from local timing. |
-| New E15 budgets | **Accepted under CD15.1-v1/A1:** full numerical table in canonical E15-AD-01/02; capacity remains held and candidate compliance remains unproved | Measurement decision record with units, workload, environment and approving owner; I13/O02 compare actual candidate results |
-| Accuracy/model convention | Accepted >=5° / 5pp endpoint-proximity or classification-change trigger / one-minute probes / <=100ms detected brackets / <=2-minute matched transitions / <=10-second roots; accepted missed-gap risk, not universal or physical guarantees | M01–M04 decision evidence then I04; independent physical field evidence O05 |
+| New E15 budgets | **UNKNOWN pending G1d:** initial/repair/all-invalidation wall time and CPU ceiling, shard/lease/safety-limit settings, total retained database bytes/headroom, decode/batch/read ceiling and permitted load deltas | Measurement decision record with units, workload, environment and approving owner; I13/O02 compare actual candidate results |
+| Accuracy/model convention | >=5° / >=10-point trigger / <=2-minute transitions / <=10-second roots are proposed planning targets awaiting G1, not achieved guarantees | M01–M04 decision evidence then I04; independent physical field evidence O05 |
 | Weather NFR28/NFR34 | Two-hour TTL, signed ±90-minute matching, coherent likely only, zero live public provider calls | I11 truth/admission matrix and attempted-call counters; I12 semantic/cached behavior |
 | Security and maintainability | Service-role boundary, no secrets/server inputs in DTOs/logs, compatible migrations, normal typecheck/lint/tests and documentation gates | I03/I10/I16 role and boundary evidence; required story checks; no unrelated new compliance/product features |
 | Accessibility NFR22–27 | WCAG 2.1 AA, Swedish accessible uncertainty, keyboard/focus, 44×44 touch, contrast, no colour-only status, reduced motion | I12 component/E2E/axe and human low-angle semantic review; existing visual gate when a frontend story has mapped screens |
@@ -281,29 +281,13 @@ Each future evidence row records scenario/variant ID, AC and risk IDs, candidate
 
 Final release evidence should include measurement/G1 record, full exact-set coverage manifest, quarter-hour difference ledger, transition/window report, g2 vectors, DB migration/security/concurrency/recovery outputs, weather and provider-call matrix, candidate size/performance/build reports, compatible rollback drill, evidence-retention check, and O01–O05 authorization/observation/launch disposition. These are future artifact types, not files claimed to exist today. `bmad-testarch-trace` and NFR assessment can consume them later; neither is invoked here.
 
-Planning checklist disposition: controlling sources and readiness F1–F6 mapped; all 35 ACs mapped; risk owners/deadlines and unknown thresholds explicit; measurement/implementation/rollout separated; inherited coverage limits and production history attributed; no production or application work performed. G1 choices are now accepted; downstream implementation still owes the carried candidate evidence and capacity admission. Test design approval, measurement decision lock and launch approval are **not granted** by workflow completion.
+Planning checklist disposition: controlling sources and readiness F1–F6 mapped; all 35 ACs mapped; risk owners/deadlines and unknown thresholds explicit; measurement/implementation/rollout separated; inherited coverage limits and production history attributed; no production or application work performed. Open G1 decisions are deliberately unresolved, so “requirements unambiguous” is conditional for downstream implementation. Test design approval, measurement decision lock and launch approval are **not granted** by workflow completion.
 
 ## Method and handoff
 
 Used the installed `bmad-testarch-test-design` epic template/steps/checklist and its risk-governance, probability-impact, test-levels, test-priorities and NFR guidance; consulted SunnySeat `test-gate`. The template's execution-timing headings and generic thresholds were adapted to the workflow checklist and binding Epic 15 requirements. Sequential epic output is appropriate; no agents were dispatched. Python customization resolution was unavailable, so base/team/user customization files were checked using the documented fallback (base project-context fact, no team/user overrides found). No browser/Pact exploration or utility/framework installation is necessary for this bounded document/code assessment.
 
-Measurement preparation/execution and owner lock are complete under CD15.1-v1/A1. Next implementation work requires a separately started Story 15.2 and normal preflight; all carried candidate gates remain mandatory. Do not scaffold later implementation tests, update sprint state, or start production from this handoff. Preserve the historical proposal, readiness report and existing user work.
-
-### Current Epic 15 disposition — consolidated 2026-09-15
-
-Rasmus explicitly accepted consolidation of the reviewed measurement choices into canonical architecture.md E15-AD-01/02. G1a–G1d is accepted under the September 10/12/14 decisions and CD15.1-v1/A1; Story 15.1 is done, while 15.2–15.6 remain backlog and are not started by this update. Earlier dated pending/default statements are historical and superseded by this disposition.
-
-The binding contract is >=5° supported-model horizon, <=10s UTC roots, five-minute UTC base/endpoints, 5pp endpoint-proximity or classification-change trigger, one-minute probes, <=100ms detected brackets, <=2-minute matched-transition target, and >=300s reconstructed public windows. Preserve every detected shade gap and the accepted four-minute missed-gap risk; finite comparisons do not prove universal discovery or physical accuracy. Missing/exhausted computation and unresolved duration fail completion. Below 5° does not prove physical absence of direct sunlight; independent fresh coherent likely-weather remains necessary.
-
-Require all 245 actual-year March–October dates for every non-deleted venue including hidden/new venues; remaining dates are staging only. Use full Float64 adaptive arrays/raw boundaries and shared immutable versioned inputs. Historical replay requires original retained geometry/input, weather and classifier evidence; recomputation with new inputs is not the historical prediction.
-
-The complete accepted CD15.1-v1 numerical table controls, including one worker, <=5 venues×3 dates per shard and 375MB warning/400MB aggregate admission. Retain current and previous actual-year seasons, each with current plus compatible rollback generations, and all evidence-referenced generations; count shared physical generations once. **Capacity admission remains held**, and accepted targets are not deployed compliance.
-
-A1 retains NOT RUN cold/combined-read, no-op DB p95 and matched writer-load proof at **15.5 I13 before 15.6 O02**; actual-year retained diversity/churn at **15.2 storage validation and 15.5 I13**; fresh aggregate/disk/WAL headroom at **O01/O02**. Full-cohort implemented throughput and new/removed-caster spatial resolution remain **15.3/15.5**. Public DTO parity, compatible rollback, Epic 13 cold/recovery and Epic 14 weather/field gates remain mandatory. No runtime or production operation is authorized.
-
-Candidate seam assertions: I05 must enforce one active geometry worker across the pilot while unrelated/urgent work can queue; duplicate builders and publication races remain tested. I14/I15 must retain a complete compatible rollback release manifest and every referenced generation for each retained season, not merely per-venue fallback rows. I02/I10 must derive season_year from the requested Stockholm date, never the wall-clock year, and return typed coverage 503 when that compatible requested-season release is absent. These clarify existing accepted invariants without increasing concurrency, reducing retention or expanding the public planner.
-
-Acceptance trace: [September 15 consolidation](../../planning-artifacts/decisions/epic-15-architecture-consolidation-2026-09-15.md).
+Next work is a fresh Story 15.1 measurement brief and normal preflight, followed by actual measurement and owner decision lock. Do not scaffold later implementation tests, update sprint state, or start production from this handoff. Preserve the historical proposal, readiness report and existing user work.
 
 ### Owner policy amendment — accepted 2026-09-10
 

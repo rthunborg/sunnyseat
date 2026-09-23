@@ -1,0 +1,5 @@
+{
+  "target": "canonical architecture.md E15-AD-01/02",
+  "adaptation": "Installed lint_spine functions with namespaced heading regex, no renumbering or competing spine. Existing stack inherited.",
+  "findings": []
+}

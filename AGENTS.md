@@ -102,6 +102,8 @@ Stop dev infrastructure with `docker compose -f compose.yaml down`; reset persis
 
 ### Agent Delegation
 
+Use `gpt-5.6-sol` with `medium` reasoning effort for all Codex delegates, including every auto-bmad profile. Keep the auto-bmad runtime config, default profile source, and generated `.codex/agents/` definitions aligned with this rule. Profile names describe responsibilities; they do not select different models or effort levels. Change this model/effort policy only when the user explicitly requests it.
+
 Agents may spawn subagents when it is useful and relevant to the task at hand, including parallel review layers, codebase exploration, verification, and other bounded subtasks that materially advance the work. Keep delegated tasks concrete, read-only unless implementation ownership is explicit, and integrate the results before presenting conclusions. This repo-level permission is intended to avoid repeated human approval prompts for normal subagent use; it cannot override higher-priority platform or runtime instructions if those are stricter.
 
 ### Design Tokens

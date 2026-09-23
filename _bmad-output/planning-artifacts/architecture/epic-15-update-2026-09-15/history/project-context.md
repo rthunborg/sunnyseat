@@ -497,34 +497,11 @@ This table is read by `scripts/story-review.sh` and `scripts/visual-validate.sh`
 Rasmus approved the [Correct Course proposal](_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-09.md) for planning handoff. The controlling design is [architecture](_bmad-output/planning-artifacts/architecture.md) E15-AD-01/02; requirements are PRD NFR20/NFR35/NFR40; [Epic 15](_bmad-output/planning-artifacts/epics.md) contains six ordered backlog stories. Earlier descriptions of rolling persisted geometry remain the deployed baseline until rollout evidence says otherwise.
 
 - Generate an explicit March 1–October 31 season year using Europe/Stockholm, with actual per-date/per-venue model-supported daylight independent of opening hours or picker limits. Rollover builds the next explicit year; no public season or today+3/06:00–21:00/15-minute picker expansion.
-- Approved planning horizon is refraction-corrected solar-centre >=5°, separate from >0° visibility. Unsupported low-angle negatives are not claims of physical darkness. Preserve exact edges; accepted detector, completeness, encoding and budgets are consolidated in E15-AD-01/02; CD15.1-v1/A1 closes the measurement decision lock with mandatory later candidate proof.
+- Approved planning horizon is refraction-corrected solar-centre >=5°, separate from >0° visibility. Unsupported low-angle negatives are not claims of physical darkness. Preserve exact edges; proposed adaptive transition policy and completeness semantics require Story 15.1 measurement and owner decision lock.
 - Compact immutable venue/day generations bind g2 geometry/engine inputs; complete compatible release manifests publish atomically. Display-only pins and weather do not invalidate geometry. Staged edits retain matching old inputs/results; committed mismatches fail closed. No request geometry compute.
 - Public affirmative direct sun remains geometry >50% plus coherent `directSunState === 'likely'`. Missing/stale/malformed/incomplete/unmatched/contradictory weather never becomes clear. Keep two-hour TTL, signed ±90-minute provider-valid-time matching and snapshot-only public reads with zero live Met.no calls.
 - Retain current/previous season and verified rollback releases with evidence-referenced generations. Routine geometry schedule retirement requires verified rollout plus at least seven days and one real invalidation. Weather refresh and its unresolved scheduling reliability remain separate from geometry and Epic 14 field accuracy.
 - Preserve Swedish-first copy, accessibility, component/API boundaries and existing performance budgets. Epic 12 remains closed. Approval did not implement app changes or authorize production operations.
-
-### Current Epic 15 disposition — consolidated 2026-09-15
-
-**Workflow update (2026-09-23):** Stories 15.1 and 15.2 are done; Story 15.3 is
-the next implementation target. Invoke `/auto-bmad --story 15-3 skip branch skip pr`
-to keep Story 15.3 on the unmerged Epic 15 branch; the default per-story branch
-would start from `main` and omit 15.1/15.2. Story 13.1 remains in progress for
-its independent provider-cold and restore evidence. Epic 14 tracking records
-14.1 as done and 14.2–14.6 as backlog; those launch gates remain independent.
-The dated consolidation below records the earlier decision and does not claim
-that later gates have passed.
-
-Rasmus explicitly accepted consolidation of the reviewed measurement choices into canonical architecture.md E15-AD-01/02. G1a–G1d is accepted under the September 10/12/14 decisions and CD15.1-v1/A1; Story 15.1 is done, while 15.2–15.6 remain backlog and are not started by this update. Earlier dated pending/default statements are historical and superseded by this disposition.
-
-The binding contract is >=5° supported-model horizon, <=10s UTC roots, five-minute UTC base/endpoints, 5pp endpoint-proximity or classification-change trigger, one-minute probes, <=100ms detected brackets, <=2-minute matched-transition target, and >=300s reconstructed public windows. Preserve every detected shade gap and the accepted four-minute missed-gap risk; finite comparisons do not prove universal discovery or physical accuracy. Missing/exhausted computation and unresolved duration fail completion. Below 5° does not prove physical absence of direct sunlight; independent fresh coherent likely-weather remains necessary.
-
-Require all 245 actual-year March–October dates for every non-deleted venue including hidden/new venues; remaining dates are staging only. Use full Float64 adaptive arrays/raw boundaries and shared immutable versioned inputs. Historical replay requires original retained geometry/input, weather and classifier evidence; recomputation with new inputs is not the historical prediction.
-
-The complete accepted CD15.1-v1 numerical table controls, including one worker, <=5 venues×3 dates per shard and 375MB warning/400MB aggregate admission. Retain current and previous actual-year seasons, each with current plus compatible rollback generations, and all evidence-referenced generations; count shared physical generations once. **Capacity admission remains held**, and accepted targets are not deployed compliance.
-
-A1 retains NOT RUN cold/combined-read, no-op DB p95 and matched writer-load proof at **15.5 I13 before 15.6 O02**; actual-year retained diversity/churn at **15.2 storage validation and 15.5 I13**; fresh aggregate/disk/WAL headroom at **O01/O02**. Full-cohort implemented throughput and new/removed-caster spatial resolution remain **15.3/15.5**. Public DTO parity, compatible rollback, Epic 13 cold/recovery and Epic 14 weather/field gates remain mandatory. No runtime or production operation is authorized.
-
-Acceptance trace: [September 15 consolidation](_bmad-output/planning-artifacts/decisions/epic-15-architecture-consolidation-2026-09-15.md).
 
 ### Owner policy amendment — accepted 2026-09-10
 

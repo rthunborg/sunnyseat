@@ -6,7 +6,7 @@ model_reasoning_effort = "medium"
 [features]
 # Hook support is intentionally conservative; see .codex/hooks.json and
 # CODEX_MIGRATION_NOTES.md for the manual verification still required.
-codex_hooks = true
+hooks = true
 
 [shell_environment_policy]
 inherit = "core"
