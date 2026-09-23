@@ -1,0 +1,414 @@
+{
+  "baseline": {
+    "database_bytes": 7705391,
+    "fsync": "on",
+    "full_page_writes": "on"
+  },
+  "current": {
+    "database_bytes": 8917807,
+    "day_rows": 252,
+    "day_samples": 32173,
+    "days_total_bytes": 458752,
+    "inputs_total_bytes": 622592,
+    "version": "PostgreSQL 15.13 (Debian 15.13-1.pgdg110+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 10.2.1-6) 10.2.1 20210110, 64-bit"
+  },
+  "retained": {
+    "database_bytes": 10695471,
+    "day_rows": 1260,
+    "day_samples": 160865,
+    "days_total_bytes": 2113536,
+    "inputs_total_bytes": 622592,
+    "version": "PostgreSQL 15.13 (Debian 15.13-1.pgdg110+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 10.2.1-6) 10.2.1 20210110, 64-bit"
+  },
+  "loadWallMs": 415.06370000000004,
+  "loadWalBytes": 1247464,
+  "n": 1,
+  "summary": {
+    "venueDays": 252,
+    "runs": 771,
+    "shadeRuns": 486,
+    "short": [
+      {
+        "id": "34",
+        "date": "2026-03-29",
+        "index": 0,
+        "sunny": false,
+        "seconds": 50.0165,
+        "interior": false,
+        "start": 1774762303000,
+        "end": 1774762353016.5
+      },
+      {
+        "id": "34",
+        "date": "2026-03-29",
+        "index": 4,
+        "sunny": false,
+        "seconds": 239.0215,
+        "interior": false,
+        "start": 1774803552977.5,
+        "end": 1774803791999
+      },
+      {
+        "id": "35",
+        "date": "2026-03-29",
+        "index": 1,
+        "sunny": true,
+        "seconds": 29.0045,
+        "interior": true,
+        "start": 1774774655008.5,
+        "end": 1774774684013
+      },
+      {
+        "id": "38",
+        "date": "2026-06-21",
+        "index": 5,
+        "sunny": true,
+        "seconds": 95.994,
+        "interior": false,
+        "start": 1782069366005,
+        "end": 1782069461999
+      },
+      {
+        "id": "40",
+        "date": "2026-06-21",
+        "index": 4,
+        "sunny": false,
+        "seconds": 222.9745,
+        "interior": false,
+        "start": 1782069241024.5,
+        "end": 1782069463999
+      },
+      {
+        "id": "20",
+        "date": "2026-09-22",
+        "index": 2,
+        "sunny": false,
+        "seconds": 204.0215,
+        "interior": false,
+        "start": 1790094357977.5,
+        "end": 1790094561999
+      },
+      {
+        "id": "33",
+        "date": "2026-09-22",
+        "index": 0,
+        "sunny": false,
+        "seconds": 58.0015,
+        "interior": false,
+        "start": 1790055564000,
+        "end": 1790055622001.5
+      },
+      {
+        "id": "38",
+        "date": "2026-09-22",
+        "index": 2,
+        "sunny": false,
+        "seconds": 174.01,
+        "interior": false,
+        "start": 1790094384989,
+        "end": 1790094558999
+      },
+      {
+        "id": "39",
+        "date": "2026-09-22",
+        "index": 2,
+        "sunny": false,
+        "seconds": 2.0045,
+        "interior": false,
+        "start": 1790094555994.5,
+        "end": 1790094557999
+      },
+      {
+        "id": "49",
+        "date": "2026-10-25",
+        "index": 2,
+        "sunny": false,
+        "seconds": 60,
+        "interior": true,
+        "start": 1792938696005,
+        "end": 1792938756005
+      },
+      {
+        "id": "12",
+        "date": "2026-10-31",
+        "index": 4,
+        "sunny": false,
+        "seconds": 201.0255,
+        "interior": false,
+        "start": 1793457298973.5,
+        "end": 1793457499999
+      },
+      {
+        "id": "22",
+        "date": "2026-10-31",
+        "index": 1,
+        "sunny": true,
+        "seconds": 230.977,
+        "interior": true,
+        "start": 1793438198993.5,
+        "end": 1793438429970.5
+      },
+      {
+        "id": "35",
+        "date": "2026-10-31",
+        "index": 1,
+        "sunny": true,
+        "seconds": 105,
+        "interior": true,
+        "start": 1793444364989,
+        "end": 1793444469989
+      },
+      {
+        "id": "39",
+        "date": "2026-10-31",
+        "index": 2,
+        "sunny": false,
+        "seconds": 158.01,
+        "interior": false,
+        "start": 1793457339989,
+        "end": 1793457497999
+      }
+    ],
+    "plainTopologyFailures": [
+      {
+        "id": "35",
+        "date": "2026-03-29"
+      },
+      {
+        "id": "49",
+        "date": "2026-10-25"
+      }
+    ],
+    "refinedTopologyFailures": [
+      {
+        "id": "35",
+        "date": "2026-03-29"
+      },
+      {
+        "id": "49",
+        "date": "2026-10-25"
+      }
+    ],
+    "plainOverTwoMinutes": 85,
+    "refinedOverTwoMinutes": 0,
+    "seasonSamples": 1619044,
+    "logicalArrayBytes": 19428528,
+    "measuredRefinedWallMs": 92767.07589999985,
+    "measuredRefinedCpuMs": 93899,
+    "projectedSeasonWallMs": 4668334.998407486,
+    "projectedSeasonCpuMs": 4725289.669169835,
+    "projection": [
+      {
+        "id": "10",
+        "cpuMs": 150169.9947780679,
+        "wallMs": 151888.48000952945
+      },
+      {
+        "id": "11",
+        "cpuMs": 132861.6187989556,
+        "wallMs": 131478.01601827954
+      },
+      {
+        "id": "12",
+        "cpuMs": 173873.1005221932,
+        "wallMs": 176429.4075053509
+      },
+      {
+        "id": "13",
+        "cpuMs": 69096.31462140993,
+        "wallMs": 67606.1894386429
+      },
+      {
+        "id": "14",
+        "cpuMs": 165972.06527415142,
+        "wallMs": 160851.02185939858
+      },
+      {
+        "id": "15",
+        "cpuMs": 77800.53263707572,
+        "wallMs": 72128.95432584753
+      },
+      {
+        "id": "16",
+        "cpuMs": 168987.18537859007,
+        "wallMs": 165658.047243867
+      },
+      {
+        "id": "17",
+        "cpuMs": 129835.3002610966,
+        "wallMs": 129594.98417859309
+      },
+      {
+        "id": "18",
+        "cpuMs": 123494.50652741516,
+        "wallMs": 121737.945627154
+      },
+      {
+        "id": "19",
+        "cpuMs": 164311.33812010442,
+        "wallMs": 161184.35999425396
+      },
+      {
+        "id": "20",
+        "cpuMs": 123390.65796344647,
+        "wallMs": 121081.60208303033
+      },
+      {
+        "id": "21",
+        "cpuMs": 104572.772845953,
+        "wallMs": 100225.64040679083
+      },
+      {
+        "id": "22",
+        "cpuMs": 124957.13707571801,
+        "wallMs": 118469.3504407358
+      },
+      {
+        "id": "23",
+        "cpuMs": 119421.37989556136,
+        "wallMs": 117776.36925940192
+      },
+      {
+        "id": "24",
+        "cpuMs": 91941.50913838121,
+        "wallMs": 96592.69270182647
+      },
+      {
+        "id": "25",
+        "cpuMs": 77196.64751958226,
+        "wallMs": 76763.19891174717
+      },
+      {
+        "id": "26",
+        "cpuMs": 31553.81592689295,
+        "wallMs": 30830.931591774668
+      },
+      {
+        "id": "27",
+        "cpuMs": 98234.5274151436,
+        "wallMs": 97619.90739294949
+      },
+      {
+        "id": "28",
+        "cpuMs": 62099.51958224543,
+        "wallMs": 62657.856664751416
+      },
+      {
+        "id": "29",
+        "cpuMs": 100647.51958224544,
+        "wallMs": 100102.66423498634
+      },
+      {
+        "id": "30",
+        "cpuMs": 68289.34203655353,
+        "wallMs": 68898.21423863788
+      },
+      {
+        "id": "31",
+        "cpuMs": 101405.00652741514,
+        "wallMs": 104185.84382179825
+      },
+      {
+        "id": "32",
+        "cpuMs": 125856.45822454308,
+        "wallMs": 119682.79385287363
+      },
+      {
+        "id": "33",
+        "cpuMs": 147948.01566579635,
+        "wallMs": 145221.8067681436
+      },
+      {
+        "id": "34",
+        "cpuMs": 46400.913838120105,
+        "wallMs": 46384.02430809114
+      },
+      {
+        "id": "35",
+        "cpuMs": 118021.46214099217,
+        "wallMs": 117819.27552271212
+      },
+      {
+        "id": "36",
+        "cpuMs": 175277.65535248042,
+        "wallMs": 181982.91388407728
+      },
+      {
+        "id": "37",
+        "cpuMs": 158016.60574412532,
+        "wallMs": 157465.2988908647
+      },
+      {
+        "id": "38",
+        "cpuMs": 132905.0496083551,
+        "wallMs": 134239.51494099104
+      },
+      {
+        "id": "39",
+        "cpuMs": 76294.77806788511,
+        "wallMs": 71946.312904702
+      },
+      {
+        "id": "40",
+        "cpuMs": 92046.93211488251,
+        "wallMs": 93995.0407637067
+      },
+      {
+        "id": "41",
+        "cpuMs": 151780.39686684072,
+        "wallMs": 149139.1914985631
+      },
+      {
+        "id": "42",
+        "cpuMs": 113379.43080939949,
+        "wallMs": 116078.4399858977
+      },
+      {
+        "id": "43",
+        "cpuMs": 117204.03655352481,
+        "wallMs": 113318.1113080946
+      },
+      {
+        "id": "44",
+        "cpuMs": 99003.41590612776,
+        "wallMs": 92646.99456062709
+      },
+      {
+        "id": "45",
+        "cpuMs": 3875.1305483028723,
+        "wallMs": 4385.636220626405
+      },
+      {
+        "id": "46",
+        "cpuMs": 125862.98825065274,
+        "wallMs": 123943.78652884734
+      },
+      {
+        "id": "47",
+        "cpuMs": 202100.21932114885,
+        "wallMs": 197349.2940657985
+      },
+      {
+        "id": "48",
+        "cpuMs": 103862.85117493472,
+        "wallMs": 99009.25056788295
+      },
+      {
+        "id": "49",
+        "cpuMs": 49575.332898172324,
+        "wallMs": 48835.070000915126
+      },
+      {
+        "id": "8",
+        "cpuMs": 153449.0848563969,
+        "wallMs": 147207.27533498523
+      },
+      {
+        "id": "9",
+        "cpuMs": 72317.1187989556,
+        "wallMs": 73923.28854973707
+      }
+    ]
+  },
+  "scope": "Actual 252 measured days, one generation and five identical retained copies; input capture stored once as JSONB. This is benchmark scratch layout, not proposed application schema. No seasonal shadow values fabricated; retained copies are not recomputed historical years. No new edit/read benchmark."
+}

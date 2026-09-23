@@ -1,0 +1,659 @@
+[
+  {
+    "id": "duration-299",
+    "scope": "analytic signal, not physical caster measurement",
+    "expected": {
+      "complete": true,
+      "windows": [
+        {
+          "start": 10000,
+          "end": 309000,
+          "sunny": true,
+          "durationMs": 299000,
+          "minimumDurationMs": 299000,
+          "maximumDurationMs": 299000,
+          "status": "suppressed"
+        }
+      ],
+      "intervals": [
+        {
+          "start": 0,
+          "end": 400000,
+          "sunny": false
+        }
+      ],
+      "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+    },
+    "candidates": [
+      {
+        "policy": "endpoints",
+        "actual": {
+          "complete": true,
+          "windows": [],
+          "intervals": [
+            {
+              "start": 0,
+              "end": 400000,
+              "sunny": false
+            }
+          ],
+          "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+        },
+        "comparison": {
+          "missedRuns": 0,
+          "missedMs": 0,
+          "maxMissedRunMs": 0,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [],
+          "topologyMatches": true,
+          "transitionCount": 0
+        }
+      },
+      {
+        "policy": "midpoint",
+        "actual": {
+          "complete": false,
+          "windows": [
+            {
+              "start": 9765.5,
+              "end": 308984,
+              "sunny": true,
+              "durationMs": 299218.5,
+              "minimumDurationMs": 298218.5,
+              "maximumDurationMs": 300218.5,
+              "status": "unresolved"
+            }
+          ],
+          "intervals": [
+            {
+              "start": 0,
+              "end": 400000,
+              "sunny": false
+            }
+          ],
+          "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+        },
+        "comparison": {
+          "missedRuns": 0,
+          "missedMs": 0,
+          "maxMissedRunMs": 0,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [],
+          "topologyMatches": true,
+          "transitionCount": 0
+        }
+      },
+      {
+        "policy": "minute",
+        "actual": {
+          "complete": false,
+          "windows": [
+            {
+              "start": 9843.5,
+              "end": 308906,
+              "sunny": true,
+              "durationMs": 299062.5,
+              "minimumDurationMs": 298062.5,
+              "maximumDurationMs": 300062.5,
+              "status": "unresolved"
+            }
+          ],
+          "intervals": [
+            {
+              "start": 0,
+              "end": 400000,
+              "sunny": false
+            }
+          ],
+          "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+        },
+        "comparison": {
+          "missedRuns": 0,
+          "missedMs": 0,
+          "maxMissedRunMs": 0,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [],
+          "topologyMatches": true,
+          "transitionCount": 0
+        }
+      }
+    ]
+  },
+  {
+    "id": "duration-300",
+    "scope": "analytic signal, not physical caster measurement",
+    "expected": {
+      "complete": true,
+      "windows": [
+        {
+          "start": 10000,
+          "end": 310000,
+          "sunny": true,
+          "durationMs": 300000,
+          "minimumDurationMs": 300000,
+          "maximumDurationMs": 300000,
+          "status": "qualifies"
+        }
+      ],
+      "intervals": [
+        {
+          "start": 0,
+          "end": 10000,
+          "sunny": false
+        },
+        {
+          "start": 10000,
+          "end": 310000,
+          "sunny": true
+        },
+        {
+          "start": 310000,
+          "end": 400000,
+          "sunny": false
+        }
+      ],
+      "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+    },
+    "candidates": [
+      {
+        "policy": "endpoints",
+        "actual": {
+          "complete": true,
+          "windows": [],
+          "intervals": [
+            {
+              "start": 0,
+              "end": 400000,
+              "sunny": false
+            }
+          ],
+          "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+        },
+        "comparison": {
+          "missedRuns": 1,
+          "missedMs": 300000,
+          "maxMissedRunMs": 300000,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [
+            {
+              "reference": {
+                "start": 10000,
+                "end": 310000,
+                "sunny": true
+              },
+              "candidates": []
+            }
+          ],
+          "topologyMatches": false,
+          "transitionCount": 2
+        }
+      },
+      {
+        "policy": "midpoint",
+        "actual": {
+          "complete": false,
+          "windows": [
+            {
+              "start": 9765.5,
+              "end": 309765.5,
+              "sunny": true,
+              "durationMs": 300000,
+              "minimumDurationMs": 299000,
+              "maximumDurationMs": 301000,
+              "status": "unresolved"
+            }
+          ],
+          "intervals": [
+            {
+              "start": 0,
+              "end": 400000,
+              "sunny": false
+            }
+          ],
+          "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+        },
+        "comparison": {
+          "missedRuns": 1,
+          "missedMs": 300000,
+          "maxMissedRunMs": 300000,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [
+            {
+              "reference": {
+                "start": 10000,
+                "end": 310000,
+                "sunny": true
+              },
+              "candidates": []
+            }
+          ],
+          "topologyMatches": false,
+          "transitionCount": 2
+        }
+      },
+      {
+        "policy": "minute",
+        "actual": {
+          "complete": false,
+          "windows": [
+            {
+              "start": 9843.5,
+              "end": 309843.5,
+              "sunny": true,
+              "durationMs": 300000,
+              "minimumDurationMs": 299000,
+              "maximumDurationMs": 301000,
+              "status": "unresolved"
+            }
+          ],
+          "intervals": [
+            {
+              "start": 0,
+              "end": 400000,
+              "sunny": false
+            }
+          ],
+          "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+        },
+        "comparison": {
+          "missedRuns": 1,
+          "missedMs": 300000,
+          "maxMissedRunMs": 300000,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [
+            {
+              "reference": {
+                "start": 10000,
+                "end": 310000,
+                "sunny": true
+              },
+              "candidates": []
+            }
+          ],
+          "topologyMatches": false,
+          "transitionCount": 2
+        }
+      }
+    ]
+  },
+  {
+    "id": "duration-301",
+    "scope": "analytic signal, not physical caster measurement",
+    "expected": {
+      "complete": true,
+      "windows": [
+        {
+          "start": 10000,
+          "end": 311000,
+          "sunny": true,
+          "durationMs": 301000,
+          "minimumDurationMs": 301000,
+          "maximumDurationMs": 301000,
+          "status": "qualifies"
+        }
+      ],
+      "intervals": [
+        {
+          "start": 0,
+          "end": 10000,
+          "sunny": false
+        },
+        {
+          "start": 10000,
+          "end": 311000,
+          "sunny": true
+        },
+        {
+          "start": 311000,
+          "end": 400000,
+          "sunny": false
+        }
+      ],
+      "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+    },
+    "candidates": [
+      {
+        "policy": "endpoints",
+        "actual": {
+          "complete": true,
+          "windows": [],
+          "intervals": [
+            {
+              "start": 0,
+              "end": 400000,
+              "sunny": false
+            }
+          ],
+          "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+        },
+        "comparison": {
+          "missedRuns": 1,
+          "missedMs": 301000,
+          "maxMissedRunMs": 301000,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [
+            {
+              "reference": {
+                "start": 10000,
+                "end": 311000,
+                "sunny": true
+              },
+              "candidates": []
+            }
+          ],
+          "topologyMatches": false,
+          "transitionCount": 2
+        }
+      },
+      {
+        "policy": "midpoint",
+        "actual": {
+          "complete": true,
+          "windows": [
+            {
+              "start": 9765.5,
+              "end": 311327.5,
+              "sunny": true,
+              "durationMs": 301562,
+              "minimumDurationMs": 300562,
+              "maximumDurationMs": 302562,
+              "status": "qualifies"
+            }
+          ],
+          "intervals": [
+            {
+              "start": 0,
+              "end": 9765.5,
+              "sunny": false
+            },
+            {
+              "start": 9765.5,
+              "end": 311327.5,
+              "sunny": true
+            },
+            {
+              "start": 311327.5,
+              "end": 400000,
+              "sunny": false
+            }
+          ],
+          "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+        },
+        "comparison": {
+          "missedRuns": 0,
+          "missedMs": 0,
+          "maxMissedRunMs": 0,
+          "falseRuns": 0,
+          "falseMs": 562,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [
+            -234.5,
+            327.5
+          ],
+          "maxErrorMs": 327.5,
+          "relations": [
+            {
+              "reference": {
+                "start": 10000,
+                "end": 311000,
+                "sunny": true
+              },
+              "candidates": [
+                {
+                  "start": 9765.5,
+                  "end": 311327.5,
+                  "sunny": true
+                }
+              ]
+            }
+          ],
+          "topologyMatches": true,
+          "transitionCount": 2
+        }
+      },
+      {
+        "policy": "minute",
+        "actual": {
+          "complete": false,
+          "windows": [
+            {
+              "start": 9843.5,
+              "end": 310781,
+              "sunny": true,
+              "durationMs": 300937.5,
+              "minimumDurationMs": 299937.5,
+              "maximumDurationMs": 301937.5,
+              "status": "unresolved"
+            }
+          ],
+          "intervals": [
+            {
+              "start": 0,
+              "end": 400000,
+              "sunny": false
+            }
+          ],
+          "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+        },
+        "comparison": {
+          "missedRuns": 1,
+          "missedMs": 301000,
+          "maxMissedRunMs": 301000,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [
+            {
+              "reference": {
+                "start": 10000,
+                "end": 311000,
+                "sunny": true
+              },
+              "candidates": []
+            }
+          ],
+          "topologyMatches": false,
+          "transitionCount": 2
+        }
+      }
+    ]
+  },
+  {
+    "id": "missed-shade-gap",
+    "scope": "analytic signal, not physical caster measurement",
+    "expected": {
+      "complete": true,
+      "windows": [
+        {
+          "start": 0,
+          "end": 290000,
+          "sunny": true,
+          "durationMs": 290000,
+          "minimumDurationMs": 290000,
+          "maximumDurationMs": 290000,
+          "status": "suppressed"
+        },
+        {
+          "start": 300000,
+          "end": 590000,
+          "sunny": true,
+          "durationMs": 290000,
+          "minimumDurationMs": 290000,
+          "maximumDurationMs": 290000,
+          "status": "suppressed"
+        }
+      ],
+      "intervals": [
+        {
+          "start": 0,
+          "end": 590000,
+          "sunny": false
+        }
+      ],
+      "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+    },
+    "candidates": [
+      {
+        "policy": "endpoints",
+        "actual": {
+          "complete": true,
+          "windows": [
+            {
+              "start": 0,
+              "end": 290101.5,
+              "sunny": true,
+              "durationMs": 290101.5,
+              "minimumDurationMs": 289601.5,
+              "maximumDurationMs": 290601.5,
+              "status": "suppressed"
+            }
+          ],
+          "intervals": [
+            {
+              "start": 0,
+              "end": 590000,
+              "sunny": false
+            }
+          ],
+          "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+        },
+        "comparison": {
+          "missedRuns": 0,
+          "missedMs": 0,
+          "maxMissedRunMs": 0,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [],
+          "topologyMatches": true,
+          "transitionCount": 0
+        }
+      },
+      {
+        "policy": "midpoint",
+        "actual": {
+          "complete": true,
+          "windows": [
+            {
+              "start": 0,
+              "end": 290101.5,
+              "sunny": true,
+              "durationMs": 290101.5,
+              "minimumDurationMs": 289601.5,
+              "maximumDurationMs": 290601.5,
+              "status": "suppressed"
+            }
+          ],
+          "intervals": [
+            {
+              "start": 0,
+              "end": 590000,
+              "sunny": false
+            }
+          ],
+          "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+        },
+        "comparison": {
+          "missedRuns": 0,
+          "missedMs": 0,
+          "maxMissedRunMs": 0,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [],
+          "topologyMatches": true,
+          "transitionCount": 0
+        }
+      },
+      {
+        "policy": "minute",
+        "actual": {
+          "complete": true,
+          "windows": [
+            {
+              "start": 0,
+              "end": 589609,
+              "sunny": true,
+              "durationMs": 589609,
+              "minimumDurationMs": 589109,
+              "maximumDurationMs": 590109,
+              "status": "qualifies"
+            }
+          ],
+          "intervals": [
+            {
+              "start": 0,
+              "end": 589609,
+              "sunny": true
+            },
+            {
+              "start": 589609,
+              "end": 590000,
+              "sunny": false
+            }
+          ],
+          "detectionGuarantee": "NONE beyond supplied reference/discovery evidence"
+        },
+        "comparison": {
+          "missedRuns": 0,
+          "missedMs": 0,
+          "maxMissedRunMs": 0,
+          "falseRuns": 1,
+          "falseMs": 589609,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [],
+          "topologyMatches": false,
+          "transitionCount": 0
+        }
+      }
+    ]
+  }
+]

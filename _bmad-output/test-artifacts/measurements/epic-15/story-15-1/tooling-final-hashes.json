@@ -1,0 +1,11 @@
+{
+  "measurement.ts": "fd57a304c1b0cfc1b419a6ca316d24bdc4f42ba9d2aef80da4956fc6bed0651c",
+  "evidence.mjs": "4fd8926cde056d7abfbf1d3de0bf96a201c7d47f311a8c5516b631b66ae77f72",
+  "run.measurement.ts": "ac6fbc5fb5f322865c04adc8f24d34dfd5f91d8771a51e955ef0af1a3f155274",
+  "strategy.measurement.ts": "03e2049d5ee5ae3efd74e9caf5998c5bb55624d4e7b87f77b7da7dfd572d39ec",
+  "edges.measurement.ts": "28e5caa97526301684e7c59d17bc8c0a3d537f20ea8af2575b532d899bdda752",
+  "edits.measurement.ts": "dd0dd143b93ff31d4124dab7860a719af95fad7e9a46e0b79f2e2bf428d1186c",
+  "storage.mjs": "d04b293520c61c9a493ed0bfc276226be857c2c949074d865e53ba1e7580d498",
+  "summarize.mjs": "516dd7b9af0c695c9114cee85c37f5177a518ae11bb376396ca9d3f7ddd3d586",
+  "vitest.config.ts": "76a5b8657d04dd8cc8b2e747f614890ac167c270b8873d77d3ed2671631393ed"
+}

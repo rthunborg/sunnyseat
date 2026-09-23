@@ -1,0 +1,116 @@
+{
+  "kind": "DERIVED_FROM_RETAINED_EVIDENCE_NOT_NEW_MEASUREMENT",
+  "sources": [
+    "run-14/summary.json",
+    "run-15/cost.json",
+    "run-17/pipeline.json",
+    "legacy-01/census-tool.json"
+  ],
+  "strata": [
+    {
+      "id": "34",
+      "casters": 42,
+      "n": 20,
+      "wallP50Ms": 154.07870000000003,
+      "wallP95Ms": 159.7443999999996,
+      "cpuP95Ms": 203
+    },
+    {
+      "id": "8",
+      "casters": 103,
+      "n": 20,
+      "wallP50Ms": 439.53919999999925,
+      "wallP95Ms": 453.8889999999992,
+      "cpuP95Ms": 453
+    },
+    {
+      "id": "47",
+      "casters": 155,
+      "n": 20,
+      "wallP50Ms": 735.8958999999959,
+      "wallP95Ms": 765.7260999999999,
+      "cpuP95Ms": 751
+    },
+    {
+      "id": "49",
+      "casters": 51,
+      "n": 20,
+      "wallP50Ms": 275.3087999999989,
+      "wallP95Ms": 283.9221999999936,
+      "cpuP95Ms": 297
+    }
+  ],
+  "seasonCosts": [
+    {
+      "venues": 42,
+      "datesPerVenue": 245,
+      "estimatedComputeWallMinutes": 75.30072093440702,
+      "estimatedNodeCpuMinutes": 75.1051612870153,
+      "proposedWallCeilingMinutes": 120,
+      "proposedNodeCpuCeilingMinutes": 100
+    },
+    {
+      "venues": 50,
+      "datesPerVenue": 245,
+      "estimatedComputeWallMinutes": 89.64371539810361,
+      "estimatedNodeCpuMinutes": 89.41090629406584,
+      "proposedWallCeilingMinutes": 142.85714285714286,
+      "proposedNodeCpuCeilingMinutes": 119.04761904761905
+    },
+    {
+      "venues": 100,
+      "datesPerVenue": 245,
+      "estimatedComputeWallMinutes": 179.28743079620722,
+      "estimatedNodeCpuMinutes": 178.82181258813168,
+      "proposedWallCeilingMinutes": 285.7142857142857,
+      "proposedNodeCpuCeilingMinutes": 238.0952380952381
+    },
+    {
+      "venues": 500,
+      "datesPerVenue": 245,
+      "estimatedComputeWallMinutes": 896.4371539810361,
+      "estimatedNodeCpuMinutes": 894.1090629406585,
+      "proposedWallCeilingMinutes": 1428.5714285714287,
+      "proposedNodeCpuCeilingMinutes": 1190.4761904761904
+    }
+  ],
+  "retainedCapacity": {
+    "datedApplicationBytes": 314330259,
+    "observedArrayWeekBytes": 655360,
+    "observedDays": 294,
+    "seasonDays": 10290,
+    "estimatedSeasonBytes": 22937600,
+    "proposedSeasonBudgetBytes": 30000000,
+    "proposedSharedReserveBytes": 5000000,
+    "models": [
+      {
+        "copies": 2,
+        "scope": "EXTRAPOLATED additive layout sensitivity; not actual previous-year geometry or current cluster headroom",
+        "projectedApplicationBytes": 360877203,
+        "budgetedApplicationBytes": 379330259,
+        "remainingToAdmissionBytesBeforeOtherDatabases": 20669741
+      },
+      {
+        "copies": 3,
+        "scope": "EXTRAPOLATED additive layout sensitivity; not actual previous-year geometry or current cluster headroom",
+        "projectedApplicationBytes": 383814803,
+        "budgetedApplicationBytes": 409330259,
+        "remainingToAdmissionBytesBeforeOtherDatabases": -9330259
+      },
+      {
+        "copies": 4,
+        "scope": "EXTRAPOLATED additive layout sensitivity; not actual previous-year geometry or current cluster headroom",
+        "projectedApplicationBytes": 406752403,
+        "budgetedApplicationBytes": 439330259,
+        "remainingToAdmissionBytesBeforeOtherDatabases": -39330259
+      },
+      {
+        "copies": 5,
+        "scope": "EXTRAPOLATED additive layout sensitivity; not actual previous-year geometry or current cluster headroom",
+        "projectedApplicationBytes": 429690003,
+        "budgetedApplicationBytes": 469330259,
+        "remainingToAdmissionBytesBeforeOtherDatabases": -69330259
+      }
+    ]
+  }
+}

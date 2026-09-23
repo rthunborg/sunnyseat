@@ -1,0 +1,13 @@
+{
+  "complete": true,
+  "offlineAttempts": 0,
+  "cells": [
+    "actual-three",
+    "replicated-111",
+    "coexisting-array-294"
+  ],
+  "artifacts": {
+    "storage.json": "a44e4cd0edcebc723ac42cb510d51ddfb2bc140a65826df6f5c9cca3d5e3a5c9",
+    "environment.json": "ba7437a1fac0980e02ad0d5e7b9b7b9240d9178915b3e1a28bccc3a26da42fa4"
+  }
+}

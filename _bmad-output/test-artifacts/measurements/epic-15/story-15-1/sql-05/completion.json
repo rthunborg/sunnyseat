@@ -1,0 +1,13 @@
+{
+  "complete": true,
+  "offlineAttempts": 0,
+  "cells": [
+    "current",
+    "five-retained"
+  ],
+  "artifacts": {
+    "storage.json": "e720ad9edcb604aa8d03ea18f3209e2bb1e9ff54fcbdf20ba1b4944b1b7192ea",
+    "environment.json": "792e61b65dc41dba8ea0b6451b04ffe34d1f5e52e8ebd18c4fcc5a3d792ab648",
+    "load.sql": "e0233744e072ad268ce3c65ee0b7ab17d665cb0c7b7f7cc46ae2006d68be349f"
+  }
+}

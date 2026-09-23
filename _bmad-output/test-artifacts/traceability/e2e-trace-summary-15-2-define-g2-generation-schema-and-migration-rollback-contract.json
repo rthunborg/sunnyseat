@@ -1,0 +1,81 @@
+{
+  "schema_version": "0.1.0",
+  "snapshot_at": "2026-09-23T14:44:47+02:00",
+  "repo": "sunnyseat",
+  "collection_mode": "sequential",
+  "collection_status": "COLLECTED",
+  "inventory_basis": "acceptance_criteria",
+  "gate_basis": "none",
+  "source_sha": "",
+  "target": {
+    "type": "story",
+    "id": "15.2",
+    "label": "Define g2, generation schema and migration/rollback contract"
+  },
+  "decision_mode": "advisory",
+  "evaluator": "Rasmus",
+  "confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/implementation-artifacts/15-2-define-g2-generation-schema-and-migration-rollback-contract.md",
+      "project-context.md"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "coverage": {
+    "inventory": { "covered": 5, "total": 6, "pct": 83 },
+    "priority_breakdown": {
+      "P0": { "total": 6, "covered": 5, "pct": 83 },
+      "P1": { "total": 0, "covered": 0, "pct": 100 },
+      "P2": { "total": 0, "covered": 0, "pct": 100 },
+      "P3": { "total": 0, "covered": 0, "pct": 100 }
+    },
+    "by_level": {
+      "e2e": { "tests": 0, "criteria_covered": 0 },
+      "api": { "tests": 0, "criteria_covered": 0 },
+      "component": { "tests": 0, "criteria_covered": 0 },
+      "unit": { "tests": 8, "criteria_covered": 5 },
+      "other": { "tests": 5, "criteria_covered": 6 }
+    }
+  },
+  "tests": {
+    "files": 13,
+    "cases": 13,
+    "skipped_cases": 0,
+    "fixme_cases": 0,
+    "pending_cases": 0
+  },
+  "risk_summary": {
+    "critical_open": 0,
+    "high_open": 0,
+    "medium_open": 0,
+    "low_open": 0
+  },
+  "heuristics": {
+    "endpoint_gaps": 0,
+    "auth_negative_path_status": "present",
+    "error_path_status": "present",
+    "ui_journey_status": "not_applicable",
+    "ui_state_status": "not_applicable"
+  },
+  "blockers": [],
+  "advisory_verdict": "CONCERNS",
+  "formal_gate_status": "NOT_EVALUATED",
+  "rationale": "Five of six P0 criteria are fully covered. AC6 is partially covered because technical evidence exists but no executable check enforces evidence review and separate authorization before production mutation.",
+  "recommendations": [
+    {
+      "priority": "MEDIUM",
+      "action": "Represent AC6 as an executable production-operation precondition or retain it as an explicitly manual approval control with durable evidence.",
+      "requirements": ["AC6"]
+    }
+  ],
+  "links": {
+    "trace_report_path": "_bmad-output/test-artifacts/traceability/traceability-report-15-2-define-g2-generation-schema-and-migration-rollback-contract.md",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": ""
+  }
+}

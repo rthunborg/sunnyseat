@@ -1,0 +1,2 @@
+Filesystem         1B-blocks        Used     Available Use% Mounted on
+/dev/sdc       1081101176832 20745482240 1005363339264   3% /var/lib/postgresql/data

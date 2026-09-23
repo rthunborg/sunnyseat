@@ -1,0 +1,3152 @@
+[
+  {
+    "fixture": "irregular",
+    "repetition": -5,
+    "warmup": true,
+    "wallMs": 72.81239999999525,
+    "cpuMs": 62,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": -5,
+    "warmup": true,
+    "wallMs": 61.35559999999532,
+    "cpuMs": 63,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": -5,
+    "warmup": true,
+    "wallMs": 68.15989999999874,
+    "cpuMs": 62,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": -5,
+    "warmup": true,
+    "wallMs": 15.607700000007753,
+    "cpuMs": 16,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": -5,
+    "warmup": true,
+    "wallMs": 25.21229999999923,
+    "cpuMs": 31,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": -5,
+    "warmup": true,
+    "wallMs": 1.0527000000001863,
+    "cpuMs": 0,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": -5,
+    "warmup": true,
+    "wallMs": 30.953800000002957,
+    "cpuMs": 31,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": -5,
+    "warmup": true,
+    "wallMs": 61.756200000003446,
+    "cpuMs": 62,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": -5,
+    "warmup": true,
+    "wallMs": 45.2103000000061,
+    "cpuMs": 32,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": -5,
+    "warmup": true,
+    "wallMs": 0.44109999999636784,
+    "cpuMs": 0,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": -4,
+    "warmup": true,
+    "wallMs": 63.93060000000696,
+    "cpuMs": 62,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": -4,
+    "warmup": true,
+    "wallMs": 75.23150000000896,
+    "cpuMs": 78,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": -4,
+    "warmup": true,
+    "wallMs": 13.704199999992852,
+    "cpuMs": 16,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": -4,
+    "warmup": true,
+    "wallMs": 24.187400000009802,
+    "cpuMs": 15,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": -4,
+    "warmup": true,
+    "wallMs": 0.685299999997369,
+    "cpuMs": 0,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": -4,
+    "warmup": true,
+    "wallMs": 30.234800000005635,
+    "cpuMs": 32,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": -4,
+    "warmup": true,
+    "wallMs": 62.255300000004354,
+    "cpuMs": 63,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": -4,
+    "warmup": true,
+    "wallMs": 39.56500000000233,
+    "cpuMs": 46,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": -4,
+    "warmup": true,
+    "wallMs": 0.4208000000071479,
+    "cpuMs": 0,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": -4,
+    "warmup": true,
+    "wallMs": 61.919999999998254,
+    "cpuMs": 63,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": -3,
+    "warmup": true,
+    "wallMs": 61.78740000000107,
+    "cpuMs": 62,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": -3,
+    "warmup": true,
+    "wallMs": 15.544899999993504,
+    "cpuMs": 15,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": -3,
+    "warmup": true,
+    "wallMs": 24.863899999996647,
+    "cpuMs": 16,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": -3,
+    "warmup": true,
+    "wallMs": 0.97269999999844,
+    "cpuMs": 0,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": -3,
+    "warmup": true,
+    "wallMs": 34.19120000000112,
+    "cpuMs": 47,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": -3,
+    "warmup": true,
+    "wallMs": 65.74060000000463,
+    "cpuMs": 63,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": -3,
+    "warmup": true,
+    "wallMs": 44.37840000000142,
+    "cpuMs": 47,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": -3,
+    "warmup": true,
+    "wallMs": 0.8025000000052387,
+    "cpuMs": 0,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": -3,
+    "warmup": true,
+    "wallMs": 80.10990000001038,
+    "cpuMs": 62,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": -3,
+    "warmup": true,
+    "wallMs": 55.14660000000731,
+    "cpuMs": 47,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": -2,
+    "warmup": true,
+    "wallMs": 14.253100000001723,
+    "cpuMs": 15,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": -2,
+    "warmup": true,
+    "wallMs": 16.07949999999255,
+    "cpuMs": 16,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": -2,
+    "warmup": true,
+    "wallMs": 0.43210000000544824,
+    "cpuMs": 0,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": -2,
+    "warmup": true,
+    "wallMs": 29.858399999997346,
+    "cpuMs": 31,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": -2,
+    "warmup": true,
+    "wallMs": 50.07510000000184,
+    "cpuMs": 47,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": -2,
+    "warmup": true,
+    "wallMs": 43.43039999999746,
+    "cpuMs": 31,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": -2,
+    "warmup": true,
+    "wallMs": 1.0611000000062631,
+    "cpuMs": 0,
+    "rssBytes": 158900224,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": -2,
+    "warmup": true,
+    "wallMs": 65.2332000000024,
+    "cpuMs": 94,
+    "rssBytes": 156749824,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": -2,
+    "warmup": true,
+    "wallMs": 47.85439999999653,
+    "cpuMs": 47,
+    "rssBytes": 156749824,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": -2,
+    "warmup": true,
+    "wallMs": 63.01619999999821,
+    "cpuMs": 63,
+    "rssBytes": 156749824,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": -1,
+    "warmup": true,
+    "wallMs": 22.853200000012293,
+    "cpuMs": 15,
+    "rssBytes": 156749824,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": -1,
+    "warmup": true,
+    "wallMs": 0.930000000007567,
+    "cpuMs": 0,
+    "rssBytes": 156749824,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": -1,
+    "warmup": true,
+    "wallMs": 28.703200000003562,
+    "cpuMs": 31,
+    "rssBytes": 156749824,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": -1,
+    "warmup": true,
+    "wallMs": 55.57159999999567,
+    "cpuMs": 63,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": -1,
+    "warmup": true,
+    "wallMs": 39.95260000000417,
+    "cpuMs": 31,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": -1,
+    "warmup": true,
+    "wallMs": 0.9854000000050291,
+    "cpuMs": 0,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": -1,
+    "warmup": true,
+    "wallMs": 68.97269999999844,
+    "cpuMs": 79,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": -1,
+    "warmup": true,
+    "wallMs": 63.63739999999234,
+    "cpuMs": 62,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": -1,
+    "warmup": true,
+    "wallMs": 61.259799999999814,
+    "cpuMs": 63,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": -1,
+    "warmup": true,
+    "wallMs": 14.552500000005239,
+    "cpuMs": 0,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 0,
+    "warmup": false,
+    "wallMs": 1.0390999999945052,
+    "cpuMs": 15,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 0,
+    "warmup": false,
+    "wallMs": 31.14779999999155,
+    "cpuMs": 32,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 0,
+    "warmup": false,
+    "wallMs": 55.03819999999541,
+    "cpuMs": 46,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 0,
+    "warmup": false,
+    "wallMs": 35.20350000000326,
+    "cpuMs": 32,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 0,
+    "warmup": false,
+    "wallMs": 1.0826000000088243,
+    "cpuMs": 0,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 0,
+    "warmup": false,
+    "wallMs": 62.12989999999991,
+    "cpuMs": 62,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 0,
+    "warmup": false,
+    "wallMs": 55.423500000004424,
+    "cpuMs": 63,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 0,
+    "warmup": false,
+    "wallMs": 62.66169999999693,
+    "cpuMs": 62,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 0,
+    "warmup": false,
+    "wallMs": 16.159399999989546,
+    "cpuMs": 16,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 0,
+    "warmup": false,
+    "wallMs": 24.220900000000256,
+    "cpuMs": 31,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 1,
+    "warmup": false,
+    "wallMs": 30.754199999995762,
+    "cpuMs": 31,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 1,
+    "warmup": false,
+    "wallMs": 66.31650000000081,
+    "cpuMs": 63,
+    "rssBytes": 156848128,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 1,
+    "warmup": false,
+    "wallMs": 39.858199999987846,
+    "cpuMs": 31,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 1,
+    "warmup": false,
+    "wallMs": 1.1211999999941327,
+    "cpuMs": 0,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 1,
+    "warmup": false,
+    "wallMs": 74.3579000000027,
+    "cpuMs": 78,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 1,
+    "warmup": false,
+    "wallMs": 55.6814999999915,
+    "cpuMs": 63,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 1,
+    "warmup": false,
+    "wallMs": 51.94990000000689,
+    "cpuMs": 47,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 1,
+    "warmup": false,
+    "wallMs": 12.150600000008126,
+    "cpuMs": 15,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 1,
+    "warmup": false,
+    "wallMs": 23.109899999995832,
+    "cpuMs": 16,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 1,
+    "warmup": false,
+    "wallMs": 1.007900000011432,
+    "cpuMs": 0,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 2,
+    "warmup": false,
+    "wallMs": 58.451600000000326,
+    "cpuMs": 47,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 2,
+    "warmup": false,
+    "wallMs": 27.515400000003865,
+    "cpuMs": 31,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 2,
+    "warmup": false,
+    "wallMs": 0.3781999999919208,
+    "cpuMs": 0,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 2,
+    "warmup": false,
+    "wallMs": 63.06930000000284,
+    "cpuMs": 63,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 2,
+    "warmup": false,
+    "wallMs": 49.19839999999385,
+    "cpuMs": 47,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 2,
+    "warmup": false,
+    "wallMs": 52.36850000001141,
+    "cpuMs": 47,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 2,
+    "warmup": false,
+    "wallMs": 11.121899999998277,
+    "cpuMs": 15,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 2,
+    "warmup": false,
+    "wallMs": 21.75209999999788,
+    "cpuMs": 31,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 2,
+    "warmup": false,
+    "wallMs": 0.8653999999951338,
+    "cpuMs": 0,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 2,
+    "warmup": false,
+    "wallMs": 27.777799999996205,
+    "cpuMs": 16,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 3,
+    "warmup": false,
+    "wallMs": 38.96349999999802,
+    "cpuMs": 46,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 3,
+    "warmup": false,
+    "wallMs": 0.9471000000048662,
+    "cpuMs": 0,
+    "rssBytes": 156905472,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 3,
+    "warmup": false,
+    "wallMs": 70.67470000000321,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 3,
+    "warmup": false,
+    "wallMs": 65.4438999999984,
+    "cpuMs": 78,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 3,
+    "warmup": false,
+    "wallMs": 58.40019999998913,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 3,
+    "warmup": false,
+    "wallMs": 14.708299999998417,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 3,
+    "warmup": false,
+    "wallMs": 20.73189999999886,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 3,
+    "warmup": false,
+    "wallMs": 0.3721999999979744,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 3,
+    "warmup": false,
+    "wallMs": 23.114999999990687,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 3,
+    "warmup": false,
+    "wallMs": 49.01460000000952,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 4,
+    "warmup": false,
+    "wallMs": 0.9387999999889871,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 4,
+    "warmup": false,
+    "wallMs": 54.32390000000305,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 4,
+    "warmup": false,
+    "wallMs": 41.008499999996275,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 4,
+    "warmup": false,
+    "wallMs": 53.845000000001164,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 4,
+    "warmup": false,
+    "wallMs": 11.777599999986705,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 4,
+    "warmup": false,
+    "wallMs": 17.940199999997276,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 4,
+    "warmup": false,
+    "wallMs": 0.45630000000528526,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 4,
+    "warmup": false,
+    "wallMs": 21.17929999998887,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 4,
+    "warmup": false,
+    "wallMs": 60.952799999999115,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 4,
+    "warmup": false,
+    "wallMs": 46.06900000000314,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 5,
+    "warmup": false,
+    "wallMs": 80.56560000000172,
+    "cpuMs": 78,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 5,
+    "warmup": false,
+    "wallMs": 62.75099999998929,
+    "cpuMs": 62,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 5,
+    "warmup": false,
+    "wallMs": 64.3347999999969,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 5,
+    "warmup": false,
+    "wallMs": 9.418699999994715,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 5,
+    "warmup": false,
+    "wallMs": 16.83069999999134,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 5,
+    "warmup": false,
+    "wallMs": 1.0511000000115018,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 5,
+    "warmup": false,
+    "wallMs": 23.508099999991828,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 5,
+    "warmup": false,
+    "wallMs": 48.447299999999814,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 5,
+    "warmup": false,
+    "wallMs": 41.90430000000924,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 5,
+    "warmup": false,
+    "wallMs": 1.2758000000030734,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 6,
+    "warmup": false,
+    "wallMs": 62.349600000001374,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 6,
+    "warmup": false,
+    "wallMs": 55.88519999998971,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 6,
+    "warmup": false,
+    "wallMs": 10.46480000000156,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 6,
+    "warmup": false,
+    "wallMs": 14.754999999990105,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 6,
+    "warmup": false,
+    "wallMs": 0.8705000000045402,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 6,
+    "warmup": false,
+    "wallMs": 23.850800000000163,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 6,
+    "warmup": false,
+    "wallMs": 44.5344000000041,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 6,
+    "warmup": false,
+    "wallMs": 27.62050000000454,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 6,
+    "warmup": false,
+    "wallMs": 0.6952000000019325,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 6,
+    "warmup": false,
+    "wallMs": 56.44439999999304,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 7,
+    "warmup": false,
+    "wallMs": 67.72039999999106,
+    "cpuMs": 78,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 7,
+    "warmup": false,
+    "wallMs": 11.513099999996484,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 7,
+    "warmup": false,
+    "wallMs": 31.41359999999986,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 7,
+    "warmup": false,
+    "wallMs": 1.0868999999947846,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 7,
+    "warmup": false,
+    "wallMs": 24.201499999995576,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 7,
+    "warmup": false,
+    "wallMs": 58.06939999999304,
+    "cpuMs": 62,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 7,
+    "warmup": false,
+    "wallMs": 41.223400000002584,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 7,
+    "warmup": false,
+    "wallMs": 1.2660999999934575,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 7,
+    "warmup": false,
+    "wallMs": 75.65810000000056,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 7,
+    "warmup": false,
+    "wallMs": 69.74869999999646,
+    "cpuMs": 78,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 8,
+    "warmup": false,
+    "wallMs": 12.076499999995576,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 8,
+    "warmup": false,
+    "wallMs": 24.63859999999113,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 8,
+    "warmup": false,
+    "wallMs": 0.38230000001203734,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 8,
+    "warmup": false,
+    "wallMs": 32.723400000002584,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 8,
+    "warmup": false,
+    "wallMs": 51.97930000000633,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 8,
+    "warmup": false,
+    "wallMs": 37.520999999993364,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 8,
+    "warmup": false,
+    "wallMs": 1.0507000000070548,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 8,
+    "warmup": false,
+    "wallMs": 72.16710000000603,
+    "cpuMs": 78,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 8,
+    "warmup": false,
+    "wallMs": 64.28639999999723,
+    "cpuMs": 62,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 8,
+    "warmup": false,
+    "wallMs": 74.93889999999374,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 9,
+    "warmup": false,
+    "wallMs": 25.051599999991595,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 9,
+    "warmup": false,
+    "wallMs": 1.2007999999914318,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 9,
+    "warmup": false,
+    "wallMs": 29.8411000000051,
+    "cpuMs": 32,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 9,
+    "warmup": false,
+    "wallMs": 50.20440000000235,
+    "cpuMs": 46,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 9,
+    "warmup": false,
+    "wallMs": 26.18869999999879,
+    "cpuMs": 32,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 9,
+    "warmup": false,
+    "wallMs": 0.4315999999962514,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 9,
+    "warmup": false,
+    "wallMs": 51.94090000000142,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 9,
+    "warmup": false,
+    "wallMs": 50.89999999999418,
+    "cpuMs": 46,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 9,
+    "warmup": false,
+    "wallMs": 48.98089999999502,
+    "cpuMs": 32,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 9,
+    "warmup": false,
+    "wallMs": 11.07839999999851,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 10,
+    "warmup": false,
+    "wallMs": 0.38910000000032596,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 10,
+    "warmup": false,
+    "wallMs": 22.160799999997835,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 10,
+    "warmup": false,
+    "wallMs": 46.36290000000736,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 10,
+    "warmup": false,
+    "wallMs": 27.092900000003283,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 10,
+    "warmup": false,
+    "wallMs": 0.3876999999920372,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 10,
+    "warmup": false,
+    "wallMs": 52.472099999999045,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 10,
+    "warmup": false,
+    "wallMs": 43.87039999999979,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 10,
+    "warmup": false,
+    "wallMs": 51.99570000001404,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 10,
+    "warmup": false,
+    "wallMs": 8.933399999994435,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 10,
+    "warmup": false,
+    "wallMs": 17.40120000000752,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 11,
+    "warmup": false,
+    "wallMs": 21.616800000003423,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 11,
+    "warmup": false,
+    "wallMs": 54.34429999999702,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 11,
+    "warmup": false,
+    "wallMs": 34.32390000000305,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 11,
+    "warmup": false,
+    "wallMs": 1.029899999994086,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 11,
+    "warmup": false,
+    "wallMs": 68.06260000000475,
+    "cpuMs": 79,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 11,
+    "warmup": false,
+    "wallMs": 47.49880000000121,
+    "cpuMs": 46,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 11,
+    "warmup": false,
+    "wallMs": 47.99229999999807,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 11,
+    "warmup": false,
+    "wallMs": 9.760600000008708,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 11,
+    "warmup": false,
+    "wallMs": 18.944600000002538,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 11,
+    "warmup": false,
+    "wallMs": 0.3687999999965541,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 12,
+    "warmup": false,
+    "wallMs": 51.022199999992154,
+    "cpuMs": 62,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 12,
+    "warmup": false,
+    "wallMs": 43.74619999999413,
+    "cpuMs": 48,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 12,
+    "warmup": false,
+    "wallMs": 1.0873999999894295,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 12,
+    "warmup": false,
+    "wallMs": 59.00040000000445,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 12,
+    "warmup": false,
+    "wallMs": 45.629000000000815,
+    "cpuMs": 46,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 12,
+    "warmup": false,
+    "wallMs": 63.6536999999953,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 12,
+    "warmup": false,
+    "wallMs": 14.927400000000489,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 12,
+    "warmup": false,
+    "wallMs": 21.856299999999464,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 12,
+    "warmup": false,
+    "wallMs": 1.045799999992596,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 12,
+    "warmup": false,
+    "wallMs": 31.228900000001886,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 13,
+    "warmup": false,
+    "wallMs": 46.291299999997136,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 13,
+    "warmup": false,
+    "wallMs": 1.1717999999964377,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 13,
+    "warmup": false,
+    "wallMs": 73.0734999999986,
+    "cpuMs": 78,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 13,
+    "warmup": false,
+    "wallMs": 67.15729999999166,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 13,
+    "warmup": false,
+    "wallMs": 50.41369999999006,
+    "cpuMs": 46,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 13,
+    "warmup": false,
+    "wallMs": 9.743699999991804,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 13,
+    "warmup": false,
+    "wallMs": 24.077999999994063,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 13,
+    "warmup": false,
+    "wallMs": 0.7246000000013737,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 13,
+    "warmup": false,
+    "wallMs": 22.604999999995925,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 13,
+    "warmup": false,
+    "wallMs": 43.03170000000682,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 14,
+    "warmup": false,
+    "wallMs": 0.39480000000912696,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 14,
+    "warmup": false,
+    "wallMs": 65.2451000000001,
+    "cpuMs": 62,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 14,
+    "warmup": false,
+    "wallMs": 46.564200000007986,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 14,
+    "warmup": false,
+    "wallMs": 48.55989999999292,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 14,
+    "warmup": false,
+    "wallMs": 10.192599999994854,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 14,
+    "warmup": false,
+    "wallMs": 18.13440000000992,
+    "cpuMs": 32,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 14,
+    "warmup": false,
+    "wallMs": 0.37239999999292195,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 14,
+    "warmup": false,
+    "wallMs": 24.72830000000249,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 14,
+    "warmup": false,
+    "wallMs": 56.78300000001036,
+    "cpuMs": 62,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 14,
+    "warmup": false,
+    "wallMs": 29.84450000000652,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 15,
+    "warmup": false,
+    "wallMs": 53.703899999993155,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 15,
+    "warmup": false,
+    "wallMs": 51.91599999999744,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 15,
+    "warmup": false,
+    "wallMs": 63.547200000000885,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 15,
+    "warmup": false,
+    "wallMs": 13.924700000003213,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 15,
+    "warmup": false,
+    "wallMs": 20.900800000003073,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 15,
+    "warmup": false,
+    "wallMs": 0.9197000000131084,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 15,
+    "warmup": false,
+    "wallMs": 28.268700000000536,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 15,
+    "warmup": false,
+    "wallMs": 58.570100000011735,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 15,
+    "warmup": false,
+    "wallMs": 31.861599999989267,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 15,
+    "warmup": false,
+    "wallMs": 0.9504000000015367,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 16,
+    "warmup": false,
+    "wallMs": 52.1880000000092,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 16,
+    "warmup": false,
+    "wallMs": 57.6643999999942,
+    "cpuMs": 46,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 16,
+    "warmup": false,
+    "wallMs": 10.029699999999139,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 16,
+    "warmup": false,
+    "wallMs": 16.296900000001187,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 16,
+    "warmup": false,
+    "wallMs": 0.9175000000104774,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 16,
+    "warmup": false,
+    "wallMs": 28.320000000006985,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 16,
+    "warmup": false,
+    "wallMs": 57.2048000000068,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 16,
+    "warmup": false,
+    "wallMs": 39.644899999999325,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 16,
+    "warmup": false,
+    "wallMs": 1.1224999999976717,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 16,
+    "warmup": false,
+    "wallMs": 75.6423000000068,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 17,
+    "warmup": false,
+    "wallMs": 81.75290000000678,
+    "cpuMs": 93,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 17,
+    "warmup": false,
+    "wallMs": 15.678499999994528,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 17,
+    "warmup": false,
+    "wallMs": 21.87750000000233,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 17,
+    "warmup": false,
+    "wallMs": 1.1558999999979278,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 17,
+    "warmup": false,
+    "wallMs": 35.44740000000456,
+    "cpuMs": 32,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 17,
+    "warmup": false,
+    "wallMs": 66.64609999999811,
+    "cpuMs": 78,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 17,
+    "warmup": false,
+    "wallMs": 42.00140000000829,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 17,
+    "warmup": false,
+    "wallMs": 0.7480000000068685,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 17,
+    "warmup": false,
+    "wallMs": 82.40739999999641,
+    "cpuMs": 94,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 17,
+    "warmup": false,
+    "wallMs": 59.744899999990594,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 18,
+    "warmup": false,
+    "wallMs": 12.96919999999227,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 18,
+    "warmup": false,
+    "wallMs": 24.790200000003097,
+    "cpuMs": 32,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 18,
+    "warmup": false,
+    "wallMs": 0.9141999999992549,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 18,
+    "warmup": false,
+    "wallMs": 32.52740000000631,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 18,
+    "warmup": false,
+    "wallMs": 61.814299999998184,
+    "cpuMs": 62,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 18,
+    "warmup": false,
+    "wallMs": 40.89450000000943,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 18,
+    "warmup": false,
+    "wallMs": 1.0185999999957858,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 18,
+    "warmup": false,
+    "wallMs": 68.93439999999828,
+    "cpuMs": 62,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 18,
+    "warmup": false,
+    "wallMs": 68.01119999999355,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 18,
+    "warmup": false,
+    "wallMs": 69.63900000001013,
+    "cpuMs": 78,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 19,
+    "warmup": false,
+    "wallMs": 23.543000000005122,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 19,
+    "warmup": false,
+    "wallMs": 0.4268000000010943,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 19,
+    "warmup": false,
+    "wallMs": 32.028900000004796,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 19,
+    "warmup": false,
+    "wallMs": 63.60360000000219,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 19,
+    "warmup": false,
+    "wallMs": 38.24329999998736,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 19,
+    "warmup": false,
+    "wallMs": 0.46520000000600703,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 19,
+    "warmup": false,
+    "wallMs": 74.21160000000964,
+    "cpuMs": 78,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 19,
+    "warmup": false,
+    "wallMs": 69.32180000000517,
+    "cpuMs": 62,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 19,
+    "warmup": false,
+    "wallMs": 74.10749999999825,
+    "cpuMs": 78,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 19,
+    "warmup": false,
+    "wallMs": 16.03399999999965,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 20,
+    "warmup": false,
+    "wallMs": 0.7721999999921536,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 20,
+    "warmup": false,
+    "wallMs": 34.30950000000303,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 20,
+    "warmup": false,
+    "wallMs": 63.48509999999078,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 20,
+    "warmup": false,
+    "wallMs": 39.36769999998796,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 20,
+    "warmup": false,
+    "wallMs": 0.9618000000045868,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 20,
+    "warmup": false,
+    "wallMs": 70.16900000000896,
+    "cpuMs": 62,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 20,
+    "warmup": false,
+    "wallMs": 56.3290999999881,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 20,
+    "warmup": false,
+    "wallMs": 51.000599999999395,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 20,
+    "warmup": false,
+    "wallMs": 9.74539999999979,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 20,
+    "warmup": false,
+    "wallMs": 18.39660000000731,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 21,
+    "warmup": false,
+    "wallMs": 22.062799999999697,
+    "cpuMs": 16,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 21,
+    "warmup": false,
+    "wallMs": 46.75200000000768,
+    "cpuMs": 46,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 21,
+    "warmup": false,
+    "wallMs": 27.82819999998901,
+    "cpuMs": 32,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 21,
+    "warmup": false,
+    "wallMs": 0.38060000000405125,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 21,
+    "warmup": false,
+    "wallMs": 53.98609999999462,
+    "cpuMs": 62,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 21,
+    "warmup": false,
+    "wallMs": 48.255799999999,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 21,
+    "warmup": false,
+    "wallMs": 63.4999000000098,
+    "cpuMs": 63,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 21,
+    "warmup": false,
+    "wallMs": 13.501000000003842,
+    "cpuMs": 15,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 21,
+    "warmup": false,
+    "wallMs": 21.861999999993714,
+    "cpuMs": 31,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 21,
+    "warmup": false,
+    "wallMs": 0.36910000001080334,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 22,
+    "warmup": false,
+    "wallMs": 48.83890000000247,
+    "cpuMs": 47,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 22,
+    "warmup": false,
+    "wallMs": 31.865200000000186,
+    "cpuMs": 32,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 22,
+    "warmup": false,
+    "wallMs": 0.954200000007404,
+    "cpuMs": 0,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 22,
+    "warmup": false,
+    "wallMs": 52.52499999999418,
+    "cpuMs": 62,
+    "rssBytes": 156639232,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 22,
+    "warmup": false,
+    "wallMs": 41.917499999995925,
+    "cpuMs": 31,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 22,
+    "warmup": false,
+    "wallMs": 48.34999999999127,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 22,
+    "warmup": false,
+    "wallMs": 9.094599999996717,
+    "cpuMs": 16,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 22,
+    "warmup": false,
+    "wallMs": 14.799499999993714,
+    "cpuMs": 15,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 22,
+    "warmup": false,
+    "wallMs": 0.5622000000003027,
+    "cpuMs": 0,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 22,
+    "warmup": false,
+    "wallMs": 21.238100000002305,
+    "cpuMs": 16,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 23,
+    "warmup": false,
+    "wallMs": 27.757199999992736,
+    "cpuMs": 31,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 23,
+    "warmup": false,
+    "wallMs": 1.1766000000061467,
+    "cpuMs": 0,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 23,
+    "warmup": false,
+    "wallMs": 58.32059999999183,
+    "cpuMs": 63,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 23,
+    "warmup": false,
+    "wallMs": 42.36849999999686,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 23,
+    "warmup": false,
+    "wallMs": 48.1250999999902,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 23,
+    "warmup": false,
+    "wallMs": 8.374100000000908,
+    "cpuMs": 0,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 23,
+    "warmup": false,
+    "wallMs": 15.849200000011479,
+    "cpuMs": 15,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 23,
+    "warmup": false,
+    "wallMs": 0.9762999999948079,
+    "cpuMs": 0,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 23,
+    "warmup": false,
+    "wallMs": 19.1820000000007,
+    "cpuMs": 31,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 23,
+    "warmup": false,
+    "wallMs": 51.59700000000885,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 24,
+    "warmup": false,
+    "wallMs": 0.3827000000019325,
+    "cpuMs": 0,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 24,
+    "warmup": false,
+    "wallMs": 56.24339999999211,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 24,
+    "warmup": false,
+    "wallMs": 53.78429999999935,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 24,
+    "warmup": false,
+    "wallMs": 73.35689999999886,
+    "cpuMs": 78,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 24,
+    "warmup": false,
+    "wallMs": 15.150299999993877,
+    "cpuMs": 16,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 24,
+    "warmup": false,
+    "wallMs": 24.863600000011502,
+    "cpuMs": 15,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 24,
+    "warmup": false,
+    "wallMs": 0.9618000000045868,
+    "cpuMs": 0,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 24,
+    "warmup": false,
+    "wallMs": 34.96689999999944,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 24,
+    "warmup": false,
+    "wallMs": 61.918799999999464,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 24,
+    "warmup": false,
+    "wallMs": 38.19559999999183,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 25,
+    "warmup": false,
+    "wallMs": 51.51230000000214,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 25,
+    "warmup": false,
+    "wallMs": 49.000700000004144,
+    "cpuMs": 48,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 25,
+    "warmup": false,
+    "wallMs": 50.944799999997485,
+    "cpuMs": 62,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 25,
+    "warmup": false,
+    "wallMs": 9.896200000002864,
+    "cpuMs": 0,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 25,
+    "warmup": false,
+    "wallMs": 23.16270000000077,
+    "cpuMs": 31,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 25,
+    "warmup": false,
+    "wallMs": 0.4106000000028871,
+    "cpuMs": 0,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 25,
+    "warmup": false,
+    "wallMs": 23.846100000009756,
+    "cpuMs": 15,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 25,
+    "warmup": false,
+    "wallMs": 44.044900000008056,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 25,
+    "warmup": false,
+    "wallMs": 28.16129999999248,
+    "cpuMs": 31,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 25,
+    "warmup": false,
+    "wallMs": 0.400099999998929,
+    "cpuMs": 0,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 26,
+    "warmup": false,
+    "wallMs": 43.852899999998044,
+    "cpuMs": 32,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 26,
+    "warmup": false,
+    "wallMs": 58.9892000000109,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 26,
+    "warmup": false,
+    "wallMs": 11.600600000005215,
+    "cpuMs": 16,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 26,
+    "warmup": false,
+    "wallMs": 18.726599999994505,
+    "cpuMs": 16,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 26,
+    "warmup": false,
+    "wallMs": 0.4016000000119675,
+    "cpuMs": 0,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 26,
+    "warmup": false,
+    "wallMs": 22.89890000000014,
+    "cpuMs": 30,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 26,
+    "warmup": false,
+    "wallMs": 63.14940000000934,
+    "cpuMs": 63,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 26,
+    "warmup": false,
+    "wallMs": 30.714999999996508,
+    "cpuMs": 31,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 26,
+    "warmup": false,
+    "wallMs": 0.385999999998603,
+    "cpuMs": 0,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 26,
+    "warmup": false,
+    "wallMs": 58.133700000005774,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 27,
+    "warmup": false,
+    "wallMs": 50.39210000001185,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 27,
+    "warmup": false,
+    "wallMs": 10.88980000000447,
+    "cpuMs": 15,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 27,
+    "warmup": false,
+    "wallMs": 16.45679999999993,
+    "cpuMs": 16,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 27,
+    "warmup": false,
+    "wallMs": 0.8993999999947846,
+    "cpuMs": 0,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 27,
+    "warmup": false,
+    "wallMs": 21.378100000001723,
+    "cpuMs": 16,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 27,
+    "warmup": false,
+    "wallMs": 43.36030000000028,
+    "cpuMs": 46,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 27,
+    "warmup": false,
+    "wallMs": 27.915399999998044,
+    "cpuMs": 16,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 27,
+    "warmup": false,
+    "wallMs": 0.3827000000019325,
+    "cpuMs": 0,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 27,
+    "warmup": false,
+    "wallMs": 56.23300000000745,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 27,
+    "warmup": false,
+    "wallMs": 61.667499999995925,
+    "cpuMs": 63,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 28,
+    "warmup": false,
+    "wallMs": 10.351699999999255,
+    "cpuMs": 15,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 28,
+    "warmup": false,
+    "wallMs": 15.782200000001467,
+    "cpuMs": 16,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 28,
+    "warmup": false,
+    "wallMs": 0.3899999999994179,
+    "cpuMs": 0,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 28,
+    "warmup": false,
+    "wallMs": 22.725399999995716,
+    "cpuMs": 16,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 28,
+    "warmup": false,
+    "wallMs": 42.82820000000356,
+    "cpuMs": 47,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 28,
+    "warmup": false,
+    "wallMs": 30.915599999992992,
+    "cpuMs": 31,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 28,
+    "warmup": false,
+    "wallMs": 0.37809999998717103,
+    "cpuMs": 0,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 28,
+    "warmup": false,
+    "wallMs": 73.08220000000438,
+    "cpuMs": 78,
+    "rssBytes": 157319168,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 28,
+    "warmup": false,
+    "wallMs": 67.74169999999867,
+    "cpuMs": 62,
+    "rssBytes": 157327360,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 28,
+    "warmup": false,
+    "wallMs": 76.97030000000086,
+    "cpuMs": 79,
+    "rssBytes": 157327360,
+    "samples": 45
+  },
+  {
+    "fixture": "cap-and-height-boundaries",
+    "repetition": 29,
+    "warmup": false,
+    "wallMs": 17.88390000000072,
+    "cpuMs": 15,
+    "rssBytes": 157327360,
+    "samples": 45
+  },
+  {
+    "fixture": "open",
+    "repetition": 29,
+    "warmup": false,
+    "wallMs": 0.4035999999905471,
+    "cpuMs": 0,
+    "rssBytes": 157327360,
+    "samples": 45
+  },
+  {
+    "fixture": "fully-covered",
+    "repetition": 29,
+    "warmup": false,
+    "wallMs": 23.545200000007753,
+    "cpuMs": 16,
+    "rssBytes": 157327360,
+    "samples": 45
+  },
+  {
+    "fixture": "courtyard",
+    "repetition": 29,
+    "warmup": false,
+    "wallMs": 49.4829999999929,
+    "cpuMs": 46,
+    "rssBytes": 157327360,
+    "samples": 45
+  },
+  {
+    "fixture": "narrow-street",
+    "repetition": 29,
+    "warmup": false,
+    "wallMs": 31.15920000000915,
+    "cpuMs": 31,
+    "rssBytes": 157327360,
+    "samples": 45
+  },
+  {
+    "fixture": "rooftop-terrain",
+    "repetition": 29,
+    "warmup": false,
+    "wallMs": 0.37790000000677537,
+    "cpuMs": 0,
+    "rssBytes": 157327360,
+    "samples": 45
+  },
+  {
+    "fixture": "irregular",
+    "repetition": 29,
+    "warmup": false,
+    "wallMs": 59.9606000000058,
+    "cpuMs": 63,
+    "rssBytes": 157327360,
+    "samples": 45
+  },
+  {
+    "fixture": "holed",
+    "repetition": 29,
+    "warmup": false,
+    "wallMs": 53.6247000000003,
+    "cpuMs": 47,
+    "rssBytes": 157327360,
+    "samples": 45
+  },
+  {
+    "fixture": "overlapping",
+    "repetition": 29,
+    "warmup": false,
+    "wallMs": 68.56439999998838,
+    "cpuMs": 78,
+    "rssBytes": 157327360,
+    "samples": 45
+  },
+  {
+    "fixture": "tiny",
+    "repetition": 29,
+    "warmup": false,
+    "wallMs": 14.557099999990896,
+    "cpuMs": 15,
+    "rssBytes": 157327360,
+    "samples": 45
+  }
+]

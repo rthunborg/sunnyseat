@@ -1,0 +1,20 @@
+{
+  "guardResourceId": "28e020f0-e0ec-44ae-a2f3-e351023aa1e9",
+  "database": "e15_story15_1_legacy01",
+  "sources": {
+    "scripts/benchmarks/epic-15/legacy-storage.mjs": "bb9ac65690142704378331e26fcf51b2e50aab0e1a20d8f9b4c0834476e6a46a",
+    "scripts/benchmarks/epic-15/evidence.mjs": "4fd8926cde056d7abfbf1d3de0bf96a201c7d47f311a8c5516b631b66ae77f72",
+    "scripts/benchmarks/epic-15/workloads-report.mjs": "b16e3e15fafbb07986fb80d5b66809d29c3f77c2100f533632d3d0a5be5092df"
+  },
+  "captureHashes": {
+    "rows.json": "6f14a581773093900ce654ab478e5ae76dbe7baf483f670e4464744ed8370d4a",
+    "rows.sql": "95ad3af5b363745f02e4efd7ea64095e5384a144521b2f80e5c042fd1ef452f1",
+    "census-tool.json": "45734793006d8af4fe7d663477219b1bd388d60ffef777a15ea7098d5827657c",
+    "census.sql": "d8b693af8168ddb48387610b82a5678ad5f781e04a61f88e78af7f8880f6c57c"
+  },
+  "workloadHashes": {
+    "workloads.json": "bc0b3b51fc97c9ef02908f25e5c0123b308ce3753e690f53f384ee0fa4363601",
+    "environment.json": "cc313128545b775af8f655aee503a3cdd8016d7b5453a6cec0f4b0b0266113e7",
+    "completion.json": "141b81998f46ab4b0a0422f0ebdd5bb4e8b175a6995228766048fed82d85980b"
+  }
+}

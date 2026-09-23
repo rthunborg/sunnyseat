@@ -1,0 +1,2172 @@
+[
+  {
+    "id": "open",
+    "date": "2026-03-01",
+    "samples": 549,
+    "serializedBytes": {
+      "json": 14824,
+      "arrays": 7142,
+      "bytes": 6593
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.08660000000963919,
+        "p95": 0.125,
+        "max": 0.2509999999892898
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.03190000000176951,
+        "p95": 0.05930000000807922,
+        "max": 0.09639999999490101
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03800000000046566,
+        "p95": 0.20330000000831205,
+        "max": 0.21159999999508727
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "open",
+    "date": "2026-03-29",
+    "samples": 694,
+    "serializedBytes": {
+      "json": 18739,
+      "arrays": 9027,
+      "bytes": 8333
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.10869999999704305,
+        "p95": 0.15069999999832362,
+        "max": 0.19980000000214204
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.04179999999178108,
+        "p95": 0.06690000000526197,
+        "max": 0.07800000000861473
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04610000000684522,
+        "p95": 0.08209999999962747,
+        "max": 0.5436999999947147
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "open",
+    "date": "2026-06-21",
+    "samples": 969,
+    "serializedBytes": {
+      "json": 26164,
+      "arrays": 12602,
+      "bytes": 11633
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.15380000000004657,
+        "p95": 0.19999999999708962,
+        "max": 0.21849999998812564
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.05280000000493601,
+        "p95": 0.07150000000547152,
+        "max": 0.07690000000002328
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.06489999999757856,
+        "p95": 0.08060000000114087,
+        "max": 0.10219999999389984
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "open",
+    "date": "2026-09-22",
+    "samples": 652,
+    "serializedBytes": {
+      "json": 17605,
+      "arrays": 8481,
+      "bytes": 7829
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.10169999999925494,
+        "p95": 0.13400000000547152,
+        "max": 0.1585999999952037
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.03650000000197906,
+        "p95": 0.047200000000884756,
+        "max": 0.04859999999462161
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.043600000004516914,
+        "p95": 0.08659999999508727,
+        "max": 0.08870000000752043
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "open",
+    "date": "2026-10-25",
+    "samples": 480,
+    "serializedBytes": {
+      "json": 12961,
+      "arrays": 6245,
+      "bytes": 5765
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.0746999999973923,
+        "p95": 0.11340000000200234,
+        "max": 0.18929999999818392
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.026799999992363155,
+        "p95": 0.052400000000488944,
+        "max": 0.10289999999804422
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03239999999641441,
+        "p95": 0.07929999999760184,
+        "max": 0.09080000000540167
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "open",
+    "date": "2026-10-31",
+    "samples": 448,
+    "serializedBytes": {
+      "json": 12097,
+      "arrays": 5829,
+      "bytes": 5381
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.06949999999778811,
+        "p95": 0.10020000000076834,
+        "max": 0.13830000000598375
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.02419999999983702,
+        "p95": 0.05610000000160653,
+        "max": 0.4331999999994878
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.02920000000449363,
+        "p95": 0.05049999999755528,
+        "max": 0.06519999999727588
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "open",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 6724,
+      "arrays": 3242,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.03969999999389984,
+        "p95": 0.06900000000314321,
+        "max": 0.08349999999336433
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.014600000009522773,
+        "p95": 0.03160000000207219,
+        "max": 0.053899999998975545
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.017900000006193295,
+        "p95": 0.03490000001329463,
+        "max": 0.04409999999916181
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "fully-covered",
+    "date": "2026-03-01",
+    "samples": 549,
+    "serializedBytes": {
+      "json": 13726,
+      "arrays": 6044,
+      "bytes": 6593
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.08539999999629799,
+        "p95": 0.10820000000239816,
+        "max": 0.14849999999569263
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.02890000000479631,
+        "p95": 0.04950000000826549,
+        "max": 0.05319999999483116
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03910000000905711,
+        "p95": 0.043399999995017424,
+        "max": 0.044800000003306195
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "fully-covered",
+    "date": "2026-03-29",
+    "samples": 694,
+    "serializedBytes": {
+      "json": 17351,
+      "arrays": 7639,
+      "bytes": 8333
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.11389999999664724,
+        "p95": 0.1600999999936903,
+        "max": 0.5810000000055879
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.035499999998137355,
+        "p95": 0.08539999999629799,
+        "max": 0.08550000000104774
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04989999999816064,
+        "p95": 0.08150000000023283,
+        "max": 0.4912999999942258
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "fully-covered",
+    "date": "2026-06-21",
+    "samples": 969,
+    "serializedBytes": {
+      "json": 24226,
+      "arrays": 10664,
+      "bytes": 11633
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1270000000076834,
+        "p95": 0.17399999999906868,
+        "max": 0.18260000000009313
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.027600000001257285,
+        "p95": 0.05830000000423752,
+        "max": 0.07609999999112915
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03889999999955762,
+        "p95": 0.07200000000011642,
+        "max": 0.07600000000093132
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "fully-covered",
+    "date": "2026-09-22",
+    "samples": 652,
+    "serializedBytes": {
+      "json": 16301,
+      "arrays": 7177,
+      "bytes": 7829
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.0878999999986263,
+        "p95": 0.11429999998654239,
+        "max": 0.11449999999604188
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.023600000000442378,
+        "p95": 0.04160000001138542,
+        "max": 0.04859999999462161
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.033999999999650754,
+        "p95": 0.05280000000493601,
+        "max": 0.05710000000544824
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "fully-covered",
+    "date": "2026-10-25",
+    "samples": 480,
+    "serializedBytes": {
+      "json": 12001,
+      "arrays": 5285,
+      "bytes": 5765
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.07300000000395812,
+        "p95": 0.0898999999917578,
+        "max": 0.09880000000703149
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.02459999998973217,
+        "p95": 0.029099999999743886,
+        "max": 0.04030000000784639
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03209999999671709,
+        "p95": 0.035799999997834675,
+        "max": 0.0371000000013737
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "fully-covered",
+    "date": "2026-10-31",
+    "samples": 448,
+    "serializedBytes": {
+      "json": 11201,
+      "arrays": 4933,
+      "bytes": 5381
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.06859999999869615,
+        "p95": 0.08249999998952262,
+        "max": 0.09399999999732245
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.023600000000442378,
+        "p95": 0.034899999998742715,
+        "max": 0.4323000000003958
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.030400000003282912,
+        "p95": 0.03650000000197906,
+        "max": 0.04409999999916181
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "fully-covered",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 6226,
+      "arrays": 2744,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.03919999999925494,
+        "p95": 0.06680000000051223,
+        "max": 0.06960000000253785
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.013600000005681068,
+        "p95": 0.021500000002561137,
+        "max": 0.023200000010547228
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.017300000006798655,
+        "p95": 0.026499999992665835,
+        "max": 0.0326000000059139
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "courtyard",
+    "date": "2026-03-01",
+    "samples": 549,
+    "serializedBytes": {
+      "json": 13726,
+      "arrays": 6044,
+      "bytes": 6593
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.0488000000041211,
+        "p95": 0.11419999999634456,
+        "max": 0.12939999999071006
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.01579999999376014,
+        "p95": 0.034299999999348074,
+        "max": 0.03740000000107102
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.02019999999902211,
+        "p95": 0.0428000000101747,
+        "max": 0.05199999999604188
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "courtyard",
+    "date": "2026-03-29",
+    "samples": 694,
+    "serializedBytes": {
+      "json": 17351,
+      "arrays": 7639,
+      "bytes": 8333
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.10619999999471474,
+        "p95": 0.1486999999906402,
+        "max": 0.1584000000002561
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.036099999997531995,
+        "p95": 0.05109999999694992,
+        "max": 0.3695000000006985
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04589999999734573,
+        "p95": 0.0742000000027474,
+        "max": 0.10120000000461005
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "courtyard",
+    "date": "2026-06-21",
+    "samples": 993,
+    "serializedBytes": {
+      "json": 31044,
+      "arrays": 17146,
+      "bytes": 11921
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.15399999999499414,
+        "p95": 0.22979999998642597,
+        "max": 0.25730000001203734
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.05949999998847488,
+        "p95": 0.13259999999718275,
+        "max": 0.14620000000286382
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04709999999613501,
+        "p95": 0.11299999999755528,
+        "max": 0.11650000000372529
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "courtyard",
+    "date": "2026-09-22",
+    "samples": 652,
+    "serializedBytes": {
+      "json": 16301,
+      "arrays": 7177,
+      "bytes": 7829
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.06070000000181608,
+        "p95": 0.132499999992433,
+        "max": 0.6903999999922235
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.01929999999993015,
+        "p95": 0.061400000005960464,
+        "max": 0.06799999999930151
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.025800000003073364,
+        "p95": 0.0610000000015134,
+        "max": 0.0697000000072876
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "courtyard",
+    "date": "2026-10-25",
+    "samples": 480,
+    "serializedBytes": {
+      "json": 12001,
+      "arrays": 5285,
+      "bytes": 5765
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.04409999999916181,
+        "p95": 0.11830000000190921,
+        "max": 0.13280000000668224
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.014200000005075708,
+        "p95": 0.03199999999196734,
+        "max": 0.03200000000651926
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.018899999995483086,
+        "p95": 0.06609999999636784,
+        "max": 0.0991000000067288
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "courtyard",
+    "date": "2026-10-31",
+    "samples": 448,
+    "serializedBytes": {
+      "json": 11201,
+      "arrays": 4933,
+      "bytes": 5381
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.03850000000966247,
+        "p95": 0.04140000000188593,
+        "max": 0.042199999996228144
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.012000000002444722,
+        "p95": 0.013900000005378388,
+        "max": 0.015599999998812564
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.015500000008614734,
+        "p95": 0.021699999997508712,
+        "max": 0.023300000000745058
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "courtyard",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 6226,
+      "arrays": 2744,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.03900000000430737,
+        "p95": 0.06829999999899883,
+        "max": 0.06960000000253785
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.014600000009522773,
+        "p95": 0.018500000005587935,
+        "max": 0.030599999998230487
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.01750000000174623,
+        "p95": 0.025599999993573874,
+        "max": 0.32880000000295695
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "narrow-street",
+    "date": "2026-03-01",
+    "samples": 561,
+    "serializedBytes": {
+      "json": 19821,
+      "arrays": 11971,
+      "bytes": 6737
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.11620000000402797,
+        "p95": 0.1416999999928521,
+        "max": 0.16989999999350403
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.06130000000121072,
+        "p95": 0.08209999999962747,
+        "max": 0.09969999999157153
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03800000000046566,
+        "p95": 0.06949999999778811,
+        "max": 0.08859999998821877
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "narrow-street",
+    "date": "2026-03-29",
+    "samples": 706,
+    "serializedBytes": {
+      "json": 22775,
+      "arrays": 12895,
+      "bytes": 8477
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.14100000000325963,
+        "p95": 0.2716000000073109,
+        "max": 0.4738999999972293
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.06669999999576248,
+        "p95": 0.09590000000025611,
+        "max": 0.10129999999480788
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04979999999341089,
+        "p95": 0.07009999999718275,
+        "max": 0.07839999999850988
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "narrow-street",
+    "date": "2026-06-21",
+    "samples": 981,
+    "serializedBytes": {
+      "json": 28238,
+      "arrays": 14508,
+      "bytes": 11777
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1655999999929918,
+        "p95": 0.2099000000016531,
+        "max": 0.23450000000593718
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.07069999999657739,
+        "p95": 0.10679999999410938,
+        "max": 0.16290000001026783
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.06459999999788124,
+        "p95": 0.1444000000046799,
+        "max": 0.14559999998891726
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "narrow-street",
+    "date": "2026-09-22",
+    "samples": 664,
+    "serializedBytes": {
+      "json": 22046,
+      "arrays": 12754,
+      "bytes": 7973
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.08089999998628628,
+        "p95": 0.1805000000022119,
+        "max": 0.4026000000012573
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.03629999999247957,
+        "p95": 0.05160000000614673,
+        "max": 0.0771999999997206
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.02419999999983702,
+        "p95": 0.06420000000798609,
+        "max": 0.06640000001061708
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "narrow-street",
+    "date": "2026-10-25",
+    "samples": 492,
+    "serializedBytes": {
+      "json": 18337,
+      "arrays": 11453,
+      "bytes": 5909
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.06790000000910368,
+        "p95": 0.12359999999171123,
+        "max": 0.1837999999988824
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.03280000000086147,
+        "p95": 0.061499999996158294,
+        "max": 0.07259999999951106
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.01800000001094304,
+        "p95": 0.05439999999362044,
+        "max": 0.07519999999203719
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "narrow-street",
+    "date": "2026-10-31",
+    "samples": 460,
+    "serializedBytes": {
+      "json": 16926,
+      "arrays": 10490,
+      "bytes": 5525
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.05830000000423752,
+        "p95": 0.12059999999473803,
+        "max": 0.13509999999951106
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.030200000008335337,
+        "p95": 0.04220000001078006,
+        "max": 0.05049999999755528
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.016799999997601844,
+        "p95": 0.0253999999986263,
+        "max": 0.03680000000167638
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "narrow-street",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 7995,
+      "arrays": 4513,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.028500000000349246,
+        "p95": 0.05909999999857973,
+        "max": 0.0639999999984866
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.012500000011641532,
+        "p95": 0.013699999995878898,
+        "max": 0.026400000002468005
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.009899999990011565,
+        "p95": 0.010799999989103526,
+        "max": 0.011399999988498166
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "rooftop-terrain",
+    "date": "2026-03-01",
+    "samples": 549,
+    "serializedBytes": {
+      "json": 14824,
+      "arrays": 7142,
+      "bytes": 6593
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.04829999999492429,
+        "p95": 0.07809999999881256,
+        "max": 0.08520000000135042
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.015200000008917414,
+        "p95": 0.02010000000882428,
+        "max": 0.07579999999143183
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.019400000004679896,
+        "p95": 0.02509999999892898,
+        "max": 0.05460000000311993
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "rooftop-terrain",
+    "date": "2026-03-29",
+    "samples": 694,
+    "serializedBytes": {
+      "json": 18739,
+      "arrays": 9027,
+      "bytes": 8333
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.06090000001131557,
+        "p95": 0.09070000000065193,
+        "max": 0.10579999999026768
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.01789999999164138,
+        "p95": 0.029399999999441206,
+        "max": 0.03350000000500586
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.02449999999953434,
+        "p95": 0.0488000000041211,
+        "max": 0.051500000001396984
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "rooftop-terrain",
+    "date": "2026-06-21",
+    "samples": 969,
+    "serializedBytes": {
+      "json": 26164,
+      "arrays": 12602,
+      "bytes": 11633
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.14010000000416767,
+        "p95": 0.17239999999583233,
+        "max": 0.1782999999995809
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.04709999999613501,
+        "p95": 0.05199999999604188,
+        "max": 0.07039999999688007
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.055999999996856786,
+        "p95": 0.06829999999899883,
+        "max": 0.07189999999536667
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "rooftop-terrain",
+    "date": "2026-09-22",
+    "samples": 652,
+    "serializedBytes": {
+      "json": 17605,
+      "arrays": 8481,
+      "bytes": 7829
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.05640000000130385,
+        "p95": 0.13179999998828862,
+        "max": 0.1640999999945052
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.01810000000114087,
+        "p95": 0.05589999999210704,
+        "max": 0.05860000000393484
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.022199999992153607,
+        "p95": 0.06710000000020955,
+        "max": 0.07409999999799766
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "rooftop-terrain",
+    "date": "2026-10-25",
+    "samples": 480,
+    "serializedBytes": {
+      "json": 12961,
+      "arrays": 6245,
+      "bytes": 5765
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.03900000000430737,
+        "p95": 0.042799999995622784,
+        "max": 0.05869999999413267
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.012199999997392297,
+        "p95": 0.01870000000053551,
+        "max": 0.024600000004284084
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.015899999998509884,
+        "p95": 0.01780000000144355,
+        "max": 0.018599999995785765
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "rooftop-terrain",
+    "date": "2026-10-31",
+    "samples": 448,
+    "serializedBytes": {
+      "json": 12097,
+      "arrays": 5829,
+      "bytes": 5381
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.0684999999939464,
+        "p95": 0.09100000000034925,
+        "max": 0.11559999999008141
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.023700000005192123,
+        "p95": 0.046999999991385266,
+        "max": 0.04940000000351574
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.02779999999620486,
+        "p95": 0.03689999999187421,
+        "max": 0.054199999998672865
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "rooftop-terrain",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 6724,
+      "arrays": 3242,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.03779999999096617,
+        "p95": 0.0522999999957392,
+        "max": 0.07160000001022127
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.013700000010430813,
+        "p95": 0.028299999990849756,
+        "max": 0.04029999999329448
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.01600000000325963,
+        "p95": 0.02380000000994187,
+        "max": 0.051899999991292134
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "irregular",
+    "date": "2026-03-01",
+    "samples": 549,
+    "serializedBytes": {
+      "json": 13726,
+      "arrays": 6044,
+      "bytes": 6593
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.08039999999164138,
+        "p95": 0.10929999999643769,
+        "max": 0.41300000000046566
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.026799999992363155,
+        "p95": 0.03479999999399297,
+        "max": 0.04349999999976717
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03320000000530854,
+        "p95": 0.04949999999371357,
+        "max": 0.05730000000039581
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "irregular",
+    "date": "2026-03-29",
+    "samples": 694,
+    "serializedBytes": {
+      "json": 17351,
+      "arrays": 7639,
+      "bytes": 8333
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1006000000052154,
+        "p95": 0.15849999999045394,
+        "max": 0.17190000000118744
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.03350000000500586,
+        "p95": 0.04750000000058208,
+        "max": 0.05310000000463333
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04179999999178108,
+        "p95": 0.05000000000291038,
+        "max": 0.07679999999527354
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "irregular",
+    "date": "2026-06-21",
+    "samples": 969,
+    "serializedBytes": {
+      "json": 30300,
+      "arrays": 16738,
+      "bytes": 11633
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1740000000136206,
+        "p95": 0.23199999998905696,
+        "max": 0.23260000000300352
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.08020000001124572,
+        "p95": 0.12619999999878928,
+        "max": 0.14960000000428408
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.05849999999918509,
+        "p95": 0.12489999999525025,
+        "max": 0.3657999999995809
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "irregular",
+    "date": "2026-09-22",
+    "samples": 652,
+    "serializedBytes": {
+      "json": 16301,
+      "arrays": 7177,
+      "bytes": 7829
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.051800000001094304,
+        "p95": 0.055699999997159466,
+        "max": 0.05680000000575092
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.015500000008614734,
+        "p95": 0.017399999996996485,
+        "max": 0.01840000000083819
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.021399999997811392,
+        "p95": 0.023300000000745058,
+        "max": 0.0283999999955995
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "irregular",
+    "date": "2026-10-25",
+    "samples": 480,
+    "serializedBytes": {
+      "json": 12001,
+      "arrays": 5285,
+      "bytes": 5765
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.07190000000991859,
+        "p95": 0.10119999999005813,
+        "max": 0.4180000000051223
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.0239000000001397,
+        "p95": 0.037200000006123446,
+        "max": 0.05830000000423752
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.029300000009243377,
+        "p95": 0.0415999999968335,
+        "max": 0.0689999999885913
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "irregular",
+    "date": "2026-10-31",
+    "samples": 448,
+    "serializedBytes": {
+      "json": 11201,
+      "arrays": 4933,
+      "bytes": 5381
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.06539999999222346,
+        "p95": 0.09300000000803266,
+        "max": 0.10679999999410938
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.021800000002258457,
+        "p95": 0.03530000000318978,
+        "max": 0.03659999999217689
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.02079999999841675,
+        "p95": 0.03389999999490101,
+        "max": 0.04409999999916181
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "irregular",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 6226,
+      "arrays": 2744,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.022400000001653098,
+        "p95": 0.023300000000745058,
+        "max": 0.02350000001024455
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.006599999993341044,
+        "p95": 0.007500000006984919,
+        "max": 0.007700000001932494
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.00879999999597203,
+        "p95": 0.00930000000516884,
+        "max": 0.01609999999345746
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "holed",
+    "date": "2026-03-01",
+    "samples": 561,
+    "serializedBytes": {
+      "json": 19831,
+      "arrays": 11981,
+      "bytes": 6737
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.07039999999688007,
+        "p95": 0.14650000000256114,
+        "max": 0.15619999999762513
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.033600000009755604,
+        "p95": 0.07510000000183936,
+        "max": 0.16389999999955762
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.01920000000973232,
+        "p95": 0.052999999999883585,
+        "max": 0.23690000000351574
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "holed",
+    "date": "2026-03-29",
+    "samples": 706,
+    "serializedBytes": {
+      "json": 22910,
+      "arrays": 13030,
+      "bytes": 8477
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1282000000064727,
+        "p95": 0.17299999999522697,
+        "max": 0.20160000000032596
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.05920000000332948,
+        "p95": 0.06580000001122244,
+        "max": 0.06819999999424908
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.04129999999713618,
+        "p95": 0.06570000000647269,
+        "max": 0.07439999999769498
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "holed",
+    "date": "2026-06-21",
+    "samples": 981,
+    "serializedBytes": {
+      "json": 29146,
+      "arrays": 15416,
+      "bytes": 11777
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.17119999999704305,
+        "p95": 0.22079999999550637,
+        "max": 0.2646000000095228
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.07069999999657739,
+        "p95": 0.09549999999580905,
+        "max": 0.09780000000318978
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.060299999997369014,
+        "p95": 0.14110000000800937,
+        "max": 0.43459999999322463
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "holed",
+    "date": "2026-09-22",
+    "samples": 664,
+    "serializedBytes": {
+      "json": 22032,
+      "arrays": 12740,
+      "bytes": 7973
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.09170000000449363,
+        "p95": 0.1628000000055181,
+        "max": 0.1653000000078464
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.03979999999864958,
+        "p95": 0.0786999999982072,
+        "max": 0.0819000000046799
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.0239000000001397,
+        "p95": 0.0458000000071479,
+        "max": 0.04940000000351574
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "holed",
+    "date": "2026-10-25",
+    "samples": 492,
+    "serializedBytes": {
+      "json": 18344,
+      "arrays": 11460,
+      "bytes": 5909
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1070999999938067,
+        "p95": 0.14170000000740401,
+        "max": 0.14459999999962747
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.05659999999625143,
+        "p95": 0.07790000000386499,
+        "max": 0.0844000000070082
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.031099999992875382,
+        "p95": 0.036699999996926636,
+        "max": 0.0390999999945052
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "holed",
+    "date": "2026-10-31",
+    "samples": 460,
+    "serializedBytes": {
+      "json": 17480,
+      "arrays": 11044,
+      "bytes": 5525
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.09779999998863786,
+        "p95": 0.13779999999678694,
+        "max": 0.1573999999964144
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.05340000000433065,
+        "p95": 0.07480000000214204,
+        "max": 0.08580000000074506
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.028100000010454096,
+        "p95": 0.034899999998742715,
+        "max": 0.04890000000887085
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "holed",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 8596,
+      "arrays": 5114,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.04839999999967404,
+        "p95": 0.06919999999809079,
+        "max": 0.07239999999001157
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.02399999999033753,
+        "p95": 0.029800000003888272,
+        "max": 0.0405999999929918
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.01570000000356231,
+        "p95": 0.030700000002980232,
+        "max": 0.034200000009150244
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "overlapping",
+    "date": "2026-03-01",
+    "samples": 561,
+    "serializedBytes": {
+      "json": 19918,
+      "arrays": 12068,
+      "bytes": 6737
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.11069999999017455,
+        "p95": 0.16890000000421423,
+        "max": 0.17290000000502914
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.05689999999594875,
+        "p95": 0.08259999999427237,
+        "max": 0.08279999998921994
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03440000000409782,
+        "p95": 0.05250000000523869,
+        "max": 0.1023000000132015
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "overlapping",
+    "date": "2026-03-29",
+    "samples": 706,
+    "serializedBytes": {
+      "json": 22991,
+      "arrays": 13111,
+      "bytes": 8477
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.07640000000537839,
+        "p95": 0.14180000001215376,
+        "max": 0.20059999999648426
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.033499999990453944,
+        "p95": 0.0595000000030268,
+        "max": 0.08079999999608845
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.022900000010849908,
+        "p95": 0.044800000003306195,
+        "max": 0.04869999999937136
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "overlapping",
+    "date": "2026-06-21",
+    "samples": 981,
+    "serializedBytes": {
+      "json": 29150,
+      "arrays": 15420,
+      "bytes": 11777
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.09410000000207219,
+        "p95": 0.15989999999874271,
+        "max": 0.1870000000053551
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.036999999996623956,
+        "p95": 0.09940000000642613,
+        "max": 0.39079999999376014
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03240000001096632,
+        "p95": 0.07900000001245644,
+        "max": 0.08650000000488944
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "overlapping",
+    "date": "2026-09-22",
+    "samples": 664,
+    "serializedBytes": {
+      "json": 22146,
+      "arrays": 12854,
+      "bytes": 7973
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.07730000000447035,
+        "p95": 0.1713000000017928,
+        "max": 0.17510000000766013
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.034200000009150244,
+        "p95": 0.09049999999115244,
+        "max": 0.09679999999934807
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.022600000011152588,
+        "p95": 0.05930000000807922,
+        "max": 0.06590000000142027
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "overlapping",
+    "date": "2026-10-25",
+    "samples": 492,
+    "serializedBytes": {
+      "json": 18444,
+      "arrays": 11560,
+      "bytes": 5909
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1070999999938067,
+        "p95": 0.1396999999997206,
+        "max": 0.16550000000279397
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.05730000000039581,
+        "p95": 0.06260000000474975,
+        "max": 0.08030000000144355
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.030399999988730997,
+        "p95": 0.04910000000381842,
+        "max": 0.05730000000039581
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "overlapping",
+    "date": "2026-10-31",
+    "samples": 460,
+    "serializedBytes": {
+      "json": 17612,
+      "arrays": 11176,
+      "bytes": 5525
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.07399999999324791,
+        "p95": 0.11469999999098945,
+        "max": 0.1177999999927124
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.03940000000875443,
+        "p95": 0.08389999999781139,
+        "max": 0.31739999999990687
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.02010000000882428,
+        "p95": 0.05520000000251457,
+        "max": 0.07580000000598375
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "overlapping",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 8723,
+      "arrays": 5241,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.028500000000349246,
+        "p95": 0.034299999999348074,
+        "max": 0.03509999999369029
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.013899999990826473,
+        "p95": 0.014599999994970858,
+        "max": 0.015299999999115244
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.00840000000607688,
+        "p95": 0.009200000000419095,
+        "max": 0.010099999999511056
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "tiny",
+    "date": "2026-03-01",
+    "samples": 555,
+    "serializedBytes": {
+      "json": 14808,
+      "arrays": 7042,
+      "bytes": 6665
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.04740000001038425,
+        "p95": 0.06389999999373686,
+        "max": 0.09549999999580905
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.014000000010128133,
+        "p95": 0.01840000000083819,
+        "max": 0.054100000008475035
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.018800000005285256,
+        "p95": 0.027300000001559965,
+        "max": 0.03240000001096632
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "tiny",
+    "date": "2026-03-29",
+    "samples": 700,
+    "serializedBytes": {
+      "json": 18550,
+      "arrays": 8754,
+      "bytes": 8405
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.06329999999434222,
+        "p95": 0.13340000000607688,
+        "max": 0.13809999999648426
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.018800000005285256,
+        "p95": 0.06329999999434222,
+        "max": 0.3802000000141561
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.02470000000903383,
+        "p95": 0.06680000000051223,
+        "max": 0.08629999999538995
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "tiny",
+    "date": "2026-06-21",
+    "samples": 975,
+    "serializedBytes": {
+      "json": 25721,
+      "arrays": 12075,
+      "bytes": 11705
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.0836999999883119,
+        "p95": 0.1860000000015134,
+        "max": 0.19359999999869615
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.026100000002770685,
+        "p95": 0.055699999997159466,
+        "max": 0.05739999999059364
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.0341000000044005,
+        "p95": 0.08050000001094304,
+        "max": 0.0961000000097556
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "tiny",
+    "date": "2026-09-22",
+    "samples": 658,
+    "serializedBytes": {
+      "json": 17469,
+      "arrays": 8261,
+      "bytes": 7901
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.08950000000186265,
+        "p95": 0.14530000000377186,
+        "max": 0.18069999999715947
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.02459999998973217,
+        "p95": 0.03900000000430737,
+        "max": 0.08659999999508727
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.033100000000558794,
+        "p95": 0.047299999991082586,
+        "max": 0.04799999999522697
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "tiny",
+    "date": "2026-10-25",
+    "samples": 486,
+    "serializedBytes": {
+      "json": 13043,
+      "arrays": 6243,
+      "bytes": 5837
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.05879999999888241,
+        "p95": 0.06650000000081491,
+        "max": 0.08649999999033753
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.017600000006495975,
+        "p95": 0.021300000007613562,
+        "max": 0.021800000002258457
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.021500000002561137,
+        "p95": 0.025299999993876554,
+        "max": 0.02740000000630971
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "tiny",
+    "date": "2026-10-31",
+    "samples": 454,
+    "serializedBytes": {
+      "json": 12213,
+      "arrays": 5861,
+      "bytes": 5453
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.07700000000477303,
+        "p95": 0.12470000000030268,
+        "max": 0.16629999999713618
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.021200000002863817,
+        "p95": 0.046600000001490116,
+        "max": 0.06430000001273584
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.02569999999832362,
+        "p95": 0.043800000014016405,
+        "max": 0.0625
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "tiny",
+    "date": "2026-12-21",
+    "samples": 249,
+    "serializedBytes": {
+      "json": 6724,
+      "arrays": 3242,
+      "bytes": 2993
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.021300000007613562,
+        "p95": 0.03900000000430737,
+        "max": 0.043099999995320104
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.006699999998090789,
+        "p95": 0.01630000000295695,
+        "max": 0.062000000005355105
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.00840000000607688,
+        "p95": 0.024099999995087273,
+        "max": 0.051100000011501834
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "cap-and-height-boundaries",
+    "date": "2026-03-01",
+    "samples": 549,
+    "serializedBytes": {
+      "json": 17580,
+      "arrays": 9898,
+      "bytes": 6593
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.10229999999864958,
+        "p95": 0.13989999999466818,
+        "max": 0.16690000001108274
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.047200000000884756,
+        "p95": 0.07509999998728745,
+        "max": 0.0874000000039814
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.034099999989848584,
+        "p95": 0.07529999999678694,
+        "max": 0.07639999999082647
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "cap-and-height-boundaries",
+    "date": "2026-03-29",
+    "samples": 694,
+    "serializedBytes": {
+      "json": 22457,
+      "arrays": 12745,
+      "bytes": 8333
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.12610000000859145,
+        "p95": 0.19959999999264255,
+        "max": 0.5638999999937369
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.05809999999473803,
+        "p95": 0.07550000000628643,
+        "max": 0.1025999999983469
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.0420999999914784,
+        "p95": 0.05809999999473803,
+        "max": 0.060800000006565824
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "cap-and-height-boundaries",
+    "date": "2026-06-21",
+    "samples": 981,
+    "serializedBytes": {
+      "json": 31685,
+      "arrays": 17955,
+      "bytes": 11777
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.18089999999210704,
+        "p95": 0.2658999999985099,
+        "max": 0.27730000000155997
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.08479999999690335,
+        "p95": 0.138200000001234,
+        "max": 0.14230000000679865
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.06380000000353903,
+        "p95": 0.07980000000679865,
+        "max": 0.08049999999639113
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "cap-and-height-boundaries",
+    "date": "2026-09-22",
+    "samples": 652,
+    "serializedBytes": {
+      "json": 21094,
+      "arrays": 11970,
+      "bytes": 7829
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.1187999999965541,
+        "p95": 0.17140000000654254,
+        "max": 0.43020000000251457
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.0537999999942258,
+        "p95": 0.07580000000598375,
+        "max": 0.07920000000740401
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.03999999999359716,
+        "p95": 0.06220000000030268,
+        "max": 0.0731999999989057
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "cap-and-height-boundaries",
+    "date": "2026-10-25",
+    "samples": 492,
+    "serializedBytes": {
+      "json": 15969,
+      "arrays": 9085,
+      "bytes": 5909
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.05070000000705477,
+        "p95": 0.053099999990081415,
+        "max": 0.05409999999392312
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.021899999992456287,
+        "p95": 0.023000000001047738,
+        "max": 0.02800000000570435
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.016499999997904524,
+        "p95": 0.019799999994575046,
+        "max": 0.024800000013783574
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "cap-and-height-boundaries",
+    "date": "2026-10-31",
+    "samples": 460,
+    "serializedBytes": {
+      "json": 14852,
+      "arrays": 8416,
+      "bytes": 5525
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.07779999999911524,
+        "p95": 0.10029999999096617,
+        "max": 0.12390000000596046
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.031200000012177043,
+        "p95": 0.04200000000128057,
+        "max": 0.04439999999885913
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.023600000000442378,
+        "p95": 0.0420999999914784,
+        "max": 0.05289999999513384
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  },
+  {
+    "id": "cap-and-height-boundaries",
+    "date": "2026-12-21",
+    "samples": 261,
+    "serializedBytes": {
+      "json": 8058,
+      "arrays": 4408,
+      "bytes": 3137
+    },
+    "decodeMs": {
+      "json": {
+        "n": 30,
+        "p50": 0.047200000000884756,
+        "p95": 0.08720000000903383,
+        "max": 0.10189999999420252
+      },
+      "arrays": {
+        "n": 30,
+        "p50": 0.02019999999902211,
+        "p95": 0.045100000003003515,
+        "max": 0.05000000000291038
+      },
+      "bytes": {
+        "n": 30,
+        "p50": 0.016899999987799674,
+        "p95": 0.035400000007939525,
+        "max": 0.04649999999674037
+      }
+    },
+    "note": "Payload lengths are NOT database sizes. All three decoders include equivalent shape/order/range validation."
+  }
+]

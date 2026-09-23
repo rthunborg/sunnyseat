@@ -1,0 +1,75 @@
+{
+  "project": "hhnbxrhfhlzxgllxukzj",
+  "plan": "free",
+  "cluster": {
+    "captured_at": "2026-09-12T10:37:48.082949+00:00",
+    "current_database_bytes": 309423251,
+    "cluster_database_bytes": 324538545,
+    "database_count": 3
+  },
+  "census": {
+    "captured_at": "2026-09-12T10:29:43.610522+00:00",
+    "database_bytes": 309423251,
+    "server_version": "PostgreSQL 17.6 on aarch64-unknown-linux-gnu, compiled by gcc (GCC) 15.2.0, 64-bit",
+    "relations": [
+      {
+        "name": "app_feedback",
+        "total_bytes": 32768
+      },
+      {
+        "name": "feedback",
+        "total_bytes": 32768
+      },
+      {
+        "name": "geometry_precompute_runs",
+        "total_bytes": 90112
+      },
+      {
+        "name": "hours_review_outcomes",
+        "total_bytes": 294912
+      },
+      {
+        "name": "hours_review_runs",
+        "total_bytes": 114688
+      },
+      {
+        "name": "reviews",
+        "total_bytes": 49152
+      },
+      {
+        "name": "shadow_caster_import_batches",
+        "total_bytes": 49152
+      },
+      {
+        "name": "shadow_casters",
+        "total_bytes": 117014528
+      },
+      {
+        "name": "spatial_ref_sys",
+        "total_bytes": 7315456
+      },
+      {
+        "name": "venue_geometry_inputs",
+        "total_bytes": 3497984
+      },
+      {
+        "name": "venue_sun_geometry_series",
+        "total_bytes": 164257792
+      },
+      {
+        "name": "venues",
+        "total_bytes": 278528
+      },
+      {
+        "name": "weather_bucket_snapshots",
+        "total_bytes": 1212416
+      }
+    ]
+  },
+  "planningLimitBytes": 500000000,
+  "planningRemainingBytes": 175461455,
+  "source": "https://supabase.com/docs/guides/platform/database-size",
+  "sourceChecked": "2026-09-12",
+  "limitInterpretation": "Documented 500MB Free database quota; conservatively modelled as 500,000,000 bytes. Current cluster SQL sum includes three databases. Physical disk/WAL free space and organization billing-period average are not measured.",
+  "productionOperations": "Read-only management metadata and two BEGIN READ ONLY census transactions; no production writes."
+}

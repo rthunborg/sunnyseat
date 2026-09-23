@@ -102,6 +102,8 @@ Stop dev infrastructure with `docker compose -f compose.yaml down`; reset persis
 
 ### Agent Delegation
 
+Use `gpt-5.6-sol` with `medium` reasoning effort for all Codex delegates, including every auto-bmad profile. Keep the auto-bmad runtime config, default profile source, and generated `.codex/agents/` definitions aligned with this rule. Profile names describe responsibilities; they do not select different models or effort levels. Change this model/effort policy only when the user explicitly requests it.
+
 Agents may spawn subagents when it is useful and relevant to the task at hand, including parallel review layers, codebase exploration, verification, and other bounded subtasks that materially advance the work. Keep delegated tasks concrete, read-only unless implementation ownership is explicit, and integrate the results before presenting conclusions. This repo-level permission is intended to avoid repeated human approval prompts for normal subagent use; it cannot override higher-priority platform or runtime instructions if those are stricter.
 
 ### Design Tokens
@@ -153,6 +155,7 @@ The frontend budget is <=600 KB gzipped JS total, with initial route <=280 KB an
 ## BMAD Story Workflow
 
 - `project-context.md` is durable project context and contains the canonical Screen ID -> Route Map used by visual validation.
+- **Epic-branch auto-bmad continuation:** On `epic/<N>-*`, a bare `auto-bmad` invocation means one story from that branch's epic. Before the skill's global target selection, use `story_plan.py --epic <N>` to enumerate the epic and `state_plan.py` to find an in-flight state for that epic. Resume that in-flight story when present; otherwise select the first story in epic order whose status is not `done`. Run the selected story through the per-story pipeline with an explicit `--story <id>` and `skip branch` / `skip pr` so its commits stay on the existing epic branch. Never select an older story from another epic merely because its status is still open. Stop after that one story; the next bare invocation advances only after the current story reaches `done`. An explicit `--story` or `epic` invocation takes precedence over this branch-scoped default. If the branch or epic cannot be resolved unambiguously, stop and surface the conflict.
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` is local sprint state.
 - Story files currently live directly under `_bmad-output/implementation-artifacts/` in this checkout.
 - Do not directly edit `_bmad-output/implementation-artifacts/sprint-status.yaml` to mark a story `review`.

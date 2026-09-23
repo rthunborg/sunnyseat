@@ -1,0 +1,39 @@
+{
+  "at": "2026-09-12T18:55:48.977Z",
+  "priorHashesVerified": 297,
+  "sources": {
+    "scripts/benchmarks/epic-15/workloads.measurement.ts": "007a9c674f6d77aee6337bb5564755f4b94ca5de032f17ee1cc3b572e1634795",
+    "scripts/benchmarks/epic-15/workloads-report.mjs": "b16e3e15fafbb07986fb80d5b66809d29c3f77c2100f533632d3d0a5be5092df",
+    "scripts/benchmarks/epic-15/accepted-matrix.measurement.ts": "1a1c5f85d8c9dd8cb428d311572198a35db66e6c4cc360a01f9909193c0800e3",
+    "scripts/benchmarks/epic-15/accepted-matrix-report.mjs": "1607f2dee184542a9d057a7b2c8d41caedd8da7627bdffb250f14c2ab0b57097",
+    "test/unit/benchmarks/epic-15/workloads-report.test.ts": "9fdf237d087521a4366c5c04ac9ddae3313f5c3b52094f3f022b1b8f925760f0"
+  },
+  "checks": {
+    "baselineTypecheck": "passed",
+    "baselineLint": "passed",
+    "finalTypecheck": "passed",
+    "finalLint": "passed, including targeted recheck of final report helper",
+    "targetedTests": 4,
+    "fullSuiteFiles": 251,
+    "fullSuiteTests": 2291,
+    "run18": "passed 617.98 seconds test",
+    "run19": "passed 25.58 seconds test"
+  },
+  "stop": {
+    "resourceId": "50db2f93-c47f-4203-a888-0a0667775ec4",
+    "ok": true,
+    "state": "stop_requested",
+    "verified": false
+  },
+  "limitations": [
+    "No hosted/cold-cache measurement",
+    "No full-cohort seasonal run",
+    "No new/removed caster spatial resolver benchmark",
+    "No exact production legacy-row replacement experiment"
+  ],
+  "reproduce": {
+    "workloads": "npx vitest run --config scripts/benchmarks/epic-15/vitest.config.ts scripts/benchmarks/epic-15/workloads.measurement.ts",
+    "matrix": "npx vitest run --config scripts/benchmarks/epic-15/vitest.config.ts scripts/benchmarks/epic-15/accepted-matrix.measurement.ts",
+    "env": "Fresh absolute E15_OUTPUT, absolute E15_EVIDENCE_ROOT; workloads additionally actor-verified E15_CONTAINER, fresh e15_ E15_DATABASE and E15_GUARD_RESOURCE. Run from nextjs-app."
+  }
+}

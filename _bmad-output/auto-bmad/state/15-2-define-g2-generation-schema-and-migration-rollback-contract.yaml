@@ -1,0 +1,116 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 15-2-define-g2-generation-schema-and-migration-rollback-contract
+epic_num: 15
+story_num: 2
+branch: epic/15-seasonal-clear-sky-geometry-materialization
+status: done
+updated_at: "2026-09-23T13:51:10Z"
+started_at: "2026-09-21T16:03:27Z"
+completed_at: "2026-09-23T13:51:10Z"
+active_seconds: 10241
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+needs_project_context_bootstrap: false
+git_mode: remote
+base_branch: main
+tea_risk: high
+tea_selected: [trace-advisory]
+tea_rationale: "Schema migrations, RLS/grants and data-integrity/rollback contracts. Trace advisory qualifies for six-story epic with four stories remaining; ATDD/automate excluded by Phase 7 adoption."
+epic_story_count: 6
+stories_after_in_epic: 4
+completed_phases: [7, 8, 9]
+code_review_iterations: 11
+code_review_loop_done: true
+hitl_halt: "User chose Continue with recorded convergence caveat after Round11; no Round12."
+external_review_iterations: 0
+convergence_unverified: true
+story_trace:
+  ran: true
+  verdict: CONCERNS
+  uncovered: ["AC6 PARTIAL: no executable control enforces completed evidence review plus separate authorization before production mutation."]
+commits: []
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  project_context: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions:
+  - "AC6 trace advisory: production mutation requires completed evidence review and separate authorization; no executable precondition is present in this story slice."
+deferred_work:
+  - "Round9 Low: correct missing-probe regression offset/exposure removal mismatch; still deferred."
+blockers: []
+overrides:
+  skip: [branch]
+  start_phase: 7
+  max_review_iterations: 11
+constraints:
+  - "Adopt existing Story15.2 implementation; retain current epic branch and preserve unrelated uncommitted changes."
+  - "Story and sprint remain review; human approval required before done."
+  - "No production mutation, deployment, capacity release or later-story work is authorized."
+  - Exactly Round10 was authorized and executed. Round11 is not authorized.
+  - "On resume, complete fresh-clone validation of the pinned original retained database through supported guard registration reuse, then return to Phase7 human review decision. Do not regenerate substitute data."
+adoption_source: "User-requested state alignment on 2026-09-21; canonical story Status review and Round 8 remediation section."
+adoption_note: "Phases before7 excluded by adoption, not claimed executed. High-risk TEA trace-advisory selected and pending Phase7 checkpoint."
+review_round_9_authorized: true
+review_round_9_authorization: "User selected option 1: exactly one additional review round, Round 9."
+review_snapshot: "C:/Users/Rasmus/AppData/Local/Temp/auto-bmad-review-fbb9poik/snapshot.json"
+review_snapshot_note: "Round10 current working tree from story baseline d51687c, including untracked story implementation; unrelated direct-sun documentation test excluded."
+review_round_9_lenses_failed: 0
+review_round_9_lenses_total: 6
+review_round_9_security: "successful: HIGH 0 / MEDIUM 0 / LOW 0"
+review_round_9_gate: "exit-unconverged based on pre-fix 7 High/10 Medium findings. Remediation and required database verification now pass; not a new independent review."
+review_round_9_verdict: Changes Requested
+review_round_9_counts: "Critical 0 / High 7 / Medium 10 / Low 2; 17 Patch / 0 Decision / 2 Defer"
+review_round_9_next_action: Superseded by explicit user authorization and execution of Round10.
+review_round_9_pending_validation: []
+review_round_9_fix_status: "All 17 patches implemented and fresh SQL-dependent verification complete. Focused84/84, typecheck/lint, schema456, topology1014 and pinned retained clone audit PASS."
+review_round_9_evidence: "_bmad-output/test-artifacts/implementation/epic-15/story-15-2/round9-remediation/README.md"
+review_round_9_database_verification: "PASS; 456 schema checks, four migration executions, 1014 topology cases, original retained clone 21084 days / 4442504 samples, eight pins preserved, zero clone databases remain."
+review_round_10_authorization: User said Authorized. Proceed. in response to the Round10 authorization option on 2026-09-22.
+review_round_10_authorized: true
+review_round_10_security: "successful: HIGH0/MEDIUM0/LOW0"
+review_round_10_lenses_total: 6
+review_round_10_lenses_failed: 0
+review_round_10_snapshot_unchanged: true
+review_round_10_status: "All8 patches plus retained replay convergence fix implemented and verified. Phase7 review decision pending; no Round11 authorized."
+review_round_10_gate: exit-unconverged at authorized cap10 based on pre-fix6High/1Medium/1Low. Fixes and tests do not constitute independent re-review. Round11 not authorized.
+review_round_10_counts: "Critical0 / High6 / Medium1 / Low1; 8Patch / 0Decision / 0newDefer"
+review_round_10_fix_status: "PASS focused8/8, full Vitest259files/2382tests, typecheck/lint, SQL502 checks/4 migration executions, and original retained fresh-clone audit PASS after R10-03 catalog convergence fix."
+review_round_10_evidence: "_bmad-output/test-artifacts/implementation/epic-15/story-15-2/round10-remediation/verification.json"
+review_round_10_pending_validation: []
+review_round_10_next_action: "Resolve retained guard identity comparison through supported infrastructure investigation; timeout mismatch corrected but insufficient. Then verify original database and finish retained clone validation."
+review_round_10_deferred_resolution: "R10-02 resolves prior ready/checksum-bound evidence-reference deferral; historical record retained."
+guard_access_diagnosis: "_bmad-output/auto-bmad/reports/15-2-guard-access-2026-09-22.md"
+review_round_10_database_verification: "PASS: original 21084 days/4442504 samples/87 generations/44 inputs/8 releases; 8 pins and raw SHA unchanged; original before/after counts identical; clean and retained catalog fingerprint 97744037e9bc8a7e83f936270eb7297989fe739762385c3dcd7b2116ba05e40c; no task-created clones remain."
+review_round_11_status: "All24 findings resolved and verified. Exit-unconverged from pre-fix gate at cap11; post-fix independent re-review not performed."
+review_round_11_authorized: true
+review_round_11_authorization: User explicitly approved exactly one additional review iteration on 2026-09-23 after Round10 retained verification.
+review_round_11_lenses_total: 6
+review_round_11_verdict: Changes Requested
+review_round_11_counts: "Critical0 / High8 / Medium15 / Low1; 23Patch / 1Decision / 0Defer"
+review_round_11_lenses_failed: 0
+review_round_11_pending_decision: null
+review_round_11_security: "successful: HIGH0/MEDIUM1/LOW0"
+review_round_11_decision: "fix: freeze checksum-bound day-validation evidence when the release is verified; pointer movement rechecks immutable digest/count metadata, inventory and revisions without rescanning payload arrays."
+review_round_11_fix_status: "PASS: 24/24 findings checked, post-fix findings gate proceed, typecheck/lint, full Vitest2384/2384, focused82/82, disposable schema1/1, topology/duration3/3, retained clone1/1."
+review_round_11_gate: "exit-unconverged: max_iterations11 reached with pre-fix 8 Critical/High and 24 non-deferred findings."
+review_round_11_database_verification: "PASS: fresh clone covered 21084 days/4442504 samples/87 generations/44 digest-bound legacy inputs/8 releases; source pre/post snapshots identical, audit clone dropped."
+review_round_11_evidence: "_bmad-output/test-artifacts/implementation/epic-15/story-15-2/round11-remediation-2026-09-23/README.md"
+phase9_status: "Human-approved local Story15.2 completion on Epic15 branch; Story15.2 scope isolated for one commit. No per-story PR; Epic15 PR remains an epic-end action."
+completion_caveat: "Review convergence_unverified remains true from user-accepted Round11 cap; 24/24 findings resolved, full verification passed, and human approved completion."
+human_approval: "Rasmus requested Story15.2 be marked done if acceptance complete, 2026-09-23; independent done-readiness audit passed AC1-AC6."

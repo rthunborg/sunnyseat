@@ -1,0 +1,842 @@
+[
+  {
+    "kind": "jsonb",
+    "repetition": -5,
+    "warmup": true,
+    "wallMs": 222.76109999999971,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": -4,
+    "warmup": true,
+    "wallMs": 226.43200000000024,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": -3,
+    "warmup": true,
+    "wallMs": 222.82760000000007,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": -2,
+    "warmup": true,
+    "wallMs": 216.10009999999966,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": -1,
+    "warmup": true,
+    "wallMs": 216.875,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 0,
+    "warmup": false,
+    "wallMs": 221.0664999999999,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 1,
+    "warmup": false,
+    "wallMs": 225.95449999999983,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 2,
+    "warmup": false,
+    "wallMs": 230.45200000000023,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 3,
+    "warmup": false,
+    "wallMs": 224.53420000000006,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 4,
+    "warmup": false,
+    "wallMs": 217.72110000000066,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 5,
+    "warmup": false,
+    "wallMs": 224.91989999999987,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 6,
+    "warmup": false,
+    "wallMs": 216.34940000000006,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 7,
+    "warmup": false,
+    "wallMs": 227.17300000000068,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 8,
+    "warmup": false,
+    "wallMs": 215.57580000000053,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 9,
+    "warmup": false,
+    "wallMs": 222.67550000000028,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 10,
+    "warmup": false,
+    "wallMs": 218.61210000000028,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 11,
+    "warmup": false,
+    "wallMs": 224.64670000000024,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 12,
+    "warmup": false,
+    "wallMs": 230.29449999999997,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 13,
+    "warmup": false,
+    "wallMs": 228.58600000000024,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 14,
+    "warmup": false,
+    "wallMs": 223.92290000000048,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 15,
+    "warmup": false,
+    "wallMs": 231.3054000000002,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 16,
+    "warmup": false,
+    "wallMs": 235.07690000000002,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 17,
+    "warmup": false,
+    "wallMs": 242.22280000000046,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 18,
+    "warmup": false,
+    "wallMs": 241.9405000000006,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 19,
+    "warmup": false,
+    "wallMs": 223.16070000000036,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 20,
+    "warmup": false,
+    "wallMs": 220.64400000000023,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 21,
+    "warmup": false,
+    "wallMs": 219.46299999999974,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 22,
+    "warmup": false,
+    "wallMs": 219.4972999999991,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 23,
+    "warmup": false,
+    "wallMs": 222.59670000000006,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 24,
+    "warmup": false,
+    "wallMs": 215.70839999999953,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 25,
+    "warmup": false,
+    "wallMs": 220.82210000000123,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 26,
+    "warmup": false,
+    "wallMs": 223.77510000000075,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 27,
+    "warmup": false,
+    "wallMs": 222.384399999999,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 28,
+    "warmup": false,
+    "wallMs": 218.64240000000063,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "jsonb",
+    "repetition": 29,
+    "warmup": false,
+    "wallMs": 217.90819999999985,
+    "returnedTextBytes": 216146,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": -5,
+    "warmup": true,
+    "wallMs": 218.40130000000136,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": -4,
+    "warmup": true,
+    "wallMs": 217.3729000000003,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": -3,
+    "warmup": true,
+    "wallMs": 209.66020000000026,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": -2,
+    "warmup": true,
+    "wallMs": 213.6273000000001,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": -1,
+    "warmup": true,
+    "wallMs": 214.8140000000003,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 0,
+    "warmup": false,
+    "wallMs": 219.33879999999954,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 1,
+    "warmup": false,
+    "wallMs": 235.4381000000012,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 2,
+    "warmup": false,
+    "wallMs": 232.6214,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 3,
+    "warmup": false,
+    "wallMs": 240.9935000000005,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 4,
+    "warmup": false,
+    "wallMs": 231.36609999999928,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 5,
+    "warmup": false,
+    "wallMs": 223.88819999999942,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 6,
+    "warmup": false,
+    "wallMs": 215.72869999999966,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 7,
+    "warmup": false,
+    "wallMs": 212.60560000000078,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 8,
+    "warmup": false,
+    "wallMs": 214.98739999999998,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 9,
+    "warmup": false,
+    "wallMs": 221.67439999999988,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 10,
+    "warmup": false,
+    "wallMs": 219.13760000000002,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 11,
+    "warmup": false,
+    "wallMs": 233.46049999999923,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 12,
+    "warmup": false,
+    "wallMs": 233.39390000000094,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 13,
+    "warmup": false,
+    "wallMs": 233.95399999999972,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 14,
+    "warmup": false,
+    "wallMs": 233.24579999999878,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 15,
+    "warmup": false,
+    "wallMs": 225.07560000000012,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 16,
+    "warmup": false,
+    "wallMs": 224.78780000000006,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 17,
+    "warmup": false,
+    "wallMs": 220.0010999999995,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 18,
+    "warmup": false,
+    "wallMs": 222.53759999999966,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 19,
+    "warmup": false,
+    "wallMs": 223.28549999999814,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 20,
+    "warmup": false,
+    "wallMs": 226.6226999999999,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 21,
+    "warmup": false,
+    "wallMs": 220.55849999999919,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 22,
+    "warmup": false,
+    "wallMs": 219.7065999999977,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 23,
+    "warmup": false,
+    "wallMs": 219.9514999999992,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 24,
+    "warmup": false,
+    "wallMs": 213.33250000000044,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 25,
+    "warmup": false,
+    "wallMs": 215.8796000000002,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 26,
+    "warmup": false,
+    "wallMs": 229.77309999999852,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 27,
+    "warmup": false,
+    "wallMs": 215.87309999999707,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 28,
+    "warmup": false,
+    "wallMs": 221.30809999999838,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "arrays",
+    "repetition": 29,
+    "warmup": false,
+    "wallMs": 215.09270000000106,
+    "returnedTextBytes": 98060,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": -5,
+    "warmup": true,
+    "wallMs": 220.74689999999828,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": -4,
+    "warmup": true,
+    "wallMs": 217.3244999999988,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": -3,
+    "warmup": true,
+    "wallMs": 221.91389999999956,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": -2,
+    "warmup": true,
+    "wallMs": 225.26699999999983,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": -1,
+    "warmup": true,
+    "wallMs": 222.9178000000029,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 0,
+    "warmup": false,
+    "wallMs": 225.5005999999994,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 1,
+    "warmup": false,
+    "wallMs": 221.53259999999864,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 2,
+    "warmup": false,
+    "wallMs": 218.5171999999984,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 3,
+    "warmup": false,
+    "wallMs": 244.21759999999995,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 4,
+    "warmup": false,
+    "wallMs": 228.10419999999795,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 5,
+    "warmup": false,
+    "wallMs": 216.73049999999785,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 6,
+    "warmup": false,
+    "wallMs": 214.6864999999998,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 7,
+    "warmup": false,
+    "wallMs": 222.89589999999953,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 8,
+    "warmup": false,
+    "wallMs": 231.27410000000236,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 9,
+    "warmup": false,
+    "wallMs": 240.15530000000217,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 10,
+    "warmup": false,
+    "wallMs": 247.42009999999937,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 11,
+    "warmup": false,
+    "wallMs": 243.51500000000306,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 12,
+    "warmup": false,
+    "wallMs": 227.71889999999985,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 13,
+    "warmup": false,
+    "wallMs": 225.6820000000007,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 14,
+    "warmup": false,
+    "wallMs": 220.259399999999,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 15,
+    "warmup": false,
+    "wallMs": 211.98999999999796,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 16,
+    "warmup": false,
+    "wallMs": 219.28620000000228,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 17,
+    "warmup": false,
+    "wallMs": 216.93639999999868,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 18,
+    "warmup": false,
+    "wallMs": 216.18349999999919,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 19,
+    "warmup": false,
+    "wallMs": 217.71119999999792,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 20,
+    "warmup": false,
+    "wallMs": 224.03009999999995,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 21,
+    "warmup": false,
+    "wallMs": 218.01350000000093,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 22,
+    "warmup": false,
+    "wallMs": 221.00520000000324,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 23,
+    "warmup": false,
+    "wallMs": 223.98489999999947,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 24,
+    "warmup": false,
+    "wallMs": 219.05179999999746,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 25,
+    "warmup": false,
+    "wallMs": 212.20809999999983,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 26,
+    "warmup": false,
+    "wallMs": 212.32170000000042,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 27,
+    "warmup": false,
+    "wallMs": 221.81430000000182,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 28,
+    "warmup": false,
+    "wallMs": 218.8192999999992,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  },
+  {
+    "kind": "bytes",
+    "repetition": 29,
+    "warmup": false,
+    "wallMs": 222.0922999999966,
+    "returnedTextBytes": 158616,
+    "cache": "warm/uncontrolled OS cache; includes docker exec + psql startup + text transport"
+  }
+]

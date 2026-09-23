@@ -1,0 +1,15 @@
+{
+  "sources": {
+    "cadence.measurement.ts": "42775e84b5f30552ddc7a69aff2845c5d04d8e524e40227fb8160f445980ff56",
+    "pipeline.measurement.ts": "946e85fd2bc024182fb7ad9c1552262b6aef7218171f237a2f68b1aa9d60771b",
+    "representation.ts": "8f8577262d274adedaf9316e2604264bfe5436855b517edf62b1973b7b142252",
+    "acceptance-report.mjs": "79406ae6223594295452be58c09ea0c5c54460a8e604edddea267770c1aab111",
+    "threshold-sampling.ts": "c1be42ab6cce2d7d1b9ec90daf41552f8e0243a8e3c00c989cad223027598bd9",
+    "evidence.mjs": "4fd8926cde056d7abfbf1d3de0bf96a201c7d47f311a8c5516b631b66ae77f72"
+  },
+  "priorHashesVerified": 279,
+  "byteExactPackage": true,
+  "validation": "Baseline/final typecheck and lint exit0; 250 files/2287 tests passed; separate cadence/pipeline benchmark tests passed.",
+  "resource": "c37e9215-bd50-4503-93de-49745b44c868: Stop accepted, saved state retained",
+  "ownerAcceptance": false
+}

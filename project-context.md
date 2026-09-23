@@ -491,3 +491,66 @@ This table is read by `scripts/story-review.sh` and `scripts/visual-validate.sh`
 - **MVP geodata bbox:** EPSG:3007 `x=140000..150000, y=6390000..6410000`
 - **Building/shadow data:** 2D Lantmäteriet footprints + Göteborg Baskarta XYZ object inventory + Göteborg Höjdmodell 2022 DTM-derived ground elevation. Current runtime building casters are derived from the first validated Baskarta subset, `byggnad_l` roof/facade/shelter linework; broader Baskarta XYZ layers must be preflighted, classified, and kept inactive or low-confidence until validated. Runtime must use filtered/active shadow-caster records only; review/quarantine records are not runtime-active until spot-checked.
 - **Weather source:** Met.no (primary, free, Norwegian Meteorological Institute) — Locationforecast 2.0 `complete` for the three-layer cloud split (low/medium/high) + Nowcast 2.0 for the near-now radar-rain signal. No live Met.no fetch is allowed in tests (shared setup guard).
+
+## Approved seasonal geometry direction — 2026-09-10 (not implemented)
+
+Rasmus approved the [Correct Course proposal](_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-09.md) for planning handoff. The controlling design is [architecture](_bmad-output/planning-artifacts/architecture.md) E15-AD-01/02; requirements are PRD NFR20/NFR35/NFR40; [Epic 15](_bmad-output/planning-artifacts/epics.md) contains six ordered backlog stories. Earlier descriptions of rolling persisted geometry remain the deployed baseline until rollout evidence says otherwise.
+
+- Generate an explicit March 1–October 31 season year using Europe/Stockholm, with actual per-date/per-venue model-supported daylight independent of opening hours or picker limits. Rollover builds the next explicit year; no public season or today+3/06:00–21:00/15-minute picker expansion.
+- Approved planning horizon is refraction-corrected solar-centre >=5°, separate from >0° visibility. Unsupported low-angle negatives are not claims of physical darkness. Preserve exact edges; accepted detector, completeness, encoding and budgets are consolidated in E15-AD-01/02; CD15.1-v1/A1 closes the measurement decision lock with mandatory later candidate proof.
+- Compact immutable venue/day generations bind g2 geometry/engine inputs; complete compatible release manifests publish atomically. Display-only pins and weather do not invalidate geometry. Staged edits retain matching old inputs/results; committed mismatches fail closed. No request geometry compute.
+- Public affirmative direct sun remains geometry >50% plus coherent `directSunState === 'likely'`. Missing/stale/malformed/incomplete/unmatched/contradictory weather never becomes clear. Keep two-hour TTL, signed ±90-minute provider-valid-time matching and snapshot-only public reads with zero live Met.no calls.
+- Retain current/previous season and verified rollback releases with evidence-referenced generations. Routine geometry schedule retirement requires verified rollout plus at least seven days and one real invalidation. Weather refresh and its unresolved scheduling reliability remain separate from geometry and Epic 14 field accuracy.
+- Preserve Swedish-first copy, accessibility, component/API boundaries and existing performance budgets. Epic 12 remains closed. Approval did not implement app changes or authorize production operations.
+
+### Current Epic 15 disposition — consolidated 2026-09-15
+
+**Workflow update (2026-09-23):** Stories 15.1 and 15.2 are done; Story 15.3 is
+the next implementation target. On the unmerged Epic 15 branch, AGENTS.md binds
+a bare `/auto-bmad` invocation to the first unfinished Epic 15 story and keeps
+the per-story commits on this branch. Each invocation handles one story; after
+15.3 reaches `done`, the next invocation selects 15.4, then 15.5 and 15.6 in
+order. Story 13.1 remains in progress for independent provider-cold and restore
+evidence. Epic 14 tracking records 14.1 as done and 14.2–14.6 as backlog; those
+launch gates remain independent. The dated consolidation below records the
+earlier decision and does not claim that later gates have passed.
+
+Rasmus explicitly accepted consolidation of the reviewed measurement choices into canonical architecture.md E15-AD-01/02. G1a–G1d is accepted under the September 10/12/14 decisions and CD15.1-v1/A1; Story 15.1 is done, while 15.2–15.6 remain backlog and are not started by this update. Earlier dated pending/default statements are historical and superseded by this disposition.
+
+The binding contract is >=5° supported-model horizon, <=10s UTC roots, five-minute UTC base/endpoints, 5pp endpoint-proximity or classification-change trigger, one-minute probes, <=100ms detected brackets, <=2-minute matched-transition target, and >=300s reconstructed public windows. Preserve every detected shade gap and the accepted four-minute missed-gap risk; finite comparisons do not prove universal discovery or physical accuracy. Missing/exhausted computation and unresolved duration fail completion. Below 5° does not prove physical absence of direct sunlight; independent fresh coherent likely-weather remains necessary.
+
+Require all 245 actual-year March–October dates for every non-deleted venue including hidden/new venues; remaining dates are staging only. Use full Float64 adaptive arrays/raw boundaries and shared immutable versioned inputs. Historical replay requires original retained geometry/input, weather and classifier evidence; recomputation with new inputs is not the historical prediction.
+
+The complete accepted CD15.1-v1 numerical table controls, including one worker, <=5 venues×3 dates per shard and 375MB warning/400MB aggregate admission. Retain current and previous actual-year seasons, each with current plus compatible rollback generations, and all evidence-referenced generations; count shared physical generations once. **Capacity admission remains held**, and accepted targets are not deployed compliance.
+
+A1 retains NOT RUN cold/combined-read, no-op DB p95 and matched writer-load proof at **15.5 I13 before 15.6 O02**; actual-year retained diversity/churn at **15.2 storage validation and 15.5 I13**; fresh aggregate/disk/WAL headroom at **O01/O02**. Full-cohort implemented throughput and new/removed-caster spatial resolution remain **15.3/15.5**. Public DTO parity, compatible rollback, Epic 13 cold/recovery and Epic 14 weather/field gates remain mandatory. No runtime or production operation is authorized.
+
+Acceptance trace: [September 15 consolidation](_bmad-output/planning-artifacts/decisions/epic-15-architecture-consolidation-2026-09-15.md).
+
+### Owner policy amendment — accepted 2026-09-10
+
+Rasmus accepted the [Epic 15 owner policy](_bmad-output/planning-artifacts/decisions/epic-15-owner-policy-2026-09-10.md). This supersedes earlier pending product-choice wording for NFR20/NFR35/NFR40 and E15-AD-01/02; it does not certify measurements or deployed behavior.
+
+- Below 5° means not sunny in SunnySeat. Retain the documented model-support/physical-light distinction; no special per-pin warning is required.
+- A public geometric sun window reconstructed by the accepted empirical detector must satisfy >=5° elevation and >50% sunlit seating for **at least 300 seconds**. Suppress shorter reconstructed windows; qualifying windows apply from calculated start to end. Preserve every detected shade gap; undetected-gap risk is explicitly accepted by the September 12 amendment below. Do not use previous displayed state or claim continuity is proven by two endpoint observations. Retain raw geometry separately. Suitable current weather remains mandatory; blocked/unknown evidence removes the sunny recommendation without a five-minute hold.
+- Require full March 1–October 31 coverage for every non-deleted venue including hidden venues, using the actual selected year. No past-date or effective-date exemption and no cross-year substitution; remaining dates are staging only.
+- Arrays are provisionally preferred. Final precision/schema and numeric production computation/storage/read budgets await representative measurements.
+
+The five-minute minimum duration and the separately accepted five-minute base cadence are independent choices; neither is a weather-refresh promise. Preserve the <=2-minute target for detected/matched transitions and <=10-second horizon-root target. Test reconstructed windows, detected gaps, known missed-gap risks, 299/300/301-second boundaries and uncertainty separately. Combined G1 remains open and 15.2 stays blocked.
+
+### Detector risk amendment — accepted 2026-09-12
+
+Rasmus explicitly accepted the tested candidate's documented risk after the four-minute untriggered shade counterexample was explained. Controlling decision: `_bmad-output/planning-artifacts/decisions/epic-15-detector-risk-acceptance-2026-09-12.md`. G1b detector selection/residual risk is accepted: five-minute UTC-aligned base samples plus supported-day endpoints; one-minute interior probes when either endpoint is within 5 percentage points of 50% or endpoint classifications differ; refine detected crossings to <=100ms brackets. This supersedes earlier Epic 15 quarter-hour/10-point candidate defaults and universal interior-discovery/no-gap guarantees, not public DTO parity requirements.
+
+Continuity is reconstructed under this empirical method. It can miss untriggered sub-five-minute sun/shade events (including the documented four-minute shade example) and shorter events between interior samples. Preserve every detected shade gap; never deliberately merge it. Retain known misses as accepted-risk diagnostics without rewriting historical failures as successful detection. A finite reference comparison is not a gap-free or physical-accuracy certificate. Missing/exhausted computations, missing dates/inputs and unresolved duration uncertainty still fail completion. This approval does not change weather, raw >50% classification, actual-year full-season completeness, final encoding/retention/budget approval or story status.
+
+
+### Story 15.1 closure acceptance — September 14, 2026
+
+Rasmus accepted CD15.1-v1 and amendment A1 in the [authoritative closure acceptance](_bmad-output/planning-artifacts/decisions/epic-15-closure-acceptance-2026-09-14.md). This supersedes earlier pending G1d/combined-measurement-lock wording only. G1a–G1c remain accepted; full Float64 adaptive arrays/raw boundaries, shared versioned inputs, retention and the complete numerical pilot budget table in the hash-identified package are now accepted. These are design targets/safety limits, not measured deployed compliance. Story review/done and starting 15.2 remain separate.
+
+Retain current and immediately previous actual-year seasons, each with current plus compatible rollback generation, and all evidence-referenced generations; count shared physical generations once. The conservative four-copy legacy-coexistence model exceeds the accepted 400MB aggregate admission ceiling. Capacity admission remains held pending fresh measured capacity and a separately authorized resolution. No deletion, migration, upgrade or production operation is approved.
+
+A1 explicitly transfers the still-NOT-RUN M06 controlled cold/combined read p95, no-op DB p95 and matched writer-load proof to **15.5 I13 before 15.6 O02**. Actual-year retained-version diversity/churn belongs to **15.2 storage validation and 15.5 I13**, with fresh aggregate/disk/WAL headroom at **O01/O02**. The accepted bounded M05 measurements and weighted full-cohort extrapolations close measurement selection; full-cohort implemented throughput and new/removed-caster spatial resolution remain **15.3/15.5** proof. These are mandatory carried gates, not passes or waivers. Publication still requires exact full actual-year coverage, compatibility, parity, budget proof and rollback. Epic13 provider-cold and Epic14 weather/field gates remain independent.
+
+The accepted detector's known missed-gap risk, preservation of every detected shade gap, >=300-second reconstructed-window rule, failure on unresolved duration/missing/exhausted computation, and independent fresh coherent likely-weather gate remain unchanged. No runtime behavior is changed by this amendment.

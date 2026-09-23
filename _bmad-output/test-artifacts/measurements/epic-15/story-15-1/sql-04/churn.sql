@@ -1,0 +1,10 @@
+UPDATE bench_jsonb.days SET checksum=checksum,payload=payload WHERE generation LIKE '%/current';
+UPDATE bench_arrays.days SET checksum=checksum,exposure=exposure WHERE generation LIKE '%/current';
+UPDATE bench_bytes.days SET checksum=checksum,payload=payload WHERE generation LIKE '%/current';
+UPDATE bench_jsonb.days SET checksum=checksum,payload=payload WHERE generation LIKE '%/current';
+UPDATE bench_arrays.days SET checksum=checksum,exposure=exposure WHERE generation LIKE '%/current';
+UPDATE bench_bytes.days SET checksum=checksum,payload=payload WHERE generation LIKE '%/current';
+UPDATE bench_jsonb.days SET checksum=checksum,payload=payload WHERE generation LIKE '%/current';
+UPDATE bench_arrays.days SET checksum=checksum,exposure=exposure WHERE generation LIKE '%/current';
+UPDATE bench_bytes.days SET checksum=checksum,payload=payload WHERE generation LIKE '%/current';
+ANALYZE;

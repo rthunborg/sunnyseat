@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "corpus": "g2-sweep-parity fixed-seed 0x152a6d91",
+  "cases": 1014,
+  "categories": {
+    "random-shell": 500,
+    "random-hole": 250,
+    "self-crossing": 150,
+    "outside-hole": 50,
+    "near-collinear": 50,
+    "equal-x": 1,
+    "order-change": 10,
+    "boundary": 3
+  },
+  "postgres": [
+    "15.13 (Debian 15.13-1.pgdg110+1)",
+    "3.5 USE_GEOS=1 USE_PROJ=1 USE_STATS=1"
+  ],
+  "limitation": "Differential validity corpus only; it does not establish production capacity, physical sunlight accuracy, or later-story readiness."
+}

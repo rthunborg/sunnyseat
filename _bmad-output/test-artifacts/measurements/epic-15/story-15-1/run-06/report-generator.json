@@ -1,0 +1,6 @@
+{
+  "sourceHashes": {
+    "scripts/benchmarks/epic-15/window-report.mjs": "9c3681d44e3d56a1fd6a904181f6d15ca8ec4b34715a81005ece969d089a88f5"
+  },
+  "note": "Post-capture reporter handles null p95 for n<20 and validates computation/analytic cell coverage. Original captured reporter retained; raw measurements unchanged."
+}

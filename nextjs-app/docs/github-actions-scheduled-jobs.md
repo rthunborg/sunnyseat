@@ -115,3 +115,13 @@ completed and the step summary reports `retention_prune_failed` separately.
 precomputation, accuracy, and cleanup endpoint jobs. Story 12.3 retired the
 cache warmer; do not reintroduce a public request warmer to keep normal list
 latency alive.
+
+## Approved future operations — 2026-09-10, Epic 15
+
+**Planning only; current runnable instructions above remain authoritative until the replacement is implemented and approved.** See [architecture E15-AD-01/02](../../_bmad-output/planning-artifacts/architecture.md) and [Epic 15](../../_bmad-output/planning-artifacts/epics.md). No workflow, schedule or environment change accompanies this note.
+
+Story 15.3 will supply verified commands for explicit-year season build, affected-input invalidation, bounded shard resume/retry, progress/completeness reporting, rollover and retention. Story 15.4 will supply verified release publication and compatible pointer-rollback procedures. Do not infer CLI flags or run speculative commands from this planning document.
+
+Story 15.6 retires routine rolling geometry scheduling only after full verified publication, rollback proof, at least seven days of observation and one real input invalidation. Keep emergency controls and manual/invalidation/rollover generation. Keep current rolling coverage available throughout the migration until the approved retirement gate.
+
+Weather refresh remains a distinct scheduled snapshot pipeline with its existing TTL/matching/fail-closed contracts. Its scheduling reliability still needs independent evidence and monitoring; replacing geometry scheduling does not repair weather delivery. Public requests remain provider-free and must not be used as warmers or refresh fallbacks.

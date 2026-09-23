@@ -1,0 +1,16 @@
+{
+  "complete": true,
+  "cells": [
+    "read-only-census",
+    "three-row-capture",
+    "branch-inventory"
+  ],
+  "artifacts": {
+    "rows.json": "6f14a581773093900ce654ab478e5ae76dbe7baf483f670e4464744ed8370d4a",
+    "rows.sql": "95ad3af5b363745f02e4efd7ea64095e5384a144521b2f80e5c042fd1ef452f1",
+    "census-tool.json": "45734793006d8af4fe7d663477219b1bd388d60ffef777a15ea7098d5827657c",
+    "census.sql": "d8b693af8168ddb48387610b82a5678ad5f781e04a61f88e78af7f8880f6c57c",
+    "branches-tool.json": "135f82cf75a7bac03e621bcf10c20acf5c48a972fa716b669c0467cb38f28ec3"
+  },
+  "mode": "authorized-read-only-capture"
+}

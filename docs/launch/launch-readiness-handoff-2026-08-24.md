@@ -1171,3 +1171,15 @@ Outstanding deployment prerequisite: set a newly generated
 `SUNNYSEAT_OWNER_DIAGNOSTICS_TOKEN` in Vercel Production and deploy only after
 normal review/approval. No production secret, data, schedule, migration, commit,
 merge, or deployment is part of this implementation.
+
+## 2026-09-10 addendum — approved seasonal geometry planning
+
+The [Correct Course proposal](../../_bmad-output/planning-artifacts/sprint-change-proposal-2026-09-09.md) is approved for planning handoff. [Epic 15](../../_bmad-output/planning-artifacts/epics.md) and architecture E15-AD-01/02 now own the seasonal generation plan; this addendum does not replace earlier production findings or declare a deployed change.
+
+Maintain three distinct launch concerns:
+
+1. **Seasonal geometry rollout:** measured horizon/transition policy, complete compatible current-input season coverage, ordinary quarter-hour parity except approved corrections, total relation/index and latency budgets, atomic publication and a tested compatible rollback. No routine geometry retirement before at least seven days and one real invalidation, whichever completes later.
+2. **Weather scheduling reliability:** independently demonstrate frequent snapshot delivery, freshness monitoring and recovery. Preserve two-hour TTL and signed ±90-minute valid-time matching; seasonal geometry does not solve this concern.
+3. **Physical direct-sun correctness:** Epic 14 field evidence, including low-angle and short-transition cases, must be attributable to the current generation. Preserve >50% geometry plus coherent likely, no diffuse-as-direct claim, unknown-weather fail-closed behavior, and zero live Met.no public reads.
+
+Story 15.1 measurement and owner decision lock precede schema work. Maintainer approval is still required separately for production migrations, canary/full publication, rollback execution and schedule retirement. No existing launch gate is marked passed by planning approval.

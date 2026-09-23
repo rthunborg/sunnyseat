@@ -308,3 +308,13 @@ raised venues so they are predicted from their seating height.
 - The runtime reads via the service-role client (bypasses RLS). `seating_area` /
   `seating_elevation_m` / `ground_elevation_m` are **server-only** — never serialized
   into `VenueDataDto`.
+
+## Approved seasonal-generation requirement — 2026-09-10 (future Epic 15)
+
+The current loading instructions above describe today's implementation. Once [Epic 15](../../_bmad-output/planning-artifacts/epics.md) is deployed, [architecture E15-AD-01/02](../../_bmad-output/planning-artifacts/architecture.md) additionally requires a verified matching generation before a new or edited venue enters the current seasonal release.
+
+Stage geometry-affecting inputs, generate and verify coverage, then publish the compatible input revision and release atomically. Include seating polygon/canonical engine coordinate, seating/ground elevation, relevant caster data and algorithm versions in invalidation. Display-only pin movement does not invalidate geometry or change weather coordinates. Opening hours and other display metadata remain independent.
+
+Story 15.1 must resolve the proposal's remaining-season new-venue optimization against full-season completeness before schema lock; until then it cannot justify publishing incomplete season coverage. Mid-season edits default to full-season regeneration. A committed out-of-band geometry edit must fail closed until matching coverage exists; never serve a stale hash as current. Historical feedback keeps its original generation attribution.
+
+Story 15.3 will add tested staging/generation commands here; no new operational command or production mutation is authorized by this planning note. Weather snapshots stay separate, and new geometry must never fabricate clear weather.

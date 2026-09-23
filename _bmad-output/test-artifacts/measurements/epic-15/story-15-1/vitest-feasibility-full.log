@@ -1,0 +1,17 @@
+
+ RUN  v4.1.9 C:/DEV/sunnyseat/nextjs-app
+
+Acceptance: PASS
+JSON: C:\Users\Rasmus\AppData\Local\Temp\sunnyseat-venue-probe-XN06Aa\report\report.json
+Markdown: C:\Users\Rasmus\AppData\Local\Temp\sunnyseat-venue-probe-XN06Aa\report\report.md
+Provider export plan: C:\Users\Rasmus\AppData\Local\Temp\sunnyseat-venue-replan-6Qn3Mf\replanned\provider-evidence-plan.json
+Manifest: C:\Users\Rasmus\AppData\Local\Temp\sunnyseat-venue-replan-6Qn3Mf\replanned\manifest.json
+Provider export plan: C:\Users\Rasmus\AppData\Local\Temp\sunnyseat-venue-replan-DmovcG\replanned\provider-evidence-plan.json
+Manifest: C:\Users\Rasmus\AppData\Local\Temp\sunnyseat-venue-replan-DmovcG\replanned\manifest.json
+Not implemented: navigation to another Document
+
+ Test Files  247 passed (247)
+      Tests  2273 passed (2273)
+   Start at  17:40:31
+   Duration  42.17s (transform 21.04s, setup 97.86s, import 323.02s, tests 105.31s, environment 612.67s)
+

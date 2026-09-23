@@ -1,0 +1,284 @@
+{
+  "calibration": {
+    "1": {
+      "days": 252,
+      "rawFailures": [
+        {
+          "id": "35",
+          "date": "2026-03-29",
+          "missedRuns": 1,
+          "missedMs": 29004.5,
+          "maxMissedRunMs": 29004.5,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [
+            0,
+            0
+          ],
+          "maxErrorMs": 0,
+          "relations": [
+            {
+              "reference": {
+                "start": 1774774655008.5,
+                "end": 1774774684013,
+                "sunny": true
+              },
+              "candidates": []
+            },
+            {
+              "reference": {
+                "start": 1774783057001.5,
+                "end": 1774803791999,
+                "sunny": true
+              },
+              "candidates": [
+                {
+                  "start": 1774783057001.5,
+                  "end": 1774803791999,
+                  "sunny": true
+                }
+              ]
+            }
+          ],
+          "topologyMatches": false,
+          "transitionCount": 3
+        }
+      ],
+      "filteredFailures": [],
+      "unresolved": [],
+      "base": 32173,
+      "interior": 2511,
+      "boundary": 5168,
+      "wallMs": 91023.1008999999,
+      "cpuMs": 91955
+    },
+    "5": {
+      "days": 252,
+      "rawFailures": [],
+      "filteredFailures": [],
+      "unresolved": [],
+      "base": 32173,
+      "interior": 6334,
+      "boundary": 5188,
+      "wallMs": 96850.56429999997,
+      "cpuMs": 96805
+    },
+    "10": {
+      "days": 252,
+      "rawFailures": [],
+      "filteredFailures": [],
+      "unresolved": [],
+      "base": 32173,
+      "interior": 9061,
+      "boundary": 5188,
+      "wallMs": 102143.51160000035,
+      "cpuMs": 101974
+    }
+  },
+  "heldOut": {
+    "days": 84,
+    "rawFailures": [],
+    "filteredFailures": [],
+    "unresolved": [],
+    "base": 13566,
+    "interior": 2659,
+    "boundary": 1890,
+    "wallMs": 30786.675299999944,
+    "cpuMs": 30501
+  },
+  "pairs": [
+    {
+      "id": "34",
+      "n": 3,
+      "baseWallMedianMs": 122.16129999997793,
+      "thresholdWallMedianMs": 151.4541999999783,
+      "baseSamples": 156,
+      "thresholdSamples": 188,
+      "p95": null
+    },
+    {
+      "id": "8",
+      "n": 3,
+      "baseWallMedianMs": 428.17399999999907,
+      "thresholdWallMedianMs": 434.92800000001444,
+      "baseSamples": 156,
+      "thresholdSamples": 168,
+      "p95": null
+    },
+    {
+      "id": "47",
+      "n": 3,
+      "baseWallMedianMs": 680.5007999999798,
+      "thresholdWallMedianMs": 714.1721000000252,
+      "baseSamples": 168,
+      "thresholdSamples": 186,
+      "p95": null
+    },
+    {
+      "id": "49",
+      "n": 3,
+      "baseWallMedianMs": 151.09149999998044,
+      "thresholdWallMedianMs": 272.98199999995995,
+      "baseSamples": 121,
+      "thresholdSamples": 165,
+      "p95": null
+    }
+  ],
+  "season": {
+    "base": 1619044,
+    "estimatedSamples": 2187922.596139881,
+    "wallMs": 4518043.2560644215,
+    "cpuMs": 4506309.677220918
+  },
+  "growth": [
+    {
+      "venues": 50,
+      "wallMs": 5378622.923886216,
+      "cpuMs": 5364654.37764395,
+      "baseSamples": 1927433.3333333333,
+      "estimatedSamples": 2604669.757309382
+    },
+    {
+      "venues": 100,
+      "wallMs": 10757245.847772432,
+      "cpuMs": 10729308.7552879,
+      "baseSamples": 3854866.6666666665,
+      "estimatedSamples": 5209339.514618764
+    },
+    {
+      "venues": 500,
+      "wallMs": 53786229.238862164,
+      "cpuMs": 53646543.77643951,
+      "baseSamples": 19274333.333333332,
+      "estimatedSamples": 26046697.573093817
+    }
+  ],
+  "posthotellet": {
+    "raw": {
+      "missedRuns": 0,
+      "missedMs": 0,
+      "maxMissedRunMs": 0,
+      "falseRuns": 0,
+      "falseMs": 0,
+      "splits": 0,
+      "merges": 0,
+      "signedErrorsMs": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "maxErrorMs": 0,
+      "relations": [
+        {
+          "reference": {
+            "start": 1792918820008.5,
+            "end": 1792938696005,
+            "sunny": true
+          },
+          "candidates": [
+            {
+              "start": 1792918820008.5,
+              "end": 1792938696005,
+              "sunny": true
+            }
+          ]
+        },
+        {
+          "reference": {
+            "start": 1792938756005,
+            "end": 1792939312001.5,
+            "sunny": true
+          },
+          "candidates": [
+            {
+              "start": 1792938756005,
+              "end": 1792939312001.5,
+              "sunny": true
+            }
+          ]
+        }
+      ],
+      "topologyMatches": true,
+      "transitionCount": 4
+    },
+    "filtered": {
+      "missedRuns": 0,
+      "missedMs": 0,
+      "maxMissedRunMs": 0,
+      "falseRuns": 0,
+      "falseMs": 0,
+      "splits": 0,
+      "merges": 0,
+      "signedErrorsMs": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "maxErrorMs": 0,
+      "relations": [
+        {
+          "reference": {
+            "start": 1792918820008.5,
+            "end": 1792938696005,
+            "sunny": true
+          },
+          "candidates": [
+            {
+              "start": 1792918820008.5,
+              "end": 1792938696005,
+              "sunny": true
+            }
+          ]
+        },
+        {
+          "reference": {
+            "start": 1792938756005,
+            "end": 1792939312001.5,
+            "sunny": true
+          },
+          "candidates": [
+            {
+              "start": 1792938756005,
+              "end": 1792939312001.5,
+              "sunny": true
+            }
+          ]
+        }
+      ],
+      "topologyMatches": true,
+      "transitionCount": 4
+    },
+    "intervals": [
+      {
+        "start": 1792911392000,
+        "end": 1792918820008.5,
+        "sunny": false
+      },
+      {
+        "start": 1792918820008.5,
+        "end": 1792938696005,
+        "sunny": true
+      },
+      {
+        "start": 1792938696005,
+        "end": 1792938756005,
+        "sunny": false
+      },
+      {
+        "start": 1792938756005,
+        "end": 1792939312001.5,
+        "sunny": true
+      },
+      {
+        "start": 1792939312001.5,
+        "end": 1792940091999,
+        "sunny": false
+      }
+    ]
+  },
+  "scope": "Five percentage-point margin preselected for held-out dates; 1/10pp sensitivity comparisons. 60s interior probes, 100ms detected boundary brackets. All timings are fresh engine evaluations with benchmark-only spatial pruning; no shared exposure cache across methods. Not certified continuous."
+}

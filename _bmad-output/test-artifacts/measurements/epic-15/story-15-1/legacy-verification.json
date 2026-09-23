@@ -1,0 +1,24 @@
+{
+  "at": "2026-09-14T11:39:51.104Z",
+  "sources": {
+    "scripts/benchmarks/epic-15/legacy-storage.mjs": "bb9ac65690142704378331e26fcf51b2e50aab0e1a20d8f9b4c0834476e6a46a",
+    "scripts/benchmarks/epic-15/legacy-storage-report.mjs": "08290198520429e7814610f4dd876d36e431bac01f56dea4c96103897c84ad28"
+  },
+  "checks": {
+    "baselineTypecheck": "passed",
+    "baselineLint": "passed",
+    "finalTypecheck": "passed",
+    "finalLint": "passed including final targeted reporter check",
+    "sql": "passed exact-value bidirectional reconstruction and row counts",
+    "initialFullSuite": "2290 passed, 1 existing precompute test timed out at unchanged 5000ms",
+    "targetedRecheck": "5 passed with unchanged timeout",
+    "fullSuiteRecheck": "251 files, 2291 tests passed with unchanged settings"
+  },
+  "stop": {
+    "resourceId": "28e020f0-e0ec-44ae-a2f3-e351023aa1e9",
+    "ok": true,
+    "state": "stop_requested",
+    "verified": false
+  },
+  "scope": "Read-only production capture; write experiments only in isolated guard-managed database. No application or status change."
+}

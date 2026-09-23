@@ -1,0 +1,38 @@
+[
+  {
+    "phase": "noop-updates",
+    "kind": "all",
+    "wallMs": 270.116399999999,
+    "walBytes": 523144,
+    "n": 1,
+    "p95": null,
+    "scope": "Includes docker/psql transport; WAL is isolated-cluster LSN difference, not attributed production WAL."
+  },
+  {
+    "phase": "changed-input-generation",
+    "kind": "jsonb",
+    "wallMs": 479.41179999999804,
+    "walBytes": 1581480,
+    "n": 1,
+    "p95": null,
+    "scope": "Includes docker/psql transport; WAL is isolated-cluster LSN difference, not attributed production WAL."
+  },
+  {
+    "phase": "changed-input-generation",
+    "kind": "arrays",
+    "wallMs": 489.58740000000034,
+    "walBytes": 1581152,
+    "n": 1,
+    "p95": null,
+    "scope": "Includes docker/psql transport; WAL is isolated-cluster LSN difference, not attributed production WAL."
+  },
+  {
+    "phase": "changed-input-generation",
+    "kind": "bytes",
+    "wallMs": 473.03499999999985,
+    "walBytes": 1589632,
+    "n": 1,
+    "p95": null,
+    "scope": "Includes docker/psql transport; WAL is isolated-cluster LSN difference, not attributed production WAL."
+  }
+]

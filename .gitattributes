@@ -67,3 +67,6 @@
 *.eot   -text
 *.pdf   -text
 *.zip   -text
+
+# Story 15.1 evidence is SHA256-bound to exact captured bytes, including EOLs.
+/_bmad-output/test-artifacts/measurements/epic-15/story-15-1/** -text

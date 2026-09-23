@@ -1,0 +1,35 @@
+
+ RUN  v4.1.9 C:/DEV/sunnyseat/nextjs-app
+
+Not implemented: navigation to another Document
+ ❯ test/unit/services/sun-geometry-precompute.atdd.test.ts (5 tests | 1 failed) 6051ms
+     × computes deterministic ungated geometry-only entries for every planner step 5858ms
+Acceptance: PASS
+JSON: C:\Users\Rasmus\AppData\Local\Temp\sunnyseat-venue-probe-tpZyUs\report\report.json
+Markdown: C:\Users\Rasmus\AppData\Local\Temp\sunnyseat-venue-probe-tpZyUs\report\report.md
+Provider export plan: C:\Users\Rasmus\AppData\Local\Temp\sunnyseat-venue-replan-HqLR5k\replanned\provider-evidence-plan.json
+Manifest: C:\Users\Rasmus\AppData\Local\Temp\sunnyseat-venue-replan-HqLR5k\replanned\manifest.json
+Provider export plan: C:\Users\Rasmus\AppData\Local\Temp\sunnyseat-venue-replan-WNBgWl\replanned\provider-evidence-plan.json
+Manifest: C:\Users\Rasmus\AppData\Local\Temp\sunnyseat-venue-replan-WNBgWl\replanned\manifest.json
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/unit/services/sun-geometry-precompute.atdd.test.ts > Story 12.3 AC1/AC3/AC6 - geometry-only precompute > computes deterministic ungated geometry-only entries for every planner step
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/unit/services/sun-geometry-precompute.atdd.test.ts:36:3
+     34|
+     35| describe('Story 12.3 AC1/AC3/AC6 - geometry-only precompute', () => {
+     36|   test('computes deterministic ungated geometry-only entries for every…
+       |   ^
+     37|     const { computeUngatedGeometryDaySeries } = await loadPrecomputeMo…
+     38|     const series = await computeUngatedGeometryDaySeries({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 250 passed (251)
+      Tests  1 failed | 2290 passed (2291)
+   Start at  13:36:38
+   Duration  50.67s (transform 21.27s, setup 156.01s, import 291.75s, tests 129.02s, environment 846.61s)
+

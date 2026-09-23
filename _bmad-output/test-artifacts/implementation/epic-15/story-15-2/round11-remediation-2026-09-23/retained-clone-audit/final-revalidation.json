@@ -1,0 +1,195 @@
+{
+  "status": "PASS",
+  "coverage": "COMPLETE_DECLARED_COHORT",
+  "database": "e152_revalidate_bb19bbc7496454b54136419e",
+  "sourceDatabase": "e152_storage_f80188cb590c46ea812eaea4909a6ce5",
+  "validationIsolation": "fresh-template-clone",
+  "count": 21084,
+  "persistedRows": 21084,
+  "unpersistedObservations": 0,
+  "samples": 4442504,
+  "generations": 87,
+  "inputs": 44,
+  "legacyInputCount": 44,
+  "releases": 8,
+  "rawDaysSha256": "62aebb3fbcb9113b7aa13c64e8c835989dd13bbe53998e4fdebe5abed48b08fc",
+  "retainedMeasurementProvenance": {
+    "root": "C:\\DEV\\sunnyseat\\_bmad-output\\test-artifacts\\implementation\\epic-15\\story-15-2\\storage-04-g2-full",
+    "expected": {
+      "daysNdjsonSha256": "62aebb3fbcb9113b7aa13c64e8c835989dd13bbe53998e4fdebe5abed48b08fc",
+      "artifacts": {
+        "environment.json": "2b3a2dd1592e98d428a082066ca15d9eb2c779815b2cbb8268af2ea862b5002f",
+        "storage-result.json": "7d08ade7878d46c8f147574e7022751fc86ab9bd25803d0f506ce85d73833703",
+        "measurements-progress.json": "26fa7849003e07eecda582a4315bbb9e8f1c62538cc69922290a7b274a43ca6a",
+        "derived-budget-comparison.json": "9db1cc33aa5e2f676132ff708780e0849c1ffdef845afba53343bef8c3f35ea8",
+        "census-v0.json": "21e4370a241cffbf4e7b4be13a9ac167e9da35b4bcca58c34c3e182076c5cc8d",
+        "census-v1.json": "6b00af77cbeec0949e3c4b765921ddbdceb59df192ea30d42dd0ef41c041f2cc",
+        "census-v2.json": "1e92088bcda3c23cf8f823591c233cf8545d5ebd0177293b005e811022fdeddc"
+      }
+    }
+  },
+  "finalSources": {
+    "lib/services/sun-geometry-season-codec.ts": "95c6bcac9f23fdb9d7eec1d8ef5409bcb7fe8c6118802fa5686223976300c6ce",
+    "lib/services/sun-geometry-hash-g2.ts": "9d7cab72e0bd9e8fe8abb1bb3ee38e0a08927a8d667ed5e2a62d9dda8e423f75",
+    "lib/services/sun-geometry-release-contract.ts": "279ee94df45751aa41a819f3fb700daffbfd2207a957a97b50153bb7e4360acb",
+    "package.json": "af72feb7f4c7801d36d26abb40ac4859e5b66da247d419420047c746c6900d43",
+    "package-lock.json": "69a5d84053ee3d6581d9dc8a7ee444af1abd9d8e675b6a7f00323cdb6b7f3108",
+    "node_modules/robust-predicates/package.json": "f748559ede5af80ab24df9804f5d279b59046c54f9fb12d2f72967d7fcd6b04d",
+    "node_modules/robust-predicates/index.js": "1e26fb2e616a0fa84dadb3a15633d9743671884d82f1abb124e20292fd0ab86d",
+    "node_modules/robust-predicates/esm/orient2d.js": "033cd91b8921ef9e2dae226661636afef59b2e8fc996cce1c986a84b7fd269cf",
+    "node_modules/robust-predicates/esm/util.js": "97801e98a1cc91a330fe1b0e56bd5254d6a1305eb7cd2cb8e25c8b69212dcfa9",
+    "node_modules/robust-predicates/umd/predicates.js": "e40689c200fa9626344a78a1aca60c446408217856ba68854967cfea70463d17",
+    "test/fixtures/epic-15/storage-04-provenance.ts": "7e199a3e00da3cd3dd7524fd1fdd3fc922c78d5a4d1f437b58890249e78b89e4",
+    "test/integration/epic-15/storage.revalidation.ts": "5bc1e7af4fb31cffcbada3236960eccdfe8bc32725e0f6a90ad072e0e5924327",
+    "../supabase/migrations/20260915104303_seasonal_geometry_g2_contract.sql": "23d34b1b3bceafeb830f70dfb06cf1f1936689516a6d945056d1087346323263"
+  },
+  "census": {
+    "database_bytes": 168538927,
+    "relations": [
+      {
+        "relname": "spatial_ref_sys",
+        "table_toast_bytes": 7102464,
+        "indexes_bytes": 212992,
+        "total_bytes": 7315456
+      },
+      {
+        "relname": "sun_geometry_current_pointers",
+        "table_toast_bytes": 16384,
+        "indexes_bytes": 16384,
+        "total_bytes": 32768
+      },
+      {
+        "relname": "sun_geometry_days",
+        "table_toast_bytes": 49446912,
+        "indexes_bytes": 679936,
+        "total_bytes": 50126848
+      },
+      {
+        "relname": "sun_geometry_engine_versions",
+        "table_toast_bytes": 16384,
+        "indexes_bytes": 16384,
+        "total_bytes": 32768
+      },
+      {
+        "relname": "sun_geometry_evidence_references",
+        "table_toast_bytes": 49152,
+        "indexes_bytes": 32768,
+        "total_bytes": 81920
+      },
+      {
+        "relname": "sun_geometry_input_revisions",
+        "table_toast_bytes": 16384,
+        "indexes_bytes": 16384,
+        "total_bytes": 32768
+      },
+      {
+        "relname": "sun_geometry_inputs",
+        "table_toast_bytes": 1236992,
+        "indexes_bytes": 16384,
+        "total_bytes": 1253376
+      },
+      {
+        "relname": "sun_geometry_release_members",
+        "table_toast_bytes": 57344,
+        "indexes_bytes": 57344,
+        "total_bytes": 114688
+      },
+      {
+        "relname": "sun_geometry_releases",
+        "table_toast_bytes": 16384,
+        "indexes_bytes": 16384,
+        "total_bytes": 32768
+      },
+      {
+        "relname": "sun_geometry_seasons",
+        "table_toast_bytes": 16384,
+        "indexes_bytes": 16384,
+        "total_bytes": 32768
+      },
+      {
+        "relname": "sun_geometry_venue_generations",
+        "table_toast_bytes": 98304,
+        "indexes_bytes": 73728,
+        "total_bytes": 172032
+      },
+      {
+        "relname": "sun_geometry_worker_leases",
+        "table_toast_bytes": 8192,
+        "indexes_bytes": 8192,
+        "total_bytes": 16384
+      },
+      {
+        "relname": "venue_geometry_inputs",
+        "table_toast_bytes": 8192,
+        "indexes_bytes": 8192,
+        "total_bytes": 16384
+      },
+      {
+        "relname": "venue_sun_geometry_series",
+        "table_toast_bytes": 180224,
+        "indexes_bytes": 16384,
+        "total_bytes": 196608
+      },
+      {
+        "relname": "venues",
+        "table_toast_bytes": 16384,
+        "indexes_bytes": 16384,
+        "total_bytes": 32768
+      }
+    ]
+  },
+  "cohortCensus": [
+    {
+      "year": 2025,
+      "variant": 0,
+      "rows": 10290,
+      "heap_toast_bytes": 24281088,
+      "index_bytes": 376832,
+      "total_bytes": 24657920,
+      "decimalBudgetBytes": 30000000,
+      "withinBudget": true
+    },
+    {
+      "year": 2025,
+      "variant": 1,
+      "rows": 10290,
+      "heap_toast_bytes": 24272896,
+      "index_bytes": 376832,
+      "total_bytes": 24649728,
+      "decimalBudgetBytes": 30000000,
+      "withinBudget": true
+    },
+    {
+      "year": 2026,
+      "variant": 0,
+      "rows": 10290,
+      "heap_toast_bytes": 24272896,
+      "index_bytes": 368640,
+      "total_bytes": 24641536,
+      "decimalBudgetBytes": 30000000,
+      "withinBudget": true
+    },
+    {
+      "year": 2026,
+      "variant": 1,
+      "rows": 10290,
+      "heap_toast_bytes": 24264704,
+      "index_bytes": 368640,
+      "total_bytes": 24633344,
+      "decimalBudgetBytes": 30000000,
+      "withinBudget": true
+    }
+  ],
+  "legacyCoexistence": {
+    "capturedAt": "2026-09-14T11:32:13.899902+00:00",
+    "fixtureSha256": "6f14a581773093900ce654ab478e5ae76dbe7baf483f670e4464744ed8370d4a",
+    "rows": 3,
+    "result": {
+      "database_bytes": 168538927,
+      "legacy_relation_bytes": 196608,
+      "empty_input_relation_bytes": 16384
+    },
+    "limitation": "Three retained captured rows only; full target legacy/aggregate census remains NOT RUN."
+  },
+  "limitation": "Final validation of immutable, already measured storage-04 bytes in a fresh database clone; numerical calculations retain their original source provenance. The verifier rejects altered corpus or measurement artifacts before database mutation. Lockfile-bound legacy inputs preserve their original hashes and are not relabelled as current manifests. Layout specimens are diagnostic copies excluded from candidate occupancy; shared generations counted once in census. No production admission."
+}

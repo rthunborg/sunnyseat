@@ -1,0 +1,14 @@
+{
+  "sourceHashes": {
+    "scripts/benchmarks/epic-15/storage.mjs": "d04b293520c61c9a493ed0bfc276226be857c2c949074d865e53ba1e7580d498",
+    "scripts/benchmarks/epic-15/captured-storage.mjs": "3a0671d0e90bff0621f2cf0551e8ca6e030070be03afe541c1d3419ed7eae387"
+  },
+  "inputArtifacts": {
+    "fixtures.json": "7867a79e2ede6b10b1a0a18c8560c6607688aa36f6a2c27491bcb31819a15555",
+    "M06-identical-dataset.json": "36d1171b9893fc45f34cfa1c56b753a8ef2c8bc12f62129c08078012616d1668",
+    "M06-edited-dataset.json": "96e24d5cffcf189fac57a0d691c172050d45bbb36c9b3e23c902e6fd7d113d29",
+    "M06-edited-fixtures.json": "12f9a1b254e888af8c951829d4f1ec8156639fc95a971e46d080319b261c7e28",
+    "captured-cost.json": "53e09f48f6c300e1f15b8e398454a634d777698a43879a1340126b2cf0d622d6",
+    "captured-environment.json": "25ec35261d8c35cf4419596b7372c0a3adfa3266ef24c34424fa25b2293d777e"
+  }
+}

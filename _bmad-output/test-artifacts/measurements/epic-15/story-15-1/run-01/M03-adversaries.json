@@ -1,0 +1,1467 @@
+[
+  {
+    "id": "12:06-12:09",
+    "provenance": "analytic signal; not claimed to be physical caster geometry",
+    "exact": [
+      {
+        "start": 0,
+        "end": 360000,
+        "sunny": false
+      },
+      {
+        "start": 360000,
+        "end": 540000,
+        "sunny": true
+      },
+      {
+        "start": 540000,
+        "end": 900000,
+        "sunny": false
+      }
+    ],
+    "runs": [
+      {
+        "policy": "endpoints",
+        "points": [
+          {
+            "t": 0,
+            "value": 0
+          },
+          {
+            "t": 900000,
+            "value": 0
+          }
+        ],
+        "baseSamples": 2,
+        "additionalSamples": 0,
+        "failures": [],
+        "verified": true,
+        "detectionGuarantee": "NONE for arbitrary sub-minute runs",
+        "comparison": {
+          "missedRuns": 1,
+          "missedMs": 180000,
+          "maxMissedRunMs": 180000,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [
+            {
+              "reference": {
+                "start": 360000,
+                "end": 540000,
+                "sunny": true
+              },
+              "candidates": []
+            }
+          ]
+        }
+      },
+      {
+        "policy": "midpoint",
+        "points": [
+          {
+            "t": 0,
+            "value": 0
+          },
+          {
+            "t": 225000,
+            "value": 0
+          },
+          {
+            "t": 337500,
+            "value": 0
+          },
+          {
+            "t": 351562,
+            "value": 0
+          },
+          {
+            "t": 358593,
+            "value": 0
+          },
+          {
+            "t": 359472,
+            "value": 0
+          },
+          {
+            "t": 360351,
+            "value": 100
+          },
+          {
+            "t": 362109,
+            "value": 100
+          },
+          {
+            "t": 365625,
+            "value": 100
+          },
+          {
+            "t": 393750,
+            "value": 100
+          },
+          {
+            "t": 450000,
+            "value": 100
+          },
+          {
+            "t": 506250,
+            "value": 100
+          },
+          {
+            "t": 534375,
+            "value": 100
+          },
+          {
+            "t": 537890,
+            "value": 100
+          },
+          {
+            "t": 539648,
+            "value": 100
+          },
+          {
+            "t": 540527,
+            "value": 0
+          },
+          {
+            "t": 541406,
+            "value": 0
+          },
+          {
+            "t": 548437,
+            "value": 0
+          },
+          {
+            "t": 562500,
+            "value": 0
+          },
+          {
+            "t": 675000,
+            "value": 0
+          },
+          {
+            "t": 900000,
+            "value": 0
+          }
+        ],
+        "baseSamples": 2,
+        "additionalSamples": 19,
+        "failures": [],
+        "verified": true,
+        "detectionGuarantee": "NONE for arbitrary sub-minute runs",
+        "comparison": {
+          "missedRuns": 0,
+          "missedMs": 0,
+          "maxMissedRunMs": 0,
+          "falseRuns": 0,
+          "falseMs": 176,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [
+            -88.5,
+            87.5
+          ],
+          "maxErrorMs": 88.5,
+          "relations": [
+            {
+              "reference": {
+                "start": 360000,
+                "end": 540000,
+                "sunny": true
+              },
+              "candidates": [
+                {
+                  "start": 359911.5,
+                  "end": 540087.5,
+                  "sunny": true
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "policy": "minute",
+        "points": [
+          {
+            "t": 0,
+            "value": 0
+          },
+          {
+            "t": 60000,
+            "value": 0
+          },
+          {
+            "t": 120000,
+            "value": 0
+          },
+          {
+            "t": 180000,
+            "value": 0
+          },
+          {
+            "t": 240000,
+            "value": 0
+          },
+          {
+            "t": 300000,
+            "value": 0
+          },
+          {
+            "t": 330000,
+            "value": 0
+          },
+          {
+            "t": 345000,
+            "value": 0
+          },
+          {
+            "t": 352500,
+            "value": 0
+          },
+          {
+            "t": 356250,
+            "value": 0
+          },
+          {
+            "t": 358125,
+            "value": 0
+          },
+          {
+            "t": 359062,
+            "value": 0
+          },
+          {
+            "t": 360000,
+            "value": 100
+          },
+          {
+            "t": 420000,
+            "value": 100
+          },
+          {
+            "t": 480000,
+            "value": 100
+          },
+          {
+            "t": 510000,
+            "value": 100
+          },
+          {
+            "t": 525000,
+            "value": 100
+          },
+          {
+            "t": 532500,
+            "value": 100
+          },
+          {
+            "t": 536250,
+            "value": 100
+          },
+          {
+            "t": 538125,
+            "value": 100
+          },
+          {
+            "t": 539062,
+            "value": 100
+          },
+          {
+            "t": 540000,
+            "value": 0
+          },
+          {
+            "t": 600000,
+            "value": 0
+          },
+          {
+            "t": 660000,
+            "value": 0
+          },
+          {
+            "t": 720000,
+            "value": 0
+          },
+          {
+            "t": 780000,
+            "value": 0
+          },
+          {
+            "t": 840000,
+            "value": 0
+          },
+          {
+            "t": 900000,
+            "value": 0
+          }
+        ],
+        "baseSamples": 2,
+        "additionalSamples": 26,
+        "failures": [],
+        "verified": true,
+        "detectionGuarantee": "NONE for arbitrary sub-minute runs",
+        "comparison": {
+          "missedRuns": 0,
+          "missedMs": 469,
+          "maxMissedRunMs": 0,
+          "falseRuns": 0,
+          "falseMs": 469,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [
+            -469,
+            -469
+          ],
+          "maxErrorMs": 469,
+          "relations": [
+            {
+              "reference": {
+                "start": 360000,
+                "end": 540000,
+                "sunny": true
+              },
+              "candidates": [
+                {
+                  "start": 359531,
+                  "end": 539531,
+                  "sunny": true
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "off-centre-12:01-12:02",
+    "provenance": "analytic signal; not claimed to be physical caster geometry",
+    "exact": [
+      {
+        "start": 0,
+        "end": 60000,
+        "sunny": false
+      },
+      {
+        "start": 60000,
+        "end": 120000,
+        "sunny": true
+      },
+      {
+        "start": 120000,
+        "end": 900000,
+        "sunny": false
+      }
+    ],
+    "runs": [
+      {
+        "policy": "endpoints",
+        "points": [
+          {
+            "t": 0,
+            "value": 0
+          },
+          {
+            "t": 900000,
+            "value": 0
+          }
+        ],
+        "baseSamples": 2,
+        "additionalSamples": 0,
+        "failures": [],
+        "verified": true,
+        "detectionGuarantee": "NONE for arbitrary sub-minute runs",
+        "comparison": {
+          "missedRuns": 1,
+          "missedMs": 60000,
+          "maxMissedRunMs": 60000,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [
+            {
+              "reference": {
+                "start": 60000,
+                "end": 120000,
+                "sunny": true
+              },
+              "candidates": []
+            }
+          ]
+        }
+      },
+      {
+        "policy": "midpoint",
+        "points": [
+          {
+            "t": 0,
+            "value": 0
+          },
+          {
+            "t": 450000,
+            "value": 0
+          },
+          {
+            "t": 900000,
+            "value": 0
+          }
+        ],
+        "baseSamples": 2,
+        "additionalSamples": 1,
+        "failures": [],
+        "verified": true,
+        "detectionGuarantee": "NONE for arbitrary sub-minute runs",
+        "comparison": {
+          "missedRuns": 1,
+          "missedMs": 60000,
+          "maxMissedRunMs": 60000,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [
+            {
+              "reference": {
+                "start": 60000,
+                "end": 120000,
+                "sunny": true
+              },
+              "candidates": []
+            }
+          ]
+        }
+      },
+      {
+        "policy": "minute",
+        "points": [
+          {
+            "t": 0,
+            "value": 0
+          },
+          {
+            "t": 30000,
+            "value": 0
+          },
+          {
+            "t": 45000,
+            "value": 0
+          },
+          {
+            "t": 52500,
+            "value": 0
+          },
+          {
+            "t": 56250,
+            "value": 0
+          },
+          {
+            "t": 58125,
+            "value": 0
+          },
+          {
+            "t": 59062,
+            "value": 0
+          },
+          {
+            "t": 60000,
+            "value": 100
+          },
+          {
+            "t": 90000,
+            "value": 100
+          },
+          {
+            "t": 105000,
+            "value": 100
+          },
+          {
+            "t": 112500,
+            "value": 100
+          },
+          {
+            "t": 116250,
+            "value": 100
+          },
+          {
+            "t": 118125,
+            "value": 100
+          },
+          {
+            "t": 119062,
+            "value": 100
+          },
+          {
+            "t": 120000,
+            "value": 0
+          },
+          {
+            "t": 180000,
+            "value": 0
+          },
+          {
+            "t": 240000,
+            "value": 0
+          },
+          {
+            "t": 300000,
+            "value": 0
+          },
+          {
+            "t": 360000,
+            "value": 0
+          },
+          {
+            "t": 420000,
+            "value": 0
+          },
+          {
+            "t": 480000,
+            "value": 0
+          },
+          {
+            "t": 540000,
+            "value": 0
+          },
+          {
+            "t": 600000,
+            "value": 0
+          },
+          {
+            "t": 660000,
+            "value": 0
+          },
+          {
+            "t": 720000,
+            "value": 0
+          },
+          {
+            "t": 780000,
+            "value": 0
+          },
+          {
+            "t": 840000,
+            "value": 0
+          },
+          {
+            "t": 900000,
+            "value": 0
+          }
+        ],
+        "baseSamples": 2,
+        "additionalSamples": 26,
+        "failures": [],
+        "verified": true,
+        "detectionGuarantee": "NONE for arbitrary sub-minute runs",
+        "comparison": {
+          "missedRuns": 0,
+          "missedMs": 469,
+          "maxMissedRunMs": 0,
+          "falseRuns": 0,
+          "falseMs": 469,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [
+            -469,
+            -469
+          ],
+          "maxErrorMs": 469,
+          "relations": [
+            {
+              "reference": {
+                "start": 60000,
+                "end": 120000,
+                "sunny": true
+              },
+              "candidates": [
+                {
+                  "start": 59531,
+                  "end": 119531,
+                  "sunny": true
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "sub-minute-12:01:10-12:01:20",
+    "provenance": "analytic signal; not claimed to be physical caster geometry",
+    "exact": [
+      {
+        "start": 0,
+        "end": 70000,
+        "sunny": false
+      },
+      {
+        "start": 70000,
+        "end": 80000,
+        "sunny": true
+      },
+      {
+        "start": 80000,
+        "end": 900000,
+        "sunny": false
+      }
+    ],
+    "runs": [
+      {
+        "policy": "endpoints",
+        "points": [
+          {
+            "t": 0,
+            "value": 0
+          },
+          {
+            "t": 900000,
+            "value": 0
+          }
+        ],
+        "baseSamples": 2,
+        "additionalSamples": 0,
+        "failures": [],
+        "verified": true,
+        "detectionGuarantee": "NONE for arbitrary sub-minute runs",
+        "comparison": {
+          "missedRuns": 1,
+          "missedMs": 10000,
+          "maxMissedRunMs": 10000,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [
+            {
+              "reference": {
+                "start": 70000,
+                "end": 80000,
+                "sunny": true
+              },
+              "candidates": []
+            }
+          ]
+        }
+      },
+      {
+        "policy": "midpoint",
+        "points": [
+          {
+            "t": 0,
+            "value": 0
+          },
+          {
+            "t": 450000,
+            "value": 0
+          },
+          {
+            "t": 900000,
+            "value": 0
+          }
+        ],
+        "baseSamples": 2,
+        "additionalSamples": 1,
+        "failures": [],
+        "verified": true,
+        "detectionGuarantee": "NONE for arbitrary sub-minute runs",
+        "comparison": {
+          "missedRuns": 1,
+          "missedMs": 10000,
+          "maxMissedRunMs": 10000,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [
+            {
+              "reference": {
+                "start": 70000,
+                "end": 80000,
+                "sunny": true
+              },
+              "candidates": []
+            }
+          ]
+        }
+      },
+      {
+        "policy": "minute",
+        "points": [
+          {
+            "t": 0,
+            "value": 0
+          },
+          {
+            "t": 60000,
+            "value": 0
+          },
+          {
+            "t": 120000,
+            "value": 0
+          },
+          {
+            "t": 180000,
+            "value": 0
+          },
+          {
+            "t": 240000,
+            "value": 0
+          },
+          {
+            "t": 300000,
+            "value": 0
+          },
+          {
+            "t": 360000,
+            "value": 0
+          },
+          {
+            "t": 420000,
+            "value": 0
+          },
+          {
+            "t": 480000,
+            "value": 0
+          },
+          {
+            "t": 540000,
+            "value": 0
+          },
+          {
+            "t": 600000,
+            "value": 0
+          },
+          {
+            "t": 660000,
+            "value": 0
+          },
+          {
+            "t": 720000,
+            "value": 0
+          },
+          {
+            "t": 780000,
+            "value": 0
+          },
+          {
+            "t": 840000,
+            "value": 0
+          },
+          {
+            "t": 900000,
+            "value": 0
+          }
+        ],
+        "baseSamples": 2,
+        "additionalSamples": 14,
+        "failures": [],
+        "verified": true,
+        "detectionGuarantee": "NONE for arbitrary sub-minute runs",
+        "comparison": {
+          "missedRuns": 1,
+          "missedMs": 10000,
+          "maxMissedRunMs": 10000,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [
+            {
+              "reference": {
+                "start": 70000,
+                "end": 80000,
+                "sunny": true
+              },
+              "candidates": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "interior-shade",
+    "provenance": "analytic signal; not claimed to be physical caster geometry",
+    "exact": [
+      {
+        "start": 0,
+        "end": 60000,
+        "sunny": true
+      },
+      {
+        "start": 60000,
+        "end": 120000,
+        "sunny": false
+      },
+      {
+        "start": 120000,
+        "end": 900000,
+        "sunny": true
+      }
+    ],
+    "runs": [
+      {
+        "policy": "endpoints",
+        "points": [
+          {
+            "t": 0,
+            "value": 100
+          },
+          {
+            "t": 900000,
+            "value": 100
+          }
+        ],
+        "baseSamples": 2,
+        "additionalSamples": 0,
+        "failures": [],
+        "verified": true,
+        "detectionGuarantee": "NONE for arbitrary sub-minute runs",
+        "comparison": {
+          "missedRuns": 0,
+          "missedMs": 0,
+          "maxMissedRunMs": 0,
+          "falseRuns": 0,
+          "falseMs": 60000,
+          "splits": 0,
+          "merges": 1,
+          "signedErrorsMs": [
+            0,
+            840000,
+            -120000,
+            0
+          ],
+          "maxErrorMs": 840000,
+          "relations": [
+            {
+              "reference": {
+                "start": 0,
+                "end": 60000,
+                "sunny": true
+              },
+              "candidates": [
+                {
+                  "start": 0,
+                  "end": 900000,
+                  "sunny": true
+                }
+              ]
+            },
+            {
+              "reference": {
+                "start": 120000,
+                "end": 900000,
+                "sunny": true
+              },
+              "candidates": [
+                {
+                  "start": 0,
+                  "end": 900000,
+                  "sunny": true
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "policy": "midpoint",
+        "points": [
+          {
+            "t": 0,
+            "value": 100
+          },
+          {
+            "t": 450000,
+            "value": 100
+          },
+          {
+            "t": 900000,
+            "value": 100
+          }
+        ],
+        "baseSamples": 2,
+        "additionalSamples": 1,
+        "failures": [],
+        "verified": true,
+        "detectionGuarantee": "NONE for arbitrary sub-minute runs",
+        "comparison": {
+          "missedRuns": 0,
+          "missedMs": 0,
+          "maxMissedRunMs": 0,
+          "falseRuns": 0,
+          "falseMs": 60000,
+          "splits": 0,
+          "merges": 1,
+          "signedErrorsMs": [
+            0,
+            840000,
+            -120000,
+            0
+          ],
+          "maxErrorMs": 840000,
+          "relations": [
+            {
+              "reference": {
+                "start": 0,
+                "end": 60000,
+                "sunny": true
+              },
+              "candidates": [
+                {
+                  "start": 0,
+                  "end": 900000,
+                  "sunny": true
+                }
+              ]
+            },
+            {
+              "reference": {
+                "start": 120000,
+                "end": 900000,
+                "sunny": true
+              },
+              "candidates": [
+                {
+                  "start": 0,
+                  "end": 900000,
+                  "sunny": true
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "policy": "minute",
+        "points": [
+          {
+            "t": 0,
+            "value": 100
+          },
+          {
+            "t": 30000,
+            "value": 100
+          },
+          {
+            "t": 45000,
+            "value": 100
+          },
+          {
+            "t": 52500,
+            "value": 100
+          },
+          {
+            "t": 56250,
+            "value": 100
+          },
+          {
+            "t": 58125,
+            "value": 100
+          },
+          {
+            "t": 59062,
+            "value": 100
+          },
+          {
+            "t": 60000,
+            "value": 0
+          },
+          {
+            "t": 90000,
+            "value": 0
+          },
+          {
+            "t": 105000,
+            "value": 0
+          },
+          {
+            "t": 112500,
+            "value": 0
+          },
+          {
+            "t": 116250,
+            "value": 0
+          },
+          {
+            "t": 118125,
+            "value": 0
+          },
+          {
+            "t": 119062,
+            "value": 0
+          },
+          {
+            "t": 120000,
+            "value": 100
+          },
+          {
+            "t": 180000,
+            "value": 100
+          },
+          {
+            "t": 240000,
+            "value": 100
+          },
+          {
+            "t": 300000,
+            "value": 100
+          },
+          {
+            "t": 360000,
+            "value": 100
+          },
+          {
+            "t": 420000,
+            "value": 100
+          },
+          {
+            "t": 480000,
+            "value": 100
+          },
+          {
+            "t": 540000,
+            "value": 100
+          },
+          {
+            "t": 600000,
+            "value": 100
+          },
+          {
+            "t": 660000,
+            "value": 100
+          },
+          {
+            "t": 720000,
+            "value": 100
+          },
+          {
+            "t": 780000,
+            "value": 100
+          },
+          {
+            "t": 840000,
+            "value": 100
+          },
+          {
+            "t": 900000,
+            "value": 100
+          }
+        ],
+        "baseSamples": 2,
+        "additionalSamples": 26,
+        "failures": [],
+        "verified": true,
+        "detectionGuarantee": "NONE for arbitrary sub-minute runs",
+        "comparison": {
+          "missedRuns": 0,
+          "missedMs": 469,
+          "maxMissedRunMs": 0,
+          "falseRuns": 0,
+          "falseMs": 469,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [
+            0,
+            -469,
+            -469,
+            0
+          ],
+          "maxErrorMs": 469,
+          "relations": [
+            {
+              "reference": {
+                "start": 0,
+                "end": 60000,
+                "sunny": true
+              },
+              "candidates": [
+                {
+                  "start": 0,
+                  "end": 59531,
+                  "sunny": true
+                }
+              ]
+            },
+            {
+              "reference": {
+                "start": 120000,
+                "end": 900000,
+                "sunny": true
+              },
+              "candidates": [
+                {
+                  "start": 119531,
+                  "end": 900000,
+                  "sunny": true
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "multiple-runs",
+    "provenance": "analytic signal; not claimed to be physical caster geometry",
+    "exact": [
+      {
+        "start": 0,
+        "end": 60000,
+        "sunny": false
+      },
+      {
+        "start": 60000,
+        "end": 120000,
+        "sunny": true
+      },
+      {
+        "start": 120000,
+        "end": 400000,
+        "sunny": false
+      },
+      {
+        "start": 400000,
+        "end": 430000,
+        "sunny": true
+      },
+      {
+        "start": 430000,
+        "end": 900000,
+        "sunny": false
+      }
+    ],
+    "runs": [
+      {
+        "policy": "endpoints",
+        "points": [
+          {
+            "t": 0,
+            "value": 0
+          },
+          {
+            "t": 900000,
+            "value": 0
+          }
+        ],
+        "baseSamples": 2,
+        "additionalSamples": 0,
+        "failures": [],
+        "verified": true,
+        "detectionGuarantee": "NONE for arbitrary sub-minute runs",
+        "comparison": {
+          "missedRuns": 2,
+          "missedMs": 90000,
+          "maxMissedRunMs": 60000,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [
+            {
+              "reference": {
+                "start": 60000,
+                "end": 120000,
+                "sunny": true
+              },
+              "candidates": []
+            },
+            {
+              "reference": {
+                "start": 400000,
+                "end": 430000,
+                "sunny": true
+              },
+              "candidates": []
+            }
+          ]
+        }
+      },
+      {
+        "policy": "midpoint",
+        "points": [
+          {
+            "t": 0,
+            "value": 0
+          },
+          {
+            "t": 450000,
+            "value": 0
+          },
+          {
+            "t": 900000,
+            "value": 0
+          }
+        ],
+        "baseSamples": 2,
+        "additionalSamples": 1,
+        "failures": [],
+        "verified": true,
+        "detectionGuarantee": "NONE for arbitrary sub-minute runs",
+        "comparison": {
+          "missedRuns": 2,
+          "missedMs": 90000,
+          "maxMissedRunMs": 60000,
+          "falseRuns": 0,
+          "falseMs": 0,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [],
+          "maxErrorMs": 0,
+          "relations": [
+            {
+              "reference": {
+                "start": 60000,
+                "end": 120000,
+                "sunny": true
+              },
+              "candidates": []
+            },
+            {
+              "reference": {
+                "start": 400000,
+                "end": 430000,
+                "sunny": true
+              },
+              "candidates": []
+            }
+          ]
+        }
+      },
+      {
+        "policy": "minute",
+        "points": [
+          {
+            "t": 0,
+            "value": 0
+          },
+          {
+            "t": 30000,
+            "value": 0
+          },
+          {
+            "t": 45000,
+            "value": 0
+          },
+          {
+            "t": 52500,
+            "value": 0
+          },
+          {
+            "t": 56250,
+            "value": 0
+          },
+          {
+            "t": 58125,
+            "value": 0
+          },
+          {
+            "t": 59062,
+            "value": 0
+          },
+          {
+            "t": 60000,
+            "value": 100
+          },
+          {
+            "t": 90000,
+            "value": 100
+          },
+          {
+            "t": 105000,
+            "value": 100
+          },
+          {
+            "t": 112500,
+            "value": 100
+          },
+          {
+            "t": 116250,
+            "value": 100
+          },
+          {
+            "t": 118125,
+            "value": 100
+          },
+          {
+            "t": 119062,
+            "value": 100
+          },
+          {
+            "t": 120000,
+            "value": 0
+          },
+          {
+            "t": 180000,
+            "value": 0
+          },
+          {
+            "t": 240000,
+            "value": 0
+          },
+          {
+            "t": 300000,
+            "value": 0
+          },
+          {
+            "t": 360000,
+            "value": 0
+          },
+          {
+            "t": 390000,
+            "value": 0
+          },
+          {
+            "t": 397500,
+            "value": 0
+          },
+          {
+            "t": 399375,
+            "value": 0
+          },
+          {
+            "t": 400312,
+            "value": 100
+          },
+          {
+            "t": 401250,
+            "value": 100
+          },
+          {
+            "t": 405000,
+            "value": 100
+          },
+          {
+            "t": 420000,
+            "value": 100
+          },
+          {
+            "t": 427500,
+            "value": 100
+          },
+          {
+            "t": 429375,
+            "value": 100
+          },
+          {
+            "t": 430312,
+            "value": 0
+          },
+          {
+            "t": 431250,
+            "value": 0
+          },
+          {
+            "t": 435000,
+            "value": 0
+          },
+          {
+            "t": 450000,
+            "value": 0
+          },
+          {
+            "t": 480000,
+            "value": 0
+          },
+          {
+            "t": 540000,
+            "value": 0
+          },
+          {
+            "t": 600000,
+            "value": 0
+          },
+          {
+            "t": 660000,
+            "value": 0
+          },
+          {
+            "t": 720000,
+            "value": 0
+          },
+          {
+            "t": 780000,
+            "value": 0
+          },
+          {
+            "t": 840000,
+            "value": 0
+          },
+          {
+            "t": 900000,
+            "value": 0
+          }
+        ],
+        "baseSamples": 2,
+        "additionalSamples": 38,
+        "failures": [],
+        "verified": true,
+        "detectionGuarantee": "NONE for arbitrary sub-minute runs",
+        "comparison": {
+          "missedRuns": 0,
+          "missedMs": 625.5,
+          "maxMissedRunMs": 0,
+          "falseRuns": 0,
+          "falseMs": 625.5,
+          "splits": 0,
+          "merges": 0,
+          "signedErrorsMs": [
+            -469,
+            -469,
+            -156.5,
+            -156.5
+          ],
+          "maxErrorMs": 469,
+          "relations": [
+            {
+              "reference": {
+                "start": 60000,
+                "end": 120000,
+                "sunny": true
+              },
+              "candidates": [
+                {
+                  "start": 59531,
+                  "end": 119531,
+                  "sunny": true
+                }
+              ]
+            },
+            {
+              "reference": {
+                "start": 400000,
+                "end": 430000,
+                "sunny": true
+              },
+              "candidates": [
+                {
+                  "start": 399843.5,
+                  "end": 429843.5,
+                  "sunny": true
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+]
