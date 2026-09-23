@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "database": "e152_95cd90731e054214bf7b832dfc5d6b37",
+  "checks": 506,
+  "legacyPreserved": true,
+  "limitations": [
+    "Synthetic schema fixtures are not actual-year storage evidence",
+    "Durable crash recovery and candidate API concurrency are later independent proof"
+  ]
+}

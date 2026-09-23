@@ -43,7 +43,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-02
-last_updated: 2026-09-14
+last_updated: 2026-09-23
 # Note (2026-07-27, create-story 12.11 - 12-11-first-run-coach-mark-guide-map-legend-feature-tour backlog -> ready-for-dev):
 # authored the Story 12.11 context file at _bmad-output/implementation-artifacts/12-11-first-run-coach-mark-guide-map-legend-feature-tour.md.
 # Core guidance: post-onboarding first-run coach tour; locked feedback to copy-only guidance; forced visual states are
@@ -356,7 +356,7 @@ development_status:
   # Measurement decision lock precedes schema work; production approval is separate.
   epic-15: in-progress
   15-1-measure-daylight-transition-accuracy-cpu-and-storage: done
-  15-2-define-g2-generation-schema-and-migration-rollback-contract: backlog
+  15-2-define-g2-generation-schema-and-migration-rollback-contract: done
   15-3-build-resumable-seasonal-generator-and-invalidation-planner: backlog
   15-4-add-atomic-release-publication-and-compatibility-reads: backlog
   15-5-prove-parity-transition-correctness-and-operational-recovery: backlog

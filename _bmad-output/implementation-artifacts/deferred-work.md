@@ -272,3 +272,8 @@ Epic 11 Tier-B integration review (48 lens files + whole-epic security [0 findin
 ## Deferred from: code review of 13-1-provider-classified-cold-starts-dependency-path-tracing-and-isolated-restore-drill (2026-08-26)
 
 - [x] [Review][Defer][Low] Offline banner reduced-motion exit still fades over the default transition duration; the diff only changed Motion imports, so the motion-policy issue predates Story 13.1. [nextjs-app/components/custom/offline/OfflineBanner.tsx:38] — deferred, pre-existing
+
+## Deferred from: code review of 15-2-define-g2-generation-schema-and-migration-rollback-contract (2026-09-21)
+
+- [x] [Review][Defer][Low] Fix the missing-probe regression so offsets and exposure remove the same interior index; it currently passes by creating a different endpoint/sample mismatch. [nextjs-app/test/unit/services/sun-geometry-season-codec.test.ts:103] — deferred, pre-existing
+- [x] [Review][Defer][Low] Require evidence references to target a ready, checksum-bound generation; the current foreign key also accepts building, failed and retired generations. [supabase/migrations/20260915104303_seasonal_geometry_g2_contract.sql:349] — resolved 2026-09-22 by the overlapping Round 10 R10-02 serialization fix; historical defer classification retained
