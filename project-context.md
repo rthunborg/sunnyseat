@@ -506,13 +506,14 @@ Rasmus approved the [Correct Course proposal](_bmad-output/planning-artifacts/sp
 ### Current Epic 15 disposition — consolidated 2026-09-15
 
 **Workflow update (2026-09-23):** Stories 15.1 and 15.2 are done; Story 15.3 is
-the next implementation target. Invoke `/auto-bmad --story 15-3 skip branch skip pr`
-to keep Story 15.3 on the unmerged Epic 15 branch; the default per-story branch
-would start from `main` and omit 15.1/15.2. Story 13.1 remains in progress for
-its independent provider-cold and restore evidence. Epic 14 tracking records
-14.1 as done and 14.2–14.6 as backlog; those launch gates remain independent.
-The dated consolidation below records the earlier decision and does not claim
-that later gates have passed.
+the next implementation target. On the unmerged Epic 15 branch, AGENTS.md binds
+a bare `/auto-bmad` invocation to the first unfinished Epic 15 story and keeps
+the per-story commits on this branch. Each invocation handles one story; after
+15.3 reaches `done`, the next invocation selects 15.4, then 15.5 and 15.6 in
+order. Story 13.1 remains in progress for independent provider-cold and restore
+evidence. Epic 14 tracking records 14.1 as done and 14.2–14.6 as backlog; those
+launch gates remain independent. The dated consolidation below records the
+earlier decision and does not claim that later gates have passed.
 
 Rasmus explicitly accepted consolidation of the reviewed measurement choices into canonical architecture.md E15-AD-01/02. G1a–G1d is accepted under the September 10/12/14 decisions and CD15.1-v1/A1; Story 15.1 is done, while 15.2–15.6 remain backlog and are not started by this update. Earlier dated pending/default statements are historical and superseded by this disposition.
 

@@ -155,6 +155,7 @@ The frontend budget is <=600 KB gzipped JS total, with initial route <=280 KB an
 ## BMAD Story Workflow
 
 - `project-context.md` is durable project context and contains the canonical Screen ID -> Route Map used by visual validation.
+- **Epic-branch auto-bmad continuation:** On `epic/<N>-*`, a bare `auto-bmad` invocation means one story from that branch's epic. Before the skill's global target selection, use `story_plan.py --epic <N>` to enumerate the epic and `state_plan.py` to find an in-flight state for that epic. Resume that in-flight story when present; otherwise select the first story in epic order whose status is not `done`. Run the selected story through the per-story pipeline with an explicit `--story <id>` and `skip branch` / `skip pr` so its commits stay on the existing epic branch. Never select an older story from another epic merely because its status is still open. Stop after that one story; the next bare invocation advances only after the current story reaches `done`. An explicit `--story` or `epic` invocation takes precedence over this branch-scoped default. If the branch or epic cannot be resolved unambiguously, stop and surface the conflict.
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` is local sprint state.
 - Story files currently live directly under `_bmad-output/implementation-artifacts/` in this checkout.
 - Do not directly edit `_bmad-output/implementation-artifacts/sprint-status.yaml` to mark a story `review`.
